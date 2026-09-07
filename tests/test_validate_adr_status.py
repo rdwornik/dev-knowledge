@@ -866,6 +866,328 @@ def test_shipped_corpus_coherence_divergences_are_the_three_measured():
         "ADR-45", "ADR-46", "ADR-47"}
 
 
+# --- the Flip-condition leg ----------------------------------------------------
+#
+# Same three layers as above, applied to the rule that makes an ADR name the condition under
+# which its own decision reverses. Layer 1 proves the section detector has teeth (a QUOTED
+# heading is not a written one); layer 2 covers the grandfather split; layer 3 pins the
+# measured corpus population.
+
+def _flip(body: str) -> str:
+    return vas.flip_section_state(body)
+
+
+@pytest.mark.parametrize("heading", [
+    "## Flip-condition",
+    "## Flip condition",
+    "### flip-condition",
+    "## **Flip-condition**",
+    "## Flip-condition — what would reverse this",
+])
+def test_a_written_flip_section_is_recognised_in_its_measured_spellings(heading):
+    """The heading is identified by NAME. Capitalisation, a bold wrapper, a nested level and
+    a trailing subtitle are typography — failing a conforming ADR over any of them would be a
+    false positive on a FAIL-armed leg, the worst failure this module has."""
+    assert _flip(f"# ADR-900\n\n{heading}\n\nIf the benchmark regresses.\n") == "present"
+
+
+def test_a_missing_flip_section_is_missing_not_empty():
+    assert _flip("# ADR-900\n\n## Decision\n\nDo the thing.\n") == "missing"
+
+
+@pytest.mark.parametrize("body", [
+    "",                                        # heading, then nothing
+    "\n\n",                                    # heading, then blank lines
+    "\n<What would make us reverse this?>\n",  # the template placeholder, unanswered
+    "\n<!-- a note -->\n",                     # comment only — lexed out, so nothing visible
+    # A MULTI-LINE placeholder. Found live: the shipped template's own prompt runs to five
+    # physical lines, and a line-anchored `^<...>$` test passed every one-line fixture above
+    # and then read the real template as answered. The placeholder is a SPAN, not a line.
+    "\n<What would make us reverse this decision?\nName the observable —\na measurement.>\n",
+    # ...and two placeholder blocks with nothing else are still nothing else.
+    "\n<first prompt>\n\n<second prompt>\n",
+    # A NESTED prompt. Also found live: the shipped template's own says `write "none — <why>"`,
+    # and a single flat subtraction pass removes the inner span while leaving the outer
+    # brackets behind as residue, which then reads as an answer.
+    "\n<What would reverse this? Where nothing would, write \"none — <why>\".>\n",
+])
+def test_an_unanswered_flip_section_is_EMPTY_not_present(body):
+    """The vacuous pass this leg exists to refuse: an ADR that copied the template, kept the
+    heading and never answered the question has named no flip. `empty` is a defect too."""
+    assert _flip(f"# ADR-900\n\n## Flip-condition\n{body}\n## Consequences\n\nx\n") == "empty"
+
+
+def test_a_flip_heading_inside_a_code_fence_does_not_satisfy_the_rule():
+    """Quoting the requirement is not meeting it. Without fence tracking, any ADR could
+    satisfy a FAIL-armed leg by showing the template in an example block."""
+    body = ("# ADR-900\n\n```markdown\n## Flip-condition\n\nIf X.\n```\n")
+    assert _flip(body) == "missing"
+
+
+def test_a_flip_heading_inside_a_blockquote_does_not_satisfy_the_rule():
+    """A quoted contract excerpt is someone else's document, not this ADR's section."""
+    assert _flip("# ADR-900\n\n> ## Flip-condition\n>\n> If X.\n") == "missing"
+
+
+def test_a_flip_heading_inside_an_html_comment_does_not_satisfy_the_rule():
+    assert _flip("# ADR-900\n\n<!--\n## Flip-condition\n\nIf X.\n-->\n") == "missing"
+
+
+def test_the_section_ends_at_the_next_heading_of_the_same_or_shallower_level():
+    """Body collection must stop at the section boundary, or the NEXT section's prose fills an
+    empty Flip-condition and the emptiness check never fires."""
+    body = "# ADR-900\n\n## Flip-condition\n\n## Consequences\n\nReal prose lives here.\n"
+    assert _flip(body) == "empty"
+
+
+def test_prose_containing_an_angle_bracket_token_still_reads_as_FILLED():
+    """The other direction of the span subtraction: this corpus writes `<name>`-shaped tokens
+    in ordinary prose, and treating a body that contains one as unanswered would be a false
+    positive on a FAIL-armed leg."""
+    body = ("# ADR-900\n\n## Flip-condition\n\n"
+            "If the `worktree-<name>` grammar stops being machine-produced.\n")
+    assert _flip(body) == "present"
+
+
+def test_a_deeper_subheading_stays_INSIDE_the_flip_section():
+    body = ("# ADR-900\n\n## Flip-condition\n\n### The measurable\n\n"
+            "If p95 latency doubles.\n\n## Consequences\n\nx\n")
+    assert _flip(body) == "present"
+
+
+def test_a_NEW_adr_without_a_flip_section_is_a_FAIL_armed_defect(tmp_path):
+    """The teeth. An ADR numbered above the grandfather mark must name its flip."""
+    d = tmp_path / "docs" / "decisions"
+    d.mkdir(parents=True)
+    (d / f"ADR-{vas.FLIP_GRANDFATHER_MAX_ADR + 1}-new.md").write_text(
+        "# ADR-x\n\n- **Status:** Accepted\n", encoding="utf-8")
+    defects = vas.required_section_defects(d)
+    assert [d_.rule for d_ in defects] == [vas.R_FLIP, vas.R_ALTS]
+    assert vas.FAIL_RULES.issuperset({vas.R_FLIP, vas.R_ALTS})
+
+
+def test_a_GRANDFATHERED_adr_without_a_flip_section_WARNS_and_never_FAILS(tmp_path):
+    """The lane contract's explicit bar: *existing ADRs WARN with a disposition path, not
+    fail*. Failing 89 pre-existing files retroactively wedges every commit in the repo."""
+    d = tmp_path / "docs" / "decisions"
+    d.mkdir(parents=True)
+    (d / f"ADR-{vas.FLIP_GRANDFATHER_MAX_ADR}-old.md").write_text(
+        "# ADR-x\n\n- **Status:** Accepted\n", encoding="utf-8")
+    defects = vas.required_section_defects(d)
+    assert [d_.rule for d_ in defects] == [vas.R_FLIP_LEGACY, vas.R_ALTS_LEGACY]
+    assert not vas.FAIL_RULES & {vas.R_FLIP_LEGACY, vas.R_ALTS_LEGACY}
+    for d_ in defects:
+        assert "DISPOSITION:" in d_.detail, d_.detail
+
+
+def test_an_unnumbered_adr_filename_warns_rather_than_blocking(tmp_path):
+    """A false positive on a FAIL-armed leg is this module's worst available failure, so a
+    name that yields no number is treated as grandfathered."""
+    d = tmp_path / "docs" / "decisions"
+    d.mkdir(parents=True)
+    (d / "ADR-draft-no-number.md").write_text("# x\n", encoding="utf-8")
+    assert [d_.rule for d_ in vas.required_section_defects(d)] == [
+        vas.R_FLIP_LEGACY, vas.R_ALTS_LEGACY]
+
+
+# --- the Alternatives-considered leg (operator, DECLARE-F-2-2026-09-07 §A) ------
+
+@pytest.mark.parametrize("heading", [
+    # Every spelling below was MEASURED in the live corpus, with its file count. Enforcing only
+    # the template's wording would report 9 ADRs as having justified nothing when they plainly
+    # did — and 3 more for numbering their sections.
+    "## Alternatives considered",                       # 45 files — the template's spelling
+    "## Rejected alternatives",                         # 6
+    "## Alternatives rejected",                         # 3
+    "## Alternatives considered (the #86.2 operator fork)",
+    "## 10. Alternatives considered",
+    "## §9 Alternatives considered",
+    "## §4 — Alternatives considered and rejected, with their recorded reasons",
+])
+def test_every_measured_alternatives_spelling_satisfies_the_requirement(heading):
+    body = f"# ADR-900\n\n{heading}\n\nThe sibling design, rejected on cost.\n"
+    assert vas.alternatives_section_state(body) == "present", heading
+
+
+def test_an_unanswered_alternatives_section_is_EMPTY_not_present():
+    """`<Always filled…>` was in the template long before anything checked it. A copied,
+    unanswered prompt is exactly what the word `Always` failed to prevent."""
+    body = ("# ADR-900\n\n## Alternatives considered\n\n"
+            "<Always filled. What else was evaluated, and why was it not chosen?>\n")
+    assert vas.alternatives_section_state(body) == "empty"
+
+
+def test_a_recorded_none_considered_SATISFIES_the_requirement():
+    """The template's own escape hatch has to work, or the rule forces invention. Recording
+    "none considered" plus a reason is an answer; omitting the section is not."""
+    body = ("# ADR-900\n\n## Alternatives considered\n\n"
+            "None considered — the operator ruled the shape directly.\n")
+    assert vas.alternatives_section_state(body) == "present"
+
+
+def test_the_word_alternatives_in_prose_does_not_satisfy_the_requirement():
+    """Only a HEADING opens the section. A rule satisfied by mentioning the word is not a
+    required section, it is a keyword search."""
+    body = "# ADR-900\n\n## Decision\n\nWe weighed the alternatives and chose this one.\n"
+    assert vas.alternatives_section_state(body) == "missing"
+
+
+def test_the_template_carries_an_alternatives_considered_section():
+    tmpl = (vas._REPO_ROOT / "templates" / "ADR-template.md").read_text(encoding="utf-8")
+    assert vas.alternatives_section_state(tmpl) == "empty", (
+        "the template must carry the HEADING and leave the BODY an unanswered placeholder")
+
+
+def test_both_required_sections_share_one_grandfather_mark():
+    """They arm in the same commit, so they grandfather the same population. Two marks would
+    drift, and the second one to drift would be the one nobody re-measured."""
+    assert {s.fail_rule for s in vas.REQUIRED_SECTIONS} == {vas.R_FLIP, vas.R_ALTS}
+    assert {s.warn_rule for s in vas.REQUIRED_SECTIONS} == {
+        vas.R_FLIP_LEGACY, vas.R_ALTS_LEGACY}
+    assert vas.FAIL_RULES.issuperset({s.fail_rule for s in vas.REQUIRED_SECTIONS})
+    assert not vas.FAIL_RULES & {s.warn_rule for s in vas.REQUIRED_SECTIONS}
+
+
+def test_ADR_117_landed_above_the_mark_and_satisfies_BOTH_requirements():
+    """The mid-lane collision, pinned. ADR-117 was written under the OLD template, in the same
+    wave, and is the only live ADR ABOVE the grandfather mark — so both legs are FAIL-armed
+    against it. It carries both sections on its own merits, which is why the mark was not
+    raised to re-grandfather it and why this leg arms with zero FAILs.
+    """
+    adr = next(vas.LIVE_DIR.glob("ADR-117-*.md"), None)
+    if adr is None:                       # not yet merged into this tree
+        pytest.skip("ADR-117 is not in this checkout")
+    text = adr.read_text(encoding="utf-8")
+    assert int(vas.adr_number(adr).split("-")[1]) > vas.FLIP_GRANDFATHER_MAX_ADR
+    assert vas.flip_section_state(text) == "present"
+    assert vas.alternatives_section_state(text) == "present"
+
+
+def test_a_section_numbered_with_an_enumerator_is_still_written():
+    """`## 10. Alternatives considered` / `## §9 …` are live corpus forms. Numbering a section
+    does not un-write it."""
+    for heading in ("## 10. Flip-condition", "## §9 Flip-condition", "## §4 — Flip-condition"):
+        body = f"# ADR-900\n\n{heading}\n\nIf the benchmark regresses.\n"
+        assert vas.flip_section_state(body) == "present", heading
+
+
+# --- layer 2d: the required-section reviewer round (one case per HIGH) ---------
+#
+# Five HIGHs, one round, `reviewer: codex`. Every case below is a concrete input the reviewer
+# returned against the round-1 code and each is pinned so a later edit cannot reintroduce it.
+
+def test_a_BLOCKQUOTED_body_is_body_not_quoted_material():
+    """terra HIGH-1, and the worst class this module has: a FALSE POSITIVE on a FAIL-armed
+    leg. Blockquote lines were skipped everywhere, so an ADR that answered the question in a
+    blockquote — the form this corpus uses most for emphasis — was reported EMPTY."""
+    body = "# ADR-900\n\n## Flip-condition\n\n> Reverse if the measured cost doubles.\n"
+    assert _flip(body) == "present"
+
+
+def test_a_blockquoted_heading_still_does_not_OPEN_a_section():
+    """The other half of the same fix: quoted material before the section is still quoted."""
+    assert _flip("# ADR-900\n\n> ## Flip-condition\n>\n> If X.\n") == "missing"
+
+
+def test_a_quoted_heading_inside_the_body_does_not_END_the_section():
+    """A section that quotes a later heading keeps its own body — the boundary test is matched
+    against the line WITH its `>` prefix, so a quoted heading cannot terminate it."""
+    body = ("# ADR-900\n\n## Flip-condition\n\n> ## Consequences\n\n"
+            "If the benchmark regresses.\n")
+    assert _flip(body) == "present"
+
+
+def test_an_EMPTY_ATX_heading_ends_the_section():
+    """terra HIGH-2: `##` alone is a valid empty ATX heading. Requiring a space after the
+    hashes made it invisible as a boundary, so the NEXT section's prose filled a
+    placeholder-only body and laundered it into `present`."""
+    body = ("# ADR-900\n\n## Flip-condition\n\n<unanswered prompt>\n\n##\n\n"
+            "Real prose that belongs to the next section.\n")
+    assert _flip(body) == "empty"
+
+
+def test_a_hash_run_with_no_space_is_not_a_heading_boundary():
+    """The EMPTY-heading fix must not turn `###nothing` into a boundary — that is not a
+    heading in CommonMark, it is text."""
+    body = "# ADR-900\n\n## Flip-condition\n\n<prompt>\n\n###nothing\n"
+    assert _flip(body) == "present"       # `###nothing` is body text, and it is filled
+
+
+@pytest.mark.parametrize("heading", [
+    "## **Flip-condition",       # opened, never closed
+    "## *Flip-condition*",       # balanced
+    "## __Alternatives considered",
+])
+def test_unbalanced_emphasis_in_a_heading_is_accepted_deliberately(heading):
+    """terra HIGH-3, resolved in the LENIENT direction and pinned so the choice is visible.
+
+    Unlike `_ENUM_AT_START_RE`, which guards a declared VALUE where unbalanced markup is how a
+    bad token is laundered into a good one, this regex identifies a section by NAME — where
+    the only thing sloppy emphasis can do is SATISFY the requirement. A false positive on a
+    FAIL-armed leg is the worse error, so the lenient reading is the safe one.
+    """
+    body = f"# ADR-900\n\n{heading}\n\nAn answer.\n"
+    state = (vas.alternatives_section_state(body) if "Alternatives" in heading
+             else vas.flip_section_state(body))
+    assert state == "present", heading
+
+
+def test_an_unnumbered_adr_is_warned_AND_named_as_ungateable(tmp_path):
+    """terra HIGH-4. The leniency stays — an unparseable name cannot be placed relative to the
+    mark, and guessing would risk a false FAIL — but it is no longer SILENT: the evidence says
+    the file is ungateable, so the hole is visible to whoever reads the WARN."""
+    d = tmp_path / "docs" / "decisions"
+    d.mkdir(parents=True)
+    (d / "ADR-draft-no-number.md").write_text("# x\n", encoding="utf-8")
+    defects = vas.required_section_defects(d)
+    assert [d_.rule for d_ in defects] == [vas.R_FLIP_LEGACY, vas.R_ALTS_LEGACY]
+    for d_ in defects:
+        assert "UNGATEABLE" in d_.detail, d_.detail
+
+
+def test_the_grandfather_mark_is_the_measured_high_water_and_is_frozen():
+    """116 is MEASURED — the highest live ADR number at the leg's arming (2026-09-07,
+    `ef53b069`). It is asserted here so that RAISING it, which would re-grandfather an ADR
+    written after the requirement existed, is a visible test edit and not a quiet weakening."""
+    numbers = [int(vas.adr_number(p).split("-")[1])
+               for p in vas.LIVE_DIR.glob("ADR-*.md") if vas.adr_number(p)]
+    assert vas.FLIP_GRANDFATHER_MAX_ADR == 116
+    assert max(numbers) >= vas.FLIP_GRANDFATHER_MAX_ADR, (
+        "the mark is above the corpus high-water — it was raised, not measured")
+
+
+def test_the_template_carries_a_flip_condition_section():
+    """`templates/ADR-template.md` is the requirement's declaration site: an author meets the
+    rule by copying the template. If the section leaves the template, every new ADR fails a
+    FAIL-armed leg with nothing to copy from."""
+    tmpl = (vas._REPO_ROOT / "templates" / "ADR-template.md").read_text(encoding="utf-8")
+    assert vas.flip_section_state(tmpl) == "empty", (
+        "the template must carry the HEADING and leave the BODY an unanswered placeholder — "
+        "a filled template body would let a copied-but-unanswered section read as compliant")
+
+
+def test_shipped_corpus_required_section_baseline_is_the_measured_population():
+    """Layer 3, both required sections. MEASURED 2026-09-07 on `ec0d7912`, after ADR-117
+    landed mid-lane: 90 live ADRs; 89 name no flip (ADR-117 is the only one that does) and 32
+    record no alternatives. Every one of them is at or below the mark, so the two legs add 121
+    WARNs and exactly **0 FAILs** on the day they arm.
+
+    A FAIL appearing here means a NEW ADR landed carrying neither section — which is the
+    requirement working, not this baseline being wrong.
+
+    The alternatives figure is re-measured against the operator's 57/88 (65%) in
+    DECLARE-F-2-2026-09-07 §A and does NOT reproduce it: this predicate counts 58 of 90 (64%).
+    The denominator moved (two ADRs landed since), and the numerator agrees only because the
+    predicate accepts the corpus's three measured spellings; a grep for the template's exact
+    words counts 46, not 57.
+    """
+    defects = vas.required_section_defects(vas.LIVE_DIR)
+    counts: dict[str, int] = {}
+    for d in defects:
+        counts[d.rule] = counts.get(d.rule, 0) + 1
+    assert counts == {vas.R_FLIP_LEGACY: 89, vas.R_ALTS_LEGACY: 32}, counts
+
+
 # --- the audit-check adapter ---------------------------------------------------
 
 from audit_checks.check_adr_status_grammar import (  # noqa: E402
@@ -904,11 +1226,20 @@ def test_check_FAILS_on_an_off_enum_value(tmp_path):
 
 
 def test_check_PASSES_on_a_fully_conforming_corpus(tmp_path):
-    """Proof the check is not warn-by-construction — a clean corpus really does pass."""
+    """Proof the check is not warn-by-construction — a clean corpus really does pass.
+
+    UPDATED when the `Flip-condition` leg landed: "fully conforming" now includes naming the
+    flip, so this fixture gained the section. That is the requirement arriving, not the test
+    being relaxed — the assertion is still `pass`, and dropping the new section from the
+    fixture puts it back to `warn`.
+    """
     d = tmp_path / "docs" / "decisions"
     d.mkdir(parents=True)
     (d / "ADR-11-x.md").write_text(
-        "# ADR-11 — x\n\n- **Status:** Accepted\n", encoding="utf-8")
+        "# ADR-11 — x\n\n- **Status:** Accepted\n"
+        "\n## Flip-condition\n\nIf the measured cost crosses 2x.\n"
+        "\n## Alternatives considered\n\nNone considered — the sibling measured slower.\n",
+        encoding="utf-8")
     (d / "README.md").write_text(
         "| ADR | Date | Title |\n|--|--|--|\n| ADR-11 | 2026-01-01 | x |\n",
         encoding="utf-8")
@@ -966,7 +1297,11 @@ def test_FAIL_evidence_still_reports_the_warn_defects_it_computed(tmp_path):
 @pytest.mark.parametrize("seed,expect", [
     ("Status: Accepted\n", "warn"),      # G3 -> grammar WARN only
     ("(nothing)\n", "fail"),             # no field -> single-field FAIL
-    ("- **Status:** Accepted\n", "pass"),
+    # The `pass` seed carries a Flip-condition section: since that leg landed, a status line
+    # alone is conforming on the status rules but WARNs on the flip one, and this test is
+    # about evidence sanitation on all three branches — it needs a genuine `pass` branch.
+    ("- **Status:** Accepted\n\n## Flip-condition\n\nIf the cost crosses 2x.\n"
+     "\n## Alternatives considered\n\nNone considered — measured.\n", "pass"),
 ])
 def test_evidence_never_contains_a_literal_pipe(tmp_path, seed, expect):
     """`Finding.evidence` is markdown-table-safe by contract (`_common.Finding` docstring):
@@ -980,6 +1315,78 @@ def test_evidence_never_contains_a_literal_pipe(tmp_path, seed, expect):
     f = check_adr_status_grammar(tmp_path)[0]
     assert f.status == expect, f.evidence
     assert "|" not in f.evidence, f.evidence
+
+
+def test_check_FAILS_a_new_adr_that_names_no_flip_condition(tmp_path):
+    """The adapter half of the teeth: the FAIL-armed flip leg has to reach the audit finding,
+    not just the library function. This check is tiered at TIER_COMMIT, so this is what
+    actually blocks a commit."""
+    d = tmp_path / "docs" / "decisions"
+    d.mkdir(parents=True)
+    n = vas.FLIP_GRANDFATHER_MAX_ADR + 1
+    (d / f"ADR-{n}-new.md").write_text(
+        f"# ADR-{n} — new\n\n- **Status:** Accepted\n", encoding="utf-8")
+    (d / "README.md").write_text(
+        f"| ADR | Date | Title |\n|--|--|--|\n| ADR-{n} | 2026-01-01 | new |\n",
+        encoding="utf-8")
+    f = check_adr_status_grammar(tmp_path)[0]
+    assert f.status == "fail", f.evidence
+    assert "flip-condition" in f.evidence
+
+
+def test_check_WARNS_rather_than_FAILS_on_the_grandfathered_population(tmp_path):
+    """The other half of the contract bar, at the adapter: a pre-existing ADR with no flip
+    section must not block a commit."""
+    d = tmp_path / "docs" / "decisions"
+    d.mkdir(parents=True)
+    (d / "ADR-11-x.md").write_text(
+        "# ADR-11 — x\n\n- **Status:** Accepted\n", encoding="utf-8")
+    (d / "README.md").write_text(
+        "| ADR | Date | Title |\n|--|--|--|\n| ADR-11 | 2026-01-01 | x |\n", encoding="utf-8")
+    f = check_adr_status_grammar(tmp_path)[0]
+    assert f.status == "warn", f.evidence
+    assert "flip-condition-legacy=1" in f.evidence, f.evidence
+
+
+def test_hub_evidence_separates_this_legs_warns_from_the_inherited_baseline():
+    """The dispatcher pin: *say what YOUR leg adds*, so the next reader can tell the new WARNs
+    from the four inherited populations. They are separate keys in one tally, never a merged
+    total."""
+    ev = check_adr_status_grammar(vas._REPO_ROOT)[0].evidence
+    for inherited in ("grammar=47", "coherence=3", "duplicate-id=2", "wrapped-value=1"):
+        assert inherited in ev, ev
+    assert "flip-condition-legacy=89" in ev, ev
+    assert "alternatives-considered-legacy=32" in ev, ev
+
+
+def test_a_required_section_read_error_does_not_MASK_a_real_enum_failure(tmp_path,
+                                                                        monkeypatch):
+    """terra HIGH-5: the adapter early-returned a WARN when the required-section pass raised,
+    discarding every defect the same run had already computed — so a race could downgrade a
+    genuine commit-blocking FAIL, and the adapter then disagreed with the CLI, which takes no
+    such path. Exactly the failure `test_a_missing_index_does_not_MASK_a_real_enum_failure`
+    pins for the index leg."""
+    d = tmp_path / "docs" / "decisions"
+    d.mkdir(parents=True)
+    (d / "ADR-11-x.md").write_text(
+        "# ADR-11 — x\n\n- **Status:** Ratified\n", encoding="utf-8")   # enum FAIL
+    (d / "README.md").write_text(
+        "| ADR | Date | Title |\n|--|--|--|\n| ADR-11 | 2026-01-01 | x |\n", encoding="utf-8")
+
+    # Patch the module object the ADAPTER holds, not the one this test imported. The adapter
+    # resolves `scripts.validate_adr_status` or bare `validate_adr_status` depending on how it
+    # was imported, and those can be two distinct module objects — patching the wrong one makes
+    # the test pass by never firing.
+    import audit_checks.check_adr_status_grammar as _mod
+
+    def _boom(_directory):
+        raise _mod._vas.CorpusUnusable("simulated race")
+
+    monkeypatch.setattr(_mod._vas, "required_section_defects", _boom)
+    f = check_adr_status_grammar(tmp_path)[0]
+    assert f.status == "fail", f.evidence          # the FAIL survives the read error
+    assert "enum" in f.evidence
+    assert "DID NOT RUN" in f.evidence, f.evidence  # ...and the error is still reported
 
 
 def test_check_carries_the_rule_annotation_for_the_doc_code_edge():
@@ -996,7 +1403,12 @@ def test_check_carries_the_rule_annotation_for_the_doc_code_edge():
 # --- the CLI exit contract -----------------------------------------------------
 
 def test_cli_exit_0_on_a_clean_synthetic_corpus(tmp_path):
-    _write(tmp_path, "ADR-11-x.md", "# ADR-11 — x\n\n- **Status:** Accepted\n")
+    # Carries a Flip-condition section for the same reason the adapter's `pass` fixture does:
+    # "clean" now includes naming the flip, and the CLI must agree with the adapter about it.
+    _write(tmp_path, "ADR-11-x.md",
+           "# ADR-11 — x\n\n- **Status:** Accepted\n"
+           "\n## Flip-condition\n\nIf the cost crosses 2x.\n"
+           "\n## Alternatives considered\n\nNone considered — measured.\n")
     (tmp_path / "docs" / "decisions" / "README.md").write_text(
         "| ADR | Date | Title |\n|--|--|--|\n| ADR-11 | 2026-01-01 | x |\n",
         encoding="utf-8")

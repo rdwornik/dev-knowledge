@@ -4,12 +4,11 @@ The thin ADAPTER half of a two-site rule; the logic lives in `scripts/validate_a
 Same module-import + thin-adapter shape as `check_safe_removal` / `check_doc_claims`, and the
 same 2-site `multi_site:` declaration those use (`ecosystem/doc-code-edge.yaml`).
 
-NOT YET REGISTERED. This module is deliberately not wired into `ALL_CHECKS` by the lane that
-wrote it: `audit.py`, `audit_checks/registry.py` and `ecosystem/doc-code-edge.yaml` are shared
-with two sibling lanes in this batch, so the registration ships as a **fenced diff** in
-`docs/audits/2026-08-23-technical-lane-status-grammar.md` §Step 4 for the integrator to apply.
-Until that diff lands this module is imported by nothing but its tests — dead by design, not
-by oversight.
+REGISTERED SINCE. The fenced registration diff this module originally shipped for the
+integrator to apply — `docs/audits/2026-08-23-technical-lane-status-grammar.md` §Step 4 — has
+landed: `audit_checks/registry.py` carries the import and the `ALL_CHECKS` membership, and
+`audit.py` tiers it at `TIER_COMMIT`. The check therefore BLOCKS a commit on a FAIL, which is
+what makes each leg's arming level (FAIL vs WARN) a live decision rather than a report format.
 """
 
 from __future__ import annotations
@@ -33,11 +32,22 @@ def check_adr_status_grammar(repo_path: Path) -> list[Finding]:
     is available work and is not claimed here."* ADR-94 filed the need, naming header↔README
     coherence and Pattern-B go-forward as the two legs.
 
-    Six rules, armed at two levels because the corpus cannot pass all six today:
+    Nine rules, armed at two levels because the corpus cannot pass all nine today:
 
       FAIL — `enum` (value outside the declared domain), `single-field` (a file must carry
              exactly one status field). Both measure **0** on the live corpus at merge base
              `aeec0fd1`, so arming them is free and they cannot RED a clean tree.
+             Two REQUIRED-SECTION legs join them: `flip-condition` (an ADR above the
+             grandfather mark that does not name the condition under which its decision
+             reverses) and `alternatives-considered` (one that justifies nothing it did not
+             choose — operator ruling DECLARE-F-2-2026-09-07 §A, thesis T-04). Both measure
+             **0** at arming, because the one ADR above the mark carries both sections.
+      WARN — the same two defects on an ADR at or below the mark:
+             `flip-condition-legacy` (**89** of 90 live ADRs — only ADR-117 names its flip)
+             and `alternatives-considered-legacy` (**32** of 90). Each detail carries a
+             per-file disposition path. Arming those populations at FAIL would wedge every
+             commit in the repo against pre-existing files, which is an outage rather than
+             enforcement.
       WARN — `grammar` (47), `coherence` (3), `wrapped-value` (1), `duplicate-id` (2),
              `unindexed` (0). Arming `grammar` at FAIL would RED-block every commit on day
              one against 47 pre-existing divergences, which is a normalization mandate this
@@ -79,6 +89,23 @@ def check_adr_status_grammar(repo_path: Path) -> list[Finding]:
 
     defects = _vas.corpus_defects(fields, missing, extra)
     defects += _vas.duplicate_id_defects(fields, missing)
+    # The REQUIRED-SECTION legs. They re-read the same files rather than riding `scan_zone`'s
+    # parse, because `scan_zone` returns status FIELDS and discards the text a section rule
+    # needs; the alternative was widening its return type for one caller. The zone was already
+    # proved readable above, so this raises only on a race — and a race must not escape as an
+    # unhandled OSError.
+    #
+    # THE ERROR IS RECORDED, NOT RETURNED. An early `return warn` here discarded every defect
+    # the run had ALREADY computed, so a race could downgrade a genuine enum/single-field FAIL
+    # to a WARN and let the commit through; it also made the adapter disagree with the CLI,
+    # which takes no such path (terra HIGH-5). This is the same failure the `index_error`
+    # branch below was fixed for, and it is handled the same way: keep the defects, carry the
+    # error as supplemental evidence, and let the FAIL-armed legs decide the verdict.
+    section_error = ""
+    try:
+        defects += _vas.required_section_defects(decisions)
+    except _vas.CorpusUnusable as exc:
+        section_error = f"required-section legs DID NOT RUN ({exc})"
 
     # The index is HALF this check's subject ([#242]'s Done-when leg). An absent or unreadable
     # README must therefore be loud: returning `pass` while the coherence leg silently did not
@@ -114,15 +141,17 @@ def check_adr_status_grammar(repo_path: Path) -> list[Finding]:
         if len(fails) > 8:
             ev += f" (+{len(fails) - 8} more)"
         ev += f" || also detected: {_tally(warns)}"
-        if index_error:
-            ev += f" || {index_error}"
+        for err in (index_error, section_error):
+            if err:
+                ev += f" || {err}"
         return [Finding("adr_status_grammar", "fail", ev.replace("|", "/"))]
 
-    if warns or index_error:
+    if warns or index_error or section_error:
         ev = (f"{len(fields)} ADR status field(s); 0 enum/single-field defects; "
               f"baseline WARNs: " + _tally(warns))
-        if index_error:
-            ev += f" | {index_error}"
+        for err in (index_error, section_error):
+            if err:
+                ev += f" | {err}"
         return [Finding("adr_status_grammar", "warn", ev.replace("|", "/"))]
 
     return [Finding("adr_status_grammar", "pass",
