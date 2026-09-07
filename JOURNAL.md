@@ -50,8 +50,12 @@ silently omitted the packet -- a generator that reads the index it is regenerati
 not from disk. Staging first, then regenerating, is the order. The regen also discharges the
 "index regen #2" integrator-N2 recorded as owed AFTER the close packet.
 
+**This entry also anchors its own merge**, by naming `e34bd035` -- the commit that carries the
+text you are reading. The arc's merge introduces `e34bd035`, so naming it satisfies the
+predicate that a spine entry names at least one SHA it introduced.
+
 **Changes:** `docs/audits/2026-09-07-technical-batch-u-close-packet.md` (new, 544 lines),
-`docs/audits/README.md`.
+`docs/audits/README.md`, `JOURNAL.md`.
 **Next:** intake #76, the remaining docs-only branches, teardown, census, ship-gate.
 
 ### 2026-09-07 (s) - CC (Opus 5, INTEGRATOR-N2): the filings arc lands, and ADR-118 immediately re-opens the leak ADR-117 just closed
