@@ -81,6 +81,9 @@ anchored it, killed the full suite on the dispatcher's evidence.
 **Changes:** JOURNAL.md; ten branch deletions; one husk removed.
 **Abandoned:** the full-suite number ([#528] item 2) -- UNMET, substrate-bound, and it stays that way tonight.
 **Next:** merge W2-U1 on its HANDBACK, then U2, then U3/U4/F1-F5 parallel, W2-R last.
+**Anchor-of-the-anchor:** this entry was authored at `bf9d0d3c`. Naming it here is what lets
+the `--no-ff` merge of `docs/anchor-w13-2026-09-07` anchor itself -- a merge cannot name its
+own hash, so the branch carries two commits rather than one (the `a45a3ae3` precedent).
 
 ### 2026-09-07 (h) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): wave 1 closes on a cache that was inert at 0.0%, and a third lane finds its contract already half-done
 
