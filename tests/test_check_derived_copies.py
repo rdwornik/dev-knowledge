@@ -373,6 +373,19 @@ def test_the_audits_index_row_is_ship_gated_with_its_reason(registry):
     assert "docs/audits/*.md" in row.sources
 
 
+def test_the_listing_does_not_overstate_a_rows_guarantee(capsys, registry):
+    """`--list` inferred `self` from an unset `gate:`, so the `ship` row — which is held
+    at commit by NOTHING — printed as self-held. A listing that overstates a guarantee is
+    the failure the registry exists to expose."""
+    assert cdc.main(["--repo", str(_REPO_ROOT), "--list"]) == 0
+    out = capsys.readouterr().out
+    ship = [cid for cid, c in registry.copies.items() if c.commit_gate == "ship"]
+    assert ship, "no ship row: this test would pass vacuously"
+    for cid in ship:
+        line = next(ln for ln in out.splitlines() if ln.startswith(f"{cid}:"))
+        assert "[ship]" in line and "[self]" not in line
+
+
 def test_doc_counts_declares_the_inputs_its_gate_does_not_cover(registry):
     """The document carries three values and the named hook guards one of them."""
     row = registry.copies["doc-counts"]

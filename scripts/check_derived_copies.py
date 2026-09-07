@@ -456,7 +456,12 @@ def main(argv: Optional[list[str]] = None) -> int:
         if args.list_copies:
             registry = load_registry(repo)
             for cid, copy in registry.copies.items():
-                held = f"hook:{copy.gate}" if copy.gate else "self"
+                # Report the row's OWN `commit_gate`, never infer it from `gate` being
+                # unset: a `ship` row has no hook and is not self-held either, and the
+                # first cut printed it as `self` — the listing overstating a guarantee is
+                # the exact failure this registry exists to expose.
+                held = (f"hook:{copy.gate}" if copy.commit_gate == "gate"
+                        else copy.commit_gate)
                 print(f"{cid}: {', '.join(copy.sources)} -> {copy.target}  [{held}]")
                 print(f"    render: {copy.render}")
             return 0
