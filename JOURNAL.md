@@ -19,6 +19,38 @@
 
 ---
 
+### 2026-09-07 (o) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): a comment that became a rule because of where the line wrapped
+
+**Anchors `428ab05a`.** A one-comment reflow in `scripts/audit.py` that clears a RED
+standing on `main` since `b429d9f4`, in nobody's lane footprint, found and re-confirmed
+independently by W2-F4's organ.
+
+**The bug is entirely in the WRAP POINT.** `check_doc_code_edge` tokenizes a line-initial
+`# rule:` as a rule MARKER. A comment about two organs sharing one rule wrapped so that its
+prose landed as:
+
+    # own docstring's words -- printed a paraphrase of it instead. Two organs, two wordings, one
+    # rule: the drift edge AF-1 exists to close. It now sits in the module that already owns the
+
+-- so the tokenizer read a marker declaring rule id **`the`**, which no declaration doc
+declares, and the edge check returned `code_orphan: the`. **The sentence was correct
+English and correct prose about the code; only its line break was wrong.** Rewrapped so
+`one rule:` sits mid-line: 48 passed, was 1 failed / 47 passed. No code, no behaviour, no
+marker added or removed.
+
+**An inline note now records WHY the wrap point matters**, because the defect's whole
+nature is that it is invisible to the next author -- reflowing that block for readability
+would silently reintroduce it, and nothing about the prose suggests a constraint. **A
+machine-read surface makes formatting semantic, and a comment is exactly where a human
+stops expecting that.** Same family as the ADR-117 status-line comment that
+`gen_claude_rosters.py` scraped verbatim into `CLAUDE.md`: a generator faithfully rendering
+something no one meant it to see.
+
+**Changes:** `scripts/audit.py` (comment reflow only).
+
+**Next:** retry teardown on the four lane worktrees whose sessions have now stopped, then
+W2-R.
+
 ### 2026-09-07 (n) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): wave 2 closes, and a verdict that was bound to a SHA while the merge was bound to a branch
 
 **Anchors `0e046af8`, which introduced `22cef5c5`; `baf2c79c`, which introduced
