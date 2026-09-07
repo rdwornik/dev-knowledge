@@ -62,7 +62,7 @@ level up). The gap is not a lagging tree -- `is_anchored` was False at `main` to
 hard-FAILED `journal_spine_anchor`, which fails `audit-health`, which **blocks every
 subsequent commit**. So the anchor arc broke the tree it was written to repair. The fix is
 the two-commit shape this repo already used at the N3 close (`18bf7252` naming `2d6f48e5`):
-the entry lands, then a second commit names the first by SHA. Recorded because the failure
+the entry lands, then a second commit names the first by SHA -- here `a897c54e`, which is what makes THIS arc's own merge anchored rather than repeating the defect it documents. Recorded because the failure
 is invisible until the NEXT commit is refused, and the refusal names the merge rather than
 the arc that caused it.
 
