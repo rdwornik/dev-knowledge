@@ -65,6 +65,9 @@ attributable: the close packet gave `batch-u-manifest` a real consumer, which cl
 dispositions STALE, which is why stale rose 5 -> 7. **A disposition that stops being needed
 does not disappear; it starts reporting itself as unnecessary.**
 
+**This entry also anchors its own merge**, by naming `2d6f48e5` -- the commit carrying this
+text. The arc's merge introduces it, so naming it satisfies the predicate for the merge itself.
+
 **Changes:** `docs/intake/` (#76 + both generated surfaces), `JOURNAL.md`.
 **Next:** lanes C-1 shipgate-to-green, C-2 living-docs, C-3 transport-archive, C-4 preflight
 rows, C-5 handoff cut.
