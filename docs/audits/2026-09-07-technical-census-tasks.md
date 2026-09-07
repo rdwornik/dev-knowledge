@@ -341,3 +341,22 @@ therefore **my own re-derivation from the manifest and the frontmatter**, not th
 They agree with `JOURNAL.md` 2026-09-05 (p)'s independently recorded *"nodes 503 → 501, 224 tasks,
 `--check ok`"*, and `tasks/manifest.json` still holds 501 nodes and 224 tasks — but that is
 corroboration, not the gate.
+
+> **AMENDMENT 2026-09-07 (same session, after the session-end hook refused) — §7 above understates
+> the case, and the correction matters to whoever integrates this.** I wrote that I *skipped* those
+> runs. The truth is stronger: **they were not available in this container.** The session-end Stop
+> hook (`uv run --locked python scripts/session_end_backpressure.py`) refused with
+> `Required uv version ==0.11.19 does not match the running version 0.8.17`. Measured:
+> `uv --version` → **0.8.17** (`/root/.local/bin/uv`) against `pyproject.toml:25`
+> `required-version = "==0.11.19"`. Every gate in this repo is invoked through `uv run --locked`
+> (AGENTS.md, "Build / test / lint"), so in this container **no** gate can execute — not the Stop
+> hook, not `pytest`, not `ruff`, not `audit.py health`, not `gen_task_tree.py --check`, and not
+> one pre-commit hook entry. That is also the real reason pre-commit was unarmed and why the
+> `consumer_at_landing` probe reported in the handback was run through bare `python3` rather than
+> through the gate. **Nothing above changes** — the counts are re-derivations from
+> `tasks/manifest.json` and the row frontmatter, computed with the stdlib, and they stand as
+> stated. What changes is what a reader may conclude from their being unverified by the gate: it
+> was not judgment, it was the toolchain. **I did not bump `uv`** — AGENTS.md rules a uv bump "its
+> own gated change, never incidental", and it is the operator's. If the other twelve sweep lanes
+> ran in this same image, none of them could have run a gate either, and no lane's green should be
+> read as a gate's green.
