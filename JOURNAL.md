@@ -19,6 +19,92 @@
 
 ---
 
+### 2026-09-07 (p) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): batch U's last lane refuses to report a clean number, and the batch closes at nineteen
+
+**Anchors `84f8186c`, which introduced `db37f3e2`, and `32c6415d`.** W2-R
+`release-commit`, the nineteenth and LAST lane of batch U. Verdicted **MERGE / exit 0**
+before the merge. **All 19 contracted lanes are merged.**
+
+**MERGED BY SHA, NOT BY BRANCH NAME** -- `db37f3e2c81b1b8382ba397c23423e2402779181` --
+which is this batch's own finding applied to its own last merge. Entry (n) recorded that a
+verdict binds a SHA while `git merge <branch>` binds a ref living in the **common git
+dir**, which advanced under this seat once already tonight. Here all three were checked
+rather than assumed before the merge: **claimed == local == origin == `db37f3e2`**. The
+lane also held its end -- it committed nothing after handing back, and stated the full 40
+characters rather than an abbreviation.
+
+**THE LANE REFUSED TO REPORT 0/0, AND THAT REFUSAL IS THE ARTIFACT.**
+
+    hard-fail         0 ->  0
+    undispositioned  39 -> 14
+    stale             8 ->  5
+
+**Both stated targets were stale before it began** -- its own contract said 3/3, the
+dispatcher's addendum said 31/7, and it measured **39/8**. That is the fourth and fifth
+frozen before-number this batch found stale, in a batch where four of nine measured lanes
+had already found theirs wrong. **It also declares its own pair NOT clean:** `main` moved
+between the two measurements (`428ab05a`/`6ebf44a8`), and one gain -- `doc_code_edge`
+1 -> 0 -- **is this seat's comment reflow, not the lane's work**. A lane quietly crediting
+a peer's fix to itself would have been invisible in the totals.
+
+**THE PREDICATE IS STATED BECAUSE IT DECIDES THE NUMBER:** undispositioned = a `warn`
+Finding where `_match_disposition` returns None, read off ship-gate's own
+`new/undispositioned` verdict line and derived from `cmd_ship_gate` **source**. It is **not
+a WARN-line count** -- `consumer_at_landing` prints **42 lines at BOTH measurements**, so a
+line count reads 42 -> 42 and shows nothing whatsoever. **Counting the wrong unit is
+exactly what put 31/7 and 3/3 into two frozen documents**, and it is the same predicate
+error W2-F4 caught and the dispatcher later admitted in its own `canonical_freshness`
+figure (5 FILES carried in 2 FINDINGS; the gate counts findings).
+
+**THE ONE IT COULD HAVE CLOSED AND DELIBERATELY DID NOT is the right refusal.**
+Re-stamping `last_reviewed` on `HANDOFF_PROCESS`, `PLAYBOOK` and `OPERATOR-INTERFACE`
+would have moved the number -- and a `last_reviewed` stamp asserts an **end-to-end re-read
+it had not done**. That is a false claim in the most literal sense this repo defines the
+stamp. **A truthful partial with a stated remainder is the deliverable; a cleaner figure
+bought that way is not.** The remaining 14 are each named and none is closable inside the
+lane's footprint.
+
+**Its review was a real round rather than a formality.** Terra returned HIGH:2 and the lane
+acted on both rather than arguing: a §9 pre-commit-roster row was **withdrawn as a
+footprint widening** (§9 is `[REPO - local]`; the lane owns the HUB region), and a ledger
+sentence claiming to close tag-checklist gate 2 was corrected to claim only the work behind
+it. The review artifact was deliberately **not** written into `docs/audits/`: doing so would
+have required regenerating the index and would have **added a fresh undispositioned WARN to
+the very number it was closing on**.
+
+**Two claims verified BY DIFF rather than on the lane's account**, per this batch's standing
+clause: the diff touches neither `docs/audits/README.md` nor `tasks/`. Tag-checklist gate 2
+is left reading OPEN because the checklist reserves declarations to the operator -- witness
+SHA `db37f3e2`. **The lane did not tag and pushed no tag.**
+
+**`docs/audits/README.md` regenerated ONCE, by the integrator, in `32c6415d`** ([#590]) --
+`--check` exited 1 before and 0 after. It is `merge=ours`-pinned, so every merge leaves it
+stale by construction; this regeneration is what makes taking it out of the merge path safe
+rather than lossy. **This is the first of two tonight**, and that obeys [#590] rather than
+bending it: "once, after the last merge" is scoped to a BATCH, and there are two -- batch U
+here, the 13-lane census SWEEP next, on its own manifest.
+
+Targeted, serial, on the merged result: **130 passed** (byte caps, intake generators, batch
+manifest) plus **40 passed** (boundary headers -- W2-R touched both `CLAUDE.md` and
+`templates/claude-regions/`, which critical rule 6 requires stay byte-identical).
+`audit.py health` **OK**.
+
+**A CORRECTION THE LANE INHERITED AND PASSED ON UNCHANGED:** W2-R reports the third
+pre-existing RED as "driven by tonight's `tasks/` churn". **It is not.**
+`test_vi_batch1_reproduces_the_wrong_id_citation` fails because `[#577]` and `[#584]`
+resolve to **CLOSED** rows -- `status: closed` set in `11c2322e` on **2026-08-29**, which is
+an ancestor of `f57d029d`, batch U's own wave-1 base -- and `check_cited_ids` reads current
+status. **RED for nine days; the trigger is rows being CLOSED, not rows being FILED.**
+Tonight's `tasks/` churn is real and causally irrelevant. Three seats have now restated the
+churn theory; it was never checked against the row's own history.
+
+**Changes:** `CLAUDE.md` + `templates/claude-regions/` (first-read, session-start-protocol),
+`ecosystem/disposition-register.yaml` (+428), the v1.5.0 tag checklist, the section-history
+ledger, `docs/intake/manifest.json`, `docs/audits/README.md` regenerated.
+
+**Next:** full suite on the final merged tree, the close packet, then the 13 census lanes as
+a second batch on their own manifest.
+
 ### 2026-09-07 (o) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): a comment that became a rule because of where the line wrapped
 
 **Anchors `428ab05a`.** A one-comment reflow in `scripts/audit.py` that clears a RED
