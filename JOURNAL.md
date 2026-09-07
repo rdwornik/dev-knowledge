@@ -19,6 +19,54 @@
 
 ---
 
+### 2026-09-08 (b) - CC (Opus 5, DISPATCHER-CLOSE): the preflight lands, and its most useful output is that two of its own rows could not fail
+
+**Anchors `289b4c8f` and `c1e481d6`.** Batch CLOSE lane C-4 turned pre-handoff hygiene from
+a checklist the operator re-invents each time into a refusal: nine rows in
+`gen_handoff.py`, wired as a THIRD pre-cut invariant after `assert_batch_boundary` and
+`assert_boundary_hygiene`, firing before anything is written. Built RED-first and the RED was
+witnessed -- 19 failed + 5 errors before any implementation existed, 27 passed after.
+
+**Two of the nine rows, as the ratified register specified them, COULD NOT FAIL.** That is
+the finding, and it was worth more than the mechanism.
+
+*"MEMORY.md <= cap"* named a cap that exists nowhere in this repo -- not in `scripts/`, not in
+`protocols/`, not in `tests/`. A row measuring a live 23,851-byte file against an undeclared
+budget does not pass or fail; it just reports. **No number was invented**, because a budget is
+a decision and neither the lane nor the dispatcher owns it. The row reads a declared constant,
+renders `[n/a-reason:NO-DECLARED-BUDGET]` until one exists, and is pinned by a test that
+monkeypatches a budget in and watches the row go FAIL then PASS across it -- so it arms with
+no code change on the day the operator sets it. `[#641]`.
+
+*"no QUESTION-\* unanswered"* was satisfied **the moment lane C-3 archived all twenty question
+files** -- none of which was ANSWERED. They were carried. The row would have gone green on an
+empty directory and stayed green forever, which is worse than having no row, because it
+reports a safety it does not provide. Reworded to *"no QUESTION file without a disposition"*
+and implemented over the live AND archived populations, so archiving discharges nothing. It
+measures **20 of 20 failing today**.
+
+**A row that cannot fail is not a weak mechanism, it is a false one.** Both defects were
+found by measuring the rows against live state instead of implementing the words as given --
+the same discipline that found five errors in this batch's dispatching contract.
+
+**The lane also found five defects in its own work and fixed all five**, the sharpest being
+that `cmd_ship_gate` writes its VERDICT to stderr while its findings go to stdout: a
+stdout-only read reported "no verdict line" for a gate that had run perfectly.
+
+**Owed and deliberately not taken:** `HANDOFF_PROCESS.md` section 10 still describes two
+boundary invariants where the generator now enforces three. That file belongs to lane C-2,
+so the spec bullet waits rather than racing it.
+
+**Did:** cleared a real spine gap of my own making (entry (a) amendment); reviewed and merged
+C-4.
+**Result:** ship-gate 0 hard-fail / 6 named WARN; the preflight refuses a seeded breach and
+passes a clean window, both demonstrated by test output rather than asserted.
+**Changes:** `scripts/gen_handoff.py`, `tests/test_gen_handoff_preflight.py`,
+`.claude/commands/handoff.md`, `tasks/641`, `ecosystem/doc-counts.md`.
+**Abandoned:** nothing.
+**Next:** merge C-2 -- its base predates `[#637]`-`[#640]`, so its BACKLOG regen DROPS those
+rows; reset to main's side and re-derive. Then the C-5 handoff cut.
+
 ### 2026-09-08 (a) - CC (Opus 5, DISPATCHER-CLOSE): the ship-gate drops 49 to 6, and the number that matters is the 19 that were fixed instead of silenced
 
 **Anchors `301f2266`, `77322d48` and -- via `51c2d12a` -- `ce7a69f4`.** Batch CLOSE lane C-1 drained the #147 disposition
