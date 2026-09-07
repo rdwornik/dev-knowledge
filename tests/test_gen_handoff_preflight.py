@@ -37,8 +37,13 @@ def _transport(tmp_path, *, ledger_date=_TODAY, ratification_date=_TODAY,
         (to_browser / f"RATIFICATION-{ratification_date}.md").write_text(
             "# RATIFICATION\n", encoding="utf-8")
     if status_bytes:
-        (to_browser / "STATUS-integrator.md").write_text(
-            "## now\n" + "x" * status_bytes, encoding="utf-8")
+        # EXACTLY `status_bytes` on disk. The seeded FAIL is a THRESHOLD case -- 5,114
+        # sits between the two readings of "5 KB" -- so a helper writing header PLUS n
+        # bytes lands at 5,121, pins the uncontested case, and says otherwise in its own
+        # docstring. That is the shape of defect this whole lane exists to remove.
+        head = b"## now\n"
+        (to_browser / "STATUS-integrator.md").write_bytes(
+            head + b"x" * (status_bytes - len(head)))
     for name, body in questions:
         (to_browser / name).write_text(body, encoding="utf-8")
     for name in answers:
@@ -98,16 +103,20 @@ def test_status_budget_is_five_thousand_decimal_not_five_one_two_zero():
 
 
 def test_status_row_fails_a_file_between_the_two_readings(tmp_path):
-    """5,114 bytes: under 5,120, over 5,000 — the exact file the spec names."""
+    """5,114 bytes: under 5,120, over 5,000 — the exact file the spec names. The size is
+    ASSERTED, not assumed: a fixture that overshoots to 5,121 passes this test while
+    measuring the uncontested case, and its docstring goes on claiming it did not."""
     root = _transport(tmp_path, status_bytes=5_114)
+    assert (root / "to-browser" / "STATUS-integrator.md").stat().st_size == 5_114 < 5_120
     row = gh._row_status_budget(root)
     assert row.status == gh.PREFLIGHT_FAIL
     assert "STATUS-integrator.md" in row.detail
 
 
 def test_status_row_passes_a_file_at_the_budget(tmp_path):
-    root = _transport(tmp_path, status_bytes=0)
-    (root / "to-browser" / "STATUS-integrator.md").write_bytes(b"x" * gh.STATUS_BYTE_BUDGET)
+    root = _transport(tmp_path, status_bytes=gh.STATUS_BYTE_BUDGET)
+    seeded = root / "to-browser" / "STATUS-integrator.md"
+    assert seeded.stat().st_size == gh.STATUS_BYTE_BUDGET
     assert gh._row_status_budget(root).status == gh.PREFLIGHT_PASS
 
 
