@@ -100,6 +100,8 @@ mechanism; filed a new generated-roster defect.
 `.claude/generated/recent-adrs.md`, `tests/test_validate_adr_status.py`; JOURNAL.md.
 **Abandoned:** nothing these merges.
 **Next:** U4 (push refused on this gap, retrying), U3, F3, F4, F5; W2-R last and alone.
+**Anchor-of-the-anchor:** authored at `42576d33`, named here so the `--no-ff` merge of
+`docs/anchor-w2u2f1-2026-09-07` anchors itself (the `a45a3ae3` shape).
 
 ### 2026-09-07 (k) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W2-F2 lands, and the fourth lane of nine finds its contract measuring a tree that had already moved
 
