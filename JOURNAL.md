@@ -71,6 +71,8 @@ that says it did:
 `ecosystem/doc-counts.md`; JOURNAL.md.
 **Abandoned:** nothing this merge.
 **Next:** the seven live lanes as they hand back, W2-R last and alone.
+**Anchor-of-the-anchor:** authored at `fae48364`, named here so the `--no-ff` merge of
+`docs/anchor-w2f2-2026-09-07` anchors itself (the `a45a3ae3` shape).
 
 ### 2026-09-07 (j) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): wave 2 opens -- the seal's grammar becomes data, and the one RED is proven inherited rather than attributed
 
