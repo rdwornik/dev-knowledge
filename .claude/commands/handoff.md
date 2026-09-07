@@ -56,6 +56,37 @@ overrides the bundle folder (default `<date>-<repo>-<mode>`); `--repo` / `--date
 display name / date; `--no-assemble` skips `PASTE_THIS` (architect / execution). Consuming a
 generated bundle (booting the browser) is `docs/handoffs/README.md`.
 
+## Preflight — pre-handoff hygiene is a MECHANISM, not a checklist
+
+`generate()` refuses a cut on any FAILING hygiene row, alongside the two boundary invariants
+it already enforces (WINDOW = BATCH, no leftovers). Nine rows, each PASS / FAIL / n-a with a
+locator; every failure is named in ONE refusal; nothing is written. The rows and their
+predicates live in `scripts/gen_handoff.py` (`preflight_rows`, `assert_preflight`) — read them
+there, do not restate them here.
+
+Report-only, before you cut:
+
+```
+python scripts/gen_handoff.py --preflight-only
+```
+
+Exit 1 on any FAIL, 0 otherwise. It costs about four and a half minutes, almost all of it the
+ship-gate row running the real `audit.py ship-gate` — the same cost `generate()` pays, which is
+affordable exactly because a cut is a once-per-window act at a true batch boundary.
+
+Two rows are implemented as CORRECTED against the register that commissioned them, because a
+row that cannot fail reports a safety it does not provide:
+
+- **QUESTION files** are checked for a DISPOSITION, not for being unanswered. Registered as "no
+  QUESTION-* unanswered", the row went vacuous the moment all 20 outstanding questions were
+  archived without answers: an empty directory satisfies it forever. A question discharges by
+  being answered, or by carrying a flush-left `disposition:` whose value is a resolving locator.
+  Archiving alone discharges nothing, and an undispositioned question does not age out.
+- **MEMORY.md** is measured against a DECLARED constant. No MEMORY byte budget exists in this
+  repo, so the row renders `[n/a-reason:NO-DECLARED-BUDGET]` and names where one would be
+  declared. It never passes silently and it arms itself with no code change. Operator call:
+  `[#641]`.
+
 ## v5/v6/v7 (canonical — default flow; HANDOFF_PROCESS v7 / ADR-82)
 
 HANDOFF_PROCESS **v7** is canonical at `protocols/HANDOFF_PROCESS.md` (CC-owned handoff,

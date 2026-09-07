@@ -38,6 +38,7 @@ So that the canonical v5 handoff is fully implemented (generator) and mechanical
 - [#602] [P2][M] Land the ruled dispatch verb in the bundle's forms card, and extend the agreement gate to the bundle sites · tasks/602-land-the-ruled-dispatch-verb-in-the-bundle-s-for.md
 - [#603] [P3][S] An operator-interface capability file — the facts every seat re-derives about how the operator works · tasks/603-an-operator-interface-capability-file-the-facts.md
 - [#619] [P2][M] The FM-2 to FM-4 funnel-health coupling is dead — six fields, zero overlap · tasks/619-the-fm-2-to-fm-4-funnel-health-coupling-is-dead.md
+- [#641] [P3][S] Declare a MEMORY.md byte budget, or rule that none is owed · tasks/641-declare-a-memory-md-byte-budget-or-rule-that-none.md
 
 ---
 

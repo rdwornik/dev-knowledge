@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "3d2040598da690232bbb1be1b357a1d0b3fd6f41ddbdcc63839b40aad4417835",
+  "generated_sha256": "dbd29819f7ccbfa3d633d348ab0abcb4255f3f5c450a966fb73de80fb287ffb5",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -137,6 +137,10 @@
     {
       "task": 619,
       "file": "619-the-fm-2-to-fm-4-funnel-health-coupling-is-dead.md"
+    },
+    {
+      "task": 641,
+      "file": "641-declare-a-memory-md-byte-budget-or-rule-that-none.md"
     },
     {
       "prose": ""
