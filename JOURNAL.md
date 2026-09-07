@@ -19,6 +19,167 @@
 
 ---
 
+### 2026-09-07 (m) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): an erratum that publishes its own arithmetic, and a floor where three of five ruled mechanisms were never built
+
+**Anchors `5080e5c9`, which introduced `52b531f7`, and `0e68f4e9`, which introduced
+`cf0122bc`.** W2-F5 `erratum-aj-second-pass` and W2-U3 `carrier-floor-v150-mechanisms`,
+the fourteenth and fifteenth merges of batch U. Both verdicted **MERGE / exit 0** before
+their merges, both tips confirmed on origin first, both pin sets verified **by diff**.
+Targeted, serial, on the merged results: **59 passed** (intake generators) and **232
+passed** (floor mechanisms plus the manifest readers).
+
+**W2-F5 RETRACTS A FIGURE THAT WAS ALREADY QUOTED DOWNSTREAM.** The drafted all-in
+wall-clock ratio summed timers the same file says overlap by 1971 s. Recomputed as
+interval **unions**: 7.5x all invocations, 7.0x successful setup only. **The drafted 9.1x
+is retracted.** This seat verified that the single occurrence of that figure in the diff
+is the retraction *naming* it, not a surviving claim -- a retraction has to say the number
+out loud, and a grep that cannot tell those apart would have blocked the fix. The cost
+side stands at 24.3x / 23.5x. `RATIFICATION-2026-09-07` section 5.3 still quotes the dead
+figure; the dispatcher is taking that correction, since the lane that owned the fold has
+stopped.
+
+**Its two arithmetic defects are published in its own section 2 rather than corrected
+quietly** -- the lane's stated reason being that an erratum is the last document that
+should hide its own corrections. That is the standard the close packet gets held to.
+
+**The lane found more than it was commissioned to, by re-reading the disk.** At `:231` the
+source audit does not merely publish a wrong init number: it claims the init cost was
+**never captured** ("no JSON was written"). `FR2-legM-01-init.json` exists -- $21.8585621
+over 60 turns. Filed as a **separate** finding rather than folded into the first, on the
+reasoning that a wrong claim about what evidence EXISTS misdirects differently from a wrong
+number. One sends you to recompute; the other stops you looking.
+
+**W2-U3's finding is negative and is the whole point.** Three of floor v1.5.0's five
+**ruled** mechanisms have **no hub payload at all** -- seal report mode, the 008 roles
+table, and the per-consumer freshness registry are **not built**, not merely undeployed.
+They land in a new `floor_mechanisms_pending:` block with a measured blocker each, rather
+than dressed as active components. It is the **hub-side leg** of the two-sided drift check
+that makes this visible: a one-sided check would have reported five mechanisms and been
+wrong about three of them. Before: 21 components, **zero** versioned, **zero** drift-checked.
+After: 5 mechanisms, 5/5 versioned, 5/5 drift-checked on both sides, 2 shippable.
+
+**The lane flagged its own riskiest change instead of burying it**, and this seat checked it
+rather than scrolling past: `floor_mechanisms_pending:` is a NEW top-level manifest key.
+Additive, `release_lint` green, no existing reader touches it, and the manifest-reader suites
+pass on the merged tree. A lane that points at the one thing worth a second look is doing the
+integrator's job for them.
+
+**A CONTRACT'S PROSE LOST TO A CHECKABLE ENUM FOR THE SECOND TIME TONIGHT.** F5's contract
+row says status `ACCEPT`; the tree's enum token is `ACCEPTED`, so the lane wrote `ACCEPTED`
+with the required companions. Same shape as W2-F1's `Proposed`-not-`DRAFT` earlier. Twice in
+one batch a frozen contract transcribed an enum member that does not exist, and both times
+the lane deferred to the tree and said so. **The contract is authority over scope; it is not
+authority over vocabulary the tree can check.**
+
+**Two gate hazards carried for the four lanes still out**, from F5's own blocked attempts:
+`journal_spine_anchor` tree-lag fires **twice** for anything landing late, because main moves
+between commit attempts -- expect a second sync rather than reading the second refusal as a
+real gap. And `consumer_at_landing` refuses a new audit naming no consumer and **will not
+accept a bare path**; it needs an id-shaped token, which collides with the cite-by-path pin.
+Whoever writes the close packet hits this.
+
+**Batch-level tooling fact:** this is the **second independent lane** to report `gpt-5-codex`
+unusable on this account, so every `review=codex` tally tonight was earned on a different
+model than the contracts assume. F5's first `codex exec` also hung ~20 minutes reading stdin
+and produced nothing (it needs `< /dev/null`). The lane did **not** report the empty run as
+clean, which is the only reason either fact is known.
+
+**Did:** verdicted, merged and anchored W2-F5 and W2-U3; verified the retracted figure was
+named only to retract it; checked the new manifest key against its readers.
+**Result:** 15 of 19 lanes merged; `main` pushable for U4, F3 and F4.
+**Changes:** `docs/audits/2026-09-06-technical-erratum-aj-second-pass.md` (new),
+`docs/intake/*`, `deploy/floor_mechanisms.py` (new), `deploy/manifest-v1.5.0.yaml`,
+`tests/test_floor_mechanisms.py` (new), `.claude/methodology-roster.md`,
+`ecosystem/doc-counts.md`; JOURNAL.md.
+**Abandoned:** nothing these merges.
+**Next:** U4, F3, F4; then the audits index ONCE; then W2-R last and alone.
+**Anchor-of-the-anchor:** authored at `d7ff5729`, named here so the `--no-ff` merge of
+`docs/anchor-w2f5u3-2026-09-07` anchors itself (the `a45a3ae3` shape).
+
+### 2026-09-07 (l) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): two lanes land, a negative headline is reported as measured, and a RED's accepted diagnosis turns out to be wrong in the way that matters
+
+**Anchors `c70fd8d0`, which introduced `c7dccc53`, and `ec0d7912`, which introduced
+`591267e5`.** W2-U2 `seal-report-fleet` and W2-F1 `adr-carrier-split`, the twelfth and
+thirteenth merges of batch U. Both verdicted **MERGE / exit 0** before their merges; both
+tips confirmed identical on origin first; both file-pin sets verified **by diff** rather
+than from the lane's account. Targeted, serial, on the merged result: **210 passed**.
+
+**W2-U2's headline is NEGATIVE and the lane reported it as measured.** `RATIFICATION`
+section 1 set the test in advance -- *"if the number does not move, the universalization
+claim is not yet earned."* Rule A moved by four (corp-monorepo unresolved 77 -> 73). **Rule
+B moved by ZERO across 39 items and Rule C by ZERO across 32.** D5 admitted `src/ eval/
+models/` as top-level dirs; corp-monorepo has no `src/` tree at all, its out-of-pattern
+homes being `tests/<package>/` and `config/**`. Earned for A, not earned for B and C, said
+plainly by the lane that would have looked better claiming otherwise.
+
+It also sealed **NINE** repos where the contract said ten, and **invented no tenth**: the
+ratified fleet is nine (hub + eight), `ADR104_FLEET_DECLARATION` names nine gated by
+[#472], and `illustrated-book-gen` / `overnight` / `_scratch` are not git repositories.
+Filed as a question, never as a stop.
+
+**THE RED: the finding stands, the accepted mechanism does not, and the correction is the
+part that matters.** U2 reported
+`test_the_class_enum_is_the_hermetization_module_s_own_object` as pre-existing, *"passes
+with -n0"*, cause *"an xdist dual-import of validate_hermetization"*. Measured on this seat:
+
+- **CONFIRMED pre-existing.** Reproduced on `main` with U2 unmerged, so U2 is innocent and
+  its refusal to widen into another lane's footprint was right.
+- **REFUTED: it does not pass with `-n0`.** Multi-module selection on main gives
+  `-n auto` 1 failed / 60 passed and `-n 0` **1 failed / 60 passed**. It passes only when
+  its own file runs ALONE. The trigger is test SELECTION, not parallelism.
+- **REFUTED: there is no dual import.** A probe at failure time found exactly **ONE**
+  `validate_hermetization` object in `sys.modules`, with `vh.AUDIT_CLASS_ENUM` and
+  `bm.AUDIT_CLASS_ENUM` two **distinct frozensets of equal value**. So the module was
+  re-imported after `batch_manifest` bound the value by `from ... import` -- not two
+  module objects coexisting.
+- **UNVERIFIED and left so:** attribution to W2-U1. U1 did change `AUDIT_CLASS_ENUM` from a
+  module literal to a spec-derived frozenset, which is consistent. But the test predates U1
+  (`ea3e134e`, 2026-09-05) and this seat did **not** run the selection at `df88f767`, so
+  "green before U1" is not witnessed and is not claimed.
+
+**Why the correction outranks the diagnosis: W2-R measures the ship-gate at `-n 0`.** An
+accepted "serial fixes it" would have sent the batch's closing lane straight into this with
+the wrong expectation. A wrong mechanism attached to a correct finding is more dangerous
+than no mechanism, because it terminates the search.
+
+**W2-F1 landed ADR-117 as `Proposed`, not `DRAFT` -- a deviation from its contract AND from
+DECLARE-F, verified rather than accepted.** `DRAFT` appears **zero** times in
+`scripts/validate_adr_status.py`: it is not in `STATUS_ENUM`, `check_adr_status_grammar`
+refuses it at TIER_COMMIT, and with a Done-clause requiring a commit "stays DRAFT" and
+"must commit" were mutually unsatisfiable. `Proposed` is the enum's spelling of the same
+not-ratified state, and it is what ADR-116 carries. Three of its four codex HIGHs attack
+the ADR's **design** and are recorded in-file and answered nowhere -- correct, because
+softening a proposed design to satisfy a reviewer would be ruling on it. The lane also ran
+the adversarial pass DECLARE-F itself owed and never took (HIGH 13 / MED 2), filing the
+result without acting on it.
+
+**A NEW DEFECT THIS SEAT FOUND AND DID NOT FIX.** F1's inline status comment leaked whole
+into the generated `.claude/generated/recent-adrs.md`, which is `@`-imported into
+`CLAUDE.md`: the row now reads ``ADR-117 (Proposed <!-- DECLARE-F F-1 calls this state
+"DRAFT"... --> , 2026-09-06)``. Checked before treating it as harmless --
+`test_claude_md_byte_cap.py` **6 passed** and `gen_claude_rosters.py --check` **exit 0** --
+so it is a quality defect, not a gate break, and it is F1's footprint. Filed, not fixed.
+The generator scrapes the status line verbatim, so **any** future inline comment on an ADR
+status line lands in a boot-time file the same way.
+
+**An observation about checklist item 5 that changes when it can be run.** A stash appeared
+mid-walk (`lane-u-000-plugin-drift-wip`) and was gone minutes later -- W2-F3 pushing and
+popping around its own sync-merge. It was **inspected and not touched**. Item 5 says an
+entry gets a recorded disposition and never a blind drop; the sharper rule is that item 5
+is only meaningful **at close**, because mid-flight a lane's ordinary stash cycle presents
+exactly as a finding.
+
+**Did:** verdicted, merged and anchored W2-U2 and W2-F1; corrected a RED's accepted
+mechanism; filed a new generated-roster defect.
+**Result:** 13 of 19 lanes merged; `main` pushable, which unblocks W2-U4's refused push.
+**Changes:** `docs/audits/2026-09-07-technical-seal-report-fleet.md` (new),
+`docs/decisions/ADR-117-carrier-split-by-divergence.md` (new), `docs/decisions/README.md`,
+`.claude/generated/recent-adrs.md`, `tests/test_validate_adr_status.py`; JOURNAL.md.
+**Abandoned:** nothing these merges.
+**Next:** U4 (push refused on this gap, retrying), U3, F3, F4, F5; W2-R last and alone.
+**Anchor-of-the-anchor:** authored at `42576d33`, named here so the `--no-ff` merge of
+`docs/anchor-w2u2f1-2026-09-07` anchors itself (the `a45a3ae3` shape).
+
 ### 2026-09-07 (k) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W2-F2 lands, and the fourth lane of nine finds its contract measuring a tree that had already moved
 
 **Anchors `1ed350af`, which introduced `a49537c3`.** W2-F2

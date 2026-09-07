@@ -65,9 +65,15 @@ repos:
         name: PLAYBOOK.md TOC freshness check
         # Mirrors toc-freshness above. Regenerate with:
         # `python -m scripts.toc.cli generate protocols/PLAYBOOK.md --write`.
+        # GENERATOR ADDED to `files:` 2026-09-07 ([#no-row], derived-copies lane, terra HIGH):
+        # the selector watched this copy's inputs and its target but not the code that
+        # RENDERS it, so an edit changing what the copy should contain fired nothing. Its
+        # peers `audit-index-freshness` and `intake-index-freshness` already list their
+        # generators; the omission here was the outlier, and
+        # `ecosystem/derived-copies.yaml` is what surfaced it.
         entry: uv run --locked python -m scripts.toc.cli check protocols/PLAYBOOK.md
         language: system
-        files: '^protocols/PLAYBOOK\.md$'
+        files: '(^protocols/PLAYBOOK\.md$|^scripts/toc/.*\.py$)'
         pass_filenames: false
       - id: roster-freshness
         name: Methodology roster freshness check ([#244] P3)
@@ -78,9 +84,15 @@ repos:
         # into CLAUDE.md) can no longer be hand-maintained and thus cannot rot (R3).
         # HUB-ONLY (n=1); deliberately NOT in the manifest precommit carrier — rolling
         # the generator to consumers is P6.
+        # GENERATOR ADDED to `files:` 2026-09-07 ([#no-row], derived-copies lane, terra HIGH):
+        # the selector watched this copy's inputs and its target but not the code that
+        # RENDERS it, so an edit changing what the copy should contain fired nothing. Its
+        # peers `audit-index-freshness` and `intake-index-freshness` already list their
+        # generators; the omission here was the outlier, and
+        # `ecosystem/derived-copies.yaml` is what surfaced it.
         entry: uv run --locked python scripts/gen_methodology_roster.py --check
         language: system
-        files: '(^deploy/manifest-v.*\.yaml$|^\.claude/methodology-roster\.md$)'
+        files: '(^deploy/manifest-v.*\.yaml$|^\.claude/methodology-roster\.md$|^scripts/gen_methodology_roster\.py$)'
         pass_filenames: false
       - id: claude-rosters-freshness
         name: CLAUDE.md generated-fragment freshness check ([#258] phase-2)
@@ -90,9 +102,15 @@ repos:
         # [#258] phase-1 generated them but left them ungated, so a new command file
         # or ADR (or a hand-edit) could drift the fragment silently. Fires on BOTH the
         # disk sources AND the targets, so either drift direction is caught. HUB-ONLY.
+        # GENERATOR ADDED to `files:` 2026-09-07 ([#no-row], derived-copies lane, terra HIGH):
+        # the selector watched this copy's inputs and its target but not the code that
+        # RENDERS it, so an edit changing what the copy should contain fired nothing. Its
+        # peers `audit-index-freshness` and `intake-index-freshness` already list their
+        # generators; the omission here was the outlier, and
+        # `ecosystem/derived-copies.yaml` is what surfaced it.
         entry: uv run --locked python scripts/gen_claude_rosters.py --check
         language: system
-        files: '(^\.claude/commands/.*\.md$|^docs/decisions/ADR-.*\.md$|^\.claude/generated/(commands-repo|recent-adrs)\.md$)'
+        files: '(^\.claude/commands/.*\.md$|^docs/decisions/ADR-.*\.md$|^\.claude/generated/(commands-repo|recent-adrs)\.md$|^scripts/gen_claude_rosters\.py$)'
         pass_filenames: false
       - id: audit-index-freshness
         name: Audits index freshness check (fleet-census A-2 ruling; #269 freshness-hook leg)

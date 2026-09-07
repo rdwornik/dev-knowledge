@@ -17,11 +17,12 @@
 #      source alone is untouched, and a commit that STAGES the source is refused when the
 #      copy did not move with it. That is the "rebind commit" case, and only that case.
 #
-#   2. A DISARM WAS INVISIBLE. Nine of the copies below are held current by a named
-#      pre-commit hook. Deleting that hook, or narrowing its `files:` selector past the
-#      source, removes the guarantee and leaves no trace anywhere else in the tree. Each row
-#      names its gate, and `scripts/check_derived_copies.py` refuses a row whose named gate
-#      is absent from `.pre-commit-config.yaml`.
+#   2. A DISARM WAS INVISIBLE. Most of the copies below are held current by a named
+#      pre-commit hook. Deleting that hook, narrowing its `files:` selector past the source,
+#      or moving it to another stage removes the guarantee and leaves no trace anywhere else
+#      in the tree. Each row names its gate, and `scripts/check_derived_copies.py` refuses a
+#      row whose gate is absent, runs at another stage, has no `entry:`, or carries a
+#      selector that no longer reaches the row's sources.
 #
 # SHAPE -- mirrors `ecosystem/provider-registry.yaml` and `ecosystem/fleet-shape-spec.yaml`
 # deliberately (library-first: this repo already carries declared-state YAML read by an
@@ -33,15 +34,23 @@
 # one of them REBINDS that copy. What happens then is decided by `commit_gate`:
 #
 #   gate    another pre-commit hook, named in `gate`, already holds this copy current at
-#           commit time. The checker asserts that hook still exists and stops there -- it
-#           does not re-run it, so nothing here doubles an existing cost.
+#           commit time. The checker asserts that hook still exists AND still covers the
+#           row, then stops there -- it does not re-run it, so nothing here doubles an
+#           existing cost. `uncovered_inputs` names any input of the derivation that the
+#           gate deliberately does not reach, so the row does not overstate its coverage.
 #   self    no other hook holds it at commit time. The checker verifies currency itself,
 #           per `kind`, and a divergence FAILs the commit.
+#   ship    the copy is DELIBERATELY not held at commit time and `ship_reason` records why.
+#           Registering the absence is the point: an unstated gap and a ruled one look
+#           identical from the tree, and only one of them is a decision.
 #
 # `kind` decides how a `self` row is verified:
 #   command  `verify` is argv after the interpreter; exit 0 means the copy is current.
-#   region   `verify` renders the copy to stdout; that output is then required to appear
-#            verbatim inside `target`.
+#   region   `verify` renders the copy to stdout, and that output is compared against the
+#            text between `region_begin` and `region_end` in `target`. Exactly one marker
+#            pair is admitted: a substring test over the whole file is laundered by any
+#            duplicate of the rendered text, and two candidate regions leave the document
+#            unable to say which one is authoritative.
 #
 # ONE WRITING CONSTRAINT, recorded so a later editor does not trip it: this file sits in
 # `ecosystem/*.yaml`, inside the `silent_rule_detector` corpus, which counts three normative
@@ -64,10 +73,13 @@ copies:
     what: the rendered role -> CLI table the L0 routing doc carries
     sources:
       - ecosystem/routing-table.yaml
+      - scripts/routing_agreement.py
     target: ~/.claude/ROUTING.md
     target_scope: l0
     render: "uv run --locked python scripts/routing_agreement.py --render"
     kind: region
+    region_begin: "<!-- routing-table:begin -->"
+    region_end: "<!-- routing-table:end -->"
     verify: ["scripts/routing_agreement.py", "--render"]
     commit_gate: self
     on_target_absent: warn
@@ -76,7 +88,9 @@ copies:
       TIER_SHIP and stays there; this row adds the rebind-commit leg underneath it. L0 sits
       on operator disk and is absent on CI, in a container and on a cloud lane, so an absent
       target is a reported gap rather than a failure -- register ruling Z-G4, the same
-      posture the ship-tier organ already takes.
+      posture the ship-tier organ already takes. The RENDERER is a source too (terra HIGH,
+      2026-09-07): editing `render_table` changes what the copy is supposed to contain just
+      as editing the table does, and without the second glob that edit rebinds nothing.
 
   # --- self-gated: no other hook holds this one at commit time -----------------------
   backlog-view:
@@ -84,6 +98,7 @@ copies:
     sources:
       - tasks/**/*.md
       - tasks/**/*.json
+      - scripts/gen_task_tree.py
     target: BACKLOG.md
     target_scope: repo
     render: "uv run --locked python scripts/gen_task_tree.py --emit-source"
@@ -110,11 +125,20 @@ copies:
     verify: ["scripts/gen_doc_counts.py", "--check"]
     commit_gate: gate
     gate: doc-counts-pytest-freshness
+    uncovered_inputs:
+      - scripts/audit.py
+      - .pre-commit-config.yaml
+      - scripts/gen_doc_counts.py
     note: >-
       `sources` mirrors the live `files:` selector of the named hook, including
       `conftest.py` -- which is ABSENT from this repo and stays absent: a root
       `conftest.py` is refused by the [#430](a) ruling. The glob is prospective there, and
-      keeping it agrees with the hook rather than second-guessing it.
+      keeping it agrees with the hook rather than second-guessing it. `uncovered_inputs`
+      is the honest half (terra HIGH, 2026-09-07): this document carries three values and
+      the named hook guards only the pytest-collection one, so an added ALL_CHECKS member
+      or pre-commit hook can leave it stale with nothing refusing at commit. The ship-tier
+      `doc_claims` check is the backstop for those, and the hook's own comment records the
+      cost reason it is scoped this narrowly.
 
   intake-index:
     what: the status-grouped Contents block of the intake index
@@ -132,21 +156,28 @@ copies:
   audits-index:
     what: the generated index of dated audit artifacts
     sources:
-      - docs/audits/README.md
+      - docs/audits/*.md
       - scripts/gen_audit_index.py
     target: docs/audits/README.md
     target_scope: repo
     render: "uv run --locked python scripts/gen_audit_index.py --write"
     kind: command
     verify: ["scripts/gen_audit_index.py", "--check"]
-    commit_gate: gate
-    gate: audit-index-freshness
+    commit_gate: ship
+    ship_reason: >-
+      NOT held at commit time, deliberately. [#590] scoped `audit-index-freshness` to the
+      index and its generator because requiring every lane to regenerate a shared file put
+      this target in six of the last seven conflicted merges, and under the ADR-110 batch
+      protocol every lane writes an artifact. The generator reads every `docs/audits/*.md`,
+      so adding one leaves the index stale with no commit-time gate -- the ship-gate
+      `generated_artifact_freshness` leg, artifact `audits-index`, is what catches it.
     note: >-
-      `sources` is NARROW on purpose and does not list `docs/audits/*.md`. [#590] scoped the
-      hook to the index and its generator because requiring every lane to regenerate a
-      shared file put this target in six of the last seven conflicted merges. Adding an
-      artifact therefore does not rebind this copy at commit time; the ship-gate
-      `generated_artifact_freshness` leg is what catches a stale index, by design.
+      REGISTERED AS `ship` RATHER THAN `gate` on terra's review (HIGH, 2026-09-07). The row
+      previously declared `commit_gate: gate` while listing only the two paths the hook
+      covers, which made it read as commit-held when the derivation's real inputs are not.
+      Recording the deliberate ship-tier choice, with its reason, is the honest shape: the
+      registry's job is to say where each guarantee actually lives, and a row that overstates
+      one is the failure it exists to expose.
 
   claude-commands-roster:
     what: the disk enumeration of repo-level command files imported into CLAUDE.md
@@ -178,6 +209,7 @@ copies:
     what: the manifest-declared deployable corpus imported into CLAUDE.md
     sources:
       - deploy/manifest-v*.yaml
+      - scripts/gen_methodology_roster.py
     target: .claude/methodology-roster.md
     target_scope: repo
     render: "uv run --locked python scripts/gen_methodology_roster.py --write"
@@ -212,6 +244,7 @@ copies:
     what: the table of contents region inside the universal-protocols reference
     sources:
       - protocols/PLAYBOOK.md
+      - scripts/toc/*.py
     target: protocols/PLAYBOOK.md
     target_scope: repo
     render: "uv run --locked python -m scripts.toc.cli generate protocols/PLAYBOOK.md --write"

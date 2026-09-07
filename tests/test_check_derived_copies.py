@@ -144,8 +144,12 @@ def test_the_l0_routing_row_is_registered_and_self_gated(registry):
     """The witnessed instance is the row the deliverable exists for."""
     row = registry.copies["l0-routing-region"]
     assert row.commit_gate == "self"
-    assert row.sources == ("ecosystem/routing-table.yaml",)
+    assert "ecosystem/routing-table.yaml" in row.sources
+    # the RENDERER is a source too (terra HIGH): editing render_table changes what the copy
+    # is supposed to contain exactly as editing the table does
+    assert "scripts/routing_agreement.py" in row.sources
     assert row.kind == "region"
+    assert row.region_begin and row.region_end
     assert row.on_target_absent == "warn"
 
 
@@ -185,8 +189,12 @@ def _write_registry(tmp_path: Path, copies: dict) -> Path:
     (tmp_path / "ecosystem" / "derived-copies.yaml").write_text(
         yaml.safe_dump({"schema_version": "1.0.0", "copies": copies}), encoding="utf-8")
     (tmp_path / ".pre-commit-config.yaml").write_text(
-        yaml.safe_dump({"repos": [{"repo": "local",
-                                   "hooks": [{"id": "a-real-hook"}]}]}), encoding="utf-8")
+        yaml.safe_dump({"repos": [{"repo": "local", "hooks": [
+            {"id": "a-real-hook", "entry": "true", "files": "^a/"},
+            {"id": "a-narrowed-hook", "entry": "true", "files": "^$"},
+            {"id": "a-pre-push-hook", "entry": "true", "always_run": True,
+             "stages": ["pre-push"]},
+        ]}]}), encoding="utf-8")
     return tmp_path
 
 
@@ -243,39 +251,153 @@ def test_leg1_region_absent_target_warns_rather_than_failing(tmp_path, capsys):
     repo = _write_registry(tmp_path, {"row": {
         **_GATED_ROW, "commit_gate": "self", "kind": "region",
         "target": str(tmp_path / "nope.md"), "target_scope": "l0",
+        "region_begin": "<!--b-->", "region_end": "<!--e-->",
         "on_target_absent": "warn", "verify": ["scripts/render.py"]}})
     assert cdc.check_rebinds(cdc.load_registry(repo), repo, ["a/b.yaml"]) == []
     assert "not a pass" in capsys.readouterr().err
 
 
-def test_leg1_region_trips_when_the_rendered_text_is_not_in_the_target(tmp_path):
+_RENDER_NEW = "print('<!--b-->\\nNEW\\n<!--e-->')\n"
+
+
+def _region_row(target, **over):
+    return {**_GATED_ROW, "commit_gate": "self", "kind": "region",
+            "target": str(target), "target_scope": "l0",
+            "region_begin": "<!--b-->", "region_end": "<!--e-->",
+            "verify": ["scripts/render.py"], **over}
+
+
+def test_leg1_region_trips_when_the_region_is_stale(tmp_path):
     (tmp_path / "scripts").mkdir(parents=True, exist_ok=True)
-    (tmp_path / "scripts" / "render.py").write_text("print('NEW-REGION')\n",
-                                                    encoding="utf-8")
+    (tmp_path / "scripts" / "render.py").write_text(_RENDER_NEW, encoding="utf-8")
     target = tmp_path / "l0.md"
-    target.write_text("prose\nOLD-REGION\nmore prose\n", encoding="utf-8")
-    repo = _write_registry(tmp_path, {"row": {
-        **_GATED_ROW, "commit_gate": "self", "kind": "region",
-        "target": str(target), "target_scope": "l0", "verify": ["scripts/render.py"]}})
+    target.write_text("prose\n<!--b-->\nOLD\n<!--e-->\nmore\n", encoding="utf-8")
+    repo = _write_registry(tmp_path, {"row": _region_row(target)})
     findings = cdc.check_rebinds(cdc.load_registry(repo), repo, ["a/b.yaml"])
     assert len(findings) == 1
-    assert "does not appear" in findings[0].detail
+    assert "is not what the source renders to" in findings[0].detail
+
+
+def test_leg1_region_is_not_launderable_by_a_duplicate_elsewhere(tmp_path):
+    """THE terra HIGH, driven. The authoritative region is STALE and the freshly-rendered
+    text also appears further down the document — in a fenced example, a changelog, a
+    comment quoting the new table. A substring test passes this; a bounded compare refuses
+    it, which is the whole difference between checking the copy and checking the file."""
+    (tmp_path / "scripts").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "scripts" / "render.py").write_text(_RENDER_NEW, encoding="utf-8")
+    target = tmp_path / "l0.md"
+    target.write_text(
+        "prose\n<!--b-->\nOLD\n<!--e-->\n\nexample:\n```\n<!--b-->\nNEW\n<!--e-->\n```\n",
+        encoding="utf-8")
+    repo = _write_registry(tmp_path, {"row": _region_row(target)})
+    findings = cdc.check_rebinds(cdc.load_registry(repo), repo, ["a/b.yaml"])
+    assert len(findings) == 1, "a duplicate occurrence laundered a stale region"
+    # duplicate markers are refused outright rather than resolved by picking the first
+    assert "markers" in findings[0].detail
 
 
 def test_leg1_region_tolerates_crlf_in_the_target(tmp_path):
     """A Windows-written L0 copy diverging only in line endings is NOT a divergence —
     a false refusal there would teach authors to bypass the gate."""
     (tmp_path / "scripts").mkdir(parents=True, exist_ok=True)
-    (tmp_path / "scripts" / "render.py").write_text("print('A\\nB')\n", encoding="utf-8")
+    (tmp_path / "scripts" / "render.py").write_text(
+        "print('<!--b-->\\nA\\n<!--e-->')\n", encoding="utf-8")
     target = tmp_path / "l0.md"
-    target.write_bytes(b"prose\r\nA\r\nB\r\nmore\r\n")
-    repo = _write_registry(tmp_path, {"row": {
-        **_GATED_ROW, "commit_gate": "self", "kind": "region",
-        "target": str(target), "target_scope": "l0", "verify": ["scripts/render.py"]}})
+    target.write_bytes(b"prose\r\n<!--b-->\r\nA\r\n<!--e-->\r\nmore\r\n")
+    repo = _write_registry(tmp_path, {"row": _region_row(target)})
     assert cdc.check_rebinds(cdc.load_registry(repo), repo, ["a/b.yaml"]) == []
 
 
-# --- schema refusals --------------------------------------------------------------------
+# --- terra review fixes, each driven onto its own violation -----------------------------
+
+
+def test_extract_region_refuses_duplicate_markers():
+    _, why = cdc.extract_region("<!--b-->x<!--e--><!--b-->y<!--e-->",
+                                "<!--b-->", "<!--e-->")
+    assert why and "exactly one pair" in why
+
+
+def test_extract_region_refuses_reversed_markers():
+    _, why = cdc.extract_region("<!--e-->body<!--b-->", "<!--b-->", "<!--e-->")
+    assert why and "before" in why
+
+
+def test_a_deletion_still_rebinds_its_copy():
+    """terra HIGH: `--diff-filter=ACMR` dropped deletions, so DELETING a registered source
+    exited 0 while leaving the copy it fed orphaned."""
+    stream = "D\0ecosystem/routing-table.yaml\0"
+    assert cdc.parse_name_status(stream) == ("ecosystem/routing-table.yaml",)
+
+
+def test_a_rename_exposes_both_halves():
+    """terra HIGH: `--name-only` reports only a rename's DESTINATION, so moving a source
+    OUT of a registered glob showed a path matching no row and the gate went quiet."""
+    stream = ("R100\0ecosystem/routing-table.yaml\0docs/archive/routing-table.yaml\0"
+              "M\0BACKLOG.md\0")
+    assert cdc.parse_name_status(stream) == (
+        "ecosystem/routing-table.yaml", "docs/archive/routing-table.yaml", "BACKLOG.md")
+
+
+def test_leg2_trips_when_a_gate_is_narrowed_to_match_nothing(tmp_path):
+    """terra HIGH: id-presence alone was defeatable. `files: '^$'` keeps the id and guards
+    nothing — the silent-disarm class the registry exists to expose, one level up."""
+    repo = _write_registry(tmp_path, {"row": {**_GATED_ROW, "gate": "a-narrowed-hook"}})
+    findings = cdc.check_disarm(cdc.load_registry(repo), repo)
+    assert len(findings) == 1
+    assert "does not reach" in findings[0].detail
+
+
+def test_leg2_trips_when_a_gate_is_moved_off_the_commit_stage(tmp_path):
+    """A hook that runs at pre-push is not a commit-time guarantee, whatever its id says."""
+    repo = _write_registry(tmp_path, {"row": {**_GATED_ROW, "gate": "a-pre-push-hook"}})
+    findings = cdc.check_disarm(cdc.load_registry(repo), repo)
+    assert len(findings) == 1
+    assert "not pre-commit" in findings[0].detail
+
+
+def test_ship_gated_rows_owe_a_reason(tmp_path):
+    """`commit_gate: ship` records a DECISION. Without the reason it is indistinguishable
+    from an oversight, which is the thing the registry exists to tell apart."""
+    repo = _write_registry(tmp_path, {"row": {**_GATED_ROW, "commit_gate": "ship"}})
+    with pytest.raises(cdc.DerivedCopiesError):
+        cdc.load_registry(repo)
+
+
+def test_the_audits_index_row_is_ship_gated_with_its_reason(registry):
+    """It was registered as `gate` while the hook [#590] narrowed covers neither the
+    artifacts that derive it nor their addition. Recording where the guarantee actually
+    lives is the honest shape."""
+    row = registry.copies["audits-index"]
+    assert row.commit_gate == "ship"
+    assert row.ship_reason and "[#590]" in row.ship_reason
+    assert "docs/audits/*.md" in row.sources
+
+
+def test_doc_counts_declares_the_inputs_its_gate_does_not_cover(registry):
+    """The document carries three values and the named hook guards one of them."""
+    row = registry.copies["doc-counts"]
+    assert "scripts/audit.py" in row.uncovered_inputs
+    assert ".pre-commit-config.yaml" in row.uncovered_inputs
+
+
+@pytest.mark.parametrize("bad", ["", "/a/b", "a//b", "a/b/", "a\\b"])
+def test_schema_refuses_a_malformed_source_glob(tmp_path, bad):
+    """terra MEDIUM: the matcher drops empty segments, so a malformed glob would silently
+    mean something else instead of being refused."""
+    repo = _write_registry(tmp_path, {"row": {**_GATED_ROW, "gate": "a-real-hook",
+                                              "sources": [bad]}})
+    with pytest.raises(cdc.DerivedCopiesError):
+        cdc.load_registry(repo)
+
+
+def test_schema_refuses_an_unimplemented_version(tmp_path):
+    """terra MEDIUM: `schema_version` was declared and compared to nothing."""
+    repo = _write_registry(tmp_path, {"row": {**_GATED_ROW, "gate": "a-real-hook"}})
+    cfg = repo / "ecosystem" / "derived-copies.yaml"
+    cfg.write_text(cfg.read_text(encoding="utf-8").replace("1.0.0", "9.9.9"),
+                   encoding="utf-8")
+    with pytest.raises(cdc.DerivedCopiesError):
+        cdc.load_registry(repo)
 
 
 def test_schema_forbids_an_unknown_key(tmp_path):
@@ -300,18 +422,19 @@ def test_schema_refuses_gate_without_a_hook_id(tmp_path):
         cdc.load_registry(repo)
 
 
+def test_schema_refuses_a_region_row_without_markers(tmp_path):
+    """terra HIGH, at the schema: without markers the checker falls back to a substring
+    test over the whole target, which any duplicate of the rendered text launders."""
+    repo = _write_registry(tmp_path, {"row": {
+        **_GATED_ROW, "commit_gate": "self", "kind": "region",
+        "verify": ["scripts/render.py"]}})
+    with pytest.raises(cdc.DerivedCopiesError):
+        cdc.load_registry(repo)
+
+
 def test_schema_refuses_an_empty_registry(tmp_path):
     repo = _write_registry(tmp_path, {})
     with pytest.raises(cdc.DerivedCopiesError):
         cdc.load_registry(repo)
 
 
-def test_deletions_do_not_rebind_a_copy():
-    """`--diff-filter=ACMR` excludes deletes: retiring a source is the one act that changes
-    a copy's content without a rebind, and refusing it would be wrong."""
-    assert "--diff-filter=ACMR" in _staged_argv()
-
-
-def _staged_argv() -> str:
-    import inspect
-    return inspect.getsource(cdc.staged_paths)

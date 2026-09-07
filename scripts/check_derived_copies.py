@@ -70,6 +70,7 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import os
+import re
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -177,38 +178,127 @@ def load_registry(repo: Path) -> DerivedCopiesRegistry:
 
 
 def staged_paths(repo: Path) -> tuple[str, ...]:
-    """Repo-relative POSIX paths this commit stages (added/copied/modified/renamed).
+    """Every repo-relative POSIX path this commit touches, INCLUDING deletions and renames.
 
-    Deletions are excluded: a commit that DELETES a source has not left a copy stale in the
-    sense this gate is about, and refusing it would block the one act — retiring a source —
-    that legitimately makes a copy's content change without a rebind.
+    CORRECTED on terra's review (HIGH, 2026-09-07). The first cut used
+    `--diff-filter=ACMR`, excluding deletions on the reasoning that retiring a source is not
+    the same act as editing one. That reasoning was wrong in the direction that matters:
+    DELETING `ecosystem/routing-table.yaml` invalidates `~/.claude/ROUTING.md` exactly as an
+    edit does, and under the old filter the gate exited 0 on it. A rename was the sharper
+    case — `git diff --name-only` reports only the DESTINATION for an `R`, so moving a
+    registered source to `docs/archive/` exposed a path matching no row and the gate went
+    quiet on the one commit that orphaned the copy.
+
+    `--name-status -z` is what fixes both: it emits the status letter and, for `R`/`C`, BOTH
+    the source and the destination path as separate NUL-delimited fields. Every path either
+    side of a rename is returned, so a move OUT of a registered glob still rebinds the row
+    the source was leaving.
     """
     try:
         out = subprocess.run(
-            ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR", "-z"],
+            ["git", "diff", "--cached", "--name-status", "-z"],
             cwd=repo, capture_output=True, text=True, check=False)
     except OSError as exc:
         raise DerivedCopiesError(f"cannot ask git what is staged: {exc!r}") from exc
     if out.returncode != 0:
         raise DerivedCopiesError(
             f"`git diff --cached` failed (rc={out.returncode}): {out.stderr.strip()}")
-    return tuple(p.replace("\\", "/") for p in out.stdout.split("\0") if p)
+    return parse_name_status(out.stdout)
 
 
-def configured_hook_ids(repo: Path) -> frozenset[str]:
-    """Every `id:` declared in `.pre-commit-config.yaml`."""
+def parse_name_status(raw: str) -> tuple[str, ...]:
+    """Every path in a `git diff --name-status -z` stream (both halves of a rename).
+
+    The stream is a flat NUL-delimited sequence of fields. A plain status (`A`, `M`, `D`)
+    is followed by ONE path; a similarity-scored status (`R100`, `C75`) is followed by TWO.
+    Split out as a pure function so the rename case is unit-testable without an index.
+    """
+    fields = [f for f in raw.split("\0") if f]
+    paths: list[str] = []
+    i = 0
+    while i < len(fields):
+        status = fields[i]
+        take = 2 if status[:1] in ("R", "C") else 1
+        for p in fields[i + 1:i + 1 + take]:
+            paths.append(p.replace("\\", "/"))
+        i += 1 + take
+    return tuple(paths)
+
+
+def configured_hooks(repo: Path) -> dict[str, dict]:
+    """Every hook in `.pre-commit-config.yaml`, keyed by `id:`, with its own config."""
     p = repo / PRECOMMIT_RELPATH
     try:
         raw = yaml.safe_load(p.read_text(encoding="utf-8"))
     except (OSError, yaml.YAMLError) as exc:
         raise DerivedCopiesError(f"cannot read {PRECOMMIT_RELPATH}: {exc!r}") from exc
-    ids: set[str] = set()
+    hooks: dict[str, dict] = {}
     for repo_block in (raw or {}).get("repos", []) or []:
         for hook in (repo_block or {}).get("hooks", []) or []:
             hid = (hook or {}).get("id")
             if hid:
-                ids.add(str(hid))
-    return frozenset(ids)
+                hooks[str(hid)] = hook
+    return hooks
+
+
+def configured_hook_ids(repo: Path) -> frozenset[str]:
+    """Every `id:` declared in `.pre-commit-config.yaml`."""
+    return frozenset(configured_hooks(repo))
+
+
+def hook_covers(hook: dict, sources: Sequence[str]) -> Optional[str]:
+    """None if `hook` really guards `sources` at the pre-commit stage, else why not.
+
+    THIS IS THE LEG-2 STRENGTHENING terra's review forced (HIGH, 2026-09-07), and the
+    finding was exactly right: the first cut asserted only that a hook of that id EXISTED.
+    Under that check, narrowing a delegated hook to `files: '^$'`, or moving it to
+    `stages: [pre-push]`, disarms every row that delegates to it while this gate reports
+    green — the same silent-disarm class the registry exists to make impossible, reproduced
+    one level up. Three properties are now asserted:
+
+      STAGE      a hook that runs at pre-push or manual is not a commit-time guarantee,
+                 whatever its id says.
+      REACH      `always_run: true` covers everything. Otherwise the hook's `files:` regex
+                 has to match at least one concrete path per source glob, which is what
+                 catches `files: '^$'` and any narrowing past a row's sources.
+      SUBSTANCE  a hook with no `entry:` runs nothing.
+
+    HONEST LIMIT, because it still bounds a green verdict: REACH is asserted against ONE
+    representative path per glob, not against the glob's whole language. A selector could
+    still be narrowed to admit the representative and exclude some other member. That is a
+    far smaller hole than "the id is present", and closing it fully means deciding regex
+    containment, which is not a thing a pre-commit hook should be doing.
+    """
+    stages = hook.get("stages")
+    if stages is not None and "pre-commit" not in [str(s) for s in stages]:
+        return f"runs at {stages}, not pre-commit"
+    if not hook.get("entry"):
+        return "declares no `entry:`, so it runs nothing"
+    if hook.get("always_run"):
+        return None
+    pattern = hook.get("files")
+    if not pattern:
+        return "is neither `always_run` nor scoped by `files:`, so nothing binds it here"
+    try:
+        rx = re.compile(str(pattern))
+    except re.error as exc:
+        return f"has an unreadable `files:` pattern ({exc})"
+    uncovered = [g for g in sources if not rx.search(representative_path(g))]
+    if uncovered:
+        return (f"its `files:` selector does not reach {', '.join(uncovered)} "
+                f"(pattern {pattern!r})")
+    return None
+
+
+def representative_path(glob: str) -> str:
+    """One concrete path the glob matches, for testing a hook's `files:` regex against.
+
+    Deliberately literal-preserving: only the wildcard segments are filled in, so the
+    directory prefix a `files:` anchor keys on survives intact.
+    """
+    out = glob.replace("**/", "x/").replace("**", "x")
+    out = re.sub(r"\*(\.[A-Za-z0-9]+)", r"x\1", out)
+    return out.replace("*", "x").replace("?", "x")
 
 
 def _run_verify(copy: DerivedCopy, repo: Path) -> subprocess.CompletedProcess:
@@ -220,17 +310,29 @@ def _run_verify(copy: DerivedCopy, repo: Path) -> subprocess.CompletedProcess:
 
 
 def check_disarm(registry: DerivedCopiesRegistry, repo: Path) -> list[Finding]:
-    """LEG 2 — every delegated gate still exists. Runs on every commit."""
-    present = configured_hook_ids(repo)
+    """LEG 2 — every delegated gate still exists AND still guards the row. Every commit."""
+    hooks = configured_hooks(repo)
     findings: list[Finding] = []
     for cid, copy in registry.copies.items():
-        if copy.gate and copy.gate not in present:
+        if not copy.gate:
+            continue
+        hook = hooks.get(copy.gate)
+        if hook is None:
             findings.append(Finding(
                 cid,
                 f"delegates its commit-time guarantee to pre-commit hook "
                 f"`{copy.gate}`, which is absent from {PRECOMMIT_RELPATH}",
                 "restore the hook, or move the row to `commit_gate: self` with a "
                 "`verify:` argv"))
+            continue
+        why = hook_covers(hook, copy.sources)
+        if why:
+            findings.append(Finding(
+                cid,
+                f"delegates to pre-commit hook `{copy.gate}`, which {why} — the row "
+                f"claims a commit-time guarantee the hook no longer provides",
+                "restore the hook's coverage, or move the row to `commit_gate: self` "
+                "with a `verify:` argv, or to `commit_gate: ship` with a reason"))
     return findings
 
 
@@ -288,13 +390,45 @@ def _verify_region(cid: str, copy: DerivedCopy, repo: Path,
     except OSError as exc:
         raise DerivedCopiesError(f"cannot read {copy.target}: {exc!r}") from exc
 
-    if rendered and rendered in actual:
+    region, problem = extract_region(actual, copy.region_begin, copy.region_end)
+    if problem:
+        return [Finding(
+            cid,
+            f"{', '.join(hits)} is staged, and `{copy.target}` {problem}",
+            f"re-render it and place the region: {copy.render}")]
+    if region.strip() == rendered:
         return []
     return [Finding(
         cid,
-        f"{', '.join(hits)} is staged, but the region rendered from it does not appear "
-        f"in `{copy.target}`",
+        f"{', '.join(hits)} is staged, but the region between {copy.region_begin!r} and "
+        f"{copy.region_end!r} in `{copy.target}` is not what the source renders to",
         f"re-render it and place the region: {copy.render}")]
+
+
+def extract_region(text: str, begin: Optional[str],
+                   end: Optional[str]) -> tuple[str, Optional[str]]:
+    """The marker-bounded region of `text`, or `("", why-not)`.
+
+    REPLACES A SUBSTRING TEST, on terra's review (HIGH, 2026-09-07). The first cut asked
+    `rendered in actual`, which any duplicate occurrence of the rendered text launders: a
+    target whose real region is STALE passes as soon as the freshly-rendered block appears
+    anywhere else in the document — inside a fenced example, in a changelog, in a comment
+    quoting the new table. The authoritative region stays wrong and the gate says green.
+
+    Exactly ONE begin/end pair, in that order, is admitted. Duplicate markers are refused
+    rather than resolved by picking the first: two candidate regions means the document does
+    not say which one is authoritative, and guessing is how a gate ends up asserting
+    something about the wrong bytes.
+    """
+    if not begin or not end:
+        return "", "declares no region markers"
+    if text.count(begin) != 1 or text.count(end) != 1:
+        return "", (f"carries {text.count(begin)} {begin!r} and {text.count(end)} "
+                    f"{end!r} markers; exactly one pair is required")
+    i, j = text.index(begin), text.index(end)
+    if j < i:
+        return "", f"has {end!r} before {begin!r}"
+    return text[i:j + len(end)], None
 
 
 # --- CLI --------------------------------------------------------------------------------

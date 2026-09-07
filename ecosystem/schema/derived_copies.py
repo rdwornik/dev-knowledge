@@ -53,9 +53,14 @@ Kind = Literal["command", "region"]
 TargetScope = Literal["repo", "l0"]
 
 #: `gate` delegates the commit-time guarantee to a named pre-commit hook; `self` keeps it
-#: here. There is no third value: a copy either has a commit-time guarantee somewhere or it
-#: does not, and "somewhere" is a thing the registry can name.
-CommitGate = Literal["gate", "self"]
+#: here; `ship` records that the copy is DELIBERATELY not held at commit time and names the
+#: reason. The third value was added on terra's review (HIGH, 2026-09-07) and it is a
+#: correctness fix rather than an escape hatch: `audits-index` was registered as `gate`
+#: while the hook it names is scoped by [#590] to the index and its generator, so adding
+#: `docs/audits/<new>.md` is covered by neither. Modelling that as `gate` made the registry
+#: claim a commit-time guarantee that does not exist, which is the exact failure the
+#: registry was built to expose.
+CommitGate = Literal["gate", "self", "ship"]
 
 #: What an absent target means. `warn` reports and passes (register ruling Z-G4: a gap that
 #: is named is not a pass, but it is also not this commit's fault); `fail` refuses.
@@ -80,20 +85,47 @@ class DerivedCopy(_Contract):
     verify: Optional[tuple[StrictStr, ...]] = None
     commit_gate: CommitGate
     gate: Optional[StrictStr] = None
+    ship_reason: Optional[StrictStr] = None
+    #: Globs that are genuinely part of this derivation and that `gate:` does NOT cover.
+    #: Added on terra's review (HIGH, 2026-09-07): `doc-counts` named only the hook's own
+    #: selector, so the row read as though the whole document was held at commit time when
+    #: two of its three values derive from inputs that hook deliberately ignores. Stating
+    #: the uncovered half as DATA keeps the row honest without widening `sources` into a
+    #: coverage claim the named hook cannot back — the ship tier is the backstop for these.
+    uncovered_inputs: tuple[StrictStr, ...] = ()
+    region_begin: Optional[StrictStr] = None
+    region_end: Optional[StrictStr] = None
     on_target_absent: AbsencePolicy = "fail"
     note: Optional[StrictStr] = None
 
     @field_validator("sources")
     @classmethod
-    def _sources_non_empty(cls, v: tuple[str, ...]) -> tuple[str, ...]:
-        """A row with no sources can never be rebound, so nothing about it is ever checked."""
+    def _sources_are_usable_globs(cls, v: tuple[str, ...]) -> tuple[str, ...]:
+        """Every source is a non-empty, normalized, repo-relative glob.
+
+        Tightened on terra's review (MEDIUM, 2026-09-07). The matcher drops empty segments,
+        so `a//b`, `/a/b` and `a/b/` all silently normalize to the same pattern as `a/b` —
+        a malformed glob would then quietly acquire a different meaning instead of being
+        refused. `sources: [""]` was the sharper case: it satisfied a bare non-empty check
+        on the LIST while matching no git path that exists, so the row loaded, read as
+        registered, and could never fire.
+        """
         if not v:
             raise ValueError("`sources` is empty, so this copy can never be rebound")
+        for g in v:
+            if not g or not g.strip():
+                raise ValueError("a source glob is empty, so it can never match")
+            if g.startswith("/") or g.endswith("/") or "//" in g:
+                raise ValueError(
+                    f"source glob {g!r} is not normalized (leading, trailing or doubled "
+                    f"'/'); the matcher would silently read it as something else")
+            if "\\" in g:
+                raise ValueError(f"source glob {g!r} uses '\\'; git paths are POSIX")
         return v
 
     @model_validator(mode="after")
     def _gate_and_verify_agree(self) -> "DerivedCopy":
-        """The one cross-field rule — see the module docstring for why it lives here."""
+        """The cross-field rules — see the module docstring for why they live here."""
         if self.commit_gate == "gate" and not self.gate:
             raise ValueError("`commit_gate: gate` names no hook in `gate:`")
         if self.commit_gate == "self":
@@ -101,6 +133,18 @@ class DerivedCopy(_Contract):
                 raise ValueError("`commit_gate: self` also names a `gate:` hook; pick one")
             if not self.verify:
                 raise ValueError("`commit_gate: self` supplies no `verify:` argv")
+        if self.commit_gate == "ship":
+            if self.gate:
+                raise ValueError("`commit_gate: ship` also names a `gate:` hook; pick one")
+            if not self.ship_reason:
+                raise ValueError(
+                    "`commit_gate: ship` records no `ship_reason:`; a copy deliberately "
+                    "left ungated at commit owes the reason, or it reads as an oversight")
+        if self.kind == "region" and not (self.region_begin and self.region_end):
+            raise ValueError(
+                "`kind: region` declares no `region_begin:`/`region_end:` markers; a "
+                "substring test over the whole target is launderable by any duplicate "
+                "occurrence of the rendered text (terra HIGH, 2026-09-07)")
         return self
 
 
@@ -109,6 +153,21 @@ class DerivedCopiesRegistry(_Contract):
 
     schema_version: StrictStr
     copies: dict[StrictStr, DerivedCopy]
+
+    @field_validator("schema_version")
+    @classmethod
+    def _version_is_the_one_this_module_implements(cls, v: str) -> str:
+        """Refuse a registry written against a contract this module does not implement.
+
+        Added on terra's review (MEDIUM, 2026-09-07): the field was declared and then never
+        compared to anything, so `schema_version: "garbage"` loaded and was read under
+        whatever rules happened to be current. A version field nothing checks is decoration.
+        """
+        if v != SCHEMA_VERSION:
+            raise ValueError(
+                f"registry declares schema_version {v!r}, but this contract implements "
+                f"{SCHEMA_VERSION!r}")
+        return v
 
     @field_validator("copies")
     @classmethod
