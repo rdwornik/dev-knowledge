@@ -179,6 +179,11 @@ if Path(getattr(_vh, "__file__", "") or "").resolve().parent != Path(__file__).r
 #: `git merge --no-ff <branch>` writes this subject; `/lane-integrate` relies on it too.
 _MERGE_SUBJECT_RE = re.compile(r"^Merge branch '([^']+)'")
 
+#: A full 40-hex object name. The memo below admits nothing shorter, for the reason
+#: `journal_anchor` records against the same constant there: an abbreviation is a query, not
+#: an identity, and the commit it names can change as history grows.
+_FULL_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+
 _FRONTMATTER_RE = re.compile(r"\A---\r?\n(.*?)\r?\n---\r?\n", re.DOTALL)
 
 
@@ -256,14 +261,36 @@ def _git(repo_path: Path, *args: str) -> Optional[str]:
     return r.stdout if r.returncode == 0 else None
 
 
-def _committed_manifests(repo_path: Path) -> list[str]:
-    """Manifest paths present in the COMMITTED tree at HEAD, matching the manifest grammar."""
+def _committed_audits(repo_path: Path) -> Optional[set[str]]:
+    """Every path committed under `docs/audits/` at HEAD, or None when git could not answer.
+
+    P2 (intake #71): ONE `ls-tree` already answers both questions `open_batches` asks of the
+    tree -- which manifests exist, and whether a given `closed_by:` packet exists. The listing
+    was previously filtered to manifests and the rest thrown away, so each `closed_by:` probe
+    paid its own `git cat-file -e` spawn. Returning the whole set costs nothing extra and
+    makes `_closer_committed` a membership test.
+
+    None (git failed) is kept DISTINCT from the empty set, because the two must reduce
+    differently: an unreadable tree may not be read as "the packet is absent, so the batch is
+    open". Every caller below preserves that distinction; the module's fail-toward-no-exemption
+    posture depends on it.
+    """
     out = _git(repo_path, "ls-tree", "-r", "--name-only", "HEAD", "--", "docs/audits/")
     if out is None:
-        return []
+        return None
+    return {p.strip() for p in out.splitlines() if p.strip()}
+
+
+def _manifests_in(paths: set[str]) -> list[str]:
+    """The manifest-grammar members of `paths`, oldest path first."""
     pat = MANIFEST_GLOB.split("/")[-1]
-    return sorted(p.strip() for p in out.splitlines()
-                  if p.strip() and PurePosixPath(p.strip()).match(pat))
+    return sorted(p for p in paths if PurePosixPath(p).match(pat))
+
+
+def _committed_manifests(repo_path: Path) -> list[str]:
+    """Manifest paths present in the COMMITTED tree at HEAD, matching the manifest grammar."""
+    paths = _committed_audits(repo_path)
+    return [] if paths is None else _manifests_in(paths)
 
 
 def _committed_text(repo_path: Path, rel: str) -> Optional[str]:
@@ -278,9 +305,79 @@ def _committed_text(repo_path: Path, rel: str) -> Optional[str]:
     return _git(repo_path, "show", f"HEAD:{rel}")
 
 
+def _committed_texts(repo_path: Path, rels: list[str]) -> dict[str, Optional[str]]:
+    """`{rel: blob text at HEAD}` for every `rel`, in ONE `git cat-file --batch` spawn.
+
+    P2 (intake #71): `open_batches` read one blob per committed manifest, one `git show`
+    each. `--batch` is git's own answer to exactly that shape -- it takes the names on stdin
+    and streams the objects back -- so N spawns become 1 with no change to what is read.
+
+    DECODING IS MATCHED TO `_committed_text`, NOT CHOSEN AFRESH, because a verdict must not
+    move when its transport does. That helper reads through `subprocess` in TEXT mode, which
+    is `utf-8` + `errors="replace"` + UNIVERSAL NEWLINES; `--batch` hands back raw bytes, so
+    both the decode and the newline translation are reapplied here by hand. Skipping the
+    newline half would leave `\\r` on the end of every frontmatter value on a CRLF checkout
+    and quietly stop `status: open` from ever matching -- the batch would read as closed and
+    the exemption would vanish. Any object git reports `missing` maps to None, the same value
+    an unreadable `git show` produced.
+
+    Falls back to the per-blob path on any transport failure, so this is a speed change and
+    never a new failure mode.
+    """
+    if not rels:
+        return {}
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(repo_path), "cat-file", "--batch"],
+            input="".join(f"HEAD:{r}\n" for r in rels).encode("utf-8"),
+            capture_output=True, timeout=60, env=_gitenv.scrubbed_git_env())
+    except (OSError, subprocess.SubprocessError):
+        proc = None
+    if proc is None or proc.returncode != 0:
+        return {rel: _committed_text(repo_path, rel) for rel in rels}
+
+    out: dict[str, Optional[str]] = {}
+    buf, pos = proc.stdout, 0
+    for rel in rels:
+        nl = buf.find(b"\n", pos)
+        if nl < 0:
+            return {r: _committed_text(repo_path, r) for r in rels}
+        header = buf[pos:nl].split(b" ")
+        pos = nl + 1
+        if len(header) == 2 and header[1] == b"missing":
+            out[rel] = None            # `<name> missing` -- no trailing content line
+            continue
+        try:
+            size = int(header[2]) if len(header) >= 3 else -1
+        except ValueError:
+            size = -1
+        # ANY FRAMING DOUBT ABANDONS THE WHOLE BATCH (terra HIGH, 2026-09-07). This loop reads
+        # POSITIONALLY, so a body shorter than its advertised size does not spoil one answer --
+        # it shifts `pos` and misaligns EVERY object after it. A manifest decoded from the
+        # wrong offset parses as frontmatter-less, is skipped, and reads as "no batch open":
+        # a false gate FAIL manufactured by a transport, which is precisely what a P2 speedup
+        # may not do. So a short body, a missing terminator or an unparseable header falls the
+        # whole batch back to the per-blob reader rather than salvaging the records that
+        # happened to look intact.
+        if size < 0 or pos + size >= len(buf) or buf[pos + size] != 0x0A:
+            return {r: _committed_text(repo_path, r) for r in rels}
+        raw = buf[pos:pos + size]
+        pos += size + 1                # git writes one LF after every object body
+        out[rel] = (raw.decode("utf-8", errors="replace")
+                    .replace("\r\n", "\n").replace("\r", "\n"))
+    return out
+
+
 def _closer_committed(repo_path: Path, closed_by: str) -> bool:
     """Does the closing packet exist in the COMMITTED tree? Same reason as above: a packet
-    merely present on disk (or staged) has not closed the batch."""
+    merely present on disk (or staged) has not closed the batch.
+
+    NO LONGER ON THE HOT PATH as of P2 (intake #71) -- `open_batches` answers the same
+    question from the `_committed_audits` listing it already holds. Kept, not deleted: it is
+    the single-path spelling of the probe the listing now performs in bulk, and
+    `tests/test_batch_manifest.py` pins the two against each other so the bulk form cannot
+    drift from the definition. RETIRE-PROPOSED if that test is ever dropped.
+    """
     return _git(repo_path, "cat-file", "-e", f"HEAD:{closed_by}") is not None
 
 
@@ -297,10 +394,24 @@ def open_batches(repo_path: Path) -> list[OpenBatch]:
     render as 'exempt' (the FR6 discipline ADR-85 established for the anchoring organs). The
     cost of the safe direction is a spurious gate FAIL during a batch, which is loud and
     fixable; the cost of the unsafe one is a silent hole.
+
+    P2 (intake #71) COLLAPSED THE TRANSPORT, NOT THE PREDICATE. The four conditions and the
+    order they are tested in are untouched; what changed is that the tree is now read in two
+    git spawns (one `ls-tree`, one `cat-file --batch`) instead of one per manifest plus one per
+    `closed_by:` probe. The absence probe is answerable from the `ls-tree` listing because
+    `_valid_closer` has ALREADY required the closer to live under `docs/audits/`, which is
+    exactly what that listing enumerates — so membership decides it as precisely as
+    `cat-file -e` did, and only for closers that reached the probe at all.
     """
+    audits = _committed_audits(repo_path)
+    if audits is None:
+        return []             # git unreadable => no exemption (see the fail-toward rule above)
+    manifests = _manifests_in(audits)
+    texts = _committed_texts(repo_path, manifests)
+
     found: list[OpenBatch] = []
-    for rel in _committed_manifests(repo_path):
-        text = _committed_text(repo_path, rel)
+    for rel in manifests:
+        text = texts.get(rel)
         if text is None:
             continue
         fm = _frontmatter(text)
@@ -309,10 +420,89 @@ def open_batches(repo_path: Path) -> list[OpenBatch]:
         closed_by = fm.get("closed_by", "")
         if not _valid_closer(closed_by):
             continue          # no resolvable expiry => opens nothing (see module docstring)
-        if _closer_committed(repo_path, closed_by):
+        if closed_by in audits:
             continue          # the closing packet is committed: the batch is over
         found.append(OpenBatch(batch=fm.get("batch", "?"), path=rel, closed_by=closed_by))
     return found
+
+
+#: `(repo, full sha) -> (parent shas, subject)`. A memo across the whole PROCESS, which is
+#: sound here for a reason that does not generalise to the file caches elsewhere in this
+#: fleet: a commit's parents and subject are fixed by its hash, so unlike a path this key
+#: cannot go stale while the process runs. Only FULL 40-hex shas are admitted (`_FULL_SHA_RE`)
+#: -- an abbreviation can start resolving to a different commit as history grows, which is the
+#: same refusal `journal_anchor.introduced` records for itself.
+_COMMIT_META: dict[tuple[str, str], tuple[list[str], str]] = {}
+_COMMIT_META_MAXSIZE = 4096
+
+#: One record per commit: `<sha> <parents...>` NUL `<subject>`. `%s` is the subject's FIRST
+#: line by definition, so a newline can never appear inside a record and plain `splitlines()`
+#: is a sound framing.
+_META_FORMAT = "%H %P%x00%s"
+
+
+def warm_commit_meta(repo_path: Path, shas: "list[str]") -> None:
+    """Populate `_COMMIT_META` for `shas` in ONE `git log --no-walk`, best-effort.
+
+    P2 (intake #71). Each sha previously cost a `rev-list --parents -n 1` plus a
+    `log -1 --format=%s`, and the spine walk asks about the same sha from more than one place,
+    so a batch of N merges spent 2N spawns and then spent them again. `--no-walk` is git's own
+    "tell me about exactly these commits" mode: it reads the list and emits one record each.
+
+    BEST-EFFORT BY CONSTRUCTION. Anything unreadable -- a bad sha, a git failure, a truncated
+    record -- simply leaves that sha unwarmed, and `_commit_meta` falls back to the per-sha
+    reads it always used. So this can make the walk faster and cannot make it answer
+    differently; there is no failure mode where a warmed entry is consulted but wrong.
+    """
+    want = [s for s in dict.fromkeys(shas)
+            if _FULL_SHA_RE.match(s) and (str(repo_path), s) not in _COMMIT_META]
+    if not want or len(_COMMIT_META) >= _COMMIT_META_MAXSIZE:
+        return
+    out = _git(repo_path, "log", "--no-walk", f"--format={_META_FORMAT}", *want, "--")
+    if out is None:
+        return
+    for line in out.splitlines():
+        head, sep, subject = line.partition("\x00")
+        if not sep:
+            continue
+        parts = head.split()
+        if not parts or not _FULL_SHA_RE.match(parts[0]):
+            continue
+        _COMMIT_META[(str(repo_path), parts[0])] = (parts, subject.strip())
+
+
+def _commit_meta(repo_path: Path, sha: str) -> Optional[tuple[list[str], str]]:
+    """`(rev-list --parents output, subject)` for `sha`, from the memo or from git.
+
+    The tuple's first element keeps `rev-list --parents -n 1`'s exact shape -- the commit
+    followed by its parents -- because both callers below test `len(...) < 3` against it, and
+    a helper that quietly changed that shape would move the merge/non-merge boundary.
+    """
+    key = (str(repo_path), sha)
+    hit = _COMMIT_META.get(key)
+    if hit is not None:
+        return hit
+    # ONE READER FOR BOTH PATHS (terra HIGH, 2026-09-07). This used to delegate to
+    # `journal_anchor._git`, which carries no [#355] env scrub, while `warm_commit_meta` above
+    # reads through the SCRUBBED `_git`. Two readers under different environments can answer
+    # differently for the same sha -- an inherited `GIT_DIR` is the live case, `git replace` /
+    # graft configuration the general one -- so whether a merge was classified as a lane merge
+    # would have depended on whether the warm pass happened to have run. That is a cache
+    # changing a VERDICT, not a speed. Both paths now read through the same scrubbed helper,
+    # so the memo's premise -- one sha, one answer, for the life of this process -- is true by
+    # construction rather than by assumption.
+    #
+    # HONEST LIMIT, since the premise is not unconditional: `git replace` refs mutated BETWEEN
+    # two reads inside a single run would still be invisible to the memo. No gate here runs
+    # long enough for that to be a real scenario, and it is recorded rather than defended.
+    parents_out = _git(repo_path, "rev-list", "--parents", "-n", "1", sha)
+    subject_out = _git(repo_path, "log", "-1", "--format=%s", sha)
+    if parents_out is None or subject_out is None:
+        return None                       # unknown => caller fails closed
+    parents, subject = parents_out.split(), subject_out.strip()
+    if _FULL_SHA_RE.match(sha) and len(_COMMIT_META) < _COMMIT_META_MAXSIZE:
+        _COMMIT_META[key] = (parents, subject)
+    return parents, subject
 
 
 def merged_branch_name(repo_path: Path, sha: str) -> Optional[str]:
@@ -322,13 +512,11 @@ def merged_branch_name(repo_path: Path, sha: str) -> Optional[str]:
     `Merge branch '<name>'` form, and for any git read failure. Every None is the
     no-exemption direction.
     """
-    import journal_anchor as _ja          # local: shared git-read shape, one definition
-    try:
-        parents = _ja._git(repo_path, "rev-list", "--parents", "-n", "1", sha).split()
-        if len(parents) < 3:              # sha + <2 parents => not a merge
-            return None
-        subject = _ja._git(repo_path, "log", "-1", "--format=%s", sha).strip()
-    except Exception:                     # noqa: BLE001 -- unknown => not exempt
+    meta = _commit_meta(repo_path, sha)
+    if meta is None:
+        return None
+    parents, subject = meta
+    if len(parents) < 3:                  # sha + <2 parents => not a merge
         return None
     m = _MERGE_SUBJECT_RE.match(subject)
     return m.group(1) if m else None
@@ -400,14 +588,12 @@ def subject_style_miss(repo_path: Path, sha: str) -> Optional[str]:
     """
     if merged_branch_name(repo_path, sha) is not None:
         return None                        # parsed fine -- nothing to warn about
-    try:
-        import journal_anchor as _ja
-        parents = _ja._git(repo_path, "rev-list", "--parents", "-n", "1", sha).split()
-        if len(parents) < 3:
-            return None                    # not a merge at all -- not this function's business
-        subject = _ja._git(repo_path, "log", "-1", "--format=%s", sha).strip()
-    except Exception:                      # noqa: BLE001 -- a read failure is not a style miss
+    meta = _commit_meta(repo_path, sha)    # same two reads `merged_branch_name` just made
+    if meta is None:                       # a read failure is not a style miss
         return None
+    parents, subject = meta
+    if len(parents) < 3:
+        return None                        # not a merge at all -- not this function's business
     m = _LANEISH_IN_SUBJECT_RE.search(subject)
     return m.group(0) if m else None
 
@@ -423,6 +609,12 @@ def exempt(repo_path: Path, shas: list[str],
     live = open_batches(repo_path) if batches is None else batches
     if not live:
         return set()
+    # P2 (intake #71): read every candidate's parents and subject in one spawn BEFORE the
+    # per-sha loop asks for them one at a time. Placed here rather than inside
+    # `is_lane_merge` because this is the only site that holds the whole list -- and it is
+    # deliberately AFTER the `if not live` short-circuit, so the common no-open-batch case
+    # still costs zero commit reads.
+    warm_commit_meta(repo_path, shas)
     return {s for s in shas if is_lane_merge(repo_path, s)}
 
 

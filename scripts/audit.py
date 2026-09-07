@@ -39,6 +39,7 @@ import stat as _stat
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
@@ -5493,45 +5494,139 @@ def _parallel_workers(n_checks: int) -> int:
     return max(1, min(_PARALLEL_MAX_WORKERS, n_checks))
 
 
+#: Install depth for `_cached_reads`, and the lock that makes incrementing it atomic. NOT a
+#: re-entrancy convenience: it is what makes install/restore independent of the order two
+#: contexts happen to exit in. See the comment at the top of `_cached_reads`.
+_CACHED_READS_LOCK = threading.Lock()
+_CACHED_READS_DEPTH = 0
+
+
 @contextlib.contextmanager
 def _cached_reads():
     """P3 (intake #71): a read-through file cache for ONE `run_checks` call, keyed on
     path + mtime.
 
-    Patches `Path.read_text` for the DURATION of this context only -- restored in `finally`,
-    so nothing outlives the run and no cache persists across processes (criterion 6 of #71:
-    library-first, stdlib only, no cross-run state). No check anywhere has to change how it
-    reads a file: many checks independently re-read the same canonical docs (measured: 43% of
-    `Path.read_text` calls across a full run are re-reads of a path already read), so patching
-    the one shared method both checks and helper modules already call covers them all without
-    touching each call site.
+    Patches `Path.read_text` AND `Path.read_bytes` for the DURATION of this context only --
+    both restored in `finally`, so nothing outlives the run and no cache persists across
+    processes (criterion 6 of #71: library-first, stdlib only, no cross-run state). No check
+    anywhere has to change how it reads a file: many checks independently re-read the same
+    canonical docs (measured: 43% of `Path.read_text` calls across a full run are re-reads of
+    a path already read), so patching the shared methods both checks and helper modules
+    already call covers them all without touching each call site.
+
+    `read_bytes` IS COVERED BECAUSE HALF THE CORPUS IS READ THROUGH IT, not for symmetry.
+    `gen_task_tree` reads every `tasks/*.md` file as bytes-then-decode rather than as text --
+    `reassemble_from_tree`, `render_view`, `_scan_source` and `_is_engine_managed` each walk
+    the whole manifest -- so on a commit-tier run the task corpus was read about seven times
+    over while the `read_text` cache beside it served nothing. Measured on this tree: 1,634
+    `read_bytes` calls, ~1,600 of them re-reads of a path already read in the same run.
+
+    NOTE the asymmetry that is deliberate: `Path.read_text` is implemented on top of
+    `Path.open`, NOT on top of `Path.read_bytes`, so the two entries below cannot serve each
+    other's callers and cannot double-count one physical read. `Path.open` itself is left
+    alone -- a cache would have to hand back a file-like object, and a caller that seeks,
+    reopens for write, or reads `.name` off it would get something subtly unlike a file.
+    A read cache may not change what a caller receives.
 
     Keyed on `(path, mtime_ns, size)`, not path alone: every check here is documented
     read-only (Layer-2, no file writes), so no check should mutate a file mid-run, but the key
-    still catches it rather than serving stale content if one ever does. `args`/`kwargs` ride
-    along in the key so a caller passing a different encoding is never served another
-    caller's decoded text.
-    """
-    cache: dict[tuple, str] = {}
-    orig_read_text = Path.read_text
+    still catches it rather than serving stale content if one ever does.
 
-    def cached_read_text(self, *args, **kwargs):
+    WHY THE KEY IS THE BYTES AND NOT THE CALL. The first cut put `args`/`kwargs` in the key so
+    that a caller passing a different encoding could never be served another caller's decoded
+    text. That is the right worry and it was the wrong fix, because it split the key on a
+    difference that does not change what is read: this corpus is walked once with
+    `read_text(encoding="utf-8")` and once with `read_text(encoding="utf-8",
+    errors="replace")`, so the SAME file under the SAME mtime occupied two entries and every
+    single read was a miss. Measured at the commit tier before this change: 4,085 `read_text`
+    calls, 4,085 real reads, **hit rate 0.0%** across 1,456 paths each read under exactly two
+    arg-shapes. The cache was inert at the gate it was landed to speed up.
+
+    So the physical read is keyed on the file (`raw`) and the decode is memoized separately
+    per `(encoding, errors)` (`decoded`). Two callers spelling `errors=` differently now share
+    one open and still each get their own semantics -- `errors=None` decodes strictly and
+    RAISES on undecodable bytes exactly as `read_text` does, so the safety the first cut was
+    protecting is preserved by construction rather than by never hitting.
+    """
+    global _CACHED_READS_DEPTH
+    with _CACHED_READS_LOCK:
+        _CACHED_READS_DEPTH += 1
+        outermost = _CACHED_READS_DEPTH == 1
+    if not outermost:
+        # ALREADY INSTALLED -- do nothing and restore nothing (terra HIGH, 2026-09-07).
+        # Two contexts that OVERLAP without nesting each save whatever `Path.read_text` was
+        # at their own entry and each restore it at their own exit, so the later exit puts
+        # the earlier context's WRAPPER back and leaves it installed for good, serving a
+        # dead run's cache to every later reader. Patching only at the OUTERMOST entry makes
+        # the install/restore pairing independent of exit order. An inner context simply
+        # shares the outer cache, which is what a nested caller wanted anyway; a thread that
+        # joins late and outlives the outermost merely reads uncached, which is correct.
         try:
-            st = self.stat()
+            yield
+        finally:
+            with _CACHED_READS_LOCK:
+                _CACHED_READS_DEPTH -= 1
+        return
+
+    raw: dict[tuple, bytes] = {}          # (path, mtime_ns, size) -> file bytes
+    decoded: dict[tuple, str] = {}        # (path, mtime_ns, size, encoding, errors) -> text
+    orig_read_text = Path.read_text
+    orig_read_bytes = Path.read_bytes
+
+    def _key(path: Path):
+        st = path.stat()                  # OSError propagates to the caller below
+        return (str(path), st.st_mtime_ns, st.st_size)
+
+    def _bytes(path: Path, key):
+        got = raw.get(key)
+        if got is None:
+            got = raw[key] = orig_read_bytes(path)
+        return got
+
+    def cached_read_bytes(self, *args, **kwargs):
+        if args or kwargs:                # unknown signature -> not ours to serve
+            return orig_read_bytes(self, *args, **kwargs)
+        try:
+            key = _key(self)
         except OSError:
-            return orig_read_text(self, *args, **kwargs)
-        key = (str(self), st.st_mtime_ns, st.st_size, args, tuple(sorted(kwargs.items())))
-        if key in cache:
-            return cache[key]
-        text = orig_read_text(self, *args, **kwargs)
-        cache[key] = text
+            return orig_read_bytes(self)
+        return _bytes(self, key)
+
+    def cached_read_text(self, encoding=None, errors=None, **kwargs):
+        # `encoding=None` means "whatever the locale says", and `newline=` (3.13+) changes the
+        # translation below. Neither is worth reproducing here: pass both straight through.
+        if kwargs or encoding is None:
+            return orig_read_text(self, encoding, errors, **kwargs)
+        try:
+            key = _key(self)
+        except OSError:
+            return orig_read_text(self, encoding, errors)
+        dkey = key + (encoding, errors)
+        hit = decoded.get(dkey)
+        if hit is not None:
+            return hit
+        # DECODE THE SAME BYTES THE OTHER SHAPE ALREADY READ, rather than reading again --
+        # this is the whole fix (see the `errors=` note in the docstring). `errors=None` is
+        # spelled "strict" so a caller that asked for strict still RAISES on undecodable
+        # bytes exactly as `read_text` would; only the I/O is shared, never the verdict.
+        text = _bytes(self, key).decode(encoding, errors or "strict")
+        # `Path.read_text` opens in TEXT mode, so Python has already applied universal-newline
+        # translation by the time a caller sees the string; `bytes.decode` has not. Without
+        # these two replacements every CRLF file would gain a `\r` at each line end the moment
+        # it was served from cache -- and a frontmatter value of `open\r` matches nothing.
+        text = text.replace("\r\n", "\n").replace("\r", "\n")
+        decoded[dkey] = text
         return text
 
     Path.read_text = cached_read_text
+    Path.read_bytes = cached_read_bytes
     try:
         yield
     finally:
         Path.read_text = orig_read_text
+        Path.read_bytes = orig_read_bytes
+        with _CACHED_READS_LOCK:
+            _CACHED_READS_DEPTH -= 1
 
 
 def run_checks(repo_path: Path, checks: Sequence[Callable] | None = None,

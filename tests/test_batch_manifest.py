@@ -464,27 +464,31 @@ def test_an_inherited_GIT_DIR_does_not_suppress_a_real_open_batch(tmp_path, monk
 
 
 @requires_git
-@pytest.mark.xfail(strict=True, reason="known-open SIXTH unscrubbed site: journal_anchor._git")
 def test_exempt_still_fires_under_an_inherited_GIT_DIR(tmp_path, monkeypatch):
-    """A KNOWN-OPEN GAP, recorded as a live strict-xfail rather than left as a false green.
+    """CLOSED 2026-09-07 by intake #71's P2 batching — the strict-xfail did its job.
 
-    `[#512]` scrubbed `batch_manifest._git`, which is every probe `open_batches` makes. It is
-    NOT every probe `exempt` makes: `merged_branch_name` delegates the merge-parent and
-    merge-subject reads to `journal_anchor._git`, which carries no scrub. So under an
-    inherited `GIT_DIR` the manifest is read from the intended repo while the merge is looked
-    up in the FOREIGN one, and a valid lane merge loses its exemption.
+    THE GAP THIS RECORDED. `[#512]` scrubbed `batch_manifest._git`, which is every probe
+    `open_batches` makes. It was NOT every probe `exempt` makes: `merged_branch_name`
+    delegated the merge-parent and merge-subject reads to `journal_anchor._git`, which
+    carries no scrub. So under an inherited `GIT_DIR` the manifest was read from the intended
+    repo while the merge was looked up in the FOREIGN one, and a valid lane merge lost its
+    exemption. It was carried as `xfail(strict=True)` with the note "the day that site is
+    scrubbed, this test XPASSes, strict turns it RED, and the marker cannot be forgotten".
+    That is what happened, so the marker is gone.
 
-    This assertion originally lived as step (4) of the test above and PASSED — because the
-    fixture built its merge after exporting `GIT_DIR`, so `_merge`'s own unscrubbed helper
-    created the merge in the foreign repo too, and both halves agreed about the wrong tree.
-    Building the merge FIRST, in `repo`, is what makes the assertion mean what it says, and
-    what makes it fail (terra HIGH x2, pass 4, 2026-08-08).
+    WHAT ACTUALLY CHANGED, STATED NARROWLY — because the reason is not the one the marker
+    predicted. `journal_anchor._git` is STILL UNSCRUBBED and nobody scrubbed it; what changed
+    is that this module stopped calling it. `warm_commit_meta` and `_commit_meta` both read
+    through the SCRUBBED `batch_manifest._git`, so every commit-metadata read on this path now
+    resolves in the intended repo.
 
-    `scripts/journal_anchor.py` is outside this lane's frozen scope — deliberately, since it
-    is the shared predicate the pre-push organ `block_unanchored_push` also imports, so
-    scrubbing it is a wider blast radius than a lane may take unilaterally. `strict=True` is
-    what keeps this honest: the day that site is scrubbed, this test XPASSes, strict turns it
-    RED, and the marker cannot be forgotten.
+    BOTH readers were unified deliberately, and the first draft of this fix did NOT do that
+    (terra HIGH, 2026-09-07). It routed only the warm path through the scrub and left the
+    cold fallback on `journal_anchor._git` — which would have made the answer depend on
+    whether the warm pass had run, i.e. a cache changing a verdict rather than a speed. So the
+    exposure this test records is closed for `merged_branch_name` and `subject_style_miss`
+    generally, not merely for `exempt`; what remains open is `journal_anchor._git` itself,
+    which other callers still use and which is not this lane's to scrub.
     """
     repo, _floor = _seed(tmp_path)
     _write_manifest(repo)
@@ -877,3 +881,157 @@ def test_widening_did_not_sweep_in_a_serial_arc_or_a_bare_worktree(tmp_path):
     repo, _ = _seed(tmp_path)
     for branch in ("docs/night2-anchor-1", "worktree-scratch", "feat/thing"):
         assert bm.is_lane_merge(repo, _merge(repo, branch)) is False, branch
+# --- intake #71 P2: the batched transports must agree with the definitions they replace ----
+#
+# Both helpers below collapse an N-spawn loop into one git call, and both are only admissible
+# because they answer IDENTICALLY to the per-item form. That is not a claim to make in a
+# commit message and leave: these two tests are what keep the bulk form pinned to the
+# definition, and `_closer_committed`'s docstring names them as the reason it is kept rather
+# than retired.
+
+
+def test_batched_blob_read_matches_the_per_blob_read(tmp_path):
+    """`_committed_texts` == `_committed_text`, byte for byte, including the newline half.
+
+    `_committed_text` reads through `subprocess` in TEXT mode (utf-8 + universal newlines);
+    `cat-file --batch` returns raw bytes. The decode AND the newline translation are
+    reapplied by hand in the batched form, so a CRLF manifest is the case that actually
+    discriminates the two — hence one of each below.
+    """
+    repo, _floor = _seed(tmp_path)
+    _write_manifest(repo)
+    crlf = repo / "docs" / "audits" / "2026-08-10-technical-batch-9-manifest.md"
+    crlf.write_bytes(b"---\r\nbatch: 9\r\nstatus: open\r\n"
+                     b"closed_by: docs/audits/2026-08-11-technical-batch-9-packet.md\r\n---\r\n")
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True, capture_output=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-m", "crlf manifest"],
+                   check=True, capture_output=True)
+
+    rels = bm._committed_manifests(repo)
+    assert len(rels) >= 2, f"fixture did not commit both manifests: {rels}"
+    batched = bm._committed_texts(repo, rels)
+    for rel in rels:
+        assert batched[rel] == bm._committed_text(repo, rel), rel
+        assert "\r" not in batched[rel], f"{rel}: universal-newline translation was skipped"
+
+
+def test_warmed_commit_meta_matches_the_per_sha_reads(tmp_path):
+    """`warm_commit_meta` == the `rev-list --parents` + `log -1 --format=%s` pair it replaces.
+
+    Asserted over a merge AND a non-merge, because the only thing either caller does with the
+    parent list is test `len(...) < 3` — so the two sides of that boundary are the cases where
+    a shape change would actually move a verdict.
+    """
+    repo, _floor = _seed(tmp_path)
+    merge = _merge(repo, "worktree-lane-b-1-batched-meta")
+    plain = ja._git(repo, "rev-parse", "HEAD~1").strip()
+
+    truth = {}
+    for sha in (merge, plain):
+        truth[sha] = (ja._git(repo, "rev-list", "--parents", "-n", "1", sha).split(),
+                      ja._git(repo, "log", "-1", "--format=%s", sha).strip())
+
+    bm._COMMIT_META.clear()
+    bm.warm_commit_meta(repo, [merge, plain])
+    try:
+        for sha in (merge, plain):
+            assert bm._COMMIT_META[(str(repo), sha)] == truth[sha], sha
+        assert len(truth[merge][0]) >= 3 and len(truth[plain][0]) < 3, \
+            "fixture no longer straddles the merge/non-merge boundary"
+    finally:
+        bm._COMMIT_META.clear()
+
+
+def test_commit_meta_refuses_to_memoize_an_abbreviated_sha(tmp_path):
+    """An abbreviation is a query, not an identity — it must never enter the process memo.
+
+    The memo has no mtime-style invalidation and deliberately none: a FULL sha's parents and
+    subject cannot change. A short sha's can, as history grows and the prefix starts resolving
+    elsewhere, so admitting one would make the memo the single place in this module that can
+    go stale while the process runs.
+    """
+    repo, _floor = _seed(tmp_path)
+    merge = _merge(repo, "worktree-lane-b-2-short-sha")
+    bm._COMMIT_META.clear()
+    try:
+        assert bm._commit_meta(repo, merge[:8]) is not None, "the short sha still RESOLVES"
+        assert (str(repo), merge[:8]) not in bm._COMMIT_META
+        bm.warm_commit_meta(repo, [merge[:8]])
+        assert bm._COMMIT_META == {}, "an abbreviated sha reached the memo via the warm path"
+    finally:
+        bm._COMMIT_META.clear()
+
+
+def test_malformed_batch_output_falls_back_instead_of_misaligning(tmp_path, monkeypatch):
+    """terra HIGH 2. A truncated `cat-file --batch` body must abandon the batch, not salvage it.
+
+    The parser reads POSITIONALLY, so a body shorter than its advertised size does not spoil
+    one answer -- it shifts the offset and misaligns every object after it. A manifest decoded
+    from the wrong offset parses as frontmatter-less, is skipped, and reads as "no batch open":
+    a false gate FAIL manufactured by a transport. The whole batch therefore falls back to the
+    per-blob reader, and the assertion is that the ANSWER is still right, not merely that
+    nothing raised.
+    """
+    repo, _floor = _seed(tmp_path)
+    _write_manifest(repo)
+    rels = bm._committed_manifests(repo)
+    truth = {rel: bm._committed_text(repo, rel) for rel in rels}
+
+    real_run = subprocess.run
+
+    def truncating_run(*a, **kw):
+        out = real_run(*a, **kw)
+        args = a[0] if a else kw.get("args")
+        if any("--batch" == str(x) for x in args):
+            out.stdout = out.stdout[:len(out.stdout) // 2]      # lose the tail mid-object
+        return out
+
+    monkeypatch.setattr(bm.subprocess, "run", truncating_run)
+    assert bm._committed_texts(repo, rels) == truth, \
+        "a truncated batch was salvaged rather than re-read through the per-blob path"
+
+
+def test_a_missing_object_is_none_without_disturbing_its_neighbours(tmp_path):
+    """`<name> missing` carries NO body line, so mis-framing it shifts everything after it.
+    Asserted with a real manifest on BOTH sides of the missing entry."""
+    repo, _floor = _seed(tmp_path)
+    _write_manifest(repo)
+    _write_manifest(repo, batch=3, name="2026-08-08-technical-batch-3-manifest.md",
+                    closed_by="docs/audits/2026-08-10-technical-batch-3-packet.md")
+    rels = bm._committed_manifests(repo)
+    assert len(rels) == 2, rels
+
+    probe = [rels[0], "docs/audits/nope-technical-batch-9-manifest.md", rels[1]]
+    got = bm._committed_texts(repo, probe)
+    assert got[probe[1]] is None
+    assert got[rels[0]] == bm._committed_text(repo, rels[0])
+    assert got[rels[1]] == bm._committed_text(repo, rels[1])
+
+
+def test_both_commit_meta_paths_use_the_same_scrubbed_reader(tmp_path):
+    """terra HIGH 3. Warm and cold must not read git under different environments.
+
+    The first draft scrubbed only the warm path, which would have made a merge's
+    classification depend on whether the warm pass had happened to run -- a cache changing a
+    VERDICT rather than a speed. Asserted on the ANSWER under an inherited `GIT_DIR`, cold
+    memo, so it fails if the cold path ever goes back to an unscrubbed reader.
+    """
+    repo, _floor = _seed(tmp_path)
+    merge = _merge(repo, "worktree-lane-b-3-one-reader")
+    other = _foreign_repo(tmp_path)
+
+    bm._COMMIT_META.clear()
+    try:
+        import os
+        os.environ["GIT_DIR"] = str(other / ".git")
+        try:
+            cold = bm.merged_branch_name(repo, merge)     # cold memo: the fallback path
+            bm._COMMIT_META.clear()
+            bm.warm_commit_meta(repo, [merge])
+            warm = bm.merged_branch_name(repo, merge)     # served from the warm pass
+        finally:
+            os.environ.pop("GIT_DIR", None)
+    finally:
+        bm._COMMIT_META.clear()
+
+    assert cold == warm == "worktree-lane-b-3-one-reader", (cold, warm)

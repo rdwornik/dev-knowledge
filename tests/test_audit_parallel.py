@@ -328,3 +328,168 @@ def test_parallel_worker_width_is_sized_to_the_checks_that_actually_run(monkeypa
     aud.run_checks(Path("."), checks=checks[:5], parallel=True, tier=aud.TIER_COMMIT)
     assert seen["width"] == 1          # all deferred: floored at 1, never 0
     assert calls == []
+
+
+# --- intake #71 P3: the per-run read cache ------------------------------------------------
+#
+# THE DEFECT THESE EXIST BECAUSE OF. The cache landed with no test at all and was INERT at the
+# commit tier for a day: `args`/`kwargs` were part of the key, this corpus is walked once with
+# `read_text(encoding="utf-8")` and once with `read_text(encoding="utf-8", errors="replace")`,
+# so the same file under the same mtime occupied two entries and every read missed. Measured
+# before the fix: 4,085 `read_text` calls, 4,085 real reads, hit rate 0.0%. A speed organ that
+# silently does nothing is the failure mode a "measured 70% fewer reads" commit message cannot
+# catch, so what is pinned below is that the cache HITS -- not merely that it returns the right
+# answer, which an absent cache also does.
+
+
+def _count_reads(monkeypatch):
+    """Install counters UNDER the cache and return them. A call reaching these is a real read."""
+    calls = {"text": 0, "bytes": 0}
+    orig_t, orig_b = Path.read_text, Path.read_bytes
+
+    def t(self, *a, **kw):
+        calls["text"] += 1
+        return orig_t(self, *a, **kw)
+
+    def b(self, *a, **kw):
+        calls["bytes"] += 1
+        return orig_b(self, *a, **kw)
+
+    monkeypatch.setattr(Path, "read_text", t)
+    monkeypatch.setattr(Path, "read_bytes", b)
+    return calls
+
+
+def test_the_read_cache_actually_hits_across_differing_errors_kwargs(tmp_path, monkeypatch):
+    """The regression itself: two arg-shapes for one file must cost ONE physical read."""
+    p = tmp_path / "doc.md"
+    # write_BYTES, not write_text: on Windows `write_text` translates the LF to CRLF, so a
+    # byte-level assertion written against the source literal fails on one platform only.
+    p.write_bytes(b"hello\n")
+    calls = _count_reads(monkeypatch)
+
+    with aud._cached_reads():
+        a = p.read_text(encoding="utf-8")
+        b = p.read_text(encoding="utf-8", errors="replace")
+        c = p.read_bytes()
+
+    assert a == b == "hello\n"
+    assert c == b"hello\n"
+    assert calls["bytes"] + calls["text"] == 1, (
+        f"one file, three reads, {calls} physical reads -- the cache is not hitting")
+
+
+def test_the_read_cache_shares_one_open_between_text_and_bytes(tmp_path, monkeypatch):
+    """`read_text` is served by DECODING the bytes `read_bytes` already read, not by a second
+    open -- which is what makes the two entry points one cache rather than two."""
+    p = tmp_path / "doc.md"
+    p.write_text("x" * 100, encoding="utf-8")
+    calls = _count_reads(monkeypatch)
+
+    with aud._cached_reads():
+        for _ in range(5):
+            p.read_bytes()
+            p.read_text(encoding="utf-8")
+
+    assert calls["bytes"] + calls["text"] == 1, calls
+
+
+def test_the_read_cache_preserves_universal_newline_translation(tmp_path):
+    """A CRLF file must read back with LF endings exactly as uncached `read_text` gives them.
+
+    `Path.read_text` opens in TEXT mode, so Python translates; `bytes.decode` does not. Serving
+    a decode of the raw bytes without reapplying the translation would leave a carriage return
+    at every line end -- and a frontmatter value of `open\\r` matches nothing, which turns a
+    speed change into a silently different verdict."""
+    p = tmp_path / "crlf.md"
+    p.write_bytes(b"---\r\nstatus: open\r\n---\r\n")
+    uncached = p.read_text(encoding="utf-8")
+
+    with aud._cached_reads():
+        assert p.read_text(encoding="utf-8") == uncached
+        assert p.read_text(encoding="utf-8") == uncached      # again, from the cache
+    assert "\r" not in uncached
+
+
+def test_the_read_cache_keeps_strict_decoding_strict(tmp_path):
+    """`errors=None` must still RAISE on undecodable bytes, and must not be contaminated by an
+    `errors="replace"` read of the same file. Sharing the I/O may never share the semantics."""
+    p = tmp_path / "bad.md"
+    p.write_bytes(b"ok \xff\xfe not utf-8\n")
+
+    with aud._cached_reads():
+        replaced = p.read_text(encoding="utf-8", errors="replace")
+        assert "�" in replaced
+        with pytest.raises(UnicodeDecodeError):
+            p.read_text(encoding="utf-8")
+        # ...and in the other order, on a cache already holding the strict failure.
+        assert p.read_text(encoding="utf-8", errors="replace") == replaced
+
+
+def test_the_read_cache_is_restored_and_leaks_nothing():
+    """Nothing outlives the context -- criterion 6 of #71. A cache that survived its run would
+    make a gate lie, which is worse than a slow gate."""
+    before_t, before_b = Path.read_text, Path.read_bytes
+    with aud._cached_reads():
+        assert Path.read_text is not before_t
+        assert Path.read_bytes is not before_b
+    assert Path.read_text is before_t
+    assert Path.read_bytes is before_b
+
+
+def test_the_read_cache_re_reads_a_file_that_changed_mid_run(tmp_path):
+    """Keyed on (path, mtime_ns, size), not path alone. Every check is documented read-only, so
+    this should never fire in practice -- but the key catches a mutation rather than serving
+    stale content, and that is the difference between a cache and a bug."""
+    p = tmp_path / "moving.md"
+    p.write_text("first", encoding="utf-8")
+    with aud._cached_reads():
+        assert p.read_text(encoding="utf-8") == "first"
+        p.write_text("second-and-longer", encoding="utf-8")
+        assert p.read_text(encoding="utf-8") == "second-and-longer"
+
+
+# --- the three terra HIGHs of 2026-09-07, each pinned ---------------------------------------
+
+
+def test_two_overlapping_cache_contexts_never_leak_a_wrapper():
+    """terra HIGH 1. Contexts that OVERLAP without nesting must still restore cleanly.
+
+    Each context used to save whatever `Path.read_text` was at ITS entry and restore that at
+    ITS exit, so exiting in the wrong order put the earlier context's WRAPPER back and left it
+    installed for good -- every later reader in the process then served a dead run's cache,
+    which is a gate reading stale content outside any run. Exercised in the exact order that
+    breaks it: A enters, B enters, A exits, B exits.
+    """
+    before_t, before_b = Path.read_text, Path.read_bytes
+
+    a = aud._cached_reads()
+    b = aud._cached_reads()
+    a.__enter__()
+    b.__enter__()
+    a.__exit__(None, None, None)
+    b.__exit__(None, None, None)
+
+    assert Path.read_text is before_t, "an overlapping context left a read_text wrapper behind"
+    assert Path.read_bytes is before_b
+
+
+def test_nested_cache_contexts_restore_exactly_once():
+    """The ordinary nesting case, which DOES occur: `run_checks` opens one and a caller that
+    already opened one is not rare. The inner context shares the outer cache and is a no-op."""
+    before_t = Path.read_text
+    with aud._cached_reads():
+        outer = Path.read_text
+        with aud._cached_reads():
+            assert Path.read_text is outer, "the inner context re-patched instead of sharing"
+        assert Path.read_text is outer, "the inner context restored the outer's patch"
+    assert Path.read_text is before_t
+
+
+def test_the_cache_depth_returns_to_zero_even_when_the_body_raises():
+    """A leaked depth would make every LATER context think it was nested and quietly never
+    install -- the cache would go inert again, which is the exact failure this lane fixed."""
+    with pytest.raises(ValueError):
+        with aud._cached_reads():
+            raise ValueError("boom")
+    assert aud._CACHED_READS_DEPTH == 0
