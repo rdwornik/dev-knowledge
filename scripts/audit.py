@@ -4415,9 +4415,11 @@ def check_membership_agreement(repo_path: Path, _surface_paths=None) -> list[Fin
 
 # THE ADR-85 MESSAGE TEXT MOVED TO `journal_anchor` (batch U, lane-u-000-branch-enum-parity).
 # It lived here, and `block_unanchored_push` -- the organ this check is the BACKSTOP FOR, in its
-# own docstring's words -- printed a paraphrase of it instead. Two organs, two wordings, one
-# rule: the drift edge AF-1 exists to close. It now sits in the module that already owns the
-# predicate as code and that BOTH organs already import, so neither can restate it alone.
+# own docstring's words -- printed a paraphrase of it instead. Two organs, two wordings,
+# one rule: the drift edge AF-1 exists to close. It now sits in the module that already
+# owns the predicate as code and that BOTH organs already import, so neither can restate
+# it alone. (Reflowed 2026-09-07: `rule:` must not begin a comment line -- the doc->code
+# tokenizer reads a line-initial `# rule:` as a MARKER, and read this prose as rule `the`.)
 #
 # Dual-import, the pattern `check_amendment_coherence`/`block_ff_push` already use: script mode
 # puts scripts/ on sys.path, package mode puts the repo ROOT there.
