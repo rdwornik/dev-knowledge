@@ -5,7 +5,8 @@ reconciled_with: handoff-process@7.0.0
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> Last updated: 2026-09-08
+> Last updated: 2026-09-08 (batch CLOSE, lane `c2-living-docs-hygiene` — the three Ch8
+> mechanisms and the Auto-TOC repair)
 >
 > **Review pass 2026-09-06 (lane `lane-t-000-playbook`, batch T).** Re-read end-to-end — all
 > 5,968 lines, Part I Ch1–Ch14 and Part II §1–§21 plus the appendices — against the **62 commits**
@@ -34,6 +35,20 @@ reconciled_with: handoff-process@7.0.0
 > chapter's own `4–10` / `4–6` contradiction, which stood in two paragraphs of one chapter),
 > **poll-as-code** as a third note under the message shapes, and **the reviewer's model id on
 > the tally line** with a mismatch reporting `review=NONE`.
+>
+> **The stamp line carries its note, and it is re-set by the LAST commit that touches this
+> file in the lane — deliberately, because the derived-freshness leg is ancestry-based.**
+> `audit.py::_stamp_setting_commit` resolves the stamp to the newest commit whose diff ADDS
+> the stamp line, and `_unreviewed_after_stamp` then counts CONTENT commits after it. A
+> second edit to this file under an unchanged stamp line therefore reads as content landing
+> after its own review, which is exactly the condition the leg exists to catch — so the line
+> moves with the last edit rather than being written once at the top of the lane. The note
+> after the date follows `ARCHITECTURE.md`'s convention; the surface stays PROSE either way.
+>
+> **One drift found by this pass and FIXED in place** (the Auto-TOC addendum claimed the mechanism
+> was "applied to `ARCHITECTURE.md` and `protocols/PLAYBOOK.md`"; ARCHITECTURE's markers were
+> stripped by `f7a548d2` under `[#326]` and its TOC un-gated, so only this file carries one — the
+> live hook id `toc-freshness-playbook` says as much in its own name).
 >
 > **The prose stamp stays prose, DELIBERATELY — a `last_reviewed:` frontmatter key was written
 > here and then reverted in the same pass.** This file is not in the stamped set
@@ -6244,5 +6259,12 @@ Large canonical docs carry an **auto-maintained table of contents** between `<!-
 - **Freshness gate:** the `toc-freshness` pre-commit hook (`python -m scripts.toc.cli check <file>`) fails-on-stale with a unified diff, exactly like `codemap-freshness`. It is a standalone hook (not an `audit.py` check), matching where `codemap-freshness` lives. The hook fires only on the target doc's own edits (the TOC depends solely on that doc's headers — no source-root dependency).
 - **Adoption:** insert the two markers in the natural spot (after the title/intro, before the first `##` section), add a `toc-freshness` hook entry scoped to the file, run `generate --write`, and commit. Unlike the codemap (hardwired to `ARCHITECTURE.md`), the TOC CLI takes the target file as an argument, so the same mechanism applies to any doc.
 
-Applied to `ARCHITECTURE.md` and `protocols/PLAYBOOK.md`. **Not** auto-applied to every doc — add only where navigation overhead is real (threshold: roughly **≥~400 lines / ~8+ sections**). Authority: ADR-51 § Auto-TOC (same freshness regime as the codemap).
+Applied to **`protocols/PLAYBOOK.md` only**, and the hook is named for it
+(`toc-freshness-playbook`). *This line read "Applied to `ARCHITECTURE.md` and
+`protocols/PLAYBOOK.md`" until 2026-09-08* — stale since `f7a548d2`
+("strip ToC + un-gate toc-freshness (hub leg [#326])"), which removed ARCHITECTURE's markers and
+un-gated it; `grep -n "TOC:START" ARCHITECTURE.md` returns nothing and the TOC CLI refuses that
+file with *"TOC markers not found"*. Found by the end-to-end read that re-stamped this file, and
+fixed rather than filed because it is a one-clause factual claim about a sibling doc's shape.
+**Not** auto-applied to every doc — add only where navigation overhead is real (threshold: roughly **≥~400 lines / ~8+ sections**). Authority: ADR-51 § Auto-TOC (same freshness regime as the codemap).
 
