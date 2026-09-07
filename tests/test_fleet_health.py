@@ -1,7 +1,10 @@
 """Unit tests for scripts/fleet_health.py (ADR-70 Tier-2 daily fleet audit)."""
 
+import contextlib
 import importlib.util
 import json
+import os
+import re
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from unittest import mock
@@ -20,6 +23,20 @@ def _load():
 
 
 fh = _load()
+
+
+@contextlib.contextmanager
+def _prompts_dir_matching():
+    """Neutralise the ambient CLAUDE_PROMPTS_DIR scopes for tests that are NOT about the
+    E-29 guard.
+
+    Without it, `main()` returns 2 or 0 depending on whether the machine running the suite
+    happens to carry a stale inherited value -- so three unrelated digest tests would pass
+    in CI and fail on the operator's box, which is an env-dependent RED arriving in the
+    wrong place. The guard's own tests below seed both values explicitly instead.
+    """
+    with mock.patch.object(fh, "read_prompts_dir_scopes", return_value=("X", "X")):
+        yield
 
 
 # --- parse_health_date ------------------------------------------------------
@@ -1403,7 +1420,7 @@ def test_main_prints_the_load_line(tmp_path, capsys):
     health = tmp_path / "FLEET-HEALTH.md"
     health.write_text(fh.build_digest(_STATES, date.today(), "2026-08-11T09:00:00",
                                       None, dict(_COUNTS, delta_7d=4)), encoding="utf-8")
-    with mock.patch.object(fh, "_HEALTH_FILE", health):
+    with mock.patch.object(fh, "_HEALTH_FILE", health), _prompts_dir_matching():
         assert fh.main() == 0
     assert "[load] " in capsys.readouterr().out
 
@@ -1417,7 +1434,8 @@ def test_main_prints_the_traces_line(tmp_path, capsys):
     prompts.mkdir(parents=True)
     (prompts / f"{date.today().isoformat()}-lane-h0-trace.md").write_text("x", encoding="utf-8")
     with mock.patch.object(fh, "_HEALTH_FILE", health), \
-         mock.patch.object(fh, "_LOGS_DIR", logs_dir):
+         mock.patch.object(fh, "_LOGS_DIR", logs_dir), \
+         _prompts_dir_matching():
         assert fh.main() == 0
     assert "[traces] 1 today" in capsys.readouterr().out
 
@@ -1515,7 +1533,229 @@ def test_main_prints_asks_before_funnel_before_fleet_line(tmp_path, capsys):
     handoff_process.write_text(_ASKS_FIXTURE, encoding="utf-8")
     with mock.patch.object(fh, "_HEALTH_FILE", health), \
          mock.patch.object(fh, "_HANDOFF_PROCESS_PATH", handoff_process), \
-         mock.patch.object(fh, "funnel_health_line", return_value="[funnel] rot 0 / orphan 0 / unblocked 0 / batch 0 proposed"):
+         mock.patch.object(fh, "funnel_health_line", return_value="[funnel] rot 0 / orphan 0 / unblocked 0 / batch 0 proposed"), \
+         _prompts_dir_matching():
         assert fh.main() == 0
     out = capsys.readouterr().out
     assert out.index("[asks] ") < out.index("[funnel] ") < out.index("[fleet] ")
+
+
+# --- CLAUDE_PROMPTS_DIR scope guard (DEFECT E-29 / inbox 013-A) -------------------------
+# Closure clause under test: seeded mismatch -> refusal; match -> silent pass.
+# The two values are ALWAYS seeded here. Reading the real machine's scopes would make these
+# tests assert about the box they run on rather than about the predicate.
+
+_STALE = "C:\\somewhere\\stale"
+_TRUE = "Z:\\a dir\\with spaces"
+
+
+def test_prompts_dir_status_mismatch_refuses():
+    verdict, line = fh.prompts_dir_status(_STALE, _TRUE)
+    assert verdict == fh.PROMPTS_REFUSED
+    assert line.startswith("[prompts] REFUSED")
+
+
+def test_prompts_dir_refusal_names_BOTH_values():
+    """E-29's stated reason for the second value: naming only the correct one leaves the
+    reader unable to tell a stale process from a wrong User setting."""
+    _, line = fh.prompts_dir_status(_STALE, _TRUE)
+    assert _STALE in line and _TRUE in line
+
+
+def test_prompts_dir_refusal_is_one_line():
+    _, line = fh.prompts_dir_status(_STALE, _TRUE)
+    assert "\n" not in line
+
+
+def test_prompts_dir_status_match_is_ok():
+    verdict, line = fh.prompts_dir_status(_TRUE, _TRUE)
+    assert verdict == fh.PROMPTS_OK
+    assert "REFUSED" not in line
+
+
+def test_prompts_dir_trailing_separator_is_not_staleness():
+    assert fh.prompts_dir_status(_TRUE + "\\", _TRUE)[0] == fh.PROMPTS_OK
+
+
+def test_prompts_dir_case_difference_is_not_staleness():
+    assert fh.prompts_dir_status(_TRUE.upper(), _TRUE.lower())[0] == fh.PROMPTS_OK
+
+
+def test_prompts_dir_surrounding_quotes_are_not_staleness():
+    assert fh.prompts_dir_status(f'"{_TRUE}"', _TRUE)[0] == fh.PROMPTS_OK
+
+
+def test_prompts_dir_unset_process_value_refuses():
+    """013-A's predicate: unset IS a difference from a set User value, because an unset
+    process value falls through to the launcher fallback silently."""
+    verdict, line = fh.prompts_dir_status(None, _TRUE)
+    assert verdict == fh.PROMPTS_REFUSED
+    assert _TRUE in line
+
+
+def test_prompts_dir_empty_string_counts_as_unset():
+    assert fh.prompts_dir_status("   ", _TRUE)[0] == fh.PROMPTS_REFUSED
+
+
+def test_prompts_dir_both_unset_warns_and_is_never_silent():
+    verdict, line = fh.prompts_dir_status(None, None)
+    assert verdict == fh.PROMPTS_UNSET
+    assert line.strip()
+    assert "REFUSED" not in line
+
+
+def test_prompts_dir_no_user_scope_is_unverifiable_not_ok():
+    """The shape 013-A's sketch does not cover. Nothing was compared, so calling it a pass
+    would be the silent conflation the whole defect is about."""
+    verdict, line = fh.prompts_dir_status(_STALE, None)
+    assert verdict == fh.PROMPTS_NO_USER_SCOPE
+    assert verdict != fh.PROMPTS_OK
+    assert "unverifiable" in line
+
+
+def test_guard_module_hard_codes_no_path():
+    """013's standing rule: the variable is the source, never a path. Both values are read;
+    neither is compared against a spelled constant."""
+    source = _P.read_text(encoding="utf-8")
+    assert not re.search(r"[A-Za-z]:\\\\", source)
+    assert "Downloads" not in source
+
+
+# --- the PreToolUse leg: the one that actually refuses ----------------------------------
+
+def test_prompts_guard_exits_2_on_a_seeded_mismatch(capsys):
+    with mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(_STALE, _TRUE)):
+        assert fh.prompts_guard() == 2
+    err = capsys.readouterr().err
+    assert "[prompts] REFUSED" in err and _STALE in err and _TRUE in err
+
+
+def test_prompts_guard_silent_pass_on_match(capsys):
+    with mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(_TRUE, _TRUE)):
+        assert fh.prompts_guard() == 0
+    captured = capsys.readouterr()
+    assert captured.out == "" and captured.err == ""
+
+
+def test_prompts_guard_is_silent_when_both_scopes_are_unset(capsys):
+    """Runs once per TOOL CALL: a warning line here would be noise, not signal. The
+    SessionStart leg has already printed it once."""
+    with mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(None, None)):
+        assert fh.prompts_guard() == 0
+    captured = capsys.readouterr()
+    assert captured.out == "" and captured.err == ""
+
+
+def test_prompts_guard_fails_open_when_it_cannot_run(capsys):
+    """Fail-OPEN on the guard's own crash, deliberately: a guard that bricked every tool
+    call because it raised would be worse than the defect it guards. Refusal stays reserved
+    for a mismatch it positively established."""
+    with mock.patch.object(fh, "read_prompts_dir_scopes", side_effect=RuntimeError("boom")):
+        assert fh.prompts_guard() == 0
+    assert "WARNING" in capsys.readouterr().err
+
+
+def test_main_dispatches_the_guard_flag():
+    with mock.patch.object(fh, "prompts_guard", return_value=2) as guard:
+        assert fh.main(["--prompts-guard"]) == 2
+    assert guard.call_count == 1
+
+
+# --- the SessionStart leg: loud banner, honest (non-blocking) exit ----------------------
+
+def _digest_at(tmp_path):
+    health = tmp_path / "FLEET-HEALTH.md"
+    health.write_text(fh.build_digest(_STATES, date.today(), "2026-08-11T09:00:00"),
+                      encoding="utf-8")
+    return health
+
+
+def test_main_renders_the_prompts_line_first_of_all(tmp_path, capsys):
+    """Above OPERATOR ASKS and everything below it -- a boot banner nobody reaches is not
+    a banner."""
+    health = _digest_at(tmp_path)
+    handoff_process = tmp_path / "HANDOFF_PROCESS.md"
+    handoff_process.write_text(_ASKS_FIXTURE, encoding="utf-8")
+    with mock.patch.object(fh, "_HEALTH_FILE", health), \
+         mock.patch.object(fh, "_HANDOFF_PROCESS_PATH", handoff_process), \
+         mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(_STALE, _TRUE)):
+        fh.main([])
+    out = capsys.readouterr().out
+    assert out.index("[prompts] ") < out.index("[asks] ") < out.index("[fleet] ")
+
+
+def test_main_returns_2_on_a_seeded_mismatch(tmp_path, capsys):
+    health = _digest_at(tmp_path)
+    with mock.patch.object(fh, "_HEALTH_FILE", health), \
+         mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(_STALE, _TRUE)):
+        assert fh.main([]) == 2
+    captured = capsys.readouterr()
+    assert "[prompts] REFUSED" in captured.out
+    # also on stderr: stdout is folded into context, stderr is the operator's own surface
+    assert "[prompts] REFUSED" in captured.err
+
+
+def test_main_returns_0_and_stays_quiet_on_a_match(tmp_path, capsys):
+    health = _digest_at(tmp_path)
+    with mock.patch.object(fh, "_HEALTH_FILE", health), \
+         mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(_TRUE, _TRUE)):
+        assert fh.main([]) == 0
+    captured = capsys.readouterr()
+    assert "[prompts] OK" in captured.out
+    assert "REFUSED" not in captured.out and "REFUSED" not in captured.err
+
+
+def test_main_still_returns_2_when_the_digest_below_it_blows_up(tmp_path, capsys):
+    """The refusal outranks the digest's own fail-soft return: a stale value must not be
+    laundered into a 0 by an unrelated error further down."""
+    with mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(_STALE, _TRUE)), \
+         mock.patch.object(fh, "is_stale", side_effect=RuntimeError("boom")):
+        assert fh.main([]) == 2
+
+
+def test_main_survives_a_guard_that_raises(tmp_path, capsys):
+    """Fail-soft the other way: the digest is never lost to the guard."""
+    health = _digest_at(tmp_path)
+    with mock.patch.object(fh, "_HEALTH_FILE", health), \
+         mock.patch.object(fh, "read_prompts_dir_scopes", side_effect=RuntimeError("boom")):
+        assert fh.main([]) == 0
+    captured = capsys.readouterr()
+    assert "[fleet] " in captured.out
+    assert "WARNING" in captured.err
+
+
+# --- the User-scope reader --------------------------------------------------------------
+
+def test_read_user_scope_returns_none_when_the_value_is_absent():
+    winreg = pytest.importorskip("winreg")
+    with mock.patch.object(winreg, "QueryValueEx", side_effect=OSError("no value")):
+        assert fh.read_user_scope("A_NAME_NO_ONE_SET") is None
+
+
+def test_read_user_scope_returns_none_when_the_key_cannot_be_opened():
+    winreg = pytest.importorskip("winreg")
+    with mock.patch.object(winreg, "OpenKey", side_effect=OSError("denied")):
+        assert fh.read_user_scope() is None
+
+
+def test_read_user_scope_returns_a_plain_string_value():
+    """The success path -- the boundary that actually supplies the comparison value.
+    Without this the reader could regress to always-None and every test above would still
+    pass, because a None resolution is a non-refusing verdict."""
+    winreg = pytest.importorskip("winreg")
+    with mock.patch.object(winreg, "QueryValueEx", return_value=(_TRUE, winreg.REG_SZ)):
+        assert fh.read_user_scope() == _TRUE
+
+
+def test_read_user_scope_expands_a_reg_expand_sz_value():
+    winreg = pytest.importorskip("winreg")
+    with mock.patch.dict(os.environ, {"E29_FIXTURE": "expanded"}), \
+         mock.patch.object(winreg, "QueryValueEx",
+                           return_value=("%E29_FIXTURE%\\tail", winreg.REG_EXPAND_SZ)):
+        assert fh.read_user_scope() == "expanded\\tail"
+
+
+def test_read_user_scope_treats_an_empty_value_as_absent():
+    winreg = pytest.importorskip("winreg")
+    with mock.patch.object(winreg, "QueryValueEx", return_value=("", winreg.REG_SZ)):
+        assert fh.read_user_scope() is None
