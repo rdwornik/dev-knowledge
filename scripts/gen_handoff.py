@@ -66,11 +66,14 @@ import click
 __all__ = [
     "BoundaryHygieneError",
     "BundleCollisionError",
+    "PreflightError",
+    "PreflightRow",
     "BundleIdentityError",
     "GenResult",
     "OpenBatchError",
     "assert_batch_boundary",
     "assert_boundary_hygiene",
+    "assert_preflight",
     "collect_hints",
     "collect_state",
     "detect_fill_state",
@@ -78,6 +81,7 @@ __all__ = [
     "funnel_health_block",
     "generate",
     "journal_draft",
+    "preflight_rows",
     "reflow_framing",
     "standing_vs_new",
     "verify_seal_identity",
@@ -519,6 +523,549 @@ def assert_boundary_hygiene(repo_root: Path) -> None:
               "(CLAUDE.md §5 rule 9; the batch protocol's refuse-to-finish items 3 and 5). "
               "Tear down or dispose of each, then cut."
         )
+
+
+# --- PREFLIGHT: the nine pre-cut hygiene rows (ratified register, SUPPLEMENT ANSWERS Q7) --
+#
+# Pre-handoff hygiene was a CHECKLIST the operator re-derived every window. This is the same
+# nine items as a MECHANISM, in the idiom the two boundary invariants above already set: each
+# row is PASS / FAIL / n-a with a locator, every FAIL is named in ONE refusal, and a FAIL
+# refuses the cut before anything is written.
+#
+# TWO OF THE NINE WERE MIS-SPECIFIED AS REGISTERED, and both are implemented as corrected —
+# a row that cannot fail is worse than no row, because it reports a safety it does not provide:
+#
+#   * Row 7, registered as "no QUESTION-* unanswered", became unfalsifiable on 2026-09-07 when
+#     all 20 outstanding QUESTION files were ARCHIVED and none was answered. An empty directory
+#     satisfies it, so it passes forever. Implemented as "no QUESTION file without a
+#     DISPOSITION": answered, or explicitly carried with a resolving locator. Archiving alone
+#     discharges nothing, and an undispositioned question does not age out of the population.
+#   * Row 8, registered as "MEMORY.md within cap", names a cap that is DECLARED NOWHERE (no
+#     MEMORY byte budget exists in scripts/, protocols/ or tests/; the live file measures
+#     ~23,851 B). Inventing a number would be making a decision this lane does not own, so the
+#     row reads a declared constant and renders NOT-APPLICABLE WITH THE REASON when none is
+#     declared. It never passes silently, and it arms itself with no code change the moment the
+#     operator declares the budget.
+#
+# COST, stated rather than discovered: row 1 runs the real ship-gate, measured at 4m30s on
+# 2026-09-07 under four-lane contention (the plugin's 2026-07-05 note of ~13s is stale). A cut
+# is a once-per-window act taken at a true batch boundary, which is what makes that affordable;
+# it is not affordable anywhere else, which is why nothing else calls it.
+
+PREFLIGHT_PASS = "PASS"
+PREFLIGHT_FAIL = "FAIL"
+PREFLIGHT_NA = "n/a"
+
+#: 5,000 DECIMAL, and it is CITED rather than re-litigated: `protocols/HANDOFF_PROCESS.md` §5
+#: ("P8's two legs, and P11") settles it explicitly -- "**5,000**, matching the decimal
+#: convention the repo's other two byte budgets already use" -- because "5 KB" reads as either
+#: 5,000 or 5,120 and a file measured at 5,114 bytes sits between them.
+STATUS_BYTE_BUDGET = 5_000
+
+#: Where a MEMORY.md byte budget WOULD be declared. Nothing declares it today; row 8 reads this
+#: name via getattr and renders n-a-with-reason while it is absent. Filed for the operator.
+MEMORY_BUDGET_DECLARATION_SITE = "canonical_docs.MEMORY_BYTE_BUDGET"
+
+#: Ceiling for the ship-gate subprocess. Generous on purpose: a TIMEOUT is a FAIL, so a ceiling
+#: tighter than the gate's real cost would manufacture refusals rather than detect them.
+SHIP_GATE_TIMEOUT_S = 900
+
+#: The row order, declared so the report is stable and a test can assert the roster.
+PREFLIGHT_ROW_NAMES = (
+    "ship_gate", "ledger_refreshed", "ratification_present", "status_byte_budget",
+    "living_docs_stamped", "journal_anchored", "question_disposition",
+    "memory_within_cap", "worktree_owners",
+)
+
+
+@dataclass(frozen=True)
+class PreflightRow:
+    """One hygiene row: a verdict, the locator to act on, and the evidence behind it."""
+    name: str
+    status: str
+    locator: str
+    detail: str
+
+    @property
+    def failed(self) -> bool:
+        return self.status == PREFLIGHT_FAIL
+
+    def render(self) -> str:
+        return f"[{self.status:^4}] {self.name}: {self.detail} -- {self.locator}"
+
+
+class PreflightError(RuntimeError):
+    """Generation refused: at least one pre-cut hygiene row FAILED.
+
+    Every failing row is named in ONE refusal, for the reason `assert_boundary_hygiene` already
+    states about leftovers: reporting only the first invites a fix-and-retry loop that reveals
+    the next one. The refusal fires after the two boundary invariants and before anything is
+    written, so a refused cut leaves no half-written bundle behind.
+    """
+
+
+def _is_hub(repo_root: Path) -> bool:
+    """True when `repo_root` is the checkout THIS gen_handoff.py belongs to.
+
+    HUB-ONLY BY REPO IDENTITY, the same scoping `audit.check_journal_spine_anchor` declares for
+    ADR-85's floor: a consumer carries neither this transport window, nor these stamped docs,
+    nor ADR-85's JOURNAL shape, so judging one against them would manufacture a fleet gap
+    (the enforcement-organs-are-not-homogeneous class). A cross-repo cut is read-only on its
+    target (ADR-36/41) and does not own the operator's window either.
+    """
+    try:
+        return Path(repo_root).resolve() == Path(_REPO_ROOT).resolve()
+    except OSError:
+        return False
+
+
+def transport_root(env: "dict | None" = None, downloads: "Path | None" = None) -> "Path | None":
+    """The operator's prompts directory, or None when it cannot be resolved.
+
+    OPERATOR-INTERFACE §1: **THE VARIABLE IS THE SOURCE** (`CLAUDE_PROMPTS_DIR`, currently a
+    Drive-synced folder), with `~/Downloads` as the documented per-file fallback. A path is
+    never hardcoded here -- the folder is the operator's and may move without this file moving.
+
+    None means UNRESOLVED, and the four transport rows treat that as a REFUSAL rather than a
+    pass: DEFECT E-29 is exactly the failure a permissive reading produces -- a seat inheriting
+    a stale value resolves to Downloads, finds `to-cc/` present but EMPTY, and reads that as
+    "nothing filed" rather than as a misresolved variable.
+    """
+    env = os.environ if env is None else env
+    declared = (env.get("CLAUDE_PROMPTS_DIR") or "").strip().strip('"')
+    if declared and Path(declared).is_dir():
+        return Path(declared)
+    fallback = Path.home() / "Downloads" if downloads is None else Path(downloads)
+    return fallback if fallback.is_dir() else None
+
+
+def _stamped_docs() -> tuple[str, ...]:
+    """The living docs carrying a `last_reviewed` stamp -- COMPUTED, never a roster typed here.
+
+    `canonical_docs.FRESHNESS_FILES` (the portable base) plus `audit._HUB_ONLY_FRESHNESS_FILES`
+    (the hub governance extras). A literal list in this module would be a count restated in
+    code -- stale at the next commit, and silently, because a doc missing from a roster produces
+    no finding at all. HONEST LIMIT: an unimportable `audit` degrades to the portable base
+    alone, which narrows the row rather than wedging it.
+    """
+    files = list(_cdocs.FRESHNESS_FILES)
+    try:
+        sys.path.insert(0, str(_SCRIPTS))
+        import audit as _aud  # noqa: PLC0415
+        files += list(_aud._HUB_ONLY_FRESHNESS_FILES)
+    except Exception:  # noqa: BLE001 -- narrower set, never a wedge
+        pass
+    return tuple(dict.fromkeys(files))
+
+
+_SHIP_GATE_VERDICT_RE = re.compile(r"^ship-gate:\s*(GREEN|RED)\b(.*)$", re.MULTILINE)
+
+
+def _ship_gate_verdict(repo_root: Path) -> "tuple[str | None, str]":
+    """`(verdict, evidence)` from a real `audit.py ship-gate` run; `(None, why)` when unread.
+
+    The VERDICT IS AT THE TAIL and the failures are at the head, so the whole stream is scanned
+    and the LAST verdict line wins -- reading the head would report a finding as a verdict.
+    Exit code is deliberately not the signal: the awareness organs exit 0 even on drift, which
+    is the F1 defect `cmd_ship_gate` itself was built to avoid.
+    """
+    gate = Path(repo_root) / "scripts" / "audit.py"
+    if not gate.exists():
+        return (None, f"no {gate} -- the ship-gate could not be run")
+    # UTF-8 is forced both ways because a PIPE makes the child's stdout cp1252 on this platform
+    # and `cmd_ship_gate` prints em-dashes; `errors="replace"` alone would silently corrupt the
+    # evidence line this row reports.
+    env = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}
+    try:
+        out = subprocess.run([sys.executable, str(gate), "ship-gate"], cwd=str(repo_root),
+                             capture_output=True, text=True, encoding="utf-8",
+                             errors="replace", env=env, timeout=SHIP_GATE_TIMEOUT_S)
+    except subprocess.TimeoutExpired:
+        return (None, f"`audit.py ship-gate` timed out after {SHIP_GATE_TIMEOUT_S}s")
+    except (OSError, subprocess.SubprocessError) as exc:
+        return (None, f"`audit.py ship-gate` could not be run: {exc}")
+    # BOTH STREAMS, and that is the whole bug this line fixes. `cmd_ship_gate` writes its
+    # findings to stdout and its VERDICT to stderr, so a stdout-only read reports "no verdict
+    # line" for a gate that ran perfectly. Measured 2026-09-08: rc=1, stdout ending mid-finding,
+    # `ship-gate: RED -- ... (1 hard-fail organ(s); 6 new/undispositioned WARN(s))` on stderr.
+    hits = _SHIP_GATE_VERDICT_RE.findall((out.stdout or "") + "\n" + (out.stderr or ""))
+    if not hits:
+        return (None, "`audit.py ship-gate` emitted no verdict line")
+    verdict, tail = hits[-1]
+    return (verdict, f"ship-gate: {verdict}{tail}".strip())
+
+
+def _journal_spine_gaps(repo_root: Path) -> "list[str] | None":
+    """Unanchored spine entries not covered by the ADR-110 exemption; None when undetermined.
+
+    The predicate is IMPORTED from `journal_anchor` -- the same module the pre-push organ and
+    `audit.check_journal_spine_anchor` use -- so this row cannot drift from them about what
+    "anchored" means. The declared-integration-arc exemption is applied through
+    `batch_manifest.exempt` for the same reason.
+    """
+    try:
+        sys.path.insert(0, str(_SCRIPTS))
+        import batch_manifest as _bm  # noqa: PLC0415
+        import journal_anchor as _ja  # noqa: PLC0415
+        root = Path(repo_root)
+        unanchored = _ja.unanchored_on_spine(root, "main", _ja.floor_sha(root),
+                                             _ja.journal_text(root))
+        exempted = _bm.exempt(root, list(unanchored), batches=_bm.open_batches(root))
+        return [s for s in unanchored if s not in exempted]
+    except Exception:  # noqa: BLE001 -- undetermined, reported as a FAIL by the row
+        return None
+
+
+def _session_slug(path) -> str:
+    r"""The Claude Code session-store directory name for a working directory.
+
+    `C:\Users\x\Dev\repo\.claude\worktrees\lane-a` ->
+    `C--Users-x-Dev-repo--claude-worktrees-lane-a`: drive colon, both separators and the dot
+    Every character outside `[A-Za-z0-9_-]` becomes one dash -- which is what produces the
+    doubled dash after the drive letter and before `claude`. Written as a NEGATED class on
+    purpose: an enumerated one has to spell a literal backslash, and this repo has already
+    lost that backslash once in transit, silently, leaving a slug that matched nothing.
+    """
+    return re.sub(r"[^A-Za-z0-9_-]", "-", str(Path(path).resolve()))
+
+
+def _main_checkout(repo_root: Path) -> Path:
+    """The PRIMARY working tree, given any checkout of this repo (a linked worktree included).
+
+    A lane runs in `.claude/worktrees/<name>`, so `repo_root.name` there is the LANE's name, not
+    the repo's -- and a row keyed on it looks for `LEDGER-c4-handoff-preflight-rows.md` and a
+    session store that does not exist. The common git dir is the one surface that answers this
+    from inside either tree. Degrades to `repo_root` when git cannot answer.
+    """
+    ok, out = _git_status(repo_root, "rev-parse", "--path-format=absolute", "--git-common-dir")
+    if ok and out.strip():
+        common = Path(out.strip())
+        if common.name == ".git":
+            return common.parent
+    return Path(repo_root)
+
+
+def _memory_path(repo_root: "Path | None" = None) -> Path:
+    """This repo's auto-memory index, in the per-project session store."""
+    slug = _session_slug(_main_checkout(Path(repo_root or _REPO_ROOT)))
+    return Path.home() / ".claude" / "projects" / slug / "memory" / "MEMORY.md"
+
+
+def _na_row(name: str, reason: str, detail: str, locator: str) -> PreflightRow:
+    """An n-a row carrying its reason in the codebase's `[n/a-reason:...]` form."""
+    return PreflightRow(name, PREFLIGHT_NA, locator, f"[n/a-reason:{reason}] {detail}")
+
+
+def _no_transport(name: str) -> PreflightRow:
+    return PreflightRow(name, PREFLIGHT_FAIL, "OPERATOR-INTERFACE.md §1 (CLAUDE_PROMPTS_DIR)",
+                        "the transport dir is UNRESOLVED, so this row could not be measured; "
+                        "an unknown boundary is not a clean one (DEFECT E-29)")
+
+
+_LEDGER_REFRESHED_RE = re.compile(r"refreshed\s+(\d{4}-\d{2}-\d{2})")
+
+
+def _row_ship_gate(repo_root: Path) -> PreflightRow:
+    """Row 1 -- GREEN means 0 hard-fail AND 0 undispositioned WARN; every other reading FAILs."""
+    verdict, evidence = _ship_gate_verdict(repo_root)
+    status = PREFLIGHT_PASS if verdict == "GREEN" else PREFLIGHT_FAIL
+    return PreflightRow("ship_gate", status,
+                        "`python scripts/audit.py ship-gate` + ecosystem/disposition-register.yaml",
+                        evidence)
+
+
+def _row_ledger_refreshed(transport, repo_name: str, today: str) -> PreflightRow:
+    """Row 2 -- the operator's read surface names THIS window's date.
+
+    The date is read from an anchored `refreshed <YYYY-MM-DD>` token in the file head, which is
+    the form the live LEDGER already carries; mtime is the fallback and the evidence line says
+    which was used, so a reader never has to guess what was measured.
+    """
+    if transport is None:
+        return _no_transport("ledger_refreshed")
+    path = Path(transport) / "to-browser" / f"LEDGER-{repo_name.lstrip('.')}.md"
+    if not path.exists():
+        return PreflightRow("ledger_refreshed", PREFLIGHT_FAIL, str(path),
+                            "absent -- the operator's read surface was never written")
+    m = _LEDGER_REFRESHED_RE.search(path.read_text(encoding="utf-8", errors="replace")[:4000])
+    if m:
+        found, src = m.group(1), "declared `refreshed` token"
+    else:
+        found = _dt.date.fromtimestamp(path.stat().st_mtime).isoformat()
+        src = "file mtime (no `refreshed` token in the head)"
+    status = PREFLIGHT_PASS if found == today else PREFLIGHT_FAIL
+    return PreflightRow("ledger_refreshed", status, str(path),
+                        f"{src} = {found}; window = {today}")
+
+
+def _row_ratification_present(transport, today: str) -> PreflightRow:
+    """Row 3 -- the sitting's decision list exists for the window being closed."""
+    if transport is None:
+        return _no_transport("ratification_present")
+    path = Path(transport) / "to-browser" / f"RATIFICATION-{today}.md"
+    status = PREFLIGHT_PASS if path.exists() else PREFLIGHT_FAIL
+    return PreflightRow("ratification_present", status, str(path),
+                        "present" if status == PREFLIGHT_PASS
+                        else f"absent -- no ratification file for window {today}")
+
+
+def _row_status_budget(transport) -> PreflightRow:
+    """Row 4 -- every `STATUS-<seat>.md` at or under 5,000 BYTES (decimal; §5 pins it)."""
+    if transport is None:
+        return _no_transport("status_byte_budget")
+    to_browser = Path(transport) / "to-browser"
+    files = sorted(p for p in to_browser.glob("STATUS*.md") if p.is_file())
+    if not files:
+        return _na_row("status_byte_budget", "SUBJECT-ABSENT",
+                       "no STATUS file on the transport -- nothing to measure", str(to_browser))
+    over = [(p.name, p.stat().st_size) for p in files if p.stat().st_size > STATUS_BYTE_BUDGET]
+    if over:
+        named = "; ".join(f"{n} = {s:,} B" for n, s in over)
+        return PreflightRow("status_byte_budget", PREFLIGHT_FAIL, str(to_browser),
+                            f"over the {STATUS_BYTE_BUDGET:,}-byte budget: {named}")
+    return PreflightRow("status_byte_budget", PREFLIGHT_PASS, str(to_browser),
+                        f"{len(files)} STATUS file(s), all at or under {STATUS_BYTE_BUDGET:,} B")
+
+
+def _row_living_docs_stamped(repo_root: Path) -> PreflightRow:
+    """Row 5 -- every COMPUTED stamped doc exists and carries a parseable `last_reviewed`."""
+    docs = _stamped_docs()
+    missing, unstamped = [], []
+    for rel in docs:
+        p = Path(repo_root) / rel
+        if not p.exists():
+            missing.append(rel)
+            continue
+        if _frontmatter_date(p) is None:
+            unstamped.append(rel)
+    if missing or unstamped:
+        parts = []
+        if missing:
+            parts.append("absent: " + ", ".join(missing))
+        if unstamped:
+            parts.append("no parseable `last_reviewed`: " + ", ".join(unstamped))
+        return PreflightRow("living_docs_stamped", PREFLIGHT_FAIL,
+                            "canonical_docs.FRESHNESS_FILES + audit._HUB_ONLY_FRESHNESS_FILES",
+                            "; ".join(parts))
+    return PreflightRow("living_docs_stamped", PREFLIGHT_PASS,
+                        "canonical_docs.FRESHNESS_FILES + audit._HUB_ONLY_FRESHNESS_FILES",
+                        f"{len(docs)} computed stamped doc(s), all stamped")
+
+
+_FRONTMATTER_DATE_RE = re.compile(r"^last_reviewed:\s*(\d{4}-\d{2}-\d{2})\s*$", re.MULTILINE)
+
+
+def _frontmatter_date(path: Path) -> "_dt.date | None":
+    """The `last_reviewed` date from a file's YAML frontmatter, or None when unstamped."""
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    if not text.startswith("---"):
+        return None
+    end = text.find("\n---", 3)
+    m = _FRONTMATTER_DATE_RE.search(text[:end] if end != -1 else text)
+    if not m:
+        return None
+    try:
+        return _dt.date.fromisoformat(m.group(1))
+    except ValueError:
+        return None
+
+
+def _row_journal_anchored(repo_root: Path) -> PreflightRow:
+    """Row 6 -- no unanchored entry on main's first-parent spine above ADR-85's dated floor."""
+    gaps = _journal_spine_gaps(repo_root)
+    locator = "journal_anchor.unanchored_on_spine + batch_manifest.exempt (ADR-85 §A8)"
+    if gaps is None:
+        return PreflightRow("journal_anchored", PREFLIGHT_FAIL, locator,
+                            "the anchor predicate could not be evaluated -- an undetermined "
+                            "spine is not an anchored one")
+    if gaps:
+        head = ", ".join(s[:8] for s in gaps[:5])
+        more = f" +{len(gaps) - 5} more" if len(gaps) > 5 else ""
+        return PreflightRow("journal_anchored", PREFLIGHT_FAIL, locator,
+                            f"{len(gaps)} unanchored spine entr(ies): {head}{more}")
+    return PreflightRow("journal_anchored", PREFLIGHT_PASS, locator,
+                        "no unexempted unanchored spine entry above the floor")
+
+
+#: A `disposition:` VALUE has to look like a resolving locator, not merely be present. The P11
+#: lesson, in this file's own words: a predicate that matches the DESCRIPTION of an event cannot
+#: distinguish the event from its specification. Anchored (flush-left key) AND valued.
+_DISPOSITION_KEY_RE = re.compile(r"^disposition:[ \t]*(\S.*)$", re.MULTILINE)
+_LOCATOR_SHAPE_RE = re.compile(r"(\.md\b|/|\[#\d+\]|ADR-\d+|\d{4}-\d{2}-\d{2})")
+
+
+def _question_files(transport) -> list[Path]:
+    """EVERY QUESTION file on the transport -- live and in every archive window.
+
+    Scanning only the live directory is the hole the registered wording had: archiving is not a
+    disposition, so an archived-and-unanswered question must not age out of the population.
+    """
+    to_browser = Path(transport) / "to-browser"
+    found = [p for p in to_browser.glob("QUESTION*.md") if p.is_file()]
+    found += [p for p in to_browser.glob("archive/*/QUESTION*.md") if p.is_file()]
+    return sorted(found)
+
+
+def _question_is_dispositioned(path: Path, transport) -> bool:
+    """Answered, or explicitly carried with a RESOLVING locator. Archiving alone is neither."""
+    seat = path.name[len("QUESTION-"):-len(".md")] if path.name.startswith("QUESTION-") else ""
+    to_cc = Path(transport) / "to-cc"
+    if seat:
+        answers = [to_cc / f"ANSWER-{seat}.md", *to_cc.glob(f"archive/*/ANSWER-{seat}.md")]
+        if any(p.exists() for p in answers):
+            return True
+    try:
+        head = path.read_text(encoding="utf-8", errors="replace")[:4000]
+    except OSError:
+        return False
+    m = _DISPOSITION_KEY_RE.search(head)
+    return bool(m and _LOCATOR_SHAPE_RE.search(m.group(1)))
+
+
+def _row_question_disposition(transport, today: str) -> PreflightRow:
+    """Row 7 -- no QUESTION file WITHOUT A DISPOSITION (the corrected wording; see the block
+    header). Registered as "no QUESTION-* unanswered", which an empty directory satisfies."""
+    if transport is None:
+        return _no_transport("question_disposition")
+    files = _question_files(transport)
+    locator = str(Path(transport) / "to-browser") + " (+ archive/*/)"
+    if not files:
+        return _na_row("question_disposition", "SUBJECT-ABSENT",
+                       f"no QUESTION file on the transport -- nothing to disposition "
+                       f"(window {today})", locator)
+    open_ = [p.name for p in files if not _question_is_dispositioned(p, transport)]
+    if open_:
+        head = ", ".join(open_[:5])
+        more = f" +{len(open_) - 5} more" if len(open_) > 5 else ""
+        return PreflightRow("question_disposition", PREFLIGHT_FAIL, locator,
+                            f"{len(open_)} of {len(files)} QUESTION file(s) carry no "
+                            f"disposition (answered, or carried with a resolving locator): "
+                            f"{head}{more}")
+    return PreflightRow("question_disposition", PREFLIGHT_PASS, locator,
+                        f"all {len(files)} QUESTION file(s) dispositioned (window {today})")
+
+
+def _row_memory_within_cap(memory_path: "Path | None" = None) -> PreflightRow:
+    """Row 8 -- MEMORY.md against a DECLARED budget; n-a-with-reason while none is declared.
+
+    Registered as "MEMORY.md within cap", naming a cap that exists nowhere in this repo. A
+    budget is a DECISION, and inventing a number here would be making one this lane does not
+    own -- so the row reads the declared constant and reports its absence rather than passing.
+    """
+    budget = getattr(_cdocs, "MEMORY_BYTE_BUDGET", None)
+    path = _memory_path() if memory_path is None else Path(memory_path)
+    if budget is None:
+        size = f"{path.stat().st_size:,} B" if path.exists() else "not present"
+        return _na_row("memory_within_cap", "NO-DECLARED-BUDGET",
+                       f"no MEMORY byte budget is declared anywhere in this repo, so this row "
+                       f"has no threshold to measure against (live file: {size}). Declaring one "
+                       f"arms this row with no code change", MEMORY_BUDGET_DECLARATION_SITE)
+    if not path.exists():
+        return _na_row("memory_within_cap", "SUBJECT-ABSENT",
+                       "no MEMORY.md in this repo's session store", str(path))
+    size = path.stat().st_size
+    status = PREFLIGHT_PASS if size <= budget else PREFLIGHT_FAIL
+    return PreflightRow("memory_within_cap", status, str(path),
+                        f"{size:,} B against the declared {budget:,} B budget")
+
+
+def _worktree_is_owned(tree, sessions_root: Path, repo_root: Path) -> bool:
+    """TWO legs, and a tree is owned if EITHER holds. One leg alone is wrong in both directions.
+
+    * A session-store project directory named for the tree is DIRECT evidence of a seat there.
+      Not sufficient alone: a background or subagent lane's transcript is filed under its
+      LAUNCHING session's cwd, so a live lane can have no directory of its own. Measured
+      2026-09-08 -- this row FAILed two worktrees that were both being actively worked in.
+    * A branch NOT yet contained in `main` is work in flight, and work in flight cannot be
+      declared abandoned without proposing to throw it away.
+
+    The decisive FAIL is therefore the CONJUNCTION: no seat evidence AND already merged. A tree
+    whose work has landed and whose seat is gone is a leftover by construction, and that is
+    provable from git rather than inferred from a heuristic.
+    """
+    if any((Path(sessions_root) / _session_slug(tree)).glob("*.jsonl")):
+        return True
+    branch = _git(Path(tree), "branch", "--show-current")
+    if not branch:
+        return True                       # detached HEAD -- no branch to prove containment with
+    merged, _ = _git_status(repo_root, "merge-base", "--is-ancestor", branch, "main")
+    return not merged
+
+
+def _row_worktree_owners(repo_root: Path, sessions_root: "Path | None" = None) -> PreflightRow:
+    """Row 9 -- every linked worktree is owned by a live session.
+
+    Ownership is `_worktree_is_owned` -- seat evidence OR unmerged work; see it for why one leg
+    alone is wrong in both directions. HONEST LIMIT: a transcript proves a session EXISTED there,
+    not that one is running now, so a just-exited seat on an unmerged branch still reads as
+    owned. That is the direction to be wrong in -- a false FAIL costs a refused cut, a false PASS
+    costs a leftover, and the merged leg is what makes a leftover PROVABLE rather than guessed.
+
+    `assert_boundary_hygiene` already refuses ANY linked worktree at the cut, so in `generate`
+    this row is reached only with an empty list. Its value is in the `--preflight-only` report,
+    where it says WHICH tree is abandoned rather than that some tree exists.
+    """
+    locator = "`git worktree list --porcelain` x ~/.claude/projects/"
+    try:
+        trees = _linked_worktrees(repo_root)
+    except BoundaryHygieneError as exc:
+        return PreflightRow("worktree_owners", PREFLIGHT_FAIL, locator, str(exc))
+    if not trees:
+        return PreflightRow("worktree_owners", PREFLIGHT_PASS, locator,
+                            "no linked worktree -- nothing can be unowned")
+    root = Path.home() / ".claude" / "projects" if sessions_root is None else Path(sessions_root)
+    if not root.is_dir():
+        return _na_row("worktree_owners", "SUBJECT-ABSENT",
+                       f"{len(trees)} linked worktree(s), but no session store to read "
+                       f"ownership from", str(root))
+    unowned = [t for t in trees if not _worktree_is_owned(t, root, repo_root)]
+    if unowned:
+        return PreflightRow("worktree_owners", PREFLIGHT_FAIL, locator,
+                            f"{len(unowned)} worktree(s) with no owning session: "
+                            + "; ".join(unowned))
+    return PreflightRow("worktree_owners", PREFLIGHT_PASS, locator,
+                        f"all {len(trees)} linked worktree(s) have an owning session")
+
+
+def preflight_rows(repo_root: Path, *, transport=None, today: "str | None" = None,
+                   repo_name: "str | None" = None, sessions_root=None,
+                   memory_path=None) -> list[PreflightRow]:
+    """The nine hygiene rows, in `PREFLIGHT_ROW_NAMES` order. Read-only (Layer-2)."""
+    if not _is_hub(repo_root):
+        return [_na_row(n, "NOT-APPLICABLE",
+                        "hub-only -- this transport window, the stamped-doc set and ADR-85's "
+                        "JOURNAL shape are all hub-owned", "gen_handoff._is_hub")
+                for n in PREFLIGHT_ROW_NAMES]
+    today = today or _dt.date.today().isoformat()
+    repo_name = repo_name or _main_checkout(Path(repo_root)).name
+    transport = transport_root() if transport is None else transport
+    return [
+        _row_ship_gate(repo_root),
+        _row_ledger_refreshed(transport, repo_name, today),
+        _row_ratification_present(transport, today),
+        _row_status_budget(transport),
+        _row_living_docs_stamped(repo_root),
+        _row_journal_anchored(repo_root),
+        _row_question_disposition(transport, today),
+        _row_memory_within_cap(memory_path or _memory_path(repo_root)),
+        _row_worktree_owners(repo_root, sessions_root),
+    ]
+
+
+def assert_preflight(repo_root: Path, **kw) -> "list[PreflightRow]":
+    """Raise `PreflightError` naming EVERY failing row, or return cleanly."""
+    rows = preflight_rows(repo_root, **kw)
+    failed = [r for r in rows if r.failed]
+    if failed:
+        raise PreflightError(
+            "refusing to cut a bundle: " + str(len(failed)) + " pre-handoff hygiene row(s) "
+            "FAILED -- " + " | ".join(r.render() for r in failed)
+            + ". Each row is a property of the window this bundle would seal, and a committed "
+              "bundle is immutable. Clear the row, then cut.")
+    return rows
 
 
 def collect_hints(repo_root: Path) -> dict[str, str]:
@@ -1199,6 +1746,11 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     # is the more specific one — it names the colliding directory.
     assert_batch_boundary(repo_root)
     assert_boundary_hygiene(repo_root)
+    # The nine PRE-HANDOFF HYGIENE rows, LAST of the three and for the same reason the other two
+    # are ordered as they are: it is the most expensive (the ship-gate leg alone measured 4m30s),
+    # so a cut that a cheaper invariant already refuses never pays for it. Still before mkdir --
+    # a refused cut writes nothing.
+    assert_preflight(repo_root, today=date, repo_name=repo)
     bundle_dir.mkdir(parents=True, exist_ok=True)
     # [#473] B — THE FIX, and it is this one line. `_resolve_bundle_dir` may DIVERT the write
     # to a `-<n>` sibling under `--allow-suffix`, but every render token below was built from
@@ -1306,9 +1858,19 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
                    "write a NEW `-<n>` sibling instead of refusing (never overwrites)")
 @click.option("--emit-journal/--no-emit-journal", default=True,
               help="print the JOURNAL generation-entry DRAFT to stdout (never writes JOURNAL.md)")
+@click.option("--preflight-only", is_flag=True, default=False,
+              help="print the nine pre-handoff hygiene rows and exit (1 on any FAIL); cut nothing")
 def main(mode: str, epic_slug: str | None, slug: str | None, repo: str | None, date: str | None,
-         force_filled: bool | None, assemble: bool, allow_suffix: bool, emit_journal: bool) -> None:
+         force_filled: bool | None, assemble: bool, allow_suffix: bool, emit_journal: bool,
+         preflight_only: bool) -> None:
     """Generate a v5 handoff bundle from committed repo state."""
+    if preflight_only:
+        rows = preflight_rows(_REPO_ROOT, today=date)
+        click.echo("preflight -- pre-handoff hygiene rows (any FAIL refuses the cut):")
+        for row in rows:
+            click.echo("  " + row.render())
+        failed = [r for r in rows if r.failed]
+        raise SystemExit(1 if failed else 0)
     state = collect_state(_REPO_ROOT)
     if state.dirty:
         click.echo("[warn] working tree is DIRTY — a v5 bundle is cut from COMMITTED state; "
@@ -1317,7 +1879,7 @@ def main(mode: str, epic_slug: str | None, slug: str | None, repo: str | None, d
         res = generate(_REPO_ROOT, mode=mode, slug=slug, repo=repo, date=date,
                        force_filled=force_filled, assemble=assemble, epic_slug=epic_slug,
                        allow_suffix=allow_suffix)
-    except (BundleCollisionError, OpenBatchError, BoundaryHygieneError) as exc:
+    except (BundleCollisionError, OpenBatchError, BoundaryHygieneError, PreflightError) as exc:
         # A REFUSAL, not a crash — one diagnostic line, non-zero exit, nothing written.
         # RM-8 (target collision) and the two boundary invariants share this exit: each
         # names what it found, and none of them is recoverable by re-running unchanged.
