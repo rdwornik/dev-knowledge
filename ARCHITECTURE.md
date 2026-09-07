@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-01
+last_reviewed: 2026-09-08
 reconciled_with: handoff-process@7.0.0
 status: active
 owner: Rob
@@ -14,7 +14,23 @@ owner: Rob
 > class this repo exists to kill). Fix the map when reality moves; fix the *source*
 > when the doctrine moves.
 >
-> Last updated: `2026-09-01` — **[#614] lane-e-5: the pre-relocation review — this pass re-reads Purpose,
+> Last updated: `2026-09-08` — **batch CLOSE, lane `c2-living-docs-hygiene`: Ch2 gains the one-graph
+> organ class, written in the FUTURE TENSE because none of it is built.** ADR-118 is `Proposed`, so
+> the block adds **no organ row** (the Status legend keeps a RULED-UNBUILT organ out of the table,
+> and this one is not even ruled) and **no Governing-ADRs bullet** (the same rule that correctly
+> excluded ADR-116). What it records: FPG-1 exists and is wired to nothing; the graph/catalog/refusal
+> triple is a plan; the scope is narrower than ADR-118's own text — **corpus-structure edges only**;
+> and **state gates stay gates**, because a graph over tracked files cannot answer a question about a
+> ref range or a staged index. The provenance of that narrowing is marked **relayed, not resolved
+> against a source** — the review artifact is not in this tree. **Stamp semantics, stated:**
+> `last_reviewed` moves because this pass re-read the file end-to-end from disk — Purpose, Codemap,
+> all six chapters and Governing ADRs, 1,230 lines — and re-derived what it touched against live
+> source: ADR-118's status line and Context, `scripts/file_purpose_graph.py`'s docstring and
+> `EDGE_KINDS`, and the absence of `gen_catalog.py`. **Honest limits, three:** (1) it did not
+> re-derive doctrinal correctness against the full text of every cited ADR — unchanged from every
+> prior pass; (2) Ch6's *"currently 15 open, newest 2026-06-25"* Issues count stays unverified, this
+> lane exercised no `gh` reach; (3) the Governing ADRs tail stays out of numeric order (cosmetic).
+> Prior: `2026-09-01` — **[#614] lane-e-5: the pre-relocation review — this pass re-reads Purpose,
 > Codemap, all six chapters and Governing ADRs end-to-end BEFORE the lane's own `VISION.md` → `docs/archive/VISION.md`
 > move lands, per Done-contract item 3 (`LANE-e-5-vision-relocation.md`): the read happens here, the stamp is
 > adjudicated at integration, not self-declared. **Checked against live source and confirmed accurate:** the
@@ -497,6 +513,56 @@ codemap maps executables; the typed contract lives with the data it governs (ADR
 accepted: the schema package and the loader→schema edge do not appear in the structural map.
 Revisiting requires NEW evidence (e.g. the codemap growing multi-root support) as a NEW row —
 this ruling is not reopenable by preference.
+
+**The one-graph organ class — PROPOSED, NOT RATIFIED, and NOTHING BELOW IS BUILT AS A VIEW.**
+Read this whole block in the future tense. **ADR-118 is `Proposed`** (2026-09-07), not `Accepted`;
+its own status note records that the operator's ruling and the filing prompt both call the state
+**DRAFT**, and `Proposed` is only the enum's spelling of that. It is therefore **absent from
+Governing ADRs by the same rule that kept ADR-116 out** — a Proposed ADR is not governing
+doctrine — and **no row is added to the organ table above**, per this chapter's own Status legend:
+a RULED-UNBUILT organ stays out of the table until it is built, and this one is not even ruled.
+
+What is **landed** is one module and no wiring. `scripts/file_purpose_graph.py` (**FPG-1**) exists,
+declares `rustworkx` through the ADR-106 path, and answers `why <path>` with purpose / consumers /
+edges. ADR-118's Context measures it at 1922 nodes, 12664 edges and 12 edge kinds, and states in
+the same breath that it is *"wired into NO gate, no check and no hook"*. Twelve organs still
+compute their own edges. **That is the state of the tree; everything else here is a plan.**
+
+- **Graph (planned).** FPG-1 becomes the single source for edges, and an organ that needs an edge
+  relation **queries** it instead of extracting its own. **Scope is narrower than ADR-118's own
+  wording, and the narrowing is load-bearing:** the review pass that followed the filing confined
+  FPG-1 to **corpus-structure edges only** — citation, generation, template, test, and script
+  call-site. Those five are properties of *what the corpus contains*, which is what a graph over
+  tracked files can answer.
+- **Catalog (planned).** Node attributes on FPG-1 rather than a second store — path, id, genre,
+  one-line description, last content commit, in-degree, trigger count, owner — generated,
+  committed as a registered derived copy, and **diffed nightly, the diff being the report**. A
+  `resolve(id) → path` resolver is what would make citations id-based. None of it is generated
+  today; `gen_catalog.py` does not exist in this tree.
+- **Refusals (planned, and the half already proven in miniature).** The refusal is the point:
+  *a file nothing explains is a defect, not a mystery.* FPG-1's `why` already refuses an
+  unexplained path, and its RED-first witness is
+  `tests/test_file_purpose_graph.py::test_why_refuses_a_planted_unknown_file`. The **planned**
+  organ over it is an orphan census — in-degree 0 over the corpus-structure kinds, WARN on first
+  sight, FAIL after the groom cadence without a disposition. It is not registered in `ALL_CHECKS`
+  and fires nowhere.
+
+**STATE GATES ARE NOT VIEWS, AND THIS IS THE BOUNDARY THE MAP EXISTS TO HOLD.** The JOURNAL
+spine-anchor gate and the staged-ADD refusals (`block_unanchored_push.py`,
+`validate_hermetization.py`, `check_derived_copies.py`'s rebind leg) judge **commit-time state** —
+what this push contains, what this commit stages — not what the corpus cites. A graph over tracked
+files cannot answer *"does the range being pushed carry an anchor"*, because the fact is about a
+ref range and a working index, not about a file's edges. **They stay gates.** Folding them into
+the view layer would trade a fail-closed answer about the act being performed for a derived answer
+about the tree that resulted, which is a different question asked one step too late — and the
+organ map's whole value is the failure-posture column that distinction lives in.
+
+*Provenance, marked so it is not read as stronger than it is.* The scope narrowing above reaches
+this map through the batch-CLOSE lane contract's restatement of a review-pass finding; **the
+review artifact itself is not in this tree**, so the narrowing is recorded here as **relayed, not
+resolved against a source** — an Inference in the Ch8-epistemic sense, deliberately not written as
+Witnessed. When the ADR is ratified the scope clause should be re-derived from whatever surface
+carries it, and this paragraph struck.
 
 **Machinery retired (C3 sweep, 2026-06-05).** `/boot` and `/evolve` archived to
 `~/.claude/archive/2026-06-05-machinery-c3/`; `CHANGELOG.md` + `BACKLOG_ARCHIVE.md`
