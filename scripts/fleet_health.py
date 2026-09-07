@@ -1203,12 +1203,13 @@ def refresh(repo_root: Path, ecosystem_dir: Path,
 # A guard that printed reassurance while the session proceeded on a stale value would be
 # the exact failure E-29 records, so the banner alone was never sufficient.
 #
-# THE PreToolUse LEG IS BUILT AND TESTED BUT DELIBERATELY NOT WIRED. `.claude/settings.json`
-# is UNCHANGED by this lane, and that is a decision, not an omission -- recorded here rather
-# than in a packet because an unwired leg is exactly the kind of thing that gets forgotten
-# under a row marked DONE, which is how E-29 accumulated four instances.
+# THE PreToolUse LEG IS ARMED (2026-09-07, dispatcher-CLOSE first act). It shipped BUILT AND
+# TESTED BUT DELIBERATELY NOT WIRED, and was armed only once E-29 proposal (a) -- the daemon
+# restart -- had landed and both scopes were re-read as equal at boot. The precondition below
+# is therefore DISCHARGED, not waived; it is kept in full because it states why the ordering
+# is load-bearing, and a future re-wiring after a scope drift faces the same brick.
 #
-# Arming it is ONE object in the `PreToolUse` array, on the system interpreter for the same
+# It is ONE object in the `PreToolUse` array, on the system interpreter for the same
 # reason the ADR-77 guard is (stdlib-only; a stale lockfile must never be able to block
 # every tool call, and `uv run` would cost a resolution per call):
 #
