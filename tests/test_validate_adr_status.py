@@ -809,7 +809,13 @@ def test_shipped_corpus_parses_one_status_field_per_live_adr():
     # used: `DRAFT` is not an enum member, and this module's own TIER_COMMIT leg refuses it
     # as a BLOCKING defect, so the ADR could not have landed carrying it. That deviation is
     # recorded in the ADR header and its index row, not just here.
-    assert len(fields) == 90, "live ADR count moved — re-measure the Step-1 baseline"
+    #
+    # RE-MEASURED 2026-09-07 by seat filings-N3: 90 -> 91. The delta is again ONE ADR and it
+    # is named: ADR-118 (one graph — FPG-1 is the repo graph, organs are views), drafted on
+    # the operator's DECLARE-GRAPH-2026-09-07 ruling. No other member moved. Its status field
+    # is `Proposed` for exactly the reason ADR-117's note above records, and that deviation is
+    # recorded in the ADR header and its index row rather than only here.
+    assert len(fields) == 91, "live ADR count moved — re-measure the Step-1 baseline"
 
 
 def test_shipped_corpus_grammar_distribution_matches_the_measured_baseline():
@@ -824,7 +830,11 @@ def test_shipped_corpus_grammar_distribution_matches_the_measured_baseline():
     # RE-MEASURED 2026-09-07: G1 42 -> 43, the same single cause as the count above
     # (ADR-117 carries a G1-shaped status field). G2/G3/G4 unchanged again, which is what
     # confirms the delta is one ADR rather than grammar drift wearing its clothes.
-    assert counts == {"G1": 43, "G2": 34, "G3": 12, "G4": 1}
+    #
+    # RE-MEASURED 2026-09-07 by seat filings-N3: G1 43 -> 44, the same single cause as the
+    # count above (ADR-118 carries a G1-shaped status field). G2/G3/G4 unchanged a third
+    # time, which is what confirms the delta is one ADR rather than grammar drift.
+    assert counts == {"G1": 44, "G2": 34, "G3": 12, "G4": 1}
 
 
 def test_shipped_corpus_has_zero_enum_violations():
