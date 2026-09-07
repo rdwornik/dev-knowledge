@@ -307,6 +307,44 @@ repos:
         language: system
         always_run: true
         files: '(^|/)LANE-[^/]*\.md$'
+      - id: derived-copies-rebind
+        name: Derived-copy rebind gate (a staged source whose copy did not move; HUB-ONLY)
+        # THE GAP THIS CLOSES, and it is the deliverable rather than a side effect. A derived
+        # copy that drifts from its source was, for the `~/.claude/ROUTING.md` case, caught
+        # only at ship-gate -- `check_routing_agreement` sits at TIER_SHIP by a deliberate
+        # choice recorded beside it in scripts/audit.py, because the L0 file is on operator
+        # disk and a blanket COMMIT-tier failure would refuse every commit in the repo over a
+        # file this repo does not write. That choice stands and this hook does not disturb
+        # it. What it adds underneath is the narrow leg the ship tier cannot express: the
+        # commit that STAGES a registered source and leaves the copy behind is the commit
+        # that is refused. Witnessed: routing-table.yaml at 5be038ff, the L0 copy at 16e11c7.
+        #
+        # TWO LEGS. (1) REBIND -- a `commit_gate: self` row in ecosystem/derived-copies.yaml
+        # whose sources are staged is verified here and FAILs on divergence. A
+        # `commit_gate: gate` row is NOT re-verified: the hook it names already did that work
+        # in this same run, so nothing here doubles an existing cost. (2) DISARM -- every
+        # hook id a row delegates to is asserted to still EXIST in this file, on every
+        # commit. Nine of the eleven registered copies delegate, and deleting one of those
+        # hooks otherwise leaves no trace anywhere in the tree.
+        #
+        # `always_run: true` + `pass_filenames: false`, for leg 2 and for the reason
+        # provider-registry-agreement and lane-contract-check both record: a `files:`-globbed
+        # gate cannot protect its own configuration, because a commit that narrows the
+        # selector is evaluated against the NEW selector and so disarms the gate cleanly on
+        # exactly the commit that should have tripped it. The checker computes its own staged
+        # set from `git diff --cached` and costs one YAML parse on a commit that rebinds
+        # nothing.
+        #
+        # HONEST LIMIT: leg 2 asserts a hook of that id is PRESENT. It does not read that
+        # hook's `files:` selector, so a narrowing that keeps the id passes it. Presence is
+        # the cheap half of the property, not the whole of it.
+        #
+        # Exit: 0 clean, 1 violation, 2 internal error (an error BLOCKS). HUB-ONLY.
+        # Bypass: --no-verify.
+        entry: uv run --locked python scripts/check_derived_copies.py
+        language: system
+        always_run: true
+        pass_filenames: false
       - id: audit-health
         name: Audit self-conformance gate (FAIL blocks the commit; WARN only informs)
         # `audit.py health` exits 1 only on a FAIL finding (structural integrity,
