@@ -360,3 +360,48 @@ corroboration, not the gate.
 > own gated change, never incidental", and it is the operator's. If the other twelve sweep lanes
 > ran in this same image, none of them could have run a gate either, and no lane's green should be
 > read as a gate's green.
+
+> **AMENDMENT 2 — 2026-09-07, same session: the toolchain was repaired and the gates RAN. This
+> supersedes Amendment 1's "no gate can execute", and it upgrades three claims above from my
+> re-derivation to a gate's verdict.** `uv self update 0.11.19` fails in this image
+> (*"version 0.11.19 was not found for the app uv in workspace uv"*), but `0.11.19` is on PyPI and
+> `pip install --user uv==0.11.19` installs it over `/root/.local/bin/uv`. That is **environment
+> conformance with the pin the repo already declares**, not a uv bump: no tracked file changed,
+> `pyproject.toml:25` is untouched, and the container is ephemeral. Safe here because this is a
+> single-worktree isolated clone — `git worktree list` shows one entry and `.claude/worktrees` does
+> not exist — so no peer lane shares this binary. Results, each run read-only with a clean
+> `git status` after:
+>
+> - `uv run --locked python scripts/session_end_backpressure.py` → **exit 0**, no output.
+> - `uv run --locked python scripts/gen_task_tree.py --check` → **`check ok`**. All six legs green,
+>   including the id-agreement leg and the lossless-reassembly leg. **The five coherence numbers in
+>   the Inventory section are therefore gate-witnessed, not just re-derived, and they agree.**
+> - `uv run --locked python scripts/archive_row_body.py verify` → **`OK - 24 record(s), 24
+>   byte-identity PROVEN (legs A/B/C/D/E)`**. The strongest available result: 24 of 24 PROVEN means
+>   no row has been edited since its relocation, so the UNPROVEN reading its README warns about does
+>   not apply to any record here.
+> - `uv run --locked python scripts/audit.py health` → **DEGRADED** (exit 1): 35 `[OK]`, 58 `[~~]`,
+>   16 `[--]`, **6 `[!!]`**. `[OK] task_tree_coherence`. **None of the six hard-fails is this lane's**
+>   — they are `repos registered (none)`, `canonical_freshness` 7 stale (files this lane never
+>   touched), `canonical_freshness` shallow-clone refusal, `hooks_armed`, `silent_rule_ratchet`
+>   443→447, and `journal_spine_anchor` (`disposition floor 24882f8cc is not a valid object name` —
+>   a shallow-clone artifact). This lane's two artifacts contribute exactly **2 WARNs**, both the
+>   expected `consumer_at_landing` consumption ratchet, out of **43** such WARNs across a corpus
+>   that already includes a dozen peer lane artifacts. Leg 1, the FAIL-class landing declaration,
+>   **passes** on both.
+>
+> **The gate independently reaches Honest limits §1's conclusion, in its own words:** `[!!]
+> canonical_freshness: derived leg REFUSES (shallow clone): the clone is shallow -- every
+> git-derived date is a floor, not a fact, and a grafted history silently mis-dates every file older
+> than the graft.` I reached that from `.git/shallow` and the uniform 2026-09-05/06 last-touch dates
+> before running any gate; the gate reaches it from its own predicate. Two independent methods, one
+> verdict — §1 stands and is now corroborated rather than merely argued.
+>
+> **What is still NOT run, and why:** the full suite (this contract forbids it) and the pre-commit
+> hooks. `[!!] hooks_armed` confirms Amendment 1's report that they were never armed. I did **not**
+> arm them: arming would put a regen-and-diff hook in the path of my next commit while twelve peer
+> lanes are committing, which is the collision this sweep's contract exists to avoid. The integrator
+> should arm them once, on the primary, after the queue drains:
+> `pre-commit install -t pre-commit -t commit-msg -t pre-push` and
+> `git config --local merge.ours.driver true` (the `.gitattributes` `merge=ours` pin on
+> `docs/audits/README.md` is inert without it — `[#590]`).
