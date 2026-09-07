@@ -162,6 +162,18 @@ def _read_target_version(manifest_path: Path = _PLUGIN_MANIFEST) -> str:
     return str(data["version"])
 
 
+def target_plugin_version(manifest_path: Path = _PLUGIN_MANIFEST) -> str:
+    """Public seam over the SPEC read, for ``deploy/tool.py``'s record write (F-3).
+
+    The durable ``deployed_plugin_version`` record must carry the version this carrier
+    reconciled TOWARD, not a separately-derived one — two independent reads of the same
+    manifest are two things that can disagree. This delegates rather than duplicating, so
+    a test that patches ``_read_target_version`` steers the carrier and the record writer
+    through one seam (``tests/test_deploy_plugin.py`` already patches exactly that name).
+    """
+    return _read_target_version(manifest_path)
+
+
 # ---------------------------------------------------------------------------
 # Shared pure helpers — path-normalised projectPath filter (a data SELECT, not a
 # judgment; D9-permitted, like target-parsing).

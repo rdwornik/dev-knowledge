@@ -19,6 +19,30 @@
 # name) and reports status — `n/a` while null (no release deployed yet), `pass` with the
 # version once set — surfaced per-repo through scripts/fleet_health.py.
 #
+# ---------------------------------------------------------------------------------------
+# `deployed_plugin_version` — CARRIER #2's per-consumer record (DECLARE-F-2026-09-06 F-3).
+#
+# WHY IT IS A RECORD AND NOT A READ. Carrier #2 is the tier1-lifecycle CC plugin
+# (deploy/carrier_plugin.py). The only live source for "which plugin version is this
+# consumer at" is `claude plugin list`, and that command is MACHINE-WIDE — its `--scope`
+# cannot hide a row, so it answers about the operator's machine, never about a consumer.
+# A per-consumer plugin version therefore cannot be read; it has to be RECORDED. Same
+# axis as the corpus fields above, same write-contract, same fail-open posture.
+#
+# WRITE-CONTRACT: written by the DEPLOY-RUNBOOK (`deploy/tool.py --execute`) at deploy
+# time, from the version carrier #2 reconciled toward — the hub's own plugin manifest
+# (`plugins/tier1-lifecycle/.claude-plugin/plugin.json`), read through the carrier's OWN
+# seam (`carrier_plugin.target_plugin_version`), and ONLY when that carrier both ran and
+# verified OK in that run. Do NOT hand-fabricate a value: a value cannot precede its
+# release. All entries ship `null` (pre-record) — that is the honest state, not a gap.
+#
+# READ: audit.py::check_plugin_version_drift compares this record against the hub
+# manifest and reports drift on BOTH sides — the consumer BEHIND a released plugin, and a
+# record AHEAD of / unknown to the hub source. `n/a` while null. WARN-class, fail-open.
+# It is carrier #2's SECOND drift surface; the first is the deploy-time carrier itself,
+# which is live-CLI, machine-wide, and exists only while the deploy tool is running.
+# ---------------------------------------------------------------------------------------
+#
 # Layer-2 read-only, yaml.safe_load, one concern per file (the doc-code-edge.yaml /
 # tool-versions.yaml precedent). Keyed by repo directory name (the audit's repo id).
 repos:
@@ -27,6 +51,7 @@ repos:
     deployed_methodology_version: null
     deployed_date: null
     source_tag: null
+    deployed_plugin_version: null
   ai-council:
     # PRE-ENGINE REGISTRATION — annotated by DC-5 (batch E,
     # `worktree-lane-d-4-ai-council-instantiation`), which instantiates ai-council
@@ -50,6 +75,7 @@ repos:
     deployed_methodology_version: "1.3.1"
     deployed_date: "2026-07-11"
     source_tag: "v1.3.1"
+    deployed_plugin_version: null
   corp-monorepo:
     # Stays 1.2.0 BY DESIGN — corp's hub-block pin v1.3.1 is an enforcement-gate carrier
     # repoint (2 hooks), not a corpus deploy; modeled as ADR-102 gate_rev_ahead in
@@ -58,14 +84,17 @@ repos:
     deployed_methodology_version: "1.2.0"
     deployed_date: "2026-07-07"
     source_tag: "v1.2.0"
+    deployed_plugin_version: null
   corp-ops:
     deployed_methodology_version: null
     deployed_date: null
     source_tag: null
+    deployed_plugin_version: null
   corp-sca-time-automation:
     deployed_methodology_version: null
     deployed_date: null
     source_tag: null
+    deployed_plugin_version: null
   terminal-setup:
     # ADMITTED pre-deploy, 2026-08-29 ([#604] fold) — same shape and same reason as the
     # win-tooling admission below carried before its deploy: the registry key is a
@@ -80,6 +109,7 @@ repos:
     deployed_methodology_version: null
     deployed_date: null
     source_tag: null
+    deployed_plugin_version: null
   win-tooling:
     # DEPLOYED 2026-08-29 — release v1.4.0, the wave-3 first slice ([#606]). Admitted
     # pre-deploy 2026-08-26 with all fields null (evidence:
@@ -93,3 +123,4 @@ repos:
     deployed_methodology_version: "1.4.0"
     deployed_date: "2026-08-29"
     source_tag: "v1.4.0"
+    deployed_plugin_version: null

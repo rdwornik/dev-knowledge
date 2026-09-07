@@ -157,6 +157,8 @@ CHECK_ORDER: tuple[str, ...] = (
     "check_safe_removal",
     "check_residual_completeness",
     "check_deployed_methodology_version",  # facade — DEPLOYED_VERSIONS_REGISTRY seam
+    "check_plugin_version_drift",         # facade — DEPLOYED_VERSIONS_REGISTRY +
+                                          # PLUGIN_MANIFEST seams (F-3, carrier #2)
     "check_enforcement_coverage",         # facade — _is_hub/_REPO_ROOT seam
     "check_undeclared_edges",             # facade — _is_hub/_REPO_ROOT seam
     "check_doc_code_coverage_drift",      # facade — ALL_CHECKS/_is_hub seams
