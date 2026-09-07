@@ -5,8 +5,17 @@ Session-start-throttled: run at most once per calendar day. On boot:
   - If logs/FLEET-HEALTH.md is missing or stale (run_date != today) ->
     run the full cross-repo audit (audit.py run), write a fresh digest.
   - Else -> surface the cached digest.
-Always prints a one-line summary to stdout. Exits 0 always (never blocks
-session-start). Failures are loud on stderr, never silent.
+Always prints a one-line summary to stdout. Failures are loud on stderr, never
+silent.
+
+Exit code: 0, with ONE exception -- the DEFECT E-29 / inbox 013-A prompts-dir
+scope guard returns 2 when the inherited process value differs from the User
+scope. That non-zero exit is a declared signal, not a working block: a
+SessionStart hook is MEASURED not to be able to refuse a turn (see the guard
+section below). The leg that CAN refuse is `--prompts-guard`, shaped for a
+PreToolUse hook -- built and tested but deliberately NOT wired into
+`.claude/settings.json`; the guard section states why and carries the exact
+wiring. Nothing else in this digest can ever return non-zero.
 
 Reuses audit.py exclusively — no reimplementation of the audit logic. The
 per-repo state.yaml files (ecosystem/<name>/state.yaml) are read after the
@@ -1160,9 +1169,214 @@ def refresh(repo_root: Path, ecosystem_dir: Path,
     return ok
 
 
-def main() -> int:
-    today = date.today()
+# ---------------------------------------------------------------------------
+# CLAUDE_PROMPTS_DIR scope guard (DEFECT E-29 / architect inbox 013-A)
+# ---------------------------------------------------------------------------
+# A session inherits the prompts-dir variable from the long-lived process that spawned it.
+# When that process's environment block predates the User-scope value, the seat reads the
+# wrong directory and reports the operator's files as absent -- an honest instrument
+# returning a confidently wrong answer, which no seat can detect from inside. Only a boot
+# comparison of the two scopes can, which is why 013-A ruled a hook rather than a habit.
+#
+# The variable is the source, never a path (013's standing rule): BOTH values below are
+# READ, and no literal path appears in this module or in its docstrings.
+#
+# Why this file: it is already the FIRST SessionStart entry in `.claude/settings.json`, so
+# its line lands before the other four hooks run, and the instruction was to extend 013's
+# hook -- not to add an organ. No new module, no new pre-commit hook, no ALL_CHECKS member.
+#
+# MEASURED 2026-09-06, discharging the premise E-29 flagged as the first thing to establish
+# ("whether a non-zero exit from a SessionStart command actually blocks the turn is
+# UNVERIFIED"). Four child `claude -p` runs, each with a marker file proving the hook fired:
+#   SessionStart exit 2          -> session answered its prompt.  DOES NOT BLOCK.
+#   SessionStart exit 1          -> session answered its prompt.  DOES NOT BLOCK.
+#   SessionStart {continue:false}-> session answered its prompt.  DOES NOT BLOCK.
+#   PreToolUse   exit 2          -> every tool call refused, stderr reached the model
+#                                   verbatim.                     BLOCKS.
+# So SessionStart cannot hard-refuse, and the guard ships in the two-legged form E-29's
+# fallback names -- a loud first-line banner plus the same predicate re-run where it bites:
+#   SessionStart -> `main()`, which prints the `[prompts]` line FIRST and returns non-zero
+#                   on REFUSED. That exit is an honest signal, not a working block, and is
+#                   kept because it is what 013-A ruled, costs nothing, and becomes a real
+#                   block for free if a later CLI honours it.
+#   PreToolUse   -> `--prompts-guard`, which exits 2 and DOES refuse.
+# A guard that printed reassurance while the session proceeded on a stale value would be
+# the exact failure E-29 records, so the banner alone was never sufficient.
+#
+# THE PreToolUse LEG IS BUILT AND TESTED BUT DELIBERATELY NOT WIRED. `.claude/settings.json`
+# is UNCHANGED by this lane, and that is a decision, not an omission -- recorded here rather
+# than in a packet because an unwired leg is exactly the kind of thing that gets forgotten
+# under a row marked DONE, which is how E-29 accumulated four instances.
+#
+# Arming it is ONE object in the `PreToolUse` array, on the system interpreter for the same
+# reason the ADR-77 guard is (stdlib-only; a stale lockfile must never be able to block
+# every tool call, and `uv run` would cost a resolution per call):
+#
+#     { "matcher": "*",
+#       "hooks": [ { "type": "command",
+#                    "command": "python \"$CLAUDE_PROJECT_DIR/scripts/fleet_health.py\" --prompts-guard",
+#                    "timeout": 10 } ] }
+#
+# ARM IT ONLY IN THE SAME ACT AS E-29 PROPOSAL (a), THE DAEMON RESTART -- never before.
+# Measured, by wiring it live on 2026-09-06 and losing the session to it: while a mismatch
+# is present the guard does not warn, it stops the seat dead. Every tool call is refused,
+# including the ones that would undo the wiring -- Bash, Edit, Write, Read, Agent and
+# ToolSearch, which in turn makes the deferred `ExitWorktree` unreachable. There is no
+# in-session escape; recovery took an external shell. Armed before the restart, on a fleet
+# whose sessions all inherit the stale value from one long-lived ancestor, that is not a
+# loud boot line -- it is every session in this repo bricked at its first tool call.
+# After the restart the two values agree, the guard is silent, and arming it costs nothing.
+
+_PROMPTS_DIR_VAR = "CLAUDE_PROMPTS_DIR"
+_PROMPTS_GUARD_FLAG = "--prompts-guard"
+#: HKCU subkey holding the User-scope environment block -- the same store
+#: `[Environment]::GetEnvironmentVariable(name, "User")` reads, without the ~200 ms cost of
+#: spawning PowerShell. This predicate re-runs on every tool call, so the cheap read is the
+#: load-bearing choice, not a stylistic one.
+_PROMPTS_USER_ENV_KEY = "Environment"
+
+PROMPTS_OK = "ok"
+PROMPTS_REFUSED = "refused"
+PROMPTS_UNSET = "unset"
+PROMPTS_NO_USER_SCOPE = "no-user-scope"
+
+
+def read_user_scope(var: str = _PROMPTS_DIR_VAR):
+    """The persisted User-scope value of `var`, or None when it cannot be read.
+
+    None is returned off Windows (no registry), when the key or value is absent, and on any
+    read error -- all four are "cannot compare", never "they differ". A guard that cannot
+    read one side must not manufacture a verdict from the other.
+    """
     try:
+        import winreg  # noqa: PLC0415 -- Windows-only, imported at call time on purpose
+    except ImportError:
+        return None
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, _PROMPTS_USER_ENV_KEY) as key:
+            value, kind = winreg.QueryValueEx(key, var)
+    except OSError:
+        return None
+    if kind == winreg.REG_EXPAND_SZ:
+        value = os.path.expandvars(value)
+    return value or None
+
+
+def _norm_dir(value: str) -> str:
+    """Comparison form. A trailing separator, surrounding quotes or a case difference is
+    not staleness -- only a different directory is.
+
+    HONEST LIMITS, all three deliberate (terra review 2026-09-06, MED x3 -- recorded rather
+    than fixed, because each fix costs more than it buys):
+
+    * The comparison is LEXICAL. Two paths reaching the same directory through a junction,
+      symlink, 8.3 short name, mapped drive or UNC alias compare as different, and would
+      refuse. `os.path.realpath` would resolve them, but it touches the filesystem on a
+      predicate that runs once per tool call -- and the prompts dir here is typically a
+      network/sync mount, where a resolve on an unreachable drive can block. A guard that
+      hangs is worse than one that is lexical.
+    * `normcase` folds case, so on a directory with per-directory case sensitivity enabled
+      two genuinely distinct paths compare equal and pass. Comparing case-sensitively would
+      refuse on every ordinary Windows case difference, which is the far more common input;
+      a false pass in a rare configuration beats a false refusal in the normal one.
+    * A REG_EXPAND_SZ User value is expanded against `os.environ` -- the same possibly-stale
+      block the guard is testing. If the referenced variable is ALSO stale, a genuinely
+      stale prompts dir can compare equal. Not expanding is not an escape: an unexpanded
+      `%VAR%` would never match the expanded process value and would refuse always.
+    """
+    return os.path.normcase(os.path.normpath(value.strip().strip('"')))
+
+
+def prompts_dir_status(inherited, resolved):
+    """Pure verdict + the one ASCII line, from the two values passed in.
+
+    Both values are named in the REFUSED line on purpose: printing only the correct one
+    leaves the reader unable to tell a stale process from a wrong User setting, which is
+    precisely the diagnosis E-29 records as costing an hour.
+    """
+    inherited = (inherited or "").strip() or None
+    resolved = (resolved or "").strip() or None
+    if resolved and inherited:
+        if _norm_dir(resolved) == _norm_dir(inherited):
+            return PROMPTS_OK, f"[prompts] OK [{resolved}]"
+        return PROMPTS_REFUSED, (
+            f"[prompts] REFUSED -- inherited=[{inherited}]  user-scope=[{resolved}] -- "
+            "the inherited process value is stale; restart the spawning process or "
+            "re-launch this session"
+        )
+    if resolved and not inherited:
+        # 013-A's predicate: unset IS a difference from a set User value, because an unset
+        # process value falls through to the launcher's documented fallback, silently.
+        return PROMPTS_REFUSED, (
+            f"[prompts] REFUSED -- inherited=[] (unset)  user-scope=[{resolved}] -- "
+            "an unset process value falls through to the launcher fallback; "
+            "re-launch this session"
+        )
+    if inherited and not resolved:
+        # The one shape 013-A's sketch does not cover. It is NOT "OK": nothing was
+        # compared, and reporting it as a pass would be the silent conflation the whole
+        # defect is about.
+        return PROMPTS_NO_USER_SCOPE, (
+            f"[prompts] unverifiable -- inherited=[{inherited}], no User-scope value "
+            "readable; nothing to compare it against"
+        )
+    return PROMPTS_UNSET, (
+        f"[prompts] {_PROMPTS_DIR_VAR} unset in BOTH scopes -- the launcher's documented "
+        "USERPROFILE fallback applies, and it is silent"
+    )
+
+
+def read_prompts_dir_scopes():
+    """(inherited, resolved) -- the process value this session actually carries, and the
+    User-scope value it should have. One seam, so both legs and their tests agree."""
+    return os.environ.get(_PROMPTS_DIR_VAR), read_user_scope()
+
+
+def prompts_guard() -> int:
+    """`--prompts-guard`: the PreToolUse leg, the one that actually refuses.
+
+    Exit 2 (refusal, stderr reaches the model) on REFUSED; 0 otherwise. Silent on every
+    non-refusing verdict -- the closure clause is `match -> silent pass`, and this runs once
+    per tool call, where a warning line would be noise rather than signal (the SessionStart
+    leg has already printed it once).
+
+    Fail-OPEN on its own internal error, deliberately and in the one direction that is safe:
+    an unset/unreadable User scope is already a non-refusing verdict above, so the only
+    thing reaching this handler is the guard failing to run at all -- and a guard that
+    bricks every tool call because it crashed would be a worse defect than the one it
+    guards. Refusal is reserved for a mismatch it positively established.
+    """
+    try:
+        verdict, line = prompts_dir_status(*read_prompts_dir_scopes())
+    except Exception as exc:  # noqa: BLE001 -- see fail-open note above
+        print(f"fleet_health: WARNING -- prompts guard unavailable: {exc!r}",
+              file=sys.stderr)
+        return 0
+    if verdict == PROMPTS_REFUSED:
+        print(line, file=sys.stderr)
+        return 2
+    return 0
+
+
+def main(argv=None) -> int:
+    if _PROMPTS_GUARD_FLAG in (sys.argv[1:] if argv is None else argv):
+        return prompts_guard()
+    today = date.today()
+    prompts_verdict = PROMPTS_OK
+    try:
+        # E-29 / 013-A: the prompts-dir line renders FIRST, above OPERATOR ASKS and
+        # everything below it. A boot banner nobody reaches is not a banner. Fail-soft on
+        # its own account -- the digest is never lost to the guard.
+        try:
+            prompts_verdict, prompts_line = prompts_dir_status(*read_prompts_dir_scopes())
+            print(prompts_line)
+            if prompts_verdict == PROMPTS_REFUSED:
+                # Also on stderr: SessionStart stdout is folded into context, stderr is what
+                # the operator sees on their own surface.
+                print(prompts_line, file=sys.stderr)
+        except Exception as exc:  # noqa: BLE001 -- surfacing organ, never breaks the digest
+            print(f"fleet_health: WARNING -- prompts-dir guard unavailable: {exc!r}",
+                  file=sys.stderr)
         # v7 BOOT-INVERSION digest ([#611] §17): OPERATOR ASKS renders FIRST, above
         # everything -- including the fleet table below. Unthrottled, fail-soft.
         if _HANDOFF_PROCESS_PATH.exists():
@@ -1212,10 +1426,10 @@ def main() -> int:
         load = load_surface_line(_HEALTH_FILE)
         if load:
             print(load)
-        return 0
+        return 2 if prompts_verdict == PROMPTS_REFUSED else 0
     except Exception as exc:
         print(f"fleet_health: WARNING -- unexpected error: {exc!r}", file=sys.stderr)
-        return 0
+        return 2 if prompts_verdict == PROMPTS_REFUSED else 0
 
 
 if __name__ == "__main__":
