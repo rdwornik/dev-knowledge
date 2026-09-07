@@ -93,6 +93,8 @@ named only to retract it; checked the new manifest key against its readers.
 `ecosystem/doc-counts.md`; JOURNAL.md.
 **Abandoned:** nothing these merges.
 **Next:** U4, F3, F4; then the audits index ONCE; then W2-R last and alone.
+**Anchor-of-the-anchor:** authored at `d7ff5729`, named here so the `--no-ff` merge of
+`docs/anchor-w2f5u3-2026-09-07` anchors itself (the `a45a3ae3` shape).
 
 ### 2026-09-07 (l) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): two lanes land, a negative headline is reported as measured, and a RED's accepted diagnosis turns out to be wrong in the way that matters
 
