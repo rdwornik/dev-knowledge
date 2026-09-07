@@ -19,6 +19,41 @@
 
 ---
 
+### 2026-09-07 (t) - CC (Opus 5, INTEGRATOR-N3): the close packet lands as carriage, and the dispatcher's last artifact is committed by a seat that did not write it
+
+**Anchors `e1b7dc39`, which introduced `d1355fd7`.** The batch U close packet
+(`to-cc/FINAL-batch-u-close-packet.md`, 33 814 B) landed as
+`docs/audits/2026-09-07-technical-batch-u-close-packet.md`, audits index regenerated.
+**Batches T-census and U are CLOSED.**
+
+**The packet was finished six hours before it landed, and nearly did not land at all.**
+dispatcher-N2 wrote it at 16:05. `origin/main` moved to `b6f2ca41` at 16:13 -- eight minutes
+LATER -- which was the trigger it was waiting on to commit the packet from an isolated
+worktree. It never did: the seat died between writing and committing. This seat was dispatched
+to poll for a branch that no live process was going to push, and polled for two hours.
+
+**The find was an accident of formatting, which is the transferable part.** An early
+`ls -la to-cc | tail -40` truncated the listing exactly where `FINAL-...` sorts, so the packet
+was invisible in the one directory it was sitting in. It surfaced only on a
+`find -mmin` sweep run for a different reason. **A truncated listing reports absence with the
+same face as a real absence** -- and the seat had already written "there will not be one" into
+a status board on that evidence. The correction reached the board before it reached anyone else.
+
+**Landed VERBATIM, and the word is used precisely.** sha256 of source and working copy were
+IDENTICAL before staging. Git then normalised TWO bare CR bytes to LF, so the committed blob is
+33 812 B against 33 814 B. Content is identical line-ending-insensitive. The two-byte delta is
+recorded rather than claimed away, because "verbatim" and "byte-identical" are not the same
+claim and this repo has been bitten by conflating them.
+
+**`gen_audit_index` reads TRACKED files only.** The first regen ran before `git add` and
+silently omitted the packet -- a generator that reads the index it is regenerating from git,
+not from disk. Staging first, then regenerating, is the order. The regen also discharges the
+"index regen #2" integrator-N2 recorded as owed AFTER the close packet.
+
+**Changes:** `docs/audits/2026-09-07-technical-batch-u-close-packet.md` (new, 544 lines),
+`docs/audits/README.md`.
+**Next:** intake #76, the remaining docs-only branches, teardown, census, ship-gate.
+
 ### 2026-09-07 (s) - CC (Opus 5, INTEGRATOR-N2): the filings arc lands, and ADR-118 immediately re-opens the leak ADR-117 just closed
 
 **Anchors `e02a442d`, which introduced `cc5dadff`.** filings-N3 -- intake #40 re-opened on
