@@ -802,7 +802,14 @@ def test_shipped_corpus_parses_one_status_field_per_live_adr():
     # named: ADR-116 (the fuzzy-band acceptance shape) landed 2026-08-30 on `704f5a07`. No
     # other member moved. Recorded here rather than in a commit message alone, because the
     # number is the baseline and a baseline with no cause is a number nobody can re-derive.
-    assert len(fields) == 89, "live ADR count moved — re-measure the Step-1 baseline"
+    #
+    # RE-MEASURED 2026-09-07 at batch U NIGHT-2: 89 -> 90. The delta is again ONE ADR and it
+    # is named: ADR-117 (carrier split by divergence), landed by lane W2-F1 on DECLARE-F F-1.
+    # No other member moved. Its status field is `Proposed`, NOT the word `DRAFT` the ruling
+    # used: `DRAFT` is not an enum member, and this module's own TIER_COMMIT leg refuses it
+    # as a BLOCKING defect, so the ADR could not have landed carrying it. That deviation is
+    # recorded in the ADR header and its index row, not just here.
+    assert len(fields) == 90, "live ADR count moved — re-measure the Step-1 baseline"
 
 
 def test_shipped_corpus_grammar_distribution_matches_the_measured_baseline():
@@ -813,7 +820,11 @@ def test_shipped_corpus_grammar_distribution_matches_the_measured_baseline():
     # RE-MEASURED 2026-09-01: G1 41 -> 42, the same single cause as the count above
     # (ADR-116 carries a G1-shaped status field). G2/G3/G4 are unchanged, which is the
     # check that the delta really is one ADR and not a grammar drift wearing its clothes.
-    assert counts == {"G1": 42, "G2": 34, "G3": 12, "G4": 1}
+    #
+    # RE-MEASURED 2026-09-07: G1 42 -> 43, the same single cause as the count above
+    # (ADR-117 carries a G1-shaped status field). G2/G3/G4 unchanged again, which is what
+    # confirms the delta is one ADR rather than grammar drift wearing its clothes.
+    assert counts == {"G1": 43, "G2": 34, "G3": 12, "G4": 1}
 
 
 def test_shipped_corpus_has_zero_enum_violations():
