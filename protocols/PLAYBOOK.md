@@ -5,8 +5,9 @@ reconciled_with: handoff-process@7.0.0
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> Last updated: 2026-09-08 (batch CLOSE, lane `c2-living-docs-hygiene` — the three Ch8
-> mechanisms and the Auto-TOC repair)
+> **Last updated:** 2026-09-08
+> (batch CLOSE, lane `c2-living-docs-hygiene` — the three Ch8 mechanisms and the Auto-TOC
+> repair; the note sits BELOW the stamp line on purpose — see the review-pass note)
 >
 > **Review pass 2026-09-06 (lane `lane-t-000-playbook`, batch T).** Re-read end-to-end — all
 > 5,968 lines, Part I Ch1–Ch14 and Part II §1–§21 plus the appendices — against the **62 commits**
@@ -42,8 +43,17 @@ reconciled_with: handoff-process@7.0.0
 > the stamp line, and `_unreviewed_after_stamp` then counts CONTENT commits after it. A
 > second edit to this file under an unchanged stamp line therefore reads as content landing
 > after its own review, which is exactly the condition the leg exists to catch — so the line
-> moves with the last edit rather than being written once at the top of the lane. The note
-> after the date follows `ARCHITECTURE.md`'s convention; the surface stays PROSE either way.
+> moves with the last edit rather than being written once at the top of the lane.
+>
+> **Two mechanical facts a future re-stamp of this file needs, both learned the expensive
+> way in this pass.** (1) The needle is `_declared_stamp_needle`'s `m.group(0)`, which ENDS
+> at the date, and `_stamp_setting_commit` compares the added diff line for EQUALITY — so a
+> parenthetical appended after the date on the stamp line makes the added line unequal to
+> the needle, the setter resolves to an older commit, and the row reads STALE. The note
+> therefore sits on its own line BELOW the stamp. (2) An unchanged stamp line is not
+> re-added by anything, so re-stamping inside one day means the line's own text has to
+> differ from the one already in history; the bolded spelling `CLAUDE.md` already uses is
+> that difference here, and `_PROSE_STAMP_RE` reads it as the same PROSE surface.
 >
 > **One drift found by this pass and FIXED in place** (the Auto-TOC addendum claimed the mechanism
 > was "applied to `ARCHITECTURE.md` and `protocols/PLAYBOOK.md`"; ARCHITECTURE's markers were
