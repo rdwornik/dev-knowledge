@@ -1,0 +1,12 @@
+---
+id: "[#640]"
+title: "The FPG-1 scope narrowing is recorded nowhere, and two landed surfaces still carry the superseded version"
+status: open
+priority: P1
+size: S
+theme: "[E4] Decision management"
+story: "[S11] Keep the decision corpus navigable and contradiction-aware"
+generates: BACKLOG.md
+---
+
+- [#640] [P1][S] **The FPG-1 scope narrowing is recorded nowhere, and two landed surfaces still carry the superseded version** - DECLARE-REVIEWS-2026-09-07 section A1 materially NARROWED the repo-graph decision: FPG-1 is the single source for **corpus-structure edges ONLY** (citation, generation, template, test, script call-site), **state gates stay gates**, standing ruling **Z-C3** is cited and stands, and the blanket "diff = 0" migration is DEAD because it is impossible for `validate_backlog` by design. **That narrowing is in no repo surface.** Re-measured by this lane, not taken from the relay: `grep -rn 'corpus-structure edges only|Z-C3|DECLARE-REVIEWS' docs/ JOURNAL.md LESSONS.md` returns ZERO hits on `a415d720`. Meanwhile TWO landed surfaces still carry the un-narrowed version, both locators opened and confirmed by this lane: (1) `docs/intake/2026-08-22-tech-document-dependency-graph-organ.md` line 650, intake #40's Done-when, reads verbatim `12 separate edge computations -> 0; all organs read FPG-1` - the blanket migration the browser withdrew; and (2) `docs/decisions/ADR-118-one-graph-organs-are-views.md`, written from DECLARE-GRAPH section 4 verbatim, dated 2026-09-07 and still **Proposed** (not ratified), so it predates the correction and states the wide scope as the decision. **DUE BEFORE BATCH V LANE V-3**, which is where someone builds from intake #40: a lane that reads either surface today builds the withdrawn scope · Done when: the A1 narrowing is recorded in a repo surface that a lane actually reads - the four scope clauses, the Z-C3 citation, and the death of the blanket `diff = 0` bar - and intake #40's Done-when plus ADR-118's scope are reconciled to it by whoever owns them (an intake edit re-derives two generated surfaces; an ADR is immutable outside its status line, so ADR-118 is corrected by amendment or successor, never in place) · refs ADR-118, ADR-111, ADR-98, `docs/intake/2026-08-22-tech-document-dependency-graph-organ.md`, `scripts/file_purpose_graph.py` · source: batch CLOSE lane C-3 measured it; filed by lane C-1 `shipgate-to-green` on the integrator's instruction
