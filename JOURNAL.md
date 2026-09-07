@@ -19,6 +19,91 @@
 
 ---
 
+### 2026-09-07 (n) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): wave 2 closes, and a verdict that was bound to a SHA while the merge was bound to a branch
+
+**Anchors `0e046af8`, which introduced `22cef5c5`; `baf2c79c`, which introduced
+`1d446adb`; `0298b4ed`, which introduced `3a2fb32a`; and `b3bae03f`, which introduced
+`dafcfeff`.** W2-F3 `plugin-version-record-and-drift`, the `declare-f2-intakes` lane,
+W2-F4 `adr-template-flip-condition` and W2-U4 `derived-copies-registry` -- the sixteenth
+through nineteenth merges of batch U. **All eighteen contracted lanes are now merged; only
+W2-R remains.** Each was verdicted **MERGE / exit 0** before its merge.
+
+**THE FINDING OF THIS ARC IS A GAP IN THE INTEGRATOR MECHANIC ITSELF, and it was caught
+by reading the merge back rather than by any gate.** `audit.py handback` verdicts a
+**SHA**. `/lane-integrate` then prescribes `git merge --no-ff worktree-lane-<slug>` -- a
+**branch name**. Those are not the same object. A lane branch ref lives in the **common
+git dir**, shared by every worktree, so a lane that commits after handing back silently
+advances the ref, and the integrator merges a tip it never verdicted. Measured across all
+four merges of this arc:
+
+    F3      origin 22cef5c5 == local 22cef5c5 == merged   MATCH
+    intakes origin 1d446adb == local 1d446adb == merged   MATCH
+    F4      origin 3a2fb32a == local 3a2fb32a == merged   MATCH
+    U4      origin 8f817c3d != local dafcfeff == merged   OVERRAN THE VERDICT
+
+**One instance in four, and it is the one lane whose local ref had moved ahead of
+origin.** The verdict named `8f817c3d`; the merge took `dafcfeff`. **The fix is one
+character of discipline -- merge the SHA you verdicted, not the branch that carried it**
+-- and it belongs in `/lane-integrate` section 2, which currently prescribes the unsafe
+form. Recorded here rather than patched mid-batch: the command is a deployed methodology
+surface, and an integrator seat editing its own instructions mid-queue is the wrong shape.
+
+**The overrun is ACCEPTED, not merely disclosed, and the reasoning is separable from the
+luck.** `dafcfeff` is 3 files -- `check_derived_copies.py` +7/-1, its test +13, doc-counts
++1/-1 -- fixing the registry's `--list` printing a `commit_gate: ship` row as `[self]`.
+That is the registry overstating its own guarantee, which is the precise failure class the
+registry exists to expose, so it is worth having. It is also **covered by the verification
+that already ran**: the targeted suite returned **50 passed**, and 50 is `dafcfeff`'s count
+-- `8f817c3d` carries 49. The tests I ran therefore witnessed the tree I actually merged.
+**Had the extra commit been substantive rather than cosmetic, none of that would have held,
+and the mechanic would have failed silently.**
+
+**W2-U4 -- a new gate that found three pre-existing holes with its own disarm leg, before
+it had landed.** Eleven derived copies registered (0 -> 11); drift moves from ship-gate to
+commit time; pre-commit hooks 23 -> 24; 50 targeted tests from zero. Its leg 2 found that
+`claude-rosters-freshness`, `roster-freshness` and `toc-freshness-playbook` each **omitted
+their own generator** from `files:`, so editing `gen_claude_rosters.py`,
+`gen_methodology_roster.py` or the TOC generator fired no freshness check at all -- while
+their peers `audit-index-freshness` and `intake-index-freshness` already listed theirs.
+**A gate that cannot see the program that writes the file it guards has a blind spot shaped
+exactly like its own tooling.**
+
+**That widening was verified ADDITIVE by this seat rather than accepted on the lane's
+account**, because a `files:` edit is the one change that can REMOVE enforcement while
+reading like it adds it. All three keep every existing alternation branch and append the
+generator path; no branch dropped, no anchor loosened. The hooks now fire MORE, never less
+-- which is what makes accepting a scope widening mid-batch safe rather than merely
+convenient. One HIGH is deliberately unfixed and reported as a reasoned deviation: an
+absent L0 target exits 0 under `on_target_absent: warn`, because failing there would
+contradict the reasoning `audit.py` already records for keeping `check_routing_agreement`
+at TIER_SHIP, and would wedge every rebind commit on CI, in a container and on cloud.
+
+**A THIRD REVISION OF THE PUSH-RETRY RULE, established by U4 the hard way.** The dispatcher
+first ruled *both-False = stop*; U3 amended it to *never stop, keep retrying*; U4
+established that **a bare retry never fetches**, so a lane can spin indefinitely while
+looking patient. The loop is `fetch + merge origin/main + push`. U4 hit the gate four
+separate times over **foreign** unanchored merges -- none its own -- to establish it.
+
+**`ecosystem/doc-counts.md` conflicted on both F4 and U4 and was RE-DERIVED both times,
+never resolved by picking a side.** Two lanes each bumping a generated counts file produce
+a conflict whose correct answer is on neither side: final `pytest_collected` **5357**,
+`precommit_hook_count` **24**, `gen_doc_counts.py --check` matching on every field.
+
+Targeted, serial, on each merged result; **202 passed** across `test_check_derived_copies`
+plus the three freshness-hook suites U4's widening touches, re-run **after** the conflict
+resolution because the first run met conflict markers and was therefore not a verdict.
+`audit.py health` **OK**.
+
+**Changes:** `ecosystem/derived-copies.yaml`, `ecosystem/schema/derived_copies.py`,
+`scripts/check_derived_copies.py` + tests (new commit-time gate); `.pre-commit-config.yaml`
+(hook 24, three `files:` widenings); ADR template flip-condition gate; DECLARE-F-2 intakes
+#78-#85 and ADR-117's provenance; carrier #2 per-consumer version record and drift surface;
+`ecosystem/doc-counts.md` re-derived.
+
+**Next:** W2-R release-commit, last and alone, from a **pushed** main -- its launcher polls
+origin deliberately. Then regenerate the audits index, write the batch-U close packet, and
+take the 13 census lanes as a second batch on its own manifest.
+
 ### 2026-09-07 (m) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): an erratum that publishes its own arithmetic, and a floor where three of five ruled mechanisms were never built
 
 **Anchors `5080e5c9`, which introduced `52b531f7`, and `0e68f4e9`, which introduced
