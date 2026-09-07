@@ -521,9 +521,17 @@ _ENUMERATOR = r"(?:§?\d+[.)]?\s*[\u2014\u2013-]?\s*)?"
 #: way a `Status:` value is. A trailing qualifier is allowed
 #: (`## Flip-condition — what would reverse this`): the section is identified by its NAME, and
 #: forbidding a subtitle would fail a conforming ADR over punctuation.
+#:
+#: The emphasis run is optional and is NOT required to balance — deliberately, and unlike
+#: `_ENUM_AT_START_RE` above. That regex guards a declared VALUE, where unbalanced markup is
+#: how a bad token gets laundered into a good one; this one identifies a section by NAME, where
+#: the only thing an unbalanced `## **Flip-condition` can do is *satisfy* the requirement. Since
+#: a false positive on a FAIL-armed leg is the worst failure available here, the lenient
+#: direction is the safe one, and it is written as a plain optional run so that the leniency is
+#: visible rather than being an accidental no-op conditional (terra HIGH-3).
 _FLIP_HEADING_RE = re.compile(
-    rf"^ {{0,3}}(?P<h>#{{2,4}})\s+{_ENUMERATOR}(?P<w>\*+|_+)?Flip[-\u2011 ]?condition"
-    r"(?(w)(?P=w))?(?:[\s:\u2014\u2013-]|$)", re.IGNORECASE)
+    rf"^ {{0,3}}(?P<h>#{{2,4}})\s+{_ENUMERATOR}[*_]*Flip[-‑ ]?condition"
+    r"(?:[\s:*_—–-]|$)", re.IGNORECASE)
 
 #: `Alternatives considered`. The alternation is MEASURED from the live corpus, which writes the
 #: section under three stems — `Alternatives considered` (45 files, the template's spelling),
@@ -532,7 +540,7 @@ _FLIP_HEADING_RE = re.compile(
 #: justified nothing when they plainly did. That divergence is why the requirement's population
 #: is measured with THIS pattern and not with a grep for the template's exact words.
 _ALTS_HEADING_RE = re.compile(
-    rf"^ {{0,3}}(?P<h>#{{2,4}})\s+{_ENUMERATOR}(?P<w>\*+|_+)?"
+    rf"^ {{0,3}}(?P<h>#{{2,4}})\s+{_ENUMERATOR}[*_]*"
     r"(?:Alternatives|Rejected\s+alternatives)\b", re.IGNORECASE)
 
 
@@ -553,8 +561,13 @@ REQUIRED_SECTIONS: tuple[RequiredSection, ...] = (
     RequiredSection("Flip-condition", _FLIP_HEADING_RE, R_FLIP, R_FLIP_LEGACY),
     RequiredSection("Alternatives considered", _ALTS_HEADING_RE, R_ALTS, R_ALTS_LEGACY),
 )
-#: A heading of the SAME level or shallower ends the section.
-_ATX_HEADING_RE = re.compile(r"^ {0,3}(?P<h>#{1,6})\s")
+#: A heading of the SAME level or shallower ends the section. End-of-line terminates the marker
+#: as validly as whitespace does: `##` alone is an EMPTY ATX heading per CommonMark, and
+#: requiring a space after the hashes made it invisible as a boundary — so the NEXT section's
+#: prose was collected into a placeholder-only body and laundered it into `present`
+#: (terra HIGH-2). `###nothing` is still not a heading, which is why the alternation is
+#: whitespace-or-end and not "anything".
+_ATX_HEADING_RE = re.compile(r"^ {0,3}(?P<h>#{1,6})(?:\s|$)")
 #: An UNFILLED template placeholder span. `templates/ADR-template.md` writes every section
 #: body as a `<...>` prompt, so an ADR that copied the template and never answered the question
 #: carries the heading while naming no flip at all. Counting that as compliance is the vacuous
@@ -617,15 +630,22 @@ def section_state(text: str, heading: re.Pattern[str]) -> str:
             marker = fo.group("b") or fo.group("t")
             fence = (marker[0], len(marker))
             continue
-        # A blockquote line is QUOTED material — never this document's own heading or body.
-        if _BQ_PREFIX_RE.match(line):
-            continue
-
         if depth is None:
+            # BEFORE the section opens, a blockquote line is QUOTED material — a contract
+            # excerpt or a quoted template, never this document's own heading.
+            if _BQ_PREFIX_RE.match(line):
+                continue
             m = heading.match(line)
             if m:
                 depth, found = len(m.group("h")), True
             continue
+
+        # AFTER it opens, a blockquote is BODY. Skipping it here too reported
+        # `## Flip-condition` / `> Reverse if the measured cost doubles.` as EMPTY — a false
+        # positive on a FAIL-armed leg against an ADR that had answered the question, in the
+        # one markup form this corpus uses most for emphasis (terra HIGH-1). A quoted heading
+        # inside the body still does not end the section, because `_ATX_HEADING_RE` is matched
+        # against the line WITH its `>` prefix and so cannot match one.
 
         h = _ATX_HEADING_RE.match(line)
         if h and len(h.group("h")) <= depth:
@@ -684,12 +704,25 @@ def required_section_defects(directory: Path) -> list[Defect]:
                     spec.fail_rule, num or path.name,
                     f"{detail} -- REQUIRED of every ADR above the grandfather mark "
                     f"ADR-{FLIP_GRANDFATHER_MAX_ADR} (see templates/ADR-template.md)"))
-            else:
+            elif num:
                 defects.append(Defect(
-                    spec.warn_rule, num or path.name,
+                    spec.warn_rule, num,
                     f"{detail} -- grandfathered at ADR-{FLIP_GRANDFATHER_MAX_ADR}. "
                     f"DISPOSITION: add the section from templates/ADR-template.md, or leave "
                     f"it warned; the mark itself does not move"))
+            else:
+                # An UNNUMBERED filename cannot be placed relative to the mark at all, so it
+                # is warned rather than failed — a false positive on a FAIL-armed leg is the
+                # worst failure available here. That leniency is a real hole and it is named
+                # in the evidence rather than left implicit: a file that never parses is a
+                # file these legs can never gate. Zero such files exist today; closing it
+                # needs an ADR-filename grammar, which is a rule this module does not hold.
+                defects.append(Defect(
+                    spec.warn_rule, path.name,
+                    f"{detail} -- filename yields NO ADR number, so it cannot be placed "
+                    f"relative to the grandfather mark and is warned rather than failed. "
+                    f"DISPOSITION: rename it to the `ADR-NN-topic.md` convention; until then "
+                    f"this file is UNGATEABLE by the required-section legs"))
     return defects
 
 

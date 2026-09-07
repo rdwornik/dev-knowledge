@@ -91,14 +91,21 @@ def check_adr_status_grammar(repo_path: Path) -> list[Finding]:
     defects += _vas.duplicate_id_defects(fields, missing)
     # The REQUIRED-SECTION legs. They re-read the same files rather than riding `scan_zone`'s
     # parse, because `scan_zone` returns status FIELDS and discards the text a section rule
-    # needs; the alternative was widening its return type for one caller. `CorpusUnusable` from
-    # here is caught by the same handler above — the zone was already proved readable, so this
-    # raises only on a race, and a race must not escape as an unhandled OSError.
+    # needs; the alternative was widening its return type for one caller. The zone was already
+    # proved readable above, so this raises only on a race — and a race must not escape as an
+    # unhandled OSError.
+    #
+    # THE ERROR IS RECORDED, NOT RETURNED. An early `return warn` here discarded every defect
+    # the run had ALREADY computed, so a race could downgrade a genuine enum/single-field FAIL
+    # to a WARN and let the commit through; it also made the adapter disagree with the CLI,
+    # which takes no such path (terra HIGH-5). This is the same failure the `index_error`
+    # branch below was fixed for, and it is handled the same way: keep the defects, carry the
+    # error as supplemental evidence, and let the FAIL-armed legs decide the verdict.
+    section_error = ""
     try:
         defects += _vas.required_section_defects(decisions)
     except _vas.CorpusUnusable as exc:
-        return [Finding("adr_status_grammar", "warn",
-                        f"corpus unusable (required-section legs): {exc}".replace("|", "/"))]
+        section_error = f"required-section legs DID NOT RUN ({exc})"
 
     # The index is HALF this check's subject ([#242]'s Done-when leg). An absent or unreadable
     # README must therefore be loud: returning `pass` while the coherence leg silently did not
@@ -134,15 +141,17 @@ def check_adr_status_grammar(repo_path: Path) -> list[Finding]:
         if len(fails) > 8:
             ev += f" (+{len(fails) - 8} more)"
         ev += f" || also detected: {_tally(warns)}"
-        if index_error:
-            ev += f" || {index_error}"
+        for err in (index_error, section_error):
+            if err:
+                ev += f" || {err}"
         return [Finding("adr_status_grammar", "fail", ev.replace("|", "/"))]
 
-    if warns or index_error:
+    if warns or index_error or section_error:
         ev = (f"{len(fields)} ADR status field(s); 0 enum/single-field defects; "
               f"baseline WARNs: " + _tally(warns))
-        if index_error:
-            ev += f" | {index_error}"
+        for err in (index_error, section_error):
+            if err:
+                ev += f" | {err}"
         return [Finding("adr_status_grammar", "warn", ev.replace("|", "/"))]
 
     return [Finding("adr_status_grammar", "pass",

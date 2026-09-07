@@ -1071,6 +1071,80 @@ def test_a_section_numbered_with_an_enumerator_is_still_written():
         assert vas.flip_section_state(body) == "present", heading
 
 
+# --- layer 2d: the required-section reviewer round (one case per HIGH) ---------
+#
+# Five HIGHs, one round, `reviewer: codex`. Every case below is a concrete input the reviewer
+# returned against the round-1 code and each is pinned so a later edit cannot reintroduce it.
+
+def test_a_BLOCKQUOTED_body_is_body_not_quoted_material():
+    """terra HIGH-1, and the worst class this module has: a FALSE POSITIVE on a FAIL-armed
+    leg. Blockquote lines were skipped everywhere, so an ADR that answered the question in a
+    blockquote — the form this corpus uses most for emphasis — was reported EMPTY."""
+    body = "# ADR-900\n\n## Flip-condition\n\n> Reverse if the measured cost doubles.\n"
+    assert _flip(body) == "present"
+
+
+def test_a_blockquoted_heading_still_does_not_OPEN_a_section():
+    """The other half of the same fix: quoted material before the section is still quoted."""
+    assert _flip("# ADR-900\n\n> ## Flip-condition\n>\n> If X.\n") == "missing"
+
+
+def test_a_quoted_heading_inside_the_body_does_not_END_the_section():
+    """A section that quotes a later heading keeps its own body — the boundary test is matched
+    against the line WITH its `>` prefix, so a quoted heading cannot terminate it."""
+    body = ("# ADR-900\n\n## Flip-condition\n\n> ## Consequences\n\n"
+            "If the benchmark regresses.\n")
+    assert _flip(body) == "present"
+
+
+def test_an_EMPTY_ATX_heading_ends_the_section():
+    """terra HIGH-2: `##` alone is a valid empty ATX heading. Requiring a space after the
+    hashes made it invisible as a boundary, so the NEXT section's prose filled a
+    placeholder-only body and laundered it into `present`."""
+    body = ("# ADR-900\n\n## Flip-condition\n\n<unanswered prompt>\n\n##\n\n"
+            "Real prose that belongs to the next section.\n")
+    assert _flip(body) == "empty"
+
+
+def test_a_hash_run_with_no_space_is_not_a_heading_boundary():
+    """The EMPTY-heading fix must not turn `###nothing` into a boundary — that is not a
+    heading in CommonMark, it is text."""
+    body = "# ADR-900\n\n## Flip-condition\n\n<prompt>\n\n###nothing\n"
+    assert _flip(body) == "present"       # `###nothing` is body text, and it is filled
+
+
+@pytest.mark.parametrize("heading", [
+    "## **Flip-condition",       # opened, never closed
+    "## *Flip-condition*",       # balanced
+    "## __Alternatives considered",
+])
+def test_unbalanced_emphasis_in_a_heading_is_accepted_deliberately(heading):
+    """terra HIGH-3, resolved in the LENIENT direction and pinned so the choice is visible.
+
+    Unlike `_ENUM_AT_START_RE`, which guards a declared VALUE where unbalanced markup is how a
+    bad token is laundered into a good one, this regex identifies a section by NAME — where
+    the only thing sloppy emphasis can do is SATISFY the requirement. A false positive on a
+    FAIL-armed leg is the worse error, so the lenient reading is the safe one.
+    """
+    body = f"# ADR-900\n\n{heading}\n\nAn answer.\n"
+    state = (vas.alternatives_section_state(body) if "Alternatives" in heading
+             else vas.flip_section_state(body))
+    assert state == "present", heading
+
+
+def test_an_unnumbered_adr_is_warned_AND_named_as_ungateable(tmp_path):
+    """terra HIGH-4. The leniency stays — an unparseable name cannot be placed relative to the
+    mark, and guessing would risk a false FAIL — but it is no longer SILENT: the evidence says
+    the file is ungateable, so the hole is visible to whoever reads the WARN."""
+    d = tmp_path / "docs" / "decisions"
+    d.mkdir(parents=True)
+    (d / "ADR-draft-no-number.md").write_text("# x\n", encoding="utf-8")
+    defects = vas.required_section_defects(d)
+    assert [d_.rule for d_ in defects] == [vas.R_FLIP_LEGACY, vas.R_ALTS_LEGACY]
+    for d_ in defects:
+        assert "UNGATEABLE" in d_.detail, d_.detail
+
+
 def test_the_grandfather_mark_is_the_measured_high_water_and_is_frozen():
     """116 is MEASURED — the highest live ADR number at the leg's arming (2026-09-07,
     `ef53b069`). It is asserted here so that RAISING it, which would re-grandfather an ADR
@@ -1283,6 +1357,36 @@ def test_hub_evidence_separates_this_legs_warns_from_the_inherited_baseline():
         assert inherited in ev, ev
     assert "flip-condition-legacy=89" in ev, ev
     assert "alternatives-considered-legacy=32" in ev, ev
+
+
+def test_a_required_section_read_error_does_not_MASK_a_real_enum_failure(tmp_path,
+                                                                        monkeypatch):
+    """terra HIGH-5: the adapter early-returned a WARN when the required-section pass raised,
+    discarding every defect the same run had already computed — so a race could downgrade a
+    genuine commit-blocking FAIL, and the adapter then disagreed with the CLI, which takes no
+    such path. Exactly the failure `test_a_missing_index_does_not_MASK_a_real_enum_failure`
+    pins for the index leg."""
+    d = tmp_path / "docs" / "decisions"
+    d.mkdir(parents=True)
+    (d / "ADR-11-x.md").write_text(
+        "# ADR-11 — x\n\n- **Status:** Ratified\n", encoding="utf-8")   # enum FAIL
+    (d / "README.md").write_text(
+        "| ADR | Date | Title |\n|--|--|--|\n| ADR-11 | 2026-01-01 | x |\n", encoding="utf-8")
+
+    # Patch the module object the ADAPTER holds, not the one this test imported. The adapter
+    # resolves `scripts.validate_adr_status` or bare `validate_adr_status` depending on how it
+    # was imported, and those can be two distinct module objects — patching the wrong one makes
+    # the test pass by never firing.
+    import audit_checks.check_adr_status_grammar as _mod
+
+    def _boom(_directory):
+        raise _mod._vas.CorpusUnusable("simulated race")
+
+    monkeypatch.setattr(_mod._vas, "required_section_defects", _boom)
+    f = check_adr_status_grammar(tmp_path)[0]
+    assert f.status == "fail", f.evidence          # the FAIL survives the read error
+    assert "enum" in f.evidence
+    assert "DID NOT RUN" in f.evidence, f.evidence  # ...and the error is still reported
 
 
 def test_check_carries_the_rule_annotation_for_the_doc_code_edge():
