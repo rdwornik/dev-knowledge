@@ -478,3 +478,56 @@ So the P-2 population is **#65 and #70**, and the second one was created by a me
 tonight. That is the mechanism finding underneath finding A: **nothing at flip time requires the
 carrier**, so each ACCEPTED flip is free to open a new breach, and only a census notices. Reported
 for triage; this lane proposes no fix and edited nothing.
+
+---
+
+## Addendum 2 — the gates, actually run, 2026-09-07
+
+**Honest limit 4 above is now partly FALSIFIED and is corrected here rather than left standing.**
+It said no gate ran end-to-end because `uv` could not resolve. The declared version (`0.11.19`)
+was obtainable after all and is now on PATH, so the gates ran. A census that leaves a testable
+claim untested when the test becomes available has stopped being evidence.
+
+**What still stands from limit 4:** the two organs cited in the *Inventory* section were run under
+a scratch venv at measurement time, and their numbers are unchanged under the locked environment.
+
+### `uv run --locked python scripts/audit.py health` → `DEGRADED`, exit 0
+
+Self-audit **36/116 pass**, **62 WARN**, **3 FAIL**. **None of the three is this lane's**, and two
+were established by controlled removal rather than asserted:
+
+| FAIL | attribution |
+|---|---|
+| `repos registered (none)` | environment — no `ecosystem/` repo state in this container |
+| `hooks_armed` — pre-commit, commit-msg and pre-push all absent; `merge.ours.driver` unset | environment — **see below, this one matters** |
+| `silent_rule_ratchet: baseline raise rejected: 443 -> 447 (+4)` | **pre-existing** — byte-identical evidence string with and without this census file on the tree |
+
+**The `hooks_armed` FAIL is the one worth reading twice.** The git hooks are **not armed in this
+clone**, so **both of this lane's commits passed through zero pre-commit gates** — no `ruff`, no
+`validate-hermetization`, no `audit-health`, no `consumer_at_landing`, no `block-commit-on-main`.
+Nothing in this lane's landing was gate-verified at commit time; the verification is this addendum,
+run after the fact. Any peer lane in an identically provisioned container is in the same position
+and should not report its commits as gated.
+
+### Targeted tests for a docs-only audit addition → 3 failed, 226 passed
+
+`test_gen_audit_index` (×2) and `test_consumer_at_landing::test_the_live_corpus_measures_and_the_baseline_matches_it`.
+**All three reproduce identically with this census file moved off the tree** (`3 failed, 57 passed`
+both ways), so all three are pre-existing on the merged tree. The audit-index pair is *expected and
+contractually correct*: the sweep contract forbids regenerating `docs/audits/README.md`, which the
+integrator does once after the last merge. Neither is the known main RED the contract names
+(`test_manifest_link_route.py`), which was not in this selection. **No full suite was run.**
+
+### A correction to this lane's own earlier reporting
+
+`consumer_at_landing` has two legs and this lane initially verified only one. **Leg 1 passes** —
+this census declares its consumer, and `read_artifact` resolves all four citation classes
+(`[#id]`, `ADR-NN`, `STANDING_RULINGS`, `intake #N`). **Leg 2 WARNs on it**: *"cited by no
+governance surface and is not in the arm-time baseline — the unconsumed set grew."* That is the
+other direction — nothing in the governance pool cites this file *yet* — and it is shared with all
+nineteen `LANE-u-000-*` batch-U contracts plus `SEED_RUBRIC.md` and `VERDICT_RULE.md`.
+
+It is also, precisely, the defect **intake #65** was ACCEPTED to fix: an audit-to-audit reference
+has no declared class, so a landed artifact reads as unconsumed until a row cites it. Finding A
+said #65's deliverable is absent from main. **This census tripping the very gate #65 exists to
+narrow is the cheapest possible demonstration that it is still absent.**
