@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-07
+last_reviewed: 2026-09-08
 reconciled_with: handoff-process@7.0.0
 status: active
 owner: Rob
@@ -7,7 +7,7 @@ owner: Rob
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.76 — 2026-09-07 -->
+<!-- version: 2.77 — 2026-09-08 -->
 
 > **Session boot contract for Claude Code in this repo** — auto-read at session start (ADR-53, as re-pointed by ADR-115). **Genre:** a rule lives here only if a session needs it *before it can act*; rationale, history and per-organ detail live at the home each line cites.
 >
@@ -172,6 +172,7 @@ Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless the row says otherwis
 - `check-seal-identity` — handoff-bundle seal identity at commit time
 - `block-commit-on-main` — core-invariant #5 PREVENT at commit time
 - `lane-contract-check` — shape gate for a generator-emitted lane contract
+- `derived-copies-rebind` — a staged registered source whose derived copy did not move; also asserts every delegated hook id still exists
 - `provider-registry-agreement` — the nine provider/model seams vs `ecosystem/provider-registry.yaml`
 - `validate-backlog` — BACKLOG story-map schema (ADR-66)
 - `audit-health` — `audit.py health`; FAIL blocks the commit, WARN informs
@@ -229,5 +230,5 @@ Machine-enumerated, last 5 by number (`gen_claude_rosters.py --write`). Editoria
 
 ---
 
-**Last updated:** 2026-09-07
+**Last updated:** 2026-09-08
 **Maintained by:** Rob
