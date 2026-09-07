@@ -31,7 +31,7 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#23](2026-08-01-func-distillation-and-library-first.md) — Operator design input — distillation and library-first
 - [#67](2026-09-01-tech-lane-packet-artifacts-block.md) — A lane that publishes into a directory the harness deletes has not published
 
-### DRAFT (18)
+### DRAFT (17)
 
 - [#34](2026-08-16-code-architecture-enforcement.md) — Fleet code-architecture enforcement doctrine
 - [#35](2026-08-17-tech-agent-instruction-layers-and-distillation.md) — Portable agent-instruction layers, prompt distillation, and unattended runs
@@ -44,7 +44,6 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#63](2026-08-29-func-universal-per-repo-learning-loop.md) — Universal per-repo learning loop — the hub deploys the mechanism, never the managed state
 - [#68](2026-09-05-tech-handoff-process-v71-amendment-pack.md) — HANDOFF_PROCESS v7.1 amendment pack — what the v7 bundle did not carry
 - [#69](2026-09-05-tech-boot-frontier-prioritisation-weights.md) — Boot prioritisation is a sort, not an engine — class weights inside `boot_frontier`'s existing score seam
-- [#70](2026-09-05-tech-aj-second-pass.md) — Architekt Jutra second pass — shipped-vs-specified ranking and a live Maister comparison on a consumer clone
 - [#71](2026-09-05-tech-batch-p-audit-gate-speed.md) — Batch P — audit-gate speed from measured spawn and re-read cost
 - [#72](2026-09-06-tech-derived-copies-registry.md) — A derived copy has no registry, so its rebind is caught at ship time instead of at commit time
 - [#73](2026-09-05-tech-shape-spec-tree-seal-to-consumers.md) — Shape spec + tree-seal shipped to consumers (universalization by mechanism)
@@ -74,7 +73,7 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#61](2026-08-28-tech-handoff-engine-deployable-carrier.md) — The handoff engine becomes a deployable, versioned carrier
 - [#66](2026-09-01-tech-observable-harness.md) — The OBSERVABLE HARNESS — four layers, one home each, and the layer that has no home at all
 
-### ACCEPTED (19)
+### ACCEPTED (20)
 
 - [#12](2026-07-11-tech-ownership-manifest.md) — Fleet Ownership Manifest (SETTLED) + Nightly Hygiene Decision Tree
 - [#13](2026-07-11-tech-plan-of-record-fleet-hygiene.md) — Plan-of-record — Fleet Hygiene System build (post 2026-07-11 session)
@@ -95,6 +94,7 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#38](2026-08-17-tech-fleet-config-standardization.md) — Multi-repo config standardization and fleet conformance at N=8
 - [#39](2026-08-17-tech-off-machine-agent-substrate.md) — Off-machine agent fleet substrate — the re-priced, verified-August-2026 plan
 - [#65](2026-09-01-tech-consumer-at-landing-identifier-gap.md) — A gate that measures a class of artifact it cannot discharge
+- [#70](2026-09-05-tech-aj-second-pass.md) — Architekt Jutra second pass — shipped-vs-specified ranking and a live Maister comparison on a consumer clone
 <!-- INTAKE-INDEX:END -->
 
 ## 1. What this folder is
