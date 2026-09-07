@@ -39,20 +39,36 @@ validated as a SHAPE (\\d{4}-\\d{2}-\\d{2}) only -- `2026-13-99` passes the shap
 a misdated-content detector is a different tool that must diff the content-header date,
 never `git log`.
 
-Consumer carrier (floor/plugin) is the P6 rollout -- this gate is HUB-ONLY until then,
-mirroring `roster-freshness`/`claude-rosters-freshness`/`audit-index-freshness`.
+**THE RULES ARE DATA** (operator amendment D5, 2026-09-06). Every set the three rules
+consult -- sanctioned dirs, sanctioned root files and their globs, genres, the audit-class
+enum, the naming regexes and the home patterns -- is loaded from
+`ecosystem/fleet-shape-spec.yaml`. Before that ruling they were module literals derived
+"FROM THE LIVE TAXONOMY" of THIS repo, which made the hub's own tree the fleet's spec by
+default; the first consumer measured against it produced 78 out-of-pattern items with none
+of them junk. The module names are unchanged, so this is a change of AUTHORITY, not of API.
 
-Read-only (Layer-2, ADR-28/36): reads the staged name-status; writes NOTHING. Fail-OPEN
-but LOUD on any git error -- a convention/hygiene gate must not brick every commit on a
-near-impossible git failure. Bypass parity with peer hooks: `--no-verify`.
+Consumer carrier (floor/plugin) is the P6 rollout -- this gate is HUB-ONLY until then,
+mirroring `roster-freshness`/`claude-rosters-freshness`/`audit-index-freshness`. The spec
+being a data file rather than a literal is what makes that rollout carriable at all.
+
+Read-only (Layer-2, ADR-28/36): reads the staged name-status and the spec; writes NOTHING.
+Fail-OPEN but LOUD on any git error -- a convention/hygiene gate must not brick every commit
+on a near-impossible git failure. The spec itself is the ONE deliberate exception and goes
+the other way: an absent or malformed spec raises `ShapeSpecError` at import, because a git
+failure is an environment accident while a missing spec means the gate has no rules at all
+(see `ShapeSpecError`). Bypass parity with peer hooks: `--no-verify`.
 """
 
 from __future__ import annotations
 
+import fnmatch
 import re
 import subprocess
 import sys
-from typing import Optional
+from pathlib import Path
+from typing import Any, Optional
+
+import yaml
 
 # CLOUD-4 v2 (R2 §1.5 GO-b) — the canonical living-doc names come from the one registry.
 try:
@@ -60,201 +76,251 @@ try:
 except ImportError:  # pragma: no cover - exercised by the scripts/-on-sys.path entrypoint
     import canonical_docs as _cdocs
 
-# --- ADR-101 section 1 sanctioned sets (CLOSED; grow only by ADR-101 amendment) -------
 
-# Tier-1 -- sanctioned top-level directories.
-SANCTIONED_TIER1_DIRS: frozenset[str] = frozenset({
-    ".claude", ".claude-plugin", ".vscode", "codex", "config", "deploy", "docs",
-    "ecosystem", "logs", "plugins", "protocols", "scripts",
-    # [#433] restructure strangler (ADR-101 amendment 2026-07-27): the DERIVED
-    # per-task tree emitted from BACKLOG.md by scripts/gen_task_tree.py --
-    # BACKLOG.md stays the source of truth until the flip arc.
-    "tasks",
-    "templates", "tests",
-    # [#501] server-side recorder (ADR-101 amendment 2026-08-06): the GitHub Actions
-    # REPORT-ONLY wall -- the one server-side observation organ, re-creating the
-    # directory that `82227f08` deleted under [#255]. Report-only forever (private
-    # repo, Free tier -- required checks are unavailable), so no gate lives here.
-    ".github",
-    # [#554] off-machine lane substrate (ADR-101 amendment 2026-08-18, operator
-    # path-approval D6 at the batch GO): the devcontainer spec + its idempotent
-    # provisioning script. Read by a container runtime (Codespaces / `devcontainer up`),
-    # never by this repo's gate mesh -- it carries no organ and judges nothing, which is
-    # what distinguishes it from the `.github/` sanction above.
-    ".devcontainer",
-    # `prompts` WAS here (operator path-approval 2026-08-25, lane-RL scope extension) and
-    # is REVOKED by operator ruling 2026-08-26 -- root is sacred, and the docs disease is
-    # cured by the consumer gate ([#595]), not by a sibling folder at the root. Dispatch
-    # INPUTS keep their home and their byte-identity; the home moves under the genre tree
-    # to `docs/audits/<date>-technical-<batch>-launch-contracts/` (see `_HOME_PATTERNS`).
-    # The closed set therefore SHRINKS by one, which is the first contraction it has taken
-    # -- recorded as the ADR-101 amendment of 2026-08-26 (the second one, which revokes
-    # the first). Deliberately left as a comment rather than a silent deletion: a reader
-    # who finds `prompts/` in the git history must be able to see why it is gone.
-})
+# --- the SPEC: this gate's rules are DATA, not this module's literals ------------------
+# Operator amendment D5 (2026-09-06, DECLARE-SITTING): "sanctioned dir set = fleet grammar,
+# not the hub's tree snapshot; homes for `src/ eval/ models/`". Until that ruling the four
+# sets below were module literals whose own docstrings said they were "DERIVED FROM THE LIVE
+# TAXONOMY" of THIS repo -- so the hub's tree was the spec, and the first consumer measured
+# against it produced 78 out-of-pattern items with zero of them junk (intake
+# `docs/intake/2026-09-05-tech-shape-spec-tree-seal-to-consumers.md`). The values now come
+# from `ecosystem/fleet-shape-spec.yaml`; the NAMES are unchanged and still module-level, so
+# `scripts/batch_manifest.py`, `tests/test_canonical_docs.py` and every other importer keep
+# working untouched.
 
-# Tier-1 -- sanctioned top-level FILES (the closed class members, ADR-101 section 1).
+SHAPE_SPEC_REL = "ecosystem/fleet-shape-spec.yaml"
+DEFAULT_SHAPE_SPEC_PATH = Path(__file__).resolve().parent.parent / SHAPE_SPEC_REL
+
+
+class ShapeSpecError(RuntimeError):
+    """The shape spec is absent, unparseable, or not the declared `clauses:` shape.
+
+    FAIL-CLOSED, and deliberately at odds with this module's git posture two paragraphs
+    down. A git failure is an accident of the environment and the gate steps aside for it;
+    a missing or malformed spec means the gate HAS NO RULES, and a tree seal that silently
+    admits everything is worse than one that refuses to start. It also cannot happen by
+    accident: the spec is a tracked file beside this module, so its absence is a repo
+    integrity failure, not a routine condition.
+    """
+
+
+def load_shape_spec(path: Optional[Path] = None) -> dict[str, Any]:
+    """Parse the fleet shape spec and return its `clauses:` mapping.
+
+    Structural validation only, and on purpose: every clause below is consumed by a named
+    derivation in this module, so a missing key surfaces as a `ShapeSpecError` naming the
+    clause rather than as a `KeyError` five frames deeper. Library-first check: PyYAML is
+    already a declared dependency read by `scripts/provider_registry.py` for exactly this
+    job, so no parser is hand-rolled here.
+    """
+    p = Path(path) if path is not None else DEFAULT_SHAPE_SPEC_PATH
+    if not p.exists():
+        raise ShapeSpecError(f"fleet shape spec absent: {p}")
+    try:
+        data = yaml.safe_load(p.read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:
+        raise ShapeSpecError(f"fleet shape spec unparseable ({p}): {exc}") from exc
+    if not isinstance(data, dict):
+        raise ShapeSpecError(f"fleet shape spec is not a YAML mapping: {p}")
+    clauses = data.get("clauses")
+    if not isinstance(clauses, dict):
+        raise ShapeSpecError(f"fleet shape spec missing `clauses:` mapping: {p}")
+    for name in ("root_allowlist", "genre_folders", "home_grammar", "naming_grammar"):
+        if not isinstance(clauses.get(name), dict):
+            raise ShapeSpecError(
+                f"fleet shape spec missing the `{name}:` clause this gate reads: {p}")
+    return clauses
+
+
+def _clause_list(clauses: dict[str, Any], clause: str, key: str) -> list[str]:
+    """One clause's list-of-strings payload, refused loudly if it is anything else."""
+    value = clauses[clause].get(key)
+    if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+        raise ShapeSpecError(
+            f"fleet shape spec clause `{clause}.{key}` is not a list of strings")
+    return value
+
+
+def _clause_str(clauses: dict[str, Any], clause: str, key: str) -> str:
+    """One clause's string payload, refused loudly if it is anything else."""
+    value = clauses[clause].get(key)
+    if not isinstance(value, str):
+        raise ShapeSpecError(f"fleet shape spec clause `{clause}.{key}` is not a string")
+    return value
+
+
+# One (accepts, rejects) sentinel pair per spec-supplied regex. THESE LIVE IN CODE, NOT IN
+# THE SPEC, and that is the whole mechanism: a sentinel the spec supplied could be doctored
+# to agree with a broken pattern, which would prove nothing.
+#
+# WHY THIS EXISTS (terra HIGH, 2026-09-07 adversarial round on this change): moving the
+# naming grammar into YAML made a class of failure possible that a literal could not have.
+# A pattern that is a valid regex but the WRONG regex -- `'^'` is the cheap example -- still
+# compiles, so `_clause_str` is satisfied, and every casing/slug refusal silently becomes a
+# pass. A tree seal that stops refusing is indistinguishable from a clean tree, so this
+# failure would be invisible exactly where it matters. The proof below re-derives, at every
+# load, that each pattern still refuses something it is supposed to refuse.
+#
+# HONEST LIMIT, stated rather than implied: this catches the SILENT-PASS class. It is not
+# ReDoS protection -- a deliberately catastrophic pattern would stall here rather than at
+# the call site, which moves the symptom without removing it. That threat needs commit
+# access to the spec, and an actor with that could edit this module just as easily; the
+# defence for it is review, not a regex analyser this gate cannot honestly claim to be.
+_REGEX_SENTINELS: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
+    # key: (must MATCH, must NOT match)
+    "filename_charset": (
+        ("2026-09-07-technical-a-slug.md", "v3.4-notes.md"),
+        ("2026-09-07-Technical.md", "2026_09_07-technical.md", "a b.md", "X.MD"),
+    ),
+    "slug": (
+        ("a", "a-b-c", "v3.4-notes"),
+        ("", "-lead", "trail-", "double--hyphen"),
+    ),
+    "date_prefix": (
+        ("2026-09-07-technical.md",),
+        ("technical-2026-09-07.md", "20260907-technical.md", "-2026-09-07-x.md"),
+    ),
+}
+
+
+def _compile_checked(clauses: dict[str, Any], key: str) -> re.Pattern[str]:
+    """Compile a spec-supplied regex and PROVE it still discriminates before returning it."""
+    pattern = _clause_str(clauses, "naming_grammar", key)
+    try:
+        compiled = re.compile(pattern)
+    except re.error as exc:
+        raise ShapeSpecError(
+            f"fleet shape spec `naming_grammar.{key}` is not a valid regex: {exc}") from exc
+    accepts, rejects = _REGEX_SENTINELS[key]
+    for sample in accepts:
+        if not compiled.match(sample):
+            raise ShapeSpecError(
+                f"fleet shape spec `naming_grammar.{key}` refuses {sample!r}, which the "
+                f"grammar admits -- the pattern is valid but wrong, and would refuse "
+                f"conformant names")
+    for sample in rejects:
+        if compiled.match(sample):
+            raise ShapeSpecError(
+                f"fleet shape spec `naming_grammar.{key}` accepts {sample!r}, which the "
+                f"grammar refuses -- the pattern is valid but wrong, and would let every "
+                f"off-grammar name through as a silent pass")
+    return compiled
+
+
+SHAPE_SPEC = load_shape_spec()
+
+# --- ADR-101 section 1 sanctioned sets -- DERIVED FROM THE SPEC, not from this tree ---
+#
+# CLOSED sets still: what changed is the AUTHORITY. Each name below is now the hub's
+# instance of a clause in `ecosystem/fleet-shape-spec.yaml`, and growing one is an edit to
+# that file (surfaced, reviewed, and carriable to a consumer) rather than an edit here.
+# The per-member ADR-101 amendment provenance -- `.github` [#501], `.devcontainer` [#554],
+# `tasks` [#433], `AGENTS.md` ADR-115, `README.md` ADR-114, and the 2026-08-26 revocation
+# of `prompts/` -- travelled WITH the members into the spec's own comments. It was
+# relocated rather than copied: a rationale kept in two files drifts, and the reader who
+# finds one of those entries in git history now finds its reason beside the entry.
+
+# Tier-1 -- sanctioned top-level directories (spec clause `root_allowlist.directories`).
+SANCTIONED_TIER1_DIRS: frozenset[str] = frozenset(
+    _clause_list(SHAPE_SPEC, "root_allowlist", "directories"))
+
+# Tier-1 -- sanctioned top-level FILES (spec clause `root_allowlist.files`), UNIONED with
+# the canonical living-doc names from the one registry. The join stays in code rather than
+# moving into the spec so that no roster is restated in a second file: CLOUD-4 v2 (R2 §1.5
+# GO-b) made ADR-101 §1's file enum and the ADR-38 canonical set provably the same strings,
+# and listing them in YAML would undo exactly that.
 SANCTIONED_TIER1_FILES: frozenset[str] = frozenset({
-    # living docs (UPPERCASE.md, the closed set) — CLOUD-4 v2 (R2 §1.5 GO-b): the seven names
-    # come from `scripts/canonical_docs.py` rather than being retyped here. Membership is
-    # unchanged, and the frozenset is still built at import time, so Rule A's cost is the
-    # same. What changes is that ADR-101 §1's file enum and the ADR-38 canonical set now
-    # provably name the same seven strings.
     *_cdocs.CANONICAL_MANDATORY,
-    # dotfile / tool config
-    ".gitignore", ".gitattributes", ".pre-commit-config.yaml",
-    ".pre-commit-hooks.yaml", ".ruff.toml", ".worktreeinclude",
-    ".dev-knowledge.code-workspace",
-    # intake #12 section-9a ruling (SETTLED 2026-07-12): the hub carries its OWN
-    # .methodology.yaml as a fleet member -- ADR-101 amendment 2026-07-13, [#328].
-    ".methodology.yaml",
-    # build / package manifests
-    "package.json", "package-lock.json", "pyproject.toml",
-    # uv toolchain (ADR-101 amendment 2026-07-27, [#432]/ADR-106): the committed
-    # dependency lockfile + interpreter pin -- same class as package-lock.json.
-    "uv.lock", ".python-version",
-    # portable instruction layer (ADR-101 amendment 2026-08-25, ADR-115; execution
-    # [#577]). DELIBERATELY a literal and NOT a member of _cdocs.CANONICAL_MANDATORY:
-    # AGENTS.md is an UPPERCASE.md Tier-1 file but it is NOT an ADR-38 canonical
-    # living doc -- no `last_reviewed` stamp, absent from FRESHNESS_FILES, no section
-    # history. Adding it to CANONICAL_MANDATORY would silently enrol it in the
-    # freshness gate and in every consumer's canonical-set conformance check.
-    "AGENTS.md",
-    # root front door (ADR-101 §1 amendment 2026-08-29, ADR-114 AMENDMENT 1; execution
-    # [#614]). ADR-114's `Amends` line fired on ratification: "the closed Tier-1 file enum
-    # in SANCTIONED_TIER1_FILES would gain README.md". Until 2026-08-29 this frozenset was
-    # the gate that made the ADR-38 A5 prohibition executable -- an added root README.md
-    # was a Rule A BLOCK -- so this line is what unblocks the recreation, and it is the
-    # reason the ruling could not be executed ad hoc.
-    #
-    # A LITERAL, on the AGENTS.md precedent directly above and for a DIFFERENT reason.
-    # README.md now supersedes VISION.md as this repo's canonical purpose document, so it
-    # is canonical in substance -- but promoting it into _cdocs.CANONICAL_MANDATORY would
-    # enrol it in ADR38_BASELINE_REQUIRED and in every consumer's canonical-set check while
-    # only 2 of the 8 ADR-104 children carry a root README.md. That promotion is the
-    # fleet-wide migration (ADR-114 option (C)), not a drive-by of this line.
-    "README.md",
+    *_clause_list(SHAPE_SPEC, "root_allowlist", "files"),
 })
 
-# Tier-2 -- sanctioned docs/<genre>/ folders. `runbooks` LEFT the set 2026-07-22
-# (ADR-101 amendment: d.i REVERSED -- the one-member genre collapsed into protocols/).
-SANCTIONED_GENRES: frozenset[str] = frozenset({
-    "archive", "audits", "decisions", "handoffs", "intake",
-})
+# Tier-1 -- sanctioned top-level file GLOBS (spec clause `root_allowlist.file_globs`),
+# fnmatch against the bare filename. NEW with the spec, and it closes a measured leak
+# rather than adding a capability: the literal `.dev-knowledge.code-workspace` used to sit
+# in the frozenset above, so the hub was refusing a consumer's own
+# `.corp-monorepo.code-workspace` -- the fleet rule is a per-repo filename and the seal was
+# carrying one repo's copy of it. Second of the four leak classes the corp-monorepo report
+# measured.
+SANCTIONED_TIER1_FILE_GLOBS: tuple[str, ...] = tuple(
+    _clause_list(SHAPE_SPEC, "root_allowlist", "file_globs"))
 
-# --- ADR-101 section 2 + R3: the CLOSED 11-class audit-class enum ----------------------
-# Whole-token LONGEST-MATCH (never split-on-first-hyphen). On-disk forms per R2 (the enum
-# adopts what three repos already write: `codex` not `codex-review`;
-# `conformance-nightly-digest` not `conformance-digest`).
-AUDIT_CLASS_ENUM: frozenset[str] = frozenset({
-    # semantic
-    "technical", "functional", "qa", "census", "verification",
-    # recurring / automated (on-disk forms, R2)
-    "ecosystem-audit", "conformance-nightly-digest", "changelog-review",
-    # reviewer-origin (on-disk forms, R1/R2)
-    "codex", "fresh-eyes",
-    # incident
-    "incident-evidence",
-})
+# Tier-2 -- sanctioned docs/<genre>/ folders (spec clause `genre_folders.genres`).
+SANCTIONED_GENRES: frozenset[str] = frozenset(
+    _clause_list(SHAPE_SPEC, "genre_folders", "genres"))
+
+# --- ADR-101 section 2 + R3: the CLOSED audit-class enum (spec `naming_grammar`) -------
+# Whole-token LONGEST-MATCH (never split-on-first-hyphen). The spec carries this enum with
+# an explicit `audit_class_enum_scope: repo-local` marker: it was adopted from "what three
+# repos already write", which is hub-adjacent practice rather than a fleet ruling, and it
+# over-blocked 28 correctly-named corp artifacts. Whether it becomes fleet vocabulary is an
+# open question in the intake, recorded there rather than decided here.
+AUDIT_CLASS_ENUM: frozenset[str] = frozenset(
+    _clause_list(SHAPE_SPEC, "naming_grammar", "audit_class_enum"))
 
 # Longest-match order: try the longest tokens first so `ecosystem-audit` wins over a
 # hypothetical `ecosystem` split, and `conformance-nightly-digest` is matched whole.
 _ENUM_BY_LEN = tuple(sorted(AUDIT_CLASS_ENUM, key=len, reverse=True))
 
-_DATE_SHAPE = re.compile(r"^\d{4}-\d{2}-\d{2}-")           # SHAPE only (S3-4)
+# --- ADR-101 section 2 naming grammar -- compiled from the spec ------------------------
+# SHAPE only, never date-accuracy (S3-4): `2026-13-99` passes. A misdated-content detector
+# diffs the content header and is a different tool.
+_DATE_SHAPE = _compile_checked(SHAPE_SPEC, "date_prefix")
 _DATE_PREFIX_LEN = len("YYYY-MM-DD-")                       # 11 chars incl. trailing hyphen
-# R4 casing: all-lowercase kebab-case + digits; `.` carve-out (repo/version tokens). No
-# uppercase, no underscore, no other charset. Applied to the FULL filename (incl. the `.md`
-# extension) so an uppercase `.MD` extension is caught too (codex-review 2026-07-11).
-_LOWER_KEBAB_DOT = re.compile(r"^[a-z0-9.-]+$")
+# R4 casing: all-lowercase kebab-case + digits; `.` carve-out (repo/version tokens). Applied
+# to the FULL filename (incl. the `.md` extension) so an uppercase `.MD` is caught too
+# (codex-review 2026-07-11).
+_LOWER_KEBAB_DOT = _compile_checked(SHAPE_SPEC, "filename_charset")
 # A well-formed slug after the class: 1+ kebab segments of [a-z0-9.] joined by SINGLE
-# hyphens — rejects empty / leading- / trailing- / double-hyphen slugs (codex-review
+# hyphens -- rejects empty / leading- / trailing- / double-hyphen slugs (codex-review
 # 2026-07-11). The `.` repo/version carve-out rides inside a segment.
-_SLUG_RE = re.compile(r"^[a-z0-9.]+(-[a-z0-9.]+)*$")
+_SLUG_RE = _compile_checked(SHAPE_SPEC, "slug")
 
 
-# --- Rule C: the HOME allowlist (operator ruling A 2026-08-11; register K-1) ----------
-# DERIVED FROM THE LIVE TAXONOMY, not invented: every pattern below is a home that tracked
-# files already occupy at the time of writing, and `test_rule_c_admits_every_tracked_path`
-# asserts exactly that against `git ls-files`. So the allowlist cannot silently diverge
-# from the tree it describes -- if a pattern is dropped, that test reds rather than the
-# gate quietly refusing legitimate work.
+# --- Rule C: the HOME allowlist (spec clause `home_grammar.patterns`) -----------------
+# WAS "DERIVED FROM THE LIVE TAXONOMY" of this repo -- which is precisely the substitution
+# operator amendment D5 ended. The patterns are now the fleet grammar, and the hub is one
+# instance of it: `src/**`, `eval/**` and `models/**` are admitted here and exist in no
+# directory of this repo. `test_rule_c_admits_every_tracked_path_in_the_live_repo` still
+# asserts the other direction -- every tracked path the hub actually has is admitted -- so
+# the spec cannot silently stop describing the tree it governs.
 #
 # Pattern grammar, deliberately three tokens wide so the set stays readable:
 #   `a/b`   -- that literal home, exactly
 #   `a/*`   -- any single immediate child of `a` is a home
-#   `a/**`  -- any home at one-or-more levels below `a` (bundle / fixture trees)
+#   `a/**`  -- any home at one-or-more levels below `a` (bundle / fixture / source trees)
 #
 # HONEST LIMIT, stated rather than left to be discovered: Rule C polices the HOME of an
 # added file, and `**` homes admit arbitrary depth below them. A new sub-directory inside
-# an already-open home (a new handoff bundle, a new test fixture tree) is admitted by
-# design -- those are the shapes the repo creates routinely and gating them would make the
-# organ a nuisance rather than a seal. What it catches is a file whose home is a place the
-# repo has no convention for, which is the class `docs/ORGAN-INDEX.md` belonged to.
-_HOME_PATTERNS: tuple[str, ...] = (
-    # agent/runtime config
-    ".claude", ".claude/*", ".claude/skills/*",
-    ".claude-plugin",
-    # [#554] / ADR-101 amendment 2026-08-18: the BARE literal, deliberately -- the
-    # substrate is two files at ONE level (devcontainer.json + provision.sh), so a
-    # sub-directory inside it stays a surfaced act rather than a `*`/`**` free pass.
-    ".devcontainer",
-    ".github/workflows",
-    ".vscode",
-    # source + tooling
-    "codex",
-    "config",
-    "deploy", "deploy/lived_sandbox",
-    "logs",
-    "plugins/*", "plugins/*/*",
-    "protocols", "protocols/archive",
-    "scripts", "scripts/audit_checks", "scripts/codemap", "scripts/hooks", "scripts/toc",
-    # `tasks/archive` -- the [#612] doc-rot row-body archival destination, admitted by
-    # OPERATOR DECISION **D3**, carried in the night-batch-2 GO of 2026-08-28 ("the
-    # archival destination is `tasks/archive/`, APPROVED"). Admitted as the BARE literal
-    # and NOT `tasks/archive/*`: the tree is flat by construction (one record per row,
-    # named for its row), so a sub-directory inside it stays a surfaced act -- the same
-    # narrowness `.devcontainer` above is admitted under, and the same
-    # `<parent>/archive` shape `protocols/archive`, `templates/archive`,
-    # `docs/decisions/archive` and `docs/intake/archive` already carry. Rule A needs no
-    # amendment: `tasks` is already a sanctioned Tier-1 directory, so this is a home
-    # BELOW an existing sanction, not a new top-level class.
-    "tasks", "tasks/archive",
-    "templates", "templates/archive", "templates/claude-regions",
-    "templates/handoff", "templates/handoff/*",
-    "tests", "tests/fixtures", "tests/fixtures/**",
-    # generated / declared ecosystem state (the organ index's home since 2026-08-12)
-    "ecosystem", "ecosystem/schema", "ecosystem/*/history",
-    # docs: GENRE trees only. `docs` itself is absent BY DESIGN -- that absence is the
-    # rule this leg exists to state, and it is why the relocation was owed.
-    "docs/archive",
-    # `docs/audits/*` -- one home per BATCH LAUNCH-CONTRACT directory. Operator ruling
-    # 2026-08-26 (ADR-101 amendment below the `prompts/` one) revoked the root `prompts/`
-    # folder and relocated its convention under the genre tree as
-    # `docs/audits/<date>-technical-<batch>-launch-contracts/`. The `*` is the same shape
-    # the revoked `prompts/*` carried and for the same reason: the homes are the per-batch
-    # directories one level down, and a deeper nesting stays a surfaced act.
-    # HONEST LIMIT, stated rather than left to be found: the grammar has three tokens, so
-    # `*` is the narrowest pattern that can express "one dir per batch". It admits ANY
-    # immediate child directory of `docs/audits/`, not only the ruled name shape -- the
-    # narrower convention lives in ADR-101 and PLAYBOOK Ch8 and is checked by nobody.
-    "docs/audits", "docs/audits/*",
-    "docs/decisions", "docs/decisions/archive",
-    "docs/handoffs", "docs/handoffs/**",
-    "docs/intake", "docs/intake/archive",
-    # `prompts/*` WAS here and is REVOKED with its top-level entry above (operator ruling
-    # 2026-08-26). Its replacement is `docs/audits/*` in the docs block above -- same
-    # shape, same reasoning, inside the genre tree instead of at the root.
-)
+# an already-open home (a new handoff bundle, a new test fixture tree, a package inside a
+# source tree) is admitted by design -- those are the shapes a repo creates routinely and
+# gating them would make the organ a nuisance rather than a seal. What it catches is a file
+# whose home is a place the grammar has no convention for, which is the class
+# `docs/ORGAN-INDEX.md` belonged to.
+_HOME_PATTERNS: tuple[str, ...] = tuple(
+    _clause_list(SHAPE_SPEC, "home_grammar", "patterns"))
 
 
 def _home_matches(home: str, pattern: str) -> bool:
-    """One home vs one pattern under the three-token grammar above."""
+    """One home vs one pattern under the three-token grammar above.
+
+    `**` DOES NOT ADMIT A DOT-PREFIXED SEGMENT beneath it (terra HIGH, 2026-09-07). The
+    finding: admitting `src/**`, `eval/**` and `models/**` per amendment D5 also admits
+    `src/.github/workflows/`, so a dot-directory Rule A refuses at the root could be
+    reintroduced one level down and the top-level seal would be silent about it. Dot-prefixed
+    homes are exactly the ones ADR-59 governs by name, so an open depth-wildcard is the wrong
+    instrument to admit them: the two the repo actually has --
+    `ecosystem/.dev-knowledge/history` and `plugins/tier1-lifecycle/.claude-plugin` -- are
+    admitted by EXPLICIT `*` patterns and are unaffected, which was measured over all 2991
+    tracked paths before this leg was added. A dot home under a `**` tree therefore stays a
+    surfaced act: name it with a literal or a `*` pattern.
+    """
     hp = home.split("/")
     pp = pattern.split("/")
     if pp[-1] == "**":
         head = pp[:-1]
-        return len(hp) > len(head) and hp[: len(head)] == head
+        if not (len(hp) > len(head) and hp[: len(head)] == head):
+            return False
+        return not any(seg.startswith(".") for seg in hp[len(head):])
     if len(hp) != len(pp):
         return False
     return all(p == "*" or p == h for h, p in zip(hp, pp))
@@ -277,12 +343,17 @@ def rule_a_violation(path: str) -> Optional[str]:
     sanctioned by the top-level rules."""
     parts = _posix_parts(path)
     if len(parts) == 1:
-        # A top-level file: must be a sanctioned class member.
-        if parts[0] not in SANCTIONED_TIER1_FILES:
-            return (f"unsanctioned new top-level file '{parts[0]}' -- Tier-1 files are a "
-                    f"closed class (ADR-101 section 1); a genuinely new class is an "
-                    f"ADR-101 amendment, not a drive-by add")
-        return None
+        # A top-level file: must be a sanctioned class member, either by literal name or
+        # by one of the spec's parameterized classes. The glob leg is what lets a per-repo
+        # filename (`.corp-monorepo.code-workspace`) satisfy a fleet rule that used to be
+        # written as one repo's literal.
+        if parts[0] in SANCTIONED_TIER1_FILES:
+            return None
+        if any(fnmatch.fnmatch(parts[0], g) for g in SANCTIONED_TIER1_FILE_GLOBS):
+            return None
+        return (f"unsanctioned new top-level file '{parts[0]}' -- Tier-1 files are a "
+                f"closed class (ADR-101 section 1); a genuinely new class is an "
+                f"ADR-101 amendment, not a drive-by add")
     top = parts[0]
     if top not in SANCTIONED_TIER1_DIRS:
         return (f"unsanctioned new top-level directory '{top}/' -- Tier-1 dirs are a "
