@@ -32,6 +32,7 @@ from __future__ import annotations
 import contextlib
 import importlib.util
 import inspect
+import json
 import logging
 import os
 import re
@@ -451,6 +452,14 @@ DISPOSITION_REGISTER = Path(_REPO_ROOT) / "ecosystem" / "disposition-register.ya
 # it is ONE hub file read for whichever repo is being audited; check_deployed_methodology_version
 # looks up the audited repo by its directory name. Missing/malformed -> WARN (never wedges).
 DEPLOYED_VERSIONS_REGISTRY = Path(_REPO_ROOT) / "ecosystem" / "deployed-versions.yaml"
+# DECLARE-F-2026-09-06 F-3: carrier #2's SPEC — the hub's tier1-lifecycle plugin manifest.
+# Read as JSON here rather than importing deploy/carrier_plugin: audit.py takes no import
+# edge into deploy/ (check_import_edges), and the manifest's `version` is a data read, not
+# a carrier behaviour. Hub-resolved like DEPLOYED_VERSIONS_REGISTRY above -- it is ONE hub
+# file, read for whichever repo is being audited. Missing/malformed -> WARN (never wedges).
+PLUGIN_MANIFEST = (
+    Path(_REPO_ROOT) / "plugins" / "tier1-lifecycle" / ".claude-plugin" / "plugin.json"
+)
 
 # ---------------------------------------------------------------------------
 # Universal visual pattern (ADR-59) — constants
@@ -3246,6 +3255,126 @@ def check_deployed_methodology_version(repo_path: Path) -> list[Finding]:
                     f"{repo_key}: deployed methodology corpus v{version}")]
 
 
+def _parse_version(raw: str) -> tuple[int, ...] | None:
+    """`"0.1.11"` -> `(0, 1, 11)`; None when it is not a dotted numeric version.
+
+    Component-wise and NUMERIC on purpose: a lexical compare puts "0.1.11" BEFORE
+    "0.1.9", which inverts the drift direction — the one thing this organ exists to get
+    right. Short forms zero-extend at the comparison site, so "1.2" == "1.2.0".
+    """
+    raw = raw.strip()
+    if not raw:
+        return None
+    parts = raw.split(".")
+    if not all(p.isdigit() for p in parts):
+        return None
+    return tuple(int(p) for p in parts)
+
+
+def _plugin_version_relation(recorded: str, spec: str) -> str:
+    """Order the durable record against the hub spec: same / behind / ahead / divergent.
+
+    THE TWO-SIDEDNESS LIVES HERE. `behind` is the consumer-side failure (the hub released
+    and this consumer's record did not follow); `ahead` is the hub-side failure (a record
+    naming a version the hub source does not declare — a value that precedes its release).
+    A one-sided check is one that can only ever return `behind`.
+
+    `divergent` is the honest verdict for a pair that cannot be ordered (an unparseable or
+    empty value on either side): reported as drift, never silently folded into `same`,
+    because it is demonstrably not agreement.
+    """
+    if recorded == spec and _parse_version(recorded) is not None:
+        return "same"
+    a, b = _parse_version(recorded), _parse_version(spec)
+    if a is None or b is None:
+        return "divergent"
+    width = max(len(a), len(b))
+    a += (0,) * (width - len(a))
+    b += (0,) * (width - len(b))
+    if a == b:
+        return "same"
+    return "behind" if a < b else "ahead"
+
+
+def check_plugin_version_drift(repo_path: Path) -> list[Finding]:
+    """F-3: carrier #2's SECOND drift surface — the per-consumer plugin version, both sides.
+
+    Carrier #2 (`tier1-plugin`, deploy/carrier_plugin.py) had exactly ONE drift surface:
+    the carrier's own deploy-time reconcile, which compares the LIVE install against the
+    hub manifest through `claude plugin list --json`. That surface is one-sided and
+    ephemeral — it exists only while `deploy/tool.py` runs, and `claude plugin list` is
+    MACHINE-WIDE (its scope cannot hide a row), so it answers about the operator's machine
+    rather than about a consumer. Between deploys, nothing looked at all.
+
+    This is the second surface, and it is durable-record-based rather than live: it reads
+    `ecosystem/deployed-versions.yaml` `deployed_plugin_version` (the record the deploy
+    runbook writes) against `plugins/tier1-lifecycle/.claude-plugin/plugin.json` `version`
+    (the hub SPEC), and reports drift in BOTH directions —
+
+      `behind`    the hub released a newer plugin; this consumer's record did not follow;
+      `ahead`     the record names a version the hub source does not declare — the
+                  "a value cannot precede its release" failure the registry's own
+                  write-contract forbids by hand and nothing checked;
+      `divergent` the two cannot be ordered at all (unparseable on either side).
+
+    DECLARE-F-2026-09-06 §0.3 (ACCEPTED) is the authority: every carrier carries "a
+    declared version and a drift check on both sides".
+
+    Keyed by the repo-ROOT directory name (`_git_repo_root_name`), so an audit run from a
+    linked worktree keys the record by the parent repo, not the throwaway worktree
+    basename (#265) — the same resolution as `check_deployed_methodology_version`.
+
+    POSTURE: WARN-class, `n/a` while the record is null (the shipped baseline for every
+    repo: nothing has been recorded yet, which says nothing about drift either way).
+    Fail-OPEN on its own inputs — an unreadable registry or plugin manifest is a WARN
+    about this check's blindness, never a synthesized FAIL about the consumer. A status
+    reporter, NOT a doc->code behavioural rule (so `exempt` in ecosystem/doc-code-edge.yaml,
+    the ADR-91-sibling posture). Promotion to a FAIL leg is a later act with its own
+    ruling, and is only meaningful once a deploy has written a non-null value.
+    """
+    name = "plugin_version_drift"
+    try:
+        data = yaml.safe_load(DEPLOYED_VERSIONS_REGISTRY.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        return [Finding(name, "warn",
+                        f"deployed-versions.yaml unreadable (read-only, non-blocking): {exc!r}"
+                        .replace("|", "/"))]
+    repos = data.get("repos") if isinstance(data, dict) else None
+    if not isinstance(repos, dict):
+        return [Finding(name, "warn",
+                        "deployed-versions.yaml missing/malformed 'repos:' map (F-3)")]
+    repo_key = _git_repo_root_name(repo_path) or Path(repo_path).name
+    if repo_key not in repos:
+        return [Finding(name, "warn",
+                        f"{repo_key} not listed in deployed-versions.yaml (F-3)")]
+    entry = repos[repo_key]
+    recorded = entry.get("deployed_plugin_version") if isinstance(entry, dict) else None
+    if recorded is None:
+        return [_na(name, "NOT-APPLICABLE",
+                        f"{repo_key}: unset -- no carrier #2 plugin version recorded yet "
+                        "(deploy-runbook writes it; DECLARE-F F-3)")]
+    # The SPEC half. Read second, so a null record short-circuits before we need it at all.
+    try:
+        spec = str(json.loads(PLUGIN_MANIFEST.read_text(encoding="utf-8"))["version"])
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        return [Finding(name, "warn",
+                        f"{repo_key}: hub tier1-lifecycle plugin.json unreadable, so the "
+                        f"comparison could not run: {exc!r}".replace("|", "/"))]
+    relation = _plugin_version_relation(str(recorded), spec)
+    if relation == "same":
+        return [Finding(name, "pass",
+                        f"{repo_key}: carrier #2 plugin v{recorded} == hub spec v{spec}")]
+    sides = {
+        "behind": (f"{repo_key}: CONSUMER-SIDE drift -- recorded plugin v{recorded} is "
+                   f"behind the hub spec v{spec}; carrier #2 has not been re-deployed"),
+        "ahead": (f"{repo_key}: HUB-SIDE drift -- recorded plugin v{recorded} is ahead of "
+                  f"the hub spec v{spec}; a recorded value cannot precede its release"),
+        "divergent": (f"{repo_key}: recorded plugin version {recorded!r} cannot be ordered "
+                      f"against the hub spec {spec!r} -- reported as drift, not agreement"),
+    }
+    return [Finding(name, "warn", sides[relation].replace("|", "/"))]
+
+
 def check_enforcement_coverage(repo_path: Path) -> list[Finding]:
     """Informant Organ leg (Stage-2 enforcement-transfer): a READ-ONLY, non-blocking reporter of
     whether the 5 hub enforcement organs fire locally in the audited consumer.
@@ -5189,6 +5318,9 @@ ALL_CHECKS = [
     _tier(TIER_COMMIT, check_safe_removal),
     _tier(TIER_COMMIT, check_residual_completeness),
     _tier(TIER_COMMIT, check_deployed_methodology_version),
+    _tier(TIER_COMMIT, check_plugin_version_drift),   # F-3 — carrier #2's SECOND drift
+                                  # surface (the durable record vs the hub spec, both
+                                  # directions); WARN-class, zero baseline (all null)
     _tier(TIER_COMMIT, check_enforcement_coverage),
     _tier(TIER_SHIP, check_undeclared_edges),   # SHIP: 22,530 ms (7.44%); #179 was "wired as a
                              # ship-gate WARN leg" by the 2026-07-03 ruling — the tier now says

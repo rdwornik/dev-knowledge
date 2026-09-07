@@ -93,7 +93,7 @@ from carrier_docs import DocsCarrier  # noqa: E402
 from carrier_floor import FloorCarrier  # noqa: E402
 from carrier_globalconfig import GlobalConfigCarrier  # noqa: E402
 from carrier_mesh import MeshCarrier  # noqa: E402
-from carrier_plugin import PluginCarrier  # noqa: E402
+from carrier_plugin import PluginCarrier, target_plugin_version  # noqa: E402
 from carrier_precommit import PrecommitCarrier  # noqa: E402
 from contract import Carrier, CarrierState, PruneState  # noqa: E402
 
@@ -844,19 +844,30 @@ class RecordError(Exception):
 
 # Field lines under a repo entry in the registry (4-space indent, ADR-91 schema).
 _RECORD_FIELDS = ("deployed_methodology_version", "deployed_date", "source_tag")
+# Carrier #2's per-consumer record (DECLARE-F-2026-09-06 F-3). OPTIONAL, deliberately:
+# it is written only when the tier1-plugin carrier both ran and verified in this deploy,
+# so a record write that omits it must leave whatever is there untouched rather than
+# blanking it — and a registry block predating the key must not become a hard failure.
+_PLUGIN_FIELD = "deployed_plugin_version"
 _REPO_HEADER_RE = re.compile(r"^  (\S[^:]*):\s*$")
 _FIELD_RE = re.compile(rf"^    ({'|'.join(_RECORD_FIELDS)}):\s*.*$")
+_PLUGIN_FIELD_RE = re.compile(rf"^    {_PLUGIN_FIELD}:\s*.*$")
 
 
 def _set_repo_record(
-    text: str, repo: str, *, deployed_version: str, deployed_date: str, source_tag: str
+    text: str, repo: str, *, deployed_version: str, deployed_date: str, source_tag: str,
+    plugin_version: str | None = None,
 ) -> str:
-    """Set a repo's three record fields in-place, preserving comments + layout.
+    """Set a repo's record fields in-place, preserving comments + layout.
 
     A surgical line edit (NOT a yaml round-trip, which would strip the registry's
     explanatory header comments). Finds ``  <repo>:`` then rewrites the three
     4-space-indented field lines in that block; everything else is byte-preserved.
-    Raises RecordError if the repo block or any field line is not found.
+    Raises RecordError if the repo block or any of the three field lines is not found.
+
+    ``plugin_version`` (carrier #2, F-3) is the one OPTIONAL field: given, it is
+    rewritten in place, or INSERTED directly after ``source_tag`` when the block
+    predates the key; omitted, any existing line is left exactly as found.
     """
     values = {
         "deployed_methodology_version": deployed_version,
@@ -867,7 +878,16 @@ def _set_repo_record(
     in_block = False
     found_repo = False
     seen: set[str] = set()
+    plugin_written = False
     target_header = f"  {repo}:"
+
+    def _close_block() -> None:
+        """Insert the plugin line before leaving the block, if it was never seen there."""
+        nonlocal plugin_written
+        if plugin_version is not None and not plugin_written:
+            out.append(f'    {_PLUGIN_FIELD}: "{plugin_version}"')
+            plugin_written = True
+
     for line in text.splitlines():
         if not in_block:
             out.append(line)
@@ -883,15 +903,48 @@ def _set_repo_record(
             out.append(f'    {key}: "{values[key]}"')
             seen.add(key)
             continue
+        if _PLUGIN_FIELD_RE.match(line):
+            if plugin_version is None:
+                out.append(line)          # untouched — nothing to record this run
+            else:
+                out.append(f'    {_PLUGIN_FIELD}: "{plugin_version}"')
+            plugin_written = True
+            continue
         if _REPO_HEADER_RE.match(line) or (line and not line.startswith("    ")):
+            _close_block()
             in_block = False
         out.append(line)
+    if in_block:          # the target block ran to end-of-file
+        _close_block()
     if not found_repo:
         raise RecordError(f"{repo!r} not found under 'repos:' in the registry")
     missing = [f for f in _RECORD_FIELDS if f not in seen]
     if missing:
         raise RecordError(f"could not set fields {missing} for {repo!r}")
     return "\n".join(out) + "\n"
+
+
+def _plugin_version_deployed(
+    outcomes: "Sequence[CarrierExecOutcome]",
+) -> str | None:
+    """The plugin version this run EARNED the right to record, or None (F-3).
+
+    Carrier #2's record is written only when that carrier both ran in this deploy and
+    its independent ``verify`` confirmed the result — the same "judged from the resulting
+    installed state, never from stdout" discipline the carrier itself applies (ADR-92
+    Decision 9). Anything weaker would write a value the deploy did not prove.
+
+    Returns None (leave the record untouched) when the carrier was not in the plan, did
+    not verify, or the hub manifest cannot be read — a reporter never fabricates.
+    """
+    ok = any(o.carrier_id == PluginCarrier.carrier_id and o.verify_ok for o in outcomes)
+    if not ok:
+        return None
+    try:
+        return target_plugin_version()
+    except (OSError, ValueError, KeyError) as exc:   # unreadable / shapeless manifest
+        log.warning("tier1-plugin version unreadable; record field left unset: %r", exc)
+        return None
 
 
 def _git_checked(git: GitRunner, args: Sequence[str], cwd: Path, what: str, **kw: Any) -> GitResult:
@@ -921,6 +974,7 @@ def write_record_to_branch(
     registry_rel: str = "ecosystem/deployed-versions.yaml",
     base_ref: str = "main",
     branch: str | None = None,
+    plugin_version: str | None = None,
     git: GitRunner = _default_git,
 ) -> str:
     """Commit the deployed-version record on a NEW hub branch (ADR-92 Decision 4).
@@ -939,6 +993,7 @@ def write_record_to_branch(
     new_text = _set_repo_record(
         base_text, repo, deployed_version=deployed_version,
         deployed_date=deployed_date, source_tag=source_tag,
+        plugin_version=plugin_version,
     )
     # Write the blob as LF BYTES (not text-mode stdin): hash-object is plumbing, so
     # a CRLF blob here (from Windows text-mode translation) would be baked into the
@@ -1246,6 +1301,7 @@ def execute(
             deployed_version=str(ctx.manifest.get("methodology_version", ctx.bare_version)),
             source_tag=ctx.source_tag,
             deployed_date=today or _date.today().isoformat(),
+            plugin_version=_plugin_version_deployed(outcomes),
             git=git,
         )
 
