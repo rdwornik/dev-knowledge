@@ -19,6 +19,69 @@
 
 ---
 
+### 2026-09-07 (i) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W1-3 was not dead, it was slow -- and the merge that proves it had blocked every lane's push for two hours
+
+**Anchors `f57d029d`, which introduced `5ea10ec6`.** A prior integrator seat merged
+`worktree-lane-u-000-prompts-dir-guard` at 10:57 and went offline before journaling or pushing.
+`refs/heads/main` lives in the common git dir, so that one unanchored merge refused the push of
+**every worktree in the repo**, not just this seat's. W2-U1 ran the gate's own diagnostic and got
+`introduced: [f57d029d, 5ea10ec6]` with anchored **False in its tree, False at main, False at
+origin/main** -- all three false, which the diagnostic's own discriminator calls a REAL gap rather
+than tree lag, and which `git merge origin/main` cannot fix because `origin/main` was BEHIND local
+main, not ahead. The whole night stopped on a JOURNAL entry.
+
+**W1-3 was recorded dead three times, and the record was wrong each time.** JOURNAL (h),
+`STATUS-INTEGRATOR-N2.md` (04:10) and `LEDGER-dev-knowledge.md` (10:42) all carry it as dead --
+(h) and the status board add a cause: *"its footprint was already landed by lane h0 at
+`f2802939`"*. **This seat checked the cited SHA instead of inheriting the claim, and it does not
+say that.** `f2802939` is `count_traces_today` -- the traces-per-day counter, which is W1-6's
+footprint. It contains no `CLAUDE_PROMPTS_DIR` guard and never did. The lane was wedged behind two
+tree-lag gates, not covered by another lane, and it landed `5ea10ec6` fifteen minutes after the
+LEDGER declared it dead. A dead-lane verdict is a claim about a SHA; it costs one `git show` to
+check, and three boards carried it unchecked.
+
+**Wave 1 therefore completes at `f57d029d`, not at `1ed577c8`.** `PACKET-MERGED wave-1 @ 1ed577c8`
+was sent at 04:10 against an eight-of-nine wave whose ninth was believed dead. The packet is not
+withdrawn -- its contents were true of the tree it named -- but wave 2 is gated on PACKET-MERGED
+wave-1, and the tree that actually carries nine merged lanes is this one.
+
+**The guard is live, and it fired on this seat.** Verified rather than assumed, because this batch
+has already found one organ that shipped inert at a 0.0% hit rate: `fleet_health.py` run directly
+returns **exit 2** and prints `[prompts] REFUSED -- inherited=[C:\Users\1028120\Downloads]
+user-scope=[H:\My Drive\CLAUDE PROMPT DIR]`. This session had inherited the stale value, so its
+first reads of `to-browser` hit an almost-empty Downloads copy and found no dispatcher board --
+the defect W1-3 was contracted to catch, catching the integrator sent to merge it. The real
+transport is `H:\My Drive\CLAUDE PROMPT DIR`. `AMEND-NIGHT-2-001` A2's recovery is **discharged**:
+`.claude/settings.json` is byte-unchanged across the merge, verified against the diff and not
+taken on the offline seat's word, so the `PreToolUse` leg stays deliberately unarmed.
+
+**New finding, small and cheap to fix:** the `[prompts]` line is printed **twice** per run. One
+guard, two emissions -- filed, not fixed here, because `scripts/fleet_health.py` is W1-6's file and
+this is an integrator seat.
+
+**The full suite was started and killed, and that is the honest record.** Checklist item 2 asks for
+one full-suite run on the merged result. This seat started one, and dispatcher-N2 stopped it:
+free memory was **546 MB and falling** against lanes that were OOM-killed at 803 MB last night, and
+the prior integrator had already established across four attempts -- parallel, serial, and chunked
+at 16 files per process -- that **the suite number is not obtainable from this substrate while a
+batch's worktrees are live**. Killed at once; free memory recovered to 2729 MB. Item 2 is recorded
+**UNMET**, not quietly satisfied by a targeted run wearing its name.
+
+**Teardown, overdue and now discharged.** Ten merged lane branches and one empty worktree husk
+survived the two dead seats: `git worktree remove` had succeeded on `lane-u-000-prompts-dir-guard`
+(admin dir and contents gone) while the directory shell survived a held Windows handle. Husk
+removed, `worktree prune` run, nine wave-1 branches plus the manifest branch deleted with `-d`,
+which refuses an unmerged branch and so cannot silently drop work. The two LIVE worktrees --
+`lane-u-000-shape-spec-finalize` (W2-U1, in flight) and `lane-t-000-filings-027-intake` (holding
+`docs/intake-031-two-chats`, 7 unmerged commits, HELD for dawn) -- were **not** touched.
+
+**Did:** verified the orphaned W1-3 merge's three claims independently, finished its teardown,
+anchored it, killed the full suite on the dispatcher's evidence.
+**Result:** `main` pushable again; wave 2 unblocked; one false dead-lane verdict corrected at source.
+**Changes:** JOURNAL.md; ten branch deletions; one husk removed.
+**Abandoned:** the full-suite number ([#528] item 2) -- UNMET, substrate-bound, and it stays that way tonight.
+**Next:** merge W2-U1 on its HANDBACK, then U2, then U3/U4/F1-F5 parallel, W2-R last.
+
 ### 2026-09-07 (h) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): wave 1 closes on a cache that was inert at 0.0%, and a third lane finds its contract already half-done
 
 **Merged** `worktree-lane-u-000-batch-p-local` at `ea9f5427` into main as `5a0e739a`,
