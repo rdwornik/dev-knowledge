@@ -35,8 +35,11 @@ by one generator, read by one consumer set, and governed by one rule. They are i
 reporting decision, stated here so it is not mistaken for an omission; the per-directory counts
 and date ranges are exact. The remaining **27 files** each get their own row.
 
-Every command in this lane was read-only. `uv run --locked` **could not be used** — see
-`## Honest limits`.
+Every command in this lane was read-only. The Inventory was measured **outside** the declared
+environment (`uv 0.8.17` against a `==0.11.19` pin); `uv 0.11.19` was installed from PyPI
+part-way through and a named subset of the blocked checks re-run under `uv run --locked`. Which
+rows rest on which footing is stated in `## Honest limits` 1–2, and it is the first thing to read
+before trusting a freshness verdict here.
 
 ## Inventory
 
@@ -55,7 +58,7 @@ hand-authored · **D** = declared data, hand-authored but machine-read as a cont
 | 7 | `deployed-versions.yaml` | D | written by the deploy runbook (`deploy/tool.py`; header: *"NOT the derived index.yaml"*) | `deploy/tool.py`, `scripts/fleet_parity.py`, `scripts/desired_state_loader.py`, `scripts/audit.py`, `tests/test_deploy_tool_execute.py` | 9 repo keys; 2 carry a version (`ai-council` 1.3.1, `corp-monorepo` 1.2.0), 7 `null` | KEEP — **read-only this lane** (§7 footprint) |
 | 8 | `disposition-register.yaml` | D | hand-authored, one entry per dispositioned WARN | `scripts/audit.py`, `scripts/fleet_health.py`, `scripts/validate_landing_predicate.py`, `scripts/gen_handoff.py`, `tests/test_ship_gate.py` | last content commit `c4fdc4e` **2026-09-06** (post-graft, reliable) | KEEP |
 | 9 | `doc-code-edge.yaml` | D | hand-authored (`# Doc->code edge declaration-doc registry -- #194 Phase-2`) | `scripts/validate_doc_code_edge.py`, `scripts/file_purpose_graph.py:198`, `scripts/audit.py`, `tests/test_doc_code_edge.py` | date UNDETERMINED (graft) | KEEP |
-| 10 | `doc-counts.md` | G | `scripts/gen_doc_counts.py --write` (in-file `COUNTS:START` marker) | `.pre-commit-config.yaml` (`doc-counts-pytest-freshness`), `CLAUDE.md` §4, `scripts/audit.py`, `templates/handoff/v5/PROBES.md.tmpl` | last content commit `a49537c` **2026-09-07** (today). Its `pre-commit gates (23)` claim **re-verified live**: `.pre-commit-config.yaml` holds exactly 23 `- id:` entries | KEEP |
+| 10 | `doc-counts.md` | G | `scripts/gen_doc_counts.py --write` (in-file `COUNTS:START` marker) | `.pre-commit-config.yaml` (`doc-counts-pytest-freshness`), `CLAUDE.md` §4, `scripts/audit.py`, `templates/handoff/v5/PROBES.md.tmpl` | last content commit `a49537c` **2026-09-07** (today). **All three claims verified** by `gen_doc_counts.py --check` (exit 0): checks 54/54, gates 23/23, collected 5217/5217 | KEEP |
 | 11 | `fleet-shape-spec.yaml` | D | hand-authored contract data | `scripts/validate_hermetization.py` (`SANCTIONED_GENRES`, `AUDIT_CLASS_ENUM`, `_HOME_PATTERNS` all read it), `tests/test_fleet_shape_spec.py` | last content commit `01104de` **2026-09-07** (today) — *"the fleet shape grammar becomes DATA the tree seal reads"* | KEEP |
 | 12 | `index.yaml` | G | `scripts/audit.py::regenerate_index` — *"overwrites it WHOLESALE each run"* (`scripts/audit.py:5854`, quoted in `deployed-versions.yaml`'s own header) | `scripts/audit.py`, `scripts/desired_state_loader.py`, `scripts/fleet_analytics.py`, `scripts/window_metrics.py`, `scripts/probe_child_backlogs.py`, `ARCHITECTURE.md` | **STALE — 33 days.** In-file `generated: '2026-08-05T10:36:01'`, and its content is now factually wrong (§4) | KEEP — regenerate, do not relocate |
 | 13 | `north-star.md` | G | `scripts/gen_north_star.py:36` `OUT_RELPATH` | `README.md`, `scripts/gen_north_star.py`, `protocols/STANDING_RULINGS.md`, `docs/handoffs/2026-08-31-dev-knowledge-architect/HANDOFF_BOOT.md`, `tasks/385`, `tasks/386` | **CONTENT-STALE** — `gen_north_star.py --check` exits 1; real count drift, not a HEAD pin (§3) | KEEP — home is `ecosystem/`, confirmed (§3) |
@@ -70,9 +73,9 @@ hand-authored · **D** = declared data, hand-authored but machine-read as a cont
 | 22 | `silent-rule-baseline.yaml` | M | `silent_rule_detector.py` (`scripts/silent_rule_detector.py:119`); may be lowered, **never raised** | `scripts/silent_rule_detector.py`, `scripts/audit.py` (`check_silent_rule_ratchet`), `scripts/funnel_coverage.py`, `protocols/STANDING_RULINGS.md` | in-file `measured_at: 2026-09-06` @ `eeac6bef`; last content commit `30c6e58` **2026-09-06** (post-graft) | KEEP |
 | 23 | `substrate-registry.yaml` | D | hand-authored — `[#591]`; home argued in-file (*"alongside provider-registry.yaml and tool-versions.yaml"*) | `scripts/validate_substrate.py:103`, `scripts/gen_lane_contract.py`, `tests/test_gen_lane_contract.py`, `protocols/PLAYBOOK.md` | no stamp; date UNDETERMINED (graft) | KEEP |
 | 24 | `tool-versions.yaml` | D | written by `/changelog-review` after a real review (in-file header, ADR-80 durable record) | `scripts/changelog_sentinel.py`, `scripts/check_provider_registry.py`, `scripts/provider_registry.py`, `tests/test_provider_registry_schema.py`, `protocols/PLAYBOOK.md`, `ARCHITECTURE.md` | declares last-reviewed `claude-code 2.1.204`, `codex 0.143.0`; currency vs upstream **not measurable here** (no changelog fetch in a read-only lane) | KEEP |
-| 25 | `schema/__init__.py` | H | hand-authored package init; directory authorized by ADR-109 §8 (F2) | `scripts/audit.py`, `scripts/fleet_analytics.py`, `scripts/worktree_seed.py`, `scripts/worktree_import_proof.py`, `pyproject.toml`, `tests/test_worktree_seed.py` | re-exports both models; import **not exercisable here** (`pydantic` absent) | KEEP |
-| 26 | `schema/desired_state.py` | H | hand-authored pydantic contract — ADR-109 v1, `[#382]` W2 | `scripts/audit.py`, `tests/test_review_artifact_coverage.py`, `ARCHITECTURE.md` | `pydantic` absent in this container → import UNVERIFIED (see limits) | KEEP |
-| 27 | `schema/provider_registry.py` | H | hand-authored pydantic contract — LANE L1, 2026-08-23 | `scripts/provider_registry.py`, `scripts/check_provider_registry.py`, `scripts/validate_hermetization.py`, `.pre-commit-config.yaml`, `tests/test_provider_registry_schema.py` | same limit as row 26 | KEEP |
+| 25 | `schema/__init__.py` | H | hand-authored package init; directory authorized by ADR-109 §8 (F2) | `scripts/audit.py`, `scripts/fleet_analytics.py`, `scripts/worktree_seed.py`, `scripts/worktree_import_proof.py`, `pyproject.toml`, `tests/test_worktree_seed.py` | **imports cleanly**; re-exports `SCHEMA_VERSION = 1.0.0`, `FleetDesiredState`, `ProviderRegistry` | KEEP |
+| 26 | `schema/desired_state.py` | H | hand-authored pydantic contract — ADR-109 v1, `[#382]` W2 | `scripts/audit.py`, `tests/test_review_artifact_coverage.py`, `ARCHITECTURE.md` | **loads**; model resolves with **14 fields** | KEEP |
+| 27 | `schema/provider_registry.py` | H | hand-authored pydantic contract — LANE L1, 2026-08-23 | `scripts/provider_registry.py`, `scripts/check_provider_registry.py`, `scripts/validate_hermetization.py`, `.pre-commit-config.yaml`, `tests/test_provider_registry_schema.py` | **loads**; model resolves with **2 fields** | KEEP |
 | 28 | `.dev-knowledge/history/` — **17 files** | G | `scripts/audit.py::append_history` (`scripts/audit.py:596`, path built at `:537`) | `scripts/gen_trend_dashboard.py:600` (the ONLY doc-rot trend source), `scripts/window_metrics.py:195`, `scripts/session_end_backpressure.py:405`, `scripts/scan_undeclared_edges.py:99` | `2026-05-15` → **`2026-07-31`**; **38 days with no new snapshot** (§5) | KEEP (append-only, ADR-80) |
 | 29 | `ai-council/history/` — **17 files** | G | same generator | same consumer set | `2026-05-15` → **`2026-07-31`** | KEEP |
 | 30 | `corp-monorepo/history/` — **15 files** | G | same generator | same consumer set | `2026-05-23` → **`2026-07-31`** | KEEP |
@@ -294,27 +297,50 @@ its only `.md` faces.
 
 What this lane could **not** establish, stated because the section is the point:
 
-1. **`uv run --locked` is unavailable in this container, so no gate was run as the repo defines
-   it.** `uv` here is `0.8.17`; `pyproject.toml` pins `required-version = "==0.11.19"`, and
-   every invocation aborts with *"Required uv version `==0.11.19` does not match the running
-   version"*. Every measurement above was taken under system `python3` 3.11.15 with
-   `PYTHONPATH=.`. That worked for `gen_north_star`, `gen_dashboard`, `generate_organ_index`,
-   `gen_methodology_roster`, `gen_claude_rosters`, `generated_artifact_freshness` and
-   `validate_hermetization` — but it is **not** the declared environment, and a result it
-   produced is weaker evidence than the same result under `uv run --locked`.
-2. **`click` and `pydantic` are absent, so three things went unmeasured.** `scripts/audit.py`
-   is unimportable (`ModuleNotFoundError: click`), so **`audit.py health`, `audit.py checks` and
-   `regenerate_index` were never run** — which is why `index.yaml`'s staleness is reported from
-   its own stamp and its own content rather than from a regen-and-diff, and why §5's cause is
-   UNDETERMINED. `gen_doc_counts.py --check` fails on the same import, so `doc-counts.md`'s
-   `54 registered checks` and `pytest --collect-only` claims are **unverified** (its `23
-   pre-commit gates` claim *was* verified independently, and still reads 23 at the sync-merge).
-   **Limit 8 fired on this very line while the lane ran:** the collected-tests claim was `5187`
-   when row 10 was measured and is `5217` after the sync-merge with `origin/main` — a peer
-   regenerated it mid-lane, which is the drift this section predicts rather than a defect in
-   either number. `ecosystem/schema/*.py` cannot be imported
-   (`ModuleNotFoundError: pydantic`), so both contracts are inventoried by reading them, never by
-   loading them. `pytest` is absent entirely.
+1. **The Inventory was measured OUTSIDE the declared environment; the environment was then
+   repaired mid-lane and the blocked measurements re-run.** The container shipped `uv 0.8.17`
+   against `pyproject.toml`'s `required-version = "==0.11.19"`, so every `uv run --locked`
+   aborted and **every row above was first measured under system `python3` 3.11.15 with
+   `PYTHONPATH=.`** — which worked for `gen_north_star`, `gen_dashboard`,
+   `generate_organ_index`, `gen_methodology_roster`, `gen_claude_rosters`,
+   `generated_artifact_freshness` and `validate_hermetization`, but is weaker evidence than the
+   same result under `uv run --locked`. **`uv 0.11.19` was then installed from PyPI** (reachable
+   directly — it is in the agent proxy's `noProxy` list, while GitHub release binaries return
+   403), and the checks limit 2 records were re-run properly. **The Inventory rows were not
+   re-measured under the repaired environment** — only the items named in limit 2 were. Any row
+   whose freshness came from a system-`python3` `--check` still rests on that weaker footing,
+   and §3b/§3c are the rows where that matters most.
+2. **`click` / `pydantic` were absent at measurement time; after the repair in limit 1, three
+   of the four blocked items were resolved and one deliberately was not.**
+   - **RESOLVED — `doc-counts.md` (row 10) is fully verified.** `gen_doc_counts.py --check`
+     exits 0 with `match audit_check_count (file 54 / actual 54)`,
+     `match precommit_hook_count (file 23 / actual 23)`,
+     `match pytest_collected (file 5217 / actual 5217)`. All three claims, not just the gate
+     count, are now witnessed.
+   - **RESOLVED — `ecosystem/schema/*.py` (rows 25-27) load.** `ecosystem.schema` imports
+     cleanly and re-exports both contracts: `SCHEMA_VERSION = 1.0.0`, `FleetDesiredState` 14
+     fields, `ProviderRegistry` 2 fields. Inventoried by loading, not only by reading.
+   - **RESOLVED — `audit.py` runs.** `audit.py checks` enumerates **54** checks (agreeing with
+     `doc-counts.md` independently). `audit.py health` reports **DEGRADED**, `32/110 pass`.
+     **None of its FAIL-tier findings is attributable to this lane**, and each names a surface
+     this lane never touched: `canonical_freshness` (7 files stale — `ARCHITECTURE.md`,
+     `CONTRIBUTING.md`, `docs/handoffs/README.md`, `protocols/{ESSENTIALS,SESSION_SETUP,
+     AI_COUNCIL_PROCESS,DEFINITION_OF_DONE}.md`), `hooks_armed`, `silent_rule_ratchet`
+     (`443 -> 447`, a raise it rejects), `journal_spine_anchor`, and `repos registered (none)`.
+     This census appears in the output exactly once, at **WARN** tier, on the
+     `consumer_at_landing` leg-2 consumption ratchet — alongside ~42 artifacts already on
+     `main`, and never on the FAIL-tier leg-1 declaration check.
+   - **NOT RESOLVED, ON PURPOSE — `index.yaml` was still not regen-and-diffed.**
+     `audit.py::regenerate_index` **writes**, and this lane is read-only; a fleet audit would
+     also probe child repos that do not exist in this container. So §4's staleness verdict still
+     rests on the file's own `generated:` stamp and on its now-false root-`VISION.md` assertion,
+     which are sufficient witnesses for *stale* but do not quantify the drift. §5's cause remains
+     UNDETERMINED for the same reason.
+
+   **Limit 8 fired on this section's own text while the lane ran:** the collected-tests claim
+   was `5187` when row 10 was first measured and `5217` after the sync-merge with `origin/main` —
+   a peer regenerated it mid-lane. The re-run above confirms the file and the tree now agree at
+   `5217`. That is the predicted drift, not a defect in either number.
 3. **The clone is SHALLOW, and this breaks the "last content commit" witness for 21 of 27
    files.** `git rev-parse --is-shallow-repository` → `true`; 278 commits; `.git/shallow` holds
    **17 graft boundaries**, among them `428656f` and `1cefc30` — and those two are precisely the
@@ -328,6 +354,18 @@ What this lane could **not** establish, stated because the section is the point:
    `--check`; where neither exists — `doc-code-edge.yaml`, `organ-registry.yaml`,
    `substrate-registry.yaml`, `provider-registry.yaml`, `registry.md` — **the age is genuinely
    unknown** and the row says so. A deeper fetch would settle all five.
+
+   **The repo's own gate says the same thing, independently.** Once `audit.py` became runnable
+   (limit 2), `audit.py health` produced a FAIL-tier finding this census had already reached by
+   hand: *"`canonical_freshness`: derived leg REFUSES (shallow clone): the clone is shallow --
+   every git-derived date is a floor, not a fact, and a grafted history silently mis-dates every
+   file older than the graft. Run `git fetch --unshallow origin` before trusting a freshness
+   verdict here."* That is corroboration from a surface with no knowledge of this lane, and it
+   raises rather than lowers the confidence in this limit: the shallow clone is a **measured**
+   constraint on the whole checkout, not an artifact of how this census read git. The same graft
+   is why `journal_spine_anchor` reports its backstop *"could not complete"* here
+   (`fatal: Not a valid object name 24882f8cc`) — an anchoring error caused by truncated
+   history, not by anything this lane did.
 4. **`fan-out: NONE`, and absence is not cleanliness.** `gemini` is not on PATH. **Gemini-read
    files: 0. Fabrications counted: 0** — zero because nothing ran, and a reader comparing this
    lane's fabrication count with a lane that actually fanned out is comparing nothing to
@@ -360,7 +398,17 @@ What this lane could **not** establish, stated because the section is the point:
    working tree at `5f27b203c07138374d4cef2ff26564d5c1233d8b`; a peer landing between that commit
    and this file's merge can invalidate a currency verdict here — notably §3b, which will read
    differently the moment anyone regenerates the dashboard.
-9. **The known RED on main is not this lane's and is not claimed.**
+9. **No git hook ran on this lane's commits, and that is a measured fact rather than a claim of
+   passing.** `audit.py health` reports FAIL-tier `hooks_armed: git hooks not armed (RF-2) …
+   pre-commit absent; commit-msg absent; pre-push absent; merge.ours.driver unset`. So this
+   census landed without `validate-hermetization`, `audit-health`, `ruff`,
+   `backlog-filing-backpressure` or the two pre-push gates firing on it. The relevant gates were
+   therefore invoked **directly** and their results are recorded above —
+   `validate_hermetization.classify/rule_a/rule_b/rule_c` all `None`,
+   `consumer_at_landing` leg 1 passing, `audit.py health` implicating nothing of this lane's —
+   but *"the hooks did not object"* is not among this packet's evidence, because they never ran.
+   The integrator's checkout, with hooks armed, is where that evidence gets produced.
+10. **The known RED on main is not this lane's and is not claimed.**
    `tests/test_manifest_link_route.py::test_the_class_enum_is_the_hermetization_module_s_own_object`
    was neither run nor investigated. No full suite was run, per contract.
 
