@@ -17,6 +17,7 @@
 - `.vscode/` shared editor config — owner=hub / owner=repo boundary decoration (grey / navy, dark theme)
 - Plugin `tier1-lifecycle@dev-knowledge-methodology` enabled (`.claude/settings.json`)
 - `@.claude/CLAUDE-FLOOR.md` — methodology floor (hash-guarded replica, ADR-78/93)
+- `.methodology.yaml` — the per-consumer sanctioned-divergence register ([#276] shape: component + reason + time-box), honored on BOTH deploy legs
 
 ## Commands
 - /review-closures — review + execute ONLY operator-approved closures (ADR-70 Tier-1)
@@ -27,6 +28,7 @@
 ## Session hooks
 - Stop: propose_closures (tier1-lifecycle plugin, non-blocking closure proposals)
 - SessionStart: check_floor_hash.py --require-present (floor guard) + python -m pre_commit install (arms the commit hooks)
+- SessionStart: arm_hooks.py arms pre-commit / commit-msg / pre-push in the RESOLVED hooks dir (honors core.hooksPath)
 - Stop: session_end_backpressure.py — deterministic session-end gate (JOURNAL SHA-anchor hard block)
 - SessionStart: fleet_health.py prints [asks] OPERATOR ASKS then [funnel] rot/orphan/unblocked/batch before the existing fleet digest
 
