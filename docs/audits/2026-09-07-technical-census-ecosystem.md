@@ -307,8 +307,12 @@ What this lane could **not** establish, stated because the section is the point:
    `regenerate_index` were never run** — which is why `index.yaml`'s staleness is reported from
    its own stamp and its own content rather than from a regen-and-diff, and why §5's cause is
    UNDETERMINED. `gen_doc_counts.py --check` fails on the same import, so `doc-counts.md`'s
-   `54 registered checks` and `5187 collected` claims are **unverified** (its `23 pre-commit
-   gates` claim *was* verified independently). `ecosystem/schema/*.py` cannot be imported
+   `54 registered checks` and `pytest --collect-only` claims are **unverified** (its `23
+   pre-commit gates` claim *was* verified independently, and still reads 23 at the sync-merge).
+   **Limit 8 fired on this very line while the lane ran:** the collected-tests claim was `5187`
+   when row 10 was measured and is `5217` after the sync-merge with `origin/main` — a peer
+   regenerated it mid-lane, which is the drift this section predicts rather than a defect in
+   either number. `ecosystem/schema/*.py` cannot be imported
    (`ModuleNotFoundError: pydantic`), so both contracts are inventoried by reading them, never by
    loading them. `pytest` is absent entirely.
 3. **The clone is SHALLOW, and this breaks the "last content commit" witness for 21 of 27
