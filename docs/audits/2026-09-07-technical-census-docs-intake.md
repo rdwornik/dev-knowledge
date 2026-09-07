@@ -437,3 +437,44 @@ suite:               NOT RUN (contract §6) · audit.py health NOT RUN (uv versi
 organs run live:     funnel_lifecycle.measure · gen_intake_index.duplicate_id_reasons
 journal entry:       NONE · merge: NONE · self-merge: NONE
 ```
+
+---
+
+## Addendum — post-merge re-measure, 2026-09-07
+
+**The tree moved under this census between its measurement and its push.** `git fetch origin main`
+before the push brought in W2-F5's erratum lane, which touched three files inside this census's
+folder. Recorded here rather than folded into the body above, so the difference between what was
+measured and what is now true stays legible.
+
+**What changed.** `docs/intake/2026-09-05-tech-aj-second-pass.md` (**intake #70**) flipped
+**DRAFT → ACCEPTED** under ruling F-5 of `DECLARE-F-2026-09-06.md`, gaining `decided-by:`,
+`disposition: active`, `note:` and `consumers:`, and losing its empty `consumed-by:`.
+`README.md` and `manifest.json` were regenerated to match.
+
+**What that does to the numbers above.** Re-run on the merged tree at `3398d3b3`:
+
+```
+funnel_lifecycle.measure -> live_intakes=66, archived_intakes=12, violations=[]   (unchanged)
+gen_intake_index.duplicate_id_reasons -> 0                                        (unchanged)
+
+status distribution      SEED 10 - DRAFT 18 -> 17 - READY 19 - ACCEPTED 19 -> 20
+consumed-by empty at a non-CONSUMED status      23 live -> 22 live  (#70 leaves)
+frontmatter schema deviations                        27 -> 26
+ACCEPTED docs with zero `tasks/` carrier rows         2 ->  3
+```
+
+**Everything else in this census stands**, including all 80 per-file verdicts: #70's verdict was
+KEEP and remains KEEP, and no RETIRE row is affected.
+
+**One finding got wider, not narrower.** Finding A named #65 as a live P-2 breach — ACCEPTED,
+`disposition: active`, zero carrier rows. **#70 is now the same shape**: grep over `tasks/*.md`
+for its path and for `intake #70` returns **0 hits** on the merged tree. Its `consumers:` field
+names two `docs/audits/` artifacts, which is forward-looking provenance and legal at any status —
+it is **not** a carrier row, and P-2's text asks for *"at least one live carrier row, or a
+`disposition: deferred` naming a live, DATED trigger."* Neither obtains.
+
+So the P-2 population is **#65 and #70**, and the second one was created by a merge that landed
+tonight. That is the mechanism finding underneath finding A: **nothing at flip time requires the
+carrier**, so each ACCEPTED flip is free to open a new breach, and only a census notices. Reported
+for triage; this lane proposes no fix and edited nothing.
