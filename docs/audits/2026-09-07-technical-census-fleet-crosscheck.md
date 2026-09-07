@@ -384,12 +384,16 @@ a root cross-check is structurally blind to it. **Re-opened before reporting:**
 `git -C win-tooling ls-files docs` returns `docs/diagrams/module-map.md` — the item is real and
 U2 is right. Listed as a scope difference, not a defect on either side.
 
-**D2 — the hub's tracked-file count: U2 says 2,993, this lane says 2,998.** Different HEAD.
-U2 measured at `ef53b069`; this lane merged `origin/main` before its first commit and measured
-at `21576e3a`, which carries the later wave-2 merges (`deploy/floor_mechanisms.py`,
+**D2 — the hub's tracked-file count: U2 says 2,993, this lane says 2,998.** Different HEAD, and
+the difference resolves exactly. U2 measured at `ef53b069`; this lane merged `origin/main`
+before its first commit and measured at `21576e3a`. `git diff --diff-filter=A ef53b069 21576e3a`
+lists **five** added files — `deploy/floor_mechanisms.py`, `tests/test_floor_mechanisms.py`,
 `docs/audits/2026-09-06-technical-erratum-aj-second-pass.md`,
-`tests/test_floor_mechanisms.py` and edits). Not reconciled: both are correct at their stamp,
-and the hub is a moving target while a batch is in flight.
+`docs/decisions/ADR-117-carrier-split-by-divergence.md`, and
+**`docs/audits/2026-09-07-technical-seal-report-fleet.md`, U2's own report**. 2,993 + 5 = 2,998.
+Not reconciled, and it needs no reconciling: U2 measured the hub before its own artifact landed,
+which is the correct thing for it to have done. The hub is a moving target while a batch is in
+flight; both figures are right at their stamp.
 
 **D3 — the hub reads as "137 items" in U2 and "0" here, and both are true.** U2's hub row is
 137 items, **all of them Rule B** (`R0 / T0 / W137`) — the hub's own dated artifacts measured
@@ -509,8 +513,8 @@ This section is the point of the census, not filler. Each item is something this
    — the same repository and objects, but if a concurrent seat has the primary on a different
    branch, its working tree differs from this row. Twelve peer lanes and a wave-2 batch are
    live in this repository right now.
-5. **The fleet moved under U2 and can move under this file.** The hub gained three files between
-   `ef53b069` and `21576e3a` during this session (D2). The eight consumer HEADs did not move
+5. **The fleet moved under U2 and can move under this file.** The hub gained five tracked files
+   between `ef53b069` and `21576e3a` during this session (D2). The eight consumer HEADs did not move
    between the two derivations — that was checked, not assumed — but nothing prevents them from
    moving after this file is written.
 6. **`council_inbox/`'s write-target claim is not verified here.** This lane established that
