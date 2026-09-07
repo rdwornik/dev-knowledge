@@ -71,6 +71,8 @@ measurement, and the integrator re-runs the full suite on the primary tree rathe
 it as a verdict.
 
 **Anchors:** `ea9f5427` (the lane tip, introduced by merge `5a0e739a`).
+It also names `9afa774f`, this entry's own commit, so this branch's `--no-ff` merge is
+anchored by a SHA that merge introduces -- a single-commit anchor branch cannot anchor itself.
 
 ### 2026-09-07 (g) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W1-6 lands, and a lane that re-measured a before-number the contract had frozen against a dead tree
 
