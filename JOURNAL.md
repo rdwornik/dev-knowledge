@@ -19,6 +19,70 @@
 
 ---
 
+### 2026-09-07 (q) - CC (Opus 5, INTEGRATOR-N2, SWEEP batch): thirteen censuses land as ordinary docs arcs, against a batch whose manifest was never written
+
+**Anchors `61afa01c`, `cc1e8c9c`, `d6ed3357`, `7265a500`, `6b89c1fa`, `c33f381e`,
+`1f90fe46`, `1c1b3a16`, `211bd720`, `fc0f589c`, `aaaff665`, `c5268a53` and `bbe1581d`** --
+the thirteen cloud census lanes of the 2026-09-07 SWEEP batch: deploy, docs-audits,
+docs-decisions, docs-handoffs, docs-intake, ecosystem, logs, protocols, root,
+scripts-tests, tasks, templates-claude, token-bottlenecks. All thirteen merged clean, zero
+conflicts.
+
+**THE SWEEP MANIFEST WAS NEVER COMMITTED TO MAIN, AND IT IS NOT BEING WRITTEN NOW.** The
+dispatcher owns this and named it as its own defect rather than routing it away: it
+dispatched fourteen lanes against a batch with no manifest, having run the operator's
+coupling scan and treated that as sufficient. Batch U's own packet already carries the
+durable rule from the earlier instance -- **manifest and contracts land in ONE commit** --
+which makes this the same lesson broken by the seat that recorded it, the fourth time
+tonight a documented rule failed at its author's hands.
+
+**Writing a manifest now would fabricate a governance artifact to retro-license work
+already done.** A manifest committed AT DISPATCH is evidence; one committed after fourteen
+lanes have landed is decoration, and it would make `batch_manifest` report an open batch
+that was never opened. The operator has also ruled that this batch **stops** -- and creating
+a manifest *is* opening a batch. So these merged as **ordinary docs arcs**, anchored in one
+group, with no ADR-110 exemption claimed.
+
+**The exemption was never needed, and that is worth stating plainly, because "we merged
+without it" reads like a workaround and is not one.** The exemption exists to spare a long
+lane queue from anchor churn; it does not make a merge legal. Merging without it is the
+ordinary path. Group anchoring cost one anchor commit.
+
+**Their `closed_by:` lines point at a file that does not exist, and they are LEFT POINTING
+THERE.** Editing fourteen landed artifacts to tidy a dangling reference would be worse than
+the dangling reference: the close packet carries it as an open item **with its cause**,
+precisely because the obvious "fix" -- writing the missing manifest -- is how a fabricated
+artifact would enter the record.
+
+**DOCS-ONLY VERIFIED BY DIFF, not accepted on the contract's word.** Every file across all
+thirteen arcs is `docs/audits/2026-09-07-technical-census-*.md`; four carry an appendix, as
+the contract's 40 KB rule allows; **zero non-audit paths in any of them**. The SWEEP's core
+promise -- *"Nothing is moved, deleted, edited, or renamed"* -- holds as measured rather
+than as declared. The first attempt at that measurement was wrong and is worth recording:
+`git diff main origin/<branch>` reported 39 non-audit files per lane, which was **main's own
+batch-U content seen in reverse** because the branches were cut before it. Diffing against
+the **merge base** gives the branch's own contribution. **A diff against the wrong base
+reads as a contract violation.**
+
+**THE CONTENT IS NOT RULED BY THIS MERGE.** Per SWEEP contract §0 every census verdict --
+KEEP / RELOCATE / ARCHIVE / RETIRE -- is a **PROPOSAL**, and "the operator rules each list".
+These merges land the proposals and adopt none of them.
+
+**S-13 `census-fleet-crosscheck` is NOT in this group.** It is complete on origin
+(`2d791e0a`), its worktree is clean, and its artifact is present -- but it has sent **no
+HANDBACK**, and a clean tree is not a stop signal. It is held rather than merged on
+appearances.
+
+**The batch is FOURTEEN lanes, not thirteen** -- S-14 `token-bottlenecks` arrived via
+`AMEND-SWEEP-001`, which this seat read directly rather than taking the dispatch message's
+count. The dispatch message said thirteen and was already stale when sent.
+
+**Changes:** thirteen new `docs/audits/2026-09-07-technical-census-*.md` (+ four
+appendices). No existing file edited by any census lane.
+
+**Next:** S-13 on its handback, then the audits index regeneration #2 -- which also picks up
+batch U's close packet -- then the dispatcher lands the packet and both batches close.
+
 ### 2026-09-07 (p) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): batch U's last lane refuses to report a clean number, and the batch closes at nineteen
 
 **Anchors `84f8186c`, which introduced `db37f3e2`, and `32c6415d`.** W2-R
