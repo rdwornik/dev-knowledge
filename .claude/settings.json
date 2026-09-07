@@ -14,6 +14,16 @@
     ],
     "PreToolUse": [
       {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/scripts/fleet_health.py\" --prompts-guard",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "Edit|MultiEdit|Write|NotebookEdit",
         "hooks": [
           {
@@ -64,7 +74,7 @@
       }
     }
   },
-  "//": "Project-scoped Claude Code hooks for .dev-knowledge. Merges with (does not replace) the user-level ~/.claude/settings.json hooks. uv migration (ADR-106, [#432]): python hook commands run `uv run --locked` so they execute in the declared environment (committed uv.lock); the ONE deliberate exception is the ADR-77 PreToolUse guard below, which stays on the system interpreter — it is stdlib-only and fail-closed, and a stale lockfile must never be able to block every Edit/Write call in a session. PreToolUse: the ADR-77 immutability guard (scripts/hooks/block_immutable_edits.py) blocks in-place edits of existing transcripts under docs/decisions/transcripts/** (fail-closed in-zone, fail-open out-of-zone; follows the global block-onedrive template) — refs #105. SessionStart: Tier-2 fleet-health + triage surfacing + billing-leak sentinel + changelog version sentinel (#113 — LOCAL, fail-soft: nudges /changelog-review when an installed tool version exceeds its last_reviewed in ecosystem/tool-versions.yaml; no network) + RF-2 hub self-arm (`scripts/arm_hooks.py` — idempotent, fail-soft `pre-commit install` of the 3 hook types; makes the hub apply configured->armed->proven to ITSELF, closing the configured-not-armed window a fresh clone or a deleted hook opens; quiet no-op when already armed; core.hooksPath-tolerant; Fable architecture review 2026-07-04 §4; asserted by audit.py check_hooks_armed). Tier-1 closure loop runs via the enabled tier1-lifecycle plugin (Stop->propose) + the global ~/.claude surface hook (#73 5c convergence).",
+  "//": "Project-scoped Claude Code hooks for .dev-knowledge. Merges with (does not replace) the user-level ~/.claude/settings.json hooks. uv migration (ADR-106, [#432]): python hook commands run `uv run --locked` so they execute in the declared environment (committed uv.lock); the ONE deliberate exception is the ADR-77 PreToolUse guard below, which stays on the system interpreter — it is stdlib-only and fail-closed, and a stale lockfile must never be able to block every Edit/Write call in a session. PreToolUse: the E-29/013-A prompts-dir scope guard (scripts/fleet_health.py --prompts-guard, matcher \"*\") -- ARMED 2026-09-07 in the same act as the daemon restart, never before: while the two CLAUDE_PROMPTS_DIR scopes disagree it refuses EVERY tool call with no in-session escape (measured 2026-09-06). Rationale and the two-legged design are in that module's wiring comment. Then the ADR-77 immutability guard (scripts/hooks/block_immutable_edits.py) blocks in-place edits of existing transcripts under docs/decisions/transcripts/** (fail-closed in-zone, fail-open out-of-zone; follows the global block-onedrive template) — refs #105. SessionStart: Tier-2 fleet-health + triage surfacing + billing-leak sentinel + changelog version sentinel (#113 — LOCAL, fail-soft: nudges /changelog-review when an installed tool version exceeds its last_reviewed in ecosystem/tool-versions.yaml; no network) + RF-2 hub self-arm (`scripts/arm_hooks.py` — idempotent, fail-soft `pre-commit install` of the 3 hook types; makes the hub apply configured->armed->proven to ITSELF, closing the configured-not-armed window a fresh clone or a deleted hook opens; quiet no-op when already armed; core.hooksPath-tolerant; Fable architecture review 2026-07-04 §4; asserted by audit.py check_hooks_armed). Tier-1 closure loop runs via the enabled tier1-lifecycle plugin (Stop->propose) + the global ~/.claude surface hook (#73 5c convergence).",
   "permissions": {
     "allow": [
       "Workflow"
