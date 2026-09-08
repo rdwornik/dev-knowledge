@@ -566,6 +566,25 @@ def assert_boundary_hygiene(repo_root: Path) -> None:
 # Ruling: `to-cc/DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08.md` on the transport, ratified by the
 # operator's paste 2026-09-08.
 #
+# ROW 7 WAS AMENDED 2026-09-08 by operator ruling, in the same shape as row 1 and on the same
+# day, because it had the same defect pointing the other way. Row 7 demanded that a question be
+# RESOLVED. Eleven of this window's were batch T/U dawn-list questions awaiting an operator
+# sitting that had not happened, so the row could only be cleared by inventing dispositions --
+# and the seat that hit it correctly refused to. The row now reads:
+#
+#     ANSWERED (an ANSWER-*/DECLARE-* answers it)
+#       OR CARRIED (named in the residual with the OPEN backlog row that owns it)
+#
+# with two refusals that are the whole point of the carry leg: a CLOSED row does NOT carry (a
+# closed row cannot own an open question), and NO OWNER is a FAIL. The principle both amendments
+# share, stated once: A WINDOW MAY HAND OFF WITH DEBT ONLY WHEN THE DEBT IS EXPLICIT AND OWNED;
+# IT MAY NEVER HAND OFF WITH DEBT THAT IS SILENT.
+#
+# And, exactly as in row 1, the residual half is an OBLIGATION THIS ROW STATES AND DOES NOT
+# VERIFY -- the residual does not exist at preflight time. Saying so in the evidence line is the
+# discipline; implying a check that is absent is the defect rows 7 and 8 were corrected for.
+# Ruling: `to-cc/DECLARE-PREFLIGHT-QUESTION-ROW-2026-09-08.md`, ratified by the operator's paste.
+#
 # COST, stated rather than discovered: row 1 runs the real ship-gate, measured at 4m30s on
 # 2026-09-07 under four-lane contention (the plugin's 2026-07-05 note of ~13s is stale). A cut
 # is a once-per-window act taken at a true batch boundary, which is what makes that affordable;
@@ -950,6 +969,30 @@ def _row_journal_anchored(repo_root: Path) -> PreflightRow:
 _DISPOSITION_KEY_RE = re.compile(r"^disposition:[ \t]*(\S.*)$", re.MULTILINE)
 _LOCATOR_SHAPE_RE = re.compile(r"(\.md\b|/|\[#\d+\]|ADR-\d+|\d{4}-\d{2}-\d{2})")
 
+#: The CARRIED leg's owner reference: a backlog id anywhere in the disposition VALUE.
+_BACKLOG_ID_RE = re.compile(r"\[#(\d+)\]")
+
+#: OPEN rows in the GENERATED BACKLOG.md, anchored at the row bullet. Read from BACKLOG.md
+#: and NOT from tasks/, for the reason `preflight_contract._open_backlog_ids` already
+#: records: a closed row KEEPS its task file as the id-allocation record (ADR-107 6.3,
+#: retire-not-delete), so the file's existence says nothing about whether the row is open.
+_OPEN_BACKLOG_ROW_RE = re.compile(r"(?m)^- \[#(\d+)\]")
+
+
+def _open_backlog_ids(repo_root) -> "set[str] | None":
+    """Ids carried as OPEN rows in `BACKLOG.md`; None when it cannot be read.
+
+    None is distinct from the empty set on purpose: an unreadable BACKLOG cannot judge an
+    owner, and row 7 refuses on that rather than silently treating every owner as closed.
+    """
+    if repo_root is None:
+        return None
+    try:
+        text = (Path(repo_root) / "BACKLOG.md").read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    return set(_OPEN_BACKLOG_ROW_RE.findall(text))
+
 
 def _question_files(transport) -> list[Path]:
     """EVERY QUESTION file on the transport -- live and in every archive window.
@@ -963,25 +1006,81 @@ def _question_files(transport) -> list[Path]:
     return sorted(found)
 
 
-def _question_is_dispositioned(path: Path, transport) -> bool:
-    """Answered, or explicitly carried with a RESOLVING locator. Archiving alone is neither."""
+def _question_disposition_verdict(path: Path, transport,
+                                  open_ids: "set[str] | None") -> "tuple[bool, str]":
+    """`(dispositioned, why)` for ONE QUESTION file -- the two legs of the 2026-09-08 ruling.
+
+    Ruling: `to-cc/DECLARE-PREFLIGHT-QUESTION-ROW-2026-09-08.md`. A question discharges when it
+    is either
+
+      ANSWERED -- an `ANSWER-*`/`DECLARE-*` answers it: an `ANSWER-<seat>.md` on the transport,
+                  or a flush-left `disposition:` whose value cites a resolving locator; or
+      CARRIED  -- the `disposition:` value names the OPEN backlog row that OWNS it.
+
+    Two refusals are the point of the carry leg, and neither is incidental. **A CLOSED row does
+    not carry** -- a closed row cannot own an open question, so a disposition naming only closed
+    ids FAILs even though the value is locator-shaped. **No owner at all is a FAIL** -- that is
+    the silent debt the row exists to refuse. And an unreadable BACKLOG makes an owner
+    unjudgeable, which is not the same as absent: it FAILs too, the direction every other row
+    here already takes on an unknown.
+
+    The ORDER matters. Ids are read BEFORE the locator-shape leg, because `[#123]` is itself a
+    locator shape: checking shape first would let a closed row pass as an ANSWERED citation and
+    silently void the carry condition the ruling turns on.
+    """
     seat = path.name[len("QUESTION-"):-len(".md")] if path.name.startswith("QUESTION-") else ""
     to_cc = Path(transport) / "to-cc"
     if seat:
         answers = [to_cc / f"ANSWER-{seat}.md", *to_cc.glob(f"archive/*/ANSWER-{seat}.md")]
-        if any(p.exists() for p in answers):
-            return True
+        hit = next((p for p in answers if p.exists()), None)
+        if hit is not None:
+            return (True, f"ANSWERED by {hit.name}")
     try:
         head = path.read_text(encoding="utf-8", errors="replace")[:4000]
-    except OSError:
-        return False
+    except OSError as exc:
+        return (False, f"unreadable ({exc.__class__.__name__}) -- an unreadable question is not "
+                       "a dispositioned one")
     m = _DISPOSITION_KEY_RE.search(head)
-    return bool(m and _LOCATOR_SHAPE_RE.search(m.group(1)))
+    if m is None:
+        return (False, "no flush-left `disposition:` key -- unanswered and uncarried")
+    value = m.group(1).strip()
+
+    ids = _BACKLOG_ID_RE.findall(value)
+    if ids:
+        named = ", ".join(f"[#{i}]" for i in dict.fromkeys(ids))
+        if open_ids is None:
+            return (False, f"names {named}, but BACKLOG.md could not be read -- an owner this "
+                           "row cannot judge is not an owner")
+        live = [i for i in dict.fromkeys(ids) if i in open_ids]
+        if live:
+            return (True, "CARRIED by OPEN "
+                          + ", ".join(f"[#{i}]" for i in live))
+        return (False, f"names only CLOSED row(s) {named} -- a closed row does not carry an "
+                       "open question")
+
+    if _LOCATOR_SHAPE_RE.search(value):
+        return (True, "ANSWERED -- `disposition:` cites a resolving locator")
+    return (False, "`disposition:` names neither a resolving locator nor an owning row")
 
 
-def _row_question_disposition(transport, today: str) -> PreflightRow:
-    """Row 7 -- no QUESTION file WITHOUT A DISPOSITION (the corrected wording; see the block
-    header). Registered as "no QUESTION-* unanswered", which an empty directory satisfies."""
+def _row_question_disposition(transport, today: str, repo_root=None) -> PreflightRow:
+    """Row 7 -- every QUESTION file is ANSWERED or CARRIED by an OPEN row that owns it.
+
+    Amended 2026-09-08 by operator ruling (`DECLARE-PREFLIGHT-QUESTION-ROW-2026-09-08.md`), the
+    same shape as row 1's amendment on the same day and for the same reason: **a window may hand
+    off with debt only when the debt is explicit and owned; it may never hand off with debt that
+    is silent.** Before the ruling the row demanded a resolution, which deadlocks a window whose
+    open questions need an operator sitting that has not happened.
+
+    As in row 1, only the mechanically checkable half is checked here: that a carried question
+    names an OPEN owning row. **That the residual actually NAMES each carried question with its
+    row is an obligation this row states and does not verify** -- the residual does not exist at
+    preflight time. The evidence line carries the obligation to the seat cutting the bundle,
+    which is where it can still be acted on.
+
+    The registered wording ("no QUESTION-* unanswered") remains corrected, for the reason the
+    block header gives: an empty directory satisfied it forever, so archiving discharged nothing.
+    """
     if transport is None:
         return _no_transport("question_disposition")
     files = _question_files(transport)
@@ -990,14 +1089,25 @@ def _row_question_disposition(transport, today: str) -> PreflightRow:
         return _na_row("question_disposition", "SUBJECT-ABSENT",
                        f"no QUESTION file on the transport -- nothing to disposition "
                        f"(window {today})", locator)
-    open_ = [p.name for p in files if not _question_is_dispositioned(p, transport)]
-    if open_:
-        head = ", ".join(open_[:5])
-        more = f" +{len(open_) - 5} more" if len(open_) > 5 else ""
+    open_ids = _open_backlog_ids(repo_root)
+    verdicts = [(p, _question_disposition_verdict(p, transport, open_ids)) for p in files]
+    failing = [(p.name, why) for p, (ok, why) in verdicts if not ok]
+    if failing:
+        shown = "; ".join(f"{n} ({why})" for n, why in failing[:4])
+        more = f" +{len(failing) - 4} more" if len(failing) > 4 else ""
         return PreflightRow("question_disposition", PREFLIGHT_FAIL, locator,
-                            f"{len(open_)} of {len(files)} QUESTION file(s) carry no "
-                            f"disposition (answered, or carried with a resolving locator): "
-                            f"{head}{more}")
+                            f"{len(failing)} of {len(files)} QUESTION file(s) are neither "
+                            f"ANSWERED nor CARRIED by an OPEN owning row: {shown}{more}")
+    carried = [p.name for p, (ok, why) in verdicts if ok and why.startswith("CARRIED")]
+    tail = ""
+    if carried:
+        tail = (f". CARRIED, and the cut is only honest if it holds: each of the {len(carried)} "
+                "carried question(s) is named in the residual with the OPEN row that owns it "
+                "(DECLARE-PREFLIGHT-QUESTION-ROW-2026-09-08)")
+    return PreflightRow("question_disposition", PREFLIGHT_PASS, locator,
+                        f"all {len(files)} QUESTION file(s) dispositioned "
+                        f"({len(files) - len(carried)} answered, {len(carried)} carried; "
+                        f"window {today}){tail}")
     return PreflightRow("question_disposition", PREFLIGHT_PASS, locator,
                         f"all {len(files)} QUESTION file(s) dispositioned (window {today})")
 
@@ -1103,7 +1213,7 @@ def preflight_rows(repo_root: Path, *, transport=None, today: "str | None" = Non
         _row_status_budget(transport),
         _row_living_docs_stamped(repo_root),
         _row_journal_anchored(repo_root),
-        _row_question_disposition(transport, today),
+        _row_question_disposition(transport, today, repo_root),
         _row_memory_within_cap(memory_path or _memory_path(repo_root)),
         _row_worktree_owners(repo_root, sessions_root),
     ]
