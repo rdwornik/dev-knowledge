@@ -158,6 +158,58 @@ def test_a_carried_question_needs_a_RESOLVING_locator_not_a_bare_key(tmp_path):
     assert gh._row_question_disposition(valued, _TODAY).status == gh.PREFLIGHT_PASS
 
 
+# --- row 7, the 2026-09-08 amendment: ANSWERED or CARRIED-BY-AN-OPEN-ROW -----------------
+
+def _backlog(tmp_path, *open_ids):
+    """A repo stub whose BACKLOG.md carries exactly `open_ids` as OPEN rows."""
+    repo = tmp_path / "repo"
+    repo.mkdir(parents=True, exist_ok=True)
+    rows = "".join(f"- [#{i}] [P2][S] row {i} - tasks/{i}-x.md\n" for i in open_ids)
+    (repo / "BACKLOG.md").write_text("# BACKLOG\n\n" + rows, encoding="utf-8")
+    return repo
+
+
+def test_a_question_CARRIED_by_an_OPEN_row_is_dispositioned(tmp_path):
+    """The ruling's carry leg: debt may travel, so long as an OPEN row owns it."""
+    root = _transport(tmp_path, questions=[
+        ("QUESTION-lane-a.md", "# Q\ndisposition: CARRIED by [#9042] -- first sitting\n")])
+    row = gh._row_question_disposition(root, _TODAY, _backlog(tmp_path, "9042"))
+    assert row.status == gh.PREFLIGHT_PASS
+    # The pass is only honest if the seat is handed the residual obligation AND the count.
+    assert "1 carried question(s) is named in the residual" in row.detail
+    assert "DECLARE-PREFLIGHT-QUESTION-ROW-2026-09-08" in row.detail
+
+
+def test_a_CLOSED_row_does_not_carry_an_open_question(tmp_path):
+    """The refusal the carry leg turns on. `[#9042]` is locator-SHAPED, so without the id leg
+    running FIRST this value would pass as an ANSWERED citation and void the ruling."""
+    root = _transport(tmp_path, questions=[
+        ("QUESTION-lane-a.md", "# Q\ndisposition: CARRIED by [#9042]\n")])
+    row = gh._row_question_disposition(root, _TODAY, _backlog(tmp_path, "999"))
+    assert row.status == gh.PREFLIGHT_FAIL
+    assert "closed row does not carry" in row.detail
+
+
+def test_an_unjudgeable_owner_is_not_an_owner(tmp_path):
+    """No BACKLOG to read: the owner cannot be judged, which is not the same as absent.
+    Unknown is not clean -- the direction every other row here already takes."""
+    root = _transport(tmp_path, questions=[
+        ("QUESTION-lane-a.md", "# Q\ndisposition: CARRIED by [#9042]\n")])
+    row = gh._row_question_disposition(root, _TODAY, tmp_path / "no-such-repo")
+    assert row.status == gh.PREFLIGHT_FAIL
+    assert "could not be read" in row.detail
+
+
+def test_the_row_reports_WHICH_leg_discharged_each_question(tmp_path):
+    """Evidence-block discipline (HANDOFF_PROCESS s5): report what resolved and from where.
+    A row that reports only PASS/FAIL cannot be audited later."""
+    root = _transport(tmp_path, questions=[
+        ("QUESTION-lane-a.md", "# Q\ndisposition: CARRIED by [#9042]\n")])
+    ok, why = gh._question_disposition_verdict(
+        root / "to-browser" / "QUESTION-lane-a.md", root, {"9042"})
+    assert ok and why == "CARRIED by OPEN [#9042]"
+
+
 # --- row 8: a budget that DOES NOT EXIST renders n/a-with-reason, never a silent pass -----
 
 def test_memory_row_is_not_applicable_while_no_budget_is_declared(tmp_path):

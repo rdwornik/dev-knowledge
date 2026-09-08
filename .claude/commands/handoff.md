@@ -76,7 +76,9 @@ affordable exactly because a cut is a once-per-window act at a true batch bounda
 
 Three rows are implemented as CORRECTED against the register that commissioned them, because a
 row that cannot fail reports a safety it does not provide — and a row that cannot pass reports a
-readiness no window can ever reach:
+readiness no window can ever reach. Rows 1 and 7 were both amended on 2026-09-08 under one
+principle, stated once: **a window may hand off with debt only when the debt is explicit and
+owned; it may never hand off with debt that is silent.**
 
 - **The ship-gate row** reads `hard-fail = 0 AND every undispositioned WARN is named in the
   residual with its owning row` — **not** ship-gate GREEN. A handoff is not a release: GREEN
@@ -89,9 +91,14 @@ readiness no window can ever reach:
   `to-cc/DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08.md` (2026-09-08).
 - **QUESTION files** are checked for a DISPOSITION, not for being unanswered. Registered as "no
   QUESTION-* unanswered", the row went vacuous the moment all 20 outstanding questions were
-  archived without answers: an empty directory satisfies it forever. A question discharges by
-  being answered, or by carrying a flush-left `disposition:` whose value is a resolving locator.
-  Archiving alone discharges nothing, and an undispositioned question does not age out.
+  archived without answers: an empty directory satisfies it forever. Archiving alone discharges
+  nothing, and an undispositioned question does not age out. **Amended 2026-09-08** — a question
+  discharges when it is **ANSWERED** (an `ANSWER-*`/`DECLARE-*` answers it) **or CARRIED** (named
+  in the residual with the **OPEN** backlog row that owns it). Two refusals are the point of the
+  carry leg: **a CLOSED row does not carry** — a closed row cannot own an open question — and
+  **no owner is a FAIL**. As with the ship-gate row, only the checkable half is machine-checked;
+  the residual does not exist at preflight time, so the row states that obligation in its
+  evidence line. Ruling: `to-cc/DECLARE-PREFLIGHT-QUESTION-ROW-2026-09-08.md`.
 - **MEMORY.md** is measured against a DECLARED constant. No MEMORY byte budget exists in this
   repo, so the row renders `[n/a-reason:NO-DECLARED-BUDGET]` and names where one would be
   declared. It never passes silently and it arms itself with no code change. Operator call:
