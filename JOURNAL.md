@@ -19,6 +19,59 @@
 
 ---
 
+### 2026-09-08 (d) - CC (Opus 5, DISPATCHER-CLOSE): batch CLOSE ends with its own handoff refused, by a gate the batch built four hours earlier
+
+**Anchors `837e49fc`** (already on the spine) **and, via `c49d0b90`, this entry's own merge.**
+There was no further work merge to ride -- the batch's last was C-2's -- so this close entry
+takes the two-commit shape rather than the one-commit wrap that broke the tree twice tonight.
+
+**The handoff was NOT cut, and that is the correct outcome.** Lane C-5 ran the preflight lane
+C-4 had landed the same night and it **refused**: `ship_gate` RED, `question_disposition`
+12 of 21. `gen_handoff.py` was not edited, no bundle was written, `docs/handoffs/` is
+unchanged. The seat had one instruction it did not break -- **discharge a row by making the
+fact true, never by softening the row** -- and the only two ways to clear `ship_gate` were a
+dishonest blanket disposition or landing another row's owned work. It did neither.
+
+**The collision is real and it is ours.** Lane C-1's frozen closure criterion was *"0
+hard-fail and 0 undispositioned, **or** a named remainder with an owner"*, and C-1 closed on
+the second branch -- 4 `proof_layer` findings left visible under `[#638]` rather than
+suppressed by a `match` the register's own contract forbids. Hours later lane C-4 wired
+preflight row 1 as **PASS-iff-GREEN**. Both are defensible; together they mean **no handoff
+can be cut until `[#638]` lands**, and the seat the gate blocks is precisely the seat that
+must not clear it. Measured: the 4 blocking WARNs are *exactly* `[#638]`'s four -- every other
+family C-1 touched is fully dispositioned. **Whether a named remainder satisfies row 1 is a
+GATE CHANGE and belongs to the operator.**
+
+**No BACKLOG row was filed for it, deliberately.** `BACKLOG.md` sits 477 B under its 72,000
+bar, and `test_gen_task_tree.py` records the rule in its own docstring: *closing a row to buy
+bytes is closing undone work*. Buying room for my own finding is that trade run backwards. The
+finding lives here, in `to-browser/QUESTION-handoff-cut-2026-09-08.md`, and in the dawn digest.
+
+**Three of my own briefs were wrong, and the lanes proved it rather than obeying it.** I told
+C-5 the four blocking WARNs were the June `no_ff_merges` / `doc_rot` / `undeclared_edges` /
+`review_artifact_coverage` families -- all four are fully dispositioned; the snapshot was
+stale by one merge. I told it a `pre-carried-by/` glob landmine would false-FAIL P11 -- the
+glob is one level deep and those directories hold no QUESTION files; **hypothesis
+disconfirmed by measurement**, which is the right way for a warning to die. And I said Q4/Q6
+of the browser supplement cite no file; they do. P8a still FAILS its citation leg on Q1, Q3
+and Q5, which name no file, path or sha -- the header's `reads:` line is document-level
+provenance and does not satisfy *each filled answer cites a FILE*.
+
+**A real instrument defect, found and worked around rather than papered over:**
+`_question_is_dispositioned` derives the seat from the filename and looks for
+`ANSWER-<seat>.md`, so the genuine answer `ANSWER-filings-Q3.md` does not match
+`QUESTION-filings.md`. The row missed a real answer. C-5 added an explicit `disposition:`
+line instead of renaming the browser's file. Not fixed here -- it is a gate change made at
+3am to unblock its own author, which is the shape this batch exists to refuse.
+
+**Batch CLOSE, closed:** C-1 ship-gate 49 undispositioned to 4 (19 FIXED, not silenced) ·
+C-2 living docs current, freshness 4 stale to 0 · C-3 59 transport files archived, LEDGER v4,
+nine ratification seals carried forward with questions intact · C-4 nine preflight rows, two
+of which could not fail as specified · C-5 refused the cut and said why.
+**Result:** queue drained, zero worktrees, tree clean, ship-gate 0 hard-fail / 4 named.
+**Abandoned:** the v7.1 bundle -- blocked, not skipped.
+**Next (operator):** rule `[#642]`-shaped question above; then `[#638]`; then batch V (<= 6).
+
 ### 2026-09-08 (c) - CC (Opus 5, DISPATCHER-CLOSE): the living docs come current, and a standing ruling I had not read cost the clone forty minutes
 
 **Anchors `aab6dfea`, `43e5dee1`, `96d1ada7`, `07425ce2`, `4aedae11`, `98ae7396`, `e6b341a5`
