@@ -117,3 +117,14 @@ duty, it does not authorise the deviation.
 - Reviewer per D3 (AMEND-002): terra pre-merge on V-2/V-3/V-5/V-6/V-7; the reviewer model name goes in the tally, and a mismatch is `review=NONE`.
 
 *Frozen at dispatch by dispatcher-V, 2026-09-08, against `main` @ `08c35b9c`. The lane's authoritative surface is THIS file; a correction re-enters as a NEW contract, never as a mid-flight message (ADR-110 per-lane requirement 1).*
+
+## AMENDMENT — AMEND-BATCH-V-002, applied before dispatch
+
+**The batch roster changed; this lane's own scope did not.** V-7 (FPG-1 + `orphan_census`) left
+batch V and returns as V+1's first lane; **V-8 — offload admission** took its slot. Lane count
+stays six, so this contract's "Batch gates (all six lanes)" block still reads true.
+
+**Launch verb, for batch V only.** `dispatch <FILE.md>` REFUSES every contract this generator
+emits (`Assert-ClaudeCommand` demands a `claude` head token; the generator writes
+`Dispatch-Lane`). Measured 6/6 at step 0. The **fallback** row is in force for this batch:
+`Dispatch-Local <slug> <FILE>.md -Effort high`, DryRun-verified 6/6. V-5 owns the generator fix.

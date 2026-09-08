@@ -36,7 +36,7 @@ V-3  lane-v-000-seal-rules-rerun       DISPATCH  local  opus  execute  no row  f
 V-4  lane-v-642-assembly-debt-rows     HELD      local  opus  plan     #642    every ruled-but-unrowed item becomes a row   [WAITS on Sitting 1]
 V-5  lane-v-643-enforcement-debt       DISPATCH  local  opus  plan     #643    the checks that were claimed, built
 V-6  lane-v-000-seat-templates-ledger  DISPATCH  local  opus  execute  no row  4 refusals as code; SEAT-BOOT render; LEDGER generator
-V-7  lane-v-000-fpg-orphan-census      DISPATCH  local  opus  plan     no row  FPG-1 API; build orphan_census; zero orphans measured
+V-8  lane-v-000-offload-admission      DISPATCH  local  opus  plan     no row  Copilot CLI admitted on SEEDED defects; -Model verified live
 ```
 
 > This fence is a **machine surface**, not prose: `batch_manifest.manifest_lane_slugs` reads the
@@ -53,6 +53,36 @@ grammar** — a ONE-letter letter field and a NUMERIC id. The intent file's shor
 authority over the prompt's shorthand, as it was for batches G, R5P, T and U. `000` is the no-row id
 — **four of the six lanes discharge no BACKLOG row and file none. Two carry a real row: `[#642]`
 and `[#643]`.**
+
+## AMENDED BEFORE MERGE — AMEND-BATCH-V-002
+
+This manifest was frozen with V-7 and amended **before** it merged, which is the default the
+amendment itself states. Three rulings applied:
+
+**§2 · V-7 out, V-8 in.** V-7 (FPG-1 + `orphan_census`) was the only lane whose scope GREW at
+step 0 — its closure reads as a migration and the organ does not exist (intake #86, DRAFT), so
+it was a build, and a build against an unratified spec. It returns as **V+1's first lane**, and
+`#86` joins Sitting 1's ratification list so V+1 starts clean. **V-8 — offload admission** takes
+its slot: Copilot CLI from `provider-registry.yaml`, admitted on SEEDED defects per the `[#627]`
+precedent, verifying LIVE that `-Model` reaches the dispatch line. Lane count stays six.
+
+**§1 · The generator/verb seam.** V-5 owns the generator fix plus a seeded negative; V-6 owns
+the `-DryRun`-every-contract step-0 refusal. Fallback launch rows are accepted for batch V only.
+
+**§3 · The ordering gate, measured live rather than assumed.** The dispatcher had reported only
+its own process value. Read from the daemon's actual environment block (`claude.exe daemon run`,
+PID 45628, PEB -> RTL_USER_PROCESS_PARAMETERS, 94 vars):
+
+```
+daemon CLAUDE_PROMPTS_DIR : H:\My Drive\CLAUDE PROMPT DIR
+User   CLAUDE_PROMPTS_DIR : H:\My Drive\CLAUDE PROMPT DIR
+VERDICT                   : MATCH
+```
+
+**They MATCH, so the win-tooling launcher fix (§3(a)) is V+1's second lane and gates nothing
+here.** Recorded because the first read of this gate FAILED and printed "DIFFER (absent != set)"
+from an exception rather than from evidence — a failed read is not an absent variable, and that
+false reading would have held the batch.
 
 ## THE MANIFEST BRANCH
 

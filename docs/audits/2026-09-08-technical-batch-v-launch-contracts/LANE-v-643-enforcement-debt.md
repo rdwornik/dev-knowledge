@@ -120,3 +120,28 @@ duty, it does not authorise the deviation.
 - Reviewer per D3 (AMEND-002): terra pre-merge on V-2/V-3/V-5/V-6/V-7; the reviewer model name goes in the tally, and a mismatch is `review=NONE`.
 
 *Frozen at dispatch by dispatcher-V, 2026-09-08, against `main` @ `08c35b9c`. The lane's authoritative surface is THIS file; a correction re-enters as a NEW contract, never as a mid-flight message (ADR-110 per-lane requirement 1).*
+
+## AMENDMENT — AMEND-BATCH-V-002, applied before dispatch
+
+**§1 · This lane owns the generator/verb fix.** `dispatch.ps1` changed 2026-09-07 night and
+`gen_lane_contract.py` did not follow; the generator's own claim that the two cannot drift was
+untested — the fourth declared-but-unbacked edge witnessed on 2026-09-08. **Fix the GENERATOR,
+never the verb.** `Invoke-Dispatch.ps1::Assert-ClaudeCommand` is correct: a contract file names
+the work, not the program, and weakening it would be an arbitrary-execution hole.
+
+- Add the **seeded negative**: a contract naming a program is REFUSED, with a test that fails
+  if the refusal is removed.
+- Closure: `-DryRun` of every generated contract is clean **n/n**, and the ruled verb
+  `dispatch <FILE.md>` consumes every shape this generator emits. Presence of a command line
+  is not consumability — that gap is what shipped.
+- Filed as the **first coverage-count row**.
+- Evidence to start from: `to-browser/DEFECT-dispatch-verb-rejects-generated-contract.md`.
+
+**§3(b) · Contracts resolve their own transport.** Every contract this generator emits resolves
+`CLAUDE_PROMPTS_DIR` **from User scope itself** — no `<PROMPTS_DIR>` placeholder, no path typed
+by the operator, ever. Closure: rendered artifacts carrying a literal path or a placeholder
+**N -> 0**, with a render test that fails on either.
+
+**§3(a) is NOT this lane's.** The win-tooling launcher fix is V+1's second lane: the step-0
+ordering gate was measured live and the daemon's env block MATCHES User scope, so the
+source-side fix does not gate batch V.

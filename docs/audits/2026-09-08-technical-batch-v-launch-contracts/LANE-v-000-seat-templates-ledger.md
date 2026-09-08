@@ -114,3 +114,22 @@ duty, it does not authorise the deviation.
 - Reviewer per D3 (AMEND-002): terra pre-merge on V-2/V-3/V-5/V-6/V-7; the reviewer model name goes in the tally, and a mismatch is `review=NONE`.
 
 *Frozen at dispatch by dispatcher-V, 2026-09-08, against `main` @ `08c35b9c`. The lane's authoritative surface is THIS file; a correction re-enters as a NEW contract, never as a mid-flight message (ADR-110 per-lane requirement 1).*
+
+## AMENDMENT — AMEND-BATCH-V-002, applied before dispatch
+
+**§1 · The `-DryRun` line is a step-0 REFUSAL in the dispatcher template.** `-DryRun` of every
+generated contract is the LAST LINE of step 0, and it refuses rather than warns — this batch
+discovered the generator/verb defect by running it, and a dispatcher that skips it launches into
+a refusal. Add it as a fifth refusal alongside the four already contracted, with its own test.
+
+**§3(b) · SEAT-BOOT renders resolve their own transport.** Every rendered boot resolves
+`CLAUDE_PROMPTS_DIR` **from User scope itself** — no `<PROMPTS_DIR>` placeholder, no path typed
+by the operator, ever. `SEAT-BOOT-dispatcher.md` §4 step 1 is the one-off instance and
+`SEAT-BOOT-integrator.md` §0 is the corrected form; **the generator makes it structural.**
+Closure: rendered artifacts carrying a literal path or a placeholder **N -> 0**, with a render
+test that fails on either.
+
+**Note on the two rendered examples.** `to-browser/SEAT-BOOT-dispatcher.md` carries the
+`<PROMPTS_DIR>` placeholder because it was rendered before this ruling;
+`to-browser/SEAT-BOOT-integrator.md` does not. The integrator file is the shape to generalise;
+the dispatcher file is a worked example that this lane's own closure counts as N and drives to 0.
