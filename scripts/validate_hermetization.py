@@ -331,6 +331,137 @@ def is_allowed_home(home: str) -> bool:
     return any(_home_matches(home, pat) for pat in _HOME_PATTERNS)
 
 
+# --- three clauses that named an organ and had none -----------------------------------
+#
+# MEASURED 2026-09-09 (`docs/audits/2026-09-09-technical-shape-spec-clause-readers.md`):
+# 4 of the spec's 9 clauses were opened by an organ, and THREE named an asserting surface
+# that never read them -- `required_docs`, `vscode` and `sorting`. A clause with a
+# decorative locator is worse than an unasserted one: `asserted_by: null` is visible in the
+# file and admitted as an honest gap, while a locator reads as enforced. The three readers
+# below (and the `vscode`/`sorting` pair in `scripts/audit_checks/check_workspace_settings.py`)
+# close that. `tests/test_fleet_shape_spec_readers.py` proves each one BEHAVIOURALLY -- it
+# doctors the clause and asserts the verdict follows -- because a name-grep over this module
+# would prove the clause is mentioned here, not that its value is consumed.
+#
+# All three are FAIL-CLOSED at load, on this module's stated posture: a spec that will not
+# load means the gate has no rules, and a gate that silently admits everything is worse than
+# one that refuses to start.
+
+#: The six kinds (AMEND-SESSION-PLAN-001 §2), as a literal HERE rather than read from the
+#: file this proves. Same mechanism as `_REGEX_SENTINELS` above: a set the spec supplied
+#: could be doctored to agree with a broken spec and would establish nothing. A seventh kind
+#: is an edit to both surfaces, which is the point.
+KIND_ENUM: frozenset[str] = frozenset(
+    {"source", "test", "data", "model", "eval", "tooling"})
+
+#: The cite token a kind uses instead of copying a home the layout clause already states.
+_SOURCE_HOME_CITE = "python_layout.source_home_by_layout"
+
+
+def _python_layout(clauses: dict[str, Any]) -> dict[str, Any]:
+    """Resolve the `python_layout` clause: which layout this repo declares, and its homes.
+
+    The clause carries two layouts because both are in-pattern -- a packaged project keeps
+    its code under `src/`, a flat governance repo keeps its organs in `scripts/` -- and the
+    repo says which one it is. What is checked is the pair the clause cannot be trusted to
+    keep consistent by itself: a declared layout the clause never defined, and a source or
+    tests home the home grammar above refuses. Those two disagreeing is a spec that admits a
+    shape its own seal would reject, which no consumer report could make sense of.
+    """
+    layout = _clause_str(clauses, "python_layout", "declared_layout")
+    layouts = _clause_list(clauses, "python_layout", "source_layouts")
+    if layout not in layouts:
+        raise ShapeSpecError(
+            f"fleet shape spec `python_layout.declared_layout` is {layout!r}, which is not "
+            f"one of the declared `source_layouts` {sorted(layouts)}")
+    by_layout = clauses["python_layout"].get("source_home_by_layout")
+    if not isinstance(by_layout, dict) or not all(
+            isinstance(v, str) for v in by_layout.values()):
+        raise ShapeSpecError(
+            "fleet shape spec `python_layout.source_home_by_layout` is not a mapping of "
+            "layout to home")
+    missing = sorted(set(layouts) - set(by_layout))
+    if missing:
+        raise ShapeSpecError(
+            f"fleet shape spec `python_layout.source_home_by_layout` defines no home for "
+            f"the declared layouts {missing}")
+    source_home = by_layout[layout]
+    tests_home = _clause_str(clauses, "python_layout", "tests_home")
+    for role, home in (("source", source_home), ("tests", tests_home)):
+        if not is_allowed_home(home):
+            raise ShapeSpecError(
+                f"fleet shape spec `python_layout` names {home!r} as the {role} home, which "
+                f"the home grammar refuses -- the spec would admit a shape its own seal "
+                f"rejects")
+    return {"layout": layout, "source_home": source_home, "tests_home": tests_home,
+            "source_home_by_layout": dict(by_layout)}
+
+
+def _kind_homes(clauses: dict[str, Any], layout: dict[str, Any]) -> dict[str, str]:
+    """Resolve `home_grammar.kinds` -- six kinds, ONE home each -- and the declaration.
+
+    `source` carries a CITE into `python_layout` rather than a copy of the home, so the two
+    clauses cannot drift into naming different source trees; resolving it here is what makes
+    the cite load-bearing instead of documentation.
+    """
+    kinds = clauses["home_grammar"].get("kinds")
+    if not isinstance(kinds, dict) or set(kinds) != KIND_ENUM:
+        raise ShapeSpecError(
+            f"fleet shape spec `home_grammar.kinds` carries {sorted(kinds) if isinstance(kinds, dict) else kinds!r}; "
+            f"the grammar is the six kinds {sorted(KIND_ENUM)}")
+    homes: dict[str, str] = {}
+    for kind, home in kinds.items():
+        if not isinstance(home, str) or not home:
+            raise ShapeSpecError(
+                f"fleet shape spec `home_grammar.kinds.{kind}` carries {home!r}; a kind "
+                f"carries exactly one home")
+        homes[kind] = layout["source_home"] if home == _SOURCE_HOME_CITE else home
+    declared = _clause_list(clauses, "home_grammar", "declared_kinds")
+    stray = sorted(set(declared) - KIND_ENUM)
+    if stray or len(set(declared)) != len(declared):
+        raise ShapeSpecError(
+            f"fleet shape spec `home_grammar.declared_kinds` is {declared}; each member is "
+            f"one of the six kinds, declared once (offending: {stray or 'a repeat'})")
+    return homes
+
+
+def _require_one_registry(clauses: dict[str, Any]) -> str:
+    """`required_docs.source` and `root_allowlist.files_from` name the SAME registry.
+
+    THE ONE READ THIS CLAUSE CAN CARRY. `required_docs` deliberately restates no roster --
+    CLOUD-4 v2 made ADR-101 §1's file enum and the ADR-38 canonical set provably the same
+    strings, and copying those names into YAML would undo it. So the clause holds a citation
+    and nothing else, and the only thing an organ can check about a citation held twice is
+    that the two copies agree. Two clauses citing one registry by two strings is a drift
+    pair; one string checked at load is not.
+    """
+    source = _clause_str(clauses, "required_docs", "source")
+    files_from = _clause_str(clauses, "root_allowlist", "files_from")
+    if source != files_from:
+        raise ShapeSpecError(
+            f"fleet shape spec cites the canonical registry twice and disagrees: "
+            f"`required_docs.source` is {source!r} and `root_allowlist.files_from` is "
+            f"{files_from!r} -- both name the same registry")
+    return source
+
+
+#: The declared Python layout and its homes (spec clause `python_layout`).
+PYTHON_LAYOUT: dict[str, Any] = _python_layout(SHAPE_SPEC)
+
+#: kind -> its ONE home, with the `source` cite resolved (spec `home_grammar.kinds`).
+KIND_HOMES: dict[str, str] = _kind_homes(SHAPE_SPEC, PYTHON_LAYOUT)
+
+#: The kinds THIS repo declares it HAS (spec `home_grammar.declared_kinds`). Admission and
+#: declaration are different acts: `models/` and `eval/` are admitted by the grammar and
+#: exist in no directory here, which is why the existence half is scoped to this tuple.
+DECLARED_KINDS: tuple[str, ...] = tuple(
+    _clause_list(SHAPE_SPEC, "home_grammar", "declared_kinds"))
+
+#: The one canonical-docs registry, proven to be cited identically by both clauses that
+#: cite it (spec `required_docs.source` == `root_allowlist.files_from`).
+REQUIRED_DOCS_REGISTRY: str = _require_one_registry(SHAPE_SPEC)
+
+
 # --- pure classifiers (unit-tested directly; no git) ----------------------------------
 
 def _posix_parts(path: str) -> list[str]:
