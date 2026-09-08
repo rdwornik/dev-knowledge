@@ -19,6 +19,40 @@
 
 ---
 
+### 2026-09-08 (h) - CC (Opus 5, HANDOFF SEAT): the superseding cut, and the citations it carries itself
+
+**Anchors this entry's own merge via `04a80646`**, the bundle commit it rides.
+
+**`docs/handoffs/2026-09-08-dev-knowledge-architect-2` supersedes the `-1` bundle cut four hours
+earlier.** The `-1` bundle cleared 14 of 17 live rows; the three that stayed red were properties
+of the artifact, not of the repo, and a handoff is immutable -- so the fix is a second cut, not an
+amendment. P0c: the Purpose now opens on **[E4] Decision management** and **[E1] Handoff
+continuity**, both of which the P0a/P0b enumeration returns. P8a: the seven browser-authored
+`Files:` lines land VERBATIM under Q1-Q7 of the folded answers -- *appended*, never re-authored,
+with every original answer body verified byte-identical before the write. P11: both preflight
+DECLAREs on the transport now carry a flush-left `carried-by:` naming `988944e8` / `aeea0e0a`,
+each of which resolves on `main`.
+
+**What the residual owes the next seat, with owners rather than adjectives:** the twelve carried
+questions (eleven out of batches T and U, owned by `[#642]`, plus this window's own cut question),
+`[#638]`'s four undispositioned `proof_layer` WARNs by row, and the consolidated suite -- OOM-killed
+five times and never run this window -- as the **first** act of the next one. Two decision files
+that arrived on the transport mid-work, `DECLARE-BOOT-REVIEW-2026-09-08` and `AMEND-037-001`, are
+named as **OPEN** carriers. Naming them keeps P11 honest at the cost of a red row; omitting them
+would have bought a clean block by hiding the thing the row exists to find.
+
+**PASTE_THIS is 29,755 B against a 20,000 B target -- reported, not truncated.** The ceiling is a
+target and not a gate (`DECLARE-BOOT-REVIEW-2026-09-08` ruling 3), and the only way under it was to
+drop the verbatim answers the operator ordered carried. A budget met by discarding the payload is
+not a budget met.
+
+Did: appended the citation lines and folded the answers; cut, filled and assembled the `-2` bundle;
+landed both `carried-by:` lines on the transport DECLAREs.
+Result: `-2` bundle on `main`; the three artifact-side red rows addressed at their cause.
+Changes: `docs/handoffs/2026-09-08-dev-knowledge-architect-2/` (6 files), `JOURNAL.md`.
+Abandoned: shrinking the paste under 20 KB -- the payload outranks the target.
+Next: re-run the live gate against `-2`; PIN v4 + DIGEST v4.
+
 ### 2026-09-08 (g) - CC (Opus 5, HANDOFF SEAT): the cut the window could not make this morning, made
 
 **Anchors this entry's own merge via `3174c34d`**, the bundle commit it rides.
