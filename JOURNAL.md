@@ -19,6 +19,113 @@
 
 ---
 
+### 2026-09-08 (k) - CC (Opus 5, DISPATCHER SEAT): AMEND-BATCH-V-002 applied before the merge; two gates measured, one of them broken
+
+**Anchors via `f5e49bcf`**, the amendment commit it rides. (`c1f08699` remains anchored by (j);
+a `--no-ff` merge introduces all three and the range names SHAs it introduces.)
+
+**The amendment landed before the manifest merged, which was still available.** V-7 (FPG-1 +
+`orphan_census`) leaves batch V and returns as V+1's first lane -- it was the one lane whose scope
+grew at step 0, from migration to build, and it would have built against an unratified spec.
+**V-8 -- offload admission** takes the slot: Copilot CLI admitted on SEEDED defects per the
+`[#627]` precedent, verifying LIVE that `-Model` reaches the dispatch line. Lane count stays six.
+
+**The ordering gate was measured, not assumed, and the first measurement lied.** §3 asks whether
+the daemon's environment block agrees with User scope -- a different reading from the process
+value this seat had reported. Read from `claude.exe daemon run` (PID 45628) via
+PEB -> RTL_USER_PROCESS_PARAMETERS: 94 vars, `CLAUDE_PROMPTS_DIR` identical to User scope,
+**MATCH**, so the win-tooling launcher fix is V+1's and gates nothing here. The first cut of that
+reader threw on a 64 KB read spanning unmapped pages and printed *"DIFFER (absent != set)"* from
+the exception rather than from evidence. **A failed read is not an absent variable**; that false
+DIFFER would have held the whole batch. The reader now chunks, and reports UNKNOWN on failure.
+
+**`lane-contract-check` cannot pass while a batch is open, and this is the first commit to find
+out.** The hook's comment claims `always_run: true` + `pass_filenames: false`; the YAML sets only
+the first -- the neighbouring `pass_filenames: false` belongs to `provider-registry-agreement`.
+So filenames ARE passed, pre-commit CHUNKS them, and each chunk hands the `[#630]` set-equality
+check the manifest plus a SUBSET of the contracts. Two REFUSE lines in one run, with
+complementary missing sets whose union is the full six. Run once with all seven paths the same
+predicate returns *"1 open batch(es), 7 contract(s) - OK"*, exit 0. It was never caught because
+the check is inert until a batch is OPEN, and a freeze commit runs before its own manifest is
+committed. Landed under a declared single-hook bypass; the config was deliberately NOT edited,
+because `.pre-commit-config.yaml` is watched by another gate and a dispatcher rewriting
+enforcement mid-batch is the unilateral change the core invariants forbid.
+
+**Did:** applied AMEND-BATCH-V-002 §1/§2/§3 to the frozen set; built a PEB env-block reader;
+DryRan every contract under both verbs; diagnosed the hook defect to its missing YAML key.
+
+**Result:** six contracts, set equality holds both ways, fallback DryRun 6/6 clean and the ruled
+verb 0/6 -- the generator/verb defect reproduces across the whole set rather than on one file.
+
+**Changes:** `docs/audits/2026-09-08-technical-batch-v-manifest.md`;
+`docs/audits/2026-09-08-technical-batch-v-launch-contracts/` (V-7 removed, V-8 added, four
+stamped); `to-browser/` STATUS + two DEFECT files (transport, untracked).
+
+**Abandoned:** the 64 KB single-read env probe, replaced by a chunked reader that reports UNKNOWN
+rather than a fabricated verdict.
+
+**Next:** the integrator merges this branch, anchors, pushes, tears down, then holds the queue.
+Lanes fire on the integrator's PACKET line -- never by a paste -- NOW or OVERNIGHT by the
+operator's word, default overnight.
+
+### 2026-09-08 (j) - CC (Opus 5, DISPATCHER SEAT): batch V frozen at dispatch -- six contracts, five fired, one held
+
+**Anchors this entry's own merge via `c1f08699`**, the freeze commit it rides.
+
+**Booted from a rendered paste rather than a composed one.** Operator ruling 038 withdrew two
+composed dispatcher boot pastes; the replacement is `to-browser/SEAT-BOOT-dispatcher.md`, rendered
+byte-verbatim from PLAYBOOK Ch8's batch protocol and dispatch table (12 blocks, 178 quoted lines,
+each verified present in both PLAYBOOK and the render). This session rendered it, then booted from
+it -- the one-off form of the artifact `AMEND-BATCH-V-001` assigns to lane V-6.
+
+**Step 0 refused nothing and corrected four things.** Ceiling 6 <= 6, at the ceiling. Lane letter
+`v` free across all refs and history. `[#441]`: all four conditions YES, so six worktree lanes
+rather than one fat prompt. Ship-gate 0 hard-fail, 96 WARN / 92 dispositioned, and all four
+undispositioned are `proof_layer` -- owned by the open row `[#638]`, which V-5 is forbidden by
+contract to suppress.
+
+**The preflight is the part that paid.** Four of the intent file's locators did not resolve as
+written, and each would otherwise have been discovered by a lane spending decision budget on it:
+`check_workspace_settings.py` is in `scripts/audit_checks/`; **`orphan_census` does not exist at
+all** -- it is intake #86, DRAFT, so V-7 BUILDS the organ its closure describes as a migration;
+bare `#73` is intake 73 rather than a BACKLOG row, which is why that lane carries the no-row id;
+and PLAYBOOK has no harness section, so V-4 creates one. A contract that cites a path a gate
+governs is checkable at authoring time, and checking it there is cheaper than any lane finding it.
+
+**The coupling scan found one collision the plan did not carry.** The `carried-by:` write-time
+refusal is assigned TWICE -- V-5 item (c) and V-6 refusal #4 -- and they are one deliverable.
+Resolved to V-6 by ownership, on the only ground that keeps both closures measurable: V-6 counts
+four refusals, V-5 counts this one not at all. Nothing was dropped, and the ambiguity is the
+architect's rather than the dispatcher's, so it is filed as a question rather than decided away.
+`gen_handoff.py` is owned two ways in one wave (V-5's preflight functions, V-6's render hook):
+parallel, pinned, each merging `origin/main` before its handback.
+
+**V-4 is HELD, not dropped.** `DECLARE-SITTING-2026-09-08` is absent from the transport and the GO
+makes it that lane's condition. Its contract is frozen and committed with the other five and it is
+named in the manifest's lane fence; it fires on one command the moment the file lands. Batch U's
+precedent binds here -- a dispatcher does not resolve a plan question by removing a lane.
+
+**Did:** rendered the dispatcher boot paste from Ch8; ran step 0 (ceiling, letter, `[#441]`,
+ship-gate, preflight, coupling scan); froze six lane contracts via `gen_lane_contract.py` and
+filled them; wrote and verified the batch V manifest against its own machine contract.
+
+**Result:** manifest declares exactly six slugs -- no phantom seventh from a branch name leaking
+into the parsed block -- and `[#630]` set equality holds both ways against the six contracts. All
+six contracts pass the shape gate at 9 sections each. `closed_by:` is valid and absent, so the
+exemption this manifest opens can expire.
+
+**Changes:** `docs/audits/2026-09-08-technical-batch-v-manifest.md` (new);
+`docs/audits/2026-09-08-technical-batch-v-launch-contracts/` (new, six contracts);
+`to-browser/SEAT-BOOT-dispatcher.md` + `to-browser/STATUS-DISPATCHER-V.md` (transport, untracked).
+
+**Abandoned:** nothing. The two withdrawn boot pastes were withdrawn by ruling 038 before this
+session, not by it.
+
+**Next:** the five dispatched lanes commit-and-STOP and hand back their branches; the integrator
+walks the merge queue serially from the primary checkout and closes on the five-item
+refuse-to-finish checklist. V-4 dispatches when Sitting 1 lands. `to-browser/QUESTION-dispatcher-V.md`
+item 1 (the doubly-assigned refusal) wants the operator's word.
+
 ### 2026-09-08 (i) - CC (Opus 5, HANDOFF SEAT): the gate that would have caught it twice, filed as `[#643]`
 
 **Anchors this entry's own merge via `0d5f70b6`**, the filing commit it rides.
