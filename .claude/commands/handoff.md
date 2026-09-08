@@ -74,9 +74,19 @@ Exit 1 on any FAIL, 0 otherwise. It costs about four and a half minutes, almost 
 ship-gate row running the real `audit.py ship-gate` — the same cost `generate()` pays, which is
 affordable exactly because a cut is a once-per-window act at a true batch boundary.
 
-Two rows are implemented as CORRECTED against the register that commissioned them, because a
-row that cannot fail reports a safety it does not provide:
+Three rows are implemented as CORRECTED against the register that commissioned them, because a
+row that cannot fail reports a safety it does not provide — and a row that cannot pass reports a
+readiness no window can ever reach:
 
+- **The ship-gate row** reads `hard-fail = 0 AND every undispositioned WARN is named in the
+  residual with its owning row` — **not** ship-gate GREEN. A handoff is not a release: GREEN
+  (0 hard-fail AND 0 undispositioned) is the TAG gate's criterion and stays there, unchanged;
+  demanding it at a *cut* means a window with any open finding can never hand off, a deadlock
+  this preflight's first live run demonstrated. The debt travels to the next seat explicitly,
+  carried by the residual (P11 shape), instead of the window being unable to close. Only the
+  first conjunct is machine-checked — the residual does not exist yet at preflight time — so the
+  row passes on the count and states the carried obligation in its evidence line. Ruling:
+  `to-cc/DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08.md` (2026-09-08).
 - **QUESTION files** are checked for a DISPOSITION, not for being unanswered. Registered as "no
   QUESTION-* unanswered", the row went vacuous the moment all 20 outstanding questions were
   archived without answers: an empty directory satisfies it forever. A question discharges by

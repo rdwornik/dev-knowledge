@@ -547,6 +547,25 @@ def assert_boundary_hygiene(repo_root: Path) -> None:
 #     declared. It never passes silently, and it arms itself with no code change the moment the
 #     operator declares the budget.
 #
+# ROW 1 WAS AMENDED 2026-09-08 by operator ruling, and the amendment is a DISTINCTION, not a
+# relaxation: a HANDOFF IS NOT A RELEASE. The row was registered as "ship-gate GREEN", which is
+# the TAG gate's criterion -- 0 hard-fail AND 0 undispositioned, NC1 / 028 criterion A, and that
+# criterion is unchanged where it belongs. Applied to a CUT it deadlocks by design: a window
+# carrying any open finding could never hand off, and the first live run of this preflight
+# demonstrated exactly that (it refused the 2026-09-08 cut over [#638]'s 4 WARNs). The row now
+# reads:
+#
+#     hard-fail = 0 AND every undispositioned WARN is named in the residual with its owning row
+#
+# so the debt travels to the next seat EXPLICITLY -- the P11 residual shape already carries it --
+# instead of the window being unable to close. Only the FIRST conjunct is mechanically checkable
+# here: the residual is written after preflight clears, so the row passes on the count and states
+# the carried obligation in its evidence line, which is where the seat cutting the bundle reads
+# it. Saying that plainly is the same discipline rows 7 and 8 above are implemented under -- a
+# row must not report a safety it does not provide, and it must not hide one it only asserts.
+# Ruling: `to-cc/DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08.md` on the transport, ratified by the
+# operator's paste 2026-09-08.
+#
 # COST, stated rather than discovered: row 1 runs the real ship-gate, measured at 4m30s on
 # 2026-09-07 under four-lane contention (the plugin's 2026-07-05 note of ~13s is stale). A cut
 # is a once-per-window act taken at a true batch boundary, which is what makes that affordable;
@@ -660,6 +679,12 @@ def _stamped_docs() -> tuple[str, ...]:
 
 _SHIP_GATE_VERDICT_RE = re.compile(r"^ship-gate:\s*(GREEN|RED)\b(.*)$", re.MULTILINE)
 
+#: The two reason-counts `cmd_ship_gate` prints inside the RED tail. They are read SEPARATELY
+#: because the 2026-09-08 ruling turns on the hard-fail count alone: a RED carrying only
+#: undispositioned WARNs is a carryable debt, a RED carrying a hard-fail organ is not.
+_SHIP_GATE_HARD_FAIL_RE = re.compile(r"(\d+)\s+hard-fail organ")
+_SHIP_GATE_UNDISPOSITIONED_RE = re.compile(r"(\d+)\s+new/undispositioned WARN")
+
 
 def _ship_gate_verdict(repo_root: Path) -> "tuple[str | None, str]":
     """`(verdict, evidence)` from a real `audit.py ship-gate` run; `(None, why)` when unread.
@@ -766,12 +791,41 @@ _LEDGER_REFRESHED_RE = re.compile(r"refreshed\s+(\d{4}-\d{2}-\d{2})")
 
 
 def _row_ship_gate(repo_root: Path) -> PreflightRow:
-    """Row 1 -- GREEN means 0 hard-fail AND 0 undispositioned WARN; every other reading FAILs."""
+    """Row 1 -- PASS on `hard-fail = 0`; the undispositioned WARNs are CARRIED, not cleared.
+
+    Amended 2026-09-08 (see the register header above): a handoff is not a release. GREEN --
+    0 hard-fail AND 0 undispositioned -- is the TAG gate's criterion and stays the TAG gate's;
+    demanding it here deadlocks the window that has any open finding at all. So a RED whose only
+    reason is undispositioned WARNs PASSES this row, and the evidence line states the obligation
+    that makes the pass honest: each of those WARNs is named in the residual with its owning row.
+    That second conjunct is NOT mechanically checkable here -- the residual does not exist until
+    after preflight clears -- and this docstring says so rather than implying a check that is
+    absent. A RED carrying a hard-fail organ, and an unreadable verdict, both still FAIL.
+    """
     verdict, evidence = _ship_gate_verdict(repo_root)
-    status = PREFLIGHT_PASS if verdict == "GREEN" else PREFLIGHT_FAIL
-    return PreflightRow("ship_gate", status,
-                        "`python scripts/audit.py ship-gate` + ecosystem/disposition-register.yaml",
-                        evidence)
+    locator = "`python scripts/audit.py ship-gate` + ecosystem/disposition-register.yaml"
+    if verdict is None:
+        return PreflightRow("ship_gate", PREFLIGHT_FAIL, locator, evidence)
+    if verdict == "GREEN":
+        return PreflightRow("ship_gate", PREFLIGHT_PASS, locator, evidence)
+
+    hard = _SHIP_GATE_HARD_FAIL_RE.search(evidence)
+    warns = _SHIP_GATE_UNDISPOSITIONED_RE.search(evidence)
+    if hard is None and warns is None:
+        # A RED always prints at least one reason. A tail this row cannot read is a tail it
+        # cannot clear: unknown is not clean, the direction every other row here already takes.
+        return PreflightRow("ship_gate", PREFLIGHT_FAIL, locator,
+                            f"{evidence} -- RED in a shape this row cannot read; "
+                            "the hard-fail count could not be established")
+    if hard is not None and int(hard.group(1)):
+        return PreflightRow("ship_gate", PREFLIGHT_FAIL, locator,
+                            f"{evidence} -- hard-fail organ(s) present; a hard-fail is never "
+                            "carryable, and no residual line disposes of one")
+    carried = warns.group(1) if warns is not None else "the outstanding"
+    return PreflightRow("ship_gate", PREFLIGHT_PASS, locator,
+                        f"{evidence} -- 0 hard-fail. CARRIED, and the cut is only honest if it "
+                        f"holds: each of the {carried} undispositioned WARN(s) is named in the "
+                        "residual with its owning row (DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08)")
 
 
 def _row_ledger_refreshed(transport, repo_name: str, today: str) -> PreflightRow:

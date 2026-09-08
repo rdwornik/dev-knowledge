@@ -221,10 +221,39 @@ def test_ship_gate_verdict_is_read_from_BOTH_streams(tmp_path, monkeypatch):
     assert verdict == "RED" and "1 hard-fail" in evidence
 
 
-def test_ship_gate_row_fails_on_RED(tmp_path, monkeypatch):
+def test_ship_gate_row_fails_on_RED_carrying_a_hard_fail_organ(tmp_path, monkeypatch):
+    """A hard-fail is never carryable -- no residual line disposes of one (ruling 2026-09-08)."""
     monkeypatch.setattr(gh, "_ship_gate_verdict",
                         lambda _root: ("RED", "1 hard-fail organ(s); 7 undispositioned WARN(s)"))
     assert gh._row_ship_gate(tmp_path).status == gh.PREFLIGHT_FAIL
+
+
+def test_ship_gate_row_PASSES_on_RED_whose_only_reason_is_undispositioned_WARNs(tmp_path, monkeypatch):
+    """The 2026-09-08 amendment: a handoff is not a release.
+
+    GREEN is the TAG gate's criterion; demanding it at a CUT deadlocks any window with an open
+    finding -- which is what the first live run of this preflight did. The row passes on
+    `hard-fail = 0` and states the carried obligation, so the debt is inherited, not erased.
+    """
+    monkeypatch.setattr(gh, "_ship_gate_verdict",
+                        lambda _root: ("RED", "ship-gate: RED -- not shipped-ready "
+                                              "(4 new/undispositioned WARN(s))"))
+    row = gh._row_ship_gate(tmp_path)
+    assert row.status == gh.PREFLIGHT_PASS
+    # The pass is only honest if the evidence line hands the seat the obligation AND the count.
+    assert "4 undispositioned WARN(s) is named in the residual" in row.detail
+    assert "DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08" in row.detail
+
+
+def test_ship_gate_row_fails_on_a_RED_tail_it_cannot_read(tmp_path, monkeypatch):
+    """Neither reason-count present: the hard-fail count is unestablished, so the row refuses.
+
+    Without this leg the amendment would read every unparseable RED as `hard-fail = 0` and turn
+    a widened row into a blind one.
+    """
+    monkeypatch.setattr(gh, "_ship_gate_verdict", lambda _root: ("RED", "RED -- reasons elided"))
+    row = gh._row_ship_gate(tmp_path)
+    assert row.status == gh.PREFLIGHT_FAIL and "cannot read" in row.detail
 
 
 def test_ship_gate_row_fails_when_the_verdict_cannot_be_read(tmp_path, monkeypatch):
