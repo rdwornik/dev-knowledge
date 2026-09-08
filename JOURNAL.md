@@ -19,6 +19,40 @@
 
 ---
 
+### 2026-09-08 (g) - CC (Opus 5, HANDOFF SEAT): the cut the window could not make this morning, made
+
+**Anchors this entry's own merge via `3174c34d`**, the bundle commit it rides.
+
+**`docs/handoffs/2026-09-08-dev-knowledge-architect` exists.** Nine preflight rows, all PASS or
+n-a; probe gate **15 of 15**, including **P11**, which the v7.1 era makes structurally required.
+Two operator rulings landed between the refusal and this cut, and neither row was weakened to
+get here -- row 1 and row 7 both now carry debt *explicitly and owned*, which is a different
+thing from carrying it silently.
+
+**SUPPLEMENT ANSWERS transcribed VERBATIM** from `to-cc/SUPPLEMENT-ANSWERS-2026-09-07.md`
+(6,206 B), verified byte-for-byte present. The three answers whose citation form P8a is weak on
+were **left exactly as written** -- VERBATIM was the instruction, and correcting them would have
+been authoring the architect's answers rather than transcribing them.
+
+**The 20 KB ceiling and a verbatim ANSWERS fold cannot both hold, and the arithmetic says so
+rather than my judgment.** `PASTE_THIS.md` is **27,523 B** against a 20,000 ceiling. The
+generated skeleton alone is ~15.6 KB; the answers are 6.2 KB; so the floor with a COMPLETELY
+EMPTY residual is already ~21.8 KB. I trimmed the residual once (28,573 -> 27,523) and stopped:
+further cuts would start deleting what rows 1 and 7 now *require* it to carry.
+`assemble_paste` WARNs rather than blocks, so the bundle is valid. The trade is the operator's.
+
+**A second OOM kill, and the honest reading of it.** The first generation attempt was killed for
+system memory mid-preflight -- the sixth such kill this window. It left **nothing**: `generate()`
+refuses before writing, so the tree was clean and no partial bundle existed. The retry succeeded
+in the foreground. That the environment can kill a ten-minute gate run at ~2.6 GB free is why
+the consolidated suite is the next window's first act rather than a footnote.
+
+**Changes:** `docs/handoffs/2026-09-08-dev-knowledge-architect/` (6 files) - transport
+`to-browser/PIN-2026-09-08.md` v3 + `DIGEST-2026-09-08.md` v3.
+
+**Next:** the operator's first sitting rules the eleven `[#642]` carries; then `[#638]`; and
+**before either, the consolidated suite runs.**
+
 ### 2026-09-08 (f) - CC (Opus 5, HANDOFF SEAT): row 7 gets row 1's fix, and the debt it carries finally has an owner to carry it
 
 **Anchors this entry's own merge via `4475373d` and `77259f5d`**, the two work commits it rides.
