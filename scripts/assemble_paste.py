@@ -236,6 +236,91 @@ def window_specific_bytes(sections: list[tuple[str, str]], answers_label: str = 
     return total
 
 
+# --- P11 leg 2: an OPEN carrier is discharged by the RESIDUAL, and only here ([#643]) -----
+#
+# WHY THIS GATE IS AT ASSEMBLY AND NOT AT PREFLIGHT. P11 has two legs and they do not become
+# checkable at the same moment. Leg 1 — a flush-left `carried-by:` whose value resolves on
+# `main` — reads only the transport and `main`, so it refuses BEFORE the cut, as preflight row
+# `p11_carriage` in gen_handoff.py. Leg 2 is the other arm of the same disjunction: a value
+# that is the literal `OPEN` discharges P11 *only* by being NAMED in this bundle's residual —
+# and the residual does not exist when preflight runs. It is written by the generator as a
+# fillable file and filled by the operator afterwards. ASSEMBLY IS THE FIRST MOMENT BOTH
+# OPERANDS EXIST, which is what makes it the first moment the conjunct can be tested at all.
+# One preflight row claiming to cover both legs would be the false completeness P11 exists to
+# catch — the shape row 1 already documents for its own second conjunct.
+#
+# WHAT IT COST TO NOT HAVE THIS. Measured 2026-09-08: `2026-09-08-dev-knowledge-architect` and
+# its `-2` successor failed P11 on the SAME 25-file transport, five files each time, because
+# nothing between them tested carriage before the bundle was written. A committed handoff is
+# immutable, so each discovery cost a superseding cut.
+#
+# ONLY THE `OPEN` KIND IS JUDGED HERE. A file whose value names a home was leg 1's subject and
+# was already refused-or-passed before the cut; re-judging it would put one predicate in two
+# places, free to disagree about the same file. The shortfall itself comes from
+# `gen_handoff.carriage_shortfall`, which BOTH stages call — there is one predicate, not two.
+#
+# Family precedent for a handoff refusing debt, cited in the refusal the operator reads:
+# `DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08` / `DECLARE-PREFLIGHT-QUESTION-ROW-2026-09-08`.
+# A window may hand off with debt only when the debt is explicit and owned.
+
+#: The bundle home a real cut lands in. HONEST LIMIT, and it is why the gate is scoped rather
+#: than universal: `assemble_paste.py` also runs over ad-hoc directories (fixtures, one-off
+#: assemblies) that are not a window's handoff and carry no residual duty. A gate that refused
+#: those would be measuring something it was never given.
+_BUNDLE_HOME_PARTS = ("docs", "handoffs")
+
+
+def _is_window_bundle(bundle_dir: Path, repo_root: Path) -> bool:
+    """True when `bundle_dir` is `<repo_root>/docs/handoffs/<slug>` — a real cut's home."""
+    try:
+        rel = bundle_dir.resolve().relative_to(repo_root.resolve())
+    except (ValueError, OSError):
+        return False
+    return len(rel.parts) >= 3 and rel.parts[:2] == _BUNDLE_HOME_PARTS
+
+
+# rule: handoff-open-carrier-named
+def assert_open_carriers_named(bundle_dir: Path, repo_root: Path) -> None:
+    """Refuse assembly while an `OPEN` decision file is unnamed in the filled residual.
+
+    Exits 1 before `PASTE_THIS.md` is written, which is the whole point: the refusal has to
+    land while the bundle is still repairable.
+    """
+    # Deferred, sibling-CLI import — the same idiom `reflow_framing` / `FILL_IN_RE` already use.
+    from gen_handoff import (  # noqa: PLC0415
+        CARRIAGE_OPEN,
+        carriage_shortfall,
+        transport_root,
+    )
+    if not _is_window_bundle(bundle_dir, repo_root):
+        return
+    residual = bundle_dir / "RESIDUAL.md"
+    if not residual.exists():
+        return              # the required-source check below reports the absence itself
+    transport = transport_root()
+    if transport is None:
+        click.echo("[error] P11 leg 2 could not be measured: CLAUDE_PROMPTS_DIR is UNRESOLVED "
+                   "and ~/Downloads is not a directory either, so the decision files this "
+                   "bundle must carry cannot be read. An unknown boundary is not a clean one "
+                   "(DEFECT E-29) — refusing rather than assembling on an unmeasured window.",
+                   err=True)
+        sys.exit(1)
+    text = residual.read_text(encoding="utf-8", errors="replace")
+    unnamed = [v for v in carriage_shortfall(transport, repo_root, residual=text)
+               if v.kind == CARRIAGE_OPEN]
+    if not unnamed:
+        return
+    click.echo(f"[error] P11 leg 2: {len(unnamed)} decision file(s) state `carried-by: OPEN` "
+               f"and are named nowhere in {residual.name}. An OPEN carrier discharges P11 only "
+               "by being named in this bundle's residual — a window may hand off with debt, "
+               "never with debt that is silent (DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08 / "
+               "DECLARE-PREFLIGHT-QUESTION-ROW-2026-09-08). Refusing to assemble; a committed "
+               "bundle is immutable and the only later repair is a superseding cut.", err=True)
+    for v in unnamed:
+        click.echo(f"  | {v.path.parent.name}/{v.path.name}", err=True)
+    sys.exit(1)
+
+
 @click.command()
 @click.option("--pin-only", is_flag=True,
              help="Print only the 3-line ROLE PIN and exit (v7 /boot-session use — "
@@ -269,6 +354,11 @@ def main(pin_only: bool, bundle_dir: Path | None) -> None:
     if flipped:
         click.echo("[reflow] SUPPLEMENT filled -> flipped cold framing to FILLED in: "
                    f"{', '.join(flipped)}", err=True)
+
+    # P11 leg 2, and it runs FIRST — after the fill-state flip (so the residual read here is
+    # the FILLED one) and before a single byte of PASTE_THIS.md is composed. A refusal is only
+    # worth having while the bundle is still repairable.
+    assert_open_carriers_named(bundle_dir, repo_root)
 
     sections: list[tuple[str, str]] = []
 
