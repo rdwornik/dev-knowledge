@@ -19,6 +19,43 @@
 
 ---
 
+### 2026-09-08 (i) - CC (Opus 5, HANDOFF SEAT): the gate that would have caught it twice, filed as `[#643]`
+
+**Anchors this entry's own merge via `0d5f70b6`**, the filing commit it rides.
+
+**Two consecutive bundles shipped the same P11 defect against the same 25-file transport set.**
+`gen_handoff.py`'s nine-row preflight refuses a cut on ship-gate state, question disposition and
+seven other rows -- and never evaluates decision-file carriage at all. P11 is a probe the bundle
+*ships*, so its defect is found by `/handoff-verify` **after** the cut is committed and merged,
+and a merged handoff is immutable. The only repair available is a superseding cut, which is what
+`-2` was, and `-2` failed the same row.
+
+**The row's content is that the two legs do not gate at the same stage**, and saying so is the
+point of filing it rather than just noting the miss. Leg 1 -- a flush-left `carried-by:` whose
+value resolves on `main` -- reads only the transport and `main`, so it is checkable *before* the
+cut and belongs in `preflight_rows` as a refusal. Leg 2 -- an `OPEN` carrier must be **named in
+the residual** -- cannot be checked at preflight, because the residual does not exist until the
+operator fills it. It needs a second gate at assemble time. A single row claiming to cover both
+would be exactly the false completeness P11 exists to catch, which is the same shape row 1
+already documents about its own second conjunct.
+
+**Recorded because it cost a wrong count once:** the stated `carried-by:` value decides which leg
+applies. Several live decision files carry explanatory prose containing paths that *do* resolve on
+`main` while their stated value is the literal `OPEN`, so a path-first reading passes them on
+evidence that is not their carrier value. That is how the `-1` run read a 7-file failure as a
+2-file one.
+
+**Ruled order, operator's, not mine:** group (A) -- the two files with no flush-left key -- is
+fixed first, by the browser seat, because `DECLARE-`/`AMEND-` on `to-cc/` are browser-authored
+output. A `-3` cut that fixed only group (B) would fail P11 a third time. No `-3` until the
+operator's GO; the five group-(B) names live in the evidence file, not in an offer from this seat.
+
+Did: filed `[#643]` (P1/M, `[E1]`/`[S2]`) with both legs, their stages and the leg-order trap.
+Result: the miss has an owning row; the evidence file is the transport-side record.
+Changes: `tasks/643-*`, `tasks/manifest.json`, `BACKLOG.md` (230 -> 231), `JOURNAL.md`.
+Abandoned: proposing a `-3` cut -- withdrawn; the operator had not seen the five names.
+Next: (A) by the browser seat; then `-3` + re-run on GO. Consolidated suite still held.
+
 ### 2026-09-08 (h) - CC (Opus 5, HANDOFF SEAT): the superseding cut, and the citations it carries itself
 
 **Anchors this entry's own merge via `04a80646`**, the bundle commit it rides.

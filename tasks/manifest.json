@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "36eef7e7f08de2f38414adc2edd473782ace872ef6f71627ef3663c5aab5cd46",
+  "generated_sha256": "6d8e7689c69011f9607d3f02cfc226b46488734d79e0e57237ee946577442d1a",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -129,6 +129,10 @@
     {
       "task": 602,
       "file": "602-land-the-ruled-dispatch-verb-in-the-bundle-s-for.md"
+    },
+    {
+      "task": 643,
+      "file": "643-preflight-reports-p11-carriage-instead-of-refusing.md"
     },
     {
       "task": 603,
