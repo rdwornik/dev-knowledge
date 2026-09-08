@@ -19,6 +19,60 @@
 
 ---
 
+### 2026-09-08 (f) - CC (Opus 5, HANDOFF SEAT): row 7 gets row 1's fix, and the debt it carries finally has an owner to carry it
+
+**Anchors this entry's own merge via `4475373d` and `77259f5d`**, the two work commits it rides.
+
+**The second gate change of the day, and the same principle underneath it.** Entry (e) landed
+row 1's amendment and reported the cut still blocked -- on row 7, which the first DECLARE had
+not ruled. It came back as `to-cc/DECLARE-PREFLIGHT-QUESTION-ROW-2026-09-08.md`. Row 7 now reads
+**ANSWERED** (an `ANSWER-*`/`DECLARE-*` answers it) **or CARRIED** (named in the residual with
+the OPEN backlog row that owns it). Stated once, for both rows: *a window may hand off with debt
+only when the debt is explicit and owned; it may never hand off with debt that is silent.*
+
+**Two refusals are the whole point of the carry leg.** A **CLOSED row does not carry** -- a
+closed row cannot own an open question -- and **no owner is a FAIL**. An unreadable BACKLOG fails
+too: an owner the row cannot judge is not an owner. And the **order matters**, which a test pins:
+`[#642]` is itself locator-SHAPED, so the id leg runs *before* the locator-shape leg. Checking
+shape first would let a closed row pass as an ANSWERED citation and silently void the very
+condition the ruling turns on.
+
+**The ruling was not self-executing, and the gap was real.** The DECLARE says the nine rulings
+are carried "via the ratification list row". **No such row existed.** Measured before filing
+anything: `RATIFICATION-2026-09-08.md` carries the ten seals and names none of the eleven, and
+`docs/audits/2026-09-07-technical-batch-u-close-packet.md` -- the one carrier that would have
+covered all eleven at once -- **names no QUESTION file at all**. Citing either would have been
+false in exactly the way P11 documents. So `[#642]` was filed as the receiving surface, owner of
+record *the first sitting of the 2026-09-08 window*, and it rules nothing itself.
+
+**Two of the eleven have a real work row, found rather than assumed.**
+`QUESTION-lane-u-000-deploy-tool-consumer-override` -> **`[#605]`**, whose body names the same
+`deploy/tool.py` consumer-root site the question is about; `QUESTION-dispatcher-N2` -> **`[#610]`**
+for its missing-manifest half only. Two other candidates were checked and **rejected**: row 604 is
+registry admission whose win-tooling half is already done, and row 447 owns the ratchet-raise
+*bootstrap* deadlock, a different mechanism from zero headroom.
+
+**A trap I set for myself and then removed.** The carry leg reads EVERY bracketed id in a
+disposition value as an owner, so my own "NOT CLAIMED: `[#604]` does not own this" sentences
+registered the very rows they disclaimed. The machine cannot tell a disclaimer from a claim --
+the P11 lesson a third time, now against the seat applying it. Disclaimed rows are written
+without the bracket token; the labels then matched the truth.
+
+**Changes:** `scripts/gen_handoff.py` (`_question_disposition_verdict` replaces the boolean
+predicate and reports WHICH leg discharged each file; `_open_backlog_ids`; row 7 takes
+`repo_root`; register header records the amendment) - `tests/test_gen_handoff_preflight.py` (+4;
+fixture id renumbered to `[#9042]` off the now-real `[#642]`) - `.claude/commands/handoff.md` -
+`tasks/642-*` + `tasks/manifest.json` + `BACKLOG.md` - `ecosystem/doc-counts.md` 5386 -> 5390 -
+eleven transport `QUESTION-*.md` carry lines.
+
+**Result:** row 7 PASSES -- 21 files, 9 answered, 12 carried. Every preflight row is now PASS or
+n/a. **The cut is unblocked for the first time this window.**
+
+**Next:** `/handoff-verify` then the v7.1 cut; the residual names all 12 carried questions with
+their owning rows. Unchanged and still first for the next window: **the consolidated suite has
+not run** (5 attempts OOM-killed, ~3.2 GB free of 28 GB). `protocols/ESSENTIALS.md` stays -
+census 52 consumers, re-point lane in batch V (D9 stands).
+
 ### 2026-09-08 (e) - CC (Opus 5, HANDOFF SEAT): the gate that refused the cut is amended by ruling, and the cut proceeds carrying its debt by name
 
 **Anchors this entry's own merge via `7acd6a22`**, the work commit it rides.
