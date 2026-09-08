@@ -19,6 +19,52 @@
 
 ---
 
+### 2026-09-08 (e) - CC (Opus 5, HANDOFF SEAT): the gate that refused the cut is amended by ruling, and the cut proceeds carrying its debt by name
+
+**Anchors this entry's own merge via `7acd6a22`**, the work commit it rides.
+
+**The (d) collision was ruled, not argued down.** Entry (d) closed with the handoff refused
+and the question routed to the operator: *whether a named remainder satisfies preflight row 1
+is a GATE CHANGE and belongs to the operator*. It came back as
+`to-cc/DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08.md`, ratified by paste. The ruling is a
+**distinction, not a relaxation**: a handoff is not a release. GREEN -- 0 hard-fail AND 0
+undispositioned -- is the TAG gate's criterion (NC1, 028 criterion A) and stays exactly where
+it was. What changes is the *handoff* row, which now reads `hard-fail = 0 AND every
+undispositioned WARN is named in the residual with its owning row`.
+
+**Why the old row could not stand.** It was not merely strict, it was a deadlock by
+construction: a window carrying any open finding could never hand off, and the seat the gate
+blocked was precisely the seat forbidden to clear it. C-5 was right to refuse rather than
+soften; the softening was the operator's to authorize, and he did.
+
+**One thing I refused to fake.** Only the FIRST conjunct is mechanically checkable at preflight
+time -- the residual does not exist until after preflight clears -- so the row passes on the
+count and *states the carried obligation in its evidence line*, and the docstring, the register
+header and the command file all say so in those words. A row that implied it verified the
+residual would be the same defect rows 7 and 8 were corrected for, run in the opposite
+direction: reporting a safety it does not provide.
+
+**Two FAIL legs kept, deliberately.** A RED carrying a hard-fail organ still fails -- a
+hard-fail is not carryable and no residual line disposes of one. And a RED whose tail carries
+neither reason-count fails too: without that leg the amendment would read every unparseable
+RED as `hard-fail = 0`, turning a widened row into a blind one. That leg is the difference
+between this change and the softening C-5 declined to make.
+
+**Changes:** `scripts/gen_handoff.py` (`_row_ship_gate` rewritten; two reason-count regexes;
+PREFLIGHT register header records the amendment + citation) · `tests/test_gen_handoff_preflight.py`
+(+2: PASS-on-carryable-RED, FAIL-on-unreadable-tail; hard-fail test renamed to say which RED) ·
+`.claude/commands/handoff.md` (two corrected rows become three) · `ecosystem/doc-counts.md`
+(5384 -> 5386, regenerated).
+
+**Abandoned:** nothing. No BACKLOG row filed -- the ruling discharges the finding (d) recorded
+rather than deferring it.
+
+**Next:** `/handoff-verify` then the v7.1 cut, whose residual carries `[#638]`'s 4 WARNs by
+owning row. First item of the next window, recorded in the DECLARE and carried forward here:
+**the consolidated suite did not run -- 5 attempts OOM-killed, 3.2 GB free of 28 GB.** It runs
+first in the next window, before any batch. `protocols/ESSENTIALS.md` stays: census 52
+consumers, NOT retired, re-point lane in batch V (D9 stands).
+
 ### 2026-09-08 (d) - CC (Opus 5, DISPATCHER-CLOSE): batch CLOSE ends with its own handoff refused, by a gate the batch built four hours earlier
 
 **Anchors `837e49fc`** (already on the spine) **and, via `c49d0b90`, this entry's own merge.**
