@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-06
+last_reviewed: 2026-09-08
 status: stable
 owner: Rob
 ---
@@ -1115,7 +1115,7 @@ intake↔epic edge stays **advisory until n=2** intake docs are consumed end-to-
 
 ---
 
-## 17. The BOOT-INVERSION — `/boot-session`, OPERATOR ASKS, and the SessionStart digest (STAGED)
+## 17. The BOOT-INVERSION — `/boot-session`, OPERATOR ASKS, and the SessionStart digest (DISCHARGED 2026-09-01)
 
 **What inverts.** §§2–16 above describe a **CC-authored** bundle: CC decides what the residual
 says, generates it, and the browser reads it. `/boot-session` inverts the authorship of
@@ -1329,10 +1329,10 @@ does not inline it (the same ROLE PIN mechanism §4 already uses, extended to th
 
 **A v6 bundle is REFUSED, and the existing mechanism already does it.** The §4 ROLE PIN carries
 the live `handoff-process` version + `sha256` and a standing refusal line: *"if your project
-instructions do not carry this contract at this version+sha, say so before answering."* Once
-`Version:` above bumps to 7.0.0 (§ "STAGED" callout, top of file), a browser still pinned to a
-resident v6.x role fails that check by construction and refuses — no new detection code, the
-version bump IS the arming. Nothing in §17 invents a second refusal path.
+instructions do not carry this contract at this version+sha, say so before answering."* `Version:`
+above now reads 7.0.0 (the §17 discharge callout at the top of this file is the record), so a
+browser still pinned to a resident v6.x role fails that check by construction and refuses — no
+new detection code, the version bump IS the arming. Nothing in §17 invents a second refusal path.
 
 **Ex-ante acceptance test (this is it):** a fresh seat runs `/boot-session` and can rule *what
 next* from its output alone; the FUNNEL HEALTH digest fires on every session start **in the hub

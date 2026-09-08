@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-06
+last_reviewed: 2026-09-08
 status: active
 owner: Rob
 ---
@@ -22,7 +22,7 @@ Two instruction layers are in play. They are separated by **scope**, so the ques
 
 | Layer | Governs |
 |---|---|
-| `~/.codex/AGENTS.md` (L0, operator disk) | the **reviewer role** — the model/effort pin a review runs under |
+| `~/.codex/AGENTS.md` (L0, operator disk) | the **reviewer role** — read-only posture, finding format, severity ladder. NOT the model/effort pin: that is `~/.codex/config.toml` |
 | **this file** (repo root) | **in-repo work** — building, testing and landing changes here |
 
 There is deliberately **no third layer**. Layer 1's canonical source is tracked here, as

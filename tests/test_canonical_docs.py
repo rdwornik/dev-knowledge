@@ -762,9 +762,21 @@ def test_the_live_playbook_doctrine_row_shows_its_reconciled_spec_and_a_derived_
     assert row.version and row.version.startswith("handoff-process@")
     assert row.surface == aud.SURFACE_PROSE, "PLAYBOOK declares in prose, which no gate reads"
     assert row.derived is not None and row.declared is not None
-    assert row.doc_class == aud.CLASS_UNGATED_STALE, (
-        "if this ever flips, PLAYBOOK was either re-stamped or gated - both are real events "
-        "that should be seen, not absorbed")
+    # THE FLIP HAPPENED, AND IT IS RECORDED RATHER THAN ABSORBED (2026-09-08, lane
+    # `c2-living-docs-hygiene`). This asserted CLASS_UNGATED_STALE with the note "if this ever
+    # flips, PLAYBOOK was either re-stamped or gated - both are real events that should be
+    # seen". It was the first: batch CLOSE re-read the file end-to-end and moved its prose
+    # `> Last updated:` line 2026-09-06 -> 2026-09-08 in the same commit as its content, so the
+    # row is FRESH by the same-day ancestry branch rather than by a date compare. The tripwire
+    # is kept pointing the other way: a flip back to STALE now means a content commit landed on
+    # PLAYBOOK after its stamp, which is the condition worth seeing.
+    assert row.doc_class == aud.CLASS_UNGATED_FRESH, (
+        "PLAYBOOK re-stamped 2026-09-08; a flip back to STALE means content landed after the "
+        "stamp - a real event that should be seen, not absorbed")
+    assert not row.gated, "PLAYBOOK is still outside the stamped set - re-stamping did not gate it"
+    assert row.surface == aud.SURFACE_PROSE, (
+        "the stamp surface is unchanged: a frontmatter `last_reviewed:` here would also falsify "
+        "audit.py::doctrine_table's docstring, so the surface flip is its own arc")
 
 
 # --- the gate's posture (item 1: the derivation is GATED) --------------------------------------

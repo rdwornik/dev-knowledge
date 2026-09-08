@@ -19,6 +19,62 @@
 
 ---
 
+### 2026-09-08 (c) - CC (Opus 5, DISPATCHER-CLOSE): the living docs come current, and a standing ruling I had not read cost the clone forty minutes
+
+**Anchors `aab6dfea`, `43e5dee1`, `96d1ada7`, `07425ce2`, `4aedae11`, `98ae7396`, `e6b341a5`
+and `fc6ceae7`.** Batch CLOSE lane C-2. `canonical_freshness` derived ungated-and-stale went
+**4 to 0**; `validate_doc_claims` matches repo state; `audit.py health` zero FAIL.
+
+**This entry rides the work merge instead of getting its own, and that is the correction.**
+Twice tonight I anchored with a journal-only branch, and both times the wrap merge was
+itself unanchorable -- the entry cannot name its own SHA, and the merge hash does not exist
+while the text is authored. **`STANDING_RULINGS.md` I-D "W2-anchor" already ruled this**
+(operator, 2026-08-11, measured at `ce81d5bd`/`7d7697f7`): *anchor-repair entries ride the
+NEXT REAL work-merge; a journal-only wrap merge is structurally unanchorable and re-REDs
+`journal_spine_anchor` on itself.* I did not read it, and re-derived it from a blocked commit.
+
+**The cost was not mine to pay.** `journal_spine_anchor` reads the spine from the shared
+`main` ref, so the FAIL reached **every worktree in the clone**, including a lane that never
+touched `main`. `audit-health` is always-run, so there was no scoped escape, and the only
+clearing act is a further JOURNAL entry -- which a lane is **forbidden** to write. For roughly
+40 minutes no seat could commit. A ruling four weeks old, greppable and correct, recurred
+because **nothing refuses the shape at merge time**: the gate catches the consequence, and
+the ruling records it in prose, but no organ stops the merge that causes it.
+
+**Where the dispatching contract was wrong again, and this one matters.** I told C-2 that
+PLAYBOOK, HANDOFF_PROCESS, OPERATOR-INTERFACE and STANDING_RULINGS were the stamped set.
+**They are not.** The gated set is `canonical_docs.FRESHNESS_FILES` plus
+`audit._HUB_ONLY_FRESHNESS_FILES` -- eight files, **none of them those four**. The four are
+UNGATED living docs whose freshness is DERIVED only. Stamping them was still right; the
+closure runs through a different leg than I claimed. This is the second time in one batch that
+the way to be right was to read the computing surface instead of the sentence describing it.
+
+**`ESSENTIALS.md` was NOT retired, and the census is why.** 556 tracked files cite it; after
+excluding audits, handoffs, decisions, intake, archives, JOURNAL, LESSONS and logs, **52 live
+citers remain**. Rule D9 says retire only at 0. Re-pointing is `[#628]`'s work and that row
+rules it a fleet-coupled release act sequenced with v1.5.0 -- outside a hygiene lane.
+
+**The FPG-1 narrowing is marked RELAYED, not resolved.** `DECLARE-REVIEWS-2026-09-07`
+resolves nowhere in this tree -- C-1 hit the same dead locator independently and filed
+`[#640]`. ARCHITECTURE carries the narrowing on its face and says where it came from, with a
+note to re-derive at ratification. Writing it as settled would have laundered a chat message
+into a repo fact.
+
+**Two mechanism defects worth more than the diff.** The silent-rule ratchet sits at **447/447,
+zero headroom, and it taxes precisely the lane commissioned to write rules down** -- the
+second offender was a paragraph *explaining the detector*, which spelled the three tokens it
+detects. And a same-day re-stamp of a PROSE-stamped doc is nearly inexpressible: the needle
+ends at the date and the setter compares for equality, so a note appended after the date makes
+the line unequal and the row reads STALE. Both are now written into the PLAYBOOK header.
+
+**Did:** merged C-1 and C-4 with review tallies; cleared two spine gaps of my own making;
+reviewed and merged C-2.
+**Result:** living docs current, ship-gate 0 hard-fail / named remainder, queue drained.
+**Changes:** `ARCHITECTURE.md`, `CLAUDE.md`, `AGENTS.md`, `LESSONS.md`, `protocols/*`,
+`tests/test_canonical_docs.py`.
+**Abandoned:** ESSENTIALS retirement (census 52, not 0).
+**Next:** C-5 handoff cut -- `/handoff-verify`, then v7.1 with SUPPLEMENT ANSWERS verbatim.
+
 ### 2026-09-08 (b) - CC (Opus 5, DISPATCHER-CLOSE): the preflight lands, and its most useful output is that two of its own rows could not fail
 
 **Anchors `289b4c8f`, `c1e481d6` and -- via `99711baa` -- this entry's own merge.** Batch CLOSE lane C-4 turned pre-handoff hygiene from
