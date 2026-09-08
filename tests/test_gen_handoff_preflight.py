@@ -172,8 +172,8 @@ def _backlog(tmp_path, *open_ids):
 def test_a_question_CARRIED_by_an_OPEN_row_is_dispositioned(tmp_path):
     """The ruling's carry leg: debt may travel, so long as an OPEN row owns it."""
     root = _transport(tmp_path, questions=[
-        ("QUESTION-lane-a.md", "# Q\ndisposition: CARRIED by [#642] -- first sitting\n")])
-    row = gh._row_question_disposition(root, _TODAY, _backlog(tmp_path, "642"))
+        ("QUESTION-lane-a.md", "# Q\ndisposition: CARRIED by [#9042] -- first sitting\n")])
+    row = gh._row_question_disposition(root, _TODAY, _backlog(tmp_path, "9042"))
     assert row.status == gh.PREFLIGHT_PASS
     # The pass is only honest if the seat is handed the residual obligation AND the count.
     assert "1 carried question(s) is named in the residual" in row.detail
@@ -181,10 +181,10 @@ def test_a_question_CARRIED_by_an_OPEN_row_is_dispositioned(tmp_path):
 
 
 def test_a_CLOSED_row_does_not_carry_an_open_question(tmp_path):
-    """The refusal the carry leg turns on. `[#642]` is locator-SHAPED, so without the id leg
+    """The refusal the carry leg turns on. `[#9042]` is locator-SHAPED, so without the id leg
     running FIRST this value would pass as an ANSWERED citation and void the ruling."""
     root = _transport(tmp_path, questions=[
-        ("QUESTION-lane-a.md", "# Q\ndisposition: CARRIED by [#642]\n")])
+        ("QUESTION-lane-a.md", "# Q\ndisposition: CARRIED by [#9042]\n")])
     row = gh._row_question_disposition(root, _TODAY, _backlog(tmp_path, "999"))
     assert row.status == gh.PREFLIGHT_FAIL
     assert "closed row does not carry" in row.detail
@@ -194,7 +194,7 @@ def test_an_unjudgeable_owner_is_not_an_owner(tmp_path):
     """No BACKLOG to read: the owner cannot be judged, which is not the same as absent.
     Unknown is not clean -- the direction every other row here already takes."""
     root = _transport(tmp_path, questions=[
-        ("QUESTION-lane-a.md", "# Q\ndisposition: CARRIED by [#642]\n")])
+        ("QUESTION-lane-a.md", "# Q\ndisposition: CARRIED by [#9042]\n")])
     row = gh._row_question_disposition(root, _TODAY, tmp_path / "no-such-repo")
     assert row.status == gh.PREFLIGHT_FAIL
     assert "could not be read" in row.detail
@@ -204,10 +204,10 @@ def test_the_row_reports_WHICH_leg_discharged_each_question(tmp_path):
     """Evidence-block discipline (HANDOFF_PROCESS s5): report what resolved and from where.
     A row that reports only PASS/FAIL cannot be audited later."""
     root = _transport(tmp_path, questions=[
-        ("QUESTION-lane-a.md", "# Q\ndisposition: CARRIED by [#642]\n")])
+        ("QUESTION-lane-a.md", "# Q\ndisposition: CARRIED by [#9042]\n")])
     ok, why = gh._question_disposition_verdict(
-        root / "to-browser" / "QUESTION-lane-a.md", root, {"642"})
-    assert ok and why == "CARRIED by OPEN [#642]"
+        root / "to-browser" / "QUESTION-lane-a.md", root, {"9042"})
+    assert ok and why == "CARRIED by OPEN [#9042]"
 
 
 # --- row 8: a budget that DOES NOT EXIST renders n/a-with-reason, never a silent pass -----

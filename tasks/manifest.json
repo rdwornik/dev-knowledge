@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "dbd29819f7ccbfa3d633d348ab0abcb4255f3f5c450a966fb73de80fb287ffb5",
+  "generated_sha256": "36eef7e7f08de2f38414adc2edd473782ace872ef6f71627ef3663c5aab5cd46",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -660,6 +660,10 @@
     {
       "task": 640,
       "file": "640-the-fpg-1-scope-narrowing-is-recorded-nowhere-and-t.md"
+    },
+    {
+      "task": 642,
+      "file": "642-eleven-carried-questions-have-no-owning-row.md"
     },
     {
       "prose": ""
