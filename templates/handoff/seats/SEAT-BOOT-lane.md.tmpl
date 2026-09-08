@@ -1,0 +1,45 @@
+<!--
+  SEAT-BOOT-lane.md.tmpl — one work lane's boot, rendered by scripts/gen_seat_boot.py from
+  protocols/PLAYBOOK.md Ch8. Stripped at render.
+
+  STRUCTURE ONLY; every rule is a machine-extracted {{CH8:<key>}} region, byte-compared by P12.
+  The frozen CONTRACT, not this file, is the lane's authoritative surface (per-lane requirement
+  1) — so this boot deliberately carries no task, no footprint and no closure. It carries the
+  five things a lane is bound by whatever its contract says, and points at the contract for
+  everything else.
+-->
+# SEAT-BOOT-lane — {{BATCH}}
+
+{{PROVENANCE}}
+
+## 0 · First turn — resolve your own transport
+
+{{TRANSPORT_BLOCK}}
+
+## 1 · Your contract is your authority — this boot is not
+
+{{CH8:per-lane-requirements}}
+
+{{CH8:artifact-paths-derived}}
+
+## 2 · The refusals you run
+
+{{REFUSAL_BLOCK}}
+
+## 3 · A wait is code — no lane ends a turn on an intention
+
+{{CH8:poll-as-code}}
+
+{{CH8:waits}}
+
+## 4 · How you speak to your peers, and what a message cannot do
+
+{{CH8:message-shapes}}
+
+## 5 · If your work is reviewed
+
+{{CH8:reviewer-model-tally}}
+
+## 6 · Your stop condition
+
+{{STOP_CONDITION}}
