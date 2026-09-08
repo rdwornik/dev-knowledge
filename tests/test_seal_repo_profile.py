@@ -251,7 +251,10 @@ def test_seal_repo_reports_items_at_the_declared_grain():
     """Rule A per item, Rule B per file, Rule C per distinct home -- the grain both
     predecessor seal reports declare, so their numbers and this one are commensurable."""
     report = vh.seal_repo(_REPO)
-    assert report.profile.name == ".dev-knowledge"
+    # The repo that CARRIES the spec is the spec's own instance -- asserted on the
+    # vocabulary, never on the directory name, which is the worktree's in a lane.
+    assert report.profile.audit_class_enum == vh.AUDIT_CLASS_ENUM
+    assert report.profile.home_patterns == vh._HOME_PATTERNS
     assert report.rule_a_items == []
     assert report.rule_c_homes == []
     assert len(report.rule_b_files) == report.item_count - len(report.rule_a_items)
