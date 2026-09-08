@@ -36,6 +36,7 @@ So that the canonical v5 handoff is fully implemented (generator) and mechanical
 - [#599] [P2][M] Generated standing-vs-NEW drift block in the handoff residual · tasks/599-generated-standing-vs-new-drift-block-in-the-han.md
 - [#600] [P2][S] Delete P10 from the shipped probe manifest and gate the boundedness condition · tasks/600-delete-p10-from-the-shipped-probe-manifest-and-g.md
 - [#602] [P2][M] Land the ruled dispatch verb in the bundle's forms card, and extend the agreement gate to the bundle sites · tasks/602-land-the-ruled-dispatch-verb-in-the-bundle-s-for.md
+- [#643] [P1][M] The handoff preflight reports P11 carriage after the cut instead of refusing it, and two consecutive bundles shipped the same defect · tasks/643-preflight-reports-p11-carriage-instead-of-refusing.md
 - [#603] [P3][S] An operator-interface capability file — the facts every seat re-derives about how the operator works · tasks/603-an-operator-interface-capability-file-the-facts.md
 - [#619] [P2][M] The FM-2 to FM-4 funnel-health coupling is dead — six fields, zero overlap · tasks/619-the-fm-2-to-fm-4-funnel-health-coupling-is-dead.md
 - [#641] [P3][S] Declare a MEMORY.md byte budget, or rule that none is owed · tasks/641-declare-a-memory-md-byte-budget-or-rule-that-none.md
