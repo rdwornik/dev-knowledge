@@ -21,8 +21,9 @@
 
 ### 2026-09-08 (d) - CC (Opus 5, DISPATCHER-CLOSE): batch CLOSE ends with its own handoff refused, by a gate the batch built four hours earlier
 
-**Anchors `837e49fc`** (already on the spine; this entry records the close, and names no new
-merge because there is none -- the batch's last real work merge was C-2's).
+**Anchors `837e49fc`** (already on the spine) **and, via `c49d0b90`, this entry's own merge.**
+There was no further work merge to ride -- the batch's last was C-2's -- so this close entry
+takes the two-commit shape rather than the one-commit wrap that broke the tree twice tonight.
 
 **The handoff was NOT cut, and that is the correct outcome.** Lane C-5 ran the preflight lane
 C-4 had landed the same night and it **refused**: `ship_gate` RED, `question_disposition`
