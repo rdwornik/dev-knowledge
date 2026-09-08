@@ -3,9 +3,9 @@
 <!-- scope: meta -->
 
 **Date:** 2026-09-09  
-**Generated:** 2026-09-09T00:59:33  
+**Generated:** 2026-09-09T01:04:05  
 **Repos audited:** 6  
-**Checks:** 468 total — 139 pass, 8 fail, 140 warn, 0 unavailable, 181 n/a
+**Checks:** 476 total — 139 pass, 8 fail, 148 warn, 0 unavailable, 181 n/a
 
 ---
 
@@ -120,11 +120,13 @@
 | `funnel_coverage` | WARN | 2026-09-07-technical-census-templates-claude.md carries no disposition and is not in the arm-time baseline -- record one of ACTIONED/FILED/REJECTED/SUPERSEDED with an evidence locator in a ledger row (architect ruling 2026-08-17), or PENDING with the exact question it needs |
 | `funnel_coverage` | WARN | 2026-09-07-technical-census-token-bottlenecks.md carries no disposition and is not in the arm-time baseline -- record one of ACTIONED/FILED/REJECTED/SUPERSEDED with an evidence locator in a ledger row (architect ruling 2026-08-17), or PENDING with the exact question it needs |
 | `funnel_coverage` | WARN | 2026-09-07-technical-seal-report-fleet.md carries no disposition and is not in the arm-time baseline -- record one of ACTIONED/FILED/REJECTED/SUPERSEDED with an evidence locator in a ledger row (architect ruling 2026-08-17), or PENDING with the exact question it needs |
-| `substrate_declaration` | PASS | 73 lane contract(s) landed on/after 2026-08-27 agree with their declared substrate (5 earlier contract(s) grandfathered as records of an already-executed dispatch; 4 finding(s) from later-armed legs [substrate-lane-write-scope-disjoint, substrate-teardown-enum-coverage] grandfathered as debt — those legs are fully armed at FREEZE) |
+| `funnel_coverage` | WARN | 2026-09-08-technical-batch-v-manifest.md carries no disposition and is not in the arm-time baseline -- record one of ACTIONED/FILED/REJECTED/SUPERSEDED with an evidence locator in a ledger row (architect ruling 2026-08-17), or PENDING with the exact question it needs |
+| `substrate_declaration` | PASS | 79 lane contract(s) landed on/after 2026-08-27 agree with their declared substrate (5 earlier contract(s) grandfathered as records of an already-executed dispatch; 4 finding(s) from later-armed legs [substrate-lane-write-scope-disjoint, substrate-teardown-enum-coverage] grandfathered as debt — those legs are fully armed at FREEZE) |
 | `routing_agreement` | PASS | 4 role(s) in ecosystem/routing-table.yaml corroborated by ~/.claude/ROUTING.md |
 | `dispatch_drift` | PASS | tier host: 14 literal command(s) in protocols/PLAYBOOK.md Ch8's dispatch table resolve, and .claude/commands/lane-boot.md names the ruled verb 'dispatch' |
 | `consumer_at_landing` | WARN | 2026-09-07-codex-adr-required-sections.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
 | `consumer_at_landing` | WARN | 2026-09-07-technical-seal-report-fleet.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
+| `consumer_at_landing` | WARN | 2026-09-08-technical-batch-v-manifest.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
 | `consumer_at_landing` | WARN | ARM3_NOTE.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
 | `consumer_at_landing` | WARN | LANE-r-000-bundle-gitlog.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
 | `consumer_at_landing` | WARN | LANE-r-000-docrot-arm2.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
@@ -161,6 +163,12 @@
 | `consumer_at_landing` | WARN | LANE-u-000-shape-spec-finalize.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
 | `consumer_at_landing` | WARN | LANE-u-000-trace-scorecard-consumer.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
 | `consumer_at_landing` | WARN | LANE-u-628-release-commit.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
+| `consumer_at_landing` | WARN | LANE-v-000-offload-admission.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
+| `consumer_at_landing` | WARN | LANE-v-000-seal-rules-rerun.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
+| `consumer_at_landing` | WARN | LANE-v-000-seat-templates-ledger.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
+| `consumer_at_landing` | WARN | LANE-v-000-shape-spec-clauses.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
+| `consumer_at_landing` | WARN | LANE-v-642-assembly-debt-rows.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
+| `consumer_at_landing` | WARN | LANE-v-643-enforcement-debt.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
 | `consumer_at_landing` | WARN | SEED_RUBRIC.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
 | `consumer_at_landing` | WARN | VERDICT_RULE.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
 | `proof_layer` | WARN | test_review_artifact_coverage.py gates 1 test(s) behind a function-level skipif on 'git' — a proof that can be skipped on the machine that breaks the property is not a mechanism. Move the property that cannot be skipped OUT from behind the guard, or propagate the skip predicate into a reporting surface so a skipped proof renders as not-proven (sweep sections 9.2 and 9.6) |
@@ -552,9 +560,9 @@ History: [`ecosystem\win-tooling\history/`](ecosystem\win-tooling\history/)
 ## Summary
 
 - 6 repo(s) audited
-- 139/468 checks passed
+- 139/476 checks passed
 - **8 failure(s)** — route findings to repo owners
-- 140 warning(s)
+- 148 warning(s)
 - 181 n/a (check not applicable to that repo)
 
 *Report generated by `scripts/audit.py`. Do not edit manually.*
