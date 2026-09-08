@@ -19,6 +19,55 @@
 
 ---
 
+### 2026-09-08 (k) - CC (Opus 5, DISPATCHER SEAT): AMEND-BATCH-V-002 applied before the merge; two gates measured, one of them broken
+
+**Anchors via `f5e49bcf`**, the amendment commit it rides. (`c1f08699` remains anchored by (j);
+a `--no-ff` merge introduces all three and the range names SHAs it introduces.)
+
+**The amendment landed before the manifest merged, which was still available.** V-7 (FPG-1 +
+`orphan_census`) leaves batch V and returns as V+1's first lane -- it was the one lane whose scope
+grew at step 0, from migration to build, and it would have built against an unratified spec.
+**V-8 -- offload admission** takes the slot: Copilot CLI admitted on SEEDED defects per the
+`[#627]` precedent, verifying LIVE that `-Model` reaches the dispatch line. Lane count stays six.
+
+**The ordering gate was measured, not assumed, and the first measurement lied.** §3 asks whether
+the daemon's environment block agrees with User scope -- a different reading from the process
+value this seat had reported. Read from `claude.exe daemon run` (PID 45628) via
+PEB -> RTL_USER_PROCESS_PARAMETERS: 94 vars, `CLAUDE_PROMPTS_DIR` identical to User scope,
+**MATCH**, so the win-tooling launcher fix is V+1's and gates nothing here. The first cut of that
+reader threw on a 64 KB read spanning unmapped pages and printed *"DIFFER (absent != set)"* from
+the exception rather than from evidence. **A failed read is not an absent variable**; that false
+DIFFER would have held the whole batch. The reader now chunks, and reports UNKNOWN on failure.
+
+**`lane-contract-check` cannot pass while a batch is open, and this is the first commit to find
+out.** The hook's comment claims `always_run: true` + `pass_filenames: false`; the YAML sets only
+the first -- the neighbouring `pass_filenames: false` belongs to `provider-registry-agreement`.
+So filenames ARE passed, pre-commit CHUNKS them, and each chunk hands the `[#630]` set-equality
+check the manifest plus a SUBSET of the contracts. Two REFUSE lines in one run, with
+complementary missing sets whose union is the full six. Run once with all seven paths the same
+predicate returns *"1 open batch(es), 7 contract(s) - OK"*, exit 0. It was never caught because
+the check is inert until a batch is OPEN, and a freeze commit runs before its own manifest is
+committed. Landed under a declared single-hook bypass; the config was deliberately NOT edited,
+because `.pre-commit-config.yaml` is watched by another gate and a dispatcher rewriting
+enforcement mid-batch is the unilateral change the core invariants forbid.
+
+**Did:** applied AMEND-BATCH-V-002 §1/§2/§3 to the frozen set; built a PEB env-block reader;
+DryRan every contract under both verbs; diagnosed the hook defect to its missing YAML key.
+
+**Result:** six contracts, set equality holds both ways, fallback DryRun 6/6 clean and the ruled
+verb 0/6 -- the generator/verb defect reproduces across the whole set rather than on one file.
+
+**Changes:** `docs/audits/2026-09-08-technical-batch-v-manifest.md`;
+`docs/audits/2026-09-08-technical-batch-v-launch-contracts/` (V-7 removed, V-8 added, four
+stamped); `to-browser/` STATUS + two DEFECT files (transport, untracked).
+
+**Abandoned:** the 64 KB single-read env probe, replaced by a chunked reader that reports UNKNOWN
+rather than a fabricated verdict.
+
+**Next:** the integrator merges this branch, anchors, pushes, tears down, then holds the queue.
+Lanes fire on the integrator's PACKET line -- never by a paste -- NOW or OVERNIGHT by the
+operator's word, default overnight.
+
 ### 2026-09-08 (j) - CC (Opus 5, DISPATCHER SEAT): batch V frozen at dispatch -- six contracts, five fired, one held
 
 **Anchors this entry's own merge via `c1f08699`**, the freeze commit it rides.
