@@ -1,4 +1,4 @@
-"""Tests for the `/handoff` PREFLIGHT — the nine pre-cut hygiene rows in gen_handoff.py.
+"""Tests for the `/handoff` PREFLIGHT — the ten pre-cut hygiene rows in gen_handoff.py.
 
 The arc is RED-first (ADR-108 §B): every test here was written and watched to fail before
 the implementation existed. The load-bearing pair is
@@ -8,6 +8,8 @@ passes reports a safety it does not provide, which is the exact defect two of th
 carried as specified (rows 7 and 8; see the module docstring of the preflight block).
 """
 from __future__ import annotations
+
+from pathlib import Path
 
 import pytest
 
@@ -82,11 +84,12 @@ def _quiet_hub(monkeypatch):
 # --- the row contract: PASS / FAIL / n-a, each with a LOCATOR ----------------------------
 
 def test_every_row_carries_a_status_and_a_locator(tmp_path, monkeypatch, _quiet_hub):
-    """The register's shape: nine rows, each PASS/FAIL with a locator. A row with no locator
-    reports a verdict the operator cannot act on."""
+    """The register's shape: ten rows, each PASS/FAIL with a locator. A row with no locator
+    reports a verdict the operator cannot act on. (Nine as ratified; row 10 — P11 decision
+    carriage — was added 2026-09-08 by `[#643]`, the third member of the rows-1-and-7 family.)"""
     repo = _hub_stub(tmp_path)
     rows = gh.preflight_rows(repo, transport=_transport(tmp_path), today=_TODAY)
-    assert len(rows) == 9
+    assert len(rows) == 10
     assert [r.name for r in rows] == list(gh.PREFLIGHT_ROW_NAMES)
     for r in rows:
         assert r.status in (gh.PREFLIGHT_PASS, gh.PREFLIGHT_FAIL, gh.PREFLIGHT_NA)
@@ -450,3 +453,217 @@ def test_transport_root_prefers_the_env_var_over_the_downloads_fallback(tmp_path
     (d / "to-browser").mkdir(parents=True)
     assert gh.transport_root(env={"CLAUDE_PROMPTS_DIR": str(d)}) == d
     assert gh.transport_root(env={}, downloads=tmp_path / "nope") is None
+
+
+# --- P11 DECISION CARRIAGE ([#643]) — the two legs, and the SEVEN-FILE SHORT fixture ------
+#
+# RED-FIRST (ADR-108 §B). Every test in this block was written and watched to FAIL against a
+# tree in which no carriage predicate existed anywhere: `grep -rl 'carried-by' scripts/`
+# returned `file_purpose_graph.py` alone, nothing in the handoff organs opened a transport
+# decision file, and P11 was a recipe a seat ran by hand (AMEND-643-001, 2026-09-08).
+#
+# THE FIXTURE IS THE LIVE MEASUREMENT, not an invented shape. `to-browser/HANDOFF-VERIFY-
+# 2026-09-08-architect-2.md` P11 measured the transport at 25 decision files: 18 resolving on
+# `main`, 2 carrying no flush-left `carried-by:` at all, and 5 stating the literal `OPEN`
+# while the bundle residual named none of them. Seven short. The pair below drives that
+# fixture 7 -> 0, which is the closure criterion the frozen contract states.
+#
+# THE ROW ORDER IS THE DESIGN, and it is why the two legs are tested at two stages: leg 1
+# (anchored key + a value resolving on `main`) reads only the transport and `main`, so it is
+# fully checkable BEFORE the cut and refuses it. Leg 2 (an `OPEN` named in the residual)
+# cannot be checked here at all — the residual does not exist until the operator fills it —
+# so it gates in `assemble_paste.py` and its tests live in `tests/test_assemble_paste.py`.
+# One preflight row claiming both would be the false completeness P11 exists to catch.
+
+#: A repo home used by the fixture's resolving files. Never resolved for real in a test — the
+#: `main` lookup is a monkeypatched seam, because a tmp_path fixture has no git history.
+_P11_HOME = "docs/audits/2026-09-06-technical-batch-t-manifest.md"
+
+#: The five live `carried-by: OPEN` files the `-2` residual named nowhere (measurement group B).
+_P11_OPEN_FILES = (
+    "DECLARE-R6-HANDOFF-EXCEPTION.md",
+    "DECLARE-REVIEWS-2026-09-07.md",
+    "BATCH-2026-09-06-DAY-CONTRACTS.md",
+    "BATCH-2026-09-06-NIGHT-2-CONTRACTS.md",
+    "BATCH-2026-09-07-CLOSE-CONTRACTS.md",
+)
+
+
+def _decision_file(transport, name, head, *, sub="to-cc"):
+    p = Path(transport) / sub / name
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(head, encoding="utf-8")
+    return p
+
+
+def _seven_file_short(tmp_path, *, carriers_set=False):
+    """The 2026-09-08 twenty-five-file transport. `carriers_set=True` is the repaired state:
+    the two key-less files gain a flush-left `carried-by:` whose value resolves."""
+    transport = _transport(tmp_path)
+    for i in range(18):
+        _decision_file(transport, f"DECLARE-RESOLVED-{i:02d}.md",
+                       f"# resolved {i}\ncarried-by: {_P11_HOME}\n")
+    # Group (A), 2 files, kept apart because they fail for two different reasons: one states
+    # its carrier INSIDE an HTML comment (the `^`-anchored key does not see it), the other
+    # names no carrier at all.
+    _decision_file(transport, "DECLARE-BOOT-REVIEW-2026-09-08.md",
+                   "# boot review\n" + (f"carried-by: {_P11_HOME}\n" if carriers_set
+                                        else f"<!-- carried-by: {_P11_HOME} -->\n"))
+    _decision_file(transport, "AMEND-037-001.md",
+                   "# amend 037\n" + (f"carried-by: {_P11_HOME}\n" if carriers_set
+                                      else "no carrier line anywhere in this head\n"))
+    # Group (B), 5 files stating the literal OPEN.
+    for name in _P11_OPEN_FILES:
+        _decision_file(transport, name,
+                       f"# {name}\ncarried-by: OPEN -- in flight; no home resolves on main yet\n")
+    return transport
+
+
+@pytest.fixture
+def _on_main(monkeypatch):
+    """Stub the ONE `main` lookup. `git cat-file -e main:<path>` needs a real history, and the
+    subject under test is the predicate, not git."""
+    monkeypatch.setattr(gh, "_resolves_on_main", lambda _root, tok: tok == _P11_HOME)
+
+
+def test_the_seven_file_short_reproduces_the_live_measurement(tmp_path, _on_main):
+    """THE FIXTURE, first half: 25 decision files in, 7 short out — 2 with no anchored key and
+    5 `OPEN` named nowhere in the residual. An empty residual is the `-2` bundle's state."""
+    transport = _seven_file_short(tmp_path)
+    assert len(gh.decision_files(transport)) == 25
+    short = gh.carriage_shortfall(transport, tmp_path / "repo", residual="")
+    assert len(short) == 7
+    kinds = sorted(v.kind for v in short)
+    assert kinds.count(gh.CARRIAGE_NO_KEY) == 2
+    assert kinds.count(gh.CARRIAGE_OPEN) == 5
+
+
+def test_carriers_set_and_openness_named_clears_the_short_to_zero(tmp_path, _on_main):
+    """THE FIXTURE, second half — the negative control. Without it the count above proves only
+    that the predicate can fail, never that it can be satisfied."""
+    transport = _seven_file_short(tmp_path, carriers_set=True)
+    residual = "\n".join(f"- {n} — carried OPEN" for n in _P11_OPEN_FILES)
+    assert gh.carriage_shortfall(transport, tmp_path / "repo", residual=residual) == []
+
+
+def test_the_stated_value_decides_the_leg_not_the_prose_around_it(tmp_path, _on_main):
+    """THE LEG ORDER, which is load-bearing and is how the `-1` run read 7 as 2. Several live
+    decision files carry explanatory prose containing paths that DO resolve on `main` while
+    their stated value is the literal `OPEN`; a path-first read passes them on evidence that is
+    not their carrier value and silently under-counts the OPEN set."""
+    transport = _transport(tmp_path)
+    _decision_file(transport, "BATCH-2026-09-07-CLOSE-CONTRACTS.md",
+                   f"# close\ncarried-by: OPEN -- the batch is in flight; {_P11_HOME} is the\n"
+                   f"record of the PREVIOUS batch and is named here only for contrast\n")
+    (verdict,) = gh.carriage_verdicts(transport, tmp_path / "repo")
+    assert verdict.kind == gh.CARRIAGE_OPEN
+
+
+def test_a_key_inside_an_html_comment_is_not_anchored(tmp_path, _on_main):
+    """`DECLARE-BOOT-REVIEW-2026-09-08.md`'s live shape. A bare substring test is not a weaker
+    version of this check; it is a different and broken one (HANDOFF_PROCESS §5)."""
+    transport = _transport(tmp_path)
+    _decision_file(transport, "DECLARE-BOOT-REVIEW-2026-09-08.md",
+                   f"# boot review\n<!-- carried-by: {_P11_HOME} -->\n")
+    (verdict,) = gh.carriage_verdicts(transport, tmp_path / "repo")
+    assert verdict.kind == gh.CARRIAGE_NO_KEY
+
+
+def test_a_key_below_the_head_window_is_not_read(tmp_path, _on_main):
+    """The key is anchored AND positioned: `carried-by:` in the body is body prose."""
+    transport = _transport(tmp_path)
+    _decision_file(transport, "AMEND-BURIED-001.md",
+                   "# buried\n" + "filler\n" * gh.CARRIAGE_HEAD_LINES
+                   + f"carried-by: {_P11_HOME}\n")
+    (verdict,) = gh.carriage_verdicts(transport, tmp_path / "repo")
+    assert verdict.kind == gh.CARRIAGE_NO_KEY
+
+
+def test_a_directory_is_a_repo_home(tmp_path, monkeypatch):
+    """`DECLARE-BROWSER-TOPOLOGY-2026-09-06.md` names `docs/intake/` and the live measurement
+    counted it among the 18 that resolve. The value leg tests that the named home EXISTS on
+    `main`, and a tree is a home."""
+    monkeypatch.setattr(gh, "_resolves_on_main", lambda _root, tok: tok == "docs/intake/")
+    transport = _transport(tmp_path)
+    _decision_file(transport, "DECLARE-BROWSER-TOPOLOGY-2026-09-06.md",
+                   "# topology\ncarried-by: docs/intake/ (031 candidate) · OPERATOR-INTERFACE §2\n")
+    (verdict,) = gh.carriage_verdicts(transport, tmp_path / "repo")
+    assert verdict.kind == gh.CARRIAGE_RESOLVES
+
+
+def test_the_enum_is_three_prefixes_and_a_relay_is_outside_it(tmp_path, _on_main):
+    """031 §2 names `DECLARE-`/`AMEND-`/`BATCH-` because those are the shapes that RULE.
+    `ADDENDUM-`, `FINDING-` and `RULING-RELAY-` carry no authority (C-1); widening the enum is
+    a ruling, not a lane's call."""
+    transport = _transport(tmp_path)
+    for name in ("ADDENDUM-x.md", "FINDING-y.md", "RULING-RELAY-z.md", "QUESTION-w.md"):
+        _decision_file(transport, name, "# no carrier\n")
+    _decision_file(transport, "DECLARE-in-enum.md", f"# in\ncarried-by: {_P11_HOME}\n")
+    assert [p.name for p in gh.decision_files(transport)] == ["DECLARE-in-enum.md"]
+
+
+def test_a_missing_anchored_key_REFUSES_the_cut_before_anything_is_written(
+        tmp_path, monkeypatch, _quiet_hub, _on_main):
+    """THE DONE-CLAUSE, verbatim: a missing/unresolvable flush-left key blocks `generate()`
+    BEFORE it writes. A committed bundle is immutable, so a carriage defect discovered after
+    the cut can only be repaired by a superseding cut — which is what happened twice."""
+    repo = _hub_stub(tmp_path)
+    monkeypatch.setattr(gh, "transport_root", lambda **_kw: _seven_file_short(tmp_path))
+    with pytest.raises(gh.PreflightError) as exc:
+        _cut(repo, tmp_path, "0000-00-00-p11")
+    msg = str(exc.value)
+    assert "p11_carriage" in msg and "AMEND-037-001.md" in msg
+    assert not (repo / "docs" / "handoffs" / "0000-00-00-p11").exists()
+
+
+def test_an_unresolvable_carrier_value_REFUSES_the_cut(tmp_path, monkeypatch,
+                                                       _quiet_hub, _on_main):
+    """The second half of leg 1: the key is anchored, and its value names no home on `main`."""
+    repo = _hub_stub(tmp_path)
+    transport = _transport(tmp_path)
+    _decision_file(transport, "DECLARE-GHOST-2026-09-08.md",
+                   "# ghost\ncarried-by: docs/audits/never-landed.md\n")
+    monkeypatch.setattr(gh, "transport_root", lambda **_kw: transport)
+    with pytest.raises(gh.PreflightError) as exc:
+        _cut(repo, tmp_path, "0000-00-00-ghost")
+    assert "DECLARE-GHOST-2026-09-08.md" in str(exc.value)
+
+
+def test_an_OPEN_carrier_alone_does_not_refuse_the_cut(tmp_path, monkeypatch,
+                                                       _quiet_hub, _on_main):
+    """The stage split, as behaviour. An `OPEN` value is leg 2's subject and leg 2 cannot run
+    here, so preflight PASSES it and carries the obligation in its evidence line. A row that
+    refused here would demand a residual that does not exist yet."""
+    repo = _hub_stub(tmp_path)
+    transport = _transport(tmp_path)
+    for name in _P11_OPEN_FILES:
+        _decision_file(transport, name, f"# {name}\ncarried-by: OPEN -- in flight\n")
+    rows = gh.preflight_rows(repo, transport=transport, today=_TODAY)
+    row = next(r for r in rows if r.name == "p11_carriage")
+    assert row.status == gh.PREFLIGHT_PASS
+    assert "5" in row.detail and "residual" in row.detail
+
+
+def test_the_p11_row_is_in_the_roster_and_cites_the_family_precedent(tmp_path, _quiet_hub,
+                                                                     _on_main):
+    """Row 10 joins rows 1 and 7 as the third member of the family, and says so where a seat
+    reads it: both 2026-09-08 rulings are the precedent for where a handoff refuses debt."""
+    repo = _hub_stub(tmp_path)
+    transport = _seven_file_short(tmp_path, carriers_set=True)
+    assert "p11_carriage" in gh.PREFLIGHT_ROW_NAMES
+    rows = gh.preflight_rows(repo, transport=transport, today=_TODAY)
+    assert len(rows) == 10
+    assert [r.name for r in rows] == list(gh.PREFLIGHT_ROW_NAMES)
+    row = next(r for r in rows if r.name == "p11_carriage")
+    assert "DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08" in row.detail
+    assert "DECLARE-PREFLIGHT-QUESTION-ROW-2026-09-08" in row.detail
+
+
+def test_an_empty_decision_set_is_n_a_with_a_reason_never_a_silent_pass(tmp_path, _quiet_hub,
+                                                                        _on_main):
+    """SUBJECT-ABSENT, the shape rows 4 and 7 already use: nothing to measure is not a pass."""
+    repo = _hub_stub(tmp_path)
+    rows = gh.preflight_rows(repo, transport=_transport(tmp_path), today=_TODAY)
+    row = next(r for r in rows if r.name == "p11_carriage")
+    assert row.status == gh.PREFLIGHT_NA
+    assert "SUBJECT-ABSENT" in row.detail

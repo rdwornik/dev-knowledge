@@ -1882,13 +1882,51 @@ def test_required_row_rung_is_era_gated_by_the_shared_predicate(tmp_path):
     assert not vhp.bundle_at_or_after("2026-09-06-dev-knowledge-architect", vhp._V71_ERA)
 
 
-def test_required_row_rung_does_not_fire_on_a_zero_row_probes_file(tmp_path):
-    """A PROBES.md that parses to NO rows is a non-probe artifact, not a v7.1 bundle omitting
-    P11 — the same class verify() returns [] for when there is no PROBES.md at all. Firing the
-    rung there would manufacture a FAIL for every such directory. Deliberate narrowing, pinned
-    so it cannot be 'fixed' back into a false positive; the residual hole (an EMPTY probe table
-    evades the rung, as it evades every present-row rung) belongs to the generator-side seal."""
+# --- the zero-row bypass, CLOSED ([#643] leg b, AMEND-643-001 §2) -----------
+#
+# WHAT THIS REVERSES, on the record rather than silently. Until 2026-09-08 the rung was
+# NARROWED to a bundle that actually HAS probe rows, and the narrowing was pinned by a test
+# whose reasoning was: a `PROBES.md` parsing to zero rows is a non-probe artifact, the same
+# class `verify()` returns [] for when there is no `PROBES.md` at all, so firing there would
+# manufacture a P11 FAIL for every such directory.
+#
+# THAT ARGUMENT CONFLATED TWO DIFFERENT ABSENCES, and the module's own docstring already said
+# so ("THE HOLE IS WIDER THAN 'someone ships an empty table' … recorded here rather than
+# papered over, because the next author of that seal needs to know this door is open"). NO
+# `PROBES.md` is a non-v5 bundle — genuinely nothing to classify. A `PROBES.md` that EXISTS
+# and parses to zero rows is a v5-lineage bundle whose probe manifest could not be read: a
+# reworded column header, a missing separator, a table mangled by a template edit. Such a
+# bundle bypasses not just this rung but EVERY present-row rung in this file, while `main()`
+# prints the reassuring "no probes found". A validator that reports a clean run over a
+# manifest it could not read is the toothless door P11 exists to catch, one along.
+#
+# Ruled: `to-cc/AMEND-643-001.md` §2 ("Zero rows = FAIL, not pass"), 2026-09-08. Era-gated by
+# the SAME `bundle_at_or_after` predicate as the rest, for the same reason: bundles cut before
+# v7.1 are immutable and cannot grow a manifest.
+
+def test_a_present_probes_file_that_parses_to_zero_rows_FAILS(tmp_path):
+    """The bypass, closed. An in-era bundle whose PROBES.md cannot be read as a probe table is
+    BROKEN, and a gate must not report a clean run over rows that never parsed."""
     bundle = tmp_path / "2026-09-07-dev-knowledge-architect"
+    bundle.mkdir()
+    (bundle / "PROBES.md").write_text("no rows here\n", encoding="utf-8")
+    results = vhp.verify(bundle)
+    assert [r.status for r in results] == ["fail"]
+    assert "no probe rows" in results[0].detail
+
+
+def test_no_probes_file_at_all_is_still_a_non_v5_bundle_and_returns_empty(tmp_path):
+    """The distinction the reversal turns on, pinned so the two absences stay apart: an ABSENT
+    manifest is a non-v5 bundle with nothing to classify; an UNREADABLE one is a defect."""
+    bundle = tmp_path / "2026-09-07-dev-knowledge-architect"
+    bundle.mkdir()
+    assert vhp.verify(bundle) == []
+
+
+def test_the_zero_row_refusal_is_era_gated_like_every_other_rung(tmp_path):
+    """A pre-v7.1 bundle is an immutable sealed artifact; condemning it for a rule written
+    after it was sealed is the one thing 'judged by their own era' forbids."""
+    bundle = tmp_path / "2026-06-12-b"
     bundle.mkdir()
     (bundle / "PROBES.md").write_text("no rows here\n", encoding="utf-8")
     assert vhp.verify(bundle) == []

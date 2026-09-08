@@ -1,6 +1,7 @@
 """Tests for scripts/assemble_paste.py."""
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -47,6 +48,8 @@ def _make_bundle(
     with_supplement: bool = True,
     supplement_answers: str = "Strategic brief.",
     mode: str | None = None,
+    bundle_rel: str = "bundle",
+    residual: str = "# Residual\n\nDrift flags.",
 ) -> tuple[Path, Path]:
     """Create a minimal fake repo tree under tmp_path.
 
@@ -64,9 +67,11 @@ def _make_bundle(
     (protocols / "HANDOFF_PROCESS.md").write_text(
         "# HANDOFF_PROCESS v6\n\nVersion: 6.3.0\nStatus: stable\n", encoding="utf-8")
 
-    # fake bundle
-    bundle = tmp_path / "bundle"
-    bundle.mkdir()
+    # fake bundle. `bundle_rel` defaults to a bare `bundle/`, which is deliberately NOT under
+    # `docs/handoffs/` — the [#643] leg-2 carriage gate is scoped to a real bundle home, so the
+    # default keeps every test above it ungated. Pass `docs/handoffs/<slug>` to exercise it.
+    bundle = tmp_path / bundle_rel
+    bundle.mkdir(parents=True)
 
     if with_handoff_boot:
         # mode=None reproduces the pre-v5.1 header byte-for-byte (no Mode row); a set
@@ -79,7 +84,7 @@ def _make_bundle(
             encoding="utf-8",
         )
 
-    (bundle / "RESIDUAL.md").write_text("# Residual\n\nDrift flags.", encoding="utf-8")
+    (bundle / "RESIDUAL.md").write_text(residual, encoding="utf-8")
     (bundle / "PROBES.md").write_text("# Probes\n\nP1 probe here.", encoding="utf-8")
 
     if with_supplement:
@@ -105,11 +110,16 @@ def _make_bundle(
     return bundle, script_copy
 
 
-def _run(script: Path, bundle: Path) -> subprocess.CompletedProcess[str]:
+def _run(script: Path, bundle: Path,
+         transport: Path | None = None) -> subprocess.CompletedProcess[str]:
+    env = None
+    if transport is not None:
+        env = {**os.environ, "CLAUDE_PROMPTS_DIR": str(transport)}
     return subprocess.run(
         [sys.executable, str(script), str(bundle)],
         capture_output=True,
         text=True,
+        env=env,
     )
 
 
@@ -647,3 +657,80 @@ def test_window_specific_ratio_excludes_unfilled_placeholder(tmp_path: Path) -> 
     assert m, result.stdout
     assert int(m.group(1)) == 0
     assert int(m.group(3)) == 0
+
+
+# ------------------------------------------------------------------ #
+# [#643] leg 2 — P11 decision carriage, the ASSEMBLE-TIME half
+# ------------------------------------------------------------------ #
+#
+# RED-FIRST (ADR-108 §B): watched to fail against a tree where the assembler read no transport
+# file at all. THE TWO LEGS GATE AT DIFFERENT STAGES and that is the design content of the
+# row, not an afterthought. Leg 1 (an anchored `carried-by:` whose value resolves on `main`)
+# reads only the transport and `main`, so it refuses at PREFLIGHT, before the cut — its tests
+# are in tests/test_gen_handoff_preflight.py. Leg 2 is the `OPEN` conjunct: a decision file
+# stating the literal `OPEN` discharges P11 only by being NAMED in this bundle's residual, and
+# the residual does not exist until the operator fills it. Assembly is the first moment both
+# operands exist, so it is the first moment the conjunct is checkable — and a single preflight
+# row claiming to cover both would be exactly the false completeness P11 exists to catch.
+#
+# Family precedent for refusing debt at a handoff, cited in the gate's own message:
+# `DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08` / `DECLARE-PREFLIGHT-QUESTION-ROW-2026-09-08`.
+
+_OPEN_DECISION = "BATCH-2026-09-07-CLOSE-CONTRACTS.md"
+
+
+def _transport_with_open_carrier(tmp_path: Path, name: str = _OPEN_DECISION) -> Path:
+    transport = tmp_path / "transport"
+    (transport / "to-cc").mkdir(parents=True)
+    (transport / "to-browser").mkdir(parents=True)
+    (transport / "to-cc" / name).write_text(
+        f"# {name}\ncarried-by: OPEN -- the batch is in flight; no carrier resolves yet\n",
+        encoding="utf-8")
+    return transport
+
+
+def test_an_open_carrier_absent_from_the_filled_residual_blocks_assembly(tmp_path: Path) -> None:
+    """The defect two consecutive bundles shipped: the `-1` and `-2` residuals named none of
+    the five OPEN decision files, and both were discovered only by `/handoff-verify`, AFTER the
+    cut was committed and merged. A merged handoff is immutable, so the only repair was a
+    superseding cut. Blocking assembly is where that stops."""
+    bundle, script = _make_bundle(tmp_path, bundle_rel="docs/handoffs/2026-09-08-x")
+    result = _run(script, bundle, transport=_transport_with_open_carrier(tmp_path))
+    assert result.returncode == 1, result.stdout
+    assert _OPEN_DECISION in result.stderr
+    assert not (bundle / "PASTE_THIS.md").exists()
+
+
+def test_naming_the_open_carrier_in_the_residual_lets_assembly_through(tmp_path: Path) -> None:
+    """The negative control. Without it the refusal above proves only that the gate can fire,
+    never that a correctly-carried window can still hand off — which is the deadlock the
+    2026-09-08 rulings on rows 1 and 7 were both issued to prevent."""
+    bundle, script = _make_bundle(
+        tmp_path, bundle_rel="docs/handoffs/2026-09-08-y",
+        residual=f"# Residual\n\nCarried OPEN: `to-cc/{_OPEN_DECISION}` — owned by [#643].\n")
+    result = _run(script, bundle, transport=_transport_with_open_carrier(tmp_path))
+    assert result.returncode == 0, result.stderr
+    assert (bundle / "PASTE_THIS.md").exists()
+
+
+def test_a_resolving_carrier_is_leg_1s_subject_and_does_not_gate_assembly(tmp_path: Path) -> None:
+    """Only the `OPEN` conjunct gates here. A file whose value names a home is leg 1's subject
+    and was already judged before the cut; re-judging it at assemble would put one predicate in
+    two places, free to disagree."""
+    transport = tmp_path / "transport"
+    (transport / "to-cc").mkdir(parents=True)
+    (transport / "to-cc" / "DECLARE-CARRIED.md").write_text(
+        "# carried\ncarried-by: protocols/HANDOFF_PROCESS.md\n", encoding="utf-8")
+    bundle, script = _make_bundle(tmp_path, bundle_rel="docs/handoffs/2026-09-08-z")
+    result = _run(script, bundle, transport=transport)
+    assert result.returncode == 0, result.stderr
+
+
+def test_a_bundle_outside_the_repo_bundle_home_is_not_gated(tmp_path: Path) -> None:
+    """THE HONEST LIMIT, stated as a test rather than left to be discovered. The gate binds a
+    bundle under `<repo_root>/docs/handoffs/`, which is the only place a real cut lands. An
+    ad-hoc directory assembled elsewhere is not a window's handoff and has no residual duty."""
+    bundle, script = _make_bundle(tmp_path)          # tmp_path/bundle — the default
+    result = _run(script, bundle, transport=_transport_with_open_carrier(tmp_path))
+    assert result.returncode == 0, result.stderr
+    assert _OPEN_DECISION not in result.stderr
