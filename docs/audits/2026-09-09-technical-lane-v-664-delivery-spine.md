@@ -10,6 +10,9 @@
 > **Consumer:** `[#664]`, whose Done-when this artifact reports against, and the batch V
 > integrator's close packet.
 > **Posture:** this lane commits to its own branch and STOPs. No merge, no push, no JOURNAL.
+> **Merge gate:** `HIGH raw=5 fixed=5 unresolved=0` — five Terra passes, the fifth returning
+> nothing, which is the stopping rule. Full tally and per-finding disposition: *The Terra
+> pre-merge review*, below.
 
 ## Step 1 — locators resolved, and the plan
 
@@ -168,6 +171,11 @@ body where it is used.
 | `dd161577` | 4 | `graph_queries.py`, three refusal hooks, the 32-vs-20 ruling |
 | `26c9e729` | 4 rider | three defects the spine found by firing, plus one concurrency defect |
 | `549f64bd` | — | sync merge: main into the lane tree, clearing the tree-lag anchor gap |
+| `874feec3` | 5 | the five-kind re-measurement, and this artifact |
+| `cc9b5555` | terra 1 | a waiter must never unlink a lock it does not hold |
+| `e7bcb630` | terra 2 | release the ACQUISITION, never the lock filename |
+| `d2cfe7c2` | terra 3 | a claim in the TREE is not a claim in the COMMIT |
+| `bedae758` | terra 4 | a store that EXISTS is not a store that is FRESH (+ a leaked reader) |
 
 ### 2.2 Clause 1 — the graph is persisted, and the counts are read back
 
@@ -300,7 +308,7 @@ first have to grow — which is the difference between a migration lane and a de
 
 ## What the mechanism found by firing
 
-Four defects, every one surfaced by a refusal that fired where it should not have, or by a
+Five defects, every one surfaced by a refusal that fired where it should not have, or by a
 test that failed for a real reason. They are recorded because each is a lesson about a class,
 not only about an instance.
 
@@ -323,6 +331,56 @@ not only about an instance.
    per-process temp file, a retrying swap (Windows `os.replace` fails while a reader holds the
    destination), and a cheap exclusive-create rebuild lock with a TTL, so a dead builder costs
    one wait and never a wedge.
+5. **`rebuild()` leaked a reader on every call.** Clause 1 requires the counts be read back
+   from the artifact, and `open_store(path).counts()` did exactly that — and never closed the
+   connection. WAL keeps `-wal`/`-shm` open, so each rebuild left a handle that blocked the
+   **next** rebuild's swap with `WinError 32`. Invisible in a one-shot hook and fatal in
+   anything long-lived. Surfaced only because the Terra pass-4 tests are the first in this
+   suite to rebuild the same store twice in one process — *a defect can be latent because
+   nothing has yet asked the second question.*
+
+## The Terra pre-merge review
+
+```
+HIGH raw=5 fixed=5 unresolved=0
+```
+
+Five passes of `codex exec review -m gpt-5.6-terra --base main`, read-only, run to the
+contract's stopping rule — *stop when a pass returns nothing*, not *stop after one pass*.
+Passes 1–4 returned findings; pass 5 returned **"No critical or high-severity regressions
+were identified"**, which is what ended the loop.
+
+| Pass | Finding | Site | Disposition |
+|---|---|---|---|
+| 1 | a waiter that outlasts the TTL rebuilds **without** the lock, then unlinks the live builder's | `graph_store.ensure` | fixed `cc9b5555` |
+| 2 | the release side is unconditional — an overrun builder deletes its **successor's** lock | `graph_store.ensure` | fixed `e7bcb630` |
+| 3 | subject set from the INDEX, `implements` relation from the WORKING TREE — a bypass | `graph_queries.task_coverage` | fixed `d2cfe7c2` |
+| 4 | a waiter serves a store because it is READABLE, not because it is fresh | `graph_store.ensure` | fixed `bedae758` |
+| 4 | `_open` rebuilds only when the file is ABSENT, so every query can answer stale | `graph_queries._open` | fixed `bedae758` |
+| 5 | — nothing — | | loop ends |
+
+**Every finding was a real defect and none was argued down.** They fall into one class,
+which is worth naming because the class is the lesson: *a property read off the filesystem
+that the filesystem does not answer.* A lock file's **existence** does not identify its
+holder (passes 1 and 2). A store's **presence** does not mean it is current (pass 4). And a
+file's **working-tree bytes** are not the bytes a commit writes (pass 3). Each was written
+as though the cheap check were the real one.
+
+**One further defect came out of the tests written for pass 4, not from Terra**: `rebuild()`
+ended with `open_store(path).counts()` and never closed the connection, so WAL held
+`-wal`/`-shm` and every rebuild left a handle that blocked the **next** rebuild's swap. It is
+counted in "what the mechanism found by firing" below rather than in the tally above, because
+the tally is a review tally and this was not a review finding. `_swap_into_place` was hardened
+in the same pass: clearing the old store's WAL sidecars moved *inside* the retry loop, since
+it was the one contended act being performed outside it.
+
+**What the review cost, in the honest direction.** Closing pass 4's second finding means each
+query hook now proves the store is fresh instead of assuming it. Re-measured end to end:
+`graph-rebuild` 14.6 s, `orphan-census` 2.0 s, `task-coverage` 3.2 s, `process-list` 2.2 s —
+**21.9 s for the chain**, up from ~17.5 s. That is a correctness cost paid deliberately; the
+alternative on offer was an `--assume-fresh` flag, which is the same hole with a switch on it.
+It also moves open item 1 further past ADR-118 flip-condition 2, which is stated there rather
+than absorbed here.
 
 ## Departures from the contract, each declared
 
@@ -348,7 +406,9 @@ not only about an instance.
 
 ## Open items
 
-1. **The rebuild costs 17.5 s on every commit.** ADR-118 flip-condition 2 names the threshold in
+1. **The four-hook chain costs 21.9 s on every commit** — 14.6 s of rebuild plus 7.4 s across
+   three query hooks, each of which now pays an mtime sweep to prove the store is fresh (the
+   Terra pass-4 fix; it was ~17.5 s before). ADR-118 flip-condition 2 names the threshold in
    exactly these terms — *"if FPG-1's build time on the live tree crosses the ship-gate's budget
    … the answer becomes a cached/incremental store, i.e. a different design"* — and asks W-G1 to
    fix it against the then-current gate budget. Measured and recorded rather than tuned quietly;

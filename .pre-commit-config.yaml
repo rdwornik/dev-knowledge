@@ -386,13 +386,15 @@ repos:
         # that resolves per-worktree, which is the correct granularity: a worktree is a
         # different tree and therefore a different graph.
         #
-        # COST, MEASURED rather than assumed: ~12.8 s wall on the live tree at
-        # 2260 nodes / 14,673 edges. That is the number ADR-118's flip-condition 2 asks
-        # W-G1 to fix against the gate budget, and it is recorded in this lane's artifact
-        # alongside the read cost it buys (a store read is ~1.5 s, nearly all of it
-        # interpreter start). If this crosses the ship-gate budget, the flip-condition is
-        # met and the answer is an incremental store -- a different design, ruled
-        # elsewhere, not a quiet tuning here.
+        # COST, MEASURED rather than assumed: ~14.6 s wall on the live tree at
+        # 2260 nodes / 14,673 edges, and ~21.9 s for this four-hook chain end to end.
+        # That is the number ADR-118's flip-condition 2 asks W-G1 to fix against the gate
+        # budget, and it is recorded in this lane's artifact alongside the read cost it
+        # buys (2-3 s per query: interpreter start, plus the mtime sweep each query pays
+        # to prove the store is FRESH rather than merely present -- Terra pre-merge P1,
+        # and the hole it closes is a query answering from yesterday's graph). If this
+        # crosses the ship-gate budget the flip-condition is met, and the answer is an
+        # incremental store -- a different design, ruled elsewhere, not a quiet tuning.
         #
         # Exit: 0 on a written-and-read-back store, non-zero if it cannot be built or read.
         # Bypass: --no-verify.
