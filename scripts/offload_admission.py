@@ -304,6 +304,39 @@ def _resolve_in_corpus(rel: str, corpus_root: Path) -> Path:
     return resolved
 
 
+def _verify_ground_truth(ground_truth: tuple["PlantedDefect", ...],
+                        corpus_root: Path) -> None:
+    """Prove the corpus still carries every planted clause, or FAIL LOUD.
+
+    Coverage credited from a locator string and a category says nothing about the corpus: a
+    replaced or arbitrary tree carrying any text at those lines would score a candidate as
+    having found every planted defect, which measures the answer against nothing. A ground
+    truth is a claim about a PARTICULAR corpus, so it is checked against the one in hand
+    before it is used to score anyone.
+
+    This raises rather than refusing, because it is not a statement about the record. The
+    record may be perfect; the instrument is not the one the ground truth describes, and
+    Z-G4 says report that gap.
+    """
+    for defect in ground_truth:
+        for site in defect.sites:
+            try:
+                target = _resolve_in_corpus(site.rel, corpus_root)
+                lines = target.read_text(encoding="utf-8", errors="replace").splitlines()
+            except (ValueError, OSError) as exc:
+                raise AdmissionError(
+                    f"the declared ground truth places a {defect.category!r} at "
+                    f"{site.locator}, and that site could not be read in {corpus_root} "
+                    f"({exc}); nothing can be scored against a corpus this gate cannot "
+                    f"open") from None
+            if site.line > len(lines) or site.needle not in lines[site.line - 1]:
+                raise AdmissionError(
+                    f"the declared ground truth places a {defect.category!r} at "
+                    f"{site.locator} carrying {site.needle!r}, and the corpus at "
+                    f"{corpus_root} does not carry it there; this is not the corpus the "
+                    f"ground truth describes, so no answer can be scored against it")
+
+
 def _verify_locator(finding: dict[str, Any], corpus_root: Path) -> Optional[Refusal]:
     """Re-open the finding's locator on disk. `None` means it holds exactly."""
     label = f"finding rank {finding.get('rank')!r}"
@@ -516,6 +549,8 @@ def adjudicate(record: dict[str, Any],
         else:
             refusals.append(problem)
 
+    if ground_truth:
+        _verify_ground_truth(ground_truth, corpus_root)
     for defect in ground_truth:
         at_site = [f for f in findings if isinstance(f, dict)
                    and str(f.get("locator") or "").strip() in defect.locators]
@@ -896,12 +931,20 @@ def write_probe_corpus(root: Path) -> Path:
     written: list[tuple[Path, tuple[int, int]]] = []
     for rel, text in PROBE_CORPUS.items():
         target = root / rel
+        inflight: Optional[Path] = None
         try:
             target.parent.mkdir(parents=True, exist_ok=True)
             with open(target, "x", encoding="utf-8", newline="\n") as fh:
+                # From here the file EXISTS and is this call's leftover if anything below
+                # raises, so it joins the cleanup list before a single byte is written.
+                # Identity is taken first for the same reason: the window in which we hold
+                # the handle but cannot name the file is then empty.
+                inflight = target
+                stat = os.fstat(fh.fileno())
+                written.append((target, (stat.st_dev, stat.st_ino)))
+                inflight = None
                 fh.write(text)
                 fh.flush()
-                stat = os.fstat(fh.fileno())
         except FileExistsError:
             _discard_created(written)
             raise FileExistsError(
@@ -912,11 +955,18 @@ def write_probe_corpus(root: Path) -> Path:
             # to refuse: an unwritable or invalid destination left the files already created
             # behind, which is the half-materialised corpus the pre-flight scan exists to
             # prevent, arriving through the other door. Cleanup first, then report.
+            if inflight is not None:
+                # `os.fstat` itself failed, so this one path cannot be cleaned by identity.
+                # It is removed anyway: it was created by an exclusive open two statements
+                # ago and never written to, so the worst case is unlinking an empty file a
+                # racer produced inside that window -- against the certain cost of leaving
+                # our own empty file to refuse every later run. The tie-break is stated
+                # rather than left to be inferred, and it is the ONLY unlink by path here.
+                inflight.unlink(missing_ok=True)
             _discard_created(written)
             raise OSError(
                 f"could not write the probe corpus into {root}: {rel} failed ({exc}); "
                 f"nothing was left behind") from None
-        written.append((target, (stat.st_dev, stat.st_ino)))
     return root
 
 
