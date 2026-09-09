@@ -909,6 +909,20 @@ Rules for the answer, all of them checked mechanically afterwards:
 """
 
 
+def _reservation_identity(root: Path) -> tuple[int, int] | None:
+    """`(st_dev, st_ino)` for `root` ITSELF, following no symlink. `None` if it is gone.
+
+    `lstat` and not `stat`: a symlink dropped in place of the reserved directory resolves
+    through `stat` to whatever it points at, which is the one substitution that would let a
+    swap read as unchanged.
+    """
+    try:
+        info = os.lstat(root)
+    except OSError:
+        return None
+    return (info.st_dev, info.st_ino)
+
+
 def write_probe_corpus(root: Path) -> Path:
     """Materialise `PROBE_CORPUS` at `root`, which must NOT already exist. Returns `root`.
 
@@ -918,35 +932,34 @@ def write_probe_corpus(root: Path) -> Path:
     never overwrite without asking, and git making it recoverable is not a defence for a
     command that writes without looking.
 
-    THE ONE INVARIANT, and it is the kernel's to enforce rather than this module's to check:
+    TWO GUARANTEES ARE ABSOLUTE, and the KERNEL enforces both rather than this module
+    checking them -- a check is two operations wherever the guarantee needs one:
 
-        this function never deletes a file, anywhere, outside its own staging directory.
+    - NOTHING IS EVER OVERWRITTEN. Every file is built in a private staging directory under
+      `open(..., "x")` and published with `os.link`, which REFUSES an existing name.
+    - NOTHING OUTSIDE STAGING IS EVER DELETED. The failure path removes staging -- ours
+      alone, unpredictably named -- and then calls `rmdir` on the reservation, which the
+      kernel refuses on a non-empty directory, and only while it is still ours.
 
-    Three mechanisms hold it, none of them a check that can be raced:
+    THE THIRD PROPERTY CANNOT BE GUARANTEED, SO IT IS MEASURED INSTEAD. POSIX has no atomic
+    create-and-hold for a directory -- no `mkdiropenat` -- so between `root.mkdir()`
+    reserving a name and this function using it there is always a gap, and a racer may take
+    the name back and put their own directory, or a symlink, there. Seven review passes each
+    closed one interleaving of that gap and each left a narrower one; the eighth answer is
+    that PREVENTION IS NOT AVAILABLE AT THIS LAYER.
 
-    - `root.mkdir()` reserves the destination in ONE operation and fails if the name is
-      taken. It refuses `--probe-corpus .` and every other occupied path;
-    - every file is built in a private staging directory whose name no other writer can
-      predict, and published with `os.link`, which REFUSES an existing name. Nothing this
-      function writes can land on top of anything;
-    - the failure path removes staging -- ours alone -- and then calls `root.rmdir()`, which
-      the KERNEL refuses on a non-empty directory. That is what makes the cleanup safe
-      against the case this cannot prevent.
+    Z-G4 is the rule for that case -- a gate that cannot compute its ground truth REPORTS
+    the gap, it does not pass -- so the reservation's `(st_dev, st_ino)` is captured at
+    creation and re-read at the end. If the name no longer resolves to the directory this
+    call made, the run REFUSES and says so, naming what was written where. Because the two
+    guarantees above already hold, a detected swap is a reportable event and never a
+    data-loss one: the racer's files are neither replaced nor removed.
 
-    WHAT IT CANNOT PREVENT, stated rather than papered over. `mkdir` proves the name was free
-    at one instant; it does not lease it, and POSIX offers nothing that does. A racer may
-    remove this call's empty reservation and put their own directory there. That race is
-    unclosable at this layer -- so the property held here is about CONSEQUENCE instead: if it
-    happens, `rmdir` refuses their directory, `os.link` refuses their filenames, and they
-    lose nothing. Four earlier rounds tried to close the race itself with an ownership check
-    (`stat` then act); each check was itself racy, which is the reason this one is a kernel
-    refusal and not an `if`.
-
-    THE REMAINING LEFTOVER, likewise stated. If publication fails partway -- which needs a
-    racer holding one of these three filenames inside a directory this call created -- the
-    files already linked in STAY, and the error says so. Removing them would mean unlinking
-    by a path whose identity is no longer proven, which is exactly the defect this shape
-    exists to remove. Leaving data beats destroying it.
+    What remains, stated rather than papered over: detection is not prevention. A swap that
+    happens and is reported still wrote three files into a directory this call does not own.
+    They are named in the error so the operator can remove them, and this function does not,
+    because unlinking through a name whose identity it no longer holds is the exact defect
+    the rest of this docstring exists to remove.
     """
     root = Path(root)
     try:
@@ -955,6 +968,7 @@ def write_probe_corpus(root: Path) -> Path:
         raise FileExistsError(
             f"refusing to write the probe corpus to {root}: it already exists. Give a "
             f"destination that does not exist -- this command creates it.") from None
+    reservation = _reservation_identity(root)
 
     staging = Path(tempfile.mkdtemp(prefix=".probe-corpus-", dir=root.parent))
     published: list[str] = []
@@ -970,17 +984,27 @@ def write_probe_corpus(root: Path) -> Path:
         shutil.rmtree(staging, ignore_errors=True)
     except OSError as exc:
         shutil.rmtree(staging, ignore_errors=True)
-        try:
-            root.rmdir()                          # refused by the kernel if anything is there
-        except OSError:
-            pass
+        if _reservation_identity(root) == reservation:
+            try:
+                root.rmdir()                      # refused by the kernel if anything is there
+            except OSError:
+                pass
         left = (f"; {len(published)} file(s) already published at {root} were LEFT rather "
                 f"than unlinked by a path this call can no longer prove it owns"
                 if published else
                 "; the empty destination this command created was removed if it was still "
-                "empty, and nothing else was touched")
+                "empty and still ours, and nothing else was touched")
         raise OSError(
             f"could not write the probe corpus to {root} ({exc}){left}") from None
+
+    if _reservation_identity(root) != reservation:
+        raise OSError(
+            f"the destination {root} was REPLACED while the probe corpus was being "
+            f"published: the name no longer resolves to the directory this command "
+            f"created. {len(published)} file(s) -- {', '.join(published)} -- were written "
+            f"through that name and are NOT removed here, because this command can no "
+            f"longer prove it owns the path they are under. Nothing was overwritten and "
+            f"nothing was deleted; inspect {root} before re-running.")
     return root
 
 

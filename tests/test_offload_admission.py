@@ -1284,6 +1284,33 @@ def test_a_RESERVATION_a_racer_REPLACED_is_never_deleted_with_its_contents(
 # reportable event and never a data-loss one.
 
 
+def _swaps_the_destination(monkeypatch, dest, foreign=None):
+    """Take `dest` back and put a DIFFERENT directory there, once, after the reservation.
+
+    Hooked on `tempfile.mkdtemp` -- the first thing the writer does after reserving the name
+    and reading its identity -- so the swap lands in the window a mechanism can observe. An
+    earlier draft hooked `Path.mkdir` and swapped INSIDE the reserving call itself, before
+    any code could read what it had created; that window is real and is documented in
+    `write_probe_corpus`, but nothing can detect it, so a test aimed there asserts that a
+    gap POSIX leaves open is closed. It is not, and no fix would have made it pass.
+    """
+    real_mkdtemp = oa.tempfile.mkdtemp
+    swapped = []
+
+    def hook(*a, **k):
+        staged = real_mkdtemp(*a, **k)
+        if not swapped:
+            swapped.append(True)
+            pathlib.Path(dest).rmdir()
+            pathlib.Path(dest).mkdir()
+            if foreign is not None:
+                (dest / "NOTES.md").write_text(foreign, encoding="utf-8", newline="\n")
+        return staged
+
+    monkeypatch.setattr(oa.tempfile, "mkdtemp", hook)
+    return swapped
+
+
 def test_a_destination_REPLACED_during_publication_is_REPORTED_not_silently_used(
         tmp_path, monkeypatch):
     """The command must not return 0 having written into a directory it does not own.
@@ -1295,20 +1322,7 @@ def test_a_destination_REPLACED_during_publication_is_REPORTED_not_silently_used
     """
     dest = tmp_path / "corpus"
     foreign = "# Notes\nanother writer took the name back\n"
-    real_mkdir = pathlib.Path.mkdir
-    real_rmdir = pathlib.Path.rmdir
-    swapped = []
-
-    def hook(self, *a, **k):
-        result = real_mkdir(self, *a, **k)
-        if self == dest and not swapped:
-            swapped.append(True)
-            real_rmdir(dest)                      # the reservation is taken back ...
-            real_mkdir(dest)                      # ... and a DIFFERENT directory put there
-            (dest / "NOTES.md").write_text(foreign, encoding="utf-8", newline="\n")
-        return result
-
-    monkeypatch.setattr(pathlib.Path, "mkdir", hook)
+    swapped = _swaps_the_destination(monkeypatch, dest, foreign)
     with pytest.raises(OSError, match="REPLACED"):
         oa.write_probe_corpus(dest)
     monkeypatch.undo()
@@ -1322,19 +1336,7 @@ def test_the_probe_cli_REPORTS_a_replaced_destination_rather_than_reporting_succ
         tmp_path, monkeypatch):
     """The refusal has to reach the exit code, or the operator never learns of it."""
     dest = tmp_path / "corpus"
-    real_mkdir = pathlib.Path.mkdir
-    real_rmdir = pathlib.Path.rmdir
-    swapped = []
-
-    def hook(self, *a, **k):
-        result = real_mkdir(self, *a, **k)
-        if self == dest and not swapped:
-            swapped.append(True)
-            real_rmdir(dest)
-            real_mkdir(dest)
-        return result
-
-    monkeypatch.setattr(pathlib.Path, "mkdir", hook)
+    swapped = _swaps_the_destination(monkeypatch, dest)
     result = CliRunner().invoke(oa.cli, ["--probe-corpus", str(dest)])
     monkeypatch.undo()
 
