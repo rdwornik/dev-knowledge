@@ -19,6 +19,65 @@
 
 ---
 
+### 2026-09-09 (f) - CC (Opus 5, INTEGRATOR SEAT): the operator's four rulings executed; V-10 merged
+
+**Anchors via `830073fb`** (the regeneration commit this entry rides) **and names `8869eb23`**,
+introduced by the V-10 merge `799489fe`.
+
+**Did.** Executed the operator's four rulings of 2026-09-09, merged V-10, and tore its tree down.
+
+**The rulings, and what each moved.**
+
+1. **ESSENTIALS -- DELETE after re-point.** Sent to V-10 mid-flight as a contract amendment: the
+   disposition is RULED, not a conflict to raise. `[#628]` amended rather than duplicated; the
+   file NOT deleted, because that act is step D and carries the floor sha and `release_lint` C5.
+2. **V-5 and V-8 re-dispatched as FIX LANES, not abandoned** -- each on its own branch, in its
+   own worktree, against its own row, so each merge stays that lane's merge. Both were 40
+   commits behind and were told to `git merge origin/main` first; both did.
+3. **`[#589]` HELD.** Bar unchanged, RED owned and named. Written into both new contracts and
+   repeated to V-10 so no lane can clear or re-baseline it.
+4. **The `lane-contract-check` bypass accepted and ROWED** -- `[#672]`, framed as the operator
+   framed it: a check that cannot check its own case, the P11 class.
+
+**V-10 merged** (`799489fe`). Intake `#89`, eight rows `[#665]`-`[#672]`, and the `[#628]`
+amendment. **The consumer count is now MEASURED rather than argued:** 563 tracked files contain
+the string, 81 after dropping immutable and append-only, **38 files carrying 95 mention lines**
+after also dropping the record classes. The "52" yields to that, as ruled; `[#628]`'s "ten" is
+kept as the A3 census's narrower BREAKING-consumer class rather than as a rival total, which is
+the honest reading of two numbers that were never counting the same thing.
+
+**The lane made the dissolution STRICTER by checking a premise nobody had opened.**
+DECLARE-RECOVERY calls `AI_COUNCIL_PROCESS.md:413` and `PLAYBOOK.md:330` "the two live routes
+still outside the landed fix". Neither routes a session today -- AI_COUNCIL's Section history
+records the repoint as landed at the 2026-09-04 re-stamp, and PLAYBOOK Ch2's Authority hierarchy
+says the file "routes nobody". They are DANGLING REFERENCES at deletion, not re-points owed
+before it, so the amendment names both by anchor and requires them re-worded or removed in the
+SAME act as the deletion.
+
+**Both of V-10's REDs re-verified by the integrator rather than taken on report.** The
+`doc_rot` citation false-strip reproduces on BARE main at `552997bb` with no lane code, on the
+identical token `2026-09-08-architect-2.md`, and is already named in
+`SUITE-BASELINE-CODESPACES-2026-09-08` line 1224. Pre-existing and baselined.
+
+**One CANDIDATE, triaged and not filed.** That `doc_rot` false-strip is owned by **no open
+row** -- measured, zero hits for `validate_doc_rot` in `BACKLOG.md`. Under ADR-111 a finding
+becomes a row only through triage, so it is recorded here as a CANDIDATE for the operator rather
+than filed by the seat. Routing call, since V-10 asked for one: **neither live lane**. V-5's
+closure is `unresolved HIGH -> 0` on `assemble_paste.py` and the regex is outside its footprint;
+and editing `[#643]`'s citation to satisfy the detector would corrupt a legitimate citation to
+please a broken checker, which is the inversion the row class exists to name.
+
+**Changes.** `BACKLOG.md` · `tasks/` (+8, `[#628]` amended) · `docs/intake/` (intake #89 + both
+generated indices) · `docs/audits/` (V-10 packet, README regenerated) · `ecosystem/doc-counts.md`
+(pytest_collected 5543 -> 5559) · `JOURNAL.md`.
+
+**Abandoned.** Nothing. No lane merged past its gate, no finding waived, no bar moved.
+
+**Next.** V-5, V-8 and V-9 are live. Merge each as it clears its gate, **V-9 last**; then the
+final index regeneration, one full-suite run against the 28-RED baseline at `08c35b9c`, the
+`HANDOFF_PROCESS` 7.0.0 -> 7.1.0 bump with its three `reconciled_with` re-stamps and the PIN
+re-issue, and the refuse-to-finish checklist. **Batch V stays OPEN.**
+
 ### 2026-09-09 (e) - CC (Opus 5, INTEGRATOR SEAT): AMEND-BATCH-V-003 -- two late lanes frozen and declared
 
 **Anchors via `e8d39d7d`**, the contract-freeze commit this entry rides.
