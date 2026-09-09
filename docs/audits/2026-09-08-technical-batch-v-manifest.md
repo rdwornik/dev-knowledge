@@ -26,7 +26,7 @@ step-0 evidence is `to-browser/STATUS-DISPATCHER-V.md`.
 `lane-v-` across all refs and all history, and no `batch-v` artifact has ever existed (measured
 2026-09-08). Batch letter == lane letter follows the E/F/G/T/U precedent.
 
-## THE LANES — 6 frozen, 5 dispatched, 1 held
+## THE LANES — 8 frozen (6 at dispatch, 2 added 2026-09-09 by AMEND-BATCH-V-003)
 
 Contracts: `docs/audits/2026-09-08-technical-batch-v-launch-contracts/`.
 
@@ -37,12 +37,14 @@ V-4  lane-v-642-assembly-debt-rows     HELD      local  opus  plan     #642    e
 V-5  lane-v-643-enforcement-debt       DISPATCH  local  opus  plan     #643    the checks that were claimed, built
 V-6  lane-v-000-seat-templates-ledger  DISPATCH  local  opus  execute  no row  4 refusals as code; SEAT-BOOT render; LEDGER generator
 V-8  lane-v-000-offload-admission      DISPATCH  local  opus  plan     no row  Copilot CLI admitted on SEEDED defects; -Model verified live
+V-9  lane-v-664-delivery-spine         DISPATCH  local  opus  plan     #664    FPG-1 as the spine; 3 queries refuse at commit tier  [MERGES LAST]
+V-10 lane-v-000-window-rulings          DISPATCH  local  opus  plan     no row  this window's rulings landed in the repo; 6 step rows
 ```
 
 > This fence is a **machine surface**, not prose: `batch_manifest.manifest_lane_slugs` reads the
 > FIRST `## THE LANES` block and stops at the next heading, and
 > `batch-manifest-contract-slug-agreement` ([#630]) requires **set equality both ways** between these
-> slugs and the launch-contracts directory. Both sets are 6. A lane recorded outside this fence is a
+> slugs and the launch-contracts directory. Both sets are 8 after AMEND-BATCH-V-003. A lane recorded outside this fence is a
 > lane the teardown and the ADR-110 exemption cannot see. Nothing else in this block may carry a
 > slug-shaped token — the provisioning branch for this manifest is therefore named below the next
 > heading, not here, because the parser would read it as a seventh lane.
@@ -83,6 +85,35 @@ VERDICT                   : MATCH
 here.** Recorded because the first read of this gate FAILED and printed "DIFFER (absent != set)"
 from an exception rather than from evidence — a failed read is not an absent variable, and that
 false reading would have held the batch.
+
+## AMENDED AFTER DISPATCH — AMEND-BATCH-V-003, the two late lanes
+
+**This amendment is marked rather than silent, because a manifest is an immutable audit and its
+lane fence is a machine surface.** Two lanes were added on 2026-09-09, after the original six had
+all fired, on two recorded authorizations rather than on the integrator's judgment:
+
+- **V-9 `lane-v-664-delivery-spine`** — `DECLARE-SPINE-2026-09-09` section 4: *"Batch V's queue
+  drains. The integrator files ONE row for section 3 and dispatches ONE lane against it, merged
+  last. Nothing else is added."* The row is `[#664]`, filed at `3b50ea9f`. This is also the return
+  of the lane AMEND-BATCH-V-002 section 2 swapped out as V-7 — recorded there as *"it returns as
+  V+1's first lane"*, and brought forward by the DECLARE.
+- **V-10 `lane-v-000-window-rulings`** — the operator's word of 2026-09-09: *"After the spine row:
+  one more lane. Land this window's rulings into the repo — they live only on `to-cc/` and the
+  transport is not repo state."*
+
+**Why the manifest had to move rather than the lanes living outside it.** `[#630]`'s
+`batch-manifest-contract-slug-agreement` requires SET EQUALITY both ways between this fence and
+the launch-contracts directory, so a contract with no fence row refuses at commit. More
+importantly, the fence is what the ADR-110 exemption and the teardown can see: a lane recorded
+outside it is a lane the batch cannot integrate. Adding the contracts without amending here would
+have produced exactly the batch-E defect the gate exists to catch.
+
+**Lane count is 8. The numbering does not renumber anything** — V-2, V-3, V-4, V-5, V-6 and V-8
+keep their identities and their contracts are untouched. V-7 remains what AMEND-002 made it: a
+slot vacated before dispatch, whose work is now V-9's.
+
+**The batch stays OPEN**: V-5 and V-8 are held on the terra gate (bounced to their authors
+2026-09-09), and these two have not fired at the time of writing.
 
 ## THE MANIFEST BRANCH
 

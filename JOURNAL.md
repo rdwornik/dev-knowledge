@@ -19,6 +19,50 @@
 
 ---
 
+### 2026-09-09 (e) - CC (Opus 5, INTEGRATOR SEAT): AMEND-BATCH-V-003 -- two late lanes frozen and declared
+
+**Anchors via `e8d39d7d`**, the contract-freeze commit this entry rides.
+
+**Did.** Froze two lane contracts and amended the batch-V manifest to declare them: **V-9**
+`lane-v-664-delivery-spine` (DECLARE-SPINE section 4, against `[#664]`, merges last) and **V-10**
+`lane-v-000-window-rulings` (the operator's "one more lane" -- this window's rulings landed in
+the repo). Batch V is now 8 lanes.
+
+**Generated, not hand-authored -- after the gate said so.** The first attempt hand-wrote both
+contracts and `lane-contract-check` refused: no `## Steps`, no `## What NOT to do`, no
+ask-classes, and a dispatch line pairing the slug with a repo PATH where the 1:1 gate wants the
+bare filename. `gen_lane_contract emit` is the mechanism; the bodies were filled into its
+skeleton, and the repo-path rule moved to Footprint where it does not fight the pairing parser.
+
+**The manifest had to move, and the amendment is marked.** `[#630]`'s slug-agreement requires
+set equality both ways between the `## THE LANES` fence and the contracts directory -- and more
+to the point, the fence is what the ADR-110 exemption and the teardown can SEE. A lane recorded
+outside it cannot be integrated.
+
+**Three collisions written INTO the contracts** so no lane rediscovers them expensively:
+`DECLARE-RECOVERY` calls the spine row `[#644]` and that id is wrong (V-4 took it; the DECLARE
+predicted an id its own batch consumed -- the row is `[#664]`); the operator's ESSENTIALS ask
+collides with the live `[#628]`, which disagrees with it on the consumer count (ten vs 52), so
+the contract orders an AMENDMENT with a re-measured number rather than a second row; and the
+terra-gate row risks duplicating `[#649]`, so it is scoped to the ABSENCE case with permission to
+file nothing.
+
+**One bypass, declared: `SKIP=lane-contract-check`.** The gate cannot express this commit --
+`check` compares an open batch's manifest against only the contracts it is HANDED, and the hook
+hands it the staged set, so adding contracts to a frozen batch is always a strict subset. Its own
+docstring says the hook runs `pass_filenames: false`; the YAML omits it. Setting it false is not
+the fix either, because then the checker sees zero paths and passes vacuously. The property was
+verified by running the same checker over all 8 contracts -- 8/8 OK, predicate OK -- and every
+other hook ran.
+
+**CRLF, caught before it landed.** `pathlib.write_text` laundered LF to CRLF on all three files
+(252 + 160 + 164 pairs) and the shape gate is what surfaced it. Rewritten byte-wise as LF.
+
+**Changes.** `docs/audits/2026-09-08-technical-batch-v-launch-contracts/` (+2) ·
+`docs/audits/2026-09-08-technical-batch-v-manifest.md` · `JOURNAL.md`.
+
+**Next.** Dispatch V-9 and V-10 by frozen repo path. Both merge last; batch V stays open.
+
 ### 2026-09-09 (d) - CC (Opus 5, INTEGRATOR SEAT): `[#664]` filed -- the delivery spine gets its row
 
 **Anchors via `3b50ea9f`**, the row-filing commit this entry rides. Entry (b) taught the cost of
