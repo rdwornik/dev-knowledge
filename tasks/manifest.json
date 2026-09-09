@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "efa1fe002079fee2959651fb56fabd929f148970d3bd95eab89232a315f35ff7",
+  "generated_sha256": "b18494ae07a3469b81a7a21e557f204feb068add5671a205b4b981bf165b123d",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -472,6 +472,10 @@
     {
       "task": 674,
       "file": "674-563-s-no-reader-test-checks-a-name-to-prove-a-rela.md"
+    },
+    {
+      "task": 675,
+      "file": "675-manifest-tooling-reads-a-heterogeneous-node-list.md"
     },
     {
       "prose": ""
