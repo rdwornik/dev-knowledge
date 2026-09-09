@@ -889,3 +889,39 @@ def test_a_wholly_cold_bundle_still_defers(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
     assert (bundle / "PASTE_THIS.md").exists()
     assert "defer" in result.stderr.lower()
+
+
+def test_a_refusal_invalidates_the_stale_paste_the_cold_pass_left(tmp_path: Path) -> None:
+    """THE ARTEFACT THE REFUSAL LEAVES BEHIND. Terra, 2026-09-09, and it follows directly from
+    the cold pass being allowed to write a paste at all.
+
+    Sequence: the cold cut assembles PASTE_THIS.md and defers. The operator fills the bundle,
+    names none of the OPEN carriers, and re-runs. The gate refuses -- and exits BEFORE
+    rewriting the paste, so the cold PASTE_THIS.md is still sitting there, complete and
+    pasteable. The operator ships the artifact the gate just refused, and the refusal changed
+    nothing that matters.
+
+    INVALIDATED, NOT DELETED. The assembler owns this file outright ("never hand-edited"), so
+    replacing its contents is within its remit where removing an operator's file would not be;
+    and a stub that says REFUSED is louder than an absence, which reads as "the tool did not
+    run". The stub names the files owed, so the paste itself carries the repair.
+    """
+    bundle, script = _make_bundle(
+        tmp_path, bundle_rel="docs/handoffs/2026-09-09-stale",
+        residual=_COLD_RESIDUAL, supplement_answers="")
+    transport = _transport_with_open_carrier(tmp_path)
+
+    cold = _run(script, bundle, transport=transport)
+    assert cold.returncode == 0, cold.stderr
+    paste = bundle / "PASTE_THIS.md"
+    assert paste.exists() and "ROLE PIN" in paste.read_text(encoding="utf-8")
+
+    (bundle / "RESIDUAL.md").write_text(
+        "# Residual\n\nFilled, and naming no carrier at all.\n", encoding="utf-8")
+    refused = _run(script, bundle, transport=transport)
+    assert refused.returncode == 1, refused.stdout
+
+    text = paste.read_text(encoding="utf-8")
+    assert "REFUSED" in text
+    assert _OPEN_DECISION in text                  # the stub names what is owed
+    assert "ROLE PIN" not in text                  # the pasteable handoff is GONE

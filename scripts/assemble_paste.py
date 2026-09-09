@@ -279,6 +279,43 @@ def _is_window_bundle(bundle_dir: Path, repo_root: Path) -> bool:
     return len(rel.parts) >= 3 and rel.parts[:2] == _BUNDLE_HOME_PARTS
 
 
+def _invalidate_stale_paste(bundle_dir: Path, unnamed) -> None:
+    """Overwrite an EXISTING PASTE_THIS.md with a refusal stub naming what is owed.
+
+    THE ARTEFACT A REFUSAL LEAVES BEHIND, and it only became a hole once the cold pass was
+    allowed to write a paste. The cold cut assembles PASTE_THIS.md and defers; the operator
+    fills the bundle, names no carrier, re-runs; this function's caller refuses and exits
+    BEFORE rewriting the paste. Without this, that complete, pasteable cold artifact is still
+    on disk and the operator ships the very thing the gate refused (terra, 2026-09-09).
+
+    INVALIDATED, NOT DELETED, and both halves of that are deliberate. This script owns
+    PASTE_THIS.md outright — its own header says the file is never hand-edited — so replacing
+    its contents is within its remit where deleting an operator's file would not be. And a stub
+    that says REFUSED is louder than an absence: a missing file reads as "the tool did not
+    run", while this one carries its own repair instructions to whoever opens it.
+
+    ONLY WHEN ONE ALREADY EXISTS. A refusal on a bundle that never had a paste still leaves
+    none, which is the guarantee the cold-cut tests assert and it is not weakened here.
+    """
+    paste = bundle_dir / "PASTE_THIS.md"
+    if not paste.exists():
+        return
+    owed = "\n".join(f"  - {v.path.parent.name}/{v.path.name}" for v in unnamed)
+    paste.write_text(
+        "=== THIS HANDOFF WAS REFUSED — DO NOT PASTE ===\n\n"
+        "P11 leg 2 refused this bundle, and the assembled paste that used to be here has been\n"
+        "replaced by this notice. It was written by an earlier COLD pass, before the residual\n"
+        "was filled, and pasting it would ship the handoff the gate just refused.\n\n"
+        "These decision files state `carried-by: OPEN` and are named nowhere in RESIDUAL.md:\n"
+        f"{owed}\n\n"
+        "Name each one in this bundle's RESIDUAL.md — the transport-qualified path, e.g.\n"
+        "`to-cc/<file>.md` — then re-run scripts/assemble_paste.py on this directory. A window\n"
+        "may hand off with debt; it may never hand off with debt that is silent.\n",
+        encoding="utf-8", newline="\n")
+    click.echo(f"  -> the stale PASTE_THIS.md from the cold pass was REPLACED with a refusal "
+               f"notice; {paste} is not pasteable", err=True)
+
+
 # rule: handoff-open-carrier-named
 def _residual_is_an_untouched_render(text: str) -> bool:
     """True when EVERY FILL-IN region in `text` still holds the generator's own placeholder.
@@ -390,6 +427,7 @@ def assert_open_carriers_named(bundle_dir: Path, repo_root: Path) -> None:
                "bundle is immutable and the only later repair is a superseding cut.", err=True)
     for v in unnamed:
         click.echo(f"  | {v.path.parent.name}/{v.path.name}", err=True)
+    _invalidate_stale_paste(bundle_dir, unnamed)
     sys.exit(1)
 
 
