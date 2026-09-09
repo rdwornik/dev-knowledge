@@ -346,7 +346,19 @@ def assert_open_carriers_named(bundle_dir: Path, repo_root: Path) -> None:
                if v.kind == CARRIAGE_OPEN]
     if not unnamed:
         return
-    if _residual_is_an_untouched_render(text):
+    # BOTH LEGS, and the second closes the bypass the first one left. A residual-only test
+    # defers whenever the residual is untouched -- including on the POST-FILL run, when the
+    # operator has filled SUPPLEMENT.md and simply left every RESIDUAL.md placeholder alone.
+    # That is the documented assembly step, so the gate would be skipped exactly where it is
+    # supposed to bite (terra, 2026-09-09). The bundle's own fill state is the discriminator,
+    # read through `detect_fill_state` -- the ONE definition, which itself reuses
+    # `_extract_answers` above so the framing flip and this gate cannot disagree about what
+    # "filled" means.
+    #
+    # Deferral therefore needs the bundle to be cold ALL THE WAY: nothing folded, and no region
+    # written. Anything else is judged.
+    from gen_handoff import detect_fill_state  # noqa: PLC0415 (sibling CLI; deferred import)
+    if not detect_fill_state(bundle_dir) and _residual_is_an_untouched_render(text):
         # THE FIRST OF TWO PASSES, and the residual it would judge is a template render from
         # seconds ago. `.claude/commands/handoff.md` states the flow: the operator fills the
         # supplement, "then commit the filled file and re-run scripts/assemble_paste.py". Only

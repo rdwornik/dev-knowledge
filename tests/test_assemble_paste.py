@@ -775,7 +775,7 @@ def test_a_resolving_carrier_is_leg_1s_subject_and_does_not_gate_assembly(tmp_pa
     assert (bundle / "PASTE_THIS.md").exists()
 
 
-def test_the_in_generation_pass_defers_leg_2_instead_of_refusing_the_cut(tmp_path: Path) -> None:
+def test_the_cold_cut_defers_leg_2_instead_of_refusing_it(tmp_path: Path) -> None:
     """THE COLD CUT MUST NOT BE BRICKED. Terra, 2026-09-09, second pass.
 
     The assembler runs TWICE by design (`.claude/commands/handoff.md`: fill the supplement,
@@ -791,7 +791,7 @@ def test_the_in_generation_pass_defers_leg_2_instead_of_refusing_the_cut(tmp_pat
     """
     bundle, script = _make_bundle(
         tmp_path, bundle_rel="docs/handoffs/2026-09-09-cold",
-        residual=_COLD_RESIDUAL)
+        residual=_COLD_RESIDUAL, supplement_answers="")
     result = _run(script, bundle, transport=_transport_with_open_carrier(tmp_path))
     assert result.returncode == 0, result.stderr
     assert (bundle / "PASTE_THIS.md").exists()
@@ -807,7 +807,8 @@ def test_the_post_fill_pass_still_refuses_the_same_bundle(tmp_path: Path) -> Non
     the operator assembles it after filling, still refuses. Without this the test above would
     be indistinguishable from having deleted the gate."""
     bundle, script = _make_bundle(
-        tmp_path, bundle_rel="docs/handoffs/2026-09-09-cold2", residual=_COLD_RESIDUAL)
+        tmp_path, bundle_rel="docs/handoffs/2026-09-09-cold2", residual=_COLD_RESIDUAL,
+        supplement_answers="")
     transport = _transport_with_open_carrier(tmp_path)
     deferred = _run(script, bundle, transport=transport)
     assert deferred.returncode == 0, deferred.stderr
@@ -853,3 +854,38 @@ def test_a_bundle_outside_the_repo_bundle_home_is_not_gated(tmp_path: Path) -> N
     result = _run(script, bundle, transport=_transport_with_open_carrier(tmp_path))
     assert result.returncode == 0, result.stderr
     assert _OPEN_DECISION not in result.stderr
+
+
+def test_a_filled_supplement_ends_the_deferral_even_on_an_untouched_residual(tmp_path: Path,
+                                                                            ) -> None:
+    """THE LAST WAY THROUGH, and it is the ordinary flow rather than an exotic one.
+
+    Deferral first tested the residual alone. But the operator's post-fill run -- the step
+    `.claude/commands/handoff.md` prescribes -- fills SUPPLEMENT.md, and nothing obliges them
+    to touch a RESIDUAL.md placeholder. An untouched residual therefore still looked "cold" on
+    exactly the run the gate exists to bite (terra, 2026-09-09).
+
+    So deferral now needs the bundle cold ALL THE WAY: nothing folded AND no region written.
+    The fill state is read through `gen_handoff.detect_fill_state`, the one definition, which
+    itself reuses `_extract_answers` -- so the framing flip and this gate cannot end up
+    disagreeing about what "filled" means.
+    """
+    bundle, script = _make_bundle(
+        tmp_path, bundle_rel="docs/handoffs/2026-09-09-supfill",
+        residual=_COLD_RESIDUAL, supplement_answers="Real answers from the outgoing chat.")
+    result = _run(script, bundle, transport=_transport_with_open_carrier(tmp_path))
+    assert result.returncode == 1, result.stdout
+    assert _OPEN_DECISION in result.stderr
+
+
+def test_a_wholly_cold_bundle_still_defers(tmp_path: Path) -> None:
+    """The negative control for the leg above: an UNFILLED supplement plus an untouched
+    residual is the genuine cold cut, and it must still get through -- otherwise the fix
+    re-bricks the default flow that pass 1 of this same review was raised about."""
+    bundle, script = _make_bundle(
+        tmp_path, bundle_rel="docs/handoffs/2026-09-09-stillcold",
+        residual=_COLD_RESIDUAL, supplement_answers="")
+    result = _run(script, bundle, transport=_transport_with_open_carrier(tmp_path))
+    assert result.returncode == 0, result.stderr
+    assert (bundle / "PASTE_THIS.md").exists()
+    assert "defer" in result.stderr.lower()
