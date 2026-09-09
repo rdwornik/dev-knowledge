@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "a9bae4b612541c479162ce817ba6f7d29c28702e3965197b030a284fbec3cb7c",
+  "generated_sha256": "3e1b4c1829b7eac823c06d5960d8aba5919d27d5c40b781fab629584a5ab7154",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -340,6 +340,38 @@
     {
       "task": 664,
       "file": "664-wire-fpg-1-as-the-delivery-spine-three-commit-tier.md"
+    },
+    {
+      "task": 665,
+      "file": "665-step-a-the-chapter-map-of-playbook-and-architect.md"
+    },
+    {
+      "task": 666,
+      "file": "666-step-b-the-operator-rules-keep-merge-or-cut-per.md"
+    },
+    {
+      "task": 667,
+      "file": "667-step-d-the-docs-rewrite-architecture-rendered-pl.md"
+    },
+    {
+      "task": 668,
+      "file": "668-step-e-the-paste-test-becomes-a-scored-eval-or-t.md"
+    },
+    {
+      "task": 669,
+      "file": "669-step-f-the-conductor-the-delivery-loop-s-transit.md"
+    },
+    {
+      "task": 670,
+      "file": "670-step-g-floor-v1-5-0-reaches-corp-monorepo-and-th.md"
+    },
+    {
+      "task": 671,
+      "file": "671-a-lane-branch-carrying-no-reviewer-tally-at-all.md"
+    },
+    {
+      "task": 672,
+      "file": "672-lane-contract-check-cannot-express-an-incrementa.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"

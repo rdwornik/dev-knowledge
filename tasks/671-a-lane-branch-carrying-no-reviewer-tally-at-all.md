@@ -1,0 +1,12 @@
+---
+id: "[#671]"
+title: "A lane branch carrying NO reviewer tally at all is refused by nothing at merge tier"
+status: open
+priority: P2
+size: S
+theme: "[E2] Enforced governance"
+story: "[S3] Turn advisory guards into enforced gates"
+generates: BACKLOG.md
+---
+
+- [#671] [P2][S] **A lane branch carrying NO reviewer tally at all is refused by nothing at merge tier** — DECLARE-BATCH-V-MERGE-2026-09-09 § 1 made the tally a per-merge gate in the only form available at the time: *"before each code lane merges, the integrator confirms the terra tally line exists in that lane's close artifact"*. **That is the integrator's attention, which is the thing a gate exists to replace.** The mechanism is nearly there and is wired to nothing: `scripts/seat_refusals.py::refuse_tally_reviewer` already raises `tally-malformed` on a line that does not parse, but it is reachable only through the `seat_refusals.py reviewer` CLI, which a seat runs BY HAND against an artifact path it is handed — `gen_seat_boot.py` renders that command into the seat boot as an instruction, and no hook, check or merge step fires it. **An artifact that was never written cannot be handed to a checker that takes a path**, so absence is the one case the existing code shape cannot see. **The seam with `[#649]`, stated so neither row absorbs the other:** `[#649]` owns the tally line's CONTENT when one exists — the three-number `HIGH raw=N fixed=N unresolved=N` shape, and reading a one-number tally as `review=NONE`. This row owns its PRESENCE at merge tier. Filing one row for both would let the format half close while a branch with no tally at all still merges · Done when: a merge-tier refusal FAILs a code lane whose close artifact carries no `Tally:` line — and fires from a wired stage rather than from a rendered instruction — with a trip-test in both directions (a lane WITH a tally passes; a lane WITHOUT one refuses), the refusal naming the artifact it looked for and where; and the presence check reads the same predicate `[#649]`'s format half writes, so the two cannot diverge · refs DECLARE-BATCH-V-MERGE-2026-09-09 § 1, `[#649]`, `scripts/seat_refusals.py` (`refuse_tally_reviewer`, `cmd_reviewer`), `scripts/gen_seat_boot.py`, `[#648]`, `[#642]` · kill-candidates: none — `[#649]` owns the FORMAT half and is deliberately not merged into this row; `[#648]` is the sibling class (a refusal implemented and inert) and is cited, not absorbed · source: DECLARE-BATCH-V-MERGE-2026-09-09 § 1, filed by batch V lane `lane-v-000-window-rulings`
