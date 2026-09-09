@@ -769,6 +769,28 @@ _CARRIAGE_FINDING_ID = "P11-CARRIAGE"
 _CARRIAGE_ERA = "2026-09-09"
 
 
+def _bundle_in_head(bundle_path: Path, repo_root: Path) -> bool:
+    """True when this bundle's RESIDUAL.md already exists in `HEAD` — i.e. it is immutable.
+
+    RESIDUAL.md is the probe, not the directory, because it is the file the carriage rung
+    judges: if THAT is committed, the answer the rung would demand can no longer be written.
+
+    Fails toward JUDGING. A non-repo, a missing git, or any error returns False, so the rung
+    runs rather than silently disappearing — the direction a gate should fail when it cannot
+    tell.
+    """
+    try:
+        rel = bundle_path.resolve().relative_to(repo_root.resolve()).as_posix()
+    except (ValueError, OSError):
+        return False
+    try:
+        import gen_handoff as _gh  # noqa: PLC0415
+    except ImportError:
+        return False
+    ok, _out = _gh._git_status(repo_root, "cat-file", "-e", f"HEAD:{rel}/RESIDUAL.md")
+    return ok
+
+
 def _unnamed_open_carriers(bundle_path: Path, repo_root: Path) -> list[ProbeResult]:
     """P11 leg 2 at ACCEPTANCE time: `OPEN` decision files this bundle's residual never names.
 
@@ -808,6 +830,24 @@ def _unnamed_open_carriers(bundle_path: Path, repo_root: Path) -> list[ProbeResu
     # `audit.check_journal_spine_anchor` uses for ADR-85's floor); a second one written here
     # would be free to disagree with it.
     if not _gh._is_hub(Path(repo_root)):
+        return []
+    # STILL REPAIRABLE, or not judged. This is the bound that keeps a commit-tier check from
+    # becoming a wedge, and the repo already has a ruling on the shape: `audit.py` keeps
+    # `check_funnel_lifecycle` at SHIP rather than COMMIT tier because "a COMMIT tier would
+    # wedge every commit on a defect the committer cannot legally repair". The same argument
+    # applies here with an even harder edge. `check_handoff_probes` IS commit-tier, the
+    # transport keeps growing, and a decision file filed after the cut can never appear in that
+    # bundle's residual — a committed bundle is immutable, and the only repair is a superseding
+    # cut. Unbounded, this rung would fail every later commit in the repo on a defect nobody is
+    # permitted to fix.
+    #
+    # It is the same criterion leg 2 rests on everywhere else — "the refusal has to land while
+    # the bundle is still repairable" — read here from git rather than assumed. Teeth are kept
+    # exactly where they can be acted on: the cut, `/handoff-verify`, and the commit that FIRST
+    # lands the bundle (its residual is staged, not yet in HEAD). That is strictly more than
+    # the historical failure had, where two bundles shipped and the shortfall surfaced only
+    # after they were committed and merged.
+    if _bundle_in_head(bundle_path, Path(repo_root)):
         return []
     CARRIAGE_OPEN, carriage_shortfall = _gh.CARRIAGE_OPEN, _gh.carriage_shortfall
     transport = _gh.transport_root()

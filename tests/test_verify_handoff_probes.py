@@ -2054,3 +2054,42 @@ def test_a_non_hub_repo_is_never_judged_against_this_machines_transport(tmp_path
     monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(transport))
 
     assert vhp._CARRIAGE_FINDING_ID not in _by_id(vhp.verify(bundle))
+
+
+def _commit_bundle(repo_root):
+    ident = ["-c", "user.name=t", "-c", "user.email=t@t"]
+    subprocess.run(["git", "init", "-b", "main"], cwd=repo_root, check=True, capture_output=True)
+    subprocess.run(["git", *ident, "add", "-A"], cwd=repo_root, check=True, capture_output=True)
+    subprocess.run(["git", *ident, "commit", "-m", "cut"], cwd=repo_root, check=True,
+                   capture_output=True)
+
+
+def test_an_already_committed_bundle_is_no_longer_judged(tmp_path, monkeypatch, as_hub):
+    """THE WEDGE THIS GATE MUST NOT BECOME, and the repo has a ruling on exactly this shape.
+
+    `check_handoff_probes` runs at the COMMIT tier, so an unbounded rung re-judges the active
+    bundle on EVERY later commit. The transport keeps growing; a decision file added after the
+    cut can never appear in that bundle's residual, because a committed bundle is IMMUTABLE.
+    The result would be every subsequent commit in the repo failing on a defect the committer
+    is not permitted to repair -- which is verbatim the argument `audit.py` already records for
+    keeping `check_funnel_lifecycle` at SHIP rather than COMMIT tier.
+
+    The bound is the same repairability criterion leg 2 rests on throughout: judge while the
+    bundle can still be fixed. Once it is in HEAD it cannot, so the rung goes silent rather
+    than shouting at someone who cannot act. It keeps full teeth where they are actionable --
+    the cut, `/handoff-verify`, and the commit that first lands the bundle -- which is strictly
+    more than the historical failure had, where two bundles shipped and the defect surfaced
+    only after they were committed and merged.
+    """
+    bundle = _init_bundle(tmp_path, [_PASS_SYMBOL], slug=_CARRIAGE_ERA_SLUG)
+    (bundle / "RESIDUAL.md").write_text("# Residual\n\nNothing carried.\n", encoding="utf-8")
+    transport, name = _transport_with_open(tmp_path)
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(transport))
+
+    # Uncommitted: still repairable, so it is judged -- the control for the assertion below.
+    before = _by_id(vhp.verify(bundle))
+    assert before[vhp._CARRIAGE_FINDING_ID].status == "fail"
+    assert name in before[vhp._CARRIAGE_FINDING_ID].detail
+
+    _commit_bundle(tmp_path / "repo")
+    assert vhp._CARRIAGE_FINDING_ID not in _by_id(vhp.verify(bundle))
