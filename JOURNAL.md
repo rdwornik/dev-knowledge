@@ -19,6 +19,72 @@
 
 ---
 
+### 2026-09-09 (l) - CC (Opus 5, BACKGROUND SEAT): three checks, a branch cleanup, and `[#675]` filed with its own procedure as the eighth instance
+
+**Anchors via `dc470b70`** (the row-filing commit this entry rides) and **`74dae3a5`** (the
+eighth-instance append).
+
+**Did.** Three operator-specified checks, read-first, acting only where the read proved it safe.
+
+**Check 1 - branch cleanup.** `docs/batch-v-integration` and `docs/process-trigger-census` both
+read ZERO commits ahead of `main` AND of `origin/main`, and both appeared under
+`git branch --merged main`. Deleted with `-d` (never `-D`) local, and
+`git push origin --delete` on origin. `docs/batch-v-integration` was **local-only** - the origin
+delete returned `remote ref does not exist`, which is the expected result and not a failure.
+`git branch -a` does **not** show only `main`: `automation/fleet-audit` remains local and on
+origin, untouched because it was outside the ask.
+
+**Check 2 - the three husks, report-only, nothing killed.** All three are empty and already
+deregistered (`git worktree list` shows the primary alone). The holder binding is EXACT rather
+than inferred: each `--bg-pty-host` process names its pipe `cc-daemon-...-pty-<sessionId-prefix>`
+and its `--resume` child names the husk's project dir verbatim.
+`lane-v-000-offload-admission` -> PIDs 32264/30776; `lane-v-643-enforcement-debt` -> **two**
+sessions, PIDs 19504/20284 and 19672/35816; `lane-v-664-delivery-spine` -> PIDs 12456/15036.
+**All eight alive.** A stalled jsonl mtime is not death - two of the four are idle-but-live.
+They trip no gate: `no_sibling_orphans` never fires on them because they sit INSIDE the
+registered `.claude/worktrees/`, not as siblings beside the repo.
+
+**Check 3 - `[#675]` filed (E2 / S6).** The manifest-insertion class: a `.get(key, default)` over
+a heterogeneous node list makes every node of the other shape look like the default, so the
+script exits 0, `validate_backlog` passes, and `manifest.json` stays structurally valid while
+being semantically wrong - `manifest_node_problem` and `manifest_sequence_problems` check node
+SHAPE, and a defaulting read is not a shape defect. This is the (k) entry's recorded bug turned
+into an owed mechanism. Two facts the read added: manifest nodes carry **no `type` key at all**
+today, so the operator's `node["type"] == "task"` done-when implies adding the discriminator; and
+every in-repo site is ALREADY correct (`if "task" in node` in `reassemble_from_tree`,
+`render_view`, `_task_count`, `_scan_source`), which is the trap - the corpus offers no failing
+example for the next ad-hoc reader to trip over.
+
+**The eighth instance is this row's own filing, and the operator called it at procedure level.**
+Filing a ONE-LINE row provisioned a worktree that then had to be torn down. The lane apparatus
+fires on the CONTRACT, never on what the contract writes, so a task that mutates no code pays the
+whole round trip. Same class one layer up: the provisioning decision never reads the one field -
+change size - that would have refused. Done-when gained a size gate that refuses provisioning for
+a contract whose only writes are `BACKLOG.md` / `tasks/`. **Teardown is half the act; it is not
+the author's to skip, it is the merger's to complete.**
+
+**One judgment call, stated because it reordered the operator's instructions.** The append was
+ordered AFTER teardown. Landing it that way needs a SECOND worktree for a `tasks/`-only edit -
+precisely the cost the note condemns - and the anchor commit had to ride this branch anyway, so
+both were done in the one already-provisioned lane. End state identical; apparatus halved.
+
+**Result.** `[#675]` open at P2/M under E2 / S6, filed and appended. `gen_task_tree --check` ok,
+`validate_backlog` OK (263 tasks, 2 pre-existing warnings), `ruff` clean, `audit.py health`
+DEGRADED on WARNs with no FAIL. Targeted tests 179 passed / 2 failed, **both pre-existing and
+owned, neither introduced here**: `test_the_live_view_is_under_the_589_done_when_byte_bar` was
+already RED at HEAD (77,362 B against the 72,000 bar; this row adds 213 B) and is HELD under
+`[#589]`, and `test_no_gate_hook_or_script_reads_the_export` IS the defect `[#674]` describes.
+BACKLOG.md did not move for the append - it is a title-only view by ratified design.
+
+**Changes.** `tasks/675-*`, `tasks/manifest.json`, `BACKLOG.md` (263 tasks), `JOURNAL.md`.
+
+**Abandoned.** Nothing.
+
+**Next.** `[#675]` carries two done-when legs: type-discriminated node access with a RED-first
+witness, and the size gate on worktree provisioning. The three husks from the (k) entry are
+still held by live sessions and still trip nothing; they release when those sessions exit.
+`automation/fleet-audit` remains on both ends and was deliberately not touched.
+
 ### 2026-09-09 (k) - CC (Opus 5, INTEGRATOR SEAT): the close ruling executed, two rows filed, seat CLOSED
 
 **Anchors via `abdc2dc9`** (the row-filing commit this entry rides).
