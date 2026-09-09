@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "5b7d22245aa698be87d269d9c7e5d22b2fcced27b006e912db5633f6a1b99d3c",
+  "generated_sha256": "a9bae4b612541c479162ce817ba6f7d29c28702e3965197b030a284fbec3cb7c",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -336,6 +336,10 @@
     {
       "task": 652,
       "file": "652-a-gate-that-passes-when-its-precondition-is-absent.md"
+    },
+    {
+      "task": 664,
+      "file": "664-wire-fpg-1-as-the-delivery-spine-three-commit-tier.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"

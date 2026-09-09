@@ -19,6 +19,39 @@
 
 ---
 
+### 2026-09-09 (d) - CC (Opus 5, INTEGRATOR SEAT): `[#664]` filed -- the delivery spine gets its row
+
+**Anchors via `3b50ea9f`**, the row-filing commit this entry rides. Entry (b) taught the cost of
+a single-commit arc, so this branch carries the artifact first and the JOURNAL second.
+
+**Did.** Filed ONE row for DECLARE-SPINE-2026-09-09 section 3, as ordered, and nothing else.
+`[#664]`, P1/L, last task of `[S3]` -- placement by manifest node index, since theme and story
+derive from position.
+
+**Result -- three things the row does NOT copy from its source, each stated in the row itself:**
+
+1. **The "12 edge computations -> 0" bar is dead.** `ff103444` narrowed intake #40 to
+   corpus-structure edges and recorded that 12 counted state gates the class excludes. The row
+   asks for a RE-MEASURE under the five-kind class rather than inheriting an integer.
+2. **The fixture and the predicate differ in cardinality.** The census counts 32 orphans -- 20
+   script-class, 3 hooks, 9 commands and skills -- while `orphan_census` as section 3 words it
+   sees only the 20. A Done-when of "32 -> 0" against that predicate is unreachable by
+   construction, so the row names the 12-item remainder and requires a recorded choice.
+3. **The registry paste is named as RETRACTED** in the row body, so a reader who finds the
+   216-row YAML in history does not mistake it for the plan.
+
+**Locators: three of the obvious ones were wrong before checking.** ADR-118's filename is
+`ADR-118-one-graph-organs-are-views.md`; intake `#86` is
+`docs/intake/2026-09-07-tech-orphan-census-organ.md`; and the census the DECLARE argues from
+was not in repo state at all until `4d017986`.
+
+**Carried, unchanged in kind.** `BACKLOG.md` 75,367 -> 75,539 B against the 72,000 B bar. One
+ordered row is not the moment to take a decision that belongs to the operator or the architect.
+
+**Changes.** `tasks/664-*.md` (new) · `tasks/manifest.json` · `BACKLOG.md` · `JOURNAL.md`.
+
+**Next.** Dispatch the spine lane against `[#664]`, then the rulings lane. Both merge last.
+
 ### 2026-09-09 (c) - CC (Opus 5, INTEGRATOR SEAT): anchor discharge for `4ecf9e73`, and the census lands
 
 **Anchors `4ecf9e73` by naming `a09400cc`**, the JOURNAL commit that merge introduced. Entry
