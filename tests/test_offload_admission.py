@@ -1062,32 +1062,6 @@ def test_the_INTACT_probe_corpus_still_scores_normally(tmp_path):
 # touched. The two tests below are the invariant, not the mechanism.
 
 
-def test_a_failed_build_NEVER_unlinks_a_path_in_the_DESTINATION_directory(
-        tmp_path, monkeypatch):
-    """The guarantee restated so that no future hardening round can reintroduce the race.
-
-    Any unlink of a path a concurrent writer can also name is the defect, whatever ownership
-    proof precedes it. So the assertion is not "the right file was deleted" -- it is that
-    nothing in the destination directory was unlinked at all.
-    """
-    dest = tmp_path / "corpus"
-    unlinked = []
-    real_unlink = pathlib.Path.unlink
-
-    def spy(self, *a, **k):
-        unlinked.append(pathlib.Path(self))
-        return real_unlink(self, *a, **k)
-
-    monkeypatch.setattr(pathlib.Path, "unlink", spy)
-    _write_fails_on_call(monkeypatch, 2)
-    with pytest.raises(OSError):
-        oa.write_probe_corpus(dest)
-    monkeypatch.undo()
-    assert [q for q in unlinked if q.parent == dest] == [], \
-        "cleanup unlinked a path in the shared destination directory"
-    assert not dest.exists(), "a failed build left the destination behind"
-
-
 def test_the_destination_is_created_WHOLE_or_not_at_all(tmp_path, monkeypatch):
     """No partial corpus is ever observable at the destination path.
 
@@ -1120,33 +1094,115 @@ def test_an_EXISTING_destination_is_refused_before_anything_is_staged(tmp_path):
     assert list(tmp_path.iterdir()) == [dest], "a refused call staged something anyway"
 
 
-def test_a_destination_that_APPEARS_before_the_rename_is_refused_untouched(
-        tmp_path, monkeypatch):
-    """The last window, closed by the shape rather than by a check.
+# ---------------------------------------------------------------------------------------
+# reserve the name, and read the KEY not the value - terra pass 11 (2026-09-09)
+# ---------------------------------------------------------------------------------------
+# [P1] "On POSIX/Linux, os.rename(staging, root) replaces an existing empty destination
+# directory. If another process creates an empty root after the preflight check, this call
+# deletes that directory and installs the probe corpus ... the later root.exists() check is
+# too late. Use a no-replace publication mechanism or otherwise reserve the destination
+# atomically."
+#
+# [P1] "A record or finding with `verdict: ""` or `verdict: null` is admitted because this
+# condition treats it as absent, while _FIELDS_WITH_OWN_CODE excludes `verdict` from the
+# closed-schema rejection ... reject based on key presence, reserving `verdict-bearing` for
+# that field."
+#
+# The first is invisible on this machine -- Windows os.rename refuses an existing directory
+# outright -- so the witness is the STRUCTURAL property the remedy names, not the POSIX
+# symptom: the destination must be reserved before any content is written. A test that can
+# only fail on an operating system this lane does not run on is not a witness.
 
-    A racer that creates the destination after the pre-flight scan and before the rename
-    loses nothing: the rename fails, staging is removed, and their files are exactly as they
-    left them. This replaces two tests written against the per-file writer -- one asserting
-    a blinded pre-flight still refused, one asserting the cleanup did not delete a
-    replacement. Both were circling this property; neither could state it, because a
-    per-file writer cannot hold it.
+
+def test_the_destination_is_RESERVED_before_any_content_is_written(tmp_path, monkeypatch):
+    """The no-replace publication mechanism, asserted as a fact about ordering.
+
+    Build-then-publish leaves the destination name unclaimed for the whole build, and the
+    publishing step is a rename, which on POSIX silently replaces an empty directory a racer
+    created in that window. Claiming the name FIRST, with an atomic mkdir that fails if it
+    is taken, removes the window instead of narrowing it.
     """
     dest = tmp_path / "corpus"
+    reserved = []
+    real_open = open
+
+    def spy(*a, **k):
+        reserved.append(dest.is_dir())
+        return real_open(*a, **k)
+
+    monkeypatch.setattr(oa, "open", spy, raising=False)
+    oa.write_probe_corpus(dest)
+    monkeypatch.undo()
+    assert reserved, "no file was written at all"
+    assert all(reserved), "content was written before the destination name was claimed"
+
+
+def test_a_destination_that_APPEARS_before_the_RESERVATION_is_refused_untouched(
+        tmp_path, monkeypatch):
+    """A racer that wins the name keeps it, and everything in it."""
+    dest = tmp_path / "corpus"
     foreign = "# Rules\nanother writer got here first\n"
-    real_rename = oa.os.rename
+    real_mkdir = pathlib.Path.mkdir
+    raced = []
 
-    def hook(src, dst):
-        target = pathlib.Path(dst)
-        target.mkdir()
-        (target / "RULES.md").write_text(foreign, encoding="utf-8", newline="\n")
-        return real_rename(src, dst)
+    def hook(self, *a, **k):
+        if self == dest and not raced:
+            raced.append(True)
+            real_mkdir(self, *a, **k)
+            (dest / "RULES.md").write_text(foreign, encoding="utf-8", newline="\n")
+        return real_mkdir(self, *a, **k)
 
-    monkeypatch.setattr(oa.os, "rename", hook)
+    monkeypatch.setattr(pathlib.Path, "mkdir", hook)
     with pytest.raises(FileExistsError):
         oa.write_probe_corpus(dest)
     monkeypatch.undo()
-
     assert (dest / "RULES.md").read_text(encoding="utf-8") == foreign
     assert {q.name for q in dest.iterdir()} == {"RULES.md"}
-    assert {q.name for q in tmp_path.iterdir()} == {"corpus"}, \
-        "the staging directory was left beside the destination"
+    assert {q.name for q in tmp_path.iterdir()} == {"corpus"}
+
+
+def test_a_failed_build_REMOVES_only_what_this_call_created(tmp_path, monkeypatch):
+    """Cleanup is scoped to the directory this call reserved, and to nothing else.
+
+    Restated from an earlier form that asserted no `Path.unlink` in the destination. That
+    was true and would have stayed true for the wrong reason once cleanup moved to
+    `shutil.rmtree`, which unlinks through `os` -- a test passing because of which spelling
+    of unlink is used is not a test of the property.
+    """
+    bystander = tmp_path / "NOTES.md"
+    bystander.write_text("not ours\n", encoding="utf-8", newline="\n")
+    dest = tmp_path / "corpus"
+    _write_fails_on_call(monkeypatch, 2)
+    with pytest.raises(OSError):
+        oa.write_probe_corpus(dest)
+    monkeypatch.undo()
+    assert not dest.exists(), "a failed build left the destination behind"
+    assert bystander.read_text(encoding="utf-8") == "not ours\n"
+    assert {q.name for q in tmp_path.iterdir()} == {"NOTES.md"}, \
+        "a failed build left something beside the destination"
+
+
+def test_a_BLANK_verdict_key_is_refused_on_its_PRESENCE(tmp_path):
+    """`verdict: ""` is not the absence of a verdict field. It is a verdict field.
+
+    The check read the VALUE, so an empty or null verdict counted as absent -- and the
+    closed-schema check exempts `verdict` precisely because `verdict-bearing` is supposed to
+    own it. Between them the field passed through unrefused, which is the denylist hole from
+    pass 5 reappearing one layer down.
+    """
+    registry = oa.write_suite_corpus(tmp_path)
+    for blank in ("", None):
+        record = oa.admissible_record()
+        record["findings"][0]["verdict"] = blank
+        verdict = oa.adjudicate(record, tmp_path, registry)
+        assert not verdict.admitted, f"verdict={blank!r} was ADMITTED"
+        assert verdict.codes == ("verdict-bearing",), verdict.detail
+
+
+def test_a_BLANK_top_level_verdict_key_is_refused_too(tmp_path):
+    registry = oa.write_suite_corpus(tmp_path)
+    record = oa.admissible_record()
+    record["verdict"] = None
+    verdict = oa.adjudicate(record, tmp_path, registry)
+    assert not verdict.admitted
+    assert verdict.codes == ("verdict-bearing",), verdict.detail
