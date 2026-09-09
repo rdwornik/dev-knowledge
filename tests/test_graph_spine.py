@@ -127,6 +127,12 @@ def test_store_path_resolves_outside_the_working_tree():
     assert not path.is_relative_to(REPO_ROOT / "logs")
 
 
+def _age(lock: Path) -> None:
+    """Backdate a lock past its TTL -- i.e. make its builder look dead, without waiting."""
+    stamp = time.time() - gs._LOCK_TTL_S - 5
+    os.utime(lock, (stamp, stamp))
+
+
 def test_a_waiter_never_removes_a_live_builders_rebuild_lock(tmp_path: Path):
     """THE TRIP, and it is a trip because the permissive direction passes either way.
 
@@ -138,27 +144,50 @@ def test_a_waiter_never_removes_a_live_builders_rebuild_lock(tmp_path: Path):
     too, and then deleted the lock anyway.
     """
     lock = tmp_path / "FPG.rebuild-lock"
-    assert gs.acquire_rebuild_lock(lock) is True
-    held = lock.read_text(encoding="utf-8")
+    held = gs.acquire_rebuild_lock(lock)
+    assert held is not None
 
-    assert gs.acquire_rebuild_lock(lock) is False
+    assert gs.acquire_rebuild_lock(lock) is None
     assert lock.exists(), "a waiter removed the lock it does not hold"
     assert lock.read_text(encoding="utf-8") == held, "a waiter overwrote the live holder"
+
+
+def test_an_overrun_builder_does_not_release_its_SUCCESSORS_lock(tmp_path: Path):
+    """THE TRIP for the release side, and it is the one an existence check cannot see.
+
+    A rebuild that outlives the TTL has its lock BROKEN and re-taken while it is still
+    running, so by the time it releases, the file under that name belongs to someone else.
+    `release_rebuild_lock` must therefore remove an acquisition, never a filename -- an
+    unconditional unlink here deletes the successor's lock and lets a third caller build
+    concurrently with the new holder, which is the overlap the lock exists to prevent.
+    """
+    lock = tmp_path / "FPG.rebuild-lock"
+    slow = gs.acquire_rebuild_lock(lock)
+    _age(lock)
+    successor = gs.acquire_rebuild_lock(lock)          # a waiter breaks and re-takes it
+    assert successor is not None and successor != slow
+
+    gs.release_rebuild_lock(lock, slow)                # the slow builder finally finishes
+    assert lock.exists(), "the overrun builder released a lock it no longer held"
+    assert lock.read_text(encoding="utf-8") == successor
+
+    gs.release_rebuild_lock(lock, successor)           # the real holder still can
+    assert not lock.exists()
 
 
 def test_an_expired_lock_is_broken_so_a_dead_builder_never_wedges_the_store(tmp_path: Path):
     """The converse: a lock whose builder died is honoured for its TTL and then taken.
 
-    Without this leg the fix above would be indistinguishable from never breaking a lock at
-    all -- which trades a race for a wedge, and a wedge blocks every commit in the repo.
+    Without this leg the two fixes above would be indistinguishable from never breaking a
+    lock at all -- which trades a race for a wedge, and a wedge blocks every commit here.
     """
     lock = tmp_path / "FPG.rebuild-lock"
-    assert gs.acquire_rebuild_lock(lock) is True
-    dead = lock.read_text(encoding="utf-8")
-    os.utime(lock, (time.time() - gs._LOCK_TTL_S - 5, time.time() - gs._LOCK_TTL_S - 5))
+    dead = gs.acquire_rebuild_lock(lock)
+    _age(lock)
 
-    assert gs.acquire_rebuild_lock(lock) is True
-    assert lock.read_text(encoding="utf-8") != dead, "the breaker did not take the lock"
+    taken = gs.acquire_rebuild_lock(lock)
+    assert taken is not None and taken != dead, "the breaker did not take the lock"
+    assert lock.read_text(encoding="utf-8") == taken
 
 
 # ----------------------------------------------------- witness 2: orphan_census REFUSES

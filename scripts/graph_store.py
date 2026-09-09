@@ -261,33 +261,57 @@ def _lock_expired(lock: Path) -> bool:
         return False
 
 
-def acquire_rebuild_lock(lock: Path) -> bool:
-    """Take the rebuild lock; True if THIS process now holds it.
+def acquire_rebuild_lock(lock: Path) -> str | None:
+    """Take the rebuild lock; the TOKEN this acquisition wrote, or None if someone holds it.
 
-    THE ONLY PLACE A LOCK IS EVER REMOVED BY SOMEONE WHO DOES NOT HOLD IT, so the decision
-    to break one lives in a single readable place rather than being spread across the
-    waiting path. A lock is broken only once it has outlived `_LOCK_TTL_S` **and** the same
-    holder is still recorded at the moment of removal -- so a builder that finished and was
+    THE TOKEN IS THE POINT, and it is why this returns a string rather than a bool. A lock
+    file's *existence* identifies nothing: a builder that overruns `_LOCK_TTL_S` has its
+    lock broken and replaced while it is still running, so by the time it releases, the file
+    under that name belongs to someone else. Every removal in this module is therefore
+    guarded by the token, and a caller can only remove the acquisition it actually made.
+
+    THE ONLY PLACE A LOCK IS TAKEN FROM SOMEONE ELSE, so the decision to break one lives in
+    a single readable place rather than spread across the waiting path. A lock is broken
+    only once it has outlived `_LOCK_TTL_S` -- a builder presumed dead -- and only while the
+    same token is still recorded at the moment of removal, so a holder that finished and was
     replaced between the age check and the unlink keeps the lock it just took.
 
     THE LOCK IS A CONTENTION MEASURE, NOT THE CORRECTNESS ARGUMENT, and saying so is what
-    makes the residual window tolerable rather than hidden: what a spurious break costs is a
-    duplicate rebuild and a retried swap, both of which this module already survives. The
-    store cannot be torn by one, because `_swap_into_place` swaps a fully-written file over
-    the live one atomically. A lock that had to be perfect would need OS-level locking and
-    would buy nothing this does not already have.
+    makes the residual window tolerable rather than hidden: check-then-unlink is not atomic
+    on either OS, so a sub-millisecond race remains. Its whole cost is a duplicate rebuild
+    and a retried swap, both of which this module already survives, and the store cannot be
+    torn by one because `_swap_into_place` swaps a fully-written file over the live one
+    atomically. A lock that had to be perfect would need OS-level locking and would buy
+    nothing this does not already have.
     """
     if _lock_expired(lock):
-        stale = _lock_identity(lock)
-        if stale is not None and _lock_identity(lock) == stale:
-            with contextlib.suppress(OSError):
-                lock.unlink()
+        _remove_if_held(lock, _lock_identity(lock))
+    token = f"{os.getpid()} {time.time_ns()}\n"
     try:
         with open(lock, "x", encoding="utf-8") as handle:
-            handle.write(f"{os.getpid()} {time.time():.6f}\n")
+            handle.write(token)
     except FileExistsError:
-        return False
-    return True
+        return None
+    return token
+
+
+def _remove_if_held(lock: Path, token: str | None) -> None:
+    """Unlink the lock only while `token` is still the acquisition recorded in it."""
+    if token is not None and _lock_identity(lock) == token:
+        with contextlib.suppress(OSError):
+            lock.unlink()
+
+
+def release_rebuild_lock(lock: Path, token: str) -> None:
+    """Give up the lock -- and ONLY the acquisition this caller made.
+
+    An unconditional unlink here is the release-side twin of the bug the token exists to
+    stop: a rebuild that overruns the TTL gets its lock broken and re-taken by a waiter, and
+    then deletes that waiter's lock on its way out, which lets a third caller build
+    concurrently with the new holder. Releasing is not "remove the file with this name", it
+    is "remove the file if it is still mine".
+    """
+    _remove_if_held(lock, token)
 
 
 def _swap_into_place(tmp: Path, path: Path) -> None:
@@ -509,11 +533,12 @@ def ensure(repo_root: Path | str, db_path: Path | str | None = None) -> GraphSto
     path.parent.mkdir(parents=True, exist_ok=True)
     lock = path.with_suffix(".rebuild-lock")
     while True:
-        if acquire_rebuild_lock(lock):
+        token = acquire_rebuild_lock(lock)
+        if token is not None:
             try:
                 rebuild(root, path)
             finally:
-                lock.unlink(missing_ok=True)   # only the HOLDER removes it
+                release_rebuild_lock(lock, token)   # only THIS acquisition, never the name
             return open_store(path)
 
         # Another process holds the lock. Wait for ITS result rather than building a second
