@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "6d8e7689c69011f9607d3f02cfc226b46488734d79e0e57237ee946577442d1a",
+  "generated_sha256": "a9bae4b612541c479162ce817ba6f7d29c28702e3965197b030a284fbec3cb7c",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -151,6 +151,14 @@
     },
     {
       "prose": "---"
+    },
+    {
+      "task": 662,
+      "file": "662-the-r6-handoff-exception-reached-none-of-its-three-carriers.md"
+    },
+    {
+      "task": 663,
+      "file": "663-the-v71-boot-carries-no-interface-block-and-no-floor-item-7.md"
     },
     {
       "prose": ""
@@ -314,6 +322,26 @@
       "file": "639-retire-the-verification-organs-that-fire-but-never-.md"
     },
     {
+      "task": 648,
+      "file": "648-locator-staleness-and-dispatcher-liveness-gate-nothing.md"
+    },
+    {
+      "task": 649,
+      "file": "649-reviewer-tally-carries-one-number-where-three-are-owed.md"
+    },
+    {
+      "task": 651,
+      "file": "651-two-adr-85-organs-each-hold-their-own-branch-enum.md"
+    },
+    {
+      "task": 652,
+      "file": "652-a-gate-that-passes-when-its-precondition-is-absent.md"
+    },
+    {
+      "task": 664,
+      "file": "664-wire-fpg-1-as-the-delivery-spine-three-commit-tier.md"
+    },
+    {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
     },
     {
@@ -385,6 +413,14 @@
       "file": "478-changelog-sentinel-drops-pep-440-suffixes.md"
     },
     {
+      "task": 653,
+      "file": "653-fleet-shape-spec-version-unbumped-after-a-consumer-change.md"
+    },
+    {
+      "task": 654,
+      "file": "654-the-037-render-pass-ruling-has-no-intake-and-no-carrier.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -396,6 +432,10 @@
     {
       "task": 218,
       "file": "218-safe-removal-gate-m2-m3-boundary.md"
+    },
+    {
+      "task": 659,
+      "file": "659-orphan-census-names-a-trigger-that-does-not-exist.md"
     },
     {
       "prose": ""
@@ -551,6 +591,10 @@
       "prose": "---"
     },
     {
+      "task": 656,
+      "file": "656-v150-floor-seal-report-drift-probe-matches-a-dead-literal.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -689,6 +733,10 @@
       "prose": "---"
     },
     {
+      "task": 650,
+      "file": "650-adr-117-is-proposed-while-a-gate-enforces-it.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -813,6 +861,10 @@
       "file": "628-dc2-recut-essentials-dissolution-is-a-release-act.md"
     },
     {
+      "task": 647,
+      "file": "647-harness-carrying-cost-unmeasured-contracts-pasted.md"
+    },
+    {
       "prose": "## [E6] Cross-repo universalization"
     },
     {
@@ -888,6 +940,10 @@
       "file": "606-the-win-tooling-first-slice-instantiation-arc-ru.md"
     },
     {
+      "task": 644,
+      "file": "644-the-2026-08-29-deploy-freeze-has-never-been-ruled.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -922,6 +978,10 @@
     },
     {
       "prose": "---"
+    },
+    {
+      "task": 645,
+      "file": "645-install-md-root-path-retired-to-docs-not-allowlisted.md"
     },
     {
       "prose": ""
@@ -1093,6 +1153,14 @@
       "file": "634-dispatch-run-accepts-github-token-as-the-anthropic-check.md"
     },
     {
+      "task": 646,
+      "file": "646-substantive-commit-share-is-measured-once-by-hand.md"
+    },
+    {
+      "task": 658,
+      "file": "658-fourteen-operator-points-nine-mechanisable-nothing-counts.md"
+    },
+    {
       "prose": "### [S19] Decide the undecided artifact/tool models"
     },
     {
@@ -1165,6 +1233,14 @@
       "file": "627-agy-route-is-inert-no-row-authorizes-analysis-admission.md"
     },
     {
+      "task": 660,
+      "file": "660-s-15-the-aj-tools-and-evals-table-was-never-produced.md"
+    },
+    {
+      "task": 661,
+      "file": "661-sda-1-is-a-complete-benchmark-design-that-never-ran.md"
+    },
+    {
       "prose": "### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)"
     },
     {
@@ -1210,6 +1286,14 @@
     {
       "file": "555-closing-campaign-batch-1-kill-candidates-instrum.md",
       "task": 555
+    },
+    {
+      "task": 655,
+      "file": "655-run-retention-has-no-production-caller.md"
+    },
+    {
+      "task": 657,
+      "file": "657-orphan-33-an-unregistered-writer-edits-the-repo-nightly.md"
     },
     {
       "prose": "## [E8] ARC-5 execution"

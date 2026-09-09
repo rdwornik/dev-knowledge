@@ -2069,6 +2069,40 @@ def funnel_health_block(repo_root: Path) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _seat_boot_batch(repo_root: Path, slug: str) -> str:
+    """What the five SEAT-BOOT pastes call this cut's batch.
+
+    The manifest is asked first, because a boot titled with the batch it belongs to is the whole
+    point of handing one to a dispatcher. Exactly one open batch answers it; zero or several make
+    the question ambiguous, and the bundle slug is then the honest fallback -- it names the cut,
+    which is a real identity, rather than guessing at a batch letter.
+    """
+    live = _open_batches(repo_root)
+    return live[0].batch if len(live) == 1 else slug
+
+
+def _write_seat_boots(bundle_dir: Path, repo_root: Path, slug: str, date: str) -> list:
+    """CUT-TIME HOOK -- render the five SEAT-BOOT pastes into the bundle (INBOX 038).
+
+    Seat boots are GENERATED BUNDLE ARTIFACTS, not browser prose: two consecutive incoming seats
+    composed one by hand on 2026-09-08 and both were withdrawn (AMEND-BATCH-V-001 §1). The render
+    lives in `scripts/gen_seat_boot.py`; this is only the call site, so the bundle engine gains a
+    hook rather than a second copy of Ch8.
+
+    DEGRADES TO NO FILES, never to a partial set. A render refusal here would otherwise take down
+    a cut whose other seven artifacts are fine, and probe P12 reads the bundle afterwards -- an
+    absent boot is drift it reports by name, so failing quietly is visible rather than silent.
+    """
+    sys.path.insert(0, str(_SCRIPTS))
+    try:
+        from gen_seat_boot import write_bundle  # noqa: PLC0415
+        return list(write_bundle(bundle_dir, batch=_seat_boot_batch(repo_root, slug), date=date,
+                                 repo_root=repo_root))
+    except Exception as exc:                     # noqa: BLE001 -- a refused render is not a cut
+        print(f"gen_handoff: SEAT-BOOT render skipped -- {exc}", file=sys.stderr)
+        return []
+
+
 def _write_funnel_health(bundle_dir: Path, repo_root: Path) -> Path:
     """Write the block to `<bundle>/FUNNEL_HEALTH.md`, WHOLE, every generation.
 
@@ -2248,6 +2282,11 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     # pins that mode at ONE file and narrows the answer-free invariant to "no counts ... enter
     # the boot". Amending §16 is outside this lane's write-scope; it is the architect's call.
     _write_funnel_health(bundle_dir, repo_root)
+    # INBOX-dev-knowledge-2026-09-08-038 / AMEND-BATCH-V-001 §1: the five SEAT-BOOT pastes, so
+    # the next incoming seat POINTS at a rendered boot instead of composing one. AFTER the seal
+    # gate for the same reason the health block is (a refused cut leaves no fresh artifact beside
+    # stale renders), and before `assemble_paste` so the forms card can carry them.
+    _write_seat_boots(bundle_dir, repo_root, slug, date)
 
     hints = collect_hints(repo_root)
     draft = journal_draft(slug, date, state, hints)

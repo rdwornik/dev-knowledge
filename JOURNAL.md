@@ -19,6 +19,282 @@
 
 ---
 
+### 2026-09-09 (e) - CC (Opus 5, INTEGRATOR SEAT): AMEND-BATCH-V-003 -- two late lanes frozen and declared
+
+**Anchors via `e8d39d7d`**, the contract-freeze commit this entry rides.
+
+**Did.** Froze two lane contracts and amended the batch-V manifest to declare them: **V-9**
+`lane-v-664-delivery-spine` (DECLARE-SPINE section 4, against `[#664]`, merges last) and **V-10**
+`lane-v-000-window-rulings` (the operator's "one more lane" -- this window's rulings landed in
+the repo). Batch V is now 8 lanes.
+
+**Generated, not hand-authored -- after the gate said so.** The first attempt hand-wrote both
+contracts and `lane-contract-check` refused: no `## Steps`, no `## What NOT to do`, no
+ask-classes, and a dispatch line pairing the slug with a repo PATH where the 1:1 gate wants the
+bare filename. `gen_lane_contract emit` is the mechanism; the bodies were filled into its
+skeleton, and the repo-path rule moved to Footprint where it does not fight the pairing parser.
+
+**The manifest had to move, and the amendment is marked.** `[#630]`'s slug-agreement requires
+set equality both ways between the `## THE LANES` fence and the contracts directory -- and more
+to the point, the fence is what the ADR-110 exemption and the teardown can SEE. A lane recorded
+outside it cannot be integrated.
+
+**Three collisions written INTO the contracts** so no lane rediscovers them expensively:
+`DECLARE-RECOVERY` calls the spine row `[#644]` and that id is wrong (V-4 took it; the DECLARE
+predicted an id its own batch consumed -- the row is `[#664]`); the operator's ESSENTIALS ask
+collides with the live `[#628]`, which disagrees with it on the consumer count (ten vs 52), so
+the contract orders an AMENDMENT with a re-measured number rather than a second row; and the
+terra-gate row risks duplicating `[#649]`, so it is scoped to the ABSENCE case with permission to
+file nothing.
+
+**One bypass, declared: `SKIP=lane-contract-check`.** The gate cannot express this commit --
+`check` compares an open batch's manifest against only the contracts it is HANDED, and the hook
+hands it the staged set, so adding contracts to a frozen batch is always a strict subset. Its own
+docstring says the hook runs `pass_filenames: false`; the YAML omits it. Setting it false is not
+the fix either, because then the checker sees zero paths and passes vacuously. The property was
+verified by running the same checker over all 8 contracts -- 8/8 OK, predicate OK -- and every
+other hook ran.
+
+**CRLF, caught before it landed.** `pathlib.write_text` laundered LF to CRLF on all three files
+(252 + 160 + 164 pairs) and the shape gate is what surfaced it. Rewritten byte-wise as LF.
+
+**Changes.** `docs/audits/2026-09-08-technical-batch-v-launch-contracts/` (+2) ·
+`docs/audits/2026-09-08-technical-batch-v-manifest.md` · `JOURNAL.md`.
+
+**Next.** Dispatch V-9 and V-10 by frozen repo path. Both merge last; batch V stays open.
+
+### 2026-09-09 (d) - CC (Opus 5, INTEGRATOR SEAT): `[#664]` filed -- the delivery spine gets its row
+
+**Anchors via `3b50ea9f`**, the row-filing commit this entry rides. Entry (b) taught the cost of
+a single-commit arc, so this branch carries the artifact first and the JOURNAL second.
+
+**Did.** Filed ONE row for DECLARE-SPINE-2026-09-09 section 3, as ordered, and nothing else.
+`[#664]`, P1/L, last task of `[S3]` -- placement by manifest node index, since theme and story
+derive from position.
+
+**Result -- three things the row does NOT copy from its source, each stated in the row itself:**
+
+1. **The "12 edge computations -> 0" bar is dead.** `ff103444` narrowed intake #40 to
+   corpus-structure edges and recorded that 12 counted state gates the class excludes. The row
+   asks for a RE-MEASURE under the five-kind class rather than inheriting an integer.
+2. **The fixture and the predicate differ in cardinality.** The census counts 32 orphans -- 20
+   script-class, 3 hooks, 9 commands and skills -- while `orphan_census` as section 3 words it
+   sees only the 20. A Done-when of "32 -> 0" against that predicate is unreachable by
+   construction, so the row names the 12-item remainder and requires a recorded choice.
+3. **The registry paste is named as RETRACTED** in the row body, so a reader who finds the
+   216-row YAML in history does not mistake it for the plan.
+
+**Locators: three of the obvious ones were wrong before checking.** ADR-118's filename is
+`ADR-118-one-graph-organs-are-views.md`; intake `#86` is
+`docs/intake/2026-09-07-tech-orphan-census-organ.md`; and the census the DECLARE argues from
+was not in repo state at all until `4d017986`.
+
+**Carried, unchanged in kind.** `BACKLOG.md` 75,367 -> 75,539 B against the 72,000 B bar. One
+ordered row is not the moment to take a decision that belongs to the operator or the architect.
+
+**Changes.** `tasks/664-*.md` (new) · `tasks/manifest.json` · `BACKLOG.md` · `JOURNAL.md`.
+
+**Next.** Dispatch the spine lane against `[#664]`, then the rulings lane. Both merge last.
+
+### 2026-09-09 (c) - CC (Opus 5, INTEGRATOR SEAT): anchor discharge for `4ecf9e73`, and the census lands
+
+**Anchors `4ecf9e73` by naming `a09400cc`**, the JOURNAL commit that merge introduced. Entry
+(b) rode a branch carrying that one commit and nothing else, so (b) had no sibling SHA to name
+and its own merge hash did not exist when it was authored -- the single-commit-arc case ADR-85
+section A9 describes. The push still went clean because `block-unanchored-push` discharges at
+RANGE level and three of the four entries were anchored; `audit.py health`'s backstop asks the
+stricter PER-ENTRY question and surfaced the one gap, which is the split working as designed
+rather than the two organs disagreeing.
+
+**Did.** Merged `docs/process-trigger-census`, written 2026-09-08 at `78449b6a` and never
+integrated. Resolved one JOURNAL conflict by keeping both sides whole and restoring day-letter
+order; regenerated `docs/audits/README.md`, which reads TRACKED files only and so had nothing
+to index until the merge made the census tracked.
+
+**Why it could not wait.** DECLARE-SPINE section 3 makes this census the FIXTURE of its first
+acceptance query -- "orphan_census ... Fixture: the 32" -- and opens on its numbers. The spine
+row filed next would otherwise have cited a document absent from repo state, which is the
+defect the operator's second lane exists to end.
+
+**Changes.** `JOURNAL.md` · `docs/audits/2026-09-08-technical-process-trigger-census.md` ·
+`docs/audits/README.md`.
+
+**Next.** File `[#664]` for DECLARE-SPINE section 3 and dispatch its lane; then the rulings
+lane. Both merge last.
+
+### 2026-09-09 (b) - CC (Opus 5, INTEGRATOR SEAT): the terra gate ruled; V-2 and V-4 merged, V-5 and V-8 bounced
+
+**Anchors by naming `ff798a1a`** (introduced by the V-4 merge `d12beac6`), **`e73d4b84`**
+(introduced by the spec-bump merge `94c4eb47`) and **`6b6ab678`** (introduced by the V-2 merge
+`b31a20d5`). Three of the four spine entries in this push range are therefore anchored by SHAs
+they introduced. This entry names no merge's own hash, which no entry can.
+
+**Did.** Ran the terra gate the operator ordered on the three lanes entry (a) had held for a
+missing tally -- hub codex, read-only, three-dot against `main`, one pass each. Ruled each on
+`unresolved HIGH`, merged what cleared, bounced what did not. Re-witnessed V-3's seal on the
+merged tree. Bumped the shape spec.
+
+**Result -- the tallies, and what each bought.**
+
+- **V-2** `HIGH raw=0 fixed=0 unresolved=0` -> **MERGED** (`b31a20d5`). Its one RED was verified
+  pre-existing by reproducing it on bare `main` with no lane code
+  (`test_the_derived_leg_is_warn_class_on_arrival`, narrowed at `63e94ff2`, an ancestor).
+- **V-5** `HIGH raw=1 unresolved=1` -> **HELD, back to the author.** `assemble_paste.py:371`:
+  `generate()` invokes the child assembler with `check=False`, so a failed P11 refusal still
+  prints `Generated bundle` and exits 0. The lane exists to make P11 refuse and it announces
+  success on the only path an operator runs. Its `[P2]` companion is the same defect seen
+  twice -- the test at `tests/test_assemble_paste.py:720-726` runs outside a git repo, so it
+  would not have caught it.
+- **V-8** `HIGH raw=2 unresolved=2` -> **HELD, back to the author.**
+  `offload_admission.py:721-723` exits 0 with an N/N success even when every seeded case
+  refuses for the wrong code -- and that counter produces the lane's own headline number.
+  `offload_admission.py:656-658`: `--probe-corpus .` overwrites `RULES.md`, `HANDBOOK.md` and
+  `gates.yaml` in a live checkout.
+
+`fixed=0` on all three is **structural, not a judgment**: the review is read-only and the lanes
+had stopped, so `unresolved == raw` by construction. Recorded so a later reader does not read
+it as a reviewer finding nothing worth fixing.
+
+**V-4 merged** (`d12beac6`) after the operator released it. Twenty ruled-but-unrowed items get
+owners, `[#644]`-`[#663]`; N 11 -> 0; the P11 carrier short set 7 -> 0; the PLAYBOOK gains the
+harness definition-of-done; intake #40 narrowed to corpus-structure edges. **It is a DOCS lane
+and the terra CODE gate does not bind it** -- verified against the diff, `scripts/` untouched,
+rather than assumed from the lane's name.
+
+**V-3's re-witness: N = 204 CONFIRMED on the merged tree.** Nine repos, one
+`validate_hermetization.py report` call each. The merged run reproduces the lane's table
+cell-for-cell -- 215 items, A 37 / B 176 / C 2, and every per-repo row identical -- so WAIVE
+204 / non-WAIVE 11 holds. Two repo HEADs and the hub's tracked count moved between the two runs
+and the item set did not, which is the stronger result. V-3's done-clause 2 is discharged.
+
+**`fleet-shape-spec` 1 -> 2** (`94c4eb47`), ruling 10's owed act, unblocked because both its
+operands are now on main. Re-stamps owed: **none, measured** -- `fleet-shape-v1` is absent from
+`validate_reconciliation._SPEC_REGISTRY`, so no dependent declares an edge to invalidate.
+
+**Carried, not absorbed: the `[#589]` byte bar is breached.** `BACKLOG.md` 71,911 -> 75,367 B
+against a 72,000 B bar; one suite RED follows
+(`test_the_live_view_is_under_the_589_done_when_byte_bar`). The two lawful answers are groom or
+a ruled re-baseline; the integrator took **neither**, because grooming is a closure act and
+raising a bar to fit the first rows that ever hit it is the act the row exists to forbid.
+
+**Changes.** `ecosystem/fleet-shape-spec.yaml` · `BACKLOG.md` + `tasks/` (+20 rows) ·
+`protocols/PLAYBOOK.md` · `docs/intake/2026-08-22-tech-document-dependency-graph-organ.md` ·
+`docs/audits/` (V-4 lane close) · `JOURNAL.md`. Transport:
+`to-browser/REVIEW-lane-v-643-enforcement-debt.md` and
+`to-browser/REVIEW-lane-v-000-offload-admission.md` -- the bounce channel, because both lane
+sessions are dead and a hold with no written finding is indistinguishable from a forgotten lane.
+
+**Abandoned.** Nothing. No lane was merged past its gate and no finding was waived.
+
+**Next.** File the spine row for DECLARE-SPINE §3 and dispatch its lane; then one lane landing
+this window's rulings into the repo (the recovery-plan intake, its A-G rows, the terra-gate row,
+the ESSENTIALS row). Both merge last. Then: regenerate `docs/audits/README.md` +
+`ecosystem/doc-counts.md`, one full-suite run on the merged result, the HANDOFF_PROCESS
+7.0.0 -> 7.1.0 bump with its three `reconciled_with` re-stamps and the PIN re-issue, and the
+refuse-to-finish checklist. **Batch V stays OPEN** -- V-5 and V-8 are held, not abandoned, and
+the checklist admits only merged-or-abandoned.
+
+### 2026-09-09 (a) - CC (Opus 5, INTEGRATOR SEAT): batch V opened and drained to 2 of 5; the terra gate held three
+
+**Anchors via `75fa8ad5`** (the regeneration commit this entry rides), and names `d1b610db`
+and `00e7f528` so the V-3 and V-6 lane merges in this range are anchored by SHAs they
+introduced. A merge cannot name its own hash, which is why the artifact commit comes first.
+
+**Did.** Opened batch V at the gate: merged `worktree-lane-v-000-batch-manifest --no-ff`
+(`33bcb0bd`) on the anchor the branch already carried -- verified, not rewritten -- then tore
+down both branches after `--is-ancestor` returned 0. Fired the five dispatchable lanes on the
+operator's **NOW** (the AMEND-BATCH-V-002 §6 default is overnight). Walked the merge queue
+under the operator's per-merge terra gate.
+
+**Result.** `batch_manifest.open_batches()` resolves batch V open, so the ADR-110 exemption is
+live. 5/5 lanes came up and finished. **Two merged, three held.** V-3 (`80d83090`) seal WAIVE
+336 -> 204, consumer residue 67. V-6 (`7e11e90e`) seats-as-code -- INBOX-038's product, on the
+operator's deliberate GO, the new SEAT-BOOT templates taking effect at the next boot.
+
+**HELD, each alone, queue continued (operator ruling 2026-09-09):** V-2, V-5 and V-8 carry no
+terra tally line in their close artifacts, which is `review=NONE` by the gate's own definition.
+All three contracts require it. The evidence stops at the repo: the Google Drive transport
+(`H:`) went offline mid-session -- `GoogleDriveFS` not running -- and batch-U precedent puts
+lane reviews in `to-browser/REVIEW-lane-*.md`, so a review may exist there unread. Held rather
+than merged, because a hold is reversible and an unreviewed merge is not.
+
+**Two defects filed, neither ruled.** The transport's contract copies are STALE against the
+frozen ones: V-2, V-3 and V-4's prompts-dir copies are each missing the whole
+AMEND-BATCH-V-002 block. Dispatched by frozen repo path instead, so no lane read a
+pre-amendment contract. Separately, `lane-contract-check`'s headline overstates -- measured,
+it refuses only a strict non-empty SUBSET of an open batch's contracts, so it wedges no
+ordinary commit.
+
+**Changes.** `docs/audits/` +4 (V-3 x3, V-6 x1) · `scripts/validate_hermetization.py`,
+`gen_handoff.py`, new `gen_ledger.py` / `gen_seat_boot.py` / `seat_ch8.py` /
+`seat_refusals.py` · `templates/handoff/seats/` x5 · `tests/` +5 files ·
+`docs/audits/README.md` + `ecosystem/doc-counts.md` regenerated once at integration.
+
+**Abandoned.** Nothing. No `--no-verify`, no `SKIP=`, no held lane merged around.
+
+**Next.** The batch stays OPEN. Owed: V-3's re-witness of the seal post-V-2 merge
+(`validate_hermetization.py report`, expected N=204, merged run winning) -- blocked while V-2
+is held; V-5's clause 4 (`logs_retention.py --dry-run`, then live) -- not applicable while V-5
+is held; a Codespaces run of the merged result against the 28 named REDs; then the
+refuse-to-finish checklist. V-4 remains held on `DECLARE-SITTING-2026-09-08`.
+
+### 2026-09-08 (l) - CC (Opus 5, REPORT SEAT): the harness census -- 32 orphans, and three of the DECLARE's own witnesses were wrong
+
+**Anchors via `78449b6a`**, the census commit it rides.
+
+**DAY-LETTER NOTE:** this branch is cut from `origin/main` (last entry there: `(i)`), while the
+frozen batch-V manifest branch carries `(j)` and `(k)` unmerged. `(l)` assumes the manifest merges
+first, which is the integrator's declared FIRST ACT. If it does not, re-derive the letter at merge
+time rather than editing this entry -- the letter is stale-by-construction, the SHA is not.
+
+**The census answers "how many orphan processes" with 32 of 216.** For every script under
+`scripts/`, every hook, every command and skill, and every organ in `audit.ALL_CHECKS`, the
+trigger is named by `file:line` or `NONE`: **160 triggered / 24 on-demand-by-operator / 32
+orphan**. The orphan list is V+1's retirement-or-wiring list; each row either gets a trigger or
+is removed.
+
+**Method was mechanism, and two earlier passes of it were wrong in ways worth keeping.** The
+first counted any docstring mention as a call site -- `audit.py` name-drops nearly every module
+in its docstrings, so 133 of 139 scripts came back "triggered", which is the opposite of what a
+prose mention proves. The second keyed modules by bare filename; seven names collide, so
+`scripts/toc/generator.py` was credited with `scripts/codemap/`'s call site. Only the third pass
+-- `ast`, docstrings excluded, package-qualified keys -- is the one reported.
+
+**Eleven orphans were built by a lane and never wired**, their only call site a merged lane
+contract. That is DECLARE §5's "our organs have no spine" in mechanism form: lanes build organs
+and nothing in the process adopts them afterwards.
+
+**Three of the DECLARE's own §3 witnesses do not survive the mechanism check.** §3 is hedged as a
+witness list, so this is confirmation of its own caveat rather than a contradiction of it.
+`propose_closures` is NOT inventory -- it is wired to the plugin Stop hook
+(`plugins/tier1-lifecycle/hooks/hooks.json:10`) and this session's own banner reported 224
+proposals. There is **no nightly Routine in this repo at all**: zero `cron:`/`schedule:`
+anywhere, the one workflow fires on `push` and calls itself REPORT-ONLY FOREVER, and the only
+live schedule is Task Scheduler `fleet-baseline` (daily 09:00, verified `State=Ready`) running
+exactly `fleet_health.py`. And `codemap_hook.py`/`toc_hook.py` are wired -- in CONSUMER repos via
+`.pre-commit-hooks.yaml`, never in the hub.
+
+**A third of the audit mesh does not fire on any commit.** `audit.py health` passes
+`tier=TIER_COMMIT` and runs 43 of 55 organs; the other 12 run only at `/ship`'s ship-gate, which
+passes no tier (`scripts/audit.py:6647`). Sanctioned -- `/ship` is a destructive act -- but it
+means those 12 have teeth only when an operator ships.
+
+**Did:** ran the §4 census across four populations; built the trigger index from seven wiring
+surfaces plus an AST call-graph closure; verified the one live schedule against Task Scheduler.
+
+**Result:** `docs/audits/2026-09-08-technical-process-trigger-census.md` (36,383 B), landed on
+its own branch off `origin/main` -- deliberately NOT on the frozen manifest branch, which is
+pinned at four commits that `to-browser/SEAT-BOOT-integrator.md` names by SHA.
+
+**Changes:** +`docs/audits/2026-09-08-technical-process-trigger-census.md`;
+`docs/audits/README.md` (generated index); JOURNAL (this).
+
+**Abandoned:** two regex/bare-name census passes, replaced rather than patched -- a call graph
+that over-connects is worse than none, because it reports orphans as healthy.
+
+**Next:** V+1 disposes the 32 orphan rows. The census wires into nothing yet; per DECLARE §4 it
+becomes PROVENANCE §3.1's relations registry once a coverage check keeps it.
+
 ### 2026-09-08 (k) - CC (Opus 5, DISPATCHER SEAT): AMEND-BATCH-V-002 applied before the merge; two gates measured, one of them broken
 
 **Anchors via `f5e49bcf`**, the amendment commit it rides. (`c1f08699` remains anchored by (j);
@@ -125,7 +401,6 @@ session, not by it.
 walks the merge queue serially from the primary checkout and closes on the five-item
 refuse-to-finish checklist. V-4 dispatches when Sitting 1 lands. `to-browser/QUESTION-dispatcher-V.md`
 item 1 (the doubly-assigned refusal) wants the operator's word.
-
 ### 2026-09-08 (i) - CC (Opus 5, HANDOFF SEAT): the gate that would have caught it twice, filed as `[#643]`
 
 **Anchors this entry's own merge via `0d5f70b6`**, the filing commit it rides.

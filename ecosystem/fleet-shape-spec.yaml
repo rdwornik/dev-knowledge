@@ -46,8 +46,35 @@
 # The prose here is therefore written without them, deliberately. Rules are expressed as
 # data below; the comments describe rather than command.
 
-spec_version: 1
+spec_version: 2
 spec_id: fleet-shape-v1
+
+# VERSION HISTORY. The bump is the integrator's act at a batch merge, not a lane's: a lane
+# cannot bump the version of a spec it is amending in the same arc, so both changes below
+# landed under version 1 and the version moved once, here, after both were on main.
+#
+#   1 -> 2   2026-09-09, batch V. Two lanes changed what a consumer owes.
+#            V-2 (`worktree-lane-v-000-shape-spec-clauses`, merge b31a20d5) added the KIND
+#            parameter to `home_grammar`, so a home clause resolves against a declared repo
+#            kind rather than against one tree's snapshot.
+#            V-3 (`worktree-lane-v-000-seal-rules-rerun`, merge 80d83090) split Rules B and C
+#            each into a fleet leg and a REPO-LOCAL leg: a consumer declares its own audit
+#            class enum and its own home tuple in its `.methodology.yaml`, under
+#            `shape_profile:`. That second one puts an obligation on the consumer side, which
+#            is what makes this a consumer-facing contract change rather than an internal
+#            edit -- and the reason the version moves at all.
+#            Ruling: DECLARE-SITTING-2026-09-08 ruling 10. Row: `[#653]`.
+#
+# RE-STAMPS OWED BY THIS BUMP: none, and that is measured rather than assumed.
+# `fleet-shape-v1` is absent from `validate_reconciliation._SPEC_REGISTRY`, whose two members
+# are `handoff-process` and `prompt-template`, so no dependent carries a
+# `reconciled_with: fleet-shape-v1@1` edge for this bump to invalidate. Were the id registered
+# later, that registration would own the sweep, not this bump.
+#
+# `spec_id` stays `fleet-shape-v1`. Its trailing token is the id's own generation marker
+# rather than a mirror of `spec_version`, and no organ reads the key today (measured: zero
+# hits for `fleet-shape-v1` outside this file). Coupling the two wants a ruling and a reader
+# before an edit, not a same-commit guess.
 
 # The intake this file executes, cited by PATH rather than by `#73` -- three intake ids are
 # double-allocated in history, so a bare id citation is ambiguous (intake #73, "On the id").
@@ -259,15 +286,59 @@ clauses:
       - docs/handoffs/**
       - docs/intake
       - docs/intake/archive
+    # --- the KIND parameter (AMEND-SESSION-PLAN-001 section 2) ------------------------
+    # A kind is a CLASS OF FILE, and `home_grammar` is already the clause that answers
+    # where a class of file lives -- so the kind axis is a parameter of this clause rather
+    # than a neighbour of it. Six kinds, ONE home each, and a repo declares in
+    # `declared_kinds` below which of the six it HAS.
+    #
+    # The six also live as a literal in `scripts/validate_hermetization.py::KIND_ENUM`,
+    # deliberately, on the same reasoning as the regex sentinels in that module: a proof
+    # this file supplied could be doctored to agree with a broken version of this file, and
+    # would establish nothing. A seventh kind is therefore an edit to BOTH surfaces.
+    #
+    # `source` is CITED rather than copied. Its home varies by LAYOUT, not by kind, and
+    # `python_layout.source_home_by_layout` is the single statement of it; the token below
+    # is resolved at load against `python_layout.declared_layout`. A literal here would
+    # create exactly the drift pair this file exists to end. For this repo it resolves to
+    # `scripts`, which is the same home the `tooling` kind carries -- a flat governance
+    # repo keeps its source and its tooling in one place, and that is a property of flat
+    # layouts rather than a collision between two kinds.
+    kinds:
+      source: python_layout.source_home_by_layout
+      test: tests
+      data: ecosystem
+      model: models
+      eval: eval
+      tooling: scripts
+    # Which kinds THIS repo has. Admission and declaration are different acts: `model` and
+    # `eval` are admitted by the grammar above (a code repo has them) and are absent here,
+    # which is what stops a governance hub taking a permanent WAIVE for lacking a `models/`
+    # directory it was designed without. `config/` is deliberately NOT read as the data
+    # home -- its own fate is intake #73 open question 8, and answering it here would
+    # encode a guess as data; the hub's declared state lives in `ecosystem/`.
+    declared_kinds:
+      - source
+      - test
+      - data
+      - tooling
 
   # --- M3: required docs (the presence half) -----------------------------------------
   required_docs:
     leg: M3
-    asserted_by: scripts/audit_checks/check_adr38_baseline.py + scripts/audit_checks/check_canonical_md_visibility.py
+    asserted_by: scripts/audit_checks/check_adr38_baseline.py + scripts/audit_checks/check_canonical_md_visibility.py + scripts/validate_hermetization.py::_require_one_registry
     # The roster is NOT restated here. It is cited, because a list typed into a second file
     # is stale at the next commit and this repo's convention is to name the surface that
     # computes it. `corp-monorepo` already passes this leg, so it needs extension rather
     # than invention.
+    #
+    # THE THIRD SURFACE, added 2026-09-09 (batch V, lane `lane-v-000-shape-spec-clauses`).
+    # The two checks above assert the PRESENCE half against the registry; neither opens
+    # this file, so until the third entry landed this clause named an asserting organ that
+    # had no way to disagree with it. `_require_one_registry` supplies the one read the
+    # clause can carry without restating a roster: `source` here and
+    # `root_allowlist.files_from` above name the SAME registry, proven at load. Two clauses
+    # citing one registry by two strings is a drift pair; one string checked is not.
     source: scripts/canonical_docs.py::CANONICAL_MANDATORY
 
   # --- M4: the naming grammar --------------------------------------------------------
@@ -338,12 +409,14 @@ clauses:
   # --- M2: Python project layout ------------------------------------------------------
   python_layout:
     leg: M2
-    asserted_by: null
-    unasserted_reason: >-
-      No organ reads this clause today. It is carried as declared data so a consumer report
-      can cite one statement of the layout rather than re-deriving it per repo, and so the
-      gap is visible. Arming it is a later, per-repo act after the operator rules that
-      repo's seal list.
+    asserted_by: scripts/validate_hermetization.py::_python_layout
+    # WAS `asserted_by: null` with an honest gap stated beside it. The gap closed 2026-09-09
+    # (batch V, lane `lane-v-000-shape-spec-clauses`): the reader resolves the declared
+    # layout, and refuses at load a layout outside `source_layouts` or a source or tests
+    # home the home grammar above does not admit. Arming a per-repo SEAL on it is still a
+    # later act following the operator's ruling on that repo's list; what changed is that
+    # the clause is now consumed rather than carried.
+    #
     # Both layouts are in-pattern: a packaged project keeps its code under `src/`, and a
     # flat governance repo keeps its organs in `scripts/`. Admitting exactly these two is
     # what stops a code repo from taking three permanent WAIVEs.
@@ -353,6 +426,10 @@ clauses:
     source_home_by_layout:
       src: src
       flat: scripts
+    # Which of the two THIS repo is. It is the hub, and the hub is flat -- ADR-28 Layer 2,
+    # markdown governance files plus hub-local validators, generators and gates, with no
+    # packaged distribution. `home_grammar.kinds.source` resolves through this key.
+    declared_layout: flat
     tests_home: tests
     # ADR-106: the environment is DECLARED, not discovered. These four keys are what makes
     # `uv sync --locked` reproducible; `tool.uv.required-version` is the exact uv pin, whose
@@ -378,6 +455,11 @@ clauses:
     # ASSERTED: `explorer.sortOrderLexicographicOptions: upper` clusters the ALL-CAPS
     # canonical docs above the lowercase config files (ADR-59 Decision 3).
     asserted_half: LESSONS / ARCHITECTURE at the top
+    # The ONE setting that delivers the asserted half, named so the claim is checkable.
+    # `check_workspace_settings` refuses at call time when this key is absent from
+    # `workspace_required_settings_from` below: a clause that claims an assertion its organ
+    # does not make is the decorative shape the reader census exists to end.
+    asserted_by_setting: explorer.sortOrderLexicographicOptions
     # UNASSERTED, and possibly unassertable: VS Code's `explorer.sortOrder` enum carries no
     # size member. The nearest key the hub holds, `explorer.sortOrderReverse: true`, is
     # absent from the required set and produces newest-first inside dated folders, which is

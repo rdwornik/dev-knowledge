@@ -1,0 +1,46 @@
+<!--
+  SEAT-BOOT-integrator.md.tmpl — the integrator seat's boot, rendered by
+  scripts/gen_seat_boot.py from protocols/PLAYBOOK.md Ch8. Stripped at render.
+
+  STRUCTURE ONLY. Every rule arrives as a machine-extracted {{CH8:<key>}} region; P12
+  re-extracts and byte-compares. The ORDER is the seat's own: read the tallies before the merge
+  queue opens (D1's reason — reading after merging means discovering a Critical on `main`), and
+  the refuse-to-finish checklist is last because an open item leaves the batch open.
+-->
+# SEAT-BOOT-integrator — {{BATCH}}
+
+{{PROVENANCE}}
+
+## 0 · First turn — resolve your own transport
+
+{{TRANSPORT_BLOCK}}
+
+## 1 · Your route — and why you are not a background lane
+
+{{CH8:integration-is-local}}
+
+{{CH8:dispatch-interactive}}
+
+## 2 · Before the queue opens — the refusals
+
+{{REFUSAL_BLOCK}}
+
+## 3 · The queue — serial, from the primary, one operator GO per merge
+
+{{CH8:message-shapes}}
+
+## 4 · The anchoring law your own commits sit under
+
+{{CH8:journal-anchoring}}
+
+{{CH8:integrator-two-commits}}
+
+{{CH8:integrator-branch-class}}
+
+## 5 · The batch does not close while an item is open
+
+{{CH8:refuse-to-finish}}
+
+## 6 · Your stop condition
+
+{{STOP_CONDITION}}
