@@ -795,14 +795,22 @@ def _unnamed_open_carriers(bundle_path: Path, repo_root: Path) -> list[ProbeResu
     if not residual.exists():
         return []                       # not a v5-lineage bundle; nothing to judge
     try:                                # deferred sibling-CLI import, the established idiom
-        from gen_handoff import (  # noqa: PLC0415
-            CARRIAGE_OPEN,
-            carriage_shortfall,
-            transport_root,
-        )
+        import gen_handoff as _gh  # noqa: PLC0415
     except ImportError:
         return []
-    transport = transport_root()
+    # HUB-ONLY BY REPO IDENTITY, and this guard is load-bearing rather than defensive. The
+    # transport is a MACHINE-level surface (`CLAUDE_PROMPTS_DIR`), so judging any bundle that is
+    # not in THIS checkout against it is a category error: a consumer repo carries no such
+    # window, and — measured, not theorised — a synthesized bundle in a unit test was being
+    # judged against the operator's real transport, making a suite result depend on what
+    # happened to be sitting in `H:\...\CLAUDE PROMPT DIR`. `_is_hub` is the predicate already
+    # ruled for exactly this scoping (`gen_handoff._is_hub`, the same one
+    # `audit.check_journal_spine_anchor` uses for ADR-85's floor); a second one written here
+    # would be free to disagree with it.
+    if not _gh._is_hub(Path(repo_root)):
+        return []
+    CARRIAGE_OPEN, carriage_shortfall = _gh.CARRIAGE_OPEN, _gh.carriage_shortfall
+    transport = _gh.transport_root()
     if transport is None:
         # DEGRADED, never absent. An unknown boundary is not a clean one (DEFECT E-29), and a
         # rung that vanishes when it cannot measure reads as a pass to every consumer of this

@@ -1956,6 +1956,20 @@ def test_the_zero_row_refusal_is_era_gated_like_every_other_rung(tmp_path):
 _CARRIAGE_ERA_SLUG = "2026-09-09-carriage"
 
 
+@pytest.fixture
+def as_hub(monkeypatch):
+    """Treat the test's temp repo as the hub for the carriage rung.
+
+    The rung is HUB-ONLY by repo identity because the transport is a MACHINE-level surface.
+    Without this fixture these tests would be skipped by their own scoping; WITH it they
+    exercise the rung against a temp transport rather than the operator's real one, which is
+    the whole point -- a suite result must not depend on what is sitting in the live
+    CLAUDE_PROMPTS_DIR today.
+    """
+    import gen_handoff as gh
+    monkeypatch.setattr(gh, "_is_hub", lambda _root: True)
+
+
 def _transport_with_open(tmp_path, name="BATCH-2026-09-07-CLOSE-CONTRACTS.md"):
     transport = tmp_path / "transport"
     (transport / "to-cc").mkdir(parents=True)
@@ -1964,7 +1978,7 @@ def _transport_with_open(tmp_path, name="BATCH-2026-09-07-CLOSE-CONTRACTS.md"):
     return transport, name
 
 
-def test_a_residual_naming_none_of_its_open_carriers_fails_verification(tmp_path, monkeypatch):
+def test_a_residual_naming_none_of_its_open_carriers_fails_verification(tmp_path, monkeypatch, as_hub):
     bundle = _init_bundle(tmp_path, [_PASS_SYMBOL], slug=_CARRIAGE_ERA_SLUG)
     (bundle / "RESIDUAL.md").write_text("# Residual\n\nNothing carried.\n", encoding="utf-8")
     transport, name = _transport_with_open(tmp_path)
@@ -1976,7 +1990,7 @@ def test_a_residual_naming_none_of_its_open_carriers_fails_verification(tmp_path
     assert name in row.detail
 
 
-def test_a_residual_that_names_them_verifies_clean(tmp_path, monkeypatch):
+def test_a_residual_that_names_them_verifies_clean(tmp_path, monkeypatch, as_hub):
     """The negative control. Without it the row above proves only that the rung can fire, never
     that a correctly-carried window can be accepted -- which is the deadlock every gate in this
     family was ruled against."""
@@ -1989,7 +2003,7 @@ def test_a_residual_that_names_them_verifies_clean(tmp_path, monkeypatch):
     assert vhp._CARRIAGE_FINDING_ID not in _by_id(vhp.verify(bundle))
 
 
-def test_a_pre_era_bundle_is_not_retro_judged(tmp_path, monkeypatch):
+def test_a_pre_era_bundle_is_not_retro_judged(tmp_path, monkeypatch, as_hub):
     """THE SCOPING, as a test rather than a comment. `verify` runs over historical bundles, and
     the transport it would judge them against is TODAY's -- every past bundle would be re-judged
     on files that did not exist when it was cut. The era gate is the same predicate
@@ -2003,7 +2017,7 @@ def test_a_pre_era_bundle_is_not_retro_judged(tmp_path, monkeypatch):
     assert vhp._CARRIAGE_FINDING_ID not in _by_id(vhp.verify(bundle))
 
 
-def test_an_unmeasurable_transport_is_not_a_silent_pass(tmp_path, monkeypatch):
+def test_an_unmeasurable_transport_is_not_a_silent_pass(tmp_path, monkeypatch, as_hub):
     """An unknown boundary is not a clean one (DEFECT E-29, the reason leg 2's own transport
     arm refuses rather than assembles). Here the honest verdict is `skipped` -- this validator
     is resolve-only and reports degradation rather than manufacturing either verdict -- but it
@@ -2016,3 +2030,27 @@ def test_an_unmeasurable_transport_is_not_a_silent_pass(tmp_path, monkeypatch):
 
     row = _by_id(vhp.verify(bundle)).get(vhp._CARRIAGE_FINDING_ID)
     assert row is not None and row.status == "skipped", row
+
+
+def test_a_non_hub_repo_is_never_judged_against_this_machines_transport(tmp_path, monkeypatch):
+    """THE GUARD THAT KEEPS THE SUITE DETERMINISTIC, and it is here because the first cut of
+    this rung failed exactly this way.
+
+    The transport is a MACHINE-level surface (`CLAUDE_PROMPTS_DIR`). Without the hub-identity
+    scope, ANY bundle handed to `verify()` -- including one a unit test synthesizes in a temp
+    directory -- was judged against whatever decision files happened to be sitting in the
+    operator's real transport. That was witnessed, not imagined: a dogfood probe count moved
+    from 15 to 16 because the operator's live transport carried unnamed OPEN carriers, so the
+    suite's answer depended on a directory outside the repo. Note the slug below is in-era
+    (`bundle_at_or_after` is fail-closed on an unparseable date, so `0000-00-00-x` counts as
+    IN-era) -- the era gate does NOT cover this case, which is why the scope has to.
+
+    No `as_hub` fixture here: this test asserts the REAL predicate, so stubbing it would
+    remove its subject.
+    """
+    bundle = _init_bundle(tmp_path, [_PASS_SYMBOL], slug="0000-00-00-x")
+    (bundle / "RESIDUAL.md").write_text("# Residual\n\nNothing carried.\n", encoding="utf-8")
+    transport, _name = _transport_with_open(tmp_path)
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(transport))
+
+    assert vhp._CARRIAGE_FINDING_ID not in _by_id(vhp.verify(bundle))
