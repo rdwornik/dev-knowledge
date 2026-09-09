@@ -173,7 +173,13 @@ def test_the_seal_reads_the_file_and_not_a_literal(tmp_path):
     doc = yaml.safe_load(_SPEC.read_text(encoding="utf-8"))
     doc["clauses"]["root_allowlist"]["directories"] = ["scripts", "warehouse"]
     doc["clauses"]["genre_folders"]["genres"] = ["ledgers"]
-    doc["clauses"]["home_grammar"]["patterns"] = ["warehouse", "warehouse/**"]
+    # `scripts` and `tests` ride along because the doctored spec has to stay internally
+    # COHERENT: `_python_layout` refuses at load a source or tests home the home grammar
+    # does not admit, and this doc leaves `python_layout` at its live `flat` layout. They
+    # change nothing this test asserts -- `protocols/` and `docs/audits/` are still absent
+    # from the doctored grammar, which is what the refusals below turn on.
+    doc["clauses"]["home_grammar"]["patterns"] = ["warehouse", "warehouse/**",
+                                                  "scripts", "tests"]
     doc["clauses"]["root_allowlist"]["file_globs"] = ["*.sublime-project"]
     doc["clauses"]["naming_grammar"]["audit_class_enum"] = ["inventory"]
     (tmp_path / "ecosystem").mkdir()
