@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "3e1b4c1829b7eac823c06d5960d8aba5919d27d5c40b781fab629584a5ab7154",
+  "generated_sha256": "efa1fe002079fee2959651fb56fabd929f148970d3bd95eab89232a315f35ff7",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -468,6 +468,10 @@
     {
       "task": 659,
       "file": "659-orphan-census-names-a-trigger-that-does-not-exist.md"
+    },
+    {
+      "task": 674,
+      "file": "674-563-s-no-reader-test-checks-a-name-to-prove-a-rela.md"
     },
     {
       "prose": ""
@@ -1326,6 +1330,10 @@
     {
       "task": 657,
       "file": "657-orphan-33-an-unregistered-writer-edits-the-repo-nightly.md"
+    },
+    {
+      "task": 673,
+      "file": "673-six-batch-v-suite-reds-are-unattributed-and-only-a.md"
     },
     {
       "prose": "## [E8] ARC-5 execution"
