@@ -155,3 +155,217 @@ Pinned out and untouched: `BACKLOG.md`, `tasks/`, `tasks/manifest.json`,
 exists to end**), `ARCHITECTURE.md` prose, and every other lane's branch. No merge, no push,
 no index regeneration; the single-hook bypass a lane is permitted is declared in the commit
 body where it is used.
+
+## Steps 2–5 — what landed, and what it measures
+
+### 2.1 The commits
+
+| Commit | Step | What |
+|---|---|---|
+| `e4cae91f` | 1 | locators resolved, baseline re-measured, plan frozen |
+| `6d161e8f` | 2 | RED-first witnesses — a collection error at that commit, which is the witness |
+| `da4d1ec9` | 3 | `graph_store.py`, two new inputs on FPG-1, the `graph-rebuild` hook |
+| `dd161577` | 4 | `graph_queries.py`, three refusal hooks, the 32-vs-20 ruling |
+| `26c9e729` | 4 rider | three defects the spine found by firing, plus one concurrency defect |
+| `549f64bd` | — | sync merge: main into the lane tree, clearing the tree-lag anchor gap |
+
+### 2.2 Clause 1 — the graph is persisted, and the counts are read back
+
+```
+store    : <resolved git dir>/fpg-graph/FPG.db
+nodes    : 2426
+edges    : 18590
+kinds    : 15
+```
+
+Read back by `graph_store.py stats`, which opens the file and answers from it — and
+`rebuild()` itself returns `open_store(path).counts()`, so even the writer's own report is a
+read-back. Against ADR-118's baseline and this lane's own step-1 measurement:
+
+```
+ADR-118:34 (2026-09-07)          1922 nodes   12 664 edges   12 kinds
+this tree at step 1 (552997bb)   2001 nodes   13 575 edges   12 kinds
+this tree at step 5              2426 nodes   18 590 edges   15 kinds
+```
+
+**Both deltas are explained rather than reported.** ADR-118 → step 1 is two days of corpus
+growth at ZERO kind change, which is the part that would have signalled a graph change rather
+than a tree change. Step 1 → step 5 is this lane's own two inputs: **+3 kinds** — `triggers`
+43, `imports` 255, `implements` 4745 — and a node rise that is the process files which now
+have a vertex whether or not another input names them. Under DECLARE-REVIEWS §A.1's narrowed
+class all three new kinds are corpus-structure: a wiring surface fires a process, a module
+calls a module, a row owns a file. **No state gate was migrated into the graph** — the spine
+anchor and the staged-ADD checks compare two trees and stay gates, as §A.1 correction 2
+requires.
+
+**Cost, measured, and it is the flip-condition's own number.** Rebuild 17.5 s wall / 13.0 s of
+graph build, against the 5.25 s five-input baseline. Per loader: `consumer-at-landing` 4.0 s ·
+`implements` 3.9 s · `wiring` 3.3 s · `doc-code-edge` 0.9 s · `tasks` 0.8 s. A store read is
+~1.5 s, nearly all of it interpreter start — which is why three refusals ride one commit
+instead of three builds. Open item 1 below.
+
+### 2.3 Clause 2 — three refusals, live
+
+```
+orphan-census : OK   (157 processes, 39 orphans, 39 dispositioned, 0 undispositioned)
+task-coverage : OK
+process-list  : OK   (118 triggered, 39 not, 0 dangling references)
+```
+
+All four hooks ran on this lane's own step-4 commit and passed — the mechanism's first
+witnessed firing is its own landing. Each refusal carries a trip-test that plants
+non-conforming input and asserts the **non-zero exit**, and a conforming-input test beside it:
+a gate that can only fail is not a gate, and one that can only pass is not a refusal.
+
+### 2.4 Clause 4 — the 32-vs-20 gap, ruled and then MEASURED
+
+The step-1 ruling stands — widen the node class, name what is unrepresentable — but the number
+it predicted was 26 and **the measurement is 39**. The prediction is corrected here rather than
+quietly kept, and every unit of the difference is accounted for:
+
+| | count | note |
+|---|---|---|
+| census orphans, 2026-09-08 | 32 | 20 script · 3 L0 hooks · 9 commands and skills |
+| of those, out of tree | −6 | three `~/.claude/hooks/block-onedrive.SUPERSEDED*.ps1`, `~/.claude/commands/codex-review.md`, two `~/.claude/skills/gotchas/` files. **Owner: the operator.** Not tracked by this repo, so not nodes in a graph of its corpus |
+| in-repo, as the census counted | 26 | |
+| commands and skills the census ruled ON-DEMAND | +13 | the seven-acts list is a RULING, not a computation — **nothing in a tree fires a command** — so the mechanism finds every in-repo command and skill, and each of the eight the census ruled on-demand is dispositioned with the act it maps to |
+| arrivals after the census's cut | +1 | `scripts/gen_ledger.py`, landed 2026-09-09 by lane V-000 |
+| found by this query, missed by the census | +1 | `scripts/single_flight.py` — **a finding against the census**, intake #86 AC 2 |
+| no longer an orphan | −1 | `scripts/file_purpose_graph.py` acquired the `graph-rebuild` trigger. This row's headline landing, arriving as a dropped row rather than as a claim |
+| **measured** | **39** | 39 dispositioned, 0 undispositioned, asserted by a test |
+
+**`orphan_census` reaches 0 against its stated node class after dispositions** — the row's
+Done-when. `test_the_live_orphan_census_reaches_zero_against_its_stated_class` is the
+assertion, and any process not in the register FAILs the commit.
+
+### 2.5 Clause 3 — the five-kind edge computations, RE-MEASURED
+
+**The digest's enumeration is not in this tree** (§1.1), so N is measured from the tree under a
+stated predicate rather than inherited. `ff103444` is explicit that this is owed: *"Whoever
+opens the first migration lane re-measures N under the five-kind class and records it with the
+measurement."* **The integer 12 is NOT inherited** — the amendment withdraws it because it
+counted state gates the class excludes.
+
+**Predicate, stated so the number is reproducible:** a module that **discovers** a
+corpus-structure relation of one of the five kinds — citation · generation · template · test ·
+script call-site — **by scanning source text**, independently of FPG-1. *Discovery*, not
+declaration-following: a generator that reads a registry its input declares is following an
+edge rather than computing one, and asking it to query FPG-1 for its own input list would be
+circular. Shortlisted mechanically (a module that walks the tree **and** compiles ≥2 regexes),
+then verdicted per module.
+
+| Site | Kind | Verdict |
+|---|---|---|
+| `consumer_at_landing.py` | citation | **RECONCILED** — is FPG-1 input 3; the graph consumes it rather than rivalling it |
+| `validate_doc_code_edge.py` | citation | **RECONCILED** — is FPG-1 input 1 |
+| `gen_audit_index.py` | citation | **RECONCILED** — its output is FPG-1 input 2 |
+| `funnel_coverage.py` | citation | private |
+| `funnel_lifecycle.py` | citation | private |
+| `validate_doc_rot.py` | citation | private |
+| `preflight_contract.py` | citation | private |
+| `verify_handoff_probes.py` | citation | private |
+| `validate_reconciliation.py` | citation | private |
+| `scan_undeclared_edges.py` | citation | private |
+| `batch_manifest.py` | citation | private |
+| `archive_row_body.py` | citation | private |
+| `audit.py::check_doc_claims` | citation | private |
+| `codemap/ast_walker.py` | script call-site | private — **closest overlap with this lane's `imports`** |
+| `audit.py::check_import_edges` | script call-site | private — same overlap |
+| `enforcement_coverage.py` | script call-site | private |
+| `reverse_dep_oracle.py` | script call-site | private |
+| `generate_organ_index.py` | script call-site | private — **closest overlap with this lane's `triggers`** |
+| `dispatch_drift.py` | script call-site | private |
+| `proof_layer.py` | test | private |
+| `gen_handoff.py` | template | private |
+
+```
+N-before   18 private computations (21 sites, 3 already reconciled as FPG-1 inputs)
+N-after    18
+migrated    0
+```
+
+**N did not move here, and the reason is a rule rather than an omission — stated twice over.**
+ADR-118 §5 rules the migration **one organ per lane** (*"twelve lanes is the cost of having
+twelve proofs"*) and its Alternatives section rejects the big bang by name. Independently, this
+lane's frozen footprint is `scripts/file_purpose_graph.py` plus new modules, and **every one of
+the 18 sites lives in a file this lane may not edit**. The contract writes exactly this branch:
+*"if it cannot reach 0 here, print N-before and N-after and name every remaining site with its
+owner."* Owner for all 18: **a W-G3 migration lane, one per organ, each naming its own proof** —
+the blanket `diff = 0` bar is withdrawn by §A.1 correction 3.
+
+**What this lane DID move is the precondition.** Three of the five kinds now have an answer in
+the graph that no organ had before. `generate_organ_index` and `codemap/ast_walker` can now be
+migrated against a relation FPG-1 **holds**, rather than against one a migration lane would
+first have to grow — which is the difference between a migration lane and a design lane.
+
+## What the mechanism found by firing
+
+Four defects, every one surfaced by a refusal that fired where it should not have, or by a
+test that failed for a real reason. They are recorded because each is a lesson about a class,
+not only about an instance.
+
+1. **The disposition register manufactured its own triggers.** `ORPHAN_DISPOSITIONS` is a dict
+   whose KEYS are exact process paths; the wiring loader read them as call-site strings, so the
+   register that RECORDS "this has no trigger" CREATED one for every row in it — 25
+   dispositioned scripts came back triggered and the census's own 20 reported clean. This is
+   the process-trigger census's recorded error 1 in a new dress, and an orphan census that
+   reports clean is the worst failure it has. Fixed by making *executable position* mechanical:
+   a code string counts only inside a `Call` **and** only when it is exactly a path.
+2. **A row file is its own claim.** `task_coverage` refused ten staged `tasks/NNN-*.md` rows for
+   having no `implements` edge from an open row. `tasks/665-*.md` IS `[#665]`.
+3. **A merge is transport, not authorship.** The gate refused a sync merge over files main's own
+   commits brought in. Carved out on `MERGE_HEAD` — the precedent `block_commit_on_main` already
+   sets — and scoped the same way: the carve-out binds only the git-derived staged set, so a
+   merge is a carve-out rather than a hole.
+4. **The store's writer was not concurrency-safe.** Five xdist workers collided on one
+   `.rebuilding` temp name (`WinError 32`) and paid five concurrent 17 s builds. Concurrency is
+   this store's normal condition, so the writer was fixed rather than the callers made careful:
+   per-process temp file, a retrying swap (Windows `os.replace` fails while a reader holds the
+   destination), and a cheap exclusive-create rebuild lock with a TTL, so a dead builder costs
+   one wait and never a wedge.
+
+## Departures from the contract, each declared
+
+1. **`ORPHAN_DISPOSITIONS` lives in `scripts/graph_queries.py`**, not
+   `ecosystem/disposition-register.yaml`. Footprint: `ecosystem/` is not this lane's to write.
+   Owed follow-up, open item 2.
+2. **The store lives under the resolved git dir**, not `logs/`. A `logs/` store needs a
+   `.gitignore` line and `.gitignore` is not in the footprint; the git dir is outside the
+   working tree by construction.
+3. **Process classes are DERIVED from path, not minted as node kinds.** The row names nodes
+   `script · hook · command · skill`; a second vertex for one file is the defect
+   `PurposeGraph.node_for_path` exists to prevent, and intake #40 §1's standing rule is that
+   layer is derived from kind and path, never hand-declared.
+4. **Three pre-commit hooks bypassed across the lane, each named in the commit that used it.**
+   `doc-counts-pytest-freshness` and `organ-index-freshness` are generated surfaces the contract
+   pins out and routes to the integrator ([#590]). `audit-health` was bypassed on two commits
+   for a **proven-false** tree-lag anchor gap — the check's own diagnostic was run, not guessed
+   (`anchored in this tree: False`, `anchored at main: True`) — and after the sync merge
+   `audit.py health` returns **OK**, which is the verification the bypass promised.
+5. **One sync merge of `main` into the lane branch.** Not an integration act and not a merge to
+   `main`: it is the recorded fix for the tree-lag class, and the lane still ends
+   commit-and-STOP.
+
+## Open items
+
+1. **The rebuild costs 17.5 s on every commit.** ADR-118 flip-condition 2 names the threshold in
+   exactly these terms — *"if FPG-1's build time on the live tree crosses the ship-gate's budget
+   … the answer becomes a cached/incremental store, i.e. a different design"* — and asks W-G1 to
+   fix it against the then-current gate budget. Measured and recorded rather than tuned quietly;
+   the dominant costs are three full-corpus sweeps. The named remedy is an incremental rebuild
+   keyed on `git diff --cached`, which is a different design and therefore a ruling.
+2. **Relocate `ORPHAN_DISPOSITIONS` to `ecosystem/disposition-register.yaml`.** The shape already
+   matches; the move is mechanical and needs a footprint that includes `ecosystem/`.
+3. **`ARCHITECTURE.md` Ch2 is not yet rendered from `process-list --render`.** The renderer
+   exists and the `dangling_reference` refusal is armed; the prose rewrite is pinned out of this
+   lane and is step D of the recovery plan.
+4. **Two coupled generated surfaces are stale and are the integrator's to regenerate** ([#590]):
+   `ecosystem/organ-index.md` (this lane adds four pre-commit hooks) and `ecosystem/doc-counts.md`
+   (this lane adds tests and hooks). One test is RED until then —
+   `test_generate_organ_index.py::test_live_committed_index_is_the_generated_bytes`.
+5. **One inherited RED, not this lane's:**
+   `test_enforcement_coverage.py::test_anchor_gate_probe_distinguishes_installed_from_absent`.
+   Verified by swapping this lane's `.pre-commit-config.yaml` for `HEAD:`'s and re-running —
+   identical failure, so it predates the diff.
+6. **The `imports` edge set is not yet proved a superset of `codemap/ast_walker`'s.** That proof
+   belongs to the W-G3 migration lane, and it is the one migration this lane's work makes cheap.
