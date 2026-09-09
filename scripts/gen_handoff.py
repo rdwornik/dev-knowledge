@@ -2161,7 +2161,15 @@ class GenResult:
     filled: bool
 
 
-def _run_assembler(bundle_dir: Path) -> int:
+def _assembler_argv(bundle_dir: Path, *, in_generation: bool) -> list[str]:
+    """The child assembler's command line. Pure, so a test can read the real argv."""
+    argv = [sys.executable, str(_SCRIPTS / "assemble_paste.py"), str(bundle_dir)]
+    if in_generation:
+        argv.append("--in-generation")
+    return argv
+
+
+def _run_assembler(bundle_dir: Path, *, in_generation: bool = False) -> int:
     """Spawn `scripts/assemble_paste.py` for `bundle_dir`; return the child's exit code.
 
     Isolated as a named function for the reason `_resolves_on_main` is: it is the seam a test
@@ -2169,10 +2177,13 @@ def _run_assembler(bundle_dir: Path) -> int:
     every other caller in this process shares, and `_SCRIPTS` is not the seam either -- it is
     also the sibling-import path (five `sys.path.insert` sites above), so repointing it shadows
     the real `assemble_paste` module for anything that imports it later in the same process.
+
+    `in_generation` marks THIS call as the cold pass spawned during a cut, which is the only
+    thing that distinguishes it from the operator's own post-fill re-run. Defaults to False so
+    a caller that says nothing gets the strict gate.
     """
     return subprocess.run(
-        [sys.executable, str(_SCRIPTS / "assemble_paste.py"), str(bundle_dir)],
-        check=False,
+        _assembler_argv(bundle_dir, in_generation=in_generation), check=False,
     ).returncode
 
 
@@ -2329,7 +2340,11 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     draft = journal_draft(slug, date, state, hints)
 
     if assemble:
-        code = _run_assembler(bundle_dir)
+        # in_generation=True: this is the COLD pass. RESIDUAL.md was rendered a few lines
+        # above, so leg 2's second operand does not exist yet and the gate defers (loudly) to
+        # the post-fill re-run the operator makes. Any non-zero the child still returns —
+        # a missing required source, a broken template — refuses the cut below.
+        code = _run_assembler(bundle_dir, in_generation=True)
         if code != 0:
             # The bundle is deliberately LEFT ON DISK. Every other refusal in this function
             # fires before `mkdir` and leaves nothing behind; this one fires after the render,

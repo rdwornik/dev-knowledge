@@ -280,11 +280,20 @@ def _is_window_bundle(bundle_dir: Path, repo_root: Path) -> bool:
 
 
 # rule: handoff-open-carrier-named
-def assert_open_carriers_named(bundle_dir: Path, repo_root: Path) -> None:
+def assert_open_carriers_named(bundle_dir: Path, repo_root: Path,
+                               *, in_generation: bool = False) -> None:
     """Refuse assembly while an `OPEN` decision file is unnamed in the filled residual.
 
     Exits 1 before `PASTE_THIS.md` is written, which is the whole point: the refusal has to
     land while the bundle is still repairable.
+
+    TWO PASSES, and only the second is judged. The assembler runs once inside the cut
+    (`in_generation=True`, spawned by `gen_handoff._run_assembler`) and again when the operator
+    re-runs it after filling. On the first pass `RESIDUAL.md` is a template render from seconds
+    earlier and can name nothing, so the gate DEFERS -- printing what is owed rather than
+    refusing. Judging there would refuse every cut on a window carrying any `OPEN` debt, which
+    is the documented default flow, not an edge case. This is leg 2's own reasoning applied one
+    stage further in: a conjunct is judged where both operands exist, and nowhere earlier.
 
     THE EXIT CODE NOW PROPAGATES, and the correction is recorded because this docstring
     previously argued it did not need to. `gen_handoff.generate(assemble=True)` spawned this
@@ -322,6 +331,30 @@ def assert_open_carriers_named(bundle_dir: Path, repo_root: Path) -> None:
                if v.kind == CARRIAGE_OPEN]
     if not unnamed:
         return
+    if in_generation:
+        # THE FIRST OF TWO PASSES, and the residual it would judge is a template render from
+        # seconds ago. `.claude/commands/handoff.md` states the flow: the operator fills the
+        # supplement, "then commit the filled file and re-run scripts/assemble_paste.py". Only
+        # that second run has both operands. Refusing here refuses every cut on a window
+        # carrying ANY `OPEN` debt -- eight files on the live transport today -- which is the
+        # documented default flow, not an edge case.
+        #
+        # This is the same reasoning that put leg 2 at assemble time rather than at preflight,
+        # applied one stage further in: judge a conjunct where both of its operands exist, and
+        # nowhere earlier. It is a DEFERRAL, not an exemption -- the post-fill run below is
+        # unchanged, and `test_the_post_fill_pass_still_refuses_the_same_bundle` pins that the
+        # identical bundle still refuses there.
+        #
+        # LOUD, because a silent skip is the failure mode this lane was sent to fix. The
+        # operator is told which files they owe while the bundle is still repairable.
+        click.echo(f"[defer] P11 leg 2: {len(unnamed)} decision file(s) state `carried-by: "
+                   "OPEN` and are named nowhere in this bundle's RESIDUAL.md yet. NOT a pass "
+                   "-- the residual was rendered moments ago and cannot name anything. Name "
+                   "each of these in RESIDUAL.md before you re-run this assembler after "
+                   "filling; that run REFUSES on what is still missing.", err=True)
+        for v in unnamed:
+            click.echo(f"  | {v.path.parent.name}/{v.path.name}", err=True)
+        return
     click.echo(f"[error] P11 leg 2: {len(unnamed)} decision file(s) state `carried-by: OPEN` "
                f"and are named nowhere in {residual.name}. An OPEN carrier discharges P11 only "
                "by being named in this bundle's residual — a window may hand off with debt, "
@@ -339,9 +372,14 @@ def assert_open_carriers_named(bundle_dir: Path, repo_root: Path) -> None:
                   "HANDOFF_PROCESS.md §17.4: the same pin mechanism §4 uses, reused rather "
                   "than duplicated, so a boot-session paste and a v5/v6 bundle paste never "
                   "carry two independently-computed pins).")
+@click.option("--in-generation", is_flag=True, default=False,
+              help="internal: set ONLY by gen_handoff._run_assembler for the cold pass it "
+                   "spawns during a cut. Defers the P11 leg-2 refusal (the residual it would "
+                   "judge was rendered seconds earlier and can name nothing) to the post-fill "
+                   "re-run the operator makes, which is where both operands exist.")
 @click.argument("bundle_dir", required=False,
                 type=click.Path(exists=True, file_okay=False, path_type=Path))
-def main(pin_only: bool, bundle_dir: Path | None) -> None:
+def main(pin_only: bool, in_generation: bool, bundle_dir: Path | None) -> None:
     """Assemble PASTE_THIS.md for BUNDLE_DIR from canonical sources, or (--pin-only) print
     just the ROLE PIN."""
     repo_root = Path(__file__).parent.parent
@@ -370,7 +408,7 @@ def main(pin_only: bool, bundle_dir: Path | None) -> None:
     # P11 leg 2, and it runs FIRST — after the fill-state flip (so the residual read here is
     # the FILLED one) and before a single byte of PASTE_THIS.md is composed. A refusal is only
     # worth having while the bundle is still repairable.
-    assert_open_carriers_named(bundle_dir, repo_root)
+    assert_open_carriers_named(bundle_dir, repo_root, in_generation=in_generation)
 
     sections: list[tuple[str, str]] = []
 

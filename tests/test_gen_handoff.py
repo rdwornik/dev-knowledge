@@ -1400,7 +1400,7 @@ def test_funnel_health_is_not_folded_into_the_browser_paste(tmp_path, fm2):
 # code. So these stand in for the child at `_run_assembler` and assert on the parent alone.
 
 
-def _refusing_assembler(_bundle_dir):
+def _refusing_assembler(_bundle_dir, **_kwargs):
     """A child assembler that REFUSED: exit 1, nothing assembled. Exit 1 is what
     `assemble_paste.assert_open_carriers_named` actually exits with."""
     return 1
@@ -1431,7 +1431,7 @@ def test_a_clean_assembly_still_returns_normally(tmp_path, monkeypatch):
     """The negative control, and it is not optional: without it the test above proves only
     that the seam CAN refuse, never that a clean cut still completes -- which is the deadlock
     a propagated exit code is the obvious way to introduce."""
-    monkeypatch.setattr(gh, "_run_assembler", lambda _bundle_dir: 0)
+    monkeypatch.setattr(gh, "_run_assembler", lambda _bundle_dir, **_kw: 0)
     repo = _stub_repo(tmp_path)
     res = gh.generate(repo, mode="architect", slug="0000-00-00-ok", repo=".dev-knowledge",
                       date="2026-09-09", bundle_root=repo / "docs" / "handoffs", assemble=True)
@@ -1472,3 +1472,36 @@ def test_the_cut_command_reports_the_refusal_and_never_prints_generated_bundle(t
     # A traceback is not a refusal. `main` converts every refusal in this family to SystemExit
     # carrying the diagnostic; anything else here means the new error missed the handler tuple.
     assert isinstance(result.exception, SystemExit), repr(result.exception)
+
+
+def test_generate_marks_its_own_assembler_call_as_the_in_generation_pass(tmp_path, monkeypatch):
+    """Terra, 2026-09-09, second pass. The assembler runs twice by design, and only the FIRST
+    run -- this one -- has a residual that was rendered from a template moments earlier and can
+    name nothing. `generate()` has to SAY which pass it is, or leg 2 judges an operand that
+    does not exist yet and refuses every cut on a window carrying `OPEN` debt.
+
+    Asserted at the seam rather than by reading the source: a comment claiming the flag is
+    passed is a claim, and the defect class this whole lane exists for is exactly a claimed
+    check nobody wired up.
+    """
+    seen = {}
+
+    def recorder(bundle_dir, **kwargs):
+        seen["bundle_dir"] = bundle_dir
+        seen.update(kwargs)
+        return 0
+
+    monkeypatch.setattr(gh, "_run_assembler", recorder)
+    repo = _stub_repo(tmp_path)
+    gh.generate(repo, mode="architect", slug="0000-00-00-ing", repo=".dev-knowledge",
+                date="2026-09-09", bundle_root=repo / "docs" / "handoffs", assemble=True)
+    assert seen.get("in_generation") is True, seen
+
+
+def test_the_in_generation_flag_reaches_the_child_argv(tmp_path):
+    """The other half of the same wiring, and it is a separate failure mode: `generate()` can
+    pass the keyword faithfully while the argv builder drops it, and the recorder above would
+    never see that. `_assembler_argv` is pure, so this reads the real command line."""
+    argv = gh._assembler_argv(tmp_path / "b", in_generation=True)
+    assert "--in-generation" in argv
+    assert gh._assembler_argv(tmp_path / "b", in_generation=False)[-1].endswith("b")

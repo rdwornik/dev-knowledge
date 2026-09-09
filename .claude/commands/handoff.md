@@ -121,6 +121,13 @@ the defect two consecutive bundles already shipped.
   The residual does not exist at preflight time, so leg 1 PASSES an `OPEN` file and states the
   obligation in its evidence line. Assembly is the first moment both operands exist, and it
   refuses there rather than writing `PASTE_THIS.md`.
+- **Leg 2 fires on the SECOND assemble, not the cut.** The assembler runs twice: once inside
+  `generate()` (cold — `RESIDUAL.md` was rendered seconds earlier and can name nothing) and
+  again when you re-run it after filling, which is the step this file already prescribes below.
+  The cold pass **defers**, printing a `[defer]` block naming every file you owe; the post-fill
+  run **refuses** on whatever is still unnamed. Gating the cold pass would refuse every cut on
+  a window carrying any `OPEN` debt — eight such files on the transport today — so it would
+  block the default flow rather than the defect.
 - **The leg ORDER is load-bearing.** The **stated value** decides which leg applies. Several
   live decision files carry explanatory prose containing paths that *do* resolve while their
   stated value is `OPEN`; reading paths first passes them on evidence that is not their carrier

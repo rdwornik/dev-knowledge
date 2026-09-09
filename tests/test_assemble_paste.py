@@ -111,12 +111,13 @@ def _make_bundle(
 
 
 def _run(script: Path, bundle: Path,
-         transport: Path | None = None) -> subprocess.CompletedProcess[str]:
+         transport: Path | None = None,
+         extra: list[str] | None = None) -> subprocess.CompletedProcess[str]:
     env = None
     if transport is not None:
         env = {**os.environ, "CLAUDE_PROMPTS_DIR": str(transport)}
     return subprocess.run(
-        [sys.executable, str(script), str(bundle)],
+        [sys.executable, str(script), str(bundle), *(extra or [])],
         capture_output=True,
         text=True,
         env=env,
@@ -762,6 +763,46 @@ def test_a_resolving_carrier_is_leg_1s_subject_and_does_not_gate_assembly(tmp_pa
     result = _run(script, bundle, transport=transport)
     assert result.returncode == 0, result.stderr
     assert (bundle / "PASTE_THIS.md").exists()
+
+
+def test_the_in_generation_pass_defers_leg_2_instead_of_refusing_the_cut(tmp_path: Path) -> None:
+    """THE COLD CUT MUST NOT BE BRICKED. Terra, 2026-09-09, second pass.
+
+    The assembler runs TWICE by design (`.claude/commands/handoff.md`: fill the supplement,
+    "then commit the filled file and re-run scripts/assemble_paste.py"). On the first run --
+    spawned by `generate()` -- `RESIDUAL.md` was rendered from a template moments earlier and
+    cannot name anything, so leg 2 was judging an operand that does not exist yet. With the
+    exit code now propagating, that turned every cut on a window carrying ANY `OPEN` decision
+    into a hard refusal, which is the whole documented default flow: the live transport carries
+    eight such files today.
+
+    Deferring is the same reasoning that put leg 2 at assemble time rather than at preflight --
+    judge a conjunct only where both operands exist -- applied one stage further in.
+    """
+    bundle, script = _make_bundle(tmp_path, bundle_rel="docs/handoffs/2026-09-09-cold")
+    result = _run(script, bundle, transport=_transport_with_open_carrier(tmp_path),
+                  extra=["--in-generation"])
+    assert result.returncode == 0, result.stderr
+    assert (bundle / "PASTE_THIS.md").exists()
+    # DEFERRED LOUDLY. A skipped gate that says nothing is how the swallowed exit code went
+    # unnoticed for two bundles; the operator is told here which files they must name before
+    # the post-fill run, while the bundle is still repairable.
+    assert _OPEN_DECISION in result.stderr
+    assert "defer" in result.stderr.lower()
+
+
+def test_the_post_fill_pass_still_refuses_the_same_bundle(tmp_path: Path) -> None:
+    """The deferral is a DEFERRAL, not an exemption -- the identical bundle, assembled the way
+    the operator assembles it after filling, still refuses. Without this the test above would
+    be indistinguishable from having deleted the gate."""
+    bundle, script = _make_bundle(tmp_path, bundle_rel="docs/handoffs/2026-09-09-cold2")
+    transport = _transport_with_open_carrier(tmp_path)
+    deferred = _run(script, bundle, transport=transport, extra=["--in-generation"])
+    assert deferred.returncode == 0, deferred.stderr
+
+    refused = _run(script, bundle, transport=transport)
+    assert refused.returncode == 1, refused.stdout
+    assert _OPEN_DECISION in refused.stderr
 
 
 def test_a_bundle_outside_the_repo_bundle_home_is_not_gated(tmp_path: Path) -> None:
