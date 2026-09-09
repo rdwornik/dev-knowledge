@@ -123,13 +123,42 @@ def mini(tmp_path: Path) -> Path:
 
 
 def test_why_refuses_a_planted_unknown_file(mini: Path):
-    """A file nothing explains is a DEFECT, not a mystery — so `why` FAILs on it."""
-    planted = _write(mini / "scripts" / "nothing_explains_me.py", "x = 1\n")
+    """A file nothing explains is a DEFECT, not a mystery — so `why` FAILs on it.
+
+    THE PLANT MOVED OUT OF `scripts/` ON 2026-09-09 (`[#664]`), and the move is recorded
+    rather than made quietly, because it looks like a weakening and is the opposite of one.
+    `[#664]` makes every in-tree PROCESS file a node whether or not an input names it —
+    otherwise `orphan_census` cannot see the very files it exists to census
+    (`.claude/commands/save.md` and both `SKILL.md`s were invisible, measured on the first
+    live run). A planted `scripts/*.py` is therefore no longer unknown: it is a KNOWN
+    ORPHAN, and the refusal it used to get here now comes from `orphan_census` at the COMMIT
+    GATE, which blocks something rather than printing to a read-only CLI.
+    `test_a_planted_unknown_SCRIPT_is_now_an_orphan_not_an_unknown` below pins that
+    relocation from the other side, so the two together assert the refusal MOVED and did not
+    vanish. The property this test owns — a file no input explains is refused — is unchanged,
+    and is now proved on a path with no process class, which is where it remains the only
+    refusal available."""
+    planted = _write(mini / "notes" / "nothing_explains_me.md", "x\n")
     graph = fpg.build(mini)
     with pytest.raises(fpg.UnknownFile) as excinfo:
         fpg.why(graph, planted.relative_to(mini).as_posix())
     assert excinfo.value.exists is True
-    assert "nothing_explains_me.py" in str(excinfo.value)
+    assert "nothing_explains_me.md" in str(excinfo.value)
+
+
+def test_a_planted_unknown_SCRIPT_is_now_an_orphan_not_an_unknown(mini: Path):
+    """`[#664]`: the refusal on an unexplained SCRIPT moved from `why` to `orphan_census`.
+
+    Asserted from this side too, so a later reader cannot mistake the plant relocation above
+    for a lost property. The script gets a node, `why` answers with ZERO consumers — the same
+    fact, reported rather than raised — and the node carries the process class the census
+    keys on, which is what makes the commit-tier refusal reachable at all."""
+    planted = _write(mini / "scripts" / "nothing_explains_me.py", "x = 1\n")
+    graph = fpg.build(mini)
+    rel = planted.relative_to(mini).as_posix()
+    answer = fpg.why(graph, rel)
+    assert answer.consumers == [] and answer.edges == []
+    assert fpg.process_class(rel) == "script"
 
 
 def test_why_refuses_a_path_that_does_not_exist(mini: Path):
@@ -141,10 +170,12 @@ def test_why_refuses_a_path_that_does_not_exist(mini: Path):
 
 
 def test_cli_exits_nonzero_on_a_planted_unknown(mini: Path):
-    """The refusal survives the CLI boundary — an exit code, not just an exception."""
-    _write(mini / "scripts" / "nothing_explains_me.py", "x = 1\n")
+    """The refusal survives the CLI boundary — an exit code, not just an exception.
+
+    Same `[#664]` plant relocation as the test above, for the same recorded reason."""
+    _write(mini / "notes" / "nothing_explains_me.md", "x\n")
     proc = subprocess.run(
-        [sys.executable, str(_P), "why", "scripts/nothing_explains_me.py",
+        [sys.executable, str(_P), "why", "notes/nothing_explains_me.md",
          "--repo-root", str(mini)],
         capture_output=True, text=True,
     )
@@ -509,7 +540,11 @@ def test_live_repo_builds_and_carries_all_five_inputs():
     # Guard the guard: an empty INPUTS would make the set-equality below pass vacuously, and
     # it DID during this lane's RED phase against the stub. Assert the roster is non-empty
     # before comparing against it.
-    assert len(fpg.INPUTS) == 5, fpg.INPUTS
+    # 5 -> 7: `[#664]` added INPUT_WIRING (`triggers` / `imports`) and
+    # INPUT_TASK_IMPLEMENTS (`implements`) under ADR-118 section 1 -- a new edge kind is
+    # added to FPG-1, never to a script. The guard-the-guard purpose is unchanged: an
+    # empty INPUTS would make the set-equality below pass vacuously.
+    assert len(fpg.INPUTS) == 7, fpg.INPUTS
     contributed = {edge.source for edge in graph.all_edges()}
     assert contributed == set(fpg.INPUTS), (
         f"missing input contributions: {set(fpg.INPUTS) - contributed}")
