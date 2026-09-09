@@ -359,3 +359,130 @@ Codespaces baseline at `08c35b9c`.
 Corrected by amendment marker rather than by editing the line in place: an audit is immutable
 (ADR-29 / critical rule 3), and a stale number quietly overwritten is the same defect this
 lane's whole record is about — HANDOVER-NOTE §C, "a claim accepted without its number".
+
+---
+
+## AMENDMENT 2 — 2026-09-09, the HELD lane resumed as a FIX LANE (operator ruling, same day)
+
+**Appended, never edited.** Everything above this line is the record as the lane first left it,
+including its own mistakes. This section is what the terra gate found afterwards and what was
+done about it.
+
+### The tally
+
+```
+HIGH raw=9 fixed=8 unresolved=0
+```
+
+Reviewer `codex exec review -m gpt-5.6-terra --base main`, read-only, nine passes. The stopping
+rule is *stop when a pass returns nothing*, and pass 9 returned nothing against the final tree
+(`fc876b47`) with no code changed after it. `raw` counts every HIGH the loop returned; `fixed`
+counts those closed in this tree. **8 + 0 ≠ 9 on purpose** — one finding is neither, and §4
+below is the whole of it. Two passes (3 and 9) returned nothing; pass 3's clean result was
+superseded because verification afterwards found a defect the reviewer had not (§3).
+
+The integrator's two original findings — the swallowed exit code (`P1`) and the
+resolving-carrier test that passed for the wrong reason (`P2`) — are both fixed, at `4bcd965f`
+and `eb9a740c`. They are not counted in `raw` above, which is this loop's own count.
+
+### Pass by pass
+
+| pass | HIGH | what it found | disposition |
+|---|---|---|---|
+| 1 | 1 | leg 2 refused the COLD cut, so any window carrying `OPEN` debt could not hand off at all | fixed `27702fc0` |
+| 2 | 2 | (a) the deferral left a gap — a skipped second assemble ships unnamed carriers; (b) `pytest-timeout` is declared but not enforced | (a) fixed `fd7bb0d9`; (b) §4 |
+| 3 | 0 | — | superseded by §3 |
+| 4 | 1 | the acceptance rung is COMMIT-tier, so a growing transport would fail every later commit on an immutable bundle | fixed `04e53c78` |
+| 5 | 2 | (a) `--in-generation` was a CLI-selectable bypass; (b) the exemption covered a MODIFIED committed bundle | both fixed `c6e0702c` |
+| 6 | 1 | a filled SUPPLEMENT with an untouched residual still read as "cold" | fixed `c2aac73e` |
+| 7 | 1 | a bare basename discharged an `OPEN` carrier — ambiguous across `to-cc/` and `to-browser/`, and satisfied by any incidental mention | fixed `ff149455` |
+| 8 | 1 | a refusal left the cold pass's `PASTE_THIS.md` on disk, still pasteable | fixed `fc876b47` |
+| 9 | 0 | — | **stop** |
+
+**Five of the nine were defects this fix pass introduced, not older ones**, and that is the
+honest shape of the arc rather than a footnote. Propagating the exit code (pass 1's fix) made
+leg 2 bite for the first time, and every subsequent finding was a consequence: the gate had
+never actually fired before, so nothing had ever tested where it fires, what it leaves behind,
+or what it costs the flows around it. A gate that was inert had no edges; giving it teeth
+created them.
+
+### §3 · The defect the reviewer did not find
+
+Pass 3 returned nothing. Routine verification immediately afterwards did not:
+`test_dogfood_generated_bundle_has_no_failing_probe` had moved from `assert 15 == 13` to
+`assert 16 == 13`. The acceptance rung was reading `transport_root()` for **any** bundle handed
+to `verify()`, so a unit test's synthesized bundle was being judged against the operator's real
+`CLAUDE_PROMPTS_DIR` — a suite result that depended on which decision files happened to be
+sitting in `H:\...\CLAUDE PROMPT DIR` that afternoon. Fixed at `c95bdb95` by scoping to
+`gen_handoff._is_hub`, the predicate already ruled for exactly that question.
+
+Recorded because it is the more useful half of this record: **a clean reviewer pass is not a
+verification**, and the era gate everyone would reach for first did not cover it —
+`bundle_at_or_after` is fail-closed on an unparseable date, so the stub slug `0000-00-00-t`
+counted as in-era. Era answers *is this bundle new enough to judge*. It was never going to
+answer *is this bundle mine to judge*.
+
+### §4 · The one finding that is neither fixed nor unresolved
+
+**Pass 2(b) — `pytest-timeout` is declared but not enforced.** The reviewer is factually right:
+`--timeout=900` lives in a `pyproject.toml` comment, `addopts` remains `-n auto`, and a bare
+`pytest` therefore inherits no per-test timeout.
+
+**It is not fixed because this lane's frozen contract forbids the fix, in terms**, under *What
+NOT to do*: "Do not change `addopts` for the interactive path" and "Do not add `pytest-timeout`
+AND touch `addopts` — the dependency only, plus a proposed value." The declared invocation's
+own comment states the reasoning it was ruled on: an operator watching a run wants every core.
+Deviation-with-disclosure is not a licence, so the change was not made.
+
+**What WAS done** (`f480783b`): the declaration's two unchecked claims — that its timeout *is*
+`gen_handoff.SHIP_GATE_TIMEOUT_S` rather than a second number free to drift, and that it clears
+`addopts` structurally rather than by argument ordering — are now pinned by a test. That is
+squarely this lane's thesis (a declaration nobody checks) and it closes the drift half. It does
+**not** close the enforcement half, and the test's own docstring says so rather than letting a
+pinned declaration read as an enforced one.
+
+**This is an operator call, not a lane call** — decision-budget class (b), a genuine
+rule-vs-ruling conflict. The lane is a `--bg` seat and cannot ask, so it is filed here per the
+standing instruction that a blocking question goes into the artifact. It did not recur in
+passes 3–9.
+
+### §5 · What the gate now is, in one place
+
+Three stages, each judging only where both of its operands exist, and none of them silent:
+
+1. **The cut** — `generate()` spawns the assembler, which recognises a wholly cold bundle
+   (nothing folded, no FILL-IN region written) and **DEFERS**, printing a `[defer]` block that
+   names every file owed. Derived from the artifact, never told: the `--in-generation` flag that
+   did the telling was deleted, because a flag on a public CLI is a bypass anyone can type.
+2. **The post-fill assemble** — the step `.claude/commands/handoff.md` prescribes. **REFUSES**,
+   exits 1, and invalidates any stale `PASTE_THIS.md` the cold pass left, so the refused
+   handoff cannot be shipped from disk. `generate()` propagates that exit code as
+   `AssemblyRefusedError`; the cut command prints `[error]`, never `Generated bundle`.
+3. **Acceptance** — `/handoff-verify`'s `P11-CARRIAGE` rung **FAILS** while the residual names
+   none of its `OPEN` carriers. Bounded to a bundle that is still repairable (its `RESIDUAL.md`
+   sealed *and* unchanged), hub-only, and era-gated at 2026-09-09.
+
+Naming a carrier means the transport-qualified path (`to-cc/<file>.md`), which is what both
+refusal messages already printed. A bare basename does not discharge anything.
+
+**HONEST LIMITS, stated rather than left to be found.** A bundle committed without anyone
+running `/handoff-verify` is not reached by stage 3 — a gate that is not run gates nothing, and
+no work inside that file changes it. A cold cut can still produce a paste nobody refuses,
+because at that moment there is nothing yet to refuse. What the three stages remove is the
+SILENT path: every route that runs now names the debt.
+
+### Suite state at HANDBACK
+
+Targeted files only, per the batch rule that the full suite runs once at integration. The five
+files this lane touched: **333 passed, 4 failed** in 96.56 s. `ruff check scripts/ tests/`
+clean; `audit.py health` **OK**; working tree clean; `git stash list` empty.
+
+The four REDs in `tests/test_gen_handoff.py` (`test_dogfood_no_probe_row_carries_an_answer_value`,
+`test_dogfood_generated_bundle_has_no_failing_probe`, `test_epic_bundle_has_no_failing_probe`,
+`test_suffixed_bundle_probes_resolve_against_their_own_directory`) are **INHERITED FROM MAIN,
+not this lane's**. Verified rather than asserted: the same four fail identically at `8f54af59`,
+the sync-merge commit, before any lane edit in this pass. They concern probe counts (15 vs 13,
+6 vs 5) and a missing `protocols/OPERATOR-INTERFACE.md`, none of which this lane's diff touches.
+
+Two sync merges were taken mid-lane (`8f54af59`, `05c584f3`) because main advanced 48 commits
+across the pass and every gate reads main.
