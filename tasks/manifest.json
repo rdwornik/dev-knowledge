@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "e7da3710cb3fcc1708ac9db0c86775a33c714725b37941ae76af8edcebd0a01f",
+  "generated_sha256": "2395ac4a53d6310999bdd6a52c73ccfa3df647c75766212a4bc63977b030fbd1",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -376,6 +376,10 @@
     {
       "task": 676,
       "file": "676-no-check-verifies-a-provider-cli-s-non-interactive.md"
+    },
+    {
+      "task": 677,
+      "file": "677-the-gpt-6-astra-xl-class-rule-is-doctrine-at-l0.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
