@@ -214,7 +214,7 @@ Every file this lane changed was run to green, serially, in this worktree:
 ```
 tests/test_gen_handoff_preflight.py    45 passed              (0 pre-existing REDs)
 tests/test_assemble_paste.py           31 passed  1 failed    (pre-existing: cp1252 em-dash on --pin-only)
-tests/test_verify_handoff_probes.py   117 passed  2 failed    (pre-existing: `tool absent: sed`)
+tests/test_verify_handoff_probes.py   119 passed  2 failed    (pre-existing: `tool absent: sed`)   [AMENDED — see below]
 tests/test_logs_retention.py           all passed             (0 pre-existing REDs)
 tests/test_fleet_analytics.py          64 passed              (with the analytics group)
 ```
@@ -340,3 +340,22 @@ proposal, not a decision.
 `tests/test_logs_retention.py` is the only test file the footprint names by path; the other
 three are the existing test homes of the three scripts the footprint DOES name, and no new
 test module was created.
+
+---
+
+## AMENDMENT 1 — 2026-09-09, same lane, before HANDBACK
+
+**§4.3, the `tests/test_verify_handoff_probes.py` row read `117 passed / 2 failed`. The
+measured final figure is `119 passed / 2 failed / 5 skipped` in 377.14 s.**
+
+`117` was carried over from the run taken BEFORE the `_empty_bundle` fixture-era fix in
+`274dd38c`. In that intermediate state two argument-parsing tests were red, so the pass count
+was two lower; the fix restored them and the file was re-run to confirm. The two remaining
+failures are unchanged and are the pre-existing Windows-host `tool absent: sed` pair
+(`test_bundle_internal_locator_is_rebased_onto_the_verified_bundle`,
+`test_locator_naming_the_verified_bundle_is_never_flagged`) — neither appears in the 28-RED
+Codespaces baseline at `08c35b9c`.
+
+Corrected by amendment marker rather than by editing the line in place: an audit is immutable
+(ADR-29 / critical rule 3), and a stale number quietly overwritten is the same defect this
+lane's whole record is about — HANDOVER-NOTE §C, "a claim accepted without its number".
