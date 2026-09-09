@@ -1505,3 +1505,28 @@ def test_the_in_generation_flag_reaches_the_child_argv(tmp_path):
     argv = gh._assembler_argv(tmp_path / "b", in_generation=True)
     assert "--in-generation" in argv
     assert gh._assembler_argv(tmp_path / "b", in_generation=False)[-1].endswith("b")
+
+
+def test_the_declared_unattended_invocation_still_cites_the_one_ceiling():
+    """[#643] leg e. The unattended suite path is a DECLARED invocation in `pyproject.toml`,
+    deliberately not `addopts` -- the interactive path is not changed, because an operator
+    watching a run wants every core, and the contract pins that ("Do not change `addopts` for
+    the interactive path").
+
+    A declaration nobody checks is the class this whole lane exists to close, so the two claims
+    that declaration makes are pinned here rather than trusted: that it clears `addopts`
+    structurally rather than by argument ordering, and that its timeout IS
+    `gen_handoff.SHIP_GATE_TIMEOUT_S` rather than a second number free to drift from it.
+
+    HONEST LIMIT, stated so this test is not read as more than it is: it pins the DECLARATION,
+    not the enforcement. A bare `pytest` still inherits no timeout, and closing that would mean
+    changing `addopts`, which this lane is explicitly forbidden to do. Terra raised exactly that
+    gap on 2026-09-09 and it is recorded in the lane artifact as an operator call, not silently
+    absorbed here.
+    """
+    text = (_REPO / "pyproject.toml").read_text(encoding="utf-8")
+    line = next((ln for ln in text.splitlines()
+                 if "pytest" in ln and "--timeout=" in ln and "-o addopts=" in ln), None)
+    assert line is not None, "the declared unattended invocation is gone from pyproject.toml"
+    assert f"--timeout={gh.SHIP_GATE_TIMEOUT_S}" in line, line
+    assert "--group analytics" in line, line     # the measured 44-vs-28 difference
