@@ -18,7 +18,9 @@ that can only pass is not a refusal.
 from __future__ import annotations
 
 import json
+import os
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -123,6 +125,40 @@ def test_store_path_resolves_outside_the_working_tree():
     path = gs.store_path(REPO_ROOT)
     assert ".git" in path.parts, f"store must live under the git dir, got {path}"
     assert not path.is_relative_to(REPO_ROOT / "logs")
+
+
+def test_a_waiter_never_removes_a_live_builders_rebuild_lock(tmp_path: Path):
+    """THE TRIP, and it is a trip because the permissive direction passes either way.
+
+    A second caller arriving on a held lock must come away with NOTHING -- no lock of its
+    own, and above all the holder's lock still on disk. The shape this replaces let a waiter
+    time out, rebuild without the lock, and then unlink the live builder's lock on its way
+    out, which is the exact overlap the lock exists to prevent. Asserting only that the
+    waiter fails to acquire would not catch that: it failed to acquire in the broken shape
+    too, and then deleted the lock anyway.
+    """
+    lock = tmp_path / "FPG.rebuild-lock"
+    assert gs.acquire_rebuild_lock(lock) is True
+    held = lock.read_text(encoding="utf-8")
+
+    assert gs.acquire_rebuild_lock(lock) is False
+    assert lock.exists(), "a waiter removed the lock it does not hold"
+    assert lock.read_text(encoding="utf-8") == held, "a waiter overwrote the live holder"
+
+
+def test_an_expired_lock_is_broken_so_a_dead_builder_never_wedges_the_store(tmp_path: Path):
+    """The converse: a lock whose builder died is honoured for its TTL and then taken.
+
+    Without this leg the fix above would be indistinguishable from never breaking a lock at
+    all -- which trades a race for a wedge, and a wedge blocks every commit in the repo.
+    """
+    lock = tmp_path / "FPG.rebuild-lock"
+    assert gs.acquire_rebuild_lock(lock) is True
+    dead = lock.read_text(encoding="utf-8")
+    os.utime(lock, (time.time() - gs._LOCK_TTL_S - 5, time.time() - gs._LOCK_TTL_S - 5))
+
+    assert gs.acquire_rebuild_lock(lock) is True
+    assert lock.read_text(encoding="utf-8") != dead, "the breaker did not take the lock"
 
 
 # ----------------------------------------------------- witness 2: orphan_census REFUSES

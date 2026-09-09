@@ -241,6 +241,55 @@ _SWAP_BACKOFF_S = 0.1
 _LOCK_TTL_S = 120.0
 
 
+def _lock_identity(lock: Path) -> str | None:
+    """What is recorded in the lock right now, or None if it is not there."""
+    try:
+        return lock.read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+
+def _lock_expired(lock: Path) -> bool:
+    """Has this lock outlived its TTL -- i.e. is its builder presumed dead?
+
+    A lock that is GONE is not expired: absence is the caller's business (it re-checks
+    existence and tries to acquire), and answering True here would read as "break it".
+    """
+    try:
+        return time.time() - lock.stat().st_mtime > _LOCK_TTL_S
+    except OSError:
+        return False
+
+
+def acquire_rebuild_lock(lock: Path) -> bool:
+    """Take the rebuild lock; True if THIS process now holds it.
+
+    THE ONLY PLACE A LOCK IS EVER REMOVED BY SOMEONE WHO DOES NOT HOLD IT, so the decision
+    to break one lives in a single readable place rather than being spread across the
+    waiting path. A lock is broken only once it has outlived `_LOCK_TTL_S` **and** the same
+    holder is still recorded at the moment of removal -- so a builder that finished and was
+    replaced between the age check and the unlink keeps the lock it just took.
+
+    THE LOCK IS A CONTENTION MEASURE, NOT THE CORRECTNESS ARGUMENT, and saying so is what
+    makes the residual window tolerable rather than hidden: what a spurious break costs is a
+    duplicate rebuild and a retried swap, both of which this module already survives. The
+    store cannot be torn by one, because `_swap_into_place` swaps a fully-written file over
+    the live one atomically. A lock that had to be perfect would need OS-level locking and
+    would buy nothing this does not already have.
+    """
+    if _lock_expired(lock):
+        stale = _lock_identity(lock)
+        if stale is not None and _lock_identity(lock) == stale:
+            with contextlib.suppress(OSError):
+                lock.unlink()
+    try:
+        with open(lock, "x", encoding="utf-8") as handle:
+            handle.write(f"{os.getpid()} {time.time():.6f}\n")
+    except FileExistsError:
+        return False
+    return True
+
+
 def _swap_into_place(tmp: Path, path: Path) -> None:
     """Atomic-swap the freshly written store over the live one.
 
@@ -459,24 +508,27 @@ def ensure(repo_root: Path | str, db_path: Path | str | None = None) -> GraphSto
 
     path.parent.mkdir(parents=True, exist_ok=True)
     lock = path.with_suffix(".rebuild-lock")
-    try:
-        with contextlib.suppress(OSError):
-            if lock.exists() and time.time() - lock.stat().st_mtime > _LOCK_TTL_S:
-                lock.unlink(missing_ok=True)   # a builder died holding it
-        with open(lock, "x"):
-            pass
-    except FileExistsError:
-        deadline = time.time() + _LOCK_TTL_S
-        while time.time() < deadline and lock.exists():
+    while True:
+        if acquire_rebuild_lock(lock):
+            try:
+                rebuild(root, path)
+            finally:
+                lock.unlink(missing_ok=True)   # only the HOLDER removes it
+            return open_store(path)
+
+        # Another process holds the lock. Wait for ITS result rather than building a second
+        # copy -- and never touch its lock. Terra pre-merge P1: an earlier shape let a waiter
+        # time out, fall through to `rebuild()` WITHOUT the lock, and then unlink the live
+        # builder's lock in its `finally` -- admitting overlapping rebuilds and concurrent
+        # swaps, which is the exact race the lock exists to prevent. Removal is now the
+        # holder's act alone; a waiter only ever BREAKS an EXPIRED lock, and it does that by
+        # looping back to `acquire_rebuild_lock`, which is where that decision lives.
+        while lock.exists() and not _lock_expired(lock):
             time.sleep(_SWAP_BACKOFF_S)
         with contextlib.suppress(StoreUnreadable):
             return open_store(path)
-
-    try:
-        rebuild(root, path)
-    finally:
-        lock.unlink(missing_ok=True)
-    return open_store(path)
+        # The holder vanished without leaving a readable store. Loop: the next acquisition
+        # attempt takes the lock, or breaks it if it is expired, so this cannot spin forever.
 
 
 # ------------------------------------------------------------------------------------- CLI
