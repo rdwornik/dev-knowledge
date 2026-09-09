@@ -263,3 +263,49 @@ either leg, or repoints `copilot-enterprise` in the registry, the suite turns RE
   ~50 minutes with no second reviewer to route to. The stopping rule -- loop until a pass
   returns nothing -- makes reviewer availability a dependency of lane CLOSURE, not merely of
   lane speed, which is what turns a stall into a blocked gate.
+
+## 11 - Terra review tally, APPENDED after landing
+
+> **Append-only, per the fix-lane instruction.** Nothing above this line was edited to make
+> the numbers below true; the section 1 headline still reads as it landed, and the paragraph
+> after the tally says why it moved.
+
+HIGH raw=21 fixed=21 unresolved=0
+
+**The stopping rule was "loop until a pass returns nothing", not "stop after one pass."**
+Fifteen passes of `codex exec review -m gpt-5.6-terra --base main`, read-only, ran against
+this branch. Pass 15 returned nothing, on a tree with `origin/main` already merged in, and
+that is the pass this tally reports.
+
+**How raw=21 is composed**, so the number is checkable rather than asserted: 2 from the
+integrator review that reopened this lane, then 1, 3, 2, 2, 2, 2, 2, 1, 2 from passes 3
+through 11, then 1 each from passes 13 and 14. Passes 2 and 12 returned nothing and are
+counted as zero. **Pass 12's clean result is NOT the one that closed the loop** -- it fired
+while the tree still lagged `main`, so its diff carried main's own files and it never saw
+the last two fixes. A clean pass against the wrong base is not a clean pass.
+
+**The headline moved from 16 to 21, and the reason is that DEFECTS WERE ADDED, never that a
+count was re-read.** Five seeded defects entered `SEEDED_DEFECTS` across the fix arc --
+`rank-gap`, `undeclared-field`, `unknown-category`, `planted-defect-missed`,
+`misclassified-defect` -- each with its own refusal code, and the closed-vocabulary test
+still asserts the one-seed-per-code bijection. The line the CLI prints also changed: it now
+reads **REFUSED FOR THEIR OWN CODE**, because the integrator's [P1] was that the old counter
+incremented on any refusal and so certified an attribution it never measured. A seeded run
+in which every case refuses for the WRONG code, or in which the positive control refuses,
+now exits NON-ZERO.
+
+**Two limits of `write_probe_corpus` are stated in its docstring rather than left to be
+found.** POSIX has no atomic create-and-hold for a directory, so the gap between reserving
+a name and using it cannot be closed at this layer; seven review passes each closed one
+interleaving and each left a narrower one. What is guaranteed instead is that nothing is
+ever overwritten (`os.link` refuses an existing name), that nothing outside this call's own
+staging directory is ever deleted (`rmdir` refuses a non-empty directory), and that a name
+which stops resolving to the reserved directory is REPORTED rather than silently used. That
+is Z-G4 applied to a filesystem: the gap is reported, not passed over.
+
+**One defect of this lane's own is recorded here because it is the lane's subject.** The
+pass-11 fix -- requiring a destination that does not exist -- silently made three existing
+tests VACUOUS: each called the writer with `tmp_path`, which exists, so each was refused at
+the front door and still passed, because `FileExistsError` is an `OSError`. Three green
+tests measuring nothing, shipped in the commit that fixed the previous instrument-layer
+defect. They were found at pass 13, re-pointed, and the RED commit says so.
