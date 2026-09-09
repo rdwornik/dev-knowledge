@@ -185,6 +185,14 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "absent from its 32. Recorded as a NEW orphan rather than folded into the "
                "old count: the census is a dated measurement, not a live roster",
         owner="V+1 retirement-or-wiring list"),
+    "scripts/offload_admission.py": Disposition(
+        reason="ARRIVED AFTER THE CENSUS -- landed 2026-09-09 by lane "
+               "v-000-offload-admission, same class as gen_ledger.py above and recorded the "
+               "same way. It is UNWIRED BY DESIGN rather than by neglect: the lane's artifact "
+               "section 7 states it does not write ecosystem/routing-table.yaml, because "
+               "creating the offload role row is a routing decision and the lane REFUSED the "
+               "only route it measured. Wiring it would assert an admission that was denied",
+        owner="V+1 retirement-or-wiring list"),
     # ---- population A: tests are not triggers ----
     "scripts/archive_row_body.py": Disposition(
         reason="referenced only by tests/test_archive_row_body.py -- a test proves a module "
