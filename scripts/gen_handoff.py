@@ -1413,6 +1413,30 @@ def carriage_verdicts(transport, repo_root) -> list[CarriageVerdict]:
     return verdicts
 
 
+def _residual_names(residual: str, path: Path) -> bool:
+    """True when `residual` names THIS decision file by its transport-relative path.
+
+    QUALIFIED, not a bare basename, and the difference is not pedantry. The predicate was
+    `path.name in residual` — a raw substring search — which reported debt as carried in two
+    distinct ways (terra, 2026-09-09):
+
+      1. AMBIGUITY. `to-cc/X.md` and `to-browser/X.md` are different decisions. One mention of
+         `X.md` discharged BOTH, so a single sentence cleared a file nobody had considered.
+      2. INCIDENTAL MENTION. Any occurrence satisfied it — the filename in an unrelated
+         sentence, inside a code fence, cited for some other purpose entirely.
+
+    The rest of the system already speaks this form: the leg-2 refusal prints
+    `to-cc/NAME.md`, the acceptance rung prints it, and every residual that discharges a
+    carrier in practice writes it that way. Only the predicate was reading the unqualified
+    half of its own convention.
+
+    Both separators are accepted because a residual is prose a human types: markdown says
+    `to-cc/X.md` and a Windows paste may say `to-cc\\X.md`, and neither is a different claim.
+    """
+    qualified = f"{path.parent.name}/{path.name}"
+    return qualified in residual or qualified.replace("/", "\\") in residual
+
+
 def carriage_shortfall(transport, repo_root, *,
                        residual: "str | None" = None) -> list[CarriageVerdict]:
     """The files that fall short of P11, across BOTH legs where both are checkable.
@@ -1426,7 +1450,8 @@ def carriage_shortfall(transport, repo_root, *,
     for v in carriage_verdicts(transport, repo_root):
         if v.kind in (CARRIAGE_NO_KEY, CARRIAGE_UNRESOLVED):
             short.append(v)
-        elif v.kind == CARRIAGE_OPEN and residual is not None and v.path.name not in residual:
+        elif (v.kind == CARRIAGE_OPEN and residual is not None
+              and not _residual_names(residual, v.path)):
             short.append(v)
     return short
 

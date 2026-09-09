@@ -540,9 +540,16 @@ def test_the_seven_file_short_reproduces_the_live_measurement(tmp_path, _on_main
 
 def test_carriers_set_and_openness_named_clears_the_short_to_zero(tmp_path, _on_main):
     """THE FIXTURE, second half — the negative control. Without it the count above proves only
-    that the predicate can fail, never that it can be satisfied."""
+    that the predicate can fail, never that it can be satisfied.
+
+    The references are TRANSPORT-QUALIFIED (`to-cc/<name>`), which is what naming a decision
+    file means since terra's 2026-09-09 finding: a bare basename is ambiguous between the two
+    transport directories and is satisfied by any incidental mention. This fixture previously
+    wrote bare names and was updated rather than exempted -- it is the live convention every
+    real residual already uses, and it is what both refusal messages print.
+    """
     transport = _seven_file_short(tmp_path, carriers_set=True)
-    residual = "\n".join(f"- {n} — carried OPEN" for n in _P11_OPEN_FILES)
+    residual = "\n".join(f"- `to-cc/{n}` — carried OPEN" for n in _P11_OPEN_FILES)
     assert gh.carriage_shortfall(transport, tmp_path / "repo", residual=residual) == []
 
 
@@ -667,3 +674,44 @@ def test_an_empty_decision_set_is_n_a_with_a_reason_never_a_silent_pass(tmp_path
     row = next(r for r in rows if r.name == "p11_carriage")
     assert row.status == gh.PREFLIGHT_NA
     assert "SUBJECT-ABSENT" in row.detail
+
+
+# --- [#643] leg 2's residual predicate: a QUALIFIED reference, not a bare basename ---------
+# Terra, 2026-09-09. The discharge test was `v.path.name not in residual` -- a raw substring
+# search for a bare filename. Two ways that reports debt as carried when it is not:
+#   1. AMBIGUITY. `to-cc/X.md` and `to-browser/X.md` are different decisions; naming `X.md`
+#      once cleared BOTH, so one sentence discharged a file nobody had considered.
+#   2. INCIDENTAL MENTION. Any occurrence at all satisfied it -- a filename in an unrelated
+#      sentence, a path in a code fence, a citation of the file for some other purpose.
+# The rest of the system already speaks the qualified form: the gate's own refusal prints
+# `to-cc/NAME.md`, and every residual in these fixtures cites it that way. Only the predicate
+# was reading the unqualified half.
+
+
+def _two_dirs_one_basename(tmp_path):
+    """The same decision basename OPEN in both transport directories."""
+    transport = tmp_path / "transport"
+    (transport / "to-cc").mkdir(parents=True)
+    (transport / "to-browser").mkdir(parents=True)
+    for sub in ("to-cc", "to-browser"):
+        (transport / sub / "DECLARE-SHARED.md").write_text(
+            "# shared\ncarried-by: OPEN -- in flight\n", encoding="utf-8")
+    return transport
+
+
+def test_a_bare_basename_no_longer_discharges_two_different_decisions(tmp_path, _on_main):
+    """Naming `DECLARE-SHARED.md` is not naming EITHER of them -- it is ambiguous between two
+    files that are not the same decision, so it discharges neither."""
+    transport = _two_dirs_one_basename(tmp_path)
+    short = gh.carriage_shortfall(transport, tmp_path / "repo", residual="see DECLARE-SHARED.md")
+    assert len(short) == 2, [v.path.as_posix() for v in short]
+
+
+def test_the_qualified_reference_discharges_exactly_the_one_it_names(tmp_path, _on_main):
+    """The negative control, and the precision claim: `to-cc/…` clears the to-cc file and
+    leaves its to-browser namesake outstanding. Without this the assertion above would be
+    satisfied by a predicate that simply never discharges anything."""
+    transport = _two_dirs_one_basename(tmp_path)
+    short = gh.carriage_shortfall(transport, tmp_path / "repo",
+                                  residual="carried OPEN: `to-cc/DECLARE-SHARED.md` [#643]")
+    assert [v.path.parent.name for v in short] == ["to-browser"], [v.detail for v in short]
