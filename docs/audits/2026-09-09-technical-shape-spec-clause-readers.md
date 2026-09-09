@@ -116,4 +116,114 @@ the clause names all three surfaces that now bear on it.
 
 ## Step 6 — closure
 
-Filled at the end of the lane.
+### The done-contract, measured
+
+| # | Done-contract line | Measured at close |
+|---|---|---|
+| 1 | clauses read by an organ | **4/9 -> 8/9.** `python_layout`, `vscode` and `sorting` are each OPENED by a named reader. The ninth is `report_first`, which names no organ and states why. |
+| 2 | `asserted_by` names a non-reading organ | **3 -> 0.** `required_docs` was the third, unnamed by the contract's prose; it is wired in the same act. |
+| 3 | `home_grammar` carries the kind parameter | **present.** Six kinds, ONE home each, `declared_kinds` says which four this repo has. |
+| 4 | reader-proof spec test | **absent -> `tests/test_fleet_shape_spec_readers.py`, 16 tests.** |
+| 5 | English, hyphen-only names, logging over print, `pytest` green | held; no CLI was added, so the Click leg does not arise. |
+
+The clause-by-clause close, against the step-1 table:
+
+```
+clause           reader                                                       OPENED
+root_allowlist   validate_hermetization (unchanged)                           yes
+genre_folders    validate_hermetization (unchanged)                           yes
+home_grammar     validate_hermetization -- patterns, and now kinds            yes
+naming_grammar   validate_hermetization (unchanged)                           yes
+required_docs    validate_hermetization::_require_one_registry                yes  (was NO)
+vscode           check_workspace_settings -- glob, dir_allowed, dir_forbidden  yes  (was NO)
+sorting          check_workspace_settings -- asserted_by_setting               yes  (was NO)
+python_layout    validate_hermetization::_python_layout                        yes  (was NO)
+report_first     none -- a declared posture, `asserted_by: null` with a reason  n/a
+```
+
+### Line 4 is a witness, not a claim
+
+The test file landed RED at `044cf902`, **before** any build code: 15 failed, 1 passed. It
+went green only as the readers landed — the load-time half at `73ee4418`, the call-time half
+at `982f83a8`. That sequence IS the proof the contract asks for. Every proof is behavioural:
+each doctors the clause's payload and asserts the organ's verdict follows, so an organ that
+stops reading its clause makes these tests fail rather than pass more quietly. A name-grep
+over an organ would have proven the clause is mentioned there, not that its value is used.
+
+`test_the_census_is_complete` is the forward guard: it derives the claimed set from the FILE,
+so a clause that gains an `asserted_by` without gaining a proof surfaces on the next run
+instead of joining the decorative set unnoticed.
+
+### What this lane did NOT do
+
+- **`report_first` stays unasserted.** It is a posture, not a mechanism, and the report
+  generator is a sibling lane's deliverable. Line 2 is about clauses naming a *non-reading
+  organ*; `asserted_by: null` names none.
+- **The two `required_docs` audit-check organs are untouched** — outside the footprint. The
+  new reader is appended to the clause's `asserted_by`, so it names all three surfaces that
+  bear on it rather than displacing the two that assert its presence half.
+- **`config/` is not read as the `data` home.** Its fate is intake #73 open question 8;
+  answering it here would encode a guess as data. The hub's declared state is `ecosystem/`.
+- **No seal re-run, no `BACKLOG.md` edit, no index regeneration, no JOURNAL entry** — V-3,
+  V-4 and the integrator respectively.
+
+### Coupled edit, disclosed
+
+`tests/test_fleet_shape_spec.py`'s doctored payload gains `scripts` and `tests` in its home
+patterns. `_python_layout` refuses at load a source or tests home the home grammar does not
+admit, and that test's doctored spec left `python_layout` at the live `flat` layout while
+removing `scripts` from the grammar — an internally incoherent spec that the new reader is
+right to refuse. The addition changes nothing that test asserts: its refusals turn on
+`protocols/` and `docs/audits/` still being absent from the doctored grammar.
+
+### Targeted tests, against the 28-RED baseline
+
+The batch gate is *compare against 28 RED @ `08c35b9c`, never against zero*, and a lane runs
+the targeted tests covering its diff — the full suite runs once, at integration.
+
+```
+uv run --locked pytest tests/test_fleet_shape_spec_readers.py tests/test_fleet_shape_spec.py \
+  tests/test_validate_hermetization.py tests/test_audit.py tests/test_audit_parallel.py \
+  tests/test_batch_manifest.py tests/test_canonical_docs.py tests/test_manifest_link_route.py
+
+469 passed, 1 failed
+```
+
+`uv run --locked ruff check scripts/ tests/` — clean.
+`uv run --locked python scripts/audit.py health` — `health: OK` (WARN rows only, every one of
+them pre-existing: batch U/V lane contracts under `consumer_at_landing`, and the four
+`proof_layer` rows `[#638]` owns).
+
+**The one RED is pre-existing and outside this lane's footprint**, established rather than
+assumed:
+
+- `tests/test_canonical_docs.py::test_the_derived_leg_is_warn_class_on_arrival`
+- Cause: `audit.py::_derived_freshness_findings` narrows the UNSTAMPED class to the gated
+  set's own directories (R5 window bundle B10, ruled 2026-09-05). The fixture's unstamped
+  doc is `protocols/README.md` while the test pins the gated set to two ROOT files, so the
+  unstamped member is out of scope and no UNSTAMPED warn is emitted. The test still expects
+  the pre-narrowing behaviour.
+- Attribution: the narrowing landed at `63e94ff2` (2026-09-05), which `git merge-base
+  --is-ancestor 63e94ff2 33bcb0bd` confirms predates this lane's base. This lane's diff
+  touches neither `scripts/audit.py` nor `tests/test_canonical_docs.py` (`git diff --stat
+  33bcb0bd..HEAD` is six files, listed in the commits above), and nothing on that code path
+  imports anything this lane changed.
+- Disposition: **left alone.** It is out of footprint, and the fix is a ruling-driven test
+  update owned by whoever ruled B10 — not a drive-by from a spec-reader lane.
+
+One measurement note recorded so it is not repeated: an early background run of a subset of
+these files reported exit 0 with an EMPTY output file. That exit code was not evidence — the
+same selection run in the foreground reproduces the failure. A background run whose output
+never landed is an un-run, not a pass.
+
+### Gate bypasses declared
+
+Three commits declared a single-hook bypass in the commit body, per the contract's
+"the integrator is gate-of-record and regenerates once at the merge" (Q1):
+
+- `f8eb6c5e` — `audit-index-freshness` (this artifact is a new `docs/audits/` member)
+- `044cf902`, `73ee4418` — `doc-counts-pytest-freshness` (`pytest_collected` 5390 -> 5406)
+
+No other hook was skipped, and `--no-verify` was not used. **The integrator owes two
+regenerations at the merge:** `docs/audits/README.md` and `ecosystem/doc-counts.md`.
+
