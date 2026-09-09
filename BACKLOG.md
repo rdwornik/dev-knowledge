@@ -101,6 +101,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#672] [P2][M] `lane-contract-check` cannot express an incremental contract addition, and its docstring disagrees with its YAML · tasks/672-lane-contract-check-cannot-express-an-incrementa.md
 - [#676] [P2][M] No check verifies that each provider CLI's non-interactive invocation shape still works, so a mis-invoked tool is indistinguishable from a dead one · tasks/676-no-check-verifies-a-provider-cli-s-non-interactive.md
 - [#677] [P2][M] The `gpt-6-astra` XL-class rule is doctrine at L0 with no gate, and exactly ONE codex call site pins a model · tasks/677-the-gpt-6-astra-xl-class-rule-is-doctrine-at-l0.md
+- [#678] [P2][M] The memory index is rolled by a seat's judgment, not by a rule, and the directory it lives in has no undo · tasks/678-the-memory-index-is-rolled-by-a-seat-s-judgment.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
