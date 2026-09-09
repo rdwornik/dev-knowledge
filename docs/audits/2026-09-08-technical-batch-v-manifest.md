@@ -250,3 +250,13 @@ meta-check (spike now, fix in V+1) · any seal ruling.
   byte-verbatim from PLAYBOOK Ch8 — the one-off form of what V-6 automates
 - Step-0 evidence: `to-browser/STATUS-DISPATCHER-V.md`
 - Base: `main` @ `08c35b9c`, tree clean, local == cached origin == live `git ls-remote` origin
+
+## CLOSED — AMEND-BATCH-V-004, 2026-09-09
+
+**The batch is drained: 8 of 8 lanes merged.** The end-of-batch record ADR-110 section 3 item 4
+requires is `docs/audits/2026-09-09-technical-batch-v-close-packet.md`, which carries the lane
+disposition measured on the spine, the declared departures, the ADR-111 CANDIDATE this batch
+produced, and the honest limits of its own suite comparison.
+
+Appended as an amendment marker rather than an edit: this manifest is an audit and immutable
+(critical rule 3). Nothing above this line has been changed.
