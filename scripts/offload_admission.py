@@ -71,6 +71,7 @@ manufacture a verdict out of silence.
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
@@ -106,6 +107,7 @@ REFUSAL_CODES: tuple[str, ...] = (
     "empty-run",
     "unranked-finding",
     "duplicate-rank",
+    "rank-gap",
     "verdict-bearing",
     "undeclared-field",
     "unknown-category",
@@ -447,6 +449,16 @@ def adjudicate(record: dict[str, Any],
             "duplicate-rank",
             f"rank(s) {duplicated} are claimed by more than one finding — a ranking that "
             f"does not order its candidates is not a ranking"))
+    elif len(ranks) == len(findings) and sorted(ranks) != list(range(1, len(ranks) + 1)):
+        # Only when nothing else already accounts for the shape: ranks `1, 1` are ALSO
+        # non-contiguous, and a second code for one defect is the unattributed refusal the
+        # seeded suite exists to make impossible. `no repeats` was checked and `1..N` was
+        # not, so `1, 3` -- or a lone `2` -- cleared a gate that asks for a ranking.
+        refusals.append(Refusal(
+            "rank-gap",
+            f"ranks {sorted(ranks)} are not 1..{len(ranks)} — the question asks for a "
+            f"ranking of the candidates returned, and a rank naming a place that is not "
+            f"filled describes a list that was not returned"))
 
     if record.get("verdict") not in (None, ""):
         refusals.append(Refusal(
@@ -660,6 +672,10 @@ SEEDED_DEFECTS: dict[str, tuple[str, Mutation]] = {
         "a ranking in which two candidates share a place",
         lambda r: r["findings"][1].__setitem__("rank", 1),
     ),
+    "rank-gap": (
+        "a ranking with a hole in it: ranks that are unique and still not 1..N",
+        lambda r: r["findings"][1].__setitem__("rank", 3),
+    ),
     "verdict-bearing": (
         "intake #75: the seat rules, closes or disposes",
         lambda r: r["findings"][0].__setitem__("verdict", "CONFIRMED — close the row"),
@@ -854,6 +870,14 @@ def write_probe_corpus(root: Path) -> Path:
     file is created with mode "x", and anything already written is removed before the
     exception leaves -- a half-materialised corpus sitting beside the caller's own files,
     with an exception to explain it, is the worse failure of the two.
+
+    That cleanup removes files by IDENTITY, never by path. `(st_dev, st_ino)` is captured
+    from the open handle at creation, when it is authoritative, and re-checked before the
+    unlink: a concurrent writer that replaced one of these paths in the meantime keeps its
+    file, because deleting it would be exactly the overwrite this function refuses to do.
+    A path whose identity cannot be established -- `st_ino == 0`, as some filesystems
+    report -- is LEFT IN PLACE. Leaving a file behind is recoverable; deleting someone
+    else's is not, and that asymmetry decides the tie.
     """
     root = Path(root)
     occupied = [rel for rel in PROBE_CORPUS if (root / rel).exists()]
@@ -861,21 +885,35 @@ def write_probe_corpus(root: Path) -> Path:
         raise FileExistsError(
             f"refusing to write the probe corpus into {root}: it already holds "
             f"{', '.join(sorted(occupied))}. Give an empty or non-existent directory.")
-    written: list[Path] = []
+    written: list[tuple[Path, tuple[int, int]]] = []
     for rel, text in PROBE_CORPUS.items():
         target = root / rel
         target.parent.mkdir(parents=True, exist_ok=True)
         try:
             with open(target, "x", encoding="utf-8", newline="\n") as fh:
                 fh.write(text)
+                fh.flush()
+                stat = os.fstat(fh.fileno())
         except FileExistsError:
-            for done in written:
-                done.unlink(missing_ok=True)
+            _discard_created(written)
             raise FileExistsError(
                 f"refusing to write the probe corpus into {root}: {rel} appeared at the "
                 f"destination. Give an empty or non-existent directory.") from None
-        written.append(target)
+        written.append((target, (stat.st_dev, stat.st_ino)))
     return root
+
+
+def _discard_created(written: list[tuple[Path, tuple[int, int]]]) -> None:
+    """Unlink each path in `written` ONLY while it is still the file we created there."""
+    for target, identity in written:
+        if identity[1] == 0:
+            continue          # no usable file id: cannot prove ownership, so do not delete
+        try:
+            now = target.stat()
+        except OSError:
+            continue          # already gone, or unreadable: not ours to force
+        if (now.st_dev, now.st_ino) == identity:
+            target.unlink(missing_ok=True)
 
 
 @dataclass(frozen=True)
