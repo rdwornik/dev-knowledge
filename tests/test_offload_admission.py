@@ -66,7 +66,7 @@ def test_each_seeded_defect_is_REFUSED_for_its_own_reason(tmp_path, code):
     """
     registry = oa.write_suite_corpus(tmp_path)
     case = next(c for c in oa.build_seeded_suite() if c.code == code)
-    verdict = oa.adjudicate(case.record, tmp_path, registry, case.required_sites)
+    verdict = oa.adjudicate(case.record, tmp_path, registry, case.ground_truth)
     assert not verdict.admitted, f"{code} was ACCEPTED — {verdict.detail}"
     assert verdict.codes == (code,), (
         f"{code} refused under {verdict.codes} instead of its own code: {verdict.detail}")
@@ -377,9 +377,9 @@ def test_the_live_copilot_run_met_the_RETRIEVAL_bar_it_was_refused_despite(tmp_p
     assert verdict.findings_seen >= len(_PLANTED)
     # Every planted defect is named by at least one returned locator.
     returned = {f["locator"] for f in record["findings"]}
-    for defect, sites in _PLANTED.items():
-        assert any(f"{rel}:{line}" in returned for rel, line, _ in sites), \
-            f"{defect} was not among the returned locators"
+    for name, defect in _PLANTED.items():
+        assert any(site.locator in returned for site in defect.sites), \
+            f"{name} was not among the returned locators"
 
 
 # ---------------------------------------------------------------------------------------
@@ -432,11 +432,11 @@ def _stub_adjudicator(*, control, seeds):
         refusal = oa.Refusal(code, "stubbed for the instrument test")
         return oa.Verdict(False, (refusal,), 0, 0, f"NOT ADMITTED - {refusal}")
 
-    def fake(record, corpus_root, registry_path=None, required_sites=()):
+    def fake(record, corpus_root, registry_path=None, ground_truth=()):
         is_control = record == oa.admissible_record()
         behaviour = control if is_control else seeds
         if behaviour is None:
-            return real(record, corpus_root, registry_path, required_sites)
+            return real(record, corpus_root, registry_path, ground_truth)
         return _refused(behaviour)
 
     return fake
@@ -550,7 +550,7 @@ def test_a_SHAPE_PERFECT_record_that_walks_past_a_planted_defect_is_REFUSED(tmp_
 
 
 def test_the_SAME_record_is_ADMITTED_when_no_ground_truth_is_supplied(tmp_path):
-    """An empty `required_sites` means "not scoring coverage", never "coverage passed".
+    """An empty `ground_truth` means "not scoring coverage", never "coverage passed".
 
     The distinction is what keeps the seeded suite attributable: a seed that mutates a
     locator must refuse for its OWN code, not also for the coverage it incidentally broke.
@@ -694,7 +694,7 @@ def test_a_defect_cited_at_the_right_SITE_under_the_WRONG_CATEGORY_is_REFUSED(tm
         {"rank": 3, "category": "contradiction", "locator": "RULES.md:8",
          "quote": "A commit summary is imperative, specific and under 72 characters."},
     ])
-    verdict = oa.adjudicate(record, corpus, registry, oa.PROBE_REQUIRED_SITES)
+    verdict = oa.adjudicate(record, corpus, registry, oa.PROBE_GROUND_TRUTH)
     assert not verdict.admitted
     assert set(verdict.codes) == {"misclassified-defect"}, verdict.detail
     assert len(verdict.refusals) == 2, "two of the three were filed under the wrong category"

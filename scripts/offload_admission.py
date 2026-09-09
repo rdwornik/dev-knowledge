@@ -114,6 +114,7 @@ REFUSAL_CODES: tuple[str, ...] = (
     "fabricated-line",
     "locator-drift",
     "planted-defect-missed",
+    "misclassified-defect",
 )
 
 
@@ -134,6 +135,40 @@ SELECTION_MODES: frozenset[str] = frozenset({"auto", "default", "inherit"})
 
 class AdmissionError(RuntimeError):
     """The record or the registry could not be read. FAIL-LOUD: callers report, never swallow."""
+
+
+@dataclass(frozen=True)
+class PlantedSite:
+    """One place a planted defect can legitimately be cited from."""
+
+    rel: str
+    line: int
+    needle: str
+
+    @property
+    def locator(self) -> str:
+        """The `<file>:<line>` form a candidate returns."""
+        return f"{self.rel}:{self.line}"
+
+
+@dataclass(frozen=True)
+class PlantedDefect:
+    """One defect a corpus plants: every place it can be cited, and what it IS.
+
+    Both halves are the answer, and only the pair is retrieval. A locator proves the
+    candidate looked at the right line; the category is the classification `PROBE_QUESTION`
+    actually asks for, so a run that names three right lines and files all three as
+    `contradiction` sits inside the vocabulary and has answered nothing. Membership in the
+    enum is not the check -- agreement with the planted category is.
+    """
+
+    category: str
+    sites: tuple[PlantedSite, ...]
+
+    @property
+    def locators(self) -> tuple[str, ...]:
+        """The acceptable locators, in the form a record carries them."""
+        return tuple(s.locator for s in self.sites)
 
 
 @dataclass(frozen=True)
@@ -262,7 +297,17 @@ def _verify_locator(finding: dict[str, Any], corpus_root: Path) -> Optional[Refu
     if not target.is_file():
         return Refusal("fabricated-file",
                        f"{label} cites {rel!r}, which does not exist in the corpus")
-    lines = target.read_text(encoding="utf-8", errors="replace").splitlines()
+    try:
+        text = target.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        # NOT a refusal: a refusal is a statement about the record, and this is a statement
+        # about the corpus. The locator is candidate-controlled, so letting the OSError
+        # escape hands a candidate a traceback where the documented outcome is a verdict.
+        raise AdmissionError(
+            f"{label} cites {rel}, which exists but could not be read ({exc}); the corpus "
+            f"is unreadable, so this gate cannot compute its ground truth and reports the "
+            f"gap rather than admitting or crashing (Z-G4)") from None
+    lines = text.splitlines()
     if line_no > len(lines):
         return Refusal("fabricated-line",
                        f"{label} cites {rel}:{line_no}, but the file has {len(lines)} line(s)")
@@ -286,15 +331,16 @@ def _verify_locator(finding: dict[str, Any], corpus_root: Path) -> Optional[Refu
 def adjudicate(record: dict[str, Any],
                corpus_root: Path,
                registry_path: Optional[Path] = None,
-               required_sites: tuple[tuple[str, ...], ...] = ()) -> Verdict:
+               ground_truth: tuple[PlantedDefect, ...] = ()) -> Verdict:
     """ADMIT or REFUSE one admission record. Refusals accumulate; they do not short-circuit.
 
-    `required_sites` is the corpus's GROUND TRUTH: one tuple of acceptable locators per
-    defect the corpus plants, and the record must name at least one from each. Without it a
-    record clears this gate on SHAPE alone -- non-empty, uniquely ranked, locators that
+    `ground_truth` is what the corpus plants: one `PlantedDefect` per defect, carrying the
+    locators that legitimately name it AND the category a correct answer files it under. The
+    record must name at least one locator per defect, under that defect's category. Without
+    it a record clears this gate on SHAPE alone -- non-empty, uniquely ranked, locators that
     re-open -- so a candidate returning one unrelated real line would be admitted while
-    having found nothing the probe exists to measure. Coverage is corpus-specific, hence a
-    parameter rather than a constant: the seeded suite and the live probe plant different
+    having found nothing the probe exists to measure. Ground truth is corpus-specific, hence
+    a parameter rather than a constant: the seeded suite and the live probe plant different
     defects, and an empty tuple means "this call is not scoring coverage" rather than
     "coverage passed".
 
@@ -417,22 +463,30 @@ def adjudicate(record: dict[str, Any],
         else:
             refusals.append(problem)
 
-    named = {str(f.get("locator") or "").strip()
-             for f in findings if isinstance(f, dict)}
-    for alternatives in required_sites:
-        if not named.intersection(alternatives):
+    for defect in ground_truth:
+        at_site = [f for f in findings if isinstance(f, dict)
+                   and str(f.get("locator") or "").strip() in defect.locators]
+        if not at_site:
             refusals.append(Refusal(
                 "planted-defect-missed",
-                f"no finding names any of {', '.join(alternatives)}; the corpus plants a "
+                f"no finding names any of {', '.join(defect.locators)}; the corpus plants a "
                 f"defect there and the record walked past it, so this is a MISS "
                 f"— locator-exactness on the findings it DID return does not cover for it"))
+        elif not any(f.get("category") == defect.category for f in at_site):
+            filed = ", ".join(sorted({repr(f.get("category")) for f in at_site}))
+            refusals.append(Refusal(
+                "misclassified-defect",
+                f"the defect at {', '.join(defect.locators)} is a {defect.category!r}; the "
+                f"record cites the line and files it as {filed} — the right line under the "
+                f"wrong heading answers the locator question, not the probe's"))
 
     admitted = not refusals
     if admitted:
         # Only claim coverage when coverage was actually scored: an ADMITTED line reading
         # "every planted defect named" on a call that supplied no ground truth would be the
         # same unearned certification this check exists to remove.
-        covered = (f"all {len(required_sites)} planted defect(s) named; " if required_sites
+        covered = (f"all {len(ground_truth)} planted defect(s) named AND correctly "
+                   f"categorised; " if ground_truth
                    else "coverage NOT scored, no ground truth supplied; ")
         detail = (f"ADMITTED — {verified}/{len(findings)} locator(s) re-opened on disk and "
                   f"exact, zero fabrications; {covered}{served!r} attested as served")
@@ -605,22 +659,29 @@ SEEDED_DEFECTS: dict[str, tuple[str, Mutation]] = {
         "a shape-perfect answer that walked past a defect the corpus plants",
         lambda r: r["findings"].pop(1),
     ),
+    "misclassified-defect": (
+        "the right line under the wrong heading: a planted defect cited and mis-categorised",
+        lambda r: r["findings"][0].__setitem__("category", "contradiction"),
+    ),
 }
 
 
-#: The corpus's own GROUND TRUTH: one tuple of ACCEPTABLE locators per planted defect. The
-#: record must name at least one from each, so a defect reachable from two files is not a
-#: miss because the candidate cited the other one.
-SUITE_REQUIRED_SITES: tuple[tuple[str, ...], ...] = (
-    ("protocols/EXAMPLE.md:4",),
-    ("ecosystem/example.yaml:4",),
+#: The suite corpus's own GROUND TRUTH, matching what `admissible_record` returns. A defect
+#: reachable from two files is not a miss because the candidate cited the other one, so the
+#: sites are alternatives rather than a checklist.
+SUITE_GROUND_TRUTH: tuple[PlantedDefect, ...] = (
+    PlantedDefect("unenforced-rule", (PlantedSite(
+        "protocols/EXAMPLE.md", 4, "Commit summaries are imperative"),)),
+    PlantedDefect("duplicated-clause", (PlantedSite(
+        "ecosystem/example.yaml", 4, "cli: claude-code"),)),
 )
 
 #: The seeds adjudicated WITH a coverage requirement. Deliberately not all of them: a seed
 #: that mutates a locator would then refuse twice - once for its own reason, once for the
 #: coverage it incidentally broke - and an unattributed refusal is precisely what this suite
 #: exists to make impossible.
-_SEEDS_WITH_COVERAGE: frozenset[str] = frozenset({"planted-defect-missed"})
+_SEEDS_WITH_COVERAGE: frozenset[str] = frozenset({
+    "planted-defect-missed", "misclassified-defect"})
 
 
 # ---------------------------------------------------------------------------------------
@@ -683,21 +744,22 @@ PROBE_CORPUS: dict[str, str] = {
 #: against has exactly one home: the sites were previously stated in this module's comments
 #: and again in the test, and a drifted copy would move the bar silently -- turning a miss
 #: into a hit, which is the failure the whole module exists to make impossible.
-PROBE_PLANTED: dict[str, tuple[tuple[str, int, str], ...]] = {
-    "D1-contradiction": (("RULES.md", 5, "`--no-ff` merge, never by fast-forward"),
-                         ("HANDBOOK.md", 7, "fast-forward merge is the default")),
-    "D2-unenforced": (("RULES.md", 8, "imperative, specific and under 72 characters"),),
-    "D3-duplication": (("RULES.md", 11, "append-only log is never edited in place"),
-                       ("HANDBOOK.md", 11, "append-only log is never edited in place")),
+PROBE_PLANTED: dict[str, PlantedDefect] = {
+    "D1-contradiction": PlantedDefect("contradiction", (
+        PlantedSite("RULES.md", 5, "`--no-ff` merge, never by fast-forward"),
+        PlantedSite("HANDBOOK.md", 7, "fast-forward merge is the default"))),
+    "D2-unenforced": PlantedDefect("unenforced-rule", (
+        PlantedSite("RULES.md", 8, "imperative, specific and under 72 characters"),)),
+    "D3-duplication": PlantedDefect("duplicated-clause", (
+        PlantedSite("RULES.md", 11, "append-only log is never edited in place"),
+        PlantedSite("HANDBOOK.md", 11, "append-only log is never edited in place"))),
 }
 
-#: `PROBE_PLANTED` in the shape `adjudicate(required_sites=...)` takes: one tuple of
-#: acceptable locators per defect. Two of the three are reachable from either file, so a
-#: ground truth of single locators would score a correct answer as a miss on which of the
-#: pair the candidate happened to cite.
-PROBE_REQUIRED_SITES: tuple[tuple[str, ...], ...] = tuple(
-    tuple(f"{rel}:{line}" for rel, line, _ in sites)
-    for _, sites in sorted(PROBE_PLANTED.items()))
+#: `PROBE_PLANTED` in the order `adjudicate(ground_truth=...)` takes it. Two of the three
+#: defects are reachable from either file, so a ground truth of single locators would score
+#: a correct answer as a miss on which of the pair the candidate happened to cite.
+PROBE_GROUND_TRUTH: tuple[PlantedDefect, ...] = tuple(
+    defect for _, defect in sorted(PROBE_PLANTED.items()))
 
 
 #: What a candidate is asked. RETRIEVAL-ONLY and locator-bearing, because those are the two
@@ -772,7 +834,7 @@ class SeededCase:
     code: str
     rationale: str
     record: dict[str, Any]
-    required_sites: tuple[tuple[str, ...], ...] = ()
+    ground_truth: tuple[PlantedDefect, ...] = ()
 
 
 def write_suite_corpus(root: Path) -> Path:
@@ -790,7 +852,7 @@ def write_suite_corpus(root: Path) -> Path:
 def build_seeded_suite() -> list[SeededCase]:
     """The seeded cases, in `REFUSAL_CODES` order."""
     return [SeededCase(code, SEEDED_DEFECTS[code][0], _mutate(SEEDED_DEFECTS[code][1]),
-                       SUITE_REQUIRED_SITES if code in _SEEDS_WITH_COVERAGE else ())
+                       SUITE_GROUND_TRUTH if code in _SEEDS_WITH_COVERAGE else ())
             for code in REFUSAL_CODES]
 
 
@@ -801,14 +863,14 @@ def run_seeded_suite(root: Path) -> list[tuple[SeededCase, Verdict]]:
     the difference between a gate that refuses twelve defects and a doc that says it does.
     """
     registry = write_suite_corpus(root)
-    return [(case, adjudicate(case.record, root, registry, case.required_sites))
+    return [(case, adjudicate(case.record, root, registry, case.ground_truth))
             for case in build_seeded_suite()]
 
 
 def control_verdict(root: Path) -> Verdict:
     """Adjudicate the POSITIVE CONTROL against the suite corpus."""
     registry = write_suite_corpus(root)
-    return adjudicate(admissible_record(), root, registry, SUITE_REQUIRED_SITES)
+    return adjudicate(admissible_record(), root, registry, SUITE_GROUND_TRUTH)
 
 
 # ---------------------------------------------------------------------------------------
@@ -908,18 +970,25 @@ def seeded_report(root: Path) -> SeededReport:
 @click.option("--registry", "registry_path", type=click.Path(path_type=Path), default=None,
               help="provider registry to adjudicate against "
                    "(default: this repo's ecosystem/provider-registry.yaml).")
+@click.option("--ground-truth", "ground_truth_name",
+              type=click.Choice(["probe", "none"]), default=None,
+              help="which corpus GROUND TRUTH to score coverage against. REQUIRED with "
+                   "--record: `probe` scores the record against the defects PROBE_CORPUS "
+                   "plants; `none` declares on the record that coverage was not scored.")
 @click.option("--seeded-defects", "seeded", is_flag=True,
               help="re-measure the seeded-defect suite and print how many are REFUSED.")
 @click.option("--probe-corpus", "probe_root", type=click.Path(path_type=Path), default=None,
               help="materialise the LIVE probe corpus in DIR and print the probe question.")
 @click.option("--json", "as_json", is_flag=True, help="emit the verdict as JSON.")
 def cli(record_path: Optional[Path], corpus_root: Path, registry_path: Optional[Path],
-        seeded: bool, probe_root: Optional[Path], as_json: bool) -> None:
+        ground_truth_name: Optional[str], seeded: bool, probe_root: Optional[Path],
+        as_json: bool) -> None:
     """Adjudicate an `offload` admission record, or re-measure the seeded-defect suite.
 
     Exit code follows the VERDICT, not the transport: 0 only on ADMITTED (or on a seeded run
     in which every case was refused FOR ITS OWN CODE and the positive control was ADMITTED),
-    1 on a refusal, 2 when there was nothing to adjudicate or the command refused to act.
+    1 on a refusal, 2 when there was nothing to adjudicate, no ground truth was declared, or
+    the command refused to act.
     A gap that exited 0 would read as a pass to anything shelling out to this command.
     """
     if seeded:
@@ -950,9 +1019,18 @@ def cli(record_path: Optional[Path], corpus_root: Path, registry_path: Optional[
             f"pass (Z-G4). Pass --record, or --seeded-defects to measure the gate itself.")
         raise SystemExit(2)
 
+    if ground_truth_name is None:
+        click.echo(
+            "NOT ADMITTED — no ground truth declared. Coverage is the half of an answer a "
+            "locator cannot prove, so this command will not admit a record without "
+            "--ground-truth {probe|none}. Declaring `none` is allowed and is recorded in "
+            "the verdict; inheriting it by default is not (Z-G4).")
+        raise SystemExit(2)
+    ground_truth = PROBE_GROUND_TRUTH if ground_truth_name == "probe" else ()
+
     try:
         record = load_record(record_path)
-        verdict = adjudicate(record, corpus_root, registry_path)
+        verdict = adjudicate(record, corpus_root, registry_path, ground_truth)
     except AdmissionError as exc:
         click.echo(f"NOT ADMITTED — {exc}")
         raise SystemExit(2) from None
