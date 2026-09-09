@@ -99,6 +99,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#670] [P1][M] Step G — floor v1.5.0 reaches corp-monorepo, and the only thing stopping it is an unmade decision · tasks/670-step-g-floor-v1-5-0-reaches-corp-monorepo-and-th.md
 - [#671] [P2][S] A lane branch carrying NO reviewer tally at all is refused by nothing at merge tier · tasks/671-a-lane-branch-carrying-no-reviewer-tally-at-all.md
 - [#672] [P2][M] `lane-contract-check` cannot express an incremental contract addition, and its docstring disagrees with its YAML · tasks/672-lane-contract-check-cannot-express-an-incrementa.md
+- [#676] [P2][M] No check verifies that each provider CLI's non-interactive invocation shape still works, so a mis-invoked tool is indistinguishable from a dead one · tasks/676-no-check-verifies-a-provider-cli-s-non-interactive.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md

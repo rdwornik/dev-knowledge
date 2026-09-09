@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "b18494ae07a3469b81a7a21e557f204feb068add5671a205b4b981bf165b123d",
+  "generated_sha256": "e7da3710cb3fcc1708ac9db0c86775a33c714725b37941ae76af8edcebd0a01f",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -372,6 +372,10 @@
     {
       "task": 672,
       "file": "672-lane-contract-check-cannot-express-an-incrementa.md"
+    },
+    {
+      "task": 676,
+      "file": "676-no-check-verifies-a-provider-cli-s-non-interactive.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
