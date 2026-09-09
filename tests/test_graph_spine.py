@@ -17,6 +17,7 @@ that can only pass is not a refusal.
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import subprocess
@@ -126,6 +127,43 @@ def test_store_path_resolves_outside_the_working_tree():
     path = gs.store_path(REPO_ROOT)
     assert ".git" in path.parts, f"store must live under the git dir, got {path}"
     assert not path.is_relative_to(REPO_ROOT / "logs")
+
+
+def test_a_stale_store_is_rebuilt_rather_than_served(tiny_repo: Path, tmp_path: Path):
+    """THE TRIP for freshness: a store on disk is not, by itself, an answer.
+
+    `ensure` must ask `is_stale` rather than `exists`. The shape this replaces served any
+    readable store -- so every query after a source file changed answered from the old
+    graph, and a stale graph does not fail loudly, it answers `orphan_census` and
+    `task_coverage` with yesterday's edges.
+    """
+    db = tmp_path / "fresh" / "FPG.db"
+    first = gs.ensure(tiny_repo, db)
+    before = first.counts().nodes
+    first.close()          # a reader holds the store open; the rebuild swaps it out
+    _write(tiny_repo / "scripts" / "arrived_later.py", "def go():\n    return 2\n")
+    os.utime(db, (time.time() - 3600, time.time() - 3600))   # the store predates the source
+
+    assert gs.is_stale(tiny_repo, db), "the fixture is inert -- the store must read stale"
+    assert gs.ensure(tiny_repo, db).counts().nodes > before, "a stale store was served"
+
+
+def test_the_query_cli_answers_from_a_REBUILT_store_not_whatever_is_on_disk(
+        tiny_repo: Path, tmp_path: Path):
+    """The same trip one layer up, at the seam the three query hooks actually call.
+
+    `_open` used to build only when the file was ABSENT, so a store that existed was served
+    however old it was. This plants a new orphan after the store is built and asserts the
+    census sees it -- which it can only do by rebuilding first.
+    """
+    db = tmp_path / "cli" / "FPG.db"
+    gs.ensure(tiny_repo, db).close()
+    _write(tiny_repo / "scripts" / "arrived_later.py", "def go():\n    return 2\n")
+    os.utime(db, (time.time() - 3600, time.time() - 3600))
+
+    args = argparse.Namespace(repo_root=str(tiny_repo), db=str(db))
+    census = gq.orphan_census(tiny_repo, gq._open(args))
+    assert "scripts/arrived_later.py" in {f.subject for f in census}
 
 
 def _age(lock: Path) -> None:

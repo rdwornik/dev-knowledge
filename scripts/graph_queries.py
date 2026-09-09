@@ -603,9 +603,23 @@ def render_ch2(rows: list[ProcessRow]) -> str:
 
 
 def _open(args) -> gs.GraphStore:
+    """The store these queries answer from -- ALWAYS through the freshness check.
+
+    EXISTS IS NOT FRESH, and the earlier shape here confused the two: it opened any store
+    that was on disk and only built one that was absent. Terra pre-merge review named what
+    that costs -- every invocation after a source file changes outside the hook chain
+    answers `orphan-census`, `task-coverage` and `process-list` from yesterday's graph, and
+    a stale graph does not fail, it just answers wrongly. `ensure` is the whole contract in
+    one call: fresh store, rebuild if stale, one rebuilder at a time.
+
+    THE HOOK CHAIN PAYS AN mtime SWEEP PER QUERY FOR THIS, and that is the right trade to
+    make: `graph-rebuild` runs first and leaves the store fresh, so the three query hooks
+    each pay `is_stale` and none of them rebuilds. Buying that back with an
+    `--assume-fresh` flag would reintroduce the hole with a switch on it.
+    """
     root = Path(args.repo_root).resolve()
     path = Path(args.db) if args.db else gs.store_path(root)
-    return gs.open_store(path) if path.exists() else gs.ensure(root, path)
+    return gs.ensure(root, path)
 
 
 def _report(name: str, findings: list[Finding]) -> int:

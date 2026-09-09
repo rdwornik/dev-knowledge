@@ -227,7 +227,17 @@ def rebuild(repo_root: Path | str, db_path: Path | str | None = None) -> Counts:
     # over an empty graph reports EVERY process as an orphan. The failure mode of a truncated
     # store is not a smaller answer, it is a maximally wrong one.
     _swap_into_place(tmp, path)
-    return open_store(path).counts()
+    # COUNTS FROM THE ARTIFACT, and the reader is CLOSED. Reading them back is clause 1 of
+    # the frozen contract -- never from the in-memory build -- but the earlier spelling,
+    # `open_store(path).counts()`, leaked the connection: WAL keeps `-wal`/`-shm` open, so
+    # every rebuild left a handle that blocked the NEXT rebuild's swap. A leaked reader is
+    # invisible in a one-shot hook and fatal in a long-lived process; found by a test that
+    # rebuilt twice.
+    store = open_store(path)
+    try:
+        return store.counts()
+    finally:
+        store.close()
 
 
 #: How long a swap keeps retrying before giving up. On Windows `os.replace` FAILS if the
@@ -322,11 +332,15 @@ def _swap_into_place(tmp: Path, path: Path) -> None:
     over an empty graph reports EVERY process as an orphan. The failure mode of a truncated
     store is not a smaller answer, it is a maximally wrong one.
     """
-    for suffix in ("-wal", "-shm"):
-        Path(str(path) + suffix).unlink(missing_ok=True)
     last: OSError | None = None
     for attempt in range(_SWAP_ATTEMPTS):
         try:
+            # INSIDE the retry, not before it. Clearing the old store's WAL sidecars is the
+            # same contended act as replacing the store itself -- a reader holds all three --
+            # so doing it once up front turned a condition this loop exists to wait out into
+            # an unhandled `WinError 32`. Whatever blocks the unlink blocks the replace.
+            for suffix in ("-wal", "-shm"):
+                Path(str(path) + suffix).unlink(missing_ok=True)
             os.replace(tmp, path)
             return
         except OSError as exc:   # a reader holds the destination; it will let go
@@ -550,10 +564,18 @@ def ensure(repo_root: Path | str, db_path: Path | str | None = None) -> GraphSto
         # looping back to `acquire_rebuild_lock`, which is where that decision lives.
         while lock.exists() and not _lock_expired(lock):
             time.sleep(_SWAP_BACKOFF_S)
-        with contextlib.suppress(StoreUnreadable):
-            return open_store(path)
-        # The holder vanished without leaving a readable store. Loop: the next acquisition
-        # attempt takes the lock, or breaks it if it is expired, so this cannot spin forever.
+
+        # WAITING BOUGHT A STORE ONLY IF IT BOUGHT A FRESH ONE, and READABLE IS NOT FRESH.
+        # Terra pre-merge P1: this branch used to return whatever was on disk, so a holder
+        # that crashed, failed, or simply had its lock expire left every waiter serving the
+        # OLD graph -- and a stale graph does not fail loudly, it answers `orphan_census` and
+        # `task_coverage` with yesterday's edges. `is_stale` is the same predicate this
+        # function opened with, asked again because the answer may have changed.
+        if not is_stale(root, path):
+            with contextlib.suppress(StoreUnreadable):
+                return open_store(path)
+        # No usable result from the holder. Loop: the next attempt takes the lock, or breaks
+        # it if it is expired, and the holder branch always returns -- so this cannot spin.
 
 
 # ------------------------------------------------------------------------------------- CLI
