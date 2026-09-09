@@ -19,6 +19,50 @@
 
 ---
 
+### 2026-09-09 (a) - CC (Opus 5, INTEGRATOR SEAT): batch V opened and drained to 2 of 5; the terra gate held three
+
+**Anchors via `75fa8ad5`** (the regeneration commit this entry rides), and names `d1b610db`
+and `00e7f528` so the V-3 and V-6 lane merges in this range are anchored by SHAs they
+introduced. A merge cannot name its own hash, which is why the artifact commit comes first.
+
+**Did.** Opened batch V at the gate: merged `worktree-lane-v-000-batch-manifest --no-ff`
+(`33bcb0bd`) on the anchor the branch already carried -- verified, not rewritten -- then tore
+down both branches after `--is-ancestor` returned 0. Fired the five dispatchable lanes on the
+operator's **NOW** (the AMEND-BATCH-V-002 §6 default is overnight). Walked the merge queue
+under the operator's per-merge terra gate.
+
+**Result.** `batch_manifest.open_batches()` resolves batch V open, so the ADR-110 exemption is
+live. 5/5 lanes came up and finished. **Two merged, three held.** V-3 (`80d83090`) seal WAIVE
+336 -> 204, consumer residue 67. V-6 (`7e11e90e`) seats-as-code -- INBOX-038's product, on the
+operator's deliberate GO, the new SEAT-BOOT templates taking effect at the next boot.
+
+**HELD, each alone, queue continued (operator ruling 2026-09-09):** V-2, V-5 and V-8 carry no
+terra tally line in their close artifacts, which is `review=NONE` by the gate's own definition.
+All three contracts require it. The evidence stops at the repo: the Google Drive transport
+(`H:`) went offline mid-session -- `GoogleDriveFS` not running -- and batch-U precedent puts
+lane reviews in `to-browser/REVIEW-lane-*.md`, so a review may exist there unread. Held rather
+than merged, because a hold is reversible and an unreviewed merge is not.
+
+**Two defects filed, neither ruled.** The transport's contract copies are STALE against the
+frozen ones: V-2, V-3 and V-4's prompts-dir copies are each missing the whole
+AMEND-BATCH-V-002 block. Dispatched by frozen repo path instead, so no lane read a
+pre-amendment contract. Separately, `lane-contract-check`'s headline overstates -- measured,
+it refuses only a strict non-empty SUBSET of an open batch's contracts, so it wedges no
+ordinary commit.
+
+**Changes.** `docs/audits/` +4 (V-3 x3, V-6 x1) · `scripts/validate_hermetization.py`,
+`gen_handoff.py`, new `gen_ledger.py` / `gen_seat_boot.py` / `seat_ch8.py` /
+`seat_refusals.py` · `templates/handoff/seats/` x5 · `tests/` +5 files ·
+`docs/audits/README.md` + `ecosystem/doc-counts.md` regenerated once at integration.
+
+**Abandoned.** Nothing. No `--no-verify`, no `SKIP=`, no held lane merged around.
+
+**Next.** The batch stays OPEN. Owed: V-3's re-witness of the seal post-V-2 merge
+(`validate_hermetization.py report`, expected N=204, merged run winning) -- blocked while V-2
+is held; V-5's clause 4 (`logs_retention.py --dry-run`, then live) -- not applicable while V-5
+is held; a Codespaces run of the merged result against the 28 named REDs; then the
+refuse-to-finish checklist. V-4 remains held on `DECLARE-SITTING-2026-09-08`.
+
 ### 2026-09-08 (k) - CC (Opus 5, DISPATCHER SEAT): AMEND-BATCH-V-002 applied before the merge; two gates measured, one of them broken
 
 **Anchors via `f5e49bcf`**, the amendment commit it rides. (`c1f08699` remains anchored by (j);
