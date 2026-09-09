@@ -812,3 +812,89 @@ def test_the_probe_write_REFUSES_a_file_that_APPEARED_after_the_preflight(
     assert victim.read_text(encoding="utf-8") == "hooks: []\n"
     assert {q.name for q in tmp_path.iterdir()} == {"gates.yaml"}, \
         "a refused write left part of the corpus behind"
+
+
+# ---------------------------------------------------------------------------------------
+# a rank contract that was not checked, and a cleanup that could - terra pass 6 (2026-09-09)
+# ---------------------------------------------------------------------------------------
+# Two [P1]s. `PROBE_QUESTION` asks for ranks 1..N; the gate checked only that no two were
+# equal, so `1, 3` -- or a lone `2` -- cleared it. And the collision cleanup added in
+# 090e828a unlinked by PATH, so a concurrent writer that replaced one of this invocation`s
+# files before a later collision had its own file deleted by the very command whose
+# guarantee is that it never overwrites one.
+
+
+def test_a_record_whose_ranks_have_a_GAP_is_REFUSED(tmp_path):
+    """`1, 3` has no duplicate and is still not a ranking of two candidates."""
+    registry = oa.write_suite_corpus(tmp_path)
+    record = oa.admissible_record()
+    record["findings"][1]["rank"] = 3
+    verdict = oa.adjudicate(record, tmp_path, registry)
+    assert not verdict.admitted
+    assert verdict.codes == ("rank-gap",), verdict.detail
+
+
+def test_a_LONE_finding_ranked_two_is_REFUSED(tmp_path):
+    """The other half of 1..N: a single candidate ranked 2 names a first that is not there."""
+    registry = oa.write_suite_corpus(tmp_path)
+    record = oa.admissible_record()
+    record["findings"].pop(1)
+    record["findings"][0]["rank"] = 2
+    verdict = oa.adjudicate(record, tmp_path, registry)
+    assert not verdict.admitted
+    assert verdict.codes == ("rank-gap",), verdict.detail
+
+
+def test_a_DUPLICATE_rank_is_still_attributed_to_its_own_code(tmp_path):
+    """Ranks `1, 1` are also non-contiguous, and must NOT refuse twice.
+
+    Two codes for one defect is the unattributed refusal this whole arc exists to remove, so
+    the contiguity check stands down whenever a duplicate or an unranked finding already
+    accounts for the shape.
+    """
+    registry = oa.write_suite_corpus(tmp_path)
+    case = next(c for c in oa.build_seeded_suite() if c.code == "duplicate-rank")
+    verdict = oa.adjudicate(case.record, tmp_path, registry, case.ground_truth)
+    assert verdict.codes == ("duplicate-rank",), verdict.detail
+
+
+def test_the_collision_cleanup_does_NOT_delete_a_file_another_writer_REPLACED(
+        tmp_path, monkeypatch):
+    """Cleanup removes what THIS invocation created, proven by identity, not by path.
+
+    The race is made deterministic: the pre-flight is blinded so `gates.yaml` collides at the
+    write, and `RULES.md` is unlinked and recreated by a stand-in for a concurrent writer
+    between this invocation creating it and the collision. The old code unlinked every path
+    it had written, so it deleted that replacement -- the exact overwrite the command
+    promises never to perform.
+    """
+    victim = tmp_path / "gates.yaml"
+    victim.write_text("hooks: []\n", encoding="utf-8", newline="\n")
+    foreign = "# Rules\nanother writer got here first\n"
+
+    real_exists = pathlib.Path.exists
+    real_mkdir = pathlib.Path.mkdir
+    calls = []
+
+    def blind(self, *a, **k):
+        return False if self.name in oa.PROBE_CORPUS else real_exists(self, *a, **k)
+
+    def hook(self, *a, **k):
+        calls.append(self)
+        if len(calls) == 2:            # RULES.md exists; HANDBOOK.md not yet created
+            rules = tmp_path / "RULES.md"
+            rules.unlink()
+            rules.write_text(foreign, encoding="utf-8", newline="\n")
+        return real_mkdir(self, *a, **k)
+
+    monkeypatch.setattr(pathlib.Path, "exists", blind)
+    monkeypatch.setattr(pathlib.Path, "mkdir", hook)
+    with pytest.raises(FileExistsError):
+        oa.write_probe_corpus(tmp_path)
+    monkeypatch.undo()
+
+    assert (tmp_path / "RULES.md").read_text(encoding="utf-8") == foreign, \
+        "the cleanup deleted or truncated another writer file"
+    assert victim.read_text(encoding="utf-8") == "hooks: []\n"
+    assert not (tmp_path / "HANDBOOK.md").exists(), \
+        "this invocation own file survived a refused write"
