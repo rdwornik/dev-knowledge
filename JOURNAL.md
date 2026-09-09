@@ -19,6 +19,62 @@
 
 ---
 
+### 2026-09-09 (m) - CC (Opus 5, INTEGRATOR SEAT, re-opened): the provider-liveness lane merged, and the first merge of the post-batch era needed its own anchor
+
+**Names `e8e2aa37`**, introduced by the lane merge `8986ad76`.
+
+**Did.** Merged `worktree-lane-provider-liveness-probe` as `8986ad76` on the operator's
+instruction, and anchored it.
+
+**What the lane filed.** `[#676]` — provider liveness as a commit-tier check. Of five reachable
+provider CLIs, **two answered only after their INVOCATION was corrected**: `codex` on its default
+pin returned HTTP 400 and answered in 15s with `-c model=gpt-5.6-sol`; `cursor-agent` refused
+with "Workspace Trust Required" and answered in 26s with `-p --trust`. From outside, both look
+exactly like an unavailable provider. The registry's `version_command:` proves a binary is
+PRESENT and answers `--version`; it carries no prompt-shaped invocation, so **ABSENT / CORRUPT /
+MIS-INVOKED / ANSWERED collapse into one bit**. `glm` is the sharp case — its on-PATH binary is a
+564,819-byte HTML document under an `.exe` name, which a `version_command` probe would report as
+INSTALLED. The row splits on cost: the answering half is opt-in (five network calls, 15–31s, one
+metered Copilot premium request); the offline invocation-shape half goes to commit tier.
+
+**It also WITHDRAWS a prior finding** in its own source clause: the chapter-map digest's "agy
+abandoned as unreliable" is retracted — agy answered `PROBE_OK` at `status=SUCCESS` in 2.37s on
+`gemini-3.8-flash-low`. That finding recorded an **invocation** failure, not a tool failure. The
+map's content stands; only the attribution is corrected — the same distinction `[#676]` exists
+to make.
+
+**THE ANCHOR COST OF A CLOSED BATCH, recorded because it is the first instance.** Batch V closed
+8/8 and no manifest declares an open batch, so this lane merge takes **no ADR-110
+declared-integration-arc exemption**. Throughout batch V, lane merges were exempt and the
+integrator anchored once per arc. Here `audit.py health` went straight from OK to **DEGRADED**
+naming `8986ad76` as an unanchored spine entry — not a defect, and not tree lag: the expected
+state of an unexempted lane merge before its JOURNAL entry exists.
+
+**And nothing was stale to anchor on.** Every freshness surface was checked, not assumed —
+codemap, PLAYBOOK TOC, both rosters, intake index, audits index, organ index, doc-counts: all
+current, because the lane regenerated what it touched. So this arc had **no natural artifact
+commit**, which is the exact shape of the single-commit-branch trap: a branch carrying only a
+JOURNAL commit cannot anchor its own merge, because the entry cannot name a SHA that does not
+exist when it is authored.
+
+**So this entry anchors in TWO commits, deliberately and on the record.** The first commit writes
+the entry above, which names `e8e2aa37` and therefore anchors the lane merge. The second appends
+the line below, naming the first commit — which the JOURNAL merge introduces, and which is
+therefore what anchors the JOURNAL merge itself. That is the entry template's own "anchors via
+the commit this entry rides", applied literally when the ride is the entry's own first commit.
+It is append-only: the second commit adds a line and changes none.
+
+**Result.** `main` clean and pushed, `git worktree list` primary only, `audit.py health` back to
+OK, batch V still closed, no batch open.
+
+**Changes.** `tasks/676-*`, `tasks/manifest.json`, `BACKLOG.md` (264 tasks) — all from the lane;
+this arc adds only this entry.
+
+**Abandoned.** Nothing.
+
+**Next.** Unchanged and still filed: `[#673]`, `[#674]`, `[#675]`, `[#676]`, `[#643]` open pending
+grooming, and `HANDOFF_PROCESS` 7.0.0 -> 7.1.0 untouched.
+
 ### 2026-09-09 (l) - CC (Opus 5, BACKGROUND SEAT): three checks, a branch cleanup, and `[#675]` filed with its own procedure as the eighth instance
 
 **Anchors via `dc470b70`** (the row-filing commit this entry rides) and **`74dae3a5`** (the
