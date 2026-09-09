@@ -2139,6 +2139,21 @@ class GenResult:
     filled: bool
 
 
+def _run_assembler(bundle_dir: Path) -> int:
+    """Spawn `scripts/assemble_paste.py` for `bundle_dir`; return the child's exit code.
+
+    Isolated as a named function for the reason `_resolves_on_main` is: it is the seam a test
+    has to stand in for. Monkeypatching `subprocess.run` instead would reach the stdlib module
+    every other caller in this process shares, and `_SCRIPTS` is not the seam either -- it is
+    also the sibling-import path (five `sys.path.insert` sites above), so repointing it shadows
+    the real `assemble_paste` module for anything that imports it later in the same process.
+    """
+    return subprocess.run(
+        [sys.executable, str(_SCRIPTS / "assemble_paste.py"), str(bundle_dir)],
+        check=False,
+    ).returncode
+
+
 def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str | None = None,
              repo: str | None = None, date: str | None = None, force_filled: bool | None = None,
              assemble: bool = True, bundle_root: Path | None = None,
@@ -2292,8 +2307,7 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     draft = journal_draft(slug, date, state, hints)
 
     if assemble:
-        subprocess.run([sys.executable, str(_SCRIPTS / "assemble_paste.py"), str(bundle_dir)],
-                       check=False)
+        _run_assembler(bundle_dir)
     return GenResult(bundle_dir=bundle_dir, journal_draft=draft, filled=filled)
 
 
