@@ -42,6 +42,8 @@ So that the canonical v5 handoff is fully implemented (generator) and mechanical
 - [#641] [P3][S] Declare a MEMORY.md byte budget, or rule that none is owed · tasks/641-declare-a-memory-md-byte-budget-or-rule-that-none.md
 
 ---
+- [#662] [P2][S] The R6 handoff-exception rule reached none of the three carriers it was written for · tasks/662-the-r6-handoff-exception-reached-none-of-its-three-carriers.md
+- [#663] [P2][M] The v7.1 boot carries no interface block and no floor item 7, and the bundle is over its own ceiling · tasks/663-the-v71-boot-carries-no-interface-block-and-no-floor-item-7.md
 
 ## [E2] Enforced governance
 > As the operator, I want load-bearing conventions enforced by tools, not memory, so they can't silently drift.
@@ -84,6 +86,11 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#631] [P1][M] A freeze cannot bind a rule that post-dates it — and nothing re-validates a frozen batch when the rules change · tasks/631-a-freeze-cannot-bind-a-rule-that-postdates-it.md
 - [#638] [P2][S] Four new proof-layer guards are undispositionable because the ratchet renders them identically · tasks/638-four-new-proof-layer-guards-are-undispositionable-b.md
 - [#639] [P3][S] Retire the verification organs that fire but never block - by measurement, not by feel · tasks/639-retire-the-verification-organs-that-fire-but-never-.md
+- [#648] [P2][M] Two of R-6's six under-mechanised rules are still prose: locator staleness and dispatcher liveness gate nothing · tasks/648-locator-staleness-and-dispatcher-liveness-gate-nothing.md
+- [#649] [P2][S] The reviewer tally carries one HIGH number where the ruling requires three · tasks/649-reviewer-tally-carries-one-number-where-three-are-owed.md
+- [#651] [P2][S] The two ADR-85 organs each hold their own copy of the branch enum · tasks/651-two-adr-85-organs-each-hold-their-own-branch-enum.md
+- [#652] [P2][S] A gate that passes when its precondition is ABSENT is the empty-rows shape, and the receipt check has it · tasks/652-a-gate-that-passes-when-its-precondition-is-absent.md
+- [#664] [P1][L] Wire FPG-1 as the delivery spine — three commit-tier queries, and organs become views · tasks/664-wire-fpg-1-as-the-delivery-spine-three-commit-tier.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
@@ -103,10 +110,13 @@ So that "spec bumped, dependent partially updated, caught only because a human r
 - [#457] [P2][S] Two live-repo tests fail on main against green gates — test-vs-organ mismatch · tasks/457-inherited-live-repo-test-failures.md
 - [#477] [P2][S] `deployed_methodology_version` keys the registry by repo-root BASENAME — a clone named `dev-knowledge` cannot find `.dev-knowledge` · tasks/477-deployed-version-check-keys-registry-by-basename.md
 - [#478] [P2][S] `changelog_sentinel` drops PEP 440 suffixes — a prerelease as the reviewed value silences the sentinel permanently · tasks/478-changelog-sentinel-drops-pep-440-suffixes.md
+- [#653] [P2][S] The fleet-shape spec changed what a consumer owes and its `spec_version` did not move · tasks/653-fleet-shape-spec-version-unbumped-after-a-consumer-change.md
+- [#654] [P2][M] The 037 render-pass ruling has no intake file, so `reconciled_with` stays hand-typed · tasks/654-the-037-render-pass-ruling-has-no-intake-and-no-carrier.md
 
 ### [S6] Know what depends on code before removing it (ADR-89 computed edges)
 So that a symbol deletion can't silently break a dependent — the code analog of catching doc/spec drift.
 - [#218] [P1][M] Safe-removal gate M2+M3 boundary · DEFER · tasks/218-safe-removal-gate-m2-m3-boundary.md
+- [#659] [P2][S] The `orphan_census` intake names two triggers and one of them does not exist · tasks/659-orphan-census-names-a-trigger-that-does-not-exist.md
 
 ### [S7] Wire up the lifecycle hooks the workflow relies on
 So that session-start/close automation actually runs instead of being wired-but-vacuous.
@@ -149,6 +159,7 @@ Backbone (dependency-ordered; done stages recorded here as the epic ledger — A
 - [#496] [P3][S] `_ORGAN_TO_COMPONENT` attributes the pre-push organ to a component that does not carry it — the Tier-3 DRIFT rows it produces are misfiled · tasks/496-organ-to-component-attributes-the-pre-push-organ.md
 - [#605] [P2][M] De-hardcode consumer-root resolution in `deploy/tool.py` and `scripts/audit.py` · tasks/605-de-hardcode-consumer-root-resolution-in-deploy-t.md
 ---
+- [#656] [P2][S] The v1.5.0 carrier's `floor-seal-report` drift probe matches a literal the command no longer has · tasks/656-v150-floor-seal-report-drift-probe-matches-a-dead-literal.md
 
 ## [E3] Lessons feedback loop
 > As the methodology author, I want lessons to flow back into enforced rules, not sit in an archive.
@@ -189,6 +200,7 @@ So that the ADR web is internally consistent.
 - [#19] [P3][M] Complete the ADR-39 register · DEFER · tasks/19-complete-the-adr-39-register.md
 
 ---
+- [#650] [P2][S] ADR-117 sits at `Proposed` while a gate already enforces it · tasks/650-adr-117-is-proposed-while-a-gate-enforces-it.md
 
 ## [E5] Canonical-file integrity
 > As any agent reading this repo, I want the canonical files accurate and current.
@@ -223,6 +235,7 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 - [#617] [P2][M] FILE DISTILLATION — the output half, and the only worsening series · tasks/617-file-distillation-the-output-half-and-the-only-w.md
 - [#612] [P2][M] Doc-rot row-body archival mechanism · tasks/612-doc-rot-row-body-archival.md
 - [#628] [P1][L] DC-2 re-cut — dissolving `ESSENTIALS.md` is a FLEET-COUPLED release act, not a doc lane · tasks/628-dc2-recut-essentials-dissolution-is-a-release-act.md
+- [#647] [P3][M] The harness's own carrying cost is unmeasured, and lane contracts are pasted rather than referenced · tasks/647-harness-carrying-cost-unmeasured-contracts-pasted.md
 ## [E6] Cross-repo universalization
 > As the disseminator, I want every child repo to converge on the universal baseline.
 
@@ -243,6 +256,7 @@ So that "open any repo, same layout/governance" actually holds.
 - [#430] [P2][M] Consumer template rejects root `conftest.py`; `fleet_parity`'s verdict depends on state outside its subject · tasks/430-consumer-template-rejects-root-conftest-py-fleet.md
 - [#604] [P2][S] Admit win-tooling and terminal-setup to the deploy registry and rule their onboarding profiles · tasks/604-admit-win-tooling-and-terminal-setup-to-the-depl.md
 - [#606] [P2][L] The win-tooling first-slice instantiation arc, run in the RULING-W shape · tasks/606-the-win-tooling-first-slice-instantiation-arc-ru.md
+- [#644] [P1][S] The 2026-08-29 deploy freeze has never been ruled, and it blocks the universalization order's step 4 · tasks/644-the-2026-08-29-deploy-freeze-has-never-been-ruled.md
 
 ### [S16] Manage the methodology as a living thing (essence lifecycle: transfer · sync · PRUNE)
 So that the consumer-facing live surface reflects CURRENT state — hub-deprecated elements get REMOVED from consumers, not accumulated (the append-only-live-surface bug; distinct from the append-only-BY-DESIGN audit trail).
@@ -254,6 +268,7 @@ So that a new repo inherits the full baseline in one step, not by re-derivation.
 - [#43] [P3][L] Decide + · DEFER · tasks/43-decide.md
 
 ---
+- [#645] [P2][S] `INSTALL.md`'s repo-root path is retired to `docs/`, not allow-listed into the seal · tasks/645-install-md-root-path-retired-to-docs-not-allowlisted.md
 
 ## [E7] Tooling & evaluation
 > As the operator, I want low-friction tooling and timely tech adoption.
@@ -298,6 +313,8 @@ So that cognitive overhead per session drops.
 - [#626] [P2][M] `logs/` does not thin — the retention rule exempts the two prefixes that actually accumulate · tasks/626-logs-retention-exempts-the-prefixes-that-accumulate.md
 - [#632] [P1][L] Codespace is ADMITTED for transport and UNSTABLE for inference — the six-layer plan, the runner hardening, and the two defects they depend on · tasks/632-codespace-is-admitted-for-transport-and-unstable-for-inference.md
 - [#634] [P1][S] dispatch-run.sh accepts GITHUB_TOKEN as its Anthropic-token check — a fail-open admission gate on a paid substrate · tasks/634-dispatch-run-accepts-github-token-as-the-anthropic-check.md
+- [#646] [P3][S] The ceremony ratio was measured once, by hand, and nothing computes it · tasks/646-substantive-commit-share-is-measured-once-by-hand.md
+- [#658] [P2][M] Fourteen operator points on the critical path, nine of them mechanisable, and nothing counts them · tasks/658-fourteen-operator-points-nine-mechanisable-nothing-counts.md
 ### [S19] Decide the undecided artifact/tool models
 So that cadence-less artifacts and unevaluated tools don't rot or get adopted blind.
 
@@ -317,6 +334,8 @@ So that cadence-less artifacts and unevaluated tools don't rot or get adopted bl
 - [#567] [P2][M] CX53 daily-driver substrate lane — the every-prompt requirement, carried under `[#561]` · tasks/567-cx53-daily-driver-substrate-lane-the-every-prompt-r.md
 - [#580] [P1][M] State-as-data: atomic id allocation, and `tasks/` as the SOLE source (packet ARC-B) · tasks/580-state-as-data-atomic-id-allocation-and-tasks-as.md
 - [#627] [P2][M] The agy route is INERT — no row authorizes its analysis-role admission, so the token policy promises what nothing gates · tasks/627-agy-route-is-inert-no-row-authorizes-analysis-admission.md
+- [#660] [P3][M] S-15 — the AJ tools-and-evals table is the one deliverable of that arc still owed · tasks/660-s-15-the-aj-tools-and-evals-table-was-never-produced.md
+- [#661] [P3][M] SDA-1 is a complete benchmark design that has never been run · tasks/661-sda-1-is-a-complete-benchmark-design-that-never-ran.md
 ### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)
 So that unattended routines run only with a named consumer, a survival metric, and a bounded operator load — never as rot generators (the fleet-audit lesson; sequencing per the standing operator ruling: the load-gauge lands before anything else in the Tier-2 nightly layer).
 - [#271] [P3][L] Nightly proposal loop · tasks/271-nightly-proposal-loop.md
@@ -330,6 +349,8 @@ So that unattended routines run only with a named consumer, a survival metric, a
 ---
 
 - [#555] [P1][M] Closing campaign batch 1 + kill-candidates instrument · tasks/555-closing-campaign-batch-1-kill-candidates-instrum.md
+- [#655] [P2][S] `run_retention()` has no production caller, and the ruled one is `fleet_health`'s daily run · tasks/655-run-retention-has-no-production-caller.md
+- [#657] [P1][S] Orphan #33 — something outside the repo writes into it on a schedule the registry does not know · tasks/657-orphan-33-an-unregistered-writer-edits-the-repo-nightly.md
 ## [E8] ARC-5 execution
 > As the operator, I want ARC-5's wave map, closure contract, and unruled decisions to live somewhere that can EVOLVE as waves land — not frozen inside an immutable handoff bundle.
 

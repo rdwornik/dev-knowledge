@@ -1,0 +1,65 @@
+<!--
+  SEAT-BOOT-dispatcher.md.tmpl — the dispatcher seat's boot, rendered by
+  scripts/gen_seat_boot.py from protocols/PLAYBOOK.md Ch8. This authoring note is stripped
+  at render, as it is in templates/handoff/.
+
+  WHAT A SEAT TEMPLATE MAY CARRY, and what it may not. It carries STRUCTURE — the order the
+  seat does things in, which refusal runs at which step, and where each Ch8 block lands. It
+  carries NO doctrine: every rule the seat is bound by arrives as a {{CH8:<key>}} region,
+  machine-extracted at render time, and probe P12 re-extracts and byte-compares. A sentence of
+  doctrine typed here would be the composed boot paste that operator ruling
+  INBOX-dev-knowledge-2026-09-08-038 withdrew, wearing a generator's clothes.
+
+  THE STEP-0 ORDER IS LOAD-BEARING, not layout. The lane-ceiling refusal runs BEFORE any
+  provisioning verb ("where the check sits is the whole mechanism"), and the -DryRun of every
+  generated contract is the LAST line of step 0 (AMEND-BATCH-V-002 §1). Both placements are
+  asserted by tests/test_gen_seat_boot.py, so a reflow that moves them fails the suite.
+-->
+# SEAT-BOOT-dispatcher — {{BATCH}}
+
+{{PROVENANCE}}
+
+## 0 · First turn — resolve your own transport
+
+{{TRANSPORT_BLOCK}}
+
+## 1 · Your route — which substrate, and the rule that gets forgotten
+
+{{CH8:boundary}}
+
+{{CH8:layer1-routing}}
+
+{{CH8:four-axes}}
+
+{{CH8:concurrency-ceilings}}
+
+## 2 · STEP 0 — the refusals, before the first worktree exists
+
+Run these. Do not remember them: every rule below already existed in prose and was breached
+anyway, by seats that had read the prose.
+
+{{CH8:lane-ceiling}}
+
+{{REFUSAL_BLOCK}}
+
+## 3 · What a contract you freeze carries
+
+{{CH8:per-lane-requirements}}
+
+{{CH8:artifact-paths-derived}}
+
+## 4 · The launch line — copied, not composed
+
+{{CH8:dispatch-local}}
+
+{{CH8:routing-matrix}}
+
+{{CH8:dispatch-constants}}
+
+## 5 · Your interaction budget
+
+{{CH8:two-touch}}
+
+## 6 · Your stop condition
+
+{{STOP_CONDITION}}

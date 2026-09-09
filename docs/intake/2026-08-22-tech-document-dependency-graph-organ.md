@@ -647,14 +647,41 @@ DECLARE-GRAPH §1 rules that **`file_purpose_graph.py` (FPG-1) is THE repo graph
 computes an edge set of its own from now on, and a new edge kind is added to FPG-1 rather than to
 a script. This intake is the carrier of that ruling, and its Done-when is:
 
-> **12 separate edge computations → 0; all organs read FPG-1.**
+> **Every CORPUS-STRUCTURE edge computation → 0; the organs that hold one read FPG-1
+> instead.** The class is exactly five kinds — citation · generation · template · test ·
+> script call-site — the class that produced the orphan. **State gates are excluded and stay
+> gates.**
 
-**N = 12** is the count on `main` at this filing plus the W2-U4 work then unmerged — it is a
-measured baseline, not a target chosen for roundness, and the migration retires it one organ at a
-time. Each migration is **one lane**, and each lane **proves its edge set is a subset of FPG-1
-(diff = 0) before the old computation is retired** (§5 of the ruling). A migration that cannot
-show diff = 0 is a finding about FPG-1's edge coverage, not a licence to keep the private
-computation.
+**AMENDED 2026-09-09 — the Done-when above is a NARROWING of the one this file carried until
+now, and the narrowing was ruled elsewhere and landed nowhere.** The superseded text read
+*"12 separate edge computations → 0; all organs read FPG-1"*, with a blanket subset proof
+(*diff = 0*) as every migration's bar. `to-cc/DECLARE-REVIEWS-2026-09-07.md` §A.1 corrects
+DECLARE-GRAPH on three points, and this file is the surface that had to absorb them:
+
+1. **Corpus-structure edges only.** FPG-1 is the single source for the five edge kinds named
+   above; that is the class the orphan came from, and it is the class a graph can answer.
+2. **Two-tree gates cannot be views.** The spine anchor compares the spine against the working
+   tree and the staged-ADD checks judge commit-time state — neither is a property of corpus
+   structure, so neither can be expressed as a query over a corpus graph. They stay gates.
+3. **The blanket `diff = 0` bar is withdrawn.** It is impossible for `validate_backlog` **by
+   design**, so a migration proves itself by a **per-organ contract naming its own proof**,
+   not by one bar asserted over organs that cannot meet it. Where a subset proof *is* the
+   right proof, it is still the right proof — it is no longer the only one admitted.
+
+**N IS OWED, NOT RESTATED.** 12 was the count of *every* edge computation in the tree, state
+gates included, so it is not this Done-when's number and no smaller number is written here in
+its place: the correction names a class, not a count, and inventing one would repeat the defect
+this amendment repairs. Whoever opens the first migration lane re-measures N under the
+five-kind class and records it with the measurement.
+
+**Z-C3 IS CITED, AND ITS SCOPE STATED** — the omission `DECLARE-REVIEWS` §A.1 calls void-making,
+repaired here rather than argued. `protocols/STANDING_RULINGS.md` Z-C3 declined a graph library
+**as an organ**: ADR-105 §2 bars activation while no consumer for a cycle/SCC query exists, and
+R-A had already closed the library question itself (*"if a consumer is ever named, the library is
+rustworkx, not networkx"*). Nothing here reopens that. `rustworkx` is **already declared and
+in-tree** — `pyproject.toml`, `uv.lock`, imported by `file_purpose_graph.py` and
+`boot_frontier.py` — so this ruling **uses what is declared and adds nothing**, which is the
+one shape Z-C3's bar does not reach.
 
 ### 3 · Migration order, as ruled (recorded here; the sequencing is the operator's)
 
