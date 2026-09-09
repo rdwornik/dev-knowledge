@@ -90,6 +90,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#649] [P2][S] The reviewer tally carries one HIGH number where the ruling requires three · tasks/649-reviewer-tally-carries-one-number-where-three-are-owed.md
 - [#651] [P2][S] The two ADR-85 organs each hold their own copy of the branch enum · tasks/651-two-adr-85-organs-each-hold-their-own-branch-enum.md
 - [#652] [P2][S] A gate that passes when its precondition is ABSENT is the empty-rows shape, and the receipt check has it · tasks/652-a-gate-that-passes-when-its-precondition-is-absent.md
+- [#664] [P1][L] Wire FPG-1 as the delivery spine — three commit-tier queries, and organs become views · tasks/664-wire-fpg-1-as-the-delivery-spine-three-commit-tier.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
