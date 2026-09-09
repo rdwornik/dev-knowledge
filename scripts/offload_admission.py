@@ -517,14 +517,19 @@ def adjudicate(record: dict[str, Any],
                 f"offload seat returns candidates and where they live; ruling is another "
                 f"seat's act"))
 
-    undeclared = sorted(set(record) - RECORD_FIELDS - _FIELDS_WITH_OWN_CODE)
+    undeclared = set(record) - RECORD_FIELDS - _FIELDS_WITH_OWN_CODE
     for f in findings:
         if isinstance(f, dict):
-            undeclared += sorted(set(f) - FINDING_FIELDS - _FIELDS_WITH_OWN_CODE)
+            undeclared |= set(f) - FINDING_FIELDS - _FIELDS_WITH_OWN_CODE
     if undeclared:
+        # Sorted by REPR, never by value. YAML is a supported input and YAML keys are not
+        # all strings, so `{extra: x, 1: x}` made this line compare a str against an int and
+        # raise TypeError -- a traceback where the contract promises a refusal. The refusal
+        # was already right; only the reporting of it could crash.
+        named = ", ".join(sorted(repr(k) for k in undeclared))
         refusals.append(Refusal(
             "undeclared-field",
-            f"the answer carries field(s) {', '.join(repr(k) for k in sorted(set(undeclared)))} "
+            f"the answer carries field(s) {named} "
             f"that the requested shape does not declare — the shape is CLOSED, so a ruling "
             f"cannot enter under a name the gate did not think to forbid"))
 
@@ -918,9 +923,12 @@ def write_probe_corpus(root: Path) -> Path:
     from the open handle at creation, when it is authoritative, and re-checked before the
     unlink: a concurrent writer that replaced one of these paths in the meantime keeps its
     file, because deleting it would be exactly the overwrite this function refuses to do.
-    A path whose identity cannot be established -- `st_ino == 0`, as some filesystems
-    report -- is LEFT IN PLACE. Leaving a file behind is recoverable; deleting someone
-    else's is not, and that asymmetry decides the tie.
+    A path whose identity cannot be established is LEFT IN PLACE -- `st_ino == 0` as some
+    filesystems report it, or an `os.fstat` that failed on the file being created when the
+    error struck. Leaving a file behind is recoverable and makes the next run refuse loudly;
+    deleting someone else's is neither, and that asymmetry decides the tie in every case.
+    The exception message names any file left this way, so the leftover is reported rather
+    than discovered.
     """
     root = Path(root)
     occupied = [rel for rel in PROBE_CORPUS if (root / rel).exists()]
@@ -955,18 +963,19 @@ def write_probe_corpus(root: Path) -> Path:
             # to refuse: an unwritable or invalid destination left the files already created
             # behind, which is the half-materialised corpus the pre-flight scan exists to
             # prevent, arriving through the other door. Cleanup first, then report.
-            if inflight is not None:
-                # `os.fstat` itself failed, so this one path cannot be cleaned by identity.
-                # It is removed anyway: it was created by an exclusive open two statements
-                # ago and never written to, so the worst case is unlinking an empty file a
-                # racer produced inside that window -- against the certain cost of leaving
-                # our own empty file to refuse every later run. The tie-break is stated
-                # rather than left to be inferred, and it is the ONLY unlink by path here.
-                inflight.unlink(missing_ok=True)
+            # `inflight` is set only when `os.fstat` ITSELF failed, so this one path is
+            # the single file whose ownership this function cannot establish. It is RETAINED,
+            # not unlinked: a path-based delete could remove a file another writer put there
+            # in the meantime, which is the exact overwrite this command exists to refuse. A
+            # retained empty file makes the next run refuse an occupied destination, which is
+            # recoverable and loud; deleting someone else's file is neither.
             _discard_created(written)
+            kept = f"; {inflight.name} was created and could not be identified, so it was "\
+                   f"LEFT IN PLACE rather than unlinked by path" if inflight else \
+                   "; nothing was left behind"
             raise OSError(
-                f"could not write the probe corpus into {root}: {rel} failed ({exc}); "
-                f"nothing was left behind") from None
+                f"could not write the probe corpus into {root}: {rel} failed ({exc})"
+                f"{kept}") from None
     return root
 
 
