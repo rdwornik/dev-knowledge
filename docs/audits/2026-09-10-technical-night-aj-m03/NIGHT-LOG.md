@@ -117,3 +117,41 @@ quota* — which the current four-way split would file as "answered" or "unreach
   data for it. One of them (`codex`) is a **model-agnosticism finding in its own right**: our L0
   reviewer role makes an ordered reader structurally unable to produce an artifact, and nothing
   warned the caller in advance.
+
+---
+
+## Closing record
+
+```
+2026-09-09T22:55:xx+02:00 | R2       | claude sonnet       | Agent(model=sonnet) adversarial locator verification of leg 1c, 24 locators across two trees | OK 366s, 107,329 tok | 14/14 Maister phases CONFIRMED · 8/8 PLAYBOOK spine rows CONFIRMED · SKILL.md:559 WRONG · tasks/README.md:81 OFF-BY-2 · two PLAYBOOK glosses NOT AT LINE. Plus the structural finding: orchestrator-state.yml is never mechanically written; zero .py/.js/.ts in the Maister tree
+2026-09-09T22:52:xx+02:00 | 1f       | claude sonnet       | Agent(model=sonnet) model-agnosticism audit | OK 750s, 154,674 tok, 55 tool calls | 31 rows across 8 surfaces + MINIMUM-CHANGE-SET + WHAT-IS-ALREADY-AGNOSTIC
+2026-09-09T22:58:xx+02:00 | COMMIT   | -                   | git commit (bundle open) | BLOCKED | journal_spine_anchor: de0ce07c, f08cf6f3 unanchored. Discriminator run per the gate's own instruction: anchored_in_this_tree=False, anchored_at_main=True for BOTH -> TREE LAG, not a real gap. A concurrent seat advanced main mid-run.
+2026-09-09T23:00:xx+02:00 | SYNC     | -                   | git reset (unstage, so the sync-merge is not refused over staged adds), then git merge main | OK | Fast-forward 3060d3cf..de0ce07c
+2026-09-09T23:02:xx+02:00 | COMMIT   | -                   | git commit (Phase 1) | BLOCKED | task-coverage: REFUSED -- 10 staged files with no `implements` edge from an OPEN row
+2026-09-09T23:05:xx+02:00 | FIX      | -                   | named [#627] / [#676] / [#582] inside each file | OK | The gate accepts EITHER direction ("name this file in the row's body, OR name the row [#id] in this file"). The second direction needs no tasks/ edit, so the mission's no-BACKLOG-no-tasks constraint held. [#577] was considered and rejected: status closed.
+2026-09-09T23:06:xx+02:00 | COMMIT   | -                   | git commit (Phase 1) | OK | 12 files changed, 1000 insertions
+2026-09-09T23:07:xx+02:00 | PHASE 2  | opus 5 (session)    | MATRIX.md built from the delivered legs + R2 + two support extractions | OK | 381 lines. First written to the repo ROOT by mistake and moved into the bundle before staging -- a root artifact trips ADR-101.
+2026-09-09T23:08:xx+02:00 | PUSH     | -                   | git push -u origin worktree-night-aj-m03-review | OK | block-ff-push Passed · block-unanchored-push Passed
+2026-09-09T23:10:xx+02:00 | R2 spot  | opus 5 (session)    | re-opened L02.md:37 and L05.md:31 directly against the Polish source | OK | BOTH CONFIRMED exactly. Verified count 24 -> 26. MATRIX sections 3 and 4 no longer rest on unverified rows.
+2026-09-09T23:12:xx+02:00 | PHASE 3  | claude opus         | Agent(model=opus) REVIEW.md from Phase 2 + the two provenance records | dispatched | last leg, per the mission's ordering
+```
+
+### Two notes on this log's own form
+
+1. **The mission asked for the prompt's sha256 as the FIRST LINE.** It is on line 3, under a `# `
+   heading, because `audit-title-gate` refuses any indexed audit that carries no heading — the
+   hash on line 1 would have blocked the commit. The heading is the concession; the hash is
+   otherwise exactly where and what was asked.
+2. **The hash is of this bundle's verbatim copy of the prompt**, `MISSION-PROMPT.md`, which is the
+   only byte-exact rendering of it this run had. That file deliberately carries **no `# ` heading**
+   — adding one would change the bytes and invalidate the hash — which is why it is the one file
+   in the bundle with no title.
+
+### Stop conditions at close
+
+- **Wall:** started 22:20, Phase 3 dispatched 23:12 — **~52 min against a 6 h cap.** No kill needed.
+- **RAM:** floor 1 GB. Measured 4.83 GB at start, 5.96 GB mid-run, 5.42 GB at Phase 2 close. Never approached the floor.
+- **No commit to main.** Everything on `worktree-night-aj-m03-review`, pushed, not merged.
+- **No BACKLOG.md or tasks/ edit.** Row candidates are a list in REVIEW.md §1 for the day seat.
+- **No code copied from any external repo.** Both clones were read-only; the only external bytes
+  reproduced anywhere in this bundle are short evidence quotes.
