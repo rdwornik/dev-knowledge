@@ -19,6 +19,60 @@
 
 ---
 
+### 2026-09-09 (h) - CC (Opus 5, INTEGRATOR SEAT): V-9 merged out of order on the operator's word; the spine is armed and firing
+
+**Anchors via `c3bdee3c`** (the regeneration commit this entry rides) **and names `4c85208e`**,
+introduced by the V-9 merge `fc44afda`.
+
+**Did.** Merged V-9 (`lane-v-664-delivery-spine`) as `fc44afda`, regenerated the three indices
+it deferred, and confirmed the spine it arms actually runs.
+
+**The merge order is a DECLARED DEPARTURE.** DECLARE-SPINE section 4 and V-9's own frozen
+contract both say this lane merges LAST. It merged with V-8 still live, on the operator's
+explicit instruction after the 17:07 reboot. The reason is structural -- V-8 is mid-sync on its
+own terra loop, so "last" had no bounded date. Recorded here because the integrator did not
+reorder this on his own judgement, and a departure nobody wrote down is indistinguishable from
+one nobody noticed.
+
+**The gate.** `HIGH raw=5 fixed=5 unresolved=0`, five terra passes, pass 5 returned nothing.
+The artifact printed no targeted-test count, so the integrator ran them rather than bouncing the
+lane over a missing number: **70 passed**.
+
+**The spine is not merely present, it FIRES.** Four `always_run` hooks now gate every commit --
+`graph-rebuild`, `graph-orphan-census`, `graph-task-coverage`, `graph-process-list`. They were
+run against the merged tree BEFORE the anchor commit depended on them, because a query that
+refuses at commit tier can wedge the very queue that merged it. All four pass, and all four then
+passed again inside a real commit (`c3bdee3c`). `process-list` independently reproduces the
+lane's own corrected number: **157 processes, 118 triggered, 39 not**.
+
+**What the lane did that is worth keeping.** It ruled the 32-vs-20 cardinality gap by widening
+the node class, PREDICTED 26 in class, MEASURED 39, and published the correction rather than the
+tidier number. The 6 it cannot reach are named with their owner -- a corpus graph of this repo
+cannot see `~/.claude/` by construction. And when DECLARE-SPINE section 3 and DECLARE-REVIEWS
+A.1-2 were unresolvable in its environment (`CLAUDE_PROMPTS_DIR` unset), it re-measured from the
+tree and recorded the cause as an ABSENCE rather than a preference.
+
+**The operator ruled V-5's open question, and the answer is NO CHANGE.** `pytest-timeout`:
+`--timeout=900` in the unattended path only. The repo already conforms -- `pyproject.toml`'s
+declared invocation is `uv run --locked --group analytics pytest -o addopts= -n 2 --timeout=900
+-q -rf`, with the flag on the command line, deliberately out of `addopts`, and the interactive
+path untouched. Terra's enforcement half (put it in `addopts` so a bare `pytest` inherits it) is
+DECLINED by that ruling. Verified rather than assumed: `pytest_timeout` imports and the declared
+invocation collects 30 tests with the flag accepted. `[#643]`'s own Done-when is satisfied; the
+row is left OPEN because archiving a closed row is the operator's act, not the integrator's.
+
+**Result.** Batch V is 8 of 9. Only V-8 remains, still live on its terra loop and untouched.
+
+**Changes.** `scripts/{file_purpose_graph,graph_queries,graph_store}.py`,
+`.pre-commit-config.yaml` (+4 hooks), `tests/{test_graph_spine,test_file_purpose_graph}.py`,
+`docs/audits/2026-09-09-technical-lane-v-664-delivery-spine.md`; indices regenerated
+(audits 938 -> 939, `pytest_collected` 5597 -> 5633, organs 60 -> 64).
+
+**Abandoned.** Nothing.
+
+**Next.** V-8 on handback; final regeneration; one full-suite run against the 28-RED baseline at
+`08c35b9c`; then `HANDOFF_PROCESS` 7.0.0 -> 7.1.0 and its three `reconciled_with` re-stamps.
+
 ### 2026-09-09 (g) - CC (Opus 5, INTEGRATOR SEAT): V-5 merged on a cleared terra gate; its one open finding carried to the operator, not absorbed
 
 **Anchors via `b1b1933d`** (the regeneration commit this entry rides) **and names `3f0e94c5`**,
