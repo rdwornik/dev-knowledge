@@ -232,3 +232,34 @@ either leg, or repoints `copilot-enterprise` in the registry, the suite turns RE
 - **The gate adjudicates records; it does not produce them.** A record can be honest about a
   dishonest run. Nothing here detects a candidate that read the corpus, then wrote plausible
   findings from a locator scrape — only that whatever it returned holds on disk.
+
+## 10 - Owed, APPENDED after landing (addendum to section 8)
+
+> **Why this is a new section rather than a bullet inside section 8.** An audit is immutable
+> and this lane's instruction is append-only: the owed item below belongs to section 8 by
+> subject, and it is written here because inserting it there would edit landed text. Read
+> section 8 and this section as one list.
+
+- **`ecosystem/provider-registry.yaml` gains a `reviewer` ROLE ENTRY carrying an ORDERED
+  fallback list.** For the integrator to file as a row; not started here.
+
+  - **Admission is the entry condition.** Only a provider that has PASSED the seeded-defect
+    bar may appear on the list. That is the same bar this lane built and ran, so the row
+    inherits a mechanism rather than proposing one -- and it is what keeps the fallback list
+    from becoming a list of whatever happened to be reachable.
+  - **A quota hit on the current reviewer routes to the next ADMITTED provider automatically.**
+    Automatically is the operative word: the fallback is worth having only if it fires without
+    a seat noticing and re-dispatching by hand.
+  - **The tally line records WHICH MODEL ACTUALLY REVIEWED.** A review tally that does not name
+    its reviewer is the same instrument-layer defect this lane spent eleven passes removing
+    from its own headline: a number that certifies something it never measured. If the run can
+    silently change reviewers, the tally must say which one it got.
+  - **Candidate fallbacks to run through the bar:** `grok`, `gemini`, `deepseek`. Candidates,
+    not admissions -- each is a provider to MEASURE, and this lane's verdict on Copilot is the
+    precedent for what a candidate failing the bar looks like.
+
+  **Today: terra only, no fallback.** Witnessed in this lane rather than predicted: the pass-12
+  review returned `You've hit your usage limit ... try again at 6:26 PM`, and the loop stalled
+  ~50 minutes with no second reviewer to route to. The stopping rule -- loop until a pass
+  returns nothing -- makes reviewer availability a dependency of lane CLOSURE, not merely of
+  lane speed, which is what turns a stall into a blocked gate.
