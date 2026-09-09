@@ -107,6 +107,7 @@ REFUSAL_CODES: tuple[str, ...] = (
     "unranked-finding",
     "duplicate-rank",
     "verdict-bearing",
+    "undeclared-field",
     "unknown-category",
     "locator-malformed",
     "locator-escapes-corpus",
@@ -123,6 +124,21 @@ REFUSAL_CODES: tuple[str, ...] = (
 #: asked, and the admission would then certify retrieval the probe never measured.
 FINDING_CATEGORIES: frozenset[str] = frozenset({
     "contradiction", "unenforced-rule", "duplicated-clause"})
+
+
+#: The record's closed field set, and a finding's. The shape `PROBE_QUESTION` specifies is
+#: EXACT, so anything outside it is refused rather than ignored. Refusing one field name --
+#: `verdict` -- while accepting every other key was a denylist wearing an invariant's
+#: clothes: a candidate escapes a denylist by writing `recommendation` instead, and the
+#: retrieval-only boundary intake #75 states is about rulings, not about a spelling.
+RECORD_FIELDS: frozenset[str] = frozenset({
+    "role", "provider", "cli", "requested_model", "served_model", "findings"})
+FINDING_FIELDS: frozenset[str] = frozenset({"rank", "category", "locator", "quote"})
+
+#: Undeclared keys that already carry their OWN refusal code, so the schema check steps over
+#: them. Two codes for one defect would make the seeded suite unattributable, which is the
+#: property the suite exists to hold.
+_FIELDS_WITH_OWN_CODE: frozenset[str] = frozenset({"verdict"})
 
 
 #: Tokens that name how a model was CHOSEN rather than which model it was. Refused in BOTH
@@ -432,6 +448,12 @@ def adjudicate(record: dict[str, Any],
             f"rank(s) {duplicated} are claimed by more than one finding — a ranking that "
             f"does not order its candidates is not a ranking"))
 
+    if record.get("verdict") not in (None, ""):
+        refusals.append(Refusal(
+            "verdict-bearing",
+            f"the record carries a top-level verdict {record.get('verdict')!r} — the "
+            f"offload seat returns candidates and where they live; ruling is another "
+            f"seat's act"))
     for f in findings:
         if not isinstance(f, dict):
             continue
@@ -441,6 +463,17 @@ def adjudicate(record: dict[str, Any],
                 f"finding rank {f.get('rank')!r} carries verdict {f.get('verdict')!r} — the "
                 f"offload seat returns candidates and where they live; ruling is another "
                 f"seat's act"))
+
+    undeclared = sorted(set(record) - RECORD_FIELDS - _FIELDS_WITH_OWN_CODE)
+    for f in findings:
+        if isinstance(f, dict):
+            undeclared += sorted(set(f) - FINDING_FIELDS - _FIELDS_WITH_OWN_CODE)
+    if undeclared:
+        refusals.append(Refusal(
+            "undeclared-field",
+            f"the answer carries field(s) {', '.join(repr(k) for k in sorted(set(undeclared)))} "
+            f"that the requested shape does not declare — the shape is CLOSED, so a ruling "
+            f"cannot enter under a name the gate did not think to forbid"))
 
     for f in findings:
         if not isinstance(f, dict):
@@ -635,6 +668,10 @@ SEEDED_DEFECTS: dict[str, tuple[str, Mutation]] = {
         "a finding filed under a category the probe question does not define",
         lambda r: r["findings"][0].__setitem__("category", "anything"),
     ),
+    "undeclared-field": (
+        "a ruling smuggled in under a field name the requested shape does not declare",
+        lambda r: r["findings"][0].__setitem__("recommendation", "close the row"),
+    ),
     "locator-malformed": (
         "a locator with no line, so nothing can be re-opened",
         lambda r: r["findings"][0].__setitem__("locator", "protocols/EXAMPLE.md"),
@@ -798,6 +835,7 @@ Rules for the answer, all of them checked mechanically afterwards:
   not hold is counted as a fabrication and the whole answer is refused.
 - `rank` is 1..N, most significant first, no repeats.
 - Return NO verdict, recommendation, or instruction of any kind. Candidates and locators only.
+- The shape above is CLOSED. Any field outside it, at either level, refuses the whole answer.
 """
 
 
@@ -810,9 +848,12 @@ def write_probe_corpus(root: Path) -> Path:
     core invariant #3 is never overwrite without asking, and git making it recoverable is
     not a defence for a command that writes without looking.
 
-    The check is PRE-FLIGHT over the WHOLE corpus, so a refusal writes nothing at all. A
-    half-materialised corpus sitting beside the caller's own files, with an exception to
-    explain it, is the worse failure of the two.
+    The pre-flight scan over the WHOLE corpus is the better ERROR MESSAGE, and exclusive
+    creation is the guarantee: a scan followed by a write is check-then-act, and a file that
+    appeared in between would be truncated by the very command that promised not to. So each
+    file is created with mode "x", and anything already written is removed before the
+    exception leaves -- a half-materialised corpus sitting beside the caller's own files,
+    with an exception to explain it, is the worse failure of the two.
     """
     root = Path(root)
     occupied = [rel for rel in PROBE_CORPUS if (root / rel).exists()]
@@ -820,10 +861,20 @@ def write_probe_corpus(root: Path) -> Path:
         raise FileExistsError(
             f"refusing to write the probe corpus into {root}: it already holds "
             f"{', '.join(sorted(occupied))}. Give an empty or non-existent directory.")
+    written: list[Path] = []
     for rel, text in PROBE_CORPUS.items():
         target = root / rel
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(text, encoding="utf-8", newline="\n")
+        try:
+            with open(target, "x", encoding="utf-8", newline="\n") as fh:
+                fh.write(text)
+        except FileExistsError:
+            for done in written:
+                done.unlink(missing_ok=True)
+            raise FileExistsError(
+                f"refusing to write the probe corpus into {root}: {rel} appeared at the "
+                f"destination. Give an empty or non-existent directory.") from None
+        written.append(target)
     return root
 
 
