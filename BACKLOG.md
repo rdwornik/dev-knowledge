@@ -126,6 +126,7 @@ So that a symbol deletion can't silently break a dependent — the code analog o
 - [#218] [P1][M] Safe-removal gate M2+M3 boundary · DEFER · tasks/218-safe-removal-gate-m2-m3-boundary.md
 - [#659] [P2][S] The `orphan_census` intake names two triggers and one of them does not exist · tasks/659-orphan-census-names-a-trigger-that-does-not-exist.md
 - [#674] [P2][M] `[#563]`'s no-reader test checks a NAME to prove a RELATIONSHIP; it must assert the absence of a `reads` edge · tasks/674-563-s-no-reader-test-checks-a-name-to-prove-a-rela.md
+- [#675] [P2][M] Manifest tooling reads a heterogeneous node list with a bare `.get` default, so every node of the other shape reads as the default · tasks/675-manifest-tooling-reads-a-heterogeneous-node-list.md
 
 ### [S7] Wire up the lifecycle hooks the workflow relies on
 So that session-start/close automation actually runs instead of being wired-but-vacuous.
