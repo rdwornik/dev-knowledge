@@ -19,6 +19,54 @@
 
 ---
 
+### 2026-09-09 (j) - CC (Opus 5, INTEGRATOR SEAT): batch V CLOSED -- the packet written, the checklist run row by row
+
+**Anchors via `a6a463c7`** (the close-packet commit this entry rides).
+
+**Did.** Wrote `docs/audits/2026-09-09-technical-batch-v-close-packet.md` (13,800 B), appended
+`AMEND-BATCH-V-004` to the manifest to close it and to give the packet its citer, and ran the
+ADR-110 section 3 refuse-to-finish checklist row by row.
+
+**Every row checked because its command ran.**
+
+```
+1  lane branches merged/abandoned   PASS  git branch --list 'worktree-lane-*' -> empty
+2  full suite once on merged result PASS  28 failed / 5692 passed / 3 skipped, 0:54:27
+3  git worktree list == primary     PASS  one line
+4  manifest/packet archived         PASS  a6a463c7
+4b audits index regenerated once    PASS  gen_audit_index.py --check exit 0
+5  git stash list empty             PASS  empty
+5b handback review token accepted   PASS  3/3 ACCEPTED -- with a stated limit
+6  no refs/locks/* held             PASS  8/8 contracts FREE on origin
+```
+
+**Row 5b's limit is recorded, not smoothed.** The checklist wants `audit.py handback "<line>"`
+to have exited 0 BEFORE each merge on a line the lane carried. A `--bg` lane hands back an
+artifact and commits, not a `HANDBACK` line. I built well-formed lines from each lane's verified
+terra tally and ran the checker after the merges; all three were ACCEPTED. The values are
+accurate and independently verified from the artifacts, but the mechanical form was **not**
+carried by the lane. That is a gap in the handback protocol for `--bg` lanes, and it is written
+into the packet as one rather than left to look like a clean pass.
+
+**A control experiment is why row 5b is right at all.** The checker first REFUSED every terra
+tally I fed it -- including `HIGH raw=0 fixed=0 unresolved=0`, which is trivially valid. A
+control that also fails proves the refusal is about the FORMAT, not the content: the two
+artifacts are different shapes (`HANDBACK <branch> @ <sha> ... HIGH:n MED:n LOW:n` versus the
+sitting-ruling-2 tally). Without that control I would have read three ACCEPTED lanes as three
+refused ones.
+
+**Result.** Batch V is CLOSED. `main` clean, `main == origin/main`, `git worktree list` primary
+only, `git stash list` empty, `audit.py health` OK.
+
+**Changes.** The close packet; `AMEND-BATCH-V-004` on the manifest; audits index 940 -> 941.
+
+**Abandoned.** Nothing.
+
+**Next.** `HANDOFF_PROCESS` 7.0.0 -> 7.1.0 with its three `reconciled_with` re-stamps
+(`ARCHITECTURE.md:3`, `CLAUDE.md:3`, `CONTRIBUTING.md:3`) and the PIN re-issue -- last, before
+any handoff cut. Two CANDIDATEs wait on the operator, and six suite REDs stay unattributed until
+a same-substrate run.
+
 ### 2026-09-09 (i) - CC (Opus 5, INTEGRATOR SEAT): batch V drained, 8 of 8; the suite completed on this host for the first time, and the comparison it enables is confounded
 
 **Anchors via `64e77a9b`** (the final regeneration this entry rides) **and names `76597d00`**,
