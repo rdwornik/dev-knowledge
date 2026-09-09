@@ -247,6 +247,14 @@ def _registry_cli(provider: str, registry_path: Optional[Path]) -> Optional[str]
         rows = _pr.providers(registry_path)
     except _pr.RegistryError as exc:
         raise AdmissionError(f"provider registry could not be read: {exc}") from exc
+    except OSError as exc:
+        # The reader normalises its own PARSE failures and not its I/O ones, so an existing
+        # but unreadable registry escaped as a bare OSError. Same class as an unreadable
+        # corpus: the gate has not found a defect in the record, it has failed to compute
+        # its ground truth, and Z-G4 says report the gap. A traceback is not a report.
+        raise AdmissionError(
+            f"provider registry {registry_path} exists but could not be read ({exc}); "
+            f"provider identity cannot be established, so this gate reports the gap") from None
     row = rows.get(provider)
     if row is None:
         return None
@@ -888,8 +896,8 @@ def write_probe_corpus(root: Path) -> Path:
     written: list[tuple[Path, tuple[int, int]]] = []
     for rel, text in PROBE_CORPUS.items():
         target = root / rel
-        target.parent.mkdir(parents=True, exist_ok=True)
         try:
+            target.parent.mkdir(parents=True, exist_ok=True)
             with open(target, "x", encoding="utf-8", newline="\n") as fh:
                 fh.write(text)
                 fh.flush()
@@ -899,6 +907,15 @@ def write_probe_corpus(root: Path) -> Path:
             raise FileExistsError(
                 f"refusing to write the probe corpus into {root}: {rel} appeared at the "
                 f"destination. Give an empty or non-existent directory.") from None
+        except OSError as exc:
+            # EVERY other way the write can fail, not just the one this function was written
+            # to refuse: an unwritable or invalid destination left the files already created
+            # behind, which is the half-materialised corpus the pre-flight scan exists to
+            # prevent, arriving through the other door. Cleanup first, then report.
+            _discard_created(written)
+            raise OSError(
+                f"could not write the probe corpus into {root}: {rel} failed ({exc}); "
+                f"nothing was left behind") from None
         written.append((target, (stat.st_dev, stat.st_ino)))
     return root
 
@@ -1094,7 +1111,7 @@ def cli(record_path: Optional[Path], corpus_root: Path, registry_path: Optional[
     if probe_root is not None:
         try:
             written = write_probe_corpus(probe_root)
-        except FileExistsError as exc:
+        except OSError as exc:          # FileExistsError included -- it is an OSError
             click.echo(f"NOT WRITTEN - {exc}")
             raise SystemExit(2) from None
         click.echo(f"probe corpus written to {written}")
