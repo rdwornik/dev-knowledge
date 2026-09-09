@@ -969,3 +969,74 @@ def test_the_probe_cli_reports_an_unwritable_destination_rather_than_a_traceback
     monkeypatch.undo()
     assert result.exit_code == 2, result.output
     assert "NOT WRITTEN" in result.output
+
+
+# ---------------------------------------------------------------------------------------
+# the corpus is part of the measurement too - terra pass 8 (2026-09-09)
+# ---------------------------------------------------------------------------------------
+# Two [P1]s. The no-leftovers guarantee still had a hole one statement wide: a failure
+# between `open(..., "x")` and the append to `written` left THAT file behind, because only
+# the earlier ones were tracked. And coverage was credited from a locator string and a
+# category without ever asking whether the corpus still carries the planted clause there --
+# so a replaced tree with any text at those lines scored a candidate as having found
+# everything, which measures the answer against nothing.
+
+
+def test_a_write_failure_AFTER_creation_leaves_no_partial_file(tmp_path, monkeypatch):
+    """The file created by the failing iteration is this invocation own leftover too."""
+    real_fstat = oa.os.fstat
+    calls = []
+
+    def hook(fd):
+        calls.append(fd)
+        if len(calls) == 2:
+            raise OSError(5, "Input/output error")
+        return real_fstat(fd)
+
+    monkeypatch.setattr(oa.os, "fstat", hook)
+    with pytest.raises(OSError):
+        oa.write_probe_corpus(tmp_path)
+    monkeypatch.undo()
+    assert list(tmp_path.iterdir()) == [], \
+        "the file created by the failing iteration was left behind"
+
+
+def test_a_corpus_that_no_longer_carries_a_planted_clause_cannot_be_SCORED(tmp_path):
+    """Ground truth is a claim about THIS corpus, so it is checked against it first.
+
+    The record below is otherwise perfect -- three findings, contiguous ranks, correct
+    categories, every quote re-opening exactly at its line -- and it names one site per
+    planted defect. What has changed is the corpus: RULES.md was replaced with unrelated
+    text. Crediting coverage from the locator string alone would score that answer as having
+    found all three defects, which measures it against nothing at all.
+    """
+    corpus = oa.write_probe_corpus(tmp_path / "corpus")
+    registry = oa.write_suite_corpus(tmp_path / "reg")
+    substitute = "\n".join(f"line {i}" for i in range(1, 12)) + "\n"
+    (corpus / "RULES.md").write_text(substitute, encoding="utf-8", newline="\n")
+    record = _probe_answer([
+        {"rank": 1, "category": "contradiction", "locator": "HANDBOOK.md:7",
+         "quote": "A fast-forward merge is the default way a branch lands on main."},
+        {"rank": 2, "category": "unenforced-rule", "locator": "RULES.md:8",
+         "quote": "line 8"},
+        {"rank": 3, "category": "duplicated-clause", "locator": "HANDBOOK.md:11",
+         "quote": "An append-only log is never edited in place; corrections append."},
+    ])
+    with pytest.raises(oa.AdmissionError):
+        oa.adjudicate(record, corpus, registry, oa.PROBE_GROUND_TRUTH)
+
+
+def test_the_INTACT_probe_corpus_still_scores_normally(tmp_path):
+    """The guard above must not fire on the corpus this module writes itself."""
+    corpus = oa.write_probe_corpus(tmp_path / "corpus")
+    registry = oa.write_suite_corpus(tmp_path / "reg")
+    record = _probe_answer([
+        {"rank": 1, "category": "contradiction", "locator": "HANDBOOK.md:7",
+         "quote": "A fast-forward merge is the default way a branch lands on main."},
+        {"rank": 2, "category": "unenforced-rule", "locator": "RULES.md:8",
+         "quote": "A commit summary is imperative, specific and under 72 characters."},
+        {"rank": 3, "category": "duplicated-clause", "locator": "HANDBOOK.md:11",
+         "quote": "An append-only log is never edited in place; corrections append."},
+    ])
+    verdict = oa.adjudicate(record, corpus, registry, oa.PROBE_GROUND_TRUTH)
+    assert verdict.admitted, verdict.detail
