@@ -280,15 +280,30 @@ def _is_window_bundle(bundle_dir: Path, repo_root: Path) -> bool:
 
 
 # rule: handoff-open-carrier-named
-def assert_open_carriers_named(bundle_dir: Path, repo_root: Path,
-                               *, in_generation: bool = False) -> None:
+def _residual_is_an_untouched_render(text: str) -> bool:
+    """True when EVERY FILL-IN region in `text` still holds the generator's own placeholder.
+
+    This is what "the cold pass" actually means, DERIVED from the artifact rather than taken
+    on trust from a caller. A template render satisfies it by construction; the moment the
+    operator writes into any region it stops holding, so a PARTIALLY filled residual is judged
+    rather than exempt -- strictly tighter than the flag this replaced.
+
+    A residual with NO FILL-IN regions is not an untouched render and returns False: absence of
+    regions is not evidence of innocence, and this predicate gates a refusal.
+    """
+    from gen_handoff import FILL_IN_RE  # noqa: PLC0415 (sibling CLI; deferred import)
+    bodies = [m.group("body") for m in FILL_IN_RE.finditer(text)]
+    return bool(bodies) and all(_PLACEHOLDER_RE.match(b) for b in bodies)
+
+
+def assert_open_carriers_named(bundle_dir: Path, repo_root: Path) -> None:
     """Refuse assembly while an `OPEN` decision file is unnamed in the filled residual.
 
     Exits 1 before `PASTE_THIS.md` is written, which is the whole point: the refusal has to
     land while the bundle is still repairable.
 
     TWO PASSES, and only the second is judged. The assembler runs once inside the cut
-    (`in_generation=True`, spawned by `gen_handoff._run_assembler`) and again when the operator
+    (spawned by `gen_handoff._run_assembler`) and again when the operator
     re-runs it after filling. On the first pass `RESIDUAL.md` is a template render from seconds
     earlier and can name nothing, so the gate DEFERS -- printing what is owed rather than
     refusing. Judging there would refuse every cut on a window carrying any `OPEN` debt, which
@@ -331,7 +346,7 @@ def assert_open_carriers_named(bundle_dir: Path, repo_root: Path,
                if v.kind == CARRIAGE_OPEN]
     if not unnamed:
         return
-    if in_generation:
+    if _residual_is_an_untouched_render(text):
         # THE FIRST OF TWO PASSES, and the residual it would judge is a template render from
         # seconds ago. `.claude/commands/handoff.md` states the flow: the operator fills the
         # supplement, "then commit the filled file and re-run scripts/assemble_paste.py". Only
@@ -372,14 +387,9 @@ def assert_open_carriers_named(bundle_dir: Path, repo_root: Path,
                   "HANDOFF_PROCESS.md §17.4: the same pin mechanism §4 uses, reused rather "
                   "than duplicated, so a boot-session paste and a v5/v6 bundle paste never "
                   "carry two independently-computed pins).")
-@click.option("--in-generation", is_flag=True, default=False,
-              help="internal: set ONLY by gen_handoff._run_assembler for the cold pass it "
-                   "spawns during a cut. Defers the P11 leg-2 refusal (the residual it would "
-                   "judge was rendered seconds earlier and can name nothing) to the post-fill "
-                   "re-run the operator makes, which is where both operands exist.")
 @click.argument("bundle_dir", required=False,
                 type=click.Path(exists=True, file_okay=False, path_type=Path))
-def main(pin_only: bool, in_generation: bool, bundle_dir: Path | None) -> None:
+def main(pin_only: bool, bundle_dir: Path | None) -> None:
     """Assemble PASTE_THIS.md for BUNDLE_DIR from canonical sources, or (--pin-only) print
     just the ROLE PIN."""
     repo_root = Path(__file__).parent.parent
@@ -408,7 +418,7 @@ def main(pin_only: bool, in_generation: bool, bundle_dir: Path | None) -> None:
     # P11 leg 2, and it runs FIRST — after the fill-state flip (so the residual read here is
     # the FILLED one) and before a single byte of PASTE_THIS.md is composed. A refusal is only
     # worth having while the bundle is still repairable.
-    assert_open_carriers_named(bundle_dir, repo_root, in_generation=in_generation)
+    assert_open_carriers_named(bundle_dir, repo_root)
 
     sections: list[tuple[str, str]] = []
 

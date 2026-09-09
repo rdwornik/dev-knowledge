@@ -2161,15 +2161,21 @@ class GenResult:
     filled: bool
 
 
-def _assembler_argv(bundle_dir: Path, *, in_generation: bool) -> list[str]:
-    """The child assembler's command line. Pure, so a test can read the real argv."""
-    argv = [sys.executable, str(_SCRIPTS / "assemble_paste.py"), str(bundle_dir)]
-    if in_generation:
-        argv.append("--in-generation")
-    return argv
+def _assembler_argv(bundle_dir: Path) -> list[str]:
+    """The child assembler's command line. Pure, so a test can read the real argv.
+
+    NO COLD-PASS FLAG, and its absence is the design. An earlier cut passed
+    `--in-generation` here to tell the assembler its residual was a fresh render. Terra,
+    2026-09-09: a flag on a public CLI is a bypass anyone can type, so the gate could be
+    defeated by `assemble_paste.py <filled-bundle> --in-generation`. The assembler now DERIVES
+    that state from the residual itself (`_residual_is_an_untouched_render`), which cannot be
+    asserted from outside — and is tighter besides, since a partially filled residual is judged
+    rather than exempt.
+    """
+    return [sys.executable, str(_SCRIPTS / "assemble_paste.py"), str(bundle_dir)]
 
 
-def _run_assembler(bundle_dir: Path, *, in_generation: bool = False) -> int:
+def _run_assembler(bundle_dir: Path) -> int:
     """Spawn `scripts/assemble_paste.py` for `bundle_dir`; return the child's exit code.
 
     Isolated as a named function for the reason `_resolves_on_main` is: it is the seam a test
@@ -2178,13 +2184,10 @@ def _run_assembler(bundle_dir: Path, *, in_generation: bool = False) -> int:
     also the sibling-import path (five `sys.path.insert` sites above), so repointing it shadows
     the real `assemble_paste` module for anything that imports it later in the same process.
 
-    `in_generation` marks THIS call as the cold pass spawned during a cut, which is the only
-    thing that distinguishes it from the operator's own post-fill re-run. Defaults to False so
-    a caller that says nothing gets the strict gate.
+    The cold pass carries no marker: the assembler works out for itself whether the residual is
+    still an untouched render. See `_assembler_argv` for why that is derived rather than told.
     """
-    return subprocess.run(
-        _assembler_argv(bundle_dir, in_generation=in_generation), check=False,
-    ).returncode
+    return subprocess.run(_assembler_argv(bundle_dir), check=False).returncode
 
 
 def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str | None = None,
@@ -2340,11 +2343,11 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     draft = journal_draft(slug, date, state, hints)
 
     if assemble:
-        # in_generation=True: this is the COLD pass. RESIDUAL.md was rendered a few lines
-        # above, so leg 2's second operand does not exist yet and the gate defers (loudly) to
-        # the post-fill re-run the operator makes. Any non-zero the child still returns —
-        # a missing required source, a broken template — refuses the cut below.
-        code = _run_assembler(bundle_dir, in_generation=True)
+        # THE COLD PASS. RESIDUAL.md was rendered a few lines above, so leg 2's second operand
+        # does not exist yet — the assembler recognises that from the residual itself and
+        # defers (loudly) to the post-fill re-run. Any non-zero the child still returns — a
+        # missing required source, a broken template — refuses the cut below.
+        code = _run_assembler(bundle_dir)
         if code != 0:
             # The bundle is deliberately LEFT ON DISK. Every other refusal in this function
             # fires before `mkdir` and leaves nothing behind; this one fires after the render,

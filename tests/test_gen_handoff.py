@@ -1474,37 +1474,20 @@ def test_the_cut_command_reports_the_refusal_and_never_prints_generated_bundle(t
     assert isinstance(result.exception, SystemExit), repr(result.exception)
 
 
-def test_generate_marks_its_own_assembler_call_as_the_in_generation_pass(tmp_path, monkeypatch):
-    """Terra, 2026-09-09, second pass. The assembler runs twice by design, and only the FIRST
-    run -- this one -- has a residual that was rendered from a template moments earlier and can
-    name nothing. `generate()` has to SAY which pass it is, or leg 2 judges an operand that
-    does not exist yet and refuses every cut on a window carrying `OPEN` debt.
+def test_the_child_argv_carries_no_cold_pass_flag(tmp_path):
+    """THE BYPASS THAT IS NOT THERE, pinned so it cannot come back.
 
-    Asserted at the seam rather than by reading the source: a comment claiming the flag is
-    passed is a claim, and the defect class this whole lane exists for is exactly a claimed
-    check nobody wired up.
+    An earlier cut told the assembler it was the cold pass via `--in-generation`. Terra,
+    2026-09-09: a flag on a public CLI is a bypass anyone can type, so the post-fill gate could
+    be defeated with `assemble_paste.py <filled-bundle> --in-generation`. The assembler now
+    DERIVES that state from the residual, which cannot be asserted from outside.
+
+    A negative assertion earns its place only when the thing it forbids was actually shipped
+    and removed. This one was.
     """
-    seen = {}
-
-    def recorder(bundle_dir, **kwargs):
-        seen["bundle_dir"] = bundle_dir
-        seen.update(kwargs)
-        return 0
-
-    monkeypatch.setattr(gh, "_run_assembler", recorder)
-    repo = _stub_repo(tmp_path)
-    gh.generate(repo, mode="architect", slug="0000-00-00-ing", repo=".dev-knowledge",
-                date="2026-09-09", bundle_root=repo / "docs" / "handoffs", assemble=True)
-    assert seen.get("in_generation") is True, seen
-
-
-def test_the_in_generation_flag_reaches_the_child_argv(tmp_path):
-    """The other half of the same wiring, and it is a separate failure mode: `generate()` can
-    pass the keyword faithfully while the argv builder drops it, and the recorder above would
-    never see that. `_assembler_argv` is pure, so this reads the real command line."""
-    argv = gh._assembler_argv(tmp_path / "b", in_generation=True)
-    assert "--in-generation" in argv
-    assert gh._assembler_argv(tmp_path / "b", in_generation=False)[-1].endswith("b")
+    argv = gh._assembler_argv(tmp_path / "b")
+    assert not [a for a in argv if a.startswith("--")], argv
+    assert argv[-1].endswith("b")
 
 
 def test_the_declared_unattended_invocation_still_cites_the_one_ceiling():

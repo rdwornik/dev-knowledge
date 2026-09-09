@@ -2093,3 +2093,32 @@ def test_an_already_committed_bundle_is_no_longer_judged(tmp_path, monkeypatch, 
 
     _commit_bundle(tmp_path / "repo")
     assert vhp._CARRIAGE_FINDING_ID not in _by_id(vhp.verify(bundle))
+
+
+def test_a_cold_bundle_committed_then_filled_is_still_judged(tmp_path, monkeypatch, as_hub):
+    """THE EXEMPTION'S OWN BYPASS, and it is the documented flow rather than an exotic path.
+
+    The operator commits the COLD bundle, then fills RESIDUAL.md and commits again. An
+    exists-in-HEAD test exempts that second commit -- the bundle's residual is already in HEAD --
+    which is precisely the post-fill commit this rung exists to police, and precisely the
+    skipped-second-assemble route it was built to close. Terra, 2026-09-09.
+
+    So the exemption needs BOTH legs: sealed AND unchanged. A residual that DIFFERS from its
+    committed copy is being written right now, which means it can still be repaired, which means
+    it is judged. `git diff --quiet HEAD -- <path>` sees the index too, so a STAGED fill counts
+    as changed -- the state the pre-commit gate actually observes.
+    """
+    bundle = _init_bundle(tmp_path, [_PASS_SYMBOL], slug=_CARRIAGE_ERA_SLUG)
+    (bundle / "RESIDUAL.md").write_text("# Residual\n\n_(fill: drift)_\n", encoding="utf-8")
+    transport, name = _transport_with_open(tmp_path)
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(transport))
+
+    _commit_bundle(tmp_path / "repo")
+    assert vhp._CARRIAGE_FINDING_ID not in _by_id(vhp.verify(bundle)), "sealed+unchanged"
+
+    # ...the operator now fills it, still naming none of the OPEN carriers.
+    (bundle / "RESIDUAL.md").write_text(
+        "# Residual\n\nReal drift notes, naming no carrier.\n", encoding="utf-8")
+    row = _by_id(vhp.verify(bundle)).get(vhp._CARRIAGE_FINDING_ID)
+    assert row is not None and row.status == "fail", row
+    assert name in row.detail

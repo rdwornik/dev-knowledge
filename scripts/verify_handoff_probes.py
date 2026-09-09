@@ -769,15 +769,22 @@ _CARRIAGE_FINDING_ID = "P11-CARRIAGE"
 _CARRIAGE_ERA = "2026-09-09"
 
 
-def _bundle_in_head(bundle_path: Path, repo_root: Path) -> bool:
-    """True when this bundle's RESIDUAL.md already exists in `HEAD` — i.e. it is immutable.
+def _residual_is_sealed_and_unchanged(bundle_path: Path, repo_root: Path) -> bool:
+    """True when this bundle's RESIDUAL.md is in `HEAD` **and identical to it** — sealed.
 
-    RESIDUAL.md is the probe, not the directory, because it is the file the carriage rung
-    judges: if THAT is committed, the answer the rung would demand can no longer be written.
+    BOTH LEGS, and the second is the one that matters. "Exists in HEAD" alone is not
+    immutability: the documented flow commits the COLD bundle first and stages a FILLED
+    RESIDUAL.md afterwards, so an exists-only test exempts the bundle at precisely the post-fill
+    commit this rung exists to police (terra, 2026-09-09). A residual that DIFFERS from its
+    sealed copy is being written right now, which means it can still be repaired — so it is
+    judged.
 
-    Fails toward JUDGING. A non-repo, a missing git, or any error returns False, so the rung
-    runs rather than silently disappearing — the direction a gate should fail when it cannot
-    tell.
+    RESIDUAL.md is the probe rather than the directory, because it is the file the rung judges:
+    once THAT is sealed and untouched, the answer the rung would demand can no longer be
+    written into it.
+
+    Fails toward JUDGING. A non-repo, absent git, or any error returns False, so the rung runs
+    rather than silently disappearing — the direction a gate should fail when it cannot tell.
     """
     try:
         rel = bundle_path.resolve().relative_to(repo_root.resolve()).as_posix()
@@ -787,8 +794,15 @@ def _bundle_in_head(bundle_path: Path, repo_root: Path) -> bool:
         import gen_handoff as _gh  # noqa: PLC0415
     except ImportError:
         return False
-    ok, _out = _gh._git_status(repo_root, "cat-file", "-e", f"HEAD:{rel}/RESIDUAL.md")
-    return ok
+    residual = f"{rel}/RESIDUAL.md"
+    in_head, _out = _gh._git_status(repo_root, "cat-file", "-e", f"HEAD:{residual}")
+    if not in_head:
+        return False
+    # `git diff --quiet HEAD -- <path>` exits 0 only when the path matches HEAD, and it sees
+    # the working tree AND the index — so a staged-but-uncommitted fill counts as changed,
+    # which is exactly the post-fill commit the exists-only test was letting through.
+    unchanged, _out = _gh._git_status(repo_root, "diff", "--quiet", "HEAD", "--", residual)
+    return unchanged
 
 
 def _unnamed_open_carriers(bundle_path: Path, repo_root: Path) -> list[ProbeResult]:
@@ -847,7 +861,7 @@ def _unnamed_open_carriers(bundle_path: Path, repo_root: Path) -> list[ProbeResu
     # lands the bundle (its residual is staged, not yet in HEAD). That is strictly more than
     # the historical failure had, where two bundles shipped and the shortfall surfaced only
     # after they were committed and merged.
-    if _bundle_in_head(bundle_path, Path(repo_root)):
+    if _residual_is_sealed_and_unchanged(bundle_path, Path(repo_root)):
         return []
     CARRIAGE_OPEN, carriage_shortfall = _gh.CARRIAGE_OPEN, _gh.carriage_shortfall
     transport = _gh.transport_root()

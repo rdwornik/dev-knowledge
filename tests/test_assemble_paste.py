@@ -679,6 +679,16 @@ def test_window_specific_ratio_excludes_unfilled_placeholder(tmp_path: Path) -> 
 
 _OPEN_DECISION = "BATCH-2026-09-07-CLOSE-CONTRACTS.md"
 
+#: A residual exactly as the generator renders it -- every FILL-IN region still holding the
+#: `_(fill: ...)_` placeholder. This IS the cold pass, and the assembler recognises it by
+#: reading the artifact rather than by being told.
+_COLD_RESIDUAL = (
+    "# Residual\n\n"
+    "<!-- FILL-IN:drift START (hand-authored) -->\n"
+    "_(fill: the drift flags this window is handing on)_\n"
+    "<!-- FILL-IN:drift END -->\n"
+)
+
 
 def _transport_with_open_carrier(tmp_path: Path, name: str = _OPEN_DECISION) -> Path:
     transport = tmp_path / "transport"
@@ -779,9 +789,10 @@ def test_the_in_generation_pass_defers_leg_2_instead_of_refusing_the_cut(tmp_pat
     Deferring is the same reasoning that put leg 2 at assemble time rather than at preflight --
     judge a conjunct only where both operands exist -- applied one stage further in.
     """
-    bundle, script = _make_bundle(tmp_path, bundle_rel="docs/handoffs/2026-09-09-cold")
-    result = _run(script, bundle, transport=_transport_with_open_carrier(tmp_path),
-                  extra=["--in-generation"])
+    bundle, script = _make_bundle(
+        tmp_path, bundle_rel="docs/handoffs/2026-09-09-cold",
+        residual=_COLD_RESIDUAL)
+    result = _run(script, bundle, transport=_transport_with_open_carrier(tmp_path))
     assert result.returncode == 0, result.stderr
     assert (bundle / "PASTE_THIS.md").exists()
     # DEFERRED LOUDLY. A skipped gate that says nothing is how the swallowed exit code went
@@ -795,14 +806,43 @@ def test_the_post_fill_pass_still_refuses_the_same_bundle(tmp_path: Path) -> Non
     """The deferral is a DEFERRAL, not an exemption -- the identical bundle, assembled the way
     the operator assembles it after filling, still refuses. Without this the test above would
     be indistinguishable from having deleted the gate."""
-    bundle, script = _make_bundle(tmp_path, bundle_rel="docs/handoffs/2026-09-09-cold2")
+    bundle, script = _make_bundle(
+        tmp_path, bundle_rel="docs/handoffs/2026-09-09-cold2", residual=_COLD_RESIDUAL)
     transport = _transport_with_open_carrier(tmp_path)
-    deferred = _run(script, bundle, transport=transport, extra=["--in-generation"])
+    deferred = _run(script, bundle, transport=transport)
     assert deferred.returncode == 0, deferred.stderr
 
+    # The operator fills the region -- exactly the step handoff.md prescribes -- and re-runs.
+    (bundle / "RESIDUAL.md").write_text(
+        "# Residual\n\n"
+        "<!-- FILL-IN:drift START (hand-authored) -->\n"
+        "Real drift notes, and not one of them names the carrier.\n"
+        "<!-- FILL-IN:drift END -->\n", encoding="utf-8")
     refused = _run(script, bundle, transport=transport)
     assert refused.returncode == 1, refused.stdout
     assert _OPEN_DECISION in refused.stderr
+
+
+def test_a_partially_filled_residual_is_judged_not_deferred(tmp_path: Path) -> None:
+    """TIGHTER THAN THE FLAG IT REPLACED, and this is the test that says so.
+
+    The cold pass used to be announced by `--in-generation`, which any caller could type at a
+    filled bundle to skip the refusal (terra, 2026-09-09). It is now DERIVED: the deferral holds
+    only while EVERY FILL-IN region still carries the generator's own placeholder. Fill one
+    region and the bundle is judged -- a state the flag would have exempted on request.
+    """
+    bundle, script = _make_bundle(
+        tmp_path, bundle_rel="docs/handoffs/2026-09-09-partial",
+        residual="# Residual\n\n"
+                 "<!-- FILL-IN:a START (hand-authored) -->\n"
+                 "_(fill: the open questions)_\n"
+                 "<!-- FILL-IN:a END -->\n"
+                 "<!-- FILL-IN:b START (hand-authored) -->\n"
+                 "Operator wrote here.\n"
+                 "<!-- FILL-IN:b END -->\n")
+    result = _run(script, bundle, transport=_transport_with_open_carrier(tmp_path))
+    assert result.returncode == 1, result.stdout
+    assert _OPEN_DECISION in result.stderr
 
 
 def test_a_bundle_outside_the_repo_bundle_home_is_not_gated(tmp_path: Path) -> None:
