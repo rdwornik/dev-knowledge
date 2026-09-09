@@ -186,6 +186,27 @@ def test_task_coverage_admits_a_file_that_names_its_own_open_row(tiny_repo: Path
     assert not gq.task_coverage(tiny_repo, store, staged=["scripts/claims_back.py"])
 
 
+def test_task_coverage_admits_a_row_file_as_its_own_claim(tiny_repo: Path, tiny_store):
+    """A ROW FILE IS ITS OWN CLAIM -- `tasks/700-wired.md` IS `[#700]`.
+
+    Found by the gate firing on a real sync merge, which staged ten `tasks/NNN-*.md` rows
+    and refused every one for not being named by an open row. Asking a row file to be named
+    by a row is asking it to name itself."""
+    assert not gq.task_coverage(tiny_repo, tiny_store, staged=["tasks/700-wired.md"])
+
+
+def test_task_coverage_is_silent_during_a_merge(tiny_repo: Path, tiny_store, monkeypatch):
+    """A MERGE IS TRANSPORT, NOT AUTHORSHIP -- the `block_commit_on_main` carve-out shape.
+
+    The staged set of a merge is other branches' work. Refusing it would ask this branch to
+    claim files it never wrote. The carve-out binds ONLY the git-derived staged set, so an
+    explicit `staged=` list is still checked -- otherwise a merge would be a hole rather
+    than a carve-out."""
+    monkeypatch.setattr(gq, "_merge_in_progress", lambda root: True)
+    assert gq.task_coverage(tiny_repo, tiny_store, staged=None) == []
+    assert gq.task_coverage(tiny_repo, tiny_store, staged=["scripts/lonely.py"])
+
+
 def test_task_coverage_cli_exits_non_zero_on_a_refusal(tiny_repo: Path, tmp_path: Path):
     db = tmp_path / "store" / "FPG.db"
     gs.rebuild(tiny_repo, db)

@@ -6,8 +6,9 @@ one repo graph; this writes it to a stdlib SQLite file and hands back a read-onl
 surface. Everything downstream -- the three commit-tier refusals -- reads the STORE, never a
 live build. That is `[#664]`'s explicit bar (*"print node and edge counts read back from the
 persisted artifact, never from an in-memory build"*) and it is also the only reason three
-refusals can ride one commit: a full build measures ~10 s on this tree, and three of them
-would put half a minute on every commit. A store read measures milliseconds.
+refusals can ride one commit: a full build measures ~13 s on this tree (17.5 s wall for
+the rebuild hook), and three of them would put a minute on every commit. A store read
+measures milliseconds -- the whole read path is one sqlite open and a handful of SELECTs.
 
 WHY SQLITE AND NOT A LIBRARY. The row says it: *"sqlite -- stdlib, no new dependency"*. It is
 also the answer standing ruling R-A already measured for exactly this workload --
@@ -53,10 +54,13 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import contextlib
 import logging
+import os
 import sqlite3
 import subprocess
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -188,7 +192,13 @@ def rebuild(repo_root: Path | str, db_path: Path | str | None = None) -> Counts:
     nodes = [graph.graph[index] for index in graph.graph.node_indices()]
     edges = graph.all_edges()
 
-    tmp = path.with_suffix(".rebuilding")
+    # ONE TEMP FILE PER PROCESS. A shared `.rebuilding` name is a race, and it is not a
+    # theoretical one: five xdist workers each calling `ensure()` on a cold store collided
+    # on Windows with `WinError 32 -- the process cannot access the file because it is being
+    # used by another process`. Concurrency is this store's normal condition (parallel lane
+    # worktrees, a commit hook, a test session), so the writer is made concurrent-safe
+    # rather than the callers made careful.
+    tmp = path.with_suffix(f".rebuilding-{os.getpid()}")
     for stale in (tmp, tmp.with_name(tmp.name + "-wal"), tmp.with_name(tmp.name + "-shm")):
         stale.unlink(missing_ok=True)
     connection = _connect(tmp)
@@ -216,12 +226,43 @@ def rebuild(repo_root: Path | str, db_path: Path | str | None = None) -> Counts:
     # leave a half-written store that reads as a repo with no edges -- and an orphan census
     # over an empty graph reports EVERY process as an orphan. The failure mode of a truncated
     # store is not a smaller answer, it is a maximally wrong one.
+    _swap_into_place(tmp, path)
+    return open_store(path).counts()
+
+
+#: How long a swap keeps retrying before giving up. On Windows `os.replace` FAILS if the
+#: destination is open, and a concurrent reader holding the store for a millisecond is
+#: normal here rather than exceptional -- so the swap retries instead of the reader being
+#: asked not to read. Short, bounded, and it gives up loudly rather than looping.
+_SWAP_ATTEMPTS = 20
+_SWAP_BACKOFF_S = 0.1
+#: How long a rebuild lock is honoured before it is treated as held by a dead builder.
+#: Generous against the ~17 s live build, bounded so a crash costs one wait and never a wedge.
+_LOCK_TTL_S = 120.0
+
+
+def _swap_into_place(tmp: Path, path: Path) -> None:
+    """Atomic-swap the freshly written store over the live one.
+
+    ATOMIC SWAP RATHER THAN A WRITE IN PLACE. A hook that dies mid-rebuild would otherwise
+    leave a half-written store that reads as a repo with no edges -- and an orphan census
+    over an empty graph reports EVERY process as an orphan. The failure mode of a truncated
+    store is not a smaller answer, it is a maximally wrong one.
+    """
     for suffix in ("-wal", "-shm"):
         Path(str(path) + suffix).unlink(missing_ok=True)
-    path.unlink(missing_ok=True)
-    tmp.replace(path)
-
-    return open_store(path).counts()
+    last: OSError | None = None
+    for attempt in range(_SWAP_ATTEMPTS):
+        try:
+            os.replace(tmp, path)
+            return
+        except OSError as exc:   # a reader holds the destination; it will let go
+            last = exc
+            time.sleep(_SWAP_BACKOFF_S * (attempt + 1) / 4)
+    tmp.unlink(missing_ok=True)
+    raise StoreUnreadable(
+        f"{path}: could not swap in the rebuilt store after {_SWAP_ATTEMPTS} attempts "
+        f"({last}). A reader is holding it open; retry, or close the reader.")
 
 
 def _wiring_root_keys(fpg, root: Path) -> set[str]:
@@ -401,16 +442,41 @@ def is_stale(repo_root: Path | str, db_path: Path | str | None = None) -> bool:
 
 
 def ensure(repo_root: Path | str, db_path: Path | str | None = None) -> GraphStore:
-    """Open the store, rebuilding first if it is absent or stale."""
+    """Open the store, rebuilding first if it is absent or stale.
+
+    ONE REBUILDER AT A TIME, and the lock is the cheap kind: an exclusive `open(..., "x")`
+    on a sidecar. Whoever wins builds; everyone else WAITS for the result rather than
+    building a second copy of the same graph. Without it, a parallel test session paid five
+    concurrent ~17 s builds and then raced on the swap -- the measured failure that produced
+    this function's current shape. A stale lock (a killed builder) is honoured for
+    `_LOCK_TTL_S` and then broken, so a crash costs one wait and never a wedge.
+    """
     root = Path(repo_root).resolve()
     path = Path(db_path) if db_path else store_path(root)
-    if is_stale(root, path):
-        rebuild(root, path)
+    if not is_stale(root, path):
+        with contextlib.suppress(StoreUnreadable):
+            return open_store(path)
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lock = path.with_suffix(".rebuild-lock")
     try:
-        return open_store(path)
-    except StoreUnreadable:
+        with contextlib.suppress(OSError):
+            if lock.exists() and time.time() - lock.stat().st_mtime > _LOCK_TTL_S:
+                lock.unlink(missing_ok=True)   # a builder died holding it
+        with open(lock, "x"):
+            pass
+    except FileExistsError:
+        deadline = time.time() + _LOCK_TTL_S
+        while time.time() < deadline and lock.exists():
+            time.sleep(_SWAP_BACKOFF_S)
+        with contextlib.suppress(StoreUnreadable):
+            return open_store(path)
+
+    try:
         rebuild(root, path)
-        return open_store(path)
+    finally:
+        lock.unlink(missing_ok=True)
+    return open_store(path)
 
 
 # ------------------------------------------------------------------------------------- CLI
