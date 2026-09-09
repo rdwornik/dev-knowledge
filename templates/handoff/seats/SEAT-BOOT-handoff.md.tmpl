@@ -1,0 +1,40 @@
+<!--
+  SEAT-BOOT-handoff.md.tmpl — the handoff seat's boot, rendered by scripts/gen_seat_boot.py
+  from protocols/PLAYBOOK.md Ch8. Stripped at render.
+
+  STRUCTURE ONLY; every rule is a machine-extracted {{CH8:<key>}} region, byte-compared by P12.
+  WINDOW = BATCH comes first because it is the one rule that decides whether this seat should be
+  running at all: a bundle cut mid-batch describes a tree nobody has integrated, and the
+  successor then boots against a manifest the rest of the batch is about to invalidate.
+-->
+# SEAT-BOOT-handoff — {{BATCH}}
+
+{{PROVENANCE}}
+
+## 0 · First turn — resolve your own transport
+
+{{TRANSPORT_BLOCK}}
+
+## 1 · Should you be cutting at all?
+
+{{CH8:window-equals-batch}}
+
+## 2 · The refusals you run before the cut
+
+{{REFUSAL_BLOCK}}
+
+## 3 · What the next architect needs — an index, not a restatement
+
+{{CH8:handoff-prep}}
+
+## 4 · State is files
+
+{{CH8:state-is-files}}
+
+## 5 · The interaction budget the bundle is measured against
+
+{{CH8:two-touch}}
+
+## 6 · Your stop condition
+
+{{STOP_CONDITION}}
