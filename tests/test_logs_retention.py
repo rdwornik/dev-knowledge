@@ -260,8 +260,41 @@ def test_a_tmp_path_logs_dir_is_still_allowed(tmp_path):
 
 
 def test_the_repos_own_logs_dir_is_allowed():
+    """MADE FALSIFIABLE 2026-09-08 ([#643] leg d). The prior body was
+
+        assert mod.run_retention(mod._DEFAULT_LOGS_DIR, dry_run=True) is not None
+
+    and `run_retention` returns a LIST — never None, on any input, for any state of the guard
+    or of `logs/`. The assertion therefore held under every possible outcome, including a
+    guard that had stopped refusing anything at all. A test that cannot fail is worse than no
+    test: it reports a safety it does not provide, and this file's own subject is a module
+    that MOVES files under core-invariant #1's exclusion rule.
+
+    Three limbs, each of which a real regression breaks:
+      1. the containment leg ADMITS this repo's own `logs/` and returns it RESOLVED — the
+         positive half of the guard, and the only claim this test's name makes;
+      2. `TOKEN-LOG.md` is never planned, whatever the live directory holds (ADR-29/39: the
+         absolute exclusion, with no archival carve-out);
+      3. every planned destination is a `logs/YYYY-MM/` bucket keyed off the source's OWN
+         date, and `dry_run` leaves the directory byte-for-byte as it found it."""
     mod = _load()
-    assert mod.run_retention(mod._DEFAULT_LOGS_DIR, dry_run=True) is not None
+    logs = mod._DEFAULT_LOGS_DIR
+    resolved = logs.resolve()
+
+    assert mod._assert_target_allowed(logs) == resolved
+
+    before = sorted(p.name for p in logs.iterdir()) if logs.is_dir() else []
+    planned = mod.run_retention(logs, dry_run=True)
+
+    assert all(src.name != mod.TOKEN_LOG_NAME for src, _dst in planned)
+    for src, dst in planned:
+        assert not mod.is_excluded(src.name)
+        assert dst.parent.parent == resolved
+        assert dst.parent.name == mod.parse_dated_month(src.name)
+        assert dst.name == src.name
+
+    after = sorted(p.name for p in logs.iterdir()) if logs.is_dir() else []
+    assert after == before
 
 
 def test_the_guard_refuses_BEFORE_planning_not_after(tmp_path, monkeypatch):

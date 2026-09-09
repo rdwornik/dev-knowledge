@@ -1,6 +1,7 @@
 """Tests for scripts/assemble_paste.py."""
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -47,6 +48,8 @@ def _make_bundle(
     with_supplement: bool = True,
     supplement_answers: str = "Strategic brief.",
     mode: str | None = None,
+    bundle_rel: str = "bundle",
+    residual: str = "# Residual\n\nDrift flags.",
 ) -> tuple[Path, Path]:
     """Create a minimal fake repo tree under tmp_path.
 
@@ -64,9 +67,11 @@ def _make_bundle(
     (protocols / "HANDOFF_PROCESS.md").write_text(
         "# HANDOFF_PROCESS v6\n\nVersion: 6.3.0\nStatus: stable\n", encoding="utf-8")
 
-    # fake bundle
-    bundle = tmp_path / "bundle"
-    bundle.mkdir()
+    # fake bundle. `bundle_rel` defaults to a bare `bundle/`, which is deliberately NOT under
+    # `docs/handoffs/` — the [#643] leg-2 carriage gate is scoped to a real bundle home, so the
+    # default keeps every test above it ungated. Pass `docs/handoffs/<slug>` to exercise it.
+    bundle = tmp_path / bundle_rel
+    bundle.mkdir(parents=True)
 
     if with_handoff_boot:
         # mode=None reproduces the pre-v5.1 header byte-for-byte (no Mode row); a set
@@ -79,7 +84,7 @@ def _make_bundle(
             encoding="utf-8",
         )
 
-    (bundle / "RESIDUAL.md").write_text("# Residual\n\nDrift flags.", encoding="utf-8")
+    (bundle / "RESIDUAL.md").write_text(residual, encoding="utf-8")
     (bundle / "PROBES.md").write_text("# Probes\n\nP1 probe here.", encoding="utf-8")
 
     if with_supplement:
@@ -105,11 +110,17 @@ def _make_bundle(
     return bundle, script_copy
 
 
-def _run(script: Path, bundle: Path) -> subprocess.CompletedProcess[str]:
+def _run(script: Path, bundle: Path,
+         transport: Path | None = None,
+         extra: list[str] | None = None) -> subprocess.CompletedProcess[str]:
+    env = None
+    if transport is not None:
+        env = {**os.environ, "CLAUDE_PROMPTS_DIR": str(transport)}
     return subprocess.run(
-        [sys.executable, str(script), str(bundle)],
+        [sys.executable, str(script), str(bundle), *(extra or [])],
         capture_output=True,
         text=True,
+        env=env,
     )
 
 
@@ -647,3 +658,270 @@ def test_window_specific_ratio_excludes_unfilled_placeholder(tmp_path: Path) -> 
     assert m, result.stdout
     assert int(m.group(1)) == 0
     assert int(m.group(3)) == 0
+
+
+# ------------------------------------------------------------------ #
+# [#643] leg 2 — P11 decision carriage, the ASSEMBLE-TIME half
+# ------------------------------------------------------------------ #
+#
+# RED-FIRST (ADR-108 §B): watched to fail against a tree where the assembler read no transport
+# file at all. THE TWO LEGS GATE AT DIFFERENT STAGES and that is the design content of the
+# row, not an afterthought. Leg 1 (an anchored `carried-by:` whose value resolves on `main`)
+# reads only the transport and `main`, so it refuses at PREFLIGHT, before the cut — its tests
+# are in tests/test_gen_handoff_preflight.py. Leg 2 is the `OPEN` conjunct: a decision file
+# stating the literal `OPEN` discharges P11 only by being NAMED in this bundle's residual, and
+# the residual does not exist until the operator fills it. Assembly is the first moment both
+# operands exist, so it is the first moment the conjunct is checkable — and a single preflight
+# row claiming to cover both would be exactly the false completeness P11 exists to catch.
+#
+# Family precedent for refusing debt at a handoff, cited in the gate's own message:
+# `DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08` / `DECLARE-PREFLIGHT-QUESTION-ROW-2026-09-08`.
+
+_OPEN_DECISION = "BATCH-2026-09-07-CLOSE-CONTRACTS.md"
+
+#: A residual exactly as the generator renders it -- every FILL-IN region still holding the
+#: `_(fill: ...)_` placeholder. This IS the cold pass, and the assembler recognises it by
+#: reading the artifact rather than by being told.
+_COLD_RESIDUAL = (
+    "# Residual\n\n"
+    "<!-- FILL-IN:drift START (hand-authored) -->\n"
+    "_(fill: the drift flags this window is handing on)_\n"
+    "<!-- FILL-IN:drift END -->\n"
+)
+
+
+def _transport_with_open_carrier(tmp_path: Path, name: str = _OPEN_DECISION) -> Path:
+    transport = tmp_path / "transport"
+    (transport / "to-cc").mkdir(parents=True)
+    (transport / "to-browser").mkdir(parents=True)
+    (transport / "to-cc" / name).write_text(
+        f"# {name}\ncarried-by: OPEN -- the batch is in flight; no carrier resolves yet\n",
+        encoding="utf-8")
+    return transport
+
+
+def test_an_open_carrier_absent_from_the_filled_residual_blocks_assembly(tmp_path: Path) -> None:
+    """The defect two consecutive bundles shipped: the `-1` and `-2` residuals named none of
+    the five OPEN decision files, and both were discovered only by `/handoff-verify`, AFTER the
+    cut was committed and merged. A merged handoff is immutable, so the only repair was a
+    superseding cut. Blocking assembly is where that stops."""
+    bundle, script = _make_bundle(tmp_path, bundle_rel="docs/handoffs/2026-09-08-x")
+    result = _run(script, bundle, transport=_transport_with_open_carrier(tmp_path))
+    assert result.returncode == 1, result.stdout
+    assert _OPEN_DECISION in result.stderr
+    assert not (bundle / "PASTE_THIS.md").exists()
+
+
+def test_naming_the_open_carrier_in_the_residual_lets_assembly_through(tmp_path: Path) -> None:
+    """The negative control. Without it the refusal above proves only that the gate can fire,
+    never that a correctly-carried window can still hand off — which is the deadlock the
+    2026-09-08 rulings on rows 1 and 7 were both issued to prevent."""
+    bundle, script = _make_bundle(
+        tmp_path, bundle_rel="docs/handoffs/2026-09-08-y",
+        residual=f"# Residual\n\nCarried OPEN: `to-cc/{_OPEN_DECISION}` — owned by [#643].\n")
+    result = _run(script, bundle, transport=_transport_with_open_carrier(tmp_path))
+    assert result.returncode == 0, result.stderr
+    assert (bundle / "PASTE_THIS.md").exists()
+
+
+def _commit_as_main(repo_root: Path) -> None:
+    """Make `repo_root` a git repo whose `main` carries its files, so `git cat-file -e
+    main:<path>` can actually resolve.
+
+    WITHOUT THIS the resolving-carrier test below was a FALSE GREEN, and how it failed is the
+    point. `_resolves_on_main` asks git; in a plain tmp_path there is no repo, so every
+    candidate came back UNRESOLVED -- and the test still passed, because assembly judges only
+    the `OPEN` kind and ignores UNRESOLVED and RESOLVES alike. It asserted nothing about the
+    state its own name claims and would have stayed green through any regression in resolution
+    handling. Terra's sibling finding, 2026-09-09.
+
+    `-c user.*` is passed inline rather than assumed: a fixture must not depend on the
+    machine's global git identity, and a commit is what actually puts a `main` ref on disk.
+    """
+    ident = ["-c", "user.name=t", "-c", "user.email=t@t"]
+    subprocess.run(["git", "init", "-b", "main"], cwd=repo_root, check=True,
+                   capture_output=True)
+    subprocess.run(["git", *ident, "add", "-A"], cwd=repo_root, check=True, capture_output=True)
+    subprocess.run(["git", *ident, "commit", "-m", "fixture"], cwd=repo_root, check=True,
+                   capture_output=True)
+
+
+def test_a_resolving_carrier_is_leg_1s_subject_and_does_not_gate_assembly(tmp_path: Path) -> None:
+    """Only the `OPEN` conjunct gates here. A file whose value names a home is leg 1's subject
+    and was already judged before the cut; re-judging it at assemble would put one predicate in
+    two places, free to disagree.
+
+    TWO ASSERTIONS, and the first is what makes the second mean anything. `carriage_verdicts`
+    must actually return `resolves` for this file -- otherwise `returncode == 0` proves only
+    that assembly ignores whatever verdict it happened to get, which is precisely how this test
+    passed for the wrong reason before. With the first assert in place, a regression in
+    resolution handling turns the fixture's carrier UNRESOLVED (or OPEN) and this goes RED.
+    """
+    transport = tmp_path / "transport"
+    (transport / "to-cc").mkdir(parents=True)
+    (transport / "to-cc" / "DECLARE-CARRIED.md").write_text(
+        "# carried\ncarried-by: protocols/HANDOFF_PROCESS.md\n", encoding="utf-8")
+    bundle, script = _make_bundle(tmp_path, bundle_rel="docs/handoffs/2026-09-08-z")
+    _commit_as_main(tmp_path)
+
+    import gen_handoff as gh
+
+    verdicts = gh.carriage_verdicts(transport, tmp_path)
+    assert [v.kind for v in verdicts] == [gh.CARRIAGE_RESOLVES], \
+        [f"{v.path.name}: {v.kind} -- {v.detail}" for v in verdicts]
+
+    result = _run(script, bundle, transport=transport)
+    assert result.returncode == 0, result.stderr
+    assert (bundle / "PASTE_THIS.md").exists()
+
+
+def test_the_cold_cut_defers_leg_2_instead_of_refusing_it(tmp_path: Path) -> None:
+    """THE COLD CUT MUST NOT BE BRICKED. Terra, 2026-09-09, second pass.
+
+    The assembler runs TWICE by design (`.claude/commands/handoff.md`: fill the supplement,
+    "then commit the filled file and re-run scripts/assemble_paste.py"). On the first run --
+    spawned by `generate()` -- `RESIDUAL.md` was rendered from a template moments earlier and
+    cannot name anything, so leg 2 was judging an operand that does not exist yet. With the
+    exit code now propagating, that turned every cut on a window carrying ANY `OPEN` decision
+    into a hard refusal, which is the whole documented default flow: the live transport carries
+    eight such files today.
+
+    Deferring is the same reasoning that put leg 2 at assemble time rather than at preflight --
+    judge a conjunct only where both operands exist -- applied one stage further in.
+    """
+    bundle, script = _make_bundle(
+        tmp_path, bundle_rel="docs/handoffs/2026-09-09-cold",
+        residual=_COLD_RESIDUAL, supplement_answers="")
+    result = _run(script, bundle, transport=_transport_with_open_carrier(tmp_path))
+    assert result.returncode == 0, result.stderr
+    assert (bundle / "PASTE_THIS.md").exists()
+    # DEFERRED LOUDLY. A skipped gate that says nothing is how the swallowed exit code went
+    # unnoticed for two bundles; the operator is told here which files they must name before
+    # the post-fill run, while the bundle is still repairable.
+    assert _OPEN_DECISION in result.stderr
+    assert "defer" in result.stderr.lower()
+
+
+def test_the_post_fill_pass_still_refuses_the_same_bundle(tmp_path: Path) -> None:
+    """The deferral is a DEFERRAL, not an exemption -- the identical bundle, assembled the way
+    the operator assembles it after filling, still refuses. Without this the test above would
+    be indistinguishable from having deleted the gate."""
+    bundle, script = _make_bundle(
+        tmp_path, bundle_rel="docs/handoffs/2026-09-09-cold2", residual=_COLD_RESIDUAL,
+        supplement_answers="")
+    transport = _transport_with_open_carrier(tmp_path)
+    deferred = _run(script, bundle, transport=transport)
+    assert deferred.returncode == 0, deferred.stderr
+
+    # The operator fills the region -- exactly the step handoff.md prescribes -- and re-runs.
+    (bundle / "RESIDUAL.md").write_text(
+        "# Residual\n\n"
+        "<!-- FILL-IN:drift START (hand-authored) -->\n"
+        "Real drift notes, and not one of them names the carrier.\n"
+        "<!-- FILL-IN:drift END -->\n", encoding="utf-8")
+    refused = _run(script, bundle, transport=transport)
+    assert refused.returncode == 1, refused.stdout
+    assert _OPEN_DECISION in refused.stderr
+
+
+def test_a_partially_filled_residual_is_judged_not_deferred(tmp_path: Path) -> None:
+    """TIGHTER THAN THE FLAG IT REPLACED, and this is the test that says so.
+
+    The cold pass used to be announced by `--in-generation`, which any caller could type at a
+    filled bundle to skip the refusal (terra, 2026-09-09). It is now DERIVED: the deferral holds
+    only while EVERY FILL-IN region still carries the generator's own placeholder. Fill one
+    region and the bundle is judged -- a state the flag would have exempted on request.
+    """
+    bundle, script = _make_bundle(
+        tmp_path, bundle_rel="docs/handoffs/2026-09-09-partial",
+        residual="# Residual\n\n"
+                 "<!-- FILL-IN:a START (hand-authored) -->\n"
+                 "_(fill: the open questions)_\n"
+                 "<!-- FILL-IN:a END -->\n"
+                 "<!-- FILL-IN:b START (hand-authored) -->\n"
+                 "Operator wrote here.\n"
+                 "<!-- FILL-IN:b END -->\n")
+    result = _run(script, bundle, transport=_transport_with_open_carrier(tmp_path))
+    assert result.returncode == 1, result.stdout
+    assert _OPEN_DECISION in result.stderr
+
+
+def test_a_bundle_outside_the_repo_bundle_home_is_not_gated(tmp_path: Path) -> None:
+    """THE HONEST LIMIT, stated as a test rather than left to be discovered. The gate binds a
+    bundle under `<repo_root>/docs/handoffs/`, which is the only place a real cut lands. An
+    ad-hoc directory assembled elsewhere is not a window's handoff and has no residual duty."""
+    bundle, script = _make_bundle(tmp_path)          # tmp_path/bundle — the default
+    result = _run(script, bundle, transport=_transport_with_open_carrier(tmp_path))
+    assert result.returncode == 0, result.stderr
+    assert _OPEN_DECISION not in result.stderr
+
+
+def test_a_filled_supplement_ends_the_deferral_even_on_an_untouched_residual(tmp_path: Path,
+                                                                            ) -> None:
+    """THE LAST WAY THROUGH, and it is the ordinary flow rather than an exotic one.
+
+    Deferral first tested the residual alone. But the operator's post-fill run -- the step
+    `.claude/commands/handoff.md` prescribes -- fills SUPPLEMENT.md, and nothing obliges them
+    to touch a RESIDUAL.md placeholder. An untouched residual therefore still looked "cold" on
+    exactly the run the gate exists to bite (terra, 2026-09-09).
+
+    So deferral now needs the bundle cold ALL THE WAY: nothing folded AND no region written.
+    The fill state is read through `gen_handoff.detect_fill_state`, the one definition, which
+    itself reuses `_extract_answers` -- so the framing flip and this gate cannot end up
+    disagreeing about what "filled" means.
+    """
+    bundle, script = _make_bundle(
+        tmp_path, bundle_rel="docs/handoffs/2026-09-09-supfill",
+        residual=_COLD_RESIDUAL, supplement_answers="Real answers from the outgoing chat.")
+    result = _run(script, bundle, transport=_transport_with_open_carrier(tmp_path))
+    assert result.returncode == 1, result.stdout
+    assert _OPEN_DECISION in result.stderr
+
+
+def test_a_wholly_cold_bundle_still_defers(tmp_path: Path) -> None:
+    """The negative control for the leg above: an UNFILLED supplement plus an untouched
+    residual is the genuine cold cut, and it must still get through -- otherwise the fix
+    re-bricks the default flow that pass 1 of this same review was raised about."""
+    bundle, script = _make_bundle(
+        tmp_path, bundle_rel="docs/handoffs/2026-09-09-stillcold",
+        residual=_COLD_RESIDUAL, supplement_answers="")
+    result = _run(script, bundle, transport=_transport_with_open_carrier(tmp_path))
+    assert result.returncode == 0, result.stderr
+    assert (bundle / "PASTE_THIS.md").exists()
+    assert "defer" in result.stderr.lower()
+
+
+def test_a_refusal_invalidates_the_stale_paste_the_cold_pass_left(tmp_path: Path) -> None:
+    """THE ARTEFACT THE REFUSAL LEAVES BEHIND. Terra, 2026-09-09, and it follows directly from
+    the cold pass being allowed to write a paste at all.
+
+    Sequence: the cold cut assembles PASTE_THIS.md and defers. The operator fills the bundle,
+    names none of the OPEN carriers, and re-runs. The gate refuses -- and exits BEFORE
+    rewriting the paste, so the cold PASTE_THIS.md is still sitting there, complete and
+    pasteable. The operator ships the artifact the gate just refused, and the refusal changed
+    nothing that matters.
+
+    INVALIDATED, NOT DELETED. The assembler owns this file outright ("never hand-edited"), so
+    replacing its contents is within its remit where removing an operator's file would not be;
+    and a stub that says REFUSED is louder than an absence, which reads as "the tool did not
+    run". The stub names the files owed, so the paste itself carries the repair.
+    """
+    bundle, script = _make_bundle(
+        tmp_path, bundle_rel="docs/handoffs/2026-09-09-stale",
+        residual=_COLD_RESIDUAL, supplement_answers="")
+    transport = _transport_with_open_carrier(tmp_path)
+
+    cold = _run(script, bundle, transport=transport)
+    assert cold.returncode == 0, cold.stderr
+    paste = bundle / "PASTE_THIS.md"
+    assert paste.exists() and "ROLE PIN" in paste.read_text(encoding="utf-8")
+
+    (bundle / "RESIDUAL.md").write_text(
+        "# Residual\n\nFilled, and naming no carrier at all.\n", encoding="utf-8")
+    refused = _run(script, bundle, transport=transport)
+    assert refused.returncode == 1, refused.stdout
+
+    text = paste.read_text(encoding="utf-8")
+    assert "REFUSED" in text
+    assert _OPEN_DECISION in text                  # the stub names what is owed
+    assert "ROLE PIN" not in text                  # the pasteable handoff is GONE

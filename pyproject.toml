@@ -63,6 +63,28 @@ dev = [
     # reads this repo's own governance surfaces and ships in no carrier and no deploy-manifest
     # component roster), so it is not a dep a consumer needs to operate a methodology mechanism.
     "rustworkx>=0.16",
+    # pytest-timeout — the UNATTENDED suite path's wedge guard ([#643] leg e, operator-approved
+    # 2026-09-08). An unattended run has nobody watching it: a test that hangs does not fail, it
+    # occupies the machine until someone notices, and the five OOM-killed suite attempts of
+    # 2026-09-07/08 are what "nobody notices for hours" costs. A per-test ceiling converts a
+    # hang into a named FAIL with a traceback.
+    #
+    # THE VALUE IS CITED, NOT INVENTED, and it is passed on the unattended command line rather
+    # than written into `addopts` (see the [tool.pytest.ini_options] block below — the
+    # INTERACTIVE path is deliberately untouched). `--timeout=900` reuses
+    # `gen_handoff.SHIP_GATE_TIMEOUT_S = 900`, this repo's ONE already-declared ceiling for its
+    # most expensive subprocess, whose own comment states the principle a second number would
+    # be free to disagree with: "a ceiling tighter than the gate's real cost would manufacture
+    # refusals rather than detect them". The heaviest legitimate tests here are the ship-gate
+    # and pre-commit subprocess spawns; 900 s sits above them and far below "wedged forever".
+    #
+    # NO ecosystem/dependency-baseline.yaml row — the pandas / packaging / markdown-it-py
+    # precedent, for the reason that surface states: it governs deps required to OPERATE
+    # METHODOLOGY MECHANISMS fleet-wide. The unattended suite path is HUB-ONLY, ships in no
+    # carrier and in no deploy-manifest component, so no consumer needs it. (Contrast
+    # pytest-xdist, which DOES carry a row: `/ship`'s parallel pre-flight is a deployed
+    # mechanism, and #332 witnessed a consumer silently degrading to serial without it.)
+    "pytest-timeout>=2.3",
 ]
 # L5a descriptive analytics lane ([#384], intake #16 section 3). Separate group: the lane is
 # HUB-ONLY (it mines siblings read-only but runs here), so a consumer never needs it and it
@@ -193,6 +215,51 @@ addopts = "-n auto"
 #   uv run pytest -n 0 -q            (full serial; 1785.61s / 29m45s measured 2026-08-06)
 # Run it when xdist behavior is itself suspect, or as a nightly sweep (no cron wired yet
 # — deliberate; a documented invocation is the current contract).
+#
+# === THE UNATTENDED SUITE PATH ([#643] leg e) ================================
+# THE INVOCATION, and every part of it is load-bearing:
+#
+#   uv run --locked --group analytics pytest -o addopts= -n 2 --timeout=900 -q -rf
+#
+# `--group analytics` — THIS IS THE 44-vs-28 DIFFERENCE, and it is not a preference.
+#   Measured 2026-09-08 on Codespaces at 08c35b9c, same tree, four minutes apart:
+#     uv sync --locked                   -> 44 failed, 5327 passed, 19 skipped (184.74s)
+#     uv sync --locked --group analytics -> 28 failed, 5345 passed, 17 skipped (172.33s)
+#   The sixteen extra REDs are `tests/test_fleet_analytics.py` ModuleNotFoundError on pandas.
+#   An unattended run that omits the group does not measure a worse tree; it manufactures
+#   sixteen failures and hands back a number nobody can act on. 28 is the baseline to compare
+#   against — never zero, and never 44.
+#
+# `-o addopts=` — the run must be STRUCTURALLY unable to inherit `-n auto`, not merely
+#   override it. A trailing `-n 2` would win by ordering alone, which is a property of how
+#   pytest happens to prepend addopts rather than a guarantee; clearing the key removes the
+#   inheritance itself. `pythonpath`, `markers` and `minversion` live in their own ini keys and
+#   are untouched. THE INTERACTIVE PATH IS NOT CHANGED — `addopts = "-n auto"` above stays
+#   exactly as it is, because an operator watching a run wants every core.
+#
+# `-n 2` — bounded on purpose. `-n auto` OOM-KILLED five consecutive suite attempts on the
+#   operator's host (2026-09-07/08: 3.2 GB free of 28 GB, the rest held by OneDrive, VS Code
+#   and Chrome), and an OOM kill is the one failure that produces no report at all. An
+#   unattended run trades wall-clock for a result that exists.
+#
+# `--timeout=900` — pytest-timeout; the per-test wedge guard. The value is
+#   `gen_handoff.SHIP_GATE_TIMEOUT_S`, reused rather than re-derived — see the dependency
+#   comment in [dependency-groups] above for why that is the citable ceiling.
+#
+# `-rf` — the FAILED list is the artifact. A bare `-q` tail gives a count; the reconciliation
+#   that says "28, and they are these 28" needs the names.
+#
+# WHERE IT RUNS, measured rather than assumed (2026-09-09, lane v-643). The 28-RED baseline was
+# taken on the CODESPACES substrate (4 cores, 16 GB, `nproc 4`), which is where the 2026-08-20
+# substrate ruling already puts this workload. On the operator's Windows host the run does NOT
+# complete AT ANY WORKER COUNT while OneDrive, VS Code and Chrome hold the RAM: at ~2.8 GB free
+# of 28 GB, `-n 2` was killed at 17 % (~13 min) and `-n 0` at 2 % (~7 min), both by the
+# system's low-memory reaper, with no MemoryError and no partial report. THE INVOCATION IS NOT
+# THE CAUSE — serial died sooner than parallel — so `-n 2` stands as the bounded choice against
+# `-n auto`'s sixteen workers, and the constraint to fix is the host, not this line. A run that
+# is killed produces no number at all, which is the one outcome an unattended sweep must not
+# have; this is the third independent witness of that failure, after the five attempts recorded
+# in DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08.
 
 [tool.ruff]
 # === UNIVERSAL (fleet methodology — ARC 4 leg 1, 2026-07-18) ==================

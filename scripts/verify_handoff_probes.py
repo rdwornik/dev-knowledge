@@ -206,23 +206,15 @@ def _missing_required_rows(bundle: str, rows: list[dict]) -> list[str]:
     genuinely different id such as `P-11` or `P.11` onto `P11` and PASSes the exact omission this
     rung exists to catch. An id that is not P11 does not become P11 by being punctuated.
 
-    NARROWED to a bundle that actually HAS probe rows, and the narrowing is deliberate. A
-    `PROBES.md` that parses to zero rows is not a v7.1 bundle omitting P11 — it is a non-probe
-    or non-v5-lineage artifact, the same class `verify()` already returns [] for when there is
-    no `PROBES.md` at all, and `main()` already reports it as "no probes found". Firing the rung
-    there would manufacture a P11 FAIL for every such directory while telling the reader nothing
-    it did not already know.
-
-    THE HOLE IS WIDER THAN "someone ships an empty table", and the wider form is the one that
-    matters (terra P2, 2026-09-07). `parse_probes` yields zero rows for ANY manifest it cannot
-    read as a probe table — a renamed or reworded column header (`_map_columns` maps by NAME and
-    returns None unless all four load-bearing columns are found), a missing separator line, a
-    table mangled by a template edit. Such a bundle is in-era, real, and BROKEN, and it bypasses
-    not just this rung but every present-row rung in this file, while `main()` reports the
-    reassuring "no probes found". That is a bundle-completeness question — "is this a probe
-    manifest at all?" — not a row question, and a row-classifier is the wrong organ to answer
-    it; the generator-side seal is. Recorded here rather than papered over, because the next
-    author of that seal needs to know this door is open."""
+    THE ZERO-ROW GUARD BELOW IS NOW UNREACHABLE FROM `verify`, and is kept as a local
+    precondition rather than deleted. `verify()` returns `_unreadable_manifest(...)` before it
+    ever reaches this function when a present `PROBES.md` parses to no rows — the hole this
+    docstring used to record as OPEN ("the next author of that seal needs to know this door is
+    open") was closed on 2026-09-08 by `to-cc/AMEND-643-001.md` §2, at the gate rather than in
+    a generator-side seal. See `_unreadable_manifest` for what that reverses and why the two
+    absences — an ABSENT manifest and an UNREADABLE one — are not the same class. This function
+    keeps its own `not rows` arm so a direct caller cannot reintroduce the bypass by handing it
+    an empty list."""
     if not rows or not bundle_at_or_after(bundle, _V71_ERA):
         return []
     present = {re.sub(r"[\s*_`]", "", r.get("id", "")).upper() for r in rows}
@@ -722,7 +714,181 @@ def _classify(probe: dict, repo_root: Path, bundle: str, cross_repo: bool = Fals
     return _res("pass", "binds to live state")
 
 
+# The manifest-level finding id. Not a probe id: this is a verdict about whether the bundle
+# carries a readable probe TABLE at all, which no row-classifier can answer, and giving it a
+# `P<n>` would let a reader mistake a bundle-completeness defect for one row's failure.
+_MANIFEST_FINDING_ID = "MANIFEST"
+
+
+# rule: handoff-probes-readable
+def _unreadable_manifest(bundle_path) -> list[ProbeResult]:
+    """A PRESENT `PROBES.md` that parses to ZERO rows is a FAIL — the bypass, closed.
+
+    RULED: `to-cc/AMEND-643-001.md` §2, 2026-09-08 — "Zero rows = FAIL, not pass." What it
+    reverses, on the record rather than silently: `_missing_required_rows` was NARROWED to
+    bundles that actually have rows, on the argument that a zero-row manifest is a non-probe
+    artifact, "the same class verify() returns [] for when there is no PROBES.md at all".
+
+    THAT ARGUMENT CONFLATED TWO DIFFERENT ABSENCES. No `PROBES.md` is a non-v5 bundle —
+    genuinely nothing to classify, and that arm is UNCHANGED above. A `PROBES.md` that EXISTS
+    and parses to zero rows is a v5-lineage bundle whose manifest could not be READ:
+    `parse_probes` yields nothing for any table whose four load-bearing columns `_map_columns`
+    cannot find by NAME — a reworded header, a missing separator line, a table mangled by a
+    template edit. Such a bundle is real, in-era and BROKEN, and it bypassed not merely the
+    required-row rung but EVERY present-row rung in this file, while `main()` printed the
+    reassuring "no probes found". A gate reporting a clean run over rows that never parsed is
+    the toothless door P11 exists to catch, one along. This module's own docstring recorded the
+    hole as open ("the next author of that seal needs to know this door is open"); this is that
+    author, and it closes here rather than in a generator-side seal, because the reader who
+    needs the verdict is the one running the gate.
+
+    ERA-GATED by the same `bundle_at_or_after` predicate as every other rung, never a second
+    date compare free to disagree with the first. Bundles cut before v7.1 are immutable sealed
+    artifacts that can never grow a manifest, and `check_handoff_probes` reads the newest of
+    them on every commit; condemning the past for the present's rule is the one thing "judged
+    by their own era" forbids.
+    """
+    if not bundle_at_or_after(Path(bundle_path).name, _V71_ERA):
+        return []
+    return [ProbeResult(
+        _MANIFEST_FINDING_ID, "fail",
+        "no probe rows: PROBES.md is present but parses to zero rows, so every rung in this "
+        "gate had nothing to classify and the run would otherwise report clean. A probe table "
+        "this validator cannot read is a broken bundle, not an absent one "
+        "(HANDOFF_PROCESS §5; AMEND-643-001 §2)",
+        Path(bundle_path).name)]
+
+
 # rule: handoff-probes-bind
+_CARRIAGE_FINDING_ID = "P11-CARRIAGE"
+#: The era this rung binds. Bundles cut before it are NOT retro-judged, and the reason is
+#: measurement rather than leniency: the transport read here is TODAY's, so judging a 2026-06
+#: bundle would test it against decision files that did not exist when it was cut. Same
+#: predicate `_missing_required_rows` and `audit.check_supplement_folded` share — a third era
+#: gate written by hand is how two era gates disagree.
+_CARRIAGE_ERA = "2026-09-09"
+
+
+def _residual_is_sealed_and_unchanged(bundle_path: Path, repo_root: Path) -> bool:
+    """True when this bundle's RESIDUAL.md is in `HEAD` **and identical to it** — sealed.
+
+    BOTH LEGS, and the second is the one that matters. "Exists in HEAD" alone is not
+    immutability: the documented flow commits the COLD bundle first and stages a FILLED
+    RESIDUAL.md afterwards, so an exists-only test exempts the bundle at precisely the post-fill
+    commit this rung exists to police (terra, 2026-09-09). A residual that DIFFERS from its
+    sealed copy is being written right now, which means it can still be repaired — so it is
+    judged.
+
+    RESIDUAL.md is the probe rather than the directory, because it is the file the rung judges:
+    once THAT is sealed and untouched, the answer the rung would demand can no longer be
+    written into it.
+
+    Fails toward JUDGING. A non-repo, absent git, or any error returns False, so the rung runs
+    rather than silently disappearing — the direction a gate should fail when it cannot tell.
+    """
+    try:
+        rel = bundle_path.resolve().relative_to(repo_root.resolve()).as_posix()
+    except (ValueError, OSError):
+        return False
+    try:
+        import gen_handoff as _gh  # noqa: PLC0415
+    except ImportError:
+        return False
+    residual = f"{rel}/RESIDUAL.md"
+    in_head, _out = _gh._git_status(repo_root, "cat-file", "-e", f"HEAD:{residual}")
+    if not in_head:
+        return False
+    # `git diff --quiet HEAD -- <path>` exits 0 only when the path matches HEAD, and it sees
+    # the working tree AND the index — so a staged-but-uncommitted fill counts as changed,
+    # which is exactly the post-fill commit the exists-only test was letting through.
+    unchanged, _out = _gh._git_status(repo_root, "diff", "--quiet", "HEAD", "--", residual)
+    return unchanged
+
+
+def _unnamed_open_carriers(bundle_path: Path, repo_root: Path) -> list[ProbeResult]:
+    """P11 leg 2 at ACCEPTANCE time: `OPEN` decision files this bundle's residual never names.
+
+    THE GAP THIS CLOSES, stated so the three stages are legible as one design. Leg 2 refuses at
+    the POST-FILL assemble; the cold in-cut pass defers, because the residual it would judge was
+    rendered seconds earlier and can name nothing. The cold pass still writes `PASTE_THIS.md`,
+    so an operator who never re-runs the assembler can commit a bundle carrying exactly the
+    shortfall leg 2 exists to prevent — reached by skipping a step, not by defeating a check.
+    `/handoff-verify` is where a bundle is accepted (HANDOFF_PROCESS §5), so it is where that
+    question has to be answerable.
+
+    RESOLVE-ONLY, like every other rung here: it reads the transport and the residual and
+    classifies. It spawns nothing (`carriage_shortfall`'s `main`-resolution leg is leg 1's, and
+    the `OPEN` kind this filters to never reaches it).
+
+    HONEST LIMIT: a bundle committed without anyone running `/handoff-verify` is not reached by
+    this rung, and no amount of work inside this file changes that — it is a gate, and a gate
+    that is not run gates nothing. What it removes is the SILENT path: every route that does
+    run now names the debt.
+    """
+    if not bundle_at_or_after(bundle_path.name, _CARRIAGE_ERA):
+        return []
+    residual = bundle_path / "RESIDUAL.md"
+    if not residual.exists():
+        return []                       # not a v5-lineage bundle; nothing to judge
+    try:                                # deferred sibling-CLI import, the established idiom
+        import gen_handoff as _gh  # noqa: PLC0415
+    except ImportError:
+        return []
+    # HUB-ONLY BY REPO IDENTITY, and this guard is load-bearing rather than defensive. The
+    # transport is a MACHINE-level surface (`CLAUDE_PROMPTS_DIR`), so judging any bundle that is
+    # not in THIS checkout against it is a category error: a consumer repo carries no such
+    # window, and — measured, not theorised — a synthesized bundle in a unit test was being
+    # judged against the operator's real transport, making a suite result depend on what
+    # happened to be sitting in `H:\...\CLAUDE PROMPT DIR`. `_is_hub` is the predicate already
+    # ruled for exactly this scoping (`gen_handoff._is_hub`, the same one
+    # `audit.check_journal_spine_anchor` uses for ADR-85's floor); a second one written here
+    # would be free to disagree with it.
+    if not _gh._is_hub(Path(repo_root)):
+        return []
+    # STILL REPAIRABLE, or not judged. This is the bound that keeps a commit-tier check from
+    # becoming a wedge, and the repo already has a ruling on the shape: `audit.py` keeps
+    # `check_funnel_lifecycle` at SHIP rather than COMMIT tier because "a COMMIT tier would
+    # wedge every commit on a defect the committer cannot legally repair". The same argument
+    # applies here with an even harder edge. `check_handoff_probes` IS commit-tier, the
+    # transport keeps growing, and a decision file filed after the cut can never appear in that
+    # bundle's residual — a committed bundle is immutable, and the only repair is a superseding
+    # cut. Unbounded, this rung would fail every later commit in the repo on a defect nobody is
+    # permitted to fix.
+    #
+    # It is the same criterion leg 2 rests on everywhere else — "the refusal has to land while
+    # the bundle is still repairable" — read here from git rather than assumed. Teeth are kept
+    # exactly where they can be acted on: the cut, `/handoff-verify`, and the commit that FIRST
+    # lands the bundle (its residual is staged, not yet in HEAD). That is strictly more than
+    # the historical failure had, where two bundles shipped and the shortfall surfaced only
+    # after they were committed and merged.
+    if _residual_is_sealed_and_unchanged(bundle_path, Path(repo_root)):
+        return []
+    CARRIAGE_OPEN, carriage_shortfall = _gh.CARRIAGE_OPEN, _gh.carriage_shortfall
+    transport = _gh.transport_root()
+    if transport is None:
+        # DEGRADED, never absent. An unknown boundary is not a clean one (DEFECT E-29), and a
+        # rung that vanishes when it cannot measure reads as a pass to every consumer of this
+        # list. `skipped` is this validator's existing word for "measured nothing, honestly".
+        return [ProbeResult(
+            _CARRIAGE_FINDING_ID, "skipped",
+            "P11 leg 2 not measured: CLAUDE_PROMPTS_DIR is UNRESOLVED and ~/Downloads is not a "
+            "directory either, so the decision files this bundle must carry cannot be read",
+            bundle_path.name)]
+    text = residual.read_text(encoding="utf-8", errors="replace")
+    unnamed = [v for v in carriage_shortfall(transport, repo_root, residual=text)
+               if v.kind == CARRIAGE_OPEN]
+    if not unnamed:
+        return []
+    named = ", ".join(f"{v.path.parent.name}/{v.path.name}" for v in unnamed)
+    return [ProbeResult(
+        _CARRIAGE_FINDING_ID, "fail",
+        f"{len(unnamed)} decision file(s) state `carried-by: OPEN` and are named nowhere in "
+        f"RESIDUAL.md: {named}. An OPEN carrier discharges P11 only by being named in this "
+        "bundle's residual — a window may hand off with debt, never with debt that is silent "
+        "(DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08 / DECLARE-PREFLIGHT-QUESTION-ROW-2026-09-08)",
+        bundle_path.name)]
+
+
 def verify(bundle_path, repo_root=None, cross_repo=False) -> list[ProbeResult]:
     """Classify every probe in <bundle_path>/PROBES.md. Read-only; resolve-only.
 
@@ -742,6 +908,8 @@ def verify(bundle_path, repo_root=None, cross_repo=False) -> list[ProbeResult]:
         return []
     md = probes_file.read_text(encoding="utf-8")
     rows = parse_probes(md)
+    if not rows:
+        return _unreadable_manifest(bundle_path)
     results = [_classify(p, repo_root, bundle_path.name, cross_repo) for p in rows]
     # v7.1: absence is a verdict too. Appended AFTER the per-row results so table order is
     # preserved for everything that is present, and the synthesized rows read as what they are.
@@ -751,6 +919,11 @@ def verify(bundle_path, repo_root=None, cross_repo=False) -> list[ProbeResult]:
                     "(HANDOFF_PROCESS §5 — a missing required row is not a pass)",
                     bundle_path.name)
         for pid in _missing_required_rows(bundle_path.name, rows))
+    # [#643] P11 leg 2, judged where the bundle is ACCEPTED. Appended last, and for the same
+    # reason the required-row rows are appended rather than interleaved: everything present in
+    # the table keeps its order, and a synthesized row reads as what it is.
+    if not cross_repo:
+        results.extend(_unnamed_open_carriers(bundle_path, repo_root))
     return results
 
 

@@ -236,6 +236,201 @@ def window_specific_bytes(sections: list[tuple[str, str]], answers_label: str = 
     return total
 
 
+# --- P11 leg 2: an OPEN carrier is discharged by the RESIDUAL, and only here ([#643]) -----
+#
+# WHY THIS GATE IS AT ASSEMBLY AND NOT AT PREFLIGHT. P11 has two legs and they do not become
+# checkable at the same moment. Leg 1 — a flush-left `carried-by:` whose value resolves on
+# `main` — reads only the transport and `main`, so it refuses BEFORE the cut, as preflight row
+# `p11_carriage` in gen_handoff.py. Leg 2 is the other arm of the same disjunction: a value
+# that is the literal `OPEN` discharges P11 *only* by being NAMED in this bundle's residual —
+# and the residual does not exist when preflight runs. It is written by the generator as a
+# fillable file and filled by the operator afterwards. ASSEMBLY IS THE FIRST MOMENT BOTH
+# OPERANDS EXIST, which is what makes it the first moment the conjunct can be tested at all.
+# One preflight row claiming to cover both legs would be the false completeness P11 exists to
+# catch — the shape row 1 already documents for its own second conjunct.
+#
+# WHAT IT COST TO NOT HAVE THIS. Measured 2026-09-08: `2026-09-08-dev-knowledge-architect` and
+# its `-2` successor failed P11 on the SAME 25-file transport, five files each time, because
+# nothing between them tested carriage before the bundle was written. A committed handoff is
+# immutable, so each discovery cost a superseding cut.
+#
+# ONLY THE `OPEN` KIND IS JUDGED HERE. A file whose value names a home was leg 1's subject and
+# was already refused-or-passed before the cut; re-judging it would put one predicate in two
+# places, free to disagree about the same file. The shortfall itself comes from
+# `gen_handoff.carriage_shortfall`, which BOTH stages call — there is one predicate, not two.
+#
+# Family precedent for a handoff refusing debt, cited in the refusal the operator reads:
+# `DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08` / `DECLARE-PREFLIGHT-QUESTION-ROW-2026-09-08`.
+# A window may hand off with debt only when the debt is explicit and owned.
+
+#: The bundle home a real cut lands in. HONEST LIMIT, and it is why the gate is scoped rather
+#: than universal: `assemble_paste.py` also runs over ad-hoc directories (fixtures, one-off
+#: assemblies) that are not a window's handoff and carry no residual duty. A gate that refused
+#: those would be measuring something it was never given.
+_BUNDLE_HOME_PARTS = ("docs", "handoffs")
+
+
+def _is_window_bundle(bundle_dir: Path, repo_root: Path) -> bool:
+    """True when `bundle_dir` is `<repo_root>/docs/handoffs/<slug>` — a real cut's home."""
+    try:
+        rel = bundle_dir.resolve().relative_to(repo_root.resolve())
+    except (ValueError, OSError):
+        return False
+    return len(rel.parts) >= 3 and rel.parts[:2] == _BUNDLE_HOME_PARTS
+
+
+def _invalidate_stale_paste(bundle_dir: Path, unnamed) -> None:
+    """Overwrite an EXISTING PASTE_THIS.md with a refusal stub naming what is owed.
+
+    THE ARTEFACT A REFUSAL LEAVES BEHIND, and it only became a hole once the cold pass was
+    allowed to write a paste. The cold cut assembles PASTE_THIS.md and defers; the operator
+    fills the bundle, names no carrier, re-runs; this function's caller refuses and exits
+    BEFORE rewriting the paste. Without this, that complete, pasteable cold artifact is still
+    on disk and the operator ships the very thing the gate refused (terra, 2026-09-09).
+
+    INVALIDATED, NOT DELETED, and both halves of that are deliberate. This script owns
+    PASTE_THIS.md outright — its own header says the file is never hand-edited — so replacing
+    its contents is within its remit where deleting an operator's file would not be. And a stub
+    that says REFUSED is louder than an absence: a missing file reads as "the tool did not
+    run", while this one carries its own repair instructions to whoever opens it.
+
+    ONLY WHEN ONE ALREADY EXISTS. A refusal on a bundle that never had a paste still leaves
+    none, which is the guarantee the cold-cut tests assert and it is not weakened here.
+    """
+    paste = bundle_dir / "PASTE_THIS.md"
+    if not paste.exists():
+        return
+    owed = "\n".join(f"  - {v.path.parent.name}/{v.path.name}" for v in unnamed)
+    paste.write_text(
+        "=== THIS HANDOFF WAS REFUSED — DO NOT PASTE ===\n\n"
+        "P11 leg 2 refused this bundle, and the assembled paste that used to be here has been\n"
+        "replaced by this notice. It was written by an earlier COLD pass, before the residual\n"
+        "was filled, and pasting it would ship the handoff the gate just refused.\n\n"
+        "These decision files state `carried-by: OPEN` and are named nowhere in RESIDUAL.md:\n"
+        f"{owed}\n\n"
+        "Name each one in this bundle's RESIDUAL.md — the transport-qualified path, e.g.\n"
+        "`to-cc/<file>.md` — then re-run scripts/assemble_paste.py on this directory. A window\n"
+        "may hand off with debt; it may never hand off with debt that is silent.\n",
+        encoding="utf-8", newline="\n")
+    click.echo(f"  -> the stale PASTE_THIS.md from the cold pass was REPLACED with a refusal "
+               f"notice; {paste} is not pasteable", err=True)
+
+
+# rule: handoff-open-carrier-named
+def _residual_is_an_untouched_render(text: str) -> bool:
+    """True when EVERY FILL-IN region in `text` still holds the generator's own placeholder.
+
+    This is what "the cold pass" actually means, DERIVED from the artifact rather than taken
+    on trust from a caller. A template render satisfies it by construction; the moment the
+    operator writes into any region it stops holding, so a PARTIALLY filled residual is judged
+    rather than exempt -- strictly tighter than the flag this replaced.
+
+    A residual with NO FILL-IN regions is not an untouched render and returns False: absence of
+    regions is not evidence of innocence, and this predicate gates a refusal.
+    """
+    from gen_handoff import FILL_IN_RE  # noqa: PLC0415 (sibling CLI; deferred import)
+    bodies = [m.group("body") for m in FILL_IN_RE.finditer(text)]
+    return bool(bodies) and all(_PLACEHOLDER_RE.match(b) for b in bodies)
+
+
+def assert_open_carriers_named(bundle_dir: Path, repo_root: Path) -> None:
+    """Refuse assembly while an `OPEN` decision file is unnamed in the filled residual.
+
+    Exits 1 before `PASTE_THIS.md` is written, which is the whole point: the refusal has to
+    land while the bundle is still repairable.
+
+    TWO PASSES, and only the second is judged. The assembler runs once inside the cut
+    (spawned by `gen_handoff._run_assembler`) and again when the operator
+    re-runs it after filling. On the first pass `RESIDUAL.md` is a template render from seconds
+    earlier and can name nothing, so the gate DEFERS -- printing what is owed rather than
+    refusing. Judging there would refuse every cut on a window carrying any `OPEN` debt, which
+    is the documented default flow, not an edge case. This is leg 2's own reasoning applied one
+    stage further in: a conjunct is judged where both operands exist, and nowhere earlier.
+
+    THE EXIT CODE NOW PROPAGATES, and the correction is recorded because this docstring
+    previously argued it did not need to. `gen_handoff.generate(assemble=True)` spawned this
+    script with `check=False` and returned a GenResult regardless, so the standard cut command
+    printed `Generated bundle` and exited 0 on a bundle this function had just refused. The
+    old note reasoned that no `PASTE_THIS.md` was guarantee enough — a bundle with no
+    assembled paste cannot be pasted. That reasoning was wrong in the way understated risks
+    usually are: it priced the missing FILE and ignored the false RECEIPT beside it, and a
+    receipt saying the cut is clean is acted on, while an absent one is not. Terra HIGH,
+    2026-09-09. `gen_handoff._run_assembler` returns this exit code and `generate()` raises
+    `AssemblyRefusedError` on any non-zero, which `main` renders as one `[error]` line and a
+    non-zero exit.
+    """
+    # Deferred, sibling-CLI import — the same idiom `reflow_framing` / `FILL_IN_RE` already use.
+    from gen_handoff import (  # noqa: PLC0415
+        CARRIAGE_OPEN,
+        carriage_shortfall,
+        transport_root,
+    )
+    if not _is_window_bundle(bundle_dir, repo_root):
+        return
+    residual = bundle_dir / "RESIDUAL.md"
+    if not residual.exists():
+        return              # the required-source check below reports the absence itself
+    transport = transport_root()
+    if transport is None:
+        click.echo("[error] P11 leg 2 could not be measured: CLAUDE_PROMPTS_DIR is UNRESOLVED "
+                   "and ~/Downloads is not a directory either, so the decision files this "
+                   "bundle must carry cannot be read. An unknown boundary is not a clean one "
+                   "(DEFECT E-29) — refusing rather than assembling on an unmeasured window.",
+                   err=True)
+        sys.exit(1)
+    text = residual.read_text(encoding="utf-8", errors="replace")
+    unnamed = [v for v in carriage_shortfall(transport, repo_root, residual=text)
+               if v.kind == CARRIAGE_OPEN]
+    if not unnamed:
+        return
+    # BOTH LEGS, and the second closes the bypass the first one left. A residual-only test
+    # defers whenever the residual is untouched -- including on the POST-FILL run, when the
+    # operator has filled SUPPLEMENT.md and simply left every RESIDUAL.md placeholder alone.
+    # That is the documented assembly step, so the gate would be skipped exactly where it is
+    # supposed to bite (terra, 2026-09-09). The bundle's own fill state is the discriminator,
+    # read through `detect_fill_state` -- the ONE definition, which itself reuses
+    # `_extract_answers` above so the framing flip and this gate cannot disagree about what
+    # "filled" means.
+    #
+    # Deferral therefore needs the bundle to be cold ALL THE WAY: nothing folded, and no region
+    # written. Anything else is judged.
+    from gen_handoff import detect_fill_state  # noqa: PLC0415 (sibling CLI; deferred import)
+    if not detect_fill_state(bundle_dir) and _residual_is_an_untouched_render(text):
+        # THE FIRST OF TWO PASSES, and the residual it would judge is a template render from
+        # seconds ago. `.claude/commands/handoff.md` states the flow: the operator fills the
+        # supplement, "then commit the filled file and re-run scripts/assemble_paste.py". Only
+        # that second run has both operands. Refusing here refuses every cut on a window
+        # carrying ANY `OPEN` debt -- eight files on the live transport today -- which is the
+        # documented default flow, not an edge case.
+        #
+        # This is the same reasoning that put leg 2 at assemble time rather than at preflight,
+        # applied one stage further in: judge a conjunct where both of its operands exist, and
+        # nowhere earlier. It is a DEFERRAL, not an exemption -- the post-fill run below is
+        # unchanged, and `test_the_post_fill_pass_still_refuses_the_same_bundle` pins that the
+        # identical bundle still refuses there.
+        #
+        # LOUD, because a silent skip is the failure mode this lane was sent to fix. The
+        # operator is told which files they owe while the bundle is still repairable.
+        click.echo(f"[defer] P11 leg 2: {len(unnamed)} decision file(s) state `carried-by: "
+                   "OPEN` and are named nowhere in this bundle's RESIDUAL.md yet. NOT a pass "
+                   "-- the residual was rendered moments ago and cannot name anything. Name "
+                   "each of these in RESIDUAL.md before you re-run this assembler after "
+                   "filling; that run REFUSES on what is still missing.", err=True)
+        for v in unnamed:
+            click.echo(f"  | {v.path.parent.name}/{v.path.name}", err=True)
+        return
+    click.echo(f"[error] P11 leg 2: {len(unnamed)} decision file(s) state `carried-by: OPEN` "
+               f"and are named nowhere in {residual.name}. An OPEN carrier discharges P11 only "
+               "by being named in this bundle's residual — a window may hand off with debt, "
+               "never with debt that is silent (DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08 / "
+               "DECLARE-PREFLIGHT-QUESTION-ROW-2026-09-08). Refusing to assemble; a committed "
+               "bundle is immutable and the only later repair is a superseding cut.", err=True)
+    for v in unnamed:
+        click.echo(f"  | {v.path.parent.name}/{v.path.name}", err=True)
+    _invalidate_stale_paste(bundle_dir, unnamed)
+    sys.exit(1)
+
+
 @click.command()
 @click.option("--pin-only", is_flag=True,
              help="Print only the 3-line ROLE PIN and exit (v7 /boot-session use — "
@@ -269,6 +464,11 @@ def main(pin_only: bool, bundle_dir: Path | None) -> None:
     if flipped:
         click.echo("[reflow] SUPPLEMENT filled -> flipped cold framing to FILLED in: "
                    f"{', '.join(flipped)}", err=True)
+
+    # P11 leg 2, and it runs FIRST — after the fill-state flip (so the residual read here is
+    # the FILLED one) and before a single byte of PASTE_THIS.md is composed. A refusal is only
+    # worth having while the bundle is still repairable.
+    assert_open_carriers_named(bundle_dir, repo_root)
 
     sections: list[tuple[str, str]] = []
 
