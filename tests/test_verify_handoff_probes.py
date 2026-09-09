@@ -1046,7 +1046,16 @@ def test_check_degrades_loudly_when_repo_is_nested_in_another_repo(tmp_path):
 # escapes as SystemExit, and the pre-R6 invocations keep working byte-for-byte.
 
 def _empty_bundle(tmp_path):
-    bundle = tmp_path / "b"
+    """A bundle whose PROBES.md carries no rows — the no-op fixture the ARGUMENT-PARSING tests
+    below use, so that what they measure is argparse and nothing else.
+
+    The directory name is PRE-ERA on purpose ([#643], 2026-09-08). A zero-row `PROBES.md` is
+    now a FAIL for an in-era bundle (`_unreadable_manifest`; AMEND-643-001 §2), and
+    `bundle_at_or_after` treats an UNPARSEABLE name as in-era, fail-closed — so the previous
+    bare `b` would make every caller here return 1 and turn tests about flag spelling into
+    tests about the new verdict. A pre-era name keeps `verify()` returning [] exactly as it
+    did, which is the no-op these tests were written against."""
+    bundle = tmp_path / "2026-06-12-b"
     bundle.mkdir()
     (bundle / "PROBES.md").write_text("no rows here\n", encoding="utf-8")
     return bundle

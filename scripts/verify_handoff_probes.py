@@ -206,23 +206,15 @@ def _missing_required_rows(bundle: str, rows: list[dict]) -> list[str]:
     genuinely different id such as `P-11` or `P.11` onto `P11` and PASSes the exact omission this
     rung exists to catch. An id that is not P11 does not become P11 by being punctuated.
 
-    NARROWED to a bundle that actually HAS probe rows, and the narrowing is deliberate. A
-    `PROBES.md` that parses to zero rows is not a v7.1 bundle omitting P11 — it is a non-probe
-    or non-v5-lineage artifact, the same class `verify()` already returns [] for when there is
-    no `PROBES.md` at all, and `main()` already reports it as "no probes found". Firing the rung
-    there would manufacture a P11 FAIL for every such directory while telling the reader nothing
-    it did not already know.
-
-    THE HOLE IS WIDER THAN "someone ships an empty table", and the wider form is the one that
-    matters (terra P2, 2026-09-07). `parse_probes` yields zero rows for ANY manifest it cannot
-    read as a probe table — a renamed or reworded column header (`_map_columns` maps by NAME and
-    returns None unless all four load-bearing columns are found), a missing separator line, a
-    table mangled by a template edit. Such a bundle is in-era, real, and BROKEN, and it bypasses
-    not just this rung but every present-row rung in this file, while `main()` reports the
-    reassuring "no probes found". That is a bundle-completeness question — "is this a probe
-    manifest at all?" — not a row question, and a row-classifier is the wrong organ to answer
-    it; the generator-side seal is. Recorded here rather than papered over, because the next
-    author of that seal needs to know this door is open."""
+    THE ZERO-ROW GUARD BELOW IS NOW UNREACHABLE FROM `verify`, and is kept as a local
+    precondition rather than deleted. `verify()` returns `_unreadable_manifest(...)` before it
+    ever reaches this function when a present `PROBES.md` parses to no rows — the hole this
+    docstring used to record as OPEN ("the next author of that seal needs to know this door is
+    open") was closed on 2026-09-08 by `to-cc/AMEND-643-001.md` §2, at the gate rather than in
+    a generator-side seal. See `_unreadable_manifest` for what that reverses and why the two
+    absences — an ABSENT manifest and an UNREADABLE one — are not the same class. This function
+    keeps its own `not rows` arm so a direct caller cannot reintroduce the bypass by handing it
+    an empty list."""
     if not rows or not bundle_at_or_after(bundle, _V71_ERA):
         return []
     present = {re.sub(r"[\s*_`]", "", r.get("id", "")).upper() for r in rows}
@@ -722,6 +714,51 @@ def _classify(probe: dict, repo_root: Path, bundle: str, cross_repo: bool = Fals
     return _res("pass", "binds to live state")
 
 
+# The manifest-level finding id. Not a probe id: this is a verdict about whether the bundle
+# carries a readable probe TABLE at all, which no row-classifier can answer, and giving it a
+# `P<n>` would let a reader mistake a bundle-completeness defect for one row's failure.
+_MANIFEST_FINDING_ID = "MANIFEST"
+
+
+# rule: handoff-probes-readable
+def _unreadable_manifest(bundle_path) -> list[ProbeResult]:
+    """A PRESENT `PROBES.md` that parses to ZERO rows is a FAIL — the bypass, closed.
+
+    RULED: `to-cc/AMEND-643-001.md` §2, 2026-09-08 — "Zero rows = FAIL, not pass." What it
+    reverses, on the record rather than silently: `_missing_required_rows` was NARROWED to
+    bundles that actually have rows, on the argument that a zero-row manifest is a non-probe
+    artifact, "the same class verify() returns [] for when there is no PROBES.md at all".
+
+    THAT ARGUMENT CONFLATED TWO DIFFERENT ABSENCES. No `PROBES.md` is a non-v5 bundle —
+    genuinely nothing to classify, and that arm is UNCHANGED above. A `PROBES.md` that EXISTS
+    and parses to zero rows is a v5-lineage bundle whose manifest could not be READ:
+    `parse_probes` yields nothing for any table whose four load-bearing columns `_map_columns`
+    cannot find by NAME — a reworded header, a missing separator line, a table mangled by a
+    template edit. Such a bundle is real, in-era and BROKEN, and it bypassed not merely the
+    required-row rung but EVERY present-row rung in this file, while `main()` printed the
+    reassuring "no probes found". A gate reporting a clean run over rows that never parsed is
+    the toothless door P11 exists to catch, one along. This module's own docstring recorded the
+    hole as open ("the next author of that seal needs to know this door is open"); this is that
+    author, and it closes here rather than in a generator-side seal, because the reader who
+    needs the verdict is the one running the gate.
+
+    ERA-GATED by the same `bundle_at_or_after` predicate as every other rung, never a second
+    date compare free to disagree with the first. Bundles cut before v7.1 are immutable sealed
+    artifacts that can never grow a manifest, and `check_handoff_probes` reads the newest of
+    them on every commit; condemning the past for the present's rule is the one thing "judged
+    by their own era" forbids.
+    """
+    if not bundle_at_or_after(Path(bundle_path).name, _V71_ERA):
+        return []
+    return [ProbeResult(
+        _MANIFEST_FINDING_ID, "fail",
+        "no probe rows: PROBES.md is present but parses to zero rows, so every rung in this "
+        "gate had nothing to classify and the run would otherwise report clean. A probe table "
+        "this validator cannot read is a broken bundle, not an absent one "
+        "(HANDOFF_PROCESS §5; AMEND-643-001 §2)",
+        Path(bundle_path).name)]
+
+
 # rule: handoff-probes-bind
 def verify(bundle_path, repo_root=None, cross_repo=False) -> list[ProbeResult]:
     """Classify every probe in <bundle_path>/PROBES.md. Read-only; resolve-only.
@@ -742,6 +779,8 @@ def verify(bundle_path, repo_root=None, cross_repo=False) -> list[ProbeResult]:
         return []
     md = probes_file.read_text(encoding="utf-8")
     rows = parse_probes(md)
+    if not rows:
+        return _unreadable_manifest(bundle_path)
     results = [_classify(p, repo_root, bundle_path.name, cross_repo) for p in rows]
     # v7.1: absence is a verdict too. Appended AFTER the per-row results so table order is
     # preserved for everything that is present, and the synthesized rows read as what they are.
