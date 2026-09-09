@@ -363,6 +363,90 @@ repos:
         language: system
         always_run: true
         pass_filenames: false
+      # ---- [#664] THE DELIVERY SPINE: one rebuild, then three refusals that read it ----
+      #
+      # ORDER IS LOAD-BEARING HERE, and it is the only reason four hooks are four rather
+      # than one. `graph-rebuild` writes the store; the three queries below READ it and
+      # build nothing. A full FPG-1 build measures ~10 s on this tree, so three independent
+      # builds would put half a minute on every commit; three store reads measure
+      # milliseconds each. pre-commit runs hooks in file order, so the rebuild must sit
+      # above its readers -- moving any of them past it silently reintroduces the cost or,
+      # worse, reads a store from the previous commit.
+      #
+      # WHY NOT ONE HOOK. Three refusals with one exit code give the operator one reason
+      # for four possible causes. Each hook here names the single property it refuses on,
+      # which is what makes a red one actionable rather than a starting point.
+      #
+      # HUB-ONLY, all four. The graph is this repo's corpus; a consumer repo has its own.
+      - id: graph-rebuild
+        name: Rebuild the persisted FPG-1 store ([#664] clause 1)
+        # THE STORE IS NOT IN THE WORKING TREE. It is written under the RESOLVED git dir
+        # (`git rev-parse --absolute-git-dir`), so it never dirties `git status`, never
+        # trips session-end backpressure, and needs no `.gitignore` line. In a worktree
+        # that resolves per-worktree, which is the correct granularity: a worktree is a
+        # different tree and therefore a different graph.
+        #
+        # COST, MEASURED rather than assumed: ~14.6 s wall on the live tree at
+        # 2260 nodes / 14,673 edges, and ~21.9 s for this four-hook chain end to end.
+        # That is the number ADR-118's flip-condition 2 asks W-G1 to fix against the gate
+        # budget, and it is recorded in this lane's artifact alongside the read cost it
+        # buys (2-3 s per query: interpreter start, plus the mtime sweep each query pays
+        # to prove the store is FRESH rather than merely present -- Terra pre-merge P1,
+        # and the hole it closes is a query answering from yesterday's graph). If this
+        # crosses the ship-gate budget the flip-condition is met, and the answer is an
+        # incremental store -- a different design, ruled elsewhere, not a quiet tuning.
+        #
+        # Exit: 0 on a written-and-read-back store, non-zero if it cannot be built or read.
+        # Bypass: --no-verify.
+        entry: uv run --locked python scripts/graph_store.py rebuild
+        language: system
+        always_run: true
+        pass_filenames: false
+      - id: graph-orphan-census
+        name: Orphan census -- a process nothing triggers ([#664] clause 2, intake #86)
+        # REFUSES on a process node (script / command / skill) that no wiring surface
+        # reaches, transitively, and that carries no disposition. This is intake #86's
+        # organ at commit tier: the process-trigger census's method, moved from a one-time
+        # grep pass into a standing query -- *"this replaces the REPETITION of that pass,
+        # not the pass itself."*
+        #
+        # It reads FPG-1 and computes NO EDGES OF ITS OWN, which is intake #86's acceptance
+        # criterion 5 and ADR-118 §1's whole point. `tests/test_graph_spine.py` pins it.
+        #
+        # Exit: 0 clean, 1 on an undispositioned orphan. Bypass: --no-verify.
+        entry: uv run --locked python scripts/graph_queries.py orphan-census
+        language: system
+        always_run: true
+        pass_filenames: false
+      - id: graph-task-coverage
+        name: Task coverage -- a staged file no OPEN row claims ([#664] clause 2)
+        # "nic bez taska" as a mechanism, AT OPEN and not only at CLOSE. REFUSES when a
+        # staged file has no inbound `implements` edge from an OPEN row -- either the row
+        # names the file, or the file names the row.
+        #
+        # A GATE THAT CONSULTS A VIEW, and it says so rather than mis-filing itself.
+        # DECLARE-REVIEWS §A.1 correction 2 rules that two-tree gates cannot be views: the
+        # STAGED SET is commit-time state and stays a gate; the `implements` relation is
+        # corpus structure and is a query. This hook is the join of the two.
+        #
+        # Exit: 0 clean, 1 on an unclaimed staged file. Bypass: --no-verify.
+        entry: uv run --locked python scripts/graph_queries.py task-coverage
+        language: system
+        always_run: true
+        pass_filenames: false
+      - id: graph-process-list
+        name: Process list -- prose naming a process the graph lacks ([#664] clause 2)
+        # The traversal that answers "all processes", plus its refusal: a `dangling_
+        # reference` -- a process path named in ARCHITECTURE.md that the graph does not
+        # hold. `--render` emits the Ch2 body from the same traversal; RENDERING Ch2 is a
+        # different lane (the frozen contract pins ARCHITECTURE.md prose out of this one),
+        # so this hook arms the refusal and produces the answer without rewriting the prose.
+        #
+        # Exit: 0 clean, 1 on a dangling reference. Bypass: --no-verify.
+        entry: uv run --locked python scripts/graph_queries.py process-list
+        language: system
+        always_run: true
+        pass_filenames: false
       - id: audit-health
         name: Audit self-conformance gate (FAIL blocks the commit; WARN only informs)
         # `audit.py health` exits 1 only on a FAIL finding (structural integrity,
