@@ -197,3 +197,46 @@ two rows are upgraded to `‡` in MATRIX.md's terms.
 `…\night\maister` and `…\night\ajcode`. Anyone re-running R2 over the remaining rows needs only
 those paths — but note the job tmp directory is deleted with the job, so a re-run wanting the same
 bytes should re-unzip `AJ_M03_transkrypcje.md.zip` and re-clone, which are both deterministic.
+
+---
+
+## 5. Re-verification recipe — so leg 1a's ~218 unverified locators stay reachable
+
+Phase 3 flagged a real risk: leg 1a's locators are line numbers into split files in the **job temp
+directory, which is deleted with the job**. Rather than commit the transcripts — they are paid
+third-party course material and this bundle copies no external content — the source is pinned by
+hash so any later re-verification can prove it is reading the same bytes.
+
+**Source of record (persists on this host, outside the job):**
+`C:\Users\1028120\Documents\Priv\Architekt Jutra\AJ_M03_transkrypcje.md.zip`
+
+| ARTIFACT | SHA256 | BYTES |
+|---|---|---|
+| `AJ_M03_transkrypcje.md.zip` (as shipped) | `AEF4C9C1DD2199443148E1B882ABC918C0664D2ED16EC04A60EECC8B4E261309` | — |
+| `AJ_M03_transkrypcje.md` (unzipped) | `0200F4A47A48285170A48DC46B3338B1C9C1709E1FB4015AD988B36525B59045` | 91,413 |
+| `L01.md` (lines 1–28) | `0FDF49156B9CF35EC8131A715D57DE9545063F72EDA400AF932F1F0B4BBE5C77` | 9,830 |
+| `L02.md` (lines 29–108) | `81B70B77C85AC4A6E055748F60CB25278DD78CB327E927916F88062708072017` | 23,834 |
+| `L03.md` (lines 109–178) | `B537BC5C77FE87548BE1A5D839DD2B6C409BD528A19FEAFA5D8D53F7DD23AC9E` | 16,150 |
+| `L04.md` (lines 179–238) | `140F45FF72846F19112B15E9725DF069D92F8BF48E3DEFEB694E832E1F8D8896` | 12,891 |
+| `L05.md` (lines 239–300) | `AC34A2EF7636C428E4FB86F4118E6BAB72FF960B2A12B7D17BCB0C2894A847F7` | 15,595 |
+| `L06.md` (lines 301–353) | `FD2CB7922C866D1394724BCE66C6948619674A5340D8B72116A9B3AD6EF4DA3F` | 13,466 |
+
+**Recipe.** Unzip the archive; the `__MACOSX` sibling is discarded. Split
+`AJ_M03_transkrypcje.md` on the line boundaries in the table (they are the `**L0n:` headings, which
+are bold text, **not** `#` headings — a heading-based splitter finds nothing). Read the files with
+UTF-8; the transcripts are Polish and a cp1252 read corrupts them silently. Check the hashes above
+before citing any `L0n.md:NN` locator.
+
+**The split was written by PowerShell** (`Set-Content -Encoding UTF8`), so the split files carry
+CRLF while the source carries LF. That is why each `L0n.md` hash is pinned separately rather than
+derived from the source hash — a re-split with LF endings produces the same *lines* at the same
+*numbers* but different bytes, and the locators remain valid.
+
+**Clone provenance for legs 1b and 1c**, both `--depth 1`, read-only, never modified:
+- repo C — `https://github.com/SkillPanel/maister`
+- repo B — `https://github.com/Architekt-Jutra/architekt-jutra-code` (1,044 files)
+
+Neither clone was pinned to a commit SHA at the time, which is a gap: a later re-verification of
+`SKILL.md:128`-style locators may read a moved line if either upstream has advanced. Any
+re-verification that disagrees with §1 should check upstream history before concluding the original
+citation was wrong.
