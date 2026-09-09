@@ -650,8 +650,24 @@ Rules for the answer, all of them checked mechanically afterwards:
 
 
 def write_probe_corpus(root: Path) -> Path:
-    """Materialise `PROBE_CORPUS` under `root` and return it."""
+    """Materialise `PROBE_CORPUS` under `root` and return it, REFUSING an occupied one.
+
+    `RULES.md`, `HANDBOOK.md` and `gates.yaml` are ordinary enough filenames that a real
+    checkout holds all three, so `--probe-corpus .` inside one would destroy tracked
+    governance files without asking. There is no overwrite path, not even behind a flag:
+    core invariant #3 is never overwrite without asking, and git making it recoverable is
+    not a defence for a command that writes without looking.
+
+    The check is PRE-FLIGHT over the WHOLE corpus, so a refusal writes nothing at all. A
+    half-materialised corpus sitting beside the caller's own files, with an exception to
+    explain it, is the worse failure of the two.
+    """
     root = Path(root)
+    occupied = [rel for rel in PROBE_CORPUS if (root / rel).exists()]
+    if occupied:
+        raise FileExistsError(
+            f"refusing to write the probe corpus into {root}: it already holds "
+            f"{', '.join(sorted(occupied))}. Give an empty or non-existent directory.")
     for rel, text in PROBE_CORPUS.items():
         target = root / rel
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -706,26 +722,88 @@ def control_verdict(root: Path) -> Verdict:
 # CLI
 # ---------------------------------------------------------------------------------------
 
-def seeded_report(root: Path) -> tuple[int, int, list[str]]:
-    """`(refused, total, lines)` for the seeded suite plus its control."""
+@dataclass(frozen=True)
+class SeededReport:
+    """The seeded-suite measurement, ATTRIBUTED rather than merely counted.
+
+    The headline number is `len(attributed)` -- the cases refused FOR THEIR OWN CODE --
+    deliberately not "how many refused". Under a bare refusal count, a shared upstream
+    regression that made all sixteen cases refuse for one reason belonging to none of them
+    would score identically to a healthy gate, and the run would exit 0. That is the
+    instrument-layer failure class the architecture red-team named: the gate is right, the
+    reader is wrong, repeatedly. This module's own headline is produced here, so a counter
+    that cannot tell those two runs apart is not evidence about the gate at all.
+    """
+
+    total: int
+    attributed: tuple[str, ...]
+    unattributed: tuple[tuple[str, tuple[str, ...]], ...]
+    accepted: tuple[str, ...]
+    control: Verdict
+    lines: tuple[str, ...]
+
+    @property
+    def sound(self) -> bool:
+        """Every case refused for its own code, AND the positive control was ADMITTED.
+
+        Both legs, because either alone is satisfiable by a broken gate: "refuses
+        everything" clears the first half of a bare count, and sixteen correct refusals mean
+        nothing once the control no longer clears the gate they are measured against.
+        """
+        return len(self.attributed) == self.total and self.control.admitted
+
+    def refusal_lines(self) -> list[str]:
+        """Why the run is unsound, one line per cause. Empty when it is sound."""
+        out: list[str] = []
+        for code in self.accepted:
+            out.append(f"REFUSING THE RUN: seeded defect {code!r} was ACCEPTED")
+        for code, got in self.unattributed:
+            seen = ", ".join(got) or "no code"
+            out.append(f"REFUSING THE RUN: seeded defect {code!r} refused for {seen} "
+                       f"-- not its own reason, so the refusal is unattributed")
+        if not self.control.admitted:
+            out.append(f"REFUSING THE RUN: the POSITIVE CONTROL was refused "
+                       f"-- {self.control.detail}")
+        return out
+
+
+def seeded_report(root: Path) -> SeededReport:
+    """Adjudicate the seeded suite plus its positive control under `root`.
+
+    Re-MEASURED on the day it runs. The three outcome buckets are kept apart rather than
+    summed, because ACCEPTED, refused-for-the-wrong-reason and refused-for-its-own-reason
+    are three different states of the gate and only the last one is a pass.
+    """
     lines: list[str] = []
-    results = run_seeded_suite(root)
-    refused = 0
-    for case, verdict in results:
-        attributed = verdict.codes == (case.code,)
+    attributed: list[str] = []
+    unattributed: list[tuple[str, tuple[str, ...]]] = []
+    accepted: list[str] = []
+
+    for case, verdict in run_seeded_suite(root):
         if verdict.admitted:
+            accepted.append(case.code)
             mark = "ACCEPTED"
-        elif attributed:
+        elif verdict.codes == (case.code,):
+            attributed.append(case.code)
             mark = "refused"
-            refused += 1
         else:
-            mark = f"refused (unattributed: {', '.join(verdict.codes)})"
-            refused += 1
+            unattributed.append((case.code, verdict.codes))
+            mark = f"refused (unattributed: {', '.join(verdict.codes) or 'no code'})"
         lines.append(f"  [{mark}] {case.code} — {case.rationale}")
+
     control = control_verdict(root)
     lines.append(f"  [control] admissible record -> "
                  f"{'ADMITTED' if control.admitted else 'REFUSED: ' + control.detail}")
-    return refused, len(results), lines
+    # The denominator is the SPEC's code count, not the number of cases that happened to
+    # run: a suite that silently dropped a case would otherwise still print N/N.
+    return SeededReport(
+        total=len(REFUSAL_CODES),
+        attributed=tuple(attributed),
+        unattributed=tuple(unattributed),
+        accepted=tuple(accepted),
+        control=control,
+        lines=tuple(lines),
+    )
 
 
 @click.command(context_settings={"help_option_names": ["-h", "--help"]})
@@ -747,20 +825,28 @@ def cli(record_path: Optional[Path], corpus_root: Path, registry_path: Optional[
     """Adjudicate an `offload` admission record, or re-measure the seeded-defect suite.
 
     Exit code follows the VERDICT, not the transport: 0 only on ADMITTED (or on a seeded run
-    in which every case was refused), 1 on a refusal, 2 when there was nothing to adjudicate.
+    in which every case was refused FOR ITS OWN CODE and the positive control was ADMITTED),
+    1 on a refusal, 2 when there was nothing to adjudicate or the command refused to act.
     A gap that exited 0 would read as a pass to anything shelling out to this command.
     """
     if seeded:
         with tempfile.TemporaryDirectory() as tmp:
-            refused, total, lines = seeded_report(Path(tmp))
-        click.echo(f"seeded-defect cases REFUSED by the {ROLE} admission gate: "
-                   f"{refused}/{total}")
-        for line in lines:
+            report = seeded_report(Path(tmp))
+        click.echo(f"seeded-defect cases REFUSED FOR THEIR OWN CODE by the {ROLE} "
+                   f"admission gate: {len(report.attributed)}/{report.total}")
+        for line in report.lines:
             click.echo(line)
-        raise SystemExit(0 if refused == total else 1)
+        for line in report.refusal_lines():
+            click.echo(line)
+        raise SystemExit(0 if report.sound else 1)
 
     if probe_root is not None:
-        click.echo(f"probe corpus written to {write_probe_corpus(probe_root)}")
+        try:
+            written = write_probe_corpus(probe_root)
+        except FileExistsError as exc:
+            click.echo(f"NOT WRITTEN - {exc}")
+            raise SystemExit(2) from None
+        click.echo(f"probe corpus written to {written}")
         click.echo(PROBE_QUESTION)
         raise SystemExit(0)
 

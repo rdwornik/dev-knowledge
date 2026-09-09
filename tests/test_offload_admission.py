@@ -226,12 +226,18 @@ def test_a_record_that_is_not_a_mapping_is_refused_at_the_loader(tmp_path):
 # the CLI — N is PRINTED, and the exit code follows the verdict
 # ---------------------------------------------------------------------------------------
 
-def test_the_cli_PRINTS_N_and_exits_zero_when_every_seeded_case_is_refused():
+def test_the_cli_PRINTS_N_and_exits_zero_when_every_seeded_case_is_refused_for_its_own_code():
+    """The headline is the ATTRIBUTED count, and the printed wording says so.
+
+    The number the lane quotes is only worth quoting if the line that carries it names the
+    property it stands for -- "sixteen refused for their own code", not "sixteen refused".
+    """
     result = CliRunner().invoke(oa.cli, ["--seeded-defects"])
     assert result.exit_code == 0, result.output
     n = len(oa.REFUSAL_CODES)
-    assert f"REFUSED by the offload admission gate: {n}/{n}" in result.output
+    assert f"REFUSED FOR THEIR OWN CODE by the offload admission gate: {n}/{n}" in result.output
     assert "[control] admissible record -> ADMITTED" in result.output
+    assert "REFUSING THE RUN" not in result.output
     for code in oa.REFUSAL_CODES:
         assert f"[refused] {code}" in result.output
 
