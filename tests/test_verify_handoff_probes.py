@@ -1046,7 +1046,16 @@ def test_check_degrades_loudly_when_repo_is_nested_in_another_repo(tmp_path):
 # escapes as SystemExit, and the pre-R6 invocations keep working byte-for-byte.
 
 def _empty_bundle(tmp_path):
-    bundle = tmp_path / "b"
+    """A bundle whose PROBES.md carries no rows — the no-op fixture the ARGUMENT-PARSING tests
+    below use, so that what they measure is argparse and nothing else.
+
+    The directory name is PRE-ERA on purpose ([#643], 2026-09-08). A zero-row `PROBES.md` is
+    now a FAIL for an in-era bundle (`_unreadable_manifest`; AMEND-643-001 §2), and
+    `bundle_at_or_after` treats an UNPARSEABLE name as in-era, fail-closed — so the previous
+    bare `b` would make every caller here return 1 and turn tests about flag spelling into
+    tests about the new verdict. A pre-era name keeps `verify()` returning [] exactly as it
+    did, which is the no-op these tests were written against."""
+    bundle = tmp_path / "2026-06-12-b"
     bundle.mkdir()
     (bundle / "PROBES.md").write_text("no rows here\n", encoding="utf-8")
     return bundle
@@ -1882,13 +1891,234 @@ def test_required_row_rung_is_era_gated_by_the_shared_predicate(tmp_path):
     assert not vhp.bundle_at_or_after("2026-09-06-dev-knowledge-architect", vhp._V71_ERA)
 
 
-def test_required_row_rung_does_not_fire_on_a_zero_row_probes_file(tmp_path):
-    """A PROBES.md that parses to NO rows is a non-probe artifact, not a v7.1 bundle omitting
-    P11 — the same class verify() returns [] for when there is no PROBES.md at all. Firing the
-    rung there would manufacture a FAIL for every such directory. Deliberate narrowing, pinned
-    so it cannot be 'fixed' back into a false positive; the residual hole (an EMPTY probe table
-    evades the rung, as it evades every present-row rung) belongs to the generator-side seal."""
+# --- the zero-row bypass, CLOSED ([#643] leg b, AMEND-643-001 §2) -----------
+#
+# WHAT THIS REVERSES, on the record rather than silently. Until 2026-09-08 the rung was
+# NARROWED to a bundle that actually HAS probe rows, and the narrowing was pinned by a test
+# whose reasoning was: a `PROBES.md` parsing to zero rows is a non-probe artifact, the same
+# class `verify()` returns [] for when there is no `PROBES.md` at all, so firing there would
+# manufacture a P11 FAIL for every such directory.
+#
+# THAT ARGUMENT CONFLATED TWO DIFFERENT ABSENCES, and the module's own docstring already said
+# so ("THE HOLE IS WIDER THAN 'someone ships an empty table' … recorded here rather than
+# papered over, because the next author of that seal needs to know this door is open"). NO
+# `PROBES.md` is a non-v5 bundle — genuinely nothing to classify. A `PROBES.md` that EXISTS
+# and parses to zero rows is a v5-lineage bundle whose probe manifest could not be read: a
+# reworded column header, a missing separator, a table mangled by a template edit. Such a
+# bundle bypasses not just this rung but EVERY present-row rung in this file, while `main()`
+# prints the reassuring "no probes found". A validator that reports a clean run over a
+# manifest it could not read is the toothless door P11 exists to catch, one along.
+#
+# Ruled: `to-cc/AMEND-643-001.md` §2 ("Zero rows = FAIL, not pass"), 2026-09-08. Era-gated by
+# the SAME `bundle_at_or_after` predicate as the rest, for the same reason: bundles cut before
+# v7.1 are immutable and cannot grow a manifest.
+
+def test_a_present_probes_file_that_parses_to_zero_rows_FAILS(tmp_path):
+    """The bypass, closed. An in-era bundle whose PROBES.md cannot be read as a probe table is
+    BROKEN, and a gate must not report a clean run over rows that never parsed."""
     bundle = tmp_path / "2026-09-07-dev-knowledge-architect"
     bundle.mkdir()
     (bundle / "PROBES.md").write_text("no rows here\n", encoding="utf-8")
+    results = vhp.verify(bundle)
+    assert [r.status for r in results] == ["fail"]
+    assert "no probe rows" in results[0].detail
+
+
+def test_no_probes_file_at_all_is_still_a_non_v5_bundle_and_returns_empty(tmp_path):
+    """The distinction the reversal turns on, pinned so the two absences stay apart: an ABSENT
+    manifest is a non-v5 bundle with nothing to classify; an UNREADABLE one is a defect."""
+    bundle = tmp_path / "2026-09-07-dev-knowledge-architect"
+    bundle.mkdir()
     assert vhp.verify(bundle) == []
+
+
+def test_the_zero_row_refusal_is_era_gated_like_every_other_rung(tmp_path):
+    """A pre-v7.1 bundle is an immutable sealed artifact; condemning it for a rule written
+    after it was sealed is the one thing 'judged by their own era' forbids."""
+    bundle = tmp_path / "2026-06-12-b"
+    bundle.mkdir()
+    (bundle / "PROBES.md").write_text("no rows here\n", encoding="utf-8")
+    assert vhp.verify(bundle) == []
+
+
+# --- [#643] P11 leg 2 at ACCEPTANCE time -------------------------------------
+# Terra pass 2, and it is the hole the pass-1 repair opened. Leg 2 refuses at the POST-FILL
+# assemble, and the cold in-cut pass defers (it has no filled residual to judge). Between the
+# two sits a real gap: the cold pass writes PASTE_THIS.md, so an operator who never re-runs the
+# assembler can commit a bundle whose residual names none of its `carried-by: OPEN` files --
+# the exact shortfall leg 2 exists to prevent, reached by simply not running the second step.
+#
+# `/handoff-verify` is where a bundle is ACCEPTED (HANDOFF_PROCESS §5), so it is where the
+# question "did the residual actually discharge its debt" has to be answerable. This closes the
+# loop to three stages with no silent path: the cut DEFERS, the post-fill assemble REFUSES, and
+# acceptance FAILS. Each names the files owed.
+
+_CARRIAGE_ERA_SLUG = "2026-09-09-carriage"
+
+
+@pytest.fixture
+def as_hub(monkeypatch):
+    """Treat the test's temp repo as the hub for the carriage rung.
+
+    The rung is HUB-ONLY by repo identity because the transport is a MACHINE-level surface.
+    Without this fixture these tests would be skipped by their own scoping; WITH it they
+    exercise the rung against a temp transport rather than the operator's real one, which is
+    the whole point -- a suite result must not depend on what is sitting in the live
+    CLAUDE_PROMPTS_DIR today.
+    """
+    import gen_handoff as gh
+    monkeypatch.setattr(gh, "_is_hub", lambda _root: True)
+
+
+def _transport_with_open(tmp_path, name="BATCH-2026-09-07-CLOSE-CONTRACTS.md"):
+    transport = tmp_path / "transport"
+    (transport / "to-cc").mkdir(parents=True)
+    (transport / "to-cc" / name).write_text(
+        f"# {name}\ncarried-by: OPEN -- in flight\n", encoding="utf-8")
+    return transport, name
+
+
+def test_a_residual_naming_none_of_its_open_carriers_fails_verification(tmp_path, monkeypatch, as_hub):
+    bundle = _init_bundle(tmp_path, [_PASS_SYMBOL], slug=_CARRIAGE_ERA_SLUG)
+    (bundle / "RESIDUAL.md").write_text("# Residual\n\nNothing carried.\n", encoding="utf-8")
+    transport, name = _transport_with_open(tmp_path)
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(transport))
+
+    results = _by_id(vhp.verify(bundle))
+    row = results.get(vhp._CARRIAGE_FINDING_ID)
+    assert row is not None and row.status == "fail", results
+    assert name in row.detail
+
+
+def test_a_residual_that_names_them_verifies_clean(tmp_path, monkeypatch, as_hub):
+    """The negative control. Without it the row above proves only that the rung can fire, never
+    that a correctly-carried window can be accepted -- which is the deadlock every gate in this
+    family was ruled against."""
+    bundle = _init_bundle(tmp_path, [_PASS_SYMBOL], slug=_CARRIAGE_ERA_SLUG)
+    transport, name = _transport_with_open(tmp_path)
+    (bundle / "RESIDUAL.md").write_text(
+        f"# Residual\n\nCarried OPEN: `to-cc/{name}` -- owned by [#643].\n", encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(transport))
+
+    assert vhp._CARRIAGE_FINDING_ID not in _by_id(vhp.verify(bundle))
+
+
+def test_a_pre_era_bundle_is_not_retro_judged(tmp_path, monkeypatch, as_hub):
+    """THE SCOPING, as a test rather than a comment. `verify` runs over historical bundles, and
+    the transport it would judge them against is TODAY's -- every past bundle would be re-judged
+    on files that did not exist when it was cut. The era gate is the same predicate
+    `_missing_required_rows` and `audit.check_supplement_folded` already share; a third one
+    written by hand is how two era gates disagree."""
+    bundle = _init_bundle(tmp_path, [_PASS_SYMBOL], slug="2026-06-12-b")
+    (bundle / "RESIDUAL.md").write_text("# Residual\n\nNothing carried.\n", encoding="utf-8")
+    transport, _name = _transport_with_open(tmp_path)
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(transport))
+
+    assert vhp._CARRIAGE_FINDING_ID not in _by_id(vhp.verify(bundle))
+
+
+def test_an_unmeasurable_transport_is_not_a_silent_pass(tmp_path, monkeypatch, as_hub):
+    """An unknown boundary is not a clean one (DEFECT E-29, the reason leg 2's own transport
+    arm refuses rather than assembles). Here the honest verdict is `skipped` -- this validator
+    is resolve-only and reports degradation rather than manufacturing either verdict -- but it
+    must not vanish, because a rung that disappears when it cannot measure reads as a pass."""
+    bundle = _init_bundle(tmp_path, [_PASS_SYMBOL], slug=_CARRIAGE_ERA_SLUG)
+    (bundle / "RESIDUAL.md").write_text("# Residual\n\nNothing carried.\n", encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(tmp_path / "does-not-exist"))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path / "no-home"))
+    monkeypatch.setenv("HOME", str(tmp_path / "no-home"))
+
+    row = _by_id(vhp.verify(bundle)).get(vhp._CARRIAGE_FINDING_ID)
+    assert row is not None and row.status == "skipped", row
+
+
+def test_a_non_hub_repo_is_never_judged_against_this_machines_transport(tmp_path, monkeypatch):
+    """THE GUARD THAT KEEPS THE SUITE DETERMINISTIC, and it is here because the first cut of
+    this rung failed exactly this way.
+
+    The transport is a MACHINE-level surface (`CLAUDE_PROMPTS_DIR`). Without the hub-identity
+    scope, ANY bundle handed to `verify()` -- including one a unit test synthesizes in a temp
+    directory -- was judged against whatever decision files happened to be sitting in the
+    operator's real transport. That was witnessed, not imagined: a dogfood probe count moved
+    from 15 to 16 because the operator's live transport carried unnamed OPEN carriers, so the
+    suite's answer depended on a directory outside the repo. Note the slug below is in-era
+    (`bundle_at_or_after` is fail-closed on an unparseable date, so `0000-00-00-x` counts as
+    IN-era) -- the era gate does NOT cover this case, which is why the scope has to.
+
+    No `as_hub` fixture here: this test asserts the REAL predicate, so stubbing it would
+    remove its subject.
+    """
+    bundle = _init_bundle(tmp_path, [_PASS_SYMBOL], slug="0000-00-00-x")
+    (bundle / "RESIDUAL.md").write_text("# Residual\n\nNothing carried.\n", encoding="utf-8")
+    transport, _name = _transport_with_open(tmp_path)
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(transport))
+
+    assert vhp._CARRIAGE_FINDING_ID not in _by_id(vhp.verify(bundle))
+
+
+def _commit_bundle(repo_root):
+    ident = ["-c", "user.name=t", "-c", "user.email=t@t"]
+    subprocess.run(["git", "init", "-b", "main"], cwd=repo_root, check=True, capture_output=True)
+    subprocess.run(["git", *ident, "add", "-A"], cwd=repo_root, check=True, capture_output=True)
+    subprocess.run(["git", *ident, "commit", "-m", "cut"], cwd=repo_root, check=True,
+                   capture_output=True)
+
+
+def test_an_already_committed_bundle_is_no_longer_judged(tmp_path, monkeypatch, as_hub):
+    """THE WEDGE THIS GATE MUST NOT BECOME, and the repo has a ruling on exactly this shape.
+
+    `check_handoff_probes` runs at the COMMIT tier, so an unbounded rung re-judges the active
+    bundle on EVERY later commit. The transport keeps growing; a decision file added after the
+    cut can never appear in that bundle's residual, because a committed bundle is IMMUTABLE.
+    The result would be every subsequent commit in the repo failing on a defect the committer
+    is not permitted to repair -- which is verbatim the argument `audit.py` already records for
+    keeping `check_funnel_lifecycle` at SHIP rather than COMMIT tier.
+
+    The bound is the same repairability criterion leg 2 rests on throughout: judge while the
+    bundle can still be fixed. Once it is in HEAD it cannot, so the rung goes silent rather
+    than shouting at someone who cannot act. It keeps full teeth where they are actionable --
+    the cut, `/handoff-verify`, and the commit that first lands the bundle -- which is strictly
+    more than the historical failure had, where two bundles shipped and the defect surfaced
+    only after they were committed and merged.
+    """
+    bundle = _init_bundle(tmp_path, [_PASS_SYMBOL], slug=_CARRIAGE_ERA_SLUG)
+    (bundle / "RESIDUAL.md").write_text("# Residual\n\nNothing carried.\n", encoding="utf-8")
+    transport, name = _transport_with_open(tmp_path)
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(transport))
+
+    # Uncommitted: still repairable, so it is judged -- the control for the assertion below.
+    before = _by_id(vhp.verify(bundle))
+    assert before[vhp._CARRIAGE_FINDING_ID].status == "fail"
+    assert name in before[vhp._CARRIAGE_FINDING_ID].detail
+
+    _commit_bundle(tmp_path / "repo")
+    assert vhp._CARRIAGE_FINDING_ID not in _by_id(vhp.verify(bundle))
+
+
+def test_a_cold_bundle_committed_then_filled_is_still_judged(tmp_path, monkeypatch, as_hub):
+    """THE EXEMPTION'S OWN BYPASS, and it is the documented flow rather than an exotic path.
+
+    The operator commits the COLD bundle, then fills RESIDUAL.md and commits again. An
+    exists-in-HEAD test exempts that second commit -- the bundle's residual is already in HEAD --
+    which is precisely the post-fill commit this rung exists to police, and precisely the
+    skipped-second-assemble route it was built to close. Terra, 2026-09-09.
+
+    So the exemption needs BOTH legs: sealed AND unchanged. A residual that DIFFERS from its
+    committed copy is being written right now, which means it can still be repaired, which means
+    it is judged. `git diff --quiet HEAD -- <path>` sees the index too, so a STAGED fill counts
+    as changed -- the state the pre-commit gate actually observes.
+    """
+    bundle = _init_bundle(tmp_path, [_PASS_SYMBOL], slug=_CARRIAGE_ERA_SLUG)
+    (bundle / "RESIDUAL.md").write_text("# Residual\n\n_(fill: drift)_\n", encoding="utf-8")
+    transport, name = _transport_with_open(tmp_path)
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(transport))
+
+    _commit_bundle(tmp_path / "repo")
+    assert vhp._CARRIAGE_FINDING_ID not in _by_id(vhp.verify(bundle)), "sealed+unchanged"
+
+    # ...the operator now fills it, still naming none of the OPEN carriers.
+    (bundle / "RESIDUAL.md").write_text(
+        "# Residual\n\nReal drift notes, naming no carrier.\n", encoding="utf-8")
+    row = _by_id(vhp.verify(bundle)).get(vhp._CARRIAGE_FINDING_ID)
+    assert row is not None and row.status == "fail", row
+    assert name in row.detail

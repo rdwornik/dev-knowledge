@@ -59,7 +59,7 @@ generated bundle (booting the browser) is `docs/handoffs/README.md`.
 ## Preflight — pre-handoff hygiene is a MECHANISM, not a checklist
 
 `generate()` refuses a cut on any FAILING hygiene row, alongside the two boundary invariants
-it already enforces (WINDOW = BATCH, no leftovers). Nine rows, each PASS / FAIL / n-a with a
+it already enforces (WINDOW = BATCH, no leftovers). Ten rows, each PASS / FAIL / n-a with a
 locator; every failure is named in ONE refusal; nothing is written. The rows and their
 predicates live in `scripts/gen_handoff.py` (`preflight_rows`, `assert_preflight`) — read them
 there, do not restate them here.
@@ -103,6 +103,41 @@ owned; it may never hand off with debt that is silent.**
   repo, so the row renders `[n/a-reason:NO-DECLARED-BUDGET]` and names where one would be
   declared. It never passes silently and it arms itself with no code change. Operator call:
   `[#641]`.
+
+### P11 decision carriage is TWO gates at TWO stages — never one row (`[#643]`)
+
+Row 10 is the third member of the rows-1-and-7 family and lands under the same principle. Read
+this before assuming a single row covers P11: it does not, and a seat told otherwise will ship
+the defect two consecutive bundles already shipped.
+
+- **Leg 1 — `p11_carriage`, a PREFLIGHT row that REFUSES the cut.** Every `DECLARE-` / `AMEND-`
+  / `BATCH-` file on the transport carries a **flush-left `carried-by:` in its head** (first six
+  lines) whose value names a repo home that **resolves on `main`** (`git cat-file -e main:<path>`;
+  a directory is a home). Both operands exist before the cut, so a failure blocks `generate()`
+  **before anything is written** — which matters because a committed bundle is immutable and the
+  only repair is a superseding cut.
+- **Leg 2 — an ASSEMBLE-TIME gate in `scripts/assemble_paste.py`.** A `carried-by:` value that
+  is the literal **`OPEN`** discharges P11 *only* by being **named in this bundle's residual**.
+  The residual does not exist at preflight time, so leg 1 PASSES an `OPEN` file and states the
+  obligation in its evidence line. Assembly is the first moment both operands exist, and it
+  refuses there rather than writing `PASTE_THIS.md`.
+- **Leg 2 fires on the SECOND assemble, not the cut.** The assembler runs twice: once inside
+  `generate()` (cold — `RESIDUAL.md` was rendered seconds earlier and can name nothing) and
+  again when you re-run it after filling, which is the step this file already prescribes below.
+  The cold pass **defers**, printing a `[defer]` block naming every file you owe; the post-fill
+  run **refuses** on whatever is still unnamed. Gating the cold pass would refuse every cut on
+  a window carrying any `OPEN` debt — eight such files on the transport today — so it would
+  block the default flow rather than the defect.
+- **The leg ORDER is load-bearing.** The **stated value** decides which leg applies. Several
+  live decision files carry explanatory prose containing paths that *do* resolve while their
+  stated value is `OPEN`; reading paths first passes them on evidence that is not their carrier
+  value. That is exactly how the 2026-09-08 `-1` run read a seven-file shortfall as two.
+- **Precedent**, cited by both gates: `to-cc/DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08.md` and
+  `to-cc/DECLARE-PREFLIGHT-QUESTION-ROW-2026-09-08.md` — a handoff refuses debt at a preflight
+  row, and hands off with debt only when the debt is explicit and owned.
+- **Honest limit**, stated so it is not overclaimed: the value leg tests that the named home
+  EXISTS on `main`, never that the decision was written INTO it. Closing that is a judgment,
+  not a probe (`protocols/HANDOFF_PROCESS.md` §5).
 
 ## v5/v6/v7 (canonical — default flow; HANDOFF_PROCESS v7 / ADR-82)
 

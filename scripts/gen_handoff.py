@@ -64,8 +64,10 @@ import click
 #: declaration that makes the intent legible; `test_exactly_one_public_funnel_health_emitter`
 #: is what actually holds the line, and it imports FM-5's own regex so the two cannot drift.
 __all__ = [
+    "AssemblyRefusedError",
     "BoundaryHygieneError",
     "BundleCollisionError",
+    "CarriageVerdict",
     "PreflightError",
     "PreflightRow",
     "BundleIdentityError",
@@ -74,8 +76,12 @@ __all__ = [
     "assert_batch_boundary",
     "assert_boundary_hygiene",
     "assert_preflight",
+    "carriage_shortfall",
+    "carriage_verdicts",
+    "carried_by_value",
     "collect_hints",
     "collect_state",
+    "decision_files",
     "detect_fill_state",
     "dispatch_form",
     "funnel_health_block",
@@ -613,6 +619,10 @@ PREFLIGHT_ROW_NAMES = (
     "ship_gate", "ledger_refreshed", "ratification_present", "status_byte_budget",
     "living_docs_stamped", "journal_anchored", "question_disposition",
     "memory_within_cap", "worktree_owners",
+    # Row 10, added 2026-09-08 by [#643]. APPENDED rather than inserted so the ratified
+    # register's own 1-9 numbering -- which two operator rulings and this module's own
+    # docstrings cite by number -- keeps meaning what it meant.
+    "p11_carriage",
 )
 
 
@@ -639,6 +649,27 @@ class PreflightError(RuntimeError):
     states about leftovers: reporting only the first invites a fix-and-retry loop that reveals
     the next one. The refusal fires after the two boundary invariants and before anything is
     written, so a refused cut leaves no half-written bundle behind.
+    """
+
+
+class AssemblyRefusedError(RuntimeError):
+    """Generation refused at the ASSEMBLE step: the child assembler exited non-zero.
+
+    The LAST refusal in the family and the only one that fires AFTER the bundle is written,
+    because the thing it judges -- a filled RESIDUAL.md against the transport window -- does
+    not exist until the render has run. `assemble_paste.py` owns the judgment and prints its
+    own diagnostic; this class exists so the exit code SURVIVES the process boundary.
+
+    Terra HIGH, 2026-09-09. Before it, `generate()` spawned that child with `check=False` and
+    returned a GenResult regardless, so `gen_handoff --assemble` -- the default, and the path
+    an operator actually runs -- printed `Generated bundle` and exited 0 on a bundle leg 2 had
+    just refused. The refusal was real and the receipt contradicted it, which is strictly worse
+    than having no gate: a false witness is acted on, an absent one is not.
+
+    HONEST LIMIT: this propagates ANY non-zero exit from the assembler, not leg 2's
+    specifically. That is deliberate -- the parent has no business re-deciding which of the
+    child's refusals count, and every one of them means the same thing here (no PASTE_THIS.md
+    was written, so there is nothing to hand to a browser).
     """
 
 
@@ -1194,10 +1225,279 @@ def _row_worktree_owners(repo_root: Path, sessions_root: "Path | None" = None) -
                         f"all {len(trees)} linked worktree(s) have an owning session")
 
 
+# --- ROW 10: P11 DECISION CARRIAGE -- and the leg that is deliberately NOT here ([#643]) --
+#
+# WHAT WAS MISSING. `[#643]` was filed as "the preflight runs P11's carriage check too late".
+# It was worse than that: there was no check to move. `verify_handoff_probes` tested that a
+# manifest ROW whose id reads `P11` is PRESENT; no code anywhere opened a transport decision
+# file, read a `carried-by:` line, or asked git anything. P11's "how" cell was a recipe a seat
+# ran by hand, and the 2026-09-08 verdict "ONBOARDING BLOCKED on P11" was produced by a human
+# running that recipe, not by a validator. So this block BUILDS the predicate (AMEND-643-001).
+#
+# THE TWO LEGS GATE AT DIFFERENT STAGES, and that is the design content of the row rather than
+# an afterthought:
+#
+#   LEG 1 (here) -- a flush-left `carried-by:` in the file HEAD whose value names a repo home
+#       that RESOLVES ON `main`. Both operands -- the transport and `main` -- exist before the
+#       cut, so this leg is a REFUSAL: it blocks `generate()` before anything is written.
+#   LEG 2 (NOT here) -- a value that is the literal `OPEN` discharges only by being NAMED in
+#       THIS bundle's residual. The residual does not exist at preflight time; it is filled by
+#       the operator afterwards. The first moment both operands exist is ASSEMBLY, so leg 2
+#       lives in `scripts/assemble_paste.py`. A single row claiming to cover both would be the
+#       false completeness P11 itself exists to catch -- which is why this row PASSES an `OPEN`
+#       file and carries the obligation in its evidence line instead of pretending to test it.
+#
+# THIRD MEMBER OF A FAMILY. Rows 1 and 7 were both amended on 2026-09-08 under one principle:
+# A WINDOW MAY HAND OFF WITH DEBT ONLY WHEN THE DEBT IS EXPLICIT AND OWNED; IT MAY NEVER HAND
+# OFF WITH DEBT THAT IS SILENT. Row 10 is where P11 joins them -- the precedent for a handoff
+# refusing debt at a PREFLIGHT row is `to-cc/DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08.md` and
+# `to-cc/DECLARE-PREFLIGHT-QUESTION-ROW-2026-09-08.md`, cited in the row's own evidence.
+#
+# THE LEG ORDER IS LOAD-BEARING and is how the 2026-09-08 `-1` run read a 7-file shortfall as
+# 2. THE STATED VALUE DECIDES WHICH LEG APPLIES. Several live decision files carry explanatory
+# prose containing paths that DO resolve on `main` while their stated value is the literal
+# `OPEN`; a path-first read passes them on evidence that is not their carrier value and
+# silently under-counts the OPEN set. `OPEN` is therefore tested FIRST, and only on the value.
+#
+# WHAT THE VALUE LEG DOES NOT PROVE, so it is not overclaimed (HANDOFF_PROCESS §5): it tests
+# that the named home EXISTS on `main`, never that the decision was written INTO it. A carrier
+# naming a real file whose body says nothing about the ruling resolves, and that is correct by
+# the letter of 031 §2.2. Closing that is a judgment, not a probe.
+
+#: THREE PREFIXES BY DECISION, not by accident (HANDOFF_PROCESS §5): 031 §2 names these because
+#: they are the shapes that RULE. `ADDENDUM-`, `FINDING-` and `RULING-RELAY-` are measurements
+#: and relays carrying no authority (C-1), so they are outside the enum; widening it is a
+#: ruling, not a lane's call.
+CARRIAGE_PREFIXES = ("DECLARE-", "AMEND-", "BATCH-")
+
+#: The key is read from the file HEAD -- the first six lines, which is where the live
+#: 2026-09-08 measurement read it and what AMEND-643-001 §1(a) specifies. ANCHORED *and*
+#: POSITIONED: a `carried-by:` further down is body prose, and P11's own lesson is that a
+#: predicate matching the DESCRIPTION of an event cannot distinguish the event from its
+#: specification. Measured over the 2026-09-06 window: a bare substring test returned 5 of 13
+#: with three of the five matching on prose about something else; the anchored form returned
+#: 13 of 13 on the same population.
+CARRIAGE_HEAD_LINES = 6
+
+CARRIAGE_RESOLVES = "resolves"
+CARRIAGE_OPEN = "open"
+CARRIAGE_NO_KEY = "no-key"
+CARRIAGE_UNRESOLVED = "unresolved"
+
+_CARRIED_BY_RE = re.compile(r"^carried-by:[ \t]*(\S.*)$", re.MULTILINE)
+
+#: The value states the literal `OPEN` -- tested at the START of the value, and nowhere else.
+#: `AMEND-DAY-001` opens with a resolving path and says "carried OPEN" mid-prose; the live
+#: measurement counts it among the 18 that RESOLVE, and an unanchored search would not.
+_OPEN_VALUE_RE = re.compile(r"^OPEN\b")
+
+#: Repo-home candidates inside a `carried-by:` value. NOT `verify_handoff_probes._FILE_RE`,
+#: and the divergence is deliberate rather than an oversight: that tokenizer requires a file
+#: EXTENSION, while a repo home may be a DIRECTORY -- `DECLARE-BROWSER-TOPOLOGY-2026-09-06.md`
+#: names `docs/intake/` and the live measurement counts it as resolving, because a tree is a
+#: home. So: any slash-bearing path, plus a bare root-level file with a known extension
+#: (`JOURNAL.md`, `LESSONS.md`). The leading lookbehind is that module's, reused verbatim, so
+#: `~/.claude/...` and mid-token matches do not produce phantom candidates.
+_CARRIER_TOKEN_RE = re.compile(
+    r"(?<![\w.\-/\\:])(?:(?:[\w.-]+/)+[\w.-]*|[\w-]+\.(?:py|md|ya?ml|toml|json|sh|ps1))"
+)
+
+#: A `..` segment is not a clean repo-relative home. Same guard, same reason, as F4 in
+#: `verify_handoff_probes`: without it a carrier can name its way out of the tree.
+_CARRIER_UNCLEAN_RE = re.compile(r"(?:^|/)\.\.(?:/|$)")
+
+
+@dataclass(frozen=True)
+class CarriageVerdict:
+    """One decision file's P11 state: the verdict, the value it was read from, and why."""
+    path: Path
+    kind: str
+    value: "str | None"
+    detail: str
+
+    def render(self) -> str:
+        return f"{self.path.name} ({self.detail})"
+
+
+def decision_files(transport) -> list[Path]:
+    """Every `DECLARE-`/`AMEND-`/`BATCH-` file on the live transport, `to-cc/` + `to-browser/`.
+
+    NON-RECURSIVE, unlike `_question_files`, and the asymmetry is intended. An unanswered
+    question does not age out of its population by being archived -- archiving is not a
+    disposition. A decision file is the opposite: it is a SEALED record of the window that
+    ruled it, its carriage was judged in that window, and re-judging it here would condemn a
+    past window for the present's rule -- the one thing "judged by their own era" forbids. The
+    live 2026-09-08 measurement counted the same top-level population (25 files).
+    """
+    root = Path(transport)
+    found: list[Path] = []
+    for sub in ("to-cc", "to-browser"):
+        d = root / sub
+        if not d.is_dir():
+            continue
+        found += [p for p in d.glob("*.md")
+                  if p.is_file() and p.name.startswith(CARRIAGE_PREFIXES)]
+    return sorted(found, key=lambda p: (p.parent.name, p.name))
+
+
+def carried_by_value(path) -> "str | None":
+    """The ANCHORED `carried-by:` value from the file head, or None when there is no such key."""
+    try:
+        head = "".join(Path(path).read_text(encoding="utf-8", errors="replace")
+                       .splitlines(keepends=True)[:CARRIAGE_HEAD_LINES])
+    except OSError:
+        return None
+    m = _CARRIED_BY_RE.search(head)
+    return m.group(1).strip() if m else None
+
+
+def _carrier_tokens(value: str) -> list[str]:
+    """Repo-home candidates in a carrier VALUE, de-duplicated, in order of appearance."""
+    out: list[str] = []
+    for tok in _CARRIER_TOKEN_RE.findall(value):
+        # A citation dies on a trailing period: `…close-packet.md.` and `…manifest.md,` are the
+        # same home as the bare path, and a token keeping the punctuation resolves against
+        # nothing. Trailing `/` is KEPT -- it is what marks a directory home.
+        tok = tok.rstrip(".-")
+        if not tok or _CARRIER_UNCLEAN_RE.search(tok):
+            continue
+        out.append(tok)
+    return list(dict.fromkeys(out))
+
+
+def _resolves_on_main(repo_root, token: str) -> bool:
+    """`git cat-file -e main:<token>` -- one resolution predicate, and it reads `main`.
+
+    NOT the working tree, and that is the whole point of the leg: a carrier naming a file that
+    exists only in an unmerged branch or only on disk has not been carried anywhere the next
+    seat can read. A trailing `/` is stripped because `main:docs/intake/` is not a valid object
+    name while `main:docs/intake` resolves to the tree -- the same home, spelled the way git
+    spells it. Isolated as a function so a fixture with no git history can monkeypatch it.
+    """
+    rel = token.rstrip("/")
+    if not rel:
+        return False
+    ok, _out = _git_status(Path(repo_root), "cat-file", "-e", f"main:{rel}")
+    return ok
+
+
+def carriage_verdicts(transport, repo_root) -> list[CarriageVerdict]:
+    """P11's per-file verdict for every decision file on `transport`. Read-only (Layer-2)."""
+    verdicts: list[CarriageVerdict] = []
+    for path in decision_files(transport):
+        value = carried_by_value(path)
+        if value is None:
+            verdicts.append(CarriageVerdict(
+                path, CARRIAGE_NO_KEY, None,
+                f"no flush-left `carried-by:` in the first {CARRIAGE_HEAD_LINES} lines -- a key "
+                "inside an HTML comment, or in the body, is not anchored"))
+            continue
+        # LEG ORDER. The STATED VALUE decides the leg; see the block header for the measured
+        # under-count a path-first read produced.
+        if _OPEN_VALUE_RE.match(value):
+            verdicts.append(CarriageVerdict(
+                path, CARRIAGE_OPEN, value,
+                "states the literal `OPEN` -- discharged only by this bundle's residual naming "
+                "the file, which is leg 2 and gates at assemble time"))
+            continue
+        tokens = _carrier_tokens(value)
+        home = next((t for t in tokens if _resolves_on_main(repo_root, t)), None)
+        if home is not None:
+            verdicts.append(CarriageVerdict(path, CARRIAGE_RESOLVES, value,
+                                            f"resolves on `main`: {home}"))
+            continue
+        verdicts.append(CarriageVerdict(
+            path, CARRIAGE_UNRESOLVED, value,
+            "names no repo home that resolves on `main` (candidates read from the value: "
+            + (", ".join(tokens) if tokens else "none") + ")"))
+    return verdicts
+
+
+def _residual_names(residual: str, path: Path) -> bool:
+    """True when `residual` names THIS decision file by its transport-relative path.
+
+    QUALIFIED, not a bare basename, and the difference is not pedantry. The predicate was
+    `path.name in residual` — a raw substring search — which reported debt as carried in two
+    distinct ways (terra, 2026-09-09):
+
+      1. AMBIGUITY. `to-cc/X.md` and `to-browser/X.md` are different decisions. One mention of
+         `X.md` discharged BOTH, so a single sentence cleared a file nobody had considered.
+      2. INCIDENTAL MENTION. Any occurrence satisfied it — the filename in an unrelated
+         sentence, inside a code fence, cited for some other purpose entirely.
+
+    The rest of the system already speaks this form: the leg-2 refusal prints
+    `to-cc/NAME.md`, the acceptance rung prints it, and every residual that discharges a
+    carrier in practice writes it that way. Only the predicate was reading the unqualified
+    half of its own convention.
+
+    Both separators are accepted because a residual is prose a human types: markdown says
+    `to-cc/X.md` and a Windows paste may say `to-cc\\X.md`, and neither is a different claim.
+    """
+    qualified = f"{path.parent.name}/{path.name}"
+    return qualified in residual or qualified.replace("/", "\\") in residual
+
+
+def carriage_shortfall(transport, repo_root, *,
+                       residual: "str | None" = None) -> list[CarriageVerdict]:
+    """The files that fall short of P11, across BOTH legs where both are checkable.
+
+    `residual=None` is PREFLIGHT: leg 2's second operand does not exist yet, so an `OPEN` value
+    is not judged. Pass the filled residual text -- which is what `assemble_paste` has -- and
+    an `OPEN` file the residual does not NAME joins the shortfall. This is the one predicate
+    both stages call, so the two can never drift into disagreeing about the same file.
+    """
+    short: list[CarriageVerdict] = []
+    for v in carriage_verdicts(transport, repo_root):
+        if v.kind in (CARRIAGE_NO_KEY, CARRIAGE_UNRESOLVED):
+            short.append(v)
+        elif (v.kind == CARRIAGE_OPEN and residual is not None
+              and not _residual_names(residual, v.path)):
+            short.append(v)
+    return short
+
+
+def _row_p11_carriage(transport, repo_root) -> PreflightRow:
+    """Row 10 -- LEG 1 of P11: every decision file carries an anchored, resolving `carried-by:`.
+
+    An `OPEN` value PASSES here by construction and its obligation is stated, never implied --
+    the same discipline rows 1 and 7 are implemented under, and for the same reason: a row must
+    not report a safety it does not provide, and it must not hide one it only asserts. The
+    residual half is leg 2, in `assemble_paste.py`.
+    """
+    if transport is None:
+        return _no_transport("p11_carriage")
+    locator = (f"{Path(transport)} (to-cc/ + to-browser/, "
+               + "/".join(CARRIAGE_PREFIXES) + ") x `git cat-file -e main:<path>`")
+    verdicts = carriage_verdicts(transport, repo_root)
+    if not verdicts:
+        return _na_row("p11_carriage", "SUBJECT-ABSENT",
+                       "no DECLARE-/AMEND-/BATCH- file on the transport -- this window put no "
+                       "decision on it, so there is no carriage to test", locator)
+    failing = [v for v in verdicts if v.kind in (CARRIAGE_NO_KEY, CARRIAGE_UNRESOLVED)]
+    if failing:
+        shown = "; ".join(v.render() for v in failing[:4])
+        more = f" +{len(failing) - 4} more" if len(failing) > 4 else ""
+        return PreflightRow("p11_carriage", PREFLIGHT_FAIL, locator,
+                            f"{len(failing)} of {len(verdicts)} decision file(s) carry no "
+                            f"anchored `carried-by:` resolving on `main`: {shown}{more}")
+    carried = [v for v in verdicts if v.kind == CARRIAGE_OPEN]
+    tail = ""
+    if carried:
+        tail = (f". CARRIED, and the cut is only honest if it holds: each of the {len(carried)} "
+                "`OPEN` carrier(s) is named in this bundle's residual -- checked at assemble "
+                "time by leg 2, not here, because the residual does not exist yet "
+                "(DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08 / "
+                "DECLARE-PREFLIGHT-QUESTION-ROW-2026-09-08 are the family precedent)")
+    return PreflightRow("p11_carriage", PREFLIGHT_PASS, locator,
+                        f"all {len(verdicts)} decision file(s) anchored "
+                        f"({len(verdicts) - len(carried)} resolve on `main`, "
+                        f"{len(carried)} OPEN){tail}")
+
+
 def preflight_rows(repo_root: Path, *, transport=None, today: "str | None" = None,
                    repo_name: "str | None" = None, sessions_root=None,
                    memory_path=None) -> list[PreflightRow]:
-    """The nine hygiene rows, in `PREFLIGHT_ROW_NAMES` order. Read-only (Layer-2)."""
+    """The ten hygiene rows, in `PREFLIGHT_ROW_NAMES` order. Read-only (Layer-2)."""
     if not _is_hub(repo_root):
         return [_na_row(n, "NOT-APPLICABLE",
                         "hub-only -- this transport window, the stamped-doc set and ADR-85's "
@@ -1216,6 +1516,7 @@ def preflight_rows(repo_root: Path, *, transport=None, today: "str | None" = Non
         _row_question_disposition(transport, today, repo_root),
         _row_memory_within_cap(memory_path or _memory_path(repo_root)),
         _row_worktree_owners(repo_root, sessions_root),
+        _row_p11_carriage(transport, repo_root),
     ]
 
 
@@ -1885,6 +2186,35 @@ class GenResult:
     filled: bool
 
 
+def _assembler_argv(bundle_dir: Path) -> list[str]:
+    """The child assembler's command line. Pure, so a test can read the real argv.
+
+    NO COLD-PASS FLAG, and its absence is the design. An earlier cut passed
+    `--in-generation` here to tell the assembler its residual was a fresh render. Terra,
+    2026-09-09: a flag on a public CLI is a bypass anyone can type, so the gate could be
+    defeated by `assemble_paste.py <filled-bundle> --in-generation`. The assembler now DERIVES
+    that state from the residual itself (`_residual_is_an_untouched_render`), which cannot be
+    asserted from outside — and is tighter besides, since a partially filled residual is judged
+    rather than exempt.
+    """
+    return [sys.executable, str(_SCRIPTS / "assemble_paste.py"), str(bundle_dir)]
+
+
+def _run_assembler(bundle_dir: Path) -> int:
+    """Spawn `scripts/assemble_paste.py` for `bundle_dir`; return the child's exit code.
+
+    Isolated as a named function for the reason `_resolves_on_main` is: it is the seam a test
+    has to stand in for. Monkeypatching `subprocess.run` instead would reach the stdlib module
+    every other caller in this process shares, and `_SCRIPTS` is not the seam either -- it is
+    also the sibling-import path (five `sys.path.insert` sites above), so repointing it shadows
+    the real `assemble_paste` module for anything that imports it later in the same process.
+
+    The cold pass carries no marker: the assembler works out for itself whether the residual is
+    still an untouched render. See `_assembler_argv` for why that is derived rather than told.
+    """
+    return subprocess.run(_assembler_argv(bundle_dir), check=False).returncode
+
+
 def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str | None = None,
              repo: str | None = None, date: str | None = None, force_filled: bool | None = None,
              assemble: bool = True, bundle_root: Path | None = None,
@@ -2038,8 +2368,23 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     draft = journal_draft(slug, date, state, hints)
 
     if assemble:
-        subprocess.run([sys.executable, str(_SCRIPTS / "assemble_paste.py"), str(bundle_dir)],
-                       check=False)
+        # THE COLD PASS. RESIDUAL.md was rendered a few lines above, so leg 2's second operand
+        # does not exist yet — the assembler recognises that from the residual itself and
+        # defers (loudly) to the post-fill re-run. Any non-zero the child still returns — a
+        # missing required source, a broken template — refuses the cut below.
+        code = _run_assembler(bundle_dir)
+        if code != 0:
+            # The bundle is deliberately LEFT ON DISK. Every other refusal in this function
+            # fires before `mkdir` and leaves nothing behind; this one fires after the render,
+            # and that asymmetry is the point of an assemble-time gate — leg 2's whole reason
+            # for gating here is that the bundle is still repairable. Deleting it would take
+            # away the thing the operator has to fix.
+            raise AssemblyRefusedError(
+                f"assembly REFUSED for {bundle_dir} (assemble_paste.py exit {code}); the "
+                "diagnostic above is the assembler's own. No PASTE_THIS.md was written, so "
+                "there is nothing to hand to a browser. Repair what it names — for the P11 "
+                "leg-2 gate that means naming each `carried-by: OPEN` decision file in this "
+                "bundle's RESIDUAL.md — then re-run the assembler on the same directory.")
     return GenResult(bundle_dir=bundle_dir, journal_draft=draft, filled=filled)
 
 
@@ -2082,10 +2427,16 @@ def main(mode: str, epic_slug: str | None, slug: str | None, repo: str | None, d
         res = generate(_REPO_ROOT, mode=mode, slug=slug, repo=repo, date=date,
                        force_filled=force_filled, assemble=assemble, epic_slug=epic_slug,
                        allow_suffix=allow_suffix)
-    except (BundleCollisionError, OpenBatchError, BoundaryHygieneError, PreflightError) as exc:
-        # A REFUSAL, not a crash — one diagnostic line, non-zero exit, nothing written.
-        # RM-8 (target collision) and the two boundary invariants share this exit: each
-        # names what it found, and none of them is recoverable by re-running unchanged.
+    except (BundleCollisionError, OpenBatchError, BoundaryHygieneError, PreflightError,
+            AssemblyRefusedError) as exc:
+        # A REFUSAL, not a crash — one diagnostic line, non-zero exit. RM-8 (target collision)
+        # and the two boundary invariants share this exit: each names what it found, and none
+        # of them is recoverable by re-running unchanged.
+        # AssemblyRefusedError is the one member that differs on both counts, and the
+        # difference is stated rather than left for a reader to discover: it fires AFTER the
+        # bundle is written (its subject does not exist before the render), and it IS
+        # recoverable by re-running — repair what the assembler named, then re-run it. What it
+        # shares is the only thing this handler cares about: no `Generated bundle`, exit 1.
         raise SystemExit(f"[error] {exc}") from exc
     click.echo(f"Generated bundle: {res.bundle_dir}  (fill-state: {'FILLED' if res.filled else 'cold'})")
     if emit_journal:

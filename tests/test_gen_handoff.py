@@ -1383,3 +1383,133 @@ def test_funnel_health_is_not_folded_into_the_browser_paste(tmp_path, fm2):
         p = res.bundle_dir / name
         if p.exists():
             assert _GOLDEN_BEGIN not in p.read_text(encoding="utf-8"), name
+
+
+# --- [#643] the ASSEMBLE seam: a refusing child must refuse the cut -----------------
+# TERRA HIGH, 2026-09-09 (`REVIEW-lane-v-643-enforcement-debt.md` §2). Leg 2 refuses inside
+# `assemble_paste.py`, but `generate()` spawned that child with `check=False`, so on the path
+# an operator actually runs -- `gen_handoff --assemble`, which is the DEFAULT -- the refusal
+# was swallowed: the command printed `Generated bundle` and exited 0. A gate that announces
+# success when it meant to refuse manufactures a FALSE WITNESS, which is worse than no gate --
+# the operator walks away holding a receipt that says the cut is clean.
+#
+# THE DIVISION OF LABOUR, stated so neither half is mistaken for the other. That the CHILD
+# refuses -- exit 1, no PASTE_THIS.md, the OPEN carrier named on stderr -- is proven
+# end-to-end against a real spawned process in tests/test_assemble_paste.py. What is proven
+# HERE is the only thing those tests structurally cannot see: what the PARENT does with the
+# code. So these stand in for the child at `_run_assembler` and assert on the parent alone.
+
+
+def _refusing_assembler(_bundle_dir, **_kwargs):
+    """A child assembler that REFUSED: exit 1, nothing assembled. Exit 1 is what
+    `assemble_paste.assert_open_carriers_named` actually exits with."""
+    return 1
+
+
+def test_generate_refuses_when_the_assembler_refuses(tmp_path, monkeypatch):
+    """RED-first witness for the swallowed exit code: against the seam-only tree this fails
+    with DID NOT RAISE, because `generate()` returned a GenResult on a refused assembly.
+
+    `RuntimeError` is the base deliberately, not a weakening -- every refusal this module
+    already raises (`BundleCollisionError`, `OpenBatchError`, `BoundaryHygieneError`,
+    `PreflightError`) subclasses it, so the `raises` clause names the refusal FAMILY and the
+    message assertions below are what pin this particular member.
+    """
+    monkeypatch.setattr(gh, "_run_assembler", _refusing_assembler)
+    repo = _stub_repo(tmp_path)
+    with pytest.raises(RuntimeError) as exc:
+        gh.generate(repo, mode="architect", slug="0000-00-00-asm", repo=".dev-knowledge",
+                    date="2026-09-09", bundle_root=repo / "docs" / "handoffs", assemble=True)
+    # The refusal names the bundle it stopped on and the code it read. The operator's next act
+    # is to repair THAT bundle and re-run the assembler; a refusal naming neither sends them
+    # looking for both.
+    assert "0000-00-00-asm" in str(exc.value)
+    assert "exit 1" in str(exc.value)
+
+
+def test_a_clean_assembly_still_returns_normally(tmp_path, monkeypatch):
+    """The negative control, and it is not optional: without it the test above proves only
+    that the seam CAN refuse, never that a clean cut still completes -- which is the deadlock
+    a propagated exit code is the obvious way to introduce."""
+    monkeypatch.setattr(gh, "_run_assembler", lambda _bundle_dir, **_kw: 0)
+    repo = _stub_repo(tmp_path)
+    res = gh.generate(repo, mode="architect", slug="0000-00-00-ok", repo=".dev-knowledge",
+                      date="2026-09-09", bundle_root=repo / "docs" / "handoffs", assemble=True)
+    assert res.bundle_dir.name == "0000-00-00-ok"
+
+
+def test_the_cut_command_reports_the_refusal_and_never_prints_generated_bundle(tmp_path,
+                                                                               monkeypatch):
+    """The operator-facing half, and the one the review named: the standard cut command must
+    exit non-zero and must NOT print `Generated bundle`.
+
+    Not a restatement of the first test. This pins that the new refusal reaches `main`'s
+    REFUSAL handler -- one `[error]` line, non-zero exit -- rather than escaping as an
+    unhandled traceback, which also exits non-zero and would leave the first test green while
+    the operator reads a stack trace.
+
+    THE THREE EARLIER REFUSALS ARE STUBBED OUT, and that is load-bearing rather than
+    convenient: a stub repo fails `assert_preflight` on its own, so an unstubbed run exits 1
+    with an `[error]` line from the WRONG gate and this test passes without the assemble step
+    ever running -- the exact `passes for the wrong reason` defect the same review filed as its
+    second finding. Each of the three has its own tests elsewhere; none of them is the subject
+    here.
+    """
+    from click.testing import CliRunner
+
+    repo = _stub_repo(tmp_path)
+    monkeypatch.setattr(gh, "_run_assembler", _refusing_assembler)
+    monkeypatch.setattr(gh, "_REPO_ROOT", repo)
+    monkeypatch.setattr(gh, "assert_batch_boundary", lambda *a, **k: None)
+    monkeypatch.setattr(gh, "assert_boundary_hygiene", lambda *a, **k: None)
+    monkeypatch.setattr(gh, "assert_preflight", lambda *a, **k: [])
+
+    result = CliRunner().invoke(gh.main, ["--slug", "0000-00-00-cli", "--date", "2026-09-09",
+                                          "--assemble", "--no-emit-journal"])
+    assert result.exit_code != 0, result.output
+    assert "Generated bundle" not in result.output
+    assert "[error]" in result.output
+    # A traceback is not a refusal. `main` converts every refusal in this family to SystemExit
+    # carrying the diagnostic; anything else here means the new error missed the handler tuple.
+    assert isinstance(result.exception, SystemExit), repr(result.exception)
+
+
+def test_the_child_argv_carries_no_cold_pass_flag(tmp_path):
+    """THE BYPASS THAT IS NOT THERE, pinned so it cannot come back.
+
+    An earlier cut told the assembler it was the cold pass via `--in-generation`. Terra,
+    2026-09-09: a flag on a public CLI is a bypass anyone can type, so the post-fill gate could
+    be defeated with `assemble_paste.py <filled-bundle> --in-generation`. The assembler now
+    DERIVES that state from the residual, which cannot be asserted from outside.
+
+    A negative assertion earns its place only when the thing it forbids was actually shipped
+    and removed. This one was.
+    """
+    argv = gh._assembler_argv(tmp_path / "b")
+    assert not [a for a in argv if a.startswith("--")], argv
+    assert argv[-1].endswith("b")
+
+
+def test_the_declared_unattended_invocation_still_cites_the_one_ceiling():
+    """[#643] leg e. The unattended suite path is a DECLARED invocation in `pyproject.toml`,
+    deliberately not `addopts` -- the interactive path is not changed, because an operator
+    watching a run wants every core, and the contract pins that ("Do not change `addopts` for
+    the interactive path").
+
+    A declaration nobody checks is the class this whole lane exists to close, so the two claims
+    that declaration makes are pinned here rather than trusted: that it clears `addopts`
+    structurally rather than by argument ordering, and that its timeout IS
+    `gen_handoff.SHIP_GATE_TIMEOUT_S` rather than a second number free to drift from it.
+
+    HONEST LIMIT, stated so this test is not read as more than it is: it pins the DECLARATION,
+    not the enforcement. A bare `pytest` still inherits no timeout, and closing that would mean
+    changing `addopts`, which this lane is explicitly forbidden to do. Terra raised exactly that
+    gap on 2026-09-09 and it is recorded in the lane artifact as an operator call, not silently
+    absorbed here.
+    """
+    text = (_REPO / "pyproject.toml").read_text(encoding="utf-8")
+    line = next((ln for ln in text.splitlines()
+                 if "pytest" in ln and "--timeout=" in ln and "-o addopts=" in ln), None)
+    assert line is not None, "the declared unattended invocation is gone from pyproject.toml"
+    assert f"--timeout={gh.SHIP_GATE_TIMEOUT_S}" in line, line
+    assert "--group analytics" in line, line     # the measured 44-vs-28 difference
