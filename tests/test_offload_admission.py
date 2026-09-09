@@ -257,7 +257,8 @@ def test_the_cli_exit_code_follows_the_verdict(tmp_path):
     seeded = next(c for c in oa.build_seeded_suite() if c.code == "empty-run")
     bad.write_text(_dump_yaml(seeded.record), encoding="utf-8", newline="\n")
 
-    args = ["--corpus", str(tmp_path), "--registry", str(registry), "--record"]
+    args = ["--corpus", str(tmp_path), "--registry", str(registry),
+            "--ground-truth", "none", "--record"]
     assert CliRunner().invoke(oa.cli, args + [str(good)]).exit_code == 0
     refused = CliRunner().invoke(oa.cli, args + [str(bad)])
     assert refused.exit_code == 1
@@ -271,7 +272,7 @@ def test_the_cli_json_output_carries_the_refusal_codes(tmp_path):
     p.write_text(_dump_yaml(seeded.record), encoding="utf-8", newline="\n")
     result = CliRunner().invoke(
         oa.cli, ["--corpus", str(tmp_path), "--registry", str(registry),
-                 "--record", str(p), "--json"])
+                 "--ground-truth", "none", "--record", str(p), "--json"])
     assert result.exit_code == 1
     payload = json.loads(result.output)
     assert payload["admitted"] is False
@@ -291,7 +292,8 @@ _PLANTED = oa.PROBE_PLANTED
 @pytest.mark.parametrize("defect", sorted(_PLANTED))
 def test_each_planted_probe_defect_sits_where_the_module_says_it_does(tmp_path, defect):
     root = oa.write_probe_corpus(tmp_path)
-    for rel, line_no, needle in _PLANTED[defect]:
+    for site in _PLANTED[defect].sites:
+        rel, line_no, needle = site.rel, site.line, site.needle
         lines = (root / rel).read_text(encoding="utf-8").splitlines()
         assert len(lines) >= line_no, f"{rel} has {len(lines)} lines, needs {line_no}"
         assert needle in lines[line_no - 1], (
@@ -320,7 +322,7 @@ def test_a_correct_probe_answer_is_ADMITTED_against_the_probe_corpus(tmp_path):
              "quote": "A commit summary is imperative, specific and under 72 characters."},
         ],
     }
-    verdict = oa.adjudicate(record, corpus, registry, oa.PROBE_REQUIRED_SITES)
+    verdict = oa.adjudicate(record, corpus, registry, oa.PROBE_GROUND_TRUTH)
     assert verdict.admitted, verdict.detail
     assert verdict.locators_verified == 3
 
@@ -353,7 +355,7 @@ def test_the_live_copilot_run_is_REFUSED_on_the_two_reproducibility_legs(tmp_pat
     corpus = oa.write_probe_corpus(tmp_path / "corpus")
     registry = (pathlib.Path(__file__).resolve().parents[1]
                 / "ecosystem" / "provider-registry.yaml")
-    verdict = oa.adjudicate(record, corpus, registry, oa.PROBE_REQUIRED_SITES)
+    verdict = oa.adjudicate(record, corpus, registry, oa.PROBE_GROUND_TRUTH)
     assert not verdict.admitted
     assert set(verdict.codes) == {"unpinned-model", "attestation-is-a-selection-mode"}
 
@@ -541,7 +543,7 @@ def test_a_SHAPE_PERFECT_record_that_walks_past_a_planted_defect_is_REFUSED(tmp_
     registry = oa.write_suite_corpus(tmp_path)
     record = oa.admissible_record()
     record["findings"].pop(1)
-    verdict = oa.adjudicate(record, tmp_path, registry, oa.SUITE_REQUIRED_SITES)
+    verdict = oa.adjudicate(record, tmp_path, registry, oa.SUITE_GROUND_TRUTH)
     assert not verdict.admitted
     assert verdict.codes == ("planted-defect-missed",), verdict.detail
     assert "ecosystem/example.yaml:4" in verdict.detail
@@ -580,7 +582,7 @@ def test_citing_the_OTHER_acceptable_site_for_a_defect_is_not_a_MISS(tmp_path):
              "quote": "A commit summary is imperative, specific and under 72 characters."},
         ],
     }
-    verdict = oa.adjudicate(record, corpus, registry, oa.PROBE_REQUIRED_SITES)
+    verdict = oa.adjudicate(record, corpus, registry, oa.PROBE_GROUND_TRUTH)
     assert verdict.admitted, verdict.detail
 
 
@@ -596,10 +598,10 @@ def test_a_probe_answer_that_finds_ONE_real_line_and_nothing_else_is_REFUSED(tmp
              "quote": "Logs are the institutional memory of the project."},
         ],
     }
-    verdict = oa.adjudicate(record, corpus, registry, oa.PROBE_REQUIRED_SITES)
+    verdict = oa.adjudicate(record, corpus, registry, oa.PROBE_GROUND_TRUTH)
     assert not verdict.admitted
     assert set(verdict.codes) == {"planted-defect-missed"}
-    assert len(verdict.refusals) == len(oa.PROBE_REQUIRED_SITES)
+    assert len(verdict.refusals) == len(oa.PROBE_GROUND_TRUTH)
 
 
 def test_the_planted_map_the_TEST_reads_is_the_one_the_MODULE_scores_against(tmp_path):
@@ -610,7 +612,126 @@ def test_the_planted_map_the_TEST_reads_is_the_one_the_MODULE_scores_against(tmp
     miss into a hit. `PROBE_REQUIRED_SITES` is derived from `PROBE_PLANTED`, so the sites
     this file asserts and the sites `adjudicate` scores are the same object.
     """
-    derived = tuple(tuple(f"{rel}:{line}" for rel, line, _ in sites)
-                    for _, sites in sorted(oa.PROBE_PLANTED.items()))
-    assert oa.PROBE_REQUIRED_SITES == derived
+    assert oa.PROBE_GROUND_TRUTH == tuple(d for _, d in sorted(oa.PROBE_PLANTED.items()))
     assert set(_PLANTED) == set(oa.PROBE_PLANTED)
+
+
+# ---------------------------------------------------------------------------------------
+# the SUPPORTED path, and what a locator still cannot prove - terra pass 4 (2026-09-09)
+# ---------------------------------------------------------------------------------------
+# Three [P1]s, all downstream of one half-measure: coverage existed but only Python callers
+# could reach it, and coverage itself asked only WHERE a defect was, never WHAT it was. The
+# third is the fail-open edge -- a candidate-controlled locator naming an unreadable file
+# raised a bare OSError straight past the refusal handling in the CLI.
+
+
+def _probe_answer(findings):
+    """A well-formed offload record carrying `findings`, for scoring against PROBE_CORPUS."""
+    return {"role": "offload", "provider": "copilot-enterprise", "cli": "copilot",
+            "requested_model": "m", "served_model": "m", "findings": findings}
+
+
+def _unreadable(monkeypatch, basename):
+    """Make exactly `basename` raise OSError on read, leaving every other file alone."""
+    real_read = pathlib.Path.read_text
+
+    def boom(self, *a, **k):
+        if self.name == basename:
+            raise OSError(13, "Permission denied")
+        return real_read(self, *a, **k)
+
+    monkeypatch.setattr(pathlib.Path, "read_text", boom)
+
+
+def test_the_cli_REFUSES_to_adjudicate_a_record_with_no_declared_ground_truth(tmp_path):
+    """Z-G4 again: a gate that cannot compute its ground truth reports the gap.
+
+    Before this, `--record` scored no coverage at all, so the SUPPORTED path admitted a
+    record that missed every planted defect while the property was reachable only from
+    Python. Declaring the ground truth is now the price of an admission, and declaring
+    `none` is a visible act rather than a default nobody chose.
+    """
+    registry = oa.write_suite_corpus(tmp_path)
+    rec = tmp_path / "r.yaml"
+    rec.write_text(_dump_yaml(oa.admissible_record()), encoding="utf-8", newline="\n")
+    result = CliRunner().invoke(
+        oa.cli, ["--corpus", str(tmp_path), "--registry", str(registry), "--record", str(rec)])
+    assert result.exit_code == 2, result.output
+    assert "ground truth" in result.output
+
+
+def test_the_cli_SCORES_probe_coverage_when_the_ground_truth_is_declared(tmp_path):
+    """The candidate the pass-3 finding described, refused through the CLI this time."""
+    corpus = oa.write_probe_corpus(tmp_path / "corpus")
+    registry = oa.write_suite_corpus(tmp_path / "reg")
+    rec = tmp_path / "r.yaml"
+    rec.write_text(_dump_yaml(_probe_answer([
+        {"rank": 1, "category": "contradiction", "locator": "HANDBOOK.md:10",
+         "quote": "Logs are the institutional memory of the project."}])),
+        encoding="utf-8", newline="\n")
+    result = CliRunner().invoke(
+        oa.cli, ["--corpus", str(corpus), "--registry", str(registry),
+                 "--ground-truth", "probe", "--record", str(rec)])
+    assert result.exit_code == 1, result.output
+    assert "planted-defect-missed" in result.output
+
+
+def test_a_defect_cited_at_the_right_SITE_under_the_WRONG_CATEGORY_is_REFUSED(tmp_path):
+    """A locator proves the candidate looked at the line. It does not prove it read it.
+
+    `PROBE_QUESTION` asks which clauses CONTRADICT, are UNENFORCED, or are DUPLICATED -- a
+    classification question. An answer that names all three right lines and files every one
+    of them as `contradiction` is inside the vocabulary and has still answered nothing, so
+    membership in the enum is not the check; agreement with the planted category is.
+    """
+    corpus = oa.write_probe_corpus(tmp_path / "corpus")
+    registry = oa.write_suite_corpus(tmp_path / "reg")
+    record = _probe_answer([
+        {"rank": 1, "category": "contradiction", "locator": "HANDBOOK.md:7",
+         "quote": "A fast-forward merge is the default way a branch lands on main."},
+        {"rank": 2, "category": "contradiction", "locator": "HANDBOOK.md:11",
+         "quote": "An append-only log is never edited in place; corrections append."},
+        {"rank": 3, "category": "contradiction", "locator": "RULES.md:8",
+         "quote": "A commit summary is imperative, specific and under 72 characters."},
+    ])
+    verdict = oa.adjudicate(record, corpus, registry, oa.PROBE_REQUIRED_SITES)
+    assert not verdict.admitted
+    assert set(verdict.codes) == {"misclassified-defect"}, verdict.detail
+    assert len(verdict.refusals) == 2, "two of the three were filed under the wrong category"
+
+
+def test_every_planted_defect_declares_a_category_from_the_closed_vocabulary():
+    """The ground truth cannot demand a classification the probe question does not offer."""
+    for name, defect in oa.PROBE_PLANTED.items():
+        assert defect.category in oa.FINDING_CATEGORIES, name
+        assert defect.sites, name
+    for defect in oa.SUITE_GROUND_TRUTH:
+        assert defect.category in oa.FINDING_CATEGORIES
+
+
+def test_a_corpus_file_that_cannot_be_READ_is_a_reported_GAP_not_a_traceback(
+        tmp_path, monkeypatch):
+    """A candidate-controlled locator must not be able to raise a bare OSError.
+
+    The file exists, so `fabricated-file` does not fire; the read then failed and the
+    exception escaped every refusal path, past a CLI that catches only `AdmissionError`.
+    An unreadable corpus is a Z-G4 gap -- the ground truth cannot be computed, so the
+    command reports that rather than admitting or crashing.
+    """
+    registry = oa.write_suite_corpus(tmp_path)
+    _unreadable(monkeypatch, "EXAMPLE.md")
+    with pytest.raises(oa.AdmissionError):
+        oa.adjudicate(oa.admissible_record(), tmp_path, registry)
+
+
+def test_the_cli_reports_an_UNREADABLE_corpus_as_a_gap_rather_than_a_traceback(
+        tmp_path, monkeypatch):
+    registry = oa.write_suite_corpus(tmp_path)
+    rec = tmp_path / "r.yaml"
+    rec.write_text(_dump_yaml(oa.admissible_record()), encoding="utf-8", newline="\n")
+    _unreadable(monkeypatch, "EXAMPLE.md")
+    result = CliRunner().invoke(
+        oa.cli, ["--corpus", str(tmp_path), "--registry", str(registry),
+                 "--ground-truth", "none", "--record", str(rec)])
+    assert result.exit_code == 2, result.output
+    assert "NOT ADMITTED" in result.output
