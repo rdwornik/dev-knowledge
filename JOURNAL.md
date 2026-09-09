@@ -19,6 +19,53 @@
 
 ---
 
+### 2026-09-09 (o) - CC (Opus 5, background seat): the memory index was rolled by a predicate, and that is the only reason it was safe
+
+**Names `9e21e66`**, the `[#678]` filing commit this entry anchors.
+
+**Did.** Act 2 of the operator batch. Claude Code's project memory index had reached **25,222
+bytes across 324 entries** - past the 24,576-byte budget this fleet already applies to
+boot-time index files. Rolled the 14-day tail into `MEMORY-archive-2026-09-09.md` beside it.
+
+**Result, with the sum stated because the sum is the invariant.**
+
+```
+MEMORY.md   25,222 B / 324 entries  ->  13,928 B / 166 entries   (43.3% headroom under budget)
+archive          --                     12,339 B / 158 entries
+sum            324 entries          ->     324 entries           (unchanged)
+```
+
+Relocation verified byte-for-byte: the entry multiset is identical before and after, no entry
+appears in both files, no duplicates, and all 324 target memory files are still on disk.
+**Nothing was deleted**, which was the operator's explicit constraint.
+
+**The mechanical part had a trap worth recording.** Three index entries carry **nested brackets
+in their link text** - `[Merge needs [#id]](...)`, `[[#430](a) conftest CONFIRMED](...)`,
+`[[#530] same-value racer](...)`. A `\[[^\]]*\]\([^)]+\)` scan mis-parses all three and
+silently returns **321 of 324**, dropping entries without erroring. Splitting on the ` · `
+separator instead is exact, because the pieces then ARE the original substrings. The dry run
+caught it; the naive regex would have deleted three memories in an operation whose whole
+premise was that nothing is deleted.
+
+**The row is about the predicate, not the roll.** Asked to "make the index smaller", a seat
+prunes what it judges unimportant - and the entries that look unimportant are the hard-won ones
+nobody has needed recently. The 14-day line is what made this safe, and it should be a hook, not
+an instruction a seat re-interprets each time.
+
+**Honest limit.** Of 324 memory files, **236 carry a `modified:` stamp and 88 do not**, so more
+than a quarter of the age decisions fell back to **filesystem mtime** - which any unrelated
+re-save resets. Those 88 are dated on a weaker signal than the other 236, and `[#678]` owns
+fixing that rather than this entry pretending the dating was uniform.
+
+**And there is no undo.** `~/.claude/.gitignore:5` excludes the memory tree from version
+control. A backup was taken to the job scratch dir before the roll; that is a session-scoped
+mitigation, not a mechanism.
+
+**Changes.** `tasks/678-*.md` (new), `tasks/manifest.json`, `BACKLOG.md` (regenerated);
+out of tree: the memory index and its new dated archive.
+
+**Next.** Act 3 - the tech-window-close rulings landing.
+
 ### 2026-09-09 (n) - CC (Opus 5, background seat): the Codex default was an XL model, and only one caller in the fleet noticed
 
 **Names `b6f05bc3`**, the filing commit this entry anchors.
