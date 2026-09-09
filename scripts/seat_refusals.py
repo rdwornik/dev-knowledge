@@ -72,7 +72,12 @@ REFUSALS: tuple[str, ...] = (
 #: writes a DECLARE-/AMEND-/BATCH- file, so `carried-by` would be an unrunnable line in its boot.
 #: `sleeping-poll` is universal: every seat has waits, and every seat stalled on one in T/U.
 SEAT_REFUSALS: dict[str, tuple[str, ...]] = {
-    "dispatcher": ("lane-ceiling", "dryrun-step0", "carried-by", "sleeping-poll"),
+    # ORDER IS LOAD-BEARING for the dispatcher: `lane-ceiling` opens step 0 (before the first
+    # worktree exists) and `dryrun-step0` CLOSES it, because AMEND-BATCH-V-002 §1 makes the
+    # DryRun the LAST LINE of step 0. `tests/test_gen_seat_boot.py` runs the DryRun refusal
+    # against the rendered step 0 itself, so a reorder here fails the suite rather than quietly
+    # moving the check off the boundary it guards.
+    "dispatcher": ("lane-ceiling", "carried-by", "sleeping-poll", "dryrun-step0"),
     "integrator": ("reviewer-mismatch", "carried-by", "sleeping-poll"),
     "filings": ("carried-by", "sleeping-poll"),
     "handoff": ("carried-by", "sleeping-poll"),
