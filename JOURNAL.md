@@ -19,6 +19,71 @@
 
 ---
 
+### 2026-09-09 (p) - CC (Opus 5, background seat): two governance surfaces said an organ was owed; it had been armed for thirteen days
+
+**Names `4aae436a`**, the intake-#90 landing commit this entry anchors.
+
+**Did.** Act 3 of the operator batch. Filed `docs/intake/2026-09-09-tech-window-close-rulings.md`
+(intake **#90**) from the four transports V-10 did not cover, and executed the two rulings inside.
+
+**Ruling (a) - the correction that matters more than its size.** `protocols/PLAYBOOK.md` Ch8 read
+*"This table checks nothing... the drift organ... is owed rather than landed"*, and
+`protocols/STANDING_RULINGS.md` §V read *"is owed and unbuilt; until it exists these rulings bind
+the seat and not the tree"*. **Both had been false since 2026-08-27**, when `[#592]` landed:
+`scripts/dispatch_drift.py` exists, `check_dispatch_drift` is wired at `TIER_COMMIT`,
+`tests/test_dispatch_drift.py` covers it, and it runs as check 52. The premise was **verified
+before either line was touched** rather than taken on the instruction. Both corrected in place
+with the prior claim quoted and dated, so the record shows what was asserted and for how long.
+
+**The non-obvious constraint, and why the edit looks odd.** The PLAYBOOK correction is
+**line-count neutral, 3 lines to 3**, on purpose: `PLAYBOOK.md:3439`, `:3630` and `:3700` are
+cited from live surfaces below it, and `[#607]`'s Done-when requires `:3700` to stay
+byte-identical as a `provider-registry-agreement` gate seam. Verified after the edit that the five
+DEAD-marked sections still sit at 4450 / 5159 / 5417 / 5598 / 5623 - their digest line numbers -
+so nothing below the correction moved.
+
+**Ruling (b) - marked DEAD, not cut.** Five PLAYBOOK sections carry a blockquote under their
+heading citing `DIGEST-playbook-chapter-map` with that map's own span, byte count and verdict:
+§1, §6, §9, §12 (**config hierarchy only**) and §13 (**Obsidian row only**). The scoping is
+deliberate - the operator ruled those parts, not the sections containing them. Disposition awaits
+his word; the marker is the record that it is owed.
+
+**Confirmation, including the part that was NOT filed.** `[#644]`-`[#663]` carry R-2...R-8 with no
+gaps (R-2 `[#644]` · R-3 `[#645]` · R-4 `[#646]` · R-5 `[#647]` · R-6 `[#648]` · R-7 `[#659]` ·
+R-8 `[#658]`). `DECLARE-HARNESS-IS-PROCESS` §5 **is** carried, but outside that range - and **no
+row was filed for it, because one would have duplicated live work**: its spine claim is `[#664]`,
+which is precisely the `[#644]`->`[#664]` correction `AMEND-001` §4 exists to make, and its four
+AJ deltas are intake **#78 / #79 / #80 / #83** at DRAFT. What is genuinely absent is only a
+*citation* of that DECLARE from any row - a traceability thinness, recorded rather than converted
+into a row the funnel does not need.
+
+**The ratchet caught me writing a rule I did not mean to write.** The §13 marker said the deleted
+Council archive *"must not be recreated"* - a sentence REPORTING the ADR-77 guard, not creating a
+rule, but `must` is a counted token and the pool has zero headroom. Reworded to name the enforcing
+mechanism instead (*"the ADR-77 guard refuses its recreation"*), which is both token-free and more
+accurate. PLAYBOOK back to its HEAD count of 222; pool flat.
+
+**Two suite REDs, and they are NOT this arc's.** `test_the_live_view_is_under_the_589_done_when_byte_bar`
+(78,184 > 72,000) was **already RED at session start** - BACKLOG.md measured 77,807 B at
+`3060d3cf`, 5,807 over the bar before any act ran; today's two filings added 377 B and deepened an
+existing RED rather than causing one. `test_citation_regex_strips_only_real_dated_artifact_identifiers`
+false-strips `2026-09-08-architect-2.md`, a string that appears on main's JOURNAL and audits and in
+none of this arc's files. Reported rather than absorbed.
+
+**Honest limit.** Targeted tests only - 406 passed, the 2 REDs above - not the full suite, which
+runs ~54 min on this host and was not the proportionate check for a prose diff. `audit.py health`
+is **0 FAIL**.
+
+**Result.** Intake #90 landed; two false doctrine claims corrected; five sections marked;
+`[#675]` at nine instances; `[#677]` re-anchored off bare line numbers.
+
+**Changes.** `docs/intake/2026-09-09-tech-window-close-rulings.md` (new), `docs/intake/README.md`,
+`docs/intake/manifest.json`, `protocols/PLAYBOOK.md`, `protocols/STANDING_RULINGS.md`,
+`tasks/675-*.md`, `tasks/677-*.md`.
+
+**Next.** Operator's word on: ratifying conductor decision E, the AC-2 money question (GitHub Pro
+vs a degraded gate), and the disposition of the five marked sections.
+
 ### 2026-09-09 (o) - CC (Opus 5, background seat): the memory index was rolled by a predicate, and that is the only reason it was safe
 
 **Names `9e21e66`**, the `[#678]` filing commit this entry anchors.

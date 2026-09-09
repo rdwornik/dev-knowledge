@@ -3312,9 +3312,9 @@ it findable.
   belongs in its own column or outside the table.** A cell reading `Opus (opusplan default)` is
   refused by `dispatch`, which is why the 2026-08-25 batch launched through the manual fallback
   rather than the ruled verb. `templates/prompt-template.md` carries the corrected shape.
-- **This table checks nothing.** It is prose that agrees with the machine today. The drift organ
-  that would assert every literal command here resolves via `Get-Command`, and that
-  `/lane-boot` names the ruled verb, is owed rather than landed.
+- **This table is checked.** The drift organ asserting that every literal command here resolves
+  via `Get-Command`, and that `/lane-boot` names the ruled verb, is **landed and armed**
+  (`[#592]`): `scripts/dispatch_drift.py`, wired `check_dispatch_drift` at commit tier. Fixed 2026-09-09.
 
 
 #### Standing operator-interface rules
@@ -4448,6 +4448,14 @@ This keeps Codex aware of the same governance Claude Code operates under.
 *Numbered, repeatable recipes (§1–§19) plus Appendices A–C and tooling addenda. These are step-by-step procedures, not reference doctrine.*
 
 ## 1. Starting a New Project
+
+> **RULED DEAD 2026-09-09 — marked, NOT cut; disposition awaits the operator's word.**
+> **Every concrete instruction here is contradicted by current doctrine.** It tells a new repo that
+> `VISION.md` is mandatory (it lives at `docs/archive/`), that `README.md` is optional (ADR-114 made
+> it Tier-1), and it merges without `--no-ff`. It cites no command, script or gate — only bare
+> `mkdir` / `touch` / `pytest`.
+> Source: `DIGEST-playbook-chapter-map` (PLAYBOOK map, lines 4450–4523, 2,304 B), which rules **cut → pointer at `templates/CLAUDE-md-template.md` + `REPO_ONBOARDING.md`**.
+
 <!-- scope: dev -->
 
 **Every project begins with CLAUDE.md, not code.** If you can't describe what the project does in 3 sentences, you don't understand it yet. For architectural decisions (new database? new package? new integration?), run an AI Council debate before writing a single line.
@@ -5157,6 +5165,13 @@ After archival, cross-link FROM:
 ---
 
 ## 6. Code Review with Claude Code
+
+> **RULED DEAD 2026-09-09 — marked, NOT cut; disposition awaits the operator's word.**
+> **Superseded 590 lines later.** A four-step manual review recipe pinned to Sonnet, whose "review
+> stays on Sonnet" claim is contradicted by §16's `gpt-5.6-terra` default. It cites no command, no
+> script and no gate.
+> Source: `DIGEST-playbook-chapter-map` (PLAYBOOK map, lines 5159–5173, 452 B), which rules **cut, and repoint the Lifeline-1 row at L389, which still lists §6**.
+
 <!-- scope: dev -->
 
 **Code review stays on Sonnet — security boundary, never Haiku.** This is a Council-binding decision.
@@ -5415,6 +5430,14 @@ Canonical rule: **CLAUDE.md §4 "Output formatting (render-layer)"**. This subse
 ---
 
 ## 9. Weekly Review (Friday)
+
+> **RULED DEAD 2026-09-09 — marked, NOT cut; disposition awaits the operator's word.**
+> **Zero practice trace.** One JOURNAL hit exists in the whole corpus and it is about *editing* this
+> section, not running it. A 2026-06-19 audit already ruled it *"hollow… retire or rewrite; do not
+> leave it engine-less"* and that ruling has gone unexecuted for ~3 months. Its step 2 is now
+> automatic via `/session-summary` staleness.
+> Source: `DIGEST-playbook-chapter-map` (PLAYBOOK map, lines 5417–5432, 833 B), which rules **cut**.
+
 <!-- scope: hybrid -->
 
 **Friday consolidation — 30 minutes max, not a project.**
@@ -5596,6 +5619,12 @@ precedent) so no gate rides an edge nobody declared.
 ---
 
 ## 12. Multi-Project Rules
+
+> **RULED DEAD 2026-09-09 — marked, NOT cut; disposition awaits the operator's word.**
+> **SCOPED TO THE CONFIG HIERARCHY, not the whole section.** The hierarchy names a rung that does
+> not exist: `Dev/CLAUDE.md` was **verified ABSENT**. The package-boundary half is not ruled here.
+> Source: `DIGEST-playbook-chapter-map` (PLAYBOOK map, lines 5598–5622, 1,054 B), which rules **cut the config hierarchy (a rung is fictional)**.
+
 <!-- scope: dev -->
 
 **Package boundaries are sacred.** Projects/packages should never import directly from each other — they communicate via CLI subprocess, shared schema packages, or well-defined interfaces.
@@ -5621,6 +5650,15 @@ Dev/{project}/packages/X/CLAUDE.md  ← Package rules
 ---
 
 ## 13. Where Knowledge Lives
+
+> **RULED DEAD 2026-09-09 — marked, NOT cut; disposition awaits the operator's word.**
+> **SCOPED TO THE OBSIDIAN ROW, not the whole section.** Obsidian was ruled out of `CLAUDE.md`
+> **unconditionally** (batch-E CUT-2) and survives only here (6 hits). The authority it claims,
+> "Council Decision #23", is **unresolvable** — the in-hub Council transcript archive was deleted
+> 2026-07-22 by operator ruling, and the ADR-77 guard refuses its recreation. A surviving remnant
+> of a ruled deletion, citing a record that no longer exists.
+> Source: `DIGEST-playbook-chapter-map` (PLAYBOOK map, lines 5623–5663, 2,771 B), which rules **merge the routing rule → `CLAUDE.md` §4; cut the Obsidian row**.
+
 <!-- scope: meta -->
 
 **Three domains, three homes, zero overlap.** Council Decision #23 (2026-03-29, unanimous 4-0).

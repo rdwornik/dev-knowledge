@@ -2842,10 +2842,16 @@ to this repo.
   container is found refusing the subscription token, the fallback is a spend-capped dedicated API
   key — on that measured evidence, and not preemptively.
 
-**Honest limit.** Nothing in this section is enforced. The drift organ that would assert every
-literal command in Ch8 resolves via `Get-Command` on the operator's machine, and that
-`/lane-boot` names the ruled verb, is owed and unbuilt; until it exists these rulings bind the
-seat and not the tree.
+**Honest limit — CORRECTED 2026-09-09.** The drift organ that asserts every literal command in
+Ch8 resolves via `Get-Command` on the operator's machine, and that `/lane-boot` names the ruled
+verb, is **landed and armed** (`[#592]`): `scripts/dispatch_drift.py`, wired as
+`check_dispatch_drift` at `TIER_COMMIT` in `scripts/audit_checks/registry.py`, with
+`tests/test_dispatch_drift.py` behind it. It is machine-dependent by design — a shell-less host
+WARNs its tier rather than reporting a green-rendering status. **The prior text read "is owed and
+unbuilt", which had been false since 2026-08-27**, when `[#592]` landed; the claim is corrected
+in place rather than deleted, so the record shows what this section asserted and for how long.
+**What remains unenforced is the REST of this section:** the organ covers Ch8's literal commands
+and `/lane-boot`'s verb, not every ruling recorded here, so those still bind the seat, not the tree.
 
 **Expiry:** open-ended.
 
