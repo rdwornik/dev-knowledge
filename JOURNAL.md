@@ -19,6 +19,45 @@
 
 ---
 
+### 2026-09-09 (n) - CC (Opus 5, background seat): the Codex default was an XL model, and only one caller in the fleet noticed
+
+**Names `b6f05bc3`**, the filing commit this entry anchors.
+
+**Did.** Act 1 of a three-act operator batch. Pinned `~/.codex/config.toml` from
+`model = "gpt-6-astra"` to `gpt-5.6-terra`, admitted astra as a named XL class in
+`~/.claude/ROUTING.md` (`dot-claude@ac5f918`), and filed `[#677]` for the gate that does not
+exist.
+
+**The finding is a census, not an opinion.** Exactly ONE executing codex caller pins a model:
+`~/.claude/bin/codex-review.ps1:218-220`, where `$reviewModel = 'gpt-5.6-terra'` feeds
+`-c model=$reviewModel` for both the code and doc lanes. Every other invocation shape on disk
+INHERITS whatever `config.toml` holds - `protocols/PLAYBOOK.md:5785` (ad-hoc `codex exec` for
+one-off reads), `PLAYBOOK.md:5795` (the sanctioned interim producer-lane design prompt),
+`ADR-85:107` (`codex exec -s read-only`, brief only), and three `gotchas.md` lines. **The sharp
+one is `gotchas.md:333`**, which prescribes `codex exec --sandbox read-only -c
+model_reasoning_effort=high`: a `-c` flag that pins EFFORT while the MODEL still defaults, so it
+reads as pinned and is not.
+
+**Which is why `[#676]` measured what it measured.** That row recorded `codex exec` on its
+configured default dying at HTTP 400 - `'gpt-6-astra' model requires a newer version of Codex`.
+That was not one caller's bad luck; it was every inheriting caller at once, from a one-word
+value in a file that **no manifest carries and no checker reads**. `deploy/` carries
+`global-instructions-codex.md` to `~/.codex/AGENTS.md` - the ROLE layer. Nothing carries the
+MODEL layer.
+
+**Honest limit.** `gpt-5.6-terra` was verified as a live slug in `~/.codex/models_cache.json`,
+which is a local cache read, not a served-model probe. The pin is asserted against the cache;
+it is not a liveness measurement, and `[#676]` is the row that owns making it one.
+
+**Result.** Codex default no longer XL. `validate_backlog: OK (9 themes, 26 stories, 265 tasks)`.
+
+**Changes.** `tasks/677-*.md` (new), `tasks/manifest.json`, `BACKLOG.md` (regenerated);
+out of tree: `~/.codex/config.toml` (backup `config.toml.bak-20260909-preterra`),
+`~/.claude/ROUTING.md`.
+
+**Next.** Acts 2 and 3 of the same batch - the memory-index roll, and the window-close rulings
+landing.
+
 ### 2026-09-09 (m) - CC (Opus 5, INTEGRATOR SEAT, re-opened): the provider-liveness lane merged, and the first merge of the post-batch era needed its own anchor
 
 **Names `e8e2aa37`**, introduced by the lane merge `8986ad76`.
