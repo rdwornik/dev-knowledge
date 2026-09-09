@@ -1137,3 +1137,78 @@ def test_the_INTACT_probe_corpus_still_scores_normally(tmp_path):
     ])
     verdict = oa.adjudicate(record, corpus, registry, oa.PROBE_GROUND_TRUTH)
     assert verdict.admitted, verdict.detail
+
+
+# ---------------------------------------------------------------------------------------
+# closing the race CLASS, not shaving it again - terra pass 10 (2026-09-09)
+# ---------------------------------------------------------------------------------------
+# [P1] "When a probe write fails while another process is using the destination, the
+# replacement can occur after `target.stat()` proves this invocation owns the path but
+# before `target.unlink()` executes. In that interval this deletes the other writer's
+# replacement, violating the advertised no-overwrite guarantee."
+#
+# That window cannot be closed: POSIX has no inode-checked unlink and Python exposes none, so
+# every round of stat-then-unlink hardening produces a narrower version of the same defect --
+# four rounds of it in this one function. The window closes only if the function stops
+# writing into the shared directory at all. It now BUILDS in a private staging directory and
+# moves the finished corpus into place with a single rename, so a failure deletes only inside
+# a directory no other writer can name, and the destination is either created whole or never
+# touched. The two tests below are the invariant, not the mechanism.
+
+
+def test_a_failed_build_NEVER_unlinks_a_path_in_the_DESTINATION_directory(
+        tmp_path, monkeypatch):
+    """The guarantee restated so that no future hardening round can reintroduce the race.
+
+    Any unlink of a path a concurrent writer can also name is the defect, whatever ownership
+    proof precedes it. So the assertion is not "the right file was deleted" -- it is that
+    nothing in the destination directory was unlinked at all.
+    """
+    dest = tmp_path / "corpus"
+    unlinked = []
+    real_unlink = pathlib.Path.unlink
+
+    def spy(self, *a, **k):
+        unlinked.append(pathlib.Path(self))
+        return real_unlink(self, *a, **k)
+
+    monkeypatch.setattr(pathlib.Path, "unlink", spy)
+    _write_fails_on_call(monkeypatch, 2)
+    with pytest.raises(OSError):
+        oa.write_probe_corpus(dest)
+    monkeypatch.undo()
+    assert [q for q in unlinked if q.parent == dest] == [], \
+        "cleanup unlinked a path in the shared destination directory"
+    assert not dest.exists(), "a failed build left the destination behind"
+
+
+def test_the_destination_is_created_WHOLE_or_not_at_all(tmp_path, monkeypatch):
+    """No partial corpus is ever observable at the destination path.
+
+    Under a per-file writer, a reader could see one or two files of three. The destination is
+    now produced by a single rename of a finished directory, so the only two states are
+    absent and complete.
+    """
+    dest = tmp_path / "corpus"
+    _write_fails_on_call(monkeypatch, 3)
+    with pytest.raises(OSError):
+        oa.write_probe_corpus(dest)
+    monkeypatch.undo()
+    assert not dest.exists()
+    assert list(tmp_path.iterdir()) == [], "staging was left behind beside the destination"
+    assert set(oa.PROBE_CORPUS) == {q.name for q in oa.write_probe_corpus(dest).iterdir()}
+
+
+def test_an_EXISTING_destination_is_refused_before_anything_is_staged(tmp_path):
+    """`--probe-corpus .` cannot overwrite a checkout, and now cannot even be started.
+
+    The rule is stronger than the one in 2957e687 and easier to state: the destination must
+    not exist. That is what makes the whole operation expressible as one atomic rename, so
+    the no-overwrite guarantee stops depending on a check that a racer can invalidate.
+    """
+    dest = tmp_path / "corpus"
+    dest.mkdir()
+    with pytest.raises(FileExistsError):
+        oa.write_probe_corpus(dest)
+    assert list(dest.iterdir()) == []
+    assert list(tmp_path.iterdir()) == [dest], "a refused call staged something anyway"
