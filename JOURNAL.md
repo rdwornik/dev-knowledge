@@ -19,6 +19,58 @@
 
 ---
 
+### 2026-09-09 (g) - CC (Opus 5, INTEGRATOR SEAT): V-5 merged on a cleared terra gate; its one open finding carried to the operator, not absorbed
+
+**Anchors via `b1b1933d`** (the regeneration commit this entry rides) **and names `3f0e94c5`**,
+introduced by the V-5 merge `5805044d`.
+
+**Did.** Verified V-5 (`lane-v-643-enforcement-debt`) against the tree rather than its own
+report, merged it as `5805044d`, and regenerated the two indices it deferred to this merge.
+
+**The gate.** `HIGH raw=9 fixed=8 unresolved=0` over nine terra passes; pass 9 returned nothing
+against the final code tree `fc876b47` with nothing changed after it. That is the operator's
+ruled closure for the re-dispatched fix lane, met.
+
+**What integration checked rather than accepted.**
+- The four `tests/test_gen_handoff.py` REDs the lane calls INHERITED do fail identically on main
+  at `b7b7d4e0`, with the same assertions (`15 == 13`, `6 == 5`, the missing
+  `protocols/OPERATOR-INTERFACE.md`). Not this lane's, confirmed by running them, not by reading.
+- `.claude/commands/handoff.md` is absent from the contract's OWNS list but Done-contract clause
+  1 REQUIRES it. Footprint is inside the contract, not an overreach.
+- Clause 4 (flat `logs/PROPOSALS-*` 154 -> 0) reads NOT DISCHARGED in the artifact and is in fact
+  MET: the primary carries 0 flat `PROPOSALS-*` and four monthly buckets. The lane measured from
+  its own worktree, where `logs/` is gitignored and the primary's flat files are invisible, and
+  reported "structurally unreachable" instead of guessing. Both readings are correct from where
+  each stood.
+
+**OPEN, and it is the operator's.** Terra pass 2(b) -- `pytest-timeout` declared but not
+enforced. The reviewer is right, and the fix is forbidden by this lane's frozen contract in
+terms ("Do not change `addopts` for the interactive path"). The lane did the drift half
+(`f480783b` pins the declaration's two unchecked claims) and filed the enforcement half as
+decision-budget class (b). A `--bg` seat cannot ask, so it asked in the artifact. `[#643]` stays
+open on it.
+
+**Honest about its own arc.** Five of the nine HIGHs were introduced by the fix pass itself, and
+the amendment leads with that: propagating the swallowed exit code made leg 2 bite for the first
+time, so nothing had ever tested where the gate fires or what it costs. An inert gate has no
+edges. Clause 5 is PARTIAL and says so -- the 44-vs-28 mechanism is proved by paired
+measurement, but the full unattended sweep was killed twice by the host's low-memory reaper.
+
+**Result.** Batch V drained to 7 of 9. V-8 still live on its terra loop; V-9 cleared
+(`HIGH raw=5 fixed=5 unresolved=0`, 70 targeted tests green) and HELD, because DECLARE-SPINE
+section 4 orders it to merge last.
+
+**Changes.** `scripts/{gen_handoff,assemble_paste,verify_handoff_probes}.py`,
+`.claude/commands/handoff.md`, `pyproject.toml` + `uv.lock`, five test modules,
+`docs/audits/2026-09-09-technical-lane-v-643-enforcement-debt.md`; indices regenerated
+(audits 937 -> 938, `pytest_collected` 5559 -> 5597).
+
+**Abandoned.** Nothing. The one unfixed finding is filed, not dropped.
+
+**Next.** V-8 on handback, then V-9 last; final regeneration and one full-suite run against the
+28-RED baseline at `08c35b9c`; then `HANDOFF_PROCESS` 7.0.0 -> 7.1.0 with its three
+`reconciled_with` re-stamps.
+
 ### 2026-09-09 (f) - CC (Opus 5, INTEGRATOR SEAT): the operator's four rulings executed; V-10 merged
 
 **Anchors via `830073fb`** (the regeneration commit this entry rides) **and names `8869eb23`**,
