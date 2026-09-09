@@ -898,3 +898,74 @@ def test_the_collision_cleanup_does_NOT_delete_a_file_another_writer_REPLACED(
     assert victim.read_text(encoding="utf-8") == "hooks: []\n"
     assert not (tmp_path / "HANDBOOK.md").exists(), \
         "this invocation own file survived a refused write"
+
+
+# ---------------------------------------------------------------------------------------
+# failing CLOSED on I/O, at both ends - terra pass 7 (2026-09-09)
+# ---------------------------------------------------------------------------------------
+# Two [P1]s, one shape: the command documents a verdict-or-gap contract and two I/O paths
+# escaped it. `_registry_cli` normalises RegistryError but not OSError, so an unreadable
+# --registry produced a traceback; and write_probe_corpus caught only FileExistsError, so an
+# unwritable destination produced a traceback AND left the files already created behind.
+
+
+def test_an_unreadable_REGISTRY_is_a_reported_GAP_not_a_traceback(tmp_path, monkeypatch):
+    """The registry is the gate own ground truth for provider identity.
+
+    A gate that cannot read it has not found a defect in the record; it has failed to
+    compute. Z-G4 says report the gap -- and a traceback is not a report, it is the absence
+    of one.
+    """
+    registry = oa.write_suite_corpus(tmp_path)
+    _unreadable(monkeypatch, registry.name)
+    with pytest.raises(oa.AdmissionError):
+        oa.adjudicate(oa.admissible_record(), tmp_path, registry)
+
+
+def test_the_cli_reports_an_unreadable_registry_as_a_gap(tmp_path, monkeypatch):
+    registry = oa.write_suite_corpus(tmp_path)
+    rec = tmp_path / "r.yaml"
+    rec.write_text(_dump_yaml(oa.admissible_record()), encoding="utf-8", newline="\n")
+    _unreadable(monkeypatch, registry.name)
+    result = CliRunner().invoke(
+        oa.cli, ["--corpus", str(tmp_path), "--registry", str(registry),
+                 "--ground-truth", "none", "--record", str(rec)])
+    assert result.exit_code == 2, result.output
+    assert "NOT ADMITTED" in result.output
+
+
+def _mkdir_fails_on_call(monkeypatch, nth):
+    """Raise PermissionError from the `nth` Path.mkdir call, passing the others through."""
+    real_mkdir = pathlib.Path.mkdir
+    calls = []
+
+    def hook(self, *a, **k):
+        calls.append(self)
+        if len(calls) == nth:
+            raise PermissionError(13, "Permission denied")
+        return real_mkdir(self, *a, **k)
+
+    monkeypatch.setattr(pathlib.Path, "mkdir", hook)
+
+
+def test_an_UNWRITABLE_probe_destination_leaves_nothing_behind(tmp_path, monkeypatch):
+    """The no-leftovers guarantee cannot hold for only one of the ways a write can fail.
+
+    FileExistsError was handled and every other OSError was not, so a destination that went
+    unwritable partway through kept whatever had already been created -- the half-written
+    corpus the pre-flight scan exists to prevent, arriving by the other door.
+    """
+    _mkdir_fails_on_call(monkeypatch, 3)
+    with pytest.raises(OSError):
+        oa.write_probe_corpus(tmp_path)
+    monkeypatch.undo()
+    assert list(tmp_path.iterdir()) == [], "a failed write left part of the corpus behind"
+
+
+def test_the_probe_cli_reports_an_unwritable_destination_rather_than_a_traceback(
+        tmp_path, monkeypatch):
+    _mkdir_fails_on_call(monkeypatch, 3)
+    result = CliRunner().invoke(oa.cli, ["--probe-corpus", str(tmp_path)])
+    monkeypatch.undo()
+    assert result.exit_code == 2, result.output
+    assert "NOT WRITTEN" in result.output
