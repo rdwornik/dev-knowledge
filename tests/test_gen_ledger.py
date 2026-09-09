@@ -176,6 +176,55 @@ def test_an_unreadable_queue_degrades_to_a_named_reason_rather_than_a_crash(monk
     assert "## NEXT" in rendered
 
 
+# --- a failed probe is never rendered as a fact (terra HIGHs, 2026-09-09) --------------------------
+
+def test_an_unreadable_queue_does_not_render_as_zero_open_rows(monkeypatch):
+    """"open rows: 0" invites the reader to conclude there is no pending work."""
+    monkeypatch.setattr(gen_ledger._bf, "load_open_rows",
+                        lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("cyclic")))
+    rendered = gen_ledger.render(gen_ledger.collect(gen_ledger._REPO_ROOT, offline=True),
+                                 date=DATE)
+    assert "- open rows: 0" not in rendered
+    assert f"- open rows: {gen_ledger._UNKNOWN}" in rendered
+
+
+def test_a_failed_batch_read_does_not_render_as_no_open_batches(monkeypatch):
+    """Whether the ADR-110 exemption is live is exactly what the operator opens this to learn."""
+    monkeypatch.setattr(gen_ledger, "_open_batches",
+                        lambda _root: ([], "manifest reader blew up"))
+    rendered = gen_ledger.render(gen_ledger.collect(gen_ledger._REPO_ROOT, offline=True),
+                                 date=DATE)
+    assert "no integration-arc exemption is live" not in rendered
+    assert "manifest reader blew up" in rendered
+
+
+def test_a_failed_git_status_does_not_render_as_DIRTY():
+    assert gen_ledger._tree_state(gen_ledger._UNKNOWN).startswith(gen_ledger._UNKNOWN)
+    assert gen_ledger._tree_state("") == "clean"
+    assert gen_ledger._tree_state("?? a\n?? b") == "DIRTY - 2 path(s)"
+
+
+def test_a_failed_worktree_probe_does_not_render_as_primary_only():
+    assert gen_ledger._worktree_line([], False).startswith(gen_ledger._UNKNOWN)
+    assert gen_ledger._worktree_line(["/repo"], True) == "primary only"
+    assert gen_ledger._worktree_line(["/repo", "/repo/.claude/worktrees/x"], True) == (
+        "primary + 1 - x")
+
+
+def test_a_failed_branch_probe_does_not_render_as_zero():
+    assert gen_ledger._branch_line(gen_ledger._UNKNOWN).startswith(gen_ledger._UNKNOWN)
+    assert gen_ledger._branch_line("main\nfeat/x") == "2 - main, feat/x"
+
+
+def test_the_batch_reader_returns_its_error_rather_than_swallowing_it(monkeypatch):
+    import batch_manifest
+
+    monkeypatch.setattr(batch_manifest, "open_batches",
+                        lambda *_a: (_ for _ in ()).throw(RuntimeError("boom")))
+    batches, error = gen_ledger._open_batches(gen_ledger._REPO_ROOT)
+    assert batches == [] and error == "boom"
+
+
 def test_no_transport_and_no_out_is_refused_rather_than_written_somewhere(monkeypatch):
     monkeypatch.setattr(gen_ledger._gh, "transport_root", lambda *_a, **_k: None)
     result = CliRunner().invoke(gen_ledger.cli, ["--offline", "--date", DATE])

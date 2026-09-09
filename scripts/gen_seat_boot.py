@@ -265,16 +265,23 @@ def render(seat: str, *, batch: str, date: str, repo_root: Path | None = None,
 
 def write_bundle(bundle_dir: "str | Path", *, batch: str, date: str,
                  repo_root: Path | None = None) -> list[Path]:
-    """Render all five boots into `bundle_dir`. Returns the written paths, in seat order."""
+    """Render all five boots into `bundle_dir`. Returns the written paths, in seat order.
+
+    RENDER ALL, THEN WRITE. Writing each boot as it renders leaves a PARTIAL set behind when a
+    later seat refuses -- and the caller, which catches the refusal and reports "no boots
+    written", is then wrong about the directory it is describing (terra HIGH, 2026-09-09). Five
+    files is a set: either the bundle carries it or it carries none of it.
+    """
     root = Path(repo_root) if repo_root is not None else _REPO_ROOT
     target = Path(bundle_dir)
-    target.mkdir(parents=True, exist_ok=True)
     text = seat_ch8.playbook_text(root)
+    rendered = {seat: render(seat, batch=batch, date=date, repo_root=root, playbook_text=text)
+                for seat in seat_ch8.SEATS}
+    target.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
     for seat in seat_ch8.SEATS:
         path = target / out_name(seat)
-        path.write_text(render(seat, batch=batch, date=date, repo_root=root, playbook_text=text),
-                        encoding="utf-8", newline="\n")
+        path.write_text(rendered[seat], encoding="utf-8", newline="\n")
         written.append(path)
     return written
 

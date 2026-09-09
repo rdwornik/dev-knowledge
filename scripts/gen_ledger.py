@@ -109,12 +109,13 @@ def _origin_main(repo_root: Path, *, offline: bool = False) -> str:
     return out.split()[0]
 
 
-def _worktrees(repo_root: Path) -> list[str]:
+def _worktrees(repo_root: Path) -> "tuple[list[str], bool]":
+    """`(trees, read_ok)`. The flag is what keeps a failed probe from rendering as "primary only"."""
     out = _git(repo_root, "worktree", "list", "--porcelain")
     if out == _UNKNOWN:
-        return []
+        return [], False
     return [line.split(" ", 1)[1].strip() for line in out.splitlines()
-            if line.startswith("worktree ")]
+            if line.startswith("worktree ")], True
 
 
 #: JOURNAL entries are `### <date> (<letter>) - ...`. Matched as a PATTERN rather than by
@@ -135,20 +136,60 @@ def _journal_head(repo_root: Path) -> str:
     return _UNKNOWN
 
 
-def _open_batches(repo_root: Path) -> list:
-    """Committed manifests declaring a batch open right now, via the shared reader."""
+def _open_batches(repo_root: Path) -> "tuple[list, str | None]":
+    """`(batches, error)` -- committed manifests declaring a batch open right now.
+
+    The ERROR is returned rather than swallowed. A reader that turns a failed read into `[]` makes
+    "no batch is open" and "I could not tell" the same output, and the first of those is a claim
+    the ledger has no business making: the ADR-110 integration-arc exemption being live or not is
+    exactly what an operator opens this file to learn (terra HIGH, 2026-09-09).
+    """
     try:
         from batch_manifest import open_batches  # noqa: PLC0415
-    except ImportError:                          # pragma: no cover -- reader unavailable
-        return []
+    except ImportError as exc:                   # pragma: no cover -- reader unavailable
+        return [], f"the batch reader is unavailable ({exc})"
     try:
-        return list(open_batches(repo_root))
-    except Exception:                            # noqa: BLE001 -- an unknown state is no batch
-        return []
+        return list(open_batches(repo_root)), None
+    except Exception as exc:                     # noqa: BLE001 -- report, never coerce to empty
+        return [], str(exc)
 
 
 def _row_label(row) -> str:
     return f"[#{row.id}] {_gtt.derive_priority(row.raw) or 'P?'} - {_gtt.derive_title(row.raw)}"
+
+
+# --- three renderers whose whole job is NOT to turn a failed probe into a fact -------------------
+#
+# `_UNKNOWN` is a sentinel, and every one of these fields previously let it slide into a concrete
+# claim: an unreadable `git status` rendered as "DIRTY - 1 path(s)", a failed `worktree list` as
+# "primary only", a failed `git branch` as "0". A ledger that reports a probe failure as
+# operational state is worse than one that reports nothing, because the reader cannot tell
+# (terra HIGH, 2026-09-09).
+
+def _tree_state(status: str) -> str:
+    if status == _UNKNOWN:
+        return f"{_UNKNOWN} - `git status` failed"
+    if status == "":
+        return "clean"
+    return f"DIRTY - {len(status.splitlines())} path(s)"
+
+
+def _worktree_line(trees: list[str], read_ok: bool) -> str:
+    if not read_ok:
+        return f"{_UNKNOWN} - `git worktree list` failed"
+    # `git worktree list` puts the PRIMARY first, so the tail is the lane trees. Counted as
+    # "primary + N" rather than a bare N: a reader asking "how many lanes are live" and one
+    # asking "how many trees exist" get different numbers out of the same word.
+    if len(trees) <= 1:
+        return "primary only"
+    return f"primary + {len(trees) - 1} - " + ", ".join(Path(t).name for t in trees[1:])
+
+
+def _branch_line(branches: str) -> str:
+    if branches == _UNKNOWN:
+        return f"{_UNKNOWN} - `git branch` failed"
+    names = branches.split()
+    return f"{len(names)} - {', '.join(names)}" if names else "none"
 
 
 def collect(repo_root: Path | None = None, *, offline: bool = False) -> dict:
@@ -170,17 +211,21 @@ def collect(repo_root: Path | None = None, *, offline: bool = False) -> dict:
             continue
         waiting = sorted(_bf.depends_on_ids(row.raw) & open_ids)
         blocked.append((row, waiting))
+    batches, batch_error = _open_batches(root)
+    trees, trees_read = _worktrees(root)
     return {
         "repo_root": root,
         "main": _git(root, "rev-parse", "main"),
         "head": _git(root, "rev-parse", "--abbrev-ref", "HEAD"),
         "origin_main": _origin_main(root, offline=offline),
         "status": _git(root, "status", "--porcelain"),
-        "worktrees": _worktrees(root),
+        "worktrees": trees,
+        "worktrees_read": trees_read,
         "branches": _git(root, "branch", "--format=%(refname:short)"),
         "newest_tag": _git(root, "describe", "--tags", "--abbrev=0"),
         "journal_head": _journal_head(root),
-        "open_batches": _open_batches(root),
+        "open_batches": batches,
+        "batch_error": batch_error,
         "open_rows": rows,
         "blocked": blocked,
         "proposal": proposal,
@@ -206,21 +251,19 @@ def render(state: dict, *, date: str, repo_name: str = ".dev-knowledge") -> str:
         f"- main: {state['main']}",
         f"- origin/main: {state['origin_main']}",
         f"- generated from: {root} (HEAD {state['head']})",
-        f"- working tree: {'clean' if state['status'] == '' else 'DIRTY'}"
-        + (f" - {len(state['status'].splitlines())} path(s)" if state["status"] else ""),
+        f"- working tree: {_tree_state(state['status'])}",
         f"- newest tag: {state['newest_tag']}",
-        # `git worktree list` puts the PRIMARY first, so the tail is the lane trees. Counted as
-        # "primary + N" rather than a bare N: a reader asking "how many lanes are live" and a
-        # reader asking "how many trees exist" get different numbers out of the same word.
-        f"- worktrees: primary + {max(len(state['worktrees']) - 1, 0)} "
-        + ("(primary only)" if len(state["worktrees"]) <= 1
-           else "- " + ", ".join(Path(w).name for w in state["worktrees"][1:])),
-        f"- branches: {len(state['branches'].splitlines()) if state['branches'] != _UNKNOWN else 0}"
-        + (f" - {', '.join(state['branches'].split())}" if state["branches"] != _UNKNOWN else ""),
+        f"- worktrees: {_worktree_line(state['worktrees'], state['worktrees_read'])}",
+        f"- branches: {_branch_line(state['branches'])}",
         f"- newest JOURNAL entry: {state['journal_head']}",
-        f"- open rows: {len(state['open_rows'])}",
+        f"- open rows: {_UNKNOWN + ' - ' + state['queue_error'] if state['queue_error'] else len(state['open_rows'])}",
     ]
-    if state["open_batches"]:
+    # A FAILED READ IS NOT AN EMPTY SET. "no batch is open" is a claim about the ADR-110
+    # exemption, and it is exactly what the operator opens this file to learn.
+    if state["batch_error"]:
+        lines.append(f"- open batches: {_UNKNOWN} - the manifest reader failed: "
+                     f"{state['batch_error']}")
+    elif state["open_batches"]:
         for batch in state["open_batches"]:
             lines.append(
                 f"- OPEN BATCH `{batch.batch}`: {batch.path} - the ADR-110 integration-arc "

@@ -199,6 +199,26 @@ def test_a_template_that_disagrees_with_the_map_is_REFUSED(monkeypatch):
         gsb.render("lane", batch=BATCH, date=DATE)
 
 
+def test_a_refused_render_leaves_NO_partial_set_behind(tmp_path, monkeypatch):
+    """terra HIGH 2026-09-09: writing each boot as it renders leaves earlier ones on disk when a
+    later seat refuses -- and the caller then reports "no boots written" about a directory that
+    has three. Five files is a set: the bundle carries it, or it carries none of it."""
+    real = gsb.render
+    seats_seen: list[str] = []
+
+    def explode_on_the_last_seat(seat, **kw):
+        seats_seen.append(seat)
+        if seat == seat_ch8.SEATS[-1]:
+            raise gsb.RenderRefusal("REFUSED: contrived")
+        return real(seat, **kw)
+
+    monkeypatch.setattr(gsb, "render", explode_on_the_last_seat)
+    with pytest.raises(gsb.RenderRefusal):
+        gsb.write_bundle(tmp_path, batch=BATCH, date=DATE)
+    assert len(seats_seen) == len(seat_ch8.SEATS), "it should render all before writing any"
+    assert list(tmp_path.glob("SEAT-BOOT-*.md")) == []
+
+
 def test_an_unknown_seat_and_a_missing_template_both_REFUSE(tmp_path):
     with pytest.raises(gsb.RenderRefusal, match="not a declared seat"):
         gsb.render("archivist", batch=BATCH, date=DATE)

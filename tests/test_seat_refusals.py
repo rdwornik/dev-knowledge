@@ -74,6 +74,29 @@ def test_quoted_ch8_doctrine_is_exempt_because_it_is_the_rule_not_an_instance():
     assert sr.refuse_sleeping_poll(text, site="t") == 0
 
 
+def test_one_unrelated_declaration_does_not_vouch_for_every_intention():
+    """terra HIGH 2026-09-09: a per-DOCUMENT check lets one valid wait elsewhere in the file
+    cover an intention-only one, and the refusal reports PASS while the seat can still stall."""
+    text = (
+        "Wait for the integrator, then continue.\n"
+        + "\n" * 20
+        + "## a different section\n"
+        + _GOOD_WAIT
+    )
+    with pytest.raises(sr.SeatRefusal, match="no declaration within"):
+        sr.refuse_sleeping_poll(text, site="t")
+
+
+def test_a_declaration_beside_its_own_intention_passes():
+    assert sr.refuse_sleeping_poll("Wait for the packet.\n" + _GOOD_WAIT, site="t") == 1
+
+
+def test_two_intentions_and_one_declaration_refuses_the_uncovered_one():
+    text = "Wait for A.\n" + _GOOD_WAIT + "\n" * 15 + "Wait for B, then continue.\n"
+    with pytest.raises(sr.SeatRefusal, match=r"1 wait\(s\)"):
+        sr.refuse_sleeping_poll(text, site="t")
+
+
 def test_a_fenced_poll_loop_is_not_read_as_an_intention():
     text = "```powershell\nwhile ($i -lt 30) { # wait for the file\n  Start-Sleep 60\n}\n```\n"
     assert sr.refuse_sleeping_poll(text, site="t") == 0
@@ -198,6 +221,19 @@ def test_the_literal_OPEN_is_a_lawful_value():
     assert sr.refuse_uncarried_decision_write("BATCH-2026-09-09-W-CONTRACTS.md", text) is True
 
 
+@pytest.mark.parametrize("value", ["OPENING soon", "OPEN-not-a-carrier", "OPENED by filings"])
+def test_a_value_that_merely_STARTS_with_OPEN_is_refused(value):
+    """terra HIGH 2026-09-09: `startswith("OPEN")` admits three things the probe does not."""
+    with pytest.raises(sr.SeatRefusal, match="carried-by-unresolvable"):
+        sr.refuse_uncarried_decision_write("DECLARE-X.md", f"carried-by: {value}\n\nbody\n")
+
+
+@pytest.mark.parametrize("value", ["OPEN", "OPEN -- named in the residual"])
+def test_the_literal_OPEN_alone_or_with_a_reason_is_lawful(value):
+    assert sr.refuse_uncarried_decision_write(
+        "DECLARE-X.md", f"carried-by: {value}\n\nbody\n") is True
+
+
 def test_a_value_that_is_neither_OPEN_nor_a_path_is_refused():
     text = "carried-by: the manifest, probably\n\nbody\n"
     with pytest.raises(sr.SeatRefusal, match="carried-by-unresolvable"):
@@ -257,6 +293,35 @@ def test_a_contract_left_out_of_the_dryrun_is_refused_and_named():
 def test_zero_contracts_is_refused_because_a_batch_with_no_contract_dryruns_nothing():
     with pytest.raises(sr.SeatRefusal, match="dryrun-no-contracts"):
         sr.refuse_dispatcher_step0_without_dryrun(_STEP0, contracts=[])
+
+
+# --- step-0 ISOLATION (terra HIGH 2026-09-09) ---------------------------------------------------
+
+_LATER = "\n## Step 1\n\nThen provision the worktrees.\n"
+
+
+def test_a_correct_step0_passes_even_when_the_file_continues_past_it():
+    """The rendered boot says `--step0 <this file>`, and that file has six more sections."""
+    assert sr.refuse_dispatcher_step0_without_dryrun(
+        _STEP0 + _LATER, contracts=["LANE-a.md", "LANE-b.md"]) == 2
+
+
+def test_a_dryrun_in_a_LATER_section_does_not_mask_a_step0_that_has_none():
+    """The dangerous direction: a checker reading the whole file passes a bare step 0."""
+    text = "## Step 0\n\nFreeze the plan.\n\n## Step 1\n\n```\ndispatch LANE-a.md -DryRun\n```\n"
+    with pytest.raises(sr.SeatRefusal, match="dryrun-absent"):
+        sr.refuse_dispatcher_step0_without_dryrun(text, contracts=["LANE-a.md"])
+
+
+def test_text_with_no_step0_heading_is_treated_whole():
+    assert sr.isolate_step0("no headings here\n") == "no headings here\n"
+    assert sr.isolate_step0(_STEP0 + _LATER).strip().endswith("```")
+
+
+def test_the_step0_heading_is_matched_at_any_depth_and_with_decoration():
+    decorated = _STEP0.replace("## Step 0", "### 2 - STEP 0 - the refusals")
+    assert sr.refuse_dispatcher_step0_without_dryrun(
+        decorated + _LATER, contracts=["LANE-a.md", "LANE-b.md"]) == 2
 
 
 # --- the refusal type itself -------------------------------------------------------------------

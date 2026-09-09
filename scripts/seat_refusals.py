@@ -120,6 +120,12 @@ _WAIT_KEYS = ("interval", "bound", "predicate")
 _CH8_BEGIN = re.compile(r"<!--\s*ch8:begin\b")
 _CH8_END = re.compile(r"<!--\s*ch8:end\b")
 _FENCE = re.compile(r"^\s*```")
+#: How far after a wait-intention its declaration may sit. A wait is stated and then written, so
+#: the two are adjacent in every honest form of this. The window is what makes the check
+#: PER-INTENTION rather than per-document: without it, one valid declaration anywhere in a file
+#: satisfies every intention in it, and a seat can still end a turn on an unbounded wait while
+#: the refusal reports PASS (terra HIGH, 2026-09-09).
+_WAIT_WINDOW = 10
 
 
 def _authored_lines(text: str) -> list[tuple[int, str]]:
@@ -173,14 +179,23 @@ def refuse_sleeping_poll(text: str, *, site: str) -> int:
     positive `bound` and a non-empty `predicate`; an unbounded loop is the same stall wearing a
     loop's clothes, and a loop with no predicate never terminates into Ch8 point 4's fallback.
     """
+    lines = text.splitlines()
+    decl_lines = {n for n, line in enumerate(lines, start=1) if "<!-- WAIT:" in line}
     decls = [_parse_wait(m.group("body")) for m in _WAIT_DECL_RE.finditer(text)]
     intents = [(n, line) for n, line in _authored_lines(text) if _WAIT_INTENT_RE.search(line)]
-    if intents and not decls:
-        first = ", ".join(f"line {n}" for n, _ in intents[:3])
+    # PER-INTENTION, not per-document: each stated wait needs a declaration of its own within
+    # `_WAIT_WINDOW` lines after it. A document-wide "is there any declaration?" test lets one
+    # valid wait elsewhere in the file vouch for every intention in it.
+    unmatched = [n for n, _ in intents
+                 if not any(n < d <= n + _WAIT_WINDOW for d in decl_lines)]
+    if unmatched:
+        where = ", ".join(f"line {n}" for n in unmatched[:3])
+        more = f" (+{len(unmatched) - 3} more)" if len(unmatched) > 3 else ""
         raise SeatRefusal(
             "sleeping-poll",
-            f"{site}: a wait is stated as an INTENTION and declared nowhere as code ({first})",
-            remedy="write the wait as a loop and declare it: "
+            f"{site}: {len(unmatched)} wait(s) stated as an INTENTION with no declaration "
+            f"within {_WAIT_WINDOW} lines -- {where}{more}",
+            remedy="write the wait as a loop and declare it beside the sentence that states it: "
                    "<!-- WAIT: interval=<n>s bound=<n> predicate=<state read from the file "
                    "surface> --> ; a turn that ends on an intention has no next tick",
         )
@@ -323,6 +338,10 @@ CARRIER_HEAD_LINES = 6
 _CARRIER_RE = re.compile(r"^carried-by:(?P<value>.*)$")
 #: A value resolves as a path (`a/b`) or states the literal OPEN. Nothing else is a carrier.
 _PATH_TOKEN_RE = re.compile(r"[\w.\-]+/[\w./\-]+")
+#: `OPEN` as a STANDALONE token, alone or followed by a reason. A `startswith("OPEN")` test also
+#: admits `OPENING` and `OPEN-not-a-carrier`, which are not the literal the probe accepts and
+#: would transport as though they resolved (terra HIGH, 2026-09-09).
+_OPEN_RE = re.compile(r"^OPEN(?:\s|$)")
 
 
 def is_decision_file(filename: str) -> bool:
@@ -362,7 +381,7 @@ def refuse_uncarried_decision_write(filename: str, text: str) -> bool:
             f"{Path(filename).name}: `carried-by:` carries no value",
             remedy="a key with no value is not a carrier; state a repo path or the literal OPEN",
         )
-    if not value.startswith("OPEN") and not _PATH_TOKEN_RE.search(value):
+    if not _OPEN_RE.match(value) and not _PATH_TOKEN_RE.search(value):
         raise SeatRefusal(
             "carried-by-unresolvable",
             f"{Path(filename).name}: `carried-by: {value}` names neither a repo path nor OPEN",
@@ -386,6 +405,27 @@ def write_decision_file(path: "str | Path", text: str, *, encoding: str = "utf-8
 # --- 5. -DryRun is the LAST line of dispatcher step 0 (AMEND-BATCH-V-002 §1) -------------------
 
 _DRYRUN_TOKEN = "-DryRun"
+#: A markdown heading naming step 0, at any depth and with any decoration around it.
+_STEP0_HEADING_RE = re.compile(r"^#{1,6}\s.*\bstep\s*0\b", re.IGNORECASE)
+_ANY_HEADING_RE = re.compile(r"^#{1,6}\s")
+
+
+def isolate_step0(text: str) -> str:
+    """The step-0 SECTION of `text`, or the whole text when no step-0 heading is present.
+
+    The rendered dispatcher boot tells the seat to check `<this file>`, and that file continues
+    for several sections past step 0. Without this, a correct step 0 FAILS because a later
+    section's last line is not a DryRun -- and, worse in the other direction, a DryRun appearing
+    anywhere later would MASK a step 0 that carries none (terra HIGH, 2026-09-09). The isolation
+    is what makes "the LAST line of step 0" mean step 0's last line.
+    """
+    lines = text.splitlines()
+    start = next((i for i, ln in enumerate(lines) if _STEP0_HEADING_RE.match(ln)), None)
+    if start is None:
+        return text
+    end = next((i for i in range(start + 1, len(lines)) if _ANY_HEADING_RE.match(lines[i])),
+               len(lines))
+    return "\n".join(lines[start:end])
 
 
 def refuse_dispatcher_step0_without_dryrun(step0_text: str, *, contracts: "list[str]") -> int:
@@ -403,7 +443,7 @@ def refuse_dispatcher_step0_without_dryrun(step0_text: str, *, contracts: "list[
             "step 0 was asked to DryRun an empty contract set",
             remedy="a batch with no generated contract has no plan to freeze; name the contracts",
         )
-    lines = step0_text.splitlines()
+    lines = isolate_step0(step0_text).splitlines()
     dryrun_lines = [line for line in lines if _DRYRUN_TOKEN in line]
     if not dryrun_lines:
         raise SeatRefusal(
