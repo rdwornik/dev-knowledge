@@ -19,6 +19,79 @@
 
 ---
 
+### 2026-09-09 (i) - CC (Opus 5, INTEGRATOR SEAT): batch V drained, 8 of 8; the suite completed on this host for the first time, and the comparison it enables is confounded
+
+**Anchors via `64e77a9b`** (the final regeneration this entry rides) **and names `76597d00`**,
+introduced by the V-8 merge `9d064bb8`.
+
+**A COUNT CORRECTION I OWE, first.** Entries (g) and (h) say "7 of 9" and "8 of 9". **Batch V
+has 8 frozen lanes, not 9** — the true figures were 6 of 8 and 7 of 8. Verified two ways: the
+manifest fence ("8 frozen (6 at dispatch, 2 added by AMEND-BATCH-V-003)") and a count of lane
+merges on main's first-parent spine, where the ninth slug-shaped merge is the **manifest
+provisioning branch**, which the manifest explicitly excludes. Corrected here rather than by
+editing those entries — the JOURNAL is append-only, and a number quietly overwritten is the
+defect V-5's own record is about. Mine, not a lane's.
+
+**Did.** Merged V-8 (`lane-v-000-offload-admission`) as `9d064bb8`, tore down the last
+worktree, ran the final regeneration, and ran the full suite on the merged result.
+
+**V-8's gate.** `HIGH raw=21 fixed=21 unresolved=0` over fifteen terra passes. **It refused its
+own clean pass** — pass 12 returned nothing and the lane did not stop, because that pass fired
+while its tree lagged main, so the diff carried main's files and never saw the last two fixes.
+Its words: "a clean pass against the wrong base is not a clean pass." It also recorded a defect
+it shipped itself (its pass-11 fix silently made three existing tests VACUOUS, found at pass 13)
+and REPORTED rather than closed a residual limit (POSIX has no atomic create-and-hold for a
+directory).
+
+**THE SUITE COMPLETED ON THE OPERATOR'S HOST — the first time in four attempts.**
+`28 failed, 5692 passed, 3 skipped in 3267.93s (0:54:27)`, via the declared unattended
+invocation. The three prior sweeps were killed by the low-memory reaper at every worker count;
+this one carried `--timeout=900`, the guard the operator ruled the same day.
+
+**28 == 28 IS ARITHMETIC COINCIDENCE, NOT A MATCH, and reporting the integer alone would have
+been false.** Measured against `to-cc/SUITE-BASELINE-CODESPACES-2026-09-08.log`: that log holds
+**44** REDs, of which 17 are `test_fleet_analytics.py` (the pandas / `--group analytics` delta),
+leaving 27 comparable. Against that set: **8 fixed, 9 new, 19 carried** — 27 - 8 + 9 = 28.
+
+**AND THE COMPARISON IS CONFOUNDED, which is the more useful finding.** The baseline was taken
+on **Codespaces**; this run is on **Windows**. All nine "new" REDs are OLD tests — none was
+added by batch V — so none is a new-test-is-RED case, but several are substrate-sensitive
+(fleet rosters, Pyright availability, worktree presence) and CANNOT be attributed to batch V by
+a cross-substrate diff. The 2026-08-20 substrate ruling puts this workload on Codespaces for
+exactly this reason. Three ARE attributable without re-running:
+
+- `test_export_backlog_view.py::test_no_gate_hook_or_script_reads_the_export` — **batch V's,
+  and a genuine structural collision** (see below).
+- `test_gen_task_tree.py::test_the_live_view_is_under_the_589_done_when_byte_bar`
+  (`assert 76970 < 72000`) — **`[#589]`, which the operator ruled HOLD**. Expected, owned.
+- `test_gen_ledger.py::test_the_worktree_line_counts_lanes_rather_than_trees` — caused by **my
+  own teardown**: it expects at least one lane worktree and the batch has none left.
+  Environment, not a defect.
+
+**CANDIDATE (ADR-111), filed not fixed.** V-9's `orphan-census` requires a disposition for every
+unwired script; the disposition dict's key IS the script path; and `[#563]`'s invariant test
+greps the corpus for the substring `export_backlog_view`. So **`graph_queries.py` cannot name
+`export_backlog_view.py` without tripping the test, and it must name it.** The sole offender is
+a disposition KEY, not a read — V-9 names the file to document that it is an orphan BY DESIGN,
+citing that very test as the reason. The test's own docstring states the limit it just hit
+("greps for the export's OWN names"). Two mechanisms in direct conflict by construction; the
+fix picks a side, `graph_queries.py` is `[#664]`'s and the test is `[#563]`'s, so the
+integrator files it and rules nothing.
+
+**Result.** Batch V is **8 of 8** merged. `git worktree list` is primary only; `git stash list`
+empty. Three empty husk DIRECTORIES survive, held by idle-but-live lane sessions; they are
+deregistered from git, their branches are deleted locally and on origin, and they trip no gate.
+
+**Changes.** V-8's `scripts/offload_admission.py` + suite + artifacts; final index regeneration
+(audits 939 -> 940; doc-counts and organ-index already current, which independently confirms
+V-8's declared self-regeneration).
+
+**Abandoned.** Nothing.
+
+**Next.** The manifest/packet archival (refuse-to-finish clause 4); `HANDOFF_PROCESS`
+7.0.0 -> 7.1.0 with its three `reconciled_with` re-stamps; a same-substrate suite run on
+Codespaces if the 9-new set is to be attributed properly.
+
 ### 2026-09-09 (h) - CC (Opus 5, INTEGRATOR SEAT): V-9 merged out of order on the operator's word; the spine is armed and firing
 
 **Anchors via `c3bdee3c`** (the regeneration commit this entry rides) **and names `4c85208e`**,
