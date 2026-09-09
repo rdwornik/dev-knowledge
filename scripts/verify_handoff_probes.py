@@ -760,6 +760,73 @@ def _unreadable_manifest(bundle_path) -> list[ProbeResult]:
 
 
 # rule: handoff-probes-bind
+_CARRIAGE_FINDING_ID = "P11-CARRIAGE"
+#: The era this rung binds. Bundles cut before it are NOT retro-judged, and the reason is
+#: measurement rather than leniency: the transport read here is TODAY's, so judging a 2026-06
+#: bundle would test it against decision files that did not exist when it was cut. Same
+#: predicate `_missing_required_rows` and `audit.check_supplement_folded` share — a third era
+#: gate written by hand is how two era gates disagree.
+_CARRIAGE_ERA = "2026-09-09"
+
+
+def _unnamed_open_carriers(bundle_path: Path, repo_root: Path) -> list[ProbeResult]:
+    """P11 leg 2 at ACCEPTANCE time: `OPEN` decision files this bundle's residual never names.
+
+    THE GAP THIS CLOSES, stated so the three stages are legible as one design. Leg 2 refuses at
+    the POST-FILL assemble; the cold in-cut pass defers, because the residual it would judge was
+    rendered seconds earlier and can name nothing. The cold pass still writes `PASTE_THIS.md`,
+    so an operator who never re-runs the assembler can commit a bundle carrying exactly the
+    shortfall leg 2 exists to prevent — reached by skipping a step, not by defeating a check.
+    `/handoff-verify` is where a bundle is accepted (HANDOFF_PROCESS §5), so it is where that
+    question has to be answerable.
+
+    RESOLVE-ONLY, like every other rung here: it reads the transport and the residual and
+    classifies. It spawns nothing (`carriage_shortfall`'s `main`-resolution leg is leg 1's, and
+    the `OPEN` kind this filters to never reaches it).
+
+    HONEST LIMIT: a bundle committed without anyone running `/handoff-verify` is not reached by
+    this rung, and no amount of work inside this file changes that — it is a gate, and a gate
+    that is not run gates nothing. What it removes is the SILENT path: every route that does
+    run now names the debt.
+    """
+    if not bundle_at_or_after(bundle_path.name, _CARRIAGE_ERA):
+        return []
+    residual = bundle_path / "RESIDUAL.md"
+    if not residual.exists():
+        return []                       # not a v5-lineage bundle; nothing to judge
+    try:                                # deferred sibling-CLI import, the established idiom
+        from gen_handoff import (  # noqa: PLC0415
+            CARRIAGE_OPEN,
+            carriage_shortfall,
+            transport_root,
+        )
+    except ImportError:
+        return []
+    transport = transport_root()
+    if transport is None:
+        # DEGRADED, never absent. An unknown boundary is not a clean one (DEFECT E-29), and a
+        # rung that vanishes when it cannot measure reads as a pass to every consumer of this
+        # list. `skipped` is this validator's existing word for "measured nothing, honestly".
+        return [ProbeResult(
+            _CARRIAGE_FINDING_ID, "skipped",
+            "P11 leg 2 not measured: CLAUDE_PROMPTS_DIR is UNRESOLVED and ~/Downloads is not a "
+            "directory either, so the decision files this bundle must carry cannot be read",
+            bundle_path.name)]
+    text = residual.read_text(encoding="utf-8", errors="replace")
+    unnamed = [v for v in carriage_shortfall(transport, repo_root, residual=text)
+               if v.kind == CARRIAGE_OPEN]
+    if not unnamed:
+        return []
+    named = ", ".join(f"{v.path.parent.name}/{v.path.name}" for v in unnamed)
+    return [ProbeResult(
+        _CARRIAGE_FINDING_ID, "fail",
+        f"{len(unnamed)} decision file(s) state `carried-by: OPEN` and are named nowhere in "
+        f"RESIDUAL.md: {named}. An OPEN carrier discharges P11 only by being named in this "
+        "bundle's residual — a window may hand off with debt, never with debt that is silent "
+        "(DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08 / DECLARE-PREFLIGHT-QUESTION-ROW-2026-09-08)",
+        bundle_path.name)]
+
+
 def verify(bundle_path, repo_root=None, cross_repo=False) -> list[ProbeResult]:
     """Classify every probe in <bundle_path>/PROBES.md. Read-only; resolve-only.
 
@@ -790,6 +857,11 @@ def verify(bundle_path, repo_root=None, cross_repo=False) -> list[ProbeResult]:
                     "(HANDOFF_PROCESS §5 — a missing required row is not a pass)",
                     bundle_path.name)
         for pid in _missing_required_rows(bundle_path.name, rows))
+    # [#643] P11 leg 2, judged where the bundle is ACCEPTED. Appended last, and for the same
+    # reason the required-row rows are appended rather than interleaved: everything present in
+    # the table keeps its order, and a synthesized row reads as what it is.
+    if not cross_repo:
+        results.extend(_unnamed_open_carriers(bundle_path, repo_root))
     return results
 
 

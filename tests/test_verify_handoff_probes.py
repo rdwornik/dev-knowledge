@@ -1939,3 +1939,80 @@ def test_the_zero_row_refusal_is_era_gated_like_every_other_rung(tmp_path):
     bundle.mkdir()
     (bundle / "PROBES.md").write_text("no rows here\n", encoding="utf-8")
     assert vhp.verify(bundle) == []
+
+
+# --- [#643] P11 leg 2 at ACCEPTANCE time -------------------------------------
+# Terra pass 2, and it is the hole the pass-1 repair opened. Leg 2 refuses at the POST-FILL
+# assemble, and the cold in-cut pass defers (it has no filled residual to judge). Between the
+# two sits a real gap: the cold pass writes PASTE_THIS.md, so an operator who never re-runs the
+# assembler can commit a bundle whose residual names none of its `carried-by: OPEN` files --
+# the exact shortfall leg 2 exists to prevent, reached by simply not running the second step.
+#
+# `/handoff-verify` is where a bundle is ACCEPTED (HANDOFF_PROCESS §5), so it is where the
+# question "did the residual actually discharge its debt" has to be answerable. This closes the
+# loop to three stages with no silent path: the cut DEFERS, the post-fill assemble REFUSES, and
+# acceptance FAILS. Each names the files owed.
+
+_CARRIAGE_ERA_SLUG = "2026-09-09-carriage"
+
+
+def _transport_with_open(tmp_path, name="BATCH-2026-09-07-CLOSE-CONTRACTS.md"):
+    transport = tmp_path / "transport"
+    (transport / "to-cc").mkdir(parents=True)
+    (transport / "to-cc" / name).write_text(
+        f"# {name}\ncarried-by: OPEN -- in flight\n", encoding="utf-8")
+    return transport, name
+
+
+def test_a_residual_naming_none_of_its_open_carriers_fails_verification(tmp_path, monkeypatch):
+    bundle = _init_bundle(tmp_path, [_PASS_SYMBOL], slug=_CARRIAGE_ERA_SLUG)
+    (bundle / "RESIDUAL.md").write_text("# Residual\n\nNothing carried.\n", encoding="utf-8")
+    transport, name = _transport_with_open(tmp_path)
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(transport))
+
+    results = _by_id(vhp.verify(bundle))
+    row = results.get(vhp._CARRIAGE_FINDING_ID)
+    assert row is not None and row.status == "fail", results
+    assert name in row.detail
+
+
+def test_a_residual_that_names_them_verifies_clean(tmp_path, monkeypatch):
+    """The negative control. Without it the row above proves only that the rung can fire, never
+    that a correctly-carried window can be accepted -- which is the deadlock every gate in this
+    family was ruled against."""
+    bundle = _init_bundle(tmp_path, [_PASS_SYMBOL], slug=_CARRIAGE_ERA_SLUG)
+    transport, name = _transport_with_open(tmp_path)
+    (bundle / "RESIDUAL.md").write_text(
+        f"# Residual\n\nCarried OPEN: `to-cc/{name}` -- owned by [#643].\n", encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(transport))
+
+    assert vhp._CARRIAGE_FINDING_ID not in _by_id(vhp.verify(bundle))
+
+
+def test_a_pre_era_bundle_is_not_retro_judged(tmp_path, monkeypatch):
+    """THE SCOPING, as a test rather than a comment. `verify` runs over historical bundles, and
+    the transport it would judge them against is TODAY's -- every past bundle would be re-judged
+    on files that did not exist when it was cut. The era gate is the same predicate
+    `_missing_required_rows` and `audit.check_supplement_folded` already share; a third one
+    written by hand is how two era gates disagree."""
+    bundle = _init_bundle(tmp_path, [_PASS_SYMBOL], slug="2026-06-12-b")
+    (bundle / "RESIDUAL.md").write_text("# Residual\n\nNothing carried.\n", encoding="utf-8")
+    transport, _name = _transport_with_open(tmp_path)
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(transport))
+
+    assert vhp._CARRIAGE_FINDING_ID not in _by_id(vhp.verify(bundle))
+
+
+def test_an_unmeasurable_transport_is_not_a_silent_pass(tmp_path, monkeypatch):
+    """An unknown boundary is not a clean one (DEFECT E-29, the reason leg 2's own transport
+    arm refuses rather than assembles). Here the honest verdict is `skipped` -- this validator
+    is resolve-only and reports degradation rather than manufacturing either verdict -- but it
+    must not vanish, because a rung that disappears when it cannot measure reads as a pass."""
+    bundle = _init_bundle(tmp_path, [_PASS_SYMBOL], slug=_CARRIAGE_ERA_SLUG)
+    (bundle / "RESIDUAL.md").write_text("# Residual\n\nNothing carried.\n", encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(tmp_path / "does-not-exist"))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path / "no-home"))
+    monkeypatch.setenv("HOME", str(tmp_path / "no-home"))
+
+    row = _by_id(vhp.verify(bundle)).get(vhp._CARRIAGE_FINDING_ID)
+    assert row is not None and row.status == "skipped", row
