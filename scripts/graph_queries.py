@@ -403,6 +403,41 @@ def _merge_in_progress(repo_root: Path | str) -> bool:
     return bool(git_dir and (git_dir / "MERGE_HEAD").exists())
 
 
+def _worktree_skew(repo_root: Path | str) -> set[str]:
+    """Files whose WORKING-TREE bytes are not what this commit will write.
+
+    Unstaged modifications to tracked files, plus untracked files. Empty when git cannot
+    answer, which is the same posture `staged_paths` takes: with no git there is no staged
+    set either, so the gate has nothing to be lenient about.
+    """
+    skew: set[str] = set()
+    for args in (["git", "diff", "--name-only", "--diff-filter=ACMR"],
+                 ["git", "ls-files", "--others", "--exclude-standard"]):
+        try:
+            out = subprocess.run(args, cwd=repo_root, capture_output=True, text=True,
+                                 timeout=60)
+        except (OSError, subprocess.SubprocessError):  # pragma: no cover -- no git on PATH
+            return set()
+        if out.returncode != 0:
+            return set()
+        skew.update(line.strip() for line in out.stdout.splitlines() if line.strip())
+    return skew
+
+
+def _evidence_paths(store: gs.GraphStore, relpath: str, edges: list[dict]) -> set[str]:
+    """Every file the coverage claim for `relpath` actually rests on.
+
+    Both legs, because coverage holds in both directions: the file itself (it may name the
+    row) and each row that names it. A claim is only as staged as the file carrying it.
+    """
+    paths = {relpath}
+    for edge in edges:
+        node = store.node(edge["src"])
+        if node and node.path:
+            paths.add(node.path)
+    return paths
+
+
 def _exempt(relpath: str) -> str | None:
     if relpath in COVERAGE_EXEMPT:
         return COVERAGE_EXEMPT[relpath]
@@ -419,6 +454,22 @@ def task_coverage(repo_root: Path | str, store: gs.GraphStore,
     "nic bez taska" as a mechanism, AT OPEN and not only at CLOSE -- `[#664]`'s own framing.
     Coverage holds if the row names the file OR the file names the row; both are `implements`
     edges, so the query asks one question of the graph rather than two of the tree.
+
+    TWO TREES, AND THE SKEW BETWEEN THEM IS THIS GATE'S ONE REAL HAZARD. The subject set is
+    the INDEX (`git diff --cached`); the `implements` relation comes from a graph built off
+    the WORKING TREE. Left alone, that gap is a bypass: stage an unclaimed change, leave the
+    `[#id]` mention -- or a whole open row -- unstaged or untracked beside it, and the tree
+    supplies an edge for a claim the commit does not carry. Terra pre-merge review found it.
+
+    THE FIX REFUSES THE SKEW RATHER THAN REBUILDING THE GRAPH FROM THE INDEX, and the choice
+    is a design one rather than a shortcut. The store is a TREE artifact -- one build per
+    commit, shared by three queries and every other reader -- so an index-shaped graph would
+    be a second graph with a second lifetime, which ADR-118's "one graph" rules out and no
+    ruling licenses here. So coverage is accepted only when every file the claim rests on is
+    what the commit will actually write. In the hook path this costs nothing: pre-commit
+    stashes unstaged changes, so the tracked-unstaged set is empty by the time this runs, and
+    the untracked leg is exactly the hole -- a new row that is going to be committed has been
+    `git add`ed, so an UNTRACKED row is never legitimate evidence.
     """
     if staged is None and _merge_in_progress(repo_root):
         # A MERGE IS TRANSPORT, NOT AUTHORSHIP, and this carve-out has direct precedent in
@@ -429,6 +480,7 @@ def task_coverage(repo_root: Path | str, store: gs.GraphStore,
         # ask this lane to claim, or to retire, work it has not assessed.
         return []
     paths = staged_paths(repo_root) if staged is None else staged
+    skew = _worktree_skew(repo_root)
     findings: list[Finding] = []
     for relpath in paths:
         if _exempt(relpath):
@@ -441,7 +493,17 @@ def task_coverage(repo_root: Path | str, store: gs.GraphStore,
             # Found by this gate firing on a real merge, which is where a predicate written
             # from the row's wording meets the tree's actual shape.
             continue
-        if key and store.in_edges(key, COVERAGE_KINDS):
+        edges = store.in_edges(key, COVERAGE_KINDS) if key else []
+        if edges:
+            unstaged = sorted(p for p in _evidence_paths(store, relpath, edges) if p in skew)
+            if not unstaged:
+                continue
+            findings.append(Finding(
+                subject=relpath,
+                evidence=("the claim covering this file is in the WORKING TREE, not in the "
+                          f"commit: {', '.join(unstaged)}. The graph is built from the tree "
+                          "and the commit writes the index, so an unstaged or untracked "
+                          "claim covers nothing. Stage it.")))
             continue
         findings.append(Finding(
             subject=relpath,

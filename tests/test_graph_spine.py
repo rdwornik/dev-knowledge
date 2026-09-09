@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -258,6 +259,53 @@ def test_task_coverage_admits_a_row_file_as_its_own_claim(tiny_repo: Path, tiny_
     and refused every one for not being named by an open row. Asking a row file to be named
     by a row is asking it to name itself."""
     assert not gq.task_coverage(tiny_repo, tiny_store, staged=["tasks/700-wired.md"])
+
+
+def _git(root: Path, *args: str) -> None:
+    subprocess.run(["git", *args], cwd=root, check=True,
+                   capture_output=True, text=True)
+
+
+def test_task_coverage_refuses_a_claim_that_is_in_the_TREE_but_not_in_the_COMMIT(
+        tiny_repo: Path, tmp_path: Path):
+    """THE TRIP for the two-tree skew -- the bypass Terra pre-merge review found.
+
+    The subject set is the INDEX and the `implements` relation comes from a graph built off
+    the WORKING TREE, so a claim that exists only in the tree would otherwise cover a staged
+    change the commit does not actually claim. Here `tasks/702-late.md` is an OPEN row naming
+    `scripts/lonely.py` and it is UNTRACKED: the graph carries the edge, the commit carries
+    nothing, and the gate must say so.
+
+    Both directions, because the permissive half passes either way: staging the same row --
+    changing nothing about the graph, only about what the commit contains -- must admit it.
+    """
+    _git(tiny_repo, "init", "-q")
+    _git(tiny_repo, "config", "user.email", "lane@example.invalid")
+    _git(tiny_repo, "config", "user.name", "lane")
+    _git(tiny_repo, "add", "-A")
+    _git(tiny_repo, "commit", "-qm", "the tree as it stands")
+
+    _write(tiny_repo / "tasks" / "702-late.md", """\
+---
+id: "[#702]"
+title: "the row that was never committed"
+status: open
+---
+
+- [#702] names `scripts/lonely.py`.
+""")
+    db = tmp_path / "skew" / "FPG.db"
+    gs.rebuild(tiny_repo, db)
+    store = gs.open_store(db)
+    assert store.in_edges(store.key_for_path("scripts/lonely.py"), gq.COVERAGE_KINDS), \
+        "the fixture is inert -- the tree must supply the edge for the trip to mean anything"
+
+    findings = gq.task_coverage(tiny_repo, store, staged=["scripts/lonely.py"])
+    assert [f.subject for f in findings] == ["scripts/lonely.py"]
+    assert "tasks/702-late.md" in findings[0].evidence
+
+    _git(tiny_repo, "add", "tasks/702-late.md")
+    assert not gq.task_coverage(tiny_repo, store, staged=["scripts/lonely.py"])
 
 
 def test_task_coverage_is_silent_during_a_merge(tiny_repo: Path, tiny_store, monkeypatch):
