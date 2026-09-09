@@ -64,6 +64,7 @@ import click
 #: declaration that makes the intent legible; `test_exactly_one_public_funnel_health_emitter`
 #: is what actually holds the line, and it imports FM-5's own regex so the two cannot drift.
 __all__ = [
+    "AssemblyRefusedError",
     "BoundaryHygieneError",
     "BundleCollisionError",
     "CarriageVerdict",
@@ -648,6 +649,27 @@ class PreflightError(RuntimeError):
     states about leftovers: reporting only the first invites a fix-and-retry loop that reveals
     the next one. The refusal fires after the two boundary invariants and before anything is
     written, so a refused cut leaves no half-written bundle behind.
+    """
+
+
+class AssemblyRefusedError(RuntimeError):
+    """Generation refused at the ASSEMBLE step: the child assembler exited non-zero.
+
+    The LAST refusal in the family and the only one that fires AFTER the bundle is written,
+    because the thing it judges -- a filled RESIDUAL.md against the transport window -- does
+    not exist until the render has run. `assemble_paste.py` owns the judgment and prints its
+    own diagnostic; this class exists so the exit code SURVIVES the process boundary.
+
+    Terra HIGH, 2026-09-09. Before it, `generate()` spawned that child with `check=False` and
+    returned a GenResult regardless, so `gen_handoff --assemble` -- the default, and the path
+    an operator actually runs -- printed `Generated bundle` and exited 0 on a bundle leg 2 had
+    just refused. The refusal was real and the receipt contradicted it, which is strictly worse
+    than having no gate: a false witness is acted on, an absent one is not.
+
+    HONEST LIMIT: this propagates ANY non-zero exit from the assembler, not leg 2's
+    specifically. That is deliberate -- the parent has no business re-deciding which of the
+    child's refusals count, and every one of them means the same thing here (no PASTE_THIS.md
+    was written, so there is nothing to hand to a browser).
     """
 
 
@@ -2307,7 +2329,19 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     draft = journal_draft(slug, date, state, hints)
 
     if assemble:
-        _run_assembler(bundle_dir)
+        code = _run_assembler(bundle_dir)
+        if code != 0:
+            # The bundle is deliberately LEFT ON DISK. Every other refusal in this function
+            # fires before `mkdir` and leaves nothing behind; this one fires after the render,
+            # and that asymmetry is the point of an assemble-time gate — leg 2's whole reason
+            # for gating here is that the bundle is still repairable. Deleting it would take
+            # away the thing the operator has to fix.
+            raise AssemblyRefusedError(
+                f"assembly REFUSED for {bundle_dir} (assemble_paste.py exit {code}); the "
+                "diagnostic above is the assembler's own. No PASTE_THIS.md was written, so "
+                "there is nothing to hand to a browser. Repair what it names — for the P11 "
+                "leg-2 gate that means naming each `carried-by: OPEN` decision file in this "
+                "bundle's RESIDUAL.md — then re-run the assembler on the same directory.")
     return GenResult(bundle_dir=bundle_dir, journal_draft=draft, filled=filled)
 
 
@@ -2350,10 +2384,16 @@ def main(mode: str, epic_slug: str | None, slug: str | None, repo: str | None, d
         res = generate(_REPO_ROOT, mode=mode, slug=slug, repo=repo, date=date,
                        force_filled=force_filled, assemble=assemble, epic_slug=epic_slug,
                        allow_suffix=allow_suffix)
-    except (BundleCollisionError, OpenBatchError, BoundaryHygieneError, PreflightError) as exc:
-        # A REFUSAL, not a crash — one diagnostic line, non-zero exit, nothing written.
-        # RM-8 (target collision) and the two boundary invariants share this exit: each
-        # names what it found, and none of them is recoverable by re-running unchanged.
+    except (BundleCollisionError, OpenBatchError, BoundaryHygieneError, PreflightError,
+            AssemblyRefusedError) as exc:
+        # A REFUSAL, not a crash — one diagnostic line, non-zero exit. RM-8 (target collision)
+        # and the two boundary invariants share this exit: each names what it found, and none
+        # of them is recoverable by re-running unchanged.
+        # AssemblyRefusedError is the one member that differs on both counts, and the
+        # difference is stated rather than left for a reader to discover: it fires AFTER the
+        # bundle is written (its subject does not exist before the render), and it IS
+        # recoverable by re-running — repair what the assembler named, then re-run it. What it
+        # shares is the only thing this handler cares about: no `Generated bundle`, exit 1.
         raise SystemExit(f"[error] {exc}") from exc
     click.echo(f"Generated bundle: {res.bundle_dir}  (fill-state: {'FILLED' if res.filled else 'cold'})")
     if emit_journal:

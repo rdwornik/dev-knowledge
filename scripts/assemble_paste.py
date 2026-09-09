@@ -286,15 +286,17 @@ def assert_open_carriers_named(bundle_dir: Path, repo_root: Path) -> None:
     Exits 1 before `PASTE_THIS.md` is written, which is the whole point: the refusal has to
     land while the bundle is still repairable.
 
-    HONEST LIMIT, stated rather than left to be discovered. `gen_handoff.generate(assemble=True)`
-    spawns this script with `check=False`, so a refusal here does NOT propagate as a non-zero
-    `generate()`. What it produces is the thing that actually stops the handoff: **no
-    `PASTE_THIS.md`**, plus this block on stderr. A bundle with no assembled paste cannot be
-    pasted, and `/handoff` runs the assembler in the operator's own terminal where the refusal
-    is read. Making `generate` propagate the code is a change to the generate path, which is
-    outside this gate's scope; the guarantee it needs — the paste is not produced — holds
-    either way, and this note exists so nobody reads the swallowed exit code as a hole nobody
-    noticed.
+    THE EXIT CODE NOW PROPAGATES, and the correction is recorded because this docstring
+    previously argued it did not need to. `gen_handoff.generate(assemble=True)` spawned this
+    script with `check=False` and returned a GenResult regardless, so the standard cut command
+    printed `Generated bundle` and exited 0 on a bundle this function had just refused. The
+    old note reasoned that no `PASTE_THIS.md` was guarantee enough — a bundle with no
+    assembled paste cannot be pasted. That reasoning was wrong in the way understated risks
+    usually are: it priced the missing FILE and ignored the false RECEIPT beside it, and a
+    receipt saying the cut is clean is acted on, while an absent one is not. Terra HIGH,
+    2026-09-09. `gen_handoff._run_assembler` returns this exit code and `generate()` raises
+    `AssemblyRefusedError` on any non-zero, which `main` renders as one `[error]` line and a
+    non-zero exit.
     """
     # Deferred, sibling-CLI import — the same idiom `reflow_framing` / `FILL_IN_RE` already use.
     from gen_handoff import (  # noqa: PLC0415
