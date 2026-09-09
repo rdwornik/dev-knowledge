@@ -982,8 +982,71 @@ def test_the_probe_cli_reports_an_unwritable_destination_rather_than_a_traceback
 # everything, which measures the answer against nothing.
 
 
+class _WriteFails:
+    """A file handle that answers `fileno` and refuses to `write`.
+
+    Wrapping the real handle rather than patching `io` keeps the failure inside the one call
+    under test: patching a stdlib method globally would also break the runner capturing this
+    test output.
+    """
+
+    def __init__(self, fh):
+        self._fh = fh
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return self._fh.__exit__(*exc)
+
+    def fileno(self):
+        return self._fh.fileno()
+
+    def flush(self):
+        self._fh.flush()
+
+    def write(self, *_a):
+        raise OSError(28, "No space left on device")
+
+
+def _write_fails_on_call(monkeypatch, nth):
+    """Shadow `open` INSIDE the module so the nth created file cannot be written."""
+    calls = []
+
+    def fake_open(*a, **k):
+        calls.append(a)
+        fh = open(*a, **k)                                  # noqa: SIM115 - handed to caller
+        return _WriteFails(fh) if len(calls) == nth else fh
+
+    monkeypatch.setattr(oa, "open", fake_open, raising=False)
+
+
 def test_a_write_failure_AFTER_creation_leaves_no_partial_file(tmp_path, monkeypatch):
-    """The file created by the failing iteration is this invocation own leftover too."""
+    """The file created by the failing iteration is this invocation own leftover too.
+
+    The failure lands at `fh.write`, which is the case the finding names first and the one
+    where ownership is not in doubt: the identity was taken from the open handle before a
+    byte was written, so the cleanup removes this file the same way it removes the earlier
+    ones -- by identity, never by path.
+    """
+    _write_fails_on_call(monkeypatch, 2)
+    with pytest.raises(OSError):
+        oa.write_probe_corpus(tmp_path)
+    monkeypatch.undo()
+    assert list(tmp_path.iterdir()) == [], \
+        "the file created by the failing iteration was left behind"
+
+
+def test_an_UNVERIFIABLE_in_flight_file_is_RETAINED_rather_than_unlinked_by_path(
+        tmp_path, monkeypatch):
+    """When ownership cannot be established, the file stays. Deleting it is the worse error.
+
+    `os.fstat` failing is the one case where this function holds a handle it cannot name, so
+    a path-based unlink could delete a file another writer put there in the meantime -- the
+    exact overwrite the command exists to refuse. A retained empty file makes the next run
+    refuse an occupied destination, which is recoverable and loud; deleting someone else's
+    file is neither. Every file created in an EARLIER iteration is still cleaned up.
+    """
     real_fstat = oa.os.fstat
     calls = []
 
@@ -997,8 +1060,42 @@ def test_a_write_failure_AFTER_creation_leaves_no_partial_file(tmp_path, monkeyp
     with pytest.raises(OSError):
         oa.write_probe_corpus(tmp_path)
     monkeypatch.undo()
-    assert list(tmp_path.iterdir()) == [], \
-        "the file created by the failing iteration was left behind"
+    assert {q.name for q in tmp_path.iterdir()} == {"HANDBOOK.md"}, \
+        "the unnameable file was deleted by path, or an earlier one was not cleaned up"
+
+
+def _mixed_key_record():
+    """An admissible record with two undeclared keys whose TYPES do not compare."""
+    record = oa.admissible_record()
+    record["extra"] = "x"
+    record[1] = "x"
+    return record
+
+
+def test_a_record_with_MIXED_TYPE_undeclared_keys_is_REFUSED_not_crashed(tmp_path):
+    """YAML is a supported input, and YAML keys are not all strings.
+
+    Sorting the undeclared keys compared an `int` against a `str` and raised TypeError,
+    which the CLI does not catch -- so candidate-controlled input produced a traceback where
+    the contract promises a refusal. The refusal itself was already correct; only the
+    reporting of it could crash.
+    """
+    registry = oa.write_suite_corpus(tmp_path)
+    verdict = oa.adjudicate(_mixed_key_record(), tmp_path, registry)
+    assert not verdict.admitted
+    assert verdict.codes == ("undeclared-field",), verdict.detail
+    assert "'extra'" in verdict.detail and "1" in verdict.detail
+
+
+def test_the_cli_REFUSES_a_mixed_key_yaml_record_rather_than_crashing(tmp_path):
+    registry = oa.write_suite_corpus(tmp_path)
+    rec = tmp_path / "r.yaml"
+    rec.write_text(_dump_yaml(_mixed_key_record()), encoding="utf-8", newline="\n")
+    result = CliRunner().invoke(
+        oa.cli, ["--corpus", str(tmp_path), "--registry", str(registry),
+                 "--ground-truth", "none", "--record", str(rec)])
+    assert result.exit_code == 1, result.output
+    assert "undeclared-field" in result.output
 
 
 def test_a_corpus_that_no_longer_carries_a_planted_clause_cannot_be_SCORED(tmp_path):
