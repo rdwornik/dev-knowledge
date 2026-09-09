@@ -46,8 +46,35 @@
 # The prose here is therefore written without them, deliberately. Rules are expressed as
 # data below; the comments describe rather than command.
 
-spec_version: 1
+spec_version: 2
 spec_id: fleet-shape-v1
+
+# VERSION HISTORY. The bump is the integrator's act at a batch merge, not a lane's: a lane
+# cannot bump the version of a spec it is amending in the same arc, so both changes below
+# landed under version 1 and the version moved once, here, after both were on main.
+#
+#   1 -> 2   2026-09-09, batch V. Two lanes changed what a consumer owes.
+#            V-2 (`worktree-lane-v-000-shape-spec-clauses`, merge b31a20d5) added the KIND
+#            parameter to `home_grammar`, so a home clause resolves against a declared repo
+#            kind rather than against one tree's snapshot.
+#            V-3 (`worktree-lane-v-000-seal-rules-rerun`, merge 80d83090) split Rules B and C
+#            each into a fleet leg and a REPO-LOCAL leg: a consumer declares its own audit
+#            class enum and its own home tuple in its `.methodology.yaml`, under
+#            `shape_profile:`. That second one puts an obligation on the consumer side, which
+#            is what makes this a consumer-facing contract change rather than an internal
+#            edit -- and the reason the version moves at all.
+#            Ruling: DECLARE-SITTING-2026-09-08 ruling 10. Row: `[#653]`.
+#
+# RE-STAMPS OWED BY THIS BUMP: none, and that is measured rather than assumed.
+# `fleet-shape-v1` is absent from `validate_reconciliation._SPEC_REGISTRY`, whose two members
+# are `handoff-process` and `prompt-template`, so no dependent carries a
+# `reconciled_with: fleet-shape-v1@1` edge for this bump to invalidate. Were the id registered
+# later, that registration would own the sweep, not this bump.
+#
+# `spec_id` stays `fleet-shape-v1`. Its trailing token is the id's own generation marker
+# rather than a mirror of `spec_version`, and no organ reads the key today (measured: zero
+# hits for `fleet-shape-v1` outside this file). Coupling the two wants a ruling and a reader
+# before an edit, not a same-commit guess.
 
 # The intake this file executes, cited by PATH rather than by `#73` -- three intake ids are
 # double-allocated in history, so a bare id citation is ambiguous (intake #73, "On the id").
