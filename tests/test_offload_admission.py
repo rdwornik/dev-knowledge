@@ -490,12 +490,14 @@ def test_write_probe_corpus_REFUSES_an_occupied_destination_rather_than_overwrit
     caller's own files, with an exception to explain it. So the assertion is not merely that
     `gates.yaml` survived - it is that `RULES.md` was never created.
     """
-    occupied = tmp_path / "gates.yaml"
+    dest = tmp_path / "corpus"
+    dest.mkdir()
+    occupied = dest / "gates.yaml"
     occupied.write_text("hooks: []\n", encoding="utf-8", newline="\n")
     with pytest.raises(FileExistsError):
-        oa.write_probe_corpus(tmp_path)
+        oa.write_probe_corpus(dest)
     assert occupied.read_text(encoding="utf-8") == "hooks: []\n"
-    assert not (tmp_path / "RULES.md").exists(), "a refused write left a half-materialised corpus"
+    assert not (dest / "RULES.md").exists(), "a refused write left a half-materialised corpus"
 
 
 def test_the_probe_cli_REFUSES_a_checkout_that_already_holds_those_filenames(tmp_path):
@@ -888,9 +890,10 @@ def test_an_UNWRITABLE_probe_destination_leaves_nothing_behind(tmp_path, monkeyp
     unwritable partway through kept whatever had already been created -- the half-written
     corpus the pre-flight scan exists to prevent, arriving by the other door.
     """
+    dest = tmp_path / "corpus"
     _mkdir_fails_on_call(monkeypatch, 3)
     with pytest.raises(OSError):
-        oa.write_probe_corpus(tmp_path)
+        oa.write_probe_corpus(dest)
     monkeypatch.undo()
     assert list(tmp_path.iterdir()) == [], "a failed write left part of the corpus behind"
 
@@ -962,9 +965,10 @@ def test_a_write_failure_AFTER_creation_leaves_no_partial_file(tmp_path, monkeyp
     byte was written, so the cleanup removes this file the same way it removes the earlier
     ones -- by identity, never by path.
     """
+    dest = tmp_path / "corpus"
     _write_fails_on_call(monkeypatch, 2)
     with pytest.raises(OSError):
-        oa.write_probe_corpus(tmp_path)
+        oa.write_probe_corpus(dest)
     monkeypatch.undo()
     assert list(tmp_path.iterdir()) == [], \
         "the file created by the failing iteration was left behind"
@@ -1206,3 +1210,54 @@ def test_a_BLANK_top_level_verdict_key_is_refused_too(tmp_path):
     verdict = oa.adjudicate(record, tmp_path, registry)
     assert not verdict.admitted
     assert verdict.codes == ("verdict-bearing",), verdict.detail
+
+
+# ---------------------------------------------------------------------------------------
+# a reservation is a claim on a NAME, not a lease on an inode - terra pass 13 (2026-09-09)
+# ---------------------------------------------------------------------------------------
+# [P1] "When another process can write the destination's parent, it can remove the newly
+# created empty directory after `mkdir()` and recreate it before the first file is opened. A
+# subsequent write failure then executes `rmtree(root)` on the replacement path and deletes
+# the other process's files, so the claimed reservation does not actually uphold the
+# no-overwrite/no-delete guarantee under concurrent use."
+#
+# Correct, and it is the pass-9 finding one level up: an unlink by PATH of something whose
+# identity was never held. `mkdir` proves the name was free at one instant; it does not keep
+# it. The remedy is not a better ownership check -- passes 8, 9 and 10 each tried one -- but
+# a cleanup that CANNOT destroy data: `os.rmdir` refuses a non-empty directory, and the
+# kernel enforces that, not this module.
+
+
+def test_a_RESERVATION_a_racer_REPLACED_is_never_deleted_with_its_contents(
+        tmp_path, monkeypatch):
+    """The destructive half of the race, which is the half that matters.
+
+    A racer cannot be stopped from taking a name back -- POSIX offers no lease on a directory
+    -- so the property worth holding is the one about CONSEQUENCE: whatever happens to the
+    name, this call never deletes a file it did not create. Cleanup that can only remove an
+    EMPTY directory holds that under every interleaving, including the ones nobody enumerated.
+    """
+    dest = tmp_path / "corpus"
+    foreign = "# Rules\nanother writer replaced the reservation\n"
+    real_mkdir = pathlib.Path.mkdir
+    real_rmdir = pathlib.Path.rmdir
+    swapped = []
+
+    def hook(self, *a, **k):
+        result = real_mkdir(self, *a, **k)
+        if self == dest and not swapped:
+            swapped.append(True)
+            real_rmdir(dest)                      # the racer takes the name back ...
+            real_mkdir(dest)                      # ... and puts their own directory there
+            (dest / "RULES.md").write_text(foreign, encoding="utf-8", newline="\n")
+        return result
+
+    monkeypatch.setattr(pathlib.Path, "mkdir", hook)
+    _write_fails_on_call(monkeypatch, 2)
+    with pytest.raises(OSError):
+        oa.write_probe_corpus(dest)
+    monkeypatch.undo()
+
+    assert swapped, "the racer never got its window -- the test proved nothing"
+    assert (dest / "RULES.md").read_text(encoding="utf-8") == foreign, \
+        "the failure path deleted a directory this call did not create"
