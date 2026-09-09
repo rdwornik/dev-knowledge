@@ -248,6 +248,18 @@ addopts = "-n auto"
 #
 # `-rf` — the FAILED list is the artifact. A bare `-q` tail gives a count; the reconciliation
 #   that says "28, and they are these 28" needs the names.
+#
+# WHERE IT RUNS, measured rather than assumed (2026-09-09, lane v-643). The 28-RED baseline was
+# taken on the CODESPACES substrate (4 cores, 16 GB, `nproc 4`), which is where the 2026-08-20
+# substrate ruling already puts this workload. On the operator's Windows host the run does NOT
+# complete AT ANY WORKER COUNT while OneDrive, VS Code and Chrome hold the RAM: at ~2.8 GB free
+# of 28 GB, `-n 2` was killed at 17 % (~13 min) and `-n 0` at 2 % (~7 min), both by the
+# system's low-memory reaper, with no MemoryError and no partial report. THE INVOCATION IS NOT
+# THE CAUSE — serial died sooner than parallel — so `-n 2` stands as the bounded choice against
+# `-n auto`'s sixteen workers, and the constraint to fix is the host, not this line. A run that
+# is killed produces no number at all, which is the one outcome an unattended sweep must not
+# have; this is the third independent witness of that failure, after the five attempts recorded
+# in DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08.
 
 [tool.ruff]
 # === UNIVERSAL (fleet methodology — ARC 4 leg 1, 2026-07-18) ==================
