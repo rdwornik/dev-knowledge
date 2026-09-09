@@ -91,6 +91,14 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#651] [P2][S] The two ADR-85 organs each hold their own copy of the branch enum · tasks/651-two-adr-85-organs-each-hold-their-own-branch-enum.md
 - [#652] [P2][S] A gate that passes when its precondition is ABSENT is the empty-rows shape, and the receipt check has it · tasks/652-a-gate-that-passes-when-its-precondition-is-absent.md
 - [#664] [P1][L] Wire FPG-1 as the delivery spine — three commit-tier queries, and organs become views · tasks/664-wire-fpg-1-as-the-delivery-spine-three-commit-tier.md
+- [#665] [P1][M] Step A — the chapter map of PLAYBOOK and ARCHITECTURE, without which step B's sitting cannot happen · tasks/665-step-a-the-chapter-map-of-playbook-and-architect.md
+- [#666] [P1][S] Step B — the operator rules keep, merge or cut per chapter: one sitting, one file · tasks/666-step-b-the-operator-rules-keep-merge-or-cut-per.md
+- [#667] [P1][L] Step D — the docs rewrite: ARCHITECTURE rendered, PLAYBOOK by chapter, DISPATCH split out, ESSENTIALS gone · tasks/667-step-d-the-docs-rewrite-architecture-rendered-pl.md
+- [#668] [P2][M] Step E — the paste test becomes a scored eval, or the whole recovery plan is graded by vibe · tasks/668-step-e-the-paste-test-becomes-a-scored-eval-or-t.md
+- [#669] [P1][L] Step F — the conductor: the delivery loop's transitions become a state machine over rows · tasks/669-step-f-the-conductor-the-delivery-loop-s-transit.md
+- [#670] [P1][M] Step G — floor v1.5.0 reaches corp-monorepo, and the only thing stopping it is an unmade decision · tasks/670-step-g-floor-v1-5-0-reaches-corp-monorepo-and-th.md
+- [#671] [P2][S] A lane branch carrying NO reviewer tally at all is refused by nothing at merge tier · tasks/671-a-lane-branch-carrying-no-reviewer-tally-at-all.md
+- [#672] [P2][M] `lane-contract-check` cannot express an incremental contract addition, and its docstring disagrees with its YAML · tasks/672-lane-contract-check-cannot-express-an-incrementa.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
