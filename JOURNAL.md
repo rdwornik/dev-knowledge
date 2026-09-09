@@ -19,6 +19,78 @@
 
 ---
 
+### 2026-09-09 (b) - CC (Opus 5, INTEGRATOR SEAT): the terra gate ruled; V-2 and V-4 merged, V-5 and V-8 bounced
+
+**Anchors by naming `ff798a1a`** (introduced by the V-4 merge `d12beac6`), **`e73d4b84`**
+(introduced by the spec-bump merge `94c4eb47`) and **`6b6ab678`** (introduced by the V-2 merge
+`b31a20d5`). Three of the four spine entries in this push range are therefore anchored by SHAs
+they introduced. This entry names no merge's own hash, which no entry can.
+
+**Did.** Ran the terra gate the operator ordered on the three lanes entry (a) had held for a
+missing tally -- hub codex, read-only, three-dot against `main`, one pass each. Ruled each on
+`unresolved HIGH`, merged what cleared, bounced what did not. Re-witnessed V-3's seal on the
+merged tree. Bumped the shape spec.
+
+**Result -- the tallies, and what each bought.**
+
+- **V-2** `HIGH raw=0 fixed=0 unresolved=0` -> **MERGED** (`b31a20d5`). Its one RED was verified
+  pre-existing by reproducing it on bare `main` with no lane code
+  (`test_the_derived_leg_is_warn_class_on_arrival`, narrowed at `63e94ff2`, an ancestor).
+- **V-5** `HIGH raw=1 unresolved=1` -> **HELD, back to the author.** `assemble_paste.py:371`:
+  `generate()` invokes the child assembler with `check=False`, so a failed P11 refusal still
+  prints `Generated bundle` and exits 0. The lane exists to make P11 refuse and it announces
+  success on the only path an operator runs. Its `[P2]` companion is the same defect seen
+  twice -- the test at `tests/test_assemble_paste.py:720-726` runs outside a git repo, so it
+  would not have caught it.
+- **V-8** `HIGH raw=2 unresolved=2` -> **HELD, back to the author.**
+  `offload_admission.py:721-723` exits 0 with an N/N success even when every seeded case
+  refuses for the wrong code -- and that counter produces the lane's own headline number.
+  `offload_admission.py:656-658`: `--probe-corpus .` overwrites `RULES.md`, `HANDBOOK.md` and
+  `gates.yaml` in a live checkout.
+
+`fixed=0` on all three is **structural, not a judgment**: the review is read-only and the lanes
+had stopped, so `unresolved == raw` by construction. Recorded so a later reader does not read
+it as a reviewer finding nothing worth fixing.
+
+**V-4 merged** (`d12beac6`) after the operator released it. Twenty ruled-but-unrowed items get
+owners, `[#644]`-`[#663]`; N 11 -> 0; the P11 carrier short set 7 -> 0; the PLAYBOOK gains the
+harness definition-of-done; intake #40 narrowed to corpus-structure edges. **It is a DOCS lane
+and the terra CODE gate does not bind it** -- verified against the diff, `scripts/` untouched,
+rather than assumed from the lane's name.
+
+**V-3's re-witness: N = 204 CONFIRMED on the merged tree.** Nine repos, one
+`validate_hermetization.py report` call each. The merged run reproduces the lane's table
+cell-for-cell -- 215 items, A 37 / B 176 / C 2, and every per-repo row identical -- so WAIVE
+204 / non-WAIVE 11 holds. Two repo HEADs and the hub's tracked count moved between the two runs
+and the item set did not, which is the stronger result. V-3's done-clause 2 is discharged.
+
+**`fleet-shape-spec` 1 -> 2** (`94c4eb47`), ruling 10's owed act, unblocked because both its
+operands are now on main. Re-stamps owed: **none, measured** -- `fleet-shape-v1` is absent from
+`validate_reconciliation._SPEC_REGISTRY`, so no dependent declares an edge to invalidate.
+
+**Carried, not absorbed: the `[#589]` byte bar is breached.** `BACKLOG.md` 71,911 -> 75,367 B
+against a 72,000 B bar; one suite RED follows
+(`test_the_live_view_is_under_the_589_done_when_byte_bar`). The two lawful answers are groom or
+a ruled re-baseline; the integrator took **neither**, because grooming is a closure act and
+raising a bar to fit the first rows that ever hit it is the act the row exists to forbid.
+
+**Changes.** `ecosystem/fleet-shape-spec.yaml` · `BACKLOG.md` + `tasks/` (+20 rows) ·
+`protocols/PLAYBOOK.md` · `docs/intake/2026-08-22-tech-document-dependency-graph-organ.md` ·
+`docs/audits/` (V-4 lane close) · `JOURNAL.md`. Transport:
+`to-browser/REVIEW-lane-v-643-enforcement-debt.md` and
+`to-browser/REVIEW-lane-v-000-offload-admission.md` -- the bounce channel, because both lane
+sessions are dead and a hold with no written finding is indistinguishable from a forgotten lane.
+
+**Abandoned.** Nothing. No lane was merged past its gate and no finding was waived.
+
+**Next.** File the spine row for DECLARE-SPINE §3 and dispatch its lane; then one lane landing
+this window's rulings into the repo (the recovery-plan intake, its A-G rows, the terra-gate row,
+the ESSENTIALS row). Both merge last. Then: regenerate `docs/audits/README.md` +
+`ecosystem/doc-counts.md`, one full-suite run on the merged result, the HANDOFF_PROCESS
+7.0.0 -> 7.1.0 bump with its three `reconciled_with` re-stamps and the PIN re-issue, and the
+refuse-to-finish checklist. **Batch V stays OPEN** -- V-5 and V-8 are held, not abandoned, and
+the checklist admits only merged-or-abandoned.
+
 ### 2026-09-09 (a) - CC (Opus 5, INTEGRATOR SEAT): batch V opened and drained to 2 of 5; the terra gate held three
 
 **Anchors via `75fa8ad5`** (the regeneration commit this entry rides), and names `d1b610db`
