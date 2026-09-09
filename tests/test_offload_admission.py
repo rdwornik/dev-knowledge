@@ -735,3 +735,80 @@ def test_the_cli_reports_an_UNREADABLE_corpus_as_a_gap_rather_than_a_traceback(
                  "--ground-truth", "none", "--record", str(rec)])
     assert result.exit_code == 2, result.output
     assert "NOT ADMITTED" in result.output
+
+
+# ---------------------------------------------------------------------------------------
+# the ROLE BOUNDARY as a schema, and a check that could not race - terra pass 5 (2026-09-09)
+# ---------------------------------------------------------------------------------------
+# Two [P1]s. The gate refused ONE decision-bearing field, `finding["verdict"]`, while the
+# parser accepted arbitrary extra keys - so a `recommendation`, an `instruction`, or a
+# top-level `verdict` cleared it, and the retrieval-only invariant intake #75 states was
+# enforced against one spelling of a ruling rather than against rulings. Separately, the
+# probe writer checked `exists()` and then wrote, which is a check-then-act race: a file
+# appearing in between was truncated, defeating the no-overwrite guarantee added in 2957e687.
+
+
+def test_a_record_carrying_a_TOP_LEVEL_verdict_is_REFUSED(tmp_path):
+    """The role boundary is about rulings, not about one field name in one place."""
+    registry = oa.write_suite_corpus(tmp_path)
+    record = oa.admissible_record()
+    record["verdict"] = "CONFIRMED - close the row"
+    verdict = oa.adjudicate(record, tmp_path, registry)
+    assert not verdict.admitted
+    assert verdict.codes == ("verdict-bearing",), verdict.detail
+
+
+def test_a_finding_carrying_an_UNDECLARED_field_is_REFUSED(tmp_path):
+    """`recommendation` is a ruling wearing a different name, and the shape is closed.
+
+    The probe question specifies an exact object. Accepting keys outside it means the gate
+    enforces the retrieval-only invariant against the vocabulary it happened to anticipate,
+    which is not enforcement -- it is a denylist that a candidate escapes by renaming.
+    """
+    registry = oa.write_suite_corpus(tmp_path)
+    record = oa.admissible_record()
+    record["findings"][0]["recommendation"] = "close the row"
+    verdict = oa.adjudicate(record, tmp_path, registry)
+    assert not verdict.admitted
+    assert verdict.codes == ("undeclared-field",), verdict.detail
+
+
+def test_an_UNDECLARED_top_level_field_is_REFUSED(tmp_path):
+    registry = oa.write_suite_corpus(tmp_path)
+    record = oa.admissible_record()
+    record["instruction"] = "merge the branch"
+    verdict = oa.adjudicate(record, tmp_path, registry)
+    assert not verdict.admitted
+    assert verdict.codes == ("undeclared-field",), verdict.detail
+
+
+def test_the_declared_schema_and_the_probe_QUESTION_name_the_same_fields():
+    """A gate stricter than the question it asks would refuse a compliant candidate."""
+    for field in oa.RECORD_FIELDS | oa.FINDING_FIELDS:
+        assert f'"{field}"' in oa.PROBE_QUESTION, field
+
+
+def test_the_probe_write_REFUSES_a_file_that_APPEARED_after_the_preflight(
+        tmp_path, monkeypatch):
+    """Check-then-act, made deterministic: the pre-flight sees nothing, the write collides.
+
+    A pre-flight scan is the better error message, never the guarantee. The guarantee is
+    exclusive creation, so a file that appears between the scan and the write is refused
+    rather than truncated -- and the partial corpus written before the collision is removed,
+    because a refusal that leaves half a corpus behind is the failure the pre-flight scan was
+    added to prevent in the first place.
+    """
+    victim = tmp_path / "gates.yaml"
+    victim.write_text("hooks: []\n", encoding="utf-8", newline="\n")
+    real_exists = pathlib.Path.exists
+
+    def blind(self, *a, **k):
+        return False if self.name in oa.PROBE_CORPUS else real_exists(self, *a, **k)
+
+    monkeypatch.setattr(pathlib.Path, "exists", blind)
+    with pytest.raises(FileExistsError):
+        oa.write_probe_corpus(tmp_path)
+    monkeypatch.undo()
+    assert victim.read_text(encoding="utf-8") == "hooks: []\n"
+    assert {q.name for q in tmp_path.iterdir()} == {"gates.yaml"}, \
+        "a refused write left part of the corpus behind"
