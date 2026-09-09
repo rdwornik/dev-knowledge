@@ -9,8 +9,9 @@ failing witness for this module is `tests/test_file_purpose_graph.py::
 test_why_refuses_a_planted_unknown_file`, which was RED against a stub whose `why` answered
 every path before this file existed.
 
-FIVE INPUTS, ONE GRAPH. The repo already knows most of this; it knows it in five places that
-have never been joined:
+SEVEN INPUTS, ONE GRAPH -- five joined in the A3 slice, two added by `[#664]` under ADR-118
+section 1 (*"a new edge kind is added to FPG-1, never to a script"*). The repo already knows
+most of this; it knows it in places that had never been joined:
 
   1. `ecosystem/doc-code-edge.yaml`   -- declaration docs and the `<!-- rule: -->` /
      `# rule:` pairs that bind a written rule to the organ enforcing it.
@@ -21,6 +22,17 @@ have never been joined:
   4. `tasks/**` `depends-on`          -- the row graph. `tasks/` is the SOURCE OF TRUTH;
      `BACKLOG.md` is a generated one-line view and is never read for edges.
   5. `deploy/manifest-v*.yaml`        -- which carrier and which component ship which file.
+  6. the WIRING SURFACES (`[#664]`)   -- `.pre-commit-config.yaml`, `.claude/settings.json`,
+     the plugin `hooks.json`, the scheduled task and the CI workflows, plus the script call
+     graph closed transitively over them by `ast`. Contributes `triggers` and `imports`.
+     This is the relation whose ABSENCE was the whole finding: with nothing answering "what
+     fires this", *"list all processes"* was a re-read of the repo, and
+     `docs/audits/2026-09-08-technical-process-trigger-census.md` had to compute the relation
+     privately to answer it once. Its method is carried here, recorded errors and all --
+     see `_script_module_map` and `_import_targets`, which name the two the census records.
+  7. `tasks/**` OPEN rows (`[#664]`)  -- `implements`, BOTH directions: the row names the
+     file, and the file names the row. The code layer is where ownership is claimed, and it
+     is exactly the layer the governance pool of input 3 deliberately excludes.
 
 ONE DIRECTION CONVENTION, AND IT IS LOAD-BEARING. **Every edge points from the consumer to
 the thing it consumes**: `A --kind--> B` reads "A depends on / reads / is coupled to B". So
@@ -56,15 +68,31 @@ module can see a dependency edge the rest of the repo does not. Measured against
 tree on 2026-08-29 the two readings AGREE -- no row carries a second body clause today -- so
 the divergence is latent, not active.
 
-WHAT "GOVERNED" MEANS HERE, and its honest limit. A path is governed iff at least one of the
-five inputs names it. Nothing else confers it -- not existing, not being imported, not being
-tested. That is the point: measured against the live tree, most of `scripts/` and all of
-`tests/` are UNKNOWN to this graph, and `why` refuses them. That refusal is the finding, not
-a gap in the query.
+WHAT "GOVERNED" MEANS HERE -- AMENDED BY `[#664]`, because the amendment changes an answer
+this header used to give. A path is governed iff at least one of the seven inputs names it,
+PLUS one deliberate widening: every in-tree PROCESS file (`process_class` -- script / command
+/ skill) is a node whether or not anything names it.
 
-PHASE FENCE (FPG-1). New-files-first: this module is a library plus a CLI. It is wired into
-NO gate, no check and no hook. Making `check_funnel_lifecycle` -- or anything else -- consume
-the predicate is a later batch and is deliberately not done here.
+The widening is not a softening. Under the five original inputs a process nothing named had
+NO VERTEX AT ALL, so the file most in need of a census was the one the census could not see:
+`.claude/commands/save.md` and both `.claude/skills/*/SKILL.md` were invisible for exactly
+that reason, measured on the first live run of the wiring loader. A query cannot report an
+absence it has no node for.
+
+So the refusal MOVED rather than weakened. `why` on an unexplained script now answers
+(purpose, zero consumers) where it used to raise `UnknownFile`; the refusal it carried is now
+`orphan_census`, which refuses at the COMMIT GATE and therefore blocks something. `tests/` is
+still UNKNOWN and `why` still refuses it -- which remains the finding this header always
+claimed it was, now stated about the surface where it is still true.
+
+PHASE FENCE, LIFTED 2026-09-09 BY `[#664]`, and the old text is QUOTED rather than deleted
+because lifting it is the point of the row. It read: *"this module is a library plus a CLI.
+It is wired into NO gate, no check and no hook."* ADR-118 measured that sentence as the
+defect -- a graph built to be authoritative and consumed by nothing, while twelve organs
+computed edges privately. FPG-1 is now the DELIVERY SPINE: `scripts/graph_store.py` persists
+it on every commit and `scripts/graph_queries.py` runs three commit-tier REFUSALS over the
+persisted store. This module is still a library plus a CLI; what changed is that something
+reads it.
 
 LAYER-2 POSTURE: read-only. Nothing here writes a file, and no health number is emitted, so
 the A1 telemetry clause is not engaged; the store that WOULD receive one is
@@ -84,10 +112,12 @@ from __future__ import annotations
 
 import argparse
 import ast
+import json
 import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+from xml.etree import ElementTree
 
 import rustworkx
 import yaml
@@ -121,6 +151,13 @@ INPUT_AUDITS_INDEX = "audits-index"
 INPUT_CONSUMER_AT_LANDING = "consumer-at-landing"
 INPUT_TASKS_DEPENDS_ON = "tasks-depends-on"
 INPUT_DEPLOY_MANIFEST = "deploy-manifest"
+#: INPUT 6 -- the wiring surfaces, and the transitive script call graph closed over them.
+#: Added by `[#664]` under ADR-118 §1 (*"a new edge kind is added to FPG-1, never to a
+#: script"*), carrying the method of `docs/audits/2026-09-08-technical-process-trigger-census.md`
+#: from a one-time audit into the graph.
+INPUT_WIRING = "wiring"
+#: INPUT 7 -- `implements`, both directions, between an OPEN row and the files it owns.
+INPUT_TASK_IMPLEMENTS = "task-implements"
 
 INPUTS: tuple[str, ...] = (
     INPUT_DOC_CODE_EDGE,
@@ -128,6 +165,8 @@ INPUTS: tuple[str, ...] = (
     INPUT_CONSUMER_AT_LANDING,
     INPUT_TASKS_DEPENDS_ON,
     INPUT_DEPLOY_MANIFEST,
+    INPUT_WIRING,
+    INPUT_TASK_IMPLEMENTS,
 )
 
 EDGE_ENFORCES = "enforces"
@@ -142,6 +181,13 @@ EDGE_CARRIED_BY = "carried-by"
 EDGE_GOVERNED_BY = "governed-by"
 EDGE_GENERATED_FROM = "generated-from"
 EDGE_ARCHIVES = "archives"
+#: `[#664]` -- the three kinds the delivery spine needs, all three registered HERE rather
+#: than computed by an organ of their own. `triggers` runs from a WIRING SURFACE to the
+#: process it fires, `imports` from a module to the module it calls, and `implements` from
+#: an OPEN row to the file it owns. All three obey the one direction convention above.
+EDGE_TRIGGERS = "triggers"
+EDGE_IMPORTS = "imports"
+EDGE_IMPLEMENTS = "implements"
 
 #: kind -> (phrase when rendered on an OUT edge, phrase when rendered on an IN edge). Every
 #: kind the builder emits is registered here; `test_every_edge_is_consumer_to_consumed`
@@ -168,6 +214,16 @@ EDGE_KINDS: dict[str, tuple[str, str]] = {
     EDGE_GOVERNED_BY: ("is governed by", "governs"),
     EDGE_GENERATED_FROM: ("is generated from", "generates"),
     EDGE_ARCHIVES: ("archives its body in", "is the archived body of"),
+    # `triggers` is the one relation the corpus had NO answer for, and its absence is what
+    # made "list all processes" a re-read of the repo rather than a query. It runs from the
+    # wiring surface to the process, because the surface is what depends on the process
+    # existing -- delete the script and the hook breaks, not the other way round.
+    EDGE_TRIGGERS: ("triggers", "is triggered by"),
+    EDGE_IMPORTS: ("imports", "is imported by"),
+    # `implements` runs from the ROW to the file. A row depends on the files that discharge
+    # it; the file is the thing consumed. Reading it inward -- "is implemented by [#664]" --
+    # is the coverage question `task_coverage` asks.
+    EDGE_IMPLEMENTS: ("implements", "is implemented by"),
 }
 
 NODE_FILE = "file"
@@ -200,6 +256,467 @@ AUDITS_INDEX_RELPATH = "docs/audits/README.md"
 AUDITS_RELPATH = "docs/audits"
 TASKS_RELPATH = "tasks"
 DEPLOY_RELPATH = "deploy"
+
+# ------------------------------------------------------------------ [#664] the wiring input
+
+#: THE SEVEN ROOTS, taken VERBATIM from the process-trigger census's Method section
+#: (`docs/audits/2026-09-08-technical-process-trigger-census.md`) rather than re-decided here:
+#: *"the seven wiring surfaces that can fire something without a human deciding in the
+#: moment"*. Six are in-tree and listed; the seventh, `~/.claude/settings.json`, is the L0
+#: layer on the operator's disk and is NOT a node of this repo's corpus. Its absence is
+#: stated rather than silently dropped -- an L0 hook is out of a corpus graph's reach by
+#: construction, and that is one half of why `orphan_census` cannot reach the census's 32.
+WIRING_SURFACES: tuple[str, ...] = (
+    ".pre-commit-config.yaml",
+    ".pre-commit-hooks.yaml",
+    ".claude/settings.json",
+    "plugins/tier1-lifecycle/hooks/hooks.json",
+    "scripts/fleet-baseline.task.xml",
+)
+#: The CI leg. The census records this as `push`-triggered, not scheduled; either way it
+#: fires without a human deciding in the moment, which is the census's own predicate.
+WIRING_WORKFLOW_GLOB = ".github/workflows/*.yml"
+
+#: A repo-relative script path in a config VALUE. Bounded to the two trees that hold
+#: executables, so a doc path in an `args:` list cannot masquerade as a call site.
+_SCRIPT_PATH_RE = re.compile(r"(?:scripts|plugins)/[A-Za-z0-9_./-]+\.(?:py|ps1)")
+#: `python -m scripts.codemap.cli` -- the OTHER executable spelling in this repo's hooks.
+_DASH_M_RE = re.compile(r"-m\s+(scripts(?:\.[A-Za-z0-9_]+)+)")
+
+#: What counts as a PROCESS for the census. Derived from kind and path, never declared on a
+#: node -- intake #40 §1's standing rule, and the reason `script` / `hook` / `command` /
+#: `skill` are NOT minted as rival node kinds: a script IS a file, and a second vertex for
+#: one file is the defect `PurposeGraph.node_for_path` exists to prevent.
+PROCESS_SUFFIXES = (".py", ".ps1")
+
+
+def process_class(relpath: str) -> str | None:
+    """`script` / `command` / `skill` for a process file, else None.
+
+    The census's populations A and C, as a predicate over a path. Population B (L0 hooks
+    under `~/.claude/hooks/`) has no in-tree path and therefore no answer here; population D
+    (`audit.ALL_CHECKS` members) is a set of FUNCTIONS inside files this already classifies,
+    and the census reports it at zero orphans, so it needs no separate class.
+    """
+    rel = relpath.replace("\\", "/")
+    if "__pycache__" in rel:
+        return None
+    if rel.endswith(PROCESS_SUFFIXES) and (
+            rel.startswith("scripts/") or (rel.startswith("plugins/") and "/scripts/" in rel)):
+        return "script"
+    if rel.endswith(".md") and (
+            rel.startswith(".claude/commands/") or
+            (rel.startswith("plugins/") and "/commands/" in rel)):
+        return "command"
+    if rel.endswith("/SKILL.md") and (
+            rel.startswith(".claude/skills/") or
+            (rel.startswith("plugins/") and "/skills/" in rel)):
+        return "skill"
+    return None
+
+
+#: Where a process file can live. Not a tree walk of the whole repo: the census's populations
+#: A and C are exactly these four roots, and widening beyond them would report files this
+#: repo has never called processes.
+PROCESS_ROOTS = ("scripts", "plugins", ".claude/commands", ".claude/skills")
+
+
+def _process_paths(root: Path) -> set[str]:
+    """Every in-tree process file, by `process_class`. The census's population, computed."""
+    out: set[str] = set()
+    for base in PROCESS_ROOTS:
+        directory = root / base
+        if not directory.is_dir():
+            continue
+        for path in directory.rglob("*"):
+            if not path.is_file():
+                continue
+            rel = path.relative_to(root).as_posix()
+            if process_class(rel):
+                out.add(rel)
+    return out
+
+
+def _config_strings(value) -> list[str]:
+    """Every string leaf of a parsed config, and NOTHING a parser dropped.
+
+    THE POINT OF PARSING RATHER THAN GREPPING. `.pre-commit-config.yaml` carries more
+    comment prose than configuration, and that prose names scripts by path constantly
+    (`block-ff-push below stays the push-time half`, and a dozen others). A text scan would
+    read those as call sites and manufacture triggers -- which under-reports orphans, the
+    exact direction an orphan census must never be wrong in. A YAML/JSON parser drops
+    comments by construction, so the roots are what the file DECLARES rather than what it
+    discusses.
+    """
+    out: list[str] = []
+    stack = [value]
+    while stack:
+        item = stack.pop()
+        if isinstance(item, str):
+            out.append(item)
+        elif isinstance(item, dict):
+            stack.extend(item.keys())
+            stack.extend(item.values())
+        elif isinstance(item, (list, tuple)):
+            stack.extend(item)
+    return out
+
+
+def _surface_strings(path: Path) -> list[str]:
+    """Parse one wiring surface into its string leaves, fail-soft on an unparseable file."""
+    text = _read(path)
+    if text is None:
+        return []
+    suffix = path.suffix.lower()
+    try:
+        if suffix in (".yaml", ".yml"):
+            return _config_strings(yaml.safe_load(text))
+        if suffix == ".json":
+            return _config_strings(json.loads(text))
+        if suffix == ".xml":
+            root = ElementTree.fromstring(text)
+            out: list[str] = []
+            for element in root.iter():
+                if element.text:
+                    out.append(element.text)
+                out.extend(str(v) for v in element.attrib.values())
+            return out
+    except (yaml.YAMLError, json.JSONDecodeError, ElementTree.ParseError):
+        # An unparseable wiring surface makes every process it fires look like an orphan.
+        # Reporting nothing is the honest failure here: the caller sees the surface
+        # contributed no edges, and `INPUTS` coverage is asserted by a live-repo test.
+        return []
+    return []
+
+
+def _script_module_map(root: Path) -> dict[str, str]:
+    """Dotted module name -> repo-relative path, PACKAGE-QUALIFIED.
+
+    The census's recorded error 2, not repeated: *"An AST pass keyed modules by bare
+    filename. Seven names collide (`cli`, `check`, `generator`, `__init__`, and the three
+    plugin derived copies), so `scripts/toc/generator.py` was credited with
+    `scripts/codemap/`'s call site."* Every suffix of the dotted name is registered, and a
+    suffix that TWO modules would claim is registered by NEITHER -- an ambiguous name buys
+    no edge rather than the wrong one.
+    """
+    paths: list[str] = []
+    for base in ("scripts", "plugins"):
+        directory = root / base
+        if not directory.is_dir():
+            continue
+        for path in sorted(directory.rglob("*.py")):
+            rel = path.relative_to(root).as_posix()
+            if "__pycache__" not in rel:
+                paths.append(rel)
+
+    claims: dict[str, set[str]] = {}
+    for rel in paths:
+        parts = rel[: -len(".py")].split("/")
+        for start in range(len(parts)):
+            claims.setdefault(".".join(parts[start:]), set()).add(rel)
+    return {name: next(iter(owners)) for name, owners in claims.items() if len(owners) == 1}
+
+
+#: A bare sibling module named as a string, the third executable spelling in this repo:
+#: `audit.py` loads its git seam with `Path(__file__).resolve().with_name("gitenv.py")`, and
+#: the census counts exactly that -- *"a string literal naming `<mod>.py` in executable
+#: position"*. Resolved against the NAMING file's own directory, never repo-wide, so a bare
+#: name cannot bind to a same-named module in another package.
+_BARE_MODULE_RE = re.compile(r"\A([A-Za-z_][A-Za-z0-9_]*)\.py\Z")
+
+
+def _resolved_targets(text: str, modules: dict[str, str], root: Path,
+                      bases: tuple[str, ...] = ()) -> set[str]:
+    """The script paths one config or code string names, by any of the three spellings.
+
+    `bases` are the directories a RELATIVE spelling may resolve against, NEAREST FIRST, with
+    the repo root tried LAST. A plugin manifest writes
+    `${CLAUDE_PLUGIN_ROOT}/scripts/propose_closures.py`, and the ORDER is what makes that
+    resolve correctly: `scripts/propose_closures.py` also exists at the repo root -- it is
+    the hub original the plugin copy is derived from -- so a root-first search bound the
+    plugin's Stop hook to the WRONG FILE and left all three plugin scripts reading as
+    orphans while the hook that fires them looked wired. Measured on the first live run.
+    A config names paths relative to itself before it names them relative to the repo.
+    """
+    found: set[str] = set()
+    for match in _SCRIPT_PATH_RE.findall(text):
+        for base in bases + ("",):
+            candidate = f"{base}/{match}" if base else match
+            if (root / candidate).is_file():
+                found.add(candidate)
+                break
+    for match in _DASH_M_RE.findall(text):
+        target = modules.get(match)
+        if target:
+            found.add(target)
+            found.update(_package_inits(match, modules))
+    bare = _BARE_MODULE_RE.match(text.strip())
+    if bare:
+        for base in bases:
+            candidate = f"{base}/{bare.group(1)}.py" if base else f"{bare.group(1)}.py"
+            if (root / candidate).is_file():
+                found.add(candidate)
+                break
+    return found
+
+
+def _ancestor_bases(relpath: str) -> tuple[str, ...]:
+    """The directories `relpath` sits under, NEAREST FIRST, repo root last (as `""`)."""
+    parts = relpath.split("/")[:-1]
+    return tuple("/".join(parts[:stop]) for stop in range(len(parts), 0, -1))
+
+
+def _package_inits(dotted: str, modules: dict[str, str]) -> set[str]:
+    """Every `__init__.py` an import of `dotted` also executes.
+
+    Without this a package marker is an orphan by an accident of the resolver: nothing
+    names `scripts/toc/__init__.py`, yet importing `scripts.toc.generator` runs it. The
+    edge is real, so the graph carries it rather than the register apologising for it.
+    """
+    out: set[str] = set()
+    parts = dotted.split(".")
+    for stop in range(1, len(parts)):
+        target = modules.get(".".join(parts[:stop] + ["__init__"]))
+        if target:
+            out.add(target)
+    return out
+
+
+def _relative_module(relpath: str, level: int, module: str | None) -> str | None:
+    """`from ._common import Finding`, resolved against the importing module's package.
+
+    A RELATIVE import is the single largest class this pass can miss, and missing it is not
+    a thinner graph -- it is a WRONG one. `scripts/audit_checks/` reaches its twenty-three
+    check modules entirely through `from .check_x import ...`, and `scripts/codemap/cli.py`
+    reaches its five the same way, so skipping level>0 imports reported twenty-eight live,
+    commit-gate-firing modules as orphans on the first live run of this loader. Measured,
+    fixed, and pinned by a test -- an orphan census that over-reports is worse than none,
+    because every false orphan is an invitation to retire something load-bearing.
+    """
+    parts = relpath[: -len(".py")].split("/")[:-1]   # the importing module's package path
+    if level > len(parts):
+        return None
+    base = parts[: len(parts) - (level - 1)] if level > 1 else parts
+    return ".".join(base + ([module] if module else []))
+
+
+def _import_targets(path: Path, root: Path, modules: dict[str, str]) -> set[str]:
+    """Call-site edges out of one module -- `ast`, with DOCSTRINGS EXCLUDED.
+
+    The census's recorded error 1, not repeated: *"A regex pass counted any docstring
+    mention as a call site. `audit.py`'s docstrings name nearly every module in the repo, so
+    133 of 139 scripts came back 'triggered'. A prose mention is the opposite of a
+    trigger."* So a string constant counts only when it is NOT the docstring of its module,
+    class or function -- which is the same distinction, made structurally.
+    """
+    text = _read(path)
+    if text is None:
+        return set()
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return set()
+
+    docstrings = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            body = getattr(node, "body", None)
+            if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant) \
+                    and isinstance(body[0].value.value, str):
+                docstrings.add(id(body[0].value))
+
+    rel = path.relative_to(root).as_posix()
+    bases = _ancestor_bases(rel)
+    found: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                target = modules.get(alias.name)
+                if target:
+                    found.add(target)
+                    found.update(_package_inits(alias.name, modules))
+        elif isinstance(node, ast.ImportFrom):
+            dotted = (_relative_module(rel, node.level, node.module) if node.level
+                      else node.module)
+            if not dotted:
+                continue
+            target = modules.get(dotted)
+            if target:
+                found.add(target)
+                found.update(_package_inits(dotted, modules))
+            for alias in node.names:
+                sub = modules.get(f"{dotted}.{alias.name}")
+                if sub:
+                    found.add(sub)
+        elif isinstance(node, ast.Constant) and isinstance(node.value, str) \
+                and id(node) not in docstrings:
+            found |= _resolved_targets(node.value, modules, root, bases)
+    return found
+
+
+def _load_wiring(graph: PurposeGraph, root: Path) -> None:
+    """INPUT 6 -- `triggers` from a wiring surface, `imports` along the script call graph.
+
+    WHY THIS BELONGS ON FPG-1 AND NOT IN AN ORGAN. ADR-118 §1 rules that a new edge kind is
+    added to the graph, never to a script, and this is the edge kind whose ABSENCE was the
+    whole finding: with no `triggers` relation, *"list all processes"* was answered by
+    re-reading the repo, and the process-trigger census had to compute the relation privately
+    to answer it once. Moving the computation here is that census's method becoming a
+    standing query -- intake #86's *"this replaces the REPETITION of that pass, not the pass
+    itself."*
+    """
+    modules = _script_module_map(root)
+
+    # EVERY PROCESS FILE BECOMES A NODE, whether or not another input names it -- and this is
+    # a deliberate widening of what "governed" means, recorded rather than slipped in. Under
+    # the five original inputs a process nothing named had NO VERTEX AT ALL, so the file most
+    # in need of a census was the one the census could not see: `.claude/commands/save.md` and
+    # both `.claude/skills/*/SKILL.md` were invisible on the first live run for exactly that
+    # reason. A query cannot report an absence it has no node for.
+    #
+    # WHAT THIS COSTS, stated plainly: `why` on an unexplained script now ANSWERS (purpose,
+    # zero consumers) where it used to REFUSE. The refusal is not lost, it MOVES -- from a
+    # per-file `UnknownFile` in a read-only CLI to `orphan_census`, which refuses at the
+    # commit gate and therefore actually blocks something. The module header's "most of
+    # `scripts/` is UNKNOWN to this graph" is updated there rather than left to rot.
+    for rel in sorted(_process_paths(root)):
+        graph.node_for_path(rel)
+
+    surfaces = [root / rel for rel in WIRING_SURFACES]
+    workflows = sorted(root.glob(WIRING_WORKFLOW_GLOB))
+    for path in surfaces + workflows:
+        if not path.is_file():
+            continue
+        rel = path.relative_to(root).as_posix()
+        source_key = graph.node_for_path(rel)
+        bases = _ancestor_bases(rel)
+        targets: set[str] = set()
+        for value in _surface_strings(path):
+            targets |= _resolved_targets(value, modules, root, bases)
+        for target in sorted(targets):
+            graph.add_edge(Edge(source_key, graph.node_for_path(target), EDGE_TRIGGERS,
+                                INPUT_WIRING, f"named by {rel}"))
+
+    for rel in sorted(set(modules.values())):
+        path = root / rel
+        if not path.is_file():
+            continue
+        source_key = graph.node_for_path(rel)
+        for target in sorted(_import_targets(path, root, modules)):
+            if target != rel:
+                graph.add_edge(Edge(source_key, graph.node_for_path(target), EDGE_IMPORTS,
+                                    INPUT_WIRING, "import or call-site string"))
+
+
+# ------------------------------------------------------- [#664] the task-implements input
+
+#: The code-and-organ layer, which the governance pool DELIBERATELY excludes and which
+#: ADR-118 names as FPG-1's measured hole (*"the code layer is thin -- 21 nodes"*). Leg 2
+#: below is the input that fills it: the layer this repo's own build work lands in.
+IMPLEMENTS_SCAN_DIRS = ("scripts", "tests", ".claude", "plugins")
+#: Never descend into these. `.claude/worktrees/` holds FULL CHECKOUTS of this repo -- a
+#: parallel lane's tree -- so walking it would read another lane's files as if they were
+#: this one's, at a cost of one whole corpus per live worktree.
+IMPLEMENTS_SKIP_DIRS = frozenset({"__pycache__", "worktrees", ".venv", "node_modules"})
+#: A file this size is not a module claiming a row; reading it is cost with no answer in it.
+IMPLEMENTS_MAX_BYTES = 512 * 1024
+#: A repo-relative path token in a row body. Existence on disk is the filter -- an
+#: unresolvable token is `validate_backlog`'s finding, not an invented node (`_load_tasks`'s
+#: own rule, applied to paths instead of ids).
+_REL_PATH_RE = re.compile(
+    r"(?:^|[\s`'\"(\[])((?:\.?[A-Za-z0-9_][A-Za-z0-9_.-]*/)+[A-Za-z0-9_.-]+\.[A-Za-z0-9]{1,6})")
+
+
+def _open_task_ids(root: Path) -> dict[str, Path]:
+    """`{task id: row path}` for OPEN rows only.
+
+    AT OPEN AND NOT ONLY AT CLOSE -- `[#664]`'s own words for what `task_coverage` must
+    mean. A closed row confers no coverage, so its paths contribute no edge and a file whose
+    only claimant is done reads as uncovered, which is the true answer.
+    """
+    tasks_dir = root / TASKS_RELPATH
+    out: dict[str, Path] = {}
+    if not tasks_dir.is_dir():
+        return out
+    for path in sorted(tasks_dir.glob("*.md")):
+        text = _read(path)
+        if text is None:
+            continue
+        frontmatter = _frontmatter(text)
+        if str(frontmatter.get("status", "")).strip().lower() != "open":
+            continue
+        match = _TASK_ID_RE.search(str(frontmatter.get("id", ""))) or re.match(r"^(\d+)-", path.name)
+        if match:
+            out[match.group(1)] = path
+    return out
+
+
+def _implements_scan_paths(root: Path) -> list[Path]:
+    out: list[Path] = []
+    for base in IMPLEMENTS_SCAN_DIRS:
+        directory = root / base
+        if not directory.is_dir():
+            continue
+        for path in sorted(directory.rglob("*")):
+            if not path.is_file():
+                continue
+            if IMPLEMENTS_SKIP_DIRS & set(path.relative_to(root).parts):
+                continue
+            try:
+                if path.stat().st_size > IMPLEMENTS_MAX_BYTES:
+                    continue
+            except OSError:
+                continue
+            out.append(path)
+    return out
+
+
+def _load_task_implements(graph: PurposeGraph, root: Path) -> None:
+    """INPUT 7 -- `implements`, BOTH DIRECTIONS, between an OPEN row and the files it owns.
+
+    TWO LEGS, because ownership is asserted from two ends and both assertions are real.
+
+      * **Leg 1 -- the row names the file.** `[#664]` names `scripts/file_purpose_graph.py`,
+        so the row claims it.
+      * **Leg 2 -- the file names the row.** Every module in this repo already opens with the
+        `[#id]` it was built for; that docstring is a claim of ownership, not an incidental
+        mention. The edge is therefore computed from a convention that EXISTS rather than
+        imposed as a new one a lane would have to be told about.
+
+    Leg 2 is scoped to `IMPLEMENTS_SCAN_DIRS` rather than the whole tree, and the scope is
+    the governance pool's exclusions read forwards: `consumer_at_landing` excludes `scripts/`
+    and `tests/` because *"a mention in a session log or a machine baseline is a record that
+    the file existed, not evidence that anything consumes it"* -- true for CONSUMPTION, and
+    the exact opposite for OWNERSHIP, where the code layer is where the claim lives.
+    """
+    open_tasks = _open_task_ids(root)
+    if not open_tasks:
+        return
+
+    for task_id, row_path in sorted(open_tasks.items()):
+        text = _read(row_path) or ""
+        task_key = _task_key(task_id)
+        if graph.node(task_key) is None:
+            graph.add_node(Node(NODE_TASK, task_key, f"[#{task_id}]",
+                                row_path.relative_to(root).as_posix()))
+        for candidate in sorted(set(_REL_PATH_RE.findall(text))):
+            rel = candidate.removeprefix("./")
+            if rel and (root / rel).is_file():
+                graph.add_edge(Edge(task_key, graph.node_for_path(rel), EDGE_IMPLEMENTS,
+                                    INPUT_TASK_IMPLEMENTS, "named by the row body"))
+
+    for path in _implements_scan_paths(root):
+        text = _read(path)
+        if text is None:
+            continue
+        claimed = {tid for tid in _TASK_ID_RE.findall(text) if tid in open_tasks}
+        if not claimed:
+            continue
+        rel = path.relative_to(root).as_posix()
+        file_key = graph.node_for_path(rel)
+        for task_id in sorted(claimed):
+            graph.add_edge(Edge(_task_key(task_id), file_key, EDGE_IMPLEMENTS,
+                                INPUT_TASK_IMPLEMENTS, "the file names the row"))
 
 
 def _read(path: Path) -> str | None:
@@ -849,6 +1366,12 @@ def build(repo_root: Path | str) -> PurposeGraph:
     _load_tasks(graph, root)
     _load_consumer_at_landing(graph, root)
     _load_deploy_manifest(graph, root)
+    # `[#664]`, and the ORDER RULE above still binds: both new passes mint FILE nodes for
+    # paths the earlier passes may already own as identity-keyed nodes, so both go through
+    # `node_for_path` and both run LAST, after every identity-bearing loader has claimed
+    # its keys. Identity before adjacency -- the same lesson, honoured rather than relearnt.
+    _load_wiring(graph, root)
+    _load_task_implements(graph, root)
     return graph
 
 
