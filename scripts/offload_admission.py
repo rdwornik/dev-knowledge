@@ -71,7 +71,6 @@ manufacture a verdict out of silence.
 from __future__ import annotations
 
 import json
-import os
 import shutil
 import tempfile
 from dataclasses import dataclass
@@ -502,7 +501,12 @@ def adjudicate(record: dict[str, Any],
             f"ranking of the candidates returned, and a rank naming a place that is not "
             f"filled describes a list that was not returned"))
 
-    if record.get("verdict") not in (None, ""):
+    # PRESENCE, not value. `verdict: ""` and `verdict: null` are not the absence of a
+    # verdict field; they are a verdict field left blank, and the closed-schema check below
+    # exempts `verdict` precisely because this code is supposed to own it. Reading the value
+    # let the two checks hand the field to each other and admit it -- the pass-5 denylist
+    # hole, one layer down.
+    if "verdict" in record:
         refusals.append(Refusal(
             "verdict-bearing",
             f"the record carries a top-level verdict {record.get('verdict')!r} — the "
@@ -511,7 +515,7 @@ def adjudicate(record: dict[str, Any],
     for f in findings:
         if not isinstance(f, dict):
             continue
-        if f.get("verdict") not in (None, ""):
+        if "verdict" in f:
             refusals.append(Refusal(
                 "verdict-bearing",
                 f"finding rank {f.get('rank')!r} carries verdict {f.get('verdict')!r} — the "
@@ -913,51 +917,50 @@ def write_probe_corpus(root: Path) -> Path:
     never overwrite without asking, and git making it recoverable is not a defence for a
     command that writes without looking.
 
-    The guarantee is STRUCTURAL rather than checked. The corpus is built in a private
-    staging directory whose name no other writer can predict, and moved into place by a
-    single `os.rename`. Three properties follow from the shape instead of from vigilance:
+    THE DESTINATION IS RESERVED, NOT PUBLISHED INTO. `root.mkdir()` is a single atomic
+    operation that fails if the name is already taken, so the name is claimed before one byte
+    of content exists. Everything else follows from holding the name:
 
-    - nothing is ever written into the destination directory, so no failure path can unlink
-      a file another writer put there. A stat-then-unlink ownership check cannot be made
-      atomic -- POSIX has no inode-checked unlink and Python exposes none -- so four rounds
-      of hardening a per-file writer each produced a narrower version of one race. Not
-      writing there at all is what actually closes it;
-    - the destination is created WHOLE or not at all, so no reader observes a partial
-      corpus;
-    - a failure deletes only inside the staging directory, which is ours alone.
+    - a racer who creates the destination first KEEPS it, with everything in it. There is no
+      window between deciding the name is free and taking it, because those are one act;
+    - every file is written into a directory this call created, so the cleanup path deletes
+      only what this call made. There is no ownership check left to race;
+    - `--probe-corpus .` inside a checkout is refused by the same operation that would have
+      created the directory.
 
-    The pre-flight `exists()` check is kept for the better ERROR MESSAGE only. The rename is
-    the guarantee: it fails if the destination is taken, and it is one operation.
+    This REPLACES a build-in-staging-then-`os.rename` publication, which was wrong on POSIX:
+    rename REPLACES an existing empty directory, so a racer who created the destination
+    during the build had it silently deleted and the corpus installed over it, and the
+    re-check on the failure path never fired because the rename SUCCEEDED. Building
+    elsewhere and moving in bought atomic visibility of a whole corpus at the price of an
+    unreservable name; the name is the thing worth having.
+
+    The cost is honest and stated: a reader watching `root` during the build can observe a
+    partial corpus. Nobody is watching a directory that did not exist a moment ago and whose
+    name the CALLER chose, and a partial read is recoverable where a deleted directory is
+    not.
     """
     root = Path(root)
-    if root.exists():
+    try:
+        root.mkdir(parents=True)
+    except FileExistsError:
         raise FileExistsError(
             f"refusing to write the probe corpus to {root}: it already exists. Give a "
-            f"destination that does not exist -- this command creates it.")
+            f"destination that does not exist -- this command creates it.") from None
 
-    parent = root.parent
-    parent.mkdir(parents=True, exist_ok=True)
-    staging = Path(tempfile.mkdtemp(prefix=".probe-corpus-", dir=parent))
     try:
         for rel, text in PROBE_CORPUS.items():
-            target = staging / rel
+            target = root / rel
             target.parent.mkdir(parents=True, exist_ok=True)
             with open(target, "x", encoding="utf-8", newline="\n") as fh:
                 fh.write(text)
-        os.rename(staging, root)
     except OSError as exc:
-        shutil.rmtree(staging, ignore_errors=True)
-        if root.exists():
-            # Read from the destination rather than from the errno: a rename onto a taken
-            # name is FileExistsError on Windows and ENOTEMPTY on POSIX, and the caller
-            # cares which SITUATION arose, not which platform reported it.
-            raise FileExistsError(
-                f"refusing to write the probe corpus to {root}: it appeared at the "
-                f"destination while this corpus was being built. Nothing was written "
-                f"there.") from None
+        # Scoped to the directory THIS call reserved, which is why an unconditional rmtree is
+        # safe here and was not safe in any per-file writer.
+        shutil.rmtree(root, ignore_errors=True)
         raise OSError(
-            f"could not write the probe corpus to {root} ({exc}); nothing was written "
-            f"there and the staging directory was removed") from None
+            f"could not write the probe corpus to {root} ({exc}); the destination this "
+            f"command created was removed and nothing outside it was touched") from None
     return root
 
 
