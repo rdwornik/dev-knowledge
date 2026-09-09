@@ -326,7 +326,7 @@ def test_a_correct_probe_answer_is_ADMITTED_against_the_probe_corpus(tmp_path):
              "quote": "A commit summary is imperative, specific and under 72 characters."},
         ],
     }
-    verdict = oa.adjudicate(record, corpus, registry)
+    verdict = oa.adjudicate(record, corpus, registry, oa.PROBE_REQUIRED_SITES)
     assert verdict.admitted, verdict.detail
     assert verdict.locators_verified == 3
 
@@ -359,7 +359,7 @@ def test_the_live_copilot_run_is_REFUSED_on_the_two_reproducibility_legs(tmp_pat
     corpus = oa.write_probe_corpus(tmp_path / "corpus")
     registry = (pathlib.Path(__file__).resolve().parents[1]
                 / "ecosystem" / "provider-registry.yaml")
-    verdict = oa.adjudicate(record, corpus, registry)
+    verdict = oa.adjudicate(record, corpus, registry, oa.PROBE_REQUIRED_SITES)
     assert not verdict.admitted
     assert set(verdict.codes) == {"unpinned-model", "attestation-is-a-selection-mode"}
 
@@ -515,3 +515,108 @@ def test_the_probe_cli_REFUSES_a_checkout_that_already_holds_those_filenames(tmp
     assert result.exit_code != 0, result.output
     assert victim.read_text(encoding="utf-8") == body
     assert not (tmp_path / "HANDBOOK.md").exists()
+
+
+# ---------------------------------------------------------------------------------------
+# SCORING the answer, not just its shape - the third terra HIGH (pass 3, 2026-09-09)
+# ---------------------------------------------------------------------------------------
+# A record used to clear this gate on shape alone: non-empty, uniquely ranked, locators that
+# re-open exactly. Neither `category` nor COVERAGE of the defects the corpus plants was
+# checked, so a candidate returning one unrelated real line - under `category: "anything"` -
+# was ADMITTED while having found nothing the probe exists to measure. An admission like
+# that certifies retrieval that was never demonstrated, which is the same instrument-layer
+# failure as a counter that increments on the wrong refusal.
+
+
+def test_a_finding_categorised_OUTSIDE_the_closed_vocabulary_is_REFUSED(tmp_path):
+    """`category` is a closed enum in the probe question, so it is one at the gate too."""
+    registry = oa.write_suite_corpus(tmp_path)
+    record = oa.admissible_record()
+    record["findings"][0]["category"] = "anything"
+    verdict = oa.adjudicate(record, tmp_path, registry)
+    assert not verdict.admitted
+    assert verdict.codes == ("unknown-category",), verdict.detail
+
+
+def test_a_SHAPE_PERFECT_record_that_walks_past_a_planted_defect_is_REFUSED(tmp_path):
+    """Every locator re-opens exactly, and it is still a MISS.
+
+    This is the finding in one assertion: locator-exactness on what the record DID return
+    says nothing about what it failed to return, and only the second half is retrieval.
+    """
+    registry = oa.write_suite_corpus(tmp_path)
+    record = oa.admissible_record()
+    record["findings"].pop(1)
+    verdict = oa.adjudicate(record, tmp_path, registry, oa.SUITE_REQUIRED_SITES)
+    assert not verdict.admitted
+    assert verdict.codes == ("planted-defect-missed",), verdict.detail
+    assert "ecosystem/example.yaml:4" in verdict.detail
+
+
+def test_the_SAME_record_is_ADMITTED_when_no_ground_truth_is_supplied(tmp_path):
+    """An empty `required_sites` means "not scoring coverage", never "coverage passed".
+
+    The distinction is what keeps the seeded suite attributable: a seed that mutates a
+    locator must refuse for its OWN code, not also for the coverage it incidentally broke.
+    """
+    registry = oa.write_suite_corpus(tmp_path)
+    record = oa.admissible_record()
+    record["findings"].pop(1)
+    assert oa.adjudicate(record, tmp_path, registry).admitted
+
+
+def test_citing_the_OTHER_acceptable_site_for_a_defect_is_not_a_MISS(tmp_path):
+    """A defect reachable from two files is found by naming either one.
+
+    `PROBE_CORPUS` plants its contradiction and its duplication across a PAIR of files, so a
+    ground truth of single locators would score a correct answer as a miss on which of the
+    two the candidate happened to cite.
+    """
+    corpus = oa.write_probe_corpus(tmp_path / "corpus")
+    registry = oa.write_suite_corpus(tmp_path / "reg")
+    record = {
+        "role": "offload", "provider": "copilot-enterprise", "cli": "copilot",
+        "requested_model": "m", "served_model": "m",
+        "findings": [
+            {"rank": 1, "category": "contradiction", "locator": "HANDBOOK.md:7",
+             "quote": "A fast-forward merge is the default way a branch lands on main."},
+            {"rank": 2, "category": "duplicated-clause", "locator": "HANDBOOK.md:11",
+             "quote": "An append-only log is never edited in place; corrections append."},
+            {"rank": 3, "category": "unenforced-rule", "locator": "RULES.md:8",
+             "quote": "A commit summary is imperative, specific and under 72 characters."},
+        ],
+    }
+    verdict = oa.adjudicate(record, corpus, registry, oa.PROBE_REQUIRED_SITES)
+    assert verdict.admitted, verdict.detail
+
+
+def test_a_probe_answer_that_finds_ONE_real_line_and_nothing_else_is_REFUSED(tmp_path):
+    """The candidate the finding describes, run end to end against the live probe corpus."""
+    corpus = oa.write_probe_corpus(tmp_path / "corpus")
+    registry = oa.write_suite_corpus(tmp_path / "reg")
+    record = {
+        "role": "offload", "provider": "copilot-enterprise", "cli": "copilot",
+        "requested_model": "m", "served_model": "m",
+        "findings": [
+            {"rank": 1, "category": "contradiction", "locator": "HANDBOOK.md:10",
+             "quote": "Logs are the institutional memory of the project."},
+        ],
+    }
+    verdict = oa.adjudicate(record, corpus, registry, oa.PROBE_REQUIRED_SITES)
+    assert not verdict.admitted
+    assert set(verdict.codes) == {"planted-defect-missed"}
+    assert len(verdict.refusals) == len(oa.PROBE_REQUIRED_SITES)
+
+
+def test_the_planted_map_the_TEST_reads_is_the_one_the_MODULE_scores_against(tmp_path):
+    """One home for the ground truth.
+
+    The planted sites were stated twice - in this file and in `PROBE_CORPUS`'s comments -
+    and a drifted copy would silently move the bar a live run is scored against, turning a
+    miss into a hit. `PROBE_REQUIRED_SITES` is derived from `PROBE_PLANTED`, so the sites
+    this file asserts and the sites `adjudicate` scores are the same object.
+    """
+    derived = tuple(tuple(f"{rel}:{line}" for rel, line, _ in sites)
+                    for _, sites in sorted(oa.PROBE_PLANTED.items()))
+    assert oa.PROBE_REQUIRED_SITES == derived
+    assert set(_PLANTED) == set(oa.PROBE_PLANTED)
