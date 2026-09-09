@@ -71,6 +71,7 @@ manufacture a verdict out of silence.
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import tempfile
 from dataclasses import dataclass
@@ -917,28 +918,35 @@ def write_probe_corpus(root: Path) -> Path:
     never overwrite without asking, and git making it recoverable is not a defence for a
     command that writes without looking.
 
-    THE DESTINATION IS RESERVED, NOT PUBLISHED INTO. `root.mkdir()` is a single atomic
-    operation that fails if the name is already taken, so the name is claimed before one byte
-    of content exists. Everything else follows from holding the name:
+    THE ONE INVARIANT, and it is the kernel's to enforce rather than this module's to check:
 
-    - a racer who creates the destination first KEEPS it, with everything in it. There is no
-      window between deciding the name is free and taking it, because those are one act;
-    - every file is written into a directory this call created, so the cleanup path deletes
-      only what this call made. There is no ownership check left to race;
-    - `--probe-corpus .` inside a checkout is refused by the same operation that would have
-      created the directory.
+        this function never deletes a file, anywhere, outside its own staging directory.
 
-    This REPLACES a build-in-staging-then-`os.rename` publication, which was wrong on POSIX:
-    rename REPLACES an existing empty directory, so a racer who created the destination
-    during the build had it silently deleted and the corpus installed over it, and the
-    re-check on the failure path never fired because the rename SUCCEEDED. Building
-    elsewhere and moving in bought atomic visibility of a whole corpus at the price of an
-    unreservable name; the name is the thing worth having.
+    Three mechanisms hold it, none of them a check that can be raced:
 
-    The cost is honest and stated: a reader watching `root` during the build can observe a
-    partial corpus. Nobody is watching a directory that did not exist a moment ago and whose
-    name the CALLER chose, and a partial read is recoverable where a deleted directory is
-    not.
+    - `root.mkdir()` reserves the destination in ONE operation and fails if the name is
+      taken. It refuses `--probe-corpus .` and every other occupied path;
+    - every file is built in a private staging directory whose name no other writer can
+      predict, and published with `os.link`, which REFUSES an existing name. Nothing this
+      function writes can land on top of anything;
+    - the failure path removes staging -- ours alone -- and then calls `root.rmdir()`, which
+      the KERNEL refuses on a non-empty directory. That is what makes the cleanup safe
+      against the case this cannot prevent.
+
+    WHAT IT CANNOT PREVENT, stated rather than papered over. `mkdir` proves the name was free
+    at one instant; it does not lease it, and POSIX offers nothing that does. A racer may
+    remove this call's empty reservation and put their own directory there. That race is
+    unclosable at this layer -- so the property held here is about CONSEQUENCE instead: if it
+    happens, `rmdir` refuses their directory, `os.link` refuses their filenames, and they
+    lose nothing. Four earlier rounds tried to close the race itself with an ownership check
+    (`stat` then act); each check was itself racy, which is the reason this one is a kernel
+    refusal and not an `if`.
+
+    THE REMAINING LEFTOVER, likewise stated. If publication fails partway -- which needs a
+    racer holding one of these three filenames inside a directory this call created -- the
+    files already linked in STAY, and the error says so. Removing them would mean unlinking
+    by a path whose identity is no longer proven, which is exactly the defect this shape
+    exists to remove. Leaving data beats destroying it.
     """
     root = Path(root)
     try:
@@ -948,19 +956,31 @@ def write_probe_corpus(root: Path) -> Path:
             f"refusing to write the probe corpus to {root}: it already exists. Give a "
             f"destination that does not exist -- this command creates it.") from None
 
+    staging = Path(tempfile.mkdtemp(prefix=".probe-corpus-", dir=root.parent))
+    published: list[str] = []
     try:
         for rel, text in PROBE_CORPUS.items():
-            target = root / rel
+            target = staging / rel
             target.parent.mkdir(parents=True, exist_ok=True)
             with open(target, "x", encoding="utf-8", newline="\n") as fh:
                 fh.write(text)
+        for rel in PROBE_CORPUS:
+            os.link(staging / rel, root / rel)   # refuses an existing name; never replaces
+            published.append(rel)
+        shutil.rmtree(staging, ignore_errors=True)
     except OSError as exc:
-        # Scoped to the directory THIS call reserved, which is why an unconditional rmtree is
-        # safe here and was not safe in any per-file writer.
-        shutil.rmtree(root, ignore_errors=True)
+        shutil.rmtree(staging, ignore_errors=True)
+        try:
+            root.rmdir()                          # refused by the kernel if anything is there
+        except OSError:
+            pass
+        left = (f"; {len(published)} file(s) already published at {root} were LEFT rather "
+                f"than unlinked by a path this call can no longer prove it owns"
+                if published else
+                "; the empty destination this command created was removed if it was still "
+                "empty, and nothing else was touched")
         raise OSError(
-            f"could not write the probe corpus to {root} ({exc}); the destination this "
-            f"command created was removed and nothing outside it was touched") from None
+            f"could not write the probe corpus to {root} ({exc}){left}") from None
     return root
 
 
