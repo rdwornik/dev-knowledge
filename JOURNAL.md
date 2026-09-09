@@ -64,6 +64,8 @@ therefore what anchors the JOURNAL merge itself. That is the entry template's ow
 the commit this entry rides", applied literally when the ride is the entry's own first commit.
 It is append-only: the second commit adds a line and changes none.
 
+**Anchors via `9180b339`**, the first commit of this entry, which the JOURNAL merge introduces.
+
 **Result.** `main` clean and pushed, `git worktree list` primary only, `audit.py health` back to
 OK, batch V still closed, no batch open.
 
