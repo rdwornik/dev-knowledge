@@ -72,6 +72,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
@@ -904,92 +905,60 @@ Rules for the answer, all of them checked mechanically afterwards:
 
 
 def write_probe_corpus(root: Path) -> Path:
-    """Materialise `PROBE_CORPUS` under `root` and return it, REFUSING an occupied one.
+    """Materialise `PROBE_CORPUS` at `root`, which must NOT already exist. Returns `root`.
 
     `RULES.md`, `HANDBOOK.md` and `gates.yaml` are ordinary enough filenames that a real
-    checkout holds all three, so `--probe-corpus .` inside one would destroy tracked
-    governance files without asking. There is no overwrite path, not even behind a flag:
-    core invariant #3 is never overwrite without asking, and git making it recoverable is
-    not a defence for a command that writes without looking.
+    checkout holds all three, so `--probe-corpus .` would destroy tracked governance files
+    without asking. There is no overwrite path, not even behind a flag: core invariant #3 is
+    never overwrite without asking, and git making it recoverable is not a defence for a
+    command that writes without looking.
 
-    The pre-flight scan over the WHOLE corpus is the better ERROR MESSAGE, and exclusive
-    creation is the guarantee: a scan followed by a write is check-then-act, and a file that
-    appeared in between would be truncated by the very command that promised not to. So each
-    file is created with mode "x", and anything already written is removed before the
-    exception leaves -- a half-materialised corpus sitting beside the caller's own files,
-    with an exception to explain it, is the worse failure of the two.
+    The guarantee is STRUCTURAL rather than checked. The corpus is built in a private
+    staging directory whose name no other writer can predict, and moved into place by a
+    single `os.rename`. Three properties follow from the shape instead of from vigilance:
 
-    That cleanup removes files by IDENTITY, never by path. `(st_dev, st_ino)` is captured
-    from the open handle at creation, when it is authoritative, and re-checked before the
-    unlink: a concurrent writer that replaced one of these paths in the meantime keeps its
-    file, because deleting it would be exactly the overwrite this function refuses to do.
-    A path whose identity cannot be established is LEFT IN PLACE -- `st_ino == 0` as some
-    filesystems report it, or an `os.fstat` that failed on the file being created when the
-    error struck. Leaving a file behind is recoverable and makes the next run refuse loudly;
-    deleting someone else's is neither, and that asymmetry decides the tie in every case.
-    The exception message names any file left this way, so the leftover is reported rather
-    than discovered.
+    - nothing is ever written into the destination directory, so no failure path can unlink
+      a file another writer put there. A stat-then-unlink ownership check cannot be made
+      atomic -- POSIX has no inode-checked unlink and Python exposes none -- so four rounds
+      of hardening a per-file writer each produced a narrower version of one race. Not
+      writing there at all is what actually closes it;
+    - the destination is created WHOLE or not at all, so no reader observes a partial
+      corpus;
+    - a failure deletes only inside the staging directory, which is ours alone.
+
+    The pre-flight `exists()` check is kept for the better ERROR MESSAGE only. The rename is
+    the guarantee: it fails if the destination is taken, and it is one operation.
     """
     root = Path(root)
-    occupied = [rel for rel in PROBE_CORPUS if (root / rel).exists()]
-    if occupied:
+    if root.exists():
         raise FileExistsError(
-            f"refusing to write the probe corpus into {root}: it already holds "
-            f"{', '.join(sorted(occupied))}. Give an empty or non-existent directory.")
-    written: list[tuple[Path, tuple[int, int]]] = []
-    for rel, text in PROBE_CORPUS.items():
-        target = root / rel
-        inflight: Optional[Path] = None
-        try:
+            f"refusing to write the probe corpus to {root}: it already exists. Give a "
+            f"destination that does not exist -- this command creates it.")
+
+    parent = root.parent
+    parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix=".probe-corpus-", dir=parent))
+    try:
+        for rel, text in PROBE_CORPUS.items():
+            target = staging / rel
             target.parent.mkdir(parents=True, exist_ok=True)
             with open(target, "x", encoding="utf-8", newline="\n") as fh:
-                # From here the file EXISTS and is this call's leftover if anything below
-                # raises, so it joins the cleanup list before a single byte is written.
-                # Identity is taken first for the same reason: the window in which we hold
-                # the handle but cannot name the file is then empty.
-                inflight = target
-                stat = os.fstat(fh.fileno())
-                written.append((target, (stat.st_dev, stat.st_ino)))
-                inflight = None
                 fh.write(text)
-                fh.flush()
-        except FileExistsError:
-            _discard_created(written)
+        os.rename(staging, root)
+    except OSError as exc:
+        shutil.rmtree(staging, ignore_errors=True)
+        if root.exists():
+            # Read from the destination rather than from the errno: a rename onto a taken
+            # name is FileExistsError on Windows and ENOTEMPTY on POSIX, and the caller
+            # cares which SITUATION arose, not which platform reported it.
             raise FileExistsError(
-                f"refusing to write the probe corpus into {root}: {rel} appeared at the "
-                f"destination. Give an empty or non-existent directory.") from None
-        except OSError as exc:
-            # EVERY other way the write can fail, not just the one this function was written
-            # to refuse: an unwritable or invalid destination left the files already created
-            # behind, which is the half-materialised corpus the pre-flight scan exists to
-            # prevent, arriving through the other door. Cleanup first, then report.
-            # `inflight` is set only when `os.fstat` ITSELF failed, so this one path is
-            # the single file whose ownership this function cannot establish. It is RETAINED,
-            # not unlinked: a path-based delete could remove a file another writer put there
-            # in the meantime, which is the exact overwrite this command exists to refuse. A
-            # retained empty file makes the next run refuse an occupied destination, which is
-            # recoverable and loud; deleting someone else's file is neither.
-            _discard_created(written)
-            kept = f"; {inflight.name} was created and could not be identified, so it was "\
-                   f"LEFT IN PLACE rather than unlinked by path" if inflight else \
-                   "; nothing was left behind"
-            raise OSError(
-                f"could not write the probe corpus into {root}: {rel} failed ({exc})"
-                f"{kept}") from None
+                f"refusing to write the probe corpus to {root}: it appeared at the "
+                f"destination while this corpus was being built. Nothing was written "
+                f"there.") from None
+        raise OSError(
+            f"could not write the probe corpus to {root} ({exc}); nothing was written "
+            f"there and the staging directory was removed") from None
     return root
-
-
-def _discard_created(written: list[tuple[Path, tuple[int, int]]]) -> None:
-    """Unlink each path in `written` ONLY while it is still the file we created there."""
-    for target, identity in written:
-        if identity[1] == 0:
-            continue          # no usable file id: cannot prove ownership, so do not delete
-        try:
-            now = target.stat()
-        except OSError:
-            continue          # already gone, or unreadable: not ours to force
-        if (now.st_dev, now.st_ino) == identity:
-            target.unlink(missing_ok=True)
 
 
 @dataclass(frozen=True)

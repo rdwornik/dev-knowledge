@@ -291,7 +291,7 @@ _PLANTED = oa.PROBE_PLANTED
 
 @pytest.mark.parametrize("defect", sorted(_PLANTED))
 def test_each_planted_probe_defect_sits_where_the_module_says_it_does(tmp_path, defect):
-    root = oa.write_probe_corpus(tmp_path)
+    root = oa.write_probe_corpus(tmp_path / "corpus")
     for site in _PLANTED[defect].sites:
         rel, line_no, needle = site.rel, site.line, site.needle
         lines = (root / rel).read_text(encoding="utf-8").splitlines()
@@ -328,9 +328,10 @@ def test_a_correct_probe_answer_is_ADMITTED_against_the_probe_corpus(tmp_path):
 
 
 def test_the_probe_cli_materialises_the_corpus_and_prints_the_question(tmp_path):
-    result = CliRunner().invoke(oa.cli, ["--probe-corpus", str(tmp_path)])
+    dest = tmp_path / "corpus"
+    result = CliRunner().invoke(oa.cli, ["--probe-corpus", str(dest)])
     assert result.exit_code == 0, result.output
-    assert set(oa.PROBE_CORPUS) == {p.name for p in tmp_path.iterdir()}
+    assert set(oa.PROBE_CORPUS) == {q.name for q in dest.iterdir()}
     assert "Return ONLY a JSON object" in result.output
 
 
@@ -788,32 +789,6 @@ def test_the_declared_schema_and_the_probe_QUESTION_name_the_same_fields():
         assert f'"{field}"' in oa.PROBE_QUESTION, field
 
 
-def test_the_probe_write_REFUSES_a_file_that_APPEARED_after_the_preflight(
-        tmp_path, monkeypatch):
-    """Check-then-act, made deterministic: the pre-flight sees nothing, the write collides.
-
-    A pre-flight scan is the better error message, never the guarantee. The guarantee is
-    exclusive creation, so a file that appears between the scan and the write is refused
-    rather than truncated -- and the partial corpus written before the collision is removed,
-    because a refusal that leaves half a corpus behind is the failure the pre-flight scan was
-    added to prevent in the first place.
-    """
-    victim = tmp_path / "gates.yaml"
-    victim.write_text("hooks: []\n", encoding="utf-8", newline="\n")
-    real_exists = pathlib.Path.exists
-
-    def blind(self, *a, **k):
-        return False if self.name in oa.PROBE_CORPUS else real_exists(self, *a, **k)
-
-    monkeypatch.setattr(pathlib.Path, "exists", blind)
-    with pytest.raises(FileExistsError):
-        oa.write_probe_corpus(tmp_path)
-    monkeypatch.undo()
-    assert victim.read_text(encoding="utf-8") == "hooks: []\n"
-    assert {q.name for q in tmp_path.iterdir()} == {"gates.yaml"}, \
-        "a refused write left part of the corpus behind"
-
-
 # ---------------------------------------------------------------------------------------
 # a rank contract that was not checked, and a cleanup that could - terra pass 6 (2026-09-09)
 # ---------------------------------------------------------------------------------------
@@ -856,48 +831,6 @@ def test_a_DUPLICATE_rank_is_still_attributed_to_its_own_code(tmp_path):
     case = next(c for c in oa.build_seeded_suite() if c.code == "duplicate-rank")
     verdict = oa.adjudicate(case.record, tmp_path, registry, case.ground_truth)
     assert verdict.codes == ("duplicate-rank",), verdict.detail
-
-
-def test_the_collision_cleanup_does_NOT_delete_a_file_another_writer_REPLACED(
-        tmp_path, monkeypatch):
-    """Cleanup removes what THIS invocation created, proven by identity, not by path.
-
-    The race is made deterministic: the pre-flight is blinded so `gates.yaml` collides at the
-    write, and `RULES.md` is unlinked and recreated by a stand-in for a concurrent writer
-    between this invocation creating it and the collision. The old code unlinked every path
-    it had written, so it deleted that replacement -- the exact overwrite the command
-    promises never to perform.
-    """
-    victim = tmp_path / "gates.yaml"
-    victim.write_text("hooks: []\n", encoding="utf-8", newline="\n")
-    foreign = "# Rules\nanother writer got here first\n"
-
-    real_exists = pathlib.Path.exists
-    real_mkdir = pathlib.Path.mkdir
-    calls = []
-
-    def blind(self, *a, **k):
-        return False if self.name in oa.PROBE_CORPUS else real_exists(self, *a, **k)
-
-    def hook(self, *a, **k):
-        calls.append(self)
-        if len(calls) == 2:            # RULES.md exists; HANDBOOK.md not yet created
-            rules = tmp_path / "RULES.md"
-            rules.unlink()
-            rules.write_text(foreign, encoding="utf-8", newline="\n")
-        return real_mkdir(self, *a, **k)
-
-    monkeypatch.setattr(pathlib.Path, "exists", blind)
-    monkeypatch.setattr(pathlib.Path, "mkdir", hook)
-    with pytest.raises(FileExistsError):
-        oa.write_probe_corpus(tmp_path)
-    monkeypatch.undo()
-
-    assert (tmp_path / "RULES.md").read_text(encoding="utf-8") == foreign, \
-        "the cleanup deleted or truncated another writer file"
-    assert victim.read_text(encoding="utf-8") == "hooks: []\n"
-    assert not (tmp_path / "HANDBOOK.md").exists(), \
-        "this invocation own file survived a refused write"
 
 
 # ---------------------------------------------------------------------------------------
@@ -1035,33 +968,6 @@ def test_a_write_failure_AFTER_creation_leaves_no_partial_file(tmp_path, monkeyp
     monkeypatch.undo()
     assert list(tmp_path.iterdir()) == [], \
         "the file created by the failing iteration was left behind"
-
-
-def test_an_UNVERIFIABLE_in_flight_file_is_RETAINED_rather_than_unlinked_by_path(
-        tmp_path, monkeypatch):
-    """When ownership cannot be established, the file stays. Deleting it is the worse error.
-
-    `os.fstat` failing is the one case where this function holds a handle it cannot name, so
-    a path-based unlink could delete a file another writer put there in the meantime -- the
-    exact overwrite the command exists to refuse. A retained empty file makes the next run
-    refuse an occupied destination, which is recoverable and loud; deleting someone else's
-    file is neither. Every file created in an EARLIER iteration is still cleaned up.
-    """
-    real_fstat = oa.os.fstat
-    calls = []
-
-    def hook(fd):
-        calls.append(fd)
-        if len(calls) == 2:
-            raise OSError(5, "Input/output error")
-        return real_fstat(fd)
-
-    monkeypatch.setattr(oa.os, "fstat", hook)
-    with pytest.raises(OSError):
-        oa.write_probe_corpus(tmp_path)
-    monkeypatch.undo()
-    assert {q.name for q in tmp_path.iterdir()} == {"HANDBOOK.md"}, \
-        "the unnameable file was deleted by path, or an earlier one was not cleaned up"
 
 
 def _mixed_key_record():
@@ -1212,3 +1118,35 @@ def test_an_EXISTING_destination_is_refused_before_anything_is_staged(tmp_path):
         oa.write_probe_corpus(dest)
     assert list(dest.iterdir()) == []
     assert list(tmp_path.iterdir()) == [dest], "a refused call staged something anyway"
+
+
+def test_a_destination_that_APPEARS_before_the_rename_is_refused_untouched(
+        tmp_path, monkeypatch):
+    """The last window, closed by the shape rather than by a check.
+
+    A racer that creates the destination after the pre-flight scan and before the rename
+    loses nothing: the rename fails, staging is removed, and their files are exactly as they
+    left them. This replaces two tests written against the per-file writer -- one asserting
+    a blinded pre-flight still refused, one asserting the cleanup did not delete a
+    replacement. Both were circling this property; neither could state it, because a
+    per-file writer cannot hold it.
+    """
+    dest = tmp_path / "corpus"
+    foreign = "# Rules\nanother writer got here first\n"
+    real_rename = oa.os.rename
+
+    def hook(src, dst):
+        target = pathlib.Path(dst)
+        target.mkdir()
+        (target / "RULES.md").write_text(foreign, encoding="utf-8", newline="\n")
+        return real_rename(src, dst)
+
+    monkeypatch.setattr(oa.os, "rename", hook)
+    with pytest.raises(FileExistsError):
+        oa.write_probe_corpus(dest)
+    monkeypatch.undo()
+
+    assert (dest / "RULES.md").read_text(encoding="utf-8") == foreign
+    assert {q.name for q in dest.iterdir()} == {"RULES.md"}
+    assert {q.name for q in tmp_path.iterdir()} == {"corpus"}, \
+        "the staging directory was left beside the destination"
