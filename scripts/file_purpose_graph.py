@@ -426,7 +426,7 @@ _BARE_MODULE_RE = re.compile(r"\A([A-Za-z_][A-Za-z0-9_]*)\.py\Z")
 
 
 def _resolved_targets(text: str, modules: dict[str, str], root: Path,
-                      bases: tuple[str, ...] = ()) -> set[str]:
+                      bases: tuple[str, ...] = (), exact_only: bool = False) -> set[str]:
     """The script paths one config or code string names, by any of the three spellings.
 
     `bases` are the directories a RELATIVE spelling may resolve against, NEAREST FIRST, with
@@ -439,6 +439,23 @@ def _resolved_targets(text: str, modules: dict[str, str], root: Path,
     A config names paths relative to itself before it names them relative to the repo.
     """
     found: set[str] = set()
+    if exact_only and not _SCRIPT_PATH_RE.fullmatch(text.strip()):
+        # EXECUTABLE POSITION, and this clause is the census's recorded error 1 arriving in
+        # a NEW DRESS -- caught by this lane's own measurement disagreeing with the census.
+        # `graph_queries.ORPHAN_DISPOSITIONS` is a dict whose KEYS are exact process paths.
+        # Read as call sites, they made the register that RECORDS "this has no trigger"
+        # MANUFACTURE one for every row in it: 25 dispositioned scripts came back triggered,
+        # and the census's own 20 silently reported clean. A register that launders its own
+        # subject is worse than no register.
+        #
+        # So a code string counts only when BOTH hold: it sits inside a `Call` (the caller
+        # passes `exact_only` there and nowhere else), AND it is EXACTLY a path rather than
+        # prose containing one. A dict key is not in a call; a `reason="... scripts/x.py
+        # ..."` sentence is in a call but is not exactly a path. Both are excluded, and
+        # `Path(__file__).with_name("gitenv.py")` -- a real load, in a call, exactly a name
+        # -- still counts. Config surfaces are unaffected: an `entry:` line embeds its path
+        # in a command line by construction, so they pass `exact_only=False`.
+        return _bare_module_target(text, root, bases)
     for match in _SCRIPT_PATH_RE.findall(text):
         for base in bases + ("",):
             candidate = f"{base}/{match}" if base else match
@@ -450,14 +467,22 @@ def _resolved_targets(text: str, modules: dict[str, str], root: Path,
         if target:
             found.add(target)
             found.update(_package_inits(match, modules))
-    bare = _BARE_MODULE_RE.match(text.strip())
-    if bare:
-        for base in bases:
-            candidate = f"{base}/{bare.group(1)}.py" if base else f"{bare.group(1)}.py"
-            if (root / candidate).is_file():
-                found.add(candidate)
-                break
+    found |= _bare_module_target(text, root, bases)
     return found
+
+
+def _bare_module_target(text: str, root: Path, bases: tuple[str, ...]) -> set[str]:
+    """`"gitenv.py"` -- a sibling module named as a bare filename, resolved against the
+    NAMING file's own directory and never repo-wide, so a bare name cannot bind to a
+    same-named module in another package."""
+    bare = _BARE_MODULE_RE.match(text.strip())
+    if not bare:
+        return set()
+    for base in bases:
+        candidate = f"{base}/{bare.group(1)}.py" if base else f"{bare.group(1)}.py"
+        if (root / candidate).is_file():
+            return {candidate}
+    return set()
 
 
 def _ancestor_bases(relpath: str) -> tuple[str, ...]:
@@ -528,7 +553,8 @@ def _import_targets(path: Path, root: Path, modules: dict[str, str]) -> set[str]
     rel = path.relative_to(root).as_posix()
     bases = _ancestor_bases(rel)
     found: set[str] = set()
-    for node in ast.walk(tree):
+
+    def visit(node: ast.AST, in_call: bool) -> None:
         if isinstance(node, ast.Import):
             for alias in node.names:
                 target = modules.get(alias.name)
@@ -538,19 +564,23 @@ def _import_targets(path: Path, root: Path, modules: dict[str, str]) -> set[str]
         elif isinstance(node, ast.ImportFrom):
             dotted = (_relative_module(rel, node.level, node.module) if node.level
                       else node.module)
-            if not dotted:
-                continue
-            target = modules.get(dotted)
-            if target:
-                found.add(target)
-                found.update(_package_inits(dotted, modules))
-            for alias in node.names:
-                sub = modules.get(f"{dotted}.{alias.name}")
-                if sub:
-                    found.add(sub)
+            if dotted:
+                target = modules.get(dotted)
+                if target:
+                    found.add(target)
+                    found.update(_package_inits(dotted, modules))
+                for alias in node.names:
+                    sub = modules.get(f"{dotted}.{alias.name}")
+                    if sub:
+                        found.add(sub)
         elif isinstance(node, ast.Constant) and isinstance(node.value, str) \
-                and id(node) not in docstrings:
-            found |= _resolved_targets(node.value, modules, root, bases)
+                and in_call and id(node) not in docstrings:
+            found.update(_resolved_targets(node.value, modules, root, bases,
+                                           exact_only=True))
+        for child in ast.iter_child_nodes(node):
+            visit(child, in_call or isinstance(node, ast.Call))
+
+    visit(tree, False)
     return found
 
 
@@ -610,16 +640,27 @@ def _load_wiring(graph: PurposeGraph, root: Path) -> None:
 
 # ------------------------------------------------------- [#664] the task-implements input
 
-#: The code-and-organ layer, which the governance pool DELIBERATELY excludes and which
-#: ADR-118 names as FPG-1's measured hole (*"the code layer is thin -- 21 nodes"*). Leg 2
-#: below is the input that fills it: the layer this repo's own build work lands in.
-IMPLEMENTS_SCAN_DIRS = ("scripts", "tests", ".claude", "plugins")
+#: WHERE AN OWNERSHIP CLAIM CAN BE WRITTEN -- which is nearly the whole tree, and the two
+#: absences are the informative ones. `JOURNAL.md` and `BACKLOG.md` are excluded by being
+#: root files rather than by a rule: a journal entry names every row a session touched, so
+#: reading it as an ownership claim would make every file any session mentioned "covered",
+#: and `BACKLOG.md` is a generated VIEW of `tasks/` and is never read for an edge (input 4's
+#: rule, applied here too). Measured cost of the widening from the four code roots to these
+#: nine: 2668 files walked, leg 2 rising 1.2 s -> 3.6 s. Bought because `docs/` is where most
+#: of this repo's change lands, and a coverage gate blind to it would pass by not looking.
+#:
+#: ADR-118 names the code layer as FPG-1's measured hole (*"the code layer is thin -- 21
+#: nodes"*); leg 2 is the input that fills it.
+IMPLEMENTS_SCAN_DIRS = ("scripts", "tests", ".claude", "plugins",
+                        "docs", "protocols", "templates", "ecosystem", "deploy")
 #: Never descend into these. `.claude/worktrees/` holds FULL CHECKOUTS of this repo -- a
 #: parallel lane's tree -- so walking it would read another lane's files as if they were
 #: this one's, at a cost of one whole corpus per live worktree.
 IMPLEMENTS_SKIP_DIRS = frozenset({"__pycache__", "worktrees", ".venv", "node_modules"})
 #: A file this size is not a module claiming a row; reading it is cost with no answer in it.
 IMPLEMENTS_MAX_BYTES = 512 * 1024
+#: `_TASK_ID_RE`'s byte twin, kept beside it so a change to one is visibly owed by the other.
+_TASK_ID_BYTES_RE = re.compile(rb"\[#(\d+)\]")
 #: A repo-relative path token in a row body. Existence on disk is the filter -- an
 #: unresolvable token is `validate_backlog`'s finding, not an invented node (`_load_tasks`'s
 #: own rule, applied to paths instead of ids).
@@ -651,8 +692,28 @@ def _open_task_ids(root: Path) -> dict[str, Path]:
     return out
 
 
+#: Root files are scanned too -- `.pre-commit-config.yaml` names the row whose hooks it
+#: carries, and `CLAUDE.md` / `ARCHITECTURE.md` name the rows that changed them. NOT a
+#: `rglob` at the root: that would descend into `.git`, `.venv` and `.claude/worktrees`
+#: (a full second checkout per live lane). Top level only, by suffix.
+IMPLEMENTS_ROOT_SUFFIXES = (".md", ".yaml", ".yml", ".toml", ".json", ".cfg")
+#: Excluded from the ROOT sweep, each for a stated reason rather than by omission.
+#: `JOURNAL.md` names every row a session touched, so reading it as an ownership claim would
+#: make every file any session mentioned "covered"; `BACKLOG.md` is a generated view of
+#: `tasks/` and input 4's rule is that a view is never read for an edge.
+IMPLEMENTS_ROOT_EXCLUDE = frozenset({"JOURNAL.md", "BACKLOG.md"})
+
+
 def _implements_scan_paths(root: Path) -> list[Path]:
     out: list[Path] = []
+    for path in sorted(root.glob("*")):
+        if (path.is_file() and path.suffix in IMPLEMENTS_ROOT_SUFFIXES
+                and path.name not in IMPLEMENTS_ROOT_EXCLUDE):
+            try:
+                if path.stat().st_size <= IMPLEMENTS_MAX_BYTES:
+                    out.append(path)
+            except OSError:
+                pass
     for base in IMPLEMENTS_SCAN_DIRS:
         directory = root / base
         if not directory.is_dir():
@@ -705,11 +766,18 @@ def _load_task_implements(graph: PurposeGraph, root: Path) -> None:
                 graph.add_edge(Edge(task_key, graph.node_for_path(rel), EDGE_IMPLEMENTS,
                                     INPUT_TASK_IMPLEMENTS, "named by the row body"))
 
+    # BYTES, NOT TEXT, and it is a measurement rather than a preference: leg 2 sweeps ~2.7k
+    # files totalling ~42 MiB, and decoding all of that to look for an ASCII token cost ~1.5 s
+    # of the pass for no answer it changed. `[#664]` is `[#664]` in every encoding this
+    # corpus uses, and a byte scan additionally cannot raise `UnicodeDecodeError` on a file
+    # that is not text -- so the sweep degrades to "no claim found" rather than to a
+    # traceback inside a commit hook.
     for path in _implements_scan_paths(root):
-        text = _read(path)
-        if text is None:
+        try:
+            blob = path.read_bytes()
+        except OSError:
             continue
-        claimed = {tid for tid in _TASK_ID_RE.findall(text) if tid in open_tasks}
+        claimed = {tid.decode() for tid in _TASK_ID_BYTES_RE.findall(blob)} & set(open_tasks)
         if not claimed:
             continue
         rel = path.relative_to(root).as_posix()

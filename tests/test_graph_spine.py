@@ -289,6 +289,72 @@ def test_the_disposition_register_names_no_file_that_is_gone():
     assert missing == [], f"dispositioned paths no longer on disk: {missing}"
 
 
+#: The census's population-A orphan list, transcribed from
+#: `docs/audits/2026-09-08-technical-process-trigger-census.md` §"A · scripts (20)". This is
+#: intake #86's acceptance criterion 1 -- *"The sweep's output is the fixture. Every orphan
+#: S-08…S-13 found by grep, the query finds. Seeded as test cases, not eyeballed."*
+CENSUS_SCRIPT_ORPHANS = (
+    "scripts/archive_row_body.py", "scripts/boundary_headers.py",
+    "scripts/boundary_report.py", "scripts/cloud_provisioning.py",
+    "scripts/cost_usage_telemetry.py", "scripts/desired_state_loader.py",
+    "scripts/desired_state_report.py", "scripts/export_backlog_view.py",
+    "scripts/failed_set.py", "scripts/gen_north_star.py",
+    "scripts/gen_trend_dashboard.py", "scripts/logs_retention.py",
+    "scripts/nopack_sandbox.py", "scripts/probe_child_backlogs.py",
+    "scripts/seed_runbook.py", "scripts/setup-fleet-scheduler.ps1",
+    "scripts/trace_writer.py", "scripts/validate_onboarding_rulings.py",
+    "scripts/window_metrics.py",
+    # `scripts/file_purpose_graph.py` is the census's twentieth and is DELIBERATELY absent:
+    # `[#664]` wired it to the `graph-rebuild` hook, so it is triggered now. It is named
+    # here rather than dropped, because a fixture that silently shrinks is not a fixture.
+)
+
+
+def test_the_query_finds_every_orphan_the_census_found(tmp_path):
+    """intake #86 AC 1: the sweep's output is the fixture, seeded rather than eyeballed.
+
+    Each census row must still be an orphan the query finds -- proved by it carrying a
+    disposition, since an undispositioned one would already have REDDED the census test
+    above. A row that acquired a real trigger since 2026-09-08 fails here and must be
+    removed from the fixture WITH the commit that wired it, which is the point."""
+    store = gs.ensure(REPO_ROOT)
+    orphans = {f.subject for f in gq.orphan_census(REPO_ROOT, store, dispositions={})}
+    missed = [path for path in CENSUS_SCRIPT_ORPHANS if path not in orphans]
+    assert missed == [], f"the census found these and this query does not: {missed}"
+
+
+def test_the_census_and_the_query_disagree_and_the_disagreement_is_REPORTED(tmp_path):
+    """intake #86 AC 2: *"The converse is a finding, not a bug."*
+
+    `scripts/single_flight.py` is an orphan this query finds and the 2026-09-08 census did
+    not list. The criterion asks that such a disagreement be REPORTED and never silently
+    reconciled, so this pins that its disposition SAYS SO -- the finding lives in the
+    register where a reader meets it, not only in a lane artifact nobody reopens."""
+    store = gs.ensure(REPO_ROOT)
+    orphans = {f.subject for f in gq.orphan_census(REPO_ROOT, store, dispositions={})}
+    assert "scripts/single_flight.py" in orphans
+    assert "scripts/single_flight.py" not in CENSUS_SCRIPT_ORPHANS
+    reason = gq.ORPHAN_DISPOSITIONS["scripts/single_flight.py"].reason
+    assert "FINDING AGAINST THE CENSUS" in reason
+
+
+def test_a_disposition_register_entry_cannot_manufacture_its_own_trigger():
+    """The self-defeating loop this lane measured and fixed, pinned so it cannot return.
+
+    `ORPHAN_DISPOSITIONS` is a dict whose KEYS are exact process paths. Read as call sites
+    by the wiring loader, they made the register that RECORDS "this has no trigger"
+    MANUFACTURE one for every row in it -- 25 dispositioned scripts came back triggered and
+    the census's own 20 reported clean. The fix is `executable position`: a code string
+    counts only inside a `Call` AND only when it is exactly a path."""
+    store = gs.ensure(REPO_ROOT)
+    reached = store.reachable(store.roots(), gq.TRIGGER_KINDS)
+    laundered = [path for path in gq.ORPHAN_DISPOSITIONS
+                 if (key := store.key_for_path(path)) and key in reached]
+    assert laundered == [], (
+        f"dispositioned processes reported as triggered -- the register is laundering its "
+        f"own subject: {laundered}")
+
+
 def test_every_disposition_carries_a_reason_and_an_owner():
     for path, disposition in gq.ORPHAN_DISPOSITIONS.items():
         assert len(disposition.reason) >= 20, f"{path}: reason is a token, not a reason"
