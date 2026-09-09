@@ -1261,3 +1261,83 @@ def test_a_RESERVATION_a_racer_REPLACED_is_never_deleted_with_its_contents(
     assert swapped, "the racer never got its window -- the test proved nothing"
     assert (dest / "RULES.md").read_text(encoding="utf-8") == foreign, \
         "the failure path deleted a directory this call did not create"
+
+
+# ---------------------------------------------------------------------------------------
+# what cannot be PREVENTED must be REPORTED - terra pass 14 (2026-09-09)
+# ---------------------------------------------------------------------------------------
+# [P1] "When another process can modify the destination parent, it can remove the directory
+# reserved by `root.mkdir()` and replace it with an empty directory or symlink before
+# publication. `os.link` then creates probe files in that replacement (and, for a symlink,
+# outside the requested destination), so the claimed no-write/no-overwrite safety guarantee
+# is violated despite the destination-name reservation."
+#
+# The seventh finding of one family, and the one that settles what the family IS. POSIX has
+# no atomic create-and-hold for a directory -- no `mkdiropenat` -- so between reserving a
+# name and using it there is always a gap, and six rounds of narrowing it produced six
+# narrower versions of the same defect. Prevention is not available at this layer.
+#
+# Z-G4 is the standing rule for exactly this: a gate that cannot compute its ground truth
+# REPORTS the gap; it does not pass. So the property that can be held is detection --
+# capture the reservation's IDENTITY, and refuse loudly if the name no longer resolves to
+# it. Deletion and overwrite are already impossible by construction, so a detected swap is a
+# reportable event and never a data-loss one.
+
+
+def test_a_destination_REPLACED_during_publication_is_REPORTED_not_silently_used(
+        tmp_path, monkeypatch):
+    """The command must not return 0 having written into a directory it does not own.
+
+    A racer who takes the name back gets, today, a silent success: the corpus is published
+    into THEIR directory and the CLI reports the destination the operator asked for. Nothing
+    is overwritten and nothing is deleted -- and it is still a false report, which is the
+    instrument-layer defect this lane exists to remove, arriving through the filesystem.
+    """
+    dest = tmp_path / "corpus"
+    foreign = "# Notes\nanother writer took the name back\n"
+    real_mkdir = pathlib.Path.mkdir
+    real_rmdir = pathlib.Path.rmdir
+    swapped = []
+
+    def hook(self, *a, **k):
+        result = real_mkdir(self, *a, **k)
+        if self == dest and not swapped:
+            swapped.append(True)
+            real_rmdir(dest)                      # the reservation is taken back ...
+            real_mkdir(dest)                      # ... and a DIFFERENT directory put there
+            (dest / "NOTES.md").write_text(foreign, encoding="utf-8", newline="\n")
+        return result
+
+    monkeypatch.setattr(pathlib.Path, "mkdir", hook)
+    with pytest.raises(OSError, match="REPLACED"):
+        oa.write_probe_corpus(dest)
+    monkeypatch.undo()
+
+    assert swapped, "the racer never got its window -- the test proved nothing"
+    assert (dest / "NOTES.md").read_text(encoding="utf-8") == foreign, \
+        "the racer's own file did not survive a refusal"
+
+
+def test_the_probe_cli_REPORTS_a_replaced_destination_rather_than_reporting_success(
+        tmp_path, monkeypatch):
+    """The refusal has to reach the exit code, or the operator never learns of it."""
+    dest = tmp_path / "corpus"
+    real_mkdir = pathlib.Path.mkdir
+    real_rmdir = pathlib.Path.rmdir
+    swapped = []
+
+    def hook(self, *a, **k):
+        result = real_mkdir(self, *a, **k)
+        if self == dest and not swapped:
+            swapped.append(True)
+            real_rmdir(dest)
+            real_mkdir(dest)
+        return result
+
+    monkeypatch.setattr(pathlib.Path, "mkdir", hook)
+    result = CliRunner().invoke(oa.cli, ["--probe-corpus", str(dest)])
+    monkeypatch.undo()
+
+    assert swapped
+    assert result.exit_code != 0, result.output
+    assert "REPLACED" in result.output, result.output
