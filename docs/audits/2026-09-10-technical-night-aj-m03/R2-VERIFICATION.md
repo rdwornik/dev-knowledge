@@ -122,8 +122,8 @@ UNVERIFIED there.
 | `cursor-agent` | 1e | 0 at first two attempts | — | — | Blocked by our own `PreToolUse` guard; see NIGHT-LOG. Third attempt with `CLAUDE_PROJECT_DIR` set. |
 | Claude Sonnet | 1f | 31 | 0 | **31** | Self-reported as opened-and-quoted; not independently re-verified. A Claude subagent verifying a Claude subagent is weak evidence, and is labelled rather than claimed. |
 
-**Total UNVERIFIED locator-bearing rows carried into Phase 2: ~220.**
-**Total independently verified: 24.**
+**Total UNVERIFIED locator-bearing rows carried into Phase 2: ~218.**
+**Total independently verified: 26** (24 from leg 1c, plus the two spot-checks in §4).
 
 That ratio is the honest headline of this mission's evidence quality, and REVIEW.md §3 states it
 in those terms. The one leg whose conclusions the mission most depends on — the spine
@@ -137,3 +137,63 @@ table should be cited downstream as though it had been checked.
 - **[#676]** - *no check verifies a provider CLI's non-interactive invocation shape.* The UNVERIFIED register records which readers answered, which refused, and why.
 - **[#582]** - *substrate router.* The verification finding that Maister's state carrier is prose-only bears directly on what a capability-keyed router would and would not buy us.
 
+
+---
+
+## 4. Spot-check of leg 1a (agy) — the two load-bearing rows, verified first-hand
+
+MATRIX.md rests two of its three focused sections on single agy claims. Both were re-opened
+directly against the Polish source by the session (not by a subagent), because a section built on
+an unverified row is not worth writing.
+
+### L02.md:37 — "logical model aliases" (the MODEL-AGNOSTIC section rests on this)
+
+**agy reported:** *"Logical model aliases (e.g. `prod-model`) decouple application code from
+physical models, allowing provider swaps and model upgrades via gateway configuration changes
+without code refactoring."*
+
+**The source line says (verbatim, Polish):**
+
+> "…możemy sobie użyć modelu **prod-model**, który tak naprawdę jest **nazwą logiczną**, która
+> poprzez odpowiednie filtry czy reguły na samym gateway'u będzie dopiero zamieniona na jakiś
+> **fizyczny model** danego providera. I to daje nam coś bezcennego, dlatego że samo wdrożenie
+> takiego LiteLLM … powoduje, że **nie mamy vendor locka na poziomie kodu aplikacji** na
+> konkretnego providera. Teraz **podmiana providera to jest tylko zmiana konfigu gateway**[a]"
+
+**VERDICT: CONFIRMED, exactly.** The line even carries the mission's own phrasing of the target —
+*swapping the provider is only a change of gateway config* — and names the failure it prevents,
+vendor lock at the application-code level. The same line independently confirms the "unified API
+standardised on the OpenAI schema" claim also cited at L02.md:37.
+
+### L05.md:31 — reviewer rubber-stamping (the SELF-IMPROVEMENT LOOP section rests on this)
+
+**agy reported:** two claims — detect rubber-stamping by monitoring approval rate and review
+duration; prevent it by injecting synthetic flawed blind tests into reviewer queues.
+
+**The source line says (verbatim, Polish):**
+
+> "Takim głównym antywzorcem to jest taki **człowiek pieczątka** … bezmyślnie tak naprawdę
+> zatwierdzający **w ułamku sekundy** wszystko, co produkuje AI. No i jak to możemy rozpoznać? Na
+> przykład na podstawie tego, jaki jest **approval rate**, jaki jest **czas przeglądu**. Jak możemy
+> temu zapobiegać? Możemy na przykład sprawdzać i **podrzucać jakieś ślepe, błędne testy** do
+> wyłapania ludziom, którzy … ten czas przeglądu mają za mały albo approval rate mają wyższy, niż
+> byśmy się tego spodziewali."
+
+**VERDICT: CONFIRMED, exactly.** Both halves are on the cited line, including the two named
+metrics and the blind-test countermeasure.
+
+### What the spot-check licenses, and what it does not
+
+Two of two agy rows checked came back exact — correct line, correct content, no drift and no
+invention. That is a **calibration signal, not a verification of the other ~218 rows.** Two
+samples from one reader on one source cannot license the set.
+
+What it does license: MATRIX.md's §3 and §4 no longer rest on unverified ground, which was the
+point of spending the check there. The `†` marks stay on every row that was not opened, and these
+two rows are upgraded to `‡` in MATRIX.md's terms.
+
+**Re-verification is cheap and the inputs are preserved.** The split transcripts remain at
+`C:\Users\1028120\.claude\jobs\99120201\tmp\night\m03\L0{1..6}.md`, and the two clones at
+`…\night\maister` and `…\night\ajcode`. Anyone re-running R2 over the remaining rows needs only
+those paths — but note the job tmp directory is deleted with the job, so a re-run wanting the same
+bytes should re-unzip `AJ_M03_transkrypcje.md.zip` and re-clone, which are both deterministic.

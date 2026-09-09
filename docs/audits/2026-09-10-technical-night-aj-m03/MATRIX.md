@@ -113,7 +113,7 @@ is "verified by a seat with disk access — and **unreproducible from the reposi
 
 | PRACTICE | M03 LOCATOR † | VERDICT | EVIDENCE |
 |---|---|---|---|
-| **Logical model aliases** — apps name `prod-model`, a config maps it to a physical model, so provider swaps need no code change | L02.md:37 | **MISSING** | This is the direct answer to the mission's MODEL-AGNOSTIC question. We have the opposite: `MODEL_ENUM = ("opus","sonnet","haiku")` enforced at three call sites — `scripts/gen_lane_contract.py:129`, `:332-335`, `:833-835` † |
+| **Logical model aliases** — apps name `prod-model`, a config maps it to a physical model, so provider swaps need no code change | L02.md:37 ‡ | **MISSING** | This is the direct answer to the mission's MODEL-AGNOSTIC question. We have the opposite: `MODEL_ENUM = ("opus","sonnet","haiku")` enforced at three call sites — `scripts/gen_lane_contract.py:129`, `:332-335`, `:833-835` † |
 | Unified API contract at the boundary so app code is provider-independent | L02.md:37 | **MISSING** | our dispatch layer emits the literal binary `claude` — `scripts/gen_lane_contract.py:525` † |
 | **Model switching by YAML edit, zero code refactoring** (BAML + gateway) | L03.md:67 | **MISSING** | see MODEL-AGNOSTIC §4 |
 | Insulate the system from bi-weekly model/API churn behind an abstraction layer | L04.md:43 | **MISSING** | nothing sits between our process and a vendor CLI |
@@ -130,8 +130,8 @@ is "verified by a seat with disk access — and **unreproducible from the reposi
 | Measure LLM load in tokens-per-minute, not requests-per-minute | L02.md:19, L04.md:35 | **MISSING** | `logs/TOKEN-LOG.md` is a weekly aggregate — `…aj-second-pass.md:60` |
 | Attribute token spend per team/model | L02.md:25 | **MISSING** | `scripts/cost_usage_telemetry.py` is "Library only; no call sites" — `…gap-analysis.md:28` |
 | Hard budget caps over rolling windows | L02.md:63 | **MISSING** | tonight's two quota refusals were discovered by hitting them |
-| **Monitor reviewer approval-rate and review-duration to detect rubber-stamping** | L05.md:31 | **MISSING — and it is the sharpest row in this table** | see §3.2 |
-| **Inject synthetic flawed items into the review queue to test reviewer diligence** | L05.md:31 | **MISSING** | we have no mechanism that tests whether a gate or a reviewer actually bites |
+| **Monitor reviewer approval-rate and review-duration to detect rubber-stamping** | L05.md:31 ‡ | **MISSING — and it is the sharpest row in this table** | see §3.2 |
+| **Inject synthetic flawed items into the review queue to test reviewer diligence** | L05.md:31 ‡ | **MISSING** | we have no mechanism that tests whether a gate or a reviewer actually bites |
 | Confidence-tiered routing: autonomous / review / expert | L05.md:29, :55 | **PROSE** | ADR-108 §A splits question *kinds*, not confidence |
 | Sync vs async approval chosen by irreversibility and blast radius | L05.md:37-39 | **PROSE** | our destructive-act rule is a flat "ask", not a tiering |
 | Deterministic Policy-as-Code risk classification at intake | L05.md:17 | **PARTIAL MECH** | ADR-98 intake + `validate_backlog` are schema gates, not risk classifiers |
@@ -261,9 +261,14 @@ governance state and never over a model's output.
 that most directly indicts our current loop.**
 
 > "Avoid the 'rubber-stamping' anti-pattern where reviewers unthinkingly approve AI outputs in
-> split seconds **by monitoring approval rates and review durations**" — L05.md:31 †
+> split seconds **by monitoring approval rates and review durations**" — L05.md:31 ‡
 > "**Inject synthetic, flawed blind tests** into human reviewer queues to catch reviewers who
-> exhibit abnormally fast review times or excessive approval rates" — L05.md:31 †
+> exhibit abnormally fast review times or excessive approval rates" — L05.md:31 ‡
+>
+> **Both CONFIRMED first-hand against the Polish source** (R2-VERIFICATION §4). The transcript
+> names the anti-pattern *"człowiek pieczątka"* — the rubber-stamp human — names the two metrics
+> (`approval rate`, `czas przeglądu`) and names the countermeasure (*"podrzucać jakieś ślepe,
+> błędne testy"* — slip in blind, faulty tests).
 
 Our loop's terminal gate is a human GO (`PLAYBOOK.md:6068`, CONFIRMED). We have **no measurement of
 that gate at all** — not how long a review took, not how often GO is given, not whether any GO was
@@ -289,9 +294,16 @@ locator. It is not restated here. Three things belong in the matrix instead.
 
 > "Logical model aliases (e.g. `prod-model`) decouple application code from physical models,
 > allowing provider swaps and model upgrades via gateway configuration changes without code
-> refactoring" — L02.md:37 †
+> refactoring" — L02.md:37 ‡
 > "Pairing BAML with LiteLLM enables model switching via YAML configuration without application
 > refactoring" — L03.md:67 †
+>
+> **L02.md:37 CONFIRMED first-hand** (R2-VERIFICATION §4). The source names `prod-model` as a
+> *nazwa logiczna* — a logical name resolved to a physical provider model at the gateway — states
+> the property it buys (*"nie mamy vendor locka na poziomie kodu aplikacji"* — no vendor lock at
+> the application-code level), and states the outcome in the mission's own terms: **"podmiana
+> providera to jest tylko zmiana konfigu gateway"** — swapping the provider is only a change of
+> gateway config. That sentence is the target this section's title names.
 
 Our nine-item change set exists **because we have no alias layer.** Every item is a place a
 physical model name or a vendor binary leaked into a surface that should have named a role. The
