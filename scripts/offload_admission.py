@@ -107,12 +107,21 @@ REFUSAL_CODES: tuple[str, ...] = (
     "unranked-finding",
     "duplicate-rank",
     "verdict-bearing",
+    "unknown-category",
     "locator-malformed",
     "locator-escapes-corpus",
     "fabricated-file",
     "fabricated-line",
     "locator-drift",
+    "planted-defect-missed",
 )
+
+
+#: The closed category vocabulary `PROBE_QUESTION` asks for. Checking it is not pedantry: a
+#: record admitted with `category: "anything"` is a candidate that answered a question nobody
+#: asked, and the admission would then certify retrieval the probe never measured.
+FINDING_CATEGORIES: frozenset[str] = frozenset({
+    "contradiction", "unenforced-rule", "duplicated-clause"})
 
 
 #: Tokens that name how a model was CHOSEN rather than which model it was. Refused in BOTH
@@ -276,8 +285,18 @@ def _verify_locator(finding: dict[str, Any], corpus_root: Path) -> Optional[Refu
 
 def adjudicate(record: dict[str, Any],
                corpus_root: Path,
-               registry_path: Optional[Path] = None) -> Verdict:
+               registry_path: Optional[Path] = None,
+               required_sites: tuple[tuple[str, ...], ...] = ()) -> Verdict:
     """ADMIT or REFUSE one admission record. Refusals accumulate; they do not short-circuit.
+
+    `required_sites` is the corpus's GROUND TRUTH: one tuple of acceptable locators per
+    defect the corpus plants, and the record must name at least one from each. Without it a
+    record clears this gate on SHAPE alone -- non-empty, uniquely ranked, locators that
+    re-open -- so a candidate returning one unrelated real line would be admitted while
+    having found nothing the probe exists to measure. Coverage is corpus-specific, hence a
+    parameter rather than a constant: the seeded suite and the live probe plant different
+    defects, and an empty tuple means "this call is not scoring coverage" rather than
+    "coverage passed".
 
     Accumulating is deliberate. A gate that stopped at the first refusal would report one
     defect per run, so a record with three would take three rounds to characterise and each
@@ -377,6 +396,17 @@ def adjudicate(record: dict[str, Any],
                 f"offload seat returns candidates and where they live; ruling is another "
                 f"seat's act"))
 
+    for f in findings:
+        if not isinstance(f, dict):
+            continue
+        category = f.get("category")
+        if category not in FINDING_CATEGORIES:
+            refusals.append(Refusal(
+                "unknown-category",
+                f"finding rank {f.get('rank')!r} is categorised {category!r}; the probe asks "
+                f"for one of {', '.join(sorted(FINDING_CATEGORIES))}, and a category outside "
+                f"that closed set is an answer to a question nobody asked"))
+
     verified = 0
     for f in findings:
         if not isinstance(f, dict):
@@ -387,10 +417,25 @@ def adjudicate(record: dict[str, Any],
         else:
             refusals.append(problem)
 
+    named = {str(f.get("locator") or "").strip()
+             for f in findings if isinstance(f, dict)}
+    for alternatives in required_sites:
+        if not named.intersection(alternatives):
+            refusals.append(Refusal(
+                "planted-defect-missed",
+                f"no finding names any of {', '.join(alternatives)}; the corpus plants a "
+                f"defect there and the record walked past it, so this is a MISS "
+                f"— locator-exactness on the findings it DID return does not cover for it"))
+
     admitted = not refusals
     if admitted:
+        # Only claim coverage when coverage was actually scored: an ADMITTED line reading
+        # "every planted defect named" on a call that supplied no ground truth would be the
+        # same unearned certification this check exists to remove.
+        covered = (f"all {len(required_sites)} planted defect(s) named; " if required_sites
+                   else "coverage NOT scored, no ground truth supplied; ")
         detail = (f"ADMITTED — {verified}/{len(findings)} locator(s) re-opened on disk and "
-                  f"exact, zero fabrications; {served!r} attested as served")
+                  f"exact, zero fabrications; {covered}{served!r} attested as served")
     else:
         detail = (f"NOT ADMITTED — {len(refusals)} refusal(s): "
                   + "; ".join(f"[{r.code}] {r.detail}" for r in refusals))
@@ -532,6 +577,10 @@ SEEDED_DEFECTS: dict[str, tuple[str, Mutation]] = {
         "intake #75: the seat rules, closes or disposes",
         lambda r: r["findings"][0].__setitem__("verdict", "CONFIRMED — close the row"),
     ),
+    "unknown-category": (
+        "a finding filed under a category the probe question does not define",
+        lambda r: r["findings"][0].__setitem__("category", "anything"),
+    ),
     "locator-malformed": (
         "a locator with no line, so nothing can be re-opened",
         lambda r: r["findings"][0].__setitem__("locator", "protocols/EXAMPLE.md"),
@@ -552,7 +601,26 @@ SEEDED_DEFECTS: dict[str, tuple[str, Mutation]] = {
         "locator-exactness is not claim-correctness: the quote is not at the line",
         lambda r: r["findings"][0].__setitem__("quote", "A branch is merged with `--no-ff`"),
     ),
+    "planted-defect-missed": (
+        "a shape-perfect answer that walked past a defect the corpus plants",
+        lambda r: r["findings"].pop(1),
+    ),
 }
+
+
+#: The corpus's own GROUND TRUTH: one tuple of ACCEPTABLE locators per planted defect. The
+#: record must name at least one from each, so a defect reachable from two files is not a
+#: miss because the candidate cited the other one.
+SUITE_REQUIRED_SITES: tuple[tuple[str, ...], ...] = (
+    ("protocols/EXAMPLE.md:4",),
+    ("ecosystem/example.yaml:4",),
+)
+
+#: The seeds adjudicated WITH a coverage requirement. Deliberately not all of them: a seed
+#: that mutates a locator would then refuse twice - once for its own reason, once for the
+#: coverage it incidentally broke - and an unattributed refusal is precisely what this suite
+#: exists to make impossible.
+_SEEDS_WITH_COVERAGE: frozenset[str] = frozenset({"planted-defect-missed"})
 
 
 # ---------------------------------------------------------------------------------------
@@ -609,6 +677,28 @@ PROBE_CORPUS: dict[str, str] = {
         "    stage: pre-push\n"                                           # 8
     ),
 }
+
+#: The three defects `PROBE_CORPUS` plants, and EVERY locator that legitimately names each.
+#: Promoted out of `test_offload_admission.py` so the ground truth a LIVE run is scored
+#: against has exactly one home: the sites were previously stated in this module's comments
+#: and again in the test, and a drifted copy would move the bar silently -- turning a miss
+#: into a hit, which is the failure the whole module exists to make impossible.
+PROBE_PLANTED: dict[str, tuple[tuple[str, int, str], ...]] = {
+    "D1-contradiction": (("RULES.md", 5, "`--no-ff` merge, never by fast-forward"),
+                         ("HANDBOOK.md", 7, "fast-forward merge is the default")),
+    "D2-unenforced": (("RULES.md", 8, "imperative, specific and under 72 characters"),),
+    "D3-duplication": (("RULES.md", 11, "append-only log is never edited in place"),
+                       ("HANDBOOK.md", 11, "append-only log is never edited in place")),
+}
+
+#: `PROBE_PLANTED` in the shape `adjudicate(required_sites=...)` takes: one tuple of
+#: acceptable locators per defect. Two of the three are reachable from either file, so a
+#: ground truth of single locators would score a correct answer as a miss on which of the
+#: pair the candidate happened to cite.
+PROBE_REQUIRED_SITES: tuple[tuple[str, ...], ...] = tuple(
+    tuple(f"{rel}:{line}" for rel, line, _ in sites)
+    for _, sites in sorted(PROBE_PLANTED.items()))
+
 
 #: What a candidate is asked. RETRIEVAL-ONLY and locator-bearing, because those are the two
 #: halves of the role intake #75 defines — and because a question with no checkable answer in
@@ -677,11 +767,12 @@ def write_probe_corpus(root: Path) -> Path:
 
 @dataclass(frozen=True)
 class SeededCase:
-    """One seeded defect, ready to adjudicate."""
+    """One seeded defect, ready to adjudicate, with the coverage bar it is scored under."""
 
     code: str
     rationale: str
     record: dict[str, Any]
+    required_sites: tuple[tuple[str, ...], ...] = ()
 
 
 def write_suite_corpus(root: Path) -> Path:
@@ -698,7 +789,8 @@ def write_suite_corpus(root: Path) -> Path:
 
 def build_seeded_suite() -> list[SeededCase]:
     """The seeded cases, in `REFUSAL_CODES` order."""
-    return [SeededCase(code, SEEDED_DEFECTS[code][0], _mutate(SEEDED_DEFECTS[code][1]))
+    return [SeededCase(code, SEEDED_DEFECTS[code][0], _mutate(SEEDED_DEFECTS[code][1]),
+                       SUITE_REQUIRED_SITES if code in _SEEDS_WITH_COVERAGE else ())
             for code in REFUSAL_CODES]
 
 
@@ -709,13 +801,14 @@ def run_seeded_suite(root: Path) -> list[tuple[SeededCase, Verdict]]:
     the difference between a gate that refuses twelve defects and a doc that says it does.
     """
     registry = write_suite_corpus(root)
-    return [(case, adjudicate(case.record, root, registry)) for case in build_seeded_suite()]
+    return [(case, adjudicate(case.record, root, registry, case.required_sites))
+            for case in build_seeded_suite()]
 
 
 def control_verdict(root: Path) -> Verdict:
     """Adjudicate the POSITIVE CONTROL against the suite corpus."""
     registry = write_suite_corpus(root)
-    return adjudicate(admissible_record(), root, registry)
+    return adjudicate(admissible_record(), root, registry, SUITE_REQUIRED_SITES)
 
 
 # ---------------------------------------------------------------------------------------

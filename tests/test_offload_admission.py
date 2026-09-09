@@ -66,7 +66,7 @@ def test_each_seeded_defect_is_REFUSED_for_its_own_reason(tmp_path, code):
     """
     registry = oa.write_suite_corpus(tmp_path)
     case = next(c for c in oa.build_seeded_suite() if c.code == code)
-    verdict = oa.adjudicate(case.record, tmp_path, registry)
+    verdict = oa.adjudicate(case.record, tmp_path, registry, case.required_sites)
     assert not verdict.admitted, f"{code} was ACCEPTED — {verdict.detail}"
     assert verdict.codes == (code,), (
         f"{code} refused under {verdict.codes} instead of its own code: {verdict.detail}")
@@ -282,16 +282,10 @@ def test_the_cli_json_output_carries_the_refusal_codes(tmp_path):
 # the LIVE probe corpus — the instrument itself is verified, not trusted
 # ---------------------------------------------------------------------------------------
 
-#: The three planted defects, at the locators `PROBE_CORPUS`'s comment claims for them. A
-#: live run is scored against these, so a drifted comment would silently move the ground
-#: truth and turn a miss into a hit.
-_PLANTED = {
-    "D1-contradiction": [("RULES.md", 5, "`--no-ff` merge, never by fast-forward"),
-                         ("HANDBOOK.md", 7, "fast-forward merge is the default")],
-    "D2-unenforced": [("RULES.md", 8, "imperative, specific and under 72 characters")],
-    "D3-duplication": [("RULES.md", 11, "append-only log is never edited in place"),
-                       ("HANDBOOK.md", 11, "append-only log is never edited in place")],
-}
+#: The three planted defects. SINGLE-SOURCED from the module that scores against them --
+#: a second copy here would be a ground truth free to drift from the one `adjudicate`
+#: actually uses, and the drift would turn a miss into a hit.
+_PLANTED = oa.PROBE_PLANTED
 
 
 @pytest.mark.parametrize("defect", sorted(_PLANTED))
@@ -436,11 +430,11 @@ def _stub_adjudicator(*, control, seeds):
         refusal = oa.Refusal(code, "stubbed for the instrument test")
         return oa.Verdict(False, (refusal,), 0, 0, f"NOT ADMITTED - {refusal}")
 
-    def fake(record, corpus_root, registry_path=None):
+    def fake(record, corpus_root, registry_path=None, required_sites=()):
         is_control = record == oa.admissible_record()
         behaviour = control if is_control else seeds
         if behaviour is None:
-            return real(record, corpus_root, registry_path)
+            return real(record, corpus_root, registry_path, required_sites)
         return _refused(behaviour)
 
     return fake
