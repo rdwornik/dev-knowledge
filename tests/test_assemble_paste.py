@@ -713,17 +713,55 @@ def test_naming_the_open_carrier_in_the_residual_lets_assembly_through(tmp_path:
     assert (bundle / "PASTE_THIS.md").exists()
 
 
+def _commit_as_main(repo_root: Path) -> None:
+    """Make `repo_root` a git repo whose `main` carries its files, so `git cat-file -e
+    main:<path>` can actually resolve.
+
+    WITHOUT THIS the resolving-carrier test below was a FALSE GREEN, and how it failed is the
+    point. `_resolves_on_main` asks git; in a plain tmp_path there is no repo, so every
+    candidate came back UNRESOLVED -- and the test still passed, because assembly judges only
+    the `OPEN` kind and ignores UNRESOLVED and RESOLVES alike. It asserted nothing about the
+    state its own name claims and would have stayed green through any regression in resolution
+    handling. Terra's sibling finding, 2026-09-09.
+
+    `-c user.*` is passed inline rather than assumed: a fixture must not depend on the
+    machine's global git identity, and a commit is what actually puts a `main` ref on disk.
+    """
+    ident = ["-c", "user.name=t", "-c", "user.email=t@t"]
+    subprocess.run(["git", "init", "-b", "main"], cwd=repo_root, check=True,
+                   capture_output=True)
+    subprocess.run(["git", *ident, "add", "-A"], cwd=repo_root, check=True, capture_output=True)
+    subprocess.run(["git", *ident, "commit", "-m", "fixture"], cwd=repo_root, check=True,
+                   capture_output=True)
+
+
 def test_a_resolving_carrier_is_leg_1s_subject_and_does_not_gate_assembly(tmp_path: Path) -> None:
     """Only the `OPEN` conjunct gates here. A file whose value names a home is leg 1's subject
     and was already judged before the cut; re-judging it at assemble would put one predicate in
-    two places, free to disagree."""
+    two places, free to disagree.
+
+    TWO ASSERTIONS, and the first is what makes the second mean anything. `carriage_verdicts`
+    must actually return `resolves` for this file -- otherwise `returncode == 0` proves only
+    that assembly ignores whatever verdict it happened to get, which is precisely how this test
+    passed for the wrong reason before. With the first assert in place, a regression in
+    resolution handling turns the fixture's carrier UNRESOLVED (or OPEN) and this goes RED.
+    """
     transport = tmp_path / "transport"
     (transport / "to-cc").mkdir(parents=True)
     (transport / "to-cc" / "DECLARE-CARRIED.md").write_text(
         "# carried\ncarried-by: protocols/HANDOFF_PROCESS.md\n", encoding="utf-8")
     bundle, script = _make_bundle(tmp_path, bundle_rel="docs/handoffs/2026-09-08-z")
+    _commit_as_main(tmp_path)
+
+    import gen_handoff as gh
+
+    verdicts = gh.carriage_verdicts(transport, tmp_path)
+    assert [v.kind for v in verdicts] == [gh.CARRIAGE_RESOLVES], \
+        [f"{v.path.name}: {v.kind} -- {v.detail}" for v in verdicts]
+
     result = _run(script, bundle, transport=transport)
     assert result.returncode == 0, result.stderr
+    assert (bundle / "PASTE_THIS.md").exists()
 
 
 def test_a_bundle_outside_the_repo_bundle_home_is_not_gated(tmp_path: Path) -> None:
