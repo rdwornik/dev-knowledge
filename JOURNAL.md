@@ -19,6 +19,57 @@
 
 ---
 
+### 2026-09-09 (k) - CC (Opus 5, INTEGRATOR SEAT): the close ruling executed, two rows filed, seat CLOSED
+
+**Anchors via `abdc2dc9`** (the row-filing commit this entry rides).
+
+**Did.** Executed both rulings of `DECLARE-BATCH-V-CLOSE-2026-09-09` and closed the batch-V
+integrator seat. Batch V was accepted 8/8; nothing in this entry re-opens it.
+
+**Ruling 1 — Windows is the baseline substrate.** `28 RED @ ba0dd7a7` (Windows, unattended path,
+`--timeout=900`) is the standing baseline; the Codespaces 44 retires to history as a RED *list*
+and is never again a comparison base. Filed as **`[#673]`** (E7 / S20): the six unattributed REDs
+get attributed by ONE same-substrate unattended run at the pre-batch commit `08c35b9c` and a SET
+DIFFERENCE against the 28 — **not by reasoning**, which is the whole point of the row. The three
+already attributed are named in the row body so the next seat does not re-derive them.
+
+**Ruling 2 — the collision is `[#563]`'s test, not V-9's census.** Filed as **`[#674]`** (E2 /
+S6, the ADR-89 computed-edge story, which is the right home because the fix IS an edge query).
+The test must assert the absence of a `reads` edge into the export artifact instead of grepping
+for the substring `export_backlog_view`. **A key in a disposition dict is not a `reads` edge.**
+Not built here, per the ruling.
+
+**`[#563]` is CLOSED, so ruling 2 became a NEW row rather than an amendment to it.** "File it as
+a row on `[#563]`" is satisfied by a row that cites `[#563]` and states plainly that it does not
+re-open it: a closed row's body is not its ruling, and the operator grooms closed rows by
+archiving them, so hanging new work on one would fight that. If the intent was an amendment
+instead, this is the one call in the pair worth redirecting.
+
+**A BUG I INTRODUCED AND CAUGHT, recorded because the catch was luck-adjacent.** My first
+manifest-insertion helper backed up over "blank" nodes using `nodes[j].get("prose", "") == ""`.
+A **task** node has no `prose` key at all, so that test read every real row as blank and walked
+the cursor past them: `[#674]` would have landed FIRST in its story instead of last, and
+`[#673]` at index 478 under a heading at 346 — **a different story entirely**. Caught by reading
+the indices the script reported rather than trusting that it ran without error. Reverted the
+manifest and re-ran with an explicit `"task" not in nodes[j]`. The lesson is narrow and reusable:
+a `.get(key, default)` over a heterogeneous node list silently makes every node of the other
+shape look like the default.
+
+**Result.** Seat CLOSED. `main == origin/main`, tree clean, `git stash list` empty,
+`git worktree list` primary only, no `worktree-*` branches local or on origin,
+`audit.py health` OK. Batch V: 8 dispatched, 8 merged, 0 abandoned, checklist 8/8.
+
+**Changes.** `tasks/673-*`, `tasks/674-*`, `tasks/manifest.json`, `BACKLOG.md` (262 tasks).
+
+**Abandoned.** Nothing.
+
+**Next seat inherits, all filed and none forgotten:** `[#673]` (the overnight attribution run),
+`[#674]` (the `reads`-edge test), `[#643]` OPEN pending the operator's grooming, and
+`HANDOFF_PROCESS` 7.0.0 -> 7.1.0 with its three `reconciled_with` re-stamps, which this seat
+deliberately did not touch because it changes the spec every future cut reconciles against.
+Three empty husk directories under `.claude/worktrees/` are held by idle-but-live lane sessions;
+deregistered from git, branches deleted both ends, tripping no gate.
+
 ### 2026-09-09 (j) - CC (Opus 5, INTEGRATOR SEAT): batch V CLOSED -- the packet written, the checklist run row by row
 
 **Anchors via `a6a463c7`** (the close-packet commit this entry rides).

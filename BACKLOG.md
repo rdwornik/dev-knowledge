@@ -125,6 +125,7 @@ So that "spec bumped, dependent partially updated, caught only because a human r
 So that a symbol deletion can't silently break a dependent — the code analog of catching doc/spec drift.
 - [#218] [P1][M] Safe-removal gate M2+M3 boundary · DEFER · tasks/218-safe-removal-gate-m2-m3-boundary.md
 - [#659] [P2][S] The `orphan_census` intake names two triggers and one of them does not exist · tasks/659-orphan-census-names-a-trigger-that-does-not-exist.md
+- [#674] [P2][M] `[#563]`'s no-reader test checks a NAME to prove a RELATIONSHIP; it must assert the absence of a `reads` edge · tasks/674-563-s-no-reader-test-checks-a-name-to-prove-a-rela.md
 
 ### [S7] Wire up the lifecycle hooks the workflow relies on
 So that session-start/close automation actually runs instead of being wired-but-vacuous.
@@ -359,6 +360,7 @@ So that unattended routines run only with a named consumer, a survival metric, a
 - [#555] [P1][M] Closing campaign batch 1 + kill-candidates instrument · tasks/555-closing-campaign-batch-1-kill-candidates-instrum.md
 - [#655] [P2][S] `run_retention()` has no production caller, and the ruled one is `fleet_health`'s daily run · tasks/655-run-retention-has-no-production-caller.md
 - [#657] [P1][S] Orphan #33 — something outside the repo writes into it on a schedule the registry does not know · tasks/657-orphan-33-an-unregistered-writer-edits-the-repo-nightly.md
+- [#673] [P2][S] Six batch-V suite REDs are unattributed, and only a same-substrate run on the pre-batch commit can attribute them · tasks/673-six-batch-v-suite-reds-are-unattributed-and-only-a.md
 ## [E8] ARC-5 execution
 > As the operator, I want ARC-5's wave map, closure contract, and unruled decisions to live somewhere that can EVOLVE as waves land — not frozen inside an immutable handoff bundle.
 
