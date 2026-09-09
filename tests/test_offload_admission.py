@@ -398,3 +398,114 @@ def test_the_module_imports_in_PACKAGE_mode_too():
         cwd=root, capture_output=True, text=True)
     assert proc.returncode == 0, proc.stderr
     assert proc.stdout.strip() == str(len(oa.REFUSAL_CODES))
+
+
+# ---------------------------------------------------------------------------------------
+# the INSTRUMENT itself - a seeded run that reads as a pass while the gate is broken
+# ---------------------------------------------------------------------------------------
+# The terra review of 2026-09-09 raised these two as unresolved HIGH, and they share one
+# shape: the module's own measurement is the thing that is unsound. Finding #1 is the
+# instrument-layer failure class the architecture red-team named ("the gate is right, the
+# reader is wrong, repeatedly") - the seeded counter increments on ANY refusal, so a shared
+# upstream regression that made all sixteen cases refuse for one wrong reason would still
+# print 16/16 and exit 0. Finding #2 is a write-without-looking: `--probe-corpus .` inside a
+# checkout holding RULES.md / HANDBOOK.md / gates.yaml overwrote them unconditionally.
+#
+# Both are RED-first witnesses per ADR-108 section B: each of these failed on the HEAD that
+# carried the finding, before any fix code was written.
+
+
+def _stub_adjudicator(*, control, seeds):
+    """Swap the module-level `adjudicate` the suite runner holds.
+
+    `run_seeded_suite` and `control_verdict` both reach `adjudicate` through the module
+    globals, so patching the attribute on the module is what the adapter actually resolves -
+    patching an import alias inside the test would leave the real function in play. The
+    positive control is discriminated by VALUE: every seed is a mutation of the admissible
+    record, so only the control compares equal to a pristine one.
+    """
+    real = oa.adjudicate
+
+    def _refused(code: str) -> "oa.Verdict":
+        refusal = oa.Refusal(code, "stubbed for the instrument test")
+        return oa.Verdict(False, (refusal,), 0, 0, f"NOT ADMITTED - {refusal}")
+
+    def fake(record, corpus_root, registry_path=None):
+        is_control = record == oa.admissible_record()
+        behaviour = control if is_control else seeds
+        if behaviour is None:
+            return real(record, corpus_root, registry_path)
+        return _refused(behaviour)
+
+    return fake
+
+
+def test_a_seeded_run_whose_cases_ALL_refuse_for_the_WRONG_code_is_REFUSED(monkeypatch):
+    """A shared regression that misattributes every refusal must not print a pass.
+
+    `shared-regression` is deliberately NOT a member of `REFUSAL_CODES`: every case refuses,
+    none refuses for its own reason, and the control is untouched and still ADMITTED. A
+    counter that only asks "did it refuse?" scores this identically to a healthy run.
+    """
+    monkeypatch.setattr(
+        oa, "adjudicate", _stub_adjudicator(control=None, seeds="shared-regression"))
+    result = CliRunner().invoke(oa.cli, ["--seeded-defects"])
+    assert result.exit_code != 0, result.output
+
+
+def test_the_seeded_headline_counts_ATTRIBUTED_refusals_not_bare_ones(monkeypatch):
+    """N is the count of cases refused FOR THEIR OWN CODE - the printed number is the claim.
+
+    The lane's headline (`0 -> 16`) is this number. If it counts bare refusals then sixteen
+    means "sixteen things refused", not "sixteen defects are caught", and the closure rests
+    on a number that does not carry the property it is quoted for.
+    """
+    monkeypatch.setattr(
+        oa, "adjudicate", _stub_adjudicator(control=None, seeds="shared-regression"))
+    result = CliRunner().invoke(oa.cli, ["--seeded-defects"])
+    n = len(oa.REFUSAL_CODES)
+    assert f"0/{n}" in result.output, result.output
+    assert f"{n}/{n}" not in result.output, result.output
+
+
+def test_a_seeded_run_whose_POSITIVE_CONTROL_refuses_is_REFUSED(monkeypatch):
+    """Sixteen correct refusals mean nothing when the control no longer clears the gate.
+
+    This is the half the seeded counter never read at all: `control_verdict` was computed,
+    printed, and then dropped on the floor before the exit code was chosen.
+    """
+    monkeypatch.setattr(
+        oa, "adjudicate", _stub_adjudicator(control="empty-run", seeds=None))
+    result = CliRunner().invoke(oa.cli, ["--seeded-defects"])
+    assert result.exit_code != 0, result.output
+
+
+def test_write_probe_corpus_REFUSES_an_occupied_destination_rather_than_overwriting(tmp_path):
+    """No overwrite path. The check is PRE-FLIGHT, so a refusal writes nothing at all.
+
+    A partial materialisation would be the worse failure: half the corpus on disk beside a
+    caller's own files, with an exception to explain it. So the assertion is not merely that
+    `gates.yaml` survived - it is that `RULES.md` was never created.
+    """
+    occupied = tmp_path / "gates.yaml"
+    occupied.write_text("hooks: []\n", encoding="utf-8", newline="\n")
+    with pytest.raises(FileExistsError):
+        oa.write_probe_corpus(tmp_path)
+    assert occupied.read_text(encoding="utf-8") == "hooks: []\n"
+    assert not (tmp_path / "RULES.md").exists(), "a refused write left a half-materialised corpus"
+
+
+def test_the_probe_cli_REFUSES_a_checkout_that_already_holds_those_filenames(tmp_path):
+    """`--probe-corpus .` in a repo carrying RULES.md is the data-loss shape, exactly.
+
+    Core invariant #3 is never overwrite without asking, and these three probe filenames are
+    ordinary enough that a real checkout holds them. Git makes it recoverable; recoverable is
+    not a defence for a command that writes without looking.
+    """
+    body = "# Rules\nthe caller's own governance file\n"
+    victim = tmp_path / "RULES.md"
+    victim.write_text(body, encoding="utf-8", newline="\n")
+    result = CliRunner().invoke(oa.cli, ["--probe-corpus", str(tmp_path)])
+    assert result.exit_code != 0, result.output
+    assert victim.read_text(encoding="utf-8") == body
+    assert not (tmp_path / "HANDBOOK.md").exists()
