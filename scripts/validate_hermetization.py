@@ -47,9 +47,34 @@ enum, the naming regexes and the home patterns -- is loaded from
 default; the first consumer measured against it produced 78 out-of-pattern items with none
 of them junk. The module names are unchanged, so this is a change of AUTHORITY, not of API.
 
+**EACH RULE HAS A FLEET HALF AND A REPO-LOCAL HALF** (batch V, V-3; measured in
+`docs/audits/2026-09-09-technical-seal-rule-attribution.md`). Making the rules DATA fixed
+their authority but not their SCOPE: `rule_b_violation` and `rule_c_violation` were pure
+functions of a path string, carried no repo identity, and therefore applied the hub's own
+audit-class enum and the hub's own home tuple to every repository they were pointed at.
+Run over the nine ratified fleet members that produced 308 of the fleet's 336 waivers -- a
+seal measuring difference-from-the-hub's-tree rather than out-of-shape. The split each rule
+now carries is the spec's own, not a new judgement:
+
+    Rule B   FLEET      the YYYY-MM-DD- date shape and the R4 casing rule
+             REPO-LOCAL the audit class enum -- the spec marks it
+                        `audit_class_enum_scope: repo-local` and nothing read that marker
+    Rule C   FLEET      the docs/ genre-tree rule -- `docs` is not a home, by design
+             REPO-LOCAL the home tuple, which enumerates the hub's own subdirectories
+
+A repository declares its repo-local halves in its OWN `.methodology.yaml` under
+`shape_profile:` (`RepoProfile` / `profile_for_repo`), which is the register ADR-101
+already sanctions at every root and two readers already parse -- no second convention. A
+repo that declares nothing is policed by the fleet halves and by neither repo-local half.
+**The hub's behaviour does not move:** every rule function defaults to `HUB_PROFILE`, so
+every existing caller and this module's own gate keep their verdicts byte for byte.
+
 Consumer carrier (floor/plugin) is the P6 rollout -- this gate is HUB-ONLY until then,
 mirroring `roster-freshness`/`claude-rosters-freshness`/`audit-index-freshness`. The spec
 being a data file rather than a literal is what makes that rollout carriable at all.
+`seal_repo()` and the `report` sub-command are REPORT mode: they read one repository with
+`git ls-files` and write nothing in it, which is the mode both fleet seal reports built by
+hand as a throwaway harness because the module offered none.
 
 Read-only (Layer-2, ADR-28/36): reads the staged name-status and the spec; writes NOTHING.
 Fail-OPEN but LOUD on any git error -- a convention/hygiene gate must not brick every commit
@@ -61,14 +86,20 @@ failure is an environment accident while a missing spec means the gate has no ru
 
 from __future__ import annotations
 
+import dataclasses
 import fnmatch
+import logging
 import re
 import subprocess
 import sys
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Optional
 
+import click
 import yaml
+
+logger = logging.getLogger(__name__)
 
 # CLOUD-4 v2 (R2 §1.5 GO-b) — the canonical living-doc names come from the one registry.
 try:
@@ -300,6 +331,104 @@ _HOME_PATTERNS: tuple[str, ...] = tuple(
     _clause_list(SHAPE_SPEC, "home_grammar", "patterns"))
 
 
+# --- the REPO PROFILE: the seam the two hub-local rules were missing -------------------
+# The spec ended the substitution of the hub's TREE for the fleet's grammar. This ends the
+# substitution of the hub's VOCABULARY for the fleet's: which class tokens a repo's dated
+# artifacts use, and which homes its sanctioned directories are organized into, are facts
+# about that repo. A rule that reads them off the hub cannot measure a consumer's shape.
+#
+# Two profiles are constants because two cases are not declarations: `HUB_PROFILE` is the
+# spec's own instance (the repo that CARRIES the spec is described by it), and
+# `FLEET_PROFILE` is a repo that has declared nothing and is therefore policed by the
+# fleet halves alone.
+
+SHAPE_PROFILE_REL = ".methodology.yaml"
+SHAPE_PROFILE_KEY = "shape_profile"
+
+
+@dataclasses.dataclass(frozen=True)
+class RepoProfile:
+    """One repository's own vocabulary for the repo-local half of Rules B and C.
+
+    `None` is the DECLARED ABSENCE of a vocabulary, never an empty one: an undeclared
+    class enum switches the class leg off, while `frozenset()` would refuse every audit
+    filename in the repo. The two readings differ by 194 items fleet-wide.
+    """
+
+    name: str
+    audit_class_enum: Optional[frozenset[str]] = None
+    home_patterns: Optional[tuple[str, ...]] = None
+
+
+HUB_PROFILE = RepoProfile(
+    name=".dev-knowledge",
+    audit_class_enum=AUDIT_CLASS_ENUM,
+    home_patterns=_HOME_PATTERNS,
+)
+
+FLEET_PROFILE = RepoProfile(name="<undeclared>")
+
+
+@lru_cache(maxsize=None)
+def _class_by_len(enum: frozenset[str]) -> tuple[str, ...]:
+    """Longest-match order for one profile's enum -- the module-level `_ENUM_BY_LEN` rule,
+    applied to whichever vocabulary the repo under test actually declares."""
+    return tuple(sorted(enum, key=len, reverse=True))
+
+
+def _declared_list(block: dict[str, Any], key: str, where: Path) -> Optional[list[str]]:
+    """One optional list-of-strings key, or a refusal naming the file that carries it."""
+    value = block.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+        raise ShapeSpecError(
+            f"`{SHAPE_PROFILE_KEY}.{key}` in {where} is not a list of strings -- a "
+            f"declaration the reader cannot parse leaves the rule with no vocabulary, "
+            f"and a seal that silently admits everything is worse than one that stops")
+    return value
+
+
+def profile_for_repo(repo_root: Any, name: Optional[str] = None) -> RepoProfile:
+    """Resolve one repository's profile from its OWN `.methodology.yaml`.
+
+    Three outcomes, in order. A repo that declares a `shape_profile:` block is policed by
+    what it declares. A repo that carries the shape spec ITSELF is the spec's own instance
+    and is policed by it -- which is how the hub stays governed without restating the enum
+    in a second file (the convention this repo states as "never restate a roster"). Anything
+    else is `FLEET_PROFILE`: the fleet halves, and neither repo-local half.
+
+    FAIL-CLOSED on a malformed declaration, matching `ShapeSpecError`'s posture and for the
+    same reason. An ABSENT declaration is a normal state and is not an error.
+    """
+    root = Path(repo_root)
+    label = name or root.name
+    declaration = root / SHAPE_PROFILE_REL
+    block: Optional[dict[str, Any]] = None
+    if declaration.exists():
+        try:
+            data = yaml.safe_load(declaration.read_text(encoding="utf-8"))
+        except yaml.YAMLError as exc:
+            raise ShapeSpecError(f"{declaration} is unparseable: {exc}") from exc
+        if isinstance(data, dict):
+            raw = data.get(SHAPE_PROFILE_KEY)
+            if raw is not None and not isinstance(raw, dict):
+                raise ShapeSpecError(
+                    f"`{SHAPE_PROFILE_KEY}:` in {declaration} is not a mapping")
+            block = raw
+    if block is not None:
+        enum = _declared_list(block, "audit_class_enum", declaration)
+        homes = _declared_list(block, "home_patterns", declaration)
+        return RepoProfile(
+            name=label,
+            audit_class_enum=frozenset(enum) if enum is not None else None,
+            home_patterns=tuple(homes) if homes is not None else None,
+        )
+    if (root / SHAPE_SPEC_REL).exists():
+        return dataclasses.replace(HUB_PROFILE, name=label)
+    return dataclasses.replace(FLEET_PROFILE, name=label)
+
+
 def _home_matches(home: str, pattern: str) -> bool:
     """One home vs one pattern under the three-token grammar above.
 
@@ -326,9 +455,38 @@ def _home_matches(home: str, pattern: str) -> bool:
     return all(p == "*" or p == h for h, p in zip(hp, pp))
 
 
-def is_allowed_home(home: str) -> bool:
-    """True iff `home` (a repo-relative POSIX directory) is an admissible home."""
-    return any(_home_matches(home, pat) for pat in _HOME_PATTERNS)
+def is_allowed_home(home: str, profile: RepoProfile = HUB_PROFILE) -> bool:
+    """True iff `home` (a repo-relative POSIX directory) is an admissible home.
+
+    THE FLEET HALF comes first and applies to every repo: `docs` itself is not a home. The
+    spec states that absence as the rule this clause exists to state -- it is why
+    `docs/ORGAN-INDEX.md` was relocated, and it is what caught both of Rule C's genuine
+    fleet findings (`docs/2026-08-28-nb2-lane-b-packet.md`, `docs/tenrox-console-uploader.md`).
+
+    THE REPO-LOCAL HALF is the pattern tuple, and a repo that declares none is not judged
+    against another repo's: `home_patterns is None` admits every other home. That single
+    branch is 72 of the fleet's 336 waivers -- class H1, "a sanctioned directory organized
+    one level deeper than the hub organizes it".
+
+    `<allowed-home>/archive` is a GRAMMAR rule rather than a literal. The spec states this
+    one shape six times (`protocols/archive`, `templates/archive`, `tasks/archive`,
+    `docs/decisions/archive`, `docs/intake/archive`, `docs/archive`), so the seventh
+    instance -- corp-monorepo's `scripts/archive/` -- was out-of-pattern for no reason but
+    the enumeration. The parent must itself be an admissible home, so this generalizes the
+    shape without opening `<anything>/archive`.
+    """
+    if home == "docs":
+        return False
+    patterns = profile.home_patterns
+    if patterns is None:
+        return True
+    if any(_home_matches(home, pat) for pat in patterns):
+        return True
+    parts = home.split("/")
+    if len(parts) >= 2 and parts[-1] == "archive":
+        parent = "/".join(parts[:-1])
+        return any(_home_matches(parent, pat) for pat in patterns)
+    return False
 
 
 # --- pure classifiers (unit-tested directly; no git) ----------------------------------
@@ -368,9 +526,19 @@ def rule_a_violation(path: str) -> Optional[str]:
     return None
 
 
-def rule_b_violation(path: str) -> Optional[str]:
+def rule_b_violation(path: str, profile: RepoProfile = HUB_PROFILE) -> Optional[str]:
     """Rule B (audit grammar + R4 casing). Applies ONLY to an added docs/audits/*.md.
-    Return a BLOCK reason, or None."""
+    Return a BLOCK reason, or None.
+
+    FLEET: the R4 casing rule and the date shape. Both travelled to a consumer intact --
+    corp-monorepo runs the casing leg locally as its own `validate_audit_casing.py` -- and
+    both stay armed for every repo, declared or not.
+
+    REPO-LOCAL: the class enum. The spec carries `audit_class_enum_scope: repo-local` and
+    no organ read it, so a vocabulary adopted from "what three repos already write"
+    refused 194 correctly-named artifacts across the fleet, 28 of them in one repo that had
+    already recorded the reason in its own waiver.
+    """
     parts = _posix_parts(path)
     # Applicability is EXTENSION-CASE-INSENSITIVE so an uppercase `.MD` cannot dodge Rule B
     # by escaping the `.md` match (codex-review 2026-07-11); the casing rule below then
@@ -397,8 +565,12 @@ def rule_b_violation(path: str) -> Optional[str]:
 
     # Class: whole-token LONGEST-MATCH against the CLOSED enum. A degenerate <date>-<class>
     # passes; a class-then-slug requires a WELL-FORMED slug (no empty/leading-/double-hyphen).
+    # The REPO-LOCAL leg. An undeclared repo is not policed by another repo's vocabulary,
+    # and the slug leg goes with it: a slug is only well-formed RELATIVE to a class token.
+    if profile.audit_class_enum is None:
+        return None
     remainder = stem[_DATE_PREFIX_LEN:]
-    for cls in _ENUM_BY_LEN:
+    for cls in _class_by_len(profile.audit_class_enum):
         if remainder == cls:
             return None  # degenerate <date>-<class>.md (recurring report, no slug)
         if remainder.startswith(cls + "-"):
@@ -408,13 +580,12 @@ def rule_b_violation(path: str) -> Optional[str]:
             return (f"slug: '{fname}' has a malformed slug after <class> '{cls}' "
                     f"(empty / leading- / trailing- / double-hyphen) -- ADR-101 section 2 "
                     f"kebab-case")
-    return (f"class: '{fname}' has no CLOSED-enum <class> token after the date "
-            f"(ADR-101 R3: technical/functional/qa/census/verification/ecosystem-audit/"
-            f"conformance-nightly-digest/changelog-review/codex/fresh-eyes/"
-            f"incident-evidence; whole-token longest-match)")
+    return (f"class: '{fname}' has no <class> token after the date from the enum "
+            f"{profile.name} declares (ADR-101 R3, whole-token longest-match): "
+            f"{'/'.join(sorted(profile.audit_class_enum))}")
 
 
-def rule_c_violation(path: str) -> Optional[str]:
+def rule_c_violation(path: str, profile: RepoProfile = HUB_PROFILE) -> Optional[str]:
     """Rule C (home allowlist). Return a BLOCK reason, or None.
 
     Scoped to paths whose top-level entry is ALREADY sanctioned: when it is not, Rule A
@@ -427,27 +598,116 @@ def rule_c_violation(path: str) -> Optional[str]:
     if parts[0] not in SANCTIONED_TIER1_DIRS:
         return None                       # Rule A already blocks, with a better message
     home = "/".join(parts[:-1])
-    if is_allowed_home(home):
+    if is_allowed_home(home, profile):
         return None
     return (f"new path outside allowlisted homes -- operator approval required: "
-            f"'{home}/' is not an admissible home for a new file. The repo's homes are "
-            f"derived from the live taxonomy (see _HOME_PATTERNS); a genuinely new one is "
+            f"'{home}/' is not an admissible home for a new file. The homes are the ones "
+            f"{profile.name} declares (`{SHAPE_PROFILE_KEY}.home_patterns`, or the fleet "
+            f"spec's `home_grammar` for the repo that carries it); a genuinely new one is "
             f"an operator decision recorded as a ruling, not a drive-by add")
 
 
-def classify(path: str) -> Optional[str]:
+def classify(path: str, profile: RepoProfile = HUB_PROFILE) -> Optional[str]:
     """One added path -> the first BLOCK reason (Rule A, then B, then C), or None."""
-    return rule_a_violation(path) or rule_b_violation(path) or rule_c_violation(path)
+    return (rule_a_violation(path)
+            or rule_b_violation(path, profile)
+            or rule_c_violation(path, profile))
 
 
-def check(added_paths: list[str]) -> list[str]:
+def check(added_paths: list[str], profile: RepoProfile = HUB_PROFILE) -> list[str]:
     """Every added path -> the list of `path: reason` BLOCK strings (empty == clean)."""
     reasons: list[str] = []
     for p in added_paths:
-        r = classify(p)
+        r = classify(p, profile)
         if r is not None:
             reasons.append(f"{p}: {r}")
     return reasons
+
+
+# --- REPORT mode: one repository, read-only -------------------------------------------
+# Both fleet seal reports state the same honest limit -- "the seal has no consumer mode and
+# no --report flag; this run drove its rule functions from the hub" -- and each rebuilt the
+# same throwaway harness to work around it. The harness is the artifact now.
+#
+# GRAIN, matching those two reports exactly so their numbers and this one are commensurable:
+# Rule A per ITEM (a top-level file, a top-level directory, a docs/<genre>/), Rule B per
+# FILE, Rule C per DISTINCT HOME. A path that trips Rule A is not counted again under B or
+# C, mirroring `classify`'s own short-circuit.
+
+
+@dataclasses.dataclass(frozen=True)
+class SealReport:
+    """One repository's out-of-pattern items, at the grain the seal reports declare."""
+
+    repo_root: Path
+    profile: RepoProfile
+    head: str
+    branch: str
+    tracked: int
+    rule_a_items: list[str]
+    rule_b_files: list[str]
+    rule_c_homes: list[str]
+
+    @property
+    def item_count(self) -> int:
+        return len(self.rule_a_items) + len(self.rule_b_files) + len(self.rule_c_homes)
+
+
+def _git_out(repo_root: Path, *args: str) -> str:
+    """One read-only git read against another repository. Never writes, never checks out."""
+    out = subprocess.run(["git", "-C", str(repo_root), *args],
+                         capture_output=True, text=True, encoding="utf-8")
+    if out.returncode != 0:
+        raise RuntimeError(
+            f"git {' '.join(args)} failed in {repo_root}: "
+            f"{out.stderr.strip() or out.returncode}")
+    return out.stdout
+
+
+def seal_repo(repo_root: Any, profile: Optional[RepoProfile] = None,
+              name: Optional[str] = None) -> SealReport:
+    """Seal one repository READ-ONLY and return its out-of-pattern items.
+
+    RETROSPECTIVE, and deliberately unlike the pre-commit gate: it reads every TRACKED
+    path, where the gate reads only staged ADDs. That is the mode both seal reports ran in
+    and the mode a first-contact consumer report needs -- but it means an existing file
+    the prospective gate has never inspected appears here, which is why the hub's own
+    ADR-101 section 6 grandfathered audit filenames are visible to this function and
+    invisible to the gate.
+    """
+    root = Path(repo_root)
+    resolved = profile if profile is not None else profile_for_repo(root, name=name)
+    paths = [p for p in _git_out(root, "ls-files").splitlines() if p.strip()]
+    a_items: list[str] = []
+    b_files: list[str] = []
+    c_homes: list[str] = []
+    for p in paths:
+        parts = _posix_parts(p)
+        if rule_a_violation(p) is not None:
+            if len(parts) == 1:
+                item = parts[0]
+            elif parts[0] not in SANCTIONED_TIER1_DIRS:
+                item = parts[0]
+            else:
+                item = f"{parts[0]}/{parts[1]}"
+            if item not in a_items:
+                a_items.append(item)
+            continue
+        if rule_b_violation(p, resolved) is not None:
+            b_files.append(p)
+            continue
+        if rule_c_violation(p, resolved) is not None:
+            home = "/".join(parts[:-1])
+            if home not in c_homes:
+                c_homes.append(home)
+    try:
+        head = _git_out(root, "rev-parse", "--short", "HEAD").strip()
+        branch = _git_out(root, "rev-parse", "--abbrev-ref", "HEAD").strip()
+    except RuntimeError:
+        head, branch = "(no commits)", "(none)"
+    return SealReport(repo_root=root, profile=resolved, head=head, branch=branch,
+                      tracked=len(paths), rule_a_items=sorted(a_items),
+                      rule_b_files=sorted(b_files), rule_c_homes=sorted(c_homes))
 
 
 # --- git glue (fail-open-loud) --------------------------------------------------------
@@ -489,5 +749,49 @@ def main() -> int:
     return 0
 
 
+@click.group(invoke_without_command=True)
+@click.pass_context
+def cli(ctx: click.Context) -> None:
+    """ADR-101 tree seal.
+
+    With no sub-command this is the prospective pre-commit gate, unchanged: the hook is
+    wired `pass_filenames: false` and passes no arguments, so the group callback IS the
+    gate and `report` is additive.
+    """
+    if ctx.invoked_subcommand is None:
+        ctx.exit(main())
+
+
+@cli.command("report")
+@click.argument("repo_root", type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.option("--name", default=None,
+              help="Label for the repository (default: its directory name).")
+@click.option("--items/--no-items", default=True, show_default=True,
+              help="List every out-of-pattern item, not only the counts.")
+def report_command(repo_root: Path, name: Optional[str], items: bool) -> None:
+    """REPORT mode: seal one repository READ-ONLY and log its out-of-pattern items.
+
+    Writes NOTHING in REPO_ROOT -- `git ls-files` and `git rev-parse` only.
+    """
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    report = seal_repo(repo_root, name=name)
+    profile = report.profile
+    logger.info("repo      %s  %s  %s  %d tracked",
+                profile.name, report.head, report.branch, report.tracked)
+    logger.info("profile   audit_class_enum=%s  home_patterns=%s",
+                "declared" if profile.audit_class_enum is not None else "undeclared",
+                "declared" if profile.home_patterns is not None else "undeclared")
+    logger.info("items     %d   (A %d  B %d  C %d homes)", report.item_count,
+                len(report.rule_a_items), len(report.rule_b_files),
+                len(report.rule_c_homes))
+    if items:
+        for item in report.rule_a_items:
+            logger.info("  A  %s", item)
+        for path in report.rule_b_files:
+            logger.info("  B  %s", path)
+        for home in report.rule_c_homes:
+            logger.info("  C  %s/", home)
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    cli()
