@@ -19,6 +19,32 @@
 
 ---
 
+### 2026-09-09 (c) - CC (Opus 5, INTEGRATOR SEAT): anchor discharge for `4ecf9e73`, and the census lands
+
+**Anchors `4ecf9e73` by naming `a09400cc`**, the JOURNAL commit that merge introduced. Entry
+(b) rode a branch carrying that one commit and nothing else, so (b) had no sibling SHA to name
+and its own merge hash did not exist when it was authored -- the single-commit-arc case ADR-85
+section A9 describes. The push still went clean because `block-unanchored-push` discharges at
+RANGE level and three of the four entries were anchored; `audit.py health`'s backstop asks the
+stricter PER-ENTRY question and surfaced the one gap, which is the split working as designed
+rather than the two organs disagreeing.
+
+**Did.** Merged `docs/process-trigger-census`, written 2026-09-08 at `78449b6a` and never
+integrated. Resolved one JOURNAL conflict by keeping both sides whole and restoring day-letter
+order; regenerated `docs/audits/README.md`, which reads TRACKED files only and so had nothing
+to index until the merge made the census tracked.
+
+**Why it could not wait.** DECLARE-SPINE section 3 makes this census the FIXTURE of its first
+acceptance query -- "orphan_census ... Fixture: the 32" -- and opens on its numbers. The spine
+row filed next would otherwise have cited a document absent from repo state, which is the
+defect the operator's second lane exists to end.
+
+**Changes.** `JOURNAL.md` · `docs/audits/2026-09-08-technical-process-trigger-census.md` ·
+`docs/audits/README.md`.
+
+**Next.** File `[#664]` for DECLARE-SPINE section 3 and dispatch its lane; then the rulings
+lane. Both merge last.
+
 ### 2026-09-09 (b) - CC (Opus 5, INTEGRATOR SEAT): the terra gate ruled; V-2 and V-4 merged, V-5 and V-8 bounced
 
 **Anchors by naming `ff798a1a`** (introduced by the V-4 merge `d12beac6`), **`e73d4b84`**
@@ -135,6 +161,63 @@ is held; V-5's clause 4 (`logs_retention.py --dry-run`, then live) -- not applic
 is held; a Codespaces run of the merged result against the 28 named REDs; then the
 refuse-to-finish checklist. V-4 remains held on `DECLARE-SITTING-2026-09-08`.
 
+### 2026-09-08 (l) - CC (Opus 5, REPORT SEAT): the harness census -- 32 orphans, and three of the DECLARE's own witnesses were wrong
+
+**Anchors via `78449b6a`**, the census commit it rides.
+
+**DAY-LETTER NOTE:** this branch is cut from `origin/main` (last entry there: `(i)`), while the
+frozen batch-V manifest branch carries `(j)` and `(k)` unmerged. `(l)` assumes the manifest merges
+first, which is the integrator's declared FIRST ACT. If it does not, re-derive the letter at merge
+time rather than editing this entry -- the letter is stale-by-construction, the SHA is not.
+
+**The census answers "how many orphan processes" with 32 of 216.** For every script under
+`scripts/`, every hook, every command and skill, and every organ in `audit.ALL_CHECKS`, the
+trigger is named by `file:line` or `NONE`: **160 triggered / 24 on-demand-by-operator / 32
+orphan**. The orphan list is V+1's retirement-or-wiring list; each row either gets a trigger or
+is removed.
+
+**Method was mechanism, and two earlier passes of it were wrong in ways worth keeping.** The
+first counted any docstring mention as a call site -- `audit.py` name-drops nearly every module
+in its docstrings, so 133 of 139 scripts came back "triggered", which is the opposite of what a
+prose mention proves. The second keyed modules by bare filename; seven names collide, so
+`scripts/toc/generator.py` was credited with `scripts/codemap/`'s call site. Only the third pass
+-- `ast`, docstrings excluded, package-qualified keys -- is the one reported.
+
+**Eleven orphans were built by a lane and never wired**, their only call site a merged lane
+contract. That is DECLARE §5's "our organs have no spine" in mechanism form: lanes build organs
+and nothing in the process adopts them afterwards.
+
+**Three of the DECLARE's own §3 witnesses do not survive the mechanism check.** §3 is hedged as a
+witness list, so this is confirmation of its own caveat rather than a contradiction of it.
+`propose_closures` is NOT inventory -- it is wired to the plugin Stop hook
+(`plugins/tier1-lifecycle/hooks/hooks.json:10`) and this session's own banner reported 224
+proposals. There is **no nightly Routine in this repo at all**: zero `cron:`/`schedule:`
+anywhere, the one workflow fires on `push` and calls itself REPORT-ONLY FOREVER, and the only
+live schedule is Task Scheduler `fleet-baseline` (daily 09:00, verified `State=Ready`) running
+exactly `fleet_health.py`. And `codemap_hook.py`/`toc_hook.py` are wired -- in CONSUMER repos via
+`.pre-commit-hooks.yaml`, never in the hub.
+
+**A third of the audit mesh does not fire on any commit.** `audit.py health` passes
+`tier=TIER_COMMIT` and runs 43 of 55 organs; the other 12 run only at `/ship`'s ship-gate, which
+passes no tier (`scripts/audit.py:6647`). Sanctioned -- `/ship` is a destructive act -- but it
+means those 12 have teeth only when an operator ships.
+
+**Did:** ran the §4 census across four populations; built the trigger index from seven wiring
+surfaces plus an AST call-graph closure; verified the one live schedule against Task Scheduler.
+
+**Result:** `docs/audits/2026-09-08-technical-process-trigger-census.md` (36,383 B), landed on
+its own branch off `origin/main` -- deliberately NOT on the frozen manifest branch, which is
+pinned at four commits that `to-browser/SEAT-BOOT-integrator.md` names by SHA.
+
+**Changes:** +`docs/audits/2026-09-08-technical-process-trigger-census.md`;
+`docs/audits/README.md` (generated index); JOURNAL (this).
+
+**Abandoned:** two regex/bare-name census passes, replaced rather than patched -- a call graph
+that over-connects is worse than none, because it reports orphans as healthy.
+
+**Next:** V+1 disposes the 32 orphan rows. The census wires into nothing yet; per DECLARE §4 it
+becomes PROVENANCE §3.1's relations registry once a coverage check keeps it.
+
 ### 2026-09-08 (k) - CC (Opus 5, DISPATCHER SEAT): AMEND-BATCH-V-002 applied before the merge; two gates measured, one of them broken
 
 **Anchors via `f5e49bcf`**, the amendment commit it rides. (`c1f08699` remains anchored by (j);
@@ -241,7 +324,6 @@ session, not by it.
 walks the merge queue serially from the primary checkout and closes on the five-item
 refuse-to-finish checklist. V-4 dispatches when Sitting 1 lands. `to-browser/QUESTION-dispatcher-V.md`
 item 1 (the doubly-assigned refusal) wants the operator's word.
-
 ### 2026-09-08 (i) - CC (Opus 5, HANDOFF SEAT): the gate that would have caught it twice, filed as `[#643]`
 
 **Anchors this entry's own merge via `0d5f70b6`**, the filing commit it rides.
