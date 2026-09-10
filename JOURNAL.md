@@ -19,6 +19,68 @@
 
 ---
 
+### 2026-09-10 (e) - CC (Opus 5, background seat): the window closes - the night branch goes, the husks turn out to be unheld, and two struck findings come back as rows
+
+**Names `b2381523`**, the `[#681]`/`[#682]` filing commit this entry anchors.
+
+**Did.** Three cleanup acts. Deleted `worktree-night-aj-m03-review` local and on origin now that
+its retention condition is discharged; measured the three husk directories under
+`.claude/worktrees/`; filed `[#681]` and `[#682]` from the two findings that survived the
+supplement strike, plus a second appended AMENDMENT on the bundle's residual.
+
+**The branch delete refused, and the refusal was the interesting part.** `git branch -d` declined:
+*"not deleting branch that is not yet merged to `refs/remotes/origin/worktree-night-aj-m03-review`,
+even though it is merged to HEAD"*. Local tip `8b2f5d11` was **ahead of** origin's `4c53463e`, so
+`-d` measured against the upstream ref rather than against `main`. Both tips were proven ancestors
+of `main` first (`git merge-base --is-ancestor`, twice, once per tip); then the origin ref was
+deleted and `-d` succeeded. `-D` was never used, and the containment proof is what made that
+unnecessary rather than brave. The retention condition itself was checked, not assumed:
+`docs/audits/2026-09-10-technical-night-aj-m03/REVIEW.md` resolves on `main`.
+
+**The husk probe matched itself before it matched anything real.** A `Win32_Process` sweep for
+command lines containing the three lane names returned **one PID for all three** - PID 45668,
+which was the sweep's own PowerShell process, carrying the lane names because I had typed them
+into it. A probe whose predicate its own invocation satisfies reports a finding it manufactured.
+Discarded and re-measured.
+
+**All three husks are UNHELD - there is no live holder PID to report.** No `handle.exe` on this
+box, so the cwd holder cannot be read directly; the honest instrument was a **reversible rename**,
+since Windows refuses to rename a directory that is a live process's cwd. All three renamed and
+were restored to their original names. Cross-checked against the process table: four live
+`claude.exe` PIDs, all accounted for - the daemon `5684`, an `agents` process `36516`, and this
+session's own `40020` / `41012`. None is a lane session, and the three lanes' session records last
+wrote between 01:40 and 05:52 today. The directories were left in place: the ask was to report,
+not to remove, and the removal I was authorized for was the night tree, which never existed.
+
+**Two findings the strike did not kill.** `[#681]` - `OPERATOR-INTERFACE.md:143-145` documents the
+bare `=== END OF PASTE ===` while the assembler emits the counted form, and `:165`'s model-switch
+lines name a model but carry no explicit *stay / return / switch* verb, which is the ambiguity the
+operator actually reported. `[#682]` - named-session addressing is absent, with `:83` *"A chat
+paste is not addressable"* recorded as the near-miss so the row is not closed by citing it: it
+makes the WORK addressable, not the paste. **Being documented is not being correct**, and a
+strike-on-presence check cannot tell the two apart - which is the reason both rows exist.
+
+**A claim that changed the thing it measured.** The residual's new AMENDMENT states
+`PASTE_THIS.md`'s size against its 20,000 B target; writing it grew the file from 53,819 to
+55,340 B, making the sentence false as it landed. Re-measured and re-stated at **equal digit
+width**, so re-assembly reproduces the same number: file and claim now both read **55,340 B**, a
+genuine fixed point rather than a number that was true before it was written. Same family as the
+per-window baseline stamps that chase their own tail.
+
+**Result.** `gen_task_tree --check` ok; every pre-commit gate passed, task-coverage and
+BACKLOG story-map included; `git worktree list` shows only the primary. `PASTE_THIS.md` is
+**55,340 B, 5 sections** - 2.7x its target, named in the residual as the same class the operator
+ruled a defect on the 22 KB SEAT-BOOT, and explicitly not a blocker.
+
+**Changes.** `tasks/681-*.md`, `tasks/682-*.md`, `tasks/manifest.json`, `BACKLOG.md`,
+`docs/handoffs/2026-09-10-dev-knowledge-architect/{RESIDUAL,PASTE_THIS}.md`, `JOURNAL.md`.
+
+**Abandoned.** Nothing.
+
+**Next.** Operator: paste `PASTE_THIS.md` into a fresh chat. The incoming seat's first act is
+landing `DECLARE-HARNESS-IS-PROCESS-2026-09-08`. The three husk dirs are unheld and can be removed
+whenever someone wants them gone.
+
 ### 2026-09-10 (d) - CC (Opus 5, background seat): the supplement is transcribed, and six of its seven interface findings did not survive the file they were filed against
 
 **Names `cd25b883`**, the transcription commit this entry anchors.
