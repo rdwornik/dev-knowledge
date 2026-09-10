@@ -19,6 +19,48 @@
 
 ---
 
+### 2026-09-11 (a) - CC (Opus 5, background dispatcher seat): batch W opens - the manifest lands before any lane boots, and the step-0 DryRun catches two verb defects
+
+**Names `9852c6d7`**, the manifest commit this entry anchors, and `676a6e8e`, the index regen that
+follows it on the arc.
+
+**Did.** Ran SEAT-BOOT-dispatcher end to end for batch W. Froze six lane contracts with
+`gen_lane_contract.py emit` -- the launch line carried by the generator per substrate rather than
+composed at the seat -- and spliced each lane's body in VERBATIM from
+`to-cc/BATCH-2026-09-10-W-CONTRACTS.md`. All four step-0 refusals PASS: `lane-ceiling` (6 <= 6,
+checked before any worktree existed), `carried-by` (5 of 5 over the batch-W population),
+`sleeping-poll` (3 declared waits), `dryrun-step0` (6 of 6). Committed the dispatch half of the
+manifest to `docs/audits/2026-09-10-technical-batch-w-manifest.md` with the six contracts carried
+in-tree byte-identically, per `[#630]` set equality, and merged it `--no-ff` before any lane booted.
+
+**Result.** The step-0 DryRun earned its place, exactly as AMEND-BATCH-V-002 section 1 predicts.
+It caught TWO verb defects with the freeze already spent but before dispatch: the generator writes
+contracts to `to-cc/` while `Dispatch-Lane` resolves a bare filename against the prompts dir ROOT,
+so all six REFUSED on the first pass; and `dispatch <FILE.md>` -- which AW3-1 names for W-1, W-2 and
+W-7 -- executes a `## Dispatch` fence verbatim and refuses any head that is not `claude`, while the
+generator's local shape emits `Dispatch-Lane`. The live verbs are `Dispatch-Lane` and
+`Dispatch-Codespace`. Both recorded in the manifest rather than left as seat memory.
+
+**One dispatcher ruling, and the frozen body says the opposite.** W-7's frozen section carries
+*"So: W-7 dispatches after W-6 merges"* with a full collision analysis behind it.
+`AMEND-BATCH-W-003` AW3-1 reverses exactly that call -- later than the batch render, titled
+*"pre-dispatch: W-7 before W-6"*, and engaging the same collision fact rather than overlooking it.
+The later amendment addressing the same question governs, and the operator's GO names AW3 as
+applied. The frozen bodies are carried into the contracts UNEDITED so the supersession is visible
+in each contract rather than silently swapped.
+
+**Changes.** `docs/audits/2026-09-10-technical-batch-w-manifest.md` (new) ·
+`docs/audits/2026-09-10-technical-batch-w-launch-contracts/` (new, six contracts) ·
+`docs/audits/README.md` (index regen -- `gen_audit_index` reads TRACKED files, so the index regen is
+a follow-up commit by construction, not an omission).
+
+**Abandoned.** Nothing. The manifest worktree was torn down and its removal verified; the
+provision -> cleanup round-trip left the tree identical.
+
+**Next.** W-4 dispatches under `GO delete`; W-5 is a primary-session act after the lanes are up;
+W-6 is HELD until W-3 AND W-7 are MERGED, read off main's first-parent spine. The integrator still
+owes the AW2-4 teardown of branch `worktree-review-consumption`.
+
 ### 2026-09-10 (f) - CC (Opus 5, background seat): the REVIEW consumption lands - four rows the table ruled, one the verification sent back, and two folds that went somewhere else
 
 **Names `b2df456d`**, the FOLD-ruling commit this entry anchors, and `616f2db3` / `7c4eef87`, the
