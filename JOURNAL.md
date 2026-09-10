@@ -19,6 +19,57 @@
 
 ---
 
+### 2026-09-10 (a) - CC (Opus 5, background seat): the night bundle lands as audits, and its own ratio says how little of it may be cited
+
+**Names `4c53463e`**, the Phase 3 `REVIEW.md` commit this entry anchors.
+
+**Did.** Act 1 of the operator's window-close batch. Merged `worktree-night-aj-m03-review` into
+`main` with `--no-ff` - 14 files, 2,048 insertions, **every one of them under
+`docs/audits/2026-09-10-technical-night-aj-m03/`**. Audits only, verified by diff rather than
+asserted: the range touches no script, no protocol, no manifest and no task row. The branch is
+**kept, not deleted** - the operator has not yet read `REVIEW.md`, which is the condition he set.
+
+**The bundle's own honesty about its evidence is why it is worth landing.** `REVIEW.md` §3 states
+the ratio against itself: **24 locators independently verified against ~220 carried UNVERIFIED** -
+roughly one in ten, on a denominator that is itself soft, because four of the six leg-1a row counts
+are approximations (`~30`, `~28`, `~35`) in the source table. Only leg 1c (`codex`) was checked
+adversarially, and **three of its twenty-four locators were defective** - which is the failure rate
+`REVIEW.md` instructs the reader to assume for the ~220 that were not checked. It draws the
+consequence itself rather than leaving it to a reader: *"no reader's table should be cited
+downstream as though it had been checked."* The `†` marks travel with every unverified claim; a
+seat that strips them converts an argument into a false citation.
+
+**The open rulings are NOT settled by this merge, and it does not pretend to settle them.** Two
+legs are UNFULFILLED - 1d (`grok`, the independent census) and 1e (`cursor-agent`, the
+cannot-fail-test scan) - and in neither case was anything substituted: `SUBSTITUTED-PENDING-OPERATOR`
+names a disposition, not an act, and `NIGHT-LOG.md` says *"No other reader was run in its place"*
+twice, identically. Alongside those two: whether the read-only reviewer role binds `codex` when it
+is ordered as a **deriver** rather than a reviewer (85,017 tokens of real derivation were done and
+discarded before the deliverable was changed to stdout), whether `agy`'s file-write mode is banned
+for ordered legs after two of six legs printed `DONE` at exit 0 and wrote nothing, the `grok`
+PAY-PER-CALL-versus-free-tier registry contradiction, the branch-prefix deviation, and the
+`MISSION-PROMPT.md` contamination question. They travel into the handoff residual.
+
+**MA-1 is the finding that already cost money.** `REVIEW.md` §1 row 3: `.claude/settings.json:21`
+declares a `PreToolUse` hook with matcher `"*"` whose command expands `$CLAUDE_PROJECT_DIR` empty
+for any reader that is not Claude Code. The path resolves to a root-level `scripts/fleet_health.py`
+that does not exist, the interpreter exits non-zero, and matcher `"*"` converts that into refusal of
+**every** tool call in the session with no in-session escape. Two paid `cursor-agent` runs were spent
+discovering a defect in our own configuration, and the failure presents as the reader being broken.
+`codex` escaped only because it does not read `.claude/settings.json` - which is luck, and luck does
+not survive a deploy to `corp-monorepo`.
+
+**Result.** Merge landed audits-only; branch retained pending the operator's read.
+
+**Changes.** `docs/audits/2026-09-10-technical-night-aj-m03/` (14 new files: `REVIEW.md`,
+`MATRIX.md`, `R2-VERIFICATION.md`, `NIGHT-LOG.md`, `MISSION-PROMPT.md`, six 1a leg files,
+`1b-ajcode.md`, `1c-codex-spine.md`, `1f-model-agnosticism.md`), `JOURNAL.md`.
+
+**Abandoned.** Nothing.
+
+**Next.** Acts 2-4 of the batch: confirm the window-close intake on `main`, bump
+`HANDOFF_PROCESS` 7.0.0 -> 7.1.0 per `DECLARE-SITTING-2026-09-08` ruling 9, then `/handoff`.
+
 ### 2026-09-09 (p) - CC (Opus 5, background seat): two governance surfaces said an organ was owed; it had been armed for thirteen days
 
 **Names `4aae436a`**, the intake-#90 landing commit this entry anchors.
