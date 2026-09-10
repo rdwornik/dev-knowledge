@@ -1213,7 +1213,7 @@ def refresh(repo_root: Path, ecosystem_dir: Path,
 # reason the ADR-77 guard is (stdlib-only; a stale lockfile must never be able to block
 # every tool call, and `uv run` would cost a resolution per call):
 #
-#     { "matcher": "*",
+#     { "matcher": "Read|Write|Edit|MultiEdit|NotebookEdit|Glob|Grep|Bash|PowerShell",
 #       "hooks": [ { "type": "command",
 #                    "command": "g=\"${CLAUDE_PROJECT_DIR:-.}/scripts/fleet_health.py\"; [ -f \"$g\" ] || exit 0; python \"$g\" --prompts-guard",
 #                    "timeout": 10 } ] }
@@ -1240,6 +1240,20 @@ def refresh(repo_root: Path, ecosystem_dir: Path,
 #       it runs with full force and a mismatch still exits 2.
 # Wired shape asserted by `tests/test_prompts_guard_hook_wiring.py`, which reads the live
 # `.claude/settings.json` -- the RED-first witness `[#684]`'s Done-when names.
+#
+# THE MATCHER NARROWED IN THE SAME ACT ([#684], edit 2 of 2): `"*"` -> the nine
+# filesystem-touching classes above, which are the ones a stale `CLAUDE_PROMPTS_DIR`
+# actually makes lie. THE REFUSAL IS NOT NARROWED. A mismatch still stops the seat at its
+# first file-touching call, which is the first thing any session does, so the guard keeps
+# exactly the teeth 013-A gave it. What the narrowing buys is the BREAK-GLASS: `"*"` gated
+# `ToolSearch` as well, and `ToolSearch` is the only route to the deferred `ExitWorktree` /
+# `SendMessage` tools -- which is why the 2026-09-06 wedge could not be undone from inside
+# the session at all and recovery took an external shell (see the paragraph below, kept in
+# full). A guard that refuses must leave a way to reach the thing that would unrefuse it.
+# Alternation semantics measured 2026-09-11 in a throwaway child session, both directions:
+# a `Read` and a `Bash` call fired the narrowed matcher and fired a sibling matcher naming
+# only `ToolSearch|Agent|Task|WebFetch|WebSearch` NEITHER time -- so a named matcher
+# matches by tool name and does not match-all.
 #
 # ARM IT ONLY IN THE SAME ACT AS E-29 PROPOSAL (a), THE DAEMON RESTART -- never before.
 # Measured, by wiring it live on 2026-09-06 and losing the session to it: while a mismatch
