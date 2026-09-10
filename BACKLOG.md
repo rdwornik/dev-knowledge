@@ -106,6 +106,8 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#680] [P2][S] The handoff generator emits six bundle files from templates that name no owning row, so `[#664]` clause 2 refuses the commit of every architect cut · tasks/680-the-handoff-generator-emits-files-no-open-row-can.md
 - [#681] [P2][S] `protocols/OPERATOR-INTERFACE.md` documents a paste sentinel and a model-switch line the live organs no longer emit, so the file is present, cited, and wrong on both · tasks/681-operator-interface-documents-a-form-the-live-organs-no-longer-emit.md
 - [#682] [P2][S] Nothing tells the operator which session a paste belongs to, so a correct paste delivered to the wrong seat is indistinguishable from a correct act · tasks/682-nothing-tells-the-operator-which-session-a-paste-belongs-to.md
+- [#685] [P2][M] The operator GO leaves no artifact, so the authorization a lane runs under cannot be read back from the tree · tasks/685-the-operator-go-leaves-no-artifact.md
+- [#686] [P2][M] Three handoff-gate predicates measure the wrong property — carrier existence, file bytes, and an over-globbed population · tasks/686-three-gate-predicates-measure-the-wrong-property.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
@@ -151,6 +153,7 @@ So that session-start/close automation actually runs instead of being wired-but-
 - [#500] [P3][S] The Stop hook's BACKLOG advisory reads a correctly-closed task as "nothing closed" · tasks/500-the-stop-hook-s-backlog-advisory-reads-a-correct.md
 - [#519] [P1][M] The close path is two edits, and nothing makes a half-done close visible · tasks/519-the-close-path-is-two-edits-and-nothing-makes-a.md
 - [#522] [P2][M] A re-cut handoff sibling carries its predecessor's payloads — the thinner-refill hole · tasks/522-re-cut-bundle-carries-predecessor-payloads.md
+- [#684] [P1][M] MA-1 — the deployed `PreToolUse` guard turns a missing environment variable into total refusal for any reader that is not Claude Code · tasks/684-ma-1-the-pretooluse-guard-refuses-every-non-claude-reader.md
 
 ### [S8] Make hub enforcement reach consumers, not just the hub (enforcement-transfer mesh)
 So that "held by mechanism, not memory" is true for every consumer, not only the hub — the deploy subsystem (ADR-91/92) carries the PRESENCE of the methodology to consumers but NOT its ENFORCEMENT: five hub organs (session_end_backpressure, canonical_freshness, doc_claims, git_backlog_drift, the coherence spine) are hub-only, so the founding standard is TRUE for the hub and FALSE for every consumer (proof: ai-council shipped 3 epics with JOURNAL ~1mo stale, unblocked). This epic closes that gap, stage-ordered.
@@ -175,6 +178,7 @@ Backbone (dependency-ordered; done stages recorded here as the epic ledger — A
 - [#497] [P3][S] Two stale claims on carrier/hook declarations · tasks/497-carrier-mesh-py-75-still-claims-the-informant-lo.md
 - [#496] [P3][S] `_ORGAN_TO_COMPONENT` attributes the pre-push organ to a component that does not carry it — the Tier-3 DRIFT rows it produces are misfiled · tasks/496-organ-to-component-attributes-the-pre-push-organ.md
 - [#605] [P2][M] De-hardcode consumer-root resolution in `deploy/tool.py` and `scripts/audit.py` · tasks/605-de-hardcode-consumer-root-resolution-in-deploy-t.md
+- [#683] [P1][M] The v1.5.0 floor ships `/override`, a command whose own frontmatter says it discharges no gate · tasks/683-the-v1-5-0-floor-ships-override-a-command-that-discharges-no-gate.md
 ---
 - [#656] [P2][S] The v1.5.0 carrier's `floor-seal-report` drift probe matches a literal the command no longer has · tasks/656-v150-floor-seal-report-drift-probe-matches-a-dead-literal.md
 
