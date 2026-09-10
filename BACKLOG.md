@@ -104,6 +104,8 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#678] [P2][M] The memory index is rolled by a seat's judgment, not by a rule, and the directory it lives in has no undo · tasks/678-the-memory-index-is-rolled-by-a-seat-s-judgment.md
 - [#679] [P2][S] An architect ruling that answers a `QUESTION-*.md` does not write the `disposition:` back onto the file that asked, so the ruling is given and not landed · tasks/679-an-architect-ruling-that-answers-a-question-file.md
 - [#680] [P2][S] The handoff generator emits six bundle files from templates that name no owning row, so `[#664]` clause 2 refuses the commit of every architect cut · tasks/680-the-handoff-generator-emits-files-no-open-row-can.md
+- [#681] [P2][S] `protocols/OPERATOR-INTERFACE.md` documents a paste sentinel and a model-switch line the live organs no longer emit, so the file is present, cited, and wrong on both · tasks/681-operator-interface-documents-a-form-the-live-organs-no-longer-emit.md
+- [#682] [P2][S] Nothing tells the operator which session a paste belongs to, so a correct paste delivered to the wrong seat is indistinguishable from a correct act · tasks/682-nothing-tells-the-operator-which-session-a-paste-belongs-to.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md

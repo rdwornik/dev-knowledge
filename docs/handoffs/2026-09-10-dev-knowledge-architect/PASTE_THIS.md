@@ -318,6 +318,29 @@ believe about this bundle:**
 
 ---
 
+## AMENDMENT 2026-09-10 (window-close cleanup) — the paste is 2.7x its target, and two rows are filed
+
+> Second in-file amendment marker, appended at the cleanup act. The first amendment (supplement
+> fill) stands unedited above; this one adds to it rather than revising it.
+
+**`PASTE_THIS.md` is 55,340 B against a 20,000 B target — 2.7x.** Known, reported, and **not a
+blocker**: the ceiling is a target rather than a gate (`DECLARE-BOOT-REVIEW-2026-09-08` ruling 3),
+and the growth is the folded supplement, which is the operator-authored payload this bundle exists
+to carry. It is named here because it is **the same class the operator already ruled a defect on
+the 22 KB SEAT-BOOT** — a boot artifact whose size is re-billed on every browser turn — and a class
+does not stop applying when the oversized artifact happens to be the one we wanted. The next seat
+inherits the cost, not a decision.
+
+**Two rows were filed from this bundle's own consistency checks**, both surviving the strike that
+removed the behaviours around them: **`[#681]`** — `protocols/OPERATOR-INTERFACE.md` documents the
+bare `=== END OF PASTE ===` while the assembler emits the counted form, and its model-switch line
+carries no explicit *stay / return / switch* verb; **`[#682]`** — named-session addressing is
+absent, so nothing tells the operator which session a paste belongs to. Being documented is not
+being correct, and `:83` "A chat paste is not addressable" argues ownership of the work, not
+addressing of the paste.
+
+---
+
 === PROBES.md ===
 
 # Probe manifest — architect mode: orientation first, then teeth (HANDOFF_PROCESS §5 + §13c)
@@ -620,4 +643,4 @@ SUBSTITUTED-PENDING-OPERATOR, do not silently swap.
 
 ---
 
-=== END OF PASTE — 5 sections · 53761 bytes ===
+=== END OF PASTE — 5 sections · 55282 bytes ===

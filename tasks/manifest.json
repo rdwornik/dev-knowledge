@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "5d5ca00185c4fc8e82a4cc9c2d38ee243899599cea96aba63a4d48b94f192bf1",
+  "generated_sha256": "0b0367c51475f2ad7632d7b8c8ac63500b2c89a5091b35c4709075cca5acbdcc",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -392,6 +392,14 @@
     {
       "task": 680,
       "file": "680-the-handoff-generator-emits-files-no-open-row-can.md"
+    },
+    {
+      "task": 681,
+      "file": "681-operator-interface-documents-a-form-the-live-organs-no-longer-emit.md"
+    },
+    {
+      "task": 682,
+      "file": "682-nothing-tells-the-operator-which-session-a-paste-belongs-to.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
