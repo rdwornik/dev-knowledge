@@ -19,6 +19,94 @@
 
 ---
 
+### 2026-09-10 (b) - CC (Opus 5, background seat): the OWED handoff bump lands, and the ruling's own integer was the thing that could not be executed
+
+**Names `883c6654`**, the v7.1.0 release-act commit this entry anchors.
+
+**Did.** Act 3 of the window-close batch. `protocols/HANDOFF_PROCESS.md` **`Version: 7.0.0 →
+7.1.0`**, declared by `DECLARE-SITTING-2026-09-08` **ruling 9** and discharging the debt carried
+as question 9 of that sitting (`QUESTION-lane-u-000-handoff-v71-build`, verbatim in
+`to-browser/DIGEST-handoff-cut-Q3.md` §9). Sixteen files: the version line, **fourteen**
+`reconciled_with` re-stamps, the `CONTRIBUTING.md:263` body stamp, a Section-history entry, and
+one `implements` edge named on `[#653]`.
+
+**The bump carries NO new normative section text**, and the entry says so in the spec rather than
+leaving a reader to infer it. This is a release act, not an amendment. The v7.1 *content* proposal
+— intake **#68**, the ten deltas plus item 11 — stays **DRAFT and unratified** and says of itself
+*"No version bump is proposed by this document"*. Nothing in it was adopted.
+
+**The ruling's "3 dependent re-stamps" was a stale integer, and executing it literally was the
+one thing that could not be done.** `reconciled_versions` resolves the dependent set **live**
+(`validate_reconciliation.reconcile`), it is **FAIL-class and fail-closed**, and this spec already
+states the rule in its own v6.3.0 and v7.0.0 entries: `Version:` and **every** `reconciled_with:`
+dependent move together. The v7.0.0 bump stamped **seven**; the live set is now **fourteen**.
+Re-stamping three would have left **eleven blocking FAILs** and the commit would not have landed.
+So the ruling's *merits* were executed and its quoted integer was not — recorded in the Section
+history rather than corrected silently, because a seat reading "3" next window should find out why
+it says 14.
+
+**Two organs caught what a single check would have missed.** `reconciled_versions` reads
+frontmatter only; **`handoff_version_stamp`** FAILed independently on `CONTRIBUTING.md:263` —
+`stamp '7.0.0' != canonical '7.1.0'` — a body-level stamp in prose. Moved stamp-only, matching the
+v7.0.0 precedent, which likewise did not extend that paragraph's amendment chain.
+
+**The freshness question was measured twice, because the first measurement was wrong.** With the
+fifteen files STAGED, `canonical_freshness` read `OK`, and I wrote that down as "frontmatter-only
+re-stamps do not re-open it". That was an artefact: its **A2 leg is deliberately COMMIT-based**,
+so nothing was stale yet. The moment `883c6654` landed it reported **5 stale** —
+`ARCHITECTURE.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `docs/handoffs/README.md`,
+`protocols/SESSION_SETUP.md` — and blocked the very next commit. The TOUCH walk
+(whitespace-only / frontmatter-only / stamp-line-only) belongs to the **DERIVED** leg, not to A2;
+four of the five do classify as `stamp-line-only`, and it changes nothing about the gate that
+blocks. The claim was corrected in the Section history rather than quietly dropped.
+
+**What made the `last_reviewed` bump honest rather than a rubber stamp.** The v7.0.0 precedent
+bumped them too, so the path was established — but the stamp asserts *re-read and confirmed
+accurate*, and this bump carries **no normative delta**, so the checkable question is narrow:
+does any gated dependent carry version-bearing prose the bump falsifies? Swept all five. Two
+genuine sites, both in `docs/handoffs/README.md`: the teardown four-step citation and the
+`PASTE_THIS.md` PIN line, each reading `v7.0.0` — the second demonstrably false, since the live
+PIN now emits `v7.1.0`. Both corrected. Left alone on purpose: that file's bare `HANDOFF_PROCESS
+v7.` (the MAJOR, still true) and `SESSION_SETUP.md`'s two `v6` references, which predate this
+bump and sit outside its delta.
+
+**`[#664]`'s task-coverage gate refused the commit, correctly.**
+`docs/intake/2026-09-05-tech-shape-spec-tree-seal-to-consumers.md` had **no `implements` edge from
+an OPEN row** — it was touched only by its re-stamp, and nothing in the tree claimed it. `[#653]`
+is its genuine owner and already cited it as *"the shape-spec intake (`#73`)"* without ever naming
+its path, so the graph could not see the edge. Fixed in the row's body, which is one of the two
+directions the gate itself names.
+
+**Recorded because it cost two attempts:** `tasks/653-*.md` is **LF-only**, and a
+`Path.read_text`/`write_text` round-trip on Windows rewrote all twelve line endings to CRLF, after
+which `gen_task_tree --emit-source` **REFUSED** with *"file does not start with a `---` frontmatter
+fence"* — a true report of a corruption the edit itself introduced. Redone as a byte-level
+`read_bytes`/`replace`/`write_bytes`: `CRLF=0` preserved, `+68` bytes, generator green. The first
+`git checkout --` did not restore the file either, because it had already been staged and that
+restores from the index.
+
+**ROLE PIN re-issued** at `handoff-process v7.1.0`, `sha256:
+a9a5a7a86408ef3bea3c4fdbac4cdf8fde3dff0c042ebb1e0c165357c0b0ed71`. The pin is **computed, not
+stored** — `assemble_paste.py::_role_pin` hashes `HANDOFF_BOOT.md`'s raw bytes and reads `Version:`
+from the spec — so the frontmatter re-stamp moved the digest. **Leg 3 is OWED to the operator and
+is not CC's to close:** he re-uploads `protocols/HANDOFF_BOOT.md` to the browser project's
+instructions, manual until v7.2.
+
+**Result.** `audit.py health` OK; `ruff` clean; 132 targeted tests pass across
+`validate_reconciliation`, `silent_rule_ratchet`, `canonical_freshness_gate`, `assemble_paste`.
+
+**Changes.** Two commits, because the freshness gate fired between them:
+`883c6654` (the release act) then the correction commit carrying the five `last_reviewed`
+stamps, the two `docs/handoffs/README.md` citation fixes and the Section-history retraction.
+`protocols/HANDOFF_PROCESS.md`, `protocols/HANDOFF_BOOT.md`,
+`protocols/OPERATOR-INTERFACE.md`, `protocols/PLAYBOOK.md`, `protocols/README.md`,
+`protocols/SESSION_SETUP.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `CONTRIBUTING.md`,
+`docs/handoffs/README.md`, five `docs/intake/` dependents, `tasks/653-*.md`, `JOURNAL.md`.
+
+**Abandoned.** The `Path.read_text` edit path for `tasks/` files.
+
+**Next.** Act 4: `/handoff`.
+
 ### 2026-09-10 (a) - CC (Opus 5, background seat): the night bundle lands as audits, and its own ratio says how little of it may be cited
 
 **Names `4c53463e`**, the Phase 3 `REVIEW.md` commit this entry anchors.

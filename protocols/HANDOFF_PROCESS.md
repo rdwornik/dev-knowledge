@@ -1594,11 +1594,20 @@ file). Proven by re-running `reconciled_versions`, `silent_rule_ratchet` and
   `handoff_version_stamp` FAILed on `CONTRIBUTING.md:263` (`stamp '7.0.0' != canonical '7.1.0'`)
   — a body-level stamp outside frontmatter. Moved stamp-only, matching the v7.0.0 precedent,
   which likewise did not extend that paragraph's amendment chain.
-  **The fourteen re-stamps are frontmatter-only and therefore do not re-open
-  `canonical_freshness`**, which walks past TOUCH commits (whitespace-only, frontmatter-only,
-  stamp-line-only) — verified live, not assumed: health reads OK with all fifteen files staged.
-  No `last_reviewed` was moved, because no dependent was re-read end to end; four of the
-  fourteen are freshness-gated canonical docs and a stamp bump is not a review.
+  **`canonical_freshness` DOES re-open, and the first measurement of it was wrong.** Staged but
+  uncommitted, its A2 leg read `OK`; that is an artefact of A2 being deliberately COMMIT-based,
+  and once the release commit landed it reported **5 stale** — `ARCHITECTURE.md`, `CLAUDE.md`,
+  `CONTRIBUTING.md`, `docs/handoffs/README.md`, `protocols/SESSION_SETUP.md`. The TOUCH walk
+  (whitespace-only / frontmatter-only / stamp-line-only) belongs to the DERIVED leg, not to A2,
+  so a frontmatter-only re-stamp of a gated doc still owes a `last_reviewed` bump. Stamped to
+  2026-09-10 on the v7.0.0 precedent, which did the same. The basis is recorded rather than
+  assumed: this bump carries no normative delta, so no dependent's prose can be falsified by it,
+  and each of the five was swept for version-bearing prose before being stamped. That sweep
+  found two genuine staleness sites in `docs/handoffs/README.md` — the teardown four-step
+  citation and the `PASTE_THIS.md` PIN line, both reading `v7.0.0` — and both were corrected.
+  Left alone deliberately: the same file's bare `HANDOFF_PROCESS v7.` (the MAJOR, still true)
+  and `protocols/SESSION_SETUP.md`'s two `HANDOFF_PROCESS v6` references, which predate this
+  bump and sit outside its delta.
   **ROLE PIN re-issued.** The pin is COMPUTED rather than stored — `assemble_paste.py::_role_pin`
   hashes `protocols/HANDOFF_BOOT.md`'s raw bytes and reads `Version:` from this file — so the
   frontmatter re-stamp changes the digest and the pin moves with it. Leg 3 stays manual until
