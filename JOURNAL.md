@@ -19,6 +19,64 @@
 
 ---
 
+### 2026-09-10 (f) - CC (Opus 5, background seat): the REVIEW consumption lands - four rows the table ruled, one the verification sent back, and two folds that went somewhere else
+
+**Names `b2df456d`**, the FOLD-ruling commit this entry anchors, and `616f2db3` / `7c4eef87`, the
+two that precede it on the arc.
+
+**Did.** Integrated `docs/review-consumption-2026-09-10` into `main` with a single `--no-ff` merge
+from the primary checkout, per the Ch8 integration authority. Three commits landed: intake #91
+carrying the `DECLARE-REVIEW-CONSUMPTION` disposition table verbatim plus CC's verification of the
+three CC-verified FOLDs; the DECLARE-DISPATCH-SEAM's seven rulings carried verbatim into intake
+#90; and the operator's three verdicts on that verification. Five rows filed - `[#683]` `[#684]`
+`[#685]` `[#686]` from the table's FILE cells, `[#687]` from a FOLD the verification refused.
+
+**The verification is the substance, not the filing.** The DECLARE instructed *"CC VERIFIES every
+FOLD against the target row's live Done-when before landing; a fold that does not fit is reported,
+not forced."* All three CC-verified folds - 5, 8 and 12 - failed to fit, each for a different
+reason, and none was forced. `[#669]` computes state from the `[#664]` spine edges rather than
+storing it on the row, so it closes in full with finding 5 unaddressed. `[#627]`'s Done-when is
+wholly about agy's admission and never mentions telemetry, so finding 8 was mis-targeted - the
+clause it needs exists, in `[#669]`. `[#589]` is about projection shape and byte size, and the
+270-vs-217 divergence is neither: measured at `7dbe7a4f`, the 53-row gap is exactly the rows
+carrying `status: deferred`, which the view renders and `boot_frontier.load_open_rows` excludes.
+
+**Three folds, three different destinations, and none of them the one the table named.** A5-2
+FILED finding 5 as `[#687]` with A5-2's text as its Done-when verbatim, leaving the choice between
+a row-readable position and a spine-derivable one open and making the NAMED READER the
+deliverable; `depends-on: #669`, because the spine-derived option cannot be evaluated before the
+conductor exists. A5-3 re-pointed finding 8 to `[#669]`, leaving `[#627]` untouched. A5-4 REFUSED
+finding 12 as a row - a population difference by design, with the refusal recorded in the intake
+so the finding is dispositioned rather than dropped. **A verified fold that does not fit is a
+disposition question, and disposition is the operator's** - which is why the arc reported three
+failures and filed only the one it was told to.
+
+**Two `[#675]`-class traps, recorded by the filer for the next one.** A task id is NOT free just
+because `tasks/<id>-*.md` is absent: `tasks/manifest.json` must carry a node, or
+`gen_task_tree.py --emit-source` refuses the regen reading the new file as a retired allocation
+record that is not marked terminal (ADR-107 6.3). And an intake add trips **three** surfaces, not
+two - `gen_intake_index.py --write`, `gen_intake_tree.py --write`, and the `intake_tree_coherence`
+audit leg that blocks the commit until the second has run. Both are the `[#675]` class: a manifest
+read that returns a plausible wrong answer instead of failing.
+
+**Result.** Branch base was `7dbe7a4f` exactly - no lag, no sync-merge, so the merge composes
+against the same `main` the arc verified itself on. The merge was taken **by SHA**, not by branch
+name. Ship-gate was read on both sides of the merge; the pre-merge baseline is the weaker claim
+and the post-merge reading on `main` is the one that counts, reported at hand-back with its
+undispositioned-WARN delta.
+
+**Changes.** `docs/intake/2026-09-10-tech-review-consumption.md` (new), `docs/intake/2026-09-09-tech-window-close-rulings.md`,
+`docs/intake/README.md`, `docs/intake/manifest.json`, `tasks/683-*.md`, `tasks/684-*.md`,
+`tasks/685-*.md`, `tasks/686-*.md`, `tasks/687-*.md`, `tasks/manifest.json`, `BACKLOG.md`,
+`JOURNAL.md`.
+
+**Abandoned.** Nothing.
+
+**Next.** The queue is held. `[#683]` and `[#684]` are P1 and both were dispositioned to batch W;
+`[#685]` `[#686]` `[#687]` are P2 and sit in batch X. Findings 1, 4, 7, 9 and 10 folded into
+existing rows and need no filing; finding 1 leaves `[#644]`'s freeze still sitting with the
+operator.
+
 ### 2026-09-10 (e) - CC (Opus 5, background seat): the window closes - the night branch goes, the husks turn out to be unheld, and two struck findings come back as rows
 
 **Names `b2381523`**, the `[#681]`/`[#682]` filing commit this entry anchors.

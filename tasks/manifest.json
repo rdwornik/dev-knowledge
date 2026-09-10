@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "0b0367c51475f2ad7632d7b8c8ac63500b2c89a5091b35c4709075cca5acbdcc",
+  "generated_sha256": "4c072471b95d0799e13f5ccbfd020f658c245bd8aad52878b80dbea80f2f0d90",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -402,6 +402,18 @@
       "file": "682-nothing-tells-the-operator-which-session-a-paste-belongs-to.md"
     },
     {
+      "task": 685,
+      "file": "685-the-operator-go-leaves-no-artifact.md"
+    },
+    {
+      "task": 686,
+      "file": "686-three-gate-predicates-measure-the-wrong-property.md"
+    },
+    {
+      "task": 687,
+      "file": "687-a-task-carries-no-execution-position-and-the-spine-does-not-yet-supply-one.md"
+    },
+    {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
     },
     {
@@ -571,6 +583,10 @@
       "file": "522-re-cut-bundle-carries-predecessor-payloads.md"
     },
     {
+      "task": 684,
+      "file": "684-ma-1-the-pretooluse-guard-refuses-every-non-claude-reader.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -654,6 +670,10 @@
     {
       "task": 605,
       "file": "605-de-hardcode-consumer-root-resolution-in-deploy-t.md"
+    },
+    {
+      "task": 683,
+      "file": "683-the-v1-5-0-floor-ships-override-a-command-that-discharges-no-gate.md"
     },
     {
       "prose": "---"

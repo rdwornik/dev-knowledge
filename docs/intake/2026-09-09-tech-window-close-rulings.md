@@ -1,7 +1,7 @@
 ---
 intake-id: 90
 status: DRAFT
-origin: browser seat (Fable), closing rulings of window 2026-09-08-dev-knowledge-architect-2, 2026-09-09 — `to-cc/DECLARE-CONDUCTOR-DECISION-2026-09-09.md` + `to-cc/AMEND-CONDUCTOR-DECISION-001.md`, `to-cc/DECLARE-DISPATCH-RETIREMENT-2026-09-09.md`, `to-cc/DECLARE-BATCH-V-CLOSE-2026-09-09.md`; filed by the operator's 2026-09-09 background act as the transports V-10 did not cover
+origin: browser seat (Fable), closing rulings of window 2026-09-08-dev-knowledge-architect-2, 2026-09-09 — `to-cc/DECLARE-CONDUCTOR-DECISION-2026-09-09.md` + `to-cc/AMEND-CONDUCTOR-DECISION-001.md`, `to-cc/DECLARE-DISPATCH-RETIREMENT-2026-09-09.md`, `to-cc/DECLARE-BATCH-V-CLOSE-2026-09-09.md`, `to-cc/DECLARE-DISPATCH-SEAM-AND-ENTERPRISE-2026-09-08.md` (carried into this intake 2026-09-10 per `to-cc/AMEND-SESSION-PLAN-004.md` A4-4, which re-points that DECLARE's `carried-by:` here); filed by the operator's 2026-09-09 background act as the transports V-10 did not cover
 consumed-by:
 ---
 
@@ -321,3 +321,52 @@ declarations plus one amendment; **none is an operator ratification**, and the c
 Rulings (a) and (b) above are **executed in the tree**. Everything under "The rulings as declared"
 is **recorded, not adopted**. The blocking decision is Open Question 2 (AC-2): without required
 checks, E ships its runner and not its gate.
+
+---
+
+## Carried rulings — DECLARE-DISPATCH-SEAM-AND-ENTERPRISE-2026-09-08
+
+<!-- Added 2026-09-10 under `to-cc/AMEND-SESSION-PLAN-004.md` A4-4. Reason recorded there: this
+intake was that DECLARE's nominated carrier while carrying 1 of its 7 rulings, partially — the
+existence-not-reference defect now filed as `[#686]`(a). Folding was impossible as-is, so the
+seven rulings are carried VERBATIM below and the DECLARE's `carried-by:` is re-pointed to this
+file. RECORDED, NOT ADOPTED: none of these is an operator ratification, and this section adopts
+nothing that the rest of this document does not already adopt. -->
+
+Source: `to-cc/DECLARE-DISPATCH-SEAM-AND-ENTERPRISE-2026-09-08.md`, whose header reads
+*"two operator priorities moved INTO batch V"*, on the operator's word of 2026-09-08:
+*"Enterprise is a priority; why is dispatch not working"*.
+
+**§1 — Dispatch. The ruling sentence, verbatim:**
+
+> Ruling: fix the generator to emit what the sole verb accepts (the verb is the authority — it carries the ruling), add the seeded negative (a contract naming a program must be refused), and a DryRun of every generated contract becomes step 0's last line before launch.
+
+Which is three rulings:
+
+- **R1** — *"fix the generator to emit what the sole verb accepts (the verb is the authority — it carries the ruling)"*
+- **R2** — *"add the seeded negative (a contract naming a program must be refused)"*
+- **R3** — *"a DryRun of every generated contract becomes step 0's last line before launch"*
+
+The finding they rule on, verbatim: *"What fails today is a **seam regression**: the lane-contract generator emits a `Dispatch-Lane` block, and the verb's guard `Assert-ClaudeCommand` (deliberate: "a contract names the work, not the PROGRAM") refuses it. One side changed last night (dispatch.ps1 via W1-2 / the receipt gate) without the other."* And: *"**This is DECLARED-NOT-EXECUTED between two organs** and is the first concrete row for the coverage check: relation `gen_lane_contract → dispatch` had no run record."*
+
+**§2 — Enterprise / Copilot. The ruling sentence, verbatim:**
+
+> Ruling: (a) Sitting 1 ratifies intake #75 (offload role: read-only thinking, ranked retrieval with locators, never a verdict); (b) **batch V gets the admission lane** — seeded-defect admission of the Copilot CLI named in provider-registry (the Gemini precedent, 6/6 reader bar), producing the `offload` routing row on PASS and a REFUSE verdict on FAIL — swapped in for the weakest of the six; (c) W1-2's `-Model`/provider carrier reaching the dispatch line is verified live in the same lane (the seam class of §1 again). Tokens-saved becomes a scorecard number only after (b) and (c).
+
+Which is four rulings:
+
+- **R4** — *"(a) Sitting 1 ratifies intake #75 (offload role: read-only thinking, ranked retrieval with locators, never a verdict)"*
+- **R5** — *"(b) **batch V gets the admission lane** — seeded-defect admission of the Copilot CLI named in provider-registry (the Gemini precedent, 6/6 reader bar), producing the `offload` routing row on PASS and a REFUSE verdict on FAIL — swapped in for the weakest of the six"*
+- **R6** — *"(c) W1-2's `-Model`/provider carrier reaching the dispatch line is verified live in the same lane (the seam class of §1 again)"*
+- **R7** — *"Tokens-saved becomes a scorecard number only after (b) and (c)."*
+
+The state they rule on, verbatim: *"Fact: no `offload` row in `ecosystem/routing-table.yaml`; no Enterprise token scope in `deployed-versions.yaml`; Copilot exists only in `provider-registry.yaml`. Nothing routes there; nothing measures it."*
+
+**§3 — the DECLARE's own note on why it exists**, verbatim: *"It was carried as a FACT; it was not carried as a PRIORITY ORDER — that is the gap this file closes."* Prior carriers it names: `REVIEW-2026-09-08-plan-redteam.md` §"What you did not ask" item 2 · `HANDOVER-NOTE-2026-09-08.md` B-7 · `HANDOVER-ARCHITECTURE-2026-09-08.md` layer 7.
+
+**Carriage state, measured 2026-09-10, not asserted.** Before this section, the only line in this
+document carrying any of the seven was `:214` — *"`asserted_by` 3 → 0 (V-2) · Copilot refused on
+the seeded-defect bar, 0 → 21 attributed (V-8) ·"* — which reports R5's admission RESULT and
+carries neither the `offload` routing row nor the swap. R1, R2, R3, R4, R6 and R7 had no line at
+all. All seven are now carried verbatim above; **carried is not executed**, and no row is filed
+here for any of them.

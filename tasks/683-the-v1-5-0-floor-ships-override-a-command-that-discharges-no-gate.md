@@ -1,0 +1,12 @@
+---
+id: "[#683]"
+title: "The v1.5.0 floor ships `/override`, a command whose own frontmatter says it discharges no gate"
+status: open
+priority: P1
+size: M
+theme: "[E2] Enforced governance"
+story: "[S8] Make hub enforcement reach consumers, not just the hub (enforcement-transfer mesh)"
+generates: BACKLOG.md
+---
+
+- [#683] [P1][M] **The v1.5.0 floor ships `/override`, a command whose own frontmatter says it discharges no gate** - Finding 2 of the 2026-09-09 night mission (`docs/audits/2026-09-10-technical-night-aj-m03/REVIEW.md:56`, pointer :79 `deploy/manifest-v1.5.0.yaml`), dispositioned FILE by `to-cc/DECLARE-REVIEW-CONSUMPTION-2026-09-10.md` row 2. · **The defect is that a consumer receives a working-looking escape hatch that escapes nothing.** `/override` was RETIRED by the ADR-85 amendment 2026-08-03 §A2 — its local-token path discharges no gate, and the command's own description says so in as many words. It nevertheless remains a node in `deploy/manifest-v1.5.0.yaml` (:995-1004) with a payload behind it, so every fully-deployed consumer installs it. A consumer seat that reaches for it under a blocking gate gets a command that logs a token and changes nothing, which is worse than an absent command: an absent command fails loudly at the prompt, this one fails silently at the gate. · **Node and payload go together, and that is the whole point of the row.** Removing the manifest node alone leaves an orphan payload in the carried corpus; removing the payload alone leaves a manifest node pointing at nothing, which `deploy/release_lint.py` is what catches. The two edits are one act. · **Sequencing, recorded so it is not re-derived:** `to-cc/AMEND-SESSION-PLAN-004.md` A4-7 puts the `v1.5.0` TAG after this removal — the tag does not exist today (highest release tag is `v1.4.0`), tagging is the operator's act, and Stage 10 (`[#670]`) needs the tag. So this row runs BEFORE the tag, not after it. Batch W lane L11. · Done when: node absent, payload absent, `release_lint.py` green, one test fails if either returns · refs `docs/audits/2026-09-10-technical-night-aj-m03/REVIEW.md` (:56 finding, :79 pointer), `deploy/manifest-v1.5.0.yaml` (:995-1004), `deploy/release_lint.py`, `.claude/commands/override.md`, ADR-85 amendment 2026-08-03 §A2, `[#670]` (Stage 10, needs the tag this row precedes) · kill-candidates: none — `[#670]` deploys the floor and does not own what the floor contains; no open row names the `/override` node · source: `to-cc/DECLARE-REVIEW-CONSUMPTION-2026-09-10.md` row 2, filed 2026-09-10 under AMEND-SESSION-PLAN-003 §1
