@@ -4,7 +4,7 @@ status: DRAFT
 origin: "operator definition of universalization, 2026-09-05, recorded verbatim-in-substance in ARCHITECT-INBOX-2026-09-05-023.md; drafted by lane lane-t-000-shape-seal (batch T wave 1) 2026-09-06"
 note: "CANDIDATE filing attributes, carried here rather than as frontmatter keys because README section 3 declares any other key off-schema: theme E6, size L, carried-by manifest. Written against inbox 023 ONLY -- inbox 024's packaging rule and its floor v1.5.0/v1.6/v1.7 staging are CITED as an OPEN architect proposal, never adopted. Companion evidence: docs/audits/2026-09-06-technical-seal-report-corp-monorepo.md, the first measured seal report, by the same lane."
 consumers: "the H0 runbook (docs/audits/2026-09-05-technical-fleet-readiness.md section 4) and the per-repo seal reports it would gain as a first step; no ADR proposed here"
-reconciled_with: handoff-process@7.0.0
+reconciled_with: handoff-process@7.1.0
 ---
 
 # Shape spec + tree-seal shipped to consumers (universalization by mechanism)

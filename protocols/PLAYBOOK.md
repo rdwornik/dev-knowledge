@@ -1,5 +1,5 @@
 ---
-reconciled_with: handoff-process@7.0.0
+reconciled_with: handoff-process@7.1.0
 ---
 
 # Dev Practice Playbook

@@ -1,6 +1,6 @@
 ---
 last_reviewed: 2026-09-07
-reconciled_with: handoff-process@7.0.0
+reconciled_with: handoff-process@7.1.0
 ---
 
 # HANDOFF_BOOT — thin browser boot (HANDOFF_PROCESS v7)
