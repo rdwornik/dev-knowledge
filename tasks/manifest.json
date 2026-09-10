@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "4c072471b95d0799e13f5ccbfd020f658c245bd8aad52878b80dbea80f2f0d90",
+  "generated_sha256": "8b9b180326eae637916943b72e82a7d59c3286d6e3444c57b3c9ce279e42ca2c",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1047,6 +1047,10 @@
     {
       "task": 245,
       "file": "245-add-path-status-awareness.md"
+    },
+    {
+      "task": 690,
+      "file": "690-three-superseded-l0-hook-copies-removed-batch-w-w5.md"
     },
     {
       "prose": ""

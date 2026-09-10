@@ -34,8 +34,8 @@ W-1  lane-w-000-harness-is-process-intake  DISPATCH  local      opus  execute  n
 W-2  lane-w-684-pretooluse-guard-root      DISPATCH  local      opus  plan     #684    the PreToolUse guard resolves its own repo root; matcher narrows off "*"
 W-3  lane-w-638-proof-layer-skipif         DISPATCH  codespace  opus  plan     #638    four proof_layer guards ruled on their merits, or a skipped proof reads NOT-PROVEN
 W-4  lane-w-683-override-manifest-node     DISPATCH  codespace  opus  plan     #683    the /override manifest node and its payload leave together   [GO delete]
-W-6  lane-w-687-execution-position-spine   HELD      codespace  opus  plan     #687    four spine keys in tasks/ frontmatter, each written by mechanism   [WAITS on W-3 + W-7]
 W-7  lane-w-278-impacted-test-selection    DISPATCH  local      opus  plan     #278    a changed file selects its tests; a commit selecting none is REFUSED
+W-8  lane-w-000-three-decisions-become-rows DISPATCH local      opus  execute  no row  three ruled decisions become rows, sources quoted verbatim   [MERGES FIRST]
 ```
 
 > This fence is a **machine surface**, not prose: `batch_manifest.manifest_lane_slugs` reads the
@@ -64,7 +64,49 @@ The first render's closing claim that this batch "cannot take a seventh lane" is
 The operator's GO sequences it: *"W-5 is a primary-session act after the lanes are dispatched."*
 `scripts/setup-fleet-scheduler.ps1` is **HELD, not deleted** — open `[#493]` references it (AW-3).
 
-## W-6 IS HELD, AND THE CONDITION IS CHECKABLE
+## AMENDED AFTER DISPATCH — W-6 OUT, W-8 IN, ON AN ARCHITECT RULING
+
+**This amendment is marked rather than silent, because a manifest is an immutable audit and its
+lane fence is a machine surface.** The section below it ("W-6 IS HELD") is the text this amendment
+supersedes; it is **kept, not swapped out**, so the supersession is visible.
+
+`AMEND-BATCH-W-004` proposed **W-8** — three ruled decisions filed as rows — with the note *"W-8
+fits under the ADR-110 ceiling while W-6 is held."* **The ceiling organ refused it, verbatim:**
+
+```
+REFUSED [lane-ceiling]: the plan names 7 lanes against a ceiling of 6; the excess is
+lane-w-000-three-decisions-become-rows -- hand the excess back to the plan -> they are the next
+batch's opening rows; the batch does not proceed until the plan is re-cut to <=6 (the bound is
+integration capacity, which is serial)
+```
+
+**A held lane still counts**, and AW2-2 is what settles it — it enumerates the six as *"W-1, W-2,
+W-3, W-4, W-6, W-7"*, W-6 among them. The dispatcher refused rather than dispatching a seventh and
+reporting the number afterwards, which is the move the ceiling exists to forbid.
+
+**The architect's ruling of 2026-09-11 re-cut the plan** rather than waiving the ceiling: *"W-6 moves
+to batch X; W-8 is admitted in its place under the ceiling — record this in the manifest's dispatch
+half, then dispatch W-8 and mark it first in the integrator's queue."*
+
+- **W-6 leaves batch W** and its contract leaves `docs/audits/2026-09-10-technical-batch-w-launch-contracts/`,
+  because `[#630]` requires **set equality both ways** between that directory and the fence above — a
+  fence row removed without the file is a refusal at the next commit. `[#687]` is untouched and
+  unclosed; the lane is re-frozen in batch X, where its A7-1 dependency on W-3's `skipped_gates`
+  writer is satisfied by a merged W-3 rather than waited on. The contract as frozen here survives at
+  the prompts dir root.
+- **W-8 enters in its place**, and **merges FIRST, before any other W lane** (AW4-1). Its contract
+  carries one correction the dispatcher's preflight found: AW4-1 row 1 cites *"RATIFICATION-2026-09-10
+  D2"*, and `to-browser/RATIFICATION-2026-09-10.md` carries **no D2** — the Drive-style duplicate
+  `to-browser/RATIFICATION-2026-09-10 (1).md` does. The contract names the path that holds it.
+- **Row-id collisions are refused at merge and returned to the LATER lane, never renumbered**
+  (AW4-2). Four surfaces now touch `tasks/`: W-1, W-5, W-8 — and W-6 is gone, which removes the
+  frontmatter-across-existing-rows writer that made the three-way `tasks/` coupling the batch's one
+  real serialization risk.
+
+**The count after the re-cut is six: W-1, W-2, W-3, W-4, W-7, W-8.** The ceiling is satisfied by
+arithmetic, not by exception.
+
+## W-6 IS HELD, AND THE CONDITION IS CHECKABLE — SUPERSEDED BY THE AMENDMENT ABOVE
 
 W-6 does **not** boot on `GO W`. Its condition is that **W-3 AND W-7 are MERGED** — read off `main`'s
 first-parent spine, not off the existence of a branch, because a branch that exists proves only that

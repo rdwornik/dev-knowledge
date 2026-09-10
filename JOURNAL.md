@@ -19,6 +19,76 @@
 
 ---
 
+### 2026-09-11 (c) - CC (Opus 5, background dispatcher seat): the batch W amendment and [#690] land
+
+**Names `d385cc1a`**, the commit this entry anchors - the manifest amendment plus `[#690]`, coupled
+into one commit because the tree-coherence gate refuses to let `BACKLOG.md` reference a row whose
+file the same commit does not carry.
+
+**Did.** Landed the two acts recorded in the (b) entry above: batch W's manifest amended so W-6
+leaves for batch X and W-8 enters under the ceiling, and `[#690]` filed as the in-repo record of the
+W-5 deletion.
+
+**The gate sequence is the lesson, not the content.** Three refusals in a row, each correct:
+`health: DEGRADED` on a split commit (`BACKLOG.md` naming `[#690]` without the row file);
+`health: DEGRADED` again on `journal_spine_anchor`, because the merge `2040653c` was itself
+unanchored - its arc was a single JOURNAL commit, and an entry can never name the merge that
+carries it; and only then the content commit. **The anchor arc could not anchor its own merge**, so
+the fix was to name `2781094a` - the one commit `2040653c` introduced - in a JOURNAL entry
+committed BEFORE the content, rather than to re-run the same commit and expect a different answer.
+
+**Changes.** `JOURNAL.md` (the (b) and (c) entries).
+
+**Abandoned.** Nothing.
+
+**Next.** W-8 dispatches from a pushed `origin/main` that already carries the amendment, so it does
+not repeat the (a) entry's sequencing error. It merges FIRST in the integrator's queue.
+
+### 2026-09-11 (b) - CC (Opus 5, background dispatcher seat): the ceiling holds - W-6 goes to batch X so W-8 can enter, and the three SUPERSEDED L0 hook copies go
+
+**Names `2781094a`**, the commit this entry anchors.
+
+**Did.** Two acts, coupled into one commit because the tree-coherence gate refuses the split.
+**(1)** Amended batch W's dispatch manifest: W-6 out to batch X, W-8 in, keeping the fence at six.
+**(2)** Executed W-5 as a primary-session act and filed `[#690]` as its in-repo record.
+
+**The ceiling was tested rather than trusted, and it refused.** `AMEND-BATCH-W-004` admitted W-8
+with the note *"W-8 fits under the ADR-110 ceiling while W-6 is held."* The organ disagreed: *"the
+plan names 7 lanes against a ceiling of 6; the excess is lane-w-000-three-decisions-become-rows."*
+**A held lane still counts** - AW2-2 enumerates the six with W-6 among them, and the ceiling is
+bounded by integration capacity, which is serial and does not care whether a lane has fired yet.
+The seat refused to dispatch a seventh and report the number afterwards, which is the move the
+ceiling exists to forbid. The architect then **re-cut the plan rather than waiving the ceiling** -
+W-6 to batch X, W-8 in its place - so the count is satisfied by arithmetic, not by exception.
+`[#687]` is untouched and unclosed. Its contract had to LEAVE the launch-contracts directory too:
+`[#630]` requires set equality both ways with the lane fence, so a fence row removed without its
+file refuses at the next commit.
+
+**W-5, and why a deletion outside the repo files a row.** The three files live in no git tree, so
+`main` can never witness their absence directly; AW-3's fix is that the row IS the record. Core
+invariant #6 held its shape: the first `GO delete` did not name the paths and was REFUSED, because
+W-5's own contract makes the form checkable - *"a GO for 'the deletions' does not reach L0 by
+implication."* Executed on a GO naming all three. **M6 bytes removed: 10,051**
+(1,297 + 3,322 + 5,432). The live `block-onedrive.ps1` is untouched at 9,016 B and stays armed.
+
+**The guard refused its own operator, conservatively and wrongly.** The first deletion command was
+blocked by the live `block-onedrive.ps1` because the command TEXT carried the zone token and used a
+construct outside its read-only allowlist - while the directory being touched,
+`C:\Users\1028120\.claude\hooks`, is not in the zone at all. Ambiguity falling stricter is the
+guard's stated principle, so this is the design working; recorded because a guard that fires on
+command text rather than on target path will keep doing it.
+
+**Changes.** `docs/audits/2026-09-10-technical-batch-w-manifest.md` (amended, marked) ·
+`docs/audits/2026-09-10-technical-batch-w-launch-contracts/` (W-6 contract out, W-8 contract in) ·
+`tasks/690-*` (new) · `tasks/manifest.json` · `BACKLOG.md` (regen).
+
+**Abandoned.** Nothing. Both dispatch worktrees torn down and their removal verified.
+
+**Next.** W-8 dispatches and merges FIRST in the integrator's queue. W-1, W-2, W-3, W-4 and W-7 are
+in flight; all three local lane trees were synced to `origin/main` so none commits against a tree
+that predates the manifest. The integrator still owes the AW2-4 teardown of branch
+`worktree-review-consumption`.
+
 ### 2026-09-11 (a) - CC (Opus 5, background dispatcher seat): batch W opens - the manifest lands before any lane boots, and the step-0 DryRun catches two verb defects
 
 **Names `9852c6d7`**, the manifest commit this entry anchors, and `676a6e8e`, the index regen that
