@@ -216,6 +216,7 @@ So that growth past 65 ADRs doesn't bury or quietly contradict prior decisions.
 - [#637] [P2][M] Nineteen landed audit artifacts carry PROPOSALS that no governance surface has ruled · tasks/637-nineteen-landed-audit-artifacts-carry-proposals-tha.md
 - [#640] [P1][S] The FPG-1 scope narrowing is recorded nowhere, and two landed surfaces still carry the superseded version · tasks/640-the-fpg-1-scope-narrowing-is-recorded-nowhere-and-t.md
 - [#642] [P1][S] The eleven carried questions from batches T and U have no owning row, so their debt is silent · tasks/642-eleven-carried-questions-have-no-owning-row.md
+- [#688] [P1][S] `DECLARE-HARNESS-IS-PROCESS-2026-09-08` is cited by three committed audits and answers to no tracked file · tasks/688-declare-harness-is-process-is-cited-by-three-audits-and-answers-to-no-tracked-file.md
 
 ### [S12] Close the small ADR cross-reference + registry amendments
 So that the ADR web is internally consistent.
