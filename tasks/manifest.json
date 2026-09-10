@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "f7010280199080b9ec5a9beed973d993a568366c038ed79563a167cbd9f83623",
+  "generated_sha256": "4c072471b95d0799e13f5ccbfd020f658c245bd8aad52878b80dbea80f2f0d90",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -408,6 +408,10 @@
     {
       "task": 686,
       "file": "686-three-gate-predicates-measure-the-wrong-property.md"
+    },
+    {
+      "task": 687,
+      "file": "687-a-task-carries-no-execution-position-and-the-spine-does-not-yet-supply-one.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"

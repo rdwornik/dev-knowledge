@@ -108,6 +108,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#682] [P2][S] Nothing tells the operator which session a paste belongs to, so a correct paste delivered to the wrong seat is indistinguishable from a correct act · tasks/682-nothing-tells-the-operator-which-session-a-paste-belongs-to.md
 - [#685] [P2][M] The operator GO leaves no artifact, so the authorization a lane runs under cannot be read back from the tree · tasks/685-the-operator-go-leaves-no-artifact.md
 - [#686] [P2][M] Three handoff-gate predicates measure the wrong property — carrier existence, file bytes, and an over-globbed population · tasks/686-three-gate-predicates-measure-the-wrong-property.md
+- [#687] [P2][M] A task carries no execution position, and the row that would compute one from the spine is not required to · tasks/687-a-task-carries-no-execution-position-and-the-spine-does-not-yet-supply-one.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md

@@ -66,9 +66,56 @@ So the divergence is a **population/semantics** difference between two counters,
 
 No operator ratification. The FILE rows below were filed with the Done-when text the DECLARE specifies, verbatim; their theme, story, size and priority are CC's assignment against the live enum and carry no ruling. The three failed FOLDs are **not** converted to rows here — the DECLARE's `else FILE` fallback is a disposition choice, and with all three failing for different reasons (one architectural, one mis-targeted, one arguably not a defect) the operator rules them rather than CC defaulting.
 
+## Note for the next filer — two `[#675]`-class traps this filing hit
+
+**Filing a row and landing an intake each trip a surface that is not the obvious one:** a task id is
+NOT free just because `tasks/<id>-*.md` is absent — `tasks/manifest.json` must be checked too, or
+`gen_task_tree.py --emit-source` REFUSES the regen reading the new file as a *retired allocation
+record* that is not marked terminal (ADR-107 §6.3); and an intake add trips **three** surfaces, not
+two — `gen_intake_index.py --write`, `gen_intake_tree.py --write`, and the `intake_tree_coherence`
+audit leg that blocks the commit until the second one has run. Recorded per
+`to-cc/AMEND-SESSION-PLAN-005.md` A5-5; both are the `[#675]` class (a manifest read that returns a
+plausible wrong answer instead of failing).
+
 ## Rows filed from this table
 
 - `[#683]` — finding 2, the `/override` node and payload in the v1.5.0 floor
 - `[#684]` — finding 3, MA-1: the `PreToolUse` guard's unresolved `$CLAUDE_PROJECT_DIR`
 - `[#685]` — finding 6, the operator GO leaves no artifact
 - `[#686]` — finding 11, three gate predicates that measure the wrong property
+- `[#687]` — finding 5, re-dispositioned FILE by `to-cc/AMEND-SESSION-PLAN-005.md` A5-2 after the fold into `[#669]` was verified and refused
+
+---
+
+## Resolution of the three verified FOLDs — `to-cc/AMEND-SESSION-PLAN-005.md`
+
+CC verified FOLDs 5, 8 and 12 against the target rows' live Done-when (section above) and reported
+all three as not fitting, without forcing any. A5-2/A5-3/A5-4 rule each one. **These rulings
+supersede the `Target / new row` cell of rows 5, 8 and 12 in the table above; the table itself is
+carried verbatim and is not edited.**
+
+| Row | Table said | Ruled by A5-005 | Carrier |
+|---|---|---|---|
+| 5 | FOLD → `[#669]`, else FILE | **FILE** (A5-2) | new row `[#687]`, P2, `depends-on: #669`, batch X |
+| 8 | FOLD → `[#627]`, CC verifies | **FOLD → `[#669]`** (A5-3) | `[#669]`'s existing clause; no new row |
+| 12 | FOLD → `[#589]`, CC verifies | **REFUSED as a row** (A5-4) | none; the refusal is this record |
+
+**Row 5 → FILE, as `[#687]`.** A5-2: *"`[#669]` computes state from spine edges rather than storing
+it and can close with the finding unaddressed."* The new row's Done-when is A5-2's text verbatim —
+*"a task's execution position is readable from the row or derivable from the spine, ruled one way,
+with the reader named"* — which leaves the choice between the two mechanisms open and makes the
+NAMED READER the deliverable. `depends-on: #669`, because the spine-derived option cannot be
+evaluated before the conductor exists.
+
+**Row 8 → FOLD into `[#669]`, not `[#627]`.** A5-3 re-points the fold to the row whose Done-when
+already carries the clause: *"emitted telemetry has a named consumer that reads it on the merge
+leg."* `[#627]` is untouched — its Done-when is wholly about agy's admission and never mentioned
+telemetry, which is what CC's verification found. **No row is filed for finding 8**; it closes when
+`[#669]` closes.
+
+**Row 12 → REFUSED as a row.** A5-4, verbatim: *"The 53-line gap is `status: deferred` rows the view
+renders and the counter excludes — a population difference by design. M4's counter stands
+(`boot_frontier.load_open_rows`, deferred excluded); the intake records the refusal."* So the
+divergence is **not** a defect, `[#589]` is not asked to absorb it, and no row is filed. M4's
+counter is `boot_frontier.load_open_rows` with deferred excluded. This paragraph is the refusal
+record the ruling calls for — the finding is dispositioned, not dropped.
