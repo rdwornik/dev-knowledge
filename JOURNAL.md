@@ -19,6 +19,31 @@
 
 ---
 
+### 2026-09-11 (c) - CC (Opus 5, background dispatcher seat): the batch W amendment and [#690] land
+
+**Names `d385cc1a`**, the commit this entry anchors - the manifest amendment plus `[#690]`, coupled
+into one commit because the tree-coherence gate refuses to let `BACKLOG.md` reference a row whose
+file the same commit does not carry.
+
+**Did.** Landed the two acts recorded in the (b) entry above: batch W's manifest amended so W-6
+leaves for batch X and W-8 enters under the ceiling, and `[#690]` filed as the in-repo record of the
+W-5 deletion.
+
+**The gate sequence is the lesson, not the content.** Three refusals in a row, each correct:
+`health: DEGRADED` on a split commit (`BACKLOG.md` naming `[#690]` without the row file);
+`health: DEGRADED` again on `journal_spine_anchor`, because the merge `2040653c` was itself
+unanchored - its arc was a single JOURNAL commit, and an entry can never name the merge that
+carries it; and only then the content commit. **The anchor arc could not anchor its own merge**, so
+the fix was to name `2781094a` - the one commit `2040653c` introduced - in a JOURNAL entry
+committed BEFORE the content, rather than to re-run the same commit and expect a different answer.
+
+**Changes.** `JOURNAL.md` (the (b) and (c) entries).
+
+**Abandoned.** Nothing.
+
+**Next.** W-8 dispatches from a pushed `origin/main` that already carries the amendment, so it does
+not repeat the (a) entry's sequencing error. It merges FIRST in the integrator's queue.
+
 ### 2026-09-11 (b) - CC (Opus 5, background dispatcher seat): the ceiling holds - W-6 goes to batch X so W-8 can enter, and the three SUPERSEDED L0 hook copies go
 
 **Names `2781094a`**, the commit this entry anchors.
