@@ -19,6 +19,67 @@
 
 ---
 
+### 2026-09-10 (d) - CC (Opus 5, background seat): the supplement is transcribed, and six of its seven interface findings did not survive the file they were filed against
+
+**Names `cd25b883`**, the transcription commit this entry anchors.
+
+**Did.** Filled `docs/handoffs/2026-09-10-dev-knowledge-architect/SUPPLEMENT.md` from the browser
+architect's authored `to-cc/SUPPLEMENT-ANSWERS-2026-09-10.md`, re-assembled `PASTE_THIS.md` so the
+answers fold in, and ran the three consistency checks the operator attached to the act. CC
+transcribes the ANSWERS; CC does not author them, and this entry records nothing else about their
+content.
+
+**Verbatim was made checkable rather than promised.** The answers were not retyped - they were
+extracted from the source bytes programmatically, and a second script re-read both files and
+compared them line by line: **210 source lines, 204 landed, the six missing are exactly the six
+struck rows, zero lines added, order preserved.** Retyping 20 KB by hand and calling it verbatim is
+a claim; a diff is evidence, and the difference between those two is the whole reason the check ran.
+
+**Check 3 is the finding. Six of seven "interface behaviours not yet named in
+`protocols/OPERATOR-INTERFACE.md`" are already named in it.** Browser writes to the transport and
+browser reads of it are both the same clause at `:46-48` (*"which the browser reads/writes via the
+Drive connector"*); the END-OF-PASTE sentinel's truncation-detector role is at `:143-145` in those
+words; the model-switch line format is at `:165` with both strings verbatim; the copy-ready block
+is §7's own heading at `:250`; and the corrupted-paste behaviour is §2's whole subject, which the
+answer's own Home column conceded by calling it a *defect report against* that file - Q6's stated
+carve-out. Struck per the operator's instruction, each with its citation, in a CC-attributed note
+that marks itself as not the author's words.
+
+**Only `named-session addressing` survives.** Nothing in the file tells the operator WHICH session
+a paste goes to. The nearest text, `:83` *"A chat paste is not addressable"*, argues that ownership
+metadata belongs in the file (`owner-role:` at `:70`) - it addresses the WORK, not the operator's
+paste, and reading it as coverage would have struck a real absence on a near-miss.
+
+**Two residues survive their own strike, and they are the honest half of the result.** The file
+documents the BARE `=== END OF PASTE ===` while the assembler emits `=== END OF PASTE - n sections
+· b bytes ===`; and the documented switch lines name a model but carry no explicit *stay / return /
+switch* verb, which is precisely the ambiguity the operator reported. A behaviour being documented
+does not make the documentation right, and "struck" was reported with that distinction rather than
+as a clean sweep.
+
+**Checks 1 and 2 both confirmed, and check 1 is now carried in the operator's own words.**
+`DECLARE-HARNESS-IS-PROCESS-2026-09-08` is still absent from `main` while the census and the v-642
+and v-643 lane audits cite it - so the residual now names landing it as **the incoming seat's first
+act**. The 16-stage delivery-loop order is enumerated nowhere: no stage number above 10 appears
+outside the night bundle, and `docs/intake/2026-09-09-tech-recovery-plan.md:24` (*"8 of 16 loop
+stages mechanical"*) is a ratio, not an order. Both landed as an **in-file amendment marker
+appended** to `RESIDUAL.md` - the bundle is immutable, so the amendment is added rather than the
+prose edited.
+
+**Result.** Preflight re-run 10/10 (9 PASS, 1 declared `n/a`); every pre-commit gate passed,
+task-coverage included. `PASTE_THIS.md` **30,513 -> 53,819 B, 4 -> 5 sections**, window-specific 66%
+- reported against the 20,000 B target, not truncated, on the same standing that governed the cut.
+`assemble_paste` flipped the cold framing to FILLED in `HANDOFF_BOOT.md` and `PROBES.md` on its own.
+
+**Changes.** `docs/handoffs/2026-09-10-dev-knowledge-architect/` - `SUPPLEMENT.md` (3,094 ->
+24,458 B), `RESIDUAL.md` (17,372 -> 19,914 B), `PASTE_THIS.md`, `HANDOFF_BOOT.md`, `PROBES.md`;
+`JOURNAL.md`.
+
+**Abandoned.** Nothing.
+
+**Next.** Operator: paste `PASTE_THIS.md` into a fresh chat. The incoming seat's first act is
+written into the residual. `worktree-night-aj-m03-review` stays until `REVIEW.md` is read.
+
 ### 2026-09-10 (c) - CC (Opus 5, background seat): the window-close cut, and two mechanisms that produce artifacts nothing claims
 
 **Names `f4a572ec`**, the `[#679]` filing commit this entry anchors.
