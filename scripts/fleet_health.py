@@ -1215,8 +1215,31 @@ def refresh(repo_root: Path, ecosystem_dir: Path,
 #
 #     { "matcher": "*",
 #       "hooks": [ { "type": "command",
-#                    "command": "python \"$CLAUDE_PROJECT_DIR/scripts/fleet_health.py\" --prompts-guard",
+#                    "command": "g=\"${CLAUDE_PROJECT_DIR:-.}/scripts/fleet_health.py\"; [ -f \"$g\" ] || exit 0; python \"$g\" --prompts-guard",
 #                    "timeout": 10 } ] }
+#
+# THE COMMAND RESOLVES ITS OWN ROOT ([#684], 2026-09-11 -- MA-1 of the 2026-09-09 night
+# mission, `docs/audits/2026-09-10-technical-night-aj-m03/REVIEW.md`:83). It used to be a
+# bare `python "$CLAUDE_PROJECT_DIR/scripts/fleet_health.py" --prompts-guard`, and
+# `CLAUDE_PROJECT_DIR` is set by Claude Code and by NOTHING ELSE. `cursor-agent` honours
+# the hook file and does not define it: it expanded empty, the path resolved to garbage,
+# the interpreter exited non-zero -- and a `PreToolUse` hook that exits non-zero REFUSES.
+# Not a degraded read, a total one, and it presents as the reader being broken rather than
+# as our harness refusing it. Two full paid runs were spent proving that. The fix is two
+# POSIX legs, in the command string because a garbage path means this module never loads
+# at all and no in-module fallback can be reached:
+#   `${CLAUDE_PROJECT_DIR:-.}`  -- prefer the variable, fall back to cwd. Measured
+#       2026-09-11 in a throwaway child session: hook commands run through a POSIX shell
+#       (`C:\Program Files\Git\bin\bash.exe`), so the default expansion is available, and
+#       hook cwd IS the project directory, so the fallback is also correct.
+#   `[ -f "$g" ] || exit 0`     -- a guard that cannot be LOADED passes rather than
+#       refuses. This is the same fail-open posture `prompts_guard()` already documents
+#       for its own internal errors, extended to the one failure it could not reach; the
+#       review states the intent in those words ("fails open on interpreter failure",
+#       REVIEW.md:102). NOTHING THE GUARD GUARDS IS WEAKENED: where the script resolves,
+#       it runs with full force and a mismatch still exits 2.
+# Wired shape asserted by `tests/test_prompts_guard_hook_wiring.py`, which reads the live
+# `.claude/settings.json` -- the RED-first witness `[#684]`'s Done-when names.
 #
 # ARM IT ONLY IN THE SAME ACT AS E-29 PROPOSAL (a), THE DAEMON RESTART -- never before.
 # Measured, by wiring it live on 2026-09-06 and losing the session to it: while a mismatch
