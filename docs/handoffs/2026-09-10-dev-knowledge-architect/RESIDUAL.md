@@ -238,3 +238,38 @@ The **BACKLOG is the spec; items are tickets.** Task-state is: a pointer to `BAC
 in-progress branches (`git branch -v`), and any **drift-flag** `validate_git_backlog` raises (§1 /
 `PROBES.md` P4). Re-narrating item text splits the truth and drifts — the pointer + the drift-flag is
 the whole task-state.
+
+---
+
+## AMENDMENT 2026-09-10 (supplement fill) — the incoming seat's first act
+
+> In-file amendment marker, not an in-place edit: this bundle is immutable and this block is
+> appended at the fill step, alongside the transcription of `SUPPLEMENT.md`'s ANSWERS.
+
+**`DECLARE-HARNESS-IS-PROCESS-2026-09-08` is still absent on `main`, and that is the incoming
+seat's first act.** Re-checked at fill time, not assumed: `git ls-tree -r --name-only main` returns
+**no file** matching `HARNESS-IS-PROCESS` anywhere in the tree, while the name is cited on `main`
+by `docs/audits/2026-09-08-technical-process-trigger-census.md`,
+`docs/audits/2026-09-09-technical-lane-v-642-assembly-debt-rows.md` and
+`docs/audits/2026-09-09-technical-lane-v-643-enforcement-debt.md` — the three committed audits the
+supplement's Q7 names — plus `JOURNAL.md` and the night bundle. The ruling that defines what a
+harness *is* — the reframing §6(a) of the supplement calls "upstream of every other decision in the
+window" — lives only on the transport. **Land it before anything else: an intake or an ADR, with
+the three audits' citations then resolving.** Until it lands, three committed audits cite an
+authority their reader cannot open, and the row that would own it does not exist.
+
+**Two further fill-time findings, recorded here because they change what the next seat should
+believe about this bundle:**
+
+- **Q4's claim that the 16-stage delivery-loop order is enumerated nowhere is CONFIRMED against
+  `main`.** No stage number above 10 appears anywhere outside the night bundle. The fullest in-repo
+  description remains `docs/intake/2026-09-09-tech-recovery-plan.md:24` — *"8 of 16 loop stages
+  mechanical"* — which is a ratio, not an order. A seat cannot execute a loop it cannot enumerate,
+  so Q4's "either enumerate it or stop citing it" is the live disposition, unchanged.
+- **Six of Q7's seven "interface behaviours not yet named in `protocols/OPERATOR-INTERFACE.md`"
+  were struck at transcription because that file already names them**; only **named-session
+  addressing** survives as genuinely absent. The per-row citations are in `SUPPLEMENT.md`'s
+  transcription note. Two substantive residues survive their strike and are real work: the
+  documented END-OF-PASTE sentinel is the bare `=== END OF PASTE ===` while the live assembler
+  emits `=== END OF PASTE — n sections · b bytes ===`, and the documented model-switch lines carry
+  no explicit *stay / return / switch* verb, which is the ambiguity the operator actually reported.
