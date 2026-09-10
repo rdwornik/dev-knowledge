@@ -102,6 +102,8 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#676] [P2][M] No check verifies that each provider CLI's non-interactive invocation shape still works, so a mis-invoked tool is indistinguishable from a dead one · tasks/676-no-check-verifies-a-provider-cli-s-non-interactive.md
 - [#677] [P2][M] The `gpt-6-astra` XL-class rule is doctrine at L0 with no gate, and exactly ONE codex call site pins a model · tasks/677-the-gpt-6-astra-xl-class-rule-is-doctrine-at-l0.md
 - [#678] [P2][M] The memory index is rolled by a seat's judgment, not by a rule, and the directory it lives in has no undo · tasks/678-the-memory-index-is-rolled-by-a-seat-s-judgment.md
+- [#679] [P2][S] An architect ruling that answers a `QUESTION-*.md` does not write the `disposition:` back onto the file that asked, so the ruling is given and not landed · tasks/679-an-architect-ruling-that-answers-a-question-file.md
+- [#680] [P2][S] The handoff generator emits six bundle files from templates that name no owning row, so `[#664]` clause 2 refuses the commit of every architect cut · tasks/680-the-handoff-generator-emits-files-no-open-row-can.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md

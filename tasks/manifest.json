@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "d81eb790a89c1af88e2b84dbfeddfcb11da9caf8b78d4fcf23d3c5386dbd1b22",
+  "generated_sha256": "5d5ca00185c4fc8e82a4cc9c2d38ee243899599cea96aba63a4d48b94f192bf1",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -384,6 +384,14 @@
     {
       "task": 678,
       "file": "678-the-memory-index-is-rolled-by-a-seat-s-judgment.md"
+    },
+    {
+      "task": 679,
+      "file": "679-an-architect-ruling-that-answers-a-question-file.md"
+    },
+    {
+      "task": 680,
+      "file": "680-the-handoff-generator-emits-files-no-open-row-can.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"

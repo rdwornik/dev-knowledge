@@ -19,6 +19,81 @@
 
 ---
 
+### 2026-09-10 (c) - CC (Opus 5, background seat): the window-close cut, and two mechanisms that produce artifacts nothing claims
+
+**Names `f4a572ec`**, the `[#679]` filing commit this entry anchors.
+
+**Did.** Act 4 of the operator's window-close batch. Cut and filled the architect bundle
+`docs/handoffs/2026-09-10-dev-knowledge-architect/` (11 files), filed `[#679]` and `[#680]`, and
+wrote the missing `disposition:` onto `QUESTION-dispatcher-V.md`.
+
+**The cut was refused twice before it was cut, and both refusals were correct.** `/handoff`'s
+preflight FAILed three rows. One was mine and mechanical: `LEDGER-dev-knowledge.md` is
+**generated** (`gen_ledger.py`, "do not hand-edit") and had gone stale at `refreshed 2026-09-09`,
+still naming a main SHA and five worktrees that no longer exist - regenerated, and it passed. The
+other two were **operator acts I declined to fabricate**: no `RATIFICATION-2026-09-10.md` existed,
+and `QUESTION-dispatcher-V.md` carried no disposition. Reported and stopped rather than invented.
+The operator landed both, and the cut passed all ten rows.
+
+**`[#679]` - a ruling that does not travel back to the question is not a discharge.**
+`QUESTION-dispatcher-V.md` was **answered on 2026-09-08**, in `AMEND-BATCH-V-002` §4, and the
+answer never reached the file that asked. Two days later the preflight still refused, and it was
+**right**: by its own predicate the question carried no `disposition:` key, and the ruling that
+discharged it was invisible from the file. Same class as `REVIEW.md` finding #1 - *the declaration
+exists; the link does not*. Filed as a mechanism, not diligence: the answer WAS written, by a seat
+doing its job, into the correct artifact for its own act, and nothing prompts that author to also
+edit a file in `to-browser/`.
+
+**`[#680]` - found by trying to land this bundle, which is the only way it could have been
+found.** `gen_handoff.py` renders `FUNNEL_HEALTH.md` and five `SEAT-BOOT-*.md` pastes from
+`templates/handoff/seats/`, and **not one of those templates names a backlog id** - so `[#664]`
+clause 2's task-coverage gate refuses the commit of **every** architect cut that carries them. The
+first commit attempt was refused on **eight** files. The diagnosis is the asymmetry: files
+carrying hand-authored content earn their `implements` edge as a side effect of being written, and
+purely generated ones cannot earn one at all. `HANDOFF_BOOT.md` is the instructive middle case -
+it cleared only after its hand-authored Purpose named its rows, which is **luck rather than
+mechanism**, and this cut's first draft did not name them and was refused.
+
+**Two corrections made before shipping rather than after.** A first draft of the residual
+attributed the `adr_status_grammar` WARN to **ADR-118**; one look at the live output showed it is
+a **dispositioned baseline-ratchet report carrying `0 enum/single-field defects`**, and ADR-118's
+`Proposed` **is** a valid enum member. And `[#680]`'s first body claimed `SUPPLEMENT.md` cleared
+the gate on its own - it does not, being the 7-question schema generated EMPTY by design, so it
+can cite no row until an operator fills it. Both fixed in place.
+
+**Where I corrected the operator's brief, on his instruction to let my corrections stand.** The
+residual states, and the bundle now carries: **24** locators verified against **~220** (his brief
+said 26 of ~218); **seven** open R1 rulings, not six, because leg 1e's two questions are separable
+and priced differently; `ARCHITECTURE.md` and `PLAYBOOK.md` **bodies** unchanged this window but
+frontmatter touched by act 3, which is true in substance and false to the byte;
+`DECLARE-JOURNAL-DECISION` §5's `[#675]` citation resolving into the **wrong namespace** (live
+`[#675]` is the manifest `.get` row); and the 16-stage universalization order **enumerated
+nowhere**.
+
+**Carried debt is named, not cleared.** The undispositioned ship-gate WARN organs each carry the
+owner that should absorb them, enumerated from one run read in full and marked as organ-level
+evidence rather than row-level. The three `carried-by: OPEN` decision files are named because P11
+requires it - and the first of them, `DECLARE-HARNESS-IS-PROCESS-2026-09-08`, is **cited as
+authority by three committed audits while a glob for it returns zero matches**. That is
+`REVIEW.md`'s finding #1 in its purest form, sitting inside the bundle that reports it.
+`DECLARE-JOURNAL-DECISION-2026-09-09` is named **PENDING, not landed**, on its own terms: its §6
+requires a terra-reviewed lane and its §5's deciding measurement was never produced.
+
+**Result.** Preflight 10/10; `audit.py health` OK; `gen_task_tree --check` ok; assembler leg 2
+clean on the three OPEN carriers. `PASTE_THIS.md` is 30,513 B against a 20,000 B target -
+**reported, not truncated** (the ceiling is a target, not a gate; `DECLARE-BOOT-REVIEW-2026-09-08`
+ruling 3), window-specific 48%.
+
+**Changes.** `docs/handoffs/2026-09-10-dev-knowledge-architect/` (11 files),
+`tasks/679-*.md`, `tasks/680-*.md`, `tasks/manifest.json`, `BACKLOG.md`, `JOURNAL.md`; on the
+transport, `LEDGER-dev-knowledge.md` regenerated and `QUESTION-dispatcher-V.md` dispositioned.
+
+**Abandoned.** Nothing.
+
+**Next.** Operator: paste `PASTE_THIS.md` into a fresh chat, and re-upload
+`protocols/HANDOFF_BOOT.md` to the browser project's instructions - leg 3 of the 7.1.0 bump,
+manual until v7.2. The night bundle's branch stays until `REVIEW.md` is read.
+
 ### 2026-09-10 (b) - CC (Opus 5, background seat): the OWED handoff bump lands, and the ruling's own integer was the thing that could not be executed
 
 **Names `883c6654`**, the v7.1.0 release-act commit this entry anchors.
