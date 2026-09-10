@@ -4,7 +4,7 @@ status: DRAFT
 origin: cloud-graph lane artifact docs/audits/2026-08-21-technical-graph-and-workflows.md (Track A), routed here by the wave-close funnel table docs/audits/2026-08-22-technical-cloud-wave-close-funnel.md lines I1/I2; architect ruling A5 of 2026-08-22 approved the R-A scoping and directed execution to ride this intake
 consumers: the technical-architect triage; no ADR and no backlog row has been born from this doc
 note: Filed as an intake rather than as a backlog row BECAUSE the source lane asked for a row directly and ADR-111 section 2 forbids that — the only path from a finding to a row runs through intake and ratification. The lane's specified shape is carried below rather than re-derived, so ratification loses nothing by the detour.
-reconciled_with: handoff-process@7.0.0
+reconciled_with: handoff-process@7.1.0
 ---
 
 **NOTE 2026-08-29 (TYPED MULTI-LAYER GRAPH — the scope this intake gains; still NO carrier row):**

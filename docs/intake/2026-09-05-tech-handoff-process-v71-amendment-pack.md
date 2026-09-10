@@ -3,7 +3,7 @@ intake-id: 68
 status: DRAFT
 origin: outgoing Layer-1 browser-seat notes, window 2026-09-02 -> 2026-09-05, section 2; landed at docs/audits/2026-09-05-technical-browser-seat-notes.md and filed by lane worktree-docs-seat-notes on 2026-09-05
 consumed-by:
-reconciled_with: handoff-process@7.0.0
+reconciled_with: handoff-process@7.1.0
 ---
 
 # HANDOFF_PROCESS v7.1 amendment pack — what the v7 bundle did not carry

@@ -3,7 +3,7 @@ intake-id: 53
 status: READY
 origin: endgame governance session, 2026-08-26; WINDOW-RECORD-AND-DIAGNOSTIC.md Part VIII I5
 consumers: HANDOFF_PROCESS (the operator-interface contract + the supplement duty); the bundle boot pointer
-reconciled_with: handoff-process@7.0.0
+reconciled_with: handoff-process@7.1.0
 ---
 
 # The handoff process has no operator-interface contract — and two duties nothing carries

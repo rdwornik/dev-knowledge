@@ -2,7 +2,7 @@
 last_reviewed: 2026-09-02
 status: active
 owner: Rob
-reconciled_with: handoff-process@7.0.0
+reconciled_with: handoff-process@7.1.0
 ---
 
 # Session Setup

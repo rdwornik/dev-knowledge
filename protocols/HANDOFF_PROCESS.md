@@ -7,7 +7,7 @@ owner: Rob
 # HANDOFF_PROCESS v7
 <!-- scope: meta -->
 
-Version: 7.0.0
+Version: 7.1.0
 Status: stable
 Effective: 2026-06-11 (canonical); v6 cut 2026-07-31
 Decision: ADR-82 (operator-ratified 2026-06-11; Council gate waived by operator authority per #149).
@@ -1561,3 +1561,46 @@ file). Proven by re-running `reconciled_versions`, `silent_rule_ratchet` and
   The remaining four dependents carry no version-bearing prose and took the stamp only, which
   is what "the rest get the pointer only after the read" means. ROLE PIN emits at 7.0.0 from
   this version via `scripts/assemble_paste.py`. Refs `[#611]`, batch-F manifest §3.
+
+- v7.0.0 → **v7.1.0** (2026-09-10, window-close act 3 — the OWED bump, executed as ONE coupled
+  release act) — **Version → 7.1.0**. Declared by `DECLARE-SITTING-2026-09-08` **ruling 9**
+  ("*Declared now: HANDOFF_PROCESS 7.1.0*"), which is the first sitting `DECLARE-BOOT-REVIEW`
+  defect 1 required and which disposes the eleven carried questions of batches T and U; the debt
+  itself is question 9 of that sitting, `QUESTION-lane-u-000-handoff-v71-build.md`, verbatim in
+  `to-browser/DIGEST-handoff-cut-Q3.md` §9 — "*the 7.0.0 -> 7.1.0 bump + 3 dependent re-stamps is
+  still OWED (only the 5,000-byte leg is settled)*".
+  **This bump carries no new normative section text.** It is a release act, not an amendment: it
+  makes `Version:` honest and re-couples every dependent. The v7.1 *content* proposal — intake
+  **#68**, `docs/intake/2026-09-05-tech-handoff-process-v71-amendment-pack.md`, the ten deltas
+  plus item 11 — remains **DRAFT and unratified**, and says of itself "*No version bump is
+  proposed by this document*". Nothing in it is adopted here; a later amendment adopting any of
+  it is its own act.
+  **The ruling's "3 dependent re-stamps" was stale at execution, and the correction is recorded
+  rather than silently applied: the live count is 14.** The integer was measured when the edge
+  set was smaller — the v6.3.0→v7.0.0 entry above stamped **seven**. `reconciled_versions`
+  resolves the set live (`scripts/validate_reconciliation.py::reconcile`), it is FAIL-class and
+  fail-closed, and the rule this file already states is that `Version:` and **every**
+  `reconciled_with:` dependent move together. Re-stamping three of fourteen would have left
+  eleven blocking FAILs, so the ruling's *merits* were executed and its quoted integer was not.
+  The fourteen: `ARCHITECTURE.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `docs/handoffs/README.md`,
+  `protocols/HANDOFF_BOOT.md`, `protocols/OPERATOR-INTERFACE.md`, `protocols/PLAYBOOK.md`,
+  `protocols/README.md`, `protocols/SESSION_SETUP.md`, and the five `docs/intake/` dependents
+  (`2026-08-22-tech-document-dependency-graph-organ`, `2026-08-26-tech-handoff-operator-interface`,
+  `2026-08-28-tech-handoff-engine-deployable-carrier`,
+  `2026-09-05-tech-handoff-process-v71-amendment-pack`,
+  `2026-09-05-tech-shape-spec-tree-seal-to-consumers`). **No `SKIP=`, and no stale edge left
+  behind**, on the v7.0.0 precedent.
+  **A second organ caught a surface `reconciled_versions` does not read:**
+  `handoff_version_stamp` FAILed on `CONTRIBUTING.md:263` (`stamp '7.0.0' != canonical '7.1.0'`)
+  — a body-level stamp outside frontmatter. Moved stamp-only, matching the v7.0.0 precedent,
+  which likewise did not extend that paragraph's amendment chain.
+  **The fourteen re-stamps are frontmatter-only and therefore do not re-open
+  `canonical_freshness`**, which walks past TOUCH commits (whitespace-only, frontmatter-only,
+  stamp-line-only) — verified live, not assumed: health reads OK with all fifteen files staged.
+  No `last_reviewed` was moved, because no dependent was re-read end to end; four of the
+  fourteen are freshness-gated canonical docs and a stamp bump is not a review.
+  **ROLE PIN re-issued.** The pin is COMPUTED rather than stored — `assemble_paste.py::_role_pin`
+  hashes `protocols/HANDOFF_BOOT.md`'s raw bytes and reads `Version:` from this file — so the
+  frontmatter re-stamp changes the digest and the pin moves with it. Leg 3 stays manual until
+  v7.2: the **operator** re-uploads `protocols/HANDOFF_BOOT.md` to the browser project's
+  instructions (`protocols/OPERATOR-INTERFACE.md` §5). Refs ruling 9, `[#642]`, intake #68.
