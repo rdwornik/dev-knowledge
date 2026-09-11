@@ -463,21 +463,44 @@ def test_the_onboarding_rung_PASSES_when_every_in_era_decision_is_disposed(
 
 
 # ------------------------------------------------------------- the live tree, measured
+#
+# ONE STORE AND ONE TRANSPORT READ FOR THE WHOLE GROUP. `gs.ensure` pays an mtime sweep and, on
+# a stale store, a full rebuild (~15 s on this tree); four witnesses each calling it turned a
+# fast file into a three-minute one. Session scope is correct rather than merely cheap: these
+# witnesses all measure the SAME tree at the same moment, so re-reading it between them would
+# not make any of them stricter.
 
 
-def test_the_live_population_is_readable_and_non_empty():
+@pytest.fixture(scope="session")
+def live_store():
+    return gs.ensure(REPO_ROOT)
+
+
+@pytest.fixture(scope="session")
+def live_transport():
+    """The operator's transport, or None. A suite result must not depend on what happens to be
+    sitting in the operator's own prompts directory, so every witness below states which case
+    it is in -- `verify_handoff_probes._unnamed_open_carriers` records the same hazard, having
+    measured a unit test being judged against the live transport."""
+    return dc._transport_root()
+
+
+@pytest.fixture(scope="session")
+def live_decisions(live_store, live_transport):
+    return dc.decisions(REPO_ROOT, live_store, transport=live_transport)
+
+
+def test_the_live_population_is_readable_and_non_empty(live_decisions):
     """A population this organ cannot read is the one failure it must never render as clean."""
-    store = gs.ensure(REPO_ROOT)
-    found = dc.decisions(REPO_ROOT, store)
-    assert len(found) > 100, len(found)
-    assert any(d.state == dc.STATE_ACCEPTED for d in found)
+    assert len(live_decisions) > 100, len(live_decisions)
+    assert any(d.state == dc.STATE_ACCEPTED for d in live_decisions)
 
 
-def test_the_live_tree_carries_no_IN_ERA_uncovered_decision():
+def test_the_live_tree_carries_no_IN_ERA_uncovered_decision(live_store, live_transport):
     """The bar this lane must leave green: nothing accepted on or after `ARM_DATE` may sit
     without a row or a disposition when the lane ends."""
-    store = gs.ensure(REPO_ROOT)
-    findings = dc.decision_coverage(REPO_ROOT, store, staged=[], era_leg=True)
+    findings = dc.decision_coverage(REPO_ROOT, live_store, staged=[], era_leg=True,
+                                    transport=live_transport)
     assert findings == [], "; ".join(f"{f.subject}: {f.evidence}" for f in findings)
 
 
@@ -489,8 +512,17 @@ def test_every_live_disposition_carries_a_reason_and_an_owner():
         assert disp.owner.strip(), key
 
 
-def test_no_disposition_names_a_decision_that_is_gone():
-    store = gs.ensure(REPO_ROOT)
-    known = {d.key for d in dc.decisions(REPO_ROOT, store)}
-    stale = sorted(k for k in dc.DECISION_DISPOSITIONS if k not in known)
-    assert stale == [], stale
+def test_no_disposition_names_a_decision_that_is_gone(live_decisions, live_transport):
+    if live_transport is None:
+        pytest.skip("transport unresolved -- the transport class was not measured, so a "
+                    "transport disposition cannot be judged stale (DEFECT E-29)")
+    assert dc.stale_dispositions(live_decisions) == []
+
+
+def test_a_disposition_for_an_UNMEASURED_class_is_not_reported_stale(live_store):
+    """The guard the live witness above found. Measured with no transport, every transport
+    disposition names a decision that was never read -- 'absent' and 'not measured' are
+    different facts, and a register that self-reports as rotten is a register nobody reads."""
+    in_repo_only = dc.decisions(REPO_ROOT, live_store, transport=None)
+    assert not any(d.kind == dc.KIND_TRANSPORT for d in in_repo_only)
+    assert dc.stale_dispositions(in_repo_only) == []

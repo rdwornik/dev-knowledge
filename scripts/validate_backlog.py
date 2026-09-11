@@ -258,6 +258,84 @@ def _check_past_review_dates(tasks, today):
     return warn
 
 
+# --- [#692] the `implements:` clause: STRUCTURED and VALIDATED ---------------------------
+
+#: The clause as written in a row body. `gen_task_tree._IMPLEMENTS_RE` derives the FRONTMATTER
+#: key from the same clause; this reads it for validation. Both are spelled out rather than
+#: imported across the pair because this module is also the plugin FLOOR twin's ancestor and
+#: must stay importable with no sibling on the path.
+_IMPLEMENTS_CLAUSE_RE = re.compile(r"· implements: ([^·]+?)(?= ·|$)")
+#: The three token forms clause 2 names: `[ADR-n | intake-n | DECLARE-...]`. CASE-SENSITIVE and
+#: anchored by the caller with `fullmatch`, so `adr-118`, `ADR118`, `#91` and a bare
+#: `GRAPH-2026` are each refused rather than leniently accepted -- a token the grammar admits
+#: but the graph cannot key is a silently dropped edge, which is the one failure a coverage
+#: gate must not have.
+_IMPLEMENTS_TOKEN_RE = re.compile(
+    r"ADR-\d+|intake-\d+|(?:DECLARE|AMEND)-[A-Za-z0-9][A-Za-z0-9-]*")
+
+
+def _implements_tokens(t):
+    """The tokens on one task's `implements:` clause, in order, or []."""
+    m = _IMPLEMENTS_CLAUSE_RE.search(t.get("raw") or t.get("rest") or "")
+    if not m:
+        return []
+    return [part.strip() for part in m.group(1).split(",") if part.strip()]
+
+
+# rule: governance-backlog-implements-grammar
+def _check_implements_grammar(tasks):
+    """HARD-fail a token outside the declared grammar.
+
+    Clause 2 of `[#692]`'s frozen contract asks for a STRUCTURED, VALIDATED key. Unvalidated,
+    a typo'd token is not an error -- it is an edge that never appears, so the decision reads
+    as uncovered and the author is told to do the thing they already did.
+    """
+    hard = []
+    for t in tasks:
+        loc = f'[#{t["id"]}] line {t["line"]}'
+        for token in _implements_tokens(t):
+            if not _IMPLEMENTS_TOKEN_RE.fullmatch(token):
+                hard.append(
+                    f'· implements: token "{token}" is outside the grammar '
+                    f'[ADR-n | intake-n | DECLARE-... | AMEND-...] — {loc}')
+    return hard
+
+
+# rule: governance-backlog-implements-reference
+def _check_implements_references(tasks, repo_root=None):
+    """HARD-fail an `ADR-n` / `intake-n` token that resolves to nothing on disk.
+
+    Reference-existence, the same bar `_check_dep_references` holds `depends-on` to. A
+    `DECLARE-`/`AMEND-` token is GRAMMAR-CHECKED ONLY and that is stated rather than silently
+    skipped: the transport is a machine-level surface (`CLAUDE_PROMPTS_DIR`), not a tracked
+    tree, so in-repo resolution is not available for it and asserting one would make the gate's
+    verdict depend on what happens to be sitting on the operator's drive.
+    """
+    root = Path(repo_root) if repo_root is not None else BACKLOG.parent
+    decisions_dir = root / "docs" / "decisions"
+    intake_dir = root / "docs" / "intake"
+    if not decisions_dir.is_dir():
+        return []                       # a consumer repo with no ADR corpus: nothing to resolve
+    adrs = {p.name.split("-")[1] for p in decisions_dir.glob("ADR-*.md")}
+    intakes = set()
+    if intake_dir.is_dir():
+        for path in intake_dir.glob("*.md"):
+            m = re.search(r"^intake-id:\s*(\d+)\s*$",
+                          path.read_text(encoding="utf-8", errors="replace"), re.M)
+            if m:
+                intakes.add(m.group(1))
+    hard = []
+    for t in tasks:
+        loc = f'[#{t["id"]}] line {t["line"]}'
+        for token in _implements_tokens(t):
+            if token.startswith("ADR-") and token.removeprefix("ADR-") not in adrs:
+                hard.append(f'· implements: {token} names no ADR in docs/decisions/ — {loc}')
+            elif token.startswith("intake-") and token.removeprefix("intake-") not in intakes:
+                hard.append(f'· implements: {token} names no intake in docs/intake/ — {loc}')
+    return hard
+
+
+
 def parse(text):
     """Return (themes, stories, tasks)."""
     themes, stories, tasks = [], [], []
@@ -301,9 +379,11 @@ def parse(text):
 
 
 # rule: governance-backlog-schema
-def validate(themes, stories, tasks, today=None):
+def validate(themes, stories, tasks, today=None, repo_root=None):
     """Return (hard_fails, warnings). `today` defaults to `date.today()`; a caller may inject
-    a fixed date (tests only) for the review_date scan (#524 leg b)."""
+    a fixed date (tests only) for the review_date scan (#524 leg b). `repo_root` defaults to
+    this repo and is injectable for the same reason: the `[#692]` reference leg reads
+    `docs/decisions/` and `docs/intake/` off it."""
     hard, warn = [], []
     big = themes.count(BIG_PICTURE)
     if big != 1:
@@ -350,6 +430,10 @@ def validate(themes, stories, tasks, today=None):
     # cycle among the valid edges); reference-existence first by convention.
     hard += _check_dep_references(tasks)
     hard += _check_dep_cycles(tasks)
+    # [#692] clause 2 -- grammar first, then reference existence, for the reason the two
+    # dep checks run independently: a malformed token must not mask a real dangling one.
+    hard += _check_implements_grammar(tasks)
+    hard += _check_implements_references(tasks, repo_root)
     # #187 dedup-on-entry — deterministic near-duplicate WARN (token-overlap, no LLM)
     warn += _check_duplicate_titles(tasks)
     # #524 leg (b) — body-date scan (review_date=<past date> WARN, silent on future/today)
