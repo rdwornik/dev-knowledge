@@ -1,0 +1,331 @@
+"""Tests for scripts/hooks/deny_and_point.py -- the [#727] deny-and-point guard.
+
+RED-FIRST (ADR-108 §B). Every test here was written and run BEFORE the module
+existed; the whole file errors on collection until `deny_and_point.py` lands.
+
+The row's Done-when names two tests explicitly and the filing lane added a third
+concern, so the file is organised as those three obligations plus the wire:
+
+  A. THE TRIP-TEST      a raw grep over a governed question is DENIED, and the
+                        refusal NAMES the organ to run -- both halves asserted,
+                        because a denial that only says no trains avoidance.
+  B. UNAFFECTED         ordinary non-governed searching still runs, proven by a
+                        plain string search that must be allowed.
+  C. THE OVER-MATCH     the failure mode the row names in its own text --
+     GUARD              "over-broad matching here wedges every session". Each
+                        test here is a way the guard could wedge a session, and
+                        each is pinned shut.
+  D. THE WIRE           stdin JSON -> exit 2 + {"decision":"block"} on stdout,
+                        the same protocol the ADR-77 guard uses.
+
+The pure decision core takes its process set as an ARGUMENT, so the predicate is
+testable without a store; the store read is exercised separately against the live
+repo.
+"""
+
+from __future__ import annotations
+
+import importlib.util
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+
+_REPO = Path(__file__).resolve().parent.parent
+_SCRIPT = _REPO / "scripts" / "hooks" / "deny_and_point.py"
+
+
+def _load():
+    spec = importlib.util.spec_from_file_location("deny_and_point", _SCRIPT)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+guard = _load()
+
+
+#: A process set shaped like the real one, small enough to reason about. The
+#: single-word stems are the MEASURED over-match hazards on the live tree
+#: (`audit`, `check`, `save`, `ship`, `cli`, `registry`, `gitenv`, `_common`) --
+#: they are in the fixture precisely so the tests can prove they are NOT denied
+#: when someone greps for them as ordinary text.
+PROCESSES = {
+    "scripts/gen_task_tree.py": "script",
+    "scripts/graph_queries.py": "script",
+    "scripts/audit.py": "script",
+    "scripts/check.py": "script",
+    "scripts/cli.py": "script",
+    "scripts/registry.py": "script",
+    "scripts/gitenv.py": "script",
+    "scripts/_common.py": "script",
+    ".claude/commands/ship.md": "command",
+    ".claude/commands/save.md": "command",
+    ".claude/commands/boot-session.md": "command",
+    ".claude/skills/verify/SKILL.md": "skill",
+}
+
+
+def _bash(command: str) -> dict:
+    return {"tool_name": "Bash", "tool_input": {"command": command}}
+
+
+def _grep_tool(pattern: str, path: str | None = None) -> dict:
+    ti: dict = {"pattern": pattern}
+    if path is not None:
+        ti["path"] = path
+    return {"tool_name": "Grep", "tool_input": ti}
+
+
+def _decide(payload: dict):
+    return guard.decide(payload, PROCESSES)
+
+
+def _denied(payload: dict) -> bool:
+    return _decide(payload)[0] == "block"
+
+
+# --------------------------------------------------------------------------- #
+# A. The trip-test -- the denial AND the pointer                               #
+# --------------------------------------------------------------------------- #
+
+@pytest.mark.parametrize("command", [
+    'grep -rn "gen_task_tree" scripts/',
+    "rg gen_task_tree",
+    "grep -r scripts/graph_queries.py .",
+    "find . -name gen_task_tree.py",
+    'Select-String -Pattern "boot-session" -Path .claude/',
+])
+def test_a_raw_search_over_a_governed_question_is_DENIED(command):
+    """The row's trip-test: 'a RED-first trip-test sends a raw grep'."""
+    assert _denied(_bash(command)), f"not denied: {command}"
+
+
+def test_the_refusal_NAMES_the_organ_to_run():
+    """'with exception text naming the organ to run instead'.
+
+    The denial is the cheap half; the pointer is the row.
+    """
+    _decision, reason = _decide(_bash('grep -rn "gen_task_tree" scripts/'))
+    assert "file_purpose_graph.py" in reason
+    assert "why" in reason
+    assert "scripts/gen_task_tree.py" in reason, "the pointer must name the RESOLVED path"
+
+
+def test_the_refusal_names_the_TRIGGER_organ_for_a_who_triggers_it_search():
+    _decision, reason = _decide(_bash("rg graph_queries"))
+    assert "graph_queries.py process-list" in reason
+
+
+def test_every_organ_the_pointer_names_actually_EXISTS_on_disk():
+    """AX9-1's own locator was half-wrong (`graph_queries.py why` does not exist).
+
+    A refusal naming an organ that does not exist trains distrust of the pointer,
+    which is the failure this row exists to end. So the pointer's targets are
+    resolved against the real tree, not asserted in prose.
+    """
+    for relpath in guard.POINTER_ORGANS:
+        assert (_REPO / relpath).exists(), f"pointer names a missing organ: {relpath}"
+
+
+def test_the_refusal_states_the_declared_escape():
+    """A refusal with no lawful way through is how a PreToolUse rule wedges."""
+    _decision, reason = _decide(_bash('grep -rn "gen_task_tree" scripts/'))
+    assert "raw-needed:" in reason
+
+
+# --------------------------------------------------------------------------- #
+# B. Ordinary searching is UNAFFECTED                                          #
+# --------------------------------------------------------------------------- #
+
+@pytest.mark.parametrize("command", [
+    'grep -n "def parse" scripts/',
+    'grep -rn "TODO" .',
+    'rg "raise ValueError"',
+    'grep -c "" BACKLOG.md',
+    "find . -name '*.yaml'",
+])
+def test_a_plain_string_search_still_runs(command):
+    """The row's second named test: 'ordinary non-governed searching is
+    unaffected, proven by a test that a plain string search still runs'."""
+    assert not _denied(_bash(command)), f"over-blocked: {command}"
+
+
+@pytest.mark.parametrize("command", [
+    "uv run --locked python -m pytest -x",
+    "git log --oneline -5",
+    "ls scripts/",
+    "cat scripts/gen_task_tree.py",
+    "python scripts/gen_task_tree.py --emit-source",
+])
+def test_a_command_that_is_not_a_search_is_never_judged(command):
+    assert not _denied(_bash(command)), f"non-search denied: {command}"
+
+
+def test_a_tool_outside_the_matcher_is_never_judged():
+    assert not _denied({"tool_name": "Read",
+                        "tool_input": {"file_path": "scripts/gen_task_tree.py"}})
+
+
+# --------------------------------------------------------------------------- #
+# C. The over-match guard -- every way this could wedge a session               #
+# --------------------------------------------------------------------------- #
+
+@pytest.mark.parametrize("stem", ["audit", "check", "save", "ship", "cli",
+                                  "registry", "gitenv", "_common"])
+def test_a_SINGLE_WORD_process_stem_searched_as_text_is_NOT_denied(stem):
+    """MEASURED hazard, not a hypothetical: 12 of the live tree's 150 process
+    stems are single English-ish words. `grep "check"` is a text search and
+    denying it would wedge the session that most needs to search.
+    """
+    assert not _denied(_bash(f'grep -rn "{stem}" scripts/')), stem
+
+
+def test_the_word_grep_inside_an_ARGUMENT_is_not_a_search():
+    """A search tool must be the HEAD of a segment, not a substring anywhere."""
+    assert not _denied(_bash('git commit -m "add grep support to the selector"'))
+    assert not _denied(_bash("echo 'we should rg for this later'"))
+
+
+def test_a_search_in_a_LATER_pipeline_segment_is_still_judged():
+    """The converse of the test above -- the head rule must not become an escape."""
+    assert _denied(_bash("cat BACKLOG.md | grep gen_task_tree"))
+
+
+def test_a_pattern_naming_no_process_is_never_denied_however_it_is_searched():
+    """The predicate's load-bearing half: a plain string search is UNDENIABLE
+    unless the string IS a real process. This is what makes 'unaffected' a
+    property of the predicate rather than a promise."""
+    for command in ('grep -rn "zzz_not_a_process" scripts/',
+                    "rg not_a_real_module_name",
+                    "find . -name no_such_script.py"):
+        assert not _denied(_bash(command)), command
+
+
+def test_an_unparseable_command_is_ALLOWED():
+    """Fail-open outside a confirmed governed search: a guard malfunction must
+    never block normal work. Same asymmetry as the ADR-77 guard."""
+    assert not _denied(_bash('grep -rn "unterminated'))
+
+
+def test_an_empty_or_missing_payload_is_ALLOWED():
+    assert not _denied({"tool_name": "Bash", "tool_input": {}})
+    assert not _denied({})
+
+
+def test_a_declared_escape_with_a_REASON_allows_the_search():
+    """The bypass is one named thing, declared -- not a --no-verify reflex."""
+    assert not _denied(_bash(
+        'grep -rn "gen_task_tree" scripts/  # raw-needed: renaming every call site'))
+
+
+def test_a_bare_escape_marker_with_NO_reason_does_not_escape():
+    assert _denied(_bash('grep -rn "gen_task_tree" scripts/  # raw-needed:'))
+    assert _denied(_bash('grep -rn "gen_task_tree" scripts/  # raw-needed'))
+
+
+# --------------------------------------------------------------------------- #
+# C2. The cost ordering -- the store is read only when it can matter           #
+# --------------------------------------------------------------------------- #
+
+def test_a_non_search_command_never_opens_the_store(monkeypatch):
+    """A PreToolUse hook pays its cost on EVERY call. Opening the persisted
+    store costs ~0.4 s, so the predicate is ordered: parse first (no I/O), read
+    the store only once a search head and a candidate token are both present.
+    Pinned as a property rather than left as an intention."""
+    opened = []
+    monkeypatch.setattr(guard, "load_processes", lambda *a, **k: opened.append(1) or {})
+    guard.decide_with_store(_bash("uv run --locked python -m pytest -x"))
+    guard.decide_with_store(_bash('git commit -m "mentions grep"'))
+    assert opened == [], "the store was opened for a command that cannot be denied"
+
+
+def test_a_governed_search_DOES_open_the_store(monkeypatch):
+    opened = []
+    monkeypatch.setattr(guard, "load_processes",
+                        lambda *a, **k: (opened.append(1), PROCESSES)[1])
+    decision, _reason = guard.decide_with_store(_bash("rg gen_task_tree"))
+    assert opened == [1]
+    assert decision == "block"
+
+
+def test_an_unreadable_store_ALLOWS_rather_than_wedging(monkeypatch):
+    """A stale lockfile, a missing store or a fresh clone must never be able to
+    block every search in a session."""
+    def boom(*_a, **_k):
+        raise OSError("no store here")
+    monkeypatch.setattr(guard, "load_processes", boom)
+    assert guard.decide_with_store(_bash("rg gen_task_tree"))[0] == "allow"
+
+
+# --------------------------------------------------------------------------- #
+# D. The Grep TOOL, and the wire protocol                                      #
+# --------------------------------------------------------------------------- #
+
+def test_the_Grep_tool_is_judged_by_its_pattern_field():
+    assert _denied(_grep_tool("gen_task_tree", "scripts/"))
+    assert _denied(_grep_tool("scripts/graph_queries.py"))
+
+
+def test_the_Grep_tool_with_an_ordinary_pattern_is_allowed():
+    assert not _denied(_grep_tool("def parse", "scripts/"))
+    assert not _denied(_grep_tool("check"))
+
+
+def _run(payload: dict) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        [sys.executable, str(_SCRIPT)],
+        input=json.dumps(payload), capture_output=True,
+        text=True, encoding="utf-8", errors="replace", cwd=str(_REPO))
+
+
+def test_the_wire_denies_with_exit_2_and_a_block_decision():
+    proc = _run(_bash("rg gen_task_tree"))
+    assert proc.returncode == 2
+    body = json.loads(proc.stdout)
+    assert body["decision"] == "block"
+    assert "file_purpose_graph.py" in body["reason"]
+
+
+def test_the_wire_allows_an_ordinary_search_silently():
+    proc = _run(_bash('grep -n "def parse" scripts/'))
+    assert proc.returncode == 0
+    assert proc.stdout.strip() == ""
+
+
+def test_the_wire_allows_malformed_stdin():
+    proc = subprocess.run(
+        [sys.executable, str(_SCRIPT)], input="not json at all",
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+        cwd=str(_REPO))
+    assert proc.returncode == 0
+
+
+def test_the_guard_output_is_ASCII_so_a_cp1252_console_cannot_crash_it():
+    """A Windows console is cp1252; a non-cp1252 glyph on the refusal path turns
+    a clean denial into an UnicodeEncodeError, exactly where the message matters
+    most. Recorded gotcha, pinned here."""
+    _decision, reason = _decide(_bash("rg gen_task_tree"))
+    reason.encode("cp1252")
+
+
+# --------------------------------------------------------------------------- #
+# E. Against the LIVE store                                                    #
+# --------------------------------------------------------------------------- #
+
+def test_the_live_store_answers_with_the_repos_real_processes():
+    processes = guard.load_processes(_REPO)
+    if not processes:
+        pytest.skip("no persisted store on this tree (pre-commit rebuilds it)")
+    assert "scripts/graph_queries.py" in processes
+    assert all(v in {"script", "command", "skill"} for v in processes.values())
+
+
+def test_the_guard_computes_no_edges_of_its_own():
+    """ADR-118 §1: no organ computes an edge set of its own. This guard READS the
+    persisted FPG-1 process set and derives nothing."""
+    source = _SCRIPT.read_text(encoding="utf-8")
+    for forbidden in ("import file_purpose_graph", "rebuild(", "os.walk", "rglob("):
+        assert forbidden not in source, f"the guard derives its own answer: {forbidden}"
