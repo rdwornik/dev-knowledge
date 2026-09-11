@@ -151,6 +151,51 @@ def test_hook_command_still_prefers_claude_project_dir_when_it_is_set(tmp_path):
     )
 
 
+def test_hook_command_falls_back_to_cwd_when_claude_project_dir_is_set_but_wrong(tmp_path):
+    """RED-first witness for the Codex review's HIGH-1: a NON-EMPTY but wrong variable.
+
+    `${CLAUDE_PROJECT_DIR:-.}` only defaults when the variable is unset or empty, so a
+    variable pointing at the wrong root skipped the fallback entirely and the command
+    fell straight through to the fail-open leg -- passing without ever consulting the
+    guard that was sitting in cwd all along. The second `[ -f ]` attempt closes that:
+    fail-open is now reserved for the case where NO root resolves, which is what the
+    posture was always argued as.
+    """
+    tree = _fake_tree(tmp_path / "tree")
+    wrong = tmp_path / "wrong-root"
+    wrong.mkdir()
+    result = _run(_hook_command(), cwd=tree, project_dir=str(wrong))
+    assert result.returncode == _REACHED, (
+        "a wrong CLAUDE_PROJECT_DIR fell through to fail-open instead of trying cwd, so "
+        "a resolvable guard went unconsulted: "
+        f"rc={result.returncode} stderr={result.stderr!r}"
+    )
+
+
+def test_hook_command_falls_back_to_cwd_when_claude_project_dir_is_set_empty(tmp_path):
+    """Set-but-empty is the shape a harness that *exports* the variable without a value
+    produces. `:-` (not `-`) is what makes it take the default, so this pins the colon."""
+    tree = _fake_tree(tmp_path / "tree")
+    result = _run(_hook_command(), cwd=tree, project_dir="")
+    assert result.returncode == _REACHED, (
+        f"an empty CLAUDE_PROJECT_DIR did not fall back to cwd: rc={result.returncode} "
+        f"stderr={result.stderr!r}"
+    )
+
+
+def test_hook_command_resolves_a_root_whose_path_contains_spaces(tmp_path):
+    """This repo's own root has no spaces, but the hook ships to consumers. Every
+    expansion in the command is quoted; this asserts that rather than assuming it."""
+    tree = _fake_tree(tmp_path / "a root with spaces" / "tree")
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    result = _run(_hook_command(), cwd=elsewhere, project_dir=str(tree))
+    assert result.returncode == _REACHED, (
+        "a root containing spaces was word-split by the hook command: "
+        f"rc={result.returncode} stderr={result.stderr!r}"
+    )
+
+
 def test_hook_command_fails_open_when_no_root_resolves(tmp_path):
     """REVIEW.md:102's stated intent -- *fails open on interpreter failure*.
 

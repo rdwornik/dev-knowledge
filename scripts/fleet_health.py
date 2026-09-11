@@ -1215,7 +1215,7 @@ def refresh(repo_root: Path, ecosystem_dir: Path,
 #
 #     { "matcher": "Read|Write|Edit|MultiEdit|NotebookEdit|Glob|Grep|Bash|PowerShell",
 #       "hooks": [ { "type": "command",
-#                    "command": "g=\"${CLAUDE_PROJECT_DIR:-.}/scripts/fleet_health.py\"; [ -f \"$g\" ] || exit 0; python \"$g\" --prompts-guard",
+#                    "command": "g=\"${CLAUDE_PROJECT_DIR:-.}/scripts/fleet_health.py\"; [ -f \"$g\" ] || g=\"./scripts/fleet_health.py\"; [ -f \"$g\" ] || exit 0; python \"$g\" --prompts-guard",
 #                    "timeout": 10 } ] }
 #
 # THE COMMAND RESOLVES ITS OWN ROOT ([#684], 2026-09-11 -- MA-1 of the 2026-09-09 night
@@ -1232,6 +1232,14 @@ def refresh(repo_root: Path, ecosystem_dir: Path,
 #       2026-09-11 in a throwaway child session: hook commands run through a POSIX shell
 #       (`C:\Program Files\Git\bin\bash.exe`), so the default expansion is available, and
 #       hook cwd IS the project directory, so the fallback is also correct.
+#   `[ -f "$g" ] || g="./scripts/..."` -- a SECOND attempt, at cwd, when the variable is
+#       set but wrong. Added 2026-09-11 by the fresh Codex review of this branch (HIGH-1),
+#       which is correct that `:-` defaults only on unset-or-empty: a variable pointing at
+#       the wrong root skipped the fallback and fell straight through to the fail-open leg,
+#       passing WITHOUT consulting a guard that was sitting in cwd all along. Measured
+#       before and after -- old `rc=0` (silent bypass), new `rc=7` (guard reached). Fail-open
+#       is now reserved for the case where NO root resolves, which is how the posture was
+#       always argued.
 #   `[ -f "$g" ] || exit 0`     -- a guard that cannot be LOADED passes rather than
 #       refuses. This is the same fail-open posture `prompts_guard()` already documents
 #       for its own internal errors, extended to the one failure it could not reach; the
