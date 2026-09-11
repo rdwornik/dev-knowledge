@@ -247,7 +247,7 @@ Witnesses: **21 → 22** in `tests/test_impacted_tests.py`, all green, `ruff` cl
 
 ## 6. AMENDMENT (2026-09-11, second) — rounds 2 and 3, and the machine-read tally
 
-Tally: review=lane reviewer=gpt-5.6-terra findings=6 fixed=6
+Tally: review=lane reviewer=gpt-5.6-terra findings=8 fixed=7
 
 That line is the shape `seat_refusals.py reviewer` parses (`_TALLY_RE`, `scripts/seat_refusals.py:274`)
 and is deliberately the **first** occurrence of the substring `Tally:` in this file — its reader
@@ -349,3 +349,93 @@ a gate and its pin in one act, and `--no-verify` remains the declared bypass. Wh
 remove is the **silent** case. Round 3 is the last round by agreement with the integrator; the
 reviewed sha for this tally is `8cd0cf1e` and the delta from it to the handed-back tip is this
 file alone.
+
+---
+
+<!-- AMENDMENT 2026-09-11 (third) — round 4, review-only, and the supersession of §3's two
+     typed counts. Appended. §§5-6 are accurate as written and stay as written; the one
+     exception is the machine-read control line at the head of §6, refreshed for the reason
+     stated under "The control line" below. -->
+
+## 7. AMENDMENT (2026-09-11, third) — round 4, and §3's two typed counts superseded
+
+### Round 4 — review-only, and it answered the question it was set
+
+Reviewed `3acca581..596b1d8e` (whole branch, 10 commits). **`TALLY HIGH:2 MED:0 LOW:0`.**
+Review-only by the integrator's ruling: **no code was committed out of this round**, which is
+what makes it terminating — the fixpoint in §6 turns only when a round is allowed to write code.
+
+**The residual this round existed to test came back clean.** `09ccd231` — the least-examined code
+in the range, carrying the `ACMRT` filter change and the new `source-tree-config` rule — produced
+**no findings**. Neither of round 4's two findings is in it. That discharges the open residual
+recorded at the end of §6.
+
+Scope note: the integrator's request named `09ccd231..596b1d8e`, which in two-dot notation
+excludes the left side and resolves to the documentation commit alone — **none** of the 53 code
+lines it was meant to examine. Corrected to the whole branch before the round ran, for the reason
+this lane established and the integrator adopted: *a change to a guard's scope needs a re-run over
+the whole branch, not the increment*, and `09ccd231` changes scope twice. Verified independently
+by the integrator.
+
+### Finding A — empty selection on a deleted source file: MED, and OWED, not fixed here
+
+`select()` on a deleted `scripts/*.py` returns `full_suite=False`, `marker=None`, no test files
+and `pytest_args() == []` — a rule *claims* the path (`reasons` names `source-import-closure`) and
+yields nothing.
+
+**Reported HIGH, downgraded to MED, and the downgrade was argued rather than asserted.** Every
+consumer of `select()` was enumerated: `.claude/skills/verify/verify.py` and the module's own CLI.
+The live caller handles this exact case — `args = sel.pytest_args(); if not args: return "", "full
+suite (empty selection)"` — so the path fails **safe**, and the pre-commit leg calls `guard`,
+which carries the existence filter from §5's MED. Nothing ships wrong; the caller the finding
+describes does not exist in this repo, and the ladder reserves HIGH for behaviour that ships.
+The integrator verified the enumeration and accepted MED.
+
+**Still a real finding, for the reason that makes it the shape's sixth instance:** the invariant
+*empty selection implies full suite* is enforced by convention at one call site instead of by the
+type that carries the result. A later caller using the obvious idiom — `if sel.full_suite:
+run_all() else: run(sel.test_files)` — runs **zero tests** and reports success. The fix belongs
+where the value is constructed, not where it is consumed.
+
+**Deliberately NOT fixed in this lane.** It is a scope change, the adopted rule says a scope
+change needs a whole-branch re-run, and making one at a merge gate under a hold is the condition
+that produced two of the earlier findings. The integrator found that argument decisive and is
+carrying it as an owed follow-up in the batch close packet, filing the row at batch close —
+**this lane does not file it**, because W-1 and W-8 both add `tasks/` rows in this batch and
+AW4-2 returns row-id collisions to the later lane.
+
+### Finding B — §3's two typed counts are SUPERSEDED
+
+§3 "What shipped" states **"four mapping rules"** and **"21 witnesses"**. Both were true at
+`a525c97e` and neither is true at this tip: `09ccd231` added a fifth rule and rounds 1–3 added
+witnesses. §3's prose is **superseded** as to those two numbers, and is not edited — the same
+treatment §1's table received, and for the same reason. Erasing it would also erase the evidence
+that a typed count went stale, which is the finding.
+
+**The authorities, cited rather than copied:**
+
+| superseded claim in §3 | the surface that computes it |
+|---|---|
+| "four mapping rules" | `RULES` in `scripts/impacted_tests.py` |
+| "21 witnesses" | `pytest tests/test_impacted_tests.py --collect-only`, and repo-wide `ecosystem/doc-counts.md` |
+
+Observed at this amendment, **as dated observations and not as standing claims**: `RULES`
+enumerates `environment`, `changed-test`, `source-import-closure`, `source-tree-config`,
+`live-tree-doc`; collection reports 26 in that file. Written this way on purpose — CLAUDE.md §4
+says *"Never restate a count or roster in prose — cite the surface that computes it. A number
+typed into a doc is stale at the next commit."* §3 typed two numbers and both went stale **within
+the same session**, exactly as the rule predicts. Replacing them with "five" and "26" would
+re-arm the identical trap one commit later, so the correction names the authority and timestamps
+the observation instead.
+
+### The control line at the head of §6
+
+`Tally:` there now reads `findings=8 fixed=7`; it read `findings=6 fixed=6` when §6 was written.
+Refreshed rather than duplicated, because `seat_refusals.py` reads the **first** occurrence of
+that substring and a second line further down would be unreachable — a stale machine-read control
+surface is the very defect class this review kept finding. The prior value is recorded in this
+sentence and in git history, so nothing is erased. **Eight findings across four rounds, seven
+fixed, one owed** — Finding A above, carried by the integrator.
+
+**Round 4 is the last round.** The reviewed sha for its tally is `596b1d8e`; the delta from it to
+the handed-back tip is this file alone.
