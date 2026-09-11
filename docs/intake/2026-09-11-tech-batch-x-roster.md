@@ -1,23 +1,24 @@
 ---
 intake-id: 93
 status: DRAFT
-origin: DECLARE-BATCH-X-ROSTER-2026-09-11 (the roster) with AMEND-BATCH-X-ROSTER-001 (AX1-1..AX1-8, the file that FREEZES the roster) and AMEND-BATCH-X-ROSTER-002 (AX2-1..AX2-2, X1-6's premise corrected) -- outgoing browser seat 2026-09-10-dev-knowledge-architect, the operator's dispatch of 2026-09-11; carried into the repo 2026-09-11 by batch X lane lane-x-000-batch-x-roster-lands from the operator's transport at to-cc/, LF throughout: DECLARE-BATCH-X-ROSTER-2026-09-11.md (6,244 B, sha256 64e7fc470fa6a0ebebd7d760f640f61c8044f8bd75b5d3683a47ab2c506143b0), AMEND-BATCH-X-ROSTER-001.md (2,543 B, sha256 825cad543568b0cb1747e4dd51a287364a21d677911e5e24ed4eff484b432aed), AMEND-BATCH-X-ROSTER-002.md (972 B, sha256 d0aea9586c51c971fe2bca973acab88dbcd13ae6c7fda796f89ad41f1f8f17d1). Each body below is byte-identical to its source -- only the transport's carried-by line is excluded, as transport metadata whose named successor IS this file, and every line this lane added is inside a marked LANE-ADDED block beside the carried text, never inside it
+origin: DECLARE-BATCH-X-ROSTER-2026-09-11 (the roster) with AMEND-BATCH-X-ROSTER-001 (AX1-1..AX1-8, the file that FREEZES the roster), AMEND-BATCH-X-ROSTER-002 (AX2-1..AX2-2, X1-6's premise corrected) and AMEND-BATCH-X-ROSTER-006 (AX6-1..AX6-5, the domain census and folder-as-domain) -- outgoing browser seat 2026-09-10-dev-knowledge-architect, the operator's dispatch of 2026-09-11; the first three are the lane contract's named source set, and AMEND-006 was added by the operator instruction of 2026-09-11 relayed to the lane after its first commit ("X-0 applies AMEND-BATCH-X-ROSTER-006 (rows: visualization, packet D14, W-4 residue) -- follow-up commit if already committed"). Carried into the repo 2026-09-11 by batch X lane lane-x-000-batch-x-roster-lands from the operator's transport at to-cc/, LF throughout: DECLARE-BATCH-X-ROSTER-2026-09-11.md (6,244 B, sha256 64e7fc470fa6a0ebebd7d760f640f61c8044f8bd75b5d3683a47ab2c506143b0), AMEND-BATCH-X-ROSTER-001.md (2,543 B, sha256 825cad543568b0cb1747e4dd51a287364a21d677911e5e24ed4eff484b432aed), AMEND-BATCH-X-ROSTER-002.md (972 B, sha256 d0aea9586c51c971fe2bca973acab88dbcd13ae6c7fda796f89ad41f1f8f17d1), AMEND-BATCH-X-ROSTER-006.md (2,809 B, sha256 f53a5369d607d7da615610b6d34cd33800801e595d7f075a441b8077fda05a48). Each body below is byte-identical to its source -- only the transport's carried-by line is excluded, as transport metadata whose named successor IS this file, and every line this lane added is inside a marked LANE-ADDED block beside the carried text, never inside it
 consumed-by:
 ---
 
-# Batch X roster -- the four things that make an unattended night SAFE, frozen by AMEND-001 and corrected by AMEND-002
+# Batch X roster -- the four things that make an unattended night SAFE, frozen by AMEND-001, corrected by AMEND-002, extended by AMEND-006
 <!-- carried 2026-09-11 by lane lane-x-000-batch-x-roster-lands (branch worktree-lane-x-000-batch-x-roster-lands), TEXT-ONLY: it lands this roster and files the rows the roster marks NEW. It builds none of the mechanisms named here. -->
 
 <!-- LANE-ADDED BEGIN: reading order -->
 ## 0 · How to read this file (lane's own addition)
 
-Three transport files are carried below, each between explicit `CARRIED BEGIN` / `CARRIED END` markers so the carried bytes stay extractable:
+Four transport files are carried below, each between explicit `CARRIED BEGIN` / `CARRIED END` markers so the carried bytes stay extractable:
 
 - **Part 1** is the roster (`DECLARE-BATCH-X-ROSTER-2026-09-11`). It is FROZEN by Part 2 and is not reordered, rewritten or improved here.
 - **Part 2** is `AMEND-BATCH-X-ROSTER-001`. Where it changes the roster, **the amendment governs** and the roster's superseded text is carried anyway -- this repo's amendment discipline marks a supersession, it does not swap the text out.
 - **Part 3** is `AMEND-BATCH-X-ROSTER-002`, which corrects X1-6's premise.
-- **Part 4** is the supersession map: which carried lines Parts 2 and 3 govern, written by the lane so a reader is not left to diff three files by eye.
-- **Part 5** records what this file does **not** carry, and why that matters to whoever reads it next.
+- **Part 4** is `AMEND-BATCH-X-ROSTER-006`, added by operator instruction after this file's first commit. **It depends on `AMEND-005`, which is NOT carried** -- see Part 6, which names the two dangling references precisely.
+- **Part 5** is the supersession map: which carried lines the amendments govern, written by the lane so a reader is not left to diff four files by eye.
+- **Part 6** records what this file does **not** carry, and why that matters to whoever reads it next.
 <!-- LANE-ADDED END -->
 
 ## Part 1 · DECLARE-BATCH-X-ROSTER-2026-09-11 -- the roster, carried verbatim
@@ -112,50 +113,89 @@ After X1 merges: one night at the current ceiling, auto-merge ON only for serial
 
 <!-- CARRIED END: AMEND-BATCH-X-ROSTER-002.md -->
 
+## Part 4 · AMEND-BATCH-X-ROSTER-006 -- carried verbatim (added by operator instruction, 2026-09-11)
+
+<!-- CARRIED BEGIN: AMEND-BATCH-X-ROSTER-006.md sha256=f53a5369d607d7da615610b6d34cd33800801e595d7f075a441b8077fda05a48 -->
+
+# AMEND — batch X roster, 006 (domain census; folder = domain; the managements the seat forgot)
+
+<!-- browser seat · trigger: operator 2026-09-11 — the seat's seven managements missed ecosystem, logs/garbage, protocols-as-process, visualization/dashboard, scripts, templates; his model: every folder is a domain with an owning process, process management on top; his fear: many implemented processes are orphans nobody remembers; use cheap models for the census · sources already measured: 40/158 untriggered processes, 39 orphan files, 4 unwired telemetry modules, 16 zero-row ADRs, 485 log files -->
+
+- **AX6-1 · Lane X-C "domain census", read-only, text-only output, dispatch NOW (parallel to batch W integration; no repo write beyond one audit file).** One page per top-level folder — `protocols/` `docs/` `ecosystem/` `scripts/` `tests/` `templates/` `tasks/` `logs/` `deploy/` `.claude/` — starting with PLAYBOOK and JOURNAL: for every organ/script/doc/template in it: what triggers it (hook · gate · command · schedule · NOTHING), who reads its output (organ · seat · NOBODY), last touched, verdict LIVE / UNTRIGGERED / UNREAD / GARBAGE-CANDIDATE. Sources first, never re-derived: `ecosystem/organ-index.md`, `graph_queries.py process-list`, the 2026-09-08 census, `file_purpose_graph.py`, git log. Output `docs/audits/2026-09-11-technical-domain-census.md` (date-slug; authorization: this ruling) + a MANIFEST of counts per folder. Model: cheapest admitted — Claude subagents until W-2 merges, agy stdout-only after. No deletion, no rename; GARBAGE-CANDIDATE is a proposal for the operator's GO.
+- **AX6-2 · Management map (AX5-2) gains rows:** ecosystem · logs · protocols/docs · visualization · scripts · templates · tasks — one row per folder-domain, owner-process named or DEAD.
+- **AX6-3 · NEW row, X2: visualization.** Task flow charts (open/closed per week, lanes per batch, merge minutes, cost per lane) rendered from the same telemetry the tally feeds (AX5-1); library-first — Maister's dashboard plugin studied for SHAPE, not copied; the existing chaotic dashboard/conformance.html folded in or deleted (intake #42 MIGRATE-not-delete).
+- **AX6-4 · Operator packet gains D14:** folder-as-domain — rename `docs/` → `process/`? one owning process per folder? decided AFTER X-C's census, with its per-folder verdicts as the input; the seat recommends no rename before the census.
+- **AX6-5 · W-4 close residue (integrator):** regenerate the organ index (64 → 63), fix `CLAUDE.md:138`, re-derive the ship-gate WARN delta; `graph_queries.py` ORPHAN_DISPOSITIONS' 2026-09-07 "keep /override as retirement notice" line is superseded by AW6-1 — updated at batch close as a row.
+
+=== END OF AMEND ===
+
+<!-- CARRIED END: AMEND-BATCH-X-ROSTER-006.md -->
+
 <!-- LANE-ADDED BEGIN: supersession map -->
-## Part 4 · Supersession map (lane's own addition, beside the carried text)
+## Part 5 · Supersession map (lane's own addition, beside the carried text)
 
-Every entry below points at carried text that a later carried file governs. **Nothing in Parts 1-3 was edited to produce this map** -- it is the marker, and the superseded wording stays where it was written.
+Every entry below points at carried text that a later carried file governs. **Nothing in Parts 1-4 was edited to produce this map** -- it is the marker, and the superseded wording stays where it was written.
 
-- **Part 1 §2, the X1 lane ORDER is superseded by AX1-1.** The roster's table runs X1-1 decision_coverage, X1-2 merge cost, X1-3 conductor E, X1-4 routing, X1-5 spine, X1-6 keys. AX1-1 reorders to X1-1 decision_coverage · **X1-2 conductor E** · **X1-3 merge cost** · X1-4 routing · X1-5 spine · X1-6 keys. The lane labels in Part 1's table are therefore stale for X1-2 and X1-3 and the AMEND's order governs. Reason carried in AX1-1: landing the merge-cost lane first spends it optimising the integration path conductor E replaces.
+### From AMEND-001 (the freezing amendment)
+
+- **Part 1 §2, the X1 lane ORDER is superseded by AX1-1.** The roster's table runs X1-1 decision_coverage, X1-2 merge cost, X1-3 conductor E, X1-4 routing, X1-5 spine, X1-6 keys. AX1-1 reorders to X1-1 decision_coverage · **X1-2 conductor E** · **X1-3 merge cost** · X1-4 routing · X1-5 spine · X1-6 keys. The lane labels in Part 1's table are therefore stale for X1-2 and X1-3 and the AMEND's order governs. Reason carried in AX1-1: landing the merge-cost lane first spends it optimising the integration path conductor E replaces, and makes `[#675]`'s before/after incomparable across the substrate boundary.
 - **Part 1 §2 X1-1's Done-when is extended by AX1-2.** `implements:` accepts only identifiers that RESOLVE -- an ADR number present in `docs/decisions/`, an intake number present in `docs/intake/`, a transport decision filename that exists; free text is refused. The RED-first fixture is this window's own backlog.
-- **Part 1 §2 X1-2's (merge cost) Done-when is extended by AX1-3**, clauses (a) full suite once at batch END and a RED full suite is a batch-level HALT, (b) the receipt splits minutes-to-merge into test time and ceremony time, (c) `backlog-filing-backpressure` stops refusing merge commits. AX1-3 also adds a PRECONDITION before dispatch: W-7's owed MED is fixed -- an empty selection FAILS closed.
-- **Part 1 §2 X1-6's premise is corrected by AX2-1.** The roster's X1-6 rests on A7-1 reading W-3's output as the `skipped_gates` writer. W-3 produced a per-guard IDENTITY (`Guard.key = module::target`), not a writer callable, so **X1-6 builds the writer itself** and W-3 is a dependency, not the writer. A7-1's other three keys are unchanged.
+- **Part 1 §2, the merge-cost lane's Done-when is extended by AX1-3**, clauses (a) the full suite runs once at batch END and a RED full suite is a batch-level HALT, (b) the receipt splits minutes-to-merge into test time and ceremony time, (c) `backlog-filing-backpressure` stops refusing merge commits. AX1-3 also adds a PRECONDITION before dispatch: W-7's owed MED is fixed -- an empty selection FAILS closed (runs everything), never passes as "nothing impacted".
 - **Part 1 §4 gains a row from AX1-4:** NEW `propose_closures` writes ONE file overwritten per run (LEDGER D5), paired with X2-1.
 - **Part 1 §4's A8 (doc congruence) is superseded by AX1-5** -- it is no longer a row of its own; it moves into X2-4 as a clause, one traversal producing two reports.
 - **Part 1 §5 gains an entry from AX1-6:** the PowerShell dispatch retirement act (`DECLARE-DISPATCH-RETIREMENT`) is **batch Y**, unblocked by conductor E; it is a written deferral, not a row.
 - **Part 1 §0 gains one sentence from AX1-7:** X makes the night safe and ships nothing to a consumer -- bytes to corp-monorepo stay zero until the v1.5.0 tag and `[#670]`.
-- **Recorded by AX1-8, and it closes nothing:** C4 model-agnosticism is NOT closed by X1-4 (routing is not agnosticism); aliases, the unified contract, the `MODEL_ENUM` source and churn insulation stay with `[#568]` / `[#582]` in batch Y.
+- **Recorded by AX1-8, and it closes nothing:** C4 model-agnosticism is NOT closed by the routing lane (routing is not agnosticism); aliases, the unified contract, the `MODEL_ENUM` source and churn insulation stay with `[#568]` / `[#582]` in batch Y.
+
+### From AMEND-002
+
+- **Part 1 §2 X1-6's premise is corrected by AX2-1.** The roster's X1-6 rests on A7-1 reading W-3's output as the `skipped_gates` writer. W-3 produced a per-guard IDENTITY (`Guard.key = module::target`), not a writer callable, so **X1-6 builds the writer itself** and W-3 is a dependency, not the writer. A7-1's other three keys are unchanged.
 - **Recorded by AX2-2, and it is not a defect:** thirteen guards in `tests/test_review_artifact_coverage.py` still carry `requires_git`; they are individually dispositionable, which is what `[#638]` asked, and the module is not unskippable.
+
+### From AMEND-006
+
+- **AX6-1 is a LANE, not a row of this intake.** Lane X-C "domain census" was dispatched in parallel with batch W integration (branch `worktree-lane-x-000-domain-census`) and writes one artifact, `docs/audits/2026-09-11-technical-domain-census.md`. This lane filed **no row** for it: a dispatched lane with a named output is not an unscheduled decision, and a row would duplicate it.
+- **AX6-2 adds seven domains to the MANAGEMENT MAP's row set** -- ecosystem · logs · protocols/docs · visualization · scripts · templates · tasks, one per folder-domain with the owner-process named or DEAD. **These are rows of the rendered map, not `tasks/` rows**, because AX5-2 defines the management map as one page rendered from `ecosystem/organ-index.md` and never hand-maintained -- so its "rows" are table rows in a generated artifact. This lane filed **no task row** for AX6-2. It is a clause extending the management-map row, **and that row lives in AMEND-005, which this file does not carry** (Part 6). The clause is owed to the management-map row whenever AMEND-005 lands.
+- **AX6-3 is a NEW row** (visualization) and is filed by this lane.
+- **AX6-4 is a NEW row** (the operator packet gains D14, folder-as-domain) and is filed by this lane. Its own text sequences it: decided AFTER lane X-C's census, with the per-folder verdicts as input, and the seat recommends no rename before the census.
+- **AX6-5 is a NEW row** (W-4 close residue) and is filed by this lane **as a row, not as work**. AX6-5 says so in its own words -- "updated at batch close as a row" -- and the acts it names (regenerate the organ index 64 -> 63, fix `CLAUDE.md:138`, re-derive the ship-gate WARN delta, supersede the `ORPHAN_DISPOSITIONS` `/override` line per AW6-1) are the integrator's at batch close. This lane is TEXT-ONLY and regenerated no index.
 <!-- LANE-ADDED END -->
 
 <!-- LANE-ADDED BEGIN: not carried -->
-## Part 5 · What this file does NOT carry (lane's own addition)
+## Part 6 · What this file does NOT carry (lane's own addition)
 
-**Three further amendments to this roster exist on the operator's transport and are NOT carried here.** They are recorded rather than folded, because folding them would be a deviation the lane is not authorised to make -- and leaving them unnamed would make this file a carrier that silently drops payloads which name it as their carrier.
-
-`to-cc/AMEND-BATCH-X-ROSTER-003.md`, `-004.md` and `-005.md` each carry the line `carried-by: docs/intake/2026-09-11-tech-batch-x-roster.md` -- **this file** -- and each POSTDATES the freeze this file was written against:
+**`AMEND-BATCH-X-ROSTER-003`, `-004` and `-005` exist on the operator's transport and are NOT carried here.** They are recorded rather than folded, because folding them would be a deviation the lane is not authorised to make -- and leaving them unnamed would make this file a carrier that silently drops payloads which name it as their carrier. All three carry `carried-by: docs/intake/2026-09-11-tech-batch-x-roster.md` -- **this file**.
 
 ```
-12:43  DECLARE-BATCH-X-ROSTER-2026-09-11   carried here as Part 1
-13:00  AMEND-001  (roster FROZEN)          carried here as Part 2
-13:13  AMEND-002                           carried here as Part 3
+12:43  DECLARE-BATCH-X-ROSTER-2026-09-11   carried, Part 1
+13:00  AMEND-001  (roster FROZEN)          carried, Part 2
+13:13  AMEND-002                           carried, Part 3
 13:24  lane contract created
-13:26  AMEND-003                           NOT carried -- 37s before the
-13:26  lane contract last written           contract's final write
+13:26  AMEND-003                           NOT carried
+13:26  lane contract last written          (37s after AMEND-003)
 13:29  AMEND-004                           NOT carried
 13:34  AMEND-005                           NOT carried
+13:42  AMEND-006                           carried, Part 4 -- by operator
+                                           instruction, after this file's
+                                           first commit
 ```
 
-The lane's frozen contract names exactly three sources and freezes the NEW-row set against them, so this file carries three. What the uncarried three contain, stated so the next reader can size the gap without re-reading the transport:
+The lane's frozen contract names three sources and freezes the NEW-row set against them; the operator's later instruction added a fourth **by name**, and named the three rows it wanted from it. Neither the contract nor that instruction reaches 003, 004 or 005. What the uncarried three contain, stated so the next reader can size the gap without re-reading the transport:
 
 - **AMEND-003** (self-review, four misses): the Codespace committing-lane ruling as a STANDING ruling rather than a workaround; conductor E ships to consumers as a floor component; the **docs cut moves into X1 replacing X1-6**, which moves to X2; a logs lane in X2; prompt distiller `[#617]` heads X2; token use recorded honestly.
 - **AMEND-004** (the hub IS the floor): `floor: MUST | hub-only` mandatory on every row and lane contract, applied retroactively to batch W's outputs; model and cost declared per lane by `gen_lane_contract.py`; docs are floor components; four read-only facts owed before X1 dispatches.
-- **AMEND-005** (management map): telemetry moves from X3 into X1 as a clause of X1-4; a NEW **management map** row in X2; a path-registry fact owed, with a NEW row conditional on the answer.
+- **AMEND-005** (management map): telemetry moves from X3 into X1 as a clause of the routing lane (AX5-1); a NEW **management map** row in X2 (AX5-2); a path-registry fact owed, with a NEW row conditional on the answer (AX5-3).
+
+### The two dangling references AMEND-006 carries, named precisely
+
+Part 4 is carried verbatim and therefore carries its own unresolved dependencies into this file. A reader who follows them lands nowhere, so they are named here rather than discovered:
+
+1. **AX6-2 says "Management map (AX5-2) gains rows".** AX5-2 is in AMEND-005 and is not carried, so the management map this file references **is defined nowhere in this file**. AX6-2's seven folder-domains are an extension of a specification that has not landed.
+2. **AX6-3 says the charts render "from the same telemetry the tally feeds (AX5-1)".** AX5-1 is in AMEND-005 and is not carried. The filed visualization row therefore names its telemetry source as the roster's own X2-6 trigger-or-remove row, which IS carried and IS filed, and records the AX5-1 reference as owed.
 
 **What this does and does not change about the rows filed under this intake.** Every row the frozen roster marks NEW still exists under 003-005 -- those amendments re-assign WAVES and add FURTHER rows; they retire none of the rows filed here. Wave assignment is not this intake's surface. So the filed set is correct and incomplete rather than wrong, and the delta is additive: the docs-cut row, the management-map row, the conditional path-registry row, the `floor:` declaration clause and the per-lane model/cost clause are **owed to a follow-up act**, not silently lost.
 
-Landing them is a decision for the operator or the next architect seat, not for this lane: carrying them would have changed a NEW-row enumeration that the lane's contract froze **specifically so the lane could not over-file by judgment**.
+Landing them is a decision for the operator or the next architect seat, not for this lane: carrying them would have changed a NEW-row enumeration that the lane's contract froze **specifically so the lane could not over-file by judgment**. The operator's AMEND-006 instruction is the precedent for how they land when they land -- named explicitly, with the rows wanted from them named too.
 <!-- LANE-ADDED END -->
 
 === END ===

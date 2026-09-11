@@ -114,7 +114,7 @@ fill-in skeleton is `templates/intake-template.md`.
 
 ### OTHER (1)
 
-- [MISSING-ID](2026-09-11-tech-batch-x-roster.md) — Batch X roster -- the four things that make an unattended night SAFE, frozen by AMEND-001 and corrected by AMEND-002
+- [MISSING-ID](2026-09-11-tech-batch-x-roster.md) — Batch X roster -- the four things that make an unattended night SAFE, frozen by AMEND-001, corrected by AMEND-002, extended by AMEND-006
 <!-- INTAKE-INDEX:END -->
 
 ## 1. What this folder is
