@@ -430,6 +430,42 @@ contract. No third-positional `Extra` was passed to any of the three — everyth
 their contract files — because that positional is silently truncated away on this machine, as the
 AW5-3 section above records.
 
+### A FOURTH lane followed — X-C, whose record belongs elsewhere and is noted here only so it is not an orphan
+
+**X-C `lane-x-000-domain-census`** was dispatched later the same day under AX6-1,
+`to-cc/AMEND-BATCH-X-ROSTER-006.md`: a read-only domain census, one page per top-level folder,
+whose **only** repo write is `docs/audits/2026-09-11-technical-domain-census.md`. Receipt: DryRun
+PASS, session `51b95bd4`, branch `worktree-lane-x-000-domain-census` up in 11s, at **`sonnet`**.
+
+**Its carriage is NOT this file.** AMEND-BATCH-X-ROSTER-006 declares
+`carried-by: docs/intake/2026-09-11-tech-batch-x-roster.md`, so AX6-1's landed home is the batch X
+intake that X-0 is creating, and X-0 was relayed AMEND-006 to fold in. This paragraph exists only
+because that intake does not exist yet: a lane dispatched with its record depending on another
+lane's success is precisely the orphan class batch X was cut to end, so the dispatch is noted in
+the open manifest as insurance and **not** as a claim on this batch. X-C adds no fence row, no
+launch contract and no task id.
+
+Two things measured at its dispatch, recorded because both bear on lanes other than X-C:
+
+- **`worktree.baseRef` is unset, so every lane starts on `origin/main`, which is two merges
+  behind local `main`** — `3acca581` against `e4929b09` at the time of writing. X-C came up on
+  the stale base; X-0 and X-R read `e4929b09` only because their step-0 sync had already run.
+  The step-0 sync written into each of these contracts is therefore load-bearing rather than
+  belt-and-braces: a generator run on the default base drops rows while looking clean.
+- **The generator-carried local line omits the MODEL.** `dispatch_command` emits slug, file and
+  `-Effort` only, while `Start-DispatchLane`'s `-Model` defaults to `opus` — so a contract
+  declaring `sonnet` dispatched by its own carried line runs at opus, and the line silently
+  contradicts the Model row above it. X-C was dispatched with `-Model sonnet` appended. This is
+  the same class the generator exists to prevent (its docstring: a lane handed the wrong command
+  is worse than a lane handed none, because a wrong command looks authoritative), and it is the
+  second gap found in the local dispatch line in one day — the first being the dropped third
+  positional recorded in the AW5-3 section above.
+
+`cheapest admitted` resolved to `sonnet` against `ecosystem/provider-registry.yaml`, which is the
+admission register: `claude-sonnet-5` is tier `M` with `roles: [subagent-default,
+workflow-verifier]`, while **`haiku` has no row there at all** and so is not admitted — cheapest
+admitted is not cheapest available.
+
 ## PROVENANCE
 
 Operator GO, 2026-09-10, verbatim:
