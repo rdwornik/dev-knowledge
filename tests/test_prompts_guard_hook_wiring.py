@@ -9,8 +9,21 @@ the path, it exits non-zero -- and a `PreToolUse` hook that exits non-zero REFUS
 refusal of every tool call, attributed to the tool it blocked rather than to us
 (`docs/audits/2026-09-10-technical-night-aj-m03/REVIEW.md`:83, pointer :105).
 
-Five properties are asserted here. The first three are the two edits `[#684]` names;
-the fourth was added by the 2026-09-11 Codex review of this branch:
+**THE POSTURE INVERTED 2026-09-11 (batch X lane W-2', AX15-1).** Three of the properties
+below used to assert FAIL-OPEN and now assert FAIL-CLOSED. The history is kept rather than
+rewritten, because the argument that produced the fail-open form was careful and a later
+reader who does not see it will make it again: batch W's W-2 lane reasoned, correctly on
+its own terms, that a guard which bricks every tool call because its interpreter is missing
+is a worse defect than the stale directory it guards -- and MA-1 itself was exactly that
+failure, a non-Claude reader refused by an interpreter error. AX15-1 reverses it on a
+different axis: *"a guard that permits when it cannot run is declared enforcement without
+enforcement."* What makes the reversal safe rather than a return to the 2026-09-06 wedge is
+the MATCHER, which stays narrowed -- the break-glass family is ungated, so a refusing guard
+still leaves an in-session way out -- plus a refusal text that names cause AND fix, and a
+SessionStart preflight that says so once before any tool call pays for it.
+
+Six properties are asserted here. The first is the edit `[#684]` names; the rest carry the
+2026-09-11 Codex review of this branch and AX15-1's inversion:
 
 * **The command resolves the repo root itself.** Measured 2026-09-11 by a throwaway child
   session: hook commands run through a POSIX shell (`bash.exe`) with cwd == the project
@@ -18,14 +31,15 @@ the fourth was added by the 2026-09-11 Codex review of this branch:
   RED-first witness `[#684]`'s Done-when asks for is
   `test_hook_command_resolves_the_script_without_claude_project_dir`: delete the fallback
   and it fails.
-* **A command that cannot resolve its script passes rather than refuses.** The audit's
-  stated intent, verbatim: *"the prompts-guard resolves its own path and fails open on
-  interpreter failure"* (REVIEW.md:102). This extends `prompts_guard()`'s own documented
-  fail-open posture to the one failure it could not reach -- not being loaded at all.
-* **The guard's own refusal code is the ONLY one that refuses.** `prompts_guard()`
-  returns 0 or 2 and nothing else, so every other status is a failure to RUN it -- no
-  interpreter, an import error -- and those fail open. Added by the third Codex pass of
-  this branch, which found MA-1 surviving in exactly that gap.
+* **A command that cannot resolve its script REFUSES, naming cause and fix.** AX15-1's
+  first failure mode. The refusal is not bare: it prints which roots it tried and what to
+  do about it, because the operator's standing rule is that a deviation raises an exception
+  that TEACHES.
+* **No usable interpreter REFUSES, naming cause and fix.** AX15-1's second failure mode,
+  and the one the fail-open form was written to permit.
+* **A crashing guard REFUSES, naming cause and fix.** `prompts_guard()` returns 0 or 2 and
+  nothing else, so any other status is a failure to RUN it -- and AX15-1 puts *"any rc
+  other than 0"* in the refusing class.
 * **A refusal is PROPAGATED, not swallowed.** The risk the fail-open leg creates is
   precise -- a command string that turns the guard's refusal into a pass -- and it is
   pinned hermetically by a stand-in that exits `2`, because the real verdict's User-scope
@@ -118,15 +132,18 @@ def _resolve_posix_shell():
 _SH = _resolve_posix_shell()
 
 #: "The command reached the script at this root", proven POSITIVELY rather than inferred
-#: from a magic exit code. It used to be an exit of 7, but the command now maps every status
-#: except the guard's own `2` to `0` (see `_REFUSES`), so a distinctive exit code can no
-#: longer carry this signal -- and a marker on stdout is better evidence anyway: it says
-#: WHICH file ran, not merely that something did.
+#: from a magic exit code. It used to be an exit of 7, but under AX15-1 the command maps
+#: every status except `0` to `2`, so a distinctive exit code can no longer carry this
+#: signal -- and a marker on stdout is better evidence anyway: it says WHICH file ran, not
+#: merely that something did. Note this makes the marker load-bearing in BOTH directions
+#: now: several tests below assert the refusal came from the existence legs by asserting
+#: the marker is ABSENT, which a shared exit code could not distinguish.
 _REACHED = "PROMPTS-GUARD-STANDIN-REACHED"
-#: The guard's own refusal code, and now the ONLY code that refuses. A stand-in returning it
-#: proves the command PROPAGATES a refusal rather than swallowing it -- hermetically, on any
-#: platform, which the live-tree test cannot do because the User-scope half of the real
-#: verdict is registry state this suite must not touch.
+#: The refusal code -- the guard's own, and since AX15-1 also the code the command emits on
+#: every inability to evaluate. A stand-in returning it proves the command PROPAGATES a
+#: refusal rather than swallowing it -- hermetically, on any platform, which the live-tree
+#: test cannot do because the User-scope half of the real verdict is registry state this
+#: suite must not touch.
 _REFUSES = 2
 
 
@@ -274,39 +291,61 @@ def test_hook_command_resolves_a_root_whose_path_contains_spaces(tmp_path):
     )
 
 
-def test_hook_command_fails_open_when_no_root_resolves(tmp_path):
-    """REVIEW.md:102's stated intent -- *fails open on interpreter failure*.
+def _assert_teaches(stderr: str, *, cause_names: tuple[str, ...]):
+    """AX15-1's refusal-text clause, asserted rather than trusted: *"the refusal text names
+    the cause and the fix (the operator's rule: a deviation raises an exception that
+    teaches)"*.
 
-    Variable unset AND cwd outside any checkout: the guard cannot run. It must PASS, not
-    refuse. Closure number from the finding: *tool calls refused because the guard's own
-    command could not start: every call in the session -> 0*.
+    A bare non-zero exit satisfies "fails closed" and teaches nothing -- and the session
+    that receives it sees only that its tool call was refused, with no way to tell a stale
+    prompts dir from a guard that could not start. So three things are required of every
+    refusal: the verdict word, a labelled CAUSE naming the specific thing that was missing,
+    and a labelled FIX that is an action.
+    """
+    assert "REFUSED" in stderr, f"refusal did not announce itself: {stderr!r}"
+    assert "Cause:" in stderr, f"refusal names no cause: {stderr!r}"
+    assert "Fix:" in stderr, f"refusal names no fix: {stderr!r}"
+    missing = [token for token in cause_names if token not in stderr]
+    assert not missing, (
+        f"the cause is labelled but not specific -- {missing} absent from: {stderr!r}"
+    )
+
+
+def test_hook_command_refuses_when_no_root_resolves(tmp_path):
+    """RED-first trip-test 1 of 2 (AX15-3): **script removed -> refused with message**.
+
+    Variable unset AND cwd outside any checkout: the guard cannot be LOADED. Until
+    2026-09-11 this PASSED, by the argument recorded in the module docstring. AX15-1
+    reverses it -- *"a guard that permits when it cannot run is declared enforcement
+    without enforcement"* -- so the hook must refuse, and must say which roots it tried so
+    the reader can fix the one that is wrong.
     """
     elsewhere = tmp_path / "elsewhere"
     elsewhere.mkdir()
     result = _run(_hook_command(), cwd=elsewhere, project_dir=None)
-    assert result.returncode == 0, (
-        "an unresolvable guard refused instead of passing -- this is MA-1 itself: "
-        f"rc={result.returncode} stderr={result.stderr!r}"
+    assert result.returncode == _REFUSES, (
+        "an unresolvable guard PERMITTED the tool call -- declared enforcement without "
+        f"enforcement (AX15-1): rc={result.returncode} stderr={result.stderr!r}"
     )
     assert _REACHED not in result.stdout, (
-        "nothing should have run: the pass must come from the existence legs, not from a "
-        f"stand-in that executed anyway -- stdout={result.stdout!r}"
+        "nothing should have run: the refusal must come from the existence legs, not from "
+        f"a stand-in that executed anyway -- stdout={result.stdout!r}"
     )
+    _assert_teaches(result.stderr,
+                    cause_names=("CLAUDE_PROJECT_DIR", "scripts/fleet_health.py"))
 
 
-def test_hook_command_fails_open_when_the_interpreter_is_unavailable(tmp_path):
-    """RED-first witness for the third Codex pass's HIGH: MA-1 again, by a different
-    missing piece.
+def test_hook_command_refuses_when_the_interpreter_is_unavailable(tmp_path):
+    """RED-first trip-test 2 of 2 (AX15-3): **interpreter broken -> refused with message**.
 
-    The two `[ -f ]` legs guard the SCRIPT's existence and said nothing about the
-    INTERPRETER's. A reader whose environment has no usable `python` got a non-zero exit
-    from the hook -- 127 -- and therefore TOTAL REFUSAL of every matching tool call: the
-    exact failure this row exists to close, and a direct contradiction of the intent the
-    audit states in its own words, *"fails open on interpreter failure"* (REVIEW.md:102).
+    The two `[ -f ]` legs guard the SCRIPT's existence and say nothing about the
+    INTERPRETER's, so a reader with no usable `python` reaches the `rc != 2` branch. That
+    branch used to exit 0. It now refuses, and NAMES the interpreter as the cause -- which
+    is the whole difference between this and the MA-1 failure it superficially resembles:
+    MA-1 refused SILENTLY, and the reader read it as its own breakage.
 
-    Reached hermetically by emptying PATH, so `python` cannot be found. The stand-in is the
-    REFUSING one on purpose: even a tree whose guard would refuse must pass when the guard
-    could not be RUN, or the fail-open posture is not the one that is documented.
+    Reached hermetically by emptying PATH. The stand-in is the REFUSING one on purpose, so
+    the assertion cannot be satisfied by the stand-in's own exit code.
     """
     tree = _fake_tree(tmp_path / "tree", code=_REFUSES)
     result = _run(_hook_command(), cwd=tree, project_dir=None, path="")
@@ -314,23 +353,46 @@ def test_hook_command_fails_open_when_the_interpreter_is_unavailable(tmp_path):
         "PATH was not actually emptied -- the interpreter ran, so this test is not "
         f"measuring what it claims: stdout={result.stdout!r}"
     )
-    assert result.returncode == 0, (
-        "no usable interpreter REFUSED every matching tool call instead of passing -- this "
-        f"is MA-1 by another name: rc={result.returncode} stderr={result.stderr!r}"
+    assert result.returncode == _REFUSES, (
+        "no usable interpreter PERMITTED every matching tool call: "
+        f"rc={result.returncode} stderr={result.stderr!r}"
     )
+    _assert_teaches(result.stderr, cause_names=("python", "PATH"))
 
 
-def test_hook_command_fails_open_when_the_guard_crashes(tmp_path):
-    """The other half of "interpreter failure": the module is found and the interpreter
-    starts, then dies on import or syntax. `prompts_guard()` returns 0 or 2 and NOTHING
-    else, so a `1` cannot be a verdict -- it can only be a crash, and a crashing guard must
-    not brick the session. Only the guard's own `2` refuses."""
+def test_hook_command_refuses_when_the_guard_crashes(tmp_path):
+    """AX15-1's *"any rc other than 0"*, the third inability-to-evaluate mode: the module is
+    found and the interpreter starts, then dies on import or syntax.
+
+    `prompts_guard()` returns 0 or 2 and NOTHING else, so a `1` cannot be a verdict -- it
+    can only be a crash. The refusal must say so SPECIFICALLY: a crash and a missing
+    interpreter reach the same branch, and a message that blamed PATH for an import error
+    would send the reader to the wrong place.
+    """
     tree = _fake_tree(tmp_path / "tree", code=1)
     result = _run(_hook_command(), cwd=tree, project_dir=None)
     assert _REACHED in result.stdout, "the stand-in did not run, so this proves nothing"
-    assert result.returncode == 0, (
-        "a crashing guard refused instead of passing: "
+    assert result.returncode == _REFUSES, (
+        "a crashing guard PERMITTED the tool call: "
         f"rc={result.returncode} stderr={result.stderr!r}"
+    )
+    _assert_teaches(result.stderr, cause_names=("crashed", "rc=1"))
+
+
+def test_hook_command_still_passes_when_the_guard_passes(tmp_path):
+    """The non-over-refusal claim, hermetically -- the M7 property in miniature.
+
+    Fail-closed is only defensible if a guard that RAN and said "ok" is still a pass. This
+    is the test that fails if the inversion is implemented by refusing on everything that
+    is not literally `exit 2`, which would refuse every ordinary session.
+    """
+    tree = _fake_tree(tmp_path / "tree", code=0)
+    result = _run(_hook_command(), cwd=tree, project_dir=None)
+    assert _REACHED in result.stdout, "the stand-in did not run, so this proves nothing"
+    assert result.returncode == 0, (
+        "a PASSING guard was turned into a refusal -- fail-closed was applied to the "
+        f"verdict, not to the inability to evaluate: rc={result.returncode} "
+        f"stderr={result.stderr!r}"
     )
 
 

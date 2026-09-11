@@ -21,6 +21,7 @@ to any real repo. The ruled pack's ex-ante acceptance criteria are pinned here:
 
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -1630,3 +1631,102 @@ def test_live_manifest_admits_root_conftest_for_consumers():
     assert row["tier"]["consumer"] == "LOCAL"
     assert row["probe"] == {"type": "path_tracked", "path": "conftest.py"}
     assert row["declared_by"] in fp.TEMPLATE_DECLARATION_MARKERS
+
+
+# ---------------------------------------------------------------------------
+# AX15-2 -- the prompts-guard FLOOR COUPLING. *"the hook and `scripts/fleet_health.py`
+# (its guard entry point) ship together as one floor component (AX4-1); a consumer with
+# the hook and without the script is a deploy defect caught by `fleet_parity`, not a
+# silent permit."*
+#
+# Why a NEW probe type rather than two existing rows. Two independent `settings_hook` +
+# `path_tracked` rows would assert each half SEPARATELY, which is a different and weaker
+# claim: it makes the SCRIPT mandatory everywhere the row's tier reaches, including repos
+# that carry no hook and need none. The defect AX15-2 names is a RELATION -- hook without
+# script -- so the probe has to express an implication, and an implication is exactly what
+# the existing probe vocabulary could not say.
+#
+# The asymmetry is deliberate and is the whole reason this is safe to declare MUST while
+# the hook itself is still hub-only: a repo with NEITHER half is at parity (the component
+# is simply not deployed there), and only the SPLIT is an error. RED-first: every test
+# below fails on a fleet_parity that has no `settings_hook_script` probe type -- the
+# loader refuses the row as an unknown probe type.
+
+_GUARD_HOOK_SETTINGS = json.dumps({"hooks": {"PreToolUse": [
+    {"matcher": "Read|Write|Edit|Bash",
+     "hooks": [{"type": "command",
+                "command": 'python "$CLAUDE_PROJECT_DIR/scripts/fleet_health.py" '
+                           '--prompts-guard'}]},
+]}}, indent=2)
+
+
+def _coupling_row():
+    return {"id": "settings-prompts-guard-coupling", "kind": "settings-hook-block",
+            "tier": {"hub": "MUST", "consumer": "MUST"},
+            "probe": {"type": "settings_hook_script", "event": "PreToolUse",
+                      "token": "--prompts-guard", "path": "scripts/fleet_health.py"}}
+
+
+def _coupling_verdict(tmp_path, files):
+    hub = _init_repo(tmp_path / "hub", {**_BASE_FILES, **files})
+    manifest = _loaded(tmp_path, {"hub-r": {"role": "hub"}}, [_coupling_row()])
+    findings, _t, _f, _a, _c = _run(manifest, {"dependencies": []}, {"hub-r": hub},
+                                    "hub-r")
+    row = next(f for f in findings
+               if f.surface_id == "settings-prompts-guard-coupling")
+    return row
+
+
+def test_prompts_guard_coupling_passes_when_both_halves_are_present(tmp_path):
+    row = _coupling_verdict(tmp_path, {
+        ".claude/settings.json": _GUARD_HOOK_SETTINGS,
+        "scripts/fleet_health.py": "# guard\n",
+    })
+    assert row.verdict == fp.AT_PARITY, row.evidence
+
+
+def test_prompts_guard_coupling_refuses_the_hook_without_its_script(tmp_path):
+    """AX15-2's named deploy defect, and the reason it is not a silent permit: under the
+    AX15-1 posture that repo's every filesystem-touching tool call is refused by a hook
+    whose script was never carried. Parity has to see it BEFORE the session does."""
+    row = _coupling_verdict(tmp_path, {".claude/settings.json": _GUARD_HOOK_SETTINGS})
+    assert row.verdict == fp.MUST_ABSENT, row.evidence
+    assert "scripts/fleet_health.py" in row.evidence
+
+
+def test_prompts_guard_coupling_is_silent_where_neither_half_is_deployed(tmp_path):
+    """The asymmetry, asserted so a later edit cannot quietly turn this row into a
+    mandate that the SCRIPT exist everywhere: a repo carrying no prompts-guard hook owes
+    no guard entry point, and must not be reported as MUST-absent for lacking one."""
+    row = _coupling_verdict(tmp_path, {})
+    assert row.verdict == fp.AT_PARITY, row.evidence
+
+
+def test_prompts_guard_coupling_also_fires_without_the_script_being_tracked(tmp_path):
+    """An UNTRACKED scripts/fleet_health.py does not discharge the coupling. The surface
+    parity measures is what a deploy CARRIES, and a file no commit contains is not carried
+    -- this is the same tracked-not-present predicate every other path row uses."""
+    hub = _init_repo(tmp_path / "hub",
+                     {**_BASE_FILES, ".claude/settings.json": _GUARD_HOOK_SETTINGS})
+    (hub / "scripts").mkdir(parents=True, exist_ok=True)
+    (hub / "scripts" / "fleet_health.py").write_text("# untracked\n", encoding="utf-8")
+    manifest = _loaded(tmp_path, {"hub-r": {"role": "hub"}}, [_coupling_row()])
+    findings, _t, _f, _a, _c = _run(manifest, {"dependencies": []}, {"hub-r": hub},
+                                    "hub-r")
+    row = next(f for f in findings
+               if f.surface_id == "settings-prompts-guard-coupling")
+    assert row.verdict == fp.MUST_ABSENT, row.evidence
+
+
+def test_live_manifest_carries_the_prompts_guard_coupling():
+    """AX15-2 in the LIVE registry, not only in fixtures -- the clause names fleet_parity
+    as the check, so a coupling that exists only in this test file discharges nothing."""
+    manifest, _ = fp.load_manifest(
+        Path(fp._REPO_ROOT) / "ecosystem" / "parity-surfaces.yaml")
+    row = next(r for r in manifest["surfaces"]
+               if r["probe"].get("type") == "settings_hook_script"
+               and r["probe"].get("token") == "--prompts-guard")
+    assert row["probe"]["path"] == "scripts/fleet_health.py"
+    assert row["probe"]["event"] == "PreToolUse"
+    assert row["tier"].get("hub") == "MUST" and row["tier"].get("consumer") == "MUST"
+

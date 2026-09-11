@@ -1646,19 +1646,119 @@ def test_prompts_guard_is_silent_when_both_scopes_are_unset(capsys):
     assert captured.out == "" and captured.err == ""
 
 
-def test_prompts_guard_fails_open_when_it_cannot_run(capsys):
-    """Fail-OPEN on the guard's own crash, deliberately: a guard that bricked every tool
-    call because it raised would be worse than the defect it guards. Refusal stays reserved
-    for a mismatch it positively established."""
+def test_prompts_guard_refuses_when_it_cannot_run(capsys):
+    """Fail-CLOSED on the guard's own crash, per AX15-1 (2026-09-11, batch X lane W-2').
+
+    This test asserted the OPPOSITE until that ruling, and the inverted form is kept
+    deliberately as the record of the reversal. The old argument was that a guard which
+    bricked every tool call because it raised would be worse than the defect it guards.
+    AX15-1 answers it on a different axis -- *"a guard that permits when it cannot run is
+    declared enforcement without enforcement"* -- and pays for the inversion with the
+    narrowed matcher (the break-glass stays ungated) and with a refusal that teaches.
+
+    The exception TEXT must survive into the message: a refusal whose cause is
+    `RuntimeError('boom')` is diagnosable, one that says only "unavailable" is not.
+    """
     with mock.patch.object(fh, "read_prompts_dir_scopes", side_effect=RuntimeError("boom")):
-        assert fh.prompts_guard() == 0
-    assert "WARNING" in capsys.readouterr().err
+        assert fh.prompts_guard() == 2
+    err = capsys.readouterr().err
+    assert "REFUSED" in err and "Cause:" in err and "Fix:" in err
+    assert "boom" in err, f"the refusal swallowed the underlying error: {err!r}"
 
 
 def test_main_dispatches_the_guard_flag():
     with mock.patch.object(fh, "prompts_guard", return_value=2) as guard:
         assert fh.main(["--prompts-guard"]) == 2
     assert guard.call_count == 1
+
+
+# --- the SessionStart PREFLIGHT: verify once what the per-call guard needs ---------------
+#
+# AX15-1's second sentence: *"A SessionStart check verifies interpreter + guard script once
+# and reports loudly, so per-call refusals are the exception."* It exists BECAUSE the leg
+# above now fails closed -- without it the first news of a missing interpreter is a refused
+# tool call with no preceding warning, which is MA-1's presentation all over again.
+#
+# RED-first (ADR-108 section B): every test below fails on today's module, which has no
+# preflight at all.
+
+def test_resolve_guard_script_prefers_the_project_dir(tmp_path):
+    """The preflight must reproduce the HOOK's resolution order, not invent its own -- a
+    preflight that checks a different path than the hook reaches is worse than none."""
+    project = tmp_path / "project" / "scripts"
+    project.mkdir(parents=True)
+    (project / "fleet_health.py").write_text("", encoding="utf-8")
+    cwd = tmp_path / "cwd" / "scripts"
+    cwd.mkdir(parents=True)
+    (cwd / "fleet_health.py").write_text("", encoding="utf-8")
+    found = fh.resolve_guard_script(str(tmp_path / "project"), str(tmp_path / "cwd"))
+    assert found == project / "fleet_health.py"
+
+
+def test_resolve_guard_script_falls_back_to_cwd(tmp_path):
+    """`[ -f "$g" ] || g="./scripts/..."` -- the hook's SECOND leg, which is what a
+    non-Claude reader with no CLAUDE_PROJECT_DIR actually takes."""
+    cwd = tmp_path / "cwd" / "scripts"
+    cwd.mkdir(parents=True)
+    (cwd / "fleet_health.py").write_text("", encoding="utf-8")
+    assert fh.resolve_guard_script(str(tmp_path / "nowhere"), str(tmp_path / "cwd")) == (
+        cwd / "fleet_health.py")
+    assert fh.resolve_guard_script(None, str(tmp_path / "cwd")) == cwd / "fleet_health.py"
+
+
+def test_resolve_guard_script_returns_none_when_neither_leg_resolves(tmp_path):
+    assert fh.resolve_guard_script(str(tmp_path / "a"), str(tmp_path / "b")) is None
+
+
+def test_guard_preflight_reports_ok_with_both_facts_named(tmp_path):
+    script = tmp_path / "scripts" / "fleet_health.py"
+    verdict, line = fh.guard_preflight_status(script, "/usr/bin/python")
+    assert verdict == fh.GUARD_PREFLIGHT_OK
+    assert "fleet_health.py" in line and "python" in line
+
+
+def test_guard_preflight_no_script_names_cause_and_fix():
+    """Loud, and actionable: AX15-2's deploy defect is exactly this shape on a consumer --
+    the hook block carried, the script not. The line has to say which half is missing."""
+    verdict, line = fh.guard_preflight_status(None, "/usr/bin/python")
+    assert verdict == fh.GUARD_PREFLIGHT_NO_SCRIPT
+    assert "Cause:" in line and "Fix:" in line
+    assert "scripts/fleet_health.py" in line
+
+
+def test_guard_preflight_no_interpreter_names_cause_and_fix(tmp_path):
+    verdict, line = fh.guard_preflight_status(tmp_path / "scripts" / "fleet_health.py", None)
+    assert verdict == fh.GUARD_PREFLIGHT_NO_INTERPRETER
+    assert "Cause:" in line and "Fix:" in line
+    assert "python" in line
+
+
+def test_guard_preflight_says_what_it_will_cost(tmp_path):
+    """The point of the preflight is that the reader learns the CONSEQUENCE before paying
+    it once per tool call. Both failing verdicts must say the guard will refuse."""
+    for args in ((None, "/usr/bin/python"), (tmp_path / "s" / "fleet_health.py", None)):
+        _verdict, line = fh.guard_preflight_status(*args)
+        assert "refuse" in line.lower(), f"preflight hid the consequence: {line!r}"
+
+
+def test_main_prints_the_preflight_line(tmp_path, capsys, monkeypatch):
+    """It renders on the SessionStart leg, beside the [prompts] banner -- a preflight
+    nobody reaches is not a preflight (the same argument 013-A made for that banner)."""
+    monkeypatch.chdir(tmp_path)
+    with mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(None, None)), \
+         mock.patch.object(fh, "read_guard_preflight", return_value=(None, "python")):
+        fh.main([])
+    assert "[prompts-guard]" in capsys.readouterr().out
+
+
+def test_main_returns_two_on_a_failed_preflight(tmp_path, capsys, monkeypatch):
+    """An honest non-zero, not a block: a SessionStart hook CANNOT refuse (measured -- see
+    the module's own hook-wiring block), so this is the same shape as the PROMPTS_REFUSED
+    exit it sits beside. It becomes a real signal for free if a later CLI honours it."""
+    monkeypatch.chdir(tmp_path)
+    with mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(None, None)), \
+         mock.patch.object(fh, "read_guard_preflight", return_value=(None, "python")):
+        assert fh.main([]) == 2
 
 
 # --- the SessionStart leg: loud banner, honest (non-blocking) exit ----------------------
