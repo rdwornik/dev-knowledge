@@ -33,6 +33,7 @@ _SCRIPTS = _REPO_ROOT / "scripts"
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
 
+import gen_handoff as gh  # noqa: E402
 import gen_lane_contract as glc  # noqa: E402
 
 
@@ -928,3 +929,109 @@ def test_a_contract_OUTSIDE_the_repo_is_not_compared_against_an_open_batch(tmp_p
         result = CliRunner().invoke(glc.cli, ["check", str(stray)])
     assert result.exit_code == 0, result.output
     assert "none in this repo" in caplog.text, caplog.text
+# --- 5. [#718]: the generator writes where the dispatch verb READS -------------------------
+#
+# RED-first witness, ADR-108 section B. Measured at full batch scale before it was written:
+# batch W emitted SIX lane contracts into `to-cc/` while `Dispatch-Lane` resolves against the
+# prompts root, and all six were REFUSED. Two literals where there should be one key -- and
+# both were individually CORRECT about the root they named, which is why review never caught
+# it: there is no wrong line to find, only two right lines that disagree.
+#
+# The assertion is the row's Done-when verbatim: the written path EQUALS the path the verb
+# resolves, both from ONE key. Against the code these tests were written for,
+# `_default_out_dir()` returned `Path.cwd()` and this section is RED.
+
+
+def test_the_generators_default_out_dir_IS_the_root_the_verb_reads(tmp_path, monkeypatch):
+    """ONE KEY, asserted as an identity rather than as two agreeing literals.
+
+    `gen_handoff.transport_root()` is the reader's own resolution rule, already in the tree and
+    already tested: `CLAUDE_PROMPTS_DIR`, with the documented `~/Downloads` fallback and None on
+    unresolved. This test says the writer's default is not a second implementation that happens
+    to agree -- it is that function. A test comparing two string literals would stay green
+    through exactly the drift `[#718]` records.
+    """
+    prompts = tmp_path / "prompts-root"
+    prompts.mkdir()
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(prompts))
+    monkeypatch.chdir(tmp_path)  # cwd is deliberately NOT the prompts root -- the `to-cc/` half
+
+    assert glc._default_out_dir() == gh.transport_root()
+    assert glc._default_out_dir() == prompts
+
+
+def test_emit_writes_the_contract_where_the_dispatch_line_it_prints_will_be_read(tmp_path,
+                                                                                 monkeypatch):
+    """The end-to-end property: `emit` puts the file where `Dispatch-Lane <file>` resolves it.
+
+    The dispatch line carries a BARE FILENAME -- the verb resolves it against the prompts root
+    itself -- so writer and reader agreeing is the whole contract between them. This is the
+    batch-W failure reproduced at one lane's scale: emit from a cwd that is not the prompts
+    root, then look for the file where the verb would.
+    """
+    prompts = tmp_path / "prompts-root"
+    prompts.mkdir()
+    elsewhere = tmp_path / "to-cc"
+    elsewhere.mkdir()
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(prompts))
+    monkeypatch.chdir(elsewhere)
+
+    result = CliRunner().invoke(glc.cli, [
+        "emit", "--slug", "lane-x-718-one-key", "--purpose", "one key for writer and reader",
+        "--id", "718"])
+    assert result.exit_code == 0, result.output
+
+    fname = glc.contract_filename("lane-x-718-one-key")
+    resolved_by_the_verb = gh.transport_root() / fname
+    assert resolved_by_the_verb.exists(), (
+        f"emit wrote nothing at {resolved_by_the_verb} -- the verb reads the prompts root and "
+        f"the writer used {Path.cwd()}; that split is [#718]")
+    assert not (elsewhere / fname).exists(), (
+        "emit wrote into the cwd as well as the prompts root -- two locations is the defect "
+        "wearing the fix's clothes")
+
+
+def test_an_UNRESOLVED_prompts_directory_is_a_REFUSAL_and_not_a_silent_fall_back_to_cwd(
+        tmp_path, monkeypatch):
+    """`[#718]`'s own words: "the refusal is the good outcome here, and it should survive the fix".
+
+    Six refusals cost six dispatches; six contracts silently read from a stale location would
+    have cost six lanes running against the wrong text. So when the ONE key resolves to nothing,
+    `emit` refuses -- it does not quietly write to `Path.cwd()`, which is precisely how the
+    split would come back invisibly. `transport_root` already returns None for this case
+    (DEFECT E-29's reading); this asserts the generator honours it.
+    """
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(tmp_path / "does-not-exist"))
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(gh.Path, "home", staticmethod(lambda: tmp_path / "no-home"))
+
+    result = CliRunner().invoke(glc.cli, [
+        "emit", "--slug", "lane-x-718-unresolved", "--purpose", "refuse rather than guess",
+        "--id", "718"])
+    assert result.exit_code != 0, result.output
+    assert "CLAUDE_PROMPTS_DIR" in result.output, result.output
+    assert not list(tmp_path.glob("LANE-*.md")), (
+        "emit fell back to the cwd on an unresolved prompts root -- that restores the "
+        "writer/reader split silently, which is worse than the refusal that surfaced it")
+
+
+def test_an_explicit_out_dir_still_wins_over_the_resolved_root(tmp_path, monkeypatch):
+    """`--out-dir` is an operator override and stays one: the one key is the DEFAULT, not a jail.
+
+    Named because the fix narrows a default, and a fix that also removed the escape hatch would
+    break every test fixture and every ad-hoc draft in the tree.
+    """
+    prompts = tmp_path / "prompts-root"
+    prompts.mkdir()
+    chosen = tmp_path / "chosen"
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(prompts))
+    monkeypatch.chdir(tmp_path)
+
+    result = CliRunner().invoke(glc.cli, [
+        "emit", "--slug", "lane-x-718-explicit", "--purpose", "the override survives",
+        "--id", "718", "--out-dir", str(chosen)])
+    assert result.exit_code == 0, result.output
+
+    fname = glc.contract_filename("lane-x-718-explicit")
+    assert (chosen / fname).exists()
+    assert not (prompts / fname).exists()

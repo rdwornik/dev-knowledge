@@ -111,6 +111,15 @@ from validate_branch_naming import validate_lane_worktree_name  # noqa: E402
 #: (rather than `import batch_manifest`) so `monkeypatch.setattr(glc, "open_batches", ...)`
 #: reaches every call site in this module — the same reason `cmd_check`'s own tests patch it.
 from batch_manifest import freeze_manifest_contract_agreement, open_batches  # noqa: E402
+#: `[#718]` — THE ONE KEY for where a lane contract lives, imported rather than re-derived.
+#: `Dispatch-Lane` takes a BARE FILENAME and resolves it against the operator's prompts
+#: directory itself, so the writer's default and the verb's read have to be the same
+#: resolution or the contract lands where nothing reads it — measured at batch scale: six
+#: contracts written to `to-cc/`, six refused. `transport_root` is that resolution, already in
+#: the tree and already tested (`CLAUDE_PROMPTS_DIR`, `~/Downloads` fallback, None when
+#: unresolved). Imported BY NAME so this module has no second literal to drift from; a third
+#: implementation here is exactly the defect `[#718]` records, one layer on.
+from gen_handoff import transport_root  # noqa: E402
 
 logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("gen-lane-contract")
@@ -932,7 +941,28 @@ def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedCo
 # --- CLI --------------------------------------------------------------------------------------
 
 def _default_out_dir() -> Path:
-    return Path.cwd()
+    """Where a contract goes when the operator names no `--out-dir`: the root the VERB reads.
+
+    `[#718]`, and the fix is an identity rather than an agreement. This used to return
+    `Path.cwd()` — individually correct, and a second literal beside the reader's own. Batch W
+    emitted six contracts into `to-cc/` while `Dispatch-Lane` resolved the prompts root, and
+    all six were refused. There was no wrong line to find; there were two right lines that
+    disagreed, which is why review never caught it.
+
+    UNRESOLVED IS A REFUSAL, not a fall back to the cwd, and the row asks for exactly that:
+    *"the refusal is the good outcome here, and it should survive the fix"*. Six refusals cost
+    six dispatches; six contracts silently read from a stale location would have cost six lanes
+    running against the wrong text. A cwd fallback would restore the split invisibly.
+    """
+    root = transport_root()
+    if root is None:
+        raise LaneContractError(
+            "cannot resolve where a lane contract goes: `CLAUDE_PROMPTS_DIR` names no "
+            "directory and `~/Downloads` is not one either. This is a REFUSAL rather than a "
+            "fall back to the current directory — the dispatch verb reads the prompts root, "
+            "and writing anywhere else puts the contract where nothing reads it ([#718]). "
+            "Set CLAUDE_PROMPTS_DIR, or pass --out-dir to name the target explicitly.")
+    return root
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -974,7 +1004,12 @@ def cmd_emit(slug: str, purpose: str, repo: str, task_id: Optional[str], model: 
         click.echo(text)
         return
 
-    target = (out_dir or _default_out_dir()) / contract_filename(spec.validated().slug)
+    try:
+        # `--out-dir` stays an operator override: the ONE key is the DEFAULT, not a jail.
+        root = out_dir if out_dir is not None else _default_out_dir()
+    except LaneContractError as exc:
+        raise click.ClickException(str(exc)) from exc
+    target = root / contract_filename(spec.validated().slug)
     if target.exists() and not force:
         raise click.ClickException(
             f"{target} already exists — a frozen contract is not silently overwritten; "
