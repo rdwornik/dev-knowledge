@@ -454,3 +454,117 @@ targeted suites and four terra review passes during working hours, and the batch
 (§6) are the cost of that contention showing up as measurement. **No further merges run during
 working hours after the current queue.**
 
+---
+
+## 12 · AMENDED AFTER CLOSE — 2026-09-11, W-2's disposition completed and the closure word applied
+
+> **In-file amendment marker, per critical rule 3** (*"supersede with a new file **or an in-file
+> amendment marker**; never edit in place"*) — the same form batch W's manifest used for its own
+> post-dispatch amendments. **Nothing above is edited.** Sections 8 and 10 are SUPERSEDED in the
+> two respects named below and are kept, marked, not swapped out: §8 held W-2 on the M7 leg before
+> a fresh review existed, and §10's `+14` was correct when measured and is now stale.
+
+### 12.1 · W-2 — the fresh review ran, and it found the ORIGINAL defect still live
+
+AW6-2 bars a merge except *"on a fresh Codex review with no unresolved HIGH."* The integrator ran
+it. **Tally, quoted as AX15-4 requires:**
+
+```
+HANDBACK worktree-lane-w-684-pretooluse-guard-root @ 90c727bd code review=gpt-5.6-terra HIGH:2 MED:0 LOW:0
+  HIGH .claude/settings.json — guard fails open when it cannot execute
+  HIGH tests/test_prompts_guard_hook_wiring.py — tests enforce the insecure fail-open behaviour
+```
+
+**Verified against the code, not taken on trust:**
+
+```
+g="${CLAUDE_PROJECT_DIR:-.}/scripts/fleet_health.py"
+[ -f "$g" ] || g="./scripts/fleet_health.py"
+[ -f "$g" ] || exit 0            <- script missing          -> PERMIT
+python "$g" --prompts-guard; rc=$?
+[ "$rc" = 2 ] && exit 2
+exit 0                            <- crash / no interpreter -> PERMIT
+```
+
+Only `rc == 2` refuses. **This is the integrator's ORIGINAL W-2 HIGH, unchanged** — a fail-safe
+that fails open.
+
+**It was deliberate, and the provenance resolves verbatim.** `REVIEW.md:85` — *"Missing: a guard
+that resolves its own path, and that **fails open** when its interpreter cannot start."*
+`REVIEW.md:102` — *"intent — the prompts-guard resolves its own path and **fails open on
+interpreter failure**."* The measured alternative is MA-1 itself: matcher `"*"` turned an
+interpreter failure into *"refusal of every tool call with no in-session escape."* The lane
+adjudicated the objection across four passes (§A2.6, *"Pass 3 — MA-1 again"*), narrowed the
+fail-open, and fixed a real bug where it skipped a guard sitting in cwd.
+
+**So the two reviews disagreed on a ruled design, and the integrator refused to settle it by
+fiat** — merging would land a guard that permits when it cannot decide; refusing would override
+the verbatim intent of the finding that created the lane. Routed to the operator under ADR-108 §A.
+
+**THE RULING — AX15-1** (`to-cc/AMEND-BATCH-X-ROSTER-015.md`): *"the PreToolUse prompts-guard
+**FAILS CLOSED** for the matched class … whenever it cannot evaluate: script missing, interpreter
+missing, crash, any rc other than 0 … a guard that permits when it cannot run is declared
+enforcement without enforcement."* MA-1's fail-open intent is **superseded**. The HIGH:2 stands.
+
+**DISPOSITION: W-2 is CARRIED to batch X as lane W-2′** (AX15-3), continuing **on its own branch**
+`worktree-lane-w-684-pretooluse-guard-root` @ `90c727bd`. Its **worktree is torn down; the branch
+is PRESERVED** — the work continues on it rather than restarting. W-2′'s Done-when adds RED-first
+trip-tests for both failure modes, the M7 smoke still passing, and a fresh review with no
+unresolved HIGH. On merge it unblocks AX8-1 and X1-4 routing.
+
+**What §8 got right and what it missed.** §8 held W-2 on the M7 leg and called that leg
+unsatisfiable with available instruments — still true, and AX15-3 keeps it in W-2′'s Done-when. But
+§8 was written before a fresh review existed, so it recorded the M7 leg as the *only* thing holding
+W-2. **It was not.** The guard's fail-open posture was the larger of the two, and it took a fresh
+review to surface it.
+
+### 12.2 · THE OPERATOR'S CLOSURE WORD — applied to four rows
+
+`to-browser/RATIFICATION-2026-09-11.md`: *"Close the batch W tasks whose work is on `main` — YES.
+`[#683]` `[#638]` `[#278]` `[#688]`, and `[#684]` once merged, under `[#730]`."*
+
+That is the ONE WORD §9 asked for. **Applied to all four**, each carrying `[#730]`'s evidence shape
+(row id · Done-when verbatim · merged SHA · the gate that proves it) in its own row body:
+
+```
+[#683]  0bb1d5ce (W-4)  release_lint 1.5.0 = 0 FAIL/1 WARN/7 pass; test_override_command_removed
+[#638]  69a0266c (W-3)  proof_layer [OK] 243/243 at baseline; FR-8 re-derived independently
+[#278]  e4929b09 (W-7)  3 artifacts shipped; impacted-tests-guard live; 5 trip-tests pass
+[#688]  365ae7d1 (W-1)  the intake file exists on main -- a pure existence predicate
+```
+
+**`[#684]` is NOT closed** — the word covers it *"once merged"*, and it is carried, not merged.
+
+**The mechanism, recorded because it is not discoverable from the generator's help.** A row closes
+by three coupled edits, not one: the `· CLOSED <date> — <evidence>` marker in the **row body**,
+`status: closed` in the frontmatter, **and removal of its node from `tasks/manifest.json`**. The
+third is load-bearing and non-obvious: `gen_task_tree.plan_frontmatter_refresh` re-renders
+frontmatter **only for files the manifest lists**, and `derive_status` can return only `"deferred"`
+or `"open"` — never `"closed"`. So a hand-set `status: closed` on a still-listed row is silently
+reverted at the next regeneration. The invariant that makes this legible: **closed ⟺ absent from
+the manifest** — measured across the tree at 135 closed rows, all absent, zero closed rows present.
+An earlier in-arc attempt that edited only the frontmatter was reverted by the generator and
+withdrawn; this is the recorded reason.
+
+### 12.3 · NET-ROW OVERDRAFT — §10's figure is SUPERSEDED (AX11-4)
+
+```
+FILED   in the window (task files added since 2026-09-10)          49
+        14 batch W  +  33 X-0 (#693-707, #715-719, #722-734)  +  2 X-R (#720, #721)
+CLOSED  in the window (this act)                                    4
+NET                                                               +45
+open rows on main after this act                                  259
+closed rows on main after this act                                139
+```
+
+**§10 reported `14 filed, 0 closed, +14`.** That was correct when measured — before X-0 and X-R
+landed — and §10 itself warned the figure would be read as the window total once more rows
+arrived. **It is superseded by the +45 above.** The four closures are the first ever applied under
+AX10-1/`[#730]`, so the mechanism now has a precedent as well as a row.
+
+**The overdraft is real and is not netted away.** Four evidenced closures do not cover forty-nine
+filings. The batch discovered faster than it closed — nine instances of *a pin that does not cover
+the thing that can change*, three unguarded edges of the ADR-110 exemption, and a fail-open guard
+that survived four review passes. **That is accrual, not failure — but it is accrual, and AX11-4
+exists so it is a number in a packet rather than a drift nobody measured.**
+

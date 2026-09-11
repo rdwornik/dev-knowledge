@@ -86,7 +86,6 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#624] [P2][M] Nothing watches a BLOCKER's status — a fold target went deferred and no organ noticed · tasks/624-nothing-watches-a-blockers-status.md
 - [#629] [P1][M] An amendment cannot SUBTRACT an act — split rulings REISSUE (predicate 7) · tasks/629-a-contract-amendment-cannot-subtract-an-act.md
 - [#631] [P1][M] A freeze cannot bind a rule that post-dates it — and nothing re-validates a frozen batch when the rules change · tasks/631-a-freeze-cannot-bind-a-rule-that-postdates-it.md
-- [#638] [P2][S] Four new proof-layer guards are undispositionable because the ratchet renders them identically · tasks/638-four-new-proof-layer-guards-are-undispositionable-b.md
 - [#639] [P3][S] Retire the verification organs that fire but never block - by measurement, not by feel · tasks/639-retire-the-verification-organs-that-fire-but-never-.md
 - [#648] [P2][M] Two of R-6's six under-mechanised rules are still prose: locator staleness and dispatcher liveness gate nothing · tasks/648-locator-staleness-and-dispatcher-liveness-gate-nothing.md
 - [#649] [P2][S] The reviewer tally carries one HIGH number where the ruling requires three · tasks/649-reviewer-tally-carries-one-number-where-three-are-owed.md
@@ -193,7 +192,6 @@ Backbone (dependency-ordered; done stages recorded here as the epic ledger — A
 - [#497] [P3][S] Two stale claims on carrier/hook declarations · tasks/497-carrier-mesh-py-75-still-claims-the-informant-lo.md
 - [#496] [P3][S] `_ORGAN_TO_COMPONENT` attributes the pre-push organ to a component that does not carry it — the Tier-3 DRIFT rows it produces are misfiled · tasks/496-organ-to-component-attributes-the-pre-push-organ.md
 - [#605] [P2][M] De-hardcode consumer-root resolution in `deploy/tool.py` and `scripts/audit.py` · tasks/605-de-hardcode-consumer-root-resolution-in-deploy-t.md
-- [#683] [P1][M] The v1.5.0 floor ships `/override`, a command whose own frontmatter says it discharges no gate · tasks/683-the-v1-5-0-floor-ships-override-a-command-that-discharges-no-gate.md
 ---
 - [#656] [P2][S] The v1.5.0 carrier's `floor-seal-report` drift probe matches a literal the command no longer has · tasks/656-v150-floor-seal-report-drift-probe-matches-a-dead-literal.md
 
@@ -230,7 +228,6 @@ So that growth past 65 ADRs doesn't bury or quietly contradict prior decisions.
 - [#637] [P2][M] Nineteen landed audit artifacts carry PROPOSALS that no governance surface has ruled · tasks/637-nineteen-landed-audit-artifacts-carry-proposals-tha.md
 - [#640] [P1][S] The FPG-1 scope narrowing is recorded nowhere, and two landed surfaces still carry the superseded version · tasks/640-the-fpg-1-scope-narrowing-is-recorded-nowhere-and-t.md
 - [#642] [P1][S] The eleven carried questions from batches T and U have no owning row, so their debt is silent · tasks/642-eleven-carried-questions-have-no-owning-row.md
-- [#688] [P1][S] `DECLARE-HARNESS-IS-PROCESS-2026-09-08` is cited by three committed audits and answers to no tracked file · tasks/688-declare-harness-is-process-is-cited-by-three-audits-and-answers-to-no-tracked-file.md
 - [#695] [P2][M] Intake #70 (AJ second pass) is ACCEPTED with zero rows -- its operator practices were extracted and never became work · tasks/695-intake-70-aj-second-pass-is-accepted-with-zero-rows.md
 - [#700] [P2][S] AW5-4 ruled that machine-read control surfaces are STATE rather than narrative, and the ruling reached the close packet and none of the surfaces that state amendment discipline · tasks/700-aw54-control-surfaces-are-state-ruling-reached-no-enforcing-surface.md
 
@@ -321,7 +318,6 @@ So that cognitive overhead per session drops.
 - [#102] [P2][M] Machine-readable repo index for agent consumption · DEFER · tasks/102-machine-readable-repo-index-for-agent-consumptio.md
 - [#273] [P3][S] Changelog-review staleness escalation · DEFER · tasks/273-changelog-review-staleness-escalation.md
 - [#274] [P3][S] Dogfood-signal prior in the /changelog-review ADOPT rubric · tasks/274-dogfood-signal-prior-in-the-changelog-review-ado.md
-- [#278] [P2][M] Test-suite hygiene epic · tasks/278-test-suite-hygiene-epic.md
 - [#317] [P2][M] Default-parallel test invocation · DEFER · tasks/317-default-parallel-test-invocation-slow-tier-marke.md
 - [#322] [P2][M] Fleet dashboard · DEFER · tasks/322-fleet-dashboard.md
 - [#340] [P2][S] /ship pre-flight validator honors the consumer repo's canonical test gate · tasks/340-ship-pre-flight-validator-honors-the-consumer-re.md
