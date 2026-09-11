@@ -306,6 +306,130 @@ rather than in the dispatch line, and **the dispatch line above is an honest rec
 typed, not of what the lane read.** A seat relying on the third positional for anything load-bearing
 is relying on a mechanism that does not work on this machine.
 
+## AMENDED AFTER DISPATCH — THE THREE 2026-09-11 DISPATCHES: A W-2 FIX LANE AND TWO BATCH-X PREPARATORY LANES
+
+**Marked rather than silent**, same ground as the two amendments above. The frontmatter and the
+`## THE LANES` fence are again **left exactly as dispatched**: none of these three adds a fence
+row, and none adds a launch contract to
+`docs/audits/2026-09-10-technical-batch-w-launch-contracts/`. `[#630]` set equality therefore
+still holds at six both ways, and the ADR-110 ceiling is still satisfied by arithmetic. The
+reasons differ per lane and are stated below, because "it did not change the fence" is a
+different fact for a resumed lane than for a lane of the next batch.
+
+**Authority:** the operator's dispatch of 2026-09-11; AW6-2 for the W-2 fix lane. All three are
+LOCAL, all three were launched from generator-carried lines, and all three were DryRun first.
+
+### W-2 fix — the SAME lane resumed, on its own branch, and the ruled verb refuses that
+
+AW6-2 is the "else" branch of AW5-2 (*"otherwise HELD and a fix lane is dispatched"*) and
+requires the work *"on W-2's branch `8634f5f6`"*. That requirement and the ruled verb are
+incompatible, and the incompatibility is by design rather than a defect:
+
+- the generator-carried local line is
+  `Dispatch-Lane lane-w-684-pretooluse-guard-root LANE-w-684-pretooluse-guard-root.md -Effort high`,
+  and its DryRun returned
+  `[lane] SKIP -- branch 'worktree-lane-w-684-pretooluse-guard-root' already exists; not dispatching a second lane.`
+  Guard 1 exists so a second lane cannot collide with a live one; it is correct here and was not
+  worked around.
+- `claude --worktree` only ever **creates** a worktree (`--worktree [name]`: *"Create a new git
+  worktree for this session"*), so **no ruled verb can target an existing branch.**
+
+So the transport is the PLAYBOOK's documented fallback — the same argument set
+`Start-DispatchLane` builds, minus `--worktree`, with cwd set to W-2's existing worktree —
+and the deviation is recorded here rather than left in a terminal. **The alternative was refused
+on two counts:** a new slug mints a new branch, which is (a) not "W-2's branch" and (b) a seventh
+slug in a batch at the ceiling, which the ceiling organ refuses while handing the excess back to
+the plan. Reusing W-2's slug and branch keeps the count at six and adds nothing to the fence —
+this is one lane resumed, not a new one. Its frozen contract is untouched and still governs the
+work already on `8634f5f6`; the fix contract governs only what remains.
+
+**AW6-2's stated premise is FALSE, and the correction is carried into the fix contract rather
+than silently worked around.** AW6-2 says *"generated from the integrator's W-2 review tally:
+resolve the unresolved HIGH"*. There is no such tally and there is no unresolved HIGH on W-2,
+because **no review of that branch was ever run.** From `to-browser/SESSION-integrator.md`: the
+queue line reads `W-2 … @ 8634f5f6 code EXIT 1 HELD review=NONE`; the refusal reads *"code branch
+carries no `review=` token"*; §9 records that W-2's artifact carries *"no reviewer tally of any
+kind"*; and §10 is titled *"W-2 CANNOT CLEAR ITS HOLD — its session is dead"*, stating *"I did not
+run the reviews myself. D-1 makes review a LANE act."* §10 leaves three ways out to the operator
+— authorise an integrator-run review as a deviation, re-dispatch the lane to review its own
+branch, or close with W-2 held and `[#684]` unlanded. **The 2026-09-11 dispatch chose the
+second.** The lane therefore PRODUCES the review that never existed rather than resolving
+another seat's findings, and the fix contract instructs it not to manufacture a HIGH to match the
+amendment's wording. AW6-2's merge condition is the operative one and is forward-looking:
+*"Merges only on a fresh Codex review with no unresolved HIGH."*
+
+**One Done-when leg may remain externally blocked, and that is named up front rather than
+discovered.** The A7-6 / M7 smoke is non-vacuous only against a reader that HONOURS
+`.claude/settings.json`. W-2 measured the honour-set on this machine as exactly
+`{cursor-agent}` — `codex` and `copilot` were measured NOT to honour it, so they read straight
+through the broken hook and are vacuous instruments rather than passing ones — and `cursor-agent`
+was authenticated but usage-limited. At this dispatch it is still installed at
+`2026.09.08-6caf4ff`; **its quota was deliberately not probed, so as not to spend the one budget
+the lane needs.** The fix contract orders a fail-fast probe as step 1 and admits a re-measured
+external block as a legitimate outcome, without weakening the clause.
+
+### X-0 and X-R — batch X's preparatory lanes, recorded here because this is the live manifest
+
+Neither is a batch-W lane. They are recorded in this file because it is the open manifest at
+their dispatch and the operator ordered all three recorded together; **they merge AFTER batch
+W**, by that same instruction. `gen_lane_contract.py check` confirms the separation
+mechanically: *"contract-manifest predicate ([#630]): 2 contract(s), none in this repo — 0
+checked"*. Both contracts pass the shape gate at `shape local` with the slug, branch and command
+agreeing.
+
+- **X-0 `lane-x-000-batch-x-roster-lands`** — TEXT-ONLY. Lands
+  `to-cc/DECLARE-BATCH-X-ROSTER-2026-09-11.md` with `AMEND-BATCH-X-ROSTER-001` (which FREEZES the
+  roster) and `-002` applied, as `docs/intake/2026-09-11-tech-batch-x-roster.md` at
+  `intake-id: 92` (`91` is the highest present), files every NEW row with its Done-when as
+  written and an `implements:` key pointing at that intake, and regenerates `BACKLOG.md`.
+- **X-R `lane-x-000-window-rules-land`** — TEXT-ONLY. Writes
+  `to-cc/DECLARE-WINDOW-RULES-2026-09-11.md` sections A and B into
+  `protocols/STANDING_RULINGS.md` as ONE new dated section — **`AH`**, the file running A…AG —
+  fold-first, a rule already in the repo cited rather than duplicated; section C's two close acts
+  become rows.
+
+**AMEND-BATCH-X-ROSTER-002 is downstream of this batch's own reporting.** AX2-1 corrects X1-6's
+premise — A7-1's *"`skipped_gates`' writer is W-3's output"* was narrower than it read, because
+W-3 produced a per-guard IDENTITY (`Guard.key = module::target`) and not a writer callable — so
+X1-6 now builds the writer itself with W-3 as a dependency. The gap was raised by W-3 at handback
+and reported before X was cut, which is the sequence the re-cut to LOCAL made possible.
+
+### The one real serialization risk, removed by construction rather than left to the merge
+
+X-0 and X-R **both** file rows, both touch `tasks/manifest.json` and both regenerate
+`BACKLOG.md`, while running concurrently on separate branches. A row-id collision is refused at
+merge and returned to the LATER lane, never renumbered (AW4-2) — so a collision costs that lane
+its work. Two things are therefore frozen in the contracts rather than discovered:
+
+- **Reserved, disjoint id blocks.** X-0 takes `693` upward and is barred from passing `719`; X-R
+  takes exactly `720` and `721`, and a third id is a fork it must report rather than take. `692`
+  is the highest id live anywhere — verified across the working tree and both unmerged lane
+  branches at dispatch.
+- **The regeneration overlap is the integrator's, and is declared owed rather than pre-empted.**
+  Each lane regenerates correctly for its own base; neither regeneration is expected to survive
+  the second merge. The integrator merges the two serially and re-runs
+  `gen_task_tree.py --emit-source` on the merged tree — the same rule this manifest's coupling
+  scan already applies to W-1/W-5/W-6, for the same reason: a lane that regenerates against a
+  tree missing a peer's row silently drops it.
+
+Both contracts also carry a step 0 sync to local `main`, because `main` moved twice during this
+dispatch arc (W-7 at `e4929b09`, and W-4 completing), and a generator run on a lagging base
+drops rows while looking clean.
+
+### Receipts
+
+```
+X-0  lane-x-000-batch-x-roster-lands   Dispatch-Lane ... -Effort high   DryRun PASS   session bd507c18   branch up in 10s
+X-R  lane-x-000-window-rules-land      Dispatch-Lane ... -Effort high   DryRun PASS   session ab913a89   branch up in 12s
+W-2  lane-w-684-pretooluse-guard-root  ruled verb SKIPPED (branch exists) -> fallback  session 9f3e2a90   existing branch @ 8634f5f6, tree clean
+```
+
+**Each lane's received prompt was verified off its own transcript**, not assumed from the
+dispatch echo: 104, 101 and 105 characters, each exactly the pointer sentence naming the right
+contract. No third-positional `Extra` was passed to any of the three — everything they need is in
+their contract files — because that positional is silently truncated away on this machine, as the
+AW5-3 section above records.
+
 ## PROVENANCE
 
 Operator GO, 2026-09-10, verbatim:
