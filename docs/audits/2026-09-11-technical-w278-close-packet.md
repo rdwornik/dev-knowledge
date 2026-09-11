@@ -239,3 +239,113 @@ told it could contest them as materially wrong; it did not.
 by one commit. That is stated plainly rather than papered over: the tally above describes
 `a525c97e`, and the tip named in the handback carries the two fixes plus this amendment.
 Witnesses: **21 → 22** in `tests/test_impacted_tests.py`, all green, `ruff` clean.
+
+---
+
+<!-- AMENDMENT 2026-09-11 (second) — rounds 2 and 3 of the same handback review. Appended,
+     not edited: §5 above is accurate as of when it was written and stays as written. -->
+
+## 6. AMENDMENT (2026-09-11, second) — rounds 2 and 3, and the machine-read tally
+
+Tally: review=lane reviewer=gpt-5.6-terra findings=6 fixed=6
+
+That line is the shape `seat_refusals.py reviewer` parses (`_TALLY_RE`, `scripts/seat_refusals.py:274`)
+and is deliberately the **first** occurrence of the substring `Tally:` in this file — its reader
+takes the first match, case-sensitively, so ordering is load-bearing. See the collision note at
+the end of this section. `review=lane` because the lane ran it; `reviewer=` is byte-exact.
+
+**Six findings across three rounds, all six fixed.** Each round re-reviewed the WHOLE branch, not
+the increment — a delta-only pass reporting `HIGH:0` would read as "the branch is clean" when only
+the newest lines were examined.
+
+| round | reviewed | tally | outcome |
+|---|---|---|---|
+| 1 | `3acca581..a525c97e` | `HIGH:1 MED:1 LOW:0` | both fixed → `5cf19dfa` (§5 above) |
+| 2 | `3acca581..5cf19dfa` | `HIGH:1 MED:0 LOW:0` | fixed → `8cd0cf1e` |
+| 3 | `3acca581..8cd0cf1e` | `HIGH:3 MED:0 LOW:0` | all three fixed |
+
+### Round 2 — the guard could be disarmed by its own wiring (FIXED)
+
+The hook row carried `files: '^scripts/.*\.py$'`, so enforcement scope came from a regex in the
+same config the inspected commit can edit. Adding an uncovered `scripts/new_tool.py` **and**
+narrowing that regex in one commit meant the hook was never matched — pre-commit evaluates the
+staged config — so the commit succeeded with no refusal. **The gate was removable by the change it
+exists to inspect.**
+
+Fixed with the reviewer's own minimal fix, which is idiomatic in this file: `always_run: true` +
+`pass_filenames: false`, with the guard reading the staged set itself — the same shape
+`audit-health` two rows below already uses. Cost checked rather than assumed: with no staged
+scripts the guard returns before building any coverage table. Proven end-to-end by staging a real
+uncovered probe and running the guard in the pre-commit shape (no paths): exit 1, refusal naming
+`tests/test_zzz_uncovered_probe.py`, probe removed and removal verified.
+
+### Round 3 — three findings, all real, all fixed
+
+**HIGH — a staged RENAME was invisible to the guard.** This was a **regression introduced by the
+round-2 fix**, which is the honest way to record it. `--diff-filter=ACM` reports *nothing at all*
+for a rename, so renaming a covered script to an uncovered name skipped the guard entirely.
+Measured in a throwaway repo rather than argued: `git mv a.py b.py` yields `[]` under `ACM` and
+`['b.py']` under `ACMR`. Worse, pre-commit's own staged list *does* include renamed destinations —
+so the round-2 fix was **narrower** than the wiring it replaced, and fixing one under-selection
+introduced another. Now `ACMRT`; `D` stays excluded, agreeing with the existence filter rather
+than overlapping it by accident.
+
+**HIGH — machine-read config under a source root was treated as prose.** `DOC_SUFFIXES` matched
+`.json`/`.yaml`/`.toml` *anywhere*, so `plugins/tier1-lifecycle/hooks/hooks.json` selected only
+`-m live_repo` (measured: `marker='live_repo'`, 0 test files) and missed the unmarked witness
+covering malformed-`hooks.json` handling. The doc rule's stated premise — that such a file "cannot
+change Python behaviour" — is simply **false under `scripts/`, `deploy/` and `plugins/`**, where a
+config file *is* the behaviour.
+
+Fixed with a new `source-tree-config` rule that fails safe to the **full suite**, because mapping
+config → tests needs the path-string edges FPG-1 does not carry (residual item 3) and a narrower
+answer would be a guess dressed as a selection. **This cannot invalidate the measured 4.8 %
+miss-rate**: it only ever *adds* tests, and the measured population was `.py` diffs, which this
+does not touch. Scoped precisely — `CONFIG_SUFFIXES` excludes `.md`/`.txt`, so plugin
+documentation keeps the cheap tier, pinned by its own witness.
+
+**HIGH — this record's own count table went stale.** §1's table reports the lane ending at
+**5744 collected / +21 witnesses**. That was true at `a525c97e` and is not true at the tip.
+**§1's table is hereby labelled as the `a525c97e` snapshot**, which is what an immutable audit
+should be, and the tip's figures are stated here instead:
+
+| | §1's table (`a525c97e`) | at this amendment |
+|---|---|---|
+| collected tests | 5744 | **5746** (`ecosystem/doc-counts.md`, generated) |
+| witnesses in `tests/test_impacted_tests.py` | 21 | **26** |
+
+The measured wall-times and savings in §1 are **unaffected** — they were taken against the
+recorded full-suite baseline and no test was deleted at any point, so the ratios stand.
+
+### The shape all six findings share, which is the finding worth keeping
+
+Four of the six are the same defect one level out each time: **a pin that does not cover the thing
+that can change.** A ratchet pinned by size, not membership. Enforcement not covering its own
+wiring. A filter narrower than the wiring it replaced. A classification premise false for a whole
+file class. The batch integrator reports the dispatcher independently found the identical wiring
+defect in `lane-contract-check` (already on `main`), so this is a repo-wide shape rather than this
+lane's bad luck — recorded so the next author looks one level out before declaring done.
+
+### Two mechanism defects found while satisfying this review, reported not worked around
+
+1. **Three grammars for one review fact, two colliding on a substring.** `audit.py`'s
+   `_review_handback_parse` wants `HANDBACK … review=<model> HIGH:n MED:n LOW:n`;
+   `seat_refusals.py:274` wants `Tally: review=<enum> reviewer=<model> findings=n fixed=n`;
+   `audit.py:4720` `_REVIEW_TALLY_RE` wants `**Tally:** n/n/n/n`. The third **contains the
+   substring** the second's reader (`seat_refusals.py:558`) matches first, so an artifact carrying
+   the bolded form ahead of the `Tally:` line draws a **false `tally-malformed` refusal while
+   fully compliant**. This file therefore carries exactly one grammar, ordered first. Verified
+   independently by the integrator and carried as a batch finding.
+2. **"The tallied sha must equal the merged tip" is an unsatisfiable fixpoint.** Fixing a finding
+   moves the tip; recording the tally moves it again. It converges only on a clean round, and even
+   then the amendment sits one commit past the reviewed sha. The terminator adopted instead:
+   review the last commit that changes **behaviour**, land the tally as a **docs-only** commit, and
+   verify the delta is exactly this file — `git diff --stat <reviewed-sha>..<tip>`. That preserves
+   what D-1 protects (no unreviewed enforcement code lands) without asserting a property that
+   cannot hold. The integrator accepted this and withdrew the equality requirement.
+
+**Honest limit, stated rather than implied.** No in-repo gate can stop a committer who edits both
+a gate and its pin in one act, and `--no-verify` remains the declared bypass. What these fixes
+remove is the **silent** case. Round 3 is the last round by agreement with the integrator; the
+reviewed sha for this tally is `8cd0cf1e` and the delta from it to the handed-back tip is this
+file alone.
