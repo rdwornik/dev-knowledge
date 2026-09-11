@@ -183,6 +183,34 @@ def test_a_SINGLE_WORD_process_stem_searched_as_text_is_NOT_denied(stem):
     assert not _denied(_bash(f'grep -rn "{stem}" scripts/')), stem
 
 
+@pytest.mark.parametrize("command", [
+    "grep -n TODO scripts/gen_task_tree.py",
+    'grep -rn "TODO" scripts/graph_queries.py',
+    "rg TODO scripts/gen_task_tree.py",
+    "grep -n raise .claude/commands/boot-session.md",
+    "find scripts/ -name '*.py'",
+    "grep -f patterns.txt scripts/",
+])
+def test_searching_INSIDE_a_governed_file_for_ordinary_text_is_NOT_denied(command):
+    """Terra pre-merge pass 1, P1. The PATTERN is the governed question; the PATH is
+    just where you look. Collecting every non-flag operand made
+    `grep -n TODO scripts/gen_task_tree.py` a governed query because its TARGET is a
+    process -- denying the most ordinary content search there is. `-f` is in the set
+    because its operand is a pattern FILE, not a pattern.
+    """
+    assert not _denied(_bash(command)), f"over-blocked: {command}"
+
+
+@pytest.mark.parametrize("command", [
+    "grep -rn gen_task_tree scripts/graph_queries.py",
+    "grep -e gen_task_tree scripts/",
+    "grep --regexp=gen_task_tree scripts/",
+])
+def test_the_path_vs_pattern_split_does_not_become_an_escape(command):
+    """The converse of the test above: the pattern is still judged wherever it sits."""
+    assert _denied(_bash(command)), f"not denied: {command}"
+
+
 def test_the_word_grep_inside_an_ARGUMENT_is_not_a_search():
     """A search tool must be the HEAD of a segment, not a substring anywhere."""
     assert not _denied(_bash('git commit -m "add grep support to the selector"'))

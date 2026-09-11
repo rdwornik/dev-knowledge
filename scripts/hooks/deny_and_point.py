@@ -114,6 +114,44 @@ SEARCH_HEADS = frozenset({
 #: Segment separators. A pipeline's later stages are judged too -- `cat x | grep y` is a search.
 _SEGMENT_SPLIT = re.compile(r"\|\||&&|[|;]")
 
+# ---------------------------------------------------------------- PATTERN vs PATH
+#
+# A search command has TWO kinds of operand and only ONE of them is the question. In
+# `grep -n TODO scripts/gen_task_tree.py` the PATTERN is `TODO` -- an ordinary content search --
+# and `scripts/gen_task_tree.py` is merely WHERE you look. Treating every non-flag operand as a
+# candidate denied that command because its TARGET happens to be a process, which is the most
+# ordinary search there is. Found by the Terra pre-merge review (pass 1, P1) and fixed here; the
+# converse -- a governed pattern searched INSIDE a governed file -- is still denied, and both
+# directions are pinned by tests.
+
+#: Flags whose NEXT token is consumed and is NOT a pattern: a count, a glob, a type, a path.
+#: Case-sensitive, because `-C` (context, takes a value) and `-c` (count, does not) differ.
+_VALUE_FLAGS = frozenset({
+    "-m", "--max-count", "-A", "--after-context", "-B", "--before-context",
+    "-C", "--context", "--include", "--exclude", "--exclude-dir", "--exclude-from",
+    "-g", "--glob", "-t", "--type", "-T", "--type-not", "-M", "--max-columns",
+    "-d", "--directories", "-D", "--devices", "--binary-files", "--colors", "--label",
+})
+
+#: PowerShell parameter names are case-insensitive, so these are matched on the lowered token.
+_VALUE_FLAGS_PS = frozenset({
+    "-path", "-literalpath", "-include", "-exclude", "-context", "-encoding",
+})
+
+#: Flags whose next token IS the pattern.
+_PATTERN_FLAGS = frozenset({"-e", "--regexp"})
+_PATTERN_FLAGS_PS = frozenset({"-pattern"})
+
+#: Flags that supply the pattern from a FILE -- so there is a pattern, but no token holds it,
+#: and no positional operand is one either.
+_PATTERN_FROM_FILE = frozenset({"-f", "--file"})
+
+#: `find` primaries whose next token is the name pattern. Everything before them is a path.
+_FIND_NAME_PRIMARIES = frozenset({
+    "-name", "-iname", "-path", "-ipath", "-wholename", "-iwholename",
+    "-lname", "-ilname", "-regex", "-iregex",
+})
+
 #: The declared escape. Needs a REASON: a bare marker is not a declaration.
 _ESCAPE = re.compile(r"#\s*raw-needed:\s*\S")
 
@@ -175,8 +213,74 @@ def resolve_process(token: str, processes: dict[str, str]) -> str | None:
     return None
 
 
+def _find_patterns(args: list[str]) -> list[str]:
+    """`find`'s pattern operands: the value of a `-name`-family primary, and nothing else.
+
+    Everything before a primary is a path to search UNDER, never a thing being asked about.
+    """
+    out: list[str] = []
+    for i, tok in enumerate(args):
+        if tok in _FIND_NAME_PRIMARIES and i + 1 < len(args):
+            out.append(args[i + 1])
+    return out
+
+
+def _grep_patterns(args: list[str]) -> list[str]:
+    """The pattern operands of a grep-family or `Select-String` invocation.
+
+    One rule, applied in order: a pattern FLAG's value is the pattern; a value-taking flag
+    consumes its operand; any other `-` token is a flag; and the FIRST bare positional is the
+    pattern only when no flag has already supplied one. Every later positional is a path.
+    """
+    out: list[str] = []
+    supplied = False
+    i = 0
+    while i < len(args):
+        tok = args[i]
+        i += 1
+        if not tok:
+            continue
+        if tok.startswith("-"):
+            flag, eq, inline = tok.partition("=")
+            low = flag.lower()
+            if flag in _PATTERN_FLAGS or low in _PATTERN_FLAGS_PS:
+                supplied = True
+                if eq:
+                    out.append(inline)
+                elif i < len(args):
+                    out.append(args[i])          # the NEXT token IS the pattern
+                    i += 1
+                continue
+            if flag in _PATTERN_FROM_FILE:
+                supplied = True                  # the pattern lives in a file, not a token
+                if not eq:
+                    i += 1
+                continue
+            if flag in _VALUE_FLAGS or low in _VALUE_FLAGS_PS:
+                if not eq:
+                    i += 1                       # its operand is a count/glob/type/path
+                continue
+            continue                             # a plain flag
+        if not supplied:
+            supplied = True
+            out.append(tok)                      # the first bare positional is the pattern
+    return [tok for tok in out if tok]
+
+
+def _patterns_of(argv: list[str]) -> list[str]:
+    """What this search command is ASKING ABOUT -- its pattern operands, never its paths."""
+    head = argv[0].rsplit("/", 1)[-1].rsplit("\\", 1)[-1].lower()
+    if head.endswith(".exe"):
+        head = head[:-4]
+    if head not in SEARCH_HEADS:
+        return []
+    if head == "find":
+        return _find_patterns(argv[1:])
+    return _grep_patterns(argv[1:])
+
+
 def search_candidates(command: str) -> list[str]:
-    """Non-flag tokens of every segment whose HEAD is a search tool.
+    """The pattern operands of every segment whose HEAD is a search tool.
 
     Empty list = this command is not a search, and the store is never opened for it. An
     unparseable command yields an empty list too: a guard malfunction must not block normal work.
@@ -188,14 +292,8 @@ def search_candidates(command: str) -> list[str]:
         return []
     candidates: list[str] = []
     for argv in segments:
-        if not argv:
-            continue
-        head = argv[0].rsplit("/", 1)[-1].rsplit("\\", 1)[-1].lower()
-        if head.endswith(".exe"):
-            head = head[:-4]
-        if head not in SEARCH_HEADS:
-            continue
-        candidates.extend(a for a in argv[1:] if a and not a.startswith("-"))
+        if argv:
+            candidates.extend(_patterns_of(argv))
     return candidates
 
 
