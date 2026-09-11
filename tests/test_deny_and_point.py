@@ -130,6 +130,38 @@ def test_every_organ_the_pointer_names_actually_EXISTS_on_disk():
         assert (_REPO / relpath).exists(), f"pointer names a missing organ: {relpath}"
 
 
+def test_the_pointer_passes_the_RESOLVED_PATH_to_the_test_selector():
+    """Terra pre-merge pass 2, P1. `impacted_tests.py select` with no --changed derives
+    its paths from the staged diff, so it answers a different question than the one
+    that was denied -- or prints "no changed paths" and answers none."""
+    _decision, reason = _decide(_bash("rg gen_task_tree"))
+    assert "select --changed scripts/gen_task_tree.py" in reason
+
+
+def test_the_pointer_names_the_form_of_process_list_that_RETURNS_ROWS():
+    """Terra pre-merge pass 2, P1. Bare `process-list` prints aggregate counts and a
+    refusal; `--render` emits the roster rows with each process's trigger. A pointer at
+    the form that returns no rows cannot answer 'is there already an organ for this'."""
+    _decision, reason = _decide(_bash("rg gen_task_tree"))
+    assert "process-list --render" in reason
+
+
+def test_every_command_the_refusal_NAMES_actually_runs_and_answers():
+    """The strongest form of 'the pointer is the row': the invocations are EXTRACTED from
+    the refusal text and executed. A pointer that does not run is a denial with extra
+    steps, and prose cannot be trusted to stay true as the organs change."""
+    _decision, reason = _decide(_bash("rg gen_task_tree"))
+    invocations = [line.split("->", 1)[1].strip()
+                   for line in reason.splitlines() if "->" in line and "python" in line]
+    assert invocations, "the refusal names no runnable invocation"
+    for cmd in invocations:
+        argv = cmd.replace("uv run --locked python", sys.executable, 1).split()
+        proc = subprocess.run(argv, capture_output=True, text=True,
+                              encoding="utf-8", errors="replace", cwd=str(_REPO))
+        assert proc.returncode == 0, f"pointer failed: {cmd}\n{proc.stderr[-800:]}"
+        assert proc.stdout.strip(), f"pointer answered nothing: {cmd}"
+
+
 def test_the_refusal_states_the_declared_escape():
     """A refusal with no lawful way through is how a PreToolUse rule wedges."""
     _decision, reason = _decide(_bash('grep -rn "gen_task_tree" scripts/'))

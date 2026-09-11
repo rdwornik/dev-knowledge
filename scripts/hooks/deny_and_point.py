@@ -317,16 +317,25 @@ def _tool_candidates(payload: dict) -> list[str]:
 
 
 def _pointer(relpath: str) -> str:
-    """The exception text. Names the organ AND the exact invocation, per question."""
+    """The exception text: the organ AND the exact invocation that ANSWERS the question.
+
+    Every invocation here is parameterised on the resolved path and named in the FORM that
+    returns rows. Both of those were Terra pre-merge findings (pass 2, P1 x2) rather than
+    original care: `select` with no `--changed` answers off the staged diff, and a bare
+    `process-list` prints aggregate counts with no roster. A pointer that runs but answers a
+    different question is a denial with extra steps, which is the failure the row's own thesis
+    -- "the denial is the cheap half; the pointer is the row" -- exists to avoid.
+    """
     return (
         f"DENIED: this is a raw search over a GOVERNED question -- '{relpath}' is a process the "
         "repo graph already holds, so the answer is a query, not a grep ([#727], AX9-1).\n"
         "Run the organ instead:\n"
-        f"  what is this file / where does it live  ->  uv run --locked python "
+        f"  what is this file / where does it live / who triggers it  ->  uv run --locked python "
         f"scripts/file_purpose_graph.py why {relpath}\n"
-        "  who triggers it / is there an organ for this  ->  uv run --locked python "
-        "scripts/graph_queries.py process-list\n"
-        f"  which tests cover it  ->  uv run --locked python scripts/impacted_tests.py select\n"
+        "  is there already an organ for this  ->  uv run --locked python "
+        "scripts/graph_queries.py process-list --render\n"
+        "  which tests cover it  ->  uv run --locked python scripts/impacted_tests.py "
+        f"select --changed {relpath}\n"
         "  the full roster  ->  ecosystem/organ-index.md\n"
         "If you genuinely need the raw hits (renaming every call site, say), declare it: append "
         "'# raw-needed: <reason>' to the command."
