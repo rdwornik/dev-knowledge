@@ -354,3 +354,80 @@ def test_the_seal_job_does_not_run_the_validator_bare(workflow):
     seal = "\n".join(str(step.get("run", "")) for step in workflow["jobs"]["seal"]["steps"])
     assert "git reset --soft" in seal
     assert "merge-base --is-ancestor" in seal, "an unresolvable range must SKIP, not seal the tree"
+
+
+# --- the §4 SessionStart surface --------------------------------------------------------
+
+def test_session_start_never_raises_and_never_blocks(cond, tmp_path, monkeypatch):
+    # A SessionStart hook that throws costs every session in the repo. And it cannot refuse a
+    # session even if it wanted to -- only PreToolUse can -- so a non-zero exit would be noise
+    # with no effect. `--no-gh` is the offline path, which is the one that must never break.
+    monkeypatch.setattr(cond, "_gh", lambda *a: None)
+    text = cond.session_start(tmp_path, use_gh=False)
+    assert "[conductor]" in text
+    assert cond.main(["session-start", "--repo-root", str(tmp_path), "--no-gh"]) == 0
+
+
+def test_session_start_says_runs_are_unreadable_rather_than_reporting_zero(cond, tmp_path,
+                                                                          monkeypatch):
+    # "0 runs" and "I could not read the runs" are different facts, and collapsing them is how
+    # a broken gh probe reads as a quiet, healthy system.
+    monkeypatch.setattr(cond, "_gh", lambda *a: None)
+    text = cond.session_start(tmp_path, use_gh=True)
+    assert "none readable" in text
+
+
+def test_session_start_reports_no_runs_yet_distinctly_from_unreadable(cond, tmp_path,
+                                                                     monkeypatch):
+    monkeypatch.setattr(cond, "_gh", lambda *a: "[]")
+    text = cond.session_start(tmp_path, use_gh=True)
+    assert "none yet" in text
+    assert "none readable" not in text
+
+
+def test_session_start_surfaces_a_gate_failure_as_what_awaits_your_word(cond, tmp_path,
+                                                                       monkeypatch):
+    monkeypatch.setattr(cond, "_gh", lambda *a: "[]")
+    root = _tree(tmp_path, {"10": "alpha · Done when: ok · phase: archive"})
+    text = cond.session_start(root, use_gh=True)
+    assert "awaits your word: #10 declares phase: archive" in text
+    assert "1 FAIL" in text
+
+
+def test_session_start_says_nothing_awaits_when_the_gate_is_clean(cond, tmp_path, monkeypatch):
+    # The line is printed even when empty, deliberately: an organ that goes silent on a clean
+    # result is indistinguishable from an organ that did not run.
+    monkeypatch.setattr(cond, "_gh", lambda *a: "[]")
+    root = _tree(tmp_path, {"10": "alpha · Done when: ok · phase: task"})
+    text = cond.session_start(root, use_gh=True)
+    assert "awaits your word: nothing from the phase gate" in text
+
+
+def test_the_session_start_hook_is_wired_in_settings_json(cond):
+    # §8 leg 3 is "SessionStart hook" -- a script nothing calls is not a hook. This asserts the
+    # wiring, which is the half that is easy to forget and impossible to see from the module.
+    settings = json.loads((_REPO / ".claude" / "settings.json").read_text(encoding="utf-8"))
+    commands = [h["command"] for block in settings["hooks"]["SessionStart"]
+                for h in block["hooks"]]
+    assert any("conductor.py" in c and "session-start" in c for c in commands),         "the conductor SessionStart surface is not wired into .claude/settings.json"
+
+
+def test_the_two_conductor_surfaces_are_floor_components_in_the_manifest(cond):
+    # AX3-2: "the Actions workflow and its required-check ruleset are floor components in the
+    # deploy manifest, so corp-monorepo (and every consumer) gets them with the floor".
+    # AX4-1 dispositions both MUST, and `waivable: false` is what MUST means in this schema.
+    spec = yaml.safe_load((_REPO / "deploy" / "manifest-v1.5.0.yaml").read_text(encoding="utf-8"))
+    by_id = {c["id"]: c for c in spec["components"]}
+    for cid, artifact in (("conductor-workflow", ".github/workflows/conductor.yml"),
+                          ("conductor-required-checks",
+                           "deploy/conductor-required-checks.ruleset.json")):
+        comp = by_id[cid]
+        assert comp["carrier"] == "conductor"
+        assert comp["status"] == "active"
+        assert comp["waivable"] is False, "AX4-1 dispositions conductor E floor: MUST"
+        assert artifact in [a["path"] for a in comp["artifacts"]]
+    carrier = next(c for c in spec["carriers"] if c["id"] == "conductor")
+    # DECLARATION-ONLY on purpose: RATIFICATION-2026-09-11 defers harness deployment to
+    # corp-monorepo until batch X's waves are done, so a write-through carrier today would
+    # execute a deployment the operator deferred.
+    assert carrier["implemented"] is False

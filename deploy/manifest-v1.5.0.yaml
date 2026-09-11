@@ -501,7 +501,91 @@ carriers:
         - scripts/boot_frontier.py
         - scripts/fleet_health.py
 
+  # NEW in this cut -- conductor E ([#689]), declared under AX3-2: "the Actions workflow and
+  # its required-check ruleset are floor components in the deploy manifest, so corp-monorepo
+  # (and every consumer) gets them with the floor; the operator sees runs in the repo's
+  # Actions tab and checks on every merge."
+  - id: conductor
+    order: 9
+    implemented: false
+    description: >
+      Conductor E's runner and gate surface -- `.github/workflows/conductor.yml` plus
+      `deploy/conductor-required-checks.ruleset.json`, decided by the §3 matrix of
+      to-cc/DECLARE-CONDUCTOR-DECISION-2026-09-09.md (E weighted 58). DECLARATION-ONLY at this
+      cut (implemented: false), the same posture as `editor-config` and `boot-inversion` above,
+      and for a REASON THAT IS AN OPERATOR RULING RATHER THAN AN UNFINISHED MODULE:
+      to-browser/RATIFICATION-2026-09-11.md rules "No harness deployment to corp-monorepo until
+      batch X's waves are done" -- minimum X1 and X2. A carrier module that WROTE these two
+      files into a consumer today would execute a deployment he has explicitly deferred, so the
+      declaration lands and the write-through waits for the wave that unblocks it. The hub half
+      is built and tested (the workflow, `scripts/conductor.py`, 28 witnesses in
+      tests/test_conductor.py).
+      TWO THINGS A CONSUMER DEPLOY MUST NOT DO BLINDLY, recorded here because this is the file a
+      future carrier module will read. (1) The ruleset payload arrives `enforcement: disabled`
+      and must STAY disabled until the consumer's landing protocol is known: a
+      required_status_checks rule refuses a direct push whose head commit has no passing
+      checks, and a repo that lands by local --no-ff merge (which every repo under this
+      methodology does, core-invariant #5) would have every push to main refused, permanently.
+      Arming is a per-consumer operator act, never a deploy step. (2) The workflow's `seal` job
+      runs `scripts/validate_hermetization.py`, which a consumer only has once the tree-seal
+      carrier reaches it -- so a consumer without it gets the runner legs and not the seal leg,
+      which is a narrowing to declare rather than a failure to discover.
+    adr: [ADR-101]
+    target:
+      source_paths:
+        - .github/workflows/conductor.yml
+        - deploy/conductor-required-checks.ruleset.json
+        - scripts/conductor.py
+
 components:
+  - id: conductor-workflow
+    # kind: `config` follows the precedent of every other file-copy component
+    # (intake-area / install-guide / vscode-boundary-decoration / codex-agents-config).
+    # NOT `hook`: that kind names a pre-commit / settings-hook entry, and this is a
+    # server-side workflow file, not a git hook.
+    kind: config
+    carrier: conductor
+    status: active
+    waivable: false   # AX4-1 `floor: MUST`. A consumer without the runner has no server-side
+                      # evaluation at all, which is the whole substance of conductor E -- there
+                      # is no degraded mode that still delivers the decision. hub-only would
+                      # have required a one-line reason and there is none: AX3-2 says
+                      # explicitly that corp-monorepo gets this with the floor.
+    verify: hash
+    engages:                    # OBSERVED (git-state) -- a carried file; the RUN is GitHub's
+      trigger: deploy-time
+      observable: git-state
+      expect: ".github/workflows/conductor.yml present (hash-matched to the hub source)"
+    artifacts:
+      - path: .github/workflows/conductor.yml
+        source: .github/workflows/conductor.yml
+      - path: scripts/conductor.py
+        source: scripts/conductor.py
+    roster:
+      section: header
+      line: "`.github/workflows/conductor.yml` + `scripts/conductor.py` — conductor E's Actions runner and phase gate ([#689], AX3-2; declaration-only until batch X's waves close)"
+
+  - id: conductor-required-checks
+    kind: config
+    carrier: conductor
+    status: active
+    waivable: false   # AX4-1 `floor: MUST`. The DECLARATION is the floor obligation; ARMING it
+                      # is not, and the payload's `enforcement: disabled` is what keeps those
+                      # two apart. A consumer may never arm it and still be at parity -- what
+                      # it may not do is lack the declaration, because then the gate leg of E
+                      # has no reviewable definition anywhere in that repo.
+    verify: hash
+    engages:                    # OBSERVED (git-state) -- a payload file, not a firing gate
+      trigger: deploy-time
+      observable: git-state
+      expect: "deploy/conductor-required-checks.ruleset.json present (hash-matched)"
+    artifacts:
+      - path: deploy/conductor-required-checks.ruleset.json
+        source: deploy/conductor-required-checks.ruleset.json
+    roster:
+      section: header
+      line: "`deploy/conductor-required-checks.ruleset.json` — the required-check ruleset as a pure Rulesets-API payload, arriving `enforcement: disabled`; `gh api repos/{owner}/{repo}/rulesets --input <file>` applies it, and arming it is a per-consumer operator act"
+
   - id: intake-area
     # kind: `config` follows the precedent of every OTHER file-copy component
     # (vscode-boundary-decoration / codex-agents-config / methodology-floor). NOT

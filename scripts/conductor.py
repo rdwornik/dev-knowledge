@@ -470,6 +470,61 @@ def render_metrics(m: dict) -> str:
     return "\n".join(out)
 
 
+# --- the SessionStart surface -----------------------------------------------------------
+# §4, verbatim: "View = `gh` + Projects. LEDGER rendered, not written. SessionStart hook
+# locally: `gh run list` + 'what awaits your word' -- the whole session initiation."
+#
+# FAIL-SOFT, ALWAYS, and never chatty. A SessionStart hook that blocks or floods costs every
+# session in the repo, and `scripts/fleet_health.py` already owns the operator-asks digest --
+# this surface adds the ONE thing §4 names and that nothing else prints: what the runner did,
+# and what the gate says is waiting. It exits 0 unconditionally; a SessionStart hook cannot
+# refuse a session anyway (only PreToolUse can), so a non-zero exit here would be noise with
+# no effect.
+
+def session_start(repo_root: Path | None = None, *, use_gh: bool = True) -> str:
+    """The `[conductor]` SessionStart lines: what the runner did, and what awaits a word."""
+    root = Path(repo_root) if repo_root is not None else _REPO_ROOT
+    lines = []
+    raw = _gh("run", "list", "--workflow", "conductor.yml", "--limit", "3",
+              "--json", "conclusion,event,createdAt,displayTitle") if use_gh else None
+    if raw is None:
+        lines.append("[conductor] runs: none readable (gh absent/unauthenticated, or "
+                     "conductor.yml has never run on the default branch)")
+    else:
+        try:
+            runs = json.loads(raw)
+        except ValueError:  # pragma: no cover -- gh returning non-JSON on success
+            runs = []
+        if not runs:
+            lines.append("[conductor] runs: none yet -- the workflow lands with this arc and "
+                         "fires on the next push to main")
+        for r in runs:
+            lines.append(f"[conductor] {str(r.get('createdAt'))[:16]}  "
+                         f"{str(r.get('conclusion') or 'in-progress'):<12} "
+                         f"{r.get('event')}  {str(r.get('displayTitle'))[:56]}")
+    try:
+        verdicts, census, schema_hard = phase_gate(root)
+    except (OSError, ValueError) as exc:  # pragma: no cover -- a corrupt tasks/ tree
+        lines.append(f"[conductor] phase gate: NOT RUN -- {exc}")
+        return "\n".join(lines)
+    fails = [v for v in verdicts if v["verdict"] == "fail"]
+    unphased = len(census.get("unphased", []))
+    total = sum(len(v) for v in census.values())
+    lines.append(f"[conductor] phase gate: {len(fails)} FAIL, "
+                 f"{total - unphased} of {total} rows phased")
+    # "WHAT AWAITS YOUR WORD" is the gate's FAILs plus the schema refusals -- the only two
+    # things this organ can honestly say need a decision. It does not guess at the rest: a
+    # SessionStart line that invented an ask would train the operator to ignore the line.
+    for h in schema_hard[:3]:
+        lines.append(f"[conductor] awaits your word: {h}")
+    for v in fails[:3]:
+        lines.append(f"[conductor] awaits your word: #{v['id']} declares "
+                     f"phase: {v['phase']} -- {v['evidence']}")
+    if not fails and not schema_hard:
+        lines.append("[conductor] awaits your word: nothing from the phase gate")
+    return "\n".join(lines)
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description="Conductor E: the phase gate and the §6 evaluation numbers. Read-only.")
@@ -477,13 +532,18 @@ def main(argv: list[str] | None = None) -> int:
     sub = ap.add_subparsers(dest="command", required=True)
     gate = sub.add_parser("phase-gate", help="evaluate the phase gate over tasks/")
     gate.add_argument("--repo-root", default=None, help=argparse.SUPPRESS)
+    boot = sub.add_parser("session-start",
+                          help="the §4 SessionStart surface: gh run list + what awaits a word")
+    boot.add_argument("--repo-root", default=None, help=argparse.SUPPRESS)
+    boot.add_argument("--no-gh", action="store_true",
+                      help="skip the gh probe (offline; the runs line says so)")
     nums = sub.add_parser("metrics", help="the §6 numbers, computed or NOT COMPUTED with a reason")
     nums.add_argument("--repo-root", default=None, help=argparse.SUPPRESS)
     nums.add_argument("--gh", action="store_true",
                       help="query gh for the Actions-log and billing numbers (network)")
     nums.add_argument("--transport", default=None,
                       help="the operator transport dir holding to-cc/ (for number 3)")
-    for p in (gate, nums):
+    for p in (gate, nums, boot):
         p.add_argument("--out", default=None, help="write the report here (the only disk write)")
     args = ap.parse_args(argv)
 
@@ -498,6 +558,9 @@ def main(argv: list[str] | None = None) -> int:
         verdicts, census, schema_hard = phase_gate(root)
         report = render_phase_gate(verdicts, census, schema_hard)
         rc = 1 if (schema_hard or any(v["verdict"] == "fail" for v in verdicts)) else 0
+    elif args.command == "session-start":
+        report = session_start(root, use_gh=not args.no_gh)
+        rc = 0   # a SessionStart surface never blocks; see session_start's own comment
     else:
         transport = Path(args.transport) if args.transport else None
         report = render_metrics(metrics(root, use_gh=args.gh, transport=transport))
