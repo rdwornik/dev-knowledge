@@ -19,6 +19,50 @@
 
 ---
 
+### 2026-09-11 (o) - CC (Opus 5, background integrator seat): the wave-1 anchor arc names its own first commit
+
+**Names `176bf9c3`**, the entry below, which this arc's own `--no-ff` merge introduces. A
+one-commit anchor arc cannot discharge the anchor its own merge creates - APPEND ONLY, B6.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+### 2026-09-11 (n) - CC (Opus 5, background integrator seat): the wave-1 merge anchors, written BEFORE the merges
+
+**Names all six wave-1 lane tips**, each of which its own `--no-ff` merge will introduce:
+
+```
+b0aa0abfb4f8a0de0445a932b6663bc475ca11f9   W-2'    lane-w-684-pretooluse-guard-root
+79bc4d2c69d3f489a12a19b04bb4e6a4ea6c74bd   lane-5  lane-x-716-dispatch-defects
+a661ca20dfcff0d5300aebb0562ec507a7291fd0   X1-1    lane-x-692-decision-coverage
+4617f32527f1659c130414997f4836621a3e152a   X1-2    lane-x-689-conductor-e
+3e64f345eeca00d253b88387628d46230486fbc9   X-DEL   lane-x-734-retire-stage
+0b39409406204fce3c0fc5b0fdd44c0e0296d594   X1-5    lane-x-664-delivery-spine
+```
+
+**Why this entry exists at all, and why it is written ahead of the merges rather than after.**
+`docs/audits/2026-09-11-technical-batch-x-manifest.md` carries no `status: open` and no
+`closed_by:`, so `batch_manifest.open_batches` returns **0** and batch X's lanes take **no
+ADR-110 exemption**. Reported at `0be08b3c`; unrepaired on `main` and on both live dispatcher
+branches, checked rather than assumed. **And not one of the six lanes wrote a JOURNAL entry on
+its own branch** - measured, 0 of 6. So every wave-1 merge would land unanchored and block the
+next commit in the repo, including the next merge.
+
+The lawful answer is not to merge and repair six times afterwards. **STANDING_RULINGS B2/B6 put
+the anchor on the branch AHEAD of the merge**, precisely because a merge commit cannot name its
+own hash; anchoring after the fact is the repair shape, not the shape of the law. One entry
+naming all six tips discharges all six merges in advance and leaves `main` anchored at every
+point in the queue rather than blocked at five of them.
+
+**What this entry does NOT claim.** It is an anchor, not a verdict. No lane is merged on the
+strength of appearing here: each is reviewed, suited and verdicted at its own merge, in the
+operator's order - W-2' first (it unblocks non-Claude providers), then lane-5, X1-1, X1-2,
+X-DEL, X1-5 last. A tip listed here that fails its review does not merge, and the wave-close
+entry records that rather than this one.
+
+**Baseline before the wave:** `main` = `0be08b3c`, 5752 tests collected, health OK.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-11 (m) - CC (Opus 5, background integrator seat): the anchor arc names its own first commit
 
 **Names `efd5d47f`**, the entry below, which this arc's own `--no-ff` merge introduces.
