@@ -109,6 +109,9 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#685] [P2][M] The operator GO leaves no artifact, so the authorization a lane runs under cannot be read back from the tree · tasks/685-the-operator-go-leaves-no-artifact.md
 - [#686] [P2][M] Three handoff-gate predicates measure the wrong property — carrier existence, file bytes, and an over-globbed population · tasks/686-three-gate-predicates-measure-the-wrong-property.md
 - [#687] [P2][M] A task carries no execution position, and the row that would compute one from the spine is not required to · tasks/687-a-task-carries-no-execution-position-and-the-spine-does-not-yet-supply-one.md
+- [#689] [P1][L] Conductor E is decided and unbuilt — GitHub Actions as the runner, state stays in tasks/, required checks as gates · tasks/689-conductor-e-is-decided-and-unbuilt.md
+- [#691] [P2][M] Provider routing is an unordered role set with no admission gate and no licence field — a role needs an ORDERED fallback list only admitted providers may enter · tasks/691-provider-routing-is-an-unordered-role-set-with-no-admission-gate.md
+- [#692] [P1][L] decision_coverage — nothing makes a decided thing stay scheduled, so the guarantee lives in a seat's memory instead of in the repo · tasks/692-decision-coverage-a-decided-thing-is-never-unscheduled-again.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md

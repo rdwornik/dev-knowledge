@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "8b9b180326eae637916943b72e82a7d59c3286d6e3444c57b3c9ce279e42ca2c",
+  "generated_sha256": "60410ae24b62ad07c424f323e938619b18853a75a007d26240b1ddacb510cbf4",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -412,6 +412,18 @@
     {
       "task": 687,
       "file": "687-a-task-carries-no-execution-position-and-the-spine-does-not-yet-supply-one.md"
+    },
+    {
+      "task": 689,
+      "file": "689-conductor-e-is-decided-and-unbuilt.md"
+    },
+    {
+      "task": 691,
+      "file": "691-provider-routing-is-an-unordered-role-set-with-no-admission-gate.md"
+    },
+    {
+      "task": 692,
+      "file": "692-decision-coverage-a-decided-thing-is-never-unscheduled-again.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
