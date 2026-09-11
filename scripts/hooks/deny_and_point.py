@@ -122,16 +122,51 @@ SEARCH_HEADS = frozenset({
 _OPERATORS = frozenset({"|", "||", "&&", ";", "&"})
 
 
+#: A heredoc redirection and the delimiter that ends its body: `<<EOF`, `<<-EOF`, `<<'MSG'`.
+_HEREDOC = re.compile(r"<<-?\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1")
+
+
+def strip_heredocs(command: str) -> str:
+    """Drop heredoc BODIES. A heredoc body is data, and data is not a command.
+
+    FOUND BY DOGFOODING rather than by review: this guard denied the very commit that
+    documented it, because the commit message -- passed through `git commit -F - <<'MSG'` --
+    quoted the denials it was recording, and the tokenizer read that prose as more command
+    segments. Same class as the pattern-vs-path finding: text inside a search command that is
+    not the question. It only surfaces when the thing is used in anger.
+    """
+    kept: list[str] = []
+    pending: list[str] = []
+    for line in command.split("\n"):
+        if pending:
+            if line.strip() == pending[0]:
+                pending.pop(0)
+            continue
+        kept.append(line)
+        pending.extend(m.group(2) for m in _HEREDOC.finditer(line))
+    return "\n".join(kept)
+
+
 def _segments(command: str) -> list[list[str]]:
-    """Tokenize the command line, then split into per-command argv lists on operator tokens."""
-    lex = shlex.shlex(command, posix=True, punctuation_chars=True)
-    lex.whitespace_split = True
-    segments: list[list[str]] = [[]]
-    for token in lex:
-        if token in _OPERATORS:
-            segments.append([])
-        else:
-            segments[-1].append(token)
+    """Tokenize, then split into per-command argv lists on operator tokens.
+
+    A NEWLINE ends a command too, which `shlex` treats as ordinary whitespace -- so a search on
+    the line after a heredoc was swallowed into the previous command's argv and its head was
+    never read. Lines are therefore lexed one at a time. A line that cannot be tokenized raises
+    out of here and the caller ALLOWS, which is the module's posture everywhere.
+    """
+    segments: list[list[str]] = []
+    for line in strip_heredocs(command).split("\n"):
+        if not line.strip():
+            continue
+        lex = shlex.shlex(line, posix=True, punctuation_chars=True)
+        lex.whitespace_split = True
+        segments.append([])
+        for token in lex:
+            if token in _OPERATORS:
+                segments.append([])
+            else:
+                segments[-1].append(token)
     return segments
 
 # ---------------------------------------------------------------- PATTERN vs PATH
@@ -178,8 +213,55 @@ _FIND_NAME_PRIMARIES = frozenset({
     "-lname", "-ilname", "-regex", "-iregex",
 })
 
-#: The declared escape. Needs a REASON: a bare marker is not a declaration.
+#: The declared escape. Needs a REASON: a bare marker is not a declaration. And it is matched
+#: ONLY inside a real shell comment -- see `_comment_text`.
 _ESCAPE = re.compile(r"#\s*raw-needed:\s*\S")
+
+
+def _comment_text(command: str) -> str:
+    """The shell-COMMENT parts of a command line, with quoted text excluded.
+
+    Matching the escape marker anywhere in the raw command string let it be asserted from
+    inside a quoted argument or echoed through a pipe -- `echo '# raw-needed: note' | rg
+    gen_task_tree` opened the escape without anyone declaring anything. Terra pre-merge pass 6,
+    P1. A declared bypass that can be faked from inside a string is not a declaration, so the
+    marker counts only where a declaration can actually live: an unquoted `#` at a token
+    boundary, through to end of line.
+    """
+    out: list[str] = []
+    quote: str | None = None
+    at_boundary = True
+    i = 0
+    while i < len(command):
+        ch = command[i]
+        if quote:
+            if ch == "\\" and quote == '"':
+                i += 2
+                continue
+            if ch == quote:
+                quote = None
+            i += 1
+            at_boundary = False
+            continue
+        if ch in "'\"":
+            quote = ch
+            i += 1
+            at_boundary = False
+            continue
+        if ch == "\\":
+            i += 2
+            at_boundary = False
+            continue
+        if ch == "#" and at_boundary:
+            eol = command.find("\n", i)
+            out.append(command[i:] if eol < 0 else command[i:eol])
+            if eol < 0:
+                break
+            i, at_boundary = eol + 1, True
+            continue
+        at_boundary = ch.isspace()
+        i += 1
+    return "\n".join(out)
 
 #: Characters stripped from a candidate before resolution -- regex anchors, quoting leftovers and
 #: shell noise. Only the ENDS are stripped: a metacharacter in the middle means the token is a
@@ -401,7 +483,7 @@ def _tool_candidates(payload: dict) -> list[str]:
         command = ti.get("command")
         if not isinstance(command, str) or not command.strip():
             return []
-        if _ESCAPE.search(command):
+        if _ESCAPE.search(_comment_text(strip_heredocs(command))):
             return []
         return search_candidates(command)
     return []

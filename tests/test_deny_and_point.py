@@ -243,6 +243,40 @@ def test_the_path_vs_pattern_split_does_not_become_an_escape(command):
     assert _denied(_bash(command)), f"not denied: {command}"
 
 
+def test_a_HEREDOC_BODY_is_DATA_not_a_command():
+    """Found by DOGFOODING, not by review: the guard denied the very commit that
+    documented it. A commit message passed through `git commit -F - <<'MSG'` quotes the
+    denials it is recording, and the tokenizer read that prose as more command segments.
+
+    A heredoc body is data. This is the same class as the pass-1 path/pattern finding --
+    text that sits inside a search command without being the question -- arriving from the
+    one angle no review had covered, because it only shows up when you use the thing.
+    """
+    body = ("git commit -F - <<'MSG'\n"
+            "fix(hooks): notes\n"
+            "  rg gen_task_tree            -> DENIED\n"
+            "  grep -rn gen_task_tree s/   -> DENIED\n"
+            "MSG")
+    assert not _denied(_bash(body))
+
+
+def test_a_real_search_AFTER_a_heredoc_is_still_judged():
+    """The converse: stripping the body must not swallow the rest of the line."""
+    cmd = ("cat <<'EOF'\n"
+           "some data\n"
+           "EOF\n"
+           "rg gen_task_tree")
+    assert _denied(_bash(cmd))
+
+
+def test_a_marker_inside_a_heredoc_body_does_not_open_the_escape():
+    cmd = ("cat <<'EOF'\n"
+           "# raw-needed: not a declaration, just text\n"
+           "EOF\n"
+           "rg gen_task_tree")
+    assert _denied(_bash(cmd))
+
+
 def test_the_word_grep_inside_an_ARGUMENT_is_not_a_search():
     """A search tool must be the HEAD of a segment, not a substring anywhere."""
     assert not _denied(_bash('git commit -m "add grep support to the selector"'))
@@ -348,6 +382,26 @@ def test_a_declared_escape_with_a_REASON_allows_the_search():
     """The bypass is one named thing, declared -- not a --no-verify reflex."""
     assert not _denied(_bash(
         'grep -rn "gen_task_tree" scripts/  # raw-needed: renaming every call site'))
+
+
+@pytest.mark.parametrize("command", [
+    "echo '# raw-needed: note' | rg gen_task_tree",
+    'rg gen_task_tree "# raw-needed: in an argument"',
+    "rg '# raw-needed: x' && rg gen_task_tree",
+])
+def test_the_escape_counts_only_as_a_REAL_trailing_COMMENT(command):
+    """Terra pre-merge pass 6, P1. The marker was matched anywhere in the command text,
+    so quoting it -- or echoing it through a pipe -- opened the escape without anyone
+    declaring anything. A declared bypass that can be asserted from inside a quoted
+    string is not a declaration."""
+    assert _denied(_bash(command)), f"fake escape opened the guard: {command}"
+
+
+def test_a_REAL_trailing_comment_still_escapes():
+    assert not _denied(_bash(
+        "grep -rn gen_task_tree scripts/ # raw-needed: renaming every call site"))
+    assert not _denied(_bash(
+        "cat BACKLOG.md | grep gen_task_tree  #raw-needed: one-off audit"))
 
 
 def test_a_bare_escape_marker_with_NO_reason_does_not_escape():
