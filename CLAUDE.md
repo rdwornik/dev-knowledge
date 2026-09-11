@@ -175,6 +175,7 @@ Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless the row says otherwis
 - `derived-copies-rebind` — a staged registered source whose derived copy did not move; also asserts every delegated hook id still exists
 - `provider-registry-agreement` — the nine provider/model seams vs `ecosystem/provider-registry.yaml`
 - `validate-backlog` — BACKLOG story-map schema (ADR-66)
+- `impacted-tests-guard` — a changed `scripts/*.py` no test covers; the refusal names the RED-first test ([#278])
 - `audit-health` — `audit.py health`; FAIL blocks the commit, WARN informs
 - `ruff` — lint gate, pinned rev == the `pyproject.toml` required-version floor
 - `coherence-nudge` — **non-blocking**: registered spec changed without a version bump; always exits 0

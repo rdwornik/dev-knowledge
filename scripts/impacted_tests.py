@@ -88,6 +88,35 @@ ENVIRONMENT_FILES = frozenset({
 DOC_SUFFIXES = (".md", ".yaml", ".yml", ".json", ".txt", ".cfg", ".ini", ".toml")
 
 
+#: THE REFUSAL'S SCOPE, and the number that justifies it.
+#:
+#: AW2-1 leg (b): a commit changing a `scripts/*.py` file that selects ZERO tests is
+#: refused, and the refusal names the RED-first test to write. The lane contract forbade
+#: arming that tree-wide on day one -- "a gate that refuses every `scripts/*.py` commit
+#: wedges the batch it is running inside" -- so the scope was MEASURED before it was set.
+#:
+#: Measured 2026-09-11 over the whole tree: **136 of 140 `scripts/**.py` already select at
+#: least one test; exactly 4 select none (2.9 %)**. The feared wedge is not there, so the
+#: gate is armed over ALL of `scripts/` with these four named as a grandfathered set --
+#: cross-checked against the lane's independent coverage oracle, which also records zero
+#: executing tests for each. They are CLI entry points and hook shims: real coverage gaps,
+#: not selector defects.
+#:
+#: THIS SET IS A RATCHET. It may shrink and must never grow: a new untested script is
+#: exactly what leg (b) exists to refuse. `test_the_grandfather_set_is_a_ratchet` pins it.
+ZERO_COVER_GRANDFATHERED: frozenset[str] = frozenset({
+    "scripts/codemap/cli.py",
+    "scripts/codemap_hook.py",
+    "scripts/toc/cli.py",
+    "scripts/toc_hook.py",
+})
+
+#: Where leg (b) refuses. Deliberately `scripts/` only -- `deploy/` and `plugins/` were
+#: not measured for this, and a gate armed over ground nobody measured is the thing the
+#: contract warned against.
+GUARD_ROOT = "scripts/"
+
+
 @dataclass(frozen=True)
 class Rule:
     """One mapping rule: which changed paths it claims, and what it selects.
@@ -398,15 +427,85 @@ def changed_from_git(repo_root: pathlib.Path, ref: str | None = None) -> list[st
     return [line.strip() for line in out.stdout.splitlines() if line.strip()]
 
 
-@click.command()
+def red_first_test_for(source_rel: str) -> str:
+    """The path of the RED-first witness a zero-selection source is missing."""
+    stem = source_rel.rsplit("/", 1)[-1][: -len(".py")]
+    return f"tests/test_{stem}.py"
+
+
+def guard_findings(
+    repo_root: pathlib.Path, changed: Iterable[str], depth: int = DEFAULT_DEPTH
+) -> list[tuple[str, str]]:
+    """[(source, the RED-first test to write)] for each in-scope zero-selection file.
+
+    Empty list means the commit is clean. This is a pure function so the trip-test can
+    prove the refusal fires without spawning a commit.
+    """
+    candidates = [
+        str(c).replace("\\", "/")
+        for c in changed
+        if str(c).replace("\\", "/").startswith(GUARD_ROOT)
+        and str(c).endswith(".py")
+        and "__pycache__" not in str(c)
+    ]
+    candidates = [c for c in candidates if c not in ZERO_COVER_GRANDFATHERED]
+    if not candidates:
+        return []
+    table = covering_tests(pathlib.Path(repo_root).resolve(), depth=depth)
+    return [(c, red_first_test_for(c)) for c in sorted(candidates) if not table.get(c)]
+
+
+@click.group()
+def cli() -> None:
+    """Impacted-test selection ([#278])."""
+
+
+@cli.command("guard")
+@click.argument("paths", nargs=-1)
+@click.option("--repo-root", default=".", help="Repository root to select against.")
+def guard(paths: tuple[str, ...], repo_root: str) -> None:
+    """REFUSE a commit whose changed scripts/ file selects no tests (AW2-1 leg b).
+
+    The refusal NAMES THE TEST TO WRITE. The operator's rule this implements is that a
+    process deviation should raise an exception that TEACHES -- so a message that only
+    said "no tests cover this" would be the gate doing half its job.
+    """
+    root = pathlib.Path(repo_root).resolve()
+    findings = guard_findings(root, paths)
+    if not findings:
+        return
+    lines = [
+        "REFUSED -- a changed scripts/ file selects ZERO tests ([#278] leg b).",
+        "",
+    ]
+    for source, witness in findings:
+        lines += [
+            f"  {source}",
+            f"      write the RED-first witness FIRST:  {witness}",
+            "      it must FAIL before the code makes it pass (ADR-108 section B).",
+            "",
+        ]
+    lines += [
+        "Scope: scripts/ only, measured 2026-09-11 -- 136 of 140 scripts already",
+        "select a test, so this refuses a NEW gap rather than pre-existing debt.",
+        f"Grandfathered ({len(ZERO_COVER_GRANDFATHERED)}, a ratchet that may only shrink): "
+        + ", ".join(sorted(ZERO_COVER_GRANDFATHERED)),
+        "",
+        "If the test exists but is not being found, the selector -- not the commit --",
+        "is what to fix: scripts/impacted_tests.py, and its seam onto FPG-1.",
+    ]
+    raise click.ClickException("\n".join(lines))
+
+
+@cli.command("select")
 @click.option("--repo-root", default=".", help="Repository root to select against.")
 @click.option("--changed", multiple=True, help="Changed path (repeatable).")
 @click.option("--ref", default=None, help="Select against a git ref instead.")
 @click.option("--depth", default=DEFAULT_DEPTH, show_default=True,
               help="Bounded transitive import depth.")
 @click.option("--explain", is_flag=True, help="Print why each path selected what it did.")
-def main(repo_root: str, changed: tuple[str, ...], ref: str | None,
-         depth: int, explain: bool) -> None:
+def select_cmd(repo_root: str, changed: tuple[str, ...], ref: str | None,
+               depth: int, explain: bool) -> None:
     """Print the pytest arguments for the tests impacted by a change."""
     root = pathlib.Path(repo_root).resolve()
     paths = list(changed) or changed_from_git(root, ref)
@@ -425,4 +524,4 @@ def main(repo_root: str, changed: tuple[str, ...], ref: str | None,
 
 
 if __name__ == "__main__":
-    main()
+    cli()

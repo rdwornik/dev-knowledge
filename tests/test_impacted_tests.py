@@ -226,6 +226,85 @@ def test_the_verify_cadence_fails_safe_to_the_full_suite(monkeypatch):
     assert "full suite" in note
 
 
+# --- leg (b): the zero-selection refusal, and its TRIP-TEST ---------------------
+
+@pytest.mark.live_repo
+def test_the_refusal_trips_on_a_script_with_no_covering_test(tmp_path):
+    """THE TRIP-TEST. A scripts/ file selecting zero tests must be REFUSED.
+
+    Built in a synthetic tree rather than by dirtying the real one: a gate proved only
+    by the tree it happens to run in is proved by a coincidence.
+    """
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "scripts" / "lonely_organ.py").write_text(
+        "def run():\n    return 1\n", encoding="utf-8"
+    )
+
+    findings = impacted_tests.guard_findings(tmp_path, ["scripts/lonely_organ.py"])
+    assert findings, "a script no test covers must be refused"
+    source, witness = findings[0]
+    assert source == "scripts/lonely_organ.py"
+    assert witness == "tests/test_lonely_organ.py", (
+        "the refusal must NAME the RED-first test to write -- a refusal that only "
+        "says 'no tests' does half the job"
+    )
+
+
+@pytest.mark.live_repo
+def test_the_refusal_stays_silent_when_a_covering_test_exists(tmp_path):
+    """The other half of the trip-test: it must not refuse a covered file."""
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "scripts" / "covered_organ.py").write_text(
+        "def run():\n    return 1\n", encoding="utf-8"
+    )
+    (tmp_path / "tests" / "test_covered_organ.py").write_text(
+        "import covered_organ\n\ndef test_it():\n    assert covered_organ.run() == 1\n",
+        encoding="utf-8",
+    )
+
+    assert impacted_tests.guard_findings(tmp_path, ["scripts/covered_organ.py"]) == []
+
+
+@pytest.mark.live_repo
+def test_the_refusal_is_scoped_and_does_not_fire_outside_scripts(tmp_path):
+    """Scope is `scripts/` only. deploy/ and plugins/ were not measured for this."""
+    (tmp_path / "deploy").mkdir()
+    (tmp_path / "deploy" / "unmeasured.py").write_text("x = 1\n", encoding="utf-8")
+    assert impacted_tests.guard_findings(tmp_path, ["deploy/unmeasured.py"]) == []
+
+
+@pytest.mark.live_repo
+def test_the_refusal_does_not_wedge_this_repo_today():
+    """The contract's explicit worry, answered with the live tree rather than a guess.
+
+    "Do not arm the (b) refusal tree-wide on its first day -- a gate that refuses every
+    scripts/*.py commit wedges the batch it is running inside." Measured: 136 of 140
+    already select a test, so the gate refuses a NEW gap, not pre-existing debt.
+    """
+    scripts = [
+        p.relative_to(REPO_ROOT).as_posix()
+        for p in (REPO_ROOT / "scripts").rglob("*.py")
+        if "__pycache__" not in p.as_posix()
+    ]
+    findings = impacted_tests.guard_findings(REPO_ROOT, scripts)
+    assert findings == [], (
+        "arming leg (b) must not refuse a commit touching any script in the tree "
+        f"as it stands; unexpected findings: {findings}"
+    )
+
+
+def test_the_grandfather_set_is_a_ratchet():
+    """It may shrink, never grow -- a new untested script is what leg (b) refuses."""
+    assert len(impacted_tests.ZERO_COVER_GRANDFATHERED) <= 4
+    for rel in impacted_tests.ZERO_COVER_GRANDFATHERED:
+        assert (REPO_ROOT / rel).exists(), (
+            f"{rel} is grandfathered but gone -- shrink the set rather than carrying "
+            "a name that no longer resolves"
+        )
+
+
 # --- the Done-when witness ------------------------------------------------------
 
 @pytest.mark.live_repo

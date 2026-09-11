@@ -447,6 +447,33 @@ repos:
         language: system
         always_run: true
         pass_filenames: false
+      - id: impacted-tests-guard
+        name: Zero-selection refusal -- a changed script no test covers ([#278] leg b)
+        # AW2-1 leg (b): "A commit that changes a `scripts/*.py` file and selects zero
+        # tests is REFUSED, and the refusal message names the RED-first test to write --
+        # the operator's rule that a process deviation raises an exception which teaches
+        # the agent." The message names `tests/test_<stem>.py`, not just the gap.
+        #
+        # SCOPE IS MEASURED, NOT ASSUMED, and this is the leg the lane contract warned
+        # about: "Do not arm the (b) refusal tree-wide on its first day -- a gate that
+        # refuses every scripts/*.py commit wedges the batch it is running inside."
+        # Measured 2026-09-11 over the whole tree: 136 of 140 scripts/**.py already
+        # select at least one test; exactly 4 select none (2.9%). The feared wedge is not
+        # there, so the gate arms over all of scripts/ with those 4 named as a
+        # grandfathered ratchet in `impacted_tests.ZERO_COVER_GRANDFATHERED` -- a set that
+        # may shrink and must never grow. Each of the 4 was cross-checked against the
+        # lane's independent coverage oracle, which also records zero executing tests, so
+        # they are real gaps rather than selector defects.
+        #
+        # `deploy/` and `plugins/` are deliberately OUT of scope: they were not measured
+        # for this, and a gate armed over ground nobody measured is the thing the contract
+        # told this lane to refuse.
+        #
+        # Exit: 0 clean, 1 on a zero-selection script. Bypass: --no-verify.
+        entry: uv run --locked python scripts/impacted_tests.py guard
+        language: system
+        files: '^scripts/.*\.py$'
+        # HUB-ONLY.
       - id: audit-health
         name: Audit self-conformance gate (FAIL blocks the commit; WARN only informs)
         # `audit.py health` exits 1 only on a FAIL finding (structural integrity,
