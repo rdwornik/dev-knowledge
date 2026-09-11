@@ -19,6 +19,61 @@
 
 ---
 
+### 2026-09-11 (h) - CC (Opus 5, background integrator seat): the anchor arc anchors itself
+
+**Names `8ca3adfb`**, the (g) entry's commit — the one commit this arc's merge introduces besides
+this entry, and therefore the only SHA available to anchor that merge.
+
+**Why a second entry rather than an edit.** An anchor discharges by **APPEND ONLY** (architect
+ruling 2026-08-07; `protocols/STANDING_RULINGS.md` B6). The predicate matches a SHA anywhere in the
+file, so amending (g) in place to add its own hash would discharge the anchor *retroactively* and
+leave no trace it once did not — which is why the register forbids it and why this is a new entry.
+A one-commit anchor arc is unanchorable by construction: a merge commit cannot name its own hash,
+and (g)'s hash did not exist when (g) was written.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+**Next.** Merge, push, and STOP: AX11-1 bars further merges during working hours after this queue.
+
+### 2026-09-11 (g) - CC (Opus 5, background integrator seat): two batch-X lanes land, and a batch with no manifest grants no exemption
+
+**Names `c79fcf09`** (X-R's tip, introduced by the merge `cb94cfd5`) **and `7bce09e5`** (X-C's tip,
+introduced by the merge `cd25a094`). One entry, two merges, because the anchor predicate is
+per-merge and each needs at least one SHA of its own named.
+
+**Did.** Merged two batch-X lanes on operator instruction: **X-R** — the 2026-09-10/11 window rules
+landing as `protocols/STANDING_RULINGS.md` section AH, plus rows 720 and 721 — and **X-C**, the
+domain census, one page per top-level folder. Both docs-only, both `review=n/a` under D-1, both
+verdicted by `audit.py handback` at exit 0 before the merge rather than after.
+
+**THE DEFECT, AND IT IS THE THIRD FACE OF THE SAME ONE.** `journal_spine_anchor` went to a hard
+FAIL the moment both landed, because **batch X has no manifest yet**. The ADR-110
+declared-integration-arc exemption is granted BY a committed manifest carrying `status: open`, so a
+batch that has not written one grants nothing — its lane merges are ordinary unanchored spine
+entries and they block every subsequent commit in the repo.
+
+Batch W met this twice already: entry (d), where a SUBSTRATE merge fell outside an exemption that
+covers only lanes; and entry (f), where the exemption's EXPIRY had to be drained before the close
+packet ended it. **This is the third face: no manifest, so no exemption to fall outside of.** The
+three together say one thing — *the exemption is load-bearing and every edge of it is unguarded.*
+Batch W's close packet (`7ff0852e` §2) recommends re-keying the clause to "merges made by the
+integrator while the batch is open"; this instance argues the same fix from the other end, because
+"while the batch is open" is unreadable when nothing declares the batch open.
+
+**X-R found the batch W defect independently, and paid for it.** Its own artifact measured
+`journal_spine_anchor` FAILing on `a3374b70`, ran the discriminator, synced to main's tip before
+concluding, and got the diagnosis exactly right — *"not exemptible: `worktree-batch-w-aw53-substrate`
+does not appear in batch W's manifest lane roster"* — while correctly leaving the three real lane
+merges exempt. It could not write the anchor: P-1 makes `JOURNAL.md` the integrator's surface. So
+it used the sanctioned single-hook `audit-health` bypass on BOTH commits, declared in each commit
+body. **That bypass was correct and the cause was the integrator's**, which is worth recording
+plainly: an unanchored integrator merge does not stay the integrator's problem, it taxes every lane
+committing underneath it.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+**Next.** The arc's own anchor, then STOP — AX11-1 bars further merges during working hours.
+
 ### 2026-09-11 (f) - CC (Opus 5, background integrator seat): batch W closes with one lane carried, and the exemption is drained before it expires
 
 **Names `5e17ecd7`** (W-4's lane tip, introduced by the merge `0bb1d5ce`) **and `57a356aa`** (this
