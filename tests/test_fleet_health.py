@@ -1741,24 +1741,85 @@ def test_guard_preflight_says_what_it_will_cost(tmp_path):
         assert "refuse" in line.lower(), f"preflight hid the consequence: {line!r}"
 
 
-def test_main_prints_the_preflight_line(tmp_path, capsys, monkeypatch):
+def test_hook_path_drops_the_venv_uv_prepends(tmp_path):
+    """The preflight must measure the PATH the HOOK sees, not this process's.
+
+    SessionStart runs under `uv run --locked`, which prepends the venv's script dir;
+    PreToolUse runs on the system interpreter and does not. Measuring the venv would report
+    green on a machine whose plain shell has no python -- green on exactly the
+    configuration where every tool call is about to be refused.
+    """
+    venv = tmp_path / "proj" / ".venv"
+    entries = [str(venv / "Scripts"), str(tmp_path / "sys" / "bin")]
+    got = fh.hook_path({"PATH": os.pathsep.join(entries), "VIRTUAL_ENV": str(venv)})
+    assert got == str(tmp_path / "sys" / "bin")
+
+
+def test_hook_path_is_the_whole_path_when_no_venv_is_active(tmp_path):
+    """It drops the venv and NOTHING else -- this is not an attempt to reconstruct the
+    hook's environment, and a preflight that silently narrowed PATH further would start
+    reporting failures the hook would not have."""
+    raw = os.pathsep.join([str(tmp_path / "a"), str(tmp_path / "b")])
+    assert fh.hook_path({"PATH": raw}) == raw
+
+
+def test_hook_path_keeps_a_sibling_that_merely_shares_a_prefix(tmp_path):
+    """`.venv-old/Scripts` is not inside `.venv`. String-prefix matching without the
+    separator would drop it, which would be the narrowing the test above forbids."""
+    venv = tmp_path / ".venv"
+    sibling = str(tmp_path / ".venv-old" / "Scripts")
+    got = fh.hook_path({"PATH": os.pathsep.join([str(venv / "Scripts"), sibling]),
+                        "VIRTUAL_ENV": str(venv)})
+    assert got == sibling
+
+
+def test_main_prints_the_preflight_line(tmp_path, capsys):
     """It renders on the SessionStart leg, beside the [prompts] banner -- a preflight
-    nobody reaches is not a preflight (the same argument 013-A made for that banner)."""
-    monkeypatch.chdir(tmp_path)
-    with mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(None, None)), \
+    nobody reaches is not a preflight (the same argument 013-A made for that banner).
+
+    `_HEALTH_FILE` is patched to a FRESH temp digest, as every other `main()` test here
+    does, and that is not decoration: without it `is_stale()` reads the live digest and
+    `main()` can take the `refresh()` branch, i.e. spawn the real cross-repo audit from a
+    unit test. Measured the hard way while writing this -- the unpatched form ran for
+    minutes before being killed.
+    """
+    health = _digest_at(tmp_path)
+    with mock.patch.object(fh, "_HEALTH_FILE", health), \
+         mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(None, None)), \
          mock.patch.object(fh, "read_guard_preflight", return_value=(None, "python")):
         fh.main([])
-    assert "[prompts-guard]" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "[prompts-guard] PREFLIGHT FAILED" in out
 
 
-def test_main_returns_two_on_a_failed_preflight(tmp_path, capsys, monkeypatch):
+def test_main_returns_two_on_a_failed_preflight(tmp_path, capsys):
     """An honest non-zero, not a block: a SessionStart hook CANNOT refuse (measured -- see
     the module's own hook-wiring block), so this is the same shape as the PROMPTS_REFUSED
-    exit it sits beside. It becomes a real signal for free if a later CLI honours it."""
-    monkeypatch.chdir(tmp_path)
-    with mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(None, None)), \
+    exit it sits beside. It becomes a real signal for free if a later CLI honours it.
+
+    The prompts verdict is deliberately a PASSING one, so the 2 can only have come from the
+    preflight -- a seeded mismatch would return 2 either way and prove nothing.
+    """
+    health = _digest_at(tmp_path)
+    with mock.patch.object(fh, "_HEALTH_FILE", health), \
+         mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(None, None)), \
          mock.patch.object(fh, "read_guard_preflight", return_value=(None, "python")):
         assert fh.main([]) == 2
+    capsys.readouterr()
+
+
+def test_main_returns_zero_when_both_the_verdict_and_the_preflight_are_clean(tmp_path,
+                                                                             capsys):
+    """The other side of the exit contract, without which the test above is satisfied by a
+    `main()` that always returns 2."""
+    health = _digest_at(tmp_path)
+    with mock.patch.object(fh, "_HEALTH_FILE", health), \
+         mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(_TRUE, _TRUE)), \
+         mock.patch.object(fh, "read_guard_preflight",
+                           return_value=(tmp_path / "scripts" / "fleet_health.py",
+                                         "python")):
+        assert fh.main([]) == 0
+    assert "[prompts-guard] preflight OK" in capsys.readouterr().out
 
 
 # --- the SessionStart leg: loud banner, honest (non-blocking) exit ----------------------

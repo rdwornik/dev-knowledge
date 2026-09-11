@@ -229,6 +229,7 @@ _PROBE_REQUIRED_FIELDS: dict[str, tuple[str, ...]] = {
     "glob_tracked": ("glob",), "command_present": ("file",),
     "precommit_hook": ("hook_id",), "precommit_remote": ("repo_token",),
     "settings_hook": ("event", "token"), "plugin_enabled": ("token",),
+    "settings_hook_script": ("event", "token", "path"),
     "settings_local_blocks": (), "claude_subtrees": (), "commands_roster": (),
     "check_ignore": ("candidate",), "ruff_config_form": (),
 }
@@ -733,6 +734,32 @@ def collect_facts(target: RepoTarget, manifest: dict, baseline: dict,
             cmds = settings_by_event.get(probe["event"], [])
             res["present"] = any(token in c for c in cmds)
             res["detail"] = f"settings.json {probe['event']} hook containing '{token}'"
+        elif ptype == "settings_hook_script":
+            # AX15-2 (2026-09-11): a hook block and the script it invokes are ONE floor
+            # component, so the surface is the RELATION between them, not either half.
+            #
+            # Why this could not be two existing rows. A `settings_hook` row plus a
+            # `path_tracked` row asserts each half SEPARATELY, which is a different and
+            # strictly wrong claim: it makes the script mandatory in every repo the tier
+            # reaches, including repos that carry no such hook and need none. The defect
+            # AX15-2 names is `hook AND NOT script`, an implication -- and no probe type
+            # here could express one.
+            #
+            # The asymmetry is what makes a MUST tier safe while the hook itself is still
+            # hub-only: NEITHER half deployed is at parity (the component is simply not
+            # there); the SPLIT is the error. Under the AX15-1 fail-closed posture that
+            # split is not cosmetic -- it refuses every filesystem-touching tool call in
+            # that repo, with a hook whose script was never carried.
+            token = _local_token(row, target.repo_id, probe["token"])
+            cmds = settings_by_event.get(probe["event"], [])
+            res["hook_present"] = any(token in c for c in cmds)
+            res["script_present"] = probe["path"] in tracked_set
+            res["present"] = (not res["hook_present"]) or res["script_present"]
+            res["detail"] = (
+                f"settings.json {probe['event']} hook containing '{token}' requires "
+                f"tracked {probe['path']} (one floor component; neither half deployed "
+                f"is at parity, the split is not)"
+            )
         elif ptype == "plugin_enabled":
             res["present"] = any(probe["token"] in p for p in plugin_names)
             res["detail"] = f"enabledPlugins containing '{probe['token']}'"
