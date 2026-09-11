@@ -26,18 +26,30 @@ fresh branch instead would contradict AX15-3 and strand the eleven commits.
 to the existing worktree**, and given the line above verbatim:
 
 ```
-cwd: C:\Users\1028120\Documents\Dev\.dev-knowledge\.claude\worktrees\lane-w-684-pretooluse-guard-root
+git worktree add .claude/worktrees/lane-w-684-pretooluse-guard-root worktree-lane-w-684-pretooluse-guard-root
+cwd: .claude/worktrees/lane-w-684-pretooluse-guard-root
 claude --bg --model opus --effort high --permission-mode bypassPermissions
 ```
+
+**The worktree must be RE-ATTACHED first — it no longer exists.** Measured 2026-09-11 after
+the freeze: the integrator closed batch W and removed
+`.claude/worktrees/lane-w-684-pretooluse-guard-root`. The BRANCH
+`worktree-lane-w-684-pretooluse-guard-root` is intact, **11 commits ahead of `main`, and is
+NOT pushed to origin** — so those eleven commits exist in exactly one place, this clone.
+AX15-3 is unaffected: it named the branch, and the branch is what survived. `git worktree add`
+onto an EXISTING branch re-attaches rather than creating, which is why this is a re-attach and
+not a provision.
 
 Dispatch constants ride unchanged (`--permission-mode bypassPermissions`, `--bg`, the
 board label `[.dev-knowledge · #684 · lane-w-684-pretooluse-guard-root]`). The model is
 **explicit on the line** (`--model opus`), which is what AX7-5 asks for and what the
 `local` shape's fence cannot express until `[#717]` lands.
 
-**Step 0 for this lane is a sync, not a provision.** The worktree exists and is eleven
-commits ahead of `main`; `main` has moved under it (batch W closed, X-0 landed). Sync
-first — `git fetch origin` then merge `main` — before touching the guard.
+**Step 0 for this lane is RE-ATTACH, then sync — not a provision.** The branch is eleven
+commits ahead of `main` and `main` has moved under it (batch W closed, X-0 landed).
+Re-attach the worktree with the line above, then `git fetch origin` and merge `main`,
+before touching the guard. Do NOT create a new branch: that would strand the eleven
+commits, which exist only in this clone.
 
 ## Worktree pairing
 

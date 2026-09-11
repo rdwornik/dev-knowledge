@@ -166,13 +166,33 @@ sleeping-poll   PASS  0 declared waits.
   the in-tree frozen copy on `main`. W-2′ was then given its own filename, which is correct
   independently: a correction re-enters as a NEW contract, never as an edit of a frozen one.
 
+## 5a · F9 · W-2's worktree was torn down mid-freeze; its branch is UNPUSHED
+
+Measured after the freeze, and it changes W-2′'s step 0. The integrator closed batch W and
+removed `.claude/worktrees/lane-w-684-pretooluse-guard-root`. The BRANCH
+`worktree-lane-w-684-pretooluse-guard-root` survives, **11 commits ahead of `main`**, and
+`git ls-remote --heads origin` returns **nothing for it** — those eleven commits of W-2 review
+work exist in exactly ONE place, this clone, with no worktree attached and no remote copy.
+
+AX15-3 is unaffected (it named the branch, and the branch is intact), but W-2′ no longer
+"continues in an existing worktree": it **re-attaches** one with
+`git worktree add <path> worktree-lane-w-684-pretooluse-guard-root`. The contract was
+corrected accordingly in both copies. **A new branch would strand the eleven commits** —
+which is why the contract says so in as many words.
+
+**Recommended to the integrator, not done by this seat:** push that branch, so eleven commits
+of review work stop being single-copy.
+
 ## 6 · Wait conditions — the batch does not fire while either is open
 
-1. **X-0 on `main`** — **MET.** `b595545b`, anchored by `2177f14a`.
-2. **`lane-ceiling` PASSES** — **OPEN.** It refuses while any worktree is provisioned. One
-   remains: `lane-w-684-pretooluse-guard-root` (11 commits ahead, unmerged). W-2′ inherits it
-   by design, so the integrator's merge-and-teardown of the OTHER lanes is what clears this.
-3. **The operator's `y`** — per AX14-3, and the fire method is `-Run` (§7).
+1. **X-0 on `main`** — **MET.** `b595545b`, anchored by `2177f14a`. Batch W has since closed
+   too; `main` is `78d99d55`.
+2. **`lane-ceiling` PASSES** — **MET.**
+   `lane-ceiling: PASS -- 6 lane(s) <= 6, checked before any worktree exists`, run against all
+   six slugs with `--check-worktrees`. Zero worktrees are provisioned: the integrator tore
+   down every lane worktree, and this seat tore down its own dispatcher worktree and verified
+   the removal (the provision→cleanup round-trip left the tree identical, critical rule 9).
+3. **The operator's `y`** — **OPEN. This is the only thing left.** Asked per fire (§7).
 
 ## 7 · Fire method — AX14-3, resolved against the installed verb
 
