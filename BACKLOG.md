@@ -219,6 +219,7 @@ So that growth past 65 ADRs doesn't bury or quietly contradict prior decisions.
 - [#637] [P2][M] Nineteen landed audit artifacts carry PROPOSALS that no governance surface has ruled · tasks/637-nineteen-landed-audit-artifacts-carry-proposals-tha.md
 - [#640] [P1][S] The FPG-1 scope narrowing is recorded nowhere, and two landed surfaces still carry the superseded version · tasks/640-the-fpg-1-scope-narrowing-is-recorded-nowhere-and-t.md
 - [#642] [P1][S] The eleven carried questions from batches T and U have no owning row, so their debt is silent · tasks/642-eleven-carried-questions-have-no-owning-row.md
+- [#688] [P1][S] `DECLARE-HARNESS-IS-PROCESS-2026-09-08` is cited by three committed audits and answers to no tracked file · tasks/688-declare-harness-is-process-is-cited-by-three-audits-and-answers-to-no-tracked-file.md
 
 ### [S12] Close the small ADR cross-reference + registry amendments
 So that the ADR web is internally consistent.
@@ -304,7 +305,7 @@ So that cognitive overhead per session drops.
 - [#102] [P2][M] Machine-readable repo index for agent consumption · DEFER · tasks/102-machine-readable-repo-index-for-agent-consumptio.md
 - [#273] [P3][S] Changelog-review staleness escalation · DEFER · tasks/273-changelog-review-staleness-escalation.md
 - [#274] [P3][S] Dogfood-signal prior in the /changelog-review ADOPT rubric · tasks/274-dogfood-signal-prior-in-the-changelog-review-ado.md
-- [#278] [P2][M] Test-suite hygiene epic · DEFER · tasks/278-test-suite-hygiene-epic.md
+- [#278] [P2][M] Test-suite hygiene epic · tasks/278-test-suite-hygiene-epic.md
 - [#317] [P2][M] Default-parallel test invocation · DEFER · tasks/317-default-parallel-test-invocation-slow-tier-marke.md
 - [#322] [P2][M] Fleet dashboard · DEFER · tasks/322-fleet-dashboard.md
 - [#340] [P2][S] /ship pre-flight validator honors the consumer repo's canonical test gate · tasks/340-ship-pre-flight-validator-honors-the-consumer-re.md

@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "60410ae24b62ad07c424f323e938619b18853a75a007d26240b1ddacb510cbf4",
+  "generated_sha256": "39f5aa87e40db0c8be3ef416f658a7c0fb6835540f0949cd6c0acac3616b80b6",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -812,6 +812,10 @@
     {
       "task": 642,
       "file": "642-eleven-carried-questions-have-no-owning-row.md"
+    },
+    {
+      "task": 688,
+      "file": "688-declare-harness-is-process-is-cited-by-three-audits-and-answers-to-no-tracked-file.md"
     },
     {
       "prose": ""
