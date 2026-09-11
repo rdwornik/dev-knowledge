@@ -29,9 +29,11 @@ cause and its fix, and a permit requires positive proof that the guard actually 
 | `62b2e3f0` | RED — 5 witnesses for the three findings of review round 1 |
 | `a17e702a` | BUILD — positive proof of evaluation; the coupling binds |
 | `d668bb42` | RED+BUILD for rounds 2 and 3; the refusal marker; this packet |
-| *(this)* | RED+BUILD for round 4 — script-operand binding, per-hook implication |
+| `25ea70ab` | RED+BUILD for round 4 — script-operand binding, per-hook implication |
+| `8b0be708` | RED+BUILD for round 5 — a variable's last assignment before the call |
+| *(this)* | the round-6 clean verdict, and this packet's final state |
 
-Footprint, all six commits: `.claude/settings.json`, `scripts/fleet_health.py`,
+Footprint, every commit: `.claude/settings.json`, `scripts/fleet_health.py`,
 `scripts/fleet_parity.py`, `ecosystem/parity-surfaces.yaml`, `ecosystem/doc-counts.md`,
 `tasks/684-*.md`, and three test modules. Nothing outside it.
 
@@ -44,7 +46,10 @@ inability to EVALUATE and a guard that ran with nothing to compare has evaluated
 to those would refuse every consumer that never set the variable.
 
 **Clause 2 — two RED-first trip-tests, M7 smoke, fresh Codex review with no unresolved
-HIGH.** Met, at the cost of three review rounds; see §4. Per AX15-2 the hook and
+HIGH.** Met. The review took SIX rounds and the last is clean (`HIGH:0 MED:0 LOW:0`,
+*"No remaining critical or high defects found."*); §4 carries the round-by-round
+record and the one finding dispositioned rather than fixed — which the reviewer then
+accepted, so no HIGH rests unresolved on the lane's own say-so. Per AX15-2 the hook and
 `scripts/fleet_health.py` ship as ONE floor component, enforced by a new
 `settings_hook_script` probe rather than by two independent rows — two rows would assert
 each half separately and make the script mandatory in repos carrying no hook.
@@ -80,12 +85,22 @@ printing only the marker; the shipped command run through `bash` from the repo r
 0. Both `CLAUDE_PROMPTS_DIR` scopes agree here, so the fail-closed leg could not wedge this
 seat the way the 2026-09-06 `"*"` matcher did.
 
-**The fleet, before and after the coupling was tightened.** Identical:
+**The preflight measures what the hook actually resolves — checked, not assumed.** The
+SessionStart leg (under `uv run`, whose `VIRTUAL_ENV` is the WORKTREE's `.venv`) reported
+`interpreter [...\.dev-knowledge\.venv\Scripts\python.EXE]`, and the hook's own shell
+independently resolves the same file. The two agree because `hook_path` strips only what
+`uv run` PREPENDED; the primary checkout's venv is ambient on `PATH`, so the hook sees it
+too and the preflight is right to report it. Worth stating because the opposite result
+would have been the bug `hook_path` exists to prevent — a preflight green on an interpreter
+the hook cannot reach.
+
+**The fleet, before and after each of the five coupling tightenings.** Identical every
+time:
 `190 at-parity, 0 MUST-absent, 0 refused` across all surfaces, 3 repos walked. A tightened
 probe can only ADD findings, so an unchanged tally is the evidence that it binds the hub's
 own hook rather than merely passing it.
 
-**Codex, three rounds**, `gpt-5.6-terra`, each against the live diff:
+**Codex, six rounds**, `gpt-5.6-terra`, each against the live diff:
 
 | Round | Verdict | Disposition |
 |---|---|---|
