@@ -326,6 +326,44 @@ def test_the_grandfather_set_is_a_ratchet():
         )
 
 
+def test_the_guard_cannot_be_disarmed_by_its_own_wiring():
+    """The hook's scope must NOT come from a `files:` regex the commit can narrow.
+
+    Reviewer HIGH, 2026-09-11: with `files: '^scripts/.*\\.py$'`, a commit that added an
+    uncovered `scripts/new_tool.py` AND narrowed that regex in the same act skipped the
+    hook -- pre-commit evaluates the staged config, so the gate was removable by the
+    change it exists to inspect. The guard now reads the staged set itself, and this pin
+    is what makes re-introducing a filter RED instead of a quiet narrowing.
+    """
+    import yaml
+
+    config = yaml.safe_load((REPO_ROOT / ".pre-commit-config.yaml").read_text(
+        encoding="utf-8"))
+    rows = [
+        hook
+        for repo in config["repos"]
+        for hook in repo.get("hooks", [])
+        if hook.get("id") == "impacted-tests-guard"
+    ]
+    assert len(rows) == 1, f"expected exactly one impacted-tests-guard row, got {len(rows)}"
+    row = rows[0]
+
+    assert row.get("always_run") is True, (
+        "the guard must always_run; a scope that comes from pre-commit's file list is a "
+        "scope the inspected commit can edit"
+    )
+    assert row.get("pass_filenames") is False, (
+        "pass_filenames must be false -- the guard determines the staged set itself"
+    )
+    for narrowing in ("files", "exclude", "types", "types_or"):
+        assert narrowing not in row, (
+            f"`{narrowing}:` reintroduces a mutable selector on the guard row. That is "
+            "the self-disarm this pin exists to refuse: narrow it and the commit adding "
+            "an uncovered script stops being inspected. Widen scope in "
+            "`impacted_tests.GUARD_ROOT` instead, where a test can see it."
+        )
+
+
 def test_deleting_a_script_is_not_refused_as_uncovered():
     """A removed script has no inbound edges -- that is not a missing witness.
 

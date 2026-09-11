@@ -469,10 +469,23 @@ repos:
         # for this, and a gate armed over ground nobody measured is the thing the contract
         # told this lane to refuse.
         #
+        # ENFORCEMENT IS NOT KEYED TO A `files:` REGEX, deliberately. This row used to
+        # carry `files: '^scripts/.*\.py$'` and pass_filenames; a reviewer HIGH on
+        # 2026-09-11 showed that a commit could add an uncovered `scripts/new_tool.py`
+        # AND narrow that regex in the same act -- pre-commit evaluates the staged
+        # config, so the hook was skipped and the gate was disarmed by the change it
+        # exists to inspect. It now `always_run`s and reads the staged set itself via
+        # `git diff --cached --diff-filter=ACM` (see `staged_from_git`), which is the
+        # same shape `audit-health` below uses. Cheap on an unrelated commit: with no
+        # staged scripts the guard returns before building any coverage table.
+        # `tests/test_impacted_tests.py::test_the_guard_cannot_be_disarmed_by_its_own_wiring`
+        # pins this row so re-adding a filter goes RED rather than quietly narrowing.
+        #
         # Exit: 0 clean, 1 on a zero-selection script. Bypass: --no-verify.
         entry: uv run --locked python scripts/impacted_tests.py guard
         language: system
-        files: '^scripts/.*\.py$'
+        always_run: true
+        pass_filenames: false
         # HUB-ONLY.
       - id: audit-health
         name: Audit self-conformance gate (FAIL blocks the commit; WARN only informs)

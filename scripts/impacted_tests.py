@@ -427,6 +427,23 @@ def changed_from_git(repo_root: pathlib.Path, ref: str | None = None) -> list[st
     return [line.strip() for line in out.stdout.splitlines() if line.strip()]
 
 
+def staged_from_git(repo_root: pathlib.Path) -> list[str]:
+    """Paths STAGED for the current commit -- added, copied or modified, never deleted.
+
+    The guard computes its own scope from this rather than accepting pre-commit's file
+    list, so that enforcement does not depend on a `files:` regex living in the same
+    mutable config the commit can edit. `--diff-filter=ACM` drops deletions, which is the
+    same exclusion `guard_findings` applies by existence.
+    """
+    import subprocess
+
+    out = subprocess.run(
+        ["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"],
+        cwd=repo_root, capture_output=True, text=True, check=False,
+    )
+    return [line.strip() for line in out.stdout.splitlines() if line.strip()]
+
+
 def red_first_test_for(source_rel: str) -> str:
     """The path of the RED-first witness a zero-selection source is missing."""
     stem = source_rel.rsplit("/", 1)[-1][: -len(".py")]
@@ -476,9 +493,17 @@ def guard(paths: tuple[str, ...], repo_root: str) -> None:
     The refusal NAMES THE TEST TO WRITE. The operator's rule this implements is that a
     process deviation should raise an exception that TEACHES -- so a message that only
     said "no tests cover this" would be the gate doing half its job.
+
+    SCOPE IS SELF-DETERMINED when no PATHS are given. The hook runs `always_run` with
+    `pass_filenames: false`, so it reads the staged set itself instead of trusting a
+    `files:` regex in `.pre-commit-config.yaml` -- a filter the very commit under
+    inspection can narrow. Reviewer HIGH, 2026-09-11: adding an uncovered script AND
+    narrowing that regex in one commit skipped the hook entirely, so the gate could be
+    disarmed by the change it exists to inspect. Explicit PATHS are still honoured, which
+    is what the trip-tests and manual runs use.
     """
     root = pathlib.Path(repo_root).resolve()
-    findings = guard_findings(root, paths)
+    findings = guard_findings(root, paths or staged_from_git(root))
     if not findings:
         return
     lines = [
