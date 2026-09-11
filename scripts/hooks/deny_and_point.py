@@ -197,6 +197,9 @@ _VALUE_FLAGS_PS = frozenset({
 _PATTERN_FLAGS = frozenset({"-e", "--regexp"})
 _PATTERN_FLAGS_PS = frozenset({"-pattern"})
 
+#: Short pattern flags that may carry their value ATTACHED: `grep -egen_task_tree`.
+_SHORT_PATTERN_FLAGS = ("-e",)
+
 #: Flags that supply the pattern from a FILE -- so there is a pattern, but no token holds it,
 #: and no positional operand is one either.
 _PATTERN_FROM_FILE = frozenset({"-f", "--file"})
@@ -386,6 +389,15 @@ def _grep_patterns(args: list[str]) -> list[str]:
         if not tok:
             continue
         if tok.startswith("-"):
+            # `-ePATTERN` with no space is ordinary grep/rg syntax (Terra pre-merge pass 8).
+            # Guarded against a long flag that merely starts the same way: an attached value
+            # carrying `=` is a `--exclude-dir=...`-shaped option, not a pattern.
+            attached = next((tok[len(pf):] for pf in _SHORT_PATTERN_FLAGS
+                             if tok.startswith(pf) and len(tok) > len(pf)), None)
+            if attached and "=" not in attached:
+                supplied = True
+                out.append(attached)
+                continue
             flag, eq, inline = tok.partition("=")
             if not eq and ":" in flag:
                 # PowerShell attaches a parameter value with a colon: `-Pattern:x`, `-Path:y`.

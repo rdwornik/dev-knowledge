@@ -330,6 +330,22 @@ def test_alternation_branches_do_not_become_an_over_match():
         assert not _denied(_bash(command)), f"over-blocked: {command}"
 
 
+@pytest.mark.parametrize("command", [
+    "grep -egen_task_tree scripts/",
+    "rg -egen_task_tree",
+])
+def test_an_ATTACHED_short_pattern_flag_is_understood(command):
+    """Terra pre-merge pass 8, P1. `-ePATTERN` with no space is ordinary grep/rg syntax
+    and the parser read the whole token as an unknown flag."""
+    assert _denied(_bash(command)), f"attached -e bypassed the guard: {command}"
+
+
+def test_an_attached_short_pattern_flag_carries_the_pattern_not_the_path():
+    """Same split as everywhere else: -e attaches the PATTERN, and the path stays a path."""
+    assert not _denied(_bash("grep -eTODO scripts/gen_task_tree.py"))
+    assert not _denied(_bash("grep --exclude-dir=scripts -rn TODO ."))
+
+
 def test_the_colon_attached_PowerShell_parameter_form_is_understood():
     """Terra pre-merge pass 4, P1. `-Pattern:<value>` is standard PowerShell, and the
     parser read the whole token as an unknown flag -- so the governed search passed."""
