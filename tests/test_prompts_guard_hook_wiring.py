@@ -9,7 +9,8 @@ the path, it exits non-zero -- and a `PreToolUse` hook that exits non-zero REFUS
 refusal of every tool call, attributed to the tool it blocked rather than to us
 (`docs/audits/2026-09-10-technical-night-aj-m03/REVIEW.md`:83, pointer :105).
 
-Three properties are asserted here, and they are the two edits `[#684]` names:
+Four properties are asserted here. The first three are the two edits `[#684]` names;
+the fourth was added by the 2026-09-11 Codex review of this branch:
 
 * **The command resolves the repo root itself.** Measured 2026-09-11 by a throwaway child
   session: hook commands run through a POSIX shell (`bash.exe`) with cwd == the project
@@ -21,6 +22,10 @@ Three properties are asserted here, and they are the two edits `[#684]` names:
   stated intent, verbatim: *"the prompts-guard resolves its own path and fails open on
   interpreter failure"* (REVIEW.md:102). This extends `prompts_guard()`'s own documented
   fail-open posture to the one failure it could not reach -- not being loaded at all.
+* **A refusal is PROPAGATED, not swallowed.** The risk the fail-open leg creates is
+  precise -- a command string that turns the guard's refusal into a pass -- and it is
+  pinned hermetically by a stand-in that exits `2`, because the real verdict's User-scope
+  half is registry state this suite must not touch.
 * **The matcher names tool classes instead of `"*"`.** `"*"` is what converted an
   interpreter error into a session with no escape: `ToolSearch` was refused too, which is
   the only route to the deferred `ExitWorktree` / `SendMessage` tools, so the session could
@@ -68,6 +73,10 @@ _SH = shutil.which("bash") or shutil.which("sh")
 #: Outside every code the real guard returns (0 pass / 2 refuse), so a test asserting it is
 #: asserting "the command reached the script at this root" and nothing else.
 _REACHED = 7
+#: The guard's own refusal code. A stand-in returning it proves the command string
+#: PROPAGATES a refusal rather than swallowing it -- hermetically, on any platform, which
+#: the live-tree test cannot do because the User-scope half of the verdict is registry state.
+_REFUSES = 2
 
 
 def _prompts_guard_hooks():
@@ -98,12 +107,12 @@ def _matches(matcher: str, tool: str) -> bool:
     return re.fullmatch(matcher, tool) is not None
 
 
-def _fake_tree(root: Path) -> Path:
+def _fake_tree(root: Path, code: int = _REACHED) -> Path:
     """A tree shaped like this repo whose `scripts/fleet_health.py` only reports that it
-    RAN."""
+    RAN -- or, at `code=_REFUSES`, one that stands in for a guard that REFUSES."""
     (root / "scripts").mkdir(parents=True, exist_ok=True)
     (root / "scripts" / "fleet_health.py").write_text(
-        f"import sys\nsys.exit({_REACHED})\n", encoding="utf-8"
+        f"import sys\nsys.exit({code})\n", encoding="utf-8"
     )
     return root
 
@@ -224,14 +233,48 @@ def test_hook_command_fails_open_when_no_root_resolves(tmp_path):
     )
 
 
-def test_hook_command_still_runs_the_real_guard_from_the_repo_root():
-    """Non-weakening, against the live tree: the command reaches the REAL guard and the
-    real guard's verdict is what decides. 0 or 2, never an interpreter error."""
-    result = _run(_hook_command(), cwd=_REPO_ROOT, project_dir=None)
-    assert result.returncode in (0, 2), (
-        f"rc={result.returncode} stderr={result.stderr!r}"
+def test_hook_command_propagates_the_guards_refusal(tmp_path):
+    """The non-weakening claim, asserted HERMETICALLY -- the Codex review's HIGH-3.
+
+    The risk the fail-open leg creates is precise: a command string that turns the guard's
+    REFUSAL into a pass. A stand-in that exits `2` in a `tmp_path` tree pins exactly that,
+    on any platform and under any ambient scope, because it removes the registry half of
+    the real verdict from the question entirely. Delete the `python "$g"` tail -- or add
+    anything that swallows its status -- and this fails.
+    """
+    tree = _fake_tree(tmp_path / "tree", code=_REFUSES)
+    result = _run(_hook_command(), cwd=tree, project_dir=None)
+    assert result.returncode == _REFUSES, (
+        "the hook command did not propagate the guard's refusal -- a refusal was converted "
+        f"into a pass: rc={result.returncode} stderr={result.stderr!r}"
     )
-    assert "can't open file" not in result.stderr, result.stderr
+
+
+def test_hook_command_still_runs_the_real_guard_from_the_repo_root():
+    """Non-weakening against the LIVE tree -- by EQUIVALENCE, not by a two-element set.
+
+    The previous form asserted `rc in (0, 2)`, and the 2026-09-11 Codex review of this
+    branch is right that this was environment-dependent (HIGH-3): it passed whether the
+    machine's two `CLAUDE_PROMPTS_DIR` scopes agreed or not, so it could not distinguish
+    "the guard ran and passed" from "the guard ran and refused" -- nor catch a command
+    that converted one into the other. Running the same module directly, through the same
+    shell and the same `python`, makes the assertion deterministic under either ambient
+    state: whatever the guard says, the hook must say the same thing.
+    """
+    direct = _run(
+        f'python "{_REPO_ROOT.as_posix()}/scripts/fleet_health.py" --prompts-guard',
+        cwd=_REPO_ROOT, project_dir=None,
+    )
+    hooked = _run(_hook_command(), cwd=_REPO_ROOT, project_dir=None)
+    assert direct.returncode in (0, 2), (
+        "the guard itself returned neither of its own documented codes, so this test "
+        f"cannot bind the hook to it: rc={direct.returncode} stderr={direct.stderr!r}"
+    )
+    assert hooked.returncode == direct.returncode, (
+        "the hook command did not return the real guard's verdict: "
+        f"hook={hooked.returncode} guard={direct.returncode} stderr={hooked.stderr!r}"
+    )
+    assert "can't open file" not in hooked.stderr, hooked.stderr
 
 
 def test_hook_command_names_the_guard_flag_and_the_guard_module():
