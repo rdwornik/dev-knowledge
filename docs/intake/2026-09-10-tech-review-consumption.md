@@ -119,3 +119,57 @@ renders and the counter excludes — a population difference by design. M4's cou
 divergence is **not** a defect, `[#589]` is not asked to absorb it, and no row is filed. M4's
 counter is `boot_frontier.load_open_rows` with deferred excluded. This paragraph is the refusal
 record the ruling calls for — the finding is dispositioned, not dropped.
+
+---
+
+## FILE lines — three ruled decisions become rows (W-8, `to-cc/AMEND-BATCH-W-004.md` AW4-1)
+
+**A SECOND table, and deliberately not three rows appended to the first one.** The disposition
+table above is carried VERBATIM from `to-cc/DECLARE-REVIEW-CONSUMPTION-2026-09-10.md`, and this
+file says twice that it is not edited; appending to it would end its verbatim carriage to buy
+nothing, since these three rows come from a different source — `to-cc/AMEND-BATCH-W-004.md` AW4-1,
+executed by lane `lane-w-000-three-decisions-become-rows`. So they get their own table, in the
+same shape, and the carried one is left byte-intact.
+
+**Why they land HERE rather than in a new intake.** `to-cc/AMEND-SESSION-PLAN-009.md` declares
+`carried-by: docs/intake/2026-09-10-tech-review-consumption.md` — this file — and until this
+section existed, this file referenced that AMEND nowhere. That is exactly the `[#686]` finding (a)
+shape, one table up: a carrier that resolves as a PATH while the home it names references the
+decision nowhere. Row C below makes that carriage real rather than nominal.
+
+| # | Decision (source) | Disposition | Target / new row |
+|---|---|---|---|
+| A | Conductor E — `to-cc/DECLARE-CONDUCTOR-DECISION-2026-09-09.md` (§4 decision, §6 the numbers) | FILE | `[#689]` P1/L — GitHub Actions as the runner, state stays in `tasks/`, required checks as gates. Done-when is §6's four 30-day numbers **verbatim**. Blocked on the operator's GitHub Pro (D2). Batch X, after lane 0 |
+| B | Provider routing — `to-cc/AMEND-BATCH-W-004.md` AW4-1 row 2 | FILE | `[#691]` P2/M — `provider-registry.yaml` gains a role entry with an ORDERED fallback list, admission-gated and licence-gated, RED-first test on a non-admitted provider. Done-when is AW4-1 row 2 **verbatim**. Blocked on intake #75's ratification. Batch X |
+| C | `decision_coverage` — `to-cc/AMEND-SESSION-PLAN-009.md` A9-1..A9-3 | FILE | `[#692]` P1/L — every decision carries a lifecycle state and an implementing row or a written disposition; the query refuses at commit tier and at onboarding. Done-when is A9-1, A9-2 and A9-3 **verbatim**, numbers carried. Batch X, lane 0 |
+
+**Net: 3 FILE, 0 FOLD.** A fold target was sought for each and none fits, which is what each row's
+`kill-candidates:` clause records against the live Done-when: `[#664]` owns the FPG-1 spine and its
+three commit-tier queries and names no decision lifecycle, population or onboarding refusal;
+`[#669]` owns the four delivery-loop transitions and computes state from spine edges, which is
+conductor E's phase table only once E exists to fire it; `[#676]` owns each provider row's
+non-interactive invocation shape — how you CALL a provider, not who may hold a role; `[#627]` owns
+agy's single `analysis` admission and names no ordering, no fallback and no licence.
+
+**Theme, story, priority and size are CC's assignment** against the live enum and carry no ruling —
+the same limit this file's "What this file does NOT claim" section states for the rows above.
+
+### Two locator findings the filing turned up
+
+1. **D2 lives only in a duplicate.** AW4-1 row 1 cites *"RATIFICATION-2026-09-10 D2"*. The lane
+   contract's own preflight resolved it: `to-browser/RATIFICATION-2026-09-10.md` (4,332 B) carries
+   no D-numbering at all and lists GitHub Pro under **NOT RATIFIED**, while
+   `to-browser/RATIFICATION-2026-09-10 (1).md` (1,097 B), a Drive-style duplicate, carries D2 as
+   **YES**. The two same-named transport files disagree on `[#689]`'s blocker; the duplicate is the
+   later by arrival. `[#689]` cites the path that actually holds D2 and records the disagreement.
+   Neither transport file was edited — transport is not a lane's to tidy.
+
+2. **"Operator packet D8" does not resolve, and the substance is a recommendation, not an operator
+   act.** AW4-1 row 2 attributes *"ratify the bar, not Copilot"* to an operator packet D8. That
+   phrase appears verbatim nowhere in the transport or the repo outside the AMEND itself, and no
+   2026-09-10 packet carries a D8 — every live D8 in the corpus is the unrelated intake-id-collision
+   ruling of `DECLARE-SITTING-2026-09-06`. The substance resolves to
+   `to-cc/SUPPLEMENT-ANSWERS-2026-09-10.md:118` and to `to-browser/RATIFICATION-2026-09-10.md`, and
+   **both label it a browser-seat RECOMMENDATION**: the latter lists `#75` under *"Intakes awaiting
+   ratification"*. So `[#691]`'s blocker is real and OPEN; only its attribution to the operator was
+   wrong, and `[#691]` cites the two paths that hold the substance instead.
