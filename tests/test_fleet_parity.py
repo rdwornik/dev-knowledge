@@ -1747,6 +1747,80 @@ def test_prompts_guard_coupling_refuses_a_hook_bound_to_another_script(tmp_path)
     assert "scripts/fleet_health.py" in row.evidence
 
 
+def test_prompts_guard_coupling_is_not_satisfied_by_a_decoy_mention_of_the_path(tmp_path):
+    """The path must be INVOKED, not merely mentioned somewhere in the command.
+
+    Round 2 of the 2026-09-11 Codex review. Binding the match to a raw substring of the
+    command left `python /opt/other_guard.py --prompts-guard; : scripts/fleet_health.py`
+    reporting at parity -- the hook runs a foreign guard while parity certifies the
+    coupling. The contrived `:` form is not the reason this matters. The realistic one is
+    that a hook command legitimately NAMES its script inside refusal text (this repo's own
+    does, twice), so a command copied and re-pointed at another guard keeps every mention
+    of the original path while invoking none of it. That is ordinary deploy drift, not an
+    attack, and it is exactly the split AX15-2 asks parity to see.
+    """
+    decoy = json.dumps({"hooks": {"PreToolUse": [
+        {"matcher": "Read|Write|Edit|Bash",
+         "hooks": [{"type": "command",
+                    "command": "python /opt/vendor/other_guard.py --prompts-guard; "
+                               ": scripts/fleet_health.py"}]},
+    ]}}, indent=2)
+    row = _coupling_verdict(tmp_path, {
+        ".claude/settings.json": decoy,
+        "scripts/fleet_health.py": "# guard, tracked and named but never invoked\n",
+    })
+    assert row.verdict == fp.MUST_ABSENT, row.evidence
+
+
+def test_prompts_guard_coupling_rejects_an_interpreter_word_that_is_only_an_argument(
+        tmp_path):
+    """The interpreter must be the command being RUN, not a word inside another command.
+
+    Round 3 of the 2026-09-11 Codex review. `echo python scripts/fleet_health.py
+    --prompts-guard` satisfied the first binder: it found the word `python`, then found the
+    path after it, and reported the component coupled -- while the shell runs `echo` and no
+    guard runs at all. The `; : path` decoy the test above covers is a DIFFERENT shape (the
+    path in a separate simple command); this one hides inside a single command, which is
+    why that test did not catch it.
+
+    Command position is now required, so a decoy has to actually invoke an interpreter to
+    be believed -- at which point it is not a decoy.
+    """
+    decoy = json.dumps({"hooks": {"PreToolUse": [
+        {"matcher": "Read|Write|Edit|Bash",
+         "hooks": [{"type": "command",
+                    "command": "echo python scripts/fleet_health.py --prompts-guard"}]},
+    ]}}, indent=2)
+    row = _coupling_verdict(tmp_path, {
+        ".claude/settings.json": decoy,
+        "scripts/fleet_health.py": "# guard, tracked and echoed but never run\n",
+    })
+    assert row.verdict == fp.MUST_ABSENT, row.evidence
+
+
+def test_prompts_guard_coupling_accepts_the_script_reached_through_a_variable(tmp_path):
+    """The binding must not over-tighten onto the shape this repo's OWN hook uses.
+
+    The live command resolves its root before invoking anything -- it assigns
+    `g="${CLAUDE_PROJECT_DIR:-.}/scripts/fleet_health.py"`, falls back to a second
+    assignment, then runs `python "$g" --prompts-guard`. So the declared path never appears
+    as an operand of the interpreter at all; it reaches it through a shell variable. Any
+    binder that demanded a literal operand would report the correct configuration as a
+    deploy defect, which is a worse failure than the one it set out to fix: it would turn
+    the hub's own compliant hook into a MUST-absent finding.
+
+    This is the over-tightening witness for that fix, and it uses the LIVE settings file
+    rather than a paraphrase of it, so the shape cannot drift out from under the test.
+    """
+    live = (Path(__file__).resolve().parent.parent
+            / ".claude" / "settings.json").read_text(encoding="utf-8")
+    row = _coupling_verdict(tmp_path, {
+        ".claude/settings.json": live,
+        "scripts/fleet_health.py": "# the guard this repo actually carries\n",
+    })
+    assert row.verdict == fp.AT_PARITY, row.evidence
+
+
 def test_live_manifest_carries_the_prompts_guard_coupling():
     """AX15-2 in the LIVE registry, not only in fixtures -- the clause names fleet_parity
     as the check, so a coupling that exists only in this test file discharges nothing."""

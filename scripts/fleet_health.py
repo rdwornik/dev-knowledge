@@ -1374,6 +1374,22 @@ PROMPTS_NO_USER_SCOPE = "no-user-scope"
 #: cannot drift apart silently.
 GUARD_EVALUATED_MARKER = "PROMPTS-GUARD-EVALUATED-OK"
 
+#: The same proof for the other verdict: printed on STDOUT when the guard REFUSES, beside
+#: the human-readable reason on stderr.
+#:
+#: A refusal needs proving for exactly the reason a pass does (2026-09-11 Codex review,
+#: round 3). `rc=2` used to be propagated straight to a bare `exit 2`, on the assumption
+#: that only this function produces a 2 -- and nothing established that either. A `python`
+#: shim exiting 2, or this file dying of `SystemExit(2)` somewhere above `prompts_guard()`,
+#: refused the tool call with an EMPTY stderr. That is an inability to evaluate wearing a
+#: verdict's clothes, and a silent refusal is MA-1's presentation exactly: the last route
+#: by which this hook could still stop a seat without telling it why.
+#:
+#: It is a DIFFERENT token from the pass marker on purpose. If the two were equal, the
+#: hook's pass test would match on the very call being refused -- pinned by
+#: `test_the_two_guard_markers_are_distinct`.
+GUARD_REFUSED_MARKER = "PROMPTS-GUARD-EVALUATED-REFUSE"
+
 
 def read_user_scope(var: str = _PROMPTS_DIR_VAR):
     """The persisted User-scope value of `var`, or None when it cannot be read.
@@ -1499,6 +1515,7 @@ def prompts_guard() -> int:
     try:
         verdict, line = prompts_dir_status(*read_prompts_dir_scopes())
     except Exception as exc:  # noqa: BLE001 -- see fail-closed note above
+        print(GUARD_REFUSED_MARKER)
         print(
             "[prompts] REFUSED -- the prompts guard could not be EVALUATED, so it refuses "
             f"what it cannot check. Cause: it raised {exc!r} before reaching a verdict. "
@@ -1507,6 +1524,7 @@ def prompts_guard() -> int:
             file=sys.stderr)
         return 2
     if verdict == PROMPTS_REFUSED:
+        print(GUARD_REFUSED_MARKER)
         print(line, file=sys.stderr)
         return 2
     print(GUARD_EVALUATED_MARKER)

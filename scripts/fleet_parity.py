@@ -235,6 +235,94 @@ _PROBE_REQUIRED_FIELDS: dict[str, tuple[str, ...]] = {
 }
 
 
+#: Interpreter words a hook command may invoke its guard through.
+_HOOK_INTERPRETERS = frozenset({"python", "python3", "py", "uv"})
+#: Shell separators between simple commands -- the unit a binding must hold WITHIN.
+_SHELL_SEPARATORS = re.compile(r"[;&|\n]+")
+
+
+def _is_interpreter_word(word: str) -> bool:
+    """Is WORD a shell word that RUNS an interpreter?
+
+    Word-boundary matching is not good enough here and the failure is silent. `\\bpy\\b`
+    matches the `py` in `fleet_health.py` -- the extension -- so a segment that merely
+    NAMES the script read as a segment that RUNS one, and the first version of this binder
+    passed the very decoy it was written to catch. Measured, not reasoned: the probe test
+    failed on it.
+
+    So the word is reduced to a command name before it is judged: quotes off, anything
+    before a substitution or assignment marker dropped (`out=$(python` -> `python`),
+    directories off, `.exe` off.
+    """
+    bare = word.strip("\"'")
+    for marker in ("$(", "`", "="):
+        if marker in bare:
+            bare = bare.rsplit(marker, 1)[-1]
+    bare = bare.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
+    if bare.lower().endswith(".exe"):
+        bare = bare[:-len(".exe")]
+    return bare in _HOOK_INTERPRETERS
+#: `NAME=value`, the assignment form a hook uses to resolve its script before running it.
+_SHELL_ASSIGNMENT = re.compile(
+    r"""(?:^|[;&|\s])([A-Za-z_][A-Za-z0-9_]*)=(?:"[^"]*"|'[^']*'|[^\s;&|]*)""")
+#: `$g`, `${g}` -- an operand that reaches its value through a variable.
+_SHELL_VAR_OPERAND = re.compile(r"^\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?$")
+#: A PLAIN leading assignment (`FOO=bar cmd`), which precedes the command position rather
+#: than occupying it. One that opens a substitution (`out=$(python ...`) is excluded: that
+#: word IS the command position.
+_SHELL_LEADING_ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=(?!.*\$\()")
+
+
+def hook_invokes_script(command: str, path: str) -> bool:
+    """Does COMMAND actually RUN the script at PATH, rather than merely mention it?
+
+    A raw `path in command` test is not this question, and the gap is not theoretical
+    (2026-09-11 Codex review, round 2). A hook command legitimately names its script inside
+    refusal TEXT -- this repo's own does, twice -- so a command copied and re-pointed at a
+    different guard keeps every mention of the original path while invoking none of it.
+    That is ordinary deploy drift, and it is precisely the split AX15-2 asks parity to see.
+
+    So: within a single simple command that invokes an interpreter, an operand must either
+    contain the path outright, or be a variable whose assignment named it. The variable leg
+    is not a nicety -- it is the shape THIS repo's hook uses (`g="...fleet_health.py"` then
+    `python "$g"`), so a binder demanding a literal operand would report the compliant hub
+    hook as a deploy defect, which is a worse failure than the one it fixes.
+
+    HONEST LIMIT, because a parity walk reads strings and must not execute what it reads
+    (ADR-28/36: Layer 2 never executes). This is a heuristic over a command, not a shell
+    parse. It cannot resolve a variable assigned from ANOTHER variable, a path built by
+    substitution, or one supplied by the environment -- each of those reports a compliant
+    hook as a split, which is the safe direction to be wrong in: a finding gets read, a
+    silent pass does not. Requiring COMMAND POSITION closed the case where a quoted
+    invocation inside an `echo` was believed; a `sh -c "..."` wrapper would still defeat it.
+    """
+    assigned = {m.group(1) for m in _SHELL_ASSIGNMENT.finditer(command)
+                if path in m.group(0)}
+    for segment in _SHELL_SEPARATORS.split(command):
+        words = segment.split()
+        # The interpreter must be the command being RUN, not a word inside another one.
+        # Scanning the whole segment for it read `echo python scripts/fleet_health.py` as
+        # an invocation (2026-09-11 review, round 3) -- the shell runs `echo`, no guard
+        # runs, and parity reported the component coupled. So: skip leading plain
+        # assignments (`FOO=bar python x.py`), then the very next word must be it. An
+        # assignment that OPENS a substitution is not skipped -- `out=$(python ...` IS the
+        # command position, and is the shape this repo's own hook uses.
+        run_at = 0
+        while run_at < len(words) and _SHELL_LEADING_ASSIGNMENT.match(words[run_at]):
+            run_at += 1
+        if run_at >= len(words) or not _is_interpreter_word(words[run_at]):
+            continue
+        # Only what FOLLOWS the interpreter can be the script it runs.
+        for operand in words[run_at + 1:]:
+            bare = operand.strip("\"'")
+            if path in bare:
+                return True
+            var = _SHELL_VAR_OPERAND.match(bare)
+            if var and var.group(1) in assigned:
+                return True
+    return False
+
+
 def _nonblank(v) -> bool:
     """A non-blank string -- the declaration-grammar field predicate (ADR-102). A
     whitespace-only or non-string value is not meaningful, auditable evidence."""
@@ -766,15 +854,16 @@ def collect_facts(target: RepoTarget, manifest: dict, baseline: dict,
             # "the component is not deployed here" would hide precisely the split this row
             # exists to see. Only the total ABSENCE of the token means not-deployed.
             #
-            # The path test is a substring of the command, which is what a command string
-            # admits: hook commands run through a POSIX shell, so the declared
-            # forward-slash relpath appears verbatim inside whatever root prefix the
-            # command computes.
+            # The path must be INVOKED, not merely present in the command text -- see
+            # `hook_invokes_script`, which carries that argument and its honest limits. A
+            # raw substring test was the first form and round 2 of the same review broke
+            # it: a hook command legitimately names its script inside refusal TEXT, so a
+            # command re-pointed at another guard keeps every mention and invokes none.
             token = _local_token(row, target.repo_id, probe["token"])
             cmds = settings_by_event.get(probe["event"], [])
             matched = [c for c in cmds if token in c]
             res["hook_present"] = bool(matched)
-            res["hook_bound"] = any(probe["path"] in c for c in matched)
+            res["hook_bound"] = any(hook_invokes_script(c, probe["path"]) for c in matched)
             res["script_present"] = probe["path"] in tracked_set
             res["present"] = (not matched) or (res["hook_bound"] and res["script_present"])
             if matched and not res["hook_bound"]:

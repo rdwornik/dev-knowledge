@@ -22,8 +22,10 @@ the MATCHER, which stays narrowed -- the break-glass family is ungated, so a ref
 still leaves an in-session way out -- plus a refusal text that names cause AND fix, and a
 SessionStart preflight that says so once before any tool call pays for it.
 
-Six properties are asserted here. The first is the edit `[#684]` names; the rest carry the
-2026-09-11 Codex review of this branch and AX15-1's inversion:
+The properties asserted here are listed below rather than counted -- the test functions are
+the roster, and a number typed into prose is stale at the next commit. The first is the edit
+`[#684]` names; the rest carry AX15-1's inversion and the three rounds of the 2026-09-11
+Codex review of this branch:
 
 * **The command resolves the repo root itself.** Measured 2026-09-11 by a throwaway child
   session: hook commands run through a POSIX shell (`bash.exe`) with cwd == the project
@@ -49,6 +51,16 @@ Six properties are asserted here. The first is the edit `[#684]` names; the rest
   the only route to the deferred `ExitWorktree` / `SendMessage` tools, so the session could
   not undo the change that broke it (recovery took an external shell). The narrowing is of
   the MATCHER, never of the refusal.
+* **A permit is PROVEN, not inferred.** Review rounds 1 and 2, and the last fail-open path
+  the inversion left standing: refusing on every non-zero status never established that the
+  guard RAN. A pass was silence plus `0` -- what any shim, wrapper or wrong interpreter also
+  produces. The guard now emits `GUARD_EVALUATED_MARKER` and the command requires stdout to
+  BE it, so `rc=0` alone buys nothing. Asserted from both ends: a stand-in that ran and
+  proved nothing, a real `python` shim on PATH, and a decoy whose output merely CONTAINS
+  the marker.
+* **The two files agree on the marker.** `fleet_health.py` prints it and
+  `.claude/settings.json` tests for it; either edited alone breaks the check silently and
+  in the PERMISSIVE direction. The constant is read from the module, never retyped here.
 """
 
 import importlib.util
@@ -87,7 +99,11 @@ def _load_fleet_health():
 #: Proof the GUARD evaluated -- emitted by `prompts_guard()` on every non-refusing verdict
 #: and required by the hook command before it permits. Sourced from the module, never
 #: retyped: see `_load_fleet_health`.
-_EVALUATED = _load_fleet_health().GUARD_EVALUATED_MARKER
+_FH = _load_fleet_health()
+_EVALUATED = _FH.GUARD_EVALUATED_MARKER
+#: The same proof for the other verdict. A refusal must be provably the GUARD's, or a shim
+#: exiting 2 refuses the seat with an empty stderr -- MA-1's presentation exactly.
+_REFUSED_MARKER = _FH.GUARD_REFUSED_MARKER
 
 #: The classes a stale `CLAUDE_PROMPTS_DIR` actually makes lie -- anything that reads or
 #: writes the filesystem under a directory the seat resolved wrongly.
@@ -170,6 +186,9 @@ _REACHED = "PROMPTS-GUARD-STANDIN-REACHED"
 #: test cannot do because the User-scope half of the real verdict is registry state this
 #: suite must not touch.
 _REFUSES = 2
+#: What a refusing stand-in writes to stderr -- the seat-facing half of a real refusal.
+#: Asserted to SURVIVE the hook, because the whole point of a refusal is the text.
+_STANDIN_REFUSAL = "[prompts] REFUSED -- STANDIN scopes disagree"
 
 
 def _prompts_guard_hooks():
@@ -211,10 +230,21 @@ def _fake_tree(root: Path, code: int = 0, evaluated: bool | None = None) -> Path
     nothing -- a shim, a wrapper, or a `python` that never reached this file at all.
     """
     if evaluated is None:
-        evaluated = code == 0
-    lines = ["import sys", f"print({_REACHED!r})"]
-    if evaluated:
+        evaluated = code in (0, _REFUSES)
+    # `_REACHED` goes to STDERR, and that is the stand-in obeying the real guard's
+    # contract rather than a testing convenience. Since the hook began requiring stdout to
+    # be EXACTLY the marker, a passing guard's stdout has no room for anything else -- and
+    # a stand-in that printed harness telemetry there would be asserting the behaviour of
+    # something the module could never be. Proof-of-reach is the harness's own signal, so
+    # it belongs on the other stream; the hook passes stderr through untouched.
+    lines = ["import sys", f"print({_REACHED!r}, file=sys.stderr)"]
+    if evaluated and code == 0:
         lines.append(f"print({_EVALUATED!r})")
+    elif evaluated and code == _REFUSES:
+        # A refusing guard marks the verdict on stdout and writes its human-readable
+        # reason to stderr, which is the shape the real one has.
+        lines.append(f"print({_REFUSED_MARKER!r})")
+        lines.append(f"print({_STANDIN_REFUSAL!r}, file=sys.stderr)")
     lines.append(f"sys.exit({code})")
     (root / "scripts").mkdir(parents=True, exist_ok=True)
     (root / "scripts" / "fleet_health.py").write_text(
@@ -223,12 +253,17 @@ def _fake_tree(root: Path, code: int = 0, evaluated: bool | None = None) -> Path
     return root
 
 
-def _shim_dir(root: Path, exit_code: int = 0) -> str:
+def _shim_dir(root: Path, exit_code: int = 0, echo: str = "") -> str:
     """A directory holding a `python` that is NOT an interpreter -- it exits without
-    running its arguments. Prepended to PATH, it is the shadow-interpreter case."""
+    running its arguments. Put on PATH, it is the shadow-interpreter case.
+
+    `echo` gives it something to say first, which is how the DECOY case is built: output
+    that merely contains the marker rather than being it.
+    """
     root.mkdir(parents=True, exist_ok=True)
     shim = root / "python"
-    shim.write_text(f"#!/bin/sh\nexit {exit_code}\n", encoding="utf-8")
+    said = f'echo "{echo}"\n' if echo else ""
+    shim.write_text(f"#!/bin/sh\n{said}exit {exit_code}\n", encoding="utf-8")
     shim.chmod(0o755)
     return str(root)
 
@@ -276,7 +311,7 @@ def test_hook_command_resolves_the_script_without_claude_project_dir(tmp_path):
     """
     tree = _fake_tree(tmp_path / "tree")
     result = _run(_hook_command(), cwd=tree, project_dir=None)
-    assert _REACHED in result.stdout, (
+    assert _REACHED in result.stderr, (
         "with CLAUDE_PROJECT_DIR unset the hook did not reach "
         f"<root>/scripts/fleet_health.py: rc={result.returncode} stderr={result.stderr!r}"
     )
@@ -289,7 +324,7 @@ def test_hook_command_still_prefers_claude_project_dir_when_it_is_set(tmp_path):
     elsewhere = tmp_path / "elsewhere"
     elsewhere.mkdir()
     result = _run(_hook_command(), cwd=elsewhere, project_dir=str(tree))
-    assert _REACHED in result.stdout, (
+    assert _REACHED in result.stderr, (
         f"CLAUDE_PROJECT_DIR was ignored: rc={result.returncode} stderr={result.stderr!r}"
     )
 
@@ -308,7 +343,7 @@ def test_hook_command_falls_back_to_cwd_when_claude_project_dir_is_set_but_wrong
     wrong = tmp_path / "wrong-root"
     wrong.mkdir()
     result = _run(_hook_command(), cwd=tree, project_dir=str(wrong))
-    assert _REACHED in result.stdout, (
+    assert _REACHED in result.stderr, (
         "a wrong CLAUDE_PROJECT_DIR fell through to fail-open instead of trying cwd, so "
         "a resolvable guard went unconsulted: "
         f"rc={result.returncode} stderr={result.stderr!r}"
@@ -320,7 +355,7 @@ def test_hook_command_falls_back_to_cwd_when_claude_project_dir_is_set_empty(tmp
     produces. `:-` (not `-`) is what makes it take the default, so this pins the colon."""
     tree = _fake_tree(tmp_path / "tree")
     result = _run(_hook_command(), cwd=tree, project_dir="")
-    assert _REACHED in result.stdout, (
+    assert _REACHED in result.stderr, (
         f"an empty CLAUDE_PROJECT_DIR did not fall back to cwd: rc={result.returncode} "
         f"stderr={result.stderr!r}"
     )
@@ -333,7 +368,7 @@ def test_hook_command_resolves_a_root_whose_path_contains_spaces(tmp_path):
     elsewhere = tmp_path / "elsewhere"
     elsewhere.mkdir()
     result = _run(_hook_command(), cwd=elsewhere, project_dir=str(tree))
-    assert _REACHED in result.stdout, (
+    assert _REACHED in result.stderr, (
         "a root containing spaces was word-split by the hook command: "
         f"rc={result.returncode} stderr={result.stderr!r}"
     )
@@ -375,7 +410,7 @@ def test_hook_command_refuses_when_no_root_resolves(tmp_path):
         "an unresolvable guard PERMITTED the tool call -- declared enforcement without "
         f"enforcement (AX15-1): rc={result.returncode} stderr={result.stderr!r}"
     )
-    assert _REACHED not in result.stdout, (
+    assert _REACHED not in result.stderr, (
         "nothing should have run: the refusal must come from the existence legs, not from "
         f"a stand-in that executed anyway -- stdout={result.stdout!r}"
     )
@@ -397,7 +432,7 @@ def test_hook_command_refuses_when_the_interpreter_is_unavailable(tmp_path):
     """
     tree = _fake_tree(tmp_path / "tree", code=_REFUSES)
     result = _run(_hook_command(), cwd=tree, project_dir=None, path="")
-    assert _REACHED not in result.stdout, (
+    assert _REACHED not in result.stderr, (
         "PATH was not actually emptied -- the interpreter ran, so this test is not "
         f"measuring what it claims: stdout={result.stdout!r}"
     )
@@ -419,7 +454,7 @@ def test_hook_command_refuses_when_the_guard_crashes(tmp_path):
     """
     tree = _fake_tree(tmp_path / "tree", code=1)
     result = _run(_hook_command(), cwd=tree, project_dir=None)
-    assert _REACHED in result.stdout, "the stand-in did not run, so this proves nothing"
+    assert _REACHED in result.stderr, "the stand-in did not run, so this proves nothing"
     assert result.returncode == _REFUSES, (
         "a crashing guard PERMITTED the tool call: "
         f"rc={result.returncode} stderr={result.stderr!r}"
@@ -436,7 +471,7 @@ def test_hook_command_still_passes_when_the_guard_passes(tmp_path):
     """
     tree = _fake_tree(tmp_path / "tree", code=0)
     result = _run(_hook_command(), cwd=tree, project_dir=None)
-    assert _REACHED in result.stdout, "the stand-in did not run, so this proves nothing"
+    assert _REACHED in result.stderr, "the stand-in did not run, so this proves nothing"
     assert result.returncode == 0, (
         "a PASSING guard was turned into a refusal -- fail-closed was applied to the "
         f"verdict, not to the inability to evaluate: rc={result.returncode} "
@@ -459,7 +494,7 @@ def test_hook_command_refuses_an_exit_0_that_carries_no_evaluated_marker(tmp_pat
     """
     tree = _fake_tree(tmp_path / "tree", code=0, evaluated=False)
     result = _run(_hook_command(), cwd=tree, project_dir=None)
-    assert _REACHED in result.stdout, "the stand-in did not run, so this proves nothing"
+    assert _REACHED in result.stderr, "the stand-in did not run, so this proves nothing"
     assert _EVALUATED not in result.stdout, "the stand-in emitted the marker it must not"
     assert result.returncode == _REFUSES, (
         "an exit of 0 with NO proof the guard evaluated was treated as a pass: "
@@ -480,7 +515,7 @@ def test_hook_command_refuses_a_shadow_interpreter_that_never_runs_the_guard(tmp
     tree = _fake_tree(tmp_path / "tree", code=0)
     shim = _shim_dir(tmp_path / "shim")
     result = _run(_hook_command(), cwd=tree, project_dir=None, path=shim)
-    assert _REACHED not in result.stdout, (
+    assert _REACHED not in result.stderr, (
         "the shim was not on PATH -- the real interpreter ran, so this proves nothing: "
         f"stdout={result.stdout!r} stderr={result.stderr!r}"
     )
@@ -489,6 +524,57 @@ def test_hook_command_refuses_a_shadow_interpreter_that_never_runs_the_guard(tmp
         f"rc={result.returncode} stdout={result.stdout!r} stderr={result.stderr!r}"
     )
     _assert_teaches(result.stderr, cause_names=(_EVALUATED,))
+
+
+def test_hook_command_refuses_output_that_merely_contains_the_marker(tmp_path):
+    """The marker must be the WHOLE of stdout, not a substring of it.
+
+    Round 2 of the 2026-09-11 Codex review. A containment test (`case *MARKER*`) accepts
+    `not-PROMPTS-GUARD-EVALUATED-OK-proof`, so a shim could satisfy the positive-evidence
+    check without running anything. The accidental cases -- launcher, wrapper, wrong
+    interpreter -- never emit the token at all and were already caught; this closes the
+    deliberate one, and it closes it for free, so there was no reason to argue the threat
+    model instead of fixing it.
+
+    The guard's contract is what makes exactness affordable: on a non-refusing verdict it
+    prints the marker and NOTHING else (pinned in `tests/test_fleet_health.py`). A trailing
+    CR is tolerated, because a Python build that emits `\\r\\n` must not be able to turn
+    every tool call into a refusal -- a false refusal is the wedge class this lane exists
+    to prevent, and it is stripped with shell builtins so an emptied PATH cannot break it.
+    """
+    tree = _fake_tree(tmp_path / "tree", code=0, evaluated=False)
+    shim = _shim_dir(tmp_path / "shim", echo=f"not-{_EVALUATED}-proof")
+    result = _run(_hook_command(), cwd=tree, project_dir=None, path=shim)
+    assert _EVALUATED in result.stdout + result.stderr, (
+        "the decoy never ran, so this proves nothing: "
+        f"stdout={result.stdout!r} stderr={result.stderr!r}"
+    )
+    assert result.returncode == _REFUSES, (
+        "stdout merely CONTAINING the marker was accepted as proof the guard ran: "
+        f"rc={result.returncode} stdout={result.stdout!r}"
+    )
+
+
+def test_hook_command_refuses_a_bare_exit_2_with_a_message_that_teaches(tmp_path):
+    """An `exit 2` that is not the GUARD's verdict must still name a cause and a fix.
+
+    Round 3 of the 2026-09-11 Codex review. `rc=2` was propagated straight through to a
+    bare `exit 2`, on the assumption that only the guard produces a 2. Nothing established
+    that either: a `python` shim exiting 2, or a script dying of `SystemExit(2)` before it
+    ever reaches `prompts_guard()`, refused the tool call with an EMPTY stderr. An
+    inability to evaluate was wearing a verdict's clothes, and a silent refusal is MA-1's
+    exact presentation -- the failure this row exists to end. It was the one remaining
+    route by which this hook could still refuse a seat without telling it why.
+
+    A real refusal is unaffected: the guard marks its own verdict, so its message still
+    reaches the model verbatim (pinned by the propagation test below).
+    """
+    tree = _fake_tree(tmp_path / "tree", code=0)
+    shim = _shim_dir(tmp_path / "shim", exit_code=_REFUSES)
+    result = _run(_hook_command(), cwd=tree, project_dir=None, path=shim)
+    assert _REACHED not in result.stderr, "the shim was not on PATH, so this proves nothing"
+    assert result.returncode == _REFUSES, f"expected a refusal, got {result.returncode}"
+    _assert_teaches(result.stderr, cause_names=("rc=2",))
 
 
 def test_hook_command_tests_for_the_marker_the_guard_module_actually_emits(tmp_path):
@@ -520,6 +606,14 @@ def test_hook_command_propagates_the_guards_refusal(tmp_path):
     assert result.returncode == _REFUSES, (
         "the hook command did not propagate the guard's refusal -- a refusal was converted "
         f"into a pass: rc={result.returncode} stderr={result.stderr!r}"
+    )
+    # The CODE is half of it. The TEXT is what the refused seat actually acts on, and
+    # round 3 added a branch that can substitute the hook's own message for the guard's --
+    # correct for a bare `exit 2`, wrong here. Pin that a real verdict still speaks for
+    # itself, or that branch could quietly start swallowing every refusal reason.
+    assert _STANDIN_REFUSAL in result.stderr, (
+        "the guard's own refusal TEXT did not survive the hook: "
+        f"stderr={result.stderr!r}"
     )
 
 

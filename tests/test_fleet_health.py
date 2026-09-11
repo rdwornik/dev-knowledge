@@ -1670,6 +1670,48 @@ def test_prompts_guard_marks_a_pass_it_had_nothing_to_compare(capsys):
     assert captured.err == ""
 
 
+def test_prompts_guard_marks_a_refusal_as_its_own_on_both_routes(capsys):
+    """A refusal must be PROVABLY the guard's, for the same reason a pass must be.
+
+    Round 3 of the 2026-09-11 Codex review. `rc=2` was propagated straight to a bare
+    `exit 2`, so a `python` shim that exits 2 -- or a script that dies of `SystemExit(2)`
+    before ever reaching `prompts_guard()` -- refused the tool call with NO cause and NO
+    fix. That is an inability to evaluate wearing a verdict's clothes, and an opaque
+    refusal is MA-1's exact presentation: the failure this row exists to end.
+
+    So the refusal carries a marker too, on stdout, beside the human-readable message on
+    stderr. It is a DIFFERENT token from the pass marker, which is what keeps the two
+    checks from collapsing into each other -- the property the test below pins.
+
+    The two routes' stderr is asserted SEPARATELY and on different words, because they
+    are different messages with different histories. The VERDICT route carries the
+    E-29/013-A text, which names both scopes and the remedy in prose and predates AX15-1's
+    labelled `Cause:`/`Fix:` convention -- that convention binds the refusals the HOOK
+    composes for an inability to evaluate, not the guard's own verdict. Asserting the
+    labels here would have been asserting a rule the message was never under.
+    """
+    with mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(_STALE, _TRUE)):
+        assert fh.prompts_guard() == 2
+    captured = capsys.readouterr()
+    assert captured.out.strip() == fh.GUARD_REFUSED_MARKER
+    assert "REFUSED" in captured.err
+    assert _STALE in captured.err and _TRUE in captured.err
+    assert "re-launch" in captured.err, f"the refusal names no remedy: {captured.err!r}"
+
+    with mock.patch.object(fh, "read_prompts_dir_scopes", side_effect=RuntimeError("boom")):
+        assert fh.prompts_guard() == 2
+    captured = capsys.readouterr()
+    assert captured.out.strip() == fh.GUARD_REFUSED_MARKER
+    assert "REFUSED" in captured.err and "Cause:" in captured.err and "Fix:" in captured.err
+    assert "boom" in captured.err
+
+
+def test_the_two_guard_markers_are_distinct(capsys):
+    """If the refusal marker equalled the pass marker, the hook's pass test would match on
+    the very call being refused. They are separate constants and must stay separate."""
+    assert fh.GUARD_EVALUATED_MARKER != fh.GUARD_REFUSED_MARKER
+
+
 def test_prompts_guard_never_marks_a_refusal_as_evaluated(capsys):
     """The marker means "evaluated and NOT refusing". If a refusal carried it too, the
     hook's pass test would match on the very call the guard was refusing -- turning the
