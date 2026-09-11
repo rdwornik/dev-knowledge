@@ -19,6 +19,52 @@
 
 ---
 
+### 2026-09-11 (k) - CC (Opus 5, background integrator seat): batch W closes for real - four rows closed on one word, W-2 carried with its guard ruled fail-closed
+
+**Names `3549bd9a`**, the closure-and-amendment commit this entry anchors.
+
+**Did.** Closed batch W. Applied the operator's closure word to `[#683]` `[#638]` `[#278]`
+`[#688]`; dispositioned W-2 CARRIED to batch X as lane W-2' with its fresh review tally quoted;
+reported the net-row overdraft; tore down W-2's worktree while **preserving its branch**.
+
+**The stop was the point of the exercise.** AW6-2 bars a W-2 merge except on a fresh Codex review
+with no unresolved HIGH. The review returned **HIGH:2**, both fail-open, and the code confirmed
+them: `[ -f "$g" ] || exit 0` permits when the guard script is missing, and a bare `exit 0` permits
+on any rc other than 2 — a crash or a missing interpreter. **That is the integrator's ORIGINAL W-2
+HIGH, unchanged after a whole fix lane.** But it was deliberate: `REVIEW.md:85` and `:102` specify
+*"fails open on interpreter failure"* verbatim, because the measured alternative was MA-1 itself —
+matcher `"*"` converting an interpreter failure into refusal of every tool call with no in-session
+escape. So two reviews disagreed about a ruled design, and **the integrator refused to settle a
+security posture by fiat in either direction** and routed it under ADR-108 §A. The operator ruled:
+**AX15-1 — the guard FAILS CLOSED**, because *"a guard that permits when it cannot run is declared
+enforcement without enforcement."* MA-1's intent is superseded and W-2' carries the work forward on
+the same branch.
+
+**The lesson is about what a mechanized gate can and cannot see.** `audit.py handback` returned
+**MERGE at exit 0 on HIGH:2** — correctly, because D-1's bar is that a review *ran and is named*,
+not that it came back clean. Severity is the integrator's act. A seat that reads only the exit code
+would have merged a guard that permits when it cannot decide. **The mechanization is a floor, not a
+verdict**, and this is the batch's clearest instance of the difference.
+
+**Closing a row is three coupled edits, and only one is obvious.** Body marker, `status: closed`,
+**and removal of the node from `tasks/manifest.json`**. `plan_frontmatter_refresh` re-renders
+frontmatter only for files the manifest lists, and `derive_status` can return only `"deferred"` or
+`"open"` — never `"closed"` — so a hand-set status on a still-listed row is silently reverted at the
+next regeneration. An earlier attempt in this session did exactly that and was withdrawn. The
+invariant that makes it legible: **closed ⟺ absent from the manifest**, measured at 135 closed rows,
+all absent, zero present.
+
+**The overdraft, stated rather than netted.** 49 rows filed in the window (14 batch W + 33 X-0 + 2
+X-R), 4 closed, **net +45**; 259 open on `main`. The close packet's §10 figure of `+14` was correct
+when measured and is superseded by the amendment. Four evidenced closures do not cover forty-nine
+filings — the batch discovered faster than it closed, which is accrual rather than failure, and
+AX11-4 exists so it is a number in a packet rather than a drift nobody measured.
+
+**Changes.** Four task rows closed, `tasks/manifest.json`, `BACKLOG.md`, the batch W close packet
+(in-file amendment marker, §12), `JOURNAL.md` (this entry).
+
+**Next.** Hold the queue for batch X merges. `worktree-dispatch-x1-freeze` is already up.
+
 ### 2026-09-11 (j) - CC (Opus 5, background integrator seat): the roster anchor arc anchors itself
 
 **Names `81c3d52f`**, the (i) entry's commit — the only SHA this arc's merge introduces besides
