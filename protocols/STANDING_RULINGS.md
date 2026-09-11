@@ -4059,6 +4059,235 @@ is a template question first and an authoring question second.**
 
 *Family.* `[#611]` — the handoff-process family owning `HANDOFF_PROCESS.md` §5/§13 and the probe core.
 
+## AH. The 2026-09-10/11 window rules — ten operator rulings and four standing architect rulings (operator + architect, 2026-09-10/11)
+
+Source of record: `to-cc/DECLARE-WINDOW-RULES-2026-09-11.md`, the browser seat's declare of
+2026-09-11, whose own `carried-by:` line names this file. Carried here by lane
+`lane-x-000-window-rules-land` on the operator's dispatch of 2026-09-11. The declare's **section C
+is not prose here** — it is filed as rows `[#720]` and `[#721]`, which is where a close act owed
+at window end belongs.
+
+**Why the section exists** is AH-A3 below, in the operator's own words: a rule composed in the
+browser and not written in the repo is worth nothing to him. A transport `DECLARE`/`AMEND` file is
+the transport and not a home, so a ruling recorded only there is SAID rather than landed.
+
+**Fold-first, and it is the deliverable.** Where a ruling below already has a repo home, this
+section CITES that home and does not restate the rule; each entry states which half is cited and
+which is written out. Every locator was resolved against the live tree before it was written — a
+fold-first citation that does not resolve converts a landed rule into a dangling pointer, which is
+worse than the duplication it avoids. The full fold list, cited vs. written with each locator, is
+`docs/audits/2026-09-11-technical-window-rules-fold-list.md` (this lane's end-of-lane artifact,
+landing in the same arc as this section).
+
+**Mood.** These are dated rulings in the operator's and the architect's voice, carried with their
+phrasing intact where the phrasing is the point. The editing note's declarative-phrasing
+constraint does not apply here: this file left the silent-rule detector's scope at R12 (section S,
+2026-08-24), and that note's own closing parenthetical says to write rulings in whatever mood is
+clearest.
+
+**Part 1 — operator rulings (functional, ADR-108 §A), AH-A1 … AH-A10.** Ten rulings, his words,
+dated. ADR-108 §A routes functional questions to the operator; these are his answers.
+
+### AH-A1 · Decision coverage, rule #1 (operator, 2026-09-10)
+
+*"A decision is safe only once it is a row in the repo's backlog; a transport DECLARE/AMEND alone
+is SAID."* Every accepted decision has an implementing task or a written *"no implementation
+required"*, and **the system, not the browser's memory, refuses when one is missing**.
+
+**Mechanism — FOLDED, not restated.** The ruling's mechanism is `[#692]`
+(`tasks/692-decision-coverage-a-decided-thing-is-never-unscheduled-again.md`), the
+`decision_coverage` row — batch X lane X1-1 — which carries `AMEND-SESSION-PLAN-009` A9-1..A9-3
+verbatim as its own Done-when, including the commit-tier and onboarding refusals and the RED-first
+trip test. Nothing about the mechanism is duplicated here; the row is its home.
+
+`[#721]` files the one clause this window adds to it: `decision_coverage` counts
+`STANDING_RULINGS.md` entries as decisions, so a ruling with no mechanism row becomes visible —
+**including the rulings in this very section**.
+
+### AH-A2 · The repo protects itself from the browser (operator, 2026-09-10)
+
+The browser seat is **the weakest link and never fully onboards**. Tokens spent re-teaching it are
+accepted; mistakes are not. The protection is therefore structural rather than instructional: the
+repo refuses, rather than the seat remembering.
+
+**Two halves are FOLDED.** *"The harness works only relative to the process"* is intake #92,
+`docs/intake/2026-09-10-tech-harness-is-process.md` §1 — a harness is process management, a
+registry of `(trigger event → organ → artifact)`, and a capability with no trigger row is
+inventory, not harness. *"Every deviation raises an exception that tells the agent how the work
+should be done"* is carried in `[#692]`'s A9-1 Done-when, where the refusal lists the decisions and
+states what must be done. The general posture — expectations the harness enforces, not per-arc
+negotiations — is ADR-108 §B's closing bullet.
+
+**Written out here:** that the browser seat is the weakest link, that it never fully onboards, and
+that the re-teaching cost is accepted while the mistakes are not. Those are the operator's
+judgment of the seat and have no other home.
+
+```landed
+site: docs/intake/2026-09-10-tech-harness-is-process.md | pattern: A harness is process management
+```
+
+### AH-A3 · Every rule is written in the repo (operator, 2026-09-11)
+
+*"A rule composed in the browser and not written in the repo is worth nothing."*
+
+**Written out, deliberately, because the nearest existing rule is a different rule.**
+`protocols/OPERATOR-INTERFACE.md` §2, *"Rule 1 (inbox 029) — a browser decision exists only as a
+file"*, binds the **transport**: a ruling spoken in chat and not written to `to-cc/` has no
+addressable existence. AH-A3 binds the **repo**: a ruling written to `to-cc/` and no further is
+still worth nothing, because the transport is not a home. The two are the same principle applied
+one step apart, and folding AH-A3 into Rule 1 would lose exactly the step this section exists to
+take.
+
+### AH-A4 · Test-driven (operator, 2026-09-10)
+
+*"When something is written, its test is written; only the tests relevant to the changed file run,
+in parallel."*
+
+**FOLDED in full — all three clauses have live homes, and none is restated here.**
+
+- *Its test is written* → ADR-108 §B, *"TDD — RED-first witnesses and failing tests before build
+  code, frozen after freeze"*. Cited precisely and **not upgraded**: §B binds every **build arc**,
+  and a blanket TDD mandate is not live — the Council rejected "Mandatory TDD", which `CLAUDE.md`
+  §4 records. This ruling is read against §B's scope, not beyond it.
+- *Only the tests relevant to the changed file* → `[#278]`, delivered by batch W lane W-7:
+  `scripts/impacted_tests.py` and the `impacted-tests-guard` pre-commit hook, whose refusal names
+  the RED-first test.
+- *In parallel* → `pyproject.toml`'s `addopts = "-n auto"` (pytest-xdist), the repo's default
+  since `[#256]`.
+
+X1-3, the merge-cost leg the ruling also names, is **unbuilt** and is a pointer here rather than a
+declared site — declaring a landing for a mechanism that does not exist is what the landing
+predicate is designed to catch.
+
+```landed
+site: docs/decisions/ADR-108-decision-routing-and-engineering-standards.md | pattern: RED-first witnesses and failing tests before build code
+site: .pre-commit-config.yaml | pattern: impacted-tests-guard
+site: pyproject.toml | pattern: addopts = "-n auto"
+```
+
+### AH-A5 · Value-oriented feedback (operator, 2026-09-10)
+
+Feedback to the operator states **gains, losses and what improves in his repos** — never features.
+A delivery that lists what was built, and not what changed for him, has not reported.
+
+**Written out — no repo home was found.** The report-transport rules
+(`protocols/OPERATOR-INTERFACE.md` §4, reports travel as files) govern the medium; this governs
+the content, and the two do not overlap.
+
+### AH-A6 · Every review ends with an action (operator, 2026-09-11)
+
+A review is **never delivered without its action point / call to action**. The finding set is not
+the deliverable; what the operator is to do next is.
+
+**Written out — no repo home was found.** No review surface in this repo — `/codex-review`,
+`/handoff-verify`, the audit artifacts — states this requirement today.
+
+### AH-A7 · No workarounds (operator, 2026-09-10)
+
+A defect is **fixed at its source or filed**; it is not routed around.
+
+**One narrow instance is FOLDED:** `AGENTS.md`, section *Gates* — *"If a gate fires, fix the cause.
+Do not reach for `--no-verify`"*. That is this rule applied to one surface. The general rule is
+written out here, because a rule that binds only the gate surface is not the rule the operator
+stated.
+
+### AH-A8 · Concurrent workstreams (operator, 2026-09-10)
+
+The Drive transport is **shared**. A seat reads only the files its own bundle, plan or CC session
+names, and **never acts on another workstream's files or recommendations**.
+
+**The gate-side corollary is FOLDED:** `[#686]` clause (c) — the handoff gate's P11 population
+over-globs `to-cc/`, so a concurrent workstream's files enter the count and fail a window that does
+not own them; the population is the window's files **by manifest, not by glob**. That row owns the
+gate. This entry owns the seat behaviour the gate defect made visible, which no row states.
+
+### AH-A9 · Session plan (operator, 2026-09-10)
+
+When asked for the plan, the seat writes it **in the same turn** as a copyable file, with **hard
+preconditions and functional requirements**; evidence the plan still needs is a **timed phase
+inside it**, not a reason to withhold the plan.
+
+**The medium half is FOLDED:** `protocols/HANDOFF_PROCESS.md`, *"Transport-medium contract (intake
+#18 A2)"* — every load-bearing deliverable crossing the CC → operator → browser boundary, a plan
+named among them, travels as a FILE and never as chat-paste. The architect bundle's `PLAN.md` and
+its DRAFT → REVIEWED → APPROVED → CLOSED lifecycle (same file, *"PLAN.md, the D3 four-state
+artifact"*) is a **different artifact** and is not what this ruling is about.
+
+**Written out:** same turn, hard preconditions, functional requirements, and the timed-phase
+treatment of missing evidence.
+
+### AH-A10 · Seat routing and CC context (operator, 2026-09-11)
+
+A paste goes to **the session holding that role**; when its context is low, to a **fresh session
+booted from the bundle's `SEAT-BOOT` render**. The browser names the **exact session** for every
+paste.
+
+**Written out — no repo home was found.** Source: `AMEND-BATCH-W-006` AW6-4, an operator correction
+of 2026-09-11. The `SEAT-BOOT` renders exist under `templates/handoff/seats/`, but no protocol file
+states where a paste goes or who names the destination.
+
+**Part 2 — standing architect rulings (technical, ADR-108 §A), AH-B1 … AH-B4.** Four rulings whose
+only prior record is a transport `AMEND`. AW5-1, AW5-2 and AW5-4 are `AMEND-BATCH-W-005`,
+2026-09-11 morning; Q8 is carried by a row.
+
+### AH-B1 · Control surfaces are STATE (architect, AW5-4, 2026-09-11)
+
+A line a reader consumes **first-match** is **updated in place**, and its prior value is preserved
+verbatim in the file's history section. **Amendment-only discipline governs narrative records, not
+control surfaces.** Appending a second value to a first-match surface does not amend it — it hides
+the new value behind the old one.
+
+**Written out — no repo home was found.** The live instance the ruling was issued against is the
+`Tally:` line, read first-match at `scripts/seat_refusals.py:558`
+(`line = next((ln for ln in text.splitlines() if "Tally:" in ln), "")`). The site below declares
+that reader, not the ruling's text — the reader is what makes the surface first-match, and it is
+live.
+
+```landed
+site: scripts/seat_refusals.py | pattern: "Tally:" in ln
+```
+
+### AH-B2 · One GO per batch (architect, AW5-1, 2026-09-11)
+
+**FOLDED.** `/lane-integrate` §0 is canon and already states it:
+`.claude/commands/lane-integrate.md`, *"0. Authorization"* — one operator GO authorizes the whole
+batch integration, and that GO plus the end-of-batch packet are the batch's two operator touches.
+Not restated.
+
+**Written out — the clause the amendment adds:** a render that says otherwise is a **generator
+defect**, not a competing instruction. The witnessed instance is the `SEAT-BOOT-integrator`
+render's per-merge GO line, which contradicts the canon it is rendered beside; it was filed at
+batch close beside the three-grammar collision.
+
+```landed
+site: .claude/commands/lane-integrate.md | pattern: One operator \*\*GO\*\* authorizes the whole batch
+```
+
+### AH-B3 · Review independence is the reviewer model, not the invoker (architect, AW5-2, 2026-09-11)
+
+An **integrator-invoked** Codex review is legal when recorded as a deviation. Independence is
+supplied by the reviewer **model** being a different model, not by which seat issued the command;
+the invoker is recorded (`invoker: integrator (lane session dead)` in the tally) so the deviation
+is visible rather than absent.
+
+**Written out — no repo home was found.** The ruling was issued for W-2, whose lane session had
+died with `review=NONE`, and it is what let that branch be reviewed at all rather than held on a
+procedural reading of who may invoke.
+
+### AH-B4 · A decision's carrier must reference it (architect, Q8, 2026-09-11)
+
+**FOLDED.** `[#686]` clause (a) is this ruling's home and states it as the defect it is: P11 checks
+**existence** where it means **reference** — the live check resolves the carrier PATH
+(`git cat-file -e main:<path>`), so a decision file passes while the home it names references the
+decision nowhere. **Existence of the named home is not carriage.** Not restated here; the row owns
+both the rule and the repair, and its Done-when is *"a carrier resolves only if the named home
+references the decision"*.
+
+**Expiry (section-wide):** open-ended for AH-A2, AH-A3, AH-A5, AH-A6, AH-A7, AH-A8, AH-A9, AH-A10,
+AH-B1 and AH-B3 — the entries this section writes out, which retire only when a declared durable
+home carries them (this file's scope boundary). AH-A1, AH-A4, AH-B2 and AH-B4 are citations rather
+than rulings-of-record and retire with the homes they cite.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
