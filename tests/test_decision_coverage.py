@@ -25,6 +25,7 @@ WHAT EACH GROUP WITNESSES:
 
 from __future__ import annotations
 
+import contextlib
 import datetime as _dt
 import subprocess
 import sys
@@ -471,9 +472,31 @@ def test_the_onboarding_rung_PASSES_when_every_in_era_decision_is_disposed(
 # not make any of them stricter.
 
 
-@pytest.fixture(scope="session")
+@contextlib.contextmanager
+def _live_store():
+    """The live store, open for exactly as long as a read takes.
+
+    NEVER held across tests, and the reason is measured rather than stylistic. `gs.ensure`
+    rebuilds by swapping a new file into place; on Windows that swap FAILS while any process
+    holds the `-wal` open, and it then raises `StoreUnreadable`. A session-scoped handle is
+    such a reader for the length of the run, so under xdist it makes a SIBLING worker's
+    rebuild fail -- six `tests/test_graph_spine.py` tests went red on this branch and not on a
+    worktree of `main`, which is how this was found. A test file that reds other people's tests
+    by existing is a defect in the test file.
+    """
+    store = gs.ensure(REPO_ROOT)
+    try:
+        yield store
+    finally:
+        store.close()
+
+
+@pytest.fixture
 def live_store():
-    return gs.ensure(REPO_ROOT)
+    """Function-scoped ON PURPOSE -- see `_live_store`. The one-open-per-test cost is ~1s and
+    buys back a suite that does not fight itself."""
+    with _live_store() as store:
+        yield store
 
 
 @pytest.fixture(scope="session")
@@ -486,8 +509,12 @@ def live_transport():
 
 
 @pytest.fixture(scope="session")
-def live_decisions(live_store, live_transport):
-    return dc.decisions(REPO_ROOT, live_store, transport=live_transport)
+def live_decisions(live_transport):
+    """The POPULATION, computed once and carried -- not the handle that produced it. Session
+    scope is still correct for the same reason it always was (every witness measures the same
+    tree at the same moment), and it no longer implies a session-long reader."""
+    with _live_store() as store:
+        return dc.decisions(REPO_ROOT, store, transport=live_transport)
 
 
 def test_the_live_population_is_readable_and_non_empty(live_decisions):
