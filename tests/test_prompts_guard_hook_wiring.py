@@ -68,7 +68,46 @@ _MUST_MATCH = (
 #: were refused rather than adopted: they are this family, not the filesystem family.
 _MUST_NOT_MATCH = ("ToolSearch", "ExitWorktree", "SendMessage")
 
-_SH = shutil.which("bash") or shutil.which("sh")
+def _resolve_posix_shell():
+    """The shell Claude Code actually runs hook commands through, resolved by RUNNING it.
+
+    `shutil.which("bash")` alone is NOT enough on Windows, and the failure is silent in the
+    worst way. Measured 2026-09-11 in this repo: from one session `which` returned
+    `C:/Program Files/Git/bin/bash.exe` and every test here passed; from another, whose
+    PATH put `WindowsApps` first, the same call returned the WSL app-execution-alias stub
+    `.../WindowsApps/bash.EXE`, which on a machine with no distro installed exits 1 with
+    its message on STDOUT and an EMPTY stderr -- so all eight shell-backed tests failed,
+    loudly, with `rc=1 stderr=''` and nothing pointing at the cause. Worse than the noise:
+    a WSL bash WITH a distro would run, and would then be asserting the hook's behaviour
+    under a shell that cannot even see this repo's Windows paths.
+
+    So candidates are validated by their ability to stat a Windows path, not by existing.
+    """
+    candidates = [
+        r"C:\Program Files\Git\bin\bash.exe",
+        r"C:\Program Files (x86)\Git\bin\bash.exe",
+        shutil.which("bash"),
+        shutil.which("sh"),
+    ]
+    probe = _SETTINGS.as_posix()
+    seen = set()
+    for candidate in candidates:
+        if not candidate or candidate in seen or not Path(candidate).exists():
+            continue
+        seen.add(candidate)
+        try:
+            probed = subprocess.run(
+                [candidate, "-c", f'[ -f "{probe}" ]'],
+                capture_output=True, text=True, timeout=30,
+            )
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if probed.returncode == 0:
+            return candidate
+    return None
+
+
+_SH = _resolve_posix_shell()
 
 #: Outside every code the real guard returns (0 pass / 2 refuse), so a test asserting it is
 #: asserting "the command reached the script at this root" and nothing else.
@@ -123,8 +162,10 @@ def _run(command: str, *, cwd: Path, project_dir):
     if project_dir is not None:
         env["CLAUDE_PROJECT_DIR"] = project_dir
     assert _SH is not None, (
-        "no POSIX shell on PATH -- Claude Code runs hook commands through one (measured "
-        "2026-09-11: C:/Program Files/Git/bin/bash.exe), so this hook cannot run here"
+        "no WORKING POSIX shell found -- Claude Code runs hook commands through one "
+        "(measured 2026-09-11: C:/Program Files/Git/bin/bash.exe), so this hook cannot "
+        "run here. Note a WSL stub on PATH does not count: it is rejected on purpose, "
+        "see _resolve_posix_shell"
     )
     return subprocess.run(
         [_SH, "-c", command],
