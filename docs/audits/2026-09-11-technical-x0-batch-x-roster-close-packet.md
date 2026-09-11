@@ -12,9 +12,12 @@ Landed the batch X roster into the repo as **intake 93**
 byte-identically, and filed **28 rows** into `tasks/`.
 
 It is TEXT-ONLY by contract. It built none of the mechanisms the roster names, changed no
-file under `scripts/`, wrote no JOURNAL entry, and regenerated no organ index. The
-`implements:` key it writes on every row is DATA; the validator that will police it is
-X1-1's job.
+file under `scripts/`, wrote no JOURNAL entry, and regenerated no organ index.
+
+Every row's ownership edge back to the intake **is live and queryable in FPG-1**, but it is
+NOT carried by an `implements:` frontmatter key: the generator deletes that key by design and
+X1-1 (`[#692]`) is the row that makes it possible. The contract's leg 2, what happened to it,
+and what X1-1 needs to know are §3.4.
 
 ## 2 · Row ids minted, and what each is
 
@@ -68,7 +71,7 @@ exhausted.
 **`708–714` are unused holes** inside the reserved block. They were never filed into, and
 gaps in the id sequence are normal here rather than a defect to tidy.
 
-## 3 · Three declared deviations
+## 3 · Four declared deviations
 
 ### 3.1 · The intake id is 93, not the 92 the Done-contract froze
 
@@ -157,6 +160,55 @@ Note what this is an instance of: a point-in-time assertion that has been failin
 for long enough that filing a legitimate row now looks like it broke something. That is
 `[#724]`'s subject exactly — a red baseline makes a new arrival indistinguishable from the
 noise — observed inside the same lane that filed `[#724]`.
+
+### 3.4 · The `implements:` frontmatter key is NOT on the rows — the generator deletes it, and X1-1 is the row that makes it possible
+
+The Done-contract's leg 2 asked for every NEW row to carry *"frontmatter `implements:`
+pointing at the intake."* All 28 rows were filed with exactly that key. **The repo's own
+generator then removed it**, silently, at the first `gen_task_tree.py --emit-source` — its
+log line for the act is the unremarkable *"refreshed derived frontmatter in 28 task file(s)"*.
+
+This is not a bug to route around. `emit_task_file_text` is the **closed oracle for
+frontmatter honesty** (`[#439]`): its key set is fixed at `id, title, status, priority?,
+size?, theme?, story?, serialize-group?, depends-on?, generates`, every one of them a pure
+function of the row's own body, and `--check` asserts that re-rendering a file from its body
+reproduces it **byte-for-byte**. There is no `implements` deriver, so the key is not merely
+unsupported — it is structurally excluded. Had it survived, `gen_task_tree --check` would
+fail on all 28 rows. A hand-written key there is the exact thing the oracle exists to
+prevent: *"a hand-edited `status:` sitting in a source-of-truth file meaning nothing."*
+
+**The roster itself says so, which is what makes this decidable in-contract rather than a
+fork.** Intake 93's X1 table gives X1-1's NEW clause as: *"frontmatter key `implements:
+[ADR-n | intake-n | DECLARE-…]`, validated, FPG-1 edge decision→task"* — i.e. the key is
+**X1-1's deliverable**, owned by `[#692]` (`decision_coverage`), and the contract asked this
+lane to write a field whose mechanism a later lane is scheduled to build. Leg 2's *merit* is
+a traversable ownership edge; its *spelling* was a key that does not exist yet. A ruling
+binds its merits, not its quoted spelling — the same principle applied to the intake id.
+
+**The merit is satisfied, and proven rather than asserted.** FPG-1 builds `implements` from
+two legs, and leg 1 — *"the row names the file"* — scans the whole row file for a relative
+path and finds one in every row body, since each opens by citing
+`docs/intake/2026-09-11-tech-batch-x-roster.md`. Built against the committed tree:
+
+```
+rows with an implements edge to intake 93: 43
+[242, 568, 582, 589, 616, 617, 638, 664, 667, 669, 670, 675, 685, 686, 687,
+ 693, 694, 695, 696, 697, 698, 699, 700, 701, 702, 703, 704, 705, 706, 707,
+ 715, 716, 717, 718, 719, 722, 723, 724, 725, 726, 727, 728, 729]
+```
+
+All 28 of this lane's rows are there. (The other 15 are leg 2 — the intake's byte scan
+finding `[#id]` tokens inside the carried roster text, which is the reverse claim and not
+this lane's doing.) So the edge the contract wanted **exists and is queryable today**; only
+the key does not.
+
+**Owed to X1-1 / `[#692]`, and this is the useful part of the finding:** when the
+`implements:` key is built, it needs a deriver inside `emit_task_file_text`'s key set or the
+generator will keep deleting it from every row that carries one — including rows filed by
+lanes that were told to write it. Either add the deriver, or police the body-path edge FPG-1
+already computes. What cannot work is a contract instructing lanes to hand-write a key the
+generator is designed to strip, because that failure is **silent**: the lane complies, the
+regen removes it, and nothing reports the loss.
 
 ## 4 · The judgment calls the contract left to this lane
 
