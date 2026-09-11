@@ -193,3 +193,21 @@ exactly this reason. The sync is mandatory and is retired only by the change tha
 git fetch origin
 git merge main
 ```
+
+> **AMENDMENT — 2026-09-11, dispatcher seat (F11).** This frozen copy carries the defect it
+> was frozen with, and is left that way on purpose: `docs/audits/` is immutable, so the record
+> shows what was actually frozen. The defect is `scripts/gen_lane_contract.py:661`, which
+> appends the closing step as a hardcoded `3. Final: ...` regardless of how many steps the
+> body carries — so the `## Steps` sequence here reads `1 2 3 4 5 3` and the contract states
+> `**COMMIT, then STOP.**` **twice**. A lane honouring the first terminator would stop before
+> the Final step and never produce its end-of-lane artifact.
+>
+> **The OPERATIVE copy was corrected, not this one.** `LANE-x-691-routing-telemetry.md` on
+> `$env:CLAUDE_PROMPTS_DIR` — the copy `Dispatch-Lane` resolves and the lane reads — now runs
+> `1 2 3 4 5 6` with a single terminator (body step 5 `**COMMIT, then STOP.**` → `**COMMIT**`,
+> final step `3.` → `6.`; 13007 B → 12995 B; `gen_lane_contract.py check` exit 0). X1-4 was
+> frozen and UNFIRED, so nothing was standing on it when it was repaired.
+>
+> The six FIRED wave-1 contracts are deliberately NOT patched — a fired lane's ground does not
+> shift under it. Full finding, blast radius across all seven contracts, and the integrator's
+> per-merge action: `docs/audits/2026-09-11-technical-batch-x-manifest.md` §13.

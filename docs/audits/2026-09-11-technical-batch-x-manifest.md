@@ -461,10 +461,74 @@ the writer/reader-one-key work), which is the right place for it.
 
 ### Not done by this seat, and owed
 
-- **The integrator merges `worktree-dispatch-x1-freeze`** — AX17-3. (Done at `e688669c`,
-  anchored at `0be08b3c`; this final receipts commit is a second, smaller merge.)
-- **AX17-4's row** — one fence, one verb — files through the first backfill slot.
+- **The integrator merges `worktree-dispatch-x14-freeze`** — ONE merge, not two.
+  `e688669c` merged `worktree-dispatch-x1-freeze` at its then-tip and is on main, but the
+  branch ADVANCED past that merge: `dfe1ecd8` (fire receipts), `fb0c3b75` (F10) and
+  `88f8d4a9` ([#737] / X1-4 / seat models) followed it. Measured, not assumed —
+  `git merge-base --is-ancestor worktree-dispatch-x1-freeze main` exits **1**, and
+  x1-freeze is a strict ancestor of x14-freeze (exit 0), so merging x14-freeze lands all
+  three and leaves x1-freeze a stale pointer that deletes at that merge under
+  WORKTREE TEARDOWN IS TWO BRANCHES. Both branches are on origin.
+- **AX17-4's row** — one fence, one verb — files through the first backfill slot,
+  now joined by **F11** below.
 - **The dispatcher worktree** is torn down and its removal verified once this commits.
+
+## 13 · F11 · The contract generator mis-numbers its own final step, and five contracts carry TWO stop terminators
+
+Measured while sanity-checking the frozen X1-4 contract before reporting it clean — a
+generator defect, not a transcription slip, and therefore present in every contract this
+organ has ever emitted.
+
+**The cause is one hardcoded line.** `scripts/gen_lane_contract.py:661` appends the closing
+step as the literal `3. Final: \`pytest\` green, one end-of-lane artifact ... **COMMIT, then
+STOP.**` — a fixed `3.`, regardless of how many steps the contract body carries.
+
+**The blast radius is all seven wave-1 contracts**, measured over the `## Steps` block of each:
+
+```
+LANE-x-692-decision-coverage             steps=[1 2 3 4 3]    stop-terminators=1
+LANE-x-689-conductor-e                   steps=[1 2 3 4 3]    stop-terminators=1
+LANE-x-664-delivery-spine                steps=[1 2 3 4 5 3]  stop-terminators=2
+LANE-x-734-retire-stage                  steps=[1 2 3 4 3]    stop-terminators=2
+LANE-x-716-dispatch-defects              steps=[1 2 3 4 3]    stop-terminators=2
+LANE-w-684-pretooluse-guard-root-prime   steps=[1 2 3 4 5 3]  stop-terminators=2
+LANE-x-691-routing-telemetry             steps=[1 2 3 4 5 3]  stop-terminators=2
+```
+
+**The consequence is substantive, not cosmetic.** Where the body's last step already ends
+`**COMMIT, then STOP.**`, the contract states the stop condition **twice**. A lane that
+honours the first one commits and stops *before* the Final step — and the Final step is
+where `pytest` green and the **end-of-lane artifact** (what changed · proposed diffs · open
+items) are owed. The defect's failure mode is therefore a **missing deliverable that looks
+like a compliant stop**, which is the `[[gate-blocked-lane-looks-identical-to-a-finished-one]]`
+class arriving through the contract instead of the gate.
+
+**Why it survived seven contracts.** The shape gate does not read step numbering.
+`gen_lane_contract.py check` passes the repaired X1-4 contract at exit 0 reporting
+"11 sections, shape local, slug, branch, command" — sections, slug, branch and fence are
+checked; the ordinal sequence and the count of stop terminators are not.
+
+**What this seat repaired: exactly one file.** `LANE-x-691-routing-telemetry.md` on the
+transport — body step 5 `**COMMIT, then STOP.**` → `**COMMIT**`, final step `3.` → `6.`
+(13007 B → 12995 B, shape check re-run, exit 0). It is the only contract that is **frozen and
+UNFIRED**, so nothing is standing on it, and the transport copy is the one `Dispatch-Lane`
+resolves and the lane actually reads.
+
+**What this seat deliberately did NOT do: patch the six FIRED contracts.** A fired lane's
+ground does not shift under it, and all six have already read their text — editing the files
+now would reach no running lane while manufacturing divergence against the frozen in-tree
+record. The in-tree copy under `docs/audits/.../LANE-x-691-routing-telemetry.md` is likewise
+NOT edited: audits are immutable (`CLAUDE.md` critical rule 3), so it carries an **amendment
+marker** recording the correction rather than the correction itself.
+
+**Owed, and where it goes.** The durable fix is in the generator, which is
+`[#716]`/`[#717]`/`[#718]`'s own surface — lane 5 is the dispatch-defects lane and this is a
+dispatch defect. F11 files through the **first backfill slot alongside AX17-4's row**, not
+from this seat mid-batch, so the filing arrives in the lane that owns the organ.
+
+**Action for the integrator, at every wave-1 merge:** confirm the lane produced its
+end-of-lane artifact. Its absence is **this defect**, not lane negligence — ask for the
+artifact rather than reading the stop as complete.
 
 ---
 
