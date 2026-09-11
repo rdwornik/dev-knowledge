@@ -3,34 +3,35 @@
 <!-- scope: meta -->
 
 **Date:** 2026-09-11  
-**Generated:** 2026-09-11T09:07:25  
+**Generated:** 2026-09-11T22:27:49  
 **Repos audited:** 6  
-**Checks:** 520 total — 134 pass, 8 fail, 197 warn, 0 unavailable, 181 n/a
+**Checks:** 530 total — 137 pass, 9 fail, 203 warn, 0 unavailable, 181 n/a
 
 ---
 
-## .dev-knowledge — PASS
+## .dev-knowledge — FAIL
 
-**Path:** `C:\Users\1028120\Documents\Dev\.dev-knowledge`  
+**Path:** `C:\Users\1028120\Documents\Dev\.dev-knowledge\.claude\worktrees\lane-w-684-pretooluse-guard-root`  
 **Last audit:** 2026-09-11
 
 | Check | Status | Evidence |
 |---|---|---|
 | `vision_md` | N/A | [n/a-reason:NOT-APPLICABLE] VISION.md is registry-RETIRED (canonical_docs.CANONICAL_RETIRED) -- root presence is no longer required |
 | `adr38_baseline` | PASS | All ADR-38 universal governance baseline files present |
-| `claude_md` | PASS | CLAUDE.md present (23222 chars) |
+| `claude_md` | PASS | CLAUDE.md present (23551 chars) |
 | `dot_prefix_discipline` | PASS | All root config files dot-prefixed or on ADR-59 exception list |
 | `canonical_md_visibility` | PASS | Mandatory canonical files present + correctly cased: ['ARCHITECTURE.md', 'CLAUDE.md', 'BACKLOG.md', 'CONTRIBUTING.md', 'JOURNAL.md', 'LESSONS.md'] |
 | `workspace_settings` | PASS | .dev-knowledge.code-workspace present, dot-prefixed, required sort settings correct (explorer.sortOrderLexicographicOptions carries the sorting clause's asserted half), .vscode/ in-pattern |
 | `handoff_bundle_structure` | PASS | 12 stamped v4 bundle(s) valid (structure + sections + budgets) |
 | `canonical_freshness` | PASS | 8 canonical living files fresh (last_reviewed not before last edit; within 30d) |
-| `canonical_freshness` | WARN | derived ungated-and-stale: 3 - protocols/HANDOFF_PROCESS.md (declared 2026-09-08 [frontmatter] -> derived 2026-09-10, +2d); protocols/PLAYBOOK.md (declared 2026-09-08 [prose] -> derived 2026-09-09, +1d); protocols/STANDING_RULINGS.md (declared 2026-09-08 [frontmatter] -> derived 2026-09-09, +1d) -- full rows: audit.py doc-freshness |
-| `canonical_freshness` | PASS | derived gated-and-fresh: 8 of 39 living docs (17 fresh overall; derived = last CONTENT commit, TOUCH commits [whitespace-only, frontmatter-only, stamp-line-only] walked past) |
-| `canonical_freshness` | PASS | derived doctrine rows (live version + date): protocols/HANDOFF_PROCESS.md  version 7.1.0  declared 2026-09-08 (frontmatter)  derived 2026-09-10 (fcecd12c9)  +2d  ungated-and-stale; protocols/PLAYBOOK.md  version handoff-process@7.1.0  declared 2026-09-08 (prose)  derived 2026-09-09 (4aae436ad, 1 touch skipped)  +1d  ungated-and-stale; ARCHITECTURE.md  version handoff-process@7.1.0  declared 2026-09-10 (frontmatter)  derived 2026-09-10 (fcecd12c9, unrefined)  0d  gated-and-fresh; CLAUDE.md  version 2.77  declared 2026-09-10 (frontmatter)  derived 2026-09-10 (fcecd12c9, unrefined)  0d  gated-and-fresh; CONTRIBUTING.md  version handoff-process@7.1.0  declared 2026-09-10 (frontmatter)  derived 2026-09-10 (fcecd12c9, unrefined)  0d  gated-and-fresh; README.md  version 1.1  declared 2026-09-06 (frontmatter)  derived 2026-09-06 (28e3b1c35, unrefined)  0d  ungated-and-fresh; docs/handoffs/README.md  version handoff-process@7.1.0  declared 2026-09-10 (frontmatter)  derived 2026-09-10 (fcecd12c9, unrefined)  0d  gated-and-fresh; protocols/AI_COUNCIL_PROCESS.md  version 2.2  declared 2026-09-04 (frontmatter)  derived 2026-09-04 (51bfe4f8a, unrefined)  0d  gated-and-fresh; protocols/HANDOFF_BOOT.md  version handoff-process@7.1.0  declared 2026-09-07 (frontmatter)  derived 2026-09-07 (5cb41d6b4, 1 touch skipped)  0d  ungated-and-fresh; protocols/README.md  version handoff-process@7.1.0  declared 2026-09-06 (frontmatter)  derived 2026-09-06 (c87d54b1e, 1 touch skipped)  0d  ungated-and-fresh; protocols/SESSION_SETUP.md  version handoff-process@7.1.0  declared 2026-09-10 (frontmatter)  derived 2026-09-10 (fcecd12c9, unrefined)  0d  gated-and-fresh; protocols/OPERATOR-INTERFACE.md  version handoff-process@7.1.0  declared 2026-09-08 (frontmatter)  derived 2026-09-07 (cc5dadffa, 2 touch skipped)  -1d  ungated-and-fresh |
+| `canonical_freshness` | WARN | derived gated-and-stale: 1 - CLAUDE.md (declared 2026-09-11 [frontmatter] at a525c97ec; 1 CONTENT commit(s) landed AFTER it on the same date - invisible to the date compare) -- full rows: audit.py doc-freshness |
+| `canonical_freshness` | WARN | derived ungated-and-stale: 3 - protocols/STANDING_RULINGS.md (declared 2026-09-08 [frontmatter] -> derived 2026-09-11, +3d); protocols/HANDOFF_PROCESS.md (declared 2026-09-08 [frontmatter] -> derived 2026-09-10, +2d); protocols/PLAYBOOK.md (declared 2026-09-08 [prose] -> derived 2026-09-09, +1d) -- full rows: audit.py doc-freshness |
+| `canonical_freshness` | PASS | derived gated-and-fresh: 7 of 38 living docs (16 fresh overall; derived = last CONTENT commit, TOUCH commits [whitespace-only, frontmatter-only, stamp-line-only] walked past) |
+| `canonical_freshness` | PASS | derived doctrine rows (live version + date): protocols/HANDOFF_PROCESS.md  version 7.1.0  declared 2026-09-08 (frontmatter)  derived 2026-09-10 (fcecd12c9)  +2d  ungated-and-stale; protocols/PLAYBOOK.md  version handoff-process@7.1.0  declared 2026-09-08 (prose)  derived 2026-09-09 (4aae436ad, 1 touch skipped)  +1d  ungated-and-stale; ARCHITECTURE.md  version handoff-process@7.1.0  declared 2026-09-10 (frontmatter)  derived 2026-09-10 (fcecd12c9, unrefined)  0d  gated-and-fresh; CLAUDE.md  version 2.77  declared 2026-09-11 (frontmatter)  derived 2026-09-11 (57a356aaf, unrefined)  0d  1 unreviewed after stamp a525c97ec  gated-and-stale; CONTRIBUTING.md  version handoff-process@7.1.0  declared 2026-09-10 (frontmatter)  derived 2026-09-10 (fcecd12c9, unrefined)  0d  gated-and-fresh; README.md  version 1.1  declared 2026-09-06 (frontmatter)  derived 2026-09-06 (28e3b1c35, unrefined)  0d  ungated-and-fresh; docs/handoffs/README.md  version handoff-process@7.1.0  declared 2026-09-10 (frontmatter)  derived 2026-09-10 (fcecd12c9, unrefined)  0d  gated-and-fresh; protocols/AI_COUNCIL_PROCESS.md  version 2.2  declared 2026-09-04 (frontmatter)  derived 2026-09-04 (51bfe4f8a, unrefined)  0d  gated-and-fresh; protocols/HANDOFF_BOOT.md  version handoff-process@7.1.0  declared 2026-09-07 (frontmatter)  derived 2026-09-07 (5cb41d6b4, 1 touch skipped)  0d  ungated-and-fresh; protocols/README.md  version handoff-process@7.1.0  declared 2026-09-06 (frontmatter)  derived 2026-09-06 (c87d54b1e, 1 touch skipped)  0d  ungated-and-fresh; protocols/SESSION_SETUP.md  version handoff-process@7.1.0  declared 2026-09-10 (frontmatter)  derived 2026-09-10 (fcecd12c9, unrefined)  0d  gated-and-fresh; protocols/OPERATOR-INTERFACE.md  version handoff-process@7.1.0  declared 2026-09-08 (frontmatter)  derived 2026-09-07 (cc5dadffa, 2 touch skipped)  -1d  ungated-and-fresh |
 | `generated_artifact_freshness` | WARN | conformance-dashboard: 6d stale (baseline 4d) — ecosystem/conformance.md committed 2026-09-05, newest input BACKLOG.md committed 2026-09-11; regenerate + commit: python scripts/gen_dashboard.py --write |
-| `generated_artifact_freshness` | PASS | audits-index: 0d stale (baseline 0d) — docs/audits/README.md committed 2026-09-11, newest input docs/audits committed 2026-09-11 |
-| `no_sibling_orphans` | PASS | No orphaned '.dev-knowledge-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `stale_worktrees` | PASS | 4 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
+| `generated_artifact_freshness` | WARN | audits-index: does NOT match what its generator emits — regenerating would change docs/audits/README.md. (0d by commit date, which cannot see a same-day drift); regenerate + commit: uv run --locked python scripts/gen_audit_index.py --write |
+| `no_sibling_orphans` | PASS | No orphaned 'lane-w-684-pretooluse-guard-root-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
+| `stale_worktrees` | PASS | 8 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
 | `stale_worktrees` | PASS | git stash list is empty - no stashed work outliving its lane |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 | `handoff_version_stamp` | PASS | All stamp occurrences in ['ARCHITECTURE.md', 'CONTRIBUTING.md'] match canonical HANDOFF_PROCESS v7.1.0 |
@@ -38,28 +39,20 @@
 | `floor_integrity` | N/A | [n/a-reason:NOT-APPLICABLE] no .claude/CLAUDE-FLOOR.md — repo has not adopted the methodology floor (skip) |
 | `hooks_armed` | PASS | pre-commit / commit-msg / pre-push installed and pre-commit-managed; merge.ours.driver armed for the declared merge=ours pin |
 | `git_backlog_drift` | PASS | no closed-but-present backlog drift (direction (a) STRONG, full history) |
-| `doc_claims` | WARN | 2 prose claim(s) drifted from repo state: precommit_hook_roster@CLAUDE.md (doc {audit-health, audit-index-freshness, audit-title-gate, backlog-filing-backpressure, backlog-id-on-close, block-commit-on-main, block-ff-push, block-unanchored-push, check-seal-identity, claude-rosters-freshness, codemap-freshness, coherence-nudge, derived-copies-rebind, doc-counts-pytest-freshness, intake-index-freshness, lane-contract-check, normalize-dated-headers, organ-index-freshness, provider-registry-agreement, roster-freshness, ruff, toc-freshness-playbook, validate-backlog, validate-hermetization} != actual {audit-health, audit-index-freshness, audit-title-gate, backlog-filing-backpressure, backlog-id-on-close, block-commit-on-main, block-ff-push, block-unanchored-push, check-seal-identity, claude-rosters-freshness, codemap-freshness, coherence-nudge, derived-copies-rebind, doc-counts-pytest-freshness, graph-orphan-census, graph-process-list, graph-rebuild, graph-task-coverage, intake-index-freshness, lane-contract-check, normalize-dated-headers, organ-index-freshness, provider-registry-agreement, roster-freshness, ruff, toc-freshness-playbook, validate-backlog, validate-hermetization}); pytest_collected@ecosystem/doc-counts.md (doc 5723 != actual 5525) |
+| `doc_claims` | PASS | 4 doc self-claim(s) match repo state |
 | `no_ff_merges` | WARN | non-merge commit on main (FF/direct — expected a --no-ff merge): 533109f20 (2026-06-26) docs(journal): record 2026-06-26 freshness re-stamp session (3bd2cd1) |
 | `no_ff_merges` | WARN | non-merge commit on main (FF/direct — expected a --no-ff merge): 3a894eeb5 (2026-06-19) docs(journal): 2026-06-19 session-wrap — anchor d0f9ead (transcript archive) |
 | `no_ff_merges` | WARN | non-merge commit on main (FF/direct — expected a --no-ff merge): d0f9ead67 (2026-06-19) chore(transcripts): archive 2 deep-research reports (dependency-detection + doc<->code traceability) |
-| `handoff_probes` | WARN | P0a skipped in 2026-09-10-dev-knowledge-architect: tool absent: grep |
-| `handoff_probes` | WARN | P0b skipped in 2026-09-10-dev-knowledge-architect: tool absent: grep |
-| `handoff_probes` | WARN | P0c skipped in 2026-09-10-dev-knowledge-architect: tool absent: sed |
-| `handoff_probes` | WARN | P1a skipped in 2026-09-10-dev-knowledge-architect: tool absent: grep |
-| `handoff_probes` | WARN | P1b skipped in 2026-09-10-dev-knowledge-architect: tool absent: sed |
-| `handoff_probes` | WARN | P8a skipped in 2026-09-10-dev-knowledge-architect: tool absent: ls |
-| `handoff_probes` | WARN | P8b skipped in 2026-09-10-dev-knowledge-architect: tool absent: ls |
-| `handoff_probes` | WARN | P11 skipped in 2026-09-10-dev-knowledge-architect: tool absent: head |
+| `handoff_probes` | PASS | 15 probe(s) bind to live state (2026-09-10-dev-knowledge-architect) |
 | `supplement_folded` | PASS | every filled SUPPLEMENT reached its paste — pre-era, immutable-and-lost (recorded, not repaired): 2026-08-23-dev-knowledge-architect |
 | `dispatch_verb_agreement` | PASS | both point-of-use sites name the verb Ch8's dispatch table rules, and neither carries a rival literal launch form |
 | `reconciled_versions` | PASS | 14 reconciled_with edge(s) match live spec version(s) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#241 (3 history dates spanning 64d, 2553 chars (>= 3 dates & >= 30d span & > 700 chars)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#267 (3 history dates spanning 53d, 2188 chars (>= 3 dates & >= 30d span & > 700 chars)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#297 (3 history dates spanning 51d, 1327 chars (>= 3 dates & >= 30d span & > 700 chars)) |
-| `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#683 (3 history dates spanning 38d, 2255 chars (>= 3 dates & >= 30d span & > 700 chars)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#285 (5 history dates spanning 61d, 2556 chars (>= 3 dates & >= 30d span & > 700 chars)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#82 (3 history dates spanning 51d, 2110 chars (>= 3 dates & >= 30d span & > 700 chars)) |
-| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#row-length (102 of 276 rows over the declared ceiling 1320 chars (LONG, not rot: a row may be long for a ruled reason); longest 7974 chars; row-length p50/p75/p90 over all 276 rows = 1273/1802/2827 chars; trend: +10 vs previous run (92 -> 102)) |
+| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#row-length (137 of 311 rows over the declared ceiling 1320 chars (LONG, not rot: a row may be long for a ruled reason); longest 7974 chars; row-length p50/p75/p90 over all 311 rows = 1296/2379/3382 chars; trend: +35 vs previous run (102 -> 137)) |
 | `doc_rot` | WARN | history-accretion bloat: grooming-cadence BACKLOG#grooming-cadence (last groom 2026-07-30, 43d ago (> 21d cadence, ADR-41)) |
 | `doc_structure` | PASS | no structural rot (numbering / headers / ToC / dangling-allow / heading-scheme) |
 | `doc_code_edge` | WARN | handoff-open-carrier-named: code_orphan (code sites=1, no declaration) |
@@ -87,26 +80,31 @@
 | `undeclared_edges` | WARN | undeclared prose edge (ADR-88 FC2): ecosystem/conformance.md -> handoff-process (tier 2) — declare `reconciled_with` or disposition |
 | `doc_code_coverage_drift` | PASS | all 55 ALL_CHECKS members covered (coverage_scope-annotated or exempt); none escape coverage_scope |
 | `import_edges` | PASS | 4 @import edge(s) resolve across 5 file(s) |
-| `fleet_parity` | PASS | fleet at parity -- AT-PARITY 192, PASS-declared 19, advisory-rewarn 3, gate-ahead-declared 1, skipped-pre-deploy 6, stale-declaration 1 (blocking verdicts: 0) |
+| `fleet_parity` | WARN | ai-council claude-commands-roster WARN-undeclared: .claude/commands/override.md exists but no manifest row or roster expectation covers it |
+| `fleet_parity` | WARN | corp-monorepo claude-commands-roster WARN-undeclared: .claude/commands/override.md exists but no manifest row or roster expectation covers it |
 | `routine_consumers` | PASS | 2 declared routine row(s) name a consumer and a consumption_path (live hooks/schedules out of scope — [#426]) |
 | `silent_rule_ratchet` | PASS | live 447 <= baseline 447 under detector silent-rule-v5 (69 file(s) in scope) |
 | `task_tree_coherence` | PASS | BACKLOG.md coherent with the tasks/ source of truth (structure + frontmatter honesty + full reassembly) |
-| `intake_tree_coherence` | PASS | intake residue carrier coherent (378 node(s), 27958 README.md byte(s)) |
+| `intake_tree_coherence` | PASS | intake residue carrier coherent (383 node(s), 28436 README.md byte(s)) |
 | `boot_byte_budget` | PASS | protocols/HANDOFF_BOOT.md is 17987 bytes, within its 18000-byte budget |
 | `fleet_audit_replication` | PASS | automation/fleet-audit is replicated to origin (0 commits ahead) |
 | `membership_agreement` | PASS | 9 declared (ADR-104); 7 resolved members (deployed-versions); coverage registry-md 9/9, index-yaml 6/9, deployed-versions 7/9, parity-surfaces 9/9, onboarding-rulings 6/9, state-dirs 6/9; declared-but-not-deployed: demo-prep [registry-md, parity-surfaces, onboarding-rulings]; life-architect [registry-md, parity-surfaces, onboarding-rulings] |
 | `membership_agreement` | PASS | declaration source: ADR-104 anchor 'adr104-fleet-members', 9 ids, agrees with audit.ADR104_FLEET_DECLARATION |
 | `journal_spine_anchor` | PASS | every first-parent spine entry above the ADR-85 disposition floor 24882f8cc is JOURNAL-anchored |
-| `journal_spine_anchor` | WARN | anchored by mention, not by record: d385cc1 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 2040653 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 2781094 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 676a6e8 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 9852c6d appears outside an explicit 'Anchors:' record line (+898 more) |
+| `journal_spine_anchor` | WARN | anchored by mention, not by record: efd5d47 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: e688669 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: bea803e appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 3549bd9 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 81c3d52 appears outside an explicit 'Anchors:' record line (+923 more) |
 | `journal_day_letters` | PASS | JOURNAL day-letter suffixes are unique per day since 2026-07-30 |
 | `preflight_backlog_ids` | PASS | every kill-candidates assertion names an open row |
-| `review_artifact_coverage` | WARN | 134 code-impact merge(s) since 2026-08-05 carry no linked review artifact: 9d064bb8 worktree-lane-v-000-offload-admission, fc44afda worktree-lane-v-664-delivery-spine, 5805044d worktree-lane-v-643-enforcement-debt, b31a20d5 worktree-lane-v-000-shape-spec-clauses, 7e11e90e worktree-lane-v-000-seat-templates-ledger (+129 more) -- advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
+| `review_artifact_coverage` | WARN | 137 code-impact merge(s) since 2026-08-05 carry no linked review artifact: 0bb1d5ce worktree-lane-w-683-override-manifest-node, 69a0266c worktree-lane-w-638-proof-layer-skipif, e4929b09 worktree-lane-w-278-impacted-test-selection, 9d064bb8 worktree-lane-v-000-offload-admission, fc44afda worktree-lane-v-664-delivery-spine (+132 more) -- advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
 | `review_artifact_coverage` | WARN | 2 linked artifact(s) carry no parseable **Tally:** line: 584fb1ed -> 2026-08-27-codex-lane-na-gates.md, 5af0b33c -> 2026-08-06-codex-lane-c-504-failclosed.md -- persistence is not machine-auditability; advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
 | `landing_predicate` | PASS | F2 (names, paths and identifiers derive from validators and enums) landed uniformly: scripts/validate_branch_naming.py=True; scripts/batch_manifest.py=True |
 | `landing_predicate` | PASS | N-1 (the `markdown_it` fence-region ADOPT (2026-08-03)) landed uniformly: scripts/toc/generator.py=True; scripts/normalize_headers.py=True; scripts/audit.py=True; scripts/validate_doc_structure.py=True |
 | `landing_predicate` | PASS | N-2 (the `yaml.safe_load` frontmatter-reader ADOPT (2026-08-03)) landed uniformly: scripts/gen_intake_index.py=True; scripts/gen_claude_rosters.py=True |
 | `landing_predicate` | PASS | N-3 (Ch8's dispatch surface is a PATH command, not a dot-sourced alias — [#513]'s own first test case) landed uniformly: protocols/PLAYBOOK.md=True |
 | `landing_predicate` | PASS | R-2 (Routing and the reviewer pin are L0 surfaces, outside repo-universalization scope) landed uniformly: ARCHITECTURE.md=True; CLAUDE.md=True |
+| `landing_predicate` | PASS | AH-A2 (The repo protects itself from the browser (operator, 2026-09-10)) landed uniformly: docs/intake/2026-09-10-tech-harness-is-process.md=True |
+| `landing_predicate` | PASS | AH-A4 (Test-driven (operator, 2026-09-10)) landed uniformly: docs/decisions/ADR-108-decision-routing-and-engineering-standards.md=True; .pre-commit-config.yaml=True; pyproject.toml=True |
+| `landing_predicate` | PASS | AH-B1 (Control surfaces are STATE (architect, AW5-4, 2026-09-11)) landed uniformly: scripts/seat_refusals.py=True |
+| `landing_predicate` | PASS | AH-B2 (One GO per batch (architect, AW5-1, 2026-09-11)) landed uniformly: .claude/commands/lane-integrate.md=True |
 | `adr_status_grammar` | WARN | 91 ADR status field(s); 0 enum/single-field defects; baseline WARNs: alternatives-considered-legacy=32, coherence=3, duplicate-id=2, flip-condition-legacy=89, grammar=47, wrapped-value=1 |
 | `funnel_coverage` | WARN | 2026-09-06-technical-closure-proposals.md carries no disposition and is not in the arm-time baseline -- record one of ACTIONED/FILED/REJECTED/SUPERSEDED with an evidence locator in a ledger row (architect ruling 2026-08-17), or PENDING with the exact question it needs |
 | `funnel_coverage` | WARN | 2026-09-06-technical-erratum-aj-second-pass.md carries no disposition and is not in the arm-time baseline -- record one of ACTIONED/FILED/REJECTED/SUPERSEDED with an evidence locator in a ledger row (architect ruling 2026-08-17), or PENDING with the exact question it needs |
@@ -137,7 +135,13 @@
 | `funnel_coverage` | WARN | 2026-09-09-technical-seal-rule-attribution.md carries no disposition and is not in the arm-time baseline -- record one of ACTIONED/FILED/REJECTED/SUPERSEDED with an evidence locator in a ledger row (architect ruling 2026-08-17), or PENDING with the exact question it needs |
 | `funnel_coverage` | WARN | 2026-09-09-technical-seal-rules-lane-close.md carries no disposition and is not in the arm-time baseline -- record one of ACTIONED/FILED/REJECTED/SUPERSEDED with an evidence locator in a ledger row (architect ruling 2026-08-17), or PENDING with the exact question it needs |
 | `funnel_coverage` | WARN | 2026-09-09-technical-shape-spec-clause-readers.md carries no disposition and is not in the arm-time baseline -- record one of ACTIONED/FILED/REJECTED/SUPERSEDED with an evidence locator in a ledger row (architect ruling 2026-08-17), or PENDING with the exact question it needs |
-| `substrate_declaration` | PASS | 87 lane contract(s) landed on/after 2026-08-27 agree with their declared substrate (5 earlier contract(s) grandfathered as records of an already-executed dispatch; 4 finding(s) from later-armed legs [substrate-lane-write-scope-disjoint, substrate-teardown-enum-coverage] grandfathered as debt — those legs are fully armed at FREEZE) |
+| `funnel_coverage` | WARN | 2026-09-11-technical-batch-x-manifest.md carries no disposition and is not in the arm-time baseline -- record one of ACTIONED/FILED/REJECTED/SUPERSEDED with an evidence locator in a ledger row (architect ruling 2026-08-17), or PENDING with the exact question it needs |
+| `funnel_coverage` | WARN | 2026-09-11-technical-lane-w-684-prime-fail-closed.md carries no disposition and is not in the arm-time baseline -- record one of ACTIONED/FILED/REJECTED/SUPERSEDED with an evidence locator in a ledger row (architect ruling 2026-08-17), or PENDING with the exact question it needs |
+| `funnel_coverage` | WARN | 2026-09-11-technical-w278-selector-leg-measurement.md carries no disposition and is not in the arm-time baseline -- record one of ACTIONED/FILED/REJECTED/SUPERSEDED with an evidence locator in a ledger row (architect ruling 2026-08-17), or PENDING with the exact question it needs |
+| `funnel_coverage` | WARN | 2026-09-11-technical-w278-ship-gate-baseline.md carries no disposition and is not in the arm-time baseline -- record one of ACTIONED/FILED/REJECTED/SUPERSEDED with an evidence locator in a ledger row (architect ruling 2026-08-17), or PENDING with the exact question it needs |
+| `funnel_coverage` | WARN | 2026-09-11-technical-window-rules-fold-list.md carries no disposition and is not in the arm-time baseline -- record one of ACTIONED/FILED/REJECTED/SUPERSEDED with an evidence locator in a ledger row (architect ruling 2026-08-17), or PENDING with the exact question it needs |
+| `funnel_coverage` | WARN | 2026-09-11-technical-x0-batch-x-roster-close-packet.md carries no disposition and is not in the arm-time baseline -- record one of ACTIONED/FILED/REJECTED/SUPERSEDED with an evidence locator in a ledger row (architect ruling 2026-08-17), or PENDING with the exact question it needs |
+| `substrate_declaration` | WARN | docs/audits/2026-09-01-technical-followon-launch-contracts/LANE-w-1-wintooling-canonical-restamp.md, docs/audits/2026-09-11-technical-batch-x-launch-contracts/LANE-w-684-pretooluse-guard-root-prime.md: WARN substrate-second-local-writer — 2 local lanes write in checkout '<primary checkout>' (docs/audits/2026-09-01-technical-followon-launch-contracts/LANE-w-1-wintooling-canonical-restamp.md, docs/audits/2026-09-11-technical-batch-x-launch-contracts/LANE-w-684-pretooluse-guard-root-prime.md) — PLAYBOOK Ch8's concurrency ceiling is one WRITER per checkout; parallelism only across worktrees |
 | `routing_agreement` | PASS | 4 role(s) in ecosystem/routing-table.yaml corroborated by ~/.claude/ROUTING.md |
 | `dispatch_drift` | PASS | tier host: 14 literal command(s) in protocols/PLAYBOOK.md Ch8's dispatch table resolve, and .claude/commands/lane-boot.md names the ruled verb 'dispatch' |
 | `consumer_at_landing` | WARN | 1a-L01.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
@@ -156,6 +160,9 @@
 | `consumer_at_landing` | WARN | 2026-09-09-technical-seal-rule-attribution.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
 | `consumer_at_landing` | WARN | 2026-09-09-technical-seal-rules-lane-close.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
 | `consumer_at_landing` | WARN | 2026-09-09-technical-shape-spec-clause-readers.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
+| `consumer_at_landing` | WARN | 2026-09-11-technical-batch-x-manifest.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
+| `consumer_at_landing` | WARN | 2026-09-11-technical-lane-w-684-prime-fail-closed.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
+| `consumer_at_landing` | WARN | 2026-09-11-technical-w278-selector-leg-measurement.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
 | `consumer_at_landing` | WARN | ARM3_NOTE.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
 | `consumer_at_landing` | WARN | DISPATCH-MODEL-WITNESS.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
 | `consumer_at_landing` | WARN | LANE-r-000-bundle-gitlog.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
@@ -206,7 +213,13 @@
 | `consumer_at_landing` | WARN | LANE-w-278-impacted-test-selection.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
 | `consumer_at_landing` | WARN | LANE-w-638-proof-layer-skipif.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
 | `consumer_at_landing` | WARN | LANE-w-683-override-manifest-node.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
+| `consumer_at_landing` | WARN | LANE-w-684-pretooluse-guard-root-prime.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
 | `consumer_at_landing` | WARN | LANE-w-684-pretooluse-guard-root.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
+| `consumer_at_landing` | WARN | LANE-x-664-delivery-spine.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
+| `consumer_at_landing` | WARN | LANE-x-689-conductor-e.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
+| `consumer_at_landing` | WARN | LANE-x-692-decision-coverage.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
+| `consumer_at_landing` | WARN | LANE-x-716-dispatch-defects.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
+| `consumer_at_landing` | WARN | LANE-x-734-retire-stage.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
 | `consumer_at_landing` | WARN | MATRIX.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
 | `consumer_at_landing` | WARN | MEASUREMENT.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
 | `consumer_at_landing` | WARN | MISSION-PROMPT.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
@@ -215,11 +228,8 @@
 | `consumer_at_landing` | WARN | REVIEW.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
 | `consumer_at_landing` | WARN | SEED_RUBRIC.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
 | `consumer_at_landing` | WARN | VERDICT_RULE.md is cited by no governance surface and is not in the arm-time baseline — the unconsumed set grew. Name it from the row, ADR, register entry or intake that consumes it, or record why it has no consumer |
-| `proof_layer` | WARN | test_review_artifact_coverage.py gates 1 test(s) behind a function-level skipif on 'git' — a proof that can be skipped on the machine that breaks the property is not a mechanism. Move the property that cannot be skipped OUT from behind the guard, or propagate the skip predicate into a reporting surface so a skipped proof renders as not-proven (sweep sections 9.2 and 9.6) |
-| `proof_layer` | WARN | test_review_artifact_coverage.py gates 1 test(s) behind a function-level skipif on 'git' — a proof that can be skipped on the machine that breaks the property is not a mechanism. Move the property that cannot be skipped OUT from behind the guard, or propagate the skip predicate into a reporting surface so a skipped proof renders as not-proven (sweep sections 9.2 and 9.6) |
-| `proof_layer` | WARN | test_review_artifact_coverage.py gates 1 test(s) behind a function-level skipif on 'git' — a proof that can be skipped on the machine that breaks the property is not a mechanism. Move the property that cannot be skipped OUT from behind the guard, or propagate the skip predicate into a reporting surface so a skipped proof renders as not-proven (sweep sections 9.2 and 9.6) |
-| `proof_layer` | WARN | test_review_artifact_coverage.py gates 1 test(s) behind a function-level skipif on 'git' — a proof that can be skipped on the machine that breaks the property is not a mechanism. Move the property that cannot be skipped OUT from behind the guard, or propagate the skip predicate into a reporting surface so a skipped proof renders as not-proven (sweep sections 9.2 and 9.6) |
-| `funnel_lifecycle` | PASS | 81 live + 12 archived intake(s), 91 live ADR(s), 416 row(s): no terminal object left in a live home, every ACCEPTED doc still owns an open row, and all 80 row(s) landed on/after 2026-08-27 carry resolving provenance |
+| `proof_layer` | PASS | 243 environment-conditional guard(s) across 31 test module(s), all at the committed baseline; 10 gated on an enforcement runner (the sharpest form). A guard here is a question, not a verdict — see scripts/proof_layer.py |
+| `funnel_lifecycle` | FAIL | ground truth uncomputable (Z-G4): docs/intake/2026-09-11-tech-batch-x-roster.md: frontmatter parsed to {} -- id and status are both unreadable, so its lifecycle position cannot be computed (Z-G4) |
 
 History: [`ecosystem\.dev-knowledge\history/`](ecosystem\.dev-knowledge\history/)
 
@@ -604,9 +614,9 @@ History: [`ecosystem\win-tooling\history/`](ecosystem\win-tooling\history/)
 ## Summary
 
 - 6 repo(s) audited
-- 134/520 checks passed
-- **8 failure(s)** — route findings to repo owners
-- 197 warning(s)
+- 137/530 checks passed
+- **9 failure(s)** — route findings to repo owners
+- 203 warning(s)
 - 181 n/a (check not applicable to that repo)
 
 *Report generated by `scripts/audit.py`. Do not edit manually.*
