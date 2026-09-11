@@ -2,7 +2,7 @@
 
 | Model | Mode | Effort |
 |---|---|---|
-| opus | execute | high |
+| sonnet | execute | high |
 
 ## Dispatch
 
@@ -32,11 +32,11 @@ act instead, in one of these two equivalent forms:
 
 ```
 dispatch LANE-x-734-retire-stage.md -Run
-Dispatch-Lane lane-x-734-retire-stage LANE-x-734-retire-stage.md -Effort high -Model opus
+Dispatch-Lane lane-x-734-retire-stage LANE-x-734-retire-stage.md -Effort high -Model sonnet
 ```
 
 The first is the ruled verb: it reads the `## Dispatch` fence above and executes it,
-and `Start-DispatchLane`'s `-Model` defaults to `opus`. This lane declares `opus` in
+and `Start-DispatchLane`'s `-Model` defaults to `opus`. This lane declares `sonnet` in
 its routing row, so the declared and dispatched models **agree by construction** — the
 `[#717]` mismatch cannot bite this lane, and the DryRun receipt is the evidence, not this
 sentence. The second passes it explicitly and is used where any doubt exists.
@@ -118,6 +118,34 @@ A lane that discovers a refuted premise PAUSEs with the fact (Q10):
 deviation-with-disclosure is not a license — the disclosure discharges the reporting
 duty, it does not authorise the deviation.
 
+
+## GO footprint — bounded by AX17-2, and a silent tool is INCONCLUSIVE
+
+**The operator's GO covers, per target, EXACTLY these and nothing beyond** (the `[#481]` /
+AW6-1 reading):
+
+1. the target file itself,
+2. its dedicated test file,
+3. its `Disposition(...)` entry in `scripts/graph_queries.py`,
+4. its entry in the `tests/test_graph_spine.py` list.
+
+Anything else a deletion appears to require is **out of footprint**: stop, keep the target,
+and report it. A tidy-up that felt implied is exactly how a bounded GO becomes an unbounded one.
+
+**A silent result is not a pass.** `safe_remove.py` / the reverse-dep oracle producing NO
+OUTPUT is **INCONCLUSIVE**, and an inconclusive target is **KEPT with that reason recorded**.
+A file is removed ONLY on an explicit "no importer, no reader" verdict. The dispatcher's own
+pre-run of `safe_remove.py` over the eight modules ran past 120 s and printed nothing at all,
+which is why this clause exists rather than being left to judgement.
+
+**A name-grep is not the other half of the evidence.** The dispatcher's sweep returned
+hundreds of "referrers" per target that were almost entirely prose mentions in `docs/`. It
+proves nothing in either direction; do not use it to clear or to condemn a target.
+
+**Model:** this lane runs at `sonnet` (AX17-2, mechanical list work under AX4-2). Because
+`[#717]` is open — the carried fence omits `-Model` and `Start-DispatchLane` defaults to
+`opus` — the model is passed EXPLICITLY at the dispatch act. This lane is the live instance
+of that defect: dispatched by its own carried line it would silently run at opus.
 
 ## Targets — and what each deletion actually touches
 

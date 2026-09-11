@@ -52,7 +52,7 @@ slot     row(s)              slug                                branch         
 X1-1     [#692]              lane-x-692-decision-coverage        worktree-lane-x-692-decision-coverage     opus   high    execute
 X1-2     [#689]              lane-x-689-conductor-e              worktree-lane-x-689-conductor-e           opus   high    execute
 X1-5     [#664] + [#727]     lane-x-664-delivery-spine           worktree-lane-x-664-delivery-spine        opus   high    plan
-X-DEL    [#734]              lane-x-734-retire-stage             worktree-lane-x-734-retire-stage          opus   high    execute
+X-DEL    [#734]              lane-x-734-retire-stage             worktree-lane-x-734-retire-stage          sonnet high    execute
 lane-5   [#716][#717][#718]  lane-x-716-dispatch-defects         worktree-lane-x-716-dispatch-defects      opus   high    execute
 W-2'     [#684]              lane-w-684-pretooluse-guard-root    (INHERITED — already exists)              opus   high    execute
 ```
@@ -183,6 +183,31 @@ which is why the contract says so in as many words.
 **Recommended to the integrator, not done by this seat:** push that branch, so eleven commits
 of review work stop being single-copy.
 
+## 5b · The fire GO and its three conditions (AMEND-BATCH-X-ROSTER-017)
+
+The operator's `y` of 2026-09-11 approves all six **with conditions**, each discharged here:
+
+- **AX17-1 · Backup before re-attach — DONE.**
+  `git push origin worktree-lane-w-684-pretooluse-guard-root` → `[new branch]`, verified by
+  `git ls-remote`: `90c727bd... refs/heads/worktree-lane-w-684-pretooluse-guard-root`. Both
+  pre-push gates (`block-ff-push`, `block-unanchored-push`) Passed. A lane-branch backup,
+  **never a merge to `main`**. F9's single-copy risk is discharged.
+- **AX17-2 · X-DEL footprint bounded, and the lane runs at `sonnet` — DONE.** The contract
+  gained a "GO footprint" section naming the four in-scope surfaces per target and nothing
+  beyond, plus the rule that a silent `safe_remove`/oracle result is INCONCLUSIVE → KEEP with
+  that reason. Routing row changed `opus` → `sonnet`.
+  **This lane is the live instance of `[#717]`:** its fence carries no `-Model` and
+  `Start-DispatchLane` defaults to `opus`, so dispatched by its own carried line it would run
+  at opus and nothing would warn. `-Model sonnet` is therefore passed explicitly at the
+  dispatch act, and the receipt in §12 is the proof.
+- **AX17-3 · Manifest first — INTEGRATOR'S ACT, flagged not done.** This branch
+  (`worktree-dispatch-x1-freeze`) must merge before any X1 lane hands back, so batch X lands
+  anchored. The dispatcher cannot merge (integration is LOCAL and INTERACTIVE, and this seat
+  is a background job).
+- **AX17-4 · The F8 finding becomes a row** via the first backfill slot — not this seat's act,
+  recorded so it is not lost: one fence, one verb, RED-first that a generated contract
+  launches through the ruled verb.
+
 ## 6 · Wait conditions — the batch does not fire while either is open
 
 1. **X-0 on `main`** — **MET.** `b595545b`, anchored by `2177f14a`. Batch W has since closed
@@ -290,6 +315,51 @@ dispatcher **asks the operator `y` per fire** — which is what the operator ask
 independently. Recorded as a candidate row: *"the contract gate and the dispatch verb demand
 incompatible fences."*
 
+## 12 · FIRE RECEIPTS — all six up
+
+Fired on the operator's `y` of 2026-09-11 with AMEND-017's three conditions, in the ruled
+order. Every lane confirmed up by its branch appearing, not by the receipt alone.
+
+```
+order  slot     receipt    model   branch up   worktree
+1      X1-1     a61224fd   opus    8s          lane-x-692-decision-coverage
+2      X1-2     e5cdeb9d   opus    8s          lane-x-689-conductor-e
+3      X-DEL    c0645d40   sonnet  8s          lane-x-734-retire-stage
+4      lane-5   a7e74d55   opus    12s         lane-x-716-dispatch-defects
+5      W-2'     fed4c445   opus    n/a         lane-w-684-pretooluse-guard-root (RE-ATTACHED at 90c727bd, 11 commits)
+6      X1-5     98b61963   opus    11s         lane-x-664-delivery-spine       (fired LAST, per its row)
+```
+
+**X-DEL's receipt reads `model=sonnet`** — the condition held. This lane is the live `[#717]`
+instance: its fence carries no `-Model` and `Start-DispatchLane` defaults to `opus`, so
+dispatched by its own carried line it would have run at opus and nothing would have warned.
+The explicit flag is what made the declared model true.
+
+**W-2′ took the re-attach path** (§5a): `git worktree add <path>
+worktree-lane-w-684-pretooluse-guard-root` onto the EXISTING branch, `state.yaml` seeded
+(gitignored, so `git worktree add` does not carry it), then a `--bg` session with its cwd
+there. No verb can do this — F2.
+
+### Lane bases are SPLIT, which is `[[#716]]` in the open
+
+```
+0be08b3c : X1-1, X1-2          (fired after the integrator's anchor merge)
+78d99d55 : X-DEL, lane-5, X1-5 (fired before it)
+90c727bd : W-2'                (its own branch, 11 ahead)
+```
+
+Three different bases across one batch, because `worktree.baseRef` is unset and lanes branch
+from `origin/main` as it stood at their own fire moment — while `main` moved twice during the
+fire. **Every contract carries the mandatory step-0 sync**, which is precisely what absorbs
+this; `[#716]` is the row that ends it, and it is lane-5's work.
+
+### Not done by this seat, and owed
+
+- **The integrator merges `worktree-dispatch-x1-freeze`** — AX17-3. (Done at `e688669c`,
+  anchored at `0be08b3c`; this final receipts commit is a second, smaller merge.)
+- **AX17-4's row** — one fence, one verb — files through the first backfill slot.
+- **The dispatcher worktree** is torn down and its removal verified once this commits.
+
 ---
 
-**Last updated:** 2026-09-11 · **Seat:** dispatcher · **Nothing fired.**
+**Last updated:** 2026-09-11 · **Seat:** dispatcher · **ALL SIX FIRED.**
