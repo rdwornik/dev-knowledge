@@ -180,6 +180,7 @@ Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless the row says otherwis
 - `graph-task-coverage` — a staged file no OPEN row claims ([#664] clause 2)
 - `graph-process-list` — prose naming a process the graph lacks ([#664] clause 2)
 - `impacted-tests-guard` — a changed `scripts/*.py` no test covers; the refusal names the RED-first test ([#278])
+- `decision-coverage` — an accepted decision no row implements; two legs, era-bounded ([#692])
 - `audit-health` — `audit.py health`; FAIL blocks the commit, WARN informs
 - `ruff` — lint gate, pinned rev == the `pyproject.toml` required-version floor
 - `coherence-nudge` — **non-blocking**: registered spec changed without a version bump; always exits 0
@@ -190,7 +191,7 @@ Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless the row says otherwis
 
 **Arm the two pre-push hooks once per clone:** `pre-commit install --hook-type pre-push` — `default_install_hook_types` wires them only on a fresh install; `SessionStart`'s `arm_hooks.py` then does it idempotently.
 
-Session hooks (`.claude/settings.json`, project-level — merges with, never replaces, the `~/.claude` set): `SessionStart` surfacing + `arm_hooks.py`; a `Stop` backpressure hook (`session_end_backpressure.py`, **advisory in full** since the ADR-85 amendment §A5 — no hard leg, cannot block a turn); the ADR-77 `PreToolUse` transcript-immutability guard, fail-closed.
+Session hooks (`.claude/settings.json`, project-level — merges with, never replaces, the `~/.claude` set): `SessionStart` surfacing + `arm_hooks.py`; a `Stop` backpressure hook (`session_end_backpressure.py`, **advisory in full** since the ADR-85 amendment §A5 — no hard leg, cannot block a turn); the ADR-77 `PreToolUse` transcript-immutability guard, fail-closed; and the `[#727]` deny-and-point `PreToolUse` guard, fail-OPEN by design — the opposite posture, because a nudge that cannot evaluate must not wedge the session.
 
 Rules (`.claude/rules/`): `git-discipline.md` — mandatory commit after every file edit; clean working tree at session end.
 
