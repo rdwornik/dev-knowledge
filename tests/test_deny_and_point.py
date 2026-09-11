@@ -267,6 +267,35 @@ def test_a_WRAPPED_search_is_still_a_search(command):
     assert _denied(_bash(command)), f"wrapper bypassed the guard: {command}"
 
 
+@pytest.mark.parametrize("command", [
+    'rg "gen_task_tree|TODO"',
+    'grep -rEn "TODO|gen_task_tree" scripts/',
+    r'grep -rn "TODO\|gen_task_tree" scripts/',
+    "cat BACKLOG.md|grep gen_task_tree",
+])
+def test_a_quoted_regex_ALTERNATION_does_not_get_past_the_split(command):
+    """Terra pre-merge pass 5, P1, and it has TWO layers.
+
+    Layer 1: the command was split on `|` BEFORE tokenizing, so a quoted alternation
+    produced an unterminated segment, shlex raised, and the whole command yielded no
+    candidates -- allowing the search. Fixed by tokenizing first (shlex respects quotes)
+    and splitting on operator TOKENS.
+
+    Layer 2, which the split alone does not fix: `gen_task_tree|TODO` is one token and
+    resolves to no process by exact match. A pattern's alternation branches are candidates
+    too, or the whole class stays open after layer 1 is closed. The last case is the
+    no-space pipe, which the old string split also missed.
+    """
+    assert _denied(_bash(command)), f"alternation bypassed the guard: {command}"
+
+
+def test_alternation_branches_do_not_become_an_over_match():
+    """The converse: splitting a pattern on `|` must not manufacture a denial from
+    branches that name nothing. A single-word stem stays allowed inside one, too."""
+    for command in ('rg "TODO|FIXME"', 'grep -rEn "check|audit|save" scripts/'):
+        assert not _denied(_bash(command)), f"over-blocked: {command}"
+
+
 def test_the_colon_attached_PowerShell_parameter_form_is_understood():
     """Terra pre-merge pass 4, P1. `-Pattern:<value>` is standard PowerShell, and the
     parser read the whole token as an unknown flag -- so the governed search passed."""

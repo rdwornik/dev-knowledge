@@ -111,8 +111,28 @@ SEARCH_HEADS = frozenset({
     "select-string", "sls",
 })
 
-#: Segment separators. A pipeline's later stages are judged too -- `cat x | grep y` is a search.
-_SEGMENT_SPLIT = re.compile(r"\|\||&&|[|;]")
+#: Shell control operators that end one command and start the next. A pipeline's later stages
+#: are judged too -- `cat x | grep y` is a search.
+#:
+#: SPLIT ON TOKENS, NEVER ON THE RAW STRING. Splitting the string on `|` first tore quoted regex
+#: alternations in half (`rg "gen_task_tree|TODO"` became an unterminated segment, shlex raised,
+#: and the whole command was allowed) and also missed the no-space form `cat x|grep y`. Terra
+#: pre-merge pass 5, P1. `shlex` with `punctuation_chars` emits these as their OWN tokens while
+#: leaving quoted text intact, which is exactly the distinction that was missing.
+_OPERATORS = frozenset({"|", "||", "&&", ";", "&"})
+
+
+def _segments(command: str) -> list[list[str]]:
+    """Tokenize the command line, then split into per-command argv lists on operator tokens."""
+    lex = shlex.shlex(command, posix=True, punctuation_chars=True)
+    lex.whitespace_split = True
+    segments: list[list[str]] = [[]]
+    for token in lex:
+        if token in _OPERATORS:
+            segments.append([])
+        else:
+            segments[-1].append(token)
+    return segments
 
 # ---------------------------------------------------------------- PATTERN vs PATH
 #
@@ -198,13 +218,7 @@ def _clean(token: str) -> str:
     return token.strip(_EDGE_NOISE)
 
 
-def resolve_process(token: str, processes: dict[str, str]) -> str | None:
-    """The repo-relative path of the process this token names, or None.
-
-    None is the common answer and the important one: a token that names no process can never be
-    denied, whatever it is searched with.
-    """
-    cleaned = _clean(token).lstrip("/")
+def _resolve_one(cleaned: str, processes: dict[str, str]) -> str | None:
     if not cleaned or " " in cleaned:
         return None
     if cleaned in processes:
@@ -216,6 +230,31 @@ def resolve_process(token: str, processes: dict[str, str]) -> str | None:
         stem = name.rsplit(".", 1)[0]
         if cleaned == stem and _is_distinctive(stem):
             return path
+    return None
+
+
+def resolve_process(token: str, processes: dict[str, str]) -> str | None:
+    """The repo-relative path of the process this token names, or None.
+
+    None is the common answer and the important one: a token that names no process can never be
+    denied, whatever it is searched with.
+
+    A pattern's REGEX ALTERNATION BRANCHES are candidates too. `rg "gen_task_tree|TODO"` asks the
+    governed question and a whole-token match alone would miss it -- Terra pre-merge pass 5, the
+    half that fixing the command split does not reach. Branch matching cannot widen the predicate
+    beyond its stated bound: a branch still has to BE a real process, so `rg "TODO|FIXME"` and
+    `grep -rEn "check|audit|save"` stay allowed exactly as they were.
+    """
+    cleaned = _clean(token).lstrip("/")
+    direct = _resolve_one(cleaned, processes)
+    if direct:
+        return direct
+    if "|" not in cleaned:
+        return None
+    for branch in re.split(r"\\\||\|", cleaned):
+        hit = _resolve_one(_clean(branch).lstrip("/"), processes)
+        if hit:
+            return hit
     return None
 
 
@@ -339,8 +378,7 @@ def search_candidates(command: str) -> list[str]:
     unparseable command yields an empty list too: a guard malfunction must not block normal work.
     """
     try:
-        segments = [shlex.split(seg, posix=True)
-                    for seg in _SEGMENT_SPLIT.split(command)]
+        segments = _segments(command)
     except ValueError:
         return []
     candidates: list[str] = []
