@@ -267,6 +267,19 @@ def test_a_WRAPPED_search_is_still_a_search(command):
     assert _denied(_bash(command)), f"wrapper bypassed the guard: {command}"
 
 
+def test_the_colon_attached_PowerShell_parameter_form_is_understood():
+    """Terra pre-merge pass 4, P1. `-Pattern:<value>` is standard PowerShell, and the
+    parser read the whole token as an unknown flag -- so the governed search passed."""
+    assert _denied(_bash("Select-String -Pattern:gen_task_tree -Path:scripts/"))
+    assert _denied(_bash("sls -Pattern:boot-session"))
+
+
+def test_a_colon_attached_PATH_is_still_a_path():
+    """The same split, in the other direction: -Path:<governed file> is where you look."""
+    assert not _denied(_bash(
+        'Select-String -Pattern:"def parse" -Path:scripts/gen_task_tree.py'))
+
+
 def test_stripping_wrappers_does_not_turn_a_NON_search_into_one():
     """The converse: wrapper stripping must not promote an innocent command."""
     for command in ("env FOO=1 python scripts/gen_task_tree.py",

@@ -248,6 +248,13 @@ def _grep_patterns(args: list[str]) -> list[str]:
             continue
         if tok.startswith("-"):
             flag, eq, inline = tok.partition("=")
+            if not eq and ":" in flag:
+                # PowerShell attaches a parameter value with a colon: `-Pattern:x`, `-Path:y`.
+                # Split ONLY when the left half is a parameter we know, so a POSIX pattern
+                # that happens to contain a colon is not mangled. Terra pre-merge pass 4, P1.
+                ps_flag, _, ps_inline = flag.partition(":")
+                if ps_flag.lower() in _PATTERN_FLAGS_PS or ps_flag.lower() in _VALUE_FLAGS_PS:
+                    flag, eq, inline = ps_flag, ":", ps_inline
             low = flag.lower()
             if flag in _PATTERN_FLAGS or low in _PATTERN_FLAGS_PS:
                 supplied = True
