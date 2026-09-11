@@ -22,7 +22,6 @@
 ## Commands
 - /review-closures — review + execute ONLY operator-approved closures (ADR-70 Tier-1)
 - /ship — merge the current branch to main via --no-ff, push, delete the branch (refuses inside a worktree)
-- /override — bypass the ADR-85 session-end gate for this HEAD (logged, HEAD-bound)
 - /boot-session — assemble the v7 BOOT-INVERSION paste from live state: OPERATOR ASKS first, then FUNNEL HEALTH, north-star arcs, rot/orphan, open asks, PROPOSED NEXT BATCH, one hand-written RESIDUAL
 
 ## Session hooks

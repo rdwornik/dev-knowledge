@@ -100,7 +100,11 @@ def test_live_manifest_excludes_ruff_gate_and_includes_the_three_commands():
     assert "ruff" not in body.lower() or "ruff-gate" not in body  # removed tombstone gone
     assert "/review-closures" in body
     assert "/ship" in body
-    assert "/override" in body
+    # /boot-session replaced /override as the third command when [#683] removed the retired
+    # /override node. Asserted ABSENT rather than merely dropped, so this surface is a second
+    # witness that the node is gone (the first is tests/test_override_command_removed.py).
+    assert "/boot-session" in body
+    assert "/override" not in body
 
 
 # --- import neutralization -----------------------------------------------------------------

@@ -3,12 +3,17 @@
 Mirrors tests/test_deploy_floor.py: an oracle computed independently of the carrier (the hub
 bytes), a tmp_path consumer, and absent->apply->verify / idempotent / drifted / verify-failures /
 D9-independence coverage, plus the two merge-preservation cases (Stop hook added beside an
-existing SessionStart; the override-token .gitignore block added beside an existing .claude/* block).
+existing SessionStart; the mesh .gitignore block added beside an existing .claude/* block).
+
+The `/override` payload left this carrier with [#683] (ADR-85 amendment 2026-08-03 §A2 retired
+the command), so the carrier now writes FOUR artifacts, not five. The .gitignore block it wrote
+for `/override` is deliberately still here and still asserted — it is vestigial but not yet
+retractable this release; the constants in `carrier_mesh.py` carry the reason. The tooth that
+keeps the command itself gone is `tests/test_override_command_removed.py`.
 """
 from __future__ import annotations
 
 import json
-import subprocess
 from pathlib import Path
 
 
@@ -18,7 +23,6 @@ import contract  # noqa: E402
 # Oracle: the hub bytes the carrier deploys, read straight from the hub (not via the carrier).
 _SEB = cm._hub_bytes(cm._HUB_SEB)
 _GATE = cm._hub_bytes(cm._HUB_FRESHNESS_GATE)
-_OVERRIDE = cm._hub_bytes(cm._HUB_OVERRIDE_CMD)
 
 
 def _carrier(repo: Path) -> cm.MeshCarrier:
@@ -37,12 +41,12 @@ def test_absent_detects_then_applies_and_verifies(tmp_path):
 
     result = car.apply(None)
     assert result.changed is True
-    # seb + freshness gate + override.md + Stop hook + .gitignore block (logs/ is runtime-created).
-    assert len(result.changes) == 5
+    # seb + freshness gate + Stop hook + .gitignore block. FOUR since [#683] dropped the
+    # /override payload; the .gitignore block it wrote is vestigial but still written.
+    assert len(result.changes) == 4
 
     assert _read(tmp_path, cm.SEB_REL) == _SEB
     assert _read(tmp_path, cm.FRESHNESS_GATE_REL) == _GATE
-    assert _read(tmp_path, cm.OVERRIDE_CMD_REL) == _OVERRIDE
     assert car.detect(None) is contract.CarrierState.PRESENT_CORRECT
     assert car.verify(None).ok is True
 
@@ -163,33 +167,15 @@ def test_registered_in_make_carriers(tmp_path):
     assert isinstance(carriers[cm.MeshCarrier.carrier_id], cm.MeshCarrier)
 
 
-# --- REGRESSION: override.md committable under the floor .claude/* + a logs/ ignore ----
-
-def _git(repo, *args):
-    return subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True)
-
-
-def test_override_md_committable_under_floor_and_logs_ignore(tmp_path):
-    """Deploy defect found 2026-07-03: the floor carrier's `.claude/*` block silently swallows
-    .claude/commands/override.md (and a consumer's `logs/` dir-form ignore swallows anything under
-    logs/), so `git add -A` skips override.md -> no committed /override -> the fire's committed-state
-    clone reports a false `absent` and hub-parity breaks. The mesh gitignore block must RE-INCLUDE
-    override.md. Reproduces ai-council's exact ignore shape."""
-    repo = tmp_path / "consumer"
-    repo.mkdir()
-    _git(repo, "init", "-q")
-    (repo / ".gitignore").write_text(
-        ".claude/*\n!.claude/CLAUDE-FLOOR.md\n!.claude/CLAUDE-FLOOR.md.sha256\nlogs/\n",
-        encoding="utf-8")
-    car = cm.MeshCarrier(repo)
-    car.apply(None)
-    # present AND committable (not gitignored) AND actually staged by add -A.
-    assert (repo / cm.OVERRIDE_CMD_REL).exists()
-    assert not cm._is_gitignored(repo, cm.OVERRIDE_CMD_REL), "override.md must re-include past .claude/*"
-    _git(repo, "add", "-A")
-    staged = _git(repo, "diff", "--cached", "--name-only").stdout.splitlines()
-    assert cm.OVERRIDE_CMD_REL in staged, f"override.md not staged; staged={staged}"
-    # verify() independently catches committability (fails if the negation were missing).
-    assert car.verify(None).ok is True
-    # the ephemeral override token stays ignored.
-    assert cm._is_gitignored(repo, "logs/.session-override-token")
+# --- REGRESSION (RETIRED with its subject, [#683]) -------------------------------------
+#
+# `test_override_md_committable_under_floor_and_logs_ignore` stood here. It reproduced the
+# 2026-07-03 deploy defect: the floor carrier's `.claude/*` block silently swallowed
+# .claude/commands/override.md, so `git add -A` skipped it and the fire's committed-state clone
+# reported a false `absent`. The mesh .gitignore negation was the fix and this test was its tooth.
+#
+# It is deleted rather than adapted because its subject is gone, not because the defect class is.
+# Both artifacts this carrier still writes land under `scripts/`, which no carrier gitignores, so
+# there is no file left for the floor block to swallow and the scenario cannot be re-staged without
+# inventing one. `_verify_mesh`'s `_is_gitignored` leg is deliberately KEPT for the same class — a
+# consumer's own ignore rules are not ours to predict — it simply has no hub-side reproduction now.
