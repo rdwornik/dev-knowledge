@@ -293,19 +293,20 @@ carriers:
     implemented: true
     description: >
       deploy/carrier_mesh.py — writes scripts/session_end_backpressure.py (the #237 git-toplevel-
-      first port) + scripts/canonical_freshness_gate.py + .claude/commands/override.md (hub-parity
-      logged-override; --no-verify does NOT bypass a Stop hook, so /override is seb's only escape)
-      + a .claude/settings.json Stop hook running seb + a distinct sentinel-delimited .gitignore
-      block that ignores the ephemeral override token AND re-includes override.md past the floor's
-      .claude/* block (else git add -A skips it -> false absent). logs/ is created at runtime by
-      /override (not tracked). The freshness pre-commit hook is owned by the precommit carrier.
+      first port) + scripts/canonical_freshness_gate.py + a .claude/settings.json Stop hook running
+      seb + a distinct sentinel-delimited .gitignore block. The freshness pre-commit hook is owned
+      by the precommit carrier. It ALSO wrote .claude/commands/override.md until [#683] removed
+      /override: the ADR-85 amendment 2026-08-03 §A2 retired the command, so the hub-parity
+      argument for carrying it ("seb's only escape") named a gate it no longer discharged. The
+      .gitignore block is what remains of that leg and is now VESTIGIAL — it ignores an ephemeral
+      token nothing creates and re-includes a path nothing occupies. It is kept because this
+      release ships no `status: removed` tombstone (release_lint C6; they unlock in P2 on operator
+      decision D3), so the carrier has no prune leg with which to retract it from consumers.
     adr: [ADR-85, ADR-81]
     target:
       organs:
         - session_end_backpressure   # scripts/session_end_backpressure.py (#237-ported) + Stop hook
         - canonical_freshness         # scripts/canonical_freshness_gate.py (hook via precommit carrier)
-      override_command: .claude/commands/override.md   # re-included past floor .claude/* by the .gitignore block
-      logs_dir: logs/                 # runtime-created by /override; token + OVERRIDES.md gitignored
 
 # ---------------------------------------------------------------------------
 # components — the methodology's element inventory at v1.1.0 (essence-spec v1).
@@ -992,23 +993,14 @@ components:
       section: precommit-hook
       line: "canonical_freshness — last_reviewed A2 gate; FAIL blocks the commit on a canonical doc edited since its last review"
 
-  - id: override-command
-    kind: command
-    carrier: enforcement-mesh
-    status: active
-    waivable: true   # an escape-hatch command; its absence is a stricter posture, not a safety regression (NB coupling: seb non-waivable + override waivable => a consumer can sanction its own loss of the only seb-escape and self-strand — operability hazard, not safety; candidate for a LATER validation warning, not built in P4)
-    verify: wired
-    engages:
-      trigger: operator-invoke  # escape-hatch command; OUT-OF-ARC (the arc never overrides)
-      observable: transcript-event
-      expect: "override"
-    artifacts:
-      - path: .claude/commands/override.md
-        source: .claude/commands/override.md
-      - wiring: ".gitignore enforcement-mesh sentinel block (ignores the ephemeral override token; re-includes override.md past the floor's .claude/* block)"
-    roster:
-      section: command
-      line: "/override — bypass the ADR-85 session-end gate for this HEAD (logged, HEAD-bound)"
+  # `override-command` stood here and is REMOVED, not tombstoned ([#683]). The ADR-85 amendment
+  # 2026-08-03 §A2 retired /override: session_end_backpressure.py no longer reads its token and
+  # the command's own description said it discharged no gate, so a fully-deployed consumer was
+  # installing a working-looking escape hatch that escapes nothing. Node, payload and the carrier
+  # leg that shipped it left in ONE act. A `status: removed` tombstone was NOT available — this
+  # release admits only `status: active` (release_lint C6; tombstones unlock in P2 on operator
+  # decision D3) — so consumers already carrying the command keep it until a prune leg exists.
+  # The tooth that keeps it gone here is tests/test_override_command_removed.py.
 
   - id: boot-session-command
     kind: command
