@@ -343,6 +343,27 @@ def test_a_colon_attached_PATH_is_still_a_path():
         'Select-String -Pattern:"def parse" -Path:scripts/gen_task_tree.py'))
 
 
+@pytest.mark.parametrize("command", [
+    "sudo -u root rg gen_task_tree",
+    "env -u FOO rg gen_task_tree",
+    "xargs -I {} grep gen_task_tree",
+    "timeout -s KILL 5 rg gen_task_tree",
+    "nice -n 10 rg gen_task_tree",
+    "env -i rg gen_task_tree",
+])
+def test_a_wrappers_OWN_OPTIONS_do_not_hide_the_search(command):
+    """Terra pre-merge pass 7, P1. Stripping wrapper NAMES was not enough: a wrapper's
+    value-taking option left its VALUE sitting where the command head should be
+    (`sudo -u root ...` -> head reads as `root`), so the search was never found.
+
+    The last case is the converse hazard and is why the option tables are per-wrapper
+    rather than one shared set: `env -i` takes NO value, so a shared table containing
+    `-i` (which xargs does take a value for) would consume `rg` itself and lose the
+    denial. Over-consumption fails open, which is the safe direction but still a hole.
+    """
+    assert _denied(_bash(command)), f"wrapper option hid the search: {command}"
+
+
 def test_stripping_wrappers_does_not_turn_a_NON_search_into_one():
     """The converse: wrapper stripping must not promote an innocent command."""
     for command in ("env FOO=1 python scripts/gen_task_tree.py",

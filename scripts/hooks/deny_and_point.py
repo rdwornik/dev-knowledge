@@ -201,11 +201,29 @@ _PATTERN_FLAGS_PS = frozenset({"-pattern"})
 #: and no positional operand is one either.
 _PATTERN_FROM_FILE = frozenset({"-f", "--file"})
 
-#: Ordinary invocation wrappers stripped before the command head is read. See `_strip_wrappers`.
-_WRAPPERS = frozenset({
-    "env", "command", "builtin", "exec", "nice", "ionice", "time", "timeout",
-    "sudo", "doas", "xargs", "stdbuf", "nohup",
-})
+#: Ordinary invocation wrappers stripped before the command head is read, each mapped to the
+#: options that consume a VALUE. PER-WRAPPER rather than one shared set, because the same
+#: spelling differs between them: `xargs -i` takes a value and `env -i` does not, so a shared
+#: table would consume the wrapped command itself and lose the denial. Terra pre-merge pass 7.
+_WRAPPERS: dict[str, frozenset[str]] = {
+    "env": frozenset({"-u", "--unset", "-C", "--chdir", "-S", "--split-string"}),
+    "sudo": frozenset({"-u", "--user", "-g", "--group", "-p", "--prompt", "-h", "--host",
+                       "-r", "--role", "-t", "--type", "-U", "--other-user",
+                       "-C", "--close-from", "-D", "--chdir", "-R", "--chroot"}),
+    "doas": frozenset({"-u", "-C"}),
+    "xargs": frozenset({"-I", "-i", "-L", "-n", "-P", "-s", "-d", "-E", "-a", "--arg-file",
+                        "--delimiter", "--max-args", "--max-procs", "--max-chars",
+                        "--replace", "--eof"}),
+    "timeout": frozenset({"-s", "--signal", "-k", "--kill-after"}),
+    "nice": frozenset({"-n", "--adjustment"}),
+    "ionice": frozenset({"-c", "--class", "-n", "--classdata", "-p", "--pid"}),
+    "stdbuf": frozenset({"-i", "--input", "-o", "--output", "-e", "--error"}),
+    "time": frozenset({"-f", "--format", "-o", "--output"}),
+    "exec": frozenset({"-a"}),
+    "command": frozenset(),
+    "builtin": frozenset(),
+    "nohup": frozenset(),
+}
 
 #: `find` primaries whose next token is the name pattern. Everything before them is a path.
 _FIND_NAME_PRIMARIES = frozenset({
@@ -417,6 +435,7 @@ def _strip_wrappers(argv: list[str]) -> list[str]:
     """
     i = 0
     seen = False
+    value_flags: frozenset[str] = frozenset()
     while i < len(argv):
         tok = argv[i]
         if tok == "&":                                   # PowerShell call operator
@@ -429,9 +448,14 @@ def _strip_wrappers(argv: list[str]) -> list[str]:
         if base.endswith(".exe"):
             base = base[:-4]
         if base in _WRAPPERS:
+            value_flags = _WRAPPERS[base]                # this wrapper's own option grammar
             i, seen = i + 1, True
             continue
-        if seen and (tok.startswith("-") or tok.isdigit()):   # a wrapper's own flag / duration
+        if seen and tok.startswith("-"):
+            flag, eq, _inline = tok.partition("=")
+            i += 2 if (flag in value_flags and not eq) else 1
+            continue
+        if seen and tok.isdigit():                       # `timeout 5 rg x`
             i += 1
             continue
         break
