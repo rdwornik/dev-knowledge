@@ -237,12 +237,35 @@ its contract's `Read … and execute it exactly.` line.
 On every merge + teardown, the next roster item whose dependencies are on `main` fires, never
 exceeding six. Queue, in order, each recorded here when it fires:
 
+**Order set by the operator, 2026-09-11.** X1-4 is the HEAD of the queue, not a loose
+"frozen" item as §11a first recorded it:
+
 ```
-X1-3  merge cost [#675]        after X1-2
-X1-6  task keys  [#687]        after X1-5
+X1-4  routing + telemetry [#691][#694]   the MOMENT W-2' is on main   <- HEAD
+X1-3  merge cost          [#675]         after X1-2
+X1-6  task keys           [#687]         after X1-5
 X2 head, in order: docs-cut manifest step (cut ONLY on the operator's GO) · prompt-distiller
 trace home · logs lane (+ log-review routine) · test-baseline debt
 ```
+
+**Why X1-4 leads.** Its trigger is not a free slot but a specific merge: W-2' landing on main
+is what discharges AX22-4's precondition, so the routing lane stops being half-gated and agy,
+Grok and Copilot become orderable. Firing it at that moment is what converts the W-2' merge
+into capacity rather than just a closed row.
+
+**The trigger is NOT imminent, and the queue must not imply otherwise.** Measured 2026-09-11:
+`.git/worktrees/lane-w-684-pretooluse-guard-root` is **unlocked**, so that session has ended,
+and the branch tip is `0c974eb0 test(prompts-guard): RED-first witnesses for the fail-closed
+inversion` with no implementation, M7 smoke or fresh Codex review after it. **W-2' stopped at
+RED with no GREEN**, so its Done-when (`[#684]` + two RED-first trip-tests GREEN + the M7 smoke
++ a fresh Codex review with no unresolved HIGH) is not met and it cannot merge without a
+re-attach. The ordered backup is safe on origin at exactly `90c727bd` (AMEND-017 condition 1).
+
+X1-4's contract is frozen, repaired (F11, §13) and waiting at
+`$env:CLAUDE_PROMPTS_DIR\LANE-x-691-routing-telemetry.md` — it fires on the W-2' merge, not
+before, and its non-Claude half stays gated until then either way.
+
+**Ceiling stays 6**, and each backfill is recorded below as it fires.
 
 **Backfill log:** (empty — nothing has fired.)
 
