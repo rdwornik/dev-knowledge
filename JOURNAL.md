@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-09-11 (j) - CC (Opus 5, background integrator seat): the roster anchor arc anchors itself
+
+**Names `81c3d52f`**, the (i) entry's commit — the only SHA this arc's merge introduces besides
+this entry, and therefore the only one available to anchor it. Append-only, per B6: a second entry
+rather than an edit to (i), because amending in place would discharge the anchor retroactively.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-11 (i) - CC (Opus 5, background integrator seat): the batch X roster lands, and night gating is superseded mid-queue
 
 **Names `86a4cbe0`**, X-0's tip, introduced by the merge `b595545b`.
