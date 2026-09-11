@@ -19,6 +19,45 @@
 
 ---
 
+### 2026-09-11 (f) - CC (Opus 5, background integrator seat): batch W closes with one lane carried, and the exemption is drained before it expires
+
+**Names `5e17ecd7`** (W-4's lane tip, introduced by the merge `0bb1d5ce`) **and `57a356aa`** (this
+arc's carried edit). The first is the point of this entry; the second anchors the arc's own merge.
+
+**Why `5e17ecd7` is named here and not later.** `0bb1d5ce` is a LANE merge, so it is exempt from
+`journal_spine_anchor` while batch W's manifest is `status: open` — and it is `anchored: False`
+underneath that exemption. **The exemption dies the moment the close packet lands**, because the
+manifest's `closed_by:` names that path and `docs/audits/` is immutable, which is precisely what
+makes the expiry real rather than a mutable flag. Landing the packet first would therefore have
+un-exempted an unanchored merge and blocked the very commit that closes the batch. **An exemption
+must be DRAINED before it expires, not after.** That ordering is not in Ch8 and is the second
+anchoring lesson of this batch, after the substrate merge in entry (d).
+
+**Did.** Closed batch W's merge queue. Merged W-8 `cdeffc2e`, W-1 `365ae7d1`, W-7 `e4929b09`, the
+AW5-3 substrate change `a3374b70`, its anchor repair `e6f11215`, W-3 `69a0266c` and W-4 `0bb1d5ce`.
+Every teardown gated on `git merge-base --is-ancestor` exiting 0 before any `-d`, verified in both
+halves. `git stash list` empty; `refs/locks/*` free.
+
+**W-2 is CARRIED to batch X, and the reason is worth keeping.** Its fix lane did good work — five
+HIGH raised across four terra passes, all five resolved, matcher narrowed, the hook now resolving
+its own repo root. But its frozen Done-when names ONE witness: *"one non-Claude CLI smoke passes
+under the guard."* The only CLI measured to honour `.claude/settings.json` is `cursor-agent`, and
+it is refused by its own vendor's quota — re-probed today and recorded verbatim. `codex`, `copilot`
+and `agy` are all measured **vacuous** instruments; the lane converted `agy` from assumption to
+measurement this round. So the leg is **unsatisfiable with the instruments that exist**, which is
+the same shape as FR-8's unsatisfiable clause: an acceptance leg naming a witness nothing can
+produce. Carrying it forward unamended reproduces the block rather than resolving it, so the packet
+escalates it as an operator act rather than filing it as another lane.
+
+**The cost of carrying is stated rather than buried.** `main` keeps the `"*"` PreToolUse matcher,
+which `.claude/settings.json`'s own wiring comment describes as refusing *"EVERY tool call with no
+in-session escape."* The branch and worktree are preserved at `90c727bd`, so reversing the
+disposition is a merge, not a re-run.
+
+**Changes.** `CLAUDE.md` (the dangling `/override` clause), `JOURNAL.md` (this entry).
+
+**Next.** The close packet, the audits-index regeneration, and the full suite on the final tree.
+
 ### 2026-09-11 (e) - CC (Opus 5, background integrator seat): the deviations are recorded before they are acted on
 
 **Names `61e8a138`**, the manifest's integration-deviations section - the substantive commit of the
