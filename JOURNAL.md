@@ -19,6 +19,43 @@
 
 ---
 
+### 2026-09-11 (e) - CC (Opus 5, background integrator seat): the deviations are recorded before they are acted on
+
+**Names `61e8a138`**, the manifest's integration-deviations section - the substantive commit of the
+`docs/batch-w-anchor-substrate` repair arc, which this entry anchors ahead of its merge.
+
+**Did.** Recorded four integration deviations in batch W's manifest rather than only in the close
+packet, on the reasoning that **a deviation disclosed after the act it authorizes is a report, not
+an authorization**.
+
+**D-a is the one that matters.** AW5-2 authorized the integrator to run the terra review itself
+*for W-2*. W-3 handed back at `74990bf3` as a **code** branch carrying no `review=` token, which
+D-1 refuses. The integrator ran the review under AW5-2's shape rather than holding W-3 - which
+**satisfies** D-1 rather than waiving it - but the authorization names a different lane, so the
+extension is a deviation carried to the close packet for ratification, and is not precedent until
+ratified.
+
+**D-b, and why the tally was not adjusted.** W-3's review returned `HIGH:1`. That tally is recorded
+unmodified, and `audit.py handback` returns MERGE at exit 0 on it - because D-1's mechanized bar is
+that a review *ran and is named*, with severity triage left to the integrator. The finding was
+attributed to `scripts/proof_layer.py:481`; three measurements put it elsewhere. The mechanism is
+real but its locus is `scripts/audit.py:6595` (`str(token) in finding.evidence` - substring, never
+equality), a pre-existing `#147` register property the lane's own docstring names. The lane
+strictly **narrows** the aperture: pre-change evidence rendered byte-identically for two
+function-level guards in one module, so one disposition masked every guard in that file. And it is
+unreachable today - 0 substring collisions among 243 live guard keys, 0 register entries with
+`organ: proof_layer`. Filed as a batch-X row against the register, not as a hold on W-3.
+
+**D-d is a third instance of a conflict class worth naming.** `ecosystem/doc-counts.md` collided on
+W-3's merge exactly as `tasks/manifest.json` did on W-1 and W-7: HEAD `5749`, lane `5726`, merged
+`5752`. **Neither parent held the correct value**, which is what makes "take one side" wrong rather
+than merely arbitrary - the fix is strip the markers FIRST, regenerate SECOND, because regenerating
+over the markers absorbs them.
+
+**Changes.** `JOURNAL.md` (the (d) and (e) entries), batch W manifest (deviations section).
+
+**Next.** Merge W-3, then W-4 and the W-2 fix lane when they hand back.
+
 ### 2026-09-11 (d) - CC (Opus 5, background integrator seat): the substrate merge is not a lane, so the exemption does not reach it
 
 **Names `81a28aad`**, one of the four commits the merge `a3374b70` introduced - written and
