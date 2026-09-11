@@ -447,6 +447,38 @@ repos:
         language: system
         always_run: true
         pass_filenames: false
+      - id: decision-coverage
+        name: Decision coverage -- an accepted decision no row implements ([#692], A9-1)
+        # REFUSES when a decision -- an ADR at `Accepted`, an intake at `ACCEPTED`, a
+        # transport `DECLARE-`/`AMEND-` -- carries neither an implementing row (an FPG-1
+        # `implements` edge from a `tasks/` row's `implements:` key) nor a written "no
+        # implementation required" disposition. The refusal LISTS the decisions and STATES
+        # WHAT MUST BE DONE, which is A9-1's own second half: a process deviation raises an
+        # exception that teaches, rather than a tripwire that only says no.
+        #
+        # TWO LEGS, BOTH ERA-BOUNDED AT `decision_coverage.ARM_DATE`, and the bound is the
+        # reason this can be armed at all. Leg 1 is the commit's own decision files -- the
+        # moment the obligation arises and the moment it can be discharged in the same
+        # commit. Leg 2 is every in-era accepted decision, armed here (the CLI default),
+        # because leg 1 alone is satisfiable by never touching the file again. MEASURED when
+        # this landed: 112 accepted-but-unexecuted decisions predate the `implements:` key,
+        # so an unbounded refusal would refuse every commit in the repo on a defect the
+        # committer cannot legally repair. They are COUNTED rather than refused --
+        # `decision_coverage.py metrics` reports the grandfathered size and the age of the
+        # oldest on every run, and a bound that is not measured is an exemption.
+        #
+        # It reads the STORE for the `implements` relation and the DOCUMENTS for the
+        # population, and the split is deliberate: FPG-1 mints `adr:N` only for an ADR
+        # something CITES, so reading the population off the graph would be blind to exactly
+        # the uncited, unimplemented decision this refuses on. tests/test_decision_coverage.py
+        # pins both halves.
+        #
+        # Exit: 0 clean, 1 on an in-era decision with no row and no disposition.
+        # Bypass: --no-verify.
+        entry: uv run --locked python scripts/decision_coverage.py check
+        language: system
+        always_run: true
+        pass_filenames: false
       - id: impacted-tests-guard
         name: Zero-selection refusal -- a changed script no test covers ([#278] leg b)
         # AW2-1 leg (b): "A commit that changes a `scripts/*.py` file and selects zero

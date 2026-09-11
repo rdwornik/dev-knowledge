@@ -158,6 +158,11 @@ INPUT_DEPLOY_MANIFEST = "deploy-manifest"
 INPUT_WIRING = "wiring"
 #: INPUT 7 -- `implements`, both directions, between an OPEN row and the files it owns.
 INPUT_TASK_IMPLEMENTS = "task-implements"
+#: INPUT 8 -- `implements`, from a row to the DECISION it discharges (`[#692]`, A9-1).
+#: Added to FPG-1 rather than computed in `decision_coverage.py`, which is ADR-118 §1
+#: ("a new edge kind is added to FPG-1, never to a script") applied to a relation the corpus
+#: did not hold: nothing in this repo could answer "what implements ADR-118".
+INPUT_DECISION_IMPLEMENTS = "decision-implements"
 
 INPUTS: tuple[str, ...] = (
     INPUT_DOC_CODE_EDGE,
@@ -167,6 +172,7 @@ INPUTS: tuple[str, ...] = (
     INPUT_DEPLOY_MANIFEST,
     INPUT_WIRING,
     INPUT_TASK_IMPLEMENTS,
+    INPUT_DECISION_IMPLEMENTS,
 )
 
 EDGE_ENFORCES = "enforces"
@@ -233,6 +239,10 @@ NODE_ADR = "adr"
 NODE_INTAKE = "intake"
 NODE_CARRIER = "carrier"
 NODE_COMPONENT = "component"
+#: A transport ruling (`to-cc/AMEND-SESSION-PLAN-009.md`). It has NO PATH in this repo --
+#: the transport is a machine-level surface (`CLAUDE_PROMPTS_DIR`), not a tracked tree -- so
+#: it is keyed on the file STEM, which is how every row, contract and audit already cites one.
+NODE_DECLARE = "declare"
 
 #: A governed file that states no purpose of its own. NOT a refusal -- "nothing explains this
 #: file" and "this file states no purpose" are different facts and are reported differently.
@@ -785,6 +795,99 @@ def _load_task_implements(graph: PurposeGraph, root: Path) -> None:
         for task_id in sorted(claimed):
             graph.add_edge(Edge(_task_key(task_id), file_key, EDGE_IMPLEMENTS,
                                 INPUT_TASK_IMPLEMENTS, "the file names the row"))
+
+
+# --------------------------------------------------- [#692] the decision-implements input
+
+#: The `implements:` frontmatter value, split into tokens. The key is DERIVED from the row
+#: body's `· implements: …` clause (`gen_task_tree.derive_implements`), so reading the
+#: frontmatter here reads the body's claim -- there is no second authority.
+#: The grammar is `validate_backlog._IMPLEMENTS_TOKEN_RE`'s, and it is DUPLICATED NOWHERE:
+#: that module owns validation, this one owns the join, and both read the same three forms
+#: clause 2 names -- `ADR-n`, `intake-n`, `DECLARE-…`/`AMEND-…`.
+_DECISION_TOKEN_RE = re.compile(
+    r"\bADR-(?P<adr>\d+)(?![0-9])"
+    r"|\bintake-(?P<intake>\d+)(?![0-9])"
+    r"|\b(?P<declare>(?:DECLARE|AMEND)-[A-Za-z0-9][A-Za-z0-9-]*)")
+
+#: What an input-8 edge carries in `detail`: the IMPLEMENTING ROW's own status, verbatim.
+#: Held here rather than in the consumer so the writer and the reader cannot drift -- a
+#: second literal in `decision_coverage.py` would be free to disagree with this one.
+DECISION_DETAIL_PREFIX = "row status: "
+
+
+def decision_key(token: str) -> str | None:
+    """The graph key a `implements:` token names, or None when the token is not one.
+
+    `ADR-118` -> `adr:118`, `intake-91` -> `intake:91`, `AMEND-SESSION-PLAN-009` ->
+    `declare:AMEND-SESSION-PLAN-009`. The ADR and intake keys are the ones `_governance_node`
+    already mints, deliberately: an ADR cited by an audit and an ADR implemented by a row must
+    meet at ONE vertex, which is the identity-before-adjacency rule this module learned the
+    hard way at input 4.
+    """
+    match = _DECISION_TOKEN_RE.fullmatch(token.strip())
+    if match is None:
+        return None
+    if match.group("adr"):
+        return f"{NODE_ADR}:{match.group('adr')}"
+    if match.group("intake"):
+        return f"{NODE_INTAKE}:{match.group('intake')}"
+    return f"{NODE_DECLARE}:{match.group('declare')}"
+
+
+def _decision_node(graph: PurposeGraph, key: str) -> str:
+    kind, _, value = key.partition(":")
+    if kind == NODE_ADR:
+        return graph.add_node(Node(NODE_ADR, key, f"ADR-{value}"))
+    if kind == NODE_INTAKE:
+        return graph.add_node(Node(NODE_INTAKE, key, f"intake #{value}"))
+    return graph.add_node(Node(NODE_DECLARE, key, value))
+
+
+def _load_decision_implements(graph: PurposeGraph, root: Path) -> None:
+    """INPUT 8 -- `implements`, from a ROW to the DECISION it discharges.
+
+    ONE DIRECTION ONLY, and the asymmetry with input 7 is the point. Input 7 reads BOTH ends
+    because a module's docstring naming `[#664]` is a real ownership claim that already exists
+    in this corpus. No such convention exists on the other side here: an ADR that mentions
+    `[#692]` in its Related line is CITING the row, not being implemented by it, and reading
+    that as coverage would let any decision discharge itself by naming a row in passing. So the
+    claim must be made by the row, in one declared key, and nowhere else.
+
+    EVERY ROW, OPEN OR CLOSED -- again unlike input 7, and again deliberately. Input 7 asks
+    "is this file owned by live work", so a closed row confers nothing. This input answers a
+    different question: a decision implemented only by CLOSED rows is DONE, and dropping those
+    edges would make it indistinguishable from a decision nobody ever scheduled. The row's own
+    status rides on the edge (`DECISION_DETAIL_PREFIX`) so the consumer can tell the two apart
+    with one SELECT rather than a second pass over `tasks/`.
+    """
+    tasks_dir = root / TASKS_RELPATH
+    if not tasks_dir.is_dir():
+        return
+    for path in sorted(tasks_dir.glob("*.md")):
+        text = _read(path)
+        if text is None:
+            continue
+        frontmatter = _frontmatter(text)
+        raw = str(frontmatter.get("implements", "")).strip()
+        if not raw:
+            continue
+        match = _TASK_ID_RE.search(str(frontmatter.get("id", ""))) or re.match(r"^(\d+)-", path.name)
+        if not match:
+            continue
+        task_key = _task_key(match.group(1))
+        if graph.node(task_key) is None:
+            graph.add_node(Node(NODE_TASK, task_key, f"[#{match.group(1)}]",
+                                path.relative_to(root).as_posix()))
+        status = str(frontmatter.get("status", "")).strip().lower() or "unknown"
+        for token in (part.strip() for part in raw.split(",")):
+            key = decision_key(token) if token else None
+            if key is None:
+                # A malformed token is `validate_backlog`'s HARD FAIL, not an invented node --
+                # `_load_tasks`'s own rule for a dangling id, applied to a dangling decision.
+                continue
+            graph.add_edge(Edge(task_key, _decision_node(graph, key), EDGE_IMPLEMENTS,
+                                INPUT_DECISION_IMPLEMENTS, f"{DECISION_DETAIL_PREFIX}{status}"))
 
 
 def _read(path: Path) -> str | None:
@@ -1440,6 +1543,10 @@ def build(repo_root: Path | str) -> PurposeGraph:
     # its keys. Identity before adjacency -- the same lesson, honoured rather than relearnt.
     _load_wiring(graph, root)
     _load_task_implements(graph, root)
+    # INPUT 8 (`[#692]`) rides at the end for the ORDER RULE above: it mints decision
+    # vertices `_load_consumer_at_landing` may already own by the same keys, so it must run
+    # after every identity-bearing loader has claimed them.
+    _load_decision_implements(graph, root)
     return graph
 
 

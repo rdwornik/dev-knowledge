@@ -544,7 +544,12 @@ def test_live_repo_builds_and_carries_all_five_inputs():
     # INPUT_TASK_IMPLEMENTS (`implements`) under ADR-118 section 1 -- a new edge kind is
     # added to FPG-1, never to a script. The guard-the-guard purpose is unchanged: an
     # empty INPUTS would make the set-equality below pass vacuously.
-    assert len(fpg.INPUTS) == 7, fpg.INPUTS
+    # 7 -> 8: `[#692]` added INPUT_DECISION_IMPLEMENTS (a row -> the DECISION it discharges),
+    # under the same ADR-118 section 1 rule and for a relation the corpus genuinely lacked --
+    # nothing here could answer "what implements ADR-118". The set-equality BELOW is the half
+    # that earns this pin: it asserts every declared input CONTRIBUTES on the live tree, so a
+    # key nobody uses cannot sit in the roster looking armed.
+    assert len(fpg.INPUTS) == 8, fpg.INPUTS
     contributed = {edge.source for edge in graph.all_edges()}
     assert contributed == set(fpg.INPUTS), (
         f"missing input contributions: {set(fpg.INPUTS) - contributed}")
