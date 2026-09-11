@@ -66,7 +66,11 @@ _MUST_MATCH = (
 #: as surely, which is why `ExitWorktree` and `SendMessage` are pinned here too. This is
 #: the reason two of the Codex review's HIGH-2 names (`EnterWorktree` / `ExitWorktree`)
 #: were refused rather than adopted: they are this family, not the filesystem family.
-_MUST_NOT_MATCH = ("ToolSearch", "ExitWorktree", "SendMessage")
+#: BOTH are pinned, not just `ExitWorktree`: the second Codex pass caught that the roster
+#: named only one of the two the comment above rules out, so a later edit could have gated
+#: `EnterWorktree` -- re-blocking part of the documented recovery path -- with every test
+#: here still green. A decision no test can fail is a comment, not a rule.
+_MUST_NOT_MATCH = ("ToolSearch", "EnterWorktree", "ExitWorktree", "SendMessage")
 
 def _resolve_posix_shell():
     """The shell Claude Code actually runs hook commands through, resolved by RUNNING it.
