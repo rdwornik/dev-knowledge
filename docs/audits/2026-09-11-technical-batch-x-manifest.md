@@ -353,6 +353,43 @@ from `origin/main` as it stood at their own fire moment — while `main` moved t
 fire. **Every contract carries the mandatory step-0 sync**, which is precisely what absorbs
 this; `[#716]` is the row that ends it, and it is lane-5's work.
 
+### F10 · The hand-composed W-2′ launch was TRUNCATED — dispatcher error, verified by transcript
+
+**What happened.** W-2′ is the one lane no verb could start (F2), so its launch line was
+composed by hand and carried the **literal expanded path** `H:\My Drive\CLAUDE PROMPT DIR\…`.
+It split at the space in `My Drive`. The lane received exactly:
+
+```
+Read H:\My
+```
+
+ten characters. The quoting used — inner double quotes inside a single-quoted PowerShell
+string — did not survive the hand-off to `claude`. The operator caught it and relayed the
+full instruction; W-2′ recovered and is working.
+
+**The other five were VERIFIED, not assumed.** Read off each lane's own transcript
+(`~/.claude/projects/**/<session>.jsonl`, first user message):
+
+```
+X1-1   a61224fd  len=101  Read and execute the frozen contract at …\LANE-x-692-decision-coverage.md
+X1-2   e5cdeb9d  len=95   … \LANE-x-689-conductor-e.md
+X-DEL  c0645d40  len=96   … \LANE-x-734-retire-stage.md
+lane5  a7e74d55  len=100  … \LANE-x-716-dispatch-defects.md
+X1-5   98b61963  len=98   … \LANE-x-664-delivery-spine.md
+W-2'   fed4c445  len=10   Read H:\My                      <-- the only truncation
+```
+
+**The truncation is isolated to the hand-composed launch.** `Dispatch-Lane` quotes its own
+prompt correctly; every lane it started received the whole instruction naming its own
+contract. The defect is the dispatcher's, not the verb's.
+
+**Standing rule from here (operator, AMEND-018):** every prompt names
+`$env:CLAUDE_PROMPTS_DIR`, never the literal path. **Note for whoever implements it:**
+`Dispatch-Lane` composes `Read and execute the frozen contract at <EXPANDED PATH>` itself, so
+the rule is not satisfied by dispatcher discipline alone — the helper's prompt composition has
+to change too. That sits squarely in the lane already running as lane-5 (`[#717]`/`[#718]`,
+the writer/reader-one-key work), which is the right place for it.
+
 ### Not done by this seat, and owed
 
 - **The integrator merges `worktree-dispatch-x1-freeze`** — AX17-3. (Done at `e688669c`,
