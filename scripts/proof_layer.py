@@ -434,6 +434,18 @@ def ratchet_findings(guards, baseline: Baseline | None,
     FINDING PER CONCERN: the `#147` register suppresses an ENTIRE Finding on a substring
     match, so a bundle would let one dispositioned guard wave through every other.
 
+    AND ONE FINDING PER CONCERN IS ONLY HALF OF IT (`[#638]`). The register matches on a
+    SUBSTRING OF THE EVIDENCE, so two separate findings whose evidence is byte-identical are
+    one dispositionable unit however many Finding objects carry them. Every field the line
+    used to carry — module, scope, tool, gated-test count — is shared by two function-level
+    guards in the same module, and four such guards on `test_review_artifact_coverage.py`
+    rendered as one string four times. Lane C-1 declined to write a register entry for them
+    rather than write one that matched all four plus every guard the file has not got yet,
+    which is the whole-Finding masking the register's own contract forbids. So the evidence
+    now names `Guard.key` — the ratchet's OWN identity, not a second handle invented here, so
+    a disposition author and `ecosystem/proof-layer-baseline.json` quote the same token and an
+    entry that stops matching has stopped matching the guard it was written for.
+
     WARN-tier, and the reason is the one `funnel_coverage` records: the live population is
     pre-existing debt this row did not create, and arming RED against it would turn the gate
     off on day one. The teeth are the named regression and the identity keying.
@@ -466,6 +478,9 @@ def ratchet_findings(guards, baseline: Baseline | None,
                     f"{guard.module} gates {guard.gated_tests} test(s) behind a "
                     f"{guard.scope}-level skipif on {guard.tool!r}{sharp} — a proof that can "
                     f"be skipped on the machine that breaks the property is not a mechanism. "
+                    f"Guard key: {guard.key} — the per-guard identity a #147 disposition must "
+                    f"match, and the spelling the baseline lists; the module name alone would "
+                    f"absorb every other guard in that file, including ones not yet written. "
                     f"Move the property that cannot be skipped OUT from behind the guard, or "
                     f"propagate the skip predicate into a reporting surface so a skipped "
                     f"proof renders as {NOT_PROVEN} (sweep sections 9.2 and 9.6)"))

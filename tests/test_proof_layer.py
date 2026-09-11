@@ -72,6 +72,27 @@ _UNGATED = textwrap.dedent('''\
         assert True
     ''')
 
+#: `[#638]`'s live shape, reduced to a fixture: TWO function-level guards behind the SAME
+#: named alias, in ONE module. Every field the evidence line used to carry — module, scope,
+#: tool, gated-test count — is identical across both, so the two findings rendered
+#: byte-identically and no `#147` `match` token could name one without absorbing the other
+#: AND every future guard added to that file. The test names are the real ones.
+_TWO_GIT_GUARDS_ONE_MODULE = textwrap.dedent('''\
+    """The subject of this module IS git-derived data."""
+    import shutil
+    import pytest
+
+    requires_git = pytest.mark.skipif(shutil.which("git") is None, reason="git not available")
+
+    @requires_git
+    def test_handback_artifact_supplies_both_linkage_and_tally():
+        assert True
+
+    @requires_git
+    def test_an_unrelated_handback_does_not_launder_a_merge():
+        assert True
+    ''')
+
 _WHICH_GATED = textwrap.dedent('''\
     """The hygiene scripts are pwsh-only."""
     import shutil
@@ -286,6 +307,46 @@ def test_a_new_guard_surfaces_even_while_another_is_removed(tmp_path):
     findings = pl.ratchet_findings(pl.scan_guards(d), baseline=baseline)
     assert [s for s, _ in findings] == ["warn"]
     assert "test_enforcement_coverage.py" in findings[0][1]
+
+
+# --- [#638]: one finding per guard is not enough — it must be per-guard IDENTIFIABLE ---
+
+def test_two_guards_in_one_module_do_not_render_byte_identically(tmp_path):
+    """`[#638]` RED. `check_proof_layer` already emits one Finding per guard so the `#147`
+    register can disposition them one at a time. That is only half the contract: the register
+    matches on a SUBSTRING OF THE EVIDENCE, so two findings whose evidence is byte-identical
+    are still a single dispositionable unit in practice. Four such findings on
+    `test_review_artifact_coverage.py` are what lane C-1 refused to write a register entry
+    for — any token narrow enough to be true of one was true of all four, and of the next
+    guard added to the file."""
+    d = _tests_dir(tmp_path, test_review_artifact_coverage=_TWO_GIT_GUARDS_ONE_MODULE)
+    findings = pl.ratchet_findings(pl.scan_guards(d), baseline=pl.Baseline(guards=()))
+    assert [s for s, _ in findings] == ["warn", "warn"]
+    evidence = [e for _, e in findings]
+    assert len(set(evidence)) == 2, (
+        "the two findings are byte-identical, so no register `match` can name one of them")
+
+
+def test_each_finding_carries_the_guard_key_the_baseline_lists(tmp_path):
+    """The key is the ratchet's OWN identity (`module::target`), not a new invented handle.
+    A disposition author and the baseline therefore quote the same token, and an entry that
+    stops matching has stopped matching the guard it was written for."""
+    d = _tests_dir(tmp_path, test_review_artifact_coverage=_TWO_GIT_GUARDS_ONE_MODULE)
+    guards = pl.scan_guards(d)
+    evidence = [e for _, e in pl.ratchet_findings(guards, baseline=pl.Baseline(guards=()))]
+    for guard in guards:
+        assert sum(1 for e in evidence if guard.key in e) == 1, (
+            f"{guard.key} names exactly one finding, or a disposition on it is not per-guard")
+
+
+def test_a_module_level_guard_carries_its_module_scoped_key(tmp_path):
+    """Module scope is keyed too — `<module:tool>`, the spelling `Guard.key` records — so the
+    two scopes are dispositionable through one grammar rather than one of them by luck."""
+    d = _tests_dir(tmp_path, test_floor_conformance=_MODULE_GATED)
+    [guard] = pl.scan_guards(d)
+    [(_, evidence)] = pl.ratchet_findings([guard], baseline=pl.Baseline(guards=()))
+    assert guard.key == "test_floor_conformance.py::<module:pre_commit>"
+    assert guard.key in evidence
 
 
 # --- leg 2: [#583]'s rows are INSTANCES, and the two exemplars are covered --
