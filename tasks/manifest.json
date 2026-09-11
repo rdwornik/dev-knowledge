@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "cdf1a5c3bca5c2bea39144da206af24fab5cc6145eee347ff92d5811963f1df9",
+  "generated_sha256": "4bba61b6a72846848f7903b9812cd55e49ff9f1cc1058a134737ba5a8b3de531",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -320,10 +320,6 @@
     {
       "task": 631,
       "file": "631-a-freeze-cannot-bind-a-rule-that-postdates-it.md"
-    },
-    {
-      "task": 638,
-      "file": "638-four-new-proof-layer-guards-are-undispositionable-b.md"
     },
     {
       "task": 639,
@@ -728,10 +724,6 @@
       "file": "605-de-hardcode-consumer-root-resolution-in-deploy-t.md"
     },
     {
-      "task": 683,
-      "file": "683-the-v1-5-0-floor-ships-override-a-command-that-discharges-no-gate.md"
-    },
-    {
       "prose": "---"
     },
     {
@@ -856,10 +848,6 @@
     {
       "task": 642,
       "file": "642-eleven-carried-questions-have-no-owning-row.md"
-    },
-    {
-      "task": 688,
-      "file": "688-declare-harness-is-process-is-cited-by-three-audits-and-answers-to-no-tracked-file.md"
     },
     {
       "task": 695,
@@ -1184,10 +1172,6 @@
     {
       "task": 274,
       "file": "274-dogfood-signal-prior-in-the-changelog-review-ado.md"
-    },
-    {
-      "task": 278,
-      "file": "278-test-suite-hygiene-epic.md"
     },
     {
       "task": 317,
