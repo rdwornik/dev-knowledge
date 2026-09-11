@@ -135,7 +135,7 @@ Repo-level (`./.claude/commands/`, machine-enumerated from command-file frontmat
 @.claude/generated/commands-repo.md
 <!-- methodology:end id=commands-repo-roster -->
 
-`/handoff` generates a handoff per `HANDOFF_PROCESS.md` v7 (ADR-82); `/handoff-verify` is its check-time counterpart — one run of the whole live gate, one evidence block (v7 §5). `/review-closures` and `/ship` are governed by ADR-70 Tier-1 + `ARCHITECTURE.md` "Tier-1 self-enforcing lifecycle"; `/override` by ADR-85 §4, **whose local-token path the ADR-85 amendment §A2 RETIRED** — it discharges no gate. Which command when → PLAYBOOK §"Usage protocol".
+`/handoff` generates a handoff per `HANDOFF_PROCESS.md` v7 (ADR-82); `/handoff-verify` is its check-time counterpart — one run of the whole live gate, one evidence block (v7 §5). `/review-closures` and `/ship` are governed by ADR-70 Tier-1 + `ARCHITECTURE.md` "Tier-1 self-enforcing lifecycle". Which command when → PLAYBOOK §"Usage protocol".
 
 ## 8. Skills active
 <!-- scope: runtime -->
