@@ -525,6 +525,13 @@ def search_candidates(command: str) -> list[str]:
     later LINES; pass 14 stopped it covering earlier commands on its OWN line. A shell comment
     trails the command after the last separator, so in `rg X; echo done # raw-needed: note` the
     declaration is about `echo done` and says nothing at all about the `rg`.
+
+    THE RULE, stated exactly, because pass 15 read it differently: a declaration attaches to the
+    LAST REAL COMMAND ON ITS OWN LINE. A trailing separator before the comment therefore changes
+    nothing -- `rg X; # raw-needed: r` is the sanctioned form with a stray semicolon and grants
+    no power the un-separated spelling does not. The stricter reading (a declaration trailing an
+    EMPTY segment is void, so deny) was considered and rejected: it over-blocks a good-faith
+    declaration, and over-blocking is the expensive failure this row names in its own text.
     """
     candidates: list[str] = []
     try:

@@ -518,6 +518,26 @@ def test_an_escape_covers_the_SEGMENT_it_trails_not_the_whole_line():
     assert _denied(_bash("rg gen_task_tree && echo ok # raw-needed: note"))
 
 
+def test_the_escape_attaches_to_the_LAST_REAL_COMMAND_on_its_line():
+    """THE RULE, stated because a pre-merge pass (15) read it differently and the reading
+    matters more than the code here.
+
+    A declaration attaches to the last real command on its own line. So a trailing separator
+    before the comment changes nothing -- `rg X; # raw-needed: r` is the sanctioned form with
+    a stray semicolon, and it grants no power `rg X # raw-needed: r` does not already grant.
+    Where a REAL command follows the separator, the declaration is about THAT command and the
+    earlier search stays governed; and a declaration on a different LINE attaches to nothing.
+
+    The alternative reading -- a declaration trailing an empty segment is void, so deny --
+    was rejected: it over-blocks a good-faith declaration, and over-blocking is the expensive
+    failure this row names in its own text.
+    """
+    assert not _denied(_bash("rg gen_task_tree; # raw-needed: reason"))   # stray separator
+    assert _denied(_bash("rg gen_task_tree;"))                            # no declaration
+    assert _denied(_bash("rg gen_task_tree\n# raw-needed: reason"))       # wrong line
+    assert _denied(_bash("rg gen_task_tree; echo done # raw-needed: r"))  # covers `echo`
+
+
 def test_an_escape_trailing_the_SEARCH_itself_still_works():
     assert not _denied(_bash("echo done; rg gen_task_tree # raw-needed: renaming"))
     assert not _denied(_bash("cat BACKLOG.md | grep gen_task_tree # raw-needed: one-off"))
