@@ -315,6 +315,75 @@ dispatcher **asks the operator `y` per fire** — which is what the operator ask
 independently. Recorded as a candidate row: *"the contract gate and the dispatch verb demand
 incompatible fences."*
 
+## 11a · X1-4 FROZEN (not fired) — the routing lane, carrying AX21 + AX22
+
+Frozen ahead of its backfill slot so that when it fires it already carries the role→model
+ruling. **Not dispatched**: it is a backfill item, and AX22-4 gates half its work.
+
+```
+slot   rows            slug                            branch                                model  effort  mode
+X1-4   [#691] [#694]   lane-x-691-routing-telemetry    worktree-lane-x-691-routing-telemetry opus   high    execute
+```
+
+`opus` because AX21-1 makes **orchestrate/plan Opus-only**, and a lane that builds the router
+is orchestrating routing. That is the one row of the role table not subject to re-ranking.
+
+**Carried verbatim** (extracted, not retyped): rows `[#691]` and `[#694]`; clauses
+`AX21-1` `AX21-2` `AX21-3` `AX21-4` `AX22-1` `AX22-2` `AX22-4` `AX22-5` `AX4-1` `AX9-4`.
+Contract passes the gate at 11 sections. **DryRun receipt** (not fired):
+
+```
+claude --bg --model opus --effort high --permission-mode bypassPermissions --worktree lane-x-691-routing-telemetry
+```
+
+The contract states, where the lane cannot miss them:
+
+- **Two FIRST ACTS** — read the grok account's usage-limit cause (AX21-4; if it is a spending
+  cap that is the operator's act, one line in the report), and **verify grok's token-ceiling
+  flag** (AX21-3 applying R1-4(b)/A7-5: *a CLI that cannot enforce a token ceiling by flag is
+  not ordered*), on this version rather than from docs.
+- **Fixed order of work** (AX22-5): telemetry → registry → router → re-rank. Each step is the
+  next one's evidence; a router re-ranked on nothing measured is a fixed list wearing a
+  router's name.
+- **Admission before position** (AX22-1): implement order is **Sonnet first** until admission;
+  Grok 4.6 and Copilot Enterprise take bounded trial tasks in parallel; **≥ 8 of 10 green on
+  first review** admits, below it the provider ranks last and the anomaly is filed. Copilot →
+  Grok → Sonnet is the *expected* steady state, **earned, not declared**.
+- **Reviewer ≠ producer, encoded in the registry** (AX22-2), with the tally recording both roles.
+- **`providers.allowed` per repo in the deploy manifest**, and the router REFUSES an off-list
+  provider — RED-first (AX22-5).
+- **PRECONDITION (AX22-4):** no non-Claude producer or reader is ordered before W-2′ is on
+  `main`. At freeze W-2′ was RUNNING, not merged. The Claude-side build is ungated; ordering a
+  non-Claude provider is gated, and the lane **reports and stops** rather than deciding the
+  precondition is close enough. The contract gives it the check to run.
+
+## 11b · Seat models recorded in the renders (AX22-3)
+
+`gen_seat_boot.py` carried **no model concept at all** — the ruling had nowhere to live. Added
+`SEAT_MODELS` and a `model:` field in the render header, **RED-first**: three tests written and
+failing (`AttributeError: no attribute 'SEAT_MODELS'`) before the code existed; suite now
+**28 passed**.
+
+```
+dispatcher sonnet     integrator opusplan     filings/handoff/lane opus
+```
+
+`model:` sits between `date:` and `ch8-sha256:` because `_HEADER_RE` stops at the pipe after
+`date` — the field is additive and no existing reader changes. The remaining three seats are
+stated rather than defaulted, so adding a seat to the enum without deciding its tier fails a
+test instead of rendering an unresolved one.
+
+**The five refreshed renders were copied to the transport `to-browser/` (AX11-2)** and carry
+the ruled models.
+
+**P12 now reports DRIFT against the 2026-09-10 bundle, BY CONSTRUCTION, and that is correct.**
+A fresh render carries `model:`; that frozen bundle predates the ruling and does not.
+**Handoff bundles are immutable (critical rule 3), so it was NOT regenerated** — the drift is
+the immutability rule and the new field meeting, not a defect. P12 is wired into no gate
+(absent from `.pre-commit-config.yaml`), so nothing is blocked. The next bundle cut renders
+with the field and P12 passes against it. Stated here so the next seat reads a known
+consequence rather than discovering an alarming one.
+
 ## 12 · FIRE RECEIPTS — all six up
 
 Fired on the operator's `y` of 2026-09-11 with AMEND-017's three conditions, in the ruled
