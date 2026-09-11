@@ -1051,6 +1051,51 @@ def _import_boot_frontier():
     return boot_frontier
 
 
+def _import_decision_coverage():
+    """Lazy sibling import, same shape as `_import_funnel_lifecycle`."""
+    if str(_SCRIPTS_DIR) not in sys.path:
+        sys.path.insert(0, str(_SCRIPTS_DIR))
+    import decision_coverage  # noqa: E402
+    return decision_coverage
+
+
+def decision_health_line(repo_root: Path) -> str | None:
+    """A9-3's `[decisions]` digest line: accepted / executing / done / age of the oldest
+    accepted-but-unexecuted decision -- plus the grandfathered count the era bound owes.
+
+    READ ONLY, and `decision_coverage` owns both the numbers and their rendering; nothing is
+    re-derived here. Returns None rather than a spurious line when the store or the population
+    cannot be read, which is `funnel_health_line`'s posture directly above and for the same
+    reason -- an uncomputable digest is that module's reported condition, not this one's. A
+    STALE store returns a line that says exactly that instead of the numbers; see below for why
+    it is not rebuilt here.
+
+    THE TRANSPORT IS NOT READ, and the line SAYS SO (`Metrics.transport_measured`). This runs
+    at SessionStart, on every session, and the numbers are not worth what the full population
+    costs there: MEASURED 2026-09-11 on this tree, the two in-repo classes resolve in ~1.4s
+    while the transport leg adds ~23s, because P11's `carriage_verdicts` spawns a `git cat-file`
+    per carrier token across ~96 files. The narrowing is stated rather than left to be inferred
+    because it is not merely a smaller population: `executing` and `done` are carried almost
+    entirely by the transport class, so an unlabelled line would report two clean-looking zeros
+    that are false as statements about the repo. The WHOLE population is one command away
+    (`decision_coverage.py metrics`) and rides in every handoff bundle's DECISION_LEDGER.md.
+    """
+    try:
+        dc = _import_decision_coverage()
+        if dc.store_is_stale(repo_root):
+            # SAID, not silently skipped. A rebuild here would cost ~16s against ~1.5s warm
+            # (measured), and it is the `graph-rebuild` pre-commit hook's act, not a digest
+            # line's -- but "not measured" and "nothing to report" are different facts, and a
+            # surfacing organ that hides the first behind the second is the E-29 defect.
+            return ("[decisions] not measured -- the graph store is stale; the next commit "
+                    "rebuilds it")
+        found = dc.live_decisions(repo_root, transport=None)
+        return dc.metrics(found, transport_measured=False).render()
+    except Exception as exc:  # noqa: BLE001 -- surfacing organ: never break the digest
+        print(f"fleet_health: WARNING -- decision digest unavailable: {exc!r}", file=sys.stderr)
+        return None
+
+
 def funnel_health_line(repo_root: Path) -> str | None:
     """The `[funnel]` digest line: rot / orphan (funnel_lifecycle) / unblocked / proposed
     batch (boot_frontier). `funnel_lifecycle` is READ ONLY here (this lane's write-scope
@@ -1386,6 +1431,13 @@ def main(argv=None) -> int:
         funnel = funnel_health_line(_REPO_ROOT)
         if funnel:
             print(funnel)
+        # [#692] A9-3, beside the funnel line and on the same terms: unthrottled, fail-soft,
+        # and never a gate. It sits AFTER `[funnel]` because that line answers "what is rotting"
+        # and this one answers "what was decided and never scheduled" -- the funnel first, then
+        # the decisions that never entered it.
+        decisions_line = decision_health_line(_REPO_ROOT)
+        if decisions_line:
+            print(decisions_line)
         # Lane h0's dispatch-trace count -- unthrottled and fail-soft, same shape as the
         # groom escalation below: one cheap scandir call, never a gate.
         traces = count_traces_today(_LOGS_DIR, today)

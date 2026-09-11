@@ -526,3 +526,253 @@ def test_a_disposition_for_an_UNMEASURED_class_is_not_reported_stale(live_store)
     in_repo_only = dc.decisions(REPO_ROOT, live_store, transport=None)
     assert not any(d.kind == dc.KIND_TRANSPORT for d in in_repo_only)
     assert dc.stale_dispositions(in_repo_only) == []
+
+
+# ---------------------------------------------------------------- step 4: the three consumers
+#
+# The organ's own answers are witnessed above. THIS group witnesses only the WIRING -- that the
+# handoff bundle emits the ledger (A9-2), that onboarding refuses on it (A9-2's probe half), and
+# that `fleet_health` reports A9-3's numbers -- because a built organ nothing calls is the exact
+# shape of the defect `test_live_repo_builds_and_carries_all_five_inputs` exists to catch one
+# level down: a key in the roster, looking armed, contributing nothing.
+
+
+@pytest.fixture
+def wired_population(tiny_decisions: Path, tiny_store):
+    return dc.decisions(tiny_decisions, tiny_store, transport=None)
+
+
+def _bundle(tmp_path: Path, name: str) -> Path:
+    """A bundle directory with the one file the rungs use to recognise a v5-lineage bundle."""
+    b = tmp_path / "handoffs" / name
+    b.mkdir(parents=True)
+    (b / "RESIDUAL.md").write_text("# RESIDUAL\n", encoding="utf-8", newline="\n")
+    return b
+
+
+# --- A9-2, the artifact half: the bundle emits the ledger ------------------------------------
+
+def test_the_handoff_writer_emits_the_ledger_into_the_bundle(tmp_path: Path, wired_population,
+                                                             monkeypatch):
+    """A9-2: *"The bundle generator emits, from `decision_coverage`, every open decision with
+    its state."* The generator, not a seat typing a list."""
+    import gen_handoff as gh
+
+    monkeypatch.setattr(dc, "live_decisions", lambda *a, **k: wired_population)
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    out = gh._write_decision_ledger(bundle, REPO_ROOT)
+
+    assert out == bundle / dc.LEDGER_FILE
+    assert out.exists()
+    body = out.read_text(encoding="utf-8")
+    assert body.startswith(dc.LEDGER_BEGIN)
+    assert body.rstrip().endswith(dc.LEDGER_END)
+    # the population, not a header: ADR-901 is accepted-and-uncovered in the fixture
+    assert "ADR-901" in body
+    assert dc.LEDGER_UNAVAILABLE not in body
+
+
+def test_an_unreadable_population_writes_the_ledger_ANYWAY_saying_so(tmp_path: Path,
+                                                                     monkeypatch):
+    """DEGRADED, NEVER ABSENT. A missing DECISION_LEDGER.md reads to the incoming seat as
+    'no open decisions' -- the one answer this file must never give (DEFECT E-29)."""
+    import gen_handoff as gh
+
+    def _boom(*_a, **_k):
+        raise gs.StoreUnreadable("fixture: the store cannot be opened")
+
+    monkeypatch.setattr(dc, "live_decisions", _boom)
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    out = gh._write_decision_ledger(bundle, REPO_ROOT)
+
+    assert out is not None and out.exists(), "a boundary must not delete the artifact"
+    body = out.read_text(encoding="utf-8")
+    assert dc.LEDGER_UNAVAILABLE in body
+    assert "StoreUnreadable" in body, "the reason is stated, not swallowed"
+    assert body.startswith(dc.LEDGER_BEGIN) and body.rstrip().endswith(dc.LEDGER_END)
+
+
+def test_the_writer_touches_NO_tree_that_is_not_the_hub(tmp_path: Path, monkeypatch):
+    """Found by tests/test_gen_handoff.py, not by review. Resolving the population calls
+    `graph_store.ensure`, which creates `<repo>/.git/fpg-graph/FPG.db` -- and in a tree with no
+    git history that MATERIALISES a `.git` directory, which made six regeneration tests raise
+    BundleCollisionError. A surfacing artifact may degrade and may be slow; it may not change
+    the tree it is reporting on. `_is_hub` is the predicate already ruled for this scoping."""
+    import gen_handoff as gh
+
+    def _never(*_a, **_k):
+        raise AssertionError("a non-hub tree must not reach the population at all")
+
+    monkeypatch.setattr(dc, "live_decisions", _never)
+    foreign = tmp_path / "some-consumer-repo"
+    bundle = foreign / "docs" / "handoffs" / "2026-09-12-consumer-architect"
+    bundle.mkdir(parents=True)
+
+    assert gh._write_decision_ledger(bundle, foreign) is None
+    assert not (bundle / dc.LEDGER_FILE).exists()
+    assert not (foreign / ".git").exists(), "no store, and above all no .git, is created"
+
+
+def test_the_ledger_is_a_BUNDLE_artifact_not_a_browser_visible_one():
+    """The answer-free invariant governs BOOT / RESIDUAL / PROBES and the assembled paste. The
+    ledger carries counts, so it may not enter that set -- it rides beside FUNNEL_HEALTH.md,
+    which is in the bundle and absent from the assembler, and this pins the same for it.
+
+    HONEST LIMIT: this proves the assembler never reads the file BY NAME, which is how it reads
+    every source it has. It is not a proof about a directory walk the assembler does not do."""
+    assembler = (REPO_ROOT / "scripts" / "assemble_paste.py").read_text(encoding="utf-8")
+    assert "FUNNEL_HEALTH.md" not in assembler, "the precedent this rides on moved"
+    assert dc.LEDGER_FILE not in assembler
+
+
+# --- A9-2, the probe half: onboarding refuses -------------------------------------------------
+
+def test_the_onboarding_era_is_pinned_to_the_organs_own_ARM_DATE():
+    """Two spellings of one date. Pinned equal so the rung and the refusals it reports cannot
+    come to different conclusions about the same decision."""
+    import verify_handoff_probes as vhp
+
+    assert vhp._DECISION_ERA == dc.ARM_DATE.isoformat()
+
+
+def test_a_PRE_ERA_bundle_is_not_judged(tmp_path: Path, monkeypatch):
+    """The bound that keeps 'any FAIL blocks onboarding' from blocking every handoff on the
+    decisions that predate the `implements:` key."""
+    import verify_handoff_probes as vhp
+
+    def _never(*_a, **_k):
+        raise AssertionError("a pre-era bundle must not reach the population at all")
+
+    monkeypatch.setattr(dc, "live_decisions", _never)
+    assert vhp._undisposed_decisions(_bundle(tmp_path, "2026-09-10-dev-knowledge-architect"),
+                                     REPO_ROOT) == []
+
+
+def test_the_onboarding_rung_carries_the_organs_verdict_into_the_probe_list(tmp_path: Path,
+                                                                            wired_population,
+                                                                            monkeypatch):
+    """The rung owns WHEN the question is asked; `decision_coverage` owns the answer and its
+    wording. A second judgement written here would be free to disagree with the gate."""
+    import verify_handoff_probes as vhp
+
+    monkeypatch.setattr(dc, "live_decisions", lambda *a, **k: wired_population)
+    monkeypatch.setattr(vhp, "_residual_is_sealed_and_unchanged", lambda *a, **k: False)
+    bundle = _bundle(tmp_path, "2026-09-12-dev-knowledge-architect")
+
+    rows = vhp._undisposed_decisions(bundle, REPO_ROOT)
+
+    assert len(rows) == 1, rows
+    row = rows[0]
+    assert row.probe_id == dc.ONBOARDING_PROBE_ID
+    assert row.status == "fail"
+    assert row.bundle == bundle.name
+    assert "ADR-901" in row.detail and "intake #900" in row.detail
+    assert "|" not in row.detail, "ProbeResult detail is pipe-free -- it lands in a table"
+
+
+def test_a_SEALED_bundle_is_not_judged_and_never_pays_for_the_population(tmp_path: Path,
+                                                                         monkeypatch):
+    """`check_handoff_probes` is COMMIT tier. Unbounded, this rung would fail every later
+    commit in the repo on a bundle nobody may repair -- and pay ~25s for the privilege."""
+    import verify_handoff_probes as vhp
+
+    def _never(*_a, **_k):
+        raise AssertionError("a sealed bundle must not resolve the population")
+
+    monkeypatch.setattr(dc, "live_decisions", _never)
+    monkeypatch.setattr(vhp, "_residual_is_sealed_and_unchanged", lambda *a, **k: True)
+    assert vhp._undisposed_decisions(_bundle(tmp_path, "2026-09-12-dev-knowledge-architect"),
+                                     REPO_ROOT) == []
+
+
+def test_an_unreadable_population_DEGRADES_the_rung_it_does_not_vanish(tmp_path: Path,
+                                                                       monkeypatch):
+    """A rung that disappears when it cannot measure reads as a pass to every consumer of the
+    probe list. `skipped` is this validator's own word for 'measured nothing, honestly'."""
+    import verify_handoff_probes as vhp
+
+    def _boom(*_a, **_k):
+        raise gs.StoreUnreadable("fixture: the store cannot be opened")
+
+    monkeypatch.setattr(dc, "live_decisions", _boom)
+    monkeypatch.setattr(vhp, "_residual_is_sealed_and_unchanged", lambda *a, **k: False)
+
+    rows = vhp._undisposed_decisions(_bundle(tmp_path, "2026-09-12-dev-knowledge-architect"),
+                                     REPO_ROOT)
+
+    assert len(rows) == 1 and rows[0].status == "skipped", rows
+    assert "StoreUnreadable" in rows[0].detail
+
+
+# --- A9-3: fleet_health reports the four numbers ----------------------------------------------
+
+def test_fleet_health_renders_the_decision_metric(wired_population, monkeypatch):
+    """A9-3, wired: *"Decision metric (reported by `fleet_health`)"*."""
+    import fleet_health as fh
+
+    monkeypatch.setattr(dc, "store_is_stale", lambda *a, **k: False)
+    monkeypatch.setattr(dc, "live_decisions", lambda *a, **k: wired_population)
+
+    line = fh.decision_health_line(REPO_ROOT)
+
+    assert line is not None
+    assert line.startswith("[decisions] accepted ")
+    for word in ("accepted", "executing", "done", "oldest unexecuted", "grandfathered"):
+        assert word in line, word
+    assert "|" not in line, "a digest line is flat"
+
+
+def test_the_narrowed_reading_SAYS_it_is_narrowed(wired_population, monkeypatch):
+    """`executing` and `done` are carried almost entirely by the transport class, so an
+    unlabelled session-start line would report two clean-looking zeros that are false as
+    statements about the repo."""
+    import fleet_health as fh
+
+    monkeypatch.setattr(dc, "store_is_stale", lambda *a, **k: False)
+    monkeypatch.setattr(dc, "live_decisions", lambda *a, **k: wired_population)
+    assert "in-repo classes only" in fh.decision_health_line(REPO_ROOT)
+
+    full = dc.metrics(wired_population).render()
+    assert "in-repo classes only" not in full, "the whole population is not labelled narrowed"
+
+
+def test_a_STALE_store_is_reported_never_rebuilt_at_session_start(monkeypatch):
+    """Measured: a cold rebuild is ~16s against ~1.5s warm. The rebuild belongs to the
+    `graph-rebuild` pre-commit hook ([#664] clause 1), not to a digest line -- but 'not
+    measured' and 'nothing to report' are different facts."""
+    import fleet_health as fh
+
+    def _never(*_a, **_k):
+        raise AssertionError("a stale store must not be rebuilt by the digest")
+
+    monkeypatch.setattr(dc, "store_is_stale", lambda *a, **k: True)
+    monkeypatch.setattr(dc, "live_decisions", _never)
+
+    line = fh.decision_health_line(REPO_ROOT)
+
+    assert line is not None, "silence would read as 'nothing to report'"
+    assert "not measured" in line and "stale" in line
+
+
+def test_the_digest_line_is_dropped_rather_than_faked_when_the_population_is_unreadable(
+        monkeypatch):
+    """`funnel_health_line`'s posture directly above it: None, never a spurious line."""
+    import fleet_health as fh
+
+    def _boom(*_a, **_k):
+        raise gs.StoreUnreadable("fixture: the store cannot be opened")
+
+    monkeypatch.setattr(dc, "store_is_stale", lambda *a, **k: False)
+    monkeypatch.setattr(dc, "live_decisions", _boom)
+    assert fh.decision_health_line(REPO_ROOT) is None
+
+
+def test_live_decisions_resolves_the_population_ONE_way_for_all_three_consumers(live_store):
+    """The point of the shared resolver: a consumer that reads the population its own way is
+    free to disagree with the organ that REFUSES on it."""
+    direct = dc.decisions(REPO_ROOT, live_store, transport=None)
+    shared = dc.live_decisions(REPO_ROOT, transport=None)
+    assert [d.key for d in shared] == [d.key for d in direct]
+    assert [d.state for d in shared] == [d.state for d in direct]

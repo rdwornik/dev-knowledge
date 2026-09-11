@@ -2162,6 +2162,69 @@ def _write_funnel_health(bundle_dir: Path, repo_root: Path) -> Path:
     return out
 
 
+def _write_decision_ledger(bundle_dir: Path, repo_root: Path) -> "Path | None":
+    """A9-2: write the DECISION LEDGER to `<bundle>/DECISION_LEDGER.md`, WHOLE, every generation.
+
+    *"The bundle generator emits, from `decision_coverage`, every open decision with its state;
+    the incoming seat's plan must dispose each one (executing in batch N | scheduled with a row
+    | refused in writing) before its plan is accepted -- a probe, not prose."*
+    (`AMEND-SESSION-PLAN-009` A9-2.) The PROBE half is the `P13-decision-ledger` rung in
+    `verify_handoff_probes`; this is the half that puts the list in front of the seat writing
+    the plan, since a probe that refuses a plan the seat had no way to write is a trap.
+
+    SAME CONTRACT AS `_write_funnel_health` ABOVE, and deliberately the same shape rather than
+    a second convention: overwritten rather than spliced or appended (a stale block is worse
+    than none), and a BUNDLE artifact rather than a browser-visible one -- absent from
+    `assemble_paste`'s v5 manifest, so the answer-free invariant governing BOOT / RESIDUAL /
+    PROBES and the assembled paste is untouched by it.
+
+    TWO FAILURE CLASSES, ANSWERED DIFFERENTLY. An unimportable `decision_coverage` is a broken
+    checkout, not a boundary -- nothing is written and the cut continues, which is
+    `_write_seat_boots`'s posture for the same class. An unreadable STORE or TRANSPORT is a
+    boundary, and there the block is still written carrying the reason: a missing ledger reads
+    to the incoming seat as "no open decisions", which is the one answer it must never give
+    (DEFECT E-29, degraded never absent).
+
+    HUB-ONLY BY REPO IDENTITY (`_is_hub`), the same scoping and the same predicate as the P11
+    acceptance rung. The population is three HUB surfaces -- this repo's ADR corpus, this
+    repo's intake funnel, and the operator's machine-level `CLAUDE_PROMPTS_DIR` -- so a ledger
+    rendered for any other tree is a category error, not a degraded reading.
+
+    It is also load-bearing rather than tidy, and the measurement is why: resolving the
+    population calls `graph_store.ensure`, which CREATES `<repo>/.git/fpg-graph/FPG.db`. In a
+    tree with no git history that MATERIALISES a `.git` directory, after which `_tracked_under`
+    no longer short-circuits on "not a git repo", runs `git ls-files` there, gets a non-zero and
+    raises BundleCollisionError. Six regeneration tests found that before this shipped. A
+    surfacing artifact may degrade, may be slow and may say nothing useful -- it may not change
+    the tree it is reporting on.
+
+    COST, measured 2026-09-11 and stated because a handoff cut is interactive: ~25s, almost all
+    of it P11's existing `carriage_verdicts`, which spawns a `git cat-file` per carrier token
+    across ~96 transport files. The cut already pays that at assemble time for leg 2; this adds
+    a second pass of it. Reducing it means memoizing `_resolves_on_main`, which is P11's own
+    surface and outside [#692]'s footprint.
+    """
+    if not _is_hub(Path(repo_root)):
+        return None
+    try:
+        import decision_coverage as _dc  # noqa: PLC0415 -- deferred sibling import, the idiom
+    except Exception as exc:             # noqa: BLE001 -- an unimportable organ never kills a cut
+        # NOT just ImportError. The chain reaches `file_purpose_graph` and `validate_backlog`,
+        # and a tree whose `scripts/` shadows either raises something else entirely (measured:
+        # NameError, from a fixture stub). Whatever it raises, the answer is the same -- there
+        # are no constants to render a block with, so nothing is written and the cut goes on.
+        print(f"gen_handoff: DECISION LEDGER skipped -- {exc!r}", file=sys.stderr)
+        return None
+    try:
+        text = _dc.render_ledger(_dc.live_decisions(repo_root))
+    except Exception as exc:             # noqa: BLE001 -- a surfacing artifact never refuses a cut
+        print(f"gen_handoff: DECISION LEDGER degraded -- {exc!r}", file=sys.stderr)
+        text = _dc.render_ledger_unavailable(f"{type(exc).__name__}: {exc}")
+    out = bundle_dir / _dc.LEDGER_FILE
+    out.write_text(text, encoding="utf-8", newline="\n")
+    return out
+
+
 def journal_draft(slug: str, date: str, state: _State, hints: dict[str, str]) -> str:
     """The JOURNAL generation-entry DRAFT — printed to stdout, NEVER written into the bundle or
     auto-appended to JOURNAL.md. This is where the drift-reference VALUES live (browser never
@@ -2309,6 +2372,7 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
         _render("PROBES.md.tmpl", tokens, bundle_dir, "PROBES.md", tmpl_dir=_TMPL_DIR_EPIC)
         verify_seal_identity(bundle_dir)                     # [#473] B seal gate
         _write_funnel_health(bundle_dir, repo_root)           # FM-4 — AFTER the seal (see below)
+        _write_decision_ledger(bundle_dir, repo_root)         # A9-2 — same placement, same reason
         hints = collect_hints(repo_root)
         return GenResult(bundle_dir=bundle_dir,
                          journal_draft=journal_draft(slug, date, state, hints), filled=filled)
@@ -2358,6 +2422,11 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     # pins that mode at ONE file and narrows the answer-free invariant to "no counts ... enter
     # the boot". Amending §16 is outside this lane's write-scope; it is the architect's call.
     _write_funnel_health(bundle_dir, repo_root)
+    # A9-2: the DECISION LEDGER, beside the health block and AFTER the seal gate for the same
+    # reason it is -- a refused or failed cut must not leave a bundle carrying a FRESH ledger
+    # beside STALE renders. `functional` mode never reaches here, which is HANDOFF_PROCESS
+    # §16's one-file scoping and not a judgement about that mode's need for the list.
+    _write_decision_ledger(bundle_dir, repo_root)
     # INBOX-dev-knowledge-2026-09-08-038 / AMEND-BATCH-V-001 §1: the five SEAT-BOOT pastes, so
     # the next incoming seat POINTS at a rendered boot instead of composing one. AFTER the seal
     # gate for the same reason the health block is (a refused cut leaves no fresh artifact beside
