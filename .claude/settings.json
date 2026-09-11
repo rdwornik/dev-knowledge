@@ -61,6 +61,11 @@
             "type": "command",
             "command": "uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/arm_hooks.py\"",
             "timeout": 60
+          },
+          {
+            "type": "command",
+            "command": "uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/conductor.py\" session-start",
+            "timeout": 25
           }
         ]
       }
