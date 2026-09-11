@@ -111,6 +111,23 @@ from validate_branch_naming import validate_lane_worktree_name  # noqa: E402
 #: (rather than `import batch_manifest`) so `monkeypatch.setattr(glc, "open_batches", ...)`
 #: reaches every call site in this module — the same reason `cmd_check`'s own tests patch it.
 from batch_manifest import freeze_manifest_contract_agreement, open_batches  # noqa: E402
+#: `[#718]` — THE ONE KEY for where a lane contract lives, imported rather than re-derived.
+#: `Dispatch-Lane` takes a BARE FILENAME and resolves it against the operator's prompts
+#: directory itself, so the writer's default and the verb's read have to be the same
+#: resolution or the contract lands where nothing reads it — measured at batch scale: six
+#: contracts written to `to-cc/`, six refused. `transport_root` is that resolution, already in
+#: the tree and already tested (`CLAUDE_PROMPTS_DIR`, `~/Downloads` fallback, None when
+#: unresolved). Imported BY NAME so this module has no second literal to drift from; a third
+#: implementation here is exactly the defect `[#718]` records, one layer on.
+from gen_handoff import transport_root  # noqa: E402
+#: `[#716]` — THE STEP-0 SYNC RETIRES ITSELF. `worktree_seed` is the repo's worktree-
+#: provisioning organ (live `graph_queries.py process-list`: "no trigger; ON-DEMAND-BY-OPERATOR,
+#: invoked by /lane-boot"), and `base_ref_verdict` is its answer to "does a lane dispatched now
+#: branch from `main` HEAD?". A contract's mandatory step-0 sync exists ONLY to paper over that
+#: property being false, so the region is emitted from the predicate rather than typed into a
+#: template by hand: it disappears the moment the property holds and comes back if the setting
+#: is ever unset again. Retirement by mechanism, not by an editor remembering.
+from worktree_seed import base_ref_verdict  # noqa: E402
 
 logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("gen-lane-contract")
@@ -223,8 +240,18 @@ ALL_RECEIPT_FIELDS: tuple[str, ...] = tuple(
 
 _KEBAB_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _HEADING_RE = re.compile(r"^##\s+(?P<title>.+?)\s*$", re.MULTILINE)
+#: `[#717]` WIDENED THIS, and the widening is half the fix rather than a convenience. Until
+#: 2026-09-11 this read `^Dispatch-Lane <slug> <file>( -Effort <v>)?\s*$` — anchored, with NO
+#: `-Model` alternative — so a line carrying the model was refused as "no dispatch command line
+#: found". Rendering the model without widening here would have turned EVERY emitted contract
+#: RED at `lane-contract-check`: a generator whose own parser rejects its output is worse than
+#: one that omits the flag. `-Model` is OPTIONAL, and deliberately: every contract frozen before
+#: `[#717]` carries a line without it, and making it mandatory would redden the whole existing
+#: corpus. It trails `-Effort` because that is the order the generator emits; a reversed line is
+#: refused rather than guessed at, which is the posture the rest of this module already takes.
 _DISPATCH_LINE_RE = re.compile(
-    r"^Dispatch-Lane\s+(?P<slug>\S+)\s+(?P<file>\S+)(?:\s+-Effort\s+(?P<effort>\S+))?\s*$",
+    r"^Dispatch-Lane\s+(?P<slug>\S+)\s+(?P<file>\S+)(?:\s+-Effort\s+(?P<effort>\S+))?"
+    r"(?:\s+-Model\s+(?P<model>\S+))?\s*$",
     re.MULTILINE,
 )
 #: The CLOUD command. `Dispatch-CloudV2` takes the brief as its first positional and the
@@ -422,13 +449,29 @@ def branch_name(slug: str, shape: str = DEFAULT_SHAPE) -> Optional[str]:
     return f"{BRANCH_PREFIX}{slug}"
 
 
-def dispatch_command(slug: str, contract_file: str, effort: str, shape: str) -> str:
+def dispatch_command(slug: str, contract_file: str, effort: str, shape: str,
+                     model: str = DEFAULT_MODEL) -> str:
     """The literal command line for one shape — the single source both halves of this module
     read, so the emitter cannot write a form the parser will not accept.
 
     Returned WITHOUT a surrounding fence. For `interactive` the returned text is the first
     message only; `render_contract` emits the `claude` invocation above it, because the
     session has to exist before a message can reach it.
+
+    `model` REACHES THE LOCAL LINE, and `[#717]` is why it has to. `Start-DispatchLane`'s
+    `-Model` parameter defaults to `opus`; this function used to omit the flag. Neither half is
+    wrong alone — together they meant a contract whose own routing row said `sonnet`, dispatched
+    by the line that contract carries, ran at `opus`. The failure was silent and silent in the
+    expensive direction: nothing refused and nothing warned, the lane produced entirely
+    plausible work, and it announced itself only in the bill. A contract carrying its own launch
+    line is making a promise about how it will run; a line that drops the model silently
+    re-decides the most expensive constant on it.
+
+    The three other shapes take no `-Model`: `Dispatch-CloudV2` and `Dispatch-Codespace` carry
+    no such parameter (their tier is on the record in the routing row, as their `-Effort` is),
+    and an interactive first message is a chat message rather than a command line. `model` is
+    accepted for all four so callers have one signature, and is RENDERED only where a parameter
+    exists to receive it — the same scoping `-Effort` already has.
     """
     shape = validate_shape(shape)
     if shape == "cloud":
@@ -437,7 +480,7 @@ def dispatch_command(slug: str, contract_file: str, effort: str, shape: str) -> 
         return f"Read {PROMPTS_DIR_TOKEN}\\{contract_file} and execute it exactly."
     if shape == "codespace":
         return f"Dispatch-Codespace -Contract {contract_file} -Slug {slug}"
-    return f"Dispatch-Lane {slug} {contract_file} -Effort {effort}"
+    return f"Dispatch-Lane {slug} {contract_file} -Effort {effort} -Model {model}"
 
 
 def find_command_line(text: str) -> Optional[str]:
@@ -469,6 +512,12 @@ class LaneSpec:
     effort: str = "high"
     shape: str = DEFAULT_SHAPE
     strict_slug: bool = True
+    #: `[#716]`: emit the step-0 sync region. NOT a free choice — `cmd_emit` sets it from
+    #: `base_ref_verdict`, so it tracks the live configuration. It stays a SPEC FIELD rather
+    #: than a live read inside `render_contract` because rendering is pure by contract
+    #: (`test_rendering_is_deterministic`), and a generator whose output depends on the state
+    #: of the machine that ran it cannot be diffed.
+    needs_base_sync: bool = False
 
     @property
     def cloud(self) -> bool:
@@ -493,6 +542,7 @@ class LaneSpec:
             effort=validate_effort(self.effort),
             shape=validate_shape(self.shape),
             strict_slug=self.strict_slug,
+            needs_base_sync=self.needs_base_sync,
         )
 
     @property
@@ -514,7 +564,7 @@ def render_contract(spec: LaneSpec) -> str:
     parts.append("|---|---|---|")
     parts.append(f"| {spec.model} | {spec.mode} | {spec.effort} |\n")
 
-    command = dispatch_command(spec.slug, fname, spec.effort, spec.shape)
+    command = dispatch_command(spec.slug, fname, spec.effort, spec.shape, spec.model)
 
     parts.append("## Dispatch\n")
     parts.append(f"**Shape:** `{spec.shape}` — {SHAPE_GLOSS[spec.shape]}.\n")
@@ -532,8 +582,11 @@ def render_contract(spec: LaneSpec) -> str:
             f"helper is cwd-bound, and dispatching from the wrong repo lands the worktree in\n"
             f"it. Dispatch constants ride the line without being re-decided:\n"
             f"`{PERMISSION_MODE}`, `{BACKGROUND_FLAG}`, and the board label\n"
-            f"`{spec.board_label}`. Model defaults to `{DEFAULT_MODEL}` — the `.dev-knowledge`\n"
-            f"default per the Ch8 routing matrix — and this lane dispatches at `{spec.model}`.\n"
+            f"`{spec.board_label}`. **The model is ON the line, not defaulted** (`[#717]`): it\n"
+            f"is rendered from the routing table above, so this lane dispatches at\n"
+            f"`{spec.model}` whatever the surface's own default (`{DEFAULT_MODEL}`, the\n"
+            f"`.dev-knowledge` default per the Ch8 routing matrix) happens to be. A line that\n"
+            f"omitted it would silently re-decide the most expensive constant on it.\n"
             f"Effort is a closed enum: {{{' | '.join(EFFORT_ENUM)}}}; a value outside it is refused\n"
             f"at the surface with the enum named, rather than guessed. The helper refuses\n"
             f"outright when `{branch}` already exists, so re-running the line is a no-op\n"
@@ -670,6 +723,28 @@ def render_contract(spec: LaneSpec) -> str:
                  "  at the merge (Q1); a lane declares its single-hook bypass in the commit body.")
     parts.append("- No edits outside this lane's declared footprint.\n")
 
+    # `[#716]`: emitted ONLY while a lane's base is not guaranteed to be `main` HEAD. The region
+    # papers over a live defect, so it is conditioned on that defect rather than typed into a
+    # template — it retires itself when the property starts holding, and restores itself if the
+    # setting is ever unset again. `cmd_emit` sets the flag from `worktree_seed.base_ref_verdict`;
+    # this function stays pure.
+    if spec.needs_base_sync:
+        parts.append("## Step 0 — sync before anything else "
+                     "(MANDATORY while `[#716]` is unfixed)\n")
+        parts.append(
+            "`worktree.baseRef` does not currently guarantee that a lane branches from `main`\n"
+            "HEAD, so this lane may start behind. **The step-0 sync is mandatory and may not be\n"
+            "dropped on the grounds that `[#716]` is being fixed** — it retires only when the\n"
+            "property holds, and this section stops being emitted at that moment. A generator\n"
+            "run against a base that lags `main` silently DROPS rows that exist on `main`, and\n"
+            "the dropped row looks like a clean regeneration.\n")
+        parts.append("```")
+        parts.append("git fetch origin")
+        parts.append("git merge origin/main        # or: git merge main, from the primary's ref")
+        parts.append("uv run --locked python -c \"print('base synced')\"")
+        parts.append("```\n")
+        parts.append("Then, and only then, run the lane's own steps.\n")
+
     return "\n".join(parts)
 
 
@@ -770,10 +845,19 @@ def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedCo
     # cloud form carries file + title; the interactive form carries the file alone. Each is
     # read for exactly what it holds rather than for a shape it never had.
     dispatch = found["local"] if matched_shape == "local" else None
+    line_model = None
     if matched_shape == "local":
         slug = dispatch.group("slug")
         contract_file = dispatch.group("file")
         effort = dispatch.group("effort")
+        # `[#717]`: the model the LINE carries, held against the enum here and against the
+        # routing row below. Absent is legal — every contract frozen before `[#717]` omits it —
+        # so this is a check on what is present, not a demand that it be.
+        line_model = dispatch.group("model")
+        if line_model is not None and line_model not in MODEL_ENUM:
+            problems.append(
+                f"dispatch line carries model {line_model!r}, outside "
+                f"{{{' | '.join(MODEL_ENUM)}}}")
         # `-Effort` is optional in the dispatch GRAMMAR (the surface defaults it), but a frozen
         # contract states its own routing — an omitted tier is a contract that does not say what
         # it boots at, so it is reported rather than accepted (terra 2026-08-21, finding 3).
@@ -833,6 +917,16 @@ def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedCo
         if model not in MODEL_ENUM:
             problems.append(
                 f"routing row carries model {model!r}, outside {{{' | '.join(MODEL_ENUM)}}}")
+        elif line_model is not None and line_model != model:
+            # `[#717]`, and the conjunction `-Effort` already gets. Widening the regex alone
+            # would merely make a CONTRADICTING line parse: a contract declaring `sonnet` whose
+            # own launch line says `-Model opus` would go from "silently dispatches at opus" to
+            # "says opus out loud and still contradicts its own routing row". The defect being
+            # closed is the divergence, not the omission.
+            problems.append(
+                f"routing row states model {model!r} but the dispatch line states "
+                f"{line_model!r} — two sources free to disagree is the class this generator "
+                f"removes, and this pair is the one that costs money ([#717])")
         if mode not in MODE_ENUM:
             problems.append(
                 f"routing row carries mode {mode!r}, outside {{{' | '.join(MODE_ENUM)}}}")
@@ -932,7 +1026,28 @@ def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedCo
 # --- CLI --------------------------------------------------------------------------------------
 
 def _default_out_dir() -> Path:
-    return Path.cwd()
+    """Where a contract goes when the operator names no `--out-dir`: the root the VERB reads.
+
+    `[#718]`, and the fix is an identity rather than an agreement. This used to return
+    `Path.cwd()` — individually correct, and a second literal beside the reader's own. Batch W
+    emitted six contracts into `to-cc/` while `Dispatch-Lane` resolved the prompts root, and
+    all six were refused. There was no wrong line to find; there were two right lines that
+    disagreed, which is why review never caught it.
+
+    UNRESOLVED IS A REFUSAL, not a fall back to the cwd, and the row asks for exactly that:
+    *"the refusal is the good outcome here, and it should survive the fix"*. Six refusals cost
+    six dispatches; six contracts silently read from a stale location would have cost six lanes
+    running against the wrong text. A cwd fallback would restore the split invisibly.
+    """
+    root = transport_root()
+    if root is None:
+        raise LaneContractError(
+            "cannot resolve where a lane contract goes: `CLAUDE_PROMPTS_DIR` names no "
+            "directory and `~/Downloads` is not one either. This is a REFUSAL rather than a "
+            "fall back to the current directory — the dispatch verb reads the prompts root, "
+            "and writing anywhere else puts the contract where nothing reads it ([#718]). "
+            "Set CLAUDE_PROMPTS_DIR, or pass --out-dir to name the target explicitly.")
+    return root
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -963,8 +1078,20 @@ def cmd_emit(slug: str, purpose: str, repo: str, task_id: Optional[str], model: 
              effort: str, shape: str, loose_slug: bool, out_dir: Optional[Path],
              to_stdout: bool, force: bool) -> None:
     """Emit one frozen lane contract."""
+    # `[#716]`: the step-0 region is a function of the LIVE base-ref property, read once here so
+    # `render_contract` stays pure. An unreadable verdict is treated as NOT guaranteed — the
+    # region costs a lane one merge commit, its absence costs a silently-dropped row, so the
+    # unknown case falls on the side that is cheap to be wrong about.
+    try:
+        verdict = base_ref_verdict(Path.cwd())
+        needs_sync, why = not verdict.holds, verdict.why
+    except Exception as exc:  # noqa: BLE001 — a git-less or odd checkout narrows, never wedges
+        needs_sync, why = True, f"base-ref property could not be read ({exc}); assuming unmet"
+    logger.info("step-0 sync region: %s — %s", "EMITTED" if needs_sync else "retired", why)
+
     spec = LaneSpec(slug=slug, purpose=purpose, repo=repo, task_id=task_id, model=model,
-                    mode=mode, effort=effort, shape=shape, strict_slug=not loose_slug)
+                    mode=mode, effort=effort, shape=shape, strict_slug=not loose_slug,
+                    needs_base_sync=needs_sync)
     try:
         text = render_contract(spec)
     except LaneContractError as exc:
@@ -974,7 +1101,12 @@ def cmd_emit(slug: str, purpose: str, repo: str, task_id: Optional[str], model: 
         click.echo(text)
         return
 
-    target = (out_dir or _default_out_dir()) / contract_filename(spec.validated().slug)
+    try:
+        # `--out-dir` stays an operator override: the ONE key is the DEFAULT, not a jail.
+        root = out_dir if out_dir is not None else _default_out_dir()
+    except LaneContractError as exc:
+        raise click.ClickException(str(exc)) from exc
+    target = root / contract_filename(spec.validated().slug)
     if target.exists() and not force:
         raise click.ClickException(
             f"{target} already exists — a frozen contract is not silently overwritten; "
@@ -986,7 +1118,8 @@ def cmd_emit(slug: str, purpose: str, repo: str, task_id: Optional[str], model: 
     # built from the SAME `dispatch_command` the file carries, rather than a second literal
     # that could drift from it.
     checked = spec.validated()
-    line = dispatch_command(checked.slug, target.name, checked.effort, checked.shape)
+    line = dispatch_command(checked.slug, target.name, checked.effort, checked.shape,
+                            checked.model)
     if checked.shape == "interactive":
         logger.info("dispatch with: start `claude`, then send: %s", line)
     else:
@@ -1122,7 +1255,8 @@ def cmd_enums() -> None:
     # The command each shape actually emits, shown against a placeholder lane — the surface a
     # contract author most often wants and would otherwise guess at.
     for shape in SHAPE_ENUM:
-        line = dispatch_command("lane-a-000-example", "LANE-a-000-example.md", "high", shape)
+        line = dispatch_command("lane-a-000-example", "LANE-a-000-example.md", "high", shape,
+                                DEFAULT_MODEL)
         prefix = "claude, then: " if shape == "interactive" else ""
         click.echo(f"  {shape}: {prefix}{line}")
     click.echo(f"mandatory sections: {', '.join(MANDATORY_SECTIONS)}")

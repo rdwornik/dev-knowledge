@@ -338,3 +338,184 @@ def test_check_reports_drift_when_the_file_diverges(tmp_path, monkeypatch):
 
     assert ws.main(["--repo", str(fake_hub), "--write"]) == ws.EXIT_OK
     assert ws.main(["--repo", str(fake_hub), "--check"]) == ws.EXIT_OK
+# --- [#716]: a lane's base equals `main` HEAD at dispatch ----------------------------------
+#
+# RED-first witness, ADR-108 section B. The defect reproduced on the lane sent to fix it: this
+# lane's worktree branched at 78d99d55 while local `main` stood at 0be08b3c -- SEVEN commits
+# behind, fast-forwarded by the step-0 sync the contract mandates. `worktree.baseRef` was unset
+# in both `.claude/settings.json` and the operator's `~/.claude/settings.json`, so Claude Code's
+# documented default `fresh` applied and the base was `origin/main`.
+#
+# THE ASSERTION IS THE PROPERTY, NOT THE SETTING, and `[#716]`'s Done-when says so in as many
+# words: "asserted by a TEST rather than by the setting's value -- so a dispatcher on a
+# non-`main` branch cannot satisfy it accidentally". A test reading `baseRef == "head"` would
+# pass while a dispatcher on a feature branch seeded every lane from that branch instead. So
+# the live test below asks the question the row asks: does a lane dispatched right now branch
+# from `main` HEAD?
+
+
+def test_the_base_ref_enum_is_the_two_values_claude_code_documents():
+    """`fresh | head`, verified against the shipped binary rather than from memory.
+
+    Claude Code 2.1.268 carries `baseRef:Y(["fresh","head"]).optional()`. Pinning the enum here
+    means a third value appearing upstream reddens this test instead of silently falling into
+    `base_ref_verdict`'s unknown-value branch.
+    """
+    assert ws.BASE_REF_ENUM == ("fresh", "head")
+    assert ws.BASE_REF_DEFAULT == "fresh", "unset means fresh; that is the whole defect"
+
+
+def test_base_ref_is_read_NESTED_because_that_is_the_shape_the_binary_writes(tmp_path):
+    """`{"worktree": {"baseRef": ...}}`, not a flat `"worktree.baseRef"` key.
+
+    The dotted form is only how the setting is NAMED in messages -- the binary reads
+    `w.worktree?.baseRef`. A flat key in settings.json is ignored in SILENCE, which would be
+    this same row's failure mode one layer on: a fix that looks applied and is not.
+    """
+    nested = tmp_path / "nested.json"
+    nested.write_text('{"worktree": {"baseRef": "head"}}', encoding="utf-8")
+    flat = tmp_path / "flat.json"
+    flat.write_text('{"worktree.baseRef": "head"}', encoding="utf-8")
+
+    assert ws.read_base_ref(tmp_path, chain=(nested,)) == "head"
+    assert ws.read_base_ref(tmp_path, chain=(flat,)) is None, (
+        "a flat dotted key was read as a setting -- the binary would ignore it, so reading it "
+        "here would report a fix that is not in force")
+
+
+def test_a_later_file_in_the_settings_chain_wins(tmp_path):
+    """Precedence is nearest-last, as Claude Code merges it: user, then project, then local."""
+    user = tmp_path / "user.json"
+    user.write_text('{"worktree": {"baseRef": "fresh"}}', encoding="utf-8")
+    project = tmp_path / "project.json"
+    project.write_text('{"worktree": {"baseRef": "head"}}', encoding="utf-8")
+    assert ws.read_base_ref(tmp_path, chain=(user, project)) == "head"
+
+
+def test_a_missing_or_unparseable_settings_file_is_skipped_not_fatal(tmp_path):
+    """`settings.local.json` legitimately does not exist on a fresh clone, and a trailing comma
+    should narrow this answer rather than wedge every caller."""
+    absent = tmp_path / "nope.json"
+    broken = tmp_path / "broken.json"
+    broken.write_text('{"worktree": {"baseRef": "head",}}', encoding="utf-8")
+    good = tmp_path / "good.json"
+    good.write_text('{"worktree": {"baseRef": "head"}}', encoding="utf-8")
+
+    assert ws.read_base_ref(tmp_path, chain=(absent, broken)) is None
+    assert ws.read_base_ref(tmp_path, chain=(absent, broken, good)) == "head"
+
+
+@requires_git
+def test_A_LANES_BASE_EQUALS_MAIN_HEAD_AT_DISPATCH():
+    """`[#716]`'s Done-when, against the LIVE repo. This is the witness that had to redden.
+
+    Deliberately not a fixture. The row's cost is measured on real checkouts -- this lane
+    branched behind twice -- and a synthetic repo would assert that the function computes what
+    it computes. The question is whether THIS machine, configured as it is now, dispatches a
+    lane onto `main` HEAD.
+
+    RED before the fix: baseRef unset -> `fresh` -> base `origin/main`, which sat 7 commits
+    behind local `main`. GREEN after: the repo declares `head`, and the dispatching checkout is
+    the primary, which is on `main`.
+    """
+    verdict = ws.base_ref_verdict(_HUB)
+    assert verdict.holds, verdict.why
+
+
+@requires_git
+def test_the_verdict_names_WHY_rather_than_only_failing():
+    """A refusal that does not say which of the two ways it failed sends the reader to guess.
+
+    The two failure modes are opposite: `fresh` fails on an unpushed local `main` (fix: push, or
+    change the setting), `head` fails on a dispatcher off `main` (fix: move the dispatcher, NOT
+    the setting). A verdict conflating them would point at the wrong repair.
+    """
+    verdict = ws.base_ref_verdict(_HUB)
+    assert ws.BASE_REF_KEY in verdict.why
+    assert verdict.effective in ws.BASE_REF_ENUM
+    assert verdict.base_label
+    if verdict.holds:
+        assert verdict.base_sha == verdict.main_sha
+
+
+def _stub(monkeypatch, setting, head_sha, main_sha, origin_sha):
+    """Pin the three refs and the setting, so a verdict is tested against a stated state.
+
+    Stubbed rather than staged on a real repo: the two failure modes are about which REF the
+    base tracks, and reproducing them for real would mean unpushing origin or moving the
+    primary checkout off `main` -- mutations of shared state that a test has no business making.
+    """
+    monkeypatch.setattr(ws, "read_base_ref", lambda repo, chain=None: setting)
+    monkeypatch.setattr(ws, "resolve_checkout", lambda repo: (_HUB, _HUB))
+    monkeypatch.setattr(ws, "_rev", lambda repo, ref: {
+        "HEAD": head_sha, "main": main_sha, "origin/main": origin_sha,
+    }.get(ref.replace("^{commit}", ""), None))
+
+
+def test_fresh_is_reported_as_NOT_holding_when_local_main_is_unpushed(monkeypatch):
+    """The state this lane started in, pinned so it cannot silently become acceptable.
+
+    `fresh` binds the base to the REMOTE ref while the property is about local `main`, so a
+    lane dispatched while anything is unpushed starts behind -- seven commits behind, on this
+    lane, measured.
+    """
+    _stub(monkeypatch, ws.BASE_REF_FRESH, "b" * 40, "b" * 40, "a" * 40)
+    verdict = ws.base_ref_verdict(_HUB)
+    assert not verdict.holds
+    assert not verdict.coincidental
+    assert "unpushed" in verdict.why, verdict.why
+
+
+def test_fresh_does_NOT_hold_merely_because_the_shas_AGREE_today(monkeypatch):
+    """The witness that had to be hardened, and the reason is a live event rather than a theory.
+
+    At this lane's step 0 the base lagged local `main` by seven commits. Hours later a PEER
+    pushed `main`, `origin/main` caught up, and a verdict comparing only the two SHAs flipped to
+    True under the SAME unset configuration -- nothing fixed in between. A test that can be
+    turned green by someone else's push measures push timing, not configuration.
+
+    So `fresh` reports `holds=False` with `coincidental=True`: the SHAs agree, the guarantee
+    does not exist, and the two facts stay separately readable rather than one swallowing the
+    other.
+    """
+    same = "e" * 40
+    _stub(monkeypatch, ws.BASE_REF_FRESH, same, same, same)
+    verdict = ws.base_ref_verdict(_HUB)
+    assert not verdict.holds, "a coincidence was accepted as the property"
+    assert verdict.coincidental
+    assert "coincidence" in verdict.why, verdict.why
+
+
+def test_head_on_main_holds_and_is_NOT_flagged_coincidental(monkeypatch):
+    """The configuration that actually binds the base: `head`, dispatched from a checkout on
+    `main`. Holds, and says so without the coincidence caveat."""
+    same = "f" * 40
+    _stub(monkeypatch, ws.BASE_REF_HEAD, same, same, "0" * 40)
+    verdict = ws.base_ref_verdict(_HUB)
+    assert verdict.holds, verdict.why
+    assert not verdict.coincidental
+
+
+def test_head_off_main_is_reported_as_the_ACCIDENTAL_satisfaction_the_row_warns_about(
+        monkeypatch):
+    """`head` + a dispatcher on a feature branch seeds every lane from that branch.
+
+    This is why the Done-when asserts the property instead of the setting: a
+    `baseRef == "head"` assertion would call this configuration fixed.
+    """
+    _stub(monkeypatch, ws.BASE_REF_HEAD, "c" * 40, "d" * 40, "d" * 40)
+    verdict = ws.base_ref_verdict(_HUB)
+    assert not verdict.holds
+    assert "is not on main HEAD" in verdict.why, verdict.why
+    assert "do NOT change the setting" in verdict.why, (
+        "the two failure modes want opposite repairs; a verdict that does not say which one "
+        "points the reader at the wrong fix")
+
+
+def test_a_baseRef_outside_the_enum_is_REFUSED_rather_than_treated_as_a_neighbour(monkeypatch):
+    """A typo'd value must not be assumed to behave like either documented one."""
+    monkeypatch.setattr(ws, "read_base_ref", lambda repo, chain=None: "origin/main")
+    monkeypatch.setattr(ws, "resolve_checkout", lambda repo: (_HUB, _HUB))
+    verdict = ws.base_ref_verdict(_HUB)
+    assert not verdict.holds
+    assert "outside the documented enum" in verdict.why, verdict.why
