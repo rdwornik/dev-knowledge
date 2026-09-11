@@ -249,6 +249,33 @@ def test_the_word_grep_inside_an_ARGUMENT_is_not_a_search():
     assert not _denied(_bash("echo 'we should rg for this later'"))
 
 
+@pytest.mark.parametrize("command", [
+    "command grep -rn gen_task_tree scripts/",
+    "env FOO=1 rg gen_task_tree",
+    "LC_ALL=C grep -rn gen_task_tree scripts/",
+    "& rg gen_task_tree",
+    "/usr/bin/grep -rn gen_task_tree scripts/",
+    "time rg gen_task_tree",
+    "xargs grep gen_task_tree",
+])
+def test_a_WRAPPED_search_is_still_a_search(command):
+    """Terra pre-merge pass 3, P1. Only argv[0] was tested against the search-head set, so
+    every ordinary invocation wrapper walked straight past the guard. These are common
+    shell forms, not evasions -- an env prefix or a PowerShell `&` call operator is how
+    people write commands -- so treating them as not-a-search is a plain hole.
+    """
+    assert _denied(_bash(command)), f"wrapper bypassed the guard: {command}"
+
+
+def test_stripping_wrappers_does_not_turn_a_NON_search_into_one():
+    """The converse: wrapper stripping must not promote an innocent command."""
+    for command in ("env FOO=1 python scripts/gen_task_tree.py",
+                    "command ls scripts/",
+                    "time uv run --locked python -m pytest",
+                    "env"):
+        assert not _denied(_bash(command)), f"over-blocked: {command}"
+
+
 def test_a_search_in_a_LATER_pipeline_segment_is_still_judged():
     """The converse of the test above -- the head rule must not become an escape."""
     assert _denied(_bash("cat BACKLOG.md | grep gen_task_tree"))

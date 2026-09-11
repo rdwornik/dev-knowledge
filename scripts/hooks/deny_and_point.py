@@ -146,6 +146,12 @@ _PATTERN_FLAGS_PS = frozenset({"-pattern"})
 #: and no positional operand is one either.
 _PATTERN_FROM_FILE = frozenset({"-f", "--file"})
 
+#: Ordinary invocation wrappers stripped before the command head is read. See `_strip_wrappers`.
+_WRAPPERS = frozenset({
+    "env", "command", "builtin", "exec", "nice", "ionice", "time", "timeout",
+    "sudo", "doas", "xargs", "stdbuf", "nohup",
+})
+
 #: `find` primaries whose next token is the name pattern. Everything before them is a path.
 _FIND_NAME_PRIMARIES = frozenset({
     "-name", "-iname", "-path", "-ipath", "-wholename", "-iwholename",
@@ -267,9 +273,49 @@ def _grep_patterns(args: list[str]) -> list[str]:
     return [tok for tok in out if tok]
 
 
+def _strip_wrappers(argv: list[str]) -> list[str]:
+    """Drop ordinary invocation wrappers so the real command head is visible.
+
+    `env FOO=1 rg x`, `command grep x`, `LC_ALL=C grep x`, `time rg x`, `xargs grep x` and
+    PowerShell's `& rg x` all run the same search. Testing only argv[0] against the search-head
+    set let every one of them past -- Terra pre-merge pass 3, P1. These are common shell FORMS
+    rather than evasions, which is what makes the hole worth closing.
+
+    HONEST LIMIT, stated rather than implied: this guard addresses the honest mistake the row
+    describes -- reaching for grep by reflex -- and is not an adversarial sandbox. A caller
+    determined to read files another way (a python one-liner, a here-doc) is not stopped by a
+    search-head test and was never going to be. Normalising wrappers closes the forms a session
+    reaches for without thinking; it does not claim more.
+    """
+    i = 0
+    seen = False
+    while i < len(argv):
+        tok = argv[i]
+        if tok == "&":                                   # PowerShell call operator
+            i, seen = i + 1, True
+            continue
+        if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*=.*", tok):   # VAR=value prefix
+            i, seen = i + 1, True
+            continue
+        base = tok.lstrip("\\").rsplit("/", 1)[-1].rsplit("\\", 1)[-1].lower()
+        if base.endswith(".exe"):
+            base = base[:-4]
+        if base in _WRAPPERS:
+            i, seen = i + 1, True
+            continue
+        if seen and (tok.startswith("-") or tok.isdigit()):   # a wrapper's own flag / duration
+            i += 1
+            continue
+        break
+    return argv[i:]
+
+
 def _patterns_of(argv: list[str]) -> list[str]:
     """What this search command is ASKING ABOUT -- its pattern operands, never its paths."""
-    head = argv[0].rsplit("/", 1)[-1].rsplit("\\", 1)[-1].lower()
+    argv = _strip_wrappers(argv)
+    if not argv:
+        return []
+    head = argv[0].lstrip("\\").rsplit("/", 1)[-1].rsplit("\\", 1)[-1].lower()
     if head.endswith(".exe"):
         head = head[:-4]
     if head not in SEARCH_HEADS:
