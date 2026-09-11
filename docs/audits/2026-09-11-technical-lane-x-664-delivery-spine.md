@@ -241,9 +241,219 @@ a clever move, and is re-measured with `fleet_parity` before the commit stands.
 
 | # | Act | Commit |
 |---|---|---|
-| 1 | This plan, the library-first check, and AX12-1's carried clauses written into `[#664]` and `[#727]` | this commit |
-| 2 | RED-first witnesses: the `[#727]` trip-tests (denial **and** pointer), the non-governed-search test, the over-match guard — all failing first | |
-| 3 | Clause 1's live defect: the disposition register stops naming a file that is gone; the three queries re-measured after | |
-| 4 | `scripts/hooks/deny_and_point.py` + the `.claude/settings.json` wiring + AX4-1's floor declaration — witnesses go GREEN | |
-| 5 | Terra pre-merge review (`codex exec review`, read-only) | |
-| 6 | Targeted `pytest` green, this artifact completed, **commit and STOP** | |
+| 1 | This plan, the library-first check, and AX12-1's carried clauses written into `[#664]` and `[#727]` | `7e7ff1a4` |
+| 2 | RED-first witnesses: the `[#727]` trip-tests (denial **and** pointer), the non-governed-search test, the over-match guard — all failing first | `8408ae68` |
+| 3 | Clause 1's live defect: the disposition register stops naming a file that is gone; the three queries re-measured after | `466ad15b` |
+| 4 | `scripts/hooks/deny_and_point.py` + the `.claude/settings.json` wiring + AX4-1's floor declaration — witnesses go GREEN | `6eb08d30` + the 16 Terra fixes |
+| 5 | Terra pre-merge review (`codex exec review`, read-only) | 17 passes; pass 17 returned nothing |
+| 6 | Targeted `pytest` green, this artifact completed, **commit and STOP** | this commit |
+
+---
+
+## Step 2 — RED-first witnesses, failing before any build code (`8408ae68`)
+
+`tests/test_deny_and_point.py` was written and run **RED** before `scripts/hooks/deny_and_point.py`
+existed (ADR-108 §B). The file is organised as the predicate is, one section per clause, so a later
+reader can see which condition a test is about:
+
+| § | What it pins |
+|---|---|
+| A | the trip-test the row demands — **both** the denial and the pointer, plus: every organ the pointer names EXISTS on disk, and every command the refusal prints actually runs and answers |
+| B | ordinary non-governed searching is **unaffected** — `grep -n "def parse"`, a plain string, a path that names no process |
+| C | the over-match guard — the measured single-word hazards (`audit`, `check`, `save`, `ship`, `cli`, `registry`, `gitenv`, `_common`) are in the fixture **on purpose** and must not resolve |
+| C2 | cost ordering — the store is **not opened** for a non-search call |
+| D | the `Grep` tool surface, the ADR-77 wire protocol, and cp1252-encodability of the refusal text |
+| E | the live store — the guard **computes no edges of its own** (ADR-118 §1), and the command string in `.claude/settings.json` is executed rather than argued about |
+
+The §C fixture is the part worth naming: the guard's expensive failure is over-blocking, so the
+hazards that would cause it are *fixture data*, not a footnote. `test_the_guard_computes_no_edges_of_its_own`
+is the ADR-118 §1 conformance witness — the guard reads the process set FPG-1 holds and derives
+nothing.
+
+## Step 3 — clause 1's live defect, cleared (`466ad15b`)
+
+`ORPHAN_DISPOSITIONS` dispositioned `.claude/commands/override.md`, a file `5e17ecd7` deleted in
+batch W. The entry is removed and replaced by a comment recording *why* it is gone, so the next
+reader does not re-add it:
+
+```
+tests/test_graph_spine.py::test_the_disposition_register_names_no_file_that_is_gone
+  RED on main  ->  GREEN here
+```
+
+A disposition for a file that is gone is the paper suppression `stale_dispositions()` exists to
+surface — the census answering from a stale roster. The register is now clean, and the three
+queries were re-measured after the edit, not before it.
+
+## Step 4 — the guard, the wiring, and AX4-1's floor (`6eb08d30` and the sixteen fixes after it)
+
+**The organ** — `scripts/hooks/deny_and_point.py`, stdlib only, ~670 lines including the docstring
+that carries the design. Its shape is `block_immutable_edits.py`'s (library-first, "stabilized
+project" tier): JSON payload on stdin, `{"decision":"block","reason":…}` + exit 2 to deny, exit 0
+to allow.
+
+**The wiring** — one `PreToolUse` object appended to `.claude/settings.json`, matcher
+`Bash|PowerShell|Grep`, with the command wrapped in an existence test so that a missing
+`$CLAUDE_PROJECT_DIR` cannot make `python` exit 2 — which `PreToolUse` reads as **DENY**. That is
+`[#684]`'s defect, and the wrapper is this lane refusing to reproduce it while W-2′ fixes the class.
+
+**The posture is fail-OPEN, and deliberately opposite to the ADR-77 guard beside it.** An
+unparseable command, a missing payload field, an absent or unreadable store, any internal error —
+all ALLOW. Only a positively identified governed search is refused. The row names over-blocking as
+the expensive failure in its own text, so the asymmetry is the design, not a shortcut.
+
+**AX4-1's floor** — `ecosystem/parity-surfaces.yaml` gains `settings-deny-and-point`, a
+`settings-hook-block` row with `tier: {hub: MUST}`, and `deny_and_point.py` joins the
+`.dev-knowledge` owned map of `settings-local-blocks` (a hook command matching no owned token WARNs
+otherwise). The tier was **measured before it was narrowed**: `consumer: MUST` produced `MUST-absent`
+on `ai-council` and `corp-monorepo`, which is minting an unsatisfiable pin, so the declaration is
+hub-only with AX4-1's required one-line reason (ADR-118 §5 ships the graph fleet-wide at W-G4, and
+the pointer names graph organs a consumer does not yet have). Re-measured after the narrowing:
+
+```
+[fleet-parity] 3 repo(s) walked: 188 at-parity, 19 pass-declared, 1 gate-ahead-declared,
+               2 warn-undeclared, 0 must-absent, 0 tombstone-violated, 3 advisory-rewarn,
+               1 stale, 0 refused
+```
+
+**0 must-absent**, and no `deny-and-point` row fires — the surface is at parity on the hub.
+
+## Step 5 — Terra pre-merge: seventeen passes, and the loop terminated by its own rule
+
+The contract's stopping rule is *stop when a pass returns nothing*. It took seventeen. Every finding
+was triaged into ACCEPTED (fixed RED-first, one commit each) or REJECTED (with the reason recorded
+and, in both cases, a test pinning the rule so the rejection is machine-checked rather than argued).
+
+| # | Finding | Verdict | Commit |
+|---|---|---|---|
+| 1 | every operand was collected, so the PATH you search *in* was read as the governed question | ACCEPTED | `157864ae` |
+| 2 | two P1s, both on the POINTER: `impacted_tests.py select` with no `--changed` answers off the staged diff; a bare `process-list` prints no rows | ACCEPTED | `18d75e0c` |
+| 3 | only `argv[0]` was tested against the search-head set, so `uv run … rg` and `xargs grep` escaped | ACCEPTED | `ee796d2c` |
+| 4 | PowerShell attaches a parameter value with a colon — `-Pattern:gen_task_tree` | ACCEPTED | `57c224b5` |
+| 5 | splitting the raw string on `\|` tore quoted alternations in half; and an alternation BRANCH is itself a candidate | ACCEPTED | `09066487` |
+| 6 | the escape marker was matched inside quoted text; a heredoc body was read as commands; a newline ends a command | ACCEPTED | `b49c4050` |
+| 7 | a wrapper's own value-taking options hid the command it wrapped | ACCEPTED | `fd35eb93` |
+| 8 | (a) an attached `-ePATTERN` is still a pattern — **ACCEPTED**; (b) "the POSIX hook command cannot run on Windows" — **REJECTED on live evidence** | split | `78309897` |
+| 9 | `strip_heredocs` recognised only identifier-shaped delimiters, so `<<'END-MSG'` left its body in the stream — an over-block | ACCEPTED | `01a28d1a` |
+| 10 | `\b` word boundaries and `\.` escaped literals defeated resolution | ACCEPTED | `c32e35b2` |
+| 11 | re-assertion of 8(b) | **REJECTED** — and converted into a test that EXECUTES the command string from `.claude/settings.json` through bash, so the claim is now machine-checked | `b52b139c` |
+| 12 | backslash path spellings did not resolve — **half right**: `./scripts/…` already resolved, only the backslash forms failed | ACCEPTED (narrowed) | `edd8b4f3` |
+| 13 | the escape was evaluated over the whole command, so a declaration covered LATER lines | ACCEPTED | `2aaa7ed7` |
+| 14 | …and earlier commands on its OWN line | ACCEPTED | `05119d8c` |
+| 15 | "a declaration trailing an EMPTY segment is void, so `rg X; # raw-needed: r` should deny" | **REJECTED on design** — all five forms were mapped and it grants no extra power; over-blocking a good-faith declaration is the failure this row names. The rule is pinned by a test instead | `ad1010fe` |
+| 16 | POSIX `shlex` ate unquoted backslashes on the **`PowerShell`** surface — a hole on one of the guard's own configured tools | ACCEPTED | `ad2f8435` |
+| 17 | *nothing* — "No blocking regressions were identified in the diff." | **STOP** | — |
+
+**14 findings accepted and fixed; 2 rejected.** Both rejections carry a test rather than a
+paragraph, which is the point: a rejected finding that leaves no witness is an argument, and the
+next review re-opens it (pass 11 is the proof — it re-asserted pass 8(b) verbatim).
+
+**Three of the seventeen were the same escape clause in a row** (6, 13, 14), each one notch tighter.
+That is recorded rather than smoothed over: a *declared* bypass is only as good as the precision of
+what it declares, and getting that precision right took three findings plus one rejected fourth.
+
+## Step 6 — final state
+
+### 6.1 What changed
+
+```
+scripts/hooks/deny_and_point.py     NEW   +672   the [#727] guard
+tests/test_deny_and_point.py        NEW   +753   116 tests
+.claude/settings.json               EDIT  +12/-0 one PreToolUse object + the wiring comment
+ecosystem/parity-surfaces.yaml      EDIT  +30/-0 AX4-1's floor declaration
+scripts/graph_queries.py            EDIT  +13/-4 the stale disposition, removed
+tasks/664-*.md, tasks/727-*.md      EDIT  2 rows AX12-1's carried clauses
+docs/audits/2026-09-11-...-lane-x-664-delivery-spine.md  NEW  this file
+```
+
+Every path is inside the footprint the manifest declares. `BACKLOG.md` is not in the diff and that
+is correct, not an omission: the view is a one-line projection of each row, so a row **body** edit
+changes no byte of it — and a lane does not regenerate a gate-of-record surface.
+
+### 6.2 The Done-contract, clause by clause
+
+**Clause 1 — the spine.** DISCHARGED, re-measured on this tree rather than read off lane v-664's
+artifact:
+
+```
+store          2563 nodes · 19500 edges · 15 edge kinds, persisted in stdlib sqlite under
+               the RESOLVED git dir (per-worktree), rebuilt by the graph-rebuild pre-commit hook
+orphan-census  OK   (exit 0)   -- 0 against its STATED node class
+task-coverage  OK   (exit 0)   -- 0 FAIL
+process-list   OK   159 processes, 120 triggered, 39 not
+trip-tests     tests/test_graph_spine.py -- one per query, 35 tests
+```
+
+The 32-vs-20 cardinality gap is **recorded, not rounded** (§1.2, and lane v-664 §1.4/§2.4). The
+blanket "12 → 0" bar is dead and was re-measured under §A.1's five-kind class: **N-before 18,
+N-after 18, migrated 0**, every remaining site named and owned by W-G3.
+
+The new guard is itself a **triggered** process — `process-list` counts 159/120 where it counted
+158/119 before, so wiring the organ did not create an orphan. That is the spine checking this
+lane's own work.
+
+**Clause 2 — `[#727]` rides in this lane.** DISCHARGED:
+
+- a `PreToolUse` **deny-and-point** hook whose exception text NAMES the organ to run — four
+  pointers, each parameterised on the resolved path, each verified to exist and to answer;
+- a **RED-first trip-test asserting BOTH** the denial and the pointer (§A), written and failing
+  before the guard existed;
+- ordinary non-governed searching **provably** unaffected — §B and §C, and the proof is a property
+  of the predicate (clause 3 of §1.6): a plain string is undeniable unless the string *is* a
+  process;
+- **floor: MUST**, declared in `ecosystem/parity-surfaces.yaml`, `fleet_parity` re-measured green.
+
+The known failure mode the row names — over-broad matching wedging every session — is guarded by
+§C's measured hazard fixture and by the fail-OPEN posture, and the escape (`# raw-needed: <reason>`)
+means a refusal always has a lawful way through.
+
+**Clause 3 — house rules.** English throughout; hyphen-only names; the guard logs nothing to stdout
+except the refusal JSON the wire protocol requires (no `print` diagnostics); no Click CLI, because
+this organ has no CLI — it is a hook with a stdin protocol, and adding one would be inventory;
+`pytest` green.
+
+```
+tests/test_deny_and_point.py + tests/test_graph_spine.py   151 passed
+ruff check                                                 All checks passed!
+```
+
+### 6.3 Open items — the integrator's, named rather than left to be discovered
+
+1. **`.claude/settings.json` will conflict with W-2′ (`[#684]`).** W-2′ edits line 21 (the
+   `--prompts-guard` command); this lane appends a third array element after the existing two and
+   extends the `//` comment. **This lane merges LAST in batch X**, so the conflict lands here by
+   design. The resolution is additive — keep W-2′'s line 21 and this lane's new object.
+2. **The `$CLAUDE_PROJECT_DIR` wrapper shape is a question, not a defect.** This lane wraps its own
+   command in `[ -f "$G" ]` so an unset variable cannot make `python` exit 2 (= DENY). If W-2′ lands
+   a general fix for that class, the wrapper becomes belt-and-braces rather than wrong. Whether to
+   simplify it afterwards is the integrator's call; it is recorded here so the choice is visible.
+3. **Two declared bypasses ride in every commit of this lane**, per-hook attributed in each body,
+   never `--no-verify`:
+   - `doc-counts-pytest-freshness` — the lane adds 116 tests, so the `pytest_collected` claim moves
+     on every commit. On this tree: **file 5752 / actual 5868**. Restate it **once**, at
+     integration.
+   - `organ-index-freshness` — the committed index is **already stale on `main`**: it still lists
+     `/override`, whose file `5e17ecd7` deleted in batch W. A lane must not regenerate the index
+     (integrator is gate-of-record), and this lane adds one more organ to it.
+4. **Inherited RED, not this lane's:** `BACKLOG.md` is 88,956 B against `[#589]`'s 72,000 B
+   assertion in `tests/test_gen_task_tree.py`. Pre-existing on `main`; raising the constant is the
+   act `[#589]` exists to forbid.
+5. **`[#664]` stays OPEN and that is conforming.** AX3-7 puts step D (the `ARCHITECTURE.md` Ch2
+   render) and the organ map in **X3**, and ADR-118 §5 puts the eighteen edge-computation
+   migrations in W-G3, one organ per lane. Both are named in the row itself (§1.3, §1.8).
+6. **`[#727]` is complete against its Done-when** — every clause above is discharged with a witness.
+   Closing it is the operator's word, not this lane's.
+
+### 6.4 Working notes worth keeping
+
+- **A `PreToolUse` hook judges the WHOLE command line.** Bundling a positive and a negative probe
+  into one `&&` chain got the whole call denied by the second half. Probes go one per call.
+- **The guard denied its own commit.** A `git commit -F -` heredoc whose message quoted a search
+  command was read as a search, because the heredoc BODY was still in the command stream. That is
+  pass 6/9's lineage, and it is the strongest argument for the fail-OPEN posture: a guard that can
+  block the commit that fixes it is one bad predicate away from wedging a session.
+- **A newline ends a command**; `shlex` treats it as ordinary whitespace. Lines are lexed one at a
+  time for that reason.
+- **The `block-onedrive` guard scans command TEXT, not file content.** Writing this artifact through
+  a heredoc is refused where writing it through the Write tool is not — the destination path is what
+  that guard reads.
