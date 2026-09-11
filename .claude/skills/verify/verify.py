@@ -17,6 +17,7 @@ pytest AND ruff are red, and a loop that sees the SAME code twice in a row knows
 made no progress -- which is the anti-retry-loop signal the row asks for. A
 first-failure code cannot express either.
 """
+import pathlib
 import re
 import subprocess
 import sys
@@ -24,6 +25,49 @@ import sys
 EXIT_PYTEST = 2
 EXIT_RUFF = 4
 EXIT_GIT = 8
+
+#: [#278] -- impacted-test selection, live in the verify cadence. TIER A ONLY.
+#: PLAYBOOK Ch5 splits the suite: tier A is the targeted in-lane gate this script runs
+#: per step, tier B is the ONE full suite the integrator runs on the merged tree. This
+#: narrows tier A and must never be mistaken for narrowing tier B -- AW2-1 keeps "the
+#: integrator keeps one full suite per integration as the net", and the selector's
+#: measured 4.8 % miss-rate is only acceptable because that net exists.
+#:
+#: Set VERIFY_FULL_SUITE=1 to force the full suite regardless of the diff.
+_SCRIPTS = pathlib.Path(__file__).resolve().parents[3] / "scripts"
+
+
+def select_pytest_target() -> tuple[str, str]:
+    """(pytest argument tail, one-line human note). Falls back to the full suite.
+
+    EVERY failure path here returns the FULL SUITE. A selector that cannot compute an
+    answer must not hand back a narrowed one -- an under-selection is silent, and a
+    silent under-selection in a gate is worse than a slow gate.
+    """
+    import os
+
+    if os.environ.get("VERIFY_FULL_SUITE"):
+        return "", "full suite (VERIFY_FULL_SUITE set)"
+    try:
+        sys.path.insert(0, str(_SCRIPTS))
+        import impacted_tests
+
+        repo = _SCRIPTS.parent
+        changed = impacted_tests.changed_from_git(repo)
+        if not changed:
+            return "", "full suite (no changed paths to select from)"
+        sel = impacted_tests.select(repo, changed)
+        if sel.full_suite:
+            return "", "full suite (selector declined to narrow)"
+        args = sel.pytest_args()
+        if not args:
+            return "", "full suite (empty selection)"
+        return " " + " ".join(args), (
+            f"impacted tier A: {len(sel.test_files) or 'marker'} target(s) "
+            f"from {len(changed)} changed path(s)"
+        )
+    except Exception as exc:  # noqa: BLE001 - a broken selector must not block the gate
+        return "", f"full suite (selection unavailable: {exc})"
 
 
 def run(cmd):
@@ -133,8 +177,13 @@ def main() -> int:
     # inside that default). A gate that quietly restarts workers reports a verdict it did not
     # earn; 0 turns that into a loud, bounded failure. PLAYBOOK Ch5 "Tiered suite" carries the
     # doctrine.
+    target, note = select_pytest_target()
+    # The note goes to STDERR on purpose: [#127] fixes success at EXACTLY three stdout
+    # lines, and a fourth would break the contract this script's own tests pin.
+    print(f"[impacted-tests] {note}", file=sys.stderr)
     rc, out = run(
-        "uv run --locked pytest -n auto --dist worksteal --max-worker-restart=0 -x --tb=short"
+        "uv run --locked pytest -n auto --dist worksteal --max-worker-restart=0 "
+        f"-x --tb=short{target}"
     )
     results["pytest"] = "PASS" if rc == 0 else "FAIL"
     if rc != 0:

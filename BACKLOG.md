@@ -305,7 +305,7 @@ So that cognitive overhead per session drops.
 - [#102] [P2][M] Machine-readable repo index for agent consumption · DEFER · tasks/102-machine-readable-repo-index-for-agent-consumptio.md
 - [#273] [P3][S] Changelog-review staleness escalation · DEFER · tasks/273-changelog-review-staleness-escalation.md
 - [#274] [P3][S] Dogfood-signal prior in the /changelog-review ADOPT rubric · tasks/274-dogfood-signal-prior-in-the-changelog-review-ado.md
-- [#278] [P2][M] Test-suite hygiene epic · DEFER · tasks/278-test-suite-hygiene-epic.md
+- [#278] [P2][M] Test-suite hygiene epic · tasks/278-test-suite-hygiene-epic.md
 - [#317] [P2][M] Default-parallel test invocation · DEFER · tasks/317-default-parallel-test-invocation-slow-tier-marke.md
 - [#322] [P2][M] Fleet dashboard · DEFER · tasks/322-fleet-dashboard.md
 - [#340] [P2][S] /ship pre-flight validator honors the consumer repo's canonical test gate · tasks/340-ship-pre-flight-validator-honors-the-consumer-re.md
