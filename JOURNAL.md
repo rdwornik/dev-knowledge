@@ -19,6 +19,18 @@
 
 ---
 
+### 2026-09-11 (m) - CC (Opus 5, background integrator seat): the anchor arc names its own first commit
+
+**Names `efd5d47f`**, the entry below, which this arc's own `--no-ff` merge introduces.
+
+**Why two commits.** A one-commit anchor arc cannot discharge the anchor its own merge creates:
+the merge introduces {merge, commit}, and the single commit can only name a SHA from the arc it
+was anchoring, never itself. So the arc needs a second entry naming the first. That is not a
+workaround -- it is what B6's **APPEND ONLY** discharge means in practice, and it is the shape
+every anchor repair in this batch has taken.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-11 (l) - CC (Opus 5, background integrator seat): the batch X manifest lands, and grants nothing
 
 **Names `bea803ef`**, the dispatcher's tip, introduced by the merge `e688669c`.
