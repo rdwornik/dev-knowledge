@@ -343,6 +343,27 @@ def test_a_quoted_regex_ALTERNATION_does_not_get_past_the_split(command):
     assert _denied(_bash(command)), f"alternation bypassed the guard: {command}"
 
 
+@pytest.mark.parametrize("pattern", [
+    r"\bgen_task_tree\b",
+    r"\<gen_task_tree\>",
+    r"gen_task_tree\.py",
+    "^gen_task_tree$",
+    r"\bboot-session\b",
+])
+def test_ordinary_REGEX_SYNTAX_around_a_governed_name_still_resolves(pattern):
+    """Terra pre-merge pass 10, P1. `\\b` word boundaries and `\\.` escaped literals are
+    how people actually write these searches, and the edge-strip left the `b` behind, so
+    the governed name no longer matched and the search was allowed."""
+    assert _denied(_bash(f"rg '{pattern}'")), f"regex form bypassed the guard: {pattern}"
+
+
+@pytest.mark.parametrize("pattern", [r"\bcheck\b", r"\bTODO\b", r"\baudit\b"])
+def test_regex_normalisation_does_not_widen_the_predicate(pattern):
+    """The converse: normalising escapes must not promote a word that names no process.
+    Two of these are measured single-word stems, so the bound is the one that matters."""
+    assert not _denied(_bash(f"rg '{pattern}'")), f"over-blocked: {pattern}"
+
+
 def test_alternation_branches_do_not_become_an_over_match():
     """The converse: splitting a pattern on `|` must not manufacture a denial from
     branches that name nothing. A single-word stem stays allowed inside one, too."""

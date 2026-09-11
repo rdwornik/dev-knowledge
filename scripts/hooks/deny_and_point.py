@@ -324,8 +324,23 @@ def _is_distinctive(stem: str) -> bool:
     return len([seg for seg in re.split(r"[-_]+", stem) if len(seg) >= 3]) >= 2
 
 
+#: Zero-width regex assertions that carry no text. Removed before resolution, because the
+#: edge-strip cannot: `\bgen_task_tree\b` lost its backslashes and kept the `b`, so the name no
+#: longer matched and the search was allowed (Terra pre-merge pass 10).
+_ZERO_WIDTH = re.compile(r"\\[bBAZz<>]")
+
+#: A regex escape of a LITERAL non-word character -- `gen_task_tree\.py` is how a filename is
+#: written as a pattern. The backslash is noise for resolution purposes.
+_ESCAPED_LITERAL = re.compile(r"\\(\W)")
+
+
 def _clean(token: str) -> str:
-    """Strip regex/shell noise from the ENDS of a candidate token."""
+    """Normalise ordinary regex syntax away, then strip shell noise from the ENDS.
+
+    Normalising cannot widen the predicate: whatever survives still has to BE a real process
+    for `resolve_process` to return anything, so `\\bcheck\\b` stays as undeniable as `check`.
+    """
+    token = _ESCAPED_LITERAL.sub(r"\1", _ZERO_WIDTH.sub("", token))
     return token.strip(_EDGE_NOISE)
 
 
