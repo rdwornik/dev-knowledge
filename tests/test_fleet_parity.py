@@ -1718,6 +1718,35 @@ def test_prompts_guard_coupling_also_fires_without_the_script_being_tracked(tmp_
     assert row.verdict == fp.MUST_ABSENT, row.evidence
 
 
+def test_prompts_guard_coupling_refuses_a_hook_bound_to_another_script(tmp_path):
+    """The coupling is `this hook -> THIS script`, not `some hook` and `some file`.
+
+    Added 2026-09-11 by the fresh Codex review of this branch (HIGH-2). The first form
+    tested the two halves INDEPENDENTLY -- a command carrying the token, and the tracked
+    path existing somewhere in the repo -- so a repo whose hook invoked
+    `/opt/vendor/other_guard.py --prompts-guard` while merely happening to track
+    `scripts/fleet_health.py` reported AT-PARITY. That is the deploy defect AX15-2 names,
+    wearing the evidence of its own fix: parity reports green, and every
+    filesystem-touching tool call in that repo is then refused by a guard nobody shipped.
+
+    So the probe binds the MATCHED command to the declared path. Note the direction that
+    makes this safe rather than merely stricter: a hook bound to an unknown guard is a
+    FINDING, never a vacuous pass -- treating "no command mentions our path" as "the
+    component is not deployed here" would hide precisely the split this row exists to see.
+    """
+    foreign = json.dumps({"hooks": {"PreToolUse": [
+        {"matcher": "Read|Write|Edit|Bash",
+         "hooks": [{"type": "command",
+                    "command": "python /opt/vendor/other_guard.py --prompts-guard"}]},
+    ]}}, indent=2)
+    row = _coupling_verdict(tmp_path, {
+        ".claude/settings.json": foreign,
+        "scripts/fleet_health.py": "# guard, tracked but never invoked\n",
+    })
+    assert row.verdict == fp.MUST_ABSENT, row.evidence
+    assert "scripts/fleet_health.py" in row.evidence
+
+
 def test_live_manifest_carries_the_prompts_guard_coupling():
     """AX15-2 in the LIVE registry, not only in fixtures -- the clause names fleet_parity
     as the check, so a coupling that exists only in this test file discharges nothing."""

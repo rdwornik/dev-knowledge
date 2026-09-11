@@ -1630,20 +1630,60 @@ def test_prompts_guard_exits_2_on_a_seeded_mismatch(capsys):
     assert "[prompts] REFUSED" in err and _STALE in err and _TRUE in err
 
 
-def test_prompts_guard_silent_pass_on_match(capsys):
+def test_prompts_guard_passing_says_so_on_stdout_and_stays_silent_on_stderr(capsys):
+    """A pass PROVES it evaluated, and the proof is the marker.
+
+    Added 2026-09-11 by the fresh Codex review of this branch (HIGH-1). Before it, the
+    guard's pass was pure SILENCE plus an exit of 0 -- and silence-plus-0 is precisely
+    what a `python` that never ran this file also produces. Any shim, wrapper or wrong
+    interpreter first on PATH satisfied the old hook command's pass test, so the hook
+    permitted the tool call while believing it had checked one. Under the AX15-1 posture
+    that is the worst remaining hole: declared enforcement, no enforcement.
+
+    The marker closes it POSITIVELY -- only this file can emit it, so the hook can require
+    evidence rather than infer it from the absence of an error. Note the split of streams
+    is load-bearing and is what keeps the original no-noise argument intact: the marker
+    goes to STDOUT, which a PreToolUse hook shows only in transcript mode, while STDERR --
+    the stream that reaches the model on a refusal -- stays empty on every passing verdict.
+    """
     with mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(_TRUE, _TRUE)):
         assert fh.prompts_guard() == 0
     captured = capsys.readouterr()
-    assert captured.out == "" and captured.err == ""
+    assert captured.out.strip() == fh.GUARD_EVALUATED_MARKER
+    assert captured.err == ""
 
 
-def test_prompts_guard_is_silent_when_both_scopes_are_unset(capsys):
-    """Runs once per TOOL CALL: a warning line here would be noise, not signal. The
-    SessionStart leg has already printed it once."""
+def test_prompts_guard_marks_a_pass_it_had_nothing_to_compare(capsys):
+    """Runs once per TOOL CALL, so STDERR stays clean -- a warning line here would be
+    noise, not signal, and the SessionStart leg has already printed it once.
+
+    The marker is emitted here too, and that is deliberate rather than incidental: an
+    unset scope is a guard that RAN and reached a non-refusing verdict, which is exactly
+    what the marker attests. Withholding it on this path would refuse every consumer that
+    has never set the variable -- the same over-reach the fail-closed inversion was
+    explicitly scoped to avoid (see the commit that landed AX15-1).
+    """
     with mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(None, None)):
         assert fh.prompts_guard() == 0
     captured = capsys.readouterr()
-    assert captured.out == "" and captured.err == ""
+    assert captured.out.strip() == fh.GUARD_EVALUATED_MARKER
+    assert captured.err == ""
+
+
+def test_prompts_guard_never_marks_a_refusal_as_evaluated(capsys):
+    """The marker means "evaluated and NOT refusing". If a refusal carried it too, the
+    hook's pass test would match on the very call the guard was refusing -- turning the
+    positive proof into a bypass. Pinned on both refusal routes: the verdict and the raise.
+    """
+    with mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(_STALE, _TRUE)):
+        assert fh.prompts_guard() == 2
+    captured = capsys.readouterr()
+    assert fh.GUARD_EVALUATED_MARKER not in captured.out + captured.err
+
+    with mock.patch.object(fh, "read_prompts_dir_scopes", side_effect=RuntimeError("boom")):
+        assert fh.prompts_guard() == 2
+    captured = capsys.readouterr()
+    assert fh.GUARD_EVALUATED_MARKER not in captured.out + captured.err
 
 
 def test_prompts_guard_refuses_when_it_cannot_run(capsys):
@@ -1771,6 +1811,25 @@ def test_hook_path_keeps_a_sibling_that_merely_shares_a_prefix(tmp_path):
     got = fh.hook_path({"PATH": os.pathsep.join([str(venv / "Scripts"), sibling]),
                         "VIRTUAL_ENV": str(venv)})
     assert got == sibling
+
+
+def test_hook_path_keeps_an_empty_entry_that_posix_reads_as_the_cwd(tmp_path):
+    """An EMPTY `PATH` component is not padding -- on POSIX it means the current
+    directory, and dropping it changes where the interpreter is looked up.
+
+    Added 2026-09-11 by the fresh Codex review of this branch (MEDIUM). The filter existed
+    only to stop `normpath("")` -- which returns `"."` -- from being compared against the
+    venv prefix, and it silently took the empty component with it. The two tests above
+    forbid narrowing PATH beyond the venv; this is a case of exactly that, so it is the
+    same rule applied to the component whose emptiness is its meaning. Hook commands run
+    through a POSIX shell here (measured 2026-09-11), so the semantics are live, not
+    theoretical.
+    """
+    venv = tmp_path / ".venv"
+    raw = os.pathsep.join([str(venv / "Scripts"), "", str(tmp_path / "sys" / "bin")])
+    got = fh.hook_path({"PATH": raw, "VIRTUAL_ENV": str(venv)})
+    assert got == os.pathsep.join(["", str(tmp_path / "sys" / "bin")])
+    assert "" in got.split(os.pathsep), f"the cwd component was dropped: {got!r}"
 
 
 def test_main_prints_the_preflight_line(tmp_path, capsys):

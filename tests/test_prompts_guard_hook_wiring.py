@@ -51,6 +51,7 @@ Six properties are asserted here. The first is the edit `[#684]` names; the rest
   the MATCHER, never of the refusal.
 """
 
+import importlib.util
 import json
 import os
 import re
@@ -63,6 +64,30 @@ import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _SETTINGS = _REPO_ROOT / ".claude" / "settings.json"
+
+
+def _load_fleet_health():
+    """The guard module, loaded for ONE constant: the marker its pass emits.
+
+    This file is otherwise deliberately hermetic -- it runs the shipped command string
+    through a real shell against stand-in trees, and imports nothing from the thing it
+    tests. The marker is the exception because it is the one token that must agree ACROSS
+    the two files: `fleet_health.py` prints it, `.claude/settings.json` tests for it, and
+    if either side is edited alone the hook silently stops being able to tell a guard that
+    passed from a `python` that never ran it. Hard-coding a second copy here would leave
+    that break invisible to exactly the suite that exists to catch it.
+    """
+    spec = importlib.util.spec_from_file_location(
+        "fleet_health_for_wiring", _REPO_ROOT / "scripts" / "fleet_health.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+#: Proof the GUARD evaluated -- emitted by `prompts_guard()` on every non-refusing verdict
+#: and required by the hook command before it permits. Sourced from the module, never
+#: retyped: see `_load_fleet_health`.
+_EVALUATED = _load_fleet_health().GUARD_EVALUATED_MARKER
 
 #: The classes a stale `CLAUDE_PROMPTS_DIR` actually makes lie -- anything that reads or
 #: writes the filesystem under a directory the seat resolved wrongly.
@@ -175,14 +200,37 @@ def _matches(matcher: str, tool: str) -> bool:
     return re.fullmatch(matcher, tool) is not None
 
 
-def _fake_tree(root: Path, code: int = 0) -> Path:
+def _fake_tree(root: Path, code: int = 0, evaluated: bool | None = None) -> Path:
     """A tree shaped like this repo whose `scripts/fleet_health.py` announces that it RAN
-    and then exits `code` -- `_REFUSES` for a guard that refuses, `1` for one that crashes."""
+    and then exits `code` -- `_REFUSES` for a guard that refuses, `1` for one that crashes.
+
+    `evaluated` controls the second marker, the one the REAL guard emits on a non-refusing
+    verdict. It defaults to matching the real module's behaviour (emitted exactly when the
+    guard passes), so a stand-in stands in faithfully. Passing `evaluated=False` with
+    `code=0` builds the case the Codex review named: something that exits 0 having proven
+    nothing -- a shim, a wrapper, or a `python` that never reached this file at all.
+    """
+    if evaluated is None:
+        evaluated = code == 0
+    lines = ["import sys", f"print({_REACHED!r})"]
+    if evaluated:
+        lines.append(f"print({_EVALUATED!r})")
+    lines.append(f"sys.exit({code})")
     (root / "scripts").mkdir(parents=True, exist_ok=True)
     (root / "scripts" / "fleet_health.py").write_text(
-        f"import sys\nprint({_REACHED!r})\nsys.exit({code})\n", encoding="utf-8"
+        "\n".join(lines) + "\n", encoding="utf-8"
     )
     return root
+
+
+def _shim_dir(root: Path, exit_code: int = 0) -> str:
+    """A directory holding a `python` that is NOT an interpreter -- it exits without
+    running its arguments. Prepended to PATH, it is the shadow-interpreter case."""
+    root.mkdir(parents=True, exist_ok=True)
+    shim = root / "python"
+    shim.write_text(f"#!/bin/sh\nexit {exit_code}\n", encoding="utf-8")
+    shim.chmod(0o755)
+    return str(root)
 
 
 def _run(command: str, *, cwd: Path, project_dir, path=None):
@@ -393,6 +441,68 @@ def test_hook_command_still_passes_when_the_guard_passes(tmp_path):
         "a PASSING guard was turned into a refusal -- fail-closed was applied to the "
         f"verdict, not to the inability to evaluate: rc={result.returncode} "
         f"stderr={result.stderr!r}"
+    )
+
+
+def test_hook_command_refuses_an_exit_0_that_carries_no_evaluated_marker(tmp_path):
+    """An exit of 0 is not evidence. The MARKER is.
+
+    Added 2026-09-11 by the fresh Codex review of this branch (HIGH-1), and it is the last
+    fail-open path that survived the AX15-1 inversion: the command refused on every
+    non-zero status but still read `0` as "the guard ran and passed". Nothing established
+    that. A `python` that exits 0 without ever opening `fleet_health.py` produces a byte
+    identical result, so the hook permitted the call believing it had checked one --
+    declared enforcement with no enforcement, the exact thing AX15-1 names.
+
+    The stand-in here RAN (`_REACHED` is on stdout) and still proved nothing, which
+    isolates the property to the marker rather than to reachability.
+    """
+    tree = _fake_tree(tmp_path / "tree", code=0, evaluated=False)
+    result = _run(_hook_command(), cwd=tree, project_dir=None)
+    assert _REACHED in result.stdout, "the stand-in did not run, so this proves nothing"
+    assert _EVALUATED not in result.stdout, "the stand-in emitted the marker it must not"
+    assert result.returncode == _REFUSES, (
+        "an exit of 0 with NO proof the guard evaluated was treated as a pass: "
+        f"rc={result.returncode} stdout={result.stdout!r}"
+    )
+    _assert_teaches(result.stderr, cause_names=(_EVALUATED, "rc=0"))
+
+
+def test_hook_command_refuses_a_shadow_interpreter_that_never_runs_the_guard(tmp_path):
+    """The same hole at its REAL entry point: `python` resolved to something else.
+
+    The test above builds the failure from the script side because that is hermetic; this
+    one builds it the way it actually arrives -- a `python` earlier on PATH that is not an
+    interpreter. A launcher shim, a stale wrapper, a corporate intercept: each exits 0
+    having run nothing. The guard tree here is fully intact and would PASS if it were ever
+    reached, so a refusal can only come from the hook declining to infer evaluation.
+    """
+    tree = _fake_tree(tmp_path / "tree", code=0)
+    shim = _shim_dir(tmp_path / "shim")
+    result = _run(_hook_command(), cwd=tree, project_dir=None, path=shim)
+    assert _REACHED not in result.stdout, (
+        "the shim was not on PATH -- the real interpreter ran, so this proves nothing: "
+        f"stdout={result.stdout!r} stderr={result.stderr!r}"
+    )
+    assert result.returncode == _REFUSES, (
+        "a shadow 'python' that never ran the guard PERMITTED the tool call: "
+        f"rc={result.returncode} stdout={result.stdout!r} stderr={result.stderr!r}"
+    )
+    _assert_teaches(result.stderr, cause_names=(_EVALUATED,))
+
+
+def test_hook_command_tests_for_the_marker_the_guard_module_actually_emits(tmp_path):
+    """The two files must agree on the token, and only a test can hold them together.
+
+    `fleet_health.py` prints the marker; `.claude/settings.json` tests for it. Edit either
+    alone and the hook stops being able to distinguish a guard that passed from a `python`
+    that never ran -- silently, and in the permissive direction on the settings side. The
+    constant is read from the module (see `_load_fleet_health`), so this compares the
+    shipped command against the live spelling rather than against a second copy.
+    """
+    assert _EVALUATED in _hook_command(), (
+        f"the hook command does not test for {_EVALUATED!r}, the marker the guard emits "
+        "-- the two halves of the positive-proof check have drifted apart"
     )
 
 
