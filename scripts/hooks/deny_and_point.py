@@ -155,26 +155,22 @@ def strip_heredocs(command: str) -> str:
     return "\n".join(kept)
 
 
-def _segments(command: str) -> list[list[str]]:
-    """Tokenize, then split into per-command argv lists on operator tokens.
+def _line_segments(line: str) -> list[list[str]]:
+    """One line's per-command argv lists, split on operator tokens.
 
-    A NEWLINE ends a command too, which `shlex` treats as ordinary whitespace -- so a search on
-    the line after a heredoc was swallowed into the previous command's argv and its head was
-    never read. Lines are therefore lexed one at a time. A line that cannot be tokenized raises
-    out of here and the caller ALLOWS, which is the module's posture everywhere.
+    A NEWLINE ends a command, which `shlex` treats as ordinary whitespace -- so a search on the
+    line after a heredoc was swallowed into the previous command's argv and its head was never
+    read. Lines are therefore lexed one at a time. A line that cannot be tokenized raises out of
+    here and the caller ALLOWS, which is the module's posture everywhere.
     """
-    segments: list[list[str]] = []
-    for line in strip_heredocs(command).split("\n"):
-        if not line.strip():
-            continue
-        lex = shlex.shlex(line, posix=True, punctuation_chars=True)
-        lex.whitespace_split = True
-        segments.append([])
-        for token in lex:
-            if token in _OPERATORS:
-                segments.append([])
-            else:
-                segments[-1].append(token)
+    lex = shlex.shlex(line, posix=True, punctuation_chars=True)
+    lex.whitespace_split = True
+    segments: list[list[str]] = [[]]
+    for token in lex:
+        if token in _OPERATORS:
+            segments.append([])
+        else:
+            segments[-1].append(token)
     return segments
 
 # ---------------------------------------------------------------- PATTERN vs PATH
@@ -522,15 +518,21 @@ def search_candidates(command: str) -> list[str]:
 
     Empty list = this command is not a search, and the store is never opened for it. An
     unparseable command yields an empty list too: a guard malfunction must not block normal work.
+
+    THE ESCAPE IS SCOPED TO ITS OWN LINE. Evaluated over the whole payload, one earlier and
+    unrelated `# raw-needed:` comment switched the guard off for every command after it (Terra
+    pre-merge pass 13). A declaration covers the command it is written on, and nothing else.
     """
+    candidates: list[str] = []
     try:
-        segments = _segments(command)
+        for line in strip_heredocs(command).split("\n"):
+            if not line.strip() or _ESCAPE.search(_comment_text(line)):
+                continue
+            for argv in _line_segments(line):
+                if argv:
+                    candidates.extend(_patterns_of(argv))
     except ValueError:
         return []
-    candidates: list[str] = []
-    for argv in segments:
-        if argv:
-            candidates.extend(_patterns_of(argv))
     return candidates
 
 
@@ -547,9 +549,7 @@ def _tool_candidates(payload: dict) -> list[str]:
         command = ti.get("command")
         if not isinstance(command, str) or not command.strip():
             return []
-        if _ESCAPE.search(_comment_text(strip_heredocs(command))):
-            return []
-        return search_candidates(command)
+        return search_candidates(command)   # the escape is applied per line, inside
     return []
 
 

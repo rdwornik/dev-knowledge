@@ -499,6 +499,23 @@ def test_a_REAL_trailing_comment_still_escapes():
         "cat BACKLOG.md | grep gen_task_tree  #raw-needed: one-off audit"))
 
 
+@pytest.mark.parametrize("command", [
+    "echo note # raw-needed: documentation\nrg gen_task_tree",
+    "rg gen_task_tree # raw-needed: renaming\nrg graph_queries",
+])
+def test_an_escape_declared_on_ONE_LINE_does_not_cover_the_NEXT(command):
+    """Terra pre-merge pass 13, P1. The escape was evaluated over the whole payload, so an
+    earlier unrelated `# raw-needed:` comment switched the guard off for every command
+    after it. A declaration covers the command it is written on, and nothing else."""
+    assert _denied(_bash(command)), f"escape leaked across lines: {command}"
+
+
+def test_each_line_may_declare_its_own_escape():
+    assert not _denied(_bash(
+        "rg gen_task_tree  # raw-needed: renaming\n"
+        "rg graph_queries  # raw-needed: same arc"))
+
+
 def test_a_bare_escape_marker_with_NO_reason_does_not_escape():
     assert _denied(_bash('grep -rn "gen_task_tree" scripts/  # raw-needed:'))
     assert _denied(_bash('grep -rn "gen_task_tree" scripts/  # raw-needed'))
