@@ -1847,6 +1847,30 @@ def test_prompts_guard_coupling_is_not_discharged_by_one_good_hook_among_two(tmp
     assert row.verdict == fp.MUST_ABSENT, row.evidence
 
 
+def test_prompts_guard_coupling_honours_the_last_assignment_before_the_call(tmp_path):
+    """A variable is worth what it holds AT THE INVOCATION, not what it ever held.
+
+    Round 5 of the 2026-09-11 Codex review, and the reviewer's own judgement was that this
+    is a plausible deployment-drift shape rather than a constructed decoy. It is: this
+    repo's own hook already assigns `g` TWICE -- the resolve and the cwd fallback -- so a
+    third assignment re-pointing it at another guard is the shape drift actually takes. The
+    first form collected any variable whose assignment ever mentioned the path, so
+    `g=".../fleet_health.py"; g="/opt/other_guard.py"; python "$g"` certified a hook that
+    runs the other guard.
+    """
+    drifted = json.dumps({"hooks": {"PreToolUse": [
+        {"matcher": "Read|Write|Edit|Bash",
+         "hooks": [{"type": "command",
+                    "command": 'g="scripts/fleet_health.py"; g="/opt/other_guard.py"; '
+                               'python "$g" --prompts-guard'}]},
+    ]}}, indent=2)
+    row = _coupling_verdict(tmp_path, {
+        ".claude/settings.json": drifted,
+        "scripts/fleet_health.py": "# guard, tracked and once assigned, then replaced\n",
+    })
+    assert row.verdict == fp.MUST_ABSENT, row.evidence
+
+
 def test_prompts_guard_coupling_accepts_a_uv_run_wrapped_interpreter(tmp_path):
     """`uv run --locked python <script>` must still bind -- the over-tightening witness for
     the script-operand rule.

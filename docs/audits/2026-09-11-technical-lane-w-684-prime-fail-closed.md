@@ -93,6 +93,7 @@ own hook rather than merely passing it.
 | 2 (at `a17e702a`) | HIGH:2 MED:0 | both FIXED (`d668bb42`) |
 | 3 (at `a17e702a`) | HIGH:3 MED:0 | two FIXED (`d668bb42`); one DISPOSITIONED, below |
 | 4 (at `d668bb42`) | HIGH:2 MED:0 | both FIXED; the disposition ACCEPTED by the reviewer |
+| 5 (at `25ea70ab`) | HIGH:1 MED:0 | FIXED — a variable's LAST assignment before the call |
 
 **Round 4 closed the disposition explicitly.** Asked to attack the argument rather than
 restate the finding, the reviewer answered: *"The exact-marker shim argument holds: without
@@ -109,7 +110,16 @@ refuses tool calls on its own). A `uv run --locked python <script>` witness was 
 the same time, because every other hook command in this repo runs under `uv run` and a
 binder that only understood a bare `python` would call the repo's own doctrine a defect.
 
-Ten of the eleven findings were FIXED, none waved away. Several were arguably outside the
+**Round 5** found one more, and it is the one that best justifies open item 3: `assigned`
+recorded a variable if ANY assignment mentioned the path, so
+`g=".../fleet_health.py"; g="/opt/other_guard.py"; python "$g"` certified a hook running
+the other guard. Asked explicitly whether this was real drift or a constructed decoy, the
+reviewer judged it *"a plausible deployment-drift shape"* — correctly: this repo's own hook
+already assigns `g` TWICE (the resolve and the cwd fallback), so a third assignment
+re-pointing it is the shape the mistake actually takes. Assignments are now replayed in
+order and a variable is worth what it holds AT the invocation.
+
+Eleven of the twelve findings were FIXED, none waved away. Several were arguably outside the
 guard's threat model — anyone who can place a shim on `PATH` can also edit `settings.json`
 — but each fix was cheap, and "declared enforcement without enforcement" is the precise
 thing this row exists to end, so arguing the threat model would have answered a different
@@ -176,12 +186,15 @@ treated differently on purpose, and the reason is which tree produced the drift.
    substitution, or one supplied by the environment — each of which reports a compliant
    hook as a SPLIT, which is the safe direction to be wrong in: a finding gets read, a
    silent pass does not. A `sh -c "..."` wrapper would still defeat it.
-   **Four review rounds each found another shape it mis-read** (`; : path`, `echo python
-   path`, `python -c '...path...'`, and `any` over sibling hooks). That convergence is
-   itself the finding: a string heuristic over a shell command has no natural stopping
-   point. If a fifth shape appears, the answer is probably to constrain what a hook command
-   may LOOK like — a declared shape parity can check exactly — rather than to keep teaching
-   a parser to read arbitrary shell.
+   **FIVE review rounds each found another shape it mis-read** (`; : path`; `echo python
+   path`; `python -c '...path...'`; `any` over sibling hooks; a reassigned variable). That
+   convergence is itself the finding, and it is the strongest recommendation this packet
+   makes: a string heuristic over arbitrary shell has no natural stopping point, and each
+   round's fix was correct without making the next round less likely. **Proposed to the
+   integrator:** constrain what a prompts-guard hook command may LOOK like — a declared
+   shape parity can check exactly — instead of continuing to teach a parser to read shell.
+   The lane did not do this, because it would change the deployed hook's contract for every
+   consumer, which is a carrier decision and not this row's to take.
 4. **The M7 smoke's CLI leg remains externally blocked.** The shell-level property is
    measured green both ways (good tree → 0, broken tree → 2 with the teaching message).
    The CLI leg is not re-run: `cursor-agent` is usage-limited, and `codex` v0.153.4 is the

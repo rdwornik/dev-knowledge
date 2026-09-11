@@ -307,9 +307,16 @@ def hook_invokes_script(command: str, path: str) -> bool:
     silent pass does not. Requiring COMMAND POSITION closed the case where a quoted
     invocation inside an `echo` was believed; a `sh -c "..."` wrapper would still defeat it.
     """
-    assigned = {m.group(1) for m in _SHELL_ASSIGNMENT.finditer(command)
-                if path in m.group(0)}
+    # A variable is worth what it holds AT THE INVOCATION, so assignments are replayed in
+    # order rather than collected. Recording every variable whose assignment EVER mentioned
+    # the path certified `g="...fleet_health.py"; g="/opt/other_guard.py"; python "$g"`
+    # (2026-09-11 review, round 5). That is drift, not a decoy: this repo's own hook
+    # already assigns `g` twice -- the resolve and the cwd fallback -- so a third
+    # assignment re-pointing it is the shape the mistake actually takes.
+    assigned: dict[str, bool] = {}
     for segment in _SHELL_SEPARATORS.split(command):
+        for match in _SHELL_ASSIGNMENT.finditer(segment):
+            assigned[match.group(1)] = path in match.group(0)
         words = segment.split()
         # The interpreter must be the command being RUN, not a word inside another one.
         # Scanning the whole segment for it read `echo python scripts/fleet_health.py` as
@@ -344,7 +351,7 @@ def hook_invokes_script(command: str, path: str) -> bool:
             if bare.startswith("-"):
                 continue
             var = _SHELL_VAR_OPERAND.match(bare)
-            return path in bare or bool(var and var.group(1) in assigned)
+            return path in bare or bool(var and assigned.get(var.group(1), False))
     return False
 
 
