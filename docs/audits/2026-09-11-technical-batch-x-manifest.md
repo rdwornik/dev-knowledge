@@ -106,7 +106,12 @@ binds every lane that CREATES an organ — X-DEL deletes, so it carries AX4-1 wi
 Each lane's FIRST COMMIT writes its carried clauses into its own row; a lane does not edit a
 row it did not file, and reports the untouched one instead.
 
-## 4 · STEP 0 — the refusals
+## 4 · The seat refusals
+
+<!-- Deliberately NOT headed "step 0": `seat_refusals.isolate_step0` takes the FIRST heading
+     matching /step\s*0/ and reads only to the next heading, so a second such heading is
+     unreachable. The step-0 section is §9, and it ends on its DryRun. -->
+
 
 ```
 carried-by      PASS  20/20 on the POSITIVE population (batch X decision files only, per
@@ -195,6 +200,75 @@ trace home · logs lane (+ log-review routine) · test-baseline debt
 ```
 
 **Backfill log:** (empty — nothing has fired.)
+
+## 9 · Step 0 ends here — the DryRun of every generated contract
+
+The LAST line of step 0 (AMEND-BATCH-V-002 §1), covering **every** generated contract —
+the one left out is the one that fails at dispatch. Batch V froze six contracts the live
+verb refused and found out by running this.
+
+```
+dispatch LANE-x-692-decision-coverage.md -DryRun
+dispatch LANE-x-689-conductor-e.md -DryRun
+dispatch LANE-x-664-delivery-spine.md -DryRun
+dispatch LANE-x-734-retire-stage.md -DryRun
+dispatch LANE-x-716-dispatch-defects.md -DryRun
+dispatch LANE-w-684-pretooluse-guard-root-prime.md -DryRun
+```
+
+## 10 · DryRun receipts
+
+**`dispatch <FILE> -DryRun` REFUSED all six** — see F8. The DryRun was then run through the
+verb the fence actually names, `Dispatch-Lane … -DryRun`, which resolved every line:
+
+```
+lane-x-692-decision-coverage
+  claude --bg --model opus --effort high --permission-mode bypassPermissions --worktree lane-x-692-decision-coverage <prompt>
+lane-x-689-conductor-e
+  claude --bg --model opus --effort high --permission-mode bypassPermissions --worktree lane-x-689-conductor-e <prompt>
+lane-x-664-delivery-spine
+  claude --bg --model opus --effort high --permission-mode bypassPermissions --worktree lane-x-664-delivery-spine <prompt>
+lane-x-734-retire-stage
+  claude --bg --model opus --effort high --permission-mode bypassPermissions --worktree lane-x-734-retire-stage <prompt>
+lane-x-716-dispatch-defects
+  claude --bg --model opus --effort high --permission-mode bypassPermissions --worktree lane-x-716-dispatch-defects <prompt>
+W-2' (interactive shape — inherits its worktree, so no Dispatch-Lane line exists to DryRun)
+  cwd .claude/worktrees/lane-w-684-pretooluse-guard-root
+  claude --bg --model opus --effort high --permission-mode bypassPermissions
+```
+
+**AX7-3 is satisfied at the dispatch act:** every resolved line carries `--model opus`
+explicitly. Contract-declared model and dispatched model AGREE for all six — verified by
+receipt, not asserted.
+
+## 11 · F8 · The two contract gates are MUTUALLY EXCLUSIVE
+
+Measured while DryRunning this batch, and the sharpest finding of the freeze:
+
+- `gen_lane_contract.py check` **requires** the `## Dispatch` fence to be
+  `Dispatch-Lane <slug> <file> [-Effort <v>]` (`_DISPATCH_LINE_RE`, line 227), and refuses a
+  contract without it: *"no dispatch command line found"*.
+- `dispatch` → `Invoke-Dispatch.ps1:285` **refuses** that exact fence: *"the contract's
+  `## Dispatch` block must invoke `claude`, not `Dispatch-Lane` — this script never runs an
+  arbitrary command from a contract file."*
+
+**No contract can satisfy both.** A generator-emitted contract passes the repo's gate and is
+categorically unlaunchable by the ruled verb; a contract the ruled verb accepts fails the gate.
+This is not a preference between verbs — it is the same "two independently-correct literals"
+class `[#718]` generalises, one seam further out, and `Invoke-Dispatch`'s refusal is *correct*
+security behaviour (it will not execute arbitrary commands from a file), so the fix belongs on
+the generator/gate side.
+
+Batch W recorded half of this (its F2: `dispatch` refuses a non-`claude` fence). The other
+half — that the gate MANDATES the fence `dispatch` refuses — is new here, and it means the
+defect cannot be worked around by rewriting a contract: it is structural.
+
+**Consequence for this batch:** the fire path is `Dispatch-Lane … -Model opus`, not
+`dispatch … -Run`. `Dispatch-Lane` offers no confirmation prompt at all (it fires
+immediately), so AX14-3's "non-interactive confirmation" branch has nothing to use and the
+dispatcher **asks the operator `y` per fire** — which is what the operator asked for
+independently. Recorded as a candidate row: *"the contract gate and the dispatch verb demand
+incompatible fences."*
 
 ---
 
