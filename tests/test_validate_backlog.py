@@ -433,3 +433,82 @@ def test_future_review_date_is_silent():
     hard, warn = vb.validate(*vb.parse(text), today=vb.date(2026, 8, 14))
     assert hard == []
     assert not any("review_date" in w for w in warn)
+
+
+# --- [#689] conductor E: the `· phase:` clause and its enum ----------------------------
+# RED-FIRST (ADR-108 §B). These five were authored and witnessed FAILING before
+# `_PHASE_ENUM` / `_parse_phase` / `_check_phase` existed in the module -- the RED output is
+# quoted in the landing commit body. The enum itself is not invented here: it is the
+# operator's own delivery spine, carried verbatim from the header of
+# `to-cc/DECLARE-CONDUCTOR-DECISION-2026-09-09.md` ("one spine over intake -> task -> build
+# with tests -> review -> merge -> docs -> deploy -> telemetry -> archive").
+
+
+def _phased(value):
+    """VALID with a `· phase: <value>` clause on row [#1]."""
+    return VALID.replace(
+        "- [#1] [P1][M] do a thing · Done when: it is done · refs ADR-1",
+        f"- [#1] [P1][M] do a thing · Done when: it is done · phase: {value} · refs ADR-1",
+    )
+
+
+def test_phase_enum_is_the_operator_delivery_spine():
+    # Order is load-bearing: the workflow's phase gate reads the index to answer "which
+    # phase comes next", so a re-ordered enum silently re-orders the process.
+    assert vb._PHASE_ENUM == (
+        "intake", "task", "build", "review", "merge", "docs", "deploy", "telemetry", "archive")
+
+
+@pytest.mark.parametrize("value", ["intake", "task", "build", "review", "merge",
+                                   "docs", "deploy", "telemetry", "archive"])
+def test_every_enum_member_is_accepted(value):
+    hard, warn = _run(_phased(value))
+    assert hard == []
+    assert not any("phase" in w for w in warn)
+
+
+def test_phase_outside_the_enum_hard_fails_and_names_the_enum():
+    hard, _ = _run(_phased("shipped"))
+    assert any("phase" in h and "shipped" in h and "#1" in h for h in hard)
+    # The refusal must NAME the admitted set -- a gate that rejects without naming the
+    # vocabulary makes the author guess, which is how a second spelling gets invented.
+    assert any("telemetry" in h for h in hard if "shipped" in h)
+
+
+def test_two_phase_clauses_on_one_row_hard_fail():
+    text = VALID.replace(
+        "- [#1] [P1][M] do a thing · Done when: it is done · refs ADR-1",
+        "- [#1] [P1][M] do a thing · Done when: it is done · phase: build · phase: review",
+    )
+    hard, _ = _run(text)
+    assert any("one phase" in h.lower() and "#1" in h for h in hard)
+
+
+def test_a_row_with_no_phase_clause_is_silent():
+    # ABSENCE IS LEGAL, deliberately, and this is the assertion that keeps it so. Making the
+    # clause mandatory would (a) demand a mass edit of every live row and (b) break
+    # tests/test_validate_backlog_twin_parity.py, whose shared fixtures carry no phase clause
+    # and whose plugin twin has no phase check -- the hub would invent findings the twin
+    # cannot. Adoption is MEASURED by the workflow's `unphased` count, not mandated here.
+    hard, warn = _run(VALID)
+    assert hard == []
+    assert not any("phase" in w for w in warn)
+
+
+def test_phase_clause_is_delimiter_anchored_so_prose_cannot_fake_one():
+    # Same defence as `_SERIALIZE_CLAUSE_RE`: a body that MENTIONS the word must not register
+    # a phantom clause, or every row discussing the phase table would acquire one.
+    text = VALID.replace(
+        "- [#1] [P1][M] do a thing · Done when: it is done · refs ADR-1",
+        "- [#1] [P1][M] do a thing · Done when: the phase: gate fires · refs ADR-1",
+    )
+    hard, _ = _run(text)
+    assert hard == []
+    assert vb._parse_phase("Done when: the phase: gate fires") is None
+
+
+def test_phase_census_counts_phased_and_unphased():
+    _, _, tasks = vb.parse(_phased("build"))
+    census = vb.phase_census(tasks)
+    assert census["build"] == ["1"]
+    assert census["unphased"] == ["2"]
