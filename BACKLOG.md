@@ -21,6 +21,7 @@
 So that an architecture session inherits the big picture + vision while an execution session inherits lean task-state — one process, two payloads.
 - [#511] [P2][M] The 30-minute handoff cut is ~99.8% session authoring, not machinery · tasks/511-handoff-cut-cost-is-session-authoring.md
 - [#611] [P2][M] HANDOFF_PROCESS v7: the minimal-bundle package · tasks/611-handoff-process-v7-the-minimal-bundle-package.md
+- [#720] [P3][S] The browser role file carries no pointer to the standing-rulings register, so a booting seat never learns a ruling landed after its ROLE PIN · tasks/720-handoff-boot-carries-no-pointer-to-the-standing-rulings-register.md
 - [#633] [P2][M] /boot-session gains HISTORY DELTA and EQUILIBRIUM MAP — two GENERATED sections · tasks/633-boot-session-gains-history-delta-and-equilibrium-map.md
 
 ### [S2] Finish the v5 handoff machinery deferred at the #149 flip
@@ -112,6 +113,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#689] [P1][L] Conductor E is decided and unbuilt — GitHub Actions as the runner, state stays in tasks/, required checks as gates · tasks/689-conductor-e-is-decided-and-unbuilt.md
 - [#691] [P2][M] Provider routing is an unordered role set with no admission gate and no licence field — a role needs an ORDERED fallback list only admitted providers may enter · tasks/691-provider-routing-is-an-unordered-role-set-with-no-admission-gate.md
 - [#692] [P1][L] decision_coverage — nothing makes a decided thing stay scheduled, so the guarantee lives in a seat's memory instead of in the repo · tasks/692-decision-coverage-a-decided-thing-is-never-unscheduled-again.md
+- [#721] [P2][S] `decision_coverage` does not count STANDING_RULINGS entries, so a ruling with no mechanism row is the one decision class the query cannot see · tasks/721-decision-coverage-counts-standing-rulings-entries-as-decisions.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
