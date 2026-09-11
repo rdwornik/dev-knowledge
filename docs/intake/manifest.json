@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "df50b319df21c657e3315c26b3579ffda78f0b0411f15b9e15609c3188148bfe",
+  "source_sha256": "cd71d74733da6a5c5453d7b953b42acbe3967234b5c76b318d5c0849d999016e",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
-    "item_derived_lines": 81,
+    "item_derived_lines": 82,
     "residue_lines": 297,
-    "total_lines": 378,
+    "total_lines": 379,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -396,6 +396,10 @@
         "consumed-by",
         "origin"
       ],
+      "2026-09-10-tech-harness-is-process.md": [
+        "consumed-by",
+        "origin"
+      ],
       "2026-09-10-tech-review-consumption.md": [
         "consumed-by",
         "origin"
@@ -478,7 +482,7 @@
     },
     {
       "t": "line",
-      "v": "**81 intake documents.**"
+      "v": "**82 intake documents.**"
     },
     {
       "t": "line",
@@ -548,7 +552,7 @@
     },
     {
       "t": "line",
-      "v": "### DRAFT (32)"
+      "v": "### DRAFT (33)"
     },
     {
       "t": "line",
@@ -712,6 +716,11 @@
     {
       "t": "item",
       "file": "2026-09-10-tech-review-consumption.md",
+      "status": "DRAFT"
+    },
+    {
+      "t": "item",
+      "file": "2026-09-10-tech-harness-is-process.md",
       "status": "DRAFT"
     },
     {
