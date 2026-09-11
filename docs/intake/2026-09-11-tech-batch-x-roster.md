@@ -1,7 +1,7 @@
 ---
 intake-id: 93
 status: DRAFT
-origin: DECLARE-BATCH-X-ROSTER-2026-09-11 (the roster) with AMEND-BATCH-X-ROSTER-001 (AX1-1..AX1-8, the file that FREEZES the roster), AMEND-BATCH-X-ROSTER-002 (AX2-1..AX2-2, X1-6's premise corrected) and AMEND-BATCH-X-ROSTER-006 (AX6-1..AX6-5, the domain census and folder-as-domain), AMEND-BATCH-X-ROSTER-007 (AX7-1..AX7-5, the decision engine, the path registry, catalog shape and the dispatcher defects), AMEND-BATCH-X-ROSTER-008 (AX8-1..AX8-5, interim routing, the log-review routine, test-baseline debt and the torn-down-cwd hazard), AMEND-BATCH-X-ROSTER-009 (AX9-1..AX9-5, the model must use the organs it builds) and, as the intake body of the path row AX7-3 files, QUESTION-path-registry-2026-09-11 with AMEND-PATH-REGISTRY-001 -- outgoing browser seat 2026-09-10-dev-knowledge-architect, the operator's dispatch of 2026-09-11; the first three are the lane contract's named source set, and AMEND-006 was added by the operator instruction of 2026-09-11 relayed to the lane after its first commit ("X-0 applies AMEND-BATCH-X-ROSTER-006 (rows: visualization, packet D14, W-4 residue) -- follow-up commit if already committed"), and AMEND-007 plus the two path-registry files by a second operator instruction the same day. Carried into the repo 2026-09-11 by batch X lane lane-x-000-batch-x-roster-lands from the operator's transport at to-cc/, LF throughout: DECLARE-BATCH-X-ROSTER-2026-09-11.md (6,244 B, sha256 64e7fc470fa6a0ebebd7d760f640f61c8044f8bd75b5d3683a47ab2c506143b0), AMEND-BATCH-X-ROSTER-001.md (2,543 B, sha256 825cad543568b0cb1747e4dd51a287364a21d677911e5e24ed4eff484b432aed), AMEND-BATCH-X-ROSTER-002.md (972 B, sha256 d0aea9586c51c971fe2bca973acab88dbcd13ae6c7fda796f89ad41f1f8f17d1), AMEND-BATCH-X-ROSTER-006.md (2,809 B, sha256 f53a5369d607d7da615610b6d34cd33800801e595d7f075a441b8077fda05a48), AMEND-BATCH-X-ROSTER-007.md (2,961 B, sha256 ce9fbb2eb28b0cda4112f7920b1388573a2606c9f12c043790a0ccc8e1647912), QUESTION-path-registry-2026-09-11.md (2,883 B, sha256 9d78522da72537b8a719732549dd67b703b15d453eb7eedeac218050c2e51b37), AMEND-PATH-REGISTRY-001.md (2,269 B, sha256 8893a0235a3edfd31a551d85daf0ad9d0c588d35e348e26f2e4cd3af0cbd2fd8), AMEND-BATCH-X-ROSTER-008.md (2,141 B, sha256 84d5b28a775e5f5399e229a14a0cbc97f6b2c0e8201e0a89c6dc9c9278a76538), AMEND-BATCH-X-ROSTER-009.md (2,850 B, sha256 31b802d23aca38364d2610b3426efd48084d546a747e608fdf9f0e0e2fe8b6ac). Each body below is byte-identical to its source -- only the transport's carried-by line is excluded, as transport metadata whose named successor IS this file, and every line this lane added is inside a marked LANE-ADDED block beside the carried text, never inside it
+origin: DECLARE-BATCH-X-ROSTER-2026-09-11 (the roster) with AMEND-BATCH-X-ROSTER-001 (AX1-1..AX1-8, the file that FREEZES the roster), AMEND-BATCH-X-ROSTER-002 (AX2-1..AX2-2, X1-6's premise corrected) and AMEND-BATCH-X-ROSTER-006 (AX6-1..AX6-5, the domain census and folder-as-domain), AMEND-BATCH-X-ROSTER-007 (AX7-1..AX7-5, the decision engine, the path registry, catalog shape and the dispatcher defects), AMEND-BATCH-X-ROSTER-008 (AX8-1..AX8-5, interim routing, the log-review routine, test-baseline debt and the torn-down-cwd hazard), AMEND-BATCH-X-ROSTER-009 (AX9-1..AX9-5, the model must use the organs it builds), AMEND-BATCH-X-ROSTER-010 (AX10-1..AX10-3, the backlog shrinks by mechanism: evidenced bulk closure at every batch close), AMEND-BATCH-X-ROSTER-011 (AX11-1..AX11-4, two operator ratifications honoured and cleanup made an act) and, as the intake body of the path row AX7-3 files, QUESTION-path-registry-2026-09-11 with AMEND-PATH-REGISTRY-001 -- outgoing browser seat 2026-09-10-dev-knowledge-architect, the operator's dispatch of 2026-09-11; the first three are the lane contract's named source set, and AMEND-006 was added by the operator instruction of 2026-09-11 relayed to the lane after its first commit ("X-0 applies AMEND-BATCH-X-ROSTER-006 (rows: visualization, packet D14, W-4 residue) -- follow-up commit if already committed"), and AMEND-007 plus the two path-registry files by a second operator instruction the same day; AMEND-010 and AMEND-011 arrived by a further operator instruction the same day, after this lane had already committed its close packet, and are folded here rather than into a new intake because both declare carried-by: THIS file. Carried into the repo 2026-09-11 by batch X lane lane-x-000-batch-x-roster-lands from the operator's transport at to-cc/, LF throughout: DECLARE-BATCH-X-ROSTER-2026-09-11.md (6,244 B, sha256 64e7fc470fa6a0ebebd7d760f640f61c8044f8bd75b5d3683a47ab2c506143b0), AMEND-BATCH-X-ROSTER-001.md (2,543 B, sha256 825cad543568b0cb1747e4dd51a287364a21d677911e5e24ed4eff484b432aed), AMEND-BATCH-X-ROSTER-002.md (972 B, sha256 d0aea9586c51c971fe2bca973acab88dbcd13ae6c7fda796f89ad41f1f8f17d1), AMEND-BATCH-X-ROSTER-006.md (2,809 B, sha256 f53a5369d607d7da615610b6d34cd33800801e595d7f075a441b8077fda05a48), AMEND-BATCH-X-ROSTER-007.md (2,961 B, sha256 ce9fbb2eb28b0cda4112f7920b1388573a2606c9f12c043790a0ccc8e1647912), QUESTION-path-registry-2026-09-11.md (2,883 B, sha256 9d78522da72537b8a719732549dd67b703b15d453eb7eedeac218050c2e51b37), AMEND-PATH-REGISTRY-001.md (2,269 B, sha256 8893a0235a3edfd31a551d85daf0ad9d0c588d35e348e26f2e4cd3af0cbd2fd8), AMEND-BATCH-X-ROSTER-008.md (2,141 B, sha256 84d5b28a775e5f5399e229a14a0cbc97f6b2c0e8201e0a89c6dc9c9278a76538), AMEND-BATCH-X-ROSTER-009.md (2,850 B, sha256 31b802d23aca38364d2610b3426efd48084d546a747e608fdf9f0e0e2fe8b6ac), AMEND-BATCH-X-ROSTER-010.md (1,446 B, sha256 6a241cbf184745d63305ae16acca2e786dbff5a35e208a26f2b9f46e10b44ebe), AMEND-BATCH-X-ROSTER-011.md (1,739 B, sha256 27653345b0cd42c9a4fce5baeed159822262acfa91960dfaf642a31f769e7a86). Each body below is byte-identical to its source -- only the transport's carried-by line is excluded, as transport metadata whose named successor IS this file, and every line this lane added is inside a marked LANE-ADDED block beside the carried text, never inside it
 consumed-by:
 ---
 
@@ -16,11 +16,13 @@ Nine transport files are carried below, each between explicit `CARRIED BEGIN` / 
 - **Part 1** is the roster (`DECLARE-BATCH-X-ROSTER-2026-09-11`). It is FROZEN by Part 2 and is not reordered, rewritten or improved here.
 - **Part 2** is `AMEND-BATCH-X-ROSTER-001`. Where it changes the roster, **the amendment governs** and the roster's superseded text is carried anyway -- this repo's amendment discipline marks a supersession, it does not swap the text out.
 - **Part 3** is `AMEND-BATCH-X-ROSTER-002`, which corrects X1-6's premise.
-- **Part 4** is `AMEND-BATCH-X-ROSTER-006`, added by operator instruction after this file's first commit. **It depends on `AMEND-005`, which is NOT carried** -- see Part 11, which names the dangling references precisely.
+- **Part 4** is `AMEND-BATCH-X-ROSTER-006`, added by operator instruction after this file's first commit. **It depends on `AMEND-005`, which is NOT carried** -- see Part 13, which names the dangling references precisely.
 - **Part 5** is `AMEND-BATCH-X-ROSTER-007`, added by a second operator instruction the same day: the decision engine, the path registry, catalog shape and the dispatcher defects.
 - **Parts 6 and 7** are `QUESTION-path-registry-2026-09-11` and `AMEND-PATH-REGISTRY-001`. They are not roster amendments -- together they are the **intake body of the path row** AX7-3 files (`[#715]`), carried here because APR-5 routes the decision through this intake. **The amendment governs where the two differ**, and APR-1 differs from the QUESTION on its central claim.
 - **Part 8** is `AMEND-BATCH-X-ROSTER-008`: interim routing, the log-review routine, test-baseline debt, templates as floor components, and the torn-down-worktree cwd hazard.
 - **Part 9** is `AMEND-BATCH-X-ROSTER-009`: the model must USE the organs it builds -- deny-and-point, organ skills, queries as tools, exists-before-build.
+- **Part 10** is `AMEND-BATCH-X-ROSTER-010`: the backlog shrinks by MECHANISM -- evidenced bulk closure at every batch close, the X2 backlog lane's two added clauses, and backlog management as a floor MUST.
+- **Part 11** is `AMEND-BATCH-X-ROSTER-011`: two operator ratifications this window breached, honoured -- committing lanes run local OVERNIGHT ONLY, and the operator never types a path -- plus cleanup as an ACT rather than a note.
 <!-- LANE-ADDED END -->
 
 ## Part 1 · DECLARE-BATCH-X-ROSTER-2026-09-11 -- the roster, carried verbatim
@@ -234,10 +236,43 @@ After X1 merges: one night at the current ceiling, auto-merge ON only for serial
 
 <!-- CARRIED END: AMEND-BATCH-X-ROSTER-009.md -->
 
-<!-- LANE-ADDED BEGIN: supersession map -->
-## Part 10 · Supersession map (lane's own addition, beside the carried text)
+## Part 10 · AMEND-BATCH-X-ROSTER-010 -- carried verbatim (added by operator instruction, 2026-09-11)
 
-Every entry below points at carried text that a later carried file governs. **Nothing in Parts 1-9 was edited to produce this map** -- it is the marker, and the superseded wording stays where it was written.
+<!-- CARRIED BEGIN: AMEND-BATCH-X-ROSTER-010.md sha256=6a241cbf184745d63305ae16acca2e786dbff5a35e208a26f2b9f46e10b44ebe -->
+
+# AMEND — batch X roster, 010 (backlog shrinks by mechanism: evidenced bulk closure per batch)
+
+<!-- browser seat · trigger: operator 2026-09-11 — the backlog is huge, tasks are never archived, when does it get smaller; the fix must be systemic and universal · witnesses: 80 KB / 275 open rows; births 2.4× closures; 101 rows over 1,320 chars; 30 bodies relocatable by archive_row_body.py; closure detector proposes the whole queue; closing a row is the operator's act and nobody hands him closures in bulk -->
+
+- **AX10-1 · Evidenced bulk closure at every batch close.** The close packet lists every row whose Done-when the batch's merges witnessed — row id · Done-when verbatim · the merged SHA and the test/gate that proves it — and asks the operator for ONE word to close them all. A row with no witness is not listed. First application: batch W (#683 `/override`, #638 proof layer, #278 test selection, #688 harness definition, #684 guard if merged).
+- **AX10-2 · The X2 backlog lane (`[#589]` + `archive_row_body.py`) adds:** narration relocates to `tasks/archive/` on a trigger (at each batch close), not by hand; the closure budget "close before filing" is enforced — a batch that files more rows than it closes reports the overdraft in its close packet.
+- **AX10-3 · Floor: MUST.** Backlog management is identical in every consumer repo.
+
+=== END OF AMEND ===
+
+<!-- CARRIED END: AMEND-BATCH-X-ROSTER-010.md -->
+
+## Part 11 · AMEND-BATCH-X-ROSTER-011 -- carried verbatim (added by operator instruction, 2026-09-11)
+
+<!-- CARRIED BEGIN: AMEND-BATCH-X-ROSTER-011.md sha256=27653345b0cd42c9a4fce5baeed159822262acfa91960dfaf642a31f769e7a86 -->
+
+# AMEND — batch X roster, 011 (two operator ratifications this seat breached; cleanup becomes an act)
+
+<!-- browser seat · source: to-browser/RATIFICATION-2026-09-10.md (the outgoing seat's, 4,332 B — unread by this seat until now; the seat's own same-named file was renamed RATIFICATION-2026-09-10-architect.md to end the name collision) · the operator's challenge 2026-09-11: this seat only adds, never deletes -->
+
+- **AX11-1 · Ratification #7 honoured — AX3-1 amended:** committing lanes run LOCAL **overnight only**; during working hours a committing lane waits for the night (or for conductor E). Today's daytime local lanes and integrator suites breached #7; recorded, not repeated.
+- **AX11-2 · Ratification #5 honoured:** the operator never types a path and the browser never composes a boot line. CC copies the current bundle's `SEAT-BOOT-*.md` renders to the transport's `to-browser/`, replacing the stale batch-V copies; a new seat is booted by pasting that file's content. The browser names only the file.
+- **AX11-3 · Cleanup is an act, not a note.** From the domain census (248 items: 197 LIVE, 24 UNTRIGGERED, 10 UNREAD, 1 GARBAGE-CANDIDATE, 16 UNKNOWN): the 35 non-live items get a proposal each — DELETE (git keeps history) · TRIGGER (named hook/gate/schedule) · KEEP with a one-line reason — delivered as one file for one operator GO; the 16 UNKNOWN are resolved by a second pass, not left. Deletions execute in one lane after the GO.
+- **AX11-4 · Net rows reported honestly:** this window files more rows than it closes; the batch W close packet reports the overdraft and the evidenced closures (AX10-1) that offset it.
+
+=== END OF AMEND ===
+
+<!-- CARRIED END: AMEND-BATCH-X-ROSTER-011.md -->
+
+<!-- LANE-ADDED BEGIN: supersession map -->
+## Part 12 · Supersession map (lane's own addition, beside the carried text)
+
+Every entry below points at carried text that a later carried file governs. **Nothing in Parts 1-11 was edited to produce this map** -- it is the marker, and the superseded wording stays where it was written.
 
 ### From AMEND-001 (the freezing amendment)
 
@@ -277,7 +312,7 @@ Every entry below points at carried text that a later carried file governs. **No
 - **AX8-1 is an INTERIM routing rule with an expiry written into it**, filed as `[#708]`: effective when W-2 is on `main`, every read-only digest, census or scan defaults to `agy` (stdout-only, serialised at most 1, with CC verifying every locator), and Claude is used only when agy refuses or the task commits, with model and tokens recorded per run in the receipt. **X1-4 routing REPLACES this interim rule with the registry** -- so the row is written to be retired by the routing lane rather than to persist.
 - **AX8-2 is a NEW row** (`[#709]`): a scheduled log-review routine -- daily, and every three days until conductor E is live -- on the cheapest admitted model, reading logs and telemetry and flagging a model that does not deliver, a stuck or zero-work lane, a cost spike, and a gate firing on empty; it writes one digest and FILES each anomaly as a row. It depends on C2 telemetry (`[#694]`) and on the B7 nightly routine (`[#702]`), and AX3-4 folds it with the logs lane.
 - **AX8-3 is TWO rows, because its own text says so.** `[#710]` is the test-baseline debt: the 26 permanently RED tests on the Windows baseline each fixed or dispositioned with a reason, because a baseline that stays red hides new failures. `[#711]` is the xdist frozenset-identity pollution in `test_manifest_link_route`, which AX8-3 explicitly directs to be filed "as its own row". AX8-3 also names the shape of test management: B1 impacted selection, B2 refusal without a test, B3 one full suite per batch, and this row.
-- **AX8-4 is a CLAUSE and this lane filed no row for it.** Templates are floor components -- the new-project starter -- covered by lane X-C's census of `templates/`, declared MUST under AX4-1, and rendered from the same source as the docs after the cut. **The row it is a clause OF does not exist in this file**: AX4-1's `floor: MUST | hub-only` declaration lives in AMEND-004, which is not carried (Part 11). The clause is recorded here and is owed to the floor-declaration row whenever AMEND-004 lands. This is the same shape as AX6-2 over AX5-2.
+- **AX8-4 is a CLAUSE and this lane filed no row for it.** Templates are floor components -- the new-project starter -- covered by lane X-C's census of `templates/`, declared MUST under AX4-1, and rendered from the same source as the docs after the cut. **The row it is a clause OF does not exist in this file**: AX4-1's `floor: MUST | hub-only` declaration lives in AMEND-004, which is not carried (Part 13). The clause is recorded here and is owed to the floor-declaration row whenever AMEND-004 lands. This is the same shape as AX6-2 over AX5-2.
 - **AX8-5 is a NEW row** (`[#712]`), FILE and RED-first: a session whose worktree was torn down silently resolves to the PRIMARY checkout, so a write from it lands on the integrator's branch. Teardown must end or refuse sessions on that worktree, and the Stop hook must detect cwd-not-a-worktree and refuse writes. Witnessed on the dispatcher session, 2026-09-11.
 
 ### From AMEND-009
@@ -296,10 +331,24 @@ Parts 6 and 7 are the intake body of `[#715]`, and **Part 7 governs Part 6 where
 - **APR-4 re-files three inbox-009 candidates as CLAUSES of `[#715]`, not as registries**: derived-copies becomes an FPG-1 edge kind, freshness becomes a query over last-touched, and per-consumer becomes the same graph per repo root joined by the floor manifest. **No separate rows were filed for them**, which is APR-4's explicit instruction.
 - **APR-5 sets the decision route, and it is why `[#715]` lands OPEN.** The QUESTION and this amendment are the intake BODY; the decision is made by the engine (AX7-1) with the thesis table. The browser proposes, it does not rule -- so `[#715]`'s disposition says OPEN rather than carrying the QUESTION's recommendation as though it were decided.
 - **Recorded, not a defect:** `QUESTION-path-registry-2026-09-11.md` carries **no** `carried-by:` line, unlike every other file carried here. It routes to this intake through AX7-3 and through its own sentence "lands as an intake via X-0's row" rather than through a transport header, so its carriage is declared in prose instead of in metadata. Carried on that basis.
+
+### From AMEND-010
+
+- **Part 1 §4 and the X2 backlog lane are extended by AX10-2**, two clauses: narration RELOCATES to `tasks/archive/` on a trigger (each batch close) rather than by hand, and the closure budget "close before filing" becomes ENFORCED -- a batch that files more rows than it closes reports the OVERDRAFT in its close packet. The host is `[#589]` plus `archive_row_body.py`, both of which exist and predate this lane, so the clauses are filed as `[#731]` rather than edited into `[#589]`: this lane does not edit rows it did not file. `[#731]` names `[#589]` as its fold target.
+- **AX10-1 is NEW, not a supersession**, and it is worth separating from the closure-detector rows it sits beside. `[#277]`, `[#487]` and `[#693]` are all about repairing the DETECTOR -- a machine proposing closures from its own signal. AX10-1 is a different act on a different evidence base: the CLOSE PACKET lists rows whose Done-when the batch's own MERGES witnessed, each with the merged SHA and the test or gate that proves it, and asks for ONE operator word. A row with no witness is not listed. Filed as `[#730]`.
+- **AX10-3 (`Floor: MUST`) has no host row in this repo** and is recorded rather than filed, the same disposition AX8-4 and AX9-4 received: the floor-declaration row lives in AX4-1, inside the uncarried AMEND-004 (Part 13). It is carried as a clause INSIDE `[#731]` so that it is reachable, and owed to the floor row when that row exists.
+
+### From AMEND-011
+
+- **AX3-1 is AMENDED by AX11-1, and the amended text is NOT carried here.** AX3-1 lives in AMEND-003, which no instruction has ever named (Part 13). So this file carries the amendment without its target: committing lanes run LOCAL **overnight only**, and during working hours a committing lane waits for the night or for conductor E. Filed as `[#732]` with the rule stated in full, precisely because the text it amends is absent -- a reader of this intake alone would otherwise see a correction to nothing.
+- **AX11-1 records a breach by the seat that carried it, and this lane is inside that breach.** Its own words: *"Today's daytime local lanes and integrator suites breached #7; recorded, not repeated."* This lane is a committing local lane that ran through 2026-09-11 daytime, so it is one of the lanes named. It is recorded here rather than argued: the ratification is the operator's, the breach is today's, and the amendment itself scopes the exemption to today.
+- **AX11-2 does not supersede `[#698]`; it sits beside it.** `[#698]` is a CARDINALITY defect in the SEAT-BOOT-integrator render (a GO per merge where the canon grants one per batch). AX11-2 is about DELIVERY -- the renders are copied to the transport's `to-browser/`, replacing the stale batch-V copies, so the operator never types a path and the browser names only a file. Same artifact, different failure. Filed as `[#733]`.
+- **AX11-3 does not supersede `[#706]`.** `[#706]` is a packet-CONTENT decision (D14, folder-as-domain) that cannot be made before the census returns. AX11-3 is what happens AFTER it returns: each of the 35 non-live items gets a DELETE / TRIGGER / KEEP proposal, delivered as one file for one operator GO, with the 16 UNKNOWN resolved by a second pass rather than left. Filed as `[#734]`.
+- **AX11-4 is an obligation on a close packet this lane does not write.** It directs the BATCH W close packet to report the window's net-row overdraft alongside AX10-1's evidenced closures. Batch W's packet is the integrator's artifact, so no row is filed for it here; the enforcement half of the same idea is `[#731]`'s overdraft clause, and this is owed to the integrator.
 <!-- LANE-ADDED END -->
 
 <!-- LANE-ADDED BEGIN: not carried -->
-## Part 11 · What this file does NOT carry (lane's own addition)
+## Part 13 · What this file does NOT carry (lane's own addition)
 
 **`AMEND-BATCH-X-ROSTER-003`, `-004` and `-005` exist on the operator's transport and are NOT carried here.** They are recorded rather than folded, because folding them would be a deviation the lane is not authorised to make -- and leaving them unnamed would make this file a carrier that silently drops payloads which name it as their carrier. All three carry `carried-by: docs/intake/2026-09-11-tech-batch-x-roster.md` -- **this file**.
 
@@ -323,6 +372,11 @@ Parts 6 and 7 are the intake body of `[#715]`, and **Part 7 governs Part 6 where
                                            operator instruction
 14:36  AMEND-009                           carried, Part 9 -- fourth
                                            operator instruction
+15:45  AMEND-010                           carried, Part 10 -- fifth
+                                           operator instruction, AFTER
+                                           this lane's close packet
+15:49  AMEND-011                           carried, Part 11 -- same
+                                           instruction
 ```
 
 The lane's frozen contract names three sources and freezes the NEW-row set against them; four later operator instructions added AMEND-006, then AMEND-007 with the two path-registry files, then AMEND-008, then AMEND-009 -- each **by name** and each naming the rows wanted from it. None of the four instructions reaches 003, 004 or 005. What the uncarried three contain, stated so the next reader can size the gap without re-reading the transport:
@@ -343,16 +397,18 @@ Part 4 is carried verbatim and therefore carries its own unresolved dependencies
 6. **AX8-4 makes templates a floor component "declared MUST under AX4-1"** -- and AX4-1 is in AMEND-004 and is not carried, so the row AX8-4 is a clause of does not exist in this file. Recorded as owed; no row filed. Same shape as AX6-2 over AX5-2.
 7. **AX8-2 folds the log-review routine "with the logs lane (AX3-4)"** -- AX3-4 is in AMEND-003 and is not carried, so the lane it folds INTO is not defined here. `[#709]` is filed on AX8-2's own terms, and the fold is recorded as owed.
 8. **AX9-4 is a clause on TWO things, one of which is uncarried.** The decision engine (AX7-1) IS carried, in Part 5; the floor declaration (AX4-1) is in AMEND-004 and is not. So half of AX9-4's attachment resolves in this file and half does not -- the same split AX7-1 itself has.
+9. **AX10-3 (`Floor: MUST`) attaches to the same missing AX4-1** -- the third clause in this file to do so, after AX8-4 and AX9-4. Three separate amendments now point at one uncarried row, which is itself the argument for landing AMEND-004: the cost of not carrying it is no longer a single dangling clause but a pattern.
+10. **AX11-1 AMENDS AX3-1, which is in AMEND-003 and is not carried** -- so this file holds an amendment whose TARGET is absent, the inverse of the usual shape. The rule is therefore written out in full in `[#732]` rather than as a delta, because a delta against absent text is unreadable.
 
-**What this does and does not change about the rows filed under this intake.** Every row the frozen roster marks NEW still exists under 003-005 -- those amendments re-assign WAVES and add FURTHER rows; they retire none of the rows filed here. Wave assignment is not this intake's surface. So the filed set is correct and incomplete rather than wrong, and the delta is additive: the docs-cut row, the management-map row, the conditional path-registry row, the `floor:` declaration clause and the per-lane model/cost clause are **owed to a follow-up act**, not silently lost.
+**What this does and does not change about the rows filed under this intake.** Every row the frozen roster marks NEW still exists under 003-005 -- those amendments re-assign WAVES and add FURTHER rows; they retire none of the rows filed here. Wave assignment is not this intake's surface. So the filed set is correct and incomplete rather than wrong, and the delta is additive: the docs-cut row, the management-map row, the conditional path-registry row, the `floor:` declaration clause (now pointed at by THREE amendments) and the per-lane model/cost clause are **owed to a follow-up act**, not silently lost.
 
 Landing them is a decision for the operator or the next architect seat, not for this lane: carrying them would have changed a NEW-row enumeration that the lane's contract froze **specifically so the lane could not over-file by judgment**. The operator's AMEND-006 instruction is the precedent for how they land when they land -- named explicitly, with the rows wanted from them named too.
 <!-- LANE-ADDED END -->
 
 <!-- LANE-ADDED BEGIN: close packet -->
-## Part 12 · This lane's close packet (lane's own addition)
+## Part 14 · This lane's close packet (lane's own addition)
 
-The filing lane's end-of-lane artifact -- what changed, every row id it minted and what each is for, the folds it made and declined, the two declared deviations and the acts it leaves owed to the integrator -- is `docs/audits/2026-09-11-technical-x0-batch-x-roster-close-packet.md`. Read it beside this file: this file is WHAT was carried, and that one is WHY the filed set looks the way it does.
+The filing lane's end-of-lane artifact -- what changed, every row id it minted and what each is for, the folds it made and declined, its declared deviations and the acts it leaves owed to the integrator -- is `docs/audits/2026-09-11-technical-x0-batch-x-roster-close-packet.md`. Read it beside this file: this file is WHAT was carried, and that one is WHY the filed set looks the way it does.
 <!-- LANE-ADDED END -->
 
 === END ===

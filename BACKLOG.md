@@ -23,6 +23,7 @@ So that an architecture session inherits the big picture + vision while an execu
 - [#611] [P2][M] HANDOFF_PROCESS v7: the minimal-bundle package · tasks/611-handoff-process-v7-the-minimal-bundle-package.md
 - [#720] [P3][S] The browser role file carries no pointer to the standing-rulings register, so a booting seat never learns a ruling landed after its ROLE PIN · tasks/720-handoff-boot-carries-no-pointer-to-the-standing-rulings-register.md
 - [#633] [P2][M] /boot-session gains HISTORY DELTA and EQUILIBRIUM MAP — two GENERATED sections · tasks/633-boot-session-gains-history-delta-and-equilibrium-map.md
+- [#733] [P1][S] Ratification #5: the operator never types a path and the browser never composes a boot line -- the SEAT-BOOT renders go to the transport · tasks/733-seat-boot-renders-land-on-the-transport-so-the-operator-never-types-a-path.md
 
 ### [S2] Finish the v5 handoff machinery deferred at the #149 flip
 So that the canonical v5 handoff is fully implemented (generator) and mechanically verified (teeth), not just specified.
@@ -167,6 +168,7 @@ So that session-start/close automation actually runs instead of being wired-but-
 - [#519] [P1][M] The close path is two edits, and nothing makes a half-done close visible · tasks/519-the-close-path-is-two-edits-and-nothing-makes-a.md
 - [#522] [P2][M] A re-cut handoff sibling carries its predecessor's payloads — the thinner-refill hole · tasks/522-re-cut-bundle-carries-predecessor-payloads.md
 - [#684] [P1][M] MA-1 — the deployed `PreToolUse` guard turns a missing environment variable into total refusal for any reader that is not Claude Code · tasks/684-ma-1-the-pretooluse-guard-refuses-every-non-claude-reader.md
+- [#730] [P1][M] Work lands on main and its row stays open, because nobody hands the operator closures in bulk -- the close packet lists what the merges witnessed · tasks/730-evidenced-bulk-closure-at-every-batch-close-one-operator-word.md
 
 ### [S8] Make hub enforcement reach consumers, not just the hub (enforcement-transfer mesh)
 So that "held by mechanism, not memory" is true for every consumer, not only the hub — the deploy subsystem (ADR-91/92) carries the PRESENCE of the methodology to consumers but NOT its ENFORCEMENT: five hub organs (session_end_backpressure, canonical_freshness, doc_claims, git_backlog_drift, the coherence spine) are hub-only, so the founding standard is TRUE for the hub and FALSE for every consumer (proof: ai-council shipped 3 epics with JOURNAL ~1mo stale, unblocked). This epic closes that gap, stage-ordered.
@@ -274,6 +276,7 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 - [#612] [P2][M] Doc-rot row-body archival mechanism · tasks/612-doc-rot-row-body-archival.md
 - [#628] [P1][L] DC-2 re-cut — dissolving `ESSENTIALS.md` is a FLEET-COUPLED release act, not a doc lane · tasks/628-dc2-recut-essentials-dissolution-is-a-release-act.md
 - [#647] [P3][M] The harness's own carrying cost is unmeasured, and lane contracts are pasted rather than referenced · tasks/647-harness-carrying-cost-unmeasured-contracts-pasted.md
+- [#731] [P1][M] The backlog only grows -- narration is relocated by hand and nothing stops a batch filing more rows than it closes · tasks/731-backlog-shrinks-by-mechanism-relocation-trigger-and-an-enforced-closure-budget.md
 ## [E6] Cross-repo universalization
 > As the disseminator, I want every child repo to converge on the universal baseline.
 
@@ -301,6 +304,7 @@ So that the consumer-facing live surface reflects CURRENT state — hub-deprecat
 - [#244] [P2][L] Essence-spec lifecycle epic · DEFER · tasks/244-essence-spec-lifecycle-epic.md
 - [#245] [P2][M] Add-path status-awareness · DEFER · tasks/245-add-path-status-awareness.md
 - [#690] [P2][S] The three SUPERSEDED `block-onedrive` hook copies under `~/.claude/hooks/` — removed, and the removal recorded in-repo · tasks/690-three-superseded-l0-hook-copies-removed-batch-w-w5.md
+- [#734] [P1][M] Cleanup is an act, not a note -- the census's 35 non-live items each get DELETE, TRIGGER or KEEP, as one file for one operator GO · tasks/734-cleanup-is-an-act-35-non-live-census-items-get-a-proposal-each.md
 
 ### [S17] Make new-repo scaffolding correct-by-default
 So that a new repo inherits the full baseline in one step, not by re-derivation.
@@ -409,6 +413,7 @@ So that unattended routines run only with a named consumer, a survival metric, a
 - [#673] [P2][S] Six batch-V suite REDs are unattributed, and only a same-substrate run on the pre-batch commit can attribute them · tasks/673-six-batch-v-suite-reds-are-unattributed-and-only-a.md
 - [#702] [P1][M] The repo declares zero `cron:` and zero `schedule:`, so the nightly layer `[S20]` exists to revive has nothing to revive · tasks/702-zero-cron-zero-schedule-the-nightly-layer-has-nothing-to-revive.md
 - [#723] [P1][M] Nothing reads the logs, so a model that silently stops delivering costs a whole night before anyone notices -- a log-review routine that files its own anomalies · tasks/723-log-review-routine-self-healing-runs-as-a-batch-close-lane-until-conductor-e.md
+- [#732] [P1][S] Ratification #7: a committing lane runs LOCAL overnight only, and during working hours it waits for the night or for conductor E · tasks/732-committing-lanes-run-local-overnight-only-ratification-7-honoured.md
 ## [E8] ARC-5 execution
 > As the operator, I want ARC-5's wave map, closure contract, and unruled decisions to live somewhere that can EVOLVE as waves land — not frozen inside an immutable handoff bundle.
 

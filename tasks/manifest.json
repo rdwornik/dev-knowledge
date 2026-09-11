@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "cdd8a0aa4633c39f62c3adeb3b8af88d13580d7ed6fc45809e93bbbcfa033980",
+  "generated_sha256": "cdf1a5c3bca5c2bea39144da206af24fab5cc6145eee347ff92d5811963f1df9",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -80,6 +80,10 @@
     {
       "task": 633,
       "file": "633-boot-session-gains-history-delta-and-equilibrium-map.md"
+    },
+    {
+      "task": 733,
+      "file": "733-seat-boot-renders-land-on-the-transport-so-the-operator-never-types-a-path.md"
     },
     {
       "prose": ""
@@ -635,6 +639,10 @@
       "file": "684-ma-1-the-pretooluse-guard-refuses-every-non-claude-reader.md"
     },
     {
+      "task": 730,
+      "file": "730-evidenced-bulk-closure-at-every-batch-close-one-operator-word.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -1017,6 +1025,10 @@
       "file": "647-harness-carrying-cost-unmeasured-contracts-pasted.md"
     },
     {
+      "task": 731,
+      "file": "731-backlog-shrinks-by-mechanism-relocation-trigger-and-an-enforced-closure-budget.md"
+    },
+    {
       "prose": "## [E6] Cross-repo universalization"
     },
     {
@@ -1115,6 +1127,10 @@
     {
       "task": 690,
       "file": "690-three-superseded-l0-hook-copies-removed-batch-w-w5.md"
+    },
+    {
+      "task": 734,
+      "file": "734-cleanup-is-an-act-35-non-live-census-items-get-a-proposal-each.md"
     },
     {
       "prose": ""
@@ -1526,6 +1542,10 @@
     {
       "task": 723,
       "file": "723-log-review-routine-self-healing-runs-as-a-batch-close-lane-until-conductor-e.md"
+    },
+    {
+      "task": 732,
+      "file": "732-committing-lanes-run-local-overnight-only-ratification-7-honoured.md"
     },
     {
       "prose": "## [E8] ARC-5 execution"

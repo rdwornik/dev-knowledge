@@ -8,8 +8,8 @@
 ## 1 · What this lane did
 
 Landed the batch X roster into the repo as **intake 93**
-(`docs/intake/2026-09-11-tech-batch-x-roster.md`), carrying **nine transport files**
-byte-identically, and filed **28 rows** into `tasks/`.
+(`docs/intake/2026-09-11-tech-batch-x-roster.md`), carrying **eleven transport files**
+byte-identically, and filed **33 rows** into `tasks/`.
 
 It is TEXT-ONLY by contract. It built none of the mechanisms the roster names, changed no
 file under `scripts/`, wrote no JOURNAL entry, and regenerated no organ index.
@@ -21,9 +21,9 @@ and what X1-1 needs to know are §3.4.
 
 ## 2 · Row ids minted, and what each is
 
-Twenty-eight rows. The first twenty came from the contract's reserved block `693–719`; the
-last eight were allocated by the live mechanism after the operator ruled the block
-exhausted.
+Thirty-three rows. The first twenty came from the contract's reserved block `693–719`;
+the remaining thirteen were allocated by the live mechanism after the operator ruled the
+block exhausted — eight at the AMEND-008/009 fold and five more at AMEND-010/011.
 
 ### From the frozen roster and AMEND-006 — ids 693–707
 
@@ -68,10 +68,20 @@ exhausted.
 729  FPG-1 queries exposed as MCP tools, beside Grep  (AX9-3)
 ```
 
+### From AMEND-010 and AMEND-011 — ids 730–734
+
+```
+730  evidenced bulk closure: the close packet lists what the batch's merges witnessed  (AX10-1)
+731  backlog shrinks by mechanism: relocation trigger + enforced closure budget  (AX10-2, +AX10-3 floor clause)
+732  ratification #7: committing lanes run LOCAL overnight only  (AX11-1)
+733  ratification #5: SEAT-BOOT renders land on the transport, no path typed  (AX11-2)
+734  cleanup is an act: the census's 35 non-live items each get DELETE/TRIGGER/KEEP  (AX11-3)
+```
+
 **`708–714` are unused holes** inside the reserved block. They were never filed into, and
 gaps in the id sequence are normal here rather than a defect to tidy.
 
-## 3 · Four declared deviations
+## 3 · Five declared deviations
 
 ### 3.1 · The intake id is 93, not the 92 the Done-contract froze
 
@@ -135,17 +145,19 @@ reads like a content conflict and invites a bypass, when nothing was in conflict
 ### 3.3 · The BACKLOG view byte bar is breached — and it was already breached on `main`
 
 `tests/test_gen_task_tree.py::test_the_live_view_is_under_the_589_done_when_byte_bar`
-asserts `BACKLOG.md < 72,000 B`. After this lane's 28 rows the live view is **87,989 B**.
+asserts `BACKLOG.md < 72,000 B`. After this lane's 33 rows the live view is **89,633 B**.
 **That test was already RED before this lane touched anything:** `BACKLOG.md` at `main` and
-at this branch's base is **81,266 B** — 9,266 B over the bar, on a file this lane did not
-write. This lane's 28 rows add **6,723 B** and deepen an existing breach; they do not create
-one. The arithmetic is the whole proof, since the assertion reads only the file's length.
+at this branch's base is **81,743 B** — 9,743 B over the bar, on a file this lane did not
+write. This lane's 33 rows add **7,890 B** and deepen an existing breach; they do not create
+one. The arithmetic is the whole proof, since the assertion reads only the file's length, and
+it closes exactly: 81,743 + 7,890 = 89,633. (The base moved from 81,266 during this lane, as
+X-R and X-C landed on `main` — the breach predates all three of us.)
 
 **The growth-proof half of the mechanism HELD, which is the part worth reporting.** The
 per-row ceiling `_VIEW_ROW_BYTE_CEILING = 400` is enforced on every commit; this lane's
 largest projected row is **301 B** and all 28 are under it. So is the per-commit total gate
 `_VIEW_BYTE_CEILING = 100,000`, which the generator's docstring says sits deliberately above
-the 72,000 bar *"so ordinary queue growth can never wedge a commit"* — 87,989 is under it,
+the 72,000 bar *"so ordinary queue growth can never wedge a commit"* — 89,633 is under it,
 and the commit is therefore not wedged **by design**, not by luck.
 
 **This lane did not fix it, and could not.** The bar's own docstring names the two lawful
@@ -191,13 +203,11 @@ path and finds one in every row body, since each opens by citing
 `docs/intake/2026-09-11-tech-batch-x-roster.md`. Built against the committed tree:
 
 ```
-rows with an implements edge to intake 93: 43
-[242, 568, 582, 589, 616, 617, 638, 664, 667, 669, 670, 675, 685, 686, 687,
- 693, 694, 695, 696, 697, 698, 699, 700, 701, 702, 703, 704, 705, 706, 707,
- 715, 716, 717, 718, 719, 722, 723, 724, 725, 726, 727, 728, 729]
+new rows with an edge: [730, 731, 732, 733, 734]
+all 33 lane rows present: True | lane rows: 33
 ```
 
-All 28 of this lane's rows are there. (The other 15 are leg 2 — the intake's byte scan
+All 33 of this lane's rows are there (re-run after the AMEND-010/011 fold). (The other 15 are leg 2 — the intake's byte scan
 finding `[#id]` tokens inside the carried roster text, which is the reverse claim and not
 this lane's doing.) So the edge the contract wanted **exists and is queryable today**; only
 the key does not.
@@ -209,6 +219,26 @@ lanes that were told to write it. Either add the deriver, or police the body-pat
 already computes. What cannot work is a contract instructing lanes to hand-write a key the
 generator is designed to strip, because that failure is **silent**: the lane complies, the
 regen removes it, and nothing reports the loss.
+
+### 3.5 · This lane breached ratification #7 while filing the row that states it
+
+`[#732]` carries AX11-1: **a committing lane runs LOCAL and OVERNIGHT ONLY; during working
+hours it waits for the night or for conductor E.** This lane is a committing local lane that
+ran through 2026-09-11 daytime. It is one of the lanes the amendment means when it says
+*"Today's daytime local lanes and integrator suites breached #7; recorded, not repeated."*
+
+Recorded rather than argued, for three reasons that are worth separating:
+
+1. **The amendment scopes its own exemption to today** and asks for a record, not a halt.
+2. **The instruction to fold AMEND-010/011 postdates the ratification**, and an operator
+   instruction to do work now is the operator's call on when it runs.
+3. **The breach is not costless, and this window measured the cost.** `[#724]` exists
+   because no valid RED-baseline count could be taken from a worktree while sibling lanes
+   saturated the box. That is the same concurrency ratification #7 forbids, and it is why
+   `[#732]` is filed as a real constraint rather than as hygiene.
+
+A lane that files a rule and quietly exempts itself from it has filed nothing. The record
+is the row, and this is the row's first citation.
 
 ## 4 · The judgment calls the contract left to this lane
 
@@ -335,6 +365,18 @@ clauses.
   discharged affirmatively. Evidence is this filing session: its Bash calls were denied
   several times by the worktree-isolation `PreToolUse` guard, each refusal reaching the model
   and stopping the call. The `UserPromptSubmit` fallback AX9-1 held in reserve is not needed.
+- **The domain-census counts in AX11-3 are VERIFIED, not carried on the amendment's word.**
+  X-C landed `docs/audits/2026-09-11-technical-domain-census.md` on `main` (`cd25a094`)
+  while `[#734]` was being written, so the input became resolvable mid-filing. Its own
+  **REPO TOTAL** row reads **248 | 197 | 24 | 10 | 1 | 16** — AX11-3's figures exactly.
+  **And the way to read it is part of the finding:** this lane first tallied the verdict
+  column across the tables and got 234, not 248, and briefly took that for a discrepancy
+  between the amendment and the artifact. The tally was the faulty instrument — several
+  rows stand for COMPRESSED STREAMS (the `history/*.md` row alone covers ~90 dated files
+  across six streams), so a per-row scan undercounts by construction. The census states
+  its own total precisely so nobody has to count; the warning is written into `[#734]`
+  rather than left here, because the next seat to act on those numbers will be reading the
+  row, not this packet.
 - **One locator corrected**: AX6-3 names `dashboard/conformance.html`. No `dashboard/`
   directory exists; the file is **`ecosystem/conformance.html`**, and `705` carries the
   corrected path.
@@ -356,27 +398,51 @@ clauses.
    fix `CLAUDE.md:138`, re-derive the ship-gate WARN delta **against the regenerated index**,
    and supersede the `ORPHAN_DISPOSITIONS` `/override` line per AW6-1.
 
+4. **AX11-4 is owed to the BATCH W close packet, which is the integrator's artifact.** It
+   directs that packet to report the window's net-row overdraft alongside AX10-1's evidenced
+   closures. No row was filed here for it; the enforcement half of the same idea is
+   `[#731]`'s overdraft clause. **This lane is the overdraft's largest single contributor:
+   33 rows filed, none closed.**
+5. **AX10-1's first application is already specified by live evidence**, which makes it
+   cheap to run: `[#683]` at `0bb1d5ce`, `[#638]` at `69a0266c`, `[#278]` at `e4929b09`,
+   `[#688]` at `365ae7d1` — four rows whose work is on `main`'s first-parent spine and whose
+   `status:` is still `open`. `[#684]` is unmerged, so under `[#730]`'s own no-witness rule
+   it is excluded until its lane lands.
+
 **Operator:**
 
-4. **AMEND-003, -004 and -005 are still NOT carried.** All three declare
+6. **AMEND-003, -004 and -005 are still NOT carried.** All three declare
    `carried-by: docs/intake/2026-09-11-tech-batch-x-roster.md` — this intake — and no
    instruction has ever named them, where -006, -007, -008 and -009 each were. They leave
    **live dangling references inside what IS carried**, named precisely in the intake's
    Part 11: AX6-2 and AX9-4 → AX4-1/AX5-2; AX6-3 → AX5-1; AX8-2 → AX3-4; AX8-4 → AX4-1;
    AX7-2 supersedes an ordering AX3-3 set; AX7-3 supersedes AX5-3's conditional filing.
    Landing them is one more instruction. This lane did not infer it.
-5. **Ledger A6 has no row and no refusal** (see §6).
-6. **The fourth dispatch defect** is unfiled by design (see §6).
+7. **Ledger A6 has no row and no refusal** (see §6).
+8. **The fourth dispatch defect** is unfiled by design (see §6).
+9. **THREE amendments now point at the same absent row.** AX8-4, AX9-4 and now AX10-3 all
+   attach to the floor declaration AX4-1, which lives in the uncarried AMEND-004. The cost
+   of not carrying that file is no longer one dangling clause but a pattern, and it is the
+   strongest argument yet for landing 003–005. AX10-3's text rides inside `[#731]` so it is
+   at least reachable.
 
 ## 10 · Verification
 
-- Carriage proven mechanically, not asserted: all **nine** carried blocks re-extracted from
-  the committed file and compared byte-for-byte against their transport sources. Each block
-  is exactly 60 B shorter than its source — the excluded `carried-by:` line and its newline —
-  except `QUESTION-path-registry`, which has no such line and is 1 B shorter for its trailing
-  newline. All sources are LF, so no normalisation was applied.
+- Carriage proven mechanically, not asserted: all **eleven** carried blocks re-extracted from
+  the committed file and compared byte-for-byte against their transport sources — **27,933 B
+  carried of 64,113 B total**. Each block is exactly 60 B shorter than its source — the
+  excluded `carried-by:` line and its newline — except `QUESTION-path-registry`, which has no
+  such line and is 1 B shorter for its trailing newline. AMEND-010 (1,446 → 1,386 B) and
+  AMEND-011 (1,739 → 1,679 B) both hold the 60 B pattern exactly. All sources are LF, so no
+  normalisation was applied. Their sha256s were taken independently with `Get-FileHash`
+  before assembly and match what the assembler recorded.
 - Every line this lane added sits inside a marked `LANE-ADDED` block **beside** carried text.
-  Nothing in Parts 1–9 was edited to produce the supersession map.
+  Nothing in Parts 1–11 was edited to produce the supersession map. The lane-added parts were
+  renumbered to 12/13/14 when Parts 10 and 11 arrived; no carried text moved.
+- `gen_task_tree.py --check` **ok** — frontmatter honesty holds across all 315 rows, which is
+  also the proof that a hand-written `implements:` key would have failed it (§3.4).
+- All **33** of this lane's rows carry a live FPG-1 `implements` edge into intake 93,
+  re-verified after the AMEND-010/011 fold.
 - **Targeted suite for this lane's diff** (`[#528]`: a lane runs targeted, the full suite
   runs once at integration) — `test_backlog_source`, `test_gen_task_tree`,
   `test_task_tree_gate`, `test_validate_backlog`, `test_gen_intake_index`,
