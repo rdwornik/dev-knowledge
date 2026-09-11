@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "cd71d74733da6a5c5453d7b953b42acbe3967234b5c76b318d5c0849d999016e",
+  "source_sha256": "4edcf1ba711db80e161cc297fc47131df15c894ee3ac92f8617d006d100019bf",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
-    "item_derived_lines": 82,
-    "residue_lines": 297,
-    "total_lines": 379,
+    "item_derived_lines": 83,
+    "residue_lines": 300,
+    "total_lines": 383,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -482,7 +482,7 @@
     },
     {
       "t": "line",
-      "v": "**82 intake documents.**"
+      "v": "**83 intake documents.**"
     },
     {
       "t": "line",
@@ -941,6 +941,23 @@
       "t": "item",
       "file": "2026-09-05-tech-aj-second-pass.md",
       "status": "ACCEPTED"
+    },
+    {
+      "t": "line",
+      "v": ""
+    },
+    {
+      "t": "line",
+      "v": "### OTHER (1)"
+    },
+    {
+      "t": "line",
+      "v": ""
+    },
+    {
+      "t": "item",
+      "file": "2026-09-11-tech-batch-x-roster.md",
+      "status": ""
     },
     {
       "t": "line",
