@@ -19,6 +19,49 @@
 
 ---
 
+### 2026-09-11 (j) - CC (Opus 5, background integrator seat): the roster anchor arc anchors itself
+
+**Names `81c3d52f`**, the (i) entry's commit — the only SHA this arc's merge introduces besides
+this entry, and therefore the only one available to anchor it. Append-only, per B6: a second entry
+rather than an edit to (i), because amending in place would discharge the anchor retroactively.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+### 2026-09-11 (i) - CC (Opus 5, background integrator seat): the batch X roster lands, and night gating is superseded mid-queue
+
+**Names `86a4cbe0`**, X-0's tip, introduced by the merge `b595545b`.
+
+**Did.** Merged X-0 — the batch X roster as intake 93, with AMEND-001/002 corrections and
+AMEND-006 through AMEND-011 folded in — filing **33 rows** (`[#693]`-`[#707]`, `[#715]`-`[#719]`,
+`[#722]`-`[#734]`). Docs-only, `review=n/a` under D-1, verdicted by `audit.py handback` at exit 0
+**before** the merge. Merged FIRST in the reordered queue because X1 cannot dispatch until these
+rows are on `main`. Tore down X-R and X-C, both `ahead=0` and both passing the ancestor proof.
+
+**Night gating was superseded while this queue was running**
+(`to-browser/RATIFICATION-2026-09-11.md`, 2026-09-11 ~16:45): *continuous work, no night gating*,
+which supersedes ratification #7's timing and AX11-1 — and, with it, row `[#732]`, one of the 33
+rows this very merge lands. **A row can be superseded by a ruling made before the row reaches
+`main`**, which is worth recording precisely because it looks like a contradiction in the tree: the
+roster carries `[#732]` as filed, and the ratification that retires it is dated earlier than the
+merge that lands it. The row is not wrong; it is superseded, and the next lane that touches it
+amends it.
+
+**The anchor, for the third time this window.** Batch X still has **no manifest**, so its lane
+merges take no ADR-110 exemption at all and land as ordinary unanchored spine entries. This is the
+same defect entry (g) recorded; it fires once per batch-X merge until a manifest exists. That is
+the argument for batch X writing its manifest **before** its next lane merges rather than at
+dispatch-time convenience: the exemption is not a formality, it is the thing standing between an
+integrator merge and a repo-wide commit block.
+
+**Also ratified in the same file, and owed as a separate act:** *"Close the batch W tasks whose
+work is on `main` — YES. `[#683]` `[#638]` `[#278]` `[#688]`, and `[#684]` once merged, under
+`[#730]`."* That is the ONE OPERATOR WORD batch W's close packet section 9 asked for (AX10-1), and
+`[#730]` — the row that carries the mechanism — is one of the 33 this merge just landed.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+**Next.** Push, then the W-2 fix lane with a fresh Codex review per AW6-2.
+
 ### 2026-09-11 (h) - CC (Opus 5, background integrator seat): the anchor arc anchors itself
 
 **Names `8ca3adfb`**, the (g) entry's commit — the one commit this arc's merge introduces besides
