@@ -19,6 +19,43 @@
 
 ---
 
+### 2026-09-11 (d) - CC (Opus 5, background integrator seat): the substrate merge is not a lane, so the exemption does not reach it
+
+**Names `81a28aad`**, one of the four commits the merge `a3374b70` introduced - written and
+committed BEFORE any other work on this arc, because the gap it clears was already blocking every
+commit in the repo.
+
+**Did.** Opened batch W's merge queue as integrator and merged W-8 (`cdeffc2e`), W-1 (`365ae7d1`),
+W-7 (`e4929b09`) and the AW5-3 substrate manifest change (`a3374b70`), each `--no-ff`, each with
+teardown verified by `git merge-base --is-ancestor` before any `-d`.
+
+**The defect this entry exists to record.** The ADR-110 declared-integration-arc exemption covers a
+batch's **lane** merges while its manifest is `status: open`. `a3374b70` is a **substrate** merge -
+the AW5-3 manifest change recording why both codespace lanes produced zero work - and a substrate
+merge is not a lane. So it took no exemption, landed on main's first-parent spine unanchored, and
+`journal_spine_anchor` began FAILing `audit-health`, which blocks **every subsequent commit**. The
+gate text says so precisely: it reports one unanchored entry and separately exempts three lane
+merges, which is the discriminator - the exemption was working exactly as written; the merge simply
+was not of the class it covers.
+
+**Why the ordering is inverted on this arc.** An integrator arc is normally substantive-first,
+JOURNAL-last (Ch8, batch-1 F1b). Here the block already existed, so a substantive commit could not
+land first - it was refused by the same gate. The entry therefore goes FIRST to clear the spine,
+the substantive commit follows, and a further entry anchors this arc's own merge. That is the
+dispatcher's (c)-entry fix one level up, and the same reason applies: re-running a refused commit
+addresses a gap that re-running does not close.
+
+**`SKIP=audit-health` was available and was NOT used.** The ADR-110 amendment 2026-08-07 retired
+that bypass for intermediate merges because the manifest was made to carry the exemption instead.
+The gate here is not misfiring - it is correctly reporting a real unanchored entry. Silencing a
+correct gate to land one's own commit is the direction this repo files defects about, not the
+direction it takes.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+**Next.** The manifest's integration-deviations section, then W-3's merge - which this entry
+unblocks.
+
 ### 2026-09-11 (c) - CC (Opus 5, background dispatcher seat): the batch W amendment and [#690] land
 
 **Names `d385cc1a`**, the commit this entry anchors - the manifest amendment plus `[#690]`, coupled
