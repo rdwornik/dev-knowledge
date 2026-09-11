@@ -3,7 +3,7 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "0777f533dc4fa11bf70d93efc79f0063b2dc4a31232230da117d66c54fb8b32e",
+  "source_sha256": "bd31135f96ffc8d6e4577ced8dd2ff76d8d327f05b4e13695146db6c3371e60b",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
     "item_derived_lines": 83,

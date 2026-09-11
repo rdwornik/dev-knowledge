@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "39f5aa87e40db0c8be3ef416f658a7c0fb6835540f0949cd6c0acac3616b80b6",
+  "generated_sha256": "590f741929d02845e832623c5b4a3867b64953b8c30ec673188a4944c72955ed",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -426,6 +426,26 @@
       "file": "692-decision-coverage-a-decided-thing-is-never-unscheduled-again.md"
     },
     {
+      "task": 698,
+      "file": "698-seat-boot-integrator-render-emits-a-go-per-merge-where-canon-grants-one-per-batch.md"
+    },
+    {
+      "task": 699,
+      "file": "699-three-tally-grammars-coexist-and-two-collide-on-a-substring.md"
+    },
+    {
+      "task": 715,
+      "file": "715-path-management-has-no-single-declaration-and-fpg1-is-already-the-registry.md"
+    },
+    {
+      "task": 726,
+      "file": "726-torn-down-worktree-session-silently-resolves-to-the-primary-checkout.md"
+    },
+    {
+      "task": 727,
+      "file": "727-deny-and-point-hook-a-raw-search-over-a-governed-question-is-refused.md"
+    },
+    {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
     },
     {
@@ -450,6 +470,14 @@
     {
       "task": 277,
       "file": "277-propose-closures-signal-repair.md"
+    },
+    {
+      "task": 693,
+      "file": "693-closure-detector-proposes-the-whole-queue-with-a-dead-surfacing-hook.md"
+    },
+    {
+      "task": 719,
+      "file": "719-organ-index-entries-answer-to-no-schema-validate-against-catalog-model.md"
     },
     {
       "prose": ""
@@ -818,6 +846,14 @@
       "file": "688-declare-harness-is-process-is-cited-by-three-audits-and-answers-to-no-tracked-file.md"
     },
     {
+      "task": 695,
+      "file": "695-intake-70-aj-second-pass-is-accepted-with-zero-rows.md"
+    },
+    {
+      "task": 700,
+      "file": "700-aw54-control-surfaces-are-state-ruling-reached-no-enforcing-surface.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -888,6 +924,10 @@
     {
       "task": 585,
       "file": "585-suite-red-test-anchor-gate-probe-distinguishes-i.md"
+    },
+    {
+      "task": 707,
+      "file": "707-w4-close-residue-organ-index-one-row-stale-under-a-declared-bypass.md"
     },
     {
       "prose": "### [S14] Keep the day-to-day docs right-sized and current"
@@ -1269,6 +1309,54 @@
       "file": "658-fourteen-operator-points-nine-mechanisable-nothing-counts.md"
     },
     {
+      "task": 694,
+      "file": "694-four-telemetry-modules-are-inventory-each-gets-a-trigger-or-is-deleted.md"
+    },
+    {
+      "task": 697,
+      "file": "697-codespace-detached-lane-returns-zero-work-and-nothing-decides-repair-or-retire.md"
+    },
+    {
+      "task": 703,
+      "file": "703-impacted-test-selection-empty-selection-must-fail-closed.md"
+    },
+    {
+      "task": 704,
+      "file": "704-propose-closures-writes-a-new-file-every-run-instead-of-one-overwritten.md"
+    },
+    {
+      "task": 705,
+      "file": "705-no-chart-renders-task-flow-so-how-is-the-batch-going-is-answered-by-reading-rows.md"
+    },
+    {
+      "task": 716,
+      "file": "716-worktree-baseref-unset-so-every-lane-branches-behind-local-main.md"
+    },
+    {
+      "task": 717,
+      "file": "717-launch-line-omits-model-so-a-sonnet-contract-dispatches-at-opus.md"
+    },
+    {
+      "task": 718,
+      "file": "718-generator-writes-lane-contracts-where-the-verb-does-not-read.md"
+    },
+    {
+      "task": 724,
+      "file": "724-permanently-red-windows-test-baseline-hides-every-new-failure.md"
+    },
+    {
+      "task": 725,
+      "file": "725-xdist-frozenset-identity-pollution-in-test-manifest-link-route.md"
+    },
+    {
+      "task": 728,
+      "file": "728-organ-skills-generated-from-the-organ-index-so-the-model-can-find-them.md"
+    },
+    {
+      "task": 729,
+      "file": "729-fpg1-queries-exposed-as-mcp-tools-so-they-sit-beside-grep.md"
+    },
+    {
       "prose": "### [S19] Decide the undecided artifact/tool models"
     },
     {
@@ -1349,6 +1437,22 @@
       "file": "661-sda-1-is-a-complete-benchmark-design-that-never-ran.md"
     },
     {
+      "task": 696,
+      "file": "696-m03-leg-1a-re-run-stdout-capture-unverified-locators-silent-empty-write.md"
+    },
+    {
+      "task": 701,
+      "file": "701-codex-quota-hit-stalls-review-with-no-authorized-fallback-provider.md"
+    },
+    {
+      "task": 706,
+      "file": "706-operator-packet-gains-d14-folder-as-domain-decided-after-the-census.md"
+    },
+    {
+      "task": 722,
+      "file": "722-interim-routing-read-only-work-defaults-to-agy-as-reader-only.md"
+    },
+    {
       "prose": "### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)"
     },
     {
@@ -1406,6 +1510,14 @@
     {
       "task": 673,
       "file": "673-six-batch-v-suite-reds-are-unattributed-and-only-a.md"
+    },
+    {
+      "task": 702,
+      "file": "702-zero-cron-zero-schedule-the-nightly-layer-has-nothing-to-revive.md"
+    },
+    {
+      "task": 723,
+      "file": "723-log-review-routine-self-healing-runs-as-a-batch-close-lane-until-conductor-e.md"
     },
     {
       "prose": "## [E8] ARC-5 execution"

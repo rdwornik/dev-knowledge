@@ -112,6 +112,11 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#689] [P1][L] Conductor E is decided and unbuilt — GitHub Actions as the runner, state stays in tasks/, required checks as gates · tasks/689-conductor-e-is-decided-and-unbuilt.md
 - [#691] [P2][M] Provider routing is an unordered role set with no admission gate and no licence field — a role needs an ORDERED fallback list only admitted providers may enter · tasks/691-provider-routing-is-an-unordered-role-set-with-no-admission-gate.md
 - [#692] [P1][L] decision_coverage — nothing makes a decided thing stay scheduled, so the guarantee lives in a seat's memory instead of in the repo · tasks/692-decision-coverage-a-decided-thing-is-never-unscheduled-again.md
+- [#698] [P2][S] The SEAT-BOOT-integrator render emits a GO line per merge where the canon it implements grants ONE GO for the batch · tasks/698-seat-boot-integrator-render-emits-a-go-per-merge-where-canon-grants-one-per-batch.md
+- [#699] [P2][S] Three tally grammars coexist and two collide on a substring, so which one a first-match reader resolves is decided by ordering rather than by meaning · tasks/699-three-tally-grammars-coexist-and-two-collide-on-a-substring.md
+- [#715] [P1][L] Path management has no single declaration -- three governed-path mismatches in one day, and the registry the operator is describing already exists as FPG-1 · tasks/715-path-management-has-no-single-declaration-and-fpg1-is-already-the-registry.md
+- [#726] [P1][S] A session whose worktree was torn down silently resolves to the PRIMARY checkout, so its next write lands on the integrator's branch · tasks/726-torn-down-worktree-session-silently-resolves-to-the-primary-checkout.md
+- [#727] [P1][M] The model greps instead of querying the organs it built -- a `PreToolUse` deny-and-point hook that refuses a raw search and names the organ to run · tasks/727-deny-and-point-hook-a-raw-search-over-a-governed-question-is-refused.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
@@ -119,6 +124,8 @@ So that drift in transcripts, ADRs, and folders is caught cheaply, not by review
 - [#210] [P3][S] Convert journal-wrap no-ff WARNs from per-instance disposition to a standing rule · tasks/210-convert-journal-wrap-no-ff-warns-from-per-instan.md
 - [#234] [P3][S] Cross-repo probe validator · DEFER · tasks/234-cross-repo-probe-validator.md
 - [#277] [P2][M] propose_closures signal repair · tasks/277-propose-closures-signal-repair.md
+- [#693] [P1][M] The closure detector proposes the whole queue, its surfacing hook has been dead since the month-bucket move, and the run cap errors -- three defects that together make a closure proposal mean nothing · tasks/693-closure-detector-proposes-the-whole-queue-with-a-dead-surfacing-hook.md
+- [#719] [P2][M] `ecosystem/organ-index` entries answer to no schema -- validate them against Backstage `catalog-model`'s Component shape with our own gate · tasks/719-organ-index-entries-answer-to-no-schema-validate-against-catalog-model.md
 
 ### [S5] Catch spec/dependent drift mechanically, not by memory
 So that "spec bumped, dependent partially updated, caught only because a human remembered" stops being the failure mode — machine-checkable coherence between a dependent doc and its spec.
@@ -220,6 +227,8 @@ So that growth past 65 ADRs doesn't bury or quietly contradict prior decisions.
 - [#640] [P1][S] The FPG-1 scope narrowing is recorded nowhere, and two landed surfaces still carry the superseded version · tasks/640-the-fpg-1-scope-narrowing-is-recorded-nowhere-and-t.md
 - [#642] [P1][S] The eleven carried questions from batches T and U have no owning row, so their debt is silent · tasks/642-eleven-carried-questions-have-no-owning-row.md
 - [#688] [P1][S] `DECLARE-HARNESS-IS-PROCESS-2026-09-08` is cited by three committed audits and answers to no tracked file · tasks/688-declare-harness-is-process-is-cited-by-three-audits-and-answers-to-no-tracked-file.md
+- [#695] [P2][M] Intake #70 (AJ second pass) is ACCEPTED with zero rows -- its operator practices were extracted and never became work · tasks/695-intake-70-aj-second-pass-is-accepted-with-zero-rows.md
+- [#700] [P2][S] AW5-4 ruled that machine-read control surfaces are STATE rather than narrative, and the ruling reached the close packet and none of the surfaces that state amendment discipline · tasks/700-aw54-control-surfaces-are-state-ruling-reached-no-enforcing-surface.md
 
 ### [S12] Close the small ADR cross-reference + registry amendments
 So that the ADR web is internally consistent.
@@ -241,6 +250,7 @@ So that stale ground truth stops silently misleading sessions (the repo's own VI
 - [#571] [P2][M] Define "architecture-described surface" + the architecture-freshness check (intake #33 A1) · tasks/571-define-architecture-described-surface.md
 - [#542] [P3][S] `ARCHITECTURE.md` still claims four `doc_rot` sub-detectors; there are five · tasks/542-architecture-md-still-claims-four-doc-rot-sub-dete.md
 - [#585] [P2][S] Suite RED — `test_anchor_gate_probe_distinguishes_installed_from_absent` does not discriminate: repair it, retire it, or fix the organ · tasks/585-suite-red-test-anchor-gate-probe-distinguishes-i.md
+- [#707] [P1][S] W-4 closed under a declared organ-index bypass with four repairs owed -- the committed index is one row stale against its own generator · tasks/707-w4-close-residue-organ-index-one-row-stale-under-a-declared-bypass.md
 ### [S14] Keep the day-to-day docs right-sized and current
 So that the cheat-sheet and architecture stay scannable as conventions accrue.
 - [#269] [P3][S] Audit-index count-tiered shape + freshness hook · DEFER · tasks/269-audit-index-count-tiered-shape-freshness-hook.md
@@ -342,6 +352,18 @@ So that cognitive overhead per session drops.
 - [#634] [P1][S] dispatch-run.sh accepts GITHUB_TOKEN as its Anthropic-token check — a fail-open admission gate on a paid substrate · tasks/634-dispatch-run-accepts-github-token-as-the-anthropic-check.md
 - [#646] [P3][S] The ceremony ratio was measured once, by hand, and nothing computes it · tasks/646-substantive-commit-share-is-measured-once-by-hand.md
 - [#658] [P2][M] Fourteen operator points on the critical path, nine of them mechanisable, and nothing counts them · tasks/658-fourteen-operator-points-nine-mechanisable-nothing-counts.md
+- [#694] [P1][M] Four telemetry modules are inventory rather than harness -- each gets a trigger or is deleted, and the roster allows no third state · tasks/694-four-telemetry-modules-are-inventory-each-gets-a-trigger-or-is-deleted.md
+- [#697] [P1][M] A detached codespace lane returns ZERO WORK and returns it quietly -- two nights of it, and nothing decides whether the substrate is repaired or retired · tasks/697-codespace-detached-lane-returns-zero-work-and-nothing-decides-repair-or-retire.md
+- [#703] [P1][S] Impacted-test selection can read an empty selection as "nothing impacted" -- the one reading that turns a selector into a silent skip · tasks/703-impacted-test-selection-empty-selection-must-fail-closed.md
+- [#704] [P2][S] `propose_closures` writes a new proposals file every run, so four sessions of asking produced 154 swept files where one current file was wanted · tasks/704-propose-closures-writes-a-new-file-every-run-instead-of-one-overwritten.md
+- [#705] [P2][M] Nothing renders the task flow, so "how is the batch going" is answered by reading rows · tasks/705-no-chart-renders-task-flow-so-how-is-the-batch-going-is-answered-by-reading-rows.md
+- [#716] [P1][S] `worktree.baseRef` is unset, so every lane branches from `origin/main` and starts behind local `main` -- the mandatory step-0 sync exists to paper over it · tasks/716-worktree-baseref-unset-so-every-lane-branches-behind-local-main.md
+- [#717] [P1][S] The generator-carried launch line omits `-Model`, so a sonnet contract dispatched by its own carried line silently runs at opus · tasks/717-launch-line-omits-model-so-a-sonnet-contract-dispatches-at-opus.md
+- [#718] [P1][S] The generator writes lane contracts to `to-cc/` while `Dispatch-Lane` resolves against the prompts root -- six contracts written, six refused · tasks/718-generator-writes-lane-contracts-where-the-verb-does-not-read.md
+- [#724] [P1][M] The Windows baseline is permanently RED and its count is not even reliably knowable -- a red baseline hides every new failure behind it · tasks/724-permanently-red-windows-test-baseline-hides-every-new-failure.md
+- [#725] [P2][S] `test_manifest_link_route` fails under xdist on a frozenset identity assert -- a test that passes alone and fails in parallel · tasks/725-xdist-frozenset-identity-pollution-in-test-manifest-link-route.md
+- [#728] [P2][M] Every organ that answers a question gets a generated skill whose description says WHEN to invoke it -- the description is what the model matches · tasks/728-organ-skills-generated-from-the-organ-index-so-the-model-can-find-them.md
+- [#729] [P2][M] FPG-1's queries are shell scripts the model must remember to run -- expose them as MCP tools so they sit in the tool list beside Grep · tasks/729-fpg1-queries-exposed-as-mcp-tools-so-they-sit-beside-grep.md
 ### [S19] Decide the undecided artifact/tool models
 So that cadence-less artifacts and unevaluated tools don't rot or get adopted blind.
 
@@ -363,6 +385,10 @@ So that cadence-less artifacts and unevaluated tools don't rot or get adopted bl
 - [#627] [P2][M] The agy route is INERT — no row authorizes its analysis-role admission, so the token policy promises what nothing gates · tasks/627-agy-route-is-inert-no-row-authorizes-analysis-admission.md
 - [#660] [P3][M] S-15 — the AJ tools-and-evals table is the one deliverable of that arc still owed · tasks/660-s-15-the-aj-tools-and-evals-table-was-never-produced.md
 - [#661] [P3][M] SDA-1 is a complete benchmark design that has never been run · tasks/661-sda-1-is-a-complete-benchmark-design-that-never-ran.md
+- [#696] [P2][M] M03 leg 1a ran to captured stdout with UNVERIFIED locators and one silent empty write, so the practices it produced rest on evidence nobody can re-open · tasks/696-m03-leg-1a-re-run-stdout-capture-unverified-locators-silent-empty-write.md
+- [#701] [P2][S] A Codex quota hit stalls review for 50 minutes and no fallback provider is authorized, so the reviewer role is a single point of failure · tasks/701-codex-quota-hit-stalls-review-with-no-authorized-fallback-provider.md
+- [#706] [P2][S] The operator packet gains D14, folder-as-domain -- and it cannot be decided before the domain census returns · tasks/706-operator-packet-gains-d14-folder-as-domain-decided-after-the-census.md
+- [#722] [P1][S] Interim routing: read-only digests, censuses and scans default to agy as a READER ONLY, with conclusions and verdicts staying on Claude · tasks/722-interim-routing-read-only-work-defaults-to-agy-as-reader-only.md
 ### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)
 So that unattended routines run only with a named consumer, a survival metric, and a bounded operator load — never as rot generators (the fleet-audit lesson; sequencing per the standing operator ruling: the load-gauge lands before anything else in the Tier-2 nightly layer).
 - [#271] [P3][L] Nightly proposal loop · tasks/271-nightly-proposal-loop.md
@@ -379,6 +405,8 @@ So that unattended routines run only with a named consumer, a survival metric, a
 - [#655] [P2][S] `run_retention()` has no production caller, and the ruled one is `fleet_health`'s daily run · tasks/655-run-retention-has-no-production-caller.md
 - [#657] [P1][S] Orphan #33 — something outside the repo writes into it on a schedule the registry does not know · tasks/657-orphan-33-an-unregistered-writer-edits-the-repo-nightly.md
 - [#673] [P2][S] Six batch-V suite REDs are unattributed, and only a same-substrate run on the pre-batch commit can attribute them · tasks/673-six-batch-v-suite-reds-are-unattributed-and-only-a.md
+- [#702] [P1][M] The repo declares zero `cron:` and zero `schedule:`, so the nightly layer `[S20]` exists to revive has nothing to revive · tasks/702-zero-cron-zero-schedule-the-nightly-layer-has-nothing-to-revive.md
+- [#723] [P1][M] Nothing reads the logs, so a model that silently stops delivering costs a whole night before anyone notices -- a log-review routine that files its own anomalies · tasks/723-log-review-routine-self-healing-runs-as-a-batch-close-lane-until-conductor-e.md
 ## [E8] ARC-5 execution
 > As the operator, I want ARC-5's wave map, closure contract, and unruled decisions to live somewhere that can EVOLVE as waves land — not frozen inside an immutable handoff bundle.
 
