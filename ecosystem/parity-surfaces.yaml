@@ -515,6 +515,36 @@ surfaces:
       reason: "tier1-lifecycle plugin enablement -- the methodology-shipped Tier-1 closure loop (MUST both, ADR-70); methodology-owned."
       provenance: *own-prov
 
+  # AX15-2 FLOOR COUPLING ([#684], 2026-09-11). The PreToolUse prompts-guard hook block and
+  # scripts/fleet_health.py are ONE floor component, so this row probes the RELATION, not
+  # either half: `hook present -> script tracked`. A repo with NEITHER is at parity (the
+  # component is not deployed there); a repo with the hook and no script is MUST-absent.
+  #
+  # Why the implication rather than two rows. Two independent rows (settings_hook +
+  # path_tracked) would make the SCRIPT mandatory everywhere this tier reaches, including
+  # repos carrying no such hook -- a claim AX15-2 does not make and that would be wrong.
+  # The asymmetry is also what lets this be MUST on both roles while the hook block itself
+  # is still hub-local: the row cannot fire on a repo that carries neither half.
+  #
+  # It is not cosmetic. Under AX15-1 the guard FAILS CLOSED on every inability to evaluate,
+  # so a consumer carrying the hook without the script has every filesystem-touching tool
+  # call refused by a guard that was never shipped -- which is the exact defect the clause
+  # says fleet_parity must catch "rather than a silent permit".
+  #
+  # NOT REGISTERED IN deploy/manifest-v*.yaml BY THIS LANE. Which repos the hook block
+  # reaches is the carrier act, and AX4-1 assigns it by name to the X1-1 decision_coverage
+  # lane ("the parity registry is the carrier"). This row is the CHECK; the carriage is
+  # that lane's to declare.
+  - id: settings-prompts-guard-coupling
+    kind: settings-hook-block
+    tier: {hub: MUST, consumer: MUST}
+    probe: {type: settings_hook_script, event: PreToolUse, token: "--prompts-guard",
+            path: scripts/fleet_health.py}
+    ownership:
+      value: methodology-generic
+      reason: "The prompts-guard hook block and its guard entry point ship as ONE floor component (AX15-2); the coupling is a methodology-owned enforcement invariant, not a repo-local choice."
+      provenance: *own-prov
+
   # settings.json LOCAL-owned hook blocks (W3-07 hook-block ownership, local half):
   # any hook command matching neither a MUST-block token above nor this owned map WARNs.
   - id: settings-local-blocks

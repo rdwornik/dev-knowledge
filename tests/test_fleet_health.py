@@ -1630,35 +1630,297 @@ def test_prompts_guard_exits_2_on_a_seeded_mismatch(capsys):
     assert "[prompts] REFUSED" in err and _STALE in err and _TRUE in err
 
 
-def test_prompts_guard_silent_pass_on_match(capsys):
+def test_prompts_guard_passing_says_so_on_stdout_and_stays_silent_on_stderr(capsys):
+    """A pass PROVES it evaluated, and the proof is the marker.
+
+    Added 2026-09-11 by the fresh Codex review of this branch (HIGH-1). Before it, the
+    guard's pass was pure SILENCE plus an exit of 0 -- and silence-plus-0 is precisely
+    what a `python` that never ran this file also produces. Any shim, wrapper or wrong
+    interpreter first on PATH satisfied the old hook command's pass test, so the hook
+    permitted the tool call while believing it had checked one. Under the AX15-1 posture
+    that is the worst remaining hole: declared enforcement, no enforcement.
+
+    The marker closes it POSITIVELY -- only this file can emit it, so the hook can require
+    evidence rather than infer it from the absence of an error. Note the split of streams
+    is load-bearing and is what keeps the original no-noise argument intact: the marker
+    goes to STDOUT, which a PreToolUse hook shows only in transcript mode, while STDERR --
+    the stream that reaches the model on a refusal -- stays empty on every passing verdict.
+    """
     with mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(_TRUE, _TRUE)):
         assert fh.prompts_guard() == 0
     captured = capsys.readouterr()
-    assert captured.out == "" and captured.err == ""
+    assert captured.out.strip() == fh.GUARD_EVALUATED_MARKER
+    assert captured.err == ""
 
 
-def test_prompts_guard_is_silent_when_both_scopes_are_unset(capsys):
-    """Runs once per TOOL CALL: a warning line here would be noise, not signal. The
-    SessionStart leg has already printed it once."""
+def test_prompts_guard_marks_a_pass_it_had_nothing_to_compare(capsys):
+    """Runs once per TOOL CALL, so STDERR stays clean -- a warning line here would be
+    noise, not signal, and the SessionStart leg has already printed it once.
+
+    The marker is emitted here too, and that is deliberate rather than incidental: an
+    unset scope is a guard that RAN and reached a non-refusing verdict, which is exactly
+    what the marker attests. Withholding it on this path would refuse every consumer that
+    has never set the variable -- the same over-reach the fail-closed inversion was
+    explicitly scoped to avoid (see the commit that landed AX15-1).
+    """
     with mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(None, None)):
         assert fh.prompts_guard() == 0
     captured = capsys.readouterr()
-    assert captured.out == "" and captured.err == ""
+    assert captured.out.strip() == fh.GUARD_EVALUATED_MARKER
+    assert captured.err == ""
 
 
-def test_prompts_guard_fails_open_when_it_cannot_run(capsys):
-    """Fail-OPEN on the guard's own crash, deliberately: a guard that bricked every tool
-    call because it raised would be worse than the defect it guards. Refusal stays reserved
-    for a mismatch it positively established."""
+def test_prompts_guard_marks_a_refusal_as_its_own_on_both_routes(capsys):
+    """A refusal must be PROVABLY the guard's, for the same reason a pass must be.
+
+    Round 3 of the 2026-09-11 Codex review. `rc=2` was propagated straight to a bare
+    `exit 2`, so a `python` shim that exits 2 -- or a script that dies of `SystemExit(2)`
+    before ever reaching `prompts_guard()` -- refused the tool call with NO cause and NO
+    fix. That is an inability to evaluate wearing a verdict's clothes, and an opaque
+    refusal is MA-1's exact presentation: the failure this row exists to end.
+
+    So the refusal carries a marker too, on stdout, beside the human-readable message on
+    stderr. It is a DIFFERENT token from the pass marker, which is what keeps the two
+    checks from collapsing into each other -- the property the test below pins.
+
+    The two routes' stderr is asserted SEPARATELY and on different words, because they
+    are different messages with different histories. The VERDICT route carries the
+    E-29/013-A text, which names both scopes and the remedy in prose and predates AX15-1's
+    labelled `Cause:`/`Fix:` convention -- that convention binds the refusals the HOOK
+    composes for an inability to evaluate, not the guard's own verdict. Asserting the
+    labels here would have been asserting a rule the message was never under.
+    """
+    with mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(_STALE, _TRUE)):
+        assert fh.prompts_guard() == 2
+    captured = capsys.readouterr()
+    assert captured.out.strip() == fh.GUARD_REFUSED_MARKER
+    assert "REFUSED" in captured.err
+    assert _STALE in captured.err and _TRUE in captured.err
+    assert "re-launch" in captured.err, f"the refusal names no remedy: {captured.err!r}"
+
     with mock.patch.object(fh, "read_prompts_dir_scopes", side_effect=RuntimeError("boom")):
-        assert fh.prompts_guard() == 0
-    assert "WARNING" in capsys.readouterr().err
+        assert fh.prompts_guard() == 2
+    captured = capsys.readouterr()
+    assert captured.out.strip() == fh.GUARD_REFUSED_MARKER
+    assert "REFUSED" in captured.err and "Cause:" in captured.err and "Fix:" in captured.err
+    assert "boom" in captured.err
+
+
+def test_the_two_guard_markers_are_distinct(capsys):
+    """If the refusal marker equalled the pass marker, the hook's pass test would match on
+    the very call being refused. They are separate constants and must stay separate."""
+    assert fh.GUARD_EVALUATED_MARKER != fh.GUARD_REFUSED_MARKER
+
+
+def test_prompts_guard_never_marks_a_refusal_as_evaluated(capsys):
+    """The marker means "evaluated and NOT refusing". If a refusal carried it too, the
+    hook's pass test would match on the very call the guard was refusing -- turning the
+    positive proof into a bypass. Pinned on both refusal routes: the verdict and the raise.
+    """
+    with mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(_STALE, _TRUE)):
+        assert fh.prompts_guard() == 2
+    captured = capsys.readouterr()
+    assert fh.GUARD_EVALUATED_MARKER not in captured.out + captured.err
+
+    with mock.patch.object(fh, "read_prompts_dir_scopes", side_effect=RuntimeError("boom")):
+        assert fh.prompts_guard() == 2
+    captured = capsys.readouterr()
+    assert fh.GUARD_EVALUATED_MARKER not in captured.out + captured.err
+
+
+def test_prompts_guard_refuses_when_it_cannot_run(capsys):
+    """Fail-CLOSED on the guard's own crash, per AX15-1 (2026-09-11, batch X lane W-2').
+
+    This test asserted the OPPOSITE until that ruling, and the inverted form is kept
+    deliberately as the record of the reversal. The old argument was that a guard which
+    bricked every tool call because it raised would be worse than the defect it guards.
+    AX15-1 answers it on a different axis -- *"a guard that permits when it cannot run is
+    declared enforcement without enforcement"* -- and pays for the inversion with the
+    narrowed matcher (the break-glass stays ungated) and with a refusal that teaches.
+
+    The exception TEXT must survive into the message: a refusal whose cause is
+    `RuntimeError('boom')` is diagnosable, one that says only "unavailable" is not.
+    """
+    with mock.patch.object(fh, "read_prompts_dir_scopes", side_effect=RuntimeError("boom")):
+        assert fh.prompts_guard() == 2
+    err = capsys.readouterr().err
+    assert "REFUSED" in err and "Cause:" in err and "Fix:" in err
+    assert "boom" in err, f"the refusal swallowed the underlying error: {err!r}"
 
 
 def test_main_dispatches_the_guard_flag():
     with mock.patch.object(fh, "prompts_guard", return_value=2) as guard:
         assert fh.main(["--prompts-guard"]) == 2
     assert guard.call_count == 1
+
+
+# --- the SessionStart PREFLIGHT: verify once what the per-call guard needs ---------------
+#
+# AX15-1's second sentence: *"A SessionStart check verifies interpreter + guard script once
+# and reports loudly, so per-call refusals are the exception."* It exists BECAUSE the leg
+# above now fails closed -- without it the first news of a missing interpreter is a refused
+# tool call with no preceding warning, which is MA-1's presentation all over again.
+#
+# RED-first (ADR-108 section B): every test below fails on today's module, which has no
+# preflight at all.
+
+def test_resolve_guard_script_prefers_the_project_dir(tmp_path):
+    """The preflight must reproduce the HOOK's resolution order, not invent its own -- a
+    preflight that checks a different path than the hook reaches is worse than none."""
+    project = tmp_path / "project" / "scripts"
+    project.mkdir(parents=True)
+    (project / "fleet_health.py").write_text("", encoding="utf-8")
+    cwd = tmp_path / "cwd" / "scripts"
+    cwd.mkdir(parents=True)
+    (cwd / "fleet_health.py").write_text("", encoding="utf-8")
+    found = fh.resolve_guard_script(str(tmp_path / "project"), str(tmp_path / "cwd"))
+    assert found == project / "fleet_health.py"
+
+
+def test_resolve_guard_script_falls_back_to_cwd(tmp_path):
+    """`[ -f "$g" ] || g="./scripts/..."` -- the hook's SECOND leg, which is what a
+    non-Claude reader with no CLAUDE_PROJECT_DIR actually takes."""
+    cwd = tmp_path / "cwd" / "scripts"
+    cwd.mkdir(parents=True)
+    (cwd / "fleet_health.py").write_text("", encoding="utf-8")
+    assert fh.resolve_guard_script(str(tmp_path / "nowhere"), str(tmp_path / "cwd")) == (
+        cwd / "fleet_health.py")
+    assert fh.resolve_guard_script(None, str(tmp_path / "cwd")) == cwd / "fleet_health.py"
+
+
+def test_resolve_guard_script_returns_none_when_neither_leg_resolves(tmp_path):
+    assert fh.resolve_guard_script(str(tmp_path / "a"), str(tmp_path / "b")) is None
+
+
+def test_guard_preflight_reports_ok_with_both_facts_named(tmp_path):
+    script = tmp_path / "scripts" / "fleet_health.py"
+    verdict, line = fh.guard_preflight_status(script, "/usr/bin/python")
+    assert verdict == fh.GUARD_PREFLIGHT_OK
+    assert "fleet_health.py" in line and "python" in line
+
+
+def test_guard_preflight_no_script_names_cause_and_fix():
+    """Loud, and actionable: AX15-2's deploy defect is exactly this shape on a consumer --
+    the hook block carried, the script not. The line has to say which half is missing."""
+    verdict, line = fh.guard_preflight_status(None, "/usr/bin/python")
+    assert verdict == fh.GUARD_PREFLIGHT_NO_SCRIPT
+    assert "Cause:" in line and "Fix:" in line
+    assert "scripts/fleet_health.py" in line
+
+
+def test_guard_preflight_no_interpreter_names_cause_and_fix(tmp_path):
+    verdict, line = fh.guard_preflight_status(tmp_path / "scripts" / "fleet_health.py", None)
+    assert verdict == fh.GUARD_PREFLIGHT_NO_INTERPRETER
+    assert "Cause:" in line and "Fix:" in line
+    assert "python" in line
+
+
+def test_guard_preflight_says_what_it_will_cost(tmp_path):
+    """The point of the preflight is that the reader learns the CONSEQUENCE before paying
+    it once per tool call. Both failing verdicts must say the guard will refuse."""
+    for args in ((None, "/usr/bin/python"), (tmp_path / "s" / "fleet_health.py", None)):
+        _verdict, line = fh.guard_preflight_status(*args)
+        assert "refuse" in line.lower(), f"preflight hid the consequence: {line!r}"
+
+
+def test_hook_path_drops_the_venv_uv_prepends(tmp_path):
+    """The preflight must measure the PATH the HOOK sees, not this process's.
+
+    SessionStart runs under `uv run --locked`, which prepends the venv's script dir;
+    PreToolUse runs on the system interpreter and does not. Measuring the venv would report
+    green on a machine whose plain shell has no python -- green on exactly the
+    configuration where every tool call is about to be refused.
+    """
+    venv = tmp_path / "proj" / ".venv"
+    entries = [str(venv / "Scripts"), str(tmp_path / "sys" / "bin")]
+    got = fh.hook_path({"PATH": os.pathsep.join(entries), "VIRTUAL_ENV": str(venv)})
+    assert got == str(tmp_path / "sys" / "bin")
+
+
+def test_hook_path_is_the_whole_path_when_no_venv_is_active(tmp_path):
+    """It drops the venv and NOTHING else -- this is not an attempt to reconstruct the
+    hook's environment, and a preflight that silently narrowed PATH further would start
+    reporting failures the hook would not have."""
+    raw = os.pathsep.join([str(tmp_path / "a"), str(tmp_path / "b")])
+    assert fh.hook_path({"PATH": raw}) == raw
+
+
+def test_hook_path_keeps_a_sibling_that_merely_shares_a_prefix(tmp_path):
+    """`.venv-old/Scripts` is not inside `.venv`. String-prefix matching without the
+    separator would drop it, which would be the narrowing the test above forbids."""
+    venv = tmp_path / ".venv"
+    sibling = str(tmp_path / ".venv-old" / "Scripts")
+    got = fh.hook_path({"PATH": os.pathsep.join([str(venv / "Scripts"), sibling]),
+                        "VIRTUAL_ENV": str(venv)})
+    assert got == sibling
+
+
+def test_hook_path_keeps_an_empty_entry_that_posix_reads_as_the_cwd(tmp_path):
+    """An EMPTY `PATH` component is not padding -- on POSIX it means the current
+    directory, and dropping it changes where the interpreter is looked up.
+
+    Added 2026-09-11 by the fresh Codex review of this branch (MEDIUM). The filter existed
+    only to stop `normpath("")` -- which returns `"."` -- from being compared against the
+    venv prefix, and it silently took the empty component with it. The two tests above
+    forbid narrowing PATH beyond the venv; this is a case of exactly that, so it is the
+    same rule applied to the component whose emptiness is its meaning. Hook commands run
+    through a POSIX shell here (measured 2026-09-11), so the semantics are live, not
+    theoretical.
+    """
+    venv = tmp_path / ".venv"
+    raw = os.pathsep.join([str(venv / "Scripts"), "", str(tmp_path / "sys" / "bin")])
+    got = fh.hook_path({"PATH": raw, "VIRTUAL_ENV": str(venv)})
+    assert got == os.pathsep.join(["", str(tmp_path / "sys" / "bin")])
+    assert "" in got.split(os.pathsep), f"the cwd component was dropped: {got!r}"
+
+
+def test_main_prints_the_preflight_line(tmp_path, capsys):
+    """It renders on the SessionStart leg, beside the [prompts] banner -- a preflight
+    nobody reaches is not a preflight (the same argument 013-A made for that banner).
+
+    `_HEALTH_FILE` is patched to a FRESH temp digest, as every other `main()` test here
+    does, and that is not decoration: without it `is_stale()` reads the live digest and
+    `main()` can take the `refresh()` branch, i.e. spawn the real cross-repo audit from a
+    unit test. Measured the hard way while writing this -- the unpatched form ran for
+    minutes before being killed.
+    """
+    health = _digest_at(tmp_path)
+    with mock.patch.object(fh, "_HEALTH_FILE", health), \
+         mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(None, None)), \
+         mock.patch.object(fh, "read_guard_preflight", return_value=(None, "python")):
+        fh.main([])
+    out = capsys.readouterr().out
+    assert "[prompts-guard] PREFLIGHT FAILED" in out
+
+
+def test_main_returns_two_on_a_failed_preflight(tmp_path, capsys):
+    """An honest non-zero, not a block: a SessionStart hook CANNOT refuse (measured -- see
+    the module's own hook-wiring block), so this is the same shape as the PROMPTS_REFUSED
+    exit it sits beside. It becomes a real signal for free if a later CLI honours it.
+
+    The prompts verdict is deliberately a PASSING one, so the 2 can only have come from the
+    preflight -- a seeded mismatch would return 2 either way and prove nothing.
+    """
+    health = _digest_at(tmp_path)
+    with mock.patch.object(fh, "_HEALTH_FILE", health), \
+         mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(None, None)), \
+         mock.patch.object(fh, "read_guard_preflight", return_value=(None, "python")):
+        assert fh.main([]) == 2
+    capsys.readouterr()
+
+
+def test_main_returns_zero_when_both_the_verdict_and_the_preflight_are_clean(tmp_path,
+                                                                             capsys):
+    """The other side of the exit contract, without which the test above is satisfied by a
+    `main()` that always returns 2."""
+    health = _digest_at(tmp_path)
+    with mock.patch.object(fh, "_HEALTH_FILE", health), \
+         mock.patch.object(fh, "read_prompts_dir_scopes", return_value=(_TRUE, _TRUE)), \
+         mock.patch.object(fh, "read_guard_preflight",
+                           return_value=(tmp_path / "scripts" / "fleet_health.py",
+                                         "python")):
+        assert fh.main([]) == 0
+    assert "[prompts-guard] preflight OK" in capsys.readouterr().out
 
 
 # --- the SessionStart leg: loud banner, honest (non-blocking) exit ----------------------

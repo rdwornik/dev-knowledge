@@ -8,14 +8,17 @@ Session-start-throttled: run at most once per calendar day. On boot:
 Always prints a one-line summary to stdout. Failures are loud on stderr, never
 silent.
 
-Exit code: 0, with ONE exception -- the DEFECT E-29 / inbox 013-A prompts-dir
-scope guard returns 2 when the inherited process value differs from the User
-scope. That non-zero exit is a declared signal, not a working block: a
+Exit code: 0, with TWO exceptions, both from the DEFECT E-29 / inbox 013-A
+prompts-dir guard. It returns 2 when the inherited process value differs from
+the User scope, and (since AX15-1, 2026-09-11) when the PREFLIGHT finds that the
+PreToolUse leg cannot run at all -- no guard script resolves, or no interpreter
+is on PATH. Both non-zero exits are declared signals, not working blocks: a
 SessionStart hook is MEASURED not to be able to refuse a turn (see the guard
 section below). The leg that CAN refuse is `--prompts-guard`, shaped for a
-PreToolUse hook -- built and tested but deliberately NOT wired into
-`.claude/settings.json`; the guard section states why and carries the exact
-wiring. Nothing else in this digest can ever return non-zero.
+PreToolUse hook and ARMED since 2026-09-07; it FAILS CLOSED on every inability to
+evaluate, which is exactly why the preflight exists -- so the first news of a
+broken guard is a boot line and not a refused tool call. Nothing else in this
+digest can ever return non-zero.
 
 Reuses audit.py exclusively — no reimplementation of the audit logic. The
 per-repo state.yaml files (ecosystem/<name>/state.yaml) are read after the
@@ -1213,10 +1216,117 @@ def refresh(repo_root: Path, ecosystem_dir: Path,
 # reason the ADR-77 guard is (stdlib-only; a stale lockfile must never be able to block
 # every tool call, and `uv run` would cost a resolution per call):
 #
-#     { "matcher": "*",
+#     { "matcher": "Read|Write|Edit|MultiEdit|NotebookEdit|Glob|Grep|Bash|PowerShell|Monitor|LSP|ReadMcpResourceTool|mcp__.*",
 #       "hooks": [ { "type": "command",
-#                    "command": "python \"$CLAUDE_PROJECT_DIR/scripts/fleet_health.py\" --prompts-guard",
+#                    "command": "<resolve two roots; refuse with a message if neither; run
+#                                the guard; 0 passes, everything else refuses with a message
+#                                naming cause and fix>",
 #                    "timeout": 10 } ] }
+#
+# The command string is NOT reproduced here. It is ~1.2 KB of POSIX shell and a copy in a
+# comment is a copy that goes stale -- `.claude/settings.json` is the one home, and
+# `tests/test_prompts_guard_hook_wiring.py` reads THAT file, never a transcription.
+#
+# THE COMMAND RESOLVES ITS OWN ROOT ([#684], 2026-09-11 -- MA-1 of the 2026-09-09 night
+# mission, `docs/audits/2026-09-10-technical-night-aj-m03/REVIEW.md`:83). It used to be a
+# bare `python "$CLAUDE_PROJECT_DIR/scripts/fleet_health.py" --prompts-guard`, and
+# `CLAUDE_PROJECT_DIR` is set by Claude Code and by NOTHING ELSE. `cursor-agent` honours
+# the hook file and does not define it: it expanded empty, the path resolved to garbage,
+# the interpreter exited non-zero -- and a `PreToolUse` hook that exits non-zero REFUSES.
+# Not a degraded read, a total one, and it presents as the reader being broken rather than
+# as our harness refusing it. Two full paid runs were spent proving that. The fix is two
+# POSIX legs, in the command string because a garbage path means this module never loads
+# at all and no in-module fallback can be reached:
+#   `${CLAUDE_PROJECT_DIR:-.}`  -- prefer the variable, fall back to cwd. Measured
+#       2026-09-11 in a throwaway child session: hook commands run through a POSIX shell
+#       (`C:\Program Files\Git\bin\bash.exe`), so the default expansion is available, and
+#       hook cwd IS the project directory, so the fallback is also correct.
+#   `[ -f "$g" ] || g="./scripts/..."` -- a SECOND attempt, at cwd, when the variable is
+#       set but wrong. Added 2026-09-11 by the fresh Codex review of this branch (HIGH-1),
+#       which is correct that `:-` defaults only on unset-or-empty: a variable pointing at
+#       the wrong root skipped the fallback and fell straight through to the fail-open leg,
+#       passing WITHOUT consulting a guard that was sitting in cwd all along. Measured
+#       before and after -- old `rc=0` (silent bypass), new `rc=7` (guard reached). Both
+#       legs survive the AX15-1 inversion unchanged: resolving MORE roots is orthogonal to
+#       what happens when none resolves.
+#
+# THE POSTURE INVERTED, 2026-09-11 -- batch X lane W-2', architect ruling AX15-1. Read the
+# next three paragraphs together; the FIRST records what was argued and lost, because a
+# reader who cannot see the losing argument will make it again.
+#
+#   WHAT THE FAIL-OPEN FORM WAS. Two legs, `[ -f "$g" ] || exit 0` and
+#       `rc=$?; [ "$rc" = 2 ] && exit 2; exit 0`, so a guard that could not be LOADED and a
+#       guard that could not be RUN both PERMITTED. The argument was strong and was made
+#       across three Codex passes: MA-1 -- the defect `[#684]` exists to close -- WAS a
+#       guard bricking a non-Claude reader through an interpreter error, the audit states
+#       the intent in its own words ("fails open on interpreter failure", REVIEW.md:102),
+#       and `prompts_guard()` returns only 0 or 2, so mapping "exactly 2" to refusal loses
+#       no refusal the guard can actually express.
+#
+#   WHY IT LOST. The fresh review of the branch returned HIGH:2, both fail-open, and W-2
+#       was CARRIED rather than closed. AX15-1, verbatim: *"a guard that permits when it
+#       cannot run is declared enforcement without enforcement."* The counter-argument
+#       above is answered on its own terms rather than dismissed: MA-1's harm was never
+#       the refusal as such, it was a SILENT refusal that presented as the reader being
+#       broken. A refusal that names its cause and its fix is a different object.
+#
+#   WHAT THE FORM IS NOW. `0` CARRYING `GUARD_EVALUATED_MARKER` on stdout passes;
+#       EVERYTHING else refuses -- no script under either root, no interpreter (127), a
+#       crash (1), any other status, and an exit of `0` with no marker -- each with a
+#       message on stderr carrying a labelled Cause and a labelled Fix, and with the cause
+#       DISCRIMINATED (127 names PATH, a bare 0 names a shim or wrapper, anything else
+#       names a crash), because a message that blamed PATH for an import error sends the
+#       reader to the wrong place.
+#
+#       THE MARKER LEG was added 2026-09-11 by the fresh Codex review of this branch
+#       (HIGH-1), and it closes the one permit the AX15-1 inversion still INFERRED rather
+#       than proved. Refusing on every non-zero status is not the same as establishing that
+#       the guard ran: a pass used to be silence plus `0`, which is exactly what a `python`
+#       that never opened this file produces. A launcher shim, a corporate intercept, a
+#       stale wrapper, the wrong interpreter first on PATH -- each exits 0 having checked
+#       nothing, and the hook permitted the call believing it had checked one. Since only
+#       this file can emit the marker, the hook now demands evidence instead of reading the
+#       absence of an error as proof. The stream split is deliberate and load-bearing:
+#       stdout, because a PreToolUse hook's stdout is transcript-only, so the per-tool-call
+#       no-noise property survives; never on a refusal, or the pass test would match on the
+#       very call being refused. Two things pay
+#       for this and neither may be removed without re-opening the ruling: the MATCHER
+#       stays narrowed, so the break-glass family is ungated and a refusing guard still
+#       leaves an in-session way out; and the SessionStart PREFLIGHT below checks the same
+#       two facts once at boot, so a per-call refusal is the exception rather than the
+#       first news. AX15-2 adds the third: this hook and THIS FILE are one floor component,
+#       and a repo carrying the hook without the script is a `fleet_parity` MUST-absent
+#       (surface `settings-prompts-guard-coupling`), never a silent permit.
+#
+# Wired shape asserted by `tests/test_prompts_guard_hook_wiring.py`, which reads the live
+# `.claude/settings.json` -- the RED-first witness `[#684]`'s Done-when names.
+#
+# THE MATCHER NARROWED IN THE SAME ACT ([#684], edit 2 of 2): `"*"` -> the
+# filesystem-touching classes above, which are the ones a stale `CLAUDE_PROMPTS_DIR`
+# actually makes lie. THE REFUSAL IS NOT NARROWED. A mismatch still stops the seat at its
+# first file-touching call, which is the first thing any session does, so the guard keeps
+# exactly the teeth 013-A gave it. What the narrowing buys is the BREAK-GLASS: `"*"` gated
+# `ToolSearch` as well, and `ToolSearch` is the only route to the deferred `ExitWorktree` /
+# `SendMessage` tools -- which is why the 2026-09-06 wedge could not be undone from inside
+# the session at all and recovery took an external shell (see the paragraph below, kept in
+# full). A guard that refuses must leave a way to reach the thing that would unrefuse it.
+# THE LIST WIDENED 2026-09-11 by the fresh Codex review of this branch (HIGH-2). The
+# reviewer is right that the first nine classes missed the MCP and secondary filesystem
+# routes: an `mcp__*` filesystem tool, `ReadMcpResourceTool`, `LSP` or `Monitor` can reach
+# a wrongly-resolved directory without ever passing the guard. `LSP` and
+# `ReadMcpResourceTool` are NOT in this client's roster -- a matcher branch naming a tool
+# that does not exist is inert, so over-listing costs nothing and under-listing is a gap.
+# TWO of the reviewer's names are REFUSED, on the merits: `EnterWorktree` / `ExitWorktree`
+# are the break-glass family. `ToolSearch` is only the ROUTE to the deferred session-control
+# tools, and gating their DESTINATION defeats the escape as surely as gating the route --
+# which is why `_MUST_NOT_MATCH` now pins `ExitWorktree` and `SendMessage` beside
+# `ToolSearch` rather than `ToolSearch` alone. `Agent` is not a gap either: configured hooks
+# also run for a subagent's own tool calls, so a subagent's `Read` is matched by `Read`.
+#
+# Alternation semantics measured 2026-09-11 in a throwaway child session, both directions:
+# a `Read` and a `Bash` call fired the narrowed matcher and fired a sibling matcher naming
+# only `ToolSearch|Agent|Task|WebFetch|WebSearch` NEITHER time -- so a named matcher
+# matches by tool name and does not match-all.
 #
 # ARM IT ONLY IN THE SAME ACT AS E-29 PROPOSAL (a), THE DAEMON RESTART -- never before.
 # Measured, by wiring it live on 2026-09-06 and losing the session to it: while a mismatch
@@ -1240,6 +1350,45 @@ PROMPTS_OK = "ok"
 PROMPTS_REFUSED = "refused"
 PROMPTS_UNSET = "unset"
 PROMPTS_NO_USER_SCOPE = "no-user-scope"
+
+#: Printed on STDOUT by `prompts_guard()` on every non-refusing verdict, and required by
+#: the PreToolUse hook command before it permits a tool call.
+#:
+#: It exists because an exit of 0 is not evidence (2026-09-11 Codex review, HIGH-1). The
+#: hook refused on every non-zero status but read `0` as "the guard ran and passed" -- and
+#: a pass used to be pure silence, so it was indistinguishable from what a `python` that
+#: never opened this file produces. A shim, a wrapper, a launcher, the wrong interpreter
+#: first on PATH: each exits 0 having proven nothing, and the hook permitted the call
+#: believing it had checked one. That is declared enforcement without enforcement, which is
+#: the exact thing AX15-1 inverted the posture to end -- the inversion simply had one path
+#: left where the permit was INFERRED rather than proven.
+#:
+#: Only this file can emit it, so the hook can demand evidence instead of inferring it from
+#: the absence of an error. Two constraints ride on the choice: STDOUT, because a
+#: PreToolUse hook's stdout is transcript-only and stderr is what reaches the model (so the
+#: no-noise argument for a per-tool-call guard survives intact), and NEVER on a refusal,
+#: or the pass test would match on the very call being refused.
+#:
+#: `.claude/settings.json` carries the same token. `test_prompts_guard_hook_wiring.py`
+#: reads THIS constant and asserts the shipped command tests for it, so the two halves
+#: cannot drift apart silently.
+GUARD_EVALUATED_MARKER = "PROMPTS-GUARD-EVALUATED-OK"
+
+#: The same proof for the other verdict: printed on STDOUT when the guard REFUSES, beside
+#: the human-readable reason on stderr.
+#:
+#: A refusal needs proving for exactly the reason a pass does (2026-09-11 Codex review,
+#: round 3). `rc=2` used to be propagated straight to a bare `exit 2`, on the assumption
+#: that only this function produces a 2 -- and nothing established that either. A `python`
+#: shim exiting 2, or this file dying of `SystemExit(2)` somewhere above `prompts_guard()`,
+#: refused the tool call with an EMPTY stderr. That is an inability to evaluate wearing a
+#: verdict's clothes, and a silent refusal is MA-1's presentation exactly: the last route
+#: by which this hook could still stop a seat without telling it why.
+#:
+#: It is a DIFFERENT token from the pass marker on purpose. If the two were equal, the
+#: hook's pass test would match on the very call being refused -- pinned by
+#: `test_the_two_guard_markers_are_distinct`.
+GUARD_REFUSED_MARKER = "PROMPTS-GUARD-EVALUATED-REFUSE"
 
 
 def read_user_scope(var: str = _PROMPTS_DIR_VAR):
@@ -1336,25 +1485,173 @@ def read_prompts_dir_scopes():
 def prompts_guard() -> int:
     """`--prompts-guard`: the PreToolUse leg, the one that actually refuses.
 
-    Exit 2 (refusal, stderr reaches the model) on REFUSED; 0 otherwise. Silent on every
-    non-refusing verdict -- the closure clause is `match -> silent pass`, and this runs once
-    per tool call, where a warning line would be noise rather than signal (the SessionStart
-    leg has already printed it once).
+    Exit 2 (refusal, stderr reaches the model) on REFUSED; 0 otherwise. On a non-refusing
+    verdict it prints `GUARD_EVALUATED_MARKER` on STDOUT and nothing else -- the hook
+    command requires that marker before it permits, because an exit of 0 on its own is
+    equally what a `python` that never ran this file produces (see the constant for the
+    full argument).
 
-    Fail-OPEN on its own internal error, deliberately and in the one direction that is safe:
-    an unset/unreadable User scope is already a non-refusing verdict above, so the only
-    thing reaching this handler is the guard failing to run at all -- and a guard that
-    bricks every tool call because it crashed would be a worse defect than the one it
-    guards. Refusal is reserved for a mismatch it positively established.
+    STDERR stays empty on every non-refusing verdict, and that is what preserves the
+    closure clause's `match -> silent pass`: this runs once per tool call, stderr is the
+    stream that reaches the model, and a warning there would be noise rather than signal
+    (the SessionStart leg has already printed it once). Hook stdout is transcript-only.
+
+    FAIL-CLOSED on its own internal error since 2026-09-11 (AX15-1). This handler used to
+    return 0, on the argument that a guard which bricks every tool call because it crashed
+    would be a worse defect than the one it guards. The ruling answers that on a different
+    axis -- *"a guard that permits when it cannot run is declared enforcement without
+    enforcement"* -- and the two things that make the reversal survivable are elsewhere: the
+    MATCHER is narrowed, so the break-glass family stays reachable when this refuses, and
+    the SessionStart leg preflights the same two facts once at boot.
+
+    Note what is NOT in this handler's scope. An unset or unreadable User scope is a
+    non-refusing VERDICT decided above, not an error -- a guard that ran and had nothing to
+    compare has evaluated, and AX15-1 enumerates inability to EVALUATE. Only a raise reaches
+    here.
+
+    The exception repr rides in the message on purpose: "unavailable" tells the reader
+    nothing they can act on, and this text is the only thing a refused session receives.
     """
     try:
         verdict, line = prompts_dir_status(*read_prompts_dir_scopes())
-    except Exception as exc:  # noqa: BLE001 -- see fail-open note above
-        print(f"fleet_health: WARNING -- prompts guard unavailable: {exc!r}",
-              file=sys.stderr)
-        return 0
+    except Exception as exc:  # noqa: BLE001 -- see fail-closed note above
+        print(GUARD_REFUSED_MARKER)
+        print(
+            "[prompts] REFUSED -- the prompts guard could not be EVALUATED, so it refuses "
+            f"what it cannot check. Cause: it raised {exc!r} before reaching a verdict. "
+            "Fix: run 'python scripts/fleet_health.py --prompts-guard' from the repo root "
+            "to reproduce the error with a traceback.",
+            file=sys.stderr)
+        return 2
     if verdict == PROMPTS_REFUSED:
+        print(GUARD_REFUSED_MARKER)
         print(line, file=sys.stderr)
+        return 2
+    print(GUARD_EVALUATED_MARKER)
+    return 0
+
+
+# --- the SessionStart PREFLIGHT: verify ONCE what the per-call guard needs ---------------
+#
+# AX15-1's second sentence: *"A SessionStart check verifies interpreter + guard script once
+# and reports loudly, so per-call refusals are the exception."*
+#
+# It exists BECAUSE the leg above now fails closed. Without it, the first news of a missing
+# interpreter is a refused tool call with no preceding warning -- which is MA-1's
+# presentation exactly, and the thing `[#684]` exists to end. With it, the operator is told
+# at boot, in the one place they are still reading, what it will cost and how to fix it.
+#
+# It is a CHECK, not a gate. A SessionStart hook CANNOT refuse -- measured, four child
+# `claude -p` runs, recorded in the wiring block above -- so this prints and contributes an
+# honest non-zero exit. The teeth are on the PreToolUse leg and nowhere else.
+
+GUARD_PREFLIGHT_OK = "ok"
+GUARD_PREFLIGHT_NO_SCRIPT = "no-script"
+GUARD_PREFLIGHT_NO_INTERPRETER = "no-interpreter"
+
+#: The two facts the hook command needs, spelled here exactly as the hook command spells
+#: them. ONE home, because a preflight that checks a different path than the hook reaches
+#: is worse than no preflight: it reports green on the wrong file.
+_GUARD_SCRIPT_RELPATH = "scripts/fleet_health.py"
+_GUARD_INTERPRETER = "python"
+
+
+def resolve_guard_script(project_dir, cwd):
+    """The hook command's OWN resolution order, reproduced: `${CLAUDE_PROJECT_DIR:-.}`
+    first, then cwd. Returns the path the hook would reach, or None when neither leg
+    resolves -- which is the case the hook now refuses on."""
+    for base in (project_dir, cwd):
+        if not base:
+            continue
+        candidate = Path(base) / _GUARD_SCRIPT_RELPATH
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def guard_preflight_status(script, interpreter):
+    """Pure verdict + the one line, from the two resolved facts.
+
+    Both failing lines name the CONSEQUENCE as well as the cause, because the consequence
+    is the whole point of running this early: the reader needs to know that every
+    filesystem-touching tool call is about to be refused, not merely that a file is absent.
+    """
+    if script is None:
+        return GUARD_PREFLIGHT_NO_SCRIPT, (
+            "[prompts-guard] PREFLIGHT FAILED -- the PreToolUse guard will REFUSE every "
+            "filesystem-touching tool call this session. Cause: no scripts/fleet_health.py "
+            "resolves from CLAUDE_PROJECT_DIR or from the working directory, so the guard "
+            "cannot be loaded. Fix: start the session from the repo root, or point "
+            "CLAUDE_PROJECT_DIR at it; on a deployed consumer this script ships WITH the "
+            "hook as ONE floor component -- redeploy the corpus rather than removing the "
+            "hook."
+        )
+    if not interpreter:
+        return GUARD_PREFLIGHT_NO_INTERPRETER, (
+            "[prompts-guard] PREFLIGHT FAILED -- the PreToolUse guard will REFUSE every "
+            f"filesystem-touching tool call this session. Cause: no '{_GUARD_INTERPRETER}' "
+            "on PATH, so the guard at "
+            f"[{script}] cannot be run. Fix: put a working "
+            f"{_GUARD_INTERPRETER} on PATH, then re-run this session."
+        )
+    return GUARD_PREFLIGHT_OK, (
+        f"[prompts-guard] preflight OK -- guard [{script}] interpreter [{interpreter}]"
+    )
+
+
+def hook_path(environ=None):
+    """The PATH the *PreToolUse* hook will see -- which is NOT this process's PATH.
+
+    The SessionStart leg runs under `uv run --locked`, which PREPENDS the project venv's
+    script directory to PATH. The PreToolUse leg deliberately does not: it is on the system
+    interpreter, because a stale lockfile must never be able to block every tool call (see
+    the wiring block above). So a bare `which("python")` here would find the VENV python and
+    report the preflight green on a machine whose plain shell has no `python` at all --
+    green on exactly the configuration where every tool call is about to be refused, which
+    is the one outcome this check exists to prevent.
+
+    So the venv's own entries are dropped before looking. Nothing else is: this is not an
+    attempt to reconstruct the hook's environment, only to stop measuring an interpreter
+    the hook provably cannot reach.
+
+    An EMPTY component is kept, and keeping it is that same rule rather than an exception
+    to it (2026-09-11 Codex review, MEDIUM). On POSIX an empty entry means the current
+    directory, so dropping it changes where the interpreter is looked up -- and hook
+    commands here run through a POSIX shell, measured, so the semantics are live. It used
+    to be dropped incidentally: the emptiness test was there only to keep `normpath("")`,
+    which returns `"."`, away from the prefix comparison below, and it took the meaningful
+    case with it. The test is now inside the negation, where it guards the comparison
+    without deciding the outcome.
+    """
+    env = os.environ if environ is None else environ
+    path = env.get("PATH", "")
+    venv = env.get("VIRTUAL_ENV")
+    if not venv:
+        return path
+    venv_norm = os.path.normcase(os.path.normpath(venv))
+    kept = [entry for entry in path.split(os.pathsep)
+            if not (entry and os.path.normcase(os.path.normpath(entry)).startswith(
+                venv_norm + os.sep))]
+    return os.pathsep.join(kept)
+
+
+def read_guard_preflight():
+    """(script, interpreter) -- one seam, so the leg and its tests agree, the same shape
+    `read_prompts_dir_scopes` uses for the verdict half."""
+    return (resolve_guard_script(os.environ.get("CLAUDE_PROJECT_DIR"), os.getcwd()),
+            shutil.which(_GUARD_INTERPRETER, path=hook_path()))
+
+
+def _session_start_exit(prompts_verdict, preflight_verdict) -> int:
+    """The SessionStart leg's exit code, in one place because both return sites use it and
+    a divergence between them would be invisible.
+
+    2 on a REFUSED prompts verdict (013-A) or a FAILED preflight (AX15-1), 0 otherwise.
+    Neither is a block: a SessionStart hook CANNOT refuse -- measured, four child `claude
+    -p` runs, recorded in the wiring block above. It is an honest signal that costs nothing
+    and becomes a real one for free if a later CLI honours it.
+    """
+    if prompts_verdict == PROMPTS_REFUSED or preflight_verdict != GUARD_PREFLIGHT_OK:
         return 2
     return 0
 
@@ -1364,6 +1661,7 @@ def main(argv=None) -> int:
         return prompts_guard()
     today = date.today()
     prompts_verdict = PROMPTS_OK
+    preflight_verdict = GUARD_PREFLIGHT_OK
     try:
         # E-29 / 013-A: the prompts-dir line renders FIRST, above OPERATOR ASKS and
         # everything below it. A boot banner nobody reaches is not a banner. Fail-soft on
@@ -1377,6 +1675,20 @@ def main(argv=None) -> int:
                 print(prompts_line, file=sys.stderr)
         except Exception as exc:  # noqa: BLE001 -- surfacing organ, never breaks the digest
             print(f"fleet_health: WARNING -- prompts-dir guard unavailable: {exc!r}",
+                  file=sys.stderr)
+        # AX15-1's preflight, immediately beneath the banner and for the same reason: this
+        # is the last moment before the fail-closed PreToolUse leg starts charging per call.
+        # Fail-soft on its own account, like the banner above -- a preflight that could
+        # break the digest would be a new failure mode rather than a warning about one.
+        try:
+            preflight_verdict, preflight_line = guard_preflight_status(
+                *read_guard_preflight())
+            print(preflight_line)
+            if preflight_verdict != GUARD_PREFLIGHT_OK:
+                # LOUD, per AX15-1: on the operator's own surface too, not only in context.
+                print(preflight_line, file=sys.stderr)
+        except Exception as exc:  # noqa: BLE001 -- surfacing organ, never breaks the digest
+            print(f"fleet_health: WARNING -- prompts-guard preflight unavailable: {exc!r}",
                   file=sys.stderr)
         # v7 BOOT-INVERSION digest ([#611] §17): OPERATOR ASKS renders FIRST, above
         # everything -- including the fleet table below. Unthrottled, fail-soft.
@@ -1427,10 +1739,10 @@ def main(argv=None) -> int:
         load = load_surface_line(_HEALTH_FILE)
         if load:
             print(load)
-        return 2 if prompts_verdict == PROMPTS_REFUSED else 0
+        return _session_start_exit(prompts_verdict, preflight_verdict)
     except Exception as exc:
         print(f"fleet_health: WARNING -- unexpected error: {exc!r}", file=sys.stderr)
-        return 2 if prompts_verdict == PROMPTS_REFUSED else 0
+        return _session_start_exit(prompts_verdict, preflight_verdict)
 
 
 if __name__ == "__main__":
