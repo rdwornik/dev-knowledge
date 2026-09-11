@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-10
+last_reviewed: 2026-09-11
 reconciled_with: handoff-process@7.1.0
 status: active
 owner: Rob
@@ -135,7 +135,7 @@ Repo-level (`./.claude/commands/`, machine-enumerated from command-file frontmat
 @.claude/generated/commands-repo.md
 <!-- methodology:end id=commands-repo-roster -->
 
-`/handoff` generates a handoff per `HANDOFF_PROCESS.md` v7 (ADR-82); `/handoff-verify` is its check-time counterpart — one run of the whole live gate, one evidence block (v7 §5). `/review-closures` and `/ship` are governed by ADR-70 Tier-1 + `ARCHITECTURE.md` "Tier-1 self-enforcing lifecycle"; `/override` by ADR-85 §4, **whose local-token path the ADR-85 amendment §A2 RETIRED** — it discharges no gate. Which command when → PLAYBOOK §"Usage protocol".
+`/handoff` generates a handoff per `HANDOFF_PROCESS.md` v7 (ADR-82); `/handoff-verify` is its check-time counterpart — one run of the whole live gate, one evidence block (v7 §5). `/review-closures` and `/ship` are governed by ADR-70 Tier-1 + `ARCHITECTURE.md` "Tier-1 self-enforcing lifecycle". Which command when → PLAYBOOK §"Usage protocol".
 
 ## 8. Skills active
 <!-- scope: runtime -->
@@ -175,6 +175,11 @@ Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless the row says otherwis
 - `derived-copies-rebind` — a staged registered source whose derived copy did not move; also asserts every delegated hook id still exists
 - `provider-registry-agreement` — the nine provider/model seams vs `ecosystem/provider-registry.yaml`
 - `validate-backlog` — BACKLOG story-map schema (ADR-66)
+- `graph-rebuild` — rebuilds the persisted FPG-1 store ([#664] clause 1)
+- `graph-orphan-census` — a process no wiring surface reaches, transitively ([#664] clause 2)
+- `graph-task-coverage` — a staged file no OPEN row claims ([#664] clause 2)
+- `graph-process-list` — prose naming a process the graph lacks ([#664] clause 2)
+- `impacted-tests-guard` — a changed `scripts/*.py` no test covers; the refusal names the RED-first test ([#278])
 - `audit-health` — `audit.py health`; FAIL blocks the commit, WARN informs
 - `ruff` — lint gate, pinned rev == the `pyproject.toml` required-version floor
 - `coherence-nudge` — **non-blocking**: registered spec changed without a version bump; always exits 0

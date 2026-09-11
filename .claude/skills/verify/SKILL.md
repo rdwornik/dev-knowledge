@@ -11,6 +11,15 @@ uv run --locked python .claude/skills/verify/verify.py
 
 **On success the output is exactly three lines** — report them as-is.
 
+**The pytest leg is TIER A — impacted-test selection ([#278]).** `verify.py` calls
+`scripts/impacted_tests.py` to narrow the run to the tests covering the current diff, and
+prints which tier it chose on stderr (stdout stays exactly three lines). This narrows the
+**in-lane** gate only: PLAYBOOK Ch5 keeps tier B — the one full suite at integration — as
+the net, and the selector's measured 4.8 % miss-rate is acceptable only because that net
+exists. Every failure path falls back to the full suite, and `VERIFY_FULL_SUITE=1` forces
+it. Numbers and both rejected alternatives:
+`docs/audits/2026-09-11-technical-w278-selector-leg-measurement.md`.
+
 **On failure** ([#127] contract) the script adds an `--- Actionable ---` section carrying,
 for each failing check, a four-field block:
 

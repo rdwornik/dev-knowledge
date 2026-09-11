@@ -33,6 +33,13 @@ import pytest
 import audit as aud   # noqa: E402
 
 requires_git = pytest.mark.skipif(shutil.which("git") is None, reason="git not available")
+# THE FOUR HANDBACK PROOFS BELOW DO NOT CARRY THIS MARK, AND THAT ASYMMETRY IS A RULING, NOT
+# AN OVERSIGHT ([#638], 2026-09-11) — do not "restore" it for symmetry with the tests beside
+# it. Full reasoning, guard by guard, at the block above
+# `test_handback_artifact_supplies_both_linkage_and_tally`. The thirteen older guards in this
+# file keep the mark: they are the pre-existing population `scripts/proof_layer.py` records as
+# the reason its tier is WARN, they are outside that lane's footprint, and ruling them is a
+# separate act with its own evidence.
 
 _RULING_DATE = "2026-08-05"
 _BEFORE = "2026-08-01T09:00:00"
@@ -580,7 +587,40 @@ def _handback_artifact(repo, slug, *, branch, head, token="review=codex HIGH:0 M
         encoding="utf-8", newline="\n")
 
 
-@requires_git
+# --- [#638]: the four handback proofs are ROUTED OUT from behind `requires_git` -----------
+#
+# `scripts/proof_layer.py` reported these four as family-3 instances — a proof gated on the
+# presence of the environment it polices — and its own docstring says a guard on that list is
+# "a QUESTION, not a verdict". The question it raises about itself is the one that decides
+# these four: "a guard on `git`, `grep` or `pwsh` may still be self-policing in a module whose
+# subject IS that tool." This module's subject IS git-derived data, so the question is live
+# here rather than rhetorical. Ruled 2026-09-11, and the ruling is ROUTE OUT, on two grounds.
+#
+# GROUND 1 — git is this fixture's SCAFFOLDING, not these four properties' SUBJECT. The
+# thing each of the four pins is the TOKEN GRAMMAR of a persisted handback: whether a missing
+# token, `review=NONE`, or an unrelated artifact counts as coverage. `git` builds a repo with
+# a merge in it so the grammar has somewhere to be read from; it is not what is measured.
+# That is the merits difference from the sweep's §9.2 exemplar, which proof_layer calls
+# load-bearing and CORRECT: there the property genuinely cannot exist without the tool. Here
+# it can, and the tool's absence only decides whether the proof RUNS. Three of the four are
+# refusal properties — they pin that the leg still WARNs — and a refusal proof that can go
+# quiet on the machine where the refusal would matter is the defect stated exactly.
+#
+# GROUND 2 — in THIS repo a machine without `git` is a broken machine, not a supported one.
+# `.dev-knowledge` is a git-governance hub: every gate is a git hook, `audit.py` shells out to
+# git, and the checkout these tests run from cannot be obtained without it. So the only live
+# effect the mark can ever have here is to convert that breakage into a silent green, which is
+# the outcome `[#596]` exists to refuse. Unmarked, the four raise `FileNotFoundError: git`
+# from `_run` — loud, named, and attributable — which is strictly more informative than a dot
+# in a summary nobody reads line by line.
+#
+# WHAT WAS NOT DONE, deliberately: no `#147` register entry was written. Any token narrow
+# enough to be true of one of these four was true of all four and of the next guard added to
+# this file, and no guard was deleted to move a count — the four proofs still run, they run
+# unconditionally now. `ecosystem/proof-layer-baseline.json` is therefore UNCHANGED: the live
+# population returns to the 243 keys it already lists.
+
+
 def test_handback_artifact_supplies_both_linkage_and_tally(tmp_path, monkeypatch):
     """027 point 6: STATE IS FILES. A lane's persisted handback carries the branch, the sha
     and the tally in ONE line, so it is a first-class coverage source — not a second-class
@@ -591,7 +631,6 @@ def test_handback_artifact_supplies_both_linkage_and_tally(tmp_path, monkeypatch
     assert _warns(_leg()(repo)) == []
 
 
-@requires_git
 def test_handback_artifact_without_a_review_token_is_not_coverage(tmp_path, monkeypatch):
     """The whole point of the token. A handback that reports no review is not evidence a
     review happened, so it must not silence the leg."""
@@ -601,7 +640,6 @@ def test_handback_artifact_without_a_review_token_is_not_coverage(tmp_path, monk
     assert _warns(_leg()(repo)), "a token-free handback must not count as coverage"
 
 
-@requires_git
 def test_handback_artifact_with_review_none_is_not_coverage(tmp_path, monkeypatch):
     repo = _repo(tmp_path, monkeypatch)
     work, _ = _merge(repo, "fix/a", "scripts/a.py", _AFTER)
@@ -609,7 +647,6 @@ def test_handback_artifact_with_review_none_is_not_coverage(tmp_path, monkeypatc
     assert _warns(_leg()(repo))
 
 
-@requires_git
 def test_an_unrelated_handback_does_not_launder_a_merge(tmp_path, monkeypatch):
     """The property `test_unrelated_artifact_does_not_launder_an_unreviewed_merge` pins for
     the codex shape — one stale file must not silence the leg."""

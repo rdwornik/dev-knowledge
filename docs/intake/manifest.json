@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "df50b319df21c657e3315c26b3579ffda78f0b0411f15b9e15609c3188148bfe",
+  "source_sha256": "bd31135f96ffc8d6e4577ced8dd2ff76d8d327f05b4e13695146db6c3371e60b",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
-    "item_derived_lines": 81,
-    "residue_lines": 297,
-    "total_lines": 378,
+    "item_derived_lines": 83,
+    "residue_lines": 300,
+    "total_lines": 383,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -396,6 +396,10 @@
         "consumed-by",
         "origin"
       ],
+      "2026-09-10-tech-harness-is-process.md": [
+        "consumed-by",
+        "origin"
+      ],
       "2026-09-10-tech-review-consumption.md": [
         "consumed-by",
         "origin"
@@ -478,7 +482,7 @@
     },
     {
       "t": "line",
-      "v": "**81 intake documents.**"
+      "v": "**83 intake documents.**"
     },
     {
       "t": "line",
@@ -548,7 +552,7 @@
     },
     {
       "t": "line",
-      "v": "### DRAFT (32)"
+      "v": "### DRAFT (33)"
     },
     {
       "t": "line",
@@ -712,6 +716,11 @@
     {
       "t": "item",
       "file": "2026-09-10-tech-review-consumption.md",
+      "status": "DRAFT"
+    },
+    {
+      "t": "item",
+      "file": "2026-09-10-tech-harness-is-process.md",
       "status": "DRAFT"
     },
     {
@@ -932,6 +941,23 @@
       "t": "item",
       "file": "2026-09-05-tech-aj-second-pass.md",
       "status": "ACCEPTED"
+    },
+    {
+      "t": "line",
+      "v": ""
+    },
+    {
+      "t": "line",
+      "v": "### OTHER (1)"
+    },
+    {
+      "t": "line",
+      "v": ""
+    },
+    {
+      "t": "item",
+      "file": "2026-09-11-tech-batch-x-roster.md",
+      "status": ""
     },
     {
       "t": "line",

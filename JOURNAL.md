@@ -19,6 +19,389 @@
 
 ---
 
+### 2026-09-11 (m) - CC (Opus 5, background integrator seat): the anchor arc names its own first commit
+
+**Names `efd5d47f`**, the entry below, which this arc's own `--no-ff` merge introduces.
+
+**Why two commits.** A one-commit anchor arc cannot discharge the anchor its own merge creates:
+the merge introduces {merge, commit}, and the single commit can only name a SHA from the arc it
+was anchoring, never itself. So the arc needs a second entry naming the first. That is not a
+workaround -- it is what B6's **APPEND ONLY** discharge means in practice, and it is the shape
+every anchor repair in this batch has taken.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+### 2026-09-11 (l) - CC (Opus 5, background integrator seat): the batch X manifest lands, and grants nothing
+
+**Names `bea803ef`**, the dispatcher's tip, introduced by the merge `e688669c`.
+
+**Did.** Merged `worktree-dispatch-x1-freeze` per AX17-3 — *"the integrator merges
+`worktree-dispatch-x1-freeze` before any X1 lane hands back, so batch X lands anchored"* — landing
+`docs/audits/2026-09-11-technical-batch-x-manifest.md` and six frozen wave-1 contracts, among them
+`LANE-w-684-pretooluse-guard-root-prime`, W-2' continuing on the W-2 branch this seat preserved.
+Docs-only, `review=n/a` under D-1, verdicted before the merge.
+
+**THE MANIFEST GRANTS NO EXEMPTION, AND THIS IS MEASURED RATHER THAN ARGUED.** On the merged tree:
+
+```
+batch_manifest.open_batches(repo)  ->  0 open batches
+```
+
+**Cause.** `open_batches` requires all four — the manifest TRACKED by git, `status: open`, a
+`closed_by:` whose shape resolves, and that path ABSENT from the tree — and it **fails toward
+no-exemption** on missing frontmatter, which is the FR6 discipline ADR-85 established: an unknown
+exemption state must never render as *exempt*. Batch W's manifest carries `status: open` and
+`closed_by:` at lines 6-7 of a frontmatter block opened at line 1. **Batch X's manifest opens with a
+heading; its first `---` is a horizontal rule at line 13, and neither field exists anywhere in the
+file.** So the gate skips it, correctly and silently.
+
+**The consequence is the exact tax AX17-3 exists to remove.** Every X1 lane merge will land
+unanchored and block every commit in the repo until this seat anchors it — the fourth face of the
+defect this batch keeps finding: (d) a substrate merge outside a lane-keyed exemption, (f) an
+expiry needing a drain, (g) no manifest at all, and now **(l) a manifest that exists but cannot be
+read by the organ it was written for.** The first three were about the exemption's edges; this one
+is about its *interface*, and it is the most dangerous of the four because the artifact is present
+and looks complete. **A manifest is not a record that a batch is open — it is a declaration the
+gate parses, and formatting is semantic on a machine-read surface.**
+
+**Not repaired here, deliberately.** The manifest is the dispatcher's frozen artifact and is now
+`docs/audits/`-immutable; adding the two fields is an amendment to another seat's record, not an
+integrator carried edit, and this seat has already recorded once this window that it will not edit
+another seat's surface unilaterally (P-1, the lane JOURNAL case). Reported to the operator with the
+measurement instead.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+**Next.** Push, tear down the dispatcher worktree and branch, then hold for X1 lane handbacks —
+anchoring each merge by hand until the manifest carries its two fields.
+
+### 2026-09-11 (k) - CC (Opus 5, background integrator seat): batch W closes for real - four rows closed on one word, W-2 carried with its guard ruled fail-closed
+
+**Names `3549bd9a`**, the closure-and-amendment commit this entry anchors.
+
+**Did.** Closed batch W. Applied the operator's closure word to `[#683]` `[#638]` `[#278]`
+`[#688]`; dispositioned W-2 CARRIED to batch X as lane W-2' with its fresh review tally quoted;
+reported the net-row overdraft; tore down W-2's worktree while **preserving its branch**.
+
+**The stop was the point of the exercise.** AW6-2 bars a W-2 merge except on a fresh Codex review
+with no unresolved HIGH. The review returned **HIGH:2**, both fail-open, and the code confirmed
+them: `[ -f "$g" ] || exit 0` permits when the guard script is missing, and a bare `exit 0` permits
+on any rc other than 2 — a crash or a missing interpreter. **That is the integrator's ORIGINAL W-2
+HIGH, unchanged after a whole fix lane.** But it was deliberate: `REVIEW.md:85` and `:102` specify
+*"fails open on interpreter failure"* verbatim, because the measured alternative was MA-1 itself —
+matcher `"*"` converting an interpreter failure into refusal of every tool call with no in-session
+escape. So two reviews disagreed about a ruled design, and **the integrator refused to settle a
+security posture by fiat in either direction** and routed it under ADR-108 §A. The operator ruled:
+**AX15-1 — the guard FAILS CLOSED**, because *"a guard that permits when it cannot run is declared
+enforcement without enforcement."* MA-1's intent is superseded and W-2' carries the work forward on
+the same branch.
+
+**The lesson is about what a mechanized gate can and cannot see.** `audit.py handback` returned
+**MERGE at exit 0 on HIGH:2** — correctly, because D-1's bar is that a review *ran and is named*,
+not that it came back clean. Severity is the integrator's act. A seat that reads only the exit code
+would have merged a guard that permits when it cannot decide. **The mechanization is a floor, not a
+verdict**, and this is the batch's clearest instance of the difference.
+
+**Closing a row is three coupled edits, and only one is obvious.** Body marker, `status: closed`,
+**and removal of the node from `tasks/manifest.json`**. `plan_frontmatter_refresh` re-renders
+frontmatter only for files the manifest lists, and `derive_status` can return only `"deferred"` or
+`"open"` — never `"closed"` — so a hand-set status on a still-listed row is silently reverted at the
+next regeneration. An earlier attempt in this session did exactly that and was withdrawn. The
+invariant that makes it legible: **closed ⟺ absent from the manifest**, measured at 135 closed rows,
+all absent, zero present.
+
+**The overdraft, stated rather than netted.** 49 rows filed in the window (14 batch W + 33 X-0 + 2
+X-R), 4 closed, **net +45**; 259 open on `main`. The close packet's §10 figure of `+14` was correct
+when measured and is superseded by the amendment. Four evidenced closures do not cover forty-nine
+filings — the batch discovered faster than it closed, which is accrual rather than failure, and
+AX11-4 exists so it is a number in a packet rather than a drift nobody measured.
+
+**Changes.** Four task rows closed, `tasks/manifest.json`, `BACKLOG.md`, the batch W close packet
+(in-file amendment marker, §12), `JOURNAL.md` (this entry).
+
+**Next.** Hold the queue for batch X merges. `worktree-dispatch-x1-freeze` is already up.
+
+### 2026-09-11 (j) - CC (Opus 5, background integrator seat): the roster anchor arc anchors itself
+
+**Names `81c3d52f`**, the (i) entry's commit — the only SHA this arc's merge introduces besides
+this entry, and therefore the only one available to anchor it. Append-only, per B6: a second entry
+rather than an edit to (i), because amending in place would discharge the anchor retroactively.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+### 2026-09-11 (i) - CC (Opus 5, background integrator seat): the batch X roster lands, and night gating is superseded mid-queue
+
+**Names `86a4cbe0`**, X-0's tip, introduced by the merge `b595545b`.
+
+**Did.** Merged X-0 — the batch X roster as intake 93, with AMEND-001/002 corrections and
+AMEND-006 through AMEND-011 folded in — filing **33 rows** (`[#693]`-`[#707]`, `[#715]`-`[#719]`,
+`[#722]`-`[#734]`). Docs-only, `review=n/a` under D-1, verdicted by `audit.py handback` at exit 0
+**before** the merge. Merged FIRST in the reordered queue because X1 cannot dispatch until these
+rows are on `main`. Tore down X-R and X-C, both `ahead=0` and both passing the ancestor proof.
+
+**Night gating was superseded while this queue was running**
+(`to-browser/RATIFICATION-2026-09-11.md`, 2026-09-11 ~16:45): *continuous work, no night gating*,
+which supersedes ratification #7's timing and AX11-1 — and, with it, row `[#732]`, one of the 33
+rows this very merge lands. **A row can be superseded by a ruling made before the row reaches
+`main`**, which is worth recording precisely because it looks like a contradiction in the tree: the
+roster carries `[#732]` as filed, and the ratification that retires it is dated earlier than the
+merge that lands it. The row is not wrong; it is superseded, and the next lane that touches it
+amends it.
+
+**The anchor, for the third time this window.** Batch X still has **no manifest**, so its lane
+merges take no ADR-110 exemption at all and land as ordinary unanchored spine entries. This is the
+same defect entry (g) recorded; it fires once per batch-X merge until a manifest exists. That is
+the argument for batch X writing its manifest **before** its next lane merges rather than at
+dispatch-time convenience: the exemption is not a formality, it is the thing standing between an
+integrator merge and a repo-wide commit block.
+
+**Also ratified in the same file, and owed as a separate act:** *"Close the batch W tasks whose
+work is on `main` — YES. `[#683]` `[#638]` `[#278]` `[#688]`, and `[#684]` once merged, under
+`[#730]`."* That is the ONE OPERATOR WORD batch W's close packet section 9 asked for (AX10-1), and
+`[#730]` — the row that carries the mechanism — is one of the 33 this merge just landed.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+**Next.** Push, then the W-2 fix lane with a fresh Codex review per AW6-2.
+
+### 2026-09-11 (h) - CC (Opus 5, background integrator seat): the anchor arc anchors itself
+
+**Names `8ca3adfb`**, the (g) entry's commit — the one commit this arc's merge introduces besides
+this entry, and therefore the only SHA available to anchor that merge.
+
+**Why a second entry rather than an edit.** An anchor discharges by **APPEND ONLY** (architect
+ruling 2026-08-07; `protocols/STANDING_RULINGS.md` B6). The predicate matches a SHA anywhere in the
+file, so amending (g) in place to add its own hash would discharge the anchor *retroactively* and
+leave no trace it once did not — which is why the register forbids it and why this is a new entry.
+A one-commit anchor arc is unanchorable by construction: a merge commit cannot name its own hash,
+and (g)'s hash did not exist when (g) was written.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+**Next.** Merge, push, and STOP: AX11-1 bars further merges during working hours after this queue.
+
+### 2026-09-11 (g) - CC (Opus 5, background integrator seat): two batch-X lanes land, and a batch with no manifest grants no exemption
+
+**Names `c79fcf09`** (X-R's tip, introduced by the merge `cb94cfd5`) **and `7bce09e5`** (X-C's tip,
+introduced by the merge `cd25a094`). One entry, two merges, because the anchor predicate is
+per-merge and each needs at least one SHA of its own named.
+
+**Did.** Merged two batch-X lanes on operator instruction: **X-R** — the 2026-09-10/11 window rules
+landing as `protocols/STANDING_RULINGS.md` section AH, plus rows 720 and 721 — and **X-C**, the
+domain census, one page per top-level folder. Both docs-only, both `review=n/a` under D-1, both
+verdicted by `audit.py handback` at exit 0 before the merge rather than after.
+
+**THE DEFECT, AND IT IS THE THIRD FACE OF THE SAME ONE.** `journal_spine_anchor` went to a hard
+FAIL the moment both landed, because **batch X has no manifest yet**. The ADR-110
+declared-integration-arc exemption is granted BY a committed manifest carrying `status: open`, so a
+batch that has not written one grants nothing — its lane merges are ordinary unanchored spine
+entries and they block every subsequent commit in the repo.
+
+Batch W met this twice already: entry (d), where a SUBSTRATE merge fell outside an exemption that
+covers only lanes; and entry (f), where the exemption's EXPIRY had to be drained before the close
+packet ended it. **This is the third face: no manifest, so no exemption to fall outside of.** The
+three together say one thing — *the exemption is load-bearing and every edge of it is unguarded.*
+Batch W's close packet (`7ff0852e` §2) recommends re-keying the clause to "merges made by the
+integrator while the batch is open"; this instance argues the same fix from the other end, because
+"while the batch is open" is unreadable when nothing declares the batch open.
+
+**X-R found the batch W defect independently, and paid for it.** Its own artifact measured
+`journal_spine_anchor` FAILing on `a3374b70`, ran the discriminator, synced to main's tip before
+concluding, and got the diagnosis exactly right — *"not exemptible: `worktree-batch-w-aw53-substrate`
+does not appear in batch W's manifest lane roster"* — while correctly leaving the three real lane
+merges exempt. It could not write the anchor: P-1 makes `JOURNAL.md` the integrator's surface. So
+it used the sanctioned single-hook `audit-health` bypass on BOTH commits, declared in each commit
+body. **That bypass was correct and the cause was the integrator's**, which is worth recording
+plainly: an unanchored integrator merge does not stay the integrator's problem, it taxes every lane
+committing underneath it.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+**Next.** The arc's own anchor, then STOP — AX11-1 bars further merges during working hours.
+
+### 2026-09-11 (f) - CC (Opus 5, background integrator seat): batch W closes with one lane carried, and the exemption is drained before it expires
+
+**Names `5e17ecd7`** (W-4's lane tip, introduced by the merge `0bb1d5ce`) **and `57a356aa`** (this
+arc's carried edit). The first is the point of this entry; the second anchors the arc's own merge.
+
+**Why `5e17ecd7` is named here and not later.** `0bb1d5ce` is a LANE merge, so it is exempt from
+`journal_spine_anchor` while batch W's manifest is `status: open` — and it is `anchored: False`
+underneath that exemption. **The exemption dies the moment the close packet lands**, because the
+manifest's `closed_by:` names that path and `docs/audits/` is immutable, which is precisely what
+makes the expiry real rather than a mutable flag. Landing the packet first would therefore have
+un-exempted an unanchored merge and blocked the very commit that closes the batch. **An exemption
+must be DRAINED before it expires, not after.** That ordering is not in Ch8 and is the second
+anchoring lesson of this batch, after the substrate merge in entry (d).
+
+**Did.** Closed batch W's merge queue. Merged W-8 `cdeffc2e`, W-1 `365ae7d1`, W-7 `e4929b09`, the
+AW5-3 substrate change `a3374b70`, its anchor repair `e6f11215`, W-3 `69a0266c` and W-4 `0bb1d5ce`.
+Every teardown gated on `git merge-base --is-ancestor` exiting 0 before any `-d`, verified in both
+halves. `git stash list` empty; `refs/locks/*` free.
+
+**W-2 is CARRIED to batch X, and the reason is worth keeping.** Its fix lane did good work — five
+HIGH raised across four terra passes, all five resolved, matcher narrowed, the hook now resolving
+its own repo root. But its frozen Done-when names ONE witness: *"one non-Claude CLI smoke passes
+under the guard."* The only CLI measured to honour `.claude/settings.json` is `cursor-agent`, and
+it is refused by its own vendor's quota — re-probed today and recorded verbatim. `codex`, `copilot`
+and `agy` are all measured **vacuous** instruments; the lane converted `agy` from assumption to
+measurement this round. So the leg is **unsatisfiable with the instruments that exist**, which is
+the same shape as FR-8's unsatisfiable clause: an acceptance leg naming a witness nothing can
+produce. Carrying it forward unamended reproduces the block rather than resolving it, so the packet
+escalates it as an operator act rather than filing it as another lane.
+
+**The cost of carrying is stated rather than buried.** `main` keeps the `"*"` PreToolUse matcher,
+which `.claude/settings.json`'s own wiring comment describes as refusing *"EVERY tool call with no
+in-session escape."* The branch and worktree are preserved at `90c727bd`, so reversing the
+disposition is a merge, not a re-run.
+
+**Changes.** `CLAUDE.md` (the dangling `/override` clause), `JOURNAL.md` (this entry).
+
+**Next.** The close packet, the audits-index regeneration, and the full suite on the final tree.
+
+### 2026-09-11 (e) - CC (Opus 5, background integrator seat): the deviations are recorded before they are acted on
+
+**Names `61e8a138`**, the manifest's integration-deviations section - the substantive commit of the
+`docs/batch-w-anchor-substrate` repair arc, which this entry anchors ahead of its merge.
+
+**Did.** Recorded four integration deviations in batch W's manifest rather than only in the close
+packet, on the reasoning that **a deviation disclosed after the act it authorizes is a report, not
+an authorization**.
+
+**D-a is the one that matters.** AW5-2 authorized the integrator to run the terra review itself
+*for W-2*. W-3 handed back at `74990bf3` as a **code** branch carrying no `review=` token, which
+D-1 refuses. The integrator ran the review under AW5-2's shape rather than holding W-3 - which
+**satisfies** D-1 rather than waiving it - but the authorization names a different lane, so the
+extension is a deviation carried to the close packet for ratification, and is not precedent until
+ratified.
+
+**D-b, and why the tally was not adjusted.** W-3's review returned `HIGH:1`. That tally is recorded
+unmodified, and `audit.py handback` returns MERGE at exit 0 on it - because D-1's mechanized bar is
+that a review *ran and is named*, with severity triage left to the integrator. The finding was
+attributed to `scripts/proof_layer.py:481`; three measurements put it elsewhere. The mechanism is
+real but its locus is `scripts/audit.py:6595` (`str(token) in finding.evidence` - substring, never
+equality), a pre-existing `#147` register property the lane's own docstring names. The lane
+strictly **narrows** the aperture: pre-change evidence rendered byte-identically for two
+function-level guards in one module, so one disposition masked every guard in that file. And it is
+unreachable today - 0 substring collisions among 243 live guard keys, 0 register entries with
+`organ: proof_layer`. Filed as a batch-X row against the register, not as a hold on W-3.
+
+**D-d is a third instance of a conflict class worth naming.** `ecosystem/doc-counts.md` collided on
+W-3's merge exactly as `tasks/manifest.json` did on W-1 and W-7: HEAD `5749`, lane `5726`, merged
+`5752`. **Neither parent held the correct value**, which is what makes "take one side" wrong rather
+than merely arbitrary - the fix is strip the markers FIRST, regenerate SECOND, because regenerating
+over the markers absorbs them.
+
+**Changes.** `JOURNAL.md` (the (d) and (e) entries), batch W manifest (deviations section).
+
+**Next.** Merge W-3, then W-4 and the W-2 fix lane when they hand back.
+
+### 2026-09-11 (d) - CC (Opus 5, background integrator seat): the substrate merge is not a lane, so the exemption does not reach it
+
+**Names `81a28aad`**, one of the four commits the merge `a3374b70` introduced - written and
+committed BEFORE any other work on this arc, because the gap it clears was already blocking every
+commit in the repo.
+
+**Did.** Opened batch W's merge queue as integrator and merged W-8 (`cdeffc2e`), W-1 (`365ae7d1`),
+W-7 (`e4929b09`) and the AW5-3 substrate manifest change (`a3374b70`), each `--no-ff`, each with
+teardown verified by `git merge-base --is-ancestor` before any `-d`.
+
+**The defect this entry exists to record.** The ADR-110 declared-integration-arc exemption covers a
+batch's **lane** merges while its manifest is `status: open`. `a3374b70` is a **substrate** merge -
+the AW5-3 manifest change recording why both codespace lanes produced zero work - and a substrate
+merge is not a lane. So it took no exemption, landed on main's first-parent spine unanchored, and
+`journal_spine_anchor` began FAILing `audit-health`, which blocks **every subsequent commit**. The
+gate text says so precisely: it reports one unanchored entry and separately exempts three lane
+merges, which is the discriminator - the exemption was working exactly as written; the merge simply
+was not of the class it covers.
+
+**Why the ordering is inverted on this arc.** An integrator arc is normally substantive-first,
+JOURNAL-last (Ch8, batch-1 F1b). Here the block already existed, so a substantive commit could not
+land first - it was refused by the same gate. The entry therefore goes FIRST to clear the spine,
+the substantive commit follows, and a further entry anchors this arc's own merge. That is the
+dispatcher's (c)-entry fix one level up, and the same reason applies: re-running a refused commit
+addresses a gap that re-running does not close.
+
+**`SKIP=audit-health` was available and was NOT used.** The ADR-110 amendment 2026-08-07 retired
+that bypass for intermediate merges because the manifest was made to carry the exemption instead.
+The gate here is not misfiring - it is correctly reporting a real unanchored entry. Silencing a
+correct gate to land one's own commit is the direction this repo files defects about, not the
+direction it takes.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+**Next.** The manifest's integration-deviations section, then W-3's merge - which this entry
+unblocks.
+
+### 2026-09-11 (c) - CC (Opus 5, background dispatcher seat): the batch W amendment and [#690] land
+
+**Names `d385cc1a`**, the commit this entry anchors - the manifest amendment plus `[#690]`, coupled
+into one commit because the tree-coherence gate refuses to let `BACKLOG.md` reference a row whose
+file the same commit does not carry.
+
+**Did.** Landed the two acts recorded in the (b) entry above: batch W's manifest amended so W-6
+leaves for batch X and W-8 enters under the ceiling, and `[#690]` filed as the in-repo record of the
+W-5 deletion.
+
+**The gate sequence is the lesson, not the content.** Three refusals in a row, each correct:
+`health: DEGRADED` on a split commit (`BACKLOG.md` naming `[#690]` without the row file);
+`health: DEGRADED` again on `journal_spine_anchor`, because the merge `2040653c` was itself
+unanchored - its arc was a single JOURNAL commit, and an entry can never name the merge that
+carries it; and only then the content commit. **The anchor arc could not anchor its own merge**, so
+the fix was to name `2781094a` - the one commit `2040653c` introduced - in a JOURNAL entry
+committed BEFORE the content, rather than to re-run the same commit and expect a different answer.
+
+**Changes.** `JOURNAL.md` (the (b) and (c) entries).
+
+**Abandoned.** Nothing.
+
+**Next.** W-8 dispatches from a pushed `origin/main` that already carries the amendment, so it does
+not repeat the (a) entry's sequencing error. It merges FIRST in the integrator's queue.
+
+### 2026-09-11 (b) - CC (Opus 5, background dispatcher seat): the ceiling holds - W-6 goes to batch X so W-8 can enter, and the three SUPERSEDED L0 hook copies go
+
+**Names `2781094a`**, the commit this entry anchors.
+
+**Did.** Two acts, coupled into one commit because the tree-coherence gate refuses the split.
+**(1)** Amended batch W's dispatch manifest: W-6 out to batch X, W-8 in, keeping the fence at six.
+**(2)** Executed W-5 as a primary-session act and filed `[#690]` as its in-repo record.
+
+**The ceiling was tested rather than trusted, and it refused.** `AMEND-BATCH-W-004` admitted W-8
+with the note *"W-8 fits under the ADR-110 ceiling while W-6 is held."* The organ disagreed: *"the
+plan names 7 lanes against a ceiling of 6; the excess is lane-w-000-three-decisions-become-rows."*
+**A held lane still counts** - AW2-2 enumerates the six with W-6 among them, and the ceiling is
+bounded by integration capacity, which is serial and does not care whether a lane has fired yet.
+The seat refused to dispatch a seventh and report the number afterwards, which is the move the
+ceiling exists to forbid. The architect then **re-cut the plan rather than waiving the ceiling** -
+W-6 to batch X, W-8 in its place - so the count is satisfied by arithmetic, not by exception.
+`[#687]` is untouched and unclosed. Its contract had to LEAVE the launch-contracts directory too:
+`[#630]` requires set equality both ways with the lane fence, so a fence row removed without its
+file refuses at the next commit.
+
+**W-5, and why a deletion outside the repo files a row.** The three files live in no git tree, so
+`main` can never witness their absence directly; AW-3's fix is that the row IS the record. Core
+invariant #6 held its shape: the first `GO delete` did not name the paths and was REFUSED, because
+W-5's own contract makes the form checkable - *"a GO for 'the deletions' does not reach L0 by
+implication."* Executed on a GO naming all three. **M6 bytes removed: 10,051**
+(1,297 + 3,322 + 5,432). The live `block-onedrive.ps1` is untouched at 9,016 B and stays armed.
+
+**The guard refused its own operator, conservatively and wrongly.** The first deletion command was
+blocked by the live `block-onedrive.ps1` because the command TEXT carried the zone token and used a
+construct outside its read-only allowlist - while the directory being touched,
+`C:\Users\1028120\.claude\hooks`, is not in the zone at all. Ambiguity falling stricter is the
+guard's stated principle, so this is the design working; recorded because a guard that fires on
+command text rather than on target path will keep doing it.
+
+**Changes.** `docs/audits/2026-09-10-technical-batch-w-manifest.md` (amended, marked) ·
+`docs/audits/2026-09-10-technical-batch-w-launch-contracts/` (W-6 contract out, W-8 contract in) ·
+`tasks/690-*` (new) · `tasks/manifest.json` · `BACKLOG.md` (regen).
+
+**Abandoned.** Nothing. Both dispatch worktrees torn down and their removal verified.
+
+**Next.** W-8 dispatches and merges FIRST in the integrator's queue. W-1, W-2, W-3, W-4 and W-7 are
+in flight; all three local lane trees were synced to `origin/main` so none commits against a tree
+that predates the manifest. The integrator still owes the AW2-4 teardown of branch
+`worktree-review-consumption`.
+
 ### 2026-09-11 (a) - CC (Opus 5, background dispatcher seat): batch W opens - the manifest lands before any lane boots, and the step-0 DryRun catches two verb defects
 
 **Names `9852c6d7`**, the manifest commit this entry anchors, and `676a6e8e`, the index regen that
