@@ -19,6 +19,13 @@
 
 ---
 
+### 2026-09-11 (o) - CC (Opus 5, background integrator seat): the wave-1 anchor arc names its own first commit
+
+**Names `176bf9c3`**, the entry below, which this arc's own `--no-ff` merge introduces. A
+one-commit anchor arc cannot discharge the anchor its own merge creates - APPEND ONLY, B6.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-11 (n) - CC (Opus 5, background integrator seat): the wave-1 merge anchors, written BEFORE the merges
 
 **Names all six wave-1 lane tips**, each of which its own `--no-ff` merge will introduce:
