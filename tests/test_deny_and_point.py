@@ -282,6 +282,12 @@ def _run(payload: dict) -> subprocess.CompletedProcess:
 
 
 def test_the_wire_denies_with_exit_2_and_a_block_decision():
+    # Precondition, not a weakening: the deny path needs a persisted store to judge against,
+    # and the guard ALLOWS when there is none (that is the fail-open posture, asserted above).
+    # pre-commit rebuilds the store on every commit, so this skips only on a tree that has
+    # never committed.
+    if not guard.load_processes(_REPO):
+        pytest.skip("no persisted store on this tree (pre-commit rebuilds it)")
     proc = _run(_bash("rg gen_task_tree"))
     assert proc.returncode == 2
     body = json.loads(proc.stdout)

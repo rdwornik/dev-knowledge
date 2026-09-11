@@ -506,6 +506,33 @@ surfaces:
       value: methodology-generic
       reason: "Stop session-end-backpressure hook block -- methodology-shipped deterministic gate (MUST both, ADR-85); methodology-owned."
       provenance: *own-prov
+  # [#727] deny-and-point guard. AX4-1 makes this registry the carrier for the floor
+  # declaration, and the row's Done-when declares the component floor: MUST.
+  #
+  # MUST AT THE HUB, and the consumer key is absent rather than MUST -- AX4-1's hub-only
+  # branch, with its required ONE-LINE REASON: the guard's whole value is its POINTER, and
+  # every organ it points at (file_purpose_graph.py, graph_queries.py, impacted_tests.py) is
+  # hub-local, so a consumer MUST would require a consumer to carry a refusal that names
+  # organs it does not have.
+  #
+  # MEASURED before it was narrowed, not assumed. With `consumer: MUST` the walk returned:
+  #     ai-council      settings-deny-and-point  MUST-absent
+  #     corp-monorepo   settings-deny-and-point  MUST-absent
+  # -- two live repo pins REDdened by a registry admission, which is a recorded scar rather
+  # than a clever move. fleet_parity is ship-tier ([#597]), so it would have passed the commit
+  # gate and failed the ship gate.
+  #
+  # SUCCESSOR NAMED: ADR-118 §5 W-G4 ships the graph as a floor component (pull, fleet-uniform),
+  # and the consumer tier belongs to that act -- the pointer becomes true for a consumer at the
+  # same moment the organs do, not before.
+  - id: settings-deny-and-point
+    kind: settings-hook-block
+    tier: {hub: MUST}
+    probe: {type: settings_hook, event: PreToolUse, token: deny_and_point}
+    ownership:
+      value: methodology-generic
+      reason: "PreToolUse deny-and-point guard -- [#727]'s Done-when declares the component floor: MUST and AX4-1 names this registry as the carrier; methodology-owned governance organ, hub tier only until ADR-118 W-G4 ships the graph fleet-wide."
+      provenance: *own-prov
   - id: settings-plugin-tier1
     kind: settings-hook-block
     tier: {hub: MUST, consumer: MUST}
@@ -524,7 +551,8 @@ surfaces:
       type: settings_local_blocks
       owned:
         .dev-knowledge: [fleet_health.py, surface_triage.ps1, billing_leak_sentinel.ps1,
-                         changelog_sentinel.py, block_immutable_edits.py]
+                         changelog_sentinel.py, block_immutable_edits.py,
+                         deny_and_point.py]
         corp-monorepo: [surface-conformance.ps1]
     ownership:
       value: methodology-generic
