@@ -475,7 +475,7 @@ repos:
         # AND narrow that regex in the same act -- pre-commit evaluates the staged
         # config, so the hook was skipped and the gate was disarmed by the change it
         # exists to inspect. It now `always_run`s and reads the staged set itself via
-        # `git diff --cached --diff-filter=ACM` (see `staged_from_git`), which is the
+        # `git diff --cached --diff-filter=ACMRT` (see `staged_from_git`), which is the
         # same shape `audit-health` below uses. Cheap on an unrelated commit: with no
         # staged scripts the guard returns before building any coverage table.
         # `tests/test_impacted_tests.py::test_the_guard_cannot_be_disarmed_by_its_own_wiring`

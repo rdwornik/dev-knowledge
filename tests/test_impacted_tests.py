@@ -326,6 +326,64 @@ def test_the_grandfather_set_is_a_ratchet():
         )
 
 
+def test_machine_read_config_under_a_source_root_is_not_treated_as_prose():
+    """`hooks.json` IS behaviour, so it must not select only the live-tree marker.
+
+    Reviewer HIGH, 2026-09-11: DOC_SUFFIXES matched `.json` anywhere, so changing
+    `plugins/tier1-lifecycle/hooks/hooks.json` selected just `-m live_repo` and missed the
+    unmarked witness covering malformed-`hooks.json` handling. The fail-safe direction for
+    a class the import graph cannot map is the FULL SUITE.
+    """
+    sel = impacted_tests.select(
+        REPO_ROOT, ["plugins/tier1-lifecycle/hooks/hooks.json"])
+    assert sel.full_suite, (
+        "a machine-read config file under a source root must fail safe to the full "
+        f"suite, not select a marker tier; got marker={sel.marker!r} "
+        f"files={len(sel.test_files)}"
+    )
+    assert sel.pytest_args() == [], "the full suite takes no narrowing arguments"
+
+
+def test_prose_under_a_source_root_still_gets_the_cheap_tier():
+    """The fix above must not swallow plugin documentation -- that costs the saving.
+
+    A README under `plugins/` genuinely can only break a live-tree assertion, so it stays
+    on the marker tier. This pins the boundary so a later widening of CONFIG_SUFFIXES
+    cannot quietly route all prose to the full suite.
+    """
+    sel = impacted_tests.select(REPO_ROOT, ["plugins/tier1-lifecycle/README.md"])
+    assert not sel.full_suite, (
+        "prose under a source root must not trigger the full suite -- that is the "
+        "wall-clock saving this mechanism exists to produce"
+    )
+    assert sel.marker == impacted_tests.LIVE_REPO_MARKER
+
+
+def test_a_staged_RENAME_is_inside_the_guards_scope():
+    """A rename to an uncovered name must be refused, not invisible.
+
+    Reviewer HIGH, 2026-09-11, and a regression the self-scoping fix introduced:
+    `--diff-filter=ACM` reports NOTHING for a staged rename, so renaming a covered script
+    to an uncovered name skipped the guard. Measured in a throwaway repo: `git mv a.py
+    b.py` yields `[]` under ACM and `['b.py']` under ACMR. pre-commit's own staged list
+    includes renamed destinations, so ACM was narrower than the wiring it replaced.
+
+    This pins the FILTER, because the alternative -- staging a real rename inside the lane
+    to observe it -- mutates the tree under test.
+    """
+    import inspect
+
+    src = inspect.getsource(impacted_tests.staged_from_git)
+    assert "--diff-filter=ACMRT" in src, (
+        "staged_from_git must include R (rename) and T (typechange). Dropping R makes a "
+        "rename to an uncovered script invisible to the guard; dropping D stays correct "
+        "because a deletion is not a missing witness."
+    )
+    assert "--diff-filter=ACM\"" not in src and "--diff-filter=ACM'" not in src, (
+        "the bare ACM filter is the rename gap; do not restore it"
+    )
+
+
 def test_the_guard_cannot_be_disarmed_by_its_own_wiring():
     """The hook's scope must NOT come from a `files:` regex the commit can narrow.
 

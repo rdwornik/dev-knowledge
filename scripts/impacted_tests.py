@@ -87,6 +87,13 @@ ENVIRONMENT_FILES = frozenset({
 #: Suffixes that cannot change Python behaviour but CAN break a live-tree assertion.
 DOC_SUFFIXES = (".md", ".yaml", ".yml", ".json", ".txt", ".cfg", ".ini", ".toml")
 
+#: The MACHINE-READ subset of DOC_SUFFIXES. Under a source root these are not prose --
+#: they are behaviour, and the doc rule's premise ("cannot change Python behaviour") is
+#: simply false for them. `.md`/`.txt` are deliberately NOT here: plugin documentation
+#: really can only break a live-tree assertion, and routing it to the full suite would
+#: buy nothing and cost the whole wall-clock saving on a README edit.
+CONFIG_SUFFIXES = (".yaml", ".yml", ".json", ".cfg", ".ini", ".toml")
+
 
 #: THE REFUSAL'S SCOPE, and the number that justifies it.
 #:
@@ -148,6 +155,27 @@ def _is_environment(rel: str) -> bool:
     return rel in ENVIRONMENT_FILES or rel.rsplit("/", 1)[-1] == "conftest.py"
 
 
+def _is_source_tree_config(rel: str) -> bool:
+    """A machine-read CONFIG file under a source root -- behaviour, not prose.
+
+    Reviewer HIGH, 2026-09-11: `DOC_SUFFIXES` matched `.json`/`.yaml`/`.toml` ANYWHERE, so
+    `plugins/tier1-lifecycle/hooks/hooks.json` classified as docs-only and selected just
+    `-m live_repo`. The doc rule's premise -- that such a file "cannot change Python
+    behaviour" -- does not hold under `scripts/`, `deploy/` or `plugins/`, where a config
+    file IS the behaviour: `hooks.json` drives the hook it declares.
+
+    This routes that class to the FULL SUITE, which is the module's declared fail-safe
+    direction, rather than to a mapping. Mapping config -> tests would need the
+    path-string edges FPG-1's import graph does not carry (residual item 3), so a
+    narrower answer here would be a guess dressed as a selection. Widening only ever ADDS
+    tests, so it cannot raise the measured miss-rate -- it is safe against the artifact's
+    4.8 % number rather than invalidating it.
+    """
+    return rel.endswith(CONFIG_SUFFIXES) and any(
+        rel.startswith(f"{root}/") for root in SOURCE_ROOTS
+    )
+
+
 def _is_doc(rel: str) -> bool:
     return rel.endswith(DOC_SUFFIXES)
 
@@ -167,8 +195,13 @@ RULES: tuple[Rule, ...] = (
          "tests reaching this module through FPG-1 import edges, plus the "
          "test_<x>.py naming convention",
          _is_source),
+    Rule("source-tree-config", "full",
+         "a machine-read config file under a source root IS behaviour, and mapping it to "
+         "tests needs path-string edges the import graph does not carry",
+         _is_source_tree_config),
     Rule("live-tree-doc", "marker",
-         "a docs/config change can only break tests that assert against the live tree",
+         "a PROSE change outside the source roots can only break tests that assert "
+         "against the live tree",
          _is_doc),
 )
 
@@ -432,13 +465,25 @@ def staged_from_git(repo_root: pathlib.Path) -> list[str]:
 
     The guard computes its own scope from this rather than accepting pre-commit's file
     list, so that enforcement does not depend on a `files:` regex living in the same
-    mutable config the commit can edit. `--diff-filter=ACM` drops deletions, which is the
-    same exclusion `guard_findings` applies by existence.
+    mutable config the commit can edit.
+
+    `R` AND `T` ARE IN THE FILTER DELIBERATELY, and leaving them out was a real gap --
+    reviewer HIGH, 2026-09-11, and a regression this function introduced. `--diff-filter=ACM`
+    reports NOTHING at all for a staged rename (measured: `git mv a.py b.py` yields `[]`
+    under ACM and `['b.py']` under ACMR), so renaming a covered script to an uncovered
+    name slipped past the guard entirely. pre-commit's own staged list DOES include
+    renamed destinations, so ACM was NARROWER than the wiring it replaced -- the fix for
+    one under-selection introduced another.
+
+    `--name-only` reports a rename's DESTINATION, which is the path that must now be
+    covered. True deletions (`D`) stay excluded, which is the same exclusion
+    `guard_findings` applies by existence -- so the two legs agree rather than overlap by
+    accident.
     """
     import subprocess
 
     out = subprocess.run(
-        ["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"],
+        ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMRT"],
         cwd=repo_root, capture_output=True, text=True, check=False,
     )
     return [line.strip() for line in out.stdout.splitlines() if line.strip()]
