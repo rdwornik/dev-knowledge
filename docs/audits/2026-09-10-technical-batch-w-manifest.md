@@ -201,6 +201,111 @@ carried forward as **owed acts rather than lanes**:
 - **The M03 leg-1a re-run** goes to batch X per A7-2, which supersedes AW-5 expressly, on the ground
   that it moves no metric.
 
+## AMENDED AFTER DISPATCH — W-3 AND W-4 RE-CUT LOCAL, BECAUSE THE CODESPACE CUT PRODUCED NOTHING
+
+**Marked rather than silent**, on the same ground as the W-6/W-8 amendment above: a manifest is an
+immutable audit, so the frontmatter `substrate:` block and the `## THE LANES` fence are **left
+exactly as dispatched** and this section is where the change lives. Both still read `codespace` for
+W-3 and W-4, deliberately — they record what was frozen and dispatched on 2026-09-10, which is what
+a dispatch-half record is for, and no gate reads either surface for a substrate token
+(`batch_manifest.manifest_lane_slugs` reads the fence for SLUGS only, and `check_substrate_declaration`
+reads the CONTRACTS, not this file). A reader who needs the live substrate reads this section.
+
+**Authority:** AW5-3, `to-cc/AMEND-BATCH-W-005.md` (2026-09-11), carried by this manifest. The
+re-dispatch is the operator's act of 2026-09-11, which also ordered the substrate change and its
+reason recorded here.
+
+### The reason is the receipt of the first cut, not a preference
+
+W-3 and W-4 fell to Q4 and were frozen CODESPACE. Both were dispatched as codespace lanes on
+2026-09-10 and **both produced ZERO WORK.** That is measured, not inferred — at re-dispatch:
+
+- neither `worktree-lane-w-638-proof-layer-skipif` nor `worktree-lane-w-683-override-manifest-node`
+  existed in `git branch -a`, and neither existed in `git ls-remote --heads origin` (the remote was
+  read live rather than off a cached `origin/` ref);
+- both containers were `Shutdown` — `lane-w-638-proof-layer-skipif-54r7jgp544p27w7g`, last used
+  `2026-09-11T00:36:08+02:00`, and `lane-w-683-override-manifest-pgw54jq97xr37gqp`,
+  `2026-09-11T00:37:35+02:00`.
+
+**Q1 makes LOCAL admissible; the zero-work outcome makes it the choice.** PLAYBOOK Ch8 Layer-1 Q1
+routes a gate-dependent result away from cloud to *"codespace or local"* and does not pick between
+them, so Q1 alone cannot re-cut a lane — AW5-3 says exactly that (*"Q1 admits local for
+gate-dependent lanes; the codespace cut produced zero work"*). Both Done-whens are gate-dependent:
+W-3's turns on four `proof_layer` guards and a skipped proof reading NOT-PROVEN, W-4's on
+`release_lint`. On the operator's Windows primary those gates are armed, which is the property the
+container run failed to convert into work.
+
+**The defect is filed, not absorbed.** AW5-3 files the codespace zero-work class — a detached long
+lane, the known residual risk — as a row at batch close. This section records the substrate change;
+it does not diagnose the container.
+
+### What AW-4 keeps and what it loses
+
+AW-4 bound all three codespace lanes to *"the receipt is a RED list, never a verdict, and the
+acceptance verdict is re-derived by the integrator on the Windows primary before merge (FR-8)"*.
+On a local lane the **receipt half has no subject** — there is no container, no ssh transport and no
+`receipt.json`. **FR-8 is untouched**: the integrator still re-derives each acceptance verdict on
+the primary before merge, and for these two lanes that re-derivation is now the only verdict there
+ever was rather than the second of two. AW-4 still binds W-6 in full, which stays CODESPACE in
+batch X.
+
+### The launch lines are the generator's, and the freeze is intact
+
+The two lines were read out of `gen_lane_contract.dispatch_command(slug, file, 'high', 'local')`
+rather than composed at the seat — the same rule the dispatch half already records (*"the launch
+line is carried by the generator per substrate, never composed at the seat"*). Recorded here as a
+**receipt**, not as a launch site; PLAYBOOK Ch8's dispatch table remains the sole literal-command
+site and `dispatch_drift`'s corpus is that section alone.
+
+```
+Dispatch-Lane lane-w-683-override-manifest-node LANE-w-683-override-manifest-node.md -Effort high
+Dispatch-Lane lane-w-638-proof-layer-skipif LANE-w-638-proof-layer-skipif.md -Effort high
+```
+
+Both were `-DryRun` first, per AMEND-BATCH-V-002 §1 — the same discipline that caught this batch's
+two verb defects at step 0. Both DryRuns resolved their contract against the prompts dir ROOT and
+derived the branch the pairing line names.
+
+**The contracts were NOT reissued**, and that is why the substrate change reaches the lanes as an
+amendment. Both frozen files still declare `**Shape:** codespace` and carry their receipt-gate
+section, and both are still **byte-identical** to their in-tree copies — SHA-256 verified at
+re-dispatch, `A5A8458C…` for W-3 and `0D939E97…` for W-4. `[#630]` set equality is therefore
+undisturbed and the six-row fence is unchanged.
+
+**The pairing line survives the re-cut untouched**, which is the one thing that makes an amendment
+sufficient here: a codespace lane and a local lane commit on the **same** `worktree-` prefix (R-ENUM
+leg 3), so each lane's branch is exactly what its contract names and no teardown or ADR-110
+exemption has to learn a new name.
+
+**One drift this leaves standing, named rather than fixed.** `check_substrate_declaration` reads the
+contracts, which still declare `codespace`, so for these two lanes the audit's substrate reading
+now describes the frozen cut and not the live one. Editing an immutable frozen contract to silence
+that would cost the freeze and the `[#630]` byte-identity above; it is recorded here as a known,
+bounded disagreement between a frozen declaration and a later amendment — the same shape as this
+file's W-7 sequencing ruling, where the frozen body says the opposite of what governs.
+
+### A TRANSPORT DEFECT THE RE-DISPATCH FOUND, because the receipts are incomplete without it
+
+`Dispatch-Lane`'s **third positional argument silently does not arrive.** PLAYBOOK Ch8 documents it
+as *"an amendment appended without reissuing the contract"* — precisely the mechanism a substrate
+re-cut wants — and `DispatchHelpers` v1.6.0 `Start-DispatchLane` builds the prompt as
+``"$prompt`n`n$Extra"``. The `claude` launcher is a `.cmd` shim, and the argument is **truncated at
+that first newline** on the way through it, so the session receives the pointer sentence and nothing
+else. Measured on both lanes, off their own transcripts: W-4's first user message is 106 characters
+and W-3's is 102 — each exactly `Read and execute the frozen contract at <path>`, with a 2,016-byte
+and a 1,432-byte amendment dropped. It is not a quoting error at the seat: the second attempt passed
+a **single-line** `Extra` with no angle brackets or shell metacharacters and was truncated
+identically, because the module's own `` `n`n `` join is what the shim cuts at. Both dispatches also
+print a stray `'m' is not recognized as an internal or external command` — the tail of the same
+re-parse, which appears whether or not the `Extra` contains a newline.
+
+**Both amendments were delivered out of band instead**, by cross-session message to the live lane
+sessions (`f3df87fa` for W-4, `af33ba9b` for W-3), each while the lane was still in its first turn
+and before it had acted on the superseded sections. The delivery is therefore on the record here
+rather than in the dispatch line, and **the dispatch line above is an honest record of what was
+typed, not of what the lane read.** A seat relying on the third positional for anything load-bearing
+is relying on a mechanism that does not work on this machine.
+
 ## PROVENANCE
 
 Operator GO, 2026-09-10, verbatim:
