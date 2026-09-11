@@ -359,6 +359,21 @@ def test_ordinary_REGEX_SYNTAX_around_a_governed_name_still_resolves(pattern):
     assert _denied(_bash(f"rg '{pattern}'")), f"regex form bypassed the guard: {pattern}"
 
 
+@pytest.mark.parametrize("pattern", [
+    "./scripts/graph_queries.py",
+    r".\scripts\graph_queries.py",
+    r"scripts\graph_queries.py",
+])
+def test_a_DOT_RELATIVE_or_WINDOWS_path_still_names_the_same_process(pattern):
+    """Terra pre-merge pass 12, and it was HALF right -- measured rather than accepted.
+
+    `./scripts/...` already resolved: the edge strip removes a leading `./`. The BACKSLASH
+    forms did not, because the store keys use `/` and only the leading separator was being
+    stripped -- on a Windows repo with a PowerShell matcher, that is the everyday spelling.
+    """
+    assert _denied(_bash(f"rg '{pattern}'")), f"path form bypassed the guard: {pattern}"
+
+
 @pytest.mark.parametrize("pattern", [r"\bcheck\b", r"\bTODO\b", r"\baudit\b"])
 def test_regex_normalisation_does_not_widen_the_predicate(pattern):
     """The converse: normalising escapes must not promote a word that names no process.

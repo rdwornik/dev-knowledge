@@ -341,7 +341,12 @@ def _clean(token: str) -> str:
     for `resolve_process` to return anything, so `\\bcheck\\b` stays as undeniable as `check`.
     """
     token = _ESCAPED_LITERAL.sub(r"\1", _ZERO_WIDTH.sub("", token))
-    return token.strip(_EDGE_NOISE)
+    # Store keys are `/`-separated. On a Windows repo with a PowerShell matcher,
+    # `scripts\graph_queries.py` is the everyday spelling of the same process, and only the
+    # LEADING separator was being stripped (Terra pre-merge pass 12 -- half of it: `./scripts/...`
+    # already resolved via the edge strip, which was measured rather than assumed).
+    # Unescaping runs first, so a regex `\.` has already become `.` and is not turned into `/.`.
+    return token.replace("\\", "/").strip(_EDGE_NOISE)
 
 
 def _resolve_one(cleaned: str, processes: dict[str, str]) -> str | None:
