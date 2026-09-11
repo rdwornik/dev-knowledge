@@ -1798,6 +1798,78 @@ def test_prompts_guard_coupling_rejects_an_interpreter_word_that_is_only_an_argu
     assert row.verdict == fp.MUST_ABSENT, row.evidence
 
 
+def test_prompts_guard_coupling_rejects_a_dash_c_program_that_merely_names_the_path(
+        tmp_path):
+    """`python -c '...'` runs a PROGRAM, not a script file, whatever it mentions.
+
+    Round 4 of the 2026-09-11 Codex review. Requiring the path to be *some* operand after
+    the interpreter was still too loose: `python -c 'open("scripts/fleet_health.py")'
+    --prompts-guard` put `python` in command position and the path in a later operand, and
+    parity certified the floor component while the guard never ran. The declared script has
+    to be the interpreter's EFFECTIVE script operand -- the first non-option word -- and
+    `-c` / `-m` mean there is no script operand at all.
+    """
+    decoy = json.dumps({"hooks": {"PreToolUse": [
+        {"matcher": "Read|Write|Edit|Bash",
+         "hooks": [{"type": "command",
+                    "command": "python -c 'open(\"scripts/fleet_health.py\")' "
+                               "--prompts-guard"}]},
+    ]}}, indent=2)
+    row = _coupling_verdict(tmp_path, {
+        ".claude/settings.json": decoy,
+        "scripts/fleet_health.py": "# guard, tracked and named but never executed\n",
+    })
+    assert row.verdict == fp.MUST_ABSENT, row.evidence
+
+
+def test_prompts_guard_coupling_is_not_discharged_by_one_good_hook_among_two(tmp_path):
+    """The implication is PER carried hook. One compliant hook must not excuse another.
+
+    Round 4 of the 2026-09-11 Codex review. `hook_bound` was `any(...)`, so a repo could
+    carry a correct `python "$g" --prompts-guard` AND a second token-bearing hook pointing
+    at `/opt/other.py`, and pass. The second is a deployed broken guard -- exactly what
+    AX15-2 exists to catch -- and it was being masked by its compliant neighbour. Under the
+    AX15-1 posture it refuses every matched tool call in that repo.
+    """
+    two = json.dumps({"hooks": {"PreToolUse": [
+        {"matcher": "Read|Write",
+         "hooks": [{"type": "command",
+                    "command": 'python "$CLAUDE_PROJECT_DIR/scripts/fleet_health.py" '
+                               '--prompts-guard'}]},
+        {"matcher": "Edit|Bash",
+         "hooks": [{"type": "command",
+                    "command": "python /opt/other.py --prompts-guard"}]},
+    ]}}, indent=2)
+    row = _coupling_verdict(tmp_path, {
+        ".claude/settings.json": two,
+        "scripts/fleet_health.py": "# guard\n",
+    })
+    assert row.verdict == fp.MUST_ABSENT, row.evidence
+
+
+def test_prompts_guard_coupling_accepts_a_uv_run_wrapped_interpreter(tmp_path):
+    """`uv run --locked python <script>` must still bind -- the over-tightening witness for
+    the script-operand rule.
+
+    Every other hook command in this repo's settings.json runs under `uv run --locked`
+    (ADR-106), so a rule that only understood a bare `python` would report any consumer
+    following the repo's own dependency doctrine as a deploy defect. The prompts guard is
+    the one deliberate exception to that doctrine, which is precisely why the binder must
+    not assume the exception is the only shape.
+    """
+    wrapped = json.dumps({"hooks": {"PreToolUse": [
+        {"matcher": "Read|Write|Edit|Bash",
+         "hooks": [{"type": "command",
+                    "command": "uv run --locked python scripts/fleet_health.py "
+                               "--prompts-guard"}]},
+    ]}}, indent=2)
+    row = _coupling_verdict(tmp_path, {
+        ".claude/settings.json": wrapped,
+        "scripts/fleet_health.py": "# guard\n",
+    })
+    assert row.verdict == fp.AT_PARITY, row.evidence
+
+
 def test_prompts_guard_coupling_accepts_the_script_reached_through_a_variable(tmp_path):
     """The binding must not over-tighten onto the shape this repo's OWN hook uses.
 

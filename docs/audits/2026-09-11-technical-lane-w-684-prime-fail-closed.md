@@ -28,7 +28,8 @@ cause and its fix, and a permit requires positive proof that the guard actually 
 | `4cbee3ab` | BUILD — fail closed on every inability to evaluate; floor coupling (AX15-2) |
 | `62b2e3f0` | RED — 5 witnesses for the three findings of review round 1 |
 | `a17e702a` | BUILD — positive proof of evaluation; the coupling binds |
-| *(this)* | RED+BUILD for review rounds 2 and 3, and this packet |
+| `d668bb42` | RED+BUILD for rounds 2 and 3; the refusal marker; this packet |
+| *(this)* | RED+BUILD for round 4 — script-operand binding, per-hook implication |
 
 Footprint, all six commits: `.claude/settings.json`, `scripts/fleet_health.py`,
 `scripts/fleet_parity.py`, `ecosystem/parity-surfaces.yaml`, `ecosystem/doc-counts.md`,
@@ -89,10 +90,26 @@ own hook rather than merely passing it.
 | Round | Verdict | Disposition |
 |---|---|---|
 | 1 (at `4cbee3ab`) | HIGH:2 MED:1 | all three FIXED (`62b2e3f0` + `a17e702a`) |
-| 2 (at `a17e702a`) | HIGH:2 MED:0 | both FIXED |
-| 3 | HIGH:3 MED:0 | two FIXED; one DISPOSITIONED, below |
+| 2 (at `a17e702a`) | HIGH:2 MED:0 | both FIXED (`d668bb42`) |
+| 3 (at `a17e702a`) | HIGH:3 MED:0 | two FIXED (`d668bb42`); one DISPOSITIONED, below |
+| 4 (at `d668bb42`) | HIGH:2 MED:0 | both FIXED; the disposition ACCEPTED by the reviewer |
 
-Seven of the eight findings were FIXED, none waved away. Several were arguably outside the
+**Round 4 closed the disposition explicitly.** Asked to attack the argument rather than
+restate the finding, the reviewer answered: *"The exact-marker shim argument holds: without
+a portable trust anchor outside PATH/repo control, it is not a distinct defect from
+controlling the real interpreter's answer. Do not re-report it."* So the one unfixed
+finding is resolved on the record by the reviewer, not merely asserted by the lane.
+
+Its two NEW findings were both real and both fixed: `python -c '<program>'` naming the path
+in its source was read as invoking the guard (the script is the interpreter's EFFECTIVE
+script operand — the first non-option word — and `-c`/`-m` mean there is none), and
+`hook_bound` used `any`, so one compliant hook masked a second token-bearing hook pointed
+at another guard (it is `all` now: the implication is per carried hook, because each
+refuses tool calls on its own). A `uv run --locked python <script>` witness was added at
+the same time, because every other hook command in this repo runs under `uv run` and a
+binder that only understood a bare `python` would call the repo's own doctrine a defect.
+
+Ten of the eleven findings were FIXED, none waved away. Several were arguably outside the
 guard's threat model — anyone who can place a shim on `PATH` can also edit `settings.json`
 — but each fix was cheap, and "declared enforcement without enforcement" is the precise
 thing this row exists to end, so arguing the threat model would have answered a different
@@ -159,6 +176,12 @@ treated differently on purpose, and the reason is which tree produced the drift.
    substitution, or one supplied by the environment — each of which reports a compliant
    hook as a SPLIT, which is the safe direction to be wrong in: a finding gets read, a
    silent pass does not. A `sh -c "..."` wrapper would still defeat it.
+   **Four review rounds each found another shape it mis-read** (`; : path`, `echo python
+   path`, `python -c '...path...'`, and `any` over sibling hooks). That convergence is
+   itself the finding: a string heuristic over a shell command has no natural stopping
+   point. If a fifth shape appears, the answer is probably to constrain what a hook command
+   may LOOK like — a declared shape parity can check exactly — rather than to keep teaching
+   a parser to read arbitrary shell.
 4. **The M7 smoke's CLI leg remains externally blocked.** The shell-level property is
    measured green both ways (good tree → 0, broken tree → 2 with the teaching message).
    The CLI leg is not re-run: `cursor-agent` is usage-limited, and `codex` v0.153.4 is the

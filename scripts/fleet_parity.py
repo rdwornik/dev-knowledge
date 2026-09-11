@@ -241,6 +241,25 @@ _HOOK_INTERPRETERS = frozenset({"python", "python3", "py", "uv"})
 _SHELL_SEPARATORS = re.compile(r"[;&|\n]+")
 
 
+#: Interpreter options that REPLACE the script operand -- after one of these the
+#: interpreter runs a program or a module, never a file, so no script is invoked here.
+_INTERPRETER_PROGRAM_FLAGS = frozenset({"-c", "-m"})
+
+
+def _reduce_to_command_name(word: str) -> str:
+    """WORD as the command name a shell would run: quotes off, anything before a
+    substitution or assignment marker dropped (`out=$(python` -> `python`), directories
+    off, `.exe` off."""
+    bare = word.strip("\"'")
+    for marker in ("$(", "`", "="):
+        if marker in bare:
+            bare = bare.rsplit(marker, 1)[-1]
+    bare = bare.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
+    if bare.lower().endswith(".exe"):
+        bare = bare[:-len(".exe")]
+    return bare
+
+
 def _is_interpreter_word(word: str) -> bool:
     """Is WORD a shell word that RUNS an interpreter?
 
@@ -250,18 +269,10 @@ def _is_interpreter_word(word: str) -> bool:
     passed the very decoy it was written to catch. Measured, not reasoned: the probe test
     failed on it.
 
-    So the word is reduced to a command name before it is judged: quotes off, anything
-    before a substitution or assignment marker dropped (`out=$(python` -> `python`),
-    directories off, `.exe` off.
+    So the word is reduced to a command name before it is judged -- see
+    `_reduce_to_command_name`.
     """
-    bare = word.strip("\"'")
-    for marker in ("$(", "`", "="):
-        if marker in bare:
-            bare = bare.rsplit(marker, 1)[-1]
-    bare = bare.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
-    if bare.lower().endswith(".exe"):
-        bare = bare[:-len(".exe")]
-    return bare in _HOOK_INTERPRETERS
+    return _reduce_to_command_name(word) in _HOOK_INTERPRETERS
 #: `NAME=value`, the assignment form a hook uses to resolve its script before running it.
 _SHELL_ASSIGNMENT = re.compile(
     r"""(?:^|[;&|\s])([A-Za-z_][A-Za-z0-9_]*)=(?:"[^"]*"|'[^']*'|[^\s;&|]*)""")
@@ -312,14 +323,28 @@ def hook_invokes_script(command: str, path: str) -> bool:
             run_at += 1
         if run_at >= len(words) or not _is_interpreter_word(words[run_at]):
             continue
-        # Only what FOLLOWS the interpreter can be the script it runs.
+        # `uv run --locked python x.py`: step past the runner to the interpreter it wraps.
+        # Every other hook command in this repo runs under `uv run --locked` (ADR-106), so
+        # a rule that only understood a bare `python` would call a consumer following the
+        # repo's own dependency doctrine a deploy defect.
+        if _reduce_to_command_name(words[run_at]) == "uv":
+            run_at = next((i for i in range(run_at + 1, len(words))
+                           if _is_interpreter_word(words[i])), None)
+            if run_at is None:
+                continue
+        # The script is the interpreter's EFFECTIVE script operand -- the FIRST non-option
+        # word after it -- not merely some later token. `python -c '<program>'` and
+        # `python -m <module>` run no script file at all, whatever they happen to mention
+        # (2026-09-11 review, round 4: `python -c 'open("scripts/fleet_health.py")'` was
+        # being read as an invocation of the guard).
         for operand in words[run_at + 1:]:
             bare = operand.strip("\"'")
-            if path in bare:
-                return True
+            if bare in _INTERPRETER_PROGRAM_FLAGS:
+                break
+            if bare.startswith("-"):
+                continue
             var = _SHELL_VAR_OPERAND.match(bare)
-            if var and var.group(1) in assigned:
-                return True
+            return path in bare or bool(var and var.group(1) in assigned)
     return False
 
 
@@ -863,7 +888,12 @@ def collect_facts(target: RepoTarget, manifest: dict, baseline: dict,
             cmds = settings_by_event.get(probe["event"], [])
             matched = [c for c in cmds if token in c]
             res["hook_present"] = bool(matched)
-            res["hook_bound"] = any(hook_invokes_script(c, probe["path"]) for c in matched)
+            # EVERY token-bearing hook must bind, not merely one of them. With `any`, a
+            # repo carrying a correct hook AND a second `--prompts-guard` command pointing
+            # at another script passed -- the compliant neighbour masked the broken guard
+            # that AX15-2 exists to catch (2026-09-11 review, round 4). The implication is
+            # per carried hook, because each one refuses tool calls on its own.
+            res["hook_bound"] = all(hook_invokes_script(c, probe["path"]) for c in matched)
             res["script_present"] = probe["path"] in tracked_set
             res["present"] = (not matched) or (res["hook_bound"] and res["script_present"])
             if matched and not res["hook_bound"]:
