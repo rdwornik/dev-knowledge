@@ -19,6 +19,62 @@
 
 ---
 
+### 2026-09-11 (m) - CC (Opus 5, background integrator seat): the anchor arc names its own first commit
+
+**Names `efd5d47f`**, the entry below, which this arc's own `--no-ff` merge introduces.
+
+**Why two commits.** A one-commit anchor arc cannot discharge the anchor its own merge creates:
+the merge introduces {merge, commit}, and the single commit can only name a SHA from the arc it
+was anchoring, never itself. So the arc needs a second entry naming the first. That is not a
+workaround -- it is what B6's **APPEND ONLY** discharge means in practice, and it is the shape
+every anchor repair in this batch has taken.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+### 2026-09-11 (l) - CC (Opus 5, background integrator seat): the batch X manifest lands, and grants nothing
+
+**Names `bea803ef`**, the dispatcher's tip, introduced by the merge `e688669c`.
+
+**Did.** Merged `worktree-dispatch-x1-freeze` per AX17-3 — *"the integrator merges
+`worktree-dispatch-x1-freeze` before any X1 lane hands back, so batch X lands anchored"* — landing
+`docs/audits/2026-09-11-technical-batch-x-manifest.md` and six frozen wave-1 contracts, among them
+`LANE-w-684-pretooluse-guard-root-prime`, W-2' continuing on the W-2 branch this seat preserved.
+Docs-only, `review=n/a` under D-1, verdicted before the merge.
+
+**THE MANIFEST GRANTS NO EXEMPTION, AND THIS IS MEASURED RATHER THAN ARGUED.** On the merged tree:
+
+```
+batch_manifest.open_batches(repo)  ->  0 open batches
+```
+
+**Cause.** `open_batches` requires all four — the manifest TRACKED by git, `status: open`, a
+`closed_by:` whose shape resolves, and that path ABSENT from the tree — and it **fails toward
+no-exemption** on missing frontmatter, which is the FR6 discipline ADR-85 established: an unknown
+exemption state must never render as *exempt*. Batch W's manifest carries `status: open` and
+`closed_by:` at lines 6-7 of a frontmatter block opened at line 1. **Batch X's manifest opens with a
+heading; its first `---` is a horizontal rule at line 13, and neither field exists anywhere in the
+file.** So the gate skips it, correctly and silently.
+
+**The consequence is the exact tax AX17-3 exists to remove.** Every X1 lane merge will land
+unanchored and block every commit in the repo until this seat anchors it — the fourth face of the
+defect this batch keeps finding: (d) a substrate merge outside a lane-keyed exemption, (f) an
+expiry needing a drain, (g) no manifest at all, and now **(l) a manifest that exists but cannot be
+read by the organ it was written for.** The first three were about the exemption's edges; this one
+is about its *interface*, and it is the most dangerous of the four because the artifact is present
+and looks complete. **A manifest is not a record that a batch is open — it is a declaration the
+gate parses, and formatting is semantic on a machine-read surface.**
+
+**Not repaired here, deliberately.** The manifest is the dispatcher's frozen artifact and is now
+`docs/audits/`-immutable; adding the two fields is an amendment to another seat's record, not an
+integrator carried edit, and this seat has already recorded once this window that it will not edit
+another seat's surface unilaterally (P-1, the lane JOURNAL case). Reported to the operator with the
+measurement instead.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+**Next.** Push, tear down the dispatcher worktree and branch, then hold for X1 lane handbacks —
+anchoring each merge by hand until the manifest carries its two fields.
+
 ### 2026-09-11 (k) - CC (Opus 5, background integrator seat): batch W closes for real - four rows closed on one word, W-2 carried with its guard ruled fail-closed
 
 **Names `3549bd9a`**, the closure-and-amendment commit this entry anchors.
