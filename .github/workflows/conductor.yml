@@ -1,0 +1,253 @@
+# .github/workflows/conductor.yml
+#
+# CONDUCTOR E's RUNNER ([#689]). Decided by the §3 matrix of
+# to-cc/DECLARE-CONDUCTOR-DECISION-2026-09-09.md (E weighted 58, against A 52, B 55, C 38,
+# D 46) and built to §8's three steps. §4, verbatim on what this file is:
+#
+#   "Runner = GitHub Actions. .github/workflows/conductor.yml, on: push · pull_request ·
+#    schedule · workflow_dispatch. It reads tasks/, evaluates the phase gate, performs the
+#    phase action. Scheduling, durability, retries, logs, UI are GitHub's. The only custom
+#    content is the phase table -- which is custom in every option because it is the process."
+#
+# THE PHASE TABLE IS NOT IN THIS FILE, deliberately. It is scripts/conductor.py, which
+# tests/test_conductor.py exercises locally. A gate written in workflow shell is a gate no
+# local test can run, and this repo's whole enforcement argument is that a gate nobody can
+# exercise is decoration.
+#
+# "PERFORMS THE PHASE ACTION" IS NOT BUILT HERE, and that is a boundary, not an omission. The
+# four delivery-loop transitions belong to [#669]; [#689] owns the field, the runner and the
+# gate surface. Both rows' kill-candidates lines say so. This workflow EVALUATES and REPORTS;
+# it moves no row.
+#
+# HOW THIS DIFFERS FROM report-only-wall.yml, so neither absorbs the other. The wall RECORDS
+# what landed on main and blocks nothing, permanently and by design. This workflow produces the
+# four CHECK CONTEXTS that deploy/conductor-required-checks.ruleset.json arms as required
+# checks -- it exists to be a gate. Two organs, two roles, one directory.
+#
+# ------------------------------------------------------------------------------------------
+# THREE PREMISES OF THE DECISION DOC THAT ARE NO LONGER TRUE, recorded here because the next
+# reader of this file will otherwise re-derive them:
+#
+#  1. "the repo is private on the Free tier" (report-only-wall.yml, and
+#     ecosystem/fleet-shape-spec.yaml's .github sanction comment). LIVE at 2026-09-11:
+#     `gh api repos/rdwornik/dev-knowledge` returns private: false, visibility: public, and
+#     `gh api user` returns plan: pro. The rulesets API returns [] at HTTP 200, not the 403
+#     AMEND-CONDUCTOR-DECISION-001 §1 measured. Operator decision D2 ratified Pro for exactly
+#     this purpose (to-browser/RATIFICATION-2026-09-10-architect.md).
+#
+#  2. `pull_request` IS VACUOUS TODAY, and is present because §4 names it. The wall's header
+#     records why: "the repo merges locally with --no-ff and pushes, so a PR-triggered organ
+#     would never fire -- the [#255] vacuity that retired the last .github/ organ." No PR is
+#     opened by this repo's landing protocol. The trigger becomes live the day landing moves
+#     to PRs, which is the same day required checks can actually gate anything (see 3).
+#
+#  3. ARMING REQUIRED CHECKS ON `main` AND THIS REPO'S LANDING PROTOCOL ARE MUTUALLY
+#     EXCLUSIVE, and this is the decision the gate leg of E still owes. A ruleset's
+#     required_status_checks rule refuses a direct push whose head commit has no passing
+#     checks; a --no-ff merge commit created locally does not exist server-side before the
+#     push, so its checks cannot have run. CLAUDE.md §4 and the block-ff-push / block-ff-push
+#     pre-push hooks mandate exactly that local merge. So either landing moves to PRs (which
+#     §4's `pull_request` trigger and its claude-code-action executor both presuppose) or the
+#     gate leg stays report-only. E's RUNNER leg does not depend on the choice; E's GATE leg
+#     IS the choice. The ruleset is therefore DECLARED as a file and NOT armed by this lane.
+# ------------------------------------------------------------------------------------------
+
+name: conductor
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # 05:00 UTC daily. A schedule leg is what makes the runner a runner rather than a
+    # push-reactor: §6 number 1 counts transitions Actions performed WITHOUT an operator act,
+    # and a workflow that only fires when a human pushes can never move that number.
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read          # least privilege. This workflow reports; it writes no repo state.
+
+concurrency:
+  group: conductor-${{ github.ref }}
+  cancel-in-progress: true    # unlike the wall, a superseded GATE result is worthless
+
+jobs:
+  # --- the four required-check contexts -------------------------------------------------
+  # Job NAMES are the check CONTEXTS the ruleset names. Renaming a job silently disarms its
+  # required check, so deploy/conductor-required-checks.ruleset.json and these four ids are
+  # one fact in two files; tests/test_conductor.py asserts they agree.
+
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45      # the wall measures ~5m30s-6m with -n auto, 13m19s serial
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0     # LOAD-BEARING, and the wall paid for this line: a shallow clone
+                             # makes the graft root look like it created whole files, so
+                             # canonical_freshness returns false FAILs and
+                             # journal_spine_anchor raises a FAIL-class AnchorError.
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.11.19" # MUST equal pyproject.toml [tool.uv] required-version EXACTLY.
+                             # Every command below runs `uv run --locked`; a mismatched uv
+                             # fails each one on a version error before any real check runs.
+      - name: Assert the toolchain pin is satisfied
+        run: |
+          uv --version
+          grep -q 'required-version = "==0.11.19"' pyproject.toml \
+            || { echo "::error::pyproject uv pin moved -- update this workflow in the same commit"; exit 1; }
+      - name: Sync the locked environment
+        run: uv sync --locked --group analytics   # without it, pandas is absent and the
+                                                 # fleet_analytics tests fail on the import
+      - name: pytest
+        run: uv run --locked pytest -q --tb=short
+
+  ruff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.11.19"
+      - name: Sync the locked environment
+        run: uv sync --locked
+      - name: ruff
+        # `check`, never `check --fix`: a gate that edits the tree is not a gate.
+        run: uv run --locked ruff check
+
+  seal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0     # the range below must be resolvable
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.11.19"
+      - name: Sync the locked environment
+        run: uv sync --locked
+      - name: ADR-101 tree seal over this range's ADDs
+        run: |
+          set -e
+          # THE SEAL IS PROSPECTIVE, and running it with no staged adds is the vacuous pass
+          # CLAUDE.md's anti-patterns name explicitly ("Running validators with no args").
+          # validate_hermetization reads `git diff --cached --diff-filter=A`, which in a CI
+          # checkout is EMPTY because the index already equals HEAD. `git reset --soft` to the
+          # range's base restores exactly the staged-add set the local pre-commit hook would
+          # have seen -- so CI measures what the hook measures, over the commits that landed.
+          # Safe ONLY because this checkout is ephemeral and nothing is pushed from it.
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+          fi
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] \
+             || ! git cat-file -e "$BASE^{commit}" 2>/dev/null \
+             || ! git merge-base --is-ancestor "$BASE" "HEAD" 2>/dev/null; then
+            # ANCESTRY, not mere existence: after a force-push the old tip can still be
+            # reachable via another ref, and a diff between unrelated histories reports every
+            # file as added -- which would seal the whole tree and fail on all 137
+            # grandfathered Rule-B items. An unresolvable range is a SKIP, not a verdict.
+            echo "::notice::no resolvable range (schedule, dispatch, or branch creation) -- seal skipped"
+            exit 0
+          fi
+          git reset --soft "$BASE"
+          echo "staged adds in $BASE..${{ github.sha }}:"
+          git diff --cached --diff-filter=A --no-renames --name-only
+          uv run --locked python scripts/validate_hermetization.py
+
+  terra:
+    # REPORT-ONLY, AND THE ONE OF THE FOUR THAT IS NOT ARMABLE. §4 says "Codex review becomes
+    # a job, never a paste", and this is that job -- except that it needs a provider
+    # credential and this repo has NO Actions secrets at all (`gh api
+    # .../actions/secrets` returns an empty list, 2026-09-11). A required check that can never
+    # pass bricks the branch, so `terra` is deliberately ABSENT from the ruleset's context
+    # list and this job reports the gap instead of faking a verdict. Arming it is two acts the
+    # operator owns: add the credential, then add the context to the ruleset.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Report the terra-review gap
+        run: |
+          if [ -z "${{ secrets.CODEX_API_KEY }}" ] && [ -z "${{ secrets.ANTHROPIC_API_KEY }}" ]; then
+            echo "terra review NOT RUN -- no provider credential in this repo's Actions secrets."
+            echo "This job is report-only and is NOT in the required-check set for that reason."
+            {
+              echo "## terra review — NOT RUN"
+              echo
+              echo "No provider credential is available to this workflow, so the §4 leg"
+              echo '"Codex review becomes a job, never a paste" is DECLARED and UNARMED.'
+              echo "Arming it is two operator acts: add the credential, then add the \`terra\`"
+              echo "context to \`deploy/conductor-required-checks.ruleset.json\`."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "::warning::a provider credential is present but no terra runner is wired here yet -- see [#689]'s end packet"
+
+  # --- the phase gate + the §6 numbers --------------------------------------------------
+  # NOT required checks, and not because they are less important: the phase clause is OPTIONAL
+  # (311 rows, 1 phased today), so a required phase gate would gate on a field nobody has
+  # adopted. It becomes a candidate for the required set when the `unphased` count it prints
+  # has actually fallen -- which is the adoption measure, computed rather than asserted.
+  phase-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.11.19"
+      - name: Sync the locked environment
+        run: uv sync --locked
+      - name: Evaluate the phase gate over tasks/
+        id: gate
+        continue-on-error: true   # report before it blocks; promotion is the operator's act
+        run: |
+          set +e
+          uv run --locked python scripts/conductor.py phase-gate 2>&1 | tee phase-gate.out
+          echo "exit=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+      - name: §6's evaluation numbers
+        continue-on-error: true
+        run: |
+          set +e
+          # --gh is passed: §6 number 1 names the Actions logs as its source, and the billing
+          # leg is the fifth number AMEND-CONDUCTOR-DECISION-001 §3 added. GITHUB_TOKEN cannot
+          # read user billing, so number 5 reports NOT COMPUTED with that reason rather than 0.
+          # --transport is NOT passed: the operator transport is a Drive mount on his
+          # workstation and is not reachable from a runner, so number 3 reports NOT COMPUTED
+          # naming the flag -- which is the honest answer, not a zero.
+          uv run --locked python scripts/conductor.py metrics --gh 2>&1 | tee metrics.out
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Write the record
+        if: always()
+        run: |
+          {
+            echo "## conductor — \`${{ github.sha }}\`"
+            echo
+            echo "phase gate exit: \`${{ steps.gate.outputs.exit }}\` (report-only until the"
+            echo "\`unphased\` count falls — see the job's comment)"
+            echo
+            echo '```'
+            cat phase-gate.out 2>/dev/null || echo "no gate output"
+            echo '```'
+            echo
+            echo '```'
+            cat metrics.out 2>/dev/null || echo "no metrics output"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: conductor-${{ github.sha }}
+          path: |
+            phase-gate.out
+            metrics.out
+          retention-days: 90
+          if-no-files-found: warn
