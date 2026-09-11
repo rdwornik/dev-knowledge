@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "g=\"${CLAUDE_PROJECT_DIR:-.}/scripts/fleet_health.py\"; [ -f \"$g\" ] || g=\"./scripts/fleet_health.py\"; [ -f \"$g\" ] || exit 0; python \"$g\" --prompts-guard",
+            "command": "g=\"${CLAUDE_PROJECT_DIR:-.}/scripts/fleet_health.py\"; [ -f \"$g\" ] || g=\"./scripts/fleet_health.py\"; [ -f \"$g\" ] || exit 0; python \"$g\" --prompts-guard; rc=$?; [ \"$rc\" = 2 ] && exit 2; exit 0",
             "timeout": 10
           }
         ]

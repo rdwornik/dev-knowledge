@@ -9,7 +9,7 @@ the path, it exits non-zero -- and a `PreToolUse` hook that exits non-zero REFUS
 refusal of every tool call, attributed to the tool it blocked rather than to us
 (`docs/audits/2026-09-10-technical-night-aj-m03/REVIEW.md`:83, pointer :105).
 
-Four properties are asserted here. The first three are the two edits `[#684]` names;
+Five properties are asserted here. The first three are the two edits `[#684]` names;
 the fourth was added by the 2026-09-11 Codex review of this branch:
 
 * **The command resolves the repo root itself.** Measured 2026-09-11 by a throwaway child
@@ -22,6 +22,10 @@ the fourth was added by the 2026-09-11 Codex review of this branch:
   stated intent, verbatim: *"the prompts-guard resolves its own path and fails open on
   interpreter failure"* (REVIEW.md:102). This extends `prompts_guard()`'s own documented
   fail-open posture to the one failure it could not reach -- not being loaded at all.
+* **The guard's own refusal code is the ONLY one that refuses.** `prompts_guard()`
+  returns 0 or 2 and nothing else, so every other status is a failure to RUN it -- no
+  interpreter, an import error -- and those fail open. Added by the third Codex pass of
+  this branch, which found MA-1 surviving in exactly that gap.
 * **A refusal is PROPAGATED, not swallowed.** The risk the fail-open leg creates is
   precise -- a command string that turns the guard's refusal into a pass -- and it is
   pinned hermetically by a stand-in that exits `2`, because the real verdict's User-scope
@@ -113,12 +117,16 @@ def _resolve_posix_shell():
 
 _SH = _resolve_posix_shell()
 
-#: Outside every code the real guard returns (0 pass / 2 refuse), so a test asserting it is
-#: asserting "the command reached the script at this root" and nothing else.
-_REACHED = 7
-#: The guard's own refusal code. A stand-in returning it proves the command string
-#: PROPAGATES a refusal rather than swallowing it -- hermetically, on any platform, which
-#: the live-tree test cannot do because the User-scope half of the verdict is registry state.
+#: "The command reached the script at this root", proven POSITIVELY rather than inferred
+#: from a magic exit code. It used to be an exit of 7, but the command now maps every status
+#: except the guard's own `2` to `0` (see `_REFUSES`), so a distinctive exit code can no
+#: longer carry this signal -- and a marker on stdout is better evidence anyway: it says
+#: WHICH file ran, not merely that something did.
+_REACHED = "PROMPTS-GUARD-STANDIN-REACHED"
+#: The guard's own refusal code, and now the ONLY code that refuses. A stand-in returning it
+#: proves the command PROPAGATES a refusal rather than swallowing it -- hermetically, on any
+#: platform, which the live-tree test cannot do because the User-scope half of the real
+#: verdict is registry state this suite must not touch.
 _REFUSES = 2
 
 
@@ -150,21 +158,25 @@ def _matches(matcher: str, tool: str) -> bool:
     return re.fullmatch(matcher, tool) is not None
 
 
-def _fake_tree(root: Path, code: int = _REACHED) -> Path:
-    """A tree shaped like this repo whose `scripts/fleet_health.py` only reports that it
-    RAN -- or, at `code=_REFUSES`, one that stands in for a guard that REFUSES."""
+def _fake_tree(root: Path, code: int = 0) -> Path:
+    """A tree shaped like this repo whose `scripts/fleet_health.py` announces that it RAN
+    and then exits `code` -- `_REFUSES` for a guard that refuses, `1` for one that crashes."""
     (root / "scripts").mkdir(parents=True, exist_ok=True)
     (root / "scripts" / "fleet_health.py").write_text(
-        f"import sys\nsys.exit({code})\n", encoding="utf-8"
+        f"import sys\nprint({_REACHED!r})\nsys.exit({code})\n", encoding="utf-8"
     )
     return root
 
 
-def _run(command: str, *, cwd: Path, project_dir):
+def _run(command: str, *, cwd: Path, project_dir, path=None):
+    """Run COMMAND the way Claude Code runs a hook command. `path` REPLACES PATH, which is
+    how the no-usable-interpreter case is reached hermetically."""
     env = dict(os.environ)
     env.pop("CLAUDE_PROJECT_DIR", None)
     if project_dir is not None:
         env["CLAUDE_PROJECT_DIR"] = project_dir
+    if path is not None:
+        env["PATH"] = path
     assert _SH is not None, (
         "no WORKING POSIX shell found -- Claude Code runs hook commands through one "
         "(measured 2026-09-11: C:/Program Files/Git/bin/bash.exe), so this hook cannot "
@@ -199,7 +211,7 @@ def test_hook_command_resolves_the_script_without_claude_project_dir(tmp_path):
     """
     tree = _fake_tree(tmp_path / "tree")
     result = _run(_hook_command(), cwd=tree, project_dir=None)
-    assert result.returncode == _REACHED, (
+    assert _REACHED in result.stdout, (
         "with CLAUDE_PROJECT_DIR unset the hook did not reach "
         f"<root>/scripts/fleet_health.py: rc={result.returncode} stderr={result.stderr!r}"
     )
@@ -212,7 +224,7 @@ def test_hook_command_still_prefers_claude_project_dir_when_it_is_set(tmp_path):
     elsewhere = tmp_path / "elsewhere"
     elsewhere.mkdir()
     result = _run(_hook_command(), cwd=elsewhere, project_dir=str(tree))
-    assert result.returncode == _REACHED, (
+    assert _REACHED in result.stdout, (
         f"CLAUDE_PROJECT_DIR was ignored: rc={result.returncode} stderr={result.stderr!r}"
     )
 
@@ -231,7 +243,7 @@ def test_hook_command_falls_back_to_cwd_when_claude_project_dir_is_set_but_wrong
     wrong = tmp_path / "wrong-root"
     wrong.mkdir()
     result = _run(_hook_command(), cwd=tree, project_dir=str(wrong))
-    assert result.returncode == _REACHED, (
+    assert _REACHED in result.stdout, (
         "a wrong CLAUDE_PROJECT_DIR fell through to fail-open instead of trying cwd, so "
         "a resolvable guard went unconsulted: "
         f"rc={result.returncode} stderr={result.stderr!r}"
@@ -243,7 +255,7 @@ def test_hook_command_falls_back_to_cwd_when_claude_project_dir_is_set_empty(tmp
     produces. `:-` (not `-`) is what makes it take the default, so this pins the colon."""
     tree = _fake_tree(tmp_path / "tree")
     result = _run(_hook_command(), cwd=tree, project_dir="")
-    assert result.returncode == _REACHED, (
+    assert _REACHED in result.stdout, (
         f"an empty CLAUDE_PROJECT_DIR did not fall back to cwd: rc={result.returncode} "
         f"stderr={result.stderr!r}"
     )
@@ -256,7 +268,7 @@ def test_hook_command_resolves_a_root_whose_path_contains_spaces(tmp_path):
     elsewhere = tmp_path / "elsewhere"
     elsewhere.mkdir()
     result = _run(_hook_command(), cwd=elsewhere, project_dir=str(tree))
-    assert result.returncode == _REACHED, (
+    assert _REACHED in result.stdout, (
         "a root containing spaces was word-split by the hook command: "
         f"rc={result.returncode} stderr={result.stderr!r}"
     )
@@ -274,6 +286,50 @@ def test_hook_command_fails_open_when_no_root_resolves(tmp_path):
     result = _run(_hook_command(), cwd=elsewhere, project_dir=None)
     assert result.returncode == 0, (
         "an unresolvable guard refused instead of passing -- this is MA-1 itself: "
+        f"rc={result.returncode} stderr={result.stderr!r}"
+    )
+    assert _REACHED not in result.stdout, (
+        "nothing should have run: the pass must come from the existence legs, not from a "
+        f"stand-in that executed anyway -- stdout={result.stdout!r}"
+    )
+
+
+def test_hook_command_fails_open_when_the_interpreter_is_unavailable(tmp_path):
+    """RED-first witness for the third Codex pass's HIGH: MA-1 again, by a different
+    missing piece.
+
+    The two `[ -f ]` legs guard the SCRIPT's existence and said nothing about the
+    INTERPRETER's. A reader whose environment has no usable `python` got a non-zero exit
+    from the hook -- 127 -- and therefore TOTAL REFUSAL of every matching tool call: the
+    exact failure this row exists to close, and a direct contradiction of the intent the
+    audit states in its own words, *"fails open on interpreter failure"* (REVIEW.md:102).
+
+    Reached hermetically by emptying PATH, so `python` cannot be found. The stand-in is the
+    REFUSING one on purpose: even a tree whose guard would refuse must pass when the guard
+    could not be RUN, or the fail-open posture is not the one that is documented.
+    """
+    tree = _fake_tree(tmp_path / "tree", code=_REFUSES)
+    result = _run(_hook_command(), cwd=tree, project_dir=None, path="")
+    assert _REACHED not in result.stdout, (
+        "PATH was not actually emptied -- the interpreter ran, so this test is not "
+        f"measuring what it claims: stdout={result.stdout!r}"
+    )
+    assert result.returncode == 0, (
+        "no usable interpreter REFUSED every matching tool call instead of passing -- this "
+        f"is MA-1 by another name: rc={result.returncode} stderr={result.stderr!r}"
+    )
+
+
+def test_hook_command_fails_open_when_the_guard_crashes(tmp_path):
+    """The other half of "interpreter failure": the module is found and the interpreter
+    starts, then dies on import or syntax. `prompts_guard()` returns 0 or 2 and NOTHING
+    else, so a `1` cannot be a verdict -- it can only be a crash, and a crashing guard must
+    not brick the session. Only the guard's own `2` refuses."""
+    tree = _fake_tree(tmp_path / "tree", code=1)
+    result = _run(_hook_command(), cwd=tree, project_dir=None)
+    assert _REACHED in result.stdout, "the stand-in did not run, so this proves nothing"
+    assert result.returncode == 0, (
+        "a crashing guard refused instead of passing: "
         f"rc={result.returncode} stderr={result.stderr!r}"
     )
 

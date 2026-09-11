@@ -1215,7 +1215,7 @@ def refresh(repo_root: Path, ecosystem_dir: Path,
 #
 #     { "matcher": "Read|Write|Edit|MultiEdit|NotebookEdit|Glob|Grep|Bash|PowerShell|Monitor|LSP|ReadMcpResourceTool|mcp__.*",
 #       "hooks": [ { "type": "command",
-#                    "command": "g=\"${CLAUDE_PROJECT_DIR:-.}/scripts/fleet_health.py\"; [ -f \"$g\" ] || g=\"./scripts/fleet_health.py\"; [ -f \"$g\" ] || exit 0; python \"$g\" --prompts-guard",
+#                    "command": "g=\"${CLAUDE_PROJECT_DIR:-.}/scripts/fleet_health.py\"; [ -f \"$g\" ] || g=\"./scripts/fleet_health.py\"; [ -f \"$g\" ] || exit 0; python \"$g\" --prompts-guard; rc=$?; [ \"$rc\" = 2 ] && exit 2; exit 0",
 #                    "timeout": 10 } ] }
 #
 # THE COMMAND RESOLVES ITS OWN ROOT ([#684], 2026-09-11 -- MA-1 of the 2026-09-09 night
@@ -1240,6 +1240,17 @@ def refresh(repo_root: Path, ecosystem_dir: Path,
 #       before and after -- old `rc=0` (silent bypass), new `rc=7` (guard reached). Fail-open
 #       is now reserved for the case where NO root resolves, which is how the posture was
 #       always argued.
+#   `rc=$?; [ "$rc" = 2 ] && exit 2; exit 0` -- ONLY the guard's own refusal code refuses.
+#       Added 2026-09-11 by the third Codex pass of this branch, and it is MA-1 again by a
+#       different missing piece: the `[ -f ]` legs guard the SCRIPT's existence but said
+#       nothing about the INTERPRETER's. A reader with no usable `python` got a non-zero
+#       exit from the hook and therefore total refusal of every matching tool call -- the
+#       exact failure this row exists to close, and a direct contradiction of the intent
+#       the review states in its own words ("fails open on interpreter failure",
+#       REVIEW.md:102). `prompts_guard()` returns 0 or 2 and nothing else, so mapping
+#       "exactly 2" to refusal and everything else to pass loses no refusal the guard can
+#       actually express, while a 127 (no interpreter) or a 1 (import/syntax error) now
+#       fails open where it previously bricked the session.
 #   `[ -f "$g" ] || exit 0`     -- a guard that cannot be LOADED passes rather than
 #       refuses. This is the same fail-open posture `prompts_guard()` already documents
 #       for its own internal errors, extended to the one failure it could not reach; the
