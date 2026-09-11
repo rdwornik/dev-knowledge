@@ -510,6 +510,19 @@ def test_an_escape_declared_on_ONE_LINE_does_not_cover_the_NEXT(command):
     assert _denied(_bash(command)), f"escape leaked across lines: {command}"
 
 
+def test_an_escape_covers_the_SEGMENT_it_trails_not_the_whole_line():
+    """Terra pre-merge pass 14, P1 -- the logical next notch after pass 13. A shell comment
+    trails the command after the LAST separator, so `rg X; echo done # raw-needed: note`
+    declares an escape for `echo done` and says nothing about the `rg`."""
+    assert _denied(_bash("rg gen_task_tree; echo done # raw-needed: note"))
+    assert _denied(_bash("rg gen_task_tree && echo ok # raw-needed: note"))
+
+
+def test_an_escape_trailing_the_SEARCH_itself_still_works():
+    assert not _denied(_bash("echo done; rg gen_task_tree # raw-needed: renaming"))
+    assert not _denied(_bash("cat BACKLOG.md | grep gen_task_tree # raw-needed: one-off"))
+
+
 def test_each_line_may_declare_its_own_escape():
     assert not _denied(_bash(
         "rg gen_task_tree  # raw-needed: renaming\n"

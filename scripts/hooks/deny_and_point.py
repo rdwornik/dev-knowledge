@@ -519,18 +519,23 @@ def search_candidates(command: str) -> list[str]:
     Empty list = this command is not a search, and the store is never opened for it. An
     unparseable command yields an empty list too: a guard malfunction must not block normal work.
 
-    THE ESCAPE IS SCOPED TO ITS OWN LINE. Evaluated over the whole payload, one earlier and
-    unrelated `# raw-needed:` comment switched the guard off for every command after it (Terra
-    pre-merge pass 13). A declaration covers the command it is written on, and nothing else.
+    THE ESCAPE IS SCOPED TO THE SEGMENT IT TRAILS, which took three findings to get right and
+    is worth stating plainly: a DECLARED bypass is only as good as the precision of what it
+    declares. Pass 6 stopped it being matched inside quoted text; pass 13 stopped it covering
+    later LINES; pass 14 stopped it covering earlier commands on its OWN line. A shell comment
+    trails the command after the last separator, so in `rg X; echo done # raw-needed: note` the
+    declaration is about `echo done` and says nothing at all about the `rg`.
     """
     candidates: list[str] = []
     try:
         for line in strip_heredocs(command).split("\n"):
-            if not line.strip() or _ESCAPE.search(_comment_text(line)):
+            if not line.strip():
                 continue
-            for argv in _line_segments(line):
-                if argv:
-                    candidates.extend(_patterns_of(argv))
+            segments = [argv for argv in _line_segments(line) if argv]
+            if segments and _ESCAPE.search(_comment_text(line)):
+                segments.pop()          # the declaration covers the command it trails
+            for argv in segments:
+                candidates.extend(_patterns_of(argv))
     except ValueError:
         return []
     return candidates
