@@ -120,6 +120,14 @@ from batch_manifest import freeze_manifest_contract_agreement, open_batches  # n
 #: unresolved). Imported BY NAME so this module has no second literal to drift from; a third
 #: implementation here is exactly the defect `[#718]` records, one layer on.
 from gen_handoff import transport_root  # noqa: E402
+#: `[#716]` — THE STEP-0 SYNC RETIRES ITSELF. `worktree_seed` is the repo's worktree-
+#: provisioning organ (live `graph_queries.py process-list`: "no trigger; ON-DEMAND-BY-OPERATOR,
+#: invoked by /lane-boot"), and `base_ref_verdict` is its answer to "does a lane dispatched now
+#: branch from `main` HEAD?". A contract's mandatory step-0 sync exists ONLY to paper over that
+#: property being false, so the region is emitted from the predicate rather than typed into a
+#: template by hand: it disappears the moment the property holds and comes back if the setting
+#: is ever unset again. Retirement by mechanism, not by an editor remembering.
+from worktree_seed import base_ref_verdict  # noqa: E402
 
 logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("gen-lane-contract")
@@ -504,6 +512,12 @@ class LaneSpec:
     effort: str = "high"
     shape: str = DEFAULT_SHAPE
     strict_slug: bool = True
+    #: `[#716]`: emit the step-0 sync region. NOT a free choice — `cmd_emit` sets it from
+    #: `base_ref_verdict`, so it tracks the live configuration. It stays a SPEC FIELD rather
+    #: than a live read inside `render_contract` because rendering is pure by contract
+    #: (`test_rendering_is_deterministic`), and a generator whose output depends on the state
+    #: of the machine that ran it cannot be diffed.
+    needs_base_sync: bool = False
 
     @property
     def cloud(self) -> bool:
@@ -528,6 +542,7 @@ class LaneSpec:
             effort=validate_effort(self.effort),
             shape=validate_shape(self.shape),
             strict_slug=self.strict_slug,
+            needs_base_sync=self.needs_base_sync,
         )
 
     @property
@@ -707,6 +722,28 @@ def render_contract(spec: LaneSpec) -> str:
     parts.append("- No index regeneration — the integrator is gate-of-record and regenerates once\n"
                  "  at the merge (Q1); a lane declares its single-hook bypass in the commit body.")
     parts.append("- No edits outside this lane's declared footprint.\n")
+
+    # `[#716]`: emitted ONLY while a lane's base is not guaranteed to be `main` HEAD. The region
+    # papers over a live defect, so it is conditioned on that defect rather than typed into a
+    # template — it retires itself when the property starts holding, and restores itself if the
+    # setting is ever unset again. `cmd_emit` sets the flag from `worktree_seed.base_ref_verdict`;
+    # this function stays pure.
+    if spec.needs_base_sync:
+        parts.append("## Step 0 — sync before anything else "
+                     "(MANDATORY while `[#716]` is unfixed)\n")
+        parts.append(
+            "`worktree.baseRef` does not currently guarantee that a lane branches from `main`\n"
+            "HEAD, so this lane may start behind. **The step-0 sync is mandatory and may not be\n"
+            "dropped on the grounds that `[#716]` is being fixed** — it retires only when the\n"
+            "property holds, and this section stops being emitted at that moment. A generator\n"
+            "run against a base that lags `main` silently DROPS rows that exist on `main`, and\n"
+            "the dropped row looks like a clean regeneration.\n")
+        parts.append("```")
+        parts.append("git fetch origin")
+        parts.append("git merge origin/main        # or: git merge main, from the primary's ref")
+        parts.append("uv run --locked python -c \"print('base synced')\"")
+        parts.append("```\n")
+        parts.append("Then, and only then, run the lane's own steps.\n")
 
     return "\n".join(parts)
 
@@ -1041,8 +1078,20 @@ def cmd_emit(slug: str, purpose: str, repo: str, task_id: Optional[str], model: 
              effort: str, shape: str, loose_slug: bool, out_dir: Optional[Path],
              to_stdout: bool, force: bool) -> None:
     """Emit one frozen lane contract."""
+    # `[#716]`: the step-0 region is a function of the LIVE base-ref property, read once here so
+    # `render_contract` stays pure. An unreadable verdict is treated as NOT guaranteed — the
+    # region costs a lane one merge commit, its absence costs a silently-dropped row, so the
+    # unknown case falls on the side that is cheap to be wrong about.
+    try:
+        verdict = base_ref_verdict(Path.cwd())
+        needs_sync, why = not verdict.holds, verdict.why
+    except Exception as exc:  # noqa: BLE001 — a git-less or odd checkout narrows, never wedges
+        needs_sync, why = True, f"base-ref property could not be read ({exc}); assuming unmet"
+    logger.info("step-0 sync region: %s — %s", "EMITTED" if needs_sync else "retired", why)
+
     spec = LaneSpec(slug=slug, purpose=purpose, repo=repo, task_id=task_id, model=model,
-                    mode=mode, effort=effort, shape=shape, strict_slug=not loose_slug)
+                    mode=mode, effort=effort, shape=shape, strict_slug=not loose_slug,
+                    needs_base_sync=needs_sync)
     try:
         text = render_contract(spec)
     except LaneContractError as exc:

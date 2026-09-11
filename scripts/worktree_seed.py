@@ -49,6 +49,7 @@ HONEST LIMITS
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import sys
 import tomllib
@@ -326,6 +327,216 @@ def render_plan(plan: Plan) -> str:
 
 
 # --- CLI --------------------------------------------------------------------------------
+
+
+# --- [#716]: the ref a new lane actually branches from -------------------------------------
+#
+# WHY THIS LIVES HERE. This module already owns "what a worktree needs to be provisioned" --
+# the copy manifest and the environment bootstrap. Which REF the worktree starts from is the
+# same question one layer earlier, and putting it anywhere else would create the second organ
+# AX9-4 exists to prevent. `graph_queries.py process-list` lists this module as an existing
+# process; this is an edit inside it, not a new one beside it.
+#
+# THE DEFECT `[#716]` RECORDS. `worktree.baseRef` is unset, so Claude Code's documented default
+# `fresh` applies and a new lane branches from `origin/<default-branch>`. Local `main` routinely
+# runs AHEAD of `origin/main` -- the integrator merges locally and pushes in batches -- so a
+# lane starts behind, and a generator run against a base that lags `main` silently DROPS rows
+# that exist on `main`. The dropped row looks like a clean regeneration, which is what makes
+# this expensive rather than merely annoying.
+#
+# THE SETTING'S SHAPE IS VERIFIED AGAINST THE SHIPPED BINARY, not inferred from its display
+# name. Claude Code 2.1.268 carries `if(w.worktree?.baseRef!==void 0)I.push("worktree.baseRef")`
+# and `baseRef:Y(["fresh","head"]).optional()`: the key is NESTED under a `worktree` object,
+# `worktree.baseRef` is only how it is NAMED in messages, and the enum is exactly two values.
+# A flat `"worktree.baseRef"` key in settings.json would be ignored in silence -- the failure
+# mode this row is already an instance of.
+#
+# AND THE PROPERTY IS NOT THE SETTING, which is the precision `[#716]` adds to AX7-3. AX7-3
+# asked that baseRef "point at local `main`"; no such value exists. `head` points at the
+# DISPATCHING CHECKOUT's HEAD, which equals `main` HEAD only while that checkout is on `main`.
+# A dispatcher sitting on a feature branch would, with `head`, seed every lane from THAT branch
+# -- a different defect wearing the fix's clothes. So the verdict below reports the PROPERTY
+# (base == `main` HEAD) and lets the setting be whatever makes it true, and the test asserts the
+# property rather than the setting's value.
+
+#: The setting, and the two values it documents. `fresh` is what applies when it is unset.
+BASE_REF_KEY = "worktree.baseRef"
+BASE_REF_FRESH = "fresh"
+BASE_REF_HEAD = "head"
+BASE_REF_ENUM: tuple[str, ...] = (BASE_REF_FRESH, BASE_REF_HEAD)
+BASE_REF_DEFAULT = BASE_REF_FRESH
+
+
+@dataclass(frozen=True)
+class BaseRefVerdict:
+    """Does a lane dispatched RIGHT NOW branch from `main` HEAD?
+
+    `holds` is the property `[#716]`'s Done-when names. `setting` is None when no file in the
+    chain declares one -- reported separately from `effective`, because "unset" and "explicitly
+    set to the default" are the same behaviour and different facts, and a fix has to change the
+    first.
+    """
+    setting: "str | None"
+    effective: str
+    base_label: str
+    base_sha: "str | None"
+    main_sha: "str | None"
+    holds: bool
+    why: str
+    #: True when the SHAs coincide RIGHT NOW under a configuration that does not bind them.
+    #: `holds` is deliberately False in that case, and this field is why -- see
+    #: `base_ref_verdict`'s "coincidence is not the property" note.
+    coincidental: bool = False
+
+
+def settings_chain(repo: Path) -> tuple[Path, ...]:
+    """The settings files Claude Code merges, in increasing precedence.
+
+    THE SPLIT THIS MAKES IS DELIBERATE, and it is the one the verdict turns on. Two different
+    things are being read, and they live in two different places:
+
+      * CONFIGURATION is a TRACKED property of a TREE. `.claude/settings.json` is committed, so
+        the question "is this repo configured to seed lanes from `main` HEAD?" is a question
+        about the tree that lands -- and therefore about `repo`, the checkout being asked. Read
+        from the primary instead, a lane that FIXES the setting could never witness its own fix:
+        the primary still carries the pre-merge value until the integrator merges.
+      * REF STATE is a property of the MACHINE at the dispatch act, and `base_ref_verdict` reads
+        it from the PRIMARY, because the operator runs `Dispatch-Lane` "from the target repo
+        root" -- every lane contract's own words.
+
+    The honest limit, stated rather than papered over: a lane's own `.claude/settings.json` is
+    the tree's CLAIM. It governs real dispatches only once merged to `main`, because that is
+    when the primary's copy changes. This function answers "will the tree that lands do the
+    right thing", which is the question a test in a lane can answer and the one a lane can fix.
+    """
+    _root, primary = resolve_checkout(repo)
+    project = Path(repo).resolve()
+    return (
+        Path.home() / ".claude" / "settings.json",
+        project / ".claude" / "settings.json",
+        primary / ".claude" / "settings.local.json",
+    )
+
+
+def read_base_ref(repo: Path, chain: "tuple[Path, ...] | None" = None) -> "str | None":
+    """The effective `worktree.baseRef`, or None when no file in the chain declares one.
+
+    NESTED read (`{"worktree": {"baseRef": ...}}`), which is the shape the binary writes and
+    reads; see the note above. A missing or unparseable file is SKIPPED rather than fatal --
+    `settings.local.json` legitimately does not exist on a fresh clone, and a hand-edited file
+    with a trailing comma should narrow this answer, not wedge the caller.
+    """
+    found: "str | None" = None
+    for path in (settings_chain(repo) if chain is None else chain):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if not isinstance(data, dict):
+            continue
+        section = data.get("worktree")
+        if isinstance(section, dict):
+            value = section.get("baseRef")
+            if isinstance(value, str) and value.strip():
+                found = value.strip()
+    return found
+
+
+def _rev(repo: Path, ref: str) -> "str | None":
+    """`ref`'s SHA, or None when it does not resolve. Unresolvable is a REPORT, not a raise:
+    a clone with no `origin` has a real answer to give about `fresh`."""
+    try:
+        return _git(["rev-parse", "--verify", f"{ref}^{{commit}}"], repo)
+    except SeedError:
+        return None
+
+
+def base_ref_verdict(repo: Path = Path("."), default_branch: str = "main") -> BaseRefVerdict:
+    """Whether a lane dispatched now would branch from `default_branch` HEAD.
+
+    The two resolutions are the two enum values, and neither is a guess:
+      * `fresh` -> `origin/<default-branch>`, so the base tracks a ref the dispatcher does not
+        control. The property then holds only while nothing on local `main` is unpushed.
+      * `head`  -> the DISPATCHING checkout's HEAD, i.e. the primary's. Holds while the primary
+        is on `main`, and reports RED the moment a dispatcher wanders off it.
+
+    COINCIDENCE IS NOT THE PROPERTY, and this was MEASURED during `[#716]`'s own lane rather
+    than reasoned out in advance. At step 0 the base lagged local `main` by seven commits; some
+    hours later a peer pushed `main`, `origin/main` caught up, and a verdict that compared only
+    the two SHAs flipped to True -- under the SAME unset configuration that had just cost seven
+    commits. Nothing was fixed in between. A witness that can be turned green by someone else's
+    push is measuring push timing, not configuration.
+
+    So `fresh` NEVER holds here, whether or not the SHAs coincide today, and `coincidental`
+    carries the distinction rather than `holds` swallowing it. This is the same refusal
+    `[#716]`'s Done-when already makes on the other axis -- "asserted by a TEST rather than by
+    the setting's value, so a dispatcher on a non-`main` branch cannot satisfy it accidentally"
+    -- applied to the axis the row did not foresee. It is also what makes the row's other
+    requirement satisfiable at all: a witness that must "FAIL against today's unset
+    configuration" cannot be a bare SHA comparison, because an unset configuration compares
+    equal whenever `main` happens to be pushed.
+    """
+    _root, primary = resolve_checkout(repo)
+    setting = read_base_ref(repo)
+    effective = setting or BASE_REF_DEFAULT
+    main_sha = _rev(primary, default_branch)
+
+    if effective == BASE_REF_HEAD:
+        base_label = f"{primary.name}:HEAD (the dispatching checkout)"
+        base_sha = _rev(primary, "HEAD")
+    elif effective == BASE_REF_FRESH:
+        base_label = f"origin/{default_branch}"
+        base_sha = _rev(primary, f"origin/{default_branch}")
+    else:
+        return BaseRefVerdict(
+            setting=setting, effective=effective, base_label="<unknown>", base_sha=None,
+            main_sha=main_sha, holds=False,
+            why=(f"{BASE_REF_KEY} is {effective!r}, outside the documented enum "
+                 f"{{{' | '.join(BASE_REF_ENUM)}}} -- an unrecognised value is refused rather "
+                 f"than assumed to behave like either one"))
+
+    if base_sha is None or main_sha is None:
+        missing = base_label if base_sha is None else default_branch
+        return BaseRefVerdict(
+            setting=setting, effective=effective, base_label=base_label, base_sha=base_sha,
+            main_sha=main_sha, holds=False,
+            why=f"{missing} does not resolve in {primary}, so the base cannot be compared")
+
+    agree = base_sha == main_sha
+
+    if effective == BASE_REF_FRESH:
+        # Structurally unable to satisfy this row -- see "coincidence is not the property".
+        state = (f"they agree at {base_sha[:8]} RIGHT NOW, which is a coincidence and not a "
+                 f"guarantee: one unpushed merge on {primary} and every lane after it starts "
+                 f"behind, silently"
+                 if agree else
+                 f"{base_label} is at {base_sha[:8]} while {default_branch} HEAD is "
+                 f"{main_sha[:8]} -- local {default_branch} is unpushed, and lanes are already "
+                 f"starting behind")
+        return BaseRefVerdict(
+            setting=setting, effective=effective, base_label=base_label, base_sha=base_sha,
+            main_sha=main_sha, holds=False, coincidental=agree,
+            why=(f"{BASE_REF_KEY}={effective!r} binds the base to {base_label}, a REMOTE ref "
+                 f"the dispatcher does not control, so the property is never guaranteed: "
+                 f"{state}. Set {BASE_REF_KEY}={BASE_REF_HEAD!r} and dispatch from a checkout "
+                 f"on {default_branch}"))
+
+    if agree:
+        return BaseRefVerdict(
+            setting=setting, effective=effective, base_label=base_label, base_sha=base_sha,
+            main_sha=main_sha, holds=True,
+            why=(f"{BASE_REF_KEY}={effective!r} resolves the base to {base_label}, which is at "
+                 f"{base_sha[:8]} -- the same commit as {default_branch} HEAD"))
+
+    return BaseRefVerdict(
+        setting=setting, effective=effective, base_label=base_label, base_sha=base_sha,
+        main_sha=main_sha, holds=False,
+        why=(f"{BASE_REF_KEY}={effective!r} resolves the base to {base_label} at "
+             f"{base_sha[:8]}, but {default_branch} HEAD is {main_sha[:8]} -- the dispatching "
+             f"checkout {primary} is not on {default_branch} HEAD, so `head` seeds lanes from "
+             f"wherever it is sitting: the accidental satisfaction this row exists to make "
+             f"visible. Move the dispatcher onto {default_branch}; do NOT change the setting"))
+
 
 def _own_checkout() -> Path:
     """The checkout THIS script is part of — `scripts/worktree_seed.py` -> its repo root."""

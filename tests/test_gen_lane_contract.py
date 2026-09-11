@@ -1197,3 +1197,87 @@ def test_the_emit_log_line_carries_the_model_it_wrote_into_the_file(tmp_path, mo
         encoding="utf-8")
     assert "-Model sonnet" in written
     assert logging  # the import is the fixture's, kept explicit for the reader
+# --- 7. [#716]: the step-0 sync region retires ITSELF ---------------------------------------
+#
+# `[#716]`'s Done-when: "the mandatory step-0 sync is retired from the lane-contract template
+# only in the same change that makes that test green". Measured while executing it, the
+# retirement surface turned out to be narrower than the clause assumes: the sync region is
+# HAND-AUTHORED into each frozen contract and appears in none of `templates/prompt-template.md`
+# v1.15, `.claude/commands/lane-boot.md`, `protocols/PLAYBOOK.md` or `render_contract` -- so
+# there was no template line to delete, and deleting nothing would have discharged the clause
+# vacuously.
+#
+# So the retirement is made MECHANICAL instead of editorial. The generator gains the region,
+# conditioned on the very predicate the row's test asserts: emitted while the base property is
+# unheld, absent once it holds, and BACK if the setting is ever unset again. That is a stronger
+# reading of "retired in the same change" than a deletion -- a deletion retires it once, this
+# retires it exactly when it should be retired, forever.
+
+
+def test_a_contract_emits_the_step_0_sync_region_while_the_base_property_is_unheld():
+    contract = glc.render_contract(_spec(needs_base_sync=True))
+    assert "## Step 0 — sync before anything else" in contract
+    assert "git merge origin/main" in contract
+    assert "[#716]" in contract
+
+
+def test_a_contract_OMITS_the_step_0_sync_region_once_the_property_holds():
+    """The retirement, asserted as an absence. This is the half that has to bite: a region that
+    is emitted unconditionally is a region nobody ever removes."""
+    contract = glc.render_contract(_spec(needs_base_sync=False))
+    assert "Step 0" not in contract
+    assert "git merge origin/main" not in contract
+
+
+def test_the_default_spec_does_not_carry_the_sync_region():
+    """`cmd_emit` sets the flag from the live predicate; a hand-built spec defaults to OFF, so
+    nothing emits the region by accident once the defect is fixed."""
+    assert glc.LaneSpec(slug="lane-a-1-x", purpose="p").needs_base_sync is False
+    assert "Step 0" not in glc.render_contract(_spec())
+
+
+def test_the_sync_region_does_not_disturb_the_mandatory_section_check():
+    """Both shapes parse clean. A conditional section that reddened the checker would trade one
+    defect for another, and `MANDATORY_SECTIONS` is a subset check for exactly this reason."""
+    for flag in (True, False):
+        parsed = glc.parse_contract(glc.render_contract(_spec(needs_base_sync=flag)),
+                                    expect_shape="local")
+        assert parsed.problems == (), (flag, parsed.problems)
+
+
+def test_rendering_stays_PURE_with_the_flag():
+    """`render_contract` must not read the machine: a generator whose output depends on the
+    state of whoever ran it cannot be diffed. The live read lives in `cmd_emit`, which is why
+    the flag is a spec field rather than a call inside the renderer."""
+    assert (glc.render_contract(_spec(needs_base_sync=True))
+            == glc.render_contract(_spec(needs_base_sync=True)))
+    assert (glc.render_contract(_spec(needs_base_sync=True))
+            != glc.render_contract(_spec(needs_base_sync=False)))
+
+
+def test_emit_sets_the_flag_from_the_LIVE_base_ref_predicate(tmp_path, monkeypatch):
+    """End to end: the region tracks `worktree_seed.base_ref_verdict`, not a constant.
+
+    Both directions are exercised, because a wiring that always returned one answer would pass
+    a one-directional test while being no predicate at all.
+    """
+    import worktree_seed as ws
+
+    prompts = tmp_path / "prompts-root"
+    prompts.mkdir()
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(prompts))
+    monkeypatch.chdir(tmp_path)
+
+    def _verdict(holds):
+        return ws.BaseRefVerdict(setting="head", effective="head", base_label="x",
+                                 base_sha="a" * 40, main_sha="a" * 40, holds=holds,
+                                 why="stubbed for the wiring test")
+
+    for holds, slug in ((False, "lane-x-716-unheld"), (True, "lane-x-716-held")):
+        monkeypatch.setattr(glc, "base_ref_verdict", lambda repo, h=holds: _verdict(h))
+        result = CliRunner().invoke(glc.cli, [
+            "emit", "--slug", slug, "--purpose", "wiring", "--id", "716"])
+        assert result.exit_code == 0, result.output
+        written = (prompts / glc.contract_filename(slug)).read_text(encoding="utf-8")
+        assert ("Step 0" in written) is not holds, (
+            f"holds={holds} produced the wrong region for {slug}")
