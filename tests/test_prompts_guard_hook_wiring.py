@@ -43,13 +43,25 @@ _SETTINGS = _REPO_ROOT / ".claude" / "settings.json"
 
 #: The classes a stale `CLAUDE_PROMPTS_DIR` actually makes lie -- anything that reads or
 #: writes the filesystem under a directory the seat resolved wrongly.
+#:
+#: The MCP and secondary routes were added 2026-09-11 by the fresh Codex review of this
+#: branch (HIGH-2): an `mcp__*` filesystem tool reaches a wrongly-resolved directory
+#: without passing the guard, and so do `ReadMcpResourceTool`, `LSP` and `Monitor`. `LSP`
+#: and `ReadMcpResourceTool` are NOT in this client's roster -- a matcher branch naming a
+#: tool that does not exist is inert, so over-listing costs nothing and under-listing is a
+#: gap. The `mcp__` entry is a representative name, not a roster claim.
 _MUST_MATCH = (
     "Read", "Write", "Edit", "MultiEdit", "NotebookEdit",
     "Glob", "Grep", "Bash", "PowerShell",
+    "Monitor", "LSP", "ReadMcpResourceTool", "mcp__filesystem__read_file",
 )
-#: The break-glass. `ToolSearch` is the only route to the deferred session-control tools,
-#: so gating it is what made the `"*"` wedge terminal rather than merely loud.
-_MUST_NOT_MATCH = ("ToolSearch",)
+#: The break-glass, and it is a ROUTE plus a DESTINATION. `ToolSearch` is the only way to
+#: reach the deferred session-control tools, so gating it is what made the `"*"` wedge
+#: terminal rather than merely loud -- but gating what it reaches defeats the escape just
+#: as surely, which is why `ExitWorktree` and `SendMessage` are pinned here too. This is
+#: the reason two of the Codex review's HIGH-2 names (`EnterWorktree` / `ExitWorktree`)
+#: were refused rather than adopted: they are this family, not the filesystem family.
+_MUST_NOT_MATCH = ("ToolSearch", "ExitWorktree", "SendMessage")
 
 _SH = shutil.which("bash") or shutil.which("sh")
 

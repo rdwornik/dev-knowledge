@@ -1213,7 +1213,7 @@ def refresh(repo_root: Path, ecosystem_dir: Path,
 # reason the ADR-77 guard is (stdlib-only; a stale lockfile must never be able to block
 # every tool call, and `uv run` would cost a resolution per call):
 #
-#     { "matcher": "Read|Write|Edit|MultiEdit|NotebookEdit|Glob|Grep|Bash|PowerShell",
+#     { "matcher": "Read|Write|Edit|MultiEdit|NotebookEdit|Glob|Grep|Bash|PowerShell|Monitor|LSP|ReadMcpResourceTool|mcp__.*",
 #       "hooks": [ { "type": "command",
 #                    "command": "g=\"${CLAUDE_PROJECT_DIR:-.}/scripts/fleet_health.py\"; [ -f \"$g\" ] || g=\"./scripts/fleet_health.py\"; [ -f \"$g\" ] || exit 0; python \"$g\" --prompts-guard",
 #                    "timeout": 10 } ] }
@@ -1249,7 +1249,7 @@ def refresh(repo_root: Path, ecosystem_dir: Path,
 # Wired shape asserted by `tests/test_prompts_guard_hook_wiring.py`, which reads the live
 # `.claude/settings.json` -- the RED-first witness `[#684]`'s Done-when names.
 #
-# THE MATCHER NARROWED IN THE SAME ACT ([#684], edit 2 of 2): `"*"` -> the nine
+# THE MATCHER NARROWED IN THE SAME ACT ([#684], edit 2 of 2): `"*"` -> the
 # filesystem-touching classes above, which are the ones a stale `CLAUDE_PROMPTS_DIR`
 # actually makes lie. THE REFUSAL IS NOT NARROWED. A mismatch still stops the seat at its
 # first file-touching call, which is the first thing any session does, so the guard keeps
@@ -1258,6 +1258,19 @@ def refresh(repo_root: Path, ecosystem_dir: Path,
 # `SendMessage` tools -- which is why the 2026-09-06 wedge could not be undone from inside
 # the session at all and recovery took an external shell (see the paragraph below, kept in
 # full). A guard that refuses must leave a way to reach the thing that would unrefuse it.
+# THE LIST WIDENED 2026-09-11 by the fresh Codex review of this branch (HIGH-2). The
+# reviewer is right that the first nine classes missed the MCP and secondary filesystem
+# routes: an `mcp__*` filesystem tool, `ReadMcpResourceTool`, `LSP` or `Monitor` can reach
+# a wrongly-resolved directory without ever passing the guard. `LSP` and
+# `ReadMcpResourceTool` are NOT in this client's roster -- a matcher branch naming a tool
+# that does not exist is inert, so over-listing costs nothing and under-listing is a gap.
+# TWO of the reviewer's names are REFUSED, on the merits: `EnterWorktree` / `ExitWorktree`
+# are the break-glass family. `ToolSearch` is only the ROUTE to the deferred session-control
+# tools, and gating their DESTINATION defeats the escape as surely as gating the route --
+# which is why `_MUST_NOT_MATCH` now pins `ExitWorktree` and `SendMessage` beside
+# `ToolSearch` rather than `ToolSearch` alone. `Agent` is not a gap either: configured hooks
+# also run for a subagent's own tool calls, so a subagent's `Read` is matched by `Read`.
+#
 # Alternation semantics measured 2026-09-11 in a throwaway child session, both directions:
 # a `Read` and a `Bash` call fired the narrowed matcher and fired a sibling matcher naming
 # only `ToolSearch|Agent|Task|WebFetch|WebSearch` NEITHER time -- so a named matcher

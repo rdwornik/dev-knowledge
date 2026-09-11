@@ -95,7 +95,7 @@ _Claude Code lifecycle hooks (SessionStart / Stop / PreToolUse / …)_
 | `Notification: claude-notify.ps1` | session-hook | Notification | `~/.claude/claude-notify.ps1` | L0 | ARMED |
 | `PreToolUse: block-onedrive.ps1` | session-hook | PreToolUse (Bash\|PowerShell\|Edit\|Write\|NotebookEdit\|Read) | `~/.claude/hooks/block-onedrive.ps1` | L0 | ARMED |
 | `PreToolUse: block_immutable_edits.py` | session-hook | PreToolUse (Edit\|MultiEdit\|Write\|NotebookEdit) | `.claude/settings.json` | hub | ARMED |
-| `PreToolUse: fleet_health.py` | session-hook | PreToolUse (Read\|Write\|Edit\|MultiEdit\|NotebookEdit\|Glob\|Grep\|Bash\|PowerShell) | `.claude/settings.json` | hub | ARMED |
+| `PreToolUse: fleet_health.py` | session-hook | PreToolUse (Read\|Write\|Edit\|MultiEdit\|NotebookEdit\|Glob\|Grep\|Bash\|PowerShell\|Monitor\|LSP\|ReadMcpResourceTool\|mcp__.*) | `.claude/settings.json` | hub | ARMED |
 | `SessionStart: arm_hooks.py` | session-hook | SessionStart | `.claude/settings.json` | hub | ARMED |
 | `SessionStart: billing_leak_sentinel.ps1` | session-hook | SessionStart | `.claude/settings.json` | hub | ARMED |
 | `SessionStart: changelog_sentinel.py` | session-hook | SessionStart | `.claude/settings.json` | hub | ARMED |
