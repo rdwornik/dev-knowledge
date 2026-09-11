@@ -19,6 +19,80 @@
 
 ---
 
+### 2026-09-11 (e) - CC (Opus 5, background integrator seat): the deviations are recorded before they are acted on
+
+**Names `61e8a138`**, the manifest's integration-deviations section - the substantive commit of the
+`docs/batch-w-anchor-substrate` repair arc, which this entry anchors ahead of its merge.
+
+**Did.** Recorded four integration deviations in batch W's manifest rather than only in the close
+packet, on the reasoning that **a deviation disclosed after the act it authorizes is a report, not
+an authorization**.
+
+**D-a is the one that matters.** AW5-2 authorized the integrator to run the terra review itself
+*for W-2*. W-3 handed back at `74990bf3` as a **code** branch carrying no `review=` token, which
+D-1 refuses. The integrator ran the review under AW5-2's shape rather than holding W-3 - which
+**satisfies** D-1 rather than waiving it - but the authorization names a different lane, so the
+extension is a deviation carried to the close packet for ratification, and is not precedent until
+ratified.
+
+**D-b, and why the tally was not adjusted.** W-3's review returned `HIGH:1`. That tally is recorded
+unmodified, and `audit.py handback` returns MERGE at exit 0 on it - because D-1's mechanized bar is
+that a review *ran and is named*, with severity triage left to the integrator. The finding was
+attributed to `scripts/proof_layer.py:481`; three measurements put it elsewhere. The mechanism is
+real but its locus is `scripts/audit.py:6595` (`str(token) in finding.evidence` - substring, never
+equality), a pre-existing `#147` register property the lane's own docstring names. The lane
+strictly **narrows** the aperture: pre-change evidence rendered byte-identically for two
+function-level guards in one module, so one disposition masked every guard in that file. And it is
+unreachable today - 0 substring collisions among 243 live guard keys, 0 register entries with
+`organ: proof_layer`. Filed as a batch-X row against the register, not as a hold on W-3.
+
+**D-d is a third instance of a conflict class worth naming.** `ecosystem/doc-counts.md` collided on
+W-3's merge exactly as `tasks/manifest.json` did on W-1 and W-7: HEAD `5749`, lane `5726`, merged
+`5752`. **Neither parent held the correct value**, which is what makes "take one side" wrong rather
+than merely arbitrary - the fix is strip the markers FIRST, regenerate SECOND, because regenerating
+over the markers absorbs them.
+
+**Changes.** `JOURNAL.md` (the (d) and (e) entries), batch W manifest (deviations section).
+
+**Next.** Merge W-3, then W-4 and the W-2 fix lane when they hand back.
+
+### 2026-09-11 (d) - CC (Opus 5, background integrator seat): the substrate merge is not a lane, so the exemption does not reach it
+
+**Names `81a28aad`**, one of the four commits the merge `a3374b70` introduced - written and
+committed BEFORE any other work on this arc, because the gap it clears was already blocking every
+commit in the repo.
+
+**Did.** Opened batch W's merge queue as integrator and merged W-8 (`cdeffc2e`), W-1 (`365ae7d1`),
+W-7 (`e4929b09`) and the AW5-3 substrate manifest change (`a3374b70`), each `--no-ff`, each with
+teardown verified by `git merge-base --is-ancestor` before any `-d`.
+
+**The defect this entry exists to record.** The ADR-110 declared-integration-arc exemption covers a
+batch's **lane** merges while its manifest is `status: open`. `a3374b70` is a **substrate** merge -
+the AW5-3 manifest change recording why both codespace lanes produced zero work - and a substrate
+merge is not a lane. So it took no exemption, landed on main's first-parent spine unanchored, and
+`journal_spine_anchor` began FAILing `audit-health`, which blocks **every subsequent commit**. The
+gate text says so precisely: it reports one unanchored entry and separately exempts three lane
+merges, which is the discriminator - the exemption was working exactly as written; the merge simply
+was not of the class it covers.
+
+**Why the ordering is inverted on this arc.** An integrator arc is normally substantive-first,
+JOURNAL-last (Ch8, batch-1 F1b). Here the block already existed, so a substantive commit could not
+land first - it was refused by the same gate. The entry therefore goes FIRST to clear the spine,
+the substantive commit follows, and a further entry anchors this arc's own merge. That is the
+dispatcher's (c)-entry fix one level up, and the same reason applies: re-running a refused commit
+addresses a gap that re-running does not close.
+
+**`SKIP=audit-health` was available and was NOT used.** The ADR-110 amendment 2026-08-07 retired
+that bypass for intermediate merges because the manifest was made to carry the exemption instead.
+The gate here is not misfiring - it is correctly reporting a real unanchored entry. Silencing a
+correct gate to land one's own commit is the direction this repo files defects about, not the
+direction it takes.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+**Next.** The manifest's integration-deviations section, then W-3's merge - which this entry
+unblocks.
+
 ### 2026-09-11 (c) - CC (Opus 5, background dispatcher seat): the batch W amendment and [#690] land
 
 **Names `d385cc1a`**, the commit this entry anchors - the manifest amendment plus `[#690]`, coupled
