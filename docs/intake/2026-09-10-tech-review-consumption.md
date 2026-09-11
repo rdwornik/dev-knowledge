@@ -173,3 +173,26 @@ the same limit this file's "What this file does NOT claim" section states for th
    **both label it a browser-seat RECOMMENDATION**: the latter lists `#75` under *"Intakes awaiting
    ratification"*. So `[#691]`'s blocker is real and OPEN; only its attribution to the operator was
    wrong, and `[#691]` cites the two paths that hold the substance instead.
+
+### End-of-lane record — for the integrator
+
+The lane's own closing artifact, kept here because this section is the surface the integrator is
+already reading and the lane's footprint is frozen to `tasks/`, `BACKLOG.md` and `docs/intake/`.
+
+- **Ids filed: `[#689]`, `[#691]`, `[#692]`.** `690` was taken and `688` is held by the concurrent
+  lane `lane-w-000-harness-is-process-intake`, so the allocation skips both. Checked against
+  `tasks/manifest.json`, `tasks/<id>-*.md`, `tasks/archive/` and `git log --all` — an id is not free
+  just because the file is absent.
+- **Merge this lane FIRST, before any other W lane** (AW4-1, verbatim: *"the integrator merges it
+  FIRST, before any W lane"*). It is text-only and files rows the other W lanes may come to
+  reference.
+- **Expected merge conflict, and it is benign:** `tasks/manifest.json`'s `generated_sha256` line.
+  Both this lane and `lane-w-000-harness-is-process-intake` re-pin it, and their node insertions are
+  in different stories, so the node blocks themselves do not overlap. Resolve by taking either side
+  and re-running `uv run --locked python scripts/gen_task_tree.py --emit-source`, which re-pins the
+  hash from the merged tree. **No row id is renumbered** (AW4-2).
+- **A pre-existing RED rides along and is not this lane's to clear:**
+  `tests/test_gen_task_tree.py::test_the_live_view_is_under_the_589_done_when_byte_bar` asserts
+  `BACKLOG.md` under 72,000 B. It was already 8,381 B over at `main` `3acca581`; these three rows add
+  672 B. The bar is `[#589]`'s own Done-when and `[#589]` is an OPEN P1 row, so raising the constant
+  is the act that row exists to forbid.
