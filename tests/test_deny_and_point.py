@@ -74,6 +74,10 @@ def _bash(command: str) -> dict:
     return {"tool_name": "Bash", "tool_input": {"command": command}}
 
 
+def _ps(command: str) -> dict:
+    return {"tool_name": "PowerShell", "tool_input": {"command": command}}
+
+
 def _grep_tool(pattern: str, path: str | None = None) -> dict:
     ti: dict = {"pattern": pattern}
     if path is not None:
@@ -372,6 +376,25 @@ def test_a_DOT_RELATIVE_or_WINDOWS_path_still_names_the_same_process(pattern):
     stripped -- on a Windows repo with a PowerShell matcher, that is the everyday spelling.
     """
     assert _denied(_bash(f"rg '{pattern}'")), f"path form bypassed the guard: {pattern}"
+
+
+def test_an_UNQUOTED_windows_path_survives_PowerShell_tokenization():
+    r"""Terra pre-merge pass 16, P1. POSIX `shlex` treats a backslash as an escape, so an
+    unquoted `scripts\graph_queries.py` tokenized to `scriptsgraph_queries.py` and resolved
+    to nothing -- on `PowerShell`, one of this guard's own configured surfaces. The pass-12
+    separator fix only reached backslashes that SURVIVED tokenization, i.e. quoted ones.
+
+    The lexer mode is therefore chosen by tool: POSIX for `Bash`, where a backslash really
+    IS an escape, and non-POSIX for `PowerShell`, where it is a path separator.
+    """
+    assert _denied(_ps(r"Select-String -Pattern scripts\graph_queries.py"))
+    assert _denied(_ps(r"Select-String -Pattern .\scripts\graph_queries.py"))
+
+
+def test_PowerShell_tokenization_does_not_over_block():
+    assert not _denied(_ps('Select-String -Pattern "def parse" -Path scripts\\'))
+    assert not _denied(_ps(r"Select-String -Pattern TODO -Path scripts\graph_queries.py"))
+    assert not _denied(_ps("Get-ChildItem scripts/"))
 
 
 @pytest.mark.parametrize("pattern", [r"\bcheck\b", r"\bTODO\b", r"\baudit\b"])

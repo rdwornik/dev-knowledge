@@ -155,15 +155,22 @@ def strip_heredocs(command: str) -> str:
     return "\n".join(kept)
 
 
-def _line_segments(line: str) -> list[list[str]]:
+def _line_segments(line: str, posix: bool = True) -> list[list[str]]:
     """One line's per-command argv lists, split on operator tokens.
 
     A NEWLINE ends a command, which `shlex` treats as ordinary whitespace -- so a search on the
     line after a heredoc was swallowed into the previous command's argv and its head was never
     read. Lines are therefore lexed one at a time. A line that cannot be tokenized raises out of
     here and the caller ALLOWS, which is the module's posture everywhere.
+
+    `posix` is chosen by TOOL, not assumed. POSIX lexing treats a backslash as an escape, so an
+    unquoted `scripts\\graph_queries.py` tokenized to `scriptsgraph_queries.py` and resolved to
+    nothing -- on `PowerShell`, one of this guard's own configured surfaces (Terra pre-merge
+    pass 16). In PowerShell a backslash is a path separator, so that line is lexed non-POSIX;
+    in Bash it really is an escape, so that line is lexed POSIX. Quote characters left on a
+    token by non-POSIX lexing are edge noise and `_clean` already removes them.
     """
-    lex = shlex.shlex(line, posix=True, punctuation_chars=True)
+    lex = shlex.shlex(line, posix=posix, punctuation_chars=True)
     lex.whitespace_split = True
     segments: list[list[str]] = [[]]
     for token in lex:
@@ -513,7 +520,7 @@ def _patterns_of(argv: list[str]) -> list[str]:
     return _grep_patterns(argv[1:])
 
 
-def search_candidates(command: str) -> list[str]:
+def search_candidates(command: str, posix: bool = True) -> list[str]:
     """The pattern operands of every segment whose HEAD is a search tool.
 
     Empty list = this command is not a search, and the store is never opened for it. An
@@ -538,7 +545,7 @@ def search_candidates(command: str) -> list[str]:
         for line in strip_heredocs(command).split("\n"):
             if not line.strip():
                 continue
-            segments = [argv for argv in _line_segments(line) if argv]
+            segments = [argv for argv in _line_segments(line, posix) if argv]
             if segments and _ESCAPE.search(_comment_text(line)):
                 segments.pop()          # the declaration covers the command it trails
             for argv in segments:
@@ -561,7 +568,7 @@ def _tool_candidates(payload: dict) -> list[str]:
         command = ti.get("command")
         if not isinstance(command, str) or not command.strip():
             return []
-        return search_candidates(command)   # the escape is applied per line, inside
+        return search_candidates(command, posix=(tool != "PowerShell"))
     return []
 
 
