@@ -1270,11 +1270,26 @@ def refresh(repo_root: Path, ecosystem_dir: Path,
 #       the refusal as such, it was a SILENT refusal that presented as the reader being
 #       broken. A refusal that names its cause and its fix is a different object.
 #
-#   WHAT THE FORM IS NOW. `0` passes; EVERYTHING else refuses -- no script under either
-#       root, no interpreter (127), a crash (1), any other status -- each with a message on
-#       stderr carrying a labelled Cause and a labelled Fix, and with the cause
-#       DISCRIMINATED (127 names PATH, anything else names a crash), because a message that
-#       blamed PATH for an import error sends the reader to the wrong place. Two things pay
+#   WHAT THE FORM IS NOW. `0` CARRYING `GUARD_EVALUATED_MARKER` on stdout passes;
+#       EVERYTHING else refuses -- no script under either root, no interpreter (127), a
+#       crash (1), any other status, and an exit of `0` with no marker -- each with a
+#       message on stderr carrying a labelled Cause and a labelled Fix, and with the cause
+#       DISCRIMINATED (127 names PATH, a bare 0 names a shim or wrapper, anything else
+#       names a crash), because a message that blamed PATH for an import error sends the
+#       reader to the wrong place.
+#
+#       THE MARKER LEG was added 2026-09-11 by the fresh Codex review of this branch
+#       (HIGH-1), and it closes the one permit the AX15-1 inversion still INFERRED rather
+#       than proved. Refusing on every non-zero status is not the same as establishing that
+#       the guard ran: a pass used to be silence plus `0`, which is exactly what a `python`
+#       that never opened this file produces. A launcher shim, a corporate intercept, a
+#       stale wrapper, the wrong interpreter first on PATH -- each exits 0 having checked
+#       nothing, and the hook permitted the call believing it had checked one. Since only
+#       this file can emit the marker, the hook now demands evidence instead of reading the
+#       absence of an error as proof. The stream split is deliberate and load-bearing:
+#       stdout, because a PreToolUse hook's stdout is transcript-only, so the per-tool-call
+#       no-noise property survives; never on a refusal, or the pass test would match on the
+#       very call being refused. Two things pay
 #       for this and neither may be removed without re-opening the ruling: the MATCHER
 #       stays narrowed, so the break-glass family is ungated and a refusing guard still
 #       leaves an in-session way out; and the SessionStart PREFLIGHT below checks the same
@@ -1335,6 +1350,29 @@ PROMPTS_OK = "ok"
 PROMPTS_REFUSED = "refused"
 PROMPTS_UNSET = "unset"
 PROMPTS_NO_USER_SCOPE = "no-user-scope"
+
+#: Printed on STDOUT by `prompts_guard()` on every non-refusing verdict, and required by
+#: the PreToolUse hook command before it permits a tool call.
+#:
+#: It exists because an exit of 0 is not evidence (2026-09-11 Codex review, HIGH-1). The
+#: hook refused on every non-zero status but read `0` as "the guard ran and passed" -- and
+#: a pass used to be pure silence, so it was indistinguishable from what a `python` that
+#: never opened this file produces. A shim, a wrapper, a launcher, the wrong interpreter
+#: first on PATH: each exits 0 having proven nothing, and the hook permitted the call
+#: believing it had checked one. That is declared enforcement without enforcement, which is
+#: the exact thing AX15-1 inverted the posture to end -- the inversion simply had one path
+#: left where the permit was INFERRED rather than proven.
+#:
+#: Only this file can emit it, so the hook can demand evidence instead of inferring it from
+#: the absence of an error. Two constraints ride on the choice: STDOUT, because a
+#: PreToolUse hook's stdout is transcript-only and stderr is what reaches the model (so the
+#: no-noise argument for a per-tool-call guard survives intact), and NEVER on a refusal,
+#: or the pass test would match on the very call being refused.
+#:
+#: `.claude/settings.json` carries the same token. `test_prompts_guard_hook_wiring.py`
+#: reads THIS constant and asserts the shipped command tests for it, so the two halves
+#: cannot drift apart silently.
+GUARD_EVALUATED_MARKER = "PROMPTS-GUARD-EVALUATED-OK"
 
 
 def read_user_scope(var: str = _PROMPTS_DIR_VAR):
@@ -1431,10 +1469,16 @@ def read_prompts_dir_scopes():
 def prompts_guard() -> int:
     """`--prompts-guard`: the PreToolUse leg, the one that actually refuses.
 
-    Exit 2 (refusal, stderr reaches the model) on REFUSED; 0 otherwise. Silent on every
-    non-refusing verdict -- the closure clause is `match -> silent pass`, and this runs once
-    per tool call, where a warning line would be noise rather than signal (the SessionStart
-    leg has already printed it once).
+    Exit 2 (refusal, stderr reaches the model) on REFUSED; 0 otherwise. On a non-refusing
+    verdict it prints `GUARD_EVALUATED_MARKER` on STDOUT and nothing else -- the hook
+    command requires that marker before it permits, because an exit of 0 on its own is
+    equally what a `python` that never ran this file produces (see the constant for the
+    full argument).
+
+    STDERR stays empty on every non-refusing verdict, and that is what preserves the
+    closure clause's `match -> silent pass`: this runs once per tool call, stderr is the
+    stream that reaches the model, and a warning there would be noise rather than signal
+    (the SessionStart leg has already printed it once). Hook stdout is transcript-only.
 
     FAIL-CLOSED on its own internal error since 2026-09-11 (AX15-1). This handler used to
     return 0, on the argument that a guard which bricks every tool call because it crashed
@@ -1465,6 +1509,7 @@ def prompts_guard() -> int:
     if verdict == PROMPTS_REFUSED:
         print(line, file=sys.stderr)
         return 2
+    print(GUARD_EVALUATED_MARKER)
     return 0
 
 
@@ -1550,6 +1595,15 @@ def hook_path(environ=None):
     So the venv's own entries are dropped before looking. Nothing else is: this is not an
     attempt to reconstruct the hook's environment, only to stop measuring an interpreter
     the hook provably cannot reach.
+
+    An EMPTY component is kept, and keeping it is that same rule rather than an exception
+    to it (2026-09-11 Codex review, MEDIUM). On POSIX an empty entry means the current
+    directory, so dropping it changes where the interpreter is looked up -- and hook
+    commands here run through a POSIX shell, measured, so the semantics are live. It used
+    to be dropped incidentally: the emptiness test was there only to keep `normpath("")`,
+    which returns `"."`, away from the prefix comparison below, and it took the meaningful
+    case with it. The test is now inside the negation, where it guards the comparison
+    without deciding the outcome.
     """
     env = os.environ if environ is None else environ
     path = env.get("PATH", "")
@@ -1558,8 +1612,8 @@ def hook_path(environ=None):
         return path
     venv_norm = os.path.normcase(os.path.normpath(venv))
     kept = [entry for entry in path.split(os.pathsep)
-            if entry and not os.path.normcase(os.path.normpath(entry)).startswith(
-                venv_norm + os.sep)]
+            if not (entry and os.path.normcase(os.path.normpath(entry)).startswith(
+                venv_norm + os.sep))]
     return os.pathsep.join(kept)
 
 

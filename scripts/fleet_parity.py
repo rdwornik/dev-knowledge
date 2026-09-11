@@ -750,15 +750,43 @@ def collect_facts(target: RepoTarget, manifest: dict, baseline: dict,
             # there); the SPLIT is the error. Under the AX15-1 fail-closed posture that
             # split is not cosmetic -- it refuses every filesystem-touching tool call in
             # that repo, with a hook whose script was never carried.
+            #
+            # The coupling is `THIS hook -> THIS script`, and both halves of that sentence
+            # are load-bearing (2026-09-11 Codex review, HIGH-2). Testing the two halves
+            # INDEPENDENTLY -- a command carrying the token, and the path existing
+            # somewhere in the repo -- passed a repo whose hook invoked
+            # `/opt/vendor/other_guard.py --prompts-guard` while merely happening to track
+            # scripts/fleet_health.py. That is AX15-2's own deploy defect reported as
+            # parity: green here, and every filesystem-touching tool call in that repo
+            # refused by a guard nobody shipped.
+            #
+            # So the MATCHED command must also name the declared path. The direction
+            # matters as much as the binding: a hook bound to an unknown guard is a
+            # FINDING, never a vacuous pass -- reading "no command mentions our path" as
+            # "the component is not deployed here" would hide precisely the split this row
+            # exists to see. Only the total ABSENCE of the token means not-deployed.
+            #
+            # The path test is a substring of the command, which is what a command string
+            # admits: hook commands run through a POSIX shell, so the declared
+            # forward-slash relpath appears verbatim inside whatever root prefix the
+            # command computes.
             token = _local_token(row, target.repo_id, probe["token"])
             cmds = settings_by_event.get(probe["event"], [])
-            res["hook_present"] = any(token in c for c in cmds)
+            matched = [c for c in cmds if token in c]
+            res["hook_present"] = bool(matched)
+            res["hook_bound"] = any(probe["path"] in c for c in matched)
             res["script_present"] = probe["path"] in tracked_set
-            res["present"] = (not res["hook_present"]) or res["script_present"]
+            res["present"] = (not matched) or (res["hook_bound"] and res["script_present"])
+            if matched and not res["hook_bound"]:
+                split = f"the hook invokes a guard other than {probe['path']}"
+            elif matched and not res["script_present"]:
+                split = f"the hook is carried without tracked {probe['path']}"
+            else:
+                split = "no split"
             res["detail"] = (
-                f"settings.json {probe['event']} hook containing '{token}' requires "
+                f"settings.json {probe['event']} hook containing '{token}' must invoke "
                 f"tracked {probe['path']} (one floor component; neither half deployed "
-                f"is at parity, the split is not)"
+                f"is at parity, the split is not) -- {split}"
             )
         elif ptype == "plugin_enabled":
             res["present"] = any(probe["token"] in p for p in plugin_names)
