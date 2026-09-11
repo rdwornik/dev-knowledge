@@ -19,6 +19,22 @@
 
 ---
 
+### 2026-09-11 (h) - CC (Opus 5, background integrator seat): the anchor arc anchors itself
+
+**Names `8ca3adfb`**, the (g) entry's commit — the one commit this arc's merge introduces besides
+this entry, and therefore the only SHA available to anchor that merge.
+
+**Why a second entry rather than an edit.** An anchor discharges by **APPEND ONLY** (architect
+ruling 2026-08-07; `protocols/STANDING_RULINGS.md` B6). The predicate matches a SHA anywhere in the
+file, so amending (g) in place to add its own hash would discharge the anchor *retroactively* and
+leave no trace it once did not — which is why the register forbids it and why this is a new entry.
+A one-commit anchor arc is unanchorable by construction: a merge commit cannot name its own hash,
+and (g)'s hash did not exist when (g) was written.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+**Next.** Merge, push, and STOP: AX11-1 bars further merges during working hours after this queue.
+
 ### 2026-09-11 (g) - CC (Opus 5, background integrator seat): two batch-X lanes land, and a batch with no manifest grants no exemption
 
 **Names `c79fcf09`** (X-R's tip, introduced by the merge `cb94cfd5`) **and `7bce09e5`** (X-C's tip,
