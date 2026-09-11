@@ -232,8 +232,18 @@ ALL_RECEIPT_FIELDS: tuple[str, ...] = tuple(
 
 _KEBAB_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _HEADING_RE = re.compile(r"^##\s+(?P<title>.+?)\s*$", re.MULTILINE)
+#: `[#717]` WIDENED THIS, and the widening is half the fix rather than a convenience. Until
+#: 2026-09-11 this read `^Dispatch-Lane <slug> <file>( -Effort <v>)?\s*$` — anchored, with NO
+#: `-Model` alternative — so a line carrying the model was refused as "no dispatch command line
+#: found". Rendering the model without widening here would have turned EVERY emitted contract
+#: RED at `lane-contract-check`: a generator whose own parser rejects its output is worse than
+#: one that omits the flag. `-Model` is OPTIONAL, and deliberately: every contract frozen before
+#: `[#717]` carries a line without it, and making it mandatory would redden the whole existing
+#: corpus. It trails `-Effort` because that is the order the generator emits; a reversed line is
+#: refused rather than guessed at, which is the posture the rest of this module already takes.
 _DISPATCH_LINE_RE = re.compile(
-    r"^Dispatch-Lane\s+(?P<slug>\S+)\s+(?P<file>\S+)(?:\s+-Effort\s+(?P<effort>\S+))?\s*$",
+    r"^Dispatch-Lane\s+(?P<slug>\S+)\s+(?P<file>\S+)(?:\s+-Effort\s+(?P<effort>\S+))?"
+    r"(?:\s+-Model\s+(?P<model>\S+))?\s*$",
     re.MULTILINE,
 )
 #: The CLOUD command. `Dispatch-CloudV2` takes the brief as its first positional and the
@@ -431,13 +441,29 @@ def branch_name(slug: str, shape: str = DEFAULT_SHAPE) -> Optional[str]:
     return f"{BRANCH_PREFIX}{slug}"
 
 
-def dispatch_command(slug: str, contract_file: str, effort: str, shape: str) -> str:
+def dispatch_command(slug: str, contract_file: str, effort: str, shape: str,
+                     model: str = DEFAULT_MODEL) -> str:
     """The literal command line for one shape — the single source both halves of this module
     read, so the emitter cannot write a form the parser will not accept.
 
     Returned WITHOUT a surrounding fence. For `interactive` the returned text is the first
     message only; `render_contract` emits the `claude` invocation above it, because the
     session has to exist before a message can reach it.
+
+    `model` REACHES THE LOCAL LINE, and `[#717]` is why it has to. `Start-DispatchLane`'s
+    `-Model` parameter defaults to `opus`; this function used to omit the flag. Neither half is
+    wrong alone — together they meant a contract whose own routing row said `sonnet`, dispatched
+    by the line that contract carries, ran at `opus`. The failure was silent and silent in the
+    expensive direction: nothing refused and nothing warned, the lane produced entirely
+    plausible work, and it announced itself only in the bill. A contract carrying its own launch
+    line is making a promise about how it will run; a line that drops the model silently
+    re-decides the most expensive constant on it.
+
+    The three other shapes take no `-Model`: `Dispatch-CloudV2` and `Dispatch-Codespace` carry
+    no such parameter (their tier is on the record in the routing row, as their `-Effort` is),
+    and an interactive first message is a chat message rather than a command line. `model` is
+    accepted for all four so callers have one signature, and is RENDERED only where a parameter
+    exists to receive it — the same scoping `-Effort` already has.
     """
     shape = validate_shape(shape)
     if shape == "cloud":
@@ -446,7 +472,7 @@ def dispatch_command(slug: str, contract_file: str, effort: str, shape: str) -> 
         return f"Read {PROMPTS_DIR_TOKEN}\\{contract_file} and execute it exactly."
     if shape == "codespace":
         return f"Dispatch-Codespace -Contract {contract_file} -Slug {slug}"
-    return f"Dispatch-Lane {slug} {contract_file} -Effort {effort}"
+    return f"Dispatch-Lane {slug} {contract_file} -Effort {effort} -Model {model}"
 
 
 def find_command_line(text: str) -> Optional[str]:
@@ -523,7 +549,7 @@ def render_contract(spec: LaneSpec) -> str:
     parts.append("|---|---|---|")
     parts.append(f"| {spec.model} | {spec.mode} | {spec.effort} |\n")
 
-    command = dispatch_command(spec.slug, fname, spec.effort, spec.shape)
+    command = dispatch_command(spec.slug, fname, spec.effort, spec.shape, spec.model)
 
     parts.append("## Dispatch\n")
     parts.append(f"**Shape:** `{spec.shape}` — {SHAPE_GLOSS[spec.shape]}.\n")
@@ -541,8 +567,11 @@ def render_contract(spec: LaneSpec) -> str:
             f"helper is cwd-bound, and dispatching from the wrong repo lands the worktree in\n"
             f"it. Dispatch constants ride the line without being re-decided:\n"
             f"`{PERMISSION_MODE}`, `{BACKGROUND_FLAG}`, and the board label\n"
-            f"`{spec.board_label}`. Model defaults to `{DEFAULT_MODEL}` — the `.dev-knowledge`\n"
-            f"default per the Ch8 routing matrix — and this lane dispatches at `{spec.model}`.\n"
+            f"`{spec.board_label}`. **The model is ON the line, not defaulted** (`[#717]`): it\n"
+            f"is rendered from the routing table above, so this lane dispatches at\n"
+            f"`{spec.model}` whatever the surface's own default (`{DEFAULT_MODEL}`, the\n"
+            f"`.dev-knowledge` default per the Ch8 routing matrix) happens to be. A line that\n"
+            f"omitted it would silently re-decide the most expensive constant on it.\n"
             f"Effort is a closed enum: {{{' | '.join(EFFORT_ENUM)}}}; a value outside it is refused\n"
             f"at the surface with the enum named, rather than guessed. The helper refuses\n"
             f"outright when `{branch}` already exists, so re-running the line is a no-op\n"
@@ -779,10 +808,19 @@ def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedCo
     # cloud form carries file + title; the interactive form carries the file alone. Each is
     # read for exactly what it holds rather than for a shape it never had.
     dispatch = found["local"] if matched_shape == "local" else None
+    line_model = None
     if matched_shape == "local":
         slug = dispatch.group("slug")
         contract_file = dispatch.group("file")
         effort = dispatch.group("effort")
+        # `[#717]`: the model the LINE carries, held against the enum here and against the
+        # routing row below. Absent is legal — every contract frozen before `[#717]` omits it —
+        # so this is a check on what is present, not a demand that it be.
+        line_model = dispatch.group("model")
+        if line_model is not None and line_model not in MODEL_ENUM:
+            problems.append(
+                f"dispatch line carries model {line_model!r}, outside "
+                f"{{{' | '.join(MODEL_ENUM)}}}")
         # `-Effort` is optional in the dispatch GRAMMAR (the surface defaults it), but a frozen
         # contract states its own routing — an omitted tier is a contract that does not say what
         # it boots at, so it is reported rather than accepted (terra 2026-08-21, finding 3).
@@ -842,6 +880,16 @@ def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedCo
         if model not in MODEL_ENUM:
             problems.append(
                 f"routing row carries model {model!r}, outside {{{' | '.join(MODEL_ENUM)}}}")
+        elif line_model is not None and line_model != model:
+            # `[#717]`, and the conjunction `-Effort` already gets. Widening the regex alone
+            # would merely make a CONTRADICTING line parse: a contract declaring `sonnet` whose
+            # own launch line says `-Model opus` would go from "silently dispatches at opus" to
+            # "says opus out loud and still contradicts its own routing row". The defect being
+            # closed is the divergence, not the omission.
+            problems.append(
+                f"routing row states model {model!r} but the dispatch line states "
+                f"{line_model!r} — two sources free to disagree is the class this generator "
+                f"removes, and this pair is the one that costs money ([#717])")
         if mode not in MODE_ENUM:
             problems.append(
                 f"routing row carries mode {mode!r}, outside {{{' | '.join(MODE_ENUM)}}}")
@@ -1021,7 +1069,8 @@ def cmd_emit(slug: str, purpose: str, repo: str, task_id: Optional[str], model: 
     # built from the SAME `dispatch_command` the file carries, rather than a second literal
     # that could drift from it.
     checked = spec.validated()
-    line = dispatch_command(checked.slug, target.name, checked.effort, checked.shape)
+    line = dispatch_command(checked.slug, target.name, checked.effort, checked.shape,
+                            checked.model)
     if checked.shape == "interactive":
         logger.info("dispatch with: start `claude`, then send: %s", line)
     else:
@@ -1157,7 +1206,8 @@ def cmd_enums() -> None:
     # The command each shape actually emits, shown against a placeholder lane — the surface a
     # contract author most often wants and would otherwise guess at.
     for shape in SHAPE_ENUM:
-        line = dispatch_command("lane-a-000-example", "LANE-a-000-example.md", "high", shape)
+        line = dispatch_command("lane-a-000-example", "LANE-a-000-example.md", "high", shape,
+                                DEFAULT_MODEL)
         prefix = "claude, then: " if shape == "interactive" else ""
         click.echo(f"  {shape}: {prefix}{line}")
     click.echo(f"mandatory sections: {', '.join(MANDATORY_SECTIONS)}")

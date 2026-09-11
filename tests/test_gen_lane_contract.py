@@ -22,6 +22,8 @@ not sufficient; the selection is what is under test.
 """
 from __future__ import annotations
 
+import contextlib as _contextlib
+import logging as _logging
 import sys
 from pathlib import Path
 
@@ -35,6 +37,34 @@ if str(_SCRIPTS) not in sys.path:
 
 import gen_handoff as gh  # noqa: E402
 import gen_lane_contract as glc  # noqa: E402
+
+
+@_contextlib.contextmanager
+def caplog_at_info():
+    """Collect this module's own log records as plain strings.
+
+    `caplog` is the obvious tool and it is not the right one here: `gen_lane_contract`
+    configures logging at import (`logging.basicConfig`), so the records a CliRunner run emits
+    reach the module's own handler rather than pytest's capture in every invocation order. A
+    local handler is deterministic and does not depend on which test ran first.
+    """
+    records: list[str] = []
+
+    class _Collect(_logging.Handler):
+        def emit(self, record):  # noqa: D102
+            records.append(record.getMessage() % () if not record.args
+                           else record.getMessage())
+
+    handler = _Collect()
+    logger = _logging.getLogger("gen-lane-contract")
+    logger.addHandler(handler)
+    previous = logger.level
+    logger.setLevel(_logging.INFO)
+    try:
+        yield records
+    finally:
+        logger.setLevel(previous)
+        logger.removeHandler(handler)
 
 
 # --- fixtures ---------------------------------------------------------------------------
@@ -424,10 +454,19 @@ def test_a_generated_contract_without_its_command_line_fails(local_contract):
     Written as a deletion rather than a corruption on purpose — the failure M10 exists to
     close is a session handed over with NO command, so the absence is the case that has to
     redden. Deleting the emitted line is the smallest mutation that reproduces it.
+
+    THE MUTATION IS BUILT FROM `dispatch_command`, NOT TYPED. It was a literal until
+    2026-09-11, when `[#717]` put `-Model` on the line and the literal stopped matching: the
+    deletion silently deleted nothing and the test would have gone vacuous. It did not, because
+    the "did the mutation bite" guard below caught it — that guard is why this test reported a
+    changed premise instead of a false pass. Deriving the line from the emitter closes the
+    class rather than re-typing today's spelling, which would rot at the next flag.
     """
-    mangled = local_contract.replace(
-        "Dispatch-Lane lane-a-539-ch8-codification LANE-a-539-ch8-codification.md "
-        "-Effort high\n", "", 1)
+    doomed = glc.dispatch_command(
+        "lane-a-539-ch8-codification", "LANE-a-539-ch8-codification.md", "high", "local",
+        glc.DEFAULT_MODEL)
+    assert doomed in local_contract, doomed
+    mangled = local_contract.replace(doomed + "\n", "", 1)
     assert "Dispatch-Lane lane-a-539" not in mangled, "the mutation did not bite"
     problems = glc.parse_contract(mangled).problems
     assert any("no dispatch command line" in p for p in problems), problems
@@ -1035,3 +1074,126 @@ def test_an_explicit_out_dir_still_wins_over_the_resolved_root(tmp_path, monkeyp
     fname = glc.contract_filename("lane-x-718-explicit")
     assert (chosen / fname).exists()
     assert not (prompts / fname).exists()
+# --- 6. [#717]: the launch line is RENDERED FROM the contract's Model row -------------------
+#
+# RED-first witness, ADR-108 section B. The mechanism, and both halves are individually
+# reasonable: `dispatch_command` emitted slug, file and `-Effort` and not `-Model`, while
+# `Start-DispatchLane`'s `-Model` parameter defaults to `opus`. Together they mean a contract
+# whose own routing row says `sonnet`, dispatched by the line that contract carries, runs at
+# `opus` -- silently, and in the expensive direction. Nothing refuses and nothing warns; the
+# lane produces work that is entirely plausible and simply cost several times what the
+# contract declared.
+#
+# The checker widens IN THE SAME CHANGE, and that is a Done-contract clause rather than a
+# nicety: `_DISPATCH_LINE_RE` was anchored with no `-Model` alternative, so rendering the
+# model without widening the regex turns every emitted contract RED at `lane-contract-check`.
+# `-Model` is admitted OPTIONAL -- the six frozen batch-X contracts carry none and must keep
+# passing -- and where present it is held to AGREE with the routing row, the same conjunction
+# `-Effort` already gets.
+
+
+def test_the_local_dispatch_line_is_rendered_from_the_contracts_own_model_row():
+    """`[#717]`'s Done-when: rendered model == the `Model` row. The SONNET case is the witness.
+
+    An opus contract cannot witness this defect at all -- the surface's default is `opus`, so
+    the omitted flag and the declared model coincide and the bug is invisible. The fixture is
+    therefore deliberately `sonnet`: the one contract shape where "omits the model" and "states
+    the model" produce different dispatches.
+    """
+    contract = glc.render_contract(_spec(model="sonnet"))
+    parsed = glc.parse_contract(contract, expect_shape="local")
+    assert parsed.problems == (), parsed.problems
+    assert parsed.model == "sonnet"
+    assert "-Model sonnet" in parsed.command, (
+        f"the carried line is {parsed.command!r} -- a contract declaring sonnet whose own "
+        f"launch line omits the model dispatches at the surface default, opus ([#717])")
+
+
+def test_the_dispatch_line_regex_ADMITS_a_model_flag():
+    """Done-contract clause 2: the CHECKER widens, not only the generator.
+
+    Measured by the dispatcher while freezing batch X: `_DISPATCH_LINE_RE` was
+    `^Dispatch-Lane <slug> <file>( -Effort <v>)?\\s*$`, anchored, admitting no `-Model`, so a
+    line carrying the model was refused as "no dispatch command line found". A generator
+    rendering what its own parser rejects is worse than one omitting it.
+    """
+    line = "Dispatch-Lane lane-a-1-example LANE-a-1-example.md -Effort high -Model sonnet"
+    match = glc._DISPATCH_LINE_RE.search(line)
+    assert match is not None, f"the checker refuses its own generator's line: {line!r}"
+    assert match.group("model") == "sonnet"
+    assert match.group("effort") == "high"
+
+
+def test_a_dispatch_line_carrying_a_model_the_routing_row_contradicts_is_REPORTED():
+    """Two sources free to disagree is the class this generator removes -- `-Effort` already
+    gets this conjunction, and after `[#717]` the model gets it too.
+
+    Without this, widening the regex would merely make a contradicting line PARSE.
+    """
+    contract = glc.render_contract(_spec(model="sonnet")).replace("-Model sonnet", "-Model opus")
+    problems = glc.parse_contract(contract).problems
+    assert any("model" in p.lower() for p in problems), problems
+
+
+def test_a_dispatch_line_carrying_a_model_outside_the_enum_is_REPORTED():
+    """The admitted value is held to `MODEL_ENUM`, exactly as the routing row's already is."""
+    contract = glc.render_contract(_spec(model="sonnet")).replace("-Model sonnet", "-Model gpt")
+    problems = glc.parse_contract(contract).problems
+    assert any("gpt" in p for p in problems), problems
+
+
+def test_a_contract_carrying_NO_model_flag_still_parses_clean():
+    """`-Model` is OPTIONAL in the grammar, and this is why the widening is safe.
+
+    Every contract frozen before `[#717]` carries a line without it. Making the flag mandatory
+    would turn the whole existing corpus RED at `lane-contract-check` -- the failure mode
+    Done-contract clause 2 names in as many words.
+    """
+    contract = glc.render_contract(_spec(model="opus"))
+    stripped = contract.replace(" -Model opus", "")
+    parsed = glc.parse_contract(stripped, expect_shape="local")
+    assert parsed.problems == (), parsed.problems
+    assert parsed.command.endswith("-Effort high")
+
+
+def test_the_SIX_FROZEN_BATCH_X_CONTRACTS_still_pass_after_the_widening():
+    """The contract's own step 3 asks for exactly this re-check, against the real files.
+
+    These are immutable frozen contracts carrying pre-`[#717]` launch lines. A regex widening
+    that broke them would have broken a live batch mid-flight, and no synthetic fixture proves
+    it did not -- so the fixture is the corpus.
+    """
+    frozen = sorted(
+        (_REPO_ROOT / "docs" / "audits"
+         / "2026-09-11-technical-batch-x-launch-contracts").glob("LANE-*.md"))
+    assert len(frozen) == 6, [p.name for p in frozen]
+    for path in frozen:
+        parsed = glc.parse_contract(path.read_text(encoding="utf-8"))
+        assert parsed.problems == (), f"{path.name}: {parsed.problems}"
+        assert "-Model" not in parsed.command, (
+            f"{path.name} was frozen before [#717]; this test's premise is that it carries no "
+            f"model flag, and it now does -- re-point the fixture rather than deleting it")
+
+
+def test_the_emit_log_line_carries_the_model_it_wrote_into_the_file(tmp_path, monkeypatch):
+    """The terminal line the operator reads is a dispatch surface too, and is built from the
+    SAME `dispatch_command` the file carries. A model on one and not the other would be
+    `[#717]` reproduced between the file and the log."""
+    import logging
+    prompts = tmp_path / "prompts-root"
+    prompts.mkdir()
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(prompts))
+    monkeypatch.chdir(tmp_path)
+
+    with caplog_at_info() as records:
+        result = CliRunner().invoke(glc.cli, [
+            "emit", "--slug", "lane-x-717-model-row", "--purpose", "render the model",
+            "--id", "717", "--model", "sonnet"])
+    assert result.exit_code == 0, result.output
+    logged = "\n".join(records)
+    assert "-Model sonnet" in logged, logged
+
+    written = (prompts / glc.contract_filename("lane-x-717-model-row")).read_text(
+        encoding="utf-8")
+    assert "-Model sonnet" in written
+    assert logging  # the import is the fixture's, kept explicit for the reader
