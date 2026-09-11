@@ -466,6 +466,67 @@ admission register: `claude-sonnet-5` is tier `M` with `roles: [subagent-default
 workflow-verifier]`, while **`haiku` has no row there at all** and so is not admitted — cheapest
 admitted is not cheapest available.
 
+## AMENDED DURING INTEGRATION — FOUR DEVIATIONS AND ONE GATE REORDERING, RECORDED BEFORE THEY ARE ACTED ON
+
+The integrator records these here rather than only in the close packet, because a deviation
+disclosed after the act it authorizes is a report, not an authorization.
+
+**D-a · The AW5-2 Codex review was EXTENDED to W-3, and that extension is not written.** AW5-2
+authorized the integrator to run the terra review itself *for W-2*. W-3 handed back at `74990bf3`
+as a **code** branch carrying no `review=` token, which D-1 refuses. Two paths existed: HOLD W-3
+(which blocks batch X's W-6, sequenced off W-3's merge), or run the review under AW5-2's shape.
+The integrator took the second. **It SATISFIES D-1 rather than waiving it** — but the
+authorization was written for a different lane, so it is a deviation and is carried to the close
+packet for ratification. It is not a precedent until ratified.
+
+**D-b · W-3's review returned HIGH:1; the integrator verified it does NOT land against W-3's
+diff.** The tally is recorded unmodified — `review=gpt-5.6-terra HIGH:1 MED:0 LOW:0`, on which
+`audit.py handback` returns MERGE at exit 0. D-1's mechanized bar is that a review *ran and is
+named*; severity triage is the integrator's act, so no tally was adjusted to clear a gate. The
+finding: *"guard-key substring is not uniquely scoped"*, attributed to `scripts/proof_layer.py:481`.
+Three measurements against it:
+
+1. **The mechanism is real, and its locus is not the lane's file.** `_match_disposition`
+   (`scripts/audit.py:6595`) is `str(token) in finding.evidence` — substring, never equality. That
+   is a pre-existing `#147` register property which W-3's own docstring names explicitly.
+2. **W-3 strictly NARROWS the aperture.** Pre-change evidence was `module + scope + tool + count`,
+   which rendered **byte-identically** for two function-level guards in one module — so a single
+   disposition masked *every* guard in that file, which is the whole-Finding masking the register's
+   own contract forbids. Keying on `guard.key` reduces that to prefix-collision alone.
+3. **Unreachable in the live population.** 0 substring collisions among the 243 baseline guard
+   keys; 0 register entries with `organ: proof_layer`.
+
+**Verdict: not an unresolved HIGH in W-3's change.** The residual is a forward risk — a future
+guard whose key *extends* an existing one (`::test_foo` inside `::test_foo_raises`) — and is filed
+as a batch-X row against `audit.py:6595`, not as a hold on W-3.
+
+**D-c · An eighth instance of this batch's recurring defect shape.** D-b's residual is the same
+shape the batch has now found eight times: **a pin that does not cover the thing that can change.**
+Here the match token carries no boundary anchors, so it pins a prefix rather than a guard.
+
+**D-d · `ecosystem/doc-counts.md` is a THIRD instance of the generated-file merge-conflict class**,
+after the two `tasks/manifest.json` collisions (W-1, W-7). Signature and method are identical:
+**neither side is correct for the merged tree**, so the resolution is *strip the markers FIRST,
+regenerate SECOND* — regenerating over the markers absorbs them. W-3's merge measured
+HEAD `5749` / lane `5726` / **merged `5752`**, a value neither parent held, which is what makes
+"take one side" wrong rather than merely arbitrary.
+
+**THE GATE REORDERING — the substrate merge is not a lane, so the anchor arc moved to the FRONT.**
+`a3374b70` (the AW5-3 substrate merge) is on main's first-parent spine and carries no JOURNAL
+anchor. The ADR-110 declared-integration-arc exemption covers the batch's **lane** merges while
+this manifest is `status: open` — and `a3374b70` **is not a lane**, so it is not exempt. The
+consequence is not cosmetic: `journal_spine_anchor` FAILs `audit-health`, which blocks **every
+subsequent commit**, W-3's merge included. This is the dispatcher's F6 one level up.
+
+**`SKIP=audit-health` was available and was NOT used.** The ADR-110 amendment 2026-08-07 retired
+that bypass for intermediate merges precisely because the manifest was made to carry the exemption
+instead; and here the gate is not misfiring — it is correctly reporting a real unanchored entry.
+Reaching for a retired bypass to silence a gate that is right is the wrong direction. The repair is
+an ordinary two-commit arc, `docs/batch-w-anchor-substrate`, naming `81a28aad` from `a3374b70`'s
+introduced set. The arc is a **repair** under the Ch8 naming convention, so
+`docs/batch-w-integration` stays reserved for the close arc — where the audits-index regeneration
+must run **once, on the final merged result**.
+
 ## PROVENANCE
 
 Operator GO, 2026-09-10, verbatim:
