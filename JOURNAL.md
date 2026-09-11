@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-09-12 (b) - CC (Opus 5, background integrator seat): the wave-1 close arc names its own first commit
+
+**Names `09c864ad`**, the close packet and the entry below, which this arc's own `--no-ff` merge
+introduces. A one-commit arc cannot discharge the anchor its own merge creates -- APPEND ONLY, B6.
+Third time this pattern is written down in two days; it is the shape, not a workaround.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-12 (a) - CC (Opus 5, background integrator seat): batch X wave 1 closes -- five merged, one REFUSED
 
 **Names the five wave-1 merges** `3a8ee7a8` `eccb5814` `a77e3302` `6463ca9c` `11c7c8b1`, and the
