@@ -260,6 +260,26 @@ def test_a_HEREDOC_BODY_is_DATA_not_a_command():
     assert not _denied(_bash(body))
 
 
+@pytest.mark.parametrize("delim,opened", [
+    ("'END-MSG'", "END-MSG"),
+    ("EOF_1", "EOF_1"),
+    ('"X.Y"', "X.Y"),
+    ("__END__", "__END__"),
+])
+def test_a_heredoc_DELIMITER_is_a_shell_word_not_an_identifier(delim, opened):
+    """Terra pre-merge pass 9, P1. A delimiter may legally carry `-`, digits or dots, and
+    an identifier-shaped regex left those bodies in the command stream -- so the guard
+    read the DATA as a search and blocked a valid command. An over-block, which is the
+    expensive direction for this guard."""
+    cmd = f"cat <<{delim}\nrg gen_task_tree\n{opened}"
+    assert not _denied(_bash(cmd)), f"heredoc body judged as a command: {delim}"
+
+
+def test_a_HERE_STRING_is_not_a_heredoc():
+    """`<<<` has no body, so nothing may be swallowed by mistaking it for one."""
+    assert _denied(_bash('rg gen_task_tree <<<"some data"'))
+
+
 def test_a_real_search_AFTER_a_heredoc_is_still_judged():
     """The converse: stripping the body must not swallow the rest of the line."""
     cmd = ("cat <<'EOF'\n"

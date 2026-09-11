@@ -122,8 +122,15 @@ SEARCH_HEADS = frozenset({
 _OPERATORS = frozenset({"|", "||", "&&", ";", "&"})
 
 
-#: A heredoc redirection and the delimiter that ends its body: `<<EOF`, `<<-EOF`, `<<'MSG'`.
-_HEREDOC = re.compile(r"<<-?\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1")
+#: A heredoc redirection and the delimiter that ends its body: `<<EOF`, `<<-EOF`, `<<'END-MSG'`.
+#:
+#: A DELIMITER IS A SHELL WORD, not an identifier -- it may legally carry `-`, digits or dots,
+#: and an identifier-shaped pattern left those bodies in the command stream, so the guard read
+#: DATA as a search and blocked a valid command (Terra pre-merge pass 9, an over-block, which is
+#: the expensive direction here). `(?!<)` keeps a here-string `<<<` out: it has no body, so
+#: mistaking it for one would swallow the rest of the command.
+_HEREDOC = re.compile(
+    r"<<(?!<)-?\s*(?:'([^']+)'|\"([^\"]+)\"|([A-Za-z0-9_.+@%~-]+))")
 
 
 def strip_heredocs(command: str) -> str:
@@ -143,7 +150,8 @@ def strip_heredocs(command: str) -> str:
                 pending.pop(0)
             continue
         kept.append(line)
-        pending.extend(m.group(2) for m in _HEREDOC.finditer(line))
+        pending.extend(m.group(1) or m.group(2) or m.group(3)
+                       for m in _HEREDOC.finditer(line))
     return "\n".join(kept)
 
 
