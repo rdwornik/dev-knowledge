@@ -1,8 +1,8 @@
 """deploy/carrier_mesh.py — the enforcement-mesh carrier (Axis-1 enforcement transfer, #236).
 
 Deploys the two portable/ported fail-closed organs INTO a consumer repo so they fire
-enforcing-local (on the consumer's OWN actions), with hub-parity logged-override. Fable-consult
-mesh model D (deploy-into-consumer): the fire_test clones the consumer in isolation, so every
+enforcing-local (on the consumer's OWN actions). Fable-consult mesh model D
+(deploy-into-consumer): the fire_test clones the consumer in isolation, so every
 script an organ's hook invokes must physically live in the consumer tree — hence the code is
 deployed, not called-from-hub.
 
@@ -13,24 +13,18 @@ Artifacts this carrier writes/stages into the consumer (ADR-92 write-yes / commi
 2. ``scripts/canonical_freshness_gate.py`` — the single-sourced freshness gate, byte-copied from
    the hub. Wired as a pre-commit hook by the **precommit carrier** (single-writer of
    ``.pre-commit-config.yaml``), NOT here (arming spans two carriers — the ADR-93 precedent).
-3. ``.claude/commands/override.md`` — the hub ``/override`` command, verbatim (repo-agnostic:
-   relative ``logs/`` paths + ``git rev-parse HEAD`` on cwd; it self-creates ``logs/`` if absent).
-   Restores seb's ONLY escape hatch — ``git commit --no-verify`` does NOT bypass a Stop hook, so
-   without ``/override`` seb-in-consumer would be stricter than the hub. Hub-parity requires it.
-   The floor carrier's ``.claude/*`` gitignore block would otherwise SWALLOW this file, so the
-   .gitignore block below RE-INCLUDES it (else it never stages/commits — the fire's committed-state
-   clone would then report a false ``absent``).
-4. ``.claude/settings.json`` — a ``Stop`` hook running seb (merged; coexists with the tier1 plugin
+3. ``.claude/settings.json`` — a ``Stop`` hook running seb (merged; coexists with the tier1 plugin
    propose-closures Stop hook exactly as the hub does; the Informant's locate excludes propose).
-5. ``.gitignore`` — a DISTINCT sentinel-delimited block that (a) ignores the ephemeral
-   ``logs/.session-override-token`` + ``logs/OVERRIDES.md`` and (b) re-includes
-   ``.claude/commands/override.md`` past the floor's ``.claude/*``. The floor carrier owns the
-   ``.claude/*`` block; this carrier owns ONLY its own sentinel-delimited region
-   (single-writer-per-REGION — no concurrent-write hazard).
+4. ``.gitignore`` — a DISTINCT sentinel-delimited block, described at its constants below. The
+   floor carrier owns the ``.claude/*`` block; this carrier owns ONLY its own sentinel-delimited
+   region (single-writer-per-REGION — no concurrent-write hazard).
 
-``logs/`` is NOT tracked — the ``/override`` command creates it at runtime (a consumer's pre-existing
-``logs/`` dir-form ignore cannot be negated to re-include a ``.gitkeep``, and a runtime mkdir is more
-robust across consumers anyway).
+``/override`` WAS a third artifact here and is gone ([#683]). The ADR-85 amendment 2026-08-03 §A2
+retired the command — ``session_end_backpressure.py`` no longer reads its token — so the hub-parity
+argument that put it in this carrier ("seb's ONLY escape hatch") no longer describes anything: it
+was carrying an escape hatch that escapes nothing into every consumer. The manifest node and the
+payload left with it, in one act, and ``tests/test_override_command_removed.py`` FAILs if either
+returns.
 
 Three contract states (script content-mismatch is drift, not a version anchor — the manifest
 rev-pin on the precommit carrier is the version surface, so no PRESENT_WRONG_VERSION): ``ABSENT``
@@ -61,12 +55,10 @@ CARRIER_ID = "enforcement-mesh"
 # Hub source bytes (read at deploy time from the tagged hub — "deploy vX uses vX", ADR-92).
 _HUB_SEB = _HUB_ROOT / "scripts" / "session_end_backpressure.py"
 _HUB_FRESHNESS_GATE = _HUB_ROOT / "scripts" / "canonical_freshness_gate.py"
-_HUB_OVERRIDE_CMD = _HUB_ROOT / ".claude" / "commands" / "override.md"
 
 # Consumer-root-relative destinations.
 SEB_REL = "scripts/session_end_backpressure.py"
 FRESHNESS_GATE_REL = "scripts/canonical_freshness_gate.py"
-OVERRIDE_CMD_REL = ".claude/commands/override.md"
 SETTINGS_REL = ".claude/settings.json"
 GITIGNORE_REL = ".gitignore"
 
@@ -78,13 +70,23 @@ _STOP_COMMAND = 'python "$CLAUDE_PROJECT_DIR/scripts/session_end_backpressure.py
 _STOP_SENTINEL = "session_end_backpressure"
 
 # The DISTINCT, sentinel-delimited .gitignore region this carrier owns (never the floor's block).
-# It does TWO things: (1) ignore the ephemeral /override runtime files; (2) RE-INCLUDE
+# It did TWO things: (1) ignore the ephemeral /override runtime files; (2) RE-INCLUDE
 # .claude/commands/override.md, which the floor carrier's `.claude/*` block would otherwise ignore
 # (so `git add -A` would silently skip the command -> no committed /override -> seb has no escape,
 # breaking hub-parity). The nested-dir negation needs BOTH the subdir and the file re-included:
 # git cannot re-include a file under a `.claude/*`-excluded subdir from the file line alone
-# (verified). `logs/` is created at RUNTIME by the /override command (New-Item -Force), not tracked
-# — a `logs/.gitkeep` cannot be re-included under a consumer's pre-existing `logs/` dir-form ignore.
+# (verified).
+#
+# VESTIGIAL SINCE [#683], AND LEFT STANDING ON PURPOSE. /override is gone, so nothing creates
+# `logs/.session-override-token` or `logs/OVERRIDES.md` and no artifact this carrier writes lives
+# under `.claude/commands/` — every line below now names something that does not exist. The block
+# is nonetheless inert (an ignore for a file nothing creates, a negation for a path nothing
+# occupies), and removing it is NOT free: this release cannot ship `status: removed` tombstones
+# (release_lint C6 — they unlock in P2 on operator decision D3), so the carrier has no prune leg
+# with which to retract the block from consumers that already carry it, and dropping the constants
+# here would leave those consumers holding a sentinel region nothing owns. Retracting it is filed
+# as its own act rather than smuggled into the removal lane. Do not cite these lines as evidence
+# that /override survives — `tests/test_override_command_removed.py` is the surface of record.
 _GITIGNORE_BEGIN = "# >>> enforcement-mesh (ADR-85 /override) >>>"
 _GITIGNORE_END = "# <<< enforcement-mesh <<<"
 _GITIGNORE_IGNORES = ("logs/.session-override-token", "logs/OVERRIDES.md")
@@ -152,19 +154,17 @@ def _file_correct(dest: Path, src: Path) -> bool:
 def _classify_mesh(root: Path) -> CarrierState:
     seb_ok = _file_correct(root / SEB_REL, _HUB_SEB)
     gate_ok = _file_correct(root / FRESHNESS_GATE_REL, _HUB_FRESHNESS_GATE)
-    override_ok = _file_correct(root / OVERRIDE_CMD_REL, _HUB_OVERRIDE_CMD)
     stop_ok = _stop_hook_wired(root / SETTINGS_REL)
     gitignore_ok = _gitignore_block_present(root / GITIGNORE_REL)
 
     nothing = (
         not (root / SEB_REL).exists()
         and not (root / FRESHNESS_GATE_REL).exists()
-        and not (root / OVERRIDE_CMD_REL).exists()
         and not stop_ok
     )
     if nothing:
         return CarrierState.ABSENT
-    if seb_ok and gate_ok and override_ok and stop_ok and gitignore_ok:
+    if seb_ok and gate_ok and stop_ok and gitignore_ok:
         return CarrierState.PRESENT_CORRECT
     return CarrierState.PRESENT_DRIFTED
 
@@ -191,22 +191,22 @@ def _is_gitignored(root: Path, rel: str) -> bool:
 
 def _verify_mesh(root: Path) -> list[str]:
     failures: list[str] = []
-    for rel, src in ((SEB_REL, _HUB_SEB), (FRESHNESS_GATE_REL, _HUB_FRESHNESS_GATE),
-                     (OVERRIDE_CMD_REL, _HUB_OVERRIDE_CMD)):
+    for rel, src in ((SEB_REL, _HUB_SEB), (FRESHNESS_GATE_REL, _HUB_FRESHNESS_GATE)):
         dest = root / rel
         if not dest.exists():
             failures.append(f"missing: {rel}")
         elif _read_text(dest) != _hub_bytes(src):
             failures.append(f"content drift vs hub: {rel}")
         # COMMITTABILITY (not just presence): a gitignored artifact never reaches a commit,
-        # so the fire's committed-state clone would report a false `absent`. This catches the
-        # floor `.claude/*` block silently swallowing override.md.
+        # so the fire's committed-state clone would report a false `absent`. Both remaining
+        # artifacts land under `scripts/`, which no carrier gitignores — the check is kept
+        # because a consumer's own ignore rules are not ours to predict.
         elif _is_gitignored(root, rel):
             failures.append(f"gitignored (would not stage/commit): {rel}")
     if not _stop_hook_wired(root / SETTINGS_REL):
         failures.append(f"settings.json has no seb Stop hook (token {_STOP_SENTINEL!r})")
     if not _gitignore_block_present(root / GITIGNORE_REL):
-        failures.append(".gitignore missing the enforcement-mesh block (ignores + override.md negation)")
+        failures.append(".gitignore missing the enforcement-mesh block (see its constants: vestigial since [#683], not yet retractable)")
     return failures
 
 
@@ -276,7 +276,6 @@ class MeshCarrier(Carrier):
         for change in (
             _ensure_file(self.repo_root / SEB_REL, _HUB_SEB),
             _ensure_file(self.repo_root / FRESHNESS_GATE_REL, _HUB_FRESHNESS_GATE),
-            _ensure_file(self.repo_root / OVERRIDE_CMD_REL, _HUB_OVERRIDE_CMD),
             _ensure_stop_hook(self.repo_root / SETTINGS_REL),
             _ensure_gitignore(self.repo_root / GITIGNORE_REL),
         ):
