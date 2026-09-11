@@ -174,3 +174,68 @@ trivial is outside its reach, and no claim is made about that class.
    24576, 631 B headroom. This was outside the lane's subject but inside the file its own
    change forced it to certify — stamping accuracy over a known omission would have been the
    dishonest option.
+
+---
+
+<!-- AMENDMENT 2026-09-11 — D-1 handback review. Appended, not edited in place: audits are
+     immutable (CLAUDE.md §5 rule 3), and the sanctioned form is an in-file amendment marker. -->
+
+## 5. AMENDMENT (2026-09-11) — the D-1 handback review and its severity tally
+
+The batch W merge queue HELD this branch because `scripts/audit.py handback` refuses a **code**
+branch carrying no `review=` token (D-1). This section records the review that discharges it.
+
+**Reviewer, exactly as invoked.** `codex-cli 0.153.4`, model **`gpt-5.6-terra`** at the
+operator's recorded `model_reasoning_effort = "low"` (`~/.codex/config.toml`) — the configured
+pin, not a unilateral override. **One round.** Scope pinned *inside* the prompt as
+`3acca581..a525c97e` rather than left to base auto-detection, so a moving `main` cannot drag
+sibling W lanes into this lane's review.
+
+**TALLY — `HIGH:1 MED:1 LOW:0`.** Counted from the reviewer's own output artifact, not a
+console tail, and not from any wrapper's heuristic.
+
+### HIGH — the grandfather ratchet was bypassable (FIXED)
+
+`tests/test_impacted_tests.py` pinned the exemption set with `len(...) <= 4` plus an existence
+check. **A size bound is not a ratchet.** Dropping one approved entry and adding a new uncovered
+script keeps the count at four, so the swap satisfied both legs and the new script was silently
+exempted from leg (b)'s refusal.
+
+This is the finding that mattered, because §3 of this packet claims *"a 4-file grandfathered
+ratchet"* — a claim the shipped code did not enforce. **Verified as a real defeat, not inferred:**
+the swap was run against both forms of the pin, with `scripts/impacted_tests.py` smuggled in as a
+real file so the existence leg held. Old form → `PASSES (defeated)`. New form → `FIRES`.
+
+**Fix:** membership is now the checkable surface — an exact `APPROVED_GRANDFATHER` set, with any
+addition reported by name. The set may still shrink freely; widening it now has to edit the pin,
+where it is seen, and the assertion says an operator ruling belongs there rather than a set
+literal edit.
+
+### MED — deleting a covered script was falsely refused (FIXED)
+
+`guard_findings()` filtered candidates by prefix and extension but never by **existence**. A
+deleted script has no inbound edges, so it read as zero-selection and the guard refused the
+commit, naming a RED-first test to write for a file that no longer exists.
+
+**Reachability was checked rather than assumed, and it is narrower than the headline.**
+`changed_from_git` runs a bare `git diff --name-only` with no `--diff-filter`, so it *does* emit
+deletions; pre-commit's own staged-file list *excludes* them. So the refusal bites the
+CLI / `changed_from_git` path only, never the wired pre-commit hook — which is precisely why MED
+is the right severity and HIGH is not.
+
+**Fix:** candidates that do not exist in the post-change tree are dropped, with a witness
+(`test_deleting_a_script_is_not_refused_as_uncovered`) pinning it.
+
+### What the review did not find
+
+No LOW findings, and nothing in the four priority areas that carry this mechanism's actual risk:
+no under-selection path, no fail-safe that fails *unsafe* (every `select_pytest_target()` failure
+mode still widens to the full suite), no bypass of the refusal leg itself, and no false claim in
+the measurement artifacts. The disclosed tradeoffs — the 4.8 % miss-rate, the depth-3 dial, the
+shared coverage blind spot — were excluded from scope as already-disclosed, and the review was
+told it could contest them as materially wrong; it did not.
+
+**Both findings are fixed on this branch**, so the reviewed tree and the handed-back tree differ
+by one commit. That is stated plainly rather than papered over: the tally above describes
+`a525c97e`, and the tip named in the handback carries the two fixes plus this amendment.
+Witnesses: **21 → 22** in `tests/test_impacted_tests.py`, all green, `ruff` clean.

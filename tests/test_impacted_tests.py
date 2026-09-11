@@ -295,14 +295,51 @@ def test_the_refusal_does_not_wedge_this_repo_today():
     )
 
 
+# The EXACT approved grandfather set. A size bound is not a ratchet: swapping one
+# entry out for a new uncovered script keeps the count at four and slips straight
+# through, which is how the earlier `len(...) <= 4` form of this pin was defeated
+# (reviewer finding, 2026-09-11). Membership is the checkable surface, so an
+# addition has to edit THIS line, where it is seen.
+APPROVED_GRANDFATHER = frozenset({
+    "scripts/codemap/cli.py",
+    "scripts/codemap_hook.py",
+    "scripts/toc/cli.py",
+    "scripts/toc_hook.py",
+})
+
+
 def test_the_grandfather_set_is_a_ratchet():
     """It may shrink, never grow -- a new untested script is what leg (b) refuses."""
-    assert len(impacted_tests.ZERO_COVER_GRANDFATHERED) <= 4
-    for rel in impacted_tests.ZERO_COVER_GRANDFATHERED:
+    live = impacted_tests.ZERO_COVER_GRANDFATHERED
+    added = set(live) - APPROVED_GRANDFATHER
+    assert added == set(), (
+        f"{sorted(added)} joined the grandfather set. It may only SHRINK -- an "
+        "uncovered script entering it is precisely what leg (b) exists to refuse. "
+        "Write the RED-first witness instead; widening the exemption needs an "
+        "operator ruling recorded here, not a set literal edit."
+    )
+    assert len(live) <= len(APPROVED_GRANDFATHER)
+    for rel in live:
         assert (REPO_ROOT / rel).exists(), (
             f"{rel} is grandfathered but gone -- shrink the set rather than carrying "
             "a name that no longer resolves"
         )
+
+
+def test_deleting_a_script_is_not_refused_as_uncovered():
+    """A removed script has no inbound edges -- that is not a missing witness.
+
+    `changed_from_git` reports deletions (bare `git diff --name-only`), so without an
+    existence filter the guard would block a commit that removes a script and its
+    tests, naming a RED-first test for a file that is gone.
+    """
+    findings = impacted_tests.guard_findings(
+        REPO_ROOT, ["scripts/a_script_that_was_deleted_by_this_commit.py"]
+    )
+    assert findings == [], (
+        "a deleted script must not be refused as zero-selection; the guard names a "
+        f"test to write for a file that no longer exists: {findings}"
+    )
 
 
 # --- the Done-when witness ------------------------------------------------------

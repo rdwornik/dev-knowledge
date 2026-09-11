@@ -449,9 +449,16 @@ def guard_findings(
         and "__pycache__" not in str(c)
     ]
     candidates = [c for c in candidates if c not in ZERO_COVER_GRANDFATHERED]
+    repo = pathlib.Path(repo_root).resolve()
+    # A DELETED script is not an uncovered one. `changed_from_git` runs a bare
+    # `git diff --name-only`, which reports deletions, so a commit that removes a
+    # script together with its tests would otherwise be REFUSED and told to write a
+    # witness for a file that no longer exists. pre-commit's own staged-file list
+    # excludes deletions, so this path is the CLI / `changed_from_git` one only.
+    candidates = [c for c in candidates if (repo / c).exists()]
     if not candidates:
         return []
-    table = covering_tests(pathlib.Path(repo_root).resolve(), depth=depth)
+    table = covering_tests(repo, depth=depth)
     return [(c, red_first_test_for(c)) for c in sorted(candidates) if not table.get(c)]
 
 
