@@ -177,6 +177,63 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
     "scripts/gen_trend_dashboard.py": Disposition(
         reason=f"{_LANE_BUILT}; only call site is LANE-n-14-trends-burndown.md:27",
         owner="V+1 retirement-or-wiring list"),
+    # NOT population A either, and the distinction earns its own comment rather than being
+    # folded into `_LANE_BUILT`. `merge_receipt.py` IS adopted: `.claude/commands/
+    # lane-integrate.md` issues it at four points of the merge walk, which is the opposite of
+    # lane-built-and-never-wired. The census cannot see that, because the `[#664]` wiring
+    # surfaces are `.pre-commit-config.yaml`, `.claude/settings.json`, the plugin `hooks.json`,
+    # the scheduled task and the CI workflows -- and a COMMAND FILE is none of them. So EVERY
+    # operator-invoked organ in this repo reads as an orphan by construction, whatever its real
+    # adoption. That is a gap in the census's input list, not a property of this module, and it
+    # is recorded here rather than only in a lane artifact because this row is where a reader
+    # meets it.
+    #
+    # Widening the surface list is deliberately NOT done from here. It would change what
+    # `graph-orphan-census` refuses across the whole repo, from a lane whose contract is merge
+    # cost -- the same discipline `[#675]` clause 1 states one organ over ("a lane that fixes
+    # dispatch properly while making clause 1 green has overrun its contract").
+    #
+    # A pre-commit trigger was considered and rejected ON THE MERITS, not merely as out of
+    # scope: a stopwatch has nothing to gate. Elapsed time is not a property a commit can be
+    # refused for, and a hook that ran the receipt would have Layer 2 execute the very merge
+    # this module is built not to drive (Critical Rule #4).
+    "scripts/merge_receipt.py": Disposition(
+        reason="[#675] target 3.1. Wired to .claude/commands/lane-integrate.md (open / time / "
+               "race / close across the merge walk), which is not one of the [#664] wiring "
+               "surfaces the census reads -- so an operator-invoked organ reads as an orphan "
+               "by construction. A pre-commit trigger is wrong on the merits, not merely out "
+               "of scope: a stopwatch has nothing to gate, and a hook that ran it would make "
+               "Layer 2 execute the merge this module exists NOT to drive",
+        owner="the [#664] wiring-surface list, which owns whether .claude/commands/*.md is a "
+              "trigger surface; this row is deleted by that decision, not by a lane"),
+    # SAME CLASS AS `merge_receipt.py` ABOVE, and the repetition is the point: two organs added
+    # by one lane, both genuinely adopted by `.claude/commands/lane-integrate.md`, both reading
+    # as orphans because a command file is not a `[#664]` wiring surface. One such row is a
+    # curiosity; two from a single lane is the shape of a gap, and it is recorded as one here
+    # rather than left for a third lane to rediscover.
+    "scripts/actions_verdict.py": Disposition(
+        reason="[#675] target 3.2. Wired to .claude/commands/lane-integrate.md (the merge-walk "
+               "read of the Actions verdict, and refuse-to-finish checklist row 2b), which is "
+               "not one of the [#664] wiring surfaces the census reads. A pre-commit trigger "
+               "is wrong on the merits: it reads a GitHub Actions run for a merge SHA, which "
+               "does not exist at commit time -- the gate would query a run that cannot have "
+               "started and refuse every commit",
+        owner="the [#664] wiring-surface list, which owns whether .claude/commands/*.md is a "
+              "trigger surface; this row is deleted by that decision, not by a lane"),
+    # THIRD OF THE SAME SHAPE FROM ONE LANE, and at three it stops being a coincidence and
+    # becomes the finding: `[#675]` added `merge_receipt.py`, `actions_verdict.py` and this,
+    # all three adopted by `.claude/commands/lane-integrate.md`, all three orphans to a census
+    # whose wiring surfaces do not include command files. The lane's end artifact carries the
+    # proposed diff; these rows carry the evidence that it is a class rather than an instance.
+    "scripts/review_packet.py": Disposition(
+        reason="[#675] target 3.5. Wired to .claude/commands/lane-integrate.md (the assemble "
+               "step of the merge walk, and refuse-to-finish checklist row 2c), which is not "
+               "one of the [#664] wiring surfaces the census reads. A pre-commit trigger is "
+               "wrong on the merits: it assembles a REVIEW input over a merge range against a "
+               "lane contract, neither of which exists at commit time in the lane being "
+               "reviewed",
+        owner="the [#664] wiring-surface list, which owns whether .claude/commands/*.md is a "
+              "trigger surface; this row is deleted by that decision, not by a lane"),
     "scripts/logs_retention.py": Disposition(
         reason=f"{_LANE_BUILT}; the DECLARE §3 names run_retention() at 0 callers and the "
                f"census confirms it at module level too",

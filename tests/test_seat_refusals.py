@@ -137,6 +137,216 @@ def test_a_step0_check_with_nothing_provisioned_is_the_sanctioned_call():
     assert sr.refuse_lane_ceiling(["a"], already_provisioned=[]) == ["a"]
 
 
+# --- R6 -- the same-file collision, at dispatcher step 0 ([#675] target 3.4) -------------------
+#
+# THE TARGET, verbatim from `[#675]`'s Done-when:
+#
+#     (4) the dispatcher REFUSES to fire two lanes whose contracts touch the same file,
+#     RED-first, as a refusal AT DISPATCH in the `scripts/seat_refusals.py` STEP-0 family
+#     alongside `lane-ceiling` -- evaluated on the frozen contract set before the first worktree
+#     exists, never as a warning afterwards, because run later the collision it exists to
+#     prevent has already been paid for and every remaining option is a teardown
+#
+# WHY THIS IS A REFUSAL AND NOT A REPORT is the same argument `lane-ceiling` makes one rule over,
+# and the row makes it explicitly: after provisioning, the collision has been PAID FOR. Two lanes
+# editing one file produce a merge conflict the integrator resolves serially, or -- worse -- two
+# lanes that each regenerate the same derived surface and hand back mutually-stale trees. Neither
+# is recoverable by anything cheaper than a teardown, so the check that runs late is decorative.
+
+_DONE = "## Done-contract (immutable)\n"
+
+
+def _contract(*paths: str, extra: str = "") -> str:
+    """A contract whose Done-contract section declares writes to `paths`."""
+    body = "".join(f"- the lane edits `{p}` and lands it\n" for p in paths)
+    return (f"# LANE lane-probe\n\n## Dispatch\n\nsomething\n\n{_DONE}\n{body}{extra}\n"
+            f"## Steps\n\n1. do it **COMMIT**\n")
+
+
+def test_two_lanes_declaring_the_same_file_are_REFUSED_and_both_are_named():
+    """The clause itself. The refusal names the FILE and BOTH lanes, because a refusal that
+    says only "there is a collision" cannot be acted on -- the dispatcher has to know which two
+    contracts to re-cut."""
+    contracts = {
+        "lane-a": _contract("scripts/audit.py"),
+        "lane-b": _contract("scripts/audit.py", "tests/test_audit.py"),
+    }
+
+    with pytest.raises(sr.SeatRefusal, match="file-collision") as exc:
+        sr.refuse_file_collision(contracts)
+
+    message = str(exc.value)
+    assert "scripts/audit.py" in message
+    assert "lane-a" in message and "lane-b" in message
+
+
+def test_lanes_touching_DIFFERENT_files_pass_and_the_footprints_come_back():
+    contracts = {
+        "lane-a": _contract("scripts/audit.py"),
+        "lane-b": _contract("tests/test_audit.py"),
+    }
+
+    footprints = sr.refuse_file_collision(contracts)
+
+    assert footprints["lane-a"] == {"scripts/audit.py"}
+    assert footprints["lane-b"] == {"tests/test_audit.py"}
+
+
+def test_checking_collisions_AFTER_provisioning_is_itself_refused():
+    """The row's own words: run later, "the collision it exists to prevent has already been paid
+    for and every remaining option is a teardown". Same placement argument as `lane-ceiling`,
+    and the same reason it is a separate leg rather than a note."""
+    contracts = {"lane-a": _contract("scripts/audit.py"),
+                 "lane-b": _contract("scripts/audit.py")}
+
+    with pytest.raises(sr.SeatRefusal, match="checked LATE"):
+        sr.refuse_file_collision(contracts, already_provisioned=["worktree-lane-a"])
+
+
+def test_a_step0_call_with_nothing_provisioned_is_the_sanctioned_call():
+    contracts = {"lane-a": _contract("scripts/audit.py")}
+
+    assert sr.refuse_file_collision(contracts, already_provisioned=[]) == {
+        "lane-a": {"scripts/audit.py"}}
+
+
+def test_THREE_lanes_on_one_file_report_ALL_THREE_not_just_the_first_pair():
+    """A refusal that stops at the first colliding pair sends the dispatcher back for a second
+    round trip, and the second round is exactly the cost step 0 exists to avoid paying twice."""
+    contracts = {name: _contract("deploy/manifest-v1.5.0.yaml")
+                 for name in ("lane-a", "lane-b", "lane-c")}
+
+    with pytest.raises(sr.SeatRefusal) as exc:
+        sr.refuse_file_collision(contracts)
+
+    message = str(exc.value)
+    assert all(name in message for name in ("lane-a", "lane-b", "lane-c"))
+
+
+def test_the_footprint_is_read_from_the_DONE_CONTRACT_not_the_whole_file():
+    """MEASURED, not assumed, and this is the choice that makes the refusal usable.
+
+    On the live batch-X set the Done-contract extraction found ONE colliding pair in 78 and NO
+    path cited by three or more contracts -- that section is write-shaped. The whole file is not:
+    it quotes carried rows, cites ADRs and names the organs it reasons about, so extracting from
+    it would collide every lane against every other on shared references and the refusal would be
+    turned off inside a window. A refusal that overstates its reach is worse than none, which is
+    this module's own contract.
+    """
+    contract = _contract("scripts/audit.py") + (
+        "\n## Carried rows and clauses (verbatim)\n\n"
+        "the row cites `protocols/PLAYBOOK.md` and `scripts/gen_task_tree.py` as CONTEXT\n")
+
+    assert sr.declared_footprint(contract) == {"scripts/audit.py"}
+
+
+def test_a_path_cited_only_OUTSIDE_a_write_root_is_not_a_footprint_entry():
+    """`H:/My Drive/...` and bare prose nouns are not repo paths, and a checker that counted
+    them would refuse on the transport's own filename."""
+    contract = _contract("scripts/audit.py",
+                         extra="- see `LANE-x-000-other.md` on the transport\n")
+
+    assert sr.declared_footprint(contract) == {"scripts/audit.py"}
+
+
+def test_a_contract_declaring_NO_footprint_is_REPORTED_not_silently_passed():
+    """NEVER GREEN-BY-SKIP -- the 2026-08-25 sweep's rule, applied to a different absence.
+
+    A contract whose Done-contract names no repo path cannot collide with anything, and a
+    checker that returned a clean pass would report the same word for "no collision" and for "I
+    could not see this lane at all". The dispatcher is told which lanes were invisible to it.
+    """
+    contracts = {"lane-a": _contract("scripts/audit.py"),
+                 "lane-silent": "# LANE\n\n## Done-contract (immutable)\n\nprose only\n"}
+
+    footprints = sr.refuse_file_collision(contracts)
+
+    assert footprints["lane-silent"] == set()
+    assert "lane-silent" in sr.undeclared_lanes(footprints)
+
+
+def test_the_refusal_is_wired_into_the_DISPATCHER_seat_at_STEP_0():
+    """Roster membership, and the ORDER inside it. `lane-ceiling` opens step 0 and
+    `dryrun-step0` closes it (AMEND-BATCH-V-002 §1 makes the DryRun the last line), so the
+    collision check sits between them: after the width is known, before anything is launched."""
+    assert "file-collision" in sr.REFUSALS
+
+    dispatcher = sr.SEAT_REFUSALS["dispatcher"]
+    assert "file-collision" in dispatcher
+    assert dispatcher.index("lane-ceiling") < dispatcher.index("file-collision")
+    assert dispatcher.index("file-collision") < dispatcher.index("dryrun-step0")
+
+
+def test_the_refusal_is_DISPATCHER_ONLY_because_only_the_dispatcher_fires_lanes():
+    """A lane cannot commit this failure: by the time a lane boots, it has been fired."""
+    for seat, refusals in sr.SEAT_REFUSALS.items():
+        if seat != "dispatcher":
+            assert "file-collision" not in refusals, seat
+
+
+def test_the_LIVE_batch_x_contract_set_is_carried_as_a_regression_fixture():
+    """The measurement that justified the design, frozen as a test.
+
+    Two lanes for row `[#734]` -- `retire-stage` and `retire-stage-2` -- both declare writes to
+    `deploy/manifest-v1.5.0.yaml`. That is a REAL collision in a REAL batch, found by running
+    this extraction over the frozen set, and it is the evidence that the refusal catches
+    something rather than merely being satisfiable.
+    """
+    contracts = {
+        "lane-x-734-retire-stage": _contract("deploy/manifest-v1.5.0.yaml",
+                                             "scripts/validate_hermetization.py"),
+        "lane-x-734-retire-stage-2": _contract("deploy/manifest-v1.5.0.yaml"),
+        "lane-x-675-merge-cost": _contract("scripts/merge_receipt.py"),
+    }
+
+    with pytest.raises(sr.SeatRefusal) as exc:
+        sr.refuse_file_collision(contracts)
+
+    assert "deploy/manifest-v1.5.0.yaml" in str(exc.value)
+    assert "lane-x-675-merge-cost" not in str(exc.value), "an uninvolved lane is not named"
+
+
+def test_a_SUPERSEDED_contract_left_on_the_transport_collides_with_its_own_replacement():
+    """The usage trap, frozen as a test because it is a FALSE positive and those are what turn a
+    refusal off.
+
+    MEASURED 2026-09-12 on the live transport: globbing `LANE-x-*.md` returns 13 contracts, of
+    which `LANE-x-734-retire-stage` and `LANE-x-734-retire-stage-2` both declare
+    `deploy/manifest-v1.5.0.yaml` -- and `git worktree list` shows only the SECOND provisioned.
+    The first is a superseded re-cut nobody deleted. So the collision is real in the DIRECTORY
+    and absent from the BATCH, and a dispatcher that fed this refusal a glob would be refused
+    for a lane it was never going to fire.
+
+    The remedy is upstream and already exists: `[#630]`'s
+    `batch_manifest.freeze_manifest_contract_agreement` refuses when the manifest's lane slugs
+    and the contract set disagree. This test asserts the SHAPE of the trap so that the composed
+    order stays deliberate -- it is not a claim that this refusal can detect supersession, which
+    it cannot and should not try to.
+    """
+    superseded = _contract("deploy/manifest-v1.5.0.yaml")
+    replacement = _contract("deploy/manifest-v1.5.0.yaml")
+
+    with pytest.raises(sr.SeatRefusal):
+        sr.refuse_file_collision({"lane-734-retire-stage": superseded,
+                                  "lane-734-retire-stage-2": replacement})
+
+    # Fed the set the manifest actually declares, the same pair passes.
+    assert sr.refuse_file_collision({"lane-734-retire-stage-2": replacement}) == {
+        "lane-734-retire-stage-2": {"deploy/manifest-v1.5.0.yaml"}}
+
+
+def test_the_remedy_names_a_way_forward_rather_than_only_the_problem():
+    """`SeatRefusal`'s own contract: "a refusal that names no way forward gets worked around
+    rather than fixed"."""
+    contracts = {"a": _contract("scripts/audit.py"), "b": _contract("scripts/audit.py")}
+
+    with pytest.raises(sr.SeatRefusal) as exc:
+        sr.refuse_file_collision(contracts)
+
+    remedy = exc.value.remedy
+    assert "sequence" in remedy.lower() or "re-cut" in remedy.lower()
+
+
 # --- R3 -- the reviewer's model id in the tally ------------------------------------------------
 
 _TALLY = "Tally: review=lane-v-000 reviewer=gpt-5.6-terra findings=3 fixed=3"
@@ -334,9 +544,15 @@ def test_every_refusal_names_itself_and_carries_a_remedy():
     assert "->" in message or "--" in message
 
 
-def test_the_refusal_registry_lists_all_five():
+def test_the_refusal_registry_lists_every_refusal_in_declaration_order():
+    """Five from batches T/U, plus `file-collision` from `[#675]` target 3.4.
+
+    The roster is asserted WHOLE and in order rather than by membership: a seat template cites
+    these ids, so a silent addition or reorder changes what a rendered boot runs.
+    """
     assert sr.REFUSALS == (
         "sleeping-poll", "lane-ceiling", "reviewer-mismatch", "carried-by", "dryrun-step0",
+        "file-collision",
     )
 
 
