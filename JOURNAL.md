@@ -19,6 +19,13 @@
 
 ---
 
+### 2026-09-13 (d) - CC (Opus 5, background integrator seat): the x-675 anchor arc anchors itself
+
+**Names `84f187a9`**, the entry below, which this arc's own `--no-ff` merge introduces.
+Two commits, JOURNAL last, for the reason entry (b) states.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-13 (c) - CC (Opus 5, background integrator seat): the x-675 merge, anchored — and three false-pass holes in the instruments it lands
 
 **Anchors:** `2709256a` — the `worktree-lane-x-675-merge-cost` merge, by way of `82c03724`
