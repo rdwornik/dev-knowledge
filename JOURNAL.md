@@ -25,6 +25,7 @@
 one-commit anchor arc cannot discharge the anchor its own merge creates - APPEND ONLY, B6.
 
 **Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-12 (c) - CC (Opus 5, background integrator seat): the x14 merge anchor, written BEFORE the merge
 
 **Names `d64097aa`**, the tip of `worktree-dispatch-x14-freeze`, which its own `--no-ff` merge
@@ -62,6 +63,7 @@ not read as a reviewed merge.
 **Baseline before the merge:** `main` = `b71acdf8`, health OK, counts per `ecosystem/doc-counts.md`.
 
 **Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-12 (b) - CC (Opus 5, background integrator seat): the wave-1 close arc names its own first commit
 
 **Names `09c864ad`**, the close packet and the entry below, which this arc's own `--no-ff` merge
