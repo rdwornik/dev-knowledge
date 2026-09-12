@@ -602,13 +602,113 @@ def test_a_governed_search_DOES_open_the_store(monkeypatch):
     assert decision == "block"
 
 
-def test_an_unreadable_store_ALLOWS_rather_than_wedging(monkeypatch):
-    """A stale lockfile, a missing store or a fresh clone must never be able to
-    block every search in a session."""
+def test_an_ABSENT_store_still_ALLOWS_a_fresh_clone_is_not_governed_yet(monkeypatch):
+    """UNCHANGED by AX24-2: a store that does not exist yet (fresh clone, never
+    committed) is "not governed", not a failure to evaluate -- `load_processes`
+    returns `{}` without raising, so this never reaches the fail-CLOSED except
+    blocks below. Distinct from the RAISING cases in section C3, which now
+    refuse. Simulated deterministically rather than relying on this tree's own
+    store state, which is populated (pre-commit rebuilds it)."""
+    monkeypatch.setattr(guard, "load_processes", lambda *a, **k: {})
+    decision, reason = guard.decide_with_store(_bash("rg gen_task_tree"))
+    assert decision == "allow"
+    assert "no persisted process set" in reason
+
+
+# --------------------------------------------------------------------------- #
+# C3. FAILS CLOSED when the guard cannot evaluate ([#727] AX24-2)              #
+# --------------------------------------------------------------------------- #
+#
+# AX24-2, exactly as W-2' ruled for the sibling prompts guard (AX15-1): this hook
+# is wired ONLY onto Bash/PowerShell/Grep (`.claude/settings.json`'s matcher), so
+# every call that reaches it already IS the matched class. An inability to
+# EVALUATE that call -- as opposed to an absent/not-yet-built store, which stays
+# ALLOW above -- is therefore REFUSED, not permitted. Each failure mode below is
+# a RED-first trip-test per clause 3: it must fail against the fail-OPEN module
+# and pass once the three named `except` sites (and the predicate's own verdict)
+# refuse instead of allow. Each also asserts the refusal names CAUSE and FIX,
+# same principle as `_pointer()`: a refusal that only says no trains avoidance.
+
+def test_a_MISSING_DEPENDENCY_SCRIPT_fails_CLOSED(monkeypatch):
+    """Failure mode 1/4: script missing. `load_processes` imports `graph_store`
+    -- a script this guard depends on -- and if that import cannot resolve
+    (deleted, corrupted, absent from a partial checkout), the guard cannot even
+    look up the process set, let alone judge the call. Previously ALLOWED at the
+    site named L645 of 9136f133; must now REFUSE."""
     def boom(*_a, **_k):
-        raise OSError("no store here")
+        raise ModuleNotFoundError("No module named 'graph_store'")
     monkeypatch.setattr(guard, "load_processes", boom)
-    assert guard.decide_with_store(_bash("rg gen_task_tree"))[0] == "allow"
+    decision, reason = guard.decide_with_store(_bash("rg gen_task_tree"))
+    assert decision == "block", "a missing dependency script must refuse, not permit"
+    assert "graph_store" in reason
+    assert "Cause:" in reason and "Fix:" in reason
+
+
+def test_an_UNREACHABLE_STORE_ENGINE_fails_CLOSED(monkeypatch):
+    """Failure mode 2/4: interpreter missing. The persisted store is a SQLite
+    file; if the SQLite engine that interprets it cannot open it (a stripped
+    build lacking a feature this guard needs, a locked or foreign-format file),
+    that is the runtime lacking the capability to interpret the store -- the
+    same class of gap as an absent interpreter, one layer down. Previously
+    ALLOWED at the site named L645 of 9136f133; must now REFUSE."""
+    import sqlite3
+
+    def boom(*_a, **_k):
+        raise sqlite3.OperationalError("unable to open database file")
+    monkeypatch.setattr(guard, "load_processes", boom)
+    decision, reason = guard.decide_with_store(_bash("rg gen_task_tree"))
+    assert decision == "block", "an unreachable store engine must refuse, not permit"
+    assert "sqlite" in reason.lower() or "database" in reason.lower() or "store" in reason.lower()
+    assert "Cause:" in reason and "Fix:" in reason
+
+
+def test_a_CRASH_MID_EVALUATION_fails_CLOSED(monkeypatch):
+    """Failure mode 3/4: crash. The predicate itself (`decide`) raises after the
+    store has already loaded -- a bug in the matching logic, not a missing
+    dependency. Previously ALLOWED at the site named L651 of 9136f133; must now
+    REFUSE."""
+    def boom(*_a, **_k):
+        raise RuntimeError("boom: predicate crashed mid-evaluation")
+    monkeypatch.setattr(guard, "decide", boom)
+    decision, reason = guard.decide_with_store(_bash("rg gen_task_tree"))
+    assert decision == "block", "a mid-evaluation crash must refuse, not permit"
+    assert "crash" in reason.lower()
+    assert "Cause:" in reason and "Fix:" in reason
+
+
+def test_an_UNRECOGNISED_VERDICT_fails_CLOSED(monkeypatch):
+    """Failure mode 4/4: unexpected rc. If the predicate ever returns something
+    other than the two sanctioned verdicts ("allow"/"block") -- a future typo or
+    a half-finished edit -- that is exactly the shape of an unexpected exit code
+    the sibling prompts-guard wrapper (AX15-1) refuses on: a verdict this guard
+    does not recognise must not be read as silent permission."""
+    def weird(*_a, **_k):
+        return "maybe", "not a real verdict"
+    monkeypatch.setattr(guard, "decide", weird)
+    decision, reason = guard.decide_with_store(_bash("rg gen_task_tree"))
+    assert decision == "block", "an unrecognised verdict must refuse, not permit"
+    assert "Cause:" in reason and "Fix:" in reason
+
+
+def test_the_declared_escape_STILL_WORKS_after_the_flip():
+    """Clause 4: the raw-needed escape is not traded away for fail-closed. It is
+    evaluated before the store is ever touched (search_candidates strips the
+    escaped segment, so no candidate reaches `decide_with_store` at all), so it
+    is unaffected by C3 above -- proven here rather than assumed."""
+    assert not _denied(_bash(
+        'grep -rn "gen_task_tree" scripts/  # raw-needed: renaming every call site'))
+
+
+@pytest.mark.parametrize("command", [
+    'grep -n "def parse" scripts/',
+    'grep -rn "TODO" .',
+])
+def test_ORDINARY_searching_STILL_RUNS_after_the_flip(command):
+    """Clause 5: fail-CLOSED applies to the matched class's INABILITY TO
+    EVALUATE, never to ordinary non-governed searching -- re-asserted here,
+    beside the new failure-mode tests, so the two properties are pinned
+    together rather than trusted to stay true independently."""
+    assert not _denied(_bash(command)), f"over-blocked: {command}"
 
 
 # --------------------------------------------------------------------------- #
@@ -652,12 +752,20 @@ def test_the_wire_allows_an_ordinary_search_silently():
     assert proc.stdout.strip() == ""
 
 
-def test_the_wire_allows_malformed_stdin():
+def test_the_wire_REFUSES_malformed_stdin():
+    """AX24-2, the site named L660 of 9136f133: this hook is wired only onto
+    Bash/PowerShell/Grep, so stdin that reaches it is already the matched
+    class -- a payload that will not parse as JSON cannot rule out a governed
+    search, and previously ALLOWED silently. Must now REFUSE with cause and
+    fix, the same as the three in-module failure modes above."""
     proc = subprocess.run(
         [sys.executable, str(_SCRIPT)], input="not json at all",
         capture_output=True, text=True, encoding="utf-8", errors="replace",
         cwd=str(_REPO))
-    assert proc.returncode == 0
+    assert proc.returncode == 2
+    body = json.loads(proc.stdout)
+    assert body["decision"] == "block"
+    assert "Cause:" in body["reason"] and "Fix:" in body["reason"]
 
 
 def test_the_guard_output_is_ASCII_so_a_cp1252_console_cannot_crash_it():
