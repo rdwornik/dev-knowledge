@@ -19,6 +19,58 @@
 
 ---
 
+### 2026-09-13 (f) - CC (Opus 5, background integrator seat): the x-734 anchor arc anchors itself
+
+**Names `b154fd1a`**, the entry below, which this arc's own `--no-ff` merge introduces.
+Two commits, JOURNAL last, for the reason entry (b) states.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+### 2026-09-13 (e) - CC (Opus 5, background integrator seat): the x-734 merge, anchored — two more importers the SAFE oracle could not see
+
+**Anchors:** `69c8a344` — the `worktree-lane-x-734-retire-stage-2` merge, by way of `14bde495`
+(the lane's sync-merge onto `937549c3`) and the six commits it introduced.
+
+**Merged.** `69c8a344` — lane x-734 @ `14bde495`, by SHA, `--no-ff`, synced onto current `main`
+first. **5707 deletions against 887 insertions**: six census orphans retired with module, test,
+disposition and fixture row each. `scripts/graph_queries.py` was touched by BOTH this lane and
+x-675 and auto-merged without conflict — the file-collision the step-0 refusal exists to catch,
+and which its root-level blind spot (entry (c), target 4) would not have caught anyway. Verified
+by test rather than trusted: `test_graph_spine.py` + `test_graph_queries.py` pass on the merged
+tree. The one sync conflict was `ecosystem/doc-counts.md`; the merged tree collects **6012**
+(`6238` − the lane's 226 removed tests), measured, and the gate count takes main's **31**.
+
+**Integrator review — codex, CRITICAL:0 HIGH:2 MED:0 LOW:0. Both are the lane's OWN class,
+found in the lane's own removal set, and both were missed by its dispositioning:**
+
+- `.devcontainer/provision.sh` invokes the retired `scripts/cloud_provisioning.py` at **six**
+  sites (349, 350, 367, 368, 585, 587). Every call site absorbs the failure with `||`, so
+  provisioning will not crash — it will silently record "changed", never run the history or
+  ecosystem repair, and report drift that no longer gets computed. Fail-open in shape, again.
+- `tests/test_e2e_consumer_lifecycle.py:94` loads the retired `scripts/boundary_report.py` by
+  explicit path through importlib. **Latent, not red:** the module is `RUN_E2E`-gated and skips
+  here, so it is green on this box and red wherever it actually runs.
+
+**This is the ADR-89 false-PASS class the lane itself discovered and named** — `safe_remove`
+returns SAFE for a module reached by a path or importlib load, because a static importer scan
+cannot see one. The lane found it for `desired_state_loader`, restored that module, and wrote it
+up; these are two further instances of the same blind spot, one of them a non-test consumer the
+scan was never going to reach. **The oracle's SAFE remains necessary and not sufficient.**
+
+**Neither blocks tonight, checked rather than assumed:** `.github/workflows/conductor.yml`
+references neither module, so wave-3's Actions proof is untouched.
+
+**Restore-the-modules vs drop-the-dead-callers is not this seat's call.** It is a functional
+question (ADR-108 §A) with two defensible answers, and the lane's own precedent points at
+restore. Recorded for the operator's morning GO rather than settled at merge time — and it is
+what `[#734]`'s KEPT list should grow by.
+
+**Also inherited from the lane, for dispositioning:** `#369` (the boundary-headers generator's
+pre-commit wiring) is **moot** now that `boundary_headers.py` is retired — the lane flagged it
+for the integrator and correctly declined to disposition another row itself.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-13 (d) - CC (Opus 5, background integrator seat): the x-675 anchor arc anchors itself
 
 **Names `84f187a9`**, the entry below, which this arc's own `--no-ff` merge introduces.
