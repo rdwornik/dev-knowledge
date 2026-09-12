@@ -161,6 +161,62 @@ def model_ids(path: Optional[Path] = None) -> list[str]:
     return list(models(path).keys())
 
 
+def roles(path: Optional[Path] = None) -> dict[str, Any]:
+    """`{role: spec}` — `[#691]`'s third collection, the role-keyed ORDERED fallback lists.
+
+    Empty for a registry predating `[#691]`, which is why the key is read with `.get`: the
+    collection is optional in the schema so every older registry still loads.
+    """
+    return load_registry(path).get("roles") or {}
+
+
+def role_order(role: str, path: Optional[Path] = None) -> list[dict[str, Any]]:
+    """One role's DECLARED fallback list, in file order.
+
+    DECLARED, not measured — the distinction AX21-2 turns on. `provider_router.rerank()` is what
+    reorders this by measured pass rate per cost; this accessor hands back what the file says,
+    and a caller presenting it as a measured ranking is the failure AX21-2 names.
+    """
+    spec = roles(path).get(role)
+    if spec is None:
+        raise RegistryError(
+            f"role `{role}` is not in the registry; known roles: {sorted(roles(path))}"
+        )
+    return [dict(entry) for entry in spec.get("order") or []]
+
+
+def is_admitted(entry: dict[str, Any]) -> bool:
+    """Is this role entry ADMITTED — i.e. is it anything other than NOT ADMITTED?
+
+    The predicate is written this way round on purpose. `Verdict` carries three members and
+    only ONE of them is admission; `refused` and `unevaluated` are both NOT ADMITTED, and so is
+    an absent `admission:` block. So the honest test is `verdict == "admitted"` and everything
+    else — including silence — falls the other way.
+
+    This is the function the Half A / Half B boundary rests on: every non-Claude entry in the
+    shipped registry returns `False` here, and this lane recorded that state without measuring
+    it. AX22-1's >= 8-of-10 measurement, which is what could turn any of them `True`, is Half B's.
+    """
+    admission = entry.get("admission")
+    if not admission:
+        return False
+    return str(admission.get("verdict") or "") == "admitted"
+
+
+def licences(path: Optional[Path] = None) -> dict[str, str]:
+    """`{provider_id: licence status}` — `[#691]` leg (c).
+
+    A provider carrying NO `licence:` block resolves to `"unknown"`, never to `"permitted"`.
+    The default is the conservative one because the whole point of the field is that an unruled
+    licence is not a permission; defaulting the other way would make the field's absence grant
+    exactly what its presence was added to withhold.
+    """
+    return {
+        pid: ((fields.get("licence") or {}).get("status") or "unknown")
+        for pid, fields in providers(path).items()
+    }
+
+
 def pins_by_path(path: Optional[Path] = None) -> dict[str, list[tuple[str, str, str]]]:
     """`{repo-relative path: [(model_id, seam, format), ...]}` — the checker's work list."""
     out: dict[str, list[tuple[str, str, str]]] = {}

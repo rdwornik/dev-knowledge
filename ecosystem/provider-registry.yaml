@@ -28,12 +28,35 @@
 # seams (S2, S3, S4, S5, S13, S14, S24, S25, S27, S6-for-a-third-provider) are out of scope by
 # construction: the first are ADR / recorded-ruling surfaces, the second are real ports.
 #
-# ROUTING IS NOT HERE. R2 §3.3 records that the canonical model-routing table is
-# `~/.claude/ROUTING.md` — at L0, outside this repository — as are the reviewer pin
-# (`~/.claude/bin/codex-review.ps1`) and the Codex config (`~/.codex/config.toml`). That
-# boundary is an open operator decision, restated in
-# `docs/audits/2026-08-22-fresh-eyes-cloud-4v2.md`. This registry records model IDENTITY, not
-# which model gets routed to which job.
+# ROUTING IS NOT HERE — AMENDED 2026-09-12 BY `[#691]`, AND THE AMENDMENT IS NARROW.
+#
+# What this paragraph said, and why it was right when written: R2 §3.3 recorded the canonical
+# model-routing table as `~/.claude/ROUTING.md`, at L0, outside this repository — as were the
+# reviewer pin (`~/.claude/bin/codex-review.ps1`) and the Codex config (`~/.codex/config.toml`).
+# Two things have happened since. Register ruling **Z-G3 amendment A2** moved the authoritative
+# role -> CLI table IN-REPO, to `ecosystem/routing-table.yaml`; and `[#691]`'s frozen Done-when
+# requires THIS file to gain "a role entry with an ORDERED fallback list".
+#
+# So there are now two role-keyed surfaces, and they are NOT rivals — the distinction is what
+# keeps this from becoming the four-rival-dispatch-commands disease in a new costume:
+#
+#   `ecosystem/routing-table.yaml`   role -> CLI. FOUR coarse roles (producer, reviewer,
+#                                    adversarial, fan_out), one CLI each. The AUTHORITY for
+#                                    which CLI runs a role (Z-G3 A2), and the surface
+#                                    `check_routing_agreement` holds against the L0 copy.
+#   `roles:` BELOW                   role -> ORDERED provider list, with per-entry admission,
+#                                    the reviewer-not-producer exclusion and re-rankability.
+#                                    SIX fine-grained AX21-1 roles. This is a RANKING, not an
+#                                    authority over which CLI a role runs on.
+#
+# The vocabularies deliberately differ (4 coarse vs 6 fine) because they answer different
+# questions, and collapsing them would make one of the two lie. Where a correspondence is real
+# it is declared in `routing_table_role:` and ASSERTED by `check_provider_registry`; where it is
+# not real the field is null, because a lossy mapping written to fill a field manufactures
+# exactly the drift the link exists to detect.
+#
+# STILL NOT HERE: model-tier doctrine. That remains L0 (ARCHITECTURE Ch3, ruled 2026-08-22).
+# This registry records model IDENTITY and, as of `[#691]`, ROLE RANKING — not tier doctrine.
 #
 # S11 is a canonical-DOC seam, not a model seam: the verifier scan list in
 # `.claude/workflows/conformance-hub.js` names VISION.md/ARCHITECTURE.md/CLAUDE.md/
@@ -71,6 +94,17 @@ providers:
     # like that gets one home and one checker.
     marketplace_id: dev-knowledge-methodology
     marketplace_source_path: 'C:\Users\1028120\Documents\Dev\.dev-knowledge'
+    # `[#691]` leg (c) — the licence field the row measured as absent entirely ("grepped: zero
+    # hits for licence/license/terms"). Every value below is the OPERATOR's own account status
+    # as already recorded elsewhere in this file; none is a new ruling by the lane that added
+    # the field.
+    licence:
+      status: permitted
+      reason: >-
+        The operator's own Claude subscription, and the runtime this repository is developed
+        in. No third-party or employer terms are in play.
+      decided_by: operator
+      decided_on: "2026-09-11"
 
   openai:
     display_name: OpenAI
@@ -79,6 +113,13 @@ providers:
     version_command: ["codex", "--version"]
     changelog_tool_key: codex
     changelog_source_url: "https://github.com/openai/codex/releases"
+    licence:
+      status: permitted
+      reason: >-
+        The operator's own OpenAI/Codex subscription, already the fleet's standing reviewer
+        route (`ecosystem/routing-table.yaml` reviewer row, pinned at L0 `~/.codex/AGENTS.md`).
+      decided_by: operator
+      decided_on: "2026-09-11"
 
   copilot-enterprise:
     display_name: GitHub Copilot Enterprise
@@ -89,6 +130,34 @@ providers:
     version_command:
       - copilot
       - --version
+    # `[#691]` leg (c) — and this is the row that made the field worth adding, because it is
+    # the one provider on this surface whose licence question is genuinely OPEN rather than
+    # merely unwritten.
+    #
+    # THE FACT, not a new measurement: the billing note below already records that consumption
+    # is metered to the ENTERPRISE ORG SEAT (org BY-Product-Development) and is visible only on
+    # that org's Copilot billing page. That is an EMPLOYER-provisioned seat.
+    #
+    # THE QUESTION that follows from it, stated rather than answered: whether an employer
+    # enterprise seat may be spent on this repository's work is a FUNCTIONAL question about the
+    # terms the seat is held under. Under ADR-108 §A a functional question is the operator's to
+    # rule, so `lane-x-691-routing-half-a` records the state and stops. `unknown` is the honest
+    # verdict and is a first-class one in this vocabulary — it is not a soft refusal and not a
+    # soft permission.
+    #
+    # THE CONSEQUENCE, so the entry is actionable rather than merely accurate: the schema
+    # refuses to mark any entry `admitted` under a non-`permitted` licence, and the router
+    # refuses a non-`permitted` provider in a PRODUCING role. So copilot-enterprise is currently
+    # ineligible twice over — unadmitted (Half B has not measured it) and unlicensed (nobody has
+    # ruled). Those two are INDEPENDENT: an admission measurement would not clear this, and a
+    # licence ruling would not admit it.
+    licence:
+      status: unknown
+      reason: >-
+        Metered to the BY-Product-Development enterprise org seat -- an employer-provisioned
+        licence. Whether it may be spent on this repository's work is unruled; it is a
+        functional question and therefore the operator's under ADR-108 section A. Recorded as
+        unknown rather than guessed in either direction.
   # copilot-enterprise operational doctrine is NOT stored here -- this registry is a thin
   # provider/CLI identity surface and its schema forbids the extra fields. The measured
   # capability profile (284.3k context floor, the 75% payload gate, sonnet-5 default vs
@@ -135,6 +204,15 @@ providers:
     # Evidence: docs/audits/2026-08-26-technical-provider-surface-v2.md
     cli: grok
     version_command: ["grok", "--version"]
+    licence:
+      status: permitted
+      reason: >-
+        The operator's own credential, proven by a server round-trip 2026-08-26. PAY-PER-CALL
+        rather than a subscription -- so the licence permits the use while the COST REGIME
+        recorded above still bounds the SHAPE of it (point-use only; a fan-out gets costed
+        before dispatch). Licence and cost envelope are separate constraints and both bind.
+      decided_by: operator
+      decided_on: "2026-08-26"
 
   google:
     display_name: Google
@@ -178,6 +256,16 @@ providers:
     # these two keys then land together, and the S8 check begins asserting on the same commit.
     cli: gemini
     version_command: ["gemini", "--version"]
+    licence:
+      status: not-applicable
+      reason: >-
+        RETIRED by operator ruling 2026-08-26. The served route is dead on this tier
+        (UNSUPPORTED_CLIENT is the SERVER refusing this CLIENT), so there is no use for a
+        licence to permit. `not-applicable` rather than `restricted`: nothing is being withheld
+        -- there is nothing to withhold. The live route to this vendor's models is the separate
+        `antigravity` provider.
+      decided_by: operator
+      decided_on: "2026-08-26"
 
   antigravity:
     display_name: Antigravity (Google)
@@ -221,6 +309,16 @@ providers:
     # `/changelog-review` run, after which both land together.
     cli: agy
     version_command: ["agy", "--version"]
+    licence:
+      status: permitted
+      reason: >-
+        Carries the operator's own subscription -- the fact the 2026-08-26 gemini retirement
+        ruling turned on ("`agy` is the channel to Google models and it carries the operator's
+        own subscription"). Licence permits; this grants no ROLE, and the `[#578]` rerun
+        question about the refused gemini-3.7-flash family reaching the fleet by this second
+        route is untouched by it.
+      decided_by: operator
+      decided_on: "2026-08-26"
 
   # CURSOR — BLOCKED-WITH-CAUSE (was: ABSENT). Operator-dictated correction A5, ruling of
   # 2026-08-25, applied at batch-1 integration 2026-08-26; the content is the operator's, not
@@ -279,6 +377,223 @@ providers:
     # DeepSeek is not a provider of this fleet on any surface today.
     cli: null
     version_command: null
+    licence:
+      status: not-applicable
+      reason: >-
+        Not a provider of this fleet on any surface (three independent absences measured
+        2026-08-25: no official vendor CLI exists, DSH cannot install on this machine, not
+        visible in VS Code). There is no route for a licence to govern.
+      decided_by: operator
+      decided_on: "2026-08-25"
+
+# ===========================================================================================
+# ROLES -- `[#691]`'s THIRD collection, and the one the row says is "a third thing, not a
+# field rename". `models[].roles` is a per-model membership SET answering "which roles does
+# this model hold"; this collection is role-keyed and ORDERED, answering "who answers for this
+# role, in what order, and who answers when the first is ineligible". Both survive.
+#
+# THE THREE LEGS `[#691]` NAMES, and where each one lands:
+#   (a) ORDER      -- list position in `order:`. A set cannot express a fallback chain; this can.
+#   (b) ADMISSION  -- each entry's `admission:` block. ABSENT MEANS `unevaluated`, WHICH MEANS
+#                     NOT ADMITTED -- silence does not read as permission. That equation is the
+#                     whole Half A / Half B boundary: every non-Claude entry below is LISTED,
+#                     addressable and trip-testable while holding no admission at all. The rule
+#                     itself lives where it is enforced, in `scripts/provider_registry.is_admitted`
+#                     and `ecosystem/schema/provider_registry.RoleEntry`.
+#   (c) LICENCE    -- each provider's `licence:` block above. The schema refuses to mark an
+#                     entry `admitted` under a non-`permitted` licence.
+#
+# LISTED IS NOT ELIGIBLE, and the distinction is deliberate rather than a loophole. `[#691]`'s
+# Done-when says only admitted, licence-permitting providers "may appear on it" -- but this
+# lane's contract REQUIRES agy, Grok 4.6, Copilot Enterprise and Codex terra to appear as
+# NOT ADMITTED entries, precisely so the router's two refusals can be trip-tested against real
+# rows rather than against fixtures. Both are satisfied by separating the two acts: a provider
+# is LISTABLE under any state, and only an `admitted` + `permitted` + on-the-repo-allowlist
+# entry is ROUTABLE. `scripts/provider_router.py` is where that is enforced; nothing here
+# routes anything.
+#
+# THE ORDER BELOW IS DECLARED, NOT EARNED -- AX21-2's distinction, and stating it here is the
+# point. `provider_router.rerank()` reorders these lists by MEASURED pass rate per cost over
+# the `genai_spans` tally; until a role has measured calls the declared order stands, and the
+# router says so rather than presenting an unmeasured list as a measured one. AX22-1's expected
+# steady state on the implement role is Copilot -> Grok -> Sonnet, and it is deliberately NOT
+# written below, because writing it would be the "fixed list wearing a router's name" failure
+# AX21-2 exists to name. Until admission, implement order is SONNET FIRST.
+# ===========================================================================================
+roles:
+
+  orchestrate:
+    description: >-
+      Decide what the other roles do. AX21-1: "orchestrate / plan -> Opus only". Opus-5 is what
+      a lane actually dispatches at; the registry's `claude-opus-4-8` row is the id this file
+      already carries, and the entry pins the PROVIDER rather than a model string this registry
+      has not verified on a live surface.
+    # AX21-1's one line that is NOT subject to re-ranking. The clause is quoted verbatim, and
+    # enforced, on `Role.rerankable` in `ecosystem/schema/provider_registry.py`; the effect here
+    # is that a cheap model scoring well on pass-rate-per-cost stays out of the seat that
+    # decides what the expensive ones do -- such a promotion would be the metric's artefact
+    # rather than its finding.
+    rerankable: false
+    routing_table_role: null   # routing-table.yaml has no orchestration row; it is CC's own seat
+    order:
+      - provider: anthropic
+        model: claude-opus-4-8
+        note: "Opus only (AX21-1). No fallback -- a degraded orchestrator is worse than a stopped one."
+        admission:
+          verdict: admitted
+          decided_by: operator
+          decided_on: "2026-09-11"
+          evidence: docs/audits/2026-09-11-technical-batch-x-manifest.md
+  plan:
+    description: >-
+      Design before build. Shares orchestrate's constraint verbatim (AX21-1 names the two
+      together: "orchestrate / plan -> Opus only") and shares its reason: a plan is the artifact
+      every other role executes against.
+    rerankable: false
+    routing_table_role: null
+    order:
+      - provider: anthropic
+        model: claude-opus-4-8
+        note: "Opus only (AX21-1), same clause and same reason as orchestrate."
+        admission:
+          verdict: admitted
+          decided_by: operator
+          decided_on: "2026-09-11"
+          evidence: docs/audits/2026-09-11-technical-batch-x-manifest.md
+  implement:
+    description: >-
+      Produce code and artifacts. AX21-1's declared target order is Copilot Enterprise (bounded,
+      small) -> Grok 4.6 (multi-step, long-horizon) -> Sonnet -- but AX22-1 overrides it UNTIL
+      ADMISSION: "Implement order until admission: Sonnet first." That is what is encoded here.
+    routing_table_role: producer
+    order:
+      - provider: anthropic
+        model: claude-sonnet-5
+        note: >-
+          FIRST, per AX22-1, and this position is a measurement gate rather than a preference:
+          it holds until Copilot and Grok clear the >= 8-of-10 bar, at which point AX21-2's
+          re-rank -- not a hand edit -- moves them.
+        admission:
+          verdict: admitted
+          decided_by: operator
+          decided_on: "2026-09-11"
+          evidence: docs/audits/2026-09-11-technical-batch-x-manifest.md
+      - provider: copilot-enterprise
+        note: >-
+          NOT ADMITTED and NOT LICENCE-CLEARED -- two independent blocks. Listed so the router's
+          refusals are trip-tested against a real row. AX21-1 would place it first on bounded
+          work once both clear; neither has.
+        admission:
+          verdict: unevaluated
+          floors: ["AX22-1"]
+      - provider: xai
+        model: grok-4.6
+        note: >-
+          NOT ADMITTED for this role. Its only recorded verdict is a REFUSED fan-out (a
+          different role, 2026-08-23, floors G1+G2) and that refusal is not transferred here --
+          admission is per role. AX21-3 adds a hard precondition for Half B to clear first: a
+          CLI that cannot enforce a token ceiling by flag is not ordered, and grok's flags are
+          unverified.
+        admission:
+          verdict: unevaluated
+          floors: ["AX22-1", "AX21-3"]
+  review:
+    description: >-
+      Judge a diff before merge. AX21-1 routes this to Codex terra and excludes the producing
+      provider; the clause is quoted verbatim, and enforced, on `Role.excludes_producer` in
+      `ecosystem/schema/provider_registry.py`.
+    # AX22-2, "Reviewer != producer, always" -- the registry ENCODES the exclusion (this flag),
+    # the router enforces it before dispatch, and the tally records both roles. The fallback
+    # order below is AX22-2's own: "Codex terra reviews unless Codex produced; then the reviewer
+    # is Grok (after admission) or Sonnet."
+    excludes_producer: true
+    routing_table_role: reviewer
+    order:
+      - provider: openai
+        model: gpt-5.6-terra
+        note: >-
+          The standing reviewer (`ecosystem/routing-table.yaml` reviewer row, the AUTHORITY for
+          role -> CLI under Z-G3 A2) and NOT ADMITTED, which is not a contradiction and is worth
+          stating because it reads like one. Half A's contract names Codex terra among the four
+          entries whose admission state is recorded NOT ADMITTED; AX22-1's >= 8-of-10 bar has
+          measured no non-Claude provider, Codex included. The reason it stays ROUTABLE anyway
+          is that the router's admission refusal is scoped to the IMPLEMENT role by this lane's
+          done-contract item 1 -- "REFUSES a non-admitted provider in the implement role" -- so
+          an unadmitted REVIEWER is refused by nothing. Admission and routability are separate
+          questions here, and only the implement role couples them.
+        admission:
+          verdict: unevaluated
+          floors: ["AX22-1"]
+      - provider: xai
+        model: grok-4.6
+        # AX22-2 conditions THIS ENTRY on admission -- "the reviewer is Grok (AFTER ADMISSION)
+        # or Sonnet" -- while leaving the review role itself ungated, which is what keeps Codex
+        # terra routable here despite being NOT ADMITTED. A role-level gate could not express
+        # the pair; this flag is where the clause actually puts the condition.
+        requires_admission: true
+        note: >-
+          AX22-2's named fallback when Codex produced, and it is conditional on an admission
+          that has not happened. So the review chain skips this position today and lands on
+          Sonnet -- which is AX22-2's own terminal fallback, reached by the route the clause
+          describes rather than by an edit.
+        admission:
+          verdict: unevaluated
+          floors: ["AX22-1"]
+      - provider: anthropic
+        model: claude-sonnet-5
+        note: >-
+          AX22-2's terminal fallback, and the only one that is live today. Admitted, licensed,
+          and subject to the same producer exclusion as every other entry -- Sonnet does not
+          review a diff Sonnet produced.
+        admission:
+          verdict: admitted
+          decided_by: operator
+          decided_on: "2026-09-11"
+          evidence: docs/audits/2026-09-11-technical-batch-x-manifest.md
+  read:
+    description: >-
+      Locate and quote. AX21-1: "read / scan -> agy -> Copilot Enterprise -> Sonnet (locator +
+      verbatim; CC verifies)". The "CC verifies" half is not a courtesy -- it is why a
+      not-yet-admitted reader is still a coherent idea: a locator can be re-checked, so the
+      failure mode is a wasted call rather than a false record.
+    routing_table_role: null   # routing-table.yaml's fan_out is retrieval-only multi-head, a different shape
+    order:
+      - provider: antigravity
+        note: >-
+          NOT ADMITTED. Licence permits (operator's own subscription) but no admission
+          measurement exists -- `[#627]` records a single `analysis` admission, which is a
+          different role. AX21-1 ranks it first here; the ranking is declared, not earned.
+        admission:
+          verdict: unevaluated
+          floors: ["AX22-1"]
+      - provider: copilot-enterprise
+        note: "NOT ADMITTED and licence unknown -- the same two independent blocks as on implement."
+        admission:
+          verdict: unevaluated
+          floors: ["AX22-1"]
+      - provider: anthropic
+        model: claude-sonnet-5
+        note: "The live terminal fallback."
+        admission:
+          verdict: admitted
+          decided_by: operator
+          decided_on: "2026-09-11"
+          evidence: docs/audits/2026-09-11-technical-batch-x-manifest.md
+  verify:
+    description: >-
+      Confirm the work holds. AX21-1: "verify -> Sonnet + the lane's RED-first tests." The tests
+      are the load-bearing half and they are not a provider, which is why this role has exactly
+      one entry rather than a chain: if the tests do not pass, no fallback model changes that.
+    routing_table_role: null
+    order:
+      - provider: anthropic
+        model: claude-sonnet-5
+        note: "Sonnet, alongside the lane's RED-first tests (AX21-1)."
+        admission:
+          verdict: admitted
+          decided_by: operator
+          decided_on: "2026-09-11"
+          evidence: docs/audits/2026-09-11-technical-batch-x-manifest.md
 
 models:
   claude-sonnet-5:

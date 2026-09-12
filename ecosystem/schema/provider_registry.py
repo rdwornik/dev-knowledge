@@ -39,7 +39,13 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, StrictStr, model_validator
 
-SCHEMA_VERSION = "1.0.0"
+#: 1.1.0 — `[#691]` adds the THIRD collection (`roles:`: ordered fallback lists, per-entry
+#: admission, the reviewer-not-producer flag) and the per-provider `licence:` block. MINOR, not
+#: major: both additions are optional, so every pre-`[#691]` registry still validates unchanged.
+#: Not a member of `validate_reconciliation._SPEC_REGISTRY` (which registers `handoff-process`
+#: and `prompt-template` only), so this bump carries no reconciliation obligation — checked
+#: rather than assumed.
+SCHEMA_VERSION = "1.1.0"
 
 #: A verdict's closed vocabulary. `unevaluated` is a first-class member on purpose: a provider
 #: nobody has run through the admission pipeline is a KNOWN state, not a missing one, and
@@ -171,10 +177,70 @@ class RoleAdmission(_Contract):
         return self
 
 
+#: Whether this repo's use of a provider is permitted by the terms it is held under —
+#: `[#691]` leg (c), which the row records as absent entirely ("grepped: zero hits for
+#: licence/license/terms"). A CLOSED vocabulary with `unknown` as a first-class member, for the
+#: same reason `Verdict` carries `unevaluated`: a licence nobody has ruled on is a KNOWN state,
+#: and saying so is what stops the absence being read as permission.
+#:
+#: `restricted` is NOT "forbidden" — it is *permitted for some uses and not others*, which is
+#: the honest shape for a seat licensed to an employer. The router treats anything other than
+#: `permitted` as ineligible for a PRODUCING role; it is deliberately not this schema's job to
+#: decide which, because that is a functional question and belongs to the operator (ADR-108 §A).
+Licence = Literal["permitted", "restricted", "unknown", "not-applicable"]
+
+
+class ProviderLicence(_Contract):
+    """What terms a provider is used under here, and who says so.
+
+    Provenance-bearing on the same principle as `RoleAdmission`: a bare `permitted` is an
+    assertion. `unknown` is the one verdict that needs no decider — nobody decided it, which is
+    precisely what it records — but it still carries a `reason` so the next reader learns what
+    the open question actually is rather than re-deriving it.
+    """
+
+    status: Licence
+    #: MANDATORY on every licence row. For `unknown` it states the open question; for the other
+    #: three it states the basis. There is no shape of this field that is legitimately absent:
+    #: a licence status with no stated ground is the drift this field exists to end.
+    reason: StrictStr
+    decided_by: Optional[StrictStr] = None
+    decided_on: Optional[datetime.date] = None
+
+    @model_validator(mode="after")
+    def _a_decided_licence_carries_its_decider(self) -> "ProviderLicence":
+        """`unknown` is exempt; every other status names who ruled it and when.
+
+        The asymmetry is the point. `unknown` means no one has decided, so demanding a decider
+        would make the honest state unexpressible and push every unruled provider into a
+        fabricated `permitted` — the exact failure this vocabulary exists to prevent.
+        """
+        if self.status == "unknown":
+            return self
+        missing = [
+            name
+            for name, value in (("decided_by", self.decided_by), ("decided_on", self.decided_on))
+            if value is None or (isinstance(value, str) and not value.strip())
+        ]
+        if missing:
+            raise ValueError(
+                f"licence status `{self.status}` is missing {', '.join(missing)} — a licence "
+                f"ruling without a decider and a date is an assertion, not a record; use "
+                f"`unknown` when nobody has actually decided"
+            )
+        return self
+
+
 class Provider(_Contract):
     """A vendor, the CLI that reaches it, and the host-side config that pins it."""
 
     display_name: StrictStr
+    #: `[#691]` leg (c). OPTIONAL, and its absence means exactly `unknown` — see
+    #: `ProviderRegistry.licence_of`. Optionality is deliberate rather than lax: making it
+    #: required would have forced a licence verdict onto all seven existing rows in the same
+    #: commit that introduced the field, which is how a registry acquires six fabricated
+    #: values and one real one.
+    licence: Optional[ProviderLicence] = None
     #: The token `protocols/AI_COUNCIL_PROCESS.md` names this provider by. It is a SEPARATE
     #: string from the registry key for two of five providers (`anthropic`/`claude`,
     #: `xai`/`grok`), which is exactly why it is data: without it the checker holding the
@@ -289,11 +355,224 @@ class Model(_Contract):
         return self
 
 
+#: The six roles AX21-1's role->model table names, closed and in its order. Held here AND in
+#: `scripts/cost_usage_telemetry.ROLES` — two copies, which needs justifying rather than
+#: hand-waving: the emitter must not import a pydantic schema to validate one string (it is a
+#: leaf module with a deliberately thin import surface), and this module must not import a
+#: script (Layer-2 models-only). `tests/test_provider_roles.py` asserts the two are equal, which
+#: is this repo's standing answer to a value with two unavoidable homes — one checker, not one
+#: import. NOT shared with `ecosystem/routing-table.yaml`'s coarse
+#: producer/reviewer/adversarial/fan_out vocabulary: that table routes a role to a CLI, this one
+#: keys a measured pass rate, and collapsing them would make one of the two lie.
+ROLE_NAMES: frozenset[str] = frozenset(
+    {"orchestrate", "plan", "implement", "review", "read", "verify"}
+)
+
+
+class RoleEntry(_Contract):
+    """One position in a role's ORDERED fallback list — `[#691]` leg (a).
+
+    Names a PROVIDER, optionally pinning a MODEL. That direction is forced by the clauses
+    rather than chosen: AX22-5 says *"the router refuses a PROVIDER not on the repo's list"*
+    and AX22-1 measures *"the first ten tasks per PROVIDER"*, so admission and the allowlist are
+    both provider-keyed. AX21-1's table mixes the two levels (`Copilot Enterprise` is a
+    provider, `Grok 4.6` and `Sonnet` are models), and `model:` is how that is expressed without
+    a second vocabulary.
+    """
+
+    provider: StrictStr
+    #: Pin the exact model, when the role's entry means a specific one rather than "whatever
+    #: this provider serves". Must be a registered model id belonging to `provider` — asserted
+    #: at the registry level, where both collections are visible.
+    model: Optional[StrictStr] = None
+    #: This provider's admission verdict FOR THIS ROLE. Reuses `RoleAdmission` verbatim rather
+    #: than inventing a parallel grammar: same provenance rules, same `unevaluated` default,
+    #: same refusal of a bare verdict.
+    #:
+    #: ABSENT MEANS `unevaluated`, which means NOT ADMITTED. That equation is the whole of the
+    #: Half A / Half B boundary (AX23-2): a provider is listed, addressable and trip-testable
+    #: while holding no admission, and only a positive `admitted` verdict with provenance makes
+    #: it routable. Silence never reads as permission.
+    admission: Optional[RoleAdmission] = None
+    #: THIS ENTRY's position is conditional on admission, even where its ROLE is not
+    #: admission-gated. AX22-2 is the clause that forces a per-entry flag rather than a
+    #: per-role one, and it is worth spelling out because the two look interchangeable until
+    #: they are not: *"Codex terra reviews unless Codex produced; then the reviewer is Grok
+    #: (AFTER ADMISSION) or Sonnet."* That conditions ONE ENTRY on admission — Grok's — while
+    #: leaving the `review` role itself ungated, which is what lets Codex terra remain the
+    #: routable reviewer while recorded NOT ADMITTED.
+    #:
+    #: A role-level gate cannot express that. Gating `review` would refuse Codex too (a
+    #: behaviour change no clause asked for); leaving it ungated entirely would route to Grok
+    #: before its admission, which AX22-2 forbids in as many words. So the condition lives
+    #: where the clause puts it: on the entry.
+    requires_admission: bool = False
+    #: Why this entry sits where it sits — the DECLARED rationale, which the re-rank may later
+    #: override. Optional; an entry with none is exactly as valid.
+    note: Optional[StrictStr] = None
+
+
+class Role(_Contract):
+    """A role's ordered fallback list plus the two rules that are not re-rankable.
+
+    `[#691]`'s three legs land here: ORDER is `order`'s list position, ADMISSION is each
+    entry's `admission`, and LICENCE is the provider's (checked across collections below).
+    """
+
+    #: MANDATORY. A role entry whose purpose is not stated is a list of names.
+    description: StrictStr
+    order: tuple[RoleEntry, ...]
+    #: AX21-2's re-rank applies — `provider-registry.yaml` holds the DECLARED order and the
+    #: router re-ranks by measured pass rate per cost. `False` pins the declared order against
+    #: measurement, and it is used exactly once, for the reason this lane's contract states:
+    #: *"orchestration never routes to a cheaper tier, which is the one line of the role table
+    #: that is not subject to re-ranking."* A cheap model that happens to score well must not be
+    #: promoted into the seat that decides what the expensive ones do.
+    rerankable: bool = True
+    #: AX22-2 — *"Reviewer != producer, always."* `True` makes the router refuse a candidate
+    #: that produced the artifact under review. Set on `review`; the registry encodes the
+    #: exclusion, the router enforces it before dispatch, and the tally records both roles.
+    excludes_producer: bool = False
+    #: The `ecosystem/routing-table.yaml` role this one corresponds to, when one does. NOT a
+    #: second routing authority: register ruling Z-G3 A2 places the authoritative role -> CLI
+    #: table there, and `ProviderRegistry` asserts agreement rather than competing. `None` where
+    #: the correspondence is genuinely absent — writing a lossy mapping to fill the field would
+    #: manufacture the drift the link exists to detect.
+    routing_table_role: Optional[StrictStr] = None
+
+    @model_validator(mode="after")
+    def _the_order_is_non_empty_and_names_each_provider_once(self) -> "Role":
+        if not self.order:
+            raise ValueError(
+                "`order` is empty — a role with no candidates is not a fallback list, and an "
+                "empty list makes the router's refusal indistinguishable from its success"
+            )
+        seen: set[str] = set()
+        for i, entry in enumerate(self.order):
+            _require_lowercase(f"order[{i}].provider", entry.provider)
+            if entry.provider in seen:
+                raise ValueError(
+                    f"provider `{entry.provider}` appears twice in this role's order — a "
+                    f"fallback list is a ranking, and a provider holding two positions has no "
+                    f"defined rank once the re-rank reorders it"
+                )
+            seen.add(entry.provider)
+        return self
+
+
 class ProviderRegistry(_Contract):
-    """The whole file: `providers:` and `models:`, plus the cross-collection invariants."""
+    """The whole file: `providers:`, `models:`, `roles:`, plus the cross-collection invariants."""
 
     providers: dict[StrictStr, Provider]
     models: dict[StrictStr, Model]
+    #: `[#691]` — the THIRD collection. The row is explicit that this is not a rename of the
+    #: per-model `roles:` list: *"today's `roles:` is a set, and a set cannot express a fallback
+    #: chain ... a role entry is a third thing, not a field rename."* Both survive and answer
+    #: different questions — `Model.roles` is "which roles does this model hold", this is "who
+    #: answers for this role, in what order, and who answers when the first is ineligible".
+    #:
+    #: OPTIONAL, so the registry stays loadable by every pre-`[#691]` consumer.
+    roles: dict[StrictStr, Role] = {}
+
+    @model_validator(mode="after")
+    def _every_role_is_a_known_name(self) -> "ProviderRegistry":
+        unknown = sorted(set(self.roles) - ROLE_NAMES)
+        if unknown:
+            raise ValueError(
+                f"role(s) {unknown} are not in the AX21-1 vocabulary {sorted(ROLE_NAMES)} — a "
+                f"role is a lookup key the router and the re-rank both match raw, so an "
+                f"invented name resolves nowhere while looking like configuration"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _every_role_entry_names_a_declared_provider_and_model(self) -> "ProviderRegistry":
+        for role, spec in self.roles.items():
+            for i, entry in enumerate(spec.order):
+                if entry.provider not in self.providers:
+                    raise ValueError(
+                        f"role `{role}` order[{i}] names undeclared provider "
+                        f"`{entry.provider}`"
+                    )
+                if entry.model is None:
+                    continue
+                model = self.models.get(entry.model)
+                if model is None:
+                    raise ValueError(
+                        f"role `{role}` order[{i}] pins undeclared model `{entry.model}`"
+                    )
+                if model.provider != entry.provider:
+                    raise ValueError(
+                        f"role `{role}` order[{i}] pins model `{entry.model}`, which belongs "
+                        f"to provider `{model.provider}`, not `{entry.provider}` — a pin that "
+                        f"crosses providers makes the allowlist check and the admission check "
+                        f"disagree about which vendor is being routed to"
+                    )
+        return self
+
+    @model_validator(mode="after")
+    def _an_admitted_entry_is_not_refused_at_its_model(self) -> "ProviderRegistry":
+        """The two admission records cannot contradict each other.
+
+        `Model.role_admission` already carries per-model verdicts (grok-4.6's refused `fan-out`
+        is the live instance). A role entry pinning that model must not claim `admitted` for a
+        role the model row records as `refused` — otherwise the same fact reads two ways
+        depending on which collection a consumer happened to open, which is the drift the whole
+        registry exists to end.
+        """
+        for role, spec in self.roles.items():
+            for i, entry in enumerate(spec.order):
+                if entry.admission is None or entry.admission.verdict != "admitted":
+                    continue
+                if entry.model is None:
+                    continue
+                model_verdict = self.models[entry.model].role_admission.get(role)
+                if model_verdict is not None and model_verdict.verdict == "refused":
+                    raise ValueError(
+                        f"role `{role}` order[{i}] records `{entry.model}` as admitted while "
+                        f"its model row records role `{role}` as refused — one fact, two "
+                        f"answers, depending on which collection the reader opened"
+                    )
+        return self
+
+    @model_validator(mode="after")
+    def _an_admitted_entry_has_a_permitting_licence(self) -> "ProviderRegistry":
+        """`[#691]` leg (c), in its Done-when's own words: *"only providers that passed intake
+        #75's seeded-defect admission bar, AND WHOSE LICENCE PERMITS THE USE, may appear on
+        it."*
+
+        Enforced on ADMISSION rather than on LISTING, and the distinction is load-bearing. A
+        provider must be LISTABLE while unlicensed, because this lane's contract requires the
+        four non-Claude entries to be present and recorded NOT ADMITTED precisely so the
+        router's refusals can be trip-tested against them. What the Done-when is protecting is
+        that nothing becomes ROUTABLE without a licence — and `admitted` is the only state that
+        makes an entry routable. Listed is not eligible.
+        """
+        for role, spec in self.roles.items():
+            for i, entry in enumerate(spec.order):
+                if entry.admission is None or entry.admission.verdict != "admitted":
+                    continue
+                licence = self.providers[entry.provider].licence
+                status = licence.status if licence is not None else "unknown"
+                if status != "permitted":
+                    raise ValueError(
+                        f"role `{role}` order[{i}] admits provider `{entry.provider}` whose "
+                        f"licence is `{status}` — a provider may be LISTED under any licence "
+                        f"(that is what makes the router's refusal trip-testable), but only a "
+                        f"`permitted` one may be admitted, which is the state that makes it "
+                        f"routable"
+                    )
+        return self
+
+    def licence_of(self, provider_id: str) -> Licence:
+        """This provider's licence status, with an ABSENT row reading as `unknown`.
+
+        The default is the conservative one on purpose: absence must never resolve to
+        `permitted`, because the whole point of the field is that an unruled licence is not a
+        permission.
+        """
+        provider = self.providers[provider_id]
+        return provider.licence.status if provider.licence is not None else "unknown"
 
     @model_validator(mode="after")
     def _every_model_names_a_declared_provider(self) -> "ProviderRegistry":
@@ -354,11 +633,16 @@ class ProviderRegistry(_Contract):
 
 
 __all__ = [
+    "ROLE_NAMES",
     "SCHEMA_VERSION",
+    "Licence",
     "Model",
     "Pin",
     "Provider",
+    "ProviderLicence",
     "ProviderRegistry",
+    "Role",
     "RoleAdmission",
+    "RoleEntry",
     "Verdict",
 ]

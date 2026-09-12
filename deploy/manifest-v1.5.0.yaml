@@ -1293,3 +1293,70 @@ doc_shapes:
   protocols/ESSENTIALS.md:
     spine: []
     freshness_gated: true
+
+# ---------------------------------------------------------------------------
+# providers: -- the PER-REPO provider allowlist. `[#691]` / AX22-5, verbatim:
+#   "Per-repo provider allowlist in the floor. The deploy manifest carries
+#    `providers.allowed` per consumer; work repositories may exclude paid
+#    third-party APIs; the router refuses a provider not on the repo's list
+#    (RED-first)."
+#
+# WHY THE MANIFEST AND NOT THE REGISTRY. AX22-5 names this file, and the reason
+# holds up: `ecosystem/provider-registry.yaml` is a HUB surface describing what
+# exists, while the allowlist is a PER-CONSUMER policy about what each repo may
+# reach. The manifest is already the per-consumer carrier, so the allowlist rides
+# the surface that already knows which repo is which rather than teaching the
+# registry a consumer dimension it does not otherwise have.
+#
+# INERT TO deploy/tool.py, exactly as `components:` and `doc_shapes:` are -- the
+# tool reads only `carriers:`. The reader is `scripts/provider_router.py`, which
+# REFUSES a provider absent from the acting repo's list. A new top-level section
+# rather than a field on each carrier, because the allowlist is not carried TO a
+# consumer as an artifact; it is a fact ABOUT the consumer that the hub enforces.
+#
+# KEYS ARE THE ADR-104 FLEET IDS -- the same nine `ecosystem/parity-surfaces.yaml`
+# declares, so the two roster surfaces cannot silently disagree about who is in
+# the fleet. `default:` is what an UNLISTED repo gets, and it is deliberately the
+# most restrictive entry rather than the most permissive: an unknown repo is one
+# nobody has ruled on, and a permissive default would make "not yet considered"
+# indistinguishable from "cleared".
+#
+# LISTING IS NECESSARY, NOT SUFFICIENT. A provider on a repo's list is still
+# refused by the router unless it is ALSO admitted (AX22-1) and licence-permitting
+# (`[#691]` leg c). The three conditions are independent and all three bind; the
+# allowlist is the only one that varies per repo.
+# ---------------------------------------------------------------------------
+providers:
+  allowed:
+    # The hub. Develops the methodology, so it reaches every configured provider
+    # that clears the other two gates. `google` is absent because the CLI is
+    # RETIRED (2026-08-26); `deepseek` because it is not a provider of this fleet
+    # on any surface. Neither absence is a policy exclusion -- both are the
+    # registry's own recorded state, and listing a dead route would be the kind of
+    # typed-in claim that goes stale at the next commit.
+    .dev-knowledge: [anthropic, openai, copilot-enterprise, xai, antigravity]
+    # Consumers (role: consumer in ecosystem/parity-surfaces.yaml).
+    ai-council: [anthropic, openai, xai, antigravity]
+    # WORK REPOSITORY -- AX22-5's own carve-out ("work repositories may exclude
+    # paid third-party APIs"). `xai` is excluded because grok is PAY-PER-CALL on
+    # the operator's personal credential (measured $0.037/call, 2026-08-26), and
+    # spending a personal pay-per-call credential on employer work is the exact
+    # shape that clause exists to prevent. `copilot-enterprise` is excluded here
+    # for the converse reason and it is the sharper one: its seat is metered to
+    # the BY-Product-Development org, so it is the one provider whose licence
+    # question points TOWARD this repo rather than away from it -- and until the
+    # operator rules that question (recorded `unknown` in the registry), the
+    # conservative list is the one that does not presume the answer.
+    corp-monorepo: [anthropic, openai]
+    # Pre-deploy members. Listed with the conservative default rather than omitted,
+    # so a repo onboarding does not silently inherit `default:` mid-arc.
+    corp-ops: [anthropic]
+    corp-sca-time-automation: [anthropic]
+    demo-prep: [anthropic]
+    life-architect: [anthropic]
+    terminal-setup: [anthropic]
+    win-tooling: [anthropic]
+  # An unlisted repo gets this. Anthropic only -- the runtime the fleet is
+  # developed in and the one provider with a `permitted` licence and an `admitted`
+  # verdict in every role. Restrictive by construction: see the section note.
+  default: [anthropic]

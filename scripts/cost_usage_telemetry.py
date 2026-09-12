@@ -58,7 +58,25 @@ CALL SURFACE
         lane_id="lane-f-6-observability-otel",
         batch_id="batch-e",
         substrate="local",
+        role="implement",              # [#691] -- one of ROLES
+        outcome="passed",              # [#691] -- one of CALL_OUTCOMES
+        reviewed_by="gpt-5.6-terra",   # [#691] -- AX22-2, never the producing model
     )
+
+THE `[#691]` EXTENSION -- `role`, `outcome`, `reviewed_by` (AX21-2 / AX22-2). AX21-2 names the
+re-rank's input verbatim: *"every call records model, tokens, cost and outcome (tests green?
+review HIGH-free?) in the tally"*. Model, tokens and cost were emitted here from day one; the
+three fields above are the right-hand side of that ratio, and they are an EXTENSION of this
+emitter rather than a second one because the exists-before-build answer for `[#691]` step 2 is
+that AX5-1's telemetry already exists -- this module IS it. What it could not answer was
+per-ROLE pass rate (a provider strong at `read` and weak at `implement` has no single
+meaningful rate), whether the WORK PRODUCT passed as opposed to the CALL succeeding, and who
+reviewed -- the last being AX22-2's *"the tally records both roles"*, without which
+reviewer-not-producer is unauditable after the fact.
+
+All three are OPTIONAL: a span carrying none is valid, the pre-`[#691]` call surface is
+unchanged, and a caller with no role to declare writes none rather than a fabricated one. All
+three are REFUSED when malformed, before the row is built, so a refusal leaves no partial write.
 
 Returns the new row id (`int`) when the resolved collector durably stores the span (the default,
 `AtRestExporter`); a future live exporter may return `None` for a fire-and-forget export. Every
@@ -117,6 +135,38 @@ _LIVE_COLLECTOR_PACKAGES: dict[str, str] = {
     "phoenix": "opentelemetry-sdk + opentelemetry-exporter-otlp* (Phoenix ingests standard OTLP)",
     "langfuse": "opentelemetry-sdk + opentelemetry-exporter-otlp* (Langfuse's self-hosted OTLP ingest endpoint)",
 }
+
+#: The ROLE vocabulary, closed -- `[#691]` / AX21-1's role->model table, verbatim and in its
+#: order: orchestrate / plan -> implement -> review -> read -> verify. (AX21-1 writes
+#: "read / scan"; the token is `read`, hyphen-only names per the lane's done-contract item 4.)
+#:
+#: WHY CLOSED. A role is a LOOKUP KEY on three surfaces -- the registry's `roles:` collection,
+#: `provider_router.route()`, and the re-rank's GROUP BY. An open vocabulary makes a typo
+#: (`implment`) emit a span every one of those three silently drops, which is the
+#: present-but-unread failure mode `ecosystem/schema/provider_registry.py` already refuses with
+#: `extra="forbid"`. Deliberately NOT shared with `routing-table.yaml`'s coarse
+#: producer/reviewer/adversarial/fan_out vocabulary: that table routes a role to a CLI, this one
+#: keys a measured pass rate, and collapsing them would make one of the two lie.
+ROLES: frozenset[str] = frozenset(
+    {"orchestrate", "plan", "implement", "review", "read", "verify"}
+)
+
+#: The WORK-PRODUCT outcome, closed -- AX21-2's parenthetical ("tests green? review
+#: HIGH-free?"), which is a DIFFERENT fact from whether the HTTP call succeeded. A call that
+#: returns cleanly and produces code failing the lane's tests is `failed` here and carries no
+#: `error.type`. The call-level failure axis stays `error.type`; these never merge.
+#:
+#: `unknown` IS FIRST-CLASS, for the reason `telemetry_emit.py` states on unresolved coverage
+#: (constraint 2, "UNRESOLVED COVERAGE IS `unknown`, NEVER `0`"): a call whose product has not
+#: been judged yet is a KNOWN state. Omitting the field instead would make an unjudged call
+#: indistinguishable from a passing one to any rate computed as `passed / (passed + failed)`,
+#: which silently inflates every provider's measured rate -- the exact defect AX21-2's
+#: "measured, not declared" clause exists to prevent.
+#:
+#: The tokens deliberately do NOT reuse `telemetry_emit.OUTCOMES` (`pass`/`block`/`error`).
+#: Those label a GATE fire. Sharing the token `pass` across the two stores would make two
+#: different facts indistinguishable in any join across the two tables.
+CALL_OUTCOMES: frozenset[str] = frozenset({"passed", "failed", "unknown"})
 
 #: `genai_spans` -- one row per model-call span. `attributes_json` carries the full
 #: OTel-GenAI-shaped attribute dict (the `gen_ai.*` + `devknowledge.*` mapping from B-1 table 1);
@@ -286,6 +336,52 @@ def _check_number(label: str, value: Any) -> None:
             f"non-standard JSON tokens that a strict consumer refuses")
 
 
+def _check_vocabulary(label: str, value: Any, allowed: frozenset[str]) -> None:
+    """A closed-vocabulary field: absent, or exactly one of `allowed`.
+
+    CASE-SENSITIVE AND UNTRIMMED-REFUSING, for the reason
+    `ecosystem/schema/provider_registry._require_lowercase` already states about this repo's
+    other lookup keys: every consumer matches these RAW, so silently normalising `IMPLEMENT`
+    to `implement` would make the committed value differ from the value, while accepting it
+    raw would make a role resolve nowhere. Refusal is the only option that leaves the store
+    readable.
+    """
+    if value is None:
+        return
+    if not isinstance(value, str) or value != value.strip() or value not in allowed:
+        raise GenAiTelemetryError(
+            f"{label} must be one of {sorted(allowed)} or None, got {value!r} -- this is a "
+            f"lookup key the registry, the router and the re-rank all match raw, so an "
+            f"unrecognised token emits a span every one of them silently drops"
+        )
+
+
+def _check_reviewer_is_not_the_producer(
+    reviewed_by: Any, response_model: Any, request_model: Any
+) -> None:
+    """AX22-2 (*"Reviewer != producer, always"*) enforced AT THE TALLY.
+
+    The registry encodes the exclusion and `provider_router` enforces it before dispatch --
+    but this is the only leg that can catch a violation AFTER the fact, and the record is what
+    the AX8-2 log-review routine reads. A tally that happily wrote `reviewed_by ==
+    response_model` would make the violation invisible in exactly the surface built to expose
+    it.
+
+    FALLS BACK TO `request_model` when no response model was recorded, and that fallback is
+    load-bearing rather than tidy: a caller who simply omits `response_model` would otherwise
+    buy an unchecked self-review, which turns an optional field into a bypass.
+    """
+    if reviewed_by is None:
+        return
+    producer = response_model if response_model is not None else request_model
+    if producer is not None and str(reviewed_by).strip() == str(producer).strip():
+        raise GenAiTelemetryError(
+            f"reviewed_by is {reviewed_by!r}, which is the producing model -- AX22-2 forbids "
+            f"a model reviewing its own output, and a tally that recorded it would hide the "
+            f"violation from the log-review routine that reads this store"
+        )
+
+
 def emit_genai_span(
     system: str,
     request_model: str,
@@ -304,6 +400,9 @@ def emit_genai_span(
     lane_id: str | None = None,
     batch_id: str | None = None,
     substrate: str | None = None,
+    role: str | None = None,
+    outcome: str | None = None,
+    reviewed_by: str | None = None,
     error_type: str | None = None,
     events: Sequence[Mapping[str, Any]] | None = None,
     collector: str | None = None,
@@ -364,6 +463,12 @@ def emit_genai_span(
     for label, value in (("cost_estimated_usd", cost_estimated_usd), ("cost_imputed_usd", cost_imputed_usd)):
         _check_number(label, value)
 
+    # `[#691]` AX21-2 / AX22-2 -- the re-rank's three inputs, validated BEFORE the row is
+    # built, so a refusal leaves no partial write exactly as the collector refusal below does.
+    _check_vocabulary("role", role, ROLES)
+    _check_vocabulary("outcome", outcome, CALL_OUTCOMES)
+    _check_reviewer_is_not_the_producer(reviewed_by, response_model, request_model)
+
     # Refuse an unavailable/unknown collector BEFORE building the row -- nothing is written.
     exporter = resolve_exporter(collector, db_path=db_path)
 
@@ -398,6 +503,12 @@ def emit_genai_span(
         attrs["devknowledge.batch_id"] = str(batch_id)
     if substrate is not None:
         attrs["devknowledge.substrate"] = str(substrate)
+    if role is not None:
+        attrs["devknowledge.role"] = str(role)
+    if outcome is not None:
+        attrs["devknowledge.outcome"] = str(outcome)
+    if reviewed_by is not None:
+        attrs["devknowledge.reviewed_by"] = str(reviewed_by)
     if error_type is not None:
         attrs["error.type"] = str(error_type)
     attrs["devknowledge.run_id"] = resolved_run_id
