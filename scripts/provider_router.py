@@ -394,8 +394,331 @@ def record_routing_call(
     )
 
 
+# =============================================================================================
+# STEP 5 -- the re-rank (AX21-2) and the admission report
+# =============================================================================================
+#
+# THE FAILURE THIS SECTION IS WRITTEN AGAINST, from the lane contract: *"a router re-ranked on
+# nothing measured is a fixed list wearing a router's name."* A re-rank that quietly hands back
+# the declared order when it has no data looks IDENTICAL to one that measured and confirmed it,
+# and the difference between those two is the whole of AX21-2. So every result below carries
+# `measured` and `basis`: a caller can always tell a measured order from a declared one without
+# going to the tally itself.
+#
+# THE METRIC is AX21-2's own words -- "measured pass rate per cost":
+#
+#     score = pass_rate / mean_cost_per_call        pass_rate = passed / judged
+#
+# and each term has a decision behind it:
+#
+#   `judged` EXCLUDES `unknown`. An unjudged call is not evidence of a pass. Leaving it in the
+#   denominator understates a provider; dropping it from the record entirely would let a
+#   half-measured provider read as a fully-measured one. It is excluded from the rate and
+#   reported in the count.
+#
+#   A MINIMUM SAMPLE, defaulting to AX22-1's ten. A provider that passed its only call has a
+#   measured rate of 1.0, and promoting on that is ranking on noise while calling it
+#   measurement. Below the floor the declared position stands and the reason is reported.
+#
+#   NO RECORDED COST MEANS NO SCORE, not a sentinel. A subscription-metered provider records no
+#   per-call cost, so pass-rate-per-cost is not computable for it. Infinity would make it
+#   unbeatable and zero would make it last; both are fabrications. It is reported unscored and
+#   keeps its declared position, which is the only answer the data supports.
+
+#: AX22-1's measurement window -- "the first ten tasks per provider are the measurement".
+#: Reused here as the re-rank's floor rather than a second number invented for the purpose.
+DEFAULT_MIN_SAMPLE = 10
+
+
+@dataclass(frozen=True)
+class ProviderStats:
+    """One provider's measured record for one role, read from the `genai_spans` tally."""
+
+    provider: str
+    calls: int
+    judged: int
+    passed: int
+    failed: int
+    unknown: int
+    cost_usd: float
+
+    @property
+    def pass_rate(self) -> Optional[float]:
+        """`passed / judged`, or `None` when nothing has been judged.
+
+        `None` rather than `0.0`: a provider nobody has judged has NO measured rate, and a zero
+        would read as "measured, and it failed everything" -- the same
+        unresolved-is-not-a-measured-zero distinction `telemetry_emit` draws on coverage.
+        """
+        return (self.passed / self.judged) if self.judged else None
+
+    @property
+    def mean_cost(self) -> Optional[float]:
+        return (self.cost_usd / self.calls) if self.calls and self.cost_usd else None
+
+    @property
+    def score(self) -> Optional[float]:
+        """Pass rate per cost — `None` when either term is unmeasured. See the section note."""
+        rate, cost = self.pass_rate, self.mean_cost
+        if rate is None or cost is None:
+            return None
+        return rate / cost
+
+
+@dataclass(frozen=True)
+class RerankResult:
+    """A role's order, plus whether measurement produced it.
+
+    `measured` is the field that stops a declared order masquerading as a confirmed one, and
+    `basis` is the sentence a report prints so a human gets the same distinction the caller does.
+    """
+
+    role: str
+    order: list[str]
+    measured: bool
+    basis: str
+    stats: dict[str, ProviderStats]
+
+
+@dataclass(frozen=True)
+class AdmissionRow:
+    """One provider's RECORDED admission state — what the registry says, not a measurement."""
+
+    provider: str
+    admitted_in: list[str]
+    not_admitted_in: list[str]
+    licence: str
+    measured: bool
+    basis: str
+
+
+def measure(role: str, db_path: Optional[Path] = None) -> dict[str, ProviderStats]:
+    """Per-provider stats for `role`, from the `genai_spans` tally.
+
+    Reads the store `cost_usage_telemetry` writes and `record_routing_call` feeds. An absent
+    store is an EMPTY measurement, not an error: before Half B runs there is legitimately
+    nothing to measure, and that is a state the caller handles rather than a failure.
+    """
+    import json
+    import sqlite3
+
+    path = Path(db_path) if db_path is not None else _telemetry.default_db_path()
+    if not Path(path).exists():
+        return {}
+
+    acc: dict[str, dict[str, Any]] = {}
+    with sqlite3.connect(str(path)) as conn:
+        try:
+            rows = conn.execute(
+                "SELECT gen_ai_system, attributes_json FROM genai_spans").fetchall()
+        except sqlite3.DatabaseError:
+            return {}
+    for system, attrs_json in rows:
+        attrs = json.loads(attrs_json)
+        if attrs.get("devknowledge.role") != role:
+            continue
+        bucket = acc.setdefault(
+            system, {"calls": 0, "passed": 0, "failed": 0, "unknown": 0, "cost": 0.0})
+        bucket["calls"] += 1
+        outcome = attrs.get("devknowledge.outcome")
+        if outcome in ("passed", "failed", "unknown"):
+            bucket[outcome] += 1
+        bucket["cost"] += float(attrs.get("devknowledge.cost.estimated_usd") or 0.0)
+
+    return {
+        provider: ProviderStats(
+            provider=provider,
+            calls=b["calls"],
+            judged=b["passed"] + b["failed"],
+            passed=b["passed"],
+            failed=b["failed"],
+            unknown=b["unknown"],
+            cost_usd=b["cost"],
+        )
+        for provider, b in acc.items()
+    }
+
+
+def rank_by_score(stats: dict[str, ProviderStats],
+                  min_sample: int = DEFAULT_MIN_SAMPLE) -> list[str]:
+    """Providers with a computable score and a sufficient sample, best first.
+
+    Providers that are unscored or under-sampled are ABSENT from this list rather than pushed
+    to the end — `rerank()` reinserts them at their declared positions, because "no measurement"
+    is not the same claim as "measured worst" and the ordering must not conflate them.
+    """
+    scored = [s for s in stats.values() if s.score is not None and s.judged >= min_sample]
+    return [s.provider for s in sorted(scored, key=lambda s: s.score, reverse=True)]
+
+
+def rerank(
+    role: str,
+    repo: str,
+    *,
+    db_path: Optional[Path] = None,
+    registry_path: Optional[Path] = None,
+    manifest: Optional[Path] = None,
+    min_sample: int = DEFAULT_MIN_SAMPLE,
+) -> RerankResult:
+    """Re-rank `role`'s eligible candidates by measured pass rate per cost — AX21-2.
+
+    Returns the DECLARED order, unchanged and with `measured=False`, whenever measurement
+    cannot support a reorder: a non-re-rankable role, an empty tally, or every provider under
+    the sample floor. In each case `basis` says which, because the three are different facts
+    and a caller that cannot tell them apart is back to a fixed list wearing a router's name.
+    """
+    spec = _role_spec(role, registry_path)
+    declared = [c.provider for c in route(role, repo, registry_path=registry_path,
+                                          manifest=manifest, strict=False)]
+    stats = measure(role, db_path)
+
+    if not spec.get("rerankable", True):
+        return RerankResult(
+            role=role, order=declared, measured=False, stats=stats,
+            basis=("role is not rerankable (AX21-1: orchestration never routes to a cheaper "
+                   "tier -- the one line of the role table not subject to re-ranking). The "
+                   "declared order stands regardless of what the tally says"))
+
+    relevant = {p: s for p, s in stats.items() if p in declared}
+    if not any(s.calls for s in relevant.values()):
+        return RerankResult(
+            role=role, order=declared, measured=False, stats=stats,
+            basis=("no measured calls for this role in the tally -- the declared order stands, "
+                   "and it is DECLARED rather than confirmed. Half A places no calls "
+                   "(AX23-2), so an empty tally is this arc's expected state"))
+
+    ranked = rank_by_score(relevant, min_sample)
+    if not ranked:
+        judged = {p: s.judged for p, s in relevant.items() if s.calls}
+        return RerankResult(
+            role=role, order=declared, measured=False, stats=stats,
+            basis=(f"every provider is below the minimum sample of {min_sample} (AX22-1's "
+                   f"measurement window) or has no recorded cost to score against; judged "
+                   f"counts: {judged}. Promoting on this would be ranking on noise while "
+                   f"calling it measurement"))
+
+    # Reinsert the unscored providers at their DECLARED positions rather than appending them.
+    # Appending would encode "unmeasured is worse than measured-badly", which the data does not
+    # say; holding position encodes "we learned nothing about this one", which it does.
+    order: list[str] = []
+    ranked_iter = iter(ranked)
+    ranked_set = set(ranked)
+    for provider in declared:
+        order.append(next(ranked_iter) if provider in ranked_set else provider)
+
+    return RerankResult(
+        role=role, order=order, measured=True, stats=stats,
+        basis=(f"re-ranked {len(ranked)} of {len(declared)} candidate(s) by measured pass rate "
+               f"per cost over {sum(s.judged for s in relevant.values())} judged call(s); "
+               f"providers with no score or fewer than {min_sample} judged calls held their "
+               f"declared position"))
+
+
+def admission_report(registry_path: Optional[Path] = None) -> list[AdmissionRow]:
+    """Each provider's RECORDED admission state and licence — the contract's step 5, part two.
+
+    *"Report each provider's recorded admission state ... and reporting it is not the same act
+    as measuring it."* This reads the registry's recorded verdicts. It runs no trial task and
+    contacts no provider, which is why `measured` is False on every row and why the basis says
+    so: a report that did not say it could be mistaken for a measurement result.
+
+    Licence rides alongside admission because the two gates are independent, and a report
+    showing only one invites the wrong conclusion — copilot-enterprise is blocked on both, and
+    an admission measurement would not clear its licence.
+    """
+    all_roles = _registry.roles(registry_path)
+    licences = _registry.licences(registry_path)
+    admitted: dict[str, list[str]] = {}
+    not_admitted: dict[str, list[str]] = {}
+    for role, spec in all_roles.items():
+        for entry in spec.get("order") or []:
+            provider = str(entry["provider"])
+            bucket = admitted if _registry.is_admitted(entry) else not_admitted
+            bucket.setdefault(provider, []).append(role)
+            (not_admitted if bucket is admitted else admitted).setdefault(provider, [])
+
+    return [
+        AdmissionRow(
+            provider=provider,
+            admitted_in=sorted(admitted.get(provider, [])),
+            not_admitted_in=sorted(not_admitted.get(provider, [])),
+            licence=licences.get(provider, "unknown"),
+            measured=False,
+            basis=("recorded state, read from the registry. NOT a measurement: AX22-1's bar "
+                   "(>= 8 of 10 tasks green on first review) is Half B's act, and reporting a "
+                   "state is not the same act as measuring it"),
+        )
+        for provider in sorted(set(admitted) | set(not_admitted))
+    ]
+
+
+# --- CLI (done-contract item 4: "Click for a CLI where one is warranted") --------------------
+#
+# WARRANTED because step 5 asks for a REPORT, and a report needs a surface an operator can
+# reach. Deliberately READ-ONLY: `report`, `route` and `rerank` print what the files and the
+# tally say. There is no subcommand that admits a provider, edits the registry, or places a
+# call -- admission is a measurement Half B performs, and a CLI flag that could grant it would
+# be the "declared, not earned" failure AX21-2 names, one keystroke away.
+
+try:
+    import click
+except ImportError:  # pragma: no cover - click is a declared dependency
+    click = None
+
+
+if click is not None:
+
+    @click.group()
+    def cli() -> None:
+        """Read-only provider routing: who answers a role here, who is refused, and why."""
+
+    @cli.command(name="report")
+    @click.option("--registry", type=click.Path(path_type=Path), default=None)
+    def _report(registry: Optional[Path]) -> None:
+        """Each provider's RECORDED admission state and licence."""
+        click.echo("Recorded admission state -- NOT a measurement (AX22-1's bar is Half B's).")
+        click.echo("")
+        for row in admission_report(registry):
+            state = f"admitted in {row.admitted_in}" if row.admitted_in else "NOT ADMITTED"
+            click.echo(f"  {row.provider:<22} {state:<34} licence: {row.licence}")
+
+    @cli.command(name="route")
+    @click.argument("role")
+    @click.option("--repo", default=".dev-knowledge", show_default=True)
+    @click.option("--produced-by", default=None)
+    def _route(role: str, repo: str, produced_by: Optional[str]) -> None:
+        """Who answers ROLE in --repo, and every candidate refused, with its reason."""
+        for verdict in explain(role, repo, produced_by=produced_by):
+            mark = "OK " if verdict.refusal is None else f"{verdict.refusal}:"
+            click.echo(f"  [{verdict.position}] {verdict.provider:<22} {mark} {verdict.reason}")
+
+    @cli.command(name="rerank")
+    @click.argument("role")
+    @click.option("--repo", default=".dev-knowledge", show_default=True)
+    @click.option("--min-sample", default=DEFAULT_MIN_SAMPLE, show_default=True)
+    def _rerank(role: str, repo: str, min_sample: int) -> None:
+        """Re-rank ROLE by measured pass rate per cost, saying whether it measured anything."""
+        result = rerank(role, repo, min_sample=min_sample)
+        click.echo(f"  order   : {result.order}")
+        click.echo(f"  measured: {result.measured}")
+        click.echo(f"  basis   : {result.basis}")
+
+else:  # pragma: no cover
+    cli = None
+
+
 __all__ = [
     "ADMISSION_GATED_ROLES",
+    "AdmissionRow",
+    "DEFAULT_MIN_SAMPLE",
+    "ProviderStats",
+    "RerankResult",
+    "admission_report",
+    "cli",
+    "measure",
+    "rank_by_score",
+    "rerank",
+    "main",
     "Candidate",
     "MANIFEST_PATH_ENV",
     "MANIFEST_RELPATH",
@@ -409,3 +732,19 @@ __all__ = [
     "record_routing_call",
     "route",
 ]
+
+
+def main() -> int:
+    """CLI entrypoint. Read-only by construction — see the CLI section note."""
+    if cli is None:  # pragma: no cover - click is a declared dependency
+        raise RuntimeError(
+            "click is not importable, so the CLI cannot run. It is a declared dependency "
+            "(pyproject.toml); rebuild with `uv sync --locked`. The library half of this "
+            "module does not need it and is unaffected."
+        )
+    cli.main(standalone_mode=False)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
