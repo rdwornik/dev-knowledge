@@ -59,6 +59,24 @@ record it, do not silently absorb it.
 
 ## 2. Walk the queue, one lane at a time
 
+**Open the receipt first, ONCE per batch** (`[#675]` target 3.1 — "per-step minutes recorded into
+the receipt, so the merge stops being one opaque wall number and becomes an itemised one"):
+
+```bash
+uv run --locked python scripts/merge_receipt.py open --slug batch-<n> --batch <n>
+```
+
+**The receipt is a stopwatch, not a runner.** Every command below is the command this walk
+already named; `merge_receipt.py time` runs it, times it, records it, and exits with the
+**child's** code. Strip every prefix and the walk is unchanged — which is the point: an
+integrator will not adopt a tool that takes the merge away from them, and Layer 2 does not
+execute (Critical Rule #4). It records `<n>` minutes against `<step>`; it decides nothing.
+
+There is deliberately **no way to mark a step skipped.** `[#675]` target 3.5: the saving comes
+from removing *assembly*, never from removing the judgement step, and a median reached by cutting
+review or triage is a false pass on that row. This tool can make a step concurrent (`race`) or
+its input pre-assembled. It cannot make one disappear.
+
 For each lane, in order:
 
 **First, verdict the lane's HANDBACK line — before the merge, not after it** (D-1, 2026-09-06:
@@ -66,7 +84,8 @@ For each lane, in order:
 recur silently"):
 
 ```bash
-uv run --locked python scripts/audit.py handback "HANDBACK worktree-lane-<letter>-<id>-<slug> @ <sha> code review=codex HIGH:n MED:n LOW:n"
+uv run --locked python scripts/merge_receipt.py time --slug batch-<n> --step handback --class ceremony -- \
+  uv run --locked python scripts/audit.py handback "HANDBACK worktree-lane-<letter>-<id>-<slug> @ <sha> code review=codex HIGH:n MED:n LOW:n"
 ```
 
 Read the **exit code**, not the prose. `0` merges; `1` refuses and prints ONE line naming what is
@@ -85,12 +104,44 @@ REPORTED, not that a review happened or that the counts are truthful. A lane tha
 `review=codex HIGH:0` without running anything passes. What it closes is the silent case.
 
 ```bash
-git merge --no-ff worktree-lane-<letter>-<id>-<slug>
-uv run --locked pytest -q --dist worksteal --max-worker-restart=0   # this lane's merge, on the merged tree
-git worktree remove .claude/worktrees/lane-<letter>-<id>-<slug>
+R="uv run --locked python scripts/merge_receipt.py"
+
+$R time --slug batch-<n> --step merge --class ceremony -- \
+  git merge --no-ff worktree-lane-<letter>-<id>-<slug>
+$R time --slug batch-<n> --step suite --class tests -- \
+  uv run --locked pytest -q --dist worksteal --max-worker-restart=0   # this lane's merge, on the merged tree
+$R time --slug batch-<n> --step teardown --class ceremony -- \
+  git worktree remove .claude/worktrees/lane-<letter>-<id>-<slug>
 git worktree prune
 git branch -d worktree-lane-<letter>-<id>-<slug>
 ```
+
+**Close the receipt at the end of the walk**, after the last lane and the §3 checklist, and
+commit it with the batch — `logs/MERGE-RECEIPTS.jsonl` is durable and append-only, the
+`logs/TOKEN-LOG.md` class, because a median over a real run of merges (`[#675]` target 3.6) needs
+receipts that outlive the run that produced them:
+
+```bash
+uv run --locked python scripts/merge_receipt.py close --slug batch-<n>    # prints the itemised view
+uv run --locked python scripts/merge_receipt.py median                    # every merge so far, WITH its spread
+```
+
+**`median` never prints a bare number** and there is no call that returns one: it always carries
+n, the range, the per-merge values and the baseline's own disagreement (`84 min wall = 11.3
+targeted tests + 72.7 residual ceremony`, itemised views ~90 and ~63, nothing measured on the day
+it was frozen). An improvement stated against a disputed baseline inherits the dispute.
+
+**An abandoned receipt is VISIBLE on purpose.** `close` removes the in-flight scratch, so on the
+normal path nothing is left. A merge that dies half-way leaves `logs/.merge-receipt-<slug>.json`
+as an untracked file, and it is deliberately not ignored: that file is the only record the merge
+was abandoned, and an ignore rule would make the tree read clean over exactly the case worth
+seeing. `open` refuses to overwrite one for the same reason. Close it, or delete it deliberately.
+
+**Honest limit — it times what it is asked to time.** A step run without the prefix is invisible
+to the receipt, and an unrecorded step reads exactly like a fast one. `merge_receipt.py summary
+--strict` refuses a receipt missing a required step, and the plain summary names the gap; nothing
+forces `--strict`. The second limit is that wall time here is shared-machine time, so each
+receipt records how many lane worktrees were in flight beside it.
 
 - **The xdist flags change failure semantics BY DESIGN** — `--max-worker-restart=0` removes xdist's silent `numprocesses × 4` restart budget, so a crashed worker is now a loud bounded failure instead of a quiet replacement, and `--dist worksteal` rebalances a drained queue; spelled out here rather than inherited, matching the one live call site `.claude/skills/verify/verify.py`.
 - **One merge at a time.** A red suite stops the chain and surfaces — the next lane waits.
