@@ -206,6 +206,20 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "Layer 2 execute the merge this module exists NOT to drive",
         owner="the [#664] wiring-surface list, which owns whether .claude/commands/*.md is a "
               "trigger surface; this row is deleted by that decision, not by a lane"),
+    # SAME CLASS AS `merge_receipt.py` ABOVE, and the repetition is the point: two organs added
+    # by one lane, both genuinely adopted by `.claude/commands/lane-integrate.md`, both reading
+    # as orphans because a command file is not a `[#664]` wiring surface. One such row is a
+    # curiosity; two from a single lane is the shape of a gap, and it is recorded as one here
+    # rather than left for a third lane to rediscover.
+    "scripts/actions_verdict.py": Disposition(
+        reason="[#675] target 3.2. Wired to .claude/commands/lane-integrate.md (the merge-walk "
+               "read of the Actions verdict, and refuse-to-finish checklist row 2b), which is "
+               "not one of the [#664] wiring surfaces the census reads. A pre-commit trigger "
+               "is wrong on the merits: it reads a GitHub Actions run for a merge SHA, which "
+               "does not exist at commit time -- the gate would query a run that cannot have "
+               "started and refuse every commit",
+        owner="the [#664] wiring-surface list, which owns whether .claude/commands/*.md is a "
+              "trigger surface; this row is deleted by that decision, not by a lane"),
     "scripts/logs_retention.py": Disposition(
         reason=f"{_LANE_BUILT}; the DECLARE §3 names run_retention() at 0 callers and the "
                f"census confirms it at module level too",

@@ -116,6 +116,36 @@ git worktree prune
 git branch -d worktree-lane-<letter>-<id>-<slug>
 ```
 
+**Read the Actions result for the merge you just made** (`[#675]` target 3.2 — "with the
+integrator READING the result; not merely running there, because a green run nobody reads is not
+a gate"):
+
+```bash
+uv run --locked python scripts/merge_receipt.py time --slug batch-<n> --step actions --class tests -- \
+  uv run --locked python scripts/actions_verdict.py --sha <merge sha> --baseline <its FIRST PARENT>
+```
+
+**Pass the merge's first parent as the baseline**, so the differential means *what this merge
+changed*. Hand it anything else and it means something else — the tool cannot know which you
+intended, so the choice is named here.
+
+**It reports a DIFFERENTIAL rather than blocking, and that is measured rather than cautious.** On
+2026-09-12 the three most recent `conductor.yml` runs on `main` all concluded `failure`, on the
+`pytest` job, and every one had already been printed at SessionStart while every merge proceeded.
+So a gate refusing any non-green run would refuse every merge in this repo today, and a gate that
+refuses everything is turned off inside a window. Instead: a job **this merge broke** is
+`REGRESSED`, a job **already failing at the baseline** is `PRE-EXISTING` and named, a job **this
+merge fixed** is reported too. All of them exit non-zero — including `PRE-EXISTING`, because this
+merge did not cause those failures and must still never be recorded as having run green.
+
+**Three absences are three verdicts**, never one: `NO-RUN` (investigate), `IN-PROGRESS` (wait),
+`GH-UNAVAILABLE` (install or authenticate — and record explicitly that the result was NOT read,
+never that it passed).
+
+**Honest gap it reports on itself:** target 3.2 asks for the full suite **and** index
+regeneration on Actions. The runner has no index-regeneration job, so a green run covers the
+suite only; the verdict says so, and stops saying it the moment such a job appears.
+
 **Close the receipt at the end of the walk**, after the last lane and the §3 checklist, and
 commit it with the batch — `logs/MERGE-RECEIPTS.jsonl` is durable and append-only, the
 `logs/TOKEN-LOG.md` class, because a median over a real run of merges (`[#675]` target 3.6) needs
@@ -175,6 +205,7 @@ it seemed fine.
 |---|---|---|
 | 1 | Every lane branch merged-or-explicitly-abandoned | `git branch --list 'worktree-lane-*'` is empty, and every planned lane has a merge SHA or a recorded abandonment |
 | 2 | Full suite run once on the merged result | `uv run --locked pytest -q --dist worksteal --max-worker-restart=0` on the final merged `main`, verdict quoted |
+| 2b | Every merge's Actions result was READ and its verdict recorded ([#675] 3.2) | `uv run --locked python scripts/actions_verdict.py --sha <merge> --baseline <first parent>` was run per merge and its output is in the batch packet. A `PRE-EXISTING` verdict is an OPEN item with the failing jobs NAMED — it is not a pass, and "the run was red before us" is a recorded fact rather than a reason to skip the row. `NO-RUN` / `IN-PROGRESS` / `GH-UNAVAILABLE` are each recorded as themselves; none of them is ever written down as green |
 | 3 | `git worktree list` == primary only | run it; one line of output |
 | 4 | Manifest/packet archived | the lane manifest and end-of-batch packet are committed in the tree |
 | 4b | Audits index regenerated once, after the last merge ([#590]) | `uv run --locked python scripts/gen_audit_index.py --check` exits 0 on the final merged `main`. It is `merge=ours`-pinned, so every merge leaves it stale by construction — this is the step that makes taking it out of the merge path safe rather than lossy |
