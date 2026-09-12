@@ -19,6 +19,46 @@
 
 ---
 
+### 2026-09-13 (a) - CC (Opus 5, background integrator seat): the x-727 merge, anchored — and why wave 2 owes an anchor arc per merge
+
+**Anchors:** `a8dee4ac` — the `worktree-lane-x-727-fail-closed` merge, by way of `bd267190`
+and the three commits it introduced.
+
+**Merged.** `a8dee4ac` — lane x-727 @ `bd267190`, by SHA, `--no-ff`. `deny_and_point`'s three
+declared allow-on-failure paths now refuse instead of permit, RED-first (tests committed failing
+ahead of the fix). `[#727]`'s fail-posture clause is green; the row's closure is the operator's
+word under AX24-5.
+
+**Integrator review — codex, CRITICAL:1 HIGH:1 MED:0 LOW:0.** The lane handed back carrying no
+review tally at all, so the review is this seat's, not the lane's. Both findings were resolved
+against the frozen Done-when rather than waved through, and both are dispositioned in the wave-2
+integration packet. Neither blocks: the CRITICAL (a shell-tokenization `ValueError` at
+`scripts/hooks/deny_and_point.py:562` still returning `[]`, hence allow) names a FOURTH path,
+where the frozen clause scopes the lane to "the three allow-on-failure paths"; and its fix
+direction contradicts that function's own recorded reasoning, which says in terms that
+over-blocking is the expensive failure this row names. It leaves as a CANDIDATE for intake,
+per the ADR-111 funnel, rather than as a silent merge-time edit.
+
+**The HIGH is real, CI-shaped, and routed rather than fixed here.** `test_a_CRASH_MID_EVALUATION_fails_CLOSED`
+and `test_an_UNRECOGNISED_VERDICT_fails_CLOSED` patch `decide` but not `load_processes`, and
+`decide_with_store` returns allow at its `if not processes` short-circuit before either patched
+predicate runs. They pass on this box only because the store is populated. The store lives at
+`.git/fpg-graph/FPG.db` — inside the git dir, so never cloned — which makes this two guaranteed
+REDs on a fresh Actions runner. Proved rather than argued: with `load_processes` stubbed to `{}`
+the verdict is `('allow', 'no persisted process set to judge against')`. Handed to wave-3 lane 2
+(AX28-1, "trustworthy suite"), whose charter is exactly this class.
+
+**Why this arc exists at all, which is the reportable part.** The batch X and X2 manifests carry
+no `status: open` / `closed_by:` frontmatter, so `batch_manifest.open_batches` returns `[]` and
+the ADR-110 declared-integration-arc exemption is NOT live. Without it `journal_spine_anchor`
+FAILs on every commit taken while a lane merge sits unanchored on main's first-parent spine —
+including the next lane's own sync-merge commit. Wave 2 therefore owes one anchor arc per merge
+instead of the single batch anchor AX28-3 asks for. The diagnostic was run before concluding it:
+`introduced` returns five SHAs, anchored-in-tree and anchored-at-main are both False, and the
+committing tree already contains `a8dee4ac` — a real gap, not the tree-lag phantom.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-12 (k) - CC (Opus 5, background integrator seat): the x2 anchor arc anchors itself
 
 **Names `aa212ee4`**, the entry below, which this arc's own `--no-ff` merge introduces.
