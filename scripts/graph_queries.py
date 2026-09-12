@@ -194,6 +194,20 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
         reason="reachable only from the untriggered window_metrics.py:359 -- an orphan by "
                "inheritance, so it is dispositioned WITH its caller and not before it",
         owner="V+1 retirement-or-wiring list"),
+    # KEPT, and the reason is a FINDING rather than a deferral. The AX13-2 retire stage
+    # deleted this module on a SAFE oracle verdict and the full suite went RED: nothing
+    # static reaches it, but `tests/test_membership_agreement.py` loads it BY NAME through
+    # importlib, which is exactly the invisible-edge class ADR-89 declares its static
+    # Pyright oracle cannot see. The verdict was a false PASS -- non-blocking by design,
+    # and caught only because the lane ran a paired baseline/tip suite. Restored whole.
+    "scripts/desired_state_loader.py": Disposition(
+        reason="KEPT 2026-09-12 on POSITIVE EVIDENCE -- not an unadopted organ. It is an "
+               "orphan to a STATIC census only: tests/test_membership_agreement.py loads it "
+               "by name through importlib and pins parse_registry_md as the reference "
+               "implementation that keeps audit.py's duplicated inline registry reader "
+               "honest. Deleting it REDs that test, so the retire stage's SAFE verdict on it "
+               "was a false PASS inside ADR-89's own declared static-only limit",
+        owner="none -- retire only WITH the importlib pin in test_membership_agreement.py"),
     "scripts/gen_ledger.py": Disposition(
         reason="ARRIVED AFTER THE CENSUS -- landed 2026-09-09 by lane V-000 and therefore "
                "absent from its 32. Recorded as a NEW orphan rather than folded into the "

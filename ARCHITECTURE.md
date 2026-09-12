@@ -15,19 +15,24 @@ owner: Rob
 > when the doctrine moves.
 >
 > Last updated: `2026-09-12` — **lane `lane-x-734-retire-stage-2` ([#734], the AX13-2 retire stage):
-> the map stops describing three deleted scripts, and the re-read found a fourth cell this lane's own
-> contract did not send it to fix.** The lane deleted eight untriggered `scripts/` modules with their
-> dedicated tests. Three of them were named here. **Ch2's organ table:** the `boundary_report.py` and
+> the map stops describing two deleted scripts, the re-read found a third cell this lane's own
+> contract did not send it to fix, and a fourth cell records a deletion the lane had to TAKE BACK.**
+> The lane deleted eight untriggered `scripts/` modules with their dedicated tests and restored one of
+> them. Three of the eight were named here. **Ch2's organ table:** the `boundary_report.py` and
 > `boundary_headers.py` rows flip from **ARMED (manual)** to **RETIRED**, per this chapter's own Status
 > legend (*"RETIRED = removed, kept only as a record"*) — and the `boundary_headers` row records the
 > **consequence** rather than only the fact: the #312 Form-A markers in `CLAUDE.md` remain the source of
 > truth, but nothing now regenerates or `--check`s the headers derived from them, so those headers can
 > drift silently, and open ticket **#369** (its pre-commit wiring) is **moot and needs dispositioning**.
-> **Ch2's desired-state paragraph:** ADR-109's loader and divergence report are retired, one part of the
-> three-part class survives, and the paragraph says **ADR-109 is partially unimplemented** rather than
-> quietly re-describing the class as having always been one part. The adjacent ADR-109 §9 codemap-scope
-> sentence named "the loader→schema edge" as a cost accepted; that edge no longer exists and the sentence
-> is corrected in the same commit that falsified it. **Drift this re-read found beyond the lane's own
+> **Ch2's desired-state paragraph:** ADR-109's divergence report is retired, its loader and contract
+> survive, and the paragraph says **ADR-109 is partially unimplemented** rather than quietly
+> re-describing the class as having always been two parts. **The loader was deleted in the same act and
+> RESTORED**, and the paragraph records why, because the reason outranks the subtraction: the oracle
+> returned SAFE over it and the full suite went RED, since `tests/test_membership_agreement.py` loads it
+> by name through `importlib` — the invisible-edge class ADR-89 declares its static Pyright oracle cannot
+> see. A **false PASS**, non-blocking by design, caught only by a paired baseline/tip suite run. The
+> adjacent ADR-109 §9 codemap-scope sentence naming "the loader→schema edge" therefore stands unedited:
+> it was momentarily false and is true again. **Drift this re-read found beyond the lane's own
 > acts:** the two `boundary_*` rows were NOT flagged by any gate — `graph_queries._PROSE_PROCESS_RE`
 > matches **path-shaped** references only (`(?:scripts|plugins)/…\.(?:py|ps1)`), and those rows name their
 > organs as bare backticked filenames, so `test_the_live_tree_carries_no_dangling_process_reference` stayed
@@ -523,29 +528,39 @@ verifies. The `floor` carrier additionally **arms** the ADR-78 floor under **mod
 `floor-hash-verify` hook, both running the consumer's `.claude/check_floor_hash.py`), so floor
 drift fails loud. Operator-run from the hub, one consumer per invocation; runbook PLAYBOOK §20.
 
-**The desired-state organ class (ADR-109) — ONE part live, two RETIRED.** `ecosystem/schema/`
-holds the typed, versioned **contract** (`desired_state.py`, `schema_version: "1.0.0"`) and is
-what remains of the class. Its **loader** (`desired_state_loader.py`) and its **divergence
-report** (`desired_state_report.py`) were retired on 2026-09-12 by the AX13-2 retire stage
-(`[#734]`, lane `lane-x-734-retire-stage-2`): the 2026-09-08 process-trigger census found both
-untriggered, the reverse-dep oracle returned SAFE over the pair and their dedicated tests
-("no surviving referrers; every removed symbol resolved clean"), and this prose was the last
-surface naming them. Evidence:
-`docs/audits/2026-09-12-technical-lane-x-734-retire-stage-2-evidence.md`.
+**The desired-state organ class (ADR-109) — TWO parts live, one RETIRED.** `ecosystem/schema/`
+holds the typed, versioned **contract** (`desired_state.py`, `schema_version: "1.0.0"`) and
+`scripts/desired_state_loader.py` is the **loader** that parses the live sources into one
+validated model. Its **divergence report** (`desired_state_report.py`) was retired on
+2026-09-12 by the AX13-2 retire stage (`[#734]`, lane `lane-x-734-retire-stage-2`): the
+2026-09-08 process-trigger census found it untriggered, the reverse-dep oracle found no
+referrer but its own dedicated test, and this prose was the last surface naming it. Both
+surviving parts stay read-only and operator-invoked — no trigger, no gate, nothing converges
+state (ADR-109 §8: "Read-only, no execution engine", and the report "is not convergence").
+Evidence: `docs/audits/2026-09-12-technical-lane-x-734-retire-stage-2-evidence.md`.
+
+**The loader was deleted in that same act and RESTORED — and the finding is worth more than
+the subtraction was.** The oracle returned SAFE over the loader too, and the full suite went
+RED: `tests/test_membership_agreement.py` loads it BY NAME through `importlib` and pins
+`parse_registry_md` as the reference implementation that keeps `audit.py`'s duplicated inline
+registry reader honest. That is precisely the invisible-edge class ADR-89 declares its static
+Pyright oracle cannot see, so the verdict was a **false PASS** — the failure direction ADR-89
+says is possible and non-blocking, observed here for the first time on a live deletion. It was
+caught only because the lane ran a paired baseline/tip suite instead of trusting the tool, and
+the loader stays a census orphan afterwards because it stays a *static* orphan: unreachable to
+the census and dead are different facts, and this pair is now the repo's worked example.
 
 **ADR-109 is not repealed by this — it is partially unimplemented, and that is stated rather
-than smoothed.** The decision's §8 posture ("Read-only, no execution engine", the report "is
-not convergence") described a three-part class; the contract half stands, the reading half no
-longer exists in the tree, and re-building it is a new act needing its own row. Membership
-still resolves toward `ecosystem/deployed-versions.yaml` (§2), and the [#462]
-`membership_agreement` check — which is NOT part of the retired pair — remains what makes a
-declared member absent from every surface visible.
+than smoothed.** The decision's §8 posture described a three-part class; the contract and the
+loader stand, the divergence report no longer exists in the tree, and re-building it is a new
+act needing its own row. Membership still resolves toward `ecosystem/deployed-versions.yaml`
+(§2), so the retired report's matrix — narrower than ADR-104's 9-repo declaration — is now a
+question nothing asks; the [#462] `membership_agreement` check, which was never part of that
+report, remains what makes a declared member absent from every surface visible.
 
 `ecosystem/schema/` is deliberately outside the codemap's `--source-root scripts` scope: the
 codemap maps executables; the typed contract lives with the data it governs (ADR-109 §9). Cost
-accepted: the schema package does not appear in the structural map. (The loader→schema edge
-this once also named went with the loader's 2026-09-12 retirement above — there is no longer
-an edge to omit.)
+accepted: the schema package and the loader→schema edge do not appear in the structural map.
 Revisiting requires NEW evidence (e.g. the codemap growing multi-root support) as a NEW row —
 this ruling is not reopenable by preference.
 

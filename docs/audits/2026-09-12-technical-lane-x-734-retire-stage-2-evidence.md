@@ -228,6 +228,14 @@ than a later surprise.
 
 ## Step 3 — the `desired_state_*` pair, and the block the first run could not clear
 
+> **AMENDED IN-FILE AT STEP 6 — half of this step was REVERSED.** The SAFE verdict recorded
+> below was a **false PASS** on `desired_state_loader.py`, and the module is RESTORED. The
+> report half stands. Nothing in this section is edited: it is the record of what the tool
+> said and what the lane did on it, and rewriting it would destroy the only evidence that the
+> verdict read clean. Read Step 6 "The headline is not the number" before acting on anything
+> below.
+
+
 ### Run 3, verbatim — the clean measurement
 
 Removal set = exactly the contract's removal unit for this pair. Tree stable throughout (all
@@ -557,3 +565,166 @@ This lane does not change a refusal's semantics on its own motion.
 record seven KEEPS as inconclusive. It instead records seven KEEPS as **positively live**. That
 is a better outcome for the tree and a worse one for the census, whose `GARBAGE-CANDIDATE`
 framing of this directory rested on the same blind spot.
+
+## Step 6 — end-of-lane artifact
+
+### The headline is not the number
+
+This lane is the batch's subtraction leg and it did subtract. But the finding worth more than
+the bytes is that **the reverse-dependency oracle returned a false PASS on a live module, and
+the lane shipped the deletion before catching it.** ADR-89 declares this failure direction
+possible ("static-Python-only — dynamic, `getattr`, string-keyed and cross-language edges are
+invisible; a false PASS is possible, a false FAIL is not"). This is the first time it has been
+observed on an actual deletion in this repo, and it was caught by a **paired baseline/tip full
+suite run**, not by any gate.
+
+`scripts/desired_state_loader.py` was deleted on a SAFE verdict and **restored**.
+`tests/test_membership_agreement.py` loads it BY NAME through `importlib`, pinning
+`parse_registry_md` as the reference implementation that keeps `audit.py`'s duplicated inline
+registry reader honest. Nothing static reaches it; something real does. The operational rule
+this produces, stated for the next retire lane:
+
+> **A SAFE oracle verdict is a necessary condition for deletion, never a sufficient one.** The
+> sufficient condition is a paired base-vs-tip suite run whose tip failure set is a subset of
+> the base's. The oracle narrows the candidate list; only the suite closes it.
+
+### The number this lane is measured on (AX23-5)
+
+AX23-5 measures wave 2 on **bytes removed, rows closed and merge minutes** — and records that
+wave 1 delivered *"five mechanisms and zero subtraction"*.
+
+```
+bytes removed, 14 files deleted:
+  7 scripts/ modules      120,617 bytes
+  7 dedicated tests       137,606 bytes
+  ------------------------------------
+  TOTAL                   258,223 bytes  (252.2 KiB)
+
+lines removed, the same 14 files:   5,648
+tests that left the suite:          6,141 -> 5,915 collected  (-226)
+```
+
+Restoring the loader and its test gave back 32,739 bytes and 751 lines against the
+pre-restoration figure. The figure above is the one that is true at HEAD.
+
+**Stated honestly, both directions:** the lane also ADDED roughly 48 KiB, nearly all of it this
+evidence artifact plus retraction and finding prose in `ARCHITECTURE.md`, the manifest and
+`release_lint.py`. "Bytes removed" is the deleted-file total, which is what AX23-5 names; the
+net tracked-tree change is smaller and is not the metric.
+
+### Delivered against the Done-contract, clause by clause
+
+- **Clause 1 — the six SAFE targets, four coupled surfaces each. DONE.** `boundary_headers.py`
+  + `boundary_report.py` (moved together), `cloud_provisioning.py`, `seed_runbook.py`,
+  `validate_onboarding_rulings.py`, `probe_child_backlogs.py` — module + dedicated test +
+  `ORPHAN_DISPOSITIONS` entry + `CENSUS_SCRIPT_ORPHANS` row, all four, each. Zero regressions.
+- **Clause 2 — the `desired_state_*` pair, with the `ARCHITECTURE.md` footprint extension.
+  PARTIALLY DELIVERED, and the shortfall is evidence rather than an omission.**
+  `desired_state_report.py` is retired with its dedicated test and both coupled register
+  surfaces. `desired_state_loader.py` is **KEPT**, restored whole with its dedicated test,
+  its `ORPHAN_DISPOSITIONS` entry and its `CENSUS_SCRIPT_ORPHANS` row, on the false-PASS
+  evidence above. The contract's own binding rule is what decides it: *"An inconclusive tool
+  result is not a pass... an inconclusive target is KEPT with that reason recorded."* A verdict
+  that is affirmatively **wrong** cannot be worth more than one that is merely silent.
+  The `ARCHITECTURE.md` footprint extension was used and the block that reversed the first run
+  is cleared — `test_the_live_tree_carries_no_dangling_process_reference` is GREEN.
+- **Clause 3 — the three stale claims retracted. DONE. The tombstone itself: NOT LANDED,
+  ESCALATED.** See below; this is the lane's one class-(b) escalation.
+- **Clause 4 — `deploy/lived_sandbox/` dispositioned file by file. DONE.** All 8 KEEP, seven of
+  them on positive evidence rather than on inconclusiveness. Zero deletions.
+- **Clause 5 — `config/requirements-dev.txt` stays KEPT. HONOURED, not re-litigated.** Untouched
+  and unexamined by this lane, per the contract's instruction that it is settled for this run.
+- **Clause 6 — English, hyphen-only names, logging over print, Click for CLIs, `pytest` green.**
+  See the suite result below.
+
+### The ONE escalation (decision budget class (b))
+
+**`/override`'s `status: removed` tombstone cannot land, and the blocker is not the one the
+contract predicted.**
+
+The contract's finding is confirmed: `release_lint` C6 **accepts** the tombstone (measured —
+`25 components valid`, 0 FAIL), and the three prose claims saying otherwise were stale and are
+now retracted. But `tests/test_override_command_removed.py` (the `[#683]` regression tooth)
+refuses **any** component with `id: override-command`, at any status, while the same manifest's
+field table states a removed component's entry **"is retained as a tombstone"**. AX13-3 asks for
+the tombstone; `[#683]` forbids the node. Both are live governance; both cannot be satisfied.
+
+The tombstone was written, both gates were run, the result was recorded verbatim, and the entry
+was **reverted**. The tooth was not weakened. Proposed one-line resolution, for the operator or
+architect: scope that predicate to `status: active` components — the test's stated
+"node and payload are ONE act" intent is already carried by its other two legs, and a tombstone
+with no `artifacts:` trips neither.
+
+### Open items for the integrator / architect
+
+1. **`[#369]` is now UNSATISFIABLE and needs dispositioning.** Row: *"Wire
+   `boundary_headers.py --check` into pre-commit"*, `status: open`, verified live in
+   `tasks/369-…md`. Its subject was deleted by this lane. A lane does not close another row;
+   flagged.
+2. **The `/override` tombstone conflict** above — needs an operator or architect ruling.
+3. **The oracle's false-PASS class deserves a mechanism, not just this note.** The cheapest
+   honest one: have `safe_remove.py` additionally grep the tree for the module's **bare stem**
+   as a string literal and downgrade SAFE to REVIEW on a hit. It would have caught
+   `_load("desired_state_loader")` in one pass. Filing it is a new row, not this lane's act.
+4. **`scripts/worktree_seed.py`'s disposition entry is stale** and REDs
+   `test_a_disposition_register_entry_cannot_manufacture_its_own_trigger` **on the base tree,
+   before this lane touched anything** (proved by a paired baseline/tip run). It has two live
+   consumers per FPG-1, so it was wired — the good outcome — and its register row should be
+   removed. Pre-existing; out of footprint.
+5. **The dangling-reference predicate is narrower than it reads.**
+   `graph_queries._PROSE_PROCESS_RE` matches path-shaped refs only, so Ch2's organ table — which
+   names organs as bare backticked filenames — is invisible to it. Two false **ARMED** rows for
+   deleted scripts survived both Step 2 and Step 3 uncaught. Widening a live refusal is a
+   mechanism change, not cleanup.
+6. **FPG-1 `why` returns `REFUSED` for live files** outside its governed-input set — a 7-of-8
+   false-positive rate on `deploy/lived_sandbox/`. Either teach it import/test edges for
+   non-`scripts/` paths, or narrow the refusal's wording. ADR-118's live subject.
+7. **`ecosystem/satellite-onboarding-rulings.yaml` now has no validator and no test** — the
+   consequence of deleting `validate_onboarding_rulings.py`. GO'd and executed; named so it is a
+   known cost.
+8. **`ecosystem/organ-index.md` carries a stale `/override` row** — the contract's own
+   "flagged not fixed here"; the integrator's regen. It now also carries rows for the seven
+   deleted scripts, same regen.
+9. **ADR-109 is now partially unimplemented** — its text describes a three-part organ class of
+   which two parts remain. `ARCHITECTURE.md` says so; the ADR itself is immutable and is the
+   architect's call.
+
+### What the integrator must NOT expect from this lane
+
+No merge, no push to `main`, no JOURNAL entry, no index regeneration — all reserved per the
+contract's "What NOT to do". The three `ecosystem/doc-counts.md` touches are the narrow,
+gate-mandated `pytest_collected` count line the contract explicitly permits (6,141 → 5,933 →
+5,898 → 5,915), regenerated with `gen_doc_counts.py --write`, one line changed each time.
+
+**Single-hook bypass declared: NONE.** No `--no-verify` was used at any point in this lane.
+Every commit passed the full gate set; where a gate refused, the cause was fixed and the commit
+retried.
+
+### No leftovers (Critical Rule #9)
+
+`git status` clean; the one tagged probe stash used for the paired baseline run was applied back
+by SHA and dropped by verified tag. `node_modules/` remains on disk, gitignored and absent from
+every commit — the declared, pinned langserver the oracle needs, restored by the contract's own
+Precondition 1.
+
+### Verification summary
+
+- Oracle run 1 (eight modules): **UNSAFE**, 12 surviving referrers, completeness `complete`.
+- Oracle run 2 (modules + two tests): **UNVERIFIABLE** — invalidated by this lane's own
+  concurrent deletions; recorded, not read as a pass.
+- Oracle run 3 (the `desired_state_*` removal unit, stable tree): **SAFE** — *"no surviving
+  referrers; every removed symbol resolved clean"*. **Subsequently proved a false PASS on the
+  loader half.** The verdict text is quoted unchanged above rather than rewritten, because the
+  point of the record is that it read clean.
+- **Paired full-suite attribution, the act that closed the lane:**
+  base `ec18875e` — **63 failed, 6,072 passed, 6 skipped**;
+  tip before remediation — **61 failed, 5,833 passed, 4 skipped**.
+  Set-differenced, exactly ONE tip failure was absent at base:
+  `tests/test_membership_agreement.py::test_inline_registry_reader_agrees_with_the_loader_parser`.
+  After the restoration it PASSES, and the two failures remaining in the affected set
+  (`test_desired_state_loader.py::test_live_repo_loads_clean_and_writes_nothing`, a pydantic
+  enum drift on `settings_hook_script`; and the `worktree_seed.py` register row above) are both
+  present in the base failure list. **The lane's regression count is zero.**
+- `release_lint.py --version 1.5.0`: **0 FAIL, 1 WARN (C2, expected pre-release), 7 pass** —
+  unchanged from the pre-lane baseline.
+- `audit.py health`: **OK**.
