@@ -19,6 +19,43 @@
 
 ---
 
+### 2026-09-12 (c) - CC (Opus 5, background integrator seat): the x14 merge anchor, written BEFORE the merge
+
+**Names `d64097aa`**, the tip of `worktree-dispatch-x14-freeze`, which its own `--no-ff` merge
+will introduce:
+
+```
+d64097aa   worktree-dispatch-x14-freeze   dispatcher seat freeze + the X1-4 hold record
+```
+
+**Operator word, `to-cc/AMEND-BATCH-X-ROSTER-023.md` AX23-4.** The three branches left standing
+at the wave-1 close get a disposition: merge x14, land the x-734 verdict record, tear all three
+down. This entry discharges the first of the two merges in advance, per STANDING_RULINGS B2/B6 -
+a merge commit cannot name its own hash, so anchoring after the fact is the repair shape, not the
+shape of the law.
+
+**Containment checked rather than assumed.** `worktree-dispatch-x1-freeze` (`fb0c3b75`) is an
+ancestor of `d64097aa` - `git merge-base --is-ancestor` exits 0 - so one merge covers both
+branches, as the operator's word states. x14 also carries all of `main` (behind=0), so its tree
+IS the merge result and the targeted suite run there is the post-merge answer.
+
+**What the merge actually carries, which is more than the operator's enumeration names.** The
+word names the batch X manifest, the X-DEL launch contract, the X1-4 frozen contract and the hold
+record - all docs. The branch ALSO carries **code**: `scripts/gen_seat_boot.py` (+24) and
+`tests/test_gen_seat_boot.py` (+30), plus a new row **`[#737]`** and the regen artifacts
+(`BACKLOG.md`, `tasks/manifest.json`, `ecosystem/doc-counts.md`). This is recorded here, not
+quietly merged: the branch is merged whole because that is what the word says to merge, and the
+code is evidenced rather than assumed - **34 passed** on `tests/test_gen_seat_boot.py` plus
+`tests/test_claude_md_byte_cap.py`, run in the lane tree at `d64097aa`.
+
+**No review is named on this branch**, and none is claimed. It is a dispatcher freeze arc, not a
+lane handback, so D-1 has no handback to read; the code leg is carried on its RED-first test
+shape (+30 test lines for +24 code lines) and the targeted run above. Stated so the record does
+not read as a reviewed merge.
+
+**Baseline before the merge:** `main` = `b71acdf8`, health OK, counts per `ecosystem/doc-counts.md`.
+
+**Changes.** `JOURNAL.md` (this entry).
 ### 2026-09-12 (b) - CC (Opus 5, background integrator seat): the wave-1 close arc names its own first commit
 
 **Names `09c864ad`**, the close packet and the entry below, which this arc's own `--no-ff` merge
