@@ -19,6 +19,13 @@
 
 ---
 
+### 2026-09-13 (f) - CC (Opus 5, background integrator seat): the x-734 anchor arc anchors itself
+
+**Names `b154fd1a`**, the entry below, which this arc's own `--no-ff` merge introduces.
+Two commits, JOURNAL last, for the reason entry (b) states.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-13 (e) - CC (Opus 5, background integrator seat): the x-734 merge, anchored — two more importers the SAFE oracle could not see
 
 **Anchors:** `69c8a344` — the `worktree-lane-x-734-retire-stage-2` merge, by way of `14bde495`
