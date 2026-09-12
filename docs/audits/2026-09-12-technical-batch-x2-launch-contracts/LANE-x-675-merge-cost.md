@@ -37,8 +37,41 @@ name.
 
 ## Done-contract (immutable)
 
-1. **FIRST COMMIT, before any mechanism: `[#675]`'s Done-when REPLACES its stale target with the
-   measured baseline.** The current Done-when carries a `12 → under 2` minutes-to-merge target
+1. **CLAUSE 1 — the generator↔verb conformance test (AX25-2), RED-first, in the hub. This is the
+   lane's first mechanism and it rides this lane by ruling, with no separate lane.** Transcribed
+   from `to-cc/AMEND-BATCH-X-ROSTER-025.md`:
+
+   > **AX25-2 · The mechanism — a generator↔verb conformance test, RED-first, in the hub** (rides
+   > `[#675]`'s lane as clause 1, no separate lane): the test generates a contract with
+   > `gen_lane_contract.py` and runs the ruled verb's DryRun against it, asserting it resolves —
+   > fence, contract location, model, and base all in one assertion. It fails today (the three
+   > wave-2 contracts are refused on grammar) and must go green before any later dispatch change
+   > lands. A commit that changes either side and leaves the test red is refused.
+
+   Four properties in **ONE assertion**, not four tests — **fence**, **contract location**,
+   **model**, **base**. The single-assertion shape is the clause, not a style note: four separate
+   tests can each be made green against a different half of the seam, which is how this path
+   accumulated four symptoms (`[#716]` base, `[#717]` model, `[#718]` location, `[#740]` fence)
+   while every individual check passed.
+
+   **It is RED today** — proven, not assumed: all three frozen X2 contracts are refused by the
+   ruled verb at `Invoke-Dispatch.ps1:285` on the fence, with receipts in
+   `docs/audits/2026-09-12-technical-batch-x2-manifest.md` §4. Write it, watch it fail for that
+   reason, then make it pass.
+
+   **The refusal leg is part of the clause:** a commit that changes either side of the seam and
+   leaves this test red is **refused**. That is what makes it a conformance test rather than a
+   regression test — the seam cannot be re-opened silently by a later patch to one owner.
+
+   **Which side moves is this lane's call and is NOT pre-decided here.** The verb's `:285`
+   refusal (*"this script never runs an arbitrary command from a contract file"*) is a deliberate
+   safety property, so widening it may be the wrong leg; emitting the `claude` fence from the
+   generator may be the right one. **AX25-4 bounds the work either way:** the PowerShell dispatch
+   retires once one batch has run on conductor E, so work on the verb is limited to this test plus
+   whatever E's runner needs. Do not rewrite the retiring path.
+
+2. **`[#675]`'s Done-when REPLACES its stale target with the measured baseline.** The current
+   Done-when carries a `12 → under 2` minutes-to-merge target
    from an earlier, smaller measurement; the wave-1 measurement supersedes it. The replacement
    baseline is frozen by the operator (2026-09-12) and is transcribed, not recomputed:
 
@@ -48,10 +81,11 @@ name.
    The parenthesis is part of the baseline, not commentary: the two itemised views disagree with
    each other and with the wall figure, and **no measurement was taken on 2026-09-12** — so the
    lane inherits a baseline with a known spread rather than a single trusted number, and says so
-   whenever it reports against it. This rides this lane's first commit — it is NOT a separate
-   lane (operator ruling, same message).
+   whenever it reports against it. This rides this lane — it is NOT a separate lane (operator
+   ruling, 2026-09-12). It was clause 1 until AX25-2 arrived and took that slot by ruling; it is
+   otherwise unchanged, and it still precedes every mechanism in clause 3.
 
-2. **The target, replacing `12 → under 2`, is six things — all six, not a pick-list** (operator,
+3. **The target, replacing `12 → under 2`, is six things — all six, not a pick-list** (operator,
    2026-09-12, transcribed):
    1. **per-step minutes recorded into the receipt** — the merge stops being one opaque wall
       number and becomes an itemised one, which is the only way the ~90/~63 disagreement above
@@ -65,14 +99,14 @@ name.
    5. **review and triage are handed pre-assembled inputs and are NOT cut** — the saving comes
       from removing assembly, never from removing the judgement step;
    6. **median merge under 30 minutes, MEASURED** — a median over a real run of merges, reported
-      as a number, against the baseline in clause 1.
+      as a number, against the baseline in clause 2.
 
-3. Docs and code in English; hyphen-only names; logging rather than print;
+4. Docs and code in English; hyphen-only names; logging rather than print;
    Click for a CLI where one is warranted; `pytest` green.
 
 ## The one clause that is a REFUSAL, and where it has to sit
 
-Target 2.4 — *the dispatcher refuses to fire two lanes whose contracts touch the same file* — is
+Target 3.4 — *the dispatcher refuses to fire two lanes whose contracts touch the same file* — is
 the only target here that is a gate rather than a measurement, and its placement is the whole
 mechanism. It belongs in the **STEP 0 refusal family** (`scripts/seat_refusals.py`, alongside
 `lane-ceiling`, `carried-by`, `sleeping-poll`, `dryrun-step0`), evaluated **on the frozen
@@ -89,6 +123,35 @@ that writes outside its declared footprint is a different defect with a differen
 in the end packet rather than implying the refusal is total.
 
 ## Carried rows and clauses (verbatim — AX12-1)
+
+### `AX25-1` — verbatim (the root cause clause 1 tests)
+
+> **AX25-1 · Root cause, stated:** the lane-launch path has two owners and no conformance test
+> between them. Every patch so far fixed one symptom of that seam. Rows `[#716]` `[#717]`
+> `[#718]` are symptoms, not the defect.
+
+`[#740]` is the fourth symptom in that list and is kept as the witness record; it closes when
+clause 1's test is green, and it proposes no rival fix.
+
+### `AX25-4` — verbatim (the bound on clause 1's fix)
+
+> **AX25-4 · Do not gold-plate the retiring path.** `DECLARE-DISPATCH-RETIREMENT` already rules
+> that the PowerShell dispatch retires once one batch has run on conductor E. Work on the verb is
+> therefore bounded to AX25-2's conformance test plus whatever E's runner needs; everything else
+> waits for E.
+
+**This is a refusal, not advice.** A lane that "fixes dispatch properly" while making clause 1
+green has overrun its contract.
+
+### `AX25-5` — verbatim (why the test is the guarantee, not the docs)
+
+> **AX25-5 · The browser never composes a launch** (operator, standing): it states intent and the
+> repo resolves the verb — the prompt distiller `[#617]` with the organ skills (AX9-2). Until it
+> lands, the dispatcher copies the generator-carried line and the conformance test guarantees that
+> line works.
+
+The dispatcher copies the generator-carried line **today**, so clause 1's test is the only thing
+standing between a copied line and a refused launch.
 
 ### `AX23-3` clause 1 — verbatim
 
@@ -107,7 +170,7 @@ in the end packet rather than implying the refusal is total.
 > Half A) → close the six witnessed rows → the fail-open fix (AX24-2) → `[#675]` merge cost →
 > X-DEL second attempt. Everything else in wave 2 waits.
 
-### Row `[#675]` — the Done-when leg clause 1 replaces, verbatim
+### Row `[#675]` — the Done-when leg clause 2 replaces, verbatim
 
 > and a **text-only diff takes a SINGLE-COMMIT path with its anchor in the same commit**, which
 > requires the anchor predicate to admit an entry that names its own commit for that class —
@@ -116,7 +179,7 @@ in the end packet rather than implying the refusal is total.
 
 The other three legs of `[#675]`'s Done-when — type-discriminated node access, the RED-first
 heterogeneous-list witness, and the size gate refusing worktree provisioning for a
-`BACKLOG.md`/`tasks/`-only contract — are **untouched by clause 1 and remain in force**. Only the
+`BACKLOG.md`/`tasks/`-only contract — are **untouched by clause 2 and remain in force**. Only the
 minutes-to-merge target is replaced.
 
 ## Decision budget
@@ -133,8 +196,8 @@ A lane that discovers a refuted premise PAUSEs with the fact (Q10):
 deviation-with-disclosure is not a license — the disclosure discharges the reporting
 duty, it does not authorise the deviation.
 
-**Not escalation classes here, decided in advance:** the baseline numbers (frozen, clause 1);
-which six targets are in scope (all of them, clause 2); and where the collision refusal sits
+**Not escalation classes here, decided in advance:** the baseline numbers (frozen, clause 2);
+which six targets are in scope (all of them, clause 3); and where the collision refusal sits
 (STEP 0, above). **A genuine class (b) IS available and should be taken if it appears:** target
 2.2 moves the suite to GitHub Actions, and `[#689]`'s conductor-E row is the organ that would
 run it — if this lane finds the two in conflict, that is a rule-vs-ruling escalation, not a
@@ -142,17 +205,20 @@ silent merge of the two rows.
 
 ## Steps
 
-1. Replace `[#675]`'s minutes-to-merge target per clause 1, leaving its other three legs intact.
-   **COMMIT** (first commit; the row edit precedes the mechanisms it governs).
-2. Build target 2.1 — per-step minutes into the receipt — and use it to itemise one real merge,
-   which is what makes every later number comparable. **COMMIT**
-3. Build target 2.4 — the same-file collision refusal — RED-first, in the STEP 0 family.
+1. Write the AX25-2 conformance test per clause 1 and prove it RED for the fence reason. **COMMIT**
+   the failing test.
+2. Replace `[#675]`'s minutes-to-merge target per clause 2, leaving its other three legs intact.
    **COMMIT**
-4. Targets 2.2, 2.3 and 2.5: Actions-hosted suite and index regen with the integrator reading
+3. Make clause 1's test GREEN by moving ONE side of the seam, within AX25-4's bound. **COMMIT**
+4. Build target 3.1 — per-step minutes into the receipt — and use it to itemise one real merge,
+   which is what makes every later number comparable. **COMMIT**
+5. Build target 3.4 — the same-file collision refusal — RED-first, in the STEP 0 family.
+   **COMMIT**
+6. Targets 3.2, 3.3 and 3.5: Actions-hosted suite and index regen with the integrator reading
    the result; Codex reviews in parallel; review and triage handed pre-assembled inputs.
    **COMMIT** each.
-5. Final: measure target 2.6 — median merge minutes over the runs available — and report it as
-   a number against clause 1's baseline, **naming the spread rather than hiding it**. `pytest`
+7. Final: measure target 3.6 — median merge minutes over the runs available — and report it as
+   a number against clause 2's baseline, **naming the spread rather than hiding it**. `pytest`
    green, one end-of-lane artifact (what changed · proposed diffs · open items), **COMMIT, then
    STOP.**
 
@@ -164,8 +230,8 @@ silent merge of the two rows.
 - No index regeneration — the integrator is gate-of-record and regenerates once
   at the merge (Q1); a lane declares its single-hook bypass in the commit body.
 - No edits outside this lane's declared footprint.
-- **Do not reach the 30-minute median by cutting review or triage.** Target 2.5 exists precisely
+- **Do not reach the 30-minute median by cutting review or triage.** Target 3.5 exists precisely
   to forbid that trade, and a median hit that way is a false pass on this row.
-- **Do not report a median without its spread.** Clause 1's baseline has a known ~90-vs-~63
+- **Do not report a median without its spread.** Clause 2's baseline has a known ~90-vs-~63
   disagreement and nothing measured on the day it was frozen; a single confident number
   reported against it repeats the defect this row is about.

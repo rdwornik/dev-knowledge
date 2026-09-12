@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "98bcb8776a60984ec3493033378762e3f54182bbe1992fdc2f3aaf2bdd39f5ea",
+  "generated_sha256": "2716b8b84b793a81b43e8b62b22472f9be8b1d591be5738c37263eb95f7649c8",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -727,6 +727,10 @@
       "file": "656-v150-floor-seal-report-drift-probe-matches-a-dead-literal.md"
     },
     {
+      "task": 741,
+      "file": "741-lane-launching-is-methodology-so-the-hub-owns-it-as-a-floor-component.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -1347,6 +1351,10 @@
     {
       "task": 739,
       "file": "739-session-end-backpressure-orders-a-commit-of-another-seats-in-flight-work.md"
+    },
+    {
+      "task": 740,
+      "file": "740-generated-contract-carries-a-fence-the-ruled-verb-refuses.md"
     },
     {
       "task": 724,

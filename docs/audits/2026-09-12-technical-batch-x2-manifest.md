@@ -142,9 +142,41 @@ happens.
 - **`[#739]`** — `session_end_backpressure` ordered this seat to commit or stash six files that
   were the integrator's in-flight AX24-5 closures.
 
-Both are the **same absent-discriminator class as `[#675]`** (operator's characterisation): a
+- **`[#740]`** — the generator emits a `Dispatch-Lane` fence and the ruled verb admits only a
+  `claude` fence, so `dispatch -DryRun` refuses every conforming generated contract. Filed on the
+  operator's instruction after §4's dry runs surfaced it. **`[#718]` was satisfied on the PATH
+  key; the fence mismatch was never in its scope** — two independent seams on one writer/reader
+  boundary, distinguishable only by which line refuses (`Invoke-Dispatch.ps1:385` path,
+  `:285` fence). **Re-scoped the same day by AX25-1 to a SYMPTOM record** — it proposes no fix and
+  closes when `[#675]`'s clause-1 conformance test is green.
+- **`[#741]`** — AX25-3: lane launching is methodology, so the hub owns it as a floor component,
+  OS-independent, machine-local values staying in `win-tooling`. **Scope is set by the fact-read,
+  not by this seat's inference** — the row deliberately enumerates no verbs or dependencies, and
+  says why. Executed **after** `[#675]`.
+
+### 6a · AX25 changed this batch's shape mid-freeze, and slot 2 absorbed it
+
+`to-cc/AMEND-BATCH-X-ROSTER-025.md` names the root cause the four dispatch symptoms share:
+**the lane-launch path has two owners and no conformance test between them.** Consequences for
+this manifest, all already applied:
+
+- **`LANE-x-675-merge-cost.md` gained AX25-2 as clause 1** — the generator↔verb conformance test,
+  RED-first, in the hub, asserting **fence + contract location + model + base in ONE assertion**,
+  with a refusal leg: a commit that changes either side and leaves it red is refused. **No
+  separate lane** (AX25-2's own words). The measured-baseline clause and the six targets shifted
+  to clauses 2 and 3; nothing was dropped.
+- **The batch is still three lanes.** AX25-2 rides slot 2 and AX25-3 is a filed row executed after
+  it, so the `lane-ceiling` count leg in §3 is unchanged at 3 ≤ 6.
+- **AX25-4 bounds the fix:** the PowerShell dispatch retires once one batch runs on conductor E,
+  so slot 2's verb work is limited to the conformance test plus whatever E's runner needs. The
+  contract carries that as a refusal, and `[#740]`'s ask to extend `dispatch_verb_agreement` was
+  **removed** as gold-plating rather than carried.
+
+All three are the **same absent-discriminator class as `[#675]`** (operator's characterisation): a
 check returns a uniform answer because the field that would separate the cases is absent from
-what it reads. `[#675]` is in this same batch, which is where the class gets its mechanism.
+what it reads. `[#675]` is in this same batch, which is where the class gets its mechanism. In
+`[#740]`'s case the certifying detector is `dispatch_verb_agreement`, which passes by checking
+that the surfaces **name** the ruled verb and never that the verb **accepts** the emitted fence.
 
 ## 7 · One finding that changes slot 3, recorded here because it outlives the lane
 
