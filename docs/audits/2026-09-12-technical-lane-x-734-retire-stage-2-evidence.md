@@ -299,3 +299,155 @@ tests/test_graph_spine.py::test_the_live_orphan_census_reaches_zero_against_its_
 **`test_the_live_tree_carries_no_dangling_process_reference` is GREEN** — the gate that
 reversed the first run's deletion is satisfied, not bypassed. Clause 2 is delivered: the pair
 is deleted, all four coupled surfaces each, **4 files, 1,219 lines**.
+
+## Step 4 — the three stale claims retracted; the tombstone BLOCKED by a different, real tooth
+
+### The contract's finding is CONFIRMED: release_lint does not block a tombstone
+
+The contract's central claim — that the first run's stated blocker was stale prose rather than
+a live constraint — is **correct, and was measured rather than argued**. This lane wrote the
+`/override` tombstone into `deploy/manifest-v1.5.0.yaml` and ran the release lint against it:
+
+```
+release-lint ok   C6-components: 25 components valid; all 6 implemented carriers covered
+release-lint: 0 FAIL, 1 WARN, 7 pass
+```
+
+**C6 accepts the tombstone.** `ALLOWED_STATUSES = {"active", "removed"}`
+(`deploy/release_lint.py:101`); the unlock commit `1fbdf6f3` is an ancestor of `f1711e3d`
+(verified with `git merge-base --is-ancestor`), so tombstones were already legal when the first
+run decided they were not; the manifest's own field table records `removed` as *"legal as of
+v1.2.0 (P2)"*; and `ruff-gate` sits in the same file as a live `status: removed` entry.
+
+### But the tombstone still does not land — and the real blocker is a LIVE TOOTH, not prose
+
+With the same entry in place:
+
+```
+FAILED tests/test_override_command_removed.py::test_override_command_stays_removed
+AssertionError: /override is back, in whole or in part — manifest node present: manifest-v1.5.0.yaml id=override-command.
+```
+
+`tests/test_override_command_removed.py` ([#683] regression tooth) refuses **any** component
+whose `id` is `override-command`, **whatever its status**:
+
+```python
+if any(c.get("id") == _COMPONENT_ID for c in components):
+    violations.append(f"manifest node present: {manifest_path.name} id={_COMPONENT_ID}")
+```
+
+Note which leg fired: **only the bare-id predicate**. The tombstone carried no `artifacts:`, so
+the test's `artifacts[].path` leg ("manifest still ships …") passed, and the payload leg passed
+because the payload is genuinely gone. The single thing the tooth objects to is the existence
+of the lifecycle record.
+
+### This is a genuine rule-vs-ruling conflict — ESCALATED, not resolved in-lane
+
+Two live governance surfaces contradict each other for this exact component:
+
+- `deploy/manifest-v1.5.0.yaml`'s own field table: a removed component's *"manifest entry is
+  **retained as a tombstone**; the remove leg prunes its artifacts from the consumer."*
+- `tests/test_override_command_removed.py`: no node with that id may exist, at any status.
+
+AX13-3 asks for the retroactive tombstone; `[#683]` forbids the node. **Both cannot be
+satisfied.** That is decision-budget class **(b)**, an explicit escalation class, and it is
+**not** a re-escalation of anything this contract settled: the contract settled that
+*release_lint C6* does not block (true, and confirmed above). The blocker this lane found is a
+different surface the contract did not know about.
+
+**The tombstone entry was REVERTED rather than landed, and the tooth was left un-weakened.** A
+lane does not quietly relax a regression tooth to satisfy its own deliverable — that is the
+same move, in the opposite direction, as the first run believing stale prose.
+
+**The one-line resolution, for the operator/architect to rule on:** scope the id predicate to
+`status: active` components. The test's stated intent — *"Node and payload are ONE act"*, aimed
+at a node that ships a working-looking escape hatch — is already carried by its other two legs,
+and a tombstone with no `artifacts:` trips neither. If the operator rules the other way, AX13-3's
+"tombstone `/override`" clause should be struck as unsatisfiable rather than left open.
+
+### What DID land: the three retractions (clause 3's documentation half)
+
+All three stale claims are retracted in place, each replaced with the accurate constraint and
+each naming the measurement above rather than asserting it:
+
+1. **`deploy/release_lint.py` module docstring** — the "only `status: active` is legal this
+   release" paragraph. Replaced with an explicit RETRACTION recording that it had been false
+   since `1fbdf6f3`, that a lane believed it over the constant four lines below it, and that the
+   live rule is the constant.
+2. **`deploy/manifest-v1.5.0.yaml` `enforcement-mesh` description** — the vestigial `.gitignore`
+   block was justified by "this release ships no `status: removed` tombstone". Replaced with the
+   real reason: the mesh carrier has no prune leg for a `.gitignore` region — **a carrier gap,
+   not a lifecycle prohibition**. The distinction matters because the false version implied the
+   block would clear itself when P2 arrived; it will not.
+3. **The `override-command` comment block** (written by `5e17ecd7`, the removal commit itself) —
+   now carries the retraction, both gate results verbatim, the conflict, and the proposed
+   one-line resolution.
+
+**This is the finding the contract said is worth more than the tombstone, and it is now
+stronger than the contract expected:** the prose had been outgrown by the code *and* the act
+the prose was blocking is blocked anyway, by a surface nobody had checked. Two lanes in a row
+consulted a stale sentence and neither consulted the executable rule beside it.
+
+### Verification
+
+- `deploy/release_lint.py --version 1.5.0` → **0 FAIL, 1 WARN (C2, expected pre-release),
+  7 pass** — identical to the pre-Step-4 baseline, which is the Done-contract's requirement.
+- `pytest tests/test_override_command_removed.py tests/test_release_lint.py` → **43 passed**.
+  The tooth is green because the tombstone was reverted, not because it was loosened.
+
+### Addendum — the A2 freshness gate forced an end-to-end re-read, and the re-read found more drift
+
+Step 3's `ARCHITECTURE.md` edit made its `last_reviewed: 2026-09-10` stamp stale, and
+`canonical_freshness` is **commit-based**: it passed at Step 3's own commit and FAILed the
+**next** one (`audit.py health` → `canonical_freshness: ARCHITECTURE.md: last_reviewed
+2026-09-10 predates last edit 2026-09-12`), blocking Step 4.
+
+The predicate is `reviewed < git_date` (`scripts/canonical_freshness_gate.py:185`), so a
+same-day stamp satisfies it. **The stamp was not simply moved.** This repo's convention is
+that `last_reviewed` means *re-read end-to-end and confirmed accurate, or drift filed*, and
+every prior stamp on this file states "re-read the file end-to-end from disk". So the file was
+read end-to-end — all 1,306 lines — before the stamp moved. Neither `--no-verify` nor a
+stamp-without-a-read was taken; both would have converted a real gate into a formality.
+
+**The re-read found drift this lane's contract did not send it to fix, and it was this lane's
+own deletions that caused it.** `ARCHITECTURE.md` Ch2's organ table carried rows for
+`boundary_report.py` and `boundary_headers.py` — **both deleted in Step 2** — still marked
+**ARMED (manual)**. The map was asserting that two non-existent scripts were live organs.
+
+Both rows are now **RETIRED**, which is a status this chapter's own legend already defines
+(*"RETIRED = removed, kept only as a record"*), so no new vocabulary was invented.
+
+**And the `boundary_headers` row records a consequence rather than only a fact:** the #312
+Form-A boundary markers in `CLAUDE.md` remain the source of truth, but nothing now regenerates
+or `--check`s the reader-visible headers derived from them — **those headers can now drift
+silently** — and open ticket **#369** (that generator's pre-commit wiring) is **moot and needs
+dispositioning**. Flagged for the integrator; dispositioning another row is not this lane's
+act.
+
+### The blind spot this exposes, which is the more portable finding
+
+**No gate caught those two false ARMED rows.** `test_the_live_tree_carries_no_dangling_process_
+reference` stayed green across both Step 2 and Step 3, because
+`graph_queries._PROSE_PROCESS_RE` matches **path-shaped** references only:
+
+```python
+_PROSE_PROCESS_RE = re.compile(r"(?:scripts|plugins)/[A-Za-z0-9_./-]+\.(?:py|ps1)")
+```
+
+Ch2's organ rows name their organs as **bare backticked filenames** (`` `boundary_headers.py` ``),
+which that regex does not match. So the repo's one defence against "prose naming a process the
+graph lacks" is blind to the single table most likely to name one — the organ map.
+
+This is the same shape as the `/override` finding in this step and the `desired_state` finding
+in Step 3: **a surface that reads as authoritative, is not checked, and had been outgrown.**
+Three instances in one lane. Recorded here, and in the `ARCHITECTURE.md` stamp itself, because
+the next deletion lane will meet it.
+
+**Open item for the integrator/architect:** widen the dangling-reference predicate to catch a
+bare `<name>.py` inside the Ch2 organ table, or accept the gap explicitly. This lane does not
+widen a live refusal predicate on its own motion — that is a mechanism change, not a cleanup.
+
+### Verification after the re-stamp
+
+`uv run --locked python scripts/audit.py health` → **`health: OK`** (the
+`canonical_freshness` FAIL cleared; no new FAIL introduced).

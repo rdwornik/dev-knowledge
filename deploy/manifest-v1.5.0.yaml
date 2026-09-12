@@ -299,9 +299,13 @@ carriers:
       /override: the ADR-85 amendment 2026-08-03 §A2 retired the command, so the hub-parity
       argument for carrying it ("seb's only escape") named a gate it no longer discharged. The
       .gitignore block is what remains of that leg and is now VESTIGIAL — it ignores an ephemeral
-      token nothing creates and re-includes a path nothing occupies. It is kept because this
-      release ships no `status: removed` tombstone (release_lint C6; they unlock in P2 on operator
-      decision D3), so the carrier has no prune leg with which to retract it from consumers.
+      token nothing creates and re-includes a path nothing occupies. RETRACTED 2026-09-12
+      ([#734]): this clause used to justify keeping it with "this release ships no
+      `status: removed` tombstone (release_lint C6; they unlock in P2 on operator decision D3)".
+      That was false — D3 is decided, `ALLOWED_STATUSES` admits `removed` since `1fbdf6f3`, and
+      this manifest already carries the `ruff-gate` tombstone. The block is kept for the real
+      reason: the mesh carrier has no prune leg for a .gitignore region, which is a carrier gap
+      and not a lifecycle prohibition.
     adr: [ADR-85, ADR-81]
     target:
       organs:
@@ -1081,10 +1085,34 @@ components:
   # 2026-08-03 §A2 retired /override: session_end_backpressure.py no longer reads its token and
   # the command's own description said it discharged no gate, so a fully-deployed consumer was
   # installing a working-looking escape hatch that escapes nothing. Node, payload and the carrier
-  # leg that shipped it left in ONE act. A `status: removed` tombstone was NOT available — this
-  # release admits only `status: active` (release_lint C6; tombstones unlock in P2 on operator
-  # decision D3) — so consumers already carrying the command keep it until a prune leg exists.
-  # The tooth that keeps it gone here is tests/test_override_command_removed.py.
+  # leg that shipped it left in ONE act.
+  #
+  # RETRACTED 2026-09-12 ([#734], lane lane-x-734-retire-stage-2). This block used to say: "A
+  # `status: removed` tombstone was NOT available — this release admits only `status: active`
+  # (release_lint C6; tombstones unlock in P2 on operator decision D3)". THAT WAS FALSE WHEN IT
+  # WAS WRITTEN. `1fbdf6f3` had already set ALLOWED_STATUSES = {"active", "removed"}; D3 is
+  # decided; the field table above records `removed` as "legal as of v1.2.0 (P2)"; and
+  # `ruff-gate` sits in this same file as a live `status: removed` entry.
+  #
+  # MEASURED, not argued: this lane WROTE the tombstone here and ran both gates.
+  #   * `release_lint.py --version 1.5.0` -> "C6-components: 25 components valid", 0 FAIL.
+  #     C6 accepts it. The tombstone is NOT blocked by the release lint.
+  #   * `pytest tests/test_override_command_removed.py` -> RED:
+  #     "manifest node present: manifest-v1.5.0.yaml id=override-command".
+  # The entry was then REVERTED rather than landed, and the tooth left un-weakened.
+  #
+  # SO THE REAL BLOCKER IS THIS FILE'S OWN TOOTH, AND IT IS A GENUINE CONFLICT, NOT AN OVERSIGHT
+  # TO PATCH IN PASSING. tests/test_override_command_removed.py refuses ANY component whose id
+  # is `override-command`, whatever its status; the field table twelve hundred lines above says
+  # a removed component's "manifest entry is retained as a tombstone". Both are live governance
+  # and they cannot both be satisfied for this component. AX13-3 asks for the tombstone; [#683]
+  # forbids the node. ESCALATED to the operator/architect as a decision-budget class (b)
+  # rule-vs-ruling conflict rather than resolved by a lane weakening a regression tooth.
+  # The one-line resolution, if the operator rules for the tombstone: scope that predicate to
+  # `status: active` components (the test's other two legs -- payload-on-disk and
+  # artifacts[].path -- already carry its stated "node and payload are ONE act" intent, and a
+  # tombstone carrying no artifacts trips neither).
+  # Evidence: docs/audits/2026-09-12-technical-lane-x-734-retire-stage-2-evidence.md.
 
   - id: boot-session-command
     kind: command
