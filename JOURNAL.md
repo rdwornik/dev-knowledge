@@ -19,6 +19,48 @@
 
 ---
 
+### 2026-09-12 (j) - CC (Opus 5, background integrator seat): the wave-2 freeze lands docs-only, and the seat that filed it caught this seat in the act
+
+**Anchors:** `c0bbf498` (the dispatcher's freeze commit, introduced by merge `b2b20fdc`).
+
+**Merged.** `b2b20fdc` -- `worktree-dispatch-x2-freeze` @ `c0bbf498`, by SHA. Three wave-2
+lane contracts frozen (`[#675]` merge cost, `[#727]` fail-closed, `[#734]` retire-stage
+second attempt), the batch X2 manifest, and two new rows. **Docs-only was VERIFIED, not
+taken on the word:** `git diff --name-only main...c0bbf498` returns zero files under
+`scripts/` or `tests/`.
+
+**The peer was proved finished before anything was merged or torn down.** Its worktree was
+clean, its `HEAD` equalled its origin tip, and it had been idle 39 minutes. That check is
+not ceremony here -- `[#739]`, filed in this very commit, is the row for a seat acting on
+another seat's in-flight work, and the merge would have been the act.
+
+**The two rows are a mirror held up to this batch, and both are about the same defect
+shape.** `[#675]`'s class: *a check that answers uniformly because the discriminating field
+is absent from what it reads.*
+
+- `[#738]` -- `lane-ceiling --check-worktrees` refuses on worktree PRESENCE. It refused the
+  dispatcher's wave-2 plan because `lane-x-691-routing-half-a` existed, and the only remedy
+  it offered was teardown -- of seven commits of unmerged work AX24-1 had ordered MERGED.
+  One command, `git merge-base --is-ancestor`, separates a husk from unmerged work, and the
+  check never runs it. It was harmless only by accident: the merge was already the ruled
+  next step.
+- `[#739]` -- `session_end_backpressure` reads the working tree but not its authorship. At
+  the dispatcher's stop it named **six of THIS seat's in-flight AX24-5 closures** and told
+  the dispatcher to commit or stash them. The dispatcher had made zero repo edits. Both
+  offered remedies were destructive, and stash is the worse one: `refs/stash` lives in the
+  COMMON git dir, so it would have yanked this seat's closures out repository-wide and
+  survived every worktree- and branch-shaped cleanup. The hook is advisory in full
+  (ADR-85 §A5), the dispatcher declined with cause, and that posture is the only reason
+  this is a row rather than an incident.
+
+**`kill-candidates: none`** on the merge, carried from the rows' own dispositions rather
+than re-reasoned: the two are sibling instances in different organs and neither subsumes
+the other; `[#675]` owns the class and would describe either defect rather than fix either
+organ.
+
+**Changes.** `BACKLOG.md`, `tasks/` (two new rows + `manifest.json`), the X2 manifest and
+three lane contracts under `docs/audits/`, `JOURNAL.md` (this entry).
+
 ### 2026-09-12 (i) - CC (Opus 5, background integrator seat): the closure arc anchors itself
 
 **Names `78c433e7`**, the entry below, which this arc's own `--no-ff` merge introduces. The
