@@ -19,6 +19,12 @@
 
 ---
 
+### 2026-09-12 (d) - CC (Opus 5, background integrator seat): the x14 anchor arc names its own first commit
+
+**Names `656cdea0`**, the entry below, which this arc's own `--no-ff` merge introduces. A
+one-commit anchor arc cannot discharge the anchor its own merge creates - APPEND ONLY, B6.
+
+**Changes.** `JOURNAL.md` (this entry).
 ### 2026-09-12 (c) - CC (Opus 5, background integrator seat): the x14 merge anchor, written BEFORE the merge
 
 **Names `d64097aa`**, the tip of `worktree-dispatch-x14-freeze`, which its own `--no-ff` merge
