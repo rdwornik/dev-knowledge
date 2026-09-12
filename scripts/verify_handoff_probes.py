@@ -889,6 +889,84 @@ def _unnamed_open_carriers(bundle_path: Path, repo_root: Path) -> list[ProbeResu
         bundle_path.name)]
 
 
+#: A9-2's rung is bounded by the same date the organ's own refusals are -- `decision_coverage
+#: .ARM_DATE`, restated here as a bundle-slug era because that is the shape `bundle_at_or_after`
+#: reads. Pinned equal to it by a test, so the two cannot drift apart.
+_DECISION_ERA = "2026-09-11"
+
+
+def _undisposed_decisions(bundle_path: Path, repo_root: Path) -> list[ProbeResult]:
+    """A9-2 at ACCEPTANCE time: an accepted decision the incoming plan has not disposed.
+
+    *"the incoming seat's plan must dispose each one (executing in batch N | scheduled with a
+    row | refused in writing) before its plan is accepted -- a probe, not prose."* This is that
+    probe. `decision_coverage.onboarding_findings` owns the judgement and the wording; this
+    function owns only WHEN it is asked and how its answer enters this list, so the onboarding
+    refusal and the commit-tier refusal cannot come to different conclusions about the same
+    decision.
+
+    THE THREE BOUNDS ARE THE SIBLING RUNG'S, reused rather than re-argued, because the hazard
+    is identical in each case and a second set would be free to disagree:
+
+      * HUB-ONLY (`_gh._is_hub`). The population includes the machine-level transport
+        (`CLAUDE_PROMPTS_DIR`) and the hub's own intake funnel; judging a consumer repo's
+        bundle against either is a category error, and it is the measured one that made a unit
+        test's verdict depend on the operator's own drive.
+      * ERA (`_DECISION_ERA`). "Any FAIL blocks onboarding", and 112 accepted decisions predate
+        the `implements:` key, so an unbounded rung would block every handoff on a defect
+        nobody is permitted to repair. The grandfathered count rides in the detail line, so the
+        debt stays visible at the one moment somebody is reading the bundle.
+      * STILL REPAIRABLE (`_residual_is_sealed_and_unchanged`). A committed bundle is
+        immutable, and a decision accepted after the cut can never be disposed in that
+        bundle's plan; unbounded, this would fail every later commit in the repo, since
+        `check_handoff_probes` is COMMIT tier. Teeth stay where they can be acted on: the cut,
+        `/handoff-verify`, and the commit that FIRST lands the bundle.
+
+    That third bound is also what keeps the cost off ordinary commits, and the cost is real:
+    MEASURED 2026-09-11, resolving the population costs ~25s, ~23s of it P11's own
+    `carriage_verdicts` spawning a `git cat-file` per carrier token. On the unsealed path this
+    rung and `_unnamed_open_carriers` each pay it once -- an HONEST LIMIT, recorded rather than
+    fixed here, because memoizing `_resolves_on_main` is P11's surface and outside [#692]'s
+    footprint.
+    """
+    if not bundle_at_or_after(bundle_path.name, _DECISION_ERA):
+        return []
+    residual = bundle_path / "RESIDUAL.md"
+    if not residual.exists():
+        return []                       # not a v5-lineage bundle; nothing to judge
+    try:                                # deferred sibling-CLI import, the established idiom
+        import gen_handoff as _gh  # noqa: PLC0415
+    except ImportError:
+        return []
+    # SCOPE FIRST, ORGAN SECOND, and the order is load-bearing rather than tidy. Importing
+    # `decision_coverage` pulls in `file_purpose_graph` and through it `validate_backlog`; a
+    # fixture repo that puts its own `scripts/` on sys.path resolves that chain to a stub and
+    # raises. Establishing that there IS a population to read before reaching for the reader
+    # costs nothing and is true of every bound below: none of them needs the organ to decide.
+    if not _gh._is_hub(Path(repo_root)):
+        return []
+    if _residual_is_sealed_and_unchanged(bundle_path, Path(repo_root)):
+        return []
+    try:
+        import decision_coverage as _dc  # noqa: PLC0415
+    except ImportError:                  # pragma: no cover -- a sibling module, always present
+        return []
+    try:
+        found = _dc.live_decisions(repo_root)
+    except Exception as exc:            # noqa: BLE001 -- resolve-only: a boundary is not a FAIL
+        # DEGRADED, never absent -- the same `skipped` this validator already uses for "measured
+        # nothing, honestly", and for the same reason: a rung that vanishes when it cannot
+        # measure reads as a pass to every consumer of this list (DEFECT E-29).
+        return [ProbeResult(
+            _dc.ONBOARDING_PROBE_ID, "skipped",
+            f"A9-2 not measured: the decision population is unreadable ({type(exc).__name__}: "
+            f"{exc}), so the open decisions this bundle's plan must dispose cannot be listed"
+            .replace("|", "/"),
+            bundle_path.name)]
+    return [ProbeResult(f.probe_id, f.status, f.detail.replace("|", "/"), bundle_path.name)
+            for f in _dc.onboarding_findings(found)]
+
+
 def verify(bundle_path, repo_root=None, cross_repo=False) -> list[ProbeResult]:
     """Classify every probe in <bundle_path>/PROBES.md. Read-only; resolve-only.
 
@@ -924,6 +1002,9 @@ def verify(bundle_path, repo_root=None, cross_repo=False) -> list[ProbeResult]:
     # the table keeps its order, and a synthesized row reads as what it is.
     if not cross_repo:
         results.extend(_unnamed_open_carriers(bundle_path, repo_root))
+        # [#692] A9-2, appended last for the same reason and on the same terms: a synthesized
+        # row reads as what it is, and everything present in the table keeps its order.
+        results.extend(_undisposed_decisions(bundle_path, repo_root))
     return results
 
 

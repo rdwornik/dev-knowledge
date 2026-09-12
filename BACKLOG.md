@@ -114,6 +114,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#691] [P2][M] Provider routing is an unordered role set with no admission gate and no licence field — a role needs an ORDERED fallback list only admitted providers may enter · tasks/691-provider-routing-is-an-unordered-role-set-with-no-admission-gate.md
 - [#692] [P1][L] decision_coverage — nothing makes a decided thing stay scheduled, so the guarantee lives in a seat's memory instead of in the repo · tasks/692-decision-coverage-a-decided-thing-is-never-unscheduled-again.md
 - [#721] [P2][S] `decision_coverage` does not count STANDING_RULINGS entries, so a ruling with no mechanism row is the one decision class the query cannot see · tasks/721-decision-coverage-counts-standing-rulings-entries-as-decisions.md
+- [#735] [P1][M] Floor declaration is mandatory — a new organ, hook, gate, doc or command carrying no `floor: MUST | hub-only` is refused at commit · tasks/735-floor-declaration-is-mandatory-a-new-component-without-one-is-refused.md
 - [#698] [P2][S] The SEAT-BOOT-integrator render emits a GO line per merge where the canon it implements grants ONE GO for the batch · tasks/698-seat-boot-integrator-render-emits-a-go-per-merge-where-canon-grants-one-per-batch.md
 - [#699] [P2][S] Three tally grammars coexist and two collide on a substring, so which one a first-match reader resolves is decided by ordering rather than by meaning · tasks/699-three-tally-grammars-coexist-and-two-collide-on-a-substring.md
 - [#715] [P1][L] Path management has no single declaration -- three governed-path mismatches in one day, and the registry the operator is describing already exists as FPG-1 · tasks/715-path-management-has-no-single-declaration-and-fpg1-is-already-the-registry.md
@@ -302,6 +303,7 @@ So that the consumer-facing live surface reflects CURRENT state — hub-deprecat
 - [#245] [P2][M] Add-path status-awareness · DEFER · tasks/245-add-path-status-awareness.md
 - [#690] [P2][S] The three SUPERSEDED `block-onedrive` hook copies under `~/.claude/hooks/` — removed, and the removal recorded in-repo · tasks/690-three-superseded-l0-hook-copies-removed-batch-w-w5.md
 - [#734] [P1][M] Cleanup is an act, not a note -- the census's 35 non-live items each get DELETE, TRIGGER or KEEP, as one file for one operator GO · tasks/734-cleanup-is-an-act-35-non-live-census-items-get-a-proposal-each.md
+- [#736] [P2][M] Component lifecycle is not data, so nothing can deprecate an organ — an item untriggered and unread for 30 days stays `production` forever · tasks/736-component-lifecycle-as-data-and-automatic-deprecation.md
 
 ### [S17] Make new-repo scaffolding correct-by-default
 So that a new repo inherits the full baseline in one step, not by re-derivation.

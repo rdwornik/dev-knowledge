@@ -290,11 +290,14 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "sentinel NUDGES it, and a nudge is not a trigger -- the distinction the "
                "census draws deliberately and this register preserves",
         owner="V+1 retirement-or-wiring list"),
-    ".claude/commands/override.md": Disposition(
-        reason="RETIRED by the ADR-85 amendment 2026-08-03 §A2 -- discharges no gate and "
-               "arms only a local telemetry token. The file IS the retirement notice, which "
-               "is why it is kept rather than deleted (2026-09-07 census-templates ruling)",
-        owner="ADR-85 amendment -- settled"),
+    # `.claude/commands/override.md` WAS dispositioned here, on the 2026-09-07
+    # census-templates ruling that "the file IS the retirement notice, which is why it is
+    # kept rather than deleted". `5e17ecd7` ([#683], batch W, closed on the operator's word)
+    # then DELETED it -- "remove /override: node, payload and the carrier leg, in one act".
+    # The row is removed rather than re-worded: a disposition says "this orphan was LOOKED AT
+    # and ruled", and a file that is gone is not an orphan, so keeping the row would be the
+    # paper suppression `stale_dispositions()` exists to surface. The superseding act is
+    # recorded here rather than in the register, because the register holds live rulings only.
     ".claude/commands/preflight.md": Disposition(
         reason="its own frontmatter says 'wired into no gate' -- a self-declared orphan, and "
                "an adoption-first read-only helper is a legitimate shape for one",

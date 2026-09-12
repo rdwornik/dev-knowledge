@@ -19,6 +19,145 @@
 
 ---
 
+### 2026-09-12 (b) - CC (Opus 5, background integrator seat): the wave-1 close arc names its own first commit
+
+**Names `09c864ad`**, the close packet and the entry below, which this arc's own `--no-ff` merge
+introduces. A one-commit arc cannot discharge the anchor its own merge creates -- APPEND ONLY, B6.
+Third time this pattern is written down in two days; it is the shape, not a workaround.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+### 2026-09-12 (a) - CC (Opus 5, background integrator seat): batch X wave 1 closes -- five merged, one REFUSED
+
+**Names the five wave-1 merges** `3a8ee7a8` `eccb5814` `a77e3302` `6463ca9c` `11c7c8b1`, and the
+close packet `docs/audits/2026-09-12-technical-batch-x-wave-1-close-packet.md`.
+
+**Did.** Walked six handbacks serially from the primary checkout, one fresh Codex review and one
+targeted suite each. Five merged; **`lane-x-734-retire-stage` REFUSED.** Suite 5752 to 5945
+(+193). Two conflicts, both resolved by keeping BOTH sides and verifying the result rather than
+the resolution.
+
+**THE REFUSAL IS THE ENTRY.** X-DEL deleted six modules on a reverse-dep oracle verdict of SAFE.
+Two of the six are still invoked by live code: `.devcontainer/provision.sh` executes
+`cloud_provisioning.py` at six call sites, and `tests/test_e2e_consumer_lifecycle.py` loads
+`boundary_report.py` through `importlib.util.spec_from_file_location`. **Four instruments looked
+at this question and all four missed it, for one reason: each models Python import edges, and
+neither a shell command nor a path-string importlib load is an import edge.** The lane oracle
+missed it; the lane targeted tests were green because one path is behind `RUN_E2E=1` and the
+other only runs in a devcontainer; the lane deleted `tests/test_cloud_provisioning.py`, which
+held the only assertion over the provision script call list, so the module, its wiring test and
+the breakage left together; **and this seat own first verification pass said "zero referrers for
+all six" because its glob set excluded `.sh` and its regex looked for `import` statements.**
+
+That last one is the lesson and it is mine. **A verification instrument that reports zero is
+making a claim about its own coverage, not about the tree.** The fresh review found both. This is
+the batch recurring defect in its tenth instance and its purest form -- a pin that does not cover
+the thing that can change -- and this time the pin was a deletion-safety oracle.
+
+**The gate said MERGE on it.** `audit.py handback` returned MERGE at HIGH:2 MED:4, which is D-1
+working exactly as designed: the mechanized leg asserts a review RAN and is NAMED. **Severity
+triage is the integrator act, and the gate is a floor rather than a verdict.** Recorded because
+a seat that reads MERGE as permission would have landed this.
+
+**The anchor was paid once instead of six times.** `open_batches` still returns 0 -- the batch X
+manifest carries no `status: open` and no `closed_by:` -- and 0 of 6 lanes wrote a JOURNAL entry.
+Every merge would have landed unanchored and blocked the next. B2/B6 put the anchor on the branch
+AHEAD of the merge, so ONE two-commit arc naming all six tips (`1b17a766`) discharged all five
+merges in advance. `health: OK` after each; both pre-push gates passed. **Anchoring after the
+fact is the repair shape; anchoring ahead is the law shape, and at six lanes that is one arc
+instead of five.**
+
+**Three reviewer HIGHs did not land, and each was resolved against the source rather than
+argued.** The x-716 finding mis-scopes `[#718]`, which is about where the generator WRITES. The
+x-664 finding needs a non-zero exit to mean DENY; it does not -- a PreToolUse hook refuses on
+exit code 2 specifically, which is why AX15-1 had to BUILD a map-every-status-to-2 wrapper to
+make the prompts guard fail closed. **The two hooks fail in opposite directions on purpose:** a
+safety guard that cannot evaluate must refuse; a routing nudge that cannot evaluate must not
+wedge the session. The W-2' finding reproduces but is forgery-only against a checker ADR-28/36
+forbids from executing what it reads.
+
+**One HIGH stands, merged, named.** `conductor._archived()` globs `tasks/archive/` and never
+checks `tasks/`, while its own docstring says "rather than tasks/" and its own test writes the
+live body and asserts pass. A copy instead of a move certifies as archived. **The test does not
+miss the bug, it defends it** -- which is worse, because the fix must now change a green
+assertion.
+
+**Also measured:** the lanes were NOT file-disjoint (six shared files, two real conflicts), and
+the ship gate hard-fail is `funnel_lifecycle` on the batch X intake roster, whose frontmatter
+parses to an empty mapping -- **the same defect as the manifest, in a second dispatcher
+artifact.** Neither is this seat to repair.
+
+**THE FULL SUITE RAN, and it is the first completed run in this batch** (three OOMs before it).
+`38 failed, 6019 passed, 4 skipped in 52:05` at `11c7c8b1`. A raw count is not a finding, so this
+seat baselined it against a throwaway worktree at the pre-wave commit: **30 of the 38 already
+failed.** So **main was ALREADY RED by 30 tests** and nobody had measured it. Eight are new.
+
+**All eight are cross-cutting, and not one could have been caught by the targeted tests each lane
+correctly ran.** Three are the desired-state probe enum refusing a `parity-surfaces.yaml` row two
+lanes added. One is lane-5 giving `worktree_seed.py` a trigger while it stays in the
+orphan-disposition register -- *"the register is laundering its own subject"*. One is lane-5's new
+test tripping the proof-layer ratchet. **Two are the sharpest: the symbol `Finding` now resolves
+to THREE definitions where the oracle expects one, because X1-1's `decision_coverage.py` and
+X1-2's `conductor.py` each introduce a `Finding`.** Two lanes, each individually correct, collided
+on a name a third organ treats as unique -- and no review of either diff ALONE could have seen it.
+That is the argument for a full suite at integration, stated as a measurement instead of a
+principle.
+
+**Not repaired here, deliberately.** The ratchet and the disposition register exist to force a
+decision when they trip; bumping a baseline or editing a register to green a red test is the exact
+act those organs prevent. The collisions need an owner, not an integrator patch.
+
+**Changes.** `docs/audits/2026-09-12-technical-batch-x-wave-1-close-packet.md` (new),
+`JOURNAL.md`, `CLAUDE.md` (two section-9 roster lines these merges changed).
+
+**Next.** Teardown of the five merged lanes; `[#734]` and its branch preserved for repair; five
+evidenced closures proposed for one operator word, with `[#684]` refused from the list because
+its smoke witness is externally blocked rather than merely missing.
+
+### 2026-09-11 (o) - CC (Opus 5, background integrator seat): the wave-1 anchor arc names its own first commit
+
+**Names `176bf9c3`**, the entry below, which this arc's own `--no-ff` merge introduces. A
+one-commit anchor arc cannot discharge the anchor its own merge creates - APPEND ONLY, B6.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+### 2026-09-11 (n) - CC (Opus 5, background integrator seat): the wave-1 merge anchors, written BEFORE the merges
+
+**Names all six wave-1 lane tips**, each of which its own `--no-ff` merge will introduce:
+
+```
+b0aa0abfb4f8a0de0445a932b6663bc475ca11f9   W-2'    lane-w-684-pretooluse-guard-root
+79bc4d2c69d3f489a12a19b04bb4e6a4ea6c74bd   lane-5  lane-x-716-dispatch-defects
+a661ca20dfcff0d5300aebb0562ec507a7291fd0   X1-1    lane-x-692-decision-coverage
+4617f32527f1659c130414997f4836621a3e152a   X1-2    lane-x-689-conductor-e
+3e64f345eeca00d253b88387628d46230486fbc9   X-DEL   lane-x-734-retire-stage
+0b39409406204fce3c0fc5b0fdd44c0e0296d594   X1-5    lane-x-664-delivery-spine
+```
+
+**Why this entry exists at all, and why it is written ahead of the merges rather than after.**
+`docs/audits/2026-09-11-technical-batch-x-manifest.md` carries no `status: open` and no
+`closed_by:`, so `batch_manifest.open_batches` returns **0** and batch X's lanes take **no
+ADR-110 exemption**. Reported at `0be08b3c`; unrepaired on `main` and on both live dispatcher
+branches, checked rather than assumed. **And not one of the six lanes wrote a JOURNAL entry on
+its own branch** - measured, 0 of 6. So every wave-1 merge would land unanchored and block the
+next commit in the repo, including the next merge.
+
+The lawful answer is not to merge and repair six times afterwards. **STANDING_RULINGS B2/B6 put
+the anchor on the branch AHEAD of the merge**, precisely because a merge commit cannot name its
+own hash; anchoring after the fact is the repair shape, not the shape of the law. One entry
+naming all six tips discharges all six merges in advance and leaves `main` anchored at every
+point in the queue rather than blocked at five of them.
+
+**What this entry does NOT claim.** It is an anchor, not a verdict. No lane is merged on the
+strength of appearing here: each is reviewed, suited and verdicted at its own merge, in the
+operator's order - W-2' first (it unblocks non-Claude providers), then lane-5, X1-1, X1-2,
+X-DEL, X1-5 last. A tip listed here that fails its review does not merge, and the wave-close
+entry records that rather than this one.
+
+**Baseline before the wave:** `main` = `0be08b3c`, 5752 tests collected, health OK.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-11 (m) - CC (Opus 5, background integrator seat): the anchor arc names its own first commit
 
 **Names `efd5d47f`**, the entry below, which this arc's own `--no-ff` merge introduces.

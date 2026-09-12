@@ -31,6 +31,14 @@ Warn-only:
     no LLM, ADR-88 do-not-build). STATED LIMIT: will NOT catch low-title-overlap semantic
     dups; the primary dedup remains the architect/CC filing flow.
 
+The optional `· phase: <stage>` clause ([#689], conductor E) names where a row sits on
+the delivery spine. Its value is a CLOSED enum (`_PHASE_ENUM`) and an unknown value is a
+hard-fail that names the admitted set; two clauses on one row is a hard-fail (a row has
+exactly one phase). ABSENCE IS LEGAL and silent -- adoption is measured by the `unphased`
+bucket of `phase_census`, not mandated here, because a mandatory clause would demand a
+mass edit of every live row and would break the plugin-twin parity test (whose fixtures
+carry no phase clause and whose twin has no phase check).
+
 The optional `· serialize-group: <label>` clause (shared-mutable-resource mutual
 exclusion) is surfaced in the OK summary, never a failure. A task may carry ≥1 such
 clause — one per shared surface it collides on (multi-surface collision, #167) — and is
@@ -80,6 +88,25 @@ _DEPENDS_CLAUSE_RE = re.compile(r"·\s*depends-on\s*:\s*([^·]*)")
 # ≥2 surfaces is fully encoded. ASCII-only labels also can't carry a non-cp1252 glyph into
 # the summary print (the crash that accompanied the self-trip).
 _SERIALIZE_CLAUSE_RE = re.compile(r"·\s*serialize-group\s*:\s*([A-Za-z0-9][A-Za-z0-9_-]*)\s*(?=·|$)")
+# [#689] conductor E -- the delivery-spine phase enum. NOT INVENTED HERE: this is the
+# operator's own spine, carried verbatim from the header of
+# `to-cc/DECLARE-CONDUCTOR-DECISION-2026-09-09.md` -- "one spine over intake -> task ->
+# build with tests -> review -> merge -> docs -> deploy -> telemetry -> archive". ORDER IS
+# LOAD-BEARING and is pinned by a test: `conductor_metrics` and the Actions phase gate read
+# the INDEX to answer "which stage comes next", so a re-ordered tuple silently re-orders the
+# process. A new stage is an enum change, which is a decision, not an edit.
+#
+# WHAT THIS TUPLE IS NOT. It is a VOCABULARY, not a state machine: nothing here fires a
+# transition. The four delivery-loop transitions are `[#669]`'s, and that row's
+# kill-candidates line and this one's both say so -- `[#689]` supplies the phase field, the
+# runner and the gate surface; `[#669]` supplies the transitions the runner then fires.
+_PHASE_ENUM = ("intake", "task", "build", "review", "merge", "docs", "deploy",
+               "telemetry", "archive")
+# Delimiter-anchored exactly like _SERIALIZE_CLAUSE_RE, and for the same measured reason: a
+# body that MENTIONS the word (every row discussing the phase table does) must not register a
+# phantom clause. The leading `·` is required and the value must butt the next `·` or the
+# end of the line.
+_PHASE_CLAUSE_RE = re.compile(r"·\s*phase\s*:\s*([A-Za-z][A-Za-z0-9_-]*)\s*(?=·|$)")
 _DEPID_RE = re.compile(r"(?<![\w./-])#?(\d+)(?![\w./-])")
 # N2-E4-03 (#524 leg b) — body-date scan. Narrowly scoped to the machine-shaped
 # `· review_date=YYYY-MM-DD` clause (the same field `· routine:` rows already carry, e.g.
@@ -124,6 +151,66 @@ def _parse_serialize_groups(rest):
         if m.group(1) not in out:
             out.append(m.group(1))
     return out
+
+
+def _parse_phases(rest):
+    """Every `· phase:` clause on a row, in order (normally zero or one)."""
+    return [m.group(1) for m in _PHASE_CLAUSE_RE.finditer(rest)]
+
+
+def _parse_phase(rest):
+    """The row's declared phase, or None when it declares none.
+
+    Returns the FIRST clause when a row carries several -- the duplicate is reported by
+    `_check_phase`, and a reader asking "what phase is this row" is owed an answer rather
+    than an exception.
+    """
+    phases = _parse_phases(rest)
+    return phases[0] if phases else None
+
+
+def _check_phase(tasks):
+    """Hard-fails on the `· phase:` clause ([#689]): an unknown value, or more than one.
+
+    HUB-AND-CONSUMER SAFE, which is why absence is not checked: this module is also the
+    plugin floor twin, and a consumer's hand-authored BACKLOG.md carries no phase clause at
+    all. A required-clause rule would fail every consumer row on the day it deployed.
+    """
+    admitted = ", ".join(_PHASE_ENUM)
+    hard = []
+    for t in tasks:
+        loc = f'[#{t["id"]}] line {t["line"]}'
+        phases = _parse_phases(t["rest"])
+        if len(phases) > 1:
+            hard.append(f'{len(phases)} phase clauses on one row — a row has exactly one '
+                        f'phase — {loc}')
+        for p in phases:
+            if p not in _PHASE_ENUM:
+                hard.append(f'phase {p!r} is not a delivery-spine stage — admitted: '
+                            f'{admitted} — {loc}')
+    return hard
+
+
+def phase_census(tasks):
+    """Map stage -> [task ids], plus an `unphased` bucket. Informational.
+
+    The `unphased` bucket is the POINT, not a leftover: the `· phase:` clause is optional, so
+    the honest measure of adoption is how many rows still lack one. A census that reported
+    only the phased rows would make 100% adoption and 1% adoption look identical.
+    Enum order is preserved; empty buckets are omitted.
+    """
+    buckets = {}
+    for t in tasks:
+        buckets.setdefault(_parse_phase(t["rest"]) or "unphased", []).append(t["id"])
+    ordered = {k: buckets[k] for k in _PHASE_ENUM if k in buckets}
+    if "unphased" in buckets:
+        ordered["unphased"] = buckets["unphased"]
+    # A value outside the enum is still surfaced -- `_check_phase` hard-fails it, and a
+    # census that silently dropped it would disagree with the failure list.
+    for k, v in buckets.items():
+        if k not in ordered:
+            ordered[k] = v
+    return ordered
 
 
 # CARRIER-DOCTRINE TWIN (ADR-78): the #156 dep machinery (_DEPENDS_CLAUSE_RE / _DEPID_RE /
@@ -258,6 +345,84 @@ def _check_past_review_dates(tasks, today):
     return warn
 
 
+# --- [#692] the `implements:` clause: STRUCTURED and VALIDATED ---------------------------
+
+#: The clause as written in a row body. `gen_task_tree._IMPLEMENTS_RE` derives the FRONTMATTER
+#: key from the same clause; this reads it for validation. Both are spelled out rather than
+#: imported across the pair because this module is also the plugin FLOOR twin's ancestor and
+#: must stay importable with no sibling on the path.
+_IMPLEMENTS_CLAUSE_RE = re.compile(r"· implements: ([^·]+?)(?= ·|$)")
+#: The three token forms clause 2 names: `[ADR-n | intake-n | DECLARE-...]`. CASE-SENSITIVE and
+#: anchored by the caller with `fullmatch`, so `adr-118`, `ADR118`, `#91` and a bare
+#: `GRAPH-2026` are each refused rather than leniently accepted -- a token the grammar admits
+#: but the graph cannot key is a silently dropped edge, which is the one failure a coverage
+#: gate must not have.
+_IMPLEMENTS_TOKEN_RE = re.compile(
+    r"ADR-\d+|intake-\d+|(?:DECLARE|AMEND)-[A-Za-z0-9][A-Za-z0-9-]*")
+
+
+def _implements_tokens(t):
+    """The tokens on one task's `implements:` clause, in order, or []."""
+    m = _IMPLEMENTS_CLAUSE_RE.search(t.get("raw") or t.get("rest") or "")
+    if not m:
+        return []
+    return [part.strip() for part in m.group(1).split(",") if part.strip()]
+
+
+# rule: governance-backlog-implements-grammar
+def _check_implements_grammar(tasks):
+    """HARD-fail a token outside the declared grammar.
+
+    Clause 2 of `[#692]`'s frozen contract asks for a STRUCTURED, VALIDATED key. Unvalidated,
+    a typo'd token is not an error -- it is an edge that never appears, so the decision reads
+    as uncovered and the author is told to do the thing they already did.
+    """
+    hard = []
+    for t in tasks:
+        loc = f'[#{t["id"]}] line {t["line"]}'
+        for token in _implements_tokens(t):
+            if not _IMPLEMENTS_TOKEN_RE.fullmatch(token):
+                hard.append(
+                    f'· implements: token "{token}" is outside the grammar '
+                    f'[ADR-n | intake-n | DECLARE-... | AMEND-...] — {loc}')
+    return hard
+
+
+# rule: governance-backlog-implements-reference
+def _check_implements_references(tasks, repo_root=None):
+    """HARD-fail an `ADR-n` / `intake-n` token that resolves to nothing on disk.
+
+    Reference-existence, the same bar `_check_dep_references` holds `depends-on` to. A
+    `DECLARE-`/`AMEND-` token is GRAMMAR-CHECKED ONLY and that is stated rather than silently
+    skipped: the transport is a machine-level surface (`CLAUDE_PROMPTS_DIR`), not a tracked
+    tree, so in-repo resolution is not available for it and asserting one would make the gate's
+    verdict depend on what happens to be sitting on the operator's drive.
+    """
+    root = Path(repo_root) if repo_root is not None else BACKLOG.parent
+    decisions_dir = root / "docs" / "decisions"
+    intake_dir = root / "docs" / "intake"
+    if not decisions_dir.is_dir():
+        return []                       # a consumer repo with no ADR corpus: nothing to resolve
+    adrs = {p.name.split("-")[1] for p in decisions_dir.glob("ADR-*.md")}
+    intakes = set()
+    if intake_dir.is_dir():
+        for path in intake_dir.glob("*.md"):
+            m = re.search(r"^intake-id:\s*(\d+)\s*$",
+                          path.read_text(encoding="utf-8", errors="replace"), re.M)
+            if m:
+                intakes.add(m.group(1))
+    hard = []
+    for t in tasks:
+        loc = f'[#{t["id"]}] line {t["line"]}'
+        for token in _implements_tokens(t):
+            if token.startswith("ADR-") and token.removeprefix("ADR-") not in adrs:
+                hard.append(f'· implements: {token} names no ADR in docs/decisions/ — {loc}')
+            elif token.startswith("intake-") and token.removeprefix("intake-") not in intakes:
+                hard.append(f'· implements: {token} names no intake in docs/intake/ — {loc}')
+    return hard
+
+
+
 def parse(text):
     """Return (themes, stories, tasks)."""
     themes, stories, tasks = [], [], []
@@ -301,9 +466,11 @@ def parse(text):
 
 
 # rule: governance-backlog-schema
-def validate(themes, stories, tasks, today=None):
+def validate(themes, stories, tasks, today=None, repo_root=None):
     """Return (hard_fails, warnings). `today` defaults to `date.today()`; a caller may inject
-    a fixed date (tests only) for the review_date scan (#524 leg b)."""
+    a fixed date (tests only) for the review_date scan (#524 leg b). `repo_root` defaults to
+    this repo and is injectable for the same reason: the `[#692]` reference leg reads
+    `docs/decisions/` and `docs/intake/` off it."""
     hard, warn = [], []
     big = themes.count(BIG_PICTURE)
     if big != 1:
@@ -350,6 +517,13 @@ def validate(themes, stories, tasks, today=None):
     # cycle among the valid edges); reference-existence first by convention.
     hard += _check_dep_references(tasks)
     hard += _check_dep_cycles(tasks)
+    # [#692] clause 2 -- grammar first, then reference existence, for the reason the two
+    # dep checks run independently: a malformed token must not mask a real dangling one.
+    hard += _check_implements_grammar(tasks)
+    hard += _check_implements_references(tasks, repo_root)
+    # [#689] conductor E — the `· phase:` clause's closed enum. Run with the other
+    # reference-class checks: an unknown stage is a schema defect exactly like a missing band.
+    hard += _check_phase(tasks)
     # #187 dedup-on-entry — deterministic near-duplicate WARN (token-overlap, no LLM)
     warn += _check_duplicate_titles(tasks)
     # #524 leg (b) — body-date scan (review_date=<past date> WARN, silent on future/today)
@@ -392,6 +566,18 @@ def main():
     n_themes = len([t for t in themes if t != BIG_PICTURE])
     print(f"validate_backlog: OK ({n_themes} themes, {len(stories)} stories, {len(tasks)} tasks, "
           f"{len(warn)} warning(s)) — source: {_bs.canonical_source_label(BACKLOG.parent)}")
+    census = phase_census(tasks)
+    phased = sum(len(v) for k, v in census.items() if k != "unphased")
+    if phased:
+        spread = "; ".join(f"{stage} ({len(ids)})" for stage, ids in census.items()
+                           if stage != "unphased")
+        print(f"validate_backlog: phase census — {spread}; unphased "
+              f"({len(census.get('unphased', []))})")
+    else:
+        # Printed rather than omitted: "no row carries a phase yet" is the [#689] adoption
+        # baseline, and a silent summary would read as "the clause is not implemented".
+        print(f"validate_backlog: phase census — 0 of {len(tasks)} rows carry a "
+              f"`· phase:` clause (enum: {', '.join(_PHASE_ENUM)})")
     groups = serialize_groups(tasks)
     if groups:
         summary = "; ".join(f"{g} ({', '.join('#' + i for i in members)})"

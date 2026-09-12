@@ -126,6 +126,12 @@ _PRIORITY_RE = re.compile(r"^- \[#\d+\] \[(P\d)\]")
 _SIZE_RE = re.compile(r"^- \[#\d+\] \[P\d\]\[([SML])\]")
 _SERIALIZE_GROUP_RE = re.compile(r"· serialize-group: ([A-Za-z0-9-]+)")
 _DEPENDS_ON_RE = re.compile(r"· depends-on: ([^·]+?)(?= ·|$)")
+#: `[#692]` clause 2 -- the `implements:` key is DERIVED from this body clause, exactly as
+#: `depends-on` and `serialize-group` are. That is not a stylistic choice: leg 2 of
+#: `source_coherence_problems` re-renders every task file from its own body and refuses a
+#: byte difference, so a frontmatter key with no deriver would be hand-editable, inert and
+#: silently wrong in the source of truth. One clause, one key, one direction.
+_IMPLEMENTS_RE = re.compile(r"· implements: ([^·]+?)(?= ·|$)")
 _DEFER_MARKER = "· DEFER"
 _TITLE_STRIP_RE = re.compile(r"^- \[#\d+\] (?:\[P\d\](?:\[[SML]\])?)?\s*(.*)$")
 _TITLE_FALLBACK_DELIMS = (" — ", " (", ": ", " · ")
@@ -333,6 +339,18 @@ def derive_depends_on(raw: str) -> str | None:
     return m.group(1).strip() if m else None
 
 
+def derive_implements(raw: str) -> str | None:
+    """The decisions this row discharges -- `[#692]`, A9-1's `implements` edge.
+
+    Returns the clause VALUE as written; the token grammar is validated by
+    `validate_backlog._check_implements_grammar` and joined to the graph by
+    `file_purpose_graph.decision_key`. Three owners, one clause, and none of them re-derives
+    another's half.
+    """
+    m = _IMPLEMENTS_RE.search(raw)
+    return m.group(1).strip() if m else None
+
+
 def derive_title(raw: str) -> str:
     """Best-effort human title for a task line. Always non-empty (fallback 'task')."""
     m = _TITLE_STRIP_RE.match(raw)
@@ -374,7 +392,7 @@ def emit_task_file_text(task: TaskRow) -> str:
     """Render one task's frontmattered .md file text.
 
     Fixed key order (id, title, status, priority?, size?, theme?, story?,
-    serialize-group?, depends-on?, generates); optional keys are omitted when
+    serialize-group?, depends-on?, implements?, generates); optional keys are omitted when
     their deriver returns None (or, for theme/story, when the TaskRow field
     itself is None).
 
@@ -405,6 +423,9 @@ def emit_task_file_text(task: TaskRow) -> str:
     depends_on = derive_depends_on(task.raw)
     if depends_on is not None:
         lines.append(f"depends-on: {json.dumps(depends_on, ensure_ascii=False)}")
+    implements = derive_implements(task.raw)
+    if implements is not None:
+        lines.append(f"implements: {json.dumps(implements, ensure_ascii=False)}")
     lines.append(_PROVENANCE_LINE)
     lines.append("---")
     lines.append("")

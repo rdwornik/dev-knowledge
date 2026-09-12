@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "b9aba100d2a2c43a60ee83c02768bbe58c8645bd08cce97f3940dfb0bfbdd20a",
+  "generated_sha256": "292b1d26e0d66d6a8c0b156a6eb468c2b2d03c91977a74931a4d57d869864a64",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -432,6 +432,10 @@
     {
       "task": 721,
       "file": "721-decision-coverage-counts-standing-rulings-entries-as-decisions.md"
+    },
+    {
+      "task": 735,
+      "file": "735-floor-declaration-is-mandatory-a-new-component-without-one-is-refused.md"
     },
     {
       "task": 698,
@@ -1119,6 +1123,10 @@
     {
       "task": 734,
       "file": "734-cleanup-is-an-act-35-non-live-census-items-get-a-proposal-each.md"
+    },
+    {
+      "task": 736,
+      "file": "736-component-lifecycle-as-data-and-automatic-deprecation.md"
     },
     {
       "prose": ""

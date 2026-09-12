@@ -22,6 +22,8 @@ not sufficient; the selection is what is under test.
 """
 from __future__ import annotations
 
+import contextlib as _contextlib
+import logging as _logging
 import sys
 from pathlib import Path
 
@@ -33,7 +35,36 @@ _SCRIPTS = _REPO_ROOT / "scripts"
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
 
+import gen_handoff as gh  # noqa: E402
 import gen_lane_contract as glc  # noqa: E402
+
+
+@_contextlib.contextmanager
+def caplog_at_info():
+    """Collect this module's own log records as plain strings.
+
+    `caplog` is the obvious tool and it is not the right one here: `gen_lane_contract`
+    configures logging at import (`logging.basicConfig`), so the records a CliRunner run emits
+    reach the module's own handler rather than pytest's capture in every invocation order. A
+    local handler is deterministic and does not depend on which test ran first.
+    """
+    records: list[str] = []
+
+    class _Collect(_logging.Handler):
+        def emit(self, record):  # noqa: D102
+            records.append(record.getMessage() % () if not record.args
+                           else record.getMessage())
+
+    handler = _Collect()
+    logger = _logging.getLogger("gen-lane-contract")
+    logger.addHandler(handler)
+    previous = logger.level
+    logger.setLevel(_logging.INFO)
+    try:
+        yield records
+    finally:
+        logger.setLevel(previous)
+        logger.removeHandler(handler)
 
 
 # --- fixtures ---------------------------------------------------------------------------
@@ -423,10 +454,19 @@ def test_a_generated_contract_without_its_command_line_fails(local_contract):
     Written as a deletion rather than a corruption on purpose — the failure M10 exists to
     close is a session handed over with NO command, so the absence is the case that has to
     redden. Deleting the emitted line is the smallest mutation that reproduces it.
+
+    THE MUTATION IS BUILT FROM `dispatch_command`, NOT TYPED. It was a literal until
+    2026-09-11, when `[#717]` put `-Model` on the line and the literal stopped matching: the
+    deletion silently deleted nothing and the test would have gone vacuous. It did not, because
+    the "did the mutation bite" guard below caught it — that guard is why this test reported a
+    changed premise instead of a false pass. Deriving the line from the emitter closes the
+    class rather than re-typing today's spelling, which would rot at the next flag.
     """
-    mangled = local_contract.replace(
-        "Dispatch-Lane lane-a-539-ch8-codification LANE-a-539-ch8-codification.md "
-        "-Effort high\n", "", 1)
+    doomed = glc.dispatch_command(
+        "lane-a-539-ch8-codification", "LANE-a-539-ch8-codification.md", "high", "local",
+        glc.DEFAULT_MODEL)
+    assert doomed in local_contract, doomed
+    mangled = local_contract.replace(doomed + "\n", "", 1)
     assert "Dispatch-Lane lane-a-539" not in mangled, "the mutation did not bite"
     problems = glc.parse_contract(mangled).problems
     assert any("no dispatch command line" in p for p in problems), problems
@@ -928,3 +968,316 @@ def test_a_contract_OUTSIDE_the_repo_is_not_compared_against_an_open_batch(tmp_p
         result = CliRunner().invoke(glc.cli, ["check", str(stray)])
     assert result.exit_code == 0, result.output
     assert "none in this repo" in caplog.text, caplog.text
+# --- 5. [#718]: the generator writes where the dispatch verb READS -------------------------
+#
+# RED-first witness, ADR-108 section B. Measured at full batch scale before it was written:
+# batch W emitted SIX lane contracts into `to-cc/` while `Dispatch-Lane` resolves against the
+# prompts root, and all six were REFUSED. Two literals where there should be one key -- and
+# both were individually CORRECT about the root they named, which is why review never caught
+# it: there is no wrong line to find, only two right lines that disagree.
+#
+# The assertion is the row's Done-when verbatim: the written path EQUALS the path the verb
+# resolves, both from ONE key. Against the code these tests were written for,
+# `_default_out_dir()` returned `Path.cwd()` and this section is RED.
+
+
+def test_the_generators_default_out_dir_IS_the_root_the_verb_reads(tmp_path, monkeypatch):
+    """ONE KEY, asserted as an identity rather than as two agreeing literals.
+
+    `gen_handoff.transport_root()` is the reader's own resolution rule, already in the tree and
+    already tested: `CLAUDE_PROMPTS_DIR`, with the documented `~/Downloads` fallback and None on
+    unresolved. This test says the writer's default is not a second implementation that happens
+    to agree -- it is that function. A test comparing two string literals would stay green
+    through exactly the drift `[#718]` records.
+    """
+    prompts = tmp_path / "prompts-root"
+    prompts.mkdir()
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(prompts))
+    monkeypatch.chdir(tmp_path)  # cwd is deliberately NOT the prompts root -- the `to-cc/` half
+
+    assert glc._default_out_dir() == gh.transport_root()
+    assert glc._default_out_dir() == prompts
+
+
+def test_emit_writes_the_contract_where_the_dispatch_line_it_prints_will_be_read(tmp_path,
+                                                                                 monkeypatch):
+    """The end-to-end property: `emit` puts the file where `Dispatch-Lane <file>` resolves it.
+
+    The dispatch line carries a BARE FILENAME -- the verb resolves it against the prompts root
+    itself -- so writer and reader agreeing is the whole contract between them. This is the
+    batch-W failure reproduced at one lane's scale: emit from a cwd that is not the prompts
+    root, then look for the file where the verb would.
+    """
+    prompts = tmp_path / "prompts-root"
+    prompts.mkdir()
+    elsewhere = tmp_path / "to-cc"
+    elsewhere.mkdir()
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(prompts))
+    monkeypatch.chdir(elsewhere)
+
+    result = CliRunner().invoke(glc.cli, [
+        "emit", "--slug", "lane-x-718-one-key", "--purpose", "one key for writer and reader",
+        "--id", "718"])
+    assert result.exit_code == 0, result.output
+
+    fname = glc.contract_filename("lane-x-718-one-key")
+    resolved_by_the_verb = gh.transport_root() / fname
+    assert resolved_by_the_verb.exists(), (
+        f"emit wrote nothing at {resolved_by_the_verb} -- the verb reads the prompts root and "
+        f"the writer used {Path.cwd()}; that split is [#718]")
+    assert not (elsewhere / fname).exists(), (
+        "emit wrote into the cwd as well as the prompts root -- two locations is the defect "
+        "wearing the fix's clothes")
+
+
+def test_an_UNRESOLVED_prompts_directory_is_a_REFUSAL_and_not_a_silent_fall_back_to_cwd(
+        tmp_path, monkeypatch):
+    """`[#718]`'s own words: "the refusal is the good outcome here, and it should survive the fix".
+
+    Six refusals cost six dispatches; six contracts silently read from a stale location would
+    have cost six lanes running against the wrong text. So when the ONE key resolves to nothing,
+    `emit` refuses -- it does not quietly write to `Path.cwd()`, which is precisely how the
+    split would come back invisibly. `transport_root` already returns None for this case
+    (DEFECT E-29's reading); this asserts the generator honours it.
+    """
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(tmp_path / "does-not-exist"))
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(gh.Path, "home", staticmethod(lambda: tmp_path / "no-home"))
+
+    result = CliRunner().invoke(glc.cli, [
+        "emit", "--slug", "lane-x-718-unresolved", "--purpose", "refuse rather than guess",
+        "--id", "718"])
+    assert result.exit_code != 0, result.output
+    assert "CLAUDE_PROMPTS_DIR" in result.output, result.output
+    assert not list(tmp_path.glob("LANE-*.md")), (
+        "emit fell back to the cwd on an unresolved prompts root -- that restores the "
+        "writer/reader split silently, which is worse than the refusal that surfaced it")
+
+
+def test_an_explicit_out_dir_still_wins_over_the_resolved_root(tmp_path, monkeypatch):
+    """`--out-dir` is an operator override and stays one: the one key is the DEFAULT, not a jail.
+
+    Named because the fix narrows a default, and a fix that also removed the escape hatch would
+    break every test fixture and every ad-hoc draft in the tree.
+    """
+    prompts = tmp_path / "prompts-root"
+    prompts.mkdir()
+    chosen = tmp_path / "chosen"
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(prompts))
+    monkeypatch.chdir(tmp_path)
+
+    result = CliRunner().invoke(glc.cli, [
+        "emit", "--slug", "lane-x-718-explicit", "--purpose", "the override survives",
+        "--id", "718", "--out-dir", str(chosen)])
+    assert result.exit_code == 0, result.output
+
+    fname = glc.contract_filename("lane-x-718-explicit")
+    assert (chosen / fname).exists()
+    assert not (prompts / fname).exists()
+# --- 6. [#717]: the launch line is RENDERED FROM the contract's Model row -------------------
+#
+# RED-first witness, ADR-108 section B. The mechanism, and both halves are individually
+# reasonable: `dispatch_command` emitted slug, file and `-Effort` and not `-Model`, while
+# `Start-DispatchLane`'s `-Model` parameter defaults to `opus`. Together they mean a contract
+# whose own routing row says `sonnet`, dispatched by the line that contract carries, runs at
+# `opus` -- silently, and in the expensive direction. Nothing refuses and nothing warns; the
+# lane produces work that is entirely plausible and simply cost several times what the
+# contract declared.
+#
+# The checker widens IN THE SAME CHANGE, and that is a Done-contract clause rather than a
+# nicety: `_DISPATCH_LINE_RE` was anchored with no `-Model` alternative, so rendering the
+# model without widening the regex turns every emitted contract RED at `lane-contract-check`.
+# `-Model` is admitted OPTIONAL -- the six frozen batch-X contracts carry none and must keep
+# passing -- and where present it is held to AGREE with the routing row, the same conjunction
+# `-Effort` already gets.
+
+
+def test_the_local_dispatch_line_is_rendered_from_the_contracts_own_model_row():
+    """`[#717]`'s Done-when: rendered model == the `Model` row. The SONNET case is the witness.
+
+    An opus contract cannot witness this defect at all -- the surface's default is `opus`, so
+    the omitted flag and the declared model coincide and the bug is invisible. The fixture is
+    therefore deliberately `sonnet`: the one contract shape where "omits the model" and "states
+    the model" produce different dispatches.
+    """
+    contract = glc.render_contract(_spec(model="sonnet"))
+    parsed = glc.parse_contract(contract, expect_shape="local")
+    assert parsed.problems == (), parsed.problems
+    assert parsed.model == "sonnet"
+    assert "-Model sonnet" in parsed.command, (
+        f"the carried line is {parsed.command!r} -- a contract declaring sonnet whose own "
+        f"launch line omits the model dispatches at the surface default, opus ([#717])")
+
+
+def test_the_dispatch_line_regex_ADMITS_a_model_flag():
+    """Done-contract clause 2: the CHECKER widens, not only the generator.
+
+    Measured by the dispatcher while freezing batch X: `_DISPATCH_LINE_RE` was
+    `^Dispatch-Lane <slug> <file>( -Effort <v>)?\\s*$`, anchored, admitting no `-Model`, so a
+    line carrying the model was refused as "no dispatch command line found". A generator
+    rendering what its own parser rejects is worse than one omitting it.
+    """
+    line = "Dispatch-Lane lane-a-1-example LANE-a-1-example.md -Effort high -Model sonnet"
+    match = glc._DISPATCH_LINE_RE.search(line)
+    assert match is not None, f"the checker refuses its own generator's line: {line!r}"
+    assert match.group("model") == "sonnet"
+    assert match.group("effort") == "high"
+
+
+def test_a_dispatch_line_carrying_a_model_the_routing_row_contradicts_is_REPORTED():
+    """Two sources free to disagree is the class this generator removes -- `-Effort` already
+    gets this conjunction, and after `[#717]` the model gets it too.
+
+    Without this, widening the regex would merely make a contradicting line PARSE.
+    """
+    contract = glc.render_contract(_spec(model="sonnet")).replace("-Model sonnet", "-Model opus")
+    problems = glc.parse_contract(contract).problems
+    assert any("model" in p.lower() for p in problems), problems
+
+
+def test_a_dispatch_line_carrying_a_model_outside_the_enum_is_REPORTED():
+    """The admitted value is held to `MODEL_ENUM`, exactly as the routing row's already is."""
+    contract = glc.render_contract(_spec(model="sonnet")).replace("-Model sonnet", "-Model gpt")
+    problems = glc.parse_contract(contract).problems
+    assert any("gpt" in p for p in problems), problems
+
+
+def test_a_contract_carrying_NO_model_flag_still_parses_clean():
+    """`-Model` is OPTIONAL in the grammar, and this is why the widening is safe.
+
+    Every contract frozen before `[#717]` carries a line without it. Making the flag mandatory
+    would turn the whole existing corpus RED at `lane-contract-check` -- the failure mode
+    Done-contract clause 2 names in as many words.
+    """
+    contract = glc.render_contract(_spec(model="opus"))
+    stripped = contract.replace(" -Model opus", "")
+    parsed = glc.parse_contract(stripped, expect_shape="local")
+    assert parsed.problems == (), parsed.problems
+    assert parsed.command.endswith("-Effort high")
+
+
+def test_the_SIX_FROZEN_BATCH_X_CONTRACTS_still_pass_after_the_widening():
+    """The contract's own step 3 asks for exactly this re-check, against the real files.
+
+    These are immutable frozen contracts carrying pre-`[#717]` launch lines. A regex widening
+    that broke them would have broken a live batch mid-flight, and no synthetic fixture proves
+    it did not -- so the fixture is the corpus.
+    """
+    frozen = sorted(
+        (_REPO_ROOT / "docs" / "audits"
+         / "2026-09-11-technical-batch-x-launch-contracts").glob("LANE-*.md"))
+    assert len(frozen) == 6, [p.name for p in frozen]
+    for path in frozen:
+        parsed = glc.parse_contract(path.read_text(encoding="utf-8"))
+        assert parsed.problems == (), f"{path.name}: {parsed.problems}"
+        assert "-Model" not in parsed.command, (
+            f"{path.name} was frozen before [#717]; this test's premise is that it carries no "
+            f"model flag, and it now does -- re-point the fixture rather than deleting it")
+
+
+def test_the_emit_log_line_carries_the_model_it_wrote_into_the_file(tmp_path, monkeypatch):
+    """The terminal line the operator reads is a dispatch surface too, and is built from the
+    SAME `dispatch_command` the file carries. A model on one and not the other would be
+    `[#717]` reproduced between the file and the log."""
+    import logging
+    prompts = tmp_path / "prompts-root"
+    prompts.mkdir()
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(prompts))
+    monkeypatch.chdir(tmp_path)
+
+    with caplog_at_info() as records:
+        result = CliRunner().invoke(glc.cli, [
+            "emit", "--slug", "lane-x-717-model-row", "--purpose", "render the model",
+            "--id", "717", "--model", "sonnet"])
+    assert result.exit_code == 0, result.output
+    logged = "\n".join(records)
+    assert "-Model sonnet" in logged, logged
+
+    written = (prompts / glc.contract_filename("lane-x-717-model-row")).read_text(
+        encoding="utf-8")
+    assert "-Model sonnet" in written
+    assert logging  # the import is the fixture's, kept explicit for the reader
+# --- 7. [#716]: the step-0 sync region retires ITSELF ---------------------------------------
+#
+# `[#716]`'s Done-when: "the mandatory step-0 sync is retired from the lane-contract template
+# only in the same change that makes that test green". Measured while executing it, the
+# retirement surface turned out to be narrower than the clause assumes: the sync region is
+# HAND-AUTHORED into each frozen contract and appears in none of `templates/prompt-template.md`
+# v1.15, `.claude/commands/lane-boot.md`, `protocols/PLAYBOOK.md` or `render_contract` -- so
+# there was no template line to delete, and deleting nothing would have discharged the clause
+# vacuously.
+#
+# So the retirement is made MECHANICAL instead of editorial. The generator gains the region,
+# conditioned on the very predicate the row's test asserts: emitted while the base property is
+# unheld, absent once it holds, and BACK if the setting is ever unset again. That is a stronger
+# reading of "retired in the same change" than a deletion -- a deletion retires it once, this
+# retires it exactly when it should be retired, forever.
+
+
+def test_a_contract_emits_the_step_0_sync_region_while_the_base_property_is_unheld():
+    contract = glc.render_contract(_spec(needs_base_sync=True))
+    assert "## Step 0 — sync before anything else" in contract
+    assert "git merge origin/main" in contract
+    assert "[#716]" in contract
+
+
+def test_a_contract_OMITS_the_step_0_sync_region_once_the_property_holds():
+    """The retirement, asserted as an absence. This is the half that has to bite: a region that
+    is emitted unconditionally is a region nobody ever removes."""
+    contract = glc.render_contract(_spec(needs_base_sync=False))
+    assert "Step 0" not in contract
+    assert "git merge origin/main" not in contract
+
+
+def test_the_default_spec_does_not_carry_the_sync_region():
+    """`cmd_emit` sets the flag from the live predicate; a hand-built spec defaults to OFF, so
+    nothing emits the region by accident once the defect is fixed."""
+    assert glc.LaneSpec(slug="lane-a-1-x", purpose="p").needs_base_sync is False
+    assert "Step 0" not in glc.render_contract(_spec())
+
+
+def test_the_sync_region_does_not_disturb_the_mandatory_section_check():
+    """Both shapes parse clean. A conditional section that reddened the checker would trade one
+    defect for another, and `MANDATORY_SECTIONS` is a subset check for exactly this reason."""
+    for flag in (True, False):
+        parsed = glc.parse_contract(glc.render_contract(_spec(needs_base_sync=flag)),
+                                    expect_shape="local")
+        assert parsed.problems == (), (flag, parsed.problems)
+
+
+def test_rendering_stays_PURE_with_the_flag():
+    """`render_contract` must not read the machine: a generator whose output depends on the
+    state of whoever ran it cannot be diffed. The live read lives in `cmd_emit`, which is why
+    the flag is a spec field rather than a call inside the renderer."""
+    assert (glc.render_contract(_spec(needs_base_sync=True))
+            == glc.render_contract(_spec(needs_base_sync=True)))
+    assert (glc.render_contract(_spec(needs_base_sync=True))
+            != glc.render_contract(_spec(needs_base_sync=False)))
+
+
+def test_emit_sets_the_flag_from_the_LIVE_base_ref_predicate(tmp_path, monkeypatch):
+    """End to end: the region tracks `worktree_seed.base_ref_verdict`, not a constant.
+
+    Both directions are exercised, because a wiring that always returned one answer would pass
+    a one-directional test while being no predicate at all.
+    """
+    import worktree_seed as ws
+
+    prompts = tmp_path / "prompts-root"
+    prompts.mkdir()
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(prompts))
+    monkeypatch.chdir(tmp_path)
+
+    def _verdict(holds):
+        return ws.BaseRefVerdict(setting="head", effective="head", base_label="x",
+                                 base_sha="a" * 40, main_sha="a" * 40, holds=holds,
+                                 why="stubbed for the wiring test")
+
+    for holds, slug in ((False, "lane-x-716-unheld"), (True, "lane-x-716-held")):
+        monkeypatch.setattr(glc, "base_ref_verdict", lambda repo, h=holds: _verdict(h))
+        result = CliRunner().invoke(glc.cli, [
+            "emit", "--slug", slug, "--purpose", "wiring", "--id", "716"])
+        assert result.exit_code == 0, result.output
+        written = (prompts / glc.contract_filename(slug)).read_text(encoding="utf-8")
+        assert ("Step 0" in written) is not holds, (
+            f"holds={holds} produced the wrong region for {slug}")
