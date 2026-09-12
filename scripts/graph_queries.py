@@ -202,13 +202,6 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
         reason="reachable only from the untriggered desired_state_report.py:50 -- an orphan "
                "by inheritance, dispositioned with its caller",
         owner="V+1 retirement-or-wiring list"),
-    "scripts/boundary_headers.py": Disposition(
-        reason="named in ARCHITECTURE.md:480 prose only -- documented, never wired",
-        owner="V+1 retirement-or-wiring list"),
-    "scripts/boundary_report.py": Disposition(
-        reason="reachable only from the untriggered boundary_headers.py:58 -- an orphan by "
-               "inheritance, dispositioned with its caller",
-        owner="V+1 retirement-or-wiring list"),
     "scripts/gen_ledger.py": Disposition(
         reason="ARRIVED AFTER THE CENSUS -- landed 2026-09-09 by lane V-000 and therefore "
                "absent from its 32. Recorded as a NEW orphan rather than folded into the "
@@ -227,21 +220,6 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
         reason="referenced only by tests/test_archive_row_body.py -- a test proves a module "
                "works and schedules nothing, so it is not a trigger. [#664]'s row names this "
                "module's trigger ride as an edge of this arc, not a separate row",
-        owner="V+1 retirement-or-wiring list"),
-    "scripts/cloud_provisioning.py": Disposition(
-        reason="referenced only by tests/test_cloud_provisioning.py:24 -- a test is not a "
-               "trigger",
-        owner="V+1 retirement-or-wiring list"),
-    "scripts/probe_child_backlogs.py": Disposition(
-        reason="referenced only by tests/test_probe_child_backlogs.py -- a test is not a "
-               "trigger",
-        owner="V+1 retirement-or-wiring list"),
-    "scripts/seed_runbook.py": Disposition(
-        reason="referenced only by tests/test_seed_runbook.py -- a test is not a trigger",
-        owner="V+1 retirement-or-wiring list"),
-    "scripts/validate_onboarding_rulings.py": Disposition(
-        reason="referenced only by tests/test_onboarding_rulings.py:19 -- a test is not a "
-               "trigger",
         owner="V+1 retirement-or-wiring list"),
     # ---- population A: orphan BY DESIGN, and wiring it would RED a test ----
     "scripts/export_backlog_view.py": Disposition(

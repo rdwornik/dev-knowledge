@@ -111,3 +111,117 @@ So the six targets' clean result is a **limit-bounded pass, not proof of no test
 exactly the false-PASS class ADR-89 declares and `safe_remove.py` restates. It is recorded as
 such here rather than reported as a clean bill. The coupling is handled the same way either
 way: clause 1 co-removes each module's dedicated test.
+
+### Run 2 — INVALIDATED BY THIS LANE'S OWN CONCURRENCY, and recorded rather than quietly re-run
+
+Removal set = the eight modules + the two coupled `desired_state_*` tests. Verbatim:
+
+```
+safe-removal verdict: UNVERIFIABLE
+removal set: scripts/boundary_headers.py, scripts/boundary_report.py, scripts/cloud_provisioning.py, scripts/desired_state_loader.py, scripts/desired_state_report.py, scripts/probe_child_backlogs.py, scripts/seed_runbook.py, scripts/validate_onboarding_rulings.py, tests/test_desired_state_loader.py, tests/test_desired_state_report.py
+reason: 2 symbol(s)/module(s) the oracle could not verify (WARN + allow; honest-limit)
+
+unverifiable (WARN + allow):
+- scripts/seed_runbook.py: module not present in query root
+- scripts/validate_onboarding_rulings.py: module not present in query root
+
+limit: static-Python-only (dynamic/getattr/string-keyed/cross-language edges are INVISIBLE -> a non-blocking false PASS is possible; never a false FAIL).
+```
+
+**The cause is this lane, not the tree.** The CLI path queries the LIVE repo, and Step 2's
+deletions landed in the working tree WHILE this run was still reading it — so two modules
+vanished from the query root mid-run. That is a measurement artifact of running a live-tree
+oracle concurrently with a deletion, and it is recorded as one.
+
+**It is NOT read as a pass, even though it reports zero surviving referrers.** The contract's
+own clause binds here: *"An inconclusive tool result is not a pass. A silent or `UNVERIFIABLE`
+verdict means KEEP, with the reason recorded."* An `UNVERIFIABLE` obtained by deleting the
+subject mid-query is the weakest possible evidence, and the zero-referrer line is a
+consequence of the gap rather than a finding against it.
+
+What it does show, and all it shows: the 12 referrers of run 1 are absent once the two coupled
+tests are inside the removal set — the direction run 1 predicted. Run 3 measures it cleanly.
+
+**Operational lesson, recorded for the next lane:** `safe_remove.py`'s CLI reads the live tree,
+so it must not run concurrently with the deletions it is adjudicating. Sequence the oracle and
+the `git rm`, or the verdict measures the race instead of the question.
+
+### Run 3 — the clean measurement of the one open question
+
+The six clause-1 targets are settled by run 1 (zero surviving referrers each, completeness
+`complete`). The only question run 2 was asked and could not answer cleanly is the
+`desired_state_*` pair. Run 3 puts exactly that removal unit to the oracle, on a tree that is
+stable for the duration — all four of its files are present and untouched:
+
+`scripts/safe_remove.py scripts/desired_state_loader.py scripts/desired_state_report.py
+tests/test_desired_state_loader.py tests/test_desired_state_report.py`
+
+Its verdict is recorded in Step 3 below, and Step 3 does not act before it lands.
+
+## Step 2 — the six clause-1 targets deleted, with all four coupled surfaces each
+
+### What was deleted
+
+Each target moved with its module, its dedicated test, its `graph_queries.py`
+`ORPHAN_DISPOSITIONS` entry and its `tests/test_graph_spine.py` `CENSUS_SCRIPT_ORPHANS` entry —
+clause 1's four coupled surfaces, none left behind:
+
+- `scripts/boundary_headers.py` + `tests/test_boundary_headers.py`
+- `scripts/boundary_report.py` + `tests/test_boundary_report.py` (the coupled pair, moved together)
+- `scripts/cloud_provisioning.py` + `tests/test_cloud_provisioning.py`
+- `scripts/seed_runbook.py` + `tests/test_seed_runbook.py`
+- `scripts/validate_onboarding_rulings.py` + `tests/test_onboarding_rulings.py`
+- `scripts/probe_child_backlogs.py` + `tests/test_probe_child_backlogs.py`
+
+**12 files, 5,180 lines.**
+
+### The test pairing was RESOLVED, not guessed
+
+`tests/test_onboarding_rulings.py` does not carry its module's name, so a name-pattern sweep
+would have missed it and left an orphaned test importing a deleted module. The pairing came
+from the organ rather than from a guess:
+
+```
+uv run --locked python scripts/impacted_tests.py select --changed <the six modules>
+tests/test_boundary_headers.py tests/test_boundary_report.py tests/test_cloud_provisioning.py tests/test_onboarding_rulings.py tests/test_probe_child_backlogs.py tests/test_seed_runbook.py
+```
+
+Six modules, six tests, one-to-one.
+
+### Targeted tests: 34 passed, 1 failed — and the failure is NOT this lane's
+
+`uv run --locked pytest tests/test_graph_spine.py -q -n 0` → **1 failed, 34 passed**.
+
+The failure is `test_a_disposition_register_entry_cannot_manufacture_its_own_trigger`, and its
+subject is **`scripts/worktree_seed.py`** — a file this lane does not touch, delete, or
+disposition.
+
+**Attributed by a PAIRED BASELINE/TIP RUN rather than by argument.** The lane diff was set
+aside (tagged stash, applied back by SHA, dropped by verified SHA) and the same single test run
+against the untouched base:
+
+```
+FAILED tests/test_graph_spine.py::test_a_disposition_register_entry_cannot_manufacture_its_own_trigger
+AssertionError: dispositioned processes reported as triggered -- the register is laundering its own subject: ['scripts/worktree_seed.py']
+1 failed in 19.90s
+```
+
+Identical failure, identical single item, on the base tree. **Pre-existing RED, inherited by
+this lane, not caused by it.**
+
+Its cause, from the graph rather than from inspection
+(`file_purpose_graph.py why scripts/worktree_seed.py`): the file has **two live consumers** —
+`is triggered by file:.claude/settings.json` and `is imported by file:scripts/gen_lane_contract.py`
+— so it is genuinely triggered and its `ORPHAN_DISPOSITIONS` entry is stale. The register is
+recording "this has no trigger" about a file that acquired one. **Open item for the integrator:
+`scripts/worktree_seed.py`'s disposition entry should be removed (it was wired, which is the
+good outcome the register's own comment describes).** Out of this lane's footprint, so it is
+flagged and not fixed.
+
+### One consequence recorded rather than left to be discovered
+
+Deleting `scripts/validate_onboarding_rulings.py` and its test removes the only machine-check
+of `ecosystem/satellite-onboarding-rulings.yaml`, which **stays in the tree**. That register's
+schema teeth and its "four operator rulings encoded exactly" assertion went with the test. The
+deletion is GO'd and is executed; the consequence is named here so it is a known cost rather
+than a later surprise.
