@@ -171,6 +171,29 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                 "pre-commit gate over it is an AX4-1 floor-declaration act needing a "
                 "parity-surfaces registration, which is outside this lane's footprint"),
         owner="[#691] Half B (non-Claude admission), which adopts it by routing through it"),
+    # SAME SHAPE AS `provider_router.py` DIRECTLY ABOVE, and for the same structural reason:
+    # this organ cannot acquire its trigger in the commit that writes it.
+    #
+    # `[#675]` clause 1 (AX25-2) is RED-FIRST by contract: *"It fails today … Write it, watch
+    # it fail for that reason, then make it pass"*, and its refusal leg — *"a commit that
+    # changes either side of the seam and leaves this test red is refused"* — is a BLOCKING
+    # pre-commit gate. Landing the gate in the same commit as the deliberately-failing witness
+    # would refuse that commit, so the RED-first step would have no commit at all and the
+    # ADR-108 §B ordering (failing witness FIRST, on the record) could not be satisfied.
+    # Unwired is the contract-required state for exactly one commit, not an unadopted organ.
+    #
+    # THE OWNER IS A STEP, NOT A LIST, and the row DELETES at that step rather than being
+    # updated: clause 1's step 3 moves the generator side of the seam, the probe goes green,
+    # and the `dispatch-conformance` pre-commit hook lands in that same commit. If this row is
+    # still here after `[#675]` closes, the refusal leg was never built and the row is the
+    # evidence — which is what a disposition is for.
+    "scripts/dispatch_conformance.py": Disposition(
+        reason=("[#675] clause 1 (AX25-2) mandates a RED-first witness AND a blocking refusal "
+                "leg over the same seam. A blocking gate cannot land in the commit that "
+                "records the deliberate failure -- it would refuse that commit -- so the probe "
+                "is unwired for exactly the RED-first commit, by contract rather than by "
+                "omission"),
+        owner="[#675] step 3, which greens the probe and lands its pre-commit gate in one act"),
     "scripts/gen_north_star.py": Disposition(
         reason=f"{_LANE_BUILT}; only call site is batch-e CUT.md:40",
         owner="V+1 retirement-or-wiring list"),
