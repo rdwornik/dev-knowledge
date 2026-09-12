@@ -267,3 +267,33 @@ def test_the_batch_label_falls_back_to_the_cut_slug_when_the_manifest_is_ambiguo
 
     monkeypatch.setattr(gen_handoff, "_open_batches", lambda _root: one * 2)
     assert gen_handoff._seat_boot_batch(gsb._REPO_ROOT, "2026-09-09-cut") == "2026-09-09-cut"
+
+
+# --- [#737] AX22-3: the seat's model is recorded in its own render ----------------------
+#
+# The operator ruled the two largest Opus sinks down a tier: the dispatcher seat is mechanical
+# (freeze, DryRun, fire, receipts) and runs on Sonnet; the integrator judges merge verdicts on
+# Opus but runs suites and teardowns on Sonnet, which is `opusplan`. Before this, a SEAT-BOOT
+# render carried no model at all, so the ruling had nowhere to live except prose that the next
+# seat would have to be told about -- which is the failure the boot renders exist to end.
+
+
+def test_every_rendered_boot_records_its_seat_model(bundle):
+    for seat in seat_ch8.SEATS:
+        text = (bundle / gsb.out_name(seat)).read_text(encoding="utf-8")
+        assert f"model: {gsb.SEAT_MODELS[seat]}" in text, seat
+
+
+def test_the_two_seats_the_operator_retiered_carry_the_ruled_models(bundle):
+    """AX22-3 names these two explicitly; the others stay Opus."""
+    assert gsb.SEAT_MODELS["dispatcher"] == "sonnet"
+    assert gsb.SEAT_MODELS["integrator"] == "opusplan"
+    dispatcher = (bundle / gsb.out_name("dispatcher")).read_text(encoding="utf-8")
+    integrator = (bundle / gsb.out_name("integrator")).read_text(encoding="utf-8")
+    assert "model: sonnet" in dispatcher
+    assert "model: opusplan" in integrator
+
+
+def test_the_seat_model_map_covers_every_declared_seat(bundle):
+    """A seat added to the enum without a model would render an unresolved one."""
+    assert set(gsb.SEAT_MODELS) == set(seat_ch8.SEATS)

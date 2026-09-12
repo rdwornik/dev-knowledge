@@ -52,7 +52,7 @@ slot     row(s)              slug                                branch         
 X1-1     [#692]              lane-x-692-decision-coverage        worktree-lane-x-692-decision-coverage     opus   high    execute
 X1-2     [#689]              lane-x-689-conductor-e              worktree-lane-x-689-conductor-e           opus   high    execute
 X1-5     [#664] + [#727]     lane-x-664-delivery-spine           worktree-lane-x-664-delivery-spine        opus   high    plan
-X-DEL    [#734]              lane-x-734-retire-stage             worktree-lane-x-734-retire-stage          opus   high    execute
+X-DEL    [#734]              lane-x-734-retire-stage             worktree-lane-x-734-retire-stage          sonnet high    execute
 lane-5   [#716][#717][#718]  lane-x-716-dispatch-defects         worktree-lane-x-716-dispatch-defects      opus   high    execute
 W-2'     [#684]              lane-w-684-pretooluse-guard-root    (INHERITED — already exists)              opus   high    execute
 ```
@@ -183,6 +183,31 @@ which is why the contract says so in as many words.
 **Recommended to the integrator, not done by this seat:** push that branch, so eleven commits
 of review work stop being single-copy.
 
+## 5b · The fire GO and its three conditions (AMEND-BATCH-X-ROSTER-017)
+
+The operator's `y` of 2026-09-11 approves all six **with conditions**, each discharged here:
+
+- **AX17-1 · Backup before re-attach — DONE.**
+  `git push origin worktree-lane-w-684-pretooluse-guard-root` → `[new branch]`, verified by
+  `git ls-remote`: `90c727bd... refs/heads/worktree-lane-w-684-pretooluse-guard-root`. Both
+  pre-push gates (`block-ff-push`, `block-unanchored-push`) Passed. A lane-branch backup,
+  **never a merge to `main`**. F9's single-copy risk is discharged.
+- **AX17-2 · X-DEL footprint bounded, and the lane runs at `sonnet` — DONE.** The contract
+  gained a "GO footprint" section naming the four in-scope surfaces per target and nothing
+  beyond, plus the rule that a silent `safe_remove`/oracle result is INCONCLUSIVE → KEEP with
+  that reason. Routing row changed `opus` → `sonnet`.
+  **This lane is the live instance of `[#717]`:** its fence carries no `-Model` and
+  `Start-DispatchLane` defaults to `opus`, so dispatched by its own carried line it would run
+  at opus and nothing would warn. `-Model sonnet` is therefore passed explicitly at the
+  dispatch act, and the receipt in §12 is the proof.
+- **AX17-3 · Manifest first — INTEGRATOR'S ACT, flagged not done.** This branch
+  (`worktree-dispatch-x1-freeze`) must merge before any X1 lane hands back, so batch X lands
+  anchored. The dispatcher cannot merge (integration is LOCAL and INTERACTIVE, and this seat
+  is a background job).
+- **AX17-4 · The F8 finding becomes a row** via the first backfill slot — not this seat's act,
+  recorded so it is not lost: one fence, one verb, RED-first that a generated contract
+  launches through the ruled verb.
+
 ## 6 · Wait conditions — the batch does not fire while either is open
 
 1. **X-0 on `main`** — **MET.** `b595545b`, anchored by `2177f14a`. Batch W has since closed
@@ -212,12 +237,76 @@ its contract's `Read … and execute it exactly.` line.
 On every merge + teardown, the next roster item whose dependencies are on `main` fires, never
 exceeding six. Queue, in order, each recorded here when it fires:
 
+**Order set by the operator, 2026-09-11.** X1-4 is the HEAD of the queue, not a loose
+"frozen" item as §11a first recorded it:
+
 ```
-X1-3  merge cost [#675]        after X1-2
-X1-6  task keys  [#687]        after X1-5
+X1-4  Half A [#691][#694]                FIRED 2026-09-12 -- session 7f2b5290
+X1-3  merge cost          [#675]         after X1-2
+X1-6  task keys           [#687]         after X1-5
 X2 head, in order: docs-cut manifest step (cut ONLY on the operator's GO) · prompt-distiller
 trace home · logs lane (+ log-review routine) · test-baseline debt
 ```
+
+**Why X1-4 leads.** Its trigger is not a free slot but a specific merge: W-2' landing on main
+is what discharges AX22-4's precondition, so the routing lane stops being half-gated and agy,
+Grok and Copilot become orderable. Firing it at that moment is what converts the W-2' merge
+into capacity rather than just a closed row.
+
+**SUPERSEDED — W-2' landed.** The 2026-09-11 note here said the trigger was not imminent
+because W-2' had stopped at RED with no GREEN. It was re-attached and finished overnight and
+merged at **`3a8ee7a8`** — *"W-2': the prompts guard FAILS CLOSED"*, `312 passed / 320.5s`. The
+stale note is replaced rather than appended to: a false statement left standing in the batch
+record is worse than none. The ordered backup did its job and is still on origin at `90c727bd`.
+
+**The hold is nonetheless RE-ARMED and TIGHTENED by the operator, 2026-09-12:** X1-4 does not
+fire on the merge alone. It fires when the integrator's close digest confirms **both** that
+W-2' is on main **and** that its trip-tests pass. **An OOM-killed adversarial run is not
+evidence of a working guard** — a run that died is not a run that passed, and the wave's own
+suite record notes three OOMs before the first completed run.
+
+**What the close digest actually confirms, measured against
+`docs/audits/2026-09-12-technical-batch-x-wave-1-close-packet.md`:**
+
+- **On main:** yes — `3a8ee7a8`, per-lane row `HIGH:1 MED:0 LOW:0 | 312 passed / 320.5s | MERGE`.
+- **Mechanism legs / trip-tests:** yes — §6 records *"fail-closed on all paths, matcher
+  narrowed, RED-first tests present"*, and §10 records the guard now permits **only on a PROVEN
+  pass** (rc 0 AND stdout exactly the guard's own OK marker), closing the inferred-permit hole
+  where an exit 0 from a shim read as a check that never ran.
+- **`[#684]` closure:** **REFUSED — witness PARTIAL, blocked externally.** This is the leg that
+  matters here, and it is not a formality.
+
+**Why the refusal lands on X1-4 specifically, and not merely on `[#684]`'s paperwork.** The
+undischarged clause is *"one non-Claude CLI smoke passes under the guard"*, and the lane
+measured **why** it cannot be discharged on this machine: the honour-set is **cursor-agent
+alone** — authenticated but usage-limited — while **codex and copilot do not read
+`.claude/settings.json` at all**, so a pass from either is vacuous.
+
+That is X1-4's own premise. X1-4 exists to route implement and review work to Grok 4.6, Copilot
+Enterprise, Codex terra and agy. AX22-4's precondition — *no non-Claude producer or reader is
+ordered before W-2' is on main* — is satisfied **by its letter**, because W-2' is on main. It is
+**not** satisfied in substance for the two providers X1-4 most wants to admit: the guard that
+precondition was standing in for is a `.claude/settings.json` `PreToolUse` hook, and those two
+CLIs never read that file. Landing W-2' hardened the guard for the clients that honour it; it
+did not extend the guard's reach to the clients X1-4 would order.
+
+A related MED is recorded and is worth carrying into the lane rather than rediscovering: §4
+CONFIRMED that `fleet_parity.hook_invokes_script` **certifies a guard that never runs** — a
+short-circuit prefix, a never-taken conjunction and a post-exit segment each return True. The
+guard itself is fail-closed; the **detector** overstates its own guarantee.
+
+**So the hold stands, and the thing it now waits on is an operator disposition, not a merge.**
+The close packet says so in as many words: *"This needs an operator disposition, not a closure
+word: the clause cannot be discharged on this machine today."* The open question is whether a
+guard that cannot govern codex or copilot is an acceptable basis for ordering them — and that is
+a functional question, so it is the operator's to rule (ADR-108 §A), not this seat's.
+
+X1-4's contract stays frozen, repaired (F11, §13) and waiting at
+`$env:CLAUDE_PROMPTS_DIR\LANE-x-691-routing-telemetry.md`. Its Claude-only half — telemetry
+wired, registry, router, re-rank — is unaffected by any of the above and could be ordered
+separately if the operator wants the lane's measurable core without its non-Claude admission.
+
+**Ceiling stays 6**, and each backfill is recorded below as it fires.
 
 **Backfill log:** (empty — nothing has fired.)
 
@@ -290,6 +379,315 @@ dispatcher **asks the operator `y` per fire** — which is what the operator ask
 independently. Recorded as a candidate row: *"the contract gate and the dispatch verb demand
 incompatible fences."*
 
+## 11a · X1-4 FROZEN (not fired) — the routing lane, carrying AX21 + AX22
+
+Frozen ahead of its backfill slot so that when it fires it already carries the role→model
+ruling. **Not dispatched**: it is a backfill item, and AX22-4 gates half its work.
+
+```
+slot   rows            slug                            branch                                model  effort  mode
+X1-4   [#691] [#694]   lane-x-691-routing-telemetry    worktree-lane-x-691-routing-telemetry opus   high    execute
+```
+
+`opus` because AX21-1 makes **orchestrate/plan Opus-only**, and a lane that builds the router
+is orchestrating routing. That is the one row of the role table not subject to re-ranking.
+
+**Carried verbatim** (extracted, not retyped): rows `[#691]` and `[#694]`; clauses
+`AX21-1` `AX21-2` `AX21-3` `AX21-4` `AX22-1` `AX22-2` `AX22-4` `AX22-5` `AX4-1` `AX9-4`.
+Contract passes the gate at 11 sections. **DryRun receipt** (not fired):
+
+```
+claude --bg --model opus --effort high --permission-mode bypassPermissions --worktree lane-x-691-routing-telemetry
+```
+
+The contract states, where the lane cannot miss them:
+
+- **Two FIRST ACTS** — read the grok account's usage-limit cause (AX21-4; if it is a spending
+  cap that is the operator's act, one line in the report), and **verify grok's token-ceiling
+  flag** (AX21-3 applying R1-4(b)/A7-5: *a CLI that cannot enforce a token ceiling by flag is
+  not ordered*), on this version rather than from docs.
+- **Fixed order of work** (AX22-5): telemetry → registry → router → re-rank. Each step is the
+  next one's evidence; a router re-ranked on nothing measured is a fixed list wearing a
+  router's name.
+- **Admission before position** (AX22-1): implement order is **Sonnet first** until admission;
+  Grok 4.6 and Copilot Enterprise take bounded trial tasks in parallel; **≥ 8 of 10 green on
+  first review** admits, below it the provider ranks last and the anomaly is filed. Copilot →
+  Grok → Sonnet is the *expected* steady state, **earned, not declared**.
+- **Reviewer ≠ producer, encoded in the registry** (AX22-2), with the tally recording both roles.
+- **`providers.allowed` per repo in the deploy manifest**, and the router REFUSES an off-list
+  provider — RED-first (AX22-5).
+- **PRECONDITION (AX22-4):** no non-Claude producer or reader is ordered before W-2′ is on
+  `main`. At freeze W-2′ was RUNNING, not merged. The Claude-side build is ungated; ordering a
+  non-Claude provider is gated, and the lane **reports and stops** rather than deciding the
+  precondition is close enough. The contract gives it the check to run.
+
+## 11b · Seat models recorded in the renders (AX22-3)
+
+`gen_seat_boot.py` carried **no model concept at all** — the ruling had nowhere to live. Added
+`SEAT_MODELS` and a `model:` field in the render header, **RED-first**: three tests written and
+failing (`AttributeError: no attribute 'SEAT_MODELS'`) before the code existed; suite now
+**28 passed**.
+
+```
+dispatcher sonnet     integrator opusplan     filings/handoff/lane opus
+```
+
+`model:` sits between `date:` and `ch8-sha256:` because `_HEADER_RE` stops at the pipe after
+`date` — the field is additive and no existing reader changes. The remaining three seats are
+stated rather than defaulted, so adding a seat to the enum without deciding its tier fails a
+test instead of rendering an unresolved one.
+
+**The five refreshed renders were copied to the transport `to-browser/` (AX11-2)** and carry
+the ruled models.
+
+**P12 now reports DRIFT against the 2026-09-10 bundle, BY CONSTRUCTION, and that is correct.**
+A fresh render carries `model:`; that frozen bundle predates the ruling and does not.
+**Handoff bundles are immutable (critical rule 3), so it was NOT regenerated** — the drift is
+the immutability rule and the new field meeting, not a defect. P12 is wired into no gate
+(absent from `.pre-commit-config.yaml`), so nothing is blocked. The next bundle cut renders
+with the field and P12 passes against it. Stated here so the next seat reads a known
+consequence rather than discovering an alarming one.
+
+## 12 · FIRE RECEIPTS — all six up
+
+Fired on the operator's `y` of 2026-09-11 with AMEND-017's three conditions, in the ruled
+order. Every lane confirmed up by its branch appearing, not by the receipt alone.
+
+```
+order  slot     receipt    model   branch up   worktree
+1      X1-1     a61224fd   opus    8s          lane-x-692-decision-coverage
+2      X1-2     e5cdeb9d   opus    8s          lane-x-689-conductor-e
+3      X-DEL    c0645d40   sonnet  8s          lane-x-734-retire-stage
+4      lane-5   a7e74d55   opus    12s         lane-x-716-dispatch-defects
+5      W-2'     fed4c445   opus    n/a         lane-w-684-pretooluse-guard-root (RE-ATTACHED at 90c727bd, 11 commits)
+6      X1-5     98b61963   opus    11s         lane-x-664-delivery-spine       (fired LAST, per its row)
+```
+
+**X-DEL's receipt reads `model=sonnet`** — the condition held. This lane is the live `[#717]`
+instance: its fence carries no `-Model` and `Start-DispatchLane` defaults to `opus`, so
+dispatched by its own carried line it would have run at opus and nothing would have warned.
+The explicit flag is what made the declared model true.
+
+**W-2′ took the re-attach path** (§5a): `git worktree add <path>
+worktree-lane-w-684-pretooluse-guard-root` onto the EXISTING branch, `state.yaml` seeded
+(gitignored, so `git worktree add` does not carry it), then a `--bg` session with its cwd
+there. No verb can do this — F2.
+
+### Lane bases are SPLIT, which is `[[#716]]` in the open
+
+```
+0be08b3c : X1-1, X1-2          (fired after the integrator's anchor merge)
+78d99d55 : X-DEL, lane-5, X1-5 (fired before it)
+90c727bd : W-2'                (its own branch, 11 ahead)
+```
+
+Three different bases across one batch, because `worktree.baseRef` is unset and lanes branch
+from `origin/main` as it stood at their own fire moment — while `main` moved twice during the
+fire. **Every contract carries the mandatory step-0 sync**, which is precisely what absorbs
+this; `[#716]` is the row that ends it, and it is lane-5's work.
+
+### F10 · The hand-composed W-2′ launch was TRUNCATED — dispatcher error, verified by transcript
+
+**What happened.** W-2′ is the one lane no verb could start (F2), so its launch line was
+composed by hand and carried the **literal expanded path** `H:\My Drive\CLAUDE PROMPT DIR\…`.
+It split at the space in `My Drive`. The lane received exactly:
+
+```
+Read H:\My
+```
+
+ten characters. The quoting used — inner double quotes inside a single-quoted PowerShell
+string — did not survive the hand-off to `claude`. The operator caught it and relayed the
+full instruction; W-2′ recovered and is working.
+
+**The other five were VERIFIED, not assumed.** Read off each lane's own transcript
+(`~/.claude/projects/**/<session>.jsonl`, first user message):
+
+```
+X1-1   a61224fd  len=101  Read and execute the frozen contract at …\LANE-x-692-decision-coverage.md
+X1-2   e5cdeb9d  len=95   … \LANE-x-689-conductor-e.md
+X-DEL  c0645d40  len=96   … \LANE-x-734-retire-stage.md
+lane5  a7e74d55  len=100  … \LANE-x-716-dispatch-defects.md
+X1-5   98b61963  len=98   … \LANE-x-664-delivery-spine.md
+W-2'   fed4c445  len=10   Read H:\My                      <-- the only truncation
+```
+
+**The truncation is isolated to the hand-composed launch.** `Dispatch-Lane` quotes its own
+prompt correctly; every lane it started received the whole instruction naming its own
+contract. The defect is the dispatcher's, not the verb's.
+
+**Standing rule from here (operator, AMEND-018):** every prompt names
+`$env:CLAUDE_PROMPTS_DIR`, never the literal path. **Note for whoever implements it:**
+`Dispatch-Lane` composes `Read and execute the frozen contract at <EXPANDED PATH>` itself, so
+the rule is not satisfied by dispatcher discipline alone — the helper's prompt composition has
+to change too. That sits squarely in the lane already running as lane-5 (`[#717]`/`[#718]`,
+the writer/reader-one-key work), which is the right place for it.
+
+### Not done by this seat, and owed
+
+- **The integrator merges `worktree-dispatch-x14-freeze`** — ONE merge, not two.
+  `e688669c` merged `worktree-dispatch-x1-freeze` at its then-tip and is on main, but the
+  branch ADVANCED past that merge: `dfe1ecd8` (fire receipts), `fb0c3b75` (F10) and
+  `88f8d4a9` ([#737] / X1-4 / seat models) followed it. Measured, not assumed —
+  `git merge-base --is-ancestor worktree-dispatch-x1-freeze main` exits **1**, and
+  x1-freeze is a strict ancestor of x14-freeze (exit 0), so merging x14-freeze lands all
+  three and leaves x1-freeze a stale pointer that deletes at that merge under
+  WORKTREE TEARDOWN IS TWO BRANCHES. Both branches are on origin.
+- **AX17-4's row** — one fence, one verb — files through the first backfill slot,
+  now joined by **F11** below.
+- **The dispatcher worktree** is torn down and its removal verified once this commits.
+
+## 13 · F11 · The contract generator mis-numbers its own final step, and five contracts carry TWO stop terminators
+
+Measured while sanity-checking the frozen X1-4 contract before reporting it clean — a
+generator defect, not a transcription slip, and therefore present in every contract this
+organ has ever emitted.
+
+**The cause is one hardcoded line.** `scripts/gen_lane_contract.py:661` appends the closing
+step as the literal `3. Final: \`pytest\` green, one end-of-lane artifact ... **COMMIT, then
+STOP.**` — a fixed `3.`, regardless of how many steps the contract body carries.
+
+**The blast radius is all seven wave-1 contracts**, measured over the `## Steps` block of each:
+
+```
+LANE-x-692-decision-coverage             steps=[1 2 3 4 3]    stop-terminators=1
+LANE-x-689-conductor-e                   steps=[1 2 3 4 3]    stop-terminators=1
+LANE-x-664-delivery-spine                steps=[1 2 3 4 5 3]  stop-terminators=2
+LANE-x-734-retire-stage                  steps=[1 2 3 4 3]    stop-terminators=2
+LANE-x-716-dispatch-defects              steps=[1 2 3 4 3]    stop-terminators=2
+LANE-w-684-pretooluse-guard-root-prime   steps=[1 2 3 4 5 3]  stop-terminators=2
+LANE-x-691-routing-telemetry             steps=[1 2 3 4 5 3]  stop-terminators=2
+```
+
+**The consequence is substantive, not cosmetic.** Where the body's last step already ends
+`**COMMIT, then STOP.**`, the contract states the stop condition **twice**. A lane that
+honours the first one commits and stops *before* the Final step — and the Final step is
+where `pytest` green and the **end-of-lane artifact** (what changed · proposed diffs · open
+items) are owed. The defect's failure mode is therefore a **missing deliverable that looks
+like a compliant stop**, which is the `[[gate-blocked-lane-looks-identical-to-a-finished-one]]`
+class arriving through the contract instead of the gate.
+
+**Why it survived seven contracts.** The shape gate does not read step numbering.
+`gen_lane_contract.py check` passes the repaired X1-4 contract at exit 0 reporting
+"11 sections, shape local, slug, branch, command" — sections, slug, branch and fence are
+checked; the ordinal sequence and the count of stop terminators are not.
+
+**What this seat repaired: exactly one file.** `LANE-x-691-routing-telemetry.md` on the
+transport — body step 5 `**COMMIT, then STOP.**` → `**COMMIT**`, final step `3.` → `6.`
+(13007 B → 12995 B, shape check re-run, exit 0). It is the only contract that is **frozen and
+UNFIRED**, so nothing is standing on it, and the transport copy is the one `Dispatch-Lane`
+resolves and the lane actually reads.
+
+**What this seat deliberately did NOT do: patch the six FIRED contracts.** A fired lane's
+ground does not shift under it, and all six have already read their text — editing the files
+now would reach no running lane while manufacturing divergence against the frozen in-tree
+record. The in-tree copy under `docs/audits/.../LANE-x-691-routing-telemetry.md` is likewise
+NOT edited: audits are immutable (`CLAUDE.md` critical rule 3), so it carries an **amendment
+marker** recording the correction rather than the correction itself.
+
+**Owed, and where it goes.** The durable fix is in the generator, which is
+`[#716]`/`[#717]`/`[#718]`'s own surface — lane 5 is the dispatch-defects lane and this is a
+dispatch defect. F11 files through the **first backfill slot alongside AX17-4's row**, not
+from this seat mid-batch, so the filing arrives in the lane that owns the organ.
+
+**Action for the integrator, at every wave-1 merge:** confirm the lane produced its
+end-of-lane artifact. Its absence is **this defect**, not lane negligence — ask for the
+artifact rather than reading the stop as complete.
+
+## 14 · AX23 · The hold is RELEASED, X1-4 is split, Half A is FIRED
+
+`to-cc/AMEND-BATCH-X-ROSTER-023.md`, operator, 2026-09-12. This supersedes §8's hold in full.
+
+**AX23-1 — the precondition is WITHDRAWN, and the reason is the useful part.** AX22-4 gated
+non-Claude admission on W-2' reaching `main`. W-2' reached `main` (`3a8ee7a8`). The gate was
+withdrawn anyway because it was **the wrong gate, not an unmet one**: a `.claude/settings.json`
+`PreToolUse` hook governs only the clients that read that file, and **codex and copilot never
+read it**, so it could not have governed the two providers admission exists to admit.
+*Admission never depended on it.* The replacement is a posture rather than a hook — a
+non-Claude model gets **no repo write access**: it runs read-only or produces to **stdout**, CC
+writes the artifact after re-verifying locators, and produced code passes the lane's RED-first
+tests **plus** a review by a model that did not produce it. `[#684]`'s undischarged smoke clause
+is re-scoped to the honour-set (`cursor-agent`), and a **client-independent gate (pre-commit /
+CI) is owed its own row** — the only bar that binds every provider whatever config it honours.
+
+**AX23-2 — X1-4 is two lanes now.**
+
+- **Half A (Claude-only) — FIRED.** telemetry wired → registry (roles, exclusions, per-repo
+  `providers.allowed`) → router → re-rank by measured pass rate per cost.
+- **Half B (agy, Grok 4.6, Copilot Enterprise)** — a **separate lane after Half A**, under
+  AX23-1's stdout-and-verify shape. The two Grok FIRST ACTS (usage-limit cause, token-ceiling
+  flag) moved to Half B with it; they are admission gates, so running them in Half A would have
+  been the first non-Claude call in the lane defined by placing none.
+
+**The contract is a SCOPE CUT, not a redraft.** `LANE-x-691-routing-half-a.md` is derived from
+the frozen full-scope contract, which the gate had already admitted and F11 had already
+repaired, so the shape, pairing, decision budget, step-0 sync and every carried row are
+byte-identical and only the scope moved. Changed: slug/branch/filename (a re-scope re-enters as
+a NEW contract — the W-2' precedent); AX22-4 quoted **and marked withdrawn** rather than
+deleted, so the withdrawal is legible; AX23-1 and AX23-2 carried verbatim (AX12-1); a Done-
+contract clause fixing the Half A/B boundary; and one exclusion in *What NOT to do* — **no call
+to any non-Claude provider**, while listing them as `NOT ADMITTED` registry entries and
+trip-testing the router's refusals against them is required work and is not a call.
+`gen_lane_contract.py check`: **exit 0**, 11 sections, steps `1..6`, one stop terminator.
+
+### Fire receipt
+
+```
+lane      lane-x-691-routing-half-a
+branch    worktree-lane-x-691-routing-half-a   (up in 8s)
+contract  $env:CLAUDE_PROMPTS_DIR\LANE-x-691-routing-half-a.md
+model     opus     -- AX21-1: this lane ORCHESTRATES routing, and orchestration never
+                      routes to a cheaper tier; that is the one row of the role table
+                      not subject to re-ranking. This is "model by kind".
+effort    high     permission-mode bypassPermissions
+session   7f2b5290
+```
+
+**Prompt verified off the transcript, not assumed** (standing rule since F10/AMEND-018). The
+launcher printed `'m' is not recognized as an internal or external command`, which is F10's
+shape — a fragment of a prompt reaching a shell. It was **not** a truncation: the transcript's
+`last-prompt` carries the whole instruction including the full contract path, and the lane is
+running on `claude-opus-5`. Recorded as a **launcher-side cosmetic artifact**, and noted
+because the helper still composes the **expanded literal path** itself rather than naming
+`$env:CLAUDE_PROMPTS_DIR` — AMEND-018's rule cannot be satisfied by a seat alone and needs the
+helper change, which remains lane-5's ground.
+
+### Wave 2 — AX23-3 order, with what each needs before it can fire
+
+```
+1  [#675]  merge cost            row edit FIRST: its Done-when must carry the measured
+                                 11.3 test / 72.7 ceremony split AND a target
+2  X1-4 Half A                   FIRED (above)
+3  X-DEL 2nd attempt             contract REWRITTEN from the refused lane's verdict record,
+                                 incl. the release_lint.py change that lets a tombstone land
+4  two lying detectors           NEW rows: fleet_parity.hook_invokes_script certifies a guard
+                                 that never runs (3 paths return True); release_lint blocks
+                                 `status: removed`
+5  [#730] + AX16-2               one-command row closure -- 0 closed against +47 filed
+```
+
+Items 1, 3 and 4 are **not fireable as they stand**: 1 needs a row edit, 3 needs a rewritten
+contract, 4 needs its rows filed. Those are dispatcher prep, and none of them is a lane yet.
+
+**Ceiling 6. Occupancy 1** — `lane-x-691-routing-half-a`. Five slots free, and the constraint
+on wave 2 is prep, not capacity.
+
+### AX23-4 · Branch dispositions owed to the operator — with one correction
+
+None of the three is an ancestor of `main`; nothing is deleted without the operator's word.
+
+- `worktree-dispatch-x1-freeze` — merge. Strictly contained in x14-freeze, so it needs no
+  separate merge and becomes a stale pointer at that one.
+- `worktree-dispatch-x14-freeze` — merge. Carries the manifest, the X1-4 contracts, F11 and
+  this record.
+- `worktree-lane-x-734-retire-stage` — **preserve.** **Correction to AX23-4's "the only copy":**
+  the branch is **on origin at `3e64f345`**, matching the local tip, so the 22,331 B verdict
+  record (`docs/audits/2026-09-11-technical-lane-x-734-retire-evidence.md`, commit `a264089b`)
+  **cannot be lost to a worktree teardown** — only to a branch deletion. It is still absent from
+  `main`. Note also that the branch carries `1489add0 feat([#734]): retire six SAFE-verdict
+  orphans` — six retirements that exist **nowhere but this branch**, which is why the wave's
+  deletion count reads zero.
+
 ---
 
-**Last updated:** 2026-09-11 · **Seat:** dispatcher · **Nothing fired.**
+**Last updated:** 2026-09-11 · **Seat:** dispatcher · **ALL SIX FIRED.**

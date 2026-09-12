@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "e36479388da1cd7e9dd68e797e1315eb0f243013dee59cbc7dcb2de47cbaa1db",
+  "generated_sha256": "292b1d26e0d66d6a8c0b156a6eb468c2b2d03c91977a74931a4d57d869864a64",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1355,6 +1355,10 @@
     {
       "task": 718,
       "file": "718-generator-writes-lane-contracts-where-the-verb-does-not-read.md"
+    },
+    {
+      "task": 737,
+      "file": "737-a-seat-boot-render-cannot-express-the-seat-s-own-model.md"
     },
     {
       "task": 724,
