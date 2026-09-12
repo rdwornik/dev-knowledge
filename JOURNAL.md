@@ -19,6 +19,60 @@
 
 ---
 
+### 2026-09-12 (i) - CC (Opus 5, background integrator seat): the closure arc anchors itself
+
+**Names `78c433e7`**, the entry below, which this arc's own `--no-ff` merge introduces. The
+integrator's branch carries two commits for exactly this reason (Ch8, batch-1 F1b) --
+substantive work first, JOURNAL last -- because a one-commit arc is left naming only its own
+hash, which does not exist when the entry is written. APPEND ONLY, B6.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+### 2026-09-12 (h) - CC (Opus 5, background integrator seat): the routing mechanism lands, and five rows close on the operator's word
+
+**Anchors:** `dc0eb7de` (the lane tip, introduced by merge `7a380153`).
+
+**Merged.** `7a380153` -- X1-4 Half A, `lane-x-691-routing-half-a`, merged BY SHA and not by
+branch name: entry (f) recorded losing exactly that race one arc ago, and the fix is the SHA
+rather than more care. Telemetry gains `role`/`outcome`/`reviewed_by`; the registry gains an
+ordered `roles:` collection, per-entry `admission:` and per-provider `licence:`;
+`scripts/provider_router.py` is new; step 5 re-ranks by measured pass rate per cost. 3,200
+insertions, 77 new tests, no non-Claude provider called.
+
+**The lane's suite claim, checked rather than accepted.** It reports 59 failures at BOTH the
+pre-code baseline `f1c51be1` and the tip `09958f85` -- 0 new, 0 fixed, the failure set identical
+node-for-node, and the pass count up by exactly the 77 tests the lane's four new modules
+collect. The 59 are `main`'s and were `main`'s before this lane wrote a line.
+
+**Codex review, ordered by AX24-1 and run at the lane tip.** Reviewer `gpt-5.6-terra` -- the
+exact id the `reviewer-mismatch` refusal demands, effort low, invoked directly rather than
+through the wrapper so no uncited audit lands. `TALLY HIGH:2 MED:0 LOW:0`, and both HIGHs were
+VERIFIED against the code rather than relayed: (1) `ADMISSION_GATED_ROLES` is a frozenset of
+one, so every role but `implement` routes to NON-ADMITTED providers -- confirmed by running it,
+`route('review', '.dev-knowledge')` returns `openai` and `route('read', ...)` returns
+`antigravity`; (2) the AX22-2 self-review check compares a PROVIDER-valued `reviewed_by` against
+a MODEL-valued producer, so the two namespaces can never collide and `reviewed_by='openai'`
+passes against `response_model='gpt-5.6-terra'`. Both are LATENT -- `provider_router.py` has
+ZERO production callers, only tests and its own CLI -- and both are carried into `[#691]`, which
+stays OPEN for Half B, which is where they stop being latent. Carried into the existing row
+rather than filed as new ones: AX24 measures a wave in rows closed, not rows filed.
+
+**Closed on the operator's word** (AX24-5), each carrying `[#730]`'s evidence shape in its own
+body -- row id, Done-when verbatim, merged SHA, named test: `[#684]` <- `3a8ee7a8`, `[#716]`
+`[#717]` `[#718]` <- `eccb5814`, `[#692]` <- `a77e3302`. `[#684]`'s Done-when carries a clause
+the other four lack -- *"a fresh Codex review with no unresolved HIGH"* -- so it was checked
+rather than waved through: six review rounds, the last clean. NOT closed, and named so this is
+not read as a sweep: `[#689]` `[#664]` `[#735]` `[#736]` per AX24-3/AX24-4, and `[#727]`, which
+AX24-5 itself holds until the AX24-2 fail-closed fix lands.
+
+**Rows: 314 -> 309 manifest nodes; 257 open + 52 deferred; closed 139 -> 144.** The closure
+mechanism is the batch-W precedent's three coupled edits (`3549bd9a`) -- body marker,
+`status: closed`, and REMOVAL of the node from `tasks/manifest.json`, because a hand-set status
+on a still-listed row is silently reverted.
+
+**Changes.** `BACKLOG.md`, `tasks/` (six rows + `manifest.json`), `ecosystem/doc-counts.md`,
+`docs/audits/README.md`, `JOURNAL.md` (this entry).
+
 ### 2026-09-12 (g) - CC (Opus 5, background integrator seat): the teardown-record arc anchors itself
 
 **Names `d0fb5b8a`**, the entry below, which this arc's own `--no-ff` merge introduces. A
