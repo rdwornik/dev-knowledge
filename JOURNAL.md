@@ -19,6 +19,15 @@
 
 ---
 
+### 2026-09-12 (i) - CC (Opus 5, background integrator seat): the closure arc anchors itself
+
+**Names `78c433e7`**, the entry below, which this arc's own `--no-ff` merge introduces. The
+integrator's branch carries two commits for exactly this reason (Ch8, batch-1 F1b) --
+substantive work first, JOURNAL last -- because a one-commit arc is left naming only its own
+hash, which does not exist when the entry is written. APPEND ONLY, B6.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-12 (h) - CC (Opus 5, background integrator seat): the routing mechanism lands, and five rows close on the operator's word
 
 **Anchors:** `dc0eb7de` (the lane tip, introduced by merge `7a380153`).
