@@ -467,8 +467,8 @@ def test_the_disposition_register_names_no_file_that_is_gone():
 #: S-08…S-13 found by grep, the query finds. Seeded as test cases, not eyeballed."*
 CENSUS_SCRIPT_ORPHANS = (
     "scripts/archive_row_body.py",
-    "scripts/cost_usage_telemetry.py", "scripts/desired_state_loader.py",
-    "scripts/desired_state_report.py", "scripts/export_backlog_view.py",
+    "scripts/cost_usage_telemetry.py",
+    "scripts/export_backlog_view.py",
     "scripts/failed_set.py", "scripts/gen_north_star.py",
     "scripts/gen_trend_dashboard.py", "scripts/logs_retention.py",
     "scripts/nopack_sandbox.py",
@@ -477,7 +477,8 @@ CENSUS_SCRIPT_ORPHANS = (
     "scripts/window_metrics.py",
     # RETIRED by lane `lane-x-734-retire-stage-2` ([#734], the AX13-2 retire stage), not
     # dropped silently: `boundary_headers.py`, `boundary_report.py`, `cloud_provisioning.py`,
-    # `probe_child_backlogs.py`, `seed_runbook.py` and `validate_onboarding_rulings.py` were
+    # `probe_child_backlogs.py`, `seed_runbook.py`, `validate_onboarding_rulings.py`,
+    # `desired_state_loader.py` and `desired_state_report.py` were
     # DELETED with their dedicated tests and their `ORPHAN_DISPOSITIONS` entries. A census
     # row leaves this fixture WITH the commit that retires its subject -- the same rule the
     # `file_purpose_graph.py` note below states for the converse (a row that acquired a

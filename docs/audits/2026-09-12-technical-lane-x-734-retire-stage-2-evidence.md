@@ -225,3 +225,77 @@ of `ecosystem/satellite-onboarding-rulings.yaml`, which **stays in the tree**. T
 schema teeth and its "four operator rulings encoded exactly" assertion went with the test. The
 deletion is GO'd and is executed; the consequence is named here so it is a known cost rather
 than a later surprise.
+
+## Step 3 — the `desired_state_*` pair, and the block the first run could not clear
+
+### Run 3, verbatim — the clean measurement
+
+Removal set = exactly the contract's removal unit for this pair. Tree stable throughout (all
+four files present and untouched; the Step 2 deletions had already landed, so nothing moved
+underneath it):
+
+```
+safe-removal verdict: SAFE
+removal set: scripts/desired_state_loader.py, scripts/desired_state_report.py, tests/test_desired_state_loader.py, tests/test_desired_state_report.py
+reason: no surviving referrers; every removed symbol resolved clean
+
+limit: static-Python-only (dynamic/getattr/string-keyed/cross-language edges are INVISIBLE -> a non-blocking false PASS is possible; never a false FAIL).
+```
+
+**SAFE, with the explicit "no surviving referrers; every removed symbol resolved clean" the
+Done-contract asks for** — and it is the contract's removal unit that produces it, which is the
+whole content of run 1's UNSAFE. The three runs tell one story: the pair is safe to remove
+*with* its tests and unsafe to remove *without* them, which is what clause 1 already said.
+
+### The ARCHITECTURE.md edit (clause 2's footprint extension)
+
+The first run reversed this deletion because `test_the_live_tree_carries_no_dangling_process_
+reference` went RED on `ARCHITECTURE.md:503-504`, and fixing it was outside that lane's
+footprint. Clause 2 puts it inside this one's.
+
+**The line numbers were RESOLVED before editing, as clause 2 requires.** `503-504` still
+resolve exactly: line 503 opens `scripts/desired_state_loader.py` and line 504 carries
+`scripts/desired_state_report.py`. The file had not moved for this passage.
+
+**Why only that passage.** The refusal predicate is `graph_queries._PROSE_PROCESS_RE` =
+`(?:scripts|plugins)/[A-Za-z0-9_./-]+\.(?:py|ps1)`, applied to `ARCHITECTURE.md` alone
+(`PROSE_SURFACE`). It matches **path-shaped** references only. The retired modules from Step 2
+also appear in `ARCHITECTURE.md` — lines 479-480 — but as bare backticked names
+(`` `boundary_headers.py` ``), which the regex does not match; that is why Step 2's six
+deletions did not RED this gate and this pair's did. Recorded because the asymmetry is not
+obvious and a future lane will meet it.
+
+Two edits, both inside "the `desired_state_*` prose":
+
+1. The **organ-class paragraph** now states what is true: one part live, two retired, with the
+   date, the owning row, the oracle verdict and a pointer to this artifact.
+2. The **ADR-109 §9 codemap-scope paragraph** named "the loader→schema edge" as a cost
+   accepted. That edge no longer exists. The sentence is corrected rather than left to become
+   the next lane's stale locator — the same defect class this lane is cleaning.
+
+**ADR-109 is NOT repealed, and the prose says so explicitly.** The decision described a
+three-part class; the typed contract stands, the reading half is gone, and rebuilding it would
+be a new act needing its own row. An ADR partially unimplemented is recorded as partially
+unimplemented — saying "partial when it is partial" is the standing rule, and quietly rewriting
+the passage as though ADR-109 had always described one part would have been the dishonest
+alternative. **Flagged for the architect:** ADR-109's own text still describes the three-part
+class and now over-describes the tree.
+
+### Verification
+
+`uv run --locked pytest tests/test_graph_spine.py -q -n 0` → **34 passed, 1 failed** — the
+same pre-existing `scripts/worktree_seed.py` failure attributed to the base in Step 2, and
+nothing else.
+
+The three deletion-sensitive tests, run by name:
+
+```
+tests/test_graph_spine.py::test_the_live_tree_carries_no_dangling_process_reference
+tests/test_graph_spine.py::test_the_disposition_register_names_no_file_that_is_gone
+tests/test_graph_spine.py::test_the_live_orphan_census_reaches_zero_against_its_stated_class
+3 passed in 2.40s
+```
+
+**`test_the_live_tree_carries_no_dangling_process_reference` is GREEN** — the gate that
+reversed the first run's deletion is satisfied, not bypassed. Clause 2 is delivered: the pair
+is deleted, all four coupled surfaces each, **4 files, 1,219 lines**.

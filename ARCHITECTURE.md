@@ -498,19 +498,29 @@ verifies. The `floor` carrier additionally **arms** the ADR-78 floor under **mod
 `floor-hash-verify` hook, both running the consumer's `.claude/check_floor_hash.py`), so floor
 drift fails loud. Operator-run from the hub, one consumer per invocation; runbook PLAYBOOK §20.
 
-**The desired-state organ class (ADR-109).** Three parts, one class: `ecosystem/schema/` holds
-the typed, versioned **contract** (`desired_state.py`, `schema_version: "1.0.0"`);
-`scripts/desired_state_loader.py` is the **loader** that parses the live sources into one
-validated model; `scripts/desired_state_report.py` is the **divergence report** over it. All
-read-only, all operator-invoked — no trigger, no gate, nothing converges state (ADR-109 §8:
-"Read-only, no execution engine", and the report "is not convergence"). Membership resolves
-toward `ecosystem/deployed-versions.yaml` (§2), so the report's matrix is narrower than
-ADR-104's 9-repo declaration; the [#462] `membership_agreement` check is what makes a declared
-member absent from every surface visible.
+**The desired-state organ class (ADR-109) — ONE part live, two RETIRED.** `ecosystem/schema/`
+holds the typed, versioned **contract** (`desired_state.py`, `schema_version: "1.0.0"`) and is
+what remains of the class. Its **loader** (`desired_state_loader.py`) and its **divergence
+report** (`desired_state_report.py`) were retired on 2026-09-12 by the AX13-2 retire stage
+(`[#734]`, lane `lane-x-734-retire-stage-2`): the 2026-09-08 process-trigger census found both
+untriggered, the reverse-dep oracle returned SAFE over the pair and their dedicated tests
+("no surviving referrers; every removed symbol resolved clean"), and this prose was the last
+surface naming them. Evidence:
+`docs/audits/2026-09-12-technical-lane-x-734-retire-stage-2-evidence.md`.
+
+**ADR-109 is not repealed by this — it is partially unimplemented, and that is stated rather
+than smoothed.** The decision's §8 posture ("Read-only, no execution engine", the report "is
+not convergence") described a three-part class; the contract half stands, the reading half no
+longer exists in the tree, and re-building it is a new act needing its own row. Membership
+still resolves toward `ecosystem/deployed-versions.yaml` (§2), and the [#462]
+`membership_agreement` check — which is NOT part of the retired pair — remains what makes a
+declared member absent from every surface visible.
 
 `ecosystem/schema/` is deliberately outside the codemap's `--source-root scripts` scope: the
 codemap maps executables; the typed contract lives with the data it governs (ADR-109 §9). Cost
-accepted: the schema package and the loader→schema edge do not appear in the structural map.
+accepted: the schema package does not appear in the structural map. (The loader→schema edge
+this once also named went with the loader's 2026-09-12 retirement above — there is no longer
+an edge to omit.)
 Revisiting requires NEW evidence (e.g. the codemap growing multi-root support) as a NEW row —
 this ruling is not reopenable by preference.
 

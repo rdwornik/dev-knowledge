@@ -194,14 +194,6 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
         reason="reachable only from the untriggered window_metrics.py:359 -- an orphan by "
                "inheritance, so it is dispositioned WITH its caller and not before it",
         owner="V+1 retirement-or-wiring list"),
-    "scripts/desired_state_report.py": Disposition(
-        reason="named in ARCHITECTURE.md:504 prose only -- documented, never wired. Prose is "
-               "not a trigger, which is the census's own method line",
-        owner="V+1 retirement-or-wiring list"),
-    "scripts/desired_state_loader.py": Disposition(
-        reason="reachable only from the untriggered desired_state_report.py:50 -- an orphan "
-               "by inheritance, dispositioned with its caller",
-        owner="V+1 retirement-or-wiring list"),
     "scripts/gen_ledger.py": Disposition(
         reason="ARRIVED AFTER THE CENSUS -- landed 2026-09-09 by lane V-000 and therefore "
                "absent from its 32. Recorded as a NEW orphan rather than folded into the "
