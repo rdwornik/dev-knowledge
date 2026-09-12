@@ -11,10 +11,22 @@ plugin.json, pinned nowhere), and the floor template sha256 sidecar. This lint
 reconciles ALL of them to ``source_tag`` and FAILs on any disagreement.
 
 It also validates the essence-spec sections the P1 manifest conversion added
-(``components:`` / ``doc_shapes:`` / ``anchors:``), including the P1 lifecycle
-boundary: only ``status: active`` is legal this release — ``deprecated`` /
+(``components:`` / ``doc_shapes:`` / ``anchors:``), including the lifecycle
+boundary.
+
+RETRACTION (2026-09-12, `[#734]` lane `lane-x-734-retire-stage-2`). This paragraph
+used to read: *"only ``status: active`` is legal this release — ``deprecated`` /
 ``removed`` (tombstones) unlock in P2, gated on operator decision D3, so a
-tombstone landing early fails loud here instead of silently meaning nothing.
+tombstone landing early fails loud here instead of silently meaning nothing."*
+**That had been false since ``1fbdf6f3``** ("release_lint C6 unlocks tombstones
+(status:removed) [#244]"), which set ``ALLOWED_STATUSES = {"active", "removed"}``
+below. D3 is DECIDED, the lifecycle is 2-state (active | removed, no
+``deprecated`` tier), and the manifest's own field table records ``removed`` as
+*"legal as of v1.2.0 (P2)"*. A lane consulted this docstring, believed it over
+the code four lines down, and reversed a correct disposition on it — so the cost
+of leaving it was measured, not hypothetical. The live rule is the constant, and
+C6 below is what enforces it: ``removed_in:`` REQUIRED iff ``status: removed``,
+FORBIDDEN on active.
 
 Checks (each FAIL exits 1; WARN informs):
 

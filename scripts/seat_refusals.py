@@ -1,4 +1,10 @@
-"""seat_refusals.py -- five rules that failed in batches T and U, rebuilt as REFUSALS.
+"""seat_refusals.py -- rules that failed in practice, rebuilt as REFUSALS.
+
+FIVE FROM BATCHES T AND U, plus a sixth added by `[#675]` target 3.4. The sixth arrives from a
+different direction and that is worth saying: the first five are rules that existed in prose and
+were breached; `file-collision` is a rule that did NOT exist, found by measuring what a real
+batch's contracts actually declare. Both end in the same place, because both failures are the
+same shape -- a cost paid before anything is in a position to refuse it.
 
 WHY CODE AND NOT PROSE. Every rule below already existed in `protocols/PLAYBOOK.md` Ch8 and was
 broken anyway, by seats that had read it (DECLARE-REVIEWS-2026-09-07 §B R-6: "under-mechanised,
@@ -9,7 +15,7 @@ finding count is already in the tally, and the decision file is already on the t
 carrier. **A prose reminder is not a refusal**, which is the anti-pattern this module's own
 contract names.
 
-THE FIVE, and where each one is ruled:
+THE SIX, and where each one is ruled:
 
   1. `sleeping-poll`     Ch8 "Batch communication" -> "Poll-as-code -- NO SEAT ENDS A TURN ON A
                          WAIT". A wait is a loop with an interval, a bound and a state predicate
@@ -28,6 +34,10 @@ THE FIVE, and where each one is ruled:
   5. `dryrun-step0`      AMEND-BATCH-V-002 §1. `-DryRun` of every generated contract is the LAST
                          LINE of dispatcher step 0. Batch V discovered a generator/verb defect by
                          running it; a dispatcher that skips the DryRun launches into a refusal.
+  6. `file-collision`    `[#675]` target 3.4. No two lanes in a batch declare writes to the same
+                         file. Evaluated on the FROZEN CONTRACT SET at step 0, before the first
+                         worktree exists -- run later, the collision has already been paid for
+                         and every remaining option is a teardown.
 
 HONEST LIMITS, stated because a refusal that overstates its reach is worse than none:
 
@@ -40,6 +50,12 @@ HONEST LIMITS, stated because a refusal that overstates its reach is worse than 
   * `refuse_uncarried_decision_write` checks that a carrier VALUE is well-formed. Whether a path
     value resolves on `main` is the read-time leg's question, and it is not asked here: the write
     happens on the transport, often before the carrier has landed.
+  * `refuse_file_collision` reads DECLARED footprints. A contract states the files it intends to
+    touch; a lane that writes outside its declaration is invisible to this check, which is why
+    the contract separately forbids that ("No edits outside this lane's declared footprint").
+    It also cannot see a collision through a DERIVED surface -- two lanes declaring different
+    sources that regenerate one index do collide in fact and not in declaration. Both limits are
+    under-reach, never over-reach: this refuses only what it can actually see.
 """
 from __future__ import annotations
 
@@ -64,6 +80,10 @@ except ImportError:                                  # imported as `scripts.seat
 #: fifth added by AMEND-BATCH-V-002 §1). A seat template cites these ids; tests assert the roster.
 REFUSALS: tuple[str, ...] = (
     "sleeping-poll", "lane-ceiling", "reviewer-mismatch", "carried-by", "dryrun-step0",
+    # SIXTH, added by `[#675]` target 3.4. It joins the STEP-0 family rather than standing
+    # alone, because its whole argument is the one `lane-ceiling` already makes: a collision
+    # found after provisioning has already been paid for.
+    "file-collision",
 )
 
 #: WHICH SEAT RUNS WHICH REFUSAL, and in the order its boot runs them. A seat's absence from a
@@ -77,7 +97,12 @@ SEAT_REFUSALS: dict[str, tuple[str, ...]] = {
     # DryRun the LAST LINE of step 0. `tests/test_gen_seat_boot.py` runs the DryRun refusal
     # against the rendered step 0 itself, so a reorder here fails the suite rather than quietly
     # moving the check off the boundary it guards.
-    "dispatcher": ("lane-ceiling", "carried-by", "sleeping-poll", "dryrun-step0"),
+    # `file-collision` sits BETWEEN them, and the position is the mechanism as much as it is for
+    # the two it sits between: it needs the lane list the ceiling just validated (a plan naming a
+    # lane twice would collide it with itself and report a nonsense pair), and it must precede
+    # the DryRun because the DryRun is the last line of step 0 -- after it the dispatcher fires.
+    "dispatcher": ("lane-ceiling", "file-collision", "carried-by", "sleeping-poll",
+                   "dryrun-step0"),
     "integrator": ("reviewer-mismatch", "carried-by", "sleeping-poll"),
     "filings": ("carried-by", "sleeping-poll"),
     "handoff": ("carried-by", "sleeping-poll"),
@@ -266,6 +291,130 @@ def refuse_lane_ceiling(lanes: "list[str]", *, ceiling: int = LANE_CEILING,
                    f"<={ceiling} (the bound is integration capacity, which is serial)",
         )
     return lanes
+
+
+# --- 6. the same-file collision, at dispatcher step 0 (`[#675]` target 3.4) -------------------
+
+#: The section a lane's WRITES are specified in. Read from here and not from the whole file, and
+#: that choice is MEASURED rather than stylistic -- see `declared_footprint`.
+_DONE_CONTRACT_RE = re.compile(
+    r"^##\s+Done-contract.*?$(?P<body>.*?)(?=^##\s|\Z)", re.MULTILINE | re.DOTALL)
+
+#: A repo-relative path. Same shape `file_purpose_graph._REL_PATH_RE` uses, deliberately: two
+#: organs disagreeing about what counts as a path is a class of defect this repo already carries.
+_CONTRACT_PATH_RE = re.compile(
+    r"(?:^|[\s`'\"(\[])((?:\.?[A-Za-z0-9_][A-Za-z0-9_.-]*/)+[A-Za-z0-9_.-]+\.[A-Za-z0-9]{1,6})")
+
+#: Prefixes a lane can actually WRITE to. A contract cites the transport (`LANE-x-000-other.md`),
+#: absolute operator paths and prose nouns; none of those is a repo file two lanes can collide on.
+_WRITE_ROOTS: tuple[str, ...] = (
+    "scripts/", "tests/", "tasks/", "protocols/", "docs/", ".claude/", ".github/",
+    "ecosystem/", "templates/", "deploy/", "logs/",
+)
+
+
+def declared_footprint(contract_text: str) -> set[str]:
+    """The repo paths a contract's Done-contract section declares it will write.
+
+    READ FROM THE DONE-CONTRACT, NOT THE WHOLE FILE, and the choice was measured on the live
+    batch-X set (13 contracts, 2026-09-12) rather than reasoned about:
+
+        Done-contract extraction -> 1 colliding pair in 78, and NO path cited by 3+ contracts
+        whole-file extraction    -> every lane shares references (ADRs, PLAYBOOK, the organs it
+                                    reasons about), so a collision means nothing
+
+    That difference is the whole viability of the check. A refusal that fires on shared
+    REFERENCES would be turned off inside a window, and this module's own contract says a
+    refusal that overstates its reach is worse than none.
+
+    HONEST LIMIT, and it is the row's own: a contract declares what it INTENDS to touch. A lane
+    that writes outside its declaration is invisible here -- which is why the contract separately
+    forbids exactly that ("No edits outside this lane's declared footprint"). This checks
+    declared collisions, and says so rather than implying it checked the trees.
+    """
+    match = _DONE_CONTRACT_RE.search(contract_text)
+    if match is None:
+        return set()
+    return {path for path in _CONTRACT_PATH_RE.findall(match.group("body"))
+            if path.startswith(_WRITE_ROOTS)}
+
+
+def undeclared_lanes(footprints: "dict[str, set[str]]") -> list[str]:
+    """Lanes whose contract declared NO repo path -- reported, never counted as clean.
+
+    NEVER GREEN-BY-SKIP (the 2026-08-25 tiered-machine-dependence sweep, applied to a different
+    absence): a lane this check could not see and a lane that genuinely collides with nothing
+    both produce no finding, and reporting one word for both is how a check comes to pass
+    because it cannot see its own case -- which is the row this refusal is filed under.
+    """
+    return sorted(lane for lane, paths in footprints.items() if not paths)
+
+
+def refuse_file_collision(contracts: "dict[str, str]", *,
+                          already_provisioned: "list[str] | None" = None
+                          ) -> "dict[str, set[str]]":
+    """No two lanes in this batch declare writes to the same file. Dispatcher STEP 0.
+
+    `contracts` maps lane name -> contract TEXT. Returns `{lane: footprint}` when it passes, so
+    the caller can report what it saw rather than only that nothing fired.
+
+    LATE IS ITSELF A REFUSAL, in the row's own words: run after provisioning, "the collision it
+    exists to prevent has already been paid for and every remaining option is a teardown". Two
+    lanes editing one file hand back either a merge conflict the integrator resolves serially or
+    -- worse -- two trees that each regenerated the same derived surface against the other's
+    absence. Neither is recoverable more cheaply than tearing a lane down, so the check that runs
+    late is decorative and the placement is the mechanism.
+
+    EVERY COLLIDING LANE IS NAMED, not the first pair. A refusal that stops at the first pair
+    sends the dispatcher back for a second round trip, and a second round of step 0 is exactly
+    the cost step 0 exists to avoid paying twice.
+
+    WHAT `contracts` MUST BE, and this is load-bearing rather than a usage note. It is the
+    batch's contract set as the MANIFEST declares it -- NOT a directory listing of the
+    transport. MEASURED 2026-09-12: globbing `LANE-x-*.md` off the live transport yields 13
+    contracts and one collision, on `deploy/manifest-v1.5.0.yaml` between
+    `LANE-x-734-retire-stage` and `LANE-x-734-retire-stage-2` -- and only the SECOND is
+    provisioned. The first is a superseded re-cut still sitting on the transport, so the
+    collision is real in the directory and absent from the batch. A glob makes this refusal
+    report a false collision on every superseded contract the transport has accumulated.
+
+    That is deliberately NOT re-solved here: `batch_manifest.freeze_manifest_contract_agreement`
+    (`[#630]`) already refuses when the manifest's lane slugs and the contract set disagree, and
+    it is the organ that owns the question. Run it first; this one assumes its answer. Two
+    organs computing "is this the right contract set" privately is the defect class this repo
+    keeps filing, so the dependency is stated rather than duplicated.
+    """
+    provisioned = list(already_provisioned or [])
+    if provisioned:
+        raise SeatRefusal(
+            "file-collision",
+            f"the collision check was checked LATE: {len(provisioned)} lane(s) already "
+            f"provisioned ({', '.join(provisioned[:6])})",
+            remedy="run this at STEP 0, on the frozen contract set, before the first worktree "
+                   "exists; run afterwards the collision has already been paid for and every "
+                   "remaining option is a teardown",
+        )
+
+    footprints = {lane: declared_footprint(text) for lane, text in contracts.items()}
+
+    claimants: "dict[str, list[str]]" = {}
+    for lane in sorted(footprints):
+        for path in footprints[lane]:
+            claimants.setdefault(path, []).append(lane)
+    collisions = {path: lanes for path, lanes in claimants.items() if len(lanes) > 1}
+
+    if collisions:
+        detail = "; ".join(
+            f"{path} <- {', '.join(lanes)}" for path, lanes in sorted(collisions.items()))
+        raise SeatRefusal(
+            "file-collision",
+            f"{len(collisions)} file(s) are declared by more than one lane: {detail}",
+            remedy="re-cut the contracts so one file has one owning lane, or SEQUENCE the "
+                   "colliding lanes into different batches -- the second is the honest option "
+                   "when the work genuinely shares a surface, and it costs one batch rather "
+                   "than one teardown",
+        )
+    return footprints
 
 
 # --- 3. the reviewer's model id in the tally ---------------------------------------------------
@@ -547,6 +696,41 @@ def cmd_lane_ceiling(lanes: tuple[str, ...], provisioned: tuple[str, ...],
         _fail(exc)
     click.echo(f"lane-ceiling: PASS -- {len(accepted)} lane(s) <= {LANE_CEILING}, "
                "checked before any worktree exists")
+
+
+@cli.command("file-collision")
+@click.option("--contract", "contracts", multiple=True, required=True,
+              type=click.Path(exists=True, dir_okay=False),
+              help="a FROZEN contract file; repeatable. Pass the batch's set AS THE MANIFEST "
+                   "DECLARES IT, never a glob of the transport -- a superseded re-cut still "
+                   "sitting there collides with its own replacement (measured 2026-09-12). "
+                   "`batch_manifest.freeze_manifest_contract_agreement` ([#630]) is the organ "
+                   "that refuses a wrong set; run it first")
+@click.option("--provisioned", multiple=True, help="a worktree that already exists")
+@click.option("--check-worktrees", is_flag=True,
+              help="read the live worktree list instead of trusting --provisioned")
+@click.option("--repo-root", default=None, type=click.Path(file_okay=False))
+def cmd_file_collision(contracts: tuple[str, ...], provisioned: tuple[str, ...],
+                       check_worktrees: bool, repo_root: "str | None") -> None:
+    """STEP 0 ONLY: no two lanes in this batch declare writes to the same file."""
+    already = list(provisioned)
+    if check_worktrees:
+        already += _live_worktrees(Path(repo_root) if repo_root else _SCRIPTS.parent)
+    texts = {Path(path).stem: Path(path).read_text(encoding="utf-8", errors="replace")
+             for path in contracts}
+    try:
+        footprints = refuse_file_collision(texts, already_provisioned=already)
+    except SeatRefusal as exc:
+        _fail(exc)
+    declared = sum(len(paths) for paths in footprints.values())
+    click.echo(f"file-collision: PASS -- {len(footprints)} contract(s), {declared} declared "
+               "path(s), no file claimed twice; checked before any worktree exists")
+    # NEVER GREEN-BY-SKIP: a lane this check could not see is named, because "no collision" and
+    # "I could not read this lane" must not print the same word.
+    blind = undeclared_lanes(footprints)
+    if blind:
+        click.echo(f"file-collision: {len(blind)} contract(s) declared NO repo path and were "
+                   f"invisible to this check: {', '.join(blind)}")
 
 
 @cli.command("reviewer")

@@ -113,6 +113,19 @@ _REFUSAL_LINES: dict[str, tuple[str, str]] = {
         "STEP 0, before the first worktree exists. `--check-worktrees` reads the live list "
         "rather than asking you to self-report what you have already provisioned.",
     ),
+    # BETWEEN the ceiling and the DryRun, and the position is the mechanism (`[#675]` 3.4). It
+    # needs the lane list the ceiling just validated, and it must precede the DryRun because
+    # after the DryRun the dispatcher fires -- at which point a collision has been paid for.
+    "file-collision": (
+        "uv run --locked python scripts/seat_refusals.py file-collision --check-worktrees "
+        "--contract <LANE-*.md> [--contract ...]",
+        "STEP 0, on the batch's contract set AS THE MANIFEST DECLARES IT -- never a glob of the "
+        "transport, which still holds superseded re-cuts that collide with their own "
+        "replacements (measured 2026-09-12 on batch X). Run "
+        "`freeze_manifest_contract_agreement` ([#630]) first; it owns whether the set is right. "
+        "Two lanes declaring one file hand back either a serial merge conflict or two trees "
+        "that each regenerated the same derived surface against the other's absence.",
+    ),
     # TWO lines, and the ORDER inside the block is the ruling. The checker runs first, against
     # this step 0's own text; the DryRun of every generated contract is then the LAST thing step
     # 0 does (AMEND-BATCH-V-002 §1). A block that ended on the checker would have moved the

@@ -177,6 +177,63 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
     "scripts/gen_trend_dashboard.py": Disposition(
         reason=f"{_LANE_BUILT}; only call site is LANE-n-14-trends-burndown.md:27",
         owner="V+1 retirement-or-wiring list"),
+    # NOT population A either, and the distinction earns its own comment rather than being
+    # folded into `_LANE_BUILT`. `merge_receipt.py` IS adopted: `.claude/commands/
+    # lane-integrate.md` issues it at four points of the merge walk, which is the opposite of
+    # lane-built-and-never-wired. The census cannot see that, because the `[#664]` wiring
+    # surfaces are `.pre-commit-config.yaml`, `.claude/settings.json`, the plugin `hooks.json`,
+    # the scheduled task and the CI workflows -- and a COMMAND FILE is none of them. So EVERY
+    # operator-invoked organ in this repo reads as an orphan by construction, whatever its real
+    # adoption. That is a gap in the census's input list, not a property of this module, and it
+    # is recorded here rather than only in a lane artifact because this row is where a reader
+    # meets it.
+    #
+    # Widening the surface list is deliberately NOT done from here. It would change what
+    # `graph-orphan-census` refuses across the whole repo, from a lane whose contract is merge
+    # cost -- the same discipline `[#675]` clause 1 states one organ over ("a lane that fixes
+    # dispatch properly while making clause 1 green has overrun its contract").
+    #
+    # A pre-commit trigger was considered and rejected ON THE MERITS, not merely as out of
+    # scope: a stopwatch has nothing to gate. Elapsed time is not a property a commit can be
+    # refused for, and a hook that ran the receipt would have Layer 2 execute the very merge
+    # this module is built not to drive (Critical Rule #4).
+    "scripts/merge_receipt.py": Disposition(
+        reason="[#675] target 3.1. Wired to .claude/commands/lane-integrate.md (open / time / "
+               "race / close across the merge walk), which is not one of the [#664] wiring "
+               "surfaces the census reads -- so an operator-invoked organ reads as an orphan "
+               "by construction. A pre-commit trigger is wrong on the merits, not merely out "
+               "of scope: a stopwatch has nothing to gate, and a hook that ran it would make "
+               "Layer 2 execute the merge this module exists NOT to drive",
+        owner="the [#664] wiring-surface list, which owns whether .claude/commands/*.md is a "
+              "trigger surface; this row is deleted by that decision, not by a lane"),
+    # SAME CLASS AS `merge_receipt.py` ABOVE, and the repetition is the point: two organs added
+    # by one lane, both genuinely adopted by `.claude/commands/lane-integrate.md`, both reading
+    # as orphans because a command file is not a `[#664]` wiring surface. One such row is a
+    # curiosity; two from a single lane is the shape of a gap, and it is recorded as one here
+    # rather than left for a third lane to rediscover.
+    "scripts/actions_verdict.py": Disposition(
+        reason="[#675] target 3.2. Wired to .claude/commands/lane-integrate.md (the merge-walk "
+               "read of the Actions verdict, and refuse-to-finish checklist row 2b), which is "
+               "not one of the [#664] wiring surfaces the census reads. A pre-commit trigger "
+               "is wrong on the merits: it reads a GitHub Actions run for a merge SHA, which "
+               "does not exist at commit time -- the gate would query a run that cannot have "
+               "started and refuse every commit",
+        owner="the [#664] wiring-surface list, which owns whether .claude/commands/*.md is a "
+              "trigger surface; this row is deleted by that decision, not by a lane"),
+    # THIRD OF THE SAME SHAPE FROM ONE LANE, and at three it stops being a coincidence and
+    # becomes the finding: `[#675]` added `merge_receipt.py`, `actions_verdict.py` and this,
+    # all three adopted by `.claude/commands/lane-integrate.md`, all three orphans to a census
+    # whose wiring surfaces do not include command files. The lane's end artifact carries the
+    # proposed diff; these rows carry the evidence that it is a class rather than an instance.
+    "scripts/review_packet.py": Disposition(
+        reason="[#675] target 3.5. Wired to .claude/commands/lane-integrate.md (the assemble "
+               "step of the merge walk, and refuse-to-finish checklist row 2c), which is not "
+               "one of the [#664] wiring surfaces the census reads. A pre-commit trigger is "
+               "wrong on the merits: it assembles a REVIEW input over a merge range against a "
+               "lane contract, neither of which exists at commit time in the lane being "
+               "reviewed",
+        owner="the [#664] wiring-surface list, which owns whether .claude/commands/*.md is a "
+              "trigger surface; this row is deleted by that decision, not by a lane"),
     "scripts/logs_retention.py": Disposition(
         reason=f"{_LANE_BUILT}; the DECLARE §3 names run_retention() at 0 callers and the "
                f"census confirms it at module level too",
@@ -194,21 +251,20 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
         reason="reachable only from the untriggered window_metrics.py:359 -- an orphan by "
                "inheritance, so it is dispositioned WITH its caller and not before it",
         owner="V+1 retirement-or-wiring list"),
-    "scripts/desired_state_report.py": Disposition(
-        reason="named in ARCHITECTURE.md:504 prose only -- documented, never wired. Prose is "
-               "not a trigger, which is the census's own method line",
-        owner="V+1 retirement-or-wiring list"),
+    # KEPT, and the reason is a FINDING rather than a deferral. The AX13-2 retire stage
+    # deleted this module on a SAFE oracle verdict and the full suite went RED: nothing
+    # static reaches it, but `tests/test_membership_agreement.py` loads it BY NAME through
+    # importlib, which is exactly the invisible-edge class ADR-89 declares its static
+    # Pyright oracle cannot see. The verdict was a false PASS -- non-blocking by design,
+    # and caught only because the lane ran a paired baseline/tip suite. Restored whole.
     "scripts/desired_state_loader.py": Disposition(
-        reason="reachable only from the untriggered desired_state_report.py:50 -- an orphan "
-               "by inheritance, dispositioned with its caller",
-        owner="V+1 retirement-or-wiring list"),
-    "scripts/boundary_headers.py": Disposition(
-        reason="named in ARCHITECTURE.md:480 prose only -- documented, never wired",
-        owner="V+1 retirement-or-wiring list"),
-    "scripts/boundary_report.py": Disposition(
-        reason="reachable only from the untriggered boundary_headers.py:58 -- an orphan by "
-               "inheritance, dispositioned with its caller",
-        owner="V+1 retirement-or-wiring list"),
+        reason="KEPT 2026-09-12 on POSITIVE EVIDENCE -- not an unadopted organ. It is an "
+               "orphan to a STATIC census only: tests/test_membership_agreement.py loads it "
+               "by name through importlib and pins parse_registry_md as the reference "
+               "implementation that keeps audit.py's duplicated inline registry reader "
+               "honest. Deleting it REDs that test, so the retire stage's SAFE verdict on it "
+               "was a false PASS inside ADR-89's own declared static-only limit",
+        owner="none -- retire only WITH the importlib pin in test_membership_agreement.py"),
     "scripts/gen_ledger.py": Disposition(
         reason="ARRIVED AFTER THE CENSUS -- landed 2026-09-09 by lane V-000 and therefore "
                "absent from its 32. Recorded as a NEW orphan rather than folded into the "
@@ -227,21 +283,6 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
         reason="referenced only by tests/test_archive_row_body.py -- a test proves a module "
                "works and schedules nothing, so it is not a trigger. [#664]'s row names this "
                "module's trigger ride as an edge of this arc, not a separate row",
-        owner="V+1 retirement-or-wiring list"),
-    "scripts/cloud_provisioning.py": Disposition(
-        reason="referenced only by tests/test_cloud_provisioning.py:24 -- a test is not a "
-               "trigger",
-        owner="V+1 retirement-or-wiring list"),
-    "scripts/probe_child_backlogs.py": Disposition(
-        reason="referenced only by tests/test_probe_child_backlogs.py -- a test is not a "
-               "trigger",
-        owner="V+1 retirement-or-wiring list"),
-    "scripts/seed_runbook.py": Disposition(
-        reason="referenced only by tests/test_seed_runbook.py -- a test is not a trigger",
-        owner="V+1 retirement-or-wiring list"),
-    "scripts/validate_onboarding_rulings.py": Disposition(
-        reason="referenced only by tests/test_onboarding_rulings.py:19 -- a test is not a "
-               "trigger",
         owner="V+1 retirement-or-wiring list"),
     # ---- population A: orphan BY DESIGN, and wiring it would RED a test ----
     "scripts/export_backlog_view.py": Disposition(

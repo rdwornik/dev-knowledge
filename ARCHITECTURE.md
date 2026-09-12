@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-10
+last_reviewed: 2026-09-12
 reconciled_with: handoff-process@7.1.0
 status: active
 owner: Rob
@@ -14,7 +14,37 @@ owner: Rob
 > class this repo exists to kill). Fix the map when reality moves; fix the *source*
 > when the doctrine moves.
 >
-> Last updated: `2026-09-08` — **batch CLOSE, lane `c2-living-docs-hygiene`: Ch2 gains the one-graph
+> Last updated: `2026-09-12` — **lane `lane-x-734-retire-stage-2` ([#734], the AX13-2 retire stage):
+> the map stops describing two deleted scripts, the re-read found a third cell this lane's own
+> contract did not send it to fix, and a fourth cell records a deletion the lane had to TAKE BACK.**
+> The lane deleted eight untriggered `scripts/` modules with their dedicated tests and restored one of
+> them. Three of the eight were named here. **Ch2's organ table:** the `boundary_report.py` and
+> `boundary_headers.py` rows flip from **ARMED (manual)** to **RETIRED**, per this chapter's own Status
+> legend (*"RETIRED = removed, kept only as a record"*) — and the `boundary_headers` row records the
+> **consequence** rather than only the fact: the #312 Form-A markers in `CLAUDE.md` remain the source of
+> truth, but nothing now regenerates or `--check`s the headers derived from them, so those headers can
+> drift silently, and open ticket **#369** (its pre-commit wiring) is **moot and needs dispositioning**.
+> **Ch2's desired-state paragraph:** ADR-109's divergence report is retired, its loader and contract
+> survive, and the paragraph says **ADR-109 is partially unimplemented** rather than quietly
+> re-describing the class as having always been two parts. **The loader was deleted in the same act and
+> RESTORED**, and the paragraph records why, because the reason outranks the subtraction: the oracle
+> returned SAFE over it and the full suite went RED, since `tests/test_membership_agreement.py` loads it
+> by name through `importlib` — the invisible-edge class ADR-89 declares its static Pyright oracle cannot
+> see. A **false PASS**, non-blocking by design, caught only by a paired baseline/tip suite run. The
+> adjacent ADR-109 §9 codemap-scope sentence naming "the loader→schema edge" therefore stands unedited:
+> it was momentarily false and is true again. **Drift this re-read found beyond the lane's own
+> acts:** the two `boundary_*` rows were NOT flagged by any gate — `graph_queries._PROSE_PROCESS_RE`
+> matches **path-shaped** references only (`(?:scripts|plugins)/…\.(?:py|ps1)`), and those rows name their
+> organs as bare backticked filenames, so `test_the_live_tree_carries_no_dangling_process_reference` stayed
+> green over two false ARMED claims. The refusal is narrower than it reads; recorded here because the next
+> deletion lane will meet the same blind spot. **Stamp semantics, stated:** `last_reviewed` moves because
+> this pass re-read the file **end-to-end from disk** — Purpose, Codemap, all six chapters and Governing
+> ADRs, 1,306 lines — and re-derived what it touched against live source: the oracle verdicts, the deleted
+> paths, the `_PROSE_PROCESS_RE` predicate, and the Status legend's RETIRED definition. **Honest limits,
+> three:** (1) it did not re-derive doctrinal correctness against the full text of every cited ADR —
+> unchanged from every prior pass; (2) Ch6's *"currently 15 open, newest 2026-06-25"* Issues count stays
+> unverified, this lane exercised no `gh` reach; (3) the Governing ADRs tail stays out of numeric order
+> (cosmetic). Prior: `2026-09-08` — **batch CLOSE, lane `c2-living-docs-hygiene`: Ch2 gains the one-graph
 > organ class, written in the FUTURE TENSE because none of it is built.** ADR-118 is `Proposed`, so
 > the block adds **no organ row** (the Status legend keeps a RULED-UNBUILT organ out of the table,
 > and this one is not even ruled) and **no Governing-ADRs bullet** (the same rule that correctly
@@ -476,8 +506,8 @@ An organ can be ARMED and still tell you nothing. Read the qualifier before trus
 | `fleet_parity.py` → `check_fleet_parity` (audit check) | `ship-gate` — blocking `ALL_CHECKS` member since [#337] ([#336] cleared the last WARN); the standalone CLI stays read-only | hub | **fail-closed** on a real divergence (FAIL: refused/must-absent/tombstone-violated; WARN→RED: undeclared/unavailable/tracked-ephemera; stale-declaration/advisory-rewarn stay advisory). The walk measured **14,520 ms** and no longer runs per-commit: **[#597] discharged the filed ship-gate-scoping follow-up**. It is the one ship-tier member that CAN emit `fail`, so it carries a risk argument beyond cost — parity is a CROSS-REPO property that a hub commit cannot create, and the arc boundary is where a fleet-wide claim can honestly be made. Given up, stated: a parity regression introduced elsewhere now surfaces at ship rather than at the next hub commit | ARMED | #328/#332/#337; intake #12 + RULED #14; ADR-102/103; `ecosystem/parity-surfaces.yaml` + `dependency-baseline.yaml` |
 | `routine_consumers` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` | hub | **fail-closed** on a declared routine whose `consumer`/`consumption_path` is missing, blank, placeholder, or duplicated. **COVERAGE BOUNDARY — green says almost nothing:** it checks ONLY BACKLOG rows carrying an ADR-105 `· routine:` marker — **one** row at acceptance ([#348]), **two** live as of 2026-08-28 ([#552], [#426]) after [#348] closed and its declaration was re-anchored into `protocols/PLAYBOOK.md` §10. That re-anchoring exposes the organ's real limit: a declaration that moves to its living home leaves this check's scope entirely, because the check reads backlog rows and nothing else. The ~30 live routines — session hooks, commit-time gates, scheduled jobs — are not BACKLOG rows, carry no marker, and are **NOT checked**; retrofit is [#426] | ARMED (scope = marked rows only) | [#419]/ADR-105 (gated at ACTIVATION, not at filing) |
 | `residual_completeness` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (changed handoff-bundle files) | hub | **fail-closed** (FAIL on a FILL-IN region still carrying its generator placeholder; degrades to WARN on internal error; scans the working tree — the staged-blob gap is #366) | ARMED | ARC-5 first enforcing mechanism; HANDOFF_PROCESS "Residual completeness"; #365/#366 |
-| `boundary_report.py` (reporter) | manual CLI | hub · read-only | fail-soft (writes `logs/BOUNDARY-DRIFT.md`; a reporter, NOT a gate — deliberately not in `ALL_CHECKS`) | **ARMED (manual)** | #312; CLAUDE.md Form-A regions |
-| `boundary_headers.py` (generator) | manual CLI (`--check` regen-and-diff · `--coverage`; pre-commit wiring open #369) | hub | generated-not-hand-maintained (headers derived from the #312 markers via `boundary_report` imports — a hand-edit is overwritten on regen); suite-guarded at ship-gate | **ARMED (manual)** — pre-commit wiring is #369 | #352; `tests/test_boundary_headers.py` |
+| `boundary_report.py` (reporter) | — (deleted) | hub · read-only | — | **RETIRED 2026-09-12** — deleted with its dedicated test by the AX13-2 retire stage (`[#734]`, lane `lane-x-734-retire-stage-2`); the 2026-09-08 process-trigger census found it untriggered and the reverse-dep oracle found no surviving referrer. It was never a gate (deliberately not in `ALL_CHECKS`), so nothing loses enforcement; what is lost is the manual `logs/BOUNDARY-DRIFT.md` report | #312; CLAUDE.md Form-A regions; `docs/audits/2026-09-12-technical-lane-x-734-retire-stage-2-evidence.md` |
+| `boundary_headers.py` (generator) | — (deleted) | hub | — | **RETIRED 2026-09-12** — deleted with its dedicated test by the same act as the row above (it imported `boundary_report`, so the pair moved together). **Consequence, recorded rather than left to be found:** the #312 Form-A boundary markers in `CLAUDE.md` are still the source of truth, but nothing now regenerates or `--check`s the reader-visible headers derived from them, so those headers can drift silently. The open pre-commit-wiring ticket **#369 is moot** and should be dispositioned | #352; #369 (now moot); `docs/audits/2026-09-12-technical-lane-x-734-retire-stage-2-evidence.md` |
 | `fleet_analytics.py` (reporter) | manual CLI (**ruled manual**, 2026-08-28) | hub · read-only | fail-soft (writes `logs/FLEET-ANALYTICS.md`; `main()` always 0; NOT in `ALL_CHECKS`) | **ARMED (manual)** — manual is the ruled end state, not a gap ([#391] closed) | #384 (L5a descriptive analytics); intake #16 §3 |
 | `deploy/tool.py` + its registered carrier modules (roster of record: `deploy/manifest-v*.yaml` `carriers:`; enumerated in §Validators) | operator (hub, per-consumer) | hub → consumer | verify-gated (record iff every carrier verifies); write-yes / commit-no | ARMED | ADR-91/92/93; PLAYBOOK §20 |
 | `floor-hash-verify` (pre-commit) + SessionStart floor guard (`.claude/check_floor_hash.py`) | consumer commit / session start | consumer (armed by `carrier_floor`) | **fail-closed** (loud on floor drift) | ARMED | ADR-93 (#226) |
@@ -498,15 +528,35 @@ verifies. The `floor` carrier additionally **arms** the ADR-78 floor under **mod
 `floor-hash-verify` hook, both running the consumer's `.claude/check_floor_hash.py`), so floor
 drift fails loud. Operator-run from the hub, one consumer per invocation; runbook PLAYBOOK §20.
 
-**The desired-state organ class (ADR-109).** Three parts, one class: `ecosystem/schema/` holds
-the typed, versioned **contract** (`desired_state.py`, `schema_version: "1.0.0"`);
+**The desired-state organ class (ADR-109) — TWO parts live, one RETIRED.** `ecosystem/schema/`
+holds the typed, versioned **contract** (`desired_state.py`, `schema_version: "1.0.0"`) and
 `scripts/desired_state_loader.py` is the **loader** that parses the live sources into one
-validated model; `scripts/desired_state_report.py` is the **divergence report** over it. All
-read-only, all operator-invoked — no trigger, no gate, nothing converges state (ADR-109 §8:
-"Read-only, no execution engine", and the report "is not convergence"). Membership resolves
-toward `ecosystem/deployed-versions.yaml` (§2), so the report's matrix is narrower than
-ADR-104's 9-repo declaration; the [#462] `membership_agreement` check is what makes a declared
-member absent from every surface visible.
+validated model. Its **divergence report** (`desired_state_report.py`) was retired on
+2026-09-12 by the AX13-2 retire stage (`[#734]`, lane `lane-x-734-retire-stage-2`): the
+2026-09-08 process-trigger census found it untriggered, the reverse-dep oracle found no
+referrer but its own dedicated test, and this prose was the last surface naming it. Both
+surviving parts stay read-only and operator-invoked — no trigger, no gate, nothing converges
+state (ADR-109 §8: "Read-only, no execution engine", and the report "is not convergence").
+Evidence: `docs/audits/2026-09-12-technical-lane-x-734-retire-stage-2-evidence.md`.
+
+**The loader was deleted in that same act and RESTORED — and the finding is worth more than
+the subtraction was.** The oracle returned SAFE over the loader too, and the full suite went
+RED: `tests/test_membership_agreement.py` loads it BY NAME through `importlib` and pins
+`parse_registry_md` as the reference implementation that keeps `audit.py`'s duplicated inline
+registry reader honest. That is precisely the invisible-edge class ADR-89 declares its static
+Pyright oracle cannot see, so the verdict was a **false PASS** — the failure direction ADR-89
+says is possible and non-blocking, observed here for the first time on a live deletion. It was
+caught only because the lane ran a paired baseline/tip suite instead of trusting the tool, and
+the loader stays a census orphan afterwards because it stays a *static* orphan: unreachable to
+the census and dead are different facts, and this pair is now the repo's worked example.
+
+**ADR-109 is not repealed by this — it is partially unimplemented, and that is stated rather
+than smoothed.** The decision's §8 posture described a three-part class; the contract and the
+loader stand, the divergence report no longer exists in the tree, and re-building it is a new
+act needing its own row. Membership still resolves toward `ecosystem/deployed-versions.yaml`
+(§2), so the retired report's matrix — narrower than ADR-104's 9-repo declaration — is now a
+question nothing asks; the [#462] `membership_agreement` check, which was never part of that
+report, remains what makes a declared member absent from every surface visible.
 
 `ecosystem/schema/` is deliberately outside the codemap's `--source-root scripts` scope: the
 codemap maps executables; the typed contract lives with the data it governs (ADR-109 §9). Cost

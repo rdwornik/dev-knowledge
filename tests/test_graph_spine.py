@@ -466,16 +466,30 @@ def test_the_disposition_register_names_no_file_that_is_gone():
 #: intake #86's acceptance criterion 1 -- *"The sweep's output is the fixture. Every orphan
 #: S-08…S-13 found by grep, the query finds. Seeded as test cases, not eyeballed."*
 CENSUS_SCRIPT_ORPHANS = (
-    "scripts/archive_row_body.py", "scripts/boundary_headers.py",
-    "scripts/boundary_report.py", "scripts/cloud_provisioning.py",
-    "scripts/cost_usage_telemetry.py", "scripts/desired_state_loader.py",
-    "scripts/desired_state_report.py", "scripts/export_backlog_view.py",
+    "scripts/archive_row_body.py",
+    "scripts/cost_usage_telemetry.py",
+    "scripts/desired_state_loader.py",
+    "scripts/export_backlog_view.py",
     "scripts/failed_set.py", "scripts/gen_north_star.py",
     "scripts/gen_trend_dashboard.py", "scripts/logs_retention.py",
-    "scripts/nopack_sandbox.py", "scripts/probe_child_backlogs.py",
-    "scripts/seed_runbook.py", "scripts/setup-fleet-scheduler.ps1",
-    "scripts/trace_writer.py", "scripts/validate_onboarding_rulings.py",
+    "scripts/nopack_sandbox.py",
+    "scripts/setup-fleet-scheduler.ps1",
+    "scripts/trace_writer.py",
     "scripts/window_metrics.py",
+    # RETIRED by lane `lane-x-734-retire-stage-2` ([#734], the AX13-2 retire stage), not
+    # dropped silently: `boundary_headers.py`, `boundary_report.py`, `cloud_provisioning.py`,
+    # `probe_child_backlogs.py`, `seed_runbook.py`, `validate_onboarding_rulings.py` and
+    # `desired_state_report.py` were
+    # DELETED with their dedicated tests and their `ORPHAN_DISPOSITIONS` entries. A census
+    # row leaves this fixture WITH the commit that retires its subject -- the same rule the
+    # `file_purpose_graph.py` note below states for the converse (a row that acquired a
+    # trigger). Evidence:
+    # `docs/audits/2026-09-12-technical-lane-x-734-retire-stage-2-evidence.md`.
+    # `desired_state_loader.py` was deleted in that same lane and RESTORED: the full suite
+    # proved it live through an importlib load in `tests/test_membership_agreement.py`, an
+    # edge the static oracle cannot see (ADR-89's declared limit). It stays a census row
+    # because it stays a STATIC orphan -- being unreachable to the census and being dead are
+    # different facts, and this row is now the repo's worked example of the difference.
     # `scripts/file_purpose_graph.py` is the census's twentieth and is DELIBERATELY absent:
     # `[#664]` wired it to the `graph-rebuild` hook, so it is triggered now. It is named
     # here rather than dropped, because a fixture that silently shrinks is not a fixture.
