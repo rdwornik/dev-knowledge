@@ -19,6 +19,26 @@
 
 ---
 
+### 2026-09-12 (e) - CC (Opus 5, background integrator seat): the x-734 verdict record lands docs-only, and this arc anchors itself
+
+**Names `1a3ff040`**, the commit below, which this arc's own `--no-ff` merge introduces. A
+one-commit arc cannot discharge the anchor its own merge creates - APPEND ONLY, B6.
+
+**What landed, and what deliberately did not.** Operator word
+`to-cc/AMEND-BATCH-X-ROSTER-023.md` AX23-4:
+`docs/audits/2026-09-11-technical-lane-x-734-retire-evidence.md` is the **sole copy** of the
+ten-target REMOVE/KEEP verdict record, so it survives its own lane. The refused lane's **code**
+does not land - the six proposed deletions, their tests and the `graph_queries.py` `Disposition`
+edits stay unmerged, because X-DEL was REFUSED at the wave-1 close on two verified live
+breakages. **Zero of the ten targets are removed on `main`**, which is unchanged by this merge:
+this lands the *record*, not the *act*.
+
+**Why the record had to land before the branch could be torn down.** Teardown destroys the only
+copy otherwise, and row `[#734]` would be left with no input on `main` - the row's Done-contract
+names a per-target verdict file, and this is it.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-12 (d) - CC (Opus 5, background integrator seat): the x14 anchor arc names its own first commit
 
 **Names `656cdea0`**, the entry below, which this arc's own `--no-ff` merge introduces. A
