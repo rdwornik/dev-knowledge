@@ -108,13 +108,39 @@ R="uv run --locked python scripts/merge_receipt.py"
 
 $R time --slug batch-<n> --step merge --class ceremony -- \
   git merge --no-ff worktree-lane-<letter>-<id>-<slug>
-$R time --slug batch-<n> --step suite --class tests -- \
-  uv run --locked pytest -q --dist worksteal --max-worker-restart=0   # this lane's merge, on the merged tree
+# Hand the reviewer their inputs BEFORE the review starts ([#675] target 3.5).
+$R time --slug batch-<n> --step assemble --class ceremony -- \
+  uv run --locked python scripts/review_packet.py --lane lane-<letter>-<id>-<slug> \
+    --contract "$env:CLAUDE_PROMPTS_DIR/LANE-<letter>-<id>-<slug>.md" \
+    --range main..worktree-lane-<letter>-<id>-<slug> --handback "<the HANDBACK line>" \
+    $(git diff --name-only main..worktree-lane-<letter>-<id>-<slug> | sed 's/^/--changed /') \
+    --out logs/REVIEW-INPUT-lane-<letter>-<id>-<slug>.md
+
+# Suite and review CONCURRENTLY, not review queued behind the suite ([#675] target 3.3).
+$R race --slug batch-<n> \
+  --job "suite:tests=uv run --locked pytest -q --dist worksteal --max-worker-restart=0" \
+  --job "review:review=<the reviewer, handed the packet above>"
 $R time --slug batch-<n> --step teardown --class ceremony -- \
   git worktree remove .claude/worktrees/lane-<letter>-<id>-<slug>
 git worktree prune
 git branch -d worktree-lane-<letter>-<id>-<slug>
 ```
+
+**Why those two are one block.** The suite is the merge's longest step and the review does not
+depend on it, so serially the merge pays `suite + review` and raced it pays `max(suite, review)`.
+`race` records BOTH durations and the saving, so the improvement is a measurement rather than a
+claim — and it **never drops a job's verdict**: every exit code is recorded and the verb exits
+non-zero if any job failed. Running two checks concurrently is a scheduling change; reporting
+only the winner would be a coverage change wearing one.
+
+**The packet is assembly, never abbreviation** (`[#675]` target 3.5: "the saving comes from
+removing assembly, never from removing the judgement step"). It hands the reviewer the lane's
+Done-contract clauses **verbatim**, its declared footprint, every changed file **unranked and
+untruncated**, and — the part nobody assembles by hand — **where declared and actual disagree in
+both directions**. That last section closes a gap this repo's own dispatch-time collision refusal
+names as an honest limit: it reads *declarations*, and review is the first moment both sets
+exist. There is deliberately no `--brief`, `--summary` or `--max-files` flag, and a test asserts
+each absence, because a packet that shows 50 of 400 files looks like pre-assembly and is a cut.
 
 **Read the Actions result for the merge you just made** (`[#675]` target 3.2 — "with the
 integrator READING the result; not merely running there, because a green run nobody reads is not
@@ -206,6 +232,7 @@ it seemed fine.
 | 1 | Every lane branch merged-or-explicitly-abandoned | `git branch --list 'worktree-lane-*'` is empty, and every planned lane has a merge SHA or a recorded abandonment |
 | 2 | Full suite run once on the merged result | `uv run --locked pytest -q --dist worksteal --max-worker-restart=0` on the final merged `main`, verdict quoted |
 | 2b | Every merge's Actions result was READ and its verdict recorded ([#675] 3.2) | `uv run --locked python scripts/actions_verdict.py --sha <merge> --baseline <first parent>` was run per merge and its output is in the batch packet. A `PRE-EXISTING` verdict is an OPEN item with the failing jobs NAMED — it is not a pass, and "the run was red before us" is a recorded fact rather than a reason to skip the row. `NO-RUN` / `IN-PROGRESS` / `GH-UNAVAILABLE` are each recorded as themselves; none of them is ever written down as green |
+| 2c | Every reviewed lane was handed a PRE-ASSEMBLED packet, and review was not cut ([#675] 3.5) | `logs/REVIEW-INPUT-<lane>.md` exists per reviewed lane and the reviewer was pointed at it. The packet's **declared vs actual** section is read, not skimmed: a `WRITTEN BUT NOT DECLARED` entry is an OPEN item, because the contract forbids edits outside the declared footprint and the dispatch-time refusal cannot see them by construction |
 | 3 | `git worktree list` == primary only | run it; one line of output |
 | 4 | Manifest/packet archived | the lane manifest and end-of-batch packet are committed in the tree |
 | 4b | Audits index regenerated once, after the last merge ([#590]) | `uv run --locked python scripts/gen_audit_index.py --check` exits 0 on the final merged `main`. It is `merge=ours`-pinned, so every merge leaves it stale by construction — this is the step that makes taking it out of the merge path safe rather than lossy |

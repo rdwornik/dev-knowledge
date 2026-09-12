@@ -220,6 +220,20 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "started and refuse every commit",
         owner="the [#664] wiring-surface list, which owns whether .claude/commands/*.md is a "
               "trigger surface; this row is deleted by that decision, not by a lane"),
+    # THIRD OF THE SAME SHAPE FROM ONE LANE, and at three it stops being a coincidence and
+    # becomes the finding: `[#675]` added `merge_receipt.py`, `actions_verdict.py` and this,
+    # all three adopted by `.claude/commands/lane-integrate.md`, all three orphans to a census
+    # whose wiring surfaces do not include command files. The lane's end artifact carries the
+    # proposed diff; these rows carry the evidence that it is a class rather than an instance.
+    "scripts/review_packet.py": Disposition(
+        reason="[#675] target 3.5. Wired to .claude/commands/lane-integrate.md (the assemble "
+               "step of the merge walk, and refuse-to-finish checklist row 2c), which is not "
+               "one of the [#664] wiring surfaces the census reads. A pre-commit trigger is "
+               "wrong on the merits: it assembles a REVIEW input over a merge range against a "
+               "lane contract, neither of which exists at commit time in the lane being "
+               "reviewed",
+        owner="the [#664] wiring-surface list, which owns whether .claude/commands/*.md is a "
+              "trigger surface; this row is deleted by that decision, not by a lane"),
     "scripts/logs_retention.py": Disposition(
         reason=f"{_LANE_BUILT}; the DECLARE §3 names run_retention() at 0 callers and the "
                f"census confirms it at module level too",
