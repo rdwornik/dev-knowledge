@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "ea78933bd9b0f7084aa3327505aa1a0bc98816558f1edf8224d08ea4c576bca8",
+  "generated_sha256": "98bcb8776a60984ec3493033378762e3f54182bbe1992fdc2f3aaf2bdd39f5ea",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1339,6 +1339,14 @@
     {
       "task": 737,
       "file": "737-a-seat-boot-render-cannot-express-the-seat-s-own-model.md"
+    },
+    {
+      "task": 738,
+      "file": "738-lane-ceiling-refuses-on-worktree-presence-with-no-merged-discrimination.md"
+    },
+    {
+      "task": 739,
+      "file": "739-session-end-backpressure-orders-a-commit-of-another-seats-in-flight-work.md"
     },
     {
       "task": 724,
