@@ -19,6 +19,57 @@
 
 ---
 
+### 2026-09-13 (d) - CC (Opus 5, background integrator seat): the x-675 anchor arc anchors itself
+
+**Names `84f187a9`**, the entry below, which this arc's own `--no-ff` merge introduces.
+Two commits, JOURNAL last, for the reason entry (b) states.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+### 2026-09-13 (c) - CC (Opus 5, background integrator seat): the x-675 merge, anchored — and three false-pass holes in the instruments it lands
+
+**Anchors:** `2709256a` — the `worktree-lane-x-675-merge-cost` merge, by way of `82c03724`
+(the lane's sync-merge onto `6127a466`) and the eight commits it introduced.
+
+**Merged.** `2709256a` — lane x-675 @ `82c03724`, by SHA, `--no-ff`, synced onto current `main`
+first. Lands `merge_receipt.py`, `actions_verdict.py`, `review_packet.py`, `dispatch_conformance.py`
+and the step-0 `file-collision` refusal. Targeted tests on the merged tree: **292 passed**. The
+one sync conflict was `ecosystem/doc-counts.md`, generated — resolved by regeneration, not by hand.
+
+**The generated count could not be taken from the generator.** `gen_doc_counts.py` computes from
+`HEAD`, and mid-merge `HEAD` is still the lane tip, so it wrote the lane's pre-sync `6231`. The
+merged tree collects **6238** (`6141` at the merge-base, `+90` lane, `+7` from x-727) — measured
+with `pytest --collect-only`, not inferred, and written by hand. A generator invoked during a
+merge reports the wrong side silently; it exits 0 either way.
+
+**Integrator review — codex, CRITICAL:0 HIGH:4 MED:0 LOW:0.** All four verified against the code
+rather than taken on the reviewer's word. **Three of them strike this row's own Done-when**, which
+says in terms that its target is "six things, all six and not a pick-list":
+
+- **Target 2** (`the integrator READS the Actions result`) — `actions_verdict.py:206` swallows a
+  failed `gh run view --json jobs` into `match["jobs"] = []`. `verdict_for` then computes
+  `failing = set()` and returns `STATE_PASS`. **A completed run whose job details cannot be read
+  reports PASS.** This is the `[#727]` allow-on-failure class, reintroduced in new code, in the
+  instrument wave-3 lane 1 will use to prove conductor E — so lane 1's first datum can be a false
+  green. The most consequential finding of this seat's night.
+- **Target 4** (`the dispatcher REFUSES two lanes whose contracts touch the same file`) —
+  `seat_refusals.py:303` requires a slash and an allowed directory prefix, so root-level tracked
+  files are invisible to the collision extractor. Two lanes may both declare
+  `.pre-commit-config.yaml` and pass step 0.
+- **Target 6** (`median merge under 30 minutes, MEASURED`) — `merge_receipt.py:449` counts closed
+  receipts with missing or failed steps, so `median --strict` can meet the under-30 target on
+  incomplete receipts. The row's own text calls a median reached this way "a false pass on this
+  row".
+
+**Merged anyway, and that is a judgement, not an oversight.** The tooling is strictly better
+landed than not, every hole is latent rather than newly wired into a gate, and none of the three
+is in scope for a merge-time edit under ADR-108 §B (each needs a RED-first witness first). The
+**closure verdict for `[#675]` is the operator's on this evidence** — by the row's own "all six"
+standard the evidence does not support a clean close. Recorded as CANDIDATEs for intake per the
+ADR-111 funnel.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-13 (b) - CC (Opus 5, background integrator seat): this anchor arc anchors itself
 
 **Names `1aec53f0`**, the entry below, which this arc's own `--no-ff` merge introduces.
