@@ -40,12 +40,24 @@ _TOOL_VERSIONS = "ecosystem/tool-versions.yaml"
 
 # --- shape ---------------------------------------------------------------------------------
 
-def test_registry_has_the_two_declared_collections():
-    """The tool-versions.yaml shape mirror: two collections, each id -> field map."""
+def test_registry_has_the_three_declared_collections():
+    """The tool-versions.yaml shape mirror, now THREE collections, each id -> field map.
+
+    WAS `== {"providers", "models"}` until `[#691]` (2026-09-12). The row that changed it is
+    explicit that the third collection is not a rename of anything: *"today's `roles:` is a per-
+    MODEL list ... a role entry is a third thing, not a field rename."* `providers:` and
+    `models:` are unchanged and still answer their own questions; `roles:` answers "who answers
+    for this role, in what order".
+
+    The equality is kept rather than relaxed to a superset — an exact set is what makes a fourth
+    collection arriving unannounced a RED instead of silently inert data, which is the same
+    posture `extra="forbid"` takes one level down.
+    """
     data = preg.load_registry()
-    assert set(data) == {"providers", "models"}
+    assert set(data) == {"providers", "models", "roles"}
     assert all(isinstance(v, dict) for v in data["providers"].values())
     assert all(isinstance(v, dict) for v in data["models"].values())
+    assert all(isinstance(v, dict) for v in data["roles"].values())
 
 
 def test_every_model_names_a_declared_provider():
