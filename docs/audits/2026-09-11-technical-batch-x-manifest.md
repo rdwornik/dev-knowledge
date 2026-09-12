@@ -241,7 +241,7 @@ exceeding six. Queue, in order, each recorded here when it fires:
 "frozen" item as §11a first recorded it:
 
 ```
-X1-4  routing + telemetry [#691][#694]   HELD -- see the hold below        <- HEAD
+X1-4  Half A [#691][#694]                FIRED 2026-09-12 -- session 7f2b5290
 X1-3  merge cost          [#675]         after X1-2
 X1-6  task keys           [#687]         after X1-5
 X2 head, in order: docs-cut manifest step (cut ONLY on the operator's GO) · prompt-distiller
@@ -593,6 +593,100 @@ from this seat mid-batch, so the filing arrives in the lane that owns the organ.
 **Action for the integrator, at every wave-1 merge:** confirm the lane produced its
 end-of-lane artifact. Its absence is **this defect**, not lane negligence — ask for the
 artifact rather than reading the stop as complete.
+
+## 14 · AX23 · The hold is RELEASED, X1-4 is split, Half A is FIRED
+
+`to-cc/AMEND-BATCH-X-ROSTER-023.md`, operator, 2026-09-12. This supersedes §8's hold in full.
+
+**AX23-1 — the precondition is WITHDRAWN, and the reason is the useful part.** AX22-4 gated
+non-Claude admission on W-2' reaching `main`. W-2' reached `main` (`3a8ee7a8`). The gate was
+withdrawn anyway because it was **the wrong gate, not an unmet one**: a `.claude/settings.json`
+`PreToolUse` hook governs only the clients that read that file, and **codex and copilot never
+read it**, so it could not have governed the two providers admission exists to admit.
+*Admission never depended on it.* The replacement is a posture rather than a hook — a
+non-Claude model gets **no repo write access**: it runs read-only or produces to **stdout**, CC
+writes the artifact after re-verifying locators, and produced code passes the lane's RED-first
+tests **plus** a review by a model that did not produce it. `[#684]`'s undischarged smoke clause
+is re-scoped to the honour-set (`cursor-agent`), and a **client-independent gate (pre-commit /
+CI) is owed its own row** — the only bar that binds every provider whatever config it honours.
+
+**AX23-2 — X1-4 is two lanes now.**
+
+- **Half A (Claude-only) — FIRED.** telemetry wired → registry (roles, exclusions, per-repo
+  `providers.allowed`) → router → re-rank by measured pass rate per cost.
+- **Half B (agy, Grok 4.6, Copilot Enterprise)** — a **separate lane after Half A**, under
+  AX23-1's stdout-and-verify shape. The two Grok FIRST ACTS (usage-limit cause, token-ceiling
+  flag) moved to Half B with it; they are admission gates, so running them in Half A would have
+  been the first non-Claude call in the lane defined by placing none.
+
+**The contract is a SCOPE CUT, not a redraft.** `LANE-x-691-routing-half-a.md` is derived from
+the frozen full-scope contract, which the gate had already admitted and F11 had already
+repaired, so the shape, pairing, decision budget, step-0 sync and every carried row are
+byte-identical and only the scope moved. Changed: slug/branch/filename (a re-scope re-enters as
+a NEW contract — the W-2' precedent); AX22-4 quoted **and marked withdrawn** rather than
+deleted, so the withdrawal is legible; AX23-1 and AX23-2 carried verbatim (AX12-1); a Done-
+contract clause fixing the Half A/B boundary; and one exclusion in *What NOT to do* — **no call
+to any non-Claude provider**, while listing them as `NOT ADMITTED` registry entries and
+trip-testing the router's refusals against them is required work and is not a call.
+`gen_lane_contract.py check`: **exit 0**, 11 sections, steps `1..6`, one stop terminator.
+
+### Fire receipt
+
+```
+lane      lane-x-691-routing-half-a
+branch    worktree-lane-x-691-routing-half-a   (up in 8s)
+contract  $env:CLAUDE_PROMPTS_DIR\LANE-x-691-routing-half-a.md
+model     opus     -- AX21-1: this lane ORCHESTRATES routing, and orchestration never
+                      routes to a cheaper tier; that is the one row of the role table
+                      not subject to re-ranking. This is "model by kind".
+effort    high     permission-mode bypassPermissions
+session   7f2b5290
+```
+
+**Prompt verified off the transcript, not assumed** (standing rule since F10/AMEND-018). The
+launcher printed `'m' is not recognized as an internal or external command`, which is F10's
+shape — a fragment of a prompt reaching a shell. It was **not** a truncation: the transcript's
+`last-prompt` carries the whole instruction including the full contract path, and the lane is
+running on `claude-opus-5`. Recorded as a **launcher-side cosmetic artifact**, and noted
+because the helper still composes the **expanded literal path** itself rather than naming
+`$env:CLAUDE_PROMPTS_DIR` — AMEND-018's rule cannot be satisfied by a seat alone and needs the
+helper change, which remains lane-5's ground.
+
+### Wave 2 — AX23-3 order, with what each needs before it can fire
+
+```
+1  [#675]  merge cost            row edit FIRST: its Done-when must carry the measured
+                                 11.3 test / 72.7 ceremony split AND a target
+2  X1-4 Half A                   FIRED (above)
+3  X-DEL 2nd attempt             contract REWRITTEN from the refused lane's verdict record,
+                                 incl. the release_lint.py change that lets a tombstone land
+4  two lying detectors           NEW rows: fleet_parity.hook_invokes_script certifies a guard
+                                 that never runs (3 paths return True); release_lint blocks
+                                 `status: removed`
+5  [#730] + AX16-2               one-command row closure -- 0 closed against +47 filed
+```
+
+Items 1, 3 and 4 are **not fireable as they stand**: 1 needs a row edit, 3 needs a rewritten
+contract, 4 needs its rows filed. Those are dispatcher prep, and none of them is a lane yet.
+
+**Ceiling 6. Occupancy 1** — `lane-x-691-routing-half-a`. Five slots free, and the constraint
+on wave 2 is prep, not capacity.
+
+### AX23-4 · Branch dispositions owed to the operator — with one correction
+
+None of the three is an ancestor of `main`; nothing is deleted without the operator's word.
+
+- `worktree-dispatch-x1-freeze` — merge. Strictly contained in x14-freeze, so it needs no
+  separate merge and becomes a stale pointer at that one.
+- `worktree-dispatch-x14-freeze` — merge. Carries the manifest, the X1-4 contracts, F11 and
+  this record.
+- `worktree-lane-x-734-retire-stage` — **preserve.** **Correction to AX23-4's "the only copy":**
+  the branch is **on origin at `3e64f345`**, matching the local tip, so the 22,331 B verdict
+  record (`docs/audits/2026-09-11-technical-lane-x-734-retire-evidence.md`, commit `a264089b`)
+  **cannot be lost to a worktree teardown** — only to a branch deletion. It is still absent from
+  `main`. Note also that the branch carries `1489add0 feat([#734]): retire six SAFE-verdict
+  orphans` — six retirements that exist **nowhere but this branch**, which is why the wave's
+  deletion count reads zero.
 
 ---
 
