@@ -112,7 +112,6 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#687] [P2][M] A task carries no execution position, and the row that would compute one from the spine is not required to · tasks/687-a-task-carries-no-execution-position-and-the-spine-does-not-yet-supply-one.md
 - [#689] [P1][L] Conductor E is decided and unbuilt — GitHub Actions as the runner, state stays in tasks/, required checks as gates · tasks/689-conductor-e-is-decided-and-unbuilt.md
 - [#691] [P2][M] Provider routing is an unordered role set with no admission gate and no licence field — a role needs an ORDERED fallback list only admitted providers may enter · tasks/691-provider-routing-is-an-unordered-role-set-with-no-admission-gate.md
-- [#692] [P1][L] decision_coverage — nothing makes a decided thing stay scheduled, so the guarantee lives in a seat's memory instead of in the repo · tasks/692-decision-coverage-a-decided-thing-is-never-unscheduled-again.md
 - [#721] [P2][S] `decision_coverage` does not count STANDING_RULINGS entries, so a ruling with no mechanism row is the one decision class the query cannot see · tasks/721-decision-coverage-counts-standing-rulings-entries-as-decisions.md
 - [#735] [P1][M] Floor declaration is mandatory — a new organ, hook, gate, doc or command carrying no `floor: MUST | hub-only` is refused at commit · tasks/735-floor-declaration-is-mandatory-a-new-component-without-one-is-refused.md
 - [#698] [P2][S] The SEAT-BOOT-integrator render emits a GO line per merge where the canon it implements grants ONE GO for the batch · tasks/698-seat-boot-integrator-render-emits-a-go-per-merge-where-canon-grants-one-per-batch.md
@@ -167,7 +166,6 @@ So that session-start/close automation actually runs instead of being wired-but-
 - [#500] [P3][S] The Stop hook's BACKLOG advisory reads a correctly-closed task as "nothing closed" · tasks/500-the-stop-hook-s-backlog-advisory-reads-a-correct.md
 - [#519] [P1][M] The close path is two edits, and nothing makes a half-done close visible · tasks/519-the-close-path-is-two-edits-and-nothing-makes-a.md
 - [#522] [P2][M] A re-cut handoff sibling carries its predecessor's payloads — the thinner-refill hole · tasks/522-re-cut-bundle-carries-predecessor-payloads.md
-- [#684] [P1][M] MA-1 — the deployed `PreToolUse` guard turns a missing environment variable into total refusal for any reader that is not Claude Code · tasks/684-ma-1-the-pretooluse-guard-refuses-every-non-claude-reader.md
 - [#730] [P1][M] Work lands on main and its row stays open, because nobody hands the operator closures in bulk -- the close packet lists what the merges witnessed · tasks/730-evidenced-bulk-closure-at-every-batch-close-one-operator-word.md
 
 ### [S8] Make hub enforcement reach consumers, not just the hub (enforcement-transfer mesh)
@@ -361,9 +359,6 @@ So that cognitive overhead per session drops.
 - [#703] [P1][S] Impacted-test selection can read an empty selection as "nothing impacted" -- the one reading that turns a selector into a silent skip · tasks/703-impacted-test-selection-empty-selection-must-fail-closed.md
 - [#704] [P2][S] `propose_closures` writes a new proposals file every run, so four sessions of asking produced 154 swept files where one current file was wanted · tasks/704-propose-closures-writes-a-new-file-every-run-instead-of-one-overwritten.md
 - [#705] [P2][M] Nothing renders the task flow, so "how is the batch going" is answered by reading rows · tasks/705-no-chart-renders-task-flow-so-how-is-the-batch-going-is-answered-by-reading-rows.md
-- [#716] [P1][S] `worktree.baseRef` is unset, so every lane branches from `origin/main` and starts behind local `main` -- the mandatory step-0 sync exists to paper over it · tasks/716-worktree-baseref-unset-so-every-lane-branches-behind-local-main.md
-- [#717] [P1][S] The generator-carried launch line omits `-Model`, so a sonnet contract dispatched by its own carried line silently runs at opus · tasks/717-launch-line-omits-model-so-a-sonnet-contract-dispatches-at-opus.md
-- [#718] [P1][S] The generator writes lane contracts to `to-cc/` while `Dispatch-Lane` resolves against the prompts root -- six contracts written, six refused · tasks/718-generator-writes-lane-contracts-where-the-verb-does-not-read.md
 - [#737] [P2][S] A SEAT-BOOT render cannot express the seat's own model, so the operator's re-tiering ruling has nowhere to live but prose the next seat never reads · tasks/737-a-seat-boot-render-cannot-express-the-seat-s-own-model.md
 - [#724] [P1][M] The Windows baseline is permanently RED and its count is not even reliably knowable -- a red baseline hides every new failure behind it · tasks/724-permanently-red-windows-test-baseline-hides-every-new-failure.md
 - [#725] [P2][S] `test_manifest_link_route` fails under xdist on a frozenset identity assert -- a test that passes alone and fails in parallel · tasks/725-xdist-frozenset-identity-pollution-in-test-manifest-link-route.md

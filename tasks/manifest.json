@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "292b1d26e0d66d6a8c0b156a6eb468c2b2d03c91977a74931a4d57d869864a64",
+  "generated_sha256": "ea78933bd9b0f7084aa3327505aa1a0bc98816558f1edf8224d08ea4c576bca8",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -426,10 +426,6 @@
       "file": "691-provider-routing-is-an-unordered-role-set-with-no-admission-gate.md"
     },
     {
-      "task": 692,
-      "file": "692-decision-coverage-a-decided-thing-is-never-unscheduled-again.md"
-    },
-    {
       "task": 721,
       "file": "721-decision-coverage-counts-standing-rulings-entries-as-decisions.md"
     },
@@ -633,10 +629,6 @@
     {
       "task": 522,
       "file": "522-re-cut-bundle-carries-predecessor-payloads.md"
-    },
-    {
-      "task": 684,
-      "file": "684-ma-1-the-pretooluse-guard-refuses-every-non-claude-reader.md"
     },
     {
       "task": 730,
@@ -1343,18 +1335,6 @@
     {
       "task": 705,
       "file": "705-no-chart-renders-task-flow-so-how-is-the-batch-going-is-answered-by-reading-rows.md"
-    },
-    {
-      "task": 716,
-      "file": "716-worktree-baseref-unset-so-every-lane-branches-behind-local-main.md"
-    },
-    {
-      "task": 717,
-      "file": "717-launch-line-omits-model-so-a-sonnet-contract-dispatches-at-opus.md"
-    },
-    {
-      "task": 718,
-      "file": "718-generator-writes-lane-contracts-where-the-verb-does-not-read.md"
     },
     {
       "task": 737,
