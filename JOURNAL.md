@@ -19,6 +19,48 @@
 
 ---
 
+### 2026-09-12 (f) - CC (Opus 5, background integrator seat): the three standing branches get their disposition, and a merge that took one commit more than it named
+
+**Operator word `to-cc/AMEND-BATCH-X-ROSTER-023.md` AX23-4.** Merge x14 (which contains
+x1-freeze), land the x-734 verdict record, tear all three down.
+
+**Merged.** `cb65c163` - the dispatcher freeze, covering `worktree-dispatch-x1-freeze` by
+containment (`git merge-base --is-ancestor fb0c3b75` exits 0). `f1711e3d` - the x-734 ten-target
+verdict record, **docs-only**: `docs/audits/2026-09-11-technical-lane-x-734-retire-evidence.md`
+plus its index row, and nothing else. Zero of the ten X-DEL targets are removed on `main`.
+
+**CORRECTION, recorded against my own act.** The x14 merge introduced **`4057be83`**, not the
+`d64097aa` that entry (c) anchored and that `cb65c163`'s own body names. I merged **by branch
+name** while the dispatcher seat was live, and the ref moved between my verification and my
+merge - the recorded "merging by branch name races the lane ref" failure, walked into with the
+gotcha already written down. What actually differs is **one docs-only commit** ("AX23 - hold
+released, X1-4 split, Half A FIRED"): it adds `LANE-x-691-routing-half-a.md` and edits the batch
+X manifest. So the code leg is unchanged and the 34-test evidence still covers what landed - but
+`cb65c163` is pushed and its body overstates the precision of what it merged, and that is what
+this paragraph is for. **The lesson is not "verify harder": it is merge by SHA, because a name is
+resolved at merge time and a live seat is allowed to move.**
+
+**Torn down.** Branches `worktree-dispatch-x1-freeze` (`fb0c3b75`) and
+`worktree-dispatch-x14-freeze` (`4057be83`) by `-d`, each ancestor-proved first. Both worktrees
+removed, registry pruned. All three origin refs deleted - teardown reaches BOTH places or it is
+half-done. My own two merged docs arcs deleted the same way.
+
+**`worktree-lane-x-734-retire-stage` was deleted with `-D`, and that is a destruction, not a
+tidy.** `-d` refused it - correctly, the branch was not fully merged, because its code was
+REFUSED on purpose. The operator's word covers exactly this: land the record, discard the code,
+tear down all three. Tip destroyed: **`3e64f345`** - recorded here because that SHA is the only
+handle on those commits while they remain unreachable-but-not-yet-collected.
+
+**NOT touched, and named so the next seat does not read this as a full sweep.**
+`worktree-lane-x-691-routing-half-a` is a **live, locked** lane worktree the dispatcher
+provisioned during this arc (X1-4 Half A) - outside AX23-4's three and left alone.
+`automation/fleet-audit` stays permanently protected. And
+`.claude/worktrees/dispatch-x14-freeze` is **empty (0 files) but could not be unlinked** -
+"Device or resource busy", a process still holds it; the registry entry is gone, the directory
+is not, and it is removable once that process exits.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-12 (e) - CC (Opus 5, background integrator seat): the x-734 verdict record lands docs-only, and this arc anchors itself
 
 **Names `1a3ff040`**, the commit below, which this arc's own `--no-ff` merge introduces. A
