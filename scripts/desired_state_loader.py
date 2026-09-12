@@ -14,6 +14,16 @@ Sources (frozen W3 contract):
   ecosystem/registry.md · ecosystem/index.yaml · ecosystem/deployed-versions.yaml ·
   ecosystem/parity-surfaces.yaml · ecosystem/satellite-onboarding-rulings.yaml ·
   .methodology.yaml · deploy/manifest-v1.4.0.yaml
+
+KEPT by `[#734]` (AX13-2 retire stage, 2026-09-12) — DELETED AND RESTORED, and the
+reason is here so the next retire lane meets it before the census does. Nothing
+STATIC reaches this module, so the process-trigger census lists it as an orphan and
+the reverse-dependency oracle returned SAFE over it. Both are correct and both are
+incomplete: `tests/test_membership_agreement.py` loads this file BY NAME through
+importlib and pins `parse_registry_md` as the reference implementation that keeps
+`audit.py`'s duplicated inline registry reader honest. Deleting it REDs that test.
+That is the invisible-edge class ADR-89 declares its static Pyright oracle cannot
+see — a false PASS, non-blocking by design. Retire this module only WITH that pin.
 """
 
 from __future__ import annotations
