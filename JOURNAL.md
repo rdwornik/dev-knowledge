@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-09-12 (k) - CC (Opus 5, background integrator seat): the x2 anchor arc anchors itself
+
+**Names `aa212ee4`**, the entry below, which this arc's own `--no-ff` merge introduces.
+Two commits, JOURNAL last: a one-commit arc could only name its own hash, which does not
+exist when the entry is written. APPEND ONLY, B6.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-12 (j) - CC (Opus 5, background integrator seat): the wave-2 freeze lands docs-only, and the seat that filed it caught this seat in the act
 
 **Anchors:** `c0bbf498` (the dispatcher's freeze commit, introduced by merge `b2b20fdc`).
