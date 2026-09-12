@@ -24,11 +24,19 @@ SELECTION rather than the presence.
 
 WHAT IS BAKED IN, and each is asserted by a test rather than trusted:
   * the `## Dispatch` block: a declared `**Shape:**` line plus the ONE command line that
-    shape takes — `Dispatch-Lane <slug> <file> -Effort <tier>` (local),
+    shape takes — `claude --bg --model <m> --effort <e> --permission-mode bypassPermissions
+    --worktree <slug> "Read and execute the frozen contract at
+    $env:CLAUDE_PROMPTS_DIR\\<file>"` (local — and that token spelling is the one the reader
+    substitutes, not the interactive shape's `<PROMPTS_DIR>` prose placeholder),
     `Dispatch-CloudV2 <file> -Title '<slug>'` (cloud), or `claude` plus its
     `Read <PROMPTS_DIR>\\<file> and execute it exactly.` first message (interactive) —
     with the dispatch constants STATED (`--permission-mode bypassPermissions`, `--bg`)
-    and `opus` as the model default;
+    and `opus` as the model default. **The local form is what the RULED VERB runs**
+    (`[#675]` clause 1 / AX25-2): `dispatch <FILE.md>` executes the block verbatim and
+    admits only a `claude` head token, so the `Dispatch-Lane` spelling this generator
+    emitted until 2026-09-12 was refused by the very verb meant to launch it. That
+    spelling stays ADMITTED by the checker for the already-frozen corpus and is no longer
+    emitted;
   * the worktree <-> file pairing line (slug -> branch -> contract file), the 1:1 property
     ADR-110's fifth per-lane requirement asks for — with the branch DERIVED FROM THE SHAPE
     (`worktree-<slug>` local, `claude/<slug>` cloud per Ch8's cloud-lane section, and none
@@ -181,10 +189,29 @@ PERMISSION_MODE = "--permission-mode bypassPermissions"
 BACKGROUND_FLAG = "--bg"
 
 #: The prompts-dir placeholder a dispatch line cites instead of a hard-coded absolute path
-#: (Ch8, "Dispatch prompts and the contract of record"). Only the INTERACTIVE shape needs it:
-#: the other two take a bare filename and resolve it against that directory themselves, while
-#: an interactive first message is a chat message, so nothing expands a variable in it.
+#: (Ch8, "Dispatch prompts and the contract of record"). Only the INTERACTIVE shape uses it:
+#: cloud and codespace take a bare filename and resolve it against that directory themselves,
+#: while an interactive first message is a chat message, so nothing expands a variable in it —
+#: **the OPERATOR resolves this one by eye**, which is exactly why it is spelled as prose and
+#: not as a shell expression.
 PROMPTS_DIR_TOKEN = "<PROMPTS_DIR>"
+
+#: THE OTHER PROMPTS-DIR TOKEN, and the two are not interchangeable — which is the whole
+#: reason this constant exists rather than the one above being reused.
+#:
+#: The LOCAL form is read by a MACHINE, not by the operator: `dispatch <FILE.md>` performs
+#: exactly one substitution on the `## Dispatch` block before running it, and the literal it
+#: substitutes is `$env:CLAUDE_PROMPTS_DIR` (`Get-DispatchBlockLine`:
+#: `$line.Replace('$env:CLAUDE_PROMPTS_DIR', $PromptsDir)`). Any other placeholder is passed
+#: through UNTOUCHED, so a local line built on `<PROMPTS_DIR>` launches a real session whose
+#: prompt names a path no filesystem holds — and it does so SILENTLY: the verb resolves, the
+#: dry run prints a plausible line, and the lane boots and cannot find its own contract.
+#:
+#: Caught 2026-09-12 by `[#675]` clause 1's own probe going green on the wrong token, which is
+#: why `dispatch_conformance.Probe._location_ok` now also asserts the resolved line carries NO
+#: unsubstituted placeholder. A conformance check that reads "the reader found the contract"
+#: and stops has not checked that the SESSION will.
+READER_PROMPTS_DIR_TOKEN = "$env:CLAUDE_PROMPTS_DIR"
 
 #: The branch a worktree name produces, via `claude --worktree <name>`.
 BRANCH_PREFIX = "worktree-"
@@ -249,11 +276,86 @@ _HEADING_RE = re.compile(r"^##\s+(?P<title>.+?)\s*$", re.MULTILINE)
 #: `[#717]` carries a line without it, and making it mandatory would redden the whole existing
 #: corpus. It trails `-Effort` because that is the order the generator emits; a reversed line is
 #: refused rather than guessed at, which is the posture the rest of this module already takes.
-_DISPATCH_LINE_RE = re.compile(
+_LEGACY_DISPATCH_LINE_RE = re.compile(
     r"^Dispatch-Lane\s+(?P<slug>\S+)\s+(?P<file>\S+)(?:\s+-Effort\s+(?P<effort>\S+))?"
     r"(?:\s+-Model\s+(?P<model>\S+))?\s*$",
     re.MULTILINE,
 )
+
+#: `[#675]` clause 1 / AX25-2: THE FORM THIS GENERATOR NOW EMITS, and the reason the seam
+#: closed on this side rather than on the reader's.
+#:
+#: The ruled operator verb is `dispatch <FILE.md>` (STANDING_RULINGS V1, PLAYBOOK Ch8's
+#: dispatch table). It reads the `## Dispatch` fence and runs it VERBATIM, and its
+#: `Assert-ClaudeCommand` admits only a `claude` head token — *"this script never runs an
+#: arbitrary command from a contract file"*. That refusal is a deliberate SAFETY property: a
+#: `## Dispatch` block that could name any program is arbitrary execution from a file the
+#: repo hands around. Widening it was the available alternative and is the wrong leg. So the
+#: writer moved, and AX25-4 is satisfied by construction — no line of the retiring PowerShell
+#: path was touched.
+#:
+#: THE LINE IS `Start-DispatchLane`'s OWN COMPOSITION, read off win-tooling's source rather
+#: than invented here, so the verb path and the deprecated-alias path launch the same session:
+#: `claude --bg --model <m> --effort <e> --permission-mode bypassPermissions --worktree <slug>
+#: "Read and execute the frozen contract at <path>"`. `$env:CLAUDE_PROMPTS_DIR` is the ONE
+#: token the reader substitutes (its own documented substitution), which is what lets a frozen
+#: contract name its own location without hard-coding an absolute path.
+#:
+#: `--model` AND `--effort` ARE OPTIONAL *IN THE GRAMMAR*, EXACTLY AS `-Effort`/`-Model` ARE
+#: ABOVE — and mandatory in what this generator EMITS. The distinction is the one terra finding
+#: 3 already forced on the legacy form and it is mirrored rather than re-litigated: a pattern
+#: that structurally required the flags would refuse a line missing one as *"no dispatch command
+#: line found"*, which sends a reader hunting for a missing block instead of naming the missing
+#: flag. Optional here, reported by name below — `parse_contract` carries the conjunctions, and
+#: `_model_is_stated_by_the_emitted_form` adds the one `[#717]` needs for this form.
+_CLAUDE_DISPATCH_LINE_RE = re.compile(
+    r"^claude\s+--bg(?:\s+--model\s+(?P<model>\S+))?(?:\s+--effort\s+(?P<effort>\S+))?"
+    r"\s+--permission-mode\s+bypassPermissions\s+--worktree\s+(?P<slug>\S+)"
+    r'\s+"Read and execute the frozen contract at ' + re.escape(READER_PROMPTS_DIR_TOKEN)
+    + r'\\(?P<file>[^"]+)"\s*$',
+    re.MULTILINE,
+)
+
+
+class _EitherForm:
+    """Two spellings of ONE shape's command line, read as one pattern.
+
+    Python refuses a duplicate group name inside a single alternation, and both forms have to
+    expose the same four groups (`slug`, `file`, `effort`, `model`) or every reader downstream
+    would need a per-form branch — which is the two-owners-one-seam shape all over again, one
+    layer down. So the alternation lives here instead, behind the `.search()` the readers
+    already call.
+
+    ORDER IS THE EMITTED FORM FIRST. Both patterns are anchored to a whole line and open on
+    different tokens, so they cannot both match the same line; order decides only which is
+    reported when a hand-edited contract carries both, and the emitted form is the right
+    answer there.
+
+    HONEST LIMIT: a contract carrying BOTH spellings reads as ONE local form here, so
+    `parse_contract`'s "two dispatch command lines" refusal does not fire on it. That refusal
+    guards two DIFFERENT SHAPES disagreeing (a cloud line in a local contract); two spellings
+    of the same shape, pointing at the same slug and file, are not that class. A contract
+    whose two spellings disagreed on slug, file, effort or model would be reported by the
+    pairing and routing-row conjunctions below, which read whichever line matched.
+    """
+
+    def __init__(self, *patterns: re.Pattern[str]) -> None:
+        self._patterns = patterns
+
+    def search(self, text: str) -> "Optional[re.Match[str]]":
+        for pattern in self._patterns:
+            match = pattern.search(text)
+            if match is not None:
+                return match
+        return None
+
+
+#: The local form, either spelling. The legacy `Dispatch-Lane` spelling stays ADMITTED and
+#: deliberately: every contract frozen before this change carries it, and a checker that
+#: refused them would redden the whole existing corpus to make one new line legal — the same
+#: reasoning `[#717]` used to keep `-Model` optional above. Admitted is not emitted; the
+#: generator writes exactly one form.
+_DISPATCH_LINE_RE = _EitherForm(_CLAUDE_DISPATCH_LINE_RE, _LEGACY_DISPATCH_LINE_RE)
 #: The CLOUD command. `Dispatch-CloudV2` takes the brief as its first positional and the
 #: session title as `-Title`; it has NO `-Effort` parameter, which is why the effort check
 #: below is scoped to the local shape rather than dropped.
@@ -472,6 +574,29 @@ def dispatch_command(slug: str, contract_file: str, effort: str, shape: str,
     and an interactive first message is a chat message rather than a command line. `model` is
     accepted for all four so callers have one signature, and is RENDERED only where a parameter
     exists to receive it — the same scoping `-Effort` already has.
+
+    `[#675]` CLAUSE 1 / AX25-2 MOVED THE LOCAL FORM from `Dispatch-Lane <slug> <file> -Effort
+    <e> -Model <m>` to the `claude --bg …` line the ruled verb will actually run, and the whole
+    reason is that the two owners of this seam disagreed by construction: this generator wrote
+    `Dispatch-Lane`, and `dispatch <FILE.md>` — the verb PLAYBOOK Ch8 rules as the sole
+    operator verb for a local lane — admits only a `claude` head token. Every conforming local
+    contract was refused by the verb meant to launch it, and four rows (`[#716]` `[#717]`
+    `[#718]` `[#740]`) are symptoms of that one gap. `tests/test_dispatch_conformance.py` is
+    the standing witness; `scripts/dispatch_conformance.py` is the probe.
+
+    WHAT THE OPERATOR TYPES DOES NOT CHANGE: `dispatch LANE-<slug>.md`. What changed is the
+    line the contract hands that verb. The composition is `Start-DispatchLane`'s own, read off
+    win-tooling's source so the verb path and the deprecated `Dispatch-Lane` alias launch the
+    same session rather than two that merely look alike.
+
+    WHAT IS LOST, STATED RATHER THAN GLOSSED. `Start-DispatchLane` wraps its `claude` call in
+    three guards — skip-if-branch-exists, an effort re-validation, and a branch-existence wait
+    — and a line the verb runs verbatim gets none of them. The first is the one with teeth,
+    and it is not unguarded: `seat_refusals`'s `lane-ceiling --check-worktrees` reads the live
+    worktree list at STEP 0, before the first worktree exists, which is both earlier and
+    broader than a per-dispatch branch check. The effort re-validation is redundant here (the
+    generator holds the same closed enum, and `parse_contract` checks the emitted line against
+    it). The wait is a convenience for a watching operator, not a property of the lane.
     """
     shape = validate_shape(shape)
     if shape == "cloud":
@@ -480,7 +605,10 @@ def dispatch_command(slug: str, contract_file: str, effort: str, shape: str,
         return f"Read {PROMPTS_DIR_TOKEN}\\{contract_file} and execute it exactly."
     if shape == "codespace":
         return f"Dispatch-Codespace -Contract {contract_file} -Slug {slug}"
-    return f"Dispatch-Lane {slug} {contract_file} -Effort {effort} -Model {model}"
+    return (f"claude {BACKGROUND_FLAG} --model {model} --effort {effort} {PERMISSION_MODE} "
+            f"--worktree {slug} "
+            f'"Read and execute the frozen contract at '
+            f'{READER_PROMPTS_DIR_TOKEN}\\{contract_file}"')
 
 
 def find_command_line(text: str) -> Optional[str]:
@@ -578,19 +706,39 @@ def render_contract(spec: LaneSpec) -> str:
 
     if spec.shape == "local":
         parts.append(
-            f"The operator runs the line above verbatim, **from the target repo root** — the\n"
-            f"helper is cwd-bound, and dispatching from the wrong repo lands the worktree in\n"
-            f"it. Dispatch constants ride the line without being re-decided:\n"
-            f"`{PERMISSION_MODE}`, `{BACKGROUND_FLAG}`, and the board label\n"
-            f"`{spec.board_label}`. **The model is ON the line, not defaulted** (`[#717]`): it\n"
-            f"is rendered from the routing table above, so this lane dispatches at\n"
-            f"`{spec.model}` whatever the surface's own default (`{DEFAULT_MODEL}`, the\n"
-            f"`.dev-knowledge` default per the Ch8 routing matrix) happens to be. A line that\n"
-            f"omitted it would silently re-decide the most expensive constant on it.\n"
-            f"Effort is a closed enum: {{{' | '.join(EFFORT_ENUM)}}}; a value outside it is refused\n"
-            f"at the surface with the enum named, rather than guessed. The helper refuses\n"
-            f"outright when `{branch}` already exists, so re-running the line is a no-op\n"
-            f"rather than a collision.\n")
+            f"**The operator does NOT type the line above.** He types\n"
+            f"`dispatch {fname}` **from the target repo root** — the ruled verb for a local\n"
+            f"lane (PLAYBOOK Ch8's dispatch table, the sole literal-command site). The verb\n"
+            f"reads this `## Dispatch` block and runs it **verbatim**, substituting exactly\n"
+            f"one literal — `{READER_PROMPTS_DIR_TOKEN}` — which is how a frozen contract\n"
+            f"names its own location without hard-coding an absolute path. That spelling is\n"
+            f"load-bearing: it is the only token the reader replaces, and any other\n"
+            f"placeholder is passed through untouched into a real session's prompt.\n"
+            f"The repo root still matters: the worktree\n"
+            f"is created relative to the current repo, so dispatching from the wrong one\n"
+            f"lands the lane in it.\n\n"
+            f"The line carries every dispatch constant rather than defaulting it:\n"
+            f"`{PERMISSION_MODE}` (a `{BACKGROUND_FLAG}` lane has nobody to answer a\n"
+            f"permission prompt, so a default would stall it silently), `{BACKGROUND_FLAG}`,\n"
+            f"and `--worktree {spec.slug}` — the name that produces `{branch}` and with it\n"
+            f"the ADR-110 pairing and the merge exemption. Board label `{spec.board_label}`.\n"
+            f"**The model is ON the line, not defaulted** (`[#717]`): it is rendered from the\n"
+            f"routing table above, so this lane dispatches at `{spec.model}` whatever any\n"
+            f"surface default (`{DEFAULT_MODEL}`, the `.dev-knowledge` default per the Ch8\n"
+            f"routing matrix) happens to be. A line that omitted it would silently re-decide\n"
+            f"the most expensive constant on it. Effort is a closed enum:\n"
+            f"{{{' | '.join(EFFORT_ENUM)}}}; a value outside it is refused with the enum named,\n"
+            f"rather than guessed.\n\n"
+            f"**The `claude` head token is required, not stylistic** (`[#675]` clause 1 /\n"
+            f"AX25-2). The verb refuses any other program — *\"this script never runs an\n"
+            f"arbitrary command from a contract file\"* — so a contract's `## Dispatch` block\n"
+            f"is not a place to name a helper. Until 2026-09-12 this generator emitted the\n"
+            f"deprecated `Dispatch-Lane` alias here and **every contract it produced was\n"
+            f"refused by the verb meant to launch it**. That alias still resolves as the\n"
+            f"manual fallback and adds a skip-if-`{branch}`-exists guard the verb path does\n"
+            f"not have; that guard's job is done earlier and more broadly at STEP 0 by\n"
+            f"`seat_refusals lane-ceiling --check-worktrees`, which reads the live worktree\n"
+            f"list before the first worktree exists.\n")
     elif spec.shape == "cloud":
         parts.append(
             f"The operator runs the line above verbatim. The **whole file is the brief** — it\n"
@@ -823,7 +971,9 @@ def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedCo
         problems.append(
             "no dispatch command line found — every contract carries the literal line that "
             "launches it, in the `## Dispatch` block, in exactly one of the four forms "
-            "(`Dispatch-Lane` | `Dispatch-CloudV2` | `Dispatch-Codespace` | "
+            "(`claude --bg --model … --worktree <slug> \"Read and execute the frozen "
+            "contract at <PROMPTS_DIR>\\<file>\"`, or the legacy `Dispatch-Lane` spelling of "
+            "it | `Dispatch-CloudV2` | `Dispatch-Codespace` | "
             "`Read <PROMPTS_DIR>\\<file> and execute it exactly.`); a contract handed "
             "over without one does not get started")
     elif len(present) > 1:
@@ -854,6 +1004,18 @@ def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedCo
         # routing row below. Absent is legal — every contract frozen before `[#717]` omits it —
         # so this is a check on what is present, not a demand that it be.
         line_model = dispatch.group("model")
+        # `[#717]`, MADE STRUCTURAL FOR THE FORM THIS GENERATOR EMITS. Absence stays legal on
+        # the LEGACY spelling — every contract frozen before `[#717]` omits the flag, and
+        # reddening that corpus to enforce a new rule is the failure mode clause 2 named. The
+        # emitted `claude` form has no such history, so on it an absent model is reported: the
+        # amnesty is for what was already written, not for what is written next. `match.re` is
+        # how the two spellings are told apart without either reader carrying a second copy of
+        # the grammar.
+        if dispatch.re is _CLAUDE_DISPATCH_LINE_RE and line_model is None:
+            problems.append(
+                "dispatch line states no `--model <m>` — this is the form the generator emits, "
+                "and a launch line that omits the model silently re-decides the most expensive "
+                f"constant on it ([#717]); enum {{{' | '.join(MODEL_ENUM)}}}")
         if line_model is not None and line_model not in MODEL_ENUM:
             problems.append(
                 f"dispatch line carries model {line_model!r}, outside "

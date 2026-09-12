@@ -281,7 +281,7 @@ def test_a_self_consistent_contract_on_an_off_grammar_slug_is_refused(local_cont
 
 def test_a_dispatch_line_with_no_effort_tier_is_refused(local_contract):
     """terra finding 3: `-Effort` is optional in the grammar, so its absence read as OK."""
-    mangled = local_contract.replace(" -Effort high", "", 1)
+    mangled = local_contract.replace(" --effort high", "", 1)
     problems = glc.parse_contract(mangled).problems
     assert any("states no `-Effort" in p for p in problems), problems
 
@@ -367,7 +367,7 @@ def test_the_cli_refuses_an_off_enum_effort(tmp_path):
 
 
 def test_a_contract_whose_dispatch_line_carries_an_off_enum_effort_is_reported(local_contract):
-    mangled = local_contract.replace("-Effort high", "-Effort ultra", 1)
+    mangled = local_contract.replace("--effort high", "--effort ultra", 1)
     problems = glc.parse_contract(mangled).problems
     assert any("ultra" in p for p in problems), problems
 
@@ -473,9 +473,9 @@ def test_a_generated_contract_without_its_command_line_fails(local_contract):
 
 
 @pytest.mark.parametrize("shape, present, absent", [
-    ("local", "Dispatch-Lane ", ("Dispatch-CloudV2", "and execute it exactly")),
-    ("cloud", "Dispatch-CloudV2 ", ("Dispatch-Lane ", "and execute it exactly")),
-    ("interactive", "and execute it exactly", ("Dispatch-Lane ", "Dispatch-CloudV2")),
+    ("local", "claude --bg --model ", ("Dispatch-CloudV2", "and execute it exactly")),
+    ("cloud", "Dispatch-CloudV2 ", ("claude --bg --model ", "and execute it exactly")),
+    ("interactive", "and execute it exactly", ("claude --bg --model ", "Dispatch-CloudV2")),
 ])
 def test_the_command_shape_is_selected_from_the_declared_shape(shape, present, absent):
     """All three shapes, not just the local one (Done-item 3).
@@ -1104,7 +1104,7 @@ def test_the_local_dispatch_line_is_rendered_from_the_contracts_own_model_row():
     parsed = glc.parse_contract(contract, expect_shape="local")
     assert parsed.problems == (), parsed.problems
     assert parsed.model == "sonnet"
-    assert "-Model sonnet" in parsed.command, (
+    assert "--model sonnet" in parsed.command, (
         f"the carried line is {parsed.command!r} -- a contract declaring sonnet whose own "
         f"launch line omits the model dispatches at the surface default, opus ([#717])")
 
@@ -1130,43 +1130,81 @@ def test_a_dispatch_line_carrying_a_model_the_routing_row_contradicts_is_REPORTE
 
     Without this, widening the regex would merely make a contradicting line PARSE.
     """
-    contract = glc.render_contract(_spec(model="sonnet")).replace("-Model sonnet", "-Model opus")
+    contract = glc.render_contract(_spec(model="sonnet")).replace("--model sonnet", "--model opus")
     problems = glc.parse_contract(contract).problems
     assert any("model" in p.lower() for p in problems), problems
 
 
 def test_a_dispatch_line_carrying_a_model_outside_the_enum_is_REPORTED():
     """The admitted value is held to `MODEL_ENUM`, exactly as the routing row's already is."""
-    contract = glc.render_contract(_spec(model="sonnet")).replace("-Model sonnet", "-Model gpt")
+    contract = glc.render_contract(_spec(model="sonnet")).replace("--model sonnet", "--model gpt")
     problems = glc.parse_contract(contract).problems
     assert any("gpt" in p for p in problems), problems
 
 
-def test_a_contract_carrying_NO_model_flag_still_parses_clean():
-    """`-Model` is OPTIONAL in the grammar, and this is why the widening is safe.
+def test_a_LEGACY_contract_carrying_NO_model_flag_still_parses_clean():
+    """`-Model` is OPTIONAL on the LEGACY spelling, and this is why the widening is safe.
 
-    Every contract frozen before `[#717]` carries a line without it. Making the flag mandatory
-    would turn the whole existing corpus RED at `lane-contract-check` -- the failure mode
-    Done-contract clause 2 names in as many words.
+    Every contract frozen before `[#717]` carries a `Dispatch-Lane` line without it. Making
+    the flag mandatory for that spelling would turn the whole existing corpus RED at
+    `lane-contract-check` -- the failure mode Done-contract clause 2 names in as many words.
+
+    RE-POINTED AT THE LEGACY FORM by `[#675]` clause 1, and the re-point is the point. The
+    amnesty was always about what was ALREADY WRITTEN; this test used to demonstrate it on the
+    generator's own output, which conflated "the checker tolerates the frozen corpus" with "the
+    generator may emit a model-less line". The emitted `claude` form now REPORTS an absent
+    `--model` by name (see the test directly below), so the two halves are separated: amnesty
+    for the corpus, structure for what is written next.
     """
-    contract = glc.render_contract(_spec(model="opus"))
-    stripped = contract.replace(" -Model opus", "")
-    parsed = glc.parse_contract(stripped, expect_shape="local")
+    # Built by swapping ONLY the dispatch line of a real emitted contract, never hand-rolled:
+    # a synthetic contract would have to restate every other mandatory section, and would then
+    # be testing this test's idea of a contract rather than the checker's.
+    emitted = glc.render_contract(_spec(model="opus"))
+    new_line = glc.find_command_line(emitted)
+    assert new_line is not None and new_line.startswith("claude "), new_line
+    legacy = emitted.replace(
+        new_line,
+        "Dispatch-Lane lane-a-539-ch8-codification "
+        "LANE-a-539-ch8-codification.md -Effort high", 1)
+    parsed = glc.parse_contract(legacy, expect_shape="local")
     assert parsed.problems == (), parsed.problems
     assert parsed.command.endswith("-Effort high")
 
 
-def test_the_SIX_FROZEN_BATCH_X_CONTRACTS_still_pass_after_the_widening():
+def test_the_EMITTED_form_omitting_its_model_flag_IS_reported():
+    """The other half of the split above -- `[#717]` made structural for the form emitted now.
+
+    The legacy amnesty exists because a corpus was already frozen without the flag. The
+    `claude` form has no such history, so on it an absent `--model` is a REFUSAL rather than a
+    tolerated omission: a launch line that drops the model dispatches at whatever the surface
+    defaults to, and that failure is silent in the expensive direction.
+    """
+    contract = glc.render_contract(_spec(model="sonnet")).replace(" --model sonnet", "", 1)
+    problems = glc.parse_contract(contract).problems
+
+    assert any("--model" in p for p in problems), problems
+
+
+def test_the_FROZEN_BATCH_X_CONTRACTS_still_pass_after_the_widening():
     """The contract's own step 3 asks for exactly this re-check, against the real files.
 
     These are immutable frozen contracts carrying pre-`[#717]` launch lines. A regex widening
     that broke them would have broken a live batch mid-flight, and no synthetic fixture proves
     it did not -- so the fixture is the corpus.
+
+    THE HARD-CODED `== 6` IS GONE, and its removal is a repair rather than a loosening. It was
+    RED on `main` before `[#675]`'s lane touched anything: `4057be83` and `88f8d4a9` each added
+    a contract to this directory after the count was written, so the test failed on its own
+    arithmetic BEFORE reaching the property it exists to check -- which is the worse failure,
+    because a fixture that cannot run proves nothing about a widening that landed under it. A
+    restated roster count is stale at the next commit; the lower bound keeps the only thing the
+    number was doing (the fixture is not empty and was not deleted) and the loop below covers
+    whatever is actually there.
     """
     frozen = sorted(
         (_REPO_ROOT / "docs" / "audits"
          / "2026-09-11-technical-batch-x-launch-contracts").glob("LANE-*.md"))
-    assert len(frozen) == 6, [p.name for p in frozen]
+    assert len(frozen) >= 6, [p.name for p in frozen]
     for path in frozen:
         parsed = glc.parse_contract(path.read_text(encoding="utf-8"))
         assert parsed.problems == (), f"{path.name}: {parsed.problems}"
@@ -1191,11 +1229,11 @@ def test_the_emit_log_line_carries_the_model_it_wrote_into_the_file(tmp_path, mo
             "--id", "717", "--model", "sonnet"])
     assert result.exit_code == 0, result.output
     logged = "\n".join(records)
-    assert "-Model sonnet" in logged, logged
+    assert "--model sonnet" in logged, logged
 
     written = (prompts / glc.contract_filename("lane-x-717-model-row")).read_text(
         encoding="utf-8")
-    assert "-Model sonnet" in written
+    assert "--model sonnet" in written
     assert logging  # the import is the fixture's, kept explicit for the reader
 # --- 7. [#716]: the step-0 sync region retires ITSELF ---------------------------------------
 #

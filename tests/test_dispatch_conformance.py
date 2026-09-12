@@ -186,6 +186,30 @@ def test_an_admission_refusal_is_named_in_the_report(tmp_path):
     assert "fence=RED" in report
 
 
+def test_a_placeholder_that_survives_into_the_resolved_line_REDs_location(tmp_path):
+    """THE NEAR-MISS THAT ACTUALLY HAPPENED, pinned (`[#718]` leg 2).
+
+    On 2026-09-12 this probe went GREEN against a generator emitting the INTERACTIVE shape's
+    `<PROMPTS_DIR>` prose placeholder into the machine-read local line. The reader substitutes
+    exactly one literal, so that placeholder rode through untouched: the verb resolved, the dry
+    run printed a plausible line, and the lane it launched would have been handed a prompt
+    naming a path no filesystem holds. Everything about that failure looks like success.
+    """
+    (tmp_path / "LANE-lane-x.md").write_text("x", encoding="utf-8")
+    stranded = _probe_from(
+        "claude --bg --model sonnet --effort high --permission-mode bypassPermissions "
+        "--worktree lane-x \"Read and execute the frozen contract at "
+        "<PROMPTS_DIR>\\LANE-lane-x.md\"",
+        evidence="verb", tier=dc.TIER_HOST, tmp_path=tmp_path, returncode=0, source="contract")
+    props = stranded.properties()
+
+    assert props["location"] is False, "\n" + stranded.report()
+    # The other three are untouched: the head token, the model and the worktree are all
+    # correct on this line. That is precisely what made the defect invisible.
+    assert props["fence"] and props["model"] and props["base"]
+    assert "stranded: <PROMPTS_DIR>" in stranded.report()
+
+
 def test_the_probe_never_returns_a_skipped_verdict(tmp_path):
     """NO GREEN-BY-SKIP, asserted rather than intended. Whatever tier this host is on, the probe
     returns all four properties and names the evidence it used."""
@@ -196,6 +220,90 @@ def test_the_probe_never_returns_a_skipped_verdict(tmp_path):
     assert result.tier in (dc.TIER_HOST, dc.TIER_NO_VERB, dc.TIER_NO_SHELL)
     assert dc.ADMISSION_MEASURED in result.report(), \
         "a lower-tier verdict must carry the pin's provenance, or its reader cannot weigh it"
+
+
+# --- the refusal leg --------------------------------------------------------
+
+def test_the_guard_probes_NOTHING_when_no_seam_file_is_staged(monkeypatch, tmp_path):
+    """Cheap on an unrelated commit, and provably so: the probe spawns a PowerShell and
+    renders a contract, and a gate that pays that on every commit is a gate people bypass."""
+    monkeypatch.setattr(dc, "staged_from_git", lambda *_a, **_k: ["README.md", "JOURNAL.md"])
+    monkeypatch.setattr(dc, "probe", _never_called)
+
+    code, message = dc.guard(tmp_path)
+
+    assert code == 0
+    assert "no seam file staged" in message
+
+
+@pytest.mark.parametrize("seam_file", dc.SEAM_PATHS)
+def test_the_guard_REFUSES_a_seam_commit_that_leaves_the_seam_red(monkeypatch, tmp_path,
+                                                                 seam_file):
+    """AX25-2's refusal leg, per seam file: *"a commit that changes either side and leaves
+    the test red is refused."*
+
+    Parametrized over `SEAM_PATHS` rather than pinned to one, because a gate that watches the
+    generator and not its own probe can be disarmed by editing the probe -- the self-disarm
+    class `impacted-tests-guard` was corrected for on 2026-09-11.
+    """
+    monkeypatch.setattr(dc, "staged_from_git", lambda *_a, **_k: [seam_file, "README.md"])
+    monkeypatch.setattr(dc, "probe", lambda *_a, **_k: _probe_from(
+        "Dispatch-Lane lane-x LANE-lane-x.md -Effort high -Model sonnet", tmp_path=tmp_path))
+
+    code, message = dc.guard(tmp_path)
+
+    assert code == 1, message
+    assert "REFUSED" in message and seam_file in message
+    assert "fence" in message
+
+
+def test_the_guard_PASSES_a_seam_commit_that_conforms(monkeypatch, tmp_path):
+    """The positive control. A guard that refused unconditionally would pass the test above
+    and block every commit, which is indistinguishable from working until someone commits."""
+    (tmp_path / "LANE-lane-x.md").write_text("x", encoding="utf-8")
+    monkeypatch.setattr(dc, "staged_from_git",
+                        lambda *_a, **_k: ["scripts/gen_lane_contract.py"])
+    monkeypatch.setattr(dc, "probe", lambda *_a, **_k: _probe_from(
+        "claude --bg --model sonnet --effort high --permission-mode bypassPermissions "
+        "--worktree lane-x \"Read and execute the frozen contract at "
+        "$env:CLAUDE_PROMPTS_DIR\\LANE-lane-x.md\"", tmp_path=tmp_path))
+
+    code, message = dc.guard(tmp_path)
+
+    assert code == 0, message
+    assert "PASS" in message
+
+
+def test_a_probe_that_cannot_be_TAKEN_refuses_rather_than_passing(monkeypatch, tmp_path):
+    """An unmeasurable seam change is not a seam change that passed.
+
+    The distinction this protects is the one `dispatch_drift` states next door: a check that
+    cannot compute its ground truth and renders green IS the defect. Here the render itself
+    failed, so there is no record at all -- and no record must not read as a clean one.
+    """
+    monkeypatch.setattr(dc, "staged_from_git",
+                        lambda *_a, **_k: ["scripts/gen_lane_contract.py"])
+
+    def _explode(*_a, **_k):
+        raise dc.DispatchConformanceError("the writer would not render a probe contract")
+
+    monkeypatch.setattr(dc, "probe", _explode)
+
+    code, message = dc.guard(tmp_path)
+
+    assert code == 1
+    assert "could not be taken" in message
+
+
+def test_the_guard_watches_BOTH_sides_of_the_hub_half_of_the_seam():
+    """`SEAM_PATHS` names the writer AND this probe. The second is not defensive padding: a
+    gate that does not watch its own edit can be neutered by the commit that neuters it."""
+    assert "scripts/gen_lane_contract.py" in dc.SEAM_PATHS
+    assert "scripts/dispatch_conformance.py" in dc.SEAM_PATHS
+
+
+def _never_called(*_a, **_k):
+    raise AssertionError("the guard probed on a commit that touches no seam file")
 
 
 def test_the_probe_asks_for_a_non_default_model_so_a_default_cannot_fake_the_property(tmp_path):

@@ -104,6 +104,16 @@ ADMISSION_MEASURED = "2026-09-12"
 #: offending token and is ASCII-folded on the way out.
 ADMISSION_REFUSAL_MARK = "must invoke 'claude'"
 
+#: Placeholder spellings that must NOT survive into a resolved line. The reader substitutes
+#: exactly one literal (`$env:CLAUDE_PROMPTS_DIR`); anything else rides through into the
+#: launched session's prompt as a path that does not exist. `<PROMPTS_DIR>` is listed by name
+#: because it is the near-miss that actually happened: it is the INTERACTIVE shape's legitimate
+#: prose placeholder, which the operator resolves by eye, and it reads as correct in a local
+#: line right up to the moment a lane cannot find its own contract.
+UNRESOLVED_PLACEHOLDER_MARKS: tuple[str, ...] = (
+    "<PROMPTS_DIR>", "$env:CLAUDE_PROMPTS_DIR", "%CLAUDE_PROMPTS_DIR%", "${CLAUDE_PROMPTS_DIR}",
+)
+
 #: The ruled operator verb for a LOCAL lane (STANDING_RULINGS V1). Read from `dispatch_surface`
 #: where that module can reach PLAYBOOK; this constant is the fallback for a caller probing
 #: outside a checkout.
@@ -270,19 +280,45 @@ class Probe:
         return not self.refusal and self.source.startswith("contract")
 
     def _location_ok(self) -> bool:
-        """The reader resolved the contract the writer wrote, addressed as the writer addresses
-        it — a BARE FILENAME. Off `verb` evidence the checkable half is that the writer's own
-        printed dispatch line names the file it actually wrote."""
+        """The contract is findable TWICE — by the reader, and then by the session it launches.
+
+        Two legs, because `[#718]` has two ends and the first one alone is not the property:
+
+          1. **the reader finds the contract** it was handed, addressed as the writer addresses
+             it (a bare filename, from the directory the writer wrote to);
+          2. **the resolved line carries no unsubstituted placeholder.** The reader replaces
+             exactly one literal, `$env:CLAUDE_PROMPTS_DIR`. A line built on any other
+             placeholder resolves, dry-runs plausibly, and launches a real session whose prompt
+             names a path no filesystem holds.
+
+        LEG 2 IS HERE BECAUSE ITS ABSENCE WAS MEASURED. On 2026-09-12 this probe went GREEN on
+        a generator emitting the interactive shape's `<PROMPTS_DIR>` prose placeholder into the
+        machine-read local line — a lane that would have booted and been unable to find its own
+        contract. A conformance check that reads "the reader found the contract" and stops has
+        not checked that the SESSION will.
+        """
         if self.evidence == "verb":
             # DELIBERATELY NOT `bool(self.source)`. The reader prints `source:` only AFTER the
-            # admission check, so keying location on it would make a fence refusal red this
+            # admission check, so keying leg 1 on it would make a fence refusal red this
             # property too — and four properties that fail together are one property wearing
             # four names, which is the opposite of what the single assertion is for. The reader
             # RESOLVING the path and then declining its contents are different answers, and
             # `Resolve-ContractPath` has its own refusal text for the former.
-            return self.returncode is not None and "not found" not in self.refusal.lower()
+            found = self.returncode is not None and "not found" not in self.refusal.lower()
+            return found and not self._unsubstituted_placeholders()
         return (Path(self.contract_dir) / self.contract_name).is_file() \
             and self.contract_name in self.fence
+
+    def _unsubstituted_placeholders(self) -> list[str]:
+        """Placeholder spellings still present in the RESOLVED line — every one of them a path
+        the launched session cannot open. Empty when the line is fully resolved.
+
+        Only meaningful on `verb` evidence: off host there is no resolved line to have
+        substituted anything, so the contract's own fence legitimately still carries its token.
+        """
+        if self.evidence != "verb" or not self.line:
+            return []
+        return [p for p in UNRESOLVED_PLACEHOLDER_MARKS if p in self.line]
 
     @property
     def conforms(self) -> bool:
@@ -305,6 +341,11 @@ class Probe:
             mark = " (ADMISSION refusal — the fence seam, `[#740]`)" \
                 if ADMISSION_REFUSAL_MARK in self.refusal else ""
             lines.append(f"refusal:  {self.refusal.strip()}{mark}")
+        stranded = self._unsubstituted_placeholders()
+        if stranded:
+            lines.append(f"stranded: {', '.join(stranded)} survived into the RESOLVED line — "
+                         f"the launched session's prompt names a path nothing holds "
+                         f"(`[#718]`, leg 2)")
         if self.returncode is not None:
             lines.append(f"exit:     {self.returncode} (recorded, not trusted — see Probe.returncode)")
         lines.extend(f"note:     {n}" for n in self.notes)
@@ -444,6 +485,71 @@ def verify_admission_live(out_dir: Path, *, shell: Optional[str] = None,
     return []
 
 
+# --- the refusal leg -------------------------------------------------------------------------
+
+#: The hub's half of the seam. The reader is `Invoke-Dispatch.ps1` in ANOTHER REPO, so this gate
+#: cannot watch it — stated as a limit, not papered over: a change landing there is caught by
+#: the next run on a host that has the verb, not at the commit that makes it.
+SEAM_PATHS: tuple[str, ...] = (
+    "scripts/gen_lane_contract.py",      # the writer
+    "scripts/dispatch_conformance.py",   # this probe — a gate that cannot police its own edit
+)                                        # is the self-disarm class `impacted-tests-guard` names
+
+
+def staged_from_git(repo_root: Path | None = None) -> list[str]:
+    """Repo-relative paths staged for this commit, read from git rather than from argv.
+
+    NOT `pass_filenames`, and the reason is measured next door: a commit can edit one side of
+    the seam AND narrow a `files:` regex in the same act, and pre-commit evaluates the STAGED
+    config — so a filtered gate is disarmed by exactly the change it exists to inspect
+    (`impacted-tests-guard`, reviewer HIGH 2026-09-11). This hook `always_run`s and computes
+    its own scope.
+    """
+    root = repo_root or _SCRIPTS.parent
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(root), "diff", "--cached", "--name-only",
+             "--diff-filter=ACMRT"],
+            capture_output=True, text=True, check=True, timeout=60).stdout
+    except (OSError, subprocess.SubprocessError):
+        return []
+    return [line.strip().replace("\\", "/") for line in out.splitlines() if line.strip()]
+
+
+def guard(repo_root: Path | None = None, *, out_dir: Path | None = None) -> tuple[int, str]:
+    """AX25-2's refusal leg: *"a commit that changes either side and leaves the test red is
+    refused."* Returns `(exit_code, message)`.
+
+    A commit touching neither side of the seam returns immediately having probed nothing —
+    the probe spawns a PowerShell and renders a contract, and paying that on every unrelated
+    commit is how a gate gets bypassed rather than fixed.
+    """
+    staged = set(staged_from_git(repo_root))
+    touched = sorted(p for p in SEAM_PATHS if p in staged)
+    if not touched:
+        return 0, "no seam file staged; nothing to check"
+
+    import tempfile
+    with tempfile.TemporaryDirectory(prefix="dispatch-conformance-guard-") as tmp:
+        try:
+            result = probe(Path(out_dir) if out_dir else Path(tmp))
+        except DispatchConformanceError as exc:
+            return 1, (f"REFUSED -- the probe could not be taken "
+                       f"({exc}). A seam change that cannot be measured is not a seam change "
+                       f"that passed.")
+    if result.conforms:
+        return 0, (f"PASS -- {', '.join(touched)} staged; fence, "
+                   f"location, model and base all resolve ({result.evidence} evidence, "
+                   f"tier {result.tier})")
+    red = [p for p, ok in result.properties().items() if not ok]
+    return 1, ("REFUSED -- this commit changes the seam "
+               f"({', '.join(touched)}) and leaves it non-conforming on: {', '.join(red)}.\n"
+               "AX25-2: the generator's line must be a line the ruled verb `dispatch "
+               "<FILE.md>` resolves. Fix it, or the next batch freezes contracts that are "
+               "refused at dispatch -- which is what this gate exists to stop recurring.\n"
+               + result.report())
+
+
 # --- CLI -------------------------------------------------------------------------------------
 
 def _main(argv: list[str] | None = None) -> int:
@@ -460,7 +566,15 @@ def _main(argv: list[str] | None = None) -> int:
     parser.add_argument("--effort", default="high")
     parser.add_argument("--verify-pin", action="store_true",
                         help="also re-measure the reader's admission rule against the pin")
+    parser.add_argument("--guard", action="store_true",
+                        help="AX25-2's refusal leg: probe ONLY when a seam file is staged, "
+                             "and exit 1 when the seam is left non-conforming")
     args = parser.parse_args(argv)
+
+    if args.guard:
+        code, message = guard(out_dir=args.out_dir)
+        (logger.error if code else logger.info)("%s", message)
+        return code
 
     with tempfile.TemporaryDirectory(prefix="dispatch-conformance-") as tmp:
         out_dir = args.out_dir or Path(tmp)
