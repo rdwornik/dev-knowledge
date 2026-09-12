@@ -241,7 +241,7 @@ exceeding six. Queue, in order, each recorded here when it fires:
 "frozen" item as §11a first recorded it:
 
 ```
-X1-4  routing + telemetry [#691][#694]   the MOMENT W-2' is on main   <- HEAD
+X1-4  routing + telemetry [#691][#694]   HELD -- see the hold below        <- HEAD
 X1-3  merge cost          [#675]         after X1-2
 X1-6  task keys           [#687]         after X1-5
 X2 head, in order: docs-cut manifest step (cut ONLY on the operator's GO) · prompt-distiller
@@ -253,17 +253,58 @@ is what discharges AX22-4's precondition, so the routing lane stops being half-g
 Grok and Copilot become orderable. Firing it at that moment is what converts the W-2' merge
 into capacity rather than just a closed row.
 
-**The trigger is NOT imminent, and the queue must not imply otherwise.** Measured 2026-09-11:
-`.git/worktrees/lane-w-684-pretooluse-guard-root` is **unlocked**, so that session has ended,
-and the branch tip is `0c974eb0 test(prompts-guard): RED-first witnesses for the fail-closed
-inversion` with no implementation, M7 smoke or fresh Codex review after it. **W-2' stopped at
-RED with no GREEN**, so its Done-when (`[#684]` + two RED-first trip-tests GREEN + the M7 smoke
-+ a fresh Codex review with no unresolved HIGH) is not met and it cannot merge without a
-re-attach. The ordered backup is safe on origin at exactly `90c727bd` (AMEND-017 condition 1).
+**SUPERSEDED — W-2' landed.** The 2026-09-11 note here said the trigger was not imminent
+because W-2' had stopped at RED with no GREEN. It was re-attached and finished overnight and
+merged at **`3a8ee7a8`** — *"W-2': the prompts guard FAILS CLOSED"*, `312 passed / 320.5s`. The
+stale note is replaced rather than appended to: a false statement left standing in the batch
+record is worse than none. The ordered backup did its job and is still on origin at `90c727bd`.
 
-X1-4's contract is frozen, repaired (F11, §13) and waiting at
-`$env:CLAUDE_PROMPTS_DIR\LANE-x-691-routing-telemetry.md` — it fires on the W-2' merge, not
-before, and its non-Claude half stays gated until then either way.
+**The hold is nonetheless RE-ARMED and TIGHTENED by the operator, 2026-09-12:** X1-4 does not
+fire on the merge alone. It fires when the integrator's close digest confirms **both** that
+W-2' is on main **and** that its trip-tests pass. **An OOM-killed adversarial run is not
+evidence of a working guard** — a run that died is not a run that passed, and the wave's own
+suite record notes three OOMs before the first completed run.
+
+**What the close digest actually confirms, measured against
+`docs/audits/2026-09-12-technical-batch-x-wave-1-close-packet.md`:**
+
+- **On main:** yes — `3a8ee7a8`, per-lane row `HIGH:1 MED:0 LOW:0 | 312 passed / 320.5s | MERGE`.
+- **Mechanism legs / trip-tests:** yes — §6 records *"fail-closed on all paths, matcher
+  narrowed, RED-first tests present"*, and §10 records the guard now permits **only on a PROVEN
+  pass** (rc 0 AND stdout exactly the guard's own OK marker), closing the inferred-permit hole
+  where an exit 0 from a shim read as a check that never ran.
+- **`[#684]` closure:** **REFUSED — witness PARTIAL, blocked externally.** This is the leg that
+  matters here, and it is not a formality.
+
+**Why the refusal lands on X1-4 specifically, and not merely on `[#684]`'s paperwork.** The
+undischarged clause is *"one non-Claude CLI smoke passes under the guard"*, and the lane
+measured **why** it cannot be discharged on this machine: the honour-set is **cursor-agent
+alone** — authenticated but usage-limited — while **codex and copilot do not read
+`.claude/settings.json` at all**, so a pass from either is vacuous.
+
+That is X1-4's own premise. X1-4 exists to route implement and review work to Grok 4.6, Copilot
+Enterprise, Codex terra and agy. AX22-4's precondition — *no non-Claude producer or reader is
+ordered before W-2' is on main* — is satisfied **by its letter**, because W-2' is on main. It is
+**not** satisfied in substance for the two providers X1-4 most wants to admit: the guard that
+precondition was standing in for is a `.claude/settings.json` `PreToolUse` hook, and those two
+CLIs never read that file. Landing W-2' hardened the guard for the clients that honour it; it
+did not extend the guard's reach to the clients X1-4 would order.
+
+A related MED is recorded and is worth carrying into the lane rather than rediscovering: §4
+CONFIRMED that `fleet_parity.hook_invokes_script` **certifies a guard that never runs** — a
+short-circuit prefix, a never-taken conjunction and a post-exit segment each return True. The
+guard itself is fail-closed; the **detector** overstates its own guarantee.
+
+**So the hold stands, and the thing it now waits on is an operator disposition, not a merge.**
+The close packet says so in as many words: *"This needs an operator disposition, not a closure
+word: the clause cannot be discharged on this machine today."* The open question is whether a
+guard that cannot govern codex or copilot is an acceptable basis for ordering them — and that is
+a functional question, so it is the operator's to rule (ADR-108 §A), not this seat's.
+
+X1-4's contract stays frozen, repaired (F11, §13) and waiting at
+`$env:CLAUDE_PROMPTS_DIR\LANE-x-691-routing-telemetry.md`. Its Claude-only half — telemetry
+wired, registry, router, re-rank — is unaffected by any of the above and could be ordered
+separately if the operator wants the lane's measurable core without its non-Claude admission.
 
 **Ceiling stays 6**, and each backfill is recorded below as it fires.
 
