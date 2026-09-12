@@ -19,6 +19,13 @@
 
 ---
 
+### 2026-09-12 (g) - CC (Opus 5, background integrator seat): the teardown-record arc anchors itself
+
+**Names `d0fb5b8a`**, the entry below, which this arc's own `--no-ff` merge introduces. A
+one-commit arc cannot discharge the anchor its own merge creates - APPEND ONLY, B6.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-12 (f) - CC (Opus 5, background integrator seat): the three standing branches get their disposition, and a merge that took one commit more than it named
 
 **Operator word `to-cc/AMEND-BATCH-X-ROSTER-023.md` AX23-4.** Merge x14 (which contains
