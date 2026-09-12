@@ -526,7 +526,16 @@ roles:
           floors: ["AX22-1"]
       - provider: xai
         model: grok-4.6
-        note: "AX22-2's named fallback when Codex produced -- 'after admission', which has not happened."
+        # AX22-2 conditions THIS ENTRY on admission -- "the reviewer is Grok (AFTER ADMISSION)
+        # or Sonnet" -- while leaving the review role itself ungated, which is what keeps Codex
+        # terra routable here despite being NOT ADMITTED. A role-level gate could not express
+        # the pair; this flag is where the clause actually puts the condition.
+        requires_admission: true
+        note: >-
+          AX22-2's named fallback when Codex produced, and it is conditional on an admission
+          that has not happened. So the review chain skips this position today and lands on
+          Sonnet -- which is AX22-2's own terminal fallback, reached by the route the clause
+          describes rather than by an edit.
         admission:
           verdict: unevaluated
           floors: ["AX22-1"]

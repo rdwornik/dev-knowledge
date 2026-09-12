@@ -394,6 +394,19 @@ class RoleEntry(_Contract):
     #: while holding no admission, and only a positive `admitted` verdict with provenance makes
     #: it routable. Silence never reads as permission.
     admission: Optional[RoleAdmission] = None
+    #: THIS ENTRY's position is conditional on admission, even where its ROLE is not
+    #: admission-gated. AX22-2 is the clause that forces a per-entry flag rather than a
+    #: per-role one, and it is worth spelling out because the two look interchangeable until
+    #: they are not: *"Codex terra reviews unless Codex produced; then the reviewer is Grok
+    #: (AFTER ADMISSION) or Sonnet."* That conditions ONE ENTRY on admission — Grok's — while
+    #: leaving the `review` role itself ungated, which is what lets Codex terra remain the
+    #: routable reviewer while recorded NOT ADMITTED.
+    #:
+    #: A role-level gate cannot express that. Gating `review` would refuse Codex too (a
+    #: behaviour change no clause asked for); leaving it ungated entirely would route to Grok
+    #: before its admission, which AX22-2 forbids in as many words. So the condition lives
+    #: where the clause puts it: on the entry.
+    requires_admission: bool = False
     #: Why this entry sits where it sits — the DECLARED rationale, which the re-rank may later
     #: override. Optional; an entry with none is exactly as valid.
     note: Optional[StrictStr] = None

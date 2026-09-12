@@ -142,6 +142,35 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
     "scripts/cost_usage_telemetry.py": Disposition(
         reason=f"{_LANE_BUILT}; only call site is LANE-f-6-observability-otel.md:27",
         owner="V+1 retirement-or-wiring list"),
+    # NOT population A, and the distinction is the whole reason this row is written out rather
+    # than folded into `_LANE_BUILT`. `provider_router.py` is not an organ nobody adopted; it
+    # is an organ whose consumer is a lane that has not run yet, and the gap is REQUIRED by the
+    # clause that ordered it.
+    #
+    # AX23-2 splits `[#691]` in two: Half A builds the routing mechanism with NO non-Claude
+    # provider ordered, Half B does the admission calls. A router acquires a trigger by
+    # something routing through it, and in Half A nothing may -- placing a call is the one act
+    # the lane is defined by not doing. So "wire it" is unavailable to the lane that wrote it,
+    # by construction rather than by omission, and shipping it unwired is the correct state
+    # rather than a deferred chore.
+    #
+    # The other two remedies are wrong here for reasons worth recording. "Retire it" would
+    # delete the mechanism the next lane consumes. "Wire it to a pre-commit hook" was
+    # considered and rejected: a gate asserting every role resolves to an eligible provider is
+    # a genuinely good idea, but a NEW hook is an AX4-1 floor-declaration event requiring an
+    # `ecosystem/parity-surfaces.yaml` registration, and that surface is not this lane's to
+    # write. It is named in the lane artifact as an owed follow-up, not left to be noticed.
+    #
+    # This row's OWNER is therefore a specific successor lane, not a general list: Half B
+    # adopts it by routing through it, at which point the row is deleted rather than updated.
+    "scripts/provider_router.py": Disposition(
+        reason=("[#691] Half A built the routing mechanism under AX23-2, which forbids the lane "
+                "from ordering any non-Claude provider -- so the router cannot acquire a "
+                "trigger in the half that wrote it, because routing through it IS placing a "
+                "call. Unwired is the contract-required state, not an unadopted one. A "
+                "pre-commit gate over it is an AX4-1 floor-declaration act needing a "
+                "parity-surfaces registration, which is outside this lane's footprint"),
+        owner="[#691] Half B (non-Claude admission), which adopts it by routing through it"),
     "scripts/gen_north_star.py": Disposition(
         reason=f"{_LANE_BUILT}; only call site is batch-e CUT.md:40",
         owner="V+1 retirement-or-wiring list"),
