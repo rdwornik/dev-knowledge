@@ -61,17 +61,26 @@ search head AND a candidate token that could possibly resolve are both present. 
 command pays interpreter start and nothing else. `tests/test_deny_and_point.py` pins that ordering
 as a property rather than leaving it an intention.
 
-THE STORE IS READ, NEVER BUILT, AND NEVER FRESHENED. No staleness check and no rebuild: a fresh
-clone, a missing store or a stale one must never be able to block every search in a session. Absent
-or unreadable store -> ALLOW. A newly-added script the store has not seen yet is simply not
-governed until the next commit rebuilds it, which is the right failure direction for a guard whose
-expensive error is over-blocking. ADR-118 §1 also binds here: this guard computes NO edges of its
-own; it reads the process set FPG-1 already holds.
+THE STORE IS READ, NEVER BUILT, AND NEVER FRESHENED. No staleness check and no rebuild: an ABSENT
+or EMPTY store (a fresh clone, never committed) is simply "not governed yet" and ALLOWS -- a
+newly-added script the store has not seen yet is not governed until the next commit rebuilds it,
+which is the right failure direction for a guard whose expensive error, on an absent store, would
+be blocking every search on a tree that has never even run the rebuild. ADR-118 SS1 also binds
+here: this guard computes NO edges of its own; it reads the process set FPG-1 already holds.
 
-FAIL POSTURE, asymmetric by design and the same shape as the ADR-77 guard: anything that prevents a
-confident, positive identification of a governed search -- an unparseable command, a missing
-payload field, an unreadable store, an internal error -- ALLOWS. Only a positively identified
-governed search is refused.
+FAIL POSTURE, INVERTED 2026-09-12 ([#727], AX24-2 -- exactly as W-2' ruled for the sibling
+prompts-guard, AX15-1). This guard is wired ONLY onto Bash/PowerShell/Grep
+(`.claude/settings.json`'s matcher), so every call that reaches it already IS the matched class.
+A guard that permits what it cannot check is declared enforcement without enforcement, so an
+inability to EVALUATE that call -- a missing dependency script, a store the SQLite engine cannot
+open, the predicate crashing mid-evaluation, an unparseable stdin payload, or the predicate
+returning something outside {allow, block} -- now REFUSES, naming cause and fix, rather than the
+prior posture of silently allowing. This is narrower than it sounds: an ABSENT or EMPTY store
+(above) is "not governed yet", not a failure, and stays ALLOW; only a genuine inability to
+evaluate a call that IS in the matched class is refused. The declared `# raw-needed: <reason>`
+escape and ordinary non-governed searching are both unaffected -- neither reaches these failure
+paths at all, since the escape and the "not a search" checks resolve before the store is ever
+touched.
 
 OUTPUT IS ASCII. A Windows console is cp1252, and a non-cp1252 glyph on the refusal path turns a
 clean denial into a UnicodeEncodeError exactly where the message matters most.
@@ -609,6 +618,33 @@ def decide(payload: dict, processes: dict[str, str]) -> tuple[str, str]:
     return "allow", "no candidate token resolves to a process"
 
 
+#: The two verdicts `decide()` is sanctioned to return. Anything else is itself a failure to
+#: evaluate -- see `_cannot_evaluate` and its use in `decide_with_store` below.
+_VALID_DECISIONS = frozenset({"allow", "block"})
+
+
+def _cannot_evaluate(cause: str, fix: str, exc: BaseException) -> str:
+    """The exception text for a call this guard could not evaluate.
+
+    FAILS CLOSED for the matched class ([#727], AX24-2 -- exactly as W-2' ruled for the sibling
+    prompts-guard, AX15-1): this hook is wired only onto Bash/PowerShell/Grep
+    (`.claude/settings.json`'s matcher), so a call that reaches it already IS the matched class.
+    Permitting what it cannot check is declared enforcement without enforcement, so an inability
+    to evaluate is REFUSED, not allowed -- the exact inversion of the posture this module carried
+    before AX24-2. The refusal still states CAUSE and FIX, same principle as `_pointer()` above: a
+    refusal that only says no trains avoidance.
+    """
+    return (
+        "DENIED: this guard could not evaluate this call, and it fails CLOSED for its matched "
+        "class ([#727], AX24-2) rather than permit what it cannot check.\n"
+        f"Cause: {cause} -- {exc!r}.\n"
+        f"Fix: {fix}\n"
+        "If you need to proceed immediately, append '# raw-needed: <reason>' to the command "
+        "(Bash/PowerShell); the Grep tool has no comment syntax, so switch to Bash with that "
+        "declaration instead."
+    )
+
+
 # ------------------------------------------------------------------------------------- the store
 
 def load_processes(repo_root: Path | str = REPO_ROOT) -> dict[str, str]:
@@ -637,30 +673,73 @@ def decide_with_store(payload: dict) -> tuple[str, str]:
 
     Parse first (no I/O); open the store only once a search head and a candidate token are both
     present. A non-search command never touches it -- pinned by a test, not promised here.
+
+    FAILS CLOSED for the matched class ([#727], AX24-2): every call reaching this function is
+    already Bash, PowerShell or the Grep tool -- the matcher on `.claude/settings.json` admits
+    nothing else -- so an inability to evaluate is REFUSED, not permitted. That covers a missing
+    dependency script or an unreachable store engine (this try), the predicate crashing
+    mid-evaluation (the next try), and the predicate returning a verdict outside {allow, block}
+    (the check below, defence against a future bug rather than a live path today). An ABSENT or
+    EMPTY store stays ALLOW -- that is "not governed yet" (a fresh clone, never committed), not a
+    failure to evaluate, and `load_processes` returns `{}` for it without raising. The raw-needed
+    escape and non-governed searching are both unaffected (clauses 4-5): the escape is resolved
+    before any candidate reaches this function at all, and a command with no candidate token never
+    gets this far either.
     """
     try:
         if not _tool_candidates(payload):
             return "allow", "not a search over a candidate token"
         processes = load_processes()
-    except Exception as exc:  # noqa: BLE001 -- allow on ANY failure; over-blocking is the costly error
-        return "allow", f"guard unavailable, allowing: {exc!r}"
+    except Exception as exc:  # noqa: BLE001 -- fails CLOSED: cannot load -> cannot rule out a governed search -> refuse
+        return "block", _cannot_evaluate(
+            "the guard could not load the persisted process set it judges against "
+            "(a missing dependency script or an unreachable/corrupt store)",
+            "restore scripts/graph_store.py and/or rebuild the store (pre-commit's "
+            "graph-rebuild hook does this on every commit)",
+            exc,
+        )
     if not processes:
         return "allow", "no persisted process set to judge against"
     try:
-        return decide(payload, processes)
-    except Exception as exc:  # noqa: BLE001
-        return "allow", f"guard error, allowing: {exc!r}"
+        decision, reason = decide(payload, processes)
+    except Exception as exc:  # noqa: BLE001 -- fails CLOSED: the predicate crashed -> refuse
+        return "block", _cannot_evaluate(
+            "the guard's predicate crashed while evaluating this command",
+            "report the crash below so the predicate can be fixed",
+            exc,
+        )
+    if decision not in _VALID_DECISIONS:
+        return "block", _cannot_evaluate(
+            "the guard's predicate returned an unrecognised verdict instead of allow/block",
+            "report this as a bug in decide() -- treated as refused until fixed",
+            ValueError(f"decide() returned {decision!r}"),
+        )
+    return decision, reason
 
 
 # -------------------------------------------------------------------------------------- the wire
 
 def main() -> int:
+    """FAILS CLOSED for the matched class ([#727], AX24-2): this hook is wired only onto
+    Bash/PowerShell/Grep, so stdin that reaches it is already the matched class, and a payload
+    that will not parse as JSON cannot rule out a governed search -- refused, not silently
+    allowed, the same as the in-module failure modes `decide_with_store` handles above."""
     try:
         payload = json.loads(sys.stdin.read())
-    except Exception:  # noqa: BLE001 -- cannot parse -> cannot identify a governed search -> allow
-        return 0
+    except Exception as exc:  # noqa: BLE001 -- fails CLOSED: cannot parse -> cannot rule out a governed search -> refuse
+        print(json.dumps({"decision": "block", "reason": _cannot_evaluate(
+            "the tool-call payload on stdin could not be parsed as JSON",
+            "this usually indicates a hook-wiring defect -- report it",
+            exc,
+        )}, ensure_ascii=True))
+        return 2
     if not isinstance(payload, dict):
-        return 0
+        print(json.dumps({"decision": "block", "reason": _cannot_evaluate(
+            "the tool-call payload was not a JSON object",
+            "this usually indicates a hook-wiring defect -- report it",
+            TypeError(f"payload is {type(payload).__name__}, not a dict"),
+        )}, ensure_ascii=True))
+        return 2
     decision, reason = decide_with_store(payload)
     if decision == "block":
         print(json.dumps({"decision": "block", "reason": reason}, ensure_ascii=True))

@@ -19,6 +19,105 @@
 
 ---
 
+### 2026-09-13 (d) - CC (Opus 5, background integrator seat): the x-675 anchor arc anchors itself
+
+**Names `84f187a9`**, the entry below, which this arc's own `--no-ff` merge introduces.
+Two commits, JOURNAL last, for the reason entry (b) states.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+### 2026-09-13 (c) - CC (Opus 5, background integrator seat): the x-675 merge, anchored — and three false-pass holes in the instruments it lands
+
+**Anchors:** `2709256a` — the `worktree-lane-x-675-merge-cost` merge, by way of `82c03724`
+(the lane's sync-merge onto `6127a466`) and the eight commits it introduced.
+
+**Merged.** `2709256a` — lane x-675 @ `82c03724`, by SHA, `--no-ff`, synced onto current `main`
+first. Lands `merge_receipt.py`, `actions_verdict.py`, `review_packet.py`, `dispatch_conformance.py`
+and the step-0 `file-collision` refusal. Targeted tests on the merged tree: **292 passed**. The
+one sync conflict was `ecosystem/doc-counts.md`, generated — resolved by regeneration, not by hand.
+
+**The generated count could not be taken from the generator.** `gen_doc_counts.py` computes from
+`HEAD`, and mid-merge `HEAD` is still the lane tip, so it wrote the lane's pre-sync `6231`. The
+merged tree collects **6238** (`6141` at the merge-base, `+90` lane, `+7` from x-727) — measured
+with `pytest --collect-only`, not inferred, and written by hand. A generator invoked during a
+merge reports the wrong side silently; it exits 0 either way.
+
+**Integrator review — codex, CRITICAL:0 HIGH:4 MED:0 LOW:0.** All four verified against the code
+rather than taken on the reviewer's word. **Three of them strike this row's own Done-when**, which
+says in terms that its target is "six things, all six and not a pick-list":
+
+- **Target 2** (`the integrator READS the Actions result`) — `actions_verdict.py:206` swallows a
+  failed `gh run view --json jobs` into `match["jobs"] = []`. `verdict_for` then computes
+  `failing = set()` and returns `STATE_PASS`. **A completed run whose job details cannot be read
+  reports PASS.** This is the `[#727]` allow-on-failure class, reintroduced in new code, in the
+  instrument wave-3 lane 1 will use to prove conductor E — so lane 1's first datum can be a false
+  green. The most consequential finding of this seat's night.
+- **Target 4** (`the dispatcher REFUSES two lanes whose contracts touch the same file`) —
+  `seat_refusals.py:303` requires a slash and an allowed directory prefix, so root-level tracked
+  files are invisible to the collision extractor. Two lanes may both declare
+  `.pre-commit-config.yaml` and pass step 0.
+- **Target 6** (`median merge under 30 minutes, MEASURED`) — `merge_receipt.py:449` counts closed
+  receipts with missing or failed steps, so `median --strict` can meet the under-30 target on
+  incomplete receipts. The row's own text calls a median reached this way "a false pass on this
+  row".
+
+**Merged anyway, and that is a judgement, not an oversight.** The tooling is strictly better
+landed than not, every hole is latent rather than newly wired into a gate, and none of the three
+is in scope for a merge-time edit under ADR-108 §B (each needs a RED-first witness first). The
+**closure verdict for `[#675]` is the operator's on this evidence** — by the row's own "all six"
+standard the evidence does not support a clean close. Recorded as CANDIDATEs for intake per the
+ADR-111 funnel.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+### 2026-09-13 (b) - CC (Opus 5, background integrator seat): this anchor arc anchors itself
+
+**Names `1aec53f0`**, the entry below, which this arc's own `--no-ff` merge introduces.
+Two commits, JOURNAL last: a one-commit arc could only name its own hash, which does not
+exist when the entry is written. APPEND ONLY, B6.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+### 2026-09-13 (a) - CC (Opus 5, background integrator seat): the x-727 merge, anchored — and why wave 2 owes an anchor arc per merge
+
+**Anchors:** `a8dee4ac` — the `worktree-lane-x-727-fail-closed` merge, by way of `bd267190`
+and the three commits it introduced.
+
+**Merged.** `a8dee4ac` — lane x-727 @ `bd267190`, by SHA, `--no-ff`. `deny_and_point`'s three
+declared allow-on-failure paths now refuse instead of permit, RED-first (tests committed failing
+ahead of the fix). `[#727]`'s fail-posture clause is green; the row's closure is the operator's
+word under AX24-5.
+
+**Integrator review — codex, CRITICAL:1 HIGH:1 MED:0 LOW:0.** The lane handed back carrying no
+review tally at all, so the review is this seat's, not the lane's. Both findings were resolved
+against the frozen Done-when rather than waved through, and both are dispositioned in the wave-2
+integration packet. Neither blocks: the CRITICAL (a shell-tokenization `ValueError` at
+`scripts/hooks/deny_and_point.py:562` still returning `[]`, hence allow) names a FOURTH path,
+where the frozen clause scopes the lane to "the three allow-on-failure paths"; and its fix
+direction contradicts that function's own recorded reasoning, which says in terms that
+over-blocking is the expensive failure this row names. It leaves as a CANDIDATE for intake,
+per the ADR-111 funnel, rather than as a silent merge-time edit.
+
+**The HIGH is real, CI-shaped, and routed rather than fixed here.** `test_a_CRASH_MID_EVALUATION_fails_CLOSED`
+and `test_an_UNRECOGNISED_VERDICT_fails_CLOSED` patch `decide` but not `load_processes`, and
+`decide_with_store` returns allow at its `if not processes` short-circuit before either patched
+predicate runs. They pass on this box only because the store is populated. The store lives at
+`.git/fpg-graph/FPG.db` — inside the git dir, so never cloned — which makes this two guaranteed
+REDs on a fresh Actions runner. Proved rather than argued: with `load_processes` stubbed to `{}`
+the verdict is `('allow', 'no persisted process set to judge against')`. Handed to wave-3 lane 2
+(AX28-1, "trustworthy suite"), whose charter is exactly this class.
+
+**Why this arc exists at all, which is the reportable part.** The batch X and X2 manifests carry
+no `status: open` / `closed_by:` frontmatter, so `batch_manifest.open_batches` returns `[]` and
+the ADR-110 declared-integration-arc exemption is NOT live. Without it `journal_spine_anchor`
+FAILs on every commit taken while a lane merge sits unanchored on main's first-parent spine —
+including the next lane's own sync-merge commit. Wave 2 therefore owes one anchor arc per merge
+instead of the single batch anchor AX28-3 asks for. The diagnostic was run before concluding it:
+`introduced` returns five SHAs, anchored-in-tree and anchored-at-main are both False, and the
+committing tree already contains `a8dee4ac` — a real gap, not the tree-lag phantom.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-12 (k) - CC (Opus 5, background integrator seat): the x2 anchor arc anchors itself
 
 **Names `aa212ee4`**, the entry below, which this arc's own `--no-ff` merge introduces.
