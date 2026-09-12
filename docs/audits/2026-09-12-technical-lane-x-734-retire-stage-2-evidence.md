@@ -451,3 +451,109 @@ widen a live refusal predicate on its own motion — that is a mechanism change,
 
 `uv run --locked python scripts/audit.py health` → **`health: OK`** (the
 `canonical_freshness` FAIL cleared; no new FAIL introduced).
+
+## Step 5 — `deploy/lived_sandbox/` dispositioned FILE BY FILE
+
+Clause 4 asked for a per-file disposition the first run was not scoped to make, and expected
+most of it to land as *KEPT-as-inconclusive*, since seven of the eight return FPG-1 `REFUSED`.
+
+**The per-file work changes that answer. Seven of the eight are KEPT on POSITIVE evidence, not
+on inconclusiveness** — and the eighth (`__init__.py`) on a structural necessity. `REFUSED`
+here turns out to mean *FPG-1's governed inputs do not reach this file*, not *nothing reads
+this file*.
+
+### The FPG-1 re-run, verbatim (today's tree, not inherited)
+
+Re-executed per file. `arc.py`:
+
+```
+path     : deploy/lived_sandbox/arc.py
+purpose  : Lived-workflow sandbox — the GATED-MESH ARC driver + GATE-0 (Slice B; [#252]).
+
+consumers (1) -- what reads this
+  - is implemented by    task:267                                             [task-implements]
+```
+
+The other seven, each identically:
+
+```
+REFUSED: deploy/lived_sandbox/<name>.py: nothing explains this file. It is on disk and no governed input (doc-code-edge registry, audits index, consumer-at-landing citation, tasks/ depends-on, deploy manifest) names it. A file nothing explains is a defect, not a mystery.
+```
+
+Reproduced exactly against the first run. `[#267]` re-verified live: `status: open`, and its
+`refs` line names `deploy/lived_sandbox/arc.py (ARC_PROMPT)`.
+
+### Three readers FPG-1's governed-input set cannot see
+
+1. **Intra-package imports.** Read off the modules themselves:
+
+```
+arc.py       -> observe, oracle, spawn
+cli.py       -> arc, isolation, spawn   (+ consumer, DEFERRED at cli.py:142)
+consumer.py  -> arc, observe, oracle, spawn
+isolation.py -> spawn
+observe.py   -> oracle
+oracle.py    -> (none)
+spawn.py     -> (none)
+```
+
+2. **Tests.** Three modules import all eight: `tests/test_lived_sandbox.py` (isolation, spawn),
+   `tests/test_lived_sandbox_consumer.py` (arc, cli, consumer, observe, oracle, spawn),
+   `tests/test_lived_sandbox_observer.py` (arc, oracle). `pytest --collect-only` over the three:
+   **117 tests collected**.
+
+3. **`ARCHITECTURE.md:1007`** carries a dedicated row for the directory in the
+   *Execution substrates* table, describing it as *"the only organ that measures whether the
+   carried methodology actually **engages** in a consumer-shaped session, rather than whether it
+   is **present**"*, citing the Fable architecture review 2026-07-04 §6 and `[#252]`.
+
+### Per-file disposition
+
+- **`arc.py` — KEEP. LIVE READER.** Open row `[#267]` names it directly as `ARC_PROMPT`. The
+  contract's own clause-4 ruling, re-verified rather than carried.
+- **`observe.py` — KEEP. LIVE BY INHERITANCE.** Imported by `arc.py:30`, which is the confirmed
+  live file. Deleting it breaks the one member nobody disputes.
+- **`oracle.py` — KEEP. LIVE BY INHERITANCE.** Imported by `arc.py:31` and by `observe.py:28`.
+- **`spawn.py` — KEEP. LIVE BY INHERITANCE.** Imported by `arc.py:32`, `cli.py:31`,
+  `isolation.py:17` and `consumer.py:29` — the most-depended-on file in the package.
+- **`cli.py` — KEEP. THE PACKAGE ENTRYPOINT.** `python -m lived_sandbox.cli observe-arc` is the
+  documented invocation (its own docstring; `docs/audits/2026-07-05-ai-council-measurement-2.md`
+  records a real run through it). It imports `arc.py`.
+- **`consumer.py` — KEEP. REACHED BY A DEFERRED IMPORT.** `cli.py:142` does
+  `from . import consumer as _consumer` **inside** `cmd_observe_consumer`, so no module-level
+  scan sees the edge. This is precisely the invisible-edge class ADR-89 declares for the static
+  oracle, met here in FPG-1's import input instead.
+- **`isolation.py` — KEEP.** Imported by `cli.py:30`; carries the Slice A isolation proof
+  (`docs/audits/2026-07-04-codex-lived-sandbox-slice-a.md` audits it by name).
+- **`__init__.py` — KEEP. STRUCTURALLY REQUIRED.** Every `from . import X` above resolves
+  through it. Deleting it breaks the package outright. Its `REFUSED` verdict is the clearest
+  demonstration that `REFUSED` is not a deadness signal: no governed input names a package
+  marker, and none ever will.
+
+**Verdict: all 8 KEPT. ZERO deletions from `deploy/lived_sandbox/`** — which is also what the
+contract's "do not delete any file on a `REFUSED` verdict" bound requires, reached here by
+positive evidence rather than by the bound alone.
+
+### The finding this step actually produces
+
+**`REFUSED` from FPG-1 `why` is not evidence of deadness, and this directory is the clean
+demonstration.** Eight files, all `REFUSED` except one — and on inspection the package is a
+documented organ with 117 tests, an entrypoint, an open backlog row, and a dense internal
+import graph. FPG-1's governed inputs (doc-code-edge registry, audits index,
+consumer-at-landing citation, `tasks/` depends-on, deploy manifest) simply do not include
+**Python imports** or **test coverage** for a `deploy/` path.
+
+Its refusal text — *"A file nothing explains is a defect, not a mystery"* — reads as a verdict
+about the FILE when it is a verdict about the REGISTRY's reach. On this corpus it produced a
+**7-of-8 false-positive rate**.
+
+**Open item for the architect (ADR-118's live subject, so it lands in the right lap):** either
+teach FPG-1's `why` to consider import and test edges for non-`scripts/` paths — it already
+holds `imports` as an edge kind for the `scripts/` corpus — or narrow the refusal's wording so
+it claims what it can support: *no governed input names this file*, not *nothing explains* it.
+This lane does not change a refusal's semantics on its own motion.
+
+**Recorded against clause 4's expectation, honestly:** the contract predicted this step would
+record seven KEEPS as inconclusive. It instead records seven KEEPS as **positively live**. That
+is a better outcome for the tree and a worse one for the census, whose `GARBAGE-CANDIDATE`
+framing of this directory rested on the same blind spot.
