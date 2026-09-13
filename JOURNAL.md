@@ -19,6 +19,13 @@
 
 ---
 
+### 2026-09-13 (n) - CC (Opus 5, background integrator seat): the suite anchor arc anchors itself
+
+**Names `2671d8e8`**, the entry below, which this arc's own `--no-ff` merge introduces.
+Two commits, JOURNAL last, for the reason entry (b) states.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-13 (m) - CC (Opus 5, background integrator seat): the suite stops lying — and the three fixes are attributed, not asserted
 
 **Anchors:** `81c0a4c9` — the `worktree-lane-x-000-trustworthy-suite` merge, by way of
