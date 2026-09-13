@@ -66,7 +66,7 @@ def _violations(components: list[dict], manifest_name: str, *, payload_exists: b
     # own documented lifecycle) carries the retired id forever by design and ships no
     # artifacts; the artifacts[].path leg below still catches a tombstone that keeps shipping
     # the payload, so narrowing this leg to `active` loses no real coverage.
-    if any(c.get("id") == _COMPONENT_ID for c in components):
+    if any(c.get("id") == _COMPONENT_ID and c.get("status") == "active" for c in components):
         violations.append(f"manifest node present: {manifest_name} id={_COMPONENT_ID}")
 
     shipping = sorted(
