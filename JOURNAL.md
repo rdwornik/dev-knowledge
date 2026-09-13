@@ -19,6 +19,114 @@
 
 ---
 
+### 2026-09-13 (h) - CC (Opus 5, background integrator seat): the closure arc anchors itself
+
+**Names `08b41fe3`**, the entry below, which this arc's own `--no-ff` merge introduces.
+Two commits, JOURNAL last, for the reason entry (b) states.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+### 2026-09-13 (g) - CC (Opus 5, background integrator seat): the wave-2 dispatcher freeze, anchored — and ONE of three rows closes
+
+**Anchors:** `0cd4c9d2` — the `worktree-dispatch-x2-freeze` merge, by way of `60a32549` (the
+sync-merge onto `81a7b1a7`) and `674e67ce`.
+
+**Merged.** `0cd4c9d2` — the dispatcher's wave-2 freeze branch @ `60a32549`, by SHA, `--no-ff`.
+**DOCS-ONLY was VERIFIED, not taken on the word:** `git diff --name-only main...674e67ce` returns
+zero files under `scripts/` or `tests/`. Carries the AX25 root-cause note, the `[#675]` contract
+amendment folding in the conformance test, and rows `[#740]` / `[#741]`. Its sync onto main was
+conflict-free. `review=n/a` — a docs-only branch is owed no reviewer under D-1, and that is not
+the same as `review=NONE`.
+
+**Wave 2 is now fully merged: `a8dee4ac` (x-727), `2709256a` (x-675), `69c8a344` (x-734),
+`0cd4c9d2` (dispatcher).** Every lane was synced onto current `main` before its own merge, each
+merged by SHA rather than by branch name, and each torn down after.
+
+## The closure verdict — one of three, and the other two are held with evidence
+
+AX26-4 authorised closing `[#727]`, `[#675]` and `[#734]` on the operator's word. That word was
+given before tonight's reviews existed. **`[#727]` closes. The other two do not, and the reason
+in each case is the row's own Done-when read back against what landed.**
+
+- **`[#727]` — CLOSED, proving SHA `a8dee4ac`.** The amended clause ("does not close until that
+  clause is green") is green: the three declared allow-on-failure paths refuse, each naming cause
+  and fix, each with a RED-first trip-test. **Proved beyond its tests** — the guard refused this
+  integrator's own `Bash` calls mid-session and named the organ to run, which is the pointer half
+  working in production against the seat merging it.
+- **`[#675]` — HELD.** Its Done-when says its target is "six things, all six and not a pick-list".
+  **Three carry verified false-pass holes** (entry (c)): target 2's `actions_verdict` reports PASS
+  when job details cannot be read, target 4's collision refusal cannot see root-level files,
+  target 6's `median --strict` counts incomplete receipts. The row's own text calls a median
+  reached that way "a false pass on this row". Closing it would be that false pass.
+- **`[#734]` — HELD.** Its Done-when has four clauses; **clause 2, "the 16 UNKNOWN are resolved
+  to a live/non-live verdict by a second pass rather than carried forward", is undischarged.**
+  The stage-2 evidence file does not contain the string UNKNOWN at all, and **stage 1 recorded the
+  position explicitly**: *"Not closed by this lane. `[#734]`'s Done-when covers the full census
+  disposition (35 non-live items each DELETE/TRIGGER/KEEP, 16 UNKNOWN resolved by a second pass,
+  delivered as ONE file for ONE GO). This lane executed only the already-GO'd deletion leg."*
+  The row itself predicted this: clause 2 is "the clause most likely to be quietly dropped,
+  because an UNKNOWN is the one bucket that costs work to empty and looks harmless full." It was.
+
+**Both holds are one operator word away** — `to-browser/CLOSURE-VERDICTS-2026-09-13.md` states each
+as a single GO/NO-GO, per AX27-5's one-word shape. Holding is the cheap direction: a row closed on
+evidence that does not support it buries its own remainder, and `[#734]`'s KEPT items keep their
+reasons either way.
+
+**Changes.** `JOURNAL.md` (this entry), `tasks/727-*.md` (removed), `tasks/manifest.json`,
+`BACKLOG.md` (regenerated, 313 -> 312 rows).
+
+### 2026-09-13 (f) - CC (Opus 5, background integrator seat): the x-734 anchor arc anchors itself
+
+**Names `b154fd1a`**, the entry below, which this arc's own `--no-ff` merge introduces.
+Two commits, JOURNAL last, for the reason entry (b) states.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+### 2026-09-13 (e) - CC (Opus 5, background integrator seat): the x-734 merge, anchored — two more importers the SAFE oracle could not see
+
+**Anchors:** `69c8a344` — the `worktree-lane-x-734-retire-stage-2` merge, by way of `14bde495`
+(the lane's sync-merge onto `937549c3`) and the six commits it introduced.
+
+**Merged.** `69c8a344` — lane x-734 @ `14bde495`, by SHA, `--no-ff`, synced onto current `main`
+first. **5707 deletions against 887 insertions**: six census orphans retired with module, test,
+disposition and fixture row each. `scripts/graph_queries.py` was touched by BOTH this lane and
+x-675 and auto-merged without conflict — the file-collision the step-0 refusal exists to catch,
+and which its root-level blind spot (entry (c), target 4) would not have caught anyway. Verified
+by test rather than trusted: `test_graph_spine.py` + `test_graph_queries.py` pass on the merged
+tree. The one sync conflict was `ecosystem/doc-counts.md`; the merged tree collects **6012**
+(`6238` − the lane's 226 removed tests), measured, and the gate count takes main's **31**.
+
+**Integrator review — codex, CRITICAL:0 HIGH:2 MED:0 LOW:0. Both are the lane's OWN class,
+found in the lane's own removal set, and both were missed by its dispositioning:**
+
+- `.devcontainer/provision.sh` invokes the retired `scripts/cloud_provisioning.py` at **six**
+  sites (349, 350, 367, 368, 585, 587). Every call site absorbs the failure with `||`, so
+  provisioning will not crash — it will silently record "changed", never run the history or
+  ecosystem repair, and report drift that no longer gets computed. Fail-open in shape, again.
+- `tests/test_e2e_consumer_lifecycle.py:94` loads the retired `scripts/boundary_report.py` by
+  explicit path through importlib. **Latent, not red:** the module is `RUN_E2E`-gated and skips
+  here, so it is green on this box and red wherever it actually runs.
+
+**This is the ADR-89 false-PASS class the lane itself discovered and named** — `safe_remove`
+returns SAFE for a module reached by a path or importlib load, because a static importer scan
+cannot see one. The lane found it for `desired_state_loader`, restored that module, and wrote it
+up; these are two further instances of the same blind spot, one of them a non-test consumer the
+scan was never going to reach. **The oracle's SAFE remains necessary and not sufficient.**
+
+**Neither blocks tonight, checked rather than assumed:** `.github/workflows/conductor.yml`
+references neither module, so wave-3's Actions proof is untouched.
+
+**Restore-the-modules vs drop-the-dead-callers is not this seat's call.** It is a functional
+question (ADR-108 §A) with two defensible answers, and the lane's own precedent points at
+restore. Recorded for the operator's morning GO rather than settled at merge time — and it is
+what `[#734]`'s KEPT list should grow by.
+
+**Also inherited from the lane, for dispositioning:** `#369` (the boundary-headers generator's
+pre-commit wiring) is **moot** now that `boundary_headers.py` is retired — the lane flagged it
+for the integrator and correctly declined to disposition another row itself.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-13 (d) - CC (Opus 5, background integrator seat): the x-675 anchor arc anchors itself
 
 **Names `84f187a9`**, the entry below, which this arc's own `--no-ff` merge introduces.
