@@ -71,3 +71,68 @@ reconciliation, or a byte-cap test); every prologue's *prose body* — the bulk 
 in every case — has zero readers found. ESSENTIALS.md is the partial outlier: superseded
 and told not to be booted from, yet still content-parsed by the freshness gate that
 governs every other canonical file.
+
+## Step 3 — the docs-cut list (proposal only)
+
+Five items, one per named section, in AX27-5's one-word shape (`to-browser/CLOSURE-VERDICTS-2026-09-13.md`
+is the live precedent: *"Ask: ... GO/NO-GO"* + evidence + a bolded one-word
+`Recommended:`). **A recommendation here is not a cut.** Per the Done-contract, this
+lane's diff touches no governed doc body; the word below is this census's read of its own
+evidence, for the operator to accept or reject in a *later* lane. `AX28-2` names this
+list's own slot in that numbering — it carries no separate written ruling of its own;
+`AX28-1` ("trustworthy suite", `JOURNAL.md:268`) and `AX28-3` (the single-batch-anchor
+ask, `JOURNAL.md:275`) are its siblings, and `AX27-5` (`JOURNAL.md:123`) is the prior
+one-word-shape instance this list's format is drawn from.
+
+---
+
+**1 — ARCHITECTURE's prologue.** Ask: cut the dated change-history blockquote (roughly
+lines 17–276, ~29 KB) down to just the "How to read this doc" reader-routing guide
+(lines 260–276, ~1 KB)? **GO/NO-GO.**
+Evidence: Step 2 found zero readers on the prose body; the blockquote is a chained
+sequence of per-lane dated entries ("Last updated: `2026-09-12` — lane...", "Prior:
+`2026-08-29` —...") that is structurally the same *history-accretion* shape `audit.py`'s
+own `doc_rot` check already flags as bloat elsewhere in this repo (BACKLOG rows, not yet
+extended to canonical-doc prologues) — 3+ dated entries chained is already this repo's own
+bloat signature. The reader-routing guide is the one part of the prologue any session
+persona is actually pointed at (CLAUDE.md §3's "Where to jump" line routes into chapters,
+never into the history).
+**Recommended: GO.**
+
+**2 — ARCHITECTURE's table of contents.** Ask: cut it? **N/A — nothing exists to cut.**
+Evidence: deleted 2026-07-11 (`f7a548d2`), hub leg `[#326]`, deliberately and already
+closed for this file. No action is available here; this item exists in the list only
+because the Done-contract named it.
+
+**3 — CLAUDE.md's prologue.** Ask: trim it? **GO/NO-GO.**
+Evidence: already the smallest of the five (964 B, 4.0% of the file); Step 2 found 2 live
+readers touching its actual content (the freshness gate's frontmatter read, and
+`tests/test_claude_md_byte_cap.py`'s live regex match on the declared cap); it states the
+file's own governing budget and the boot-contract framing every other section depends on.
+**Recommended: NO-GO.**
+
+**4 — protocols/ESSENTIALS.md.** Ask: retire it now? **GO/NO-GO.**
+Evidence: already marked `status: superseded` pending `[#628]`; Step 2 found the
+freshness gate still content-parses and re-dates it despite `CLAUDE.md` §4 telling every
+session not to boot from it — superseded but not inert. This finding does not open a new
+decision; `[#628]` already owns the retirement. It is evidence that `[#628]`'s dissolution
+is not yet complete (the registry memberships in `canonical_docs.py` — `CANONICAL_OPTIONAL`,
+`FRESHNESS_FILES`, `SECTION_HISTORY_DOCS`, `STRUCTURE_DOCS` — still treat it as live),
+not a reason to invent a second track.
+**Recommended: GO — on the already-open `[#628]`, not as a new ask.**
+
+**5 — PLAYBOOK's prologue.** Ask: cut the review-pass blockquotes (lines ~7–95) down to
+the frontmatter, title, and the "Organization" paragraph? **GO/NO-GO.**
+Evidence: Step 2 found zero readers on this prose (the `reconciled_with` frontmatter key
+that DOES have 3 live readers sits above the blockquotes and is untouched by cutting them);
+the blockquotes are the same chained dated-entry shape as item 1, and PLAYBOOK's own
+frontmatter-adjacent text already states the governing principle that argues for the cut:
+*"Section history lives in git (commit log + JOURNAL `Changes:` line), not in per-section
+changelog blocks — per ADR-49."* ADR-49 is cited inside the very passage this item proposes
+cutting.
+**Recommended: GO.**
+
+---
+
+**Net:** 3 GO, 1 NO-GO, 1 N/A. No item is executed by this lane — Done-contract item 3
+binds: nothing is cut here.
