@@ -196,6 +196,19 @@ def test_adapter_unverifiable_warns_not_fails(tmp_path, monkeypatch):
     assert "unverifiable" in findings[0].evidence.lower()
 
 
+def test_adapter_review_warns_not_fails(tmp_path, monkeypatch):
+    """A REVIEW Verdict (downgraded from SAFE) -> a single WARN Finding naming the hit site,
+    never FAIL — the adapter's mirror of the unverifiable mapping above."""
+    review = sr.Verdict(
+        "review", ["scripts/orphan_loader.py"],
+        reason="1 bare-stem string-literal hit(s) for orphan_loader",
+        review_hits=[{"file": "tests/test_dynamic.py", "line": 1}])
+    monkeypatch.setattr(aud._sr, "check_removal", lambda *a, **k: review)
+    findings = aud.check_safe_removal(tmp_path)
+    assert [f.status for f in findings] == ["warn"], [(f.status, f.evidence) for f in findings]
+    assert "tests/test_dynamic.py:1" in findings[0].evidence
+
+
 # =======================================================================================
 # Layer B — real-oracle catch (@requires_pyright): the GAP-1 payoff is real
 # =======================================================================================
