@@ -579,9 +579,7 @@ CENSUS_SCRIPT_ORPHANS = (
     "scripts/desired_state_loader.py",
     "scripts/export_backlog_view.py",
     "scripts/logs_retention.py",
-    "scripts/nopack_sandbox.py",
     "scripts/setup-fleet-scheduler.ps1",
-    "scripts/trace_writer.py",
     # RETIRED by lane `lane-x-664-delete-list-execution` ([#664]'s ratified DELETE list,
     # 2026-09-13), same rule as the [#734] block below and named separately so the two
     # retirements stay attributable. Each module left with its dedicated tests and its
@@ -596,6 +594,9 @@ CENSUS_SCRIPT_ORPHANS = (
     #   `test_failed_set.py`). Ordered for the same class of reason: `failed_set` was an orphan
     #   BY INHERITANCE from `window_metrics.py:359` and its own row said it is dispositioned
     #   WITH its caller and not before it.
+    #   `nopack_sandbox.py` and `trace_writer.py` (+ `test_nopack_sandbox.py`,
+    #   `test_trace_writer.py`). Unordered, and that is a fact rather than an omission: these
+    #   two carried NO inbound edge of any kind, so neither could be the other's reason.
     # RETIRED by lane `lane-x-734-retire-stage-2` ([#734], the AX13-2 retire stage), not
     # dropped silently: `boundary_headers.py`, `boundary_report.py`, `cloud_provisioning.py`,
     # `probe_child_backlogs.py`, `seed_runbook.py`, `validate_onboarding_rulings.py` and

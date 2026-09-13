@@ -249,12 +249,12 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
         reason=f"{_LANE_BUILT}; the DECLARE §3 names run_retention() at 0 callers and the "
                f"census confirms it at module level too",
         owner="V+1 retirement-or-wiring list"),
-    "scripts/nopack_sandbox.py": Disposition(
-        reason=f"{_LANE_BUILT}; only call site is LANE-e-5-vision-relocation.md:46",
-        owner="V+1 retirement-or-wiring list"),
-    "scripts/trace_writer.py": Disposition(
-        reason=f"{_LANE_BUILT}; only call site is LANE-t-000-trace-scorecard.md:47",
-        owner="V+1 retirement-or-wiring list"),
+    # `scripts/nopack_sandbox.py` and `scripts/trace_writer.py` WERE dispositioned here. Retired
+    # by `[#664]`'s ratified DELETE list (2026-09-13, lane
+    # `lane-x-664-delete-list-execution`). These two carried NO inbound edge of any kind -- not
+    # a row, not an import, not a wiring surface -- so unlike the four above they left no
+    # `task-implements` residue behind them. Their only recorded call sites were spent lane
+    # contracts, which are immutable and already run.
     # `scripts/window_metrics.py` and `scripts/failed_set.py` WERE dispositioned here. Retired
     # by `[#664]`'s ratified DELETE list in that order (2026-09-13, lane
     # `lane-x-664-delete-list-execution`): `failed_set` was an orphan BY INHERITANCE from
