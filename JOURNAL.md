@@ -19,6 +19,47 @@
 
 ---
 
+### 2026-09-13 (w) - CC (Opus 5, background integrator seat): the conductor's one new node id, attributed and closed
+
+**Anchors:** `338fd126`, introduced by this arc's own `--no-ff` merge.
+
+**Did.** Read the Actions conductor's full-suite run on batch X4's merged tip
+(`786ed642`, run 34763603167) rather than merely running it, and attributed its result
+against the delete-list lane's recorded Actions BASELINE at `c0e0722f` (`cb0cf65c`).
+
+**Result.** 50 failed / 6037 passed / 22 skipped / **2 xfailed** at the tip, against 55
+failing node ids at the baseline. The count fell. **Exactly ONE node id was present at the
+tip and absent from the baseline**, and it was real:
+`tests/test_release_lint.py::test_current_manifest_still_engages_the_live_c7_mirror`.
+
+The 2 xfailed are this batch's own `[#748]`/`[#749]` witnesses, RED on the conductor as
+designed — the strict marker means they will turn the suite RED the moment either refusal
+is implemented and the marker is left on.
+
+**The finding, and why the lane could not have seen it.** `lane-x-628-docs-cut` retired
+`protocols/ESSENTIALS.md` from four freshness/structure registries, per ratification item 7.
+There is a FIFTH surface: `deploy/manifest-v1.5.0.yaml`'s `doc_shapes` block, whose own
+header comment declares it a MIRROR of
+`canonical_freshness_gate.DEFAULT_FRESHNESS_FILES`. `release_lint` C7 exists so that mirror
+cannot drift silently, and it fired correctly. The lane's diff touches nothing under
+`deploy/`, and C7 compares only the CURRENT manifest, so no in-lane gate could have caught
+it — **this is the class of defect the "one full suite on the MERGED result" checklist item
+exists for**, and it is the first time this seat has had that item pay for itself.
+
+Flipped rather than deleted: `freshness_gated: false`, the shape `JOURNAL.md` and
+`LESSONS.md` already carry. `ESSENTIALS.md` still exists (superseded, pending `[#628]`), so
+it keeps its declaration; removing the node would have tripped six surfaces to fix one.
+
+**Changes:** `deploy/manifest-v1.5.0.yaml` (one line), `JOURNAL.md`.
+
+**Abandoned.** Nothing.
+
+**Next.** Unchanged from entry (v): the X4 manifest still has to land from
+`worktree-dispatch-x4-freeze` before batch X4 can close, and the five worktrees still hold
+live sessions, so teardown waits on each lane's word. The remaining 49 failing node ids are
+the pre-existing population entry (u) characterised — ENV-only, DATA drift, and two
+suspected real defects — and none of them is this batch's.
+
 ### 2026-09-13 (v) - CC (Opus 5, background integrator seat): batch X4's merge queue drains -- four merges, one anchor, and the reason one anchor was possible at all
 
 **Anchors:** `bebd002f` (introduced by `87db8060`), `130302ea` (by `0d6b7251`), `bec8b597`
