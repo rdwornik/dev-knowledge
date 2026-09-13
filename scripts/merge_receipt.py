@@ -229,6 +229,56 @@ class Receipt:
     def failed_steps(self) -> list[StepTiming]:
         return [s for s in self.steps if not s.ok]
 
+    # -- completeness (`[#744]`) --------------------------------------------------------------
+
+    def incompleteness_reason(self) -> Optional[str]:
+        """WHY this receipt is not a usable measurement, or None when it is.
+
+        ONE EXPLICIT PREDICATE IN CODE, which is `[#744]`'s own requirement -- "rather than left
+        to the reader". Until 2026-09-13 `median_report` filtered by `kind` and by nothing else,
+        so an abandoned receipt, a receipt whose suite step exited non-zero and a receipt that
+        recorded one step out of four all counted at FULL WEIGHT in a number printed as "median
+        merge minutes". The live ledger held two rows, both with failed steps, one of them
+        0.0 minutes, and the tool reported `median 9.4 min (target 3.6: MET)` over them.
+
+        THE REASON IS RETURNED, NOT A BARE BOOLEAN, for the same argument `REMEDIES` makes in
+        `actions_verdict`: an exclusion a reader cannot account for looks like a bug in the
+        tool, and the count alone ("3 excluded") does not say whether the ledger is dirty or the
+        merges are.
+
+        The legs, in the order a reader should think about them:
+
+          1. NEVER CLOSED -- it was opened and abandoned. Its wall time is whatever had elapsed
+             when someone stopped writing, which is not a duration of anything.
+          2. NO STEPS -- wall time 0.0, the most dangerous plausible value this module can
+             produce: it meets target 3.6 spectacularly and means nothing.
+          3. A FAILED STEP -- the arc did not complete, so its duration times a different event
+             than the one the median claims to summarise.
+          4. A MERGE MISSING A REQUIRED STEP -- an unrecorded step reads exactly like a fast
+             one, which is this module's founding complaint.
+
+        LEG 4 IS SCOPED TO `kind == merge`, and that is a decision rather than an oversight.
+        `REQUIRED_STEPS` is the INTEGRATOR's walk, and this module's own docstring says an arc
+        "pays no merge and no teardown"; holding an arc to it would make `median --kind arc`
+        permanently n=0 for a reason that is not incompleteness. Legs 1-3 bind both kinds.
+        """
+        if self.closed is None:
+            return "never closed -- opened and abandoned, so its wall time times nothing"
+        if not self.steps:
+            return "no steps recorded -- wall time 0.0, which is not a measurement"
+        failed = self.failed_steps()
+        if failed:
+            return (f"{len(failed)} step(s) failed ({', '.join(s.step for s in failed)}) -- "
+                    f"the arc did not complete")
+        if self.kind == KIND_MERGE and (missing := self.missing_required()):
+            return (f"missing required step(s): {', '.join(missing)} -- an unrecorded step "
+                    f"reads exactly like a fast one")
+        return None
+
+    def is_complete(self) -> bool:
+        """True when this receipt is a usable measurement. See `incompleteness_reason`."""
+        return self.incompleteness_reason() is None
+
     # -- serialisation ------------------------------------------------------------------------
 
     def to_dict(self) -> dict:
@@ -367,9 +417,19 @@ def close_receipt(repo_root: Path, slug: str) -> Receipt:
 
 
 def read_ledger(repo_root: Path) -> list[Receipt]:
-    """Every closed receipt, oldest first. A malformed line is REPORTED and skipped rather than
-    crashing the read: the ledger is append-only, so a bad line cannot be repaired in place, and
-    one bad line must not make every good one unreadable."""
+    """Every receipt in the ledger, oldest first, WHETHER OR NOT IT IS COMPLETE.
+
+    THE NAME OF THIS FUNCTION IS "READ", and until 2026-09-13 its docstring said "Every closed
+    receipt" while it filtered nothing -- the claim was simply untrue, and `median_report` and
+    `MedianReport.render` both inherited it (`n=… closed receipt(s)` over rows nothing had
+    checked). The read stays unfiltered on purpose, because a caller wanting the ledger's real
+    contents should get them; the judgement lives in `Receipt.is_complete` and the filtering in
+    `median_report`, where it is reported rather than silent (`[#744]`).
+
+    A malformed line is REPORTED and skipped rather than crashing the read: the ledger is
+    append-only, so a bad line cannot be repaired in place, and one bad line must not make every
+    good one unreadable.
+    """
     path = ledger_path(repo_root)
     if not path.exists():
         return []
@@ -404,6 +464,13 @@ class MedianReport:
     kind: str = KIND_MERGE
     #: Receipts in the ledger of some OTHER kind. Reported, never silently dropped.
     excluded: int = 0
+    #: Receipts of the RIGHT kind that were not usable measurements (`[#744]`). Reported for
+    #: exactly the reason `excluded` is: a median over a thinned sample must never render as a
+    #: median over a full one.
+    incomplete: int = 0
+    #: One line per excluded receipt, naming it and WHY. A count alone cannot tell a reader
+    #: whether the ledger is dirty or the merges are.
+    incomplete_reasons: tuple[str, ...] = ()
 
     def meets_target(self) -> bool:
         return self.median_minutes < TARGET_MEDIAN_MIN
@@ -412,11 +479,18 @@ class MedianReport:
         skipped = (f" ({self.excluded} receipt(s) of another kind EXCLUDED -- a median over "
                    f"mixed arcs answers a different question than target 3.6 asked, and answers "
                    f"it flatteringly)" if self.excluded else "")
+        if self.incomplete:
+            skipped += (f" ({self.incomplete} INCOMPLETE {self.kind} receipt(s) EXCLUDED -- an "
+                        f"incomplete receipt times a different event than the one this median "
+                        f"claims to summarise)")
         if self.n == 0:
-            return (f"{self.kind} minutes: NO RECEIPTS. The median is undefined, not zero -- "
-                    f"{LEDGER_RELPATH} holds no closed {self.kind} receipt yet.{skipped}")
+            head = (f"{self.kind} minutes: NO RECEIPTS. The median is undefined, not zero -- "
+                    f"{LEDGER_RELPATH} holds no COMPLETE closed {self.kind} receipt yet."
+                    f"{skipped}")
+            return "\n".join([head, *(f"  EXCLUDED {r}" for r in self.incomplete_reasons)])
         lines = [
-            f"{self.kind} minutes over n={self.n} closed receipt(s){skipped}",
+            f"{self.kind} minutes over n={self.n} complete, closed receipt(s){skipped}",
+            *(f"  EXCLUDED {r}" for r in self.incomplete_reasons),
             f"  median   {self.median_minutes:.1f} min"
             f"   (target 3.6: under {TARGET_MEDIAN_MIN:.0f} -> "
             f"{'MET' if self.meets_target() else 'NOT MET'})",
@@ -451,19 +525,40 @@ def median_report(receipts: Sequence[Receipt], kind: str = KIND_MERGE) -> Median
 
     Filtering by kind is not a convenience. Target 3.6 asks for median MERGE minutes, and a
     ledger that also holds lane commit arcs would answer a cheaper question under the same name.
+
+    TWO FILTERS, NOT ONE, since `[#744]` (2026-09-13). Kind says whether a receipt is timing the
+    right KIND of thing; completeness says whether it is timing anything at all. Before the
+    second existed, an abandoned receipt, a receipt with a failed step and a receipt recording
+    one step out of four each counted at full weight -- and the live ledger, holding exactly two
+    rows with failed steps, one of them 0.0 minutes, reported `median 9.4 min (target 3.6: MET)`.
+
+    COMPLETENESS IS UNCONDITIONAL AND HAS NO FLAG, which is the `--strict` decision `[#744]`'s
+    last clause asks for, made here rather than left implicit. `median --strict` means "exit 1
+    when the median does not meet target 3.6" and keeps exactly that meaning: a flag that also
+    toggled completeness would make this false pass OPT-OUTABLE, and a median over incomplete
+    receipts is not a laxer reading of the number -- it is a different number.
     """
     wanted = [r for r in receipts if r.kind == kind]
     excluded = len(receipts) - len(wanted)
-    minutes = sorted(r.wall_seconds() / 60.0 for r in wanted)
+
+    complete = [r for r in wanted if r.is_complete()]
+    reasons = tuple(f"{r.slug}: {r.incompleteness_reason()}"
+                    for r in wanted if not r.is_complete())
+    for reason in reasons:
+        logger.warning("excluded from the %s median -- %s", kind, reason)
+
+    minutes = sorted(r.wall_seconds() / 60.0 for r in complete)
+    common = dict(kind=kind, excluded=excluded, incomplete=len(reasons),
+                  incomplete_reasons=reasons)
     if not minutes:
-        return MedianReport(0, 0.0, 0.0, 0.0, None, (), kind=kind, excluded=excluded)
+        return MedianReport(0, 0.0, 0.0, 0.0, None, (), **common)
     quartiles = None
     if len(minutes) >= 4:
         cut = statistics.quantiles(minutes, n=4, method="inclusive")
         quartiles = (cut[0], cut[1], cut[2])
     return MedianReport(n=len(minutes), median_minutes=statistics.median(minutes),
                         minimum=minutes[0], maximum=minutes[-1], quartiles=quartiles,
-                        per_merge=tuple(minutes), kind=kind, excluded=excluded)
+                        per_merge=tuple(minutes), **common)
 
 
 def render_summary(receipt: Receipt) -> str:
@@ -669,7 +764,10 @@ def cmd_summary(ctx: click.Context, slug: Optional[str], strict: bool) -> None:
 
 @cli.command("median")
 @click.option("--strict", is_flag=True, default=False,
-              help="exit 1 when the median does not meet target 3.6")
+              help="exit 1 when the median does not meet target 3.6. THE TARGET AXIS ONLY -- "
+                   "completeness is enforced unconditionally and has no flag ([#744]), because "
+                   "a median over incomplete receipts is a different number rather than a laxer "
+                   "reading of this one")
 @click.option("--kind", type=click.Choice(RECEIPT_KINDS), default=KIND_MERGE, show_default=True)
 @click.pass_context
 def cmd_median(ctx: click.Context, strict: bool, kind: str) -> None:
