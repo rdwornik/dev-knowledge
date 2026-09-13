@@ -151,7 +151,23 @@ EFFORT_ENUM: tuple[str, ...] = ("low", "medium", "high", "xhigh", "max")
 DISPATCH_ROUTED_EFFORT: frozenset[str] = frozenset(EFFORT_ENUM[:4])
 
 #: Model tiers, per the Ch8 routing matrix. `opus` is the `.dev-knowledge` default.
-MODEL_ENUM: tuple[str, ...] = ("opus", "sonnet", "haiku")
+#:
+#: `opusplan` entered by RULING (AX22-3, 2026-09-12; re-ordered per-lane by the operator for
+#: the wave-3 freeze, 2026-09-13), and the gap it closed is the same shape `codespace` closed
+#: in `SHAPE_ENUM`. It is a SPLIT tier — Opus while the lane plans, Sonnet while it implements
+#: — so it is a routing target the matrix's three tiers cannot spell, not a fourth point on the
+#: same cost axis. It was ADMITTED AT THE SEAT and remained UNADMITTED IN THIS VOCABULARY,
+#: which is a different admission and was not automatic: `to-browser/SEAT-BOOT-integrator.md`
+#: has rendered `model: opusplan` since 2026-09-11, and `Dispatch-Lane` has always taken
+#: `-Model` as an unconstrained `[string]` and handed it to `claude --model` verbatim. So the
+#: live verb ran the tier while this module refused to state it — generator narrower than
+#: verb, with no test between them, which is AX25-1's root cause in miniature.
+#:
+#: Admitted because the CLI RESOLVES it, not because a ruling named it: measured 2026-09-13,
+#: `claude --print --model opusplan` returns a normal completion where a bogus id returns
+#: `[claude-code:unrecognized_model]`. An enum that admitted an unresolvable string would move
+#: the failure from freeze time to dispatch time, which is strictly worse.
+MODEL_ENUM: tuple[str, ...] = ("opus", "opusplan", "sonnet", "haiku")
 DEFAULT_MODEL = "opus"
 
 #: Lane modes. `execute` is the work-lane default (plan-mode-by-exception — the contract

@@ -1319,3 +1319,38 @@ def test_emit_sets_the_flag_from_the_LIVE_base_ref_predicate(tmp_path, monkeypat
         written = (prompts / glc.contract_filename(slug)).read_text(encoding="utf-8")
         assert ("Step 0" in written) is not holds, (
             f"holds={holds} produced the wrong region for {slug}")
+
+
+def test_opusplan_is_an_admitted_model_tier_end_to_end():
+    """`opusplan` is a ROUTED tier, not a typo -- AX22-3 ruled it, and the CLI accepts it.
+
+    RED-first for the wave-3 freeze (2026-09-13). The operator routed two wave-3 lanes to
+    `opusplan` ("Opus plans, Sonnet implements"); AX22-3 had already routed the integrator
+    SEAT to it, and `to-browser/SEAT-BOOT-integrator.md` renders `model: opusplan` today. The
+    generator's enum was the one surface that had not been widened, so a contract stating the
+    ruled tier was refused by its own freeze gate while the live verb -- `Dispatch-Lane`, whose
+    `-Model` is an unconstrained `[string]` passed to `claude --model` -- ran it happily. That
+    asymmetry is AX25-1's root cause in miniature: generator narrower than verb, no test
+    between them.
+
+    Measured before widening: `claude --print --model opusplan` returns a normal completion,
+    while a bogus id returns `[claude-code:unrecognized_model]`. The enum admits a value the
+    CLI resolves, not a hopeful string.
+    """
+    contract = glc.render_contract(_spec(model="opusplan"))
+    parsed = glc.parse_contract(contract, expect_shape="local")
+    assert parsed.problems == (), parsed.problems
+    assert parsed.model == "opusplan"
+    assert "--model opusplan" in parsed.command
+
+
+def test_a_model_outside_the_widened_enum_is_STILL_refused():
+    """The widening admits one ruled tier; it does not open the field.
+
+    Paired with the test above deliberately. A widening asserted only by its happy path is
+    indistinguishable from deleting the check, which is the failure mode `[#717]`'s own
+    divergence test was written against.
+    """
+    contract = glc.render_contract(_spec(model="sonnet")).replace("--model sonnet", "--model gpt")
+    problems = glc.parse_contract(contract).problems
+    assert any("gpt" in p for p in problems), problems
