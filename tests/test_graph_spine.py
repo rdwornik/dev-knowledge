@@ -578,21 +578,24 @@ CENSUS_SCRIPT_ORPHANS = (
     "scripts/cost_usage_telemetry.py",
     "scripts/desired_state_loader.py",
     "scripts/export_backlog_view.py",
-    "scripts/failed_set.py",
     "scripts/logs_retention.py",
     "scripts/nopack_sandbox.py",
     "scripts/setup-fleet-scheduler.ps1",
     "scripts/trace_writer.py",
-    "scripts/window_metrics.py",
     # RETIRED by lane `lane-x-664-delete-list-execution` ([#664]'s ratified DELETE list,
     # 2026-09-13), same rule as the [#734] block below and named separately so the two
-    # retirements stay attributable: `gen_trend_dashboard.py` then `gen_north_star.py` were
-    # DELETED with their dedicated tests (`test_gen_trend_dashboard.py`,
-    # `test_trend_dashboard.py`, `test_gen_north_star.py`) and their `ORPHAN_DISPOSITIONS`
-    # entries. The order is load-bearing rather than stylistic: the dashboard loads the
-    # north-star view through `importlib.util.spec_from_file_location`, an edge the static
-    # oracle cannot see and the FPG-1 graph can. Evidence:
+    # retirements stay attributable. Each module left with its dedicated tests and its
+    # `ORPHAN_DISPOSITIONS` entry. Evidence:
     # `docs/audits/2026-09-13-technical-lane-x-664-delete-list-execution-evidence.md`.
+    #   `gen_trend_dashboard.py` then `gen_north_star.py` (+ `test_gen_trend_dashboard.py`,
+    #   `test_trend_dashboard.py`, `test_gen_north_star.py`). The order is load-bearing rather
+    #   than stylistic: the dashboard loads the north-star view through
+    #   `importlib.util.spec_from_file_location`, an edge the static oracle cannot see and the
+    #   FPG-1 graph can.
+    #   `window_metrics.py` then `failed_set.py` (+ `test_window_metrics.py`,
+    #   `test_failed_set.py`). Ordered for the same class of reason: `failed_set` was an orphan
+    #   BY INHERITANCE from `window_metrics.py:359` and its own row said it is dispositioned
+    #   WITH its caller and not before it.
     # RETIRED by lane `lane-x-734-retire-stage-2` ([#734], the AX13-2 retire stage), not
     # dropped silently: `boundary_headers.py`, `boundary_report.py`, `cloud_provisioning.py`,
     # `probe_child_backlogs.py`, `seed_runbook.py`, `validate_onboarding_rulings.py` and

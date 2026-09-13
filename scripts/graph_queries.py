@@ -255,13 +255,12 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
     "scripts/trace_writer.py": Disposition(
         reason=f"{_LANE_BUILT}; only call site is LANE-t-000-trace-scorecard.md:47",
         owner="V+1 retirement-or-wiring list"),
-    "scripts/window_metrics.py": Disposition(
-        reason=f"{_LANE_BUILT}; only call site is LANE-r-000-zc-candidates.md:39",
-        owner="V+1 retirement-or-wiring list"),
-    "scripts/failed_set.py": Disposition(
-        reason="reachable only from the untriggered window_metrics.py:359 -- an orphan by "
-               "inheritance, so it is dispositioned WITH its caller and not before it",
-        owner="V+1 retirement-or-wiring list"),
+    # `scripts/window_metrics.py` and `scripts/failed_set.py` WERE dispositioned here. Retired
+    # by `[#664]`'s ratified DELETE list in that order (2026-09-13, lane
+    # `lane-x-664-delete-list-execution`): `failed_set` was an orphan BY INHERITANCE from
+    # `window_metrics.py:359`, and its row said in its own words that it is "dispositioned WITH
+    # its caller and not before it" -- so it is retired with its caller and not before it
+    # either. Same rule as the pair above: the row leaves with its subject.
     # KEPT, and the reason is a FINDING rather than a deferral. The AX13-2 retire stage
     # deleted this module on a SAFE oracle verdict and the full suite went RED: nothing
     # static reaches it, but `tests/test_membership_agreement.py` loads it BY NAME through

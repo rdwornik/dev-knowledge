@@ -406,3 +406,39 @@ end-of-lane packet: `ecosystem/north-star.md` and `README.md:74`.**
 
 `ecosystem/trends.html` needs no decision — `gen_trend_dashboard.py`'s docstring records it as
 `regenerated on demand; NOT committed`, and `git ls-files` confirms it is untracked.
+
+## Step 4 — `window_metrics.py`, then `failed_set.py`
+
+The same shape as Step 3 and the same ordering discipline. `failed_set` is an orphan **by
+inheritance** — its own register row says it is *"dispositioned WITH its caller and not before
+it"* — so it is retired with its caller and not before it either. Four files:
+`scripts/window_metrics.py`, `tests/test_window_metrics.py`, `scripts/failed_set.py`,
+`tests/test_failed_set.py`, plus both register rows and both fixture rows.
+
+The graph was read before the act rather than after it:
+
+```
+scripts/window_metrics.py   consumers (4): task:470 task:611 task:689 task:694 (all task-implements)
+                            edges (2): imports scripts/assemble_paste.py, scripts/fleet_health.py
+scripts/failed_set.py       consumers (1): task:694 (task-implements)
+                            edges (0)
+```
+
+Every consumer is a `task-implements` edge — a row naming the module, not code calling it — which
+is the contract's anticipated residue class and is left for the operator. The two OUTBOUND edges
+are this module reading others; deleting the reader breaks nothing it read.
+
+Targeted tests:
+
+```
+tests/test_graph_spine.py tests/test_assemble_paste.py tests/test_fleet_parity.py
+tests/test_edge_class_census.py tests/test_decision_coverage.py tests/test_gen_ledger.py
+tests/test_gen_lane_contract.py
+  -> 434 passed in 755.94s
+```
+
+`test_assemble_paste.py` is in that set deliberately: `assemble_paste.PASTE_BUDGET` is PUBLIC
+*because* `window_metrics` imported it (`assemble_paste.py:33-41`). The constant and its tests
+are untouched and green; the comment explaining its visibility now names a module that is gone,
+and that one-line staleness is recorded in the residue list rather than repaired from a lane
+whose footprint is the delete list.
