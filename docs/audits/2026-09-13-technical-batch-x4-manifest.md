@@ -202,6 +202,33 @@ census reading is the wrong seat to decide what the census counts.
 to `.claude/commands/lane-integrate.md`, and its contract forbids adding a hook to either to make
 an orphan count fall.
 
+> **AMENDMENT 3, same session, before this branch merged — what the engine produced, and the
+> duplicate task id it collided with.** The filing landed as three artifacts, and the intake's
+> path above was written ex-ante and is one token short of the real one:
+>
+> - `docs/intake/2026-09-13-tech-command-files-as-a-wiring-surface.md` — intake **#94**,
+>   `ACCEPTED` (note the `tech-` class token; the paragraph above omits it).
+> - `docs/decisions/ADR-119-command-files-as-a-wiring-surface.md` — **Accepted**, four
+>   alternatives weighed, with the unconditional YES rejected *because* it is the cheap one, plus
+>   the literal `## Flip-condition` section `adr_status_grammar` requires above ADR-116.
+> - `tasks/747-adoption-by-invocation-command-file-confers-adoption-only-while-invoked.md` — the
+>   implementing row that discharges ADR-111 guard (i) and satisfies `[#692]`.
+>
+> **The row is `[#747]` and was authored as `[#746]`, and the reason is a finding.** This seat
+> allocated 746 from the working tree while its own four lanes were in flight. Lane 2's contract
+> says *file one row at the next free id*; forty minutes later it did, at `bec8b597` —
+> `tasks/746-devcontainer-history-and-ecosystem-repair-lost-with-cloud-provisioning-py.md`. Two
+> different rows, one id, on two branches neither of which can see the other, so **nothing refuses
+> until integration**: `next_task_id` reads a working tree, and a sibling lane's rows are not in it.
+> Resolved at `20684e64` by renumbering **this seat's own** row — a running lane is not edited
+> mid-flight — across all five surfaces the id appears on: the filename (`git mv`), the frontmatter
+> `id:`, the body token, the `tasks/manifest.json` node, and ADR-119's `Births:` line and
+> Flip-condition closing paragraph. `gen_task_tree.py --emit-source` regenerated BACKLOG.md (317
+> tasks) and `decision_coverage.py check` re-read `OK`, so both decisions still carry an
+> implementing row. **The general rule for a later dispatcher:** if you must allocate an id while
+> lanes are in flight, take it from above the lanes' reach or reserve the block at freeze time —
+> an id allocated from the tree is an id a lane will also allocate.
+
 ## 6 · Findings
 
 1. **`opusplan` IS STILL INERT ON A `--bg` LANE ON THE CURRENT CLI, AND THIS SEAT MEASURED IT
