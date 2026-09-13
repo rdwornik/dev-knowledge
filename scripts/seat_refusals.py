@@ -76,6 +76,11 @@ try:
 except ImportError:                                  # imported as `scripts.seat_refusals`
     from scripts import boot_frontier as _bf
 
+try:
+    import validate_hermetization as _herm
+except ImportError:                                  # imported as `scripts.seat_refusals`
+    from scripts import validate_hermetization as _herm
+
 #: The refusal ids, in the order the lane contract enumerates them (four contracted plus the
 #: fifth added by AMEND-BATCH-V-002 §1). A seat template cites these ids; tests assert the roster.
 REFUSALS: tuple[str, ...] = (
@@ -300,10 +305,36 @@ def refuse_lane_ceiling(lanes: "list[str]", *, ceiling: int = LANE_CEILING,
 _DONE_CONTRACT_RE = re.compile(
     r"^##\s+Done-contract.*?$(?P<body>.*?)(?=^##\s|\Z)", re.MULTILINE | re.DOTALL)
 
-#: A repo-relative path. Same shape `file_purpose_graph._REL_PATH_RE` uses, deliberately: two
-#: organs disagreeing about what counts as a path is a class of defect this repo already carries.
+#: The repo's sanctioned TOP-LEVEL files, taken from the organ that already computes them
+#: rather than retyped (`[#743]`). `validate_hermetization` derives this set from the shape
+#: spec's `root_allowlist` clause unioned with the canonical living-doc registry, and it is the
+#: set ADR-101 refuses a NEW root file against -- so it is the repo's one answer to "what may
+#: sit at the root", and a root file admitted by a future ruling reaches this check for free.
+#:
+#: A CLOSED SET IS THE POINT, not an implementation detail. `[#743]` says so in its own words:
+#: *"a bare `*.md` admission that lets `LANE-x-000-other.md` through is a regression, not a
+#: fix"*. The transport's contract filenames, the absolute operator paths and the prose nouns
+#: the `_WRITE_ROOTS` comment exists to exclude are all root-shaped, and only an enumeration
+#: tells them apart from `ARCHITECTURE.md`.
+ROOT_LEVEL_FILES: frozenset[str] = frozenset(_herm.SANCTIONED_TIER1_FILES)
+
+#: Longest-first so `.pre-commit-config.yaml` cannot be shadowed by a shorter prefix, and the
+#: trailing guard excludes only name characters -- NOT `.` -- so `ARCHITECTURE.md.` at the end
+#: of a sentence still matches while `README.mdx` does not.
+_ROOT_FILE_ALTERNATION = "|".join(
+    re.escape(name) for name in sorted(ROOT_LEVEL_FILES, key=len, reverse=True))
+
+#: A repo-relative path. The FIRST branch is the shape `file_purpose_graph._REL_PATH_RE` uses,
+#: deliberately: two organs disagreeing about what counts as a path is a class of defect this
+#: repo already carries. The SECOND branch is `[#743]`'s fix -- a root-level file has no `/`,
+#: so the directory-requiring shape could not see `ARCHITECTURE.md` at all, and two lanes
+#: declaring one could both pass step 0. Directory form is tried first so a full path is never
+#: split at its basename.
 _CONTRACT_PATH_RE = re.compile(
-    r"(?:^|[\s`'\"(\[])((?:\.?[A-Za-z0-9_][A-Za-z0-9_.-]*/)+[A-Za-z0-9_.-]+\.[A-Za-z0-9]{1,6})")
+    r"(?:^|[\s`'\"(\[])("
+    r"(?:\.?[A-Za-z0-9_][A-Za-z0-9_.-]*/)+[A-Za-z0-9_.-]+\.[A-Za-z0-9]{1,6}"
+    rf"|(?:{_ROOT_FILE_ALTERNATION})(?![A-Za-z0-9_-])"
+    r")")
 
 #: Prefixes a lane can actually WRITE to. A contract cites the transport (`LANE-x-000-other.md`),
 #: absolute operator paths and prose nouns; none of those is a repo file two lanes can collide on.
@@ -311,6 +342,16 @@ _WRITE_ROOTS: tuple[str, ...] = (
     "scripts/", "tests/", "tasks/", "protocols/", "docs/", ".claude/", ".github/",
     "ecosystem/", "templates/", "deploy/", "logs/",
 )
+
+
+def _is_declarable(path: str) -> bool:
+    """A path two lanes can genuinely collide on: under a write root, or AT the root.
+
+    The root leg is membership in a closed set, never a prefix or a glob -- see
+    `ROOT_LEVEL_FILES`. `str.startswith` cannot express "at the root" without also admitting
+    every sibling basename on the operator's disk.
+    """
+    return path.startswith(_WRITE_ROOTS) or path in ROOT_LEVEL_FILES
 
 
 def declared_footprint(contract_text: str) -> set[str]:
@@ -327,16 +368,34 @@ def declared_footprint(contract_text: str) -> set[str]:
     REFERENCES would be turned off inside a window, and this module's own contract says a
     refusal that overstates its reach is worse than none.
 
+    ROOT-LEVEL FILES COUNT TOO, since `[#743]` (2026-09-13). Before that both legs of the
+    extraction required a `/` -- the regex matched only `dir/.../file.ext` and `_WRITE_ROOTS`
+    was a tuple of directory prefixes -- so `ARCHITECTURE.md`, `.pre-commit-config.yaml` and
+    `pyproject.toml` were invisible and two lanes could each declare one and both pass step 0.
+    THAT WAS LIVE IN THE BATCH THAT FIXED IT: wave 4's own step-0 run reported "no file claimed
+    twice" while one lane declared `ARCHITECTURE.md` and another `.pre-commit-config.yaml`.
+    They happened not to collide with each other, so the PASS was correct by luck.
+
     HONEST LIMIT, and it is the row's own: a contract declares what it INTENDS to touch. A lane
     that writes outside its declaration is invisible here -- which is why the contract separately
     forbids exactly that ("No edits outside this lane's declared footprint"). This checks
     declared collisions, and says so rather than implying it checked the trees.
+
+    SECOND HONEST LIMIT, and it is the root admission's own, measured over all 57 contracts on
+    the transport on 2026-09-13: a filename QUOTED inside the Done-contract reads as declared,
+    because this function cannot tell a write clause from a quotation and does not guess. One
+    contract in 57 tripped it -- the one carrying `[#743]`'s row body verbatim into its
+    Done-contract, where the row enumerates root filenames as examples. Excluding it, the
+    widening produced ZERO in-batch false collisions. The sanctioned shape is the one the
+    Done-contract-vs-whole-file measurement already implies: carry quoted row bodies in their
+    own section, not in the Done-contract. Pinned by
+    `test_a_row_body_QUOTED_INSIDE_the_done_contract_reads_as_a_declaration`.
     """
     match = _DONE_CONTRACT_RE.search(contract_text)
     if match is None:
         return set()
     return {path for path in _CONTRACT_PATH_RE.findall(match.group("body"))
-            if path.startswith(_WRITE_ROOTS)}
+            if _is_declarable(path)}
 
 
 def undeclared_lanes(footprints: "dict[str, set[str]]") -> list[str]:
