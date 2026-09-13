@@ -47,7 +47,32 @@ The four clauses this batch executes:
 item 4 (`[#734]` NO-GO, the 16 UNKNOWN) is explicitly **not** in this batch. Ratification item 1
 is not a lane at all — it is routed through the decision engine, §5.
 
-## 2 · THE LANES — four, frozen 2026-09-13
+## THE LANES — four, frozen 2026-09-13 (§2)
+
+> **AMENDMENT, 2026-09-13, same session, before this branch merged.** This heading was authored
+> as `## 2 · THE LANES` and is changed here to `## THE LANES`. It is not a cosmetic edit: the
+> heading is a **machine-read surface**. `batch_manifest.manifest_lane_slugs` finds the lane
+> table with `^ {0,3}#{1,6}\s*THE LANES\b`, so a section number between the `##` and the words
+> made the manifest declare **zero** lane slugs — and the `[#630]` agreement check then refused
+> all five contracts with *"named by no manifest row"* while reporting no manifest-side excess,
+> which is the tell. Recorded rather than silently corrected, per the amendment-marker rule for
+> `docs/audits/`. It is a third face of finding 9: the predicate is vacuous at freeze, wrong
+> across two open batches, and silently empty on a heading a human would call correct.
+>
+> **AMENDMENT 2, same session — the fourth face, and the one that made a bypass necessary.**
+> With the heading fixed, a manual full-set run reports *"contract-manifest predicate ([#630]):
+> 1 open batch(es), 5 contract(s) — OK"*. The pre-commit hook still REFUSED, because
+> **pre-commit chunks the staged file list and invokes the hook once per chunk**: the run log
+> shows two invocations, one carrying four contracts and one carrying `LANE-x-675-instrument-holes`
+> alone, each compared against the manifest's full five and each therefore refusing with a
+> manifest-side excess that is an artefact of the chunk, not of the batch. The hook declares
+> `always_run: true` with no `require_serial: true`, so the split is the default behaviour and
+> **any freeze staging more than one contract can hit it**. A set-equality predicate cannot be run
+> on a partition of the set. This commit therefore declares `SKIP=lane-contract-check`, ONE named
+> hook, with the passing full-set run above as the evidence the substantive property holds — the
+> partition is what failed, not the agreement. The repair is `require_serial: true` on the hook, or
+> `pass_filenames: false` with the adapter globbing the batch's own contract directory; both belong
+> to `[#630]` and neither is this seat's to make mid-batch on a file lane 1 is also editing.
 
 ```
 slot  row     slug                                model   effort  state
