@@ -515,3 +515,44 @@ surface, `STANDING_RULINGS` P-1) and no merges — so `SKIP=audit-health`, decla
 is the only remaining act. **The backstop is untouched:** `block-unanchored-push` fails CLOSED at
 push time, so a commit-time skip cannot let an unanchored range reach `origin`. Owed to the
 integrator: anchor those four, and land the wave-4 manifest so the exemption can fire.
+
+## Step 6 — the Actions TIP run, and the paired diff
+
+| reading | run id | head SHA | pytest tail |
+|---|---|---|---|
+| baseline | `34757902205` | `c0e0722f` | `55 failed, 5994 passed, 22 skipped in 218.78s` |
+| tip | `34763979956` | `f7f04c41` | `54 failed, 5713 passed, 22 skipped in 213.59s` |
+
+Same workflow, same `workflow_dispatch` event, same branch ref, same runner class, both inside
+this lane's own run, and both reporting `pyright shape: unprovisioned (modelled: 7/8 proven, 1
+skip)`. **The pairing is clean in the one way that matters: the tip is a descendant of the
+baseline SHA and nothing from `main` was merged in between.** The integrator moved `main` four
+times while this lane ran (Step 5) and none of it was pulled in, so every delta below is this
+lane's diff and nothing else's.
+
+### The diff, in full
+
+```
+diff baseline-nodeids.txt tip-nodeids.txt
+34d33
+< FAILED tests/test_gen_north_star.py::test_the_committed_view_is_current
+```
+
+**One line. It is a REMOVAL. There are ZERO tip-only failures.**
+
+Item 3's blocking condition — *"a failure present only at tip is [this lane's], and it blocks"* —
+is not met, and it is not met by measurement rather than by assertion. The single departing row
+is the one Step 2 predicted would leave: `test_gen_north_star.py` was deleted with its module,
+and the failure it carried (`ecosystem/north-star.md` already stale against its generator) left
+with it. Every one of the other 54 baseline failures is present in both readings and is
+therefore not this lane's.
+
+The passing count falls `5994 -> 5713`, which is the 281 test bodies the nine deleted test files
+carried. A falling pass count with an unchanged failure set is what a clean removal looks like;
+it is recorded here so nobody later reads the drop as a regression.
+
+**This is the leg that carries the weight the oracle cannot** (done-contract item 2). Three of
+the six modules verdicted SAFE, one of those SAFE verdicts was demonstrably a false PASS on an
+`importlib` edge (Step 1), and the paired run is what turns "the oracle found nothing" into
+"nothing broke". `scripts/desired_state_loader.py` is the repo's worked example of the case
+where these two answers differ; this run is the one where they agree.
