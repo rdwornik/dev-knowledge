@@ -447,6 +447,37 @@ repos:
         language: system
         always_run: true
         pass_filenames: false
+      - id: graph-edge-class-census
+        name: Edge-class ratchet -- a NEW private five-kind edge computation ([#664] Done-when)
+        # REFUSES when a module NEWLY computes a corpus-structure relation of DECLARE-REVIEWS
+        # section A.1's five-kind class -- citation, generation, template, test, script
+        # call-site -- by scanning source text, and no row of `EDGE_COMPUTATIONS` verdicts it.
+        # Newly means an ADD, or an edit that gives a module a shape its HEAD version lacked;
+        # the HEAD comparison is the whole reason an add-only reading was rejected.
+        #
+        # A RATCHET, NOT A BAR, AND THAT IS A RULING. Eighteen private computations are live
+        # and owe their W-G3 migration ONE ORGAN PER LANE (ADR-118 section 5, which rejects
+        # the big bang by name). Refusing all eighteen would refuse every commit in the repo
+        # on a defect no single committer can legally repair -- the unbounded-refusal shape
+        # `decision-coverage` above already era-bounds against. So the set may SHRINK and may
+        # not GROW, and driving it to zero stays a migration lane's act.
+        #
+        # NOT A VIEW, AND IT SAYS SO RATHER THAN MIS-FILING ITSELF. The other three hooks here
+        # are SELECTs over FPG-1. This one joins commit-time state (the staged set, plus the
+        # HEAD comparison) to a CURATED REGISTER: "this module computes an edge privately" is
+        # a ruling about a module's design, which no graph holds and none should. What is
+        # computed mechanically is only the SHAPE of one module's source -- never a relation
+        # between two corpus files, so nothing here re-derives what FPG-1 already answers.
+        #
+        # Second leg: a register row naming a file, or a symbol, that is GONE. It BLOCKS where
+        # the orphan register's equivalent only notes, because a row leaving silently moves N
+        # without a ruling -- the module docstring carries the full reasoning.
+        #
+        # Exit: 0 clean, 1 on a new computation or a rotted row. HUB-ONLY. Bypass: --no-verify.
+        entry: uv run --locked python scripts/graph_queries.py edge-class-census
+        language: system
+        always_run: true
+        pass_filenames: false
       - id: decision-coverage
         name: Decision coverage -- an accepted decision no row implements ([#692], A9-1)
         # REFUSES when a decision -- an ADR at `Accepted`, an intake at `ACCEPTED`, a

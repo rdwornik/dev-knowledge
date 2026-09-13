@@ -1,10 +1,18 @@
 #!/usr/bin/env python
-"""graph_queries.py -- the three commit-tier REFUSALS over the persisted FPG-1 store ([#664]).
+"""graph_queries.py -- the commit-tier REFUSALS over the persisted FPG-1 store ([#664]).
 
 WHAT THIS IS. `[#664]`'s acceptance clause, in code: *"three queries, each a REFUSAL at commit
 tier"*. `orphan_census`, `task_coverage` and `process_list`, each wired to its own pre-commit
 hook, each exiting non-zero on the property it refuses. A query that reports without refusing
 discharges nothing -- the row says so and the frozen contract repeats it.
+
+A FOURTH REFUSAL, `edge_class_census`, ARMS THE ROW'S OTHER HALF. `[#664]`'s Done-when has a
+second bar the three queries do not reach: the five-kind edge computations (DECLARE-REVIEWS
+section A.1, as narrowed by `ff103444`) re-measured and migrated. Lane `v-664` measured them
+and nothing held the line afterwards. It is a RATCHET rather than a bar -- the set may shrink
+and may not grow -- because ADR-118 section 5 rules the migration one organ per lane, so
+refusing all eighteen at once would refuse every commit in the repo on a defect no committer
+can repair. It is also the one refusal here that is NOT a view: see its section below.
 
 ORGANS ARE VIEWS (ADR-118 §2). Every predicate here is a SELECT over
 `scripts/graph_store.py`. Nothing in this module walks the tree for an edge, parses a config,
@@ -36,11 +44,13 @@ Usage:
     python scripts/graph_queries.py orphan-census  [--repo-root .] [--db PATH]
     python scripts/graph_queries.py task-coverage  [--repo-root .] [--staged PATH ...]
     python scripts/graph_queries.py process-list   [--repo-root .] [--render]
+    python scripts/graph_queries.py edge-class-census [--repo-root .] [--staged PATH ...]
 """
 
 from __future__ import annotations
 
 import argparse
+import ast
 import logging
 import re
 import subprocess
@@ -695,6 +705,344 @@ def render_ch2(rows: list[ProcessRow]) -> str:
     return "\n".join(lines)
 
 
+# ------------------------------------------------- query 4: the five-kind edge class, RATCHETED
+#
+# WHAT THIS REFUSES, AND WHAT IT DELIBERATELY DOES NOT. `[#664]`'s Done-when asks that the
+# corpus-structure edge computations be re-measured under DECLARE-REVIEWS section A.1's
+# five-kind class -- citation, generation, template, test, script call-site, as narrowed on
+# main by `ff103444` -- and driven to 0, every organ holding one reading FPG-1 instead. Lane
+# `v-664` re-measured them (section 2.5: N-before 18, N-after 18, migrated 0) and nothing has
+# held the line since, which is the state this query ends.
+#
+# **It is a RATCHET, not a bar, and that is a ruling rather than a shortfall.** ADR-118
+# section 5 rules the migration one organ per lane ("twelve lanes is the cost of having
+# twelve proofs") and rejects the big bang by name. A gate refusing all eighteen would refuse
+# every commit in the repo on a defect no single committer can legally repair -- the
+# unbounded-refusal shape `decision_coverage.ARM_DATE` already exists to avoid. So the set may
+# SHRINK and may not GROW: a module that newly acquires the shape and carries no verdict
+# refuses, and an already-shaped module is admitted until its migration lane reaches it.
+#
+# THE MEASUREMENT IS THE REGISTER, and the register is not a view. `EDGE_COMPUTATIONS` is the
+# second curated manifest in this module, declared as an exception the same way
+# `ORPHAN_DISPOSITIONS` is: a verdict of "this module computes a corpus-structure edge
+# privately" is a RULING about a module's design, which no graph holds and none should. What
+# the query computes mechanically is only the SHAPE -- a property of one module's source, not
+# a relation between two corpus files -- so nothing here re-derives an edge FPG-1 already
+# answers, which is `[#664]`'s first anti-pattern.
+
+#: DECLARE-REVIEWS section A.1's class, CLOSED. A sixth kind is a widening of that section
+#: and therefore a ruling, not a register row.
+FIVE_KINDS = ("citation", "generation", "template", "test", "script call-site")
+
+#: Where the population lives. `plugins/` is deliberately OUT: it holds derived copies whose
+#: sources are in `scripts/` and are verdicted there, so scanning both would refuse a copy
+#: for its source's shape (`ecosystem/derived-copies.yaml` owns the pair).
+EDGE_SCAN_PREFIX = "scripts/"
+
+#: The three mechanical signals the shape predicate reads. SCAN or READ says the module
+#: reaches corpus files; EXTRACT says it pulls structure out of what it finds. Neither half
+#: alone is an edge computation -- walking a tree to sum file sizes is not, and two regexes
+#: over an argument string are not.
+_SCAN_CALLS = frozenset({"rglob", "glob", "iterdir", "walk"})
+_READ_CALLS = frozenset({"read_text", "readlines", "read_bytes"})
+_RE_CALLS = frozenset({"compile", "search", "match", "fullmatch", "findall", "finditer",
+                       "sub", "split"})
+_AST_CALLS = frozenset({"parse", "walk", "iter_child_nodes"})
+#: Two, because one regex is how a module parses its own argument; two is how it reads a
+#: corpus. Calibrated against the register: all twenty register files clear it.
+_MIN_REGEXES = 2
+
+
+#: The status a row carries. `private` computes the relation itself; `reconciled` is FPG-1
+#: input rather than FPG-1's rival; `not-an-edge` is the verdict that the SHAPE matched and
+#: the module is nonetheless not of this class.
+#:
+#: THE REGISTER MUST BE ABLE TO SAY NO, and this status is why. The shape predicate favours
+#: recall (its docstring says so), so it will keep finding modules that read source text for
+#: something other than corpus structure. Without a negative verdict the only way to admit
+#: one would be a false `private` row -- which would inflate N, hand a W-G3 lane a migration
+#: that does not exist, and make the one number this query reports a lie. Found by the gate
+#: refusing the very commit that armed it: `graph_queries.py` grew an `ast` walk in this
+#: change, and its subject is a MODULE'S SHAPE, never a relation between two corpus files.
+REGISTER_STATUSES = ("private", "reconciled", "not-an-edge")
+#: What `kind` a `not-an-edge` row carries -- outside `FIVE_KINDS` by construction, because
+#: the row's whole content is that no kind applies.
+NO_KIND = "none"
+
+
+@dataclass(frozen=True)
+class EdgeComputation:
+    """One verdicted site of the five-kind class, and who owes its migration.
+
+    `status` is one of `REGISTER_STATUSES`. `migrated` is the movement of `reconciled` over
+    time, which is what makes it a count rather than a claim.
+    """
+    kind: str
+    status: str
+    owner: str
+    note: str = ""
+
+
+_W_G3 = ("a W-G3 migration lane (ADR-118 section 5 -- one organ per lane, each proving its "
+         "edge set is a subset of FPG-1)")
+
+
+def _private(kind: str, note: str = "") -> EdgeComputation:
+    return EdgeComputation(kind=kind, status="private", owner=_W_G3, note=note)
+
+
+def _reconciled(kind: str, note: str) -> EdgeComputation:
+    return EdgeComputation(kind=kind, status="reconciled",
+                           owner="none -- the graph consumes it", note=note)
+
+
+def _not_an_edge(note: str) -> EdgeComputation:
+    return EdgeComputation(kind=NO_KIND, status="not-an-edge",
+                           owner="none -- verdicted out of the class", note=note)
+
+
+#: The twenty-one verdicted sites, carried from lane `v-664`'s section 2.5 table on the
+#: merged tree. Two rows are FUNCTIONS rather than modules (`<path>::<symbol>`): `audit.py`
+#: computes two different kinds in two different checks, and collapsing them to one file row
+#: would hide one migration behind the other.
+EDGE_COMPUTATIONS: dict[str, EdgeComputation] = {
+    # ---- reconciled: already FPG-1 inputs, so the graph consumes them rather than rivals them
+    "scripts/consumer_at_landing.py": _reconciled("citation", "FPG-1 input 3"),
+    "scripts/validate_doc_code_edge.py": _reconciled("citation", "FPG-1 input 1"),
+    "scripts/gen_audit_index.py": _reconciled("citation", "its output is FPG-1 input 2"),
+    # ---- private: citation
+    "scripts/funnel_coverage.py": _private("citation"),
+    "scripts/funnel_lifecycle.py": _private("citation"),
+    "scripts/validate_doc_rot.py": _private("citation"),
+    "scripts/preflight_contract.py": _private("citation"),
+    "scripts/verify_handoff_probes.py": _private("citation"),
+    "scripts/validate_reconciliation.py": _private("citation"),
+    "scripts/scan_undeclared_edges.py": _private("citation"),
+    "scripts/batch_manifest.py": _private("citation"),
+    "scripts/archive_row_body.py": _private("citation"),
+    "scripts/audit.py::check_doc_claims": _private("citation"),
+    # ---- private: script call-site. The two closest overlaps with FPG-1's own `imports` and
+    # `triggers` relations are named, because they are the migrations with a landing already
+    # built rather than one a lane would have to grow first.
+    "scripts/codemap/ast_walker.py": _private(
+        "script call-site", "closest overlap with FPG-1's `imports`"),
+    "scripts/audit.py::check_import_edges": _private(
+        "script call-site", "same overlap with `imports`"),
+    "scripts/enforcement_coverage.py": _private("script call-site"),
+    "scripts/reverse_dep_oracle.py": _private("script call-site"),
+    "scripts/generate_organ_index.py": _private(
+        "script call-site", "closest overlap with FPG-1's `triggers`"),
+    "scripts/dispatch_drift.py": _private("script call-site"),
+    # ---- private: test, and template
+    "scripts/proof_layer.py": _private("test"),
+    "scripts/gen_handoff.py": _private("template"),
+    # ---- not-an-edge: the shape matched and the class does not apply
+    "scripts/graph_queries.py": _not_an_edge(
+        "this module. It grew an `ast` walk arming this very query, and the gate refused the "
+        "commit that armed it -- the first thing the ratchet caught was itself. Its subject "
+        "is a MODULE'S SHAPE (does this file read source text for structure), never a "
+        "relation between two corpus files, so there is no edge here to read from FPG-1"),
+}
+
+
+def _shape_signals(source: str) -> tuple[int, int, int, int]:
+    """`(scans, reads, regexes, ast_calls)` over one module's source.
+
+    AST rather than a text grep, for the reason the orphan census learned the hard way: a
+    call string in a comment or a docstring is not an executable position, and a predicate
+    that cannot tell the difference manufactures its own evidence.
+    """
+    try:
+        tree = ast.parse(source)
+    except (SyntaxError, ValueError):
+        return (0, 0, 0, 0)
+    scans = reads = regexes = ast_calls = 0
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)):
+            continue
+        attr, base = node.func.attr, node.func.value
+        named = base.id if isinstance(base, ast.Name) else None
+        if attr in _SCAN_CALLS and named != "ast":
+            scans += 1
+        if attr in _READ_CALLS:
+            reads += 1
+        if attr in _RE_CALLS and named == "re":
+            regexes += 1
+        if attr in _AST_CALLS and named == "ast":
+            ast_calls += 1
+    return (scans, reads, regexes, ast_calls)
+
+
+def is_edge_computation_shape(source: str) -> bool:
+    """Does this module DISCOVER a corpus-structure relation by reading source text?
+
+    EXTRACT and (SCAN or READ). Extraction is two or more `re` calls, or any `ast` parse --
+    and `ast` is first-class here for a reason worth recording: the predicate lane `v-664`
+    STATED for its section 2.5 table ("a module that walks the tree and compiles two or more
+    regexes") does not reproduce that table. Four of its twenty-one rows fail it --
+    `validate_doc_rot.py` and `dispatch_drift.py` walk no tree, `codemap/ast_walker.py` and
+    `reverse_dep_oracle.py` compile no regex at all -- so inheriting the stated predicate
+    would have armed a gate over a different population from the one the register records.
+
+    RECALL OVER PRECISION, deliberately. A false positive costs one verdict row in the
+    register, which is cheap and informative; a false negative is a private edge computation
+    that lands unseen, which is the thing the ratchet exists to stop.
+    """
+    scans, reads, regexes, ast_calls = _shape_signals(source)
+    extracts = regexes >= _MIN_REGEXES or ast_calls >= 1
+    return extracts and (scans >= 1 or reads >= 1)
+
+
+def _register_file(key: str) -> str:
+    return key.split("::", 1)[0]
+
+
+def _defines_symbol(source: str, symbol: str) -> bool:
+    try:
+        tree = ast.parse(source)
+    except (SyntaxError, ValueError):  # pragma: no cover -- unparseable registered module
+        return False
+    return any(isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+               and node.name == symbol
+               for node in ast.walk(tree))
+
+
+def stale_edge_computations(repo_root: Path | str,
+                            register: dict[str, EdgeComputation] | None = None
+                            ) -> list[Finding]:
+    """REFUSE on a register row naming a file, or a symbol, that is gone.
+
+    WHY THIS BLOCKS WHERE `stale_dispositions()` ONLY NOTES, since the two registers sit in
+    one module and the difference will otherwise read as an inconsistency. A stale ORPHAN
+    disposition is harmless on its own terms: the file is gone, so the orphan is gone, and
+    refusing the commit would punish the deletion. A stale EDGE-COMPUTATION row is not -- it
+    is a migration obligation leaving the register silently, which moves N without anyone
+    ruling that it moved. The repair is one line in the same commit that removed the file.
+    """
+    rows = EDGE_COMPUTATIONS if register is None else register
+    root = Path(repo_root)
+    findings: list[Finding] = []
+    for key in sorted(rows):
+        path = root / _register_file(key)
+        if not path.is_file():
+            findings.append(Finding(
+                subject=key,
+                evidence=("registered as a five-kind edge computation and the file is gone. "
+                          "Remove the row in the commit that removed the file -- a register "
+                          "row outliving its subject is a paper suppression, and it moves N "
+                          "without a ruling")))
+            continue
+        if "::" not in key:
+            continue
+        try:
+            source = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):  # pragma: no cover -- unreadable module
+            continue
+        symbol = key.split("::", 1)[1]
+        if not _defines_symbol(source, symbol):
+            findings.append(Finding(
+                subject=key,
+                evidence=(f"registered at `{symbol}` and {_register_file(key)} no longer "
+                          f"defines it. Re-point the row or remove it -- a row pinned to a "
+                          f"symbol that was renamed suppresses silently")))
+    return findings
+
+
+def _head_source(repo_root: Path | str, relpath: str) -> str | None:
+    """The module's bytes at `HEAD`, or None when the commit ADDS it.
+
+    The second half of the ratchet. Comparing the staged shape against the HEAD shape is what
+    separates "this module newly computes edges" from "this module always did and owes a
+    migration lane" -- and an add-only reading would miss every module that GROWS the shape,
+    which is the likelier of the two.
+    """
+    try:
+        out = subprocess.run(["git", "show", f"HEAD:{relpath}"], cwd=repo_root,
+                             capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError):  # pragma: no cover -- no git on PATH
+        return None
+    return out.stdout if out.returncode == 0 else None
+
+
+def edge_class_census(repo_root: Path | str, store: gs.GraphStore,
+                      staged: list[str] | None = None,
+                      register: dict[str, EdgeComputation] | None = None) -> list[Finding]:
+    """REFUSE on a NEW private edge computation, or on a register row that has rotted.
+
+    Two legs, and the narrow one is first because it is the one that fires on an ordinary
+    commit. A GATE THAT CONSULTS A REGISTER, not a view, and it says so: the staged set is
+    commit-time state (the same carve-out `task_coverage` documents), the HEAD comparison is
+    a second tree, and the verdict is a curated ruling. Calling this a query over FPG-1 would
+    be the mis-filing DECLARE-REVIEWS section A.1 correction 2 exists to prevent.
+
+    `store` is accepted and unused on purpose -- every refusal in this module takes the same
+    signature so the CLI dispatches uniformly, and a leg that later needs the graph (the
+    `imports` overlap two rows already name) does not change its callers to get it.
+    """
+    del store
+    rows = EDGE_COMPUTATIONS if register is None else register
+    root = Path(repo_root)
+    findings = stale_edge_computations(root, rows)
+
+    if staged is None:
+        if _merge_in_progress(root):
+            # A MERGE IS TRANSPORT, NOT AUTHORSHIP -- `task_coverage`'s carve-out, bound the
+            # same way to the git-derived set only, so an explicit `staged=` is still checked.
+            return findings
+        staged = staged_paths(root)
+
+    for relpath in staged:
+        if not relpath.startswith(EDGE_SCAN_PREFIX) or not relpath.endswith(".py"):
+            continue
+        if any(_register_file(key) == relpath for key in rows):
+            continue
+        path = root / relpath
+        if not path.is_file():
+            continue
+        try:
+            source = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):  # pragma: no cover -- unreadable staged file
+            continue
+        if not is_edge_computation_shape(source):
+            continue
+        before = _head_source(root, relpath)
+        if before is not None and is_edge_computation_shape(before):
+            continue  # already in the population; its migration lane owns it, not this commit
+        findings.append(Finding(
+            subject=relpath,
+            evidence=("computes a corpus-structure relation of the five-kind class by "
+                      "scanning source text, and no row of EDGE_COMPUTATIONS verdicts it. "
+                      "Read the relation from FPG-1 instead (`scripts/graph_store.py`, or "
+                      "`file_purpose_graph.py why`); or, if it genuinely cannot, add a row "
+                      "naming its kind and its owner so the eighteen that already owe a "
+                      "migration do not quietly become nineteen")))
+    return findings
+
+
+#: The three rows already reconciled when the register was written, so `migrated` counts
+#: MOVEMENT rather than restating the arm-time state as progress.
+ARM_TIME_RECONCILED = 3
+
+
+def edge_class_metrics(repo_root: Path | str | None = None,
+                       register: dict[str, EdgeComputation] | None = None) -> dict[str, int]:
+    """`private` / `reconciled` / `migrated` / `not_an_edge`, so N is reported on every run.
+
+    `migrated` is `reconciled` minus the three that were already FPG-1 inputs when the
+    register was written -- the count a W-G3 lane moves, and the one number that says whether
+    ADR-118 section 5 is progressing rather than merely declared. `not_an_edge` is reported
+    beside them rather than hidden: a negative verdict that nobody can see is indistinguishable
+    from a predicate that was quietly narrowed.
+    """
+    del repo_root
+    rows = EDGE_COMPUTATIONS if register is None else register
+    counted = {status: sum(1 for row in rows.values() if row.status == status)
+               for status in REGISTER_STATUSES}
+    return {"private": counted["private"], "reconciled": counted["reconciled"],
+            "not_an_edge": counted["not-an-edge"],
+            "migrated": max(counted["reconciled"] - ARM_TIME_RECONCILED, 0)}
+
+
 # --------------------------------------------------------------------------------------- CLI
 
 
@@ -746,6 +1094,13 @@ def main(argv: list[str] | None = None) -> int:
                              help="every process with its trigger; refuse on a dangling ref")
     listing.add_argument("--render", action="store_true",
                          help="emit the ARCHITECTURE.md Ch2 body (writes nothing)")
+    edges = sub.add_parser("edge-class-census", parents=[common],
+                           help="refuse on a NEW private five-kind edge computation")
+    edges.add_argument("--staged", nargs="*", default=None,
+                       help="paths to check (default: git diff --cached)")
+    edges.add_argument("--empty-register", action="store_true",
+                       help=("verdict nothing -- the fixture flag the trip-tests use to "
+                             "exercise the ratchet leg against a tree that is not this repo"))
 
     args = parser.parse_args(argv)
     for stream in (sys.stdout, sys.stderr):
@@ -772,6 +1127,15 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "task-coverage":
         return _report("task-coverage", task_coverage(root, store, args.staged))
+
+    if args.command == "edge-class-census":
+        register = {} if args.empty_register else None
+        metrics = edge_class_metrics(root, register)
+        print(f"edge-class-census: {metrics['private']} private, "
+              f"{metrics['reconciled']} reconciled, {metrics['migrated']} migrated, "
+              f"{metrics['not_an_edge']} verdicted out of the class")
+        return _report("edge-class-census",
+                       edge_class_census(root, store, args.staged, register))
 
     rows = process_list(root, store)
     if args.render:
