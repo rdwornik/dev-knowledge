@@ -726,3 +726,39 @@ the component in `deploy/manifest-v1.5.0.yaml` / `ecosystem/parity-surfaces.yaml
 AX4-1 floor-declaration act — the register itself states that a new hook needs one and that the
 surface *"is not this lane's to write"*. **Owed: the floor declaration for
 `scripts/logs_retention.py`'s SessionStart hook.**
+
+## Step 9 — the register corrections
+
+This step's contract item had two halves. **One was already discharged by `main` before this
+lane ran** (Step 0), so only the telemetry half is executed here.
+
+### `cost_usage_telemetry.py` — the text read as a DELETE; the ruling is KEEP
+
+The stale text was `_LANE_BUILT` plus *"only call site is LANE-f-6-observability-otel.md:27"* —
+lane-built-and-never-adopted, with a spent lane contract for a call site. That reads as a
+retirement candidate, and it is how `[#664]`'s census found the module. FPG-1 says otherwise,
+and it was consulted rather than assumed:
+
+```
+uv run --locked python scripts/file_purpose_graph.py why scripts/cost_usage_telemetry.py
+  consumers (3) ... - is imported by  file:scripts/provider_router.py   [wiring]
+```
+
+So the module is an **ADOPTED library whose ADOPTER is untriggered** — a materially different
+condition from an unadopted organ, with a different remedy. The replacement text says that, cites
+`[#694]`'s PARTIALLY DISCHARGED ruling and the real call site, and re-owns the row to `[#691]`
+Half B jointly with the `provider_router.py` row it now inherits: the two are adopted by ONE act
+(Half B routing through the router), and wiring the telemetry module on its own would place
+exactly the non-Claude call AX23-2 forbids.
+
+`102 passed`, `ruff` clean.
+
+### `worktree_seed.py` — NOT executed, because it was already done
+
+Done-contract item 7 arrived on `main` at `c0e0722f` before this lane's first commit (Step 0),
+with the four-line register row already deleted and
+`test_a_disposition_register_entry_cannot_manufacture_its_own_trigger` already green. The
+contract's framing — *"Two prior lanes declined this one-line edit as a V-2 class (a)
+curated-baseline touch. The operator has now ruled it … make the edit"* — is satisfied, by
+someone else. Re-making it would be a no-op or a conflict, so nothing was done and the fact is
+reported. This is the lane's one refuted premise.

@@ -149,9 +149,29 @@ _LANE_BUILT = ("lane-built and never adopted -- the process-trigger census's DEC
 
 ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
     # ---- population A: scripts, lane-built and never wired (the census's own class) ----
+    # NOT population A, and the row is a KEEP rather than the DELETE its old text implied. That
+    # text -- `_LANE_BUILT` plus "only call site is LANE-f-6-observability-otel.md:27" -- said
+    # lane-built-and-never-adopted with a spent lane contract for a call site, which reads as a
+    # retirement candidate and is how `[#664]`'s census found it. It was STALE, and the census
+    # said so in its own §4.2; corrected here by `[#664]`'s ratified register-row correction
+    # (2026-09-13, lane `lane-x-664-delete-list-execution`).
+    #
+    # WHAT IS ACTUALLY TRUE: `[#694]` records this module PARTIALLY DISCHARGED -- *"no longer
+    # inventory"* -- and FPG-1 confirms the call site rather than the lane contract:
+    # `why scripts/cost_usage_telemetry.py` -> `is imported by file:scripts/provider_router.py
+    # [wiring]`. So it is an ADOPTED library whose ADOPTER is untriggered, which is a different
+    # condition from an unadopted organ and takes a different remedy: it inherits the row above
+    # and moves with it. Wiring it independently would assert the very call `[#691]` Half A is
+    # forbidden from placing.
     "scripts/cost_usage_telemetry.py": Disposition(
-        reason=f"{_LANE_BUILT}; only call site is LANE-f-6-observability-otel.md:27",
-        owner="V+1 retirement-or-wiring list"),
+        reason="KEEP -- ADOPTED, not inventory, and this text replaces a stale one that read "
+               "as a DELETE. [#694] records it PARTIALLY DISCHARGED ('no longer inventory') and "
+               "FPG-1 holds the real call site: imported by scripts/provider_router.py. It is "
+               "untriggered ONLY because that caller is, so it inherits provider_router.py's "
+               "row above and is adopted by the same act -- [#691] Half B routing through the "
+               "router. Wiring it on its own would place the non-Claude call AX23-2 forbids",
+        owner="[#691] Half B, jointly with the provider_router.py row above; [#694] owns the "
+              "telemetry decision itself"),
     # NOT population A, and the distinction is the whole reason this row is written out rather
     # than folded into `_LANE_BUILT`. `provider_router.py` is not an organ nobody adopted; it
     # is an organ whose consumer is a lane that has not run yet, and the gap is REQUIRED by the
