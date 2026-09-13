@@ -289,11 +289,13 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "only route it measured. Wiring it would assert an admission that was denied",
         owner="V+1 retirement-or-wiring list"),
     # ---- population A: tests are not triggers ----
-    "scripts/archive_row_body.py": Disposition(
-        reason="referenced only by tests/test_archive_row_body.py -- a test proves a module "
-               "works and schedules nothing, so it is not a trigger. [#664]'s row names this "
-               "module's trigger ride as an edge of this arc, not a separate row",
-        owner="V+1 retirement-or-wiring list"),
+    # `scripts/archive_row_body.py` WAS dispositioned here, on exactly that heading: referenced
+    # only by its own test file, and a test proves a module works while scheduling nothing. It
+    # is GONE from this register because it is WIRED, not because it was retired -- `[#664]`'s
+    # ratified TRIGGER row landed the `row-archive-proof` pre-commit hook (2026-09-13, lane
+    # `lane-x-664-delete-list-execution`), beside `validate-backlog`, which is the surface the
+    # census named. A row leaves this register in both directions and for the same reason: the
+    # register holds live rulings about orphans, and a wired module is not an orphan.
     # ---- population A: orphan BY DESIGN, and wiring it would RED a test ----
     "scripts/export_backlog_view.py": Disposition(
         reason="ORPHAN BY DESIGN: tests/test_export_backlog_view.py::test_no_gate_hook_or_"

@@ -556,3 +556,93 @@ the six modules verdicted SAFE, one of those SAFE verdicts was demonstrably a fa
 `importlib` edge (Step 1), and the paired run is what turns "the oracle found nothing" into
 "nothing broke". `scripts/desired_state_loader.py` is the repo's worked example of the case
 where these two answers differ; this run is the one where they agree.
+
+## Step 7 — TRIGGER 1: `archive_row_body.py` onto the pre-commit stage
+
+RED-first, and the RED was OBSERVED before a line of wiring existed. Two witnesses, both run
+against the unwired tree:
+
+```
+tests/test_archive_row_body.py::test_a_pre_commit_hook_FIRES_archive_row_body_and_not_merely_names_it
+  AssertionError: scripts/archive_row_body.py is fired by no pre-commit hook -- it is
+  referenced only by this test file, and a test schedules nothing.
+  assert []
+
+tests/test_archive_row_body.py::test_the_trigger_row_and_its_disposition_cannot_both_be_live
+  AssertionError: archive_row_body.py now has a trigger and still carries an
+  ORPHAN_DISPOSITIONS entry
+```
+
+**The first witness is the one that matters, and it is written the way it is on purpose.** The
+other 47 tests in that file prove the module WORKS. All 47 were green while the census counted
+the module an orphan, which is the whole distinction `[#664]` draws: *"a test proves a module
+works and schedules nothing, so it is not a trigger."* A test that could not tell the wired tree
+from the unwired one would not have discharged this row however thorough it was.
+
+### The wiring
+
+`row-archive-proof`, placed immediately after `validate-backlog` — the census named *"the
+pre-commit stage, beside the row-lifecycle gates"* and that is the neighbour.
+
+```yaml
+      - id: row-archive-proof
+        name: Row-body archival byte-identity proof (legs A-E; [#612]/[#664] TRIGGER)
+        entry: uv run --locked python scripts/archive_row_body.py verify
+        language: system
+        files: '(^BACKLOG\.md$|^tasks/.*\.(md|json)$|^scripts/archive_row_body\.py$)'
+        pass_filenames: false
+```
+
+Two choices in it are load-bearing and both are pinned by the test rather than left to a
+comment:
+
+- **`verify`, never `relocate` or `rerender`.** Those two WRITE — one moves clauses out of a
+  live row, the other rewrites a record's prose. A gate reads and refuses; one that edits the
+  rows it judges would have Layer 2 mutating the corpus at commit time (Critical Rule #4), and
+  relocation is an operator act with a `propose` step in front of it. The test asserts the last
+  entry token is `verify`, so a later widening cannot quietly turn this gate into a writer.
+- **The selector reaches `tasks/`, not only `BACKLOG.md`.** LEG E enumerates from the ROWS
+  precisely so that deleting a record is detectable — *"a verifier that enumerates only what
+  exists cannot detect absence"* — and a selector blind to `tasks/archive/` would sit out the
+  one change that removes the thing that could complain.
+
+### GREEN, and the trigger is real in the graph rather than only in the config
+
+```
+uv run --locked python -m pytest tests/test_archive_row_body.py tests/test_graph_spine.py
+  -> 86 passed in 36.68s
+
+uv run --locked python scripts/file_purpose_graph.py why scripts/archive_row_body.py
+  consumers (9) ... - is triggered by  file:.pre-commit-config.yaml   [wiring]
+```
+
+The `triggers` edge did not exist before this commit and does now. That is the assertion the
+row actually wanted, and it is why the module's `ORPHAN_DISPOSITIONS` row and its
+`CENSUS_SCRIPT_ORPHANS` entry leave in the same commit: **a wired module is not an orphan**, and
+`test_a_disposition_register_entry_cannot_manufacture_its_own_trigger` would RED on a register
+row for a reachable process. The row leaves this register in both directions — retired (Steps
+3-5) or wired (here) — for one reason: the register holds live rulings about orphans.
+
+`ecosystem/organ-index.md` was regenerated with the generator the hook names
+(`generate_organ_index.py --write`), never hand-edited.
+
+### CLAUDE.md §9, and a PRE-EXISTING roster gap found while satisfying it
+
+§9 is not prose: `validate_doc_claims.extract_claimed_hooks` parses that bullet list and
+compares it to the live config, so adding a hook without adding its roster line grows a real
+drift. The line was added, and `CLAUDE.md`'s `last_reviewed` bumped to `2026-09-13` **in the
+same commit** — a separate follow-up commit is the one shape that provably fails the A2 setter
+test. The file is 24,258 B against the 24,576 B cap.
+
+Satisfying that surfaced a drift this lane did not create and does not repair:
+
+```
+DRIFT  precommit_hook_roster@CLAUDE.md
+  doc    = {... row-archive-proof ...}                      (31 ids)
+  actual = {... dispatch-conformance, graph-edge-class-census, row-archive-proof ...}  (33 ids)
+```
+
+**`dispatch-conformance` and `graph-edge-class-census` are live pre-commit hooks that §9 has
+never named.** The drift predates this lane, my line neither caused nor cures it, and adding
+two rosters lines for other lanes' hooks is outside this footprint — filed here for the
+operator rather than silently absorbed, which is what the check's WARN class is for.

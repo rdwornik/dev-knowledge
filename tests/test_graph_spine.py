@@ -574,7 +574,12 @@ def test_the_disposition_register_names_no_file_that_is_gone():
 #: intake #86's acceptance criterion 1 -- *"The sweep's output is the fixture. Every orphan
 #: S-08…S-13 found by grep, the query finds. Seeded as test cases, not eyeballed."*
 CENSUS_SCRIPT_ORPHANS = (
-    "scripts/archive_row_body.py",
+    # WIRED, not retired, and therefore absent for the CONVERSE of the reason the retirement
+    # blocks below give: `scripts/archive_row_body.py` acquired the `row-archive-proof`
+    # pre-commit hook on 2026-09-13 ([#664]'s ratified TRIGGER row, lane
+    # `lane-x-664-delete-list-execution`), so the query no longer finds it and this fixture
+    # must not claim it does. Same shape as `file_purpose_graph.py` below: named here rather
+    # than dropped, because a fixture that silently shrinks is not a fixture.
     "scripts/cost_usage_telemetry.py",
     "scripts/desired_state_loader.py",
     "scripts/export_backlog_view.py",
