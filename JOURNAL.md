@@ -19,6 +19,36 @@
 
 ---
 
+### 2026-09-13 (l) - CC (Opus 5, background integrator seat): the docs-cut anchor arc anchors itself
+
+**Names `0f9c210e`**, the entry below, which this arc's own `--no-ff` merge introduces.
+Two commits, JOURNAL last, for the reason entry (b) states.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+### 2026-09-13 (k) - CC (Opus 5, background integrator seat): the docs-cut manifest lands, having cut nothing
+
+**Anchors:** `ab7b84a9` — the `worktree-lane-x-000-docs-cut-manifest` merge, by way of
+`6dcda4fd` and the four commits it introduced.
+
+**Merged.** `ab7b84a9` — wave-3 lane 6 (AX28-2) @ `6dcda4fd`, by SHA, `--no-ff`. It already
+contained current `main`, so no sync was owed — checked rather than assumed. **DOCS-ONLY
+verified:** the arc changes exactly one file, its own audit artifact. `review=n/a` under D-1.
+
+**AX28-2's zero-stall clause held exactly.** The lane was given the freed slot on the
+condition that it *proposes* and never cuts, so it could not stall on an operator act
+overnight. Its final commit is titled "confirm nothing cut", and the arc touches no file
+outside `docs/audits/`. Its GO list is `to-browser/DOCS-CUT-LIST-2026-09-13.md`, left
+untouched by this seat for the morning, per the operator's instruction.
+
+**Merged in ~1.5 minutes, and the reason is the reportable part.** It is docs-only, so no
+reviewer was owed, and it needed no sync. Meanwhile the Codex review of the
+`trustworthy-suite` lane ran **in parallel** in the background — AX28-3's clause working as
+intended rather than as an aspiration: the review of one lane cost nothing against the merge
+of another.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-13 (j) - CC (Opus 5, background integrator seat): the conductor-E anchor arc anchors itself
 
 **Names `35530fc3`**, the entry below, which this arc's own `--no-ff` merge introduces.
