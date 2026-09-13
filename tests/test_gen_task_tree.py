@@ -1413,3 +1413,126 @@ def test_the_live_view_satisfies_the_projection_grammar_row_by_row():
     assert gtt.view_problems(text, "BACKLOG.md") == []
     rows = [ln for ln in text.split("\n") if gtt._TASK_RE.match(ln)]
     assert rows and all(gtt.is_projected_row(ln) for ln in rows)
+
+
+# --- [#730] one-command row closure -------------------------------------------------
+
+def test_close_row_performs_the_three_coupled_edits(tmp_path):
+    """The Done-contract's own list, checked one by one: a body-marker append, the
+    frontmatter `status: closed` (which no body grammar can derive), and removal of the
+    row's node from `tasks/manifest.json` -- all from ONE call."""
+    import json
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    assert gtt.find_incoherences(source, out_dir) == []
+
+    assert gtt.main(["--close-row", "1", "--evidence", "abc1234",
+                     "--out", str(out_dir)]) == 0
+
+    task_file = next(p for p in out_dir.iterdir() if p.name.startswith("1-"))
+    text = task_file.read_bytes().decode("utf-8")
+    assert gtt.frontmatter_status(text) == "closed"
+    body = gtt.extract_body(text)
+    assert "**CLOSED " in body and "evidence abc1234" in body
+
+    manifest = json.loads((out_dir / "manifest.json").read_bytes().decode("utf-8"))
+    assert all(n.get("task") != 1 for n in manifest["nodes"]), \
+        "the closed row's node must be gone from the manifest"
+    # the OTHER row is untouched
+    assert any(n.get("task") == 2 for n in manifest["nodes"])
+
+
+def test_close_row_refuses_a_malformed_evidence_sha(tmp_path):
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    before = (out_dir / "manifest.json").read_bytes()
+    assert gtt.main(["--close-row", "1", "--evidence", "not-a-sha",
+                     "--out", str(out_dir)]) == 1
+    assert (out_dir / "manifest.json").read_bytes() == before, "a refusal must write nothing"
+
+
+def test_close_row_refuses_an_id_not_open_in_the_manifest(tmp_path):
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    assert gtt.main(["--close-row", "999", "--evidence", "abc1234",
+                     "--out", str(out_dir)]) == 1
+
+
+def test_close_row_refuses_a_double_close(tmp_path):
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    assert gtt.main(["--close-row", "1", "--evidence", "abc1234", "--out", str(out_dir)]) == 0
+    assert gtt.main(["--close-row", "1", "--evidence", "def5678", "--out", str(out_dir)]) == 1, \
+        "the row is no longer an open manifest node, so a second close must refuse"
+
+
+def test_close_row_requires_evidence_on_the_cli(tmp_path):
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    with pytest.raises(SystemExit) as exc:
+        gtt.main(["--close-row", "1", "--out", str(out_dir)])
+    assert exc.value.code == 2
+    with pytest.raises(SystemExit) as exc:
+        gtt.main(["--evidence", "abc1234", "--out", str(out_dir)])
+    assert exc.value.code == 2
+
+
+def test_close_row_rolls_back_a_torn_write(tmp_path, monkeypatch):
+    """A failure part-way must leave the tree UNCHANGED rather than half-closed -- the same
+    plan-then-write-with-rollback discipline `_cmd_emit_source` already proves."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    task_file = next(p for p in out_dir.iterdir() if p.name.startswith("1-"))
+    before_task = task_file.read_bytes()
+    before_manifest = (out_dir / "manifest.json").read_bytes()
+
+    real_write_text = Path.write_text
+    calls = {"n": 0}
+
+    def flaky(self, *a, **kw):
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise OSError("simulated disk full")
+        return real_write_text(self, *a, **kw)
+
+    monkeypatch.setattr(Path, "write_text", flaky)
+    assert gtt.main(["--close-row", "1", "--evidence", "abc1234", "--out", str(out_dir)]) == 1
+    monkeypatch.undo()
+
+    assert task_file.read_bytes() == before_task
+    assert (out_dir / "manifest.json").read_bytes() == before_manifest
+
+
+def test_check_reds_when_a_referenced_task_file_carries_a_terminal_status(tmp_path):
+    """[#730] AX16-2's trip-test: closed-iff-absent-from-the-manifest, the direction
+    `close_row` is built never to reach on its own -- a hand edit that sets `status: closed`
+    (or leaves a row terminal after a botched manual close) while the manifest STILL
+    references the row must REFUSE, not silently get "repaired" back to open."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    assert gtt.find_incoherences(source, out_dir) == []
+
+    task_file = next(p for p in out_dir.iterdir() if p.name.startswith("1-"))
+    original = task_file.read_bytes().decode("utf-8")
+    task_file.write_text(original.replace("status: open", "status: closed", 1),
+                         encoding="utf-8", newline="\n")
+
+    problems = gtt.find_incoherences(source, out_dir)
+    assert any("terminal status while still referenced" in p for p in problems), problems
+    assert gtt.main(["--check", "--source", str(source), "--out", str(out_dir)]) == 1
+    # --emit-source must REFUSE too, not silently revert the hand-set status back to "open"
+    # ([#730] item 3) -- that silent-revert IS the defect this check exists to close off.
+    assert gtt.main(["--emit-source", "--source", str(source), "--out", str(out_dir)]) == 1
+    assert gtt.frontmatter_status(task_file.read_bytes().decode("utf-8")) == "closed", \
+        "a refused regen must not touch the file"
+
+
+def test_close_row_result_survives_a_frontmatter_refresh(tmp_path):
+    """[#730] item 3, the other half: once `close_row` has ACTUALLY removed the manifest
+    node, a later `--emit-source` must run clean and must not revert the closed status --
+    because the file is no longer in the set `plan_frontmatter_refresh` even looks at."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    assert gtt.main(["--close-row", "1", "--evidence", "abc1234", "--out", str(out_dir)]) == 0
+
+    task_file = next(p for p in out_dir.iterdir() if p.name.startswith("1-"))
+    assert gtt.frontmatter_status(task_file.read_bytes().decode("utf-8")) == "closed"
+
+    assert gtt.main(["--emit-source", "--source", str(source), "--out", str(out_dir)]) == 0
+    assert gtt.frontmatter_status(task_file.read_bytes().decode("utf-8")) == "closed", \
+        "--emit-source must not revert the hand-set-by-close_row terminal status"
+    assert gtt.find_incoherences(source, out_dir) == []
+    # and the row is gone from the regenerated BACKLOG.md, as ADR-107 §6.3 requires
+    assert "[#1]" not in source.read_bytes().decode("utf-8")
