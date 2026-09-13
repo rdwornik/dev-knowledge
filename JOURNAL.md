@@ -19,6 +19,13 @@
 
 ---
 
+### 2026-09-13 (r) - CC (Opus 5, background integrator seat): the 730 anchor arc anchors itself
+
+**Names `a54d4f3c`**, the entry below, which this arc's own `--no-ff` merge introduces.
+Two commits, JOURNAL last, for the reason entry (b) states.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-13 (q) - CC (Opus 5, background integrator seat): close_row lands — and the tool that records proof does not check it
 
 **Anchors:** `83961dde` — the `worktree-lane-x-730-one-command-closure` merge, by way of
