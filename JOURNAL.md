@@ -19,6 +19,13 @@
 
 ---
 
+### 2026-09-13 (j) - CC (Opus 5, background integrator seat): the conductor-E anchor arc anchors itself
+
+**Names `35530fc3`**, the entry below, which this arc's own `--no-ff` merge introduces.
+Two commits, JOURNAL last, for the reason entry (b) states.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-13 (i) - CC (Opus 5, background integrator seat): conductor E is PROVEN — the suite has a reproducible home
 
 **Anchors:** `959a00fc` — the `worktree-lane-x-689-conductor-e-proof` merge, by way of
