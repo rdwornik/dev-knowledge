@@ -1320,7 +1320,7 @@ doc_shapes:
     freshness_gated: true
   protocols/ESSENTIALS.md:
     spine: []
-    freshness_gated: true
+    freshness_gated: false
 
 # ---------------------------------------------------------------------------
 # providers: -- the PER-REPO provider allowlist. `[#691]` / AX22-5, verbatim:
