@@ -318,16 +318,46 @@ def test_every_register_row_carries_a_kind_from_the_FIVE_KIND_class():
     """The class is closed: citation, generation, template, test, script call-site.
 
     A sixth kind is a widening of DECLARE-REVIEWS section A.1 and is a ruling, not a row.
+    The one exception is a `not-an-edge` row, whose whole content is that no kind applies.
     """
     assert gq.EDGE_COMPUTATIONS, "an empty register measures nothing"
     for key, row in gq.EDGE_COMPUTATIONS.items():
-        assert row.kind in gq.FIVE_KINDS, f"{key} carries a kind outside the closed class"
+        expected = (gq.NO_KIND,) if row.status == "not-an-edge" else gq.FIVE_KINDS
+        assert row.kind in expected, f"{key} carries a kind outside the closed class"
 
 
 def test_every_register_row_carries_a_status_and_an_owner():
     for key, row in gq.EDGE_COMPUTATIONS.items():
-        assert row.status in ("private", "reconciled"), key
+        assert row.status in gq.REGISTER_STATUSES, key
         assert row.owner.strip(), f"{key} names no owner -- an unowned row is a wish"
+
+
+def test_a_NEGATIVE_verdict_is_expressible_and_admits_the_module():
+    """THE REGISTER MUST BE ABLE TO SAY NO, and this is the direction that proves it.
+
+    The shape predicate favours recall, so it will keep finding modules that read source
+    text for something other than corpus structure. Without `not-an-edge` the only way to
+    admit one would be a false `private` row -- inflating N, handing a W-G3 lane a migration
+    that does not exist, and making the number this query reports a lie.
+
+    A `not-an-edge` row must NOT count toward N, which is the half a status alone would not
+    guarantee.
+    """
+    register = {"scripts/x.py": gq._not_an_edge("reads its own source, not the corpus")}
+    metrics = gq.edge_class_metrics(REPO_ROOT, register)
+    assert metrics == {"private": 0, "reconciled": 0, "migrated": 0, "not_an_edge": 1}
+
+
+def test_the_census_verdicts_ITSELF_out_of_the_class():
+    """Found by the gate refusing the very commit that armed it.
+
+    `graph_queries.py` grew an `ast` walk in that change and matched its own predicate. Its
+    subject is a MODULE'S SHAPE, never a relation between two corpus files, so there is no
+    edge here to read from FPG-1 -- which is what `not-an-edge` says and `private` would not.
+    """
+    row = gq.EDGE_COMPUTATIONS["scripts/graph_queries.py"]
+    assert row.status == "not-an-edge"
+    assert row.kind == gq.NO_KIND
 
 
 def test_every_register_row_names_a_live_file_and_a_live_symbol():
