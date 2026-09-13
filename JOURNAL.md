@@ -19,6 +19,57 @@
 
 ---
 
+### 2026-09-13 (u) - CC (Opus 5, background integrator seat): batch X3 CLOSES — the packet, four remainder rows, one discharged GO
+
+**Anchors:** `e0761575` — the close-packet commit, which this arc's own `--no-ff` merge
+introduces. Two commits, JOURNAL last, per the law entry (b) states.
+
+**Batch X3 is closed.** `docs/audits/2026-09-13-technical-batch-x3-close-packet.md` is the
+`closed_by:` target the X3 manifest names, so landing it ENDS the ADR-110
+declared-integration-arc exemption by construction — the exemption requires the closer ABSENT
+from the tree, and `docs/audits/` is immutable, so an expiry resting on a mutable flag would be
+no expiry at all. Every merge from here pays its own anchor arc until a new manifest opens a batch.
+
+**This seat merged nothing.** All six wave-3 lanes were already on the spine when it booted;
+entry (s) is where those merges are recorded. Stated plainly because a close packet that reads
+as though one seat did all of it is the skim-past close-out the checklist exists to replace.
+
+**Refuse-to-finish — five of five.** Six lanes merged, zero abandoned (`git branch -r
+--no-merged origin/main` returns `origin/automation/fleet-audit` alone, swept on ORIGIN not just
+locally); `git worktree list` primary-only; `git stash list` empty; manifest committed at
+dispatch and this packet at close. Item 2 — the full suite — **ran ONCE on the merged result on
+the Actions conductor and was READ**, which is the form `[#675]` target 2 demands: 51 failed /
+5999 passed / 21 skipped at `dbac84b8`. **RED, and the batch did not cause it** — the count fell
+monotonically 55 → 53 → 51 across the day, and zero new failing node ids appeared after 00:28.
+21 of the 51 are ENV-only and cannot pass on `ubuntu-latest` at all, so the conductor `pytest`
+job as written can never go green; 28 are DATA drift; 2 look like real defects.
+
+**Ratification 2026-09-13 applied.** `[#727]` CLOSED on proving SHA `a8dee4ac` — and proved
+live, twice, when `deny_and_point` refused this session's own raw searches and named the organ
+to run instead. `[#675]` and `[#734]` HELD OPEN on the operator's NO-GO; their remainders are
+filed as `[#742]` `[#743]` `[#744]` (the three verified false-pass holes, each resolved in the
+code before filing) and `[#745]` (the 16 UNKNOWN). Item 5 DISCHARGED: the `ORPHAN_DISPOSITIONS`
+entry for the lane-seed module is deleted — it was the trustworthy-suite lane's open handback
+item to the integrator and was RED on the conductor; `tests/test_graph_spine.py` now 37 passed.
+
+**Wave 3 removed ZERO bytes.** All six lanes were additive; the docs-cut lane was proposal-only
+by its own contract ("confirm nothing cut"). The 264,687 B removed across the batch came
+entirely from wave 2's retirement leg. **Ratification items 2, 6 and 7 are GO and UNEXECUTED** —
+roughly 53 KB is approved for removal and none of it is removed. Recorded as OWNED with byte
+figures so the next dispatch can size an execution lane rather than rediscover it.
+
+**Result.** 316 rows (264 open + 52 deferred), up 4 from 312 — `gen_task_tree.py --rank` is the
+surface. Eleven findings triaged per ADR-111, none left untriaged; the largest standing one is
+that the exemption was LIVE for wave 3 and an anchor arc was paid per lane anyway.
+
+**One environment defect fixed to get this committed at all:** a zero-byte
+`.git/hooks/pre-commit.legacy` made every commit die with `WinError 193` from inside
+pre-commit's own error handler, naming a venv in a torn-down worktree and never the empty file.
+Moved aside rather than deleted; logged as a gotcha with a `verify:` line.
+
+**Changes.** `docs/audits/` (the close packet), `tasks/` (four new rows + manifest),
+`BACKLOG.md` (regenerated), `scripts/graph_queries.py` (ratification item 5), `JOURNAL.md`.
+
 ### 2026-09-13 (t) - CC (Opus 5, background integrator seat): the close arc anchors itself
 
 **Names `473c1987`**, the entry below, which this arc's own `--no-ff` merge introduces.
