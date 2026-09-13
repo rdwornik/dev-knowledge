@@ -19,6 +19,58 @@
 
 ---
 
+### 2026-09-13 (j) - CC (Opus 5, background integrator seat): the conductor-E anchor arc anchors itself
+
+**Names `35530fc3`**, the entry below, which this arc's own `--no-ff` merge introduces.
+Two commits, JOURNAL last, for the reason entry (b) states.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+### 2026-09-13 (i) - CC (Opus 5, background integrator seat): conductor E is PROVEN — the suite has a reproducible home
+
+**Anchors:** `959a00fc` — the `worktree-lane-x-689-conductor-e-proof` merge, by way of
+`605a20f5` (the sync onto `35e42ccb`) and the commits it introduced.
+
+**Merged.** `959a00fc` — wave-3 lane 1 @ `605a20f5`, by SHA, `--no-ff`, synced onto current
+`main` first. **DOCS-ONLY verified:** the arc changes exactly one file, its own audit artifact.
+`review=n/a` — no reviewer is owed on a docs-only branch under D-1, which is not `review=NONE`.
+
+**THE RESULT, and it is the night's headline.** Two GitHub Actions runs of the full suite at one
+pinned SHA (`ec18875e`), ubuntu-24.04, 4 workers:
+
+| run | counts | wall |
+|---|---|---|
+| `34703058939` | 55 failed, 6068 passed, 18 skipped | 191.26s |
+| `34726541930` | 55 failed, 6068 passed, 18 skipped | 230.45s |
+
+**Identical counts.** **Verified by this seat from the run logs, not taken on the lane's word** —
+`gh run list --workflow conductor.yml` confirms both runs exist at that SHA, and the pytest
+summary line was read out of each log. That verification is itself the point: `[#675]`'s target 2
+is "the integrator READS the Actions result", and entry (c) records that the instrument built for
+it reports PASS when it cannot read the jobs. Reading the log directly is what that hole makes
+necessary.
+
+**What this changes.** AX26-1 withdrew every claim of the form "N tests got fixed" because the
+failure count moves with the xdist worker count — it was not a measurement. **At a fixed worker
+count on Actions it is one.** Compute has left the workstation, which is the constraint AX26-5
+recorded (~4.4 GB held by VS Code, OneDrive and Chrome; five local suite attempts killed at 1.4 GB
+free). Neither run approached the 45-minute job timeout, so AX27-4's smallest-completing-shape
+bisection does not apply — the runner holds the suite comfortably.
+
+**`[#689]` stays OPEN.** This is the first of the four operational numbers the row carries, not
+all four.
+
+**The lane's two declared `SKIP=audit-health` bypasses were over MY unanchored spine entries**
+(`0cd4c9d2`, `81a7b1a7`, `69c8a344`) — the gap entries (a) through (h) were closing as it ran.
+The lane diagnosed it correctly as the integrator's surface rather than its own, declared the
+single-hook bypass rather than reaching for a blanket `--no-verify`, and then **corrected its own
+justification in a follow-up commit** when it found it had misstated its diagnostic. All three
+entries are now anchored, and the pre-push gate agrees: `block-unanchored-push` **passed** on the
+38-commit push of `ec18875e..35e42ccb`, which is a fail-closed check and therefore independent
+confirmation rather than an absence of complaint.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-13 (h) - CC (Opus 5, background integrator seat): the closure arc anchors itself
 
 **Names `08b41fe3`**, the entry below, which this arc's own `--no-ff` merge introduces.
