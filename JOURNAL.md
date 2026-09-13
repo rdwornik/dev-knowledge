@@ -19,6 +19,13 @@
 
 ---
 
+### 2026-09-13 (p) - CC (Opus 5, background integrator seat): the 683 anchor arc anchors itself
+
+**Names `8dc9bdcb`**, the entry below, which this arc's own `--no-ff` merge introduces.
+Two commits, JOURNAL last, for the reason entry (b) states.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-13 (o) - CC (Opus 5, background integrator seat): three small fixes land — and a generated count merges WRONG without conflicting
 
 **Anchors:** `78823b05` — the `worktree-lane-x-683-three-small-fixes` merge, by way of
