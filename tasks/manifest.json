@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "2716b8b84b793a81b43e8b62b22472f9be8b1d591be5738c37263eb95f7649c8",
+  "generated_sha256": "49fce4d854ce321854ea7ea465eb5c652c16546a5efc7c37cbfa4b9bcda13f00",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -448,10 +448,6 @@
     {
       "task": 726,
       "file": "726-torn-down-worktree-session-silently-resolves-to-the-primary-checkout.md"
-    },
-    {
-      "task": 727,
-      "file": "727-deny-and-point-hook-a-raw-search-over-a-governed-question-is-refused.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
