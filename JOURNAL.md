@@ -19,6 +19,47 @@
 
 ---
 
+### 2026-09-13 (m) - CC (Opus 5, background integrator seat): the suite stops lying — and the three fixes are attributed, not asserted
+
+**Anchors:** `81c0a4c9` — the `worktree-lane-x-000-trustworthy-suite` merge, by way of
+`64230d8d` (the sync onto `2783eab7`) and the commits it introduced.
+
+**Merged.** `81c0a4c9` — wave-3 lane 2 (AX28-1) @ `64230d8d`, by SHA, `--no-ff`, synced onto
+current `main` first. **Codex: CRITICAL:0 HIGH:0 MED:0 LOW:0** — a clean pass, and read off the
+Findings sections rather than the wrapper's severity heuristic, which has been wrong on every
+other lane tonight (it reported 0/0/0/0 for a review carrying a CRITICAL and a HIGH).
+
+**Three fixes, RED-first**, witnesses committed failing at `84ce7976` before any fix landed:
+
+- **`graph_store`** — publish a rebuild through the live file rather than over readers. This is
+  the session-scoped store that REDded sibling xdist workers, and therefore the direct cause of
+  AX26-1: the failure count moved with the worker count because workers were racing one store.
+- **`gen_handoff`** — load a target repo's audit in isolation instead of into `sys.modules`. The
+  stub audit module was shadowing the real one for **everything collected after it**, which is
+  why the failure set depended on collection order.
+- **`fleet_analytics`** — declare the pandas requirement instead of erroring 17 times.
+
+**ATTRIBUTED, by paired runs adjacent in time over the same files:**
+
+| tree | result |
+|---|---|
+| baseline `main` `2783eab7` | 6 failed, 182 passed |
+| merged `64230d8d` | 6 failed, 172 passed, 17 skipped |
+
+**The same six failures on both sides — zero regressions.** All six are pre-existing and
+**live-state dependent** (dogfood bundle probes, funnel-health against the live repo, the
+disposition register), so they move with repo state rather than with any diff; a lane cannot
+clear them and should not be charged with them. The 17 skips are the pandas declaration
+landing — AX26-2 item 3 asked for "declared and installed, **or** the tests skipped by
+declaration", and this is the second branch, taken deliberately.
+
+**Why the pairing matters here more than usual.** This lane's whole subject is a suite that
+reports different failures depending on how it is run. Measuring it by a single run would have
+reproduced the very defect it fixes. The baseline and tip runs were taken minutes apart, at the
+same worker count, over the same files.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-13 (l) - CC (Opus 5, background integrator seat): the docs-cut anchor arc anchors itself
 
 **Names `0f9c210e`**, the entry below, which this arc's own `--no-ff` merge introduces.
