@@ -325,10 +325,6 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "/review-closures; no event fires it and none should",
         owner="operator -- one of the census's seven acts"),
     # ---- population A: on-demand, mapped to one of the seven acts ----
-    "scripts/worktree_seed.py": Disposition(
-        reason="ON-DEMAND-BY-OPERATOR, act = GO. Invoked by /lane-boot "
-               "(.claude/commands/lane-boot.md:124)",
-        owner="operator -- one of the census's seven acts"),
     "scripts/worktree_import_proof.py": Disposition(
         reason="ON-DEMAND-BY-OPERATOR, act = GO. Invoked by /lane-boot "
                "(.claude/commands/lane-boot.md:174)",

@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "49fce4d854ce321854ea7ea465eb5c652c16546a5efc7c37cbfa4b9bcda13f00",
+  "generated_sha256": "46dfc9b803db7da3f4cfebc3c5f95231313d12545875e3b5fe1a11dddef97f5d",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -448,6 +448,18 @@
     {
       "task": 726,
       "file": "726-torn-down-worktree-session-silently-resolves-to-the-primary-checkout.md"
+    },
+    {
+      "task": 742,
+      "file": "742-actions-verdict-reports-pass-when-job-details-cannot-be-read.md"
+    },
+    {
+      "task": 743,
+      "file": "743-collision-extractor-is-blind-to-root-level-files.md"
+    },
+    {
+      "task": 744,
+      "file": "744-median-report-counts-incomplete-receipts.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -1119,6 +1131,10 @@
     {
       "task": 736,
       "file": "736-component-lifecycle-as-data-and-automatic-deprecation.md"
+    },
+    {
+      "task": 745,
+      "file": "745-the-sixteen-unknown-census-items-are-resolved-by-a-second-pass.md"
     },
     {
       "prose": ""
