@@ -31,10 +31,19 @@ to read WHAT THIS MERGE CHANGED:
                                      as noise.
     no baseline given             -> UNATTRIBUTED. Missing evidence is not evidence.
 
-NEVER GREEN-BY-SKIP, WITH THREE DISTINCT ABSENCES. "No run for this SHA", "still in progress"
-and "`gh` unavailable" are three different next actions -- investigate, wait, install -- so they
-are three verdicts, not one. Collapsing them would be the `[#675]` defect itself: one plausible
-word standing in for states that differ in what they ask you to do.
+NEVER GREEN-BY-SKIP, WITH FOUR DISTINCT ABSENCES. "No run for this SHA", "still in progress",
+"`gh` unavailable" and "the run was found but its JOB LIST was not read" are four different next
+actions -- investigate, wait, install, retry -- so they are four verdicts, not one. Collapsing
+them would be the `[#675]` defect itself: one plausible word standing in for states that differ
+in what they ask you to do.
+
+THE FOURTH ABSENCE WAS A REALISED INSTANCE OF EXACTLY THAT, closed 2026-09-13 by `[#742]`.
+Until then `fetch_run`'s second `gh` call collapsed a non-zero exit, an `OSError`, a
+`subprocess.TimeoutExpired` and malformed JSON alike onto `match["jobs"] = []`. `verdict_for`
+computed `failing = set()` over that empty list and returned `STATE_PASS`, so a job-details call
+that never completed printed a GREEN verdict for the merge. The distinction the fix rests on is
+that `None` means "not read" and `[]` means "read, and there were none" -- two facts the old
+code spelled the same way, in a module whose whole argument is that it never does that.
 
 WHAT THIS DOES NOT COVER, stated rather than implied. Target 3.2 asks for the full suite AND
 index regeneration on Actions. The suite is there; INDEX REGENERATION IS NOT a job in
@@ -89,6 +98,11 @@ STATE_UNATTRIBUTED = "UNATTRIBUTED"
 STATE_NO_RUN = "NO-RUN"
 STATE_IN_PROGRESS = "IN-PROGRESS"
 STATE_UNAVAILABLE = "GH-UNAVAILABLE"
+#: The run was found and its JOB LIST was not. A FOURTH absence (`[#742]`), and it is its own
+#: state for the same reason the other three are: "no failing jobs" and "no readable jobs" ask
+#: the reader to do different things. Until 2026-09-13 every failure of the job-details call
+#: became `jobs = []`, which `verdict_for` read as "nothing failed" and reported as PASS.
+STATE_JOBS_UNREADABLE = "JOBS-UNREADABLE"
 
 #: Every not-green state names its next action. A verdict that names no way forward gets worked
 #: around rather than acted on -- `SeatRefusal`'s rule, one organ over.
@@ -111,6 +125,11 @@ REMEDIES: dict[str, str] = {
     STATE_UNAVAILABLE: ("`gh` is not installed or not authenticated, so the result could not "
                         "be read at all. Install/authenticate it, or record explicitly that "
                         "this merge's Actions result was NOT read -- never that it passed"),
+    STATE_JOBS_UNREADABLE: ("the run exists but its JOB LIST could not be read -- `gh run view "
+                            "<id> --json jobs` errored, timed out or returned unreadable JSON. "
+                            "RETRY it; if it keeps failing, open the run in the browser and "
+                            "record the jobs by hand. This merge's suite result is UNKNOWN, "
+                            "which is not the same as green and must never be recorded as it"),
 }
 
 
@@ -203,19 +222,36 @@ def fetch_run(sha: str, *, repo_root: Optional[Path] = None,
     if match is None:
         return None
 
+    # `None` MEANS "NOT READ", `[]` MEANS "READ, AND THERE WERE NONE" (`[#742]`). Until
+    # 2026-09-13 both were `[]`, so an errored, timed-out or unparseable job-details call
+    # produced a run object that `verdict_for` read as "nothing failed" and reported as PASS --
+    # the integrator was told a merge was green by a call that never completed. The two facts
+    # ask for different actions (retry vs proceed), so they get different values, and the
+    # sentinel is checked rather than truthiness: `not jobs` is true for both.
     jobs = ["gh", "run", "view", str(match["databaseId"]), "--json", "jobs"]
     try:
         proc = subprocess.run(jobs, cwd=str(repo_root or _REPO_ROOT), capture_output=True,
                               text=True, timeout=GH_TIMEOUT_S, check=False)
-        match["jobs"] = json.loads(proc.stdout or "{}").get("jobs", []) if proc.returncode == 0 \
-            else []
-    except (OSError, subprocess.SubprocessError, json.JSONDecodeError):
-        match["jobs"] = []
+        if proc.returncode != 0:
+            logger.warning("gh run view %s exited %d; the job list for this run was NOT read: %s",
+                           match["databaseId"], proc.returncode, proc.stderr.strip()[:200])
+            match["jobs"] = None
+        else:
+            match["jobs"] = json.loads(proc.stdout or "{}").get("jobs", [])
+    except (OSError, subprocess.SubprocessError, json.JSONDecodeError) as exc:
+        logger.warning("the job list for run %s could not be read: %s", match["databaseId"], exc)
+        match["jobs"] = None
     return match
 
 
+def _jobs_were_read(run: dict) -> bool:
+    """False only when the job-details call FAILED. A run dict built by hand -- every test
+    fixture in this repo, and `conductor.py`'s own -- carries a real list and reads as read."""
+    return run.get("jobs", []) is not None
+
+
 def _job_map(run: dict) -> dict[str, Optional[str]]:
-    return {j["name"]: j.get("conclusion") for j in run.get("jobs", [])}
+    return {j["name"]: j.get("conclusion") for j in run.get("jobs", []) or []}
 
 
 def verdict_for(sha: str, *, baseline: Optional[str] = None,
@@ -229,6 +265,14 @@ def verdict_for(sha: str, *, baseline: Optional[str] = None,
         return Verdict(sha=sha, state=STATE_UNAVAILABLE, baseline=baseline)
     if run is None:
         return Verdict(sha=sha, state=STATE_NO_RUN, baseline=baseline)
+    if not _jobs_were_read(run):
+        # BEFORE the status check, and that ordering is the decision. "I could not read the
+        # jobs" is a fact about the READ, not about the run, and it is the one fact that must
+        # never be laundered into a verdict about the suite. An in-progress run whose job call
+        # also failed is reported here rather than as IN-PROGRESS: both say "do not merge on
+        # this", and only this one says why the evidence is missing.
+        return Verdict(sha=sha, state=STATE_JOBS_UNREADABLE, run_id=run.get("databaseId"),
+                       title=run.get("displayTitle", ""), baseline=baseline)
 
     jobs = _job_map(run)
     common = dict(run_id=run.get("databaseId"), title=run.get("displayTitle", ""),
@@ -245,7 +289,14 @@ def verdict_for(sha: str, *, baseline: Optional[str] = None,
             base_run = fetch(baseline, repo_root=repo_root, workflow=WORKFLOW)
         except ActionsUnavailable:
             base_run = None
-        if base_run is not None and base_run.get("status") == "completed":
+        # `_jobs_were_read` GUARDS THIS TOO, and it is the same hole with the sign flipped
+        # (`[#742]`, found resolving its locator). An unreadable BASELINE job list used to give
+        # `base_jobs = {}` with `base_read = True`, so `base_failing` was empty and every
+        # failure at the tip became `newly_failing` -- REGRESSED, naming jobs this merge may
+        # not have broken. A false accusation costs as much as a false pass: the integrator
+        # reverts an innocent merge. Unread means UNATTRIBUTED, which is what it always meant.
+        if (base_run is not None and base_run.get("status") == "completed"
+                and _jobs_were_read(base_run)):
             base_jobs = _job_map(base_run)
             base_read = True
 
