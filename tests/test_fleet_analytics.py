@@ -298,6 +298,7 @@ def _profiles(**kv):
     return {p: fa.indent_profile("x\n" * n) for p, n in kv.items()}
 
 
+@requires_pandas
 def test_hotspot_frame_excludes_deleted_files():
     """A file absent from `existing` can never rank -- it was deleted."""
     commits = [_commit(500 - i, _chg("gone.md"), _chg("here.md")) for i in range(6)]
@@ -306,12 +307,14 @@ def test_hotspot_frame_excludes_deleted_files():
     assert list(df["file"]) == ["here.md"]
 
 
+@requires_pandas
 def test_hotspot_frame_min_revisions_floor_fires():
     revs = fa.Counter({"a.md": 4, "b.md": 9})
     df = fa.hotspot_frame(revs, _profiles(**{"a.md": 10, "b.md": 10}), cfg=CFG)
     assert list(df["file"]) == ["b.md"]
 
 
+@requires_pandas
 def test_hotspot_frame_ranks_more_revisions_higher_at_equal_complexity():
     revs = fa.Counter({"hot.md": 40, "warm.md": 10, "cool.md": 5})
     df = fa.hotspot_frame(revs, _profiles(**{"hot.md": 20, "warm.md": 20, "cool.md": 20}),
@@ -319,6 +322,7 @@ def test_hotspot_frame_ranks_more_revisions_higher_at_equal_complexity():
     assert list(df["file"]) == ["hot.md", "warm.md", "cool.md"]
 
 
+@requires_pandas
 def test_hotspot_frame_file_without_a_profile_cannot_rank():
     """Binary / unreadable files have no complexity axis, so they are not hotspots."""
     revs = fa.Counter({"img.png": 50, "a.md": 10})
@@ -326,6 +330,7 @@ def test_hotspot_frame_file_without_a_profile_cannot_rank():
     assert list(df["file"]) == ["a.md"]
 
 
+@requires_pandas
 def test_hotspot_frame_empty_input_returns_typed_empty_frame():
     df = fa.hotspot_frame(fa.Counter(), {}, cfg=CFG)
     assert len(df) == 0 and "score" in df.columns
@@ -371,6 +376,7 @@ def test_coupling_counts_are_order_independent():
     assert counts == {("a.py", "b.py"): 2}
 
 
+@requires_pandas
 def test_jaccard_gate_kills_the_lopsided_pair():
     """A 6-revision file that always rides along with a 300-revision one reads as degree
     1.00 under CodeScene's formula. Jaccard is the symmetric gate that rejects it."""
@@ -381,6 +387,7 @@ def test_jaccard_gate_kills_the_lopsided_pair():
     assert len(df) == 0                       # degree would be 1.0; jaccard 6/300 = 0.02
 
 
+@requires_pandas
 def test_genuinely_coupled_pair_is_admitted():
     counts = fa.Counter({("a.py", "b.py"): 9})
     revs = fa.Counter({"a.py": 10, "b.py": 10})
@@ -390,6 +397,7 @@ def test_genuinely_coupled_pair_is_admitted():
     assert df.iloc[0]["jaccard"] == pytest.approx(9 / 11, abs=1e-3)
 
 
+@requires_pandas
 def test_min_co_changes_gate_fires():
     counts = fa.Counter({("a.py", "b.py"): 4})
     revs = fa.Counter({"a.py": 5, "b.py": 5})
@@ -397,6 +405,7 @@ def test_min_co_changes_gate_fires():
     assert len(df) == 0
 
 
+@requires_pandas
 def test_same_dir_is_a_column_not_a_filter():
     """test_x.py <-> x.py is healthy evidence, not noise -- surface it, do not drop it."""
     counts = fa.Counter({("pkg/x.py", "pkg/y.py"): 9})
@@ -405,6 +414,7 @@ def test_same_dir_is_a_column_not_a_filter():
     assert len(df) == 1 and bool(df.iloc[0]["same_dir"]) is True
 
 
+@requires_pandas
 def test_mechanical_lockstep_pairs_sort_below_genuine_coupling():
     counts = fa.Counter({("m1.py", "m2.py"): 10, ("g1.py", "g2.py"): 9})
     revs = fa.Counter({"m1.py": 10, "m2.py": 10, "g1.py": 10, "g2.py": 12})
@@ -525,6 +535,7 @@ def test_last_meaningful_ts_ignores_binary_changes():
     assert fa.last_meaningful_ts(commits, {}, {"i.png"}, cfg=CFG) == {}
 
 
+@requires_pandas
 def test_rot_requires_both_age_and_referrers():
     last = {"old_linked.md": _NOW - 400 * _DAY, "old_orphan.md": _NOW - 400 * _DAY,
             "fresh_linked.md": _NOW - 5 * _DAY}
@@ -536,6 +547,7 @@ def test_rot_requires_both_age_and_referrers():
     assert orphans == 1                       # the stale, unreferenced one
 
 
+@requires_pandas
 def test_zero_referrer_stale_file_is_an_orphan_not_rot():
     """The asymmetry that defines the frame: unreferenced stale is harmless; referenced
     stale is a live liability because readers follow the pointer."""
@@ -545,6 +557,7 @@ def test_zero_referrer_stale_file_is_an_orphan_not_rot():
     assert len(df) == 0 and orphans == 1
 
 
+@requires_pandas
 def test_rot_single_referrer_is_below_the_min_refs_floor():
     last = {"a.md": _NOW - 500 * _DAY}
     refs = fa.Counter({"a.md": 1})
@@ -553,6 +566,7 @@ def test_rot_single_referrer_is_below_the_min_refs_floor():
     assert len(df) == 0 and orphans == 0      # referenced, so not an orphan either
 
 
+@requires_pandas
 def test_rot_age_pct_normalizes_against_repo_history():
     last = {"a.md": _NOW - 500 * _DAY}
     refs = fa.Counter({"a.md": 5})
@@ -582,6 +596,7 @@ def test_to_finding_reports_unavailable_repo():
     assert f.status == "unavailable" and "no HEAD" in f.evidence
 
 
+@requires_pandas
 def test_digest_renders_every_section_with_no_repos():
     text = fa.build_digest([], "2026-07-22", CFG, {})
     for header in ["# Fleet analytics", "## Method and honest limits", "## Fleet roll-up",
@@ -592,6 +607,7 @@ def test_digest_renders_every_section_with_no_repos():
     assert "review queue, not a verdict" in text
 
 
+@requires_pandas
 def test_digest_states_the_honest_limits_in_the_report_itself():
     """The digest is what gets read -- the limits cannot live only in the source docstring."""
     text = fa.build_digest([], "2026-07-22", CFG, {})
@@ -600,6 +616,7 @@ def test_digest_states_the_honest_limits_in_the_report_itself():
     assert "Cross-repo references are invisible" in text
 
 
+@requires_pandas
 def test_digest_is_ascii_only():
     text = fa.build_digest([], "2026-07-22", CFG, {})
     text.encode("ascii")                      # raises if a non-ASCII glyph slipped in
