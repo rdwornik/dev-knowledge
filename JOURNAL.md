@@ -19,6 +19,55 @@
 
 ---
 
+### 2026-09-13 (g) - CC (Opus 5, background integrator seat): the wave-2 dispatcher freeze, anchored — and ONE of three rows closes
+
+**Anchors:** `0cd4c9d2` — the `worktree-dispatch-x2-freeze` merge, by way of `60a32549` (the
+sync-merge onto `81a7b1a7`) and `674e67ce`.
+
+**Merged.** `0cd4c9d2` — the dispatcher's wave-2 freeze branch @ `60a32549`, by SHA, `--no-ff`.
+**DOCS-ONLY was VERIFIED, not taken on the word:** `git diff --name-only main...674e67ce` returns
+zero files under `scripts/` or `tests/`. Carries the AX25 root-cause note, the `[#675]` contract
+amendment folding in the conformance test, and rows `[#740]` / `[#741]`. Its sync onto main was
+conflict-free. `review=n/a` — a docs-only branch is owed no reviewer under D-1, and that is not
+the same as `review=NONE`.
+
+**Wave 2 is now fully merged: `a8dee4ac` (x-727), `2709256a` (x-675), `69c8a344` (x-734),
+`0cd4c9d2` (dispatcher).** Every lane was synced onto current `main` before its own merge, each
+merged by SHA rather than by branch name, and each torn down after.
+
+## The closure verdict — one of three, and the other two are held with evidence
+
+AX26-4 authorised closing `[#727]`, `[#675]` and `[#734]` on the operator's word. That word was
+given before tonight's reviews existed. **`[#727]` closes. The other two do not, and the reason
+in each case is the row's own Done-when read back against what landed.**
+
+- **`[#727]` — CLOSED, proving SHA `a8dee4ac`.** The amended clause ("does not close until that
+  clause is green") is green: the three declared allow-on-failure paths refuse, each naming cause
+  and fix, each with a RED-first trip-test. **Proved beyond its tests** — the guard refused this
+  integrator's own `Bash` calls mid-session and named the organ to run, which is the pointer half
+  working in production against the seat merging it.
+- **`[#675]` — HELD.** Its Done-when says its target is "six things, all six and not a pick-list".
+  **Three carry verified false-pass holes** (entry (c)): target 2's `actions_verdict` reports PASS
+  when job details cannot be read, target 4's collision refusal cannot see root-level files,
+  target 6's `median --strict` counts incomplete receipts. The row's own text calls a median
+  reached that way "a false pass on this row". Closing it would be that false pass.
+- **`[#734]` — HELD.** Its Done-when has four clauses; **clause 2, "the 16 UNKNOWN are resolved
+  to a live/non-live verdict by a second pass rather than carried forward", is undischarged.**
+  The stage-2 evidence file does not contain the string UNKNOWN at all, and **stage 1 recorded the
+  position explicitly**: *"Not closed by this lane. `[#734]`'s Done-when covers the full census
+  disposition (35 non-live items each DELETE/TRIGGER/KEEP, 16 UNKNOWN resolved by a second pass,
+  delivered as ONE file for ONE GO). This lane executed only the already-GO'd deletion leg."*
+  The row itself predicted this: clause 2 is "the clause most likely to be quietly dropped,
+  because an UNKNOWN is the one bucket that costs work to empty and looks harmless full." It was.
+
+**Both holds are one operator word away** — `to-browser/CLOSURE-VERDICTS-2026-09-13.md` states each
+as a single GO/NO-GO, per AX27-5's one-word shape. Holding is the cheap direction: a row closed on
+evidence that does not support it buries its own remainder, and `[#734]`'s KEPT items keep their
+reasons either way.
+
+**Changes.** `JOURNAL.md` (this entry), `tasks/727-*.md` (removed), `tasks/manifest.json`,
+`BACKLOG.md` (regenerated, 313 -> 312 rows).
+
 ### 2026-09-13 (f) - CC (Opus 5, background integrator seat): the x-734 anchor arc anchors itself
 
 **Names `b154fd1a`**, the entry below, which this arc's own `--no-ff` merge introduces.
