@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-09-13 (t) - CC (Opus 5, background integrator seat): the close arc anchors itself
+
+**Names `473c1987`**, the entry below, which this arc's own `--no-ff` merge introduces.
+Two commits, JOURNAL last, for the reason entry (b) states: a one-commit arc cannot anchor
+its own merge, because the merge SHA does not exist when the JOURNAL text is authored.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-13 (s) - CC (Opus 5, background integrator seat): batch X waves 2 and 3 close — eleven merges, one index pass, one anchor
 
 **Anchors:** `7f2012cb` — the `worktree-dispatch-x3-freeze` tip, which the `0c56a7c8` merge
