@@ -4,95 +4,10 @@ reconciled_with: handoff-process@7.1.0
 
 # Dev Practice Playbook
 
-> **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> **Last updated:** 2026-09-08
-> (batch CLOSE, lane `c2-living-docs-hygiene` — the three Ch8 mechanisms and the Auto-TOC
-> repair; the note sits BELOW the stamp line on purpose — see the review-pass note)
->
-> **Review pass 2026-09-06 (lane `lane-t-000-playbook`, batch T).** Re-read end-to-end — all
-> 5,968 lines, Part I Ch1–Ch14 and Part II §1–§21 plus the appendices — against the **62 commits**
-> that landed on this file since the 2026-08-01 stamp. Those 62 are dominated by four arcs, and
-> naming them is what the stamp is claiming to have re-read: Ch8's dispatch system and its
-> single-literal-command-site collapse (`4d974f0b`, `c5bf6426`, `959b80a1`, `10822b09`); the batch
-> and night-batch protocols with the wave close and the lane lifecycle (`9f9b6e11`, `297af6e1`,
-> `7156d432`, `4db2e107`); the DEGRADED-REVIEW fallback chain and its measured rungs (`7a5eca1c`,
-> `8c929051`, `63ce473e`); and the ESSENTIALS de-blessing, whose eight route-mentions were
-> repointed or struck (`10698573`, `7e7402d5`). The `codespace` shape entered the contract
-> vocabulary in the same span (`4fff67e7`, ruling R-ENUM).
->
-> **Drift found and FILED rather than swept, per this file's own Ch6 rule that an unclassified
-> version sweep edits the past silently.** §8 "Handoff format spec" still names
-> `HANDOFF_PROCESS.md` **v6.3.0** as the authoritative spec, and §8's "What the v5 handoff
-> carries", Ch6's file-type-taxonomy row (v5.4 bundle) and Ch14's `/handoff` row still read v5,
-> while the live spec is **v7.0.0** (`b8599fbc`) — which this file's own `reconciled_with:`
-> frontmatter already declares. These are LIVE-NORMATIVE hits in Ch6's three-class sense and are
-> reported as owed rather than corrected here: a version sweep is its own arc with its own
-> classification pass, and it sits outside this lane's frozen footprint.
->
-> **Review pass 2026-09-08 (lane `c2-living-docs-hygiene`, batch CLOSE).** Re-read end-to-end —
-> all 6,157 lines, Part I Ch1–Ch14 and Part II §1–§21 plus the appendices and the two tooling
-> addenda. Three Ch8 mechanisms were added in this pass, each from a red-team finding rather
-> than from a drafting preference: the **lane ceiling as a step-0 refusal** (reconciling the
-> chapter's own `4–10` / `4–6` contradiction, which stood in two paragraphs of one chapter),
-> **poll-as-code** as a third note under the message shapes, and **the reviewer's model id on
-> the tally line** with a mismatch reporting `review=NONE`.
->
-> **The stamp line carries its note, and it is re-set by the LAST commit that touches this
-> file in the lane — deliberately, because the derived-freshness leg is ancestry-based.**
-> `audit.py::_stamp_setting_commit` resolves the stamp to the newest commit whose diff ADDS
-> the stamp line, and `_unreviewed_after_stamp` then counts CONTENT commits after it. A
-> second edit to this file under an unchanged stamp line therefore reads as content landing
-> after its own review, which is exactly the condition the leg exists to catch — so the line
-> moves with the last edit rather than being written once at the top of the lane.
->
-> **Two mechanical facts a future re-stamp of this file needs, both learned the expensive
-> way in this pass.** (1) The needle is `_declared_stamp_needle`'s `m.group(0)`, which ENDS
-> at the date, and `_stamp_setting_commit` compares the added diff line for EQUALITY — so a
-> parenthetical appended after the date on the stamp line makes the added line unequal to
-> the needle, the setter resolves to an older commit, and the row reads STALE. The note
-> therefore sits on its own line BELOW the stamp. (2) An unchanged stamp line is not
-> re-added by anything, so re-stamping inside one day means the line's own text has to
-> differ from the one already in history; the bolded spelling `CLAUDE.md` already uses is
-> that difference here, and `_PROSE_STAMP_RE` reads it as the same PROSE surface.
->
-> **One drift found by this pass and FIXED in place** (the Auto-TOC addendum claimed the mechanism
-> was "applied to `ARCHITECTURE.md` and `protocols/PLAYBOOK.md`"; ARCHITECTURE's markers were
-> stripped by `f7a548d2` under `[#326]` and its TOC un-gated, so only this file carries one — the
-> live hook id `toc-freshness-playbook` says as much in its own name).
->
-> **The prose stamp stays prose, DELIBERATELY — a `last_reviewed:` frontmatter key was written
-> here and then reverted in the same pass.** This file is not in the stamped set
-> (`canonical_docs.FRESHNESS_FILES` + `audit._HUB_ONLY_FRESHNESS_FILES`), so no gate reads
-> either surface, and moving the stamp to frontmatter falsifies two live statements in files
-> this lane did not own: `audit.py::doctrine_table`'s docstring, which names this file as *the*
-> case whose "date is a prose `> Last updated:` line NO GATE PARSES", and
-> `tests/test_canonical_docs.py`'s live pin on `SURFACE_PROSE`. The surface flip is a real
-> change with its own two-site footprint; it is filed, not smuggled into a re-stamp.
->
-> **A witnessed defect in the silent-rule ratchet, recorded because this pass is its evidence.**
-> The three mechanisms above are new normative prose in `protocols/`, and every one of them
-> carries an honest-limit line saying it binds the seat and no organ checks it — so they are
-> silent rules by the ratchet's own definition and it fired correctly at +5. The baseline had
-> **zero headroom (447 of 447)**, and raising it is an operator ruling rather than a code path,
-> so the only in-lane way to land them was to **re-word around the detector's three-token
-> normative set** (`TOKEN_RE` in `scripts/silent_rule_detector.py` — named there, and
-> deliberately not spelled here, because spelling it in a governed file raises the very count
-> the paragraph is about) — which removed five keyword occurrences and not one rule. Stated plainly rather than
-> quietly: the additions are unchanged in force, the metric no longer sees them, and a proxy
-> that a re-word satisfies is measuring keyword density rather than the silent-rule pool it
-> names. The detector's own docstring already concedes it "counts keywords, not rules"; this is
-> that limit met head-on at a zero-headroom baseline, where it stops being a residual and
-> becomes the binding constraint on what a doctrine lane may write. Routed as a finding, not
-> fixed here — the fix is an operator ruling on the baseline or a drain, and neither is a
-> doc-hygiene lane's to make.
->
-> **The v6.3.0 / v5 handoff-spec drift filed by the 2026-09-06 pass is STILL OWED and was not
-> swept here** — §8's "Handoff format spec", §8's "What the v5 handoff carries", Ch6's
-> file-type row and Ch14's `/handoff` row all still read v5/v6.3.0 against a live v7.0.0. The
-> reasoning that filed it holds: a version sweep is its own classification arc, and it sat
-> outside this lane's frozen footprint too. Re-filed rather than re-discovered.
->
-> *Section history lives in git (commit log + JOURNAL `Changes:` line), not in per-section changelog blocks — per ADR-49.*
+> **Last updated:** 2026-09-13 — lane `lane-x-628-docs-cut`: the review-pass blockquotes
+> (dated narration accreted since 2026-08-01) are cut per [#628]'s docs-cut item 5; section
+> history lives in git (commit log + JOURNAL `Changes:` line), not in per-section changelog
+> blocks — per ADR-49, the principle the cut narration itself was citing.
 >
 > **Organization:** Two explicit parts. **Part I — Reference** (chapters Ch1–Ch14: System Architecture, the CLAUDE.md contract, repo conventions, documentation file types, session boundaries, Claude Code internals, …) → **Part II — Workflows** (numbered recipes §1–§21; the §18 gap is intentional — it was deleted; git has it) followed by **Appendices A–C** plus tooling addenda (Codemap, Auto-TOC). Every heading carries an ordinal under an explicit Part; the numbered spine is the workflow-recipe middle, not the whole document.
 

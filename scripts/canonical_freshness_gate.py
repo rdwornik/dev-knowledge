@@ -46,10 +46,11 @@ except ImportError:
 if _cdocs is not None:
     DEFAULT_FRESHNESS_FILES = list(_cdocs.FRESHNESS_FILES)
 else:
-    # VISION.md left [#621] lane-g-621-c7 (2026-09-02) -- kept in sync with the registry by
+    # VISION.md left [#621] lane-g-621-c7 (2026-09-02); ESSENTIALS.md left 2026-09-13
+    # ([#628], lane-x-628-docs-cut) -- kept in sync with the registry by
     # tests/test_canonical_docs.py::test_freshness_gate_consumer_fallback_equals_the_registry.
     DEFAULT_FRESHNESS_FILES = ["ARCHITECTURE.md", "CLAUDE.md", "CONTRIBUTING.md",
-                               "docs/handoffs/README.md", "protocols/ESSENTIALS.md"]
+                               "docs/handoffs/README.md"]
 
 # WHICH REGISTERED FILES MUST EXIST -- the distinction Z-G4 needs and this gate lacked
 # (terra P1, 2026-09-03, caught before merge).
