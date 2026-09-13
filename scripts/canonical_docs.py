@@ -147,7 +147,11 @@ CANONICAL_HUB_MANDATORY: tuple[str, ...] = CANONICAL_MANDATORY + (README,)
 # optional + .dev-knowledge-only). Presence is required only for CANONICAL_MANDATORY. VISION
 # and README both remain members: retirement and hub-scoping change the presence TIER, never
 # the name-check.
-CANONICAL_OPTIONAL: tuple[str, ...] = (ENVIRONMENT, ESSENTIALS, PLAYBOOK, TOKEN_LOG)
+# ESSENTIALS LEFT 2026-09-13 ([#628], executed by lane-x-628-docs-cut): retirement means this
+# registry -- and FRESHNESS_FILES / SECTION_HISTORY_DOCS / STRUCTURE_DOCS below -- stop
+# treating the file as live. The constant and the file itself are untouched; [#628]'s own
+# fleet-coupled deletion act is a separate, later arc.
+CANONICAL_OPTIONAL: tuple[str, ...] = (ENVIRONMENT, PLAYBOOK, TOKEN_LOG)
 CANONICAL_ALL: tuple[str, ...] = (
     CANONICAL_MANDATORY + CANONICAL_RETIRED + (README,) + CANONICAL_OPTIONAL
 )
@@ -163,7 +167,7 @@ ADR38_BASELINE_REQUIRED: tuple[str, ...] = tuple(n for n in CANONICAL_MANDATORY 
 # keeps every OTHER registry membership (CANONICAL_RETIRED, CANONICAL_SPINE, casing checks)
 # -- only the freshness-review requirement is removed.
 FRESHNESS_FILES: tuple[str, ...] = (
-    ARCHITECTURE, CLAUDE, CONTRIBUTING, HANDOFFS_README_PATH, ESSENTIALS_PATH,
+    ARCHITECTURE, CLAUDE, CONTRIBUTING, HANDOFFS_README_PATH,
 )
 
 # --- the LIVING-DOC set: which files a freshness DERIVATION may speak about -----------------
@@ -247,16 +251,18 @@ def is_living_doc(path: str) -> bool:
 
 
 # The living docs scanned for Section-history / changelog accretion.
+# ESSENTIALS_PATH LEFT 2026-09-13 ([#628], lane-x-628-docs-cut) -- see the CANONICAL_OPTIONAL
+# note above; the same retirement applies to this tuple and to STRUCTURE_DOCS below.
 SECTION_HISTORY_DOCS: tuple[str, ...] = (
     CLAUDE, ARCHITECTURE, VISION, CONTRIBUTING,
-    PLAYBOOK_PATH, HANDOFF_PROCESS_PATH, AI_COUNCIL_PROCESS_PATH, ESSENTIALS_PATH,
+    PLAYBOOK_PATH, HANDOFF_PROCESS_PATH, AI_COUNCIL_PROCESS_PATH,
 )
 
 # The living docs scanned for structural shape (mirrors SECTION_HISTORY_DOCS, different order
 # on disk historically; the membership is what the gate reads).
 STRUCTURE_DOCS: tuple[str, ...] = (
     CLAUDE, ARCHITECTURE, VISION, CONTRIBUTING,
-    PLAYBOOK_PATH, ESSENTIALS_PATH, HANDOFF_PROCESS_PATH, AI_COUNCIL_PROCESS_PATH,
+    PLAYBOOK_PATH, HANDOFF_PROCESS_PATH, AI_COUNCIL_PROCESS_PATH,
 )
 
 # The four root living docs the session-end backpressure hook treats as canonical.
