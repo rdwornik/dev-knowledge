@@ -2,25 +2,25 @@
 
 Takes a THROWAWAY synthetic consumer through the ENTIRE methodology lifecycle in ONE
 scripted scenario, asserting at every stage: onboard -> arm (3 stages) -> negative gate
-paths (block, capture refusal) -> positive gate paths (pass) -> grandfather (Form-A
-markers) -> reporter sees it (match / drift / parse-warn) -> teardown (tmp, hub clean).
+paths (block, capture refusal) -> positive gate paths (pass) -> teardown (tmp, hub clean).
 
 OPT-IN (slow, subprocess + pre-commit + real git): skipped unless RUN_E2E=1 in the env, so
 it never taxes the fast ship-gate. Marked `slow` for the #317 marker tier (not building
 #317 here). Run it with:  RUN_E2E=1 python -m pytest tests/test_e2e_consumer_lifecycle.py
 
-The carried gates it exercises (block_ff_push, check_backlog_commit_msg, boundary_report)
-live on main; the HUB-ONLY validate_hermetization (#306) is exercised only when present on
-the branch (stage 3c self-skips otherwise, auto-activating once #306 merges).
+The carried gates it exercises (block_ff_push, check_backlog_commit_msg) live on main; the
+HUB-ONLY validate_hermetization (#306) is exercised only when present on the branch (stage 3c
+self-skips otherwise, auto-activating once #306 merges). [#664] (2026-09-13): the grandfather
+(Form-A markers) / reporter (match / drift / parse-warn) stage that used to follow, exercising
+scripts/boundary_report.py by importlib path, was removed — that module was retired at 3c9418cc
+([#734]) without this loader being removed. See BACKLOG [#746].
 """
 
 from __future__ import annotations
 
-import importlib.util
 import os
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -89,33 +89,12 @@ def _precommit_config() -> str:
         "        pass_filenames: false\n")
 
 
-# [#664] RETIREMENT RECORD (2026-09-13). `scripts/boundary_report.py` was retired at `3c9418cc`
-# ([#734]) without this importlib load (a path reference `safe_remove`'s static importer scan
-# cannot see) being removed. Its own docstring, quoted so the "what was lost" question never has
-# to be re-derived from the call site alone: "#312 read-only fleet CLAUDE.md methodology-boundary
-# reporter (C1) ... parse each fleet repo's `CLAUDE.md` for the #312 Form-A fenced region markers
-# (`<!-- methodology:start/end id=... owner=hub|repo -->`), align every consumer's `owner=hub`
-# regions against the hub baseline by `id`, and REPORT drift. It is a reporter, NOT a gate." The
-# block below (`_load_boundary` + Stage 5/6) exercised exactly that: a grandfathered consumer
-# aligning clean (`pass`), injected drift on one region being detected and named, and a broken
-# marker pair raising a loud parse warning. MEASURED, not assumed: with the module gone,
-# `_load_boundary()` raises at `spec.loader.exec_module(m)` (`FileNotFoundError`) wherever this
-# opt-in (`RUN_E2E=1`) test actually runs — latent, not red, only because it is skipped by default.
-def _load_boundary():
-    spec = importlib.util.spec_from_file_location(
-        "boundary_report", HUB / "scripts" / "boundary_report.py")
-    m = importlib.util.module_from_spec(spec)
-    sys.modules["boundary_report"] = m
-    spec.loader.exec_module(m)
-    return m
-
-
 def _hub_status() -> str:
     return subprocess.run(["git", "-C", str(HUB), "status", "--porcelain"],
                           capture_output=True, text=True).stdout.strip()
 
 
-def test_e2e_consumer_lifecycle(tmp_path, monkeypatch):
+def test_e2e_consumer_lifecycle(tmp_path):
     env = _env(tmp_path / "pchome")
     baseline_dirty = _hub_status()  # the gauntlet must add NOTHING to the hub tree
 
@@ -206,45 +185,7 @@ def test_e2e_consumer_lifecycle(tmp_path, monkeypatch):
                   stdin=f"refs/heads/main {post} refs/heads/main {pre}\n")
     assert allow.returncode == 0, f"block-ff wrongly refused a clean --no-ff merge: {allow.stderr}"
 
-    # --- Stage 5 + 6: grandfather + reporter sees it --------------------------
-    br = _load_boundary()
-    fixhub = tmp_path / "fixhub"
-    fixhub.mkdir()
-    (fixhub / "CLAUDE.md").write_text(
-        "# hub\n<!-- methodology:start id=alpha owner=hub -->\nA body\n"
-        "<!-- methodology:end id=alpha -->\n<!-- methodology:start id=beta owner=hub -->\n"
-        "B body\n<!-- methodology:end id=beta -->\n", encoding="utf-8")
-    marked = ("# CLAUDE.md — synthetic-consumer\n"
-              "<!-- methodology:start id=alpha owner=hub -->\nA body\n"
-              "<!-- methodology:end id=alpha -->\n<!-- methodology:start id=beta owner=hub -->\n"
-              "B body\n<!-- methodology:end id=beta -->\n"
-              "<!-- methodology:start id=local owner=repo -->\np\n"
-              "<!-- methodology:end id=local -->\n")
-    (consumer / "CLAUDE.md").write_text(marked, encoding="utf-8")
-
-    class FakeState:
-        def __init__(self, path):
-            self.path = str(path)
-
-    monkeypatch.setattr(br.audit, "discover_repos", lambda: ["synthetic-consumer"])
-    monkeypatch.setattr(br.audit, "load_state", lambda name: FakeState(consumer))
-
-    f = [x for x in br.run_report(fixhub, today="2026-07-12")[0] if "synthetic" in x.evidence]
-    assert f and f[0].status == "pass" and "2 hub regions match" in f[0].evidence, \
-        f"grandfathered consumer did not align: {f[0].evidence if f else 'NONE'}"
-
-    (consumer / "CLAUDE.md").write_text(marked.replace("A body", "DRIFTED"), encoding="utf-8")
-    f2 = [x for x in br.run_report(fixhub, today="2026-07-12")[0] if "synthetic" in x.evidence]
-    assert f2 and f2[0].status == "warn" and "drift: alpha" in f2[0].evidence, \
-        f"injected drift not detected/named: {f2[0].evidence if f2 else 'NONE'}"
-
-    (consumer / "CLAUDE.md").write_text(
-        marked.replace("<!-- methodology:end id=beta -->\n", ""), encoding="utf-8")
-    f3 = [x for x in br.run_report(fixhub, today="2026-07-12")[0] if "synthetic" in x.evidence]
-    assert f3 and "parse:" in f3[0].evidence and "never closed" in f3[0].evidence, \
-        f"broken marker pair did not raise a loud parse warning: {f3[0].evidence if f3 else 'NONE'}"
-
-    # --- Stage 7: teardown (tmp auto-removed by the fixture; hub untouched) ----
+    # --- Stage 5: teardown (tmp auto-removed by the fixture; hub untouched) ----
     # The gauntlet works entirely under tmp_path; assert it added NOTHING to the hub tree
     # (tolerating pre-existing dirtiness like this uncommitted test file itself).
     assert _hub_status() == baseline_dirty, \
