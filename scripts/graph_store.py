@@ -110,6 +110,17 @@ CREATE INDEX IF NOT EXISTS idx_nodes_path ON nodes (path);
 CREATE INDEX IF NOT EXISTS idx_nodes_process ON nodes (process_class);
 """
 
+#: `_SCHEMA` as individual statements, because a rebuild runs the schema INSIDE its
+#: transaction and `Connection.executescript` COMMITS any transaction in flight before it
+#: runs -- which would split one atomic replacement into two visible halves, the first of
+#: them an empty graph. An empty graph is not a smaller answer here, it is a maximally wrong
+#: one: `orphan_census` over no edges reports every process as an orphan.
+_SCHEMA_STATEMENTS = tuple(s.strip() for s in _SCHEMA.split(";") if s.strip())
+
+#: Dropped and recreated on every rebuild, so a store written under an older shape is
+#: REPLACED rather than inserted into. Indexes belong to their tables and go with them.
+_TABLES = ("meta", "nodes", "edges", "roots")
+
 
 @dataclass(frozen=True)
 class Counts:
@@ -170,9 +181,89 @@ def store_path(repo_root: Path | str) -> Path:
 
 def _connect(db_path: Path) -> sqlite3.Connection:
     connection = sqlite3.connect(db_path)
+    # AUTOCOMMIT, so the only transaction boundaries are the ones `_write_graph` writes.
+    # Left at the default, sqlite3 opens a transaction of its own before the first INSERT and
+    # the rebuild ends up with two nested notions of "the transaction" -- and `PRAGMA
+    # journal_mode=WAL` cannot run inside one at all. One owner of the boundary, stated here.
+    connection.isolation_level = None
     for pragma in WAL_PRAGMAS:
         connection.execute(pragma)
     return connection
+
+
+def _write_graph(connection: sqlite3.Connection, rows: dict[str, list]) -> None:
+    """Replace the store's ENTIRE contents inside ONE transaction.
+
+    ATOMICITY COMES FROM THE TRANSACTION, NOT FROM A FILE SWAP, and that is the whole point.
+    A hook that dies mid-rebuild must never leave a store that reads as a repo with no edges
+    -- an orphan census over an empty graph reports EVERY process as an orphan, so the
+    failure mode of a half-written store is not a smaller answer but a maximally wrong one.
+    SQLite already guarantees exactly that: an interrupted transaction rolls back on the next
+    open. The old shape bought the same guarantee by building a temp file and `os.replace`-ing
+    it over the live one, and paid for it with the cross-worker collision this function exists
+    to end (see `rebuild`).
+
+    DROP-AND-RECREATE RATHER THAN DELETE, so a store written under an older `SCHEMA_VERSION`
+    is REPLACED rather than inserted into a shape this code no longer understands.
+    """
+    connection.execute("BEGIN IMMEDIATE")
+    try:
+        for table in _TABLES:
+            connection.execute(f"DROP TABLE IF EXISTS {table}")
+        for statement in _SCHEMA_STATEMENTS:
+            connection.execute(statement)
+        connection.executemany(
+            "INSERT OR REPLACE INTO nodes (key, kind, label, path, process_class) "
+            "VALUES (?, ?, ?, ?, ?)", rows["nodes"])
+        connection.executemany(
+            "INSERT INTO edges (src, dst, kind, source, detail) VALUES (?, ?, ?, ?, ?)",
+            rows["edges"])
+        connection.executemany("INSERT OR REPLACE INTO roots (key) VALUES (?)", rows["roots"])
+        connection.executemany(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", rows["meta"])
+    except BaseException:
+        with contextlib.suppress(sqlite3.Error):
+            connection.execute("ROLLBACK")
+        raise
+    connection.execute("COMMIT")
+
+
+def _rebuild_in_place(path: Path, rows: dict[str, list]) -> None:
+    """The publication path. Writes THROUGH the live file, so no reader is ever in the way."""
+    connection = _connect(path)
+    try:
+        _write_graph(connection, rows)
+    finally:
+        connection.close()
+    # MTIME IS THE FRESHNESS SIGNAL AND A WAL COMMIT DOES NOT MOVE IT. `is_stale` compares
+    # `path.stat().st_mtime` against the newest source file; a committed WAL transaction
+    # lands in the `-wal` sidecar and can leave the main file's mtime exactly where it was.
+    # Measured on this box before this line was written: mtime unchanged across a COMMIT that
+    # visibly changed the contents. Without the touch the store reads stale FOREVER and every
+    # `ensure()` pays a full ~13 s build -- a silent performance cliff, not a failure.
+    os.utime(path, None)
+
+
+def _rebuild_by_swap(path: Path, rows: dict[str, list]) -> None:
+    """The fallback, for the one case an in-place transaction cannot serve: a destination
+    that is not a database at all (truncated, or written by something else). Nothing
+    legitimate can be reading such a file -- `open_store` refuses it -- so replacing it
+    wholesale is safe, and `_swap_into_place` already knows how to wait out a holder.
+
+    ONE TEMP FILE PER PROCESS. A shared `.rebuilding` name is a race, and not a theoretical
+    one: five xdist workers each calling `ensure()` on a cold store collided on Windows with
+    `WinError 32 -- the process cannot access the file because it is being used by another
+    process`.
+    """
+    tmp = path.with_suffix(f".rebuilding-{os.getpid()}")
+    for stale in (tmp, tmp.with_name(tmp.name + "-wal"), tmp.with_name(tmp.name + "-shm")):
+        stale.unlink(missing_ok=True)
+    connection = _connect(tmp)
+    try:
+        _write_graph(connection, rows)
+    finally:
+        connection.close()
+    _swap_into_place(tmp, path)
 
 
 def rebuild(repo_root: Path | str, db_path: Path | str | None = None) -> Counts:
@@ -181,6 +272,20 @@ def rebuild(repo_root: Path | str, db_path: Path | str | None = None) -> Counts:
     The rustworkx import is deferred into this function on purpose: the read path -- three
     commit-tier hooks -- must not pay for a graph library it never uses. `graph_queries.py`
     imports this module and never reaches `rebuild`, so its cold start stays stdlib-only.
+
+    WHY THIS WRITES THROUGH THE LIVE FILE INSTEAD OF SWAPPING ONE OVER IT. Publication used
+    to be `os.replace(tmp, path)`, which on Windows FAILS while any process holds the
+    destination or its `-wal`. Under `pytest-xdist` every worker shares one store -- it is
+    keyed to the TREE, and the workers are all in the same tree -- so a handle held open in
+    worker A made worker B's `ensure()` raise `StoreUnreadable` after ~5 s of retries, inside
+    B's own tests, naming a file B never touched. The retry loop was the mitigation and it
+    was never sufficient: a reader held for the length of a test, let alone leaked for the
+    length of a session, outlives any bounded wait.
+
+    The module's own pragma comment already states the guarantee that makes the swap
+    unnecessary -- *"readers do not block writers and a writer does not block readers"*. WAL
+    gives it; the file swap was fighting it. So concurrency is handled where SQLite handles
+    it, and the rebuild LOCK above still keeps duplicate builders from doing the work twice.
     """
     import file_purpose_graph as fpg   # noqa: PLC0415 -- see docstring; read path stays stdlib
 
@@ -191,42 +296,19 @@ def rebuild(repo_root: Path | str, db_path: Path | str | None = None) -> Counts:
     graph = fpg.build(root)
     nodes = [graph.graph[index] for index in graph.graph.node_indices()]
     edges = graph.all_edges()
+    rows = {
+        "nodes": [(n.key, n.kind, n.label, n.path,
+                   fpg.process_class(n.path) if n.path else None) for n in nodes],
+        "edges": [(e.src, e.dst, e.kind, e.source, e.detail) for e in edges],
+        "roots": [(key,) for key in sorted(_wiring_root_keys(fpg, root))],
+        "meta": [("schema_version", str(SCHEMA_VERSION)), ("repo_root", root.as_posix())],
+    }
 
-    # ONE TEMP FILE PER PROCESS. A shared `.rebuilding` name is a race, and it is not a
-    # theoretical one: five xdist workers each calling `ensure()` on a cold store collided
-    # on Windows with `WinError 32 -- the process cannot access the file because it is being
-    # used by another process`. Concurrency is this store's normal condition (parallel lane
-    # worktrees, a commit hook, a test session), so the writer is made concurrent-safe
-    # rather than the callers made careful.
-    tmp = path.with_suffix(f".rebuilding-{os.getpid()}")
-    for stale in (tmp, tmp.with_name(tmp.name + "-wal"), tmp.with_name(tmp.name + "-shm")):
-        stale.unlink(missing_ok=True)
-    connection = _connect(tmp)
     try:
-        connection.executescript(_SCHEMA)
-        connection.executemany(
-            "INSERT OR REPLACE INTO nodes (key, kind, label, path, process_class) "
-            "VALUES (?, ?, ?, ?, ?)",
-            [(n.key, n.kind, n.label, n.path,
-              fpg.process_class(n.path) if n.path else None) for n in nodes])
-        connection.executemany(
-            "INSERT INTO edges (src, dst, kind, source, detail) VALUES (?, ?, ?, ?, ?)",
-            [(e.src, e.dst, e.kind, e.source, e.detail) for e in edges])
-        connection.executemany(
-            "INSERT OR REPLACE INTO roots (key) VALUES (?)",
-            [(key,) for key in sorted(_wiring_root_keys(fpg, root))])
-        connection.executemany(
-            "INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)",
-            [("schema_version", str(SCHEMA_VERSION)), ("repo_root", root.as_posix())])
-        connection.commit()
-    finally:
-        connection.close()
+        _rebuild_in_place(path, rows)
+    except sqlite3.DatabaseError:
+        _rebuild_by_swap(path, rows)
 
-    # ATOMIC SWAP rather than a write in place. A hook that dies mid-rebuild would otherwise
-    # leave a half-written store that reads as a repo with no edges -- and an orphan census
-    # over an empty graph reports EVERY process as an orphan. The failure mode of a truncated
-    # store is not a smaller answer, it is a maximally wrong one.
-    _swap_into_place(tmp, path)
     # COUNTS FROM THE ARTIFACT, and the reader is CLOSED. Reading them back is clause 1 of
     # the frozen contract -- never from the in-memory build -- but the earlier spelling,
     # `open_store(path).counts()`, leaked the connection: WAL keeps `-wal`/`-shm` open, so
@@ -327,10 +409,12 @@ def release_rebuild_lock(lock: Path, token: str) -> None:
 def _swap_into_place(tmp: Path, path: Path) -> None:
     """Atomic-swap the freshly written store over the live one.
 
-    ATOMIC SWAP RATHER THAN A WRITE IN PLACE. A hook that dies mid-rebuild would otherwise
-    leave a half-written store that reads as a repo with no edges -- and an orphan census
-    over an empty graph reports EVERY process as an orphan. The failure mode of a truncated
-    store is not a smaller answer, it is a maximally wrong one.
+    NO LONGER THE PUBLICATION PATH -- this is `_rebuild_by_swap`'s tool, reached only when
+    the destination is not a database at all. Normal rebuilds write THROUGH the live file
+    inside one transaction (`_write_graph`), because replacing a file readers hold is exactly
+    the cross-worker collision `rebuild`'s docstring records. Keeping the retry loop for the
+    corrupt-file case is what makes that case recoverable rather than a hard refusal; keeping
+    it for every rebuild is what made a reader able to break one.
     """
     last: OSError | None = None
     for attempt in range(_SWAP_ATTEMPTS):

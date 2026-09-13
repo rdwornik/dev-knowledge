@@ -18,6 +18,7 @@ that can only pass is not a refusal.
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import os
 import subprocess
@@ -95,6 +96,29 @@ def tiny_store(tiny_repo: Path, tmp_path: Path):
     db = tmp_path / "store" / "FPG.db"
     gs.rebuild(tiny_repo, db)
     return gs.open_store(db)
+
+
+@pytest.fixture
+def live_store():
+    """The LIVE store, open for exactly as long as one test needs it.
+
+    FUNCTION-SCOPED AND ALWAYS CLOSED, for a measured reason rather than a stylistic one. The
+    six witnesses in this file's live-tree section each used to call `gs.ensure(REPO_ROOT)`
+    and drop the result on the floor, which under CPython leaves the handle -- and the WAL
+    sidecars -- open for the rest of the worker's life. One such test running anywhere in a
+    worker turned that worker into a permanent reader of the store every OTHER worker also
+    rebuilds. `tests/test_decision_coverage.py` reached the same shape from the same
+    evidence; this is that fixture, applied where the leak actually was.
+
+    It is still correct to hold nothing across tests even now that a held reader can no
+    longer break a rebuild (`graph_store._write_graph`). The store fix removed the failure;
+    leaking a handle per test would remain a leak.
+    """
+    store = gs.ensure(REPO_ROOT)
+    try:
+        yield store
+    finally:
+        store.close()
 
 
 # ------------------------------------------------------- witness 1: the persistence round-trip
@@ -227,6 +251,92 @@ def test_an_expired_lock_is_broken_so_a_dead_builder_never_wedges_the_store(tmp_
     taken = gs.acquire_rebuild_lock(lock)
     assert taken is not None and taken != dead, "the breaker did not take the lock"
     assert lock.read_text(encoding="utf-8") == taken
+
+
+def test_a_concurrent_READER_cannot_break_a_rebuild(tiny_repo: Path, tmp_path: Path):
+    """THE CROSS-WORKER COLLISION, reduced to the one fact that produces it.
+
+    Under `-n auto` the workers share one store, because the store is keyed to the TREE and
+    every worker is in the same tree. So a handle held open in worker A is, from worker B's
+    point of view, a reader that will not let go -- and the publication path used to be
+    `os.replace` over the live file, which on Windows FAILS while any process holds the
+    destination or its `-wal`. Worker B's `ensure()` then raised `StoreUnreadable` after
+    ~5 s of retries, and it did so in ITS OWN tests, naming a file worker B never touched.
+
+    MEASURED, not argued (this worktree, 2026-09-13, before the fix): one held reader,
+    one `ensure()` on a store marked stale ->
+
+        StoreUnreadable: could not swap in the rebuilt store after 20 attempts
+        ([WinError 32] ... FPG.db-wal). A reader is holding it open; retry, or close
+        the reader.
+
+    The retry loop was the mitigation and it is not sufficient: a reader held for the length
+    of a test -- let alone leaked for the length of a session, which six witnesses in this
+    file used to do -- outlives every bounded wait. This pins the GUARANTEE rather than
+    today's timing: a reader is a normal condition for this store (the module's own pragma
+    comment says so -- *"readers do not block writers"*), so a rebuild that a reader can
+    break is the defect, not the reader.
+    """
+    db = tmp_path / "store" / "FPG.db"
+    reader = gs.ensure(tiny_repo, db)                  # worker A's handle
+    try:
+        before = reader.counts().nodes
+        _write(tiny_repo / "scripts" / "planted.py", "x = 1\n")
+        stale = time.time() - 3600
+        os.utime(db, (stale, stale))
+        assert gs.is_stale(tiny_repo, db), "the fixture is inert -- the store must read stale"
+
+        rebuilt = gs.ensure(tiny_repo, db)             # worker B, while A still holds it
+        try:
+            assert rebuilt.counts().nodes > before, "a stale store was served"
+        finally:
+            rebuilt.close()
+
+        # AND THE HELD READER IS STILL USABLE. A "fix" that made the rebuild succeed by
+        # breaking the reader would pass the assertion above and move the failure one worker
+        # over, which is the whole class of defect this witness exists to close.
+        #
+        # USABLE, NOT FROZEN, and the distinction was MEASURED rather than assumed. This
+        # first asserted the held reader still saw `before` -- over-specified: a WAL reader
+        # not inside an explicit transaction takes a fresh snapshot per statement, so after
+        # the rebuild commits it legitimately sees the NEW graph. Pinning the old number
+        # would have pinned the file-swap implementation (where the reader kept the replaced
+        # file by its descriptor) rather than the property that matters, which is that the
+        # handle still answers.
+        assert reader.counts().nodes > 0, "the rebuild invalidated a live reader"
+    finally:
+        reader.close()
+
+
+def test_no_witness_here_leaks_a_live_store_handle():
+    """The ratchet behind the witness above: a LEAKED reader is a session-long one.
+
+    Six tests in this file's live-tree section called `gs.ensure(REPO_ROOT)` and never
+    closed the result, so one of them running anywhere in a worker left that worker holding
+    the live store for the rest of the run -- which is how a collision that needs two
+    workers became reachable from a single test file. Reading the source is the only way to
+    assert this: the leak is invisible at runtime, which is exactly why it survived.
+
+    THE RULE IS STRUCTURAL, so it is asserted structurally. A test must not open the live
+    store itself; it takes the `live_store` fixture, which closes in a `finally`. Parsing
+    says that in one sentence -- a `gs.ensure(REPO_ROOT)` call lexically inside a `test_`
+    function -- where matching text could not: a line-based version flagged the fixture's own
+    (correct, closed) call and this docstring alongside the real leaks.
+    """
+    tree = ast.parse(Path(__file__).read_text(encoding="utf-8"))
+    leaked = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.FunctionDef) or not node.name.startswith("test_"):
+            continue
+        for call in ast.walk(node):
+            if (isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute)
+                    and call.func.attr == "ensure"
+                    and any(isinstance(arg, ast.Name) and arg.id == "REPO_ROOT"
+                            for arg in call.args)):
+                leaked.append(f"{node.name} (line {call.lineno})")
+    assert leaked == [], (
+        "these open the live store inside the test and never close it -- take the "
+        "`live_store` fixture instead:\n  " + "\n  ".join(leaked))
 
 
 # ----------------------------------------------------- witness 2: orphan_census REFUSES
@@ -442,17 +552,15 @@ def test_every_new_edge_kind_is_registered_with_both_render_phrases():
 # ------------------------------------------------------------------- the live tree, measured
 
 
-def test_the_live_orphan_census_reaches_zero_against_its_stated_class():
+def test_the_live_orphan_census_reaches_zero_against_its_stated_class(live_store):
     """[#664]'s Done-when: `orphan_census` reaches 0 against its stated node class AFTER
     dispositions. The register is the mechanism; this is the assertion that it is complete."""
-    store = gs.ensure(REPO_ROOT)
-    findings = gq.orphan_census(REPO_ROOT, store)
+    findings = gq.orphan_census(REPO_ROOT, live_store)
     assert findings == [], "\n".join(f"{f.subject}: {f.evidence}" for f in findings)
 
 
-def test_the_live_tree_carries_no_dangling_process_reference():
-    store = gs.ensure(REPO_ROOT)
-    assert gq.dangling_references(REPO_ROOT, store) == []
+def test_the_live_tree_carries_no_dangling_process_reference(live_store):
+    assert gq.dangling_references(REPO_ROOT, live_store) == []
 
 
 def test_the_disposition_register_names_no_file_that_is_gone():
@@ -496,35 +604,33 @@ CENSUS_SCRIPT_ORPHANS = (
 )
 
 
-def test_the_query_finds_every_orphan_the_census_found(tmp_path):
+def test_the_query_finds_every_orphan_the_census_found(live_store):
     """intake #86 AC 1: the sweep's output is the fixture, seeded rather than eyeballed.
 
     Each census row must still be an orphan the query finds -- proved by it carrying a
     disposition, since an undispositioned one would already have REDDED the census test
     above. A row that acquired a real trigger since 2026-09-08 fails here and must be
     removed from the fixture WITH the commit that wired it, which is the point."""
-    store = gs.ensure(REPO_ROOT)
-    orphans = {f.subject for f in gq.orphan_census(REPO_ROOT, store, dispositions={})}
+    orphans = {f.subject for f in gq.orphan_census(REPO_ROOT, live_store, dispositions={})}
     missed = [path for path in CENSUS_SCRIPT_ORPHANS if path not in orphans]
     assert missed == [], f"the census found these and this query does not: {missed}"
 
 
-def test_the_census_and_the_query_disagree_and_the_disagreement_is_REPORTED(tmp_path):
+def test_the_census_and_the_query_disagree_and_the_disagreement_is_REPORTED(live_store):
     """intake #86 AC 2: *"The converse is a finding, not a bug."*
 
     `scripts/single_flight.py` is an orphan this query finds and the 2026-09-08 census did
     not list. The criterion asks that such a disagreement be REPORTED and never silently
     reconciled, so this pins that its disposition SAYS SO -- the finding lives in the
     register where a reader meets it, not only in a lane artifact nobody reopens."""
-    store = gs.ensure(REPO_ROOT)
-    orphans = {f.subject for f in gq.orphan_census(REPO_ROOT, store, dispositions={})}
+    orphans = {f.subject for f in gq.orphan_census(REPO_ROOT, live_store, dispositions={})}
     assert "scripts/single_flight.py" in orphans
     assert "scripts/single_flight.py" not in CENSUS_SCRIPT_ORPHANS
     reason = gq.ORPHAN_DISPOSITIONS["scripts/single_flight.py"].reason
     assert "FINDING AGAINST THE CENSUS" in reason
 
 
-def test_a_disposition_register_entry_cannot_manufacture_its_own_trigger():
+def test_a_disposition_register_entry_cannot_manufacture_its_own_trigger(live_store):
     """The self-defeating loop this lane measured and fixed, pinned so it cannot return.
 
     `ORPHAN_DISPOSITIONS` is a dict whose KEYS are exact process paths. Read as call sites
@@ -532,10 +638,9 @@ def test_a_disposition_register_entry_cannot_manufacture_its_own_trigger():
     MANUFACTURE one for every row in it -- 25 dispositioned scripts came back triggered and
     the census's own 20 reported clean. The fix is `executable position`: a code string
     counts only inside a `Call` AND only when it is exactly a path."""
-    store = gs.ensure(REPO_ROOT)
-    reached = store.reachable(store.roots(), gq.TRIGGER_KINDS)
+    reached = live_store.reachable(live_store.roots(), gq.TRIGGER_KINDS)
     laundered = [path for path in gq.ORPHAN_DISPOSITIONS
-                 if (key := store.key_for_path(path)) and key in reached]
+                 if (key := live_store.key_for_path(path)) and key in reached]
     assert laundered == [], (
         f"dispositioned processes reported as triggered -- the register is laundering its "
         f"own subject: {laundered}")
@@ -547,10 +652,9 @@ def test_every_disposition_carries_a_reason_and_an_owner():
         assert disposition.owner, f"{path}: no owner"
 
 
-def test_the_persisted_live_store_answers_from_disk():
+def test_the_persisted_live_store_answers_from_disk(live_store):
     """Clause 1 on the LIVE tree: node and edge counts read back from the artifact."""
-    store = gs.ensure(REPO_ROOT)
-    counts = store.counts()
+    counts = live_store.counts()
     assert counts.nodes > 1900 and counts.edges > 12_000
     assert counts.kinds >= 12
     assert json.loads(json.dumps(counts.as_dict()))["nodes"] == counts.nodes
