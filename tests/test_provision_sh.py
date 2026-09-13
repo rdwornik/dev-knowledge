@@ -14,11 +14,13 @@ from pathlib import Path
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _PROVISION_SH = _REPO_ROOT / ".devcontainer" / "provision.sh"
 
-_SCRIPT_PATH_RE = re.compile(r"scripts/([A-Za-z0-9_]+\.py)")
+# Matches an actual invocation (`python scripts/<name>.py`), not a prose mention of the path —
+# this file's own retirement-record comments cite retired paths by name deliberately.
+_INVOCATION_RE = re.compile(r"\bpython\s+scripts/([A-Za-z0-9_]+\.py)")
 
 
 def test_provision_sh_names_no_retired_module_path():
     text = _PROVISION_SH.read_text(encoding="utf-8")
-    named = set(_SCRIPT_PATH_RE.findall(text))
+    named = set(_INVOCATION_RE.findall(text))
     missing = sorted(name for name in named if not (_REPO_ROOT / "scripts" / name).exists())
-    assert not missing, f"provision.sh names retired scripts/ path(s): {missing}"
+    assert not missing, f"provision.sh invokes retired scripts/ path(s): {missing}"

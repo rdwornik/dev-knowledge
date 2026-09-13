@@ -17,20 +17,21 @@
 #       cannot prove its gates execute is precisely the failure shape above.
 #
 # plus two more the 2026-08-21 lane added, both of them things the 2026-08-19 proof lane MEASURED
-# rather than anticipated (`docs/audits/2026-08-19-technical-554-proof.md`):
-#   L2b the clone has the REFS a spine walker reads, not merely the DEPTH L2 restores. The proof
-#       lane's container had 5329 commits and no local `main`, and every first-parent-spine
-#       instrument then errored out. This is contract amendment B1, and it runs before hooks are
-#       armed. Declared, not hardcoded: `.devcontainer/provisioning.yaml`.
-#   L5  at least one repo is registered under `ecosystem/`. `audit.py health` counts
+# rather than anticipated (`docs/audits/2026-08-19-technical-554-proof.md`), and BOTH REMOVED
+# [#664] (2026-09-13) — see the retirement record immediately below:
+#   L2b (REMOVED) the clone has the REFS a spine walker reads, not merely the DEPTH L2 restores.
+#       The proof lane's container had 5329 commits and no local `main`, and every
+#       first-parent-spine instrument then errored out. This was contract amendment B1, and it
+#       ran before hooks were armed. Declared, not hardcoded: `.devcontainer/provisioning.yaml`.
+#   L5  (REMOVED) at least one repo is registered under `ecosystem/`. `audit.py health` counts
 #       `ecosystem/*/state.yaml`, that glob is gitignored, and so no clone has ever carried one —
-#       which is the single remaining `[!!]` between this substrate and the row's D1a Done-when.
+#       which was the single remaining `[!!]` between this substrate and the row's D1a Done-when.
 #
 # [#664] RETIREMENT RECORD (2026-09-13), read verbatim out of git history before the six call
-# sites below were removed — `scripts/cloud_provisioning.py` implemented L2b and L5 and was
-# retired at `3c9418cc` ([#734]) WITHOUT its six callers here being removed, which is what this
-# lane closes. Its own docstring, quoted so the "what was lost" question never has to be
-# re-derived from the call names alone:
+# sites that implemented L2b/L5 were removed from this file — `scripts/cloud_provisioning.py`
+# implemented both and was retired at `3c9418cc` ([#734]) WITHOUT its six callers here being
+# removed, which is what this lane closes. Its own docstring, quoted so the "what was lost"
+# question never has to be re-derived from the call names alone:
 #
 #   history  (L2b) "Leg 2 unshallows, so a cloud clone has DEPTH. It does not necessarily have
 #            REFS: the proof lane's codespace carried 5329 commits and no local `main`, and
@@ -48,15 +49,15 @@
 #            has and saves the genuine result." Repair (`ecosystem --repair`) ran `audit.audit_repo`
 #            + `audit.save_state` against THIS checkout and wrote its `ecosystem/<name>/state.yaml`.
 #
-# MEASURED, not assumed, the same day: with the module gone, every one of the six calls below
-# exits 2 ("can't open file ... No such file or directory"), which the surrounding `case` in
-# `leg2b_history`/`leg5_ecosystem` treats as an UNKNOWN state and `die`s on, and which `gate()`'s
-# bare `|| die` also treats as failure. So provisioning did NOT "quietly do nothing" here — a
-# fresh `bash .devcontainer/provision.sh` has been dying at leg2b_history, and `--gate` (wired to
-# postStartCommand) has been refusing every container start, since `3c9418cc` landed, both with a
-# "re-provision" message that cannot succeed because the module it names is gone for good. Removing
-# the six dead call sites stops that crash; it does not restore L2b or L5, which is why this lane
-# also files `[#742]` for the real repair. See BACKLOG `[#742]`.
+# MEASURED, not assumed, the same day: before removal, with the module gone, every one of the six
+# now-removed calls (two in `leg2b_history`, two in `leg5_ecosystem`, two in `gate()`) exited 2
+# ("can't open file ... No such file or directory"), which the surrounding `case`/`|| die` treated
+# as failure. So provisioning did NOT "quietly do nothing" here — a fresh
+# `bash .devcontainer/provision.sh` had been dying at `leg2b_history`, and `--gate` (wired to
+# postStartCommand) had been refusing every container start, since `3c9418cc` landed, both with a
+# "re-provision" message that could not succeed because the module it named was gone for good.
+# Removing the six dead call sites (this lane) stops that crash; it does not restore L2b or L5,
+# which is why this lane also files BACKLOG `[#746]` for the real repair.
 #
 # SINGLE SOURCE OF PINS. Nothing below hardcodes a version that already has a home in the repo:
 #   uv          <- pyproject.toml [tool.uv] required-version   (read, and required to be `==`)
@@ -364,46 +365,11 @@ sync_environment() {
   say "environment OK — Python ${py_have} (.python-version), deps from uv.lock via --locked"
 }
 
-# --- L2b: history SUFFICIENCY, not merely depth (contract amendment B1) --------------------------
-
-leg2b_history() {
-  # L2 above proves the clone is not shallow. That is necessary and NOT sufficient: the proof
-  # lane's codespace had 5329 commits and no local `main`, and every instrument that walks main's
-  # first-parent spine then ERRORED ("fatal: Not a valid object name main") instead of passing
-  # vacuously. This runs the repair — and it runs HERE, before hooks are armed and before any
-  # lane work, which is what "before any spine-walking instrument in a cloud lane" means in
-  # practice. Which refs are required, and which instruments walk a spine, are declared in
-  # .devcontainer/provisioning.yaml, never hardcoded.
-  # C1 accounting: ask FIRST whether anything needs doing, so a run that repairs is not reported
-  # as "nothing changed". Witnessed 2026-08-21 — the first live run seeded a state.yaml and still
-  # printed the idempotent no-op line, which is the one thing C1 exists to make impossible.
-  local rc=0
-  uv run --no-sync python scripts/cloud_provisioning.py --quiet history || CHANGED=$((CHANGED + 1))
-  uv run --no-sync python scripts/cloud_provisioning.py history --repair || rc=$?
-  case "${rc}" in
-    0) say "B1 OK — the refs every spine-walking instrument reads resolve, and the walk succeeds" ;;
-    1) die "B1 the clone cannot satisfy a spine-walking instrument (see the errors above) — a cloud lane here would run gates that ERROR rather than gates that pass" ;;
-    *) die "B1 the history guard could not look (exit ${rc}) — an unknown history state is not a clean one" ;;
-  esac
-}
-
-# --- L5: the ecosystem registration a fresh clone cannot inherit ---------------------------------
-
-leg5_ecosystem() {
-  # `audit.py health` counts `ecosystem/*/state.yaml`, that glob is gitignored, and so no clone
-  # has ever carried one — which is why a container reports `repos registered (none)` and health
-  # exits non-zero. On the workstation `scripts/worktree_seed.py` copies these from the primary
-  # checkout; a container has no primary, so it audits the one repo it has. Not a named row leg:
-  # it is the last thing standing between this substrate and [#554]'s D1a Done-when.
-  local rc=0
-  uv run --no-sync python scripts/cloud_provisioning.py --quiet ecosystem || CHANGED=$((CHANGED + 1))
-  uv run --no-sync python scripts/cloud_provisioning.py ecosystem --repair || rc=$?
-  case "${rc}" in
-    0) say "L5 OK — at least one repo is registered; audit.py health's operational block can pass here" ;;
-    1) die "L5 nothing is registered and the seed did not land — audit.py health will report 'repos registered (none)' and exit 1" ;;
-    *) die "L5 the ecosystem guard could not look (exit ${rc})" ;;
-  esac
-}
+# --- L2b/L5: REMOVED [#664] (2026-09-13) — both called the retired scripts/cloud_provisioning.py
+# (six call sites total, here and in `gate()` below) and have not run since 3c9418cc ([#734]).
+# The record of what B1 (history sufficiency) and L5 (ecosystem self-registration) did lives in
+# this file's top-of-file "[#664] RETIREMENT RECORD" comment. The real repair is tracked, not
+# reimplemented here: BACKLOG [#746].
 
 # --- L3: all three hook types armed, asserted ----------------------------------------------------
 
@@ -611,23 +577,20 @@ gate() {
 
   assert_hooks_armed || die "L4 git hooks are not armed"
 
-  # The two conditions a RESUMED container can lose without any pin moving: a repo re-cloned or
-  # re-fetched into a branch-only shape, and a gitignored ecosystem/ wiped by a rebuild. Both are
-  # asserted, never repaired — `--gate` refuses; provisioning is what fixes.
-  uv run --no-sync python scripts/cloud_provisioning.py --quiet history \
-    || die "L4 the refs a spine-walking instrument reads do not resolve, or their currency cannot be checked — re-provision (bash .devcontainer/provision.sh)"
-  uv run --no-sync python scripts/cloud_provisioning.py --quiet ecosystem \
-    || die "L4 no repo is registered under ecosystem/ — audit.py health cannot pass here; re-provision"
+  # REMOVED [#664] (2026-09-13): two calls into the retired scripts/cloud_provisioning.py used to
+  # assert here that a repo re-cloned or re-fetched into a branch-only shape still resolves the
+  # refs a spine-walking instrument reads, and that a gitignored ecosystem/ wiped by a rebuild is
+  # still registered. Neither condition is checked here any more — see this file's top-of-file
+  # "[#664] RETIREMENT RECORD" and BACKLOG [#746] for the real repair.
 
-  say "gate OK — uv ${have_uv}, full history + spine refs, ecosystem registered, three hook types armed, stamp current"
+  say "gate OK — uv ${have_uv}, full history, three hook types armed, stamp current"
 }
 
 usage() {
   cat <<'USAGE'
 Usage: bash .devcontainer/provision.sh [--gate|--help]
 
-  (no args)  Provision this container and ASSERT all four [#554] legs plus the
-             history-sufficiency (B1) and ecosystem-registration (L5) legs, run the
+  (no args)  Provision this container and ASSERT all four [#554] legs, run the
              gate-liveness smoke, then write the stamp. Idempotent: a second run
              changes nothing and says so. Wired to postCreateCommand.
   --gate     Assert only — refuse (exit 1) if the environment is half-provisioned
@@ -644,9 +607,6 @@ main() {
     *) usage >&2; die "unknown argument: $1" ;;
   esac
 
-  # ORDER IS LOAD-BEARING. leg2b/leg5 need the venv, so they follow sync_environment; both
-  # precede leg3_hooks, so nothing that walks a spine or reads ecosystem/ can be reached by a
-  # hook before its precondition has been repaired.
   say "provisioning ${REPO_ROOT}"
   leg1_uv
   leg2_unshallow
@@ -655,8 +615,6 @@ main() {
   # sync_environment so the lockfile that is synced is the one that is actually current.
   refresh_source_tree
   sync_environment
-  leg2b_history
-  leg5_ecosystem
   leg3_hooks
   leg_f1_claude
   leg_f2_git_credential
