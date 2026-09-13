@@ -52,6 +52,90 @@ fa = _load()
 CFG = fa.Config()
 
 
+# ------------------------------------------------------------- the pandas half, DECLARED
+#
+# `scripts/fleet_analytics.py` imports pandas INSIDE the three frame builders and the digest
+# renderer, so this module imports and collects fine without it and then fails seventeen
+# witnesses at call time with `ModuleNotFoundError: No module named 'pandas'`. Measured in
+# this worktree, 2026-09-13: `uv run --locked pytest tests/test_fleet_analytics.py -n 0`
+# -> **17 failed, 47 passed**.
+#
+# THAT IS NOT A BROKEN TREE, and reporting it as one is the defect. pandas IS declared -- in
+# the OPT-IN `analytics` dependency group, and `pyproject.toml` states why in its own words:
+# the L5a lane is HUB-ONLY, "so a consumer never needs it". A plain `uv sync --locked` is
+# therefore CORRECT not to install it. What was missing is the declaration on THIS side: the
+# seventeen erred instead of skipping, so an honest environment produced seventeen failures
+# that named a missing package rather than a defect anyone could act on.
+#
+# Skipped by declaration rather than moved into `dev`, and that is a deliberate call: putting
+# pandas in the default group would overturn the recorded hub-only ruling and pull pandas +
+# numpy into every consumer's default sync to serve a lane none of them run.
+_HAS_PANDAS = importlib.util.find_spec("pandas") is not None
+
+requires_pandas = pytest.mark.skipif(
+    not _HAS_PANDAS,
+    reason="pandas is not installed. It is DECLARED in pyproject.toml's opt-in `analytics` "
+           "dependency group (the hub-only L5a lane), which `uv sync --locked` deliberately "
+           "does not install. Run `uv sync --locked --group analytics` to exercise these.")
+
+#: The seventeen, transcribed from the RED run above rather than eyeballed -- this repo's
+#: `CENSUS_SCRIPT_ORPHANS` idiom: the sweep's output is the fixture. A new pandas-reaching
+#: witness added without the declaration fails the ratchet below rather than adding an
+#: eighteenth `ModuleNotFoundError` to a run nobody can read.
+PANDAS_WITNESSES = (
+    "test_hotspot_frame_excludes_deleted_files",
+    "test_hotspot_frame_min_revisions_floor_fires",
+    "test_hotspot_frame_ranks_more_revisions_higher_at_equal_complexity",
+    "test_hotspot_frame_file_without_a_profile_cannot_rank",
+    "test_hotspot_frame_empty_input_returns_typed_empty_frame",
+    "test_jaccard_gate_kills_the_lopsided_pair",
+    "test_genuinely_coupled_pair_is_admitted",
+    "test_min_co_changes_gate_fires",
+    "test_same_dir_is_a_column_not_a_filter",
+    "test_mechanical_lockstep_pairs_sort_below_genuine_coupling",
+    "test_rot_requires_both_age_and_referrers",
+    "test_zero_referrer_stale_file_is_an_orphan_not_rot",
+    "test_rot_single_referrer_is_below_the_min_refs_floor",
+    "test_rot_age_pct_normalizes_against_repo_history",
+    "test_digest_renders_every_section_with_no_repos",
+    "test_digest_states_the_honest_limits_in_the_report_itself",
+    "test_digest_is_ascii_only",
+)
+
+
+def test_every_pandas_witness_is_DECLARED_rather_than_left_to_error():
+    """The ratchet. Without it the declaration is a convention, and a convention is what the
+    seventeen already violated.
+
+    Checked from the MARK, not from the source text: a decorator that was written and then
+    shadowed by a later one would still read as present in a grep and would not be applied.
+    """
+    module = sys.modules[__name__]
+    undeclared = []
+    for name in PANDAS_WITNESSES:
+        fn = getattr(module, name, None)
+        if fn is None:
+            undeclared.append(f"{name} (gone -- remove it from PANDAS_WITNESSES too)")
+        elif not any(mark.name == "skipif" for mark in getattr(fn, "pytestmark", ())):
+            undeclared.append(name)
+    assert undeclared == [], (
+        "these reach pandas and carry no `@requires_pandas`, so without the `analytics` "
+        "group they FAIL with ModuleNotFoundError instead of skipping with a reason:\n  "
+        + "\n  ".join(undeclared))
+
+
+def test_the_pandas_requirement_is_declared_in_pyproject_and_names_its_group():
+    """Left implicit is not an outcome. The skip reason above points at a group, so the
+    group has to exist and to carry pandas -- otherwise the skip tells an operator to run a
+    command that installs nothing."""
+    text = (Path(__file__).resolve().parents[1] / "pyproject.toml").read_text(encoding="utf-8")
+    analytics = text.split("analytics = [", 1)
+    assert len(analytics) == 2, "the `analytics` dependency group is gone from pyproject.toml"
+    assert "pandas" in analytics[1].split("]", 1)[0], "the `analytics` group no longer has pandas"
+    assert "pandas" in requires_pandas.kwargs["reason"]
+    assert "uv sync --locked --group analytics" in requires_pandas.kwargs["reason"]
+
+
 def _hdr(sha: str, ts: int, subject: str = "s") -> bytes:
     return f"\x01{sha}\x02{ts}\x02{ts}\x02{subject}".encode()
 

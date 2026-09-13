@@ -13,6 +13,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 
 import pytest
 
@@ -1513,3 +1514,68 @@ def test_the_declared_unattended_invocation_still_cites_the_one_ceiling():
     assert line is not None, "the declared unattended invocation is gone from pyproject.toml"
     assert f"--timeout={gh.SHIP_GATE_TIMEOUT_S}" in line, line
     assert "--group analytics" in line, line     # the measured 44-vs-28 difference
+
+
+# ------------------------------------------------- the stub repo does not escape this file
+#
+# `_stub_repo` writes one-line placeholders at the paths the probe-core resolves, INCLUDING
+# `scripts/audit.py` (`ALL_CHECKS = []`). `collect_hints` used to put that directory on
+# `sys.path` at position 0 and `import audit` from it -- neither undone -- so the stub became
+# `sys.modules["audit"]` and the stub's `scripts/` stayed first on the path for the REST OF
+# THE PROCESS. Every module collected after this one then got the placeholder.
+
+
+def test_collect_hints_does_not_leave_the_stub_on_sys_path(tmp_path):
+    """The path leak, which is the wider half: five one-line stubs, not just `audit`.
+
+    `_STUB_FILES` also plants `validate_backlog.py`, `validate_doc_claims.py`,
+    `validate_git_backlog.py` and `gen_task_tree.py` as the literal text `x\\n`. With the stub
+    directory left at `sys.path[0]`, a later `import validate_backlog` anywhere in the session
+    resolves to a module with no functions in it -- and a test asserting over an empty surface
+    does not fail, it passes vacuously. That is the failure mode this repo names
+    `silent_rule_ratchet`, arriving through the import system.
+    """
+    repo = _stub_repo(tmp_path)
+    before = list(sys.path)
+    gh.collect_hints(repo)
+    added = [p for p in sys.path if p not in before]
+    assert added == [], f"collect_hints left the stub repo's scripts/ on sys.path: {added}"
+
+
+def test_collect_hints_does_not_cache_the_stub_as_the_real_audit_module(tmp_path):
+    """The module leak. WITNESSED, not hypothesised (this worktree, 2026-09-13):
+
+        uv run --locked pytest tests/test_gen_handoff.py tests/test_residual_completeness.py -n 0
+
+    reddened three tests in the SECOND file --
+    `AttributeError: module 'audit' has no attribute '_vrc'` -- while the same file alone was
+    29/29 green. The failure is attributed to the file that suffers it, never to the file that
+    caused it, which is why it survived: re-running the victim in isolation "proves" it is fine.
+
+    The assertion is deliberately about IDENTITY rather than about `_vrc`. Naming one missing
+    attribute would pin today's symptom; what must hold is that a temp fixture cannot become
+    the process's idea of a real module.
+    """
+    repo = _stub_repo(tmp_path)
+    real = sys.modules.get("audit")
+    gh.collect_hints(repo)
+    after = sys.modules.get("audit")
+    assert after is real, (
+        "collect_hints replaced sys.modules['audit'] with the stub repo's placeholder; "
+        "every module collected after this one now sees ALL_CHECKS = []")
+    if after is not None:
+        assert getattr(after, "ALL_CHECKS", None), "the cached `audit` has an empty ALL_CHECKS"
+
+
+def test_collect_hints_still_reads_the_check_count_from_the_repo_it_is_given(tmp_path):
+    """The other direction -- isolation must not be bought by making the hint a constant.
+
+    A fix that stopped importing the target repo's `audit` altogether would pass both tests
+    above and silently start reporting the HUB's check count for every repo handed to the
+    generator. The stub declares `ALL_CHECKS = []`, so the honest answer for the stub repo is
+    the degrade string this function already promises, never the live hub's number.
+    """
+    hints = gh.collect_hints(_stub_repo(tmp_path))
+    assert hints["all_checks"].startswith("unknown ("), (
+        f"the stub repo declares `ALL_CHECKS = []`, so the only honest hint is the degrade "
+        f"pointer this function promises -- got {hints['all_checks']!r}")

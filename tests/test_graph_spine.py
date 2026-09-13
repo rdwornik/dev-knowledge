@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -227,6 +228,73 @@ def test_an_expired_lock_is_broken_so_a_dead_builder_never_wedges_the_store(tmp_
     taken = gs.acquire_rebuild_lock(lock)
     assert taken is not None and taken != dead, "the breaker did not take the lock"
     assert lock.read_text(encoding="utf-8") == taken
+
+
+def test_a_concurrent_READER_cannot_break_a_rebuild(tiny_repo: Path, tmp_path: Path):
+    """THE CROSS-WORKER COLLISION, reduced to the one fact that produces it.
+
+    Under `-n auto` the workers share one store, because the store is keyed to the TREE and
+    every worker is in the same tree. So a handle held open in worker A is, from worker B's
+    point of view, a reader that will not let go -- and the publication path used to be
+    `os.replace` over the live file, which on Windows FAILS while any process holds the
+    destination or its `-wal`. Worker B's `ensure()` then raised `StoreUnreadable` after
+    ~5 s of retries, and it did so in ITS OWN tests, naming a file worker B never touched.
+
+    MEASURED, not argued (this worktree, 2026-09-13, before the fix): one held reader,
+    one `ensure()` on a store marked stale ->
+
+        StoreUnreadable: could not swap in the rebuilt store after 20 attempts
+        ([WinError 32] ... FPG.db-wal). A reader is holding it open; retry, or close
+        the reader.
+
+    The retry loop was the mitigation and it is not sufficient: a reader held for the length
+    of a test -- let alone leaked for the length of a session, which six witnesses in this
+    file used to do -- outlives every bounded wait. This pins the GUARANTEE rather than
+    today's timing: a reader is a normal condition for this store (the module's own pragma
+    comment says so -- *"readers do not block writers"*), so a rebuild that a reader can
+    break is the defect, not the reader.
+    """
+    db = tmp_path / "store" / "FPG.db"
+    reader = gs.ensure(tiny_repo, db)                  # worker A's handle
+    try:
+        before = reader.counts().nodes
+        _write(tiny_repo / "scripts" / "planted.py", "x = 1\n")
+        stale = time.time() - 3600
+        os.utime(db, (stale, stale))
+        assert gs.is_stale(tiny_repo, db), "the fixture is inert -- the store must read stale"
+
+        rebuilt = gs.ensure(tiny_repo, db)             # worker B, while A still holds it
+        try:
+            assert rebuilt.counts().nodes > before, "a stale store was served"
+        finally:
+            rebuilt.close()
+
+        # AND THE HELD READER IS STILL USABLE. A "fix" that made the rebuild succeed by
+        # breaking the reader would pass the assertion above and move the failure one worker
+        # over, which is the whole class of defect this witness exists to close.
+        assert reader.counts().nodes == before, "the rebuild invalidated a live reader"
+    finally:
+        reader.close()
+
+
+def test_no_witness_here_leaks_a_live_store_handle():
+    """The ratchet behind the witness above: a LEAKED reader is a session-long one.
+
+    Six tests in this file's live-tree section called `gs.ensure(REPO_ROOT)` and never
+    closed the result, so one of them running anywhere in a worker left that worker holding
+    the live store for the rest of the run -- which is how a collision that needs two
+    workers became reachable from a single test file. Reading the source is the only way to
+    assert this: the leak is invisible at runtime, which is exactly why it survived.
+    """
+    source = Path(__file__).read_text(encoding="utf-8")
+    # The STATEMENT form only. Matching the bare call text would also match this test's own
+    # docstring, which is a false positive that can never be cleared.
+    bound = re.compile(r"^\s*\w+\s*=\s*gs\.ensure\(REPO_ROOT\)\s*$")
+    leaked = [f"line {n}: {line.strip()}"
+              for n, line in enumerate(source.splitlines(), 1) if bound.match(line)]
+    assert leaked == [], (
+        "these bind the live store and never close it -- use the `live_store` fixture:\n  "
+        + "\n  ".join(leaked))
 
 
 # ----------------------------------------------------- witness 2: orphan_census REFUSES
