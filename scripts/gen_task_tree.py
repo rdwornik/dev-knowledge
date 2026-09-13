@@ -1229,6 +1229,23 @@ def _scan_source(out_dir: Path) -> tuple[list[str], list[str], dict | None]:
                 f"(filename [#{file_id}], body [#{body_id}], manifest [#{node_id}]) - "
                 f"identity is byte-exact and must agree in all three")
             continue
+        # closed-iff-absent-from-the-manifest (ADR-107 §6.3, [#730] AX16-2): the invariant's
+        # OTHER direction from the retired-record leg below (which requires the reverse --
+        # absent implies terminal). An identity REFUSAL, not a "stale" repair candidate,
+        # because `emit_task_file_text` can only re-derive "open"/"deferred" (see its
+        # `status_override` docstring) -- so treating this as ordinary staleness would have
+        # `plan_frontmatter_refresh` silently flip a hand-set `status: closed` back to
+        # "open" on the next regen ([#730] item 3), exactly the silent revert this refusal
+        # exists to prevent. `close_row` never leaves this state: it removes the manifest
+        # node in the same atomic write that sets the terminal status.
+        status = frontmatter_status(actual)
+        if status in _TERMINAL_STATUSES:
+            identity.append(
+                f"task file carries a terminal status while still referenced by the "
+                f"manifest: {fname} (status: {status!r}) — closed-iff-absent-from-the-"
+                f"manifest (ADR-107 §6.3, [#730] AX16-2): remove its manifest node "
+                f"(gen_task_tree.py --close-row) or revert the status")
+            continue
         theme, story = lineage.get(fname, (None, None))
         expected = emit_task_file_text(TaskRow(id=file_id, raw=body, theme=theme, story=story))
         if actual != expected:
