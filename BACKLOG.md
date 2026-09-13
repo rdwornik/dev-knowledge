@@ -121,6 +121,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#742] [P1][S] `actions_verdict` reports PASS when the job details cannot be read, so an unreadable run is indistinguishable from a clean one · tasks/742-actions-verdict-reports-pass-when-job-details-cannot-be-read.md
 - [#743] [P1][S] The step-0 collision extractor requires a slash, so two lanes may both declare a root-level file and pass · tasks/743-collision-extractor-is-blind-to-root-level-files.md
 - [#744] [P1][S] `median_report` filters receipts by kind but never by completeness, so the under-30 target can be met on incomplete receipts · tasks/744-median-report-counts-incomplete-receipts.md
+- [#746] [P1][M] Adoption-by-invocation — a command file confers adoption only while telemetry records real invocations, and it decays at 30 days · tasks/746-adoption-by-invocation-command-file-confers-adoption-only-while-invoked.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md

@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "46dfc9b803db7da3f4cfebc3c5f95231313d12545875e3b5fe1a11dddef97f5d",
+  "generated_sha256": "f699659757b47336b4a2858acb3b8043a41ebfe77456e5ad8c285e7b4f5a1a1d",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -460,6 +460,10 @@
     {
       "task": 744,
       "file": "744-median-report-counts-incomplete-receipts.md"
+    },
+    {
+      "task": 746,
+      "file": "746-adoption-by-invocation-command-file-confers-adoption-only-while-invoked.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
