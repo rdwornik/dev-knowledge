@@ -245,10 +245,15 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "reviewed",
         owner="the [#664] wiring-surface list, which owns whether .claude/commands/*.md is a "
               "trigger surface; this row is deleted by that decision, not by a lane"),
-    "scripts/logs_retention.py": Disposition(
-        reason=f"{_LANE_BUILT}; the DECLARE §3 names run_retention() at 0 callers and the "
-               f"census confirms it at module level too",
-        owner="V+1 retirement-or-wiring list"),
+    # `scripts/logs_retention.py` WAS dispositioned here, on the DECLARE §3 finding that
+    # `run_retention()` had 0 callers -- which is `[#655]`'s entire title. It is GONE from this
+    # register because it is WIRED: `[#664]`'s second ratified TRIGGER row put it on the
+    # `SessionStart` path in `.claude/settings.json` (2026-09-13, lane
+    # `lane-x-664-delete-list-execution`). SessionStart rather than Stop, deliberately: the
+    # producer of the files it retains is `propose_closures.py` on the plugin's Stop hook, and
+    # a renamer sharing that event with the producer's own `**/PROPOSALS-*.md` read buys
+    # nothing that the next session's start does not. Pinned by
+    # `tests/test_logs_retention.py::test_the_retention_trigger_is_on_SESSION_START_not_STOP`.
     # `scripts/nopack_sandbox.py` and `scripts/trace_writer.py` WERE dispositioned here. Retired
     # by `[#664]`'s ratified DELETE list (2026-09-13, lane
     # `lane-x-664-delete-list-execution`). These two carried NO inbound edge of any kind -- not

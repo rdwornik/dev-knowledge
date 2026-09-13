@@ -371,3 +371,64 @@ def test_sequenced_names_sort_in_run_order_within_a_day(tmp_path):
              "PROPOSALS-2026-09-03-01.md"]
     assert sorted(names) == names
     assert sorted(names)[-1] == "PROPOSALS-2026-09-03-01.md"
+
+
+# --- the TRIGGER ------------------------------------------------------------------------
+#
+# `[#664]`'s second ratified TRIGGER row, and `[#655]`'s whole title -- *"run_retention() has
+# no production caller"*. Every test above this line calls `run_retention` from a test and
+# proves the rule CORRECT; none of them makes anything CALL it, which is the entire content
+# of `[#655]`. A rule nothing runs is a rule that will be re-needed next month, which is the
+# module's own docstring's argument for existing at all.
+
+_REPO = Path(__file__).resolve().parent.parent
+
+
+def _session_hook_commands(event: str) -> list[str]:
+    """Every hook command registered for `event` in this repo's `.claude/settings.json`."""
+    import json
+    settings = json.loads((_REPO / ".claude" / "settings.json").read_text(encoding="utf-8"))
+    return [hook.get("command", "")
+            for matcher in settings.get("hooks", {}).get(event, [])
+            for hook in matcher.get("hooks", [])]
+
+
+def test_a_session_hook_CALLS_run_retention_and_not_only_the_test_suite():
+    """RED-first witness for `[#664]`'s TRIGGER row / `[#655]`'s open question."""
+    wired = [c for c in _session_hook_commands("SessionStart")
+             if "scripts/logs_retention.py" in c]
+    assert wired, (
+        "scripts/logs_retention.py is called by no SessionStart hook -- run_retention() still "
+        "has no production caller ([#655]), and the tests above call it themselves, which "
+        "schedules nothing. [#664] named the SessionStart/Stop path that writes the logs it "
+        "would retain")
+    assert len(wired) == 1, f"one trigger, not {len(wired)}: {wired}"
+    command = wired[0]
+    # A retention rule wired in --dry-run mode REPORTS and retains nothing: it would satisfy
+    # a grep for the module name while leaving [#655] exactly as open as it is today.
+    assert "--dry-run" not in command, (
+        f"the wired call must actually relocate, not report: {command!r}")
+    # ADR-106: every python hook command in this file runs through the declared environment.
+    assert command.startswith("uv run --locked "), command
+
+
+def test_the_retention_trigger_is_on_SESSION_START_not_STOP_and_the_reason_is_pinned():
+    """WHY SessionStart, recorded as an assertion because the census offered both.
+
+    The producer of the files this rule retains is `propose_closures.py`, fired by the
+    tier1-lifecycle plugin's **Stop** hook. Wiring retention into the same Stop event would
+    have a renamer and that producer's own read of `**/PROPOSALS-*.md` interleaving inside
+    one event, for no gain: relocation at the NEXT session's start reaches exactly the same
+    files, one session later, with nothing racing it. Pinned so the placement is a decision
+    a reader can find rather than an accident of where it was easy to add."""
+    assert not [c for c in _session_hook_commands("Stop") if "logs_retention" in c], (
+        "logs_retention must NOT be on the Stop path: propose_closures writes and re-reads "
+        "logs/**/PROPOSALS-*.md inside that same event")
+
+
+def test_the_retention_trigger_row_and_its_disposition_cannot_both_be_live():
+    """A wired module is not an orphan -- the same coupling the archive_row_body row states."""
+    sys.path.insert(0, str(_REPO / "scripts"))
+    import graph_queries as gq
+    assert "scripts/logs_retention.py" not in gq.ORPHAN_DISPOSITIONS, (
+        "logs_retention.py now has a trigger and still carries an ORPHAN_DISPOSITIONS entry")

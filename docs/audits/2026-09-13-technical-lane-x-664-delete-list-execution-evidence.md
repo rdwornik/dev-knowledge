@@ -646,3 +646,83 @@ DRIFT  precommit_hook_roster@CLAUDE.md
 never named.** The drift predates this lane, my line neither caused nor cures it, and adding
 two rosters lines for other lanes' hooks is outside this footprint — filed here for the
 operator rather than silently absorbed, which is what the check's WARN class is for.
+
+## Step 8 — TRIGGER 2: `logs_retention.py` onto the `SessionStart` path
+
+RED-first again, observed before the wiring:
+
+```
+tests/test_logs_retention.py::test_a_session_hook_CALLS_run_retention_and_not_only_the_test_suite
+  AssertionError: scripts/logs_retention.py is called by no SessionStart hook -- run_retention()
+  still has no production caller ([#655]), and the tests above call it themselves, which
+  schedules nothing.
+
+tests/test_logs_retention.py::test_the_retention_trigger_row_and_its_disposition_cannot_both_be_live
+  AssertionError: logs_retention.py now has a trigger and still carries an ORPHAN_DISPOSITIONS entry
+```
+
+31 of the file's tests were passing at that moment. They prove the retention RULE correct; none
+of them makes anything CALL it, which is the entire content of `[#655]`, whose title is *"`run_retention()` has no production caller"*.
+
+### The wiring, and WHY `SessionStart` rather than `Stop`
+
+```json
+{ "type": "command",
+  "command": "uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/logs_retention.py\"",
+  "timeout": 20 }
+```
+
+appended to `SessionStart` in `.claude/settings.json`. The census offered *"the
+`SessionStart`/`Stop` path that writes the logs it would retain"* and left the choice open, so
+the choice is recorded as an assertion
+(`test_the_retention_trigger_is_on_SESSION_START_not_STOP_and_the_reason_is_pinned`) rather than
+as a comment a later reader can miss:
+
+- The producer of the files this rule retains is `propose_closures.py`, fired by the
+  tier1-lifecycle plugin's **Stop** hook. Wiring the renamer into that same event puts a
+  relocator and that producer's own `**/PROPOSALS-*.md` read inside one event, for no gain:
+  relocation at the next session's start reaches exactly the same files, one session later,
+  with nothing racing it.
+- The plugin's `hooks.json` is a deploy-carried surface with a derived-copy registry behind it;
+  editing it is an AX4-1 floor-declaration act. `.claude/settings.json` is this repo's own
+  project surface and is one of FPG-1's five in-tree `WIRING_SURFACES`.
+- Relocation is safe for the consumer by construction, not by luck: lane-c-3 (2026-09-01)
+  re-pointed all three `PROPOSALS-*` globbers at `**/PROPOSALS-*.md` — bucketed AND flat — and
+  only then retired this module's prefix exemption. That sequencing is what makes a
+  session-start relocation harmless to the closure detector's pending-window baseline.
+- The command is asserted NOT to carry `--dry-run`. A retention rule wired in report-only mode
+  would satisfy a grep for the module name and leave `[#655]` exactly as open as it is.
+
+### GREEN, and the second trigger edge is real
+
+```
+uv run --locked python -m pytest tests/test_logs_retention.py tests/test_graph_spine.py
+  -> 70 passed in 17.09s
+
+uv run --locked python scripts/file_purpose_graph.py why scripts/logs_retention.py
+  consumers (4) ... - is triggered by  file:.claude/settings.json   [wiring]
+```
+
+Register row and fixture row leave with it, same rule as Step 7. `ecosystem/organ-index.md`
+regenerated with its own generator.
+
+**CLAUDE.md was deliberately NOT touched in this commit.** Its `last_reviewed` was bumped to
+`2026-09-13` in Step 7, and `audit.py health` confirms `CLAUDE.md … declared 2026-09-13 …
+derived 2026-09-13 (de2f3e6e9) … gated-and-fresh`. A second content commit to it on the SAME
+DAY would flip it gated-and-stale with no expressible repair — rewriting the stamp to the value
+it already holds produces no diff, so the setter SHA does not move. §9's machine-read surface
+(the pre-commit bullet list `validate_doc_claims` parses) is already correct; §9's session-hooks
+paragraph is summary prose that already abstracts over three of the six `SessionStart` commands,
+so it is left as it is rather than paid for with an unrecoverable freshness flip.
+
+### One owed declaration, named rather than absorbed
+
+`fleet_parity` will report the new hook as
+`settings-local-blocks WARN-undeclared: settings.json hook command not hub-carried and not
+manifest-owned` — the same class the live `conductor.py session-start` hook already carries, and
+already visible in the Step 2 baseline through
+`tests/test_audit.py::test_check_fleet_parity_green_on_live_repo`. Curing it means registering
+the component in `deploy/manifest-v1.5.0.yaml` / `ecosystem/parity-surfaces.yaml`, which is an
+AX4-1 floor-declaration act — the register itself states that a new hook needs one and that the
+surface *"is not this lane's to write"*. **Owed: the floor declaration for
+`scripts/logs_retention.py`'s SessionStart hook.**
