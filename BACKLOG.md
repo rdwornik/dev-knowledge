@@ -118,6 +118,9 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#699] [P2][S] Three tally grammars coexist and two collide on a substring, so which one a first-match reader resolves is decided by ordering rather than by meaning · tasks/699-three-tally-grammars-coexist-and-two-collide-on-a-substring.md
 - [#715] [P1][L] Path management has no single declaration -- three governed-path mismatches in one day, and the registry the operator is describing already exists as FPG-1 · tasks/715-path-management-has-no-single-declaration-and-fpg1-is-already-the-registry.md
 - [#726] [P1][S] A session whose worktree was torn down silently resolves to the PRIMARY checkout, so its next write lands on the integrator's branch · tasks/726-torn-down-worktree-session-silently-resolves-to-the-primary-checkout.md
+- [#742] [P1][S] `actions_verdict` reports PASS when the job details cannot be read, so an unreadable run is indistinguishable from a clean one · tasks/742-actions-verdict-reports-pass-when-job-details-cannot-be-read.md
+- [#743] [P1][S] The step-0 collision extractor requires a slash, so two lanes may both declare a root-level file and pass · tasks/743-collision-extractor-is-blind-to-root-level-files.md
+- [#744] [P1][S] `median_report` filters receipts by kind but never by completeness, so the under-30 target can be met on incomplete receipts · tasks/744-median-report-counts-incomplete-receipts.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
@@ -302,6 +305,7 @@ So that the consumer-facing live surface reflects CURRENT state — hub-deprecat
 - [#690] [P2][S] The three SUPERSEDED `block-onedrive` hook copies under `~/.claude/hooks/` — removed, and the removal recorded in-repo · tasks/690-three-superseded-l0-hook-copies-removed-batch-w-w5.md
 - [#734] [P1][M] Cleanup is an act, not a note -- the census's 35 non-live items each get DELETE, TRIGGER or KEEP, as one file for one operator GO · tasks/734-cleanup-is-an-act-35-non-live-census-items-get-a-proposal-each.md
 - [#736] [P2][M] Component lifecycle is not data, so nothing can deprecate an organ — an item untriggered and unread for 30 days stays `production` forever · tasks/736-component-lifecycle-as-data-and-automatic-deprecation.md
+- [#745] [P1][M] The domain census's 16 UNKNOWN items are resolved to a live/non-live verdict by a second pass rather than carried forward · tasks/745-the-sixteen-unknown-census-items-are-resolved-by-a-second-pass.md
 
 ### [S17] Make new-repo scaffolding correct-by-default
 So that a new repo inherits the full baseline in one step, not by re-derivation.
