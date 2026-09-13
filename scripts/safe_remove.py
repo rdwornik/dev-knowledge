@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import re
 import shutil
 import subprocess
 import sys
@@ -73,6 +74,11 @@ class Verdict:
     status:
       * "unsafe"       — >=1 surviving referrer (FAIL / block); name them.
       * "safe"         — every removed symbol resolved with zero surviving referrers (PASS).
+      * "review"       — otherwise SAFE, but the module's bare stem turned up as a quoted
+                         string literal elsewhere in the tree (WARN / allow, downgraded from
+                         SAFE — the dynamic-dispatch / string-keyed reference class the
+                         oracle cannot see, ADR-89's honest limit; a hit is not proof of a
+                         live reference, so this never escalates to a block).
       * "unverifiable" — the oracle could not establish the answer for >=1 symbol
                          (Pyright absent / ambiguous) AND no surviving referrer was found
                          (WARN / allow — fail-open, honest-limit).
@@ -84,6 +90,7 @@ class Verdict:
     unverifiable: list[dict] = field(default_factory=list)
     completeness: str = "not-computed"
     reason: str = ""
+    review_hits: list[dict] = field(default_factory=list)
 
 
 # --- pure helpers ----------------------------------------------------------------------
@@ -91,6 +98,50 @@ class Verdict:
 def _norm(path) -> str:
     """Repo-relative, forward-slash, no leading './' — the one path form compared everywhere."""
     return Path(str(path)).as_posix()
+
+
+#: Never worth descending into for a bare-stem literal scan — same posture as the oracle's own
+#: exclusions, plus `.git` (not source).
+_BARE_STEM_SKIP_DIRS = frozenset({".git", "__pycache__", "node_modules", ".venv", "worktrees"})
+
+
+def _bare_stem_literal_hits(scan_root: Path, module_rel: str) -> list[dict]:
+    """Grep `scan_root`'s `*.py` files for `module_rel`'s bare stem inside a quoted string
+    literal — the dynamic-dispatch / string-keyed reference class the oracle (static-Python-only,
+    ADR-89) cannot see. `_load("desired_state_loader")` is exactly this shape: no `import`, so
+    Pyright's `references()` never finds it, and a module reached only this way verdicts SAFE
+    while a real caller still depends on it (the false-PASS `docs/audits/
+    2026-09-12-technical-lane-x-734-retire-stage-2-evidence.md` names).
+
+    A hit is NOT proof of a live reference (the string could be an unrelated coincidence, a
+    comment, or a docstring mention) — it downgrades an otherwise-SAFE verdict to REVIEW rather
+    than blocking, the same fail-open honest-limit posture `evaluate_removal` already takes for
+    `unverifiable`. Never raises: an unreadable file is skipped, not fatal.
+    """
+    stem = Path(module_rel).stem
+    pattern = re.compile(r"""['"]""" + re.escape(stem) + r"""['"]""")
+    module_abs = (scan_root / module_rel).resolve()
+    hits: list[dict] = []
+    for path in sorted(scan_root.rglob("*.py")):
+        try:
+            rel_parts = path.relative_to(scan_root).parts
+        except ValueError:
+            continue
+        if _BARE_STEM_SKIP_DIRS & set(rel_parts):
+            continue
+        try:
+            if path.resolve() == module_abs:
+                continue  # the module's own file is not a referrer to itself
+        except OSError:
+            pass
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        for lineno, line in enumerate(text.splitlines(), start=1):
+            if pattern.search(line):
+                hits.append({"file": _norm(path.relative_to(scan_root)), "line": lineno})
+    return hits
 
 
 def _module_top_level_symbols(path: Path) -> list[str]:
@@ -178,15 +229,20 @@ def materialize_query_root(repo_root: Path, removal_set, dest: Path, base: str =
 # --- the consumer proper ---------------------------------------------------------------
 
 def evaluate_removal(removal_set, repo_root, *, oracle=run_oracle, langserver=None,
-                     timeout: float = DEFAULT_WARM_TIMEOUT) -> Verdict:
+                     timeout: float = DEFAULT_WARM_TIMEOUT, scan_root=None) -> Verdict:
     """Is removing `removal_set` safe? Query the oracle for each removed module's import-surface
     symbols; a referrer SURVIVES iff its file is NOT itself in the removal set.
 
     `repo_root` is the QUERY root: the LIVE repo for the CLI (module still present) or the
     materialized frankenstein for the build-time path. `oracle` is injectable for deterministic
-    tests (the #207 teeth-proof feeds a stub returning a known surviving referrer). Never raises.
+    tests (the #207 teeth-proof feeds a stub returning a known surviving referrer). `scan_root`
+    is where the bare-stem string-literal downgrade greps — defaults to `repo_root`, but
+    `check_removal` passes the REAL repo root there, because the build-time `repo_root` is a
+    `scripts/`-only materialization and a dynamic reference living under `tests/` or elsewhere
+    would otherwise be invisible to the downgrade too. Never raises.
     """
     repo_root = Path(repo_root).resolve()
+    scan_root = Path(scan_root).resolve() if scan_root is not None else repo_root
     removal = {_norm(p) for p in removal_set}
     surviving: list[dict] = []
     unverifiable: list[dict] = []
@@ -239,7 +295,21 @@ def evaluate_removal(removal_set, repo_root, *, oracle=run_oracle, langserver=No
     else:
         status = "safe"
         reason = "no surviving referrers; every removed symbol resolved clean"
-    return Verdict(status, sorted(removal), surviving, unverifiable, completeness, reason)
+
+    review_hits: list[dict] = []
+    if status == "safe":
+        for module in sorted(removal):
+            review_hits.extend(_bare_stem_literal_hits(scan_root, module))
+        if review_hits:
+            status = "review"
+            stems = sorted({Path(m).stem for m in removal})
+            reason = (f"{len(review_hits)} bare-stem string-literal hit(s) for "
+                      f"{', '.join(stems)} — a possible dynamic/string-keyed reference the "
+                      f"oracle cannot see (static-Python-only limit); downgraded from SAFE, "
+                      f"human review needed before removing")
+
+    return Verdict(status, sorted(removal), surviving, unverifiable, completeness, reason,
+                   review_hits)
 
 
 def check_removal(repo_root: Path, base: str = "HEAD", *, oracle=run_oracle, langserver=None,
@@ -258,7 +328,7 @@ def check_removal(repo_root: Path, base: str = "HEAD", *, oracle=run_oracle, lan
     try:
         query_root = materialize_query_root(repo_root, removal, tmp, base)
         return evaluate_removal(removal, query_root, oracle=oracle, langserver=langserver,
-                                timeout=timeout)
+                                timeout=timeout, scan_root=repo_root)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
@@ -282,6 +352,11 @@ def format_text(verdict: Verdict) -> str:
         for u in verdict.unverifiable:
             tgt = u["symbol"] or u["module"]
             out.append(f"- {tgt}: {u['reason']}")
+    if verdict.review_hits:
+        out.append("")
+        out.append("bare-stem string-literal hits (downgraded from SAFE; WARN + allow):")
+        for h in verdict.review_hits:
+            out.append(f"- {h['file']}:{h['line']}")
     out.append("")
     out.append("limit: static-Python-only (dynamic/getattr/string-keyed/cross-language edges are "
                "INVISIBLE -> a non-blocking false PASS is possible; never a false FAIL).")

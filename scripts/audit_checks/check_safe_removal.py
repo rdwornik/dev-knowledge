@@ -64,6 +64,15 @@ def check_safe_removal(repo_path: Path) -> list[Finding]:
             "safe_removal", "warn",
             (f"{len(verdict.unverifiable)} symbol(s) unverifiable ({reasons}) for removal of "
              f"{', '.join(verdict.removal_set)} — WARN+allow, static-only limit").replace("|", "/")))
+    # A SAFE verdict downgraded to REVIEW on a bare-stem string-literal hit — one WARN naming
+    # every hit site (same collapse shape as `unverifiable` above; never a block).
+    if verdict.status == "review":
+        sites = ", ".join(f"{h['file']}:{h['line']}" for h in verdict.review_hits)
+        findings.append(Finding(
+            "safe_removal", "warn",
+            (f"removal of {', '.join(verdict.removal_set)} downgraded from SAFE to REVIEW — "
+             f"bare stem found as a string literal at {sites} (possible dynamic/string-keyed "
+             f"reference the oracle cannot see)").replace("|", "/")))
     if findings:
         return findings
     return [Finding("safe_removal", "pass",

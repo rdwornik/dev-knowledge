@@ -196,6 +196,19 @@ def test_adapter_unverifiable_warns_not_fails(tmp_path, monkeypatch):
     assert "unverifiable" in findings[0].evidence.lower()
 
 
+def test_adapter_review_warns_not_fails(tmp_path, monkeypatch):
+    """A REVIEW Verdict (downgraded from SAFE) -> a single WARN Finding naming the hit site,
+    never FAIL — the adapter's mirror of the unverifiable mapping above."""
+    review = sr.Verdict(
+        "review", ["scripts/orphan_loader.py"],
+        reason="1 bare-stem string-literal hit(s) for orphan_loader",
+        review_hits=[{"file": "tests/test_dynamic.py", "line": 1}])
+    monkeypatch.setattr(aud._sr, "check_removal", lambda *a, **k: review)
+    findings = aud.check_safe_removal(tmp_path)
+    assert [f.status for f in findings] == ["warn"], [(f.status, f.evidence) for f in findings]
+    assert "tests/test_dynamic.py:1" in findings[0].evidence
+
+
 # =======================================================================================
 # Layer B — real-oracle catch (@requires_pyright): the GAP-1 payoff is real
 # =======================================================================================
@@ -227,3 +240,61 @@ def test_real_oracle_allows_orphan_removal(tmp_path):
     verdict = sr.evaluate_removal(
         ["scripts/zz_orphan_probe.py"], tmp_path, langserver=_LS_OVERRIDE)
     assert verdict.status == "safe", verdict
+
+
+# =======================================================================================
+# Layer D — bare-stem string-literal downgrade (lane-x-683): the false-PASS class the
+# lane-x-734-retire-stage-2 evidence names -- `_load("desired_state_loader")` is invisible to
+# a static-Python-only oracle (ADR-89) but is a real dynamic reference. A hit downgrades an
+# otherwise-SAFE verdict to REVIEW rather than blocking (it is a heuristic, not proof).
+# =======================================================================================
+
+def test_bare_stem_string_literal_downgrades_safe_to_review(tmp_path):
+    """RED-first: zero static referrers (would verdict SAFE) but the bare stem appears as a
+    quoted string literal elsewhere in the tree -- the exact `_load("orphan_loader")` shape.
+    Refused as SAFE (a false PASS) before this downgrade; REVIEW after."""
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "orphan_loader.py").write_text(_FOO, encoding="utf-8")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_dynamic.py").write_text(
+        'dsl = _load("orphan_loader")\n', encoding="utf-8")
+    verdict = sr.evaluate_removal(
+        ["scripts/orphan_loader.py"], tmp_path, oracle=_stub_oracle(deps=[]))
+    assert verdict.status == "review", verdict
+    assert any("test_dynamic.py" in h["file"] for h in verdict.review_hits), verdict.review_hits
+
+
+def test_no_bare_stem_hit_stays_safe(tmp_path):
+    """No string-literal mention anywhere in the tree -- stays SAFE; the downgrade never
+    fires on nothing."""
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "orphan.py").write_text(_FOO, encoding="utf-8")
+    verdict = sr.evaluate_removal(["scripts/orphan.py"], tmp_path, oracle=_stub_oracle(deps=[]))
+    assert verdict.status == "safe", verdict
+    assert verdict.review_hits == []
+
+
+def test_a_surviving_referrer_still_wins_over_a_bare_stem_hit(tmp_path):
+    """A real surviving referrer stays UNSAFE even when a bare-stem hit is also present --
+    the downgrade only ever applies to an otherwise-SAFE verdict, never softens a block."""
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "foo.py").write_text(_FOO, encoding="utf-8")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_dynamic.py").write_text('x = "foo"\n', encoding="utf-8")
+    verdict = sr.evaluate_removal(
+        ["scripts/foo.py"], tmp_path,
+        oracle=_stub_oracle(deps=[{"file": "scripts/bar.py", "line": 1}]))
+    assert verdict.status == "unsafe", verdict
+
+
+def test_check_removal_bare_stem_scans_the_real_tree_not_just_scripts(tmp_path):
+    """`check_removal`'s query root is a scripts/-only materialization (`materialize_query_root`
+    copies `scripts/` alone) -- the bare-stem scan must read the REAL repo root (tests/, docs/,
+    etc.) or a dynamic reference outside scripts/ stays invisible."""
+    _init_git_repo(tmp_path, {
+        "scripts/orphan_loader.py": _FOO,
+        "tests/test_dynamic.py": 'dsl = _load("orphan_loader")\n',
+    })
+    (tmp_path / "scripts" / "orphan_loader.py").unlink()
+    verdict = sr.check_removal(tmp_path, oracle=_stub_oracle(deps=[]))
+    assert verdict.status == "review", verdict

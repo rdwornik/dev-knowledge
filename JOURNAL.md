@@ -19,6 +19,48 @@
 
 ---
 
+### 2026-09-13 (p) - CC (Opus 5, background integrator seat): the 683 anchor arc anchors itself
+
+**Names `8dc9bdcb`**, the entry below, which this arc's own `--no-ff` merge introduces.
+Two commits, JOURNAL last, for the reason entry (b) states.
+
+**Changes.** `JOURNAL.md` (this entry).
+
+### 2026-09-13 (o) - CC (Opus 5, background integrator seat): three small fixes land — and a generated count merges WRONG without conflicting
+
+**Anchors:** `78823b05` — the `worktree-lane-x-683-three-small-fixes` merge, by way of
+`b2702947` (the sync onto `ea64a940` plus one integrator commit) and the commits it introduced.
+
+**Merged.** `78823b05` — wave-3 lane 3 (AX28-4 item 3) @ `b2702947`, by SHA, `--no-ff`, synced
+onto current `main` first. **Codex: CRITICAL:0 HIGH:0 MED:0 LOW:0**, read off the Findings
+sections. Targeted tests on the merged tree: **17 passed, 2 skipped**.
+
+**Two fixes, RED-first** (witnesses at `9ef2dc9d`, ahead of both):
+
+- **`[#683]`** — the override-command tombstone id predicate is scoped to `status: active`, so a
+  tombstone may land. AX26-2 item 4 recorded that the tombstone "was never actually blocked" and
+  that three prose claims were retracted; the lane's own title calls this **"one refuted
+  premise"**, which is the honest shape.
+- **`safe_remove`** — SAFE downgrades to REVIEW when the module's bare stem appears as a string
+  literal. **This is the exact class that bit x-734 twice tonight** and that entry (e) records:
+  `.devcontainer/provision.sh` invoking a retired script, and
+  `test_e2e_consumer_lifecycle.py:94` importlib-loading another. The oracle that returned SAFE
+  on both would now return REVIEW. The fix and its two live witnesses landed the same night,
+  from different lanes, neither knowing about the other.
+
+**The integrator commit this merge carries, `b2702947`, is the reportable part.** The sync
+**auto-merged `ecosystem/doc-counts.md` with NO conflict** and took **6020** — a value correct
+for neither side. The merged tree collects **6027**. A generated count whose two sides have both
+moved does not necessarily conflict, so git resolves it silently and the wrong number lands
+with nothing to prompt a second look. Caught by measuring rather than by reading.
+
+**And the generator's own rule, now stated precisely** (entry (c) recorded half of it):
+`gen_doc_counts.py` computes from `HEAD`. Run mid-merge it reports the lane's pre-sync count;
+run after the merge commit exists it is correct. Both halves were observed tonight — 6231 when
+wrong, 6027 when right — so the rule is: **measure during a merge, regenerate only after it.**
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-13 (n) - CC (Opus 5, background integrator seat): the suite anchor arc anchors itself
 
 **Names `2671d8e8`**, the entry below, which this arc's own `--no-ff` merge introduces.
