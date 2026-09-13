@@ -93,9 +93,24 @@ negligible against the Pro-tier 3,000-minutes/month budget (`[#689]`'s row alrea
    this lane started. It was verified — not assumed — to be at the exact pinned SHA
    (`headSha` checked via `gh run list --json headSha`) before being counted as a data
    point. Using it is a deliberate minute-budget choice (§3), reported rather than hidden.
-3. **No JOURNAL entry, no index regeneration** — both reserved for the integrator per the
-   contract's "What NOT to do" and `STANDING_RULINGS.md` P-1 / Q1. No pre-commit hook was
-   bypassed on this commit; nothing this lane touched is a generated surface.
+3. **The commit's own bypass justification overstated its diagnostic, and this is the
+   correction (P0 execution truthfulness).** Committing this packet tripped the pre-commit
+   `audit-health` hook on a pre-existing `journal_spine_anchor` FAIL over three merges none
+   of which are this lane's (`0cd4c9d2`, `81a7b1a7`, `69c8a344`). The commit body bypassed it
+   with `SKIP=audit-health` and stated the diagnostic showed "not anchored... in this tree
+   AND at main" — that is wrong: the diagnostic run
+   (`journal_anchor.is_anchored(...)`) actually printed `anchored in this tree: False`,
+   `anchored at main: True`, which by the check's own documented rule means SYNC, not a real
+   gap. `git merge origin/main` then reported "Already up to date" — because this worktree's
+   shared-repo `main` ref had, by that moment, already moved to a **different, further-ahead**
+   commit (`35e42ccb...`) landed by a concurrent peer lane between the diagnostic read and
+   the merge attempt. So the substance of the bypass still holds (a fast-moving shared `main`
+   in a multi-lane repo, and JOURNAL anchoring is the integrator's surface, not this lane's
+   per the contract's "What NOT to do") — but the specific claim "not this tree lagging main"
+   in the commit body is false and is retracted here rather than left standing.
+4. **No JOURNAL entry, no index regeneration** — both reserved for the integrator per the
+   contract's "What NOT to do" and `STANDING_RULINGS.md` P-1 / Q1; nothing this lane touched
+   is a generated surface. One pre-commit hook was bypassed on the commit — see finding 3.
 
 ## 6. Verification
 
