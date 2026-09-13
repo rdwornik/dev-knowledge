@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import datetime as _dt
 import importlib
+import importlib.util
 import os
 import re
 import subprocess
@@ -1533,6 +1534,56 @@ def assert_preflight(repo_root: Path, **kw) -> "list[PreflightRow]":
     return rows
 
 
+def _load_target_audit(repo_root: Path):
+    """Import `<repo_root>/scripts/audit.py` WITHOUT making it this process's `audit`.
+
+    THE BUG THIS REPLACES, written down so nobody tidies the import back to its obvious
+    spelling. `collect_hints` used to do
+
+        sys.path.insert(0, str(repo_root / "scripts"))
+        import audit as _aud
+
+    and undo neither half. Against the live hub that is a no-op twice over, so it looked
+    harmless for as long as the only caller was the live hub. Against ANY OTHER tree -- above
+    all `tests/test_gen_handoff.py`'s stub repo, whose `scripts/audit.py` is the single line
+    `ALL_CHECKS = []` -- it published a temp fixture as `sys.modules["audit"]` and left that
+    directory FIRST on `sys.path` for the rest of the process.
+
+    MEASURED (2026-09-13): collecting `tests/test_gen_handoff.py` before
+    `tests/test_residual_completeness.py` in one process reddened three tests in the second
+    file with `module 'audit' has no attribute '_vrc'`; the same file alone was 29/29 green.
+    The path half is wider than the module half: that stub directory also carries one-line
+    placeholders for `validate_backlog`, `validate_doc_claims`, `validate_git_backlog` and
+    `gen_task_tree`, and an import of any of those resolves to a module with nothing in it --
+    which does not fail, it passes vacuously.
+
+    WHY THE PATH STILL GOES ON, briefly: a real repo's `audit.py` imports its siblings by bare
+    name, so the target's `scripts/` has to be reachable while the module executes. It is put
+    there for the length of the exec and taken off again, and every module name the exec
+    introduced goes with it. A hint is a READ, and a read has no business changing what the
+    rest of the process means by a module name.
+    """
+    source = Path(repo_root) / "scripts" / "audit.py"
+    if not source.is_file():
+        return None
+    # Never "audit": the name is the whole hazard, so the probe does not claim it even
+    # transiently -- a concurrent importer must not be able to observe the stub under it.
+    spec = importlib.util.spec_from_file_location("_gen_handoff_audit_probe", source)
+    if spec is None or spec.loader is None:
+        return None
+    module = importlib.util.module_from_spec(spec)
+    path_before, modules_before = list(sys.path), set(sys.modules)
+    sys.path.insert(0, str(source.parent))
+    sys.modules[spec.name] = module   # module-level dataclasses resolve their own __module__
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.path[:] = path_before
+        for name in set(sys.modules) - modules_before:
+            sys.modules.pop(name, None)
+    return module
+
+
 def collect_hints(repo_root: Path) -> dict[str, str]:
     """Best-effort generation-time drift-reference VALUES — for the JOURNAL draft ONLY.
 
@@ -1550,8 +1601,7 @@ def collect_hints(repo_root: Path) -> dict[str, str]:
     h["status_line"] = status.splitlines()[0] if status else "unknown (run `git status -sb`)"
     # ALL_CHECKS count + last name via import (cheap, no side effects at import).
     try:
-        sys.path.insert(0, str(repo_root / "scripts"))
-        import audit as _aud  # noqa: PLC0415
+        _aud = _load_target_audit(repo_root)
         h["all_checks"] = f"{len(_aud.ALL_CHECKS)} (last `{_aud.ALL_CHECKS[-1].__name__.removeprefix('check_')}`)"
     except Exception:  # noqa: BLE001 — best-effort; never fail generation on a hint
         h["all_checks"] = "unknown (run `python scripts/audit.py checks`)"
