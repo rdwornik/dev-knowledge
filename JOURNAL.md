@@ -19,6 +19,13 @@
 
 ---
 
+### 2026-09-13 (h) - CC (Opus 5, background integrator seat): the closure arc anchors itself
+
+**Names `08b41fe3`**, the entry below, which this arc's own `--no-ff` merge introduces.
+Two commits, JOURNAL last, for the reason entry (b) states.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-13 (g) - CC (Opus 5, background integrator seat): the wave-2 dispatcher freeze, anchored — and ONE of three rows closes
 
 **Anchors:** `0cd4c9d2` — the `worktree-dispatch-x2-freeze` merge, by way of `60a32549` (the
