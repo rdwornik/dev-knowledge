@@ -4,7 +4,8 @@ reconciled_with: handoff-process@7.1.0
 
 # Dev Practice Playbook
 
-> **Last updated:** 2026-09-13 — lane `lane-x-628-docs-cut`: the review-pass blockquotes
+> **Last updated:** 2026-09-13
+> lane `lane-x-628-docs-cut`: the review-pass blockquotes
 > (dated narration accreted since 2026-08-01) are cut per [#628]'s docs-cut item 5; section
 > history lives in git (commit log + JOURNAL `Changes:` line), not in per-section changelog
 > blocks — per ADR-49, the principle the cut narration itself was citing.

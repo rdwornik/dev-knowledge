@@ -1,6 +1,6 @@
 ---
 id: "[#746]"
-title: "Devcontainer history-sufficiency (B1) and ecosystem-registration (L5) repair, lost with scripts/cloud_provisioning.py"
+title: "Devcontainer history-sufficiency (B1) and ecosystem-registration (L5) repair, lost with `scripts/cloud_provisioning.py`"
 status: open
 priority: P2
 size: M
