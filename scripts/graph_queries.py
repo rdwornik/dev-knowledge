@@ -398,6 +398,21 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "prose and prose is carried by seats' diligence, which is the missing spine "
                "the DECLARE §5 names",
         owner="V+1 retirement-or-wiring list"),
+    # SAME CLASS AS `gen_ledger.py` ABOVE: a NEW operator-transport report generator, arrived
+    # after the census, ON-DEMAND-BY-CLI rather than hook-fired. [#730] AX27-5's closure list is
+    # read by the operator at `to-browser/CLOSURE-LIST-<date>.md`, the same shape gen_ledger.py
+    # and gen_handoff.py already use for that directory -- a wiring surface for it is a
+    # [#664]-scope decision (would a CLI report generator's own invocation count as a trigger?),
+    # not this lane's to make, and dispositioned rather than silently left for the census to
+    # rediscover.
+    "scripts/propose_row_closures.py": Disposition(
+        reason="[#730] AX16-2/AX27-5's witness scan. ARRIVED AFTER THE CENSUS, same class as "
+               "gen_ledger.py above: an operator-transport report generator (writes "
+               "to-browser/CLOSURE-LIST-<date>.md), run on demand from the CLI rather than "
+               "fired by any [#664] wiring surface. This lane's own footprint is `scripts/` "
+               "and `tests/` -- deciding whether a command file should invoke it is a "
+               "successor act, not spent here",
+        owner="V+1 retirement-or-wiring list"),
 }
 
 
