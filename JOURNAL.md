@@ -19,6 +19,13 @@
 
 ---
 
+### 2026-09-13 (l) - CC (Opus 5, background integrator seat): the docs-cut anchor arc anchors itself
+
+**Names `0f9c210e`**, the entry below, which this arc's own `--no-ff` merge introduces.
+Two commits, JOURNAL last, for the reason entry (b) states.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-13 (k) - CC (Opus 5, background integrator seat): the docs-cut manifest lands, having cut nothing
 
 **Anchors:** `ab7b84a9` — the `worktree-lane-x-000-docs-cut-manifest` merge, by way of
