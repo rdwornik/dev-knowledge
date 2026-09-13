@@ -19,6 +19,47 @@
 
 ---
 
+### 2026-09-13 (s) - CC (Opus 5, background integrator seat): batch X waves 2 and 3 close — eleven merges, one index pass, one anchor
+
+**Anchors:** `7f2012cb` — the `worktree-dispatch-x3-freeze` tip, which the `0c56a7c8` merge
+introduces. That merge is the one that OPENS batch X3, so it gets no ADR-110 exemption from
+the batch it is still landing; every lane merge behind it is exempt and correctly uncounted.
+
+**This is the batch's ONE anchor (AX28-3).** Eight anchor arcs were spent earlier tonight
+because `batch_manifest.open_batches()` returned `[]` — the wave-3 manifest had not landed, so
+the declared-integration-arc exemption was not live and each merge paid its own arc. The
+manifest landing in `0c56a7c8` is what turned the clause back on; the cost was real and its
+cause is now named rather than guessed.
+
+**Merged — eleven, serial, from the primary checkout, each synced onto current `main` first.**
+Wave 2: `a8dee4ac` (x-727 @ `bd267190`), `2709256a` (x-675 @ `82c03724`),
+`69c8a344` (x-734 @ `14bde495`), `0cd4c9d2` (dispatch-x2-freeze @ `60a32549`).
+Wave 3: `959a00fc` (x-689 @ `605a20f5`), `ab7b84a9` (docs-cut-manifest @ `6dcda4fd`),
+`81c0a4c9` (trustworthy-suite @ `64230d8d`), `78823b05` (x-683 @ `b2702947`),
+`83961dde` (x-730 @ `de578835`), `1d7bdddb` (x-664 @ `ff07de9a`),
+`0c56a7c8` (dispatch-x3-freeze @ `7f2012cb`).
+
+**Closed — one of three.** `[#727]` on proving SHA `a8dee4ac`. `[#675]` and `[#734]` are HELD,
+each on its own Done-when read back against what landed: `[#675]`'s "all six and not a
+pick-list" has three verified false-pass holes (`actions_verdict.py:206`, `seat_refusals.py:303`,
+`merge_receipt.py:449`); `[#734]`'s clause 2 — the 16 UNKNOWN resolved by a second pass — is
+undischarged, and the row itself predicted that clause would be the one quietly dropped. The
+operator's word authorising all three predates tonight's reviews, which is what found the holes.
+Verdicts and the two GO/NO-GO asks: `to-browser/CLOSURE-VERDICTS-2026-09-13.md`.
+
+**Result.** 312 open rows. 15 files and 264,687 B removed across the range (`ec18875e`..`0c56a7c8`)
+— the retirement leg is 14 files / 258,223 B, plus the 6,464 B `[#727]` task file at its closure.
+`doc-counts` corrected on two claims it had drifted on: tests 6045 → 6071 (the figure predated
+the x-664 merge's 24 tests) and pre-commit gates 31 → 32. No full suite was run on this box:
+per AX26-1 the failure count moves with the worker count, so it is not a measurement — the
+merged result was proved instead by the push-triggered Actions run at `35e42ccb`
+(53 failed, 5937 passed, 22 skipped; failures down 2, no regressions).
+
+**Changes.** `ecosystem/organ-index.md`, `docs/audits/README.md` (the batch's single index pass,
+AX28-3 + `[#590]`), `JOURNAL.md`.
+
+**Next.** The three operator artifacts wait untouched in `to-browser/` for the morning.
+
 ### 2026-09-13 (r) - CC (Opus 5, background integrator seat): the 730 anchor arc anchors itself
 
 **Names `a54d4f3c`**, the entry below, which this arc's own `--no-ff` merge introduces.
