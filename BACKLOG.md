@@ -118,7 +118,6 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#699] [P2][S] Three tally grammars coexist and two collide on a substring, so which one a first-match reader resolves is decided by ordering rather than by meaning · tasks/699-three-tally-grammars-coexist-and-two-collide-on-a-substring.md
 - [#715] [P1][L] Path management has no single declaration -- three governed-path mismatches in one day, and the registry the operator is describing already exists as FPG-1 · tasks/715-path-management-has-no-single-declaration-and-fpg1-is-already-the-registry.md
 - [#726] [P1][S] A session whose worktree was torn down silently resolves to the PRIMARY checkout, so its next write lands on the integrator's branch · tasks/726-torn-down-worktree-session-silently-resolves-to-the-primary-checkout.md
-- [#727] [P1][M] The model greps instead of querying the organs it built -- a `PreToolUse` deny-and-point hook that refuses a raw search and names the organ to run · tasks/727-deny-and-point-hook-a-raw-search-over-a-governed-question-is-refused.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
@@ -193,6 +192,7 @@ Backbone (dependency-ordered; done stages recorded here as the epic ledger — A
 - [#605] [P2][M] De-hardcode consumer-root resolution in `deploy/tool.py` and `scripts/audit.py` · tasks/605-de-hardcode-consumer-root-resolution-in-deploy-t.md
 ---
 - [#656] [P2][S] The v1.5.0 carrier's `floor-seal-report` drift probe matches a literal the command no longer has · tasks/656-v150-floor-seal-report-drift-probe-matches-a-dead-literal.md
+- [#741] [P1][M] Lane launching is methodology, so the hub owns it — a floor component shipped to every consumer, OS-independent, with machine-local values staying in win-tooling · tasks/741-lane-launching-is-methodology-so-the-hub-owns-it-as-a-floor-component.md
 
 ## [E3] Lessons feedback loop
 > As the methodology author, I want lessons to flow back into enforced rules, not sit in an archive.
@@ -362,6 +362,7 @@ So that cognitive overhead per session drops.
 - [#737] [P2][S] A SEAT-BOOT render cannot express the seat's own model, so the operator's re-tiering ruling has nowhere to live but prose the next seat never reads · tasks/737-a-seat-boot-render-cannot-express-the-seat-s-own-model.md
 - [#738] [P2][S] `lane-ceiling --check-worktrees` refuses on worktree PRESENCE, so a wave-2 batch is refused by a prior wave's lane awaiting merge and the only offered remedy destroys it · tasks/738-lane-ceiling-refuses-on-worktree-presence-with-no-merged-discrimination.md
 - [#739] [P2][S] `session_end_backpressure` reads the working tree but not its authorship, so it orders a seat to commit or stash a CONCURRENT seat's in-flight work · tasks/739-session-end-backpressure-orders-a-commit-of-another-seats-in-flight-work.md
+- [#740] [P1][S] The generator emits a `Dispatch-Lane` fence and the ruled verb admits only a `claude` fence, so `dispatch -DryRun` refuses every conforming generated contract — a SYMPTOM of the two-owner launch path (AX25-1) · tasks/740-generated-contract-carries-a-fence-the-ruled-verb-refuses.md
 - [#724] [P1][M] The Windows baseline is permanently RED and its count is not even reliably knowable -- a red baseline hides every new failure behind it · tasks/724-permanently-red-windows-test-baseline-hides-every-new-failure.md
 - [#725] [P2][S] `test_manifest_link_route` fails under xdist on a frozenset identity assert -- a test that passes alone and fails in parallel · tasks/725-xdist-frozenset-identity-pollution-in-test-manifest-link-route.md
 - [#728] [P2][M] Every organ that answers a question gets a generated skill whose description says WHEN to invoke it -- the description is what the model matches · tasks/728-organ-skills-generated-from-the-organ-index-so-the-model-can-find-them.md
