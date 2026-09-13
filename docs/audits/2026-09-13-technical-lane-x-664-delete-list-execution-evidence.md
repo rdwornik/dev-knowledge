@@ -348,3 +348,61 @@ the diff; they are not evidence about this repo's health either way.
 its module. Item 3's rule is one-directional by construction — it blocks on a failure present
 ONLY AT TIP — so a baseline failure that leaves is reported, never treated as a pass to be
 explained away.
+
+## Step 3 — `gen_trend_dashboard.py`, then `gen_north_star.py`
+
+Removed in that order, which is the ratified one and is load-bearing: the dashboard loads the
+north-star view through `importlib`, so deleting the loaded module first would have left a
+broken load in the tree between the two `git rm`s.
+
+Each module leaves with **its dedicated tests and its `ORPHAN_DISPOSITIONS` row**, which is not
+this lane's invention — it is the `[#734]` retire stage's recorded rule, and the same rule the
+census fixture's own comment states. Five files:
+
+- `scripts/gen_trend_dashboard.py`, `tests/test_gen_trend_dashboard.py`, `tests/test_trend_dashboard.py`
+- `scripts/gen_north_star.py`, `tests/test_gen_north_star.py`
+
+plus both rows out of `graph_queries.ORPHAN_DISPOSITIONS` and both out of
+`test_graph_spine.CENSUS_SCRIPT_ORPHANS`. The register rows leave rather than being re-worded
+for the reason the register's own `.claude/commands/override.md` note already states: *"a
+disposition says 'this orphan was LOOKED AT and ruled', and a file that is gone is not an
+orphan"*. The fixture rows leave for the reason its own comment states: *"A census row leaves
+this fixture WITH the commit that retires its subject"* — and they are removed under a NEW
+attribution block rather than folded into the `[#734]` one, so the two retirements stay
+separable by a later reader.
+
+Targeted tests, selected by the organ rather than guessed
+(`impacted_tests.py select --changed scripts/gen_trend_dashboard.py --changed
+scripts/gen_north_star.py --changed scripts/graph_queries.py`):
+
+```
+tests/test_graph_spine.py tests/test_canonical_docs.py tests/test_gen_ledger.py
+  -> 2 failed, 109 passed in 158.95s
+tests/test_assemble_paste.py tests/test_batch_manifest.py tests/test_decision_coverage.py
+tests/test_edge_class_census.py tests/test_fleet_parity.py tests/test_gen_lane_contract.py
+tests/test_gen_seat_boot.py tests/test_impacted_tests.py tests/test_prompts_guard_hook_wiring.py
+tests/test_verify_handoff_probes.py
+  -> 634 passed, 1 skipped in 1377.22s
+```
+
+Both failures are `tests/test_canonical_docs.py` rows that are **already in the Step 2 baseline
+set** (`test_the_derived_leg_is_warn_class_on_arrival` and
+`test_the_live_playbook_doctrine_row_shows_its_reconciled_spec_and_a_derived_date`). Present in
+both readings, so not this lane's, and named here rather than left as a bare count.
+
+### RESIDUE LEFT DELIBERATELY, and what it costs
+
+`ecosystem/north-star.md` is `gen_north_star.py`'s committed output, and it **stays**. Its own
+header now names a generator that no longer exists, and `README.md:74` points a reader at both.
+That is a real stale locator and it is left rather than swept, on the contract's own rule for
+this class: `[#624]` holds a live `implements` edge to the artifact (`file_purpose_graph.py why
+ecosystem/north-star.md` → `is implemented by task:624`), `[#383]`/`[#624]` name the generator,
+and the contract's words are *"Do not close or rewrite another lane's row to make a gate green
+… say so in the end-of-lane artifact and leave it for the operator."* Deleting the artifact
+would orphan `[#624]`'s edge on top of the module edges the contract already anticipated, and
+the README bullet is in this repo's canonical front door — closer to a V-2 class (a)
+curated-baseline touch than any of the six deletions are. **Owed to the operator, named in the
+end-of-lane packet: `ecosystem/north-star.md` and `README.md:74`.**
+
+`ecosystem/trends.html` needs no decision — `gen_trend_dashboard.py`'s docstring records it as
+`regenerated on demand; NOT committed`, and `git ls-files` confirms it is untracked.

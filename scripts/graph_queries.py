@@ -181,12 +181,13 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                 "pre-commit gate over it is an AX4-1 floor-declaration act needing a "
                 "parity-surfaces registration, which is outside this lane's footprint"),
         owner="[#691] Half B (non-Claude admission), which adopts it by routing through it"),
-    "scripts/gen_north_star.py": Disposition(
-        reason=f"{_LANE_BUILT}; only call site is batch-e CUT.md:40",
-        owner="V+1 retirement-or-wiring list"),
-    "scripts/gen_trend_dashboard.py": Disposition(
-        reason=f"{_LANE_BUILT}; only call site is LANE-n-14-trends-burndown.md:27",
-        owner="V+1 retirement-or-wiring list"),
+    # `scripts/gen_trend_dashboard.py` and `scripts/gen_north_star.py` WERE dispositioned here,
+    # both on `_LANE_BUILT`. `[#664]`'s ratified DELETE list retired them (2026-09-13, lane
+    # `lane-x-664-delete-list-execution`), in that order -- the dashboard imports the north-star
+    # view through `importlib`, so deleting the importer second would have turned a clean
+    # removal into a broken load. The rows leave WITH their subjects: a disposition says "this
+    # orphan was LOOKED AT and ruled", and a file that is gone is not an orphan, so keeping the
+    # row would be the paper suppression `stale_dispositions()` exists to surface.
     # NOT population A either, and the distinction earns its own comment rather than being
     # folded into `_LANE_BUILT`. `merge_receipt.py` IS adopted: `.claude/commands/
     # lane-integrate.md` issues it at four points of the merge walk, which is the opposite of
