@@ -26,6 +26,38 @@
 #       `ecosystem/*/state.yaml`, that glob is gitignored, and so no clone has ever carried one —
 #       which is the single remaining `[!!]` between this substrate and the row's D1a Done-when.
 #
+# [#664] RETIREMENT RECORD (2026-09-13), read verbatim out of git history before the six call
+# sites below were removed — `scripts/cloud_provisioning.py` implemented L2b and L5 and was
+# retired at `3c9418cc` ([#734]) WITHOUT its six callers here being removed, which is what this
+# lane closes. Its own docstring, quoted so the "what was lost" question never has to be
+# re-derived from the call names alone:
+#
+#   history  (L2b) "Leg 2 unshallows, so a cloud clone has DEPTH. It does not necessarily have
+#            REFS: the proof lane's codespace carried 5329 commits and no local `main`, and
+#            every instrument that walks main's first-parent spine then ERRORED ... rather than
+#            passing vacuously. 'Not shallow' is necessary and insufficient; this asserts the
+#            sufficient precondition and repairs it BEFORE a lane can reach a spine walker."
+#            Repair (`history --repair`) deepened the clone, fetched each `required_refs` entry
+#            named in `.devcontainer/provisioning.yaml`, and fast-forwarded it — REFUSING (never
+#            force-updating) a ref that had diverged or reached the remote tip only off the
+#            first-parent spine, so it could not discard local commits.
+#   ecosystem (L5) "`audit.py health` reports `repos registered (none)` in a fresh container ...
+#            not structural: `discover_repos()` counts `ecosystem/*/state.yaml`, that glob is
+#            GITIGNORED, and so no clone has ever carried one. The workstation copies them from
+#            the primary checkout ...; a container has no primary, so it audits the one repo it
+#            has and saves the genuine result." Repair (`ecosystem --repair`) ran `audit.audit_repo`
+#            + `audit.save_state` against THIS checkout and wrote its `ecosystem/<name>/state.yaml`.
+#
+# MEASURED, not assumed, the same day: with the module gone, every one of the six calls below
+# exits 2 ("can't open file ... No such file or directory"), which the surrounding `case` in
+# `leg2b_history`/`leg5_ecosystem` treats as an UNKNOWN state and `die`s on, and which `gate()`'s
+# bare `|| die` also treats as failure. So provisioning did NOT "quietly do nothing" here — a
+# fresh `bash .devcontainer/provision.sh` has been dying at leg2b_history, and `--gate` (wired to
+# postStartCommand) has been refusing every container start, since `3c9418cc` landed, both with a
+# "re-provision" message that cannot succeed because the module it names is gone for good. Removing
+# the six dead call sites stops that crash; it does not restore L2b or L5, which is why this lane
+# also files `[#742]` for the real repair. See BACKLOG `[#742]`.
+#
 # SINGLE SOURCE OF PINS. Nothing below hardcodes a version that already has a home in the repo:
 #   uv          <- pyproject.toml [tool.uv] required-version   (read, and required to be `==`)
 #   interpreter <- .python-version

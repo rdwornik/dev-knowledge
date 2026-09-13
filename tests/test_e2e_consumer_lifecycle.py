@@ -89,6 +89,18 @@ def _precommit_config() -> str:
         "        pass_filenames: false\n")
 
 
+# [#664] RETIREMENT RECORD (2026-09-13). `scripts/boundary_report.py` was retired at `3c9418cc`
+# ([#734]) without this importlib load (a path reference `safe_remove`'s static importer scan
+# cannot see) being removed. Its own docstring, quoted so the "what was lost" question never has
+# to be re-derived from the call site alone: "#312 read-only fleet CLAUDE.md methodology-boundary
+# reporter (C1) ... parse each fleet repo's `CLAUDE.md` for the #312 Form-A fenced region markers
+# (`<!-- methodology:start/end id=... owner=hub|repo -->`), align every consumer's `owner=hub`
+# regions against the hub baseline by `id`, and REPORT drift. It is a reporter, NOT a gate." The
+# block below (`_load_boundary` + Stage 5/6) exercised exactly that: a grandfathered consumer
+# aligning clean (`pass`), injected drift on one region being detected and named, and a broken
+# marker pair raising a loud parse warning. MEASURED, not assumed: with the module gone,
+# `_load_boundary()` raises at `spec.loader.exec_module(m)` (`FileNotFoundError`) wherever this
+# opt-in (`RUN_E2E=1`) test actually runs — latent, not red, only because it is skipped by default.
 def _load_boundary():
     spec = importlib.util.spec_from_file_location(
         "boundary_report", HUB / "scripts" / "boundary_report.py")
