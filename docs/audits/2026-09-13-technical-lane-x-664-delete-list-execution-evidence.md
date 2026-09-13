@@ -239,3 +239,112 @@ leaves in the same commit is not a surviving reference.
 **No verdict is treated as a licence.** Done-contract item 2 binds: a SAFE verdict is necessary
 and not sufficient, and the paired baseline/tip Actions run in Step 2 / Step 6 is what carries
 the weight the oracle cannot.
+
+## Step 2 — the Actions BASELINE
+
+Workflow `report-only wall` (`.github/workflows/report-only-wall.yml`), fired by
+`workflow_dispatch` on this lane's own branch so that the baseline and the tip run the SAME
+workflow on the SAME runner class, adjacent in time and both inside this lane's own run. The
+workflow records and never blocks, so a non-zero pytest leg is the reading, not a breakage.
+
+### Two baseline readings, because the base moved (Step 0)
+
+| reading | run id | head SHA | pytest tail |
+|---|---|---|---|
+| provisioned base (superseded) | `34756963263` | `dbac84b8` | `54 failed, 5996 passed, 21 skipped in 177.89s` |
+| **THE BASELINE OF RECORD** | **`34757902205`** | **`c0e0722f`** | **`55 failed, 5994 passed, 22 skipped in 218.78s`** |
+
+Both are kept. The first is what the contract's words asked for; the second is the base this
+lane actually builds on, and it is the one Step 6 diffs against. Both ran `pyright shape:
+unprovisioned (modelled: 7/8 proven, 1 skip)` — the runner does not vendor the langserver, which
+is a property of the workflow (REQUIREMENT 6, resolved as RECORD) and is constant across the
+pair, so it cancels in the diff.
+
+The delta between the two readings is exactly three nodeids and every one of them belongs to
+`main`, not to this lane — recorded because a moved base is the easiest place to lose a
+failure:
+
+- **`+ tests/test_gen_audit_index.py::test_live_index_is_fresh`**
+- **`+ tests/test_gen_audit_index.py::test_live_index_excludes_nothing_because_every_audit_is_tracked`**
+  — `main` landed `docs/audits/2026-09-13-technical-batch-x3-close-packet.md` without the index
+  pass, which is the integrator's owed regeneration under the `[#590]` narrowing, not a lane's.
+- **`- tests/test_graph_spine.py::test_a_disposition_register_entry_cannot_manufacture_its_own_trigger`**
+  — main's own fix; done-contract item 7, discharged before this lane ran (Step 0).
+
+### The baseline failure set of record — 55 nodeids at `c0e0722f`
+
+Recorded in full rather than counted, because item 3's rule (*"a failure present in BOTH
+readings is not this lane's; a failure present only at tip is, and it blocks"*) is a set
+operation and a count cannot perform it.
+
+```
+plugins/tier1-lifecycle/tests/test_plugin_paths.py::test_propose_operates_on_host_repo_not_plugin
+tests/test_audit.py::test_check_fleet_parity_green_on_live_repo
+tests/test_audit.py::test_health_ok_with_registered_repo
+tests/test_audit.py::test_health_stays_ok_with_na_status
+tests/test_audit_parallel.py::test_health_accepts_the_parallel_flags_and_defaults_to_serial
+tests/test_canonical_docs.py::test_the_derived_leg_is_warn_class_on_arrival
+tests/test_canonical_docs.py::test_the_live_playbook_doctrine_row_shows_its_reconciled_spec_and_a_derived_date
+tests/test_consumer_at_landing.py::test_the_live_corpus_measures_and_the_baseline_matches_it
+tests/test_deny_and_point.py::test_a_CRASH_MID_EVALUATION_fails_CLOSED
+tests/test_deny_and_point.py::test_an_UNRECOGNISED_VERDICT_fails_CLOSED
+tests/test_desired_state_loader.py::test_live_repo_loads_clean_and_writes_nothing
+tests/test_desired_state_schema.py::test_enums_match_parity_surfaces_on_disk
+tests/test_dispatch_conformance.py::test_head_token_normalises_the_way_the_reader_normalises["C:\\Program Files\\claude.exe" --bg-claude]
+tests/test_doc_code_edge.py::test_edge_check_registered_and_resolves_starter_set
+tests/test_enforcement_coverage.py::test_anchor_gate_probe_distinguishes_installed_from_absent
+tests/test_export_backlog_view.py::test_no_gate_hook_or_script_reads_the_export
+tests/test_fleet_health.py::test_prompts_dir_case_difference_is_not_staleness
+tests/test_fleet_health.py::test_prompts_dir_trailing_separator_is_not_staleness
+tests/test_floor_mechanisms.py::test_pre_existing_components_are_untouched_by_the_mechanism_reader
+tests/test_funnel_coverage.py::test_committed_baseline_agrees_with_a_live_measurement
+tests/test_funnel_lifecycle.py::test_live_tree_leg_a1_is_location_sensitive
+tests/test_funnel_lifecycle.py::test_live_tree_leg_b_measures_zero_and_the_reason_is_recorded
+tests/test_funnel_lifecycle.py::test_live_tree_leg_c_measures_zero_so_arming_cannot_red_a_clean_tree
+tests/test_funnel_lifecycle.py::test_live_tree_reproduces_the_census_finding
+tests/test_gen_audit_index.py::test_live_index_excludes_nothing_because_every_audit_is_tracked
+tests/test_gen_audit_index.py::test_live_index_is_fresh
+tests/test_gen_handoff.py::test_dogfood_generated_bundle_has_no_failing_probe
+tests/test_gen_handoff.py::test_dogfood_no_probe_row_carries_an_answer_value
+tests/test_gen_handoff.py::test_epic_bundle_has_no_failing_probe
+tests/test_gen_handoff.py::test_funnel_health_renders_no_unavailable_against_the_live_repo
+tests/test_gen_handoff.py::test_suffixed_bundle_probes_resolve_against_their_own_directory
+tests/test_gen_handoff_preflight.py::test_session_slug_matches_a_REAL_session_store_directory_name
+tests/test_gen_ledger.py::test_the_worktree_line_counts_lanes_rather_than_trees
+tests/test_gen_north_star.py::test_the_committed_view_is_current
+tests/test_gen_task_tree.py::test_the_live_view_is_under_the_589_done_when_byte_bar
+tests/test_governance_health.py::test_shared_fields_equal_fm4_block_byte_for_byte
+tests/test_handoff_modes.py::test_boot_carries_both_postures
+tests/test_manifest_link_route.py::test_the_class_enum_is_the_hermetization_module_s_own_object
+tests/test_offload_admission.py::test_a_destination_REPLACED_during_publication_is_REPORTED_not_silently_used
+tests/test_offload_admission.py::test_the_probe_cli_REPORTS_a_replaced_destination_rather_than_reporting_success
+tests/test_preflight_freeze_predicates.py::test_i_off_repo_path_that_does_not_exist_is_refused
+tests/test_preflight_freeze_predicates.py::test_vi_batch1_reproduces_the_off_repo_input_defect
+tests/test_preflight_freeze_predicates.py::test_vi_batch1_reproduces_the_wrong_id_citation
+tests/test_proof_layer.py::test_the_live_guard_population_is_at_or_below_its_baseline
+tests/test_reverse_dep_oracle.py::test_extract_dependents_excludes_declaration
+tests/test_reverse_dep_oracle.py::test_position_points_at_name_not_keyword
+tests/test_routing_agreement.py::test_the_live_table_is_well_formed
+tests/test_telemetry_wiring.py::test_a_wired_health_run_puts_no_telemetry_line_on_stderr
+tests/test_telemetry_wiring.py::test_health_exposes_the_telemetry_flag_and_defaults_to_off
+tests/test_telemetry_wiring.py::test_the_env_switch_turns_health_on_and_the_explicit_flag_still_wins
+tests/test_v6_frozen_contract.py::test_fr6_repo_root_and_cross_repo_are_codified_and_cli_mapped
+tests/test_validate_branch_naming.py::test_local_branches_reads_the_live_repo
+tests/test_validate_doc_rot.py::test_citation_regex_strips_only_real_dated_artifact_identifiers
+tests/test_worktree_seed.py::test_A_LANES_BASE_EQUALS_MAIN_HEAD_AT_DISPATCH
+tests/test_worktree_seed.py::test_the_verdict_names_WHY_rather_than_only_failing
+```
+
+Two of these are RUNNER-SHAPED rather than repo-shaped, and are named so a reader does not chase
+them: `test_validate_branch_naming.py::test_local_branches_reads_the_live_repo` fails because the
+Actions checkout carries only the dispatched branch and no local `main`, and the two
+`test_worktree_seed.py` rows fail for the same reason (*"main does not resolve in
+/home/runner/work/dev-knowledge/dev-knowledge"*). They are constant across the pair and cancel in
+the diff; they are not evidence about this repo's health either way.
+
+**One baseline failure is expected to DISAPPEAR at tip, and that is not a regression.**
+`tests/test_gen_north_star.py::test_the_committed_view_is_current` fails here because
+`ecosystem/north-star.md` is already stale against its generator. Step 3 deletes that test with
+its module. Item 3's rule is one-directional by construction — it blocks on a failure present
+ONLY AT TIP — so a baseline failure that leaves is reported, never treated as a pass to be
+explained away.
