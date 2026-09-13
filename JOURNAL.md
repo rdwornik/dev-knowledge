@@ -19,6 +19,49 @@
 
 ---
 
+### 2026-09-13 (q) - CC (Opus 5, background integrator seat): close_row lands — and the tool that records proof does not check it
+
+**Anchors:** `83961dde` — the `worktree-lane-x-730-one-command-closure` merge, by way of
+`de578835` and the commits it introduced.
+
+**Merged.** `83961dde` — wave-3 lane 4 (AX28-4 item 4) @ `de578835`, by SHA, `--no-ff`. It
+already contained current `main`, so no sync was owed — checked, not assumed. RED-first
+(`99a6c1a0` before the mechanism). It makes `[#730]`'s three coupled edits one command and arms
+`closed-iff-absent-from-the-manifest` as a commit-tier check. **Targeted: 117 passed, 1 failed**
+— the failure is the `[#589]` BACKLOG byte bar, **89338 vs 72000, byte-identical on `main`**, so
+it is pre-existing and the lane never touched the view.
+
+**Codex: CRITICAL:0 HIGH:6 MED:0 LOW:0**, counted off the Findings sections. **Two were verified
+against the code here, and both bear on how the CLOSURE-LIST gets run:**
+
+- **`gen_task_tree.py:1564` — the evidence is never resolved.** `_EVIDENCE_SHA_RE` validates
+  `--evidence` as a *shape*: 7-40 lowercase hex. Nothing asks git whether that commit exists, so
+  a typo'd or invented SHA is written into the close marker **as proof**, and the row leaves the
+  manifest. This is the false-pass genus the repo exists to refuse, sitting in the one tool whose
+  job is to record proof. Tonight's own closures were recorded "with their proving SHAs"; that
+  phrase is only worth what the check behind it is worth.
+- **`gen_task_tree.py:1583` — identity is taken from the manifest, not verified against the
+  file.** The node is chosen by manifest id and the path read from `node["file"]`, but the task
+  file's own frontmatter and body id are never compared to the requested `task_id`. The guards
+  present are real but orthogonal (path safety, file exists, not already terminal). A manifest
+  that maps an id to the wrong filename therefore rewrites **another row's file** under the
+  requested id and reports success.
+
+The other four are I/O and input-validation hardening on `propose_row_closures.py` and the
+two-file write: unverified `task` values, reopened rows still proposed, uncaught `OSError` on the
+output path, and a sequential two-file write whose rollback can itself fail while reporting that
+nothing changed.
+
+**Merged anyway, and the reason is not that the findings are small.** The mechanism is a genuine
+improvement on three hand edits — the very error-proneness AX16-2 and this row were filed about —
+and every finding is a hardening gap in new code rather than a regression in old. But
+**`to-browser/CLOSURE-LIST-2026-09-13.md` should not be executed blind on one word** until at
+least those two are fixed: a bulk closure run is precisely where "false proof" and "wrong row
+overwritten" would bite, and it is the operator's next intended act. Said here, and in the
+closure-verdicts artifact, rather than left in a review file.
+
+**Changes.** `JOURNAL.md` (this entry).
+
 ### 2026-09-13 (p) - CC (Opus 5, background integrator seat): the 683 anchor arc anchors itself
 
 **Names `8dc9bdcb`**, the entry below, which this arc's own `--no-ff` merge introduces.
