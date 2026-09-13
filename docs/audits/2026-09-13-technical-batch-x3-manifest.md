@@ -39,7 +39,7 @@ lane below, and it arrived with its own model corrections already applied.
 
 ## 2 · The six lanes
 
-```
+## THE LANES — six, frozen 2026-09-13 (§2)
 slot  row     slug                           model     effort  state at close of freeze
 1     #689    lane-x-689-conductor-e-proof   opusplan  high    FIRED  session c8431775
 2     --      lane-x-000-trustworthy-suite   opus      high    FIRED  session bcb07e60
