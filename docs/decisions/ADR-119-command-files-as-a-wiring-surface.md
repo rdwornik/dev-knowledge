@@ -8,7 +8,7 @@
 - **Intake:** **#94** — `docs/intake/2026-09-13-tech-command-files-as-a-wiring-surface.md` (`ACCEPTED`), which carries the requirement, the response measure and the flip condition this ADR is judged against.
 - **Source:** the ONE structural ask of `docs/audits/2026-09-13-census-x-664-delete-list.md` §5, answered by `to-browser/RATIFICATION-2026-09-13.md` item 1.
 - **Decommission:** none.
-- **Births:** `[#746]` — the implementing row. ADR-111 guard (i) is discharged by it: this decision requires a build (the counter read, the decay rule, the census surface), so it does not stand accepted with nothing scheduled.
+- **Births:** `[#747]` — the implementing row. ADR-111 guard (i) is discharged by it: this decision requires a build (the counter read, the decay rule, the census surface), so it does not stand accepted with nothing scheduled.
 
 ## 1. Context — the census's answer is majority-wrong, by construction
 
@@ -149,7 +149,7 @@ without hand-instrumenting every call site, the cost has exceeded the defect: fa
 as *an operator invokes this*, with no telemetry at all. Honest, cheap, and no worse than today.
 
 **Either flip is a recorded act, not a quiet abandonment.** The measure that would trigger it is
-intake #94's, written ex-ante, and `[#746]` carries both conditions in its own body so the row cannot
+intake #94's, written ex-ante, and `[#747]` carries both conditions in its own body so the row cannot
 be closed by a build that satisfies neither.
 
 ## 7. Why this went through the engine rather than into a row
