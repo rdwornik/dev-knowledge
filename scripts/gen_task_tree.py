@@ -103,6 +103,7 @@ docs/audits/2026-08-01-technical-night-batch-l4-frontmatter-parser.md
 from __future__ import annotations
 
 import argparse
+import datetime
 import hashlib
 import json
 import re
@@ -388,7 +389,7 @@ def task_filename(task: TaskRow) -> str:
     return f"{task.id}-{slugify(derive_title(task.raw))}.md"
 
 
-def emit_task_file_text(task: TaskRow) -> str:
+def emit_task_file_text(task: TaskRow, status_override: str | None = None) -> str:
     """Render one task's frontmattered .md file text.
 
     Fixed key order (id, title, status, priority?, size?, theme?, story?,
@@ -403,10 +404,19 @@ def emit_task_file_text(task: TaskRow) -> str:
     in a source-of-truth file meaning nothing. theme/story come from the task's
     position in the manifest, not from its line, so they are supplied by the
     caller rather than re-derived.
+
+    `status_override` is the ONE deliberate exception, and it exists for exactly one
+    caller: `close_row_plan` ([#730]). `derive_status` can only ever return "open" or
+    "deferred" -- it has no body grammar for "closed" -- so a terminal status can never be
+    reached by re-deriving from the body. Every other caller passes None and gets the pure
+    derivation; `plan_frontmatter_refresh` is one of them, which is what keeps a terminal
+    status from ever being computed by a regen (see [#730] item 3 -- the row this exists to
+    close is absent from the manifest by the time any regen looks at it, so the regen never
+    reaches this file at all).
     """
     lines = ["---", f'id: "[#{task.id}]"']
     lines.append(f"title: {json.dumps(derive_title(task.raw), ensure_ascii=False)}")
-    lines.append(f"status: {derive_status(task.raw)}")
+    lines.append(f"status: {status_override if status_override is not None else derive_status(task.raw)}")
     priority = derive_priority(task.raw)
     if priority is not None:
         lines.append(f"priority: {priority}")
@@ -1509,6 +1519,112 @@ def refresh_task_frontmatter(out_dir: Path) -> list[str]:
     return [path.name for path, _ in plan]
 
 
+# --- [#730] one-command row closure -----------------------------------------------
+#
+# `close_row` is the THREE coupled edits ADR-107 §6.3 already required a human to make by
+# hand -- the body-marker append, the frontmatter `status: closed` (which `derive_status`
+# cannot produce; see `emit_task_file_text`'s `status_override`), and removal of the row's
+# node from `tasks/manifest.json` -- performed as ONE atomic write. `--prune`'s own refusal
+# message already names the second and third steps as the sanctioned manual recipe; this is
+# that recipe, mechanized, with the plan-then-write-with-rollback discipline
+# `_cmd_emit_source` already established: a failure part-way must leave the tree exactly as
+# it was, never half-closed.
+_EVIDENCE_SHA_RE = re.compile(r"^[0-9a-f]{7,40}$")
+_CLOSE_MARKER_TEMPLATE = " · **CLOSED {date}** — evidence {evidence}"
+
+
+def close_row_plan(
+    out_dir: Path, task_id: int, evidence: str, closed_on: str
+) -> list[tuple[Path, str]]:
+    """PURE: compute the two writes `close_row` needs, as ONE plan. Writes nothing; raises
+    ValueError on the first refusal, so a caller learns whether the close is even possible
+    before touching disk (mirrors `plan_frontmatter_refresh`'s plan-then-write split).
+
+    Refuses: a malformed `evidence` (not a 7-40 char lowercase-hex git sha); `task_id` not an
+    OPEN row in the manifest (never filed, already closed, or retired); an unsafe or missing
+    manifest `file` path; a task file that already carries a terminal status (double-close).
+    """
+    if not _EVIDENCE_SHA_RE.match(evidence):
+        raise ValueError(
+            f"close_row: --evidence {evidence!r} is not a git SHA (7-40 lowercase hex chars)")
+    manifest_path = out_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_bytes().decode("utf-8"))
+    _require_well_formed_nodes(manifest)
+    nodes = manifest["nodes"]
+    node = next((n for n in nodes if n.get("task") == task_id), None)
+    if node is None:
+        raise ValueError(
+            f"close_row: [#{task_id}] is not an open row in tasks/manifest.json "
+            f"(already closed, retired, or never filed)")
+    fname = node["file"]
+    unsafe = manifest_filename_problem(fname)
+    if unsafe:
+        raise ValueError(unsafe)
+    path = out_dir / fname
+    if not path.exists():
+        raise ValueError(f"close_row: manifest references a missing task file: {fname}")
+    actual = path.read_bytes().decode("utf-8")
+    body = extract_body(actual)
+    status = frontmatter_status(actual)
+    if status in _TERMINAL_STATUSES:
+        raise ValueError(
+            f"close_row: {fname} already carries a terminal status ({status!r}) -- "
+            f"cannot close a row twice")
+
+    lineage = lineage_from_manifest(manifest)
+    theme, story = lineage.get(fname, (None, None))
+    new_body = body + _CLOSE_MARKER_TEMPLATE.format(date=closed_on, evidence=evidence)
+    rendered = emit_task_file_text(
+        TaskRow(id=task_id, raw=new_body, theme=theme, story=story),
+        status_override="closed")
+
+    new_manifest = dict(manifest)
+    new_manifest["nodes"] = [n for n in nodes if n is not node]
+    manifest_text = json.dumps(new_manifest, ensure_ascii=False, indent=2) + "\n"
+    return [(path, rendered), (manifest_path, manifest_text)]
+
+
+def _cmd_close_row(out_dir: Path, task_id: int, evidence: str) -> int:
+    """`--close-row ID --evidence SHA`. Plans first, then writes both files, rolling back to
+    their prior bytes on ANY failure mid-write (same BaseException-safe pattern as
+    `_cmd_emit_source`'s rollback, for the same reason: a torn write must not leave the row
+    half-closed). Never touches `BACKLOG.md` -- that stays a separate `--emit-source`, exactly
+    as the `--prune` refusal already documents for a hand-done retirement.
+    """
+    closed_on = datetime.date.today().isoformat()
+    try:
+        writes = close_row_plan(out_dir, task_id, evidence, closed_on)
+    except (OSError, ValueError, KeyError, UnicodeDecodeError) as exc:
+        print(f"gen_task_tree: close-row FAIL (nothing written): {exc}", file=sys.stderr)
+        return 1
+
+    done: list[tuple[Path, bytes | None]] = []
+    try:
+        for path, text in writes:
+            done.append((path, path.read_bytes() if path.exists() else None))
+            path.write_text(text, encoding="utf-8", newline="\n")
+    except BaseException as exc:
+        for path, original in reversed(done):
+            try:
+                if original is None:
+                    path.unlink(missing_ok=True)
+                else:
+                    path.write_bytes(original)
+            except OSError:
+                print(f"gen_task_tree: ROLLBACK FAILED for {path.name} — inspect the tree "
+                      f"before retrying", file=sys.stderr)
+        print(f"gen_task_tree: close-row FAIL (rolled back, nothing changed): {exc!r}",
+              file=sys.stderr)
+        if not isinstance(exc, OSError):
+            raise
+        return 1
+
+    print(f"gen_task_tree: closed [#{task_id}] -- body marker + status: closed + manifest "
+          f"node removed (evidence {evidence}). Run --emit-source to drop the row from "
+          f"BACKLOG.md.")
+    return 0
+
+
 # --- [#566] the ranking axis ------------------------------------------------------
 # The [#488] axis LEAN, accepted by the architect 2026-08-20 and measured in
 # docs/audits/2026-08-19-technical-c4-ruling-prework.md §2.5: rank by CONSTRAINT
@@ -1703,6 +1819,13 @@ def main(argv: list[str] | None = None) -> int:
                              "a populated tasks/ tree it REFUSES unless --force ([#474])")
     parser.add_argument("--prune", action="store_true",
                         help="REFUSED since the [#439] flip — see ADR-107 §6.3 (retire, never delete)")
+    parser.add_argument("--close-row", type=int, default=None, dest="close_row", metavar="ID",
+                        help="[#730] one-command closure: close row [#ID] atomically -- body "
+                             "marker + status: closed + manifest node removal. Requires "
+                             "--evidence; run --emit-source afterward to drop the row from "
+                             "BACKLOG.md")
+    parser.add_argument("--evidence", type=str, default=None, metavar="SHA",
+                        help="with --close-row only: the commit SHA proving the row's Done-when")
     parser.add_argument("--force", action="store_true",
                         help="with --write only ([#474]): override a warned refusal (populated "
                              "tasks/ tree); loud, names every condition it overrides")
@@ -1718,6 +1841,10 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--rank-top is only meaningful with --rank ([#566])")
     if args.rank_top is not None and args.rank_top < 1:
         parser.error("--rank-top must be >= 1 (omit it to list every open row)")
+    if args.close_row is not None and args.evidence is None:
+        parser.error("--close-row requires --evidence <sha> ([#730])")
+    if args.evidence is not None and args.close_row is None:
+        parser.error("--evidence is only meaningful with --close-row ([#730])")
 
     source_path = args.source if args.source is not None else _DEFAULT_SOURCE
     out_dir = args.out if args.out is not None else _DEFAULT_OUT
@@ -1740,6 +1867,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_rank(out_dir, top=args.rank_top)
     if args.write:
         return _cmd_write(source_path, out_dir, force=args.force)
+    if args.close_row is not None:
+        return _cmd_close_row(out_dir, args.close_row, args.evidence)
 
     parser.print_usage(sys.stderr)
     return 2
