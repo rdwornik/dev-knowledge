@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "1a9085c64111219f84690178612c16b2549188dac9970291a91807e96242b1c6",
+  "generated_sha256": "58362df4973b25868ee3851f4cc6b03aa9acdb7311329b28bd612fcca7ad9ad9",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -476,6 +476,14 @@
     {
       "task": 750,
       "file": "750-a-merge-can-land-with-no-receipt-the-completenes.md"
+    },
+    {
+      "task": 758,
+      "file": "758-675-target-32-has-never-been-satisfiable-by-the-w.md"
+    },
+    {
+      "task": 759,
+      "file": "759-range-is-anchored-and-unanchored-on-spine-disagree.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -1035,6 +1043,14 @@
     {
       "task": 755,
       "file": "755-finish-the-docs-cut-architecture-to-15-kb-and-t.md"
+    },
+    {
+      "task": 757,
+      "file": "757-reconcile-the-ratified-anchor-topology-with-b2-p1.md"
+    },
+    {
+      "task": 760,
+      "file": "760-x3-architecture-to-15-kb-behind-the-step-d-render.md"
     },
     {
       "task": 647,

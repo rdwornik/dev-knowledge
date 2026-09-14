@@ -291,6 +291,46 @@ absent from that view by design, not by defect.
 
 ---
 
+### B8 · The JOURNAL anchor rides INSIDE the merge commit
+
+*Operator ratification, 2026-09-14, batch Y integration.* **A JOURNAL entry carried inside each
+merge commit replaces one-anchor-per-batch.** The integrator merges with
+`git merge --no-commit --no-ff <tip>`, stages the entry naming a SHA the merge introduces, then
+commits the merge. One entry per merge, not one per batch.
+
+- **The ratification's stated ground: it is simpler to verify.** The entry and the SHA it anchors
+  arrive in the same commit, so `is_anchored(merge)` is decidable from that merge alone and is
+  never left pending on a later arc. **It closes the gap repaired by hand the same day** —
+  `e6acb23e` reached `origin` unanchored and was discharged at `999fdd54`.
+- **Name the LANE TIP, never the merge's own hash.** An entry cannot name a commit that does not
+  exist when the entry is authored. This is the defect that produced `e6acb23e`: a one-commit arc's
+  merge introduces only itself and the entry, so the only SHA that could discharge it is the hash of
+  the commit holding the entry. `introduced(merge)` carries the lane's commits — name one of those.
+- **Why B2's shape is unavailable here, rather than merely inconvenient.** B2 puts the entry on the
+  **work branch**, last. For a handed-back lane the work branch is the LANE's, and **P-1** makes
+  `JOURNAL.md` the integrator's surface while the lane records its work in its own artifact — so the
+  lane may not author the entry and the integrator may not author on the lane's branch. B2 and P-1
+  are each correct and jointly leave the lane-merge case with no sanctioned shape. B8 supplies one;
+  B2's reasoning about journal-only branches being structurally unanchorable is what makes it work.
+- **The two-step merge is mechanically load-bearing, not stylistic.** A merge the merge machinery
+  completes fires `pre-merge-commit`, which is **not installed**, so it runs no pre-commit gate at
+  all; a merge finished by `git commit` fires `pre-commit`, which is. Measured 2026-09-14 on the same
+  repo and config: **2 hooks for `git merge --no-ff`, 31 for `--no-commit` then `git commit`.** So
+  the shape that makes the anchor verifiable is also the shape that gets the merged tree gated.
+- **What it does not change.** B6 still binds: discharge is by APPEND ONLY, and an already-landed
+  entry is never amended to absorb a later SHA.
+- **The constraint that forced it, recorded so it is not relitigated.** A complete `kind=merge`
+  receipt needs a readable Actions verdict → a per-merge push → a per-merge anchor, because
+  `scripts/block_unanchored_push.py` carries **no exemption** (the ADR-110 declared-integration-arc
+  exemption is the *audit backstop's*, as that gate's own NOTE states). A single end-of-batch push
+  yields **one** Actions run, for the pushed tip only, leaving every intermediate merge `NO-RUN` —
+  unreadable, therefore refused. One-anchor-per-batch and one-receipt-per-merge cannot both hold.
+- **Reconciliation owed:** `[#757]` — B2 needs an explicit lane-merge carve-out and
+  `protocols/DEFINITION_OF_DONE.md`'s journal leg needs to state the per-merge unit, so the next seat
+  does not read the superseded rule and revert this.
+
+---
+
 ## C. Decisions inherited from the 2026-08-05 session plan (§H, R-7)
 
 Recorded as decisions rather than guidance, per the plan's own framing. Source:
