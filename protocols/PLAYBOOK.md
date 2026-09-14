@@ -333,7 +333,7 @@ Section 13 "Where Knowledge Lives" describes knowledge **domains** (what lives w
 ### Authority hierarchy
 <!-- scope: meta -->
 
-1. `.dev-knowledge/CLAUDE.md` (the always-on subset) + `protocols/PLAYBOOK.md` (this file, the on-demand reference) — universal rules across all Rob's work. `protocols/ESSENTIALS.md` held this rank until it was de-blessed; it is `status: superseded` and routes nobody, pending `[#628]`'s fleet-coupled dissolution at v1.5.0
+1. `.dev-knowledge/CLAUDE.md` (the always-on subset) + `protocols/PLAYBOOK.md` (this file, the on-demand reference) — universal rules across all Rob's work. `protocols/ESSENTIALS.md` held this rank until it was de-blessed; it was **deleted 2026-09-14** by `[#628]` and its doctrine lives in this file
 2. `{repo}/CLAUDE.md` — per-repo agent-instruction contract (architecture, conventions, tools, ADRs, anti-patterns)
 3. `{repo}/.claude/skills/`, `commands/`, `hooks/` — runtime config
 
@@ -766,7 +766,7 @@ Standardize location of `.secrets/` (today: a single absolute path under the ope
 
 **[TBD — Stream C session 3, ADR-34]**
 
-File and folder casing rules. Currently mixed: `LESSONS.md` ALLCAPS, `docs/` lowercase, `ESSENTIALS.md` ALLCAPS, kebab-case for dated files. Decision on what casing applies where, and whether existing files migrate.
+File and folder casing rules. Currently mixed: `LESSONS.md` ALLCAPS, `docs/` lowercase, `PLAYBOOK.md` ALLCAPS, kebab-case for dated files. Decision on what casing applies where, and whether existing files migrate.
 
 ### Rule-ID naming convention (doc to code edge)
 <!-- scope: meta -->
@@ -1219,7 +1219,6 @@ Two related questions: **what does each documentation file do** (Gap #4) and **w
 |------|---------|--------|---------|----------|-------|-------|
 | `README.md` | User-first navigation, what is this repo | Prose + folder layout | When repo state shifts notably | Rob, future contributors | Living (rewrite) | Per-repo |
 | `CLAUDE.md` | Single canonical agent-instruction contract for Claude Code + Codex; per-repo specifics (architecture, conventions, active tools, binding ADRs, anti-patterns) ≤200 lines | 10-section template | When ADRs, tools, architecture, or gotchas change | Claude Code (auto-read), Codex (via project_doc_fallback_filenames) | Living (sections updated) | Per-repo |
-| `ESSENTIALS.md` | Rob's daily cheat sheet, universal | Sectioned, scope-tagged | When Rob's working style evolves | Rob + every browser/Claude Code session | Living (sections updated) | Universal (`.dev-knowledge` only) |
 | `PLAYBOOK.md` | Universal protocols, this file | Sectioned, scope-tagged, versioned | Per Stream B implementation gaps | Rob + Claude (browser + Code) | Living + section history | Universal (`.dev-knowledge` only) |
 | `JOURNAL.md` | Tactical per-session log | Append-only, dated entries: Did/Failed/Next | Every Claude Code session | Future Claude Code (last 5 entries on startup) | Newest-first prepend | Per-repo (optional; kept when a repo benefits from a per-session log) |
 | `CHANGELOG.md` | RETIRED ecosystem-wide (ADR-49) — git history + JOURNAL `Changes:` line replace it; row kept for legacy context | Newest-first dated entries | n/a | — | n/a | Removed |
@@ -1249,7 +1248,7 @@ File presence is no longer gated per tier (repo-tier system deprecated 2026-05-2
 | `docs/decisions/`, `docs/audits/`, `docs/archive/` | universal under the 2026-05-27 ADR-60 amendment (see taxonomy above) |
 | `docs/handoffs/` | `.dev-knowledge` only (canonical home for handoff bundles) |
 | `docs/diagrams/` | child code repos, where architecture diagrams exist |
-| `ESSENTIALS.md`, `PLAYBOOK.md`, `LESSONS.md`, `logs/TOKEN-LOG.md` | n/a per-repo — live in `.dev-knowledge` only |
+| `PLAYBOOK.md`, `LESSONS.md`, `logs/TOKEN-LOG.md` | n/a per-repo — live in `.dev-knowledge` only |
 
 Optional files are added by judgment of repo complexity; no tier makes them mandatory.
 
@@ -1257,7 +1256,7 @@ Optional files are added by judgment of repo complexity; no tier makes them mand
 <!-- scope: meta -->
 <!-- rule: canonical-freshness -->
 
-The living docs `VISION / ARCHITECTURE / CLAUDE / CONTRIBUTING / ESSENTIALS` carry a `last_reviewed` frontmatter date. **`last_reviewed` means "re-read end-to-end and confirmed accurate (or the drift filed)" on that date — NOT merely "touched".** Bump it only after a genuine review, never reflexively.
+The living docs `README / ARCHITECTURE / CLAUDE / CONTRIBUTING` carry a `last_reviewed` frontmatter date. **`last_reviewed` means "re-read end-to-end and confirmed accurate (or the drift filed)" on that date — NOT merely "touched".** Bump it only after a genuine review, never reflexively.
 
 `scripts/audit.py` check #10 (`canonical_freshness`, in `ALL_CHECKS` → runs in `audit health` and `audit run`) enforces two signals:
 
@@ -1404,7 +1403,7 @@ Per Token-LOG flip 2026-04-24:
 
 - **Newest-first (prepend):** TOKEN-LOG, JOURNAL (CHANGELOG retired — §14). Rationale: logs optimize for current-state scanning. (JOURNAL flipped 2026-04-27 — original Stream B Gap #4 spec had oldest-top; amended for consistency with TOKEN-LOG/CHANGELOG.) **JOURNAL write cadence — the unit is the shipped merge** (operator ruling 2026-08-03): one entry per merged-and-pushed unit, not per session and not per commit. Mid-arc churn *within* one unit is the anti-pattern; a wrap-only entry across a multi-merge session is the opposite error and leaves shipped commits unanchored. Full statement and both failure modes: LESSONS 2026-08-03 "journal at wrap, not mid-arc".
 - **Append-only, newest-first (prepend):** LESSONS — new entries at the top of the Entries section, per the file's own header and ADR-29. Rationale: append-only preserves "what we learned when"; newest-first optimizes the scan, same as the logs above. (Corrected 2026-07-30 — this line read "oldest top" until the intake #18 A10 / RM-1 sweep, which fixed `HANDOFF_PROCESS.md` §15 and missed this sibling; the file itself has been newest-first throughout.)
-- **Living (in-place updates):** README, CLAUDE.md, PLAYBOOK, ESSENTIALS, ENVIRONMENT. Rationale: not logs; current state matters more than history.
+- **Living (in-place updates):** README, CLAUDE.md, PLAYBOOK, ENVIRONMENT. Rationale: not logs; current state matters more than history.
 - **Immutable (dated):** ADRs, transcripts, handoffs, audits, research. Rationale: point-in-time records; supersession via new file or in-file marker.
 
 **Generator determinism is a property of the input set, not of the code.** A generator that walks the filesystem rather than the *tracked* set emits different bytes per checkout, so its regen-and-diff gate is armed everywhere and satisfiable only on the machine that last regenerated — it stops describing committed state, which is the thing it claims to check. Three instances, one of them live and unfixed when this was written: an untracked `.claude/commands/*.md` rendered as a row in the organ index; `--probe-user-level` reporting four present session hooks as *"declared but absent"* because it inventoried files; and `scripts/gen_audit_index.py:57` reading `audits_dir.glob("*.md")` unfiltered, where a sibling session's untracked audit rendered as an index row and moved the count 487 → 489. The repair that generalizes: route every collector through `git ls-files`, pinned by a test that builds a real git repo containing an untracked file of the collected type.

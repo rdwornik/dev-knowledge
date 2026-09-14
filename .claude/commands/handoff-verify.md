@@ -92,7 +92,7 @@ live evidence the browser needs. Required rows, per HANDOFF_PROCESS §5:
 | Required row | Live source / locator |
 |---|---|
 | Live check count | `ALL_CHECKS` in `scripts/audit.py` — count + last name |
-| Exact-line quote | the named `PLAYBOOK` / `ESSENTIALS` / spec section |
+| Exact-line quote | the named `PLAYBOOK` / spec section |
 | Live HEAD / tree | live git — check-time SHA and tree state |
 | Ship-gate read-back | `audit.py ship-gate` ∩ `ecosystem/disposition-register.yaml` — GREEN/RED, dispositioned-WARN count, any `[stale]` line |
 | Pointer round-trip | the live `PLAYBOOK` section a pointer names |

@@ -2628,9 +2628,14 @@ member, `[#537]`, carries no ruling branch at all and was mis-cohorted.
 > Both are declared UNENFORCED and legible, with **owner: operator** and **next review:
 > 2026-11-24**.
 
-- RULING-W is live prose at `protocols/ESSENTIALS.md:86` and `protocols/PLAYBOOK.md:1388`
-  (hub→consumer writes: consumer worktree/branch → report, never a direct push into a live
-  consumer checkout). The merge-delegation composite is live only as JOURNAL narrative.
+- RULING-W is live prose at `protocols/PLAYBOOK.md` § "Hub→consumer writes — the only
+  sanctioned shape" (hub→consumer writes: consumer worktree/branch → report, never a direct
+  push into a live consumer checkout). The merge-delegation composite is live only as JOURNAL
+  narrative. **Locators repaired 2026-09-14 (lane-y-755-docs-cut-finish), by anchor text rather
+  than line number:** the recorded `protocols/ESSENTIALS.md:86` was really `:90` and that file
+  was DELETED by `[#628]`; the recorded `protocols/PLAYBOOK.md:1388` had drifted to `:1583`.
+  The doctrine is unchanged and loses no home — PLAYBOOK carries the full statement, and
+  ADR-36/ADR-41 carry the 2026-07-18 amendments.
 - **Neither is proposed for a mechanism:** RULING-W governs an act performed in ANOTHER repo's
   tree, which no hub gate observes.
 - The finding the row exists to name is ratified rather than repaired: *recorded ≠ enforced ≠
@@ -2644,8 +2649,10 @@ member, `[#537]`, carries no ruling branch at all and was mis-cohorted.
   packet, with: *"or `protocols/STANDING_RULINGS.md` carries a section naming `[#356]` recording
   each item's owner and next review date."* Both wordings are preserved above so the goalpost
   move is auditable.
-- **Evidence:** `protocols/ESSENTIALS.md:86`; `protocols/PLAYBOOK.md:1388`;
-  `ecosystem/silent-rule-baseline.yaml` (100 lines, no `owner:`/`review_date:` field).
+- **Evidence:** `protocols/PLAYBOOK.md` § "Hub→consumer writes — the only sanctioned shape"
+  (RULING-W; ADR-36/41 amendments 2026-07-18); `docs/decisions/ADR-36-audit-tool-architecture.md`
+  § "2026-07-18 — RULING-W"; `ecosystem/silent-rule-baseline.yaml` (100 lines, no
+  `owner:`/`review_date:` field).
 - **Row status:** CLOSED by this section under the repaired Done-when (E4).
 - **Expiry:** 2026-11-24.
 

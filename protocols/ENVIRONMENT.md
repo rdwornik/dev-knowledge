@@ -203,8 +203,6 @@ LESSONS.md                      ← Append-only lessons log
 BACKLOG.md                      ← Cross-session pending items (ADR-41)
 CONTRIBUTING.md                 ← Branch/commit/validator conventions
 protocols/                      ← selected entries only; the live roster is the directory
-  ESSENTIALS.md                 ← SUPERSEDED (`status: superseded`), pending [#628] — routes
-                                   nobody and is not a boot read
   SESSION_SETUP.md              ← How to start new browser chat / project
   PLAYBOOK.md                   ← Full process reference
   HANDOFF_PROCESS.md            ← Handoff trigger rules + format

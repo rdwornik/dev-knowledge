@@ -16,8 +16,9 @@ methodology**: the docs below are the source consumers point at, never copies.
 Canonical methodology docs (universal — read via this `protocols/`, never copied into a
 consumer):
 
-- `ESSENTIALS.md` — **SUPERSEDED, pending `[#628]`**; not a boot read (the file's own `status:` says so, and `CLAUDE.md` §1 sends nobody to it). Retained as history until `[#628]` dissolves it
 - `PLAYBOOK.md` — universal protocols; the full methodology reference
+  (`ESSENTIALS.md` was DELETED 2026-09-14 by `[#628]`; its doctrine moved here on
+  2026-07-05 per `[#258]`, so PLAYBOOK is the sole universal-protocol read)
 - `AGENT_FRAMEWORK.md` — agent / subagent operating framework
 - `HANDOFF_PROCESS.md` — the handoff protocol (v7; CC-owned residual + probe manifest, one-round-trip boot, plus the §17 BOOT-INVERSION). The live version is the file's own `Version:` header, not this line
 - `HANDOFF_BOOT.md` — the thin browser-chat boot entry

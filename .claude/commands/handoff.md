@@ -160,7 +160,7 @@ ONE evidence block the operator pastes once. Generation is unchanged and stays a
 hand-copied process or methodology.** At handoff time it pulls live:
 - the **current process** — read the canonical spec header for version/status (never
   hardcode); `protocols/HANDOFF_PROCESS.md` is the canonical source of truth;
-- the **methodology** — as **pointers** to `PLAYBOOK` / `ESSENTIALS` / `CLAUDE.md`, never as
+- the **methodology** — as **pointers** to `PLAYBOOK` / `CLAUDE.md`, never as
   copied prose (a hand-copy drifts — the `/review` vs `/codex review` class).
 
 **v5/v6/v7 behavior** (governed by `protocols/HANDOFF_PROCESS.md` — read it, don't restate

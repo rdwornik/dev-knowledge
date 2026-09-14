@@ -100,7 +100,7 @@ command is not. See `LESSONS.md` 2026-08-25 (smaller-fact-surface-at-the-archite
 ## 3. Methodology is enforced mechanically, referenced thinly
 
 The methodology is **not re-stated as prose per session.** It lives in the repo
-(`PLAYBOOK`, `ESSENTIALS`, `CLAUDE.md`, the ADRs) and is enforced mechanically: pre-commit
+(`PLAYBOOK`, `CLAUDE.md`, the ADRs) and is enforced mechanically: pre-commit
 gates, `audit.py` checks, hooks, skills. The handoff carries **pointers** to it and relies
 on the **forced read** (§5) to make the receiver actually open the primary source. Heavy
 *enforcement*, thin *prose*.
@@ -239,7 +239,7 @@ teeth-bearing when all four hold (the fourth — bounded-deterministic — ratif
 | Probe | Binds to (primary source) | Why a summary can't answer it | CC verifies via |
 |---|---|---|---|
 | **Live check count** | `ALL_CHECKS` in `scripts/audit.py` | the count drifts every time a check lands; a hardcoded number goes stale | `python scripts/audit.py checks` (count + last name) |
-| **Exact-line quote** | a named `PLAYBOOK`/`ESSENTIALS`/spec section | a paraphrase from a summary is not byte-identical | read the live section; the quote must be a substring |
+| **Exact-line quote** | a named `PLAYBOOK`/spec section | a paraphrase from a summary is not byte-identical | read the live section; the quote must be a substring |
 | **Live HEAD / tree** | live git | the summary holds the *generation-time* sha; new commits move HEAD | `git rev-parse --short HEAD` + `git status` |
 | **Ship-gate read-back** | `audit.py ship-gate` ∩ `ecosystem/disposition-register.yaml` | the GREEN/RED verdict, the dispositioned-WARN **count**, and any `[stale]` line are computed at answer-time over live git ∩ `main`-history; a new direct-on-`main` commit re-REDs it — the values are absent from the bundle, so do **not** trust the residual's headline. Folds the former **drift-flag set** + **freshness witness** probes: `git_backlog_drift` and `canonical_freshness` are both `ALL_CHECKS` members, so running the gate re-derives them and prints their evidence inline | `python scripts/audit.py ship-gate` (read the final GREEN/RED verdict + the disposition count + any `[stale]` line) |
 | **Pointer round-trip** | the live `PLAYBOOK` section a pointer names | re-narration is outlawed (§2/§3); the answer exists only by opening it | read the live section; compare |

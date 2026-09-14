@@ -121,15 +121,10 @@ dispositions:
       HANDOFF_PROCESS"). An analogy ref, not a version-coupled dependency; adjudicate under [#241].
       RE-ANNOTATED 2026-08-16 (phase-2 lane h, shape D): kind K3 ANALOGY — an example-of-a-pattern
       reference, not a dependency. RATIFIED PERMANENT-DEFER (docs/audits/2026-08-15-verification-night3-warn-ledger.md §1.3).
-  - id: warn-undeclared-essentials-handoff-process
-    organ: undeclared_edges
-    match: "protocols/ESSENTIALS.md -> handoff-process"
-    ref: "#241"
-    reason: >-
-      Pre-existing tier-1 prose reference. ESSENTIALS.md is canonical_freshness-gated — a
-      reconciled_with declaration would force a re-stamp; defer to the [#241] grooming pass.
-      RE-ANNOTATED 2026-08-16 (phase-2 lane h, shape D): kind K2 LOCATOR — a bare pointer, no
-      version claim. RATIFIED PERMANENT-DEFER (docs/audits/2026-08-15-verification-night3-warn-ledger.md §1.3).
+  # (removed 2026-09-14, lane-y-755-docs-cut-finish) warn-undeclared-essentials-handoff-process
+  # — protocols/ESSENTIALS.md DELETED ([#628], 2026-09-14); the file is out of the organ's live
+  # scan, so the entry can no longer match and would only decorate stale. Removed per ADR-75,
+  # on the same precedent as the VISION.md entry above.
   # warn-undeclared-playbook-handoff-process and warn-undeclared-session-setup-handoff-process
   # RETIRED 2026-08-16 (phase-2 lane h, shape D K1 DECLARE): both docs now carry
   # `reconciled_with: handoff-process@6.2.0` frontmatter and their stale "v5" prose was corrected
