@@ -19,6 +19,75 @@
 
 ---
 
+### 2026-09-14 (h) - CC (Opus 5, background integrator seat): a lane refutes its own contract's premise, and the number it was told to move goes the other way
+
+**Anchors:** `b4cdb3e2` — the lane tip this merge introduces, named by the spine entry that introduces
+it, per B8. Entry carried inside the merge commit.
+
+**Merged** `worktree-lane-y-754-backlog-to-bar` @ `b4cdb3e2`, four lane commits, 127 files. The bulk is
+mechanical: 60 row bodies relocated into `tasks/archive/`, byte-identity proven. The substance is two
+refutations and a ruling.
+
+**THE LANE'S CONTRACT NAMED A MECHANISM THAT CANNOT PRODUCE THE RESULT ITS BAR MEASURES, AND THE LANE
+PROVED IT RATHER THAN ARGUING IT.** Clause 2a asked for `BACKLOG.md` under 72,000 B via
+`archive_row_body.py`. But `BACKLOG.md` has been a **one-line VIEW carrying no row bodies** since
+`[#589]` landed `128f5093` on 2026-08-26, and `archive_row_body` relocates **bodies**. **Sixty
+relocations moved the view by ZERO bytes.** The arithmetic behind that, which the lane's evidence and my
+own measurement agree on: 38,214 B of the file — **42%** — is scaffolding that relocation never touches,
+and the row payload is 53,067 B over 321 rows at ~165 B/row, so closing a 19,281 B gap by relocation
+alone would mean deleting roughly **117 of 321 rows, over a third of the live queue**. Not a shortfall.
+An unreachable target.
+
+**AND THE NUMBER MOVED THE WRONG WAY, WHICH IS CORRECT BEHAVIOUR.** `BACKLOG.md` goes from 91,281 B on
+`main` to 92,146 B on the lane — **+865 B** — because refuting a premise costs bytes: a row filed, two
+rulings written. The pre-existing overage of 19,281 B is `[#589]`'s. **A lane that correctly refutes a
+false premise reports a worse number than one that did nothing**, and read without that attribution it
+looks like a regression.
+
+**It refused every available deviation by name** — no ceiling constant touched, no row closed to buy
+bytes, no test constant raised. Each would have turned the clause green and each is forbidden by a
+standing rule. That is the frozen-contract discipline working, not a lane declining hard work.
+
+**CLAUSE 2d ASKED FOR A RECONCILIATION THAT WOULD HAVE BROKEN A WORKING GATE, and the lane REFUSED the
+disjunction with reasons.** The two "row ceilings" measure different objects in different units:
+
+```
+0   of 321 view rows > _VIEW_ROW_BYTE_CEILING  =   400 BYTES      corpus: BACKLOG.md, the view
+148 of 322 full rows > _BACKLOG_ROW_CEILING    = 1,320 CHARACTERS corpus: tasks/ FULL BODIES
+```
+
+`validate_doc_rot.py:521` states the design intent outright — both BACKLOG arms scan the canonical
+full-body text deliberately, because *"pointed at `BACKLOG.md` these two arms would report a permanently
+clean corpus while the rot they detect sat untouched in `tasks/`"*. So 0 and 148 are **both correct** and
+collapsing them into one number would have damaged a gate to satisfy a contract.
+
+**I CONTRADICTED THE LANE WITH A WORSE INSTRUMENT AND RETRACTED IT.** I reported "33 rows over the 400-B
+ceiling". The gate applies that ceiling to `task_row_lines(text)`, not to every line of the file; I had
+run `splitlines()` over the whole thing and counted section scaffolding and prose paragraphs as rows.
+**The true count is 0, the longest row is 301 B, and the lane's "never fired; growth-proof" was exactly
+right.** Retracted to the dispatcher with the generator's own code as the reason.
+
+**AND I NEARLY ACCUSED THIS LANE OF A P-1 BREACH OFF A WRONG DIFF BASE.** Diffing
+`8a41c650..b4cdb3e2` — the base the contract was frozen at — showed `JOURNAL.md` +73 lines, which would
+be a lane writing on the integrator's surface. Against the real `git merge-base` (`e6acb23e`) the lane
+touches no JOURNAL at all: the 73 lines were **my own entry (c)**, inherited through the lane's earlier
+sync. **A stale diff base does not merely inflate a count — it attributes another seat's commit to the
+lane, and the natural next act is an accusation.** A lane with zero own commits that syncs
+fast-forwards, leaving no merge commit, so nothing in the log contradicts the stale base.
+
+**Three false premises in one roster, and the dispatcher owns them rather than the lanes.** It froze the
+contracts, verified every byte claim and every locator — and never asked whether the named MECHANISM
+operates on the object the bar MEASURES. `/preflight` declares that exact limit in its own docstring:
+it cannot verify a claim's reasoning. **The tool said where it stops and the freeze walked past it.**
+
+**Changes.** `BACKLOG.md`, `tasks/` (+`[#754]`, 60 archived row bodies, 65 row files, manifest),
+`scripts/gen_task_tree.py`, `scripts/validate_doc_rot.py`, the lane's evidence packet, and this entry.
+
+**Abandoned.** Clause 2a and 2b are NOT MET and are recorded as refuted rather than missed.
+
+**Next.** `#751` when it hands back. Then the second audits-index pass, the batch Y close packet with
+its seven numbers, and teardown of all four lane worktrees.
+
 ### 2026-09-14 (g) - CC (Opus 5, background integrator seat): the anchor topology is ratified as B8, and filing four rows took three acts rather than two
 
 **Anchors:** `223353b7` — the arc commit this merge introduces, named by the spine entry that

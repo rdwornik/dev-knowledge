@@ -1,0 +1,38 @@
+{
+  "slug": "merge-y-754",
+  "batch": "y",
+  "opened": "2026-09-14T18:04:13+00:00",
+  "host": "HYB-zToF5wlOa8g",
+  "concurrent_seats": 4,
+  "kind": "merge",
+  "merge_sha": null,
+  "steps": [
+    {
+      "step": "handback",
+      "step_class": "ceremony",
+      "seconds": 4.162,
+      "ok": true,
+      "returncode": 0,
+      "command": "bash -c cd \"C:/Users/1028120/Documents/Dev/.dev-knowledge\" && test \"$(git rev-parse worktree-lane-y-754-backlog-to-bar)\" = \"b4cdb3e2b278c67a9f7b2451c80db969fcac6ffc\" && test -z \"$(git -C .claude/worktrees/lane-y-754-backlog-to-bar status --porcelain)\" && echo \"handback verified: tip matches, tree clean, own=$(git rev-list --count --no-merges worktree-lane-y-754-backlog-to-bar --not main)\"",
+      "started": "2026-09-14T18:04:35+00:00",
+      "raced_with": [],
+      "verdict_state": null,
+      "baseline_sha": null
+    }
+  ],
+  "closed": null,
+  "wall_seconds": 26.49,
+  "recorded_seconds": 4.162,
+  "unrecorded_seconds": 22.329,
+  "serial_seconds": 4.162,
+  "suite_verdict": null,
+  "baseline_split_minutes": {
+    "tests": 0.0,
+    "residual_ceremony": 0.44
+  },
+  "by_class_seconds": {
+    "tests": 0.0,
+    "review": 0.0,
+    "ceremony": 4.162
+  }
+}
