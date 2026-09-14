@@ -121,6 +121,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#742] [P1][S] `actions_verdict` reports PASS when the job details cannot be read, so an unreadable run is indistinguishable from a clean one · tasks/742-actions-verdict-reports-pass-when-job-details-cannot-be-read.md
 - [#743] [P1][S] The step-0 collision extractor requires a slash, so two lanes may both declare a root-level file and pass · tasks/743-collision-extractor-is-blind-to-root-level-files.md
 - [#744] [P1][S] `median_report` filters receipts by kind but never by completeness, so the under-30 target can be met on incomplete receipts · tasks/744-median-report-counts-incomplete-receipts.md
+- [#747] [P1][M] Adoption-by-invocation — a command file confers adoption only while telemetry records real invocations, and it decays at 30 days · tasks/747-adoption-by-invocation-command-file-confers-adoption-only-while-invoked.md
 - [#748] [P1][M] A lane whose worktree resolves to the primary checkout via a `core.worktree` redirect has no isolation, and dispatch cannot see it · tasks/748-a-lane-whose-worktree-redirects-to-the-primary-has-no-isolation.md
 - [#749] [P1][M] Two lanes may be dispatched for the same row under different slugs, because every duplicate check compares slugs rather than rows · tasks/749-two-lanes-may-be-dispatched-for-the-same-row-under-different-slugs.md
 ### [S4] Extend structural validation to more governance artifacts

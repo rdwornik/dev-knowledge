@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "4c78a76b32b456e1895233a9c69486446e739d0d3d7a54301c309863d0385ffa",
+  "generated_sha256": "e36c5579f09b6e107a00110458c36ff95b8bbd8f7223b48d0cf3b49e12df5c65",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -460,6 +460,10 @@
     {
       "task": 744,
       "file": "744-median-report-counts-incomplete-receipts.md"
+    },
+    {
+      "task": 747,
+      "file": "747-adoption-by-invocation-command-file-confers-adoption-only-while-invoked.md"
     },
     {
       "task": 748,
