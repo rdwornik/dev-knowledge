@@ -279,6 +279,7 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 - [#628] [P1][L] DC-2 re-cut — dissolving `ESSENTIALS.md` is a FLEET-COUPLED release act, not a doc lane · tasks/628-dc2-recut-essentials-dissolution-is-a-release-act.md
 - [#647] [P3][M] The harness's own carrying cost is unmeasured, and lane contracts are pasted rather than referenced · tasks/647-harness-carrying-cost-unmeasured-contracts-pasted.md
 - [#731] [P1][M] The backlog only grows -- narration is relocated by hand and nothing stops a batch filing more rows than it closes · tasks/731-backlog-shrinks-by-mechanism-relocation-trigger-and-an-enforced-closure-budget.md
+- [#754] [P2][S] The two backlog row ceilings measure different corpora, and the source-side one has decayed back into the percentile its own amendment abolished · tasks/754-the-two-backlog-row-ceilings-measure-different-corpora.md
 ## [E6] Cross-repo universalization
 > As the disseminator, I want every child repo to converge on the universal baseline.
 

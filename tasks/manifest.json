@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "2ae12ca3611a908541dffe9adba172f580a4cb840820988158ac82b217928886",
+  "generated_sha256": "bfb64c6a9f53c860b22d6e7bd12e6b766af82b2eafea387255774ccadb49be56",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1035,6 +1035,10 @@
     {
       "task": 731,
       "file": "731-backlog-shrinks-by-mechanism-relocation-trigger-and-an-enforced-closure-budget.md"
+    },
+    {
+      "task": 754,
+      "file": "754-the-two-backlog-row-ceilings-measure-different-corpora.md"
     },
     {
       "prose": "## [E6] Cross-repo universalization"
