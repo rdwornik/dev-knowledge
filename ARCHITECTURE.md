@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-13
+last_reviewed: 2026-09-14
 reconciled_with: handoff-process@7.1.0
 status: active
 owner: Rob
@@ -109,7 +109,7 @@ The loop, edge by edge (`from -> to: what flows`):
 
 **Authority chain.** The architect proposes; the **operator is the consent gate**
 (the architect never executes — the operator pasting a prompt into Claude Code *is*
-the act of consent; ESSENTIALS "Architect → operator channel-discipline"); the
+the act of consent; PLAYBOOK § "Architect → operator channel-discipline"); the
 executor acts only inside the ratified scope. **Ratification bandwidth is the scarce
 resource** the whole system economizes — every protocol that compresses context
 (handoff bundles, the methodology floor, valves) exists to spend less of it.
@@ -148,7 +148,7 @@ out-of-band and read-only.
 - **Ratification, not adjudication.** On technical proposals the operator rules on
   *constraints, priority, scope* — not technical correctness; cross-repo review
   authority is asymmetric (ADR-63). The architect surfaces trade-offs; the operator
-  picks (ESSENTIALS "Architect routing for technical proposals").
+  picks (PLAYBOOK § "Architect routing for technical proposals").
 - **Enforcement model.** Centralized `scripts/audit.py` — read-only **on siblings** (self-audit
   `health` + cross-repo `run`; live registry via `python scripts/audit.py checks`).
   The cross-repo `run` is **manual, no downstream commit-gating**; the self-audit
@@ -830,7 +830,7 @@ and the zones where edits are blocked outright.
 | Append-only | `LESSONS.md`, `logs/TOKEN-LOG.md` | only append; never edit old entries (LESSONS.md may relocate an older block byte-identical to `LESSONS-legacy-<span>.md` — ADR-29 amend. 2026-07-17; TOKEN-LOG strict) |
 | Append-only (newest-first) | `JOURNAL.md` | prepend at session/day close |
 | Immutable | ADRs, transcripts, handoffs, audits, research | supersede via new file / in-file marker; never edit in place |
-| Living | `README.md`, `VISION` (superseded by README, relocated to `docs/archive/VISION.md` at the hub — [#614] lane-e-5, ADR-114 — still tracked), `ARCHITECTURE`, `CLAUDE.md`, `AGENTS.md`, `PLAYBOOK`, `ESSENTIALS` | update in place when reality shifts |
+| Living | `README.md`, `VISION` (superseded by README, relocated to `docs/archive/VISION.md` at the hub — [#614] lane-e-5, ADR-114 — still tracked), `ARCHITECTURE`, `CLAUDE.md`, `AGENTS.md`, `PLAYBOOK` | update in place when reality shifts |
 | Generated | `BACKLOG.md` | **never hand-edit** — edit `tasks/`, then `scripts/gen_task_tree.py --emit-source` (ADR-107 §7.2 flip, [#439], 2026-07-28; source zone below) |
 
 **Filenames.** `ADR-NN-topic.md` (ADR-34); `council-out-YYYYMMDD-HHMMSS-topic.md`
@@ -912,11 +912,11 @@ unattended-cross-repo, and how a contested need becomes binding doctrine.
 **The methodology engine (the loop).** The repo is a feedback engine, not a static
 library — each stage feeds the next and the loop closes:
 `Lessons (LESSONS.md)` → `Decision/ADR (docs/decisions/ + Council)` →
-`Conventions (PLAYBOOK / ESSENTIALS / CLAUDE.md)` → `Enforcement (audit.py + hooks)`
+`Conventions (PLAYBOOK / CLAUDE.md)` → `Enforcement (audit.py + hooks)`
 → `Dissemination (conformance audit to child repos)` → *(run in live sessions → new
 friction)* → back to `Lessons`. The two frontier stages — **Enforcement** and
-**Dissemination** — are where active work concentrates (VISION; ESSENTIALS "Feedback
-Loop").
+**Dissemination** — are where active work concentrates (`docs/archive/VISION.md`; the
+ESSENTIALS "Feedback Loop" anchor died with that file, `[#628]` 2026-09-14).
 
 **The verification mesh** — layered checks, escalating from cheap/local to
 unattended/cross-repo. Each layer is a different *dimension*, so a green one and a red
