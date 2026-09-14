@@ -1062,6 +1062,41 @@ def _import_decision_coverage():
     return decision_coverage
 
 
+def _import_lane_cost():
+    """Lazy sibling import, same shape as `_import_funnel_lifecycle`."""
+    if str(_SCRIPTS_DIR) not in sys.path:
+        sys.path.insert(0, str(_SCRIPTS_DIR))
+    import lane_cost  # noqa: E402
+    return lane_cost
+
+
+def cost_health_line(repo_root: Path) -> str | None:
+    """The `[cost]` digest line (`[#751]`): money per BATCH and per MODEL, in one line.
+
+    THE MISSING HALF OF THE COST PICTURE. `[#675]` bought the merge itemised MINUTES and
+    `[traces]` counts dispatches; neither says what a batch cost to run. This line does, from
+    `logs/LANE-COSTS.jsonl` — tokens counted out of the session transcripts, priced from
+    `ecosystem/provider-registry.yaml`'s own rate card.
+
+    ONE FILE READ, and that bound is deliberate rather than incidental. SessionStart pays for
+    this on every boot, so the line reads a ledger that is already computed; it never walks the
+    session store, whose cost would grow with the history rather than with the batch.
+
+    SILENT OVER AN EMPTY LEDGER, and that is not the same choice as printing `$0.00`. No cost
+    receipts is no measurement — the failure `merge_receipt` refuses for a 0.0-minute receipt,
+    in money — so the reader is shown nothing rather than a zero they might believe. When any
+    model on the ledger is UNPRICED the line says so and calls its own figures a floor.
+
+    Fail-soft on its own account, like every other digest line here: a surfacing organ never
+    breaks the digest.
+    """
+    try:
+        return _import_lane_cost().cost_health_line(repo_root)
+    except Exception as exc:  # noqa: BLE001 -- surfacing organ: never break the digest
+        print(f"fleet_health: WARNING -- cost digest unavailable: {exc!r}", file=sys.stderr)
+        return None
+
+
 def decision_health_line(repo_root: Path) -> str | None:
     """A9-3's `[decisions]` digest line: accepted / executing / done / age of the oldest
     accepted-but-unexecuted decision -- plus the grandfathered count the era bound owes.
@@ -1750,6 +1785,13 @@ def main(argv=None) -> int:
         decisions_line = decision_health_line(_REPO_ROOT)
         if decisions_line:
             print(decisions_line)
+        # [#751]'s `[cost]` line, immediately after the decisions line and on identical terms:
+        # unthrottled, fail-soft, never a gate. It sits HERE because the three lines above it
+        # answer "what is rotting", "what was decided and never scheduled" and this one answers
+        # "what did it cost to run" -- the funnel, then the decisions, then the bill.
+        cost = cost_health_line(_REPO_ROOT)
+        if cost:
+            print(cost)
         # Lane h0's dispatch-trace count -- unthrottled and fail-soft, same shape as the
         # groom escalation below: one cheap scandir call, never a gate.
         traces = count_traces_today(_LOGS_DIR, today)

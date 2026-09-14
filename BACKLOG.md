@@ -128,6 +128,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#752] [P1][M] A contract's declared model and mode reach no flag the background launcher honours, and nothing reads what a lane actually ran · tasks/752-a-contracts-declared-model-and-mode-reach-no-fla.md
 - [#758] [P2][S] `[#675]` target 3.2 has never been satisfiable by the `lane-integrate` walk · tasks/758-675-target-32-has-never-been-satisfiable-by-the-w.md
 - [#759] [P2][S] `range_is_anchored` and `unanchored_on_spine` disagree on scope, and the 2026-09-14 instance fix does not close the class · tasks/759-range-is-anchored-and-unanchored-on-spine-disagree.md
+- [#761] [P2][S] The edge-class census prices its own false positive as cheap, but paying it is an escalation class, so lanes route around the gate instead · tasks/761-the-edge-class-census-prices-its-own-false-positive.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
@@ -383,6 +384,7 @@ So that cognitive overhead per session drops.
 - [#728] [P2][M] Every organ that answers a question gets a generated skill whose description says WHEN to invoke it -- the description is what the model matches · tasks/728-organ-skills-generated-from-the-organ-index-so-the-model-can-find-them.md
 - [#729] [P2][M] FPG-1's queries are shell scripts the model must remember to run -- expose them as MCP tools so they sit in the tool list beside Grep · tasks/729-fpg1-queries-exposed-as-mcp-tools-so-they-sit-beside-grep.md
 - [#746] [P2][M] Devcontainer history-sufficiency (B1) and ecosystem-registration (L5) repair, lost with `scripts/cloud_provisioning.py` · tasks/746-devcontainer-history-and-ecosystem-repair-lost-with-cloud-provisioning-py.md
+- [#751] [P2][M] Cost in money — the transcripts' token figures become tokens and USD per lane and per model, priced from the registry's own rate card · tasks/751-cost-in-money-tokens-and-usd-per-lane-and-per-model.md
 ### [S19] Decide the undecided artifact/tool models
 So that cadence-less artifacts and unevaluated tools don't rot or get adopted blind.
 

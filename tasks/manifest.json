@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "129c5cbe0a94f65d77f408fb40509c0584e1320575aab0a0951fc8ca998ccab2",
+  "generated_sha256": "82c726d594c003948ec3dbf54e757e32ab19bc7f74d9b2a37bb248b10eb293c4",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -488,6 +488,10 @@
     {
       "task": 759,
       "file": "759-range-is-anchored-and-unanchored-on-spine-disagree.md"
+    },
+    {
+      "task": 761,
+      "file": "761-the-edge-class-census-prices-its-own-false-positive.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -1431,6 +1435,10 @@
     {
       "task": 746,
       "file": "746-devcontainer-history-and-ecosystem-repair-lost-with-cloud-provisioning-py.md"
+    },
+    {
+      "task": 751,
+      "file": "751-cost-in-money-tokens-and-usd-per-lane-and-per-model.md"
     },
     {
       "prose": "### [S19] Decide the undecided artifact/tool models"

@@ -321,6 +321,87 @@ def _require_lowercase(label: str, value: str) -> None:
         )
 
 
+class ModelRates(_Contract):
+    """What one model costs, in the rate card's currency and unit — `[#751]`.
+
+    TWO NUMBERS ARE REQUIRED AND TWO ARE DERIVED. `input` and `output` are the declared
+    per-unit prices. `cache_write` and `cache_read` are OPTIONAL overrides: absent, they are
+    computed from `input` by the rate card's multipliers, which is the shape the published
+    rates actually have (a cache write is a stated multiple of the input rate, not an
+    independently quoted price). An override exists for the model whose cache read is quoted
+    outright rather than as a multiple — writing that one as a multiplier would be arithmetic
+    dressed as a fact.
+
+    ZERO IS REFUSED, not clamped. A rate of 0.0 prices a real model's real tokens at nothing,
+    and a total built from it meets any budget spectacularly while meaning nothing — the same
+    failure class `merge_receipt` records for a 0.0-minute receipt. A model whose price is
+    genuinely unknown carries NO `rates:` block, and the reader then refuses it BY NAME
+    (`provider_registry.RateUnavailable`). Absent and free are different facts and the schema
+    keeps them different.
+    """
+
+    input: float
+    output: float
+    #: Absent → `input × rate_card.cache_write_multiplier`.
+    cache_write: Optional[float] = None
+    #: Absent → `input × rate_card.cache_read_multiplier`.
+    cache_read: Optional[float] = None
+    #: Per-model provenance, for a price that did not come from the rate card's own source.
+    source: Optional[StrictStr] = None
+
+    @model_validator(mode="after")
+    def _a_rate_is_positive(self) -> "ModelRates":
+        for field in ("input", "output", "cache_write", "cache_read"):
+            value = getattr(self, field)
+            if value is None:
+                continue
+            if value <= 0:
+                raise ValueError(
+                    f"`rates.{field}` is {value} — a non-positive rate prices real tokens at "
+                    f"nothing or less, and a total built from it is not a measurement. A model "
+                    f"whose price is unknown carries no `rates:` block at all, which the reader "
+                    f"refuses by name rather than silently costing at zero"
+                )
+        return self
+
+
+class RateCard(_Contract):
+    """The units, the provenance and the cache multipliers — declared ONCE for the file.
+
+    WHY THIS IS SEPARATE FROM `ModelRates` AND NOT A DUPLICATE HOME. They are two different
+    facts. "What does this model cost" is a property of the model and lives on the model row,
+    so adding a model cannot leave its price in a second place to be forgotten. "In what
+    currency, per what unit, as of when, from what source, and what do cache tokens multiply
+    by" is one fact about the whole card; repeating it on every model row would be the
+    restated-constant defect this file exists to end.
+
+    `as_of` IS REQUIRED AND IS THE HONEST LIMIT. A published price is true on a date. A
+    consumer comparing a dollar figure across two dates needs to know whether the card moved
+    underneath it, and a card with no date invites reading a stale number as a current one.
+    """
+
+    currency: StrictStr
+    unit: Literal["per_million_tokens"]
+    as_of: datetime.date
+    #: How the numbers were arrived at — `list-price`, `measured`, `derived`. Free text on
+    #: purpose: a closed vocabulary here would need a ruling, and this field informs a reader
+    #: rather than gating anything.
+    basis: StrictStr
+    source: StrictStr
+    cache_write_multiplier: float
+    cache_read_multiplier: float
+
+    @model_validator(mode="after")
+    def _a_multiplier_is_positive(self) -> "RateCard":
+        for field in ("cache_write_multiplier", "cache_read_multiplier"):
+            if getattr(self, field) <= 0:
+                raise ValueError(
+                    f"`rate_card.{field}` is {getattr(self, field)} — a non-positive multiplier "
+                    f"prices every cache token at nothing or less across the whole card"
+                )
+        return self
+
+
 class Model(_Contract):
     """One model string the repo names, with the roles it holds and the sites that pin it."""
 
@@ -332,6 +413,12 @@ class Model(_Contract):
     #: `{role: verdict record}`. OPTIONAL BY DESIGN: its absence is what makes configuration
     #: unconditional. See this module's docstring.
     role_admission: dict[StrictStr, RoleAdmission] = {}
+    #: What this model costs (`[#751]`). OPTIONAL, and for the same reason `role_admission` is:
+    #: a model row's EXISTENCE must not be conditional on a price being known. The repo names
+    #: models it does not buy directly and models whose vendor publishes no per-token rate; a
+    #: schema that required a price would force one to be invented. Absence is read as
+    #: "unpriced" and refused by name at the reader, never costed at zero.
+    rates: Optional[ModelRates] = None
     pinned_at: tuple[Pin, ...] = ()
 
     @model_validator(mode="after")
@@ -473,6 +560,33 @@ class ProviderRegistry(_Contract):
     #:
     #: OPTIONAL, so the registry stays loadable by every pre-`[#691]` consumer.
     roles: dict[StrictStr, Role] = {}
+    #: `[#751]` — the units, provenance and cache multipliers the per-model `rates:` blocks are
+    #: quoted in. OPTIONAL on the same terms as `roles:` above: a registry carrying no prices at
+    #: all stays loadable, which is what every consumer that predates this field needs.
+    rate_card: Optional[RateCard] = None
+
+    @model_validator(mode="after")
+    def _a_price_without_its_units_is_refused(self) -> "ProviderRegistry":
+        """A model may not carry `rates:` while the file carries no `rate_card:`.
+
+        A bare `input: 5.0` is not a price. It is a number whose currency, unit and date live
+        nowhere, and a reader that guessed any of the three would produce a dollar figure it
+        could not defend — the exact shape of the confident-figure-with-a-hidden-disagreement
+        this repo files as a defect class. The two halves are optional SEPARATELY and bound
+        TOGETHER: no prices at all is valid, prices without their card is not.
+
+        The converse is deliberately NOT an error. A card with no priced model yet is a
+        declaration made ahead of its first use, which is how a rate card is normally filled.
+        """
+        priced = sorted(m for m, spec in self.models.items() if spec.rates is not None)
+        if priced and self.rate_card is None:
+            raise ValueError(
+                f"model(s) {priced} declare `rates:` while the file declares no `rate_card:` — "
+                f"a bare number is not a price: its currency, its unit and the date it was true "
+                f"on live on the card, and a consumer that guessed them would report a dollar "
+                f"figure it cannot defend"
+            )
+        return self
 
     @model_validator(mode="after")
     def _every_role_is_a_known_name(self) -> "ProviderRegistry":
