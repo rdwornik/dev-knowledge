@@ -40,8 +40,8 @@ _TOOL_VERSIONS = "ecosystem/tool-versions.yaml"
 
 # --- shape ---------------------------------------------------------------------------------
 
-def test_registry_has_the_three_declared_collections():
-    """The tool-versions.yaml shape mirror, now THREE collections, each id -> field map.
+def test_registry_has_the_three_declared_collections_and_the_rate_card():
+    """The tool-versions.yaml shape mirror: THREE collections plus ONE card.
 
     WAS `== {"providers", "models"}` until `[#691]` (2026-09-12). The row that changed it is
     explicit that the third collection is not a rename of anything: *"today's `roles:` is a per-
@@ -49,15 +49,66 @@ def test_registry_has_the_three_declared_collections():
     `models:` are unchanged and still answer their own questions; `roles:` answers "who answers
     for this role, in what order".
 
-    The equality is kept rather than relaxed to a superset — an exact set is what makes a fourth
-    collection arriving unannounced a RED instead of silently inert data, which is the same
-    posture `extra="forbid"` takes one level down.
+    `rate_card:` ARRIVED WITH `[#751]` (2026-09-14) AND IS DELIBERATELY NOT A FOURTH COLLECTION.
+    Every collection here is an `id -> field map`; the card is ONE mapping of units, provenance
+    and multipliers for the whole file. Per-model prices live on the model rows, where a price
+    belongs, so adding a model cannot leave its price in a second place to be forgotten — which
+    is why the collection assertions below still name three and the card is asserted apart from
+    them rather than folded in.
+
+    The equality is kept rather than relaxed to a superset — an exact set is what makes a new
+    top-level key arriving unannounced a RED instead of silently inert data, which is the same
+    posture `extra="forbid"` takes one level down. This test REDdened on `rate_card`'s arrival
+    exactly as designed; updating it is the announcement.
     """
     data = preg.load_registry()
-    assert set(data) == {"providers", "models", "roles"}
+    assert set(data) == {"providers", "models", "roles", "rate_card"}
     assert all(isinstance(v, dict) for v in data["providers"].values())
     assert all(isinstance(v, dict) for v in data["models"].values())
     assert all(isinstance(v, dict) for v in data["roles"].values())
+    assert isinstance(data["rate_card"], dict)
+
+
+def test_a_price_is_never_a_bare_number_without_its_card(tmp_path):
+    """`[#751]`: currency, unit and the date a price was true on live on the card, so a model
+    row carrying `rates:` while the file carries no `rate_card:` is refused at load.
+
+    The witness strips the card from a copy of the LIVE registry rather than from a fixture, so
+    it also fails if the real file ever stops pricing anything at all — which is the condition
+    under which this invariant would quietly become vacuous.
+    """
+    import copy
+
+    import yaml
+
+    data = copy.deepcopy(preg.load_registry())
+    assert any(m.get("rates") for m in data["models"].values()), (
+        "no model in the live registry declares `rates:` — this invariant has nothing to guard")
+    del data["rate_card"]
+    broken = tmp_path / "no-card.yaml"
+    broken.write_text(yaml.safe_dump(data), encoding="utf-8", newline="\n")
+    with pytest.raises(preg.RegistryError) as exc:
+        preg.load_registry(broken)
+    assert "rate_card" in str(exc.value)
+
+
+def test_every_declared_rate_resolves_with_its_units_and_its_date():
+    """Every priced model in the LIVE registry resolves to a complete, positive rate.
+
+    The point is the ABSENT-vs-ZERO boundary this lane's whole design rests on: a model in
+    `priced_models()` must produce four positive numbers with a currency and an `as_of`, and a
+    model outside that set must REFUSE by name. Neither may silently return zero.
+    """
+    priced = preg.priced_models()
+    assert priced, "the live registry prices nothing — every cost report is vacuous"
+    for model in priced:
+        rate = preg.resolve_rate(model)
+        assert rate.currency and rate.as_of
+        assert min(rate.input, rate.output, rate.cache_write, rate.cache_read) > 0
+    for model in set(preg.model_ids()) - set(priced):
+        with pytest.raises(preg.RateUnavailable) as exc:
+            preg.resolve_rate(model)
+        assert model in str(exc.value)
 
 
 def test_every_model_names_a_declared_provider():

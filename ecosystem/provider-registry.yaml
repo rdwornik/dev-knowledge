@@ -75,6 +75,63 @@
 # exactly as valid as one that does. The governing record, with the ADR-98 section 3 test, is
 # `docs/audits/2026-08-23-technical-lane-provider-config.md` section 6.
 
+# RATES — ADDED 2026-09-14 BY `[#751]`, AND THE ROSTER'S PREMISE IS CORRECTED HERE.
+#
+# Until this block existed there was NO machine-readable rate, price or USD field anywhere in
+# this file. Its only cost content was prose: the measured `$0.037` test call recorded under
+# the `grok` provider's COST REGIME. `[#751]`'s roster line read as though the rates were here
+# to be read; they were not, so the lane AUTHORS them. That correction is recorded rather than
+# quietly absorbed, because a lane that silently rewrites a premise leaves nothing for the next
+# reader to check.
+#
+# WHERE A PRICE LIVES, and why it is in two places that are not two homes for one fact:
+#
+#   `rate_card:` BELOW      the currency, the unit, the DATE the card was true on, its
+#                           provenance, and the two cache multipliers. ONE fact about the whole
+#                           card, declared once. Repeating it on every model row would be the
+#                           restated-constant defect this file exists to end.
+#   `models.<id>.rates:`    what THAT model costs. A property of the model, so it sits on the
+#                           model's own row: adding a model cannot leave its price somewhere
+#                           else to be forgotten, and deleting one cannot orphan a price.
+#
+# A MODEL WITH NO `rates:` BLOCK IS UNPRICED, AND UNPRICED IS NOT FREE. `provider_registry.
+# resolve_rate` raises `RateUnavailable` naming the model rather than returning zero, and every
+# report built on it carries the unpriced spend as its own line instead of folding it into a
+# total. That is deliberate and it is the whole safety property: a rate of 0.0 meets any budget
+# spectacularly and means nothing — the same failure `merge_receipt` records for a 0.0-minute
+# receipt. The five non-Anthropic ids below are unpriced for the honest reason: no per-token
+# rate for them has been established in this repo. `grok`'s one MEASURED datum is a whole-call
+# price ($0.037 for one small call), not a per-token rate, and inflating it into one would
+# manufacture a number rather than record one.
+#
+# CACHE TOKENS ARE MULTIPLIERS, NOT SEPARATE QUOTES, because that is the shape the published
+# rates actually have: a cache write is a stated multiple of the input rate and a cache read
+# another. So the two multipliers are declared once here and `cache_write` / `cache_read` on a
+# model row are OVERRIDES, present only where a vendor quotes the number outright instead of as
+# a multiple. Today none is overridden. This matters more than it looks: on this repo's own
+# transcripts cache reads outnumber fresh input tokens by orders of magnitude, so a reader that
+# priced them at the input rate — or at nothing — would be wrong by more than the bill.
+#
+# THE `as_of` DATE IS PART OF THE FACT. These are list prices as carried by the `claude-api`
+# skill's cached model table, whose own header states the cache date; that date is reproduced
+# below rather than today's, because a card stamped with the day it was COPIED tells a reader
+# it is current when it is not. A rate that has moved since is a re-read of the source, not a
+# re-stamp of this file.
+rate_card:
+  currency: USD
+  unit: per_million_tokens
+  as_of: "2026-06-24"
+  basis: list-price
+  source: >-
+    Anthropic first-party API list prices, as carried by the `claude-api` skill's cached
+    "Current Models" table (cache date 2026-06-24, reproduced in `as_of`). Partner-operated
+    routes (Bedrock, Vertex) price separately and are NOT covered by this card.
+  # A cache write costs 1.25x the input rate; a cache read 0.1x. Declared here once and applied
+  # by `provider_registry.resolve_rate` — nothing in `scripts/lane_cost.py` knows either number,
+  # which is what makes an edit to this file move every dollar figure the repo reports.
+  cache_write_multiplier: 1.25
+  cache_read_multiplier: 0.1
+
 providers:
   anthropic:
     display_name: Anthropic
@@ -602,6 +659,9 @@ models:
     # themselves are doctrine seams (S15/S16) and stay where they are ruled.
     tier: M
     roles: [subagent-default, workflow-verifier]
+    rates:
+      input: 2.0
+      output: 10.0
     # The three formats R2 §3.3 names. `format` is what the checker has to parse.
     pinned_at:
       - path: .claude/agents/artifact-reader.md
@@ -614,11 +674,36 @@ models:
         seam: S17
         format: md-prose
 
+  # ADDED 2026-09-14 BY `[#751]`, and its absence until now was a real gap rather than a
+  # tidy-up. `claude-opus-5` is the model this repo actually runs on: every one of batch Y's
+  # six lanes is dispatched at `opus` EXPLICITLY (the manifest's own words — "`opusplan`
+  # appears nowhere"), and it is the model named on effectively every assistant turn in the
+  # session transcripts. The registry's stated job is "every model string the repo's LIVE
+  # surface names", and it was missing the one the live surface names most. The gap surfaced
+  # here because a rate has to hang off a row: there was nothing to price.
+  #
+  # `roles: []` and `pinned_at: []` are deliberate, on the precedent `grok-4.6` sets two
+  # screens down — the row exists so the id is addressable, resolvable and in the vocabulary.
+  # Which CLI runs which role is `ecosystem/routing-table.yaml`'s authority (Z-G3 A2) and the
+  # ordered ranking is `roles:` below; claiming a role here would be this lane legislating on
+  # a surface it does not own.
+  claude-opus-5:
+    provider: anthropic
+    tier: L
+    roles: []
+    rates:
+      input: 5.0
+      output: 25.0
+    pinned_at: []
+
   claude-opus-4-8:
     provider: anthropic
     tier: L
     # Named in the artifact-reader model note as the documented escalation target.
     roles: [upgrade-path]
+    rates:
+      input: 5.0
+      output: 25.0
     pinned_at: []
 
   gpt-5.6-terra:

@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, NamedTuple, Optional
 
 import yaml
 
@@ -44,6 +44,18 @@ class RegistryError(RuntimeError):
     Raised rather than returned: a caller that silently degrades to a hardcoded default
     would re-create the exact drift this module exists to end. The one caller allowed to
     swallow it is a fail-soft hook, which does so explicitly at its own call site.
+    """
+
+
+class RateUnavailable(RegistryError):
+    """No defensible price for a model — the file declares no rate card, the model has no row,
+    or the row carries no `rates:` block (`[#751]`).
+
+    A SUBCLASS OF `RegistryError` rather than a sibling, so a consumer that already handles
+    "the registry could not answer" keeps working unchanged, while one that cares about the
+    difference between "unpriced" and "unreadable" can catch this narrowly. It is raised and
+    never returned as a zero: absent and free are different facts, and a total that cannot tell
+    them apart is not a measurement.
     """
 
 
@@ -225,6 +237,118 @@ def pins_by_path(path: Optional[Path] = None) -> dict[str, list[tuple[str, str, 
             rel = str(pin["path"])
             out.setdefault(rel, []).append((mid, str(pin.get("seam", "")), str(pin.get("format", ""))))
     return out
+
+
+def rate_card(path: Optional[Path] = None) -> dict[str, Any]:
+    """The `rate_card:` block — currency, unit, `as_of`, provenance, cache multipliers.
+
+    Raises rather than returning `{}` when absent, on this module's standing rule: a caller
+    that silently degraded to a default would invent the currency and the date, which are the
+    two things a dollar figure cannot be read without.
+    """
+    card = load_registry(path).get("rate_card")
+    if not isinstance(card, dict):
+        raise RateUnavailable(
+            f"{REGISTRY_REL} declares no `rate_card:` — there is no currency, no unit and no "
+            f"date to read any price against, so nothing here can be costed"
+        )
+    return card
+
+
+class ModelRate(NamedTuple):
+    """One model's four per-unit prices, fully resolved — multipliers already applied.
+
+    A `NamedTuple` RATHER THAN A `@dataclass`, and the reason is a measured trap rather than a
+    style choice. `scripts/provider_router.py` loads this module by PATH under a synthetic
+    module name and never registers it in `sys.modules` (`_sibling`, the shape `telemetry_emit`
+    also uses). `dataclasses._process_class` resolves `sys.modules[cls.__module__]` while
+    scanning annotations, gets `None`, and dies with `AttributeError: 'NoneType' object has no
+    attribute '__dict__'` — 33 errors in `tests/test_provider_router.py`, none of them pointing
+    at the dataclass. `NamedTuple` does no such lookup and loads correctly under both import
+    paths. The loader is the thing that is wrong (PEP 451 registers before executing) and it is
+    NOT fixed here: it is a shared helper this lane does not own. Reported instead.
+
+    RESOLUTION HAPPENS HERE, not in the caller, because it is registry semantics: the fact
+    "a cache write costs 1.25x input" belongs to the card that declares it. A cost reporter
+    that applied the multipliers itself would be a second home for them, and the first thing
+    to drift when the card changes.
+    """
+
+    model: str
+    currency: str
+    unit: str
+    as_of: str
+    input: float
+    output: float
+    cache_write: float
+    cache_read: float
+    #: Where this model's price came from, when it differs from the card's own source.
+    source: Optional[str] = None
+
+    def usd(self, *, input_tokens: int = 0, output_tokens: int = 0,
+            cache_write_tokens: int = 0, cache_read_tokens: int = 0) -> float:
+        """Cost of a token count at these rates. The unit divisor is read from `unit` rather
+        than assumed, so a card that ever quotes per-thousand fails loudly instead of
+        under-reporting by a factor of a thousand."""
+        if self.unit != "per_million_tokens":
+            raise RateUnavailable(
+                f"rate unit {self.unit!r} is not one this reader knows how to divide by — "
+                f"refusing rather than guessing the scale")
+        per_unit = 1_000_000
+        return (input_tokens * self.input
+                + output_tokens * self.output
+                + cache_write_tokens * self.cache_write
+                + cache_read_tokens * self.cache_read) / per_unit
+
+
+def resolve_rate(model_id: str, path: Optional[Path] = None) -> ModelRate:
+    """The fully-resolved rate for one model, or `RateUnavailable` NAMING it.
+
+    THE REFUSAL IS THE FEATURE. Three distinct absences reach this function — the file has no
+    card, the model has no row, the row has no `rates:` — and all three raise. None returns a
+    zero. A zero here is indistinguishable from a free model and propagates into a total that
+    meets any budget while meaning nothing; naming the model instead lets a report say how much
+    of its spend is unaccounted for, which is a fact a reader can act on.
+
+    Every call re-reads the file. Deliberate, and it is what makes the lane contract's "resolved
+    from that file at run time" true rather than nearly true: a module-level cache seeded once
+    would survive an edit to the registry and keep reporting the old price.
+    """
+    card = rate_card(path)
+    row = models(path).get(model_id)
+    if row is None:
+        raise RateUnavailable(
+            f"model {model_id!r} is not declared in {REGISTRY_REL} — it cannot be priced, and "
+            f"it is not free. Add a row (with `rates:` if its price is known) rather than "
+            f"letting an unregistered id cost nothing")
+    rates = row.get("rates")
+    if not isinstance(rates, dict):
+        raise RateUnavailable(
+            f"model {model_id!r} is declared in {REGISTRY_REL} but carries no `rates:` block — "
+            f"its price is unknown, which is not the same fact as zero")
+    base_input = float(rates["input"])
+    cache_write = rates.get("cache_write")
+    cache_read = rates.get("cache_read")
+    return ModelRate(
+        model=model_id,
+        currency=str(card["currency"]),
+        unit=str(card["unit"]),
+        as_of=str(card["as_of"]),
+        input=base_input,
+        output=float(rates["output"]),
+        cache_write=(float(cache_write) if cache_write is not None
+                     else base_input * float(card["cache_write_multiplier"])),
+        cache_read=(float(cache_read) if cache_read is not None
+                    else base_input * float(card["cache_read_multiplier"])),
+        source=(str(rates["source"]) if rates.get("source") else None),
+    )
+
+
+def priced_models(path: Optional[Path] = None) -> list[str]:
+    """Every model id carrying a `rates:` block, sorted. The complement — every id in
+    `models()` not in here — is the unpriced set, which is reported rather than assumed empty.
+    """
+    return sorted(mid for mid, row in models(path).items() if isinstance(row.get("rates"), dict))
 
 
 def attribution_tokens(path: Optional[Path] = None) -> dict[str, str]:
