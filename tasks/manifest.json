@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "2ae12ca3611a908541dffe9adba172f580a4cb840820988158ac82b217928886",
+  "generated_sha256": "6a5fd0d0b577d0933be8d8b263aac1c3c9194b610d67443559c4c5cee8318d7b",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -472,6 +472,10 @@
     {
       "task": 749,
       "file": "749-two-lanes-may-be-dispatched-for-the-same-row-under-different-slugs.md"
+    },
+    {
+      "task": 750,
+      "file": "750-a-merge-can-land-with-no-receipt-the-completenes.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"

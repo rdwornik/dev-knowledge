@@ -27,13 +27,30 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
+import actions_verdict as av
 import merge_receipt as mr
 
 
 # --- helpers ----------------------------------------------------------------
+
+_OPENED = datetime(2026, 9, 12, 0, 0, 0, tzinfo=timezone.utc)
+
+
+def _stamp(offset_seconds: float = 0.0) -> str:
+    """An ISO timestamp `offset_seconds` after `_OPENED`, spelled the way `_now()` spells it.
+
+    REAL TIMESTAMPS RATHER THAN `"t"` / `"t2"` PLACEHOLDERS, and the change is not cosmetic.
+    Since `[#750]` the receipt's wall time is the span `opened -> closed`, so a fixture whose
+    timestamps do not parse is a receipt whose duration cannot be read -- which the predicate
+    now (correctly) calls incomplete. The placeholders were only ever safe while nothing read
+    the fields.
+    """
+    return (_OPENED + timedelta(seconds=offset_seconds)).isoformat(timespec="milliseconds")
+
 
 def _echo(text: str = "ok") -> list[str]:
     """A trivially fast child command, spelled portably (this repo runs on Windows)."""
@@ -44,25 +61,39 @@ def _fail() -> list[str]:
     return [sys.executable, "-c", "import sys; sys.exit(3)"]
 
 
-def _receipt_with(tmp_path, steps) -> mr.Receipt:
+def _receipt_with(tmp_path, steps, *, unrecorded_seconds: float = 0.0) -> mr.Receipt:
     """Build a receipt directly, so arithmetic tests do not pay for subprocesses.
 
-    NOT A COMPLETE RECEIPT -- `closed` is None and only `steps` are recorded. The docstring here
-    used to say "closed-shape", which was never true and is what let the median tests below run
-    on receipts that `[#744]`'s predicate correctly refuses. Arithmetic tests (`wall_seconds`,
-    `by_class`, the raced-group rules) do not care and still use this; tests that feed
-    `median_report` use `_complete_merge` instead.
+    NOT A COMPLETE RECEIPT -- no suite verdict is recorded and the required steps are whatever
+    the caller passes. The docstring here once said "closed-shape", which was never true and is
+    what let the median tests below run on receipts that `[#744]`'s predicate correctly refuses.
+    Arithmetic tests (`recorded_seconds`, `by_class`, the raced-group rules) still use this;
+    tests that feed `median_report` use `_complete_merge` instead.
+
+    `closed` IS SET, AND IT IS SET FROM THE STEPS: the span is `recorded_seconds` plus whatever
+    `unrecorded_seconds` the caller wants left untimed. That keeps the class-split assertions
+    below meaning what they meant before `[#750]` -- an arc with nothing untimed -- while making
+    the untimed remainder a thing a test can ASK for rather than an accident of the fixture.
     """
-    receipt = mr.Receipt(slug="r", batch="x", opened="2026-09-12T00:00:00+00:00",
-                         host="test", concurrent_seats=0)
+    receipt = mr.Receipt(slug="r", batch="x", opened=_stamp(), host="test", concurrent_seats=0)
     receipt.steps.extend(steps)
+    receipt.closed = _stamp(receipt.recorded_seconds() + unrecorded_seconds)
     return receipt
 
 
-def _step(name, seconds, *, step_class=mr.CLASS_CEREMONY, ok=True, raced_with=()) -> mr.StepTiming:
+def _step(name, seconds, *, step_class=mr.CLASS_CEREMONY, ok=True, raced_with=(),
+          verdict_state=None) -> mr.StepTiming:
     return mr.StepTiming(step=name, step_class=step_class, seconds=seconds, ok=ok,
                          returncode=0 if ok else 1, command="-", started="-",
-                         raced_with=tuple(raced_with))
+                         raced_with=tuple(raced_with), verdict_state=verdict_state)
+
+
+def _set_verdict(receipt: mr.Receipt, state) -> None:
+    """Re-record the suite verdict on an existing receipt, dropping the step's own exit code
+    from the picture -- which is the whole of ruling AY1-1's change and so is what a test
+    varying completeness must vary."""
+    receipt.steps = [s for s in receipt.steps if s.verdict_state is None]
+    receipt.steps.append(_step("actions", 0.0, step_class=mr.CLASS_TESTS, verdict_state=state))
 
 
 # --- THE TARGET: per-step minutes, itemised ---------------------------------
@@ -214,16 +245,28 @@ def test_a_NON_MERGE_arc_cannot_flatter_the_MERGE_median_and_its_exclusion_is_NA
 # absent from what the reader looks at.
 
 
-def _complete_merge(minutes: float, slug: str = "m") -> mr.Receipt:
-    """A receipt that is complete on every leg of the predicate: closed, every required step
-    recorded, none of them failed. The whole duration sits on `merge` so the arithmetic of each
-    test stays legible."""
-    receipt = mr.Receipt(slug=slug, batch="x", opened="2026-09-12T00:00:00+00:00",
-                         host="test", concurrent_seats=0,
-                         closed="2026-09-12T01:00:00+00:00")
+def _complete_merge(minutes: float, slug: str = "m", *,
+                    verdict: str | None = av.STATE_PASS) -> mr.Receipt:
+    """A receipt complete on every leg of the predicate: closed, wall time readable, every
+    required step recorded, no non-suite step failed, and a READABLE suite verdict state.
+
+    `closed` IS DERIVED FROM `minutes`, which it was not before `[#750]`. The helper used to
+    pin `closed` at one hour while varying a step's seconds, and that was harmless only while
+    `wall_seconds()` summed steps: the moment the receipt's duration became the span
+    `opened -> closed`, a fixed `closed` would have made every median test below a test of the
+    same sixty minutes, whatever number it asked for.
+
+    `verdict` DEFAULTS TO `PASS` AND IS A PARAMETER, because ruling AY1-1 makes the suite
+    step's recorded STATE a leg of completeness -- so "a complete merge receipt" is no longer
+    expressible without one, and the states that are NOT complete need the same builder.
+    """
+    receipt = mr.Receipt(slug=slug, batch="x", opened=_stamp(), host="test", concurrent_seats=0,
+                         closed=_stamp(minutes * 60.0))
     receipt.steps.extend(
         _step(name, minutes * 60.0 if name == "merge" else 0.0)
         for name in mr.REQUIRED_STEPS)
+    receipt.steps.append(_step("actions", 0.0, step_class=mr.CLASS_TESTS,
+                               verdict_state=verdict))
     return receipt
 
 
@@ -242,12 +285,12 @@ def test_an_INCOMPLETE_receipt_is_EXCLUDED_from_the_median():
     a_step_failed = _complete_merge(1.0, "failed")
     a_step_failed.steps.append(_step("suite", 0.0, ok=False))
 
-    missing_steps = mr.Receipt(slug="partial", batch="x", opened="t", host="h",
-                               concurrent_seats=0, closed="t2")
+    missing_steps = mr.Receipt(slug="partial", batch="x", opened=_stamp(), host="h",
+                               concurrent_seats=0, closed=_stamp(60.0))
     missing_steps.steps.append(_step("merge", 60.0))
 
-    no_steps_at_all = mr.Receipt(slug="empty", batch="x", opened="t", host="h",
-                                 concurrent_seats=0, closed="t2")
+    no_steps_at_all = mr.Receipt(slug="empty", batch="x", opened=_stamp(), host="h",
+                                 concurrent_seats=0, closed=_stamp(60.0))
 
     report = mr.median_report([*complete, never_closed, a_step_failed,
                                missing_steps, no_steps_at_all])
@@ -261,8 +304,13 @@ def test_an_INCOMPLETE_receipt_is_EXCLUDED_from_the_median():
 
 @pytest.mark.parametrize("break_it,reason_fragment", [
     (lambda r: setattr(r, "closed", None), "closed"),
-    (lambda r: r.steps.append(_step("suite", 0.0, ok=False)), "failed"),
+    (lambda r: r.steps.append(_step("teardown-retry", 0.0, ok=False)), "failed"),
     (lambda r: r.steps.clear(), "step"),
+    # `[#750]` / AY1-1's two legs, asserted in the same list as the three that preceded them so
+    # a later simplification that drops one is caught by name here rather than nowhere.
+    (lambda r: _set_verdict(r, av.STATE_REGRESSED), "regressed"),
+    (lambda r: _set_verdict(r, None), "verdict"),
+    (lambda r: setattr(r, "closed", "not-a-timestamp"), "wall"),
 ])
 def test_each_leg_of_the_completeness_predicate_EXCLUDES_on_its_own(break_it, reason_fragment):
     """One explicit predicate in code, not left to the reader -- the row's own words. Each leg
@@ -291,16 +339,23 @@ def test_an_ARC_receipt_is_NOT_held_to_the_MERGE_walks_required_steps():
     an oversight. REQUIRED_STEPS is the INTEGRATOR's walk -- handback, merge, suite, teardown --
     and this module's own docstring says an arc "pays no merge and no teardown". Holding an arc
     to it would make `median --kind arc` permanently n=0 for a reason that is not incompleteness.
-    The other legs -- closed, has steps, none failed -- still bind an arc.
-    """
-    arc = mr.Receipt(slug="a", batch="x", opened="t", host="h", concurrent_seats=0,
-                     closed="t2", kind=mr.KIND_ARC)
-    arc.steps.append(_step("targeted", 600.0))
+    The other legs -- closed, has steps, readable wall time, none failed -- still bind an arc.
 
-    assert arc.is_complete() is True
+    SO DOES THE SUITE-VERDICT LEG'S SCOPING, added by `[#750]`/AY1-1 for the identical reason
+    and recorded here rather than in a second test: an arc reads no Actions run for a merge SHA
+    (there is no merge), so requiring a verdict state of one would make `median --kind arc`
+    permanently n=0 -- the same "n=0 for a reason that is not incompleteness" this test already
+    exists to refuse. An arc therefore keeps the EXIT-CODE reading on a `tests` step, which is
+    what the second half below asserts.
+    """
+    arc = mr.Receipt(slug="a", batch="x", opened=_stamp(), host="h", concurrent_seats=0,
+                     closed=_stamp(600.0), kind=mr.KIND_ARC)
+    arc.steps.append(_step("targeted", 600.0, step_class=mr.CLASS_TESTS))
+
+    assert arc.is_complete() is True, "an arc is not held to a merge's walk OR to its verdict"
     assert mr.median_report([arc], kind=mr.KIND_ARC).n == 1
 
-    arc.steps.append(_step("targeted-retry", 60.0, ok=False))
+    arc.steps.append(_step("targeted-retry", 60.0, step_class=mr.CLASS_TESTS, ok=False))
     assert arc.is_complete() is False
 
 
@@ -390,10 +445,16 @@ def test_an_EMPTY_ledger_reports_UNDEFINED_rather_than_zero_minutes():
 def test_a_RACED_group_counts_ONCE_in_wall_time_and_IN_FULL_in_the_class_split():
     """Target 3.3's arithmetic, and the reason it is two numbers rather than one.
 
-    Summing raced steps into wall time would report a parallel run at its serial cost and erase
-    the saving. Counting them once in the CLASS split would understate how much review or test
-    work was actually done — and target 3.5 makes "how much review happened" the one quantity
-    nobody may quietly shrink. So wall groups, class does not.
+    Summing raced steps into the RECORDED total would report a parallel run at its serial cost
+    and erase the saving. Counting them once in the CLASS split would understate how much review
+    or test work was actually done — and target 3.5 makes "how much review happened" the one
+    quantity nobody may quietly shrink. So the recorded total groups, class does not.
+
+    THE ASSERTION MOVED FROM `wall_seconds` TO `recorded_seconds` AT `[#750]`, and the move is
+    the point rather than a rename. This arithmetic is about COVERAGE — how much of the arc was
+    timed, counting a raced group once — and `[#750]` proved that reading it as the arc's
+    DURATION understated a 3h01m span as 1.776 s. Wall time is now the span and has its own
+    witness below; the raced-group rule keeps its own number and its own test.
     """
     receipt = _receipt_with(None, [
         _step("suite", 300.0, step_class=mr.CLASS_TESTS, raced_with=("review",)),
@@ -401,7 +462,7 @@ def test_a_RACED_group_counts_ONCE_in_wall_time_and_IN_FULL_in_the_class_split()
         _step("merge", 60.0),
     ])
 
-    assert receipt.wall_seconds() == 360.0, "the raced pair costs its LONGEST member, once"
+    assert receipt.recorded_seconds() == 360.0, "the raced pair costs its LONGEST member, once"
     assert receipt.serial_seconds() == 540.0, "the counterfactual stays available"
     assert receipt.by_class()[mr.CLASS_REVIEW] == 180.0, "review work is not discounted"
 
@@ -566,3 +627,360 @@ def test_the_receipt_records_HOW_MANY_SEATS_were_in_flight_beside_it(tmp_path):
     assert isinstance(receipt.concurrent_seats, int)
     assert "concurrent_seats" in json.loads(
         mr.scratch_path(tmp_path, "m").read_text(encoding="utf-8"))
+
+
+# --- `[#750]` / RULING AY1-1: THE MERGE RECEIPT BECOMES A REFUSAL -----------
+#
+# RED-FIRST WITNESSES (ADR-108 §B). Three facts were true of this module at `8a41c650`, and all
+# three are recorded in the live ledger rather than reasoned about:
+#
+#   1. `wall_seconds()` SUMMED THE TIMED CHILDREN. Ledger row `lane-x-675-step-7` was opened at
+#      19:13:21 and closed at 22:14:41 -- a span of 3h01m20s -- and recorded
+#      `"wall_seconds": 1.776`, because the single child it timed ran for 1.776 s. The 72.7
+#      minutes of "residual ceremony" the baseline is stated in live in exactly the gaps that
+#      arithmetic could not see, so the receipt understated a three-hour arc by three orders of
+#      magnitude while printing the number as the arc's wall time.
+#
+#   2. COMPLETENESS READ A FLATTENED `ok` BOOLEAN. `incompleteness_reason()` leg 3 refused any
+#      receipt with a failed step; the suite step's `ok` comes from a verdict whose own
+#      docstring says "ONLY `PASS` is ok. Every other state is non-zero, including
+#      PRE-EXISTING". `main`'s Actions pytest was pre-existing red, so EVERY receipt was
+#      incomplete however clean the merge, the merge median was permanently UNDEFINED, and a
+#      rule worded "a merge that lands without a COMPLETE receipt is refused" would have
+#      refused every merge in this repo the moment it shipped.
+#
+#   3. NOTHING REFUSED A MERGE THAT LANDED WITH NO RECEIPT AT ALL. The receipt was opened once
+#      per BATCH, named no merge commit, and `/lane-integrate`'s own honest limit said so: "it
+#      times what it is asked to time".
+#
+# Ruling AY1-1 (`to-cc/AMEND-BATCH-Y-ROSTER-001.md`, carried in the batch Y manifest) settles
+# (2): completeness is judged on the suite step's VERDICT STATE, not its exit code. `PASS` or
+# `PRE-EXISTING` -> COMPLETE with the state recorded by name; `REGRESSED`, or a verdict that
+# cannot be read -> INCOMPLETE and the merge is refused. Forcing the step to exit 0 is ruled
+# out BY NAME as `[#744]`'s false pass, and there is no flag here that can do it.
+
+
+def _run(sha: str, *jobs: tuple[str, str], status: str = "completed") -> dict:
+    """A `gh run list` row as `fetch_run` returns it, so the tests below drive the REAL state
+    machine rather than asserting a state they typed themselves."""
+    return {"databaseId": 1, "headSha": sha, "status": status, "conclusion": "failure",
+            "displayTitle": f"run for {sha}",
+            "jobs": [{"name": name, "conclusion": conclusion} for name, conclusion in jobs]}
+
+
+def _fetcher(**by_sha):
+    def fetch(sha, **_kwargs):
+        return by_sha.get(sha)
+    return fetch
+
+
+# --- (1) wall time is the SPAN ----------------------------------------------
+
+def test_WALL_TIME_is_the_ARCS_SPAN_and_not_the_sum_of_its_timed_children():
+    """Ledger row `lane-x-675-step-7`, transcribed: 3h01m20s of arc, 1.776 s of child.
+
+    The old arithmetic answered "how many seconds did the processes I wrapped run for", which
+    is a COVERAGE question, and printed the answer under the name `wall_seconds`. Every gap
+    between steps -- reading a diff, deciding, waiting on a reviewer, the whole of the
+    baseline's 72.7 residual ceremony -- was invisible, and invisible time reads as time that
+    did not happen. That is this module's founding complaint about an unrecorded STEP, arriving
+    one layer up at the arc.
+    """
+    receipt = mr.Receipt(slug="lane-x-675-step-7", batch="x", opened=_stamp(),
+                         host="h", concurrent_seats=4, kind=mr.KIND_ARC,
+                         closed=_stamp(3 * 3600 + 1 * 60 + 20))
+    receipt.steps.append(_step("targeted-lane", 1.776, step_class=mr.CLASS_TESTS, ok=False))
+
+    assert receipt.wall_seconds() == pytest.approx(10880.0), \
+        "the arc lasted 3h01m20s; a receipt that calls 1.776 s its wall time is not a receipt"
+    assert receipt.recorded_seconds() == pytest.approx(1.776), \
+        "what the stopwatch actually covered stays available, under its own name"
+
+
+def test_the_time_NOBODY_TIMED_is_NAMED_rather_than_erased():
+    """`wall - recorded` is the baseline's 72.7 bucket, and it is the number the old arithmetic
+    destroyed. Naming it is what lets the ~90/~63 disagreement ever resolve: an itemised view
+    that accounts for 11 of 84 minutes cannot adjudicate between two readings of the other 73.
+    """
+    receipt = _receipt_with(None, [_step("suite", 600.0, step_class=mr.CLASS_TESTS)],
+                            unrecorded_seconds=3000.0)
+
+    assert receipt.unrecorded_seconds() == pytest.approx(3000.0)
+    rendered = mr.render_summary(receipt)
+    assert "UNRECORDED" in rendered and "50.00" in rendered, \
+        "the untimed remainder is printed where a reader looks, not only computed"
+
+
+def test_the_BASELINE_SPLIT_puts_the_UNTIMED_REMAINDER_in_the_CEREMONY_bucket():
+    """Commensurability with `84 = 11.3 + 72.7` is only true if the two buckets sum to the
+    arc's WALL time. The baseline's 72.7 is residual ceremony -- literally "the wall figure
+    minus the tests" -- so an untimed gap belongs there and nowhere else.
+    """
+    receipt = _receipt_with(None, [
+        _step("suite", 11.3 * 60.0, step_class=mr.CLASS_TESTS),
+        _step("merge", 60.0),
+    ], unrecorded_seconds=72.7 * 60.0 - 60.0)
+
+    tests_min, residual_min = receipt.baseline_split()
+
+    assert tests_min == pytest.approx(11.3)
+    assert residual_min == pytest.approx(72.7)
+    assert tests_min + residual_min == pytest.approx(receipt.wall_seconds() / 60.0), \
+        "the split must add up to the arc, or it is not the baseline's split"
+
+
+def test_a_receipt_whose_WALL_TIME_CANNOT_BE_READ_is_INCOMPLETE_rather_than_zero_minutes():
+    """Zero is still the most dangerous plausible value this module can produce.
+
+    Deriving wall time from timestamps introduces a new way to get it: a `closed` that does not
+    parse. Returning 0.0 and counting the row would meet target 3.6 spectacularly, which is the
+    `[#744]` failure class arriving through the door `[#750]` opened.
+    """
+    receipt = _complete_merge(40.0)
+    receipt.closed = "2026-09-14 whenever"
+
+    assert receipt.wall_seconds() == 0.0, "unreadable is not a duration"
+    assert receipt.is_complete() is False
+    assert "wall" in receipt.incompleteness_reason().lower()
+    assert mr.median_report([receipt]).n == 0
+
+
+# --- (2) completeness is the VERDICT STATE, never the exit code -------------
+
+def test_a_PRE_EXISTING_suite_verdict_is_COMPLETE_with_the_state_recorded_BY_NAME():
+    """Ruling AY1-1's first half, and the leg that makes the whole refusal reachable.
+
+    Before this, `main`'s pre-existing red Actions pytest made every receipt incomplete, so the
+    merge median was UNDEFINED after however many flawless merges and a refuse-on-incomplete
+    rule would have refused all of them. COMPLETE is not the same as green: the state travels
+    with the receipt, by name, so nobody can read this row as a clean run.
+    """
+    receipt = _complete_merge(40.0, verdict=av.STATE_PRE_EXISTING)
+
+    assert receipt.is_complete() is True
+    assert receipt.suite_verdict() == av.STATE_PRE_EXISTING
+    assert av.STATE_PRE_EXISTING in mr.render_summary(receipt), \
+        "COMPLETE-on-a-pre-existing-red is only honest while the state is on the face of it"
+    assert receipt.to_dict()["suite_verdict"] == av.STATE_PRE_EXISTING, \
+        "the ledger row carries the state too -- a median a reader cannot audit is a claim"
+
+
+def test_a_REGRESSED_suite_verdict_is_INCOMPLETE_and_the_STATE_is_in_the_REFUSAL():
+    """AY1-1's second half. A merge that BROKE the suite is not a measurement of a merge."""
+    receipt = _complete_merge(40.0, verdict=av.STATE_REGRESSED)
+
+    assert receipt.is_complete() is False
+    assert av.STATE_REGRESSED in receipt.incompleteness_reason()
+    assert mr.median_report([receipt]).n == 0
+
+
+@pytest.mark.parametrize("state", [
+    None, av.STATE_NO_RUN, av.STATE_IN_PROGRESS, av.STATE_UNAVAILABLE,
+    av.STATE_JOBS_UNREADABLE, av.STATE_UNATTRIBUTED,
+])
+def test_a_suite_verdict_THAT_CANNOT_BE_READ_is_INCOMPLETE(state):
+    """"a verdict that cannot be read -> INCOMPLETE", enumerated rather than paraphrased.
+
+    Each of these says something different about WHY the suite result is unknown -- no run, not
+    finished, `gh` absent, the job list unreadable, no baseline to attribute against -- and the
+    one thing none of them says is "green". `actions_verdict`'s own remedy for the fourth is
+    explicit: "This merge's suite result is UNKNOWN, which is not the same as green and must
+    never be recorded as it."
+    """
+    receipt = _complete_merge(40.0, verdict=state)
+
+    assert receipt.is_complete() is False
+    assert mr.median_report([receipt]).n == 0
+    reason = receipt.incompleteness_reason()
+    assert "verdict" in reason.lower()
+    if state is not None:
+        assert state in reason, "the refusal names the state it read, never just 'unreadable'"
+
+
+def test_the_suite_steps_EXIT_CODE_no_longer_decides_completeness_and_is_still_VISIBLE():
+    """The pivot itself, as one test: exit code OUT of the predicate, never out of sight.
+
+    `[#744]`'s false pass was "force the step to exit 0", and AY1-1 rules it out by name. This
+    fix does the opposite -- it stops READING the exit code for completeness -- so the failing
+    step must still be printed, or the fix would have laundered a red step into silence and
+    become the very thing it refuses.
+    """
+    receipt = _complete_merge(40.0, verdict=av.STATE_PRE_EXISTING)
+    receipt.steps.append(_step("suite", 900.0, step_class=mr.CLASS_TESTS, ok=False))
+
+    assert receipt.is_complete() is True, "a tests-class step's exit code is not the predicate"
+    rendered = mr.render_summary(receipt)
+    assert "FAILED" in rendered and "suite" in rendered, \
+        "not read for completeness is not the same as not reported"
+
+    receipt.steps.append(_step("teardown-retry", 1.0, ok=False))
+    assert receipt.is_complete() is False, \
+        "a NON-suite step that failed still means the arc did not complete"
+
+
+def test_a_RETRIED_actions_read_SUPERSEDES_the_one_it_retried():
+    """`JOBS-UNREADABLE`'s remedy is "RETRY it", so the retry has to be able to win.
+
+    A predicate that took the FIRST recorded state would make the retry pointless; one that
+    demanded a single state would make retrying an error. The last recorded verdict is the read
+    that stands, and both stay in the itemised view so the retry is visible.
+    """
+    receipt = _complete_merge(40.0, verdict=av.STATE_JOBS_UNREADABLE)
+    assert receipt.is_complete() is False
+
+    receipt.steps.append(_step("actions-retry", 3.0, step_class=mr.CLASS_TESTS,
+                               verdict_state=av.STATE_PASS))
+
+    assert receipt.suite_verdict() == av.STATE_PASS
+    assert receipt.is_complete() is True
+    assert av.STATE_JOBS_UNREADABLE in mr.render_summary(receipt), \
+        "the superseded read stays on the receipt; a retry that hides the first is a rewrite"
+
+
+def test_there_is_NO_WAY_to_TYPE_a_VERDICT_STATE_onto_a_RECEIPT():
+    """Enforced by absence, asserted so the absence stays deliberate -- the same shape as
+    `--skip`'s absence next door, and for a stronger reason.
+
+    A `--state PASS` flag would put `[#744]`'s false pass one flag away: the integrator whose
+    `gh` is unavailable could type the green the tool refused to read. So the state arrives from
+    `actions_verdict`'s own state machine or it does not arrive, and `GH-UNAVAILABLE` refuses
+    the merge rather than offering a way round itself.
+    """
+    from click.testing import CliRunner
+
+    runner = CliRunner()
+    assert "--state" not in runner.invoke(mr.cli, ["actions", "--help"]).output
+    assert "--state" not in runner.invoke(mr.cli, ["time", "--help"]).output
+    assert "--verdict" not in runner.invoke(mr.cli, ["time", "--help"]).output
+    assert "--state" not in runner.invoke(mr.cli, ["close", "--help"]).output
+
+
+def test_the_actions_verb_RECORDS_the_state_it_READ_and_still_exits_NON_ZERO(tmp_path):
+    """Recorded, not recalled -- and the exit code is untouched.
+
+    The verb drives `actions_verdict`'s real state machine (a pytest job failing at BOTH the tip
+    and the baseline is PRE-EXISTING), records the state on the receipt, and reports non-`ok`
+    exactly as the standalone tool does. That last clause is `[#744]`'s false pass refused in
+    the place it would have been introduced: the receipt is now COMPLETE on a pre-existing red,
+    and the step still reports a failure the integrator must record.
+    """
+    mr.open_receipt(tmp_path, slug="m", batch="y")
+    fetch = _fetcher(tip=_run("tip", ("pytest", "failure"), ("lint", "success")),
+                     base=_run("base", ("pytest", "failure"), ("lint", "success")))
+
+    receipt, verdict = mr.record_actions_verdict(tmp_path, slug="m", sha="tip",
+                                                baseline="base", fetch=fetch)
+
+    assert verdict.state == av.STATE_PRE_EXISTING
+    assert verdict.ok is False, "PRE-EXISTING is not a pass, and this verb does not make it one"
+    assert receipt.suite_verdict() == av.STATE_PRE_EXISTING
+    assert mr.load_receipt(tmp_path, "m").suite_verdict() == av.STATE_PRE_EXISTING, \
+        "the state is persisted, or the next command cannot read it"
+
+
+def test_the_actions_verb_BINDS_the_receipt_to_the_MERGE_SHA_it_read(tmp_path):
+    """Which merge this receipt is OF -- the field the refusal below needs and the receipt has
+    never carried. Before `[#750]` a receipt was opened once per batch and named no commit, so
+    "this merge has a receipt" was not a question the ledger could answer.
+    """
+    mr.open_receipt(tmp_path, slug="m", batch="y")
+    fetch = _fetcher(tip=_run("tip", ("pytest", "success")))
+
+    mr.record_actions_verdict(tmp_path, slug="m", sha="tip", fetch=fetch)
+
+    assert mr.load_receipt(tmp_path, "m").merge_sha == "tip"
+
+
+# --- (3) a merge that lands without a receipt is REFUSED -------------------
+
+def test_a_merge_that_LANDED_WITH_NO_RECEIPT_is_REFUSED():
+    """Done-contract clause 1, and the reason the receipt had to learn the merge SHA.
+
+    `/lane-integrate`'s honest limit -- "it times what it is asked to time" -- was the whole of
+    the enforcement: a step run without the prefix was invisible, and so was a merge. The
+    refusal runs over the integrator's own walk range, so an unreceipted merge is NAMED rather
+    than inferred from a count that came out short.
+    """
+    receipt = _complete_merge(40.0, "landed")
+    receipt.merge_sha = "aaa111"
+
+    problems = dict(mr.audit_merges(["aaa111", "bbb222"], [receipt]))
+
+    assert problems["aaa111"] is None, "the merge with a complete receipt passes"
+    assert problems["bbb222"] is not None and "no receipt" in problems["bbb222"].lower()
+
+
+def test_a_merge_whose_receipt_is_INCOMPLETE_is_REFUSED_TOO_and_the_reason_travels():
+    """AY1-1's second half at the refusal rather than at the median: "`REGRESSED`, or a verdict
+    that cannot be read -> INCOMPLETE and the merge is refused". A refusal that accepted a
+    present-but-unusable receipt would be satisfied by opening and closing one.
+    """
+    regressed = _complete_merge(40.0, "broke", verdict=av.STATE_REGRESSED)
+    regressed.merge_sha = "ccc333"
+
+    problem = dict(mr.audit_merges(["ccc333"], [regressed]))["ccc333"]
+
+    assert problem is not None
+    assert av.STATE_REGRESSED in problem, "the refusal carries the state, not just a verdict"
+
+
+def test_an_ARC_receipt_cannot_DISCHARGE_a_merge():
+    """The `kind` filter's argument, applied to the refusal it now also guards. An arc pays no
+    merge and no teardown; accepting one as a merge's receipt would let the cheapest row in the
+    ledger satisfy the bar for the most expensive act."""
+    arc = _complete_merge(40.0, "arc")
+    arc.kind = mr.KIND_ARC
+    arc.merge_sha = "ddd444"
+
+    problem = dict(mr.audit_merges(["ddd444"], [arc]))["ddd444"]
+
+    assert problem is not None and "no receipt" in problem.lower()
+
+
+def test_the_REFUSAL_NAMES_ITS_OWN_VACUITY_when_the_range_holds_no_merge():
+    """A range with no merge commit in it passes, and says why it passed.
+
+    This module's founding complaint is a mechanism returning a plausible value because the
+    discriminating field is absent from what it looks at. "0 of 0 merges unreceipted" is exactly
+    that value, so the report distinguishes a clean walk from an empty one instead of printing
+    OK for both.
+    """
+    rendered = mr.render_require([], "main..main")
+
+    assert "no merge" in rendered.lower()
+    assert "not the same as" in rendered.lower(), \
+        "an empty check must not read like a passed one"
+
+
+def test_an_UNREADABLE_RANGE_REFUSES_rather_than_finding_NO_MERGES(tmp_path):
+    """The same failure with teeth: `git rev-list` over a bad range exits non-zero, and a reader
+    that turned that into an empty list would report every merge as receipted. Fail closed --
+    the identical fix `[#742]` made one organ over, where an errored `gh` call became an empty
+    job list and printed PASS."""
+    with pytest.raises(mr.MergeReceiptError, match="rev-list|git"):
+        mr.first_parent_merges(tmp_path, "no-such-ref..also-missing")
+
+
+def test_the_require_VERB_exits_NON_ZERO_on_an_UNRECEIPTED_merge(tmp_path, monkeypatch):
+    """The refusal as the integrator meets it: one exit code, and the merge named in the output.
+
+    §3's checklist is "an item is checked because its command was run", so this row has to be a
+    command that fails -- `audit.py handback`'s shape, which is the one row on that list that
+    was already mechanized.
+    """
+    from click.testing import CliRunner
+
+    receipt = _complete_merge(40.0, "landed")
+    receipt.merge_sha = "aaa111"
+    ledger = tmp_path / mr.LEDGER_RELPATH
+    ledger.parent.mkdir(parents=True, exist_ok=True)
+    ledger.write_text(json.dumps(receipt.to_dict()) + "\n", encoding="utf-8")
+    monkeypatch.setattr(mr, "first_parent_merges", lambda root, rng: ["aaa111", "bbb222"])
+
+    result = CliRunner().invoke(
+        mr.cli, ["--repo-root", str(tmp_path), "require", "--range", "base..HEAD"])
+
+    assert result.exit_code == 1
+    assert "bbb222" in result.output
+    assert "aaa111" in result.output, \
+        "the merge that PASSED is named too -- a checklist row is evidence, not a verdict"
