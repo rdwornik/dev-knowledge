@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "e65a7bd124ebb489c5b947792f3c8800ed0da7c31ee7279848d1e7e5f58dfeb4",
+  "generated_sha256": "129c5cbe0a94f65d77f408fb40509c0584e1320575aab0a0951fc8ca998ccab2",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -476,6 +476,10 @@
     {
       "task": 750,
       "file": "750-a-merge-can-land-with-no-receipt-the-completenes.md"
+    },
+    {
+      "task": 752,
+      "file": "752-a-contracts-declared-model-and-mode-reach-no-fla.md"
     },
     {
       "task": 758,

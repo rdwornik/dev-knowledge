@@ -125,6 +125,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#748] [P1][M] A lane whose worktree resolves to the primary checkout via a `core.worktree` redirect has no isolation, and dispatch cannot see it · tasks/748-a-lane-whose-worktree-redirects-to-the-primary-has-no-isolation.md
 - [#749] [P1][M] Two lanes may be dispatched for the same row under different slugs, because every duplicate check compares slugs rather than rows · tasks/749-two-lanes-may-be-dispatched-for-the-same-row-under-different-slugs.md
 - [#750] [P1][M] A merge can land with no receipt, the completeness predicate flattens a verdict state machine into a boolean, and `wall_seconds` records serial time rather than the arc span · tasks/750-a-merge-can-land-with-no-receipt-the-completenes.md
+- [#752] [P1][M] A contract's declared model and mode reach no flag the background launcher honours, and nothing reads what a lane actually ran · tasks/752-a-contracts-declared-model-and-mode-reach-no-fla.md
 - [#758] [P2][S] `[#675]` target 3.2 has never been satisfiable by the `lane-integrate` walk · tasks/758-675-target-32-has-never-been-satisfiable-by-the-w.md
 - [#759] [P2][S] `range_is_anchored` and `unanchored_on_spine` disagree on scope, and the 2026-09-14 instance fix does not close the class · tasks/759-range-is-anchored-and-unanchored-on-spine-disagree.md
 ### [S4] Extend structural validation to more governance artifacts

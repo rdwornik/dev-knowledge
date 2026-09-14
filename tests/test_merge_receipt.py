@@ -1131,3 +1131,143 @@ def test_there_is_NO_WAY_to_TYPE_a_BASELINE_RELATIONSHIP_ONTO_A_RECEIPT_EITHER()
         output = runner.invoke(mr.cli, [verb, "--help"]).output
         for flag in ("--state", "--verdict", "--ok", "--force"):
             assert flag not in output, f"{verb} must not be able to be handed a {flag}"
+
+
+# ===============================================================================================
+# RED-FIRST WITNESSES (ADR-108 §B) -- `[#752]`, the ORDERED-NOT-EQUAL-RAN refusal.
+#
+# THE FACT THIS RECEIPT COULD NOT HOLD. `lane-x-689-conductor-e-proof` was ordered at `opusplan`
+# and ran 84 of 84 assistant messages on `claude-sonnet-5`. Nothing in a receipt could say so:
+# the module recorded the merge SHA, the suite's verdict state, the baseline it was attributed
+# against and per-step minutes, and not one field named the model the work was DONE at. So a
+# receipt timing an arc run at a tier nobody ordered was indistinguishable from one timing the arc
+# that was ordered -- and it fed a median printed as the cost of that order.
+#
+# THE SPLIT THAT MAKES IT A MEASUREMENT RATHER THAN A CLAIM, and it is AY1-1's split reused: the
+# ORDERED tier is an input -- it is what the contract says, and it is typed -- while the RAN model
+# is READ off the lane's own transcript and can never be handed to this module. There is a flag
+# for the first and deliberately none for the second, because a typed ran-model is `[#744]`'s
+# false pass reached by the cheapest route of all.
+#
+# THE LEG FIRES ONLY ON A RECEIPT THAT CARRIES A READING, and that scoping is the same decision
+# `[#750]` made about `merge_sha`: a ledger row written before the fields existed knows neither
+# value, and a rule that refused it would refuse every merge in this repo on its first day, which
+# is the `Verdict.ok` trap with a new field in it. Silence is not agreement either -- a receipt
+# carrying ONE of the pair is a gap that REPORTS (Z-G4), never a pass.
+# ===============================================================================================
+
+def _closed_receipt(ordered=None, ran=None, *, kind=mr.KIND_MERGE) -> mr.Receipt:
+    """A receipt that clears legs 1-3 and every downstream leg, so the model pair is the only
+    thing a test varies. Required steps and a PASS verdict are present for `kind=merge`."""
+    receipt = mr.Receipt(slug="m", batch="y", opened=_stamp(), host="test", concurrent_seats=0,
+                         kind=kind, merge_sha="abc123def456",
+                         ordered_model=ordered, ran_model=ran)
+    for name in mr.REQUIRED_STEPS:
+        receipt.steps.append(_step(name, 60.0))
+    if kind == mr.KIND_MERGE:
+        _set_verdict(receipt, av.STATE_PASS)
+    receipt.closed = _stamp(600.0)
+    return receipt
+
+
+def test_a_receipt_whose_ran_model_differs_from_its_ordered_model_is_REFUSED():
+    """The row's own sentence, as a predicate. Everything else about this receipt is clean."""
+    receipt = _closed_receipt(ordered="opus", ran="claude-sonnet-5")
+    reason = receipt.incompleteness_reason()
+    assert reason is not None
+    assert "opus" in reason and "claude-sonnet-5" in reason, \
+        "the refusal names BOTH the order and what ran, or a reader cannot act on it"
+    assert not receipt.is_complete()
+
+
+def test_a_receipt_whose_ran_model_matches_its_ordered_model_is_complete():
+    """The negative control. A refusal that fired on a faithful run would be a gate nobody keeps."""
+    assert _closed_receipt(ordered="opus", ran="claude-opus-5").is_complete()
+
+
+def test_an_ordered_opusplan_receipt_is_REFUSED_rather_than_read_as_its_sonnet_half():
+    """THE WITNESS. `opusplan` is a SPLIT tier, so both families are a legal reading of it and no
+    transcript can discharge the order either way. Accepting `claude-sonnet-5` as agreement would
+    certify the exact collapse that made every routing decision in that window advisory; refusing
+    it as UNVERIFIABLE is Z-G4 -- a check that cannot compute its ground truth reports a gap."""
+    reason = _closed_receipt(ordered="opusplan", ran="claude-sonnet-5").incompleteness_reason()
+    assert reason is not None and "opusplan" in reason
+
+
+def test_an_order_with_nothing_read_is_a_gap_not_a_pass():
+    """Asking the question and failing to answer it is not the same as the answer being yes."""
+    reason = _closed_receipt(ordered="opus", ran=None).incompleteness_reason()
+    assert reason is not None and "opus" in reason
+
+
+def test_a_reading_with_no_order_recorded_is_a_gap_not_a_pass():
+    """The mirror. A model read off a transcript with nothing to compare it against says what ran
+    and nothing about whether that is what was asked for."""
+    assert _closed_receipt(ordered=None, ran="claude-opus-5").incompleteness_reason() is not None
+
+
+def test_a_receipt_carrying_NEITHER_keeps_the_predicate_it_ALREADY_HAD():
+    """The `[#750]` scoping decision, re-made. Every ledger row predating these fields carries
+    neither, and back-dating a judgement nobody made would refuse a corpus of clean merges in
+    order to arm a new check -- `Verdict.ok`'s trap with a different field in it."""
+    assert _closed_receipt().is_complete()
+
+
+def test_the_model_leg_binds_an_ARC_as_well_as_a_MERGE():
+    """Scoping this to merges would put the witness OUTSIDE the predicate: `lane-x-689` was a lane
+    arc, not an integrator's merge, and a lane arc is the only thing a lane seat can measure.
+    Legs 4 and 6 are merge-only because an arc reads no Actions run and pays no teardown; an arc
+    is ordered at a tier exactly like a merge is."""
+    reason = _closed_receipt(ordered="opus", ran="claude-sonnet-5",
+                             kind=mr.KIND_ARC).incompleteness_reason()
+    assert reason is not None and "claude-sonnet-5" in reason
+
+
+def test_legs_1_to_3_still_come_FIRST(tmp_path):
+    """The leg order is load-bearing and `[#750]` said so: a receipt that never closed, or whose
+    span cannot be read, is refused BEFORE anything is read off it. A model divergence must not
+    jump that queue and report a comparison on an arc that timed nothing."""
+    receipt = _closed_receipt(ordered="opus", ran="claude-sonnet-5")
+    receipt.closed = None
+    reason = receipt.incompleteness_reason()
+    assert reason is not None and "never closed" in reason
+
+
+def test_the_model_pair_round_trips_through_the_ledger(tmp_path):
+    """A refusal that evaporates on serialisation refuses nothing: `close` appends to the ledger
+    and `median` reads it back, so the pair has to survive the trip."""
+    mr.open_receipt(tmp_path, slug="m", batch="y")
+    receipt = mr.load_receipt(tmp_path, "m")
+    receipt.ordered_model, receipt.ran_model = "opus", "claude-sonnet-5"
+    mr.save_receipt(tmp_path, receipt)
+    back = mr.Receipt.from_dict(json.loads(mr.scratch_path(tmp_path, "m").read_text("utf-8")))
+    assert (back.ordered_model, back.ran_model) == ("opus", "claude-sonnet-5")
+
+
+def test_a_divergent_receipt_never_reaches_the_median(tmp_path):
+    """The consequence that makes the refusal worth having. A median over an arc run at a tier
+    nobody ordered is a cost figure for a different run, reported as the cost of this one."""
+    diverged = _closed_receipt(ordered="opus", ran="claude-sonnet-5")
+    report = mr.median_report([diverged])
+    assert report.n == 0, "an unusable receipt is EXCLUDED, not weighted"
+    assert "opus" in report.render(), "and the exclusion is accountable, never a bare count"
+
+
+def test_there_is_NO_FLAG_THAT_TYPES_A_RAN_MODEL_ONTO_A_RECEIPT():
+    """AY1-1's absence rule, applied to the new pair. `--ordered` is legitimate -- the order IS an
+    input, and it is what the contract says. `--ran` would make the whole refusal self-certifying:
+    a seat that typed what it wished had run would produce a receipt agreeing with itself."""
+    from click.testing import CliRunner
+
+    runner = CliRunner()
+    output = runner.invoke(mr.cli, ["models", "--help"]).output
+    assert "--ordered" in output, "the ORDER is an input and is declared"
+    for flag in ("--ran", "--ran-model", "--actual", "--force"):
+        assert flag not in output, f"the RAN model is READ; `{flag}` would let it be asserted"
+
+
+def test_the_summary_SAYS_when_a_receipt_carries_no_model_reading():
+    """An absence a reader cannot see reads as a clean bill. The row this module exists for is
+    about a plausible answer returned because the discriminating field was absent."""
+    rendered = mr.render_summary(_closed_receipt())
+    assert "model" in rendered.lower()
