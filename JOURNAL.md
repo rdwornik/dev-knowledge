@@ -19,6 +19,92 @@
 
 ---
 
+### 2026-09-14 (a) - CC (Opus 5, background integrator seat): batch X's two unmerged trees land, and the ceiling clears for batch Y
+
+**Anchors:** `6a0eeb89`, `23255802`, `6a64b2a8` — each named SHA is in the introduced set of
+the spine entry it discharges.
+
+**Did.** Executed operator ruling `AMEND-BATCH-Y-ROSTER-001` AY1-2 from the primary checkout:
+land the two work-carrying batch-X worktrees, tear down all five, clear the lane ceiling so
+batch Y can open at 0 provisioned. Identified the two by `git merge-base --is-ancestor` rather
+than by branch name, as the ruling directs — the name tells you what a branch was called, not
+whether its work exists anywhere else. Three of the five reported CONTAINED (ahead=0, pure
+husks); two reported NOT contained, at 10 and 5 commits.
+
+Each was synced onto `main` before its merge, then merged `--no-ff`, then reviewed by Codex
+`gpt-5.6-terra` — the two reviews raced concurrently rather than queued, so the pair cost
+`max(r1, r2)` rather than `r1 + r2`.
+
+**Result.** Both landed. `6a0eeb89` (sync `fd6b4cbb`) brought the six ratified retirements —
+`gen_trend_dashboard`, `gen_north_star`, `window_metrics`, `failed_set`, `nopack_sandbox`,
+`trace_writer` — with their tests, plus TRIGGER 1 (`archive_row_body verify` onto pre-commit)
+and TRIGGER 2 (`logs_retention` onto SessionStart), both RED-first, and the
+`cost_usage_telemetry` KEEP correction. `23255802` (sync `82f51618`) brought batch X4's
+**dispatch half**: the manifest declaring X4 open, five frozen launch contracts, ADR-119
+(Accepted), intake #94 and `[#747]`.
+
+**The behavioural change, recorded because it is not in the diff.** `open_batches()` returned
+`[]` for the entire window in which X4's own lanes were being merged — the manifest was frozen
+and correct on an unmerged branch, so the ADR-110 declared-integration-arc exemption was never
+live for the batch it governed, and the previous integrator paid `SKIP=audit-health` per merge
+for it. It now returns X4. Refuse-to-finish item 4's dispatch half is satisfied at last.
+
+**AY1-3 verified rather than assumed.** `archive_row_body.py` read 8 consumers yesterday, every
+one `task-implements` and not a single wiring edge. It now reads 9, the new one being
+`is triggered by file:.pre-commit-config.yaml [wiring]`. Y-5's premise — which AY1-3 corrected
+as FALSE — is true on `main` as of `6a0eeb89`. Checked through the graph organ, not by reading
+the hook roster, because the roster is prose and the graph is the surface the census reads.
+
+**Two review findings, both verified against the tree rather than taken on the reviewer's word.**
+CRIT 0 on merge 2, HIGH 1; CRIT 1 on merge 1 as reported, downgraded here to HIGH with reasons.
+
+- **The renumber missed one surface, and it was a real identity collision.** `[#746]` -> `[#747]`
+  reached the task filename, frontmatter `id:`, every body token, the `tasks/manifest.json` node
+  and ADR-119 itself. It did NOT reach the editorial one-liner in `docs/decisions/README.md`,
+  which still read "births `[#746]`" — and `[#746]` is a live unrelated row (devcontainer
+  history/ecosystem repair). The ADR index asserted one task identity for two subjects, in the
+  one place nothing regenerates. Fixed in `6a64b2a8`; `decision_coverage` re-reads OK.
+- **A generated surface outlived its generator, and no gate sees it.** `ecosystem/north-star.md`
+  is GENERATED, its header names `scripts/gen_north_star.py` as the regeneration command and as
+  the declarative home of its arc names, and `README.md:74` repeats that command. The generator
+  was deleted by this very merge. So the file is now permanently unregenerable and two documents
+  hand a reader a dead command. `north-star.md` is registered with no generated-artifact
+  freshness check, which is why nothing caught it. **NOT repaired here, deliberately:** the two
+  lawful answers are retire the artifact or restore the generator, that is an architect call
+  rather than an integrator's, and editing the header would be wasted work if the answer is
+  retirement. Carried to the batch Y close packet's remainder list as a CANDIDATE.
+
+**What I checked that the reviewer did not ask.** The lane's own evidence records
+`gen_north_star.py` verdicting SAFE as a **false pass** — a live `importlib.spec_from_file_location`
+importer the static oracle could not see, the `desired_state_loader` failure class. So the real
+question was whether any importlib call site survived the deletion. Swept every `.py` under
+`scripts/` and `tests/`: seven hits, **all of them comments**, zero live call sites. The lane
+handled its own edge correctly, including the ordered deletion that edge required.
+
+**Changes.** `docs/decisions/README.md` (the renumber surface). Six `scripts/` modules and their
+tests deleted; `.pre-commit-config.yaml` and `.claude/settings.json` gained the two triggers;
+`CLAUDE.md` hook roster and `ecosystem/organ-index.md` regenerated by their own gates.
+`docs/audits/` gained the X4 manifest and five launch contracts; `docs/decisions/` gained
+ADR-119; `docs/intake/` gained #94; `tasks/` gained `747`. `tasks/manifest.json` and `BACKLOG.md`
+resolved as a UNION of both sides' new nodes (745-749 all present, 320 nodes), hand-resolved
+before any generator ran — regenerating over a conflicted file absorbs the markers into the
+output, and that corruption reads clean.
+
+**Abandoned.** Nothing. Both branches landed; neither was abandoned and no work was dropped.
+`SKIP=audit-health` was taken ONCE, on `6a64b2a8`, declared in its body, for the anchor
+circularity this entry discharges — the health gate blocks every commit while a spine entry is
+unanchored, and the anchor cannot be written before the commit it must name. `--no-verify` was
+not used anywhere and no other hook was skipped.
+
+**Next.** Tear down all five worktrees and BOTH branch classes per WORKTREE TEARDOWN IS TWO
+BRANCHES, including the origin ref for the one branch that has one; verify `git worktree list`
+reads primary-only and no `worktree-*` ref survives locally or on origin; push; report the
+0-count to the dispatcher, whose six batch-Y contracts are frozen and blocked on exactly that
+number. Batch Y then fires 4 + 2 rather than 6 — `file-collision` refused the full six because
+`[#750]`/`[#752]` both claim `scripts/merge_receipt.py` and `[#751]`/`[#753]` both claim
+`ecosystem/provider-registry.yaml` — so `[#752]` releases when `[#750]` lands and `[#753]` when
+`[#751]` lands, making integrator merge order the release mechanism rather than a timer.
+
 ### 2026-09-13 (w) - CC (Opus 5, background integrator seat): the conductor's one new node id, attributed and closed
 
 **Anchors:** `338fd126`, introduced by this arc's own `--no-ff` merge.
