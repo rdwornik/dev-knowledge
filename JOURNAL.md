@@ -19,6 +19,89 @@
 
 ---
 
+### 2026-09-14 (f) - CC (Opus 5, background integrator seat): the receipt tool lands, its own false pass closed by a review, and a merge is gated for the first time today
+
+**Anchors:** `a65f9493` — the lane tip this merge introduces, named by the spine entry that introduces
+it. Entry rides inside the merge commit, per the (A′) shape entry (e) records.
+
+**Merged** `worktree-lane-y-750-merge-receipts` @ `a65f9493`, seven commits, 7 files, +1781/-96.
+`scripts/merge_receipt.py` gains the `actions` and `require` verbs; `tests/test_merge_receipt.py` gains
+the RED-first witnesses; `/lane-integrate` states the push precondition. **`[#750]` stays OPEN** —
+closure is the operator's act, and the lane said so itself rather than closing on its own landing.
+
+**A CODEX `gpt-5.6-terra` REVIEW CAUGHT A CRITICAL THAT WOULD HAVE SHIPPED, AND IT WAS THE SAME FALSE
+PASS THE MODULE EXISTS TO CLOSE.** `--baseline` was free-form and never checked against `sha^1`, so
+**choosing the baseline chose the verdict**: read a genuinely `REGRESSED` merge against any older
+commit where `pytest` also failed and it returns `PRE-EXISTING`, the receipt completes, `require`
+exits 0. The module forbids *typing* a verdict with unusual rigour — no `--state` flag, a test
+asserting its absence, a docstring saying MEASURED NOT TYPED — and the baseline was typed. **`[#744]`'s
+false pass was closed at the front door and open at the side.** I rated it CRITICAL rather than
+theoretical because the realistic path is error, not malice: `--baseline main`, or a value
+copy-pasted from the previous lane's block, in a six-merge walk.
+
+**The lane fixed all three findings RED-first and its fix is better than what I asked for.**
+`first_parent_of()` derives the baseline through git; `--baseline` is now optional and, when passed,
+is an **assertion** that is REFUSED with both commits named if it is not the first parent. It **fails
+closed** — an unresolvable SHA refuses rather than returning `None`, because `None` would reach
+`verdict_for` as "no baseline" and produce an `UNATTRIBUTED` indistinguishable on the receipt from an
+honest unknown — and a refused read records **nothing**, so no receipt carries half a rejected
+reading. On the HIGH it kept last-wins (which is what makes `JOBS-UNREADABLE`'s retry expressible)
+but made a **regression STICKY**: completeness refuses on any recorded `REGRESSED` reading regardless
+of position, naming the step that read it, because a regression once observed is a fact about this
+merge while a later green read is a fact about a re-run. It also **declined** the override flag I
+offered, on the ground that it knows no legitimate use and adding one would reinstate the escape
+hatch `--state`'s absence exists to deny. **Declining an offered escape hatch is the right instinct
+and I record it as the lane's, not mine.** New `StepTiming.baseline_sha` prints `vs <sha>` beside the
+state, and is honestly `None` on pre-existing rows whose baseline is no longer recoverable.
+
+**MEDIUM, and the shape generalises: an absence test proves the absence it NAMES, not the absence of
+the class.** The original asserted `--state` absent from `actions`, `time`, `close` but `--verdict`
+absent only from `time` — so an `actions --verdict PASS` flag would have left every assertion green.
+All four of `(--state, --verdict, --ok, --force)` are now asserted absent from all three verbs.
+
+**AN UNEXPECTED AND CONSEQUENTIAL DISCOVERY: `git merge --no-commit` FOLLOWED BY `git commit` RUNS THE
+FULL PRE-COMMIT REGISTRY.** Measured on today's own merges, same repo, same config:
+
+```
+git merge --no-ff <sha>                       ->  2 hooks   (commit-msg only)
+git merge --no-commit --no-ff <sha> && commit -> 31 hooks   (the whole registry)
+```
+
+Git fires `pre-merge-commit` for a merge the merge machinery completes, and that hook type is not
+installed — but a merge *finished by `git commit`* fires `pre-commit`, which is. **So the entire
+bypass has a zero-config, integrator-side mitigation available today**: never let a merge
+self-commit. `b779616e` and this merge are the first merges today whose MERGED tree was actually
+gated — `validate-hermetization`, `graph-rebuild`, the four `graph-*` checks,
+`impacted-tests-guard`, `decision-coverage` and `audit-health` all ran on the merged result rather
+than on the inputs. This does not retire the config finding: a convention still depends on the seat
+remembering, and arming `pre-merge-commit` properly remains a two-line change touching 28 of 33
+hooks. **But it changes the finding's urgency from "merges are unguarded" to "merges are unguarded
+unless the integrator merges in two steps", which is a much cheaper thing to fix.**
+
+**Conflict resolved by regeneration, not by markers.** `tasks/manifest.json` conflicted on exactly
+one field — `generated_sha256`, which both sides recomputed after adding a node. I removed the
+markers, verified BOTH `[#755]` and `[#742]` nodes survived by parsing the JSON rather than grepping
+for a string shape I had already guessed wrong twice, then re-ran `gen_task_tree.py --emit-source` to
+re-pin the checksum against real content. `--check ok`, 323 tasks. `BACKLOG.md` auto-merged correctly
+and the regen confirmed it rather than assuming it.
+
+**DECLARED BYPASS: `SKIP=doc-counts-pytest-freshness`, this commit only.** The merge stages
+`tests/test_merge_receipt.py`, which matches that hook's filter, and the collected-test claim is
+stale by **251 in the direction my change cannot cause** — the lane measured `file 6111 / actual 5860`
+with all its new tests counted, and adding tests can only raise `actual`, so the claim was already
+too high before this lane existed. `gen_doc_counts.py` reads **HEAD**, so running it now would write
+the pre-merge count; it is owed on the merged tree and is the next act. Nothing else skipped;
+`--no-verify` not used.
+
+**Changes.** `scripts/merge_receipt.py`, `tests/test_merge_receipt.py`,
+`.claude/commands/lane-integrate.md`, `tasks/` (+`[#742]`, manifest re-pinned), `BACKLOG.md`, the
+lane's packet, and this entry.
+
+**Abandoned.** Nothing.
+
+**Next.** `gen_doc_counts.py --write` on this merged tree. Then `#754`, whose bar is refuted rather
+than missed. Then the second audits-index pass, the X3 row for ARCHITECTURE, and the close packet.
+
 ### 2026-09-14 (e) - CC (Opus 5, background integrator seat): ESSENTIALS.md is gone, [#628] does not close, and a review found six citations the lane's own census missed
 
 **Anchors:** `09a5cebd` — the lane tip this merge introduces, named by the spine entry that
