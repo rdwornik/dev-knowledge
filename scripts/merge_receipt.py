@@ -234,6 +234,13 @@ class StepTiming:
     #: remedy is "RETRY it", so a second read must be able to supersede the first with both still
     #: visible. `Receipt.suite_verdict()` takes the last one recorded.
     verdict_state: Optional[str] = None
+    #: THE COMMIT THIS READING WAS ATTRIBUTED AGAINST -- the merge's first parent, derived rather
+    #: than supplied. Recorded because a differential is only meaningful relative to its
+    #: baseline: a `PRE-EXISTING` whose baseline nobody can name is not an auditable reading, it
+    #: is a claim. `None` on a step that read no verdict, and on a ledger row written before the
+    #: baseline was derived -- which is honest, because those readings took a baseline that was
+    #: typed and is no longer recoverable.
+    baseline_sha: Optional[str] = None
 
     @property
     def minutes(self) -> float:
@@ -484,6 +491,20 @@ class Receipt:
                 return (f"suite verdict {state} -- {why}; only "
                         f"{' or '.join(COMPLETE_SUITE_STATES)} is COMPLETE (ruling AY1-1). "
                         f"-> {_av.REMEDIES.get(state, 'read the verdict and record it')}")
+            # A REGRESSION IS STICKY, and this leg is why `suite_verdict`'s last-wins rule is
+            # safe. Last-wins exists for `JOBS-UNREADABLE` -> a real read, and it must not also
+            # let a re-run overwrite a REGRESSION: a regression once observed is a fact about
+            # this merge, whereas a later green read is a fact about a run that was RE-RUN. Those
+            # are different claims, and accepting the second as a retraction of the first is
+            # `[#744]`'s false pass with a retry in front of it. Both readings stay on the
+            # receipt and both print, so the disagreement is visible rather than resolved.
+            if regressed := [s.step for s in self.steps
+                             if s.verdict_state == _av.STATE_REGRESSED]:
+                return (f"a REGRESSED suite verdict was recorded on step(s) "
+                        f"{', '.join(regressed)} and the latest reading is {state} -- a re-run "
+                        f"does not un-regress a merge, so this receipt stays INCOMPLETE. If the "
+                        f"regression was mis-attributed, the baseline was wrong and the fix is a "
+                        f"correct read on a new receipt, not a second opinion on this one")
         failed = [s for s in self.failed_steps() if not self.judged_by_verdict(s)]
         if failed:
             return (f"{len(failed)} step(s) failed ({', '.join(s.step for s in failed)}) -- "
@@ -523,7 +544,8 @@ class Receipt:
                             ok=s["ok"], returncode=s.get("returncode"),
                             command=s.get("command", ""), started=s.get("started", ""),
                             raced_with=tuple(s.get("raced_with", ())),
-                            verdict_state=s.get("verdict_state"))
+                            verdict_state=s.get("verdict_state"),
+                            baseline_sha=s.get("baseline_sha"))
                  for s in data.get("steps", [])]
         # A row written before `kind` existed is a MERGE receipt — that is what the ledger held
         # when the field was absent, so the default reads the history correctly rather than
@@ -630,9 +652,45 @@ def run_timed(command: Sequence[str], *, step: str, step_class: str,
                       ok=rc == 0, returncode=rc, command=" ".join(command), started=started)
 
 
+def first_parent_of(repo_root: Path, sha: str) -> str:
+    """`<sha>^1`, resolved by git. FAILS CLOSED -- raises rather than returning None.
+
+    THE ATTRIBUTION POINT IS DERIVED, NEVER SUPPLIED (`[#750]` follow-up). Returning None on an
+    unresolvable SHA would be the worst available answer: None reaches `verdict_for` as "no
+    baseline", which produces `UNATTRIBUTED` -- and `UNATTRIBUTED` arriving from a silent git
+    failure is indistinguishable, on the receipt, from `UNATTRIBUTED` arriving from an honest
+    unknown. Same posture, and the same argument, as `first_parent_merges`.
+    """
+    command = ["git", "-C", str(repo_root), "rev-parse", "--verify", f"{sha}^1"]
+    try:
+        proc = subprocess.run(command, capture_output=True, text=True, check=False, timeout=60)
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise MergeReceiptError(f"git rev-parse {sha}^1 could not be run: {exc!r}") from exc
+    if proc.returncode != 0:
+        raise MergeReceiptError(
+            f"git rev-parse {sha}^1 exited {proc.returncode}: {proc.stderr.strip()[:200]} -- "
+            f"the baseline is DERIVED from the merge's first parent and cannot be guessed. A "
+            f"root commit, an unknown SHA, or a commit not yet in this repository each land "
+            f"here; refusing beats attributing the verdict to nothing")
+    resolved = proc.stdout.strip()
+    if not resolved:
+        raise MergeReceiptError(f"git rev-parse {sha}^1 printed nothing -- refusing to read "
+                                f"silence as a baseline")
+    return resolved
+
+
+def _same_commit(left: str, right: str) -> bool:
+    """Prefix-tolerant in BOTH directions, the same comparison `audit_merges` already makes: a
+    walk is written with short SHAs and a ledger records long ones, and neither is wrong."""
+    left, right = left.strip(), right.strip()
+    if not left or not right:
+        return False
+    return left.startswith(right) or right.startswith(left)
+
+
 def record_actions_verdict(repo_root: Path, *, slug: str, sha: str,
                            baseline: Optional[str] = None, step: str = ACTIONS_STEP,
-                           fetch=None) -> tuple[Receipt, "_av.Verdict"]:
+                           fetch=None, first_parent=None) -> tuple[Receipt, "_av.Verdict"]:
     """Read this merge's Actions verdict, record its STATE on the receipt, bind the merge SHA.
 
     RULING AY1-1'S CARRIER. Until `[#750]` this was a `time --step actions -- actions_verdict.py
@@ -651,19 +709,48 @@ def record_actions_verdict(repo_root: Path, *, slug: str, sha: str,
     still reports a failure the integrator must record in the batch packet. COMPLETE is a
     statement about the RECEIPT; it was never a statement about the run.
 
+    AND THE BASELINE IS MEASURED TOO, which it was not until this follow-up. `--baseline` was
+    free-form and never checked against `<sha>^1`, so the input that CHOOSES the verdict was the
+    one input still typed: hand it any older commit where the suite also failed and a genuinely
+    `REGRESSED` merge reads `PRE-EXISTING`, the receipt completes and `require` exits 0. That is
+    `[#744]`'s false pass reached through a side door while the front one was bolted, and the
+    realistic path to it is an ordinary slip -- `--baseline main` instead of `sha^1`, or a
+    baseline copy-pasted from the previous lane's block in a six-merge walk.
+
+    So the first parent is DERIVED, an explicitly-passed baseline is REFUSED unless it is that
+    commit, and the SHA actually attributed against is RECORDED on the step. There is no override
+    flag, and the omission is deliberate rather than an oversight: adding one would reinstate the
+    escape hatch the `--state` absence exists to deny. If a non-first-parent baseline ever has a
+    legitimate use it arrives as its own named requirement, recording itself on the receipt so it
+    cannot be mistaken for the default reading.
+
+    A REFUSED READ RECORDS NOTHING. The check runs before the reader is called, so a receipt
+    never carries half of a rejected reading -- a partially-recorded verdict would be the very
+    false pass this guards.
+
     `fetch` is `actions_verdict`'s own injection seam, passed straight through so a test drives
-    the real state machine rather than asserting a state it typed itself.
+    the real state machine rather than asserting a state it typed itself. `first_parent` is the
+    same shape for the git resolution, so the refusal is testable without a repository fixture.
     """
     receipt = load_receipt(repo_root, slug)
+    resolve = first_parent or first_parent_of
+    derived = resolve(repo_root, sha)
+    if baseline is not None and not _same_commit(baseline, derived):
+        raise MergeReceiptError(
+            f"baseline {baseline} is not the first parent of {sha}, which is {derived}. The "
+            f"differential must mean 'what THIS merge changed', and attributing against any "
+            f"other commit silently converts a REGRESSION into a pre-existing red -- ruling "
+            f"AY1-1's one forbidden conversion. Omit --baseline and it is derived for you; "
+            f"there is deliberately no flag that accepts a different one")
     started = _now()
     clock = time.perf_counter()
-    verdict = _av.verdict_for(sha, baseline=baseline, fetch=fetch, repo_root=repo_root)
+    verdict = _av.verdict_for(sha, baseline=derived, fetch=fetch, repo_root=repo_root)
     elapsed = time.perf_counter() - clock
     receipt.steps.append(StepTiming(
         step=step, step_class=CLASS_TESTS, seconds=round(elapsed, 3), ok=verdict.ok,
         returncode=0 if verdict.ok else 1,
-        command=f"actions_verdict.verdict_for(sha={sha}, baseline={baseline})",
-        started=started, verdict_state=verdict.state))
+        command=f"actions_verdict.verdict_for(sha={sha}, baseline={derived})",
+        started=started, verdict_state=verdict.state, baseline_sha=derived))
     receipt.merge_sha = sha
     save_receipt(repo_root, receipt)
     return receipt, verdict
@@ -937,8 +1024,13 @@ def render_summary(receipt: Receipt) -> str:
         # code out of the completeness predicate; taking it out of the REPORT as well would have
         # laundered a red step into silence and become the false pass it exists to refuse.
         state = f"  verdict {step.verdict_state}" if step.verdict_state else ""
+        # AND THE BASELINE IT WAS ATTRIBUTED AGAINST. A differential means nothing without the
+        # commit it is a differential FROM: `PRE-EXISTING` against an unnamed baseline is a claim,
+        # not a reading. It is derived rather than typed, and printing it is what lets a reader
+        # check that rather than take it on trust.
+        against = f" vs {step.baseline_sha[:12]}" if step.baseline_sha else ""
         lines.append(f"  {step.minutes:6.2f} min  [{step.step_class:8s}] {step.step:12s} "
-                     f"{verdict}{state}{raced}")
+                     f"{verdict}{state}{against}{raced}")
     wall = receipt.wall_seconds() / 60.0
     recorded = receipt.recorded_seconds() / 60.0
     serial = receipt.serial_seconds() / 60.0
@@ -1117,9 +1209,11 @@ def cmd_race(ctx: click.Context, slug: str, jobs: tuple[str, ...]) -> None:
 @click.option("--sha", required=True, help="the MERGE commit whose Actions run is read; this "
                                            "receipt is bound to it")
 @click.option("--baseline", default=None,
-              help="the SHA to attribute against -- normally the merge's FIRST PARENT, so the "
-                   "differential means 'what this merge changed'. Omitted, a failure is "
-                   "UNATTRIBUTED, which cannot discharge a merge")
+              help="OPTIONAL and normally OMITTED: the baseline is DERIVED from the merge's "
+                   "first parent, so the differential means 'what this merge changed'. Pass it "
+                   "only to assert what you expect -- a value that is not <sha>^1 is REFUSED, "
+                   "because attributing against any other commit silently converts a REGRESSION "
+                   "into a pre-existing red")
 @click.option("--step", default=ACTIONS_STEP, show_default=True,
               help="the step id to record under; a retry records under its own id and wins")
 @click.pass_context

@@ -361,7 +361,8 @@ merge_receipt.py race   --slug "$R" ...                # concurrent steps, raced
 # --- THE MERGE MUST BE PUSHED BEFORE THE NEXT LINE. See the boxed warning below. ---
 
 # 3. the suite verdict -- this REPLACES `time --step actions -- actions_verdict.py ...`
-merge_receipt.py actions --slug "$R" --sha <the MERGE commit> --baseline <its FIRST PARENT>
+#    NO --baseline: it is DERIVED from <sha>^1. Passing a non-first-parent value is REFUSED.
+merge_receipt.py actions --slug "$R" --sha <the MERGE commit>
 
 # 4. after `actions`, never before it; appends to logs/MERGE-RECEIPTS.jsonl, prints the summary
 merge_receipt.py close  --slug "$R"
@@ -407,8 +408,15 @@ row to `logs/MERGE-RECEIPTS.jsonl` and removes the open file. `require` and `med
 
 **Four things to get right, each for a reason:**
 
-- **`--baseline` is the merge's FIRST PARENT.** Omitted, a failure is `UNATTRIBUTED`, which **cannot**
-  discharge a merge — the differential is what makes the verdict mean *"what this merge changed"*.
+- **Do not pass `--baseline` — it is DERIVED from `<sha>^1`.** Pass it only to *assert* what you
+  expect; a value that is not the first parent is **REFUSED**, naming both commits. This is a
+  correction: the first version of this Part told you to pass it. **The baseline selects the
+  verdict**, so accepting it as free-form text left `[#744]`'s false pass open at the side door
+  while `--state`'s absence guarded the front — attribute a merge that broke `pytest` against an
+  older commit where `pytest` also failed and a `REGRESSED` merge reads `PRE-EXISTING`, the receipt
+  completes, and `require` exits 0. Found by Codex `gpt-5.6-terra`; the realistic route was an
+  ordinary slip, not malice. A first parent that cannot be read **refuses** rather than falling back
+  to no baseline. The SHA actually read is recorded on the step and printed as `vs <sha>`.
 - **`--sha` is the merge commit**, and it is what binds the receipt to the merge. Without it `require`
   cannot see the receipt at all, so step 3 is not optional garnish: it is the step that makes the
   merge receipted.
@@ -432,8 +440,11 @@ Read this before starting. Five things moved that a later lane will trip over:
 1. `wall_seconds()` is now **derived** from `opened`/`closed` and is no longer a stored field that is
    read back. `recorded_seconds()` is the old arithmetic. A test that asserts on `wall_seconds()` after
    setting only step durations will now read the span.
-2. `StepTiming` gained `verdict_state: Optional[str]`; `Receipt` gained `merge_sha: Optional[str]`.
-   Both default to `None` and both round-trip through `to_dict`/`from_dict`.
+2. `StepTiming` gained `verdict_state` and `baseline_sha`; `Receipt` gained `merge_sha`. All
+   `Optional[str]`, all default `None`, all round-trip through `to_dict`/`from_dict`.
+2a. **`record_actions_verdict()` now takes a `first_parent` seam and derives the baseline.** A test
+   that calls it with an explicit `baseline=` and no seam will hit real git and refuse. Pass
+   `first_parent=lambda root, sha: "<the parent>"` — the same shape as `fetch`.
 3. `to_dict()` emits three **derived** keys — `recorded_seconds`, `unrecorded_seconds`,
    `suite_verdict`. They are outputs, not inputs; `from_dict()` does not read them back.
 4. `incompleteness_reason()` is six ordered legs. The order is load-bearing: a receipt that never

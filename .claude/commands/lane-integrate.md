@@ -160,13 +160,27 @@ a gate"):
 
 ```bash
 uv run --locked python scripts/merge_receipt.py actions --slug lane-<letter>-<id>-<slug> \
-  --sha <merge sha> --baseline <its FIRST PARENT>
+  --sha <merge sha>
 ```
 
-**Pass the merge's first parent as the baseline**, so the differential means *what this merge
-changed*. Hand it anything else and it means something else — the tool cannot know which you
-intended, so the choice is named here. Omit it entirely and a failure is `UNATTRIBUTED`, which
-**cannot discharge the merge** (below).
+**Do not pass `--baseline`. It is DERIVED from `<sha>^1`**, so the differential means *what this
+merge changed* without you having to get it right at every merge of a six-merge walk. Pass it only
+to **assert** what you expect: a value that is not the merge's first parent is **REFUSED**, and the
+refusal names both commits.
+
+**Why it is derived rather than supplied, which is a correction to how this section read at
+`02c6ed5d`.** The baseline SELECTS the verdict. Attribute a merge that broke `pytest` against some
+older commit where `pytest` also failed and a `REGRESSED` merge reads `PRE-EXISTING`, the receipt
+COMPLETES, and row 2d exits 0 — `[#744]`'s false pass reached through the one input that was still
+typed while `--state`'s absence guarded the front door. The realistic route is an ordinary slip:
+`--baseline main` instead of `sha^1`, or one copy-pasted from the previous lane's block. Found by
+Codex `gpt-5.6-terra` reviewing `[#750]` and fixed by derivation, so the correct reading is the
+default and the wrong one is unavailable. **A SHA whose first parent cannot be read REFUSES** rather
+than falling back to no baseline, because `UNATTRIBUTED` from a silent failure and `UNATTRIBUTED`
+from an honest unknown are different facts and one of them is a bug.
+
+**The baseline actually read is RECORDED on the step and PRINTED in the summary** (`vs <sha>`), so a
+`PRE-EXISTING` can be checked rather than taken on trust.
 
 > ### PUSH FIRST. This verb reads a run that does not exist until the merge is on origin.
 >
@@ -326,7 +340,7 @@ it seemed fine.
 |---|---|---|
 | 1 | Every lane branch merged-or-explicitly-abandoned | `git branch --list 'worktree-lane-*'` is empty, and every planned lane has a merge SHA or a recorded abandonment |
 | 2 | Full suite run once on the merged result | `uv run --locked pytest -q --dist worksteal --max-worker-restart=0` on the final merged `main`, verdict quoted |
-| 2b | Every merge's Actions result was READ and its verdict recorded ([#675] 3.2) | `uv run --locked python scripts/merge_receipt.py actions --slug <lane> --sha <merge> --baseline <first parent>` was run per merge and its output is in the batch packet. **"Recorded" is now literal, not a habit** (`[#750]`): the state is on the receipt and in the ledger row by name, which is what row 2d then reads — so this row and that one are the same fact checked at two moments, the reading and the ledger. A `PRE-EXISTING` verdict is an OPEN item with the failing jobs NAMED — it is not a pass, and "the run was red before us" is a recorded fact rather than a reason to skip the row. It is nonetheless COMPLETE for row 2d, and those two statements do not conflict: the merge is measurable, and the red is still owed to the packet. `NO-RUN` / `IN-PROGRESS` / `GH-UNAVAILABLE` / `JOBS-UNREADABLE` are each recorded as themselves; none of them is ever written down as green. `JOBS-UNREADABLE` means the run was found and its jobs were not, so the suite result is UNKNOWN — retry the read before recording it, and record the unknown rather than an assumption if it persists ([#742]) |
+| 2b | Every merge's Actions result was READ and its verdict recorded ([#675] 3.2) | `uv run --locked python scripts/merge_receipt.py actions --slug <lane> --sha <merge>` was run per merge, **after that merge was pushed** (§2's PUSH FIRST box — pre-push it reads `NO-RUN` and row 2d refuses), and its output is in the batch packet. **Do not pass `--baseline`:** it is derived from `<sha>^1` and a value that is not the first parent is refused, because the baseline selects the verdict. **"Recorded" is now literal, not a habit** (`[#750]`): the state is on the receipt and in the ledger row by name, which is what row 2d then reads — so this row and that one are the same fact checked at two moments, the reading and the ledger. A `PRE-EXISTING` verdict is an OPEN item with the failing jobs NAMED — it is not a pass, and "the run was red before us" is a recorded fact rather than a reason to skip the row. It is nonetheless COMPLETE for row 2d, and those two statements do not conflict: the merge is measurable, and the red is still owed to the packet. `NO-RUN` / `IN-PROGRESS` / `GH-UNAVAILABLE` / `JOBS-UNREADABLE` are each recorded as themselves; none of them is ever written down as green. `JOBS-UNREADABLE` means the run was found and its jobs were not, so the suite result is UNKNOWN — retry the read before recording it, and record the unknown rather than an assumption if it persists ([#742]) |
 | 2c | Every reviewed lane was handed a PRE-ASSEMBLED packet, and review was not cut ([#675] 3.5) | `logs/REVIEW-INPUT-<lane>.md` exists per reviewed lane and the reviewer was pointed at it. The packet's **declared vs actual** section is read, not skimmed: a `WRITTEN BUT NOT DECLARED` entry is an OPEN item, because the contract forbids edits outside the declared footprint and the dispatch-time refusal cannot see them by construction |
 | 2d | Every merge in the walk range carries a COMPLETE `kind=merge` receipt ([#750], ruling AY1-1) | `uv run --locked python scripts/merge_receipt.py require --range <the FIRST merge's first parent>..HEAD` exits 0, run after the last `close`. It enumerates the first-parent merge commits in the range and REFUSES any that no complete receipt names — a **missing** receipt, or one whose suite verdict is `REGRESSED` or unreadable. It NAMES the merges that passed as well as the ones that did not, and a range holding **no merge at all** says so rather than printing OK, because "0 of 0 unreceipted" is exactly the plausible-value failure `[#675]` is filed about. A bad range **fails CLOSED**. **THREE** ways to read a refusal wrong, and the first is the one that will actually happen: (i) a `NO-RUN` verdict on every merge means **you have not pushed yet** — `actions` reads a run that does not exist until the merge is on origin, so this row refuses the whole batch if the reads ran pre-push (see §2's PUSH FIRST box; `IN-PROGRESS` behaves the same and is fixed by re-reading, since the verdict is last-wins); (ii) an OPEN receipt is invisible to it (close first); (iii) a `PRE-EXISTING` suite verdict is COMPLETE — the row does not refuse a merge for main being red before it |
 | 3 | `git worktree list` == primary only | run it; one line of output |

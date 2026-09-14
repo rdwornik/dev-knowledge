@@ -869,7 +869,8 @@ def test_the_actions_verb_RECORDS_the_state_it_READ_and_still_exits_NON_ZERO(tmp
                      base=_run("base", ("pytest", "failure"), ("lint", "success")))
 
     receipt, verdict = mr.record_actions_verdict(tmp_path, slug="m", sha="tip",
-                                                baseline="base", fetch=fetch)
+                                                baseline="base", fetch=fetch,
+                                                first_parent=_parent({"tip": "base"}))
 
     assert verdict.state == av.STATE_PRE_EXISTING
     assert verdict.ok is False, "PRE-EXISTING is not a pass, and this verb does not make it one"
@@ -884,9 +885,11 @@ def test_the_actions_verb_BINDS_the_receipt_to_the_MERGE_SHA_it_read(tmp_path):
     "this merge has a receipt" was not a question the ledger could answer.
     """
     mr.open_receipt(tmp_path, slug="m", batch="y")
-    fetch = _fetcher(tip=_run("tip", ("pytest", "success")))
+    fetch = _fetcher(tip=_run("tip", ("pytest", "success")),
+                     base=_run("base", ("pytest", "success")))
 
-    mr.record_actions_verdict(tmp_path, slug="m", sha="tip", fetch=fetch)
+    mr.record_actions_verdict(tmp_path, slug="m", sha="tip", fetch=fetch,
+                              first_parent=_parent({"tip": "base"}))
 
     assert mr.load_receipt(tmp_path, "m").merge_sha == "tip"
 
@@ -1071,6 +1074,9 @@ def test_a_TYPED_BASELINE_cannot_convert_a_REGRESSED_merge_into_a_PRE_EXISTING_o
     receipt, verdict = mr.record_actions_verdict(tmp_path, slug="m", sha="tip", fetch=fetch,
                                                  first_parent=parent)
     assert verdict.state == av.STATE_REGRESSED
+    # Closed so the VERDICT leg is the one under test: leg 1 refuses an unclosed receipt first,
+    # and an assertion satisfied by the wrong leg proves nothing about this one.
+    receipt.closed = receipt.opened
     assert "REGRESSED" in (receipt.incompleteness_reason() or ""), \
         "the honest baseline refuses the merge, which is why refusing the typed one matters"
 
@@ -1106,9 +1112,12 @@ def test_a_REGRESSED_reading_is_STICKY_and_a_LATER_read_cannot_supersede_it(tmp_
         first_parent=parent)
 
     assert receipt.suite_verdict() == av.STATE_PASS, "last-wins still holds for the READING"
+    # Closed so the VERDICT leg is the one under test -- see the note in the typed-baseline test.
+    receipt.closed = receipt.opened
     reason = receipt.incompleteness_reason()
     assert reason is not None and "REGRESSED" in reason, \
         "a re-run cannot un-regress a merge; the receipt stays INCOMPLETE and says why"
+    assert "actions" in reason, "the refusal NAMES the step that read the regression"
 
 
 def test_there_is_NO_WAY_to_TYPE_a_BASELINE_RELATIONSHIP_ONTO_A_RECEIPT_EITHER():
