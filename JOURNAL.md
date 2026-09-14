@@ -19,6 +19,65 @@
 
 ---
 
+### 2026-09-14 (m) - CC (Opus 5, background integrator seat): batch Y closes at five merged, and the median is defined for the first time
+
+**Anchors:** `bd8f5a9d` — the arc commit this merge introduces, carrying the batch Y close packet and
+`[#762]`.
+
+**The packet is written and the seven numbers are in it**, each naming the instrument that produced
+it, and **none from a recursive sweep** — `grep -r` from the primary duplicates 5.0x with four lanes
+live and also reads untracked `.venv/` code, so `git grep` was used wherever a sweep was the only
+shape. Headline figures: median merge **12.4 min** (n=1, target 3.6 MET); cost **USD 159.87** over
+five lanes, `claude-opus-5` alone; `BACKLOG.md` **94,255 B**, over the 72,000 bar by 22,255 with
+**0** rows over the 400-B per-row ceiling; `ARCHITECTURE.md` **100,845 B**; `protocols/ESSENTIALS.md`
+**gone**; the non-Claude trial **NOT RUN**; **280** open rows of 332.
+
+**THE MEDIAN IS DEFINED FOR THE FIRST TIME, and what made it possible was ORDER rather than effort.**
+`merge-y-752` is the batch's one COMPLETE receipt because its `teardown` was recorded INSIDE the
+still-open receipt — handback, merge, teardown, suite, close. A teardown run after a receipt closes
+cannot retro-complete it, and `logs/MERGE-RECEIPTS.jsonl` is append-only, so the other three rows are
+permanently incomplete. **Three of those four exclusions are my own recording errors** — a verdict
+under the default `actions` step on `merge-y-750`, and two `time` invocations typed `--step-class`
+where the option is `--class` on `merge-y-751`. Only `merge-y-754`'s missing `teardown` is
+structural.
+
+**Every cost figure was RE-DERIVED after `b864e7d0` and none carried forward**, and the ledger now
+demonstrates `[#751]`'s fix live: `logs/LANE-COSTS.jsonl` keeps **6 lines including the superseded
+`$18.82` row** — not one byte rewritten, the ADR-29/39 guarantee intact — while the aggregate reads
+**n=5** by last-wins-per-slug. The pre-fix reader would have totalled `$178.69` from the same file.
+
+**`[#762]` is filed from this session's own failure rather than from any lane's report.** Tearing
+down `lane-y-751` seconds after it stood down, `git worktree remove` failed `Permission denied`
+having ALREADY removed the administrative entry — so `git worktree list` showed it absent, `test -d`
+showed it present, `git status` read CLEAN, and `rmdir` refused *Directory not empty*. The single file
+inside was written by the departing session's OWN `Stop` hook after it resolved repo root to the tree
+being removed: **the teardown did not fail to delete a leftover, the departing session created one
+after the deletion.** `.gitignore:35` makes it invisible to precisely the check critical rule 9 would
+use. A second leg from `lane-y-752`: a LOCKED worktree defeats `worktree remove` AND `worktree
+prune`, so unlock must come first or git keeps registering a directory that no longer exists and
+`branch -d` refuses.
+
+**All five lane worktrees are torn down**, every lane branch deleted, no remote lane branches, and
+`git worktree list` now shows the primary alone. The provision→cleanup round-trip is verified by
+filesystem enumeration rather than by `git status`, for the reason `[#762]` records.
+
+**A gate caught me being sloppy and the mechanism is worth keeping.** The close-packet commit was
+REFUSED by `audit-index-freshness`: I had run `gen_audit_index.py --write` before `git add`, and the
+generator counts TRACKED files — so it wrote 986 while the staged tree held 987. **Regenerate AFTER
+staging, not before.** I also masked the first refusal by piping the commit through `tail`, which is
+a trap I had already recorded and walked into anyway; the second run filtered for failures instead
+and named it immediately.
+
+**Changes.** `docs/audits/2026-09-14-technical-batch-y-close-packet.md`, `[#762]` and its manifest
+node, the regenerated `BACKLOG.md` / `docs/audits/README.md`, `logs/LANE-COSTS.jsonl`,
+`logs/MERGE-RECEIPTS.jsonl`, and this entry.
+
+**Abandoned.** Nothing.
+
+**Next.** Batch Y's merge queue is closed; `[#753]` remains the operator's to launch, and its
+`[#751]`-must-land-first precondition is now satisfied. Closure of `[#750]` and the batch itself is
+the operator's act.
+
 ### 2026-09-14 (l) - CC (Opus 5, background integrator seat): the last lane merges without ever handing back, and a receipt can no longer time a run nobody ordered
 
 **Anchors:** `1ee32564` — lane `y-752`'s tip, which this merge introduces, along with `b2d1bcdc`,

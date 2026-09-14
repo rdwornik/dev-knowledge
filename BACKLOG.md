@@ -129,6 +129,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#758] [P2][S] `[#675]` target 3.2 has never been satisfiable by the `lane-integrate` walk · tasks/758-675-target-32-has-never-been-satisfiable-by-the-w.md
 - [#759] [P2][S] `range_is_anchored` and `unanchored_on_spine` disagree on scope, and the 2026-09-14 instance fix does not close the class · tasks/759-range-is-anchored-and-unanchored-on-spine-disagree.md
 - [#761] [P2][S] The edge-class census prices its own false positive as cheap, but paying it is an escalation class, so lanes route around the gate instead · tasks/761-the-edge-class-census-prices-its-own-false-positive.md
+- [#762] [P2][S] A worktree teardown races the departing session's Stop hook, which re-creates the tree being removed — and the no-leftovers check cannot see what it leaves · tasks/762-a-worktree-teardown-races-the-departing-sessions-stop-hook.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
