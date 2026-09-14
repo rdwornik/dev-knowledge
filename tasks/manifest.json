@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "e65a7bd124ebb489c5b947792f3c8800ed0da7c31ee7279848d1e7e5f58dfeb4",
+  "generated_sha256": "9d6017eb318e5478d5457a5f42dbf85fe4b05894df45616387fafe955e4ae711",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1427,6 +1427,10 @@
     {
       "task": 746,
       "file": "746-devcontainer-history-and-ecosystem-repair-lost-with-cloud-provisioning-py.md"
+    },
+    {
+      "task": 751,
+      "file": "751-cost-in-money-tokens-and-usd-per-lane-and-per-model.md"
     },
     {
       "prose": "### [S19] Decide the undecided artifact/tool models"

@@ -2,6 +2,13 @@
 
 Append /stats snapshot weekly. Never edit previous entries.
 
+## 2026-09-14 (delta: 1 lane receipt(s), via lane_cost.py -- per-lane, cache tokens INCLUDED)
+Delta: 1 batch(es), 128 calls, $18.82
+Tokens in+out: 95,872 (in: 256, out: 95,616) -- cache counted separately below, NOT folded in
+Cache: write 320,197, read 28,861,393
+claude-opus-5: $18.82 (in: 256, out: 95,616, cache-read: 28,861,393)
+Method: scripts/lane_cost.py over logs/LANE-COSTS.jsonl; rates from ecosystem/provider-registry.yaml. NOT comparable line-for-line with the ccusage entries below -- different scope and different cache treatment.
+
 ## 2026-08-04 (delta: 2026-07-25 to 2026-08-04, via ccusage --json)
 Delta: 10 active days, sessions N/A (not in ccusage --json), $1676.83
 Tokens in+out: 8.36M (in: 520K, out: 7836K) — cache not counted here for comparability

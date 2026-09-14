@@ -19,6 +19,81 @@
 
 ---
 
+### 2026-09-14 (j) - CC (Opus 5, background integrator seat): the money lane lands, and every cost number taken before it is suspect
+
+**Anchors:** `211e248a` — lane `y-751`'s tip, which this merge introduces, along with `32f6c385`,
+`23127d8b` and `2e5c31bc`. Per **B8** the anchor names the LANE TIP and this entry rides inside the
+merge commit rather than waiting for a batch-close arc.
+
+**Held first, merged second, and the holding was the point.** Codex returned three CRITICAL and one
+HIGH on `scripts/lane_cost.py`. I verified all four in the code myself before acting on any of them
+— the habit that mattered twice this batch, once when a reviewer was right and once when I was
+wrong against a lane. Two were serious enough to refuse the merge, so the staged merge was aborted
+and the findings handed back. The lane closed all four with seven RED-first witnesses and handed
+back a tip I then re-reviewed.
+
+**The defect that changes numbers already reported.** `transcript_dirs` matched a slug by plain
+containment, so `lane-y-75` matched `lane-y-751-cost-in-money` and priced this lane's **entire**
+spend onto `[#75]` — a confident, silent misattribution *between* lanes. **Every cost figure
+produced before this merge is therefore suspect and the close packet must RE-DERIVE rather than
+carry forward.** The fix is `_matches_segment`, dash-bounded, plus a WARNING naming every directory
+a slug summed, because the danger was never the arithmetic — it was the silence.
+
+**The other two, and why an append-only ledger raised the stakes.** `BatchCostReport` absorbed an
+unmeasured lane as `$0.00`: `LaneCost.has_transcript()` existed and the per-lane renderer correctly
+refused the lie, but the aggregate never consulted it. And `cmd_close` appended unconditionally
+while the aggregate SUMMED every row and `cmd_receipt` took `rows[-1]` — **two readers of one
+ledger meaning different things by a duplicate.** Because the ledger is append-only (ADR-29/39)
+there was no sanctioned repair: one retry would have inflated the batch total and every future
+boot's `[cost]` line permanently. The lane fixed it in the READER (`resolved()`, last-wins-per-slug)
+rather than by rewriting the record, so the arithmetic is right and not one byte of the ledger
+moved. A retry is now safe, which it was not this morning.
+
+**The HIGH was a coverage gap, not a wrong number.** No test priced against the live registry, and
+the fixture's rates (`input 5.0 / output 25.0`) are EXACTLY the live `claude-opus-5` rates — the
+fixture mirrored live values, which is precisely why a bad live rate would still have looked right.
+I ruled against pinning live rates in a test: a typed rate is the stale-number pattern this repo
+forbids. The lane implemented resolvability instead, and honestly flagged both new tests as
+GREEN-ON-ARRIVAL regression guards rather than dressing them up as RED-first witnesses.
+
+**The pricing itself was never in doubt and I proved it rather than assuming it.** Re-derived by
+hand against the live card: 256 in @ $5/M + 95,616 out @ $25/M + 320,197 cache-write @ $6.25/M +
+28,861,393 cache-read @ $0.5/M = **$18.8236**, matching the then-current ledger row to the cent.
+
+**Two judgment calls the lane surfaced instead of burying.** It rewrote one existing test's
+assertion to accommodate its own change — a pinned phrase became an invariant — and flagged it for
+an independent read. Reviewed: it trades one brittle substring for three semantic ones and keeps the
+`$0.00` prohibition, so it is a **strengthening**, which ADR-81 permits where weakening is
+forbidden. And `graph-edge-class-census` raised a **false positive** on the lane's predicate — a
+session store lies outside the repo, so a slug-to-directory match is no corpus relation and none of
+the five kinds. The lane spelled the predicate as four string comparisons rather than add itself to
+the curated `EDGE_COMPUTATIONS` register, which is a V-2 escalation class. Correct restraint; the
+census will refuse the next lane that does this for an equally non-corpus reason, so it is filed as
+a row in the follow-up arc rather than repaired inside this merge.
+
+**Both lane commits declared two skipped hooks and nothing else was bypassed** —
+`doc-counts-pytest-freshness` (the lane adds tests; a lane must not regenerate, the integrator is
+gate-of-record) and `audit-health` (failing on `journal_spine_anchor` from the lane's base
+`8a41c650`, which predates my own anchor arc). No `--no-verify` anywhere. The second skip should
+have been cleared by the sync this merge performs, and the merge commit's own gates are the test of
+that.
+
+**Changes.** `scripts/lane_cost.py`, `tests/test_lane_cost.py`, `scripts/provider_registry.py`,
+`ecosystem/provider-registry.yaml` + its schema, `scripts/fleet_health.py`, `logs/TOKEN-LOG.md`,
+`logs/LANE-COSTS.jsonl`, the `[#751]` row, this entry, and the regenerated `BACKLOG.md` +
+`tasks/manifest.json`.
+
+**Abandoned.** My own first receipt for this merge, closed as a superseded attempt rather than
+reused: its `merge` step timed an act I aborted, and `open_receipt` refuses to clobber an in-flight
+receipt on the stated ground that an abandoned one is the record of a merge that died half-way.
+Closing it and opening a clean one is that tool's own sanctioned path.
+
+**Next.** Push, take the Actions verdict under `--step suite` with the baseline DERIVED from this
+merge's first parent, record `teardown` inside this still-open receipt — the only receipt in the
+batch that can still reach COMPLETE, since `merge-y-750` and `merge-y-754` are already closed and
+the ledger cannot be amended — then the owed `gen_doc_counts.py --write`, the second audits-index
+pass, the census row, and re-derived cost figures for the close packet.
+
 ### 2026-09-14 (i) - CC (Opus 5, background integrator seat): two receipts close, the median is UNDEFINED for a new reason, and I committed transient state
 
 **Anchors:** `237526c9` — the arc commit this merge introduces, named by the spine entry that introduces
