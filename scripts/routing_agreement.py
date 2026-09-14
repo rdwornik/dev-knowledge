@@ -38,6 +38,7 @@ HONEST LIMITS, because they bound a green verdict:
 """
 from __future__ import annotations
 
+import json
 import os
 import re
 import sys
@@ -216,6 +217,218 @@ def scan(repo_path: Path) -> tuple[str, Optional[list[Divergence]], str]:
         return ("diverge", diverged,
                 "; ".join(f"{d.role} (table: {d.expected}) — {d.detail}" for d in diverged))
     return ("agree", [], f"{len(roles)} role(s) in {TABLE_RELPATH} corroborated by {declared}")
+
+
+# --- ORDERED vs RAN: the tier a lane was LAUNCHED at, against the one it ran ([#752]) ----------
+#
+# THE SECOND PAIR OF COPIES. Everything above answers one agreement question -- does the derived
+# L0 routing copy still say what the in-repo table says. This answers the same question about a
+# different pair: does the model a contract ORDERED match the model its lane RAN. It inherits the
+# rule that makes the first one honest, **Z-G4**: a check that cannot compute its ground truth
+# FAILs and never skips, because a `skipped` status is a reported gap and no aggregate surface
+# may count it as a pass.
+#
+# THE DISPATCH LINE RECORDS WHAT WAS ASKED; ONLY THE TRANSCRIPT RECORDS WHAT RAN. Batch X3 slot 1
+# ordered `opusplan`, the resolved line printed `--model opusplan`, the freeze gate admitted it,
+# and `claude --print --model opusplan` resolved normally -- while the lane's own transcript
+# recorded 84 of 84 assistant messages on `claude-sonnet-5`. Every surface that could be read
+# agreed with the order. The only surface that disagreed was the one nobody was reading.
+#
+# LAYER 2 STILL NEVER EXECUTES (ADR-28/36). This reads JSONL files the CLI already wrote. It
+# starts no session and cannot: the reading is of a run that has already happened.
+#
+# HONEST LIMITS, because they bound every green verdict here:
+#   * A transcript is filed under a session's WORKING DIRECTORY, so a lane that ran elsewhere
+#     files nowhere this reader looks, and a background or subagent leg can file under its
+#     LAUNCHING session's cwd instead -- `gen_handoff._worktree_is_owned` records the same limit
+#     about the same store. Absence is therefore REPORTED, never resolved.
+#   * The tally counts every assistant message, SUBAGENTS INCLUDED. A lane that ran Opus with
+#     Haiku subagents is a different fact from a pure-Opus lane, so the tally carries both and the
+#     dominant model is what the order is judged against.
+#   * A green here says the order and the run agree ON THIS HOST, for the transcripts still on
+#     disk. The session store is a working directory, not a durable archive.
+
+#: The session store. Claude Code files one directory per WORKING DIRECTORY.
+SESSIONS_ROOT = Path.home() / ".claude" / "projects"
+
+#: Ordered tier -> the model-id family a transcript records when that tier RAN. `opusplan` is
+#: DELIBERATELY ABSENT, and its absence is the design -- see `SPLIT_TIERS`.
+TIER_FAMILIES: dict[str, str] = {
+    "opus": "claude-opus-",
+    "sonnet": "claude-sonnet-",
+    "haiku": "claude-haiku-",
+}
+
+#: Tiers resolving to MORE THAN ONE model family at run time, with why that makes them
+#: unverifiable here.
+#:
+#: BOTH FAMILIES ARE A LEGAL READING of a split tier, so no transcript can confirm or refute the
+#: order. Reading `claude-sonnet-5` as agreement with `opusplan` would certify exactly the
+#: collapse that made every routing decision in the x-689 window advisory; reading it as
+#: divergence would refuse an attended seat that legitimately finished its plan phase. The honest
+#: third answer is the one Z-G4 already names -- a reported GAP.
+SPLIT_TIERS: dict[str, str] = {
+    "opusplan": ("a SPLIT tier -- Opus while the session is in plan mode, Sonnet after -- so both "
+                 "families are a legal reading of it and no transcript can discharge the order "
+                 "either way"),
+}
+
+STATE_AGREE = "agree"
+STATE_DIVERGE = "diverge"
+#: Nothing was read: no session store, no transcript, or no assistant message in one. An empty
+#: tally agrees with every order ever placed, which is the shape of answer this organ refuses.
+STATE_NO_TRANSCRIPT = "no-transcript"
+#: A run was read with no order recorded beside it -- what ran, with nothing to judge it by.
+STATE_NO_ORDER = "no-order"
+STATE_UNVERIFIABLE = "unverifiable-tier"
+STATE_UNKNOWN_TIER = "unknown-tier"
+#: NEITHER was recorded. The one state that is not a finding: it is the honest answer for a record
+#: written before these fields existed, and treating it as a failure would back-date a judgement
+#: nobody made. Callers SKIP on this state and on no other.
+STATE_UNREAD = "unread"
+
+
+def session_slug(path) -> str:
+    r"""The session-store directory name for a working directory.
+
+    `C:\Users\x\Dev\repo\.claude\worktrees\lane-a` ->
+    `C--Users-x-Dev-repo--claude-worktrees-lane-a`: every character outside `[A-Za-z0-9_-]`
+    becomes ONE dash, which is what produces the doubled dash after the drive colon and before
+    the dotted directory.
+
+    THE SAME ENCODER `gen_handoff._session_slug` USES, re-derived rather than imported, and the
+    reason is worth stating: that name is private to a module which imports this layer's
+    neighbours, so reaching across that edge to save one regex would buy a coupling worse than the
+    duplication. Written as a NEGATED character class on purpose -- an enumerated one has to spell
+    a literal backslash, and this repo has lost that backslash in transit before, silently,
+    leaving a slug that matched nothing.
+    """
+    return re.sub(r"[^A-Za-z0-9_-]", "-", str(Path(path).resolve()))
+
+
+def transcript_paths(worktree, sessions_root=None) -> list[Path]:
+    """Every transcript filed for `worktree`. `[]` when there is no store -- which is a GAP."""
+    root = SESSIONS_ROOT if sessions_root is None else Path(sessions_root)
+    try:
+        return sorted(p for p in (root / session_slug(worktree)).glob("*.jsonl") if p.is_file())
+    except OSError:
+        return []
+
+
+def ran_models(worktree, sessions_root=None) -> dict[str, int]:
+    """`{model id: assistant messages}` for a lane, read off its own transcript(s).
+
+    AN UNPARSEABLE LINE IS SKIPPED, NOT FATAL, and that is a measurement rather than leniency: a
+    LIVE transcript is appended to while it is read, so its last line is routinely a half-written
+    object. Refusing the file on one would make every reading of a running lane report nothing --
+    an absence manufactured by the instrument, which is the failure this organ exists to avoid on
+    the other side.
+    """
+    tally: dict[str, int] = {}
+    for path in transcript_paths(worktree, sessions_root):
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        for line in text.splitlines():
+            if not line.strip():
+                continue
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
+            if not isinstance(row, dict) or row.get("type") != "assistant":
+                continue
+            message = row.get("message")
+            model = message.get("model") if isinstance(message, dict) else None
+            if isinstance(model, str) and model:
+                tally[model] = tally.get(model, 0) + 1
+    return tally
+
+
+def ran_model(worktree, sessions_root=None) -> Optional[str]:
+    """The model a lane predominantly ran at, or None when nothing was read.
+
+    Ties break on the model id, so two readings of one transcript never disagree -- a reader that
+    answered differently on a coin-flip could not stand behind a refusal.
+    """
+    tally = ran_models(worktree, sessions_root)
+    return max(sorted(tally), key=lambda model: tally[model]) if tally else None
+
+
+def compare_order(ordered: Optional[str], ran: Optional[str]) -> tuple[str, str]:
+    """`(state, detail)` from the ordered tier and the ran model id. PURE -- no filesystem.
+
+    Pure on purpose: `merge_receipt` judges a receipt's two RECORDED strings with this, long after
+    the transcript that produced them may be gone, and a predicate that reached for a file would
+    give one receipt different verdicts on different hosts.
+
+    The detail always names BOTH values, because the remedy differs by class and a refusal a
+    reader cannot act on is a refusal they route around.
+    """
+    if not ordered and not ran:
+        return (STATE_UNREAD,
+                "no model reading recorded -- neither the ordered tier nor the model that ran")
+    if not ordered:
+        return (STATE_NO_ORDER,
+                f"ran {ran!r} with no ordered tier recorded beside it -- that says what ran, and "
+                f"nothing about whether it is what was asked for")
+    if not ran:
+        return (STATE_NO_TRANSCRIPT,
+                f"ordered {ordered!r} and nothing was read for what RAN -- asking the question and "
+                f"failing to answer it is not the answer being yes (Z-G4). Read it off the lane's "
+                f"own transcript rather than recording the dispatch line a second time")
+    if ordered in SPLIT_TIERS:
+        return (STATE_UNVERIFIABLE,
+                f"ordered {ordered!r}, ran {ran!r}: {SPLIT_TIERS[ordered]}. MEASURED on "
+                f"`lane-x-689` -- ordered `opusplan`, ran 84 of 84 assistant messages on "
+                f"`claude-sonnet-5`. Order a tier a transcript can discharge: "
+                f"{' or '.join(sorted(TIER_FAMILIES))}")
+    family = TIER_FAMILIES.get(ordered)
+    if family is None:
+        return (STATE_UNKNOWN_TIER,
+                f"ordered {ordered!r}, which names no model family this reader knows "
+                f"({', '.join(sorted(TIER_FAMILIES))}); ran {ran!r}. Reported rather than guessed "
+                f"-- a guessed family answers confidently about a tier nobody declared")
+    if ran.startswith(family):
+        return (STATE_AGREE, f"ordered {ordered!r} and ran {ran!r}")
+    return (STATE_DIVERGE,
+            f"ordered {ordered!r} (which runs a {family}* model) and RAN {ran!r} -- the run this "
+            f"measured is not the run that was ordered")
+
+
+@dataclass(frozen=True)
+class ModelReading:
+    """What a lane was ordered at, what it ran, and whether those are the same claim."""
+    state: str
+    ordered: str
+    ran: Optional[str]
+    tally: dict
+    detail: str
+
+    @property
+    def agrees(self) -> bool:
+        return self.state == STATE_AGREE
+
+
+def model_reading(ordered: str, worktree, sessions_root=None) -> ModelReading:
+    """Read a lane's transcript and judge it against the tier its contract ordered.
+
+    THE TALLY RIDES THE DETAIL, never only the winner: a lane that ran Opus with Haiku subagents
+    and a pure-Opus lane are different facts and the dominant model cannot tell them apart. Same
+    reason `merge_receipt.median` never prints a bare number.
+    """
+    tally = ran_models(worktree, sessions_root)
+    ran = ran_model(worktree, sessions_root)
+    state, detail = compare_order(ordered, ran)
+    if tally:
+        detail += "; tally " + ", ".join(f"{model} x{tally[model]}" for model in sorted(tally))
+    else:
+        detail += (f"; no assistant message was read under {session_slug(worktree)} -- a "
+                   f"transcript is filed under a session's WORKING DIRECTORY, so a lane that ran "
+                   f"elsewhere, or a background leg filed under its launching session's cwd, "
+                   f"files nowhere this reader looks. An absence, not an agreement")
+    return ModelReading(state=state, ordered=ordered, ran=ran, tally=tally, detail=detail)
 
 
 def main(argv: Optional[list[str]] = None) -> int:
