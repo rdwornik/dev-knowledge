@@ -179,3 +179,132 @@ def test_a_rendered_region_makes_a_previously_diverging_l0_agree(tmp_path):
     l0.write_text(l0.read_text(encoding="utf-8") + chr(10) + ra.render_table(roles),
                   encoding="utf-8", newline="\n")
     assert ra.scan(repo)[0] == "agree"
+
+
+# ===============================================================================================
+# RED-FIRST WITNESSES (ADR-108 §B) -- `[#752]`, the ORDERED-vs-RAN reading.
+#
+# THE DISPATCH LINE RECORDS WHAT WAS ASKED; ONLY THE TRANSCRIPT RECORDS WHAT RAN. Batch X3 slot 1
+# ordered `opusplan`, the resolved line printed `--model opusplan`, `claude --print --model
+# opusplan` resolved fine, and the lane's own transcript recorded 84 of 84 assistant messages on
+# `claude-sonnet-5`. Every surface that could be READ agreed with the order; the only surface that
+# disagreed was the one nobody was reading. That is what this section reads.
+#
+# WHY IT LIVES IN THE AGREEMENT ORGAN. This module already answers one agreement question -- does
+# the derived L0 copy still say what the in-repo table says -- under one standing rule: a check
+# that cannot compute its ground truth FAILs and never skips (**Z-G4**), because the host where
+# the copy is missing is exactly the host where drift is least visible. "Did the tier the contract
+# ordered actually run" is the same question about a different pair of copies, and it inherits the
+# same rule: an absent session store is a reported GAP, never an agreement.
+# ===============================================================================================
+
+import json  # noqa: E402
+
+
+def _seed(store, worktree, models, *, extra_lines=()):
+    """Write a transcript for `worktree` into `store`, one assistant message per entry in
+    `models`. Seeded in the store's own shape rather than through a stub, so what is under test is
+    the reading of a real file layout."""
+    d = store / ra.session_slug(worktree)
+    d.mkdir(parents=True, exist_ok=True)
+    rows = [json.dumps({"type": "assistant", "message": {"model": m}}) for m in models]
+    (d / "session.jsonl").write_text("\n".join([*rows, *extra_lines]) + "\n",
+                                     encoding="utf-8", newline="\n")
+    return d
+
+
+def test_the_session_slug_replaces_every_character_outside_the_stores_alphabet():
+    """The store names a project directory by flattening its absolute path: every character
+    outside `[A-Za-z0-9_-]` becomes ONE dash, which is what produces the doubled dash after a
+    drive letter and before a dotted directory. Same encoder `gen_handoff._session_slug` uses."""
+    slug = ra.session_slug("/tmp/x.y/.claude/worktrees/lane-a")
+    assert set(slug) <= set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-")
+    assert "--claude-worktrees-lane-a" in slug
+
+
+def test_the_ran_model_is_read_off_the_transcript(tmp_path):
+    store, tree = tmp_path / "store", tmp_path / "tree"
+    _seed(store, tree, ["claude-opus-5"] * 3)
+    assert ra.ran_models(tree, sessions_root=store) == {"claude-opus-5": 3}
+    assert ra.ran_model(tree, sessions_root=store) == "claude-opus-5"
+
+
+def test_only_assistant_messages_are_counted(tmp_path):
+    """A `model` key elsewhere in the stream is not a statement about what generated a turn."""
+    store, tree = tmp_path / "store", tmp_path / "tree"
+    _seed(store, tree, ["claude-opus-5"],
+          extra_lines=[json.dumps({"type": "user", "message": {"model": "claude-haiku-4-5"}})])
+    assert ra.ran_models(tree, sessions_root=store) == {"claude-opus-5": 1}
+
+
+def test_a_partial_trailing_line_does_not_empty_the_tally(tmp_path):
+    """A LIVE transcript is being appended to while it is read, so its last line is routinely a
+    half-written object. Refusing the whole file on it would make every reading of a running lane
+    report nothing -- an absence manufactured by the instrument."""
+    store, tree = tmp_path / "store", tmp_path / "tree"
+    _seed(store, tree, ["claude-opus-5"] * 2, extra_lines=['{"type": "assist'])
+    assert ra.ran_models(tree, sessions_root=store) == {"claude-opus-5": 2}
+
+
+def test_the_whole_tally_is_reported_not_only_the_winner(tmp_path):
+    """A lane that ran mostly Opus with Haiku subagents is a different fact from a pure-Opus lane,
+    and the dominant model alone cannot tell them apart. The reading carries both."""
+    store, tree = tmp_path / "store", tmp_path / "tree"
+    _seed(store, tree, ["claude-opus-5"] * 9 + ["claude-haiku-4-5-20251001"])
+    reading = ra.model_reading("opus", tree, sessions_root=store)
+    assert reading.state == "agree"
+    assert reading.tally == {"claude-opus-5": 9, "claude-haiku-4-5-20251001": 1}
+    assert "claude-haiku-4-5-20251001" in reading.detail
+
+
+def test_an_ordered_tier_the_lane_did_not_run_diverges(tmp_path):
+    store, tree = tmp_path / "store", tmp_path / "tree"
+    _seed(store, tree, ["claude-sonnet-5"] * 84)
+    reading = ra.model_reading("opus", tree, sessions_root=store)
+    assert reading.state == "diverge"
+    assert reading.ran == "claude-sonnet-5" and "opus" in reading.detail
+
+
+def test_the_x689_reading_is_a_REPORTED_GAP_rather_than_an_agreement(tmp_path):
+    """THE WITNESS, reconstructed at its measured proportions: ordered `opusplan`, ran 84 of 84 on
+    `claude-sonnet-5`.
+
+    `opusplan` is a SPLIT tier -- Opus while the session plans, Sonnet after -- so BOTH families
+    are a legal reading of it and no transcript can confirm or refute the order. Calling that
+    "agree" because Sonnet is one of its halves would certify exactly the collapse that made every
+    routing decision in that window advisory. Z-G4's rule is the one that applies: a check that
+    cannot compute its ground truth reports a GAP, and no aggregate surface may count it as a
+    pass."""
+    store, tree = tmp_path / "store", tmp_path / "tree"
+    _seed(store, tree, ["claude-sonnet-5"] * 84)
+    reading = ra.model_reading("opusplan", tree, sessions_root=store)
+    assert reading.state == ra.STATE_UNVERIFIABLE
+    assert reading.state != "agree"
+    assert reading.ran == "claude-sonnet-5"
+    assert "split" in reading.detail.lower()
+
+
+def test_an_absent_session_store_is_a_reported_gap_never_an_agreement(tmp_path):
+    """Z-G4, and the trap it names is live here: the session store sits on the machine that ran
+    the lane, so it is missing on exactly the hosts where a routing claim is least checkable --
+    CI, a container, another operator's clone."""
+    reading = ra.model_reading("opus", tmp_path / "tree", sessions_root=tmp_path / "nothing")
+    assert reading.state == ra.STATE_NO_TRANSCRIPT
+    assert reading.state != "agree"
+    assert reading.ran is None
+
+
+def test_a_transcript_with_no_assistant_message_is_a_gap_not_an_agreement(tmp_path):
+    """An empty tally is an absence, not a match. Zero assistant messages agrees with every order
+    ever placed, which is the shape of answer this organ exists to refuse."""
+    store, tree = tmp_path / "store", tmp_path / "tree"
+    _seed(store, tree, [])
+    assert ra.model_reading("opus", tree, sessions_root=store).state == ra.STATE_NO_TRANSCRIPT
+
+
+def test_an_ordered_tier_outside_the_enum_is_reported_not_guessed(tmp_path):
+    store, tree = tmp_path / "store", tmp_path / "tree"
+    _seed(store, tree, ["claude-opus-5"])
+    reading = ra.model_reading("gpt", tree, sessions_root=store)
+    assert reading.state != "agree"
+    assert "gpt" in reading.detail

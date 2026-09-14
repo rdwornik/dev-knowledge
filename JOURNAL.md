@@ -19,6 +19,71 @@
 
 ---
 
+### 2026-09-14 (l) - CC (Opus 5, background integrator seat): the last lane merges without ever handing back, and a receipt can no longer time a run nobody ordered
+
+**Anchors:** `1ee32564` — lane `y-752`'s tip, which this merge introduces, along with `b2d1bcdc`,
+`cf17d449` and `a9aa67a6`. Per **B8** the anchor names the LANE TIP and this entry rides inside the
+merge commit.
+
+**NO HANDBACK WAS EVER RECEIVED, AND THE MERGE DOES NOT PRETEND OTHERWISE.** Lane `y-752`'s session
+ceased to exist in the client with its work already committed. Operator ruling: establish the truth
+from git rather than from the expectation, then merge it as if it had handed back if the work is
+committed and coherent, or carry it to the next batch if it is mid-flight. **It was coherent, so it
+merged**, and the receipt's `handback` step records the verification that stood in for a handback
+rather than a handback that did not happen: tip `1ee32564`, tree clean, four own commits, and — the
+leg that settled it — `5bf1236c` is an ancestor of the branch, so the lane had synced onto the
+CURRENT main and then written its end-of-lane packet as its final commit. A lane that syncs and then
+files its packet is finished; only its session died.
+
+**What it delivers, and why it closes a hole in the instrument I have been using all batch.** A
+receipt now carries `ordered_model` and `ran_model`, and leg 4 of `incompleteness_reason` refuses a
+receipt whose ran model diverges from the tier the contract ordered. **`ran_model` is READ off the
+lane's own transcript by `routing_agreement.model_reading` and there is no flag anywhere in the
+module that can hand one in** — the same discipline `[#750]` applied to the typed baseline, reached
+here before the false pass existed rather than after. The witness is real and was already in the
+record: `lane-x-689-conductor-e-proof` was ordered at `opusplan` and ran **84 of 84** assistant
+messages on `claude-sonnet-5`, and its receipt recorded merge SHA, suite verdict, baseline and
+per-step minutes while **not one field named the model the work was actually done at** — so an arc
+run at a tier nobody ordered was indistinguishable from the arc that was, and fed a median printed
+as the cost of the order.
+
+**The backward-compatibility decision is the right one and worth recording.** Both fields default to
+`None`, and leg 4 skips on the None PAIR — a row written before the fields existed knows neither
+value, and refusing a corpus of clean merges to arm a new field is exactly the trap `Verdict.ok`
+set. A receipt carrying exactly ONE of them IS refused, because asking a question and failing to
+answer it is not the answer being yes. So batch Y's already-closed receipts are untouched by this
+change.
+
+**The lane's process was exemplary and I am recording it as precedent rather than as praise.** It hit
+`audit-health: 5bf1236c carries no JOURNAL anchor`, ran the check's own two-leg diagnostic
+unmodified, got `anchored in this tree: False / anchored at main: True`, and correctly read the
+tree-lag PHANTOM rather than a gap. Its two generated-file conflicts were **resolved by stripping
+the markers FIRST and only then running the generators** — regenerating over a conflicted generated
+file absorbs the `<<<<<<<` text into the output and turns a visible conflict into silent corruption.
+It then verified the thing most worth verifying: that the sync had not silently dropped its own
+`[#752]` row. **No commit in the lane declared a hook skip and `--no-verify` appears nowhere** — and
+because a conflicted merge requires an explicit `git commit`, the full 33-hook stack ran armed on
+it, which is the same two-step mechanism B8 rides. All 27 red tests across its 66-file impacted
+selection were attributed by PAIRED RUN at its base in a throwaway detached worktree, and every one
+reproduced name for name.
+
+**Batch Y's merge queue is now closed at six lanes dispatched, five merged.** `[#753]` — the
+supervised non-Claude producer trial, and the source of the trial score — is **NOT RUN**, and not by
+omission: its contract is frozen at `shape: interactive`, it "must never run unattended", it is
+"deliberately not in batch Y's fired set and is launched by the operator when present", and it runs
+in the primary checkout the integrator holds.
+
+**Changes.** `scripts/routing_agreement.py` and `scripts/dispatch_surface.py` (new),
+`scripts/merge_receipt.py`, their three test modules, the `[#752]` row and manifest node, the
+regenerated `BACKLOG.md` and `ecosystem/doc-counts.md`, the lane's end-of-lane packet, and this
+entry.
+
+**Abandoned.** Nothing.
+
+**Next.** The close packet with the seven numbers, **every cost figure re-derived after `b864e7d0`**
+because the pre-fix containment defect makes earlier figures untrustworthy to carry even though it
+never fired; the two rows this session's own findings owe; and the remaining teardowns.
+
 ### 2026-09-14 (k) - CC (Opus 5, background integrator seat): correcting entry (j) by append, and the median's causes are mostly mine
 
 **Anchors:** `af0a2bc7` — the arc commit this merge introduces, carrying `[#761]`, the two owed
