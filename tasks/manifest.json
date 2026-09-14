@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "9d6017eb318e5478d5457a5f42dbf85fe4b05894df45616387fafe955e4ae711",
+  "generated_sha256": "a29d5fad5233879a8a27a65e1ce17bef61e23ce4026733f848e1d6cac84c72e8",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -484,6 +484,10 @@
     {
       "task": 759,
       "file": "759-range-is-anchored-and-unanchored-on-spine-disagree.md"
+    },
+    {
+      "task": 761,
+      "file": "761-the-edge-class-census-prices-its-own-false-positive.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
