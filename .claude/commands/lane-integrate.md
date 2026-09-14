@@ -59,12 +59,16 @@ record it, do not silently absorb it.
 
 ## 2. Walk the queue, one lane at a time
 
-**Open the receipt first, ONCE per batch** (`[#675]` target 3.1 — "per-step minutes recorded into
-the receipt, so the merge stops being one opaque wall number and becomes an itemised one"):
+**ONE RECEIPT PER MERGE, opened and closed inside each lane's block** (`[#675]` target 3.1 —
+"per-step minutes recorded into the receipt, so the merge stops being one opaque wall number and
+becomes an itemised one"; changed from one-per-batch by `[#750]`). The commands are in the
+per-lane sequence below; `median` runs once, at the end of the walk.
 
-```bash
-uv run --locked python scripts/merge_receipt.py open --slug batch-<n> --batch <n>
-```
+**Why per merge.** One receipt per batch made `REQUIRED_STEPS` satisfiable by whichever lane
+recorded a step id first, left target 3.1's itemised view of *a merge* nowhere to live, and made
+`median` a median over BATCHES printed as "median merge minutes" — the `kind`-field failure with
+the discriminator moved one level out. Each receipt now also carries the **merge SHA** it timed,
+which is what lets §3 row 2d refuse a merge that landed without one.
 
 **The receipt is a stopwatch, not a runner.** Every command below is the command this walk
 already named; `merge_receipt.py time` runs it, times it, records it, and exits with the
@@ -79,12 +83,19 @@ its input pre-assembled. It cannot make one disappear.
 
 For each lane, in order:
 
-**First, verdict the lane's HANDBACK line — before the merge, not after it** (D-1, 2026-09-06:
+**Open this merge's receipt first** — the clock starts before the handback verdict, because the
+verdict is part of the merge's cost:
+
+```bash
+uv run --locked python scripts/merge_receipt.py open --slug lane-<letter>-<id>-<slug> --batch <n>
+```
+
+**Then verdict the lane's HANDBACK line — before the merge, not after it** (D-1, 2026-09-06:
 "REVIEW IS A LANE ACT … the integrator refuses a `review=NONE` code branch. Zero reviews cannot
 recur silently"):
 
 ```bash
-uv run --locked python scripts/merge_receipt.py time --slug batch-<n> --step handback --class ceremony -- \
+uv run --locked python scripts/merge_receipt.py time --slug lane-<letter>-<id>-<slug> --step handback --class ceremony -- \
   uv run --locked python scripts/audit.py handback "HANDBACK worktree-lane-<letter>-<id>-<slug> @ <sha> code review=codex HIGH:n MED:n LOW:n"
 ```
 
@@ -105,25 +116,26 @@ REPORTED, not that a review happened or that the counts are truthful. A lane tha
 
 ```bash
 R="uv run --locked python scripts/merge_receipt.py"
+L="lane-<letter>-<id>-<slug>"
 
-$R time --slug batch-<n> --step merge --class ceremony -- \
-  git merge --no-ff worktree-lane-<letter>-<id>-<slug>
+$R time --slug $L --step merge --class ceremony -- \
+  git merge --no-ff worktree-$L
 # Hand the reviewer their inputs BEFORE the review starts ([#675] target 3.5).
-$R time --slug batch-<n> --step assemble --class ceremony -- \
-  uv run --locked python scripts/review_packet.py --lane lane-<letter>-<id>-<slug> \
+$R time --slug $L --step assemble --class ceremony -- \
+  uv run --locked python scripts/review_packet.py --lane $L \
     --contract "$env:CLAUDE_PROMPTS_DIR/LANE-<letter>-<id>-<slug>.md" \
-    --range main..worktree-lane-<letter>-<id>-<slug> --handback "<the HANDBACK line>" \
-    $(git diff --name-only main..worktree-lane-<letter>-<id>-<slug> | sed 's/^/--changed /') \
-    --out logs/REVIEW-INPUT-lane-<letter>-<id>-<slug>.md
+    --range main..worktree-$L --handback "<the HANDBACK line>" \
+    $(git diff --name-only main..worktree-$L | sed 's/^/--changed /') \
+    --out logs/REVIEW-INPUT-$L.md
 
 # Suite and review CONCURRENTLY, not review queued behind the suite ([#675] target 3.3).
-$R race --slug batch-<n> \
+$R race --slug $L \
   --job "suite:tests=uv run --locked pytest -q --dist worksteal --max-worker-restart=0" \
   --job "review:review=<the reviewer, handed the packet above>"
-$R time --slug batch-<n> --step teardown --class ceremony -- \
-  git worktree remove .claude/worktrees/lane-<letter>-<id>-<slug>
+$R time --slug $L --step teardown --class ceremony -- \
+  git worktree remove .claude/worktrees/$L
 git worktree prune
-git branch -d worktree-lane-<letter>-<id>-<slug>
+git branch -d worktree-$L
 ```
 
 **Why those two are one block.** The suite is the merge's longest step and the review does not
@@ -147,13 +159,36 @@ integrator READING the result; not merely running there, because a green run nob
 a gate"):
 
 ```bash
-uv run --locked python scripts/merge_receipt.py time --slug batch-<n> --step actions --class tests -- \
-  uv run --locked python scripts/actions_verdict.py --sha <merge sha> --baseline <its FIRST PARENT>
+uv run --locked python scripts/merge_receipt.py actions --slug lane-<letter>-<id>-<slug> \
+  --sha <merge sha> --baseline <its FIRST PARENT>
 ```
 
 **Pass the merge's first parent as the baseline**, so the differential means *what this merge
 changed*. Hand it anything else and it means something else — the tool cannot know which you
-intended, so the choice is named here.
+intended, so the choice is named here. Omit it entirely and a failure is `UNATTRIBUTED`, which
+**cannot discharge the merge** (below).
+
+**This verb replaced a `time --step actions -- actions_verdict.py …` prefix, and the difference
+is the whole of ruling AY1-1** (`[#750]`). The prefix recorded only the child's **exit code**, and
+since `Verdict.ok` is `state == PASS`, a `PRE-EXISTING` red arrived as `ok=False` — so while
+`main`'s Actions `pytest` job is pre-existing red, **every** receipt was INCOMPLETE however clean
+the merge, `median` stayed UNDEFINED rather than low, and row 2d below would have refused every
+merge in this repo on its first day. `actions` records the **state by name** — `PASS`,
+`PRE-EXISTING`, `REGRESSED`, `NO-RUN`, `IN-PROGRESS`, `GH-UNAVAILABLE`, `JOBS-UNREADABLE`,
+`UNATTRIBUTED` — binds the receipt to the merge SHA it read, prints the same verdict you would
+have read, and **exits with the same code**: non-zero on `PRE-EXISTING` included.
+
+**COMPLETE is not a statement that the run was green**, and both halves matter. `PASS` or
+`PRE-EXISTING` makes the receipt a usable measurement *with the state on its face* — in the
+rendered summary and in the ledger row — so nobody can read it as a clean run. `REGRESSED`, or a
+state that says the result could not be read, makes it INCOMPLETE and refuses the merge. Nothing
+here forces a step to exit 0; that is `[#744]`'s false pass and AY1-1 rules it out by name.
+
+**There is deliberately no way to TYPE a state onto a receipt** — no `--state` flag on any verb,
+and a test asserts each absence. So `GH-UNAVAILABLE` refuses the merge rather than offering a way
+round itself: you record that the result was NOT read, which is what target 3.2 asks for, instead
+of typing the green the tool declined to find. On `JOBS-UNREADABLE`, **retry the read** — a second
+`actions` call under its own `--step` id supersedes the first, and both stay on the receipt.
 
 **It reports a DIFFERENTIAL rather than blocking, and that is measured rather than cautious.** On
 2026-09-12 the three most recent `conductor.yml` runs on `main` all concluded `failure`, on the
@@ -176,15 +211,27 @@ green merge.
 regeneration on Actions. The runner has no index-regeneration job, so a green run covers the
 suite only; the verdict says so, and stops saying it the moment such a job appears.
 
-**Close the receipt at the end of the walk**, after the last lane and the §3 checklist, and
-commit it with the batch — `logs/MERGE-RECEIPTS.jsonl` is durable and append-only, the
+**Close each lane's receipt at the end of ITS block** — the last act of the per-lane sequence,
+before moving to the next queue item. `median` and row 2d's `require` run ONCE, after the last
+lane. Commit `logs/MERGE-RECEIPTS.jsonl` with the batch: it is durable and append-only, the
 `logs/TOKEN-LOG.md` class, because a median over a real run of merges (`[#675]` target 3.6) needs
 receipts that outlive the run that produced them:
 
 ```bash
-uv run --locked python scripts/merge_receipt.py close --slug batch-<n>    # prints the itemised view
-uv run --locked python scripts/merge_receipt.py median                    # every merge so far, WITH its spread
+uv run --locked python scripts/merge_receipt.py close --slug lane-<letter>-<id>-<slug>   # per merge; prints the itemised view
+uv run --locked python scripts/merge_receipt.py median                                   # ONCE, at the end -- every merge so far, WITH its spread
 ```
+
+**`require` reads the LEDGER, so close every receipt before running row 2d.** An open receipt is
+one it cannot see, and the row would refuse a merge you did itemise.
+
+**The itemised view now accounts for the WHOLE arc, which it did not before `[#750]`.** Wall time
+is the span `opened -> closed`; the summed-children figure keeps its own name (`RECORDED`); and
+the difference is printed as `UNRECORDED` and folded into the baseline's residual-ceremony bucket,
+so `tests + residual` adds up to the arc rather than to the part of it that happened to be
+wrapped. Ledger row `lane-x-675-step-7` is why: a **3h01m20s** arc recorded `wall_seconds: 1.776`
+— the duration of its one timed child — and 72.7 of the baseline's 84 minutes live in exactly
+those gaps. Read `UNRECORDED` as the honest size of the ceremony nobody timed, not as noise.
 
 **`median` never prints a bare number** and there is no call that returns one: it always carries
 n, the range, the per-merge values and the baseline's own disagreement (`84 min wall = 11.3
@@ -200,8 +247,16 @@ seeing. `open` refuses to overwrite one for the same reason. Close it, or delete
 **Honest limit — it times what it is asked to time.** A step run without the prefix is invisible
 to the receipt, and an unrecorded step reads exactly like a fast one. `merge_receipt.py summary
 --strict` refuses a receipt missing a required step, and the plain summary names the gap; nothing
-forces `--strict`. The second limit is that wall time here is shared-machine time, so each
-receipt records how many lane worktrees were in flight beside it.
+forces `--strict`. Since `[#750]` an unprefixed step is at least visible *in aggregate* — it lands
+in `UNRECORDED`, so it shows as ceremony nobody attributed rather than as no time at all. The
+second limit is that wall time here is shared-machine time, so each receipt records how many lane
+worktrees were in flight beside it.
+
+**Honest limit — the refusal in row 2d is scoped to a RANGE and is wired into no hook.** It
+judges the merges in the range you hand it. Armed tree-wide it would refuse every merge that
+predates the receipt; run at commit time it would query an Actions run that cannot exist yet. It
+is a checklist row with an exit code, which is what makes it a refusal rather than a memo — and
+like every other row here, it is only run because you run it.
 
 - **The xdist flags change failure semantics BY DESIGN** — `--max-worker-restart=0` removes xdist's silent `numprocesses × 4` restart budget, so a crashed worker is now a loud bounded failure instead of a quiet replacement, and `--dist worksteal` rebalances a drained queue; spelled out here rather than inherited, matching the one live call site `.claude/skills/verify/verify.py`.
 - **One merge at a time.** A red suite stops the chain and surfaces — the next lane waits.
@@ -235,8 +290,9 @@ it seemed fine.
 |---|---|---|
 | 1 | Every lane branch merged-or-explicitly-abandoned | `git branch --list 'worktree-lane-*'` is empty, and every planned lane has a merge SHA or a recorded abandonment |
 | 2 | Full suite run once on the merged result | `uv run --locked pytest -q --dist worksteal --max-worker-restart=0` on the final merged `main`, verdict quoted |
-| 2b | Every merge's Actions result was READ and its verdict recorded ([#675] 3.2) | `uv run --locked python scripts/actions_verdict.py --sha <merge> --baseline <first parent>` was run per merge and its output is in the batch packet. A `PRE-EXISTING` verdict is an OPEN item with the failing jobs NAMED — it is not a pass, and "the run was red before us" is a recorded fact rather than a reason to skip the row. `NO-RUN` / `IN-PROGRESS` / `GH-UNAVAILABLE` / `JOBS-UNREADABLE` are each recorded as themselves; none of them is ever written down as green. `JOBS-UNREADABLE` means the run was found and its jobs were not, so the suite result is UNKNOWN — retry the read before recording it, and record the unknown rather than an assumption if it persists ([#742]) |
+| 2b | Every merge's Actions result was READ and its verdict recorded ([#675] 3.2) | `uv run --locked python scripts/merge_receipt.py actions --slug <lane> --sha <merge> --baseline <first parent>` was run per merge and its output is in the batch packet. **"Recorded" is now literal, not a habit** (`[#750]`): the state is on the receipt and in the ledger row by name, which is what row 2d then reads — so this row and that one are the same fact checked at two moments, the reading and the ledger. A `PRE-EXISTING` verdict is an OPEN item with the failing jobs NAMED — it is not a pass, and "the run was red before us" is a recorded fact rather than a reason to skip the row. It is nonetheless COMPLETE for row 2d, and those two statements do not conflict: the merge is measurable, and the red is still owed to the packet. `NO-RUN` / `IN-PROGRESS` / `GH-UNAVAILABLE` / `JOBS-UNREADABLE` are each recorded as themselves; none of them is ever written down as green. `JOBS-UNREADABLE` means the run was found and its jobs were not, so the suite result is UNKNOWN — retry the read before recording it, and record the unknown rather than an assumption if it persists ([#742]) |
 | 2c | Every reviewed lane was handed a PRE-ASSEMBLED packet, and review was not cut ([#675] 3.5) | `logs/REVIEW-INPUT-<lane>.md` exists per reviewed lane and the reviewer was pointed at it. The packet's **declared vs actual** section is read, not skimmed: a `WRITTEN BUT NOT DECLARED` entry is an OPEN item, because the contract forbids edits outside the declared footprint and the dispatch-time refusal cannot see them by construction |
+| 2d | Every merge in the walk range carries a COMPLETE `kind=merge` receipt ([#750], ruling AY1-1) | `uv run --locked python scripts/merge_receipt.py require --range <the FIRST merge's first parent>..HEAD` exits 0, run after the last `close`. It enumerates the first-parent merge commits in the range and REFUSES any that no complete receipt names — a **missing** receipt, or one whose suite verdict is `REGRESSED` or unreadable. It NAMES the merges that passed as well as the ones that did not, and a range holding **no merge at all** says so rather than printing OK, because "0 of 0 unreceipted" is exactly the plausible-value failure `[#675]` is filed about. A bad range **fails CLOSED**. Two ways to read a refusal wrong: an OPEN receipt is invisible to it (close first), and a `PRE-EXISTING` suite verdict is COMPLETE — the row does not refuse a merge for main being red before it |
 | 3 | `git worktree list` == primary only | run it; one line of output |
 | 4 | Manifest/packet archived | the lane manifest and end-of-batch packet are committed in the tree |
 | 4b | Audits index regenerated once, after the last merge ([#590]) | `uv run --locked python scripts/gen_audit_index.py --check` exits 0 on the final merged `main`. It is `merge=ours`-pinned, so every merge leaves it stale by construction — this is the step that makes taking it out of the merge path safe rather than lossy |
@@ -293,9 +349,17 @@ This is a command, not a gate. Nothing refuses a batch that closes with an item 
 refusal is the integrator running the list. The only mechanized backstop is
 `audit.py::check_stale_worktrees`, which is a WARN and fires after the fact, not at close.
 
-**One row is now mechanized, and only one.** §2's `audit.py handback` exits non-zero on a code
-branch reporting no review, so THAT refusal is a command's exit code rather than a seat's memory
-— and `review_artifact_coverage` reads the same token off the persisted artifact afterwards, so a
-review claimed at the queue and absent from the record is visible later too. Everything else on
-the checklist above is still an integrator running a list. And the verdict reads the LINE: it
-cannot tell a review that ran from a line that says one did.
+**Two rows are now mechanized, and only two.**
+
+- §2's `audit.py handback` exits non-zero on a code branch reporting no review, so THAT refusal
+  is a command's exit code rather than a seat's memory — and `review_artifact_coverage` reads the
+  same token off the persisted artifact afterwards, so a review claimed at the queue and absent
+  from the record is visible later too. The verdict reads the LINE: it cannot tell a review that
+  ran from a line that says one did.
+- Row **2d**'s `merge_receipt.py require` exits non-zero on a merge in the range that no complete
+  receipt names (`[#750]`). Its own honest limit is the mirror of the handback one: it reads the
+  LEDGER, so it cannot tell a merge that was itemised from a receipt that says it was. What it
+  closes is the silent case — a merge that landed with no receipt at all, which until `[#750]`
+  nothing could even ask about, because a receipt named no merge.
+
+Everything else on the checklist above is still an integrator running a list.
