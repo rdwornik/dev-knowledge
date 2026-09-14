@@ -574,16 +574,35 @@ def test_the_disposition_register_names_no_file_that_is_gone():
 #: intake #86's acceptance criterion 1 -- *"The sweep's output is the fixture. Every orphan
 #: S-08…S-13 found by grep, the query finds. Seeded as test cases, not eyeballed."*
 CENSUS_SCRIPT_ORPHANS = (
-    "scripts/archive_row_body.py",
+    # WIRED, not retired, and therefore absent for the CONVERSE of the reason the retirement
+    # blocks below give. Both of `[#664]`'s ratified TRIGGER rows landed on 2026-09-13 (lane
+    # `lane-x-664-delete-list-execution`), so the query no longer finds either and this fixture
+    # must not claim it does. Same shape as `file_purpose_graph.py` below: named here rather
+    # than dropped, because a fixture that silently shrinks is not a fixture.
+    #   `scripts/archive_row_body.py`  -> the `row-archive-proof` pre-commit hook.
+    #   `scripts/logs_retention.py`    -> the `SessionStart` hook in `.claude/settings.json`,
+    #                                     which is `[#655]`'s missing production caller.
     "scripts/cost_usage_telemetry.py",
     "scripts/desired_state_loader.py",
     "scripts/export_backlog_view.py",
-    "scripts/failed_set.py", "scripts/gen_north_star.py",
-    "scripts/gen_trend_dashboard.py", "scripts/logs_retention.py",
-    "scripts/nopack_sandbox.py",
     "scripts/setup-fleet-scheduler.ps1",
-    "scripts/trace_writer.py",
-    "scripts/window_metrics.py",
+    # RETIRED by lane `lane-x-664-delete-list-execution` ([#664]'s ratified DELETE list,
+    # 2026-09-13), same rule as the [#734] block below and named separately so the two
+    # retirements stay attributable. Each module left with its dedicated tests and its
+    # `ORPHAN_DISPOSITIONS` entry. Evidence:
+    # `docs/audits/2026-09-13-technical-lane-x-664-delete-list-execution-evidence.md`.
+    #   `gen_trend_dashboard.py` then `gen_north_star.py` (+ `test_gen_trend_dashboard.py`,
+    #   `test_trend_dashboard.py`, `test_gen_north_star.py`). The order is load-bearing rather
+    #   than stylistic: the dashboard loads the north-star view through
+    #   `importlib.util.spec_from_file_location`, an edge the static oracle cannot see and the
+    #   FPG-1 graph can.
+    #   `window_metrics.py` then `failed_set.py` (+ `test_window_metrics.py`,
+    #   `test_failed_set.py`). Ordered for the same class of reason: `failed_set` was an orphan
+    #   BY INHERITANCE from `window_metrics.py:359` and its own row said it is dispositioned
+    #   WITH its caller and not before it.
+    #   `nopack_sandbox.py` and `trace_writer.py` (+ `test_nopack_sandbox.py`,
+    #   `test_trace_writer.py`). Unordered, and that is a fact rather than an omission: these
+    #   two carried NO inbound edge of any kind, so neither could be the other's reason.
     # RETIRED by lane `lane-x-734-retire-stage-2` ([#734], the AX13-2 retire stage), not
     # dropped silently: `boundary_headers.py`, `boundary_report.py`, `cloud_provisioning.py`,
     # `probe_child_backlogs.py`, `seed_runbook.py`, `validate_onboarding_rulings.py` and
