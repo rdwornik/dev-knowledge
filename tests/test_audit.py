@@ -1212,10 +1212,13 @@ def test_freshness_real_git_equal_date_passes(tmp_path: Path) -> None:
     assert f.status == "pass", f.evidence
 
 
-def test_freshness_includes_essentials() -> None:
-    """ESSENTIALS joined the freshness gate (doc-currency seal 2026-06-19): its drift is
-    now check-#10-detectable. Hub-specific path (children skip absent files)."""
-    assert "protocols/ESSENTIALS.md" in aud._FRESHNESS_FILES
+def test_freshness_leaves_essentials() -> None:
+    """ESSENTIALS joined the freshness gate 2026-06-19 and LEFT it 2026-09-13 ([#628],
+    lane-x-628-docs-cut): the file is superseded and CLAUDE.md sends no session to it, so
+    re-dating it on every commit was gate work on a doc nobody is told to open. Mirrors the
+    VISION removal (test_vision_leaves_the_freshness_files_registry_in_both_places) --
+    retirement from CANONICAL_OPTIONAL's freshness membership, not from the tree."""
+    assert "protocols/ESSENTIALS.md" not in aud._FRESHNESS_FILES
 
 
 def test_freshness_includes_hub_only_protocol_docs() -> None:

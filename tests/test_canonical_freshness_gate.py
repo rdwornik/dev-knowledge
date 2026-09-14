@@ -156,25 +156,27 @@ def test_an_absent_OPTIONAL_file_is_reported_not_fatal_because_this_gate_ships_t
     """terra P1, 2026-09-03 — caught before merge, with the blast radius measured.
 
     This gate is BYTE-COPIED into every consumer repo as a pre-commit hook, and
-    `DEFAULT_FRESHNESS_FILES` registers two documents no consumer carries. Measured against the
-    three live consumers on 2026-09-03: corp-monorepo, ai-council and win-tooling each lack BOTH
-    `protocols/ESSENTIALS.md` and `docs/handoffs/README.md`. An unconditional absence-FAIL blocks
-    every commit in all three, permanently.
+    `DEFAULT_FRESHNESS_FILES` registered a document no consumer carried. Measured against the
+    three live consumers on 2026-09-03: corp-monorepo, ai-council and win-tooling each lacked
+    `docs/handoffs/README.md`. An unconditional absence-FAIL blocks every commit in all three,
+    permanently. (`protocols/ESSENTIALS.md` was the other measured-absent file at the time; it
+    LEFT `DEFAULT_FRESHNESS_FILES` 2026-09-13, [#628] lane-x-628-docs-cut, so it is no longer
+    registered at all -- the absence-vs-FAIL question this test covers is now `handoffs/README`'s
+    alone.)
 
-    This is not a weakening of Z-G4. `canonical_docs` puts `ESSENTIALS` in `CANONICAL_OPTIONAL`
-    and states presence is required only for `CANONICAL_MANDATORY`; for an optional document
-    absent IS the ground truth, not an unmeasurable one. The absence is still REPORTED — Z-G4's
-    real target is silence, not non-fatality.
+    This is not a weakening of Z-G4. `canonical_docs` puts optional-and-registered files (e.g.
+    `HANDOFFS_README_PATH`) in `FRESHNESS_FILES` without also putting them in
+    `CANONICAL_MANDATORY`; for such a document absent IS the ground truth, not an unmeasurable
+    one. The absence is still REPORTED — Z-G4's real target is silence, not non-fatality.
     """
     from datetime import date
     for name in ("ARCHITECTURE.md", "CLAUDE.md", "CONTRIBUTING.md"):
         _stamped(tmp_path / name)
-    # neither optional file exists — the measured consumer shape
+    # the optional file does not exist — the measured consumer shape
 
     fails, warns = cfg.evaluate(tmp_path, git_date_fn=lambda r, f: None,
                                 today=date(2026, 9, 3))[:2]
     assert fails == [], fails
-    assert any("ESSENTIALS" in w and "absent" in w for w in warns), warns
     assert any("handoffs/README" in w and "absent" in w for w in warns), warns
 
 

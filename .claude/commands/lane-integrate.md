@@ -164,9 +164,13 @@ refuses everything is turned off inside a window. Instead: a job **this merge br
 merge fixed** is reported too. All of them exit non-zero — including `PRE-EXISTING`, because this
 merge did not cause those failures and must still never be recorded as having run green.
 
-**Three absences are three verdicts**, never one: `NO-RUN` (investigate), `IN-PROGRESS` (wait),
+**Four absences are four verdicts**, never one: `NO-RUN` (investigate), `IN-PROGRESS` (wait),
 `GH-UNAVAILABLE` (install or authenticate — and record explicitly that the result was NOT read,
-never that it passed).
+never that it passed), and `JOBS-UNREADABLE` (retry — the run was found and its job list was not,
+so this merge's suite result is UNKNOWN). The fourth was added 2026-09-13 by `[#742]`: until then
+an errored, timed-out or unparseable `gh run view --json jobs` became an empty job list, which
+read as "nothing failed" and printed **`PASS`**. A call that never completed was reported as a
+green merge.
 
 **Honest gap it reports on itself:** target 3.2 asks for the full suite **and** index
 regeneration on Actions. The runner has no index-regeneration job, so a green run covers the
@@ -231,7 +235,7 @@ it seemed fine.
 |---|---|---|
 | 1 | Every lane branch merged-or-explicitly-abandoned | `git branch --list 'worktree-lane-*'` is empty, and every planned lane has a merge SHA or a recorded abandonment |
 | 2 | Full suite run once on the merged result | `uv run --locked pytest -q --dist worksteal --max-worker-restart=0` on the final merged `main`, verdict quoted |
-| 2b | Every merge's Actions result was READ and its verdict recorded ([#675] 3.2) | `uv run --locked python scripts/actions_verdict.py --sha <merge> --baseline <first parent>` was run per merge and its output is in the batch packet. A `PRE-EXISTING` verdict is an OPEN item with the failing jobs NAMED — it is not a pass, and "the run was red before us" is a recorded fact rather than a reason to skip the row. `NO-RUN` / `IN-PROGRESS` / `GH-UNAVAILABLE` are each recorded as themselves; none of them is ever written down as green |
+| 2b | Every merge's Actions result was READ and its verdict recorded ([#675] 3.2) | `uv run --locked python scripts/actions_verdict.py --sha <merge> --baseline <first parent>` was run per merge and its output is in the batch packet. A `PRE-EXISTING` verdict is an OPEN item with the failing jobs NAMED — it is not a pass, and "the run was red before us" is a recorded fact rather than a reason to skip the row. `NO-RUN` / `IN-PROGRESS` / `GH-UNAVAILABLE` / `JOBS-UNREADABLE` are each recorded as themselves; none of them is ever written down as green. `JOBS-UNREADABLE` means the run was found and its jobs were not, so the suite result is UNKNOWN — retry the read before recording it, and record the unknown rather than an assumption if it persists ([#742]) |
 | 2c | Every reviewed lane was handed a PRE-ASSEMBLED packet, and review was not cut ([#675] 3.5) | `logs/REVIEW-INPUT-<lane>.md` exists per reviewed lane and the reviewer was pointed at it. The packet's **declared vs actual** section is read, not skimmed: a `WRITTEN BUT NOT DECLARED` entry is an OPEN item, because the contract forbids edits outside the declared footprint and the dispatch-time refusal cannot see them by construction |
 | 3 | `git worktree list` == primary only | run it; one line of output |
 | 4 | Manifest/packet archived | the lane manifest and end-of-batch packet are committed in the tree |

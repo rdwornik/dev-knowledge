@@ -249,6 +249,137 @@ def test_a_path_cited_only_OUTSIDE_a_write_root_is_not_a_footprint_entry():
     assert sr.declared_footprint(contract) == {"scripts/audit.py"}
 
 
+# --- `[#743]`: A ROOT-LEVEL FILE IS A FILE -----------------------------------
+#
+# RED-FIRST WITNESS (ADR-108 SB). At `dbac84b8` a Done-contract declaring `ARCHITECTURE.md`,
+# `.pre-commit-config.yaml` or `pyproject.toml` was invisible to this extractor, so two lanes
+# could both declare the same root-level file and the step-0 refusal would report PASS.
+#
+# THE BLINDNESS HAD TWO INDEPENDENT LEGS, and either alone was enough:
+#
+#   * `_CONTRACT_PATH_RE` required `(?:...)+` -- ONE OR MORE segments ending in `/`. A bare
+#     `ARCHITECTURE.md` produced no match at all.
+#   * `_WRITE_ROOTS` was a tuple of DIRECTORY prefixes tested with `str.startswith`, so even a
+#     matched root-level name had no admitting prefix.
+#
+# AND IT WAS LIVE IN THE BATCH THAT FIXED IT, which is why the row exists. The step-0 refusal
+# this lane's own dispatcher ran reported "4 contract(s), 21 declared path(s), no file claimed
+# twice" while `lane-x-628-docs-cut` declared `ARCHITECTURE.md` and
+# `lane-x-664-delete-list-execution` declared `.pre-commit-config.yaml`. The two happened not
+# to collide with each other, so the PASS was correct BY LUCK rather than by check.
+
+
+def test_two_lanes_declaring_the_same_ROOT_LEVEL_file_are_REFUSED():
+    """`[#743]`'s first leg, and the whole row in one assertion. RED at `dbac84b8`: the
+    extractor saw neither declaration, found no collision, and passed."""
+    contracts = {"lane-a": _contract("ARCHITECTURE.md"),
+                 "lane-b": _contract("ARCHITECTURE.md", "scripts/audit.py")}
+
+    with pytest.raises(sr.SeatRefusal) as exc:
+        sr.refuse_file_collision(contracts)
+
+    assert "ARCHITECTURE.md" in str(exc.value)
+    assert "lane-a" in str(exc.value) and "lane-b" in str(exc.value)
+
+
+@pytest.mark.parametrize("name", ["ARCHITECTURE.md", ".pre-commit-config.yaml",
+                                  "pyproject.toml", "CLAUDE.md", "uv.lock", "package.json"])
+def test_a_root_level_TRACKED_file_is_extracted_like_any_other_declared_path(name):
+    """Every shape the root actually holds: an UPPERCASE living doc, a dotfile with an
+    extension, and lowercase build config. A fix that admitted only `*.md` would leave the
+    `.pre-commit-config.yaml` half of the measured live instance still blind."""
+    assert sr.declared_footprint(_contract(name)) == {name}
+
+
+@pytest.mark.parametrize("not_a_repo_path", [
+    "LANE-x-000-other.md",          # the transport's own filename -- the false positive
+    "LANE-x-675-instrument-fixes.md",
+    "MATRIX.md",                    # a prose noun that happens to look like a file
+    "REVIEW.md",
+    "NIGHT-LOG.md",
+])
+def test_admitting_the_ROOT_does_not_admit_the_transport_or_a_prose_noun(not_a_repo_path):
+    """`[#743]`'s explicit anti-regression clause: "a bare `*.md` admission that lets
+    `LANE-x-000-other.md` through is a regression, not a fix, and a test asserts that too".
+
+    The admission is a CLOSED SET -- the repo's own sanctioned top-level file roster -- not a
+    glob, so the transport filenames and prose nouns this module's comment exists to exclude
+    stay excluded BY CONSTRUCTION rather than by a second filter that could be dropped.
+    """
+    contract = _contract("scripts/audit.py", extra=f"- see `{not_a_repo_path}` on the transport\n")
+
+    assert sr.declared_footprint(contract) == {"scripts/audit.py"}
+
+
+def test_an_ABSOLUTE_operator_path_is_still_not_a_declared_footprint():
+    """The other class `_WRITE_ROOTS`'s comment names. Widening to the root must not widen to
+    the operator's disk: the basename of an absolute path is not a repo file."""
+    contract = _contract("scripts/audit.py",
+                         extra="- the contract lives at `H:/My Drive/CLAUDE PROMPT DIR/"
+                               "LANE-x-000-other.md` and is read from there\n")
+
+    assert sr.declared_footprint(contract) == {"scripts/audit.py"}
+
+
+def test_the_root_admission_is_the_repo_s_OWN_roster_not_a_second_copy_of_it():
+    """LIBRARY-FIRST, and it is the reason this fix adds no roster. `validate_hermetization`
+    already computes the sanctioned top-level file set from the shape spec, and that set is
+    what ADR-101 refuses new root files against. Retyping it here would create exactly the
+    defect `_CONTRACT_PATH_RE`'s own comment names -- two organs disagreeing about what counts
+    as a path -- and a root file added by a future ruling would be invisible to this check
+    until someone remembered to copy it across.
+    """
+    import validate_hermetization as vh
+
+    assert sr.ROOT_LEVEL_FILES == frozenset(vh.SANCTIONED_TIER1_FILES)
+
+
+def test_a_row_body_QUOTED_INSIDE_the_done_contract_reads_as_a_declaration():
+    """THE ONE FALSE POSITIVE THE WIDENING PRODUCES, measured and pinned rather than left to be
+    rediscovered as flakiness.
+
+    Run over all 57 contracts on the transport, the root admission produced FIVE multi-claimed
+    root files and every single over-claim traced to ONE contract --
+    `LANE-x-675-instrument-fixes`, the one that carries `[#743]`'s row body verbatim INSIDE its
+    Done-contract, where the row text enumerates `ARCHITECTURE.md`, `.pre-commit-config.yaml`
+    and `pyproject.toml` as EXAMPLES of what the checker should learn to see. Excluding that
+    contract, the widening produces ZERO in-batch false collisions across the whole transport.
+
+    THE CHECKER IS RIGHT AND THE CONTRACT IS MIS-SHAPED, which is why this is pinned as
+    behaviour rather than patched. `declared_footprint` reads the Done-contract because that
+    section is write-shaped; the sanctioned home for a carried row body is a SEPARATE section,
+    which is exactly what the fixture in
+    `test_the_footprint_is_read_from_the_DONE_CONTRACT_not_the_whole_file` uses. A contract that
+    quotes filenames into its Done-contract has declared them, and the refusal's own remedy --
+    re-cut the contract -- is the right answer to that.
+    """
+    quoting = _contract("scripts/audit.py",
+                        extra="- carried verbatim: *\"a contract declaring a root-level file "
+                              "(`ARCHITECTURE.md`, `pyproject.toml`) is extracted\"*\n")
+
+    assert sr.declared_footprint(quoting) == {"scripts/audit.py", "ARCHITECTURE.md",
+                                              "pyproject.toml"}
+
+    # The same words in the sanctioned place declare nothing.
+    carried_properly = _contract("scripts/audit.py") + (
+        "\n## Carried rows and clauses (verbatim)\n\n"
+        "*\"a contract declaring a root-level file (`ARCHITECTURE.md`, `pyproject.toml`) is "
+        "extracted\"*\n")
+
+    assert sr.declared_footprint(carried_properly) == {"scripts/audit.py"}
+
+
+def test_a_root_file_declared_in_PROSE_outside_the_done_contract_is_still_not_a_footprint():
+    """The Done-contract-only rule is unchanged by this widening. It is the measured choice
+    that makes the refusal usable at all, and the root admission must not quietly undo it --
+    every contract in this repo cites `pyproject.toml` and `CLAUDE.md` somewhere."""
+    contract = _contract("scripts/audit.py") + (
+        "\n## Carried rows and clauses (verbatim)\n\n"
+        "the row cites `ARCHITECTURE.md` and `pyproject.toml` as CONTEXT, not as writes\n")
+
+    assert sr.declared_footprint(contract) == {"scripts/audit.py"}
+
+
 def test_a_contract_declaring_NO_footprint_is_REPORTED_not_silently_passed():
     """NEVER GREEN-BY-SKIP -- the 2026-08-25 sweep's rule, applied to a different absence.
 

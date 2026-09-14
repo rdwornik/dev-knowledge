@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "46dfc9b803db7da3f4cfebc3c5f95231313d12545875e3b5fe1a11dddef97f5d",
+  "generated_sha256": "4c78a76b32b456e1895233a9c69486446e739d0d3d7a54301c309863d0385ffa",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -460,6 +460,14 @@
     {
       "task": 744,
       "file": "744-median-report-counts-incomplete-receipts.md"
+    },
+    {
+      "task": 748,
+      "file": "748-a-lane-whose-worktree-redirects-to-the-primary-has-no-isolation.md"
+    },
+    {
+      "task": 749,
+      "file": "749-two-lanes-may-be-dispatched-for-the-same-row-under-different-slugs.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -1383,6 +1391,10 @@
     {
       "task": 729,
       "file": "729-fpg1-queries-exposed-as-mcp-tools-so-they-sit-beside-grep.md"
+    },
+    {
+      "task": 746,
+      "file": "746-devcontainer-history-and-ecosystem-repair-lost-with-cloud-provisioning-py.md"
     },
     {
       "prose": "### [S19] Decide the undecided artifact/tool models"
