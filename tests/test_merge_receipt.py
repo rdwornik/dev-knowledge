@@ -211,8 +211,8 @@ def test_a_NON_MERGE_arc_cannot_flatter_the_MERGE_median_and_its_exclusion_is_NA
     see is the same defect one layer on.
     """
     merge = _complete_merge(40.0)
-    arc = mr.Receipt(slug="a", batch="x", opened="t", host="h", concurrent_seats=0,
-                     closed="t2", kind=mr.KIND_ARC)
+    arc = mr.Receipt(slug="a", batch="x", opened=_stamp(), host="h", concurrent_seats=0,
+                     closed=_stamp(60.0), kind=mr.KIND_ARC)
     arc.steps.append(_step("commit", 60.0))
 
     report = mr.median_report([merge, arc])
