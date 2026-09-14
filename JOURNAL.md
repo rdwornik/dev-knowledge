@@ -19,6 +19,63 @@
 
 ---
 
+### 2026-09-14 (d) - CC (Opus 5, background integrator seat): the anchor arc opened its own gap, and a lane caught it
+
+**Anchors:** `f5384ac4`, `e6cc52ae` — `f5384ac4` discharges `e6acb23e`, whose introduced set is
+exactly `{e6acb23e, f5384ac4}`; `e6cc52ae` is this arc's own substantive commit, which the merge
+carrying this entry introduces.
+
+**The defect, and it was mine.** Entry (c) anchored `8a41c650` correctly by naming `dceb82e9`
+(`is_anchored` → True, verified). But entry (c) IS `f5384ac4`, and the merge that landed it,
+`e6acb23e`, introduced only `{e6acb23e, f5384ac4}` — so the only SHA that could discharge it is
+the hash of the commit holding the entry, which cannot exist when the entry is authored. **A
+one-commit arc cannot anchor its own merge.** Fixing the gap one entry down opened an identical
+gap one entry up, and `e6acb23e` went to `origin` that way.
+
+**`block-unanchored-push` did not catch it, and that is not a bug in the gate.** It asks whether
+the pushed RANGE carries a JOURNAL anchor. My range carried entry (c), which anchors `8a41c650`,
+so the range was anchored while a spine entry inside it was not. **Range-anchored and
+every-entry-anchored are different properties, and only the first is enforced at push time.** The
+per-entry property is `audit-health`'s, and `audit-health` did not fire either — because batch Y
+is open and the ADR-110 declared-integration-arc exemption is live, which is exactly what let me
+commit over an unanchored spine without a SKIP two arcs ago. The two mechanisms are individually
+correct and jointly leave this shape uncovered.
+
+**Caught by lane `y-750-merge-receipts`, not by a gate**, using `journal_anchor`'s own predicates
+rather than a grep, and it verified both legs — `unanchored_on_spine` in its own tree AND against
+main — to rule out the tree-lag false positive that makes this class look real when it is not. It
+also correctly declined to journal the finding itself (P-1 puts the JOURNAL on the integrator) and
+proceeded under a declared `SKIP=audit-health` rather than stopping. That is the second time today
+a peer seat caught something no gate did.
+
+**Why this entry names two SHAs, and why no placeholder was needed.** `f5384ac4` discharges
+`e6acb23e`. `e6cc52ae` is this arc's substantive commit — the regenerated audits index — whose SHA
+already exists when this entry is authored, because a **two-commit arc puts the substantive commit
+first and the JOURNAL last**. So the merge carrying this entry introduces a commit the entry
+already names, and closes behind itself instead of opening a third gap. The lane offered a
+`MERGE_HEAD` placeholder technique as the alternative; it is unnecessary here and I did not use
+it — the ordinary two-commit arc is sufficient and has no moving parts. Discharge is by APPEND
+only: amending entry (c) to add `f5384ac4` would have discharged retroactively with no trace that
+the gap ever existed, which is what B6 forbids.
+
+**The index regeneration was owed anyway, which is why this arc has honest substance rather than a
+commit invented to satisfy a structural rule.** `gen_audit_index --check` exits 1 on `main`: the
+index has never seen batch X4's close packet, nor batch Y's manifest and six launch contracts.
+This is the one index pass batch X4's packet deferred at item 4b, arriving one arc later than
+planned. It will need a second pass after the last lane merge, and that is a real cost of doing it
+here — recorded rather than hidden.
+
+**Changes.** `JOURNAL.md` (this entry) and the regenerated `docs/audits/README.md` index, which
+batch Y's manifest and six launch contracts made stale when `8a41c650` landed.
+
+**Abandoned.** Nothing.
+
+**Next.** Tell both seats the gap is clear so lane commits stop paying a declared
+`SKIP=audit-health` for a defect of mine. Then resume the queue: wave 1 merges one at a time, each
+synced onto `main` first, Codex reviews raced, `[#752]` released on `[#750]`'s landing SHA and
+`[#753]` on `[#751]`'s. **Every integration arc from here carries at least two commits**, so its
+merge is anchorable by construction rather than by luck.
+
 ### 2026-09-14 (c) - CC (Opus 5, background integrator seat): batch Y opens at 0 + 6, and the [#630] gate compares something for the first time
 
 **Anchors:** `dceb82e9` — the SHA the batch-Y manifest merge introduced, named by the spine entry
