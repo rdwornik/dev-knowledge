@@ -19,6 +19,62 @@
 
 ---
 
+### 2026-09-14 (i) - CC (Opus 5, background integrator seat): two receipts close, the median is UNDEFINED for a new reason, and I committed transient state
+
+**Anchors:** `237526c9` — the arc commit this merge introduces, named by the spine entry that introduces
+it, per B8.
+
+**Two closed `kind=merge` receipts, both with DERIVED baselines.**
+
+```
+merge-y-750  merge 02bdbff3  baseline b779616e7055  PRE-EXISTING  wall  5.90 min  recorded 0.20
+merge-y-754  merge 2d7cc200  baseline d458e5de6f68  PRE-EXISTING  wall 12.62 min  recorded 0.62
+```
+
+I passed `--baseline` on neither. **`[#750]`'s CRITICAL fix worked in its first real use, on the batch
+that produced it** — which is a better validation than any test the lane wrote.
+
+**THE MERGE MEDIAN IS UNDEFINED, AND NOT BECAUSE OF THE RED SUITE THIS TIME.** `median --kind merge`
+excludes both receipts as INCOMPLETE. `REQUIRED_STEPS` includes **`teardown`**, and teardown is a
+**batch-close** act in this walk — worktrees come down after every merge, and a lane's session may still
+be alive, so tearing one down mid-batch is both out of sequence and destructive. **A per-merge receipt
+therefore cannot record teardown, so every per-merge receipt is structurally incomplete and
+`[#744]`'s datapoint is unreachable again** — by a different route than the `PRE-EXISTING` red that
+`[#750]` just closed. Two escapes exist and neither is mine to pick: make teardown per-merge, or drop
+it from the required set for `kind=merge`. Recorded for the packet; the raw walls above are reported as
+raw walls and **the median stays UNDEFINED rather than computed by hand**, which is exactly what the
+tool refuses to do and is right to refuse.
+
+**THE ACCOUNTING IS REAL, AND IT CLOSES EXACTLY.** For `merge-y-754`: wall span 757 s;
+`by_class_seconds` ceremony 23.618 + review 0.0 + tests 13.791 = 37.409 = `recorded_seconds` exactly;
+and `residual_ceremony` 12.39 min + tests 0.23 min = 757.2 s, the whole span. **The 720 s that are not
+instrumented are reported BY NAME as `residual_ceremony` rather than silently dropped** — which is the
+defect `[#750]` was chartered to close, whose RED-first witness was "a 3h01m span recorded as 1.776 s".
+The gap still exists; it is now disclosed instead of hidden.
+
+**I COMMITTED TRANSIENT STATE AND IT REACHED ORIGIN.** `logs/.merge-receipt-merge-y-754.json` is the
+tool's in-flight sidecar, which `close` deletes. A `git add -A` inside my own merge-step script swept it
+into the `#754` merge `2d7cc200`. Deleted here. Two consequences: **my script's `git add -A` is a
+demonstrated hazard while a receipt is open** — stage explicit paths — and `logs/.merge-receipt-*.json`
+is **not gitignored**, so an open receipt reads as a dirty tree and any `add -A` commits it. The second
+is `[#750]`'s footprint and is reported, not changed here.
+
+**`concurrent_seats` answered, because a peer flagged it as a number whose instrument it could not
+see.** `count_concurrent_seats` counts **lane worktrees under `.claude/worktrees`** and its own docstring
+says "A COUNT, NOT A LOAD MEASUREMENT". So `4` is exact for what it measures, and it **silently excludes
+every seat without a worktree** — the dispatcher, `[#752]`, and the integrator's own primary checkout.
+Seven sessions were live; the field says four. Not a defect: an honest limit that a reader comparing a
+quiet merge with a busy one needs stated, which is why it is stated here.
+
+**Changes.** `logs/MERGE-RECEIPTS.jsonl` (+2 closed receipts), `logs/.merge-receipt-merge-y-754.json`
+deleted, and this entry.
+
+**Abandoned.** Nothing.
+
+**Next.** `#751` when it hands back. Then the second audits-index pass, the close packet with its seven
+numbers — median reported as UNDEFINED with the raw walls beside it — and teardown, which records the
+one step both receipts lack.
+
 ### 2026-09-14 (h) - CC (Opus 5, background integrator seat): a lane refutes its own contract's premise, and the number it was told to move goes the other way
 
 **Anchors:** `b4cdb3e2` — the lane tip this merge introduces, named by the spine entry that introduces
