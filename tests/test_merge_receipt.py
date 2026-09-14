@@ -984,3 +984,141 @@ def test_the_require_VERB_exits_NON_ZERO_on_an_UNRECEIPTED_merge(tmp_path, monke
     assert "bbb222" in result.output
     assert "aaa111" in result.output, \
         "the merge that PASSED is named too -- a checklist row is evidence, not a verdict"
+
+
+# ---------------------------------------------------------------------------------------------
+# The baseline is MEASURED, not TYPED ([#750] follow-up). Codex `gpt-5.6-terra` CRITICAL, raised
+# by the integrator seat during batch Y's review and verified in the code before these witnesses
+# were written. The module refuses to let a VERDICT be typed -- no `--state`, at length, with an
+# absence test -- and then accepted the BASELINE as free-form text. Choosing the baseline chooses
+# the verdict, so `[#744]`'s false pass was open at the side door while the front one was bolted.
+# ---------------------------------------------------------------------------------------------
+
+
+def _parent(mapping):
+    """A `first_parent` seam, the same shape as `verdict_for`'s `fetch`: a test drives the real
+    refusal rather than asserting a relationship it typed itself."""
+    def first_parent(_root, sha):
+        if sha not in mapping:
+            raise mr.MergeReceiptError(f"git rev-parse {sha}^1 could not be read")
+        return mapping[sha]
+    return first_parent
+
+
+def test_the_BASELINE_is_DERIVED_from_the_merges_FIRST_PARENT_rather_than_SUPPLIED(tmp_path):
+    """Omitting the baseline must not mean UNATTRIBUTED; it must mean `<sha>^1`.
+
+    The old signature defaulted to None, and None attributes nothing -- so the safe-looking
+    omission produced the one state that cannot discharge a merge. Deriving it makes the correct
+    reading the DEFAULT rather than something the integrator must remember at every merge of a
+    six-merge walk.
+    """
+    mr.open_receipt(tmp_path, slug="m", batch="y")
+    read: list[str] = []
+
+    def fetch(sha, **_kwargs):
+        read.append(sha)
+        return _run(sha, ("pytest", "failure"))
+
+    receipt, verdict = mr.record_actions_verdict(
+        tmp_path, slug="m", sha="tip", fetch=fetch,
+        first_parent=_parent({"tip": "realparent"}))
+
+    assert "realparent" in read, \
+        "the derived first parent must be the SHA actually READ, not merely computed"
+    assert verdict.state == av.STATE_PRE_EXISTING
+    assert receipt.steps[-1].baseline_sha == "realparent", \
+        "the baseline actually attributed against is recorded, or the reading is unauditable"
+
+
+def test_a_BASELINE_that_is_NOT_the_merges_FIRST_PARENT_is_REFUSED(tmp_path):
+    """The whole of the CRITICAL. An explicitly-passed baseline is checked against `<sha>^1` and
+    refused when it disagrees, because `--baseline main` instead of `sha^1` -- or one copy-pasted
+    from the previous lane's block -- is an easy honest slip that silently converts a REGRESSION
+    into a pre-existing red."""
+    mr.open_receipt(tmp_path, slug="m", batch="y")
+
+    with pytest.raises(mr.MergeReceiptError) as exc:
+        mr.record_actions_verdict(
+            tmp_path, slug="m", sha="tip", baseline="some-older-red-commit",
+            fetch=_fetcher(), first_parent=_parent({"tip": "realparent"}))
+
+    message = str(exc.value)
+    assert "some-older-red-commit" in message and "realparent" in message, \
+        "the refusal names BOTH commits, or the integrator cannot see which one was wrong"
+
+
+def test_a_TYPED_BASELINE_cannot_convert_a_REGRESSED_merge_into_a_PRE_EXISTING_one(tmp_path):
+    """The CRITICAL's scenario end-to-end, driven through the real state machine.
+
+    `tip` broke `pytest` against its own first parent -- REGRESSED, which refuses the merge. An
+    older commit where `pytest` also failed is offered as the baseline, which WOULD read
+    PRE-EXISTING, complete the receipt and let `require` exit 0. The refusal is what stops it.
+    """
+    mr.open_receipt(tmp_path, slug="m", batch="y")
+    fetch = _fetcher(tip=_run("tip", ("pytest", "failure")),
+                     realparent=_run("realparent", ("pytest", "success")),
+                     olderred=_run("olderred", ("pytest", "failure")))
+    parent = _parent({"tip": "realparent"})
+
+    with pytest.raises(mr.MergeReceiptError):
+        mr.record_actions_verdict(tmp_path, slug="m", sha="tip", baseline="olderred",
+                                  fetch=fetch, first_parent=parent)
+
+    assert mr.load_receipt(tmp_path, "m").suite_verdict() is None, \
+        "a refused read records NOTHING -- a half-recorded verdict is the false pass itself"
+
+    receipt, verdict = mr.record_actions_verdict(tmp_path, slug="m", sha="tip", fetch=fetch,
+                                                 first_parent=parent)
+    assert verdict.state == av.STATE_REGRESSED
+    assert "REGRESSED" in (receipt.incompleteness_reason() or ""), \
+        "the honest baseline refuses the merge, which is why refusing the typed one matters"
+
+
+def test_an_UNDERIVABLE_FIRST_PARENT_REFUSES_rather_than_reading_UNATTRIBUTED(tmp_path):
+    """FAILS CLOSED, the same posture as `first_parent_merges`. A SHA whose first parent cannot
+    be read must not fall back to None: None is UNATTRIBUTED, and UNATTRIBUTED arriving from a
+    silent failure is indistinguishable from UNATTRIBUTED arriving from an honest unknown."""
+    mr.open_receipt(tmp_path, slug="m", batch="y")
+
+    with pytest.raises(mr.MergeReceiptError):
+        mr.record_actions_verdict(tmp_path, slug="m", sha="orphan", fetch=_fetcher(),
+                                  first_parent=_parent({}))
+
+
+def test_a_REGRESSED_reading_is_STICKY_and_a_LATER_read_cannot_supersede_it(tmp_path):
+    """The HIGH. `suite_verdict()` is last-wins so a `JOBS-UNREADABLE` retry can be superseded by
+    a real read -- but a REGRESSION once observed is a fact about the merge, and a later green
+    read means the run was RE-RUN, which is a different claim. So completeness refuses on ANY
+    recorded REGRESSED read regardless of position, and both readings stay on the receipt."""
+    mr.open_receipt(tmp_path, slug="m", batch="y")
+    parent = _parent({"tip": "realparent"})
+
+    mr.record_actions_verdict(
+        tmp_path, slug="m", sha="tip", step="actions",
+        fetch=_fetcher(tip=_run("tip", ("pytest", "failure")),
+                       realparent=_run("realparent", ("pytest", "success"))),
+        first_parent=parent)
+    receipt, _verdict = mr.record_actions_verdict(
+        tmp_path, slug="m", sha="tip", step="actions-rerun",
+        fetch=_fetcher(tip=_run("tip", ("pytest", "success")),
+                       realparent=_run("realparent", ("pytest", "success"))),
+        first_parent=parent)
+
+    assert receipt.suite_verdict() == av.STATE_PASS, "last-wins still holds for the READING"
+    reason = receipt.incompleteness_reason()
+    assert reason is not None and "REGRESSED" in reason, \
+        "a re-run cannot un-regress a merge; the receipt stays INCOMPLETE and says why"
+
+
+def test_there_is_NO_WAY_to_TYPE_a_BASELINE_RELATIONSHIP_ONTO_A_RECEIPT_EITHER():
+    """The MEDIUM, and it is the absence test's own gap rather than the module's. The original
+    asserted `--verdict` absent for `time` ONLY -- so an `actions --verdict PASS` flag could have
+    been added with every assertion still green, on the one verb where it matters most."""
+    from click.testing import CliRunner
+
+    runner = CliRunner()
+    for verb in ("actions", "time", "close"):
+        output = runner.invoke(mr.cli, [verb, "--help"]).output
+        for flag in ("--state", "--verdict", "--ok", "--force"):
+            assert flag not in output, f"{verb} must not be able to be handed a {flag}"
