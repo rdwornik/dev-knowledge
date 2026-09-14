@@ -19,6 +19,75 @@
 
 ---
 
+### 2026-09-14 (g) - CC (Opus 5, background integrator seat): the anchor topology is ratified as B8, and filing four rows took three acts rather than two
+
+**Anchors:** `223353b7` — the arc commit this merge introduces, named by the spine entry that
+introduces it. This entry is itself carried inside the merge commit, which is the shape B8 ratifies.
+
+**B8 is ratified and recorded with its reason.** `protocols/STANDING_RULINGS.md` B8: **a JOURNAL entry
+carried INSIDE each merge commit replaces one-anchor-per-batch.** The operator's stated ground is that
+it is simpler to verify — the entry and the SHA it anchors arrive in the same commit, so
+`is_anchored(merge)` is decidable from that merge alone and never left pending on a later arc — and
+that it closes the gap repaired by hand today. Three things B8 pins down because each is easy to lose:
+**name the LANE TIP, never the merge's own hash** (a one-commit arc's merge introduces only itself and
+the entry, which is exactly what produced `e6acb23e`); **B2's shape is UNAVAILABLE for a lane merge**,
+because B2 puts the entry on the work branch, for a handed-back lane that is the LANE's branch, and
+P-1 makes the JOURNAL the integrator's surface — B2 and P-1 are each correct and jointly leave the
+lane-merge case with no sanctioned shape; and **the two-step merge is mechanically load-bearing**, not
+stylistic.
+
+**Four rows filed, each at its own manifest SECTION.** `[#757]` reconciles B2, P-1 and
+`DEFINITION_OF_DONE` with B8 so the next seat does not read the superseded rule and revert it.
+`[#758]` records that **`[#675]` target 3.2 has never been satisfiable by the `lane-integrate` walk** —
+it reads the Actions verdict before the push, and an unpushed merge commit has no run; the old
+flattened completeness predicate hid it, so **a gate becoming correct is what exposed it**. `[#759]`
+records that `range_is_anchored` and `unanchored_on_spine` disagree on scope and that the instance fix
+does not close the class, plus the second disagreement in the same pair: **the two organs read
+`JOURNAL.md` at DIFFERENT revisions**, which caused the misattributed pass I reported to two peer seats
+and retracted. `[#760]` receives the ARCHITECTURE ≤ 15 KB target that left batch Y, carrying the lane's
+eleven-chapter measurement — and the number that matters is that **~23 KB of the "Validators and
+enforcement" chapter is PROSE, not tables, so a table render alone cannot reach the bar**.
+
+**FILING A ROW NEEDS THREE ACTS AND I DID TWO, then read the gate's own diagnosis wrongly on first
+sight.** The `tasks/` files alone produced *"retired allocation record is not marked terminal"* on all
+four — a message that describes a closed row that forgot its status, which is not what was wrong. The
+real requirement is **a manifest node at the RIGHT SECTION**; without one the row is not emitted at
+all, and BACKLOG.md did not grow by a byte. `gen_task_tree --check ok`, 327 tasks.
+
+**Ids 757–760 skip 756 deliberately.** Lane `#751` is still live and may allocate a row, and
+`next_task_id` cannot see a sibling branch. **A gap is recoverable; a duplicate id wedges every
+author.** The gap is recorded here so it reads as a decision rather than a mistake.
+
+**Two verification errors of mine, both of the same kind: a check that returns "yes" without returning
+"which".** I confirmed the manifest nodes survived the `#750` conflict with
+`'[#755]' in ids or 755 in ids or '#755' in ids` — it answered True and told me nothing about the
+format, so my next probe searched for `'[#755]'` and found nothing. The node shape is
+`{"task": 755, "file": …}` with an **integer** id. **A disjunction is a weaker instrument than it
+looks: it proves the claim and hides the shape**, and the shape was what I needed next. Earlier today
+the same defect in a different dress: a census piped through `head -40` reported two files clean that
+were not.
+
+**The first real `kind=merge` receipt exists, and it indicts itself.** `merge-y-750`, merge
+`02bdbff3`, **baseline DERIVED as `b779616e7055` = `02bdbff3^1`** — I passed no `--baseline` and the
+tool resolved it, which is the CRITICAL fix working end to end. Verdict `PRE-EXISTING`, COMPLETE per
+AY1-1 with the state named. Wall 5.90 min, of which only **0.20 min is recorded**: I did not wrap the
+merge in `time --step`, and the receipt says so itself — *"an unrecorded step reads exactly like a fast
+one, so this receipt UNDERSTATES the merge."* Required steps `handback, merge, suite, teardown` are
+unrecorded. `#754`'s receipt will time them.
+
+**`ecosystem/doc-counts.md` regenerated** — the owed pass, run while HEAD was the `#750` merge so it
+read the merged tree rather than a pre-merge count. It discharges **pre-existing** drift: `file 6111 /
+actual 5860`, 251 too high with the new tests counted, and adding tests can only raise `actual`.
+
+**Changes.** `protocols/STANDING_RULINGS.md` (B8), `tasks/` (+4 rows, manifest nodes at two sections),
+`BACKLOG.md`, `ecosystem/doc-counts.md`, `logs/MERGE-RECEIPTS.jsonl` (the first closed receipt), and
+this entry.
+
+**Abandoned.** Nothing.
+
+**Next.** `#754` — bar refuted, not missed — with its required steps timed. Then the second audits-index
+pass, `#751` when it hands back, and the close packet with its seven numbers.
+
 ### 2026-09-14 (f) - CC (Opus 5, background integrator seat): the receipt tool lands, its own false pass closed by a review, and a merge is gated for the first time today
 
 **Anchors:** `a65f9493` — the lane tip this merge introduces, named by the spine entry that introduces

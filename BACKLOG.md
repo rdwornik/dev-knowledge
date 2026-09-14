@@ -125,6 +125,8 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#748] [P1][M] A lane whose worktree resolves to the primary checkout via a `core.worktree` redirect has no isolation, and dispatch cannot see it · tasks/748-a-lane-whose-worktree-redirects-to-the-primary-has-no-isolation.md
 - [#749] [P1][M] Two lanes may be dispatched for the same row under different slugs, because every duplicate check compares slugs rather than rows · tasks/749-two-lanes-may-be-dispatched-for-the-same-row-under-different-slugs.md
 - [#750] [P1][M] A merge can land with no receipt, the completeness predicate flattens a verdict state machine into a boolean, and `wall_seconds` records serial time rather than the arc span · tasks/750-a-merge-can-land-with-no-receipt-the-completenes.md
+- [#758] [P2][S] `[#675]` target 3.2 has never been satisfiable by the `lane-integrate` walk · tasks/758-675-target-32-has-never-been-satisfiable-by-the-w.md
+- [#759] [P2][S] `range_is_anchored` and `unanchored_on_spine` disagree on scope, and the 2026-09-14 instance fix does not close the class · tasks/759-range-is-anchored-and-unanchored-on-spine-disagree.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
@@ -279,6 +281,8 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 - [#612] [P2][M] Doc-rot row-body archival mechanism · tasks/612-doc-rot-row-body-archival.md
 - [#628] [P1][L] DC-2 re-cut — dissolving `ESSENTIALS.md` is a FLEET-COUPLED release act, not a doc lane · tasks/628-dc2-recut-essentials-dissolution-is-a-release-act.md
 - [#755] [P1][M] Finish the docs cut — `ARCHITECTURE.md` to ≤ 15 KB behind the X3 render, and the four ESSENTIALS residues the dissolution could not reach · tasks/755-finish-the-docs-cut-architecture-to-15-kb-and-t.md
+- [#757] [P1][S] Reconcile the ratified anchor topology with B2, P-1 and the `DEFINITION_OF_DONE` wording · tasks/757-reconcile-the-ratified-anchor-topology-with-b2-p1.md
+- [#760] [P1][L] X3 — `ARCHITECTURE.md` to <= 15 KB behind the step-D render, starting from the measured eleven chapters · tasks/760-x3-architecture-to-15-kb-behind-the-step-d-render.md
 - [#647] [P3][M] The harness's own carrying cost is unmeasured, and lane contracts are pasted rather than referenced · tasks/647-harness-carrying-cost-unmeasured-contracts-pasted.md
 - [#731] [P1][M] The backlog only grows -- narration is relocated by hand and nothing stops a batch filing more rows than it closes · tasks/731-backlog-shrinks-by-mechanism-relocation-trigger-and-an-enforced-closure-budget.md
 ## [E6] Cross-repo universalization
