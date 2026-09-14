@@ -360,3 +360,75 @@ def test_the_cost_digest_never_breaks_the_digest(tmp_path, monkeypatch):
     monkeypatch.setattr(fh, "_import_lane_cost",
                         lambda: (_ for _ in ()).throw(RuntimeError("boom")))
     assert fh.cost_health_line(tmp_path) is None
+
+
+# --- feeding logs/TOKEN-LOG.md (the ADR-29/ADR-39 append-only leg) --------------------------
+
+_TOKEN_LOG = """\
+# Token Usage Log
+
+Append /stats snapshot weekly. Never edit previous entries.
+
+## 2026-08-04 (delta: 2026-07-25 to 2026-08-04, via ccusage --json)
+Delta: 10 active days, sessions N/A (not in ccusage --json), $1676.83
+Opus 5: 72.1% (in: 96K, out: 5925K)
+"""
+
+
+def _seeded_token_log(tmp_path):
+    path = tmp_path / lc.TOKEN_LOG_RELPATH
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(_TOKEN_LOG, encoding="utf-8", newline="\n")
+    return path
+
+
+def _one_row_report(tmp_path):
+    sessions = tmp_path / "sessions"
+    _transcript(sessions / "proj--lane-a", "a.jsonl",
+                [_turn("priced-model", uuid="u1", input_tokens=1_000_000)])
+    lc.append_cost(tmp_path, lc.lane_cost("lane-a", batch="Y", sessions_root=sessions,
+                                          registry_path=_registry(tmp_path),
+                                          slug_dirs=["proj--lane-a"]))
+    return lc.batch_report(tmp_path)
+
+
+def test_feeding_the_token_log_rewrites_not_one_existing_byte(tmp_path):
+    """THE ruling's whole safety property, and the reason the file is fed rather than deleted.
+
+    `logs/TOKEN-LOG.md` is append-only in the STRICT sense (ADR-29/ADR-39 -- unlike LESSONS.md
+    it has no archival exception), and it is newest-first, so "append" here means PREPEND under
+    the header. The assertion is byte-level in both directions: the header survives unchanged
+    at the front and every pre-existing entry survives unchanged at the back. A feeder that
+    reformatted, reflowed or re-sorted would pass a line-count check and fail this one.
+    """
+    path = _seeded_token_log(tmp_path)
+    before = path.read_text(encoding="utf-8")
+    head, tail = before.split("\n")[:4], before.split("\n")[4:]
+
+    lc.append_token_log(tmp_path, lc.token_log_entry(_one_row_report(tmp_path), on="2026-09-14"))
+
+    after = path.read_text(encoding="utf-8")
+    assert after.startswith("\n".join(head)), "the header was rewritten"
+    assert after.endswith("\n".join(tail)), "an existing entry was rewritten"
+    assert "## 2026-09-14" in after
+    assert after.index("## 2026-09-14") < after.index("## 2026-08-04"), "newest-first"
+
+
+def test_the_entry_states_its_method_because_the_two_are_not_comparable(tmp_path):
+    """The existing entries are fleet-wide, by calendar week, with cache tokens EXCLUDED "for
+    comparability"; these are per-lane, by cost receipt, with cache INCLUDED. An entry that did
+    not say which it was would invite diffing two incomparable numbers and calling it a trend.
+    """
+    entry = lc.token_log_entry(_one_row_report(tmp_path), on="2026-09-14")
+    assert "lane_cost.py" in entry
+    assert "NOT comparable" in entry
+    assert "Cache:" in entry
+
+
+def test_feeding_refuses_to_create_the_file_it_is_supposed_to_feed(tmp_path):
+    """Whether `logs/TOKEN-LOG.md` exists AT ALL is the recorded fed-or-deleted decision. A
+    feeder that created it on absence would silently re-take that decision every time someone
+    ran it against a repo where it had been deliberately removed."""
+    with pytest.raises(lc.CostError) as exc:
+        lc.append_token_log(tmp_path, "## 2026-09-14\nirrelevant")
+    assert lc.TOKEN_LOG_RELPATH in str(exc.value)
