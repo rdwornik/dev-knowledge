@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "82c726d594c003948ec3dbf54e757e32ab19bc7f74d9b2a37bb248b10eb293c4",
+  "generated_sha256": "488365e08aadc0ef32d8aaef95d7d5b7d704c3309d3910fe0c89344bcbd52984",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -492,6 +492,10 @@
     {
       "task": 761,
       "file": "761-the-edge-class-census-prices-its-own-false-positive.md"
+    },
+    {
+      "task": 762,
+      "file": "762-a-worktree-teardown-races-the-departing-sessions-stop-hook.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
