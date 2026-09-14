@@ -178,6 +178,17 @@ _FM_ID_RE = re.compile(r'^id: "\[#(\d+)\]"$', re.MULTILINE)
 #     100,000 rather than at the done-when's 70,000 so ordinary queue growth cannot wedge a
 #     PER-COMMIT gate; the 70,000 figure is asserted where a point-in-time measurement
 #     belongs, in `tests/test_gen_task_tree.py`.
+#
+# NOT THE SAME CONTRACT AS `validate_doc_rot._BACKLOG_ROW_CEILING = 1320`, recorded
+# 2026-09-14 by lane `lane-y-754-backlog-to-bar` / row `[#754]` after that lane's own
+# contract conflated them. This one counts BYTES on a VIEW line -- the one-line projection,
+# which carries a title and a pointer and NO BODY. That one counts CHARS on the reassembled
+# SOURCE body (`backlog_source.canonical_text`, the tasks/ files). Disjoint corpora, disjoint
+# units, disjoint jobs: 400 is not a tightening of 1320 and 1320 is not a relaxation of 400.
+# The practical consequence, measured that day rather than reasoned: relocating body clauses
+# out of 60 rows with `archive_row_body.py` moved BACKLOG.md by ZERO bytes, because the view
+# never carried those clauses. Neither ceiling was retired; both are live and both are right.
+# THIS ONE IS HEALTHY AND UNCHANGED: longest live view row 301 B against 400, never fired.
 _VIEW_ROW_BYTE_CEILING = 400
 _VIEW_BYTE_CEILING = 100_000
 # The projection's own pointer prefix -- one place, so the renderer and any reader agree.

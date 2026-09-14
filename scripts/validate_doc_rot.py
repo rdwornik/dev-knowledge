@@ -121,6 +121,8 @@ _BACKLOG_LONG_CHARS = 700        # ... AND longer than this -> inline-history ac
 # ARM 2 -- backlog-row-length (a declared per-row size contract; NOT accretion). The
 # ceiling is the REFERENCE LINE the corpus Finding reports against; it is unchanged here.
 _BACKLOG_ROW_CEILING = 1320      # longer than this -> over the DECLARED row ceiling
+# READ THE 2026-09-14 AMENDMENT BELOW BEFORE QUOTING THIS AS A CONTRACT: the corpus median
+# has crossed it, and it is NOT the same contract as `gen_task_tree._VIEW_ROW_BYTE_CEILING`.
 #
 # [#532], 2026-08-16 -- the split, and why each term exists. Ruled on the NB3-C design memo
 # `docs/audits/2026-08-15-verification-night3-warn-ledger.md` S2. Before this, ONE predicate
@@ -163,6 +165,47 @@ _BACKLOG_ROW_CEILING = 1320      # longer than this -> over the DECLARED row cei
 # surface alive so the operator never loses backpressure. Residual risk, named not buried:
 # prose of the form `2026-08-10-to-08-12` would be under-counted; none exists today, and
 # losing recall is the cheap direction to be wrong in on a class with zero live members.
+#
+# AMENDMENT 2026-09-14, lane `lane-y-754-backlog-to-bar`, row `[#754]` -- THE CEILING HAS
+# DECAYED BACK INTO THE PERCENTILE ITS OWN AMENDMENT ABOLISHED. Recorded here, at the
+# declaration, rather than only in a packet, because the next reader meets the number here.
+#
+#   ROLE, not VALUE. 1320 is unchanged and must stay unchanged: the r5p arm-2 lane ruled it
+#   "reported against, never changed" (docs/audits/2026-09-05-technical-r5p-lane1-docrot-
+#   arm2.md), and raising it to make a count fall is the act [#754]'s lane contract forbids
+#   by name. What this amendment records is that its DECLARED ROLE no longer holds.
+#
+#   THE DECAY, measured on three dated points rather than argued:
+#     2026-08-16  [#532], the declaration    197 rows    10 over   5%   (a contract)
+#     2026-09-05  r5p arm-2 lane             224 rows    70 over  31%   p50 1259
+#     2026-09-14  this amendment             322 rows   148 over  46%   p50 1302
+#   The 2026-09-14 median is 1302 against a 1320 ceiling: the corpus has CROSSED it. Clause
+#   (c) above rejects a percentile on the stated ground that "a percentile ALWAYS has members
+#   by construction, so no percentile turns a ranker into a detector". A line 46% of the
+#   corpus is over, sitting 18 chars above the median, is that state again.
+#
+#   THE DRAIN IS EXHAUSTED, so this is not a backlog of un-done work. On 2026-09-14 the
+#   `archive_row_body.py` trigger was run over every row above this ceiling that carried a
+#   relocatable run -- 60 rows, 66 clauses, 18,107 chars, all byte-identity proven -- and the
+#   count moved 148 -> 148. Classified with `archive_row_body`'s own predicates over the 148
+#   rows (436,320 clause chars): 35.3% structural and INELIGIBLE by design, 38.2% undated
+#   prose and outside the predicate, 26.5% dated narration now positionally unreachable.
+#   73.5% of the over-ceiling corpus is beyond the mechanism by construction. Relocation
+#   cannot move this number; only a re-declaration or a change in row COUNT can.
+#
+#   WHAT IS OWED, and to whom. A re-declaration that means something -- a value whose
+#   over-population is a minority of the corpus, or the honest retirement of the word
+#   "ceiling" in favour of "reference line", which is what ARM 2 already IS since r5p
+#   collapsed it to one corpus Finding carrying count, p50/p75/p90 and trend. That is a
+#   curated-baseline act and an architect's call under the V-2 decision budget, so the lane
+#   recorded it on `[#754]` rather than performing it.
+#
+# NOT THE SAME CONTRACT AS `gen_task_tree._VIEW_ROW_BYTE_CEILING = 400`, and the two are
+# routinely conflated -- [#754]'s own lane contract conflated them. That one counts BYTES on
+# a `BACKLOG.md` VIEW line (the one-line projection, no body) and is an anti-re-inflation
+# tripwire; this one counts CHARS on the reassembled SOURCE body (`backlog_source.
+# canonical_text`). Disjoint corpora, disjoint units, disjoint jobs. 400 is not a tightening
+# of 1320 and 1320 is not a relaxation of 400. Neither is retired; that was [#754]'s ruling.
 _SECTION_HISTORY_MAX_ENTRIES = 12  # >= this many entries in a Section-history block
 _FILE_SIZE_BUDGETS = {_cdocs.CLAUDE: 200}  # file -> self-declared line budget (ADR-53)
 _GROOMING_CADENCE_DAYS = 21      # BACKLOG grooming-log most-recent date older than this
