@@ -212,3 +212,150 @@ and it belongs in that row.
 Every test covering this lane's diff passes: `test_lane_cost` (22, all new and RED-first),
 `test_provider_registry`, `test_provider_registry_schema`, `test_provider_router`,
 `test_provider_roles`, `test_provider_rerank`, `test_fleet_health`. `ruff check` clean.
+
+---
+
+## AMENDMENT 1 — 2026-09-14 · the integrator's review, four findings closed
+
+> **In-file amendment marker, not an edit.** An audit is immutable (`CLAUDE.md` §5 rule 3), so
+> §1–§6 above stand as written and this section records what changed after them. Where this
+> section and §5 disagree, **this section is later and governs**.
+>
+> Raised by the batch-Y integrator holding this lane's merge at `2e5c31bc`, from a Codex pass
+> the integrator then verified against the code by hand. All four findings are in
+> **aggregation or attribution**. None is in pricing: the integrator re-derived §2's USD 18.82
+> against the live card (256 in @ $5/M + 95,616 out @ $25/M + 320,197 cache-write @ $6.25/M +
+> 28,861,393 cache-read @ $0.5/M = $18.8236, against the ledger row's 18.823608) and it holds.
+> **The pricing path is unchanged by this amendment.**
+
+### Finding 1 (CRITICAL) — an unmeasured lane was absorbed into every total as $0.00
+
+`LaneCost.has_transcript()` existed and `LaneCost.render()` used it correctly — *"NO TRANSCRIPT
+FOUND … UNKNOWN rather than zero"* — but `BatchCostReport` never consulted it. A `models=()` row
+contributed 0.0 to `usd`, to `by_batch()`, and incremented the `n=` in *"cost over n=N lane
+receipt(s)"*. §6's own principle, one level down: **an empty ledger is not a free batch, and an
+empty row is not a free lane.**
+
+It fires on this module's documented happy path, not on a contrived input. `transcript_dirs`
+states that a `--bg` lane's transcript is filed under its launching session and carries no
+directory of its own — so the first honest `close --slug <bg-lane>` appends an empty row, and
+only then does the caller learn to pass `--slug-dir`. **Every remaining batch-Y lane is `--bg`.**
+
+**Fixed** by giving `BatchCostReport` a `measured()` / `unmeasured()` split that every figure is
+built from. Unmeasured lanes are named in `render()` and in the `[cost]` digest, never summed and
+never counted in `n=`. `cost_health_line` returns `None` rather than `$0.00` when nothing is
+measured — that line prints at every SessionStart, the widest audience an unmeasured zero could
+reach.
+
+### Finding 2 (CRITICAL) — a re-close double-counted, permanently
+
+`cmd_close` appends unconditionally; `append_cost` is append-only by design (ADR-29/ADR-39 class).
+`BatchCostReport` then **summed every row** while `uncosted_reason` took **`rows[-1]`** — one
+ledger, two incompatible meanings for the same duplicate. Because the ledger is append-only there
+is **no sanctioned repair**: the superseded line cannot be deleted, so a single retry would
+inflate the batch total and every future boot's `[cost]` line for good.
+
+It composes with finding 1: empty row, then re-close with `--slug-dir`, is the *normal* first
+correct use — which is how the ledger gets two rows for one lane.
+
+**Fixed in the reader, not the file.** `BatchCostReport.resolved()` keeps one row per slug,
+**last wins** — the rule `uncosted_reason` already applied — so the aggregate and the per-slug
+reader can no longer disagree. `test_the_ledger_keeps_both_lines_because_it_is_append_only` pins
+that the *file* still keeps every line: superseding by rewriting the ledger would fix the
+arithmetic by breaking the ADR-29/39 guarantee, which is the worse trade.
+
+### Finding 3 (CRITICAL as raised; the integrator rated live risk lower and left the weighting to this lane)
+
+`transcript_dirs` matched `wanted in _normalise(d.name)` while its own docstring said *"MATCHED,
+NOT GUESSED, AND NEVER WIDENED"*. **Containment is a widening:** a truncated `lane-y-75` claims
+`lane-y-751`'s entire transcript.
+
+**Weighted as worth fixing now, and fixed**, for the reason the integrator gave rather than the
+severity: the failure is *silent*, so the wrong amount arrives confident. Two further reasons the
+low live risk is not a reason to defer — the absence of a collision among batch Y's ids is a
+property of **data**, not of the code, and the next batch's ids are not yet chosen; and the fix is
+three lines against a defect that misattributes money between lanes.
+
+Matching is now **dash-bounded** — both sides must land on a dash or a string edge, so a slug
+matches whole path segments — and a slug reaching more than one directory logs a WARNING naming
+every directory it summed. Demonstrated live on this host after the fix:
+
+```
+lane --slug lane-y-751-cost-in-money   ->  USD 35.44 over 226 call(s)      (correct)
+lane --slug lane-y-75                  ->  NO TRANSCRIPT FOUND             (was: the same figure)
+```
+
+**A gate shaped the implementation, and that is worth recording rather than hiding.** The obvious
+spelling is a regex, `(?:^|-)<slug>(?:-|$)`. It was written that way first and the commit was
+REFUSED by `graph-edge-class-census`: `graph_queries.is_edge_computation_shape` counts
+"≥2 `re.` calls + a scan or read" as a private five-kind edge computation, and the new
+`re.compile` was this module's second `re.` call after `_normalise`'s `re.sub`.
+
+The finding is a **false positive on the merits** — a session store lives outside the repo, so
+matching a slug to a directory there is not a corpus-structure relation, and it is none of the
+five kinds (citation / generation / template / test / script call-site). The gate says as much
+about itself: *"RECALL OVER PRECISION, deliberately. A false positive costs one verdict row in the
+register."*
+
+**That row was NOT added, and the reason is the decision budget rather than the merits.**
+`EDGE_COMPUTATIONS` in `scripts/graph_queries.py` is a curated register outside this lane's
+declared footprint, and a curated-baseline touch is escalation class (a) under V-2 — not
+something a lane takes on its own while the batch is open. So the predicate is spelled as four
+string comparisons instead (`_matches_segment`), which is the identical predicate, needs no
+register row, and reads no worse. The choice is documented in that function's own docstring so
+the next reader does not "simplify" it back into a regex and re-trip the gate.
+
+**Carried for the integrator** (§5, new row 10): the census will refuse the *next* lane that adds
+a second regex to any `scripts/*.py` for an equally non-corpus reason. Whether the predicate
+should narrow, or whether such modules should just take verdict rows, is a call above a lane.
+
+### Finding 4 (HIGH) — nothing priced against the LIVE registry, and the fixture hid it
+
+Every pricing test used `_registry(tmp_path, input_rate=5.0, output_rate=25.0)` — **exactly** the
+live `claude-opus-5` rates. The fixture mirrored the truth it was supposed to check, so a live
+rate that went missing would still have looked right everywhere.
+
+**Fixed as a RESOLVABILITY test, deliberately not by pinning a rate.** A typed rate is the
+stale-number pattern this repo forbids (*"never restate a count — cite the surface that computes
+it"*) and would go RED at the next genuine price change, which is not a defect.
+`test_every_live_priced_model_prices_through_this_module` asserts that every model the **live**
+card prices resolves through this module's own pricing path and yields a positive figure for
+positive usage; `test_the_model_this_repo_actually_runs_is_priced_live` asserts `claude-opus-5` is
+in the live priced set. Neither asserts a price.
+
+**Honest limit:** these two were **GREEN on arrival**, because the live card is currently correct.
+Finding 4 was a coverage gap, not a live defect, and they are regression guards rather than
+RED-first witnesses. Findings 1–3 had seven RED-first witnesses, all failing before the fix.
+
+### What was verified
+
+- `tests/test_lane_cost.py` — **32 passed** (22 before, 10 added here).
+- The impacted set named by `impacted_tests.py select --changed scripts/lane_cost.py`, plus
+  `test_fleet_health` and `test_provider_registry`: **736 passed, 3 failed** — the same
+  `journal_spine_anchor` trio §6 already proved pre-existing, and no others.
+- `ruff check` clean. Live `report`, `receipt` and `lane` re-run; §2's figures unchanged.
+
+### One existing test's assertion was rewritten, and why that is not a weakened test
+
+`test_the_report_over_an_empty_ledger_says_so_rather_than_reporting_zero` pinned the literal
+phrase `"no cost receipts"`, which gained the word *measured* when the refusal widened to cover
+transcript-less rows. It now asserts the **invariant** — the words `cost receipts`, `undefined`,
+`not zero`, and no `$0.00` anywhere — so a predicate that got **stricter** no longer reads as a
+regression. The test's guarantee is unchanged in strength and its subject is larger.
+
+### Open items, amended
+
+- **§5 row 8 is superseded in its mechanism, not in its fact.** `logs/LANE-COSTS.jsonl` still
+  holds one row measuring less than this lane's full spend, and it is still append-only. But
+  re-closing is now *safe* — the reader supersedes by slug — so the integrator can re-close this
+  lane at batch close with `--slug-dir` and the total will be right rather than doubled. That was
+  not true before this amendment.
+- **§5 rows 1–7 and 9 stand unchanged.**
+- **NEW row 10 — `graph-edge-class-census` refuses a non-corpus second regex.** Adding a second
+  `re.` call to any `scripts/*.py` that also scans or reads trips
+  `is_edge_computation_shape`, regardless of whether the module computes a five-kind corpus
+  relation at all. This lane routed around it by writing the predicate without a regex (finding
+  3 above), which is a fix for this module and not for the class. Either the predicate narrows,
+  or modules like this one take `not-an-edge` verdict rows — a curated-register decision,
+  escalation class (a), so it is reported rather than taken. **Owner: integrator / unowned —
+  candidate.**

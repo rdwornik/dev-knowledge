@@ -307,7 +307,12 @@ def test_the_report_over_an_empty_ledger_says_so_rather_than_reporting_zero(tmp_
     """A zero-dollar report over no receipts is the `merge_receipt` 0.0-minute failure in
     money: it is not a cheap batch, it is no measurement."""
     rendered = lc.batch_report(tmp_path).render()
-    assert "no cost receipts" in rendered.lower()
+    #: ASSERT THE INVARIANT, NOT THE SENTENCE. The exact phrasing gained the word "measured"
+    #: when the review widened this refusal to cover transcript-less rows as well as an empty
+    #: file; a test pinned to the old wording would have read as a regression when the
+    #: predicate had only got stricter.
+    assert "cost receipts" in rendered.lower()
+    assert "undefined" in rendered.lower() and "not zero" in rendered.lower()
     assert "$0.00" not in rendered
 
 
@@ -432,3 +437,187 @@ def test_feeding_refuses_to_create_the_file_it_is_supposed_to_feed(tmp_path):
     with pytest.raises(lc.CostError) as exc:
         lc.append_token_log(tmp_path, "## 2026-09-14\nirrelevant")
     assert lc.TOKEN_LOG_RELPATH in str(exc.value)
+
+
+# --- THE INTEGRATOR'S REVIEW FINDINGS, RED-first ([#751], held merge) ----------------------
+#
+# Four findings from the batch-Y integrator's Codex pass. All four are in AGGREGATION or
+# ATTRIBUTION; the pricing arithmetic was re-derived by hand against the live card and is
+# correct, so nothing below touches the pricing path.
+
+
+def _unmeasured_row(slug: str, batch: str = "Y") -> "lc.LaneCost":
+    """A cost row for a lane whose transcript was never found.
+
+    NOT a synthetic edge case: `transcript_dirs` documents that a `--bg` lane's transcript is
+    filed under its LAUNCHING session and carries no directory of its own, so the first honest
+    `close --slug <bg-lane>` produces exactly this row. Every remaining batch-Y lane is `--bg`.
+    """
+    return lc.LaneCost(slug=slug, batch=batch, models=(), measured="2026-09-14T00:00:00+00:00")
+
+
+# --- FINDING 1: an unmeasured lane absorbed as $0.00 ---------------------------------------
+
+def test_an_unmeasured_lane_is_never_absorbed_into_a_total_as_zero(tmp_path):
+    """`LaneCost.render()` already refuses this lie one level down -- "NO TRANSCRIPT FOUND ...
+    UNKNOWN rather than zero" -- and `BatchCostReport.render()`'s own docstring states the
+    principle: "An empty ledger is not a free batch -- it is no measurement." An empty ROW is
+    not a free LANE, and the guard the module already owns (`has_transcript()`) has to reach
+    the aggregate too.
+
+    The measured lane costs SOMETHING; the unmeasured one must not drag the batch's figure
+    toward zero, nor appear in the per-batch map as a batch that cost nothing.
+    """
+    sessions = tmp_path / "sessions"
+    _transcript(sessions / "proj--lane-a", "a.jsonl",
+                [_turn("priced-model", uuid="u1", input_tokens=1_000_000)])
+    measured = lc.lane_cost("lane-a", batch="Y", sessions_root=sessions,
+                            registry_path=_registry(tmp_path), slug_dirs=["proj--lane-a"])
+    lc.append_cost(tmp_path, measured)
+    lc.append_cost(tmp_path, _unmeasured_row("lane-b", batch="Z"))
+
+    report = lc.batch_report(tmp_path)
+    assert report.usd == pytest.approx(measured.usd), "an unmeasured lane moved the total"
+    assert "Z" not in report.by_batch(), "a batch with no measurement read as a $0.00 batch"
+    assert [r.slug for r in report.unmeasured()] == ["lane-b"]
+
+
+def test_an_unmeasured_lane_is_not_counted_in_the_receipt_count(tmp_path):
+    """`n=` is the denominator a reader divides by. Counting a lane whose spend is UNKNOWN
+    makes the average wrong in the direction that flatters -- and silently, which is the part
+    that matters. The count is of MEASUREMENTS, and the unmeasured lanes are named instead."""
+    lc.append_cost(tmp_path, _unmeasured_row("lane-b"))
+    report = lc.batch_report(tmp_path)
+
+    assert report.measured() == (), "a transcript-less row counted as a measurement"
+    rendered = report.render()
+    assert "n=1" not in rendered, "an unmeasured lane was counted in n="
+    assert "$0.00" not in rendered, "UNKNOWN spend was rendered as a zero figure"
+    assert "lane-b" in rendered, "the unmeasured lane was dropped instead of named"
+
+
+def test_the_digest_line_is_silent_when_every_row_is_unmeasured(tmp_path):
+    """`fleet_health` prints this on every boot. A `[cost] $0.00 over 1 lane(s)` line built
+    from a transcript-less row is the same lie with the widest possible audience."""
+    lc.append_cost(tmp_path, _unmeasured_row("lane-b"))
+    assert lc.cost_health_line(tmp_path) is None
+
+
+# --- FINDING 2: a re-close double-counts, permanently --------------------------------------
+
+def test_a_reclose_supersedes_rather_than_double_counting(tmp_path):
+    """The sequence is the NORMAL one, not a mistake: finding 1 says the first honest close of
+    a `--bg` lane appends an empty row, and the operator then learns to re-close with
+    `--slug-dir`. Two rows for one lane on first correct use.
+
+    The ledger is append-only (ADR-29/39), so there is no sanctioned repair -- the bad line
+    cannot be deleted. The fix therefore has to live in the READER, and last-wins-per-slug is
+    the semantics `uncosted_reason` already uses on `rows[-1]`.
+    """
+    sessions = tmp_path / "sessions"
+    _transcript(sessions / "proj--lane-a", "a.jsonl",
+                [_turn("priced-model", uuid="u1", input_tokens=1_000_000)])
+    cost = lc.lane_cost("lane-a", batch="Y", sessions_root=sessions,
+                        registry_path=_registry(tmp_path), slug_dirs=["proj--lane-a"])
+
+    lc.append_cost(tmp_path, _unmeasured_row("lane-a"))   # the first, empty close
+    lc.append_cost(tmp_path, cost)                        # the re-close with --slug-dir
+
+    report = lc.batch_report(tmp_path)
+    assert report.usd == pytest.approx(cost.usd), "a re-close inflated the batch total"
+    assert len(report.measured()) == 1, "one lane produced two measurements"
+    assert report.by_batch()["Y"] == pytest.approx(cost.usd)
+
+
+def test_the_aggregate_and_the_per_slug_reader_agree_on_a_duplicate(tmp_path):
+    """Two readers of ONE ledger must not disagree about what a duplicate means. `uncosted_
+    reason` takes `rows[-1]`; the aggregate summed every row. Same file, two incompatible
+    answers -- and the append-only rule makes the disagreement permanent."""
+    sessions = tmp_path / "sessions"
+    _transcript(sessions / "proj--lane-a", "a.jsonl",
+                [_turn("priced-model", uuid="u1", input_tokens=1_000_000)])
+    cost = lc.lane_cost("lane-a", batch="Y", sessions_root=sessions,
+                        registry_path=_registry(tmp_path), slug_dirs=["proj--lane-a"])
+    lc.append_cost(tmp_path, cost)
+    lc.append_cost(tmp_path, cost)
+
+    assert lc.batch_report(tmp_path).usd == pytest.approx(cost.usd)
+    assert lc.uncosted_reason(tmp_path, "lane-a") is None
+    assert lc.batch_report(tmp_path).by_model()["priced-model"] == pytest.approx(cost.usd)
+
+
+def test_the_ledger_keeps_both_lines_because_it_is_append_only(tmp_path):
+    """The reader supersedes; the FILE still never loses a byte. Superseding by rewriting the
+    ledger would fix the arithmetic by breaking the ADR-29/39 guarantee, which is a worse
+    trade -- the superseded row stays readable as the record of what was first measured."""
+    lc.append_cost(tmp_path, _unmeasured_row("lane-a"))
+    lc.append_cost(tmp_path, _unmeasured_row("lane-a"))
+    raw = lc.cost_ledger_path(tmp_path).read_text(encoding="utf-8").strip().splitlines()
+    assert len(raw) == 2, "the writer edited the ledger instead of appending to it"
+    assert len(lc.read_cost_ledger(tmp_path)) == 2, "the raw reader hid a row"
+
+
+# --- FINDING 3: containment matching is a widening -----------------------------------------
+
+def test_a_truncated_slug_does_not_match_a_longer_lanes_directory(tmp_path):
+    """`transcript_dirs` says "MATCHED, NOT GUESSED, AND NEVER WIDENED", and then matched on
+    containment -- so `lane-y-75` swallowed `lane-y-751`'s transcript and priced one lane's
+    spend onto another. No collision exists among batch Y's current ids, which is exactly why
+    this needs a test rather than luck: the ids are data, and the next batch's may collide.
+    """
+    sessions = tmp_path / "sessions"
+    _transcript(sessions / "proj--lane-y-751-cost", "a.jsonl",
+                [_turn("priced-model", uuid="u1", input_tokens=1_000_000)])
+
+    assert lc.transcript_dirs("lane-y-751-cost", sessions) != [], "the true slug stopped matching"
+    assert lc.transcript_dirs("lane-y-75", sessions) == [], \
+        "a truncated slug claimed a longer lane's transcript"
+
+
+def test_an_ambiguous_slug_match_is_warned_not_silent(tmp_path, caplog):
+    """The live risk is not the collision, it is the SILENCE. One slug matching directories
+    that belong to two different lanes produces a confident wrong amount and no signal at all,
+    and a wrong number nobody is told about is worse than a refusal."""
+    sessions = tmp_path / "sessions"
+    _transcript(sessions / "proj-a--lane-y-751", "a.jsonl",
+                [_turn("priced-model", uuid="u1", input_tokens=1)])
+    _transcript(sessions / "proj-b--lane-y-751", "b.jsonl",
+                [_turn("priced-model", uuid="u2", input_tokens=1)])
+
+    with caplog.at_level("WARNING"):
+        matched = lc.transcript_dirs("lane-y-751", sessions)
+    assert len(matched) == 2, "both directories genuinely match and both must be read"
+    assert "lane-y-751" in caplog.text
+    assert "proj-a--lane-y-751" in caplog.text and "proj-b--lane-y-751" in caplog.text
+
+
+# --- FINDING 4: nothing prices against the LIVE registry -----------------------------------
+
+def test_every_live_priced_model_prices_through_this_module():
+    """RESOLVABILITY, not a number. Every pricing test above uses a fixture whose rates happen
+    to equal the live `claude-opus-5` rates, so a live rate that went missing or to zero would
+    still look right everywhere -- the fixture mirrors the truth it is supposed to check.
+
+    What is asserted is that each model the LIVE card prices actually resolves through THIS
+    module's pricing path and yields a positive figure for positive usage. Deliberately NOT
+    asserted: any particular rate. Typing one here would put a second copy of a declared fact
+    in the repository -- the drift the registry exists to end -- and would go RED at the next
+    genuine price change, which is not a defect.
+    """
+    priced = pr.priced_models()
+    assert priced, "the live registry prices no model at all"
+
+    usage = lc.TokenUsage(input_tokens=1_000, output_tokens=1_000, calls=1)
+    for model in priced:
+        cost = lc.price_usage(model, usage)          # no registry_path: the LIVE card
+        assert cost.is_priced, f"{model} carries rates on disk but does not price: " \
+                               f"{cost.unpriced_reason}"
+        assert cost.usd > 0, f"{model} priced positive usage at {cost.usd}"
+
+
+def test_the_model_this_repo_actually_runs_is_priced_live():
+    """The narrowest useful liveness check: the id every transcript in this repo names. It is
+    read from the registry's own priced set rather than typed as a rate, so this test asserts
+    PRESENCE, never price."""
+    assert "claude-opus-5" in pr.priced_models(), \
+        "the live surface's most-named model carries no rates -- every lane would be UNPRICED"

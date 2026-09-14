@@ -252,6 +252,27 @@ def _normalise(text: str) -> str:
     return re.sub(r"[^A-Za-z0-9]+", "-", text).strip("-").lower()
 
 
+def _matches_segment(name: str, wanted: str) -> bool:
+    """Does `wanted` appear in `name` as a whole DASH-BOUNDED segment run?
+
+    THE FIX FOR A WIDENING, and the reason it is not `wanted in name`: plain containment makes
+    a truncated `lane-y-75` match `lane-y-751` and price one lane's entire spend onto another.
+    Both sides must land on a dash or a string edge, so the slug matches whole segments.
+
+    WRITTEN OUT RATHER THAN AS A REGEX, deliberately. The equivalent `(?:^|-)…(?:-|$)` pattern
+    is the same predicate, but it would be this module's SECOND `re.` call and
+    `graph_queries.is_edge_computation_shape` counts two-regexes-plus-a-scan as a private edge
+    computation -- a false positive here (a session store outside the repo is not the corpus,
+    and a slug-to-directory match is none of the five kinds), but clearing it would mean adding
+    a verdict row to the curated `EDGE_COMPUTATIONS` register, which is outside this lane's
+    declared footprint. Four string comparisons cost nothing and read no worse.
+    """
+    return (name == wanted
+            or name.startswith(f"{wanted}-")
+            or name.endswith(f"-{wanted}")
+            or f"-{wanted}-" in name)
+
+
 def transcript_dirs(slug: str, sessions_root: Optional[Path] = None,
                     slug_dirs: Optional[Sequence[str]] = None) -> list[Path]:
     """Every session-store directory belonging to `slug`.
@@ -272,7 +293,17 @@ def transcript_dirs(slug: str, sessions_root: Optional[Path] = None,
     if slug_dirs:
         return [root / name for name in slug_dirs if (root / name).is_dir()]
     wanted = _normalise(slug)
-    return sorted(d for d in root.iterdir() if d.is_dir() and wanted in _normalise(d.name))
+    matched = sorted(d for d in root.iterdir() if d.is_dir() and _matches_segment(_normalise(d.name), wanted))
+    if len(matched) > 1:
+        #: NOT a refusal -- two directories can legitimately belong to one lane. But a slug
+        #: that reaches more than one store is also how one lane's money lands on another's
+        #: receipt, and the danger there is the SILENCE: the figure comes out confident. Name
+        #: every directory that was summed so a wrong attribution is at least visible.
+        logger.warning(
+            "slug %r matched %d session directories and ALL of them were summed into one "
+            "lane's cost: %s -- if these belong to different lanes, name the right one with "
+            "--slug-dir", slug, len(matched), ", ".join(d.name for d in matched))
+    return matched
 
 
 def lane_usage(slug: str, sessions_root: Optional[Path] = None,
@@ -543,18 +574,53 @@ def receipt_view(repo_root: Path, slug: str) -> str:
 class BatchCostReport:
     """Done-when 3's answer: cost per batch AND cost per model, over the whole cost ledger."""
 
+    #: EVERY line in the ledger, in file order, including superseded ones. The append-only
+    #: record is kept whole here; the selection below is what the figures are built from.
     rows: tuple[LaneCost, ...] = ()
     currency: str = "USD"
 
+    def resolved(self) -> tuple[LaneCost, ...]:
+        """One row per slug, LAST WINS -- the same rule `uncosted_reason` applies with
+        `rows[-1]`, lifted so the aggregate and the per-slug reader cannot disagree.
+
+        TWO READERS OF ONE LEDGER MUST NOT MEAN DIFFERENT THINGS BY A DUPLICATE. Summing every
+        row while the per-slug reader takes the last one gave the same file two incompatible
+        answers, and because the ledger is append-only (ADR-29/ADR-39) there is no sanctioned
+        repair: the superseded line cannot be deleted, so one retry would inflate the batch
+        total and every future boot's `[cost]` line permanently.
+
+        A retry is the NORMAL path, not a mistake -- a `--bg` lane's first honest close finds
+        no transcript, and the operator re-closes with `--slug-dir`. Superseding in the reader
+        fixes the arithmetic without moving one byte of the record.
+        """
+        latest: dict[str, LaneCost] = {}
+        for row in self.rows:
+            latest[row.slug] = row
+        return tuple(latest.values())
+
+    def measured(self) -> tuple[LaneCost, ...]:
+        """The rows that actually measured something. EVERY FIGURE IS BUILT FROM THIS.
+
+        A row whose transcript was never found carries `models=()`, so its `usd` is 0.0 -- and
+        summing it silently converts "we do not know what this lane cost" into "this lane was
+        free". `LaneCost.render()` already refuses that lie for a single lane; this is the
+        same guard at the aggregate, where it was missing.
+        """
+        return tuple(r for r in self.resolved() if r.has_transcript())
+
+    def unmeasured(self) -> tuple[LaneCost, ...]:
+        """Lanes with a row but no measurement. REPORTED, never summed and never counted."""
+        return tuple(r for r in self.resolved() if not r.has_transcript())
+
     def by_batch(self) -> dict[str, float]:
         out: dict[str, float] = {}
-        for row in self.rows:
+        for row in self.measured():
             out[row.batch or "-"] = out.get(row.batch or "-", 0.0) + row.usd
         return out
 
     def by_model(self) -> dict[str, float]:
         out: dict[str, float] = {}
-        for row in self.rows:
+        for row in self.measured():
             for model in row.models:
                 if model.usd is not None:
                     out[model.model] = out.get(model.model, 0.0) + model.usd
@@ -562,17 +628,17 @@ class BatchCostReport:
 
     def tokens_by_model(self) -> dict[str, TokenUsage]:
         out: dict[str, TokenUsage] = {}
-        for row in self.rows:
+        for row in self.measured():
             for model in row.models:
                 out[model.model] = out.get(model.model, TokenUsage()) + model.usage
         return out
 
     def unpriced_models(self) -> list[str]:
-        return sorted({m.model for row in self.rows for m in row.models if not m.is_priced})
+        return sorted({m.model for row in self.measured() for m in row.models if not m.is_priced})
 
     @property
     def usd(self) -> float:
-        return sum(row.usd for row in self.rows)
+        return sum(row.usd for row in self.measured())
 
     def render(self) -> str:
         """NEVER a bare total, and never `$0.00` over an empty ledger.
@@ -580,11 +646,19 @@ class BatchCostReport:
         An empty ledger is not a free batch -- it is no measurement, which is exactly the lie
         `merge_receipt` refuses for a 0.0-minute receipt. So the empty case says so in words
         and prints no figure at all.
+
+        AN EMPTY ROW IS NOT A FREE LANE EITHER, which is the same principle one level down: a
+        ledger holding nothing but transcript-less rows is still no measurement, and `n=` here
+        counts MEASUREMENTS, never lines.
         """
-        if not self.rows:
-            return (f"cost: no cost receipts in {COST_LEDGER_RELPATH} -- the total is UNDEFINED, "
-                    f"not zero. Close a lane with `lane_cost.py close --slug <slug>`.")
-        lines = [f"cost over n={len(self.rows)} lane receipt(s): "
+        if not self.measured():
+            unknown = (f" {len(self.unmeasured())} lane(s) have a row but NO measurement: "
+                       f"{', '.join(r.slug for r in self.unmeasured())}."
+                       if self.unmeasured() else "")
+            return (f"cost: no measured cost receipts in {COST_LEDGER_RELPATH} -- the total is "
+                    f"UNDEFINED, not zero.{unknown} Close a lane with "
+                    f"`lane_cost.py close --slug <slug>`.")
+        lines = [f"cost over n={len(self.measured())} lane receipt(s): "
                  f"{self.currency} {self.usd:,.2f}"]
         lines.append("  per batch:")
         for batch, usd in sorted(self.by_batch().items(), key=lambda kv: -kv[1]):
@@ -600,6 +674,11 @@ class BatchCostReport:
             lines.append(f"  UNPRICED and excluded from every figure above: "
                          f"{', '.join(unpriced)} -- their tokens are real and their money is "
                          f"unknown, so this total is a FLOOR")
+        if self.unmeasured():
+            lines.append(f"  UNMEASURED and excluded from n= and from every figure above: "
+                         f"{', '.join(r.slug for r in self.unmeasured())} -- no transcript was "
+                         f"found, so their spend is UNKNOWN rather than zero (re-close with "
+                         f"--slug-dir); this total is a FLOOR")
         return "\n".join(lines)
 
 
@@ -615,16 +694,22 @@ def cost_health_line(repo_root: Path) -> Optional[str]:
     Returns None over an empty ledger rather than a `$0.00` line nobody should believe.
     """
     report = batch_report(repo_root)
-    if not report.rows:
+    if not report.measured():
+        #: SILENT, not `$0.00`. A ledger of transcript-less rows is no measurement, and this
+        #: line is printed at every SessionStart -- it is the widest audience an unmeasured
+        #: zero could reach, so it is the last place to print one.
         return None
     batches = ", ".join(f"{b} ${usd:,.2f}" for b, usd
                         in sorted(report.by_batch().items(), key=lambda kv: -kv[1])[:3])
     models = ", ".join(f"{m} ${usd:,.2f}" for m, usd
                        in sorted(report.by_model().items(), key=lambda kv: -kv[1])[:3])
-    line = f"[cost] ${report.usd:,.2f} over {len(report.rows)} lane(s) / batch: {batches} / model: {models}"
+    line = (f"[cost] ${report.usd:,.2f} over {len(report.measured())} lane(s) / "
+            f"batch: {batches} / model: {models}")
     unpriced = report.unpriced_models()
     if unpriced:
         line += f" / {len(unpriced)} model(s) UNPRICED (figures are a floor)"
+    if report.unmeasured():
+        line += f" / {len(report.unmeasured())} lane(s) UNMEASURED (excluded, not zeroed)"
     return line
 
 
@@ -654,7 +739,7 @@ def token_log_entry(report: BatchCostReport, *, on: Optional[str] = None) -> str
     for usage in usage_by_model.values():
         total = total + usage
     lines = [
-        f"## {day} (delta: {len(report.rows)} lane receipt(s), via lane_cost.py -- "
+        f"## {day} (delta: {len(report.measured())} lane receipt(s), via lane_cost.py -- "
         f"per-lane, cache tokens INCLUDED)",
         f"Delta: {len(report.by_batch())} batch(es), {total.calls:,} calls, "
         f"${report.usd:,.2f}",
@@ -762,10 +847,11 @@ def cmd_report(ctx: click.Context) -> None:
 def cmd_token_log(ctx: click.Context, do_append: bool) -> None:
     """Render a TOKEN-LOG entry from the cost ledger, and optionally append it."""
     report = batch_report(_root(ctx))
-    if not report.rows:
+    if not report.measured():
         raise click.ClickException(
-            f"no rows in {COST_LEDGER_RELPATH} -- an entry built from nothing would record a "
-            f"zero that is not a measurement")
+            f"no MEASURED rows in {COST_LEDGER_RELPATH} -- an entry built from nothing, or "
+            f"from rows whose transcripts were never found, would write a zero into an "
+            f"append-only file that cannot be corrected afterwards")
     entry = token_log_entry(report)
     click.echo(entry)
     if do_append:
