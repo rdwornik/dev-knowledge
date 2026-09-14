@@ -323,6 +323,22 @@ wait out `IN-PROGRESS`; restore `gh`) and `suite_verdict()`'s last-wins rule is 
 supersede the bad read. If the operator wants those five to pass rather than refuse, that is an
 amendment to AY1-1 and not a reading of it.
 
+**10. ESCALATED, NOT DECIDED — where the push sits in the walk, and the target-3.2 finding under it.**
+This is the one item on this list that needs a ruling before batch Y's receipts mean anything, and it
+is a defect in what this lane shipped at `057259eb`: `actions` was wired inside each lane's block while
+the walk pushes once after the last lane, so every read would have returned `NO-RUN` and row 2d would
+have refused the whole batch. Caught after the packet's first version, fixed in the command file and
+corrected in Part 4 and in the handback message. **Full statement, the two candidate topologies, and
+the measurement argument against (B) are in the boxed correction in Part 4** — the short form is that
+`actions` must follow the push and `close` must follow `actions`, which holds either way, and only the
+push's position is open. It is a fork class with no standing ruling, so per the V-2 budget it is handed
+up rather than taken.
+
+Underneath it: **`[#675]` target 3.2 has never been satisfiable by this walk**, independent of this
+lane. The pre-push read predates `[#750]`; the old flattened predicate hid it by refusing every
+receipt for an unrelated reason. That belongs in the integrator's close packet as a CANDIDATE, with
+(A)/(B) named, and it is not filed here — filing it is the scope overrun `[#675]` clause 1 warns about.
+
 ---
 
 ## Part 4 — the invocation, for the seat cutting the first receipt
@@ -342,16 +358,49 @@ merge_receipt.py open   --slug "$R" --batch y --kind merge
 merge_receipt.py time   --slug "$R" --step <id> -- <command>
 merge_receipt.py race   --slug "$R" ...                # concurrent steps, raced group counted once
 
+# --- THE MERGE MUST BE PUSHED BEFORE THE NEXT LINE. See the boxed warning below. ---
+
 # 3. the suite verdict -- this REPLACES `time --step actions -- actions_verdict.py ...`
 merge_receipt.py actions --slug "$R" --sha <the MERGE commit> --baseline <its FIRST PARENT>
 
-# 4. last act of the lane's block; appends to logs/MERGE-RECEIPTS.jsonl and prints the summary
+# 4. after `actions`, never before it; appends to logs/MERGE-RECEIPTS.jsonl, prints the summary
 merge_receipt.py close  --slug "$R"
 
 # 5. ONCE, after the last lane
 merge_receipt.py median --kind merge
 merge_receipt.py require --range "<the FIRST merge's first parent>..HEAD"
 ```
+
+> ### CORRECTION — `actions` MUST FOLLOW THE PUSH, and the first version of this Part said otherwise
+>
+> **An unpushed merge commit has no Actions run**, so `actions` records `NO-RUN`, which is
+> unreadable, which is INCOMPLETE, which makes **row 2d refuse the merge**. Measured against this
+> lane's own unpushed tip: `actions_verdict.py --sha 057259eb --baseline 55466a71` → `NO-RUN`, with
+> the tool's own remedy naming *"the push has not landed"* first.
+>
+> **`[#750]`'s own failure mode, reintroduced by ORDERING rather than by predicate** — a refusal
+> wired to a read that happens before the thing it reads can exist would have refused all of
+> batch Y and recorded `NO-RUN` as the suite state of six clean merges. Caught after `057259eb`
+> and fixed in `.claude/commands/lane-integrate.md` in the following commit; the handback message
+> carried the same wrong order and was corrected in a follow-up.
+>
+> **Workaround that needs no ruling:** merge → push → wait for the run → `actions` → `close`.
+> `IN-PROGRESS` is unreadable too, so re-run `actions` under its own `--step` id when the run
+> finishes — `suite_verdict()` is last-wins, so the good read supersedes it.
+>
+> **WHERE THE PUSH SITS IS UNRESOLVED AND IS NOT A LANE'S CALL** — escalated, not decided. This
+> walk pushes **once** after the last lane while the read sits inside each lane's block, and those
+> cannot both be right. **(A) push per merge:** each receipt's span stays honest, but every merge
+> pays its own pre-push gates and, with no open batch manifest, forces an anchor arc per merge.
+> **(B) keep one end-of-batch push**, then `actions` + `close` per merge afterwards: one push, but
+> merge A's receipt stays open across B, C and D, so A's wall absorbs their ceremony — exactly the
+> inflation `[#675]` exists to itemise. **(A) is the recommendation; neither was taken.**
+>
+> **The finding underneath predates `[#750]`.** Target 3.2 asks for *"the integrator READING the
+> result"*, and this walk has read pre-push all along. Under the old code that surfaced as
+> `ok=False` and disappeared into the blanket incompleteness that made `[#744]`'s predicate
+> unreachable — so the impossibility was invisible. **Target 3.2 has never been satisfiable by this
+> walk**, independent of the receipt work. Fixing the predicate is what exposed it.
 
 **Where it writes.** An open receipt lives at `logs/.merge-receipt-<slug>.json`; `close` appends one
 row to `logs/MERGE-RECEIPTS.jsonl` and removes the open file. `require` and `median` write nothing.
@@ -366,8 +415,9 @@ row to `logs/MERGE-RECEIPTS.jsonl` and removes the open file. `require` and `med
 - **`actions` exits non-zero on `PRE-EXISTING`**, deliberately, and that is **not** a refusal — the
   receipt is COMPLETE. Do not wrap it in anything that treats non-zero as a failed merge; that is the
   exact conflation ruling AY1-1 exists to end.
-- **`close` before `require`.** An open receipt is invisible to `require`, so an unclosed receipt looks
-  identical to an unreceipted merge.
+- **`close` before `require`, and `actions` before `close`.** An open receipt is invisible to
+  `require`, so an unclosed receipt looks identical to an unreceipted merge — and `close` removes the
+  open receipt file, so a verdict not recorded before it can never be added afterwards.
 
 There is **no flag on any verb** that can hand a verdict state to a receipt, on `actions`, `time` or
 `close`, and a test asserts each absence. If `gh` is unavailable the merge is refused rather than
