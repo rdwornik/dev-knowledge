@@ -121,6 +121,20 @@ try:
 except ImportError:  # pragma: no cover -- exercised by the scripts/-on-sys.path entrypoint
     import actions_verdict as _av
 
+# THE ORDERED/RAN COMPARISON, imported rather than restated -- `[#752]`. Same shape and the same
+# argument as the `actions_verdict` shim directly above: the question "does this model id
+# discharge that ordered tier" has ONE home, and a receipt judged by a second copy of the
+# tier->family table would drift from the organ that reads the transcript -- which is the defect
+# one layer down, where five modules each restated the launch vocabulary.
+#
+# `compare_order` IS PURE. It takes two strings and returns a verdict, so this import reaches no
+# filesystem, starts no session and reads no transcript. That is what lets a receipt be judged
+# long after the transcript that produced it is gone, and identically on every host.
+try:
+    from scripts import routing_agreement as _ra
+except ImportError:  # pragma: no cover -- exercised by the scripts/-on-sys.path entrypoint
+    import routing_agreement as _ra
+
 logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("merge-receipt")
 
@@ -265,6 +279,29 @@ class Receipt:
     #: "median merge minutes" -- the `kind`-field failure with the discriminator moved one level
     #: out. One receipt per merge, each naming its merge.
     merge_sha: Optional[str] = None
+    #: THE TIER THE CONTRACT ORDERED, and THE MODEL THE LANE ACTUALLY RAN (`[#752]`).
+    #:
+    #: THE SPLIT IS AY1-1's, REUSED. `ordered_model` is an INPUT -- it is what the contract's
+    #: routing row says, and it is typed, because an order IS a declaration. `ran_model` is READ
+    #: off the lane's own transcript by `routing_agreement.model_reading`, and there is no flag
+    #: anywhere in this module that can hand one in: a seat able to type what it wished had run
+    #: would produce a receipt that agrees with itself, which is `[#744]`'s false pass reached by
+    #: the cheapest route in the module.
+    #:
+    #: THE FACT NO RECEIPT COULD HOLD BEFORE THEM. `lane-x-689-conductor-e-proof` was ordered at
+    #: `opusplan` and ran 84 of 84 assistant messages on `claude-sonnet-5`; its receipt recorded
+    #: the merge SHA, the suite verdict, the baseline and per-step minutes, and not one field
+    #: named the model the work was DONE at -- so an arc run at a tier nobody ordered was
+    #: indistinguishable from the arc that was, and fed a median printed as the cost of the order.
+    #:
+    #: BOTH DEFAULT TO None AND THAT PAIR IS NOT A FAILURE. A ledger row written before these
+    #: fields existed knows neither value, and leg 4 does not fire on it -- the same decision
+    #: `merge_sha` forced for the same reason: refusing a corpus of clean merges to arm a new
+    #: field is `Verdict.ok`'s trap with a new field in it. A receipt carrying exactly ONE of them
+    #: is a different case and IS refused, because asking a question and failing to answer it is
+    #: not the answer being yes.
+    ordered_model: Optional[str] = None
+    ran_model: Optional[str] = None
     steps: list[StepTiming] = field(default_factory=list)
     closed: Optional[str] = None
 
@@ -452,22 +489,30 @@ class Receipt:
              span is not 0.0 minutes but *unknown*, and 0.0 is exactly the flattering value leg 2
              exists to refuse. A new leg, because `[#750]` made wall time derive from those two
              fields and so created a new door to the same lie.
-          4. THE SUITE VERDICT (merge receipts only) -- `PASS` or `PRE-EXISTING` is COMPLETE with
+          4. THE RUN IT TIMED IS NOT THE RUN THAT WAS ORDERED -- the lane's transcript recorded a
+             model the contract did not name. Fires on BOTH kinds, and only on a receipt that
+             carries a reading: a row with NEITHER field keeps the predicate it already had.
+             `lane-x-689` ordered `opusplan` and ran 84 of 84 assistant messages on
+             `claude-sonnet-5`; a receipt of that arc timed a real event, and not the one its
+             median would have claimed. (`[#752]`.)
+          5. THE SUITE VERDICT (merge receipts only) -- `PASS` or `PRE-EXISTING` is COMPLETE with
              the state named; `REGRESSED` means this merge broke the suite; anything else, or
              nothing at all, means the suite result could not be read. Only `PASS` and
              `PRE-EXISTING` pass, and the state is in the refusal text either way.
-          5. A FAILED STEP WHOSE EXIT CODE IS STILL READ -- i.e. every step `judged_by_verdict`
+          6. A FAILED STEP WHOSE EXIT CODE IS STILL READ -- i.e. every step `judged_by_verdict`
              does not cover: handback, merge, teardown, review, and every step of an arc. The arc
              did not complete, so its duration times a different event than the median claims.
-          6. A MERGE MISSING A REQUIRED STEP -- an unrecorded step reads exactly like a fast one,
+          7. A MERGE MISSING A REQUIRED STEP -- an unrecorded step reads exactly like a fast one,
              which is this module's founding complaint.
 
-        LEGS 4 AND 6 ARE SCOPED TO `kind == merge`, and that is one decision made twice rather
+        LEGS 5 AND 7 ARE SCOPED TO `kind == merge`, and that is one decision made twice rather
         than an oversight. `REQUIRED_STEPS` is the INTEGRATOR's walk and this module's own
         docstring says an arc "pays no merge and no teardown"; an arc likewise reads no Actions
         run for a merge SHA, because there is no merge. Holding an arc to either would make
-        `median --kind arc` permanently n=0 for a reason that is not incompleteness. Legs 1-3
-        and 5 bind both kinds.
+        `median --kind arc` permanently n=0 for a reason that is not incompleteness. Legs 1-4
+        and 6 bind both kinds -- and leg 4 binding an ARC is deliberate rather than incidental:
+        `lane-x-689` was a lane ARC, not an integrator's merge, so scoping the model leg to
+        merges would have put its own witness outside the predicate.
         """
         if self.closed is None:
             return "never closed -- opened and abandoned, so its wall time times nothing"
@@ -478,6 +523,20 @@ class Receipt:
                     f"do not parse as an ordered pair of timestamps, so this arc's span is "
                     f"UNKNOWN rather than 0.0, and 0.0 is the value that meets target 3.6 while "
                     f"meaning nothing")
+        # LEG 4 (`[#752]`). IT SITS HERE DELIBERATELY: after the three legs that ask whether this
+        # is a measurement AT ALL, and before the verdict legs, because a suite verdict read off
+        # an arc run at a tier nobody ordered is a fact about a different run -- and reporting a
+        # model comparison on an arc that timed nothing would be a comparison about nothing.
+        #
+        # THE SKIP IS ON `UNREAD` AND ON NO OTHER STATE. A receipt carrying neither field keeps
+        # the predicate it already had; every other state -- diverged, half-recorded, an
+        # unverifiable split tier, a tier this reader does not know -- is a REPORTED GAP under
+        # Z-G4 and never a pass, because a check that cannot compute its ground truth fails.
+        model_state, model_detail = _ra.compare_order(self.ordered_model, self.ran_model)
+        if model_state not in (_ra.STATE_UNREAD, _ra.STATE_AGREE):
+            return (f"ordered/ran model [{model_state}] -- {model_detail}. The receipt times a "
+                    f"real arc either way; what it cannot do is stand as a measurement OF THE "
+                    f"ORDER, which is what a median printed against a routing decision claims")
         if self.kind == KIND_MERGE:
             state = self.suite_verdict()
             if state is None:
@@ -556,9 +615,15 @@ class Receipt:
         # what that row actually knows. It reads as INCOMPLETE under the new predicate, which is
         # the honest answer -- those merges were never judged on a verdict state, and defaulting
         # either field to something convenient would back-date a judgement nobody made.
+        #
+        # `ordered_model`/`ran_model` READ THE SAME WAY, and their None pair is the one absence
+        # that is not a finding: `compare_order` answers `unread` on it and leg 4 skips. A
+        # refusal that evaporated on serialisation would refuse nothing -- `close` appends to the
+        # ledger and `median` reads it back, so the pair has to survive the trip to bind at all.
         return cls(slug=data["slug"], batch=data.get("batch", ""), opened=data["opened"],
                    host=data.get("host", ""), concurrent_seats=data.get("concurrent_seats", 0),
                    kind=data.get("kind", KIND_MERGE), merge_sha=data.get("merge_sha"),
+                   ordered_model=data.get("ordered_model"), ran_model=data.get("ran_model"),
                    steps=steps, closed=data.get("closed"))
 
 
@@ -754,6 +819,46 @@ def record_actions_verdict(repo_root: Path, *, slug: str, sha: str,
     receipt.merge_sha = sha
     save_receipt(repo_root, receipt)
     return receipt, verdict
+
+
+def record_model_reading(repo_root: Path, *, slug: str, ordered: str,
+                         worktree=None, read=None) -> tuple[Receipt, "_ra.ModelReading"]:
+    """Record WHAT WAS ORDERED and READ what actually ran, off the lane's own transcript.
+
+    THE ASYMMETRY IS THE POINT, and it is `record_actions_verdict`'s asymmetry one field over.
+    `ordered` is an argument because an order IS a declaration -- the contract's routing row says
+    it, and nothing else can. The model that RAN is never an argument, here or in the CLI: it is
+    read from the session store by `routing_agreement.model_reading`, which counts the assistant
+    messages in the transcript filed under this lane's own working directory. A seat able to type
+    the second value would produce a receipt that agrees with itself, which is `[#744]`'s false
+    pass reached by the shortest route this module has.
+
+    THE READING IS RECORDED WHATEVER IT SAYS -- a divergence, an unverifiable split tier and a
+    store with nothing in it all land on the receipt, and leg 4 judges them afterwards. Writing
+    only the agreeable readings would make the ledger a record of the times the check passed,
+    which is the shape of evidence that cannot be audited.
+
+    IT RECORDS NO STEP, and that is deliberate rather than an omission. A `StepTiming` would add
+    the duration of a directory read to `recorded_seconds` and shift the baseline-commensurable
+    split; the reading is a FACT ABOUT the arc, not a step OF it, and `merge_sha` -- the other
+    fact about the arc -- is likewise a field rather than a step.
+
+    `worktree` defaults to `repo_root`, which is where a lane's own session files its transcript.
+    It is a parameter because an integrator recording an arc's reading is not standing in that
+    arc's worktree, and the honest answer then is to name the directory rather than to read
+    whichever transcript happens to be underfoot.
+
+    `read` is the injection seam, the same shape and the same reason as `verdict_for`'s `fetch`
+    in the verb above: a test drives the REAL comparison over a seeded transcript rather than
+    asserting a state it typed itself.
+    """
+    receipt = load_receipt(repo_root, slug)
+    reader = read or _ra.model_reading
+    reading = reader(ordered, Path(worktree) if worktree else repo_root)
+    receipt.ordered_model = reading.ordered
+    receipt.ran_model = reading.ran
+    save_receipt(repo_root, receipt)
+    return receipt, reading
 
 
 def first_parent_merges(repo_root: Path, rev_range: str) -> list[str]:
@@ -1050,6 +1155,14 @@ def render_summary(receipt: Receipt) -> str:
                      + ("COMPLETE on this leg (ruling AY1-1), and NOT a statement that the run "
                         "was green" if state in COMPLETE_SUITE_STATES else
                         "INCOMPLETE: this receipt cannot discharge its merge"))
+    # THE MODEL LINE ALWAYS PRINTS, including when there is nothing to print -- `[#752]`. An
+    # absence a reader cannot SEE reads as a clean bill, and this module exists because a
+    # plausible answer was returned where the discriminating field was simply not there. So the
+    # `unread` state gets a sentence of its own rather than a blank space where a line would be.
+    model_state, model_detail = _ra.compare_order(receipt.ordered_model, receipt.ran_model)
+    lines.append(f"  MODEL {model_state} -- {model_detail}"
+                 + ("; this receipt makes NO CLAIM about the tier its arc ran at"
+                    if model_state == _ra.STATE_UNREAD else ""))
     tests_min, residual_min = receipt.baseline_split()
     lines.append(f"  BASELINE-COMMENSURABLE SPLIT: {tests_min:.2f} tests + "
                  f"{residual_min:.2f} residual ceremony  "
@@ -1234,6 +1347,35 @@ def cmd_actions(ctx: click.Context, slug: str, sha: str, baseline: Optional[str]
     logger.info("recorded suite verdict %s on step %s of receipt %s (merge %s)",
                 verdict.state, step, slug, sha[:12])
     raise SystemExit(0 if verdict.ok else 1)
+
+
+@cli.command("models")
+@click.option("--slug", required=True)
+@click.option("--ordered", required=True,
+              help="the tier the contract's routing row ORDERED for this lane, e.g. opus. It is "
+                   "declared because an order IS a declaration -- and it is the ONLY half of the "
+                   "pair this verb accepts")
+@click.option("--worktree", default=None, type=click.Path(file_okay=False),
+              help="the lane's working directory [default: the repo root]; the session store "
+                   "files a transcript under it, and that transcript is the measurement")
+@click.pass_context
+def cmd_models(ctx: click.Context, slug: str, ordered: str, worktree: Optional[str]) -> None:
+    """Record the ordered tier and READ, off the lane's own transcript, what it actually ran.
+
+    There is deliberately no flag that asserts what ran -- not under any spelling. This verb
+    reads it or it records the gap; a receipt able to be told what it ran would agree with
+    itself, and agreement with itself is what `lane-x-689` already had.
+
+    Exit follows the STATE: 0 only on agreement. A gap exits non-zero too (Z-G4) -- a check that
+    cannot compute its ground truth must not read as a pass to anything shelling out to it.
+    """
+    try:
+        _receipt, reading = record_model_reading(ctx.obj["root"], slug=slug, ordered=ordered,
+                                                 worktree=worktree)
+    except MergeReceiptError as exc:
+        raise click.ClickException(str(exc)) from exc
+    click.echo(f"{reading.state} -- {reading.detail}")
+    raise SystemExit(0 if reading.agrees else 1)
 
 
 @cli.command("require")
