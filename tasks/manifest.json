@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "11a19ca9fca8fb04402104601a1f8d529f12f47aac32fa6661df142731e8a006",
+  "generated_sha256": "e36c5579f09b6e107a00110458c36ff95b8bbd8f7223b48d0cf3b49e12df5c65",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -464,6 +464,14 @@
     {
       "task": 747,
       "file": "747-adoption-by-invocation-command-file-confers-adoption-only-while-invoked.md"
+    },
+    {
+      "task": 748,
+      "file": "748-a-lane-whose-worktree-redirects-to-the-primary-has-no-isolation.md"
+    },
+    {
+      "task": 749,
+      "file": "749-two-lanes-may-be-dispatched-for-the-same-row-under-different-slugs.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -1387,6 +1395,10 @@
     {
       "task": 729,
       "file": "729-fpg1-queries-exposed-as-mcp-tools-so-they-sit-beside-grep.md"
+    },
+    {
+      "task": 746,
+      "file": "746-devcontainer-history-and-ecosystem-repair-lost-with-cloud-provisioning-py.md"
     },
     {
       "prose": "### [S19] Decide the undecided artifact/tool models"

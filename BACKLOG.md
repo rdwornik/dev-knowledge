@@ -122,6 +122,8 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#743] [P1][S] The step-0 collision extractor requires a slash, so two lanes may both declare a root-level file and pass · tasks/743-collision-extractor-is-blind-to-root-level-files.md
 - [#744] [P1][S] `median_report` filters receipts by kind but never by completeness, so the under-30 target can be met on incomplete receipts · tasks/744-median-report-counts-incomplete-receipts.md
 - [#747] [P1][M] Adoption-by-invocation — a command file confers adoption only while telemetry records real invocations, and it decays at 30 days · tasks/747-adoption-by-invocation-command-file-confers-adoption-only-while-invoked.md
+- [#748] [P1][M] A lane whose worktree resolves to the primary checkout via a `core.worktree` redirect has no isolation, and dispatch cannot see it · tasks/748-a-lane-whose-worktree-redirects-to-the-primary-has-no-isolation.md
+- [#749] [P1][M] Two lanes may be dispatched for the same row under different slugs, because every duplicate check compares slugs rather than rows · tasks/749-two-lanes-may-be-dispatched-for-the-same-row-under-different-slugs.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
@@ -372,6 +374,7 @@ So that cognitive overhead per session drops.
 - [#725] [P2][S] `test_manifest_link_route` fails under xdist on a frozenset identity assert -- a test that passes alone and fails in parallel · tasks/725-xdist-frozenset-identity-pollution-in-test-manifest-link-route.md
 - [#728] [P2][M] Every organ that answers a question gets a generated skill whose description says WHEN to invoke it -- the description is what the model matches · tasks/728-organ-skills-generated-from-the-organ-index-so-the-model-can-find-them.md
 - [#729] [P2][M] FPG-1's queries are shell scripts the model must remember to run -- expose them as MCP tools so they sit in the tool list beside Grep · tasks/729-fpg1-queries-exposed-as-mcp-tools-so-they-sit-beside-grep.md
+- [#746] [P2][M] Devcontainer history-sufficiency (B1) and ecosystem-registration (L5) repair, lost with `scripts/cloud_provisioning.py` · tasks/746-devcontainer-history-and-ecosystem-repair-lost-with-cloud-provisioning-py.md
 ### [S19] Decide the undecided artifact/tool models
 So that cadence-less artifacts and unevaluated tools don't rot or get adopted blind.
 

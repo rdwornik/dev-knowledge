@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-12
+last_reviewed: 2026-09-13
 reconciled_with: handoff-process@7.1.0
 status: active
 owner: Rob
@@ -175,6 +175,7 @@ Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless the row says otherwis
 - `derived-copies-rebind` — a staged registered source whose derived copy did not move; also asserts every delegated hook id still exists
 - `provider-registry-agreement` — the nine provider/model seams vs `ecosystem/provider-registry.yaml`
 - `validate-backlog` — BACKLOG story-map schema (ADR-66)
+- `row-archive-proof` — `archive_row_body.py verify`: byte-identity legs A-E over `tasks/archive/`; `verify` only, never the writing subcommands ([#664] TRIGGER row)
 - `graph-rebuild` — rebuilds the persisted FPG-1 store ([#664] clause 1)
 - `graph-orphan-census` — a process no wiring surface reaches, transitively ([#664] clause 2)
 - `graph-task-coverage` — a staged file no OPEN row claims ([#664] clause 2)

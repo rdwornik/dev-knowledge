@@ -19,6 +19,118 @@
 
 ---
 
+### 2026-09-13 (w) - CC (Opus 5, background integrator seat): the conductor's one new node id, attributed and closed
+
+**Anchors:** `338fd126`, introduced by this arc's own `--no-ff` merge.
+
+**Did.** Read the Actions conductor's full-suite run on batch X4's merged tip
+(`786ed642`, run 34763603167) rather than merely running it, and attributed its result
+against the delete-list lane's recorded Actions BASELINE at `c0e0722f` (`cb0cf65c`).
+
+**Result.** 50 failed / 6037 passed / 22 skipped / **2 xfailed** at the tip, against 55
+failing node ids at the baseline. The count fell. **Exactly ONE node id was present at the
+tip and absent from the baseline**, and it was real:
+`tests/test_release_lint.py::test_current_manifest_still_engages_the_live_c7_mirror`.
+
+The 2 xfailed are this batch's own `[#748]`/`[#749]` witnesses, RED on the conductor as
+designed — the strict marker means they will turn the suite RED the moment either refusal
+is implemented and the marker is left on.
+
+**The finding, and why the lane could not have seen it.** `lane-x-628-docs-cut` retired
+`protocols/ESSENTIALS.md` from four freshness/structure registries, per ratification item 7.
+There is a FIFTH surface: `deploy/manifest-v1.5.0.yaml`'s `doc_shapes` block, whose own
+header comment declares it a MIRROR of
+`canonical_freshness_gate.DEFAULT_FRESHNESS_FILES`. `release_lint` C7 exists so that mirror
+cannot drift silently, and it fired correctly. The lane's diff touches nothing under
+`deploy/`, and C7 compares only the CURRENT manifest, so no in-lane gate could have caught
+it — **this is the class of defect the "one full suite on the MERGED result" checklist item
+exists for**, and it is the first time this seat has had that item pay for itself.
+
+Flipped rather than deleted: `freshness_gated: false`, the shape `JOURNAL.md` and
+`LESSONS.md` already carry. `ESSENTIALS.md` still exists (superseded, pending `[#628]`), so
+it keeps its declaration; removing the node would have tripped six surfaces to fix one.
+
+**Changes:** `deploy/manifest-v1.5.0.yaml` (one line), `JOURNAL.md`.
+
+**Abandoned.** Nothing.
+
+**Next.** Unchanged from entry (v): the X4 manifest still has to land from
+`worktree-dispatch-x4-freeze` before batch X4 can close, and the five worktrees still hold
+live sessions, so teardown waits on each lane's word. The remaining 49 failing node ids are
+the pre-existing population entry (u) characterised — ENV-only, DATA drift, and two
+suspected real defects — and none of them is this batch's.
+
+### 2026-09-13 (v) - CC (Opus 5, background integrator seat): batch X4's merge queue drains -- four merges, one anchor, and the reason one anchor was possible at all
+
+**Anchors:** `bebd002f` (introduced by `87db8060`), `130302ea` (by `0d6b7251`), `bec8b597`
+(by `eb760770`), `f989fc5c` (by `996428f2`), and `15e23277`, introduced by this arc's own
+`--no-ff` merge. Five SHAs, one per spine entry this session adds. Each was verified against
+`journal_anchor.introduced()` before being written here rather than assumed from the merge
+order -- the ADR-85 A7 predicate is "the JOURNAL names AT LEAST ONE SHA THAT THE ENTRY
+INTRODUCED", and a branch tip qualifies only because its merge introduces it.
+
+**Did.** Drained the batch X4 merge queue from the primary on `main`: `lane-x-675-instrument-fixes`,
+`lane-x-664-dead-callers` and `lane-x-628-docs-cut`, each reviewed by Codex in parallel before
+its merge, plus this seat's own `[#748]`/`[#749]` filing arc. `lane-x-683` needed no merge --
+`1bdb11ae` was already an ancestor of `main`, checked with `git merge-base --is-ancestor` rather
+than inferred from `git branch`. `worktree-lane-x-664-delete-list-execution` was not touched: it
+is mid-run.
+
+**Result.** Four merges, 319 backlog rows (264 open before, 267 after: `[#746]` `[#748]` `[#749]`),
+net -20,339 tracked bytes from the docs cut against +60,372 from the two code lanes.
+
+**One JOURNAL anchor for the batch, and the reason it needed a declared bypass.**
+`batch_manifest.open_batches()` returns `[]`. X3's manifest expired the moment its close packet
+landed -- by construction, as entry (u) states -- and **batch X4's manifest was never merged to
+`main`**. It exists, frozen and correct, carrying `status: open` and an absent `closed_by:`, on
+`worktree-dispatch-x4-freeze`. So the ADR-110 declared-integration-arc exemption was not live for
+the very batch whose lanes were being merged, and `journal_spine_anchor` FAILed the first
+conflicted commit after the first merge -- exactly as entry (u) predicted when it wrote "every
+merge from here pays its own anchor arc until a new manifest opens a batch".
+
+Four anchor arcs was the mechanical answer. This seat took the other sanctioned exit instead:
+`SKIP=audit-health`, ONE named hook, declared in every commit body that used it, with the anchor
+DEFERRED rather than skipped -- this entry discharges all four at once. That is the shape the
+operator asked for, and it is safe for one specific reason: `block-unanchored-push` **fails
+CLOSED**, so nothing left this machine until this entry existed. The bypass moved WHEN the anchor
+is written, not WHETHER.
+
+**The manifest absence is a DISPATCH defect, reported and not patched.** `docs/audits/` is
+immutable and the manifest is another seat's live branch; hand-adding the frontmatter at merge
+time would be the failure the immutability rule exists to prevent. Batch X4 cannot close until it
+lands -- refuse-to-finish item 4 requires both halves archived.
+
+**Codex found three real things, and one of them had its direction backwards.** CRIT 0 across all
+three lanes; 5 HIGH, each verified against the branch's own code rather than taken on the
+reviewer's word. Two are residual holes inside the fixes of `lane-x-675` and are already owned by
+`[#742]` and `[#744]`, both of which the lane correctly left OPEN: `meets_target()` reads an
+undefined median as `0.0` and passes `--strict`, and `.get("jobs", [])` still launders a
+fieldless `{}` into PASS. The third was reported as "PLAYBOOK will report stale" and is the
+opposite -- narrative appended after the date broke `_stamp_setting_commit`'s full-line needle,
+so the doc classified **FRESH** and the same-day ancestry test silently stopped running. It fails
+OPEN. Repaired in `15e23277` without losing a word of the lane's narration.
+
+**A pre-existing RED, measured rather than inherited silently.**
+`test_the_live_view_is_under_the_589_done_when_byte_bar` fails at 90,849 B against a 72,000 B
+bar. `BACKLOG.md` was already 90,164 B at `c0e0722f` -- 18,164 B over before this session began.
+This batch's three rows add 685 B, 0.8% of the overage. `[#589]`'s own docstring names the two
+lawful answers, groom or re-baseline deliberately, and both belong to the operator.
+
+**Changes:** `BACKLOG.md`, `tasks/` (`746` registered, `748`/`749` filed), `protocols/PLAYBOOK.md`
+(stamp repaired), `ARCHITECTURE.md` and the four registries (x-628 cut), `.devcontainer/provision.sh`
+(x-664), `scripts/actions_verdict.py` `merge_receipt.py` `seat_refusals.py` (x-675),
+`docs/audits/README.md` + `ecosystem/doc-counts.md` (regenerated once, post-queue),
+`tests/test_dispatch_refusal_holes_x4.py` (new).
+
+**Abandoned.** Nothing. The full suite was NOT run on this box by operator instruction -- it goes
+to the Actions conductor, and the per-lane targeted runs are evidence about each lane alone, not
+about the merged tree.
+
+**Next.** Land the X4 manifest from `worktree-dispatch-x4-freeze` so the batch can close and the
+exemption stops being a bypass; read the conductor's full-suite result on the merged tip; the
+five worktrees still hold live sessions, so teardown waits on each lane's word rather than on
+this merge.
+
 ### 2026-09-13 (u) - CC (Opus 5, background integrator seat): batch X3 CLOSES — the packet, four remainder rows, one discharged GO
 
 **Anchors:** `e0761575` — the close-packet commit, which this arc's own `--no-ff` merge

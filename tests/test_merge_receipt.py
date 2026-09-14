@@ -45,7 +45,14 @@ def _fail() -> list[str]:
 
 
 def _receipt_with(tmp_path, steps) -> mr.Receipt:
-    """Build a closed-shape receipt directly, so arithmetic tests do not pay for subprocesses."""
+    """Build a receipt directly, so arithmetic tests do not pay for subprocesses.
+
+    NOT A COMPLETE RECEIPT -- `closed` is None and only `steps` are recorded. The docstring here
+    used to say "closed-shape", which was never true and is what let the median tests below run
+    on receipts that `[#744]`'s predicate correctly refuses. Arithmetic tests (`wall_seconds`,
+    `by_class`, the raced-group rules) do not care and still use this; tests that feed
+    `median_report` use `_complete_merge` instead.
+    """
     receipt = mr.Receipt(slug="r", batch="x", opened="2026-09-12T00:00:00+00:00",
                          host="test", concurrent_seats=0)
     receipt.steps.extend(steps)
@@ -137,7 +144,7 @@ def test_the_median_NEVER_reports_a_number_without_its_spread():
     A `median_minutes` float exists on the report — it has to, for `--strict` — so the guarantee
     has to live at the surface that prints.
     """
-    receipts = [_receipt_with(None, [_step("merge", s)]) for s in (600.0, 1200.0, 1800.0)]
+    receipts = [_complete_merge(m, f"r{m}") for m in (10.0, 20.0, 30.0)]
 
     rendered = mr.median_report(receipts).render()
 
@@ -155,7 +162,7 @@ def test_the_median_carries_the_BASELINES_OWN_spread_and_that_nothing_was_measur
     "84 -> 27" would be the row's own failure class: a confident number with the disagreement
     hidden inside it.
     """
-    rendered = mr.median_report([_receipt_with(None, [_step("merge", 600.0)])]).render()
+    rendered = mr.median_report([_complete_merge(10.0)]).render()
 
     assert "90" in rendered and "63" in rendered, "both itemised views travel with the median"
     assert "NOTHING WAS MEASURED" in rendered
@@ -172,9 +179,10 @@ def test_a_NON_MERGE_arc_cannot_flatter_the_MERGE_median_and_its_exclusion_is_NA
     exact shape the row is filed about. The exclusion is REPORTED, because a filter nobody can
     see is the same defect one layer on.
     """
-    merge = _receipt_with(None, [_step("merge", 2400.0)])
-    arc = _receipt_with(None, [_step("commit", 60.0)])
-    arc.kind = mr.KIND_ARC
+    merge = _complete_merge(40.0)
+    arc = mr.Receipt(slug="a", batch="x", opened="t", host="h", concurrent_seats=0,
+                     closed="t2", kind=mr.KIND_ARC)
+    arc.steps.append(_step("commit", 60.0))
 
     report = mr.median_report([merge, arc])
 
@@ -182,6 +190,179 @@ def test_a_NON_MERGE_arc_cannot_flatter_the_MERGE_median_and_its_exclusion_is_NA
     assert report.excluded == 1
     assert "EXCLUDED" in report.render()
     assert mr.median_report([merge, arc], kind=mr.KIND_ARC).median_minutes == 1.0
+
+
+# --- `[#744]`: A MEDIAN OVER INCOMPLETE RECEIPTS IS NOT A MEDIAN -----------
+#
+# RED-FIRST WITNESS (ADR-108 SB). At `dbac84b8` `median_report` filtered by `kind` and by
+# nothing else. It never read `closed`, never read `failed_steps()`, never read
+# `missing_required()` -- so a receipt that was opened and abandoned, or whose suite step
+# exited non-zero, or that recorded one step out of four, counted at full weight in a median
+# reported as "median merge minutes".
+#
+# AND IT WAS FULLY REALISED IN THE LIVE LEDGER, not hypothetical. `logs/MERGE-RECEIPTS.jsonl`
+# held exactly two rows on 2026-09-13 and BOTH had failed steps, one of them recording a single
+# failed step and 0.0 minutes of wall time. Over that data the tool printed:
+#
+#     arc minutes over n=2 closed receipt(s)
+#       median   9.4 min   (target 3.6: under 30 -> MET)
+#       per merge 0.0, 18.7
+#
+# "n=2 closed receipt(s)" was false -- nothing had checked `closed` -- and "target 3.6: MET"
+# was a pass built from a receipt that measured nothing. That is `[#675]`'s filed failure class
+# word for word: a plausible, flattering value returned because the discriminating field is
+# absent from what the reader looks at.
+
+
+def _complete_merge(minutes: float, slug: str = "m") -> mr.Receipt:
+    """A receipt that is complete on every leg of the predicate: closed, every required step
+    recorded, none of them failed. The whole duration sits on `merge` so the arithmetic of each
+    test stays legible."""
+    receipt = mr.Receipt(slug=slug, batch="x", opened="2026-09-12T00:00:00+00:00",
+                         host="test", concurrent_seats=0,
+                         closed="2026-09-12T01:00:00+00:00")
+    receipt.steps.extend(
+        _step(name, minutes * 60.0 if name == "merge" else 0.0)
+        for name in mr.REQUIRED_STEPS)
+    return receipt
+
+
+def test_an_INCOMPLETE_receipt_is_EXCLUDED_from_the_median():
+    """`[#744]`'s Done-when, built exactly as it specifies: complete receipts ABOVE the target
+    plus incomplete ones BELOW it.
+
+    RED at `dbac84b8`: the cheap incomplete rows dragged the median to 1.0 and the report said
+    `target 3.6: MET`. The complete sample never met it.
+    """
+    complete = [_complete_merge(m, f"ok{m}") for m in (40.0, 45.0, 50.0)]
+
+    never_closed = _complete_merge(1.0, "unclosed")
+    never_closed.closed = None
+
+    a_step_failed = _complete_merge(1.0, "failed")
+    a_step_failed.steps.append(_step("suite", 0.0, ok=False))
+
+    missing_steps = mr.Receipt(slug="partial", batch="x", opened="t", host="h",
+                               concurrent_seats=0, closed="t2")
+    missing_steps.steps.append(_step("merge", 60.0))
+
+    no_steps_at_all = mr.Receipt(slug="empty", batch="x", opened="t", host="h",
+                                 concurrent_seats=0, closed="t2")
+
+    report = mr.median_report([*complete, never_closed, a_step_failed,
+                               missing_steps, no_steps_at_all])
+
+    assert report.n == 3, "only the complete receipts are counted"
+    assert report.median_minutes == 45.0
+    assert report.meets_target() is False, \
+        "the incomplete rows made a NOT-MET sample read as MET -- the whole row"
+    assert report.per_merge == (40.0, 45.0, 50.0)
+
+
+@pytest.mark.parametrize("break_it,reason_fragment", [
+    (lambda r: setattr(r, "closed", None), "closed"),
+    (lambda r: r.steps.append(_step("suite", 0.0, ok=False)), "failed"),
+    (lambda r: r.steps.clear(), "step"),
+])
+def test_each_leg_of_the_completeness_predicate_EXCLUDES_on_its_own(break_it, reason_fragment):
+    """One explicit predicate in code, not left to the reader -- the row's own words. Each leg
+    is asserted alone so a later simplification that drops one is caught by name."""
+    receipt = _complete_merge(40.0)
+    break_it(receipt)
+
+    assert receipt.is_complete() is False
+    assert reason_fragment in receipt.incompleteness_reason().lower()
+    assert mr.median_report([receipt]).n == 0
+
+
+def test_a_MERGE_receipt_missing_a_REQUIRED_step_is_incomplete():
+    """"Every declared step present" -- REQUIRED_STEPS is what a merge declares it will record,
+    from `/lane-integrate`'s own walk. A merge receipt with no `suite` step did not record
+    whether the suite ran, and an unrecorded step reads exactly like a fast one."""
+    receipt = _complete_merge(40.0)
+    receipt.steps = [s for s in receipt.steps if s.step != "suite"]
+
+    assert receipt.is_complete() is False
+    assert "suite" in receipt.incompleteness_reason()
+
+
+def test_an_ARC_receipt_is_NOT_held_to_the_MERGE_walks_required_steps():
+    """The required-steps leg is scoped to `kind == merge`, and that is a decision rather than
+    an oversight. REQUIRED_STEPS is the INTEGRATOR's walk -- handback, merge, suite, teardown --
+    and this module's own docstring says an arc "pays no merge and no teardown". Holding an arc
+    to it would make `median --kind arc` permanently n=0 for a reason that is not incompleteness.
+    The other legs -- closed, has steps, none failed -- still bind an arc.
+    """
+    arc = mr.Receipt(slug="a", batch="x", opened="t", host="h", concurrent_seats=0,
+                     closed="t2", kind=mr.KIND_ARC)
+    arc.steps.append(_step("targeted", 600.0))
+
+    assert arc.is_complete() is True
+    assert mr.median_report([arc], kind=mr.KIND_ARC).n == 1
+
+    arc.steps.append(_step("targeted-retry", 60.0, ok=False))
+    assert arc.is_complete() is False
+
+
+def test_the_completeness_exclusion_is_REPORTED_the_way_the_kind_filter_already_is():
+    """A filter nobody can see is the same defect one layer on -- this module's own rule, which
+    is why `excluded` exists for `kind`. A median over a thinned sample must never render as a
+    median over a full one."""
+    incomplete = _complete_merge(1.0, "bad")
+    incomplete.closed = None
+    report = mr.median_report([_complete_merge(40.0), incomplete])
+
+    assert report.incomplete == 1
+    rendered = report.render()
+    assert "INCOMPLETE" in rendered
+    assert "1" in rendered
+
+
+def test_an_ALL_INCOMPLETE_ledger_reports_UNDEFINED_and_says_WHY():
+    """The live ledger's own shape on 2026-09-13: every row present, none of them usable. The
+    honest answer is "no complete receipt", never "0.0 minutes, target MET"."""
+    incomplete = _complete_merge(1.0)
+    incomplete.closed = None
+
+    report = mr.median_report([incomplete])
+
+    assert report.n == 0
+    assert report.incomplete == 1
+    rendered = report.render()
+    assert "NO RECEIPTS" in rendered or "no complete" in rendered.lower()
+    assert "INCOMPLETE" in rendered
+
+
+def test_median_STRICT_is_the_TARGET_axis_and_NOT_the_completeness_axis(tmp_path):
+    """`[#744]`'s last clause: `--strict` "either enforces completeness or is documented as not
+    being the completeness axis, with a test pinning whichever is chosen".
+
+    CHOSEN: it is NOT the completeness axis, and completeness is enforced UNCONDITIONALLY.
+    `--strict` already means "exit 1 when the median does not meet target 3.6", and a flag that
+    also toggled completeness would make the false pass this row closes OPT-OUTABLE -- a median
+    over incomplete receipts is not a laxer reading of the number, it is a different number. So
+    the filtering happens with or without the flag, and `--strict` keeps the one meaning it had.
+    """
+    from click.testing import CliRunner
+
+    ledger = tmp_path / mr.LEDGER_RELPATH
+    ledger.parent.mkdir(parents=True, exist_ok=True)
+    incomplete = _complete_merge(1.0, "bad")
+    incomplete.closed = None
+    rows = [_complete_merge(40.0, "ok"), incomplete]
+    ledger.write_text("".join(json.dumps(r.to_dict()) + "\n" for r in rows), encoding="utf-8")
+
+    runner = CliRunner()
+    lax = runner.invoke(mr.cli, ["--repo-root", str(tmp_path), "median"])
+    strict = runner.invoke(mr.cli, ["--repo-root", str(tmp_path), "median", "--strict"])
+
+    # Completeness filtering is identical in both -- n=1, the 40-minute complete receipt.
+    assert "n=1" in lax.output and "n=1" in strict.output
+    assert "INCOMPLETE" in lax.output, "the exclusion is reported without --strict too"
+
+    # --strict changes only the EXIT CODE, and only on the target axis (40 min > 30 min target).
+    assert lax.exit_code == 0
+    assert strict.exit_code == 1
 
 
 def test_a_ledger_row_written_BEFORE_kind_existed_reads_as_a_MERGE():

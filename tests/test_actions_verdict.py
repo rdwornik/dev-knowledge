@@ -32,6 +32,7 @@ the integrator needs to know whether to wait, to investigate, or to install some
 from __future__ import annotations
 
 import json
+import subprocess
 
 import pytest
 
@@ -173,9 +174,9 @@ def test_the_four_NOT_GREEN_states_are_all_DISTINCT():
     """Asserted as a set so a later simplification that collapses two of them fails here."""
     states = {av.STATE_PASS, av.STATE_REGRESSED, av.STATE_PRE_EXISTING,
               av.STATE_UNATTRIBUTED, av.STATE_NO_RUN, av.STATE_IN_PROGRESS,
-              av.STATE_UNAVAILABLE}
+              av.STATE_UNAVAILABLE, av.STATE_JOBS_UNREADABLE}
 
-    assert len(states) == 7
+    assert len(states) == 8
 
 
 # --- the reading is RECORDED, which is what makes it a gate -----------------
@@ -250,8 +251,149 @@ def test_the_cli_prints_the_verdict_even_when_it_PASSES(monkeypatch):
     assert "pytest" in result.output
 
 
-@pytest.mark.parametrize("state", [av.STATE_NO_RUN, av.STATE_IN_PROGRESS, av.STATE_UNAVAILABLE])
+@pytest.mark.parametrize("state", [av.STATE_NO_RUN, av.STATE_IN_PROGRESS, av.STATE_UNAVAILABLE,
+                                   av.STATE_JOBS_UNREADABLE])
 def test_every_absence_state_carries_a_REMEDY_naming_the_next_action(state):
     """`SeatRefusal`'s rule, one organ over: a verdict that names no way forward gets worked
     around rather than acted on."""
     assert av.REMEDIES[state].strip(), state
+
+
+# --- `[#742]`: AN UNREADABLE JOB LIST IS NOT AN EMPTY ONE -------------------
+#
+# RED-FIRST WITNESS (ADR-108 SB). At `dbac84b8`, `fetch_run`'s second `gh` call --
+# `gh run view <id> --json jobs` -- collapsed EVERY failure mode onto `match["jobs"] = []`:
+# a non-zero exit, an `OSError`, a `subprocess.TimeoutExpired` and malformed JSON all became
+# "this run has no jobs". `verdict_for` then computed `failing = set()` over that empty list
+# and returned `STATE_PASS`. An integrator who could not read the result at all was told the
+# merge was green.
+#
+# The module already knew how to say "I could not read this": the FIRST `gh` call raises
+# `ActionsUnavailable` on exactly these conditions. The second simply did not use it.
+#
+# THESE TESTS DRIVE THE REAL `fetch_run`, not an injected fake, and that is the point. The
+# defect lives in `fetch_run`'s except branch, so a witness that stubbed `fetch` would test
+# the fix's shape rather than the bug's absence. Stubbing `subprocess.run` puts the failure
+# where the bug is, which means reintroducing `match["jobs"] = []` makes these RED again.
+
+_RUN_ROW = {"databaseId": 7, "headSha": "abc0000dead", "status": "completed",
+            "conclusion": "success", "displayTitle": "a merge"}
+
+
+def _ok(command, payload: str) -> subprocess.CompletedProcess:
+    return subprocess.CompletedProcess(command, 0, payload, "")
+
+
+def _gh_whose_JOB_call_fails(monkeypatch, failure):
+    """`gh run list` answers; `gh run view --json jobs` fails the way `failure` says.
+
+    Two calls, one failing -- the exact shape of the hole. The run itself is READABLE, so
+    nothing upstream raises `ActionsUnavailable` and the verdict is reached with a job list
+    that was never read.
+    """
+    def fake_run(command, **kwargs):
+        if "list" in command:
+            return _ok(command, json.dumps([_RUN_ROW]))
+        return failure(command)
+    monkeypatch.setattr(av.subprocess, "run", fake_run)
+
+
+def _non_zero_exit(command):
+    return subprocess.CompletedProcess(command, 1, "", "gh: HTTP 502 from api.github.com")
+
+
+def _raises_oserror(command):
+    raise OSError("gh is on the PATH and then it is not")
+
+
+def _raises_timeout(command):
+    raise subprocess.TimeoutExpired(command, av.GH_TIMEOUT_S)
+
+
+def _malformed_json(command):
+    return _ok(command, '{"jobs": [{"name": "pytest"')
+
+
+_JOB_CALL_FAILURES = [
+    pytest.param(_non_zero_exit, id="non-zero-exit"),
+    pytest.param(_raises_oserror, id="OSError"),
+    pytest.param(_raises_timeout, id="TimeoutExpired"),
+    pytest.param(_malformed_json, id="malformed-JSON"),
+]
+
+
+@pytest.mark.parametrize("failure", _JOB_CALL_FAILURES)
+def test_an_UNREADABLE_job_list_is_NEVER_a_PASS(monkeypatch, tmp_path, failure):
+    """`[#742]`'s Done-when, first leg. Each of the four failure modes, asserted NOT to be
+    `STATE_PASS` -- so the empty-list degradation cannot be reintroduced silently."""
+    _gh_whose_JOB_call_fails(monkeypatch, failure)
+
+    verdict = av.verdict_for("abc0000", repo_root=tmp_path)
+
+    assert verdict.state != av.STATE_PASS
+    assert verdict.ok is False
+
+
+@pytest.mark.parametrize("failure", _JOB_CALL_FAILURES)
+def test_an_unreadable_job_list_surfaces_as_its_OWN_state_not_as_a_failure(monkeypatch, tmp_path,
+                                                                          failure):
+    """Distinct from PASS *and* from FAIL. "The suite failed" and "I could not find out whether
+    the suite failed" are different next actions, which is this module's founding rule."""
+    _gh_whose_JOB_call_fails(monkeypatch, failure)
+
+    verdict = av.verdict_for("abc0000", repo_root=tmp_path)
+
+    assert verdict.state == av.STATE_JOBS_UNREADABLE
+    assert verdict.state not in (av.STATE_PASS, av.STATE_REGRESSED, av.STATE_PRE_EXISTING)
+    assert "could not be read" in verdict.render()
+
+
+def test_a_run_with_GENUINELY_NO_JOBS_gets_a_DIFFERENT_answer_than_an_unreadable_one(monkeypatch,
+                                                                                    tmp_path):
+    """`[#742]`'s Done-when, third leg: "no failing jobs" and "no READABLE jobs" are two facts,
+    and the whole hole was that one word stood for both. A job-less run is read successfully --
+    it really has no jobs -- and keeps the answer it always had."""
+    def job_less(command, **kwargs):
+        if "list" in command:
+            return _ok(command, json.dumps([_RUN_ROW]))
+        return _ok(command, json.dumps({"jobs": []}))
+    monkeypatch.setattr(av.subprocess, "run", job_less)
+    job_less_verdict = av.verdict_for("abc0000", repo_root=tmp_path)
+
+    _gh_whose_JOB_call_fails(monkeypatch, _non_zero_exit)
+    unreadable_verdict = av.verdict_for("abc0000", repo_root=tmp_path)
+
+    assert job_less_verdict.state != unreadable_verdict.state
+    assert job_less_verdict.state == av.STATE_PASS
+    assert unreadable_verdict.state == av.STATE_JOBS_UNREADABLE
+
+
+def test_an_unreadable_BASELINE_does_not_manufacture_a_REGRESSION():
+    """THE SAME HOLE WITH THE SIGN FLIPPED, found while resolving `[#742]`'s locator and fixed
+    with it because it is the same missing distinction.
+
+    An unreadable baseline job list used to yield `base_jobs = {}` with `base_read = True`, so
+    `base_failing` was empty and EVERY failing job at the tip was attributed to this merge --
+    `STATE_REGRESSED`, naming jobs the merge may not have broken. A false accusation is as
+    unusable as a false pass: the integrator reverts a merge that was innocent.
+    """
+    tip = _run("tip", "failure", {"pytest": "failure"})
+    unreadable_base = {**_run("base", "failure", {}), "jobs": None}
+    fetch = _gh({"tip": tip, "base": unreadable_base})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch)
+
+    assert verdict.state != av.STATE_REGRESSED
+    assert verdict.newly_failing == ()
+    assert verdict.state == av.STATE_UNATTRIBUTED
+
+
+def test_the_cli_exits_NON_ZERO_when_the_job_list_could_not_be_read(monkeypatch, tmp_path):
+    """The gate's exit code is the only part of it a script reads."""
+    from click.testing import CliRunner
+
+    _gh_whose_JOB_call_fails(monkeypatch, _non_zero_exit)
+    result = CliRunner().invoke(av.cli, ["--sha", "abc0000", "--repo-root", str(tmp_path)])
+
+    assert result.exit_code != 0
+    assert av.STATE_JOBS_UNREADABLE in result.output

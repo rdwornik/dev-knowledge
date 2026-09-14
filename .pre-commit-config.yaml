@@ -250,6 +250,33 @@ repos:
         language: system
         files: '(^BACKLOG\.md$|^tasks/.*\.(md|json)$)'
         pass_filenames: false
+      - id: row-archive-proof
+        name: Row-body archival byte-identity proof (legs A-E; [#612]/[#664] TRIGGER)
+        # [#664]'s ratified TRIGGER row for `scripts/archive_row_body.py`, placed HERE
+        # deliberately: the census named "the pre-commit stage, beside the row-lifecycle
+        # gates" as its surface, and `validate-backlog` immediately above is that neighbour.
+        # Until this row landed the module was referenced only by its own test file, and a
+        # test proves a module works while scheduling nothing -- which is precisely why the
+        # census counted it an orphan with a green test suite sitting next to it.
+        #
+        # `verify` AND NOT `relocate`/`rerender`, and the choice is load-bearing rather than
+        # conservative. Those two WRITE: `relocate` moves clauses out of a live row and
+        # `rerender` rewrites a record's prose. A gate reads and refuses; one that edits the
+        # rows it is judging would make Layer 2 mutate the corpus at commit time (Critical
+        # Rule #4), and relocation is an operator act with a `propose` step in front of it.
+        # `tests/test_archive_row_body.py` pins the subcommand so a later widening cannot
+        # quietly turn this gate into a writer.
+        #
+        # The `files:` selector reaches `tasks/` and not only `BACKLOG.md` because LEG E
+        # enumerates from the ROWS: a record DELETED under `tasks/archive/` is the one change
+        # that removes the only thing that could complain, so a selector blind to it would
+        # sit out the failure the leg exists to catch. `BACKLOG.md` is a generated view and
+        # is included for the same completeness reason, not because a body edit shows there.
+        # Exit is 0 clean / 1 on a failed leg, so a FAIL blocks; the module never raises.
+        entry: uv run --locked python scripts/archive_row_body.py verify
+        language: system
+        files: '(^BACKLOG\.md$|^tasks/.*\.(md|json)$|^scripts/archive_row_body\.py$)'
+        pass_filenames: false
       - id: provider-registry-agreement
         name: Provider/model registry agreement gate (CLOUD-4 v2; HUB-ONLY)
         # ecosystem/provider-registry.yaml is the declared home for every provider, CLI

@@ -511,3 +511,62 @@ def test_every_committed_record_still_proves_out():
     # An empty `proven` with an empty `failures` is the vacuous pass this assertion exists
     # to refuse: legs A/B/D can all hold over records whose leg C never reconstructed.
     assert proven == len(arb.record_files(_REPO))
+
+
+# --- the TRIGGER ------------------------------------------------------------------------
+#
+# `[#664]`'s ratified TRIGGER row, and the distinction it turns on: EVERY OTHER TEST IN THIS
+# FILE PROVES THE MODULE WORKS AND SCHEDULES NOTHING. That is why the census listed this
+# module as an orphan while its test file sat right here -- *"a test proves a module works
+# and schedules nothing, so it is not a trigger"*. The two tests below are the only ones in
+# the file that assert an EVENT fires it, and they are written that way deliberately: a
+# module-behaviour test can never discharge a trigger row, however green it is.
+
+def _live_precommit_hooks() -> list[dict]:
+    """Every hook object in the live `.pre-commit-config.yaml`, flattened across repos."""
+    import yaml
+    config = yaml.safe_load((_REPO / ".pre-commit-config.yaml").read_text(encoding="utf-8"))
+    return [hook for repo in config.get("repos", []) for hook in repo.get("hooks", [])]
+
+
+def test_a_pre_commit_hook_FIRES_archive_row_body_and_not_merely_names_it():
+    """RED-first witness for `[#664]`'s TRIGGER row: the module must be on the pre-commit
+    stage, beside the row-lifecycle gates the census named as its surface."""
+    wired = [h for h in _live_precommit_hooks()
+             if "scripts/archive_row_body.py" in h.get("entry", "")]
+    assert wired, (
+        "scripts/archive_row_body.py is fired by no pre-commit hook -- it is referenced only "
+        "by this test file, and a test schedules nothing. [#664] ordered it a TRIGGER on the "
+        "pre-commit stage, beside the row-lifecycle gates")
+    assert len(wired) == 1, f"one trigger, not {len(wired)}: {[h['id'] for h in wired]}"
+    hook = wired[0]
+    # `relocate` MUTATES rows and `rerender` rewrites records. A gate reads and refuses; it
+    # never edits the tree it is judging (Layer-2 posture, and the module's own doctrine that
+    # relocation is an operator act). Pinned so a later widening cannot make the gate write.
+    assert hook["entry"].split()[-1] == "verify", (
+        f"the wired subcommand must be `verify`: {hook['entry']!r}. `relocate` and `rerender` "
+        f"WRITE, and a gate that edits the rows it judges is not a gate")
+    assert hook.get("stages", ["pre-commit"]) == ["pre-commit"], (
+        f"[#664] names the PRE-COMMIT stage for this row: {hook.get('stages')!r}")
+    # LEG E enumerates from the ROWS, so the selector has to reach a record DELETION as well
+    # as a row edit -- a verifier armed only on `BACKLOG.md` would sit out the one change
+    # that removes the thing that could complain.
+    selector = hook.get("files", "")
+    for required in ("tasks/", "BACKLOG"):
+        assert required in selector, (
+            f"the hook's files: selector must reach {required!r} or LEG E cannot fire: "
+            f"{selector!r}")
+
+
+def test_the_trigger_row_and_its_disposition_cannot_both_be_live():
+    """A wired module is not an orphan, so its register row must be GONE.
+
+    The converse of the rule the deletion steps followed. Left in place, the row would be a
+    paper suppression of a condition that no longer holds, and
+    `test_a_disposition_register_entry_cannot_manufacture_its_own_trigger` in
+    `tests/test_graph_spine.py` would RED on it -- this assertion says so HERE, at the
+    module, so the coupling is visible from the side that changed."""
+    import graph_queries as gq
+    assert "scripts/archive_row_body.py" not in gq.ORPHAN_DISPOSITIONS, (
+        "archive_row_body.py now has a trigger and still carries an ORPHAN_DISPOSITIONS "
+        "entry -- the register would be recording an orphan that is wired")

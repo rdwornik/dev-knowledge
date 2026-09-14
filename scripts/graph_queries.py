@@ -149,9 +149,29 @@ _LANE_BUILT = ("lane-built and never adopted -- the process-trigger census's DEC
 
 ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
     # ---- population A: scripts, lane-built and never wired (the census's own class) ----
+    # NOT population A, and the row is a KEEP rather than the DELETE its old text implied. That
+    # text -- `_LANE_BUILT` plus "only call site is LANE-f-6-observability-otel.md:27" -- said
+    # lane-built-and-never-adopted with a spent lane contract for a call site, which reads as a
+    # retirement candidate and is how `[#664]`'s census found it. It was STALE, and the census
+    # said so in its own §4.2; corrected here by `[#664]`'s ratified register-row correction
+    # (2026-09-13, lane `lane-x-664-delete-list-execution`).
+    #
+    # WHAT IS ACTUALLY TRUE: `[#694]` records this module PARTIALLY DISCHARGED -- *"no longer
+    # inventory"* -- and FPG-1 confirms the call site rather than the lane contract:
+    # `why scripts/cost_usage_telemetry.py` -> `is imported by file:scripts/provider_router.py
+    # [wiring]`. So it is an ADOPTED library whose ADOPTER is untriggered, which is a different
+    # condition from an unadopted organ and takes a different remedy: it inherits the row above
+    # and moves with it. Wiring it independently would assert the very call `[#691]` Half A is
+    # forbidden from placing.
     "scripts/cost_usage_telemetry.py": Disposition(
-        reason=f"{_LANE_BUILT}; only call site is LANE-f-6-observability-otel.md:27",
-        owner="V+1 retirement-or-wiring list"),
+        reason="KEEP -- ADOPTED, not inventory, and this text replaces a stale one that read "
+               "as a DELETE. [#694] records it PARTIALLY DISCHARGED ('no longer inventory') and "
+               "FPG-1 holds the real call site: imported by scripts/provider_router.py. It is "
+               "untriggered ONLY because that caller is, so it inherits provider_router.py's "
+               "row above and is adopted by the same act -- [#691] Half B routing through the "
+               "router. Wiring it on its own would place the non-Claude call AX23-2 forbids",
+        owner="[#691] Half B, jointly with the provider_router.py row above; [#694] owns the "
+              "telemetry decision itself"),
     # NOT population A, and the distinction is the whole reason this row is written out rather
     # than folded into `_LANE_BUILT`. `provider_router.py` is not an organ nobody adopted; it
     # is an organ whose consumer is a lane that has not run yet, and the gap is REQUIRED by the
@@ -181,12 +201,13 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                 "pre-commit gate over it is an AX4-1 floor-declaration act needing a "
                 "parity-surfaces registration, which is outside this lane's footprint"),
         owner="[#691] Half B (non-Claude admission), which adopts it by routing through it"),
-    "scripts/gen_north_star.py": Disposition(
-        reason=f"{_LANE_BUILT}; only call site is batch-e CUT.md:40",
-        owner="V+1 retirement-or-wiring list"),
-    "scripts/gen_trend_dashboard.py": Disposition(
-        reason=f"{_LANE_BUILT}; only call site is LANE-n-14-trends-burndown.md:27",
-        owner="V+1 retirement-or-wiring list"),
+    # `scripts/gen_trend_dashboard.py` and `scripts/gen_north_star.py` WERE dispositioned here,
+    # both on `_LANE_BUILT`. `[#664]`'s ratified DELETE list retired them (2026-09-13, lane
+    # `lane-x-664-delete-list-execution`), in that order -- the dashboard imports the north-star
+    # view through `importlib`, so deleting the importer second would have turned a clean
+    # removal into a broken load. The rows leave WITH their subjects: a disposition says "this
+    # orphan was LOOKED AT and ruled", and a file that is gone is not an orphan, so keeping the
+    # row would be the paper suppression `stale_dispositions()` exists to surface.
     # NOT population A either, and the distinction earns its own comment rather than being
     # folded into `_LANE_BUILT`. `merge_receipt.py` IS adopted: `.claude/commands/
     # lane-integrate.md` issues it at four points of the merge walk, which is the opposite of
@@ -244,23 +265,27 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "reviewed",
         owner="the [#664] wiring-surface list, which owns whether .claude/commands/*.md is a "
               "trigger surface; this row is deleted by that decision, not by a lane"),
-    "scripts/logs_retention.py": Disposition(
-        reason=f"{_LANE_BUILT}; the DECLARE §3 names run_retention() at 0 callers and the "
-               f"census confirms it at module level too",
-        owner="V+1 retirement-or-wiring list"),
-    "scripts/nopack_sandbox.py": Disposition(
-        reason=f"{_LANE_BUILT}; only call site is LANE-e-5-vision-relocation.md:46",
-        owner="V+1 retirement-or-wiring list"),
-    "scripts/trace_writer.py": Disposition(
-        reason=f"{_LANE_BUILT}; only call site is LANE-t-000-trace-scorecard.md:47",
-        owner="V+1 retirement-or-wiring list"),
-    "scripts/window_metrics.py": Disposition(
-        reason=f"{_LANE_BUILT}; only call site is LANE-r-000-zc-candidates.md:39",
-        owner="V+1 retirement-or-wiring list"),
-    "scripts/failed_set.py": Disposition(
-        reason="reachable only from the untriggered window_metrics.py:359 -- an orphan by "
-               "inheritance, so it is dispositioned WITH its caller and not before it",
-        owner="V+1 retirement-or-wiring list"),
+    # `scripts/logs_retention.py` WAS dispositioned here, on the DECLARE §3 finding that
+    # `run_retention()` had 0 callers -- which is `[#655]`'s entire title. It is GONE from this
+    # register because it is WIRED: `[#664]`'s second ratified TRIGGER row put it on the
+    # `SessionStart` path in `.claude/settings.json` (2026-09-13, lane
+    # `lane-x-664-delete-list-execution`). SessionStart rather than Stop, deliberately: the
+    # producer of the files it retains is `propose_closures.py` on the plugin's Stop hook, and
+    # a renamer sharing that event with the producer's own `**/PROPOSALS-*.md` read buys
+    # nothing that the next session's start does not. Pinned by
+    # `tests/test_logs_retention.py::test_the_retention_trigger_is_on_SESSION_START_not_STOP`.
+    # `scripts/nopack_sandbox.py` and `scripts/trace_writer.py` WERE dispositioned here. Retired
+    # by `[#664]`'s ratified DELETE list (2026-09-13, lane
+    # `lane-x-664-delete-list-execution`). These two carried NO inbound edge of any kind -- not
+    # a row, not an import, not a wiring surface -- so unlike the four above they left no
+    # `task-implements` residue behind them. Their only recorded call sites were spent lane
+    # contracts, which are immutable and already run.
+    # `scripts/window_metrics.py` and `scripts/failed_set.py` WERE dispositioned here. Retired
+    # by `[#664]`'s ratified DELETE list in that order (2026-09-13, lane
+    # `lane-x-664-delete-list-execution`): `failed_set` was an orphan BY INHERITANCE from
+    # `window_metrics.py:359`, and its row said in its own words that it is "dispositioned WITH
+    # its caller and not before it" -- so it is retired with its caller and not before it
+    # either. Same rule as the pair above: the row leaves with its subject.
     # KEPT, and the reason is a FINDING rather than a deferral. The AX13-2 retire stage
     # deleted this module on a SAFE oracle verdict and the full suite went RED: nothing
     # static reaches it, but `tests/test_membership_agreement.py` loads it BY NAME through
@@ -289,11 +314,13 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "only route it measured. Wiring it would assert an admission that was denied",
         owner="V+1 retirement-or-wiring list"),
     # ---- population A: tests are not triggers ----
-    "scripts/archive_row_body.py": Disposition(
-        reason="referenced only by tests/test_archive_row_body.py -- a test proves a module "
-               "works and schedules nothing, so it is not a trigger. [#664]'s row names this "
-               "module's trigger ride as an edge of this arc, not a separate row",
-        owner="V+1 retirement-or-wiring list"),
+    # `scripts/archive_row_body.py` WAS dispositioned here, on exactly that heading: referenced
+    # only by its own test file, and a test proves a module works while scheduling nothing. It
+    # is GONE from this register because it is WIRED, not because it was retired -- `[#664]`'s
+    # ratified TRIGGER row landed the `row-archive-proof` pre-commit hook (2026-09-13, lane
+    # `lane-x-664-delete-list-execution`), beside `validate-backlog`, which is the surface the
+    # census named. A row leaves this register in both directions and for the same reason: the
+    # register holds live rulings about orphans, and a wired module is not an orphan.
     # ---- population A: orphan BY DESIGN, and wiring it would RED a test ----
     "scripts/export_backlog_view.py": Disposition(
         reason="ORPHAN BY DESIGN: tests/test_export_backlog_view.py::test_no_gate_hook_or_"
