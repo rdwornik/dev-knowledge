@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-13
+last_reviewed: 2026-09-14
 reconciled_with: handoff-process@7.1.0
 status: active
 owner: Rob
@@ -13,7 +13,7 @@ owner: Rob
 >
 > **Budget — bytes bind. ≤24,576 B**, gated by `tests/test_claude_md_byte_cap.py`. ADR-53's ≤200 lines is kept, not replaced (`validate_doc_rot._FILE_SIZE_BUDGETS`, WARN-only) — but a line count is gameable by density, and bytes are what a session pays.
 >
-> **Universal rules:** this file carries the always-on subset; `protocols/PLAYBOOK.md` is the on-demand reference, never a boot-time read (§1). `protocols/ESSENTIALS.md` is **superseded, pending `[#628]`** — do not boot from it.
+> **Universal rules:** this file carries the always-on subset; `protocols/PLAYBOOK.md` is the on-demand reference, never a boot-time read (§1). `protocols/ESSENTIALS.md` was **deleted 2026-09-14** (`[#628]`) — its doctrine lives in PLAYBOOK; do not look for it.
 
 ## 1. First read (session start)
 <!-- scope: meta -->
@@ -237,5 +237,5 @@ Machine-enumerated, last 5 by number (`gen_claude_rosters.py --write`). Editoria
 
 ---
 
-**Last updated:** 2026-09-08
+**Last updated:** 2026-09-14
 **Maintained by:** Rob

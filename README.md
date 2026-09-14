@@ -62,7 +62,6 @@ closes a backlog row carries its own required line. This section starts you; `AG
 **Process and doctrine**
 
 - `protocols/PLAYBOOK.md` — full process reference; consulted on demand, never a boot-time read
-- `protocols/ESSENTIALS.md` — operating values, daily cheat sheet; **superseded, pending `[#628]`** — not a boot read
 - `docs/decisions/` — architectural decisions (ADRs only; the `transcripts/` landing zone was deleted 2026-07-22)
 - ADR-88 — File-oriented dependency management (markdown as a design pattern): repo files are the dependency unit; coherence across the declared edge-graph is held by mechanism — a conformance harness — not by memory.
 

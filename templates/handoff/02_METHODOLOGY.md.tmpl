@@ -1,5 +1,7 @@
 <!-- HANDOFF v4 bundle template — 02_METHODOLOGY. Generated at Phase 2. Budget ≤200 lines.
-     Pulled FROM source (PLAYBOOK + ESSENTIALS) at handoff time — do NOT hand-maintain.
+     Pulled FROM source (PLAYBOOK) at handoff time — do NOT hand-maintain.
+     ESSENTIALS was DELETED 2026-09-14 ([#628]); its doctrine moved to PLAYBOOK on
+     2026-07-05 ([#258]), so every {{PULL}} below names PLAYBOOK or CLAUDE.md.
      Each {{PULL}} marker => condense the named section to operative rules, not a full copy.
      v4.4 (§E): emit the ===== FILE: 02_METHODOLOGY ===== separators below as the
      literal first/last lines of the generated file (this header comment is stripped). -->
@@ -9,13 +11,16 @@
 # 02 · How we work
 
 Methodology floor for `{{CONTEXT: repo}}`. The authoritative sources are
-`protocols/PLAYBOOK.md` and `protocols/ESSENTIALS.md` in `.dev-knowledge`; this is a
+`protocols/PLAYBOOK.md` in `.dev-knowledge`; this is a
 working extract generated from them at handoff time. When in doubt, the live files
 win.
 
 ## Model selection
 
-{{PULL: ESSENTIALS#How Claude thinks}}
+{{PULL: PLAYBOOK#Appendix B: Model Routing Table}}
+<!-- The ESSENTIALS "How Claude thinks" section was dissolved with the file ([#628],
+     2026-09-14). The model/tier rule's live homes are PLAYBOOK Appendix B and
+     CLAUDE.md "Task Classification" — no ESSENTIALS anchor survives to pull. -->
 <!-- Extract the model/tier rule: Tier 1 (Sonnet) for ≤5 files / existing pattern /
      automated checks; Tier 2 (Opus) for new abstractions / cross-module / unfamiliar
      APIs / security. Trivial (<60s manual) → no AI. -->
@@ -44,7 +49,7 @@ safety-critical changes — distinct system, used in addition to CC's own work.
 
 ## AI Council process
 
-{{PULL: ESSENTIALS#Architect routing for technical proposals}}
+{{PULL: PLAYBOOK#Architect routing for technical proposals}}
 <!-- Extract: when to convene Council (architecture/ADR-level decisions);
      transcripts stay canonical in ai-council/output/ (routed-mirror retired
      per ADR-43 amendment 2026-07-23). Architecture decisions are
@@ -103,7 +108,10 @@ commands. A successor bundle points at that section; it does not restate it (ADR
 
 ## Session lifecycle
 
-{{PULL: ESSENTIALS#Starting a Session}}
+{{PULL: CLAUDE.md#6. Session start protocol}}
+<!-- The ESSENTIALS "Starting a Session" section was dissolved with the file ([#628],
+     2026-09-14). The live home is CLAUDE.md §6 "Session start protocol", with
+     PLAYBOOK Ch8 "Session boundaries" for the lane/worktree half. -->
 <!-- Extract: /boot, git status clean, read recent handoff/JOURNAL, scope at start,
      stop-signs, clean tree at session end. -->
 

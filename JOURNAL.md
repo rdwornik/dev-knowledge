@@ -19,6 +19,86 @@
 
 ---
 
+### 2026-09-14 (e) - CC (Opus 5, background integrator seat): ESSENTIALS.md is gone, [#628] does not close, and a review found six citations the lane's own census missed
+
+**Anchors:** `09a5cebd` — the lane tip this merge introduces, named by the spine entry that
+introduces it. The entry rides **inside** the merge commit, which is what makes a lane merge
+anchorable without a second arc; see "why the anchor rides the merge" below.
+
+**Merged** `worktree-lane-y-755-docs-cut-finish` @ `09a5cebd`, four lane commits, 18 files,
++325/-234. `protocols/ESSENTIALS.md` is **DELETED** — 16,461 B, 189 lines — and every surface it
+routed was re-pointed: `ARCHITECTURE.md`, `CLAUDE.md`, `protocols/{README,ENVIRONMENT,
+HANDOFF_PROCESS,PLAYBOOK,STANDING_RULINGS}.md`, `templates/`, `.claude/commands/`,
+`ecosystem/disposition-register.yaml`, `README.md`. Automatic merge, zero conflicts; the lane's
+base was `e6acb23e` and no file it touched overlapped main's two changed files.
+
+**`audit.py health` on the MERGED tree: OK, exit 0.** Checked before committing rather than after,
+because `pre-merge-commit` is unarmed and a merge runs no pre-commit gate — so the merged tree is
+exactly the tree no hook inspects. The deletion breaks nothing: `ESSENTIALS` sits in
+`canonical_freshness_gate.CANONICAL_OPTIONAL`, where absence is legal by design, and
+`canonical_docs.py`'s references are comments recording that it left the freshness set on
+2026-09-13. The machinery was prepared for this deletion three days before it happened.
+
+**THREE OPERATOR RULINGS, RECORDED AS RECEIVED.** (2) **`[#628]` does NOT close.** The deletion is
+discharged; its Done-when also demands the floor sidecar and every pinned manifest, which is a
+release act. Discharged: the file is gone and its live routes are re-pointed. Not discharged: the
+`templates/child-methodology-floor.md.tmpl` mention (hash-guarded three ways, `release_lint` C5) and
+six `deploy/manifest-v*.yaml` `doc_shapes:` rows (provably INERT — C7 compares only truthy-spine or
+`freshness_gated: true` entries, and v1.5.0's row is `spine: []` + `freshness_gated: false`; the
+precedent at `canonical_docs.py:255-268` answers a shipped manifest by version bump, not retro-edit).
+The row stays **open**. (3) **`[#755]` item F stays RED deliberately.** The PLAYBOOK edit put content
+after its prose `> Last updated:` stamp and the tripwire is correct to fire; moving the date would be
+the false stamp the test exists to catch. **Not repaired, by ruling.** (4) **ARCHITECTURE's 15 KB
+target LEAVES this batch.** The render premise is refuted three ways — no renderer in
+`file_purpose_graph.py` (only `why` and `stats`), no script in the repo WRITES `ARCHITECTURE.md`, and
+`[#664]`'s own body puts step D in wave X3. It is filed as an X3 row carrying the lane's 11-chapter
+measurement as its starting point. **Y-6 is NOT met and is not reported as met.**
+
+**The Codex `gpt-5.6-terra` review earned its place: it found FIVE live dangling citations the lane's
+own six-item census (A-F) did not list, and I found a sixth.** No CRITICAL. `protocols/ENVIRONMENT.md`
+(cites ESSENTIALS "Ending a Session" step 3) · `protocols/HANDOFF_PROCESS.md:960` (names its sibling
+as the ESSENTIALS Scale-M+ rule) · `BACKLOG.md:445`, the **W6 Done-when, which now requires
+grep-verified ESSENTIALS text and is therefore unsatisfiable as written** · and two in
+`templates/handoff/02_METHODOLOGY.md.tmpl` of a **worse class than a dangling pointer** — the
+re-pointed `PULL` targets do not carry the claim the extraction instruction makes, so a generated
+handoff would read as correct while omitting the Tier-1/Tier-2 rule and the session-lifecycle
+guidance. Mine: `.claude/commands/changelog-review.md:23`, a **live** command (it is in the generated
+roster) citing ESSENTIALS "Architect routing" as authority — its ADR-28 co-citation survives, so
+nothing breaks and the citation dangles. **The lane's row title says "four residues" while its body
+enumerates six; the true live count is at least twelve.** None of this is a defect in the lane's
+work — a deletion's blast radius is exactly what a review is for — and all of it belongs on the
+`[#755]` row that stays open by ruling.
+
+**My own first sweep was TRUNCATED and I nearly reported a false absence.** I piped the census
+through `head -40`, `LESSONS.md` filled the window, and I concluded that `ENVIRONMENT.md` and
+`HANDOFF_PROCESS.md` were clean — the exact failure `truncated-listing-fakes-a-real-absence` names.
+Codex's two findings are the ones my truncated output hid. **A census that does not state its own
+completeness is not a census.**
+
+**Why the anchor rides the merge, and why that is new.** A lane merge cannot be anchored by a later
+arc without leaving the spine unanchored in between, and it cannot be anchored by a JOURNAL commit on
+`main` because direct commits to `main` are forbidden. So the entry is staged INTO the merge commit
+and names the lane tip the merge introduces. This resolves a conflict that is real and worth stating:
+a complete receipt per merge needs a readable Actions verdict, which needs a per-merge push, which
+needs a per-merge anchor — because `block_unanchored_push` has **no exemption** (the ADR-110 one
+belongs to the audit backstop, as that gate's own NOTE says) — while a single end-of-batch push
+yields **one** Actions run, leaving every intermediate merge `NO-RUN` and therefore refused. One
+anchor per batch and one receipt per merge cannot both hold. **This batch takes one entry per merge
+and records the deviation rather than reporting compliance.**
+
+**Changes.** `protocols/ESSENTIALS.md` deleted; `ARCHITECTURE.md`, `CLAUDE.md`, five `protocols/`
+files, `templates/` (3), `.claude/commands/` (2), `ecosystem/disposition-register.yaml`, `README.md`,
+`tasks/` (+`[#755]`, manifest), `BACKLOG.md`, the lane's evidence packet, and this entry.
+
+**Abandoned.** Nothing by me. By ruling: ARCHITECTURE ≤ 15 KB leaves batch Y for X3; `[#755]` item F
+stays RED; `[#628]` stays open.
+
+**Next.** `#750` is held on a verified Codex CRITICAL — `merge_receipt.py`'s `--baseline` is
+free-form and never checked against `sha^1`, so choosing the baseline chooses the verdict and a
+`REGRESSED` merge can be certified `PRE-EXISTING`. Then `#754`, whose bar is refuted rather than
+missed. Then one `gen_doc_counts.py --write`, a second audits-index pass, the X3 row, and the close
+packet with its seven numbers.
+
 ### 2026-09-14 (d) - CC (Opus 5, background integrator seat): the anchor arc opened its own gap, and a lane caught it
 
 **Anchors:** `f5384ac4`, `e6cc52ae` — `f5384ac4` discharges `e6acb23e`, whose introduced set is

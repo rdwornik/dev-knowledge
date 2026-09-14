@@ -277,6 +277,7 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 - [#617] [P2][M] FILE DISTILLATION — the output half, and the only worsening series · tasks/617-file-distillation-the-output-half-and-the-only-w.md
 - [#612] [P2][M] Doc-rot row-body archival mechanism · tasks/612-doc-rot-row-body-archival.md
 - [#628] [P1][L] DC-2 re-cut — dissolving `ESSENTIALS.md` is a FLEET-COUPLED release act, not a doc lane · tasks/628-dc2-recut-essentials-dissolution-is-a-release-act.md
+- [#755] [P1][M] Finish the docs cut — `ARCHITECTURE.md` to ≤ 15 KB behind the X3 render, and the four ESSENTIALS residues the dissolution could not reach · tasks/755-finish-the-docs-cut-architecture-to-15-kb-and-t.md
 - [#647] [P3][M] The harness's own carrying cost is unmeasured, and lane contracts are pasted rather than referenced · tasks/647-harness-carrying-cost-unmeasured-contracts-pasted.md
 - [#731] [P1][M] The backlog only grows -- narration is relocated by hand and nothing stops a batch filing more rows than it closes · tasks/731-backlog-shrinks-by-mechanism-relocation-trigger-and-an-enforced-closure-budget.md
 ## [E6] Cross-repo universalization
