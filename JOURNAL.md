@@ -19,6 +19,68 @@
 
 ---
 
+### 2026-09-14 (b) - CC (Opus 5, background integrator seat): batch X4 CLOSES, and the gate that refused batch Y's freeze clears
+
+**Anchors:** `eecaf8a7` — the SHA this arc's merge introduces, named by the spine entry that
+introduced it.
+
+**Did.** Wrote and landed the batch X4 close packet at
+`docs/audits/2026-09-13-technical-batch-x4-close-packet.md` — the path X4's own manifest names at
+`closed_by:`, verbatim. The filename keeps the batch's date rather than today's: re-dating it would
+leave the pointer unresolvable, and the manifest is immutable, so the pointer cannot follow the
+file.
+
+**Why it was urgent rather than tidy.** Closing X4 is the remedy for a live defect, not
+housekeeping. `[#630]`'s contract-agreement gate (`gen_lane_contract.py:1398-1419`) loops **every**
+open batch and compares EACH manifest against the SAME undifferentiated contract set, while
+`freeze_manifest_contract_agreement` demands set equality in both directions. So with X4 open, the
+dispatcher's batch-Y freeze commit was refused — X4's five slugs "named by no contract", Y's six
+contracts "named by no manifest row" — and no edit to Y's manifest could satisfy it. The sharper
+form of the defect: **it is unsatisfiable for every batch-opening commit in a repo that has any
+other batch open**, and nothing in the repo says only one batch may be open at a time. The
+dispatcher's refusal to force it was correct and is recorded in its favour (AY1-4). The lawful fix
+was to close X4, which was mine to do, and `open_batches()` now returns Y alone — the comparison the
+gate exists to make.
+
+**What the packet records rather than skims.** The five-lane spine, with slot 3
+(`lane-x-675-instrument-holes`) dispositioned rather than left as an absence: stopped at **zero
+commits** four minutes in, because a live peer was filing `tasks/742`-`744` — the same three
+`[#675]` holes its contract ordered it to file — and two seats filing three rows at the same
+sequential ids collides silently. Its abort cost 15 Opus messages and 7,147 output tokens, stated
+rather than absorbed. All six refuse-to-finish items with the predicate that checked each.
+
+**Two things in it are deliberately not green.** Item 4b — the audits-index regen — is **deferred**
+to the batch-Y arc with the reason recorded: Y's manifest and six contracts land immediately after
+this, and regenerating twice reintroduces exactly the `[#590]` conflict pattern this repo paid 86%
+of its manual merge resolution to escape. And item 2b's Actions readings are recorded as
+themselves: `6a0eeb89` **NO-RUN**, `23255802` **NO-RUN**, the tip against `23255802`
+**UNATTRIBUTED**, the tip against `57f46622` **PRE-EXISTING** with pytest failing at the baseline
+too. Cause is my own sequencing, not a tool defect — the conductor fires on push and I pushed once
+at the end, so only the tip drew a run. **A per-merge Actions differential requires a per-merge
+push, and batching the push to satisfy the anchor gate with one JOURNAL entry forfeits it.** The
+two are in direct tension and nothing in the integration walk says so; whichever is chosen, the
+choice should at least be made knowingly.
+
+**The batch's principal finding, carried into the packet.** `open_batches()` returned `[]` for the
+entire window in which X4's own lanes were being merged — the manifest was frozen and correct on an
+unmerged branch. So the ADR-110 exemption was never live for the batch it governed, and the
+previous integrator paid `SKIP=audit-health` per merge for a state the tree could not see. Forward
+rule: the manifest is committed AT DISPATCH, onto `main`, before any lane boots.
+
+**Changes.** One added file, `docs/audits/2026-09-13-technical-batch-x4-close-packet.md`. No
+generated surface regenerated in this arc — deliberately, per item 4b above.
+
+**Abandoned.** Nothing. No hook was skipped in this arc and `--no-verify` was not used.
+
+**Next.** Ping the dispatcher with the landing SHA so it re-runs the Y freeze commit, unchanged
+except for the `[#753]` row. Then merge batch Y's wave-1 lanes as they hand back, one at a time,
+each synced onto `main` first, Codex reviews raced rather than queued, giving the dispatcher each
+landing SHA so `[#752]` releases on `[#750]`'s landing and `[#753]` on `[#751]`'s — integrator merge
+order is the release mechanism for the two file-collision deferrals, not a timer. Indices
+regenerate ONCE after the last merge; one JOURNAL anchor for the batch; a `kind=merge` receipt per
+merge once `[#751]` lands, judged per AY1-1 — suite state PASS or PRE-EXISTING is COMPLETE with the
+state named, REGRESSED or unreadable refuses the merge.
+
 ### 2026-09-14 (a) - CC (Opus 5, background integrator seat): batch X's two unmerged trees land, and the ceiling clears for batch Y
 
 **Anchors:** `6a0eeb89`, `23255802`, `6a64b2a8` — each named SHA is in the introduced set of
