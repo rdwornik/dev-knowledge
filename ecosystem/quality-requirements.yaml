@@ -277,7 +277,7 @@ requirements:
 
   - id: QR-AVAIL-005
     attribute: availability
-    status: candidate
+    status: measured
     statement: >-
       Killing a job kills its process tree; a surviving descendant is reported rather than
       left running.
@@ -288,6 +288,19 @@ requirements:
       subtree outlived the reap by roughly 8 minutes, and a GRANDCHILD outlived the parent
       that had just been killed -- so the kill reached one generation and stopped.
     source: measured 2026-09-14, batch Z night; carried by AMEND-NIGHT-PLAN-002 AN2-5
+    organ: scripts/resource_lifecycle.py
+    trip_test: tests/test_quality_requirement_trips.py::test_qr_avail_005_a_surviving_grandchild_is_refused
+    note: >-
+      PROMOTED 2026-09-15 by batch AA lane aa-14 ([#792]). `resource_lifecycle.teardown_tree`
+      snapshots the tree BEFORE killing the root -- on POSIX an orphan is reparented to init
+      the instant its parent dies, so a walk taken after the kill finds nothing and a teardown
+      built that way reaps nothing while reporting success -- kills descendants before the
+      root, and REPORTS survivors. The last of those three is what makes this entry's metric
+      checkable at all: "seconds between a reap and the last descendant exiting" cannot be
+      read from a teardown that returns nothing. The witness is a real spawned grandchild
+      that survives a naive parent kill and is then reaped, and it asserts the grandchild was
+      TARGETED rather than merely dead -- a test that only checked the parent died would pass
+      against the behaviour we already have, which is the whole defect.
 
   - id: QR-AVAIL-006
     attribute: availability
@@ -378,7 +391,7 @@ requirements:
   # ---- resource control --------------------------------------------------------------
   - id: QR-RES-001
     attribute: resource-control
-    status: candidate
+    status: measured
     statement: >-
       A memory floor below which the dispatcher refuses another local lane and reports the
       refusal -- arithmetic, rather than a judgement call at dispatch time.
@@ -390,14 +403,24 @@ requirements:
       ~10 cores that nothing accounted for. The lane count was set from an estimate of what
       the box could hold rather than from a reading of what it had.
     source: AMEND-NIGHT-PLAN-002 AN2-2 (resource control)
+    organ: scripts/resource_lifecycle.py
+    trip_test: tests/test_quality_requirement_trips.py::test_qr_res_001_over_ceiling_dispatch_is_refused
     note: >-
-      THIS IS THE REGISTER'S FIRST FINDING ABOUT ITSELF. The attribute the operator described
-      as the least discretionary -- "automatic arithmetic, not a judgement call" -- is the one
-      with no organ at all. `scripts/seat_refusals.py` carries `lane-ceiling`, which is
-      ADR-110's 4-6 lane COUNT and reads no memory; `--check-worktrees` reads the live
-      worktree list, also a count. Nothing in the tree reads free memory before a dispatch.
-      Filed as a candidate under the register's own rule rather than attached to the
-      count-ceiling organ, which would have been the available lie.
+      THIS WAS THE REGISTER'S FIRST FINDING ABOUT ITSELF, and it is recorded rather than
+      erased by the promotion. The attribute the operator described as the least
+      discretionary -- "automatic arithmetic, not a judgement call" -- was the one with no
+      organ at all. `scripts/seat_refusals.py` carries `lane-ceiling`, which is ADR-110's 4-6
+      lane COUNT and reads no memory; `--check-worktrees` reads the live worktree list, also
+      a count. **PROMOTED 2026-09-15 by batch AA lane aa-14 ([#792]):**
+      `resource_lifecycle.admit` reads free memory and a computed ceiling and REFUSES. It
+      refused on its first live run -- 28 seats against a ceiling of 26 and 2.98 GB free
+      against a 3.00 GB reserve. `seat_refusals.lane-ceiling` is NOT replaced and both stay
+      live: a count ceiling and a memory ceiling answer different questions, and the box was
+      over on both legs at the same moment. THE CEILING'S INPUTS, so no seat re-derives them:
+      total 27.67 GB, non-Claude 13.52 GB, reserve 3.00 GB, per seat 413.3 MB (287.0 session
+      + 126.3 helper, from an exact 31/31 process split) -> 27 seats. The integer is NOT the
+      record; the inputs are, because the ceiling moves whenever the non-Claude load does
+      and was observed moving 27 -> 26 -> 25 within one session.
 
 
   - id: QR-RES-002

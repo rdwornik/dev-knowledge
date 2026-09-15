@@ -702,7 +702,7 @@ no trigger and no named consumer is refused at freeze, so both are stated here r
 left to be inferred.
 
 <!-- QUALITY-REQUIREMENTS:START -->
-Register: `ecosystem/quality-requirements.yaml` (v1.0.0) — 23 requirement(s), 4 measured, 19 candidate. Floor tier: MUST.
+Register: `ecosystem/quality-requirements.yaml` (v1.0.0) — 23 requirement(s), 6 measured, 17 candidate. Floor tier: MUST.
 
 A **measured** row names the organ that enforces it and the trip-test that proves the organ refuses; the trip-test is itself run against a neutered organ and has to go RED, so a trip-test that passes unconditionally is refused rather than counted. A **candidate** row carries neither field — a requirement with no enforcement is recorded as one instead of being attached to the nearest plausible organ.
 
@@ -718,12 +718,12 @@ A **measured** row names the organ that enforces it and the trip-test that prove
 | `QR-AVAIL-002` | availability | candidate | A lane that ends without handing back is detected from git rather than waited on. | — | — |
 | `QR-AVAIL-003` | availability | candidate | A Codespace lane runs attached; a detached one is refused at dispatch. | — | — |
 | `QR-AVAIL-004` | availability | candidate | A process that outlives its lane is killed at teardown, and the teardown verifies the kill rather than assuming it. | — | — |
-| `QR-AVAIL-005` | availability | candidate | Killing a job kills its process tree; a surviving descendant is reported rather than left running. | — | — |
+| `QR-AVAIL-005` | availability | measured | Killing a job kills its process tree; a surviving descendant is reported rather than left running. | `scripts/resource_lifecycle.py` | `test_qr_avail_005_a_surviving_grandchild_is_refused` |
 | `QR-AVAIL-006` | availability | candidate | Terminating a background session deregisters it; a session the daemon can rehydrate is not reclaimed. | — | — |
 | `QR-AVAIL-007` | availability | candidate | A session whose worktree was torn down refuses to write rather than resolving to the primary checkout. | — | — |
 | `QR-AVAIL-008` | availability | candidate | A substrate whose provisioning failed reports the failure; a silently substituted environment is refused rather than used. | — | — |
 | `QR-AVAIL-009` | availability | candidate | UPSTREAM, NOT OURS. A process spawned through the Bash tool is reparented and runs indefinitely after its session ends; the fix requested upstream is whole-process-TREE teardown rather than killing the top-level PID. | — | — |
-| `QR-RES-001` | resource-control | candidate | A memory floor below which the dispatcher refuses another local lane and reports the refusal -- arithmetic, rather than a judgement call at dispatch time. | — | — |
+| `QR-RES-001` | resource-control | measured | A memory floor below which the dispatcher refuses another local lane and reports the refusal -- arithmetic, rather than a judgement call at dispatch time. | `scripts/resource_lifecycle.py` | `test_qr_res_001_over_ceiling_dispatch_is_refused` |
 | `QR-RES-002` | resource-control | candidate | UPSTREAM, NOT OURS. An idle session grows without bound, and the growth is NOT context: it is time-based. | — | — |
 | `QR-RES-003` | resource-control | candidate | UPSTREAM, NOT OURS, AND LOAD-BEARING FOR US. A session transcript is read whole, with no streaming read and no size safeguard, so a large one exhausts the client's memory. | — | — |
 | `QR-RES-004` | resource-control | candidate | Where a heap cap is the known workaround, it is EMITTED BY THE GENERATOR into the executable launch line and never set in a paste. | — | — |
