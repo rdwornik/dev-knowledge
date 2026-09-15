@@ -484,7 +484,15 @@ requirements:
       never left warm" -- and which also lands entries in this register. Flagged for the
       integrator rather than double-landed: if aa-14 files its own codespace-idle entry, this one
       is superseded by it and should be withdrawn, not merged alongside. The organ is also
-      cross-repo, per QR-AVAIL-009's note.
+      cross-repo, per QR-AVAIL-009's note. ONE CORRECTION IS OWED TO aa-14 WHICHEVER WAY THAT
+      GOES, and it is the reason this row is not simply withdrawn in advance: that lane's
+      section 3 says the container is "torn down at handback", and torn down is the verb the
+      operator ruled 2026-09-15 to be the over-application -- "the doctrine over-applied by one
+      verb". STOPPING ends compute billing and preserves /workspaces and every saved change;
+      DELETING destroys work a lane may not have pushed, and the 2026-09-06 batch T record has
+      an instance of exactly that risk (45 turns of uncommitted work whose only copy was inside
+      a stopped codespace on a 24h retention clock). aa-14 should implement STOP, not teardown.
+      Verified 2026-09-15 against LANE-aa-14-resource-lifecycle.md line 85.
 
   - id: QR-AVAIL-010
     attribute: availability
