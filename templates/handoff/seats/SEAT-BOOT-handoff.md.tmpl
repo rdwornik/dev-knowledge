@@ -6,6 +6,11 @@
   WINDOW = BATCH comes first because it is the one rule that decides whether this seat should be
   running at all: a bundle cut mid-batch describes a tree nobody has integrated, and the
   successor then boots against a manifest the rest of the batch is about to invalidate.
+
+  ROUTING BLOCK: `{{PHASE_BLOCK}}` renders this seat's own resolved launch line from
+  `gen_seat_boot.SEAT_PHASES` -- implements `[#737]` (a SEAT-BOOT render cannot express
+  the seat's own model). Before it, the boot's only launch command was Ch8 row 3's bare
+  `claude`, so the header's `model:` field reached no flag.
 -->
 # SEAT-BOOT-handoff — {{BATCH}}
 
@@ -18,6 +23,10 @@
 ## 1 · Should you be cutting at all?
 
 {{CH8:window-equals-batch}}
+
+### 1a · Your own routing, resolved
+
+{{PHASE_BLOCK}}
 
 ## 2 · The refusals you run before the cut
 

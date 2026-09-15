@@ -5,6 +5,11 @@
   STRUCTURE ONLY; every rule is a machine-extracted {{CH8:<key>}} region, byte-compared by P12.
   Filings is the seat that WRITES decision files, so the carried-by refusal is not one item on
   its list — it is the gate on its main act, and it runs before the write rather than after.
+
+  ROUTING BLOCK: `{{PHASE_BLOCK}}` renders this seat's own resolved launch line from
+  `gen_seat_boot.SEAT_PHASES` -- implements `[#737]` (a SEAT-BOOT render cannot express
+  the seat's own model). Before it, the boot's only launch command was Ch8 row 3's bare
+  `claude`, so the header's `model:` field reached no flag.
 -->
 # SEAT-BOOT-filings — {{BATCH}}
 
@@ -17,6 +22,10 @@
 ## 1 · What you write, and the refusal that runs before you write it
 
 {{REFUSAL_BLOCK}}
+
+### 1a · Your own routing, resolved
+
+{{PHASE_BLOCK}}
 
 ## 2 · State is files — a message is a courtesy, the file surface is the record
 

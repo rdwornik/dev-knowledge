@@ -19,6 +19,58 @@
 
 ---
 
+### 2026-09-15 (q) - CC (Opus 5, background integrator seat): the integrator declared tier reached no flag, and opusplan is measured to be the wrong instrument for this seam
+
+**Anchors:** `200e1f9d` — the single substantive commit this merge introduces.
+
+**THE SEAT THIS LANE MEASURES IS THE SEAT THAT MERGED IT**, so the finding is recorded with
+that stated rather than left for a reader to notice. The integrator was 30.5% of batch Z —
+USD 82.53 of USD 270.72, more than any single lane — and it ran 100% `claude-opus-5` under a
+boot header declaring `opusplan`. This session is the same shape.
+
+**THE DECLARED TIER REACHED NO FLAG.** `gen_seat_boot.SEAT_MODELS` rendered into a
+`<!-- GENERATED -->` COMMENT, while the launch command the boot actually carries is Ch8
+dispatch row 3 — the bare word `claude`, no `--model`. That is `[#717]` closed defect one
+surface over: it fixed the lane-CONTRACT generator line, and the SEAT boot line was never in
+its scope. **A tier that reaches no argument is a decision the tree records and does not
+make.** Every self-launching seat boot now carries a RESOLVED launch line per phase, and a
+phase that does not resolve REFUSES the whole render — a boot carrying most of a command is
+worse than one never written, because a seat copies what is in front of it.
+
+**`opusplan` CANNOT CARRY THIS SPLIT, AND THE REASON IS MEASURED, NOT ARGUED.** The prompt
+cache is PER MODEL: across six mixed-model transcripts on this host, every one shows the turn
+after a switch carrying a cache-write of 29,751-379,585 tokens against a same-session median
+of 614-1,759 — 48x to 391x. At the integrator mean context of 232,875 tokens/call, one switch
+costs USD 1.46 into Opus and USD 0.58 into Sonnet against USD 0.0812 saved per turn moved:
+**25 consecutive cheap turns to repay one round trip, and a merge walk has about eight.** So
+the boundary is COARSE and it is a FILE — two sessions, not two modes.
+
+**AX22-3 SUBSTANCE IS KEPT AND ITS NAMED MEANS IS REPLACED** on that evidence, flagged for the
+operator rather than absorbed. A ruling binds its merits, not its quoted token.
+
+**THE 32x INSTRUMENT ERROR IS FIXED AT THE ORGAN.** `lane_cost` priced a lane by matching its
+slug against a session-store DIRECTORY, and the attended seats run in the primary checkout
+beside its whole history — so it returned USD 8,714.37 against a real USD 82.53. `seat` /
+`seat-close` price ONE session, windowed, per model, and reproduced the hand-made baseline
+EXACTLY. **The window RIDES the row**: the same transcript prices at USD 82.53 at 06:51:12Z
+and USD 89.88 at end-of-file, and a pair measured under two windows is worthless.
+
+**WHAT IT DOES NOT CLAIM:** every figure is the UNSPLIT seat priced two ways. Nothing here
+measures the split running, and the done-when second half — the next batch integrator line
+measured and lower — is explicitly not closed by this lane.
+
+**Changes:** `scripts/gen_seat_boot.py`, `scripts/lane_cost.py`, `scripts/seat_refusals.py`
+(seventh refusal, `refuse_unruled_merge`, integrator-only); five seat-boot templates; three
+test modules; one audit. 15 files, +1790/-39.
+
+**Abandoned:** a per-turn model split, on the cache measurement above.
+
+**Next:** `[#737]` stays open — its last clause asks for seats to be OBSERVED booting at
+their tier; this lane makes that possible and reports the observation came back negative.
+
+**Suite:** NOT run on this workstation, per operator instruction for this seat. The lane own
+targeted run is 221 passed across six modules, ruff clean, `audit.py health` OK.
+
 ### 2026-09-15 (p) - CC (Opus 5, background integrator seat): ARCHITECTURE prose moves to the docstrings that own it, and the 15 KB target is missed in the open
 
 **Anchors:** `530dbecf` — the single substantive commit this merge introduces.

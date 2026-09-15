@@ -196,17 +196,35 @@ def _usage_from_turn(usage: dict) -> TokenUsage:
     )
 
 
-def read_transcript_usage(path: Path, seen: Optional[set[str]] = None) -> dict[str, TokenUsage]:
+def read_transcript_usage(path: Path, seen: Optional[set[str]] = None, *,
+                          since: Optional[str] = None,
+                          until: Optional[str] = None) -> dict[str, TokenUsage]:
     """`{model: usage}` for one `.jsonl` transcript.
 
     `seen` carries de-duplication ACROSS files when a caller passes one set for a whole lane:
     a session resumed into a second file replays turns, and a turn counted twice is spend
     invented twice.
 
+    `since` / `until` bound the read to a UTC window, INCLUSIVE at both ends, compared as
+    ISO-8601 strings against the record's own `timestamp`. String comparison is correct here
+    and is not a shortcut: the transcripts' stamps are fixed-width `Z`-suffixed ISO-8601, for
+    which lexical and chronological order coincide, and parsing would add a failure mode
+    (a malformed stamp) to a reader whose whole posture is that one bad line must not poison
+    the file. A record carrying NO timestamp is EXCLUDED once a window is asked for -- an
+    unstamped turn cannot be shown to be inside it, and silently keeping it would let an
+    unbounded read masquerade as a bounded one.
+
+    WHY A WINDOW AT ALL, since a lane does not need one: an attended SEAT's session keeps
+    running after the work it is being measured for. Measured on the batch-Z integrator
+    session `9b8de937`: **USD 82.53 at 06:51:12Z, USD 89.88 at end-of-file** -- the same file,
+    9% apart, both honest. A seat figure is a function of (session, window), so the window is
+    a parameter here and a recorded field on the row.
+
     A malformed line is WARNED and skipped rather than fatal -- the same posture
     `merge_receipt.read_ledger` takes, and for the same reason: one bad line must not make
     every good one unreadable.
     """
+    windowed = since is not None or until is not None
     out: dict[str, TokenUsage] = {}
     if seen is None:
         seen = set()
@@ -234,6 +252,14 @@ def read_transcript_usage(path: Path, seen: Optional[set[str]] = None) -> dict[s
         model = str(message.get("model") or "")
         if model in _NOT_A_MODEL:
             continue
+        if windowed:
+            stamp = str(record.get("timestamp") or "")
+            if not stamp:
+                continue
+            if since is not None and stamp < since:
+                continue
+            if until is not None and stamp > until:
+                continue
         key = str(message.get("id") or record.get("uuid") or "")
         if key:
             if key in seen:
@@ -376,6 +402,18 @@ class LaneCost:
     #: The registry's `as_of`, carried so a figure read next quarter says which card priced it.
     rates_as_of: str = ""
     currency: str = "USD"
+    #: SET ONLY ON A SEAT ROW, and it is what makes a row a seat row rather than a flag saying
+    #: so. An attended seat is keyed by its SESSION, because it shares a session-store directory
+    #: with that checkout's whole history -- measured on batch Z, where the directory-keyed read
+    #: of the integrator seat returned USD 8,714.37 against a real figure of USD 82.53, a 32x
+    #: overstatement. A lane row leaves this empty and nothing about a lane changes.
+    session_id: str = ""
+    #: `(since, until)` as declared, or None for a whole-session read. NOT derived from the
+    #: turns that were found: a window computed from the data can never disagree with the data,
+    #: so it could not catch the case it exists for -- a paired comparison measured under two
+    #: different windows. The DECLARATION rides the row; the reader can then check that the
+    #: baseline and its successor were measured the same way.
+    window: Optional[tuple[str, str]] = None
 
     @property
     def usd(self) -> float:
@@ -394,45 +432,106 @@ class LaneCost:
     def unpriced(self) -> tuple[ModelCost, ...]:
         return tuple(m for m in self.models if not m.is_priced)
 
+    def is_seat(self) -> bool:
+        """A seat row -- one attended sitting, keyed by session. See `session_id`."""
+        return bool(self.session_id)
+
+    def model_shares(self) -> dict[str, float]:
+        """Each PRICED model's share of this row's money, in [0, 1].
+
+        THE MEASUREMENT THE SPLIT NEEDS, and the reason it is a first-class method rather than
+        arithmetic a reader does at the end. A seat routed plan-on-Opus / execute-on-Sonnet runs
+        two models inside one sitting; a row that reported only a total would look **identical**
+        whether the split fired or not. The share makes a DECORATIVE split visible -- 100% on the
+        plan model is a split that was declared and never happened, which is a different failure
+        from a split that happened and did not pay.
+
+        UNPRICED MODELS ARE ABSENT, not folded in at zero. Their tokens are real and their money
+        is unknown; giving them a 0.0 share would let the percentages sum to 1.0 while omitting
+        spend, which is the plausible-value lie this module refuses everywhere else. They stay
+        nameable through `unpriced()`, and `render()` prints them.
+        """
+        total = self.usd
+        if not total:
+            return {}
+        return {m.model: m.usd / total for m in self.models if m.usd is not None}
+
+    def window_clause(self) -> str:
+        """How this row's window reads to a human. Never silent, in either direction.
+
+        An absent window is stated as WHOLE SESSION rather than left blank: blank reads as an
+        open interval somebody chose, and the two are different claims. The declared case prints
+        both bounds, because a paired comparison is checked by eye long before it is checked by
+        a test.
+        """
+        if self.window is None:
+            return "WHOLE SESSION (no window declared)"
+        return f"window {self.window[0]} .. {self.window[1]}"
+
     def has_transcript(self) -> bool:
         """False when no transcript was found at all -- which is NOT the same as a lane that
         spent nothing, and is rendered differently."""
         return bool(self.models)
 
     def to_dict(self) -> dict:
-        return {"slug": self.slug, "batch": self.batch, "measured": self.measured,
-                "rates_as_of": self.rates_as_of, "currency": self.currency,
-                "usd": round(self.usd, 6), "usage": self.usage().to_dict(),
-                "models": [m.to_dict() for m in self.models]}
+        row = {"slug": self.slug, "batch": self.batch, "measured": self.measured,
+               "rates_as_of": self.rates_as_of, "currency": self.currency,
+               "usd": round(self.usd, 6), "usage": self.usage().to_dict(),
+               "models": [m.to_dict() for m in self.models]}
+        # ADDITIVE, and absent on a lane row. Every row written before this lane is still a
+        # valid row, and `from_dict` supplies the same absence -- an append-only ledger
+        # (ADR-29/ADR-39) cannot be migrated, so a new field that broke the old rows would
+        # make the record unreadable rather than extended.
+        if self.session_id:
+            row["session_id"] = self.session_id
+        if self.window is not None:
+            row["window"] = {"since": self.window[0], "until": self.window[1]}
+        return row
 
     @classmethod
     def from_dict(cls, data: dict) -> "LaneCost":
+        window = data.get("window")
         return cls(slug=str(data["slug"]), batch=str(data.get("batch", "")),
                    models=tuple(ModelCost.from_dict(m) for m in data.get("models", [])),
                    measured=str(data.get("measured", "")),
                    rates_as_of=str(data.get("rates_as_of", "")),
-                   currency=str(data.get("currency", "USD")))
+                   currency=str(data.get("currency", "USD")),
+                   session_id=str(data.get("session_id", "")),
+                   window=((str(window["since"]), str(window["until"]))
+                           if isinstance(window, dict) else None))
 
     def render(self) -> str:
+        kind, key = ("seat", self.session_id) if self.is_seat() else ("lane", self.slug)
         if not self.has_transcript():
+            if self.is_seat():
+                return (f"seat {key}  batch={self.batch or '-'}  NO TRANSCRIPT FOUND -- no "
+                        f"session transcript by that id is in the store, so this seat's cost is "
+                        f"UNKNOWN rather than zero. A seat is keyed by SESSION, not by "
+                        f"directory: check the id against `~/.claude/projects/*/<id>.jsonl`, and "
+                        f"remember a --bg child's turns are filed under its LAUNCHING session.")
             return (f"lane {self.slug}  batch={self.batch or '-'}  NO TRANSCRIPT FOUND -- this "
                     f"lane's session store directory could not be located, so its cost is "
                     f"UNKNOWN rather than zero. A --bg lane's transcript is filed under its "
                     f"launching session; name it with --slug-dir.")
         usage = self.usage()
         lines = [
-            f"lane {self.slug}  batch={self.batch or '-'}  "
+            f"{kind} {key}  batch={self.batch or '-'}  "
             f"{self.currency} {self.usd:,.2f} over {usage.calls:,} call(s)  "
             f"[rates as_of {self.rates_as_of or '?'}]",
             f"  tokens: in {usage.input_tokens:,} / out {usage.output_tokens:,} / "
             f"cache-write {usage.cache_write_tokens:,} / cache-read "
             f"{usage.cache_read_tokens:,} / total {usage.total_tokens:,}",
         ]
+        if self.is_seat():
+            lines.append(f"  {self.window_clause()}")
+        shares = self.model_shares()
         for model in sorted(self.models, key=lambda m: (-(m.usd or 0), m.model)):
             if model.is_priced:
+                share = (f", {shares[model.model]:.0%} of the row"
+                         if self.is_seat() and model.model in shares else "")
                 lines.append(f"  {model.model}: {self.currency} {model.usd:,.2f} "
                              f"({model.usage.total_tokens:,} tokens, "
-                             f"{model.usage.calls:,} call(s))")
+                             f"{model.usage.calls:,} call(s){share})")
             else:
                 lines.append(f"  {model.model}: UNPRICED -- {model.usage.total_tokens:,} "
                              f"tokens, {model.usage.calls:,} call(s), NOT in the total "
@@ -447,6 +546,14 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def _rates_as_of(registry_path: Optional[Path]) -> str:
+    try:
+        return str(pr.rate_card(registry_path).get("as_of", ""))
+    except pr.RegistryError as exc:
+        logger.warning("no rate card -- every model will read as unpriced: %s", exc)
+        return ""
+
+
 def lane_cost(slug: str, *, batch: str = "", sessions_root: Optional[Path] = None,
               slug_dirs: Optional[Sequence[str]] = None,
               registry_path: Optional[Path] = None) -> LaneCost:
@@ -454,12 +561,100 @@ def lane_cost(slug: str, *, batch: str = "", sessions_root: Optional[Path] = Non
     per_model = lane_usage(slug, sessions_root, slug_dirs)
     costs = tuple(price_usage(model, usage, registry_path)
                   for model, usage in sorted(per_model.items()))
-    as_of = ""
-    try:
-        as_of = str(pr.rate_card(registry_path).get("as_of", ""))
-    except pr.RegistryError as exc:
-        logger.warning("no rate card -- every model will read as unpriced: %s", exc)
-    return LaneCost(slug=slug, batch=batch, models=costs, measured=_now(), rates_as_of=as_of)
+    return LaneCost(slug=slug, batch=batch, models=costs, measured=_now(),
+                    rates_as_of=_rates_as_of(registry_path))
+
+
+# --- THE ATTENDED SEAT, which a directory cannot key ----------------------------------------
+#
+# WHY THIS IS NOT `lane_cost` WITH A DIFFERENT ARGUMENT. `lane_cost` finds its transcripts by
+# matching a lane SLUG against a session-store DIRECTORY name, which works because a lane owns a
+# worktree and a worktree is a directory. The five attended seats -- dispatcher, integrator,
+# filings, handoff, and a lane run interactively -- all sit in the PRIMARY checkout, beside that
+# checkout's entire history, and the store is keyed per directory.
+#
+# MEASURED, batch Z close packet section 2: asking `lane_cost` for the integrator seat by its
+# directory returned **USD 8,714.37 over 52,822 calls across six models** -- the lifetime total.
+# The night's real figure was **USD 82.53**. *"A per-directory tally reported as a per-lane cost
+# would have overstated the night by 32x."* The number was in the end produced by hand, from the
+# one session's own transcript, by a method that lived nowhere in this repository. That is the
+# gap these two functions close: the integrator seat was 30.5% of that batch and was the one
+# population no verb here could measure.
+
+def seat_session_transcripts(session_id: str,
+                             sessions_root: Optional[Path] = None) -> list[Path]:
+    """Every transcript file belonging to one session id, across the whole store.
+
+    MATCHED ON THE FILE STEM, not on a directory, and the search is store-wide because a seat's
+    id is globally unique while its directory is not knowable in advance -- an operator reading a
+    figure off a receipt has the id and nothing else. A PREFIX is admitted so an operator can pass
+    the short id the close packet and the boot banner actually print (`9b8de937`) rather than
+    re-deriving the full UUID; the stem must still start with it, so a prefix cannot reach a
+    session that merely contains those characters somewhere.
+
+    EMPTY when nothing matches, never a fallback to the directory. Falling back is the exact
+    substitution that produced the 32x figure above.
+    """
+    root = Path(sessions_root) if sessions_root is not None else DEFAULT_SESSIONS_ROOT
+    if not root.is_dir() or not session_id:
+        return []
+    wanted = session_id.strip().lower()
+    found = sorted(path for directory in root.iterdir() if directory.is_dir()
+                   for path in directory.glob("*.jsonl")
+                   if path.stem.lower().startswith(wanted))
+    if len({p.stem for p in found}) > 1:
+        #: NOT a refusal -- but a prefix that reaches two sessions sums two sittings into one
+        #: seat figure, and the danger is the silence. Name them, as `transcript_dirs` names the
+        #: directories it summed, so a wrong attribution is at least visible.
+        logger.warning(
+            "session id %r is a PREFIX of %d sessions and ALL of them were summed into one seat "
+            "figure: %s -- pass the full id", session_id, len({p.stem for p in found}),
+            ", ".join(sorted({p.stem for p in found})))
+    return found
+
+
+def seat_usage(session_id: str, sessions_root: Optional[Path] = None, *,
+               since: Optional[str] = None,
+               until: Optional[str] = None) -> dict[str, TokenUsage]:
+    """`{model: usage}` for one seat's sitting, bounded by an optional UTC window."""
+    seen: set[str] = set()
+    out: dict[str, TokenUsage] = {}
+    for transcript in seat_session_transcripts(session_id, sessions_root):
+        for model, usage in read_transcript_usage(transcript, seen,
+                                                  since=since, until=until).items():
+            out[model] = out.get(model, TokenUsage()) + usage
+    return out
+
+
+def seat_cost(session_id: str, *, batch: str = "", slug: str = "",
+              sessions_root: Optional[Path] = None,
+              since: Optional[str] = None, until: Optional[str] = None,
+              registry_path: Optional[Path] = None) -> LaneCost:
+    """ONE ATTENDED SEAT'S COST -- the measurement definition this repo prices a seat by.
+
+    THE DEFINITION, stated once here because a paired comparison is only worth as much as the
+    sameness of its two measurements:
+
+        the sum over ONE session transcript (`<session-id>.jsonl`), turns de-duplicated on
+        `message.id`, every model's four token counts -- input, output, cache-write and
+        cache-read -- priced through `provider_registry.resolve_rate` at the registry's declared
+        rate card, optionally bounded by a declared UTC `[since, until]` window.
+
+    CACHE READS ARE IN, and that is the load-bearing clause rather than a detail. Measured on the
+    batch-Z integrator session: cache reads are **80.8%** of the seat's bill (USD 72.66 of USD
+    89.88; 145,314,211 of 146,653,877 tokens). `logs/TOKEN-LOG.md` drops them "for comparability";
+    a seat figure that did the same would understate the integrator line by four fifths.
+
+    THE ROW IS PER MODEL, and that is what makes a SPLIT seat measurable at all. See
+    `LaneCost.model_shares`.
+    """
+    per_model = seat_usage(session_id, sessions_root, since=since, until=until)
+    costs = tuple(price_usage(model, usage, registry_path)
+                  for model, usage in sorted(per_model.items()))
+    window = (since, until) if (since is not None and until is not None) else None
+    return LaneCost(slug=slug or f"seat-{session_id}", batch=batch, models=costs,
+                    measured=_now(), rates_as_of=_rates_as_of(registry_path),
+                    session_id=session_id, window=window)
 
 
 # --- the ledger, and the join onto the merge receipt ---------------------------------------
@@ -686,6 +881,57 @@ def batch_report(repo_root: Path) -> BatchCostReport:
     return BatchCostReport(rows=tuple(read_cost_ledger(repo_root)))
 
 
+def seat_cost_gap(repo_root: Path) -> Optional[str]:
+    """Batches whose ledger carries LANE rows and NO SEAT row, or None when none do.
+
+    THE BATCH-Z FINDING, TURNED INTO SOMETHING THAT FIRES ON ITS OWN. That close packet found
+    the cost ledger carrying **zero** rows for its own batch and said so in its own words:
+    *"A figure that must be recomputed at close is not a ledger."* The half that matters most is
+    the seat half -- the integrator seat was **30.5% of the measured total**, more than any single
+    lane -- so a batch total assembled from lane rows alone understates itself by roughly a third
+    while looking complete. That is the shape of a wrong number nobody catches: not absent, and
+    not obviously wrong.
+
+    WHY "LANE ROWS BUT NO SEAT ROW" RATHER THAN "NO SEAT ROW". A batch with no rows at all has not
+    forgotten its seat; it has not started, and reporting a gap there would train a reader to
+    scroll past this line -- which is how the real gap gets through. The predicate fires only
+    where a batch has demonstrably been measured and the seat was the part left out.
+
+    AN UNMEASURED SEAT ROW STILL COUNTS AS PRESENT. A seat row that found no transcript is a
+    recorded UNKNOWN, and `BatchCostReport.render` already reports it as a floor. This function's
+    question is whether anyone ASKED, which is a different question from whether the answer
+    came back.
+
+    ONLY THE LATEST BATCH IS NAMED, AND OLDER ONES ARE COUNTED. This line prints at every
+    SessionStart, and an older batch's gap is usually UNCLOSABLE: the seat's session may have
+    aged out of the store, and its window is not recoverable from a closed batch's record. A
+    permanent item nobody can clear is how a reader learns to scroll past this line -- which is
+    the failure mode this whole check exists to avoid, arriving by a different door. So the
+    actionable one is named and the rest are counted, which keeps them visible without pretending
+    they are work.
+    """
+    rows = BatchCostReport(rows=tuple(read_cost_ledger(repo_root))).resolved()
+    if not rows:
+        return None
+    batches: dict[str, bool] = {}
+    for row in rows:
+        batch = row.batch or "-"
+        # LEDGER ORDER IS CHRONOLOGICAL because the ledger is append-only, so the last batch to
+        # appear is the latest. Read rather than sorted: batch letters ran past `Z` into `AA`,
+        # where a lexical sort puts the newest first.
+        batches[batch] = batches.get(batch, False) or row.is_seat()
+    missing = [b for b, has_seat in batches.items() if not has_seat and b != "-"]
+    if not missing:
+        return None
+    latest = missing[-1]
+    older = len(missing) - 1
+    return (f"batch {latest} carries lane cost rows and NO SEAT row"
+            + (f" ({older} older batch(es) likewise)" if older else "")
+            + " -- the attended seat is not in the total, and on batch Z it was 30.5% of it. "
+              f"Close it with `lane_cost.py seat-close --session <id> --batch {latest} "
+              "--since <t> --until <t>`.")
+
+
 def cost_health_line(repo_root: Path) -> Optional[str]:
     """The `[cost]` digest line for `fleet_health` -- per batch and per model, in one line.
 
@@ -710,6 +956,13 @@ def cost_health_line(repo_root: Path) -> Optional[str]:
         line += f" / {len(unpriced)} model(s) UNPRICED (figures are a floor)"
     if report.unmeasured():
         line += f" / {len(report.unmeasured())} lane(s) UNMEASURED (excluded, not zeroed)"
+    #: THE SEAT GAP RIDES THE SAME LINE, and this is the leg that makes the seat measurement
+    #: automatic instead of a habit. `fleet_health` prints this at every SessionStart, so the
+    #: next batch's integrator figure arrives in the boot banner -- and so does its ABSENCE, at
+    #: the first screen the next seat sees. Nobody has to remember to look.
+    gap = seat_cost_gap(repo_root)
+    if gap:
+        line += f" / SEAT GAP: {gap}"
     return line
 
 
@@ -821,6 +1074,42 @@ def cmd_lane(ctx: click.Context, slug: str, batch: str, slug_dirs: tuple[str, ..
 def cmd_close(ctx: click.Context, slug: str, batch: str, slug_dirs: tuple[str, ...]) -> None:
     """Compute one lane's cost and APPEND it to the cost ledger."""
     cost = lane_cost(slug, batch=batch, slug_dirs=list(slug_dirs) or None)
+    append_cost(_root(ctx), cost)
+    click.echo(cost.render())
+
+
+#: The two window options, declared once. A seat figure without its window is not reproducible
+#: (`seat_cost`'s own docstring measures the same session 9% apart), so the two verbs that can
+#: produce one must offer the same bounds under the same names.
+def _window_options(func):
+    func = click.option("--until", default=None,
+                        help="UTC ISO-8601 upper bound, inclusive (e.g. 2026-09-15T06:51:12Z).")(func)
+    func = click.option("--since", default=None,
+                        help="UTC ISO-8601 lower bound, inclusive.")(func)
+    return func
+
+
+@cli.command("seat")
+@click.option("--session", "session_id", required=True,
+              help="The seat session's id, or a unique prefix of it (e.g. 9b8de937).")
+@click.option("--batch", default="", help="Batch letter, for the per-batch report.")
+@_window_options
+@click.pass_context
+def cmd_seat(ctx: click.Context, session_id: str, batch: str,
+             since: Optional[str], until: Optional[str]) -> None:
+    """Compute and PRINT one attended seat's cost, per model. Writes nothing."""
+    click.echo(seat_cost(session_id, batch=batch, since=since, until=until).render())
+
+
+@cli.command("seat-close")
+@click.option("--session", "session_id", required=True)
+@click.option("--batch", default="")
+@_window_options
+@click.pass_context
+def cmd_seat_close(ctx: click.Context, session_id: str, batch: str,
+                   since: Optional[str], until: Optional[str]) -> None:
+    """Compute one attended seat's cost and APPEND it to the cost ledger."""
+    cost = seat_cost(session_id, batch=batch, since=since, until=until)
     append_cost(_root(ctx), cost)
     click.echo(cost.render())
 
