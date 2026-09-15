@@ -154,6 +154,31 @@ def test_n6_an_unchanged_file_is_allowed():
     assert _check(BASE, BASE) is None
 
 
+def test_p6_same_branch_refinement_of_your_own_entry_is_refused():
+    """P6 — the limit most likely to bite, pinned so it stays a DECISION rather than a
+    surprise. The comparison is index-vs-HEAD per commit, so an entry added in commit 1
+    is pre-existing by commit 2: refining your own wording in a follow-up commit on the
+    same unmerged branch is refused exactly like editing a year-old entry (escape:
+    `git commit --amend`).
+
+    This is not hypothetical. Replaying the predicate over all 136 commits touching the
+    real LESSONS.md refuses 41; in the modern era — after `eb08075c` (2026-05-16)
+    established the current newest-first shape — exactly six, of which FOUR are this
+    pattern, all on 2026-07-16: `99d40d2f`, `0082ac02`, `b6e999d9`, `b3dbe25a`. The
+    fixture below is `b3dbe25a`'s shape, and that commit is worth naming: the entry it
+    rewrote in place is the entry declaring `LESSONS.md` append-only INVIOLABLE.
+
+    Whether this case SHOULD be refused is an operator question, carried as [#786]'s
+    fourth residual. The test pins CURRENT behaviour either way."""
+    added = HEADER + E_NEW + E_MID + E_OLD          # commit 1: a clean prepend
+    assert _check(BASE, added) is None
+    refined = added.replace("a brand new lesson", "a brand new lesson, reworded")
+    assert refined != added
+    v = _check(added, refined)                       # commit 2: fix your own wording
+    assert v is not None, "same-branch refinement is refused (amend instead)"
+    assert v.kind == "entry-not-preserved"
+
+
 # --- the guarded set, the self-match hazard, and the vacuous run -----------
 
 def test_s1_the_declaring_document_is_not_in_the_guarded_set():

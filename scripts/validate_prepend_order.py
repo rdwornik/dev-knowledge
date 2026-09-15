@@ -97,6 +97,21 @@ HONEST LIMITS -- what this gate does NOT catch:
     (`protocols/SESSION_SETUP.md:196`) and would be a different gate.
   * NOTHING ABOVE THE FIRST DATED HEADING. The header block is unprotected by
     construction -- so is deleting the whole header, not just bumping its stamp.
+  * SAME-BRANCH REFINEMENT IS REFUSED, and this is the limit most likely to bite.
+    The comparison is index-vs-HEAD per commit, so an entry you added in commit 1 is
+    "pre-existing" by commit 2: fixing your own wording in a FOLLOW-UP commit on the
+    same unmerged branch is refused exactly like editing a year-old entry. The escape
+    is `git commit --amend`, which is the better hygiene anyway. Measured, not
+    theorised: replaying this predicate over all 136 commits touching `LESSONS.md`
+    (non-merge, 134 evaluable) refuses 41, and in the MODERN era -- after the
+    2026-05-16 `eb08075c` reorder that established the current newest-first shape --
+    the refusals are exactly six, of which four are this pattern, all on 2026-07-16
+    (`99d40d2f`, `0082ac02`, `b6e999d9`, `b3dbe25a`, the "doc-lane pass-N" chain).
+    From 2026-06-02 to 2026-09-08 the gate refuses NOTHING, so the false-block rate on
+    current practice is zero. The 35 older refusals are era-correct rather than wrong:
+    before `eb08075c` the file appended at the BOTTOM, which the present convention
+    forbids. Whether the same-branch case SHOULD be refused is an operator question,
+    not a code one -- it is carried as `[#786]`'s fourth residual.
   * MERGE COMMITS ARE CARVED OUT ENTIRELY. With `MERGE_HEAD` present the gate exits 0:
     a merge's file is a combination of two tails and neither parent's tail need be a
     suffix of it. This is a real hole, and it is the same one the repo already carries
