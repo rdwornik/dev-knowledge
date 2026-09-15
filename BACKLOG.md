@@ -233,6 +233,7 @@ So that observed failure-modes become written guidance instead of recurring.
 ---
 
 - [#538] [P2][M] The NB4-C PLAYBOOK gap arc — twelve paste-ready acts, none landed · tasks/538-the-nb4-c-playbook-gap-arc-twelve-paste-ready-acts.md
+- [#793] [P1][M] A WITHDRAWN lane contract left a live worktree, and the lane built a RIVAL implementation of the organ its successor was already building · tasks/793-a-withdrawn-lane-contract-left-a-live-worktree-bu.md
 ## [E4] Decision management
 > As a reader of 65+ ADRs, I want decisions navigable and free of silent contradiction.
 
