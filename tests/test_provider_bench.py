@@ -102,6 +102,26 @@ def test_each_predicate_accepts_the_right_answer_and_rejects_the_near_miss(key, 
     assert outcome.predicate(bad) is False, f"{key}: should reject {bad!r}"
 
 
+def test_a_pattern_wearing_python_quoting_is_packaging_not_a_wrong_answer():
+    """RED-FIRST WITNESS FOR AN INCONSISTENCY THAT DECIDED THE BASELINE'S SCORE.
+
+    The candidate stripper already treated a ```fence as packaging: ollama wrapped its regex in
+    one, against instructions, and was judged on the pattern inside. Opus answered the same
+    item with `r"^(?:worktree-|epic/|claude/|automation/)"` -- the same pattern wearing
+    Python's own quoting -- and was scored wrong. Tolerating one wrapper and not the other is
+    a lottery, not a standard, and this one happened to land on the comparison baseline.
+    """
+    outcome = _outcome("regex-branch-prefix")
+    assert outcome.predicate('r"^(?:worktree-|epic/|claude/|automation/)"') is True
+    assert outcome.predicate("```regex\n^(worktree-|epic/|claude/|automation/)\n```") is True
+
+
+def test_unwrapping_quotes_does_not_turn_a_wrong_pattern_into_a_right_one():
+    """The negative control for the clause above. Stripping packaging must not be a second
+    chance at the content: the separator-less near-miss stays wrong inside quotes."""
+    assert _outcome("regex-branch-prefix").predicate('r"^(worktree|epic|claude|automation)"') is False
+
+
 def test_the_write_function_predicate_executes_the_answer_rather_than_reading_it():
     """A function that LOOKS right and raises is not a pass. The dedupe predicate runs the
     emitted source against three inputs, so a body that only pattern-matches fails."""
@@ -198,6 +218,47 @@ def test_the_priced_leg_prices_cache_tokens_from_the_registry_card_not_from_here
 # --- the ledger ---------------------------------------------------------------------------
 
 
+def test_a_multi_model_call_ranks_the_primary_by_TOTAL_tokens_not_by_output():
+    """RED-FIRST WITNESS FOR A MISATTRIBUTION THAT SURVIVED A WHOLE SWEEP.
+
+    A `claude -p` session bills a small Haiku side-call for its own bookkeeping alongside the
+    model that answered. Ranking by OUTPUT tokens made Haiku the primary on every run whose
+    answer was short -- one word of `technical` loses to Haiku's fifteen -- so four of ten
+    runs were attributed to a model that never saw the prompt, and then read as UNPRICED
+    because that Haiku build has no registry row. The real call's ~100k cache-read settles it
+    and is not close.
+    """
+    envelope = {"session_id": "s1", "result": "technical",
+                "modelUsage": {
+                    "claude-haiku-4-5-20251001": {"inputTokens": 903, "outputTokens": 15,
+                                                  "cacheReadInputTokens": 0,
+                                                  "cacheCreationInputTokens": 0},
+                    "claude-opus-5": {"inputTokens": 2, "outputTokens": 3,
+                                      "cacheReadInputTokens": 107689,
+                                      "cacheCreationInputTokens": 579}}}
+    run = pb.ProviderRun(provider="claude", outcome="classify-enum", stdout=json.dumps(envelope))
+    pb._parse_claude(run)
+    assert run.served_model == "claude-opus-5"
+    assert run.output_tokens == 3
+
+
+def test_an_unpriced_side_call_makes_the_figure_PARTIAL_and_names_it_rather_than_voiding_it():
+    """[#751]'s rule one level down. The unpriced model's tokens are counted and reported, its
+    money is never summed in, and the reader is told how much of the figure is missing.
+    Voiding the whole number over a sub-cent bookkeeping call would throw away the comparison
+    this lane exists to make; summing it at zero would understate the bill."""
+    run = pb.ProviderRun(provider="claude", outcome="classify-enum", served_model="claude-opus-5")
+    run.model_usage = {
+        "claude-opus-5": {"input": 2, "output": 3, "cache_read": 107689, "cache_write": 579},
+        "claude-haiku-4-5-20251001": {"input": 903, "output": 15, "cache_read": 0, "cache_write": 0},
+    }
+    priced = pb.price(run)
+    assert priced["usd"] > 0, "the priced half survives"
+    assert priced["usd_is_partial"] is True
+    assert "claude-haiku-4-5-20251001" in priced["unpriced_reason"]
+    assert "918 tokens" in priced["unpriced_reason"], "the missing volume is stated, not hidden"
+
+
 def test_the_ledger_is_append_only_and_rewrites_no_existing_byte(tmp_path):
     """Two appends, and the first line must survive the second byte for byte. The repo's
     append-only discipline is a rule about files, and a ledger writer is where it gets broken
@@ -208,6 +269,51 @@ def test_the_ledger_is_append_only_and_rewrites_no_existing_byte(tmp_path):
     pb.append_ledger([{"provider": "agy", "outcome": "extract-id"}], ledger)
     assert ledger.read_bytes().startswith(first)
     assert len(pb.read_ledger(ledger)) == 2
+
+
+def test_the_ledger_writer_takes_one_row_at_a_time_so_a_stopped_sweep_keeps_its_spend(tmp_path):
+    """A full pass is sixty PAID calls over about half an hour. The first version of the
+    runner buffered every row and wrote once at the end, so a stop at call fifty-nine would
+    have discarded the entire spend and every measurement in it -- an append-only ledger that
+    is appended to exactly once is an expensive list. This pins the single-row contract the
+    runner depends on."""
+    ledger = tmp_path / "RUNS.jsonl"
+    for i in range(3):
+        pb.append_ledger([{"provider": "codex", "outcome": f"o{i}"}], ledger)
+        assert len(pb.read_ledger(ledger)) == i + 1
+
+
+def test_ollama_output_tokens_are_not_silently_its_input_tokens():
+    """RED-FIRST WITNESS FOR A DEFECT THAT SHIPPED TEN PLAUSIBLE NUMBERS.
+
+    `ollama run --verbose` prints `prompt eval count: N` and `eval count: M` on separate
+    lines. A `\\beval count:` pattern matches inside the FIRST of them -- the word boundary
+    sits happily after "prompt " -- so both counts came back as N and every ollama row
+    reported output_tokens exactly equal to input_tokens. Ten rows, all wrong, none
+    implausible on its face, and no other check in the pipeline compares the two.
+    """
+    run = pb.ProviderRun(provider="ollama", outcome="extract-id", stdout="[#762]\n",
+                         stderr=("total duration:       7.79s\nload duration:        6.04s\n"
+                                 "prompt eval count:    35 token(s)\n"
+                                 "prompt eval duration: 1.24s\n"
+                                 "eval count:           8 token(s)\n"
+                                 "eval duration:        476ms\n"))
+    pb._parse_ollama(run)
+    assert run.input_tokens == 35
+    assert run.output_tokens == 8
+
+
+def test_a_re_run_supersedes_rather_than_rewrites_and_the_report_reads_the_correction(tmp_path):
+    """The append-only repair path. A bad sweep is corrected by appending a new sweep, never
+    by editing rows out: the ledger keeps both, and the report reads the later one. Editing
+    the ledger would destroy the evidence that a number ever moved."""
+    ledger = tmp_path / "RUNS.jsonl"
+    pb.append_ledger([{"provider": "ollama", "outcome": "extract-id", "output_tokens": 77}], ledger)
+    pb.append_ledger([{"provider": "ollama", "outcome": "extract-id", "output_tokens": 8}], ledger)
+    assert len(pb.read_ledger(ledger)) == 2, "both sweeps survive in the ledger"
+    latest = pb.latest_per_cell(pb.read_ledger(ledger))
+    assert len(latest) == 1
+    assert latest[0]["output_tokens"] == 8
 
 
 def test_a_ledger_row_carries_the_attestation_beside_the_model(tmp_path):

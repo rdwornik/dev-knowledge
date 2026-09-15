@@ -218,7 +218,30 @@ def _candidate_lines(out: str) -> list[str]:
         seen.append(line)
         if ":" in line:
             seen.append(line.split(":", 1)[1].strip())
+        unwrapped = _unwrap_string_literal(line)
+        if unwrapped is not None:
+            seen.append(unwrapped)
     return seen
+
+
+_STRING_LITERAL = re.compile(r"""^[rbuf]{0,2}(['"])(.*)\1$""", re.IGNORECASE | re.DOTALL)
+
+
+def _unwrap_string_literal(line: str) -> Optional[str]:
+    """The contents of a Python string literal, or None.
+
+    ADDED AFTER IT DECIDED A SCORE, AND THE INCONSISTENCY IS THE REASON RATHER THAN THE
+    RESULT. The stripper already treated a ```fence as PACKAGING -- ollama wrapped its regex
+    in one, against instructions, and was judged on the pattern inside. Opus answered the same
+    item with `r"^(?:worktree-|epic/|claude/|automation/)"`, which is the same pattern wearing
+    Python's own quoting, and was scored wrong. Tolerating one wrapper and not the other is
+    not a standard; it is a lottery that happened to land on the comparison baseline. The rule
+    the stripper states -- strip packaging, judge content -- is applied to both, and the
+    affected cell was RE-RUN for every provider under the corrected instrument rather than
+    re-scored from stored text, so no provider is judged by a different version than another.
+    """
+    m = _STRING_LITERAL.match(line)
+    return m.group(2) if m else None
 
 
 def _candidate_blocks(out: str) -> list[str]:
@@ -391,6 +414,11 @@ class ProviderRun:
     #: The vendor's own correlation handle for this call, kept so a later reader can rejoin a
     #: row to the CLI's log without re-running anything.
     vendor_call_id: Optional[str] = None
+    #: `{model_id: {input, output, cache_read, cache_write}}` when ONE invocation bills more
+    #: than one model. Present on the claude leg, where a session also bills a small Haiku
+    #: side-call for its own bookkeeping. Pricing the "primary" alone would under-report a
+    #: cost the operator really pays, so when this is present every entry is priced and summed.
+    model_usage: dict[str, dict[str, int]] = field(default_factory=dict)
 
 
 def _npm_shim(name: str) -> str:
@@ -462,7 +490,12 @@ CLAUDE_MODEL = "opus"
 _CODEX_MODEL = re.compile(r"^\s*model:\s*(\S+)\s*$", re.MULTILINE)
 _CODEX_TOKENS = re.compile(r"tokens used\s*\n\s*([\d,]+)", re.MULTILINE)
 _OLLAMA_PROMPT_EVAL = re.compile(r"prompt eval count:\s*(\d+)")
-_OLLAMA_EVAL = re.compile(r"\beval count:\s*(\d+)")
+#: ANCHORED TO THE START OF THE LINE, and the anchor is the whole point. `ollama run
+#: --verbose` prints "prompt eval count: N" and "eval count: M" on separate lines, and a
+#: `\beval count:` pattern matches INSIDE the first of them -- the word boundary sits happily
+#: after "prompt ". The first version did exactly that and reported output_tokens ==
+#: input_tokens on all ten ollama rows, a number that looks plausible enough to publish.
+_OLLAMA_EVAL = re.compile(r"^\s*eval count:\s*(\d+)", re.MULTILINE)
 _AGY_MODEL_LOG = re.compile(r"Resolving model (\S+)")
 
 
@@ -552,7 +585,7 @@ AGY_ATTESTATION_LOG = "agy CLI log `Resolving model` line, bound by conversation
 #: hits across every `cli-*.log` on this box). So on this build the served id is disclosed
 #: NOWHERE, which by the registry's own `cursor` precedent makes an agy result
 #: UNREPRODUCIBLE -- a verdict about the CLI, not a defect in this reader.
-AGY_ATTESTATION_NONE = ("none -- agy 1.2.2 discloses no model id in its JSON envelope and its "
+AGY_ATTESTATION_NONE = ("none -- agy 1.2.x discloses no model id in its JSON envelope and its "
                         "log no longer carries the 1.1.x `Resolving model` line")
 
 
@@ -583,19 +616,30 @@ def _parse_claude(run: ProviderRun) -> None:
     if envelope is None:
         return
     usage = envelope.get("modelUsage") or {}
-    # The session also bills a small Haiku side-call for its own bookkeeping. Every model
-    # the envelope names is recorded; the PRIMARY is the one carrying the output tokens, and
-    # the secondary spend is reported rather than dropped, because it is really billed.
-    primary = max(usage, key=lambda k: usage[k].get("outputTokens", 0)) if usage else None
+    # THE SESSION BILLS A SECOND MODEL AND THE FIRST RANKING PICKED THE WRONG ONE. A
+    # `claude -p` session also bills a small Haiku side-call for its own bookkeeping. Ranking
+    # by OUTPUT tokens made Haiku the "primary" on every run whose answer was short -- one
+    # word of `technical` loses to Haiku's fifteen -- so four of ten runs were attributed to a
+    # model that never saw the prompt, and priced as UNPRICED because that Haiku build carries
+    # no registry row. Ranking by TOTAL token volume puts the ~100k cache-read of the real
+    # call first and is not close. Both models are kept, and both are priced.
+    run.model_usage = {
+        mid: {"input": row.get("inputTokens") or 0,
+              "output": row.get("outputTokens") or 0,
+              "cache_read": row.get("cacheReadInputTokens") or 0,
+              "cache_write": row.get("cacheCreationInputTokens") or 0}
+        for mid, row in usage.items()}
+    primary = max(run.model_usage, key=lambda k: sum(run.model_usage[k].values())) \
+        if run.model_usage else None
     run.served_model = primary
     run.vendor_call_id = envelope.get("session_id")
     if primary:
         run.model_attestation = "claude result envelope modelUsage (canonical id, per invocation)"
-        row = usage[primary]
-        run.input_tokens = row.get("inputTokens")
-        run.output_tokens = row.get("outputTokens")
-        run.cache_read_tokens = row.get("cacheReadInputTokens")
-        run.cache_write_tokens = row.get("cacheCreationInputTokens")
+        row = run.model_usage[primary]
+        run.input_tokens = row["input"]
+        run.output_tokens = row["output"]
+        run.cache_read_tokens = row["cache_read"]
+        run.cache_write_tokens = row["cache_write"]
     run.vendor_units = envelope.get("total_cost_usd")
     run.stdout = str(envelope.get("result") or run.stdout)
 
@@ -744,6 +788,29 @@ def score(run: ProviderRun, outcome: Outcome) -> dict[str, Any]:
 def price(run: ProviderRun, registry_path: Optional[Path] = None) -> dict[str, Any]:
     """USD for this run, or the named refusal. NEVER a zero for an unknown rate."""
     import provider_registry as pr                             # noqa: PLC0415 -- sibling
+
+    if run.model_usage:
+        # EVERY MODEL THE CALL BILLED, NOT JUST THE ONE THAT ANSWERED, and the unpriced
+        # remainder is CARRIED rather than either dropped or allowed to void the answer. This
+        # is [#751]'s own rule applied one level down: an unpriced model's tokens are still
+        # counted and reported and its money is never summed into a total, so a reader can
+        # always say how much of the figure is missing. Voiding the whole number because a
+        # sub-cent bookkeeping side-call has no rate row would throw away the comparison this
+        # lane exists to make; summing it at zero would quietly understate the bill.
+        total, unpriced, as_of, currency = 0.0, [], None, None
+        for model, counts in sorted(run.model_usage.items()):
+            try:
+                rate = pr.resolve_rate(model, registry_path)
+            except pr.RateUnavailable as exc:
+                unpriced.append(f"{model} ({sum(counts.values())} tokens): {exc}")
+                continue
+            as_of, currency = rate.as_of, rate.currency
+            total += rate.usd(input_tokens=counts["input"], output_tokens=counts["output"],
+                              cache_write_tokens=counts["cache_write"],
+                              cache_read_tokens=counts["cache_read"])
+        return {"usd": round(total, 6), "rate_as_of": as_of, "currency": currency,
+                "usd_is_partial": bool(unpriced),
+                "unpriced_reason": "; ".join(unpriced) if unpriced else None}
 
     model = run.served_model
     if not model:
@@ -1096,19 +1163,23 @@ def cmd_run(providers: tuple[str, ...], outcomes: tuple[str, ...],
     ledger_path = ledger or (REPO_ROOT / LEDGER_REL)
     cwd = bench_cwd()
     logger.info("neutral working directory: %s", cwd)
-    rows = []
+    total = 0
     for pkey in chosen_p:
         provider = PROVIDERS[pkey]
         for outcome in chosen_o:
             logger.info("run %s / %s", pkey, outcome.key)
             run = run_one(provider, outcome, cwd=cwd, timeout=timeout)
             row = record(run, outcome)
-            rows.append(row)
-            logger.info("  exit=%s wall=%ss model=%s pass=%s usd=%s",
+            # APPENDED PER ROW, NOT PER SWEEP. A full pass is sixty PAID calls over roughly
+            # half an hour; buffering them in a list and writing once at the end means a crash
+            # or a stop at call fifty-nine throws away the whole spend and every measurement
+            # in it. An append-only ledger that is appended to once is just an expensive list.
+            append_ledger([row], ledger_path)
+            total += 1
+            logger.info("  exit=%s wall=%ss model=%s pass=%s usd=%s (%d written)",
                         row["exit_code"], row["wall_seconds"], row["served_model"],
-                        row["predicate_pass"], row["usd"])
-    append_ledger(rows, ledger_path)
-    logger.info("appended %d row(s) to %s", len(rows), ledger_path)
+                        row["predicate_pass"], row["usd"], total)
+    logger.info("appended %d row(s) to %s", total, ledger_path)
 
 
 @cli.command("report")
@@ -1119,18 +1190,93 @@ def cmd_report(ledger: Optional[Path]) -> None:
     if not rows:
         logger.info("no rows")
         return
+    for line in render_report(rows):
+        logger.info("%s", line)
+
+
+def latest_per_cell(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """One row per `(provider, outcome)`: the LAST one in the ledger.
+
+    A LEDGER SUPERSEDES, IT DOES NOT REWRITE. When a parse defect is found after a sweep --
+    the ollama `eval count` regex reported output_tokens == input_tokens on all ten rows --
+    the repair is to re-run that provider and append, never to edit the bad rows out. The
+    ledger keeps the mistake and the correction, both timestamped; the REPORT reads the
+    correction. That is the append-only discipline applied to a measurement rather than to
+    prose, and it is also the only way a later reader can see that a number moved and why.
+    """
+    seen: dict[tuple[str, str], dict[str, Any]] = {}
+    for row in rows:
+        seen[(row.get("provider", ""), row.get("outcome", ""))] = row
+    return list(seen.values())
+
+
+def render_report(rows: list[dict[str, Any]]) -> list[str]:
+    """The flat, copyable rendering: a per-provider summary, a pass matrix and the money.
+
+    FLAT `key: value` AND ALIGNED COLUMNS RATHER THAN PIPE TABLES, deliberately: the terminal
+    paints a markdown pipe table into Unicode box-drawing at render time, so what looks tidy
+    here costs roughly three times the tokens when the operator copies it into a browser chat.
+    """
+    rows = latest_per_cell(rows)
     by_provider: dict[str, list[dict[str, Any]]] = {}
     for row in rows:
         by_provider.setdefault(row["provider"], []).append(row)
+    outcomes = sorted({r["outcome"] for r in rows}, key=lambda k: OUTCOME_KEYS.index(k)
+                      if k in OUTCOME_KEYS else 99)
+    out: list[str] = []
+
+    out.append("PER PROVIDER")
     for pkey in sorted(by_provider):
         got = by_provider[pkey]
         passed = sum(1 for r in got if r.get("predicate_pass"))
+        terse = sum(1 for r in got if r.get("terse"))
+        blocked = [r for r in got if not r.get("unattended", True)]
+        errored = [r for r in got if r.get("error")]
         priced = [r["usd"] for r in got if r.get("usd") is not None]
         wall = sum(r.get("wall_seconds") or 0 for r in got)
-        logger.info("%-9s %2d/%-2d pass  wall %7.1fs  usd %s  unit: %s",
-                    pkey, passed, len(got), wall,
-                    f"{sum(priced):.4f}" if priced else "UNPRICED",
-                    got[0].get("metering_unit", ""))
+        tin = sum(r.get("input_tokens") or 0 for r in got)
+        tout = sum(r.get("output_tokens") or 0 for r in got)
+        tcr = sum(r.get("cache_read_tokens") or 0 for r in got)
+        units = [r.get("vendor_units") for r in got if r.get("vendor_units") is not None]
+        models = sorted({r.get("served_model") or "UNATTESTED" for r in got})
+        out.append(f"  {pkey}: {passed}/{len(got)} pass, {terse}/{len(got)} terse, "
+                   f"{len(blocked)} blocked, {len(errored)} errored")
+        out.append(f"    served_model   : {', '.join(models)}")
+        out.append(f"    attestation    : {got[0].get('model_attestation', 'none')}")
+        out.append(f"    wall_seconds   : {wall:.1f} total, {wall / len(got):.1f} mean")
+        out.append(f"    tokens         : in {tin}, out {tout}, cache_read {tcr}")
+        out.append(f"    vendor_units   : {sum(units) if units else 'none disclosed'} "
+                   f"({got[0].get('metering_unit', '')})")
+        partial = [r for r in got if r.get("usd_is_partial")]
+        if priced:
+            note = f" (PARTIAL on {len(partial)} run(s) -- a billed model has no rate row)" \
+                if partial else ""
+            out.append(f"    usd            : {sum(priced):.4f} over {len(priced)} "
+                       f"priced run(s){note}")
+            if partial:
+                out.append(f"    usd_missing    : {partial[0].get('unpriced_reason', '')[:180]}")
+        else:
+            reason = next((r.get("unpriced_reason") for r in got if r.get("unpriced_reason")), "")
+            out.append(f"    usd            : UNPRICED -- {reason}")
+
+    out.append("")
+    out.append("PASS MATRIX  (Y = predicate met, . = not met, B = blocked, E = errored)")
+    width = max(len(o) for o in outcomes) + 2
+    out.append(" " * width + "".join(p[:8].ljust(9) for p in sorted(by_provider)))
+    for okey in outcomes:
+        cells = []
+        for pkey in sorted(by_provider):
+            row = next((r for r in by_provider[pkey] if r["outcome"] == okey), None)
+            if row is None:
+                cells.append("-")
+            elif row.get("error"):
+                cells.append("E")
+            elif not row.get("unattended", True):
+                cells.append("B")
+            else:
+                cells.append("Y" if row.get("predicate_pass") else ".")
+        out.append(okey.ljust(width) + "".join(c.ljust(9) for c in cells))
+    return out
 
 
 if __name__ == "__main__":                                     # pragma: no cover
