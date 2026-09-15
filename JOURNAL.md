@@ -19,6 +19,76 @@
 
 ---
 
+### 2026-09-15 (r) - CC (Opus 5, background integrator seat): four of the AA queue land, and three of the four blockers are one defect wearing different clothes
+
+**Anchors:** `66236ec7` — `[#793]`, the withdrawn-contract row; the substantive commit this
+JOURNAL entry names, giving the integration arc its >=2-commit shape.
+
+**MERGED, IN ORDER:** `e580518b` codespaces-platform-conformance (absorbing lane aa-1 whole),
+`d424e202` aa-4, `48492a28` aa-5, `01bfdca5` aa-2. Pushed. The first was sequenced first for a
+mechanical reason and it worked: `substrate-heartbeat.yml` only registers as a workflow once it
+is on the DEFAULT branch, and `gh workflow list` now reports **substrate-heartbeat active, id
+359059212** — so leg 8 of `validate_substrate`, which arms 2026-09-16, has a producible receipt
+with a day to spare.
+
+**THREE OF THE FOUR BLOCKERS ARE THE SAME DEFECT: SIX PARALLEL LANES EACH ALLOCATING FROM A
+LOCAL MAXIMUM, WITH NO COMMITTED BATCH MANIFEST TO ALLOCATE CENTRALLY.** Batch AA has no
+manifest at all — the newest in `docs/audits/` is batch Z — and ADR-110 requires it AT DISPATCH.
+Its absence produced, in one night:
+
+- **four task-id collisions** — `#787`/`#788` lane-vs-main, `#790` aa-13-vs-aa-runtime, `#792`
+  aa-14-vs-aa-runtime. Main `#788` is, with some irony, titled *the local maximum is not the
+  task id allocator*, and it collided on its own number.
+- **two quality-register id collisions** — `QR-AVAIL-009` and `QR-RES-002`, each landing two
+  genuinely different requirements under one citation target.
+- **a JOURNAL day-letter collision** — two lanes both wrote (n).
+
+It also left the declared-integration-arc exemption unarmed, which is the fourth blocker below.
+
+**THE CODESPACES LANE ANTICIPATED ONE COLLISION AND LEFT THE INTEGRATOR AN INSTRUCTION**, at
+`quality-requirements.yaml` — its `QR-RES-002` is to be *withdrawn, not merged alongside*, if
+aa-14 files its own codespace-idle entry. **I did not execute it, and the reason is on the
+merits rather than on caution:** aa-14 DOES file one, `QR-RES-005`, and it says a Codespace lane
+is *TORN DOWN at handback, never stopped* — which is the exact verb the operator ruled against
+on 2026-09-15 (*"the doctrine over-applied by one verb"*), with a measured data-loss instance
+behind it (batch T, 45 turns of uncommitted work inside a stopped container). Withdrawing main
+entry would land the wrong verb. The note own next sentence says *aa-14 should implement STOP,
+not teardown*. The two halves of that note disagree, so **the contradiction is recorded and left
+to the operator** rather than settled by an integrator picking a sentence.
+
+**HELD: aa-13 `[#793]`.** Its contract was withdrawn and superseded by aa-14, *"verified at 0
+commits"* — false or raced; it has two. Both lanes build `scripts/resource_lifecycle.py` and its
+tests, overlapping on ten files. Merging both means the winner is decided by QUEUE ORDER inside
+a conflict resolution, silently. That is not an integrator call.
+
+**BLOCKED: aa-14, on `silent_rule_ratchet`.** The merged tree measures **452 against a baseline
+of 447**. Attribution, measured rather than assumed: main alone is **441**, so the +5 is aa-14
+own eleven additions against main six headroom — NOT an artifact of the merge. The gate says
+*drain the additions or record an operator ruling*, and every prior raise in
+`ecosystem/silent-rule-baseline.yaml` is marked operator-RULED, so it is explicitly not this
+seat to raise. Its merge resolution — including the id renumbering and its citation updates —
+is complete and staged in the worktree, and backed up as a patch; only the ruling is missing.
+
+**A MEASURED NOTE ON THE GATE TOPOLOGY, because it explains why this surfaced at aa-14 and not
+at merge 1:** a `--no-ff` merge runs ZERO pre-commit hooks, so merge 1 landed its eleven silent
+rules unevaluated. The ratchet first fired on aa-14 SYNC commit, which is an ordinary commit and
+therefore restores the whole registry. The gate is not inconsistent; the two paths simply are.
+
+**Changes:** four merges; `[#793]` filed; four merge receipts appended to
+`logs/MERGE-RECEIPTS.jsonl`; three worktrees torn down.
+
+**Abandoned:** the `logs/2026-09/` retention move stays UNCOMMITTED. `validate_hermetization`
+refuses that bucket as a home for a new file and admitting a home is an operator ruling; the
+tree therefore stays dirty on two files rather than being cleared by a bypass. `[#785]` owns it.
+
+**Next:** the operator owes three rulings — the silent-rule baseline, the STOP-vs-TEARDOWN verb,
+and aa-13 disposition. aa-runtime needs its four colliding ids reallocated once the last two
+are settled, since which lane KEEPS `#790` and `#792` follows from them.
+
+**Suite:** NOT run on this workstation, per operator instruction for this seat. Every merge
+receipt records `suite` as UNRECORDED rather than as a pass — `merge_receipt.py` offers no
+`--skip` by design, because a median reached that way is a false pass on the row.
+
 ### 2026-09-15 (q) - CC (Opus 5, background integrator seat): the integrator declared tier reached no flag, and opusplan is measured to be the wrong instrument for this seam
 
 **Anchors:** `200e1f9d` — the single substantive commit this merge introduces.
