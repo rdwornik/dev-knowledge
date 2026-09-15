@@ -184,3 +184,80 @@ different substrate and must not be conflated with this one.** A local Windows r
 failure modes this runner cannot have (and vice versa — C4 is four members that exist only
 because the runner is POSIX). **This freeze is the CONDUCTOR's set, at the SHA named above.**
 A local baseline, if one is wanted, is a separate measurement and a separate file.
+
+---
+
+## AMENDMENT 2026-09-15 — the set has a member whose outcome depends on the SHA you measure at
+
+**Recorded by APPEND. The roster above is not edited; this section qualifies it.**
+
+### What happened
+
+The judging rule was exercised twice tonight, both times by **node-id diff** rather than by
+count, and the second time it refused.
+
+| measured at | conductor run | failed | passed | outside the frozen 51 | departed |
+|---|---|---|---|---|---|
+| `4f4186a6` (lane z-746 merge) | `34923007619` | 51 | 5946 | **0** | 0 |
+| `70356500` (docs arc merge)   | `34925873604` | **52** | 5945 | **1** | 0 |
+
+The one outside the set:
+
+```
+tests/test_preflight_contract.py::test_every_claim_class_the_brief_names_is_extractable
+AssertionError: assert {'backlog-id','file-line','heading'} == {'backlog-id','file-line','heading','sha'}
+Extra items in the right set: 'sha'
+```
+
+### Why it is NOT breakage the merge introduced
+
+The test reads the **live repository's own HEAD**:
+
+```python
+head = subprocess.run(["git","-C",str(_REPO_ROOT),"rev-parse","--short","HEAD"], ...)
+body = (f"# C\n\n- `scripts/audit.py:1`\n- `{head}`\n- [#383]\n" ...)
+assert {c.kind for c in report.checked} == set(pf.CLAIM_KINDS)
+```
+
+and asserts the `sha` claim class is extractable from it. **`preflight_contract` silently
+skips a short SHA that is all digits** — it reads as a number, not a locator. Reproduced
+directly, four inputs, one variable:
+
+```
+70356500  all-digits=True   extracted=['backlog-id','file-line','heading']
+12345678  all-digits=True   extracted=['backlog-id','file-line','heading']
+4f4186a6  all-digits=False  extracted=['backlog-id','file-line','heading','sha']
+aad0acdd  all-digits=False  extracted=['backlog-id','file-line','heading','sha']
+```
+
+`70356500` is all digits. The merge changed no code this test touches; it changed **what
+main's HEAD hashes to**, which every merge does. The defect is latent and pre-existing —
+it was latent at `b5270d63` too, which is exactly why the frozen roster does not contain it.
+
+### What this means for the freeze, stated so it is not discovered again
+
+1. **THE BASELINE IS NOT FULLY REPRODUCIBLE.** At least one member's outcome is a function
+   of the SHA it is measured at, not of the tree. Re-measuring this freeze at a different
+   commit can return 51 or 52 with **no change to the code**. Roughly 2.3% of commits
+   ((10/16)^8) have an all-digit short SHA, so this fires about one commit in forty-four.
+2. **THE EXPIRY ROW `[#763]` MUST NOT READ A BARE COUNT.** Its condition — "if the number
+   has not fallen, that is a row" — is unsafe against a set that can move by ±1 for free.
+   `[#763]` is to be discharged on the **node-id diff**, never the total.
+3. **THE RULE ITSELF BEHAVED CORRECTLY AND SHOULD NOT BE WEAKENED.** It refused, it named
+   the member, and the member was a real defect nobody had recorded. A rule that had
+   compared counts would have reported "51 → 52, one regression" with no idea which, and a
+   rule that tolerated ±1 would have said nothing at all. **The instrument found something
+   true on its first refusal**; the correct response is to fix the defect, not to widen the
+   band.
+
+### Disposition
+
+The underlying defect — `preflight_contract` skipping an all-digit short SHA — is a
+**CANDIDATE** under the ADR-111 funnel. It is **not** filed as a ratified row here: the only
+path from finding to row is CANDIDATE → intake (ADR-98) → ratification, and ratification is
+the operator's act, not the integrator's. It is recorded here and in JOURNAL 2026-09-15 (g)
+so that it cannot be lost between batches.
+
+**This failure is NOT absorbed into the frozen set.** Adding it would convert a live defect
+into an accepted one by the act of noticing it, which is the precise failure mode a freeze
+with an expiry exists to prevent.
