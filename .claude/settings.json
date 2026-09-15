@@ -81,6 +81,11 @@
             "type": "command",
             "command": "uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/logs_retention.py\"",
             "timeout": 20
+          },
+          {
+            "type": "command",
+            "command": "uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/resource_lifecycle.py\" session-start",
+            "timeout": 30
           }
         ]
       }
