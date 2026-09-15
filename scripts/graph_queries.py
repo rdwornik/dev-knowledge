@@ -265,6 +265,23 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "reviewed",
         owner="the [#664] wiring-surface list, which owns whether .claude/commands/*.md is a "
               "trigger surface; this row is deleted by that decision, not by a lane"),
+    # A DIFFERENT SHAPE FROM THE THREE ABOVE, and the difference is the whole disposition.
+    # Those three have a trigger the census cannot see. This one has no trigger AT ALL and
+    # should not have one.
+    "scripts/provider_bench.py": Disposition(
+        reason="[#772]'s unattended provider benchmark. It is a one-off MEASUREMENT, not an "
+               "organ: every subcommand makes real PAID network calls to five vendor CLIs, so "
+               "a commit-tier or session-tier trigger would bill the operator on every commit "
+               "to measure something that changes only when a vendor ships. The night plan's "
+               "rule is 'no new organ without a trigger and a NAMED CONSUMER', and the "
+               "consumers are named rather than invented: docs/audits/"
+               "2026-09-15-technical-lane-z-4-non-claude-execution.md reads its ledger, "
+               "logs/PROVIDER-BENCH-RUNS.jsonl is the ledger, and tests/test_provider_bench.py "
+               "proves the instrument. Wiring it to a hook to satisfy this census would be the "
+               "census changing the design, which is the wrong way round",
+        owner="[#676], which owns the commit-tier provider-invocation check. If that check "
+              "lands and consumes these shapes as data, the offline half gains a real trigger "
+              "and this row is deleted by [#676]'s lane -- not by this one"),
     # `scripts/logs_retention.py` WAS dispositioned here, on the DECLARE §3 finding that
     # `run_retention()` had 0 callers -- which is `[#655]`'s entire title. It is GONE from this
     # register because it is WIRED: `[#664]`'s second ratified TRIGGER row put it on the
@@ -865,6 +882,15 @@ EDGE_COMPUTATIONS: dict[str, EdgeComputation] = {
         "commit that armed it -- the first thing the ratchet caught was itself. Its subject "
         "is a MODULE'S SHAPE (does this file read source text for structure), never a "
         "relation between two corpus files, so there is no edge here to read from FPG-1"),
+    "scripts/provider_bench.py": _not_an_edge(
+        "[#772]'s provider benchmark. Every text it extracts from is VENDOR OUTPUT -- a CLI's "
+        "captured stdout, a `--usage-output-file` JSON, an agy session log under ~/.gemini -- "
+        "and not one of them is a file of this corpus. The relations it discovers are "
+        "`(provider, outcome) -> verdict` and `(run) -> served model`, which are properties "
+        "of a paid network call and exist nowhere in FPG-1 to be read from. This is the "
+        "recall-over-precision cost the shape predicate's own docstring predicts: it reads "
+        "text and compiles regexes, so it matches, and the register saying NO is the "
+        "designed outcome rather than a waiver"),
 }
 
 

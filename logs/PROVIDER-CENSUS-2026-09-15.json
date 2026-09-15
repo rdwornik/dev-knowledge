@@ -1,0 +1,76 @@
+{
+  "row": "[#772]",
+  "generated_by": "scripts/provider_bench.py",
+  "rows": [
+    {
+      "provider": "copilot",
+      "present": true,
+      "resolved": "C:\\Users\\1028120\\AppData\\Roaming\\npm\\copilot.cmd",
+      "version": "GitHub Copilot CLI 1.0.83.",
+      "declared": "in-scope"
+    },
+    {
+      "provider": "codex",
+      "present": true,
+      "resolved": "C:\\Users\\1028120\\AppData\\Roaming\\npm\\codex.cmd",
+      "version": "codex-cli 0.153.4",
+      "declared": "in-scope"
+    },
+    {
+      "provider": "gemini",
+      "present": true,
+      "resolved": "C:\\Users\\1028120\\AppData\\Roaming\\npm\\gemini.cmd",
+      "version": "0.56.0",
+      "declared": "in-scope"
+    },
+    {
+      "provider": "ollama",
+      "present": true,
+      "resolved": "C:\\Users\\1028120\\AppData\\Local\\Programs\\Ollama\\ollama.EXE",
+      "version": "ollama version is 0.15.6",
+      "declared": "in-scope"
+    },
+    {
+      "provider": "agy",
+      "present": true,
+      "resolved": "C:\\Users\\1028120\\AppData\\Local\\agy\\bin\\agy.EXE",
+      "version": "1.2.2",
+      "declared": "in-scope"
+    },
+    {
+      "provider": "claude",
+      "present": true,
+      "resolved": "C:\\Users\\1028120\\AppData\\Roaming\\npm\\claude.cmd",
+      "version": "2.1.272 (Claude Code)",
+      "declared": "baseline"
+    },
+    {
+      "provider": "cursor-agent",
+      "present": true,
+      "resolved": "C:\\Users\\1028120\\AppData\\Local\\cursor-agent\\cursor-agent.cmd",
+      "version": "2026.09.08-6caf4ff",
+      "declared": "declared-absent"
+    },
+    {
+      "provider": "aider",
+      "present": false,
+      "resolved": null,
+      "version": null,
+      "declared": "declared-absent"
+    },
+    {
+      "provider": "llm",
+      "present": false,
+      "resolved": null,
+      "version": null,
+      "declared": "declared-absent"
+    },
+    {
+      "provider": "amp",
+      "present": false,
+      "resolved": null,
+      "version": null,
+      "declared": "declared-absent"
+    }
+  ]
+}
