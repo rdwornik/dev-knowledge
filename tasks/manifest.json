@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "5f398969c20680e4a6813dc9dcae1e73e6561b0a44c7aedda13a4bca92522cea",
+  "generated_sha256": "9bc8d95f33bf32fc219c88247e574a37c2e4a2efadecb907fc4f4b8b96450fe7",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -504,6 +504,10 @@
     {
       "task": 764,
       "file": "764-batch-z-implements-the-night-plan-of-2026-09-15.md"
+    },
+    {
+      "task": 765,
+      "file": "765-technical-quality-requirements-are-a-registered.md"
     },
     {
       "task": 782,

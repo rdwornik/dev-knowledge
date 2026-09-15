@@ -132,6 +132,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#762] [P2][S] A worktree teardown races the departing session's Stop hook, which re-creates the tree being removed — and the no-leftovers check cannot see what it leaves · tasks/762-a-worktree-teardown-races-the-departing-sessions-stop-hook.md
 - [#763] [P1][S] Re-measure the batch-Z suite baseline freeze at batch close — a cause whose lane merged must have left the set · tasks/763-re-measure-the-batch-z-suite-baseline-freeze-at.md
 - [#764] [P1][S] Batch Z implements the night plan of 2026-09-15 — the four transport decisions the engine refused every commit for · tasks/764-batch-z-implements-the-night-plan-of-2026-09-15.md
+- [#765] [P1][M] Technical quality requirements are a registered artifact read by a gate, not prose in a paste · tasks/765-technical-quality-requirements-are-a-registered.md
 - [#782] [P1][M] The quality-requirements register: non-functional requirements as a registered, enforced, rendered artifact · tasks/782-the-quality-requirements-register-non-functional-requirements-as-a-registered-enforced-artifact.md
 - [#783] [P2][S] The carried-to-RESOLVED leg of decision-coverage has never once been exercised · tasks/783-the-carried-to-resolved-leg-of-decision-coverage-has-never-been-exercised.md
 ### [S4] Extend structural validation to more governance artifacts

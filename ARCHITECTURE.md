@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-14
+last_reviewed: 2026-09-15
 reconciled_with: handoff-process@7.1.0
 status: active
 owner: Rob
@@ -665,6 +665,69 @@ Editing **this file** fires every `always_run: true` hook — `block-commit-on-m
 time (`block-ff-push`'s pre-commit sibling): it refuses a direct non-merge commit while `HEAD`
 is on `main`, so editing this file on `main` is refused *before* the push gate ever sees it.
 The two pre-push gates are `always_run` too, but fire at push, not at the edit.
+
+---
+
+## Quality requirements
+
+**Deliberately unnumbered.** The chapters this file's readers navigate by — Ch2 organ map,
+Ch3 automation axes, Ch4 distribution, Ch6 verification mesh — are cited by number from
+`CLAUDE.md` §3 and from lane contracts, so inserting a numbered chapter here would
+renumber citations that resolve today. This section sits between enforcement and
+automation because that is where it belongs to a reader, and it takes no number.
+
+**What this answers, and what the neighbouring chapters do not.** Ch2 says which organ
+fires when. The *"Validators and enforcement"* chapter above says what each validator
+refuses. Neither says which *requirement* an organ exists to serve, or which requirements
+have no organ at all — and the second question is the one that goes unanswered by
+construction, because an absent organ appears in no organ map. The register is that
+answer, and the table below is the whole of it.
+
+**It is DATA, and this section is a view of it.** The source is
+`ecosystem/quality-requirements.yaml`; this block is regenerated from it by
+`scripts/quality_requirements.py render --write` and compared byte-for-byte by the
+`quality-requirements-freshness` pre-commit hook, so the two cannot drift and this block
+cannot be hand-edited into agreement. Read the register for each requirement's metric, its
+measured incident, and the notes that carry corrections — the table renders the statement
+only, because a section that reproduced the rest would be a copy that rots rather than a
+view that renders.
+
+**TRIGGER** — `quality-requirements-freshness` at commit tier (schema + this section's
+regen-and-diff) and `tests/test_quality_requirements.py` in the suite (organ resolution,
+plus the neutered-organ leg that refuses a trip-test which passes with its organ disabled).
+The log-review routine becomes the second trigger when it lands: a breach it finds is filed
+as a row rather than noted. **CONSUMERS** — this section, and the methodology floor, which
+carries the register's discipline to every consumer repo at floor tier MUST. An organ with
+no trigger and no named consumer is refused at freeze, so both are stated here rather than
+left to be inferred.
+
+<!-- QUALITY-REQUIREMENTS:START -->
+Register: `ecosystem/quality-requirements.yaml` (v1.0.0) — 16 requirement(s), 4 measured, 12 candidate. Floor tier: MUST.
+
+A **measured** row names the organ that enforces it and the trip-test that proves the organ refuses; the trip-test is itself run against a neutered organ and has to go RED, so a trip-test that passes unconditionally is refused rather than counted. A **candidate** row carries neither field — a requirement with no enforcement is recorded as one instead of being attached to the nearest plausible organ.
+
+| id | attribute | status | requirement | organ | trip-test |
+|---|---|---|---|---|---|
+| `QR-PERF-001` | performance | measured | A commit that changes a `scripts/*.py` file selecting ZERO tests is refused, and the refusal names the RED-first witness to write. | `scripts/impacted_tests.py` | `test_qr_perf_001_uncovered_script_is_refused` |
+| `QR-PERF-002` | performance | candidate | No seat runs the full suite on the workstation; locally a seat runs the impacted set for the changed file, and the full suite runs once, at integration. | — | — |
+| `QR-PERF-003` | performance | candidate | A heavy commit-tier gate carries a measured wall-time and memory budget; above it the gate moves to CI or becomes incremental. | — | — |
+| `QR-PERF-004` | performance | candidate | A test that spawns a shell per case is marked, and the marked set is routed to Actions rather than run locally. | — | — |
+| `QR-AVAIL-001` | availability | measured | A seat does not end its turn on a wait. A wait is written as a loop carrying an interval, a bound and a predicate read from the file surface, or it is refused. | `scripts/seat_refusals.py` | `test_qr_avail_001_sleeping_poll_is_refused` |
+| `QR-AVAIL-002` | availability | candidate | A lane that ends without handing back is detected from git rather than waited on. | — | — |
+| `QR-AVAIL-003` | availability | candidate | A Codespace lane runs attached; a detached one is refused at dispatch. | — | — |
+| `QR-AVAIL-004` | availability | candidate | A process that outlives its lane is killed at teardown, and the teardown verifies the kill rather than assuming it. | — | — |
+| `QR-AVAIL-005` | availability | candidate | Killing a job kills its process tree; a surviving descendant is reported rather than left running. | — | — |
+| `QR-AVAIL-006` | availability | candidate | Terminating a background session deregisters it; a session the daemon can rehydrate is not reclaimed. | — | — |
+| `QR-AVAIL-007` | availability | candidate | A session whose worktree was torn down refuses to write rather than resolving to the primary checkout. | — | — |
+| `QR-AVAIL-008` | availability | candidate | A substrate whose provisioning failed reports the failure; a silently substituted environment is refused rather than used. | — | — |
+| `QR-RES-001` | resource-control | candidate | A memory floor below which the dispatcher refuses another local lane and reports the refusal -- arithmetic, rather than a judgement call at dispatch time. | — | — |
+| `QR-OBS-001` | observability | measured | Every merge records its own wall time. A merge with no receipt, or with a receipt that is not a usable measurement, is refused. | `scripts/merge_receipt.py` | `test_qr_obs_001_unreceipted_merge_is_refused` |
+| `QR-OBS-002` | observability | measured | A model with no declared rate is reported as UNPRICED with a reason. It is not priced at zero and is not summed into a total. | `scripts/provider_registry.py` | `test_qr_obs_002_unpriced_model_is_refused` |
+| `QR-OBS-003` | observability | candidate | An organ not invoked in 30 days surfaces, so an unused mechanism is visible rather than merely maintained. | — | — |
+
+TRIGGER: the `quality-requirements-freshness` pre-commit hook (schema + this section's regen-and-diff) and `tests/test_quality_requirements.py` (organ resolution + the neutered-organ leg). CONSUMERS: this section, and the methodology floor, which carries the register's discipline to every consumer repo.
+<!-- generated by scripts/quality_requirements.py from ecosystem/quality-requirements.yaml; do not edit by hand -->
+<!-- QUALITY-REQUIREMENTS:END -->
 
 ---
 
