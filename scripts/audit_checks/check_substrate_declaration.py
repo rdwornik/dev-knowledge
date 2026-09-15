@@ -78,9 +78,17 @@ ARM_DATE = _dt.date(2026, 8, 27)
 #: `validate_substrate.validate_batch` is called directly on the batch being frozen, which is
 #: the moment CUT-6 puts them at. Same logic module, two scopes — continuous conformance over
 #: the committed corpus, and a gate over the batch about to dispatch.
+#: Leg 8 (`substrate-heartbeat-dead`, [#554]/[#746]) declares its date in the LOGIC MODULE and
+#: this map READS it rather than restating it. A second literal would be a second answer to a
+#: settled question, and the lane that added the leg measured exactly what one costs: the date
+#: lived only in `validate_substrate.LEG_ARM_DATES`, this adapter never consulted it, and the
+#: commit gate RED'd with 20 refusals against committed contracts back to 2026-08-29 — every
+#: one of them a record of a dispatch that had already happened, and undischargeable without
+#: editing it. The grandfather existed and was not reachable from the place that grandfathers.
 LEG_ARM_DATES: dict[str, _dt.date] = {
     _vsub.RULE_TEARDOWN_ENUM: _dt.date(2026, 9, 1),
     _vsub.RULE_WRITE_SCOPE_DISJOINT: _dt.date(2026, 9, 1),
+    _vsub.RULE_HEARTBEAT_DEAD: _vsub.LEG_ARM_DATES[_vsub.RULE_HEARTBEAT_DEAD],
 }
 
 #: The in-tree launch-contract home's directory-name shape (PLAYBOOK Ch8, "Where the contract

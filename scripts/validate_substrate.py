@@ -81,6 +81,7 @@ from typing import Iterable, Mapping, Optional
 import yaml
 
 _SCRIPTS = Path(__file__).resolve().parent
+_REPO_ROOT = _SCRIPTS.parent
 if str(_SCRIPTS) not in sys.path:  # importable both as a module and as a script
     sys.path.insert(0, str(_SCRIPTS))
 
@@ -128,6 +129,22 @@ RULE_WRITE_SCOPE_DISJOINT = "substrate-lane-write-scope-disjoint"
 #: ADDITIVE; a ruling that narrows a frozen contract must REISSUE it through
 #: `gen_lane_contract`, never annotate it. This leg makes the annotation shape a refusal.
 RULE_AMENDMENT_SUBTRACTS = "amendment-subtracts-an-act"
+#: Leg 8 (`[#554]` lane aa-1, L2). THE PRE-DISPATCH HALF OF THE HEARTBEAT, and the reason it
+#: lives HERE rather than beside dispatch in prose: this module is the organ that refuses a
+#: contract before it is dispatched, so a substrate proven dead becomes a refusal AT DISPATCH
+#: instead of a discovery mid-batch.
+#:
+#: THE DEFECT IT ANSWERS. The codespace substrate died at one commit and nobody noticed for two
+#: weeks because NOTHING RAN THERE — `provision.sh` reached a call site for a module retired
+#: twelve days earlier, Codespaces substituted a recovery container, and the platform reported
+#: Available throughout. Eight lanes were deferred off the back of it. A validator that checks
+#: a contract's declarations while the substrate it names is dead is checking the spelling of a
+#: destination nobody can reach.
+#:
+#: OFF-MACHINE ONLY. A `local` lane runs on the operator's machine, whose liveness is not in
+#: question because the operator is sitting at it; gating that on a cloud probe would refuse the
+#: one substrate that is definitely alive, which is how a refusal gate becomes noise.
+RULE_HEARTBEAT_DEAD = "substrate-heartbeat-dead"
 RULE_UNKNOWN_OVERRIDE = "substrate-unknown-override"
 
 #: Order is the intake's own. This tuple IS the checkable surface — a new leg enters it
@@ -140,6 +157,7 @@ RULE_IDS: tuple[str, ...] = (
     RULE_TEARDOWN_ENUM,
     RULE_WRITE_SCOPE_DISJOINT,
     RULE_AMENDMENT_SUBTRACTS,
+    RULE_HEARTBEAT_DEAD,
     RULE_UNKNOWN_OVERRIDE,
 )
 
@@ -147,10 +165,12 @@ RULE_IDS: tuple[str, ...] = (
 #: (`audit_checks/check_substrate_declaration.py`) first armed 2026-08-27. A leg written today
 #: cannot honestly gate a contract dispatched before it existed -- the reason legs 5 and 6
 #: carry their own arm dates too, in that adapter (they predate this leg and armed there
-#: first). This leg's arm date is declared HERE, in the logic module, because `[#629]` lands
-#: in the same freeze that writes it: there is no already-armed adapter map from an earlier
-#: freeze to extend, and this lane's frozen write-scope does not reach the adapter file. A
-#: future adapter change reads this dict rather than re-declaring the date a second time.
+#: first). THIS dict is the single home for a leg's date, and the adapter's map READS leg 8's
+#: entry from here rather than restating it, so the two cannot disagree. Declaring it here and
+#: stopping was measured and is wrong: the adapter never consulted this dict, so the grandfather
+#: existed and never fired, and the commit gate refused 20 committed contracts back to
+#: 2026-08-29 — each a record of a dispatch that already happened, undischargeable without
+#: falsifying it. `tests/test_validate_substrate.py` asserts the two maps agree.
 #:
 #: FREEZE IS UNSCOPED BY DATE, exactly like legs 5/6 (`validate_substrate.validate_batch`'s own
 #: docstring, and the batch-F manifest's own words: "the FREEZE does not [grandfather];
@@ -158,6 +178,11 @@ RULE_IDS: tuple[str, ...] = (
 #: The grandfather is a COMMIT-TIME adapter concern only, and stays one here.
 LEG_ARM_DATES: dict[str, _dt.date] = {
     RULE_AMENDMENT_SUBTRACTS: _dt.date(2026, 9, 1),
+    # TOMORROW, not today, and the off-by-one is the module's own rule applied to itself: two
+    # committed contracts dated 2026-09-15 declare `cloud`, and they were dispatched BEFORE this
+    # leg existed. Arming on their own date would retro-refuse a record of a dispatch that
+    # already happened, which is the falsification the grandfather exists to prevent.
+    RULE_HEARTBEAT_DEAD: _dt.date(2026, 9, 16),
 }
 
 SEVERITY_REFUSE = "refuse"
@@ -565,9 +590,54 @@ def _apply_override(refusal: Refusal, overrides: Mapping[str, str]) -> Refusal:
                    substrate=refusal.substrate, severity=SEVERITY_WARN, overridden=True)
 
 
+#: `heartbeat` not supplied means READ IT FROM THE REPO, never "skip the leg". A default of
+#: `None` would make the pre-dispatch check opt-in, and an opt-in refusal is exactly the shape
+#: that let a dead substrate pass for two weeks — the caller would have to remember to ask the
+#: question that matters most when nobody is thinking about it. Passing `None` explicitly still
+#: disables it, for the caller that genuinely has no repo to read.
+_HEARTBEAT_AUTO = object()
+
+
+def _heartbeat_refusal(substrate: Substrate, source: str, heartbeat,
+                       now: Optional[_dt.datetime]) -> Optional[Refusal]:
+    """Leg 8: is the substrate this contract names actually proven live? See RULE_HEARTBEAT_DEAD.
+
+    Never raises and never REFUSES ON ITS OWN ABSENCE: if the heartbeat module cannot be
+    imported at all, this reports nothing rather than refusing every off-machine contract on the
+    strength of its own breakage. That is the one direction this leg must not be wrong in — a
+    validator whose failure mode is "refuse everything" gets bypassed wholesale, and the bypass
+    takes the other seven legs with it.
+    """
+    if substrate.operator_disk:
+        return None                    # the operator is sitting at it; liveness is not in doubt
+    try:
+        try:
+            from scripts import substrate_heartbeat as _hb
+        except ImportError:            # pragma: no cover - the alternate launch path
+            import substrate_heartbeat as _hb
+    except ImportError:                # pragma: no cover - the module is genuinely absent
+        return None
+
+    receipt = _hb.read_receipt(_REPO_ROOT) if heartbeat is _HEARTBEAT_AUTO else heartbeat
+    if receipt is None:
+        return None
+    lines = _hb.predispatch(_REPO_ROOT, substrate.name, now=now, receipt=receipt)
+    if not lines:
+        return None
+    return Refusal(
+        rule=RULE_HEARTBEAT_DEAD, source=source, substrate=substrate.name,
+        detail=(f"declares substrate {substrate.name!r}, which runs off the operator's machine "
+                f"and is not proven live: {'; '.join(lines)}. A dead substrate must be a "
+                f"refusal at dispatch, not a discovery mid-batch — the codespace substrate was "
+                f"dead for two weeks while the platform reported Available, and eight lanes "
+                f"were deferred off the back of it ([#746])"))
+
+
 def validate_contract(text: str, *, source: str,
-                      registry: Mapping[str, Substrate]) -> list[Refusal]:
-    """Legs 1-3 plus the unknown-override report, for ONE contract.
+                      registry: Mapping[str, Substrate],
+                      heartbeat=_HEARTBEAT_AUTO,
+                      now: Optional[_dt.datetime] = None) -> list[Refusal]:
+    """Legs 1-3 and 8 plus the unknown-override report, for ONE contract.
 
     Leg 4 needs the whole batch and lives in `validate_batch`. Every problem is returned, not
     the first: a contract with two contradictions gets told about both, the same posture
@@ -674,6 +744,11 @@ def validate_contract(text: str, *, source: str,
                     f"epic-lane (`epic/<slug>`), automation-lane (`automation/<slug>`); a bare "
                     f"`worktree-<name>` is NOT a lane. Declare the lane in the manifest and "
                     f"record the deviation, or rename it to a member of that set")), overrides))
+
+    # --- leg 8: the substrate this contract names must be PROVEN LIVE ----------------------
+    dead = _heartbeat_refusal(substrate, source, heartbeat, now)
+    if dead is not None:
+        out.append(_apply_override(dead, overrides))
 
     return out
 

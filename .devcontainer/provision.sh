@@ -558,17 +558,28 @@ smoke_gate_liveness() {
 # the native installer the recommended path, it ships a native binary with no Node runtime
 # dependency, and installing here is what makes the ASSERT below possible.
 # THE ASSERT IS THE POINT: a container without a working agent must never read as a good build.
+# REWRITTEN 2026-09-15 ([#554] lane aa-1) — ASSERT-ONLY. The bespoke `curl … | bash` install is
+# GONE and `ghcr.io/anthropics/devcontainer-features/claude-code:1.0` does the installing, per
+# the library-first rule: anything a declared devcontainer feature can do stops being our shell
+# script. devcontainer.json carries the full reasoning, including why the 2026-08-31 evidence
+# against the feature was withdrawn and why no curl fallback is kept behind it.
+#
+# THE ASSERT IS UNCHANGED, AND IT WAS ALWAYS THE LEG. A container without a working agent must
+# never read as a good build — a lane dispatched into one returns Ok=True in under a minute with
+# an empty result, which is the worst available failure shape.
+#
+# NODE IS ASSERTED HERE TOO, and it is not decoration: the ABSENCE OF NODE — not authentication
+# — is what blocked copilot and codex in this container, and it was misdiagnosed as an auth
+# problem for long enough to be worth a refusal of its own. `ghcr.io/devcontainers/features/node:1`
+# installs it; this is the leg that proves the feature actually delivered.
 leg_f1_claude() {
-  if command -v claude >/dev/null 2>&1; then
-    say "L-F1 ok — claude already present ($(claude --version 2>/dev/null | head -1))"
-    return 0
-  fi
-  say "L-F1 — installing the Claude CLI (native installer)"
-  curl -fsSL https://claude.ai/install.sh | bash >/dev/null 2>&1 || true
-  export PATH="${UV_BIN_DIR}:${PATH}"
-  command -v claude >/dev/null 2>&1 || die "L-F1 FAILED — no \`claude\` on PATH after the native install. A container without an agent is not a provisioned container; refusing rather than reporting success."
-  CHANGED=$((CHANGED + 1))
-  say "L-F1 ok — claude installed ($(claude --version 2>/dev/null | head -1))"
+  command -v claude >/dev/null 2>&1 \
+    || die "L-F1 FAILED — no \`claude\` on PATH. The claude-code devcontainer feature is declared in devcontainer.json and did not deliver a binary. A container without an agent is not a provisioned container; refusing rather than reporting success."
+  say "L-F1 ok — claude present ($(claude --version 2>/dev/null | head -1))"
+
+  command -v node >/dev/null 2>&1 \
+    || die "L-F1 FAILED — no \`node\` on PATH. The node feature is declared in devcontainer.json and did not deliver. This is the leg that was misdiagnosed as an authentication failure: copilot and codex were blocked by node's ABSENCE, and a container that cannot run them is not the multi-provider substrate it claims to be."
+  say "L-F1 ok — node present ($(node --version 2>/dev/null | head -1))"
 }
 
 # --- F4: workspace trust, so the DECLARED permission set is the EFFECTIVE one --------------------
@@ -631,6 +642,36 @@ write_stamp() {
   say "stamp written: ${STAMP}"
 }
 
+# --- L1 PROVENANCE: positive proof of identity, not absence of error ([#554]) --------------------
+#
+# WHY THIS IS NOT THE STAMP ABOVE, and the two are kept rather than merged. The stamp is the
+# PRE-VENV leg: pure shell, readable by `--gate` before `uv` has resolved anything, which is what
+# lets the gate refuse a moved pin without first building an environment it is supposed to be
+# asserting. The marker is the POST-EVERYTHING leg: it is written last, after uv, the interpreter,
+# node, the Claude CLI and the hooks are all actually in place, and it records what is LIVE rather
+# than what the repo declares. The stamp says "the repo's pins have not moved"; the marker says
+# "this container is the one provisioning built, and every tool a lane needs is still in it".
+#
+# THE DEFECT IT CLOSES IS THE ONE THE STAMP CANNOT SEE. On 2026-09-14 `postCreateCommand` failed
+# and Codespaces silently substituted a RECOVERY container while the platform reported Available
+# throughout. A recovery container never reaches this line, so it cannot produce the marker — and
+# a lane's step 0 refuses it instead of running gates that are vacuous rather than absent.
+#
+# The marker lives OUTSIDE the working tree, at a path derived from this substrate's identity, and
+# never in a shared `/tmp` path: a sibling lane measured a fixed `/tmp` marker being overwritten by
+# a concurrent neighbour on 2026-09-15, which defeats the whole property by accident rather than
+# by attack. `scripts/substrate_provenance.py` carries that reasoning in full.
+leg_l1_provenance() {
+  uv run --no-sync python scripts/substrate_provenance.py write --writer provision.sh \
+    || die "L1 FAILED — could not write the provenance marker. A container that cannot prove its own identity must not report as provisioned."
+  # POSITIVE, immediately: write-then-verify in the same run, because a marker that is written and
+  # never read back is a claim about a file, not about this container.
+  uv run --no-sync python scripts/substrate_provenance.py verify --require-marker \
+    || die "L1 FAILED — the marker this run just wrote does not agree with the live environment. Refusing rather than reporting a successful build."
+  CHANGED=$((CHANGED + 1))
+  say "L1 ok — provenance marker written and verified against the live environment"
+}
+
 # --- L4: the env gate — refuse a half-provisioned environment ------------------------------------
 
 gate() {
@@ -688,6 +729,13 @@ gate() {
   uv run --no-sync python scripts/provision_legs.py --quiet ecosystem \
     || die "L4 no repo is registered under ecosystem/ — audit.py health cannot pass here; re-provision"
 
+  # L1, and it is the leg that answers a question none of the others ask: not "are the declared
+  # things in place" but "is this container the one provisioning built". `--require-marker` is
+  # passed because a container is a MANAGED substrate — the marker is not optional here, and
+  # leaving the decision to substrate detection would make a mis-detected host pass silently.
+  uv run --no-sync python scripts/substrate_provenance.py verify --require-marker \
+    || die "L1 this substrate cannot prove it is the provisioned one — no marker, or the marker disagrees with the live environment. Re-provision (bash .devcontainer/provision.sh)"
+
   say "gate OK — uv ${have_uv}, full history + spine refs, ecosystem registered, three hook types armed, stamp current"
 }
 
@@ -732,6 +780,10 @@ main() {
   leg_f4_workspace_trust
   smoke_gate_liveness
   write_stamp
+  # LAST, and the position is load-bearing: the marker records what is LIVE, so every tool it
+  # claims must already be installed when it is written. Written before `leg_f1_claude` it would
+  # record `claude: null` on a container that has one.
+  leg_l1_provenance
 
   if [ "${CHANGED}" -eq 0 ]; then
     say "DONE — idempotent: nothing changed, all four legs were already satisfied (second run is a no-op)"

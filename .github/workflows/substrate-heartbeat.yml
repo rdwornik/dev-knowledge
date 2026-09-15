@@ -1,0 +1,145 @@
+# .github/workflows/substrate-heartbeat.yml — L2's scheduled leg ([#554], [#746]).
+#
+# WHY A SCHEDULE AND NOT A PUSH TRIGGER. The substrate died at one commit and nobody noticed for
+# two weeks BECAUSE NOTHING RAN THERE. A signal that only fires when someone happens to use the
+# thing is not a health signal, it is a usage log — and a workflow that only fires on push is
+# the same defect one layer up, because a quiet fortnight in the repo is exactly the fortnight a
+# dead substrate survives. The cron is what removes the dependency on usage.
+#
+# CREDENTIAL-FREE, AND THAT IS A MEASURED CONSTRAINT RATHER THAN A DESIGN PREFERENCE. This repo
+# has NO ACTIONS SECRETS AT ALL — `gh secret list` returns `[]`, and
+# `repos/rdwornik/dev-knowledge/actions/secrets` returns `total_count: 0`. `conductor.yml` line
+# 178 already guards for the absence of both `CODEX_API_KEY` and `ANTHROPIC_API_KEY`. A leg that
+# referenced a model credential would be permanently red, so this one references none: checking
+# that the provisioning chain still resolves is not a task a model does.
+#
+# WHAT IT ASSERTS, and the limit is stated because a green run must not be over-read. It probes
+# the DECLARATION — every repo file the provisioning surfaces name in executable position still
+# exists, the pins are readable, the lifecycle commands reach the entrypoint, FPG-1 still
+# declares provisioning a wiring surface, and provision.sh still writes AND verifies the L1
+# marker. That IS the 2026-09-14 outage: provision.sh reached a call site for a module retired
+# twelve days earlier, exited non-zero, and Codespaces substituted a recovery container while
+# the platform reported Available. It is NOT a container build. A coherent declaration can still
+# fail to build an image, and only a real build answers that — see the declared extension at the
+# bottom of this file, which is an operator act and not this lane's to arm.
+#
+# NO RECEIPT IS COMMITTED FROM HERE, deliberately. `permissions: contents: read` is least
+# privilege and this workflow writes no repo state; pushing a bot commit to `main` would also
+# drive straight through the repo's own never-commit-to-main invariant. The receipt that
+# `predispatch` reads is MACHINE-LOCAL state — it lives beside L1's provenance marker in the
+# user state directory, not in the repo at all — and is written by whoever is about to dispatch.
+# This leg is the alarm (a red run IS the notification); the receipt is the local proof. Two
+# mechanisms, because they answer two different questions: "is it broken for everyone" and "has
+# THIS machine checked recently".
+#
+# The `--receipt-path` below is therefore a CI-only spelling: the runner is ephemeral and has no
+# tree to dirty, so the reading is dropped into the workspace purely so `upload-artifact` can
+# pick it up. Nothing reads it back from there.
+
+name: substrate-heartbeat
+
+on:
+  schedule:
+    # 06:05 UTC daily, offset off the hour and off conductor's 05:00 so a shared-runner queue
+    # does not serialise the two. `MAX_AGE_HOURS = 36` in the probe is one missed run of slack
+    # against this cadence and no more — the two numbers are a pair, and moving either is moving
+    # both.
+    - cron: "5 6 * * *"
+  workflow_dispatch:
+  # ALSO on a push that touches provisioning: a schedule catches the substrate going stale, but
+  # a push that breaks it should not wait up to 24 h to say so. The daily run is what makes this
+  # a heartbeat; this trigger is what makes the feedback immediate.
+  push:
+    branches: [main]
+    paths:
+      - ".devcontainer/**"
+      - "scripts/substrate_heartbeat.py"
+      - "scripts/substrate_provenance.py"
+      - "scripts/file_purpose_graph.py"
+      - "pyproject.toml"
+      - ".python-version"
+
+permissions:
+  contents: read          # least privilege. This workflow reports; it writes no repo state.
+
+concurrency:
+  group: substrate-heartbeat-${{ github.ref }}
+  # NOT cancel-in-progress. Unlike a gate result, a superseded heartbeat still carries the last
+  # moment the substrate was known good, and cancelling it throws that away for nothing.
+  cancel-in-progress: false
+
+jobs:
+  declaration:
+    name: substrate declaration probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The probe reads only the working tree, so a shallow clone is sufficient here — and
+          # saying so explicitly matters in THIS repo, where "not shallow" is a provisioning leg
+          # of its own precisely because the gates that DO walk history read it.
+          fetch-depth: 1
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          # The pin has one home (`pyproject.toml [tool.uv] required-version`, ADR-106) and this
+          # step reads it rather than restating it — a version typed here would be a second
+          # answer to a settled question, which is the drift provisioning already refuses.
+          version: "latest"
+
+      - name: Rebuild the declared environment
+        run: uv sync --locked
+
+      - name: Probe the substrate declaration
+        run: >
+          uv run --locked python scripts/substrate_heartbeat.py probe
+          --substrate codespace --source actions --write-receipt
+          --receipt-path SUBSTRATE-HEARTBEAT.json
+
+      - name: Publish the reading
+        # `always()`, because the reading of a DEAD substrate is the one worth keeping. Uploading
+        # only on success would discard exactly the run a reader came for.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: substrate-heartbeat-receipt
+          path: SUBSTRATE-HEARTBEAT.json
+          if-no-files-found: warn
+          retention-days: 30
+
+# ---------------------------------------------------------------------------------------------
+# DECLARED AND NOT ARMED: the container-build leg.
+#
+# Same posture as `.devcontainer/provisioning.yaml`'s `prebuild:` block, and for the same reason
+# — this is the repo-side record of what the mechanism should be, written where a future
+# implementer meets it, with the honest note that nothing runs it today.
+#
+# WHAT IT WOULD BE. A second job, weekly rather than daily, that builds the devcontainer and
+# runs `substrate_provenance.py verify --require-marker` INSIDE it. That is the only probe that
+# answers the question this file's `declaration` job explicitly does not: does the image
+# actually build, and does a real provisioning run produce a verifiable marker. It is
+# credential-free too — identity is not a model task — so the measured no-secrets blocker does
+# not stand in its way.
+#
+#   container:
+#     if: github.event_name == 'workflow_dispatch'
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+#       - uses: devcontainers/ci@v0.3
+#         with:
+#           runCmd: uv run --locked python scripts/substrate_provenance.py verify --require-marker
+#
+# WHY IT IS NOT ARMED HERE, stated rather than left as an omission a reader has to notice. Two
+# reasons, both the operator's call and neither mine:
+#   1. `devcontainers/ci` is a THIRD-PARTY action this repo does not use today (its workflows use
+#      `actions/*` and `astral-sh/setup-uv` only). Adding one to CI is a dependency decision.
+#   2. It costs Actions minutes against a LIVE spend ruling — the 2026-08-20 substrate audit
+#      measured 601 of 2000 included minutes spent that month (30%) and ruled the free tier a
+#      hard boundary. A weekly build is roughly 5 minutes a run, ~22 a month; small, but it is
+#      spend, and spend is an operator decision in this repo by standing ruling.
+#
+# Arming it is one uncomment plus the `if:` cadence the operator wants. Until then, this file's
+# green means "the declaration is coherent" and nothing more, which is what the `declaration`
+# job's name says.
