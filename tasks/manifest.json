@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "ffe6b980193f90b09ce48c4afa3a3de0b87cb3d73fdc956b4011153569930378",
+  "generated_sha256": "b149fbbcd84c0624aebb120c0bfbd0961b82a335e1db9d26a997f661b871d593",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -496,6 +496,14 @@
     {
       "task": 762,
       "file": "762-a-worktree-teardown-races-the-departing-sessions-stop-hook.md"
+    },
+    {
+      "task": 763,
+      "file": "763-re-measure-the-batch-z-suite-baseline-freeze-at.md"
+    },
+    {
+      "task": 764,
+      "file": "764-batch-z-implements-the-night-plan-of-2026-09-15.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -1545,8 +1553,8 @@
       "file": "722-interim-routing-read-only-work-defaults-to-agy-as-reader-only.md"
     },
     {
-      "task": 763,
-      "file": "763-aj-m04-has-never-been-read-against-this-repo-no.md"
+      "task": 765,
+      "file": "765-aj-m04-has-never-been-read-against-this-repo-no.md"
     },
     {
       "prose": "### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)"
