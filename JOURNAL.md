@@ -19,6 +19,83 @@
 
 ---
 
+### 2026-09-15 (l) - CC (Opus 5, background integrator seat): lane z-4 prices the non-Claude providers, and the answer is that five of six cannot be priced at all
+
+**Anchors:** `ad03c361` — one verdict per provider, priced against the same ten on Opus — and
+`901d1abf`, the ten-outcomes sweep; two of the ten commits this merge introduces.
+
+**THE NUMBER THE NIGHT ASKED FOR, AND IT IS A REFUSAL RATHER THAN A RATIO.** The batch was to
+report *the non-Claude verdicts against the Opus price*. Measured, ten outcomes per provider, from
+`logs/PROVIDER-VERDICTS.json`:
+
+```
+opus baseline   $0.217038 over 10 outcomes
+copilot         UNPRICED  -- model 'mai-code-1.1-flash' is not declared in the provider registry
+codex           UNPRICED  -- 'gpt-5.6-terra' is declared but carries no rate fields
+gemini          UNPRICED  -- no served model attested; refused at auth, 0 outcomes reached
+ollama          UNPRICED  -- 'qwen2.5-coder:14b' is not declared in the registry
+agy             UNPRICED  -- no served model was attested for this run
+claude          $0.217038 -- and STILL usd_comparable=false, its own baseline leg is partial
+```
+
+**`usd_comparable` is false for every row, including the baseline against itself.** That is the
+honest answer and it is more useful than a ratio would have been: the comparison cannot be made,
+and the reason is named per provider rather than averaged into a number. The module refuses to
+divide a subscription quota by a token count to manufacture a rate, which is exactly the
+temptation a cost benchmark must resist — **"we do not know this price" must not become a figure
+that looks measured.**
+
+**THREE CRITICAL FINDINGS FROM THE PARALLEL REVIEW. ALL THREE CONFIRMED IN CODE. ALL THREE
+LATENT.** The distinction is load-bearing and is recorded as such, because **a latent defect
+written up as realised defames the instrument**:
+
+1. **A non-zero exit can score as a pass.** `run_one` calls `subprocess.run(..., check=False)` and
+   **never sets `run.error` from `returncode`**. A provider exiting 1 while printing the expected
+   string scores `predicate_pass: true`. *Realised: 0 of the 11 non-zero-exit rows in tonight's 96.*
+2. **Missing token counts are priced as free.** Once a rate resolves, `price()` substitutes zero
+   for every absent count via `or 0`, so an incomplete vendor usage response records `usd: 0.0`
+   with `unpriced_reason: None` — **unknown usage rendered as a free run.** *Realised: 0 rows at
+   `usd == 0.0`.*
+3. **A partial total can compare as complete, and the code contradicts its own docstring.**
+   `_money()` inspects only `usd_is_partial` and ignores a cell with `usd: None` sitting beside
+   priced cells, so nine priced outcomes could compare against Opus's ten with
+   `usd_comparable: true`. The function's own docstring states the correct rule —
+   *"`usd_comparable` is False whenever either leg is unpriced or PARTIAL"* — and the
+   implementation misses that branch. **The invariant is documented and unenforced**, which is the
+   same shape as lane z-0's trip-test citation and tonight's recurring finding. *Not realised: every
+   non-Claude provider is WHOLLY unpriced, never partially, so the mixed case never arose.*
+
+**That none fired is luck of the data, not a property of the harness.** Had one provider priced
+nine of ten outcomes, finding 3 would have published an understated total flagged comparable, and
+the number in this entry would have been wrong. **The instrument was right tonight and is not yet
+trustworthy**; those are different claims and only the first is evidence.
+
+**A THIRD ID COLLISION, `[#772]`, AND ALL THREE TRACE TO ONE CAUSE.** Lane z-10 also filed
+`[#772]` — its P1, *every dispatched lane inherits the whole secret environment* — and landed
+first. Renumbered `[#772]` → `[#785]` across **9 files and 114 references**, 96 of them the `row:`
+provenance field on every bench measurement; leaving those would have pointed every recorded
+result at another lane's credentials row. The cause of all three collisions is the same: **I
+allocated `[#763]` from the integrator seat while the lanes were running**, and a lane cannot see
+a branch that does not exist yet.
+
+**`gen_doc_counts` READS HEAD, NOT THE MERGE IN PROGRESS.** The sync conflicted on the collected
+count (6112 vs 6044) and **neither value is right for the merged tree**. Regenerating mid-merge
+emits 6112, the lane's own pre-merge count, because the generator reads HEAD. Declared
+`SKIP=doc-counts-pytest-freshness` by name and owed on the merged result — a skip named in the
+commit body is a debt; `--no-verify` is a hole.
+
+**Did:** ran Codex in parallel with the sync; verified all three CRITICALs in source and then
+checked each against the 96 real rows to separate confirmed-in-code from realised-in-data;
+renumbered a third collision; synced.
+**Result:** the cost question has a measured answer, and it is that the comparison cannot be made
+— with a named reason per provider instead of a manufactured rate.
+**Changes:** `scripts/provider_bench.py`, `tests/test_provider_bench.py`, `scripts/graph_queries.py`,
+`logs/PROVIDER-VERDICTS.json`, `logs/PROVIDER-BENCH-RUNS.jsonl`, `logs/PROVIDER-CENSUS-*`,
+`logs/PROVIDER-TRAPS-*`, `tasks/785`, `JOURNAL.md`.
+**Abandoned:** nothing.
+**Next:** regenerate `ecosystem/doc-counts.md` and `docs/audits/README.md` on the merged result;
+this is the last lane of batch Z.
+
 ### 2026-09-15 (k) - CC (Opus 5, background integrator seat): lane z-10 reads M04 against this repo, and corrects me about why the exemption never fired
 
 **Anchors:** `cb92014b` — the seven rows the matrix's UNOWNED column produced — and `7d8a1f59`,
