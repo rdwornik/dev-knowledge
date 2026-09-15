@@ -1069,7 +1069,7 @@ def _trap_agy_soft_deny(cwd: Path, timeout: int) -> dict[str, Any]:
     exe = _npm_shim("agy")
     probe = ("List the file names in the current working directory. Output only the names, "
              "one per line. If you cannot read the directory, output exactly TOOL_DENIED.")
-    (cwd / "trap-marker.txt").write_text("marker\n", encoding="utf-8")
+    (cwd / "trap-marker.txt").write_text("marker\n", encoding="utf-8", newline="\n")
     without_code, without_body, without_err = _capture(
         [exe, "--output-format", "json", "--print-timeout=5m", f"--print={probe}"],
         cwd, timeout)
