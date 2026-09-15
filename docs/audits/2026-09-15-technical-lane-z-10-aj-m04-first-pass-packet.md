@@ -436,6 +436,19 @@ The clause is therefore satisfied in the only way it honestly can be: **this lan
 nothing to the stash stack, and dropping a peer's in-flight WIP to make a check read green would
 destroy another seat's work.** Reported, untouched.
 
+> **AMENDMENT, 2026-09-15, added by this lane immediately after its step-5 commit `7d8a1f59`.**
+> **The stack is now EMPTY and the clause is literally satisfied.** Re-measured after that
+> commit: `git stash list` returns zero entries. Lane z-0 cleared its own entry in the interval
+> between this section being written and the lane finishing — **this lane neither dropped nor
+> applied it**, and the correct action while it existed was still to leave it alone.
+>
+> Both facts are kept rather than the section being rewritten to the tidier one, because they are
+> different facts: *the clause was unsatisfiable by this lane when checked* and *the clause is
+> satisfied now* are both true, and the first is the one a future lane needs. A shared stash stack
+> means this check can read RED for a reason no lane can lawfully clear, and it can clear itself a
+> minute later with nobody having acted on it — so a lane that finds it non-empty should report
+> and re-measure, never reach for the stack.
+
 ### 4.6 · `[#589]`'s byte bar is RED and this lane did not clear it
 
 Measured in this tree, both figures, because only the difference is attributable:
