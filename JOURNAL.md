@@ -19,6 +19,77 @@
 
 ---
 
+### 2026-09-15 (g) - CC (Opus 5, background integrator seat): the freeze refused a merge, and the tree was innocent
+
+**Anchors:** `e082e057` — the commit carrying the freeze amendment, intake 99 and the two closed
+receipts.
+
+**THE RULE'S FIRST REFUSAL FOUND SOMETHING REAL, WHICH IS THE ONLY EVIDENCE THAT MATTERS ABOUT AN
+INSTRUMENT.** Merge `70356500` — **documentation only** — came back **52 failed** against the
+frozen 51. The node-id diff named the member in one line:
+`tests/test_preflight_contract.py::test_every_claim_class_the_brief_names_is_extractable`.
+
+**The tree was innocent. The hash was not.** That test builds a brief from the live repository's
+own `git rev-parse --short HEAD` and asserts all four claim classes extract from it.
+**`preflight_contract` silently skips a short SHA that is all digits** — it reads as a number,
+not a locator — and `70356500` is all digits. Reproduced against four inputs with one variable:
+`70356500` and `12345678` lose the `sha` class; `4f4186a6` and `aad0acdd` keep it. The merge
+changed no code that test touches. It changed what main's HEAD hashes to, which every merge does.
+
+**SILENCE IS THE DEFECT, NOT THE MISS.** The verifier exists to turn an unchecked locator into a
+pass or a refusal. A locator it cannot see produces a **PASS on a brief it never checked**, which
+is indistinguishable from a clean brief. This is the third sighting tonight of one shape —
+**could-not-look reported as looked-and-fine**: lane z-11 found it in this same module's
+shallow-clone path, lane z-746 found it in the devcontainer B1 history guard, and the freeze found
+it here. Three organs, three independent discoveries, one property.
+
+**THE BASELINE IS NOT FULLY REPRODUCIBLE, AND THAT IS NOW WRITTEN DOWN.** At least one member's
+outcome is a function of the SHA it is measured at rather than of the tree, so the same tree can
+measure 51 or 52 with no code change. About **one commit in forty-four** ((10/16)^8) has an
+all-digit short SHA. The consequence for `[#763]`, the expiry row, is direct: **it must be
+discharged on the node-id diff and never on the total**, because a rule phrased "if the number has
+not fallen, that is a row" is unsafe against a set that can move by ±1 for free.
+
+**THE BAND WAS NOT WIDENED, AND THE FAILURE WAS NOT ABSORBED.** A count comparison would have
+reported "51 → 52, one regression" without knowing which. A tolerance of ±1 would have reported
+nothing at all. Adding this member to the frozen roster would convert a live defect into an
+accepted one **by the act of noticing it** — the precise failure mode a freeze with an expiry
+exists to prevent. Recorded by APPEND; the roster is not edited.
+
+**Filed as intake 99, CANDIDATE — not as a row.** ADR-111's funnel has exactly one path from
+finding to row, and ratification is the operator's act. An integrator who files rows for its own
+findings is not using a funnel, it is narrating one.
+
+**THE RECEIPT LEDGER TOOK TWO ROWS, ONE OF THEM AN ADMISSION.** `merge-z-746` closed **COMPLETE**
+(PRE-EXISTING, ruling AY1-1) at 80.27 min wall against 1.46 min recorded, carrying two permanently
+FAILED steps: `actions`, and a first `teardown` that refused because **`git branch -d` compares
+against the UPSTREAM ref**, so a branch fully merged to HEAD reads "not fully merged" while origin
+still holds it. The fix is ordering — delete origin first — never escalating `-d` to `-D`, because
+the rule removes the authorization round-trip and not the safety check. `merge-z-746-packet` closed
+**INCOMPLETE**: verdict UNATTRIBUTED, and `suite` and `models` never recorded. It cannot discharge
+its merge and the ledger now says so permanently.
+
+**AN INTERMEDIATE MERGE IN A PUSHED RANGE GETS NO ACTIONS RUN OF ITS OWN.** `a7620dd0` was pushed
+inside the range `4f4186a6..70356500`; the conductor runs on the **range head**. So the receipt's
+differential — which derives its baseline from the merge's first parent — has no run to read and
+returns UNATTRIBUTED no matter what baseline is passed. **Per-merge Actions verdicts exist only for
+merges pushed individually.** Anything else is judged by the range head, which is what the freeze
+rule reads anyway.
+
+**Codespaces Prebuilds on `4f4186a6` completed SUCCESS** — the repaired `.devcontainer/` builds a
+container end to end. That is lane z-746's actual purpose discharged, on the substrate that killed
+eight of the sixteen lanes.
+
+**Did:** diffed run `34925873604` by node id against the frozen roster; reproduced the extractor
+defect directly; amended the freeze by append; filed intake 99; closed and landed two receipts;
+tore down lane z-746 in all three places.
+**Result:** the freeze's judging rule has a live refusal to its name and a real defect behind it.
+**Changes:** `logs/SUITE-BASELINE-FREEZE.md`, `logs/MERGE-RECEIPTS.jsonl`,
+`docs/intake/2026-09-15-tech-locator-verifier-skips-an-all-digit-sha.md`, `docs/intake/README.md`,
+`docs/intake/manifest.json`, `JOURNAL.md`.
+**Abandoned:** nothing.
+**Next:** lanes z-0 (still committing), z-4 and z-10 hold unmerged work.
+
 ### 2026-09-15 (f) - CC (Opus 5, background integrator seat): the freeze judged its first merge, and the count was the least informative thing about it
 
 **Anchors:** `3c05f347` — lane z-746's end-of-lane packet — and `20e86ca8`, the sync merge that
