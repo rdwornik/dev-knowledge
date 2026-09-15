@@ -137,6 +137,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#768] [P1][M] A gate has one refusal channel, so a violation and an environment it could not evaluate are indistinguishable to the committer · tasks/768-a-gate-has-one-refusal-channel-so-a-violation-an.md
 - [#772] [P1][M] Every dispatched lane inherits the whole secret store -- there is no introspect-and-exchange step and no row about it · tasks/772-every-dispatched-lane-inherits-the-whole-secret.md
 - [#787] [P2][M] A test double for an external tool must CITE the real tool's contract for the behaviour it fakes -- a fixture nobody checked against the tool is a false-success surface · tasks/787-a-test-double-for-an-external-tool-must-cite-the.md
+- [#788] [P1][M] The local maximum is not the task-id allocator under concurrency -- a sibling branch's held id is invisible from a worktree and nothing in the repo refuses it · tasks/788-the-local-maximum-is-not-the-task-id-allocator-u.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md

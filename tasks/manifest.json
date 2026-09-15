@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "5babc1831d0059d5267a4cf3226e611852e6a036eae6e91e347009637bac09db",
+  "generated_sha256": "34578e8b055cab810213bad3af3e7d894e8d4081aaa14b3189d3758df318f462",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -524,6 +524,10 @@
     {
       "task": 787,
       "file": "787-a-test-double-for-an-external-tool-must-cite-the.md"
+    },
+    {
+      "task": 788,
+      "file": "788-the-local-maximum-is-not-the-task-id-allocator-u.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"

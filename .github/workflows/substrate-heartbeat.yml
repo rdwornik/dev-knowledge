@@ -168,6 +168,12 @@ jobs:
 #   2. ACTIONS MINUTES. Ruled acceptable at ~5 min a run, with the spend reported after each
 #      run and the leg stopped if it approaches the standing ruling.
 #
+#      THAT CONDITION IS LIFTED. The premise was measured after the ruling, the operator
+#      ACCEPTED the correction the same day and reversed his own premise in terms -- "my spend
+#      caution was unnecessary". So there is no per-run spend report to file and no Actions
+#      budget to watch on this repo. The condition is recorded rather than deleted because a
+#      reader who finds the ruling elsewhere needs to know it was withdrawn, and by whom.
+#
 #      THE PREMISE OF THAT OBJECTION WAS MEASURED AFTERWARDS AND DOES NOT HOLD, which is
 #      recorded here rather than left to be rediscovered. `rdwornik/dev-knowledge` is a PUBLIC
 #      repository, and GitHub bills no standard-runner minutes for public repositories -- the
@@ -177,11 +183,18 @@ jobs:
 #      "601 of 2000 included minutes (30%)" reads a public repo's reported usage as consuming a
 #      private repo's entitlement; that audit carries a superseded marker saying so.
 #
-#      THE METERED RESOURCE IS CODESPACES, NOT ACTIONS, and that is the direction the caution
-#      belongs in. Same measurement, same day: September Codespaces usage on this repo is
-#      8.01 hours of 2-core plus 5.42 hours of 4-core -- about 37.7 core-hours -- against
-#      Actions minutes that cost nothing. Iterating here instead of in a codespace is therefore
-#      cheaper than the ruling assumed, not merely acceptable.
+#      THE METERED RESOURCE IS CODESPACES CORE-HOURS, NOT ACTIONS MINUTES, and that is the
+#      direction the caution belongs in. Same measurement, same day: September Codespaces usage
+#      on this repo is 8.01 hours of 2-core plus 5.42 hours of 4-core -- about 37.7 core-hours --
+#      against Actions minutes that cost nothing. Iterating here instead of in a codespace is
+#      therefore cheaper than the ruling assumed, not merely acceptable.
+#
+#      THE BOUNDARY OF THIS CORRECTION, kept because the correction is only as good as its
+#      limit. Repository visibility was read on 2026-09-15 and CANNOT be verified retroactively
+#      for 2026-08-20: the API reports what is true now, not what was true then. If either repo
+#      was private in August, the audit's 601/2000 may have been correct when it was written and
+#      is superseded only from today. Nothing here claims the audit's author was wrong at the
+#      time; it claims the figure does not bind this repo now.
 #
 # WHAT A GREEN RUN HERE MEANS, and the limit is stated so it is not over-read. It means the
 # image BUILDS and a real provisioning run inside it produced a verifiable L1 marker. It does
