@@ -366,8 +366,12 @@ def render_probe_contract(out_dir: Path, *, slug: str, model: str, effort: str,
     block and cannot change the line under test, while reading the LIVE base-ref property would
     make this probe's output depend on the checkout it happened to run in.
     """
+    # `kind="code"` is pinned for the same reason `needs_base_sync=False` is: the probe measures
+    # the DISPATCH LINE, and the `[#787]` kind declaration is prose above it that cannot change
+    # the line under test. `code` is the kind clause 2 leaves free on either model, so a probe
+    # sweeping the model enum is not refused for a reason that has nothing to do with the seam.
     spec = glc.LaneSpec(slug=slug, purpose=purpose, repo=".dev-knowledge", task_id=None,
-                        model=model, mode="execute", effort=effort, shape="local",
+                        model=model, kind="code", mode="execute", effort=effort, shape="local",
                         strict_slug=False, needs_base_sync=False)
     try:
         text = glc.render_contract(spec)

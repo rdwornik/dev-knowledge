@@ -850,6 +850,21 @@ def record(run: ProviderRun, outcome: Outcome, *,
         "cache_read_tokens": run.cache_read_tokens,
         "cache_write_tokens": run.cache_write_tokens,
         "vendor_units": run.vendor_units,
+        # THE PER-MODEL SPLIT, PERSISTED (`[#787]`), and its absence was a real gap rather than
+        # a tidy-up. `price` already reads `run.model_usage` -- every model the CALL billed,
+        # not only the one that answered -- and until now the row kept only the ANSWERING
+        # model's counts plus a prose `unpriced_reason` naming the remainder's TOTAL. So when
+        # `claude-haiku-4-5-20251001` was declared in the registry on 2026-09-15, the ten
+        # baseline rows of that day's sweep still could not be re-priced: the side-call's
+        # input/output SPLIT was never written down, and 959 tokens is anywhere between
+        # USD 0.000959 and USD 0.004795 at haiku rates. A number that cannot be recovered is
+        # not recovered here by inference. The field makes the NEXT card edit move every
+        # figure, which is what `ecosystem/provider-registry.yaml` already claims of itself.
+        #
+        # `None` rather than `{}` when the provider attests no per-model breakdown: an empty
+        # mapping reads as "billed nothing", which is the zero-for-unknown substitution this
+        # whole module refuses one function up.
+        "model_usage": (run.model_usage or None),
         "metering_unit": PROVIDERS[run.provider].metering_unit,
         "predicate_text": outcome.predicate_text,
         "stdout_head": strip_ansi(run.stdout)[:400],
@@ -858,6 +873,71 @@ def record(run: ProviderRun, outcome: Outcome, *,
     row.update(score(run, outcome))
     row.update(price(run, registry_path))
     return row
+
+
+def reprice_row(row: dict[str, Any],
+                registry_path: "Optional[Path]" = None) -> dict[str, Any]:
+    """A COPY of one stored ledger row with its price fields recomputed from the CURRENT card.
+
+    WHY A STORED PRICE IS NOT A FACT THE WAY A TOKEN COUNT IS. A token count is what the vendor
+    reported and it never changes. A dollar figure is that count TIMES a rate this repo declares,
+    and `ecosystem/provider-registry.yaml` says of itself that an edit to it "moves every dollar
+    figure the repo reports". That was not true of this ledger: the price was frozen at run time,
+    so declaring a missing rate afterwards left every derived verdict reading exactly as before,
+    and `usd_comparable` stayed False for a reason the registry had already fixed. This function
+    is what makes the claim true for `verdict` and `report`, which are DERIVED artifacts and are
+    regenerated rather than hand-edited.
+
+    THE LEDGER ITSELF IS NOT TOUCHED. It is append-only (`append_ledger`: "never rewrites an
+    existing byte"), and rewriting a recorded figure in place would destroy the as-run record
+    that makes a later disagreement visible. This returns a new dict; the caller renders it.
+
+    IT RE-PRICES ONLY WHAT THE ROW CAN SUPPORT, and the bound is the point rather than a caveat:
+
+      * a row carrying `model_usage` is re-priced IN FULL -- every model the call billed, with
+        its own input/output/cache split, at today's rates.
+      * a row WITHOUT it is returned UNCHANGED. Rows written before `[#787]` kept only the
+        answering model's counts and a prose reason naming the remainder's TOTAL; re-pricing
+        from those counts alone would silently drop the remainder and clear a partial flag that
+        is still true, which is a worse answer than the stale one. The ten claude rows of the
+        2026-09-15 sweep are exactly this case: haiku is now declared and priceable, and their
+        `usd_comparable` still cannot flip, because the split needed to complete them was never
+        written down. Recorded rather than estimated.
+
+    A row whose model is STILL unpriceable comes back with a fresh refusal naming it, never a
+    zero -- `price`'s rule, unchanged, applied one layer later.
+    """
+    usage = row.get("model_usage")
+    if not isinstance(usage, dict) or not usage:
+        return dict(row)
+    import provider_registry as pr                             # noqa: PLC0415 -- sibling
+
+    total, unpriced, as_of, currency = 0.0, [], None, None
+    for model, counts in sorted(usage.items()):
+        if not isinstance(counts, dict):
+            continue
+        billed = sum(int(v or 0) for v in counts.values())
+        try:
+            rate = pr.resolve_rate(str(model), registry_path)
+        except pr.RateUnavailable as exc:
+            unpriced.append(f"{model} ({billed} tokens): {exc}")
+            continue
+        as_of, currency = rate.as_of, rate.currency
+        total += rate.usd(input_tokens=int(counts.get("input") or 0),
+                          output_tokens=int(counts.get("output") or 0),
+                          cache_write_tokens=int(counts.get("cache_write") or 0),
+                          cache_read_tokens=int(counts.get("cache_read") or 0))
+    out = dict(row)
+    out.update({"usd": round(total, 6), "rate_as_of": as_of, "currency": currency,
+                "usd_is_partial": bool(unpriced),
+                "unpriced_reason": "; ".join(unpriced) if unpriced else None})
+    return out
+
+
+def reprice(rows: list[dict[str, Any]],
+            registry_path: "Optional[Path]" = None) -> list[dict[str, Any]]:
+    """`reprice_row` over a whole ledger. ORDER IS PRESERVED -- `latest_per_cell` reads it."""
+    return [reprice_row(r, registry_path) for r in rows]
 
 
 def append_ledger(rows: list[dict[str, Any]], ledger: Path) -> None:
@@ -1190,7 +1270,7 @@ def cmd_report(ledger: Optional[Path]) -> None:
     if not rows:
         logger.info("no rows")
         return
-    for line in render_report(rows):
+    for line in render_report(reprice(rows)):
         logger.info("%s", line)
 
 
@@ -1448,6 +1528,11 @@ def verdict_for(rows: list[dict[str, Any]], provider: str) -> dict[str, Any]:
 
 def verdicts(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """One verdict per provider that has rows, baseline last -- it is the ruler, not a rival."""
+    # DERIVED, SO RE-PRICED (`[#787]`). A verdict is regenerated from the ledger on demand and
+    # is not itself a record of what was billed at run time, so it prices at today's card --
+    # which is what makes declaring a missing rate move this artifact instead of leaving it
+    # reading exactly as it did before. `reprice_row` returns a legacy row untouched.
+    rows = reprice(rows)
     present = {r["provider"] for r in rows}
     ordered = [p for p in IN_SCOPE if p in present] + \
               [p for p in sorted(present) if p not in IN_SCOPE and p != BASELINE] + \
