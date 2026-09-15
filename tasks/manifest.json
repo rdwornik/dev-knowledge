@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "790850b08a2f3a0b8cc22d15cdcf238e4b9e417be5b8252f4e7fba2844a69925",
+  "generated_sha256": "ba688e2171986e80fbcc38c3caa0f816df49631dd01756291b9cbf639f6b917c",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -245,6 +245,10 @@
     {
       "task": 573,
       "file": "573-lychee-zero-baseline-md-link-gate.md"
+    },
+    {
+      "task": 786,
+      "file": "786-give-the-playbook-order-conventions-heading-a-ga.md"
     },
     {
       "prose": ""

@@ -67,6 +67,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#499] [P3][M] Promote the review-artifact coverage leg to a hard pre-push gate · DEFER · tasks/499-promote-the-review-artifact-coverage-leg-from-ad.md
 - [#560] [P2][S] `review_artifact_coverage` reads only the FIRST branch/HEAD triple per file, and one title literal, so a real review can be invisible to it · tasks/560-review-artifact-coverage-reads-only-the-first-br.md
 - [#573] [P3][S] lychee as a zero-baseline markdown-link gate on the actionable corpus · tasks/573-lychee-zero-baseline-md-link-gate.md
+- [#786] [P2][S] Give the PLAYBOOK order-conventions heading a gate · tasks/786-give-the-playbook-order-conventions-heading-a-ga.md
 
 - [#510] [P2][M] Scope the R-1 exemption to the lanes its manifest enumerates — self-grantable by branch naming today · tasks/510-scope-r1-exemption-to-enumerated-lanes.md
 - [#514] [P1][M] Two rival `LANE_BRANCH_RE` constants ship in one repo · tasks/514-two-rival-lane-branch-re-constants-reconcile-them.md
