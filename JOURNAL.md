@@ -19,6 +19,47 @@
 
 ---
 
+### 2026-09-15 (p) - CC (Opus 5, background integrator seat): ARCHITECTURE prose moves to the docstrings that own it, and the 15 KB target is missed in the open
+
+**Anchors:** `530dbecf` — the single substantive commit this merge introduces.
+
+**RELOCATION, NOT DELETION, and the ordering is the whole discipline.** Three facts
+ARCHITECTURE carried that no docstring did were ADDED to the docstring BEFORE the prose was
+cut: the #366 staged-blob honest limit into `validate_residual_completeness.py`, ADR-90
+multi_site resolver-allows-N into `validate_doc_code_edge.py`, and a stale "#195 pending"
+claim — corrected to #195-closed with residual `[#218]` — into `reverse_dep_oracle.py`. A
+fourth, the observed `check_safe_removal` FALSE PASS, moved into `safe_remove.py` and is
+recorded there as only PARTIALLY mitigated. Cutting first and hoping the fact survives
+somewhere is how a docs cut loses content.
+
+**THE ROW OWN FIGURES WERE WRONG AND ARE CORRECTED BY RE-MEASUREMENT.** The file is
+107,266 B across TWELVE `##` chapters, not 100,845 B across eleven; ten of eleven listed
+figures reproduce exactly, and the row omitted `Quality requirements` (6,421 B) plus the
+1,709 B header. Two chapters carry the cut: Validators and enforcement 24,927 -> 15,568 B,
+Organ map 25,251 -> 22,632 B.
+
+**THE 15 KB TARGET IS NOT MET AND IS EXPLICITLY NOT CLAIMED** — 95,288 B is 6.4x it. The
+37-row failure-posture table alone is 11,157 B, so deleting every remaining non-table prose
+byte would still miss. The residual gap is behind the Ch2 render, which is `[#667]`/`[#664]`
+work and was not attempted here. Saying so beats a number that flatters the arc.
+
+**`last_reviewed` IS INHERITED, NOT RE-ISSUED**, and the lane says so rather than implying
+it: the stamp already carried today date from `460fbd0a`. All 1,166 lines were read end to
+end, so the stamp is honest — but an inherited stamp and a fresh one are different claims.
+
+**Changes:** `ARCHITECTURE.md` (-315/+230 net, 107,266 -> 95,288 B); four `scripts/`
+docstrings; row `[#755]`. 6 files.
+
+**Abandoned:** the graph-rendered Ch2 (clause A three-way refutation holds); Governing ADRs,
+11,920 B whose target is `docs/decisions/README.md` — a different decision.
+
+**Next:** the residual gap needs the Ch2 render, not more prose cutting.
+
+**Suite:** NOT run on this workstation, per operator instruction for this seat. The lane own
+record already reports 46 passed / 2 failed on `tests/test_canonical_docs.py` with BOTH
+failures attributed by a PAIRED baseline run at HEAD with the lane files reverted — both
+fail identically there, so neither is this lane.
+
 ### 2026-09-15 (o) - CC (Opus 5, background integrator seat): the prepend-order heading becomes an organ, and its false-block rate on current practice is zero
 
 **Anchors:** `779763e8` — the measured same-branch-refinement limit; the tip of the two
