@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "488365e08aadc0ef32d8aaef95d7d5b7d704c3309d3910fe0c89344bcbd52984",
+  "generated_sha256": "d75c332163218eecbcc0dab9decf1c4fe5f44b111ea9e73ed96719edc1dd4a27",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -496,6 +496,14 @@
     {
       "task": 762,
       "file": "762-a-worktree-teardown-races-the-departing-sessions-stop-hook.md"
+    },
+    {
+      "task": 763,
+      "file": "763-re-measure-the-batch-z-suite-baseline-freeze-at.md"
+    },
+    {
+      "task": 764,
+      "file": "764-batch-z-implements-the-night-plan-of-2026-09-15.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
