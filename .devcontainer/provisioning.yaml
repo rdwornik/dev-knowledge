@@ -22,6 +22,96 @@
 
 schema: dev-knowledge-cloud-provisioning/1
 
+# --- THE LIBRARY-FIRST CHECK, RECORDED ([#554] lane aa-1, 2026-09-15) -----------------------
+#
+# The rule, and it is a requirement rather than a preference: ANYTHING A DECLARED DEVCONTAINER
+# FEATURE CAN DO STOPS BEING OUR SHELL SCRIPT. Less bespoke shell is fewer places that can die
+# quietly, which is the failure mode this whole substrate is being rebuilt against.
+#
+# THIS BLOCK HAS A READER, which is what separates it from a comment that rots. Every `leg*()`
+# function in `provision.sh` must carry a row here, asserted by
+# `tests/test_substrate_heartbeat.py::test_every_provisioning_leg_carries_a_library_first_verdict`
+# — so a NEW bespoke leg cannot be added without either finding a feature or writing down why
+# there is none.
+#
+# HONEST LIMIT: the reader is a TEST, not a pre-commit gate, so it fires at suite time and not
+# at the moment of the edit. That is deliberate rather than an omission — the check needs the
+# live `.devcontainer/` tree and every consumer of provisioning that a fixture cannot stand in
+# for, and a gate that can only run against the real repo is a gate a child repo inherits as a
+# permanent red. `verdict` is one of:
+#
+#   feature        the leg IS a declared feature; provisioning asserts the result and installs
+#                  nothing (the shell was deleted).
+#   no-feature     checked, and no published feature does this.
+#   rejected       a feature exists and was NOT taken; `reason` says why, and the reason has to
+#                  survive being read back later.
+features:
+  leg1_uv:
+    verdict: rejected
+    feature: ghcr.io/va-h/devcontainers-features/uv
+    reason: >-
+      A community feature exists and takes a version as a static option. This repo's uv pin has
+      ONE home (`pyproject.toml [tool.uv] required-version`, ADR-106) and `devcontainer.json`
+      declares that it carries no version it does not have to; a feature option would be a
+      second copy of the pin, free to drift from the one every gate reads. The shell here reads
+      the pin at provision time, which is the property the feature cannot offer.
+  leg2_unshallow:
+    verdict: no-feature
+    reason: >-
+      No feature controls clone depth. Codespaces decides it, and the repair is a git command
+      against an already-created clone.
+  leg2b_history:
+    verdict: no-feature
+    reason: >-
+      Ref sufficiency for a first-parent-spine walker is a property of THIS repo's gates; no
+      general feature has the concept.
+  leg5_ecosystem:
+    verdict: no-feature
+    reason: >-
+      `ecosystem/*/state.yaml` self-registration is repo-specific state, gitignored by design.
+  leg3_hooks:
+    verdict: no-feature
+    reason: >-
+      A `pre-commit install` for three hook types in the RESOLVED hooks dir (honoring
+      `core.hooksPath`) is repo-specific; the published pre-commit features install the tool,
+      which `uv sync --locked` already does from the lockfile.
+  leg_f1_claude:
+    verdict: feature
+    feature: ghcr.io/anthropics/devcontainer-features/claude-code:1.0
+    reason: >-
+      RESTORED 2026-09-15. The bespoke `curl … | bash` is deleted; the leg is now ASSERT-ONLY.
+      The 2026-08-31 evidence against the feature was withdrawn the same day (both builds
+      measured were `rebuild --full`s, which never applied the feature at all), leaving only a
+      preference for the native installer — and a preference does not outrank library-first.
+      The feature also installs Node.js when the base image does not provide it, which is the
+      measured gap `leg_f1_node` exists for. No curl fallback is kept: a step that silently
+      repairs a broken feature is how a substrate reports healthy with a dead leg.
+  leg_f1_node:
+    verdict: feature
+    feature: ghcr.io/devcontainers/features/node:1
+    reason: >-
+      Declared 2026-09-15 on measurement. `devcontainer.json` previously INFERRED node from the
+      base image's yarn apt source; the direct observation is that node's ABSENCE — not
+      authentication — blocked copilot and codex in this container. The assert lives inside
+      `leg_f1_claude`, which is why this row names a leg that is not its own function; the row
+      exists so the feature decision is recorded per capability rather than per function.
+  leg_f2_git_credential:
+    verdict: no-feature
+    reason: >-
+      `ghcr.io/devcontainers/features/github-cli` installs `gh`; it does not wire a git
+      credential helper from the repo-scoped token Codespaces already issues. Different act.
+  leg_f4_workspace_trust:
+    verdict: no-feature
+    reason: >-
+      Writing `hasTrustDialogAccepted` into `~/.claude.json` is a Claude Code runtime concern
+      with no feature, and the documented alternative (an interactive trust dialog) cannot
+      happen on a headless substrate.
+  leg_l1_provenance:
+    verdict: no-feature
+    reason: >-
+      The provenance marker is this repo's own identity claim (`scripts/substrate_provenance.py`).
+      No feature has the concept, and one that did would be asserting somebody else's identity.
+
 # --- B1: history sufficiency ---------------------------------------------------------------
 #
 # The measured failure: `[#554]` leg 2 unshallows, so a cloud clone has DEPTH. It does not

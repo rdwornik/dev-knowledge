@@ -201,6 +201,36 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                 "pre-commit gate over it is an AX4-1 floor-declaration act needing a "
                 "parity-surfaces registration, which is outside this lane's footprint"),
         owner="[#691] Half B (non-Claude admission), which adopts it by routing through it"),
+    # SAME SHAPE AS THE ROW ABOVE, and cited as the precedent rather than argued from scratch:
+    # a mechanism whose ADOPTER is the very thing its authoring lane is forbidden to build.
+    #
+    # `scripts/codespace_state.py` is the recovery-container discriminator and the lane-state
+    # cross. What would trigger it is an OBSERVER -- something that polls a codespace's state,
+    # or receives a progress push from inside one, and calls this classifier with the result.
+    # Which of those it is, or whether it is both, is the open architectural question filed as
+    # intake 102 and routed to the decision engine by operator directive on 2026-09-15. The
+    # directive is explicit that the question is not to be settled in a diff, so writing the
+    # observer here would decide it by implementation -- which is the one act this work is
+    # defined by not doing.
+    #
+    # The other two remedies are wrong for reasons worth recording. "Retire it" would delete the
+    # classifier every one of the options A/B/C would call -- it is the part of the design that
+    # does NOT depend on the ruling, which is precisely why it was safe to build first. "Wire it
+    # to a pre-commit hook" is unavailable on its merits rather than on footprint: the organ
+    # needs a LIVE codespace name to classify, and a commit-time gate has none.
+    #
+    # It is not untested: `tests/test_codespace_state.py` holds its RED-first witnesses and two
+    # register trip-tests (QR-OBS-004, QR-OBS-005) run against it and go RED when it is neutered.
+    # A test is not a wiring surface, which is why this row exists rather than the census being
+    # wrong.
+    "scripts/codespace_state.py": Disposition(
+        reason=("the classifier's adopter is an observer whose shape -- poll from outside, push "
+                "from inside, or both -- is the open architectural question filed as intake 102 "
+                "and routed to the decision engine by operator directive, which forbids settling "
+                "it in a diff. Unwired is the directive-required state, not an unadopted one. A "
+                "pre-commit gate is unavailable on merits: classifying needs a live codespace "
+                "name and a commit-time gate has none"),
+        owner="the ratification of intake 102, whose chosen observer adopts it by calling it"),
     # `scripts/gen_trend_dashboard.py` and `scripts/gen_north_star.py` WERE dispositioned here,
     # both on `_LANE_BUILT`. `[#664]`'s ratified DELETE list retired them (2026-09-13, lane
     # `lane-x-664-delete-list-execution`), in that order -- the dashboard imports the north-star
@@ -411,19 +441,19 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
     # at once -- and that is a change to what the corpus measures, not a lane's edit to make
     # inside a `.devcontainer/` footprint. Recorded here so the next census reads a ruling
     # instead of re-deriving the deletion.
-    "scripts/provision_legs.py": Disposition(
-        reason="KEEP -- MACHINE-TRIGGERED, and the census cannot see the trigger. Fired on "
-               "every container creation by .devcontainer/devcontainer.json's three lifecycle "
-               "commands via .devcontainer/provision.sh, which names it by PATH in a shell "
-               "command -- a referrer neither this census nor safe_remove's importer scan can "
-               "follow. That exact blind spot retired its predecessor "
-               "scripts/cloud_provisioning.py at 3c9418cc and cost a codespace a recovery "
-               "container on 2026-09-14; [#746] restored the two legs. DO NOT retire this on a "
-               "static reading. The class is guarded from the other side by "
-               "tests/test_provision_sh.py::test_provision_sh_names_no_retired_module_path, "
-               "which REDs if provision.sh is left naming a scripts/ path that is not on disk",
-        owner="[#746]; the underlying WIRING_SURFACES gap is a finding against the enum and is "
-              "reported in this lane's end-of-lane artifact, not ruled here"),
+    # `scripts/provision_legs.py` HAD A ROW HERE AND NO LONGER NEEDS ONE — DISCHARGED
+    # 2026-09-15 ([#554] lane aa-1). The row said the file is machine-triggered, named
+    # `.devcontainer/provision.sh` as the trigger, and closed with the honest sentence that
+    # made it a placeholder rather than a ruling: *"the underlying WIRING_SURFACES gap is a
+    # finding against the enum and is reported in this lane's end-of-lane artifact, not ruled
+    # here."* The enum now lists the two provisioning surfaces, the census sees the trigger,
+    # and `safe_remove` refuses the removal on the same edge — so the row would be a register
+    # entry contradicting the graph, which
+    # `test_a_disposition_register_entry_cannot_manufacture_its_own_trigger` refuses outright.
+    #
+    # Kept as a comment and not deleted silently, because a disposition that vanishes with no
+    # trace reads as a file that stopped being interesting rather than as a gap that got
+    # closed — and the next census would re-derive the deletion that cost a codespace.
     # ---- population C: commands. NOTHING FIRES A COMMAND, and that is the finding ----
     ".claude/commands/boot-session.md": Disposition(
         reason="ON-DEMAND-BY-OPERATOR, act = sitting. No event fires a command; the census "
@@ -942,6 +972,17 @@ EDGE_COMPUTATIONS: dict[str, EdgeComputation] = {
         "three `reconciled` rows are one step earlier. There is nothing here for a W-G3 "
         "lane to migrate because nothing was discovered. Its two regexes match an `id` and "
         "a `file::test` locator INSIDE the register, never corpus source text"),
+    "scripts/substrate_provenance.py": _not_an_edge(
+        "L1's provenance marker ([#554], lane aa-1). The shape matched for the reason the "
+        "predicate's own docstring predicts -- it reads files and compiles two regexes -- and "
+        "the class does not apply because its subject is a MACHINE, not this corpus. The two "
+        "texts it reads are `pyproject.toml`'s single-source uv pin and its own JSON marker "
+        "outside the working tree; the facts it extracts are `uv --version`, the live "
+        "interpreter, which tools resolve on PATH, and a git head. None of those is a "
+        "relation between two corpus files, so there is nothing here for FPG-1 to hold and "
+        "nothing for a W-G3 lane to migrate. The one repo relation it could have invented -- "
+        "which files provisioning calls -- it deliberately does NOT compute: that is FPG-1's "
+        "`triggers` input, and `safe_remove.wiring_referrers` consumes it from there"),
 }
 
 
