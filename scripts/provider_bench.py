@@ -1,5 +1,5 @@
 """Price and verdict the provider CLIs installed on this box on ten real outcomes,
-with nobody watching -- `[#772]`.
+with nobody watching -- `[#785]`.
 
 WHAT THIS IS AND WHAT IT IS NOT. It is a one-off MEASUREMENT harness, operator-invoked,
 that makes real paid network calls. It is deliberately NOT on any commit-tier path and it
@@ -871,7 +871,7 @@ def append_ledger(rows: list[dict[str, Any]], ledger: Path) -> None:
 #: The row every artifact this module writes belongs to. Carried INSIDE each artifact, not
 #: only in the row's body: `graph-task-coverage` accepts the claim from either direction, and
 #: a file that names its own row stays claimed even if the row's prose is later rewritten.
-ROW = "[#772]"
+ROW = "[#785]"
 
 
 def _write_json(path: Path, payload: Any) -> None:

@@ -19,6 +19,173 @@
 
 ---
 
+### 2026-09-15 (k) - CC (Opus 5, background integrator seat): lane z-10 reads M04 against this repo, and corrects me about why the exemption never fired
+
+**Anchors:** `cb92014b` — the seven rows the matrix's UNOWNED column produced — and `7d8a1f59`,
+the end-of-lane packet; two of the nine commits this merge introduces.
+
+**CORRECTION TO ENTRY (f), AND THE LANE IS THE ONE THAT CAUGHT IT.** Entry (f) claims I disabled
+the ADR-110 declared-integration-arc exemption for every lane merge tonight by writing descriptive
+merge subjects instead of git's default `Merge branch '<name>'` form. **That attribution is
+wrong.** This lane's packet, open item 4, says the batch-Z manifest *"declares nothing
+machine-readable"*, and the organ agrees: `batch_manifest.open_batches()` returns `[]`. The
+manifest at `docs/audits/2026-09-15-technical-batch-z-manifest.md` **carries no frontmatter at
+all** — no `status: open`, no `closed_by:` — and `open_batches` requires all four conditions and
+**fails toward no-exemption**. So the exemption was never available tonight **whatever subject I
+wrote.** My subject style is a real second reason it would also not have fired, and it stays worth
+knowing, but it was **not the operative cause and entry (f) presents it as one.** The append is
+the correction; the landed text stands, as ADR-85 AF-1 requires.
+
+**Recorded because the shape matters more than the fact:** I found a mechanism not working, found
+one sufficient cause, and stopped looking. **A sufficient cause is not the binding one**, and the
+difference is invisible precisely when the thing fails closed — both causes produce an identical
+silence. It took a lane's packet, written by a session that had already stopped, to catch it.
+
+**LANE z-10's ACTUAL WORK: M04 IS READ AGAINST THIS REPO FOR THE FIRST TIME.** Seven lessons and
+five decks located and hashed, so a line number is reproducible rather than asserted; four evidence
+legs (`LEG-A`, `LEG-B`, `LEG-C`, `LOCATOR-VERIFICATION`, 845 lines) carrying the SHIPPED / OWNED /
+UNOWNED matrix that has never existed here. The UNOWNED column is the deliverable, and it produced
+**seven rows** — `[#766]`–`[#772]` — each a practice this repo neither adopted nor refused. **An
+artifact in neither the OWNED nor the REJECTED state is outside the ADR-111 funnel entirely**,
+which is the gap the lane exists to close.
+
+**`[#772]` IS THE ONE WITH A BLAST RADIUS OUTSIDE THIS REPO.** P1: every dispatched lane inherits
+the whole secret environment, so credentials reach third-party binaries. The lane's own packet says
+it *"gets worse while it sits"*, and it is flagged here rather than left to be found in a row list.
+
+**A SECOND ID COLLISION, AND BOTH ARE MINE.** The lane renumbered `[#763]` → `[#765]` mid-flight,
+recorded in `627297c0` as *"after a live id collision"* — `[#763]` was taken because **I filed the
+freeze expiry row from the integrator seat while the lanes were running.** It moved to `[#765]`,
+which lane z-0 had already taken and which is now merged and cited by seven commits, a packet and a
+register. So the lane dodged my first collision straight into a second. Resolved `[#765]` →
+`[#784]` across **13 files**: the row's filename, frontmatter and body — which must agree
+byte-exact in all three — the seven sibling rows citing it, the packet and the four legs. **The
+evidence files were corrected BEFORE landing**, because an audit is immutable once landed and the
+alternative was landing a record whose every citation resolved to another lane's row.
+
+**The integrator seat allocating ids concurrently with its own lanes is the defect**, not either
+lane's filing. A seat that hands out ids from the same space its lanes are drawing from will
+collide, and it will collide silently, because a lane cannot see a branch that does not exist yet.
+
+**A `try/except Exception: continue` in my own renumbering script silently skipped all 13 files.**
+`Path.read_text()` takes no `newline=` kwarg on this Python; every file raised `TypeError` and was
+swallowed by my own blanket catch, and the script reported success having done nothing. **That is
+the fail-open shape I spent the night auditing in other people's organs**, written by me, in the
+tool I was using to audit it. Caught only because the generator refused afterwards on an identity
+mismatch — a gate caught it, not the script's own report.
+
+**Did:** established handback from git; synced, hit a manifest-checksum conflict and a live id
+collision, renumbered 13 files; verified the exemption claim against the organ instead of repeating
+it.
+**Result:** M04's matrix exists; seven UNOWNED practices are rows; entry (f)'s attribution is
+corrected at the source.
+**Changes:** `docs/audits/2026-09-15-technical-lane-z-10-aj-m04-evidence/` (4 legs),
+the lane packet, `tasks/766`–`772`, `tasks/784`, `tasks/manifest.json`, `BACKLOG.md`, `JOURNAL.md`.
+**Abandoned:** nothing.
+**Next:** regenerate the audits index on the merged result (five new files under `docs/audits/`);
+lane z-4 has handed back with 10 commits.
+
+### 2026-09-15 (j) - CC (Opus 5, background integrator seat): five of lane z-0's eight have a cause nobody has ruled on, so I did not rule on it
+
+**Anchors:** `fe63a349` — intake 100 and the audits-index regeneration.
+
+**EIGHT → SEVEN → FIVE, AND THE LAST FIVE ARE A DIFFERENT KIND OF THING.** Run `34930659346` on
+`a9b41529` measured 58 failed, **7 outside** the frozen 51. The organ-index regeneration cleared
+its test. The audits index was stale **again** — lane z-0's merge added the lane's own end-of-lane
+packet, and a `--no-ff` merge runs zero pre-commit hooks, so **that generated file goes stale once
+per merge that adds an audit**. Twice in one night is a pattern, not an accident: the file is
+regenerated by a commit gate and invalidated by merges, which are the one thing that gate never
+sees.
+
+**THE REMAINING FIVE ARE A REGRESSION LANE z-0 INTRODUCED AND REPORTED HONESTLY ANYWAY.** The lane
+moved the floor template and its sidecar `4d268f32..` → `e8c62d24..`, re-pinning
+`deploy/manifest-v1.5.0.yaml`. That manifest lints **0 FAIL** — exactly what the lane measured and
+said. But `v1.1.0`, `v1.2.0`, `v1.3.0`, `v1.3.1` and `v1.4.0` still pin the old sha, and
+`C5-floor-pin` compares each of them to the **live** sidecar. **Nothing told the lane to measure
+the other six manifests**, so this is not a lane that cut a corner; it is a cost that had no
+surface to appear on until the merged tree had one.
+
+**THE LINT CONTRADICTS ITSELF INSIDE A SINGLE RUN.** Against the same file, `C7` reports
+*"v1.2.0 is not the current manifest (v1.5.0) — released/historical, not compared to live
+constants"*, while `C5` compares that file's floor pin to today's sidecar. **One check treats a
+released manifest as history and the next treats it as a live claim.** That is not a preference
+between two reasonable readings; it is one artifact being two things in the same breath.
+
+**I DID NOT RESOLVE IT, AND THE RESTRAINT IS THE POINT.** Re-pinning five historical manifests is
+one edit, greens the suite immediately, and asserts that `v1.2.0` shipped a floor **it did not
+ship**. Making `C5` version-aware is the reading `C7` already commits to, but it is a code change
+owed RED-first witnesses. Choosing decides *what a tagged manifest means* — an architect question
+under ADR-108 §A, not an integration act. And `manifest-v1.5.0`'s own header records that this is
+**the first time the floor template has ever changed**, so there is no precedent to follow and
+whichever answer is given becomes one. **An integrator who picks the cheap option here does not
+resolve the question, it answers it silently and permanently.**
+
+**The five are NOT absorbed into the frozen set.** Lane z-0's merge stands recorded as
+**not-yet-clean** rather than waved through, which is the honest state: the code is wanted, the
+blast radius is unruled, and the freeze's rule is what made the difference visible at all.
+
+**Did:** cleared two more of the eight; reproduced the release-lint failure per manifest version;
+filed intake 100 with both candidate resolutions and the reason neither is mine to pick.
+**Result:** three of lane z-0's eight regressions repaired, five escalated with evidence.
+**Changes:** `docs/audits/README.md`, `docs/intake/2026-09-15-tech-floor-repin-reds-every-historical-manifest.md`,
+`docs/intake/README.md`, `docs/intake/manifest.json`, `JOURNAL.md`.
+**Abandoned:** nothing.
+**Next:** lanes z-10 (handed back) and z-4 (still committing).
+
+### 2026-09-15 (i) - CC (Opus 5, background integrator seat): the freeze refused lane z-0's merge with eight, and all eight were the debt the lane had declared
+
+**Anchors:** `750f3fbe` — the commit paying the two index debts and resolving `[#782]` into
+`[#765]`.
+
+**EIGHT FAILURES OUTSIDE THE FROZEN SET, WHICH IS A REFUSAL AND NOT A FOOTNOTE.** Conductor run
+`34929184598` on `2830d3d6` measured **59 failed, 5961 passed** against the frozen 51. The node-id
+diff: **8 outside, 0 departed.** Every one of the eight is a freshness or release-lint check —
+`test_gen_audit_index` ×2, `test_generate_organ_index` ×1, `test_release_lint` ×5.
+
+**They are exactly the debt lane z-0 declared in writing.** The lane skipped
+`doc-counts-pytest-freshness` and `organ-index-freshness` **by name in its commit bodies** and
+reserved both to the integrator, because each is one act on the merged tree and a conflict surface
+per lane. So the merge did introduce eight regressions, the cause was known **before** the
+conductor named them, and the repair was already in flight when it did. **That is the good version
+of this failure**, and it is worth separating from the bad version: a declared debt that a gate
+then finds is a handshake; an undeclared one is a hole. `--no-verify` would have produced the
+identical eight with nothing on record saying why.
+
+**THE RULE STILL REFUSED, AND IT SHOULD HAVE.** A declared debt is not an exemption. The merge is
+judged by what the tree does, not by what a commit body promised, and the correct reading of run
+`34929184598` is *this merge is not yet clean*, held open until the repair lands and a later run
+shows the eight gone. Recording the debt is what makes the refusal legible, not what dismisses it.
+
+**A DEPARTURE CONFIRMED THE SHA-DEPENDENCY FINDING WITHOUT BEING ASKED TO.**
+`test_every_claim_class_the_brief_names_is_extractable` failed at `70356500` and passes at
+`2830d3d6`. Nothing about it changed; the short SHA stopped being all digits. Entry (g) predicted
+exactly this, and the prediction came true on the next commit — which is the strongest available
+evidence that the diagnosis was right and not merely plausible.
+
+**A PARSER OF MY OWN BRIEFLY REPORTED 52 FROZEN MEMBERS.** The amendment I appended to the freeze
+quotes the offending node id inside a fenced block, and a naive line-prefix scan counted the
+quotation as a roster entry. **The artifact recording a defect became a source of the same defect
+class it recorded** — a document that describes a test id is not a document that contains one. The
+scan now reads only the roster section, above the amendment heading. Caught by the number moving
+when nothing had; it would have been invisible had the roster been quoted at a count that matched.
+
+**`[#782]` is SUPERSEDED, not closed, and the distinction is load-bearing.** It duplicates
+`[#765]`. `--close-row` writes `closed`; both are terminal so the manifest stays coherent, but
+`closed` would assert the work is done. It is not. **`[#765]` stays OPEN because the organ lane
+z-0 landed does not satisfy `[#765]`'s own Done-when** — that clause requires each measured entry's
+`trip_test` to resolve to a test that EXISTS and passes only because the organ refuses, and the
+organ checks the trip-test FILE and never the TEST. **The Codex HIGH finding therefore needs no new
+row: the open row already names the gap.** Filing one would have been double-filing and would have
+flattered the rows-filed count. BACKLOG 339 → 338.
+
+**Did:** judged the merge by node-id diff; regenerated `ecosystem/doc-counts.md` and
+`ecosystem/organ-index.md`; superseded `[#782]`; corrected my own frozen-set parser.
+**Result:** the declared debts are paid; whether the eight clear is the next conductor run's to say.
+**Changes:** `ecosystem/doc-counts.md`, `ecosystem/organ-index.md`, `BACKLOG.md`,
+`tasks/782-…md`, `tasks/manifest.json`, `JOURNAL.md`.
+**Abandoned:** nothing.
+**Next:** confirm the eight clear; lanes z-10 (handed back) and z-4 (still committing).
+
 ### 2026-09-15 (h) - CC (Opus 5, background integrator seat): lane z-0 makes the quality requirements a register that is READ, and a parallel review found it fail-open twice
 
 **Anchors:** `bfd55534` — the floor commit, and `460fbd0a`, the commit that turns the register
@@ -188,6 +355,8 @@ of the instruments, and the receipt's verdict must not be read as discharging th
 added `tests/test_provision_legs.py` and extended `tests/test_provision_sh.py`. New tests that all
 land green are the quiet good outcome — and also the case most likely to hide a displaced frozen
 failure behind an unchanged failure count, which is the second reason the diff was by node id.
+
+**[CORRECTED 2026-09-15 by entry (k) — see there. The attribution below is WRONG: `batch_manifest.open_batches()` returns `[]` because the batch-Z manifest carries no frontmatter, so the exemption was never available whatever subject was written. The subject style is a real second cause, not the operative one.]**
 
 **I DISABLED THE ADR-110 EXEMPTION FOR EVERY LANE MERGE TONIGHT, BY WRITING A BETTER SUBJECT.**
 `check_journal_spine_anchor`'s declared-integration-arc exemption requires a `worktree-lane-*`

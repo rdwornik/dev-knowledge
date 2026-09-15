@@ -269,7 +269,7 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
     # Those three have a trigger the census cannot see. This one has no trigger AT ALL and
     # should not have one.
     "scripts/provider_bench.py": Disposition(
-        reason="[#772]'s unattended provider benchmark. It is a one-off MEASUREMENT, not an "
+        reason="[#785]'s unattended provider benchmark. It is a one-off MEASUREMENT, not an "
                "organ: every subcommand makes real PAID network calls to five vendor CLIs, so "
                "a commit-tier or session-tier trigger would bill the operator on every commit "
                "to measure something that changes only when a vendor ships. The night plan's "
@@ -925,7 +925,7 @@ EDGE_COMPUTATIONS: dict[str, EdgeComputation] = {
         "is a MODULE'S SHAPE (does this file read source text for structure), never a "
         "relation between two corpus files, so there is no edge here to read from FPG-1"),
     "scripts/provider_bench.py": _not_an_edge(
-        "[#772]'s provider benchmark. Every text it extracts from is VENDOR OUTPUT -- a CLI's "
+        "[#785]'s provider benchmark. Every text it extracts from is VENDOR OUTPUT -- a CLI's "
         "captured stdout, a `--usage-output-file` JSON, an agy session log under ~/.gemini -- "
         "and not one of them is a file of this corpus. The relations it discovers are "
         "`(provider, outcome) -> verdict` and `(run) -> served model`, which are properties "

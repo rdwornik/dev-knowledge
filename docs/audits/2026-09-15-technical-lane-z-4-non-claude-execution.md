@@ -1,7 +1,7 @@
 # lane-z-4-non-claude-execution — end-of-lane packet
 
 > **Lane** `lane-z-4-non-claude-execution` · **branch** `worktree-lane-z-4-non-claude-execution`
-> · **row** `[#772]` · **contract** `LANE-z-4-non-claude-execution.md` (frozen)
+> · **row** `[#785]` · **contract** `LANE-z-4-non-claude-execution.md` (frozen)
 > · **date** 2026-09-15 · **seat** CC (Opus 5, background lane)
 >
 > What changed · the proposed diffs · the open items. Written at commit-and-STOP: nothing here
@@ -58,7 +58,7 @@ claude   the RULER      10/10  127.6s  x1.00   per-token list price     $0.2170 
 **Four commits, one row, no merges and no push to `main`.** `main..HEAD` non-merge commits:
 
 ```
-1aa363db  file [#772] -- the row, and the frozen census corrected
+1aa363db  file [#785] -- the row, and the frozen census corrected
 e2480734  the harness, and three "the trap is gone" retractions the instrument manufactured
 901d1abf  ten outcomes x six providers, and the four instrument defects the first sweep published
 ad03c361  one verdict per provider, priced against the same ten on Opus
@@ -296,7 +296,7 @@ reason, none with a bypass:
   Registered `not-an-edge`, which is the recall-over-precision cost the shape predicate's
   own docstring predicts.
 - **`graph-task-coverage`** — answered from the *file's* direction as well as the row's:
-  every artifact this module writes carries `"row": "[#772]"` inside it, so the claim
+  every artifact this module writes carries `"row": "[#785]"` inside it, so the claim
   survives a later rewrite of the row's body.
 
 **One bypass in the whole lane, at step 2 only:** `SKIP=audit-health` on

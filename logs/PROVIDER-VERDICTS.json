@@ -1,9 +1,9 @@
 {
-  "row": "[#772]",
+  "row": "[#785]",
   "generated_by": "scripts/provider_bench.py",
   "rows": [
     {
-      "row": "[#772]",
+      "row": "[#785]",
       "provider": "copilot",
       "verdict": "parity",
       "verdict_means": "matched the Opus baseline on every outcome both legs attempted",
@@ -53,7 +53,7 @@
       }
     },
     {
-      "row": "[#772]",
+      "row": "[#785]",
       "provider": "codex",
       "verdict": "parity",
       "verdict_means": "matched the Opus baseline on every outcome both legs attempted",
@@ -100,7 +100,7 @@
       }
     },
     {
-      "row": "[#772]",
+      "row": "[#785]",
       "provider": "gemini",
       "verdict": "unreachable",
       "verdict_means": "never answered: every invocation was refused before a model saw the prompt, so this CLI's capability is not measured here at all",
@@ -149,7 +149,7 @@
       }
     },
     {
-      "row": "[#772]",
+      "row": "[#785]",
       "provider": "ollama",
       "verdict": "below-baseline",
       "verdict_means": "answered unattended, and lost outcomes the Opus baseline won",
@@ -200,7 +200,7 @@
       }
     },
     {
-      "row": "[#772]",
+      "row": "[#785]",
       "provider": "agy",
       "verdict": "parity",
       "verdict_means": "matched the Opus baseline on every outcome both legs attempted",
@@ -249,7 +249,7 @@
       }
     },
     {
-      "row": "[#772]",
+      "row": "[#785]",
       "provider": "claude",
       "verdict": "parity",
       "verdict_means": "matched the Opus baseline on every outcome both legs attempted",
