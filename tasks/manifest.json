@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "790850b08a2f3a0b8cc22d15cdcf238e4b9e417be5b8252f4e7fba2844a69925",
+  "generated_sha256": "d4852b679e1dac6d581b24f1228fc163db82643404c6d58076c397b51df2c849",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -522,6 +522,14 @@
       "file": "772-every-dispatched-lane-inherits-the-whole-secret.md"
     },
     {
+      "task": 789,
+      "file": "789-the-seat-boot-rendered-its-model-split-into-an-html.md"
+    },
+    {
+      "task": 790,
+      "file": "790-the-conductor-emails-on-every-push-because-it-does.md"
+    },
+    {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
     },
     {
@@ -931,6 +939,10 @@
     },
     {
       "prose": ""
+    },
+    {
+      "task": 791,
+      "file": "791-carry-intake-101-the-runtime-resource-organ-throug.md"
     },
     {
       "prose": "### [S12] Close the small ADR cross-reference + registry amendments"
@@ -1487,6 +1499,14 @@
     {
       "task": 771,
       "file": "771-729-carries-no-protocol-conformance-criterion-so.md"
+    },
+    {
+      "task": 787,
+      "file": "787-the-routing-unit-is-the-session-not-the-turn-the-p.md"
+    },
+    {
+      "task": 788,
+      "file": "788-opus-is-a-flat-2-50x-sonnet-and-a-false-5x-figure.md"
     },
     {
       "prose": "### [S19] Decide the undecided artifact/tool models"
