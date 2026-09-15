@@ -933,6 +933,15 @@ EDGE_COMPUTATIONS: dict[str, EdgeComputation] = {
         "recall-over-precision cost the shape predicate's own docstring predicts: it reads "
         "text and compiles regexes, so it matches, and the register saying NO is the "
         "designed outcome rather than a waiver"),
+    "scripts/quality_requirements.py": _not_an_edge(
+        "the quality-requirements register's reader ([#765], AN2-1). The shape matched "
+        "because it compiles two regexes and reads files; the class does not apply because "
+        "it COMPUTES no relation. `organ:` and `trip_test:` are written BY HAND in "
+        "`ecosystem/quality-requirements.yaml`, and this module only resolves each declared "
+        "side to a path that exists -- a DECLARED relation read back, which is what the "
+        "three `reconciled` rows are one step earlier. There is nothing here for a W-G3 "
+        "lane to migrate because nothing was discovered. Its two regexes match an `id` and "
+        "a `file::test` locator INSIDE the register, never corpus source text"),
 }
 
 
