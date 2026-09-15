@@ -1,0 +1,299 @@
+{
+  "row": "[#785]",
+  "generated_by": "scripts/provider_bench.py",
+  "rows": [
+    {
+      "row": "[#785]",
+      "provider": "copilot",
+      "verdict": "parity",
+      "verdict_means": "matched the Opus baseline on every outcome both legs attempted",
+      "verdict_scope": "ten bounded, self-contained, closed-form text outcomes, ONE run each, from a neutral empty non-git directory, no tool use and no repo access; not a measure of agentic work, long context, or anything run twice",
+      "is_baseline": false,
+      "runs": 10,
+      "passed": 10,
+      "blocked": 0,
+      "served_models": [
+        "gpt-5.6-luna",
+        "mai-code-1.1-flash"
+      ],
+      "can_be_asked_to": [
+        "10 of 10 bounded, self-contained text outcomes, unsupervised"
+      ],
+      "cannot_be_asked_to": [
+        "be pinned to one model: identical invocations were served by gpt-5.6-luna, mai-code-1.1-flash, so a result is not reproducible from the command line alone"
+      ],
+      "vs_opus": {
+        "provider": "copilot",
+        "outcomes_compared": 10,
+        "outcomes_never_reached": [],
+        "both_passed": [
+          "extract-id",
+          "classify-enum",
+          "regex-branch-prefix",
+          "json-shape",
+          "arithmetic-pricing",
+          "locate-defect",
+          "honest-refusal",
+          "summary-budget",
+          "write-function",
+          "order-versions"
+        ],
+        "lost_to_opus": [],
+        "won_against_opus": [],
+        "wall_seconds": 241.7,
+        "baseline_wall_seconds": 127.6,
+        "wall_ratio": 1.89,
+        "usd": null,
+        "baseline_usd": 0.217038,
+        "baseline_usd_outcomes": 10,
+        "usd_comparable": false,
+        "usd_incomparable_because": "model 'mai-code-1.1-flash' is not declared in ecosystem/provider-registry.yaml — it cannot be priced, and it is not free. Add a row (with `rates:` if its price is known) rather than letting an unregistered id cost nothing",
+        "metering_unit": "GitHub Copilot PREMIUM REQUESTS (and nano-AIU), not tokens",
+        "vendor_units": 10
+      }
+    },
+    {
+      "row": "[#785]",
+      "provider": "codex",
+      "verdict": "parity",
+      "verdict_means": "matched the Opus baseline on every outcome both legs attempted",
+      "verdict_scope": "ten bounded, self-contained, closed-form text outcomes, ONE run each, from a neutral empty non-git directory, no tool use and no repo access; not a measure of agentic work, long context, or anything run twice",
+      "is_baseline": false,
+      "runs": 10,
+      "passed": 10,
+      "blocked": 0,
+      "served_models": [
+        "gpt-5.6-terra"
+      ],
+      "can_be_asked_to": [
+        "10 of 10 bounded, self-contained text outcomes, unsupervised"
+      ],
+      "cannot_be_asked_to": [],
+      "vs_opus": {
+        "provider": "codex",
+        "outcomes_compared": 10,
+        "outcomes_never_reached": [],
+        "both_passed": [
+          "extract-id",
+          "classify-enum",
+          "regex-branch-prefix",
+          "json-shape",
+          "arithmetic-pricing",
+          "locate-defect",
+          "honest-refusal",
+          "summary-budget",
+          "write-function",
+          "order-versions"
+        ],
+        "lost_to_opus": [],
+        "won_against_opus": [],
+        "wall_seconds": 109.2,
+        "baseline_wall_seconds": 127.6,
+        "wall_ratio": 0.86,
+        "usd": null,
+        "baseline_usd": 0.217038,
+        "baseline_usd_outcomes": 10,
+        "usd_comparable": false,
+        "usd_incomparable_because": "model 'gpt-5.6-terra' is declared in ecosystem/provider-registry.yaml but carries no `rates:` block — its price is unknown, which is not the same fact as zero",
+        "metering_unit": "ChatGPT plan quota; the CLI reports ONE total token figure, not a split",
+        "vendor_units": 12194.0
+      }
+    },
+    {
+      "row": "[#785]",
+      "provider": "gemini",
+      "verdict": "unreachable",
+      "verdict_means": "never answered: every invocation was refused before a model saw the prompt, so this CLI's capability is not measured here at all",
+      "verdict_scope": "ten bounded, self-contained, closed-form text outcomes, ONE run each, from a neutral empty non-git directory, no tool use and no repo access; not a measure of agentic work, long context, or anything run twice",
+      "is_baseline": false,
+      "runs": 10,
+      "passed": 0,
+      "blocked": 0,
+      "served_models": [
+        "UNATTESTED"
+      ],
+      "can_be_asked_to": [],
+      "cannot_be_asked_to": [
+        "be reached at all on this box: 'Error authenticating: IneligibleTierError: This client is no longer supported for Gemini Code Assist for individuals. To continue using Gemini, please migrate t'",
+        "be judged on capability from this lane at all -- 10 outcome(s) never reached a model, so NOTHING here says what it could or could not answer",
+        "be audited for WHICH model served the request -- it attests none, so its spend cannot be priced even if a rate existed"
+      ],
+      "vs_opus": {
+        "provider": "gemini",
+        "outcomes_compared": 0,
+        "outcomes_never_reached": [
+          "extract-id",
+          "classify-enum",
+          "regex-branch-prefix",
+          "json-shape",
+          "arithmetic-pricing",
+          "locate-defect",
+          "honest-refusal",
+          "summary-budget",
+          "write-function",
+          "order-versions"
+        ],
+        "both_passed": [],
+        "lost_to_opus": [],
+        "won_against_opus": [],
+        "wall_seconds": 0,
+        "baseline_wall_seconds": 0,
+        "wall_ratio": null,
+        "usd": null,
+        "baseline_usd": 0.217038,
+        "baseline_usd_outcomes": 10,
+        "usd_comparable": false,
+        "usd_incomparable_because": "no served model was attested for this run",
+        "metering_unit": "Gemini Code Assist tier quota",
+        "vendor_units": null
+      }
+    },
+    {
+      "row": "[#785]",
+      "provider": "ollama",
+      "verdict": "below-baseline",
+      "verdict_means": "answered unattended, and lost outcomes the Opus baseline won",
+      "verdict_scope": "ten bounded, self-contained, closed-form text outcomes, ONE run each, from a neutral empty non-git directory, no tool use and no repo access; not a measure of agentic work, long context, or anything run twice",
+      "is_baseline": false,
+      "runs": 10,
+      "passed": 8,
+      "blocked": 0,
+      "served_models": [
+        "qwen2.5-coder:14b"
+      ],
+      "can_be_asked_to": [
+        "8 of 10 bounded, self-contained text outcomes, unsupervised"
+      ],
+      "cannot_be_asked_to": [
+        "be trusted on `arithmetic-pricing`: the Opus leg met the predicate and this one did not, answering '2.8500'",
+        "be trusted on `summary-budget`: the Opus leg met the predicate and this one did not, answering 'The pre-commit hook gates changes by refusing files not clai'"
+      ],
+      "vs_opus": {
+        "provider": "ollama",
+        "outcomes_compared": 10,
+        "outcomes_never_reached": [],
+        "both_passed": [
+          "extract-id",
+          "classify-enum",
+          "regex-branch-prefix",
+          "json-shape",
+          "locate-defect",
+          "honest-refusal",
+          "write-function",
+          "order-versions"
+        ],
+        "lost_to_opus": [
+          "arithmetic-pricing",
+          "summary-budget"
+        ],
+        "won_against_opus": [],
+        "wall_seconds": 151.1,
+        "baseline_wall_seconds": 127.6,
+        "wall_ratio": 1.18,
+        "usd": null,
+        "baseline_usd": 0.217038,
+        "baseline_usd_outcomes": 10,
+        "usd_comparable": false,
+        "usd_incomparable_because": "model 'qwen2.5-coder:14b' is not declared in ecosystem/provider-registry.yaml — it cannot be priced, and it is not free. Add a row (with `rates:` if its price is known) rather than letting an unregistered id cost nothing",
+        "metering_unit": "none -- local inference, no vendor bill; the cost is wall time and RAM",
+        "vendor_units": null
+      }
+    },
+    {
+      "row": "[#785]",
+      "provider": "agy",
+      "verdict": "parity",
+      "verdict_means": "matched the Opus baseline on every outcome both legs attempted",
+      "verdict_scope": "ten bounded, self-contained, closed-form text outcomes, ONE run each, from a neutral empty non-git directory, no tool use and no repo access; not a measure of agentic work, long context, or anything run twice",
+      "is_baseline": false,
+      "runs": 10,
+      "passed": 10,
+      "blocked": 0,
+      "served_models": [
+        "UNATTESTED"
+      ],
+      "can_be_asked_to": [
+        "10 of 10 bounded, self-contained text outcomes, unsupervised"
+      ],
+      "cannot_be_asked_to": [
+        "be audited for WHICH model served the request -- it attests none, so its spend cannot be priced even if a rate existed"
+      ],
+      "vs_opus": {
+        "provider": "agy",
+        "outcomes_compared": 10,
+        "outcomes_never_reached": [],
+        "both_passed": [
+          "extract-id",
+          "classify-enum",
+          "regex-branch-prefix",
+          "json-shape",
+          "arithmetic-pricing",
+          "locate-defect",
+          "honest-refusal",
+          "summary-budget",
+          "write-function",
+          "order-versions"
+        ],
+        "lost_to_opus": [],
+        "won_against_opus": [],
+        "wall_seconds": 202.7,
+        "baseline_wall_seconds": 127.6,
+        "wall_ratio": 1.59,
+        "usd": null,
+        "baseline_usd": 0.217038,
+        "baseline_usd_outcomes": 10,
+        "usd_comparable": false,
+        "usd_incomparable_because": "no served model was attested for this run",
+        "metering_unit": "Antigravity subscription quota",
+        "vendor_units": null
+      }
+    },
+    {
+      "row": "[#785]",
+      "provider": "claude",
+      "verdict": "parity",
+      "verdict_means": "matched the Opus baseline on every outcome both legs attempted",
+      "verdict_scope": "ten bounded, self-contained, closed-form text outcomes, ONE run each, from a neutral empty non-git directory, no tool use and no repo access; not a measure of agentic work, long context, or anything run twice",
+      "is_baseline": true,
+      "runs": 10,
+      "passed": 10,
+      "blocked": 0,
+      "served_models": [
+        "claude-opus-5"
+      ],
+      "can_be_asked_to": [
+        "10 of 10 bounded, self-contained text outcomes, unsupervised"
+      ],
+      "cannot_be_asked_to": [],
+      "vs_opus": {
+        "provider": "claude",
+        "outcomes_compared": 10,
+        "outcomes_never_reached": [],
+        "both_passed": [
+          "extract-id",
+          "classify-enum",
+          "regex-branch-prefix",
+          "json-shape",
+          "arithmetic-pricing",
+          "locate-defect",
+          "honest-refusal",
+          "summary-budget",
+          "write-function",
+          "order-versions"
+        ],
+        "lost_to_opus": [],
+        "won_against_opus": [],
+        "wall_seconds": 127.6,
+        "baseline_wall_seconds": 127.6,
+        "wall_ratio": 1.0,
+        "usd": 0.217038,
+        "baseline_usd": 0.217038,
+        "baseline_usd_outcomes": 10,
+        "usd_comparable": false,
+        "usd_incomparable_because": "claude-haiku-4-5-20251001 (959 tokens): model 'claude-haiku-4-5-20251001' is not declared in ecosystem/provider-registry.yaml — it cannot be priced, and it is not free. Add a row (with `rates:` if its price is known) rather than letting an unregistered id cost nothing",
+        "metering_unit": "Anthropic first-party per-token list price -- the ONE priced leg",
+        "vendor_units": 0.2914675
+      }
+    }
+  ]
+}

@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "9e80474cf5f67cd9a3134173c44a56cc0e5d99bf3cbb2e2286e462496f865679",
+  "generated_sha256": "790850b08a2f3a0b8cc22d15cdcf238e4b9e417be5b8252f4e7fba2844a69925",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1532,6 +1532,10 @@
     {
       "task": 753,
       "file": "753-the-supervised-non-claude-producer-trial.md"
+    },
+    {
+      "task": 785,
+      "file": "785-ten-unattended-outcomes-price-every-non-claude-p.md"
     },
     {
       "prose": ""

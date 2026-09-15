@@ -1,0 +1,74 @@
+{
+  "row": "[#785]",
+  "generated_by": "scripts/provider_bench.py",
+  "rows": [
+    {
+      "trap": "copilot --model refuses every real model id",
+      "still_bites": true,
+      "detail": {
+        "model_ids": {
+          "claude-sonnet-5": {
+            "exit_code": 1,
+            "refused": true,
+            "evidence": "Error: Model \"claude-sonnet-5\" from --model flag is not available.",
+            "error": null
+          },
+          "claude-fable-5.1": {
+            "exit_code": 1,
+            "refused": true,
+            "evidence": "Error: Model \"claude-fable-5.1\" from --model flag is not available.",
+            "error": null
+          },
+          "gpt-5": {
+            "exit_code": 1,
+            "refused": true,
+            "evidence": "Error: Model \"gpt-5\" from --model flag is not available.",
+            "error": null
+          }
+        },
+        "control:auto": {
+          "exit_code": 0,
+          "refused": false,
+          "evidence": "TRAP_PROBE_OK\n\n\n\nChanges    +0 -0\nAI Credits 0.04 (8s)\nTokens     ↑ 14.9k (14.2k cached) • ↓ 9\nResume     copilot --resume=ba6835a5-3572-4974-90f9-ffb458cc2f4e",
+          "error": null
+        }
+      },
+      "meaning": "every real id is refused while the `auto` control is accepted, so the flag is live and the caller still cannot pin a model -- a copilot result remains unreproducible"
+    },
+    {
+      "trap": "codex exec blocks on a stdin that is never closed",
+      "still_bites": true,
+      "detail": {
+        "stdin_held_open": {
+          "exit_code": null,
+          "error": "no exit within 240s with stdin held open",
+          "evidence": "Reading additional input from stdin..."
+        },
+        "stdin_closed": {
+          "exit_code": 0,
+          "error": null,
+          "evidence": "TRAP_PROBE_OK\nReading additional input from stdin...\nOpenAI Codex v0.153.4\n--------\nworkdir: C:\\Users\\1028120\\.claude\\jobs\\a07a1f47\\tmp\\bench-cwd\nmodel: gpt-5.6-terra\nprovider: openai\napproval: never\nsandbox: workspace-write [workdir, /tmp, $TMPDIR]\nreasoning effort: low\nreasoning summaries: none\nse"
+        }
+      },
+      "meaning": "stdin must be closed by the caller; the announcement 'Reading additional input from stdin...' is the tell"
+    },
+    {
+      "trap": "agy print mode soft-denies tools without --dangerously-skip-permissions",
+      "still_bites": true,
+      "flagged_run_answered": true,
+      "detail": {
+        "without_flag": {
+          "exit_code": 0,
+          "error": null,
+          "evidence": "{\"conversation_id\":\"c6655c63-df69-4025-9c3e-d529c6f1e6e8\",\"status\":\"SUCCESS\",\"response\":\"\",\"duration_seconds\":3.2749379,\"num_turns\":1,\"usage\":{\"input_tokens\":13159,\"output_tokens\":858,\"thinking_tokens\":795,\"cache_read_tokens\":0,\"total_tokens\":14017},\"denied_actions\":[{\"action\":\"command\",\"display_nam"
+        },
+        "with_flag": {
+          "exit_code": 0,
+          "error": null,
+          "evidence": "{\"conversation_id\":\"23ecc2ce-a18b-4594-8145-a663c7d61553\",\"status\":\"SUCCESS\",\"response\":\"trap-marker.txt\\ntrap-stderr.txt\\ntrap-stdout.txt\\nusage-copilot-extract-id.json\\n\",\"duration_seconds\":18.0669703,\"num_turns\":1,\"usage\":{\"input_tokens\":42974,\"output_tokens\":1957,\"thinking_tokens\":1809,\"cache_re"
+        }
+      },
+      "meaning": "the flag is mandatory for any agy run that must touch a file"
+    }
+  ]
+}
