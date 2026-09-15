@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "037e2de2754692e4995931faf9feba594a333c9f736ed680c7b77fc5c89e1b07",
+  "generated_sha256": "910a01bbee4a866ee49d9e34cda08def90f9d53643e7948a8480a4a06595d1d5",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -873,6 +873,10 @@
     {
       "task": 538,
       "file": "538-the-nb4-c-playbook-gap-arc-twelve-paste-ready-acts.md"
+    },
+    {
+      "task": 793,
+      "file": "793-a-withdrawn-lane-contract-left-a-live-worktree-bu.md"
     },
     {
       "prose": "## [E4] Decision management"
