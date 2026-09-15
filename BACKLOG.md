@@ -132,6 +132,8 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#762] [P2][S] A worktree teardown races the departing session's Stop hook, which re-creates the tree being removed — and the no-leftovers check cannot see what it leaves · tasks/762-a-worktree-teardown-races-the-departing-sessions-stop-hook.md
 - [#763] [P1][S] Re-measure the batch-Z suite baseline freeze at batch close — a cause whose lane merged must have left the set · tasks/763-re-measure-the-batch-z-suite-baseline-freeze-at.md
 - [#764] [P1][S] Batch Z implements the night plan of 2026-09-15 — the four transport decisions the engine refused every commit for · tasks/764-batch-z-implements-the-night-plan-of-2026-09-15.md
+- [#782] [P1][M] The quality-requirements register: non-functional requirements as a registered, enforced, rendered artifact · tasks/782-the-quality-requirements-register-non-functional-requirements-as-a-registered-enforced-artifact.md
+- [#783] [P2][S] The carried-to-RESOLVED leg of decision-coverage has never once been exercised · tasks/783-the-carried-to-resolved-leg-of-decision-coverage-has-never-been-exercised.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
@@ -291,6 +293,7 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 - [#647] [P3][M] The harness's own carrying cost is unmeasured, and lane contracts are pasted rather than referenced · tasks/647-harness-carrying-cost-unmeasured-contracts-pasted.md
 - [#731] [P1][M] The backlog only grows -- narration is relocated by hand and nothing stops a batch filing more rows than it closes · tasks/731-backlog-shrinks-by-mechanism-relocation-trigger-and-an-enforced-closure-budget.md
 - [#754] [P2][S] The two backlog row ceilings measure different corpora, and the source-side one has decayed back into the percentile its own amendment abolished · tasks/754-the-two-backlog-row-ceilings-measure-different-corpora.md
+- [#781] [P2][M] One management map rendered from the organ index, with trigger-less organs rendered DEAD · tasks/781-one-management-map-rendered-from-the-organ-index-with-trigger-less-organs-rendered-dead.md
 ## [E6] Cross-repo universalization
 > As the disseminator, I want every child repo to converge on the universal baseline.
 
@@ -414,6 +417,7 @@ So that cadence-less artifacts and unevaluated tools don't rot or get adopted bl
 - [#701] [P2][S] A Codex quota hit stalls review for 50 minutes and no fallback provider is authorized, so the reviewer role is a single point of failure · tasks/701-codex-quota-hit-stalls-review-with-no-authorized-fallback-provider.md
 - [#706] [P2][S] The operator packet gains D14, folder-as-domain -- and it cannot be decided before the domain census returns · tasks/706-operator-packet-gains-d14-folder-as-domain-decided-after-the-census.md
 - [#722] [P1][S] Interim routing: read-only digests, censuses and scans default to agy as a READER ONLY, with conclusions and verdicts staying on Claude · tasks/722-interim-routing-read-only-work-defaults-to-agy-as-reader-only.md
+- [#780] [P3][M] Three-repo comparison: a gap matrix, adopt-candidates, and an explicit will-NOT-adopt list · tasks/780-three-repo-comparison-gaps-adopt-candidates-and-an-explicit-will-not-adopt-list.md
 ### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)
 So that unattended routines run only with a named consumer, a survival metric, and a bounded operator load — never as rot generators (the fleet-audit lesson; sequencing per the standing operator ruling: the load-gauge lands before anything else in the Tier-2 nightly layer).
 - [#271] [P3][L] Nightly proposal loop · tasks/271-nightly-proposal-loop.md
