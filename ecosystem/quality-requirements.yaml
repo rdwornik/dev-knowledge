@@ -151,6 +151,62 @@ requirements:
       A candidate because no marker exists and no routing reads one. `pyproject.toml` carries
       no such mark and nothing in `.github/workflows/` selects on it.
 
+
+  - id: QR-PERF-005
+    attribute: performance
+    status: candidate
+    statement: >-
+      A session's per-turn cost is read against its OWN running median, and a seat whose cost
+      is rising while its work class is unchanged reclaims context at its next file-backed
+      checkpoint rather than running on.
+    metric: >-
+      Turns at or above 1.30x the seat's own running median, sustained 5 consecutive turns.
+      Derived 2026-09-15 over 681 hub-slug transcripts and 92,743 priced turns: the trigger
+      fires in 52.4% of sessions at 1.30x (84.4% at 1.10x, 0.9% at 2.00x), median first fire
+      at turn 68 / 43 minutes. 1.30x is the knee, not a preference -- a trigger that fires in
+      84% of sessions is the normal curve and one that fires in 0.9% never runs.
+    incident: >-
+      Per-turn cost rises 0.701 -> 1.247 x own median across turn-index bands while median
+      context per call rises 100,662 -> 350,757 tokens. Nothing reads either figure, so a
+      seat that has become expensive is indistinguishable from one that is merely busy.
+    source: >-
+      batch AA lane aa-14, frozen contract section 1; derivation in
+      docs/audits/2026-09-15-technical-lane-aa-14-resource-lifecycle.md sections 2.1 and 3.1
+    note: >-
+      THE CONFOUND IS RECORDED RATHER THAN ABSORBED. The statement says "while the work class
+      is unchanged" and work class is NOT controlled for -- no transcript field carries it.
+      What makes the number survivable is the held leg: with turn index held in the band
+      50-100, an eight-fold spread in elapsed time moves cost only 0.915 -> 1.003, which is
+      what context accumulation predicts and what a work-class explanation does not.
+
+  - id: QR-PERF-006
+    attribute: performance
+    status: candidate
+    statement: >-
+      UPSTREAM, NOT OURS. A long-running session degrades over roughly 30 minutes of use,
+      accumulating CPU and memory; a restart carrying the same context restores its speed.
+    metric: >-
+      Per-turn latency against the session's own median, by session age.
+    incident: >-
+      Publicly reported upstream against Claude Code and carried into this repo by
+      DIGEST-2026-09-15-unrecorded-findings.md section 1. **MEASURED HERE AND NOT
+      REPRODUCED:** taking latency as the gap between a tool_result record and the assistant
+      record answering it, the ratio to own median is 0.995 / 1.001 / 0.999 / 0.994 / 0.999 /
+      1.041 / 1.025 across the 0-15, 15-30, 30-60, 60-120, 120-240, 240-480 and 480+ minute
+      bands -- flat at median, p75 and p90 alike over 92,743 turns.
+    source: >-
+      upstream public issue report, relayed by DIGEST-2026-09-15-unrecorded-findings.md
+      section 1; the non-reproduction is
+      docs/audits/2026-09-15-technical-lane-aa-14-resource-lifecycle.md section 3.2
+    note: >-
+      TWO LIMITS, BOTH LOAD-BEARING. (1) The instrument sees MODEL response latency; if the
+      degradation is client-side -- UI, the whole-file transcript read of QR-RES-003, tool
+      dispatch -- this measurement cannot see it, so the honest claim is "no server-side
+      latency degradation with session age", not "no degradation". (2) THE UPSTREAM ISSUE
+      NUMBER IS NOT CARRIED. The contract asks every upstream entry to record it and the
+      digest this lane was given records none; inventing one would be worse than the gap.
+      What closes it: the browser seat that read the reports holds the links.
+
   # ---- availability / reliability ---------------------------------------------------
   - id: QR-AVAIL-001
     attribute: availability
@@ -289,6 +345,36 @@ requirements:
       here describes work that did not happen, and this one describes work that reported
       itself as done.
 
+
+  - id: QR-AVAIL-009
+    attribute: availability
+    status: candidate
+    statement: >-
+      UPSTREAM, NOT OURS. A process spawned through the Bash tool is reparented and runs
+      indefinitely after its session ends; the fix requested upstream is whole-process-TREE
+      teardown rather than killing the top-level PID.
+    metric: >-
+      Descendants alive after a session ends: 0. A teardown that reaches one generation and
+      stops scores the same as no teardown, so the metric counts descendants and never the
+      parent.
+    incident: >-
+      Publicly reported upstream and REPRODUCED HERE TWICE, which is why it is filed rather
+      than merely relayed: a 46.8-hour bash poller still running against the deleted lane
+      `lane-x-689-conductor-e-proof` (job d14f5e04, 2026-09-14T22:58Z, found among 18 orphans
+      holding 688.6 MB), and a grandchild that outlived the parent kill by roughly 8 minutes
+      (QR-AVAIL-005).
+    source: >-
+      upstream public issue report, relayed by DIGEST-2026-09-15-unrecorded-findings.md
+      section 1; the two local reproductions are QR-AVAIL-004 and QR-AVAIL-005
+    note: >-
+      DISTINCT FROM QR-AVAIL-004 AND QR-AVAIL-005, and filed separately on purpose. Those two
+      record what WE measured on this box; this one records that the defect is upstream,
+      acknowledged, and has a named requested fix. The distinction decides what we build: a
+      defect that is ours is fixed, one that is upstream is WORKED AROUND and the workaround
+      is removed when the upstream fix lands. Conflating them produces a permanent workaround
+      nobody remembers to retire. The upstream issue number is not carried -- see
+      QR-PERF-006's note for why that gap is left open rather than filled with a guess.
+
   # ---- resource control --------------------------------------------------------------
   - id: QR-RES-001
     attribute: resource-control
@@ -312,6 +398,124 @@ requirements:
       worktree list, also a count. Nothing in the tree reads free memory before a dispatch.
       Filed as a candidate under the register's own rule rather than attached to the
       count-ceiling organ, which would have been the available lie.
+
+
+  - id: QR-RES-002
+    attribute: resource-control
+    status: candidate
+    statement: >-
+      UPSTREAM, NOT OURS. An idle session grows without bound, and the growth is NOT context:
+      it is time-based.
+    metric: >-
+      Resident memory of a session process against its age, with context size held.
+    incident: >-
+      Publicly reported upstream: four idle sessions reached roughly 15 GB each over 18 hours
+      with no interaction while the debug log showed context CONSTANT at 6,664 chars; the
+      combined 60 GB triggered the OS OOM killer. **MEASURED HERE 2026-09-15 AND NOT
+      REPRODUCED AT THAT MAGNITUDE:** across 62 live claude processes the largest was 393.9 MB
+      and the oldest (11.83 h) was at 161.6 MB. What IS reproduced is the DIRECTION -- the
+      session-process class rises 255.6 MB under 0.5 h to 383.0 MB at 0.5-1 h (r = 0.440,
+      21.4 MB/h under 4.5 h) and then plateaus.
+    source: >-
+      upstream public issue report, relayed by DIGEST-2026-09-15-unrecorded-findings.md
+      section 1; the local measurement is
+      docs/audits/2026-09-15-technical-lane-aa-14-resource-lifecycle.md sections 2.2 and 2.3
+    note: >-
+      THIS ENTRY IS THE REGISTER'S RECORD OF A THESIS, not only of a defect. Because the
+      growth is time-based and the COST growth measured beside it is context-based (see
+      QR-PERF-005), clearing context does not free process memory and retiring a session does
+      not reclaim a cache that was not the problem. They are two mechanisms, and building one
+      for both is why neither works. The 15 GB figure is deliberately NOT the number any
+      local threshold is set against -- the measured plateau is, and a threshold set against
+      an unreproduced magnitude would refuse nothing here. The upstream issue number is not
+      carried; see QR-PERF-006's note.
+
+  - id: QR-RES-003
+    attribute: resource-control
+    status: candidate
+    statement: >-
+      UPSTREAM, NOT OURS, AND LOAD-BEARING FOR US. A session transcript is read whole, with
+      no streaming read and no size safeguard, so a large one exhausts the client's memory.
+    metric: >-
+      Largest transcript any reader opens, against a declared bound. Measured across the
+      whole local store 2026-09-15: 3,036 transcripts, 2,422 MiB total, max 28.19 MiB,
+      p99 6.42 MiB, median 0.34 MiB. Over 50 MiB: 0. Over 25 MiB: 3.
+    incident: >-
+      Publicly reported upstream: a 102 MB `.jsonl` consumed 90% of available RAM and froze
+      the client. **LOAD-BEARING FOR US BECAUSE WE ARE ALSO A READER:** `scripts/lane_cost.py`
+      reads transcripts to price a lane, so our own cost instrument is a second client that
+      hits the same wall. Our largest today is 28.19 MiB, 3.6x below the reported freeze
+      point -- headroom, not immunity, and the corpus grows monotonically.
+    source: >-
+      upstream public issue report, relayed by DIGEST-2026-09-15-unrecorded-findings.md
+      section 1; the local corpus measurement is
+      docs/audits/2026-09-15-technical-lane-aa-14-resource-lifecycle.md section 5
+    note: >-
+      THE ARCHIVE PATH HAS A MEASURED TRAP AND IT IS NAMED HERE SO THE NEXT LANE DOES NOT
+      WALK INTO IT. Archiving out of the scan path is the right shape -- archive, never
+      delete, because the cost history IS the corpus -- but reusing `scripts/logs_retention.py`
+      relocates a dated file into `logs/YYYY-MM/`, whose `.gitignore` patterns are `.md`-only
+      (`.gitignore` lines 34-35), so a relocated `.json`/`.jsonl` lands untracked and leaves
+      the tree permanently dirty; `scripts/validate_hermetization.py` then refuses that home
+      as unallowlisted. Two hub organs disagree about where a dated `logs/` artifact lives.
+      `[#785]` already records the disagreement. Transcripts live OUTSIDE the repo
+      (`~/.claude/projects/`), so a transcript bound must not route through `logs/` retention
+      at all -- which is how this entry routes around the trap rather than resolving it.
+
+  - id: QR-RES-004
+    attribute: resource-control
+    status: candidate
+    statement: >-
+      Where a heap cap is the known workaround, it is EMITTED BY THE GENERATOR into the
+      executable launch line and never set in a paste.
+    metric: >-
+      Launch lines carrying the declared cap: all of them. Declared values that reach no
+      executable line: 0.
+    incident: >-
+      `NODE_OPTIONS="--max-old-space-size=..."` is the workaround upstream names for the
+      growth in QR-RES-002. The reason it must be generator-emitted is MEASURED and local:
+      `SEAT_MODELS` carried the integrator's model split from 2026-09-11 and rendered into an
+      HTML COMMENT while the boot's actual launch line was a bare `claude`, so batch Z ran
+      100% Opus under a header claiming a split. A second instance of declared enforcement
+      without enforcement is the thing to avoid here.
+    source: >-
+      upstream public issue report (the cap) relayed by
+      DIGEST-2026-09-15-unrecorded-findings.md section 1; the render defect is that digest's
+      section 5 and is owned by `[#789]`
+    note: >-
+      NOT APPLIED BY THE LANE THAT FILED THIS ENTRY, and the reason is file ownership rather
+      than difficulty. `scripts/gen_seat_boot.py` is `[#789]`'s sole-owned file and `[#789]`
+      is rewriting that exact render surface so a declared value cannot reach a comment.
+      Opening it from batch AA lane aa-14 would be a second undeclared claim on a module
+      under restructure -- the disposition `scripts/lane_cost.py` records against
+      `scripts/merge_receipt.py`. Filed as a candidate so the requirement is visible while
+      the surface that must satisfy it belongs to another row.
+
+  - id: QR-RES-005
+    attribute: resource-control
+    status: candidate
+    statement: >-
+      A Codespace lane is attached while it runs and TORN DOWN at handback, never stopped and
+      left warm; and its receipt records uptime MINUTES alongside tokens.
+    metric: >-
+      Codespaces in `Shutdown` state older than one batch: 0. Receipts for a Codespace lane
+      carrying an uptime figure: all of them. Measured 2026-09-15: zero receipts carry any
+      uptime or minutes key, and one codespace (`suite-baseline-2026-09-08`) had been sitting
+      Shutdown for 7 days with `retentionPeriodDays: 30`.
+    incident: >-
+      The cloud regime is a METER, not a ceiling, and nothing reads it. Tokens alone price the
+      wrong resource here: a container that sits attached and idle burns budget while its
+      token count stays flat, which makes an idle lane look like a cheap one.
+    source: >-
+      batch AA lane aa-14, frozen contract section 3; figures in
+      docs/audits/2026-09-15-technical-lane-aa-14-resource-lifecycle.md section 6
+    note: >-
+      THE THRESHOLDS IN THIS ENTRY SHARE NO CONSTANT WITH THE LOCAL ONES, deliberately. Local
+      is a fixed ceiling allocated against; cloud is a meter run down. A single number tuned
+      for one is wrong for the other, and a mechanism that treats them as one resource is why
+      neither is managed today. STOPPED IS NOT FREE: a Shutdown codespace bills storage for up
+      to its retention period, so "stop it at handback" is a weaker rule than "delete it" and
+      the metric above counts Shutdown codespaces for that reason.
 
   # ---- observability -----------------------------------------------------------------
   - id: QR-OBS-001

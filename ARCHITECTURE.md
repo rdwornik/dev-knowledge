@@ -702,7 +702,7 @@ no trigger and no named consumer is refused at freeze, so both are stated here r
 left to be inferred.
 
 <!-- QUALITY-REQUIREMENTS:START -->
-Register: `ecosystem/quality-requirements.yaml` (v1.0.0) — 16 requirement(s), 4 measured, 12 candidate. Floor tier: MUST.
+Register: `ecosystem/quality-requirements.yaml` (v1.0.0) — 23 requirement(s), 4 measured, 19 candidate. Floor tier: MUST.
 
 A **measured** row names the organ that enforces it and the trip-test that proves the organ refuses; the trip-test is itself run against a neutered organ and has to go RED, so a trip-test that passes unconditionally is refused rather than counted. A **candidate** row carries neither field — a requirement with no enforcement is recorded as one instead of being attached to the nearest plausible organ.
 
@@ -712,6 +712,8 @@ A **measured** row names the organ that enforces it and the trip-test that prove
 | `QR-PERF-002` | performance | candidate | No seat runs the full suite on the workstation; locally a seat runs the impacted set for the changed file, and the full suite runs once, at integration. | — | — |
 | `QR-PERF-003` | performance | candidate | A heavy commit-tier gate carries a measured wall-time and memory budget; above it the gate moves to CI or becomes incremental. | — | — |
 | `QR-PERF-004` | performance | candidate | A test that spawns a shell per case is marked, and the marked set is routed to Actions rather than run locally. | — | — |
+| `QR-PERF-005` | performance | candidate | A session's per-turn cost is read against its OWN running median, and a seat whose cost is rising while its work class is unchanged reclaims context at its next file-backed checkpoint rather than running on. | — | — |
+| `QR-PERF-006` | performance | candidate | UPSTREAM, NOT OURS. A long-running session degrades over roughly 30 minutes of use, accumulating CPU and memory; a restart carrying the same context restores its speed. | — | — |
 | `QR-AVAIL-001` | availability | measured | A seat does not end its turn on a wait. A wait is written as a loop carrying an interval, a bound and a predicate read from the file surface, or it is refused. | `scripts/seat_refusals.py` | `test_qr_avail_001_sleeping_poll_is_refused` |
 | `QR-AVAIL-002` | availability | candidate | A lane that ends without handing back is detected from git rather than waited on. | — | — |
 | `QR-AVAIL-003` | availability | candidate | A Codespace lane runs attached; a detached one is refused at dispatch. | — | — |
@@ -720,7 +722,12 @@ A **measured** row names the organ that enforces it and the trip-test that prove
 | `QR-AVAIL-006` | availability | candidate | Terminating a background session deregisters it; a session the daemon can rehydrate is not reclaimed. | — | — |
 | `QR-AVAIL-007` | availability | candidate | A session whose worktree was torn down refuses to write rather than resolving to the primary checkout. | — | — |
 | `QR-AVAIL-008` | availability | candidate | A substrate whose provisioning failed reports the failure; a silently substituted environment is refused rather than used. | — | — |
+| `QR-AVAIL-009` | availability | candidate | UPSTREAM, NOT OURS. A process spawned through the Bash tool is reparented and runs indefinitely after its session ends; the fix requested upstream is whole-process-TREE teardown rather than killing the top-level PID. | — | — |
 | `QR-RES-001` | resource-control | candidate | A memory floor below which the dispatcher refuses another local lane and reports the refusal -- arithmetic, rather than a judgement call at dispatch time. | — | — |
+| `QR-RES-002` | resource-control | candidate | UPSTREAM, NOT OURS. An idle session grows without bound, and the growth is NOT context: it is time-based. | — | — |
+| `QR-RES-003` | resource-control | candidate | UPSTREAM, NOT OURS, AND LOAD-BEARING FOR US. A session transcript is read whole, with no streaming read and no size safeguard, so a large one exhausts the client's memory. | — | — |
+| `QR-RES-004` | resource-control | candidate | Where a heap cap is the known workaround, it is EMITTED BY THE GENERATOR into the executable launch line and never set in a paste. | — | — |
+| `QR-RES-005` | resource-control | candidate | A Codespace lane is attached while it runs and TORN DOWN at handback, never stopped and left warm; and its receipt records uptime MINUTES alongside tokens. | — | — |
 | `QR-OBS-001` | observability | measured | Every merge records its own wall time. A merge with no receipt, or with a receipt that is not a usable measurement, is refused. | `scripts/merge_receipt.py` | `test_qr_obs_001_unreceipted_merge_is_refused` |
 | `QR-OBS-002` | observability | measured | A model with no declared rate is reported as UNPRICED with a reason. It is not priced at zero and is not summed into a total. | `scripts/provider_registry.py` | `test_qr_obs_002_unpriced_model_is_refused` |
 | `QR-OBS-003` | observability | candidate | An organ not invoked in 30 days surfaces, so an unused mechanism is visible rather than merely maintained. | — | — |
