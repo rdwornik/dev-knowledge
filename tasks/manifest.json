@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "0f41d5f9c385d996a84ac03158abae0e38b9f338a6128bcc13d614c1481579ee",
+  "generated_sha256": "9e80474cf5f67cd9a3134173c44a56cc0e5d99bf3cbb2e2286e462496f865679",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -514,6 +514,14 @@
       "file": "783-the-carried-to-resolved-leg-of-decision-coverage-has-never-been-exercised.md"
     },
     {
+      "task": 768,
+      "file": "768-a-gate-has-one-refusal-channel-so-a-violation-an.md"
+    },
+    {
+      "task": 772,
+      "file": "772-every-dispatched-lane-inherits-the-whole-secret.md"
+    },
+    {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
     },
     {
@@ -546,6 +554,10 @@
     {
       "task": 719,
       "file": "719-organ-index-entries-answer-to-no-schema-validate-against-catalog-model.md"
+    },
+    {
+      "task": 767,
+      "file": "767-a-tool-description-is-gated-only-where-it-is-gen.md"
     },
     {
       "prose": ""
@@ -1097,6 +1109,10 @@
       "file": "781-one-management-map-rendered-from-the-organ-index-with-trigger-less-organs-rendered-dead.md"
     },
     {
+      "task": 766,
+      "file": "766-the-session-boot-payload-has-a-byte-budget-on-on.md"
+    },
+    {
       "prose": "## [E6] Cross-repo universalization"
     },
     {
@@ -1465,6 +1481,14 @@
       "file": "751-cost-in-money-tokens-and-usd-per-lane-and-per-model.md"
     },
     {
+      "task": 769,
+      "file": "769-an-unattended-lane-has-no-cancel-for-a-long-runn.md"
+    },
+    {
+      "task": 771,
+      "file": "771-729-carries-no-protocol-conformance-criterion-so.md"
+    },
+    {
       "prose": "### [S19] Decide the undecided artifact/tool models"
     },
     {
@@ -1563,6 +1587,10 @@
     {
       "task": 722,
       "file": "722-interim-routing-read-only-work-defaults-to-agy-as-reader-only.md"
+    },
+    {
+      "task": 784,
+      "file": "784-aj-m04-has-never-been-read-against-this-repo-no.md"
     },
     {
       "task": 780,
@@ -2160,6 +2188,10 @@
     {
       "task": 495,
       "file": "495-tech-currency-cadence-give-385-a-recurring-lane.md"
+    },
+    {
+      "task": 770,
+      "file": "770-nothing-notices-an-external-specification-revisi.md"
     },
     {
       "prose": ""

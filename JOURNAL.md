@@ -19,6 +19,72 @@
 
 ---
 
+### 2026-09-15 (k) - CC (Opus 5, background integrator seat): lane z-10 reads M04 against this repo, and corrects me about why the exemption never fired
+
+**Anchors:** `cb92014b` — the seven rows the matrix's UNOWNED column produced — and `7d8a1f59`,
+the end-of-lane packet; two of the nine commits this merge introduces.
+
+**CORRECTION TO ENTRY (f), AND THE LANE IS THE ONE THAT CAUGHT IT.** Entry (f) claims I disabled
+the ADR-110 declared-integration-arc exemption for every lane merge tonight by writing descriptive
+merge subjects instead of git's default `Merge branch '<name>'` form. **That attribution is
+wrong.** This lane's packet, open item 4, says the batch-Z manifest *"declares nothing
+machine-readable"*, and the organ agrees: `batch_manifest.open_batches()` returns `[]`. The
+manifest at `docs/audits/2026-09-15-technical-batch-z-manifest.md` **carries no frontmatter at
+all** — no `status: open`, no `closed_by:` — and `open_batches` requires all four conditions and
+**fails toward no-exemption**. So the exemption was never available tonight **whatever subject I
+wrote.** My subject style is a real second reason it would also not have fired, and it stays worth
+knowing, but it was **not the operative cause and entry (f) presents it as one.** The append is
+the correction; the landed text stands, as ADR-85 AF-1 requires.
+
+**Recorded because the shape matters more than the fact:** I found a mechanism not working, found
+one sufficient cause, and stopped looking. **A sufficient cause is not the binding one**, and the
+difference is invisible precisely when the thing fails closed — both causes produce an identical
+silence. It took a lane's packet, written by a session that had already stopped, to catch it.
+
+**LANE z-10's ACTUAL WORK: M04 IS READ AGAINST THIS REPO FOR THE FIRST TIME.** Seven lessons and
+five decks located and hashed, so a line number is reproducible rather than asserted; four evidence
+legs (`LEG-A`, `LEG-B`, `LEG-C`, `LOCATOR-VERIFICATION`, 845 lines) carrying the SHIPPED / OWNED /
+UNOWNED matrix that has never existed here. The UNOWNED column is the deliverable, and it produced
+**seven rows** — `[#766]`–`[#772]` — each a practice this repo neither adopted nor refused. **An
+artifact in neither the OWNED nor the REJECTED state is outside the ADR-111 funnel entirely**,
+which is the gap the lane exists to close.
+
+**`[#772]` IS THE ONE WITH A BLAST RADIUS OUTSIDE THIS REPO.** P1: every dispatched lane inherits
+the whole secret environment, so credentials reach third-party binaries. The lane's own packet says
+it *"gets worse while it sits"*, and it is flagged here rather than left to be found in a row list.
+
+**A SECOND ID COLLISION, AND BOTH ARE MINE.** The lane renumbered `[#763]` → `[#765]` mid-flight,
+recorded in `627297c0` as *"after a live id collision"* — `[#763]` was taken because **I filed the
+freeze expiry row from the integrator seat while the lanes were running.** It moved to `[#765]`,
+which lane z-0 had already taken and which is now merged and cited by seven commits, a packet and a
+register. So the lane dodged my first collision straight into a second. Resolved `[#765]` →
+`[#784]` across **13 files**: the row's filename, frontmatter and body — which must agree
+byte-exact in all three — the seven sibling rows citing it, the packet and the four legs. **The
+evidence files were corrected BEFORE landing**, because an audit is immutable once landed and the
+alternative was landing a record whose every citation resolved to another lane's row.
+
+**The integrator seat allocating ids concurrently with its own lanes is the defect**, not either
+lane's filing. A seat that hands out ids from the same space its lanes are drawing from will
+collide, and it will collide silently, because a lane cannot see a branch that does not exist yet.
+
+**A `try/except Exception: continue` in my own renumbering script silently skipped all 13 files.**
+`Path.read_text()` takes no `newline=` kwarg on this Python; every file raised `TypeError` and was
+swallowed by my own blanket catch, and the script reported success having done nothing. **That is
+the fail-open shape I spent the night auditing in other people's organs**, written by me, in the
+tool I was using to audit it. Caught only because the generator refused afterwards on an identity
+mismatch — a gate caught it, not the script's own report.
+
+**Did:** established handback from git; synced, hit a manifest-checksum conflict and a live id
+collision, renumbered 13 files; verified the exemption claim against the organ instead of repeating
+it.
+**Result:** M04's matrix exists; seven UNOWNED practices are rows; entry (f)'s attribution is
+corrected at the source.
+**Changes:** `docs/audits/2026-09-15-technical-lane-z-10-aj-m04-evidence/` (4 legs),
+the lane packet, `tasks/766`–`772`, `tasks/784`, `tasks/manifest.json`, `BACKLOG.md`, `JOURNAL.md`.
+**Abandoned:** nothing.
+**Next:** regenerate the audits index on the merged result (five new files under `docs/audits/`);
+lane z-4 has handed back with 10 commits.
+
 ### 2026-09-15 (j) - CC (Opus 5, background integrator seat): five of lane z-0's eight have a cause nobody has ruled on, so I did not rule on it
 
 **Anchors:** `fe63a349` — intake 100 and the audits-index regeneration.
@@ -289,6 +355,8 @@ of the instruments, and the receipt's verdict must not be read as discharging th
 added `tests/test_provision_legs.py` and extended `tests/test_provision_sh.py`. New tests that all
 land green are the quiet good outcome — and also the case most likely to hide a displaced frozen
 failure behind an unchanged failure count, which is the second reason the diff was by node id.
+
+**[CORRECTED 2026-09-15 by entry (k) — see there. The attribution below is WRONG: `batch_manifest.open_batches()` returns `[]` because the batch-Z manifest carries no frontmatter, so the exemption was never available whatever subject was written. The subject style is a real second cause, not the operative one.]**
 
 **I DISABLED THE ADR-110 EXEMPTION FOR EVERY LANE MERGE TONIGHT, BY WRITING A BETTER SUBJECT.**
 `check_journal_spine_anchor`'s declared-integration-arc exemption requires a `worktree-lane-*`
