@@ -19,6 +19,60 @@
 
 ---
 
+### 2026-09-15 (i) - CC (Opus 5, background integrator seat): the freeze refused lane z-0's merge with eight, and all eight were the debt the lane had declared
+
+**Anchors:** `750f3fbe` — the commit paying the two index debts and resolving `[#782]` into
+`[#765]`.
+
+**EIGHT FAILURES OUTSIDE THE FROZEN SET, WHICH IS A REFUSAL AND NOT A FOOTNOTE.** Conductor run
+`34929184598` on `2830d3d6` measured **59 failed, 5961 passed** against the frozen 51. The node-id
+diff: **8 outside, 0 departed.** Every one of the eight is a freshness or release-lint check —
+`test_gen_audit_index` ×2, `test_generate_organ_index` ×1, `test_release_lint` ×5.
+
+**They are exactly the debt lane z-0 declared in writing.** The lane skipped
+`doc-counts-pytest-freshness` and `organ-index-freshness` **by name in its commit bodies** and
+reserved both to the integrator, because each is one act on the merged tree and a conflict surface
+per lane. So the merge did introduce eight regressions, the cause was known **before** the
+conductor named them, and the repair was already in flight when it did. **That is the good version
+of this failure**, and it is worth separating from the bad version: a declared debt that a gate
+then finds is a handshake; an undeclared one is a hole. `--no-verify` would have produced the
+identical eight with nothing on record saying why.
+
+**THE RULE STILL REFUSED, AND IT SHOULD HAVE.** A declared debt is not an exemption. The merge is
+judged by what the tree does, not by what a commit body promised, and the correct reading of run
+`34929184598` is *this merge is not yet clean*, held open until the repair lands and a later run
+shows the eight gone. Recording the debt is what makes the refusal legible, not what dismisses it.
+
+**A DEPARTURE CONFIRMED THE SHA-DEPENDENCY FINDING WITHOUT BEING ASKED TO.**
+`test_every_claim_class_the_brief_names_is_extractable` failed at `70356500` and passes at
+`2830d3d6`. Nothing about it changed; the short SHA stopped being all digits. Entry (g) predicted
+exactly this, and the prediction came true on the next commit — which is the strongest available
+evidence that the diagnosis was right and not merely plausible.
+
+**A PARSER OF MY OWN BRIEFLY REPORTED 52 FROZEN MEMBERS.** The amendment I appended to the freeze
+quotes the offending node id inside a fenced block, and a naive line-prefix scan counted the
+quotation as a roster entry. **The artifact recording a defect became a source of the same defect
+class it recorded** — a document that describes a test id is not a document that contains one. The
+scan now reads only the roster section, above the amendment heading. Caught by the number moving
+when nothing had; it would have been invisible had the roster been quoted at a count that matched.
+
+**`[#782]` is SUPERSEDED, not closed, and the distinction is load-bearing.** It duplicates
+`[#765]`. `--close-row` writes `closed`; both are terminal so the manifest stays coherent, but
+`closed` would assert the work is done. It is not. **`[#765]` stays OPEN because the organ lane
+z-0 landed does not satisfy `[#765]`'s own Done-when** — that clause requires each measured entry's
+`trip_test` to resolve to a test that EXISTS and passes only because the organ refuses, and the
+organ checks the trip-test FILE and never the TEST. **The Codex HIGH finding therefore needs no new
+row: the open row already names the gap.** Filing one would have been double-filing and would have
+flattered the rows-filed count. BACKLOG 339 → 338.
+
+**Did:** judged the merge by node-id diff; regenerated `ecosystem/doc-counts.md` and
+`ecosystem/organ-index.md`; superseded `[#782]`; corrected my own frozen-set parser.
+**Result:** the declared debts are paid; whether the eight clear is the next conductor run's to say.
+**Changes:** `ecosystem/doc-counts.md`, `ecosystem/organ-index.md`, `BACKLOG.md`,
+`tasks/782-…md`, `tasks/manifest.json`, `JOURNAL.md`.
+**Abandoned:** nothing.
+**Next:** confirm the eight clear; lanes z-10 (handed back) and z-4 (still committing).
+
 ### 2026-09-15 (h) - CC (Opus 5, background integrator seat): lane z-0 makes the quality requirements a register that is READ, and a parallel review found it fail-open twice
 
 **Anchors:** `bfd55534` — the floor commit, and `460fbd0a`, the commit that turns the register
