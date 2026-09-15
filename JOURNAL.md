@@ -19,6 +19,64 @@
 
 ---
 
+### 2026-09-15 (b) - CC (Opus 5, background integrator seat): lane z-11 merges, and its best finding is a defect in our own organ
+
+**Anchors:** `711eacf7` — lane z-11's end-of-lane packet, the last of the four commits this merge
+introduces (`eae6e58d`, `87b36702`, `1a57a77d`, `711eacf7`), plus the sync merge `edc5e2d5`.
+
+**Written at integration because the lane wrote none, and could not.** Lane z-11 ran on CC CLOUD and
+its packet says so plainly — *"Commit-and-STOP: nothing was merged into `main`, no JOURNAL entry was
+written."* A cloud lane cannot merge or be asked a question, so the anchoring law's requirement that
+the entry ride the arc's own branch ahead of the merge is discharged HERE, on the lane's branch,
+before the `--no-ff`. This is the general shape for every cloud and Actions lane this batch.
+
+**THE LANE WAS SENT TO COMPARE THREE REPOS AND CAME BACK WITH A DEFECT IN OUR OWN ORGAN, which it
+rates its strongest finding and this seat agrees.** `preflight_contract.py` cannot distinguish *"I
+could not look"* from *"I looked and it is wrong"* on a SHALLOW CLONE: a SHA merely outside the
+clone's depth renders as *"not present in this repo's object store"* — **3,774 false refusals out of
+3,894** in one cloud session. The module ALREADY owns the distinction the fix needs, keeping exit 2
+apart from exit 1 for exactly this reason, and simply has not extended it to an incomplete object
+store. Harmless while ungated; wrong in precisely the substrate ADR-119 and `[#664]` are deciding
+about — **and every cloud and Actions lane in this batch runs on a shallow clone.** Filed as intake
+`#95`.
+
+**Its headline finding is a rotted citation that rotted for the RIGHT reason.** Pointing the same
+organ at our own corpus surfaced ONE live broken locator in 127 files —
+`protocols/STANDING_RULINGS.md:4074`, citing line 96 of a 77-line template. The ruling it sits in,
+AG-1, describes a defect (a hardcoded `v5` era string in the handoff probe template) that **has since
+been fixed**: the template reads `v7.1` and P8 was split into P8a/P8b. **The citation rotted because
+the thing it described was remediated and the ruling was never updated** — a living rulings document
+carrying a ruling about a defect that no longer exists. Yield is honest and thin, 1 in 127, and the
+lane graded it so itself.
+
+**Four intakes, ZERO `tasks/` rows, and that is correct rather than timid.** ADR-111 admits exactly
+one path from finding to row — CANDIDATE → intake (ADR-98) → ratification — and ratification is the
+operator's act. The lane also recorded **seven refusals with their reasons**, which is the half that
+stops the next reader re-opening them; ADR-111 §2(d) requires a rejection to be recorded and not
+relitigated.
+
+**What this merge cost, recorded because AN1-3 asked for a number rather than an adjective.** Eight
+files of pure markdown, no code, no conflicts — **five gate cycles at 3–5 min each**: commit-msg
+wanted `kill-candidates:` on a sync merge carrying two ids; `audit-health` refused twice on
+`intake_tree_coherence`; **the OOM reaper killed one mid-commit** at ~1.8 GB free of 27.67 GB, with
+`ollama` resident at 8.2 GB and no part of this batch (`MERGE_HEAD` survived, nothing lost). One
+refusal was this seat's own error: **gen_intake_tree pins manifest.json to README.md's exact UTF-8
+bytes, so the INDEX is written FIRST and the TREE SECOND** — run backwards it reports both *"no item
+node"* and a `source_sha256` mismatch, which reads as a content problem when it is a sequencing one.
+`gen_intake_tree.py --check` answers in seconds what the gate takes minutes to refuse.
+
+**Codex review: NONE, reason docs-only.** All eight files are `.md`; `/codex-review` reviews a staged
+CODE diff. Recorded by name rather than substituted, per the `reviewer-mismatch` refusal.
+
+**Changes:** `docs/audits/2026-09-15-technical-lane-z-11-comparison-{packet,matrix,slots,dispositions}.md`,
+4 × `docs/intake/2026-09-15-tech-*.md`, `docs/intake/README.md`, `docs/intake/manifest.json`,
+`docs/audits/README.md` (the last three are integrator carried edits, not lane work).
+
+**Abandoned:** nothing.
+
+**Next:** lane 11's `--no-ff` into main, then its `kind=merge` receipt. Four local lanes and the
+dispatcher still working; no batch Z manifest on main yet, so each merge carries its own anchor arc.
+
 ### 2026-09-15 (a) - CC (Opus 5, background integrator seat): the 51 are frozen as a file, and the decision engine refuses for the first time
 
 **Anchors:** `6572c1b1` — the arc commit this merge introduces, carrying
