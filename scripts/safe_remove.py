@@ -80,6 +80,21 @@ except ImportError:  # pragma: no cover - exercised by the alternate launch path
         run_oracle,
     )
 
+def _wiring_targets(root: Path) -> dict[str, set[str]]:
+    """FPG-1's `triggers` relation, CONSUMED and never recomputed here (ADR-118 section 1).
+
+    Imported inside the call rather than at module scope, for two reasons that are both real:
+    `file_purpose_graph` pulls in rustworkx and four sibling validators, which is a cost
+    `audit.py` should not pay on every run that deletes nothing; and this module is itself
+    imported by `audit.py`, so a module-scope edge into the graph's own import fan-out is a
+    cycle waiting for the first validator that wants a removal check.
+    """
+    try:
+        from scripts.file_purpose_graph import wiring_targets
+    except ImportError:  # pragma: no cover - exercised by the alternate launch path
+        from file_purpose_graph import wiring_targets
+    return wiring_targets(root)
+
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS_DIR.parent
 
@@ -245,6 +260,48 @@ def materialize_query_root(repo_root: Path, removal_set, dest: Path, base: str =
     return dest
 
 
+# --- the CROSS-LANGUAGE leg: a wiring surface is a referrer the oracle cannot see -------
+
+def wiring_referrers(removal_set, scan_root: Path) -> list[dict]:
+    """Wiring surfaces that NAME a file in the removal set — the oracle's blind spot, closed.
+
+    `[#664]` clause 2 ([#554] lane aa-1's L3): the delivery spine's `triggers` relation, read
+    here as a REMOVAL guard. This module is the consumer; FPG-1 is where the relation lives.
+
+    THE HONEST LIMIT THIS MODULE HAS CARRIED SINCE #195 IS *"ALL cross-language edges are
+    INVISIBLE"*, and that limit has a measured body count. `scripts/cloud_provisioning.py` was
+    retired at `3c9418cc` as an unreferenced orphan; its six live callers were shell lines in
+    `.devcontainer/provision.sh` naming it by PATH. The static importer scan could not see them,
+    the verdict came back SAFE, the deletion landed, and on 2026-09-14 a fresh codespace died
+    into a recovery container. The limit was real; it was also closable, and this closes it.
+
+    ONE MECHANISM, NOT A PROVISIONING SPECIAL CASE. The relation read here is FPG-1's
+    `triggers` input (`file_purpose_graph.wiring_targets`), so EVERY declared wiring surface
+    protects what it names with no second code path: a pre-commit hook's `entry:`, a workflow's
+    `run:` line, a plugin manifest, and provisioning's shell all arrive through the same
+    function. Writing a provisioning-shaped branch here would have been the second special case
+    the lane contract says to stop and generalise instead of writing.
+
+    DIRECTION OF ERROR, kept where the module already puts it: a surface listed in the removal
+    set is CO-REMOVED and confers nothing, and everything else is a real referrer. Never raises
+    — a graph this cannot read yields no referrers, and the existing oracle legs still decide.
+    """
+    removal = {_norm(p) for p in removal_set}
+    try:
+        targets = _wiring_targets(Path(scan_root))
+    except Exception:            # the gate must not wedge on an unreadable surface
+        return []
+    found: list[dict] = []
+    for surface, named in sorted(targets.items()):
+        if _norm(surface) in removal:
+            continue             # co-removed: the caller is going too
+        for target in sorted(named):
+            if _norm(target) in removal:
+                found.append({"referrer": _norm(surface), "line": None, "symbol": None,
+                              "module": _norm(target), "kind": "wiring"})
+    return found
+
+
 # --- the consumer proper ---------------------------------------------------------------
 
 def evaluate_removal(removal_set, repo_root, *, oracle=run_oracle, langserver=None,
@@ -263,7 +320,11 @@ def evaluate_removal(removal_set, repo_root, *, oracle=run_oracle, langserver=No
     repo_root = Path(repo_root).resolve()
     scan_root = Path(scan_root).resolve() if scan_root is not None else repo_root
     removal = {_norm(p) for p in removal_set}
-    surviving: list[dict] = []
+    # The cross-language leg runs against `scan_root` and NOT `repo_root`, for the reason the
+    # bare-stem downgrade already runs there: the build-time `repo_root` is a `scripts/`-only
+    # materialization, and `.devcontainer/` and `.pre-commit-config.yaml` do not exist inside it.
+    # Querying the frankenstein would find no wiring surfaces at all and report a clean leg.
+    surviving: list[dict] = list(wiring_referrers(removal, scan_root))
     unverifiable: list[dict] = []
     completeness_seen: set[str] = set()
 
