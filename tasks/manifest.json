@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "d75c332163218eecbcc0dab9decf1c4fe5f44b111ea9e73ed96719edc1dd4a27",
+  "generated_sha256": "ca29993b3114765fa1451d0702a78b62a9e42db51c0f74ebad4bcfb1a3685d38",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -504,6 +504,10 @@
     {
       "task": 764,
       "file": "764-batch-z-implements-the-night-plan-of-2026-09-15.md"
+    },
+    {
+      "task": 765,
+      "file": "765-technical-quality-requirements-are-a-registered.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
