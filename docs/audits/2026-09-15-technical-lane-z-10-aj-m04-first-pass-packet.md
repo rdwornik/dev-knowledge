@@ -1,12 +1,12 @@
 # Lane z-10 — AJ M04 first pass: end-of-lane packet
 
-Consumers: `[#765]` (the row this lane implements), `[#764]` (batch Z's night-plan row)
+Consumers: `[#784]` (the row this lane implements), `[#764]` (batch Z's night-plan row)
 
 > **Row id correction, stated once and up front.** This lane filed its row as `[#763]` in
-> commit `faef0e76` and **renumbered it to `[#765]`** when the sync merge revealed that a
+> commit `faef0e76` and **renumbered it to `[#784]`** when the sync merge revealed that a
 > concurrent session had landed a different `[#763]` on `main` (commit `6572c1b1`, the batch-Z
 > suite-baseline freeze) minutes earlier. `faef0e76`'s commit message therefore names `[#763]`
-> and is wrong about it; the message is history and is not rewritten. **The live id is `[#765]`
+> and is wrong about it; the message is history and is not rewritten. **The live id is `[#784]`
 > everywhere else, including in this packet and in every row this lane files.** §4 records how
 > the collision happened and why it was predicted in `faef0e76`'s own body.
 
@@ -350,7 +350,7 @@ That commit's body named the hazard in PLAYBOOK Ch8 rule 3's own terms — paral
 their own stale `main`, so write-time allocation collides unless the range was reserved **in the
 file** before the split, and batch Z reserved none. Roughly forty minutes later `6572c1b1`
 landed a different `[#763]` on `main`. **The unmerged side moves**, so this lane renumbered to
-`[#765]` in `627297c0`. `faef0e76`'s message still says `[#763]` and is wrong about it; it is
+`[#784]` in `627297c0`. `faef0e76`'s message still says `[#763]` and is wrong about it; it is
 history and was not rewritten, which is why the correction sits at the top of this file.
 
 The batch manifest records the same event from the dispatcher's side (§11, *"The concurrent-id
@@ -460,7 +460,7 @@ the [#589] bar           72,000 B
 ```
 
 `main` is **23,484 B over** before this lane touches anything. This lane adds **1,592 B** — 222 B
-for `[#765]` and 1,370 B for the seven rows, about 196 B each, which is the one-line view
+for `[#784]` and 1,370 B for the seven rows, about 196 B each, which is the one-line view
 projection rather than the row bodies. The bar is `[#589]`'s own Done-when and `[#589]` is an open
 P1 row, so raising the constant is the act that row exists to forbid. Reported, not fixed.
 

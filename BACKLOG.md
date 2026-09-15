@@ -132,7 +132,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#762] [P2][S] A worktree teardown races the departing session's Stop hook, which re-creates the tree being removed — and the no-leftovers check cannot see what it leaves · tasks/762-a-worktree-teardown-races-the-departing-sessions-stop-hook.md
 - [#763] [P1][S] Re-measure the batch-Z suite baseline freeze at batch close — a cause whose lane merged must have left the set · tasks/763-re-measure-the-batch-z-suite-baseline-freeze-at.md
 - [#764] [P1][S] Batch Z implements the night plan of 2026-09-15 — the four transport decisions the engine refused every commit for · tasks/764-batch-z-implements-the-night-plan-of-2026-09-15.md
-- [#782] [P1][M] The quality-requirements register: non-functional requirements as a registered, enforced, rendered artifact · tasks/782-the-quality-requirements-register-non-functional-requirements-as-a-registered-enforced-artifact.md
+- [#765] [P1][M] Technical quality requirements are a registered artifact read by a gate, not prose in a paste · tasks/765-technical-quality-requirements-are-a-registered.md
 - [#783] [P2][S] The carried-to-RESOLVED leg of decision-coverage has never once been exercised · tasks/783-the-carried-to-resolved-leg-of-decision-coverage-has-never-been-exercised.md
 - [#768] [P1][M] A gate has one refusal channel, so a violation and an environment it could not evaluate are indistinguishable to the committer · tasks/768-a-gate-has-one-refusal-channel-so-a-violation-an.md
 - [#772] [P1][M] Every dispatched lane inherits the whole secret store -- there is no introspect-and-exchange step and no row about it · tasks/772-every-dispatched-lane-inherits-the-whole-secret.md
@@ -393,7 +393,7 @@ So that cognitive overhead per session drops.
 - [#725] [P2][S] `test_manifest_link_route` fails under xdist on a frozenset identity assert -- a test that passes alone and fails in parallel · tasks/725-xdist-frozenset-identity-pollution-in-test-manifest-link-route.md
 - [#728] [P2][M] Every organ that answers a question gets a generated skill whose description says WHEN to invoke it -- the description is what the model matches · tasks/728-organ-skills-generated-from-the-organ-index-so-the-model-can-find-them.md
 - [#729] [P2][M] FPG-1's queries are shell scripts the model must remember to run -- expose them as MCP tools so they sit in the tool list beside Grep · tasks/729-fpg1-queries-exposed-as-mcp-tools-so-they-sit-beside-grep.md
-- [#746] [P2][M] Devcontainer history-sufficiency (B1) and ecosystem-registration (L5) repair, lost with `scripts/cloud_provisioning.py` · tasks/746-devcontainer-history-and-ecosystem-repair-lost-with-cloud-provisioning-py.md
+- [#746] [P1][M] Devcontainer history-sufficiency (B1) and ecosystem-registration (L5) repair, lost with `scripts/cloud_provisioning.py` · tasks/746-devcontainer-history-and-ecosystem-repair-lost-with-cloud-provisioning-py.md
 - [#751] [P2][M] Cost in money — the transcripts' token figures become tokens and USD per lane and per model, priced from the registry's own rate card · tasks/751-cost-in-money-tokens-and-usd-per-lane-and-per-model.md
 - [#769] [P2][S] An unattended lane has no cancel for a long-running gate -- the only lever is killing the session · tasks/769-an-unattended-lane-has-no-cancel-for-a-long-runn.md
 - [#771] [P2][S] `[#729]` carries no protocol-conformance criterion, so a server can satisfy it completely and not be an MCP server · tasks/771-729-carries-no-protocol-conformance-criterion-so.md
@@ -423,7 +423,7 @@ So that cadence-less artifacts and unevaluated tools don't rot or get adopted bl
 - [#701] [P2][S] A Codex quota hit stalls review for 50 minutes and no fallback provider is authorized, so the reviewer role is a single point of failure · tasks/701-codex-quota-hit-stalls-review-with-no-authorized-fallback-provider.md
 - [#706] [P2][S] The operator packet gains D14, folder-as-domain -- and it cannot be decided before the domain census returns · tasks/706-operator-packet-gains-d14-folder-as-domain-decided-after-the-census.md
 - [#722] [P1][S] Interim routing: read-only digests, censuses and scans default to agy as a READER ONLY, with conclusions and verdicts staying on Claude · tasks/722-interim-routing-read-only-work-defaults-to-agy-as-reader-only.md
-- [#765] [P2][M] AJ M04 has never been read against this repo -- no SHIPPED / OWNED / UNOWNED matrix exists, so its practices are neither adopted nor refused · tasks/765-aj-m04-has-never-been-read-against-this-repo-no.md
+- [#784] [P2][M] AJ M04 has never been read against this repo -- no SHIPPED / OWNED / UNOWNED matrix exists, so its practices are neither adopted nor refused · tasks/784-aj-m04-has-never-been-read-against-this-repo-no.md
 - [#780] [P3][M] Three-repo comparison: a gap matrix, adopt-candidates, and an explicit will-NOT-adopt list · tasks/780-three-repo-comparison-gaps-adopt-candidates-and-an-explicit-will-not-adopt-list.md
 ### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)
 So that unattended routines run only with a named consumer, a survival metric, and a bounded operator load — never as rot generators (the fleet-audit lesson; sequencing per the standing operator ruling: the load-gauge lands before anything else in the Tier-2 nightly layer).

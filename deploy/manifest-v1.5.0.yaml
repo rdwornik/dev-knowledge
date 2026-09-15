@@ -33,6 +33,19 @@
 #      repo's state). The tier change is taken; the path change is not, and nothing is
 #      presently blocking it -- it simply has not been proposed.
 #
+#   4. THE FLOOR TEMPLATE CHANGED, and `anchors.floor_sha256` moves with it -- the first time
+#      since v1.1.0, which is why five earlier manifests still pin the old digest and are
+#      correct to: each pins the bytes of ITS OWN release, and `release_lint` reads only the
+#      highest version present. The floor gains one section, "Quality requirements -- a
+#      register, not prose", declaring at MUST tier that a repo's technical requirements live
+#      in `ecosystem/quality-requirements.yaml` with an organ, a metric and a trip-test per
+#      entry, and that an entry claiming an enforcement it cannot prove is refused. 887 -> 1211
+#      tokens against the 1500 ceiling; F5 clean; no URLs.
+#      A CONSEQUENCE THE OPERATOR SEQUENCES, stated here rather than discovered at deploy: every
+#      consumer carrying `.claude/CLAUDE-FLOOR.md` now holds the PREVIOUS floor bytes with a
+#      self-consistent sidecar, so each consumer's own `floor-hash-verify` still passes while the
+#      fleet diverges from the hub canonical. Re-deploying the floor carrier is what converges it.
+#
 # WHAT THIS RELEASE DELIBERATELY DOES NOT DECLARE, each with its measured blocker. Declaring a
 # component against a payload that does not exist "lints green but is undeployable" -- this
 # manifest's own words at the docs carrier -- so the two open items stay RECORDED, not declared:
@@ -158,7 +171,7 @@ anchors:
   # templates/child-methodology-floor.sha256 sidecar). Pins the floor bytes
   # to the release; release_lint recomputes from the template and compares
   # all three (spec pin / sidecar / actual bytes).
-  floor_sha256: "4d268f329a7edc8dc95a1c8fded9bdf8244ad8de60be69bf8e250a9b15a8111f"
+  floor_sha256: "e8c62d24a019d249842db28670c1248ca29023496961f639feb6a7a734314a7a"
 
 carriers:
   - id: global-config

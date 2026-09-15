@@ -365,6 +365,48 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "missed is recorded as a finding against the sweep', reported and never "
                "silently reconciled",
         owner="operator -- one of the census's seven acts"),
+    # ---- NOT population A: MACHINE-TRIGGERED, by a surface this census cannot see ----
+    #
+    # THIS ROW IS A FINDING AGAINST `WIRING_SURFACES`, not a ruling that the file has no
+    # trigger. It is the same false-orphan verdict that got the module's predecessor DELETED,
+    # written down this time instead of acted on. `scripts/cloud_provisioning.py` was retired at
+    # `3c9418cc` ([#734]) as an unreferenced census orphan; its six callers were
+    # `.devcontainer/provision.sh`, naming it BY PATH in a shell command. `safe_remove`'s static
+    # importer scan cannot see that referrer and neither can this census, so a live module read
+    # as dead, the deletion landed, and on 2026-09-14 a fresh codespace died into a recovery
+    # container ([#746]: "can't open file .../scripts/cloud_provisioning.py", then
+    # "Container creation failed" -> "Creating recovery container").
+    #
+    # WHAT ACTUALLY TRIGGERS IT, with no human deciding in the moment -- which is the census's
+    # own predicate, taken verbatim from the process-trigger census's Method section:
+    #   .devcontainer/devcontainer.json  "onCreateCommand"  -> bash .devcontainer/provision.sh
+    #                                    "postCreateCommand" -> bash .devcontainer/provision.sh
+    #                                    "postStartCommand"  -> bash .devcontainer/provision.sh --gate
+    #   .devcontainer/provision.sh       leg2b_history / leg5_ecosystem / gate()
+    #                                    -> uv run --no-sync python scripts/provision_legs.py
+    # Every Codespaces container creation fires that chain. It satisfies the predicate as
+    # squarely as any row in `WIRING_SURFACES` does; the enum simply does not list it, and
+    # `_SCRIPT_PATH_RE` reads config VALUES rather than shell scripts, so even adding
+    # devcontainer.json would not reach through `provision.sh` to this file.
+    #
+    # WHY A DISPOSITION AND NOT THE ENUM FIX. Widening `WIRING_SURFACES` changes the census
+    # POPULATION repo-wide -- every `scripts/*.py` any shell script names stops being an orphan
+    # at once -- and that is a change to what the corpus measures, not a lane's edit to make
+    # inside a `.devcontainer/` footprint. Recorded here so the next census reads a ruling
+    # instead of re-deriving the deletion.
+    "scripts/provision_legs.py": Disposition(
+        reason="KEEP -- MACHINE-TRIGGERED, and the census cannot see the trigger. Fired on "
+               "every container creation by .devcontainer/devcontainer.json's three lifecycle "
+               "commands via .devcontainer/provision.sh, which names it by PATH in a shell "
+               "command -- a referrer neither this census nor safe_remove's importer scan can "
+               "follow. That exact blind spot retired its predecessor "
+               "scripts/cloud_provisioning.py at 3c9418cc and cost a codespace a recovery "
+               "container on 2026-09-14; [#746] restored the two legs. DO NOT retire this on a "
+               "static reading. The class is guarded from the other side by "
+               "tests/test_provision_sh.py::test_provision_sh_names_no_retired_module_path, "
+               "which REDs if provision.sh is left naming a scripts/ path that is not on disk",
+        owner="[#746]; the underlying WIRING_SURFACES gap is a finding against the enum and is "
+              "reported in this lane's end-of-lane artifact, not ruled here"),
     # ---- population C: commands. NOTHING FIRES A COMMAND, and that is the finding ----
     ".claude/commands/boot-session.md": Disposition(
         reason="ON-DEMAND-BY-OPERATOR, act = sitting. No event fires a command; the census "
@@ -865,6 +907,15 @@ EDGE_COMPUTATIONS: dict[str, EdgeComputation] = {
         "commit that armed it -- the first thing the ratchet caught was itself. Its subject "
         "is a MODULE'S SHAPE (does this file read source text for structure), never a "
         "relation between two corpus files, so there is no edge here to read from FPG-1"),
+    "scripts/quality_requirements.py": _not_an_edge(
+        "the quality-requirements register's reader ([#765], AN2-1). The shape matched "
+        "because it compiles two regexes and reads files; the class does not apply because "
+        "it COMPUTES no relation. `organ:` and `trip_test:` are written BY HAND in "
+        "`ecosystem/quality-requirements.yaml`, and this module only resolves each declared "
+        "side to a path that exists -- a DECLARED relation read back, which is what the "
+        "three `reconciled` rows are one step earlier. There is nothing here for a W-G3 "
+        "lane to migrate because nothing was discovered. Its two regexes match an `id` and "
+        "a `file::test` locator INSIDE the register, never corpus source text"),
 }
 
 

@@ -1,4 +1,4 @@
-Consumers: `[#765]` (the row this evidence serves), `[#696]` (the locator defect it answers)
+Consumers: `[#784]` (the row this evidence serves), `[#696]` (the locator defect it answers)
 
 # agy leg -- prompt_l1.txt
 # model: gemini-3.1-pro-high

@@ -1,4 +1,4 @@
-Consumers: `[#765]` (the row this evidence serves), `[#696]` (the locator defect it answers)
+Consumers: `[#784]` (the row this evidence serves), `[#696]` (the locator defect it answers)
 
 # locator verification against AJ_M04_transkrypcje.md
 # items: 82 | EXACT: 2 | NORM: 80

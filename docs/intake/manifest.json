@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "7f13e77fa16d9687fdec42e907f46b59fa2b31010dc2456be92d812b06d1671b",
+  "source_sha256": "21d9b9021fecf831a423849cb0441527bbb1e6feaa9b813a950743028e16c620",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
-    "item_derived_lines": 88,
+    "item_derived_lines": 90,
     "residue_lines": 300,
-    "total_lines": 388,
+    "total_lines": 390,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -418,6 +418,14 @@
         "consumed-by",
         "origin"
       ],
+      "2026-09-15-tech-floor-repin-reds-every-historical-manifest.md": [
+        "consumed-by",
+        "origin"
+      ],
+      "2026-09-15-tech-locator-verifier-skips-an-all-digit-sha.md": [
+        "consumed-by",
+        "origin"
+      ],
       "2026-09-15-tech-preflight-cannot-evaluate-verdict.md": [
         "consumed-by",
         "origin"
@@ -504,7 +512,7 @@
     },
     {
       "t": "line",
-      "v": "**88 intake documents.**"
+      "v": "**90 intake documents.**"
     },
     {
       "t": "line",
@@ -574,7 +582,7 @@
     },
     {
       "t": "line",
-      "v": "### DRAFT (37)"
+      "v": "### DRAFT (39)"
     },
     {
       "t": "line",
@@ -763,6 +771,16 @@
     {
       "t": "item",
       "file": "2026-09-15-tech-provider-agreement-over-behaviour.md",
+      "status": "DRAFT"
+    },
+    {
+      "t": "item",
+      "file": "2026-09-15-tech-locator-verifier-skips-an-all-digit-sha.md",
+      "status": "DRAFT"
+    },
+    {
+      "t": "item",
+      "file": "2026-09-15-tech-floor-repin-reds-every-historical-manifest.md",
       "status": "DRAFT"
     },
     {

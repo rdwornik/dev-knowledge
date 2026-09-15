@@ -212,8 +212,22 @@
   // The three prebuild SETTINGS the contract names — trigger "on configuration change", region
   // EuropeWest, template history 1 — are NOT expressible in this file. They are server-side
   // operator UI state with no public API (probed 2026-08-21: REST 404, GraphQL introspection
-  // empty, no `gh codespace` subcommand). They are declared in `.devcontainer/provisioning.yaml`
-  // and `scripts/cloud_provisioning.py prebuild` reports declaration-vs-live drift.
+  // empty, no `gh codespace` subcommand). They are declared in `.devcontainer/provisioning.yaml`.
+  // The drift report that used to read them — `cloud_provisioning.py prebuild` — went with that
+  // module at `3c9418cc`; `[#746]` restored the two legs provisioning actually needs
+  // (`scripts/provision_legs.py`) and deliberately not that third command, so the `prebuild`
+  // block is a declaration of record with no live reader. Stated here because this comment used
+  // to name a checker as though it ran.
+  //
+  // WHAT A PREBUILT IMAGE COSTS, measured 2026-09-14 and not anticipated: `trigger` is
+  // `on_configuration_change`, so the image is refreshed only when THIS FILE or its Dockerfile
+  // changes — and an image built on 2026-09-01 served a `provision.sh` 1401 commits old to a
+  // codespace created two weeks later. `refresh_source_tree` fast-forwards the tree, but bash
+  // goes on running the script body it already read, so that run reached a call site removed
+  // twelve days earlier and died into a recovery container. provision.sh now hands over to the
+  // refreshed copy of itself ([#746] B2), which is the half of the freshness repair that was
+  // missing; this comment is the other half, because a reader of THIS file is the one who has to
+  // know that editing it is what refreshes the image.
   "onCreateCommand": "bash .devcontainer/provision.sh",
 
   // Provision once per container creation: install pinned uv, unshallow, sync, arm hooks,

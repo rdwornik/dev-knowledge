@@ -17,6 +17,12 @@
 - "Verify, don't trust" — if a long session says "done", check the filesystem / re-run the tests.
 - A step with no verify action is incomplete.
 
+## Quality requirements — a register, not prose
+- A repo's technical requirements — speed, availability, resource limits, what it records about itself — live in `ecosystem/quality-requirements.yaml`, one entry each, and a gate reads the file. This register is a **MUST**: an instruction is a request, a mechanism is a guarantee, and a requirement that exists only in prose is the first wearing the second's clothes.
+- An entry is `status: measured` **only** when it names the `organ` that enforces it, the `metric` that decides, and a `trip_test` that goes RED when the requirement is violated. Everything else is `status: candidate`, carrying **no** organ field at all.
+- Two things are refused, not tolerated: a candidate that names an enforcement it cannot prove, and a `measured` entry whose trip-test passes unconditionally. Prove the second by running the trip against its own organ with that one refusal removed — if it still passes, the entry was a candidate.
+- The whole set renders into one screen of `ARCHITECTURE.md`, generated from the register and freshness-gated, so the section cannot be hand-edited into agreement.
+
 ## Ship rule (branch → merge --no-ff)
 - **Every** change — even a one-line doc edit — goes branch → merge `--no-ff`; never commit direct to `main`. Branches: `feat/ fix/ docs/ chore/`.
 - Commit after each file edit (Conventional Commits: `type(scope): summary` + body for non-trivial). Git history IS the changelog.
