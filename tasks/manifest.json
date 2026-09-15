@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "d4852b679e1dac6d581b24f1228fc163db82643404c6d58076c397b51df2c849",
+  "generated_sha256": "3c14ba5f788597a678a4911bc1c5adf434c2b2c8e4cd798174d024a0991b932e",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -528,6 +528,10 @@
     {
       "task": 790,
       "file": "790-the-conductor-emails-on-every-push-because-it-does.md"
+    },
+    {
+      "task": 792,
+      "file": "792-a-substrate-request-is-availability-gated-and-sile.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
