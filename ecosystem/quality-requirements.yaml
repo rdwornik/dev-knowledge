@@ -186,7 +186,13 @@ requirements:
       UPSTREAM, NOT OURS. A long-running session degrades over roughly 30 minutes of use,
       accumulating CPU and memory; a restart carrying the same context restores its speed.
     metric: >-
-      Per-turn latency against the session's own median, by session age.
+      Per-turn latency against the session's own median, by session age. **THIS METRIC IS
+      FALSIFIED AS A PROXY FOR THIS REQUIREMENT AND MUST NOT BE PRESCRIBED AGAIN.** It was
+      specified in the aa-14 frozen contract as the way to detect session degradation. It
+      cannot detect it: the ratio is flat to three decimal places across every age band (see
+      `incident`), so there is no rise for any threshold to sit on. It is retained here, struck
+      rather than deleted, because a proxy that is quietly removed gets re-proposed by the next
+      person who reasons their way to it -- which is how it was proposed this time.
     incident: >-
       Publicly reported upstream against Claude Code and carried into this repo by
       DIGEST-2026-09-15-unrecorded-findings.md section 1. **MEASURED HERE AND NOT
@@ -195,17 +201,28 @@ requirements:
       1.041 / 1.025 across the 0-15, 15-30, 30-60, 60-120, 120-240, 240-480 and 480+ minute
       bands -- flat at median, p75 and p90 alike over 92,743 turns.
     source: >-
-      upstream public issue report, relayed by DIGEST-2026-09-15-unrecorded-findings.md
-      section 1; the non-reproduction is
+      UPSTREAM: anthropics/claude-code issue #22968, "High CPU usage and memory leak in
+      long-running sessions" (CLOSED as not planned) --
+      https://github.com/anthropics/claude-code/issues/22968 -- which reports degradation over
+      "~30 minutes of use", 823 MB RSS against ~360 MB on a fresh session, 414 minutes of CPU
+      on a mostly-idle overnight session, and 25-72% CPU while idle, and states that "killing
+      and resuming the session (same conversation context) immediately restores normal
+      performance, which rules out context window size as the cause". Relayed to this repo by
+      DIGEST-2026-09-15-unrecorded-findings.md section 1; the non-reproduction is
       docs/audits/2026-09-15-technical-lane-aa-14-resource-lifecycle.md section 3.2
     note: >-
       TWO LIMITS, BOTH LOAD-BEARING. (1) The instrument sees MODEL response latency; if the
       degradation is client-side -- UI, the whole-file transcript read of QR-RES-003, tool
       dispatch -- this measurement cannot see it, so the honest claim is "no server-side
-      latency degradation with session age", not "no degradation". (2) THE UPSTREAM ISSUE
-      NUMBER IS NOT CARRIED. The contract asks every upstream entry to record it and the
-      digest this lane was given records none; inventing one would be worse than the gap.
-      What closes it: the browser seat that read the reports holds the links.
+      latency degradation with session age", not "no degradation". (2) THE UPSTREAM FIGURES
+      IN `source` ARE THEIRS, NOT OURS, and no threshold in this repo is set against them.
+      #22968's 823 MB against ~360 MB fresh was measured on someone else's macOS box; ours
+      measured 413.3 MB per seat and a ~385 MB plateau on this one. The two must never be
+      averaged, compared as if commensurable, or used interchangeably, and the upstream number
+      being larger is not evidence about this machine. **CITATION SUPPLIED 2026-09-15**, after
+      the entry was first filed with the number missing: the digest this lane was given carried
+      five reports and no issue numbers, and the entry recorded the gap rather than inventing
+      one. The issue was then opened and its body read before being cited here.
 
   # ---- availability / reliability ---------------------------------------------------
   - id: QR-AVAIL-001
@@ -377,16 +394,27 @@ requirements:
       holding 688.6 MB), and a grandchild that outlived the parent kill by roughly 8 minutes
       (QR-AVAIL-005).
     source: >-
-      upstream public issue report, relayed by DIGEST-2026-09-15-unrecorded-findings.md
-      section 1; the two local reproductions are QR-AVAIL-004 and QR-AVAIL-005
+      UPSTREAM: anthropics/claude-code issue #43944, "Background processes started by Bash tool
+      are not cleaned up on session exit" (CLOSED as not planned) --
+      https://github.com/anthropics/claude-code/issues/43944 -- whose body states "the spawned
+      Node processes get reparented to PID 1 (launchd on macOS) and continue running
+      indefinitely" and asks that cleanup "include the full process tree, not just the
+      top-level PID", which is the requested fix this entry names. Relayed by
+      DIGEST-2026-09-15-unrecorded-findings.md section 1; the two local reproductions are
+      QR-AVAIL-004 and QR-AVAIL-005
     note: >-
       DISTINCT FROM QR-AVAIL-004 AND QR-AVAIL-005, and filed separately on purpose. Those two
       record what WE measured on this box; this one records that the defect is upstream,
       acknowledged, and has a named requested fix. The distinction decides what we build: a
       defect that is ours is fixed, one that is upstream is WORKED AROUND and the workaround
       is removed when the upstream fix lands. Conflating them produces a permanent workaround
-      nobody remembers to retire. The upstream issue number is not carried -- see
-      QR-PERF-006's note for why that gap is left open rather than filled with a guess.
+      nobody remembers to retire. **CITATION SUPPLIED 2026-09-15** (see `source`), after the
+      entry was first filed with the number missing. Note the upstream issue is CLOSED AS NOT
+      PLANNED: the workaround's retirement condition therefore does not exist yet, so
+      `scripts/resource_lifecycle.py teardown` is load-bearing indefinitely rather than until a
+      fix lands, and the "remove the workaround when upstream fixes it" clause above has no
+      trigger to wait for. That is a reason to keep it, not a reason to stop recording it as a
+      workaround.
 
   # ---- resource control --------------------------------------------------------------
   - id: QR-RES-001
@@ -440,8 +468,13 @@ requirements:
       session-process class rises 255.6 MB under 0.5 h to 383.0 MB at 0.5-1 h (r = 0.440,
       21.4 MB/h under 4.5 h) and then plateaus.
     source: >-
-      upstream public issue report, relayed by DIGEST-2026-09-15-unrecorded-findings.md
-      section 1; the local measurement is
+      UPSTREAM: anthropics/claude-code issue #18859, "[BUG] Memory leak in long-running idle
+      Claude Code sessions" (**OPEN** -- the only one of this lane's five that is) --
+      https://github.com/anthropics/claude-code/issues/18859 -- reporting 4 idle sessions at
+      ~15 GB each over ~18 hours, ~60 GB combined against 24 GB of RAM, killed by macOS
+      jetsam, with the debug log showing context CONSTANT at 6,664 chars from
+      2026-01-15T00:30:45 to 2026-01-16T02:14:31. Relayed by
+      DIGEST-2026-09-15-unrecorded-findings.md section 1; the local measurement is
       docs/audits/2026-09-15-technical-lane-aa-14-resource-lifecycle.md sections 2.2 and 2.3
     note: >-
       THIS ENTRY IS THE REGISTER'S RECORD OF A THESIS, not only of a defect. Because the
@@ -450,8 +483,22 @@ requirements:
       not reclaim a cache that was not the problem. They are two mechanisms, and building one
       for both is why neither works. The 15 GB figure is deliberately NOT the number any
       local threshold is set against -- the measured plateau is, and a threshold set against
-      an unreproduced magnitude would refuse nothing here. The upstream issue number is not
-      carried; see QR-PERF-006's note.
+      an unreproduced magnitude would refuse nothing here.
+
+      **AN UPSTREAM REPORT IS NOT A MEASUREMENT OF THIS BOX. THIS ENTRY IS THE RULE'S CASE
+      LAW.** The 15 GB figure entered this lane's contract as a fact about our machine and is
+      not one: it is issue #18859's reporter's observation on a 24 GB macOS host, and the
+      largest process we could find here was 393.9 MB -- roughly 38x smaller. Had the contract's
+      premise been carried through, a retirement threshold would have been set at a magnitude
+      nothing on this box ever reaches, and the mechanism would have refused nothing while
+      appearing fully armed. **THE RULE, stated so it binds the next entry and not just this
+      one: an upstream report is recorded AS A REPORT, with its source and its own figures kept
+      as the reporter's; every threshold this repo enforces rests only on a measurement taken
+      here.** What travels from a report is the DIRECTION and the MECHANISM -- #18859's
+      constant 6,664-char context while memory grew is exactly the context-vs-memory separation
+      this lane built two modules around, and that part reproduced. The magnitude did not, and
+      the two are recorded separately on purpose. **CITATION SUPPLIED 2026-09-15** (see
+      `source`), after the entry was first filed with the number missing.
 
   - id: QR-RES-003
     attribute: resource-control
@@ -466,12 +513,26 @@ requirements:
     incident: >-
       Publicly reported upstream: a 102 MB `.jsonl` consumed 90% of available RAM and froze
       the client. **LOAD-BEARING FOR US BECAUSE WE ARE ALSO A READER:** `scripts/lane_cost.py`
-      reads transcripts to price a lane, so our own cost instrument is a second client that
-      hits the same wall. Our largest today is 28.19 MiB, 3.6x below the reported freeze
-      point -- headroom, not immunity, and the corpus grows monotonically.
+      reads transcripts to price a lane, so our own cost instrument was a second client on the
+      same wall. Our largest today is 28.19 MiB, 3.6x below the reported freeze point --
+      headroom, not immunity, and the corpus grows monotonically. **OUR HALF IS NOW FIXED
+      (2026-09-15, commit 9227bc9a):** `read_transcript_usage` streams line by line instead of
+      `read_text()` + `.splitlines()`, which had held the whole file as a str AND as a list of
+      str at once, inside a module `scripts/fleet_health.py` imports and therefore runs at
+      SESSION START. Peak is now bounded by the longest LINE (1.360 MB measured) rather than by
+      the file, and `lane_cost.MAX_TRANSCRIPT_LINE_BYTES` (8 MiB, ~6x the largest real line)
+      bounds even that, WARNING rather than silently dropping. The UPSTREAM half is untouched
+      and this entry stays a candidate for it. Note the corpus moved measurably within the
+      filing day itself -- a re-scan hours later gave 3,108 transcripts, 2.55 GB, max
+      29.56 MB -- which is the monotonic growth this entry warns about, observed.
     source: >-
-      upstream public issue report, relayed by DIGEST-2026-09-15-unrecorded-findings.md
-      section 1; the local corpus measurement is
+      UPSTREAM: anthropics/claude-code issue #21022, "[BUG] Claude Code hangs when accessing
+      large session files (>50MB)" (CLOSED as not planned) --
+      https://github.com/anthropics/claude-code/issues/21022 -- reporting a 102 MB / 8,366-line
+      `.jsonl` at 90% RAM causing a full freeze requiring force-kill, the client having "loaded
+      the entire file into memory synchronously". Its sibling #22365 asks for a size threshold
+      above which a session file is skipped with a warning. Relayed by
+      DIGEST-2026-09-15-unrecorded-findings.md section 1; the local corpus measurement is
       docs/audits/2026-09-15-technical-lane-aa-14-resource-lifecycle.md section 5
     note: >-
       THE ARCHIVE PATH HAS A MEASURED TRAP AND IT IS NAMED HERE SO THE NEXT LANE DOES NOT
@@ -502,7 +563,12 @@ requirements:
       100% Opus under a header claiming a split. A second instance of declared enforcement
       without enforcement is the thing to avoid here.
     source: >-
-      upstream public issue report (the cap) relayed by
+      UPSTREAM: anthropics/claude-code issue #56693, "V8 OOM: Claude Code CLI leaks memory
+      until laptop crashes (113GB observed)" (CLOSED as not planned) --
+      https://github.com/anthropics/claude-code/issues/56693 -- whose body states that setting
+      `NODE_OPTIONS="--max-old-space-size=4096"` in a shell profile "caps V8 heap and prevents
+      the machine crash, but doesn't fix the underlying leak", which is the whole reason this
+      entry specifies WHERE the cap is emitted rather than whether to use one. Relayed by
       DIGEST-2026-09-15-unrecorded-findings.md section 1; the render defect is that digest's
       section 5 and is owned by `[#789]`
     note: >-
