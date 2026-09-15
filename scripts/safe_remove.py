@@ -24,6 +24,25 @@ getattr/setattr, string-keyed registries, and ALL cross-language edges are INVIS
 FAIL. Test-only importers ARE real referrers (removing the module breaks the test) -> blocking on
 them is correct; co-removing the test is the escape.
 
+THE FALSE PASS IS OBSERVED, NOT HYPOTHETICAL (2026-09-12, lane `lane-x-734-retire-stage-2`).
+This gate returned SAFE over `scripts/desired_state_loader.py`; the deletion landed and the full
+suite went RED. `tests/test_membership_agreement.py` loads that module BY NAME through
+`importlib` and pins `parse_registry_md` as the reference implementation keeping `audit.py`'s
+duplicated inline registry reader honest — precisely the invisible-edge class ADR-89 declares
+the static oracle cannot see. The loader was RESTORED. Two consequences for anyone reading a
+SAFE verdict here: (1) SAFE is necessary, never sufficient — it was caught only because the lane
+ran a paired baseline/tip suite instead of trusting this tool; (2) the loader stays a census
+orphan afterwards because it stays a *static* orphan — unreachable to the census and dead are
+different facts. Evidence:
+`docs/audits/2026-09-12-technical-lane-x-734-retire-stage-2-evidence.md`.
+
+PARTIALLY MITIGATED, AND THE RESIDUE IS NAMED. `_bare_stem_literal_hits` below now downgrades
+an otherwise-SAFE verdict to REVIEW when the module's bare stem appears as a quoted literal —
+which catches THIS shape (`_load("desired_state_loader")`). It does NOT close the class: a
+string-keyed reference built by concatenation, read from a config file, or spelled differently
+from the stem is still invisible, and the honest limit above stands unchanged. REVIEW is a
+prompt to look, not a second oracle.
+
 When the oracle cannot verify (Pyright absent -> oracle-unavailable, or a symbol resolves
 `ambiguous`), the verdict is `unverifiable` -> WARN + ALLOW (fail-open, honest-limit; operator
 ruling #195). A hard FAIL is emitted ONLY on a resolved/partial answer with >=1 SURVIVING

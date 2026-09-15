@@ -38,6 +38,13 @@ validating only the active bundle. Consequence, stated plainly: this does **not*
 fail the ARC-5 bundle that motivated it, but it *would* have failed it on the commit that
 landed it.
 
+HONEST LIMIT — WORKING TREE, NOT THE STAGED BLOB (#366). The scan reads the file as it sits
+on disk, not the blob `git commit` is about to write. A region filled in the working tree but
+staged unfilled (`git add` before the fill), or filled after staging, is judged on the disk
+copy. Closing it means reading `git show :<path>` for staged entries; filed as #366, not done
+here. Surfaced via the `residual_completeness` audit check (FAIL-class; degrades to WARN on
+internal error).
+
 Layer-2 read-only (ADR-28/36): reads the working tree and shells `git status --porcelain`.
 Writes nothing.
 """
