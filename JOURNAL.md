@@ -19,6 +19,75 @@
 
 ---
 
+### 2026-09-15 (h) - CC (Opus 5, background integrator seat): lane z-0 makes the quality requirements a register that is READ, and a parallel review found it fail-open twice
+
+**Anchors:** `bfd55534` — the floor commit, and `460fbd0a`, the commit that turns the register
+from a document into a thing an organ reads; two of the seven commits this merge introduces.
+
+**THE LANE'S ACTUAL MOVE IS THAT THE REGISTER BECOMES READ.** `ecosystem/quality-requirements.yaml`
+(367 lines) is not the deliverable on its own — a YAML file nothing parses is a document with
+colons in it. The deliverable is `scripts/quality_requirements.py` (416 lines), the
+`quality-requirements-freshness` pre-commit hook, and 458 lines of tests across
+`tests/test_quality_requirements.py` and `tests/test_quality_requirement_trips.py`. **This is
+AN2-1/AZ2-1 satisfied in the shape the rule actually asks for** — event → organ → artifact, with a
+trigger and a named consumer — rather than a register declared and left unread.
+
+**The floor carries the discipline, not the file.** `templates/child-methodology-floor.md.tmpl`
+declares the register a MUST; the sidecar moves `4d268f32..` → `e8c62d24..` and
+`deploy/manifest-v1.5.0.yaml`'s `anchors.floor_sha256` is re-pinned to match. The lane **measured**
+its budgets rather than asserting them: 887 → 1211 tokens against a 1500 ceiling, and the
+silent-rule ratchet 428 → 429 against a baseline of 447 — the single token being the tier word
+`MUST` itself, spelled out so `declared_in:` resolves to something greppable instead of inferable.
+
+**THE PARALLEL CODEX REVIEW RETURNED TWO HIGH FINDINGS, AND BOTH SURVIVED VERIFICATION.** They are
+recorded here as CONFIRMED rather than as a reviewer's claim, because I read the source at both
+sites before accepting either:
+
+1. **`requirements()` drops a malformed row instead of refusing it.** The function ends
+   `return [row for row in rows if isinstance(row, dict)]`. A scalar entry in `requirements:` is
+   **silently filtered out** — schema check, resolution, rendering and the pre-commit gate all pass
+   as though that entry were not in the register at all.
+2. **The trip-test citation is verified as a FILE and never as a TEST.** Line 236 reads
+   `trip_file, _ = parse_trip(trip)` — discarding the test name — and line 240 checks only
+   `(root / trip_file).exists()`. A measured row citing `tests/x.py::does_not_exist` passes.
+   `parse_trip` validates **form**, not existence.
+
+**Both are the fail-open class this repo keeps re-finding — freeze cause C5, "a guard that must
+refuse does not refuse", which already has three members.** The second is sharper than the first,
+because the trip test IS the register's proof that a requirement is enforced. An unverified proof
+citation makes `status: measured` mean "someone typed a test name", which is the same
+*could-not-look-reported-as-looked-and-fine* shape found tonight in the shallow-clone path, the
+devcontainer B1 history guard and the locator verifier. **Four organs, one property.**
+
+**THE MERGE WAS NOT REFUSED ON THESE, AND THE REASON IS WRITTEN DOWN RATHER THAN ASSUMED.** The
+reviewer `gpt-5.6-terra` is **ROUTABLE but NOT ADMITTED** (AX22-1's ≥8/10 bar is unmeasured), so
+its verdict is advisory and cannot by itself refuse a merge. The merge is judged by the freeze's
+node-id rule. The findings are additive defects in a **new** organ — it is weaker than it claims,
+not a regression in anything that existed — and the lane's session is over, so a hand-back is not
+available. **Merging it silently would have made it the fourth C5 member nobody filed.** It is
+filed instead.
+
+**The lane's own packet is honest about what it could not close**, which is why it is worth reading
+rather than skimming: `[#765]` and `[#782]` are **the same row**, filed independently by the lane
+and by the dispatcher at freeze, and the lane left both standing because closing or merging a row
+is the integrator's act. Two index hooks were skipped **by name in the commit body** —
+`doc-counts-pytest-freshness` (23 tests added) and `organ-index-freshness` (fired twice, for a new
+hook and a manifest edit) — rather than bypassed with `--no-verify`. Both are one act on the merged
+tree. **A skip declared by name is a debt; a `--no-verify` is a hole.**
+
+**Did:** established the lane's state from git; ran Codex in parallel with the sync; verified both
+findings in source; synced the lane onto main, resolving a `tasks/manifest.json` conflict by hand
+and re-pinning the checksum with the generator rather than regenerating over live markers.
+**Result:** the quality-requirements register lands as an organ that is read, with its two
+fail-open defects named instead of inherited.
+**Changes:** `ecosystem/quality-requirements.yaml`, `scripts/quality_requirements.py`,
+`tests/test_quality_requirements.py`, `tests/test_quality_requirement_trips.py`,
+`.pre-commit-config.yaml`, `ARCHITECTURE.md`, `templates/child-methodology-floor.md.tmpl`,
+`deploy/manifest-v1.5.0.yaml`, `scripts/graph_queries.py`, `JOURNAL.md`.
+**Abandoned:** nothing.
+**Next:** the two owed index regenerations and the `[#765]`/`[#782]` duplication, both integrator
+acts on the merged tree; lanes z-10 (handed back) and z-4 (still committing) remain.
+
 ### 2026-09-15 (g) - CC (Opus 5, background integrator seat): the freeze refused a merge, and the tree was innocent
 
 **Anchors:** `e082e057` — the commit carrying the freeze amendment, intake 99 and the two closed
