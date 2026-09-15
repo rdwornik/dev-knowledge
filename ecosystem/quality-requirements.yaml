@@ -485,3 +485,42 @@ requirements:
       integrator rather than double-landed: if aa-14 files its own codespace-idle entry, this one
       is superseded by it and should be withdrawn, not merged alongside. The organ is also
       cross-repo, per QR-AVAIL-009's note.
+
+  - id: QR-AVAIL-010
+    attribute: availability
+    status: candidate
+    statement: >-
+      A dispatched lane keeps its codespace alive for as long as it is working. No lane may rely
+      on a substrate whose documented reaping condition its own design holds true for the entire
+      run.
+    metric: >-
+      Lanes reaped by the platform's idle timer while still working: 0. Secondary: the gap
+      between a lane's longest expected silent interval and the codespace's configured
+      --idle-timeout, which must stay positive.
+    incident: >-
+      A detached lane produces ZERO terminal output for its whole run, and the codespace is
+      created with --idle-timeout 30m, so the platform stops the machine at thirty minutes of
+      wall clock no matter how much inference is happening inside it. Derived 2026-09-15 from
+      four facts in our own source -- create passes --idle-timeout 30m
+      ($script:CodespaceDefaultIdle); the runner starts the agent as `claude -p ...
+      --output-format stream-json --verbose > "$RUN_LOG" 2>&1 &`, both streams into a file; the
+      detach path re-execs under `setsid nohup ... </dev/null >>...log 2>&1 &` and the parent
+      exits, so the ssh session ends and no terminal remains; the fuse loop's only printf goes to
+      a file -- against the platform's documented rule that activity is "Terminal activity,
+      either input or output", whose own worked example is a still-running process timing out for
+      want of it. This is the mechanism behind "a detached lane produced zero work": the machine
+      is stopped mid-run, receipt.json is never written and dies with the container, and the
+      stopped state is indistinguishable from an orderly finish.
+    source: operator directive 2026-09-15 (Phase 3 measurement mandate); derived in-repo, not yet
+      observed live
+    note: >-
+      CANDIDATE on two counts, and both are honest limits rather than hedges. (1) The finding is
+      DERIVED -- read out of our source and the platform's docs -- not yet watched happening; the
+      one billable proof run is instructed to observe it (intake 102 amendment). (2) The organ is
+      cross-repo: the runner and the --idle-timeout flag both live in win-tooling
+      DispatchHelpers.psm1, and this register resolves organ paths in THIS repo, so a trip-test
+      here cannot bite the thing that would violate it -- the same limit QR-AVAIL-009 records.
+      It is also UPSTREAM of intake 102 rather than part of it: none of that intake's options A,
+      B or C prevents the reap, because a git push or an API call from inside the container is
+      not terminal output either. Observability and keep-alive are two decisions, and this is the
+      one nobody had noticed was open.

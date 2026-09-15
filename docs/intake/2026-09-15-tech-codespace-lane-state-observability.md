@@ -202,10 +202,81 @@ Stated ex-ante so the decision is revisitable on evidence rather than on fatigue
 - **What polls, and what keeps the poller alive?** A dispatcher that exits has stopped watching.
   A cron on Actions outlives the dispatch but adds minutes against a live spend ruling. A local
   scheduled task is free but dies with the workstation.
-- **Does the platform's 30-minute idle timer reap a working headless lane?** The docs say terminal
-  *output* resets the timer; a headless agent streaming stream-json to a file may produce none.
-  If true this is the mechanism behind both silent zeros and the fix is ours, not a monitoring
-  question at all. **Measurement pending in the same cloud run that proves the corrected config.**
+- **Does the platform's 30-minute idle timer reap a working headless lane?** **ANSWERED
+  2026-09-15 by derivation, not by a cloud run** -- see the amendment below. Yes, by construction.
+  What remains unmeasured is narrower and is named there.
 - **Is `updateContentCommand` re-run at creation from a prebuild?** Documented as prebuilt;
   whether it re-runs on the create path is UNKNOWN in the docs and is being measured. The answer
   changes how much of the source-freshness problem the platform solves for us.
+
+## Amendment 2026-09-15 — the reap is ours, and it is upstream of every option here
+
+> Added the day this intake was filed, before any ruling. It does not change the question; it
+> changes what the options can be expected to achieve, so leaving it out would let the engine
+> rule on a matrix that overstates all four.
+
+**The finding.** A detached Codespace lane produces **zero terminal output for its entire run**,
+and the codespace is created with `--idle-timeout 30m`. The platform documents that a process
+producing no terminal output does not keep a codespace alive. So the machine is stopped at thirty
+minutes of wall clock, mid-work, however much real inference is happening inside it.
+
+**Derived from our own source plus the platform's own rule, at no cloud cost:**
+
+1. `DispatchHelpers.psm1` passes `--idle-timeout 30m` at create (`$script:CodespaceDefaultIdle`).
+2. The generated runner starts the agent as
+   `claude -p ... --output-format stream-json --verbose > "$RUN_LOG" 2>&1 &` —
+   **both** streams into a file. Nothing reaches a terminal.
+3. In detach mode the runner re-execs itself as
+   `setsid nohup bash -l "$0" </dev/null >>.../dispatch-detach.log 2>&1 &` and the parent exits,
+   so the ssh session ends immediately. After that there is **no terminal at all**.
+4. The fuse loop's only `printf` is redirected to `$RUN_DIAG/verdict.txt` — also a file.
+5. GitHub documents activity as "Personal interaction with a codespace, such as typing or using
+   the mouse" and "Terminal activity, either input or output", and its own worked example is a
+   process still running while the codespace times out for want of terminal output.
+
+**Why this matters to the ruling.** The fuse inside the container measures *event arrival* and
+resets on every new line in the log — the right quantity, measured well. But the platform's timer
+measures a quantity our design holds at **exactly zero for the whole run**. Two clocks, and the
+one that can kill the machine is the one nothing in our design feeds.
+
+**It explains the silent zeros.** A lane reaped at T+30min leaves no receipt — `receipt.json` is
+written after the run and dies with the container (matrix footnote 6) — so the lane produces
+nothing, and the codespace reports a stopped state that looks exactly like an orderly finish.
+
+**The consequence for the options, stated plainly: none of A, B or C prevents the reap.** They
+change only whether anyone finds out.
+
+- **A (poll outside)** sees the stopped state and can report a death. It does not prevent one.
+- **B (push inside)** is *worse than neutral here*: a git push or an API call from inside the
+  container is **not terminal output**, so it does not reset the platform's timer either. A
+  design that reports progress faithfully every thirty seconds would still be reaped at thirty
+  minutes.
+- **C (both)** inherits both properties: excellent detection, no prevention.
+
+So **keep-alive is a separate decision from observability**, and it is upstream: ruling A/B/C
+without it buys a fleet that reliably reports its own lanes dying on schedule. The candidate
+remedies, none chosen here:
+
+- **Raise `--idle-timeout`** to the documented 240-minute maximum. Bounded, one flag, and it does
+  not eliminate the class — a lane over four hours still dies. It also raises the cost of a lane
+  that finishes early, which is exactly what the auto-STOP-at-handback requirement (QR-RES-002)
+  is for; the two should be ruled together.
+- **Keep a terminal attached** — do not detach; hold the ssh session and tee the stream to it.
+  Restores real terminal output, at the price of making the workstation's connection load-bearing
+  for the lane's whole life.
+- **Emit terminal output from inside** on a cadence. Cheap to write, but see UNKNOWN below: with
+  no session attached it is not established that any terminal exists to write to.
+
+**What is still UNKNOWN, and is cheap to settle in the one billable run already planned.** The
+docs answer what counts as activity; they do not answer these, and they are not inferred here:
+
+- Does an **open ssh session with no bytes flowing** count as activity?
+- Does output written inside a **detached `tmux`/`screen`** session count?
+- Does an **outside API poll** (`gh codespace view`) touch `last_used_at` or reset the timer?
+- Is the timer's zero point last activity, or codespace start?
+
+**This is now an instruction to the proof run**, which should carry the measurement rather than
+merely prove the config: dispatch one trivial detached lane whose work is a sleep longer than the
+idle timeout, set `--idle-timeout` to its five-minute documented minimum so the answer arrives in
+minutes rather than hours, and record the state transition and its timestamp. The same run answers
+the `updateContentCommand` prebuild question. One machine, both UNKNOWNs.
