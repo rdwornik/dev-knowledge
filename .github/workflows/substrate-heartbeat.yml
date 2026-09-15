@@ -108,38 +108,84 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+  container:
+    name: devcontainer build + L1 marker verify
+    # ARMED 2026-09-15 by operator ruling, and armed NARROWLY. workflow_dispatch ONLY: the
+    # ruling was "not on a schedule", so this job is skipped on the daily cron and on the
+    # provisioning push trigger, and runs only when a human asks for it by name.
+    #
+    # WHY IT EXISTS AT ALL. The `declaration` job above probes the DECLARATION -- every file the
+    # provisioning surfaces name still exists, the pins read, the lifecycle commands reach the
+    # entrypoint. A coherent declaration can still fail to build an image, and on 2026-09-14 that
+    # is exactly what happened: the build failed, Codespaces silently substituted a recovery
+    # container, and the platform reported Available. Only a real build answers that question,
+    # and this is the leg that does it WITHOUT provisioning a billable codespace to find out.
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    # A CEILING ON SPEND, not merely on hangs. ~5 minutes is the expected run. 30 bounds a build
+    # that wedges, so one bad iteration cannot quietly consume an afternoon of minutes while
+    # nobody is watching -- the same failure mode, one layer up, that the idle-timer finding
+    # ([#697], QR-AVAIL-010) describes for a codespace.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # FULL HISTORY HERE, unlike the declaration job above, and for a specific reason.
+          # provision.sh's L2 leg unshallows the clone ITSELF when it finds a shallow one, and
+          # that fetch would run INSIDE the container against a remote whose credential is
+          # scoped to this job. That is a dependency with nothing to do with what this leg
+          # tests, and it fails in a way that reads like a build failure. Handing the container
+          # a complete tree makes L2 a no-op -- "L2 clone already has full history" -- and keeps
+          # a red run meaning the build is red.
+          fetch-depth: 0
+
+      - name: Build the devcontainer and verify the L1 marker INSIDE it
+        # PINNED TO A COMMIT SHA, NOT A TAG, by operator ruling. `v0.3` is a MOVING tag: it and
+        # `v0.3.1900000450` both resolved to this commit on 2026-09-15, so the pin changes
+        # nothing today and stops a later move of `v0.3` from silently changing what executes
+        # here. A tag is a name someone else can repoint; a SHA is the artifact.
+        uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca  # v0.3.1900000450, 2026-06-01
+        with:
+          # CREDENTIAL-FREE, which is what makes this leg runnable in a repo that has no Actions
+          # secrets at all (`gh secret list` -> []). Verifying that a real provisioning run wrote
+          # a verifiable provenance marker is not a task a model does, so no model credential is
+          # referenced and the leg cannot be permanently red for want of one.
+          runCmd: uv run --locked python scripts/substrate_provenance.py verify --require-marker
+
 # ---------------------------------------------------------------------------------------------
-# DECLARED AND NOT ARMED: the container-build leg.
+# ARMING RECORD: the container-build leg, armed 2026-09-15.
 #
-# Same posture as `.devcontainer/provisioning.yaml`'s `prebuild:` block, and for the same reason
-# — this is the repo-side record of what the mechanism should be, written where a future
-# implementer meets it, with the honest note that nothing runs it today.
+# This block used to say DECLARED AND NOT ARMED and to name two blockers, both stated as
+# operator calls rather than the authoring lane's. Both were ruled on 2026-09-15 and the leg
+# above is the result. The record is kept rather than deleted, because the reasoning is what a
+# future reader needs in order to know whether the ruling still applies to them.
 #
-# WHAT IT WOULD BE. A second job, weekly rather than daily, that builds the devcontainer and
-# runs `substrate_provenance.py verify --require-marker` INSIDE it. That is the only probe that
-# answers the question this file's `declaration` job explicitly does not: does the image
-# actually build, and does a real provisioning run produce a verifiable marker. It is
-# credential-free too — identity is not a model task — so the measured no-secrets blocker does
-# not stand in its way.
+#   1. THIRD-PARTY ACTION. `devcontainers/ci` is the first non-`actions/*`, non-`astral-sh/*`
+#      action in this repo's workflows. Ruled acceptable HERE, conditional on a COMMIT SHA pin
+#      rather than a tag -- the condition is in force above, with the moving-tag reasoning
+#      beside it. This is not a general admission of third-party actions to this repo.
 #
-#   container:
-#     if: github.event_name == 'workflow_dispatch'
-#     runs-on: ubuntu-latest
-#     steps:
-#       - uses: actions/checkout@v4
-#       - uses: devcontainers/ci@v0.3
-#         with:
-#           runCmd: uv run --locked python scripts/substrate_provenance.py verify --require-marker
+#   2. ACTIONS MINUTES. Ruled acceptable at ~5 min a run, with the spend reported after each
+#      run and the leg stopped if it approaches the standing ruling.
 #
-# WHY IT IS NOT ARMED HERE, stated rather than left as an omission a reader has to notice. Two
-# reasons, both the operator's call and neither mine:
-#   1. `devcontainers/ci` is a THIRD-PARTY action this repo does not use today (its workflows use
-#      `actions/*` and `astral-sh/setup-uv` only). Adding one to CI is a dependency decision.
-#   2. It costs Actions minutes against a LIVE spend ruling — the 2026-08-20 substrate audit
-#      measured 601 of 2000 included minutes spent that month (30%) and ruled the free tier a
-#      hard boundary. A weekly build is roughly 5 minutes a run, ~22 a month; small, but it is
-#      spend, and spend is an operator decision in this repo by standing ruling.
+#      THE PREMISE OF THAT OBJECTION WAS MEASURED AFTERWARDS AND DOES NOT HOLD, which is
+#      recorded here rather than left to be rediscovered. `rdwornik/dev-knowledge` is a PUBLIC
+#      repository, and GitHub bills no standard-runner minutes for public repositories -- the
+#      2000-minute included allowance is a PRIVATE-repository entitlement. Measured 2026-09-15
+#      via the billing usage API: September's Actions Linux usage on this repo is 1889 minutes
+#      at netAmount $0.00, every row fully discounted. The 2026-08-20 substrate audit's
+#      "601 of 2000 included minutes (30%)" reads a public repo's reported usage as consuming a
+#      private repo's entitlement; that audit carries a superseded marker saying so.
 #
-# Arming it is one uncomment plus the `if:` cadence the operator wants. Until then, this file's
-# green means "the declaration is coherent" and nothing more, which is what the `declaration`
-# job's name says.
+#      THE METERED RESOURCE IS CODESPACES, NOT ACTIONS, and that is the direction the caution
+#      belongs in. Same measurement, same day: September Codespaces usage on this repo is
+#      8.01 hours of 2-core plus 5.42 hours of 4-core -- about 37.7 core-hours -- against
+#      Actions minutes that cost nothing. Iterating here instead of in a codespace is therefore
+#      cheaper than the ruling assumed, not merely acceptable.
+#
+# WHAT A GREEN RUN HERE MEANS, and the limit is stated so it is not over-read. It means the
+# image BUILDS and a real provisioning run inside it produced a verifiable L1 marker. It does
+# NOT mean a codespace will behave identically: this is a local Docker build on an Actions
+# runner, not the Codespaces platform, so it cannot exercise prebuilds, the recovery-container
+# substitution, development-environment secrets, or the idle timer. Those need the one
+# authorised billable codespace, and that is what it is for.

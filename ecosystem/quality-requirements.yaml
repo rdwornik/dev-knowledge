@@ -548,4 +548,15 @@ requirements:
       themselves undocumented. That is a fourth UNKNOWN the proof run should settle. This row is a
       contribution to open row [#697], whose Done-when is exactly "the -Detach / idle-timeout
       cause is identified and fixed with the measurement recorded"; it does not close it, because
-      the measurement is the half still missing.
+      the measurement is the half still missing. (4) OPERATOR RULING 2026-09-15, recorded here
+      because this register is where a later seat checks the claim's standing: "this is a
+      SUFFICIENT MECHANISM, not an established cause, and [#697] stays open with the identified
+      half recorded -- do not let a later seat promote it." A seat that finds this row must NOT
+      restate it as the cause of the zero-work lanes, must NOT close [#697] on it, and must NOT
+      action the 2026-08-20 audit's "set 15 min" recommendation, which is superseded in place by
+      a flush-left marker on that file. What moves this row to measured is ONE instrumented run:
+      --idle-timeout at its documented 5-minute minimum, a detached lane sleeping past it, and the
+      state transition recorded with its timestamp. [#697] carries the same guard in its own body,
+      compressed -- that row is under narration relief (tasks/archive/697.md) and its body is
+      byte-capped, which is why the full ledger lives here and in the intake amendment rather
+      than in the row.
