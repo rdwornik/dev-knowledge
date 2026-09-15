@@ -19,6 +19,33 @@
 
 ---
 
+### 2026-09-15 (s) - CC (Opus 5, background integrator seat): the four AA merge receipts reach the ledger, and what each one refuses to claim
+
+**Anchors:** `c8c0a13d` — the ledger append this entry names.
+
+**THE RECEIPTS ARE INCOMPLETE ON PURPOSE AND THE LEDGER SAYS SO.** No suite ran on this
+workstation (operator instruction for this seat), so all four record `suite` as UNRECORDED
+rather than as a pass. `merge_receipt.py` offers no `--skip` verb by design — *a median reached
+that way is a false pass on the row* — so the honest shape of a merge whose suite did not run is
+a receipt that is visibly missing a step, and all four are correctly excluded from the median.
+
+**`merge-aa-codespaces` is the weakest of the four and is worth naming rather than counting.**
+Its `teardown` FAILED rc=255 — `git worktree remove` losing to a Windows file lock, the same
+janitorial failure that excluded two thirds of batch Z receipts — and its `handback` and
+`merge` are unrecorded because the receipt was opened AFTER that merge had already landed. It
+records one timed step. The other three each record `merge` and `teardown` timed genuinely,
+around the real commands.
+
+**The timed steps are small and the WALL is not, which is the baseline own point.** merge 0.28
+-0.29 min and teardown 0.13-0.14 min against wall times of 3.55, 9.32 and 15.42 min — so 0.4x of
+each receipt is recorded and the rest is the residual ceremony the `[#675]` baseline puts at
+72.7 min. On this seat that remainder is conflict resolution: three of the four merges needed
+derived-count regeneration, and two needed id reallocation.
+
+**Changes:** `logs/MERGE-RECEIPTS.jsonl` +4 rows (18 total, 4 in batch AA).
+
+**Next:** the median stays at n=3 across all batches until a merge lands with a suite step.
+
 ### 2026-09-15 (r) - CC (Opus 5, background integrator seat): four of the AA queue land, and three of the four blockers are one defect wearing different clothes
 
 **Anchors:** `66236ec7` — `[#793]`, the withdrawn-contract row; the substantive commit this
