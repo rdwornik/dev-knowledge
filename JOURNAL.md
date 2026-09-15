@@ -19,6 +19,46 @@
 
 ---
 
+### 2026-09-15 (n) - CC (Opus 5, background integrator seat): the substrate arc lands, and `substrate-heartbeat.yml` reaches the default branch
+
+**Anchors:** `6e9b7a4f` — the branch tip this merge introduces, and the last of eight commits
+carrying the substrate-as-infrastructure arc onto `main`.
+
+**THE MERGE IS THE PRECONDITION, NOT THE DELIVERABLE.** A GitHub Actions workflow file only
+registers as a workflow once it exists on the **default branch**; until then
+`.github/workflows/substrate-heartbeat.yml` is an ordinary YAML file that no schedule, no
+`workflow_dispatch` and no API call can reach. A finished lane was blocked on exactly that, so
+this merge is sequenced FIRST in the AA queue for a mechanical reason rather than a priority one.
+
+**THE DATED CONSTRAINT THIS CLEARS.** Leg 8 of `validate_substrate` arms **2026-09-16**, after
+which a contract declaring `codespace` is refused at commit time without a live heartbeat
+receipt. The receipt is produced by the workflow; the workflow does not exist until it is on the
+default branch; so the merge is what makes the receipt producible at all. Landing it on
+2026-09-15 leaves the arming date met rather than breached.
+
+**LANE `aa-1` IS ABSORBED WHOLE, not merged separately.** `f0681233` — "the substrate as
+infrastructure — L1 provenance, L2 heartbeat, L3 graph membership" — is the BASE commit of this
+branch, so `worktree-lane-aa-1-substrate-provenance` is strictly contained in what lands here.
+It needs no merge of its own and gets none; recorded because a successor reading the queue will
+otherwise see a lane branch with no merge commit and read it as dropped.
+
+**Changes:** `.devcontainer/` (provisioning.yaml added, provision.sh + devcontainer.json wired);
+`.github/workflows/substrate-heartbeat.yml` (new, 204 lines); `scripts/substrate_provenance.py`,
+`scripts/substrate_heartbeat.py`, `scripts/codespace_state.py` (new organs);
+`scripts/validate_substrate.py`, `scripts/file_purpose_graph.py`, `scripts/graph_queries.py`,
+`scripts/safe_remove.py` (extended); `ecosystem/quality-requirements.yaml` (new); six test
+modules; two audits; two task rows. 32 files, +3971 / -70.
+
+**Abandoned:** nothing on this branch.
+
+**Next:** the workflow registers on the default branch at this merge; the first heartbeat receipt
+is what leg 8 will read from 2026-09-16.
+
+**Suite:** NOT run on this workstation — operator instruction for this seat. The merge receipt
+records the `suite` step as unrecorded rather than as a pass, so the receipt closes INCOMPLETE
+and is correctly excluded from the `merge_receipt median`. A skipped step dressed as a run would
+be a false pass on the row, which `merge_receipt.py` refuses by design (no `--skip` verb).
+
 ### 2026-09-15 (m) - CC (Opus 5, background integrator seat): batch Z closes, and the close packet corrects three of the seat's own figures
 
 **Anchors:** `708864bd` — the batch-close index debts, the newline regression fix and four merge
