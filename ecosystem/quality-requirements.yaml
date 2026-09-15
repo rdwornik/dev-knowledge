@@ -218,6 +218,76 @@ requirements:
       the box the whole time the window was reporting itself as quiet.
     source: AMEND-NIGHT-PLAN-002 AN2-2 (availability)
 
+  - id: QR-AVAIL-005
+    attribute: availability
+    status: candidate
+    statement: >-
+      Killing a job kills its process tree; a surviving descendant is reported rather than
+      left running.
+    metric: >-
+      Seconds between a reap and the last descendant exiting. Observed: about 8 minutes.
+    incident: >-
+      Job 100297d3 recorded `reapedMidWorkAt 2026-09-14T22:43:32Z` in its `state.json`. The
+      subtree outlived the reap by roughly 8 minutes, and a GRANDCHILD outlived the parent
+      that had just been killed -- so the kill reached one generation and stopped.
+    source: measured 2026-09-14, batch Z night; carried by AMEND-NIGHT-PLAN-002 AN2-5
+
+  - id: QR-AVAIL-006
+    attribute: availability
+    status: candidate
+    statement: >-
+      Terminating a background session deregisters it; a session the daemon can rehydrate is
+      not reclaimed.
+    metric: >-
+      Sessions alive under the same session-id after a kill: 0. Observed: 1, at `attempt: 2`.
+    incident: >-
+      SIGKILL on a background session does not reclaim it. The daemon rehydrates the session
+      from `~/.claude/daemon/roster.json` under the SAME session-id with `attempt: 2`,
+      witnessed twice on 2026-09-15. `claude stop <id>` is the only verb that deregisters, so
+      a seat that kills a process has freed nothing and does not learn so.
+    source: measured 2026-09-15, batch Z night; carried by AMEND-NIGHT-PLAN-002 AN2-5
+    note: >-
+      This is the reason a memory-floor arithmetic (QR-RES-001) cannot be built on process
+      kills alone: the resource a kill appears to free comes back.
+
+  - id: QR-AVAIL-007
+    attribute: availability
+    status: candidate
+    statement: >-
+      A session whose worktree was torn down refuses to write rather than resolving to the
+      primary checkout.
+    metric: >-
+      Writes into a torn-down worktree after teardown: 0. Writes redirected to the primary
+      checkout by a session that believed it was isolated: 0.
+    incident: >-
+      A Stop hook resolved its repo root to an already-torn-down worktree and WROTE there --
+      `logs/2026-09/DETECTOR-ERROR-2026-09-13.md`, preserved in this batch's manifest. The
+      hook's own error text names the condition it detected and it wrote anyway.
+    source: measured 2026-09-13, batch Z night; carried by AMEND-NIGHT-PLAN-002 AN2-5
+    note: >-
+      [#726] and [#748] own the two halves of this. Filed here as a candidate because the
+      quality attribute outlives whichever row closes first: the requirement is that
+      isolation FAILS LOUDLY, and a row that fixes one resolver does not establish that.
+
+  - id: QR-AVAIL-008
+    attribute: availability
+    status: candidate
+    statement: >-
+      A substrate whose provisioning failed reports the failure; a silently substituted
+      environment is refused rather than used.
+    metric: >-
+      Lanes whose gates were vacuous because the environment lacked them: 0. A vacuous gate
+      and an absent gate are different facts and the metric reads the first.
+    incident: >-
+      A Codespace whose devcontainer build fails is silently replaced by a bare recovery
+      container. The lane then runs with none of the declared tooling, so its gates pass by
+      not existing -- a green that reports nothing.
+    source: measured 2026-09 batch Z window; carried by AMEND-NIGHT-PLAN-002 AN2-5
+    note: >-
+      The failure mode this entry names is the dangerous one in the set: every other entry
+      here describes work that did not happen, and this one describes work that reported
+      itself as done.
+
   # ---- resource control --------------------------------------------------------------
   - id: QR-RES-001
     attribute: resource-control
