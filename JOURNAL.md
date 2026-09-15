@@ -19,6 +19,66 @@
 
 ---
 
+### 2026-09-15 (e) - CC (Opus 5, background integrator seat): lane z-746 repairs the substrate that killed eight of the sixteen lanes
+
+**Anchors:** `0dcdb153` — the lane's fix commit, the last of the five this merge introduces
+(`a7edeecf`, `f1c27f33`, `3abd8098`, `7c65ceaf`, `0dcdb153`). **Also anchors `1da24766`**, which
+`0ee3d161` introduced and which nothing named — see the note below.
+
+**TWO ANCHOR ORGANS DISAGREED, AND BOTH WERE RIGHT.** `block-unanchored-push` PASSED the push of
+`0ee3d161` and the `audit-health` backstop then REFUSED the next commit for it. The difference is
+not a bug in either: **the push gate discharges RANGE-level** — my pushed range introduced
+`df50ed4a`, which entry (d) names, so the range carried an anchor — while **the backstop is
+PER-SPINE-ENTRY**, and `0ee3d161` itself introduced `1da24766`, which no entry named. *Range-anchored
+and every-entry-anchored are different properties*, and a clean push is therefore not evidence that
+every entry in it is anchored. The repair is an APPEND naming the unnamed SHA (ADR-85 A7 / AF-1: an
+anchor discharges by append only, never by amending a landed entry), which is this line.
+
+**THIS LANE FIXES WHY THE NIGHT WAS SIX LANES AND NOT SIXTEEN.** The batch manifest records the
+CODESPACE substrate as dead: a fresh container carried no `claude`, `node`, `npm`, `uv` or `gh`
+because `.devcontainer/provision.sh` called `scripts/cloud_provisioning.py`, which no longer exists
+— `postCreateCommand` failed, container creation failed, and a recovery container was made. **Eight
+of the fifteen planned lanes were routed to that substrate.** Lane z-746 was promoted into the batch
+though it is not one of the fifteen precisely because it is their unlock.
+
+**It is the first lane tonight to demonstrably meet ADR-108 §B's RED-first bar**, and the commit
+order proves it rather than asserting it: `3abd8098 test(x-746): RED-first witnesses for the two
+absent legs and for the stale-script handover` lands BEFORE `0dcdb153 fix(x-746): restore the B1 and
+L5 legs, and stop provision.sh finishing a script it replaced`. `scripts/provision_legs.py` (870
+lines) arrives with `tests/test_provision_legs.py` (1,051 lines) and +222 lines into
+`tests/test_provision_sh.py`.
+
+**Two root causes, not one, and the second is the subtle one.** B1's history guard *"could not
+look (exit 2)"* — the same could-not-look-versus-looked-and-wrong distinction lane z-11 found
+`preflight_contract.py` failing on a shallow clone, surfacing independently in a second organ the
+same night. L5 is that `audit.py health` reports `repos registered (none)` in a fresh container and
+exits non-zero, because `ecosystem/*/state.yaml` is GITIGNORED so no clone has ever carried one:
+on the workstation `worktree_seed.py` copies them from the primary, and **a container has no primary
+to copy from.**
+
+**Codex review: `gpt-5.6-terra`, clean.** *"No correctness defects found that I can substantiate
+from the diff"* over 2,610 diff lines, **72,658 tokens**. Two limits recorded rather than glossed:
+the review is **UNPRICED** — `ecosystem/provider-registry.yaml` registers the id so a provenance
+attribution resolves but carries no rate fields (`pinned_at: []`), which is the gap lane z-4 exists
+to close; and the reviewer is **ROUTABLE but NOT ADMITTED**, since AX22-1's ≥8-of-10 bar has
+measured no non-Claude provider. A clean review from it is evidence, not an admission. It is also
+the first non-Claude model to do real work in this harness tonight.
+
+**Recorded against my own receipt discipline:** the `codex` call ran ~10 min OUTSIDE the
+`merge_receipt time --step review` wrapper, so that step reads 0.02 min and UNDERSTATES review wall
+time, which sits in the unrecorded remainder. The fix is to wrap the reviewer call itself; stated
+here because target 3.5 exists so review cannot be traded away silently, and an understated review
+step is exactly how that would happen.
+
+**Changes:** `.devcontainer/{provision.sh,devcontainer.json,provisioning.yaml}`,
+`scripts/provision_legs.py` (new), `scripts/graph_queries.py`, `tests/test_provision_legs.py` (new),
+`tests/test_provision_sh.py`, `BACKLOG.md`, `tasks/` ([#746] → P1).
+
+**Abandoned:** nothing.
+
+**Next:** merge, then the Actions verdict — the FIRST genuine exercise of the frozen-51 judging rule,
+because this is the first code-bearing merge of the night and the two before it were docs.
+
 ### 2026-09-15 (d) - CC (Opus 5, background integrator seat): the receipt ledger lands, and the open-batch exemption is measured NOT to reach the push gate
 
 **Anchors:** `df50ed4a` — merge-z-manifest's closed receipt, the commit this arc introduces.
