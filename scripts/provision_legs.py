@@ -1,0 +1,870 @@
+#!/usr/bin/env python
+"""[#746] the two provisioning legs `provision.sh` cannot express in shell - B1 and L5.
+
+RESTORED, NOT RESURRECTED. `scripts/cloud_provisioning.py` implemented three commands; it was
+retired at `3c9418cc` ([#734]) as an unreferenced census orphan - which it was not: its six
+callers named it BY PATH in a shell script, a referrer `safe_remove`'s static importer scan
+cannot see. `[#664]` then removed the six dead callers, which stopped the crash without
+restoring anything, and filed `[#746]` for the real repair. This module is that repair. It
+carries the TWO LEGS THE ROW NAMES and nothing else:
+
+  history    B1. Leg 2 unshallows, so a cloud clone has DEPTH. It does not necessarily have
+             REFS: the proof lane's codespace carried 5329 commits and no local `main`, and
+             every instrument that walks main's first-parent spine then ERRORED
+             (`AnchorError(... 'fatal: Not a valid object name main')`) rather than passing
+             vacuously. "Not shallow" is necessary and insufficient; this asserts the
+             sufficient precondition and repairs it BEFORE a lane can reach a spine walker.
+
+  ecosystem  L5. `audit.py health` reports `repos registered (none)` in a fresh container.
+             Not structural: `discover_repos()` counts `ecosystem/*/state.yaml`, that glob is
+             GITIGNORED, and so no clone has ever carried one. The workstation copies them from
+             the primary checkout (`scripts/worktree_seed.py` `_COPY_MANIFEST`, whose comment
+             names this exact symptom); a container has no primary, so it audits the one repo it
+             has and saves the genuine result.
+
+WHAT IS DELIBERATELY NOT HERE. The retired module's third command, `prebuild`, reported
+declaration-vs-live drift against the Codespaces machines endpoint. It is not one of `[#746]`'s
+legs, it is the only part that needed `gh` and the network, and restoring it would be restoring
+the FILE rather than the legs. `.devcontainer/provisioning.yaml`'s `prebuild:` block therefore
+now declares something no checker reads, and that block says so itself.
+
+The implementation below is the retired one, carried across rather than rewritten: every
+comment naming a terra CRITICAL or HIGH round is a MEASURED defect from 2026-08-21 - a diverged
+ref force-updated, a rewound remote swallowing local commits, a write escaping the checkout
+through a symlink - and a restoration that retyped this from the docstring would have restored
+the shape without the reasons.
+
+Both legs read their settings from `.devcontainer/provisioning.yaml` rather than carrying a
+literal - `history.required_refs` and `history.disposition` for B1, `ecosystem.self_register`
+and `ecosystem.self_name` for L5.
+
+REUSE, NOT REIMPLEMENTATION. `ecosystem --repair` calls `audit.audit_repo` + `audit.save_state`,
+the same pair `audit.py repo` uses, and deliberately NOT `audit.py repo` itself: that command
+also appends history, writes a report under `docs/audits/` and commits its outputs, none of
+which a provisioning step may do to a container's tree. `save_state` writes exactly one
+gitignored file.
+
+EXIT CODES. 0 clean · 1 a real violation (looked, and found drift) · 2 could not look (missing
+tool, no remote, unreadable config, internal error). The 1/2 split is the repo's
+declared-absence-over-false-resolves rule (STANDING_RULINGS F4): "the guard could not run" and
+"the guard ran and failed" are different facts and must not share an exit code.
+
+WIRED INTO NO GATE. This is provisioning machinery called by `provision.sh`; it is not a
+pre-commit hook and adding it to one is a separate, surfaced act.
+"""
+from __future__ import annotations
+
+import argparse
+import logging
+import subprocess
+import sys
+from dataclasses import dataclass, field
+from datetime import date
+from pathlib import Path
+
+import yaml
+
+LOG = logging.getLogger("provision_legs")
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+CONFIG_PATH = REPO_ROOT / ".devcontainer" / "provisioning.yaml"
+CONFIG_SCHEMA = "dev-knowledge-cloud-provisioning/1"
+
+EXIT_OK = 0
+EXIT_VIOLATION = 1
+EXIT_UNAVAILABLE = 2
+
+#: `history.disposition` values. `repair` restores the refs; `exclude` declares the spine
+#: walkers out of scope for cloud lanes and reports them rather than acting.
+DISPOSITIONS = ("repair", "exclude")
+
+_GIT_TIMEOUT = 600      # an --unshallow of this repo's ~5400 commits, with headroom
+
+
+class ProvisioningError(Exception):
+    """Raised when the guard cannot LOOK - distinct from looking and finding drift."""
+
+
+# --- configuration ----------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class HistoryConfig:
+    disposition: str
+    required_refs: tuple[str, ...]
+    spine_walking_instruments: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class EcosystemConfig:
+    self_register: bool
+    self_name: str
+
+
+@dataclass(frozen=True)
+class Config:
+    history: HistoryConfig
+    ecosystem: EcosystemConfig
+
+
+def _strict_bool(block: dict, key: str, *, default: bool) -> bool:
+    """A YAML value that must BE a boolean, not merely coerce to one.
+
+    `bool("false")` is `True`, so a declaration written `self_register: "false"` — quoted by
+    hand, or by a generator that stringifies — silently flipped to the opposite meaning. Here
+    that AUTHORISES a tree mutation the declaration meant to forbid, which is worse than refusing
+    to read the file (terra HIGH round 4, 2026-08-21). A missing key still takes the default; a
+    present key of the wrong type is a could-not-look.
+    """
+    if key not in block:
+        return default
+    value = block[key]
+    if isinstance(value, bool):
+        return value
+    raise ProvisioningError(
+        f"{key!r} is {value!r} ({type(value).__name__}), which is not a YAML boolean - write "
+        f"`{key}: true` or `{key}: false`, unquoted")
+
+
+def _strict_str_list(block: dict, key: str, *, required: bool) -> tuple[str, ...]:
+    """A YAML value that must BE a sequence of non-empty strings.
+
+    `tuple("main")` is `("m", "a", "i", "n")`, so a declaration written `required_refs: main`
+    instead of a list produced four one-character ref names and four false exit-1 violations —
+    a malformed configuration reported as observed drift (terra HIGH round 7, 2026-08-21). A
+    string is refused explicitly rather than iterated.
+    """
+    value = block.get(key)
+    if value is None:
+        if required:
+            raise ProvisioningError(f"{key!r} is missing - nothing to assert")
+        return ()
+    if isinstance(value, str) or not isinstance(value, (list, tuple)):
+        raise ProvisioningError(
+            f"{key!r} is {value!r} ({type(value).__name__}), which is not a YAML list - write it "
+            f"as a sequence, one entry per line")
+    items = []
+    for item in value:
+        if not isinstance(item, str) or not item.strip():
+            raise ProvisioningError(
+                f"{key!r} contains {item!r}, which is not a non-empty string")
+        items.append(item)
+    if required and not items:
+        raise ProvisioningError(f"{key!r} is empty - nothing to assert")
+    return tuple(items)
+
+
+def load_config(path: Path = CONFIG_PATH) -> Config:
+    """Read `.devcontainer/provisioning.yaml`, or raise ProvisioningError."""
+    try:
+        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise ProvisioningError(f"provisioning declaration not found at {path}") from exc
+    except (OSError, yaml.YAMLError) as exc:
+        raise ProvisioningError(f"provisioning declaration at {path} is unreadable: {exc}") from exc
+
+    if not isinstance(raw, dict):
+        raise ProvisioningError(f"provisioning declaration at {path} is not a mapping")
+    schema = raw.get("schema")
+    if schema != CONFIG_SCHEMA:
+        raise ProvisioningError(
+            f"provisioning declaration schema is {schema!r}, expected {CONFIG_SCHEMA!r}")
+
+    hist = raw.get("history") or {}
+    disposition = hist.get("disposition")
+    if disposition not in DISPOSITIONS:
+        raise ProvisioningError(
+            f"history.disposition is {disposition!r}, expected one of {list(DISPOSITIONS)}")
+    refs = _strict_str_list(hist, "required_refs", required=True)
+
+    # `raw` may carry a `prebuild:` block. It is READ BY NOTHING here and that is deliberate -
+    # see the module docstring's "WHAT IS DELIBERATELY NOT HERE". An unknown block is ignored
+    # rather than refused: this loader asserts the shape of what it USES, and a declaration is
+    # allowed to declare more than one reader consumes.
+    eco = raw.get("ecosystem") or {}
+    return Config(
+        history=HistoryConfig(
+            disposition=disposition,
+            required_refs=refs,
+            spine_walking_instruments=_strict_str_list(hist, "spine_walking_instruments", required=False),
+        ),
+        ecosystem=EcosystemConfig(
+            self_register=_strict_bool(eco, "self_register", default=False),
+            self_name=str(eco.get("self_name") or ".dev-knowledge"),
+        ),
+    )
+
+
+# --- git ---------------------------------------------------------------------------------
+
+
+def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    """Run one git command in `root`. Raises ProvisioningError when git itself is unusable."""
+    try:
+        return subprocess.run(
+            ["git", *args], cwd=root, capture_output=True, text=True, timeout=_GIT_TIMEOUT,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise ProvisioningError(f"git {' '.join(args)} could not run: {exc}") from exc
+
+
+def is_shallow(root: Path) -> bool:
+    r = _git(root, "rev-parse", "--is-shallow-repository")
+    if r.returncode != 0:
+        raise ProvisioningError(f"git rev-parse --is-shallow-repository failed: {r.stderr.strip()}")
+    return r.stdout.strip() == "true"
+
+
+def ref_resolves(root: Path, ref: str) -> bool:
+    """True when `refs/heads/<ref>` names a commit in THIS clone.
+
+    Resolution is pinned to the `refs/heads/` NAMESPACE, not to the bare name. A bare
+    `git rev-parse main` also resolves a TAG called `main`, a remote-tracking ref, or anything
+    else git's disambiguation rules reach — and every instrument in
+    `history.spine_walking_instruments` means the local BRANCH. Accepting a look-alike here
+    would let a spine walk run over unrelated history and report clean, which is the vacuous-gate
+    class this whole module exists to close (terra HIGH, 2026-08-21).
+    """
+    r = _git(root, "rev-parse", "--verify", "--quiet", f"refs/heads/{ref}^{{commit}}")
+    if r.returncode in (0, 1):
+        return r.returncode == 0
+    # Not "the ref is absent" — git could not answer. A corrupt ref store or an unreadable object
+    # is a could-not-look, and reporting it as a missing ref would turn it into observed drift
+    # (terra HIGH round 8, 2026-08-21).
+    raise ProvisioningError(
+        f"`git rev-parse refs/heads/{ref}` failed (exit {r.returncode}): {r.stderr.strip()}")
+
+
+def remote_ref(root: Path, ref: str, remote: str = "origin") -> str | None:
+    """The SHA of the CACHED `refs/remotes/<remote>/<ref>`, or None when this clone has none.
+
+    Cached, and therefore only as fresh as the last fetch. `live_remote_sha` is what the
+    currency check uses; this remains for callers that genuinely want the local cache.
+    """
+    r = _git(root, "rev-parse", "--verify", "--quiet",
+             f"refs/remotes/{remote}/{ref}^{{commit}}")
+    return r.stdout.strip() if r.returncode == 0 else None
+
+
+def live_remote_sha(root: Path, ref: str, remote: str = "origin") -> str | None:
+    """The tip of `refs/heads/<ref>` ON THE REMOTE, asked of the remote. None if it has no such
+    branch; raises on a transport failure.
+
+    THE CURRENCY CHECK MUST NOT READ A CACHE (terra HIGH round 4, 2026-08-21). Comparing a local
+    branch with `refs/remotes/origin/<ref>` compares two things that went stale together: a clone
+    that has not fetched since upstream advanced finds them equal, reports clean, and the spine
+    walkers then miss every commit added since. `ls-remote` is read-only and answers about the
+    remote as it is now, which is the only reading that can support a currency claim.
+    """
+    r = _git(root, "ls-remote", "--exit-code", "--heads", remote, f"refs/heads/{ref}")
+    if r.returncode == 0:
+        first = r.stdout.split(maxsplit=1)
+        if not first:
+            raise ProvisioningError(
+                f"`git ls-remote {remote} refs/heads/{ref}` succeeded with no output")
+        return first[0]
+    if r.returncode == 2:
+        return None
+    raise ProvisioningError(
+        f"`git ls-remote {remote} refs/heads/{ref}` failed (exit {r.returncode}): "
+        f"{r.stderr.strip()} - cannot tell whether the branch exists or the remote is "
+        f"unreachable")
+
+
+#: Local-vs-remote states for a required ref. The four are kept apart because they get three
+#: DIFFERENT treatments, and collapsing them is how a repair becomes data loss.
+REF_CURRENT = "current"     # equal, or local ahead — nothing missing from the spine walk
+REF_BEHIND = "behind"       # local is an ANCESTOR of remote: fast-forwardable, safe to update
+REF_DIVERGED = "diverged"   # neither is an ancestor: updating would DISCARD local commits
+#: The remote tip is not an object in this clone at all — which happens precisely when the clone
+#: has never fetched it. Not current (the walk is provably missing that commit), and not
+#: classifiable further without fetching, so it is never treated as fast-forwardable.
+REF_TIP_ABSENT = "tip-absent"
+#: The remote tip IS reachable from the local ref, but not along its first-parent chain — so
+#: `git log --first-parent` never traverses it and the instruments would miss that history while
+#: generic ancestry reported everything fine. Refused rather than repaired: forcing the ref would
+#: discard whatever the local branch reached it through.
+REF_OFF_SPINE = "off-spine"
+
+
+def object_exists(root: Path, sha: str) -> bool:
+    """Whether `sha` is a commit in this clone's object store.
+
+    Only an explicitly ABSENT object answers False. The round-8 fix reached `ref_resolves` and
+    `spine_length` but not here, so a corrupt or unreadable object store still read as "the
+    remote tip was never fetched" — which the read-only path reports as drift (exit 1) and the
+    repair path acts on by fetching (terra HIGH round 9, 2026-08-21).
+    """
+    # The BARE sha, not `<sha>^{commit}`. Measured 2026-08-21: the peeled form exits 128 for a
+    # missing object AND for a wrong-type one, collapsing "absent" into the same code as a fatal
+    # error — which is the very distinction this function has to make. The bare form is cleanly
+    # two-valued: 0 present, 1 absent.
+    r = _git(root, "cat-file", "-e", sha)
+    if r.returncode == 1:
+        return False
+    if r.returncode != 0:
+        raise ProvisioningError(
+            f"`git cat-file -e {sha[:9]}` failed (exit {r.returncode}): {r.stderr.strip()} - the "
+            f"object store could not answer, which is not the same as the object being absent")
+    kind = _git(root, "cat-file", "-t", sha)
+    if kind.returncode != 0:
+        raise ProvisioningError(
+            f"`git cat-file -t {sha[:9]}` failed: {kind.stderr.strip()}")
+    if kind.stdout.strip() != "commit":
+        raise ProvisioningError(
+            f"origin's tip {sha[:9]} is a {kind.stdout.strip()}, not a commit - no ancestry "
+            f"question can be asked of it")
+    return True
+
+
+def _on_first_parent_chain(root: Path, rev: str, sha: str) -> bool:
+    """Whether `sha` sits on `rev`'s FIRST-PARENT chain — the exact walk the instruments perform.
+
+    `git merge-base --is-ancestor` answers reachability through ANY parent. This answers the
+    narrower question the spine walkers actually ask.
+    """
+    r = _git(root, "rev-list", "--first-parent", "--format=%H", rev)
+    if r.returncode != 0:
+        raise ProvisioningError(
+            f"`git rev-list --first-parent {rev}` failed: {r.stderr.strip()}")
+    return sha in {line.strip() for line in r.stdout.splitlines()}
+
+
+def _is_ancestor(root: Path, ancestor: str, descendant: str) -> bool:
+    r = _git(root, "merge-base", "--is-ancestor", ancestor, descendant)
+    if r.returncode in (0, 1):
+        return r.returncode == 0
+    raise ProvisioningError(
+        f"git merge-base --is-ancestor could not answer ({ancestor} -> {descendant}): "
+        f"{r.stderr.strip()}")
+
+
+def ref_status(root: Path, ref: str, remote_sha: str) -> str:
+    """Classify the local branch against its remote-tracking ref.
+
+    THE DISTINCTION IS LOAD-BEARING (terra CRITICAL, 2026-08-21). An earlier version asked only
+    "is the remote an ancestor of local?" and treated every `no` as behind — which lumps a
+    DIVERGED branch in with a fast-forwardable one. The repair then force-fetched over it, so a
+    VPS clone carrying an unpushed commit on local `main` would have lost the only reference to
+    it the moment `origin/main` also advanced. Divergence is now refused, never overwritten.
+
+    Being AHEAD is normal on a workstation (a lane's own commits) and reads as current: nothing
+    is missing from the walk.
+    """
+    local = f"refs/heads/{ref}"
+    if not object_exists(root, remote_sha):
+        # The remote tip has never been fetched, so no ancestry question can be answered here.
+        # What IS known: the local branch cannot contain a commit this clone does not have.
+        return REF_TIP_ABSENT
+    if _is_ancestor(root, remote_sha, local):
+        # ANCESTRY IS NOT ENOUGH (terra HIGH round 5, 2026-08-21). Every instrument in
+        # `spine_walking_instruments` walks `--first-parent`, so a remote tip reachable only
+        # through a SECOND parent is history the walk never traverses — generic ancestry would
+        # report that clean, which is the vacuous-gate condition this module exists to prevent.
+        return REF_CURRENT if _on_first_parent_chain(root, local, remote_sha) else REF_OFF_SPINE
+    if _is_ancestor(root, local, remote_sha):
+        return REF_BEHIND
+    return REF_DIVERGED
+
+
+def spine_length(root: Path, ref: str) -> int:
+    """First-parent spine entries reachable from `ref`. Raises when the walk itself fails.
+
+    This is the exact shape every instrument in `history.spine_walking_instruments` performs,
+    so a walk that works here is the precondition they need — not a proxy for it.
+
+    Callers reach this only after `ref_resolves` said the ref is present, so a failure here is
+    not "the ref is missing" — it is git being unable to walk, which is a could-not-look. An
+    earlier version returned None and the caller recorded a violation, converting a corrupt
+    object store into observed drift (terra HIGH round 8, 2026-08-21).
+    """
+    r = _git(root, "log", "--first-parent", "--format=%H", f"refs/heads/{ref}")
+    if r.returncode != 0:
+        raise ProvisioningError(
+            f"`git log --first-parent refs/heads/{ref}` failed (exit {r.returncode}): "
+            f"{r.stderr.strip()} - the walk the instruments perform does not work in this clone")
+    return len([line for line in r.stdout.splitlines() if line.strip()])
+
+
+def has_remote(root: Path, name: str = "origin") -> bool:
+    r = _git(root, "remote")
+    return r.returncode == 0 and name in r.stdout.split()
+
+
+def remote_has_branch(root: Path, ref: str, remote: str = "origin") -> bool:
+    """Whether `remote` carries `refs/heads/<ref>`, asked of the REMOTE itself.
+
+    Three-valued underneath: the branch exists, it verifiably does not, or the remote could not
+    be reached (which raises). Before this, ANY failed fetch was reported as "origin has no such
+    branch" — so an auth failure, a DNS failure or an unreachable host all became a
+    positively-observed configuration violation (exit 1) when the honest answer was
+    could-not-look (exit 2). Terra HIGH round 3, 2026-08-21.
+    """
+    return live_remote_sha(root, ref, remote) is not None
+
+
+def current_branch(root: Path) -> str | None:
+    """The checked-out branch name, or None on a detached HEAD.
+
+    Raises on a git failure rather than returning None: an unknown branch state must not be
+    mistaken for a detached HEAD. (`scripts/block_commit_on_main.py` documents the opposite
+    choice for its own hook; the divergence is deliberate — this one never gates a commit.)
+    """
+    r = _git(root, "symbolic-ref", "--quiet", "--short", "HEAD")
+    if r.returncode == 0:
+        return r.stdout.strip()
+    if r.stderr.strip():
+        raise ProvisioningError(f"git symbolic-ref failed: {r.stderr.strip()}")
+    return None
+
+
+# --- history: assess and repair ----------------------------------------------------------
+
+
+@dataclass
+class HistoryReport:
+    shallow: bool
+    refs: dict[str, int | None] = field(default_factory=dict)
+    violations: list[str] = field(default_factory=list)
+    actions: list[str] = field(default_factory=list)
+    #: Refs present and walkable whose currency could NOT be checked (no remote-tracking ref).
+    #: Surfaced rather than folded into `ok`: not-compared is not the same fact as compared-clean.
+    uncompared: list[str] = field(default_factory=list)
+
+    @property
+    def ok(self) -> bool:
+        return not self.violations
+
+
+def assess_history(root: Path, cfg: HistoryConfig) -> HistoryReport:
+    """Look at the clone and report whether a spine walker could run here. Never writes."""
+    report = HistoryReport(shallow=is_shallow(root))
+    if report.shallow:
+        report.violations.append(
+            "clone is SHALLOW - every history-dependent detector reads vacuously")
+
+    for ref in cfg.required_refs:
+        if not ref_resolves(root, ref):
+            report.refs[ref] = None
+            report.violations.append(
+                f"ref {ref!r} does not resolve in this clone - a spine walker errors out "
+                f"(the measured shape: \"fatal: Not a valid object name {ref}\")")
+            continue
+        length = spine_length(root, ref)
+        report.refs[ref] = length
+        if length == 0:
+            report.violations.append(
+                f"ref {ref!r} walks to an EMPTY first-parent spine - the instruments would "
+                f"pass on nothing, which is the vacuous-gate failure shape leg 2 exists to close")
+            continue
+        # Present, walkable — and possibly STALE. A local branch left behind the remote hides
+        # every spine entry in between, so the instruments run over a short history and report
+        # clean. The comparison is against the LIVE remote (`ls-remote`, read-only), never the
+        # cached remote-tracking ref: a clone that has not fetched has a cache that went stale
+        # alongside its branch, and comparing the two finds them equal (terra HIGH round 4).
+        remote_sha = live_remote_sha(root, ref) if has_remote(root) else None
+        if remote_sha is None:
+            report.uncompared.append(ref)
+            continue
+        status = ref_status(root, ref, remote_sha)
+        if status in (REF_BEHIND, REF_TIP_ABSENT):
+            report.violations.append(
+                f"ref {ref!r} is BEHIND origin/{ref} ({remote_sha[:9]}) - the spine walk would "
+                f"miss every entry in between and still report clean")
+        elif status == REF_DIVERGED:
+            report.violations.append(
+                f"ref {ref!r} has DIVERGED from origin/{ref} ({remote_sha[:9]}) - it carries "
+                f"commits the remote does not. This guard REFUSES to repair it: a forced update "
+                f"would discard them. Resolve the divergence by hand.")
+        elif status == REF_OFF_SPINE:
+            report.violations.append(
+                f"ref {ref!r} reaches origin/{ref} ({remote_sha[:9]}) only through a SECOND "
+                f"parent, so `git log --first-parent` never traverses it - the instruments would "
+                f"miss that history while ordinary ancestry looked fine. Refused, not repaired: "
+                f"a forced update would discard whatever the local branch reached it through.")
+    return report
+
+
+def repair_history(root: Path, cfg: HistoryConfig) -> HistoryReport:
+    """Deepen the clone and restore the required refs, then re-assess.
+
+    Gated throughout: `--unshallow` is an error on a complete clone, and fetching a ref that is
+    already checked out is an error too, so each action runs only when its precondition holds.
+    Idempotent — a second run performs no action and says so.
+    """
+    # An environment this guard cannot ACT in is a could-not-look, not a violation: the 0/1/2
+    # contract says so, and returning 1 here would tell a caller "the clone is wrong" when the
+    # honest answer is "there is nothing here to repair it from" (terra HIGH, 2026-08-21).
+    if not has_remote(root):
+        report = assess_history(root, cfg)
+        if report.ok and not report.uncompared:
+            return report
+        raise ProvisioningError(
+            "no `origin` remote - a clone missing history cannot be repaired here")
+
+    # ASSESS BEFORE TOUCHING ANYTHING. The currency check reads `ls-remote`, so the assessment is
+    # accurate with no fetch at all — which means a clean clone can be answered without mutating
+    # git metadata. An earlier version refreshed the tracking refs unconditionally and then
+    # reported "no-op", which is a mutation hidden behind an idempotency claim (terra HIGH round
+    # 6, 2026-08-21). Nothing below this line runs on a clone that is already sufficient.
+    report = assess_history(root, cfg)
+    if report.ok and not report.uncompared:
+        return report
+
+    if report.shallow:
+        LOG.info("history: clone is shallow - fetching full history (git fetch --unshallow)")
+        r = _git(root, "fetch", "--unshallow", "--quiet")
+        if r.returncode != 0:
+            raise ProvisioningError(f"`git fetch --unshallow` failed: {r.stderr.strip()}")
+        report.actions.append("git fetch --unshallow")
+
+    # Violations only the REPAIR ATTEMPT can learn, kept apart from `report.violations` — those
+    # describe the clone BEFORE acting and are re-derived by the final assessment.
+    repair_notes: list[str] = []
+    checked_out = current_branch(root)
+
+    for ref in cfg.required_refs:
+        if ref == checked_out:
+            # A checked-out branch always resolves, and git refuses a fetch into the ref HEAD
+            # points at. Stated rather than left implicit.
+            continue
+        remote_sha = live_remote_sha(root, ref)
+        present = ref_resolves(root, ref)
+        if present and remote_sha is not None:
+            status = ref_status(root, ref, remote_sha)
+            if status == REF_CURRENT:
+                continue
+            if status == REF_TIP_ABSENT:
+                # Bring the tip into the object store, then let the code below reclassify against
+                # what actually arrived. Only a fetch that CANNOT act is a could-not-look, and
+                # returning a violation for one would assert observed drift from an inability to
+                # fetch (terra HIGH round 5, 2026-08-21).
+                fr = _git(root, "fetch", "origin",
+                          f"+refs/heads/{ref}:refs/remotes/origin/{ref}", "--quiet")
+                if fr.returncode != 0 or not object_exists(root, remote_sha):
+                    raise ProvisioningError(
+                        f"the tip of origin/{ref} ({remote_sha[:9]}) could not be fetched into "
+                        f"this clone ({fr.stderr.strip() or 'object still absent'}) - it cannot "
+                        f"be classified or repaired here")
+                report.actions.append(
+                    f"git fetch origin +refs/heads/{ref}:refs/remotes/origin/{ref}")
+                status = ref_status(root, ref, remote_sha)
+                if status == REF_CURRENT:
+                    continue
+            if status == REF_OFF_SPINE:
+                # Refuse, do not repair: forcing the ref would discard whatever path the local
+                # branch reached the remote tip through. assess_history reports the violation.
+                LOG.error("history: ref %r reaches origin/%s only through a second parent - "
+                          "refusing to force-update it", ref, ref)
+                continue
+            if status == REF_DIVERGED:
+                # REFUSE, do not repair. assess_history below reports it as a violation.
+                LOG.error("history: ref %r has DIVERGED from origin/%s - refusing to force-update "
+                          "it, because that would discard local commits", ref, ref)
+                continue
+        elif present:
+            continue                      # present, and nothing to compare against — leave it
+        if not present and not remote_has_branch(root, ref):
+            # ASKED OF THE REMOTE, not inferred from a failed fetch. `ls-remote --exit-code`
+            # separates "the branch verifiably does not exist" (a real violation) from a
+            # transport failure (which raises inside `remote_has_branch` and exits 2).
+            repair_notes.append(
+                f"required ref {ref!r} is absent locally and origin has no branch of that name "
+                f"- the declaration names a ref no reachable clone carries")
+            continue
+        LOG.info("history: ref %r is %s - fetching it from origin", ref,
+                 "absent" if not present else "behind origin")
+        # FETCH INTO THE TRACKING REF, THEN COMPARE-AND-SWAP THE LOCAL ONE (terra CRITICAL round
+        # 6, 2026-08-21). A `+refs/heads/<ref>:refs/heads/<ref>` refspec writes whatever the
+        # remote holds AT FETCH TIME straight over the local branch — so a force-push landing
+        # between the classification above and the fetch could discard local commits despite the
+        # divergence guard having just approved the update. Splitting the two lets the arriving
+        # commit be re-classified before anything local moves, and `git update-ref <ref> <new>
+        # <old>` then refuses if the local ref changed underneath us.
+        before = _git(root, "rev-parse", "--verify", "--quiet", f"refs/heads/{ref}")
+        old_sha = before.stdout.strip() if before.returncode == 0 else ""
+        fr = _git(root, "fetch", "origin",
+                  f"+refs/heads/{ref}:refs/remotes/origin/{ref}", "--quiet")
+        if fr.returncode != 0:
+            # `ls-remote` said the branch exists and the fetch still failed: an action the guard
+            # could not perform, never a statement about the branch.
+            raise ProvisioningError(
+                f"`git fetch origin refs/heads/{ref}` failed even though origin reports the "
+                f"branch exists: {fr.stderr.strip()}")
+        report.actions.append(
+            f"git fetch origin +refs/heads/{ref}:refs/remotes/origin/{ref}")
+        arrived = remote_ref(root, ref)
+        if arrived is None:
+            raise ProvisioningError(
+                f"fetched origin/{ref} but the tracking ref did not materialise - cannot repair")
+        # Re-classify against WHAT ARRIVED, not against what `ls-remote` reported earlier — and
+        # accept ONLY `behind` (terra CRITICAL round 7, 2026-08-21). Compare-and-swap protects
+        # against the LOCAL ref moving; it says nothing about the remote. A force-push to an
+        # ancestor between `ls-remote` and the fetch makes the arriving tip `current` — at which
+        # point the CAS succeeds and REWINDS the local branch, discarding its newer commits. The
+        # only safe update is one that moves the ref FORWARD.
+        if old_sha:
+            arrived_status = ref_status(root, ref, arrived)
+            if arrived_status == REF_CURRENT:
+                LOG.info("history: origin/%s is already contained in the local ref after the "
+                         "fetch - nothing to update", ref)
+                continue
+            if arrived_status != REF_BEHIND:
+                LOG.error("history: origin/%s moved to %s between the check and the fetch (%s) - "
+                          "refusing to update the local ref", ref, arrived[:9], arrived_status)
+                continue
+        ur = _git(root, "update-ref", f"refs/heads/{ref}", arrived, old_sha)
+        if ur.returncode != 0:
+            raise ProvisioningError(
+                f"`git update-ref refs/heads/{ref} {arrived[:9]} {old_sha[:9] or '(create)'}` "
+                f"failed - the local ref changed underneath this repair: {ur.stderr.strip()}")
+        report.actions.append(
+            f"git update-ref refs/heads/{ref} {arrived[:9]} (was {old_sha[:9] or 'absent'})")
+
+    final = assess_history(root, cfg)
+    final.actions = report.actions
+    # Carry forward what only the REPAIR attempt could learn (e.g. "origin has no such branch").
+    # A re-assessment sees the ref is missing; it cannot see that fetching it was tried and why
+    # it failed, and dropping that would make the report less true after acting than before.
+    final.violations.extend(n for n in repair_notes if n not in final.violations)
+    return final
+
+
+# --- ecosystem: the registration a fresh clone cannot inherit ------------------------------
+
+
+def _state_is_usable(path: Path) -> bool:
+    """Whether a `state.yaml` is a real registration rather than a file that merely exists.
+
+    `audit.discover_repos` counts EXISTENCE, and so did `registered_repos` — which meant a
+    truncated, empty or half-written state.yaml permanently short-circuited the repair and let
+    provisioning stamp a broken environment as registered (terra HIGH round 8, 2026-08-21).
+    Deliberately STRICTER than the audit predicate and never looser: a file this rejects gets
+    re-seeded, and the re-seed writes a good one, so the audit's own check ends up satisfied
+    either way.
+
+    Structure only — a mapping carrying `name` and `path`. NOT identity: a worktree carries the
+    PRIMARY checkout's state.yaml by design (`scripts/worktree_seed.py` copies it), so requiring
+    `path` to equal this root would declare every worktree unregistered and reseed it.
+
+    Three-valued underneath, not two: a file that could not be READ raises. Folding an
+    unreadable file into "malformed" would report exit 1 for a permission error, and would let
+    `--repair` overwrite a perfectly valid state file that happened to be locked at that instant
+    (terra HIGH round 10, 2026-08-21). False means read successfully AND wrong.
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise ProvisioningError(
+            f"could not read {path}: {exc} - unreadable is not the same as malformed, and this "
+            f"guard will not overwrite a state file it was unable to look at") from exc
+    try:
+        body = yaml.safe_load(text)
+    except yaml.YAMLError:
+        return False
+    return isinstance(body, dict) and bool(body.get("name")) and bool(body.get("path"))
+
+
+def registered_repos(root: Path) -> list[str]:
+    """Directories under `ecosystem/` carrying a USABLE state.yaml.
+
+    Re-expressed against an arbitrary root rather than imported, because `audit.discover_repos`
+    closes over the module-level `ECOSYSTEM_DIR` of the checkout it was imported from and this
+    function must be able to answer for a container's tree in a test.
+    """
+    eco = root / "ecosystem"
+    if not eco.exists():
+        return []
+    return sorted(d.name for d in eco.iterdir()
+                  if d.is_dir() and (d / "state.yaml").exists()
+                  and _state_is_usable(d / "state.yaml"))
+
+
+def seed_self_registration(root: Path, name: str) -> str:
+    """Audit THIS repo and save the result as its state.yaml. Returns the path written.
+
+    Writes exactly one gitignored file. Deliberately not `audit.py repo`, which additionally
+    appends history, writes a dated report under `docs/audits/` and COMMITS its outputs — three
+    things a provisioning step must never do to a container's tree.
+
+    THE DESTINATION IS FORCED TO `root` (terra CRITICAL round 5, 2026-08-21). `audit.save_state`
+    resolves its path through the module-level `audit.ECOSYSTEM_DIR`, which is derived from
+    `audit.py`'s OWN location — and `import audit` returns whatever is already in `sys.modules`,
+    so with `--root <another clone>` this would have audited that clone and written the result
+    over THIS checkout's `state.yaml`. The earlier version merely returned a root-relative path
+    string, which claimed a destination it had not set. `ECOSYSTEM_DIR` is therefore pointed at
+    `root` for the call and restored afterwards, and the file is verified to exist where it was
+    supposed to land — a return value is a claim, and this row exists because claims looked like
+    proof.
+    """
+    # THE NAME IS A DIRECTORY COMPONENT, NOT A PATH (terra HIGH round 10, 2026-08-21). It comes
+    # from a declaration file, and an absolute value or one carrying `..` would resolve the
+    # destination outside `root/ecosystem/` — so an automatic provisioning step could create or
+    # overwrite a state.yaml anywhere reachable. Checked as a NAME first, then re-checked on the
+    # RESOLVED path, because the two catch different things (`..` vs a symlinked ecosystem dir).
+    if name in ("", ".", "..") or Path(name).name != name or Path(name).is_absolute():
+        raise ProvisioningError(
+            f"ecosystem.self_name is {name!r}, which is not a single directory component - a "
+            f"registration name may not carry a path")
+    # The boundary is anchored to the RESOLVED ROOT, not to the resolved `ecosystem` directory
+    # (terra HIGH round 11, 2026-08-21). Resolving `root/ecosystem` first would make a symlink's
+    # external target the trusted boundary — the check then passes while the write lands outside
+    # the checkout entirely, which is exactly what the round-10 fix was for.
+    expected_eco = root.resolve() / "ecosystem"
+    eco_dir = (root / "ecosystem").resolve()
+    if eco_dir != expected_eco:
+        raise ProvisioningError(
+            f"{root / 'ecosystem'} resolves to {eco_dir}, outside the checkout at "
+            f"{root.resolve()} - refusing to write through it")
+    destination = (eco_dir / name / "state.yaml")
+    if expected_eco not in destination.resolve().parents:
+        raise ProvisioningError(
+            f"{destination} resolves outside {expected_eco} - refusing to write there")
+
+    scripts_dir = str(root / "scripts")
+    if scripts_dir not in sys.path:
+        sys.path.insert(0, scripts_dir)
+    try:
+        import audit  # noqa: PLC0415  (import is deliberately lazy: heavy, and only this path needs it)
+    except ImportError as exc:
+        raise ProvisioningError(f"could not import scripts/audit.py: {exc}") from exc
+
+    expected = root / "ecosystem" / name / "state.yaml"
+    original = getattr(audit, "ECOSYSTEM_DIR", None)
+    try:
+        audit.ECOSYSTEM_DIR = root / "ecosystem"
+        state = audit.audit_repo(name, root, date.today())
+        audit.save_state(state)
+    finally:
+        if original is not None:
+            audit.ECOSYSTEM_DIR = original
+
+    if not expected.exists():
+        raise ProvisioningError(
+            f"the audit state did not land at {expected} - `audit.save_state` wrote somewhere "
+            f"else, so this container is not registered and nothing should claim it is")
+    return str(expected)
+
+
+# --- commands ------------------------------------------------------------------------------
+
+
+def cmd_history(args: argparse.Namespace) -> int:
+    cfg = load_config(args.config).history
+    root = args.root
+
+    if cfg.disposition == "exclude":
+        LOG.warning(
+            "history: disposition is 'exclude' - the %d spine-walking instrument(s) below are "
+            "declared OUT OF SCOPE for cloud lanes and this guard repairs nothing:",
+            len(cfg.spine_walking_instruments))
+        for instrument in cfg.spine_walking_instruments:
+            LOG.warning("history:   excluded - %s", instrument)
+        return EXIT_OK
+
+    report = repair_history(root, cfg) if args.repair else assess_history(root, cfg)
+
+    for action in report.actions:
+        LOG.info("history: performed %s", action)
+    if not report.actions and args.repair:
+        LOG.info("history: no-op - the clone already satisfies every precondition")
+    for ref, length in report.refs.items():
+        if length is not None:
+            LOG.info("history: %s walks %d first-parent spine entries", ref, length)
+    for violation in report.violations:
+        LOG.error("history: %s", violation)
+
+    if not report.ok:
+        return EXIT_VIOLATION
+    if report.uncompared:
+        # Present and walkable, but its CURRENCY could not be checked — a stale local branch
+        # would look exactly like this. Exit 2, not 0: reporting "clean" from a reading that
+        # cannot support it is the false-resolve the 1/2 split exists to prevent (terra HIGH
+        # round 2, 2026-08-21).
+        for ref in report.uncompared:
+            LOG.warning("history: %s has no origin/%s to compare against - its currency is "
+                        "UNCHECKED, not confirmed", ref, ref)
+        return EXIT_UNAVAILABLE
+    LOG.info("history: OK - full history, %d required ref(s) resolve and are current with "
+             "origin, spine walks succeed", len(cfg.required_refs))
+    return EXIT_OK
+
+
+def cmd_ecosystem(args: argparse.Namespace) -> int:
+    cfg = load_config(args.config).ecosystem
+    root = args.root
+
+    repos = registered_repos(root)
+    if repos:
+        LOG.info("ecosystem: OK - %d repo(s) registered: %s", len(repos), ", ".join(repos))
+        return EXIT_OK
+
+    if not args.repair:
+        LOG.error("ecosystem: no repo registered - `audit.py health` reports "
+                  "`repos registered (none)` and exits non-zero here")
+        return EXIT_VIOLATION
+
+    if not cfg.self_register:
+        LOG.error("ecosystem: no repo registered and ecosystem.self_register is false - "
+                  "nothing this guard is permitted to do")
+        return EXIT_VIOLATION
+
+    LOG.info("ecosystem: nothing registered - auditing this repo as %r and saving its state",
+             cfg.self_name)
+    written = seed_self_registration(root, cfg.self_name)
+    LOG.info("ecosystem: wrote %s (gitignored)", written)
+
+    repos = registered_repos(root)
+    if not repos:
+        LOG.error("ecosystem: still nothing registered after seeding - the write did not land")
+        return EXIT_VIOLATION
+    LOG.info("ecosystem: OK - %d repo(s) registered: %s", len(repos), ", ".join(repos))
+    return EXIT_OK
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="provision_legs.py",
+        description="[#746] the two cloud-lane provisioning legs - B1 history sufficiency and "
+                    "L5 ecosystem registration. Exit 0 clean / 1 violation / 2 could not look.")
+    parser.add_argument("--root", type=Path, default=REPO_ROOT,
+                        help="Repository root to act on (default: this checkout).")
+    parser.add_argument("--config", type=Path, default=CONFIG_PATH,
+                        help="Provisioning declaration (default: .devcontainer/provisioning.yaml).")
+    parser.add_argument("--quiet", action="store_true", help="Log warnings and errors only.")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    p_hist = sub.add_parser("history", help="B1 - assert (and optionally repair) the refs a "
+                                            "spine-walking instrument needs.")
+    p_hist.add_argument("--repair", action="store_true",
+                        help="Deepen the clone and fetch missing refs, then re-assert.")
+    p_hist.set_defaults(func=cmd_history)
+
+    p_eco = sub.add_parser("ecosystem", help="L5 - assert (and optionally seed) the ecosystem "
+                                             "registration `audit.py health` reads.")
+    p_eco.add_argument("--repair", action="store_true",
+                       help="Audit this repo and save its state.yaml when nothing is registered.")
+    p_eco.set_defaults(func=cmd_ecosystem)
+
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    logging.basicConfig(
+        level=logging.WARNING if args.quiet else logging.INFO,
+        format="[provision-legs] %(levelname)s %(message)s",
+        stream=sys.stderr,
+    )
+    try:
+        return args.func(args)
+    except ProvisioningError as exc:
+        LOG.error("could not look: %s", exc)
+        return EXIT_UNAVAILABLE
+    except Exception as exc:                                  # noqa: BLE001 — an error BLOCKS
+        LOG.exception("internal error: %s", exc)
+        return EXIT_UNAVAILABLE
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

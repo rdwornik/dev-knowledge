@@ -19,6 +19,139 @@
 
 ---
 
+### 2026-09-15 (f) - CC (Opus 5, background integrator seat): the freeze judged its first merge, and the count was the least informative thing about it
+
+**Anchors:** `3c05f347` — lane z-746's end-of-lane packet — and `20e86ca8`, the sync merge that
+put it onto main; the two commits `a7620dd0` introduced. **Also anchors `aad0acdd`**, this entry's
+own commit, which this arc's merge introduces and which nothing else names — appended, per ADR-85
+A7 / AF-1, because an anchor discharges by APPEND and never by amending what has landed.
+
+**THE FREEZE'S JUDGING RULE RAN FOR REAL, AND PASSING IT REQUIRED MORE THAN THE NUMBER.**
+`logs/SUITE-BASELINE-FREEZE.md` states the rule: a failure outside the frozen 51 is a regression
+and refuses the merge; a failure inside it is PRE-EXISTING and does not. Conductor run
+`34923007619` on `4f4186a6` reported **51 failed, 5946 passed** against the freeze's **51 failed,
+5863 passed** at `b5270d63`. **The matching count is not the test.** A regression that displaces a
+frozen failure keeps the total at 51 while changing who is in the set. What discharges the rule is
+the **node-id diff**, and it is clean: 51 in the roster, 51 failing, **0 outside the set, 0
+departed**. The set is identical, not merely the same size.
+
+**THE RECEIPT AND THE FREEZE ANSWER DIFFERENT QUESTIONS, AND TONIGHT THEY AGREED BY LUCK.**
+`merge_receipt.py actions` recorded `PRE-EXISTING` for this merge — but it computes that against
+the merge's **first parent** (`0ee3d161`), not against the frozen baseline (`b5270d63`). Those
+diverge the moment anything lands between the two: a failure introduced after the freeze reads
+*pre-existing* to the receipt while sitting *outside* the 51. The receipt answers "did THIS merge
+break it"; the freeze answers "is this failure one we have already accepted". **Only the second is
+the rule the operator wrote.** Tonight both said yes; that is a fact about tonight, not a property
+of the instruments, and the receipt's verdict must not be read as discharging the freeze.
+
+**The 83 new passes are the lane's own tests.** 5,863 → 5,946 passed across a merge whose lane
+added `tests/test_provision_legs.py` and extended `tests/test_provision_sh.py`. New tests that all
+land green are the quiet good outcome — and also the case most likely to hide a displaced frozen
+failure behind an unchanged failure count, which is the second reason the diff was by node id.
+
+**I DISABLED THE ADR-110 EXEMPTION FOR EVERY LANE MERGE TONIGHT, BY WRITING A BETTER SUBJECT.**
+`check_journal_spine_anchor`'s declared-integration-arc exemption requires a `worktree-lane-*`
+`--no-ff` merge AND an open manifest. It reads the lane name out of git's **default**
+`Merge branch '<name>'` subject. I wrote descriptive subjects carrying a short alias —
+`Merge branch 'z-746'`, `Merge branch 'z-746-packet'` — naming branches that **do not exist**; the
+real branch is `worktree-lane-z-746-devcontainer-substrate`. The parse returns `None`, the merge is
+classed a non-lane merge, and the exemption never fires. It **fails closed**, which is why it cost
+nothing visible: every merge simply needed a real JOURNAL anchor, and every merge got one. But the
+batch ran its whole queue with a mechanism it believed it had and never used. This is the **same
+`[#614]` subject-style miss the function's own comment records as having already cost the mechanism
+its first live test** — documented as an honest limit, and still repeated, because a documented
+limit is a note and not a gate.
+
+**A PACKET ARRIVES AFTER THE HANDBACK, WHICH IS THE ORDINARY SHAPE AND NOT A DEFECT.** Lane z-746
+committed `3c05f347` — its end-of-lane packet — *after* `4f4186a6` had already merged its code. A
+packet is written once a lane knows how it ended, so it cannot precede the handback it describes.
+The trap is that ADR-110's checklist asks for the manifest **and** the packet, two halves, and
+`git branch --merged` reads clean whether one half landed or both. **Teardown was therefore
+premature at the point it looked due**, and what caught it was comparing the worktree's HEAD
+against the merged SHA rather than trusting the merge to have covered the branch.
+
+**A `--no-ff` MERGE RUNS ZERO PRE-COMMIT HOOKS, SO A MERGE CAN LAND A STALE GENERATED FILE.**
+`a7620dd0` added an audit document and left `docs/audits/README.md` — generated — untouched.
+`audit-index-freshness` never fired, because it is a pre-commit hook and a merge is not a commit it
+sees. The defect is invisible until the *next* commit on *any* branch trips the freshness gate, so
+the cost lands on whoever commits next rather than on the merge that caused it.
+
+**The packet merge is receipted `kind=arc`, deliberately, not `kind=merge`.** It is a trailing
+artifact landing with near-zero ceremony; classing it as a lane merge would pull the batch median
+toward it and flatter a figure the receipt ledger exists to keep honest. The receipt exists and is
+complete — `kind` records what it measures, not whether it was recorded.
+
+**Did:** diffed the conductor's failing node ids against the frozen roster; established from git
+that lane z-746 had a commit past its handback; synced and merged the packet; regenerated the
+audits index the merge left stale.
+**Result:** lane z-746 fully landed, both ADR-110 halves; the freeze's rule exercised and
+discharged on a real merge.
+**Changes:** `docs/audits/2026-09-15-technical-lane-z-746-devcontainer-packet.md` (lane's),
+`docs/audits/README.md`, `logs/MERGE-RECEIPTS.jsonl`, `JOURNAL.md`.
+**Abandoned:** nothing.
+**Next:** lanes z-0, z-4 and z-10 still hold unmerged work (6, 9 and 4 commits); z-14 is cloud and
+will need a JOURNAL entry written onto its branch.
+
+### 2026-09-15 (e) - CC (Opus 5, background integrator seat): lane z-746 repairs the substrate that killed eight of the sixteen lanes
+
+**Anchors:** `0dcdb153` — the lane's fix commit, the last of the five this merge introduces
+(`a7edeecf`, `f1c27f33`, `3abd8098`, `7c65ceaf`, `0dcdb153`). **Also anchors `1da24766`**, which
+`0ee3d161` introduced and which nothing named — see the note below.
+
+**TWO ANCHOR ORGANS DISAGREED, AND BOTH WERE RIGHT.** `block-unanchored-push` PASSED the push of
+`0ee3d161` and the `audit-health` backstop then REFUSED the next commit for it. The difference is
+not a bug in either: **the push gate discharges RANGE-level** — my pushed range introduced
+`df50ed4a`, which entry (d) names, so the range carried an anchor — while **the backstop is
+PER-SPINE-ENTRY**, and `0ee3d161` itself introduced `1da24766`, which no entry named. *Range-anchored
+and every-entry-anchored are different properties*, and a clean push is therefore not evidence that
+every entry in it is anchored. The repair is an APPEND naming the unnamed SHA (ADR-85 A7 / AF-1: an
+anchor discharges by append only, never by amending a landed entry), which is this line.
+
+**THIS LANE FIXES WHY THE NIGHT WAS SIX LANES AND NOT SIXTEEN.** The batch manifest records the
+CODESPACE substrate as dead: a fresh container carried no `claude`, `node`, `npm`, `uv` or `gh`
+because `.devcontainer/provision.sh` called `scripts/cloud_provisioning.py`, which no longer exists
+— `postCreateCommand` failed, container creation failed, and a recovery container was made. **Eight
+of the fifteen planned lanes were routed to that substrate.** Lane z-746 was promoted into the batch
+though it is not one of the fifteen precisely because it is their unlock.
+
+**It is the first lane tonight to demonstrably meet ADR-108 §B's RED-first bar**, and the commit
+order proves it rather than asserting it: `3abd8098 test(x-746): RED-first witnesses for the two
+absent legs and for the stale-script handover` lands BEFORE `0dcdb153 fix(x-746): restore the B1 and
+L5 legs, and stop provision.sh finishing a script it replaced`. `scripts/provision_legs.py` (870
+lines) arrives with `tests/test_provision_legs.py` (1,051 lines) and +222 lines into
+`tests/test_provision_sh.py`.
+
+**Two root causes, not one, and the second is the subtle one.** B1's history guard *"could not
+look (exit 2)"* — the same could-not-look-versus-looked-and-wrong distinction lane z-11 found
+`preflight_contract.py` failing on a shallow clone, surfacing independently in a second organ the
+same night. L5 is that `audit.py health` reports `repos registered (none)` in a fresh container and
+exits non-zero, because `ecosystem/*/state.yaml` is GITIGNORED so no clone has ever carried one:
+on the workstation `worktree_seed.py` copies them from the primary, and **a container has no primary
+to copy from.**
+
+**Codex review: `gpt-5.6-terra`, clean.** *"No correctness defects found that I can substantiate
+from the diff"* over 2,610 diff lines, **72,658 tokens**. Two limits recorded rather than glossed:
+the review is **UNPRICED** — `ecosystem/provider-registry.yaml` registers the id so a provenance
+attribution resolves but carries no rate fields (`pinned_at: []`), which is the gap lane z-4 exists
+to close; and the reviewer is **ROUTABLE but NOT ADMITTED**, since AX22-1's ≥8-of-10 bar has
+measured no non-Claude provider. A clean review from it is evidence, not an admission. It is also
+the first non-Claude model to do real work in this harness tonight.
+
+**Recorded against my own receipt discipline:** the `codex` call ran ~10 min OUTSIDE the
+`merge_receipt time --step review` wrapper, so that step reads 0.02 min and UNDERSTATES review wall
+time, which sits in the unrecorded remainder. The fix is to wrap the reviewer call itself; stated
+here because target 3.5 exists so review cannot be traded away silently, and an understated review
+step is exactly how that would happen.
+
+**Changes:** `.devcontainer/{provision.sh,devcontainer.json,provisioning.yaml}`,
+`scripts/provision_legs.py` (new), `scripts/graph_queries.py`, `tests/test_provision_legs.py` (new),
+`tests/test_provision_sh.py`, `BACKLOG.md`, `tasks/` ([#746] → P1).
+
+**Abandoned:** nothing.
+
+**Next:** merge, then the Actions verdict — the FIRST genuine exercise of the frozen-51 judging rule,
+because this is the first code-bearing merge of the night and the two before it were docs.
+
 ### 2026-09-15 (d) - CC (Opus 5, background integrator seat): the receipt ledger lands, and the open-batch exemption is measured NOT to reach the push gate
 
 **Anchors:** `df50ed4a` — merge-z-manifest's closed receipt, the commit this arc introduces.
