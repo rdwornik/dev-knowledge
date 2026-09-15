@@ -159,8 +159,9 @@ requirements:
       A seat does not end its turn on a wait. A wait is written as a loop carrying an
       interval, a bound and a predicate read from the file surface, or it is refused.
     metric: >-
-      Wait-intentions in a seat document with no `<!-- WAIT: ... -->` declaration within 12
-      lines: 0. Declarations missing an interval, a bound or a predicate: 0.
+      Wait-intentions in a seat document with no `<!-- WAIT: ... -->` declaration within
+      `seat_refusals._WAIT_WINDOW` lines (10 at the time of writing): 0. Declarations
+      missing an interval, a bound or a predicate: 0.
     incident: >-
       The integrator waited a day on a session that no longer existed. A turn that ends on an
       intention has no next tick, so nothing wakes the session and the wait is unbounded in

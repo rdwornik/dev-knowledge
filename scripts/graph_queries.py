@@ -865,6 +865,15 @@ EDGE_COMPUTATIONS: dict[str, EdgeComputation] = {
         "commit that armed it -- the first thing the ratchet caught was itself. Its subject "
         "is a MODULE'S SHAPE (does this file read source text for structure), never a "
         "relation between two corpus files, so there is no edge here to read from FPG-1"),
+    "scripts/quality_requirements.py": _not_an_edge(
+        "the quality-requirements register's reader ([#765], AN2-1). The shape matched "
+        "because it compiles two regexes and reads files; the class does not apply because "
+        "it COMPUTES no relation. `organ:` and `trip_test:` are written BY HAND in "
+        "`ecosystem/quality-requirements.yaml`, and this module only resolves each declared "
+        "side to a path that exists -- a DECLARED relation read back, which is what the "
+        "three `reconciled` rows are one step earlier. There is nothing here for a W-G3 "
+        "lane to migrate because nothing was discovered. Its two regexes match an `id` and "
+        "a `file::test` locator INSIDE the register, never corpus source text"),
 }
 
 

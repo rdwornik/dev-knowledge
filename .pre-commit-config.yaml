@@ -202,6 +202,42 @@ repos:
         language: system
         files: '(^\.claude/(agents|commands|skills|workflows|rules)/|^\.claude/settings\.json$|^\.pre-commit-config\.yaml$|^plugins/|^ecosystem/organ-registry\.yaml$|^deploy/manifest-v.*\.yaml$|^ecosystem/organ-index\.md$|^scripts/generate_organ_index\.py$)'
         pass_filenames: false
+      - id: quality-requirements-freshness
+        name: Quality register -- schema, organ resolution and the ARCHITECTURE section ([#765], AN2-1)
+        # THE HOOK IS WHAT MAKES THE REGISTER *READ* RATHER THAN MERELY PRESENT, which is
+        # done-contract clause 1 of the lane that built it. AN2-1's complaint about the
+        # previous state was that technical requirements lived in a paste — a session that
+        # did not read the paste was in breach of nothing. A register nothing consults is
+        # the same defect wearing a filename.
+        #
+        # THREE LEGS, ONE REFUSAL, and the message names every defect rather than the first
+        # (a register is edited as a whole; one-at-a-time costs a commit cycle per line):
+        #   * SCHEMA — a `measured` entry carries `organ` AND `trip_test`; a `candidate`
+        #     entry carries NEITHER. The second half is the asymmetry the design rests on:
+        #     a candidate naming an organ is a requirement dressed as enforcement, which is
+        #     the failure the register exists to prevent, so it is refused rather than
+        #     ignored.
+        #   * RESOLUTION — each measured entry's organ and trip-test file exist in the tree.
+        #   * REGEN-AND-DIFF — ARCHITECTURE.md's marker-delimited section byte-matches a
+        #     re-render from the register, the same idiom codemap-freshness and the four
+        #     index gates use, so the section cannot be hand-edited into agreement.
+        #
+        # WHAT THIS HOOK CANNOT SEE, stated because a gate that overstates its reach is
+        # worse than none: whether a trip-test would NOTICE its organ being removed. A path
+        # check cannot answer that. `tests/test_quality_requirements.py` runs each trip
+        # against a NEUTERED stand-in for its organ and requires an AssertionError naming
+        # the requirement — that leg lives in the suite, not here, and the register's
+        # `measured` claim rests on both.
+        #
+        # `files:` names the register, the renderer, the render target and the trip-test
+        # module, so every drift direction fires: a register edit, a renderer change, a
+        # hand-edit of the section, and a trip-test module edit that could unname a test the
+        # register cites. HUB-ONLY (n=1), like its peer freshness gates. Exit 0 clean, 1 on
+        # any defect. Bypass: --no-verify.
+        entry: uv run --locked python scripts/quality_requirements.py check
+        language: system
+        files: '(^ecosystem/quality-requirements\.yaml$|^scripts/quality_requirements\.py$|^ARCHITECTURE\.md$|^tests/test_quality_requirement_trips\.py$)'
+        pass_filenames: false
       - id: validate-hermetization
         name: ADR-101 hermetization refusal gate (#306; HUB-ONLY, prospective-only)
         # Prospective-only tree seal (ADR-101 §3): inspects only staged ADDs
