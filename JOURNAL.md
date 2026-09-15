@@ -22,7 +22,9 @@
 ### 2026-09-15 (f) - CC (Opus 5, background integrator seat): the freeze judged its first merge, and the count was the least informative thing about it
 
 **Anchors:** `3c05f347` — lane z-746's end-of-lane packet — and `20e86ca8`, the sync merge that
-put it onto main; the two commits `a7620dd0` introduced.
+put it onto main; the two commits `a7620dd0` introduced. **Also anchors `aad0acdd`**, this entry's
+own commit, which this arc's merge introduces and which nothing else names — appended, per ADR-85
+A7 / AF-1, because an anchor discharges by APPEND and never by amending what has landed.
 
 **THE FREEZE'S JUDGING RULE RAN FOR REAL, AND PASSING IT REQUIRED MORE THAN THE NUMBER.**
 `logs/SUITE-BASELINE-FREEZE.md` states the rule: a failure outside the frozen 51 is a regression
