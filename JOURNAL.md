@@ -19,6 +19,90 @@
 
 ---
 
+### 2026-09-15 (m) - CC (Opus 5, background integrator seat): batch Z closes, and the close packet corrects three of the seat's own figures
+
+**Anchors:** `708864bd` — the batch-close index debts, the newline regression fix and four merge
+receipt rows; one of the two commits this merge introduces.
+
+**THE CLOSE PACKET IS THE SECOND HALF ADR-110 ASKS FOR**, and writing it against the instruments
+rather than against my own notes changed three numbers. Recorded here because the corrections are
+the point, not a footnote to it.
+
+**Receipt completeness: I had four, the ledger has two.** `merge_receipt median` excludes
+`merge-z-11`, `merge-z-746`, `merge-z-10` and `merge-z-4` — and **every exclusion is a failed
+`teardown` step, seven attempts across four lanes, not one a suite or review failure**. Windows
+`git worktree remove` loses to an OS file lock held by a live shell. Teardown is the janitorial
+step nobody weights, and it is the sole reason two thirds of the night's receipts cannot enter the
+median, which now runs over n=3 across all batches.
+
+**AY1-1 is fine and must not be blamed for that.** Every batch-Z receipt also carries a failed
+`actions` step — the conductor exits non-zero while the suite verdict is `PRE-EXISTING` — and the
+median correctly does *not* exclude on it. `merge-z-manifest` and `merge-z-0` carry that failed
+step and are complete.
+
+**The integrator seat's cost, asked for by directory, answers 32x too high.** `lane_cost lane
+--slug-dir` on the primary checkout returns USD 8,714.37 over 52,822 calls across six models —
+the checkout's **lifetime**, every session ever run there. The session store is keyed per
+DIRECTORY, not per lane. Tonight's seat, priced from its own transcript alone: **USD 82.53**,
+136,283,287 tokens, 23:07Z to 06:51Z. That makes the measured night **USD 270.72**, of which the
+integrator is **30.5% — more than any single lane**. Integration was not the cheap part.
+
+**`merge-z-0`'s receipt closed at `b0a6b79c`, not at the lane merge `2830d3d6`** — the follow-on
+release-lint merge. Anyone joining the receipt ledger to the spine on `merge_sha` needs to know
+the two are different commits.
+
+**A third defect in the freeze's comparison mechanism, found at close.** `[#763]` mandates
+membership by node id. A parametrized id whose parameter contains a **space** truncates at a
+different point under whitespace-delimited extraction than in the freeze file's own rendering, so
+it reads as **both a regression and a departure** — one spurious entry each side. They cancel, so
+the *totals* stay right while both *rosters* are wrong. Caught only because 8-outside/1-departed
+was implausible enough to check by hand. The honest close figure is **8 outside, 0 departed** at
+`5bbc3be6`; three of the eight are already fixed in `708864bd` and the remaining five are the
+`release_lint` C5 set that intake 100 governs.
+
+**`0 departed` is the expected result, not a failed predicate.** The three causes `[#763]` names
+belong to lanes 1, 2, 3 and 7 — **all four were in the deferred ten and none ran**. A predicate
+with no live subject is a different finding from one tested and failed.
+
+**Teardown also left a claim of mine wrong in a landed commit body.** `708864bd` states all
+branches were deleted locally and on origin; the very next check found
+`worktree-dispatch-z-manifest` and `claude/lane-z-11-three-repo-comparison` still alive on origin.
+Both verified `--is-ancestor` and deleted. Origin now carries `main` and the permanently-protected
+`automation/fleet-audit` only. **A local-only delete is the half of teardown that survives review,
+because `git branch` looks clean.**
+
+**An organ performs a move that no one can commit.** The close commit was refused twice over two
+files I never touched: `logs_retention` relocates dated artifacts into `logs/<month>/`
+automatically at SessionStart, and `validate-hermetization` then refuses that path as an
+inadmissible home for a new file, while `graph-task-coverage` refuses it again for having no OPEN
+row. Neither organ is wrong on its own terms; **they have never been run against each other.** The
+tree is therefore left dirty by design, and the session-end backpressure hook reports it as the
+operator's mess. Reverted rather than forced — `--no-verify` is prohibited here and this needs a
+ruling, not a patch: either `logs/<month>/` joins the admissible homes, or retention stops moving
+tracked files.
+
+**And the refusal was nearly invisible, by my own hand.** I ran the commit as
+`git commit -F msg | tail -30`, so the pipeline reported **tail's** exit code — 0 — while git had
+failed. The completion notification said success; only `git log` showed HEAD had not moved. This is
+already a recorded lesson in this repo and I walked into it anyway. **Never pipe `git commit`.**
+
+**Result:** batch Z closed against the ADR-110 checklist with item 3 PARTIAL — one empty OS-locked
+husk directory survives for lane z-4, deregistered from git with its branch deleted in both
+places, and three teardown attempts recorded FAILED rather than reported done. Five lanes merged,
+`lane-z-14-management-map` explicitly abandoned having produced no branch, no commit and no
+artifact while reporting its gates green.
+
+**Changes:** `docs/audits/2026-09-15-technical-batch-z-close-packet.md` (new, the close packet);
+`JOURNAL.md`.
+
+**Abandoned:** nothing. Intake 99 and intake 100 are left as CANDIDATES for ratification rather
+than settled from this seat — intake 100 decides what a tagged manifest means, which is the
+operator's question.
+
+**Next:** `[#763]` re-measures the freeze at the next batch close, by node id, and now also owns
+the space-in-parametrized-id defect that breaks that comparison. Teardown deserves a row before
+the next batch, not after.
+
 ### 2026-09-15 (l) - CC (Opus 5, background integrator seat): lane z-4 prices the non-Claude providers, and the answer is that five of six cannot be priced at all
 
 **Anchors:** `ad03c361` — one verdict per provider, priced against the same ten on Opus — and
