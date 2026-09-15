@@ -19,6 +19,52 @@
 
 ---
 
+### 2026-09-15 (c) - CC (Opus 5, background integrator seat): the batch manifest lands, and it records sixteen lanes cut to six on evidence
+
+**Anchors:** `0ca3a02b` — the dispatcher's batch Z manifest, the commit this merge introduces,
+plus the sync merge `835ce14d`.
+
+**THE BATCH WAS ORDERED AT SIXTEEN AND IS RECORDED AT SIX, and both reasons are measurements
+taken before the first worktree existed.** (a) `seat_refusals lane-ceiling --check-worktrees` is a
+**STEP-0 REFUSAL**, not a warning printed afterwards: *"the plan names 16 lanes against a ceiling of
+6"*, naming the ten-lane excess by slug and instructing that it be handed **back to the plan**. (b)
+**The CODESPACE substrate is DEAD**, and the plan routes eight lanes to it. The eleven deferred lanes
+go back to the plan as the next batch's opening rows — never forward to a queue, which is the
+distinction that stops a deferral becoming a silent drop (AZ1-5).
+
+**The Codespace evidence, because "dead" is a strong word and it is earned.** A fresh
+`gh codespace create` tonight came up `Available` carrying **no `claude`, no `node`, no `npm`, no
+`uv`, no `gh`** — only `/usr/bin/python3`. Its own creation log names the cause: `provision.sh`
+cannot find `scripts/cloud_provisioning.py`, so the B1 history guard *"could not look (exit 2)"*,
+`postCreateCommand` failed, **container creation failed and a recovery container was made**. That is
+`[#746]` exactly, and it is why `lane-z-746-devcontainer-substrate` was promoted into the batch
+though it is not one of the fifteen: it is the unlock for the eight stranded lanes.
+
+**The ceiling organ is the fourth organ to refuse something real tonight, and the target was four.**
+With `decision_coverage` (its first refusal ever, and it was blocking EVERY commit in this repo),
+`audit-health`/`intake_tree_coherence` (refused a merge on real index staleness) and
+`deny-and-point` (refused this seat's own raw search), the count is **4 against a baseline of 1**.
+Not one was a deliberate trip — every one fired on a genuine violation, which is the evidence AZ2-2
+said did not exist.
+
+**A live id collision was resolved the right way, by the lane that lost the race.** This seat filed
+`[#763]` and landed it first; `lane-z-10` had allocated the same id and renumbered itself to
+`[#765]` in its own sync commit rather than forcing the merge. Allocating a task id while sibling
+lanes run is a real collision and the resolution is first-to-land-wins plus a rename by the loser.
+
+**Integrator carried edit:** `docs/audits/README.md` only — the manifest lane had already registered
+its own four intake docs, so the intake index and tree were current (`--check` OK, 388 nodes). Good
+lane hygiene, and worth naming because lane z-11 did not do this and cost five gate cycles.
+
+**Changes:** `docs/audits/2026-09-15-technical-batch-z-manifest.md` + 6 lane contracts + 4 intakes
+(all dispatcher), `docs/audits/README.md` (carried edit), `logs/MERGE-RECEIPTS.jsonl` (merge-z-11's
+closed receipt).
+
+**Abandoned:** nothing.
+
+**Next:** lane z-10 (complete at 3 commits, packet filed), then lanes 0, 4, 746 and the second cloud
+lane z-14 as they hand back.
+
 ### 2026-09-15 (b) - CC (Opus 5, background integrator seat): lane z-11 merges, and its best finding is a defect in our own organ
 
 **Anchors:** `711eacf7` — lane z-11's end-of-lane packet, the last of the four commits this merge

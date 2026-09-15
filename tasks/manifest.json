@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "b149fbbcd84c0624aebb120c0bfbd0961b82a335e1db9d26a997f661b871d593",
+  "generated_sha256": "417bb3760a9fe6ea9f5d9fdecb23ebcc8cccd7e39eb2857f73cd2b43ce0a6b4d",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -504,6 +504,14 @@
     {
       "task": 764,
       "file": "764-batch-z-implements-the-night-plan-of-2026-09-15.md"
+    },
+    {
+      "task": 782,
+      "file": "782-the-quality-requirements-register-non-functional-requirements-as-a-registered-enforced-artifact.md"
+    },
+    {
+      "task": 783,
+      "file": "783-the-carried-to-resolved-leg-of-decision-coverage-has-never-been-exercised.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -1085,6 +1093,10 @@
       "file": "754-the-two-backlog-row-ceilings-measure-different-corpora.md"
     },
     {
+      "task": 781,
+      "file": "781-one-management-map-rendered-from-the-organ-index-with-trigger-less-organs-rendered-dead.md"
+    },
+    {
       "prose": "## [E6] Cross-repo universalization"
     },
     {
@@ -1555,6 +1567,10 @@
     {
       "task": 765,
       "file": "765-aj-m04-has-never-been-read-against-this-repo-no.md"
+    },
+    {
+      "task": 780,
+      "file": "780-three-repo-comparison-gaps-adopt-candidates-and-an-explicit-will-not-adopt-list.md"
     },
     {
       "prose": "### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)"
