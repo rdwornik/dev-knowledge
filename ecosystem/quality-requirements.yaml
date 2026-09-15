@@ -1,0 +1,296 @@
+# quality-requirements.yaml -- the technical quality requirements, as data ([#765], AN2-1).
+#
+# WHY THIS FILE EXISTS. Technical requirements used to live in a paste. AMEND-NIGHT-PLAN-001
+# wrote six of them as instructions to a session, and an instruction is a request where a
+# mechanism is a guarantee: a session that does not read the paste is not in breach of
+# anything, and the next window re-pastes or forgets. This register is the same content
+# with a different ontology -- each requirement names the ORGAN that enforces it, the METRIC
+# that says whether it holds, and the TRIP-TEST that proves the organ refuses.
+#
+# THE HONESTY MECHANISM IS THE STATUS FIELD, and it inverts the usual failure. A register
+# whose entries all claim enforcement is worse than no register, because a reader trusts it.
+# So:
+#
+#   status: measured    carries `organ` AND `trip_test`. The organ resolves to a file that
+#                       exists; the trip-test exists, PASSES against the live organ, and
+#                       goes RED when the organ is neutered. That last leg is what separates
+#                       a proof from a decoration -- a trip-test that passes unconditionally
+#                       is refused by `tests/test_quality_requirements.py`, not accepted.
+#   status: candidate   carries NEITHER field, and the schema refuses it if it tries to.
+#                       A requirement with no organ is a real requirement with no
+#                       enforcement, which is a fact worth recording rather than hiding.
+#
+# So the register cannot name an enforcement it does not have. That is what makes it safe to
+# seed from prose: an un-enforced line lands as a candidate and stays visible as one.
+#
+# THE COMMENTS HERE DESCRIBE RATHER THAN COMMAND, deliberately. `ecosystem/*.yaml` is inside
+# `silent_rule_detector`'s scope, so a `#` comment in this file is scored exactly like
+# doctrine prose against the silent-rule ratchet. The rules live in the data below and in
+# the validator that reads it; the header explains and does not legislate.
+#
+# TRIGGER: the `quality-requirements-freshness` pre-commit hook, which regenerates the
+# ARCHITECTURE section from this file and refuses a commit where the two disagree, and
+# `tests/test_quality_requirements.py`, which runs the schema and the trip-test legs. The
+# lane-5 log-review routine becomes the second trigger when it lands (AN2-3): a breach it
+# finds is filed as a row rather than noted.
+# CONSUMERS: the generated ARCHITECTURE section "Quality requirements", and the methodology
+# floor, whose declared tier for this register is the `floor:` block below.
+#
+# FIELD CONTRACT -- every entry carries, in this order:
+#   id          QR-<ATTRIBUTE-CODE>-<NNN>; stable once written, so a citation survives a
+#               re-ordering of the file
+#   attribute   one of the four AN2-2 quality attributes (the `attributes:` enum below)
+#   status      measured | candidate
+#   statement   the requirement, in the smallest number of words that stay checkable
+#   metric      what a reader measures to decide whether it holds
+#   incident    the measured event behind it -- every entry here has one, which is why the
+#               register is small
+#   source      where the requirement was stated
+#   organ       measured entries only: the repo-relative path of the thing that enforces it
+#   trip_test   measured entries only: `<test file>::<test function>`, the proof it refuses
+#   note        optional: a correction or a limit the entry would otherwise imply away
+
+register_version: "1.0.0"
+
+# The floor declaration for this component, as DATA rather than as prose about data. `tier`
+# takes a value from the fleet tier vocabulary that `ecosystem/parity-surfaces.yaml` already
+# uses and `scripts/fleet_parity.py` already reads, so one component cannot hold two floors.
+# AN2-1 rules the tier; the reason records why the tier is the one it is.
+floor:
+  tier: MUST
+  reason: >-
+    Every consumer repo inherits the register (AN2-1). What travels is the DISCIPLINE -- a
+    requirement carries the organ that enforces it, the metric, and the trip-test that proves
+    the organ refuses; a requirement with no organ is filed as a candidate rather than
+    dressed as enforcement. A consumer inheriting only the hub's entries would inherit a
+    report; inheriting the discipline lets it register its own.
+  declared_in: templates/child-methodology-floor.md.tmpl
+
+# The four quality attributes AN2-2 names, each with the short code its ids use. The set is
+# closed; widening it is an operator act, because a fifth attribute with one entry in it is
+# how a bounded register becomes a backlog.
+attributes:
+  performance: PERF
+  availability: AVAIL
+  resource-control: RES
+  observability: OBS
+
+requirements:
+
+  # ---- performance ------------------------------------------------------------------
+  - id: QR-PERF-001
+    attribute: performance
+    status: measured
+    statement: >-
+      A commit that changes a `scripts/*.py` file selecting ZERO tests is refused, and the
+      refusal names the RED-first witness to write.
+    metric: >-
+      In-scope zero-selection sources at commit tier: 0. The grandfathered set is a ratchet
+      that only shrinks -- 4 of 140 scripts at arm time, measured 2026-09-11.
+    incident: >-
+      Five OOM-killed full-suite attempts on the workstation at 1.4 GB free of 28 GB. With
+      no full local suite available, the impacted set for the changed file is the only local
+      proof there is, so a changed script that selects nothing is an unproven change.
+    source: AMEND-NIGHT-PLAN-002 AN2-2 (performance); the organ is [#278] leg b
+    organ: scripts/impacted_tests.py
+    trip_test: tests/test_quality_requirement_trips.py::test_qr_perf_001_uncovered_script_is_refused
+
+  - id: QR-PERF-002
+    attribute: performance
+    status: candidate
+    statement: >-
+      No seat runs the full suite on the workstation; locally a seat runs the impacted set
+      for the changed file, and the full suite runs once, at integration.
+    metric: >-
+      Full-suite attempts on the workstation: 0. Peak RSS of a full-suite run against free
+      memory at dispatch, sampled before the run rather than after it.
+    incident: >-
+      Five attempts OOM-killed at 1.4 GB free of 28 GB. The suite is not merely slow on this
+      box; it does not complete.
+    source: AMEND-NIGHT-PLAN-002 AN2-2 (performance)
+    note: >-
+      A candidate because nothing reads free memory or refuses a full-suite invocation. The
+      rule is live in `CLAUDE.md` and in every lane contract as prose, which is precisely the
+      state this register exists to distinguish from enforcement.
+
+  - id: QR-PERF-003
+    attribute: performance
+    status: candidate
+    statement: >-
+      A heavy commit-tier gate carries a measured wall-time and memory budget; above it the
+      gate moves to CI or becomes incremental.
+    metric: >-
+      Per-gate wall seconds and peak RSS, re-measured on a quiet box. Measured 2026-09-15:
+      graph-rebuild 14.5 s and 13.6 s wall at 50 MB peak; audit-health 16.0 s and 16.5 s
+      wall at 768 MB peak.
+    incident: >-
+      The four-hook graph chain was reported at ~21.9 s end to end when it armed, which is
+      the figure ADR-118's flip-condition 2 keys on. Nothing re-measures it.
+    source: AMEND-NIGHT-PLAN-002 AN2-2 (performance)
+    note: >-
+      A CORRECTION TO THE PREMISE, recorded rather than absorbed. AMEND-NIGHT-PLAN-001 AN1-3
+      named graph-rebuild AND audit-health together as the heaviest local operation. On wall
+      time they are within 2.5 s of each other; on memory they are not comparable --
+      audit-health peaks at 768 MB against graph-rebuild's 50 MB, about 15x. Only one of the
+      two is memory-heavy, and on a box whose binding constraint is memory rather than time
+      that is the difference that decides which gate to move.
+
+  - id: QR-PERF-004
+    attribute: performance
+    status: candidate
+    statement: >-
+      A test that spawns a shell per case is marked, and the marked set is routed to Actions
+      rather than run locally.
+    metric: >-
+      Wall time of the marked set locally against on Actions. Observed: 32 cases in 39m46s.
+    incident: >-
+      A 32-case shell-per-case set took 39m46s in one local run -- longer than the batch
+      window it was running inside.
+    source: AMEND-NIGHT-PLAN-002 AN2-2 (performance)
+    note: >-
+      A candidate because no marker exists and no routing reads one. `pyproject.toml` carries
+      no such mark and nothing in `.github/workflows/` selects on it.
+
+  # ---- availability / reliability ---------------------------------------------------
+  - id: QR-AVAIL-001
+    attribute: availability
+    status: measured
+    statement: >-
+      A seat does not end its turn on a wait. A wait is written as a loop carrying an
+      interval, a bound and a predicate read from the file surface, or it is refused.
+    metric: >-
+      Wait-intentions in a seat document with no `<!-- WAIT: ... -->` declaration within 12
+      lines: 0. Declarations missing an interval, a bound or a predicate: 0.
+    incident: >-
+      The integrator waited a day on a session that no longer existed. A turn that ends on an
+      intention has no next tick, so nothing wakes the session and the wait is unbounded in
+      practice even where it reads as bounded in prose.
+    source: AMEND-NIGHT-PLAN-002 AN2-2 (availability); the organ is PLAYBOOK Ch8, as code
+    organ: scripts/seat_refusals.py
+    trip_test: tests/test_quality_requirement_trips.py::test_qr_avail_001_sleeping_poll_is_refused
+
+  - id: QR-AVAIL-002
+    attribute: availability
+    status: candidate
+    statement: >-
+      A lane that ends without handing back is detected from git rather than waited on.
+    metric: >-
+      Time between a lane's last commit and the integrator learning the lane is gone. A
+      detection that reads git is bounded by the poll interval; one that reads a promised
+      handback is unbounded.
+    incident: >-
+      The integrator waited a day on a session that no longer existed. The lane's branch had
+      carried the answer the whole time.
+    source: AMEND-NIGHT-PLAN-002 AN2-2 (availability)
+    note: >-
+      Distinct from QR-AVAIL-001 and filed separately on purpose. `seat_refusals` refuses the
+      WAIT; nothing yet performs the git-side DETECTION that would make the wait unnecessary.
+      Refusing a bad answer and supplying the good one are two organs.
+
+  - id: QR-AVAIL-003
+    attribute: availability
+    status: candidate
+    statement: >-
+      A Codespace lane runs attached; a detached one is refused at dispatch.
+    metric: >-
+      Work produced by detached Codespace lanes. Observed across two nights: zero commits
+      from two detached lanes.
+    incident: >-
+      Two separate nights dispatched Codespace lanes detached and both produced no work at
+      all -- not partial work, none.
+    source: AMEND-NIGHT-PLAN-002 AN2-2 (availability); restated in DECLARE-NIGHT-PLAN-2026-09-15-FINAL
+    note: >-
+      A candidate because the attach/detach choice reaches no flag any gate reads. This is
+      the same shape [#752] found one column over: a declared field that no code resolves
+      into a launcher argument is a decision the tree records and does not make.
+
+  - id: QR-AVAIL-004
+    attribute: availability
+    status: candidate
+    statement: >-
+      A process that outlives its lane is killed at teardown, and the teardown verifies the
+      kill rather than assuming it.
+    metric: >-
+      Processes surviving a teardown: 0. Worst observed: one orphan alive 53 hours at
+      roughly 10 cores.
+    incident: >-
+      A 53-hour orphan at ~10 cores was found by looking, not by a check. It had been costing
+      the box the whole time the window was reporting itself as quiet.
+    source: AMEND-NIGHT-PLAN-002 AN2-2 (availability)
+
+  # ---- resource control --------------------------------------------------------------
+  - id: QR-RES-001
+    attribute: resource-control
+    status: candidate
+    statement: >-
+      A memory floor below which the dispatcher refuses another local lane and reports the
+      refusal -- arithmetic, rather than a judgement call at dispatch time.
+    metric: >-
+      Free memory read at dispatch against a declared floor, with the lane count derived from
+      the reading. Refusals reported: all of them.
+    incident: >-
+      Five OOM-killed full-suite attempts at 1.4 GB free of 28 GB, plus the 53-hour orphan at
+      ~10 cores that nothing accounted for. The lane count was set from an estimate of what
+      the box could hold rather than from a reading of what it had.
+    source: AMEND-NIGHT-PLAN-002 AN2-2 (resource control)
+    note: >-
+      THIS IS THE REGISTER'S FIRST FINDING ABOUT ITSELF. The attribute the operator described
+      as the least discretionary -- "automatic arithmetic, not a judgement call" -- is the one
+      with no organ at all. `scripts/seat_refusals.py` carries `lane-ceiling`, which is
+      ADR-110's 4-6 lane COUNT and reads no memory; `--check-worktrees` reads the live
+      worktree list, also a count. Nothing in the tree reads free memory before a dispatch.
+      Filed as a candidate under the register's own rule rather than attached to the
+      count-ceiling organ, which would have been the available lie.
+
+  # ---- observability -----------------------------------------------------------------
+  - id: QR-OBS-001
+    attribute: observability
+    status: measured
+    statement: >-
+      Every merge records its own wall time. A merge with no receipt, or with a receipt that
+      is not a usable measurement, is refused.
+    metric: >-
+      Merges in the integrator's range with a COMPLETE `kind=merge` receipt: all of them.
+      Receipts that time nothing and still discharge a merge: 0.
+    incident: >-
+      Before [#750] the receipt was opened once per BATCH and carried no merge SHA, so "how
+      long did this merge take" had no answer and an unrecorded step read exactly like a fast
+      one.
+    source: AMEND-NIGHT-PLAN-002 AN2-2 (observability); the organ is [#750]
+    organ: scripts/merge_receipt.py
+    trip_test: tests/test_quality_requirement_trips.py::test_qr_obs_001_unreceipted_merge_is_refused
+
+  - id: QR-OBS-002
+    attribute: observability
+    status: measured
+    statement: >-
+      A model with no declared rate is reported as UNPRICED with a reason. It is not priced
+      at zero and is not summed into a total.
+    metric: >-
+      Cost rows carrying a fabricated zero: 0. Unpriced models carrying a stated reason: all
+      of them.
+    incident: >-
+      Cost per lane and per model was recorded by hand or not at all. An unpriced model
+      silently summed as zero makes a batch look cheaper the less the tree knows about it --
+      the error grows with the ignorance.
+    source: AMEND-NIGHT-PLAN-002 AN2-2 (observability); the organ is [#751]
+    organ: scripts/provider_registry.py
+    trip_test: tests/test_quality_requirement_trips.py::test_qr_obs_002_unpriced_model_is_refused
+
+  - id: QR-OBS-003
+    attribute: observability
+    status: candidate
+    statement: >-
+      An organ not invoked in 30 days surfaces, so an unused mechanism is visible rather than
+      merely maintained.
+    metric: >-
+      Days since the last recorded invocation, per organ, against a 30-day bar.
+    incident: >-
+      ADR-119 ruled that a command file counts as a wiring surface only while invocations are
+      recorded -- adoption decays and is not conferred. The ruling landed; the standing
+      surfacing did not.
+    source: AMEND-NIGHT-PLAN-002 AN2-2 (observability)
+    note: >-
+      `ecosystem/organ-index.md` renders what exists and what triggers it, which is a
+      different question from what has actually run. A candidate until an invocation record
+      exists to read.
