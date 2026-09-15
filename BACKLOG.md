@@ -134,6 +134,8 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#764] [P1][S] Batch Z implements the night plan of 2026-09-15 — the four transport decisions the engine refused every commit for · tasks/764-batch-z-implements-the-night-plan-of-2026-09-15.md
 - [#782] [P1][M] The quality-requirements register: non-functional requirements as a registered, enforced, rendered artifact · tasks/782-the-quality-requirements-register-non-functional-requirements-as-a-registered-enforced-artifact.md
 - [#783] [P2][S] The carried-to-RESOLVED leg of decision-coverage has never once been exercised · tasks/783-the-carried-to-resolved-leg-of-decision-coverage-has-never-been-exercised.md
+- [#768] [P1][M] A gate has one refusal channel, so a violation and an environment it could not evaluate are indistinguishable to the committer · tasks/768-a-gate-has-one-refusal-channel-so-a-violation-an.md
+- [#772] [P1][M] Every dispatched lane inherits the whole secret store -- there is no introspect-and-exchange step and no row about it · tasks/772-every-dispatched-lane-inherits-the-whole-secret.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
@@ -143,6 +145,7 @@ So that drift in transcripts, ADRs, and folders is caught cheaply, not by review
 - [#277] [P2][M] propose_closures signal repair · tasks/277-propose-closures-signal-repair.md
 - [#693] [P1][M] The closure detector proposes the whole queue, its surfacing hook has been dead since the month-bucket move, and the run cap errors -- three defects that together make a closure proposal mean nothing · tasks/693-closure-detector-proposes-the-whole-queue-with-a-dead-surfacing-hook.md
 - [#719] [P2][M] `ecosystem/organ-index` entries answer to no schema -- validate them against Backstage `catalog-model`'s Component shape with our own gate · tasks/719-organ-index-entries-answer-to-no-schema-validate-against-catalog-model.md
+- [#767] [P2][M] A tool description is gated only where it is generated, and no surface gates its parameters at all · tasks/767-a-tool-description-is-gated-only-where-it-is-gen.md
 
 ### [S5] Catch spec/dependent drift mechanically, not by memory
 So that "spec bumped, dependent partially updated, caught only because a human remembered" stops being the failure mode — machine-checkable coherence between a dependent doc and its spec.
@@ -294,6 +297,7 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 - [#731] [P1][M] The backlog only grows -- narration is relocated by hand and nothing stops a batch filing more rows than it closes · tasks/731-backlog-shrinks-by-mechanism-relocation-trigger-and-an-enforced-closure-budget.md
 - [#754] [P2][S] The two backlog row ceilings measure different corpora, and the source-side one has decayed back into the percentile its own amendment abolished · tasks/754-the-two-backlog-row-ceilings-measure-different-corpora.md
 - [#781] [P2][M] One management map rendered from the organ index, with trigger-less organs rendered DEAD · tasks/781-one-management-map-rendered-from-the-organ-index-with-trigger-less-organs-rendered-dead.md
+- [#766] [P2][M] The session boot payload has a byte budget on one file and none on the whole -- every tool, command and skill description is paid at startup · tasks/766-the-session-boot-payload-has-a-byte-budget-on-on.md
 ## [E6] Cross-repo universalization
 > As the disseminator, I want every child repo to converge on the universal baseline.
 
@@ -391,6 +395,8 @@ So that cognitive overhead per session drops.
 - [#729] [P2][M] FPG-1's queries are shell scripts the model must remember to run -- expose them as MCP tools so they sit in the tool list beside Grep · tasks/729-fpg1-queries-exposed-as-mcp-tools-so-they-sit-beside-grep.md
 - [#746] [P2][M] Devcontainer history-sufficiency (B1) and ecosystem-registration (L5) repair, lost with `scripts/cloud_provisioning.py` · tasks/746-devcontainer-history-and-ecosystem-repair-lost-with-cloud-provisioning-py.md
 - [#751] [P2][M] Cost in money — the transcripts' token figures become tokens and USD per lane and per model, priced from the registry's own rate card · tasks/751-cost-in-money-tokens-and-usd-per-lane-and-per-model.md
+- [#769] [P2][S] An unattended lane has no cancel for a long-running gate -- the only lever is killing the session · tasks/769-an-unattended-lane-has-no-cancel-for-a-long-runn.md
+- [#771] [P2][S] `[#729]` carries no protocol-conformance criterion, so a server can satisfy it completely and not be an MCP server · tasks/771-729-carries-no-protocol-conformance-criterion-so.md
 ### [S19] Decide the undecided artifact/tool models
 So that cadence-less artifacts and unevaluated tools don't rot or get adopted blind.
 
@@ -606,6 +612,7 @@ So that "the repo learns us" starts as a cheap descriptive lane on real data, no
 So that a version bump researched once reaches every repo through the deploy channel instead of dying in a session.
 - [#385] [P3][M] L4 tech-currency lane · tasks/385-l4-tech-currency-lane.md
 - [#495] [P3][S] Tech-currency cadence — give [#385] a recurring lane instead of a one-off · DEFER · tasks/495-tech-currency-cadence-give-385-a-recurring-lane.md
+- [#770] [P2][M] Nothing notices an external specification revising under us, and `[#729]` proposes to build on one · tasks/770-nothing-notices-an-external-specification-revisi.md
 
 ---
 
