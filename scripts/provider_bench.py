@@ -1279,5 +1279,258 @@ def render_report(rows: list[dict[str, Any]]) -> list[str]:
     return out
 
 
+#: The comparison leg. Every other provider is judged against THIS one, on the same ten
+#: outcomes, in the same neutral directory, under the same predicates -- because it is the
+#: only leg in this benchmark whose served model has a rate row, and therefore the only one
+#: whose spend is expressible in money at all.
+BASELINE = "claude"
+
+#: The verdict classes. A closed set, assigned mechanically from the measured rows -- a
+#: verdict here is a CLASSIFICATION of evidence, never a sentence somebody liked the sound
+#: of, which is why each one states the predicate that produces it.
+VERDICT_CLASSES = {
+    "unreachable": "never answered: every invocation was refused before a model saw the "
+                   "prompt, so this CLI's capability is not measured here at all",
+    "parity": "matched the Opus baseline on every outcome both legs attempted",
+    "below-baseline": "answered unattended, and lost outcomes the Opus baseline won",
+    "above-baseline": "won outcomes the Opus baseline lost",
+    "blocked": "stopped on an interactive prompt and cannot run unattended",
+}
+
+
+#: What this benchmark measured, carried INSIDE every verdict. A verdict of `parity` must
+#: never be readable as "as good as Opus"; it means "on these ten bounded, self-contained,
+#: closed-form text tasks, run once each". The bound travels with the claim or the claim is
+#: a bigger one than the evidence supports.
+VERDICT_SCOPE = ("ten bounded, self-contained, closed-form text outcomes, ONE run each, "
+                 "from a neutral empty non-git directory, no tool use and no repo access; "
+                 "not a measure of agentic work, long context, or anything run twice")
+
+
+def _cells(rows: list[dict[str, Any]], provider: str) -> dict[str, dict[str, Any]]:
+    return {r["outcome"]: r for r in latest_per_cell(rows) if r["provider"] == provider}
+
+
+def _reached(row: dict[str, Any]) -> bool:
+    """Did a MODEL see this prompt at all?
+
+    THE DISTINCTION THAT KEEPS AN AUTH FAILURE FROM READING AS A CAPABILITY FINDING. gemini
+    exits 1 at `IneligibleTierError` before any model is invoked; scoring those ten cells as
+    ten losses to Opus would publish "gemini cannot extract an id" when what was measured is
+    "this box has no Gemini account". A cell counts as reached only when the CLI ran
+    unattended, did not error out, and put SOMETHING on stdout for a predicate to read.
+    """
+    return (row.get("unattended", True) and not row.get("error")
+            and bool((row.get("stdout_head") or "").strip()))
+
+
+def compare_to_opus(rows: list[dict[str, Any]], provider: str) -> dict[str, Any]:
+    """The same ten outcomes, this provider against the Opus leg, cell by cell.
+
+    ONLY CELLS BOTH LEGS ATTEMPTED ARE COMPARED. A provider that never ran an outcome has
+    not lost it, and scoring an absent cell as a miss would let an interrupted sweep read as
+    a capability finding -- the failure mode this whole module exists to avoid.
+
+    MONEY IS COMPARED ONLY WHERE BOTH SIDES ARE MONEY. `usd_comparable` is False whenever
+    either leg is unpriced or PARTIAL, and the reason is carried by name. Dividing a
+    subscription quota by a token count to manufacture a rate is the one thing a benchmark
+    must not do: it would turn "we do not know this price" into a number that looks measured.
+    """
+    mine, base = _cells(rows, provider), _cells(rows, BASELINE)
+    both_ran = set(mine) & set(base)
+    shared = sorted((k for k in both_ran if _reached(mine[k]) and _reached(base[k])),
+                    key=lambda k: OUTCOME_KEYS.index(k) if k in OUTCOME_KEYS else 99)
+    unreached = sorted((k for k in both_ran if not _reached(mine[k])),
+                       key=lambda k: OUTCOME_KEYS.index(k) if k in OUTCOME_KEYS else 99)
+    lost = [k for k in shared if base[k].get("predicate_pass") and not mine[k].get("predicate_pass")]
+    won = [k for k in shared if mine[k].get("predicate_pass") and not base[k].get("predicate_pass")]
+    both = [k for k in shared if mine[k].get("predicate_pass") and base[k].get("predicate_pass")]
+
+    def _money(cells: dict[str, dict[str, Any]]) -> tuple[Optional[float], Optional[str]]:
+        # FALL BACK TO EVERY CELL WHEN NOTHING IS SHARED. A provider with no comparable
+        # outcome (gemini: refused at auth ten times) still has a reason it cannot be
+        # priced, and "no rate" is not that reason -- the auth refusal is. Reporting the
+        # generic string would hide the specific fact this sweep actually paid to learn.
+        got = [cells[k] for k in shared] or list(cells.values())
+        priced = [c["usd"] for c in got if c.get("usd") is not None]
+        if not priced:
+            return None, next((c.get("unpriced_reason") for c in got
+                               if c.get("unpriced_reason")), "no rate")
+        partial = next((c.get("unpriced_reason") for c in got if c.get("usd_is_partial")), None)
+        return round(sum(priced), 6), partial
+
+    my_usd, my_gap = _money(mine)
+    base_usd, base_gap = _money(base)
+    comparable = my_usd is not None and base_usd is not None and not my_gap and not base_gap
+    my_wall = sum(mine[k].get("wall_seconds") or 0 for k in shared)
+    base_wall = sum(base[k].get("wall_seconds") or 0 for k in shared)
+    return {
+        "provider": provider,
+        "outcomes_compared": len(shared),
+        "outcomes_never_reached": unreached,
+        "both_passed": both,
+        "lost_to_opus": lost,
+        "won_against_opus": won,
+        "wall_seconds": round(my_wall, 1),
+        "baseline_wall_seconds": round(base_wall, 1),
+        "wall_ratio": round(my_wall / base_wall, 2) if base_wall else None,
+        "usd": my_usd,
+        "baseline_usd": base_usd,
+        # HOW MANY OUTCOMES THE BASELINE FIGURE ACTUALLY COVERS. It equals
+        # `outcomes_compared` in the normal case and the baseline's FULL set when nothing is
+        # shared, because `_money` falls back. Carried as its own number so a reader is never
+        # shown a dollar figure beside "over 0 outcome(s)" and left to guess which is wrong.
+        "baseline_usd_outcomes": len(shared) if shared else len(base),
+        "usd_comparable": comparable,
+        "usd_incomparable_because": None if comparable else (my_gap or base_gap
+                                                             or "one leg is partial"),
+        "metering_unit": next((r.get("metering_unit") for r in mine.values()
+                               if r.get("metering_unit")), None),
+        "vendor_units": sum(mine[k].get("vendor_units") or 0 for k in shared) or None,
+    }
+
+
+def verdict_for(rows: list[dict[str, Any]], provider: str) -> dict[str, Any]:
+    """ONE verdict for one provider: what it can be asked to do unattended, and what it cannot.
+
+    Both halves are derived from rows, never asserted. `cannot` is built only from things
+    the sweep actually observed -- a blocking prompt that was quoted, an outcome that was
+    attempted and missed, an attestation that was looked for and absent. A provider is never
+    charged for something this benchmark did not test.
+    """
+    mine = _cells(rows, provider)
+    got = list(mine.values())
+    cmp_ = compare_to_opus(rows, provider)
+    blocked = [r for r in got if not r.get("unattended", True)]
+    passed = [r for r in got if r.get("predicate_pass")]
+
+    if blocked:
+        klass = "blocked"
+    elif not any(_reached(r) for r in got):
+        klass = "unreachable"
+    elif cmp_["lost_to_opus"] and not cmp_["won_against_opus"]:
+        klass = "below-baseline"
+    elif cmp_["won_against_opus"]:
+        klass = "above-baseline"
+    else:
+        klass = "parity"
+
+    can = [f"{len(passed)} of {len(got)} bounded, self-contained text outcomes, unsupervised"] \
+        if passed else []
+    cannot: list[str] = []
+    for r in blocked:
+        cannot.append(f"run unattended -- it stopped and asked: "
+                      f"{(r.get('blocking_prompt') or '').strip()[:160]!r}")
+    if klass == "unreachable":
+        err = next((r.get("stderr_head") or r.get("error") or "" for r in got), "")
+        cannot.append(f"be reached at all on this box: {err.strip()[:160]!r}")
+        cannot.append(f"be judged on capability from this lane at all -- "
+                      f"{len(cmp_['outcomes_never_reached'])} outcome(s) never reached a model, "
+                      f"so NOTHING here says what it could or could not answer")
+    for key in cmp_["lost_to_opus"]:
+        cannot.append(f"be trusted on `{key}`: the Opus leg met the predicate and this one "
+                      f"did not, answering {(mine[key].get('stdout_head') or '').strip()[:60]!r}")
+    if not any(r.get("served_model") for r in got):
+        cannot.append("be audited for WHICH model served the request -- it attests none, so "
+                      "its spend cannot be priced even if a rate existed")
+    if len({r.get("served_model") for r in got if r.get("served_model")}) > 1:
+        cannot.append("be pinned to one model: identical invocations were served by "
+                      + ", ".join(sorted({r["served_model"] for r in got if r.get("served_model")}))
+                      + ", so a result is not reproducible from the command line alone")
+    return {"row": ROW, "provider": provider, "verdict": klass,
+            "verdict_means": VERDICT_CLASSES[klass], "verdict_scope": VERDICT_SCOPE,
+            "is_baseline": provider == BASELINE,
+            "runs": len(got), "passed": len(passed), "blocked": len(blocked),
+            "served_models": sorted({r.get("served_model") or "UNATTESTED" for r in got}),
+            "can_be_asked_to": can, "cannot_be_asked_to": cannot,
+            "vs_opus": cmp_}
+
+
+def verdicts(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """One verdict per provider that has rows, baseline last -- it is the ruler, not a rival."""
+    present = {r["provider"] for r in rows}
+    ordered = [p for p in IN_SCOPE if p in present] + \
+              [p for p in sorted(present) if p not in IN_SCOPE and p != BASELINE] + \
+              ([BASELINE] if BASELINE in present else [])
+    return [verdict_for(rows, p) for p in ordered]
+
+
+def render_verdicts(items: list[dict[str, Any]]) -> list[str]:
+    """Flat `key: value`, one block per provider -- the shape an operator copies out."""
+    out: list[str] = []
+    out.append(f"SCOPE OF EVERY VERDICT BELOW: {VERDICT_SCOPE}")
+    out.append("")
+    for item in items:
+        cmp_ = item["vs_opus"]
+        ruler = "   (this leg IS the ruler)" if item["is_baseline"] else ""
+        out.append(f"{item['provider'].upper()}  --  {item['verdict']}{ruler}")
+        out.append(f"  means          : {item['verdict_means']}")
+        out.append(f"  ran            : {item['passed']}/{item['runs']} predicates met, "
+                   f"{item['blocked']} blocked")
+        out.append(f"  served         : {', '.join(item['served_models'])}")
+        out.append(f"  vs opus        : {len(cmp_['both_passed'])} both, "
+                   f"{len(cmp_['lost_to_opus'])} lost, {len(cmp_['won_against_opus'])} won, "
+                   f"over {cmp_['outcomes_compared']} shared outcome(s)")
+        if cmp_["outcomes_never_reached"]:
+            out.append(f"  not reached    : {len(cmp_['outcomes_never_reached'])} outcome(s) "
+                       f"never got to a model and are NOT scored as losses: "
+                       f"{', '.join(cmp_['outcomes_never_reached'])}")
+        out.append(f"  wall           : {cmp_['wall_seconds']}s vs {cmp_['baseline_wall_seconds']}s "
+                   f"baseline (x{cmp_['wall_ratio']})")
+        if cmp_["usd_comparable"]:
+            out.append(f"  money          : ${cmp_['usd']} vs ${cmp_['baseline_usd']} baseline")
+        else:
+            out.append(f"  money          : NOT COMPARABLE -- "
+                       f"{(cmp_['usd_incomparable_because'] or '')[:150]}")
+            out.append(f"  its unit       : {cmp_['vendor_units']} of "
+                       f"{cmp_['metering_unit'] or 'nothing disclosed'}")
+        # THE CONTRACT'S ACTUAL QUESTION -- "what would the SAME work have cost on Opus" --
+        # is answerable even when the two legs are not commensurable, and it is printed
+        # unconditionally for exactly that reason. Incomparable does not mean unknown on
+        # both sides: the Opus side is known, and it is the only side that ever will be
+        # until the registry gains rows.
+        if cmp_["baseline_usd"] is not None and not item["is_baseline"]:
+            note = "PARTIAL -- an unpriced bookkeeping side-call is named in the ledger, " \
+                   "not summed at zero"
+            if not cmp_["outcomes_compared"]:
+                note = ("PARTIAL, and NOT a comparison -- this provider attempted none of "
+                        "them, so it is the price of work it never ran")
+            out.append(f"  same work, opus: ${cmp_['baseline_usd']} over "
+                       f"{cmp_['baseline_usd_outcomes']} outcome(s), {note}")
+        for line in item["can_be_asked_to"]:
+            out.append(f"  CAN            : {line}")
+        for line in item["cannot_be_asked_to"]:
+            out.append(f"  CANNOT         : {line}")
+        out.append("")
+    return out
+
+
+#: The verdict artifact. UNDATED ON PURPOSE, and the purpose is a measured collision rather
+#: than a preference: `scripts/logs_retention.py` relocates any `<STEM>-YYYY-MM-DD.<ext>`
+#: sitting directly under `logs/` into a `logs/YYYY-MM/` bucket, and
+#: `scripts/validate_hermetization.py` then refuses that bucket as a home no ruling admits.
+#: A dated name here would be unlandable through this repo's own gates. This file is also
+#: DERIVED -- regenerate it from the ledger, never hand-edit it.
+VERDICTS_REL = "logs/PROVIDER-VERDICTS.json"
+
+
+@cli.command("verdict")
+@click.option("--ledger", type=click.Path(path_type=Path), default=None)
+@click.option("--json-out", type=click.Path(path_type=Path), default=None,
+              help=f"write the verdicts as JSON (the committed artifact is {VERDICTS_REL})")
+def cmd_verdict(ledger: Optional[Path], json_out: Optional[Path]) -> None:
+    """One verdict per provider, each one priced against the same ten outcomes on Opus."""
+    rows = read_ledger(ledger or (REPO_ROOT / LEDGER_REL))
+    if not rows:
+        logger.info("no rows")
+        return
+    items = verdicts(rows)
+    for line in render_verdicts(items):
+        logger.info("%s", line)
+    if json_out:
+        _write_json(json_out, items)
+        logger.info("wrote %s", json_out)
+
+
 if __name__ == "__main__":                                     # pragma: no cover
     cli()

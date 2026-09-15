@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 import sys
 
 import pytest
@@ -427,3 +428,145 @@ def test_the_declared_absent_list_is_re_measured_rather_than_believed():
     probed = {row["provider"] for row in pb.census(probe_versions=False)}
     assert set(pb.DECLARED_ABSENT) <= probed
     assert set(pb.IN_SCOPE) <= probed
+
+
+# --- verdicts -----------------------------------------------------------------------------
+
+
+def _cell(provider, outcome, *, passed=True, stdout="x", usd=None, **extra):
+    """One ledger-shaped row. The defaults say 'it ran and it answered', so each test below
+    states only the property it is actually about."""
+    row = {"provider": provider, "outcome": outcome, "predicate_pass": passed,
+           "stdout_head": stdout, "unattended": True, "error": None, "usd": usd,
+           "wall_seconds": 1.0, "served_model": f"{provider}-model",
+           "metering_unit": "tokens"}
+    row.update(extra)
+    return row
+
+
+def _ten(provider, **kw):
+    return [_cell(provider, key, **kw) for key in pb.OUTCOME_KEYS]
+
+
+def test_an_auth_refusal_is_not_scored_as_ten_capability_losses():
+    """gemini exits 1 at IneligibleTierError before a model ever sees the prompt. Counting
+    those ten cells as ten losses to Opus would publish "gemini cannot extract an id" when
+    what was measured is "this box has no Gemini account" -- a capability claim manufactured
+    out of an auth failure, which is the founding misdiagnosis of [#676] in a new costume."""
+    rows = _ten("claude") + _ten("gemini", passed=False, stdout="")
+    cmp_ = pb.compare_to_opus(rows, "gemini")
+    assert cmp_["lost_to_opus"] == []
+    assert len(cmp_["outcomes_never_reached"]) == len(pb.OUTCOME_KEYS)
+    assert cmp_["outcomes_compared"] == 0
+    item = pb.verdict_for(rows, "gemini")
+    assert item["verdict"] == "unreachable"
+    assert not any("be trusted on" in line for line in item["cannot_be_asked_to"])
+
+
+def test_a_real_miss_with_output_on_stdout_IS_still_scored_as_a_loss():
+    """The negative control for the rule above. Suppressing unreached cells must not also
+    suppress a provider that answered and answered WRONGLY -- ollama's `2.8500` is a real
+    miss and has to survive the same filter that protects gemini."""
+    rows = _ten("claude") + _ten("ollama")
+    rows += [_cell("ollama", "arithmetic-pricing", passed=False, stdout="2.8500")]
+    cmp_ = pb.compare_to_opus(rows, "ollama")
+    assert cmp_["lost_to_opus"] == ["arithmetic-pricing"]
+    item = pb.verdict_for(rows, "ollama")
+    assert item["verdict"] == "below-baseline"
+    assert any("2.8500" in line for line in item["cannot_be_asked_to"])
+
+
+def test_money_is_never_compared_when_only_one_side_is_money():
+    """`usd_comparable` guards the one thing a benchmark must not do: divide a subscription
+    quota by a token count and present the quotient as a measured rate."""
+    rows = [_cell("claude", k, usd=0.02) for k in pb.OUTCOME_KEYS]
+    rows += [_cell("copilot", k, usd=None, unpriced_reason="not in the registry")
+             for k in pb.OUTCOME_KEYS]
+    cmp_ = pb.compare_to_opus(rows, "copilot")
+    assert cmp_["usd_comparable"] is False
+    assert "registry" in cmp_["usd_incomparable_because"]
+    assert cmp_["baseline_usd"] == pytest.approx(0.2)
+
+
+def test_a_partial_baseline_price_is_not_allowed_to_pass_as_comparable():
+    """Both sides priced is NOT enough. A PARTIAL figure is a lower bound wearing a decimal
+    point, and comparing against a lower bound flatters whoever is measured against it."""
+    rows = [_cell("claude", k, usd=0.02, usd_is_partial=True,
+                  unpriced_reason="haiku side-call has no rate row") for k in pb.OUTCOME_KEYS]
+    rows += [_cell("codex", k, usd=0.01) for k in pb.OUTCOME_KEYS]
+    cmp_ = pb.compare_to_opus(rows, "codex")
+    assert cmp_["usd_comparable"] is False
+    assert "haiku" in cmp_["usd_incomparable_because"]
+
+
+def test_an_unreachable_provider_still_reports_WHY_rather_than_a_generic_no_rate():
+    """With no shared outcome there is nothing to price, and the lazy answer is "no rate".
+    The specific refusal is the fact this sweep paid to learn, so the money line falls back
+    to the provider's own rows rather than to a placeholder."""
+    rows = _ten("claude", usd=0.02) + _ten(
+        "gemini", passed=False, stdout="", served_model=None,
+        unpriced_reason="no served model was attested for this run")
+    cmp_ = pb.compare_to_opus(rows, "gemini")
+    assert cmp_["usd_incomparable_because"] == "no served model was attested for this run"
+
+
+def test_the_opus_figure_is_never_printed_beside_a_zero_outcome_count():
+    """The contract's question -- what the SAME work costs on Opus -- is answerable even when
+    the legs are incomparable, but a dollar figure next to "over 0 outcome(s)" is two facts
+    that contradict each other. The count the baseline figure covers is carried separately."""
+    rows = _ten("claude", usd=0.02) + _ten("gemini", passed=False, stdout="")
+    cmp_ = pb.compare_to_opus(rows, "gemini")
+    assert cmp_["outcomes_compared"] == 0
+    assert cmp_["baseline_usd_outcomes"] == len(pb.OUTCOME_KEYS)
+    rendered = "\n".join(pb.render_verdicts([pb.verdict_for(rows, "gemini")]))
+    assert "over 0 outcome(s)" not in rendered
+    assert "NOT a comparison" in rendered
+
+
+def test_every_verdict_carries_the_scope_that_bounds_it():
+    """`parity` must never be readable as "as good as Opus". The bound travels INSIDE each
+    verdict rather than in prose above the table, because the JSON artifact is what a later
+    reader quotes and the prose is what they leave behind."""
+    rows = _ten("claude") + _ten("codex")
+    for item in pb.verdicts(rows):
+        assert item["verdict_scope"] == pb.VERDICT_SCOPE
+        assert "ONE run each" in item["verdict_scope"]
+
+
+def test_two_models_across_identical_invocations_is_itself_a_finding():
+    """copilot served mai-code-1.1-flash seven times and gpt-5.6-luna three times across ten
+    identical command lines. A verdict reporting only the pass count would hide that the same
+    command does not reliably reach the same model."""
+    rows = _ten("claude") + [_cell("copilot", k) for k in pb.OUTCOME_KEYS[:5]] \
+        + [_cell("copilot", k, served_model="other-model") for k in pb.OUTCOME_KEYS[5:]]
+    item = pb.verdict_for(rows, "copilot")
+    assert any("pinned to one model" in line for line in item["cannot_be_asked_to"])
+
+
+def test_an_unattested_provider_names_DISCLOSURE_as_the_gap_not_a_missing_rate_row():
+    """agy discloses no served model anywhere in 1.2.x. Unpriced here is a disclosure failure,
+    not an absent registry row -- the two have different remedies and different owners, and a
+    verdict that conflated them would send the fix to the wrong person."""
+    rows = _ten("claude") + _ten("agy", served_model=None)
+    item = pb.verdict_for(rows, "agy")
+    assert any("WHICH model served" in line for line in item["cannot_be_asked_to"])
+
+
+def test_the_baseline_is_marked_as_the_ruler_rather_than_ranked_against_itself():
+    """claude is in the list because a reader needs its numbers, and it is flagged so that
+    "parity, x1.0" is not read as a finding about a contestant."""
+    rows = _ten("claude") + _ten("codex")
+    items = pb.verdicts(rows)
+    assert items[-1]["provider"] == pb.BASELINE
+    assert items[-1]["is_baseline"] is True
+    assert all(i["is_baseline"] is False for i in items[:-1])
+
+
+def test_the_verdict_artifact_is_undated_because_a_dated_one_cannot_be_landed():
+    """Two hub organs disagree about where a dated `logs/` file lives: `logs_retention.py`
+    relocates `<STEM>-YYYY-MM-DD.<ext>` into a `logs/YYYY-MM/` bucket and
+    `validate_hermetization.py` refuses that bucket as a home no ruling admits. The name is
+    pinned here so a later tidy-up does not re-date it and rediscover the collision by
+    being blocked at a commit."""
+    assert pb.VERDICTS_REL == "logs/PROVIDER-VERDICTS.json"
+    assert not re.search(r"\d{4}-\d{2}-\d{2}", pb.VERDICTS_REL)
