@@ -17,15 +17,24 @@
 #       cannot prove its gates execute is precisely the failure shape above.
 #
 # plus two more the 2026-08-21 lane added, both of them things the 2026-08-19 proof lane MEASURED
-# rather than anticipated (`docs/audits/2026-08-19-technical-554-proof.md`), and BOTH REMOVED
-# [#664] (2026-09-13) — see the retirement record immediately below:
-#   L2b (REMOVED) the clone has the REFS a spine walker reads, not merely the DEPTH L2 restores.
-#       The proof lane's container had 5329 commits and no local `main`, and every
-#       first-parent-spine instrument then errored out. This was contract amendment B1, and it
-#       ran before hooks were armed. Declared, not hardcoded: `.devcontainer/provisioning.yaml`.
-#   L5  (REMOVED) at least one repo is registered under `ecosystem/`. `audit.py health` counts
+# rather than anticipated (`docs/audits/2026-08-19-technical-554-proof.md`). Both were REMOVED
+# [#664] (2026-09-13) and RESTORED [#746] (2026-09-15) against `scripts/provision_legs.py` — the
+# retirement record below is kept verbatim as the account of how they came to be missing:
+#   L2b the clone has the REFS a spine walker reads, not merely the DEPTH L2 restores. The proof
+#       lane's container had 5329 commits and no local `main`, and every first-parent-spine
+#       instrument then errored out. This is contract amendment B1, and it runs before hooks are
+#       armed. Declared, not hardcoded: `.devcontainer/provisioning.yaml`.
+#   L5  at least one repo is registered under `ecosystem/`. `audit.py health` counts
 #       `ecosystem/*/state.yaml`, that glob is gitignored, and so no clone has ever carried one —
 #       which was the single remaining `[!!]` between this substrate and the row's D1a Done-when.
+#
+# plus one more this file owes to its OWN measured failure:
+#   B2  A FAST-FORWARD CAN REPLACE THIS SCRIPT WHILE IT RUNS ([#746], witnessed 2026-09-14
+#       23:37Z). `refresh_source_tree` moves the checkout to origin/main, and bash goes on
+#       executing the body it already read — which on that run was 1401 commits old and called a
+#       module retired twelve days earlier, so the container died into a recovery container with
+#       a perfectly correct tree on disk. The function now digests this file across its own
+#       fast-forward and `exec`s the refreshed copy, once, guarded by an EXPORTED variable.
 #
 # [#664] RETIREMENT RECORD (2026-09-13), read verbatim out of git history before the six call
 # sites that implemented L2b/L5 were removed from this file — `scripts/cloud_provisioning.py`
@@ -56,8 +65,10 @@
 # `bash .devcontainer/provision.sh` had been dying at `leg2b_history`, and `--gate` (wired to
 # postStartCommand) had been refusing every container start, since `3c9418cc` landed, both with a
 # "re-provision" message that could not succeed because the module it named was gone for good.
-# Removing the six dead call sites (this lane) stops that crash; it does not restore L2b or L5,
-# which is why this lane also files BACKLOG `[#746]` for the real repair.
+# Removing the six dead call sites ([#664]) stopped that crash; it did not restore L2b or L5,
+# which is why that lane filed BACKLOG `[#746]`. [#746] is what restored them, above, against
+# `scripts/provision_legs.py` — the two legs, not the retired file: the third command that module
+# carried (`prebuild`) is deliberately not back, and `provision_legs.py`'s docstring says why.
 #
 # SINGLE SOURCE OF PINS. Nothing below hardcodes a version that already has a home in the repo:
 #   uv          <- pyproject.toml [tool.uv] required-version   (read, and required to be `==`)
@@ -96,6 +107,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${REPO_ROOT}"
+
+# The script's OWN argv, captured at file scope. `refresh_source_tree` can hand over to a
+# refreshed copy of this file ([#746]) and has to pass the invocation through unchanged — and
+# `"$@"` inside a function is the FUNCTION's arguments, not the script's. The `+` expansion is
+# not decoration: under `set -u` an empty array expands as an unbound variable on bash < 4.4.
+PROVISION_ARGV=("$@")
 
 # The env gate's own knob. NOT declared in devcontainer.json any more — see the long comment
 # there: `containerEnv` cannot reference `containerEnv`, so the declaration arrived here
@@ -266,6 +283,27 @@ leg2_unshallow() {
 #     it could not extend that test; deleting the call below therefore still leaves the suite
 #     green. Named as owed work in the lane report, not left to be found.
 
+self_digest() {
+  # A digest of THIS script AS IT STANDS ON DISK — the reading `refresh_source_tree` compares
+  # across its own fast-forward ([#746]).
+  #
+  # EMPTY MEANS "COULD NOT TELL", and the caller treats it that way: no digest tool on PATH
+  # produces no hand-over, which leaves the pre-[#746] behaviour exactly as it was. The
+  # alternative — treating an unreadable digest as "unchanged" — would be a guard that reports
+  # clean from a reading that cannot support it.
+  local f="${SCRIPT_DIR}/provision.sh"
+  [ -r "${f}" ] || return 0
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "${f}" | cut -d' ' -f1
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "${f}" | cut -d' ' -f1
+  elif command -v cksum >/dev/null 2>&1; then
+    # Not cryptographic, and it does not need to be: the question is "did these bytes change",
+    # not "did an adversary change them". cksum carries the byte count alongside the checksum.
+    cksum "${f}" | tr -s ' ' | cut -d' ' -f1,2 | tr ' ' '-'
+  fi
+}
+
 default_branch() {
   # The clone records its own default in `origin/HEAD`. Fall back to the ref
   # `provisioning.yaml` names as the branch a prebuild is built from.
@@ -324,10 +362,36 @@ refresh_source_tree() {
 
   # Strictly behind + clean: a fast-forward and a hard reset are the same bytes, and this one
   # cannot eat anything.
+  local before_self after_self
+  before_self="$(self_digest)"
   git merge --ff-only --quiet "origin/${def}" \
     || die "freshness: fast-forward to origin/${def} failed on a tree reported clean and strictly behind — refusing to guess"
   CHANGED=$((CHANGED + 1))
   say "freshness: OK — now at origin/${def} ($(git rev-parse --short HEAD))"
+
+  # THE SCRIPT IS PART OF THE TREE IT JUST MOVED ([#746], measured 2026-09-14 23:37Z).
+  # `git merge --ff-only` can replace THIS FILE, and bash goes on executing the body it already
+  # read. On the witnessed run that body was 1401 commits old (1059d04d, 2026-09-01) and called
+  # `scripts/cloud_provisioning.py`, retired twelve days earlier — so the container died into a
+  # recovery container while the tree on disk was, by then, entirely correct. The freshness
+  # repair therefore did NOT "make the image's own age irrelevant", as
+  # `.devcontainer/provisioning.yaml` claims: it made the age of everything EXCEPT this file
+  # irrelevant. Hand over to the copy that is now on disk.
+  #
+  # AT MOST ONCE, and the guard is EXPORTED because `exec` replaces the process image and a
+  # plain shell variable does not survive that — an unexported guard would re-exec forever. The
+  # successor re-runs the legs above from the top, which is exactly the point: they are
+  # idempotent, and the ones already done report `(no-op)`.
+  after_self="$(self_digest)"
+  if [ -n "${before_self}" ] && [ "${before_self}" != "${after_self}" ]; then
+    if [ -n "${DEV_KNOWLEDGE_PROVISION_REEXEC:-}" ]; then
+      say "freshness: WARNING — provision.sh changed again after a hand-over already happened; continuing with THIS copy rather than looping"
+    else
+      say "freshness: provision.sh itself was replaced by the fast-forward — handing over to the refreshed copy"
+      export DEV_KNOWLEDGE_PROVISION_REEXEC=1
+      exec bash "${SCRIPT_DIR}/provision.sh" ${PROVISION_ARGV[@]+"${PROVISION_ARGV[@]}"}
+    fi
+  fi
 
   # The tree just moved, so every pin read before this point was read from the OLD tree. Re-assert
   # the one that was already acted on; the rest are read after this function returns.
@@ -365,11 +429,50 @@ sync_environment() {
   say "environment OK — Python ${py_have} (.python-version), deps from uv.lock via --locked"
 }
 
-# --- L2b/L5: REMOVED [#664] (2026-09-13) — both called the retired scripts/cloud_provisioning.py
-# (six call sites total, here and in `gate()` below) and have not run since 3c9418cc ([#734]).
-# The record of what B1 (history sufficiency) and L5 (ecosystem self-registration) did lives in
-# this file's top-of-file "[#664] RETIREMENT RECORD" comment. The real repair is tracked, not
-# reimplemented here: BACKLOG [#746].
+# --- L2b: history SUFFICIENCY, not merely depth (contract amendment B1) --------------------------
+#
+# RESTORED [#746] (2026-09-15) against `scripts/provision_legs.py`, which carries the two legs
+# the retired `scripts/cloud_provisioning.py` implemented and NOT its third command. The
+# retirement record above is kept verbatim as the account of how they came to be missing.
+
+leg2b_history() {
+  # L2 above proves the clone is not shallow. That is necessary and NOT sufficient: the proof
+  # lane's codespace had 5329 commits and no local `main`, and every instrument that walks main's
+  # first-parent spine then ERRORED ("fatal: Not a valid object name main") instead of passing
+  # vacuously. This runs the repair — and it runs HERE, before hooks are armed and before any
+  # lane work, which is what "before any spine-walking instrument in a cloud lane" means in
+  # practice. Which refs are required, and which instruments walk a spine, are declared in
+  # .devcontainer/provisioning.yaml, never hardcoded.
+  # C1 accounting: ask FIRST whether anything needs doing, so a run that repairs is not reported
+  # as "nothing changed". Witnessed 2026-08-21 — the first live run seeded a state.yaml and still
+  # printed the idempotent no-op line, which is the one thing C1 exists to make impossible.
+  local rc=0
+  uv run --no-sync python scripts/provision_legs.py --quiet history || CHANGED=$((CHANGED + 1))
+  uv run --no-sync python scripts/provision_legs.py history --repair || rc=$?
+  case "${rc}" in
+    0) say "B1 OK — the refs every spine-walking instrument reads resolve, and the walk succeeds" ;;
+    1) die "B1 the clone cannot satisfy a spine-walking instrument (see the errors above) — a cloud lane here would run gates that ERROR rather than gates that pass" ;;
+    *) die "B1 the history guard could not look (exit ${rc}) — an unknown history state is not a clean one" ;;
+  esac
+}
+
+# --- L5: the ecosystem registration a fresh clone cannot inherit ---------------------------------
+
+leg5_ecosystem() {
+  # `audit.py health` counts `ecosystem/*/state.yaml`, that glob is gitignored, and so no clone
+  # has ever carried one — which is why a container reports `repos registered (none)` and health
+  # exits non-zero. On the workstation `scripts/worktree_seed.py` copies these from the primary
+  # checkout; a container has no primary, so it audits the one repo it has. Not a named row leg:
+  # it is the last thing standing between this substrate and [#554]'s D1a Done-when.
+  local rc=0
+  uv run --no-sync python scripts/provision_legs.py --quiet ecosystem || CHANGED=$((CHANGED + 1))
+  uv run --no-sync python scripts/provision_legs.py ecosystem --repair || rc=$?
+  case "${rc}" in
+    0) say "L5 OK — at least one repo is registered; audit.py health's operational block can pass here" ;;
+    1) die "L5 nothing is registered and the seed did not land — audit.py health will report 'repos registered (none)' and exit 1" ;;
+    *) die "L5 the ecosystem guard could not look (exit ${rc})" ;;
+  esac
+}
 
 # --- L3: all three hook types armed, asserted ----------------------------------------------------
 
@@ -577,20 +680,23 @@ gate() {
 
   assert_hooks_armed || die "L4 git hooks are not armed"
 
-  # REMOVED [#664] (2026-09-13): two calls into the retired scripts/cloud_provisioning.py used to
-  # assert here that a repo re-cloned or re-fetched into a branch-only shape still resolves the
-  # refs a spine-walking instrument reads, and that a gitignored ecosystem/ wiped by a rebuild is
-  # still registered. Neither condition is checked here any more — see this file's top-of-file
-  # "[#664] RETIREMENT RECORD" and BACKLOG [#746] for the real repair.
+  # The two conditions a RESUMED container can lose without any pin moving: a repo re-cloned or
+  # re-fetched into a branch-only shape, and a gitignored ecosystem/ wiped by a rebuild. Both are
+  # asserted, never repaired — `--gate` refuses; provisioning is what fixes. RESTORED [#746].
+  uv run --no-sync python scripts/provision_legs.py --quiet history \
+    || die "L4 the refs a spine-walking instrument reads do not resolve, or their currency cannot be checked — re-provision (bash .devcontainer/provision.sh)"
+  uv run --no-sync python scripts/provision_legs.py --quiet ecosystem \
+    || die "L4 no repo is registered under ecosystem/ — audit.py health cannot pass here; re-provision"
 
-  say "gate OK — uv ${have_uv}, full history, three hook types armed, stamp current"
+  say "gate OK — uv ${have_uv}, full history + spine refs, ecosystem registered, three hook types armed, stamp current"
 }
 
 usage() {
   cat <<'USAGE'
 Usage: bash .devcontainer/provision.sh [--gate|--help]
 
-  (no args)  Provision this container and ASSERT all four [#554] legs, run the
+  (no args)  Provision this container and ASSERT all four [#554] legs plus the
+             history-sufficiency (B1) and ecosystem-registration (L5) legs, run the
              gate-liveness smoke, then write the stamp. Idempotent: a second run
              changes nothing and says so. Wired to postCreateCommand.
   --gate     Assert only — refuse (exit 1) if the environment is half-provisioned
@@ -615,6 +721,11 @@ main() {
   # sync_environment so the lockfile that is synced is the one that is actually current.
   refresh_source_tree
   sync_environment
+  # ORDER IS LOAD-BEARING. leg2b/leg5 need the venv, so they follow sync_environment; both
+  # precede leg3_hooks, so nothing that walks a spine or reads ecosystem/ can be reached by a
+  # hook before its precondition has been repaired.
+  leg2b_history
+  leg5_ecosystem
   leg3_hooks
   leg_f1_claude
   leg_f2_git_credential

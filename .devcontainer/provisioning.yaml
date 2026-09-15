@@ -4,15 +4,21 @@
 # four legs, but two of the lane contract's obligations are POLICY rather than code: which refs
 # a cloud lane's clone must carry before a spine-walking gate may run (B1), and what the
 # Codespaces prebuild configuration is supposed to be (A3). Both are settings, not logic, so
-# they live here and `scripts/cloud_provisioning.py` reads them — nothing below is duplicated
+# they live here and `scripts/provision_legs.py` reads them — nothing below is duplicated
 # into a Python constant or a bash literal.
 #
+# WHICH READER, AS OF 2026-09-15 ([#746]). `scripts/cloud_provisioning.py` read this file until
+# it was retired at `3c9418cc` ([#734]); `scripts/provision_legs.py` reads it now, and carries
+# the TWO legs [#746] names — `history` (B1) and `ecosystem` (L5) — and NOT the retired module's
+# third command. So the `history` and `ecosystem` blocks below have a live reader and the
+# `prebuild` block, alone, has NONE: it is a declaration of record with no checker behind it,
+# and that block says so at its own head rather than leaving the reader to discover it.
+#
 # HONEST LIMIT, stated once rather than per-section. This file DECLARES; it does not enforce
-# anything by existing. `scripts/cloud_provisioning.py history --repair` acts on the `history`
-# block, and `... prebuild` reports drift on the `prebuild` block — but the prebuild
-# configuration itself is server-side GitHub state with no public API (see the `prebuild`
-# block), so the only thing a checker can do there is compare a declaration with what the API
-# reports back and say so.
+# anything by existing. `scripts/provision_legs.py history --repair` acts on the `history`
+# block and `scripts/provision_legs.py ecosystem --repair` on the `ecosystem` block; nothing
+# acts on `prebuild`, whose subject is server-side GitHub state with no public API anyway (see
+# the `prebuild` block).
 
 schema: dev-knowledge-cloud-provisioning/1
 
@@ -70,14 +76,21 @@ ecosystem:
 
 # --- A3: the Codespaces prebuild declaration -------------------------------------------------
 #
+# NO READER SINCE 2026-09-15 ([#746]). `cloud_provisioning.py prebuild` was the only thing that
+# ever read this block, and it went with that module at `3c9418cc`. `provision_legs.py` restores
+# the two legs `[#746]` names and deliberately not this third command — so every sentence below
+# that says "the checker" is describing something that no longer runs. The block is kept, not
+# deleted: it is the repo-side record of what the operator UI state is supposed to be, and that
+# record is the thing a future checker would be written against.
+#
 # NO PUBLIC API EXISTS for prebuild configurations. Probed 2026-08-21 against the live repo:
 # `GET /repos/rdwornik/dev-knowledge/codespaces/prebuilds` returns 404, GraphQL schema
 # introspection returns zero types and zero mutations matching `prebuild`, and `gh codespace`
 # has no prebuild subcommand. The configuration is operator UI state
 # (Settings -> Codespaces -> Set up prebuild), so this block is the repo-side DECLARATION of
-# what that UI state is supposed to be, and `cloud_provisioning.py prebuild` compares
-# it against the one field the API does expose: `prebuild_availability` on the machines
-# endpoint.
+# what that UI state is supposed to be. The retired `cloud_provisioning.py prebuild` compared
+# it against the one field the API does expose — `prebuild_availability` on the machines
+# endpoint — and nothing does so today (see this block's head).
 #
 # Every value below is the substrate audit's accepted LEAN v2 ruling
 # (`docs/audits/2026-08-20-technical-codespaces-audit.md` §3.2, §4.5 step 3), not a preference.
@@ -118,10 +131,18 @@ prebuild:
   # HONEST LIMIT — this line DECLARES, it does not configure. Prebuild configuration is
   # server-side operator UI state with no public API (probed 2026-08-21, recorded above), so
   # landing this needs an operator edit at Settings -> Codespaces -> Set up prebuild, and
-  # `cloud_provisioning.py prebuild` can only report drift against the one field the API exposes.
+  # the retired `cloud_provisioning.py prebuild` could only report drift against the one field
+  # the API exposes, and nothing reports it at all today.
   # THE ENFORCEABLE HALF OF THE FRESHNESS REPAIR IS NOT HERE: it is `refresh_source_tree` in
   # `provision.sh`, which fetches and fast-forwards the checkout at every creation and reports
   # staleness at every start — that one runs, and it makes the image's own age irrelevant.
+  # AMENDED [#746] (2026-09-15): "irrelevant" was TOO STRONG, and the gap it left killed a
+  # container. `refresh_source_tree` made the age of everything EXCEPT `provision.sh` itself
+  # irrelevant — the fast-forward replaces that file while bash is executing the copy it already
+  # read, so on 2026-09-14 a 1401-commit-old body ran to completion against a freshly correct
+  # tree and refused the container into a recovery container. provision.sh now digests itself
+  # across the fast-forward and hands over to the refreshed copy, which is what makes the
+  # original sentence true.
   # ---- INTEGRATION-TIME REVERT (batch W2, 2026-08-27) --------------------------
   # REVERTED to `on_configuration_change`. The block above is W2C's reasoning, kept
   # verbatim as the record of what the lane argued; this note is the integrator's act
