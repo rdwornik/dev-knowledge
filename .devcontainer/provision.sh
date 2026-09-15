@@ -741,21 +741,61 @@ gate() {
 
 usage() {
   cat <<'USAGE'
-Usage: bash .devcontainer/provision.sh [--gate|--help]
+Usage: bash .devcontainer/provision.sh [--gate|--refresh|--help]
 
   (no args)  Provision this container and ASSERT all four [#554] legs plus the
              history-sufficiency (B1) and ecosystem-registration (L5) legs, run the
              gate-liveness smoke, then write the stamp. Idempotent: a second run
-             changes nothing and says so. Wired to postCreateCommand.
+             changes nothing and says so. Wired to onCreateCommand + postCreateCommand.
+  --refresh  Bring the checkout to origin/<default> and STOP. Wired to
+             updateContentCommand — the lifecycle hook whose documented purpose is
+             "runs when new source content is available". See the block comment above
+             this function for why the ordering matters.
   --gate     Assert only — refuse (exit 1) if the environment is half-provisioned
              or the repo's pins have moved since the stamp. Wired to postStartCommand.
   --help     This text.
 USAGE
 }
 
+# --- --refresh: the source-currency hook, and why it is its OWN mode -----------------------------
+#
+# THE FAILURE THIS ORDERING REMOVES, measured 2026-09-14 23:37Z ([#746]). `refresh_source_tree`
+# fast-forwards the checkout, and THIS FILE is part of the tree it moves. bash goes on executing
+# the body it already read, so a provision run that refreshed a 1401-commit-old tree kept running
+# the OLD script against the NEW tree, reached a call site retired twelve days earlier, exited
+# non-zero, and Codespaces substituted a recovery container. `[#746]` repaired that with a
+# self-digest hand-over (`exec` into the refreshed copy), which works and stays.
+#
+# THIS MODE REMOVES THE SAME FAILURE A SECOND WAY -- by ORDERING rather than by recovery, which is
+# the stronger shape. The dev container spec runs `updateContentCommand` BETWEEN `onCreateCommand`
+# and `postCreateCommand`, and its stated purpose is the second setup step that runs "when new
+# source content [is] available" (containers.dev JSON reference). So the refresh happens in a
+# process that does NOTHING AFTERWARDS: there is no stale body left to execute, and the
+# self-replacement class cannot arise at all. The hand-over is then a net, not the mechanism.
+#
+# WHY A MODE AND NOT GIT COMMANDS IN devcontainer.json. `devcontainer.json` is static JSON that
+# cannot read a file, and every pin already has a single source in this repo. Inlining a fetch and
+# a fast-forward there would put a second, rival copy of `refresh_source_tree`'s logic -- including
+# its four refusals (diverged, dirty, wrong branch, offline) -- into a file that cannot be tested.
+# One script, explicit modes.
+#
+# HONEST LIMIT. Whether `updateContentCommand` RE-RUNS at codespace creation from a PREBUILT image
+# is UNKNOWN in GitHub's documentation (recorded as an open UNKNOWN in
+# `DIGEST-2026-09-15-codespaces-reference.md` §c). If it re-runs, the ordering above closes the
+# class. If it does not, this is a no-op on the prebuilt path and the `[#746]` hand-over is what
+# still carries it -- which is why that hand-over is NOT removed here. The behaviour is being
+# measured in the same run that proves the corrected configuration; the answer belongs in this
+# comment when it is known, replacing this paragraph rather than accumulating beside it.
+refresh() {
+  say "refresh-only: bringing the checkout to origin/<default> (updateContentCommand)"
+  refresh_source_tree
+  say "refresh-only: DONE — nothing else runs in this process, so no stale body survives the move"
+}
+
 main() {
   case "${1:-}" in
     --gate) gate; return 0 ;;
+    --refresh) refresh; return 0 ;;
     --help|-h) usage; return 0 ;;
     "") ;;
     *) usage >&2; die "unknown argument: $1" ;;

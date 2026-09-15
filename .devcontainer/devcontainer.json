@@ -266,6 +266,39 @@
   // know that editing it is what refreshes the image.
   "onCreateCommand": "bash .devcontainer/provision.sh",
 
+  // THE SOURCE-CURRENCY HOOK — and the point is WHICH hook, not what it runs.
+  //
+  // This file previously declared no `updateContentCommand` at all, and the omission was not
+  // neutral: the spec's second setup step is defined as the one that runs "when new source
+  // content [is] available" (containers.dev, JSON reference), which is EXACTLY the job
+  // `provision.sh::refresh_source_tree` was doing from inside a later hook. Doing it there is
+  // what killed a container on 2026-09-14: the fast-forward replaced `provision.sh` while bash
+  // was executing the copy it had already read, that copy was 1401 commits old, it called a
+  // module retired twelve days earlier, and Codespaces substituted a recovery container while
+  // reporting Available throughout ([#746]).
+  //
+  // ORDERING IS THE FIX. The spec runs onCreate -> updateContent -> postCreate, so the refresh
+  // now happens in a process that does nothing afterwards — there is no stale body left to run.
+  // `[#746]`'s self-digest hand-over is deliberately NOT removed; it stays as the net for the
+  // path this does not cover (see the honest limit below).
+  //
+  // IT IS ALSO IN THE PREBUILDABLE HALF, which is the second reason for this hook rather than
+  // another `postCreateCommand` line. A prebuild bakes `onCreateCommand` and
+  // `updateContentCommand`; "No `postCreateCommand` commands are run during the creation of a
+  // prebuild" (docs.github.com, About GitHub Codespaces prebuilds). With `trigger:
+  // on_configuration_change` declared in `provisioning.yaml`, a prebuilt image is refreshed only
+  // when THIS FILE changes — so the image's source tree can be arbitrarily old while the image
+  // is, by its own definition, current. This hook is where that is repaired.
+  //
+  // HONEST LIMIT, stated rather than assumed: whether `updateContentCommand` RE-RUNS at creation
+  // from a prebuilt image is UNKNOWN in GitHub's documentation — the prebuild page says it is
+  // included in the prebuild and does not say whether it runs again on the create path
+  // (`DIGEST-2026-09-15-codespaces-reference.md` §c carries this as an open UNKNOWN). If it
+  // re-runs, this closes the staleness class by construction. If it does not, this is a no-op on
+  // the prebuilt path and `[#746]`'s hand-over still carries it. The behaviour is being measured
+  // in the run that proves this configuration, and the answer replaces this paragraph.
+  "updateContentCommand": "bash .devcontainer/provision.sh --refresh",
+
   // Provision once per container creation: install pinned uv, unshallow, sync, arm hooks,
   // assert all four legs, run the gate-liveness smoke, then stamp. Kept alongside
   // `onCreateCommand` above rather than replaced by it: a prebuilt image is built from the
