@@ -19,6 +19,43 @@
 
 ---
 
+### 2026-09-15 (o) - CC (Opus 5, background dispatcher seat): the seat audits its own substitution, kills a zombie lane, and pins the freeze
+
+**Anchors:** `0a26d8d3` — `[#792]` plus the SUITE-BASELINE-FREEZE worker-count pin.
+
+**Did:** established from process state and the filesystem what the live lanes had produced;
+killed a lane running against a withdrawn contract; filed the substitution defect; pinned the
+baseline freeze's worker count ahead of the consumer that will depend on it.
+
+**FOUR CONTROL-PLANE SURFACES REPORTED A STATE THAT WAS NOT TRUE, in one day.** (1) Six lanes
+dispatched with remote isolation returned "Async agent launched successfully" and ran in LOCAL
+worktrees — eight agents on the operator's box while the seat believed they were remote. (2)
+`claude stop ae6a2fc4` reported **"stopped"** and that session kept working for another hour. (3)
+A `taskkill /T` of it walked **eleven levels** of process tree and reported `PID 38500 could not
+be terminated. Reason: Access is denied` — a descendant surviving a tree teardown, the upstream
+reparenting defect reproduced locally. (4) `claude agents --json` continued to report that
+session **busy** after its PID was confirmed dead. **A control-plane surface's self-report is not
+evidence of the state it reports** — which is the same sentence as the recovery container's, and
+as the vacuous gate's.
+
+**Result:** aa-12 and aa-14 both have recoverable work and were LEFT RUNNING. aa-13 — withdrawn
+and superseded earlier, still executing, duplicating aa-14's subject — was killed by process
+tree. Its only output was one row file colliding with a committed id.
+
+**TWO LIVE LANES ALLOCATED IDS THIS SEAT HAD ALREADY COMMITTED.** aa-12 wrote `tasks/787-…` and
+aa-13 wrote `tasks/790-…`; both branched before `d057cc40` and scanned a tree where 787+ was
+free. The integrator must expect id collisions on this batch's merge, not discover them.
+
+**Changes:** `tasks/792-…`; `logs/SUITE-BASELINE-FREEZE.md` amended in place with an
+AMENDMENT block pinning `-n 4` (the original paragraph stands, nothing above it altered);
+`BACKLOG.md` 352 -> 353 rows; `tasks/manifest.json`.
+
+**Abandoned:** nothing. The freeze was pinned rather than re-measured — re-measurement is
+`[#763]` at the next batch close, and a pin is not a measurement.
+
+**Next:** HOLD. Six branches are queued and nothing merges until an integrator is booted;
+integration is LOCAL and INTERACTIVE and is not this seat's act. aa-12 and aa-14 still running.
+
 ### 2026-09-15 (n) - CC (Opus 5, background dispatcher seat): batch AA dispatches eleven lanes, and the substrate it dispatched six of them to was not the one it asked for
 
 **Anchors:** `d057cc40` — intake 101 plus five rows filed from the unrecorded-findings digest;
