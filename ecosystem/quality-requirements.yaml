@@ -508,9 +508,11 @@ requirements:
       exits, so the ssh session ends and no terminal remains; the fuse loop's only printf goes to
       a file -- against the platform's documented rule that activity is "Terminal activity,
       either input or output", whose own worked example is a still-running process timing out for
-      want of it. This is the mechanism behind "a detached lane produced zero work": the machine
-      is stopped mid-run, receipt.json is never written and dies with the container, and the
-      stopped state is indistinguishable from an orderly finish.
+      want of it. This is a SUFFICIENT mechanism for "a detached lane produced zero work" -- the
+      machine is stopped mid-run, receipt.json is never written and dies with the container, and
+      the stopped state is indistinguishable from an orderly finish -- but see the note: that it
+      is the ACTUAL cause of the recorded instances is not established, and one recorded reap
+      does not fit it.
     source: operator directive 2026-09-15 (Phase 3 measurement mandate); derived in-repo, not yet
       observed live
     note: >-
@@ -523,4 +525,19 @@ requirements:
       It is also UPSTREAM of intake 102 rather than part of it: none of that intake's options A,
       B or C prevents the reap, because a git push or an API call from inside the container is
       not terminal output either. Observability and keep-alive are two decisions, and this is the
-      one nobody had noticed was open.
+      one nobody had noticed was open. (3) WHAT THE RECORD SAYS, both ways, swept 2026-09-15. FOR:
+      the -Detach/idle-timeout interaction was filed as explicitly UNMEASURED three separate times
+      and never closed -- "whether GitHub counts a background process as activity was not
+      measured" (win-tooling 2026-09-01 lane-632 arc packet; repeated in the batch F close packet
+      and in boot-session.md's residual-risk line) -- so the code and the risk note have sat
+      adjacent for two weeks with nobody connecting them. Lane 3.9 of batch T is the best-fitting
+      recorded instance: 45 turns of real work, "cut off mid-sentence waiting on a background
+      test", nothing committed, total loss. AGAINST: the one documented reap ran 75 minutes on an
+      ATTACHED lane against a 30-minute timer, which a simple reading of this mechanism does not
+      explain. NEITHER: batch W's zero-work pair went quiet ~14 minutes after the pre-dispatch
+      manifest commit, which is about when ssh detaches -- consistent with the mechanism but not
+      evidence for it, because gh's lastUsedAt semantics (last activity, or the stop itself?) are
+      themselves undocumented. That is a fourth UNKNOWN the proof run should settle. This row is a
+      contribution to open row [#697], whose Done-when is exactly "the -Detach / idle-timeout
+      cause is identified and fixed with the measurement recorded"; it does not close it, because
+      the measurement is the half still missing.

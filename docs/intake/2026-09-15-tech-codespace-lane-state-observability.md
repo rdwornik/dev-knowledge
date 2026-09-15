@@ -239,7 +239,8 @@ resets on every new line in the log — the right quantity, measured well. But t
 measures a quantity our design holds at **exactly zero for the whole run**. Two clocks, and the
 one that can kill the machine is the one nothing in our design feeds.
 
-**It explains the silent zeros.** A lane reaped at T+30min leaves no receipt — `receipt.json` is
+**It would explain the silent zeros — but see the ledger below before treating it as the
+established cause.** A lane reaped at T+30min leaves no receipt — `receipt.json` is
 written after the run and dies with the container (matrix footnote 6) — so the lane produces
 nothing, and the codespace reports a stopped state that looks exactly like an orderly finish.
 
@@ -280,3 +281,46 @@ merely prove the config: dispatch one trivial detached lane whose work is a slee
 idle timeout, set `--idle-timeout` to its five-minute documented minimum so the answer arrives in
 minutes rather than hours, and record the state transition and its timestamp. The same run answers
 the `updateContentCommand` prebuild question. One machine, both UNKNOWNs.
+
+### What the record says, swept 2026-09-15 — both directions
+
+The mechanism above is read out of source and documentation. A sweep of every artifact in both
+repos was then run *against* it, and it does not come back unanimous. Recorded here in full,
+because a finding that only lists its supporting evidence is an argument, not a measurement.
+
+**For.** The `-Detach`-versus-idle-timeout interaction was filed as explicitly **UNMEASURED three
+separate times and never closed** — "A detached run holds no ssh connection, and whether GitHub
+counts a background process as activity was not measured" (win-tooling, 2026-09-01 lane-632 arc
+packet, restated in the batch F close packet and standing in `boot-session.md` as residual risk
+2). The code and that note have sat adjacent for two weeks with nobody joining them. The
+best-fitting recorded instance is batch T's lane 3.9: 45 turns of real work, "cut off mid-sentence
+waiting on a background test", never committed, total loss — which is the shape this mechanism
+predicts.
+
+**Against.** The one documented idle-timeout reap ran **75 minutes**, on an **attached** lane
+holding an ssh session, against a 30-minute timer. A simple reading of this mechanism does not
+explain either half of that, and it is not explained away here.
+
+**Neither.** Batch W's zero-work pair (W-3, W-4) were found `Shutdown` with `lastUsedAt` about
+fourteen and fifteen minutes after the pre-dispatch manifest commit — which is roughly when ssh
+detaches, not thirty minutes later. That is *consistent with* the mechanism and is *not evidence
+for* it, because whether `lastUsedAt` marks the last activity or the stop itself is undocumented.
+**That is a fourth UNKNOWN**, and it is the cheapest of the four to settle.
+
+**At least four distinct zero-work mechanisms are now on the table**, and conflating them is how
+a month went into symptom fixes: a recovery container silently substituted for a failed build
+(batch Z, identified); a transport that returns `Ok:True / exit 0 / status:DONE` over an empty
+run (batch T lane 3.8, identified); an inference hang burning 75 minutes for 3 seconds of CPU
+(2026-09-01, identified, and the in-container fuse now bounds it); and this one, **predicted by
+construction and not yet observed**. The proof run's job is to move the fourth out of that state,
+not to assume it.
+
+**Row `[#697]` is the home for this**, and it is open. Its Done-when reads "the `-Detach` /
+idle-timeout cause is identified and fixed with the measurement recorded, or codespace is retired
+for COMMITTING lanes by a recorded ruling". This amendment is the *identified* half. The
+measurement is the half still owed, and the row stays open until the proof run supplies it.
+
+**One stale recommendation is now actively dangerous and should not be actioned.** The 2026-08-20
+Codespaces audit recommends lowering the idle timeout to **15 minutes** ("YES — set 15 min"); it
+was never reconciled with the module's 30m default. Under this finding, lowering it **halves the
+time a detached lane survives**. If the mechanism holds, the flag should move the other way.
