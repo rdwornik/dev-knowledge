@@ -19,6 +19,29 @@
 
 ---
 
+### 2026-09-15 (d) - CC (Opus 5, background integrator seat): the receipt ledger lands, and the open-batch exemption is measured NOT to reach the push gate
+
+**Anchors:** `df50ed4a` — merge-z-manifest's closed receipt, the commit this arc introduces.
+
+**A single-commit arc still cannot anchor its own merge, and the open batch does NOT change that.**
+With batch Z's manifest landed and declaring the batch open, this seat merged a one-commit receipt
+arc expecting the ADR-110 declared-integration-arc exemption to carry it. **`block-unanchored-push`
+refused**, and its own refusal text states the boundary exactly: the exemption *"lets the audit
+backstop SKIP a `worktree-lane-*` merge while a committed manifest declares an open batch; it
+deliberately does not reach this organ, so the range-level refusal stays unconditional and nothing
+ships unanchored."* **The two organs answer different questions and this one is the shipping one** —
+a green `audit.py health` does not predict it. The exemption is real and it is narrower than it
+sounds; the ≥2-commit shape is not optional for anything that reaches `main`.
+
+**What this cost and what it proves:** one refused push, repaired by the normal two-commit arc rather
+than by `--no-verify`. The gate fails CLOSED, which is why a range that has already pushed clean
+cannot later read as unanchored.
+
+**Changes:** `logs/MERGE-RECEIPTS.jsonl` (merge-z-manifest's receipt), `JOURNAL.md`.
+
+**Next:** lanes z-0, z-4, z-10, z-746 and cloud z-14 as they hand back; none is ready — all five were
+alive and writing at last poll.
+
 ### 2026-09-15 (c) - CC (Opus 5, background integrator seat): the batch manifest lands, and it records sixteen lanes cut to six on evidence
 
 **Anchors:** `0ca3a02b` — the dispatcher's batch Z manifest, the commit this merge introduces,
