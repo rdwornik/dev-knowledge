@@ -201,6 +201,36 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                 "pre-commit gate over it is an AX4-1 floor-declaration act needing a "
                 "parity-surfaces registration, which is outside this lane's footprint"),
         owner="[#691] Half B (non-Claude admission), which adopts it by routing through it"),
+    # SAME SHAPE AS THE ROW ABOVE, and cited as the precedent rather than argued from scratch:
+    # a mechanism whose ADOPTER is the very thing its authoring lane is forbidden to build.
+    #
+    # `scripts/codespace_state.py` is the recovery-container discriminator and the lane-state
+    # cross. What would trigger it is an OBSERVER -- something that polls a codespace's state,
+    # or receives a progress push from inside one, and calls this classifier with the result.
+    # Which of those it is, or whether it is both, is the open architectural question filed as
+    # intake 102 and routed to the decision engine by operator directive on 2026-09-15. The
+    # directive is explicit that the question is not to be settled in a diff, so writing the
+    # observer here would decide it by implementation -- which is the one act this work is
+    # defined by not doing.
+    #
+    # The other two remedies are wrong for reasons worth recording. "Retire it" would delete the
+    # classifier every one of the options A/B/C would call -- it is the part of the design that
+    # does NOT depend on the ruling, which is precisely why it was safe to build first. "Wire it
+    # to a pre-commit hook" is unavailable on its merits rather than on footprint: the organ
+    # needs a LIVE codespace name to classify, and a commit-time gate has none.
+    #
+    # It is not untested: `tests/test_codespace_state.py` holds its RED-first witnesses and two
+    # register trip-tests (QR-OBS-004, QR-OBS-005) run against it and go RED when it is neutered.
+    # A test is not a wiring surface, which is why this row exists rather than the census being
+    # wrong.
+    "scripts/codespace_state.py": Disposition(
+        reason=("the classifier's adopter is an observer whose shape -- poll from outside, push "
+                "from inside, or both -- is the open architectural question filed as intake 102 "
+                "and routed to the decision engine by operator directive, which forbids settling "
+                "it in a diff. Unwired is the directive-required state, not an unadopted one. A "
+                "pre-commit gate is unavailable on merits: classifying needs a live codespace "
+                "name and a commit-time gate has none"),
+        owner="the ratification of intake 102, whose chosen observer adopts it by calling it"),
     # `scripts/gen_trend_dashboard.py` and `scripts/gen_north_star.py` WERE dispositioned here,
     # both on `_LANE_BUILT`. `[#664]`'s ratified DELETE list retired them (2026-09-13, lane
     # `lane-x-664-delete-list-execution`), in that order -- the dashboard imports the north-star

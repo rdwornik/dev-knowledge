@@ -365,3 +365,123 @@ requirements:
       `ecosystem/organ-index.md` renders what exists and what triggers it, which is a
       different question from what has actually run. A candidate until an invocation record
       exists to read.
+
+  - id: QR-OBS-004
+    attribute: observability
+    status: measured
+    statement: >-
+      A codespace that came up as a RECOVERY container is named as one, from the platform's own
+      creation log, with the matched line quoted as evidence.
+    metric: >-
+      Recovery containers identified by that name rather than by a downstream symptom: all of
+      them. Verdicts issued without quoted evidence: 0. An absent or unrecognised log reads
+      INDETERMINATE, never OURS.
+    incident: >-
+      On 2026-09-14 23:37Z `postCreateCommand` failed, GitHub substituted a recovery container,
+      and the platform reported the codespace live throughout. Nothing read the creation log, so
+      for a month the symptom was treated instead of the cause -- a retired call, then a
+      provenance marker, then a heartbeat -- while the dispatcher's exit-91 guard reported
+      "claude is not installed in this devcontainer", which is what a recovery container looks
+      like downstream while naming the wrong thing.
+    source: operator directive 2026-09-15 (Phase 3); platform facts in DIGEST-2026-09-15-codespaces-reference.md
+    organ: scripts/codespace_state.py
+    trip_test: tests/test_quality_requirement_trips.py::test_qr_obs_004_recovery_container_is_named
+    note: >-
+      The marker table is MEASURED IN THIS REPO, not anticipated -- every entry was emitted by
+      GitHub into this repository's own creation log and is transcribed in the [#746] amendment;
+      each marker carries its provenance from a closed set. Honest limit: validated against ONE
+      recovery event, so it names the failure shape that killed us and is not a proof that every
+      recovery container announces itself with these strings. Unmatched logs fail toward
+      INDETERMINATE rather than toward a false green.
+
+  - id: QR-OBS-005
+    attribute: observability
+    status: measured
+    statement: >-
+      A codespace lane's state is a cross of the container's platform state with the age of the
+      lane's own progress signal. `Available` alone is never reported as working.
+    metric: >-
+      Lanes reported WORKING on the strength of the platform state alone: 0. Container-up with a
+      stale progress signal is reported HUNG, not WORKING; container-down is DIED.
+    incident: >-
+      Twice a detached Codespace lane produced zero work and nobody noticed, because the only
+      signal consulted was the platform's, and the platform reports the MACHINE rather than the
+      workload -- GitHub documents no job-status API, no completion callback and no progress
+      stream for work inside a codespace, and there is no codespace webhook of any kind.
+    source: operator directive 2026-09-15 (Phase 3); DIGEST-2026-09-15-codespaces-reference.md section g
+    organ: scripts/codespace_state.py
+    trip_test: tests/test_quality_requirement_trips.py::test_qr_obs_005_available_alone_is_not_working
+    note: >-
+      Deliberately a PURE CROSS and not a poller. Which mechanism supplies the progress signal --
+      polling from outside, the lane pushing from inside, or both -- is the open architectural
+      question filed as intake #102 and routed to the decision engine; building the observer here
+      would have decided it in a diff.
+
+  - id: QR-OBS-006
+    attribute: observability
+    status: candidate
+    statement: >-
+      A Codespace lane that dies mid-work becomes a filed row without a human looking, within a
+      bounded detection latency.
+    metric: >-
+      Time from a lane's death to a filed row. Silent zeros per batch -- lanes that produced no
+      work and generated no signal -- against a bar of 0.
+    incident: >-
+      Today a dispatched Codespace lane is known to have failed only when someone looks. Twice a
+      detached one produced zero work with nobody noticing; the substrate itself died at one
+      commit on 2026-09-14 and went unnoticed for two weeks because nothing ran there.
+    source: operator directive 2026-09-15 (Phase 3)
+    note: >-
+      CANDIDATE, and the reason is structural rather than unfinished work: the mechanism that
+      supplies the signal is intake #102's open question (poll / push / both / not-on-Codespaces),
+      and naming an organ here before the engine rules would be this register's own failure mode.
+      QR-OBS-005's classifier is the part that does not depend on the ruling and is already
+      measured. Promote this entry when #102 is ratified.
+
+  - id: QR-AVAIL-009
+    attribute: availability
+    status: candidate
+    statement: >-
+      A dispatched codespace's identity is recorded durably at dispatch, not reconstructed
+      afterwards.
+    metric: >-
+      Dispatched codespaces whose name is written to a durable register at dispatch: all of them.
+      Identities recovered by matching display names after the fact: 0.
+    incident: >-
+      The dispatcher prints the codespace name to the console and returns it in a result object,
+      and writes it nowhere. Once the session ends the only way to find a lane's codespace is to
+      list and pattern-match a display name -- which is also why nothing can poll it. Separately,
+      the name was being reconstructed by a list-delta across several hundred lines of PowerShell,
+      solving a problem the platform does not have: `gh codespace create` prints the name to
+      stdout.
+    source: operator directive 2026-09-15 (Phase 3), Phase 2 finding D3
+    note: >-
+      CANDIDATE because the organ is `Start-DispatchCodespace` in the win-tooling repo, and this
+      register's `organ` field is a path in THIS repo that the schema resolves -- a cross-repo
+      organ cannot be declared measured here without the validator being unable to check it. That
+      is a real limit of the register for transport-layer requirements, recorded rather than
+      fudged by pointing at a hub file that does not do the work.
+
+  - id: QR-RES-002
+    attribute: resource-control
+    status: candidate
+    statement: >-
+      A codespace is STOPPED at handback once its receipt is in hand, so compute is not billed
+      after the work has landed. Stopping is never deleting.
+    metric: >-
+      Paid compute minutes accrued after a lane's last useful work, per batch. Codespaces left
+      running at batch close: 0.
+    incident: >-
+      The dispatcher's success path prints "the codespace is STILL RUNNING and still billing" and
+      stops there; teardown is a manual verb nobody types. The never-delete doctrine is sound --
+      deleting a machine that may hold work is not a call a transport wrapper gets to make -- but
+      it over-applied by one verb: stopping preserves saved changes and `/workspaces` and only
+      ends compute billing.
+    source: operator directive 2026-09-15 (Phase 3), Phase 2 finding D6
+    note: >-
+      CANDIDATE, and it OVERLAPS lane aa-14 (`LANE-aa-14-resource-lifecycle.md`, frozen), whose
+      section 3 rules the same idle policy -- "attached while a lane runs, torn down at handback,
+      never left warm" -- and which also lands entries in this register. Flagged for the
+      integrator rather than double-landed: if aa-14 files its own codespace-idle entry, this one
+      is superseded by it and should be withdrawn, not merged alongside. The organ is also
+      cross-repo, per QR-AVAIL-009's note.
