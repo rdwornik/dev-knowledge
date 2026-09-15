@@ -1,0 +1,204 @@
+# .github/workflows/substrate-heartbeat.yml — L2's scheduled leg ([#554], [#746]).
+#
+# WHY A SCHEDULE AND NOT A PUSH TRIGGER. The substrate died at one commit and nobody noticed for
+# two weeks BECAUSE NOTHING RAN THERE. A signal that only fires when someone happens to use the
+# thing is not a health signal, it is a usage log — and a workflow that only fires on push is
+# the same defect one layer up, because a quiet fortnight in the repo is exactly the fortnight a
+# dead substrate survives. The cron is what removes the dependency on usage.
+#
+# CREDENTIAL-FREE, AND THAT IS A MEASURED CONSTRAINT RATHER THAN A DESIGN PREFERENCE. This repo
+# has NO ACTIONS SECRETS AT ALL — `gh secret list` returns `[]`, and
+# `repos/rdwornik/dev-knowledge/actions/secrets` returns `total_count: 0`. `conductor.yml` line
+# 178 already guards for the absence of both `CODEX_API_KEY` and `ANTHROPIC_API_KEY`. A leg that
+# referenced a model credential would be permanently red, so this one references none: checking
+# that the provisioning chain still resolves is not a task a model does.
+#
+# WHAT IT ASSERTS, and the limit is stated because a green run must not be over-read. It probes
+# the DECLARATION — every repo file the provisioning surfaces name in executable position still
+# exists, the pins are readable, the lifecycle commands reach the entrypoint, FPG-1 still
+# declares provisioning a wiring surface, and provision.sh still writes AND verifies the L1
+# marker. That IS the 2026-09-14 outage: provision.sh reached a call site for a module retired
+# twelve days earlier, exited non-zero, and Codespaces substituted a recovery container while
+# the platform reported Available. It is NOT a container build. A coherent declaration can still
+# fail to build an image, and only a real build answers that — see the declared extension at the
+# bottom of this file, which is an operator act and not this lane's to arm.
+#
+# NO RECEIPT IS COMMITTED FROM HERE, deliberately. `permissions: contents: read` is least
+# privilege and this workflow writes no repo state; pushing a bot commit to `main` would also
+# drive straight through the repo's own never-commit-to-main invariant. The receipt that
+# `predispatch` reads is MACHINE-LOCAL state — it lives beside L1's provenance marker in the
+# user state directory, not in the repo at all — and is written by whoever is about to dispatch.
+# This leg is the alarm (a red run IS the notification); the receipt is the local proof. Two
+# mechanisms, because they answer two different questions: "is it broken for everyone" and "has
+# THIS machine checked recently".
+#
+# The `--receipt-path` below is therefore a CI-only spelling: the runner is ephemeral and has no
+# tree to dirty, so the reading is dropped into the workspace purely so `upload-artifact` can
+# pick it up. Nothing reads it back from there.
+
+name: substrate-heartbeat
+
+on:
+  schedule:
+    # 06:05 UTC daily, offset off the hour and off conductor's 05:00 so a shared-runner queue
+    # does not serialise the two. `MAX_AGE_HOURS = 36` in the probe is one missed run of slack
+    # against this cadence and no more — the two numbers are a pair, and moving either is moving
+    # both.
+    - cron: "5 6 * * *"
+  workflow_dispatch:
+  # ALSO on a push that touches provisioning: a schedule catches the substrate going stale, but
+  # a push that breaks it should not wait up to 24 h to say so. The daily run is what makes this
+  # a heartbeat; this trigger is what makes the feedback immediate.
+  push:
+    branches: [main]
+    paths:
+      - ".devcontainer/**"
+      - "scripts/substrate_heartbeat.py"
+      - "scripts/substrate_provenance.py"
+      - "scripts/file_purpose_graph.py"
+      - "pyproject.toml"
+      - ".python-version"
+
+permissions:
+  contents: read          # least privilege. This workflow reports; it writes no repo state.
+
+concurrency:
+  group: substrate-heartbeat-${{ github.ref }}
+  # NOT cancel-in-progress. Unlike a gate result, a superseded heartbeat still carries the last
+  # moment the substrate was known good, and cancelling it throws that away for nothing.
+  cancel-in-progress: false
+
+jobs:
+  declaration:
+    name: substrate declaration probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The probe reads only the working tree, so a shallow clone is sufficient here — and
+          # saying so explicitly matters in THIS repo, where "not shallow" is a provisioning leg
+          # of its own precisely because the gates that DO walk history read it.
+          fetch-depth: 1
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          # The pin has one home (`pyproject.toml [tool.uv] required-version`, ADR-106) and this
+          # step reads it rather than restating it — a version typed here would be a second
+          # answer to a settled question, which is the drift provisioning already refuses.
+          version: "latest"
+
+      - name: Rebuild the declared environment
+        run: uv sync --locked
+
+      - name: Probe the substrate declaration
+        run: >
+          uv run --locked python scripts/substrate_heartbeat.py probe
+          --substrate codespace --source actions --write-receipt
+          --receipt-path SUBSTRATE-HEARTBEAT.json
+
+      - name: Publish the reading
+        # `always()`, because the reading of a DEAD substrate is the one worth keeping. Uploading
+        # only on success would discard exactly the run a reader came for.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: substrate-heartbeat-receipt
+          path: SUBSTRATE-HEARTBEAT.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  container:
+    name: devcontainer build + L1 marker verify
+    # ARMED 2026-09-15 by operator ruling, and armed NARROWLY. workflow_dispatch ONLY: the
+    # ruling was "not on a schedule", so this job is skipped on the daily cron and on the
+    # provisioning push trigger, and runs only when a human asks for it by name.
+    #
+    # WHY IT EXISTS AT ALL. The `declaration` job above probes the DECLARATION -- every file the
+    # provisioning surfaces name still exists, the pins read, the lifecycle commands reach the
+    # entrypoint. A coherent declaration can still fail to build an image, and on 2026-09-14 that
+    # is exactly what happened: the build failed, Codespaces silently substituted a recovery
+    # container, and the platform reported Available. Only a real build answers that question,
+    # and this is the leg that does it WITHOUT provisioning a billable codespace to find out.
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    # A CEILING ON SPEND, not merely on hangs. ~5 minutes is the expected run. 30 bounds a build
+    # that wedges, so one bad iteration cannot quietly consume an afternoon of minutes while
+    # nobody is watching -- the same failure mode, one layer up, that the idle-timer finding
+    # ([#697], QR-AVAIL-010) describes for a codespace.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # FULL HISTORY HERE, unlike the declaration job above, and for a specific reason.
+          # provision.sh's L2 leg unshallows the clone ITSELF when it finds a shallow one, and
+          # that fetch would run INSIDE the container against a remote whose credential is
+          # scoped to this job. That is a dependency with nothing to do with what this leg
+          # tests, and it fails in a way that reads like a build failure. Handing the container
+          # a complete tree makes L2 a no-op -- "L2 clone already has full history" -- and keeps
+          # a red run meaning the build is red.
+          fetch-depth: 0
+
+      - name: Build the devcontainer and verify the L1 marker INSIDE it
+        # PINNED TO A COMMIT SHA, NOT A TAG, by operator ruling. `v0.3` is a MOVING tag: it and
+        # `v0.3.1900000450` both resolved to this commit on 2026-09-15, so the pin changes
+        # nothing today and stops a later move of `v0.3` from silently changing what executes
+        # here. A tag is a name someone else can repoint; a SHA is the artifact.
+        uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca  # v0.3.1900000450, 2026-06-01
+        with:
+          # CREDENTIAL-FREE, which is what makes this leg runnable in a repo that has no Actions
+          # secrets at all (`gh secret list` -> []). Verifying that a real provisioning run wrote
+          # a verifiable provenance marker is not a task a model does, so no model credential is
+          # referenced and the leg cannot be permanently red for want of one.
+          runCmd: uv run --locked python scripts/substrate_provenance.py verify --require-marker
+
+# ---------------------------------------------------------------------------------------------
+# ARMING RECORD: the container-build leg, armed 2026-09-15.
+#
+# This block used to say DECLARED AND NOT ARMED and to name two blockers, both stated as
+# operator calls rather than the authoring lane's. Both were ruled on 2026-09-15 and the leg
+# above is the result. The record is kept rather than deleted, because the reasoning is what a
+# future reader needs in order to know whether the ruling still applies to them.
+#
+#   1. THIRD-PARTY ACTION. `devcontainers/ci` is the first non-`actions/*`, non-`astral-sh/*`
+#      action in this repo's workflows. Ruled acceptable HERE, conditional on a COMMIT SHA pin
+#      rather than a tag -- the condition is in force above, with the moving-tag reasoning
+#      beside it. This is not a general admission of third-party actions to this repo.
+#
+#   2. ACTIONS MINUTES. Ruled acceptable at ~5 min a run, with the spend reported after each
+#      run and the leg stopped if it approaches the standing ruling.
+#
+#      THAT CONDITION IS LIFTED. The premise was measured after the ruling, the operator
+#      ACCEPTED the correction the same day and reversed his own premise in terms -- "my spend
+#      caution was unnecessary". So there is no per-run spend report to file and no Actions
+#      budget to watch on this repo. The condition is recorded rather than deleted because a
+#      reader who finds the ruling elsewhere needs to know it was withdrawn, and by whom.
+#
+#      THE PREMISE OF THAT OBJECTION WAS MEASURED AFTERWARDS AND DOES NOT HOLD, which is
+#      recorded here rather than left to be rediscovered. `rdwornik/dev-knowledge` is a PUBLIC
+#      repository, and GitHub bills no standard-runner minutes for public repositories -- the
+#      2000-minute included allowance is a PRIVATE-repository entitlement. Measured 2026-09-15
+#      via the billing usage API: September's Actions Linux usage on this repo is 1889 minutes
+#      at netAmount $0.00, every row fully discounted. The 2026-08-20 substrate audit's
+#      "601 of 2000 included minutes (30%)" reads a public repo's reported usage as consuming a
+#      private repo's entitlement; that audit carries a superseded marker saying so.
+#
+#      THE METERED RESOURCE IS CODESPACES CORE-HOURS, NOT ACTIONS MINUTES, and that is the
+#      direction the caution belongs in. Same measurement, same day: September Codespaces usage
+#      on this repo is 8.01 hours of 2-core plus 5.42 hours of 4-core -- about 37.7 core-hours --
+#      against Actions minutes that cost nothing. Iterating here instead of in a codespace is
+#      therefore cheaper than the ruling assumed, not merely acceptable.
+#
+#      THE BOUNDARY OF THIS CORRECTION, kept because the correction is only as good as its
+#      limit. Repository visibility was read on 2026-09-15 and CANNOT be verified retroactively
+#      for 2026-08-20: the API reports what is true now, not what was true then. If either repo
+#      was private in August, the audit's 601/2000 may have been correct when it was written and
+#      is superseded only from today. Nothing here claims the audit's author was wrong at the
+#      time; it claims the figure does not bind this repo now.
+#
+# WHAT A GREEN RUN HERE MEANS, and the limit is stated so it is not over-read. It means the
+# image BUILDS and a real provisioning run inside it produced a verifiable L1 marker. It does
+# NOT mean a codespace will behave identically: this is a local Docker build on an Actions
+# runner, not the Codespaces platform, so it cannot exercise prebuilds, the recovery-container
+# substitution, development-environment secrets, or the idle timer. Those need the one
+# authorised billable codespace, and that is what it is for.

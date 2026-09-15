@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "21d9b9021fecf831a423849cb0441527bbb1e6feaa9b813a950743028e16c620",
+  "source_sha256": "c76c565120a08e830da759ce03702678e838002aa92d2dd47afbf5d79c39dffb",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
-    "item_derived_lines": 90,
+    "item_derived_lines": 91,
     "residue_lines": 300,
-    "total_lines": 390,
+    "total_lines": 391,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -410,6 +410,10 @@
         "disposition",
         "origin"
       ],
+      "2026-09-15-tech-codespace-lane-state-observability.md": [
+        "consumed-by",
+        "origin"
+      ],
       "2026-09-15-tech-command-declares-the-module-it-runs.md": [
         "consumed-by",
         "origin"
@@ -512,7 +516,7 @@
     },
     {
       "t": "line",
-      "v": "**90 intake documents.**"
+      "v": "**91 intake documents.**"
     },
     {
       "t": "line",
@@ -582,7 +586,7 @@
     },
     {
       "t": "line",
-      "v": "### DRAFT (39)"
+      "v": "### DRAFT (40)"
     },
     {
       "t": "line",
@@ -781,6 +785,11 @@
     {
       "t": "item",
       "file": "2026-09-15-tech-floor-repin-reds-every-historical-manifest.md",
+      "status": "DRAFT"
+    },
+    {
+      "t": "item",
+      "file": "2026-09-15-tech-codespace-lane-state-observability.md",
       "status": "DRAFT"
     },
     {

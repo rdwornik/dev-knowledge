@@ -114,6 +114,7 @@ import argparse
 import ast
 import json
 import re
+import shlex
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -276,20 +277,46 @@ DEPLOY_RELPATH = "deploy"
 #: layer on the operator's disk and is NOT a node of this repo's corpus. Its absence is
 #: stated rather than silently dropped -- an L0 hook is out of a corpus graph's reach by
 #: construction, and that is one half of why `orphan_census` cannot reach the census's 32.
+#:
+#: PROVISIONING WAS ADDED 2026-09-15 ([#554] lane aa-1), and it is an ENUM FIX discharging a
+#: finding the register already carried in prose. `graph_queries.ORPHAN_DISPOSITIONS` held a row
+#: for `scripts/provision_legs.py` saying, in as many words, that the file IS machine-triggered,
+#: that `.devcontainer/provision.sh` is what triggers it, that *"the enum simply does not list
+#: it"*, and that *"the underlying WIRING_SURFACES gap is a finding against the enum"*. That gap
+#: is not academic: the same blind spot read `scripts/cloud_provisioning.py` as an unreferenced
+#: orphan while six shell call sites named it, the deletion landed at `3c9418cc`, and on
+#: 2026-09-14 a fresh codespace died into a recovery container ([#746]).
+#:
+#: IT SATISFIES THE CENSUS'S OWN PREDICATE, which is the whole argument for admitting it: a
+#: container creation fires provisioning *"without a human deciding in the moment"*. Nothing
+#: about the predicate was widened to let it in.
+#:
+#: WHAT IT DOES NOT DO, because the deferral rested on a guess about exactly this: it does not
+#: make every `scripts/*.py` that any shell script names into a non-orphan. The admitted set is
+#: this CLOSED TUPLE, not shell scripts as a class, and
+#: `test_widening_the_enum_moves_only_the_provisioning_chain` measures which nodes changed side.
 WIRING_SURFACES: tuple[str, ...] = (
     ".pre-commit-config.yaml",
     ".pre-commit-hooks.yaml",
     ".claude/settings.json",
     "plugins/tier1-lifecycle/hooks/hooks.json",
     "scripts/fleet-baseline.task.xml",
+    ".devcontainer/devcontainer.json",
+    ".devcontainer/provision.sh",
 )
 #: The CI leg. The census records this as `push`-triggered, not scheduled; either way it
 #: fires without a human deciding in the moment, which is the census's own predicate.
 WIRING_WORKFLOW_GLOB = ".github/workflows/*.yml"
 
-#: A repo-relative script path in a config VALUE. Bounded to the two trees that hold
-#: executables, so a doc path in an `args:` list cannot masquerade as a call site.
-_SCRIPT_PATH_RE = re.compile(r"(?:scripts|plugins)/[A-Za-z0-9_./-]+\.(?:py|ps1)")
+#: A repo-relative script path in a config VALUE. Bounded to the trees that hold executables,
+#: so a doc path in an `args:` list cannot masquerade as a call site. `.devcontainer/*.sh` is
+#: here because `devcontainer.json`'s three lifecycle commands name `provision.sh` in exactly
+#: that position (`"onCreateCommand": "bash .devcontainer/provision.sh"`), and without it the
+#: provisioning chain would be admitted at its second hop while its first hop stayed invisible —
+#: half a chain in a graph is worse than none, because it reads as a complete answer.
+_SCRIPT_PATH_RE = re.compile(
+    r"(?:(?:scripts|plugins)/[A-Za-z0-9_./-]+\.(?:py|ps1)"
+    r"|\.devcontainer/[A-Za-z0-9_.-]+\.sh)")
 #: `python -m scripts.codemap.cli` -- the OTHER executable spelling in this repo's hooks.
 _DASH_M_RE = re.compile(r"-m\s+(scripts(?:\.[A-Za-z0-9_]+)+)")
 
@@ -372,6 +399,51 @@ def _config_strings(value) -> list[str]:
     return out
 
 
+#: A line whose first non-blank content opens a `//` comment. `devcontainer.json` is JSONC, not
+#: JSON — the spec allows comments and this repo's file is roughly three parts comment to one
+#: part configuration — so `json.loads` raises on it and a fail-soft reader silently contributes
+#: ZERO edges for the surface that fires every container creation. Full-line comments only: a
+#: `//` inside a string value (a `documentationUrl`, and there is one) must survive, and the
+#: parse still fail-softs if this is ever not enough.
+_JSONC_COMMENT_LINE_RE = re.compile(r"^\s*//")
+
+
+def _jsonc_strings(text: str) -> list[str]:
+    return _config_strings(json.loads("\n".join(
+        "" if _JSONC_COMMENT_LINE_RE.match(line) else line for line in text.splitlines())))
+
+
+def _shell_tokens(text: str) -> list[str]:
+    """A shell script's WORDS, with comments dropped — the same discipline the parsers give.
+
+    WHY NOT A GREP, which is what every previous look at this problem reached for. The reason
+    `_config_strings` parses instead of scanning applies here with more force, not less:
+    `.devcontainer/provision.sh` is roughly half comment prose, and it names retired module
+    paths ON PURPOSE as its own retirement record (`scripts/cloud_provisioning.py` appears in
+    five comments). A text scan would read those as call sites and manufacture triggers —
+    "which under-reports orphans, the exact direction an orphan census must never be wrong in".
+
+    `shlex` is the stdlib's shell lexer and it drops `#` comments and respects quoting by
+    construction, so the discipline is BORROWED rather than re-implemented (library-first).
+
+    PER LINE, and the granularity is the point. Lexing the whole file would abort on the first
+    unbalanced quote — an `awk '…'` program spanning lines, a heredoc carrying an apostrophe —
+    and return an empty list, which is the silent-zero failure this function exists to avoid.
+    A line that cannot be lexed costs that line and nothing else.
+    """
+    out: list[str] = []
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        lexer = shlex.shlex(line, posix=True, punctuation_chars=True)
+        lexer.whitespace_split = True
+        try:
+            out.extend(lexer)
+        except ValueError:
+            continue
+    return out
+
+
 def _surface_strings(path: Path) -> list[str]:
     """Parse one wiring surface into its string leaves, fail-soft on an unparseable file."""
     text = _read(path)
@@ -381,8 +453,10 @@ def _surface_strings(path: Path) -> list[str]:
     try:
         if suffix in (".yaml", ".yml"):
             return _config_strings(yaml.safe_load(text))
+        if suffix == ".sh":
+            return _shell_tokens(text)
         if suffix == ".json":
-            return _config_strings(json.loads(text))
+            return _jsonc_strings(text)
         if suffix == ".xml":
             root = ElementTree.fromstring(text)
             out: list[str] = []
@@ -594,6 +668,33 @@ def _import_targets(path: Path, root: Path, modules: dict[str, str]) -> set[str]
     return found
 
 
+def wiring_targets(root: Path) -> dict[str, set[str]]:
+    """`{wiring surface: the repo files it names in executable position}`.
+
+    LIFTED OUT OF `_load_wiring` SO IT HAS EXACTLY ONE DEFINITION. `safe_remove` needs the same
+    relation to refuse retiring a file a wiring surface calls, and a second implementation there
+    would be a private edge computation racing FPG-1 — ADR-118's first anti-pattern, and the
+    one `graph_queries.edge_class_census` blocks commits over. A consumer reads this; nobody
+    recomputes it.
+    """
+    modules = _script_module_map(root)
+    surfaces = [root / rel for rel in WIRING_SURFACES]
+    workflows = sorted(root.glob(WIRING_WORKFLOW_GLOB))
+    out: dict[str, set[str]] = {}
+    for path in surfaces + workflows:
+        if not path.is_file():
+            continue
+        rel = path.relative_to(root).as_posix()
+        bases = _ancestor_bases(rel)
+        targets: set[str] = set()
+        for value in _surface_strings(path):
+            targets |= _resolved_targets(value, modules, root, bases)
+        targets.discard(rel)                     # a surface naming itself is not a call site
+        if targets:
+            out[rel] = targets
+    return out
+
+
 def _load_wiring(graph: PurposeGraph, root: Path) -> None:
     """INPUT 6 -- `triggers` from a wiring surface, `imports` along the script call graph.
 
@@ -622,17 +723,8 @@ def _load_wiring(graph: PurposeGraph, root: Path) -> None:
     for rel in sorted(_process_paths(root)):
         graph.node_for_path(rel)
 
-    surfaces = [root / rel for rel in WIRING_SURFACES]
-    workflows = sorted(root.glob(WIRING_WORKFLOW_GLOB))
-    for path in surfaces + workflows:
-        if not path.is_file():
-            continue
-        rel = path.relative_to(root).as_posix()
+    for rel, targets in sorted(wiring_targets(root).items()):
         source_key = graph.node_for_path(rel)
-        bases = _ancestor_bases(rel)
-        targets: set[str] = set()
-        for value in _surface_strings(path):
-            targets |= _resolved_targets(value, modules, root, bases)
         for target in sorted(targets):
             graph.add_edge(Edge(source_key, graph.node_for_path(target), EDGE_TRIGGERS,
                                 INPUT_WIRING, f"named by {rel}"))
