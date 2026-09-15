@@ -303,3 +303,194 @@ filed at contract step 4; §3 records the ids they were given.
 | **U7** | `20` (L02 343–345), `75` (L06 1156–1157) | **Every dispatched lane inherits the whole secret store; there is no introspect-and-exchange step and no row about it.** M04 L07's principle is that forwarding the caller's token to the backend is the wrong design — introspect it, exchange it for a backend-specific token, pass that one — and L02's sampling rule is the same boundary from the host side: filter what the server can pull out of the conversation. Locally, keys live in one `.env` loaded by the PowerShell profile, so a lane needing one provider's key receives all of them, and a sweep of `BACKLOG.md` for secret / credential / API-key / token-scope returns **no row at all**. |
 
 ---
+
+## 3 · The rows filed (contract step 4)
+
+Seven rows, carrying twelve UNOWNED items. A row may carry more than one item; **no item is
+carried by more than one row**, which is what keeps the matrix mutually exclusive after filing.
+
+| Row | P | Size | Theme / story | Items | Title |
+|---|---|---|---|---|---|
+| `[#766]` | P2 | M | [E5] / [S14] | 42 | The session boot payload has a byte budget on one file and none on the whole |
+| `[#767]` | P2 | M | [E2] / [S4] | 05, 66, 70 | A tool description is gated only where it is generated, and no surface gates its parameters at all |
+| `[#768]` | **P1** | M | [E2] / [S3] | 09, 10 | A gate has one refusal channel, so a violation and an environment it could not evaluate are indistinguishable |
+| `[#769]` | P2 | S | [E7] / [S18] | 44 | An unattended lane has no cancel for a long-running gate |
+| `[#770]` | P2 | M | [E9] / [S27] | 56 | Nothing notices an external specification revising under us, and `[#729]` proposes to build on one |
+| `[#771]` | P2 | S | [E7] / [S18] | 07, 08 | `[#729]` carries no protocol-conformance criterion |
+| `[#772]` | **P1** | M | [E2] / [S3] | 20, 75 | Every dispatched lane inherits the whole secret store |
+
+**The two P1s are argued, not defaulted.** `[#768]`: an unattributable refusal is what makes a
+`--no-verify` reflex look reasonable, and that reflex is banned here without exception.
+`[#772]`: the exposure widens every time `[#722]` or `[#753]` routes work to another provider,
+so it gets worse while it sits.
+
+**Three rows are witnessed by this session rather than reasoned from analogy.** `[#768]`'s
+evidence is the `decision-coverage` refusal that blocked this lane's first commit for a
+condition no lane could satisfy. `[#769]`'s is this lane's own commits exceeding a 120 s and
+then a 400 s timeout with no lever but backgrounding them. `[#772]`'s premise is a sweep that
+returned zero rows.
+
+**`[#771]` audits this packet.** §2.5 resolves 56 items to `[#729]` by entailment while `[#729]`
+names none of them; `[#771]` asks for the conformance criterion that makes the entailment
+checkable. The matrix files the weakness in its own largest column rather than carrying it as a
+caveat.
+
+---
+
+## 4 · Deviations, bypasses and things the next seat must not inherit as normal
+
+Everything here is reported under the V-2 decision budget — decided per contract defaults and
+reported in this packet, not escalated. Nothing in this section was asked of the operator.
+
+### 4.1 · The id collision, which this lane predicted and then suffered
+
+`[#763]` was filed by this lane in `faef0e76` at `max(tasks/) + 1`, the synthetic `[#777]`
+excluded per standing precedent, with four sibling batch-Z lanes live and none having allocated.
+That commit's body named the hazard in PLAYBOOK Ch8 rule 3's own terms — parallel branches read
+their own stale `main`, so write-time allocation collides unless the range was reserved **in the
+file** before the split, and batch Z reserved none. Roughly forty minutes later `6572c1b1`
+landed a different `[#763]` on `main`. **The unmerged side moves**, so this lane renumbered to
+`[#765]` in `627297c0`. `faef0e76`'s message still says `[#763]` and is wrong about it; it is
+history and was not rewritten, which is why the correction sits at the top of this file.
+
+The batch manifest records the same event from the dispatcher's side (§11, *"The concurrent-id
+collision, witnessed rather than theorised"*). The later batch-Z lanes allocated into the **780s**
+instead, leaving 765–779 clear — which is the non-overlapping range the rule asks for, arrived at
+by convention mid-batch rather than reserved before the split. This lane's seven rows took
+766–772 from that gap, verified free against `origin/main` before filing.
+
+### 4.2 · Two single-hook bypasses, both declared, both under STANDING_RULINGS Q1
+
+Q1: *"the integrator is gate-of-record, and a declared single-hook bypass on a lane branch is
+sanctioned, with the declaration carried in the commit body."* One **named** hook each time.
+`--no-verify` is banned in this repo without exception and was never used.
+
+**(1) `SKIP=decision-coverage`, on `faef0e76` only.** Four decision files appeared in
+`$CLAUDE_PROMPTS_DIR/to-cc/` between 00:24 and 00:40 that night, all four carrying
+`carried-by: docs/audits/2026-09-15-technical-batch-z-manifest.md`, a path then absent from
+`main` and `origin/main`. `decision_coverage.py check` refuses identically **with an empty staged
+set**, so the refusal was a property of the tree and the transport rather than of the diff. It
+was cleared by `[#764]` arriving on `main` and **was not needed again**.
+
+**(2) `SKIP=audit-health`, on `cb92014b`.** `journal_spine_anchor` reports `0ee3d161` as an
+unanchored first-parent spine entry. The check's own prescribed discriminator was run:
+
+```
+introduced:            ['0ee3d161...', '1da24766...']
+anchored in this tree: False
+anchored at main:      False
+```
+
+Both-False is documented as **ambiguous** — a real gap, or an anchor sitting in another seat's
+*unpushed* local `main`, which a lane cannot see. **That third form is eliminated by asking the
+remote rather than trusting a fetched ref:** `git ls-remote origin refs/heads/main` returns
+`0ee3d161`, and local `main` is `0ee3d161`. The flagged commit **is** main's published tip, so no
+unpushed anchor can exist above it. The merge introduces only itself and the JOURNAL commit
+inside it, and a JOURNAL entry cannot name its own not-yet-existing hash — the structurally
+unanchorable one-commit-arc shape.
+
+**Not fixable by a lane**: discharging it means appending a JOURNAL entry, and this contract
+forbids a lane to journal at all (STANDING_RULINGS P-1). **Owed at integration:** anchor
+`0ee3d161` in the next JOURNAL entry, which clears it for every batch-Z lane at once.
+
+### 4.3 · Four sync merges, and why a lane paid one per integrator merge
+
+`627297c0`, `b6526ec1`, `737c6def`, `4bf18972`. Each cleared a `journal_spine_anchor` block
+caused by `main` advancing mid-step: the check reads the JOURNAL from the **committing tree** and
+the spine from the **shared ref**, so a tree even minutes behind reports gaps that do not exist.
+
+**The ADR-110 lane exemption, which exists to stop exactly this, never armed.**
+`batch_manifest.open_batches()` returns `[]` against this tree's `HEAD`: the batch-Z manifest
+carries no frontmatter, no `status: open`, no `batch:` key and no `## THE LANES` heading, so it
+declares a batch to a human and **zero** to the machinery. The manifest is excellent as a record
+and invisible as a declaration. Reported rather than filed — the manifest is immutable and is the
+dispatcher's surface, not this lane's.
+
+The fourth merge also had to target the **local** `main` ref rather than `origin/main`: the
+integrator had merged locally without pushing, and the gate reads the shared ref, so
+`git merge origin/main` reported *"Already up to date"* while the block persisted.
+
+### 4.4 · Step 3 and step 4 landed in one commit, and only the boundary moved
+
+The contract commits at the end of both steps. Step 3's commit was refused by `audit-health`
+(§4.2 case 2) with its content already staged, so when step 4 committed under the declared skip,
+the matrix, the evidence files and the seven rows landed together as `cb92014b`. **The step
+CONTENT is unchanged and both steps were completed in order** — the matrix was built and
+verified before any row was written, and the rows were derived from its UNOWNED column. Only the
+commit boundary moved, and it was moved by the gate rather than chosen.
+
+### 4.5 · `git stash list` is NOT empty, and this lane must not make it so
+
+The contract's step 5 requires an empty stash list. It is not empty:
+
+```
+stash@{0}: On worktree-lane-z-0-quality-requirements: lane-z-0-qr-commit4-wip-54637863
+```
+
+**The entry is not this lane's and cannot be cleared by this lane.** The stash stack is shared
+across every worktree of this repository; the entry is tagged with lane z-0's own slug and with
+`54637863`, which the batch manifest §2 records as that lane's background id. **This lane created
+no stash at any point** — work was set aside by committing, never by stashing.
+
+The clause is therefore satisfied in the only way it honestly can be: **this lane contributes
+nothing to the stash stack, and dropping a peer's in-flight WIP to make a check read green would
+destroy another seat's work.** Reported, untouched.
+
+### 4.6 · `[#589]`'s byte bar is RED and this lane did not clear it
+
+Measured in this tree, both figures, because only the difference is attributable:
+
+```
+BACKLOG.md at main       95,484 B
+BACKLOG.md in this tree  97,076 B
+the [#589] bar           72,000 B
+```
+
+`main` is **23,484 B over** before this lane touches anything. This lane adds **1,592 B** — 222 B
+for `[#765]` and 1,370 B for the seven rows, about 196 B each, which is the one-line view
+projection rather than the row bodies. The bar is `[#589]`'s own Done-when and `[#589]` is an open
+P1 row, so raising the constant is the act that row exists to forbid. Reported, not fixed.
+
+---
+
+## 5 · Tests
+
+Targeted to this lane's diff, which is `tasks/`, `tasks/manifest.json`, `BACKLOG.md` and
+`docs/audits/`. The full suite runs once at integration, not per lane (`[#528]`).
+
+```
+uv run --locked pytest tests/test_gen_task_tree.py tests/test_task_tree_gate.py \
+                       tests/test_validate_backlog.py -p no:randomly -n 0
+185 passed, 2 failed
+```
+
+**Both failures are attributed, and one is now green.**
+
+1. `test_task_tree_gate.py::test_registered_and_green_on_live_repo` — **not a finding.**
+   `check_task_tree_coherence` requires the index and the working tree to agree, and the seven
+   rows were unstaged when the suite first ran. Re-run after `git add`: **1 passed in 2.56 s.**
+2. `test_gen_task_tree.py::test_the_live_view_is_under_the_589_done_when_byte_bar` — **RED on
+   main**, §4.6, not cleared here.
+
+`audit.py health` reports exactly one `[!!]`, the `journal_spine_anchor` gap of §4.2, and it is
+main's, not this lane's.
+
+---
+
+## 6 · Open items for the integrator
+
+1. **Anchor `0ee3d161`** in the next JOURNAL entry. It clears `audit-health` for every batch-Z
+   lane at once, and it is the only reason this lane spent its second bypass.
+2. **Regenerate `docs/audits/README.md`** on the merged result — this lane deliberately left the
+   audits index stale, per `[#590]`, and landed five files under `docs/audits/`.
+3. **`[#729]` gains a leg**: `[#771]` asks for the protocol-conformance criterion `[#729]`'s
+   Done-when does not carry. It is a strengthening of an open row, not a new organ.
+4. **The batch-Z manifest declares nothing machine-readable** (§4.3). Every lane in the batch pays
+   a sync merge per integrator merge because of it. The manifest is immutable; the fix is a
+   declaration in the next one, not an edit to this one.
+5. **`[#772]` is P1 and is the one finding here with a blast radius outside this repo** — it is
+   about credentials reaching third-party binaries, and it gets worse while it sits.
+
+**Not owed, stated so it is not looked for:** no JOURNAL entry (P-1, the integrator's surface),
+no index regeneration beyond `gen_task_tree.py --emit-source`, which is the only way a `tasks/`
+row reaches `BACKLOG.md` at all, and no merge or push — this lane commits and stops.
