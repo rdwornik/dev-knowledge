@@ -412,6 +412,7 @@ So that cadence-less artifacts and unevaluated tools don't rot or get adopted bl
 - [#701] [P2][S] A Codex quota hit stalls review for 50 minutes and no fallback provider is authorized, so the reviewer role is a single point of failure · tasks/701-codex-quota-hit-stalls-review-with-no-authorized-fallback-provider.md
 - [#706] [P2][S] The operator packet gains D14, folder-as-domain -- and it cannot be decided before the domain census returns · tasks/706-operator-packet-gains-d14-folder-as-domain-decided-after-the-census.md
 - [#722] [P1][S] Interim routing: read-only digests, censuses and scans default to agy as a READER ONLY, with conclusions and verdicts staying on Claude · tasks/722-interim-routing-read-only-work-defaults-to-agy-as-reader-only.md
+- [#763] [P2][M] AJ M04 has never been read against this repo -- no SHIPPED / OWNED / UNOWNED matrix exists, so its practices are neither adopted nor refused · tasks/763-aj-m04-has-never-been-read-against-this-repo-no.md
 ### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)
 So that unattended routines run only with a named consumer, a survival metric, and a bounded operator load — never as rot generators (the fleet-audit lesson; sequencing per the standing operator ruling: the load-gauge lands before anything else in the Tier-2 nightly layer).
 - [#271] [P3][L] Nightly proposal loop · tasks/271-nightly-proposal-loop.md
