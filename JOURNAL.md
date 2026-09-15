@@ -19,6 +19,79 @@
 
 ---
 
+### 2026-09-15 (f) - CC (Opus 5, background integrator seat): the freeze judged its first merge, and the count was the least informative thing about it
+
+**Anchors:** `3c05f347` — lane z-746's end-of-lane packet — and `20e86ca8`, the sync merge that
+put it onto main; the two commits `a7620dd0` introduced. **Also anchors `aad0acdd`**, this entry's
+own commit, which this arc's merge introduces and which nothing else names — appended, per ADR-85
+A7 / AF-1, because an anchor discharges by APPEND and never by amending what has landed.
+
+**THE FREEZE'S JUDGING RULE RAN FOR REAL, AND PASSING IT REQUIRED MORE THAN THE NUMBER.**
+`logs/SUITE-BASELINE-FREEZE.md` states the rule: a failure outside the frozen 51 is a regression
+and refuses the merge; a failure inside it is PRE-EXISTING and does not. Conductor run
+`34923007619` on `4f4186a6` reported **51 failed, 5946 passed** against the freeze's **51 failed,
+5863 passed** at `b5270d63`. **The matching count is not the test.** A regression that displaces a
+frozen failure keeps the total at 51 while changing who is in the set. What discharges the rule is
+the **node-id diff**, and it is clean: 51 in the roster, 51 failing, **0 outside the set, 0
+departed**. The set is identical, not merely the same size.
+
+**THE RECEIPT AND THE FREEZE ANSWER DIFFERENT QUESTIONS, AND TONIGHT THEY AGREED BY LUCK.**
+`merge_receipt.py actions` recorded `PRE-EXISTING` for this merge — but it computes that against
+the merge's **first parent** (`0ee3d161`), not against the frozen baseline (`b5270d63`). Those
+diverge the moment anything lands between the two: a failure introduced after the freeze reads
+*pre-existing* to the receipt while sitting *outside* the 51. The receipt answers "did THIS merge
+break it"; the freeze answers "is this failure one we have already accepted". **Only the second is
+the rule the operator wrote.** Tonight both said yes; that is a fact about tonight, not a property
+of the instruments, and the receipt's verdict must not be read as discharging the freeze.
+
+**The 83 new passes are the lane's own tests.** 5,863 → 5,946 passed across a merge whose lane
+added `tests/test_provision_legs.py` and extended `tests/test_provision_sh.py`. New tests that all
+land green are the quiet good outcome — and also the case most likely to hide a displaced frozen
+failure behind an unchanged failure count, which is the second reason the diff was by node id.
+
+**I DISABLED THE ADR-110 EXEMPTION FOR EVERY LANE MERGE TONIGHT, BY WRITING A BETTER SUBJECT.**
+`check_journal_spine_anchor`'s declared-integration-arc exemption requires a `worktree-lane-*`
+`--no-ff` merge AND an open manifest. It reads the lane name out of git's **default**
+`Merge branch '<name>'` subject. I wrote descriptive subjects carrying a short alias —
+`Merge branch 'z-746'`, `Merge branch 'z-746-packet'` — naming branches that **do not exist**; the
+real branch is `worktree-lane-z-746-devcontainer-substrate`. The parse returns `None`, the merge is
+classed a non-lane merge, and the exemption never fires. It **fails closed**, which is why it cost
+nothing visible: every merge simply needed a real JOURNAL anchor, and every merge got one. But the
+batch ran its whole queue with a mechanism it believed it had and never used. This is the **same
+`[#614]` subject-style miss the function's own comment records as having already cost the mechanism
+its first live test** — documented as an honest limit, and still repeated, because a documented
+limit is a note and not a gate.
+
+**A PACKET ARRIVES AFTER THE HANDBACK, WHICH IS THE ORDINARY SHAPE AND NOT A DEFECT.** Lane z-746
+committed `3c05f347` — its end-of-lane packet — *after* `4f4186a6` had already merged its code. A
+packet is written once a lane knows how it ended, so it cannot precede the handback it describes.
+The trap is that ADR-110's checklist asks for the manifest **and** the packet, two halves, and
+`git branch --merged` reads clean whether one half landed or both. **Teardown was therefore
+premature at the point it looked due**, and what caught it was comparing the worktree's HEAD
+against the merged SHA rather than trusting the merge to have covered the branch.
+
+**A `--no-ff` MERGE RUNS ZERO PRE-COMMIT HOOKS, SO A MERGE CAN LAND A STALE GENERATED FILE.**
+`a7620dd0` added an audit document and left `docs/audits/README.md` — generated — untouched.
+`audit-index-freshness` never fired, because it is a pre-commit hook and a merge is not a commit it
+sees. The defect is invisible until the *next* commit on *any* branch trips the freshness gate, so
+the cost lands on whoever commits next rather than on the merge that caused it.
+
+**The packet merge is receipted `kind=arc`, deliberately, not `kind=merge`.** It is a trailing
+artifact landing with near-zero ceremony; classing it as a lane merge would pull the batch median
+toward it and flatter a figure the receipt ledger exists to keep honest. The receipt exists and is
+complete — `kind` records what it measures, not whether it was recorded.
+
+**Did:** diffed the conductor's failing node ids against the frozen roster; established from git
+that lane z-746 had a commit past its handback; synced and merged the packet; regenerated the
+audits index the merge left stale.
+**Result:** lane z-746 fully landed, both ADR-110 halves; the freeze's rule exercised and
+discharged on a real merge.
+**Changes:** `docs/audits/2026-09-15-technical-lane-z-746-devcontainer-packet.md` (lane's),
+`docs/audits/README.md`, `logs/MERGE-RECEIPTS.jsonl`, `JOURNAL.md`.
+**Abandoned:** nothing.
+**Next:** lanes z-0, z-4 and z-10 still hold unmerged work (6, 9 and 4 commits); z-14 is cloud and
+will need a JOURNAL entry written onto its branch.
+
 ### 2026-09-15 (e) - CC (Opus 5, background integrator seat): lane z-746 repairs the substrate that killed eight of the sixteen lanes
 
 **Anchors:** `0dcdb153` — the lane's fix commit, the last of the five this merge introduces
