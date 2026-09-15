@@ -19,6 +19,126 @@
 
 ---
 
+### 2026-09-15 (b) - CC (Opus 5, background integrator seat): lane z-11 merges, and its best finding is a defect in our own organ
+
+**Anchors:** `711eacf7` — lane z-11's end-of-lane packet, the last of the four commits this merge
+introduces (`eae6e58d`, `87b36702`, `1a57a77d`, `711eacf7`), plus the sync merge `edc5e2d5`.
+
+**Written at integration because the lane wrote none, and could not.** Lane z-11 ran on CC CLOUD and
+its packet says so plainly — *"Commit-and-STOP: nothing was merged into `main`, no JOURNAL entry was
+written."* A cloud lane cannot merge or be asked a question, so the anchoring law's requirement that
+the entry ride the arc's own branch ahead of the merge is discharged HERE, on the lane's branch,
+before the `--no-ff`. This is the general shape for every cloud and Actions lane this batch.
+
+**THE LANE WAS SENT TO COMPARE THREE REPOS AND CAME BACK WITH A DEFECT IN OUR OWN ORGAN, which it
+rates its strongest finding and this seat agrees.** `preflight_contract.py` cannot distinguish *"I
+could not look"* from *"I looked and it is wrong"* on a SHALLOW CLONE: a SHA merely outside the
+clone's depth renders as *"not present in this repo's object store"* — **3,774 false refusals out of
+3,894** in one cloud session. The module ALREADY owns the distinction the fix needs, keeping exit 2
+apart from exit 1 for exactly this reason, and simply has not extended it to an incomplete object
+store. Harmless while ungated; wrong in precisely the substrate ADR-119 and `[#664]` are deciding
+about — **and every cloud and Actions lane in this batch runs on a shallow clone.** Filed as intake
+`#95`.
+
+**Its headline finding is a rotted citation that rotted for the RIGHT reason.** Pointing the same
+organ at our own corpus surfaced ONE live broken locator in 127 files —
+`protocols/STANDING_RULINGS.md:4074`, citing line 96 of a 77-line template. The ruling it sits in,
+AG-1, describes a defect (a hardcoded `v5` era string in the handoff probe template) that **has since
+been fixed**: the template reads `v7.1` and P8 was split into P8a/P8b. **The citation rotted because
+the thing it described was remediated and the ruling was never updated** — a living rulings document
+carrying a ruling about a defect that no longer exists. Yield is honest and thin, 1 in 127, and the
+lane graded it so itself.
+
+**Four intakes, ZERO `tasks/` rows, and that is correct rather than timid.** ADR-111 admits exactly
+one path from finding to row — CANDIDATE → intake (ADR-98) → ratification — and ratification is the
+operator's act. The lane also recorded **seven refusals with their reasons**, which is the half that
+stops the next reader re-opening them; ADR-111 §2(d) requires a rejection to be recorded and not
+relitigated.
+
+**What this merge cost, recorded because AN1-3 asked for a number rather than an adjective.** Eight
+files of pure markdown, no code, no conflicts — **five gate cycles at 3–5 min each**: commit-msg
+wanted `kill-candidates:` on a sync merge carrying two ids; `audit-health` refused twice on
+`intake_tree_coherence`; **the OOM reaper killed one mid-commit** at ~1.8 GB free of 27.67 GB, with
+`ollama` resident at 8.2 GB and no part of this batch (`MERGE_HEAD` survived, nothing lost). One
+refusal was this seat's own error: **gen_intake_tree pins manifest.json to README.md's exact UTF-8
+bytes, so the INDEX is written FIRST and the TREE SECOND** — run backwards it reports both *"no item
+node"* and a `source_sha256` mismatch, which reads as a content problem when it is a sequencing one.
+`gen_intake_tree.py --check` answers in seconds what the gate takes minutes to refuse.
+
+**Codex review: NONE, reason docs-only.** All eight files are `.md`; `/codex-review` reviews a staged
+CODE diff. Recorded by name rather than substituted, per the `reviewer-mismatch` refusal.
+
+**Changes:** `docs/audits/2026-09-15-technical-lane-z-11-comparison-{packet,matrix,slots,dispositions}.md`,
+4 × `docs/intake/2026-09-15-tech-*.md`, `docs/intake/README.md`, `docs/intake/manifest.json`,
+`docs/audits/README.md` (the last three are integrator carried edits, not lane work).
+
+**Abandoned:** nothing.
+
+**Next:** lane 11's `--no-ff` into main, then its `kind=merge` receipt. Four local lanes and the
+dispatcher still working; no batch Z manifest on main yet, so each merge carries its own anchor arc.
+
+### 2026-09-15 (a) - CC (Opus 5, background integrator seat): the 51 are frozen as a file, and the decision engine refuses for the first time
+
+**Anchors:** `6572c1b1` — the arc commit this merge introduces, carrying
+`logs/SUITE-BASELINE-FREEZE.md`, `[#763]` and `[#764]`.
+
+**The night batch was declared and never dispatched, and that was established from git rather than
+waited on.** The plan (`DECLARE-NIGHT-PLAN-2026-09-15-FINAL`, fifteen lanes plus lane 0 from
+AMEND-002) was written 00:10–00:40. At seat boot: `git worktree list` primary only, `git ls-remote`
+two refs, **0 commits since 00:00**, both Codespaces unattached, no Actions activity since batch Y's
+close at 21:57Z. Decisive — all three night-plan files name
+`docs/audits/2026-09-15-technical-batch-z-manifest.md` as their `carried-by` and **that manifest does
+not exist**; the manifest is committed AT DISPATCH before any lane boots, so its absence is the
+proof. The dispatcher fired later in the session: five worktrees at 01:36+, still no handbacks.
+
+**THE 51 ARE FROZEN AS A FILE, NOT A NUMBER** (operator ruling: freeze, do not triage to green).
+Measured at `b5270d63`, conductor run `34901604346` — **51 failed, 5863 passed**, and 51/53/51/53/53
+across batch Y's whole merge sequence, so persistent rather than flaked. All 51 assigned to **11
+causes**, the classifier asserting both no-double-assign and no-unassigned. Judging rule: **inside
+the set is PRE-EXISTING and does not refuse a merge; outside it is a REGRESSION and does.**
+Membership is **by node id** — a file with 3 frozen members that fails 4 has a regression a count
+would hide. The worker count is recorded as **`-n auto` resolved to 4** (`gw0`–`gw3`) rather than as
+a fixed number, because a different runner re-partitions the suite and can flip cross-worker
+members; cause C9 is exactly that class.
+
+**Two causes named at freeze time are NOT IN THE MEASUREMENT, and that is recorded rather than
+absorbed:** a missing optional dependency (~17) and module-shadowing (~5). The run has **0 matches**
+for `ModuleNotFoundError`, `ImportError` or `No module named`; the largest real cause is baseline
+drift at 11. If those figures came from a local Windows run they are a different baseline on a
+different substrate, and `[#763]` owes a verdict on which.
+
+**THE DECISION ENGINE REFUSED A REAL COMMIT — ITS FIRST WITNESSED REFUSAL, AND NOT A DELIBERATE
+TRIP.** `decision-coverage` blocked this very arc at pre-commit tier naming four unresolved
+night-plan decisions. AZ2-2 had recorded the engine as a claim until one refusal existed; it now has
+one, earned. **It was also wedging the whole batch:** the refusal is computed from repo state, not
+staged files (`decision_coverage.py check` refuses with nothing staged), so from the moment those
+four files were written into `to-cc/`, every commit in this repo was blocked — this seat's and all
+five live lanes' alike — and the first lane to hit it would have read it as its own defect.
+**Writing a DECLARE into the transport arms a commit-tier gate against every concurrent session and
+nothing warns the author.** `[#764]` resolves all four and records that
+`DECLARE-NIGHT-PLAN-2026-09-15` is **superseded, not implemented** — a written disposition is the
+more correct answer and is left to the architect rather than taken in passing.
+
+**Two mechanism traps, both costing a cycle.** A new `tasks/` file absent from `tasks/manifest.json`
+is classified a **retired allocation record** and refuses the generator with a terminal-status error
+that reads as *"this id is taken"* when it means *"add a manifest node at the right section"*. And a
+row's `implements:` frontmatter is **derived from a body clause**, so **prose describing the clause
+becomes the clause** — the body explained the mechanism using the literal marker and the parser
+derived a garbage value from that sentence.
+
+**One claim of my own retracted before it could be acted on:** the cost ledger's 6 records for 5
+lanes is NOT a defect. `LaneCostLedger.resolved()` (`scripts/lane_cost.py:582`) already does
+last-wins-per-slug, `[#751]` landed it, and a consumer wired today reads **$159.87**, not $178.69.
+
+**Changes:** `logs/SUITE-BASELINE-FREEZE.md` (new), `tasks/763-*`, `tasks/764-*`,
+`tasks/manifest.json`, `BACKLOG.md` (94,255 → 94,449 B).
+
+**Abandoned:** nothing. No lane merged — none has handed back.
+
+**Next:** merge lanes as they hand back, synced onto main, one at a time, JOURNAL inside each merge
+commit and a complete `kind=merge` receipt per merge. Verification from the Actions conductor and
+the receipt only — no local suite on this workstation (AN1-6).
+
 ### 2026-09-14 (m) - CC (Opus 5, background integrator seat): batch Y closes at five merged, and the median is defined for the first time
 
 **Anchors:** `bd8f5a9d` — the arc commit this merge introduces, carrying the batch Y close packet and
