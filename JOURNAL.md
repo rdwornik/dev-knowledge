@@ -19,6 +19,22 @@
 
 ---
 
+### 2026-09-16 (m) - CC (Opus 5, integrator seat, integrator-AB): the per-seat cost is measured -- 646.1 MB, n=1, not steady state
+
+**Anchors:** `e535ed6a` -- `[#827]` `PER_SEAT_MB` 2826 -> 646.1, authored by the dispatcher seat on `worktree-per-seat-measured`.
+
+**MERGED** `worktree-per-seat-measured` @ `e535ed6a` `--no-ff`, two-step, one commit already on `af69c92e`. Free memory was read
+once before ab-810's dispatch (5.847 GB, 19:47:00) and once 90 s after (5.216 GB, 19:48:37), with no other dispatch in the window.
+ab-808's reading (1213.4 MB) overlapped ab-810's ramp and is recorded as confounded. **Honest limit, carried from the commit:** n=1 and
+not steady state -- ab-804's start reached ~2.8 GB once its children arrived -- so 646.1 MB is a lower bound on a lane's cost, and
+`[#827]` still owns the ledger-derived figure. Dispatcher's targeted run: 29 passed, ruff clean.
+
+**ROLES, recorded:** the operator ruled full parallel dispatch (sequential backfill withdrawn); the dispatcher fires, the integrator
+merges and lands the AB manifest amendment as the single writer on `main`. Fired so far: ab-810 (`490d7b1f`, ordered sonnet, ran
+claude-sonnet-5), ab-808 (`810dac9e`, ordered opus, ran claude-opus-5).
+**Did:** merged `e535ed6a`. **Result:** admission uses a measured seat. **Changes:** `scripts/resource_lifecycle.py`, `JOURNAL.md`.
+**Next:** batch AB manifest amendment; merge 810 / 808 as they hand back.
+
 ### 2026-09-16 (l) - CC (Opus 5, integrator seat, integrator-AB): lane ab-804 lands -- ids reserved by push, lane-boot refuses a batch with no manifest, the lane grammar widened
 
 **Anchors:** `13511ab4` -- lane ab-804 tip (`3a9ff4d8` premise, `455b2dca` RED witnesses, `0bc910d3` push-reservation allocator, `c5c7d711` lane-boot wiring, `e672ac1a` grammar `[a-z]{1,3}`, `13511ab4` end-of-lane artifact).

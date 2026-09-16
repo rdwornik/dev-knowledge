@@ -114,7 +114,7 @@ SEAT_PROCESS_NAME = "claude"
 #: Memory held back from the budget entirely, so the box has somewhere to breathe.
 RESERVE_GB = 2.0
 #: What one SEAT costs. A seat is not a process -- see `count_seats`.
-PER_SEAT_MB = 2826.0
+PER_SEAT_MB = 646.1
 #: Above this age a seat is retired and re-booted.
 LIFETIME_HOURS = 4.0
 #: Above this resident size a seat is retired.
@@ -156,15 +156,20 @@ THRESHOLD_PROVENANCE: dict[str, str] = {
         "watermark, not itself a measurement."
     ),
     "PER_SEAT_MB": (
-        "PROVISIONAL 2026-09-16, pending a clean 90 s dispatch measurement (operator ruling, "
-        "batch AB). 2826 MB is the free-memory drop across lane ab-804's start (5.32 -> 2.56 GB), "
-        "an upper bound because other load moved in the same window. "
-        "THE FIGURE IT REPLACES, 413.3 MB, CAME FROM A DIFFERENT MACHINE STATE AND A DIFFERENT "
-        "INSTRUMENT: 2026-09-15T12:33Z, 62 idle-ish claude processes split 31 session (287.0 MB) "
-        "+ 31 helper (126.3 MB). It counted only processes NAMED claude, so a working lane's "
-        "uv / git / python / pytest children -- which is where a lane's memory goes -- landed in "
-        "'non-Claude' and were invisible to it. It was ~7x low for a dispatch and refused work. "
-        "The instrument for a dispatch is FREE MEMORY before vs after, not RSS of named processes."
+        "MEASURED 2026-09-16 (operator ruling, batch AB): whole-box FREE memory read once "
+        "immediately before `dispatch LANE-ab-810-substrate-repair.md -Run` (19:47:00, 5.847 GB) "
+        "and once 90 s later (19:48:37, 5.216 GB): 646.1 MB. That window held no other dispatch. "
+        "It replaces a PROVISIONAL 2826 MB (lane ab-804's start, 5.32 -> 2.56 GB, read minutes "
+        "apart with other load moving) and, before that, 413.3 MB. "
+        "WHAT IT IS NOT: steady state. A lane's uv / pytest / git children arrive after 90 s; "
+        "the ab-804 reading suggests a working lane reaches ~2.8 GB, and a second 90 s reading at "
+        "ab-808's dispatch (19:49:44 -> 19:51:28, 5.548 -> 4.363 GB) gave 1213.4 MB but overlapped "
+        "ab-810's ramp, so it is CONFOUNDED and not used. n=1 clean reading; `[#827]` owns "
+        "deriving this from a ledger of recent dispatches instead of a stored number. "
+        "THE FIGURE 413.3 MB CAME FROM A DIFFERENT MACHINE STATE AND A DIFFERENT INSTRUMENT: "
+        "2026-09-15T12:33Z, 62 idle-ish claude processes split 31 session (287.0 MB) + 31 helper "
+        "(126.3 MB) -- an RSS sum of processes NAMED claude, blind to a lane's children, about "
+        "one seventh of a working lane's real cost."
     ),
     "LIFETIME_HOURS": (
         "DERIVED 2026-09-15 from the RSS-vs-age curve. RSS reaches its plateau inside the "
