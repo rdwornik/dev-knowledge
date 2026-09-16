@@ -154,24 +154,24 @@ def test_teardown_snapshots_the_tree_before_killing_the_root(tmp_path):
 
 def test_allocation_ceiling_is_computed_from_its_inputs_not_a_literal():
     """The ceiling MOVES when the non-Claude load does. A constant would not."""
-    loose = rl.allocation(total_gb=27.67, claude_gb=12.53, free_gb=1.62, per_seat_mb=413.3)
-    tight = rl.allocation(total_gb=27.67, claude_gb=12.53, free_gb=0.10, per_seat_mb=413.3)
+    loose = rl.allocation(total_gb=27.67, claude_gb=1.39, free_gb=10.00, per_seat_mb=2826.0)
+    tight = rl.allocation(total_gb=27.67, claude_gb=1.39, free_gb=5.32, per_seat_mb=2826.0)
     assert tight.ceiling < loose.ceiling, (
         "the same box with less free memory produced the same ceiling -- the arithmetic is "
         "not reading its inputs")
-    # the measured 2026-09-15 conditions, reproduced
-    assert loose.ceiling == 27, loose
-    assert round(loose.budget_gb, 2) == 11.15, loose
+    # recalibrated 2026-09-16: headroom = free - reserve (2.0 GB), seats = headroom / seat
+    assert round(loose.budget_gb, 2) == 8.00, loose
+    assert loose.ceiling == 2, loose
+    assert tight.ceiling == 1, tight
 
 
 def test_admission_refuses_when_the_box_is_over_its_ceiling():
     """QR-RES-001: a refusal, not a report. The measured 2026-09-15 state must refuse."""
-    verdict = rl.admit(
-        rl.allocation(total_gb=27.67, claude_gb=12.53, free_gb=1.62, per_seat_mb=413.3),
-        live_seats=31,
-    )
+    alloc = rl.allocation(total_gb=27.67, claude_gb=12.53, free_gb=1.62, per_seat_mb=413.3)
+    verdict = rl.admit(alloc, live_seats=31)
     assert not verdict.admitted
-    assert "31" in verdict.reason and "27" in verdict.reason, verdict.reason
+    assert "31" in verdict.reason and f"ceiling of {alloc.ceiling}" in verdict.reason, (
+        verdict.reason)
 
 
 def test_admission_allows_a_quiet_box():
@@ -180,6 +180,39 @@ def test_admission_allows_a_quiet_box():
         live_seats=2,
     )
     assert verdict.admitted, verdict.reason
+
+
+def test_admission_reads_current_free_memory_not_a_stored_seat_ceiling():
+    """Operator ruling 2026-09-16 (batch AB): admission is recomputed from CURRENT free memory
+    and the MEASURED per-seat cost. The count leg (`live >= floor((total - non-Claude -
+    reserve) / per_seat)`) refused a box with room for a lane, because a lane's `uv`/`git`/
+    `python` children are not named `claude` and so land in "non-Claude", and because the
+    per-seat constant came from a different machine state.
+
+    The reading: 5.32 GB free on a 27.67 GB box with 12 seats live. Free minus a 2.0 GB reserve
+    leaves 3.32 GB, room for exactly one 2826 MB seat -- ADMIT, whatever the seat count."""
+    alloc = rl.allocation(total_gb=27.67, claude_gb=1.39, free_gb=5.32,
+                          per_seat_mb=2826.0, reserve_gb=2.0)
+    assert round(alloc.budget_gb, 2) == 3.32, alloc
+    assert alloc.ceiling == 1, alloc
+    verdict = rl.admit(alloc, live_seats=12)
+    assert verdict.admitted, verdict.reason
+
+
+def test_refusal_says_how_much_memory_must_be_freed():
+    """The 2026-09-16 lane-810 refusal reading: 2.56 GB free. Against a 2.0 GB reserve and a
+    2826 MB seat it needs 4.76 GB, so the refusal must name ~2.20 GB to free -- a queued lane
+    is cheaper than a commit lost to the OOM reaper, and the operator needs the number."""
+    alloc = rl.allocation(total_gb=27.67, claude_gb=1.39, free_gb=2.56,
+                          per_seat_mb=2826.0, reserve_gb=2.0)
+    verdict = rl.admit(alloc, live_seats=5)
+    assert not verdict.admitted
+    assert "2.20 GB" in verdict.reason, verdict.reason
+
+
+def test_reserve_is_two_gigabytes_above_the_observed_oom_watermark():
+    assert rl.RESERVE_GB == 2.0
+    assert "1.4" in rl.THRESHOLD_PROVENANCE["RESERVE_GB"]
 
 
 def test_reserve_breach_refuses_even_under_the_seat_ceiling():

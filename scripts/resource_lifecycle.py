@@ -112,9 +112,9 @@ SEAT_PROCESS_NAME = "claude"
 # ================================================================== the thresholds, LOCAL regime
 
 #: Memory held back from the budget entirely, so the box has somewhere to breathe.
-RESERVE_GB = 3.0
+RESERVE_GB = 2.0
 #: What one SEAT costs. A seat is not a process -- see `count_seats`.
-PER_SEAT_MB = 413.3
+PER_SEAT_MB = 2826.0
 #: Above this age a seat is retired and re-booted.
 LIFETIME_HOURS = 4.0
 #: Above this resident size a seat is retired.
@@ -148,17 +148,23 @@ THRESHOLD_UNITS: dict[str, str] = {
 #: repo's recorded failure mode is a chosen constant dressed as a measurement.
 THRESHOLD_PROVENANCE: dict[str, str] = {
     "RESERVE_GB": (
-        "CARRIED, NOT DERIVED. 3.0 GB is the frozen contract's own figure and this lane did "
-        "not re-derive it; it is recorded as carried so a later reader does not cite it as a "
-        "measurement of ours. What supports it circumstantially: the OOM-killed full-suite "
-        "attempts and the OOM-killed merge (job 9b8de937, batch Z) both happened at roughly "
-        "1.4-1.6 GB free, so a reserve below ~2 GB is demonstrably too small on this box."
+        "SET 2026-09-16 BY OPERATOR RULING (batch AB), replacing 3.0 GB. The 3.0 GB figure was "
+        "CARRIED from a frozen contract, never measured, and it refused work the box could run. "
+        "The measured anchor is the OOM watermark: the OOM-killed full-suite attempts and the "
+        "OOM-killed merge (job 9b8de937, batch Z) happened at roughly 1.4-1.6 GB free. 2.0 GB "
+        "sits above that watermark with margin. It is still a chosen margin over a measured "
+        "watermark, not itself a measurement."
     ),
     "PER_SEAT_MB": (
-        "MEASURED 2026-09-15T12:33Z. 62 live claude processes split EXACTLY 31 heavy / 31 "
-        "light -- one session process (mean 287.0 MB) plus one helper (mean 126.3 MB) per "
-        "seat, totalling 413.3 MB. The frozen contract's ~392-400 MB per lane is confirmed "
-        "within 5%. A per-PROCESS figure (207.2 MB) would double the ceiling and be wrong."
+        "PROVISIONAL 2026-09-16, pending a clean 90 s dispatch measurement (operator ruling, "
+        "batch AB). 2826 MB is the free-memory drop across lane ab-804's start (5.32 -> 2.56 GB), "
+        "an upper bound because other load moved in the same window. "
+        "THE FIGURE IT REPLACES, 413.3 MB, CAME FROM A DIFFERENT MACHINE STATE AND A DIFFERENT "
+        "INSTRUMENT: 2026-09-15T12:33Z, 62 idle-ish claude processes split 31 session (287.0 MB) "
+        "+ 31 helper (126.3 MB). It counted only processes NAMED claude, so a working lane's "
+        "uv / git / python / pytest children -- which is where a lane's memory goes -- landed in "
+        "'non-Claude' and were invisible to it. It was ~7x low for a dispatch and refused work. "
+        "The instrument for a dispatch is FREE MEMORY before vs after, not RSS of named processes."
     ),
     "LIFETIME_HOURS": (
         "DERIVED 2026-09-15 from the RSS-vs-age curve. RSS reaches its plateau inside the "
@@ -460,6 +466,13 @@ class Allocation:
     A ceiling re-derived per batch drifts; a ceiling typed into prose is stale at the next
     commit and is one a seat can not-read. This dataclass is the third option: the inputs are
     recorded, the ceiling is computed from them every time, and it MOVES when the box does.
+
+    RECALIBRATED 2026-09-16 (operator ruling, batch AB). `budget_gb` is CURRENT FREE memory
+    minus the reserve, and `ceiling` is how many MORE seats that headroom holds at the measured
+    per-seat cost. The previous form, `(total - non-Claude - reserve) / per_seat` compared
+    against the live seat count, refused a box with room for a lane: a lane's children are not
+    named `claude`, so its real cost surfaced as "non-Claude" while a stored per-seat constant
+    was also multiplied against every live seat. `nonclaude_gb` is kept for REPORTING only.
     """
 
     total_gb: float
@@ -486,7 +499,7 @@ def allocation(total_gb: Optional[float] = None, claude_gb: Optional[float] = No
             claude_gb = sum(p.rss_bytes for p in rows
                             if p.name.lower() == SEAT_PROCESS_NAME) / (1024 ** 3)
     nonclaude_gb = max(0.0, total_gb - claude_gb - free_gb)
-    budget_gb = max(0.0, total_gb - nonclaude_gb - reserve_gb)
+    budget_gb = max(0.0, free_gb - reserve_gb)
     per_seat_gb = per_seat_mb / 1024.0
     ceiling = int(math.floor(budget_gb / per_seat_gb)) if per_seat_gb > 0 else 0
     return Allocation(total_gb=total_gb, free_gb=free_gb, claude_gb=claude_gb,
@@ -536,21 +549,27 @@ def admit(alloc: Allocation, live_seats: int) -> AdmissionVerdict:
     finish) is wrong for the second condition. The 2026-09-15 reading was over on both.
     """
     breaches: list[str] = []
+    per_seat_gb = alloc.per_seat_mb / 1024.0
     if alloc.free_gb < alloc.reserve_gb:
         breaches.append(
             f"free memory {alloc.free_gb:.2f} GB is below the {alloc.reserve_gb:.2f} GB "
             f"reserve")
-    if live_seats >= alloc.ceiling:
+    if alloc.ceiling < 1:
         breaches.append(
-            f"{live_seats} live seats against a computed ceiling of {alloc.ceiling} "
-            f"({alloc.budget_gb:.2f} GB budget / {alloc.per_seat_mb:.1f} MB per seat; "
-            f"{alloc.nonclaude_gb:.2f} GB held by non-Claude)")
+            f"headroom {alloc.budget_gb:.2f} GB ({alloc.free_gb:.2f} GB free - "
+            f"{alloc.reserve_gb:.2f} GB reserve) holds a computed ceiling of {alloc.ceiling} "
+            f"more seats at {alloc.per_seat_mb:.1f} MB per seat; {live_seats} live seats; "
+            f"{alloc.nonclaude_gb:.2f} GB held by non-Claude")
     if breaches:
-        return AdmissionVerdict(False, "REFUSED: " + "; and ".join(breaches))
+        need_gb = max(0.0, alloc.reserve_gb + per_seat_gb - alloc.free_gb)
+        return AdmissionVerdict(
+            False, "REFUSED: " + "; and ".join(breaches)
+            + f" -- free {need_gb:.2f} GB more to admit one seat")
     return AdmissionVerdict(
         True,
-        f"admitted: {live_seats} of {alloc.ceiling} seats, {alloc.free_gb:.2f} GB free "
-        f"against a {alloc.reserve_gb:.2f} GB reserve")
+        f"admitted: {live_seats} live seats, room for {alloc.ceiling} more at "
+        f"{alloc.per_seat_mb:.1f} MB per seat; {alloc.free_gb:.2f} GB free against a "
+        f"{alloc.reserve_gb:.2f} GB reserve")
 
 
 def count_seats(table: Sequence[Proc], name: str = SEAT_PROCESS_NAME) -> int:
@@ -656,7 +675,7 @@ def cmd_ceiling() -> None:
     click.echo(f"reserve        {alloc.reserve_gb:8.2f} GB")
     click.echo(f"budget         {alloc.budget_gb:8.2f} GB")
     click.echo(f"per seat       {alloc.per_seat_mb:8.1f} MB")
-    click.echo(f"CEILING        {alloc.ceiling:8d} seats")
+    click.echo(f"CEILING        {alloc.ceiling:8d} more seat(s)")
     click.echo(f"live seats     {seats:8d}")
 
 
@@ -724,7 +743,7 @@ def cmd_session_start() -> None:
         seats = count_seats(table)
         verdict = admit(alloc, seats)
         click.echo(
-            f"[resource] {seats} seat(s) / ceiling {alloc.ceiling} · "
+            f"[resource] {seats} seat(s) / room for {alloc.ceiling} more · "
             f"{alloc.free_gb:.2f} GB free / {alloc.reserve_gb:.1f} GB reserve · "
             f"{alloc.claude_gb:.2f} GB claude, {alloc.nonclaude_gb:.2f} GB other")
         if not verdict.admitted:

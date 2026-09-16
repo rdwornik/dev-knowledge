@@ -19,6 +19,47 @@
 
 ---
 
+### 2026-09-16 (j) - CC (Opus 5, background dispatcher seat): the recalibrated floor still refuses -- and this time the box really is out
+
+**Anchors:** `2d19f783` -- RED witnesses; `146625f9` -- the recalibration build and `[#827]`.
+
+**THE RECALIBRATION LANDS.** `resource_lifecycle`: reserve 2.0 GB; admission = CURRENT free minus reserve,
+divided by a per-seat cost of 2826 MB (PROVISIONAL, from lane ab-804's 5.32 -> 2.56 GB start); the live
+seat count is reported, not gated on; a refusal names the gigabytes to free. The 413.3 MB figure is recorded
+in the provenance as a different machine state and a different instrument (named-process RSS, blind to a
+lane's children). `QR-RES-001` amended. Targeted: 65 passed across the four impacted modules; ruff clean.
+
+**THE ADMISSION DECISION, ONE READING, 2026-09-16T17:58:54+02:00: REFUSED.** 1.85 GB free -- below even the
+2.00 GB reserve -- with 24.04 GB held by non-Claude and 4 live seats; one seat needs 4.76 GB free, so **2.91 GB
+more** would have to be freed. Free memory moved 3.26 -> 1.85 GB in minutes while lane ab-804 ran. Lanes ab-810
+and ab-808 are NOT dispatched, by operator order ("losing a commit to the OOM reaper costs more than a queued
+lane"). The 90 s per-seat measurement did not happen, because it needs an admitted dispatch; 2826 MB stays
+labelled provisional and `[#827]` owns the real fix (per-seat cost derived from a ledger of recent dispatches).
+
+**Did:** RED-first recalibration; filed `[#827]`; one admission reading. **Result:** floor corrected; 810/808 queued.
+**Changes:** `scripts/resource_lifecycle.py`, `tests/test_resource_lifecycle.py`, `ecosystem/quality-requirements.yaml`,
+`ecosystem/doc-counts.md`, `tasks/827-*`, `tasks/manifest.json`, `BACKLOG.md`, `JOURNAL.md`.
+**Next:** free ~2.9 GB (the non-Claude 24 GB is the lever); re-run `resource_lifecycle.py admit` once; on PASS,
+dispatch 810 with a free-memory reading immediately before and 90 s after, write that into `PER_SEAT_MB`.
+
+### 2026-09-16 (i) - CC (Opus 5, background dispatcher seat): the memory floor was a calibration error, and it refused a lane the box could run
+
+**Anchors:** `660ed861` -- JOURNAL entry (h), merged `448a630b`, which no entry named until this one.
+
+**BATCH AB DISPATCH, RESUMED ON OPERATOR WORD.** Lane `lane-ab-804-id-allocator` admitted (4 of 10 seats,
+5.32 GB free) and fired: LOCAL, ordered opus, ran `claude-opus-5` read off its transcript, bg `9777d92e`.
+Admission then REFUSED lane 810 at 2.56 GB free against a 3.00 GB reserve, 5 seats against a ceiling of 4.
+
+**OPERATOR RULING: THE FLOOR IS MIS-CALIBRATED, NOT A PROPERTY OF THE SYSTEM.** Three faults: (1) 413.3 MB per
+seat is ~7x low -- lane 804's start moved free memory 5.32 -> 2.56 GB, and most of it surfaced as "non-Claude"
+because a lane's `uv`/`git`/`python` children are not named `claude`; (2) the 3.00 GB reserve was carried from a
+contract, not measured -- the observed OOM watermark is ~1.4 GB, so the reserve is 2.0 GB; (3) the count leg
+multiplied a stored per-seat constant against a ceiling that moves with non-Claude load. Admission is now
+recomputed from CURRENT free memory and a MEASURED per-seat cost, and a refusal names what must be freed.
+The per-seat figure is re-measured around the next dispatch (free memory before and 90 s after, one sample
+each -- no polling: the previous wait loop was OOM-killed for loading the box it measured). This arc's
+commits and the fresh measurement are named in the merge body and the next entry.
+
 ### 2026-09-16 (h) - CC (Opus 5, background dispatcher seat): batch AB opens before any lane boots -- three LOCAL lanes, two held, and the premise that could not be read
 
 **Anchors:** `d0fe3865` -- the batch AB manifest plus `[#808]` `[#809]` `[#810]`; merged `8a24f469`.
