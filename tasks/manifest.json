@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "a3640fc80233906a538185edfe56de07eeb909345cd7c2b6aae35f26f5d3cf6c",
+  "generated_sha256": "72453669ab58b3418bcb02f7a2064506b2ef21eb548787b9233e7ee04d03cc33",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -592,6 +592,10 @@
     {
       "task": 826,
       "file": "826-id-blocks-must-be-machine-read-not-prose.md"
+    },
+    {
+      "task": 843,
+      "file": "843-contract-freezing-premise-clauses-carry-from-a-stale-digest.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
