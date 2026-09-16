@@ -435,6 +435,13 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "missed is recorded as a finding against the sweep', reported and never "
                "silently reconciled",
         owner="operator -- one of the census's seven acts"),
+    "scripts/id_allocator.py": Disposition(
+        reason="ON-DEMAND-BY-OPERATOR, act = GO. Invoked by /lane-boot "
+               "(.claude/commands/lane-boot.md, section 6 'Run the lane') when a lane needs a "
+               "new task id: it reserves the id by a create-only push BEFORE the lane writes "
+               "it ([#804]/[#788]). No event should fire it, because a reservation is a "
+               "lane's decision to file",
+        owner="operator -- one of the census's seven acts; [#804] owns the allocator"),
     # ---- NOT population A: MACHINE-TRIGGERED, by a surface this census cannot see ----
     #
     # THIS ROW IS A FINDING AGAINST `WIRING_SURFACES`, not a ruling that the file has no

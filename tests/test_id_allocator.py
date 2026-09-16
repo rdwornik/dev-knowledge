@@ -202,7 +202,9 @@ def test_the_answer_does_not_move_when_the_local_tree_moves(tmp_path):
     alloc = _allocator()
     answers = []
     for i, local_rows in enumerate(((), ("999-top.md", "500-mid.md"))):
-        _, (lane,) = _origin_and_worktrees(tmp_path / f"case-{i}", names=("lane-x",))
+        case = tmp_path / f"case-{i}"
+        case.mkdir()
+        _, (lane,) = _origin_and_worktrees(case, names=("lane-x",))
         for row in local_rows:
             (lane / "tasks" / row).write_text("---\n---\n", encoding="utf-8")
         answers.append(alloc.allocate(lane, range(815, 819), holder="lane-x").value)
