@@ -442,6 +442,13 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "it ([#804]/[#788]). No event should fire it, because a reservation is a "
                "lane's decision to file",
         owner="operator -- one of the census's seven acts; [#804] owns the allocator"),
+    "scripts/lane_boot.py": Disposition(
+        reason="ON-DEMAND-BY-OPERATOR, act = GO. Invoked by /lane-boot "
+               "(.claude/commands/lane-boot.md, section 1 'Pre-flight') before any worktree "
+               "exists. It is the manifest refusal PLAYBOOK claimed /lane-boot already made "
+               "([#804]). The dispatch verb in win-tooling does not call it yet, and that is "
+               "recorded as an out-of-footprint follow-up, not a trigger",
+        owner="operator -- one of the census's seven acts; [#804] owns the refusal"),
     # ---- NOT population A: MACHINE-TRIGGERED, by a surface this census cannot see ----
     #
     # THIS ROW IS A FINDING AGAINST `WIRING_SURFACES`, not a ruling that the file has no

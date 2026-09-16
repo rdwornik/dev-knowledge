@@ -57,11 +57,19 @@ git worktree list          # know what already exists
 git status --short         # primary tree clean
 ```
 
-Verify the name against the enum before creating anything:
+Verify the name against the enum, **and that the batch is open on `main`**, before creating
+anything ([#804]):
 
 ```bash
-uv run --locked python scripts/validate_branch_naming.py --lane lane-<letter>-<id>-<slug>
+uv run --locked python scripts/lane_boot.py preflight --lane lane-<letter>-<id>-<slug>
 ```
+
+Exit `1` is a **refusal: STOP, do not provision.** It fires on a lane name outside the grammar,
+and on a batch with no committed manifest declaring it open
+(`preflight_contract.check_open_batch`). It also fires when the manifest is committed here but
+not on `main`, and that refusal names the file. Exit `2` is an internal error, and it is not a
+pass either. Batch AA booted six lanes with no manifest, and nothing noticed until merge. This
+step exists to make that a stop at boot.
 
 Then **claim the contract** ([#530]). This is the last moment before a worktree exists, so it is
 the first moment a duplicate dispatch is refusable at zero cost — and §1 already runs from the
@@ -177,6 +185,14 @@ Print the lane's own budget so it is on the record:
   PASS means this checkout's pytest imports this checkout's source. `NOT-APPLICABLE` (exit 3)
   means the repo ships no importable package, so nothing was proved — the hub itself answers
   that way, and it is deliberately not a PASS.
+- **A new task id is RESERVED before it is written** ([#804], [#788]). Never compute
+  `max + 1`: from a worktree, that maximum cannot see a sibling's unpushed branch. Take the id
+  from your manifest block, through the allocator, which pushes a create-only reservation ref.
+  The printed id is yours, and exit `3` names who holds the block:
+
+  ```bash
+  uv run --locked python scripts/id_allocator.py allocate --block <lo>-<hi> --holder lane-<letter>-<id>-<slug>
+  ```
 - Commit per step, on the lane branch.
 - Write the lane's JOURNAL entry **on this branch, ahead of any merge** — see PLAYBOOK
   "JOURNAL-rides-the-branch".
