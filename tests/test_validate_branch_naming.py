@@ -119,11 +119,12 @@ def test_well_formed_lane_worktree_names(name):
 
 
 @pytest.mark.parametrize("name,fragment", [
-    ("lane-aa-505-slug", "lane-<letter>"),        # two letters
-    ("lane-a-505", "lane-<letter>"),              # no slug
-    ("lane-a-batch-protocol", "lane-<letter>"),   # no id
-    ("lane-A-505-slug", "lane-<letter>"),         # uppercase
-    ("Lane-a-505-slug", "lane-<letter>"),
+    ("lane-abcd-505-slug", "lane-<batch>"),       # four letters -- past the widened token
+    ("lane-a-505", "lane-<batch>"),               # no slug
+    ("lane-a-batch-protocol", "lane-<batch>"),    # no id
+    ("lane-A-505-slug", "lane-<batch>"),          # uppercase
+    ("lane-Ab-505-slug", "lane-<batch>"),         # uppercase inside a multi-letter token
+    ("Lane-a-505-slug", "lane-<batch>"),
     ("", "empty"),
 ])
 def test_malformed_lane_worktree_names_name_the_grammar(name, fragment):
@@ -151,9 +152,36 @@ def test_lane_grammar_is_not_capped_at_the_drill_width():
 def test_worktree_lane_prefix_with_a_broken_grammar_is_not_waved_through_as_a_plain_worktree():
     """`worktree-lane-…` announces a batch lane, so a malformed one is reported rather than
     silently downgraded to the looser `worktree-<name>` member it would otherwise satisfy."""
-    res = vbn.classify("worktree-lane-aa-505-slug")
+    res = vbn.classify("worktree-lane-abcd-505-slug")
     assert res.kind == vbn.KIND_UNKNOWN
-    assert "lane-<letter>-<id>-<slug>" in res.note
+    assert "lane-<batch>-<id>-<slug>" in res.note
+
+
+# --- `[#809]`: the batch token is widened, never recycled ------------------------------------
+#
+# All 26 single letters are spent (measured over merge subjects on all refs, batch AB manifest
+# §6). Batch AA's `worktree-lane-aa-*` branches never matched the grammar, so under an OPEN
+# manifest they still got no ADR-110 exemption. The operator ruled: WIDEN the grammar, and do
+# not recycle a letter.
+
+@pytest.mark.parametrize("name", [
+    "lane-ab-808-guard-timeout",
+    "lane-ab-804-id-allocator",
+    "lane-aa-12-enforced-routing",
+    "lane-zzz-1-x",
+    "lane-a-505-batch-protocol",       # the one-letter shape stays admitted
+])
+def test_809_a_multi_letter_batch_token_is_a_well_formed_lane(name):
+    assert vbn.validate_lane_worktree_name(name) is None
+    assert vbn.LANE_BRANCH_RE.match(f"worktree-{name}")
+    assert vbn.classify(f"worktree-{name}").kind == vbn.KIND_BATCH_LANE
+    assert vbn.is_lane_branch(f"worktree-{name}") is True
+
+
+def test_809_the_batch_token_is_one_shared_definition():
+    """The worktree and branch grammars read the SAME token, so neither can widen alone."""
+    assert vbn.BATCH_TOKEN in vbn.LANE_WORKTREE_RE.pattern
+    assert vbn.BATCH_TOKEN in vbn.LANE_BRANCH_RE.pattern
 
 
 # --- CLI + live repo -----------------------------------------------------------------------
@@ -164,7 +192,7 @@ def test_cli_lane_ok(capsys):
 
 
 def test_cli_lane_bad(capsys):
-    assert vbn.main(["--lane", "lane-aa-505-slug"]) == 1
+    assert vbn.main(["--lane", "lane-abcd-505-slug"]) == 1
     assert "BAD" in capsys.readouterr().out
 
 
