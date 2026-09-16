@@ -19,6 +19,50 @@
 
 ---
 
+### 2026-09-16 (f) - CC (Opus 5, background integrator seat): the seat closes -- merges took minutes, waiting for a human took 10.6 hours
+
+**Anchors:** `0d00f631` -- `[#806]`, the `[#612]` relocation and the title grooming.
+
+**THE BATCH'S HEADLINE IS NOT ABOUT MERGES.** Measured from the seat's own transcript: operator
+wait INSIDE the four 2026-09-15 merges was ZERO. Their wall times were 22.6 / 9.4 / 6.1 / 5.8 min,
+of which `git merge` itself was 0.7-1.1 min and pre-commit hooks 1.3-6.3 min. The seat then sat
+**10.6 hours** between its last action (2026-09-15 21:43) and the operator's rulings (2026-09-16
+08:17) -- and the six rulings it waited for were a file conflict between two lanes, id and letter
+collisions, a baseline raise from a lane asked to add entries, dead husks, a verb contradiction and
+a gate/mover contradiction. Merges take minutes; waiting for a human takes hours. That is the
+measured case for moving the rulings that can be defaults into the repo (`[#805]`, `[#806]`,
+`[#804]`), and it predates the separate ~6 h guard wedge of the earlier session, which is not in
+this transcript and not in these figures.
+
+**aa-12 ID COLLISION -- RESOLVED IN ADVANCE, so its merge does not stop on a question.** aa-12's
+branch (`e17c6200`) carries `tasks/793-the-model-a-contract-declares-is-the-model-that-r.md` against
+main's `[#793]`. **Main's `[#793]` keeps its id** -- it is cited on main by `[#804]`, `[#805]` and
+this JOURNAL. **aa-12's row takes the NEXT FREE ID AT MERGE** (807 as of this entry; re-derive
+across all refs at the merge, never from the local maximum). The renumber is mechanical: aa-12's
+`#793` occurs 16 times, all on its own branch and in files only it touches --
+`scripts/gen_lane_contract.py` x13, its row x2, `tests/test_enforced_routing.py` x1 -- plus its
+manifest node. No citation on main refers to aa-12's row. 794-799 are no longer reserved: the
+reservation was for this lane, and its one collision is now ruled.
+
+**TEARDOWN, verified local and origin.** Worktrees `disable-deny-and-point` (clean, merged) and
+`lane-aa-12-enforced-routing` removed; aa-12's three "uncommitted changes" were logs_retention's
+move of the two PROVIDER-*.json files, blob-identical to main and to aa-12's HEAD (verified by
+hash), so nothing was lost. Branch `worktree-disable-deny-and-point` deleted locally and on origin.
+`git worktree list`: primary only. Standing ON PURPOSE: `worktree-lane-aa-12-enforced-routing`
+(UNMERGED, holds aa-12's only commit, local-only -- deleting it would destroy the lane's work),
+`worktree-lane-aa-13-resource-lifecycle` (unmerged, `[#793]`'s evidence), `automation/fleet-audit`
+(protected). `.claude/worktrees/lane-z-4-non-claude-execution` is an empty directory an OS handle
+still holds; it is not a git worktree.
+
+**BACKLOG HEADROOM -- the relocation bought NOTHING, and that is measured, not predicted.**
+99,975 B / 360 rows before; `archive_row_body.py relocate --id 750,666` moved two clauses
+byte-identically and BACKLOG.md stayed 99,975 B, because the `[#589]` view carries no row bodies.
+Grooming three titles this seat filed freed 152 B; `[#806]` used 138. **After: 99,961 B / 361
+rows, 39 B headroom. The next filing anywhere is still refused.** Ceiling not raised.
+
+**Changes:** `tasks/806-*`, `tasks/archive/{666,750}.md`, `tasks/{666,750,793,804,805}-*`,
+manifest, BACKLOG.
+
 ### 2026-09-16 (e) - CC (Opus 5, background integrator seat): two P1 rows, today's four receipts, and why every AA `suite` step read UNRECORDED
 
 **Anchors:** `4f49ed33` -- rows `[#804]` / `[#805]`, the `--step suite` paragraph and the ARCHITECTURE re-stamp.

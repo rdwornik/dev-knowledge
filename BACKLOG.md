@@ -143,8 +143,9 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#789] [P1][M] The seat boot rendered its declared model split into an HTML COMMENT while the launch line was a bare `claude` — batch Z ran 100% Opus under a header claiming otherwise · tasks/789-the-seat-boot-rendered-its-model-split-into-an-html.md
 - [#802] [P1][M] The conductor emails on every push because it does not know about the frozen baseline — compare against the set, do not silence the notification · tasks/802-the-conductor-emails-on-every-push-because-it-does.md
 - [#803] [P1][M] A substrate request is availability-gated and silently downgraded while reporting success — the dispatcher must verify the substrate it RECEIVED against the one it ORDERED, before briefing the lane · tasks/803-a-substrate-request-is-availability-gated-and-sile.md
-- [#804] [P1][M] No committed batch manifest, no dispatch -- and task-id allocation reads the manifest, not the local maximum · tasks/804-a-batch-manifest-committed-before-the-first-l.md
-- [#805] [P1][M] An integrator finishes a batch UNATTENDED -- every batch-AA stop had a rule-shaped answer · tasks/805-an-integrator-must-be-able-to-finish-a-batch-u.md
+- [#804] [P1][M] No committed batch manifest, no dispatch; ids come from the manifest · tasks/804-a-batch-manifest-committed-before-the-first-l.md
+- [#805] [P1][M] An integrator finishes a batch unattended on recorded defaults · tasks/805-an-integrator-must-be-able-to-finish-a-batch-u.md
+- [#806] [P1][M] The silent-rule ratchet has no recorded ratification path · tasks/806-the-silent-rule-ratchet-has-no-recorded-ratifi.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
@@ -239,7 +240,7 @@ So that observed failure-modes become written guidance instead of recurring.
 ---
 
 - [#538] [P2][M] The NB4-C PLAYBOOK gap arc — twelve paste-ready acts, none landed · tasks/538-the-nb4-c-playbook-gap-arc-twelve-paste-ready-acts.md
-- [#793] [P1][M] A WITHDRAWN lane contract left a live worktree, and the lane built a RIVAL implementation of the organ its successor was already building · tasks/793-a-withdrawn-lane-contract-left-a-live-worktree-bu.md
+- [#793] [P1][M] A withdrawn lane's live worktree built a rival organ · tasks/793-a-withdrawn-lane-contract-left-a-live-worktree-bu.md
 ## [E4] Decision management
 > As a reader of 65+ ADRs, I want decisions navigable and free of silent contradiction.
 

@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "d466678ad10e6c297968ba5d0686caf8f224f48744e7f97701ecf784119c6768",
+  "generated_sha256": "dddc8ab1c281486be6a06c6252f1dafe10450866396389f641d2b49e6070f5cd",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -556,6 +556,10 @@
     {
       "task": 805,
       "file": "805-an-integrator-must-be-able-to-finish-a-batch-u.md"
+    },
+    {
+      "task": 806,
+      "file": "806-the-silent-rule-ratchet-has-no-recorded-ratifi.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
