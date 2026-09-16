@@ -19,6 +19,31 @@
 
 ---
 
+### 2026-09-16 (l) - CC (Opus 5, integrator seat, integrator-AB): lane ab-804 lands -- ids reserved by push, lane-boot refuses a batch with no manifest, the lane grammar widened
+
+**Anchors:** `13511ab4` -- lane ab-804 tip (`3a9ff4d8` premise, `455b2dca` RED witnesses, `0bc910d3` push-reservation allocator, `c5c7d711` lane-boot wiring, `e672ac1a` grammar `[a-z]{1,3}`, `13511ab4` end-of-lane artifact).
+
+**MERGED** `worktree-lane-ab-804-id-allocator` @ `13511ab4` `--no-ff`, two-step (`--no-commit`, then `git commit`, so the whole
+pre-commit registry ran on the merged tree). The lane had already synced `main` `18bda49a` (`2053513d`, `4483bb11`), so
+sync was verified as `merge-base --is-ancestor 18bda49a 13511ab4`. No conflicts. Ordered `opus`, ran `claude-opus-5`
+(dispatcher read: 245 assistant turns, no subagents).
+
+**Lane verdict (its artifact section 6):** targeted 30 modules, 1253 passed, 10 failed -- all 10 fail identically on
+`main` `18bda49a` (`test_deny_and_point` x3, `test_gen_handoff` x5, `test_archive_row_body` x1, `test_preflight_freeze_predicates` x1).
+**Rows:** `[#788]` Done-when met, closeable; `[#809]` open only for refusing a recycled letter seen in history; `[#804]` open at
+the `dispatch` verb (win-tooling, lane R's footprint), machine-read per-lane id blocks, and QR ids / JOURNAL letters.
+No row closed in this merge -- closure is the closure-and-census lane's act.
+
+**OWED AND PAID HERE:** `gen_doc_counts.py --write` on the merged tree -> **6350 collected** (6320 + 30), cross-checked by a
+direct `--collect-only`. **OPEN, disclosed:** no reviewer ran on this code lane (`review=NONE`; the contract ordered none),
+the batch-AA precedent; PLAYBOOK prose still spells the grammar `lane-<letter>-...`.
+
+**Did:** pushed batch AB's manifest + JOURNAL (h) (`f746ddf9..448a630b`); merged ab-804. **Result:** grammar and allocator on
+`main`; ab-810 / ab-808 / ab-828 merges are now ADR-110-exempt. No tests run on this box beyond collection (operator order).
+**Changes:** `scripts/id_allocator.py`, `scripts/lane_boot.py`, `scripts/validate_branch_naming.py`, `scripts/batch_manifest.py`,
+`scripts/graph_queries.py`, `.claude/commands/lane-boot.md`, five test modules, `ecosystem/doc-counts.md`, the lane artifact, `JOURNAL.md`.
+**Next:** operator ruled full parallel dispatch; dispatcher fires ab-810, ab-808, ab-828; integrator lands the manifest amendment.
+
 ### 2026-09-16 (k) - CC (Opus 5, background dispatcher seat): sequential backfill -- the operator is not the memory manager
 
 **Anchors:** `d89b836a` -- `[#827]` carries the one-seventh finding.

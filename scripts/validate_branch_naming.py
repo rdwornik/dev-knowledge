@@ -23,8 +23,8 @@ Adding one here without that ruling would be exactly the silent entry the rule f
                                                           `protocols/STANDING_RULINGS.md` B5)
 
 BATCH LANES are a REFINEMENT of `worktree-<name>`, not a new prefix — which is the whole reason
-they need no ruling to exist. A batch lane's worktree is named `lane-<letter>-<id>-<slug>`, so
-its branch is `worktree-lane-<letter>-<id>-<slug>`: one lane = one contract file = one worktree
+they need no ruling to exist. A batch lane's worktree is named `lane-<batch>-<id>-<slug>`, so
+its branch is `worktree-lane-<batch>-<id>-<slug>`: one lane = one contract file = one worktree
 = one branch, and an orphan is attributable at a glance (PLAYBOOK Ch8, "The batch protocol").
 
 THE INTEGRATOR HAS NO PREFIX, and that is a design statement rather than an omission. The
@@ -76,13 +76,22 @@ LANE_PREFIXES = ("worktree-", "epic/", "claude/", "automation/")
 
 _SLUG = r"[a-z0-9]+(?:-[a-z0-9]+)*"
 
-#: A batch lane's WORKTREE name: `lane-<letter>-<id>-<slug>`. `<letter>` is a single lowercase
-#: letter, so the grammar admits up to 26 lanes — it is not capped at the batch-1 drill width of
-#: three, per ADR-110 §2 (drilled at 3, designed for 4–10).
-LANE_WORKTREE_RE = re.compile(rf"^lane-[a-z]-\d+-{_SLUG}$")
+#: The BATCH TOKEN in a lane name: one to three lowercase letters. WIDENED from a single
+#: `[a-z]` by `[#809]` (operator ruling 2026-09-16). All 26 single letters were spent, measured
+#: over merge subjects on all refs. Batch AA's `worktree-lane-aa-*` branches never matched, so
+#: under an open manifest they still got NO ADR-110 exemption. The ruling reads "WIDEN the
+#: pattern, do not recycle a letter": a recycled letter would reproduce the id-collision
+#: failure in branch names. Defined ONCE and read by both regexes below, by `batch_manifest`'s
+#: lane-shaped diagnostics and by `id_allocator`'s batch-token reservations, so no reader can
+#: widen or narrow alone.
+BATCH_TOKEN = r"[a-z]{1,3}"
+
+#: A batch lane's WORKTREE name: `lane-<batch>-<id>-<slug>`. It is not capped at the batch-1
+#: drill width of three lanes, per ADR-110 §2 (drilled at 3, designed for 4–10).
+LANE_WORKTREE_RE = re.compile(rf"^lane-{BATCH_TOKEN}-\d+-{_SLUG}$")
 
 #: The branch that worktree name produces, via `claude --worktree <name>`.
-LANE_BRANCH_RE = re.compile(rf"^worktree-lane-[a-z]-\d+-{_SLUG}$")
+LANE_BRANCH_RE = re.compile(rf"^worktree-lane-{BATCH_TOKEN}-\d+-{_SLUG}$")
 
 _SUFFIX_RE = re.compile(rf"^{_SLUG}$")
 
@@ -207,7 +216,7 @@ def classify(name: str, remotes: tuple[str, ...] = DEFAULT_REMOTES) -> Classific
 
     if LANE_BRANCH_RE.match(bare):
         return Classification(raw, KIND_BATCH_LANE,
-                              "batch lane — worktree 'lane-<letter>-<id>-<slug>'")
+                              "batch lane — worktree 'lane-<batch>-<id>-<slug>'")
 
     if bare.startswith("worktree-"):
         suffix = bare[len("worktree-"):]
@@ -215,7 +224,7 @@ def classify(name: str, remotes: tuple[str, ...] = DEFAULT_REMOTES) -> Classific
             if suffix.startswith("lane-"):
                 return Classification(raw, KIND_UNKNOWN,
                                       "'worktree-lane-…' that does not match "
-                                      "lane-<letter>-<id>-<slug>")
+                                      "lane-<batch>-<id>-<slug>")
             return Classification(raw, KIND_WORKTREE, "native CC worktree branch")
         return Classification(raw, KIND_UNKNOWN,
                               f"'worktree-' branch with a non-kebab-case name ({suffix!r})")
@@ -273,7 +282,8 @@ def validate_lane_worktree_name(name: str) -> Optional[str]:
     if raw.startswith("worktree-"):
         return (f"{raw!r} is the BRANCH form; pass the WORKTREE name "
                 f"({raw[len('worktree-'):]!r}) — the branch is derived from it")
-    return f"{raw!r} does not match lane-<letter>-<id>-<slug> (e.g. lane-a-505-batch-protocol)"
+    return (f"{raw!r} does not match lane-<batch>-<id>-<slug>, where <batch> is 1-3 lowercase "
+            f"letters (e.g. lane-ab-808-guard-timeout)")
 
 
 # --- live branch enumeration --------------------------------------------------------------

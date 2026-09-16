@@ -407,6 +407,18 @@ def test_the_batch_lane_grammar_is_delegated_not_reimplemented():
         "lane-539-ch8-codification"
 
 
+def test_809_a_multi_letter_batch_slug_is_emitted_without_loose_slug(tmp_path):
+    """`[#809]` Done-when (2). Batch AB had to emit its contracts with `--loose-slug`, because
+    the strict grammar refused `lane-ab-...`. With the token widened, the strict default
+    accepts it."""
+    assert glc.validate_slug("lane-ab-808-guard-timeout", strict=True) ==         "lane-ab-808-guard-timeout"
+    result = CliRunner().invoke(glc.cli, [
+        "emit", "--slug", "lane-ab-808-guard-timeout", "--purpose", "a guard timeout",
+        "--id", "808", "--out-dir", str(tmp_path)])
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / "LANE-ab-808-guard-timeout.md").is_file()
+
+
 def test_the_contract_filename_drops_a_leading_lane_token():
     assert glc.contract_filename("lane-a-539-ch8") == "LANE-a-539-ch8.md"
     assert glc.contract_filename("changelog-sync") == "LANE-changelog-sync.md"

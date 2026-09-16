@@ -137,7 +137,7 @@ import validate_branch_naming as _vbn   # noqa: E402  (after the by-path gitenv 
 # pins that no rival regex has been reintroduced, and it is still the shape a seeded
 # worktree carries. Dropping the name would delete that test's subject, not tidy an import.
 from validate_branch_naming import LANE_BRANCH_RE   # noqa: E402,F401
-from validate_branch_naming import is_lane_branch  # noqa: E402
+from validate_branch_naming import BATCH_TOKEN, is_lane_branch  # noqa: E402
 
 if Path(getattr(_vbn, "__file__", "") or "").resolve().parent != Path(__file__).resolve().parent:
     raise ImportError(
@@ -562,7 +562,8 @@ def is_lane_merge(repo_path: Path, sha: str) -> bool:
 # The lane-ish shapes a NON-conforming merge subject still leaks, used only to tell a
 # message-style miss apart from a genuine non-lane merge. Deliberately loose: it is a
 # diagnostic, never an exemption path -- nothing widens `is_lane_merge` by matching here.
-_LANEISH_IN_SUBJECT_RE = re.compile(r"(?:worktree-)?lane-[a-z]-\d+-[a-z0-9]+(?:-[a-z0-9]+)*")
+_LANEISH_IN_SUBJECT_RE = re.compile(
+    rf"(?:worktree-)?lane-{BATCH_TOKEN}-\d+-[a-z0-9]+(?:-[a-z0-9]+)*")
 
 
 def subject_style_miss(repo_path: Path, sha: str) -> Optional[str]:
@@ -649,11 +650,12 @@ _LANES_HEADING_RE = re.compile(r"^ {0,3}#{1,6}\s*THE LANES\b.*$", re.I | re.M)
 #: Any heading, used to bound the LANES section the same way `validate_substrate` bounds its
 #: own sections -- the next heading ends the block.
 _ANY_HEADING_RE = re.compile(r"^ {0,3}#{1,6}\s+\S", re.M)
-#: A lane-slug-shaped token: `lane-<letter>-<digits>-<slug>`. Deliberately NOT
+#: A lane-slug-shaped token: `lane-<batch>-<digits>-<slug>`, reading the enum's BATCH_TOKEN
+#: (`[#809]`). Deliberately NOT
 #: `validate_branch_naming.LANE_BRANCH_RE` -- that matches a BRANCH (`worktree-lane-...`), and
 #: a manifest's lane table names the SLUG, not the branch. The two are related by a fixed
 #: prefix, never by identity.
-_SLUG_TOKEN_RE = re.compile(r"\blane-[a-z]-\d+(?:-[a-z0-9]+)+\b", re.I)
+_SLUG_TOKEN_RE = re.compile(rf"\blane-{BATCH_TOKEN}-\d+(?:-[a-z0-9]+)+\b", re.I)
 
 
 def manifest_lane_slugs(text: str) -> set[str]:

@@ -647,9 +647,12 @@ def test_a_preloaded_shadow_of_the_enum_module_is_REFUSED_at_import():
     ("worktree-lane-wave-closures", False),
     ("worktree-lane-archival-audit", False),
     ("worktree-lane-intakes-28-29", False),
-    # letter-less but id-bearing, and multi-letter -- also rival-only
+    # letter-less but id-bearing -- rival-only
     ("worktree-lane-502-pythonpath-measure", False),
-    ("worktree-lane-ab-514-two-letters", False),
+    # MULTI-LETTER: rejected until `[#809]` (operator ruling 2026-09-16) widened the batch token
+    # to `[a-z]{1,3}`, because all 26 single letters are spent. Admitted now; four letters are not.
+    ("worktree-lane-ab-514-two-letters", True),
+    ("worktree-lane-abcd-514-four-letters", False),
     # the batch-4 plan's live off-enum instance: a letter, then a slug, no id
     ("worktree-lane-f-architecture-soft-sweep", False),
     # LEGACY `worktree-<slug>` -- never a lane, and must not become one
@@ -710,6 +713,20 @@ def test_an_off_grammar_lane_branch_gets_NO_exemption_mid_batch(tmp_path, monkey
     assert off_grammar[:7] in findings[0].evidence
     assert conforming[:7] not in findings[0].evidence
     assert "NOT counted above" in findings[0].evidence
+
+
+@requires_git
+def test_809_a_batch_ab_lane_merge_receives_the_exemption_under_an_open_manifest(tmp_path):
+    """`[#809]` Done-when (3). `worktree-lane-ab-808-guard-timeout` is batch AB's real lane-1
+    branch. Under an open manifest, its merge is exempt. Before the widening it was not, and
+    that is why `audit-health` fired on every intermediate commit of batch AA's integration."""
+    repo, _ = _seed(tmp_path)
+    _write_manifest(repo, batch="AB",
+                    closed_by="docs/audits/2026-09-16-technical-batch-ab-close-packet.md",
+                    name="2026-09-16-technical-batch-ab-manifest.md")
+    lane = _merge(repo, "worktree-lane-ab-808-guard-timeout")
+    assert bm.is_lane_merge(repo, lane) is True
+    assert bm.exempt(repo, [lane]) == {lane}
 
 
 # --- #524 leg (c): "anchored by mention, not by record" WARN ---------------------------
