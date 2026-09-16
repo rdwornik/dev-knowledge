@@ -676,14 +676,17 @@ def test_every_refusal_names_itself_and_carries_a_remedy():
 
 
 def test_the_refusal_registry_lists_every_refusal_in_declaration_order():
-    """Five from batches T/U, plus `file-collision` from `[#675]` target 3.4.
+    """Five from batches T/U, `file-collision` from `[#675]` target 3.4, and `unruled-merge`
+    from lane `aa-2`'s integrator plan/execute split.
 
     The roster is asserted WHOLE and in order rather than by membership: a seat template cites
-    these ids, so a silent addition or reorder changes what a rendered boot runs.
+    these ids, so a silent addition or reorder changes what a rendered boot runs. Widening it is
+    therefore an edit a reviewer sees, which is the point -- a membership assertion, or a
+    `len(...) <= N` bound, would both be satisfied by swapping one id for another.
     """
     assert sr.REFUSALS == (
         "sleeping-poll", "lane-ceiling", "reviewer-mismatch", "carried-by", "dryrun-step0",
-        "file-collision",
+        "file-collision", "unruled-merge",
     )
 
 

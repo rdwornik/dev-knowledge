@@ -23,7 +23,11 @@ Scope & honest limits (ADR-89's three limits — emitted as caveats on EVERY ans
 
 What this is NOT (intent-spec anti-patterns): it is the oracle TOOL only. It is not wired
 into `audit.py` ALL_CHECKS, not a pre-commit hook, not a gate. The safe-removal gate that
-CONSUMES it is #195 (Track D), a separate later item. Because a gate will consume this, the
+CONSUMES it is #195 (Track D) — **BUILT and CLOSED**: `audit.py::check_safe_removal` (logic in
+`scripts/safe_remove.py`) is a FAIL-class ALL_CHECKS member, diff-triggered and fail-OPEN when
+Pyright is absent. The live residual is **[#218]**, the deferred L3 real-deletion phases; this
+paragraph described #195 as pending until 2026-09-15. Pyright is vendored via `npm install`
+(pinned in `package.json`; `node_modules/` gitignored). Because a gate consumes this, the
 "never crash" contract is load-bearing: every startup-failure mode (missing langserver,
 missing node, a langserver that dies/errors on start) maps to the SAME `oracle-unavailable`
 envelope (exit non-zero, install hint) — never a stack-trace a consuming gate could inherit

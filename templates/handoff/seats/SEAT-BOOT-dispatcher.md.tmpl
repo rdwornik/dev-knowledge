@@ -14,6 +14,11 @@
   provisioning verb ("where the check sits is the whole mechanism"), and the -DryRun of every
   generated contract is the LAST line of step 0 (AMEND-BATCH-V-002 §1). Both placements are
   asserted by tests/test_gen_seat_boot.py, so a reflow that moves them fails the suite.
+
+  ROUTING BLOCK: `{{PHASE_BLOCK}}` renders this seat's own resolved launch line from
+  `gen_seat_boot.SEAT_PHASES` -- implements `[#737]` (a SEAT-BOOT render cannot express
+  the seat's own model). Before it, the boot's only launch command was Ch8 row 3's bare
+  `claude`, so the header's `model:` field reached no flag.
 -->
 # SEAT-BOOT-dispatcher — {{BATCH}}
 
@@ -55,6 +60,10 @@ anyway, by seats that had read the prose.
 {{CH8:routing-matrix}}
 
 {{CH8:dispatch-constants}}
+
+### 4a · Your own routing, resolved
+
+{{PHASE_BLOCK}}
 
 ## 5 · Your interaction budget
 

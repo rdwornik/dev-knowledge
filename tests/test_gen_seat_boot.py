@@ -276,22 +276,55 @@ def test_the_batch_label_falls_back_to_the_cut_slug_when_the_manifest_is_ambiguo
 # Opus but runs suites and teardowns on Sonnet, which is `opusplan`. Before this, a SEAT-BOOT
 # render carried no model at all, so the ruling had nowhere to live except prose that the next
 # seat would have to be told about -- which is the failure the boot renders exist to end.
+#
+# AMENDED 2026-09-15 (lane `aa-2`). Recording the tier in the render was necessary and was not
+# sufficient: the value landed in a `<!-- GENERATED -->` COMMENT, while the launch command the
+# boot carried stayed Ch8 row 3's bare `claude`. A tier that reaches no flag is a decision the
+# tree records and does not make, and batch Z measured the consequence -- the integrator seat ran
+# 100% `claude-opus-5`, USD 82.53, 30.5% of a USD 270.72 night, under a header saying `opusplan`.
+# The split now lives in `gen_seat_boot.SEAT_PHASES` and reaches a RESOLVED launch line per
+# phase; `tests/test_seat_split.py` is where that is asserted. These tests keep the narrower
+# claim they were written for: the render RECORDS the tier.
 
 
 def test_every_rendered_boot_records_its_seat_model(bundle):
+    """ASSERTED AGAINST `model_clause`, NOT `SEAT_MODELS`, and the difference is load-bearing.
+
+    `SEAT_MODELS[seat]` is the seat's ENTRY tier. For a split seat the header names every phase,
+    so asserting the entry value alone would pass on a substring -- `model: opus` is a prefix of
+    `model: opus (plan) + sonnet (execute)` -- and a header that reported one of two tiers would
+    sail through the check that exists to catch exactly that.
+    """
     for seat in seat_ch8.SEATS:
         text = (bundle / gsb.out_name(seat)).read_text(encoding="utf-8")
-        assert f"model: {gsb.SEAT_MODELS[seat]}" in text, seat
+        assert f"model: {gsb.model_clause(seat)} |" in text, seat
 
 
-def test_the_two_seats_the_operator_retiered_carry_the_ruled_models(bundle):
-    """AX22-3 names these two explicitly; the others stay Opus."""
+def test_the_two_seats_the_operator_retiered_carry_the_ruled_TIERS(bundle):
+    """AX22-3 names these two explicitly; the others stay Opus.
+
+    AMENDED 2026-09-15 by lane `aa-2`, and the amendment is to the ruling's MEANS, never its
+    substance. AX22-3 ruled the integrator seat split -- "judges merge verdicts on Opus while
+    running suites and teardowns on Sonnet" -- and named `opusplan` as how. That clause is what
+    this test now asserts, in the form `SEAT_PHASES` gives it: Opus for the judging half, Sonnet
+    for the mechanical one. The ruling is stated MORE precisely than before, not relaxed.
+
+    `opusplan` is gone as the carrier because it was measured not to be one. It keys on plan
+    MODE, which is not where this seat's halves divide; it is INERT on a background shape
+    (`dispatch_surface.BACKGROUND_INERT_MODELS`, measured 84/84 turns on Sonnet); and at the
+    integrator's own context size a per-turn split pays more in per-model cache re-writes than
+    the cheaper tier saves. Batch Z is the outcome under the old carrier: the integrator seat ran
+    **100% `claude-opus-5`, USD 82.53, 30.5% of the night**, under a header reading `opusplan`.
+    Full rationale, kept where the map is: `gen_seat_boot.SPLIT_RATIONALE`.
+    """
     assert gsb.SEAT_MODELS["dispatcher"] == "sonnet"
-    assert gsb.SEAT_MODELS["integrator"] == "opusplan"
+    judge, mechanics = gsb.SEAT_PHASES["integrator"]
+    assert (judge.model, mechanics.model) == ("opus", "sonnet"), "AX22-3's substance"
     dispatcher = (bundle / gsb.out_name("dispatcher")).read_text(encoding="utf-8")
     integrator = (bundle / gsb.out_name("integrator")).read_text(encoding="utf-8")
     assert "model: sonnet" in dispatcher
-    assert "model: opusplan" in integrator
+    assert "model: opus (plan) + sonnet (execute)" in integrator
+    assert "model: opusplan" not in integrator
 
 
 def test_the_seat_model_map_covers_every_declared_seat(bundle):
