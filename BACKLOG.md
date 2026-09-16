@@ -428,6 +428,7 @@ So that cadence-less artifacts and unevaluated tools don't rot or get adopted bl
 - [#578] [P3][S] The earned mitigated rerun — one slot, role-reminder preamble baked in · tasks/578-the-earned-mitigated-rerun-one-slot-role-reminder.md
 - [#753] [P2][M] The supervised non-Claude producer trial — ten bounded tasks, stdout-only producers, admission recorded in the registry · tasks/753-the-supervised-non-claude-producer-trial.md
 - [#785] [P2][M] Ten unattended outcomes price every non-Claude provider CLI on this box, and the metering unit is named where USD-per-token is the wrong instrument · tasks/785-ten-unattended-outcomes-price-every-non-claude-p.md
+- [#832] [P3][M] Re-run the three-repo comparison against the operator's named repositories · tasks/832-copilot-collections-comparison-rerun.md
 
 - [#570] [P2][L] Consume intake #27's W-wave rows — the deferred half of the tech-adoption ledger · tasks/570-consume-the-tech-adoption-ledger-w-wave.md
 - [#535] [P2][S] `audit.py` has two module identities in one process, and a test's monkeypatch is invisible to one of them · tasks/535-audit-py-has-two-module-identities-in-one-process.md
