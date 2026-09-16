@@ -19,6 +19,33 @@
 
 ---
 
+### 2026-09-16 (a) - CC (Opus 5, background integrator seat): the deny-and-point guard leaves main, first, because every lane tonight would otherwise inherit it
+
+**Anchors:** `183ea9c5` — the one substantive commit this merge introduces.
+
+**MERGED FIRST BY OPERATOR ORDER, AND THE ORDER IS THE POINT.** A local override cannot do this
+job: an empty PreToolUse in `.claude/settings.local.json` leaves the project hook firing
+(measured by the authoring seat), and `disableAllHooks` would also disarm the ADR-77 fail-closed
+transcript guard and the prompts-dir guard. The tracked file is the only surface with per-hook
+granularity, so the guard stops wedging seats only once this is on main.
+
+**THE EVIDENCE, INCLUDING WHAT THIS SEAT MEASURED YESTERDAY.** Three seats wedged on 2026-09-15
+at "running PreToolUse hooks". Measured against the live guard before this merge: the
+`# raw-needed:` escape ALLOWS a bare governed grep and BLOCKS the same grep followed by `| head`
+or `&& echo`, because the comment lands only in the last segment. **What was NOT established:**
+the guard itself decides in under 0.5 s, emits only `block` and carries a 10 s timeout, so it
+cannot by itself account for a multi-hour hold; the hold mechanism remains unmeasured.
+
+**RE-ENABLE IS CONDITIONAL, NOT A REVERT** — bounded execution time, failing OPEN on timeout with
+an in-band record. Three wiring assertions in `tests/test_deny_and_point.py` go RED by design and
+are that checklist. The `//` narrative still calls the hook wired; the new
+`//deny-and-point-DISABLED` key supersedes it in place, which is stated in the key.
+
+**Changes:** `.claude/settings.json` (one PreToolUse block removed); `ecosystem/organ-index.md`
+regenerated against the synced tree.
+
+**Suite:** NOT run on this workstation, per operator instruction for this seat.
+
 ### 2026-09-15 (s) - CC (Opus 5, background integrator seat): the four AA merge receipts reach the ledger, and what each one refuses to claim
 
 **Anchors:** `c8c0a13d` — the ledger append this entry names.
