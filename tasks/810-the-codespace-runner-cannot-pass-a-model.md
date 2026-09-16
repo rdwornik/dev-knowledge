@@ -1,0 +1,12 @@
+---
+id: "[#810]"
+title: "The Codespace runner cannot pass a model, so model enforcement is impossible on that substrate"
+status: open
+priority: P1
+size: S
+theme: "[E2] Enforced governance"
+story: "[S3] Turn advisory guards into enforced gates"
+generates: BACKLOG.md
+---
+
+- [#810] [P1][S] **The Codespace runner cannot pass a model, so model enforcement is impossible on that substrate** - Operator ruling 2026-09-16, from the batch-AB dispatcher's step-0 report. `Start-DispatchCodespace` writes a runner whose launch line (`DispatchHelpers.psm1:3075`) is `claude -p "Read <contract> and execute it exactly." --permission-mode <mode> --output-format stream-json --verbose` -- **no `--model`**. The verb has no `-Model` parameter, and `gen_lane_contract`'s `codespace` shape emits `Dispatch-Codespace -Contract ... -Slug ...` with no model either. A lane there runs whatever the container's `claude` defaults to, so `[#752]` (declared model is the model that runs) cannot be satisfied on the only off-box substrate. Paired defect, same lane: `substrate-heartbeat.yml` has failed every run (35017551689, 35090026934) because the Actions runner's `uv` is 0.12.15 against the repo's `==0.11.19` pin -- exit 2, no `SUBSTRATE-HEARTBEAT.json` -- so `validate_substrate` leg 8 (armed 2026-09-16) reads `readings={}` and refuses every codespace/cloud contract. **The premise "Codespace is proven live" was carried into a plan from a lane packet; the repo could not read that proof. A proof an organ cannot read is not a proof.** · Done when: (1) the runner carries `--model <m>` taken from the contract's declared model, and a contract with no declared model is refused before any codespace is created; (2) the `codespace` contract shape emits the model on its dispatch line; (3) RED-first: a dry run of a codespace dispatch prints `--model`, and one without a model refuses; (4) the heartbeat workflow pins `uv` to the repo's exact version and ONE green run produces a receipt `substrate_heartbeat.read_receipt` returns non-empty · refs `DispatchHelpers.psm1` (`Start-DispatchCodespace`, operator disk -- deployed copy vs tracked source per memory), `.github/workflows/substrate-heartbeat.yml`, `scripts/substrate_heartbeat.py`, `scripts/validate_substrate.py` (RULE_HEARTBEAT_DEAD), `[#752]` · kill-candidates: none -- `[#752]` stays open for the transcript-read and receipt legs · source: operator ruling 2026-09-16, batch AB lane R
