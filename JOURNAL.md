@@ -19,6 +19,34 @@
 
 ---
 
+### 2026-09-16 (b) - CC (Opus 5, background integrator seat): the retention mover and the tree seal stop contradicting each other -- ruling 4, gate fixed, mover untouched
+
+**Anchors:** `907df521` -- the one substantive commit this merge introduces.
+
+**RULING 4 APPLIED AS RULED: FIX THE GATE, NOT THE MOVER.** `logs_retention.plan_moves` moves a
+dated `logs/<STEM>-YYYY-MM-DD.<ext>` into `logs/YYYY-MM/` at every SessionStart, and
+`validate_hermetization` Rule C refused that home, so every session booted into a dirty tree it
+could not commit. Rule C now admits `logs/YYYY-MM` by GRAMMAR (a real month 01-12, exactly one
+level under `logs`) on the `<home>/archive` precedent -- not per-month patterns, not `logs/*`.
+A witness drives the real `plan_moves` and asserts Rule C admits every home it plans, so the two
+organs are coupled by a test rather than a comment. The two PROVIDER-*.json records move R100 and
+`[#785]`'s refs follow them.
+
+**A GATE REFUSED THE FIRST ATTEMPT, CORRECTLY.** The month regex is the module's second `re` call,
+which crosses `graph-edge-class-census`'s shape threshold. Verdicted `not-an-edge` in
+`graph_queries.EDGE_COMPUTATIONS` (both regexes judge one path segment against a naming grammar,
+never a relation between two corpus files) rather than rewriting the regex to slip under the
+count. Private N stays 18.
+
+**NOT RUN:** the pytest witnesses, per operator instruction for this workstation.
+
+**Changes:** `scripts/validate_hermetization.py`, `scripts/graph_queries.py`,
+`tests/test_validate_hermetization.py`, `tasks/785-*`, `logs/2026-09/PROVIDER-{CENSUS,TRAPS}-2026-09-15.json`,
+`ecosystem/doc-counts.md`.
+
+**Next:** aa-14 with rulings 1/2/3/5, then aa-runtime (ids reallocated into the integrator's
+800-803 block; 794-799 left to the still-live aa-12), then P1 rows 804/805.
+
 ### 2026-09-16 (a) - CC (Opus 5, background integrator seat): the deny-and-point guard leaves main, first, because every lane tonight would otherwise inherit it
 
 **Anchors:** `183ea9c5` — the one substantive commit this merge introduces.
