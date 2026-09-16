@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "5190cd5b56cad5dc6ada299400668d4be004c2250e20348ddce13c65fb39bf09",
+  "generated_sha256": "19328e218777f789d678a58f37637075f1a145b752e39e2b61336abfa25c55b7",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -572,6 +572,10 @@
     {
       "task": 810,
       "file": "810-the-codespace-runner-cannot-pass-a-model.md"
+    },
+    {
+      "task": 827,
+      "file": "827-the-memory-floor-is-derived-from-a-stale-per-seat-constant.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"

@@ -449,6 +449,17 @@ requirements:
       + 126.3 helper, from an exact 31/31 process split) -> 27 seats. The integer is NOT the
       record; the inputs are, because the ceiling moves whenever the non-Claude load does
       and was observed moving 27 -> 26 -> 25 within one session.
+      **RECALIBRATED 2026-09-16 by operator ruling (batch AB, `[#827]`)** -- the inputs above
+      are the PREVIOUS machine state and a different instrument, kept as the record. The floor
+      refused lane ab-810 on a box that had room for it. Reserve 3.00 -> 2.00 GB (the 3.00 was
+      carried from a contract; the OOM watermark is ~1.4 GB). Per seat 413.3 -> 2826 MB,
+      PROVISIONAL: lane ab-804's start moved free memory 5.32 -> 2.56 GB, and most of that
+      landed in "non-Claude" because a lane's uv / git / python children are not named
+      `claude` -- the 413.3 MB figure summed only named processes. Admission is now CURRENT FREE
+      memory minus the reserve, divided by the measured per-seat cost; the live seat count is
+      reported, not gated on; a refusal names the gigabytes to free. The provisional figure is
+      replaced by a free-memory reading taken immediately before and 90 s after the next
+      admitted dispatch.
 
 
   - id: QR-RES-006

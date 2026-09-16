@@ -1,0 +1,12 @@
+---
+id: "[#827]"
+title: "The memory floor used a stale per-seat constant from another machine state, so admission refused work it could run"
+status: open
+priority: P1
+size: S
+theme: "[E2] Enforced governance"
+story: "[S3] Turn advisory guards into enforced gates"
+generates: BACKLOG.md
+---
+
+- [#827] [P1][S] **The memory floor used a stale per-seat constant from another machine state, so admission refused work it could run** - Operator ruling 2026-09-16, batch AB dispatch. `resource_lifecycle.admit` refused lane ab-810 (2.56 GB free against a 3.00 GB reserve; 5 seats against a ceiling of 4) on a box the operator judged able to run it. Three calibration faults, all in the inputs rather than the organ's idea: (1) `PER_SEAT_MB = 413.3` was measured 2026-09-15 on idle-ish seats by summing processes NAMED `claude`, so a working lane's `uv`/`git`/`python` children were invisible to it -- lane ab-804's start moved free memory 5.32 -> 2.56 GB, ~7x the constant; (2) `RESERVE_GB = 3.0` was carried from a contract, not measured -- the OOM watermark is ~1.4 GB; (3) the count leg multiplied the stored constant against a ceiling that moves with non-Claude load. **The same session's recalibration is a first increment, not the fix:** reserve 2.0 GB, admission recomputed from CURRENT free memory and a per-seat cost, refusal names the gigabytes to free, and the per-seat figure set from one dispatch's free-memory delta. **One dispatch is still a stored number.** · Done when: (1) admission derives the per-seat cost from RECENT dispatches -- a ledger of free-memory readings taken immediately before and ~90 s after each dispatch, written by the dispatch act itself, with the per-seat figure computed from the last N and no fixed constant consulted once the ledger holds enough readings; (2) RED-first: a ledger whose recent dispatches cost more than the stored figure raises the admission requirement, and one that cost less lowers it; (3) each reading records machine state (total, free, non-Claude, live seats) so a figure from a different state is identifiable rather than silently reused; (4) the sampling is ONE reading per dispatch -- no polling loop, which on 2026-09-16 was OOM-killed for loading the box it measured · refs `scripts/resource_lifecycle.py` (`PER_SEAT_MB`, `RESERVE_GB`, `allocation`, `admit`), `ecosystem/quality-requirements.yaml` QR-RES-001, `[#792]` (the organ), `[#790]` · kill-candidates: none -- `[#792]` owns the organ; this row owns its calibration input · source: operator ruling 2026-09-16, batch AB
