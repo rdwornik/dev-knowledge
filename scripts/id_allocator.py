@@ -68,11 +68,13 @@ import click
 
 try:
     from scripts import single_flight as _sf  # type: ignore  # noqa: PLC0415
+    from scripts.validate_branch_naming import BATCH_TOKEN  # type: ignore  # noqa: PLC0415
 except ImportError:
     _SCRIPTS_DIR = str(Path(__file__).resolve().parent)
     if _SCRIPTS_DIR not in sys.path:
         sys.path.insert(0, _SCRIPTS_DIR)
     import single_flight as _sf  # noqa: E402
+    from validate_branch_naming import BATCH_TOKEN  # noqa: E402
 
 logger = logging.getLogger("id-allocator")
 
@@ -84,8 +86,12 @@ RESERVATION_NAMESPACE = "refs/reservations/"
 
 #: The identifier spaces this allocator reserves in, and the shape a value must have in each.
 KIND_TASK_ID = "task-id"
+#: `[#809]` Done-when (4): a batch token is allocated by the SAME mechanism as a task id, never
+#: chosen by a seat. The shape is the enum's own token, imported rather than restated.
+KIND_BATCH_TOKEN = "batch-token"
 KINDS: dict[str, re.Pattern[str]] = {
     KIND_TASK_ID: re.compile(r"[1-9][0-9]{0,6}"),
+    KIND_BATCH_TOKEN: re.compile(BATCH_TOKEN),
 }
 
 _HOLDER_FIELD = "holder: "

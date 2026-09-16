@@ -219,3 +219,16 @@ def test_the_allocator_source_reads_no_task_tree():
     code = "\n".join(ln for ln in source.splitlines() if not ln.lstrip().startswith("#"))
     for forbidden in ("glob(", "manifest.json", "BACKLOG.md", "gen_task_tree"):
         assert forbidden not in code, f"allocator reads a local id surface: {forbidden}"
+
+
+# --- `[#809]` Done-when (4): a batch token is allocated by the same mechanism --------------
+
+@requires_git
+def test_809_a_batch_token_is_reserved_like_a_task_id(tmp_path):
+    """Two dispatchers cannot both take batch token `ac`. A token outside the enum's shape is an
+    internal error (exit 2): it was never a candidate."""
+    _, (lane_a, lane_b) = _origin_and_worktrees(tmp_path)
+    assert _cli(lane_a, "reserve", "batch-token", "ac", "--holder", "dispatcher-ac").returncode == 0
+    refused = _cli(lane_b, "reserve", "batch-token", "ac", "--holder", "dispatcher-other")
+    assert refused.returncode == 3 and "dispatcher-ac" in refused.stderr
+    assert _cli(lane_b, "reserve", "batch-token", "abcd", "--holder", "x").returncode == 2
