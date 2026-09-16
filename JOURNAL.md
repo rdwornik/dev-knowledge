@@ -19,6 +19,22 @@
 
 ---
 
+### 2026-09-16 (k) - CC (Opus 5, background dispatcher seat): sequential backfill -- the operator is not the memory manager
+
+**Anchors:** `d89b836a` -- `[#827]` carries the one-seventh finding.
+
+**OPERATOR RULING: SWITCH TO SEQUENTIAL BACKFILL, RUN TO COMPLETION WITHOUT INPUT.** Batch AB's two queued lanes go
+one at a time: when lane ab-804 is MERGED and its worktree TORN DOWN, one admission reading, then dispatch ab-810;
+when ab-810 merges, the same for ab-808. A free-memory reading immediately before and 90 s after each dispatch is
+written into `PER_SEAT_MB`, replacing the provisional 2826 MB. A refusal with a slot genuinely free is reported
+and the seat stops. The wait watches GIT state only; memory is sampled once per admission decision.
+
+**FINDING, recorded on `[#827]`:** 413.3 MB counted only processes named `claude` and missed each lane's
+`uv`/`git`/`python` children -- about one seventh of the real cost. At lane ab-804's admission the old floor
+reported "4 of 10 seats" on a box that one lane's start took from 5.32 to 2.56 GB free.
+
+**Pushed:** `main` `448a630b..805113b3`, both pre-push gates passed.
+
 ### 2026-09-16 (j) - CC (Opus 5, background dispatcher seat): the recalibrated floor still refuses -- and this time the box really is out
 
 **Anchors:** `2d19f783` -- RED witnesses; `146625f9` -- the recalibration build and `[#827]`.
