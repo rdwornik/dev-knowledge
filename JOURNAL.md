@@ -19,6 +19,39 @@
 
 ---
 
+### 2026-09-16 (h) - CC (Opus 5, background dispatcher seat): batch AB opens before any lane boots -- three LOCAL lanes, two held, and the premise that could not be read
+
+**Anchors:** `d0fe3865` -- the batch AB manifest plus `[#808]` `[#809]` `[#810]`; merged `8a24f469`.
+
+**STEP 0 HALTED THE FOUR-LANE WAVE, AND THE OPERATOR UPHELD ALL THREE REASONS.** LOCAL: `resource_lifecycle
+admit` exit 1 (free 1.80 GB < 3.00 GB reserve; 5 seats vs ceiling 1). CODESPACE: `validate_substrate` leg 8
+armed today and `substrate_heartbeat.read_receipt` returned `readings={}` -- the heartbeat workflow failed both
+runs on uv 0.12.15 vs `==0.11.19` (`version: "latest"` under a comment claiming it reads the pin), and the
+Codespace runner launches `claude -p` with no `--model`. CLOUD: gate-dependent lanes. "Codespace is proven
+live" came from a lane packet; no organ could read it.
+
+**RULED ROUTE A, THREE LANES:** `lane-ab-808-guard-timeout` `[#808]`, `lane-ab-804-id-allocator` `[#804]`
+`[#788]` `[#809]`, `lane-ab-810-substrate-repair` `[#810]` -- all LOCAL, opus/high. HELD in manifest §4: model
+routing (`[#752]`, after lane 2, so aa-12's `[#793]` renumber is not a fourth instance) and conductor-reads-the-freeze
+(`[#802]`, after lane R's heartbeat). Retired finished seats `a07a1f47`, `d8c134ee` on operator word.
+
+**THE MANIFEST IS THE ALLOCATOR FOR THIS BATCH** -- id blocks 811-826 per holder, reserved in the committed
+tree before the first lane. Contracts pinned by sha256, NOT in-tree: `substrate-teardown-enum-coverage` refuses
+`worktree-lane-ab-*` truthfully until `[#809]` widens the grammar, and it has no declaration input. Teardown of
+these lanes is manual. The merge needed its own `kill-candidates:` line (known gate).
+
+**Did:** step-0 refusals (lane-ceiling PASS at true step 0; dryrun-step0 PASS 3/3); filed three rows; froze and
+dry-ran three contracts; committed and merged the manifest; tore down the manifest worktree.
+**Result:** `open_batches()` -> `AB`. **0 of 3 lanes dispatched** -- admission still refuses (ceiling 1 vs 3 live);
+a bounded 60-min wait watches for ceiling >= live + 4.
+**Changes:** `docs/audits/2026-09-16-technical-batch-ab-manifest.md`, `tasks/808-*`, `tasks/809-*`, `tasks/810-*`,
+`tasks/manifest.json`, `BACKLOG.md`, `JOURNAL.md`.
+**Abandoned:** CODESPACE and CLOUD for wave 1 (reasons above); in-tree contract copies.
+**Next:** operator frees ~2.2 GB non-Claude memory and opens the integrator; dispatcher fires the three lanes with
+admission per lane. Found, not yet filed: `win-tooling`'s tracked `DispatchHelpers.psm1` is ~746 lines behind the
+deployed module; the heartbeat artifact is read by nothing; `seat_refusals lane-ceiling` counts a non-lane
+worktree as a provisioned lane. Main is not pushed.
+
 ### 2026-09-16 (g) - CC (Opus 5, integrator seat): the BACKLOG narration relocation lands
 
 **Anchors:** `5d233b0e` -- ten narration blocks relocated out of the BACKLOG view, `[#807]` filed, `[#731]` / `[#754]` corrected.
