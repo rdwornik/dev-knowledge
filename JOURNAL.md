@@ -19,6 +19,24 @@
 
 ---
 
+### 2026-09-16 (i) - CC (Opus 5, background dispatcher seat): the memory floor was a calibration error, and it refused a lane the box could run
+
+**Anchors:** `660ed861` -- JOURNAL entry (h), merged `448a630b`, which no entry named until this one.
+
+**BATCH AB DISPATCH, RESUMED ON OPERATOR WORD.** Lane `lane-ab-804-id-allocator` admitted (4 of 10 seats,
+5.32 GB free) and fired: LOCAL, ordered opus, ran `claude-opus-5` read off its transcript, bg `9777d92e`.
+Admission then REFUSED lane 810 at 2.56 GB free against a 3.00 GB reserve, 5 seats against a ceiling of 4.
+
+**OPERATOR RULING: THE FLOOR IS MIS-CALIBRATED, NOT A PROPERTY OF THE SYSTEM.** Three faults: (1) 413.3 MB per
+seat is ~7x low -- lane 804's start moved free memory 5.32 -> 2.56 GB, and most of it surfaced as "non-Claude"
+because a lane's `uv`/`git`/`python` children are not named `claude`; (2) the 3.00 GB reserve was carried from a
+contract, not measured -- the observed OOM watermark is ~1.4 GB, so the reserve is 2.0 GB; (3) the count leg
+multiplied a stored per-seat constant against a ceiling that moves with non-Claude load. Admission is now
+recomputed from CURRENT free memory and a MEASURED per-seat cost, and a refusal names what must be freed.
+The per-seat figure is re-measured around the next dispatch (free memory before and 90 s after, one sample
+each -- no polling: the previous wait loop was OOM-killed for loading the box it measured). This arc's
+commits and the fresh measurement are named in the merge body and the next entry.
+
 ### 2026-09-16 (h) - CC (Opus 5, background dispatcher seat): batch AB opens before any lane boots -- three LOCAL lanes, two held, and the premise that could not be read
 
 **Anchors:** `d0fe3865` -- the batch AB manifest plus `[#808]` `[#809]` `[#810]`; merged `8a24f469`.
