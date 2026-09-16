@@ -983,6 +983,15 @@ EDGE_COMPUTATIONS: dict[str, EdgeComputation] = {
         "nothing for a W-G3 lane to migrate. The one repo relation it could have invented -- "
         "which files provisioning calls -- it deliberately does NOT compute: that is FPG-1's "
         "`triggers` input, and `safe_remove.wiring_referrers` consumes it from there"),
+    "scripts/validate_hermetization.py": _not_an_edge(
+        "the ADR-101 tree-seal gate. The shape matched when it grew its second `re` call -- the "
+        "`logs/YYYY-MM` month-bucket grammar that admits the home `logs_retention.plan_moves` "
+        "writes (operator ruling 2026-09-16, [#785]) -- beside the audit-name grammar it "
+        "compiles from `fleet-shape-spec.yaml`, and it reads that YAML plus the lane "
+        "declaration. The class does not apply because both regexes match ONE PATH SEGMENT "
+        "against a naming grammar: whether a single name is an admitted home or audit name. "
+        "Neither is a relation between two corpus files, so there is no edge for FPG-1 to hold "
+        "and nothing for a W-G3 lane to migrate"),
 }
 
 
