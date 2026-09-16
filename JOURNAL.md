@@ -19,6 +19,30 @@
 
 ---
 
+### 2026-09-16 (g) - CC (Opus 5, integrator seat): the BACKLOG narration relocation lands
+
+**Anchors:** `5d233b0e` -- ten narration blocks relocated out of the BACKLOG view, `[#807]` filed, `[#731]` / `[#754]` corrected.
+
+**MERGED** `worktree-backlog-narration-relocation` @ `5d233b0e` `--no-ff`, one commit atop main
+`3d435d36` (merge-base = main tip, no conflict). **BACKLOG.md 99,961 B / 361 rows -> 75,143 B /
+362 rows** (strict `^- [#id] [P]` count on both trees). No row closed, no ceiling raised. This entry
+rides inside the merge commit by operator order; the anchor is the lane commit the range introduces.
+
+**NO TESTS RUN ON THIS BOX** by operator order -- the full suite runs at merge on the Actions
+conductor. The lane's targeted run (305 passed / 3 failed, all red on main before it) is the lane's
+own claim, not re-measured here.
+
+**ID NOTE -- `[#807]` IS NOW TAKEN.** Entry (f) named 807 as aa-12's next free id "as of this
+entry; re-derive". This merge consumes it; aa-12's row re-derives across all refs at its own merge
+(808 or later).
+
+**SEAT REFUSAL SURFACED, NOT ACTED ON:** `seat_refusals.py carried-by` refuses
+`to-cc/AMEND-CONDUCTOR-DECISION-001.md` (`carried-by: BACKLOG.md` is prose, not a locator). Not in
+this merge's footprint; left for the operator.
+
+**Changes:** BACKLOG, `tasks/manifest.json`, `tasks/{731,754,807}-*`,
+`docs/audits/2026-09-16-technical-backlog-view-narration-relocated.md`, `docs/audits/README.md`.
+
 ### 2026-09-16 (f) - CC (Opus 5, background integrator seat): the seat closes -- merges took minutes, waiting for a human took 10.6 hours
 
 **Anchors:** `0d00f631` -- `[#806]`, the `[#612]` relocation and the title grooming.
