@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "bbe56d0a92c062a6b9c4145e02f5dbeeb0adb4e2db1668a21a211e9f1ba9d9b4",
+  "generated_sha256": "ba8a8421a0ae41f9009fcac3ff37382ddb8c55cbe8b1683f00bd97ecaaf39761",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -588,6 +588,10 @@
     {
       "task": 821,
       "file": "821-dispatch-drift-validates-against-one-machines.md"
+    },
+    {
+      "task": 822,
+      "file": "822-a-pipe-masks-the-exit-code-of-the-command-it.md"
     },
     {
       "task": 823,
