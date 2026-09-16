@@ -19,6 +19,29 @@
 
 ---
 
+### 2026-09-16 (j) - CC (Opus 5, background dispatcher seat): the recalibrated floor still refuses -- and this time the box really is out
+
+**Anchors:** `2d19f783` -- RED witnesses; `146625f9` -- the recalibration build and `[#827]`.
+
+**THE RECALIBRATION LANDS.** `resource_lifecycle`: reserve 2.0 GB; admission = CURRENT free minus reserve,
+divided by a per-seat cost of 2826 MB (PROVISIONAL, from lane ab-804's 5.32 -> 2.56 GB start); the live
+seat count is reported, not gated on; a refusal names the gigabytes to free. The 413.3 MB figure is recorded
+in the provenance as a different machine state and a different instrument (named-process RSS, blind to a
+lane's children). `QR-RES-001` amended. Targeted: 65 passed across the four impacted modules; ruff clean.
+
+**THE ADMISSION DECISION, ONE READING, 2026-09-16T17:58:54+02:00: REFUSED.** 1.85 GB free -- below even the
+2.00 GB reserve -- with 24.04 GB held by non-Claude and 4 live seats; one seat needs 4.76 GB free, so **2.91 GB
+more** would have to be freed. Free memory moved 3.26 -> 1.85 GB in minutes while lane ab-804 ran. Lanes ab-810
+and ab-808 are NOT dispatched, by operator order ("losing a commit to the OOM reaper costs more than a queued
+lane"). The 90 s per-seat measurement did not happen, because it needs an admitted dispatch; 2826 MB stays
+labelled provisional and `[#827]` owns the real fix (per-seat cost derived from a ledger of recent dispatches).
+
+**Did:** RED-first recalibration; filed `[#827]`; one admission reading. **Result:** floor corrected; 810/808 queued.
+**Changes:** `scripts/resource_lifecycle.py`, `tests/test_resource_lifecycle.py`, `ecosystem/quality-requirements.yaml`,
+`ecosystem/doc-counts.md`, `tasks/827-*`, `tasks/manifest.json`, `BACKLOG.md`, `JOURNAL.md`.
+**Next:** free ~2.9 GB (the non-Claude 24 GB is the lever); re-run `resource_lifecycle.py admit` once; on PASS,
+dispatch 810 with a free-memory reading immediately before and 90 s after, write that into `PER_SEAT_MB`.
+
 ### 2026-09-16 (i) - CC (Opus 5, background dispatcher seat): the memory floor was a calibration error, and it refused a lane the box could run
 
 **Anchors:** `660ed861` -- JOURNAL entry (h), merged `448a630b`, which no entry named until this one.
