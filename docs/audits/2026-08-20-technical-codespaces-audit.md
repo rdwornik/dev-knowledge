@@ -11,6 +11,57 @@ operator granted the `user` OAuth scope, which also filled in §1.3's quota tabl
 
 ---
 
+
+---
+
+**AMENDMENT 2026-09-15 — TWO RECOMMENDATIONS IN THIS FILE ARE SUPERSEDED. Read this before
+acting on §3.2 or §1.3.**
+
+*Added by operator ruling 2026-09-15. Nothing below this marker is edited — this audit is
+immutable and remains exactly as measured. The marker exists because both corrections are
+ACTIONABLE, and a reader who reaches the recommendation before the correction will do the wrong
+thing.*
+
+**SUPERSEDED (1) — "Idle timeout: YES — set 15 min" (§3.2 table row "Idle timeout").
+DO NOT ACTION. Lowering the idle timeout is now known to be actively harmful.**
+A detached lane produces ZERO terminal output for its entire run: the runner starts the agent
+with `> "$RUN_LOG" 2>&1 &`, the detach path re-execs under `setsid nohup ... </dev/null` and the
+parent exits so no ssh session remains, and the fuse loop's only `printf` goes to a file.
+GitHub counts activity as "Terminal activity, either input or output", and its own worked example
+is a still-running process timing out for want of it. **Halving the idle timeout halves the time
+a working detached lane survives before the platform stops it mid-run.** If the mechanism holds,
+the flag must move the other way — toward the documented 240-minute maximum — not down. This
+audit's reasoning for 15 min is sound for the case it considered (a FORGOTTEN codespace burning
+minutes for nothing) and does not consider a WORKING one that emits nothing. Both cases are real;
+the remedy for the first is auto-STOP at handback, not a shorter fuse for the second.
+Recorded at `ecosystem/quality-requirements.yaml` QR-AVAIL-010 and in the amendment to
+`docs/intake/2026-09-15-tech-codespace-lane-state-observability.md`. Still a SUFFICIENT MECHANISM
+rather than an established cause — see `[#697]`, which stays open for the measurement.
+
+**SUPERSEDED (2) — "601 of 2 000 Actions minutes (30%) already spent this month" (§1.3, restated
+at §3.2 and in the §6 conclusion). The premise does not hold, and every "the narrow prebuild
+trigger is load-bearing" conclusion resting on it is unsupported.**
+GitHub's 2 000-minute included allowance is a **private-repository** entitlement; standard-runner
+minutes on **public** repositories are not billed and do not consume it. Measured 2026-09-15 via
+the billing usage API: `rdwornik/dev-knowledge` is **public**; its September Actions Linux usage
+is **1 889 minutes at netAmount $0.00**, fully discounted. In **August 2026 this repo recorded
+NO Actions Linux minutes at all** — only Actions storage — so the 601 figure cannot have been
+this repository's. The account's August Actions minutes were 1 165, on `corp-monorepo`, which is
+also public. The most likely reading is that the account settings page's usage counter, which
+reports usage whether or not it is billable, was read as a consumed entitlement.
+**The metered resource is Codespaces, not Actions** — same measurement, same day: 8.01 hours of
+2-core plus 5.42 hours of 4-core on this repo in September, about 37.7 core-hours. The caution in
+this audit is right in substance and was pointed at the wrong resource.
+*Boundary of the evidence: repository visibility was read on 2026-09-15 and cannot be verified
+retroactively for 2026-08-20. If either repo was private then, figure (2) may have been correct
+when written and is superseded only from today.*
+
+**NOT SUPERSEDED.** Every measured figure in this audit stands — the 1.91× / 1.57× machine-size
+measurements, the `uv` cache findings, the prebuild lifecycle reading, the retention analysis.
+This marker touches two recommendations, not the measurements they were drawn from.
+
+---
+
 ## RULING — accepted 2026-08-20
 
 **Status: LEAN v2 ACCEPTED VERBATIM as the ruling.** Architect accepted 2026-08-20. §4.5 is no longer a

@@ -100,9 +100,9 @@ THRESHOLD_PROVENANCE: dict[str, str] = {
     "MAX_CONTAINER_AGE_DAYS": (
         "DERIVED from this repo's own batch cadence rather than from a cloud convention. The "
         "measured merge-queue spans are 3.83 h (batch Y) and 4.94 h (batch Z), so a whole "
-        "batch fits inside a day with room over; a container alive longer than that was not "
-        "torn down at anybody's handback. The measured breach is "
-        "`suite-baseline-2026-09-08`, alive 7 days."
+        "batch fits inside a day with room over; a container still RUNNING longer than that "
+        "was not stopped at anybody's handback. It bounds a running container only: a stopped "
+        "one is the handback state (operator ruling 2026-09-16, STOP never delete)."
     ),
     "COLD_CREATION_SECONDS": (
         "MEASURED 2026-09-15 from the probe's `/workspaces/.codespaces/.persistedshare/"
@@ -227,25 +227,29 @@ class IdleVerdict:
 
 
 def idle_verdict(state: str, age_days: float) -> IdleVerdict:
-    """Attached while a lane runs; TORN DOWN at handback, never left warm "in case".
+    """Attached while a lane runs; STOPPED at handback, never deleted and never left running.
 
-    `Shutdown` NEVER SCORES CLEAN, however young. Stopping a codespace stops the compute
-    meter and not the storage one -- it bills storage for up to its retention period (30 days
-    on this account) -- so a policy that accepted `Shutdown` would read "stop it at handback"
-    as compliance while the bill continued. The measured instance is
-    `suite-baseline-2026-09-08`, sat Shutdown for 7 days.
+    OPERATOR RULING 2026-09-16 resolves the QR-RES-002 / QR-RES-005 contradiction to STOP,
+    never delete. This lane shipped the opposite ("torn down, never stopped", with `Shutdown`
+    always a breach) and the ruling reverses it on the merits: stopping ends compute billing
+    and PRESERVES `/workspaces` and every saved change, while deleting destroys them -- batch
+    T's lane had 45 uncommitted turns inside a stopped machine, which a delete would have
+    lost. So `Shutdown` is the CLEAN handback state at any age. The storage a stopped machine
+    still bills for up to its retention period is a known cost of that choice, reported in
+    the verdict reason rather than scored as a breach. What remains a breach is a machine
+    still RUNNING past one batch: nobody stopped it at handback.
     """
     normalised = (state or "").strip().lower()
     if normalised == "shutdown":
-        return IdleVerdict(True, (
-            f"a Shutdown codespace is not free -- it bills STORAGE for up to its retention "
-            f"period, and this one is {age_days:.1f} day(s) old. The policy is torn down at "
-            f"handback, not stopped"))
+        return IdleVerdict(False, (
+            f"Shutdown, {age_days:.1f} day(s) old -- stopped at handback, which is the policy. "
+            f"It still bills storage until its retention period ends; that is the accepted "
+            f"cost of never deleting a machine that may hold unsaved work"))
     if age_days > MAX_CONTAINER_AGE_DAYS:
         return IdleVerdict(True, (
             f"alive {age_days:.1f} day(s), past the {MAX_CONTAINER_AGE_DAYS:.1f}-day bound -- "
-            f"a whole batch's merge queue fits in under 5 hours, so a container older than "
-            f"this outlived somebody's handback"))
+            f"a whole batch's merge queue fits in under 5 hours, so a container still running "
+            f"this long was not stopped at somebody's handback"))
     return IdleVerdict(False, f"{state}, {age_days:.2f} day(s) old -- within a batch")
 
 

@@ -32,6 +32,7 @@ from typing import Any
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPO_ROOT / "scripts"))
 
+import codespace_state  # noqa: E402
 import impacted_tests  # noqa: E402
 import merge_receipt  # noqa: E402
 import provider_registry  # noqa: E402
@@ -233,6 +234,62 @@ def test_qr_obs_002_unpriced_model_is_refused(tmp_path):
     trip_qr_obs_002(provider_registry, tmp_path)
 
 
+# ------------------------------------------------------------------ QR-OBS-004
+
+#: The measured creation-log tail from the 2026-09-14 recovery event, transcribed in the
+#: [#746] amendment from `/workspaces/.codespaces/.persistedshare/creation.log` on the
+#: operator's probe codespace `lane-z-substrate-probe`. Not a fixture someone imagined: these
+#: are the lines GitHub printed on the container that died.
+_MEASURED_RECOVERY_LOG = (
+    "[2026-09-14 23:37:14.201Z] postCreateCommand failed with exit code 1.\n"
+    "Container creation failed.\n"
+    "Creating recovery container.\n"
+)
+
+
+def trip_qr_obs_004(organ: Any, tmp_path: Path) -> None:
+    """A recovery container is named from the creation log, BY THAT NAME.
+
+    The requirement is not "something went wrong" — the dispatcher's exit-91 guard already said
+    that, in the wrong words, for a month. It is that the platform's own account is read and the
+    container is called what it is.
+    """
+    verdict = organ.classify_creation_log(
+        _MEASURED_RECOVERY_LOG, markers=organ.RECOVERY_MARKERS
+    )
+    assert verdict.verdict is organ.ContainerVerdict.RECOVERY_CONTAINER, (
+        "QR-OBS-004 VIOLATED: the measured 2026-09-14 creation log was NOT named a recovery "
+        f"container -- got {verdict.verdict}, so a recovery container is once again "
+        "indistinguishable from ours")
+    assert verdict.evidence, (
+        "QR-OBS-004 VIOLATED: a verdict with no quoted evidence is an assertion, not a finding")
+
+
+def test_qr_obs_004_recovery_container_is_named(tmp_path):
+    trip_qr_obs_004(codespace_state, tmp_path)
+
+
+# ------------------------------------------------------------------ QR-OBS-005
+
+
+def trip_qr_obs_005(organ: Any, tmp_path: Path) -> None:
+    """`Available` alone is never reported as a working lane.
+
+    GitHub's `state` reports the MACHINE, not the workload — there is no platform signal for
+    "the job inside is progressing" at all. Treating `Available` as working is the false green
+    that let two detached lanes produce zero work with nobody noticing.
+    """
+    state = organ.classify_lane("Available", None, stale_after_s=900)
+    assert state is not organ.LaneState.WORKING, (
+        "QR-OBS-005 VIOLATED: a container that is merely up, with NO progress signal, read as "
+        f"{state} -- reporting the machine as the workload is the false green that let two "
+        "detached lanes produce zero work unnoticed")
+
+
+def test_qr_obs_005_available_alone_is_not_working(tmp_path):
+    trip_qr_obs_005(codespace_state, tmp_path)
+
+
 # ------------------------------------------------------------------ the seam
 
 
@@ -366,5 +423,25 @@ TRIPS: dict[str, tuple[Any, Any, Any]] = {
             provider_registry,
             resolve_rate=lambda model_id, path=None: provider_registry.resolve_rate(
                 _a_priced_model(provider_registry), path)),
+    ),
+    "QR-OBS-004": (
+        trip_qr_obs_004, codespace_state,
+        # The neutering is the state this repo was in for a month: the creation log exists,
+        # nothing reads it for the platform's own recovery line, so a recovery container is
+        # indistinguishable from ours.
+        lambda: NeuteredOrgan(codespace_state, RECOVERY_MARKERS=()),
+    ),
+    "QR-OBS-005": (
+        trip_qr_obs_005, codespace_state,
+        # The neutering is the false green itself: read `Available` as "the lane is working",
+        # which is what reporting the machine instead of the workload amounts to.
+        lambda: NeuteredOrgan(
+            codespace_state,
+            classify_lane=lambda state, age, **kw: (
+                codespace_state.LaneState.WORKING
+                if state == "Available"
+                else codespace_state.LaneState.UNKNOWN
+            ),
+        ),
     ),
 }

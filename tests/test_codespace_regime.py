@@ -98,11 +98,12 @@ def test_the_ledger_is_append_only(tmp_path):
 
 # ------------------------------------------------------------------ the idle policy
 
-def test_a_codespace_left_shutdown_is_a_breach(tmp_path):
-    """STOPPED IS NOT FREE. The measured instance: suite-baseline-2026-09-08 sat Shutdown
-    for 7 days with retentionPeriodDays 30, billing storage the whole time."""
+def test_a_codespace_left_shutdown_is_NOT_a_breach_and_says_what_it_still_costs(tmp_path):
+    """STOP, NEVER DELETE (operator ruling 2026-09-16). A stopped machine preserves
+    /workspaces; the storage it still bills is reported, not scored. The instance the lane
+    measured, suite-baseline-2026-09-08 Shutdown for 7 days, is compliant under the ruling."""
     verdict = cs.idle_verdict(state="Shutdown", age_days=7.0)
-    assert verdict.breach
+    assert not verdict.breach
     assert "storage" in verdict.reason.lower(), verdict.reason
 
 
@@ -111,15 +112,16 @@ def test_a_running_codespace_within_a_batch_is_not_a_breach():
 
 
 def test_a_codespace_running_longer_than_a_batch_is_a_breach():
-    """Attached while a lane runs, torn down at handback. A container alive across batches
-    was not torn down at anybody's handback."""
+    """Attached while a lane runs, stopped at handback. A container still running across
+    batches was not stopped at anybody's handback."""
     assert cs.idle_verdict(state="Available", age_days=3.0).breach
 
 
-def test_deleted_is_the_only_clean_end_state():
-    """The policy says torn down, not stopped, so `Shutdown` never scores clean however
-    young it is -- otherwise "stop it at handback" would pass and it bills storage."""
-    assert cs.idle_verdict(state="Shutdown", age_days=0.01).breach
+def test_stopped_is_the_clean_end_state_at_any_age():
+    """The policy says stopped, never deleted, so `Shutdown` scores clean however old it is
+    -- a delete would destroy the unsaved work a stop preserves."""
+    assert not cs.idle_verdict(state="Shutdown", age_days=0.01).breach
+    assert not cs.idle_verdict(state="Shutdown", age_days=29.0).breach
 
 
 # ------------------------------------------------------------------ the prebuild ruling

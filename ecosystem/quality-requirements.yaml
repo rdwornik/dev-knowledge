@@ -217,7 +217,7 @@ requirements:
       latency degradation with session age", not "no degradation". (2) THE UPSTREAM FIGURES
       IN `source` ARE THEIRS, NOT OURS, and no threshold in this repo is set against them.
       #22968's 823 MB against ~360 MB fresh was measured on someone else's macOS box; ours
-      measured 413.3 MB per seat and a ~385 MB plateau on this one. The two must never be
+      measured 413.3 MB per seat and a ~385 MB plateau on this one. The two are not to be
       averaged, compared as if commensurable, or used interchangeably, and the upstream number
       being larger is not evidence about this machine. **CITATION SUPPLIED 2026-09-15**, after
       the entry was first filed with the number missing: the digest this lane was given carried
@@ -376,7 +376,7 @@ requirements:
       itself as done.
 
 
-  - id: QR-AVAIL-009
+  - id: QR-AVAIL-011
     attribute: availability
     status: candidate
     statement: >-
@@ -451,7 +451,7 @@ requirements:
       and was observed moving 27 -> 26 -> 25 within one session.
 
 
-  - id: QR-RES-002
+  - id: QR-RES-006
     attribute: resource-control
     status: candidate
     statement: >-
@@ -536,7 +536,7 @@ requirements:
       docs/audits/2026-09-15-technical-lane-aa-14-resource-lifecycle.md section 5
     note: >-
       THE ARCHIVE PATH HAS A MEASURED TRAP AND IT IS NAMED HERE SO THE NEXT LANE DOES NOT
-      WALK INTO IT. Archiving out of the scan path is the right shape -- archive, never
+      WALK INTO IT. Archiving out of the scan path is the right shape -- archive, not
       delete, because the cost history IS the corpus -- but reusing `scripts/logs_retention.py`
       relocates a dated file into `logs/YYYY-MM/`, whose `.gitignore` patterns are `.md`-only
       (`.gitignore` lines 34-35), so a relocated `.json`/`.jsonl` lands untracked and leaves
@@ -557,7 +557,7 @@ requirements:
       executable line: 0.
     incident: >-
       `NODE_OPTIONS="--max-old-space-size=..."` is the workaround upstream names for the
-      growth in QR-RES-002. The reason it must be generator-emitted is MEASURED and local:
+      growth in QR-RES-006. The reason it has to be generator-emitted is MEASURED and local:
       `SEAT_MODELS` carried the integrator's model split from 2026-09-11 and rendered into an
       HTML COMMENT while the boot's actual launch line was a bare `claude`, so batch Z ran
       100% Opus under a header claiming a split. A second instance of declared enforcement
@@ -578,16 +578,27 @@ requirements:
       Opening it from batch AA lane aa-14 would be a second undeclared claim on a module
       under restructure -- the disposition `scripts/lane_cost.py` records against
       `scripts/merge_receipt.py`. Filed as a candidate so the requirement is visible while
-      the surface that must satisfy it belongs to another row.
+      the surface that has to satisfy it belongs to another row. FOLDED FROM WITHDRAWN LANE
+      aa-13 (operator ruling 2026-09-16, ruling 1 -- aa-14 survives, aa-13's commits reviewed
+      for what aa-14 lacks): THE METRIC AS WRITTEN IS UNSATISFIABLE FOR THE TOP-LEVEL CLI.
+      win-tooling `scripts/dispatch/Invoke-Dispatch.ps1` `Assert-ClaudeCommand` pins the head
+      token of a launch line to `claude`, and dispatch executes `& $command @argv` as an argv
+      array, so no position in a dispatched launch line can carry an environment assignment
+      such as `NODE_OPTIONS=...`. "Launch lines carrying the declared cap: all of them" cannot
+      be met by editing the line; the cap has to reach the process through the dispatcher's
+      environment (or a wrapper the head-token check admits), and this entry cannot be
+      promoted past candidate until that route is chosen. Found by aa-13 (`01c446f7`), not
+      measured by aa-14; locators to be re-verified by whichever row takes the emission.
 
   - id: QR-RES-005
     attribute: resource-control
     status: candidate
     statement: >-
-      A Codespace lane is attached while it runs and TORN DOWN at handback, never stopped and
-      left warm; and its receipt records uptime MINUTES alongside tokens.
+      A Codespace lane is attached while it runs and STOPPED at handback -- not deleted, and
+      not left running; and its receipt records uptime MINUTES alongside tokens.
     metric: >-
-      Codespaces in `Shutdown` state older than one batch: 0. Receipts for a Codespace lane
+      Codespaces still RUNNING (`Available`) past one batch: 0. Codespaces deleted by policy: 0.
+      Receipts for a Codespace lane
       carrying an uptime figure: all of them. Measured 2026-09-15: zero receipts carry any
       uptime or minutes key, and one codespace (`suite-baseline-2026-09-08`) had been sitting
       Shutdown for 7 days with `retentionPeriodDays: 30`.
@@ -602,9 +613,15 @@ requirements:
       THE THRESHOLDS IN THIS ENTRY SHARE NO CONSTANT WITH THE LOCAL ONES, deliberately. Local
       is a fixed ceiling allocated against; cloud is a meter run down. A single number tuned
       for one is wrong for the other, and a mechanism that treats them as one resource is why
-      neither is managed today. STOPPED IS NOT FREE: a Shutdown codespace bills storage for up
-      to its retention period, so "stop it at handback" is a weaker rule than "delete it" and
-      the metric above counts Shutdown codespaces for that reason.
+      neither is managed today. STOP, NOT DELETE -- operator ruling 2026-09-16, which
+      REVERSES this entry as the lane filed it (teardown at handback in place of a stop, with a
+      metric counting Shutdown codespaces as breaches) and resolves its contradiction with
+      QR-RES-002. Stopping ends compute billing and preserves `/workspaces` and every saved
+      change; deleting destroys them, and batch T's lane with 45 uncommitted turns inside a
+      stopped machine is why that loss is not acceptable. Stopped is still not free -- a
+      Shutdown codespace bills storage for up to its retention period -- and that storage is
+      the accepted, reported cost of the rule, not a breach of it. The lane's measured
+      `suite-baseline-2026-09-08`, Shutdown for 7 days, is compliant under the ruling.
 
   # ---- observability -----------------------------------------------------------------
   - id: QR-OBS-001
@@ -658,3 +675,204 @@ requirements:
       `ecosystem/organ-index.md` renders what exists and what triggers it, which is a
       different question from what has actually run. A candidate until an invocation record
       exists to read.
+
+  - id: QR-OBS-004
+    attribute: observability
+    status: measured
+    statement: >-
+      A codespace that came up as a RECOVERY container is named as one, from the platform's own
+      creation log, with the matched line quoted as evidence.
+    metric: >-
+      Recovery containers identified by that name rather than by a downstream symptom: all of
+      them. Verdicts issued without quoted evidence: 0. An absent or unrecognised log reads
+      INDETERMINATE, never OURS.
+    incident: >-
+      On 2026-09-14 23:37Z `postCreateCommand` failed, GitHub substituted a recovery container,
+      and the platform reported the codespace live throughout. Nothing read the creation log, so
+      for a month the symptom was treated instead of the cause -- a retired call, then a
+      provenance marker, then a heartbeat -- while the dispatcher's exit-91 guard reported
+      "claude is not installed in this devcontainer", which is what a recovery container looks
+      like downstream while naming the wrong thing.
+    source: operator directive 2026-09-15 (Phase 3); platform facts in DIGEST-2026-09-15-codespaces-reference.md
+    organ: scripts/codespace_state.py
+    trip_test: tests/test_quality_requirement_trips.py::test_qr_obs_004_recovery_container_is_named
+    note: >-
+      The marker table is MEASURED IN THIS REPO, not anticipated -- every entry was emitted by
+      GitHub into this repository's own creation log and is transcribed in the [#746] amendment;
+      each marker carries its provenance from a closed set. Honest limit: validated against ONE
+      recovery event, so it names the failure shape that killed us and is not a proof that every
+      recovery container announces itself with these strings. Unmatched logs fail toward
+      INDETERMINATE rather than toward a false green.
+
+  - id: QR-OBS-005
+    attribute: observability
+    status: measured
+    statement: >-
+      A codespace lane's state is a cross of the container's platform state with the age of the
+      lane's own progress signal. `Available` alone is never reported as working.
+    metric: >-
+      Lanes reported WORKING on the strength of the platform state alone: 0. Container-up with a
+      stale progress signal is reported HUNG, not WORKING; container-down is DIED.
+    incident: >-
+      Twice a detached Codespace lane produced zero work and nobody noticed, because the only
+      signal consulted was the platform's, and the platform reports the MACHINE rather than the
+      workload -- GitHub documents no job-status API, no completion callback and no progress
+      stream for work inside a codespace, and there is no codespace webhook of any kind.
+    source: operator directive 2026-09-15 (Phase 3); DIGEST-2026-09-15-codespaces-reference.md section g
+    organ: scripts/codespace_state.py
+    trip_test: tests/test_quality_requirement_trips.py::test_qr_obs_005_available_alone_is_not_working
+    note: >-
+      Deliberately a PURE CROSS and not a poller. Which mechanism supplies the progress signal --
+      polling from outside, the lane pushing from inside, or both -- is the open architectural
+      question filed as intake #102 and routed to the decision engine; building the observer here
+      would have decided it in a diff.
+
+  - id: QR-OBS-006
+    attribute: observability
+    status: candidate
+    statement: >-
+      A Codespace lane that dies mid-work becomes a filed row without a human looking, within a
+      bounded detection latency.
+    metric: >-
+      Time from a lane's death to a filed row. Silent zeros per batch -- lanes that produced no
+      work and generated no signal -- against a bar of 0.
+    incident: >-
+      Today a dispatched Codespace lane is known to have failed only when someone looks. Twice a
+      detached one produced zero work with nobody noticing; the substrate itself died at one
+      commit on 2026-09-14 and went unnoticed for two weeks because nothing ran there.
+    source: operator directive 2026-09-15 (Phase 3)
+    note: >-
+      CANDIDATE, and the reason is structural rather than unfinished work: the mechanism that
+      supplies the signal is intake #102's open question (poll / push / both / not-on-Codespaces),
+      and naming an organ here before the engine rules would be this register's own failure mode.
+      QR-OBS-005's classifier is the part that does not depend on the ruling and is already
+      measured. Promote this entry when #102 is ratified.
+
+  - id: QR-AVAIL-009
+    attribute: availability
+    status: candidate
+    statement: >-
+      A dispatched codespace's identity is recorded durably at dispatch, not reconstructed
+      afterwards.
+    metric: >-
+      Dispatched codespaces whose name is written to a durable register at dispatch: all of them.
+      Identities recovered by matching display names after the fact: 0.
+    incident: >-
+      The dispatcher prints the codespace name to the console and returns it in a result object,
+      and writes it nowhere. Once the session ends the only way to find a lane's codespace is to
+      list and pattern-match a display name -- which is also why nothing can poll it. Separately,
+      the name was being reconstructed by a list-delta across several hundred lines of PowerShell,
+      solving a problem the platform does not have: `gh codespace create` prints the name to
+      stdout.
+    source: operator directive 2026-09-15 (Phase 3), Phase 2 finding D3
+    note: >-
+      CANDIDATE because the organ is `Start-DispatchCodespace` in the win-tooling repo, and this
+      register's `organ` field is a path in THIS repo that the schema resolves -- a cross-repo
+      organ cannot be declared measured here without the validator being unable to check it. That
+      is a real limit of the register for transport-layer requirements, recorded rather than
+      fudged by pointing at a hub file that does not do the work.
+
+  - id: QR-RES-002
+    attribute: resource-control
+    status: candidate
+    statement: >-
+      A codespace is STOPPED at handback once its receipt is in hand, so compute is not billed
+      after the work has landed. Stopping is never deleting.
+    metric: >-
+      Paid compute minutes accrued after a lane's last useful work, per batch. Codespaces left
+      running at batch close: 0.
+    incident: >-
+      The dispatcher's success path prints "the codespace is STILL RUNNING and still billing" and
+      stops there; teardown is a manual verb nobody types. The never-delete doctrine is sound --
+      deleting a machine that may hold work is not a call a transport wrapper gets to make -- but
+      it over-applied by one verb: stopping preserves saved changes and `/workspaces` and only
+      ends compute billing.
+    source: operator directive 2026-09-15 (Phase 3), Phase 2 finding D6
+    note: >-
+      CANDIDATE, and it OVERLAPS lane aa-14 (`LANE-aa-14-resource-lifecycle.md`, frozen), whose
+      section 3 rules the same idle policy -- "attached while a lane runs, torn down at handback,
+      never left warm" -- and which also lands entries in this register. Flagged for the
+      integrator rather than double-landed: if aa-14 files its own codespace-idle entry, this one
+      is superseded by it and should be withdrawn, not merged alongside. The organ is also
+      cross-repo, per QR-AVAIL-009's note. ONE CORRECTION IS OWED TO aa-14 WHICHEVER WAY THAT
+      GOES, and it is the reason this row is not simply withdrawn in advance: that lane's
+      section 3 says the container is "torn down at handback", and torn down is the verb the
+      operator ruled 2026-09-15 to be the over-application -- "the doctrine over-applied by one
+      verb". STOPPING ends compute billing and preserves /workspaces and every saved change;
+      DELETING destroys work a lane may not have pushed, and the 2026-09-06 batch T record has
+      an instance of exactly that risk (45 turns of uncommitted work whose only copy was inside
+      a stopped codespace on a 24h retention clock). aa-14 should implement STOP, not teardown.
+      Verified 2026-09-15 against LANE-aa-14-resource-lifecycle.md line 85.
+      RESOLVED 2026-09-16 BY OPERATOR RULING: STOP, NOT DELETE. aa-14 landed with the
+      teardown verb in QR-RES-005 and in `codespace_regime.idle_verdict`; the integrator
+      corrected both in aa-14's own merge, so the correction owed above is discharged. This
+      entry is NOT withdrawn despite the conditional above: it owns the DISPATCHER's
+      stop-at-handback verb and its compute-minutes metric, QR-RES-005 owns the idle policy
+      and the uptime receipt, and after the correction the two agree rather than overlap.
+
+  - id: QR-AVAIL-010
+    attribute: availability
+    status: candidate
+    statement: >-
+      A dispatched lane keeps its codespace alive for as long as it is working. No lane may rely
+      on a substrate whose documented reaping condition its own design holds true for the entire
+      run.
+    metric: >-
+      Lanes reaped by the platform's idle timer while still working: 0. Secondary: the gap
+      between a lane's longest expected silent interval and the codespace's configured
+      --idle-timeout, which must stay positive.
+    incident: >-
+      A detached lane produces ZERO terminal output for its whole run, and the codespace is
+      created with --idle-timeout 30m, so the platform stops the machine at thirty minutes of
+      wall clock no matter how much inference is happening inside it. Derived 2026-09-15 from
+      four facts in our own source -- create passes --idle-timeout 30m
+      ($script:CodespaceDefaultIdle); the runner starts the agent as `claude -p ...
+      --output-format stream-json --verbose > "$RUN_LOG" 2>&1 &`, both streams into a file; the
+      detach path re-execs under `setsid nohup ... </dev/null >>...log 2>&1 &` and the parent
+      exits, so the ssh session ends and no terminal remains; the fuse loop's only printf goes to
+      a file -- against the platform's documented rule that activity is "Terminal activity,
+      either input or output", whose own worked example is a still-running process timing out for
+      want of it. This is a SUFFICIENT mechanism for "a detached lane produced zero work" -- the
+      machine is stopped mid-run, receipt.json is never written and dies with the container, and
+      the stopped state is indistinguishable from an orderly finish -- but see the note: that it
+      is the ACTUAL cause of the recorded instances is not established, and one recorded reap
+      does not fit it.
+    source: operator directive 2026-09-15 (Phase 3 measurement mandate); derived in-repo, not yet
+      observed live
+    note: >-
+      CANDIDATE on two counts, and both are honest limits rather than hedges. (1) The finding is
+      DERIVED -- read out of our source and the platform's docs -- not yet watched happening; the
+      one billable proof run is instructed to observe it (intake 102 amendment). (2) The organ is
+      cross-repo: the runner and the --idle-timeout flag both live in win-tooling
+      DispatchHelpers.psm1, and this register resolves organ paths in THIS repo, so a trip-test
+      here cannot bite the thing that would violate it -- the same limit QR-AVAIL-009 records.
+      It is also UPSTREAM of intake 102 rather than part of it: none of that intake's options A,
+      B or C prevents the reap, because a git push or an API call from inside the container is
+      not terminal output either. Observability and keep-alive are two decisions, and this is the
+      one nobody had noticed was open. (3) WHAT THE RECORD SAYS, both ways, swept 2026-09-15. FOR:
+      the -Detach/idle-timeout interaction was filed as explicitly UNMEASURED three separate times
+      and never closed -- "whether GitHub counts a background process as activity was not
+      measured" (win-tooling 2026-09-01 lane-632 arc packet; repeated in the batch F close packet
+      and in boot-session.md's residual-risk line) -- so the code and the risk note have sat
+      adjacent for two weeks with nobody connecting them. Lane 3.9 of batch T is the best-fitting
+      recorded instance: 45 turns of real work, "cut off mid-sentence waiting on a background
+      test", nothing committed, total loss. AGAINST: the one documented reap ran 75 minutes on an
+      ATTACHED lane against a 30-minute timer, which a simple reading of this mechanism does not
+      explain. NEITHER: batch W's zero-work pair went quiet ~14 minutes after the pre-dispatch
+      manifest commit, which is about when ssh detaches -- consistent with the mechanism but not
+      evidence for it, because gh's lastUsedAt semantics (last activity, or the stop itself?) are
+      themselves undocumented. That is a fourth UNKNOWN the proof run should settle. This row is a
+      contribution to open row [#697], whose Done-when is exactly "the -Detach / idle-timeout
+      cause is identified and fixed with the measurement recorded"; it does not close it, because
+      the measurement is the half still missing. (4) OPERATOR RULING 2026-09-15, recorded here
+      because this register is where a later seat checks the claim's standing: "this is a
+      SUFFICIENT MECHANISM, not an established cause, and [#697] stays open with the identified
+      half recorded -- do not let a later seat promote it." A seat that finds this row must NOT
+      restate it as the cause of the zero-work lanes, must NOT close [#697] on it, and must NOT
+      action the 2026-08-20 audit's "set 15 min" recommendation, which is superseded in place by
+      a flush-left marker on that file. What moves this row to measured is ONE instrumented run:
+      --idle-timeout at its documented 5-minute minimum, a detached lane sleeping past it, and the
+      state transition recorded with its timestamp. [#697] carries the same guard in its own body,
+      compressed -- that row is under narration relief (tasks/archive/697.md) and its body is
+      byte-capped, which is why the full ledger lives here and in the intake amendment rather
+      than in the row.

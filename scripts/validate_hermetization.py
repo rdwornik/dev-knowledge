@@ -455,6 +455,18 @@ def _home_matches(home: str, pattern: str) -> bool:
     return all(p == "*" or p == h for h, p in zip(hp, pp))
 
 
+#: `scripts/logs_retention.py` relocates a dated `logs/<STEM>-YYYY-MM-DD.<ext>` into a
+#: `logs/YYYY-MM/` month bucket (`plan_moves`). That bucket is a GRAMMAR home, the same kind
+#: of rule as `<allowed-home>/archive` below: the mover writes it on every SessionStart, so
+#: refusing it made two hub organs contradict each other -- one performing a relocation the
+#: other would not let anyone commit (operator ruling 2026-09-16: fix the gate, not the
+#: mover; `[#785]` recorded the disagreement). The month is a REAL calendar month, `01`-`12`,
+#: and only ONE level under `logs` -- `logs/misc/` and `logs/2026-09/sub/` stay surfaced acts.
+#: `tests/test_validate_hermetization.py` asserts every destination `plan_moves` produces is
+#: admitted, so the two organs cannot drift apart again without a RED.
+_RETENTION_BUCKET_RE = re.compile(r"^\d{4}-(?:0[1-9]|1[0-2])$")
+
+
 def is_allowed_home(home: str, profile: RepoProfile = HUB_PROFILE) -> bool:
     """True iff `home` (a repo-relative POSIX directory) is an admissible home.
 
@@ -474,6 +486,10 @@ def is_allowed_home(home: str, profile: RepoProfile = HUB_PROFILE) -> bool:
     instance -- corp-monorepo's `scripts/archive/` -- was out-of-pattern for no reason but
     the enumeration. The parent must itself be an admissible home, so this generalizes the
     shape without opening `<anything>/archive`.
+
+    `logs/YYYY-MM` is the second grammar rule, and for the same reason: it is the home
+    `logs_retention.py` writes, so admitting it by enumeration would need a new pattern every
+    month. `logs` must itself be admitted, so a profile without it gains nothing here.
     """
     if home == "docs":
         return False
@@ -486,6 +502,9 @@ def is_allowed_home(home: str, profile: RepoProfile = HUB_PROFILE) -> bool:
     if len(parts) >= 2 and parts[-1] == "archive":
         parent = "/".join(parts[:-1])
         return any(_home_matches(parent, pat) for pat in patterns)
+    if (len(parts) == 2 and parts[0] == "logs" and _RETENTION_BUCKET_RE.match(parts[1])
+            and any(_home_matches("logs", pat) for pat in patterns)):
+        return True
     return False
 
 

@@ -27,7 +27,7 @@
 
 **74 organs across 8 classes.**
 
-**Coverage:** agent 3 · command 12 · skill 3 · workflow 1 · rule 2 · session-hook 18 · git-hook 34 · plugin 1
+**Coverage:** agent 3 · command 12 · skill 3 · workflow 1 · rule 2 · session-hook 17 · git-hook 35 · plugin 1
 
 ## agent
 
@@ -94,7 +94,6 @@ _Claude Code lifecycle hooks (SessionStart / Stop / PreToolUse / …)_
 | `Notification: claude-notify.ps1` | session-hook | Notification | `~/.claude/claude-notify.ps1` | L0 | ARMED |
 | `PreToolUse: block-onedrive.ps1` | session-hook | PreToolUse (Bash\|PowerShell\|Edit\|Write\|NotebookEdit\|Read) | `~/.claude/hooks/block-onedrive.ps1` | L0 | ARMED |
 | `PreToolUse: block_immutable_edits.py` | session-hook | PreToolUse (Edit\|MultiEdit\|Write\|NotebookEdit) | `.claude/settings.json` | hub | ARMED |
-| `PreToolUse: deny_and_point.py` | session-hook | PreToolUse (Bash\|PowerShell\|Grep) | `.claude/settings.json` | hub | ARMED |
 | `PreToolUse: fleet_health.py` | session-hook | PreToolUse (Read\|Write\|Edit\|MultiEdit\|NotebookEdit\|Glob\|Grep\|Bash\|PowerShell\|Monitor\|LSP\|ReadMcpResourceTool\|mcp__.*) | `.claude/settings.json` | hub | ARMED |
 | `SessionStart: arm_hooks.py` | session-hook | SessionStart | `.claude/settings.json` | hub | ARMED |
 | `SessionStart: billing_leak_sentinel.ps1` | session-hook | SessionStart | `.claude/settings.json` | hub | ARMED |
@@ -142,6 +141,7 @@ _git-stage gates declared in `.pre-commit-config.yaml`_
 | `lane-contract-check` | git-hook | pre-commit | `.pre-commit-config.yaml` | pre-commit | ARMED |
 | `normalize-dated-headers` | git-hook | pre-commit | `.pre-commit-config.yaml` | pre-commit | ARMED |
 | `organ-index-freshness` | git-hook | pre-commit | `.pre-commit-config.yaml` | pre-commit | ARMED |
+| `prepend-order` | git-hook | pre-commit | `.pre-commit-config.yaml` | pre-commit | ARMED |
 | `provider-registry-agreement` | git-hook | pre-commit | `.pre-commit-config.yaml` | pre-commit | ARMED |
 | `quality-requirements-freshness` | git-hook | pre-commit | `.pre-commit-config.yaml` | pre-commit | ARMED |
 | `roster-freshness` | git-hook | pre-commit | `.pre-commit-config.yaml` | pre-commit | ARMED |

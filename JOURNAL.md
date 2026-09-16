@@ -19,6 +19,387 @@
 
 ---
 
+### 2026-09-16 (c) - CC (Opus 5, background integrator seat): aa-14 lands as the survivor, with rulings 1, 2, 3 and 5 applied inside its merge rather than after it
+
+**Anchors:** `6317d008` `9227bc9a` `38f22a3c` -- lane aa-14's commits this merge introduces.
+
+**RULING 1 -- aa-14 SURVIVES ON `scripts/resource_lifecycle.py`, and aa-13 was read, not skipped.**
+aa-13's two commits (`3da31370`, `01c446f7`) were reviewed item by item. Dropped with reasons:
+its 8 h / 6-merge lifetime constants (aa-14's 4 h / 5 are derived from batch Y/Z spans), `kill_tree`
+(aa-14's `teardown_tree` covers it, with a grandchild witness), the 64 MiB whole-file transcript
+bound (aa-14 streams with an 8 MiB line bound and rejects the whole-file skip), and uncited
+upstream entries (aa-14 cited all five). FOLDED into QR-RES-004's note: the heap cap cannot reach
+the top-level CLI at all -- `Invoke-Dispatch.ps1` pins the launch line's head token to `claude`
+and runs it as an argv array, so the metric "launch lines carrying the declared cap: all of them"
+is unsatisfiable as written. aa-13's branch ref is KEPT as `[#793]`'s evidence.
+
+**RULING 2 -- `[#790]` and `[#792]` go to aa-14.** `[#792]` lands as aa-14's row; aa-13's `[#790]`
+lands as a SUPERSEDED retained allocation record pointing at `[#792]`, so the id is never reused.
+aa-runtime's own 790/792 move to its reallocation block.
+
+**RULING 3 -- STOP, NOT DELETE, and it reached code, not only prose.** aa-14 had shipped the
+reverse in `codespace_regime.idle_verdict` (`Shutdown` always a breach) and two witnesses. Now
+`Shutdown` is the clean handback state at any age, with its storage cost reported in the reason;
+a machine still RUNNING past one batch stays a breach. QR-RES-005 corrected; main's QR-RES-002
+note records the resolution and why it is kept rather than withdrawn. Flagged, not done: the
+receipt's `deleted` key now means "meter stopped" -- a schema rename belongs to the receipt owner.
+
+**RULING 5 -- APPROVED, AND THE GATE HAS NO WAY TO LAND IT, so the baseline stays 447 by a drain.**
+Measured: main live 442; aa-14 +11; ruling 3's statement rewrite -1; carried ruling text +0
+(first drafted in "never" form at 457, reworded) = 452 exactly, the ruled number. The commit
+carrying 447 -> 452 was then REFUSED by `silent_rule_ratchet`: `validate_transition` rejects any
+raise against main's committed value and there is no ruling input anywhere in the check -- the
+gap `commensurable-ratchet-raise-has-no-landing-path` recorded on 2026-09-06. No bypass. Instead
+the sanctioned drain: five of aa-14's DESCRIPTIVE occurrences reworded, meaning unchanged ("must
+never be averaged" -> "are not to be averaged", "must be generator-emitted" / "must satisfy" ->
+"has to", "archive, never delete" -> "archive, not delete"); every requirement STATEMENT kept its
+wording. Live 447 = baseline 447. This is `[#805]`'s case in miniature: an approved default that
+no mechanism can apply.
+
+**A SEMANTIC MERGE BUG, caught by ruff and not by the textual merge.** main added a since/until
+window to `lane_cost.read_transcript_usage`; aa-14 split its loop into `_accumulate_usage` to
+stream. The auto-merge kept `if windowed:` inside the helper with no `windowed`, `since` or
+`until` in scope -- a NameError on the first windowed seat-cost read. Fixed by passing the window
+through; probed directly (unbounded 30 input tokens, windowed 20).
+
+**REGISTER COLLISIONS (the missing-manifest defect again):** aa-14's QR-AVAIL-009 -> QR-AVAIL-011
+and QR-RES-002 -> QR-RES-006, citations in LESSONS and `[#792]` follow. **Sync note:** a first
+rulings commit on the stale branch was refused by `journal_spine_anchor` (lane lag, not a real
+gap); redone as sync-first.
+
+**NOT RUN:** pytest, per operator instruction. Verdicts exercised directly.
+
+**Changes:** aa-14's 22 files, plus `scripts/lane_cost.py` (merge fix), the drained register notes,
+`tasks/790-runtime-resource-lifecycle-first-increment.md` (superseded), regenerated
+ARCHITECTURE register block, organ-index, doc-counts, manifest.
+
+**Next:** aa-runtime (787/788/790/792 -> 800-803; dispatcher JOURNAL letters -> 2026-09-15 (t)/(u)),
+then rows 804/805. **Flag for aa-12's merge:** it holds its own `tasks/793-*`, colliding with main's `[#793]`.
+
+### 2026-09-16 (b) - CC (Opus 5, background integrator seat): the retention mover and the tree seal stop contradicting each other -- ruling 4, gate fixed, mover untouched
+
+**Anchors:** `907df521` -- the one substantive commit this merge introduces.
+
+**RULING 4 APPLIED AS RULED: FIX THE GATE, NOT THE MOVER.** `logs_retention.plan_moves` moves a
+dated `logs/<STEM>-YYYY-MM-DD.<ext>` into `logs/YYYY-MM/` at every SessionStart, and
+`validate_hermetization` Rule C refused that home, so every session booted into a dirty tree it
+could not commit. Rule C now admits `logs/YYYY-MM` by GRAMMAR (a real month 01-12, exactly one
+level under `logs`) on the `<home>/archive` precedent -- not per-month patterns, not `logs/*`.
+A witness drives the real `plan_moves` and asserts Rule C admits every home it plans, so the two
+organs are coupled by a test rather than a comment. The two PROVIDER-*.json records move R100 and
+`[#785]`'s refs follow them.
+
+**A GATE REFUSED THE FIRST ATTEMPT, CORRECTLY.** The month regex is the module's second `re` call,
+which crosses `graph-edge-class-census`'s shape threshold. Verdicted `not-an-edge` in
+`graph_queries.EDGE_COMPUTATIONS` (both regexes judge one path segment against a naming grammar,
+never a relation between two corpus files) rather than rewriting the regex to slip under the
+count. Private N stays 18.
+
+**NOT RUN:** the pytest witnesses, per operator instruction for this workstation.
+
+**Changes:** `scripts/validate_hermetization.py`, `scripts/graph_queries.py`,
+`tests/test_validate_hermetization.py`, `tasks/785-*`, `logs/2026-09/PROVIDER-{CENSUS,TRAPS}-2026-09-15.json`,
+`ecosystem/doc-counts.md`.
+
+**Next:** aa-14 with rulings 1/2/3/5, then aa-runtime (ids reallocated into the integrator's
+800-803 block; 794-799 left to the still-live aa-12), then P1 rows 804/805.
+
+### 2026-09-16 (a) - CC (Opus 5, background integrator seat): the deny-and-point guard leaves main, first, because every lane tonight would otherwise inherit it
+
+**Anchors:** `183ea9c5` — the one substantive commit this merge introduces.
+
+**MERGED FIRST BY OPERATOR ORDER, AND THE ORDER IS THE POINT.** A local override cannot do this
+job: an empty PreToolUse in `.claude/settings.local.json` leaves the project hook firing
+(measured by the authoring seat), and `disableAllHooks` would also disarm the ADR-77 fail-closed
+transcript guard and the prompts-dir guard. The tracked file is the only surface with per-hook
+granularity, so the guard stops wedging seats only once this is on main.
+
+**THE EVIDENCE, INCLUDING WHAT THIS SEAT MEASURED YESTERDAY.** Three seats wedged on 2026-09-15
+at "running PreToolUse hooks". Measured against the live guard before this merge: the
+`# raw-needed:` escape ALLOWS a bare governed grep and BLOCKS the same grep followed by `| head`
+or `&& echo`, because the comment lands only in the last segment. **What was NOT established:**
+the guard itself decides in under 0.5 s, emits only `block` and carries a 10 s timeout, so it
+cannot by itself account for a multi-hour hold; the hold mechanism remains unmeasured.
+
+**RE-ENABLE IS CONDITIONAL, NOT A REVERT** — bounded execution time, failing OPEN on timeout with
+an in-band record. Three wiring assertions in `tests/test_deny_and_point.py` go RED by design and
+are that checklist. The `//` narrative still calls the hook wired; the new
+`//deny-and-point-DISABLED` key supersedes it in place, which is stated in the key.
+
+**Changes:** `.claude/settings.json` (one PreToolUse block removed); `ecosystem/organ-index.md`
+regenerated against the synced tree.
+
+**Suite:** NOT run on this workstation, per operator instruction for this seat.
+
+### 2026-09-15 (s) - CC (Opus 5, background integrator seat): the four AA merge receipts reach the ledger, and what each one refuses to claim
+
+**Anchors:** `c8c0a13d` — the ledger append this entry names.
+
+**THE RECEIPTS ARE INCOMPLETE ON PURPOSE AND THE LEDGER SAYS SO.** No suite ran on this
+workstation (operator instruction for this seat), so all four record `suite` as UNRECORDED
+rather than as a pass. `merge_receipt.py` offers no `--skip` verb by design — *a median reached
+that way is a false pass on the row* — so the honest shape of a merge whose suite did not run is
+a receipt that is visibly missing a step, and all four are correctly excluded from the median.
+
+**`merge-aa-codespaces` is the weakest of the four and is worth naming rather than counting.**
+Its `teardown` FAILED rc=255 — `git worktree remove` losing to a Windows file lock, the same
+janitorial failure that excluded two thirds of batch Z receipts — and its `handback` and
+`merge` are unrecorded because the receipt was opened AFTER that merge had already landed. It
+records one timed step. The other three each record `merge` and `teardown` timed genuinely,
+around the real commands.
+
+**The timed steps are small and the WALL is not, which is the baseline own point.** merge 0.28
+-0.29 min and teardown 0.13-0.14 min against wall times of 3.55, 9.32 and 15.42 min — so 0.4x of
+each receipt is recorded and the rest is the residual ceremony the `[#675]` baseline puts at
+72.7 min. On this seat that remainder is conflict resolution: three of the four merges needed
+derived-count regeneration, and two needed id reallocation.
+
+**Changes:** `logs/MERGE-RECEIPTS.jsonl` +4 rows (18 total, 4 in batch AA).
+
+**Next:** the median stays at n=3 across all batches until a merge lands with a suite step.
+
+### 2026-09-15 (r) - CC (Opus 5, background integrator seat): four of the AA queue land, and three of the four blockers are one defect wearing different clothes
+
+**Anchors:** `66236ec7` — `[#793]`, the withdrawn-contract row; the substantive commit this
+JOURNAL entry names, giving the integration arc its >=2-commit shape.
+
+**MERGED, IN ORDER:** `e580518b` codespaces-platform-conformance (absorbing lane aa-1 whole),
+`d424e202` aa-4, `48492a28` aa-5, `01bfdca5` aa-2. Pushed. The first was sequenced first for a
+mechanical reason and it worked: `substrate-heartbeat.yml` only registers as a workflow once it
+is on the DEFAULT branch, and `gh workflow list` now reports **substrate-heartbeat active, id
+359059212** — so leg 8 of `validate_substrate`, which arms 2026-09-16, has a producible receipt
+with a day to spare.
+
+**THREE OF THE FOUR BLOCKERS ARE THE SAME DEFECT: SIX PARALLEL LANES EACH ALLOCATING FROM A
+LOCAL MAXIMUM, WITH NO COMMITTED BATCH MANIFEST TO ALLOCATE CENTRALLY.** Batch AA has no
+manifest at all — the newest in `docs/audits/` is batch Z — and ADR-110 requires it AT DISPATCH.
+Its absence produced, in one night:
+
+- **four task-id collisions** — `#787`/`#788` lane-vs-main, `#790` aa-13-vs-aa-runtime, `#792`
+  aa-14-vs-aa-runtime. Main `#788` is, with some irony, titled *the local maximum is not the
+  task id allocator*, and it collided on its own number.
+- **two quality-register id collisions** — `QR-AVAIL-009` and `QR-RES-002`, each landing two
+  genuinely different requirements under one citation target.
+- **a JOURNAL day-letter collision** — two lanes both wrote (n).
+
+It also left the declared-integration-arc exemption unarmed, which is the fourth blocker below.
+
+**THE CODESPACES LANE ANTICIPATED ONE COLLISION AND LEFT THE INTEGRATOR AN INSTRUCTION**, at
+`quality-requirements.yaml` — its `QR-RES-002` is to be *withdrawn, not merged alongside*, if
+aa-14 files its own codespace-idle entry. **I did not execute it, and the reason is on the
+merits rather than on caution:** aa-14 DOES file one, `QR-RES-005`, and it says a Codespace lane
+is *TORN DOWN at handback, never stopped* — which is the exact verb the operator ruled against
+on 2026-09-15 (*"the doctrine over-applied by one verb"*), with a measured data-loss instance
+behind it (batch T, 45 turns of uncommitted work inside a stopped container). Withdrawing main
+entry would land the wrong verb. The note own next sentence says *aa-14 should implement STOP,
+not teardown*. The two halves of that note disagree, so **the contradiction is recorded and left
+to the operator** rather than settled by an integrator picking a sentence.
+
+**HELD: aa-13 `[#793]`.** Its contract was withdrawn and superseded by aa-14, *"verified at 0
+commits"* — false or raced; it has two. Both lanes build `scripts/resource_lifecycle.py` and its
+tests, overlapping on ten files. Merging both means the winner is decided by QUEUE ORDER inside
+a conflict resolution, silently. That is not an integrator call.
+
+**BLOCKED: aa-14, on `silent_rule_ratchet`.** The merged tree measures **452 against a baseline
+of 447**. Attribution, measured rather than assumed: main alone is **441**, so the +5 is aa-14
+own eleven additions against main six headroom — NOT an artifact of the merge. The gate says
+*drain the additions or record an operator ruling*, and every prior raise in
+`ecosystem/silent-rule-baseline.yaml` is marked operator-RULED, so it is explicitly not this
+seat to raise. Its merge resolution — including the id renumbering and its citation updates —
+is complete and staged in the worktree, and backed up as a patch; only the ruling is missing.
+
+**A MEASURED NOTE ON THE GATE TOPOLOGY, because it explains why this surfaced at aa-14 and not
+at merge 1:** a `--no-ff` merge runs ZERO pre-commit hooks, so merge 1 landed its eleven silent
+rules unevaluated. The ratchet first fired on aa-14 SYNC commit, which is an ordinary commit and
+therefore restores the whole registry. The gate is not inconsistent; the two paths simply are.
+
+**Changes:** four merges; `[#793]` filed; four merge receipts appended to
+`logs/MERGE-RECEIPTS.jsonl`; three worktrees torn down.
+
+**Abandoned:** the `logs/2026-09/` retention move stays UNCOMMITTED. `validate_hermetization`
+refuses that bucket as a home for a new file and admitting a home is an operator ruling; the
+tree therefore stays dirty on two files rather than being cleared by a bypass. `[#785]` owns it.
+
+**Next:** the operator owes three rulings — the silent-rule baseline, the STOP-vs-TEARDOWN verb,
+and aa-13 disposition. aa-runtime needs its four colliding ids reallocated once the last two
+are settled, since which lane KEEPS `#790` and `#792` follows from them.
+
+**Suite:** NOT run on this workstation, per operator instruction for this seat. Every merge
+receipt records `suite` as UNRECORDED rather than as a pass — `merge_receipt.py` offers no
+`--skip` by design, because a median reached that way is a false pass on the row.
+
+### 2026-09-15 (q) - CC (Opus 5, background integrator seat): the integrator declared tier reached no flag, and opusplan is measured to be the wrong instrument for this seam
+
+**Anchors:** `200e1f9d` — the single substantive commit this merge introduces.
+
+**THE SEAT THIS LANE MEASURES IS THE SEAT THAT MERGED IT**, so the finding is recorded with
+that stated rather than left for a reader to notice. The integrator was 30.5% of batch Z —
+USD 82.53 of USD 270.72, more than any single lane — and it ran 100% `claude-opus-5` under a
+boot header declaring `opusplan`. This session is the same shape.
+
+**THE DECLARED TIER REACHED NO FLAG.** `gen_seat_boot.SEAT_MODELS` rendered into a
+`<!-- GENERATED -->` COMMENT, while the launch command the boot actually carries is Ch8
+dispatch row 3 — the bare word `claude`, no `--model`. That is `[#717]` closed defect one
+surface over: it fixed the lane-CONTRACT generator line, and the SEAT boot line was never in
+its scope. **A tier that reaches no argument is a decision the tree records and does not
+make.** Every self-launching seat boot now carries a RESOLVED launch line per phase, and a
+phase that does not resolve REFUSES the whole render — a boot carrying most of a command is
+worse than one never written, because a seat copies what is in front of it.
+
+**`opusplan` CANNOT CARRY THIS SPLIT, AND THE REASON IS MEASURED, NOT ARGUED.** The prompt
+cache is PER MODEL: across six mixed-model transcripts on this host, every one shows the turn
+after a switch carrying a cache-write of 29,751-379,585 tokens against a same-session median
+of 614-1,759 — 48x to 391x. At the integrator mean context of 232,875 tokens/call, one switch
+costs USD 1.46 into Opus and USD 0.58 into Sonnet against USD 0.0812 saved per turn moved:
+**25 consecutive cheap turns to repay one round trip, and a merge walk has about eight.** So
+the boundary is COARSE and it is a FILE — two sessions, not two modes.
+
+**AX22-3 SUBSTANCE IS KEPT AND ITS NAMED MEANS IS REPLACED** on that evidence, flagged for the
+operator rather than absorbed. A ruling binds its merits, not its quoted token.
+
+**THE 32x INSTRUMENT ERROR IS FIXED AT THE ORGAN.** `lane_cost` priced a lane by matching its
+slug against a session-store DIRECTORY, and the attended seats run in the primary checkout
+beside its whole history — so it returned USD 8,714.37 against a real USD 82.53. `seat` /
+`seat-close` price ONE session, windowed, per model, and reproduced the hand-made baseline
+EXACTLY. **The window RIDES the row**: the same transcript prices at USD 82.53 at 06:51:12Z
+and USD 89.88 at end-of-file, and a pair measured under two windows is worthless.
+
+**WHAT IT DOES NOT CLAIM:** every figure is the UNSPLIT seat priced two ways. Nothing here
+measures the split running, and the done-when second half — the next batch integrator line
+measured and lower — is explicitly not closed by this lane.
+
+**Changes:** `scripts/gen_seat_boot.py`, `scripts/lane_cost.py`, `scripts/seat_refusals.py`
+(seventh refusal, `refuse_unruled_merge`, integrator-only); five seat-boot templates; three
+test modules; one audit. 15 files, +1790/-39.
+
+**Abandoned:** a per-turn model split, on the cache measurement above.
+
+**Next:** `[#737]` stays open — its last clause asks for seats to be OBSERVED booting at
+their tier; this lane makes that possible and reports the observation came back negative.
+
+**Suite:** NOT run on this workstation, per operator instruction for this seat. The lane own
+targeted run is 221 passed across six modules, ruff clean, `audit.py health` OK.
+
+### 2026-09-15 (p) - CC (Opus 5, background integrator seat): ARCHITECTURE prose moves to the docstrings that own it, and the 15 KB target is missed in the open
+
+**Anchors:** `530dbecf` — the single substantive commit this merge introduces.
+
+**RELOCATION, NOT DELETION, and the ordering is the whole discipline.** Three facts
+ARCHITECTURE carried that no docstring did were ADDED to the docstring BEFORE the prose was
+cut: the #366 staged-blob honest limit into `validate_residual_completeness.py`, ADR-90
+multi_site resolver-allows-N into `validate_doc_code_edge.py`, and a stale "#195 pending"
+claim — corrected to #195-closed with residual `[#218]` — into `reverse_dep_oracle.py`. A
+fourth, the observed `check_safe_removal` FALSE PASS, moved into `safe_remove.py` and is
+recorded there as only PARTIALLY mitigated. Cutting first and hoping the fact survives
+somewhere is how a docs cut loses content.
+
+**THE ROW OWN FIGURES WERE WRONG AND ARE CORRECTED BY RE-MEASUREMENT.** The file is
+107,266 B across TWELVE `##` chapters, not 100,845 B across eleven; ten of eleven listed
+figures reproduce exactly, and the row omitted `Quality requirements` (6,421 B) plus the
+1,709 B header. Two chapters carry the cut: Validators and enforcement 24,927 -> 15,568 B,
+Organ map 25,251 -> 22,632 B.
+
+**THE 15 KB TARGET IS NOT MET AND IS EXPLICITLY NOT CLAIMED** — 95,288 B is 6.4x it. The
+37-row failure-posture table alone is 11,157 B, so deleting every remaining non-table prose
+byte would still miss. The residual gap is behind the Ch2 render, which is `[#667]`/`[#664]`
+work and was not attempted here. Saying so beats a number that flatters the arc.
+
+**`last_reviewed` IS INHERITED, NOT RE-ISSUED**, and the lane says so rather than implying
+it: the stamp already carried today date from `460fbd0a`. All 1,166 lines were read end to
+end, so the stamp is honest — but an inherited stamp and a fresh one are different claims.
+
+**Changes:** `ARCHITECTURE.md` (-315/+230 net, 107,266 -> 95,288 B); four `scripts/`
+docstrings; row `[#755]`. 6 files.
+
+**Abandoned:** the graph-rendered Ch2 (clause A three-way refutation holds); Governing ADRs,
+11,920 B whose target is `docs/decisions/README.md` — a different decision.
+
+**Next:** the residual gap needs the Ch2 render, not more prose cutting.
+
+**Suite:** NOT run on this workstation, per operator instruction for this seat. The lane own
+record already reports 46 passed / 2 failed on `tests/test_canonical_docs.py` with BOTH
+failures attributed by a PAIRED baseline run at HEAD with the lane files reverted — both
+fail identically there, so neither is this lane.
+
+### 2026-09-15 (o) - CC (Opus 5, background integrator seat): the prepend-order heading becomes an organ, and its false-block rate on current practice is zero
+
+**Anchors:** `779763e8` — the measured same-branch-refinement limit; the tip of the two
+commits this merge introduces, the other being `fd715ad9` which builds the gate itself.
+
+**A RULE WITH FOUR PROSE CARRIERS AND ZERO ORGANS WAS BREACHED BY SEATS THAT HAD READ THE
+PROSE.** PLAYBOOK "Order conventions" declared LESSONS.md / JOURNAL.md / logs/TOKEN-LOG.md
+newest-first-prepend and append-only in four places — that heading, ADR-29, CLAUDE.md sec. 5
+rule 1, and each file own header — and was breached three times anyway, measured from
+`git log --numstat`. This lane converts one heading into `scripts/validate_prepend_order.py`.
+
+**THE PREDICATE IS ONE BYTE-EXACT TEST THAT REFUSES BOTH HALVES.** With tail(x) = the text
+from the first dated entry heading onward, `tail(staged).endswith(tail(HEAD))`. An edited,
+reordered or deleted entry stops being a contiguous suffix; so does a bottom-append or a
+mid-insert, which a naive no-deletions gate waves through. The header block above the first
+dated heading is outside the tail by construction, so a `Last updated:` bump stays legal —
+blocking the commonest real edit is how a gate teaches `--no-verify`.
+
+**THE MEASURED LIMIT IS THE PART WORTH CARRYING FORWARD.** Replaying the predicate over all
+136 commits touching LESSONS.md refuses 41, and the breakdown is the finding: 35 are
+pre-`eb08075c` and era-correct (the file appended at the BOTTOM before 2026-05-16). In the
+modern era the refusals are exactly SIX, and from 2026-06-02 to 2026-09-08 the gate refuses
+NOTHING — a false-block rate of zero on current practice. FOUR of the six are one pattern on
+one day: a seat refining, in a follow-up commit on the same unmerged branch, an entry it had
+added earlier. The comparison is index-vs-HEAD per commit, so that entry reads as
+pre-existing by commit 2. Whether that case SHOULD be refused is carried as an operator
+question on `[#786]`, not patched.
+
+**Changes:** `scripts/validate_prepend_order.py` (new, 345 lines) + `tests/` (302);
+`.pre-commit-config.yaml` wiring; `ecosystem/organ-index.md`; row `[#786]`. 8 files, +705/-5.
+
+**Abandoned:** no predicate change was made on the strength of the replay — the measurement
+moved, the gate did not.
+
+**Next:** `[#786]` stays OPEN carrying three residuals that need a ruling rather than a patch.
+
+**Suite:** NOT run on this workstation, per operator instruction for this seat. The lane own
+19/19 and the RED-first record are the lane evidence, not this seat measurement.
+
+### 2026-09-15 (n) - CC (Opus 5, background integrator seat): the substrate arc lands, and `substrate-heartbeat.yml` reaches the default branch
+
+**Anchors:** `6e9b7a4f` — the branch tip this merge introduces, and the last of eight commits
+carrying the substrate-as-infrastructure arc onto `main`.
+
+**THE MERGE IS THE PRECONDITION, NOT THE DELIVERABLE.** A GitHub Actions workflow file only
+registers as a workflow once it exists on the **default branch**; until then
+`.github/workflows/substrate-heartbeat.yml` is an ordinary YAML file that no schedule, no
+`workflow_dispatch` and no API call can reach. A finished lane was blocked on exactly that, so
+this merge is sequenced FIRST in the AA queue for a mechanical reason rather than a priority one.
+
+**THE DATED CONSTRAINT THIS CLEARS.** Leg 8 of `validate_substrate` arms **2026-09-16**, after
+which a contract declaring `codespace` is refused at commit time without a live heartbeat
+receipt. The receipt is produced by the workflow; the workflow does not exist until it is on the
+default branch; so the merge is what makes the receipt producible at all. Landing it on
+2026-09-15 leaves the arming date met rather than breached.
+
+**LANE `aa-1` IS ABSORBED WHOLE, not merged separately.** `f0681233` — "the substrate as
+infrastructure — L1 provenance, L2 heartbeat, L3 graph membership" — is the BASE commit of this
+branch, so `worktree-lane-aa-1-substrate-provenance` is strictly contained in what lands here.
+It needs no merge of its own and gets none; recorded because a successor reading the queue will
+otherwise see a lane branch with no merge commit and read it as dropped.
+
+**Changes:** `.devcontainer/` (provisioning.yaml added, provision.sh + devcontainer.json wired);
+`.github/workflows/substrate-heartbeat.yml` (new, 204 lines); `scripts/substrate_provenance.py`,
+`scripts/substrate_heartbeat.py`, `scripts/codespace_state.py` (new organs);
+`scripts/validate_substrate.py`, `scripts/file_purpose_graph.py`, `scripts/graph_queries.py`,
+`scripts/safe_remove.py` (extended); `ecosystem/quality-requirements.yaml` (new); six test
+modules; two audits; two task rows. 32 files, +3971 / -70.
+
+**Abandoned:** nothing on this branch.
+
+**Next:** the workflow registers on the default branch at this merge; the first heartbeat receipt
+is what leg 8 will read from 2026-09-16.
+
+**Suite:** NOT run on this workstation — operator instruction for this seat. The merge receipt
+records the `suite` step as unrecorded rather than as a pass, so the receipt closes INCOMPLETE
+and is correctly excluded from the `merge_receipt median`. A skipped step dressed as a run would
+be a false pass on the row, which `merge_receipt.py` refuses by design (no `--skip` verb).
+
 ### 2026-09-15 (m) - CC (Opus 5, background integrator seat): batch Z closes, and the close packet corrects three of the seat's own figures
 
 **Anchors:** `708864bd` — the batch-close index debts, the newline regression fix and four merge
