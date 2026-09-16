@@ -36,7 +36,7 @@ uv run --locked pytest -q --tb=short -n 4
 on this freeze's GitHub-hosted `ubuntu-latest` runner and will resolve to something else on any
 runner with a different core count.
 
-**Why this is pinned NOW and not left as a caveat.** `[#790]` makes the conductor workflow compare
+**Why this is pinned NOW and not left as a caveat.** `[#802]` makes the conductor workflow compare
 every push against this set. A consumer that compares automatically cannot read a warning; it
 needs a number it can assert. An unpinned worker count in a file a gate depends on is the
 "declared enforcement without enforcement" shape this repo has measured three times this week.

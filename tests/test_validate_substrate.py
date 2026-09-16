@@ -154,7 +154,11 @@ def test_codespace_plus_a_gate_is_admitted(registry):
     """Ch8 Q1 routes gate-dependent work to *"Codespace or local"* — only cloud is refused."""
     text = _contract(shape_line="**Substrate:** `codespace`",
                      done="1. `pytest` green")
-    assert [r.rule for r in vs.validate_contract(text, source="F.md", registry=registry)] == []
+    # `heartbeat=None` because this test asks LEG 2's question and leg 8 would answer a
+    # different one over the top of it: `codespace` is off-machine, so on a machine with no
+    # heartbeat receipt the new leg fires and the assertion stops being about gates at all.
+    assert [r.rule for r in vs.validate_contract(text, source="F.md", registry=registry,
+                                                 heartbeat=None)] == []
 
 
 def test_a_gate_word_outside_the_done_when_does_not_fire(registry):
@@ -162,7 +166,8 @@ def test_a_gate_word_outside_the_done_when_does_not_fire(registry):
     text = _contract(shape_line="**Substrate:** `cloud`",
                      done="1. `<a read-only census>`",
                      body="The integrator runs `pytest` locally after the merge.")
-    assert [r.rule for r in vs.validate_contract(text, source="F.md", registry=registry)] == []
+    assert [r.rule for r in vs.validate_contract(text, source="F.md", registry=registry,
+                                                 heartbeat=None)] == []
 
 
 # --- leg 3: off-machine substrate + an operator-disk path -------------------
@@ -293,7 +298,7 @@ def test_every_refusal_names_the_rule_it_fired_on(registry):
     text = _contract(shape_line="**Substrate:** `cloud`",
                      done="1. `pytest` green",
                      body=r"Read `C:\Users\x\Downloads\LANE-x.md`.")
-    refusals = vs.validate_contract(text, source="F.md", registry=registry)
+    refusals = vs.validate_contract(text, source="F.md", registry=registry, heartbeat=None)
     assert len(refusals) == 2
     for r in refusals:
         assert r.rule in vs.RULE_IDS
@@ -303,8 +308,9 @@ def test_every_refusal_names_the_rule_it_fired_on(registry):
 
 def test_rule_ids_are_the_closed_checkable_surface():
     """Legs 5, 6 and 7 entered this tuple at batch E's and batch F's freezes (0a, CUT-6 and
-    `[#629]`), deliberately — which is exactly what this pin exists to force: a new leg
-    cannot arrive silently."""
+    `[#629]`), and leg 8 (`substrate-heartbeat-dead`, [#554] lane aa-1) at batch aa's — each
+    deliberately, which is exactly what this pin exists to force: a new leg cannot arrive
+    silently."""
     assert vs.RULE_IDS == (
         vs.RULE_NO_LIVE_VERB,
         vs.RULE_CLOUD_GATE,
@@ -313,6 +319,7 @@ def test_rule_ids_are_the_closed_checkable_surface():
         vs.RULE_TEARDOWN_ENUM,
         vs.RULE_WRITE_SCOPE_DISJOINT,
         vs.RULE_AMENDMENT_SUBTRACTS,
+        vs.RULE_HEARTBEAT_DEAD,
         vs.RULE_UNKNOWN_OVERRIDE,
     )
 
@@ -690,19 +697,39 @@ def test_contract_slug_is_none_with_no_pairing_line():
 # dispatched before it existed. Both properties are asserted here so neither can drift.
 
 
-def test_adapter_grandfathers_the_two_later_armed_legs_by_their_own_date():
-    """Legs 5 and 6 carry their own arm date, LATER than the check's, and both are in the map.
+def test_adapter_grandfathers_every_later_armed_leg_by_its_own_date():
+    """Legs 5, 6 and 8 carry their own arm date, LATER than the check's, and all are in the map.
 
-    Without this the commit gate REDs on the whole already-executed corpus — measured: 14
-    findings across batch D's and batch E's committed contracts, none of them dischargeable
-    without editing a record of a dispatch that already happened.
+    Without this the commit gate REDs on the whole already-executed corpus — measured twice,
+    once per omission: 14 findings across batch D's and batch E's committed contracts when legs
+    5/6 were unmapped, and 20 more back to 2026-08-29 when leg 8 was. Neither set is
+    dischargeable without editing a record of a dispatch that already happened.
     """
     from audit_checks import check_substrate_declaration as adapter
 
-    assert set(adapter.LEG_ARM_DATES) == {vs.RULE_TEARDOWN_ENUM, vs.RULE_WRITE_SCOPE_DISJOINT}
+    assert set(adapter.LEG_ARM_DATES) == {vs.RULE_TEARDOWN_ENUM, vs.RULE_WRITE_SCOPE_DISJOINT,
+                                          vs.RULE_HEARTBEAT_DEAD}
     for rule, armed in adapter.LEG_ARM_DATES.items():
         assert armed > adapter.ARM_DATE, (
             f"{rule} must arm AFTER the check itself, or it retro-gates the corpus")
+
+
+def test_a_leg_date_declared_in_the_logic_module_reaches_the_commit_gate():
+    """The two arm-date maps must not disagree — a date the adapter cannot see does nothing.
+
+    This is the property leg 8 broke on its first landing attempt, and it is the general shape
+    rather than that one instance: `validate_substrate.LEG_ARM_DATES` is where a leg written
+    after the adapter armed declares its date, so any entry there that names a leg the adapter
+    can refuse must be REACHABLE from the adapter with the SAME date. A second literal, or no
+    literal at all, both end as a grandfather that exists and never fires.
+    """
+    from audit_checks import check_substrate_declaration as adapter
+
+    shared = set(vs.LEG_ARM_DATES) & set(adapter.LEG_ARM_DATES)
+    assert vs.RULE_HEARTBEAT_DEAD in shared, "leg 8's date must reach the commit-time adapter"
+    for rule in shared:
+        assert vs.LEG_ARM_DATES[rule] == adapter.LEG_ARM_DATES[rule], (
+            f"{rule} carries two different arm dates; the logic module is the single home")
 
 
 def test_adapter_corpus_is_lane_contracts_only_not_every_md_in_the_directory():

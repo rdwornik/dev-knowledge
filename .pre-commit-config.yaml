@@ -313,6 +313,41 @@ repos:
         language: system
         files: '(^BACKLOG\.md$|^tasks/.*\.(md|json)$|^scripts/archive_row_body\.py$)'
         pass_filenames: false
+      - id: prepend-order
+        name: Newest-first prepend / append-only logs ([#786]; PLAYBOOK "Order conventions")
+        # Gives teeth to ONE heading: protocols/PLAYBOOK.md:1399 "### Order conventions",
+        # whose two prepend classes name LESSONS.md, JOURNAL.md and logs/TOKEN-LOG.md.
+        # Placed beside row-archive-proof because they are the same genre -- a byte-identity
+        # proof over a record that no later organ can reconstruct once it is overwritten.
+        #
+        # WHY A GATE AND NOT MORE PROSE: the rule already had four prose carriers (this
+        # heading, ADR-29, CLAUDE.md §5 rule 1, and each file's own "Never edit old entries"
+        # header) and zero organs, and it was breached anyway -- eb08075c (155+/157-),
+        # 99a104ed (20+/20-), febafcac (7+/25-), each by a seat that had read the prose.
+        # `scripts/hooks/block_immutable_edits.py` does NOT cover these files: its zone is
+        # transcripts, and it matches the Edit/Write tools rather than the commit.
+        #
+        # BLOCKS (exit 1). Deterministic-automation posture per PLAYBOOK Ch10 -- fail-closed
+        # on an executing path; exit 2 on internal error or a vacuous invocation. Chosen
+        # over WARN because the damage is unrecoverable by inspection: once a rewritten
+        # LESSONS.md is committed there is nothing left to compare it against, so an
+        # advisory that is skipped under load fails exactly when it matters. The predicate
+        # is a suffix test with no approximation in it, so the false-block surface is small,
+        # and the header block above the first dated heading is deliberately exempt (a
+        # `Last updated:` stamp bump is the common real edit; blocking it would teach
+        # --no-verify).
+        #
+        # `--all` WITH pass_filenames: false, deliberately. Passing filenames would let a
+        # commit that touches ONLY the script itself hand the gate an empty target list --
+        # a vacuous pass, which this repo counts as a defect rather than a shorthand. All
+        # three logs cost three `git show` pairs and three string compares. The script is
+        # in `files:` for the same reason its peers list their generators: an edit to what
+        # the gate MEANS must re-run it. LESSONS-legacy-*.md is in scope because it is the
+        # ADR-29 archival escape's evidence.
+        entry: uv run --locked python scripts/validate_prepend_order.py --all
+        language: system
+        files: '(^LESSONS\.md$|^JOURNAL\.md$|^logs/TOKEN-LOG\.md$|^LESSONS-legacy-.*\.md$|^scripts/validate_prepend_order\.py$)'
+        pass_filenames: false
       - id: provider-registry-agreement
         name: Provider/model registry agreement gate (CLOUD-4 v2; HUB-ONLY)
         # ecosystem/provider-registry.yaml is the declared home for every provider, CLI

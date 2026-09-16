@@ -6,6 +6,11 @@
   re-extracts and byte-compares. The ORDER is the seat's own: read the tallies before the merge
   queue opens (D1's reason — reading after merging means discovering a Critical on `main`), and
   the refuse-to-finish checklist is last because an open item leaves the batch open.
+
+  ROUTING BLOCK: `{{PHASE_BLOCK}}` renders this seat's own resolved launch line from
+  `gen_seat_boot.SEAT_PHASES` -- implements `[#737]` (a SEAT-BOOT render cannot express
+  the seat's own model). Before it, the boot's only launch command was Ch8 row 3's bare
+  `claude`, so the header's `model:` field reached no flag.
 -->
 # SEAT-BOOT-integrator — {{BATCH}}
 
@@ -20,6 +25,10 @@
 {{CH8:integration-is-local}}
 
 {{CH8:dispatch-interactive}}
+
+### 1a · Your two halves, and the launch line for each
+
+{{PHASE_BLOCK}}
 
 ## 2 · Before the queue opens — the refusals
 
@@ -40,6 +49,10 @@
 ## 5 · The batch does not close while an item is open
 
 {{CH8:refuse-to-finish}}
+
+### 5a · Your own cost line is one of those items
+
+{{SEAT_COST_BLOCK}}
 
 ## 6 · Your stop condition
 

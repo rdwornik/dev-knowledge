@@ -32,9 +32,11 @@ from typing import Any
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPO_ROOT / "scripts"))
 
+import codespace_state  # noqa: E402
 import impacted_tests  # noqa: E402
 import merge_receipt  # noqa: E402
 import provider_registry  # noqa: E402
+import resource_lifecycle  # noqa: E402
 import seat_refusals  # noqa: E402
 
 
@@ -232,7 +234,145 @@ def test_qr_obs_002_unpriced_model_is_refused(tmp_path):
     trip_qr_obs_002(provider_registry, tmp_path)
 
 
+# ------------------------------------------------------------------ QR-OBS-004
+
+#: The measured creation-log tail from the 2026-09-14 recovery event, transcribed in the
+#: [#746] amendment from `/workspaces/.codespaces/.persistedshare/creation.log` on the
+#: operator's probe codespace `lane-z-substrate-probe`. Not a fixture someone imagined: these
+#: are the lines GitHub printed on the container that died.
+_MEASURED_RECOVERY_LOG = (
+    "[2026-09-14 23:37:14.201Z] postCreateCommand failed with exit code 1.\n"
+    "Container creation failed.\n"
+    "Creating recovery container.\n"
+)
+
+
+def trip_qr_obs_004(organ: Any, tmp_path: Path) -> None:
+    """A recovery container is named from the creation log, BY THAT NAME.
+
+    The requirement is not "something went wrong" — the dispatcher's exit-91 guard already said
+    that, in the wrong words, for a month. It is that the platform's own account is read and the
+    container is called what it is.
+    """
+    verdict = organ.classify_creation_log(
+        _MEASURED_RECOVERY_LOG, markers=organ.RECOVERY_MARKERS
+    )
+    assert verdict.verdict is organ.ContainerVerdict.RECOVERY_CONTAINER, (
+        "QR-OBS-004 VIOLATED: the measured 2026-09-14 creation log was NOT named a recovery "
+        f"container -- got {verdict.verdict}, so a recovery container is once again "
+        "indistinguishable from ours")
+    assert verdict.evidence, (
+        "QR-OBS-004 VIOLATED: a verdict with no quoted evidence is an assertion, not a finding")
+
+
+def test_qr_obs_004_recovery_container_is_named(tmp_path):
+    trip_qr_obs_004(codespace_state, tmp_path)
+
+
+# ------------------------------------------------------------------ QR-OBS-005
+
+
+def trip_qr_obs_005(organ: Any, tmp_path: Path) -> None:
+    """`Available` alone is never reported as a working lane.
+
+    GitHub's `state` reports the MACHINE, not the workload — there is no platform signal for
+    "the job inside is progressing" at all. Treating `Available` as working is the false green
+    that let two detached lanes produce zero work with nobody noticing.
+    """
+    state = organ.classify_lane("Available", None, stale_after_s=900)
+    assert state is not organ.LaneState.WORKING, (
+        "QR-OBS-005 VIOLATED: a container that is merely up, with NO progress signal, read as "
+        f"{state} -- reporting the machine as the workload is the false green that let two "
+        "detached lanes produce zero work unnoticed")
+
+
+def test_qr_obs_005_available_alone_is_not_working(tmp_path):
+    trip_qr_obs_005(codespace_state, tmp_path)
+
+
 # ------------------------------------------------------------------ the seam
+
+
+# ------------------------------------------------------------------ QR-RES-001
+
+
+#: The box as it was measured 2026-09-15T12:33Z: 27.67 GB total, 12.53 GB held by claude,
+#: 1.62 GB free. Used as the VIOLATING input because it is not hypothetical -- it is the
+#: reading that was live while nothing on the box refused anything.
+_MEASURED_BOX = dict(total_gb=27.67, claude_gb=12.53, free_gb=1.62, per_seat_mb=413.3)
+#: The same box with the lanes finished and the memory back.
+_QUIET_BOX = dict(total_gb=27.67, claude_gb=1.00, free_gb=20.00, per_seat_mb=413.3)
+
+
+def trip_qr_res_001(organ: Any, tmp_path: Path) -> None:
+    """A dispatch onto a box past its memory floor is REFUSED, and the refusal is arithmetic.
+
+    The requirement's own words are "arithmetic, rather than a judgement call at dispatch
+    time", so the trip checks the arithmetic is READ: the refusal has to name the seat count
+    and the computed ceiling, not merely say no.
+    """
+    alloc = organ.allocation(**_MEASURED_BOX)
+    verdict = organ.admit(alloc, live_seats=31)
+    assert not verdict.admitted, (
+        "QR-RES-001 VIOLATED: 31 seats on a box with 1.62 GB free against a 3.00 GB reserve "
+        "was ADMITTED -- this is the exact reading that was live while five full-suite "
+        "attempts and one merge were OOM-killed")
+    assert "31" in verdict.reason, f"the refusal does not name the seat count: {verdict.reason}"
+    assert str(alloc.ceiling) in verdict.reason, (
+        f"the refusal does not name the computed ceiling: {verdict.reason}")
+    assert "reserve" in verdict.reason.lower(), (
+        "the refusal reports only the count leg; a seat ALSO out of reserve needs a "
+        f"different next move: {verdict.reason}")
+
+    # The conforming control: the same box, quiet. A gate that refuses everything is as
+    # useless as one that refuses nothing.
+    quiet = organ.admit(organ.allocation(**_QUIET_BOX), live_seats=2)
+    assert quiet.admitted, (
+        f"the organ refuses a QUIET box too -- it is not reading its inputs: {quiet.reason}")
+
+
+def test_qr_res_001_over_ceiling_dispatch_is_refused(tmp_path):
+    trip_qr_res_001(resource_lifecycle, tmp_path)
+
+
+# ------------------------------------------------------------------ QR-AVAIL-005
+
+
+def trip_qr_avail_005(organ: Any, tmp_path: Path) -> None:
+    """A teardown that leaves a descendant running is REFUSED by its own report.
+
+    The organ under test is `teardown_tree`, and what it must refuse to do is finish
+    SILENTLY with a survivor. The trip drives it with a synthetic process table rather than
+    real processes: the live-process witness lives in
+    `tests/test_resource_lifecycle.py::test_teardown_tree_reaps_the_grandchild`, and a trip
+    that spawned processes would be timing-sensitive in a gate.
+    """
+    Proc = organ.Proc
+    table = [
+        Proc(pid=1000, ppid=1, rss_bytes=0, age_seconds=1.0, name="parent"),
+        Proc(pid=1001, ppid=1000, rss_bytes=0, age_seconds=1.0, name="child"),
+        Proc(pid=1002, ppid=1001, rss_bytes=0, age_seconds=1.0, name="grandchild"),
+    ]
+    targeted = organ.tree_pids(1000, table=table)
+    assert 1002 in targeted, (
+        "QR-AVAIL-005 VIOLATED: the GRANDCHILD is not in the teardown's target set, so the "
+        "kill reaches one generation and stops -- which is the measured incident, a "
+        "grandchild outliving the parent that had just been killed")
+    assert 1001 in targeted and 1000 in targeted, targeted
+    assert targeted.index(1002) > targeted.index(1000), (
+        "the target order puts the root before its descendants; killing the root first lets "
+        "a child spawn another child in the window before its own kill arrives")
+
+    # The conforming control: an unrelated tree is NOT swept up. A teardown that targets
+    # every process on the box would satisfy the assertion above and be catastrophic.
+    other = organ.tree_pids(2000, table=table + [
+        Proc(pid=2000, ppid=1, rss_bytes=0, age_seconds=1.0, name="unrelated")])
+    assert 1002 not in other and 1000 not in other, (
+        f"the walk swept in an unrelated tree: {other}")
+
+
+def test_qr_avail_005_a_surviving_grandchild_is_refused(tmp_path):
+    trip_qr_avail_005(resource_lifecycle, tmp_path)
 
 
 #: register id -> (trip body, live organ, the neutered stand-in for that organ).
@@ -256,6 +396,24 @@ TRIPS: dict[str, tuple[Any, Any, Any]] = {
             merge_receipt,
             audit_merges=lambda shas, receipts: [(s, None) for s in shas]),
     ),
+    "QR-RES-001": (
+        trip_qr_res_001, resource_lifecycle,
+        # The neutering is the judgement call the requirement forbids, spelled out: an
+        # `admit` that always says yes IS "a judgement call at dispatch time" made by nobody.
+        lambda: NeuteredOrgan(
+            resource_lifecycle,
+            admit=lambda alloc, live_seats: resource_lifecycle.AdmissionVerdict(
+                True, "admitted")),
+    ),
+    "QR-AVAIL-005": (
+        trip_qr_avail_005, resource_lifecycle,
+        # The neutering is the DEFECT, spelled out: a walk that returns only the root is
+        # exactly the one-generation kill we already had, and it is what a teardown written
+        # against the top-level PID does.
+        lambda: NeuteredOrgan(
+            resource_lifecycle,
+            tree_pids=lambda root_pid, table=None: (root_pid,)),
+    ),
     "QR-OBS-002": (
         trip_qr_obs_002, provider_registry,
         # The neutering here is the LIE the requirement forbids, spelled out: instead of
@@ -265,5 +423,25 @@ TRIPS: dict[str, tuple[Any, Any, Any]] = {
             provider_registry,
             resolve_rate=lambda model_id, path=None: provider_registry.resolve_rate(
                 _a_priced_model(provider_registry), path)),
+    ),
+    "QR-OBS-004": (
+        trip_qr_obs_004, codespace_state,
+        # The neutering is the state this repo was in for a month: the creation log exists,
+        # nothing reads it for the platform's own recovery line, so a recovery container is
+        # indistinguishable from ours.
+        lambda: NeuteredOrgan(codespace_state, RECOVERY_MARKERS=()),
+    ),
+    "QR-OBS-005": (
+        trip_qr_obs_005, codespace_state,
+        # The neutering is the false green itself: read `Available` as "the lane is working",
+        # which is what reporting the machine instead of the workload amounts to.
+        lambda: NeuteredOrgan(
+            codespace_state,
+            classify_lane=lambda state, age, **kw: (
+                codespace_state.LaneState.WORKING
+                if state == "Available"
+                else codespace_state.LaneState.UNKNOWN
+            ),
+        ),
     ),
 }

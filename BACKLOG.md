@@ -67,6 +67,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#499] [P3][M] Promote the review-artifact coverage leg to a hard pre-push gate · DEFER · tasks/499-promote-the-review-artifact-coverage-leg-from-ad.md
 - [#560] [P2][S] `review_artifact_coverage` reads only the FIRST branch/HEAD triple per file, and one title literal, so a real review can be invisible to it · tasks/560-review-artifact-coverage-reads-only-the-first-br.md
 - [#573] [P3][S] lychee as a zero-baseline markdown-link gate on the actionable corpus · tasks/573-lychee-zero-baseline-md-link-gate.md
+- [#786] [P2][S] Give the PLAYBOOK order-conventions heading a gate · tasks/786-give-the-playbook-order-conventions-heading-a-ga.md
 
 - [#510] [P2][M] Scope the R-1 exemption to the lanes its manifest enumerates — self-grantable by branch naming today · tasks/510-scope-r1-exemption-to-enumerated-lanes.md
 - [#514] [P1][M] Two rival `LANE_BRANCH_RE` constants ship in one repo · tasks/514-two-rival-lane-branch-re-constants-reconcile-them.md
@@ -133,12 +134,15 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#763] [P1][S] Re-measure the batch-Z suite baseline freeze at batch close — a cause whose lane merged must have left the set · tasks/763-re-measure-the-batch-z-suite-baseline-freeze-at.md
 - [#764] [P1][S] Batch Z implements the night plan of 2026-09-15 — the four transport decisions the engine refused every commit for · tasks/764-batch-z-implements-the-night-plan-of-2026-09-15.md
 - [#765] [P1][M] Technical quality requirements are a registered artifact read by a gate, not prose in a paste · tasks/765-technical-quality-requirements-are-a-registered.md
+- [#792] [P1][L] The runtime-resource lifecycle organ: two regimes, two mechanisms, no shared thresholds · tasks/792-runtime-resource-lifecycle-two-regimes-two-mechanisms.md
 - [#783] [P2][S] The carried-to-RESOLVED leg of decision-coverage has never once been exercised · tasks/783-the-carried-to-resolved-leg-of-decision-coverage-has-never-been-exercised.md
 - [#768] [P1][M] A gate has one refusal channel, so a violation and an environment it could not evaluate are indistinguishable to the committer · tasks/768-a-gate-has-one-refusal-channel-so-a-violation-an.md
 - [#772] [P1][M] Every dispatched lane inherits the whole secret store -- there is no introspect-and-exchange step and no row about it · tasks/772-every-dispatched-lane-inherits-the-whole-secret.md
+- [#787] [P2][M] A test double for an external tool must CITE the real tool's contract for the behaviour it fakes -- a fixture nobody checked against the tool is a false-success surface · tasks/787-a-test-double-for-an-external-tool-must-cite-the.md
+- [#788] [P1][M] The local maximum is not the task-id allocator under concurrency -- a sibling branch's held id is invisible from a worktree and nothing in the repo refuses it · tasks/788-the-local-maximum-is-not-the-task-id-allocator-u.md
 - [#789] [P1][M] The seat boot rendered its declared model split into an HTML COMMENT while the launch line was a bare `claude` — batch Z ran 100% Opus under a header claiming otherwise · tasks/789-the-seat-boot-rendered-its-model-split-into-an-html.md
-- [#790] [P1][M] The conductor emails on every push because it does not know about the frozen baseline — compare against the set, do not silence the notification · tasks/790-the-conductor-emails-on-every-push-because-it-does.md
-- [#792] [P1][M] A substrate request is availability-gated and silently downgraded while reporting success — the dispatcher must verify the substrate it RECEIVED against the one it ORDERED, before briefing the lane · tasks/792-a-substrate-request-is-availability-gated-and-sile.md
+- [#802] [P1][M] The conductor emails on every push because it does not know about the frozen baseline — compare against the set, do not silence the notification · tasks/802-the-conductor-emails-on-every-push-because-it-does.md
+- [#803] [P1][M] A substrate request is availability-gated and silently downgraded while reporting success — the dispatcher must verify the substrate it RECEIVED against the one it ORDERED, before briefing the lane · tasks/803-a-substrate-request-is-availability-gated-and-sile.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
@@ -233,6 +237,7 @@ So that observed failure-modes become written guidance instead of recurring.
 ---
 
 - [#538] [P2][M] The NB4-C PLAYBOOK gap arc — twelve paste-ready acts, none landed · tasks/538-the-nb4-c-playbook-gap-arc-twelve-paste-ready-acts.md
+- [#793] [P1][M] A WITHDRAWN lane contract left a live worktree, and the lane built a RIVAL implementation of the organ its successor was already building · tasks/793-a-withdrawn-lane-contract-left-a-live-worktree-bu.md
 ## [E4] Decision management
 > As a reader of 65+ ADRs, I want decisions navigable and free of silent contradiction.
 
@@ -401,8 +406,8 @@ So that cognitive overhead per session drops.
 - [#751] [P2][M] Cost in money — the transcripts' token figures become tokens and USD per lane and per model, priced from the registry's own rate card · tasks/751-cost-in-money-tokens-and-usd-per-lane-and-per-model.md
 - [#769] [P2][S] An unattended lane has no cancel for a long-running gate -- the only lever is killing the session · tasks/769-an-unattended-lane-has-no-cancel-for-a-long-runn.md
 - [#771] [P2][S] `[#729]` carries no protocol-conformance criterion, so a server can satisfy it completely and not be an MCP server · tasks/771-729-carries-no-protocol-conformance-criterion-so.md
-- [#787] [P1][S] The routing unit is the SESSION, not the turn — the prompt cache is per model, so per-turn switching loses money · tasks/787-the-routing-unit-is-the-session-not-the-turn-the-p.md
-- [#788] [P2][S] Opus is a flat 2.50x Sonnet on every leg — a false 5x figure circulated and a token-shape argument was built on it · tasks/788-opus-is-a-flat-2-50x-sonnet-and-a-false-5x-figure.md
+- [#800] [P1][S] The routing unit is the SESSION, not the turn — the prompt cache is per model, so per-turn switching loses money · tasks/800-the-routing-unit-is-the-session-not-the-turn-the-p.md
+- [#801] [P2][S] Opus is a flat 2.50x Sonnet on every leg — a false 5x figure circulated and a token-shape argument was built on it · tasks/801-opus-is-a-flat-2-50x-sonnet-and-a-false-5x-figure.md
 ### [S19] Decide the undecided artifact/tool models
 So that cadence-less artifacts and unevaluated tools don't rot or get adopted blind.
 

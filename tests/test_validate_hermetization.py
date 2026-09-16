@@ -432,3 +432,40 @@ def test_rule_c_lets_the_organ_index_relocation_through_the_hook(tmp_path):
     _git(repo, "add", str(idx))
     res = _run_hook(repo)
     assert res.returncode == 0, res.stderr
+
+
+# --- Rule C: the logs_retention month bucket (operator ruling 2026-09-16) ----------
+
+def test_rule_c_admits_the_logs_retention_month_bucket_and_nothing_wider():
+    # The mover's home is admitted as GRAMMAR: a real calendar month, one level under logs.
+    assert vh.is_allowed_home("logs/2026-09")
+    assert vh.is_allowed_home("logs/2027-12")
+    # Not a month, not a real month, and not deeper than the bucket.
+    assert not vh.is_allowed_home("logs/misc")
+    assert not vh.is_allowed_home("logs/2026-13")
+    assert not vh.is_allowed_home("logs/2026-9")
+    assert not vh.is_allowed_home("logs/2026-09/sub")
+    # The shape only opens under `logs`, never under another home.
+    assert not vh.is_allowed_home("scripts/2026-09")
+
+
+def test_rule_c_admits_every_destination_logs_retention_plans(tmp_path):
+    # THE TWO ORGANS MUST AGREE. logs_retention.plan_moves decides where a dated artifact
+    # goes; Rule C decides whether a file there may be committed. Before 2026-09-16 the
+    # mover wrote logs/2026-09/ and the gate refused it, so every relocation of a tracked
+    # record dirtied the tree with a move nobody could land. This drives the REAL planner.
+    import importlib.util as _ilu
+    rp = Path(__file__).resolve().parent.parent / "scripts" / "logs_retention.py"
+    spec = _ilu.spec_from_file_location("logs_retention_for_rule_c", rp)
+    lr = _ilu.module_from_spec(spec)
+    spec.loader.exec_module(lr)
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    for name in ("PROVIDER-CENSUS-2026-09-15.json", "PROPOSALS-2026-01-02-03.md",
+                 "X-2025-12-31.txt"):
+        (logs / name).write_text("x", encoding="utf-8")
+    moves = lr.plan_moves(logs)
+    assert len(moves) == 3, moves  # the planner really planned; no vacuous pass
+    for _src, dst in moves:
+        home = "logs/" + dst.parent.name
+        assert vh.is_allowed_home(home), f"mover plans {home}/ but Rule C refuses it"

@@ -168,6 +168,12 @@ def test_provision_sh_runs_the_history_repair_before_arming_hooks():
         "leg1_uv", "leg2_unshallow", "refresh_source_tree", "sync_environment",
         "leg2b_history", "leg5_ecosystem", "leg3_hooks", "leg_f1_claude",
         "leg_f2_git_credential", "leg_f4_workspace_trust", "smoke_gate_liveness", "write_stamp",
+        # L1 ([#554]) is LAST, and the position is the claim: the provenance marker records what
+        # is LIVE, so every tool it names must already be installed when it is written. Anywhere
+        # before `leg_f1_claude` it would record `claude: null` on a container that has one, and
+        # a marker that under-reports the substrate refuses a healthy container at the next
+        # lane's step 0 — the noise direction a refusal gate cannot afford.
+        "leg_l1_provenance",
     ]
 
 

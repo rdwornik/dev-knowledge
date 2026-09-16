@@ -7,6 +7,13 @@
   1) — so this boot deliberately carries no task, no footprint and no closure. It carries the
   five things a lane is bound by whatever its contract says, and points at the contract for
   everything else.
+
+  ROUTING BLOCK: `{{PHASE_BLOCK}}` renders this seat's declared tier from
+  `gen_seat_boot.SEAT_PHASES` -- implements `[#737]` (a SEAT-BOOT render cannot express the
+  seat's own model). For THIS seat it renders a POINTER and no command, and that is the point:
+  a lane is dispatched `--bg` by the dispatcher, so a launch line here would be one this seat
+  can never run, and the `--bg --worktree` form it would carry is the rival literal launch form
+  register section V was ruled on. The tier rides the lane's CONTRACT row (`[#717]`).
 -->
 # SEAT-BOOT-lane — {{BATCH}}
 
@@ -21,6 +28,10 @@
 {{CH8:per-lane-requirements}}
 
 {{CH8:artifact-paths-derived}}
+
+### 1a · Your own routing, resolved
+
+{{PHASE_BLOCK}}
 
 ## 2 · The refusals you run
 

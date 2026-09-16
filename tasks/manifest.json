@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "3c14ba5f788597a678a4911bc1c5adf434c2b2c8e4cd798174d024a0991b932e",
+  "generated_sha256": "f7877618be3db3a7d9eb3a190ec70b8eed56e37129f3ab1a729aa1a3cab76871",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -245,6 +245,10 @@
     {
       "task": 573,
       "file": "573-lychee-zero-baseline-md-link-gate.md"
+    },
+    {
+      "task": 786,
+      "file": "786-give-the-playbook-order-conventions-heading-a-ga.md"
     },
     {
       "prose": ""
@@ -510,6 +514,10 @@
       "file": "765-technical-quality-requirements-are-a-registered.md"
     },
     {
+      "task": 792,
+      "file": "792-runtime-resource-lifecycle-two-regimes-two-mechanisms.md"
+    },
+    {
       "task": 783,
       "file": "783-the-carried-to-resolved-leg-of-decision-coverage-has-never-been-exercised.md"
     },
@@ -522,16 +530,24 @@
       "file": "772-every-dispatched-lane-inherits-the-whole-secret.md"
     },
     {
+      "task": 787,
+      "file": "787-a-test-double-for-an-external-tool-must-cite-the.md"
+    },
+    {
+      "task": 788,
+      "file": "788-the-local-maximum-is-not-the-task-id-allocator-u.md"
+    },
+    {
       "task": 789,
       "file": "789-the-seat-boot-rendered-its-model-split-into-an-html.md"
     },
     {
-      "task": 790,
-      "file": "790-the-conductor-emails-on-every-push-because-it-does.md"
+      "task": 802,
+      "file": "802-the-conductor-emails-on-every-push-because-it-does.md"
     },
     {
-      "task": 792,
-      "file": "792-a-substrate-request-is-availability-gated-and-sile.md"
+      "task": 803,
+      "file": "803-a-substrate-request-is-availability-gated-and-sile.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -873,6 +889,10 @@
     {
       "task": 538,
       "file": "538-the-nb4-c-playbook-gap-arc-twelve-paste-ready-acts.md"
+    },
+    {
+      "task": 793,
+      "file": "793-a-withdrawn-lane-contract-left-a-live-worktree-bu.md"
     },
     {
       "prose": "## [E4] Decision management"
@@ -1505,12 +1525,12 @@
       "file": "771-729-carries-no-protocol-conformance-criterion-so.md"
     },
     {
-      "task": 787,
-      "file": "787-the-routing-unit-is-the-session-not-the-turn-the-p.md"
+      "task": 800,
+      "file": "800-the-routing-unit-is-the-session-not-the-turn-the-p.md"
     },
     {
-      "task": 788,
-      "file": "788-opus-is-a-flat-2-50x-sonnet-and-a-false-5x-figure.md"
+      "task": 801,
+      "file": "801-opus-is-a-flat-2-50x-sonnet-and-a-false-5x-figure.md"
     },
     {
       "prose": "### [S19] Decide the undecided artifact/tool models"

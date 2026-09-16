@@ -31,6 +31,8 @@ in the report is the number in the file.
 from __future__ import annotations
 
 import json
+import logging
+import pathlib
 
 import pytest
 
@@ -621,3 +623,92 @@ def test_the_model_this_repo_actually_runs_is_priced_live():
     PRESENCE, never price."""
     assert "claude-opus-5" in pr.priced_models(), \
         "the live surface's most-named model carries no rates -- every lane would be UNPRICED"
+
+
+# ---------------------------------------------------------------- the transcript SIZE BOUND
+#
+# Added 2026-09-15 by batch AA lane aa-14 ([#792]), which owns the runtime-resource lifecycle
+# and found this reader unbounded while measuring the thing it reads.
+#
+# MEASURED CORPUS, 2026-09-15: 3,108 transcripts under `~/.claude/projects`, 2.55 GB total,
+# median 0.34 MB, LARGEST 29.56 MB. The longest single LINE across the 20 largest files is
+# 1.360 MB. `path.read_text()` followed by `.splitlines()` holds the whole file as a str AND
+# a list of str at once -- about 60 MB of peak for that one transcript -- and
+# `scripts/fleet_health.py` imports this module, so it runs at SESSION START, on the box whose
+# binding constraint this lane exists to manage.
+#
+# THE BOUND IS STREAMING, NOT A REFUSAL, and the distinction is the whole design. "Skip any
+# transcript over N MB" would be a size bound too, and it would silently drop a lane's spend
+# -- the number that means "not measured" becoming the number that means "free", which is the
+# exact class `test_an_unpriced_model_refuses_rather_than_costing_zero` above already refuses
+# one layer up. Streaming bounds memory to the longest LINE while every line is still counted.
+
+
+def test_the_transcript_reader_never_holds_the_WHOLE_file(monkeypatch, tmp_path):
+    """A reader that slurps is refused by construction: `read_text` is made to explode.
+
+    This is a property, not a timing or a memory measurement -- a peak-RSS assertion would be
+    flaky under a loaded box and under xdist, and the box IS loaded, which is why this lane
+    exists. Any implementation that streams passes; any implementation that slurps fails, and
+    there is no third behaviour to be vague about.
+    """
+    transcript = tmp_path / "s.jsonl"
+    rows = []
+    for n in range(50):
+        rows.append(json.dumps({
+            "message": {"id": f"m{n}", "model": "claude-opus-5",
+                        "usage": {"input_tokens": 1, "output_tokens": 1}}}))
+    transcript.write_text("\n".join(rows) + "\n", encoding="utf-8")
+
+    def _explode(*args, **kwargs):
+        raise AssertionError(
+            "read_transcript_usage read the WHOLE transcript into memory. The measured corpus "
+            "has a 29.56 MB transcript, and read_text + splitlines holds two copies of it at "
+            "once inside a module fleet_health.py runs at SessionStart")
+
+    monkeypatch.setattr(pathlib.Path, "read_text", _explode)
+    usage = lc.read_transcript_usage(transcript)
+    assert usage["claude-opus-5"].input_tokens == 50, usage
+
+
+def test_an_absurd_single_line_is_WARNED_and_skipped_not_silently_dropped(tmp_path, caplog):
+    """The one thing streaming cannot bound is a single enormous line, so that has a bound of
+    its own -- and it is LOUD. A skipped line is unmeasured spend, and unmeasured spend that
+    says nothing is indistinguishable from no spend.
+
+    The rest of the file must still be counted: a bound that zeroes a whole lane because one
+    line was malformed prices the lane at nothing, which is the failure this file's header
+    calls the most dangerous plausible value this module can produce.
+    """
+    transcript = tmp_path / "s.jsonl"
+    good = json.dumps({"message": {"id": "ok", "model": "claude-opus-5",
+                                   "usage": {"input_tokens": 7, "output_tokens": 0}}})
+    huge = json.dumps({"message": {"id": "huge", "model": "claude-opus-5",
+                                   "usage": {"input_tokens": 999_999, "output_tokens": 0},
+                                   "pad": "x" * (lc.MAX_TRANSCRIPT_LINE_BYTES + 1024)}})
+    transcript.write_text(good + "\n" + huge + "\n" + good.replace('"ok"', '"ok2"') + "\n",
+                          encoding="utf-8")
+
+    with caplog.at_level(logging.WARNING):
+        usage = lc.read_transcript_usage(transcript)
+
+    assert usage["claude-opus-5"].input_tokens == 14, (
+        f"the two good lines were not both counted: {usage}")
+    assert any("line" in r.message.lower() or "line" in str(r.msg).lower()
+               for r in caplog.records), (
+        "the oversize line was dropped in SILENCE -- unmeasured spend that says nothing is "
+        "indistinguishable from no spend")
+
+
+def test_the_line_bound_clears_the_largest_line_this_repo_has_ever_written():
+    """The bound is DERIVED, with headroom, from the measured corpus rather than picked.
+
+    Largest real line measured 2026-09-15: 1.360 MB, across the 20 largest of 3,108
+    transcripts. A bound at or below that would drop legitimate turns; the shipped bound sits
+    well above it, so what it catches is corruption, not size.
+    """
+    largest_real_line_bytes = 1_360_000
+    assert lc.MAX_TRANSCRIPT_LINE_BYTES > largest_real_line_bytes * 2, (
+        f"the bound {lc.MAX_TRANSCRIPT_LINE_BYTES} leaves less than 2x headroom over the "
+        f"largest line actually measured ({largest_real_line_bytes}) -- it would start "
+        f"dropping real turns")
