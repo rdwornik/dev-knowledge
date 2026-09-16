@@ -146,6 +146,9 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#804] [P1][M] No committed batch manifest, no dispatch; ids come from the manifest · tasks/804-a-batch-manifest-committed-before-the-first-l.md
 - [#805] [P1][M] An integrator finishes a batch unattended on recorded defaults · tasks/805-an-integrator-must-be-able-to-finish-a-batch-u.md
 - [#806] [P1][M] The silent-rule ratchet has no recorded ratification path · tasks/806-the-silent-rule-ratchet-has-no-recorded-ratifi.md
+- [#808] [P1][M] A hung hook wedges its session with no record; every hook needs a bound that fails OPEN loudly · tasks/808-a-hook-has-no-bounded-execution-time-so-a-hung-guard-wedges-the-session.md
+- [#809] [P1][S] The lane branch grammar allows one batch letter and all 26 are spent; widen it, never recycle · tasks/809-the-lane-branch-grammar-has-one-letter-and-all-26-are-used.md
+- [#810] [P1][S] The Codespace runner cannot pass a model, so model enforcement is impossible on that substrate · tasks/810-the-codespace-runner-cannot-pass-a-model.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md

@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "a08dde933c5aa3b6b390102bf897ee1d9651af44dc3da9e6acb6c7fa0489bb88",
+  "generated_sha256": "5190cd5b56cad5dc6ada299400668d4be004c2250e20348ddce13c65fb39bf09",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -560,6 +560,18 @@
     {
       "task": 806,
       "file": "806-the-silent-rule-ratchet-has-no-recorded-ratifi.md"
+    },
+    {
+      "task": 808,
+      "file": "808-a-hook-has-no-bounded-execution-time-so-a-hung-guard-wedges-the-session.md"
+    },
+    {
+      "task": 809,
+      "file": "809-the-lane-branch-grammar-has-one-letter-and-all-26-are-used.md"
+    },
+    {
+      "task": 810,
+      "file": "810-the-codespace-runner-cannot-pass-a-model.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
