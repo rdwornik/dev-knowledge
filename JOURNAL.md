@@ -19,6 +19,37 @@
 
 ---
 
+### 2026-09-16 (d) - CC (Opus 5, background integrator seat): the dispatcher's intake lands with its four colliding ids moved into an integrator-held block
+
+**Anchors:** `d057cc40` `0a26d8d3` -- the dispatcher seat's two substantive commits this merge introduces.
+
+**WHAT LANDS.** Intake 101 (the runtime-resource organ nobody owns) and its six rows from the
+unrecorded-findings digest, plus the pinned worker count in `logs/SUITE-BASELINE-FREEZE.md`.
+
+**FOUR TASK IDS COLLIDED, AND THE INTEGRATOR ALLOCATED A BLOCK BECAUSE NOTHING ELSE COULD.** The
+dispatcher allocated 787-792 from its local maximum. Main already held `[#787]` and `[#788]`
+(codespaces lane); ruling 2 gave `[#790]` and `[#792]` to aa-14. Moved: 787 -> `[#800]` (routing
+unit is the session), 788 -> `[#801]` (Opus is a flat 2.50x Sonnet), 790 -> `[#802]` (conductor
+emails on every push), 792 -> `[#803]` (substrate request is availability-gated). `[#789]` and
+`[#791]` were free and keep their ids. Every citation of a moved id inside this branch's own
+files follows; citations elsewhere of main's `[#787]`/`[#788]` are untouched (verified on the
+still-live aa-12 branch, whose `[#787]` references mean main's row). **794-799 are left unallocated
+deliberately** for aa-12, which is live and allocates from its local maximum too; 804-805 are the
+integrator's two P1 rows. A block reserved in a JOURNAL entry is a manifest with no reader, which
+is exactly `[#804]`.
+
+**JOURNAL LETTERS.** The dispatcher's two 2026-09-15 entries were (n) and (o), colliding with the
+integrator's same-day letters; re-lettered (t) and (u) and placed newest-first above (s). Their
+anchors are unchanged -- the commits they name are the ones this merge introduces.
+
+**A FIFTH COLLISION, NOT RESOLVED HERE:** aa-12's branch carries its own `tasks/793-*`, against
+main's `[#793]`. It resolves at aa-12's merge, not in a branch this seat does not own.
+
+**NOT RUN:** pytest (operator instruction).
+
+**Changes:** intake 101 + README/manifest regenerated, `tasks/789,791,800-803`, manifest,
+BACKLOG, doc-counts, `logs/SUITE-BASELINE-FREEZE.md`, two re-lettered JOURNAL entries.
+
 ### 2026-09-16 (c) - CC (Opus 5, background integrator seat): aa-14 lands as the survivor, with rulings 1, 2, 3 and 5 applied inside its merge rather than after it
 
 **Anchors:** `6317d008` `9227bc9a` `38f22a3c` -- lane aa-14's commits this merge introduces.
@@ -130,6 +161,96 @@ are that checklist. The `//` narrative still calls the hook wired; the new
 regenerated against the synced tree.
 
 **Suite:** NOT run on this workstation, per operator instruction for this seat.
+
+### 2026-09-15 (u) - CC (Opus 5, background dispatcher seat): the seat audits its own substitution, kills a zombie lane, and pins the freeze
+
+**Anchors:** `0a26d8d3` — `[#803]` plus the SUITE-BASELINE-FREEZE worker-count pin.
+
+**Did:** established from process state and the filesystem what the live lanes had produced;
+killed a lane running against a withdrawn contract; filed the substitution defect; pinned the
+baseline freeze's worker count ahead of the consumer that will depend on it.
+
+**FOUR CONTROL-PLANE SURFACES REPORTED A STATE THAT WAS NOT TRUE, in one day.** (1) Six lanes
+dispatched with remote isolation returned "Async agent launched successfully" and ran in LOCAL
+worktrees — eight agents on the operator's box while the seat believed they were remote. (2)
+`claude stop ae6a2fc4` reported **"stopped"** and that session kept working for another hour. (3)
+A `taskkill /T` of it walked **eleven levels** of process tree and reported `PID 38500 could not
+be terminated. Reason: Access is denied` — a descendant surviving a tree teardown, the upstream
+reparenting defect reproduced locally. (4) `claude agents --json` continued to report that
+session **busy** after its PID was confirmed dead. **A control-plane surface's self-report is not
+evidence of the state it reports** — which is the same sentence as the recovery container's, and
+as the vacuous gate's.
+
+**Result:** aa-12 and aa-14 both have recoverable work and were LEFT RUNNING. aa-13 — withdrawn
+and superseded earlier, still executing, duplicating aa-14's subject — was killed by process
+tree. Its only output was one row file colliding with a committed id.
+
+**TWO LIVE LANES ALLOCATED IDS THIS SEAT HAD ALREADY COMMITTED.** aa-12 wrote `tasks/787-…` and
+aa-13 wrote `tasks/790-…`; both branched before `d057cc40` and scanned a tree where 787+ was
+free. The integrator must expect id collisions on this batch's merge, not discover them.
+
+**Changes:** `tasks/792-…`; `logs/SUITE-BASELINE-FREEZE.md` amended in place with an
+AMENDMENT block pinning `-n 4` (the original paragraph stands, nothing above it altered);
+`BACKLOG.md` 352 -> 353 rows; `tasks/manifest.json`.
+
+**Abandoned:** nothing. The freeze was pinned rather than re-measured — re-measurement is
+`[#763]` at the next batch close, and a pin is not a measurement.
+
+**Next:** HOLD. Six branches are queued and nothing merges until an integrator is booted;
+integration is LOCAL and INTERACTIVE and is not this seat's act. aa-12 and aa-14 still running.
+
+### 2026-09-15 (t) - CC (Opus 5, background dispatcher seat): batch AA dispatches eleven lanes, and the substrate it dispatched six of them to was not the one it asked for
+
+**Anchors:** `d057cc40` — intake 101 plus five rows filed from the unrecorded-findings digest;
+the only commit this seat made directly. Lane branches carry their own: `f0681233` (aa-1),
+`200e1f9d` (aa-2), `779763e8` (aa-4), `530dbecf` (aa-5).
+
+**Did:** ran the dispatcher seat boot, cut batch AA, dispatched eleven lanes across three
+substrates, then filed the intake and rows the operator directed.
+
+**THE SEAT'S OWN DEFECT, recorded first because it is the one that matters.** Six lanes were
+dispatched with `isolation: "remote"` and reported "launched successfully". They ran in LOCAL
+worktrees at `.claude/worktrees/agent-<id>`. Remote availability is gated; on refusal it falls
+back silently and the launch receipt says nothing. **I acted on the receipt instead of verifying
+the substrate — the exact failure the operator's own provenance-marker condition exists to
+prevent**, and the seventh instance of the shape the batch-Z close packet enumerates six times.
+It was caught downstream, by `git worktree list`, not by the dispatching organ. Every lane's
+provenance marker then reported it independently.
+
+**The marker instruction I wrote was itself defective, and three lanes proved it.** A fixed
+`/tmp/substrate-provenance.json` is shared across every concurrent lane; siblings overwrote each
+other's markers mid-run. Verifying a marker reads back proves only that SOMETHING wrote it. Lane
+aa-1 rebuilt L1 around that: a substrate is now the pairing of host and checkout, the marker PATH
+derives from the substrate id so collision is impossible rather than detected, and the id is
+re-checked on read so a copied or inherited marker is refused at the right path.
+
+**Result:** five lanes landed on branches (nothing merged — `main` unmoved at `5b880b03`), two
+read-only lanes reported, **two lanes ran two hours and produced literally nothing** (tips
+byte-identical to main, reflog showing only `reset: moving to HEAD`) and are CARRIED. aa-13 was
+dispatched and withdrawn at 0 commits when the operator rescoped it; aa-14 supersedes it.
+
+**Three findings that correct standing figures.** `provider_bench.py:1364` gates comparability on
+the BASELINE's own gap, so `usd_comparable` is false on every row unconditionally while the claude
+baseline is partial — the five non-baseline rows cannot be fixed first. The prompt cache is per
+model, so per-turn model switching LOSES money (break-even 25 turns, a merge walk has eight).
+And Opus is a flat **2.50x** Sonnet on every leg — I relayed a sibling's "5.0x on input" without
+dividing, and built a token-shape argument on it; lane aa-2 caught it by checking the cited lines.
+
+**Changes:** `docs/intake/2026-09-15-tech-runtime-resource-lifecycle.md` (intake 101, DRAFT);
+`tasks/787`–`791`; `BACKLOG.md` 347 -> 352 rows; `tasks/manifest.json` and the intake index.
+
+**Abandoned:** the three Actions lanes. `gh secret list` returns `[]` and user secrets
+`total_count: 0` — there is no Anthropic credential, and `conductor.yml:178` already guards its
+absence. Cost telemetry cannot go to cloud either (it must wire to a merge cloud cannot perform),
+nor can the `[#664]` spine witness (a refusal witnessed on an unarmed substrate is vacuous-green).
+The lane-ceiling also REFUSED the eleven-lane plan at six; recorded rather than worked around.
+
+**Next:** aa-12 (enforced routing) and aa-14 (resource lifecycle) are live. Six branches are
+queued for an integrator; none has merged. The primary checkout still carries a pre-existing
+`logs/` retention dirt — `logs_retention.py` moved two `.json` artifacts into `logs/2026-09/`
+whose `.gitignore` patterns are `.md`-only, leaving them untracked. Leg 8 of `validate_substrate`
+ARMS 2026-09-16: from tomorrow a contract declaring `cloud` or `codespace` is refused without a
+heartbeat receipt.
 
 ### 2026-09-15 (s) - CC (Opus 5, background integrator seat): the four AA merge receipts reach the ledger, and what each one refuses to claim
 
