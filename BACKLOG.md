@@ -143,6 +143,8 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#789] [P1][M] The seat boot rendered its declared model split into an HTML COMMENT while the launch line was a bare `claude` — batch Z ran 100% Opus under a header claiming otherwise · tasks/789-the-seat-boot-rendered-its-model-split-into-an-html.md
 - [#802] [P1][M] The conductor emails on every push because it does not know about the frozen baseline — compare against the set, do not silence the notification · tasks/802-the-conductor-emails-on-every-push-because-it-does.md
 - [#803] [P1][M] A substrate request is availability-gated and silently downgraded while reporting success — the dispatcher must verify the substrate it RECEIVED against the one it ORDERED, before briefing the lane · tasks/803-a-substrate-request-is-availability-gated-and-sile.md
+- [#804] [P1][M] No committed batch manifest, no dispatch -- and task-id allocation reads the manifest, not the local maximum · tasks/804-a-batch-manifest-committed-before-the-first-l.md
+- [#805] [P1][M] An integrator finishes a batch UNATTENDED -- every batch-AA stop had a rule-shaped answer · tasks/805-an-integrator-must-be-able-to-finish-a-batch-u.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md

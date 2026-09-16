@@ -163,6 +163,11 @@ uv run --locked python scripts/merge_receipt.py actions --slug lane-<letter>-<id
   --sha <merge sha>
 ```
 
+**Where the local suite is barred** (no `race --job suite:...` on this box), pass `--step suite`:
+the Actions read then IS the receipt's `suite` step. Without it `actions` records under `actions`,
+`suite` stays UNRECORDED, and every receipt on that box is incomplete however carefully it is read
+(measured 2026-09-16: all four batch-AA receipts, `[#805]`).
+
 **Do not pass `--baseline`. It is DERIVED from `<sha>^1`**, so the differential means *what this
 merge changed* without you having to get it right at every merge of a six-merge walk. Pass it only
 to **assert** what you expect: a value that is not the merge's first parent is **REFUSED**, and the
