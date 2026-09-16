@@ -19,6 +19,40 @@
 
 ---
 
+### 2026-09-16 (e) - CC (Opus 5, background integrator seat): two P1 rows, today's four receipts, and why every AA `suite` step read UNRECORDED
+
+**Anchors:** `4f49ed33` -- rows `[#804]` / `[#805]`, the `--step suite` paragraph and the ARCHITECTURE re-stamp.
+
+**ROWS.** `[#804]`: a committed batch manifest is a dispatch refusal, and id allocation reads it.
+`[#805]`: an integrator finishes a batch unattended on three recorded defaults, escalating only what
+ADR-108 section A makes functional. Titles were shortened from the drafts because the full-length
+pair put BACKLOG.md's view at 100,067 B against its 100,000 B ceiling (`[#589]`); 25 B of headroom
+remain, so the NEXT filing will hit it.
+
+**WHY `suite` WAS UNRECORDED ON ALL FOUR 2026-09-15 RECEIPTS -- a seat error on top of a doc gap.**
+(1) The seat never ran `merge_receipt.py actions` after push; it read "no tests on this box" as
+"no suite step", though the verb reads GitHub Actions. (2) Running it would NOT have been enough:
+`REQUIRED_STEPS` matches step ids literally, `/lane-integrate` records `suite` only through the local
+`race --job suite:...` pytest run this workstation may not execute, and `actions` records under
+`actions`. The one-line fix is `--step suite`, now written under the snippet. The 2026-09-15
+receipts are closed and the ledger is append-only, so they stay incomplete; the median rises from
+n=1 to **n=4, 17.6 min** (range 12.4-67.9) on today's merges.
+
+**TODAY'S RECEIPTS, closed as they are.** aa-runtime: COMPLETE (handback, merge, suite, teardown).
+aa-14: incomplete -- its first merge attempt was refused by the commit-msg gate (the merge needed
+its own kill-candidates line) and a failed step is not superseded by a same-id retry.
+deny-and-point and retention-bucket: incomplete -- handback and teardown were done untimed and
+cannot be re-timed truthfully now. Every suite verdict is PRE-EXISTING (pytest red at baseline), and
+for aa-14 and aa-runtime the failing TEST SETS were diffed from the run logs: 62 failed at baseline
+and tip, identical names, passed 6168 -> 6231 at aa-14, so neither merge introduced a failure.
+
+**ARCHITECTURE.md re-stamped 2026-09-16 on a NARROWED review**, stated in `4f49ed33`'s body: the
+whole diff since the 09-15 stamp is the regenerated register block, plus a sweep for prose today's
+merges could falsify. Not an end-to-end re-read.
+
+**Changes:** `tasks/804-*`, `tasks/805-*`, manifest, BACKLOG, `.claude/commands/lane-integrate.md`,
+`ARCHITECTURE.md` stamp, `logs/MERGE-RECEIPTS.jsonl` (+4 rows).
+
 ### 2026-09-16 (d) - CC (Opus 5, background integrator seat): the dispatcher's intake lands with its four colliding ids moved into an integrator-held block
 
 **Anchors:** `d057cc40` `0a26d8d3` -- the dispatcher seat's two substantive commits this merge introduces.

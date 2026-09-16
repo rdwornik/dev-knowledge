@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "f7877618be3db3a7d9eb3a190ec70b8eed56e37129f3ab1a729aa1a3cab76871",
+  "generated_sha256": "d466678ad10e6c297968ba5d0686caf8f224f48744e7f97701ecf784119c6768",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -548,6 +548,14 @@
     {
       "task": 803,
       "file": "803-a-substrate-request-is-availability-gated-and-sile.md"
+    },
+    {
+      "task": 804,
+      "file": "804-a-batch-manifest-committed-before-the-first-l.md"
+    },
+    {
+      "task": 805,
+      "file": "805-an-integrator-must-be-able-to-finish-a-batch-u.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
