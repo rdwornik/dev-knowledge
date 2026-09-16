@@ -19,6 +19,39 @@
 
 ---
 
+### 2026-09-16 (n) - CC (Opus 5, integrator seat, integrator-AB): batch AB amendment 1 -- full parallel dispatch, ids held by push, four rows filed, [#617] re-scoped
+
+**Anchors:** `6ab764fc` -- `docs/audits/2026-09-16-technical-batch-ab-manifest-amendment-1.md`, `[#823]` `[#824]` `[#825]` `[#826]` filed, `[#617]` amended.
+
+**OPERATOR RULING: FULL PARALLEL EXECUTION.** "Dispatch everything whose dependencies are on main, all at once ... Sequence
+ONLY genuine file conflicts and name them." Sequential backfill (k) is withdrawn; no slot ceiling (the operator told the
+dispatcher directly). Roles: the dispatcher freezes and fires; integrator-AB is the single writer on `main` and merges.
+
+**THE AMENDMENT PINS NINE CONTRACTS BY SHA256, EACH RE-HASHED BY THIS SEAT:** 810 (sonnet, fired), 808 (opus, fired), 828
+closure-census (Copilot producer + Codex reviewer), 802 conductor-reads-the-freeze, 664 spine witnessed, 694 cost telemetry,
+832 copilot-collections comparison, 833 seat registry, 834 protocols heading gate. **Sequenced on genuine file conflicts only:**
+828->589 (task schema / closure predicate), 664->760 and 664->781 (`file_purpose_graph.py`), 664/760/810->715 (root loaders,
+`DispatchHelpers.psm1`), 808<->833 (`.claude/settings.json`), 834<->617 (`protocols/HANDOFF_BOOT.md`). **HELD:** 617's frozen
+contract (stale against the re-scope; the dispatcher re-freezes only on the operator's direct word) and log-review `[#723]` /
+charts `[#705]` on ab-694 alone.
+
+**IDS ARE HELD BY PUSH NOW, NOT BY TABLE** -- the first live use of ab-804's allocator: `refs/reservations/task-id/823..834` on
+origin (823-826 integrator, 828-831 closure lane, 832/833/834 the three unfiled lanes). Blocks 835-890 remain prose, which is
+exactly `[#826]`.
+
+**FILED (operator order):** `[#823]` the dispatch verb still boots a lane with no manifest (only `/lane-boot` refuses);
+`[#824]` no launch verb for a non-Claude lane -- the operator's reading of why 99.47 % is Opus; `[#825]` `single_flight.py`
+exits 2 "internal error" on a genuine push race instead of 3 "in flight"; `[#826]` id blocks must be machine-read (`[#827]`
+landed outside every prose block). **AMENDED:** `[#617]` RE-SCOPED, not retired -- Done-when now "an intent resolves to the
+command, skill and hook for a named model without the browser composing it", `logs/prompts/` trace home as clause 1.
+**Gate note:** a new task file with no `tasks/manifest.json` node reads as a *retired allocation record* and refuses
+`--emit-source`; the audits index counts tracked files only, so it regenerates after `git add`.
+
+**Did:** amendment 1, four rows, one re-scope; receipts for ab-804 and per-seat-measured committed. **Result:** BACKLOG.md
+75,905 B / 366 rows -> 76,610 B / 370 rows. **Changes:** the amendment, `tasks/823..826-*`, `tasks/617-*`, `tasks/manifest.json`,
+`BACKLOG.md`, `docs/audits/README.md`, `logs/MERGE-RECEIPTS.jsonl`, `JOURNAL.md`.
+**Next:** dispatcher fires 828, 802, 664, 694, 832, 833, 834 on PACKET-MERGED; integrator merges as they hand back.
+
 ### 2026-09-16 (m) - CC (Opus 5, integrator seat, integrator-AB): the per-seat cost is measured -- 646.1 MB, n=1, not steady state
 
 **Anchors:** `e535ed6a` -- `[#827]` `PER_SEAT_MB` 2826 -> 646.1, authored by the dispatcher seat on `worktree-per-seat-measured`.
