@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "910a01bbee4a866ee49d9e34cda08def90f9d53643e7948a8480a4a06595d1d5",
+  "generated_sha256": "76ee25ee6ec5d93e738517ac96df0a3e592b1c40d152bd1fb641499a4cd00929",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -512,6 +512,10 @@
     {
       "task": 765,
       "file": "765-technical-quality-requirements-are-a-registered.md"
+    },
+    {
+      "task": 792,
+      "file": "792-runtime-resource-lifecycle-two-regimes-two-mechanisms.md"
     },
     {
       "task": 783,

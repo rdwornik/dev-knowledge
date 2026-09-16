@@ -288,20 +288,32 @@ drift fails loud. Operator-run from the hub, one consumer per invocation; runboo
 **The desired-state organ class (ADR-109) — TWO parts live, one RETIRED.** `ecosystem/schema/`
 holds the typed, versioned **contract** (`desired_state.py`, `schema_version: "1.0.0"`) and
 `scripts/desired_state_loader.py` is the **loader** that parses the live sources into one
-validated model. Its **divergence report** (`desired_state_report.py`) was retired 2026-09-12
-by the AX13-2 retire stage (`[#734]`). Both surviving parts stay read-only and
-operator-invoked — no trigger, no gate, **nothing converges state** (ADR-109 §8:
-"Read-only, no execution engine"). So ADR-109 is not repealed; it is **partially
-unimplemented**, and re-building the report is a new act needing its own row. Membership still
-resolves toward `ecosystem/deployed-versions.yaml` (§2), so the retired report's matrix — narrower
-than ADR-104's 9-repo declaration — is now a question nothing asks; `membership_agreement`
-([#462]), never part of that report, remains what makes a declared-but-absent member visible.
+validated model. Its **divergence report** (`desired_state_report.py`) was retired on
+2026-09-12 by the AX13-2 retire stage (`[#734]`, lane `lane-x-734-retire-stage-2`): the
+2026-09-08 process-trigger census found it untriggered, the reverse-dep oracle found no
+referrer but its own dedicated test, and this prose was the last surface naming it. Both
+surviving parts stay read-only and operator-invoked — no trigger, no gate, nothing converges
+state (ADR-109 §8: "Read-only, no execution engine", and the report "is not convergence").
+Evidence: `docs/audits/2026-09-12-technical-lane-x-734-retire-stage-2-evidence.md`.
 
-> **The loader was deleted in that same act and RESTORED — `check_safe_removal` returned a
-> FALSE PASS.** The honest limit this proved is recorded where the convention puts it, on the
-> organ: `scripts/safe_remove.py`'s docstring ("THE FALSE PASS IS OBSERVED, NOT HYPOTHETICAL").
-> Read it there before trusting a SAFE verdict. Evidence:
-> `docs/audits/2026-09-12-technical-lane-x-734-retire-stage-2-evidence.md`.
+**The loader was deleted in that same act and RESTORED — and the finding is worth more than
+the subtraction was.** The oracle returned SAFE over the loader too, and the full suite went
+RED: `tests/test_membership_agreement.py` loads it BY NAME through `importlib` and pins
+`parse_registry_md` as the reference implementation that keeps `audit.py`'s duplicated inline
+registry reader honest. That is precisely the invisible-edge class ADR-89 declares its static
+Pyright oracle cannot see, so the verdict was a **false PASS** — the failure direction ADR-89
+says is possible and non-blocking, observed here for the first time on a live deletion. It was
+caught only because the lane ran a paired baseline/tip suite instead of trusting the tool, and
+the loader stays a census orphan afterwards because it stays a *static* orphan: unreachable to
+the census and dead are different facts, and this pair is now the repo's worked example.
+
+**ADR-109 is not repealed by this — it is partially unimplemented, and that is stated rather
+than smoothed.** The decision's §8 posture described a three-part class; the contract and the
+loader stand, the divergence report no longer exists in the tree, and re-building it is a new
+act needing its own row. Membership still resolves toward `ecosystem/deployed-versions.yaml`
+(§2), so the retired report's matrix — narrower than ADR-104's 9-repo declaration — is now a
+question nothing asks; the [#462] `membership_agreement` check, which was never part of that
+report, remains what makes a declared member absent from every surface visible.
 
 `ecosystem/schema/` is deliberately outside the codemap's `--source-root scripts` scope: the
 codemap maps executables; the typed contract lives with the data it governs (ADR-109 §9). Cost
@@ -309,25 +321,38 @@ accepted: the schema package and the loader→schema edge do not appear in the s
 Revisiting requires NEW evidence (e.g. the codemap growing multi-root support) as a NEW row —
 this ruling is not reopenable by preference.
 
-**The one-graph organ class — PROPOSED, NOT RATIFIED, and NOTHING IS BUILT AS A VIEW.**
-**ADR-118 is `Proposed`** (2026-09-07), not `Accepted`, so it is **absent from Governing ADRs**
-by the same rule that kept ADR-116 out, and **no row is added to the organ table above** — this
-chapter's Status legend keeps a RULED-UNBUILT organ out of the table until it is built, and this
-one is not even ruled. **The doctrine is not restated here; ADR-118 holds it** (the graph as the
-single edge source, the catalog as node attributes, the orphan census, `resolve(id) → path`, the
-measured migration). What this map states is the **tree**: `scripts/file_purpose_graph.py`
-(**FPG-1**) exists, declares `rustworkx` through the ADR-106 path, and answers `why <path>`;
-ADR-118 measures it at 1922 nodes / 12664 edges / 12 edge kinds and states in the same breath
-that it is *"wired into NO gate, no check and no hook"*. Twelve organs still compute their own
-edges. Everything else in ADR-118 is a plan, and reads in the future tense.
+**The one-graph organ class — PROPOSED, NOT RATIFIED, and NOTHING BELOW IS BUILT AS A VIEW.**
+Read this whole block in the future tense. **ADR-118 is `Proposed`** (2026-09-07), not `Accepted`;
+its own status note records that the operator's ruling and the filing prompt both call the state
+**DRAFT**, and `Proposed` is only the enum's spelling of that. It is therefore **absent from
+Governing ADRs by the same rule that kept ADR-116 out** — a Proposed ADR is not governing
+doctrine — and **no row is added to the organ table above**, per this chapter's own Status legend:
+a RULED-UNBUILT organ stays out of the table until it is built, and this one is not even ruled.
 
-*One scope fact, with its provenance marked so it is not read as stronger than it is.* A review
-pass after the filing confined FPG-1 to **corpus-structure edges only** — citation, generation,
-template, test, and script call-site — narrower than ADR-118's own wording. That reaches this map
-through a batch-CLOSE lane contract's restatement; **the review artifact is not in this tree**, so
-it is **relayed, not resolved against a source** — an Inference in the Ch8-epistemic sense,
-deliberately not Witnessed. On ratification, re-derive it from whatever surface carries it and
-strike this paragraph.
+What is **landed** is one module and no wiring. `scripts/file_purpose_graph.py` (**FPG-1**) exists,
+declares `rustworkx` through the ADR-106 path, and answers `why <path>` with purpose / consumers /
+edges. ADR-118's Context measures it at 1922 nodes, 12664 edges and 12 edge kinds, and states in
+the same breath that it is *"wired into NO gate, no check and no hook"*. Twelve organs still
+compute their own edges. **That is the state of the tree; everything else here is a plan.**
+
+- **Graph (planned).** FPG-1 becomes the single source for edges, and an organ that needs an edge
+  relation **queries** it instead of extracting its own. **Scope is narrower than ADR-118's own
+  wording, and the narrowing is load-bearing:** the review pass that followed the filing confined
+  FPG-1 to **corpus-structure edges only** — citation, generation, template, test, and script
+  call-site. Those five are properties of *what the corpus contains*, which is what a graph over
+  tracked files can answer.
+- **Catalog (planned).** Node attributes on FPG-1 rather than a second store — path, id, genre,
+  one-line description, last content commit, in-degree, trigger count, owner — generated,
+  committed as a registered derived copy, and **diffed nightly, the diff being the report**. A
+  `resolve(id) → path` resolver is what would make citations id-based. None of it is generated
+  today; `gen_catalog.py` does not exist in this tree.
+- **Refusals (planned, and the half already proven in miniature).** The refusal is the point:
+  *a file nothing explains is a defect, not a mystery.* FPG-1's `why` already refuses an
+  unexplained path, and its RED-first witness is
+  `tests/test_file_purpose_graph.py::test_why_refuses_a_planted_unknown_file`. The **planned**
+  organ over it is an orphan census — in-degree 0 over the corpus-structure kinds, WARN on first
+  sight, FAIL after the groom cadence without a disposition. It is not registered in `ALL_CHECKS`
+  and fires nowhere.
 
 **STATE GATES ARE NOT VIEWS, AND THIS IS THE BOUNDARY THE MAP EXISTS TO HOLD.** The JOURNAL
 spine-anchor gate and the staged-ADD refusals (`block_unanchored_push.py`,
@@ -336,8 +361,15 @@ what this push contains, what this commit stages — not what the corpus cites. 
 files cannot answer *"does the range being pushed carry an anchor"*, because the fact is about a
 ref range and a working index, not about a file's edges. **They stay gates.** Folding them into
 the view layer would trade a fail-closed answer about the act being performed for a derived answer
-about the tree that resulted — a different question asked one step too late, and the organ map's
-whole value is the failure-posture column that distinction lives in.
+about the tree that resulted, which is a different question asked one step too late — and the
+organ map's whole value is the failure-posture column that distinction lives in.
+
+*Provenance, marked so it is not read as stronger than it is.* The scope narrowing above reaches
+this map through the batch-CLOSE lane contract's restatement of a review-pass finding; **the
+review artifact itself is not in this tree**, so the narrowing is recorded here as **relayed, not
+resolved against a source** — an Inference in the Ch8-epistemic sense, deliberately not written as
+Witnessed. When the ADR is ratified the scope clause should be re-derived from whatever surface
+carries it, and this paragraph struck.
 
 **Machinery retired (C3 sweep, 2026-06-05).** `/boot` and `/evolve` archived to
 `~/.claude/archive/2026-06-05-machinery-c3/`; `CHANGELOG.md` + `BACKLOG_ARCHIVE.md`
@@ -359,179 +391,271 @@ in reality by the cloud Routine (Ch6 supersession note).
 
 Per the ADR-28 invariant, Layer 2 hosts **hub-local validators, generators and gates** —
 read-only **on siblings** (invariant 2), never read-only on its own tree, where many of these
-scripts write and `audit.py` pushes to `origin` (`audit.py:3967`). It does not orchestrate a
-child repo, but it verifies, generates and gates itself.
+scripts write and `audit.py` pushes to `origin` (`audit.py:3967`). It does not orchestrate a child repo, but it
+verifies, generates and gates itself. These are the *executable* organs the map
+above references — the **named deterministic-trigger organs**, curated to what the map
+references, **not an exhaustive inventory** of every script in `scripts/`:
 
-> **What this chapter carries — and what it deliberately no longer copies.** Per CLAUDE.md
-> §9's standing convention, **per-organ rationale, exit codes and honest limits live in each
-> module's docstring under `scripts/`**. Read the docstring; a second copy here is a rot
-> surface, and it rotted. What a docstring cannot carry, and this chapter is the source for,
-> is two things: **failure posture** — the column `ecosystem/organ-index.md` states in its own
-> header that it does not carry — and the **seams**, where two organs look interchangeable and
-> are not. The list below is the **named deterministic-trigger organs** the map above
-> references, **not an exhaustive inventory**; for what exists and what fires it, read
-> `ecosystem/organ-index.md`.
-
-**`scripts/audit.py`** — cross-repo conformance + self-audit; a registered check suite (count
-in `ecosystem/doc-counts.md`; **the roster is not restated here** — `uv run --locked python
-scripts/audit.py checks` is the live registry). `run` = manual ecosystem sweep · `health` =
-pre-commit gate (FAIL blocks, WARN informs) · `ship-gate` = the #147 pre-ship
-verification-organ gate. Read-only **on siblings**, not on this tree: `health`/`ship-gate`
-write findings, `_replicate_automation_branch` pushes to `origin` (`audit.py:3967`) and
-`_commit_routine_outputs` commits to `automation/fleet-audit`; hub-only organs no-op on
-children.
-
-**Seam — `ship-gate` vs `health`.** Both reuse `ALL_CHECKS`, and they are not the same gate.
-`health` gates each *commit*: FAIL-only, WARNs pass, and — since [#597] — it runs only the
-**commit tier**. `ship-gate` gates the feature *arc* at `/ship`: it reads `Finding.status`,
-not exit codes (the awareness organs exit 0 on drift), blocks on FAIL **and** on any
-new/undispositioned WARN, runs claim-3, and dispositions expected WARNs via
-`ecosystem/disposition-register.yaml`. A register entry matching no live WARN is surfaced as
-stale and **removed**, not kept as decoration (ADR-75).
-
-**Seam — the gate tier ladder ([#597]).** Every `ALL_CHECKS` member declares its tier in the
-registry itself (`_tier(TIER_COMMIT, …)` / `_tier(TIER_SHIP, …)`, read by `run_checks`). The
-ladder is **nested** (commit ⊂ ship), so a tier can only move a check to a LATER gate, never
-off the gate set. A ship-tier check still appears in the `health` report as an `n/a` naming
-the deferral — a silently-omitted check is indistinguishable from a deleted one. **A check is
-ship-tier only when it BOTH cannot emit `fail`** (`health` exits 1 on `fail` alone, so a
-WARN-only check's commit-time verdict blocks nothing) **and costs ≥1 s measured**. This
-retired `_GATE_MODE`. Read the assignment off the registry; the measured basis is
-`docs/audits/2026-08-27-technical-lane-nb-tiering.md`.
-
-**The organs, by failure posture.** Rationale, exit codes and honest limits: the module
-docstring, in every row.
-
+- `scripts/audit.py` — cross-repo conformance + self-audit; a registered check suite
+  (count in `ecosystem/doc-counts.md`; **the roster is not restated here** — run
+  `uv run --locked python scripts/audit.py checks` for the live registry. A partial `incl.`
+  list is the M2 failure class twice over: it rots against the registry AND reads as complete
+  while omitting most of it).
+  `run` = manual ecosystem sweep; `health` = pre-commit gate (FAIL blocks, WARN informs);
+  `ship-gate` = the #147 pre-ship verification-organ gate (Definition-of-shipped point 6).
+  **Seam `ship-gate` vs `health`:** both reuse `ALL_CHECKS`, but `health` gates each
+  *commit* (FAIL-only; WARNs pass) and — **since [#597]** — runs only the **commit tier**, while `ship-gate`
+  gates the feature *arc* at `/ship` — it reads `Finding.status` not exit codes (the awareness
+  organs exit 0 on drift), blocks on FAIL **and** any new/undispositioned WARN, runs claim-3
+  (full verification), and dispositions expected WARNs via `ecosystem/disposition-register.yaml`
+  (live examples: the three grandfathered `no_ff_merges` June commits; the `undeclared_edges`
+  prose-reference set). A register entry matching no live WARN is surfaced as stale and is
+  **removed**, not kept as decoration (ADR-75) — which is where the former
+  `warn-77-voided-closure` entry went once #77 was KILL-removed from BACKLOG; the register's own
+  comment block keeps that record. Read-only **on siblings**, not on this tree — `health`/`ship-gate`
+  write findings, `_replicate_automation_branch` pushes to `origin` (`audit.py:3967`) and
+  `_commit_routine_outputs` commits to `automation/fleet-audit`; hub-only organs no-op on children
+  (the `/ship` wiring is hub-guarded).
+  **Per-check gate tier ([#597]).** Every `ALL_CHECKS` member declares the tier it runs at —
+  `_tier(TIER_COMMIT, …)` / `_tier(TIER_SHIP, …)` in the registry itself, read by `run_checks`.
+  The ladder is **nested** (commit ⊂ ship): `health` runs the commit tier, `ship-gate`/`run`/`repo`
+  run everything, so the tier can only ever move a check to a LATER gate, never off the gate set —
+  ship-gate's finding stream is unchanged **byte for byte**, proved side-by-side rather than
+  asserted. A ship-tier check still appears in the `health` report, as an `n/a` naming the deferral,
+  because a silently-omitted check is indistinguishable from a deleted one. **A check is ship-tier
+  only when it BOTH cannot emit `fail`** — `health` exits 1 on `fail` alone, so a WARN-only check's
+  commit-time verdict blocks nothing — **and costs ≥1 s measured**; the sub-second WARN-only checks
+  stay at commit, because a tier decision with no measurable payoff is not a decision. This
+  generalizes and **retires `_GATE_MODE`**, the module global that two of forty-six checks consulted.
+  Read the assignment off the registry, not off a roster here; the measured basis is
+  `docs/audits/2026-08-27-technical-lane-nb-tiering.md`.
 - `scripts/normalize_headers.py` — dated-log header normalization (pre-commit).
-- `scripts/validate_backlog.py` — BACKLOG story-map schema (pre-commit; ADR-66).
+- `scripts/validate_backlog.py` — BACKLOG story-map schema (ADR-66; pre-commit).
+- `scripts/validate_git_backlog.py` — git↔backlog drift, direction (a) STRONG: a
+  main-line `closes [#id]` whose item is still in BACKLOG = drift (ADR-65; #90).
+  Read-only; surfaced via the `git_backlog_drift` audit check (WARN). Direction (b)
+  deferred to #90b. Standalone CLI: `python scripts/validate_git_backlog.py`.
+- `scripts/validate_no_ff.py` — `--no-ff` merge guard (core-invariants #5): a non-merge
+  commit on main's first-parent spine since the enforcement baseline (a direct/FF commit).
+  ONE rule, no exemptions — the ADR-80 automation allowlist was removed once the writers
+  moved off `main` (ADR-84/Q9). Read-only; surfaced via the `no_ff_merges` audit check (WARN);
+  hub-only (fleet-wide deferred, #153). Detect-and-surface, not prevent.
+- `scripts/block_ff_push.py` — pre-push GATE: the PREVENT counterpart to validate_no_ff's
+  detect-and-surface (core-invariants #5). Refuses a push that would put a non-merge commit
+  on main's first-parent spine (a direct-to-main commit or a true fast-forward merge); a
+  `--no-ff` merge passes. Delegates the scan to `validate_no_ff.find_violations` (ONE shared
+  FF-signature, so detector and gate cannot disagree). Wired as the `block-ff-push`
+  pre-commit-managed `pre-push` hook (activate once: `pre-commit install --hook-type
+  pre-push`); HUB-ONLY; **fails CLOSED (exit 2) on internal error** (ADR-85 amendment
+  2026-08-03 §A6). Client-side teeth (bypassable via `git push --no-verify`) — the
+  `no_ff_merges` audit WARN stays the post-hoc backstop; bypass-proof server-side teeth
+  deferred under #153 (#153; ADR-84; core-invariants #5).
+- `scripts/validate_doc_claims.py` — prose-vs-state: a living doc's count/list CLAIMS
+  vs ground truth. Four claims (`_CLAIMS`, `validate_doc_claims.py:224-239`): the audit
+  check-count (vs `len(ALL_CHECKS)`), the pre-commit gate-count and the pytest collected-count
+  (vs `pytest --collect-only`) all read the committed-generated
+  **`ecosystem/doc-counts.md`** — #222 moved them off ARCHITECTURE.md, and **this file no longer
+  carries them**; the roster set-claim reads **CLAUDE.md §9**'s named hook list against
+  `.pre-commit-config.yaml` (order-independent). Read-only; surfaced via the `doc_claims` audit check (WARN). Single-doc
+  accuracy only — history-accretion rot is the `doc_rot` check (#140); cross-file fidelity
+  is the coherence spine (#179–#182). Standalone CLI: `python scripts/validate_doc_claims.py` (#89).
+- `scripts/validate_doc_rot.py` — doc-rot / grooming checker: history-accretion bloat
+  (**ADR-88 FC4**; load-bearing doctrine ADR-65 condense-to-git / ADR-49 retired changelogs /
+  ADR-41 cadence). Four read-only sub-detectors — BACKLOG inline-history accretion, per-section
+  Section-history accretion, file-bloat vs a self-declared budget, grooming-cadence lapse —
+  WARN-only, one Finding per locus, DETECT-ONLY (never condenses; condense-preserving).
+  Surfaced via the `doc_rot` audit check; pre-existing loci grandfathered in the disposition
+  register. Defers cross-file fidelity → coherence spine and intra-file duplication → #190.
+  Standalone CLI: `python scripts/validate_doc_rot.py` (#140).
+- `scripts/validate_doc_structure.py` — prose **structural** linter: section-numbering
+  integrity, header-scheme consistency, ToC accuracy, dangling-allow self-policing (**ADR-88**
+  prose-shape coherence). Reuses the fence-aware ToC parser so the linter and ToC agree (the
+  property that keeps embedded-template H2s from reading as rot). WARN-only, one Finding per
+  locus, DETECT-ONLY (never renumbers / auto-fixes); documented-intentional cases (the §18 gap)
+  pass via co-located `structure-allow` markers. Distinct failure class from #140 (structural
+  shape, not history-accretion). Standalone CLI: `python scripts/validate_doc_structure.py` (#192).
+- `scripts/validate_reconciliation.py` — declared-edge **reconciliation** checker: the
+  `reconciled_versions` audit check / **ADR-88's named deterministic trigger** for the doc→doc
+  **declared** edge. A dependent declaring `reconciled_with: <spec>@<version>` must match the spec's
+  live version; a drifted edge **FAILs** (the coherence-spine gate, #172 v1). The *declared* half of
+  dependency coherence — the complement to `scan_undeclared_edges.py`'s discovery half (below).
+  Standalone CLI: `python scripts/validate_reconciliation.py`.
+- `scripts/scan_undeclared_edges.py` — undeclared-edge referential-currency scan: the
+  **discovery** half of dependency coherence (**ADR-88 FC2**; #179) — the complement to the
+  declared-edge checker (`reconciled_versions` / `validate_reconciliation.py`). Infers
+  **prose-only** edges (a doc prose-references a registered spec but carries no `reconciled_with`)
+  and surfaces them as **candidates for human confirm — NO auto-declare**; writes nothing, exits 0
+  (awareness layer). Registry-scoped heuristic (Tier-1 path/basename + Tier-2 spec-id → candidates;
+  Tier-3 title-prose → retained weak signals); fenced code regions excluded from matching. Surfaced
+  via the `undeclared_edges` audit check — **in `ALL_CHECKS`** since 2026-07-03 as a **WARN-only**
+  ship-gate leg (Fable consult #1 ruling #2; never FAIL-gates), not a hook (a flat module, so not a
+  codemap node). **Candidate scope (#199):**
+  the scan prunes immutable zones (handoff bundles, ADRs, transcripts, audits, append-only
+  JOURNAL/LESSONS/TOKEN-LOG, ADR-80 `ecosystem/*/history`) and gitignored scratch (via
+  `git check-ignore`, fail-open if git absent) — neither can carry a `reconciled_with` edge — so the
+  candidate list is the actionable, tracked-mutable corpus; the two living READMEs inside those
+  trees are allowlisted (no recall loss). Standalone CLI: `python scripts/scan_undeclared_edges.py` (#179).
+- `scripts/validate_doc_code_edge.py` — doc→code **declared-edge** integrity: discovery + resolution
+  behind the `doc_code_edge` advisory check (**ADR-89 OQ1**). Discovers `<!-- rule: <id> -->` tokens in the
+  authoritative declaration docs registered in `ecosystem/doc-code-edge.yaml` (`declaration_docs:`) and
+  resolves each to its `# rule: <id>` code annotation under `scripts/` — rule-ID identity + path/AST content
+  resolution, **move-safe** (the e22e883 spike). `broken_edge`/`ambiguous`/`code_orphan` → **WARN**
+  (advisory-first; **never FAILs** this arc — promotion to a gate is data-gated, OQ3). The **#194 *Done-when***
+  landed: `build_edge_index` (the derived **rebuildable index** — rebuilt from source each scan, no
+  hand-maintained manifest, ADR-88 P3) + `scan_structural_integrity` (**L1**: dangling / `code_orphan` =
+  code→nonexistent-rule / duplicate), proven on a fixture; the live check now also surfaces `code_orphan`.
+  Hub-only; read-only; live on **the rules registered in `ecosystem/doc-code-edge.yaml`
+  `coverage_scope`** per the ADR-89 OQ1 naming convention — the #194 cohort-1 + the #201
+  governance trio + the #202 Tier-3 quartet (`coherence-doc-claims`/`-rot`/`-structure` +
+  `handoff-probes-bind`) + `handoff-boot-budget` ([#446] R4) + `seal-journal-spine-anchor`. Read
+  the count off that file, not off this sentence (it said "13" while `coverage_scope` held 15);
+  the `doc_code_coverage_drift` check is what stops the registered set drifting off the
+  auto-enumerable `ALL_CHECKS` surface. The multi-organ rules resolve via **resolver-allows-N /
+  ADR-90**: a rule enforced in N code organs declares its expected `# rule:` count in
+  `multi_site:`. Check in
+  `audit.py::check_doc_code_edge`.
+- `scripts/verify_handoff_probes.py` — handoff-probe teeth: every probe in the latest
+  `PROBES.md` bundle binds to live state, by STRUCTURAL resolvability (resolve-only — no
+  subprocess; Critical Rule #4). It proves each row BINDS; the v6 `/handoff-verify` command RUNS
+  the rows at check-time — two organs, not interchangeable, because Layer 2 never executes.
+  Mechanizes the manual probe-gate (HANDOFF_PROCESS §5/§10):
+  malformed row / missing source-or-command target → FAIL, row-scoped `expected[ :]`
+  answer-hint → FAIL (the v5.4 anti-bluff rung — a probe that ships its answer is bluffable
+  by construction), reworded `#`-anchor → WARN
+  anchor-missing, absent tool → skipped. Read-only; surfaced via the `handoff_probes` audit
+  check (FAIL-class — a toothless probe blocks `/ship`). Standalone CLI:
+  `python scripts/verify_handoff_probes.py <bundle>` (#163).
 - `scripts/check_backlog_commit_msg.py` — `[#id]`-on-task-removal (commit-msg).
-- `scripts/validate_git_backlog.py` — git↔backlog drift. Read-only; `git_backlog_drift` audit
-  check, **WARN**; hub-only (ADR-65; #90).
-- `scripts/validate_no_ff.py` — `--no-ff` merge guard, ONE rule with no exemptions since
-  ADR-84/Q9. Read-only; `no_ff_merges` audit check, **WARN**; hub-only.
-  **Detect-and-surface, not prevent** (core-invariants #5; #153).
-- `scripts/block_ff_push.py` — the PREVENT counterpart, wired as the `block-ff-push` pre-push
-  hook. Delegates the scan to `validate_no_ff.find_violations`, so detector and gate share ONE
-  FF-signature and cannot disagree. **Fails CLOSED (exit 2) on internal error** (ADR-85
-  amendment 2026-08-03 §A6); hub-only; client-side teeth, so the `no_ff_merges` WARN stays the
-  post-hoc backstop and server-side teeth are deferred (#153).
-- `scripts/validate_doc_claims.py` — a living doc's count/list CLAIMS vs ground truth. The
-  count claims read the committed-generated **`ecosystem/doc-counts.md`** (#222 moved them off
-  this file, which **no longer carries them**); the roster set-claim reads **CLAUDE.md §9**
-  against `.pre-commit-config.yaml`. Read-only; `doc_claims` audit check, **WARN**.
-  **Seam:** single-doc accuracy only — history-accretion is `doc_rot`, structural shape is
-  `doc_structure`, cross-file fidelity is the coherence spine (#179–#182) (#89).
-- `scripts/validate_doc_rot.py` — history-accretion bloat: four read-only sub-detectors
-  (BACKLOG inline-history, Section-history, file-bloat vs a **self-declared** budget,
-  grooming-cadence lapse). **WARN-only, one Finding per locus, DETECT-ONLY** — it never
-  condenses. Surfaced via `doc_rot`; pre-existing loci grandfathered in the disposition
-  register. The ruled remedy is **archival, not trimming** ([#612]) (#140; ADR-88 FC4).
-- `scripts/validate_doc_structure.py` — prose **structural** linter (section numbering, header
-  scheme, ToC accuracy, dangling-allow self-policing). **WARN-only, DETECT-ONLY**; documented
-  cases pass via co-located `structure-allow` markers. A distinct failure class from `doc_rot`
-  (#192; ADR-88 prose-shape).
-- `scripts/validate_reconciliation.py` — the **declared** half of dependency coherence: a
-  dependent's `reconciled_with: <spec>@<version>` against the spec's live version. A drifted
-  edge **FAILs** — the coherence-spine gate, and this chapter's one FAIL-class edge organ
-  (#172; the `reconciled_versions` check).
-- `scripts/scan_undeclared_edges.py` — the **discovery** half: prose-only edges a dependent
-  never declared, surfaced as **candidates for human confirm — NO auto-declare**. Writes
-  nothing, exits 0. `undeclared_edges` audit check, **WARN-only**, never a hook
-  (#179/#199; ADR-88 FC2).
-- `scripts/validate_doc_code_edge.py` — doc→code declared-edge integrity: `<!-- rule: id -->`
-  in a registered declaration doc resolved to its `# rule: id` code annotation, move-safe.
-  `broken_edge`/`ambiguous`/`code_orphan` → **WARN**; it **never FAILs** this arc (promotion is
-  data-gated, ADR-89 OQ3). Hub-only; read-only. **The live rule set is
-  `ecosystem/doc-code-edge.yaml` `coverage_scope:` — read the count off that file, not off
-  prose**; `doc_code_coverage_drift` stops it drifting off `ALL_CHECKS` (#194; ADR-89/ADR-90).
-- `scripts/verify_handoff_probes.py` — handoff-probe teeth: every probe in the active bundle
-  binds to live state by **STRUCTURAL resolvability** (resolve-only, no subprocess). Read-only;
-  `handoff_probes` audit check, **FAIL-class** — a toothless probe blocks `/ship`.
-  **Seam, and it is the Layer-2 invariant in miniature:** this organ proves each row BINDS;
-  the `/handoff-verify` command RUNS the rows at check-time. Two organs, not interchangeable,
-  because Layer 2 never executes (#163; HANDOFF_PROCESS §5/§10).
-- `scripts/check_seal_identity.py` — handoff-bundle seal identity at commit time, running the
-  SAME verifier as the seal-time refusal (`gen_handoff.verify_seal_identity`, reused not
-  reimplemented). **An internal error BLOCKS** (exit 2); hub-only ([#473]/[#475]).
-- `scripts/validate_hermetization.py` — the ADR-101 §3 tree-seal refusal gate (pre-commit,
-  **prospective-only on staged ADDs**): top-level/genre seal, audit-name grammar, and the home
-  allowlist derived from the live taxonomy (operator ruling A of 2026-08-11, register
-  `protocols/STANDING_RULINGS.md` K-1). **Fail-open-loud on git error** — a hygiene gate must
-  not brick every commit; hub-only (#306).
-- `scripts/validate_residual_completeness.py` — a changed handoff bundle may not ship a
-  hand-authored FILL-IN region still carrying its generator placeholder. `residual_completeness`
-  audit check, **FAIL-class** (ARC-5's first enforcing mechanism); degrades to WARN on internal
-  error (#365/#366).
+- `scripts/check_seal_identity.py` — handoff-bundle seal-identity pre-commit gate ([#475]):
+  runs `gen_handoff.verify_seal_identity` (reused, one verifier) over the bundle dir of every
+  staged `docs/handoffs/**` file — the commit-time twin of the [#473] seal-time refusal, so a
+  mislabelled bundle cannot become an immutable committed artifact. Exit 0/1/2 (clean /
+  violation / internal error — an error blocks); HUB-ONLY. Honest limit: Slug-row-vs-directory
+  only, not stale P0c/P3/P8 locators inside a correctly-labelled bundle.
+- `scripts/validate_hermetization.py` — ADR-101 §3 tree-seal refusal gate (pre-commit,
+  prospective-only on staged ADDs; Rule A top-level/genre seal, Rule B audit-name grammar
+  + R4 casing, **Rule C home allowlist** — an added file whose home directory is outside the
+  allowlist derived from the live taxonomy is refused (operator ruling A of 2026-08-11,
+  register `protocols/STANDING_RULINGS.md` K-1). Rule C exists because A and B between them
+  read the top level, the `docs/<genre>/` level and audit filenames, and nothing read the
+  rest of the path — which is how `docs/ORGAN-INDEX.md` came to sit loose at the `docs/`
+  root. Honest limit: it polices the HOME of an added file, and the two open homes
+  (`docs/handoffs/**`, `tests/fixtures/**`) admit arbitrary depth by design; HUB-ONLY;
+  fail-open-loud on git error) (#306).
+- `scripts/validate_residual_completeness.py` — handoff residual-completeness gate: a
+  changed v5 bundle file may not ship a hand-authored FILL-IN region still carrying its
+  generator placeholder. Surfaced via the `residual_completeness` audit check
+  (**FAIL-class**; ARC-5's first enforcing mechanism); honest limit — scans the working
+  tree, not the staged blob (#366).
 - `scripts/codemap/` · `scripts/toc/` — codemap + TOC generators & freshness checks.
-- `scripts/gen_doc_counts.py` — generates the committed `ecosystem/doc-counts.md`, which is
-  what decoupled the volatile counts from this file's freshness gate (#222). A **loose** module
-  by design — not a codemap node, so its edits never regen the map.
-- `scripts/fleet_parity.py` — the deterministic read-only walk of the registered fleet against
-  `ecosystem/parity-surfaces.yaml` + `ecosystem/dependency-baseline.yaml`, using effect-probes
-  over text-grep. **Detect-and-report, NEVER an action proposal.** The standalone CLI stays
-  read-only; `audit.py::check_fleet_parity` calls `walk()` in-process and **fail-closes** on a
-  real divergence — a blocking `ALL_CHECKS` member since [#337], at **ship tier** since [#597]
-  (measured 14,520 ms). It is the one ship-tier member that CAN emit `fail`: parity is a
-  CROSS-REPO property a hub commit cannot create, so the arc boundary is where the claim can
-  honestly be made. Given up, stated: a parity regression introduced elsewhere now surfaces at
-  ship, not at the next hub commit (#328/#332/#337; ADR-102/103).
+- `scripts/gen_doc_counts.py` — generates the committed `ecosystem/doc-counts.md` count
+  fragment (audit check-count · pre-commit gate-count · pytest collected), moved off
+  ARCHITECTURE.md so a count bump no longer trips the freshness gate (`canonical_freshness`
+  A2) into forcing a `last_reviewed` re-stamp (#222). Reuses the #89 derivers; `--write`
+  regenerates, `--check [--gate]` verifies (drift → the `doc_claims` WARN; ship-gate is the
+  teeth). A **loose** module by design — not a codemap node, so its edits never regen the map.
+- `scripts/fleet_parity.py` — the #328 fleet-parity checker (a blocking `ALL_CHECKS` member via `check_fleet_parity` since [#337]; the CLI itself stays read-only): a deterministic
+  read-only walk of the registered fleet (hub included, intake #12 §9a) against the versioned
+  `ecosystem/parity-surfaces.yaml` + `ecosystem/dependency-baseline.yaml` (#332 dep leg),
+  consulting each repo's `.methodology.yaml` through the Informant's own reader (one taxonomy;
+  expired `review_date` = advisory re-WARN per §9b). Register-grammar verdicts; effect-probes
+  (`git check-ignore`, armed hook stages, tag-ancestry) over text-grep; refusal findings on
+  ambiguous/mis-addressed pointers — detect-and-report, NEVER an action proposal. Writes the
+  gitignored `logs/FLEET-PARITY.md` digest + appends schema-versioned checker-run JSONL events
+  to the gitignored rotation-capped `logs/PARITY-EVENTS.jsonl` (`fleet_parity.py:123`,
+  `EVENTS_PATH`; conformed to the [#395] UPPERCASE-KEBAB `logs/` convention on 2026-07-22 —
+  this line still spelled it lowercase) (fail-open emission). A loose
+  module (not a codemap node). **Promoted to a blocking `ALL_CHECKS` member** ([#337], 2026-07-18):
+  `audit.py::check_fleet_parity` calls `fleet_parity.walk()` in-process and maps blocking verdicts
+  to gating Findings (`exempt:` in doc-code-edge.yaml — manifest-driven, not a doc→code rule). The
+  standalone CLI is unchanged: `python scripts/fleet_parity.py --run-date YYYY-MM-DD` (#328/#337).
 - `deploy/tool.py` + `deploy/contract.py` + the carrier modules registered in
-  `tool.py::make_carriers` — the ADR-92 **deploy orchestrator** (Ch4). **The carrier set is
-  computed, not restated:** read the manifest's `carriers:` block (`deploy/manifest-v*.yaml`,
-  gated by `roster-freshness`), which is the surface the orchestrator itself reads. A read-only
-  ASSESS CLI detects each carrier's state against a per-tag manifest and prints a plan;
-  `--execute` applies, **per-carrier verify-gates** the version record
-  (`ecosystem/deployed-versions.yaml`, ADR-91), and stages the consumer carriers —
-  **write-yes / commit-no**, the Layer-2 boundary. Runbook PLAYBOOK §20.
-- `deploy/floor_conformance.py` — the #230 end-to-end harness: proves the ARMED floor loop
-  *functions* rather than that its files are present. Hub CI (synthetic consumer) + Layer-2
-  (`--consumer ../ai-council`, real clone). Read-only (ADR-93).
-- `scripts/reverse_dep_oracle.py` — the code→code reverse-dependency **oracle** (ADR-89
-  computed-edge doctrine), answering with a mandatory provenance block and its three honest
-  limits on **every** answer. **Seam:** a read-only query TOOL — **not** a validator, **not** in
-  `ALL_CHECKS`, wired to no hook. The gate that gives it teeth is `audit.py::check_safe_removal`
-  (logic in `scripts/safe_remove.py`), a FAIL-class member, diff-triggered and **fail-OPEN when
-  Pyright is absent**. #195 is closed; the deferred L3 real-deletion phases are **[#218]**
-  (#193).
-- `tests/` — pytest unit tests for the validators (collected count in
-  `ecosystem/doc-counts.md`).
+  `tool.py::make_carriers` — the carrier set is **computed, not restated**: read the
+  manifest's `carriers:` block (`deploy/manifest-v*.yaml`), which is the surface the
+  orchestrator itself reads — the ADR-92 **deploy orchestrator** (Ch4).
+  **The roster of record is the manifest's `carriers:` block** (`deploy/manifest-v*.yaml`, gated
+  by the `roster-freshness` hook), not a count restated in prose: at v1.4.0 it declares seven —
+  six `implemented: true` plus `editor-config` `implemented: false`. (`carrier_docs` landed at
+  `ec924ae2`, [#280]; this list said "five" until 2026-08-10.) A read-only ASSESS CLI (`deploy <repo> --target <vX.Y.Z>`) detects each carrier's
+  state vs a per-tag manifest and prints a plan; `--execute` applies + **per-carrier
+  verify-gates** the version record (`ecosystem/deployed-versions.yaml`, ADR-91) + stages the
+  consumer carriers (write-yes / commit-no — the Layer-2 boundary). Every carrier implements
+  `contract.py`'s `detect`/`apply`/`verify`. Runbook PLAYBOOK §20.
+- `deploy/floor_conformance.py` — #230 end-to-end floor-conformance harness (ADR-93): proves
+  the ARMED floor loop *functions* (not merely present) — the `@`-include hashes to its
+  `.sha256` sidecar, the SessionStart self-arm wiring, the commit-time `floor-hash-verify` hook
+  blocks a poisoned commit, a deleted floor fails loud. Hub CI (synthetic consumer) + Layer-2
+  (`--consumer ../ai-council`, real clone). Read-only.
+- `scripts/reverse_dep_oracle.py` — code→code reverse-dependency **oracle** (**ADR-89**
+  computed-edge doctrine; #193). Given a Python symbol, returns its reverse-dependents via a
+  headless Pyright `references()` query, with a mandatory **provenance** block (git rev, dirty
+  set, completeness/truncation caveat) plus the three honest limits (static-Python-only,
+  repo-scoped, references-only) on **every** answer. Read-only query TOOL — **not** a
+  validator/gate, **not** in `ALL_CHECKS`, not wired to a hook (a flat module, so not a codemap
+  node). The gate that gives it teeth is **built**: `audit.py::check_safe_removal` (#195, logic
+  in `scripts/safe_remove.py`) is a FAIL-class `ALL_CHECKS` member — diff-triggered, fail-OPEN
+  when Pyright is absent. #195 is closed; the deferred L3 real-deletion phases are **[#218]**
+  (this bullet named #195 as the *pending* consumer until 2026-08-10). Pyright is vendored via
+  `npm install` (pinned in `package.json`; `node_modules/` gitignored). Standalone CLI:
+  `python scripts/reverse_dep_oracle.py <symbol> [--json|--text]`.
 
-**Graph-level conformance — the legibility graph as an integrated whole.** Each of the four
-edge-validators above is proven by its own suite; the *integrating* property — all four
-registered + operational, each **firing on a representative break through its real integrated
-entry point** — is owned by `tests/test_legibility_graph_conformance.py`. The posture across
-the four is deliberately **not uniform**, which is the whole point of the "in gate?" column:
-one FAIL-gates, two are WARN-only awareness legs that exit 0 by design, and the fourth is a
-query tool that is not registered at all. "Integrated" is **not** "all four FAIL-gate". The
-code↔code fires-cell is **skipif-guarded** on the same `find_langserver` check the test's
-3-state ledger derives from, so where Pyright is absent it skips and the tally drops the
-"fully proven" headline — **green never lies**. This env (Pyright vendored) → **8/8 cells
-proven**; an unprovisioned env → **7/8 proven, 1 skipped**: fully *provable*, not fully proven
-there. Per-oracle deep modes stay in the per-oracle suites, never re-run here.
+**Graph-level conformance — the legibility graph as an integrated whole.** The four
+edge-validators above are each proven by their own suite; the *integrating* property — all
+four **registered + operational**, and each **firing on a representative break through its
+real integrated entry point** — is owned by `tests/test_legibility_graph_conformance.py` (it
+adds the graph-level proof and closes nothing). Three edge-types are **registered in the
+`audit.py` gate** (`ALL_CHECKS`) — one FAIL-gates (spec→dependent), two are **WARN-only awareness
+legs that exit 0 by design** (doc→code, and undeclared — wired 2026-07-03); the fourth is a
+**query tool** that exits 0 and is **not** registered (code↔code) — so "integrated" is **not**
+"all four FAIL-gate" (the "in gate?" column keeps that honest). The
+code↔code fires-cell is **skipif-guarded** on the *same* `find_langserver` check the test's
+3-state ledger (proven/skipped/gap) derives from: with Pyright vendored (`node_modules/`, this
+env) it runs+passes; where Pyright is absent it **skips** and the tally drops the "fully
+proven" headline — green never lies. Per-oracle **deep modes** stay in the per-oracle suites
+(referenced in the last column), never re-run here.
 
 | Edge-type | In gate? | Registered + operational | Fires on a representative break (integrated entry) | Deep modes (referenced — not owned here) |
 |---|---|---|---|---|
 | spec→dependent (#172) | yes (`ALL_CHECKS`) | PROVEN | PROVEN — stale `reconciled_with` → `check_reconciled_versions` FAIL | `test_coherence_integration.py` + `test_validate_reconciliation.py` |
-| doc→code (#194) | yes (`ALL_CHECKS`, hub-only) | PROVEN | PROVEN — declaration-registry doc + a broken/orphaned rule-ID → `check_doc_code_edge` WARN (broken_edge / code_orphan) | `test_doc_code_edge.py` (move-safety, dup-guard, coverage gate, registry-scoping guard, **L1 structural-integrity + rebuildable-index round-trip**, multi-site + coverage-drift teeth); coverage tail #201/#202/#203 **complete** |
+| doc→code (#194) | yes (`ALL_CHECKS`, hub-only) | PROVEN | PROVEN — declaration-registry doc + a broken/orphaned rule-ID → `check_doc_code_edge` WARN (broken_edge / code_orphan) | `test_doc_code_edge.py` (move-safety, dup-guard, coverage gate, registry-scoping guard, **L1 structural-integrity + rebuildable-index round-trip**, multi-site + coverage-drift teeth); coverage tail #201/#202/#203 **complete** — the `coverage_scope` set + the `doc_code_coverage_drift` guard |
 | undeclared (#179/#199) | yes (`ALL_CHECKS`, WARN-only) | PROVEN | PROVEN — prose ref to a registered spec + no edge → candidate surfaced via `scan`/`main` | `test_scan_undeclared_edges.py` (tiers, fenced-exclusion, false-flag precision) |
 | code↔code (#193) | no (query tool; its gate is `safe_removal`) | PROVEN | PROVEN here (vendored Pyright, skipif-guarded) — real reverse-dep query → ≥1 dependent w/ provenance | `test_reverse_dep_oracle.py`; transitive closure → #193/#195 |
 | **graph-integration** | — | **4/4 PROVEN** | **4/4 PROVEN this env** (code↔code skipif-guarded) | referenced above |
+
+**Env-aware tally.** This env (Pyright vendored) → **8/8 cells proven** (4/4 registered +
+operational, 4/4 fires-on-break); integration **fully proven (this env)**. An unprovisioned env
+→ **7/8 proven, 1 skipped** (code↔code fires — Pyright not provisioned): fully **provable**, not
+fully proven there. No green — test name, output, or this map — reads as "fully proven" while a
+cell is skipped or gapped. **Skip/gap tracking:** code↔code fires → skip-guarded, here proven;
+its integrated enforcement (#195) and the oracle (#193) both **landed** — the live residual is
+**[#218]** (the deferred L3 real-deletion phases); doc→code coverage tail
+**#201/#202/#203 complete** (every `coverage_scope` rule mapped + the `doc_code_coverage_drift`
+guard over the auto-enumerable `ALL_CHECKS` surface; the heterogeneous non-`ALL_CHECKS`
+remainder stays curated).
+
+- `tests/` — pytest unit tests for the validators (collected count in `ecosystem/doc-counts.md`; `pytest -x --tb=short`).
 
 **Pre-commit gates.** **The id set and its count are not enumerated here** — they live in
 `.pre-commit-config.yaml` (the source), `ecosystem/doc-counts.md` (the computed count), and
 CLAUDE.md §9 (the annotated roster, held against the config by `validate_doc_claims` claim 2b,
 the one enumeration of this class a gate protects). Read those three; this map points, and the
-pointer cannot rot. *The enumeration is gone rather than corrected because it rotted three
-times by the same mechanism — a sibling surface gained a gate and the sentence was not
-re-typed — while already claiming "the roster is not re-counted here". The fix is the pointer,
-not a fourth re-typing (CLAUDE.md §4's named anti-pattern; #222's reason).*
-
-What the three surfaces above do **not** carry, and this map does: the gates run at **three git
+pointer cannot rot. What they do not carry, and this map does: the gates run at **three git
 stages** — pre-commit, commit-msg (`backlog-id-on-close` + `backlog-filing-backpressure`, the
 remove-side and add-side backlog gates), and **pre-push** (`block-ff-push`, the #153 prevent
 half, + `block-unanchored-push`, the ADR-85 hard leg per amendment 2026-08-03 §A5). The
-pre-push pair needs a one-time `pre-commit install --hook-type pre-push`;
-`default_install_hook_types` wires it only on a fresh install.
+pre-push pair needs a one-time `pre-commit install --hook-type pre-push`; `default_install_hook_types`
+wires it only on a fresh install.
+
+*Why the enumeration is gone rather than corrected.* It rotted three times, each time by the
+same mechanism — a sibling surface gained a gate and this sentence was not re-typed: sixteen of
+seventeen from 2026-08-03 to 2026-08-10 (missing `block-unanchored-push`), seventeen of
+eighteen from 2026-08-11 to 2026-08-12 (missing `organ-index-freshness`), and — found by the
+2026-08-21 governance-drift audit and confirmed live on 2026-08-23 — **eighteen against a live
+twenty-one**, missing `block-commit-on-main`, `lane-contract-check` and
+`provider-registry-agreement`. The sentence had already claimed *"the roster is not re-counted
+here"* while re-counting it. Restating a roster in prose is CLAUDE.md §4's named
+anti-pattern and #222's reason for moving counts off this file; the fix is the pointer, not a
+fourth re-typing.
 
 Editing **this file** fires every `always_run: true` hook — `block-commit-on-main`,
 `validate-hermetization` and `audit-health` at pre-commit, `backlog-id-on-close` and
@@ -578,7 +702,7 @@ no trigger and no named consumer is refused at freeze, so both are stated here r
 left to be inferred.
 
 <!-- QUALITY-REQUIREMENTS:START -->
-Register: `ecosystem/quality-requirements.yaml` (v1.0.0) — 22 requirement(s), 6 measured, 16 candidate. Floor tier: MUST.
+Register: `ecosystem/quality-requirements.yaml` (v1.0.0) — 29 requirement(s), 8 measured, 21 candidate. Floor tier: MUST.
 
 A **measured** row names the organ that enforces it and the trip-test that proves the organ refuses; the trip-test is itself run against a neutered organ and has to go RED, so a trip-test that passes unconditionally is refused rather than counted. A **candidate** row carries neither field — a requirement with no enforcement is recorded as one instead of being attached to the nearest plausible organ.
 
@@ -588,15 +712,22 @@ A **measured** row names the organ that enforces it and the trip-test that prove
 | `QR-PERF-002` | performance | candidate | No seat runs the full suite on the workstation; locally a seat runs the impacted set for the changed file, and the full suite runs once, at integration. | — | — |
 | `QR-PERF-003` | performance | candidate | A heavy commit-tier gate carries a measured wall-time and memory budget; above it the gate moves to CI or becomes incremental. | — | — |
 | `QR-PERF-004` | performance | candidate | A test that spawns a shell per case is marked, and the marked set is routed to Actions rather than run locally. | — | — |
+| `QR-PERF-005` | performance | candidate | A session's per-turn cost is read against its OWN running median, and a seat whose cost is rising while its work class is unchanged reclaims context at its next file-backed checkpoint rather than running on. | — | — |
+| `QR-PERF-006` | performance | candidate | UPSTREAM, NOT OURS. A long-running session degrades over roughly 30 minutes of use, accumulating CPU and memory; a restart carrying the same context restores its speed. | — | — |
 | `QR-AVAIL-001` | availability | measured | A seat does not end its turn on a wait. A wait is written as a loop carrying an interval, a bound and a predicate read from the file surface, or it is refused. | `scripts/seat_refusals.py` | `test_qr_avail_001_sleeping_poll_is_refused` |
 | `QR-AVAIL-002` | availability | candidate | A lane that ends without handing back is detected from git rather than waited on. | — | — |
 | `QR-AVAIL-003` | availability | candidate | A Codespace lane runs attached; a detached one is refused at dispatch. | — | — |
 | `QR-AVAIL-004` | availability | candidate | A process that outlives its lane is killed at teardown, and the teardown verifies the kill rather than assuming it. | — | — |
-| `QR-AVAIL-005` | availability | candidate | Killing a job kills its process tree; a surviving descendant is reported rather than left running. | — | — |
+| `QR-AVAIL-005` | availability | measured | Killing a job kills its process tree; a surviving descendant is reported rather than left running. | `scripts/resource_lifecycle.py` | `test_qr_avail_005_a_surviving_grandchild_is_refused` |
 | `QR-AVAIL-006` | availability | candidate | Terminating a background session deregisters it; a session the daemon can rehydrate is not reclaimed. | — | — |
 | `QR-AVAIL-007` | availability | candidate | A session whose worktree was torn down refuses to write rather than resolving to the primary checkout. | — | — |
 | `QR-AVAIL-008` | availability | candidate | A substrate whose provisioning failed reports the failure; a silently substituted environment is refused rather than used. | — | — |
-| `QR-RES-001` | resource-control | candidate | A memory floor below which the dispatcher refuses another local lane and reports the refusal -- arithmetic, rather than a judgement call at dispatch time. | — | — |
+| `QR-AVAIL-011` | availability | candidate | UPSTREAM, NOT OURS. A process spawned through the Bash tool is reparented and runs indefinitely after its session ends; the fix requested upstream is whole-process-TREE teardown rather than killing the top-level PID. | — | — |
+| `QR-RES-001` | resource-control | measured | A memory floor below which the dispatcher refuses another local lane and reports the refusal -- arithmetic, rather than a judgement call at dispatch time. | `scripts/resource_lifecycle.py` | `test_qr_res_001_over_ceiling_dispatch_is_refused` |
+| `QR-RES-006` | resource-control | candidate | UPSTREAM, NOT OURS. An idle session grows without bound, and the growth is NOT context: it is time-based. | — | — |
+| `QR-RES-003` | resource-control | candidate | UPSTREAM, NOT OURS, AND LOAD-BEARING FOR US. A session transcript is read whole, with no streaming read and no size safeguard, so a large one exhausts the client's memory. | — | — |
+| `QR-RES-004` | resource-control | candidate | Where a heap cap is the known workaround, it is EMITTED BY THE GENERATOR into the executable launch line and never set in a paste. | — | — |
+| `QR-RES-005` | resource-control | candidate | A Codespace lane is attached while it runs and STOPPED at handback -- not deleted, and not left running; and its receipt records uptime MINUTES alongside tokens. | — | — |
 | `QR-OBS-001` | observability | measured | Every merge records its own wall time. A merge with no receipt, or with a receipt that is not a usable measurement, is refused. | `scripts/merge_receipt.py` | `test_qr_obs_001_unreceipted_merge_is_refused` |
 | `QR-OBS-002` | observability | measured | A model with no declared rate is reported as UNPRICED with a reason. It is not priced at zero and is not summed into a total. | `scripts/provider_registry.py` | `test_qr_obs_002_unpriced_model_is_refused` |
 | `QR-OBS-003` | observability | candidate | An organ not invoked in 30 days surfaces, so an unused mechanism is visible rather than merely maintained. | — | — |

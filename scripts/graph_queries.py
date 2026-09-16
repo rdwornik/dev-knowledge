@@ -298,6 +298,29 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
     # A DIFFERENT SHAPE FROM THE THREE ABOVE, and the difference is the whole disposition.
     # Those three have a trigger the census cannot see. This one has no trigger AT ALL and
     # should not have one.
+    # THE SAME SHAPE AS `provider_bench.py` BELOW -- no trigger AT ALL, and none is wanted --
+    # but for a different reason, so it is stated rather than inherited. `provider_bench` has no
+    # trigger because firing it costs money. This one has no trigger because NO HOOK TYPE CAN
+    # MAKE ITS DECISION.
+    "scripts/context_reclamation.py": Disposition(
+        reason="[#792]'s context-reclamation half. Its caller is a SEAT deciding to clear its "
+               "own context at a checkpoint, judged on that seat's own running cost median -- "
+               "a decision no event in the [#664] wiring-surface list is positioned to make. "
+               "A commit-tier trigger is wrong on the merits (a commit is not a checkpoint and "
+               "carries no cost history); a SessionStart trigger is wrong at both ends (a seat "
+               "at session start has no turns to have a median of, and the act is a CLEAR "
+               "which a start hook cannot perform). Its consumers are named rather than "
+               "invented: tests/test_context_reclamation.py proves the mechanism including the "
+               "trip-test, and docs/audits/2026-09-15-technical-lane-aa-14-resource-lifecycle.md "
+               "section 3.1 carries the derivation its threshold rests on. Wiring it to a hook "
+               "that merely PRINTS, to satisfy this census, would be declared enforcement "
+               "without enforcement -- the exact shape QR-RES-004 records against the seat "
+               "boot -- and would be the census changing the design. Its SIBLING is wired: "
+               "scripts/resource_lifecycle.py sits on SessionStart, because a session start IS "
+               "a seat allocation and that half of the organ has a real event to hang on",
+        owner="[#791], which carries intake 101 through the decision engine and owns the "
+              "question of who initiates reclamation. When that ADR answers it, the answer "
+              "names a trigger and this row is deleted by [#791]'s lane -- not by this one"),
     "scripts/provider_bench.py": Disposition(
         reason="[#785]'s unattended provider benchmark. It is a one-off MEASUREMENT, not an "
                "organ: every subcommand makes real PAID network calls to five vendor CLIs, so "

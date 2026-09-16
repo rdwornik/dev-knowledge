@@ -19,6 +19,63 @@
 
 ---
 
+### 2026-09-16 (c) - CC (Opus 5, background integrator seat): aa-14 lands as the survivor, with rulings 1, 2, 3 and 5 applied inside its merge rather than after it
+
+**Anchors:** `6317d008` `9227bc9a` `38f22a3c` -- lane aa-14's commits this merge introduces.
+
+**RULING 1 -- aa-14 SURVIVES ON `scripts/resource_lifecycle.py`, and aa-13 was read, not skipped.**
+aa-13's two commits (`3da31370`, `01c446f7`) were reviewed item by item. Dropped with reasons:
+its 8 h / 6-merge lifetime constants (aa-14's 4 h / 5 are derived from batch Y/Z spans), `kill_tree`
+(aa-14's `teardown_tree` covers it, with a grandchild witness), the 64 MiB whole-file transcript
+bound (aa-14 streams with an 8 MiB line bound and rejects the whole-file skip), and uncited
+upstream entries (aa-14 cited all five). FOLDED into QR-RES-004's note: the heap cap cannot reach
+the top-level CLI at all -- `Invoke-Dispatch.ps1` pins the launch line's head token to `claude`
+and runs it as an argv array, so the metric "launch lines carrying the declared cap: all of them"
+is unsatisfiable as written. aa-13's branch ref is KEPT as `[#793]`'s evidence.
+
+**RULING 2 -- `[#790]` and `[#792]` go to aa-14.** `[#792]` lands as aa-14's row; aa-13's `[#790]`
+lands as a SUPERSEDED retained allocation record pointing at `[#792]`, so the id is never reused.
+aa-runtime's own 790/792 move to its reallocation block.
+
+**RULING 3 -- STOP, NOT DELETE, and it reached code, not only prose.** aa-14 had shipped the
+reverse in `codespace_regime.idle_verdict` (`Shutdown` always a breach) and two witnesses. Now
+`Shutdown` is the clean handback state at any age, with its storage cost reported in the reason;
+a machine still RUNNING past one batch stays a breach. QR-RES-005 corrected; main's QR-RES-002
+note records the resolution and why it is kept rather than withdrawn. Flagged, not done: the
+receipt's `deleted` key now means "meter stopped" -- a schema rename belongs to the receipt owner.
+
+**RULING 5 -- APPROVED, AND THE GATE HAS NO WAY TO LAND IT, so the baseline stays 447 by a drain.**
+Measured: main live 442; aa-14 +11; ruling 3's statement rewrite -1; carried ruling text +0
+(first drafted in "never" form at 457, reworded) = 452 exactly, the ruled number. The commit
+carrying 447 -> 452 was then REFUSED by `silent_rule_ratchet`: `validate_transition` rejects any
+raise against main's committed value and there is no ruling input anywhere in the check -- the
+gap `commensurable-ratchet-raise-has-no-landing-path` recorded on 2026-09-06. No bypass. Instead
+the sanctioned drain: five of aa-14's DESCRIPTIVE occurrences reworded, meaning unchanged ("must
+never be averaged" -> "are not to be averaged", "must be generator-emitted" / "must satisfy" ->
+"has to", "archive, never delete" -> "archive, not delete"); every requirement STATEMENT kept its
+wording. Live 447 = baseline 447. This is `[#805]`'s case in miniature: an approved default that
+no mechanism can apply.
+
+**A SEMANTIC MERGE BUG, caught by ruff and not by the textual merge.** main added a since/until
+window to `lane_cost.read_transcript_usage`; aa-14 split its loop into `_accumulate_usage` to
+stream. The auto-merge kept `if windowed:` inside the helper with no `windowed`, `since` or
+`until` in scope -- a NameError on the first windowed seat-cost read. Fixed by passing the window
+through; probed directly (unbounded 30 input tokens, windowed 20).
+
+**REGISTER COLLISIONS (the missing-manifest defect again):** aa-14's QR-AVAIL-009 -> QR-AVAIL-011
+and QR-RES-002 -> QR-RES-006, citations in LESSONS and `[#792]` follow. **Sync note:** a first
+rulings commit on the stale branch was refused by `journal_spine_anchor` (lane lag, not a real
+gap); redone as sync-first.
+
+**NOT RUN:** pytest, per operator instruction. Verdicts exercised directly.
+
+**Changes:** aa-14's 22 files, plus `scripts/lane_cost.py` (merge fix), the drained register notes,
+`tasks/790-runtime-resource-lifecycle-first-increment.md` (superseded), regenerated
+ARCHITECTURE register block, organ-index, doc-counts, manifest.
+
+**Next:** aa-runtime (787/788/790/792 -> 800-803; dispatcher JOURNAL letters -> 2026-09-15 (t)/(u)),
+then rows 804/805. **Flag for aa-12's merge:** it holds its own `tasks/793-*`, colliding with main's `[#793]`.
+
 ### 2026-09-16 (b) - CC (Opus 5, background integrator seat): the retention mover and the tree seal stop contradicting each other -- ruling 4, gate fixed, mover untouched
 
 **Anchors:** `907df521` -- the one substantive commit this merge introduces.

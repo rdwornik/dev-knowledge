@@ -88,7 +88,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Iterable, Optional, Sequence
 
 import click
 
@@ -117,6 +117,24 @@ TOKEN_LOG_RELPATH = "logs/TOKEN-LOG.md"
 
 #: Claude Code's session store. One directory per project cwd, one `.jsonl` per session.
 DEFAULT_SESSIONS_ROOT = Path.home() / ".claude" / "projects"
+
+#: THE TRANSCRIPT SIZE BOUND (added 2026-09-15 by batch AA lane aa-14, `[#792]`).
+#:
+#: `read_transcript_usage` STREAMS, so the file's own size bounds nothing and needs no limit --
+#: what a streaming reader actually has to hold is its longest LINE, and that is what this
+#: bounds. Measured corpus 2026-09-15: 3,108 transcripts under `DEFAULT_SESSIONS_ROOT`,
+#: 2.55 GB total, median 0.34 MB, largest 29.56 MB; longest single line across the 20 largest
+#: files, 1.360 MB. 8 MiB is ~6x that, so what this catches is CORRUPTION, not size.
+#:
+#: WHY A BOUND AT ALL, AND WHY NOT A FILE-SIZE ONE. Before this, the reader did
+#: `read_text()` then `.splitlines()` -- the whole file as a str AND as a list of str at the
+#: same time, roughly 60 MB of peak for that 29.56 MB transcript, inside a module
+#: `scripts/fleet_health.py` imports and therefore runs at SESSION START. "Skip any transcript
+#: over N MB" would also be a size bound, and it would silently drop a lane's whole spend --
+#: the number that means "not measured" becoming the number that means "free", which is the
+#: same class this module already refuses for an unpriced model. Streaming counts every line;
+#: only a line past this bound is dropped, and that drop WARNS.
+MAX_TRANSCRIPT_LINE_BYTES = 8 * 1024 * 1024
 
 #: A turn naming this model names no model: `<synthetic>` turns are harness-generated and carry
 #: no vendor call. Counting them would invent a model row that can never be priced.
@@ -223,17 +241,50 @@ def read_transcript_usage(path: Path, seen: Optional[set[str]] = None, *,
     A malformed line is WARNED and skipped rather than fatal -- the same posture
     `merge_receipt.read_ledger` takes, and for the same reason: one bad line must not make
     every good one unreadable.
+
+    STREAMED, ONE LINE AT A TIME, and that is load-bearing rather than a style choice. The
+    measured corpus carries a 29.56 MB transcript, and the previous `read_text()` +
+    `.splitlines()` held the whole file twice over -- inside a module `fleet_health.py` runs
+    at session start, on the box whose memory is the constraint `[#792]` exists to manage.
+    Peak is now bounded by the longest LINE (1.360 MB measured), not by the file.
     """
-    windowed = since is not None or until is not None
     out: dict[str, TokenUsage] = {}
     if seen is None:
         seen = set()
     try:
-        text = path.read_text(encoding="utf-8", errors="replace")
+        handle = path.open("r", encoding="utf-8", errors="replace")
     except OSError as exc:
         logger.warning("transcript unreadable, skipped: %s (%s)", path, exc)
         return out
-    for number, raw in enumerate(text.splitlines(), start=1):
+    with handle:
+        return _accumulate_usage(handle, path, out, seen, since=since, until=until)
+
+
+def _accumulate_usage(lines: Iterable[str], path: Path, out: dict[str, TokenUsage],
+                      seen: set[str], *, since: Optional[str] = None,
+                      until: Optional[str] = None) -> dict[str, TokenUsage]:
+    """The per-line body of `read_transcript_usage`, split out so the reader can stream.
+
+    Takes any iterable of lines rather than a file object: the accumulation is the same
+    whatever produced them, and keeping it independent of the handle is what stops a later
+    edit from quietly reintroducing a whole-file read to "simplify" the loop.
+
+    `since` / `until` are the caller's window, passed through unchanged (see
+    `read_transcript_usage`). They arrive here because the stream split (lane aa-14) and the
+    seat window (main) landed separately, and a merge that kept the window test in the loop
+    without its inputs would raise NameError on the first windowed read.
+    """
+    windowed = since is not None or until is not None
+    for number, raw in enumerate(lines, start=1):
+        if len(raw) > MAX_TRANSCRIPT_LINE_BYTES:
+            # LOUD, because a skipped line is unmeasured spend and unmeasured spend that says
+            # nothing is indistinguishable from no spend. Every other line still counts.
+            logger.warning(
+                "%s line %d is %.1f MB, past the %.0f MiB line bound, and was skipped -- its "
+                "usage is NOT in this total. A line this size is corruption, not a turn: the "
+                "largest real line measured across 3,108 transcripts is 1.36 MB",
+                path.name, number, len(raw) / 1e6, MAX_TRANSCRIPT_LINE_BYTES / 1048576)
+            continue
         if not raw.strip():
             continue
         try:
