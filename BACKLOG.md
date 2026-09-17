@@ -150,7 +150,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#809] [P1][S] The lane branch grammar allows one batch letter and all 26 are spent; widen it, never recycle · tasks/809-the-lane-branch-grammar-has-one-letter-and-all-26-are-used.md
 - [#810] [P1][S] The Codespace runner cannot pass a model, so model enforcement is impossible on that substrate · tasks/810-the-codespace-runner-cannot-pass-a-model.md
 - [#811] [P1][S] A frozen contract can be re-issued after its pin, and a lane still boots on it -- the freeze is nominal · tasks/811-a-frozen-contract-can-be-re-issued-after-its-pin-and-a-lane-still-boots-on-it.md
-- [#827] [P1][S] The memory floor used a stale per-seat constant from another machine state, so admission refused work it could run · tasks/827-the-memory-floor-is-derived-from-a-stale-per-seat-constant.md
+- [#827] [P1][S] The memory floor's per-seat constant was miscalibrated in BOTH directions -- ~7x too low at first, so admission passed work the box could not run, then ~4x too high after recalibration, so it refused work it could have run · tasks/827-the-memory-floor-is-derived-from-a-stale-per-seat-constant.md
 - [#819] [P1][M] A lane's hub half can merge while its win-tooling half sits unmerged, undetected · tasks/819-a-lanes-hub-half-can-merge-while-its-win-too.md
 - [#820] [P2][S] A HANDBACK addressed to a seat that does not exist is an abandoned lane, not a dispatched one · tasks/820-a-handback-addressed-to-a-seat-that-does-not.md
 - [#821] [P1][M] `dispatch_drift` validates the repo against one machine's local deployed state, not the repo itself · tasks/821-dispatch-drift-validates-against-one-machines.md
@@ -161,6 +161,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#826] [P1][S] Id blocks in a batch manifest must be machine-read -- a prose block stopped nothing · tasks/826-id-blocks-must-be-machine-read-not-prose.md
 - [#834] [P2][S] Enforce one protocols/ rule-bearing heading with a refusal and a trip-test · tasks/834-enforce-one-protocols-heading-with-a-refusal-and-a-trip-test.md
 - [#843] [P1][M] A frozen contract's premise clause is carried from a digest, not verified against main at freeze time · tasks/843-contract-freezing-premise-clauses-carry-from-a-stale-digest.md
+- [#883] [P1][M] The commit gate was never priced -- a mechanism ships with a counter of what it caught, and a gate with no catch in its window is removed, not tuned · tasks/883-a-gate-ships-with-a-counter-or-is-removed.md
 - [#863] [P1][M] Hook processes are created SUSPENDED and never resumed -- a timeout cannot fire on a process that never started · tasks/863-hook-processes-are-created-suspended-and-never-resumed.md
 - [#864] [P1][S] The decision-coverage gate is FLAKY -- it failed and then passed on retry with nothing changed · tasks/864-decision-coverage-gate-is-flaky.md
 - [#865] [P2][S] The user-level block-onedrive.ps1 PreToolUse guard launches powershell per call and can hang the same way -- it needs a ruling · tasks/865-user-level-block-onedrive-guard-needs-a-hang-ruling.md

@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-09-17 (m) - CC (Opus 5, integrator seat): BATCH AB CLOSED -- close packet, [#883] the commit gate was never priced, [#827] amended to both calibration directions
+
+**Anchors:** `2ab80ab8`, `29925141` -- `chore/batch-ab-close` (`docs/audits/2026-09-16-technical-batch-ab-close-packet.md`, the manifest's `closed_by`).
+
+**MERGED** the close. `[#883]` filed (id reserved by push, `refs/reservations/task-id/883`): the commit gate grew to 34 hooks with no counter of catches per cost; from now a mechanism ships with a counter and a gate with no catch in its window is removed, not tuned. It records explicitly that the strip at `6e9f0bb8` cut cost by a measured amount (commit-hook step median 227 s -> 37.8 s) and enforcement by an **UNMEASURED** one, measuring it owed -- and that the "83%" the order cited was retracted by ab-808 to 13% / 4% per call. `[#827]` amended per operator correction: ~7x too LOW first (admitted work the box could not run), ~4x too HIGH after recalibration (refused work it could run) -- one defect, both directions. Receipt lines for ab-802 and amendment-1, lost to a pre-commit stash, restored from the patch files. `ecosystem/doc-counts.md` regenerated (6419 collected, collection only; 36 gates), `docs/audits/README.md` regenerated once. **Close numbers** (packet sections 3-6): rows 365 -> 382, **17 filed, 0 closed**; BACKLOG 75,698 -> 78,930 B; ledger median 17.9 min n=6, close merges 1.55 min n=8 by stopwatch; known cost USD 172.13 (opus-5 107.64, sonnet-5 64.49, two non-Claude lanes unknown). **CARRIED with tips:** ab-833 `5a951fab` (handed back 13:14; `lane_boot.py` logic conflict with ab-694, rule-unsettled, sync aborted), ab-664 `8e3cf513` (paused), ab-828 `7017328e`, win-tooling ab-810 `35280a3`, 617 held. **No tests run here**, by operator order.
+
+**Did:** closed batch AB. **Result:** the batch closed with 17 rows filed and none closed, and its lesson filed as a row with its numbers. **Changes:** `tasks/883`, `tasks/827`, `tasks/manifest.json`, `BACKLOG.md`, `.pre-commit-config.yaml` (retraction note), `logs/MERGE-RECEIPTS.jsonl`, `ecosystem/doc-counts.md`, `docs/audits/README.md`, close packet, `JOURNAL.md`. **Next:** successor window -- ab-833's `lane_boot.py` merge, ab-828's closures, `[#883]`'s counter.
+
 ### 2026-09-17 (l) - CC (Opus 5, integrator seat, batch AB close): lane ab-808 guard timeout merges -- module, tests, surface and check only; its 83% figure retracted to 13%
 
 **Anchors:** `6063c8fd` -- `worktree-lane-ab-808-guard-timeout` tip, synced at `50da495d` (`tasks/manifest.json` hash-only conflict; generator re-pinned, BACKLOG current at 381 tasks).
