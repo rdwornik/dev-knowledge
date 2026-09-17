@@ -959,6 +959,13 @@ EDGE_COMPUTATIONS: dict[str, EdgeComputation] = {
     "scripts/consumer_at_landing.py": _reconciled("citation", "FPG-1 input 3"),
     "scripts/validate_doc_code_edge.py": _reconciled("citation", "FPG-1 input 1"),
     "scripts/gen_audit_index.py": _reconciled("citation", "its output is FPG-1 input 2"),
+    # MIGRATED by lane `ab-664-spine-witnessed` (W-G3 migration 1). Was `scripts/batch_manifest.py`
+    # private citation; the parser is now split per linking surface and FPG-1 input 3 imports
+    # it, so every manifest link is a `consumed-by` edge FROM the file that wrote it. Diff = 0
+    # on the fixture and on the live tree but for named self-links, which the graph drops by
+    # construction (`tests/test_graph_migrations.py`).
+    "scripts/batch_manifest.py::manifest_link_surfaces": _reconciled(
+        "citation", "FPG-1 input 3, manifest-link route"),
     # ---- private: citation
     "scripts/funnel_coverage.py": _private("citation"),
     "scripts/funnel_lifecycle.py": _private("citation"),
@@ -967,7 +974,6 @@ EDGE_COMPUTATIONS: dict[str, EdgeComputation] = {
     "scripts/verify_handoff_probes.py": _private("citation"),
     "scripts/validate_reconciliation.py": _private("citation"),
     "scripts/scan_undeclared_edges.py": _private("citation"),
-    "scripts/batch_manifest.py": _private("citation"),
     "scripts/archive_row_body.py": _private("citation"),
     "scripts/audit.py::check_doc_claims": _private("citation"),
     # ---- private: script call-site. The two closest overlaps with FPG-1's own `imports` and

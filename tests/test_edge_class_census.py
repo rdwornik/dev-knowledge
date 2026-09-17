@@ -374,17 +374,18 @@ def test_every_register_row_actually_HAS_the_shape_it_is_registered_for():
     assert unshaped == []
 
 
-def test_the_live_register_measures_EIGHTEEN_private_computations():
+def test_the_live_register_measures_its_private_computations():
     """N, PINNED so a migration moves it deliberately rather than silently.
 
-    Eighteen private, three reconciled as FPG-1 inputs -- lane `v-664`'s section 2.5
-    measurement, re-measured here on the merged tree. A W-G3 migration lane flips a row to
-    `reconciled` and edits this number in the same commit, which is what makes `migrated`
-    a count rather than a claim.
+    Eighteen private and three reconciled when armed -- lane `v-664`'s section 2.5
+    measurement. A W-G3 migration lane flips a row to `reconciled` and edits these numbers in
+    the same commit, which is what makes `migrated` a count rather than a claim. Moved by lane
+    `ab-664-spine-witnessed`: migration 1, `batch_manifest.manifest_link_surfaces`.
     """
     metrics = gq.edge_class_metrics(REPO_ROOT)
-    assert metrics["private"] == 18
-    assert metrics["reconciled"] == 3
+    assert metrics["private"] == 17
+    assert metrics["reconciled"] == 4
+    assert metrics["migrated"] == 1
 
 
 def test_the_live_tree_does_not_refuse_its_own_edge_class_census():
