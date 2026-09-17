@@ -392,8 +392,15 @@ _INTERACTIVE_LINE_RE = re.compile(
 #: design exists to avoid. Only the two parameters a FROZEN contract must pin are emitted; the
 #: machine, idle-timeout and retention flags are dispatch-time cost choices and freezing them
 #: into a contract would state a spend the operator has not yet made.
+#: `-Model` is OPTIONAL in the grammar and MANDATORY in what this generator emits, the exact
+#: split `[#717]` established for the local form's `--model` — see `dispatch_command`'s
+#: codespace branch and the conjunction check in `parse_contract` below (`[#810]`). Every
+#: historical codespace contract frozen before `[#810]` carries no `-Model`; widening the
+#: grammar to admit it (rather than requiring it structurally) is what keeps that corpus
+#: parsing clean without amnesty machinery of its own.
 _CODESPACE_DISPATCH_LINE_RE = re.compile(
-    r"^Dispatch-Codespace\s+-Contract\s+(?P<file>\S+)\s+-Slug\s+(?P<slug>\S+)\s*$",
+    r"^Dispatch-Codespace\s+-Contract\s+(?P<file>\S+)\s+-Slug\s+(?P<slug>\S+)"
+    r"(?:\s+-Model\s+(?P<model>\S+))?\s*$",
     re.MULTILINE,
 )
 #: The declared shape. Without it a checker cannot tell a correct command from a wrong one,
@@ -585,11 +592,15 @@ def dispatch_command(slug: str, contract_file: str, effort: str, shape: str,
     line is making a promise about how it will run; a line that drops the model silently
     re-decides the most expensive constant on it.
 
-    The three other shapes take no `-Model`: `Dispatch-CloudV2` and `Dispatch-Codespace` carry
-    no such parameter (their tier is on the record in the routing row, as their `-Effort` is),
-    and an interactive first message is a chat message rather than a command line. `model` is
-    accepted for all four so callers have one signature, and is RENDERED only where a parameter
-    exists to receive it — the same scoping `-Effort` already has.
+    `Dispatch-Codespace` carries `-Model` too, as of `[#810]` — win-tooling's runner had no
+    `-Model` parameter at all until that lane's Done-contract, so `Start-DispatchCodespace`
+    ran every lane at whatever `claude` defaulted to, unstated and unchecked against the
+    routing row. `Dispatch-CloudV2` and interactive still take none: cloud's tier is on the
+    record in the routing row exactly as codespace's now is (`-Effort` is absent from both for
+    the same reason), and an interactive first message is a chat message rather than a command
+    line with a parameter surface to carry one. `model` is accepted for all four so callers
+    have one signature, and is RENDERED only where a parameter exists to receive it — the same
+    scoping `-Effort` already has.
 
     `[#675]` CLAUSE 1 / AX25-2 MOVED THE LOCAL FORM from `Dispatch-Lane <slug> <file> -Effort
     <e> -Model <m>` to the `claude --bg …` line the ruled verb will actually run, and the whole
@@ -620,7 +631,7 @@ def dispatch_command(slug: str, contract_file: str, effort: str, shape: str,
     if shape == "interactive":
         return f"Read {PROMPTS_DIR_TOKEN}\\{contract_file} and execute it exactly."
     if shape == "codespace":
-        return f"Dispatch-Codespace -Contract {contract_file} -Slug {slug}"
+        return f"Dispatch-Codespace -Contract {contract_file} -Slug {slug} -Model {model}"
     return (f"claude {BACKGROUND_FLAG} --model {model} --effort {effort} {PERMISSION_MODE} "
             f"--worktree {slug} "
             f'"Read and execute the frozen contract at '
@@ -1075,6 +1086,16 @@ def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedCo
             problems.append(
                 f"dispatch line pairs slug {slug!r} with file {contract_file!r}; the 1:1 "
                 f"pairing wants {contract_filename(slug)!r}")
+        if matched_shape == "codespace":
+            # `[#810]`: the codespace form's own `-Model` group, held to the SAME enum and
+            # routing-row conjunction the local form's `line_model` already gets below —
+            # setting the SAME variable is what makes that check apply for free. Cloud has
+            # no such group (its regex carries none), so this stays scoped to codespace.
+            line_model = cloud_match.group("model")
+            if line_model is not None and line_model not in MODEL_ENUM:
+                problems.append(
+                    f"dispatch line carries model {line_model!r}, outside "
+                    f"{{{' | '.join(MODEL_ENUM)}}}")
     elif matched_shape == "interactive":
         # The first message names the contract file and nothing else — there is no slug and
         # no tier on it to check. Both are still on the record: the slug on the pairing line
