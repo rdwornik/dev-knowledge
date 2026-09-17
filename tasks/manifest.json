@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "a3640fc80233906a538185edfe56de07eeb909345cd7c2b6aae35f26f5d3cf6c",
+  "generated_sha256": "8db972daf254e8a5df251d52cfcd5411d7e05cf3d12396911750937749b26124",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -592,6 +592,18 @@
     {
       "task": 826,
       "file": "826-id-blocks-must-be-machine-read-not-prose.md"
+    },
+    {
+      "task": 863,
+      "file": "863-hook-processes-are-created-suspended-and-never-resumed.md"
+    },
+    {
+      "task": 864,
+      "file": "864-decision-coverage-gate-is-flaky.md"
+    },
+    {
+      "task": 865,
+      "file": "865-user-level-block-onedrive-guard-needs-a-hang-ruling.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"

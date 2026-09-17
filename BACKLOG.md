@@ -154,6 +154,9 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#824] [P1][M] No launch verb exists for a non-Claude lane, so every lane defaults to the Claude path · tasks/824-no-launch-verb-exists-for-a-non-claude-lane.md
 - [#825] [P2][S] single_flight.py misreports a real push race as an internal error (exit 2), not in flight (exit 3) · tasks/825-single-flight-misreports-a-real-push-race-as-an-internal-error.md
 - [#826] [P1][S] Id blocks in a batch manifest must be machine-read -- a prose block stopped nothing · tasks/826-id-blocks-must-be-machine-read-not-prose.md
+- [#863] [P1][M] Hook processes are created SUSPENDED and never resumed -- a timeout cannot fire on a process that never started · tasks/863-hook-processes-are-created-suspended-and-never-resumed.md
+- [#864] [P1][S] The decision-coverage gate is FLAKY -- it failed and then passed on retry with nothing changed · tasks/864-decision-coverage-gate-is-flaky.md
+- [#865] [P2][S] The user-level block-onedrive.ps1 PreToolUse guard launches powershell per call and can hang the same way -- it needs a ruling · tasks/865-user-level-block-onedrive-guard-needs-a-hang-ruling.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
