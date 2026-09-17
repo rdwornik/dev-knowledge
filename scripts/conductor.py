@@ -555,7 +555,10 @@ _BASELINE_PATH = "logs/SUITE-BASELINE-FREEZE.md"
 # verbatim rather than split -- the same class of bug "Defect three" names.
 _NODE_ID_RE = re.compile(r"^[\w./-]+\.py::\S.*$")
 _ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
-_FAILED_LINE_RE = re.compile(r"^(?:FAILED|ERROR)\s+(\S+)")
+# The node id runs to pytest's ` - <reason>` separator, not to the first space: a parametrize
+# id may embed one (batch-Z close packet "Defect three"), and `\S+` truncated it into a false
+# REGRESSION that no frozen roster entry could ever match.
+_FAILED_LINE_RE = re.compile(r"^(?:FAILED|ERROR)\s+(.+?)(?:\s+-\s.*)?$")
 
 
 def parse_suite_baseline(text: str) -> dict:

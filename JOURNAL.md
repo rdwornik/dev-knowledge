@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-09-17 (i) - CC (Opus 5, integrator seat, batch AB close): the freeze roster carries Defect three's full node id; [#761] gets its second witness
+
+**Anchors:** `59111f1f`, `bf9d2f1f` -- `fix/batch-ab-freeze-node-id`, synced at `a4510481` (`ecosystem/doc-counts.md` taken from main; regenerated once at close).
+
+**MERGED** the two items ab-802 handed to the integrator. (1) `scripts/conductor.py` `_FAILED_LINE_RE` reads a FAILED/ERROR line past a space inside a parametrize id, and `logs/SUITE-BASELINE-FREEZE.md`'s roster carries the full `test_head_token_normalises_the_way_the_reader_normalises["C:\\Program Files\\claude.exe" --bg-claude]` id with a dated AMENDMENT block; replayed against ab-802's real conductor run 35200171966: pre-existing 50 -> 51, regressions 10 -> **9** (the 9 are genuine drift since freeze `b5270d63`: test_archive_row_body x1, test_deny_and_point x2, test_generator_newlines x1, test_release_lint x5 -- owed to `[#763]`'s re-measure; enforcement stays off). (2) `[#761]` records ab-802's `EDGE_COMPUTATIONS` self-add for `conductor.py` as the second witness beside y-751's regex-free rewrite -- two lanes, two currencies, no surface counting the false-positive rate -- and its Done-when gains that rate as a measured number (amended on the existing row, not a third). **Gate-cost pair, same commit:** the `[#761]` commit ran 12:10-12:22 under the 34-hook gate and was refused on anchor tree lag; after (d) it landed in **25.9 s**. **No tests run here**, by operator order.
+
+**Did:** merged the freeze-id fix and the `[#761]` amendment. **Result:** the conductor's regression count is 9, not 10. **Changes:** `scripts/conductor.py`, `tests/test_conductor.py`, `logs/SUITE-BASELINE-FREEZE.md`, `tasks/761`, `JOURNAL.md`. **Next:** `[#763]` re-measure.
+
 ### 2026-09-17 (h) - CC (Opus 5, integrator seat, batch AB close): lane ab-834 protocols heading gate merges -- the commit-message type prefix has an organ, landed at the manual stage
 
 **Anchors:** `e2419ec9` -- `worktree-lane-ab-834-protocols-heading-gate` tip, synced at `f02abc62` (`BACKLOG.md`, `ecosystem/organ-index.md` regenerated; `tasks/manifest.json` kept both the `[#834]` and `[#843]` nodes and re-pinned; docs/audits/README.md left for the single regen at close, per `[#590]`'s ship-tier guarantee).
