@@ -1,19 +1,37 @@
-# Lane ab-808 — what a hook `timeout` actually bounds, and the gap a bounded wrapper closes
+# Lane ab-808 — the guards that wedged the seats were enforcing nothing
 
 **Lane:** `lane-ab-808-guard-timeout` · **Branch:** `worktree-lane-ab-808-guard-timeout` ·
 **Batch:** AB (`docs/audits/2026-09-16-technical-batch-ab-manifest.md`) · **Date:** 2026-09-16
 
-Consumers: [#808]
+Consumers: [#808] [#811]
 
-## 0 · Contract identity — a pin mismatch, disclosed
+## The finding
 
-The manifest pins `LANE-ab-808-guard-timeout.md` at `25ece422…ea031d2`. The file read at boot hashes
-`2e7d91a6…610afa1` (no CR bytes, so not a line-ending artefact). Its mtime is 2026-09-16 19:41, after
-the manifest commit `d0fe3865` (16:03). `LANE-ab-810` was re-emitted in the same minute; `LANE-ab-804`
-was not and still matches its pin. The contract carries a "Model — why opus" section citing the
-operator ruling of 2026-09-16 "every model justified", which is the likely edit. The pinned bytes are
-not recoverable from this seat, so the diff is **unverified**. The lane executes the dispatched file.
-The integrator should compare the two before merging.
+```
+PreToolUse prompts guard (fleet_health.py --prompts-guard)   573 recorded runs   477 timed out and PERMITTED the call (83%)
+PreToolUse deny_and_point.py                                 182 recorded runs   182 timed out, judged NONE (100%)
+```
+
+**The guards behind ~20 hours of wedged seats were enforcing nothing.** The harness `timeout` fails
+a hook OPEN, silently, and writes only a transcript attachment nobody read. AX15-1 ruled the prompts
+guard fail-CLOSED; the guard did the opposite on most of its calls for days, and nothing counted
+whether the ruling held. Source: `hook_cancelled` / `timedOut: true` attachments across every
+`~/.claude/projects/*dev-knowledge*/*.jsonl` transcript (§1.3). A posture ruled without a counter is
+not a mechanism, so the operator's ruling of 2026-09-17 makes the BYPASS RATE the signal (§8).
+
+## 0 · Contract identity — the pin mismatch, diffed
+
+```
+pinned   25ece422...  manifest d0fe3865 (16:03); bytes recovered from .claude/jobs/62117afb/tmp/contracts/
+ran      2e7d91a6...  prompts dir, mtime 19:41; this lane booted on it before 20:00
+re-pin   2e7d91a6...  amendment 1, 6ab764fc (20:41) -- AFTER boot, and silent on what changed
+diff     +13 lines, 0 removed: the "Model — why opus, and not sonnet" section (operator ruling
+         2026-09-16, "every model justified"). Done-contract, Steps, What-NOT-to-do: byte-identical.
+```
+
+The lane executed the pinned substance, which was luck, not a property of the freeze. Nothing compares
+the contract a lane boots on with the committed pin, and the pinned bytes survived only in another
+seat's job scratch dir. Filed as `[#811]`, id reserved by push from this lane's block.
 
 ## 0.1 · PAUSE (Q10) — main refuted part of this lane's premise mid-lane
 

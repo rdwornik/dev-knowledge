@@ -149,6 +149,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#808] [P1][M] A hung hook wedges its session with no record; every hook needs a bound that fails OPEN loudly · tasks/808-a-hook-has-no-bounded-execution-time-so-a-hung-guard-wedges-the-session.md
 - [#809] [P1][S] The lane branch grammar allows one batch letter and all 26 are spent; widen it, never recycle · tasks/809-the-lane-branch-grammar-has-one-letter-and-all-26-are-used.md
 - [#810] [P1][S] The Codespace runner cannot pass a model, so model enforcement is impossible on that substrate · tasks/810-the-codespace-runner-cannot-pass-a-model.md
+- [#811] [P1][S] A frozen contract can be re-issued after its pin, and a lane still boots on it -- the freeze is nominal · tasks/811-a-frozen-contract-can-be-re-issued-after-its-pin-and-a-lane-still-boots-on-it.md
 - [#827] [P1][S] The memory floor used a stale per-seat constant from another machine state, so admission refused work it could run · tasks/827-the-memory-floor-is-derived-from-a-stale-per-seat-constant.md
 - [#819] [P1][M] A lane's hub half can merge while its win-tooling half sits unmerged, undetected · tasks/819-a-lanes-hub-half-can-merge-while-its-win-too.md
 - [#820] [P2][S] A HANDBACK addressed to a seat that does not exist is an abandoned lane, not a dispatched one · tasks/820-a-handback-addressed-to-a-seat-that-does-not.md
