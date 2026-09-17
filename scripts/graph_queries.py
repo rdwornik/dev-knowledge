@@ -147,7 +147,25 @@ _LANE_BUILT = ("lane-built and never adopted -- the process-trigger census's DEC
                "finding in mechanism form: lanes build organs and nothing adopts them "
                "afterwards. Retirement-or-wiring is V+1's list, not this lane's act")
 
+_HOOKS_EMERGENCY_DISABLED = (
+    "TEMPORARILY UNWIRED, not retired -- its only trigger was a .claude/settings.json hook, "
+    "and ALL hook families were disabled 2026-09-17 by operator emergency order because hook "
+    "processes are created SUSPENDED and never resumed (0 s CPU, no image path, one thread in "
+    "Wait/Suspended), so no timeout can fire on them. The hook block is recoverable verbatim "
+    "at 33246c0a and returns when [#863] lands; delete this row in that same act")
+
 ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
+    # ---- population 0: SessionStart/Stop hook targets orphaned by the 2026-09-17 disable ----
+    # These six are orphans only because their settings.json wiring was removed in an
+    # emergency, not because nothing adopted them. A disposition, not a retirement, is the
+    # honest verdict: the wiring is coming back under `[#863]`, which owns removing these rows.
+    "scripts/changelog_sentinel.py": Disposition(reason=_HOOKS_EMERGENCY_DISABLED, owner="[#863]"),
+    "scripts/codespace_regime.py": Disposition(reason=_HOOKS_EMERGENCY_DISABLED, owner="[#863]"),
+    "scripts/logs_retention.py": Disposition(reason=_HOOKS_EMERGENCY_DISABLED, owner="[#863]"),
+    "scripts/resource_lifecycle.py": Disposition(reason=_HOOKS_EMERGENCY_DISABLED, owner="[#863]"),
+    "scripts/session_end_backpressure.py": Disposition(reason=_HOOKS_EMERGENCY_DISABLED,
+                                                       owner="[#863]"),
+    "scripts/surface_triage.ps1": Disposition(reason=_HOOKS_EMERGENCY_DISABLED, owner="[#863]"),
     # ---- population A: scripts, lane-built and never wired (the census's own class) ----
     # NOT population A, and the row is a KEEP rather than the DELETE its old text implied. That
     # text -- `_LANE_BUILT` plus "only call site is LANE-f-6-observability-otel.md:27" -- said
