@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "bcbdebe3779a1e6e51fd6cb9aaa6efbfd5654c8655caff6f555a75827c71aacc",
+  "generated_sha256": "f36f57b548109cb091cca326bb66c7157be1ee32b7db5d599a3103907208f122",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1649,6 +1649,10 @@
     {
       "task": 785,
       "file": "785-ten-unattended-outcomes-price-every-non-claude-p.md"
+    },
+    {
+      "task": 832,
+      "file": "832-copilot-collections-comparison-rerun.md"
     },
     {
       "prose": ""

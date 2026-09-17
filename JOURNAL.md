@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-09-17 (k) - CC (Opus 5, integrator seat, batch AB close): lane ab-832 lands -- the three-repo comparison re-run for copilot-collections only
+
+**Anchors:** `058b0971` -- `worktree-lane-ab-832-copilot-collections-comparison` tip, synced at `a3dd8532` then re-synced at `48bfe2ca` onto the all-hooks-disable merge `bc8ddda5` (`tasks/manifest.json` hash-only conflicts; generator re-pinned, BACKLOG current at 380 tasks).
+
+**MERGED** `[#832]`, the operator-ordered correction of lane z-11's repository selection: a fresh-HEAD re-verification of copilot-collections against its anchor. No anchor claim found gone; claims whose counts or model spelling moved are marked **changed**, not carried; `tsh-` namespacing, `applyTo` scoping, XML tags and the large agent/skill roster stay **REJECTED** for a solo Claude-Code hub. Not in the close order's named list; merged because it was finished, clean and idle since 2026-09-16 21:30 -- the close order's headline is "merge every finished branch". A non-Claude lane (Copilot co-author): `lane_cost.py` finds no transcript, so its cost is UNKNOWN, not zero. **No tests run here**, by operator order.
+
+**Did:** merged ab-832. **Result:** the comparison names the right repository. **Changes:** `tasks/832`, `tasks/manifest.json`, `BACKLOG.md`, lane audit, `JOURNAL.md`. **Next:** its "To file" section, triaged in the successor window.
+
 ### 2026-09-17 (j) - CC (Opus 5, hooks seat): ALL hook families disabled on BOTH surfaces, user-level first -- and the suspended-at-creation root cause filed P1 with its two siblings
 
 **Anchors:** `39d3e566` -- `[#863]` `[#864]` `[#865]` filed (ids reserved by push, `refs/reservations/task-id/863..865`).
