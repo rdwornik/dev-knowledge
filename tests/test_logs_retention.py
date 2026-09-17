@@ -409,11 +409,6 @@ def test_a_session_hook_CALLS_run_retention_and_not_only_the_test_suite():
     assert "--dry-run" not in command, (
         f"the wired call must actually relocate, not report: {command!r}")
     # ADR-106: every python hook command in this file runs through the declared environment.
-    # [#808]: the hook runs inside `bounded_hook.py run ... -- <command>`, a stdlib wrapper on
-    # the system interpreter (the ADR-77 exception's reasoning); the WRAPPED command is the one
-    # that must go through the declared environment, and it is held to exactly the old test.
-    if "bounded_hook.py" in command:
-        command = command.split(" -- ", 1)[1]
     assert command.startswith("uv run --locked "), command
 
 

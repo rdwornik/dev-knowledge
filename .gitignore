@@ -65,10 +65,10 @@ logs/FLEET-PARITY.md
 logs/PARITY-EVENTS.jsonl
 logs/PARITY-EVENTS.jsonl.1
 
-# Hook bypass record ([#808] — scripts/hooks/bounded_hook.py appends one JSON line whenever a
-# hook is skipped past its bound; `bounded_hook.py surface` prints it at SessionStart). A local
-# runtime record, not a committed artifact: the durable finding is the lane audit.
-logs/HOOK-BYPASSES.jsonl
+# Hook bypass record ([#808] — scripts/hooks/bounded_hook.py): the run record, the transcript-scan
+# cache and the DECLARED-BROKEN declarations, all printed at SessionStart by fleet_health.py. Local
+# runtime state, not committed artifacts: the durable finding is the lane audit.
+logs/HOOK-BYPASSES*
 
 # Operator-load gauge trend rows ([#270] — one row per fleet_health.py digest run; the
 # gauge writes it at SessionStart, so committing it would dirty the tree on every boot,

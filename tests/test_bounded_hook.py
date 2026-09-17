@@ -36,6 +36,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 _WRAPPER = _REPO_ROOT / "scripts" / "hooks" / "bounded_hook.py"
 _SETTINGS = _REPO_ROOT / ".claude" / "settings.json"
 _LOG_ENV = "DEV_KNOWLEDGE_HOOK_BYPASS_LOG"
+_TRANSCRIPTS_ENV = "DEV_KNOWLEDGE_HOOK_TRANSCRIPTS"
 
 _PAYLOAD = {"session_id": "sess-808-witness", "hook_event_name": "PreToolUse",
             "tool_name": "Bash", "tool_input": {"command": "echo hi"}}
@@ -48,9 +49,12 @@ def _load_wrapper():
     return module
 
 
-def _env(log_path: Path) -> dict[str, str]:
-    env = {k: v for k, v in os.environ.items() if k != _LOG_ENV}
+def _env(log_path: Path, transcripts: Path | None = None) -> dict[str, str]:
+    """Every surface a case touches points into `tmp_path`: the record, the declarations and
+    scan cache beside it, and the transcript store -- never the operator's real session store."""
+    env = {k: v for k, v in os.environ.items() if k not in (_LOG_ENV, _TRANSCRIPTS_ENV)}
     env[_LOG_ENV] = str(log_path)
+    env[_TRANSCRIPTS_ENV] = str(transcripts or (log_path.parent / "no-transcripts"))
     return env
 
 
@@ -179,7 +183,9 @@ def test_a_guard_within_its_bound_is_relayed_verbatim_and_records_nothing(tmp_pa
     assert rc == 2
     assert out == "OUT:" + str(len(json.dumps(_PAYLOAD)))
     assert err == "refused by policy"
-    assert _records(log) == []
+    # No BYPASS is written. One RUN row is: the bypass rate needs its denominator (operator
+    # ruling 2026-09-17), and a run is not a skip -- `surface` never lists it as one.
+    assert [r["reason"] for r in _records(log)] == ["ok"]
 
 
 # --- Done-contract 2: every registered hook carries an explicit bound, and a check refuses ----
@@ -244,11 +250,256 @@ def test_the_surface_is_silent_and_green_with_no_record(tmp_path):
     assert res.stdout.strip() == ""
 
 
-def test_the_surface_is_wired_at_session_start():
-    settings = json.loads(_SETTINGS.read_text(encoding="utf-8"))
-    commands = [h["command"] for block in settings["hooks"]["SessionStart"]
-                for h in block["hooks"]]
-    assert any("bounded_hook.py" in c and " surface" in c for c in commands), commands
+def _fleet_health():
+    spec = importlib.util.spec_from_file_location(
+        "fleet_health_under_808", _REPO_ROOT / "scripts" / "fleet_health.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_the_surface_is_printed_at_session_start_by_the_existing_digest(tmp_path, monkeypatch):
+    """Operator ruling 2026-09-17 item 1: the `.claude/settings.json` wiring is HELD -- a wrapper
+    or a new hook adds an interpreter to every boot, which makes the measured suspended-at-start
+    failure likelier. So the surface rides INSIDE the SessionStart hook that already runs,
+    `fleet_health.py`, in-process: no new registration, no new interpreter. (This replaces the
+    lane's earlier witness that a separate `surface` hook was registered; the ruling removed the
+    registration, and the property -- the record reaches every boot -- is what stays asserted.)"""
+    log = tmp_path / "HOOK-BYPASSES.jsonl"
+    now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    log.write_text(json.dumps({"ts": now, "hook_id": "slow-guard", "bound_s": 10,
+                               "elapsed_s": 10.4, "session_id": "s", "reason": "timeout",
+                               "posture": "fail-open"}) + "\n", encoding="utf-8")
+    for key, value in _env(log).items():
+        if key in (_LOG_ENV, _TRANSCRIPTS_ENV):
+            monkeypatch.setenv(key, value)
+    fh = _fleet_health()
+
+    lines = fh.hook_bypass_lines()
+
+    assert any("slow-guard" in line for line in lines), lines
+    import ast
+    tree = ast.parse((_REPO_ROOT / "scripts" / "fleet_health.py").read_text(encoding="utf-8"))
+    main = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "main")
+    called = {n.func.id for n in ast.walk(main)
+              if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)}
+    assert "hook_bypass_lines" in called, "fleet_health.main() no longer prints the bypass surface"
+
+
+def test_the_bypass_surface_never_breaks_the_digest(tmp_path, monkeypatch):
+    fh = _fleet_health()
+    monkeypatch.setattr(fh, "_import_bounded_hook", lambda: (_ for _ in ()).throw(OSError("x")))
+    assert fh.hook_bypass_lines() == []
+
+
+# --- Operator ruling 2026-09-17 item 2: the BYPASS RATE is the signal ---------------------------
+
+def _run_rows(hook_id: str, runs: int, bypasses: int, ts: str | None = None) -> str:
+    ts = ts or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    rows = [{"ts": ts, "hook_id": hook_id, "bound_s": 10, "elapsed_s": 10.5 if i < bypasses else 0.4,
+             "session_id": f"s{i}", "reason": "timeout" if i < bypasses else "ok",
+             "posture": "fail-open"} for i in range(runs)]
+    return "".join(json.dumps(r) + "\n" for r in rows)
+
+
+def _surface(log: Path, transcripts: Path | None = None, *extra: str):
+    return subprocess.run([sys.executable, str(_WRAPPER), "surface", *extra],
+                          capture_output=True, text=True, encoding="utf-8", errors="replace",
+                          env=_env(log, transcripts))
+
+
+def _declarations(log: Path) -> dict:
+    path = log.with_name("HOOK-BYPASSES-BROKEN.json")
+    return json.loads(path.read_text(encoding="utf-8")).get("broken", {}) if path.exists() else {}
+
+
+def test_a_hook_whose_bypass_rate_exceeds_the_threshold_is_DECLARED_BROKEN_with_its_numbers(
+        tmp_path):
+    module = _load_wrapper()
+    log = tmp_path / "HOOK-BYPASSES.jsonl"
+    runs = module.BROKEN_MIN_RUNS + 10
+    bypasses = int(runs * module.BROKEN_RATE) + 3
+    log.write_text(_run_rows("leaky-guard", runs, bypasses), encoding="utf-8")
+
+    res = _surface(log)
+
+    assert res.returncode == 0, res.stderr
+    declared = _declarations(log)
+    assert set(declared) == {"leaky-guard"}, declared
+    decl = declared["leaky-guard"]
+    assert (decl["runs"], decl["bypasses"]) == (runs, bypasses)
+    assert decl["threshold"] == module.BROKEN_RATE
+    assert decl["window_h"] == module.RATE_WINDOW_H
+    # The row carries its numbers, so whoever files it files the measurement, not a paraphrase.
+    assert f"{bypasses} of {runs}" in decl["draft_row"]
+    # Surfaced beside the recent skips, with the rate itself.
+    assert "leaky-guard" in res.stdout and "DECLARED BROKEN" in res.stdout
+    assert f"{bypasses}/{runs}" in res.stdout
+
+
+def test_a_rate_at_or_under_the_threshold_or_a_thin_sample_declares_nothing(tmp_path):
+    module = _load_wrapper()
+    log = tmp_path / "HOOK-BYPASSES.jsonl"
+    runs = module.BROKEN_MIN_RUNS * 2
+    log.write_text(_run_rows("fine-guard", runs, int(runs * module.BROKEN_RATE))
+                   + _run_rows("thin-guard", module.BROKEN_MIN_RUNS - 1,
+                               module.BROKEN_MIN_RUNS - 1), encoding="utf-8")
+
+    res = _surface(log)
+
+    assert res.returncode == 0, res.stderr
+    assert _declarations(log) == {}
+    # The thin sample is SAID to be thin, not silently treated as healthy.
+    assert "thin-guard" in res.stdout and "sample" in res.stdout
+
+
+def test_a_declared_broken_hook_is_disabled_by_the_wrapper_and_the_skip_is_recorded(tmp_path):
+    """Disabled AUTOMATICALLY: the wrapper does not start a declared-broken hook at all. The
+    stand-in would leave a marker file if it ran. A `declared-broken` skip is not a run, so it
+    cannot feed the rate that declared it."""
+    module = _load_wrapper()
+    log = tmp_path / "HOOK-BYPASSES.jsonl"
+    runs = module.BROKEN_MIN_RUNS + 5
+    log.write_text(_run_rows("leaky-guard", runs, runs), encoding="utf-8")
+    assert _surface(log).returncode == 0
+    assert "leaky-guard" in _declarations(log)
+    marker = tmp_path / "ran.txt"
+    guard = _script(tmp_path, "guard.py", f"open({str(marker)!r}, 'w').write('ran')\n")
+
+    rc, out, err, _ = _run_like_harness(
+        [sys.executable, str(_WRAPPER), "run", "--id", "leaky-guard", "--bound", "20",
+         "--", sys.executable, str(guard)], log)
+
+    assert rc == 0, (rc, out, err)
+    assert not marker.exists(), "a DECLARED BROKEN hook was still run"
+    assert "DECLARED BROKEN" in out
+    assert _records(log)[-1]["reason"] == "declared-broken"
+    decl = _declarations(log)["leaky-guard"]
+    _surface(log)
+    assert _declarations(log)["leaky-guard"] == decl, "the skip fed back into the declaration"
+
+
+def test_a_declaration_is_sticky_until_reinstated_and_old_bypasses_do_not_re_declare(tmp_path):
+    """A disabled hook produces no runs, so a declaration that lapsed when the rate went quiet
+    would re-arm a broken guard by itself. It stays until a person reinstates it, and the
+    reinstatement starts the count again rather than re-reading the window that condemned it."""
+    module = _load_wrapper()
+    log = tmp_path / "HOOK-BYPASSES.jsonl"
+    old = (time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 3600)))
+    runs = module.BROKEN_MIN_RUNS + 5
+    log.write_text(_run_rows("leaky-guard", runs, runs, ts=old), encoding="utf-8")
+    assert _surface(log).returncode == 0
+    assert "leaky-guard" in _declarations(log)
+
+    res = subprocess.run([sys.executable, str(_WRAPPER), "reinstate", "--id", "leaky-guard"],
+                         capture_output=True, text=True, encoding="utf-8", errors="replace",
+                         env=_env(log))
+    assert res.returncode == 0, res.stdout + res.stderr
+    assert _declarations(log) == {}
+
+    _surface(log)
+    assert _declarations(log) == {}, "the pre-reinstatement window re-declared the hook"
+
+
+def _transcript(dir_: Path, name: str, lines: list[dict]) -> None:
+    dir_.mkdir(parents=True, exist_ok=True)
+    (dir_ / name).write_text("".join(json.dumps(line) + "\n" for line in lines), encoding="utf-8")
+
+
+def _attachment(ts, sid, event, command, kind="hook_success", timed_out=False, tool=None,
+                firing=None):
+    attachment = {"type": kind, "hookEvent": event, "command": command,
+                  "hookName": f"{event}:{tool}" if tool else event, "durationMs": 100,
+                  "toolUseID": firing or f"{sid}-{event}"}
+    if timed_out:
+        attachment.update(type="hook_cancelled", timedOut=True, timeoutMs=10000)
+    return {"type": "attachment", "timestamp": ts, "sessionId": sid, "attachment": attachment}
+
+
+def _tool_use(ts, sid, name):
+    return {"type": "assistant", "timestamp": ts, "sessionId": sid,
+            "message": {"content": [{"type": "tool_use", "name": name, "id": "t"}]}}
+
+
+def test_the_rate_is_read_from_the_transcripts_for_a_hook_the_wrapper_never_ran(tmp_path):
+    """The guards behind the wedges were NOT wrapped, and the wiring stays held -- so the
+    transcripts' `hook_cancelled` attachments are the only live counter for them.
+
+    ATTACHMENTS ARE NOT RUNS. A hook that passes SILENTLY writes no attachment, on every event
+    (measured 2026-09-17, per call: 8,046 prompts-guard-matched calls carried 1,112 attachments;
+    `arm_hooks.py` attached in 109 of 263 SessionStart firings, every one with output). Counting
+    attachments as runs inflates the rate by exactly the runs that went well -- the error behind
+    this lane's retracted "477 of 573 (83%)". So the denominator is the FIRINGS of the hook's
+    event between its first and last recorded run: distinct firings for SessionStart/Stop, calls
+    of the tools it was seen matching for PreToolUse -- or the attachments, if more."""
+    module = _load_wrapper()
+    log = tmp_path / "HOOK-BYPASSES.jsonl"
+    store = tmp_path / "projects" / "C--Dev--dev-knowledge"
+    now = time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime())
+    n = module.BROKEN_MIN_RUNS + 20
+    start = 'uv run --locked python "$CLAUDE_PROJECT_DIR/scripts/changelog_sentinel.py"'
+    sibling = 'uv run --locked python "$CLAUDE_PROJECT_DIR/scripts/fleet_health.py"'
+    triage = 'powershell -ExecutionPolicy Bypass -File "$CLAUDE_PROJECT_DIR/scripts/surface_triage.ps1"'
+    guard = 'G="$CLAUDE_PROJECT_DIR/scripts/hooks/deny_and_point.py"; python "$G"'
+    wrapped = 'python "x/scripts/hooks/bounded_hook.py" run --id arm-hooks --bound 40 -- python y'
+    user_level = ('powershell -ExecutionPolicy Bypass -File '
+                  '"C:\\Users\\someone\\.claude\\hooks\\surface-closures-with-a-long-name.ps1"')
+    lines = []
+    for i in range(n):
+        # One SessionStart firing per session. The sibling always prints, so it always attaches;
+        # the sentinel attaches ONLY when it times out (a quarter of firings) and passes silently
+        # otherwise; triage times out on a third. Wrapped attachments are not transcript runs.
+        lines.append(_attachment(now, f"s{i}", "SessionStart", sibling, firing=f"f{i}"))
+        if i % 4 == 0:
+            lines.append(_attachment(now, f"s{i}", "SessionStart", start, timed_out=True,
+                                     firing=f"f{i}"))
+        if i % 3 == 0:
+            lines.append(_attachment(now, f"s{i}", "SessionStart", triage, timed_out=True,
+                                     firing=f"f{i}"))
+        lines.append(_attachment(now, f"s{i}", "SessionStart", wrapped, timed_out=True,
+                                 firing=f"f{i}"))
+        lines.append(_attachment(now, f"s{i}", "SessionStart", user_level, timed_out=True,
+                                 firing=f"f{i}"))
+    # PreToolUse: 3 timeouts out of 100 Bash calls -- 3%, not 3/3.
+    lines += [_tool_use(now, "p1", "Bash") for _ in range(100)]
+    lines += [_attachment(now, "p1", "PreToolUse", guard, timed_out=True, tool="Bash",
+                          firing=f"t{i}") for i in range(3)]
+    _transcript(store, "sess.jsonl", lines)
+
+    res = _surface(log, tmp_path / "projects")
+
+    assert res.returncode == 0, res.stderr
+    declared = _declarations(log)
+    # A hook this repo does not register is named by its script, and declared as NOT disableable
+    # from here rather than as held wiring -- only its owner's settings can stop it.
+    user_id = "cmd:surface-closures-with-a-long-name.ps1"
+    assert set(declared) == {"changelog-sentinel", "surface-triage", user_id}, declared
+    assert "outside this repo" in declared[user_id]["draft_row"]
+    sentinel = declared["changelog-sentinel"]
+    assert (sentinel["bypasses"], sentinel["runs"]) == (len(range(0, n, 4)), n), \
+        "a silent pass was not counted as a run"
+    assert "fleet-health-session-start" not in res.stdout  # zero bypasses: not listed
+    assert "3/100" in res.stdout, res.stdout
+
+
+def test_a_partial_transcript_scan_never_declares(tmp_path):
+    """The scan is incremental and time-boxed so SessionStart pays for new bytes only. A rate
+    read off part of the window is not the rate, so nothing is declared until the scan is whole."""
+    module = _load_wrapper()
+    log = tmp_path / "HOOK-BYPASSES.jsonl"
+    store = tmp_path / "projects" / "C--Dev--dev-knowledge"
+    now = time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime())
+    start = 'uv run --locked python "$CLAUDE_PROJECT_DIR/scripts/changelog_sentinel.py"'
+    n = module.BROKEN_MIN_RUNS + 5
+    _transcript(store, "sess.jsonl",
+                [_attachment(now, f"s{i}", "SessionStart", start, timed_out=True) for i in range(n)])
+
+    partial = _surface(log, tmp_path / "projects", "--scan-budget", "0")
+    assert _declarations(log) == {}
+    assert "partial" in partial.stdout
+
+    _surface(log, tmp_path / "projects")
+    assert "changelog-sentinel" in _declarations(log)
 
 
 # --- Done-contract 4: the posture is stated per hook, with its reason --------------------------
