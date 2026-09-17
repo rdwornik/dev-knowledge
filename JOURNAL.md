@@ -1,5 +1,7 @@
 # Journal — .dev-knowledge
 
+**SUPERSEDED FIGURES -- read this before the text below** (marker inserted 2026-09-17 as a pure insertion; nothing below it was edited). Entries 2026-09-17 (m), (l) and (d) cite guard bypass rates that are FALSIFIED: (d) justifies the commit-gate strip `6e9f0bb8` partly by "permitting 477 of 573 calls" (the decision stands on cost; that stated reason does not), and (l) and (m) give the correction as "13% and 4%". The ruled figures are **6% (1,066 of 17,047 matched calls) for the prompts guard and 2% (182 of 9,382) for `deny_and_point`**, over the week to 2026-09-17, counted on the event-fired denominator across ALL sessions (operator ruling X-3, 2026-09-17). The "83%" / "477 of 573" / "182 of 182" counted transcript records as calls, and the later "13% and 4%" counted only the sessions that left a record -- the same bias, smaller. Authority: AMENDMENT 1 at the head of `docs/audits/2026-09-16-technical-lane-ab-808-guard-timeout.md`. Standing correction path: `[#812]`.
+
 <!-- scope: meta -->
 
 > Per-session tactical log of `.dev-knowledge` Claude Code work. Entry shape
@@ -18,6 +20,14 @@
 > or ADR for deeper detail. JOURNAL summarizes, doesn't duplicate.
 
 ---
+
+### 2026-09-17 (n) - CC (Opus 5, integrator seat, repo-to-zero): ab-808 X-rulings merge -- the guard figures are 6% and 2%, and the immutable surfaces carrying 83% / 13% get SUPERSEDED markers
+
+**Anchors:** `c36b51a1`, `060e1997` -- `worktree-ab-808-x-rulings` (already contained main `a92ff5c4`; sync a no-op). The operator named `c36b51a1`; the branch had moved to `060e1997`, a descendant, and the descendant is what merged.
+
+**MERGED** the operator's X-rulings on lane ab-808's section 8.6 (`c36b51a1`): X-1 "Disabled: NO" stays, X-2 a hook drafts and the integrator files, X-3 the denominator is event-fired across all sessions, X-4 fleet_health is declared like any hook, X-5 out-of-repo hooks print `[hook-ADVISORY]`, never BROKEN. The ab-808 artifact takes AMENDMENT 1 at its head, leading with the nine hooks over the bar (surface_triage 96%, fleet_health 41%). **Correction carried:** the guard figures are **6% and 2%** (event-fired, all sessions, week to 2026-09-17). Neither 83% (attachments) nor 13% / 4% (recorded-only denominator) stands. `060e1997` puts pure-insertion SUPERSEDED markers on JOURNAL (d), (l), (m), the batch AB close packet and intake 103; `[#883]` (living) is corrected in place; `[#812]` filed: an immutable artifact whose figure is falsified has no standing correction path. Lane-reported tests: 21/21 bounded_hook; 2 failures in test_logs_retention and 1 in test_export_backlog_view, each identical on main `a92ff5c4`. **No tests run here**, by operator order.
+
+**Did:** merged the X-rulings. **Result:** one ruled bypass figure, and every copy of the wrong ones points at it. **Changes:** `scripts/hooks/bounded_hook.py`, `tests/test_bounded_hook.py`, ab-808 artifact, close packet, intake 103, `tasks/812`, `tasks/883`, `tasks/manifest.json`, `BACKLOG.md`, `JOURNAL.md`. **Next:** `[#812]`'s registry of superseded claims.
 
 ### 2026-09-17 (m) - CC (Opus 5, integrator seat): BATCH AB CLOSED -- close packet, [#883] the commit gate was never priced, [#827] amended to both calibration directions
 

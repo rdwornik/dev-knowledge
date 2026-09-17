@@ -319,22 +319,45 @@ def test_a_hook_whose_bypass_rate_exceeds_the_threshold_is_DECLARED_BROKEN_with_
     log = tmp_path / "HOOK-BYPASSES.jsonl"
     runs = module.BROKEN_MIN_RUNS + 10
     bypasses = int(runs * module.BROKEN_RATE) + 3
-    log.write_text(_run_rows("leaky-guard", runs, bypasses), encoding="utf-8")
+    log.write_text(_run_rows("changelog-sentinel", runs, bypasses), encoding="utf-8")
 
     res = _surface(log)
 
     assert res.returncode == 0, res.stderr
     declared = _declarations(log)
-    assert set(declared) == {"leaky-guard"}, declared
-    decl = declared["leaky-guard"]
+    assert set(declared) == {"changelog-sentinel"}, declared
+    decl = declared["changelog-sentinel"]
     assert (decl["runs"], decl["bypasses"]) == (runs, bypasses)
     assert decl["threshold"] == module.BROKEN_RATE
     assert decl["window_h"] == module.RATE_WINDOW_H
     # The row carries its numbers, so whoever files it files the measurement, not a paraphrase.
     assert f"{bypasses} of {runs}" in decl["draft_row"]
     # Surfaced beside the recent skips, with the rate itself.
-    assert "leaky-guard" in res.stdout and "DECLARED BROKEN" in res.stdout
+    assert "changelog-sentinel" in res.stdout and "DECLARED BROKEN" in res.stdout
     assert f"{bypasses}/{runs}" in res.stdout
+    # X-2 (operator ruling 2026-09-17): a hook never files a row. It drafts to a known place, and
+    # the integrator files at batch close -- the line must say both.
+    assert "NOT filed" in res.stdout and "integrator files" in res.stdout
+    # X-1: a declaration that cannot enforce says so, never implies the action.
+    assert decl["scope"] == "repo" and "Disabled: NO" in res.stdout
+
+
+def test_the_report_states_its_own_hosts_declared_status_and_is_not_special_cased(tmp_path):
+    """X-4 (operator ruling 2026-09-17): the bar declaring `fleet_health.py` -- the hook this report
+    prints from -- is correct and must NOT be exempted. The report still prints, and says in its
+    own output that its host is declared broken, so a reader knows why it is sometimes absent."""
+    module = _load_wrapper()
+    log = tmp_path / "HOOK-BYPASSES.jsonl"
+    runs = module.BROKEN_MIN_RUNS + 10
+    log.write_text(_run_rows(module.HOST_HOOK_ID, runs, runs // 2), encoding="utf-8")
+
+    res = _surface(log)
+
+    assert res.returncode == 0, res.stderr
+    assert module.HOST_HOOK_ID in _declarations(log), "the report's own host was exempted"
+    host_lines = [line for line in res.stdout.splitlines() if "this report's own host" in line]
+    assert len(host_lines) == 1, res.stdout
+    assert f"{runs // 2}/{runs}" in host_lines[0]
 
 
 def test_a_rate_at_or_under_the_threshold_or_a_thin_sample_declares_nothing(tmp_path):
@@ -475,6 +498,15 @@ def test_the_rate_is_read_from_the_transcripts_for_a_hook_the_wrapper_never_ran(
     user_id = "cmd:surface-closures-with-a-long-name.ps1"
     assert set(declared) == {"changelog-sentinel", "surface-triage", user_id}, declared
     assert "outside this repo" in declared[user_id]["draft_row"]
+    # X-5 (operator ruling 2026-09-17): out-of-repo hooks are declared ADVISORY -- named, with their
+    # rates, routed to the user-level disable. The repo observes what it cannot stop and must not
+    # claim to stop it.
+    assert declared[user_id]["scope"] == "advisory"
+    assert "ADVISORY" in declared[user_id]["draft_row"]
+    advisory = [line for line in res.stdout.splitlines() if line.startswith("[hook-ADVISORY]")]
+    assert len(advisory) == 1 and user_id in advisory[0] and "user-level disable" in advisory[0]
+    assert not any(line.startswith("[hook-BROKEN]") and user_id in line
+                   for line in res.stdout.splitlines())
     sentinel = declared["changelog-sentinel"]
     assert (sentinel["bypasses"], sentinel["runs"]) == (len(range(0, n, 4)), n), \
         "a silent pass was not counted as a run"
