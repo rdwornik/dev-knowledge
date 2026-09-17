@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-09-17 (h) - CC (Opus 5, integrator seat, batch AB close): lane ab-834 protocols heading gate merges -- the commit-message type prefix has an organ, landed at the manual stage
+
+**Anchors:** `e2419ec9` -- `worktree-lane-ab-834-protocols-heading-gate` tip, synced at `f02abc62` (`BACKLOG.md`, `ecosystem/organ-index.md` regenerated; `tasks/manifest.json` kept both the `[#834]` and `[#843]` nodes and re-pinned; docs/audits/README.md left for the single regen at close, per `[#590]`'s ship-tier guarantee).
+
+**MERGED** `[#834]`: one `protocols/` heading -- PLAYBOOK "### Commit message standard" -- enforced by `scripts/check_commit_message_type.py` (a subject with no `type:`/`type(scope)!:` token refuses; Merge/Revert exempt), RED-first tests `e70fe130`, the heading and its organ citing each other. The lane measured ~2.9 s warm and chose not to gate the six-type enum or the ~72-char rule (5680 of 7985 historical commits breach length). **RULE-SETTLED AT SYNC:** the hook lands at `stages: [manual]`, not `commit-msg` -- it merged after (d) stripped the commit gate, it carries no catch counter, and under that ruling a new gate does not take a local stage until it has one; the conductor's `commit-gate` job skips commit-msg hooks, so **this refusal is currently armed nowhere** and the heading's Done-when is met in organ and test only. **No tests run here**, by operator order.
+
+**Did:** merged ab-834. **Result:** the organ exists and is tested; its arming waits on a counter. **Changes:** `scripts/check_commit_message_type.py`, `tests/test_check_commit_message_type.py`, `.pre-commit-config.yaml`, `protocols/PLAYBOOK.md`, `tasks/834`, `tasks/manifest.json`, `BACKLOG.md`, `ecosystem/organ-index.md`, lane artifact, `JOURNAL.md`. **Next:** a counter, then a stage.
+
 ### 2026-09-17 (g) - CC (Opus 5, integrator seat, batch AB close): intake 103 lands -- the browser seat's findings set, 2026-09-15 through the 2026-09-17 close
 
 **Anchors:** `b9ceb000` -- `worktree-browser-digests-intake` tip, synced at `0cdb2281` (clean).
