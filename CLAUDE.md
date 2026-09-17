@@ -146,7 +146,7 @@ User-level (`~/.claude/skills/`): `gotchas` — universal dev gotchas (encoding,
 <!-- methodology:start id=skills-repo-roster owner=repo -->
 Repo-level (`./.claude/skills/`): `verify` (ecosystem verification, run after `pytest`) + `check-against-spec` (spec-reconciliation site enumerator). Repo-specific empirical patterns live in `LESSONS.md` — append-only; read it before structural changes.
 
-Plugin `tier1-lifecycle@dev-knowledge-methodology` is **enabled**: it ships `/review-closures` + `/ship`; its Tier-1 closure `Stop` hook (`propose_closures.py`) is OFF (§9). The hub is the marketplace source the children install from → `ARCHITECTURE.md` "Tier-1 self-enforcing lifecycle".
+Plugin `tier1-lifecycle@dev-knowledge-methodology` is **enabled** and drives the Tier-1 closure loop here: its `Stop` hook runs `propose_closures.py`, and it ships `/review-closures` + `/ship`. The hub is the marketplace source the children install from → `ARCHITECTURE.md` "Tier-1 self-enforcing lifecycle".
 <!-- methodology:end id=skills-repo-roster -->
 
 ## 9. Hooks active
@@ -195,9 +195,9 @@ Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless the row says otherwis
 - `block-ff-push` (pre-push) — refuses a non-merge commit onto main's first-parent spine; **fails CLOSED**
 - `block-unanchored-push` (pre-push) — **the ADR-85 hard leg**: refuses a push to `main` whose range carries no JOURNAL anchor; **fails CLOSED**, sole escape `git push --no-verify`
 
-**Arm the two pre-push hooks once per clone:** `pre-commit install --hook-type pre-push` — `default_install_hook_types` wires them only on a fresh install; `arm_hooks.py` re-armed them, OFF until [#863].
+**Arm the two pre-push hooks once per clone:** `pre-commit install --hook-type pre-push` — `default_install_hook_types` wires them only on a fresh install; `SessionStart`'s `arm_hooks.py` then does it idempotently.
 
-Session hooks (`.claude/settings.json`): **ALL OFF since 2026-09-17** (`disableAllHooks`, project + user level; back only under [#863], debt [#886]): `SessionStart` surfacing + `arm_hooks.py`; `Stop` backpressure (advisory, ADR-85 §A5); ADR-77 transcript guard (fail-closed); `[#727]` deny-and-point (fail-OPEN).
+Session hooks (`.claude/settings.json`, `disableAllHooks: false`): since 2026-09-17 three run — `SessionStart` `arm_hooks.py`; `Stop` backpressure (advisory); `[#727]` deny-and-point (fail-OPEN). Of nine measured-broken hooks eight are off (plugin `propose_closures` runs), per its register; the ADR-77 guard stays off ([#863]).
 
 Rules (`.claude/rules/`): `git-discipline.md` — mandatory commit after every file edit; clean working tree at session end.
 
