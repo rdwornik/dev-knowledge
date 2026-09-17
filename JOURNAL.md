@@ -19,6 +19,38 @@
 
 ---
 
+### 2026-09-17 (j) - CC (Opus 5, hooks seat): ALL hook families disabled on BOTH surfaces, user-level first -- and the suspended-at-creation root cause filed P1 with its two siblings
+
+**Anchors:** `39d3e566` -- `[#863]` `[#864]` `[#865]` filed (ids reserved by push, `refs/reservations/task-id/863..865`).
+
+**WHY (operator emergency order, widened):** a session wedged in **Stop hooks 2/3 with nine subagents** after `33246c0a` had disabled
+PreToolUse only. Hook processes are created SUSPENDED and never resumed -- 0 s CPU, no image path, one thread in `Wait/Suspended` --
+so no timeout can fire on them and no single-family disable helps. 20 orphans were killed this morning and sessions kept wedging
+afterwards on a different family. Census 2026-09-17 ~11:35 adds a suspended `session_end_backpressure.py` (Stop, 11:02).
+
+**WHICH FILE A FRESH SESSION READS -- the ordering defect, stated plainly:** every settings layer is merged at startup
+(user `~/.claude/settings.json`, project `<checkout>/.claude/settings.json`, `.claude/settings.local.json`, managed; none managed here).
+The project copy is read from the session's **own checkout**, so a lane branched before a repo-scoped disable merges keeps its old
+hooks -- a repo-scoped disable cannot protect it. The **user-level file is the one that matters**, and the disable landed there FIRST:
+`disableAllHooks: true`, hooks emptied, reason + original block in `~/.claude/settings.hooks-DISABLED-2026-09-17.json` (the settings
+validator refuses comment keys). `disableAllHooks` is resolved after precedence, so user-level `true` holds wherever no layer sets it false.
+
+**VERIFIED FROM A NEW SESSION:** headless `claude -p` from the primary, whose repo copy still wired Stop + 8x SessionStart at the time:
+exit 0 in 19 s, **0** `hookEvent` records in its transcript (`3188bfc5`), no hook interpreter spawned. Control: pre-disable transcript
+`138b7b5b` records `"hookEvent":"SessionStart"`, so the format does record hooks when they run.
+
+**REPO COPY:** `.claude/settings.json` `disableAllHooks: true`, hooks emptied (removed blocks verbatim at `33246c0a`); organ index
+regenerated; six `ORPHAN_DISPOSITIONS` rows (owner `[#863]`) for the hook targets left unwired -- TEMPORARILY UNWIRED, not retired.
+
+**COLLATERAL, TEMPORARY, NOT SETTLED:** the ADR-77 immutable-transcript guard, the Stop backpressure gate, and the user-level
+`block-onedrive.ps1` core-invariant #1 write/delete guard are all off (the `permissions.deny` OneDrive Read rule still binds). Accepted
+only until `[#863]` has a mechanism; `[#865]` owns the block-onedrive ruling. **Not done:** `[#808]` still claims the whole wedge in
+its text; `worktree-hooks-disable-emergency` is merged but still checked out in a worktree this seat did not create, so not torn down.
+
+**Did:** widened the disable, filed three rows. **Result:** new sessions start hook-free. **Changes:** `~/.claude/settings.json` (outside git),
+`.claude/settings.json`, `ecosystem/organ-index.md`, `scripts/graph_queries.py`, `tasks/863..865`, `tasks/manifest.json`, `BACKLOG.md`, `JOURNAL.md`.
+**Next:** `[#863]` -- read the client's spawn path for the suspension; zero-CPU watchdog; then re-arm per hook.
+
 ### 2026-09-17 (i) - CC (Opus 5, integrator seat, batch AB close): the freeze roster carries Defect three's full node id; [#761] gets its second witness
 
 **Anchors:** `59111f1f`, `bf9d2f1f` -- `fix/batch-ab-freeze-node-id`, synced at `a4510481` (`ecosystem/doc-counts.md` taken from main; regenerated once at close).
