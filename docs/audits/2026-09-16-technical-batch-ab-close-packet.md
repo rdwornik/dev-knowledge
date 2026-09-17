@@ -115,3 +115,35 @@ Filed as `[#883]`. **The commit gate was never priced:** it grew to 34 hooks wit
 **Recorded rather than implied away:** the strip at `6e9f0bb8` cut cost by a measured amount (commit-hook step 227 s -> 37.8 s median) and cut enforcement by an **UNMEASURED** amount. Nobody measured what the 31 moved hooks caught, and measuring it is owed (`[#883]` Done-when 3).
 
 **The order's own evidence was partly wrong.** It cited "guards permitting 477 of 573 calls (83%)", and ab-808 retracted that before merging. The count used transcript attachments; per call the bypass rate was 13% and 4%. The cost half of the lesson stands. The "enforced nothing" half does not. A decision taken on an unmeasured-as-stated number is the same defect one level up.
+
+---
+
+## AMENDMENT 1 · 2026-09-17 · repo-to-zero merges after the close
+
+> In-file amendment marker, appended; nothing above it is edited. The operator ordered the repo cleaned to zero after `a92ff5c4` closed the batch, reversing CARRIED on ab-833 and ab-664. Where section 2 above says CARRIED for those two, this amendment is current.
+
+**Merged SHAs, in order.** The named tip was merged, or a descendant of it where the branch had moved on:
+- `73e44703` ab-808 X-rulings (`c36b51a1` named; `060e1997` merged). Guard figures ruled 6% / 2%; SUPERSEDED markers; `[#812]` filed.
+- `f676ef3f` `[#884]` filed: an unbounded research fan-out ran 17+ hours (`39e42e42`).
+- `a38da811` ab-833 seat registry (`5a951fab`). The integrator resolved the `scripts/lane_boot.py` conflict as refusals 1-3 manifest, 4 GO (`[#685]`), 5-6 seats. `py_compile` and ruff are clean; **the conductor's pytest run is the first execution of the combined file.**
+- `f846caac` ab-664 spine witnessed (`8e3cf513` named; `15f00e5b` merged). **Four commit-tier witnesses are RED by ruling** and are not a regression.
+- intake 103 (`b9ceb000`) was already on main at `3c16b4eb`; nothing to merge.
+- this amendment's merge (`chore/repo-zero`): doc-counts and the audit index regenerated.
+
+**Rows filed versus closed, batch open `8a24f469` to this amendment.** Instrument: `tasks/manifest.json` task nodes.
+- **filed: 21** -- `[#811]` `[#812]` `[#819]`-`[#827]` `[#832]` `[#833]` `[#834]` `[#839]` `[#843]` `[#863]` `[#864]` `[#865]` `[#883]` `[#884]`
+- **closed: 0.** ab-828's 25 closures remain unmerged (`7017328e`).
+
+**BACKLOG.** 75,698 B / 365 rows at open -> **79,919 B / 386 rows** now.
+
+**Median merge minutes** (this seat's stopwatch, merge + commit-hooks + push; not receipts): **1.28 min, n=12**, range 1.00 .. 2.06. The four merges above ran 1.07, 1.00, 1.02 and 1.05 min. The durable-receipt ledger median is unchanged at 17.9 min, n=6.
+
+**Cost, lines added or changed since section 6** (`lane_cost.py`, rates as_of 2026-06-24):
+- ab-664 · claude-opus-5 · USD 27.65 · 177 calls (supersedes 23.95)
+- ab-808 X-rulings · claude-opus-5 · USD 43.05 · 241 calls (new)
+- `[#884]` row seat · claude-opus-5 · USD 1.90 · 28 calls (new)
+- ab-833 · claude-opus-5 · USD 1.85 · 24 calls, unchanged from section 6 and still a partial transcript: the true figure is UNMEASURED.
+- integrator seat 6ec18feb · claude-opus-5 · USD 47.23 · 307 calls (supersedes 34.31, whole session)
+- **per model now:** claude-opus-5 USD 169.21 · claude-sonnet-5 USD 64.49 · non-Claude UNKNOWN. **Known total: USD 233.70.** NOT included, as in section 6: the dispatcher seat, peer seats, the two non-Claude lanes; the integrator figure is the session to this writing.
+
+**Tests collected:** 6,471 (`gen_doc_counts.py --write`, collection only).
