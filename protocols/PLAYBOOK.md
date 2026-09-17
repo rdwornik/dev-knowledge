@@ -675,6 +675,13 @@ Git history IS the changelog (no CHANGELOG.md since 2026-05-16) — commit messa
 
 `/save` follows this standard. See CONTRIBUTING.md for live examples and the pre-commit hook list.
 
+**Enforced (structural shape only, [#834]):** the `type(scope): summary` prefix is gated
+at `commit-msg` by `scripts/check_commit_message_type.py` (`commit-message-type-prefix`
+hook) — a subject with no leading `type:`/`type(scope):` token is refused. It does **not**
+gate the closed six-type list above or the `~72` char / no-"and" sub-rules — live practice
+already extends the type set (`perf`, `build`, `lessons`) and the length/one-change rules
+are soft prose, not gated (see the [#834] artifact for why).
+
 ### Branch prefixes — the closed enum
 <!-- scope: dev -->
 

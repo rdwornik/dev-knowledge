@@ -137,6 +137,7 @@ from consumer_at_landing import (  # noqa: E402
     POOL_ROOT_FILES,
     identifiers,
 )
+from batch_manifest import links_artifact, manifest_link_surfaces  # noqa: E402
 from funnel_coverage import _AUDIT_NAME_RE  # noqa: E402
 from validate_backlog import _DEPENDS_CLAUSE_RE, _DEPID_RE  # noqa: E402
 from validate_doc_code_edge import DOC_RE, markers_in_source  # noqa: E402
@@ -164,6 +165,11 @@ INPUT_TASK_IMPLEMENTS = "task-implements"
 #: ("a new edge kind is added to FPG-1, never to a script") applied to a relation the corpus
 #: did not hold: nothing in this repo could answer "what implements ADR-118".
 INPUT_DECISION_IMPLEMENTS = "decision-implements"
+
+#: The `detail` a manifest-link `consumed-by` edge carries, followed by the link kind
+#: (`explicit` | `lane-slug`). Input 3's pool pass writes "governance citation"; the prefix is
+#: what lets a reader select one route without a second pass over the corpus.
+MANIFEST_LINK_DETAIL_PREFIX = "manifest link: "
 
 INPUTS: tuple[str, ...] = (
     INPUT_DOC_CODE_EDGE,
@@ -1401,6 +1407,24 @@ def _load_consumer_at_landing(graph: PurposeGraph, root: Path) -> None:
         for target in sorted(hits):
             graph.add_edge(Edge(src, _file_key(target), EDGE_CONSUMED_BY,
                                 INPUT_CONSUMER_AT_LANDING, "governance citation"))
+
+    # -- the manifest-link route, the half of `consumer_at_landing` this input used to omit.
+    # `consumer_at_landing.measure` counts an artifact a batch manifest (or its `closed_by:`
+    # packet) links as CONSUMED (operator ruling 2026-09-05), and until `[#664]` lane
+    # `ab-664-spine-witnessed` FPG-1 copied only the pool pass -- so the register row calling
+    # this input "reconciled" was true of one leg of two. The parser is IMPORTED
+    # (`batch_manifest.manifest_link_surfaces`), never re-derived, and each link is an edge FROM
+    # the surface that wrote it, with the link kind on the edge.
+    audits = _audit_paths(root)
+    for surface_rel, links in manifest_link_surfaces(root).items():
+        src = graph.node_for_path(surface_rel)
+        for path in audits:
+            kind = links_artifact(links, path.name)
+            if kind is None:
+                continue
+            graph.add_edge(Edge(src, _file_key(path.relative_to(root).as_posix()),
+                                EDGE_CONSUMED_BY, INPUT_CONSUMER_AT_LANDING,
+                                f"{MANIFEST_LINK_DETAIL_PREFIX}{kind}"))
 
 
 def _pool_paths(root: Path) -> list[Path]:

@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "330f374fb4c24e04e6ed78446ebec097bba4af4296376d3ad94bc3e0a516c010",
+  "generated_sha256": "813963b88f4e5203bc2e8ee69e78c7d88f7b8f7f11293be61a48537f295af483",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -534,8 +534,32 @@
       "file": "810-the-codespace-runner-cannot-pass-a-model.md"
     },
     {
+      "task": 811,
+      "file": "811-a-frozen-contract-can-be-re-issued-after-its-pin-and-a-lane-still-boots-on-it.md"
+    },
+    {
+      "task": 812,
+      "file": "812-a-falsified-figure-in-an-immutable-artifact-has-no-standing-correction-path.md"
+    },
+    {
       "task": 827,
       "file": "827-the-memory-floor-is-derived-from-a-stale-per-seat-constant.md"
+    },
+    {
+      "task": 819,
+      "file": "819-a-lanes-hub-half-can-merge-while-its-win-too.md"
+    },
+    {
+      "task": 820,
+      "file": "820-a-handback-addressed-to-a-seat-that-does-not.md"
+    },
+    {
+      "task": 821,
+      "file": "821-dispatch-drift-validates-against-one-machines.md"
+    },
+    {
+      "task": 822,
+      "file": "822-a-pipe-masks-the-exit-code-of-the-command-it.md"
     },
     {
       "task": 823,
@@ -552,6 +576,42 @@
     {
       "task": 826,
       "file": "826-id-blocks-must-be-machine-read-not-prose.md"
+    },
+    {
+      "task": 833,
+      "file": "833-a-seat-is-not-a-registered-entity-so-a-wedged-starved-or-absent-seat-is-invisible.md"
+    },
+    {
+      "task": 834,
+      "file": "834-enforce-one-protocols-heading-with-a-refusal-and-a-trip-test.md"
+    },
+    {
+      "task": 843,
+      "file": "843-contract-freezing-premise-clauses-carry-from-a-stale-digest.md"
+    },
+    {
+      "task": 839,
+      "file": "839-fpg-1-represents-a-missing-target-as-an-explicit.md"
+    },
+    {
+      "task": 883,
+      "file": "883-a-gate-ships-with-a-counter-or-is-removed.md"
+    },
+    {
+      "task": 884,
+      "file": "884-a-research-dispatch-states-its-bounds-before-launch.md"
+    },
+    {
+      "task": 863,
+      "file": "863-hook-processes-are-created-suspended-and-never-resumed.md"
+    },
+    {
+      "task": 864,
+      "file": "864-decision-coverage-gate-is-flaky.md"
+    },
+    {
+      "task": 865,
+      "file": "865-user-level-block-onedrive-guard-needs-a-hang-ruling.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -1533,6 +1593,10 @@
     {
       "task": 753,
       "file": "753-the-supervised-non-claude-producer-trial.md"
+    },
+    {
+      "task": 832,
+      "file": "832-copilot-collections-comparison-rerun.md"
     },
     {
       "prose": ""

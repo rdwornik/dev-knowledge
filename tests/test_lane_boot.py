@@ -16,6 +16,7 @@ pinned:
 from __future__ import annotations
 
 import importlib
+import os
 import re
 import shutil
 import subprocess
@@ -61,17 +62,37 @@ def _repo(tmp_path: Path) -> Path:
 
 
 def _commit_manifest(repo: Path) -> None:
+    """A committed, open manifest that also GOes `_LANE` -- [#685]'s row -- so these
+    [#804]-era fixtures keep testing the open-batch refusal alone, not colliding with it."""
     path = repo / _MANIFEST
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(f"---\nbatch: AB\nstatus: open\nclosed_by: {_CLOSER}\n---\n\n# Batch AB\n",
-                    encoding="utf-8")
+    path.write_text(
+        f"---\nbatch: AB\nstatus: open\nclosed_by: {_CLOSER}\n---\n\n# Batch AB\n\n"
+        f"| Lane | State |\n|---|---|\n| `{_LANE}` | fire now |\n", encoding="utf-8")
     _git(repo, "add", "-A")
     _git(repo, "commit", "-q", "-m", "batch AB manifest")
 
 
+def _live_integrator_registry(repo: Path) -> Path:
+    """A registry holding one LIVE integrator for batch AB, written through the real event writer.
+
+    `[#833]` added two seat-state refusals after the manifest ones, so a lane that passes the
+    manifest now also needs a receiving seat. The registry is built beside the fixture repo, never
+    read from `~/.claude`, so the machine running the suite cannot decide these tests.
+    """
+    reg = importlib.import_module("seat_registry")
+    path = repo.parent / "seats.jsonl"
+    if not path.exists():
+        reg.record_event({"hook_event_name": "SessionStart", "session_id": "int-fixture",
+                          "cwd": str(repo)}, path=path, env={"CLAUDE_PID": str(os.getpid())})
+        reg.bind("integrator", "AB", session_id="int-fixture", path=path)
+    return path
+
+
 def _boot(repo: Path, lane: str = _LANE):
     return CliRunner().invoke(_lane_boot().cli,
-                              ["preflight", "--lane", lane, "--repo", str(repo)])
+                              ["preflight", "--lane", lane, "--repo", str(repo),
+                               "--registry", str(_live_integrator_registry(repo))])
 
 
 @requires_git
@@ -133,6 +154,77 @@ def test_a_malformed_lane_name_is_refused_before_the_manifest_is_read(tmp_path):
     assert "BRANCH form" in result.output
 
 
+# --- [#685]: dispatch refuses without the GO file ---------------------------------------
+#
+# The GO artifact is a table row naming this lane -- either in the open batch's manifest
+# itself, or in one of its committed `<manifest-stem>-amendment-N.md` siblings, the live shape
+# `docs/audits/2026-09-16-technical-batch-ab-manifest-amendment-1.md` uses.
+
+_GO_LANE = "lane-ab-694-cost-telemetry"
+
+
+def _commit_amendment(repo: Path, n: int, row: str) -> None:
+    stem = _MANIFEST.rsplit(".md", 1)[0]
+    path = repo / f"{stem}-amendment-{n}.md"
+    path.write_text(f"# Amendment {n}\n\n| Lane | State |\n|---|---|\n{row}\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", f"amendment {n}")
+
+
+@requires_git
+def test_lane_boot_refuses_a_lane_no_go_artifact_names(tmp_path):
+    """The manifest is open and committed on main, but no row anywhere names this lane."""
+    repo = _repo(tmp_path)
+    _commit_manifest(repo)
+    result = _boot(repo, lane=_GO_LANE)
+    assert result.exit_code == 1, result.output
+    assert "685" in result.output
+
+
+@requires_git
+def test_lane_boot_admits_a_lane_the_manifest_itself_fires(tmp_path):
+    repo = _repo(tmp_path)
+    path = repo / _MANIFEST
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        f"---\nbatch: AB\nstatus: open\nclosed_by: {_CLOSER}\n---\n\n"
+        f"| Lane | State |\n|---|---|\n| `{_GO_LANE}` | fire now |\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "batch AB manifest")
+    result = _boot(repo, lane=_GO_LANE)
+    assert result.exit_code == 0, result.output
+
+
+@requires_git
+def test_lane_boot_admits_a_lane_an_amendment_fires(tmp_path):
+    """Only an amendment sibling names the lane -- the manifest itself is silent on it."""
+    repo = _repo(tmp_path)
+    _commit_manifest(repo)
+    _commit_amendment(repo, 1, f"| `{_GO_LANE}` | fire now |")
+    result = _boot(repo, lane=_GO_LANE)
+    assert result.exit_code == 0, result.output
+
+
+@requires_git
+def test_lane_boot_refuses_a_lane_the_manifest_holds(tmp_path):
+    repo = _repo(tmp_path)
+    _commit_manifest(repo)
+    _commit_amendment(repo, 1, f"| `{_GO_LANE}` | HELD: stale contract |")
+    result = _boot(repo, lane=_GO_LANE)
+    assert result.exit_code == 1, result.output
+    assert "HELD" in result.output
+
+
+@requires_git
+def test_lane_boot_a_later_amendment_supersedes_an_earlier_hold(tmp_path):
+    repo = _repo(tmp_path)
+    _commit_manifest(repo)
+    _commit_amendment(repo, 1, f"| `{_GO_LANE}` | HELD: awaiting the re-scope |")
+    _commit_amendment(repo, 2, f"| `{_GO_LANE}` | fire now |")
+    result = _boot(repo, lane=_GO_LANE)
+    assert result.exit_code == 0, result.output
+
+
 def test_the_lane_boot_command_file_runs_the_entry_point():
     """The wiring half. A refusal that no boot step calls does not refuse anything. That is the
     state this lane found. `/lane-boot`'s pre-flight must RUN `lane_boot.py preflight` inside a
@@ -141,3 +233,60 @@ def test_the_lane_boot_command_file_runs_the_entry_point():
     fences = re.findall(r"```[a-z]*\n(.*?)```", text, flags=re.S)
     assert any("scripts/lane_boot.py preflight" in f for f in fences), \
         "/lane-boot does not run the manifest refusal"
+
+
+# --- [#833]: the seat refusals, at the same STEP 0 ------------------------------------------------
+#
+# A lane is the seat that pays for an absent integrator (its handback has nowhere to land) and the
+# seat that DOUBLES an owned lane (two committing sessions on one index -- the 2026-09-17 near-miss
+# on lane ab-833 itself). Both refusals therefore run here, after the manifest refusals: a lane
+# with no open batch has no batch whose integrator could be asked about.
+#
+# These drive `seat_preflight` on a registry built in `tmp_path` and need no git, so they carry no
+# skip guard.
+
+from datetime import datetime, timedelta, timezone  # noqa: E402
+
+_T0 = datetime(2026, 9, 17, 10, 47, tzinfo=timezone.utc)
+_OWNED = "lane-ab-833-seat-registry"
+_OWNED_CWD = f"C:/Dev/.dev-knowledge/.claude/worktrees/{_OWNED}"
+
+
+def _seat_registry():
+    return importlib.import_module("seat_registry")
+
+
+def _seats(tmp_path, *, integrator_batch=None, owner=None, minutes=1):
+    reg = _seat_registry()
+    path = tmp_path / "seats.jsonl"
+    if integrator_batch:
+        reg.record_event({"hook_event_name": "SessionStart", "session_id": "int-1",
+                          "cwd": "C:/Dev/hub"}, path=path, now=_T0, env={"CLAUDE_PID": "1"})
+        reg.bind("integrator", integrator_batch, session_id="int-1", path=path, now=_T0)
+    if owner:
+        reg.record_event({"hook_event_name": "SessionStart", "session_id": owner,
+                          "cwd": _OWNED_CWD}, path=path, now=_T0, env={"CLAUDE_PID": "2"})
+    return reg.seats(path, now=_T0 + timedelta(minutes=minutes), pid_alive=lambda _p: True,
+                     path_exists=lambda _p: True, transcript_mtime=lambda _p: None)
+
+
+def test_lane_boot_refuses_a_lane_whose_batch_has_no_live_integrator(tmp_path, capsys):
+    with pytest.raises(SystemExit) as exc:
+        _lane_boot().seat_preflight(_OWNED, _seats(tmp_path), own_session="me")
+    assert exc.value.code == 1
+    err = capsys.readouterr().err
+    assert "no-live-integrator" in err and "integrator" in err
+
+
+def test_lane_boot_refuses_a_second_session_onto_an_owned_lane(tmp_path, capsys):
+    seats = _seats(tmp_path, integrator_batch="AB", owner="52a3764d")
+    with pytest.raises(SystemExit) as exc:
+        _lane_boot().seat_preflight(_OWNED, seats, own_session="506ef5c0")
+    assert exc.value.code == 1
+    assert "lane-owned" in capsys.readouterr().err
+
+
+def test_lane_boot_admits_a_lane_with_a_live_integrator_and_no_other_owner(tmp_path):
+    seats = _seats(tmp_path, integrator_batch="AB")
+    line = _lane_boot().seat_preflight(_OWNED, seats, own_session="me")
+    assert "int-1" in line

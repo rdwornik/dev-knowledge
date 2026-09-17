@@ -513,6 +513,25 @@ def gather(checks):
     return lines
 
 
+def _record_seat_stop(data: dict) -> None:
+    """`[#833]`: this hook is the seat registry's Stop EVENT WRITER.
+
+    A seat that ended its turn is `live` and waiting; whether it is STARVED is read later from how
+    long nothing has fed it, never written here. The payload is passed through untouched, so a
+    payload that carries its own `state` is refused by the registry rather than trusted, and one
+    without a `session_id` writes nothing. Silent and fail-soft: it runs before the advisory legs
+    and must never change what this hook prints or returns.
+    """
+    try:
+        try:
+            import seat_registry  # noqa: PLC0415
+        except ImportError:
+            from scripts import seat_registry  # type: ignore[no-redef]  # noqa: PLC0415
+        seat_registry.record_hook_event({"hook_event_name": "Stop", **data})
+    except Exception:  # noqa: BLE001 -- a reporter never blocks a turn ending
+        pass
+
+
 def main() -> int:
     try:
         # ADR-85 amendment 2026-08-03 §A2/FR3: the local token path is RETIRED. Local state
@@ -521,6 +540,7 @@ def main() -> int:
         # docstring). The sole escape is now `git push --no-verify` at the transport layer,
         # made non-silent by the audit backstop.
         data = _read_hook_input()
+        _record_seat_stop(data)
         # No hard block. additionalContext "continues the conversation" (CC v2.1.163), so a
         # standalone advisory on a PERSISTENT condition would keep the turn going every retry
         # -> the block-cap auto-overrides (the bypass ADR-85 forbids). Surface advisory

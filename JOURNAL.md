@@ -1,5 +1,7 @@
 # Journal — .dev-knowledge
 
+**SUPERSEDED FIGURES -- read this before the text below** (marker inserted 2026-09-17 as a pure insertion; nothing below it was edited). Entries 2026-09-17 (m), (l) and (d) cite guard bypass rates that are FALSIFIED: (d) justifies the commit-gate strip `6e9f0bb8` partly by "permitting 477 of 573 calls" (the decision stands on cost; that stated reason does not), and (l) and (m) give the correction as "13% and 4%". The ruled figures are **6% (1,066 of 17,047 matched calls) for the prompts guard and 2% (182 of 9,382) for `deny_and_point`**, over the week to 2026-09-17, counted on the event-fired denominator across ALL sessions (operator ruling X-3, 2026-09-17). The "83%" / "477 of 573" / "182 of 182" counted transcript records as calls, and the later "13% and 4%" counted only the sessions that left a record -- the same bias, smaller. Authority: AMENDMENT 1 at the head of `docs/audits/2026-09-16-technical-lane-ab-808-guard-timeout.md`. Standing correction path: `[#812]`.
+
 <!-- scope: meta -->
 
 > Per-session tactical log of `.dev-knowledge` Claude Code work. Entry shape
@@ -18,6 +20,208 @@
 > or ADR for deeper detail. JOURNAL summarizes, doesn't duplicate.
 
 ---
+
+### 2026-09-17 (r) - CC (Opus 5, integrator seat, repo-to-zero): close packet amendment 1 -- the four ordered merges counted, and the repo cleaned to zero by ancestry evidence
+
+**Anchors:** `f4bd99f2` -- `chore/repo-zero`, cut from `f846caac` after the last ordered merge.
+
+**Did:** appended AMENDMENT 1 to `docs/audits/2026-09-16-technical-batch-ab-close-packet.md` (pure append; the packet stays immutable above it). **Merged SHAs:** `73e44703` (808 X-rulings), `f676ef3f` (`[#884]`), `a38da811` (`[#833]`, no longer CARRIED), `f846caac` (`[#664]`, four RED witnesses by ruling); intake 103 `b9ceb000` was already on main at `3c16b4eb`. **Rows:** 21 filed, 0 closed, since batch open `8a24f469`. **BACKLOG:** 79,919 B, 386 rows. **Merge minutes:** median 1.28, n=12, by seat stopwatch rather than receipts. **Cost:** claude-opus-5 USD 169.21, claude-sonnet-5 USD 64.49, known total USD 233.70; non-Claude lanes are UNKNOWN. Regenerated doc-counts (6,471 collected) and the audit index. **Teardown after this merge is decided by `git merge-base --is-ancestor`, never by name.** A branch not on main is reported with its tip and kept: ab-828 `7017328e`, aa-12 `e17c6200`, aa-13 `01c446f7`. `automation/fleet-audit` stays, as it is protected. **No tests run here**, by operator order; the conductor's pytest run judges the 833 and 664 merges.
+
+**Result:** the batch AB record matches main after the reversal of CARRIED. **Changes:** close packet, `docs/audits/README.md`, `ecosystem/doc-counts.md`, `JOURNAL.md`. **Next:** operator rules on ab-828, aa-12, aa-13; read the conductor verdict on `a38da811` and `f846caac`.
+
+### 2026-09-17 (q) - CC (Opus 5, integrator seat, repo-to-zero): lane ab-664 spine witnessed merges WITH FOUR DELIBERATE RED WITNESSES -- not a regression, do not "fix" them
+
+**Anchors:** `8e3cf513`, `15f00e5b` -- `worktree-lane-ab-664-spine-witnessed`, synced at `e57b4ec6` (`tasks/manifest.json` hash-only conflict; generator re-pinned, BACKLOG current at 386 tasks). The operator named `8e3cf513`; the branch had moved to `15f00e5b` (amendment 1, the rulings applied), a descendant, and the descendant is what merged.
+
+**MERGED** `[#664]`, by operator order. `tests/test_graph_spine_commit_tier.py` witnesses the three spine refusals blocking a REAL `git commit`, and since `6e9f0bb8` moved those hooks to `manual` **four of its witnesses are RED, by ruling**: re-pointing them at the conductor while CI enforcement is off would green a tier that enforces nothing. They stay RED until enforcement is ON (re-pointed in the same act) or the refusals return to the local stage under `[#883]`'s counter bar. **The conductor's pytest job will count these four as regressions against the freeze -- they are the witness, recorded here so the next reader does not repair them.** Also landed: census re-measure (17 private edge computations, not 18; `docs/audits/2026-09-17-census-lane-ab-664-edge-class-remeasure.md`); W-G3 migration 1 (manifest links become FPG-1 edges, `batch_manifest` reconciled, `1fbaf7d3`); `[#664]` Done-when amended (conductor tier counts only with CI enforcement ON; "driven to 0" re-scoped to every dangling edge measured and dispositioned, `6b268a59`); `[#839]` filed (FPG-1 represents a missing target as an explicit dangling edge, `81eecabb`); register re-verdicts applied, each citing the census (`f3ad827d`). Block 839-842: 839 used, 840-842 unused. `[#664]` stays OPEN. **No tests run here**, by operator order.
+
+**Did:** merged ab-664 with its red witnesses intact. **Result:** the spine's commit-tier absence is witnessed in the suite rather than hidden. **Changes:** `scripts/graph_queries.py`, `scripts/file_purpose_graph.py`, `scripts/batch_manifest.py`, three test modules, two audits, `tasks/664`, `tasks/839`, `tasks/manifest.json`, `BACKLOG.md`, `JOURNAL.md`. **Next:** `[#839]`; doc-counts and the audit index regenerate on the zero branch.
+
+### 2026-09-17 (p) - CC (Opus 5, integrator seat, repo-to-zero): lane ab-833 seat registry merges -- the seat is a registered entity, and lane-boot's refusals are now six
+
+**Anchors:** `5a951fab` -- `worktree-lane-ab-833-seat-registry` tip, synced at `78f78a7b`.
+
+**MERGED** `[#833]` by operator order, reversing its CARRIED status in the batch AB close packet. `scripts/seat_registry.py`: seat state written by hook events, never by a model. `seat_refusals.py`: refuse a lane already owned by another live session, and a batch with no live integrator. The SessionStart/Stop legs write seat events (`c103665c`); `fleet_health` prints a `[seats]` line so a stalled seat surfaces itself (`1b2db48a`). RED-first `58ad21d2`. **THE CONFLICT, RESOLVED BY THE INTEGRATOR:** `scripts/lane_boot.py`, where ab-694 (merged `e761afbd`) added refusal 4 (GO artifact, `[#685]`) and this lane added refusals 4-5 (seats). Kept both, in the order main's body already ran them: 1-3 manifest, **4 GO, 5 lane owned, 6 no live integrator**. Also kept both imports (`os`, `re`), 833's `seat_preflight`, main's GO helpers, and the `registry` keyword. `py_compile` and `ruff` clean. `tests/test_lane_boot.py` auto-merged coherently: the fixture manifest carries the GO row and `_boot` passes a live-integrator registry. **Not witnessed here** -- the conductor's pytest job is the first run of the combined file. `BACKLOG.md` taken from main and regenerated (385 tasks). **No tests run here**, by operator order.
+
+**Did:** merged ab-833 with the lane_boot.py resolution. **Result:** a second session onto an owned lane, or a lane into a batch nobody integrates, is refused at boot. **Changes:** `scripts/seat_registry.py`, `scripts/seat_refusals.py`, `scripts/lane_boot.py`, `scripts/fleet_health.py`, `scripts/gen_seat_boot.py`, `scripts/resource_lifecycle.py`, `scripts/session_end_backpressure.py`, tests, `tasks/833`, `tasks/manifest.json`, `BACKLOG.md`, lane artifact, `JOURNAL.md`. **Next:** read the conductor's pytest verdict on this merge; the artifact's five "To file" items.
+
+### 2026-09-17 (o) - CC (Opus 5, integrator seat, repo-to-zero): [#884] filed -- an unbounded research fan-out ran 17+ hours to re-answer a settled question
+
+**Anchors:** `3cbe6336`, `39e42e42` -- `worktree-file-research-bound-row`, synced at `a29f700c` (`tasks/manifest.json` hash-only conflict; generator re-pinned, BACKLOG current at 384 tasks).
+
+**MERGED** `[#884]` (id reserved by push): one research session, ~0.5M tokens over 17+ hours. A read step ran 5 h 26 m and had not returned when the session was killed, and two subagents ran 12-17 h each, all to re-answer a question `DIGEST-2026-09-16-prose-as-source.md` had already settled. Three defects: no agent cap or per-agent deadline on a research fan-out; a session inside a long tool call cannot receive "stop"; nothing prices a question before launch. `39e42e42` cites `[#769]`, the existing gate-scoped row for the "stop is not deliverable" symptom. Same class as `[#808]`/`[#863]`/`[#883]`: an operation with no bound looks identical to work. Owner: the browser seat. **No tests run here**, by operator order.
+
+**Did:** merged the row. **Result:** research dispatch has a row that bounds it. **Changes:** `tasks/884`, `tasks/manifest.json`, `BACKLOG.md`, `JOURNAL.md`. **Next:** `[#884]` itself.
+
+### 2026-09-17 (n) - CC (Opus 5, integrator seat, repo-to-zero): ab-808 X-rulings merge -- the guard figures are 6% and 2%, and the immutable surfaces carrying 83% / 13% get SUPERSEDED markers
+
+**Anchors:** `c36b51a1`, `060e1997` -- `worktree-ab-808-x-rulings` (already contained main `a92ff5c4`; sync a no-op). The operator named `c36b51a1`; the branch had moved to `060e1997`, a descendant, and the descendant is what merged.
+
+**MERGED** the operator's X-rulings on lane ab-808's section 8.6 (`c36b51a1`): X-1 "Disabled: NO" stays, X-2 a hook drafts and the integrator files, X-3 the denominator is event-fired across all sessions, X-4 fleet_health is declared like any hook, X-5 out-of-repo hooks print `[hook-ADVISORY]`, never BROKEN. The ab-808 artifact takes AMENDMENT 1 at its head, leading with the nine hooks over the bar (surface_triage 96%, fleet_health 41%). **Correction carried:** the guard figures are **6% and 2%** (event-fired, all sessions, week to 2026-09-17). Neither 83% (attachments) nor 13% / 4% (recorded-only denominator) stands. `060e1997` puts pure-insertion SUPERSEDED markers on JOURNAL (d), (l), (m), the batch AB close packet and intake 103; `[#883]` (living) is corrected in place; `[#812]` filed: an immutable artifact whose figure is falsified has no standing correction path. Lane-reported tests: 21/21 bounded_hook; 2 failures in test_logs_retention and 1 in test_export_backlog_view, each identical on main `a92ff5c4`. **No tests run here**, by operator order.
+
+**Did:** merged the X-rulings. **Result:** one ruled bypass figure, and every copy of the wrong ones points at it. **Changes:** `scripts/hooks/bounded_hook.py`, `tests/test_bounded_hook.py`, ab-808 artifact, close packet, intake 103, `tasks/812`, `tasks/883`, `tasks/manifest.json`, `BACKLOG.md`, `JOURNAL.md`. **Next:** `[#812]`'s registry of superseded claims.
+
+### 2026-09-17 (m) - CC (Opus 5, integrator seat): BATCH AB CLOSED -- close packet, [#883] the commit gate was never priced, [#827] amended to both calibration directions
+
+**Anchors:** `2ab80ab8`, `29925141` -- `chore/batch-ab-close` (`docs/audits/2026-09-16-technical-batch-ab-close-packet.md`, the manifest's `closed_by`).
+
+**MERGED** the close. `[#883]` filed (id reserved by push, `refs/reservations/task-id/883`): the commit gate grew to 34 hooks with no counter of catches per cost; from now a mechanism ships with a counter and a gate with no catch in its window is removed, not tuned. It records explicitly that the strip at `6e9f0bb8` cut cost by a measured amount (commit-hook step median 227 s -> 37.8 s) and enforcement by an **UNMEASURED** one, measuring it owed -- and that the "83%" the order cited was retracted by ab-808 to 13% / 4% per call. `[#827]` amended per operator correction: ~7x too LOW first (admitted work the box could not run), ~4x too HIGH after recalibration (refused work it could run) -- one defect, both directions. Receipt lines for ab-802 and amendment-1, lost to a pre-commit stash, restored from the patch files. `ecosystem/doc-counts.md` regenerated (6419 collected, collection only; 36 gates), `docs/audits/README.md` regenerated once. **Close numbers** (packet sections 3-6): rows 365 -> 382, **17 filed, 0 closed**; BACKLOG 75,698 -> 78,930 B; ledger median 17.9 min n=6, close merges 1.55 min n=8 by stopwatch; known cost USD 172.13 (opus-5 107.64, sonnet-5 64.49, two non-Claude lanes unknown). **CARRIED with tips:** ab-833 `5a951fab` (handed back 13:14; `lane_boot.py` logic conflict with ab-694, rule-unsettled, sync aborted), ab-664 `8e3cf513` (paused), ab-828 `7017328e`, win-tooling ab-810 `35280a3`, 617 held. **No tests run here**, by operator order.
+
+**Did:** closed batch AB. **Result:** the batch closed with 17 rows filed and none closed, and its lesson filed as a row with its numbers. **Changes:** `tasks/883`, `tasks/827`, `tasks/manifest.json`, `BACKLOG.md`, `.pre-commit-config.yaml` (retraction note), `logs/MERGE-RECEIPTS.jsonl`, `ecosystem/doc-counts.md`, `docs/audits/README.md`, close packet, `JOURNAL.md`. **Next:** successor window -- ab-833's `lane_boot.py` merge, ab-828's closures, `[#883]`'s counter.
+
+### 2026-09-17 (l) - CC (Opus 5, integrator seat, batch AB close): lane ab-808 guard timeout merges -- module, tests, surface and check only; its 83% figure retracted to 13%
+
+**Anchors:** `6063c8fd` -- `worktree-lane-ab-808-guard-timeout` tip, synced at `50da495d` (`tasks/manifest.json` hash-only conflict; generator re-pinned, BACKLOG current at 381 tasks).
+
+**MERGED** `[#808]` per the close order -- **module, tests, surface and check, NOT `.claude/settings.json`**: the lane itself returned settings.json and `tests/test_logs_retention.py` to main's bytes (diff against main is empty), every `POSTURES` entry is `wrapped=False`, and the bypass surface prints in-process from `fleet_health.hook_bypass_lines()` -- no new registration, no new interpreter. `scripts/hooks/bounded_hook.py` records a row per outcome and refuses to start a hook DECLARED BROKEN (more than 10% bypass over 168 h on at least 20 runs, sticky until `reinstate`); `[#811]` filed. **RETRACTION, carried into every dependent claim:** the lane's "477 of 573 calls (83%)" counted transcript attachments, which a silently passing hook never writes; joined per call to tool_use ids the guards bypassed **1,016 of 8,046 (13%)** and **161 of 3,626 (4%)**. "The guards were enforcing nothing" does not stand; the operator's close order and (d) quoted the retracted figure, and `[#883]` is corrected on the close branch. Lane-reported: 249 passed, 20 failed, all 20 in `test_prompts_guard_hook_wiring` and reproducing 20/20 on detached main (the hook the emergency order removed). The lane declared `SKIP=doc-counts-pytest-freshness,organ-index-freshness,graph-task-coverage` as integrator-owned: the two regens land on the close branch. Since `bc8ddda5` disabled ALL hooks, the surface has no host until `[#863]`. **No tests run here**, by operator order.
+
+**Did:** merged ab-808's module half. **Result:** a bypass rate exists as a measured signal; the headline number behind today's gate strip was wrong by 6x. **Changes:** `scripts/hooks/bounded_hook.py`, `scripts/fleet_health.py`, `tests/test_bounded_hook.py`, `.gitignore`, `tasks/811`, `tasks/manifest.json`, `BACKLOG.md`, lane artifact, `JOURNAL.md`. **Next:** the lane's escalations X-1..X-5 (artifact section 8.6).
+
+### 2026-09-17 (k) - CC (Opus 5, integrator seat, batch AB close): lane ab-832 lands -- the three-repo comparison re-run for copilot-collections only
+
+**Anchors:** `058b0971` -- `worktree-lane-ab-832-copilot-collections-comparison` tip, synced at `a3dd8532` then re-synced at `48bfe2ca` onto the all-hooks-disable merge `bc8ddda5` (`tasks/manifest.json` hash-only conflicts; generator re-pinned, BACKLOG current at 380 tasks).
+
+**MERGED** `[#832]`, the operator-ordered correction of lane z-11's repository selection: a fresh-HEAD re-verification of copilot-collections against its anchor. No anchor claim found gone; claims whose counts or model spelling moved are marked **changed**, not carried; `tsh-` namespacing, `applyTo` scoping, XML tags and the large agent/skill roster stay **REJECTED** for a solo Claude-Code hub. Not in the close order's named list; merged because it was finished, clean and idle since 2026-09-16 21:30 -- the close order's headline is "merge every finished branch". A non-Claude lane (Copilot co-author): `lane_cost.py` finds no transcript, so its cost is UNKNOWN, not zero. **No tests run here**, by operator order.
+
+**Did:** merged ab-832. **Result:** the comparison names the right repository. **Changes:** `tasks/832`, `tasks/manifest.json`, `BACKLOG.md`, lane audit, `JOURNAL.md`. **Next:** its "To file" section, triaged in the successor window.
+
+### 2026-09-17 (j) - CC (Opus 5, hooks seat): ALL hook families disabled on BOTH surfaces, user-level first -- and the suspended-at-creation root cause filed P1 with its two siblings
+
+**Anchors:** `39d3e566` -- `[#863]` `[#864]` `[#865]` filed (ids reserved by push, `refs/reservations/task-id/863..865`).
+
+**WHY (operator emergency order, widened):** a session wedged in **Stop hooks 2/3 with nine subagents** after `33246c0a` had disabled
+PreToolUse only. Hook processes are created SUSPENDED and never resumed -- 0 s CPU, no image path, one thread in `Wait/Suspended` --
+so no timeout can fire on them and no single-family disable helps. 20 orphans were killed this morning and sessions kept wedging
+afterwards on a different family. Census 2026-09-17 ~11:35 adds a suspended `session_end_backpressure.py` (Stop, 11:02).
+
+**WHICH FILE A FRESH SESSION READS -- the ordering defect, stated plainly:** every settings layer is merged at startup
+(user `~/.claude/settings.json`, project `<checkout>/.claude/settings.json`, `.claude/settings.local.json`, managed; none managed here).
+The project copy is read from the session's **own checkout**, so a lane branched before a repo-scoped disable merges keeps its old
+hooks -- a repo-scoped disable cannot protect it. The **user-level file is the one that matters**, and the disable landed there FIRST:
+`disableAllHooks: true`, hooks emptied, reason + original block in `~/.claude/settings.hooks-DISABLED-2026-09-17.json` (the settings
+validator refuses comment keys). `disableAllHooks` is resolved after precedence, so user-level `true` holds wherever no layer sets it false.
+
+**VERIFIED FROM A NEW SESSION:** headless `claude -p` from the primary, whose repo copy still wired Stop + 8x SessionStart at the time:
+exit 0 in 19 s, **0** `hookEvent` records in its transcript (`3188bfc5`), no hook interpreter spawned. Control: pre-disable transcript
+`138b7b5b` records `"hookEvent":"SessionStart"`, so the format does record hooks when they run.
+
+**REPO COPY:** `.claude/settings.json` `disableAllHooks: true`, hooks emptied (removed blocks verbatim at `33246c0a`); organ index
+regenerated; six `ORPHAN_DISPOSITIONS` rows (owner `[#863]`) for the hook targets left unwired -- TEMPORARILY UNWIRED, not retired.
+
+**COLLATERAL, TEMPORARY, NOT SETTLED:** the ADR-77 immutable-transcript guard, the Stop backpressure gate, and the user-level
+`block-onedrive.ps1` core-invariant #1 write/delete guard are all off (the `permissions.deny` OneDrive Read rule still binds). Accepted
+only until `[#863]` has a mechanism; `[#865]` owns the block-onedrive ruling. **Not done:** `[#808]` still claims the whole wedge in
+its text; `worktree-hooks-disable-emergency` is merged but still checked out in a worktree this seat did not create, so not torn down.
+
+**Did:** widened the disable, filed three rows. **Result:** new sessions start hook-free. **Changes:** `~/.claude/settings.json` (outside git),
+`.claude/settings.json`, `ecosystem/organ-index.md`, `scripts/graph_queries.py`, `tasks/863..865`, `tasks/manifest.json`, `BACKLOG.md`, `JOURNAL.md`.
+**Next:** `[#863]` -- read the client's spawn path for the suspension; zero-CPU watchdog; then re-arm per hook.
+
+### 2026-09-17 (i) - CC (Opus 5, integrator seat, batch AB close): the freeze roster carries Defect three's full node id; [#761] gets its second witness
+
+**Anchors:** `59111f1f`, `bf9d2f1f` -- `fix/batch-ab-freeze-node-id`, synced at `a4510481` (`ecosystem/doc-counts.md` taken from main; regenerated once at close).
+
+**MERGED** the two items ab-802 handed to the integrator. (1) `scripts/conductor.py` `_FAILED_LINE_RE` reads a FAILED/ERROR line past a space inside a parametrize id, and `logs/SUITE-BASELINE-FREEZE.md`'s roster carries the full `test_head_token_normalises_the_way_the_reader_normalises["C:\\Program Files\\claude.exe" --bg-claude]` id with a dated AMENDMENT block; replayed against ab-802's real conductor run 35200171966: pre-existing 50 -> 51, regressions 10 -> **9** (the 9 are genuine drift since freeze `b5270d63`: test_archive_row_body x1, test_deny_and_point x2, test_generator_newlines x1, test_release_lint x5 -- owed to `[#763]`'s re-measure; enforcement stays off). (2) `[#761]` records ab-802's `EDGE_COMPUTATIONS` self-add for `conductor.py` as the second witness beside y-751's regex-free rewrite -- two lanes, two currencies, no surface counting the false-positive rate -- and its Done-when gains that rate as a measured number (amended on the existing row, not a third). **Gate-cost pair, same commit:** the `[#761]` commit ran 12:10-12:22 under the 34-hook gate and was refused on anchor tree lag; after (d) it landed in **25.9 s**. **No tests run here**, by operator order.
+
+**Did:** merged the freeze-id fix and the `[#761]` amendment. **Result:** the conductor's regression count is 9, not 10. **Changes:** `scripts/conductor.py`, `tests/test_conductor.py`, `logs/SUITE-BASELINE-FREEZE.md`, `tasks/761`, `JOURNAL.md`. **Next:** `[#763]` re-measure.
+
+### 2026-09-17 (h) - CC (Opus 5, integrator seat, batch AB close): lane ab-834 protocols heading gate merges -- the commit-message type prefix has an organ, landed at the manual stage
+
+**Anchors:** `e2419ec9` -- `worktree-lane-ab-834-protocols-heading-gate` tip, synced at `f02abc62` (`BACKLOG.md`, `ecosystem/organ-index.md` regenerated; `tasks/manifest.json` kept both the `[#834]` and `[#843]` nodes and re-pinned; docs/audits/README.md left for the single regen at close, per `[#590]`'s ship-tier guarantee).
+
+**MERGED** `[#834]`: one `protocols/` heading -- PLAYBOOK "### Commit message standard" -- enforced by `scripts/check_commit_message_type.py` (a subject with no `type:`/`type(scope)!:` token refuses; Merge/Revert exempt), RED-first tests `e70fe130`, the heading and its organ citing each other. The lane measured ~2.9 s warm and chose not to gate the six-type enum or the ~72-char rule (5680 of 7985 historical commits breach length). **RULE-SETTLED AT SYNC:** the hook lands at `stages: [manual]`, not `commit-msg` -- it merged after (d) stripped the commit gate, it carries no catch counter, and under that ruling a new gate does not take a local stage until it has one; the conductor's `commit-gate` job skips commit-msg hooks, so **this refusal is currently armed nowhere** and the heading's Done-when is met in organ and test only. **No tests run here**, by operator order.
+
+**Did:** merged ab-834. **Result:** the organ exists and is tested; its arming waits on a counter. **Changes:** `scripts/check_commit_message_type.py`, `tests/test_check_commit_message_type.py`, `.pre-commit-config.yaml`, `protocols/PLAYBOOK.md`, `tasks/834`, `tasks/manifest.json`, `BACKLOG.md`, `ecosystem/organ-index.md`, lane artifact, `JOURNAL.md`. **Next:** a counter, then a stage.
+
+### 2026-09-17 (g) - CC (Opus 5, integrator seat, batch AB close): intake 103 lands -- the browser seat's findings set, 2026-09-15 through the 2026-09-17 close
+
+**Anchors:** `b9ceb000` -- `worktree-browser-digests-intake` tip, synced at `0cdb2281` (clean).
+
+**MERGED** intake 103 (SEED), `docs/intake/2026-09-16-tech-browser-seat-findings-off-the-transport.md`, by operator order: without it the successor's bundle is empty of the week. It carries harness state by area with evidence, sixteen defects found in passing, five owed intakes, the execution order by cost of inaction, six contradicting rule pairs and the browser seat's own failures. **DATE DISCREPANCY, recorded rather than rewritten:** `b9ceb000`'s subject says "2026-09-15/16 digests", but its dedup was re-done 2026-09-17 against `33246c0a` and it carries today's close -- read its span as **2026-09-15 to 2026-09-17**. A pushed-later commit message is not amended; this entry is the correction. **ANCHOR FLAG RESOLVED, not skipped:** the intake session flagged `aacce0f8` as unanchored. Checked with `journal_anchor.is_anchored` on main: **anchored** (JOURNAL (c) names `b03ec766`, which it introduced), and `unanchored_on_spine(main)` is empty. The flag was tree lag in a worktree behind main, the same shape that refused the `[#761]` commit at 12:22. No row filed, closed or renumbered by this merge.
+
+**Did:** merged intake 103. **Result:** the week's findings are in the repo. **Changes:** `docs/intake/` (record, README, manifest), `JOURNAL.md`. **Next:** triage 103's section G (no row anywhere) in the successor window.
+
+### 2026-09-17 (f) - CC (Opus 5, integrator seat, batch AB close): lane ab-694 cost telemetry merges -- AX9-5's organ-usage metric, [#685]'s GO refusal at /lane-boot, [#843] filed
+
+**Anchors:** `a95a7143` -- `worktree-lane-ab-694-cost-telemetry` tip, synced at `776a10cf` then re-synced at `ad971356` (`tasks/manifest.json` conflicted on `generated_sha256` only; markers stripped keeping both sides' nodes, `gen_task_tree --emit-source` re-pinned the hash, BACKLOG current at 375 tasks).
+
+**MERGED** `[#694]` under the operator's 2026-09-16 reduced-scope ruling: the refuted premise corrected in place (`c0565024`); `lane_boot.check_go_artifact` -- `/lane-boot` refuses a lane with no `fire now`/`FIRED` row in the batch manifest or its amendments (`31aa12cb`, RED-first; the `RATIFICATION-<date>.md` transport half deliberately not built, `[#685]` archived as a partial discharge); `scripts/organ_usage_metric.py` -- raw-search vs organ calls per session and organs uncalled in 30 days (`7d70c595`); `[#843]` filed: a contract's premise is carried from a digest, never verified against main at freeze (`4cf49681`). Lane-reported targeted suite 12 failed / 1163 passed, all 12 attributed against a baseline worktree (10 pre-existing, 1 environmental flip, 1 by design). **Wired to dispatch and merge: NOT done** -- the metric is a sibling module with no SessionStart or merge wire, by the lane's recorded disposition. **No tests run here**, by operator order.
+
+**Did:** merged ab-694. **Result:** a measured organ-usage number exists; boot refuses an unfired lane. **Changes:** `scripts/lane_boot.py`, `scripts/organ_usage_metric.py`, `scripts/graph_queries.py`, tests, `tasks/694`, `tasks/843`, `tasks/archive/685.md`, `tasks/manifest.json`, `BACKLOG.md`, lane audit, `JOURNAL.md`. **Next:** wire the metric (carried on `[#694]`).
+
+### 2026-09-17 (e) - CC (Opus 5, integrator seat, batch AB close): lane ab-810 substrate repair merges -- the heartbeat reads the uv pin, the codespace dispatch line carries -Model
+
+**Anchors:** `3488f069` -- `worktree-lane-ab-810-substrate-repair` tip, synced onto main at `6efb91f5` (`ecosystem/doc-counts.md` conflict taken from main; the count is regenerated once at close).
+
+**MERGED** the hub half of `[#810]`: `substrate-heartbeat.yml` reads the uv pin from `pyproject.toml` instead of "latest" (`de6157d1`), `gen_lane_contract`'s codespace shape emits `-Model` (`adf7eeed`), and rows `[#819]`-`[#822]` filed (`[#822]` = a pipe masks the exit code of the command it wraps). Lane-reported evidence: heartbeat workflow run 35160586877 green, targeted pytest green 174 + 109 + 39. **CARRIED, not merged here:** the `win-tooling` half, branch `worktree-lane-ab-810-substrate-repair` @ `35280a3` (unpushed, 8 commits: `Start-DispatchCodespace` carries `-Model`, harvest verb, `[#12]`/`[#13]`); and the two findings the lane wrote but could not file for want of an id-block extension (text only in the lane transcript). **No tests run here**, by operator order.
+
+**Did:** merged ab-810's hub half. **Result:** heartbeat pinned; codespace contracts name their model. **Changes:** `.github/workflows/substrate-heartbeat.yml`, `scripts/gen_lane_contract.py`, `tests/test_gen_lane_contract.py`, `tasks/819`-`822`, `tasks/manifest.json`, `BACKLOG.md`, lane artifact, `JOURNAL.md`. **Next:** win-tooling half merge (carried).
+
+### 2026-09-17 (d) - CC (Opus 5, integrator seat, batch AB close): the commit gate stripped to data-loss protection -- 31 hooks moved to the conductor's report-only `commit-gate` job
+
+**Anchors:** `ea365b83` -- `chore/commit-gate-priced` (`.pre-commit-config.yaml`, `.github/workflows/conductor.yml`, `ecosystem/organ-index.md`, `CLAUDE.md`).
+
+**MERGED** `chore/commit-gate-priced` `--no-ff`, operator close order step (2), after (b) hooks-disable `33246c0a` and (c) admission `aacce0f8` were on origin. **Before:** 34 hooks, ~244 s mean commit wall, a single commit 9+ min detached; the `[#761]` amendment commit launched 12:10 was refused ~12:22 by `audit-health` on journal-anchor tree lag -- twelve minutes for a refusal no defect caused. Lane ab-808 measured the fronting guards permitting 477 of 573 calls. **No hook has a catch counter**, so an evidenced catch could not be established, and the ruling for that case applied: **kept local** `audit-index-freshness` + `organ-index-freshness` (pre-commit) and `block-unanchored-push` (the JOURNAL anchor) + `block-ff-push` (pre-push); **moved** the other 31 to `stages: [manual]`, run by conductor job `commit-gate` over the pushed range via the `seal` job's `reset --soft` device, report-only. Skipped in CI and stated: `block-commit-on-main`, `backlog-id-on-close`, `backlog-filing-backpressure`. **After:** the strip commit itself 85.9 s wall (organ-index-freshness fired; box loaded); this merge commit's wall is on the close packet. **No tests run here**, by operator order.
+
+**Did:** stripped the local commit gate. **Result:** local commits pay two index checks, not 34 hooks. **Changes:** `.pre-commit-config.yaml`, `.github/workflows/conductor.yml`, `ecosystem/organ-index.md`, `CLAUDE.md`, `JOURNAL.md`. **Next:** a gate returns to the local stage only with a counter -- caught, cost, window (row filed at close).
+
+### 2026-09-17 (c) - CC (Opus 5, integrator seat): resource_lifecycle admission refusal DISABLED -- the `admit` verb reports advisory and exits 0 until calibrated from real dispatch measurements
+
+**Anchors:** `b03ec766` -- `worktree-resource-admission-disabled` (`scripts/resource_lifecycle.py`, `ecosystem/quality-requirements.yaml`).
+
+**MERGED** `worktree-resource-admission-disabled` `--no-ff`. Operator order: the admission check is disabled the same way as the hooks
+in (b), with its reason recorded in `resource_lifecycle.ADMISSION_DISABLED` and in QR-RES-001. WHY: it blocked work three times; its
+per-seat constant was ~7x wrong at first (413.3 MB against a ~2.8 GB dispatch delta) and the recalibrated figure is still provisional;
+no measured failure has ever been attributed to admitting one lane too many. `admit()` itself is untouched, so the QR-RES-001 trip
+test still proves the arithmetic; only the verb's exit 1 is withheld, and the SessionStart leg says DISABLED. **Re-arm is
+conditional, not a revert:** only once the per-seat cost is calibrated from the `[#827]` dispatch ledger. **No tests run here** by
+operator order (the branch commit's pre-commit gates passed; ruff clean). This entry rides on the branch, not in the merge commit
+itself: the harness refuses a background seat's direct edits in the shared primary checkout.
+
+**Did:** disabled the admission refusal. **Result:** dispatch is no longer refused on memory arithmetic. **Changes:**
+`scripts/resource_lifecycle.py`, `ecosystem/quality-requirements.yaml`, `JOURNAL.md`. **Next:** `[#827]` calibration ledger, then re-arm.
+
+### 2026-09-17 (b) - CC (Opus 5, integrator seat): emergency hook disable lands -- all PreToolUse hooks and the billing-leak SessionStart sentinel off, on main so it binds the primary and every new lane
+
+**Anchors:** `426b9cac` -- `worktree-hooks-disable-emergency` tip (`.claude/settings.json`, `ecosystem/organ-index.md`).
+
+**MERGED** `worktree-hooks-disable-emergency` @ `426b9cac` `--no-ff`, two-step, no conflicts (neither file moved on main since the
+`f8ca1d40` fork). Operator emergency order: the prompts-dir guard, the ADR-77 transcript guard and `billing_leak_sentinel.ps1`
+are removed from `.claude/settings.json`; the removed blocks are recoverable verbatim at the parent commit. Until this merge the
+disable was INERT -- the primary reads its own `.claude/settings.json` and each lane reads its worktree copy. **No tests run here**
+by operator order.
+
+**TEMPORARY, NOT SETTLED:** removing PreToolUse also removed the ADR-77 immutable-transcript guard as collateral. That is a real
+safety loss, accepted ONLY until the suspended-at-creation hook defect has a mechanism -- it is not a ruling that the guard is dispensable.
+
+**ROOT CAUSE CORRECTED (filed P1 in the follow-up arc):** the orphaned hook processes were created SUSPENDED and never resumed
+(0 s CPU, no image path, one thread Wait/Suspended) -- the script never executed a line, so a bounded execution time cannot fire and
+"give every hook a timeout" would NOT have prevented the wedge. Nineteen prompts-guard orphans accumulated from 2026-09-15 10:47.
+
+**Did:** merged the emergency disable. **Result:** hooks off fleet-wide on next session start. **Changes:** `.claude/settings.json`,
+`ecosystem/organ-index.md`, `JOURNAL.md`. **Next:** file the suspended-process P1, the decision-coverage flake, the block-onedrive.ps1 ruling ask.
+
+### 2026-09-17 (a) - CC (Opus 5, integrator seat, integrator-AB): lane ab-802 lands -- the conductor judges the pytest job by the frozen baseline, by node id; CI enforcement untouched
+
+**Anchors:** `b4600e10` -- lane ab-802 tip (`0caae8a7` premise, `4a647dbe` RED-first, `8dfe92ba` the suite-baseline gate, `b4600e10` end-of-lane artifact).
+
+**MERGED** `worktree-lane-ab-802-conductor-freeze` @ `b4600e10` `--no-ff`, two-step, already synced on `f8ca1d40`, no conflicts.
+Ordered `sonnet`, ran `claude-sonnet-5` x284 (`merge_receipt models`: agree). **[#802]:** `scripts/conductor.py` reads
+`logs/SUITE-BASELINE-FREEZE.md` as committed -- a failure inside the frozen roster is PRE-EXISTING and passes with the set named,
+one outside it is a REGRESSION and fails, and a missing, unparseable or pin-mismatched baseline fails rather than passing blind;
+a pytest exit code other than 0/1 is refused. `.github/workflows/conductor.yml` passes `--workers 4`. **CI enforcement NOT
+enabled** -- the ruleset stays `enforcement: disabled`, a separate operator ruling. Lane verdict: 76 targeted passed
+(`test_conductor` 52, `test_edge_class_census` 24), ruff clean.
+
+**OWED AND PAID HERE:** `gen_doc_counts.py --write` on the merged tree -> **6367 collected** (6350 + 17); audits index regenerated.
+**OWED, NEXT ARC (not hidden in this merge):** the batch-Z "Defect three" node id -- the freeze roster truncates
+`test_head_token_normalises_the_way_the_reader_normalises[` AND `_FAILED_LINE_RE` captures `\S+`, so a real failure of that
+parametrized id reads as a REGRESSION on both sides; and the `[#761]` false-positive record the operator ordered (ab-802 had to
+verdict `conductor.py` `not-an-edge` in `EDGE_COMPUTATIONS`; `[#751]` rewrote a predicate without a regex).
+
+**Did:** merged ab-802. **Result:** the conductor reads the freeze. **Changes:** `scripts/conductor.py`, `scripts/graph_queries.py`,
+`.github/workflows/conductor.yml`, `tests/test_conductor.py`, the lane artifact, `ecosystem/doc-counts.md`, `docs/audits/README.md`, `JOURNAL.md`.
+**Next:** freeze-id fix + `[#761]` arc; then ab-694, ab-834, ab-832 as handed back (ab-828 held on Codex HIGH x3; ab-833 wedged 13 h at SessionStart hooks).
 
 ### 2026-09-16 (n) - CC (Opus 5, integrator seat, integrator-AB): batch AB amendment 1 -- full parallel dispatch, ids held by push, four rows filed, [#617] re-scoped
 
