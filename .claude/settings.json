@@ -16,6 +16,7 @@
         "runs": 262,
         "rate": "96%",
         "owner": "[#808]",
+        "expiry": "2026-09-24",
         "reenable_when": "fixed, then `scripts/hooks/bounded_hook.py reinstate --id <hook>`, and a full 168 h window at or under the 10% bar on >= 20 runs (bar: operator ruling 2026-09-17 item 2)"
       },
       {
@@ -26,6 +27,7 @@
         "runs": 252,
         "rate": "58%",
         "owner": "[#808] (advisory, out-of-repo)",
+        "expiry": "2026-09-24",
         "reenable_when": "fixed, then `scripts/hooks/bounded_hook.py reinstate --id <hook>`, and a full 168 h window at or under the 10% bar on >= 20 runs (bar: operator ruling 2026-09-17 item 2)"
       },
       {
@@ -36,6 +38,7 @@
         "runs": 263,
         "rate": "41%",
         "owner": "[#808]",
+        "expiry": "2026-09-24",
         "reenable_when": "fixed, then `scripts/hooks/bounded_hook.py reinstate --id <hook>`, and a full 168 h window at or under the 10% bar on >= 20 runs (bar: operator ruling 2026-09-17 item 2)"
       },
       {
@@ -46,6 +49,7 @@
         "runs": 45,
         "rate": "33%",
         "owner": "[#808]",
+        "expiry": "2026-09-24",
         "reenable_when": "fixed, then `scripts/hooks/bounded_hook.py reinstate --id <hook>`, and a full 168 h window at or under the 10% bar on >= 20 runs (bar: operator ruling 2026-09-17 item 2)"
       },
       {
@@ -56,6 +60,7 @@
         "runs": 63,
         "rate": "25%",
         "owner": "[#808]",
+        "expiry": "2026-09-24",
         "reenable_when": "fixed, then `scripts/hooks/bounded_hook.py reinstate --id <hook>`, and a full 168 h window at or under the 10% bar on >= 20 runs (bar: operator ruling 2026-09-17 item 2)"
       },
       {
@@ -66,6 +71,7 @@
         "runs": 205,
         "rate": "22%",
         "owner": "[#863]",
+        "expiry": "2026-09-24",
         "reenable_when": "fixed, then `scripts/hooks/bounded_hook.py reinstate --id <hook>`, and a full 168 h window at or under the 10% bar on >= 20 runs (bar: operator ruling 2026-09-17 item 2)"
       },
       {
@@ -76,6 +82,7 @@
         "runs": 199,
         "rate": "17%",
         "owner": "[#808]",
+        "expiry": "2026-09-24",
         "reenable_when": "fixed, then `scripts/hooks/bounded_hook.py reinstate --id <hook>`, and a full 168 h window at or under the 10% bar on >= 20 runs (bar: operator ruling 2026-09-17 item 2)"
       },
       {
@@ -87,7 +94,8 @@
         "rate": "15%",
         "owner": "KNOWN-UNGOVERNABLE, operator ruling 2026-09-17 -- LEFT RUNNING deliberately. Every lever is machine-wide or fleet-wide (it loads in place from plugins/tier1-lifecycle/hooks/hooks.json, which every repo on this box reads), or reds parity settings-plugin-tier1 (MUST). No per-repo option exists, so disabling it costs more than it saves. Recorded here so the next seat does not rediscover the dead end; revisit only if Claude Code gains a per-hook off switch outside the tracked settings file.",
         "reenable_when": "fixed, then `scripts/hooks/bounded_hook.py reinstate --id <hook>`, and a full 168 h window at or under the 10% bar on >= 20 runs (bar: operator ruling 2026-09-17 item 2)",
-        "state": "RUNNING (not disabled)"
+        "state": "RUNNING (not disabled)",
+        "expiry": "n/a -- KNOWN-UNGOVERNABLE is a standing operator ruling, not a time-boxed disable: this entry is RUNNING, not off, so a calendar expiry would misrepresent it as pending re-measurement like its eight siblings. Revisit only on the condition already stated in owner (a per-hook off switch)."
       },
       {
         "hook": "changelog_sentinel.py",
@@ -97,6 +105,7 @@
         "runs": 263,
         "rate": "10.3%",
         "owner": "[#808]",
+        "expiry": "2026-09-24",
         "reenable_when": "fixed, then `scripts/hooks/bounded_hook.py reinstate --id <hook>`, and a full 168 h window at or under the 10% bar on >= 20 runs (bar: operator ruling 2026-09-17 item 2)"
       }
     ],
