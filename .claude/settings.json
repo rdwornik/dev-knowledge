@@ -85,8 +85,9 @@
         "bypassed": 112,
         "runs": 737,
         "rate": "15%",
-        "owner": "OPEN -- NOT DISABLED: it still runs (measured in all three proof sessions, exit 0). No per-repo lever: disabling the plugin reds parity settings-plugin-tier1 (MUST), and editing its hooks.json disables it machine-wide and fleet-wide. Operator decision owed.",
-        "reenable_when": "fixed, then `scripts/hooks/bounded_hook.py reinstate --id <hook>`, and a full 168 h window at or under the 10% bar on >= 20 runs (bar: operator ruling 2026-09-17 item 2)"
+        "owner": "KNOWN-UNGOVERNABLE, operator ruling 2026-09-17 -- LEFT RUNNING deliberately. Every lever is machine-wide or fleet-wide (it loads in place from plugins/tier1-lifecycle/hooks/hooks.json, which every repo on this box reads), or reds parity settings-plugin-tier1 (MUST). No per-repo option exists, so disabling it costs more than it saves. Recorded here so the next seat does not rediscover the dead end; revisit only if Claude Code gains a per-hook off switch outside the tracked settings file.",
+        "reenable_when": "fixed, then `scripts/hooks/bounded_hook.py reinstate --id <hook>`, and a full 168 h window at or under the 10% bar on >= 20 runs (bar: operator ruling 2026-09-17 item 2)",
+        "state": "RUNNING (not disabled)"
       },
       {
         "hook": "changelog_sentinel.py",
@@ -100,7 +101,8 @@
       }
     ],
     "still_off_not_restored_by_this_act": "ADR-77 transcript guard (block_immutable_edits.py), prompts guard (fleet_health.py --prompts-guard, 6% within), logs_retention.py (6% within): not in the order's restore set; their return stays [#863]'s act.",
-    "record_gap": "[#888]: the repo has no DEGRADED state; this per-hook list is a comment-key register, not a gate-read record."
+    "record_gap": "[#888]: the repo has no DEGRADED state; this per-hook list is a comment-key register, not a gate-read record.",
+    "known_ungovernable": "propose_closures.py -- see its entry: over the bypass bar, measured 15%, and deliberately left running because no per-repo lever exists."
   },
   "hooks": {
     "SessionStart": [
