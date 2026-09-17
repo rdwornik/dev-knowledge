@@ -380,12 +380,41 @@ def test_the_live_register_measures_its_private_computations():
     Eighteen private and three reconciled when armed -- lane `v-664`'s section 2.5
     measurement. A W-G3 migration lane flips a row to `reconciled` and edits these numbers in
     the same commit, which is what makes `migrated` a count rather than a claim. Moved by lane
-    `ab-664-spine-witnessed`: migration 1, `batch_manifest.manifest_link_surfaces`.
+    `ab-664-spine-witnessed`: migration 1, `batch_manifest.manifest_link_surfaces`; then the
+    census re-verdicts applied by operator ruling 2026-09-17 (8 rows measured out, 7 sites
+    measured in, `decision_coverage` born reconciled and so NOT migrated).
     """
     metrics = gq.edge_class_metrics(REPO_ROOT)
-    assert metrics["private"] == 17
-    assert metrics["reconciled"] == 4
+    assert metrics["private"] == 16
+    assert metrics["reconciled"] == 5
     assert metrics["migrated"] == 1
+
+
+def test_a_born_reconciled_row_is_not_counted_as_migrated():
+    """`migrated` counts movement. A row that read FPG-1 from its first commit moved nothing."""
+    register = {f"scripts/r{i}.py": gq._reconciled("citation", "arm-time") for i in range(3)}
+    register["scripts/decision_coverage.py"] = gq._reconciled("citation", "born")
+    assert gq.edge_class_metrics(None, register)["migrated"] == 0
+    register["scripts/moved.py"] = gq._reconciled("citation", "a lane moved it")
+    assert gq.edge_class_metrics(None, register)["migrated"] == 1
+
+
+def test_every_re_verdicted_row_cites_the_measurement_behind_it():
+    """The condition of the operator ruling that applied the re-verdicts: a row the census
+    moved names the census, so the next seat re-derives it rather than trusting it."""
+    cited = [key for key, row in gq.EDGE_COMPUTATIONS.items() if gq._CENSUS in row.note]
+    assert (REPO_ROOT / gq._CENSUS).is_file()
+    assert {"scripts/validate_doc_rot.py", "scripts/dispatch_drift.py", "scripts/proof_layer.py",
+            "scripts/gen_handoff.py", "scripts/audit.py::check_doc_claims",
+            "scripts/enforcement_coverage.py", "scripts/generate_organ_index.py",
+            "scripts/archive_row_body.py", "scripts/audit.py::check_import_edges",
+            "scripts/audit.py::check_preflight_backlog_ids",
+            "scripts/audit_checks/check_floor_integrity.py", "scripts/governance_health.py",
+            "scripts/propose_closures.py::find_weak", "scripts/gen_dashboard.py::carrier_ids_for",
+            "scripts/safe_remove.py::_bare_stem_literal_hits",
+            "scripts/fleet_analytics.py::inbound_reference_counts",
+            "scripts/decision_coverage.py"} <= set(cited)
+    assert all(row.note for row in gq.EDGE_COMPUTATIONS.values() if row.status == "private")
 
 
 def test_the_live_tree_does_not_refuse_its_own_edge_class_census():
