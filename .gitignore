@@ -65,6 +65,11 @@ logs/FLEET-PARITY.md
 logs/PARITY-EVENTS.jsonl
 logs/PARITY-EVENTS.jsonl.1
 
+# Hook bypass record ([#808] — scripts/hooks/bounded_hook.py appends one JSON line whenever a
+# hook is skipped past its bound; `bounded_hook.py surface` prints it at SessionStart). A local
+# runtime record, not a committed artifact: the durable finding is the lane audit.
+logs/HOOK-BYPASSES.jsonl
+
 # Operator-load gauge trend rows ([#270] — one row per fleet_health.py digest run; the
 # gauge writes it at SessionStart, so committing it would dirty the tree on every boot,
 # exactly as FLEET-HEALTH.md would. Gitignored is the ROW's own wording, not a default:
