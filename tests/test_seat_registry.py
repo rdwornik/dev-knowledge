@@ -285,3 +285,35 @@ def test_the_session_start_leg_refuses_a_payload_that_asserts_its_own_state(tmp_
     result = CliRunner().invoke(rl.cli, ["session-start"], input=json.dumps(payload))
     assert result.exit_code == 0, "a refused event must not stop a session from starting"
     assert not path.exists()
+
+# --- the SessionStart surface: fleet_health's digest prints the line unasked ------------------------
+
+def test_fleet_health_surfaces_a_wedged_integrator_at_session_start(tmp_path, monkeypatch):
+    import os
+
+    import fleet_health
+    path = tmp_path / "seats.jsonl"
+    monkeypatch.setattr(reg, "REGISTRY_PATH", path)
+    then = datetime.now(timezone.utc) - timedelta(minutes=reg.WEDGED_AFTER_MIN + 15)
+    reg.record_event({"hook_event_name": "SessionStart", "session_id": "int-wedged",
+                      "cwd": str(tmp_path)}, now=then, env={"CLAUDE_PID": str(os.getpid())})
+    reg.bind("integrator", "AB", session_id="int-wedged", now=then)
+    line = fleet_health.seat_health_line(tmp_path)          # tmp_path is no repo: no open batches
+    assert line and line.startswith("[seats]")
+    assert "WEDGED" in line and "integrator AB int-wed" in line
+
+
+def test_the_seat_line_names_an_open_batch_nobody_receives(tmp_path):
+    path = tmp_path / "seats.jsonl"
+    _event(path, "SessionStart", "lane-1", at=T0, cwd=LANE_CWD)
+    line = reg.seat_health_line(path, now=T0, open_batches=["ab"], pid_alive=lambda _p: True,
+                                path_exists=lambda _p: True, transcript_mtime=lambda _p: None)
+    assert "NO LIVE INTEGRATOR for batch AB" in line
+
+
+def test_fleet_health_main_prints_the_seat_line():
+    """The wiring half: a surface no boot path calls does not surface anything."""
+    import inspect
+
+    import fleet_health
+    assert "seat_health_line(_REPO_ROOT)" in inspect.getsource(fleet_health.main)
