@@ -21,6 +21,16 @@
 
 ---
 
+### 2026-09-17 (x) - CC (Opus 5, handoff seat): the architect bundle is CUT, filled and merged -- three refusals preceded it and each was right
+
+**Anchors:** `a1701d22` -- `docs/handoff-2026-09-17`, cut from `a82e1420`.
+
+**Did:** generated and filled `docs/handoffs/2026-09-17-dev-knowledge-architect/` (mode architect, v7.1, fill-state cold). **The cut refused three times before writing a byte, and the refusals are the record:** (1) `assert_boundary_hygiene` refuses while ANY linked worktree exists, the seat's own included -- a cut runs only from the primary checkout; (2) five hygiene rows FAILED (ship-gate RED with 5 hard-fails, ledger stale at 2026-09-10, no ratification file, two undispositioned QUESTIONs, seven `carried-by:`-less decision files); (3) after the operator's ratification and the repo-side repairs, the question row alone still refused. Cleared in order: the operator trashed the seven CV/GitHub files and wrote `RATIFICATION-2026-09-17.md`; `gen_ledger.py` refreshed the read surface to this window; the operator ANSWERED the six contradicting rule pairs (`to-cc/ANSWER-contradicting-rules-2026-09-16.md`, P1=C P2=A P3=B P4=C P5=A P6=B, unbuilt) and ruled `QUESTION-github-private-now.md` OUT OF SCOPE, carried by OPEN `[#887]`.
+
+**Result:** ten preflight rows PASS, ship-gate 0 hard-fail, and P11 leg 2 passes on the post-fill assemble -- both `carried-by: OPEN` files and the one carried question are named in the residual by qualified transport path. `PASTE_THIS.md` 23,774 B against the 20,000 B advisory ceiling (window-specific 7,658 B, 32%), trimmed once from 25,419; the previous bundle shipped at 55,340 B. `SUPPLEMENT.md` committed EMPTY per §13. **Changes:** `docs/handoffs/2026-09-17-dev-knowledge-architect/` (12 files), `JOURNAL.md`; off-repo: the transport's ANSWER file, the QUESTION disposition, the refreshed LEDGER.
+
+**Next:** operator fills `SUPPLEMENT.md` and says `supplement filled` (optional; cold is a defined disposition). One decision is owed and named in the residual: `propose_closures.py`, the ninth measured-broken hook, still runs and has no per-repo lever.
+
 ### 2026-09-17 (w) - CC (Opus 5, handoff seat): the emergency disable is CORRECTED by the measurement -- three required hooks restored and PROVEN live, nine measured-broken ones off individually; the handoff preflight refused twice first
 
 **Anchors:** `4a3f32bd`, `a42dd0c6` -- `worktree-handoff-prep-2026-09-17`, cut from `38ee9312`.
