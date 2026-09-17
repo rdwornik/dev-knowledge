@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-17 (s) - CC (Opus 5, integrator seat, operator ruling on the three unmerged branches): lane ab-828 closure census merges -- batch AB closes 25 rows, not 0
+
+**Anchors:** `7017328e`, `f8bc9249` -- `worktree-lane-ab-828-closure-census` tip, synced at `f8bc9249`.
+
+**Ruling first:** all three local-only branches were pushed to origin before any other act. ab-828 is at `7017328e`, aa-12 at `e17c6200`, and aa-13 at `01c446f7`, which is KEPT unmerged as the evidence branch for `[#793]`'s record. **MERGED** `[#828]`'s census by operator order. It closes 25 digest-backed rows in commit `0c120be2`: `[#470]` `[#587]` `[#591]` `[#592]` `[#596]` `[#597]` `[#600]` `[#601]` `[#605]` `[#608]` `[#613]` `[#626]` `[#643]` `[#653]` `[#740]` `[#742]` `[#743]` `[#744]` `[#750]` `[#751]` `[#752]` `[#765]` `[#780]` `[#784]` `[#785]`. It also files `[#828]` (the held-lane witness for `[#752]`), `[#829]` (`test_routing_agreement` RED, separate from `[#613]`) and `[#830]` (a `witness:` key plus a Q2 closure mode). **The sync conflict, resolved:** in `tasks/manifest.json` the hash hunk was re-pinned by the generator, and the node hunk keeps main's `[#832]` and drops `[#785]`, which this lane closes. `BACKLOG.md` was taken from main and regenerated. **BACKLOG now 75,302 B, 364 rows** (386 - 25 + 3). **Recorded, not repaired:** the three filed rows carry generator-mangled titles ("752", "613", "Witness"), and the close packet noted the lane's Codex HIGH x3 fix round as unconfirmed; the operator ruled the merge regardless. **No tests run here**, by operator order.
+
+**Did:** merged ab-828 after pushing all three branches. **Result:** the batch's ledger reads 24 filed / 25 closed instead of 21 / 0. **Changes:** 25 task files, `tasks/828`-`830`, `tasks/manifest.json`, `BACKLOG.md`, `docs/audits/README.md`, the census audit, `JOURNAL.md`. **Next:** aa-12 `[#793]`; retitle `[#828]`-`[#830]`.
+
 ### 2026-09-17 (r) - CC (Opus 5, integrator seat, repo-to-zero): close packet amendment 1 -- the four ordered merges counted, and the repo cleaned to zero by ancestry evidence
 
 **Anchors:** `f4bd99f2` -- `chore/repo-zero`, cut from `f846caac` after the last ordered merge.

@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "cec5dcf788d71450fdbaaaa592b3133e91596f7e14110be14f00ae8547ea35c7",
+  "generated_sha256": "813963b88f4e5203bc2e8ee69e78c7d88f7b8f7f11293be61a48537f295af483",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -131,16 +131,8 @@
       "file": "599-generated-standing-vs-new-drift-block-in-the-han.md"
     },
     {
-      "task": 600,
-      "file": "600-delete-p10-from-the-shipped-probe-manifest-and-g.md"
-    },
-    {
       "task": 602,
       "file": "602-land-the-ruled-dispatch-verb-in-the-bundle-s-for.md"
-    },
-    {
-      "task": 643,
-      "file": "643-preflight-reports-p11-carriage-instead-of-refusing.md"
     },
     {
       "task": 603,
@@ -251,6 +243,18 @@
       "file": "786-give-the-playbook-order-conventions-heading-a-ga.md"
     },
     {
+      "task": 828,
+      "file": "828-752.md"
+    },
+    {
+      "task": 829,
+      "file": "829-613.md"
+    },
+    {
+      "task": 830,
+      "file": "830-witness.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -286,28 +290,8 @@
       "file": "583-green-by-skip-sweep-a-check-that-cannot-obtain-g.md"
     },
     {
-      "task": 591,
-      "file": "591-substrate-validator-layer-2-refuse-a-contract-wh.md"
-    },
-    {
-      "task": 592,
-      "file": "592-dispatch-drift-organ-every-literal-command-in-ch.md"
-    },
-    {
       "task": 595,
       "file": "595-consumer-at-landing-gate-for-docs-audits-the-sub.md"
-    },
-    {
-      "task": 596,
-      "file": "596-family-3-at-the-proof-layer-the-class-583-names.md"
-    },
-    {
-      "task": 601,
-      "file": "601-supplement-folded-audit-check-a-filled-supplemen.md"
-    },
-    {
-      "task": 613,
-      "file": "613-in-repo-routing-table-agreement-check.md"
     },
     {
       "task": 615,
@@ -454,18 +438,6 @@
       "file": "726-torn-down-worktree-session-silently-resolves-to-the-primary-checkout.md"
     },
     {
-      "task": 742,
-      "file": "742-actions-verdict-reports-pass-when-job-details-cannot-be-read.md"
-    },
-    {
-      "task": 743,
-      "file": "743-collision-extractor-is-blind-to-root-level-files.md"
-    },
-    {
-      "task": 744,
-      "file": "744-median-report-counts-incomplete-receipts.md"
-    },
-    {
       "task": 747,
       "file": "747-adoption-by-invocation-command-file-confers-adoption-only-while-invoked.md"
     },
@@ -476,14 +448,6 @@
     {
       "task": 749,
       "file": "749-two-lanes-may-be-dispatched-for-the-same-row-under-different-slugs.md"
-    },
-    {
-      "task": 750,
-      "file": "750-a-merge-can-land-with-no-receipt-the-completenes.md"
-    },
-    {
-      "task": 752,
-      "file": "752-a-contracts-declared-model-and-mode-reach-no-fla.md"
     },
     {
       "task": 758,
@@ -508,10 +472,6 @@
     {
       "task": 764,
       "file": "764-batch-z-implements-the-night-plan-of-2026-09-15.md"
-    },
-    {
-      "task": 765,
-      "file": "765-technical-quality-requirements-are-a-registered.md"
     },
     {
       "task": 792,
@@ -737,10 +697,6 @@
       "file": "478-changelog-sentinel-drops-pep-440-suffixes.md"
     },
     {
-      "task": 653,
-      "file": "653-fleet-shape-spec-version-unbumped-after-a-consumer-change.md"
-    },
-    {
       "task": 654,
       "file": "654-the-037-render-pass-ruling-has-no-intake-and-no-carrier.md"
     },
@@ -903,10 +859,6 @@
     {
       "task": 496,
       "file": "496-organ-to-component-attributes-the-pre-push-organ.md"
-    },
-    {
-      "task": 605,
-      "file": "605-de-hardcode-consumer-root-resolution-in-deploy-t.md"
     },
     {
       "prose": "---"
@@ -1431,10 +1383,6 @@
       "file": "445-codex-review-wrapper-path-guard-reports-success-h.md"
     },
     {
-      "task": 470,
-      "file": "470-audit-py-checks-crashes-on-a-cp1252-console.md"
-    },
-    {
       "task": 403,
       "file": "403-extend-doc-claims-to-architecture-s-machine-deri.md"
     },
@@ -1490,16 +1438,8 @@
       "file": "586-suite-red-test-no-gate-hook-or-script-reads-the.md"
     },
     {
-      "task": 587,
-      "file": "587-p-1-invert-the-journal-anchor-check-to-a-single.md"
-    },
-    {
       "task": 588,
       "file": "588-p-2-build-the-spine-parent-map-in-one-git-proces.md"
-    },
-    {
-      "task": 608,
-      "file": "608-tiling-aware-journal-read-the-rotation-seam-befo.md"
     },
     {
       "task": 593,
@@ -1508,10 +1448,6 @@
     {
       "task": 594,
       "file": "594-layer-3-router-the-hub-prerequisites-only-not-th.md"
-    },
-    {
-      "task": 597,
-      "file": "597-p-4-a-declared-tier-per-check-and-p-3-s-telemetr.md"
     },
     {
       "task": 598,
@@ -1528,10 +1464,6 @@
     {
       "task": 625,
       "file": "625-the-rule-adherence-eval-corpus-fresh.md"
-    },
-    {
-      "task": 626,
-      "file": "626-logs-retention-exempts-the-prefixes-that-accumulate.md"
     },
     {
       "task": 632,
@@ -1582,10 +1514,6 @@
       "file": "739-session-end-backpressure-orders-a-commit-of-another-seats-in-flight-work.md"
     },
     {
-      "task": 740,
-      "file": "740-generated-contract-carries-a-fence-the-ruled-verb-refuses.md"
-    },
-    {
       "task": 724,
       "file": "724-permanently-red-windows-test-baseline-hides-every-new-failure.md"
     },
@@ -1604,10 +1532,6 @@
     {
       "task": 746,
       "file": "746-devcontainer-history-and-ecosystem-repair-lost-with-cloud-provisioning-py.md"
-    },
-    {
-      "task": 751,
-      "file": "751-cost-in-money-tokens-and-usd-per-lane-and-per-model.md"
     },
     {
       "task": 769,
@@ -1671,10 +1595,6 @@
       "file": "753-the-supervised-non-claude-producer-trial.md"
     },
     {
-      "task": 785,
-      "file": "785-ten-unattended-outcomes-price-every-non-claude-p.md"
-    },
-    {
       "task": 832,
       "file": "832-copilot-collections-comparison-rerun.md"
     },
@@ -1732,14 +1652,6 @@
     {
       "task": 722,
       "file": "722-interim-routing-read-only-work-defaults-to-agy-as-reader-only.md"
-    },
-    {
-      "task": 784,
-      "file": "784-aj-m04-has-never-been-read-against-this-repo-no.md"
-    },
-    {
-      "task": 780,
-      "file": "780-three-repo-comparison-gaps-adopt-candidates-and-an-explicit-will-not-adopt-list.md"
     },
     {
       "prose": "### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)"
@@ -2057,10 +1969,7 @@
       "prose": ""
     },
     {
-      "prose": "**Grooming log:** git history is the record (`git log --grep 'groom'` + per-session JOURNAL). Recent: 2026-06-12 (#149 flip) · 2026-06-18 (currency pass) · 2026-06-25 (groom pass, n=2: 84→81) · 2026-07-08 (leg-c full ruling pass, operator-ratified, 124→74: 14 KILL / 27 MERGE / 2 MOVE / 9 CLOSE / 5 RE-SCOPE / 19 DEFER-peg / 2 new filings #289 #290; #110 #128 moved-to: ai-council (Wave-1)) · 2026-07-30 (per-handoff lightweight groom, arc 0731-g0-groom: 6 doc_rot accretion rows condensed — #344 #421 #422 #332 #278 #426, no live obligation dropped; 5 warn-doc-rot dispositions retired; ADR-105 night-batch routine activated on #426). · 2026-09-14 (mechanised groom, lane `lane-y-754-backlog-to-bar`: the `archive_row_body.py` trigger run to EXHAUSTION over the rows above the 1320-char ceiling — 60 rows, 66 clauses, 18,107 source chars relocated byte-identically into `tasks/archive/`, 84 records re-proven on legs A–E; accretion arm 5 → 4, #241 cleared; over-ceiling COUNT unmoved at 148 of 322 and `propose` now returns one row, itself already under the ceiling — the mechanism is exhausted above the line, measured rather than asserted, and the residual is 35.3% structural clauses plus 38.2% undated prose, both outside the predicate by construction). Next quarterly: 2026-10-08."
-    },
-    {
-      "prose": ""
+      "prose": "**Grooming log:** git history + JOURNAL. Recent: 2026-06-12 (#149 flip) · 2026-06-18 (currency pass) · 2026-06-25 (groom pass, n=2: 84→81) · 2026-07-08 (leg-c full ruling pass, operator-ratified, 124→74: 14 KILL / 27 MERGE / 2 MOVE / 9 CLOSE / 5 RE-SCOPE / 19 DEFER-peg / 2 new filings #289 #290; #110 #128 moved-to: ai-council (Wave-1)) · 2026-07-30 (per-handoff lightweight groom, arc 0731-g0-groom: 6 doc_rot accretion rows condensed — #344 #421 #422 #332 #278 #426, no live obligation dropped; 5 warn-doc-rot dispositions retired; ADR-105 night-batch routine activated on #426). · 2026-09-14 (mechanised groom, lane `lane-y-754-backlog-to-bar`: the `archive_row_body.py` trigger run to EXHAUSTION over the rows above the 1320-char ceiling — 60 rows, 66 clauses, 18,107 source chars relocated byte-identically into `tasks/archive/`, 84 records re-proven on legs A–E; accretion arm 5 → 4, #241 cleared; over-ceiling COUNT unmoved at 148 of 322 and `propose` now returns one row, itself already under the ceiling — the mechanism is exhausted above the line, measured rather than asserted, and the residual is 35.3% structural clauses plus 38.2% undated prose, both outside the predicate by construction). Next quarterly: 2026-10-08."
     }
   ]
 }

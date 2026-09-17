@@ -36,9 +36,7 @@ So that the canonical v5 handoff is fully implemented (generator) and mechanical
 - [#422] [P2][S] `reflow_framing`'s cold→FILLED flip is partial by design, and nothing detects the self-contradiction it leaves · tasks/422-reflow-framing-s-cold-filled-flip-is-partial-by.md
 - [#547] [P3][S] Split-brain prevention is instructed against a handoff section shape v6 does not produce · tasks/547-split-brain-prevention-has-no-referent-under-v6.md
 - [#599] [P2][M] Generated standing-vs-NEW drift block in the handoff residual · tasks/599-generated-standing-vs-new-drift-block-in-the-han.md
-- [#600] [P2][S] Delete P10 from the shipped probe manifest and gate the boundedness condition · tasks/600-delete-p10-from-the-shipped-probe-manifest-and-g.md
 - [#602] [P2][M] Land the ruled dispatch verb in the bundle's forms card, and extend the agreement gate to the bundle sites · tasks/602-land-the-ruled-dispatch-verb-in-the-bundle-s-for.md
-- [#643] [P1][M] The handoff preflight reports P11 carriage after the cut instead of refusing it, and two consecutive bundles shipped the same defect · tasks/643-preflight-reports-p11-carriage-instead-of-refusing.md
 - [#603] [P3][S] An operator-interface capability file — the facts every seat re-derives about how the operator works · tasks/603-an-operator-interface-capability-file-the-facts.md
 - [#619] [P2][M] The FM-2 to FM-4 funnel-health coupling is dead — six fields, zero overlap · tasks/619-the-fm-2-to-fm-4-funnel-health-coupling-is-dead.md
 - [#641] [P3][S] Declare a MEMORY.md byte budget, or rule that none is owed · tasks/641-declare-a-memory-md-byte-budget-or-rule-that-none.md
@@ -68,6 +66,9 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#560] [P2][S] `review_artifact_coverage` reads only the FIRST branch/HEAD triple per file, and one title literal, so a real review can be invisible to it · tasks/560-review-artifact-coverage-reads-only-the-first-br.md
 - [#573] [P3][S] lychee as a zero-baseline markdown-link gate on the actionable corpus · tasks/573-lychee-zero-baseline-md-link-gate.md
 - [#786] [P2][S] Give the PLAYBOOK order-conventions heading a gate · tasks/786-give-the-playbook-order-conventions-heading-a-ga.md
+- [#828] [P1][S] 752 · tasks/828-752.md
+- [#829] [P1][S] 613 · tasks/829-613.md
+- [#830] [P2][M] Witness · tasks/830-witness.md
 
 - [#510] [P2][M] Scope the R-1 exemption to the lanes its manifest enumerates — self-grantable by branch naming today · tasks/510-scope-r1-exemption-to-enumerated-lanes.md
 - [#514] [P1][M] Two rival `LANE_BRANCH_RE` constants ship in one repo · tasks/514-two-rival-lane-branch-re-constants-reconcile-them.md
@@ -77,12 +78,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#552] [P2][M] Window-close disposition + archival routine — every new audit gets a disposition, every terminal ADR/intake is archived · tasks/552-window-close-disposition-and-archival-routine.md
 - [#579] [P1][L] Code doctrine & FDD — one ADR merging intakes #31 and #34 (packet ARC-A) · tasks/579-code-doctrine-fdd-one-adr-merging-intakes-31-and.md
 - [#583] [P2][M] Green-by-skip sweep — a check that cannot obtain ground truth must not report OK (packet ARC-E, C18) · tasks/583-green-by-skip-sweep-a-check-that-cannot-obtain-g.md
-- [#591] [P2][M] Substrate validator, layer 2 — REFUSE a contract whose substrate contradicts its own content · tasks/591-substrate-validator-layer-2-refuse-a-contract-wh.md
-- [#592] [P2][S] Dispatch drift organ — every literal command in Ch8 must resolve on the machine · tasks/592-dispatch-drift-organ-every-literal-command-in-ch.md
 - [#595] [P2][M] Consumer-at-landing gate for `docs/audits/` — the subtraction mechanism · tasks/595-consumer-at-landing-gate-for-docs-audits-the-sub.md
-- [#596] [P3][S] Family-3 at the PROOF layer — the class `[#583]` names but does not prove · tasks/596-family-3-at-the-proof-layer-the-class-583-names.md
-- [#601] [P2][S] `supplement_folded` audit check — a filled supplement that never reached the paste · tasks/601-supplement-folded-audit-check-a-filled-supplemen.md
-- [#613] [P2][M] In-repo routing table + L0 agreement check · tasks/613-in-repo-routing-table-agreement-check.md
 - [#615] [P2][M] MODEL ATTRIBUTION — a model+version signature trailer on every model-authored commit · tasks/615-model-attribution-signature-trailer-on-every.md
 - [#624] [P2][M] Nothing watches a BLOCKER's status — a fold target went deferred and no organ noticed · tasks/624-nothing-watches-a-blockers-status.md
 - [#629] [P1][M] An amendment cannot SUBTRACT an act — split rulings REISSUE (predicate 7) · tasks/629-a-contract-amendment-cannot-subtract-an-act.md
@@ -119,21 +115,15 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#699] [P2][S] Three tally grammars coexist and two collide on a substring, so which one a first-match reader resolves is decided by ordering rather than by meaning · tasks/699-three-tally-grammars-coexist-and-two-collide-on-a-substring.md
 - [#715] [P1][L] Path management has no single declaration -- three governed-path mismatches in one day, and the registry the operator is describing already exists as FPG-1 · tasks/715-path-management-has-no-single-declaration-and-fpg1-is-already-the-registry.md
 - [#726] [P1][S] A session whose worktree was torn down silently resolves to the PRIMARY checkout, so its next write lands on the integrator's branch · tasks/726-torn-down-worktree-session-silently-resolves-to-the-primary-checkout.md
-- [#742] [P1][S] `actions_verdict` reports PASS when the job details cannot be read, so an unreadable run is indistinguishable from a clean one · tasks/742-actions-verdict-reports-pass-when-job-details-cannot-be-read.md
-- [#743] [P1][S] The step-0 collision extractor requires a slash, so two lanes may both declare a root-level file and pass · tasks/743-collision-extractor-is-blind-to-root-level-files.md
-- [#744] [P1][S] `median_report` filters receipts by kind but never by completeness, so the under-30 target can be met on incomplete receipts · tasks/744-median-report-counts-incomplete-receipts.md
 - [#747] [P1][M] Adoption-by-invocation — a command file confers adoption only while telemetry records real invocations, and it decays at 30 days · tasks/747-adoption-by-invocation-command-file-confers-adoption-only-while-invoked.md
 - [#748] [P1][M] A lane whose worktree resolves to the primary checkout via a `core.worktree` redirect has no isolation, and dispatch cannot see it · tasks/748-a-lane-whose-worktree-redirects-to-the-primary-has-no-isolation.md
 - [#749] [P1][M] Two lanes may be dispatched for the same row under different slugs, because every duplicate check compares slugs rather than rows · tasks/749-two-lanes-may-be-dispatched-for-the-same-row-under-different-slugs.md
-- [#750] [P1][M] A merge can land with no receipt, the completeness predicate flattens a verdict state machine into a boolean, and `wall_seconds` records serial time rather than the arc span · tasks/750-a-merge-can-land-with-no-receipt-the-completenes.md
-- [#752] [P1][M] A contract's declared model and mode reach no flag the background launcher honours, and nothing reads what a lane actually ran · tasks/752-a-contracts-declared-model-and-mode-reach-no-fla.md
 - [#758] [P2][S] `[#675]` target 3.2 has never been satisfiable by the `lane-integrate` walk · tasks/758-675-target-32-has-never-been-satisfiable-by-the-w.md
 - [#759] [P2][S] `range_is_anchored` and `unanchored_on_spine` disagree on scope, and the 2026-09-14 instance fix does not close the class · tasks/759-range-is-anchored-and-unanchored-on-spine-disagree.md
 - [#761] [P2][S] The edge-class census prices its own false positive as cheap, but paying it is an escalation class, so lanes route around the gate instead · tasks/761-the-edge-class-census-prices-its-own-false-positive.md
 - [#762] [P2][S] A worktree teardown races the departing session's Stop hook, which re-creates the tree being removed — and the no-leftovers check cannot see what it leaves · tasks/762-a-worktree-teardown-races-the-departing-sessions-stop-hook.md
 - [#763] [P1][S] Re-measure the batch-Z suite baseline freeze at batch close — a cause whose lane merged must have left the set · tasks/763-re-measure-the-batch-z-suite-baseline-freeze-at.md
 - [#764] [P1][S] Batch Z implements the night plan of 2026-09-15 — the four transport decisions the engine refused every commit for · tasks/764-batch-z-implements-the-night-plan-of-2026-09-15.md
-- [#765] [P1][M] Technical quality requirements are a registered artifact read by a gate, not prose in a paste · tasks/765-technical-quality-requirements-are-a-registered.md
 - [#792] [P1][L] The runtime-resource lifecycle organ: two regimes, two mechanisms, no shared thresholds · tasks/792-runtime-resource-lifecycle-two-regimes-two-mechanisms.md
 - [#783] [P2][S] The carried-to-RESOLVED leg of decision-coverage has never once been exercised · tasks/783-the-carried-to-resolved-leg-of-decision-coverage-has-never-been-exercised.md
 - [#768] [P1][M] A gate has one refusal channel, so a violation and an environment it could not evaluate are indistinguishable to the committer · tasks/768-a-gate-has-one-refusal-channel-so-a-violation-an.md
@@ -191,7 +181,6 @@ So that "spec bumped, dependent partially updated, caught only because a human r
 - [#457] [P2][S] Two live-repo tests fail on main against green gates — test-vs-organ mismatch · tasks/457-inherited-live-repo-test-failures.md
 - [#477] [P2][S] `deployed_methodology_version` keys the registry by repo-root BASENAME — a clone named `dev-knowledge` cannot find `.dev-knowledge` · tasks/477-deployed-version-check-keys-registry-by-basename.md
 - [#478] [P2][S] `changelog_sentinel` drops PEP 440 suffixes — a prerelease as the reviewed value silences the sentinel permanently · tasks/478-changelog-sentinel-drops-pep-440-suffixes.md
-- [#653] [P2][S] The fleet-shape spec changed what a consumer owes and its `spec_version` did not move · tasks/653-fleet-shape-spec-version-unbumped-after-a-consumer-change.md
 - [#654] [P2][M] The 037 render-pass ruling has no intake file, so `reconciled_with` stays hand-typed · tasks/654-the-037-render-pass-ruling-has-no-intake-and-no-carrier.md
 
 ### [S6] Know what depends on code before removing it (ADR-89 computed edges)
@@ -236,7 +225,6 @@ So that "held by mechanism, not memory" is true for every consumer, not only the
 - [#325] [P3][S] Carry `/save` to consumers via a manifest command-artifact carrier · DEFER · tasks/325-carry-save-to-consumers-via-a-manifest-command-a.md
 - [#497] [P3][S] Two stale claims on carrier/hook declarations · tasks/497-carrier-mesh-py-75-still-claims-the-informant-lo.md
 - [#496] [P3][S] `_ORGAN_TO_COMPONENT` attributes the pre-push organ to a component that does not carry it — the Tier-3 DRIFT rows it produces are misfiled · tasks/496-organ-to-component-attributes-the-pre-push-organ.md
-- [#605] [P2][M] De-hardcode consumer-root resolution in `deploy/tool.py` and `scripts/audit.py` · tasks/605-de-hardcode-consumer-root-resolution-in-deploy-t.md
 ---
 - [#656] [P2][S] The v1.5.0 carrier's `floor-seal-report` drift probe matches a literal the command no longer has · tasks/656-v150-floor-seal-report-drift-probe-matches-a-dead-literal.md
 - [#741] [P1][M] Lane launching is methodology, so the hub owns it — a floor component shipped to every consumer, OS-independent, with machine-local values staying in win-tooling · tasks/741-lane-launching-is-methodology-so-the-hub-owns-it-as-a-floor-component.md
@@ -381,7 +369,6 @@ So that cognitive overhead per session drops.
 - [#341] [P2][S] Codex producer-lane activation mechanism · tasks/341-codex-producer-lane-activation-mechanism.md
 - [#431] [P2][S] `codex-review` silently drops the doc lane on any mixed diff · tasks/431-codex-review-silently-drops-the-doc-lane-on-any.md
 - [#445] [P2][S] `codex-review` wrapper path-guard reports SUCCESS having reviewed nothing · tasks/445-codex-review-wrapper-path-guard-reports-success-h.md
-- [#470] [P3][S] `audit.py checks` crashes mid-listing on a cp1252 console — one U+2192 glyph · tasks/470-audit-py-checks-crashes-on-a-cp1252-console.md
 - [#403] [P3][S] Extend `doc_claims` to ARCHITECTURE's machine-derivable claims · tasks/403-extend-doc-claims-to-architecture-s-machine-deri.md
 - [#487] [P2][L] Closure-proposal consumption arc — repair the pipeline first · tasks/487-closure-proposal-consumption-arc-139-parked-prop.md
 - [#509] [P3][S] `Invoke-Dispatch.ps1` resolves `CLAUDE_PROMPTS_DIR` · tasks/509-invoke-dispatch-resolves-claude-prompts-dir.md
@@ -396,17 +383,13 @@ So that cognitive overhead per session drops.
 - [#581] [P1][L] Backlog vitals — three flow instruments, a committed digest, and what-is-unblocked-now (packet ARC-C) · tasks/581-backlog-vitals-three-flow-instruments-a-committe.md
 - [#582] [P1][L] Substrate router — one gated enum, a capability-keyed table, and the generator that reads it (packet ARC-D) · tasks/582-substrate-router-one-gated-enum-a-capability-key.md
 - [#586] [P3][S] Suite RED — `test_no_gate_hook_or_script_reads_the_export` has no `ecosystem/` naming-vs-reading carve-out (packet ARC-G, C04) · tasks/586-suite-red-test-no-gate-hook-or-script-reads-the.md
-- [#587] [P1][M] P-1 — invert the journal-anchor check to a single pass · tasks/587-p-1-invert-the-journal-anchor-check-to-a-single.md
 - [#588] [P1][S] P-2 — build the spine parent-map in ONE git process · tasks/588-p-2-build-the-spine-parent-map-in-one-git-proces.md
-- [#608] [P1][S] Tiling-aware journal read — the rotation seam, before any split · tasks/608-tiling-aware-journal-read-the-rotation-seam-befo.md
 - [#593] [P2][M] Codespaces chain repair, hub half — uv in the image and a prebuild that actually refreshes · tasks/593-codespaces-chain-repair-hub-half-uv-in-the-image.md
 - [#594] [P3][M] Layer-3 router — the HUB prerequisites only, not the verb itself · tasks/594-layer-3-router-the-hub-prerequisites-only-not-th.md
-- [#597] [P2][M] P-4 — a declared tier per check, and P-3's telemetry window FIRST · tasks/597-p-4-a-declared-tier-per-check-and-p-3-s-telemetr.md
 - [#598] [P3][S] P-6 — a slow-marker selector so tiered gating has something to select on · tasks/598-p-6-a-slow-marker-selector-so-tiered-gating-has.md
 - [#618] [P2][M] The silently-stale codespace clone — detection and refresh-on-entry, not a rebuild · tasks/618-the-silently-stale-codespace-clone-detection-and.md
 - [#623] [P2][S] Mechanize the JOURNAL anchor record-line — 719 anchored-by-mention WARNs is a signal-to-noise defect · tasks/623-mechanize-the-journal-anchor-record-line.md
 - [#625] [P1][M] The rule-adherence eval corpus — a FRESH corpus, because neither fold target can carry it · tasks/625-the-rule-adherence-eval-corpus-fresh.md
-- [#626] [P2][M] `logs/` does not thin — the retention rule exempts the two prefixes that actually accumulate · tasks/626-logs-retention-exempts-the-prefixes-that-accumulate.md
 - [#632] [P1][L] Codespace is ADMITTED for transport and UNSTABLE for inference — the six-layer plan, the runner hardening, and the two defects they depend on · tasks/632-codespace-is-admitted-for-transport-and-unstable-for-inference.md
 - [#634] [P1][S] dispatch-run.sh accepts GITHUB_TOKEN as its Anthropic-token check — a fail-open admission gate on a paid substrate · tasks/634-dispatch-run-accepts-github-token-as-the-anthropic-check.md
 - [#646] [P3][S] The ceremony ratio was measured once, by hand, and nothing computes it · tasks/646-substantive-commit-share-is-measured-once-by-hand.md
@@ -419,13 +402,11 @@ So that cognitive overhead per session drops.
 - [#737] [P2][S] A SEAT-BOOT render cannot express the seat's own model, so the operator's re-tiering ruling has nowhere to live but prose the next seat never reads · tasks/737-a-seat-boot-render-cannot-express-the-seat-s-own-model.md
 - [#738] [P2][S] `lane-ceiling --check-worktrees` refuses on worktree PRESENCE, so a wave-2 batch is refused by a prior wave's lane awaiting merge and the only offered remedy destroys it · tasks/738-lane-ceiling-refuses-on-worktree-presence-with-no-merged-discrimination.md
 - [#739] [P2][S] `session_end_backpressure` reads the working tree but not its authorship, so it orders a seat to commit or stash a CONCURRENT seat's in-flight work · tasks/739-session-end-backpressure-orders-a-commit-of-another-seats-in-flight-work.md
-- [#740] [P1][S] The generator emits a `Dispatch-Lane` fence and the ruled verb admits only a `claude` fence, so `dispatch -DryRun` refuses every conforming generated contract — a SYMPTOM of the two-owner launch path (AX25-1) · tasks/740-generated-contract-carries-a-fence-the-ruled-verb-refuses.md
 - [#724] [P1][M] The Windows baseline is permanently RED and its count is not even reliably knowable -- a red baseline hides every new failure behind it · tasks/724-permanently-red-windows-test-baseline-hides-every-new-failure.md
 - [#725] [P2][S] `test_manifest_link_route` fails under xdist on a frozenset identity assert -- a test that passes alone and fails in parallel · tasks/725-xdist-frozenset-identity-pollution-in-test-manifest-link-route.md
 - [#728] [P2][M] Every organ that answers a question gets a generated skill whose description says WHEN to invoke it -- the description is what the model matches · tasks/728-organ-skills-generated-from-the-organ-index-so-the-model-can-find-them.md
 - [#729] [P2][M] FPG-1's queries are shell scripts the model must remember to run -- expose them as MCP tools so they sit in the tool list beside Grep · tasks/729-fpg1-queries-exposed-as-mcp-tools-so-they-sit-beside-grep.md
 - [#746] [P1][M] Devcontainer history-sufficiency (B1) and ecosystem-registration (L5) repair, lost with `scripts/cloud_provisioning.py` · tasks/746-devcontainer-history-and-ecosystem-repair-lost-with-cloud-provisioning-py.md
-- [#751] [P2][M] Cost in money — the transcripts' token figures become tokens and USD per lane and per model, priced from the registry's own rate card · tasks/751-cost-in-money-tokens-and-usd-per-lane-and-per-model.md
 - [#769] [P2][S] An unattended lane has no cancel for a long-running gate -- the only lever is killing the session · tasks/769-an-unattended-lane-has-no-cancel-for-a-long-runn.md
 - [#771] [P2][S] `[#729]` carries no protocol-conformance criterion, so a server can satisfy it completely and not be an MCP server · tasks/771-729-carries-no-protocol-conformance-criterion-so.md
 - [#800] [P1][S] The routing unit is the SESSION, not the turn — the prompt cache is per model, so per-turn switching loses money · tasks/800-the-routing-unit-is-the-session-not-the-turn-the-p.md
@@ -442,7 +423,6 @@ So that cadence-less artifacts and unevaluated tools don't rot or get adopted bl
 - [#491] [P3][S] Gemini scanning lane — ruling R-G plus an acceptance contract · DEFER · tasks/491-gemini-scanning-lane-ruling-r-g-plus-an-acceptan.md
 - [#578] [P3][S] The earned mitigated rerun — one slot, role-reminder preamble baked in · tasks/578-the-earned-mitigated-rerun-one-slot-role-reminder.md
 - [#753] [P2][M] The supervised non-Claude producer trial — ten bounded tasks, stdout-only producers, admission recorded in the registry · tasks/753-the-supervised-non-claude-producer-trial.md
-- [#785] [P2][M] Ten unattended outcomes price every non-Claude provider CLI on this box, and the metering unit is named where USD-per-token is the wrong instrument · tasks/785-ten-unattended-outcomes-price-every-non-claude-p.md
 - [#832] [P3][M] Re-run the three-repo comparison against the operator's named repositories · tasks/832-copilot-collections-comparison-rerun.md
 
 - [#570] [P2][L] Consume intake #27's W-wave rows — the deferred half of the tech-adoption ledger · tasks/570-consume-the-tech-adoption-ledger-w-wave.md
@@ -458,8 +438,6 @@ So that cadence-less artifacts and unevaluated tools don't rot or get adopted bl
 - [#701] [P2][S] A Codex quota hit stalls review for 50 minutes and no fallback provider is authorized, so the reviewer role is a single point of failure · tasks/701-codex-quota-hit-stalls-review-with-no-authorized-fallback-provider.md
 - [#706] [P2][S] The operator packet gains D14, folder-as-domain -- and it cannot be decided before the domain census returns · tasks/706-operator-packet-gains-d14-folder-as-domain-decided-after-the-census.md
 - [#722] [P1][S] Interim routing: read-only digests, censuses and scans default to agy as a READER ONLY, with conclusions and verdicts staying on Claude · tasks/722-interim-routing-read-only-work-defaults-to-agy-as-reader-only.md
-- [#784] [P2][M] AJ M04 has never been read against this repo -- no SHIPPED / OWNED / UNOWNED matrix exists, so its practices are neither adopted nor refused · tasks/784-aj-m04-has-never-been-read-against-this-repo-no.md
-- [#780] [P3][M] Three-repo comparison: a gap matrix, adopt-candidates, and an explicit will-NOT-adopt list · tasks/780-three-repo-comparison-gaps-adopt-candidates-and-an-explicit-will-not-adopt-list.md
 ### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)
 So that unattended routines run only with a named consumer, a survival metric, and a bounded operator load — never as rot generators (the fleet-audit lesson; sequencing per the standing operator ruling: the load-gauge lands before anything else in the Tier-2 nightly layer).
 - [#271] [P3][L] Nightly proposal loop · tasks/271-nightly-proposal-loop.md
@@ -554,4 +532,4 @@ So that a version bump researched once reaches every repo through the deploy cha
 
 > **Relocated verbatim 2026-09-16** to `docs/audits/2026-09-16-technical-backlog-view-narration-relocated.md` §10 — ai-council audit residuals — a 2026-07-06 pointer to ai-council-owned cleanups, filed in that repo per ADR-41.
 
-**Grooming log:** git history is the record (`git log --grep 'groom'` + per-session JOURNAL). Recent: 2026-06-12 (#149 flip) · 2026-06-18 (currency pass) · 2026-06-25 (groom pass, n=2: 84→81) · 2026-07-08 (leg-c full ruling pass, operator-ratified, 124→74: 14 KILL / 27 MERGE / 2 MOVE / 9 CLOSE / 5 RE-SCOPE / 19 DEFER-peg / 2 new filings #289 #290; #110 #128 moved-to: ai-council (Wave-1)) · 2026-07-30 (per-handoff lightweight groom, arc 0731-g0-groom: 6 doc_rot accretion rows condensed — #344 #421 #422 #332 #278 #426, no live obligation dropped; 5 warn-doc-rot dispositions retired; ADR-105 night-batch routine activated on #426). · 2026-09-14 (mechanised groom, lane `lane-y-754-backlog-to-bar`: the `archive_row_body.py` trigger run to EXHAUSTION over the rows above the 1320-char ceiling — 60 rows, 66 clauses, 18,107 source chars relocated byte-identically into `tasks/archive/`, 84 records re-proven on legs A–E; accretion arm 5 → 4, #241 cleared; over-ceiling COUNT unmoved at 148 of 322 and `propose` now returns one row, itself already under the ceiling — the mechanism is exhausted above the line, measured rather than asserted, and the residual is 35.3% structural clauses plus 38.2% undated prose, both outside the predicate by construction). Next quarterly: 2026-10-08.
+**Grooming log:** git history + JOURNAL. Recent: 2026-06-12 (#149 flip) · 2026-06-18 (currency pass) · 2026-06-25 (groom pass, n=2: 84→81) · 2026-07-08 (leg-c full ruling pass, operator-ratified, 124→74: 14 KILL / 27 MERGE / 2 MOVE / 9 CLOSE / 5 RE-SCOPE / 19 DEFER-peg / 2 new filings #289 #290; #110 #128 moved-to: ai-council (Wave-1)) · 2026-07-30 (per-handoff lightweight groom, arc 0731-g0-groom: 6 doc_rot accretion rows condensed — #344 #421 #422 #332 #278 #426, no live obligation dropped; 5 warn-doc-rot dispositions retired; ADR-105 night-batch routine activated on #426). · 2026-09-14 (mechanised groom, lane `lane-y-754-backlog-to-bar`: the `archive_row_body.py` trigger run to EXHAUSTION over the rows above the 1320-char ceiling — 60 rows, 66 clauses, 18,107 source chars relocated byte-identically into `tasks/archive/`, 84 records re-proven on legs A–E; accretion arm 5 → 4, #241 cleared; over-ceiling COUNT unmoved at 148 of 322 and `propose` now returns one row, itself already under the ceiling — the mechanism is exhausted above the line, measured rather than asserted, and the residual is 35.3% structural clauses plus 38.2% undated prose, both outside the predicate by construction). Next quarterly: 2026-10-08.
