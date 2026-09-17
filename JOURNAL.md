@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-17 (o) - CC (Opus 5, integrator seat, repo-to-zero): [#884] filed -- an unbounded research fan-out ran 17+ hours to re-answer a settled question
+
+**Anchors:** `3cbe6336`, `39e42e42` -- `worktree-file-research-bound-row`, synced at `a29f700c` (`tasks/manifest.json` hash-only conflict; generator re-pinned, BACKLOG current at 384 tasks).
+
+**MERGED** `[#884]` (id reserved by push): one research session, ~0.5M tokens over 17+ hours. A read step ran 5 h 26 m and had not returned when the session was killed, and two subagents ran 12-17 h each, all to re-answer a question `DIGEST-2026-09-16-prose-as-source.md` had already settled. Three defects: no agent cap or per-agent deadline on a research fan-out; a session inside a long tool call cannot receive "stop"; nothing prices a question before launch. `39e42e42` cites `[#769]`, the existing gate-scoped row for the "stop is not deliverable" symptom. Same class as `[#808]`/`[#863]`/`[#883]`: an operation with no bound looks identical to work. Owner: the browser seat. **No tests run here**, by operator order.
+
+**Did:** merged the row. **Result:** research dispatch has a row that bounds it. **Changes:** `tasks/884`, `tasks/manifest.json`, `BACKLOG.md`, `JOURNAL.md`. **Next:** `[#884]` itself.
+
 ### 2026-09-17 (n) - CC (Opus 5, integrator seat, repo-to-zero): ab-808 X-rulings merge -- the guard figures are 6% and 2%, and the immutable surfaces carrying 83% / 13% get SUPERSEDED markers
 
 **Anchors:** `c36b51a1`, `060e1997` -- `worktree-ab-808-x-rulings` (already contained main `a92ff5c4`; sync a no-op). The operator named `c36b51a1`; the branch had moved to `060e1997`, a descendant, and the descendant is what merged.

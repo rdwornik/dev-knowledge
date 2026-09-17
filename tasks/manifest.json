@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "e02e2813e23b767a7635c62fd831ca227752479d8b73c818412146a34553948b",
+  "generated_sha256": "55eb42adc5b57b34faa2513510326a034d4ff88574a7713c7b975c8080e1cf6c",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -628,6 +628,10 @@
     {
       "task": 883,
       "file": "883-a-gate-ships-with-a-counter-or-is-removed.md"
+    },
+    {
+      "task": 884,
+      "file": "884-a-research-dispatch-states-its-bounds-before-launch.md"
     },
     {
       "task": 863,

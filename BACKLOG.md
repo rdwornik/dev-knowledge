@@ -163,6 +163,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#834] [P2][S] Enforce one protocols/ rule-bearing heading with a refusal and a trip-test · tasks/834-enforce-one-protocols-heading-with-a-refusal-and-a-trip-test.md
 - [#843] [P1][M] A frozen contract's premise clause is carried from a digest, not verified against main at freeze time · tasks/843-contract-freezing-premise-clauses-carry-from-a-stale-digest.md
 - [#883] [P1][M] The commit gate was never priced -- a mechanism ships with a counter of what it caught, and a gate with no catch in its window is removed, not tuned · tasks/883-a-gate-ships-with-a-counter-or-is-removed.md
+- [#884] [P1][M] An unbounded research fan-out ran 17+ hours to re-answer a settled question -- a research dispatch states its agent cap, per-agent deadline and token budget before launch, and a step past its deadline is abandoned with what it has · tasks/884-a-research-dispatch-states-its-bounds-before-launch.md
 - [#863] [P1][M] Hook processes are created SUSPENDED and never resumed -- a timeout cannot fire on a process that never started · tasks/863-hook-processes-are-created-suspended-and-never-resumed.md
 - [#864] [P1][S] The decision-coverage gate is FLAKY -- it failed and then passed on retry with nothing changed · tasks/864-decision-coverage-gate-is-flaky.md
 - [#865] [P2][S] The user-level block-onedrive.ps1 PreToolUse guard launches powershell per call and can hang the same way -- it needs a ruling · tasks/865-user-level-block-onedrive-guard-needs-a-hang-ruling.md
