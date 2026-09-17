@@ -64,7 +64,7 @@ RECORD_RELPATH = Path("logs") / "HOOK-BYPASSES.jsonl"
 HARNESS_HEADROOM_S = 20
 
 #: How long to wait for a killed tree's pipes to close before abandoning them.
-KILL_GRACE_S = 2.0
+KILL_GRACE_S = 1.0
 
 SURFACE_WINDOW_H = 72
 SURFACE_TAIL_LINES = 5000
@@ -211,10 +211,15 @@ def _feed(stream, payload: bytes) -> None:
 
 def _kill_tree(proc: subprocess.Popen) -> None:
     if os.name == "nt":
+        # FIRED, NOT AWAITED. `taskkill /T` was measured taking >10 s on a loaded box, and a
+        # wrapper that waits on its own kill has moved the unbounded wait one level down.
+        # taskkill runs on after this process exits; its std handles are DEVNULL, so it holds
+        # no pipe of ours or the harness's.
         try:
-            subprocess.run(["taskkill", "/T", "/F", "/PID", str(proc.pid)],
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
-        except (OSError, subprocess.SubprocessError):
+            subprocess.Popen(["taskkill", "/T", "/F", "/PID", str(proc.pid)],
+                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL)
+        except OSError:
             pass
     else:
         try:
