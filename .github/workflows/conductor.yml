@@ -102,8 +102,45 @@ jobs:
       - name: Sync the locked environment
         run: uv sync --locked --group analytics   # without it, pandas is absent and the
                                                  # fleet_analytics tests fail on the import
-      - name: pytest
-        run: uv run --locked pytest -q --tb=short
+      - name: pytest, pinned at -n 4 (logs/SUITE-BASELINE-FREEZE.md's comparison command)
+        id: run
+        continue-on-error: true   # judged by the [#802] suite-baseline gate below, not this
+                                   # raw exit code -- main carries pre-existing failures today
+        run: |
+          set +e
+          uv run --locked pytest -q --tb=short -n 4 2>&1 | tee pytest.out
+          echo "exit=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+      - name: Judge the run against the frozen baseline, by node id ([#802])
+        id: gate
+        run: |
+          set +e
+          uv run --locked python scripts/conductor.py suite-gate \
+            --pytest-output pytest.out --workers 4 --pytest-exit "${{ steps.run.outputs.exit }}" \
+            --out suite-gate.out
+          rc=$?
+          cat suite-gate.out
+          echo "exit=$rc" >> "$GITHUB_OUTPUT"
+      - name: Write the record
+        if: always()
+        run: |
+          {
+            echo "## suite-baseline gate — \`${{ github.sha }}\`"
+            echo
+            echo '```'
+            cat suite-gate.out 2>/dev/null || echo "no gate output"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pytest-${{ github.sha }}
+          path: |
+            pytest.out
+            suite-gate.out
+          retention-days: 90
+          if-no-files-found: warn
+      - name: Fail the job on the [#802] gate's verdict, not pytest's raw exit code
+        run: exit ${{ steps.gate.outputs.exit }}
 
   ruff:
     runs-on: ubuntu-latest
@@ -160,6 +197,63 @@ jobs:
           echo "staged adds in $BASE..${{ github.sha }}:"
           git diff --cached --diff-filter=A --no-renames --name-only
           uv run --locked python scripts/validate_hermetization.py
+
+  commit-gate:
+    # THE LOCAL COMMIT GATE, MOVED HERE 2026-09-17 (operator ruling, batch AB close). Every hook
+    # in .pre-commit-config.yaml at `stages: [manual]` runs here over the pushed range; the
+    # config header carries the before-numbers and what stayed local. REPORT-ONLY, like the rest
+    # of this workflow while enforcement is disabled -- and deliberately NOT a required-check
+    # context, so tests/test_conductor.py's four-context agreement is untouched.
+    #
+    # SAME STAGED SET AS THE LOCAL HOOK SAW, by the `seal` job's own device: `git reset --soft`
+    # to the range base makes `git diff --cached` the range's diff, and a bare `pre-commit run`
+    # (no --all-files) runs on exactly that staged set. Safe only because this checkout is
+    # ephemeral and nothing is pushed from it.
+    #
+    # SKIPPED, and stated: block-commit-on-main (a CI checkout is detached; block-ff-push keeps
+    # the push-time half locally) and the two commit-msg hooks (a commit message is not a
+    # staged file; per-commit replay is not built).
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.11.19"
+      - name: Sync the locked environment
+        run: uv sync --locked
+      - name: Run the moved commit-gate hooks over this range's staged set
+        env:
+          SKIP: block-commit-on-main,backlog-id-on-close,backlog-filing-backpressure
+        run: |
+          set +e
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+          fi
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] \
+             || ! git merge-base --is-ancestor "$BASE" "HEAD" 2>/dev/null; then
+            echo "::notice::no resolvable range (schedule, dispatch, or branch creation) -- commit gate skipped"
+            exit 0
+          fi
+          git reset --soft "$BASE"
+          start=$(date +%s)
+          uv run --locked pre-commit run --hook-stage manual > commit-gate.out 2>&1
+          rc=$?
+          echo "wall_seconds=$(( $(date +%s) - start )) exit=$rc" >> commit-gate.out
+          cat commit-gate.out
+          {
+            echo "## commit gate (moved hooks) — \`${{ github.sha }}\` exit \`$rc\`"
+            echo
+            echo '```'
+            tail -n 80 commit-gate.out
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $rc
 
   terra:
     # REPORT-ONLY, AND THE ONE OF THE FOUR THAT IS NOT ARMABLE. §4 says "Codex review becomes
