@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-17 (r) - CC (Opus 5, integrator seat, repo-to-zero): close packet amendment 1 -- the four ordered merges counted, and the repo cleaned to zero by ancestry evidence
+
+**Anchors:** `f4bd99f2` -- `chore/repo-zero`, cut from `f846caac` after the last ordered merge.
+
+**Did:** appended AMENDMENT 1 to `docs/audits/2026-09-16-technical-batch-ab-close-packet.md` (pure append; the packet stays immutable above it). **Merged SHAs:** `73e44703` (808 X-rulings), `f676ef3f` (`[#884]`), `a38da811` (`[#833]`, no longer CARRIED), `f846caac` (`[#664]`, four RED witnesses by ruling); intake 103 `b9ceb000` was already on main at `3c16b4eb`. **Rows:** 21 filed, 0 closed, since batch open `8a24f469`. **BACKLOG:** 79,919 B, 386 rows. **Merge minutes:** median 1.28, n=12, by seat stopwatch rather than receipts. **Cost:** claude-opus-5 USD 169.21, claude-sonnet-5 USD 64.49, known total USD 233.70; non-Claude lanes are UNKNOWN. Regenerated doc-counts (6,471 collected) and the audit index. **Teardown after this merge is decided by `git merge-base --is-ancestor`, never by name.** A branch not on main is reported with its tip and kept: ab-828 `7017328e`, aa-12 `e17c6200`, aa-13 `01c446f7`. `automation/fleet-audit` stays, as it is protected. **No tests run here**, by operator order; the conductor's pytest run judges the 833 and 664 merges.
+
+**Result:** the batch AB record matches main after the reversal of CARRIED. **Changes:** close packet, `docs/audits/README.md`, `ecosystem/doc-counts.md`, `JOURNAL.md`. **Next:** operator rules on ab-828, aa-12, aa-13; read the conductor verdict on `a38da811` and `f846caac`.
+
 ### 2026-09-17 (q) - CC (Opus 5, integrator seat, repo-to-zero): lane ab-664 spine witnessed merges WITH FOUR DELIBERATE RED WITNESSES -- not a regression, do not "fix" them
 
 **Anchors:** `8e3cf513`, `15f00e5b` -- `worktree-lane-ab-664-spine-witnessed`, synced at `e57b4ec6` (`tasks/manifest.json` hash-only conflict; generator re-pinned, BACKLOG current at 386 tasks). The operator named `8e3cf513`; the branch had moved to `15f00e5b` (amendment 1, the rulings applied), a descendant, and the descendant is what merged.
