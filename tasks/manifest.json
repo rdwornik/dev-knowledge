@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "19328e218777f789d678a58f37637075f1a145b752e39e2b61336abfa25c55b7",
+  "generated_sha256": "a3640fc80233906a538185edfe56de07eeb909345cd7c2b6aae35f26f5d3cf6c",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -576,6 +576,22 @@
     {
       "task": 827,
       "file": "827-the-memory-floor-is-derived-from-a-stale-per-seat-constant.md"
+    },
+    {
+      "task": 823,
+      "file": "823-the-dispatch-verb-still-boots-a-lane-with-no-committed-manifest.md"
+    },
+    {
+      "task": 824,
+      "file": "824-no-launch-verb-exists-for-a-non-claude-lane.md"
+    },
+    {
+      "task": 825,
+      "file": "825-single-flight-misreports-a-real-push-race-as-an-internal-error.md"
+    },
+    {
+      "task": 826,
+      "file": "826-id-blocks-must-be-machine-read-not-prose.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
