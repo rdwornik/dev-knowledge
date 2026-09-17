@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "434e70e8f6da7ce99364bd361f57889a2487755461a84d2bd1f518cb92978082",
+  "generated_sha256": "708c60aa6bcdb8b2a088362eef8e7aa6717e56883832a1a38a4e43252f52ca34",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -614,8 +614,24 @@
       "file": "826-id-blocks-must-be-machine-read-not-prose.md"
     },
     {
+      "task": 834,
+      "file": "834-enforce-one-protocols-heading-with-a-refusal-and-a-trip-test.md"
+    },
+    {
       "task": 843,
       "file": "843-contract-freezing-premise-clauses-carry-from-a-stale-digest.md"
+    },
+    {
+      "task": 863,
+      "file": "863-hook-processes-are-created-suspended-and-never-resumed.md"
+    },
+    {
+      "task": 864,
+      "file": "864-decision-coverage-gate-is-flaky.md"
+    },
+    {
+      "task": 865,
+      "file": "865-user-level-block-onedrive-guard-needs-a-hang-ruling.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -1637,6 +1653,10 @@
     {
       "task": 785,
       "file": "785-ten-unattended-outcomes-price-every-non-claude-p.md"
+    },
+    {
+      "task": 832,
+      "file": "832-copilot-collections-comparison-rerun.md"
     },
     {
       "prose": ""

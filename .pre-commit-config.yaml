@@ -763,6 +763,21 @@ repos:
         language: system
         stages: [manual]
         always_run: true
+      - id: commit-message-type-prefix
+        name: Commit message must carry a Conventional-Commits-shaped type prefix (#834)
+        # PLAYBOOK.md "### Commit message standard" -- structural shape only (a leading
+        # `type` or `type(scope)` token before the colon). Does NOT gate the closed
+        # six-type list (perf/build/lessons are live sanctioned extensions) or the
+        # ~72-char length / one-logical-change prose, both measured as too disruptive
+        # to gate as written (5680/7985 historical commits exceed the length rule).
+        # Measured wall time: ~2.9s warm (uv startup dominated), same order as the two
+        # sibling commit-msg hooks above.
+        # LANDED AT `manual`, 2026-09-17: merged after the commit gate was stripped, and it carries no
+        # catch counter -- under that ruling a new gate does not take a local stage until it has one.
+        entry: uv run --locked python scripts/check_commit_message_type.py
+        language: system
+        stages: [manual]
+        always_run: true
       - id: block-ff-push
         name: Block direct-to-main / FF push to main (#153 prevent — core-invariant #5)
         # Pre-push GATE (the PREVENT half of #5; validate_no_ff stays the WARN detector).
