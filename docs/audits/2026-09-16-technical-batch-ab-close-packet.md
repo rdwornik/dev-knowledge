@@ -29,7 +29,7 @@ Batch-opening and pre-close (2026-09-16):
 
 ## 2. CARRIED — not merged, tip named
 
-- `worktree-lane-ab-833-seat-registry` @ `c103665c` — seat as a registered entity, refusals for a batch with no live integrator, hook legs writing seat events; the session was still editing (`fleet_health.py`, tests, artifact uncommitted) at close, so it had not handed back.
+- `worktree-lane-ab-833-seat-registry` @ `5a951fab` — seat as a registered entity (`seat_registry.py`), refusals for a lane already owned and a batch with no live integrator, hook legs writing seat events, a `[seats]` line at SessionStart, end-of-lane artifact. **Handed back 13:14, sync CONFLICTED on a rule-unsettled merge:** `scripts/lane_boot.py`, where ab-694's refusal 4 (GO artifact, `[#685]`) and this lane's refusals 4-5 (seat registry) both rewrite `preflight()` and its numbered docstring; combining two refusal sequences is a logic merge no rule settles and no test here could witness, so per the close order it is CARRIED, sync aborted, nothing half-merged. Next seat: renumber to refusals 4 (GO) + 5-6 (seats), then targeted `tests/test_lane_boot.py` in CI.
 - `worktree-lane-ab-664-spine-witnessed` @ `8e3cf513` — the three `[#664]` refusals witnessed through a real commit and 17 (not 18) private edge computations; the lane PAUSED itself on a rule-vs-ruling conflict once the commit tier moved to the conductor.
 - `worktree-lane-ab-828-closure-census` @ `7017328e` — closes 25 digest-backed rows and files `[#828]`-`[#830]`; Codex HIGH x3 fix round not confirmed complete, idle since 11:04.
 - `win-tooling` `worktree-lane-ab-810-substrate-repair` @ `35280a3` — ab-810's other half (8 commits, unpushed): `Start-DispatchCodespace -Model`, harvest verb, win-tooling `[#12]`/`[#13]`. Out of this repo's close.
@@ -100,7 +100,7 @@ Instrument: `lane_cost.py lane --slug <slug> --batch AB` and `lane_cost.py seat 
 - **ab-834** — WORKS: `check_commit_message_type.py`, RED-first tests, and the PLAYBOOK heading and its organ citing each other. DOES NOT: the hook landed at `manual`, and the conductor skips commit-msg hooks, so the refusal is armed nowhere.
 - **ab-808** — WORKS: `bounded_hook.py` records every outcome and declares a hook BROKEN past 10% bypass over 168 h; its surface prints from `fleet_health`. DOES NOT: no hook is wrapped (settings.json wiring held by ruling), and since `bc8ddda5` no hook runs at all, so the surface has no host until `[#863]`; the suspended-at-start mode is uncaught. **It retracted its own 83% headline (real: 13% and 4%).**
 - **ab-832** — WORKS: the comparison re-run against the right repository, all anchor claims re-verified at fresh HEAD. DOES NOT: its "To file" section is untriaged.
-- **ab-833** — CARRIED (section 2): event-written seat registry and two refusals committed. DOES NOT: it had not handed back.
+- **ab-833** — CARRIED (section 2): event-written seat registry, two refusals, `[seats]` surface, artifact — handed back complete. DOES NOT: land, because its `lane_boot.py` conflicts with ab-694's merged refusal on a logic merge no rule settles.
 - **ab-664** — CARRIED: the three refusals witnessed through a real commit; the 17-site census. DOES NOT: paused on the rule-vs-ruling conflict the gate strip created.
 - **ab-828** — CARRIED: closure census for 25 rows. DOES NOT: merged, so the batch closed zero rows.
 - **617** — HELD, never dispatched.
