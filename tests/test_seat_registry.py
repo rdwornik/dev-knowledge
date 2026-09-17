@@ -227,3 +227,61 @@ def test_a_hook_leg_never_raises(tmp_path, monkeypatch):
     monkeypatch.setattr(reg, "REGISTRY_PATH", tmp_path / "no" / "such" / "\0bad")
     assert reg.record_hook_event({"hook_event_name": "Stop", "session_id": "s1"}) is None
     assert reg.record_hook_event({"state": "live"}) is None
+
+
+# --- the event writers: the two hook legs that already fire ----------------------------------------
+#
+# No new hook registration (`.claude/settings.json` is sequenced behind ab-808). These prove the two
+# existing legs WRITE, and write nothing for a payload that is not a hook payload -- the guard that
+# keeps a suite run inside a live Claude Code session out of the real registry.
+
+def test_the_stop_hook_leg_records_a_stop_event(tmp_path, monkeypatch):
+    import io
+
+    import session_end_backpressure as seb
+    path = tmp_path / "seats.jsonl"
+    monkeypatch.setattr(reg, "REGISTRY_PATH", path)
+    payload = {"hook_event_name": "Stop", "session_id": "stop-1", "stop_hook_active": True,
+               "cwd": LANE_CWD}
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(payload)))
+    assert seb.main() == 0
+    rows = reg.read_rows(path)
+    assert [(r["event"], r["state"], r["session_id"]) for r in rows] == [("Stop", "live", "stop-1")]
+
+
+def test_the_stop_hook_leg_writes_nothing_without_a_session(tmp_path, monkeypatch):
+    import io
+
+    import session_end_backpressure as seb
+    path = tmp_path / "seats.jsonl"
+    monkeypatch.setattr(reg, "REGISTRY_PATH", path)
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps({"stop_hook_active": True})))
+    assert seb.main() == 0
+    assert not path.exists()
+
+
+def test_the_session_start_leg_records_a_start_event(tmp_path, monkeypatch):
+    import resource_lifecycle as rl
+    path = tmp_path / "seats.jsonl"
+    monkeypatch.setattr(reg, "REGISTRY_PATH", path)
+    monkeypatch.setattr(rl, "process_table", lambda: [])
+    monkeypatch.setattr(rl, "sample", lambda **_kw: [])
+    payload = {"hook_event_name": "SessionStart", "session_id": "start-1", "cwd": "C:/Dev/hub",
+               "source": "startup"}
+    result = CliRunner().invoke(rl.cli, ["session-start"], input=json.dumps(payload))
+    assert result.exit_code == 0, result.output
+    rows = reg.read_rows(path)
+    assert [(r["event"], r["state"], r["session_id"]) for r in rows] == [
+        ("SessionStart", "live", "start-1")]
+
+
+def test_the_session_start_leg_refuses_a_payload_that_asserts_its_own_state(tmp_path, monkeypatch):
+    import resource_lifecycle as rl
+    path = tmp_path / "seats.jsonl"
+    monkeypatch.setattr(reg, "REGISTRY_PATH", path)
+    monkeypatch.setattr(rl, "process_table", lambda: [])
+    monkeypatch.setattr(rl, "sample", lambda **_kw: [])
+    payload = {"hook_event_name": "SessionStart", "session_id": "s1", "state": "live"}
+    result = CliRunner().invoke(rl.cli, ["session-start"], input=json.dumps(payload))
+    assert result.exit_code == 0, "a refused event must not stop a session from starting"
+    assert not path.exists()
