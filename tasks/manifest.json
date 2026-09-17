@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "c55d970a68e27b6a350d57257cdc267116e95bdbde07dbf564e3467d9652dae2",
+  "generated_sha256": "3408ac39500aeecff38e69238399d684310ac32459385354fb1a177f0cdf1d3e",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -616,6 +616,10 @@
     {
       "task": 843,
       "file": "843-contract-freezing-premise-clauses-carry-from-a-stale-digest.md"
+    },
+    {
+      "task": 883,
+      "file": "883-a-gate-ships-with-a-counter-or-is-removed.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
