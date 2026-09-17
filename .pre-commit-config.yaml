@@ -18,7 +18,8 @@ default_stages: [pre-commit]
 
 # THE COMMIT GATE WAS STRIPPED, 2026-09-17 (operator ruling, batch AB close). Measured before:
 # 34 hooks, ~244 s mean commit wall, a single commit 9+ min as a detached process, fronting
-# guards that permitted 477 of 573 calls (lane ab-808). No hook here carries a counter of what
+# guards cited as permitting 477 of 573 calls (lane ab-808) -- a figure ab-808 RETRACTED before
+# merging: per call the bypass rate was 13% and 4% (merge 06a2bccf, [#883]). No hook here carries a counter of what
 # it caught, so which ones ever caught a real defect cannot be established -- and the ruling for
 # that case is to keep ONLY data-loss protection: the JOURNAL anchor (block-unanchored-push,
 # pre-push) and the index-freshness pair (audit-index-freshness, organ-index-freshness).
@@ -760,6 +761,21 @@ repos:
         # carry a `kill-candidates:` line (BLOCK); a new L-epic lacking an intake-id earns
         # an advisory WARN (#279, ADR-98). Proposals only — never auto-removes anything.
         entry: uv run --locked python scripts/check_backlog_filing.py
+        language: system
+        stages: [manual]
+        always_run: true
+      - id: commit-message-type-prefix
+        name: Commit message must carry a Conventional-Commits-shaped type prefix (#834)
+        # PLAYBOOK.md "### Commit message standard" -- structural shape only (a leading
+        # `type` or `type(scope)` token before the colon). Does NOT gate the closed
+        # six-type list (perf/build/lessons are live sanctioned extensions) or the
+        # ~72-char length / one-logical-change prose, both measured as too disruptive
+        # to gate as written (5680/7985 historical commits exceed the length rule).
+        # Measured wall time: ~2.9s warm (uv startup dominated), same order as the two
+        # sibling commit-msg hooks above.
+        # LANDED AT `manual`, 2026-09-17: merged after the commit gate was stripped, and it carries no
+        # catch counter -- under that ruling a new gate does not take a local stage until it has one.
+        entry: uv run --locked python scripts/check_commit_message_type.py
         language: system
         stages: [manual]
         always_run: true

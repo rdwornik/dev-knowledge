@@ -62,10 +62,13 @@ def _repo(tmp_path: Path) -> Path:
 
 
 def _commit_manifest(repo: Path) -> None:
+    """A committed, open manifest that also GOes `_LANE` -- [#685]'s row -- so these
+    [#804]-era fixtures keep testing the open-batch refusal alone, not colliding with it."""
     path = repo / _MANIFEST
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(f"---\nbatch: AB\nstatus: open\nclosed_by: {_CLOSER}\n---\n\n# Batch AB\n",
-                    encoding="utf-8")
+    path.write_text(
+        f"---\nbatch: AB\nstatus: open\nclosed_by: {_CLOSER}\n---\n\n# Batch AB\n\n"
+        f"| Lane | State |\n|---|---|\n| `{_LANE}` | fire now |\n", encoding="utf-8")
     _git(repo, "add", "-A")
     _git(repo, "commit", "-q", "-m", "batch AB manifest")
 
@@ -149,6 +152,77 @@ def test_a_malformed_lane_name_is_refused_before_the_manifest_is_read(tmp_path):
     result = _boot(repo, lane="worktree-lane-ab-804-id-allocator")
     assert result.exit_code == 1
     assert "BRANCH form" in result.output
+
+
+# --- [#685]: dispatch refuses without the GO file ---------------------------------------
+#
+# The GO artifact is a table row naming this lane -- either in the open batch's manifest
+# itself, or in one of its committed `<manifest-stem>-amendment-N.md` siblings, the live shape
+# `docs/audits/2026-09-16-technical-batch-ab-manifest-amendment-1.md` uses.
+
+_GO_LANE = "lane-ab-694-cost-telemetry"
+
+
+def _commit_amendment(repo: Path, n: int, row: str) -> None:
+    stem = _MANIFEST.rsplit(".md", 1)[0]
+    path = repo / f"{stem}-amendment-{n}.md"
+    path.write_text(f"# Amendment {n}\n\n| Lane | State |\n|---|---|\n{row}\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", f"amendment {n}")
+
+
+@requires_git
+def test_lane_boot_refuses_a_lane_no_go_artifact_names(tmp_path):
+    """The manifest is open and committed on main, but no row anywhere names this lane."""
+    repo = _repo(tmp_path)
+    _commit_manifest(repo)
+    result = _boot(repo, lane=_GO_LANE)
+    assert result.exit_code == 1, result.output
+    assert "685" in result.output
+
+
+@requires_git
+def test_lane_boot_admits_a_lane_the_manifest_itself_fires(tmp_path):
+    repo = _repo(tmp_path)
+    path = repo / _MANIFEST
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        f"---\nbatch: AB\nstatus: open\nclosed_by: {_CLOSER}\n---\n\n"
+        f"| Lane | State |\n|---|---|\n| `{_GO_LANE}` | fire now |\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "batch AB manifest")
+    result = _boot(repo, lane=_GO_LANE)
+    assert result.exit_code == 0, result.output
+
+
+@requires_git
+def test_lane_boot_admits_a_lane_an_amendment_fires(tmp_path):
+    """Only an amendment sibling names the lane -- the manifest itself is silent on it."""
+    repo = _repo(tmp_path)
+    _commit_manifest(repo)
+    _commit_amendment(repo, 1, f"| `{_GO_LANE}` | fire now |")
+    result = _boot(repo, lane=_GO_LANE)
+    assert result.exit_code == 0, result.output
+
+
+@requires_git
+def test_lane_boot_refuses_a_lane_the_manifest_holds(tmp_path):
+    repo = _repo(tmp_path)
+    _commit_manifest(repo)
+    _commit_amendment(repo, 1, f"| `{_GO_LANE}` | HELD: stale contract |")
+    result = _boot(repo, lane=_GO_LANE)
+    assert result.exit_code == 1, result.output
+    assert "HELD" in result.output
+
+
+@requires_git
+def test_lane_boot_a_later_amendment_supersedes_an_earlier_hold(tmp_path):
+    repo = _repo(tmp_path)
+    _commit_manifest(repo)
+    _commit_amendment(repo, 1, f"| `{_GO_LANE}` | HELD: awaiting the re-scope |")
+    _commit_amendment(repo, 2, f"| `{_GO_LANE}` | fire now |")
+    result = _boot(repo, lane=_GO_LANE)
+    assert result.exit_code == 0, result.output
 
 
 def test_the_lane_boot_command_file_runs_the_entry_point():

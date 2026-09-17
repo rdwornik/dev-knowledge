@@ -1070,6 +1070,35 @@ def _import_lane_cost():
     return lane_cost
 
 
+def _import_bounded_hook():
+    """Lazy sibling import from `scripts/hooks/`, same shape as `_import_funnel_lifecycle`."""
+    hooks_dir = str(_SCRIPTS_DIR / "hooks")
+    if hooks_dir not in sys.path:
+        sys.path.insert(0, hooks_dir)
+    import bounded_hook  # noqa: E402
+    return bounded_hook
+
+
+def hook_bypass_lines() -> list[str]:
+    """`[#808]`'s surface: recent hook skips, each hook's bypass RATE, and every hook DECLARED
+    BROKEN (operator ruling 2026-09-17, items 1 and 2).
+
+    IN-PROCESS, INSIDE THIS HOOK, ON PURPOSE. The ruling held the settings-file wiring: a separate
+    SessionStart hook would be one more interpreter to start at every boot, and hook interpreters
+    created suspended are the measured wedge. `bounded_hook` owns the numbers, the time-boxed
+    transcript scan and the declaration; nothing is re-derived here.
+
+    Fail-soft on its own account, like every other digest line: a surfacing organ never breaks
+    the digest.
+    """
+    try:
+        return _import_bounded_hook().surface_lines()
+    except Exception as exc:  # noqa: BLE001 -- surfacing organ: never break the digest
+        print(f"fleet_health: WARNING -- hook bypass surface unavailable: {exc!r}",
+              file=sys.stderr)
+        return []
+
+
 def cost_health_line(repo_root: Path) -> str | None:
     """The `[cost]` digest line (`[#751]`): money per BATCH and per MODEL, in one line.
 
@@ -1798,6 +1827,11 @@ def main(argv=None) -> int:
         except Exception as exc:  # noqa: BLE001 -- surfacing organ, never breaks the digest
             print(f"fleet_health: WARNING -- prompts-guard preflight unavailable: {exc!r}",
                   file=sys.stderr)
+        # [#808]: whether the guards are enforcing anything at all -- recent skips, each hook's
+        # bypass rate, and every hook DECLARED BROKEN. Beneath the guard preflight because it is
+        # the same question asked of evidence rather than of a start-up probe. Fail-soft.
+        for line in hook_bypass_lines():
+            print(line)
         # v7 BOOT-INVERSION digest ([#611] §17): OPERATOR ASKS renders FIRST, above
         # everything -- including the fleet table below. Unthrottled, fail-soft.
         if _HANDOFF_PROCESS_PATH.exists():

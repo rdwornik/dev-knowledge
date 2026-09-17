@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "b640881a05d7fa9e41ba290039057ff7d843cbadf55ca6858bccb84da4d8a670",
+  "generated_sha256": "3842fee61312901210c2297ecd7b3b9ddc74350990b4d5780249be2855210e66",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -574,6 +574,14 @@
       "file": "810-the-codespace-runner-cannot-pass-a-model.md"
     },
     {
+      "task": 811,
+      "file": "811-a-frozen-contract-can-be-re-issued-after-its-pin-and-a-lane-still-boots-on-it.md"
+    },
+    {
+      "task": 812,
+      "file": "812-a-falsified-figure-in-an-immutable-artifact-has-no-standing-correction-path.md"
+    },
+    {
       "task": 827,
       "file": "827-the-memory-floor-is-derived-from-a-stale-per-seat-constant.md"
     },
@@ -612,6 +620,34 @@
     {
       "task": 833,
       "file": "833-a-seat-is-not-a-registered-entity-so-a-wedged-starved-or-absent-seat-is-invisible.md"
+    },
+    {
+      "task": 834,
+      "file": "834-enforce-one-protocols-heading-with-a-refusal-and-a-trip-test.md"
+    },
+    {
+      "task": 843,
+      "file": "843-contract-freezing-premise-clauses-carry-from-a-stale-digest.md"
+    },
+    {
+      "task": 883,
+      "file": "883-a-gate-ships-with-a-counter-or-is-removed.md"
+    },
+    {
+      "task": 884,
+      "file": "884-a-research-dispatch-states-its-bounds-before-launch.md"
+    },
+    {
+      "task": 863,
+      "file": "863-hook-processes-are-created-suspended-and-never-resumed.md"
+    },
+    {
+      "task": 864,
+      "file": "864-decision-coverage-gate-is-flaky.md"
+    },
+    {
+      "task": 865,
+      "file": "865-user-level-block-onedrive-guard-needs-a-hang-ruling.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -1633,6 +1669,10 @@
     {
       "task": 785,
       "file": "785-ten-unattended-outcomes-price-every-non-claude-p.md"
+    },
+    {
+      "task": 832,
+      "file": "832-copilot-collections-comparison-rerun.md"
     },
     {
       "prose": ""

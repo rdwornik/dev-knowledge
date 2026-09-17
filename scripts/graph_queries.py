@@ -147,7 +147,25 @@ _LANE_BUILT = ("lane-built and never adopted -- the process-trigger census's DEC
                "finding in mechanism form: lanes build organs and nothing adopts them "
                "afterwards. Retirement-or-wiring is V+1's list, not this lane's act")
 
+_HOOKS_EMERGENCY_DISABLED = (
+    "TEMPORARILY UNWIRED, not retired -- its only trigger was a .claude/settings.json hook, "
+    "and ALL hook families were disabled 2026-09-17 by operator emergency order because hook "
+    "processes are created SUSPENDED and never resumed (0 s CPU, no image path, one thread in "
+    "Wait/Suspended), so no timeout can fire on them. The hook block is recoverable verbatim "
+    "at 33246c0a and returns when [#863] lands; delete this row in that same act")
+
 ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
+    # ---- population 0: SessionStart/Stop hook targets orphaned by the 2026-09-17 disable ----
+    # These six are orphans only because their settings.json wiring was removed in an
+    # emergency, not because nothing adopted them. A disposition, not a retirement, is the
+    # honest verdict: the wiring is coming back under `[#863]`, which owns removing these rows.
+    "scripts/changelog_sentinel.py": Disposition(reason=_HOOKS_EMERGENCY_DISABLED, owner="[#863]"),
+    "scripts/codespace_regime.py": Disposition(reason=_HOOKS_EMERGENCY_DISABLED, owner="[#863]"),
+    "scripts/logs_retention.py": Disposition(reason=_HOOKS_EMERGENCY_DISABLED, owner="[#863]"),
+    "scripts/resource_lifecycle.py": Disposition(reason=_HOOKS_EMERGENCY_DISABLED, owner="[#863]"),
+    "scripts/session_end_backpressure.py": Disposition(reason=_HOOKS_EMERGENCY_DISABLED,
+                                                       owner="[#863]"),
+    "scripts/surface_triage.ps1": Disposition(reason=_HOOKS_EMERGENCY_DISABLED, owner="[#863]"),
     # ---- population A: scripts, lane-built and never wired (the census's own class) ----
     # NOT population A, and the row is a KEEP rather than the DELETE its old text implied. That
     # text -- `_LANE_BUILT` plus "only call site is LANE-f-6-observability-otel.md:27" -- said
@@ -335,6 +353,28 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
         owner="[#676], which owns the commit-tier provider-invocation check. If that check "
               "lands and consumes these shapes as data, the offline half gains a real trigger "
               "and this row is deleted by [#676]'s lane -- not by this one"),
+    # SAME REASON AS `provider_bench.py` ABOVE FOR A DIFFERENT COST -- no trigger AT ALL, and
+    # none is wanted, because the one hook that would give it one already states, in its own
+    # docstring, why that hook does not scan transcripts: `lane_cost.cost_health_line` reads
+    # ONE precomputed ledger file rather than the session store, specifically because
+    # SessionStart pays for the digest on EVERY boot and a transcript walk would make that cost
+    # grow with the history rather than with the batch. This module's `organ_usage_report()` IS
+    # a transcript walk -- that is the only way AX9-5's metric can exist at all, since nothing
+    # in this repo persists a raw-search-vs-organ-call event -- so wiring it to SessionStart
+    # would reintroduce the exact anti-pattern `cost_health_line` was written to avoid, on the
+    # widest-audience hook in the repo.
+    "scripts/organ_usage_metric.py": Disposition(
+        reason="[#694]'s AX9-5 metric (raw-search vs organ calls per session, organs uncalled "
+               "in 30d). An on-demand operator report over Claude Code's own session "
+               "transcripts, deliberately NOT a SessionStart digest line: `fleet_health.py`'s "
+               "existing cost line reads one precomputed ledger for exactly this reason -- a "
+               "boot-time transcript scan grows with history, not with the batch. Its consumer "
+               "is named rather than invented: tests/test_organ_usage_metric.py proves the "
+               "classifier and the report, and its own CLI (`report` subcommand) is the "
+               "operator's call site",
+        owner="[#709] (the log-review routine AX9-5 names as its regression-flagging "
+              "consumer) or a future on-demand digest command; either adopts it by calling "
+              "it, at which point this row is deleted rather than updated"),
     # `scripts/logs_retention.py` WAS dispositioned here, on the DECLARE §3 finding that
     # `run_retention()` had 0 callers -- which is `[#655]`'s entire title. It is GONE from this
     # register because it is WIRED: `[#664]`'s second ratified TRIGGER row put it on the
