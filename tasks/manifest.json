@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "8db972daf254e8a5df251d52cfcd5411d7e05cf3d12396911750937749b26124",
+  "generated_sha256": "3478fdb950854e6a64d1bd2fa3a4d47f3efacbadf5c2ce3b8d716ee94f3b6c5a",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -578,6 +578,22 @@
       "file": "827-the-memory-floor-is-derived-from-a-stale-per-seat-constant.md"
     },
     {
+      "task": 819,
+      "file": "819-a-lanes-hub-half-can-merge-while-its-win-too.md"
+    },
+    {
+      "task": 820,
+      "file": "820-a-handback-addressed-to-a-seat-that-does-not.md"
+    },
+    {
+      "task": 821,
+      "file": "821-dispatch-drift-validates-against-one-machines.md"
+    },
+    {
+      "task": 822,
+      "file": "822-a-pipe-masks-the-exit-code-of-the-command-it.md"
+    },
+    {
       "task": 823,
       "file": "823-the-dispatch-verb-still-boots-a-lane-with-no-committed-manifest.md"
     },
@@ -592,6 +608,10 @@
     {
       "task": 826,
       "file": "826-id-blocks-must-be-machine-read-not-prose.md"
+    },
+    {
+      "task": 843,
+      "file": "843-contract-freezing-premise-clauses-carry-from-a-stale-digest.md"
     },
     {
       "task": 863,

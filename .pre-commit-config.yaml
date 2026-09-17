@@ -16,6 +16,18 @@ default_install_hook_types: [pre-commit, commit-msg, pre-push]
 # opts back into commit-msg via its own explicit `stages:` override below.
 default_stages: [pre-commit]
 
+# THE COMMIT GATE WAS STRIPPED, 2026-09-17 (operator ruling, batch AB close). Measured before:
+# 34 hooks, ~244 s mean commit wall, a single commit 9+ min as a detached process, fronting
+# guards that permitted 477 of 573 calls (lane ab-808). No hook here carries a counter of what
+# it caught, so which ones ever caught a real defect cannot be established -- and the ruling for
+# that case is to keep ONLY data-loss protection: the JOURNAL anchor (block-unanchored-push,
+# pre-push) and the index-freshness pair (audit-index-freshness, organ-index-freshness).
+# block-ff-push stays with its pre-push sibling. EVERY OTHER HOOK is `stages: [manual]` and
+# runs in `.github/workflows/conductor.yml` job `commit-gate` over the pushed range, REPORT-ONLY
+# while conductor enforcement stays disabled. Temporarily fewer local gates, in exchange for
+# being able to merge at all. A hook returns to the local stage only with a counter showing
+# what it caught, at what cost, over what window.
+
 repos:
   - repo: local
     hooks:
@@ -46,22 +58,25 @@ repos:
         # (block-ff-push then still refuses the push).
         entry: uv run --locked python scripts/block_commit_on_main.py
         language: system
-        stages: [pre-commit]
+        stages: [manual]
         always_run: true
         pass_filenames: false
       - id: normalize-dated-headers
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Normalize dated-log entry headers (auto-format)
         entry: uv run --locked python scripts/normalize_headers.py
         language: system
         types: [markdown]
         pass_filenames: true
       - id: codemap-freshness
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Codemap freshness check
         entry: uv run --locked python -m scripts.codemap.cli check . --source-root scripts
         language: system
         files: '(^scripts/.*\.py$|^pyproject\.toml$|^tach\.toml$|^ARCHITECTURE\.md$)'
         pass_filenames: false
       - id: toc-freshness-playbook
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: PLAYBOOK.md TOC freshness check
         # Mirrors toc-freshness above. Regenerate with:
         # `python -m scripts.toc.cli generate protocols/PLAYBOOK.md --write`.
@@ -76,6 +91,7 @@ repos:
         files: '(^protocols/PLAYBOOK\.md$|^scripts/toc/.*\.py$)'
         pass_filenames: false
       - id: roster-freshness
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Methodology roster freshness check ([#244] P3)
         # Fail-on-stale, mirroring toc-freshness: regenerate with
         # `python scripts/gen_methodology_roster.py --write`. Catches BOTH drift
@@ -95,6 +111,7 @@ repos:
         files: '(^deploy/manifest-v.*\.yaml$|^\.claude/methodology-roster\.md$|^scripts/gen_methodology_roster\.py$)'
         pass_filenames: false
       - id: claude-rosters-freshness
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: CLAUDE.md generated-fragment freshness check ([#258] phase-2)
         # Fail-on-stale regen-and-diff, mirroring roster-freshness: regenerate with
         # `python scripts/gen_claude_rosters.py --write`. Guards the two @-imported
@@ -140,6 +157,7 @@ repos:
         files: '(^docs/audits/README\.md$|^scripts/gen_audit_index\.py$)'
         pass_filenames: false
       - id: audit-title-gate
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Audit TITLE gate (every indexed audit carries a heading; HUB-ONLY)
         # ARMED SEPARATELY FROM audit-index-freshness ON PURPOSE, and the separation is the
         # design. That hook is scoped by [#590] to the index and its generator, because
@@ -157,6 +175,7 @@ repos:
         files: '^docs/audits/.*\.md$'
         pass_filenames: false
       - id: doc-counts-pytest-freshness
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Collected-test-count freshness (the pytest_collected claim, at the COMMIT gate)
         # THE GAP THIS CLOSES. `ecosystem/doc-counts.md` claims a collected-test count, and
         # `validate_doc_claims` marks that claim `expensive=True` so `reconcile` SKIPS it unless
@@ -203,6 +222,7 @@ repos:
         files: '(^\.claude/(agents|commands|skills|workflows|rules)/|^\.claude/settings\.json$|^\.pre-commit-config\.yaml$|^plugins/|^ecosystem/organ-registry\.yaml$|^deploy/manifest-v.*\.yaml$|^ecosystem/organ-index\.md$|^scripts/generate_organ_index\.py$)'
         pass_filenames: false
       - id: quality-requirements-freshness
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Quality register -- schema, organ resolution and the ARCHITECTURE section ([#765], AN2-1)
         # THE HOOK IS WHAT MAKES THE REGISTER *READ* RATHER THAN MERELY PRESENT, which is
         # done-contract clause 1 of the lane that built it. AN2-1's complaint about the
@@ -239,6 +259,7 @@ repos:
         files: '(^ecosystem/quality-requirements\.yaml$|^scripts/quality_requirements\.py$|^ARCHITECTURE\.md$|^tests/test_quality_requirement_trips\.py$)'
         pass_filenames: false
       - id: validate-hermetization
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: ADR-101 hermetization refusal gate (#306; HUB-ONLY, prospective-only)
         # Prospective-only tree seal (ADR-101 §3): inspects only staged ADDs
         # (git diff --cached --diff-filter=A); existing files grandfathered. Rule A BLOCKs a
@@ -252,6 +273,7 @@ repos:
         always_run: true
         pass_filenames: false
       - id: intake-index-freshness
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Intake index freshness check (#307; docs/intake/README.md Contents block)
         # Fail-on-stale regen-and-diff, mirroring audit-index-freshness: regenerate with
         # `python scripts/gen_intake_index.py --write`. Guards the generated status-grouped
@@ -263,6 +285,7 @@ repos:
         files: '(^docs/intake/.*\.md$|^scripts/gen_intake_index\.py$)'
         pass_filenames: false
       - id: check-seal-identity
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Bundle seal-identity gate ([#475] — verify_seal_identity at commit time)
         # Commit-time twin of the [#473] seal-time refusal: runs gen_handoff's
         # verify_seal_identity over the bundle dir of every staged docs/handoffs/** file,
@@ -275,6 +298,7 @@ repos:
         files: '^docs/handoffs/'
         pass_filenames: true
       - id: validate-backlog
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Validate BACKLOG.md story-map (ADR-66)
         # [#589]: fires on `tasks/` too, and that widening is a correctness fix rather than
         # extra caution. The validator's rules are rules about a row BODY, and since the view
@@ -287,6 +311,7 @@ repos:
         files: '(^BACKLOG\.md$|^tasks/.*\.(md|json)$)'
         pass_filenames: false
       - id: row-archive-proof
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Row-body archival byte-identity proof (legs A-E; [#612]/[#664] TRIGGER)
         # [#664]'s ratified TRIGGER row for `scripts/archive_row_body.py`, placed HERE
         # deliberately: the census named "the pre-commit stage, beside the row-lifecycle
@@ -314,6 +339,7 @@ repos:
         files: '(^BACKLOG\.md$|^tasks/.*\.(md|json)$|^scripts/archive_row_body\.py$)'
         pass_filenames: false
       - id: prepend-order
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Newest-first prepend / append-only logs ([#786]; PLAYBOOK "Order conventions")
         # Gives teeth to ONE heading: protocols/PLAYBOOK.md:1399 "### Order conventions",
         # whose two prepend classes name LESSONS.md, JOURNAL.md and logs/TOKEN-LOG.md.
@@ -349,6 +375,7 @@ repos:
         files: '(^LESSONS\.md$|^JOURNAL\.md$|^logs/TOKEN-LOG\.md$|^LESSONS-legacy-.*\.md$|^scripts/validate_prepend_order\.py$)'
         pass_filenames: false
       - id: provider-registry-agreement
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Provider/model registry agreement gate (CLOUD-4 v2; HUB-ONLY)
         # ecosystem/provider-registry.yaml is the declared home for every provider, CLI
         # and model string on the live surface (R2 section 3.3). Sites that can read YAML
@@ -396,6 +423,7 @@ repos:
         files: '^(ecosystem/(provider-registry|tool-versions|satellite-onboarding-rulings)\.yaml|ecosystem/schema/provider_registry\.py|scripts/(check_)?provider_registry\.py|scripts/toc/generator\.py|\.pre-commit-config\.yaml|\.claude/(settings\.json|agents/artifact-reader\.md|workflows/conformance-hub\.js)|protocols/(PLAYBOOK|AI_COUNCIL_PROCESS)\.md|pyproject\.toml)$'
         pass_filenames: false
       - id: lane-contract-check
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Lane-contract shape gate ([#539]; HUB-ONLY)
         # A generator-emitted lane contract (Q6) is checkable at commit time: every
         # mandatory section present, the dispatch line and the routing row agreeing on
@@ -424,6 +452,7 @@ repos:
         always_run: true
         files: '(^|/)LANE-[^/]*\.md$'
       - id: derived-copies-rebind
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Derived-copy rebind gate (a staged source whose copy did not move; HUB-ONLY)
         # THE GAP THIS CLOSES, and it is the deliverable rather than a side effect. A derived
         # copy that drifts from its source was, for the `~/.claude/ROUTING.md` case, caught
@@ -477,6 +506,7 @@ repos:
       #
       # HUB-ONLY, all four. The graph is this repo's corpus; a consumer repo has its own.
       - id: graph-rebuild
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Rebuild the persisted FPG-1 store ([#664] clause 1)
         # THE STORE IS NOT IN THE WORKING TREE. It is written under the RESOLVED git dir
         # (`git rev-parse --absolute-git-dir`), so it never dirties `git status`, never
@@ -501,6 +531,7 @@ repos:
         always_run: true
         pass_filenames: false
       - id: graph-orphan-census
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Orphan census -- a process nothing triggers ([#664] clause 2, intake #86)
         # REFUSES on a process node (script / command / skill) that no wiring surface
         # reaches, transitively, and that carries no disposition. This is intake #86's
@@ -517,6 +548,7 @@ repos:
         always_run: true
         pass_filenames: false
       - id: graph-task-coverage
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Task coverage -- a staged file no OPEN row claims ([#664] clause 2)
         # "nic bez taska" as a mechanism, AT OPEN and not only at CLOSE. REFUSES when a
         # staged file has no inbound `implements` edge from an OPEN row -- either the row
@@ -533,6 +565,7 @@ repos:
         always_run: true
         pass_filenames: false
       - id: graph-process-list
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Process list -- prose naming a process the graph lacks ([#664] clause 2)
         # The traversal that answers "all processes", plus its refusal: a `dangling_
         # reference` -- a process path named in ARCHITECTURE.md that the graph does not
@@ -546,6 +579,7 @@ repos:
         always_run: true
         pass_filenames: false
       - id: graph-edge-class-census
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Edge-class ratchet -- a NEW private five-kind edge computation ([#664] Done-when)
         # REFUSES when a module NEWLY computes a corpus-structure relation of DECLARE-REVIEWS
         # section A.1's five-kind class -- citation, generation, template, test, script
@@ -577,6 +611,7 @@ repos:
         always_run: true
         pass_filenames: false
       - id: decision-coverage
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Decision coverage -- an accepted decision no row implements ([#692], A9-1)
         # REFUSES when a decision -- an ADR at `Accepted`, an intake at `ACCEPTED`, a
         # transport `DECLARE-`/`AMEND-` -- carries neither an implementing row (an FPG-1
@@ -609,6 +644,7 @@ repos:
         always_run: true
         pass_filenames: false
       - id: impacted-tests-guard
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Zero-selection refusal -- a changed script no test covers ([#278] leg b)
         # AW2-1 leg (b): "A commit that changes a `scripts/*.py` file and selects zero
         # tests is REFUSED, and the refusal message names the RED-first test to write --
@@ -649,6 +685,7 @@ repos:
         pass_filenames: false
         # HUB-ONLY.
       - id: dispatch-conformance
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Generator<->verb dispatch conformance (AX25-2, [#675] clause 1; HUB-ONLY)
         # AX25-2's REFUSAL LEG, verbatim: "A commit that changes either side and leaves the
         # test red is refused." That sentence is what makes this a CONFORMANCE gate rather
@@ -691,6 +728,7 @@ repos:
         pass_filenames: false
         # HUB-ONLY.
       - id: audit-health
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Audit self-conformance gate (FAIL blocks the commit; WARN only informs)
         # `audit.py health` exits 1 only on a FAIL finding (structural integrity,
         # A2 freshness, conformance); WARN-level findings (A1 30-day backstop,
@@ -700,6 +738,7 @@ repos:
         always_run: true
         pass_filenames: false
       - id: coherence-nudge
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Coherence forgotten-version-bump nudge (non-blocking)
         # Fires on a registered spec changed-without-a-version-bump (the
         # reconciliation checker's false-negative). NON-BLOCKING: always exits 0
@@ -713,7 +752,7 @@ repos:
         name: Require [#id] when a commit removes a backlog task
         entry: uv run --locked python scripts/check_backlog_commit_msg.py
         language: system
-        stages: [commit-msg]
+        stages: [manual]
         always_run: true
       - id: backlog-filing-backpressure
         name: Filing backpressure — kill-candidates on new task id (+ #279 intake WARN)
@@ -722,7 +761,7 @@ repos:
         # an advisory WARN (#279, ADR-98). Proposals only — never auto-removes anything.
         entry: uv run --locked python scripts/check_backlog_filing.py
         language: system
-        stages: [commit-msg]
+        stages: [manual]
         always_run: true
       - id: block-ff-push
         name: Block direct-to-main / FF push to main (#153 prevent — core-invariant #5)
@@ -765,4 +804,5 @@ repos:
     rev: v0.15.5
     hooks:
       - id: ruff
+        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         args: []
