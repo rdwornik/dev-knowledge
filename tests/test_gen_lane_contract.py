@@ -418,7 +418,7 @@ def test_809_a_multi_letter_batch_slug_is_emitted_without_loose_slug(tmp_path):
     accepts it."""
     assert glc.validate_slug("lane-ab-808-guard-timeout", strict=True) ==         "lane-ab-808-guard-timeout"
     result = CliRunner().invoke(glc.cli, [
-        "emit", "--slug", "lane-ab-808-guard-timeout", "--purpose", "a guard timeout",
+        "emit", "--kind", "code", "--slug", "lane-ab-808-guard-timeout", "--purpose", "a guard timeout",
         "--id", "808", "--out-dir", str(tmp_path)])
     assert result.exit_code == 0, result.output
     assert (tmp_path / "LANE-ab-808-guard-timeout.md").is_file()

@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-17 (u) - CC (Opus 5, integrator seat, final order): the one genuine regression of today's merges is fixed -- one argument in one test
+
+**Anchors:** `6a77e4e0` -- `worktree-fix-809-kind-and-refreeze`, cut from `8c258bfb`.
+
+**Did:** `tests/test_gen_lane_contract.py::test_809_a_multi_letter_batch_slug_is_emitted_without_loose_slug` now passes `--kind code` to `emit`. Conductor run `35236372754` at `8c258bfb` measured it as the ONLY failure outside the old frozen set that today's five merges introduced. The test predates aa-12, and `[#885]` made `--kind` mandatory with no default, so click exited 2 on "Missing option '--kind'". The other 36 of the 41 "regressions" were already failing at `a92ff5c4`, and the four spine witnesses are deliberate. **Why a one-line test change and not a default:** `[#885]` refuses an undeclared kind by design (an inferred kind the author never declared gives a refusal they cannot act on), so the test adapts to the contract rather than the contract to the test. Ruff clean. **No tests run here**, by operator order; the conductor run on this merge is also the MEASUREMENT for the re-frozen baseline that follows.
+
+**Result:** the successor inherits no undiagnosed red from today's merges. **Changes:** `tests/test_gen_lane_contract.py`, `JOURNAL.md`. **Next:** re-freeze the suite baseline at this merge's SHA, `-n 4`, with the four `[#664]` witnesses kept OUT.
+
 ### 2026-09-17 (t) - CC (Opus 5, integrator seat, operator ruling on the three unmerged branches): lane aa-12 enforced routing merges -- its row RENUMBERED a second time, [#793] -> [#885], by a reserved id
 
 **Anchors:** `e17c6200`, `382296f0`, `e788a92f` -- `worktree-lane-aa-12-enforced-routing` rescue tip, sync, doc-counts.
