@@ -1051,6 +1051,17 @@ EDGE_COMPUTATIONS: dict[str, EdgeComputation] = {
         "against a naming grammar: whether a single name is an admitted home or audit name. "
         "Neither is a relation between two corpus files, so there is no edge for FPG-1 to hold "
         "and nothing for a W-G3 lane to migrate"),
+    "scripts/conductor.py": _not_an_edge(
+        "[#802]'s suite-baseline gate. The shape matched when it grew its regex trio reading "
+        "`logs/SUITE-BASELINE-FREEZE.md` -- `parse_suite_baseline` extracts a roster of pytest "
+        "NODE IDS a human wrote by hand into that file at freeze time. The class does not apply "
+        "for the same reason as quality_requirements.py above: it is a DECLARED relation read "
+        "back, not one discovered by scanning the corpus -- the roster is curated prose, not "
+        "inferred structure. It is also not FPG-1-representable even in principle: a node id is "
+        "sub-file granularity, and a parametrize id can embed spaces and quotes no graph path "
+        "could hold (the batch-Z close-packet's 'Defect three' finding is exactly that "
+        "fragility). There is no relation here for a W-G3 lane to migrate, because FPG-1 has "
+        "nowhere to hold what was extracted"),
 }
 
 
