@@ -44,6 +44,7 @@ So that the canonical v5 handoff is fully implemented (generator) and mechanical
 ---
 - [#662] [P2][S] The R6 handoff-exception rule reached none of the three carriers it was written for · tasks/662-the-r6-handoff-exception-reached-none-of-its-three-carriers.md
 - [#663] [P2][M] The v7.1 boot carries no interface block and no floor item 7, and the bundle is over its own ceiling · tasks/663-the-v71-boot-carries-no-interface-block-and-no-floor-item-7.md
+- [#887] [P1][S] The handoff preflight scans the whole shared transport, not the handing-off seat's own files -- a concurrent workstream's decision files refuse this seat's cut · tasks/887-the-handoff-preflight-scans-the-whole-shared-tra.md
 
 ## [E2] Enforced governance
 > As the operator, I want load-bearing conventions enforced by tools, not memory, so they can't silently drift.
@@ -159,6 +160,8 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#863] [P1][M] Hook processes are created SUSPENDED and never resumed -- a timeout cannot fire on a process that never started · tasks/863-hook-processes-are-created-suspended-and-never-resumed.md
 - [#864] [P1][S] The decision-coverage gate is FLAKY -- it failed and then passed on retry with nothing changed · tasks/864-decision-coverage-gate-is-flaky.md
 - [#865] [P2][S] The user-level block-onedrive.ps1 PreToolUse guard launches powershell per call and can hang the same way -- it needs a ruling · tasks/865-user-level-block-onedrive-guard-needs-a-hang-ruling.md
+- [#886] [P1][M] An emergency change records its temporary debt as DATA with an owner and an expiry -- JOURNAL prose is invisible to a gate, and a MUST surface has no waiver path at all · tasks/886-an-emergency-change-records-its-temporary-debt-a.md
+- [#888] [P1][M] The repo has no DEGRADED state -- an emergency that removes a required component can only lie to the gate or stop work · tasks/888-the-repo-has-no-degraded-state-an-emergency-that.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md

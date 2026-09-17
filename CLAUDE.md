@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-14
+last_reviewed: 2026-09-17
 reconciled_with: handoff-process@7.1.0
 status: active
 owner: Rob
@@ -157,7 +157,7 @@ Plugin `tier1-lifecycle@dev-knowledge-methodology` is **enabled** and drives the
 > **A roster, not a manual.** Per-hook rationale, exit codes and **honest limits** live in each module's docstring under `scripts/`; **failure posture** in `ARCHITECTURE.md` Ch2 and its "Validators and enforcement" chapter; the full organ inventory in the generated `ecosystem/organ-index.md`. Read those, never a copy here.
 
 <!-- Machine-read: validate_doc_claims.extract_claimed_hooks takes the leading backtick id of every bullet from this header to the first non-bullet line. Keep it complete and contiguous. -->
-Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless the row says otherwise. **Since 2026-09-17 only the two index-freshness hooks run locally; the rest are `stages: [manual]`, run by conductor job `commit-gate`** (config header):
+Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless the row says otherwise. **Since 2026-09-17 only the two index-freshness and two pre-push hooks run locally; the rest are `stages: [manual]`, run by conductor job `commit-gate`** (config header):
 - `normalize-dated-headers` — dated-log header normalization
 - `codemap-freshness` — ARCHITECTURE codemap vs `scripts/`, regen-and-diff
 - `toc-freshness-playbook` — PLAYBOOK TOC staleness
@@ -182,17 +182,22 @@ Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless the row says otherwis
 - `graph-process-list` — prose naming a process the graph lacks ([#664] clause 2)
 - `impacted-tests-guard` — a changed `scripts/*.py` no test covers; the refusal names the RED-first test ([#278])
 - `decision-coverage` — an accepted decision no row implements; two legs, era-bounded ([#692])
+- `graph-edge-class-census` — edge-class ratchet ([#664])
+- `quality-requirements-freshness` — quality register ([#765])
+- `prepend-order` — newest-first / append-only logs ([#786])
+- `dispatch-conformance` — generator<->verb ([#675])
 - `audit-health` — `audit.py health`; FAIL blocks the commit, WARN informs
 - `ruff` — lint gate, pinned rev == the `pyproject.toml` required-version floor
 - `coherence-nudge` — **non-blocking**: registered spec changed without a version bump; always exits 0
 - `backlog-id-on-close` (commit-msg) — `[#id]` required when a commit removes a task
 - `backlog-filing-backpressure` (commit-msg) — a commit ADDING a task id needs a flush-left `kill-candidates:` line
+- `commit-message-type-prefix` (commit-msg) — type prefix ([#834])
 - `block-ff-push` (pre-push) — refuses a non-merge commit onto main's first-parent spine; **fails CLOSED**
 - `block-unanchored-push` (pre-push) — **the ADR-85 hard leg**: refuses a push to `main` whose range carries no JOURNAL anchor; **fails CLOSED**, sole escape `git push --no-verify`
 
 **Arm the two pre-push hooks once per clone:** `pre-commit install --hook-type pre-push` — `default_install_hook_types` wires them only on a fresh install; `SessionStart`'s `arm_hooks.py` then does it idempotently.
 
-Session hooks (`.claude/settings.json`, project-level — merges with, never replaces, the `~/.claude` set): `SessionStart` surfacing + `arm_hooks.py`; a `Stop` backpressure hook (`session_end_backpressure.py`, **advisory in full** since the ADR-85 amendment §A5 — no hard leg, cannot block a turn); the ADR-77 `PreToolUse` transcript-immutability guard, fail-closed; and the `[#727]` deny-and-point `PreToolUse` guard, fail-OPEN by design — the opposite posture, because a nudge that cannot evaluate must not wedge the session.
+Session hooks (`.claude/settings.json`, `disableAllHooks: false`): since 2026-09-17 three run — `SessionStart` `arm_hooks.py`; `Stop` backpressure (advisory); `[#727]` deny-and-point (fail-OPEN). Of nine measured-broken hooks eight are off (plugin `propose_closures` runs), per its register; the ADR-77 guard stays off ([#863]).
 
 Rules (`.claude/rules/`): `git-discipline.md` — mandatory commit after every file edit; clean working tree at session end.
 
@@ -237,5 +242,5 @@ Machine-enumerated, last 5 by number (`gen_claude_rosters.py --write`). Editoria
 
 ---
 
-**Last updated:** 2026-09-14
+**Last updated:** 2026-09-17
 **Maintained by:** Rob
