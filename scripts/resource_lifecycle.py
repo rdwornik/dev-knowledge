@@ -52,7 +52,7 @@ CALL SURFACE
 
     uv run --locked python scripts/resource_lifecycle.py session-start   # the hook leg
     uv run --locked python scripts/resource_lifecycle.py ceiling
-    uv run --locked python scripts/resource_lifecycle.py admit          # exit 1 = REFUSED
+    uv run --locked python scripts/resource_lifecycle.py admit          # exit 1 = REFUSED (DISABLED: see ADMISSION_DISABLED)
     uv run --locked python scripts/resource_lifecycle.py sample
     uv run --locked python scripts/resource_lifecycle.py retire --pid N
     uv run --locked python scripts/resource_lifecycle.py teardown --pid N
@@ -662,6 +662,18 @@ def sample(ledger_path: Optional[Path] = None,
 
 # ============================================================================================ CLI
 
+#: THE ADMISSION REFUSAL IS DISABLED while this is non-empty. `admit()` is untouched and still
+#: computes the verdict; only the `admit` verb's exit 1 is withheld, and the verdict is printed
+#: as advisory. Empty the string to re-arm.
+ADMISSION_DISABLED = (
+    "DISABLED 2026-09-17 by operator order. The admission check blocked work three times; its "
+    "per-seat constant was wrong by ~7x at first (413.3 MB against a measured ~2.8 GB dispatch "
+    "delta) and the recalibrated figure is still PROVISIONAL; and no measured failure has ever "
+    "been attributed to admitting one lane too many. RE-ARMING IS CONDITIONAL, NOT A REVERT: it "
+    "returns only when the per-seat cost is calibrated from real dispatch measurements -- the "
+    "[#827] ledger of free-memory readings taken before and after each dispatch.")
+
+
 @click.group()
 def cli() -> None:
     """The LOCAL regime of the runtime-resource organ ([#792])."""
@@ -693,6 +705,10 @@ def cmd_admit(seats: Optional[int]) -> None:
     alloc = allocation(table=table)
     live = count_seats(table) if seats is None else seats
     verdict = admit(alloc, live)
+    if ADMISSION_DISABLED:
+        click.echo(f"admission {ADMISSION_DISABLED}")
+        click.echo(f"advisory only, not enforced: {verdict.reason}")
+        return
     click.echo(verdict.reason)
     if not verdict.admitted:
         sys.exit(1)
@@ -751,10 +767,14 @@ def cmd_session_start() -> None:
             f"[resource] {seats} seat(s) / room for {alloc.ceiling} more · "
             f"{alloc.free_gb:.2f} GB free / {alloc.reserve_gb:.1f} GB reserve · "
             f"{alloc.claude_gb:.2f} GB claude, {alloc.nonclaude_gb:.2f} GB other")
+        if ADMISSION_DISABLED:
+            click.echo("[resource] admission refusal DISABLED 2026-09-17 (operator order) -- "
+                       "advisory only; reason in resource_lifecycle.ADMISSION_DISABLED")
         if not verdict.admitted:
             click.echo(f"[resource] {verdict.reason}")
-            click.echo("[resource] this leg SURFACES; the refusal is "
-                       "`resource_lifecycle.py admit`, which exits 1")
+            if not ADMISSION_DISABLED:
+                click.echo("[resource] this leg SURFACES; the refusal is "
+                           "`resource_lifecycle.py admit`, which exits 1")
         sample(table=table)
     except Exception as exc:  # noqa: BLE001 -- a reporter never blocks a session start
         click.echo(f"[resource] surfacing skipped: {type(exc).__name__}: {exc}")

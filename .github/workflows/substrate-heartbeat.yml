@@ -86,7 +86,7 @@ jobs:
           # The pin has one home (`pyproject.toml [tool.uv] required-version`, ADR-106) and this
           # step reads it rather than restating it — a version typed here would be a second
           # answer to a settled question, which is the drift provisioning already refuses.
-          version: "latest"
+          pyproject-file: pyproject.toml
 
       - name: Rebuild the declared environment
         run: uv sync --locked

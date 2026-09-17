@@ -269,6 +269,199 @@ def test_metrics_render_is_flat_and_carries_every_number(cond, tmp_path):
     assert "revert-to-B condition" in text
 
 
+# --- [#802] the suite-baseline freeze gate ----------------------------------------------
+# RED-FIRST: every test below fails on pre-build conductor.py -- parse_suite_baseline,
+# parse_failed_node_ids, suite_gate and render_suite_gate do not exist yet.
+
+_SYNTH_BASELINE = """# SUITE BASELINE FREEZE — batch Q
+
+| | |
+|---|---|
+| **Measured at SHA** | `deadbeefcafef00dfeedfacef00dfeedfacef00d` (`main`, synthetic) |
+| **Source** | Actions `conductor` run **1**, `push`, 2026-01-01T00:00:00Z |
+
+**THE PIN: `-n 4`.**
+
+## The roster
+
+### C1 — synthetic  (2)
+
+```
+tests/test_scratch.py::test_alpha
+tests/test_scratch.py::test_beta
+```
+
+## Discrepancy against the causes named at freeze time — RECORDED, NOT SILENTLY DROPPED
+
+nothing to see here — and definitely not a node id: tests/test_scratch.py::test_excluded
+"""
+
+
+def test_parse_suite_baseline_reads_sha_source_pin_and_roster(cond):
+    b = cond.parse_suite_baseline(_SYNTH_BASELINE)
+    assert b["measured_sha"] == "deadbeefcafef00dfeedfacef00dfeedfacef00d"
+    assert b["workers_pinned"] == 4
+    assert b["node_ids"] == frozenset({
+        "tests/test_scratch.py::test_alpha", "tests/test_scratch.py::test_beta"})
+    assert b["errors"] == []
+
+
+def test_parse_suite_baseline_does_not_read_past_the_roster_section(cond):
+    # The node id named only in "## Discrepancy" (after the roster) must NOT be pulled in --
+    # that is the exact shape of the batch-Z close-packet "Defect three" finding: a node id
+    # that appears in the file's prose is not thereby a member of the frozen set.
+    b = cond.parse_suite_baseline(_SYNTH_BASELINE)
+    assert "tests/test_scratch.py::test_excluded" not in b["node_ids"]
+
+
+def test_parse_suite_baseline_reports_every_missing_piece(cond):
+    b = cond.parse_suite_baseline("# empty\n\nnothing here.\n")
+    assert b["measured_sha"] is None
+    assert b["workers_pinned"] is None
+    assert b["node_ids"] == frozenset()
+    assert len(b["errors"]) >= 3
+
+
+def test_parse_failed_node_ids_reads_the_short_summary_and_ignores_the_rest(cond):
+    text = (
+        "bringing up nodes...\n"
+        ".F.\n"
+        "=========================== short test summary info ===========================\n"
+        "FAILED tests/test_scratch.py::test_alpha - AssertionError: x\n"
+        "ERROR tests/test_scratch.py::test_gamma - fixture 'x' not found\n"
+        "2 failed, 1 passed in 3.21s\n"
+    )
+    ids = cond.parse_failed_node_ids(text)
+    assert ids == frozenset({"tests/test_scratch.py::test_alpha",
+                             "tests/test_scratch.py::test_gamma"})
+
+
+def test_parse_failed_node_ids_strips_ansi_color(cond):
+    text = ("\x1b[36m\x1b[1m=========================== short test summary info "
+           "===========================\x1b[0m\n"
+           "\x1b[31mFAILED\x1b[0m tests/test_scratch.py::\x1b[1mtest_alpha\x1b[0m - x\n")
+    assert cond.parse_failed_node_ids(text) == frozenset({"tests/test_scratch.py::test_alpha"})
+
+
+def test_suite_gate_a_failure_inside_the_frozen_set_passes(cond, tmp_path):
+    (tmp_path / "logs").mkdir()
+    (tmp_path / "logs" / "SUITE-BASELINE-FREEZE.md").write_text(_SYNTH_BASELINE, encoding="utf-8")
+    result = cond.suite_gate({"tests/test_scratch.py::test_alpha"}, resolved_workers=4,
+                             repo_root=tmp_path)
+    assert result["verdict"] == "pass"
+    assert result["regressions"] == []
+    assert result["pre_existing"] == ["tests/test_scratch.py::test_alpha"]
+
+
+def test_suite_gate_a_failure_outside_the_frozen_set_fails(cond, tmp_path):
+    # RED-FIRST leg 1: a synthetic failure OUTSIDE the frozen set turns the job red.
+    (tmp_path / "logs").mkdir()
+    (tmp_path / "logs" / "SUITE-BASELINE-FREEZE.md").write_text(_SYNTH_BASELINE, encoding="utf-8")
+    result = cond.suite_gate(
+        {"tests/test_scratch.py::test_alpha", "tests/test_scratch.py::test_NEW_REGRESSION"},
+        resolved_workers=4, repo_root=tmp_path)
+    assert result["verdict"] == "fail"
+    assert result["regressions"] == ["tests/test_scratch.py::test_NEW_REGRESSION"]
+    assert result["pre_existing"] == ["tests/test_scratch.py::test_alpha"]
+
+
+def test_suite_gate_no_failures_at_all_passes(cond, tmp_path):
+    # RED-FIRST leg 2: one INSIDE the set does not turn the job red -- and neither does a
+    # clean run. "A member that passes is not a failure of this rule" (the freeze file).
+    (tmp_path / "logs").mkdir()
+    (tmp_path / "logs" / "SUITE-BASELINE-FREEZE.md").write_text(_SYNTH_BASELINE, encoding="utf-8")
+    result = cond.suite_gate(set(), resolved_workers=4, repo_root=tmp_path)
+    assert result["verdict"] == "pass"
+    assert result["pre_existing"] == []
+
+
+def test_suite_gate_a_missing_baseline_fails(cond, tmp_path):
+    result = cond.suite_gate(set(), resolved_workers=4, repo_root=tmp_path)
+    assert result["verdict"] == "fail"
+    assert "no baseline" in result["reason"].lower()
+
+
+def test_suite_gate_a_stale_malformed_baseline_fails(cond, tmp_path):
+    (tmp_path / "logs").mkdir()
+    (tmp_path / "logs" / "SUITE-BASELINE-FREEZE.md").write_text(
+        "# not a real freeze file\n", encoding="utf-8")
+    result = cond.suite_gate(set(), resolved_workers=4, repo_root=tmp_path)
+    assert result["verdict"] == "fail"
+    assert "stale" in result["reason"].lower() or "malformed" in result["reason"].lower()
+
+
+def test_suite_gate_refuses_a_cross_worker_count_comparison(cond, tmp_path):
+    # RED-FIRST leg 3: a cross-worker-count comparison is refused, not silently compared.
+    (tmp_path / "logs").mkdir()
+    (tmp_path / "logs" / "SUITE-BASELINE-FREEZE.md").write_text(_SYNTH_BASELINE, encoding="utf-8")
+    result = cond.suite_gate(set(), resolved_workers=8, repo_root=tmp_path)
+    assert result["verdict"] == "fail"
+    assert "not comparable" in result["reason"].lower()
+    assert "8" in result["reason"] and "4" in result["reason"]
+
+
+def test_suite_gate_a_broken_pytest_run_fails_even_with_no_parsed_failures(cond, tmp_path):
+    # A pytest internal error (exit 3) or interruption (exit 2) means no node-id diff can be
+    # trusted -- an empty failed set from a broken run must never read as a clean pass.
+    (tmp_path / "logs").mkdir()
+    (tmp_path / "logs" / "SUITE-BASELINE-FREEZE.md").write_text(_SYNTH_BASELINE, encoding="utf-8")
+    result = cond.suite_gate(set(), resolved_workers=4, pytest_exit=3, repo_root=tmp_path)
+    assert result["verdict"] == "fail"
+    assert "3" in result["reason"]
+
+
+def test_suite_gate_pytest_exit_1_is_the_normal_some_tests_failed_case(cond, tmp_path):
+    (tmp_path / "logs").mkdir()
+    (tmp_path / "logs" / "SUITE-BASELINE-FREEZE.md").write_text(_SYNTH_BASELINE, encoding="utf-8")
+    result = cond.suite_gate({"tests/test_scratch.py::test_alpha"}, resolved_workers=4,
+                             pytest_exit=1, repo_root=tmp_path)
+    assert result["verdict"] == "pass"
+
+
+def test_render_suite_gate_uses_no_pipe_tables_and_names_the_verdict(cond, tmp_path):
+    (tmp_path / "logs").mkdir()
+    (tmp_path / "logs" / "SUITE-BASELINE-FREEZE.md").write_text(_SYNTH_BASELINE, encoding="utf-8")
+    result = cond.suite_gate({"tests/test_scratch.py::test_alpha"}, resolved_workers=4,
+                             repo_root=tmp_path)
+    text = cond.render_suite_gate(result)
+    assert "|" not in text
+    assert "verdict        : PASS" in text
+    assert "tests/test_scratch.py::test_alpha" in text
+
+
+def test_suite_gate_cli_writes_out_and_exits_on_the_verdict(cond, tmp_path):
+    (tmp_path / "logs").mkdir()
+    (tmp_path / "logs" / "SUITE-BASELINE-FREEZE.md").write_text(_SYNTH_BASELINE, encoding="utf-8")
+    out = tmp_path / "pytest.out"
+    out.write_text(
+        "=========================== short test summary info ===========================\n"
+        "FAILED tests/test_scratch.py::test_NEW_REGRESSION - AssertionError\n",
+        encoding="utf-8")
+    rc = cond.main(["suite-gate", "--repo-root", str(tmp_path), "--pytest-output", str(out),
+                    "--workers", "4", "--pytest-exit", "1", "--out", str(tmp_path / "gate.out")])
+    assert rc == 1
+    written = (tmp_path / "gate.out").read_text(encoding="utf-8")
+    assert "REGRESSION" in written
+
+
+def test_the_live_suite_baseline_freeze_parses_cleanly(cond):
+    # Sanity guard against the live file, so a future hand-edit that breaks the machine-read
+    # shape is caught here rather than silently miscounting in CI.
+    text = (_REPO / "logs" / "SUITE-BASELINE-FREEZE.md").read_text(encoding="utf-8")
+    b = cond.parse_suite_baseline(text)
+    assert b["errors"] == []
+    assert b["workers_pinned"] == 4
+    assert len(b["node_ids"]) == 51
+
+
+def test_the_pytest_job_judges_by_the_suite_gate_at_the_pinned_worker_count(workflow):
+    steps = workflow["jobs"]["pytest"]["steps"]
+    run_text = "\n".join(str(s.get("run", "")) for s in steps)
+    assert "-n 4" in run_text, "the pytest job must run at the freeze's pinned worker count"
+    assert "conductor.py suite-gate" in run_text
+    assert "--workers 4" in run_text
+
+
 # --- the workflow and the ruleset must agree ------------------------------------------
 
 @pytest.fixture(scope="module")

@@ -150,11 +150,16 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#809] [P1][S] The lane branch grammar allows one batch letter and all 26 are spent; widen it, never recycle · tasks/809-the-lane-branch-grammar-has-one-letter-and-all-26-are-used.md
 - [#810] [P1][S] The Codespace runner cannot pass a model, so model enforcement is impossible on that substrate · tasks/810-the-codespace-runner-cannot-pass-a-model.md
 - [#827] [P1][S] The memory floor used a stale per-seat constant from another machine state, so admission refused work it could run · tasks/827-the-memory-floor-is-derived-from-a-stale-per-seat-constant.md
+- [#819] [P1][M] A lane's hub half can merge while its win-tooling half sits unmerged, undetected · tasks/819-a-lanes-hub-half-can-merge-while-its-win-too.md
+- [#820] [P2][S] A HANDBACK addressed to a seat that does not exist is an abandoned lane, not a dispatched one · tasks/820-a-handback-addressed-to-a-seat-that-does-not.md
+- [#821] [P1][M] `dispatch_drift` validates the repo against one machine's local deployed state, not the repo itself · tasks/821-dispatch-drift-validates-against-one-machines.md
+- [#822] [P1][S] A pipe masks the exit code of the command it wraps — a reported success is not evidence of the effect · tasks/822-a-pipe-masks-the-exit-code-of-the-command-it.md
 - [#823] [P1][S] The dispatch verb still boots a lane with no committed manifest -- only /lane-boot refuses · tasks/823-the-dispatch-verb-still-boots-a-lane-with-no-committed-manifest.md
 - [#824] [P1][M] No launch verb exists for a non-Claude lane, so every lane defaults to the Claude path · tasks/824-no-launch-verb-exists-for-a-non-claude-lane.md
 - [#825] [P2][S] single_flight.py misreports a real push race as an internal error (exit 2), not in flight (exit 3) · tasks/825-single-flight-misreports-a-real-push-race-as-an-internal-error.md
 - [#826] [P1][S] Id blocks in a batch manifest must be machine-read -- a prose block stopped nothing · tasks/826-id-blocks-must-be-machine-read-not-prose.md
 - [#834] [P2][S] Enforce one protocols/ rule-bearing heading with a refusal and a trip-test · tasks/834-enforce-one-protocols-heading-with-a-refusal-and-a-trip-test.md
+- [#843] [P1][M] A frozen contract's premise clause is carried from a digest, not verified against main at freeze time · tasks/843-contract-freezing-premise-clauses-carry-from-a-stale-digest.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
