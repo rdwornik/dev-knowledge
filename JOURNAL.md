@@ -19,6 +19,26 @@
 
 ---
 
+### 2026-09-17 (b) - CC (Opus 5, integrator seat): emergency hook disable lands -- all PreToolUse hooks and the billing-leak SessionStart sentinel off, on main so it binds the primary and every new lane
+
+**Anchors:** `426b9cac` -- `worktree-hooks-disable-emergency` tip (`.claude/settings.json`, `ecosystem/organ-index.md`).
+
+**MERGED** `worktree-hooks-disable-emergency` @ `426b9cac` `--no-ff`, two-step, no conflicts (neither file moved on main since the
+`f8ca1d40` fork). Operator emergency order: the prompts-dir guard, the ADR-77 transcript guard and `billing_leak_sentinel.ps1`
+are removed from `.claude/settings.json`; the removed blocks are recoverable verbatim at the parent commit. Until this merge the
+disable was INERT -- the primary reads its own `.claude/settings.json` and each lane reads its worktree copy. **No tests run here**
+by operator order.
+
+**TEMPORARY, NOT SETTLED:** removing PreToolUse also removed the ADR-77 immutable-transcript guard as collateral. That is a real
+safety loss, accepted ONLY until the suspended-at-creation hook defect has a mechanism -- it is not a ruling that the guard is dispensable.
+
+**ROOT CAUSE CORRECTED (filed P1 in the follow-up arc):** the orphaned hook processes were created SUSPENDED and never resumed
+(0 s CPU, no image path, one thread Wait/Suspended) -- the script never executed a line, so a bounded execution time cannot fire and
+"give every hook a timeout" would NOT have prevented the wedge. Nineteen prompts-guard orphans accumulated from 2026-09-15 10:47.
+
+**Did:** merged the emergency disable. **Result:** hooks off fleet-wide on next session start. **Changes:** `.claude/settings.json`,
+`ecosystem/organ-index.md`, `JOURNAL.md`. **Next:** file the suspended-process P1, the decision-coverage flake, the block-onedrive.ps1 ruling ask.
+
 ### 2026-09-17 (a) - CC (Opus 5, integrator seat, integrator-AB): lane ab-802 lands -- the conductor judges the pytest job by the frozen baseline, by node id; CI enforcement untouched
 
 **Anchors:** `b4600e10` -- lane ab-802 tip (`0caae8a7` premise, `4a647dbe` RED-first, `8dfe92ba` the suite-baseline gate, `b4600e10` end-of-lane artifact).
