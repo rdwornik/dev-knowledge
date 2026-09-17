@@ -61,6 +61,17 @@ and a gate built as though it did will be red every other run.**
 **This pin expires with the freeze.** Re-measured at the next batch close, at `-n 4`, and the new
 freeze restates its own pin — `[#763]`.
 
+### AMENDMENT 2026-09-17 — the C10 roster entry carries its FULL node id
+
+**Added in place rather than by re-measurement; membership is unchanged (51).** The batch-Z close
+packet's "Defect three": this roster rendered one member truncated at a space inside its
+parametrize id, `test_head_token_normalises_the_way_the_reader_normalises[`. `[#802]`'s gate reads
+this file as committed, so on conductor run `35200171966` (merge `645ec4db`) a real failure of that
+member reported as a REGRESSION. The entry now carries the full id, copied from
+`docs/audits/2026-09-13-technical-lane-x-664-delete-list-execution-evidence.md` line 293, and the
+gate's failed-line parser reads to pytest's ` - ` separator instead of the first space. Recorded by
+integrator-AB on operator order; `[#763]` still owns re-measurement.
+
 ## The judging rule
 
 - A failure **inside** this set is **PRE-EXISTING**. It does not refuse the merge.
@@ -187,7 +198,7 @@ tests/test_manifest_link_route.py::test_the_class_enum_is_the_hermetization_modu
 ### C10 — Regex / parser precision defect (over- or under-matching)  (6)
 
 ```
-tests/test_dispatch_conformance.py::test_head_token_normalises_the_way_the_reader_normalises[
+tests/test_dispatch_conformance.py::test_head_token_normalises_the_way_the_reader_normalises["C:\\Program Files\\claude.exe" --bg-claude]
 tests/test_preflight_freeze_predicates.py::test_vi_batch1_reproduces_the_off_repo_input_defect
 tests/test_preflight_freeze_predicates.py::test_vi_batch1_reproduces_the_wrong_id_citation
 tests/test_reverse_dep_oracle.py::test_extract_dependents_excludes_declaration

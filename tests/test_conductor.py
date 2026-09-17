@@ -336,6 +336,16 @@ def test_parse_failed_node_ids_reads_the_short_summary_and_ignores_the_rest(cond
                              "tests/test_scratch.py::test_gamma"})
 
 
+def test_parse_failed_node_ids_keeps_a_parametrize_id_that_embeds_a_space(cond):
+    # batch-Z "Defect three": `\S+` cut this id at the space and the gate read a frozen
+    # member as a REGRESSION, witnessed live on conductor run 35200171966.
+    node = ('tests/test_dispatch_conformance.py::test_head_token_normalises_the_way_the_reader_'
+            'normalises["C:\\\\Program Files\\\\claude.exe" --bg-claude]')
+    text = (f"FAILED {node} - AssertionError: x - y\n"
+            "ERROR tests/test_scratch.py::test_gamma\n")
+    assert cond.parse_failed_node_ids(text) == frozenset({node, "tests/test_scratch.py::test_gamma"})
+
+
 def test_parse_failed_node_ids_strips_ansi_color(cond):
     text = ("\x1b[36m\x1b[1m=========================== short test summary info "
            "===========================\x1b[0m\n"
