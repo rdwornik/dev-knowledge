@@ -166,3 +166,51 @@ untouched.
    audits), and `BACKLOG.md` / `tasks/manifest.json` (row `[#664]` amended in `e3976e9e`).
 5. **Next ruling-free migration:** `validate_reconciliation` → a `reconciled-with` edge kind on FPG-1 (S).
 6. **`[#664]` stays OPEN.** No new task id was allocated; this lane's block `839-842` is unused.
+
+---
+
+## AMENDMENT 1 · 2026-09-17 · the operator's rulings, applied
+
+> In-file amendment marker. The sections above are left as written. Where they conflict with
+> this amendment, this amendment is current: §7 item 6's "block unused" and §0's "PAUSED" are
+> both superseded below.
+
+**(b) → option 1, with a condition.** `[#664]`'s Done-when moves from commit tier to the conductor
+`commit-gate` tier. It is **satisfied only once CI enforcement is ON**. Today
+`deploy/conductor-required-checks.ruleset.json` still arrives `enforcement: disabled`, and three red
+pushes landed under it. The row now records the dependency in so many words: **conductor-tier refusal +
+CI enforcement off = theatre** (`6b268a59`). The operator stated that the conflict came from their own
+ruling `6e9f0bb8`, and that not weakening the frozen Done-when was right.
+
+**Why the four commit-tier witnesses stay RED, by ruling.** `tests/test_graph_spine_commit_tier.py`
+checks that the three refusals block a real `git commit`, and since `6e9f0bb8` they do not. Rewriting the
+witness against `conductor.yml` now would turn it green on a tier that enforces nothing: a passing test
+for exactly the theatre the amended row names. So the RED is the accurate reading of the tree. It stays RED
+until one of two things happens:
+- CI enforcement is ON, and the witness is re-pointed at the conductor tier in the same act;
+- the refusals return to the local stage under `6e9f0bb8`'s counter bar.
+
+The integrator merges knowing this. It is not a regression to fix at the merge.
+
+**(c) → YES, filed as its own row.** The graph must represent a missing target as an explicitly dangling
+edge rather than drop it. That is a design change to FPG-1, so it is **`[#839]`** (`81eecabb`, id reserved
+from this lane's block via `id_allocator.py`), not absorbed here. In the same commit as (b), `[#664]`'s
+*"driven to 0"* is re-scoped to *"every dangling edge is measured and carries a disposition"*. The 8 of 17
+sites at absent targets are a finding, not a number to zero out.
+
+**(a) → APPROVED, and each entry cites its measurement** (`f3ad827d`). Every row the census moved names
+`docs/audits/2026-09-17-census-lane-ab-664-edge-class-remeasure.md` and the section behind it: §3 blocker,
+§4 re-verdict, §5 reason. A test asserts the citation holds. One consequence was not in the census:
+`decision_coverage` is reconciled but was born an FPG-1 reader, so `BORN_RECONCILED` keeps it out of
+`migrated`.
+
+```
+edge-class-census    16 private · 5 reconciled · 1 migrated · 47 verdicted out · OK
+tests (targeted)     test_edge_class_census + test_graph_migrations 31 passed · test_graph_spine 37 passed
+ruff                 clean
+```
+
+**Integrator list, updated:** regenerate `BACKLOG.md` + `tasks/manifest.json`'s `generated_sha256` (rows
+`[#664]` amended, `[#839]` filed, manifest node inserted under `[S3]`); also `ecosystem/doc-counts.md`
+(two more tests) and `docs/audits/README.md`. Block `839-842`: 839 used, 840-842 unused. The lane hands
+back here.
