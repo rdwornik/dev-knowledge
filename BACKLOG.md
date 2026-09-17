@@ -154,6 +154,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#824] [P1][M] No launch verb exists for a non-Claude lane, so every lane defaults to the Claude path · tasks/824-no-launch-verb-exists-for-a-non-claude-lane.md
 - [#825] [P2][S] single_flight.py misreports a real push race as an internal error (exit 2), not in flight (exit 3) · tasks/825-single-flight-misreports-a-real-push-race-as-an-internal-error.md
 - [#826] [P1][S] Id blocks in a batch manifest must be machine-read -- a prose block stopped nothing · tasks/826-id-blocks-must-be-machine-read-not-prose.md
+- [#833] [P1][M] A seat is not a registered entity, so a wedged, starved or absent seat is invisible until a human asks · tasks/833-a-seat-is-not-a-registered-entity-so-a-wedged-starved-or-absent-seat-is-invisible.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md

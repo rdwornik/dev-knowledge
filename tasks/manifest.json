@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "a3640fc80233906a538185edfe56de07eeb909345cd7c2b6aae35f26f5d3cf6c",
+  "generated_sha256": "5199b285b71718b9c6e65fcdf4bab730d34159676f4b92403cab5f44a0ef8ef3",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -592,6 +592,10 @@
     {
       "task": 826,
       "file": "826-id-blocks-must-be-machine-read-not-prose.md"
+    },
+    {
+      "task": 833,
+      "file": "833-a-seat-is-not-a-registered-entity-so-a-wedged-starved-or-absent-seat-is-invisible.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
