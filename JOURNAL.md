@@ -19,6 +19,28 @@
 
 ---
 
+### 2026-09-17 (a) - CC (Opus 5, integrator seat, integrator-AB): lane ab-802 lands -- the conductor judges the pytest job by the frozen baseline, by node id; CI enforcement untouched
+
+**Anchors:** `b4600e10` -- lane ab-802 tip (`0caae8a7` premise, `4a647dbe` RED-first, `8dfe92ba` the suite-baseline gate, `b4600e10` end-of-lane artifact).
+
+**MERGED** `worktree-lane-ab-802-conductor-freeze` @ `b4600e10` `--no-ff`, two-step, already synced on `f8ca1d40`, no conflicts.
+Ordered `sonnet`, ran `claude-sonnet-5` x284 (`merge_receipt models`: agree). **[#802]:** `scripts/conductor.py` reads
+`logs/SUITE-BASELINE-FREEZE.md` as committed -- a failure inside the frozen roster is PRE-EXISTING and passes with the set named,
+one outside it is a REGRESSION and fails, and a missing, unparseable or pin-mismatched baseline fails rather than passing blind;
+a pytest exit code other than 0/1 is refused. `.github/workflows/conductor.yml` passes `--workers 4`. **CI enforcement NOT
+enabled** -- the ruleset stays `enforcement: disabled`, a separate operator ruling. Lane verdict: 76 targeted passed
+(`test_conductor` 52, `test_edge_class_census` 24), ruff clean.
+
+**OWED AND PAID HERE:** `gen_doc_counts.py --write` on the merged tree -> **6367 collected** (6350 + 17); audits index regenerated.
+**OWED, NEXT ARC (not hidden in this merge):** the batch-Z "Defect three" node id -- the freeze roster truncates
+`test_head_token_normalises_the_way_the_reader_normalises[` AND `_FAILED_LINE_RE` captures `\S+`, so a real failure of that
+parametrized id reads as a REGRESSION on both sides; and the `[#761]` false-positive record the operator ordered (ab-802 had to
+verdict `conductor.py` `not-an-edge` in `EDGE_COMPUTATIONS`; `[#751]` rewrote a predicate without a regex).
+
+**Did:** merged ab-802. **Result:** the conductor reads the freeze. **Changes:** `scripts/conductor.py`, `scripts/graph_queries.py`,
+`.github/workflows/conductor.yml`, `tests/test_conductor.py`, the lane artifact, `ecosystem/doc-counts.md`, `docs/audits/README.md`, `JOURNAL.md`.
+**Next:** freeze-id fix + `[#761]` arc; then ab-694, ab-834, ab-832 as handed back (ab-828 held on Codex HIGH x3; ab-833 wedged 13 h at SessionStart hooks).
+
 ### 2026-09-16 (n) - CC (Opus 5, integrator seat, integrator-AB): batch AB amendment 1 -- full parallel dispatch, ids held by push, four rows filed, [#617] re-scoped
 
 **Anchors:** `6ab764fc` -- `docs/audits/2026-09-16-technical-batch-ab-manifest-amendment-1.md`, `[#823]` `[#824]` `[#825]` `[#826]` filed, `[#617]` amended.

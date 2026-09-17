@@ -42,6 +42,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -525,6 +526,160 @@ def session_start(repo_root: Path | None = None, *, use_gh: bool = True) -> str:
     return "\n".join(lines)
 
 
+# --- [#802] the suite-baseline freeze gate ----------------------------------------------
+# The `pytest` required-check job runs the full suite and, unmodified, fails on every one of
+# main's pre-existing failures -- which is [#802]'s stated symptom ("the conductor emails on
+# every push because it does not know about the frozen baseline"). This gate reads
+# logs/SUITE-BASELINE-FREEZE.md and judges a run BY TEST NODE ID: a failure inside the frozen
+# set is PRE-EXISTING (the job still reports success, naming the set); one outside is a
+# REGRESSION (the job fails, naming it). Membership is by node id, never by count -- the
+# freeze file states this as load-bearing, and a count-based comparison reproduces exactly
+# the defect the freeze exists to prevent.
+#
+# THE WORKER COUNT IS A COMPARABILITY GATE, NOT A DETAIL. The freeze file's 2026-09-15
+# amendment pins `-n 4`: a run at any other resolved worker count is NOT-COMPARABLE, and
+# not-comparable is a failure to report, never a pass. This gate takes the resolved worker
+# count as an explicit argument rather than parsing it from pytest's own (verbosity-gated)
+# banner line, because the workflow that calls this gate is the same one that told pytest
+# `-n 4` -- an explicit `-n INT` is not `-n auto`, so there is no resolution step to distrust.
+#
+# ONE NODE ID IN THE FROZEN FILE IS ALREADY TRUNCATED, RECORDED, AND NOT THIS GATE'S TO FIX.
+# `docs/audits/2026-09-15-technical-batch-z-close-packet.md` "Defect three": a parametrize id
+# embedding a space breaks whitespace-delimited extraction, and the freeze file's OWN
+# rendering is already cut at that point. This gate reads the file AS COMMITTED -- [#763]
+# owns re-measuring and re-rendering the roster, not this read-only comparator.
+_BASELINE_PATH = "logs/SUITE-BASELINE-FREEZE.md"
+
+# A bare relative pytest node id: `path/to/test_x.py::test_name[optional-params]`. Matched
+# whole-line (after stripping) so a parametrize id containing spaces or punctuation is taken
+# verbatim rather than split -- the same class of bug "Defect three" names.
+_NODE_ID_RE = re.compile(r"^[\w./-]+\.py::\S.*$")
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+_FAILED_LINE_RE = re.compile(r"^(?:FAILED|ERROR)\s+(\S+)")
+
+
+def parse_suite_baseline(text: str) -> dict:
+    """The frozen roster, its pin and its measurement identity -- or what is missing.
+
+    `errors` is non-empty exactly when the file is present but cannot be trusted as a
+    baseline (missing SHA/source/pin, or an empty roster) -- the STALE/malformed half of
+    "fails on a missing or stale baseline"; a wholly absent file is the other half, handled
+    by `suite_gate`, which is the only caller that touches disk.
+    """
+    errors = []
+    sha_m = re.search(r"\*\*Measured at SHA\*\*\s*\|\s*`([0-9a-f]+)`", text)
+    measured_sha = sha_m.group(1) if sha_m else None
+    if measured_sha is None:
+        errors.append("no 'Measured at SHA' row found")
+    src_m = re.search(r"\*\*Source\*\*\s*\|\s*(.+?)\s*\|", text)
+    source = src_m.group(1).strip() if src_m else None
+    if source is None:
+        errors.append("no 'Source' row found")
+    pin_m = re.search(r"\*\*THE PIN:\s*`-n\s*(\d+)`\.\*\*", text)
+    workers_pinned = int(pin_m.group(1)) if pin_m else None
+    if workers_pinned is None:
+        errors.append("no worker-count pin ('THE PIN: `-n N`') found")
+    start = text.find("## The roster")
+    if start == -1:
+        errors.append("no '## The roster' section found")
+        node_ids: frozenset[str] = frozenset()
+    else:
+        rest = text[start + len("## The roster"):]
+        end_m = re.search(r"\n## [^#]", rest)
+        section = rest[:end_m.start()] if end_m else rest
+        node_ids = frozenset(
+            line.strip() for line in section.splitlines() if _NODE_ID_RE.match(line.strip()))
+        if not node_ids:
+            errors.append("'## The roster' section carries no node ids")
+    return {"measured_sha": measured_sha, "source": source, "workers_pinned": workers_pinned,
+            "node_ids": node_ids, "errors": errors}
+
+
+def parse_failed_node_ids(pytest_output: str) -> frozenset[str]:
+    """The node ids pytest's own 'short test summary info' reports FAILED or ERROR.
+
+    Text, not junit/json: this repo declares no report-plugin dependency (ADR-106
+    library-first), and `FAILED <node id> - <reason>` / `ERROR <node id> - <reason>` is core
+    pytest's stable short-summary output, printed with `-q` and unaffected by xdist (workers
+    report to the controller, which prints one summary). ANSI is stripped defensively; a
+    non-tty CI pipe does not emit it, but a caller running this by hand in a terminal might.
+    """
+    ids = []
+    for raw in pytest_output.splitlines():
+        line = _ANSI_RE.sub("", raw).strip()
+        m = _FAILED_LINE_RE.match(line)
+        if m:
+            ids.append(m.group(1))
+    return frozenset(ids)
+
+
+def suite_gate(failed_node_ids, resolved_workers: int, *, pytest_exit: int | None = None,
+              repo_root: Path | None = None) -> dict:
+    """Judge one suite run against the frozen baseline. verdict: 'pass' | 'fail'.
+
+    'pass' when every failure is inside the frozen set (including a clean run). 'fail' on: a
+    broken pytest invocation (an exit code that is neither 0 nor 1), a missing baseline file,
+    a stale/malformed one, a worker-count mismatch (NOT-COMPARABLE), or a failure outside the
+    frozen set (REGRESSION). Every fail path names its reason; none of them pass blind.
+    """
+    root = Path(repo_root) if repo_root is not None else _REPO_ROOT
+    if pytest_exit is not None and pytest_exit not in (0, 1):
+        return {"verdict": "fail",
+                "reason": f"NOT COMPARABLE -- pytest itself exited {pytest_exit} (not the "
+                          f"normal 0/1 pass-or-fail exit), so no node-id diff can be trusted",
+                "regressions": [], "pre_existing": [], "baseline": None}
+    path = root / _BASELINE_PATH
+    if not path.is_file():
+        return {"verdict": "fail",
+                "reason": f"NOT COMPARABLE -- no baseline at {_BASELINE_PATH}",
+                "regressions": [], "pre_existing": [], "baseline": None}
+    baseline = parse_suite_baseline(path.read_text(encoding="utf-8"))
+    if baseline["errors"]:
+        return {"verdict": "fail",
+                "reason": "NOT COMPARABLE -- baseline is stale/malformed: "
+                          + "; ".join(baseline["errors"]),
+                "regressions": [], "pre_existing": [], "baseline": baseline}
+    if resolved_workers != baseline["workers_pinned"]:
+        return {"verdict": "fail",
+                "reason": f"NOT COMPARABLE -- resolved at {resolved_workers} workers, the "
+                          f"baseline is pinned at {baseline['workers_pinned']}",
+                "regressions": [], "pre_existing": [], "baseline": baseline}
+    failed = frozenset(failed_node_ids)
+    frozen = baseline["node_ids"]
+    regressions = sorted(failed - frozen)
+    pre_existing = sorted(failed & frozen)
+    if regressions:
+        return {"verdict": "fail",
+                "reason": f"REGRESSION -- {len(regressions)} failure(s) outside the frozen "
+                          f"{len(frozen)}-member set",
+                "regressions": regressions, "pre_existing": pre_existing, "baseline": baseline}
+    return {"verdict": "pass",
+            "reason": f"{len(pre_existing)} pre-existing failure(s), all inside the frozen "
+                      f"{len(frozen)}-member set (measured at {baseline['measured_sha']})",
+            "regressions": [], "pre_existing": pre_existing, "baseline": baseline}
+
+
+def render_suite_gate(result: dict) -> str:
+    """Flat key/value + bullet lines (CLAUDE.md section 4): no pipe tables."""
+    lines = ["conductor suite-baseline gate", ""]
+    b = result.get("baseline")
+    if b:
+        lines.append(f"baseline sha   : {b['measured_sha']}")
+        lines.append(f"baseline source: {b['source']}")
+        lines.append(f"baseline pin   : -n {b['workers_pinned']}")
+        lines.append(f"frozen members : {len(b['node_ids'])}")
+        lines.append("")
+    lines.append(f"pre-existing   : {len(result['pre_existing'])}")
+    for nid in result["pre_existing"]:
+        lines.append(f"  pre-existing  {nid}")
+    lines.append(f"regressions    : {len(result['regressions'])}")
+    for nid in result["regressions"]:
+        lines.append(f"  REGRESSION    {nid}")
+    lines.append("")
+    lines.append(f"verdict        : {result['verdict'].upper()} -- {result['reason']}")
+    return "\n".join(lines)
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description="Conductor E: the phase gate and the §6 evaluation numbers. Read-only.")
@@ -543,7 +698,19 @@ def main(argv: list[str] | None = None) -> int:
                       help="query gh for the Actions-log and billing numbers (network)")
     nums.add_argument("--transport", default=None,
                       help="the operator transport dir holding to-cc/ (for number 3)")
-    for p in (gate, nums, boot):
+    suite = sub.add_parser("suite-gate",
+                           help="[#802] judge a pytest run against "
+                                "logs/SUITE-BASELINE-FREEZE.md by node id")
+    suite.add_argument("--repo-root", default=None, help=argparse.SUPPRESS)
+    suite.add_argument("--pytest-output", required=True,
+                       help="path to the captured pytest stdout/stderr")
+    suite.add_argument("--workers", required=True, type=int,
+                       help="the worker count this run was resolved/invoked at -- report your "
+                            "own, never assume auto")
+    suite.add_argument("--pytest-exit", default=None, type=int,
+                       help="pytest's own exit code; anything other than 0/1 is treated as a "
+                            "broken run rather than diffed")
+    for p in (gate, nums, boot, suite):
         p.add_argument("--out", default=None, help="write the report here (the only disk write)")
     args = ap.parse_args(argv)
 
@@ -561,6 +728,12 @@ def main(argv: list[str] | None = None) -> int:
     elif args.command == "session-start":
         report = session_start(root, use_gh=not args.no_gh)
         rc = 0   # a SessionStart surface never blocks; see session_start's own comment
+    elif args.command == "suite-gate":
+        output_text = Path(args.pytest_output).read_text(encoding="utf-8", errors="replace")
+        failed = parse_failed_node_ids(output_text)
+        result = suite_gate(failed, args.workers, pytest_exit=args.pytest_exit, repo_root=root)
+        report = render_suite_gate(result)
+        rc = 0 if result["verdict"] == "pass" else 1
     else:
         transport = Path(args.transport) if args.transport else None
         report = render_metrics(metrics(root, use_gh=args.gh, transport=transport))
