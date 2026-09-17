@@ -335,6 +335,28 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
         owner="[#676], which owns the commit-tier provider-invocation check. If that check "
               "lands and consumes these shapes as data, the offline half gains a real trigger "
               "and this row is deleted by [#676]'s lane -- not by this one"),
+    # SAME REASON AS `provider_bench.py` ABOVE FOR A DIFFERENT COST -- no trigger AT ALL, and
+    # none is wanted, because the one hook that would give it one already states, in its own
+    # docstring, why that hook does not scan transcripts: `lane_cost.cost_health_line` reads
+    # ONE precomputed ledger file rather than the session store, specifically because
+    # SessionStart pays for the digest on EVERY boot and a transcript walk would make that cost
+    # grow with the history rather than with the batch. This module's `organ_usage_report()` IS
+    # a transcript walk -- that is the only way AX9-5's metric can exist at all, since nothing
+    # in this repo persists a raw-search-vs-organ-call event -- so wiring it to SessionStart
+    # would reintroduce the exact anti-pattern `cost_health_line` was written to avoid, on the
+    # widest-audience hook in the repo.
+    "scripts/organ_usage_metric.py": Disposition(
+        reason="[#694]'s AX9-5 metric (raw-search vs organ calls per session, organs uncalled "
+               "in 30d). An on-demand operator report over Claude Code's own session "
+               "transcripts, deliberately NOT a SessionStart digest line: `fleet_health.py`'s "
+               "existing cost line reads one precomputed ledger for exactly this reason -- a "
+               "boot-time transcript scan grows with history, not with the batch. Its consumer "
+               "is named rather than invented: tests/test_organ_usage_metric.py proves the "
+               "classifier and the report, and its own CLI (`report` subcommand) is the "
+               "operator's call site",
+        owner="[#709] (the log-review routine AX9-5 names as its regression-flagging "
+              "consumer) or a future on-demand digest command; either adopts it by calling "
+              "it, at which point this row is deleted rather than updated"),
     # `scripts/logs_retention.py` WAS dispositioned here, on the DECLARE §3 finding that
     # `run_retention()` had 0 callers -- which is `[#655]`'s entire title. It is GONE from this
     # register because it is WIRED: `[#664]`'s second ratified TRIGGER row put it on the
@@ -1029,6 +1051,17 @@ EDGE_COMPUTATIONS: dict[str, EdgeComputation] = {
         "against a naming grammar: whether a single name is an admitted home or audit name. "
         "Neither is a relation between two corpus files, so there is no edge for FPG-1 to hold "
         "and nothing for a W-G3 lane to migrate"),
+    "scripts/conductor.py": _not_an_edge(
+        "[#802]'s suite-baseline gate. The shape matched when it grew its regex trio reading "
+        "`logs/SUITE-BASELINE-FREEZE.md` -- `parse_suite_baseline` extracts a roster of pytest "
+        "NODE IDS a human wrote by hand into that file at freeze time. The class does not apply "
+        "for the same reason as quality_requirements.py above: it is a DECLARED relation read "
+        "back, not one discovered by scanning the corpus -- the roster is curated prose, not "
+        "inferred structure. It is also not FPG-1-representable even in principle: a node id is "
+        "sub-file granularity, and a parametrize id can embed spaces and quotes no graph path "
+        "could hold (the batch-Z close-packet's 'Defect three' finding is exactly that "
+        "fragility). There is no relation here for a W-G3 lane to migrate, because FPG-1 has "
+        "nowhere to hold what was extracted"),
 }
 
 
