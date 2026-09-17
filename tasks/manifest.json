@@ -614,6 +614,10 @@
       "file": "843-contract-freezing-premise-clauses-carry-from-a-stale-digest.md"
     },
     {
+      "task": 839,
+      "file": "839-fpg-1-represents-a-missing-target-as-an-explicit.md"
+    },
+    {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
     },
     {
