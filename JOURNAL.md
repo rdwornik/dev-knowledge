@@ -19,6 +19,48 @@
 
 ---
 
+### 2026-09-17 (b) - CC (Opus 5, integrator seat): emergency hook disable lands -- all PreToolUse hooks and the billing-leak SessionStart sentinel off, on main so it binds the primary and every new lane
+
+**Anchors:** `426b9cac` -- `worktree-hooks-disable-emergency` tip (`.claude/settings.json`, `ecosystem/organ-index.md`).
+
+**MERGED** `worktree-hooks-disable-emergency` @ `426b9cac` `--no-ff`, two-step, no conflicts (neither file moved on main since the
+`f8ca1d40` fork). Operator emergency order: the prompts-dir guard, the ADR-77 transcript guard and `billing_leak_sentinel.ps1`
+are removed from `.claude/settings.json`; the removed blocks are recoverable verbatim at the parent commit. Until this merge the
+disable was INERT -- the primary reads its own `.claude/settings.json` and each lane reads its worktree copy. **No tests run here**
+by operator order.
+
+**TEMPORARY, NOT SETTLED:** removing PreToolUse also removed the ADR-77 immutable-transcript guard as collateral. That is a real
+safety loss, accepted ONLY until the suspended-at-creation hook defect has a mechanism -- it is not a ruling that the guard is dispensable.
+
+**ROOT CAUSE CORRECTED (filed P1 in the follow-up arc):** the orphaned hook processes were created SUSPENDED and never resumed
+(0 s CPU, no image path, one thread Wait/Suspended) -- the script never executed a line, so a bounded execution time cannot fire and
+"give every hook a timeout" would NOT have prevented the wedge. Nineteen prompts-guard orphans accumulated from 2026-09-15 10:47.
+
+**Did:** merged the emergency disable. **Result:** hooks off fleet-wide on next session start. **Changes:** `.claude/settings.json`,
+`ecosystem/organ-index.md`, `JOURNAL.md`. **Next:** file the suspended-process P1, the decision-coverage flake, the block-onedrive.ps1 ruling ask.
+
+### 2026-09-17 (a) - CC (Opus 5, integrator seat, integrator-AB): lane ab-802 lands -- the conductor judges the pytest job by the frozen baseline, by node id; CI enforcement untouched
+
+**Anchors:** `b4600e10` -- lane ab-802 tip (`0caae8a7` premise, `4a647dbe` RED-first, `8dfe92ba` the suite-baseline gate, `b4600e10` end-of-lane artifact).
+
+**MERGED** `worktree-lane-ab-802-conductor-freeze` @ `b4600e10` `--no-ff`, two-step, already synced on `f8ca1d40`, no conflicts.
+Ordered `sonnet`, ran `claude-sonnet-5` x284 (`merge_receipt models`: agree). **[#802]:** `scripts/conductor.py` reads
+`logs/SUITE-BASELINE-FREEZE.md` as committed -- a failure inside the frozen roster is PRE-EXISTING and passes with the set named,
+one outside it is a REGRESSION and fails, and a missing, unparseable or pin-mismatched baseline fails rather than passing blind;
+a pytest exit code other than 0/1 is refused. `.github/workflows/conductor.yml` passes `--workers 4`. **CI enforcement NOT
+enabled** -- the ruleset stays `enforcement: disabled`, a separate operator ruling. Lane verdict: 76 targeted passed
+(`test_conductor` 52, `test_edge_class_census` 24), ruff clean.
+
+**OWED AND PAID HERE:** `gen_doc_counts.py --write` on the merged tree -> **6367 collected** (6350 + 17); audits index regenerated.
+**OWED, NEXT ARC (not hidden in this merge):** the batch-Z "Defect three" node id -- the freeze roster truncates
+`test_head_token_normalises_the_way_the_reader_normalises[` AND `_FAILED_LINE_RE` captures `\S+`, so a real failure of that
+parametrized id reads as a REGRESSION on both sides; and the `[#761]` false-positive record the operator ordered (ab-802 had to
+verdict `conductor.py` `not-an-edge` in `EDGE_COMPUTATIONS`; `[#751]` rewrote a predicate without a regex).
+
+**Did:** merged ab-802. **Result:** the conductor reads the freeze. **Changes:** `scripts/conductor.py`, `scripts/graph_queries.py`,
+`.github/workflows/conductor.yml`, `tests/test_conductor.py`, the lane artifact, `ecosystem/doc-counts.md`, `docs/audits/README.md`, `JOURNAL.md`.
+**Next:** freeze-id fix + `[#761]` arc; then ab-694, ab-834, ab-832 as handed back (ab-828 held on Codex HIGH x3; ab-833 wedged 13 h at SessionStart hooks).
+
 ### 2026-09-16 (n) - CC (Opus 5, integrator seat, integrator-AB): batch AB amendment 1 -- full parallel dispatch, ids held by push, four rows filed, [#617] re-scoped
 
 **Anchors:** `6ab764fc` -- `docs/audits/2026-09-16-technical-batch-ab-manifest-amendment-1.md`, `[#823]` `[#824]` `[#825]` `[#826]` filed, `[#617]` amended.
