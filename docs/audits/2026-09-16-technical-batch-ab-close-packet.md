@@ -147,3 +147,29 @@ Filed as `[#883]`. **The commit gate was never priced:** it grew to 34 hooks wit
 - **per model now:** claude-opus-5 USD 169.21 · claude-sonnet-5 USD 64.49 · non-Claude UNKNOWN. **Known total: USD 233.70.** NOT included, as in section 6: the dispatcher seat, peer seats, the two non-Claude lanes; the integrator figure is the session to this writing.
 
 **Tests collected:** 6,471 (`gen_doc_counts.py --write`, collection only).
+
+---
+
+## AMENDMENT 2 · 2026-09-17 · the three-branch ruling, the one regression, the re-freeze
+
+> In-file amendment marker, appended; nothing above it is edited. Where AMENDMENT 1 says "closed: 0" and "386 rows", this amendment is current.
+
+**BACKLOG went 386 -> 365 rows (79,919 B -> 75,562 B). This is the first time this window that closures outpaced filings.** Every earlier reading only grew: 365 at open, then 382 at close, then 386 at AMENDMENT 1. Instrument: `gen_task_tree --emit-source` on `main`, counting `- [#` lines.
+
+**Merged SHAs, in order:**
+- `4eb4f624` ab-828 closure census (`7017328e`, synced `f8bc9249`). Closes 25 digest-backed rows and files `[#828]`-`[#830]`, whose titles came out mangled ("752", "613", "Witness"): recorded, not repaired.
+- `8c258bfb` aa-12 enforced routing (`e17c6200`). Its row collided a second time with main's `[#793]` and was renumbered mechanically to **`[#885]`**, reserved by `id_allocator` (`refs/reservations/task-id/885`).
+- `c5108329` the one genuine regression of today's merges fixed: `test_809_a_multi_letter_batch_slug_is_emitted_without_loose_slug` now passes `--kind`.
+- this amendment's merge: the suite baseline re-frozen.
+- aa-13 (`01c446f7`) was KEPT, pushed to origin as `[#793]`'s evidence branch.
+
+**Rows, batch open `8a24f469` to this amendment:**
+- **filed: 24**, the 21 of AMENDMENT 1 plus `[#828]` `[#829]` `[#830]`.
+- **closed: 25**, the ab-828 census list.
+- `[#885]` predates the batch (aa-12's rescue commit) and is carried in, not counted as filed.
+
+**Suite baseline re-frozen** (`logs/SUITE-BASELINE-FREEZE.md`):
+- Measured at `c5108329` by conductor run `35239925999`, at `-n 4` passed explicitly: 91 failed, 6382 passed.
+- **87 frozen**: 51 carried from the `b5270d63` freeze, 36 new since, **0 departed**.
+- The four `[#664]` commit-tier witnesses are kept OUT by ruling, so every run keeps reporting them as regressions; more than those four is a real regression.
+- Before the re-freeze, 36 of the 41 "regressions" at `8c258bfb` were already failing at `a92ff5c4`.

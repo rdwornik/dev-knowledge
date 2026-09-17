@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-17 (v) - CC (Opus 5, integrator seat, final order): suite baseline RE-FROZEN at `c5108329`, `-n 4`, 87 members, with the four `[#664]` witnesses kept OUT; BACKLOG 386 -> 365
+
+**Anchors:** `251c35c9`, `c5108329` -- `worktree-fix-809-kind-and-refreeze` re-freeze commit, measured at main `c5108329`.
+
+**Did:** re-measured `logs/SUITE-BASELINE-FREEZE.md`, `[#763]`'s ruled condition: 36 of the 41 "regressions" at `8c258bfb` were already failing at `a92ff5c4`, because the freeze dated from `b5270d63`. **Measurement:** conductor run `35239925999` at `c5108329`, `uv run --locked pytest -q --tb=short -n 4` with the worker count passed explicitly: **91 failed, 6382 passed, 22 skipped, 2 xfailed**. That run confirmed the fix: its regressions fell from 41 to 40 (36 older plus the 4 witnesses). **Frozen: 87** = 91 minus the four `[#664]` commit-tier witnesses, KEPT OUT by ruling so they fail visibly on every run. Of the 87, 51 carried from `b5270d63` and 36 are new; **0 departed**, so none of the old 51 was fixed in this window. The file names its SHA, run id, command and `THE PIN: -n 4`; the generator asserted that `conductor.parse_suite_baseline` reads it with no errors, pin 4, exactly the 87 ids and no witness. `tests/test_conductor.py`'s live-file count constant moved 51 -> 87 in the same commit. **Correction to the order's premise, recorded:** the previous freeze WAS pinned at `-n 4` by its 2026-09-15 amendment; what was unpinned was its original MEASUREMENT (`-n auto` resolving to 4). This measurement is at the pin itself. **Consequence:** the conductor's pytest verdict stays FAIL with exactly 4 regressions until enforcement is ON; a fifth is real. Close packet AMENDMENT 2: **BACKLOG 386 -> 365 rows (75,562 B), the first time this window closures outpaced filings**; batch AB now 24 filed / 25 closed. **No tests run here**, by operator order.
+
+**Result:** the conductor judges against today's tree, and the only failures it will call regressions are the four witnesses and anything genuinely new. **Changes:** `logs/SUITE-BASELINE-FREEZE.md`, `tests/test_conductor.py`, close packet, `JOURNAL.md`. **Next:** none from this seat, whose close order is complete.
+
 ### 2026-09-17 (u) - CC (Opus 5, integrator seat, final order): the one genuine regression of today's merges is fixed -- one argument in one test
 
 **Anchors:** `6a77e4e0` -- `worktree-fix-809-kind-and-refreeze`, cut from `8c258bfb`.

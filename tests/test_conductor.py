@@ -461,7 +461,7 @@ def test_the_live_suite_baseline_freeze_parses_cleanly(cond):
     b = cond.parse_suite_baseline(text)
     assert b["errors"] == []
     assert b["workers_pinned"] == 4
-    assert len(b["node_ids"]) == 51
+    assert len(b["node_ids"]) == 87
 
 
 def test_the_pytest_job_judges_by_the_suite_gate_at_the_pinned_worker_count(workflow):
