@@ -20,6 +20,58 @@ suite and can flip cross-worker-sensitive members (C9 is exactly that class). **
 re-measurement for comparison against this freeze must report its own resolved worker count,
 and a comparison across different worker counts is not a like-for-like comparison.**
 
+### AMENDMENT 2026-09-15 — the worker count is now PINNED, because a consumer is about to depend on it
+
+**Added in place rather than by re-measurement.** The paragraph above stands and is correct; what
+follows removes the ambiguity it describes, and nothing above it is altered.
+
+**THE PIN: `-n 4`.** Any run compared against this freeze **MUST** resolve to **4 workers**, the
+count this freeze was measured at. The comparison command is therefore
+
+```
+uv run --locked pytest -q --tb=short -n 4
+```
+
+— **not** the `-n auto` of `addopts`, which is what produced the ambiguity. `auto` resolved to 4
+on this freeze's GitHub-hosted `ubuntu-latest` runner and will resolve to something else on any
+runner with a different core count.
+
+**Why this is pinned NOW and not left as a caveat.** `[#802]` makes the conductor workflow compare
+every push against this set. A consumer that compares automatically cannot read a warning; it
+needs a number it can assert. An unpinned worker count in a file a gate depends on is the
+"declared enforcement without enforcement" shape this repo has measured three times this week.
+
+**What a consumer MUST do with the pin, so the gate cannot silently compare across regimes:**
+
+1. **Resolve and REPORT** its own worker count before comparing — never assume `auto` gave it 4.
+2. **REFUSE on mismatch.** A run at any count other than 4 is **NOT-COMPARABLE**, and
+   not-comparable is a **failure to report**, never a pass. Falling back to comparing anyway is
+   the fail-open behaviour the pin exists to prevent.
+3. **Treat a missing or stale freeze file the same way** — fail, do not pass blind. Staleness is
+   checkable against this file's own `Measured at SHA` and `Source` run id.
+
+**HONEST LIMIT, stated because the pin does not remove it.** Pinning `-n 4` makes runs
+*comparable*; it does **not** make this baseline fully *reproducible*. The batch-Z close packet
+records that the same tree measures **51 or 52** — at least one member flaps independently of
+worker count (C9 is the cross-worker-sensitive class, and it is not the only source of variance).
+A consumer must therefore carry a stated policy for the flapping member rather than treating each
+flap as a regression. **Pinning the worker count narrows the variance; it does not eliminate it,
+and a gate built as though it did will be red every other run.**
+
+**This pin expires with the freeze.** Re-measured at the next batch close, at `-n 4`, and the new
+freeze restates its own pin — `[#763]`.
+
+### AMENDMENT 2026-09-17 — the C10 roster entry carries its FULL node id
+
+**Added in place rather than by re-measurement; membership is unchanged (51).** The batch-Z close
+packet's "Defect three": this roster rendered one member truncated at a space inside its
+parametrize id, `test_head_token_normalises_the_way_the_reader_normalises[`. `[#802]`'s gate reads
+this file as committed, so on conductor run `35200171966` (merge `645ec4db`) a real failure of that
+member reported as a REGRESSION. The entry now carries the full id, copied from
+`docs/audits/2026-09-13-technical-lane-x-664-delete-list-execution-evidence.md` line 293, and the
+gate's failed-line parser reads to pytest's ` - ` separator instead of the first space. Recorded by
+integrator-AB on operator order; `[#763]` still owns re-measurement.
+
 ## The judging rule
 
 - A failure **inside** this set is **PRE-EXISTING**. It does not refuse the merge.
@@ -146,7 +198,7 @@ tests/test_manifest_link_route.py::test_the_class_enum_is_the_hermetization_modu
 ### C10 — Regex / parser precision defect (over- or under-matching)  (6)
 
 ```
-tests/test_dispatch_conformance.py::test_head_token_normalises_the_way_the_reader_normalises[
+tests/test_dispatch_conformance.py::test_head_token_normalises_the_way_the_reader_normalises["C:\\Program Files\\claude.exe" --bg-claude]
 tests/test_preflight_freeze_predicates.py::test_vi_batch1_reproduces_the_off_repo_input_defect
 tests/test_preflight_freeze_predicates.py::test_vi_batch1_reproduces_the_wrong_id_citation
 tests/test_reverse_dep_oracle.py::test_extract_dependents_excludes_declaration

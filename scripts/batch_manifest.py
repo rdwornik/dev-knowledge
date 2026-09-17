@@ -137,7 +137,7 @@ import validate_branch_naming as _vbn   # noqa: E402  (after the by-path gitenv 
 # pins that no rival regex has been reintroduced, and it is still the shape a seeded
 # worktree carries. Dropping the name would delete that test's subject, not tidy an import.
 from validate_branch_naming import LANE_BRANCH_RE   # noqa: E402,F401
-from validate_branch_naming import is_lane_branch  # noqa: E402
+from validate_branch_naming import BATCH_TOKEN, is_lane_branch  # noqa: E402
 
 if Path(getattr(_vbn, "__file__", "") or "").resolve().parent != Path(__file__).resolve().parent:
     raise ImportError(
@@ -562,7 +562,8 @@ def is_lane_merge(repo_path: Path, sha: str) -> bool:
 # The lane-ish shapes a NON-conforming merge subject still leaks, used only to tell a
 # message-style miss apart from a genuine non-lane merge. Deliberately loose: it is a
 # diagnostic, never an exemption path -- nothing widens `is_lane_merge` by matching here.
-_LANEISH_IN_SUBJECT_RE = re.compile(r"(?:worktree-)?lane-[a-z]-\d+-[a-z0-9]+(?:-[a-z0-9]+)*")
+_LANEISH_IN_SUBJECT_RE = re.compile(
+    rf"(?:worktree-)?lane-{BATCH_TOKEN}-\d+-[a-z0-9]+(?:-[a-z0-9]+)*")
 
 
 def subject_style_miss(repo_path: Path, sha: str) -> Optional[str]:
@@ -649,11 +650,12 @@ _LANES_HEADING_RE = re.compile(r"^ {0,3}#{1,6}\s*THE LANES\b.*$", re.I | re.M)
 #: Any heading, used to bound the LANES section the same way `validate_substrate` bounds its
 #: own sections -- the next heading ends the block.
 _ANY_HEADING_RE = re.compile(r"^ {0,3}#{1,6}\s+\S", re.M)
-#: A lane-slug-shaped token: `lane-<letter>-<digits>-<slug>`. Deliberately NOT
+#: A lane-slug-shaped token: `lane-<batch>-<digits>-<slug>`, reading the enum's BATCH_TOKEN
+#: (`[#809]`). Deliberately NOT
 #: `validate_branch_naming.LANE_BRANCH_RE` -- that matches a BRANCH (`worktree-lane-...`), and
 #: a manifest's lane table names the SLUG, not the branch. The two are related by a fixed
 #: prefix, never by identity.
-_SLUG_TOKEN_RE = re.compile(r"\blane-[a-z]-\d+(?:-[a-z0-9]+)+\b", re.I)
+_SLUG_TOKEN_RE = re.compile(rf"\blane-{BATCH_TOKEN}-\d+(?:-[a-z0-9]+)+\b", re.I)
 
 
 def manifest_lane_slugs(text: str) -> set[str]:
@@ -748,7 +750,32 @@ class ManifestLinks(NamedTuple):
 
 
 def manifest_links(repo_path: Path) -> ManifestLinks:
-    """Every artifact identifier reachable from a committed batch manifest.
+    """Every artifact identifier reachable from a committed batch manifest -- the UNION of
+    `manifest_link_surfaces`, which is where the reading happens.
+
+    Both callers (`funnel_coverage`, `consumer_at_landing`) ask "is this artifact linked at
+    all", which is the union; FPG-1 asks "which surface links it", which is the split. One
+    parser answers both, so the two questions cannot drift apart.
+    """
+    surfaces = manifest_link_surfaces(repo_path)
+    explicit: set[str] = set()
+    slugs: set[str] = set()
+    for links in surfaces.values():
+        explicit |= links.explicit
+        slugs |= links.lane_slugs
+    seen = sorted({name for links in surfaces.values() for name in links.manifests})
+    return ManifestLinks(frozenset(explicit), frozenset(slugs), tuple(seen))
+
+
+def manifest_link_surfaces(repo_path: Path) -> dict[str, ManifestLinks]:
+    """Every artifact identifier reachable from a committed batch manifest, PER LINKING SURFACE.
+
+    Keyed by the repo-relative path of the surface that wrote the link -- the manifest itself,
+    or the `closed_by:` packet it names -- and each value's `manifests` names the manifest that
+    admitted that surface. FPG-1 input 3 reads this to put each link on an edge FROM the file
+    that made it (`[#664]`, lane `ab-664-spine-witnessed`): attributing a closer's links to its
+    manifest would turn "the close packet names the manifest" into a manifest naming itself,
+    which is a self edge the graph drops.
 
     READS THE WORKING TREE, not git, because both callers measure the working tree and a
     number taken from a different snapshot than the corpus it is compared against is not a
@@ -761,10 +788,9 @@ def manifest_links(repo_path: Path) -> ManifestLinks:
     resolves LINKAGE only -- it says a governance surface named the artifact, never that the
     naming was apt.
     """
-    explicit: set[str] = set()
-    slugs: set[str] = set()
-    seen: list[str] = []
-    for manifest in sorted(Path(repo_path).glob(MANIFEST_GLOB)):
+    root = Path(repo_path)
+    by_surface: dict[str, tuple[set[str], set[str], set[str]]] = {}
+    for manifest in sorted(root.glob(MANIFEST_GLOB)):
         try:
             text = manifest.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
@@ -772,16 +798,18 @@ def manifest_links(repo_path: Path) -> ManifestLinks:
             # an ADDITIVE coverage route, so an unreadable manifest costs coverage it would
             # have granted and can never invent any.
             continue
-        seen.append(manifest.name)
-        surfaces = [text]
+        surfaces = [(manifest.relative_to(root).as_posix(), text)]
         closer = _frontmatter(text).get("closed_by", "")
         if closer and _valid_closer(closer):
-            closer_path = Path(repo_path) / closer
+            closer_path = root / closer
             try:
-                surfaces.append(closer_path.read_text(encoding="utf-8"))
-            except (OSError, UnicodeDecodeError):
+                surfaces.append((closer_path.relative_to(root).as_posix(),
+                                 closer_path.read_text(encoding="utf-8")))
+            except (OSError, UnicodeDecodeError, ValueError):
                 pass
-        for surface in surfaces:
+        for rel, surface in surfaces:
+            explicit, slugs, manifests = by_surface.setdefault(rel, (set(), set(), set()))
+            manifests.add(manifest.name)
             for hit in _AUDITS_PATH_RE.findall(surface):
                 name = hit.rsplit("/", 1)[-1]
                 explicit.add(name)
@@ -790,7 +818,8 @@ def manifest_links(repo_path: Path) -> ManifestLinks:
                 explicit.add(stem)
                 explicit.add(stem[:-3] if stem.endswith(".md") else stem)
             slugs |= manifest_lane_slugs(surface)
-    return ManifestLinks(frozenset(explicit), frozenset(slugs), tuple(seen))
+    return {rel: ManifestLinks(frozenset(explicit), frozenset(slugs), tuple(sorted(manifests)))
+            for rel, (explicit, slugs, manifests) in sorted(by_surface.items())}
 
 
 #: An artifact stem's descriptive tail: everything after `<date>-<class>-`. A lane's own

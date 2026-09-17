@@ -25,6 +25,15 @@ the `::symbol` target leg (via `reverse_dep_oracle.resolve_symbol`), and the def
 annotation rollout (two-organ #201 / Tier-3 #202 / drift-guard #203). The file-level edge + the
 move-safety proofs remain the proven core.
 
+COVERAGE SCOPE IS A FILE, NOT A NUMBER. The live rule set is `ecosystem/doc-code-edge.yaml`
+`coverage_scope:`; read the count off that file, never off prose (ARCHITECTURE.md said "13"
+while `coverage_scope` held 15). `check_doc_code_coverage_drift` is what stops the registered
+set drifting off the auto-enumerable `ALL_CHECKS` surface.
+
+MULTI-SITE RULES RESOLVE VIA RESOLVER-ALLOWS-N (ADR-90). A rule enforced in N code organs
+declares its expected `# rule:` site count in `multi_site:`; without that declaration a second
+annotation for the same id reads as `ambiguous`. Single-site is the default, not an assumption.
+
 Layer-2 / read-only (ADR-28/36): reads `*.md` + `*.py` under the given roots; writes
 NOTHING; never orchestrates; never gates (the spike CLI exits 0 -- awareness only).
 

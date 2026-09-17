@@ -1,4 +1,4 @@
-"""`[#793]` — the model a contract DECLARES is the model that RUNS, and the default is in the
+"""`[#885]` — the model a contract DECLARES is the model that RUNS, and the default is in the
 generator rather than in a paste.
 
 WHAT WAS ALREADY THERE AND IS NOT RE-TESTED HERE. `[#752]` landed the VERIFY and REFUSE legs:

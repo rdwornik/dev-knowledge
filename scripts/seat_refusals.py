@@ -59,6 +59,7 @@ HONEST LIMITS, stated because a refusal that overstates its reach is worse than 
 """
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import sys
@@ -89,6 +90,21 @@ REFUSALS: tuple[str, ...] = (
     # alone, because its whole argument is the one `lane-ceiling` already makes: a collision
     # found after provisioning has already been paid for.
     "file-collision",
+    # SEVENTH, added by lane `aa-2` with the integrator's plan/execute split. It is the only
+    # refusal addressed to a seat's CHEAPER HALF, and that is the whole of its argument: the
+    # split routes the mechanical walk to Sonnet, and "escalate anything the plan does not rule"
+    # is -- as an instruction -- a judgment call handed to the half that cannot make one. This
+    # turns it into a predicate the execute half RUNS. A boundary whose enforcement depends on
+    # the model reading it has not moved judgment out of the cheap half; it has only stopped
+    # writing it down.
+    "unruled-merge",
+    # EIGHTH and NINTH, added by `[#833]` (lane ab-833). The first seven refuse a seat's ACTS; these
+    # two refuse on a seat's STATE, read from `seat_registry.py`, where `state` is written by hook
+    # events and never by a model. `no-live-integrator`: a lane dispatched into a batch nobody is
+    # receiving (a half-day with no integrator, week of 2026-09-16). `lane-owned`: a second session
+    # onto a lane whose owner is live -- witnessed on lane ab-833 itself, 2026-09-17, and admitted
+    # into scope by operator ruling the same day.
+    "no-live-integrator", "lane-owned",
 )
 
 #: WHICH SEAT RUNS WHICH REFUSAL, and in the order its boot runs them. A seat's absence from a
@@ -106,12 +122,23 @@ SEAT_REFUSALS: dict[str, tuple[str, ...]] = {
     # the two it sits between: it needs the lane list the ceiling just validated (a plan naming a
     # lane twice would collide it with itself and report a nonsense pair), and it must precede
     # the DryRun because the DryRun is the last line of step 0 -- after it the dispatcher fires.
-    "dispatcher": ("lane-ceiling", "file-collision", "carried-by", "sleeping-poll",
-                   "dryrun-step0"),
-    "integrator": ("reviewer-mismatch", "carried-by", "sleeping-poll"),
+    # `no-live-integrator` follows `file-collision` for the same reason `file-collision` follows the
+    # ceiling: every STEP-0 check must precede the DryRun, after which the dispatcher fires.
+    "dispatcher": ("lane-ceiling", "file-collision", "no-live-integrator", "carried-by",
+                   "sleeping-poll", "dryrun-step0"),
+    # `unruled-merge` is LAST for the integrator, and the position is the mechanism the way it is
+    # for the dispatcher's two: the other three run once, before the queue opens, while this one
+    # runs ONCE PER MERGE, immediately before it. A check that ran at boot would have read a plan
+    # the operator went on to amend -- and the amendment is the escalation path working.
+    # The integrator runs `no-live-integrator` FIRST, against itself, right after binding: a bind
+    # that did not take (wrong batch, no runtime session id) is found at boot, not by the first lane.
+    "integrator": ("no-live-integrator", "reviewer-mismatch", "carried-by", "sleeping-poll",
+                   "unruled-merge"),
     "filings": ("carried-by", "sleeping-poll"),
     "handoff": ("carried-by", "sleeping-poll"),
-    "lane": ("reviewer-mismatch", "sleeping-poll"),
+    # A lane runs the two seat-state refusals before any work: the owner check first, because two
+    # committing sessions on one index is the more expensive failure.
+    "lane": ("lane-owned", "no-live-integrator", "reviewer-mismatch", "sleeping-poll"),
 }
 
 #: ADR-110's batch ceiling, READ from the organ that already declares it rather than retyped.
@@ -476,6 +503,144 @@ def refuse_file_collision(contracts: "dict[str, str]", *,
     return footprints
 
 
+# --- 7. the merge the plan half did not rule ---------------------------------------------------
+#
+# THE ONE REFUSAL ADDRESSED TO A SEAT'S CHEAPER HALF, and its whole argument is in that sentence.
+# Lane `aa-2` routes the integrator's mechanical walk to Sonnet and its judgment to Opus, with the
+# seam a FILE: the plan half writes `MERGE-PLAN-<batch>.md`, the execute half boots from it. The
+# instruction that seam rests on -- *escalate anything the plan does not rule* -- is, as prose, a
+# JUDGMENT CALL, handed to the half chosen because it is not doing judgment. That is the exact
+# failure the lane's contract names: *"a split that silently lets the cheap half make expensive
+# decisions is worse than no split -- it buys a lower cost line by moving judgment somewhere that
+# cannot exercise it."*
+#
+# So authority is GRANTED PER ENTRY and checked by a predicate, not interpreted. Nothing about the
+# answer depends on which model reads it, which is the property that makes the cheap half safe to
+# be cheap.
+#
+# THE GRAMMAR IS DELIBERATELY NARROW. One list item per branch:
+#
+#     - `worktree-lane-aa-1` -> MERGE · INDEPENDENT
+#     - `worktree-lane-aa-2` -> MERGE · SERIAL, after aa-1
+#     - `worktree-lane-aa-3` -> HOLD · the suite baseline moved; operator asked
+#
+# A looser grammar would let a plan that MENTIONS a branch read as one that authorises it, and
+# mentions are what a plan is full of.
+
+#: A plan entry. The branch is backticked so a prose sentence naming a branch is not an entry:
+#: the plan's discussion of a merge and its ruling on one must not be the same shape.
+_PLAN_ENTRY_RE = re.compile(
+    r"^[-*]\s+`(?P<branch>[^`\n]+)`\s*(?:->|--|→)\s*(?P<verdict>[A-Z]+)\b(?P<rest>[^\n]*)$",
+    re.MULTILINE)
+
+#: The only verdict that authorises a merge. Everything else -- including a verdict this module
+#: has never heard of -- is an escalation: an unknown word in the authorising position is exactly
+#: where a reader must not guess generously.
+_MERGE_VERDICT = "MERGE"
+
+#: A merge the plan marked as not depending on any other. The execute half may continue with these
+#: after escalating a different one; without the marker it may not, because "these two are
+#: independent" is a claim about the diffs and is therefore plan-half work.
+_INDEPENDENT_MARKER = "INDEPENDENT"
+
+
+@dataclass(frozen=True)
+class PlanEntry:
+    """One branch's ruling, as the plan half wrote it."""
+
+    branch: str
+    verdict: str
+    detail: str
+    independent: bool
+
+    @property
+    def mergeable(self) -> bool:
+        return self.verdict == _MERGE_VERDICT
+
+
+def plan_entries(plan_text: str) -> "list[PlanEntry]":
+    """Every ruling in a merge plan, IN THE PLAN'S OWN ORDER.
+
+    The order is itself a ruling, and most of what the plan half was paid to produce. A queue the
+    execute half re-derived would be the cheap half re-deciding the one thing the expensive half
+    was there for.
+    """
+    out: list[PlanEntry] = []
+    for match in _PLAN_ENTRY_RE.finditer(plan_text):
+        rest = match.group("rest")
+        out.append(PlanEntry(
+            branch=match.group("branch").strip(),
+            verdict=match.group("verdict").strip(),
+            detail=rest.strip(" \t·-"),
+            independent=_INDEPENDENT_MARKER in rest.upper(),
+        ))
+    return out
+
+
+def ruled_merges(plan_text: str, *, include_unmergeable: bool = False) -> "list[PlanEntry]":
+    """The queue the execute half walks, in the plan's order.
+
+    `include_unmergeable` is for REPORTING -- a seat saying what it did not do, which the
+    refuse-to-finish checklist asks for. It is not a way to walk the held ones.
+    """
+    entries = plan_entries(plan_text)
+    return entries if include_unmergeable else [e for e in entries if e.mergeable]
+
+
+def refuse_unruled_merge(plan_text: str, *, branch: str) -> PlanEntry:
+    """MAY THE EXECUTE HALF MERGE `branch`? The plan's entry, or a refusal naming the escalation.
+
+    Four ways to answer no, and each is a different remedy, so each says which:
+
+      * **No entries at all.** An empty plan and a plan that authorises everything are the same
+        document to a reader that only asks whether a branch is forbidden. The question runs the
+        other way: authority is granted per entry, so no entries is no authority.
+      * **This branch is not in it.** The ordinary escalation, and the common one.
+      * **Ruled, and not MERGE.** A HOLD is a ruling, and obeying it is the same act as escalating
+        an unruled branch -- in neither case does the execute half decide. What it must never do
+        is read *the plan mentions this branch* as *the plan authorises this merge*.
+      * **Ruled twice, inconsistently.** Taking the first hit lets a superseded ruling authorise a
+        merge; taking the last lets a stale append do it. Neither is the execute half's call, so
+        an ambiguous plan is an escalation -- the posture `seat_ch8.extract` already takes on an
+        ambiguous anchor, for the same reason.
+    """
+    entries = plan_entries(plan_text)
+    if not entries:
+        raise SeatRefusal(
+            "unruled-merge",
+            f"the merge plan carries NO plan entries, so it authorises nothing -- {branch!r} "
+            f"included. Authority is granted PER ENTRY (``- `<branch>` -> MERGE``), never by a "
+            f"plan's silence",
+            remedy="ESCALATE: ask the plan half to rule the queue before you merge anything")
+    matched = [e for e in entries if e.branch == branch]
+    if not matched:
+        raise SeatRefusal(
+            "unruled-merge",
+            f"the merge plan does not rule {branch!r}; it rules "
+            f"{', '.join(repr(e.branch) for e in entries)}",
+            remedy=("ESCALATE: append the branch, the reason you reached it and your question "
+                    "to the escalation file, then STOP this merge and continue only with "
+                    f"entries the plan marked {_INDEPENDENT_MARKER}. Do NOT decide this one"))
+    verdicts = {e.verdict for e in matched}
+    if len(verdicts) > 1:
+        raise SeatRefusal(
+            "unruled-merge",
+            f"the merge plan rules {branch!r} twice and the rulings disagree "
+            f"({', '.join(sorted(verdicts))}) -- an AMBIGUOUS plan",
+            remedy=("ESCALATE: ask the plan half which ruling stands. Taking the first would "
+                    "let a superseded ruling authorise a merge and taking the last would let a "
+                    "stale append do it; neither is yours to pick"))
+    entry = matched[0]
+    if not entry.mergeable:
+        raise SeatRefusal(
+            "unruled-merge",
+            f"the merge plan rules {branch!r} {entry.verdict}, not {_MERGE_VERDICT}"
+            + (f" -- {entry.detail}" if entry.detail else ""),
+            remedy=("obey the ruling; do not re-open it. A ruling against a merge is still a "
+                    "ruling. ESCALATE only if you hold a fact the ruling was made without"))
+    return entry
+
+
 # --- 3. the reviewer's model id in the tally ---------------------------------------------------
 
 _TALLY_RE = re.compile(
@@ -682,6 +847,59 @@ def refuse_dispatcher_step0_without_dryrun(step0_text: str, *, contracts: "list[
     return len(contracts)
 
 
+# --- 8/9. no-live-integrator and lane-owned: seat STATE, at step 0 (`[#833]`) --------------------
+#
+# Both read `seat_registry.seats()` -- a list of seats whose `state` was derived from hook-event
+# timestamps, never asserted. They take the list rather than importing the registry, so this module
+# stays importable by the registry itself (which raises `SeatRefusal`) without a cycle, and so a
+# test hands them a registry built in `tmp_path`.
+
+def refuse_no_live_integrator(batch: str, seats: "list") -> "object":
+    """A lane may enter `batch` only while a `live` integrator seat is bound to it.
+
+    Returns that seat (the most recently active, if several). A wedged, starved or absent integrator
+    does NOT count and is NAMED in the refusal with its state: a handback addressed to a seat that
+    stopped receiving is the same loss as one addressed to nobody, only slower to find.
+    """
+    wanted = str(batch).upper()
+    bound = [s for s in seats if s.role == "integrator" and str(s.batch or "").upper() == wanted]
+    live = [s for s in bound if s.state == "live"]
+    if live:
+        return max(live, key=lambda s: s.last_event)
+    seen = "; ".join(f"{s.session_id[:8]} reads {s.state}" for s in bound) or "none registered"
+    raise SeatRefusal(
+        "no-live-integrator",
+        f"batch {wanted} has no live integrator seat ({seen}) -- a lane dispatched now hands back "
+        "to nobody",
+        remedy=f"boot the integrator for batch {wanted} and, from ITS OWN session, run "
+               f"`uv run --locked python scripts/seat_registry.py bind --role integrator --batch "
+               f"{wanted}`; then dispatch. A dispatcher or lane never binds a role it does not hold",
+    )
+
+
+def refuse_lane_owned(lane: str, seats: "list", *, own_session: str) -> None:
+    """A second session may not boot onto a lane whose owner is `live`.
+
+    Only `live` refuses. A wedged or absent owner is exactly the case where a relaunch IS the
+    remedy -- lane ab-833's first boot sat 12 h 43 min at a SessionStart hook before its relaunch --
+    and refusing that would trade one lost lane for a lane nobody may restart. The caller's own
+    session never refuses itself.
+    """
+    owners = [s for s in seats
+              if s.lane == lane and s.session_id != own_session and s.state == "live"]
+    if not owners:
+        return None
+    owner = max(owners, key=lambda s: s.last_event)
+    raise SeatRefusal(
+        "lane-owned",
+        f"{lane} already has a live owner: session {owner.session_id} "
+        f"({owner.minutes_since:.0f} min since its last event)",
+        remedy="do not start a second session here -- two committing sessions share one index. "
+               "Message the owner instead; if it is truly gone it reads wedged or absent within "
+               "the registry's threshold and this refusal lifts on its own",
+    )
+
+
 # --- the CLI -- so a seat template carries a RUNNABLE refusal, not a reminder ------------------
 #
 # A seat boot that says "remember the ceiling" has said nothing this repo has not already said in
@@ -792,6 +1010,31 @@ def cmd_file_collision(contracts: tuple[str, ...], provisioned: tuple[str, ...],
                    f"invisible to this check: {', '.join(blind)}")
 
 
+@cli.command("unruled-merge")
+@click.option("--plan", required=True, type=click.Path(exists=True, dir_okay=False),
+              help="the merge plan the PLAN half wrote")
+@click.option("--branch", required=True, help="the branch you are about to merge")
+def cmd_unruled_merge(plan: str, branch: str) -> None:
+    """The plan half RULED this merge -- run it immediately before each `git merge --no-ff`."""
+    text = Path(plan).read_text(encoding="utf-8")
+    try:
+        entry = refuse_unruled_merge(text, branch=branch)
+    except SeatRefusal as exc:
+        _fail(exc)
+    queue = ruled_merges(text)
+    held = [e for e in ruled_merges(text, include_unmergeable=True) if not e.mergeable]
+    click.echo(f"unruled-merge: PASS -- {entry.branch} ruled {entry.verdict}"
+               f"{' INDEPENDENT' if entry.independent else ''}"
+               f"{(' -- ' + entry.detail) if entry.detail else ''}")
+    # THE QUEUE AND THE HELD SET, both printed, because the refuse-to-finish checklist asks a
+    # seat what it did NOT do and a seat that never saw the held entries cannot answer.
+    click.echo(f"unruled-merge: queue ({len(queue)}): "
+               + ", ".join(e.branch for e in queue))
+    if held:
+        click.echo(f"unruled-merge: NOT mergeable ({len(held)}): "
+                   + ", ".join(f"{e.branch}={e.verdict}" for e in held))
+
+
 @cli.command("reviewer")
 @click.option("--contracted", required=True, help="the exact model id the contract named")
 @click.argument("artifact", type=click.Path(exists=True, dir_okay=False))
@@ -833,6 +1076,39 @@ def cmd_dryrun_step0(step0: str, contracts: tuple[str, ...]) -> None:
     except SeatRefusal as exc:
         _fail(exc)
     click.echo(f"dryrun-step0: PASS -- {count} contract(s) DryRun on the last line of step 0")
+
+
+def _seat_registry():
+    """Lazy: the registry imports this module, so this module imports it only when a verb runs."""
+    try:
+        import seat_registry  # noqa: PLC0415
+    except ImportError:                                      # imported as `scripts.seat_refusals`
+        from scripts import seat_registry  # type: ignore[no-redef]  # noqa: PLC0415
+    return seat_registry
+
+
+@cli.command("no-live-integrator")
+@click.option("--batch", required=True, help="the batch token, e.g. AB")
+def cmd_no_live_integrator(batch: str) -> None:
+    """STEP 0: the batch has a LIVE integrator seat to receive its lanes ([#833])."""
+    try:
+        seat = refuse_no_live_integrator(batch, _seat_registry().seats())
+    except SeatRefusal as exc:
+        _fail(exc)
+    click.echo(f"no-live-integrator: PASS -- batch {batch.upper()} is received by integrator "
+               f"{seat.session_id} ({seat.minutes_since:.0f} min since its last event)")
+
+
+@cli.command("lane-owned")
+@click.option("--lane", required=True, help="the lane worktree name")
+def cmd_lane_owned(lane: str) -> None:
+    """STEP 0 of a lane: no OTHER live session owns this lane ([#833])."""
+    own = os.environ.get("CLAUDE_CODE_SESSION_ID", "")
+    try:
+        refuse_lane_owned(lane, _seat_registry().seats(), own_session=own)
+    except SeatRefusal as exc:
+        _fail(exc)
+    click.echo(f"lane-owned: PASS -- no other live session holds {lane}")
 
 
 if __name__ == "__main__":                                   # pragma: no cover -- CLI entry

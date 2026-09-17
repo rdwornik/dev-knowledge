@@ -175,7 +175,7 @@ DEFAULT_MODEL = "opus"
 MODE_ENUM: tuple[str, ...] = ("execute", "plan-then-auto", "plan")
 DEFAULT_MODE = "execute"
 
-#: WHAT THE LANE'S WORK **IS** (`[#793]` clause 2) — the variable the routing default keys on,
+#: WHAT THE LANE'S WORK **IS** (`[#885]` clause 2) — the variable the routing default keys on,
 #: and the one field in this vocabulary a generator cannot derive from the others.
 #:
 #: DECLARED, NEVER INFERRED, AND THERE IS DELIBERATELY NO DEFAULT. An inferred kind that is
@@ -425,15 +425,22 @@ _INTERACTIVE_LINE_RE = re.compile(
 #: design exists to avoid. Only the two parameters a FROZEN contract must pin are emitted; the
 #: machine, idle-timeout and retention flags are dispatch-time cost choices and freezing them
 #: into a contract would state a spend the operator has not yet made.
+#: `-Model` is OPTIONAL in the grammar and MANDATORY in what this generator emits, the exact
+#: split `[#717]` established for the local form's `--model` — see `dispatch_command`'s
+#: codespace branch and the conjunction check in `parse_contract` below (`[#810]`). Every
+#: historical codespace contract frozen before `[#810]` carries no `-Model`; widening the
+#: grammar to admit it (rather than requiring it structurally) is what keeps that corpus
+#: parsing clean without amnesty machinery of its own.
 _CODESPACE_DISPATCH_LINE_RE = re.compile(
-    r"^Dispatch-Codespace\s+-Contract\s+(?P<file>\S+)\s+-Slug\s+(?P<slug>\S+)\s*$",
+    r"^Dispatch-Codespace\s+-Contract\s+(?P<file>\S+)\s+-Slug\s+(?P<slug>\S+)"
+    r"(?:\s+-Model\s+(?P<model>\S+))?\s*$",
     re.MULTILINE,
 )
 #: The declared shape. Without it a checker cannot tell a correct command from a wrong one,
 #: which is the whole property this generator exists to hold.
 _SHAPE_LINE_RE = re.compile(r"^\*\*Shape:\*\*\s+`(?P<shape>[a-z]+)`", re.MULTILINE)
 
-#: `[#793]`. Anchored at line start and fenced-token-only, for the reason `_SHAPE_LINE_RE`
+#: `[#885]`. Anchored at line start and fenced-token-only, for the reason `_SHAPE_LINE_RE`
 #: records about itself: unanchored, a contract EXPLAINING the field mid-sentence wins the
 #: precedence race over the real declaration further down.
 _KIND_LINE_RE = re.compile(r"^\*\*Kind:\*\*\s+`(?P<kind>[a-z-]+)`", re.MULTILINE)
@@ -544,7 +551,7 @@ def validate_mode(mode: str) -> str:
 
 
 def validate_kind(kind: "Optional[str]") -> str:
-    """Return the lane kind, or raise `LaneContractError`. ABSENCE IS A REFUSAL (`[#793]`).
+    """Return the lane kind, or raise `LaneContractError`. ABSENCE IS A REFUSAL (`[#885]`).
 
     The one validator here whose empty case is not a default. `validate_model` and friends
     answer "is this value in the enum"; this one answers that AND "was a value given at all",
@@ -554,7 +561,7 @@ def validate_kind(kind: "Optional[str]") -> str:
     raw = (kind or "").strip()
     if not raw:
         raise LaneContractError(
-            f"the lane declares no KIND, and the routing default keys on it ([#793] clause 2) "
+            f"the lane declares no KIND, and the routing default keys on it ([#885] clause 2) "
             f"— declare one of {{{' | '.join(KIND_ENUM)}}}. It is not inferred: a guessed kind "
             f"produces a refusal the author cannot act on, because they declared nothing to "
             f"correct")
@@ -657,12 +664,12 @@ def routing_refusals(*, model: str, kind: str, shape: str) -> list[str]:
             f"model {model!r} is REFUSED at freeze on the unattended shape {shape!r}: "
             f"{inert[model]} Declare a tier this launcher can honour — "
             f"{' or '.join(m for m in MODEL_ENUM if m not in inert)} — rather than a token that "
-            f"evaporates between the contract and the run ([#793] clause 1, leg RESOLVE)")
+            f"evaporates between the contract and the run ([#885] clause 1, leg RESOLVE)")
 
     if kind == "text" and model in ("opus", "opusplan"):
         out.append(
             f"a {kind!r} lane (text-only, deletion, or read-only digest) declares {model!r}: "
-            f"REFUSED at freeze ([#793] clause 2). The freeze is the last point at which "
+            f"REFUSED at freeze ([#885] clause 2). The freeze is the last point at which "
             f"re-cutting is free, which is why this fires here and not at dispatch or at "
             f"review. Opus is a flat 2.5x Sonnet on BOTH legs (5.0/2.0 input, 25.0/10.0 "
             f"output) and both cache legs multiply the input rate, so the saving is 2.5x "
@@ -676,7 +683,7 @@ def routing_refusals(*, model: str, kind: str, shape: str) -> list[str]:
         cli = reviewer_cli()
         names = f"routes the `reviewer` role to `{cli}`" if cli else "is the authority for it"
         out.append(
-            f"a {kind!r} lane cannot be frozen on this dispatch line ([#793] clause 2). Every "
+            f"a {kind!r} lane cannot be frozen on this dispatch line ([#885] clause 2). Every "
             f"shape this generator emits launches a `claude` session, and {ROUTING_TABLE_REL} "
             f"{names} (register ruling Z-G3 A2 — that file is the AUTHORITY for role -> CLI; "
             f"`provider-registry.yaml`'s `roles:` is a RANKING and is not consulted here). A "
@@ -764,11 +771,15 @@ def dispatch_command(slug: str, contract_file: str, effort: str, shape: str,
     line is making a promise about how it will run; a line that drops the model silently
     re-decides the most expensive constant on it.
 
-    The three other shapes take no `-Model`: `Dispatch-CloudV2` and `Dispatch-Codespace` carry
-    no such parameter (their tier is on the record in the routing row, as their `-Effort` is),
-    and an interactive first message is a chat message rather than a command line. `model` is
-    accepted for all four so callers have one signature, and is RENDERED only where a parameter
-    exists to receive it — the same scoping `-Effort` already has.
+    `Dispatch-Codespace` carries `-Model` too, as of `[#810]` — win-tooling's runner had no
+    `-Model` parameter at all until that lane's Done-contract, so `Start-DispatchCodespace`
+    ran every lane at whatever `claude` defaulted to, unstated and unchecked against the
+    routing row. `Dispatch-CloudV2` and interactive still take none: cloud's tier is on the
+    record in the routing row exactly as codespace's now is (`-Effort` is absent from both for
+    the same reason), and an interactive first message is a chat message rather than a command
+    line with a parameter surface to carry one. `model` is accepted for all four so callers
+    have one signature, and is RENDERED only where a parameter exists to receive it — the same
+    scoping `-Effort` already has.
 
     `[#675]` CLAUSE 1 / AX25-2 MOVED THE LOCAL FORM from `Dispatch-Lane <slug> <file> -Effort
     <e> -Model <m>` to the `claude --bg …` line the ruled verb will actually run, and the whole
@@ -799,7 +810,7 @@ def dispatch_command(slug: str, contract_file: str, effort: str, shape: str,
     if shape == "interactive":
         return f"Read {PROMPTS_DIR_TOKEN}\\{contract_file} and execute it exactly."
     if shape == "codespace":
-        return f"Dispatch-Codespace -Contract {contract_file} -Slug {slug}"
+        return f"Dispatch-Codespace -Contract {contract_file} -Slug {slug} -Model {model}"
     return (f"claude {BACKGROUND_FLAG} --model {model} --effort {effort} {PERMISSION_MODE} "
             f"--worktree {slug} "
             f'"Read and execute the frozen contract at '
@@ -831,7 +842,7 @@ class LaneSpec:
     repo: str = ".dev-knowledge"
     task_id: Optional[str] = None
     model: str = DEFAULT_MODEL
-    #: `[#793]` clause 2. NO DEFAULT, and `validated()` refuses `None` — see `validate_kind`.
+    #: `[#885]` clause 2. NO DEFAULT, and `validated()` refuses `None` — see `validate_kind`.
     #: A keyword field rather than a positional one so the dataclass's existing shape survives;
     #: what makes it mandatory is the validator, not the signature.
     kind: Optional[str] = None
@@ -916,7 +927,7 @@ def render_contract(spec: LaneSpec) -> str:
     parts.append(f"**Kind:** `{spec.kind}` — {KIND_GLOSS[spec.kind]}.\n")
     parts.append(
         f"The kind is DECLARED, not inferred, and it is what the routing default keys on\n"
-        f"(`[#793]` clause 2). A text-only, deletion or read-only-digest lane never starts on\n"
+        f"(`[#885]` clause 2). A text-only, deletion or read-only-digest lane never starts on\n"
         f"Opus; a review lane is not dispatched from a lane contract at all, because\n"
         f"`{ROUTING_TABLE_REL}` is the authority for which CLI runs that role; a code lane\n"
         f"plans on Opus and implements on Sonnet **as two sessions with a file between them**,\n"
@@ -1139,7 +1150,7 @@ class ParsedContract:
     effort: Optional[str] = None
     model: Optional[str] = None
     mode: Optional[str] = None
-    #: `[#793]` — the declared lane kind, or None when the contract declares none (reported).
+    #: `[#885]` — the declared lane kind, or None when the contract declares none (reported).
     kind: Optional[str] = None
     receipt_fields: tuple[str, ...] = ()
     problems: tuple[str, ...] = field(default=())
@@ -1187,7 +1198,7 @@ def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedCo
             problems.append(
                 f"declared shape {shape!r} is outside {{{' | '.join(SHAPE_ENUM)}}}")
             shape = None
-    # --- the declared KIND (`[#793]` clause 2) ---------------------------------------------
+    # --- the declared KIND (`[#885]` clause 2) ---------------------------------------------
     # ABSENT IS REPORTED, and the amnesty question was asked and answered rather than skipped.
     # The 124 lane contracts already in this tree carry no `**Kind:**` line, and none of them
     # is checked by the `lane-contract-check` hook: it runs `pass_filenames: false`, so `check`
@@ -1200,7 +1211,7 @@ def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedCo
     if kind_match is None:
         problems.append(
             f"no `**Kind:** `<kind>`` line found in the `## Dispatch` block — the routing "
-            f"default keys on the lane kind ([#793] clause 2), and it is DECLARED rather than "
+            f"default keys on the lane kind ([#885] clause 2), and it is DECLARED rather than "
             f"inferred; enum {{{' | '.join(KIND_ENUM)}}}")
     else:
         kind = kind_match.group("kind")
@@ -1312,6 +1323,16 @@ def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedCo
             problems.append(
                 f"dispatch line pairs slug {slug!r} with file {contract_file!r}; the 1:1 "
                 f"pairing wants {contract_filename(slug)!r}")
+        if matched_shape == "codespace":
+            # `[#810]`: the codespace form's own `-Model` group, held to the SAME enum and
+            # routing-row conjunction the local form's `line_model` already gets below —
+            # setting the SAME variable is what makes that check apply for free. Cloud has
+            # no such group (its regex carries none), so this stays scoped to codespace.
+            line_model = cloud_match.group("model")
+            if line_model is not None and line_model not in MODEL_ENUM:
+                problems.append(
+                    f"dispatch line carries model {line_model!r}, outside "
+                    f"{{{' | '.join(MODEL_ENUM)}}}")
     elif matched_shape == "interactive":
         # The first message names the contract file and nothing else — there is no slug and
         # no tier on it to check. Both are still on the record: the slug on the pairing line
@@ -1486,7 +1507,7 @@ def cli() -> None:
 @click.option("--id", "task_id", default=None, help="BACKLOG task id, digits only (e.g. 539)")
 @click.option("--model", type=click.Choice(MODEL_ENUM), default=DEFAULT_MODEL, show_default=True)
 @click.option("--kind", type=click.Choice(KIND_ENUM), required=True,
-              help="what the lane's work IS — the routing default keys on it ([#793] clause 2); "
+              help="what the lane's work IS — the routing default keys on it ([#885] clause 2); "
                    "REQUIRED and never inferred")
 @click.option("--mode", type=click.Choice(MODE_ENUM), default=DEFAULT_MODE, show_default=True)
 @click.option("--effort", type=click.Choice(EFFORT_ENUM), default="high", show_default=True)

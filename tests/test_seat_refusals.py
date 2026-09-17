@@ -676,14 +676,19 @@ def test_every_refusal_names_itself_and_carries_a_remedy():
 
 
 def test_the_refusal_registry_lists_every_refusal_in_declaration_order():
-    """Five from batches T/U, plus `file-collision` from `[#675]` target 3.4.
+    """Five from batches T/U, `file-collision` from `[#675]` target 3.4, and `unruled-merge`
+    from lane `aa-2`'s integrator plan/execute split.
 
     The roster is asserted WHOLE and in order rather than by membership: a seat template cites
-    these ids, so a silent addition or reorder changes what a rendered boot runs.
+    these ids, so a silent addition or reorder changes what a rendered boot runs. Widening it is
+    therefore an edit a reviewer sees, which is the point -- a membership assertion, or a
+    `len(...) <= N` bound, would both be satisfied by swapping one id for another.
     """
     assert sr.REFUSALS == (
         "sleeping-poll", "lane-ceiling", "reviewer-mismatch", "carried-by", "dryrun-step0",
-        "file-collision",
+        "file-collision", "unruled-merge",
+        # [#833]: the two STEP-0 refusals over the seat registry.
+        "no-live-integrator", "lane-owned",
     )
 
 
@@ -753,3 +758,94 @@ def test_cli_sleeping_poll_and_dryrun_read_files(tmp_path):
     assert _run("dryrun-step0", "--step0", str(step0),
                 "--contract", "LANE-a.md", "--contract", "LANE-b.md").exit_code == 0
     assert _run("dryrun-step0", "--step0", str(step0), "--contract", "LANE-z.md").exit_code == 1
+
+
+# --- 8/9 -- a batch with no live integrator, and a lane that already has a live owner ([#833]) ----
+#
+# Both are STEP-0 refusals over the seat registry, and both exist because the absence cost hours
+# this week: a half-day with no integrator because nobody booted one, and -- on lane ab-833 itself,
+# 2026-09-17 -- a second session dispatched onto a lane whose owner was live, found only by reading
+# staged files and a process scan. Each has a trip-test AND a passing path, so neither can satisfy
+# its trip-test by refusing everything.
+
+import importlib  # noqa: E402
+from datetime import datetime, timedelta, timezone  # noqa: E402
+
+_T0 = datetime(2026, 9, 17, 10, 47, tzinfo=timezone.utc)
+_LANE_CWD = "C:/Dev/.dev-knowledge/.claude/worktrees/lane-ab-833-seat-registry"
+
+
+def _registry(tmp_path, *events, binds=()):
+    seat_registry = importlib.import_module("seat_registry")
+    path = tmp_path / "seats.jsonl"
+    for event, session, minutes, cwd in events:
+        seat_registry.record_event({"hook_event_name": event, "session_id": session, "cwd": cwd},
+                                   path=path, now=_T0 + timedelta(minutes=minutes),
+                                   env={"CLAUDE_PID": "4242"})
+    for role, batch, session in binds:
+        seat_registry.bind(role, batch, session_id=session, path=path, now=_T0)
+    return path
+
+
+def _read(path, *, minutes=1):
+    seat_registry = importlib.import_module("seat_registry")
+    return seat_registry.seats(path, now=_T0 + timedelta(minutes=minutes),
+                               pid_alive=lambda _p: True, path_exists=lambda _p: True,
+                               transcript_mtime=lambda _p: None)
+
+
+def test_a_lane_into_a_batch_with_no_integrator_seat_is_refused_naming_the_role(tmp_path):
+    path = _registry(tmp_path)
+    with pytest.raises(sr.SeatRefusal, match="no-live-integrator") as exc:
+        sr.refuse_no_live_integrator("AB", _read(path))
+    assert "integrator" in exc.value.detail and "AB" in exc.value.detail
+
+
+def test_a_wedged_integrator_does_not_count_as_a_receiving_seat(tmp_path):
+    path = _registry(tmp_path, ("SessionStart", "int-1", 0, "C:/Dev/hub"),
+                     binds=[("integrator", "AB", "int-1")])
+    stale = _read(path, minutes=importlib.import_module("seat_registry").WEDGED_AFTER_MIN + 5)
+    with pytest.raises(sr.SeatRefusal, match="no-live-integrator") as exc:
+        sr.refuse_no_live_integrator("AB", stale)
+    assert "wedged" in exc.value.detail
+
+
+def test_an_integrator_of_another_batch_does_not_count(tmp_path):
+    path = _registry(tmp_path, ("SessionStart", "int-1", 0, "C:/Dev/hub"),
+                     binds=[("integrator", "AA", "int-1")])
+    with pytest.raises(sr.SeatRefusal, match="no-live-integrator"):
+        sr.refuse_no_live_integrator("AB", _read(path))
+
+
+def test_a_live_integrator_for_the_batch_admits_the_lane(tmp_path):
+    path = _registry(tmp_path, ("SessionStart", "int-1", 0, "C:/Dev/hub"),
+                     binds=[("integrator", "ab", "int-1")])
+    assert sr.refuse_no_live_integrator("AB", _read(path)).session_id == "int-1"
+
+
+def test_a_second_session_onto_a_lane_with_a_live_owner_is_refused(tmp_path):
+    """The 2026-09-17 witness: owner 52a3764d live, duplicate 506ef5c0 dispatched at 11:12."""
+    path = _registry(tmp_path, ("SessionStart", "52a3764d", 0, _LANE_CWD))
+    with pytest.raises(sr.SeatRefusal, match="lane-owned") as exc:
+        sr.refuse_lane_owned("lane-ab-833-seat-registry", _read(path, minutes=25),
+                             own_session="506ef5c0")
+    assert "52a3764d" in exc.value.detail
+
+
+def test_the_owner_itself_is_not_refused_by_its_own_seat(tmp_path):
+    path = _registry(tmp_path, ("SessionStart", "52a3764d", 0, _LANE_CWD))
+    assert sr.refuse_lane_owned("lane-ab-833-seat-registry", _read(path),
+                                own_session="52a3764d") is None
+
+
+def test_a_relaunch_over_a_wedged_owner_is_admitted(tmp_path):
+    """The 12 h 43 min SessionStart wedge: relaunching over a dead-in-place seat is the remedy."""
+    path = _registry(tmp_path, ("SessionStart", "old-seat", 0, _LANE_CWD))
+    stale = _read(path, minutes=importlib.import_module("seat_registry").WEDGED_AFTER_MIN + 5)
+    assert sr.refuse_lane_owned("lane-ab-833-seat-registry", stale, own_session="new") is None
+
+
+def test_an_owner_of_a_different_lane_does_not_refuse(tmp_path):
+    path = _registry(tmp_path, ("SessionStart", "52a3764d", 0, _LANE_CWD))
+    assert sr.refuse_lane_owned("lane-ab-834-protocols-heading-gate", _read(path),
+                                own_session="new") is None

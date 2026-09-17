@@ -36,9 +36,7 @@ So that the canonical v5 handoff is fully implemented (generator) and mechanical
 - [#422] [P2][S] `reflow_framing`'s cold→FILLED flip is partial by design, and nothing detects the self-contradiction it leaves · tasks/422-reflow-framing-s-cold-filled-flip-is-partial-by.md
 - [#547] [P3][S] Split-brain prevention is instructed against a handoff section shape v6 does not produce · tasks/547-split-brain-prevention-has-no-referent-under-v6.md
 - [#599] [P2][M] Generated standing-vs-NEW drift block in the handoff residual · tasks/599-generated-standing-vs-new-drift-block-in-the-han.md
-- [#600] [P2][S] Delete P10 from the shipped probe manifest and gate the boundedness condition · tasks/600-delete-p10-from-the-shipped-probe-manifest-and-g.md
 - [#602] [P2][M] Land the ruled dispatch verb in the bundle's forms card, and extend the agreement gate to the bundle sites · tasks/602-land-the-ruled-dispatch-verb-in-the-bundle-s-for.md
-- [#643] [P1][M] The handoff preflight reports P11 carriage after the cut instead of refusing it, and two consecutive bundles shipped the same defect · tasks/643-preflight-reports-p11-carriage-instead-of-refusing.md
 - [#603] [P3][S] An operator-interface capability file — the facts every seat re-derives about how the operator works · tasks/603-an-operator-interface-capability-file-the-facts.md
 - [#619] [P2][M] The FM-2 to FM-4 funnel-health coupling is dead — six fields, zero overlap · tasks/619-the-fm-2-to-fm-4-funnel-health-coupling-is-dead.md
 - [#641] [P3][S] Declare a MEMORY.md byte budget, or rule that none is owed · tasks/641-declare-a-memory-md-byte-budget-or-rule-that-none.md
@@ -67,6 +65,10 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#499] [P3][M] Promote the review-artifact coverage leg to a hard pre-push gate · DEFER · tasks/499-promote-the-review-artifact-coverage-leg-from-ad.md
 - [#560] [P2][S] `review_artifact_coverage` reads only the FIRST branch/HEAD triple per file, and one title literal, so a real review can be invisible to it · tasks/560-review-artifact-coverage-reads-only-the-first-br.md
 - [#573] [P3][S] lychee as a zero-baseline markdown-link gate on the actionable corpus · tasks/573-lychee-zero-baseline-md-link-gate.md
+- [#786] [P2][S] Give the PLAYBOOK order-conventions heading a gate · tasks/786-give-the-playbook-order-conventions-heading-a-ga.md
+- [#828] [P1][S] 752 · tasks/828-752.md
+- [#829] [P1][S] 613 · tasks/829-613.md
+- [#830] [P2][M] Witness · tasks/830-witness.md
 
 - [#510] [P2][M] Scope the R-1 exemption to the lanes its manifest enumerates — self-grantable by branch naming today · tasks/510-scope-r1-exemption-to-enumerated-lanes.md
 - [#514] [P1][M] Two rival `LANE_BRANCH_RE` constants ship in one repo · tasks/514-two-rival-lane-branch-re-constants-reconcile-them.md
@@ -76,12 +78,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#552] [P2][M] Window-close disposition + archival routine — every new audit gets a disposition, every terminal ADR/intake is archived · tasks/552-window-close-disposition-and-archival-routine.md
 - [#579] [P1][L] Code doctrine & FDD — one ADR merging intakes #31 and #34 (packet ARC-A) · tasks/579-code-doctrine-fdd-one-adr-merging-intakes-31-and.md
 - [#583] [P2][M] Green-by-skip sweep — a check that cannot obtain ground truth must not report OK (packet ARC-E, C18) · tasks/583-green-by-skip-sweep-a-check-that-cannot-obtain-g.md
-- [#591] [P2][M] Substrate validator, layer 2 — REFUSE a contract whose substrate contradicts its own content · tasks/591-substrate-validator-layer-2-refuse-a-contract-wh.md
-- [#592] [P2][S] Dispatch drift organ — every literal command in Ch8 must resolve on the machine · tasks/592-dispatch-drift-organ-every-literal-command-in-ch.md
 - [#595] [P2][M] Consumer-at-landing gate for `docs/audits/` — the subtraction mechanism · tasks/595-consumer-at-landing-gate-for-docs-audits-the-sub.md
-- [#596] [P3][S] Family-3 at the PROOF layer — the class `[#583]` names but does not prove · tasks/596-family-3-at-the-proof-layer-the-class-583-names.md
-- [#601] [P2][S] `supplement_folded` audit check — a filled supplement that never reached the paste · tasks/601-supplement-folded-audit-check-a-filled-supplemen.md
-- [#613] [P2][M] In-repo routing table + L0 agreement check · tasks/613-in-repo-routing-table-agreement-check.md
 - [#615] [P2][M] MODEL ATTRIBUTION — a model+version signature trailer on every model-authored commit · tasks/615-model-attribution-signature-trailer-on-every.md
 - [#624] [P2][M] Nothing watches a BLOCKER's status — a fold target went deferred and no organ noticed · tasks/624-nothing-watches-a-blockers-status.md
 - [#629] [P1][M] An amendment cannot SUBTRACT an act — split rulings REISSUE (predicate 7) · tasks/629-a-contract-amendment-cannot-subtract-an-act.md
@@ -118,26 +115,50 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#699] [P2][S] Three tally grammars coexist and two collide on a substring, so which one a first-match reader resolves is decided by ordering rather than by meaning · tasks/699-three-tally-grammars-coexist-and-two-collide-on-a-substring.md
 - [#715] [P1][L] Path management has no single declaration -- three governed-path mismatches in one day, and the registry the operator is describing already exists as FPG-1 · tasks/715-path-management-has-no-single-declaration-and-fpg1-is-already-the-registry.md
 - [#726] [P1][S] A session whose worktree was torn down silently resolves to the PRIMARY checkout, so its next write lands on the integrator's branch · tasks/726-torn-down-worktree-session-silently-resolves-to-the-primary-checkout.md
-- [#742] [P1][S] `actions_verdict` reports PASS when the job details cannot be read, so an unreadable run is indistinguishable from a clean one · tasks/742-actions-verdict-reports-pass-when-job-details-cannot-be-read.md
-- [#743] [P1][S] The step-0 collision extractor requires a slash, so two lanes may both declare a root-level file and pass · tasks/743-collision-extractor-is-blind-to-root-level-files.md
-- [#744] [P1][S] `median_report` filters receipts by kind but never by completeness, so the under-30 target can be met on incomplete receipts · tasks/744-median-report-counts-incomplete-receipts.md
 - [#747] [P1][M] Adoption-by-invocation — a command file confers adoption only while telemetry records real invocations, and it decays at 30 days · tasks/747-adoption-by-invocation-command-file-confers-adoption-only-while-invoked.md
 - [#748] [P1][M] A lane whose worktree resolves to the primary checkout via a `core.worktree` redirect has no isolation, and dispatch cannot see it · tasks/748-a-lane-whose-worktree-redirects-to-the-primary-has-no-isolation.md
 - [#749] [P1][M] Two lanes may be dispatched for the same row under different slugs, because every duplicate check compares slugs rather than rows · tasks/749-two-lanes-may-be-dispatched-for-the-same-row-under-different-slugs.md
-- [#750] [P1][M] A merge can land with no receipt, the completeness predicate flattens a verdict state machine into a boolean, and `wall_seconds` records serial time rather than the arc span · tasks/750-a-merge-can-land-with-no-receipt-the-completenes.md
-- [#752] [P1][M] A contract's declared model and mode reach no flag the background launcher honours, and nothing reads what a lane actually ran · tasks/752-a-contracts-declared-model-and-mode-reach-no-fla.md
 - [#758] [P2][S] `[#675]` target 3.2 has never been satisfiable by the `lane-integrate` walk · tasks/758-675-target-32-has-never-been-satisfiable-by-the-w.md
 - [#759] [P2][S] `range_is_anchored` and `unanchored_on_spine` disagree on scope, and the 2026-09-14 instance fix does not close the class · tasks/759-range-is-anchored-and-unanchored-on-spine-disagree.md
 - [#761] [P2][S] The edge-class census prices its own false positive as cheap, but paying it is an escalation class, so lanes route around the gate instead · tasks/761-the-edge-class-census-prices-its-own-false-positive.md
 - [#762] [P2][S] A worktree teardown races the departing session's Stop hook, which re-creates the tree being removed — and the no-leftovers check cannot see what it leaves · tasks/762-a-worktree-teardown-races-the-departing-sessions-stop-hook.md
 - [#763] [P1][S] Re-measure the batch-Z suite baseline freeze at batch close — a cause whose lane merged must have left the set · tasks/763-re-measure-the-batch-z-suite-baseline-freeze-at.md
 - [#764] [P1][S] Batch Z implements the night plan of 2026-09-15 — the four transport decisions the engine refused every commit for · tasks/764-batch-z-implements-the-night-plan-of-2026-09-15.md
-- [#765] [P1][M] Technical quality requirements are a registered artifact read by a gate, not prose in a paste · tasks/765-technical-quality-requirements-are-a-registered.md
+- [#792] [P1][L] The runtime-resource lifecycle organ: two regimes, two mechanisms, no shared thresholds · tasks/792-runtime-resource-lifecycle-two-regimes-two-mechanisms.md
 - [#783] [P2][S] The carried-to-RESOLVED leg of decision-coverage has never once been exercised · tasks/783-the-carried-to-resolved-leg-of-decision-coverage-has-never-been-exercised.md
 - [#768] [P1][M] A gate has one refusal channel, so a violation and an environment it could not evaluate are indistinguishable to the committer · tasks/768-a-gate-has-one-refusal-channel-so-a-violation-an.md
 - [#772] [P1][M] Every dispatched lane inherits the whole secret store -- there is no introspect-and-exchange step and no row about it · tasks/772-every-dispatched-lane-inherits-the-whole-secret.md
 - [#787] [P2][M] A test double for an external tool must CITE the real tool's contract for the behaviour it fakes -- a fixture nobody checked against the tool is a false-success surface · tasks/787-a-test-double-for-an-external-tool-must-cite-the.md
 - [#788] [P1][M] The local maximum is not the task-id allocator under concurrency -- a sibling branch's held id is invisible from a worktree and nothing in the repo refuses it · tasks/788-the-local-maximum-is-not-the-task-id-allocator-u.md
+- [#789] [P1][M] The seat boot rendered its declared model split into an HTML COMMENT while the launch line was a bare `claude` — batch Z ran 100% Opus under a header claiming otherwise · tasks/789-the-seat-boot-rendered-its-model-split-into-an-html.md
+- [#802] [P1][M] The conductor emails on every push because it does not know about the frozen baseline — compare against the set, do not silence the notification · tasks/802-the-conductor-emails-on-every-push-because-it-does.md
+- [#803] [P1][M] A substrate request is availability-gated and silently downgraded while reporting success — the dispatcher must verify the substrate it RECEIVED against the one it ORDERED, before briefing the lane · tasks/803-a-substrate-request-is-availability-gated-and-sile.md
+- [#804] [P1][M] No committed batch manifest, no dispatch; ids come from the manifest · tasks/804-a-batch-manifest-committed-before-the-first-l.md
+- [#805] [P1][M] An integrator finishes a batch unattended on recorded defaults · tasks/805-an-integrator-must-be-able-to-finish-a-batch-u.md
+- [#806] [P1][M] The silent-rule ratchet has no recorded ratification path · tasks/806-the-silent-rule-ratchet-has-no-recorded-ratifi.md
+- [#808] [P1][M] A hung hook wedges its session with no record; every hook needs a bound that fails OPEN loudly · tasks/808-a-hook-has-no-bounded-execution-time-so-a-hung-guard-wedges-the-session.md
+- [#809] [P1][S] The lane branch grammar allows one batch letter and all 26 are spent; widen it, never recycle · tasks/809-the-lane-branch-grammar-has-one-letter-and-all-26-are-used.md
+- [#810] [P1][S] The Codespace runner cannot pass a model, so model enforcement is impossible on that substrate · tasks/810-the-codespace-runner-cannot-pass-a-model.md
+- [#811] [P1][S] A frozen contract can be re-issued after its pin, and a lane still boots on it -- the freeze is nominal · tasks/811-a-frozen-contract-can-be-re-issued-after-its-pin-and-a-lane-still-boots-on-it.md
+- [#812] [P1][M] A figure later falsified inside an immutable artifact has no standing correction path -- the protected file keeps circulating the error · tasks/812-a-falsified-figure-in-an-immutable-artifact-has-no-standing-correction-path.md
+- [#827] [P1][S] The memory floor's per-seat constant was miscalibrated in BOTH directions -- ~7x too low at first, so admission passed work the box could not run, then ~4x too high after recalibration, so it refused work it could have run · tasks/827-the-memory-floor-is-derived-from-a-stale-per-seat-constant.md
+- [#819] [P1][M] A lane's hub half can merge while its win-tooling half sits unmerged, undetected · tasks/819-a-lanes-hub-half-can-merge-while-its-win-too.md
+- [#820] [P2][S] A HANDBACK addressed to a seat that does not exist is an abandoned lane, not a dispatched one · tasks/820-a-handback-addressed-to-a-seat-that-does-not.md
+- [#821] [P1][M] `dispatch_drift` validates the repo against one machine's local deployed state, not the repo itself · tasks/821-dispatch-drift-validates-against-one-machines.md
+- [#822] [P1][S] A pipe masks the exit code of the command it wraps — a reported success is not evidence of the effect · tasks/822-a-pipe-masks-the-exit-code-of-the-command-it.md
+- [#823] [P1][S] The dispatch verb still boots a lane with no committed manifest -- only /lane-boot refuses · tasks/823-the-dispatch-verb-still-boots-a-lane-with-no-committed-manifest.md
+- [#824] [P1][M] No launch verb exists for a non-Claude lane, so every lane defaults to the Claude path · tasks/824-no-launch-verb-exists-for-a-non-claude-lane.md
+- [#825] [P2][S] single_flight.py misreports a real push race as an internal error (exit 2), not in flight (exit 3) · tasks/825-single-flight-misreports-a-real-push-race-as-an-internal-error.md
+- [#826] [P1][S] Id blocks in a batch manifest must be machine-read -- a prose block stopped nothing · tasks/826-id-blocks-must-be-machine-read-not-prose.md
+- [#833] [P1][M] A seat is not a registered entity, so a wedged, starved or absent seat is invisible until a human asks · tasks/833-a-seat-is-not-a-registered-entity-so-a-wedged-starved-or-absent-seat-is-invisible.md
+- [#834] [P2][S] Enforce one protocols/ rule-bearing heading with a refusal and a trip-test · tasks/834-enforce-one-protocols-heading-with-a-refusal-and-a-trip-test.md
+- [#843] [P1][M] A frozen contract's premise clause is carried from a digest, not verified against main at freeze time · tasks/843-contract-freezing-premise-clauses-carry-from-a-stale-digest.md
+- [#839] [P1][M] FPG-1 represents a missing target as an explicit dangling edge — the graph stops dropping the defect class it exists to catch · tasks/839-fpg-1-represents-a-missing-target-as-an-explicit.md
+- [#883] [P1][M] The commit gate was never priced -- a mechanism ships with a counter of what it caught, and a gate with no catch in its window is removed, not tuned · tasks/883-a-gate-ships-with-a-counter-or-is-removed.md
+- [#884] [P1][M] An unbounded research fan-out ran 17+ hours to re-answer a settled question -- a research dispatch states its agent cap, per-agent deadline and token budget before launch, and a step past its deadline is abandoned with what it has · tasks/884-a-research-dispatch-states-its-bounds-before-launch.md
+- [#863] [P1][M] Hook processes are created SUSPENDED and never resumed -- a timeout cannot fire on a process that never started · tasks/863-hook-processes-are-created-suspended-and-never-resumed.md
+- [#864] [P1][S] The decision-coverage gate is FLAKY -- it failed and then passed on retry with nothing changed · tasks/864-decision-coverage-gate-is-flaky.md
+- [#865] [P2][S] The user-level block-onedrive.ps1 PreToolUse guard launches powershell per call and can hang the same way -- it needs a ruling · tasks/865-user-level-block-onedrive-guard-needs-a-hang-ruling.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
@@ -160,7 +181,6 @@ So that "spec bumped, dependent partially updated, caught only because a human r
 - [#457] [P2][S] Two live-repo tests fail on main against green gates — test-vs-organ mismatch · tasks/457-inherited-live-repo-test-failures.md
 - [#477] [P2][S] `deployed_methodology_version` keys the registry by repo-root BASENAME — a clone named `dev-knowledge` cannot find `.dev-knowledge` · tasks/477-deployed-version-check-keys-registry-by-basename.md
 - [#478] [P2][S] `changelog_sentinel` drops PEP 440 suffixes — a prerelease as the reviewed value silences the sentinel permanently · tasks/478-changelog-sentinel-drops-pep-440-suffixes.md
-- [#653] [P2][S] The fleet-shape spec changed what a consumer owes and its `spec_version` did not move · tasks/653-fleet-shape-spec-version-unbumped-after-a-consumer-change.md
 - [#654] [P2][M] The 037 render-pass ruling has no intake file, so `reconciled_with` stays hand-typed · tasks/654-the-037-render-pass-ruling-has-no-intake-and-no-carrier.md
 
 ### [S6] Know what depends on code before removing it (ADR-89 computed edges)
@@ -191,12 +211,7 @@ So that session-start/close automation actually runs instead of being wired-but-
 ### [S8] Make hub enforcement reach consumers, not just the hub (enforcement-transfer mesh)
 So that "held by mechanism, not memory" is true for every consumer, not only the hub — the deploy subsystem (ADR-91/92) carries the PRESENCE of the methodology to consumers but NOT its ENFORCEMENT: five hub organs (session_end_backpressure, canonical_freshness, doc_claims, git_backlog_drift, the coherence spine) are hub-only, so the founding standard is TRUE for the hub and FALSE for every consumer (proof: ai-council shipped 3 epics with JOURNAL ~1mo stale, unblocked). This epic closes that gap, stage-ordered.
 
-Backbone (dependency-ordered; done stages recorded here as the epic ledger — ADR-65: git is the implementation record, so the DONE stages are narrative, not live task lines):
-- Stage 0 — stabilize live (ship-gate GREEN + clean tree). [DONE]
-- Stage 1 — fleet blast-radius map (5 organs x 4 consumers classified from live config). [DONE]
-- Stage 2 [#235] — Informant Organ: the read-only enforcement-coverage reporter that measures enforcement-in-effect (whether the gate FIRES, not presence — proven by the present-inert->absent / blocking->enforcing-local fixture pair; first live run reproduces the differentiated fleet map, 0 enforcing-local; no organ modified). [DONE 2026-07-03, feat/informant-organ, commits 99401d7/03a3280/07a061a — closed against #235]
-- Stage 3 [#236 + sub-item #237] — the mesh carrier (the enforcement-transfer mechanism). Stage 4 [#238] — record + formalize. Follow-ups: Tier-2 breadth #239, audit-leg regression teeth #240. Sequenced-after (off the critical path): fleet rollout n=2+ (#221), each repo gated on the Informant's enforcing-local — only after Stage 3 is proven on n=1.
-- FLAG RESOLVED (architect, 2026-07-07): the arc-tracking / record-integrity fold is adjudicated — #168/#170 **co-sequence with #239/#240** (they harden the same `session_end_backpressure` organ the enforcement-transfer epic ports consumer-local in #237); #243 co-sequences there too (its #168-hard vs Fable-WARN conflict resolves at that mesh-consult). #139 **stays separate** (hub record-integrity, tangential — not folded).
+> **Relocated verbatim 2026-09-16** to `docs/audits/2026-09-16-technical-backlog-view-narration-relocated.md` §1 — the [S8] Backbone epic ledger (stages 0–4, done-stage history) and the 2026-07-07 FLAG on #168/#170 co-sequencing with #239/#240.
 
 - [#240] [P3][S] Follow-up · DEFER · tasks/240-follow-up.md
 - [#267] [P2][S] Scope-exercising arc extension · tasks/267-scope-exercising-arc-extension.md
@@ -210,7 +225,6 @@ Backbone (dependency-ordered; done stages recorded here as the epic ledger — A
 - [#325] [P3][S] Carry `/save` to consumers via a manifest command-artifact carrier · DEFER · tasks/325-carry-save-to-consumers-via-a-manifest-command-a.md
 - [#497] [P3][S] Two stale claims on carrier/hook declarations · tasks/497-carrier-mesh-py-75-still-claims-the-informant-lo.md
 - [#496] [P3][S] `_ORGAN_TO_COMPONENT` attributes the pre-push organ to a component that does not carry it — the Tier-3 DRIFT rows it produces are misfiled · tasks/496-organ-to-component-attributes-the-pre-push-organ.md
-- [#605] [P2][M] De-hardcode consumer-root resolution in `deploy/tool.py` and `scripts/audit.py` · tasks/605-de-hardcode-consumer-root-resolution-in-deploy-t.md
 ---
 - [#656] [P2][S] The v1.5.0 carrier's `floor-seal-report` drift probe matches a literal the command no longer has · tasks/656-v150-floor-seal-report-drift-probe-matches-a-dead-literal.md
 - [#741] [P1][M] Lane launching is methodology, so the hub owns it — a floor component shipped to every consumer, OS-independent, with machine-local values staying in win-tooling · tasks/741-lane-launching-is-methodology-so-the-hub-owns-it-as-a-floor-component.md
@@ -232,6 +246,7 @@ So that observed failure-modes become written guidance instead of recurring.
 ---
 
 - [#538] [P2][M] The NB4-C PLAYBOOK gap arc — twelve paste-ready acts, none landed · tasks/538-the-nb4-c-playbook-gap-arc-twelve-paste-ready-acts.md
+- [#793] [P1][M] A withdrawn lane's live worktree built a rival organ · tasks/793-a-withdrawn-lane-contract-left-a-live-worktree-bu.md
 ## [E4] Decision management
 > As a reader of 65+ ADRs, I want decisions navigable and free of silent contradiction.
 
@@ -251,6 +266,7 @@ So that growth past 65 ADRs doesn't bury or quietly contradict prior decisions.
 - [#695] [P2][M] Intake #70 (AJ second pass) is ACCEPTED with zero rows -- its operator practices were extracted and never became work · tasks/695-intake-70-aj-second-pass-is-accepted-with-zero-rows.md
 - [#700] [P2][S] AW5-4 ruled that machine-read control surfaces are STATE rather than narrative, and the ruling reached the close packet and none of the surfaces that state amendment discipline · tasks/700-aw54-control-surfaces-are-state-ruling-reached-no-enforcing-surface.md
 
+- [#791] [P1][M] Carry intake 101 — the runtime-resource organ — through the decision engine to a ratified ADR · tasks/791-carry-intake-101-the-runtime-resource-organ-throug.md
 ### [S12] Close the small ADR cross-reference + registry amendments
 So that the ADR web is internally consistent.
 - [#19] [P3][M] Complete the ADR-39 register · DEFER · tasks/19-complete-the-adr-39-register.md
@@ -300,6 +316,7 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 - [#754] [P2][S] The two backlog row ceilings measure different corpora, and the source-side one has decayed back into the percentile its own amendment abolished · tasks/754-the-two-backlog-row-ceilings-measure-different-corpora.md
 - [#781] [P2][M] One management map rendered from the organ index, with trigger-less organs rendered DEAD · tasks/781-one-management-map-rendered-from-the-organ-index-with-trigger-less-organs-rendered-dead.md
 - [#766] [P2][M] The session boot payload has a byte budget on one file and none on the whole -- every tool, command and skill description is paid at startup · tasks/766-the-session-boot-payload-has-a-byte-budget-on-on.md
+- [#807] [P2][S] The backlog-shrink instrument was aimed at the wrong corpus: `archive_row_body` relocates task-file bodies, the view renders manifest prose · tasks/807-the-backlog-shrink-instrument-was-aimed-at-row-bodies.md
 ## [E6] Cross-repo universalization
 > As the disseminator, I want every child repo to converge on the universal baseline.
 
@@ -352,7 +369,6 @@ So that cognitive overhead per session drops.
 - [#341] [P2][S] Codex producer-lane activation mechanism · tasks/341-codex-producer-lane-activation-mechanism.md
 - [#431] [P2][S] `codex-review` silently drops the doc lane on any mixed diff · tasks/431-codex-review-silently-drops-the-doc-lane-on-any.md
 - [#445] [P2][S] `codex-review` wrapper path-guard reports SUCCESS having reviewed nothing · tasks/445-codex-review-wrapper-path-guard-reports-success-h.md
-- [#470] [P3][S] `audit.py checks` crashes mid-listing on a cp1252 console — one U+2192 glyph · tasks/470-audit-py-checks-crashes-on-a-cp1252-console.md
 - [#403] [P3][S] Extend `doc_claims` to ARCHITECTURE's machine-derivable claims · tasks/403-extend-doc-claims-to-architecture-s-machine-deri.md
 - [#487] [P2][L] Closure-proposal consumption arc — repair the pipeline first · tasks/487-closure-proposal-consumption-arc-139-parked-prop.md
 - [#509] [P3][S] `Invoke-Dispatch.ps1` resolves `CLAUDE_PROMPTS_DIR` · tasks/509-invoke-dispatch-resolves-claude-prompts-dir.md
@@ -367,17 +383,13 @@ So that cognitive overhead per session drops.
 - [#581] [P1][L] Backlog vitals — three flow instruments, a committed digest, and what-is-unblocked-now (packet ARC-C) · tasks/581-backlog-vitals-three-flow-instruments-a-committe.md
 - [#582] [P1][L] Substrate router — one gated enum, a capability-keyed table, and the generator that reads it (packet ARC-D) · tasks/582-substrate-router-one-gated-enum-a-capability-key.md
 - [#586] [P3][S] Suite RED — `test_no_gate_hook_or_script_reads_the_export` has no `ecosystem/` naming-vs-reading carve-out (packet ARC-G, C04) · tasks/586-suite-red-test-no-gate-hook-or-script-reads-the.md
-- [#587] [P1][M] P-1 — invert the journal-anchor check to a single pass · tasks/587-p-1-invert-the-journal-anchor-check-to-a-single.md
 - [#588] [P1][S] P-2 — build the spine parent-map in ONE git process · tasks/588-p-2-build-the-spine-parent-map-in-one-git-proces.md
-- [#608] [P1][S] Tiling-aware journal read — the rotation seam, before any split · tasks/608-tiling-aware-journal-read-the-rotation-seam-befo.md
 - [#593] [P2][M] Codespaces chain repair, hub half — uv in the image and a prebuild that actually refreshes · tasks/593-codespaces-chain-repair-hub-half-uv-in-the-image.md
 - [#594] [P3][M] Layer-3 router — the HUB prerequisites only, not the verb itself · tasks/594-layer-3-router-the-hub-prerequisites-only-not-th.md
-- [#597] [P2][M] P-4 — a declared tier per check, and P-3's telemetry window FIRST · tasks/597-p-4-a-declared-tier-per-check-and-p-3-s-telemetr.md
 - [#598] [P3][S] P-6 — a slow-marker selector so tiered gating has something to select on · tasks/598-p-6-a-slow-marker-selector-so-tiered-gating-has.md
 - [#618] [P2][M] The silently-stale codespace clone — detection and refresh-on-entry, not a rebuild · tasks/618-the-silently-stale-codespace-clone-detection-and.md
 - [#623] [P2][S] Mechanize the JOURNAL anchor record-line — 719 anchored-by-mention WARNs is a signal-to-noise defect · tasks/623-mechanize-the-journal-anchor-record-line.md
 - [#625] [P1][M] The rule-adherence eval corpus — a FRESH corpus, because neither fold target can carry it · tasks/625-the-rule-adherence-eval-corpus-fresh.md
-- [#626] [P2][M] `logs/` does not thin — the retention rule exempts the two prefixes that actually accumulate · tasks/626-logs-retention-exempts-the-prefixes-that-accumulate.md
 - [#632] [P1][L] Codespace is ADMITTED for transport and UNSTABLE for inference — the six-layer plan, the runner hardening, and the two defects they depend on · tasks/632-codespace-is-admitted-for-transport-and-unstable-for-inference.md
 - [#634] [P1][S] dispatch-run.sh accepts GITHUB_TOKEN as its Anthropic-token check — a fail-open admission gate on a paid substrate · tasks/634-dispatch-run-accepts-github-token-as-the-anthropic-check.md
 - [#646] [P3][S] The ceremony ratio was measured once, by hand, and nothing computes it · tasks/646-substantive-commit-share-is-measured-once-by-hand.md
@@ -390,15 +402,15 @@ So that cognitive overhead per session drops.
 - [#737] [P2][S] A SEAT-BOOT render cannot express the seat's own model, so the operator's re-tiering ruling has nowhere to live but prose the next seat never reads · tasks/737-a-seat-boot-render-cannot-express-the-seat-s-own-model.md
 - [#738] [P2][S] `lane-ceiling --check-worktrees` refuses on worktree PRESENCE, so a wave-2 batch is refused by a prior wave's lane awaiting merge and the only offered remedy destroys it · tasks/738-lane-ceiling-refuses-on-worktree-presence-with-no-merged-discrimination.md
 - [#739] [P2][S] `session_end_backpressure` reads the working tree but not its authorship, so it orders a seat to commit or stash a CONCURRENT seat's in-flight work · tasks/739-session-end-backpressure-orders-a-commit-of-another-seats-in-flight-work.md
-- [#740] [P1][S] The generator emits a `Dispatch-Lane` fence and the ruled verb admits only a `claude` fence, so `dispatch -DryRun` refuses every conforming generated contract — a SYMPTOM of the two-owner launch path (AX25-1) · tasks/740-generated-contract-carries-a-fence-the-ruled-verb-refuses.md
 - [#724] [P1][M] The Windows baseline is permanently RED and its count is not even reliably knowable -- a red baseline hides every new failure behind it · tasks/724-permanently-red-windows-test-baseline-hides-every-new-failure.md
 - [#725] [P2][S] `test_manifest_link_route` fails under xdist on a frozenset identity assert -- a test that passes alone and fails in parallel · tasks/725-xdist-frozenset-identity-pollution-in-test-manifest-link-route.md
 - [#728] [P2][M] Every organ that answers a question gets a generated skill whose description says WHEN to invoke it -- the description is what the model matches · tasks/728-organ-skills-generated-from-the-organ-index-so-the-model-can-find-them.md
 - [#729] [P2][M] FPG-1's queries are shell scripts the model must remember to run -- expose them as MCP tools so they sit in the tool list beside Grep · tasks/729-fpg1-queries-exposed-as-mcp-tools-so-they-sit-beside-grep.md
 - [#746] [P1][M] Devcontainer history-sufficiency (B1) and ecosystem-registration (L5) repair, lost with `scripts/cloud_provisioning.py` · tasks/746-devcontainer-history-and-ecosystem-repair-lost-with-cloud-provisioning-py.md
-- [#751] [P2][M] Cost in money — the transcripts' token figures become tokens and USD per lane and per model, priced from the registry's own rate card · tasks/751-cost-in-money-tokens-and-usd-per-lane-and-per-model.md
 - [#769] [P2][S] An unattended lane has no cancel for a long-running gate -- the only lever is killing the session · tasks/769-an-unattended-lane-has-no-cancel-for-a-long-runn.md
 - [#771] [P2][S] `[#729]` carries no protocol-conformance criterion, so a server can satisfy it completely and not be an MCP server · tasks/771-729-carries-no-protocol-conformance-criterion-so.md
+- [#800] [P1][S] The routing unit is the SESSION, not the turn — the prompt cache is per model, so per-turn switching loses money · tasks/800-the-routing-unit-is-the-session-not-the-turn-the-p.md
+- [#801] [P2][S] Opus is a flat 2.50x Sonnet on every leg — a false 5x figure circulated and a token-shape argument was built on it · tasks/801-opus-is-a-flat-2-50x-sonnet-and-a-false-5x-figure.md
 ### [S19] Decide the undecided artifact/tool models
 So that cadence-less artifacts and unevaluated tools don't rot or get adopted blind.
 
@@ -411,8 +423,8 @@ So that cadence-less artifacts and unevaluated tools don't rot or get adopted bl
 - [#491] [P3][S] Gemini scanning lane — ruling R-G plus an acceptance contract · DEFER · tasks/491-gemini-scanning-lane-ruling-r-g-plus-an-acceptan.md
 - [#578] [P3][S] The earned mitigated rerun — one slot, role-reminder preamble baked in · tasks/578-the-earned-mitigated-rerun-one-slot-role-reminder.md
 - [#753] [P2][M] The supervised non-Claude producer trial — ten bounded tasks, stdout-only producers, admission recorded in the registry · tasks/753-the-supervised-non-claude-producer-trial.md
-- [#785] [P2][M] Ten unattended outcomes price every non-Claude provider CLI on this box, and the metering unit is named where USD-per-token is the wrong instrument · tasks/785-ten-unattended-outcomes-price-every-non-claude-p.md
-- [#793] [P1][M] The model a contract declares is the model that RUNS — resolved at freeze, verified off the transcript, refused on the receipt, with the default by lane kind in the generator · tasks/793-the-model-a-contract-declares-is-the-model-that-r.md
+- [#832] [P3][M] Re-run the three-repo comparison against the operator's named repositories · tasks/832-copilot-collections-comparison-rerun.md
+- [#885] [P1][M] The model a contract declares is the model that RUNS — resolved at freeze, verified off the transcript, refused on the receipt, with the default by lane kind in the generator · tasks/885-the-model-a-contract-declares-is-the-model-that-r.md
 
 - [#570] [P2][L] Consume intake #27's W-wave rows — the deferred half of the tech-adoption ledger · tasks/570-consume-the-tech-adoption-ledger-w-wave.md
 - [#535] [P2][S] `audit.py` has two module identities in one process, and a test's monkeypatch is invisible to one of them · tasks/535-audit-py-has-two-module-identities-in-one-process.md
@@ -427,8 +439,6 @@ So that cadence-less artifacts and unevaluated tools don't rot or get adopted bl
 - [#701] [P2][S] A Codex quota hit stalls review for 50 minutes and no fallback provider is authorized, so the reviewer role is a single point of failure · tasks/701-codex-quota-hit-stalls-review-with-no-authorized-fallback-provider.md
 - [#706] [P2][S] The operator packet gains D14, folder-as-domain -- and it cannot be decided before the domain census returns · tasks/706-operator-packet-gains-d14-folder-as-domain-decided-after-the-census.md
 - [#722] [P1][S] Interim routing: read-only digests, censuses and scans default to agy as a READER ONLY, with conclusions and verdicts staying on Claude · tasks/722-interim-routing-read-only-work-defaults-to-agy-as-reader-only.md
-- [#784] [P2][M] AJ M04 has never been read against this repo -- no SHIPPED / OWNED / UNOWNED matrix exists, so its practices are neither adopted nor refused · tasks/784-aj-m04-has-never-been-read-against-this-repo-no.md
-- [#780] [P3][M] Three-repo comparison: a gap matrix, adopt-candidates, and an explicit will-NOT-adopt list · tasks/780-three-repo-comparison-gaps-adopt-candidates-and-an-explicit-will-not-adopt-list.md
 ### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)
 So that unattended routines run only with a named consumer, a survival metric, and a bounded operator load — never as rot generators (the fleet-audit lesson; sequencing per the standing operator ruling: the load-gauge lands before anything else in the Tier-2 nightly layer).
 - [#271] [P3][L] Nightly proposal loop · tasks/271-nightly-proposal-loop.md
@@ -451,120 +461,19 @@ So that unattended routines run only with a named consumer, a survival metric, a
 ## [E8] ARC-5 execution
 > As the operator, I want ARC-5's wave map, closure contract, and unruled decisions to live somewhere that can EVOLVE as waves land — not frozen inside an immutable handoff bundle.
 
-**Why this form (basis).** The plan of record needs a home that changes as waves land. An **ADR is the wrong form** — ADRs are immutable (CLAUDE.md §5 rule 3); only the status line is editable (ADR-94), so a wave map could never be updated in place. `BACKLOG.md` is **living / update-in-place** (§4 File lifecycle) and is already the repo's declared spec surface ("the BACKLOG is the spec; items are tickets"). The live schema is a story map — verified **7 themes / 20 stories / 116 tasks** at filing (ADR-66; `scripts/validate_backlog.py`). So the plan lands as a **theme + stories** here, not an ADR and not a new path. `[E8]` is marked a time-boxed arc, not a permanent mission theme, so it retires when ARC-5 closes.
+> **Relocated verbatim 2026-09-16** to `docs/audits/2026-09-16-technical-backlog-view-narration-relocated.md` §2 — [E8] basis: why the plan lives in the backlog, the accretion discipline for filing wave tasks, and its source bundle.
 
-**Accretion discipline.** The seven waves are recorded as the **wave map below**, not as seven pre-filed stories with placeholder tasks. Each wave's build tasks are filed **when that wave opens**, so this filing adds three carried tickets rather than a speculative +10 — which is what closure criterion (d) below requires.
+> **Relocated verbatim 2026-09-16** to `docs/audits/2026-09-16-technical-backlog-view-narration-relocated.md` §3 — [E8] Wave map W1–W7, the ARC-5 plan of record (unchanged since 2026-07-28; its carried work is ticketed under [S21] and [S22] below).
 
-**Source.** `docs/handoffs/2026-07-20-dev-knowledge-architect-arc5/` (SUPPLEMENT ANSWERS, operator-authored 2026-07-19) ∩ `docs/audits/2026-07-19-technical-night-consolidated-cycle-close.md` §3 (the nine seeds, terra-corrected). Strategic intent, verbatim: **"AUDITS ARE OVER. ARC 5 IS EXECUTION."** Meta-finding the arc closes: *"decision recorded ≠ decision enforced ≠ decision legible."*
+> **Relocated verbatim 2026-09-16** to `docs/audits/2026-09-16-technical-backlog-view-narration-relocated.md` §4 — [E8] Seedless waves: W1 and W4 carry no seed, and seeds 5 and 6 map to W2 and W5 by content.
 
-#### Wave map W1–W7 (ordered by operator pain-priority, not dependency elegance)
+> **Relocated verbatim 2026-09-16** to `docs/audits/2026-09-16-technical-backlog-view-narration-relocated.md` §5 — [E8] Closure contract (frozen, verbatim) and the clause (b) rulings F1 and D1 — ARC-5 closes only on clauses (a)–(f) as recorded there.
 
-**W1 — VISIBLE BOUNDARY** (the "colors"; the operator's most-repeated ask). Build #329/#352: versioned `.vscode` background decoration (grey/navy, dark theme) of `owner=hub` / `owner=repo` regions, deployed fleet-wide as carrier material; plus a sweep completing RULING-S reader-visible universal-vs-repo section headers in every governed file across all three repos. **Done when:** the operator opens any governed file in any repo and SEES which lines are methodology and which are repo-personal. **Deadline:** must land before the P4a `.vscode` ruling shelf-life **2026-08-13**. **SEEDLESS** — see the seedless note below.
+> **Relocated verbatim 2026-09-16** to `docs/audits/2026-09-16-technical-backlog-view-narration-relocated.md` §6 — [E8] Metric definition — the declaration test governing closure clause (b), and its `bf49cbf9` baseline (N_silent 176); read it before acting on #357.
 
-**W2 — STRUCTURE EQUALIZATION LEG 2** (the `assets/` folder, mypy, "why do folders differ"). Disposes `ai-council/assets/ruff-pre-commit.yaml` per **R1**; mypy/cache posture per **R1b**; `hub-toc-hooks` resolution (S5 §4.2 — recommended path (b): hub manifest re-scope v1.3.2 matching the hub's own retirement, then prune ai-council + retire corp's waiver); #331 ratification + `parity-surfaces.yaml` consumer-tier rows for the BACKLOG story-map schema + gate; reconcile the corp-vs-ai `validate_backlog.py` fork; corp `deployed-versions.yaml` currency (evidence for #276). **This wave carries consolidated-report seed 5** (consumer parity-surface reconciliation, S5) — mapped by CONTENT, not by label. **[#355] routes here.** **Done when:** each named divergence is either equalized or recorded as a declared, time-boxed divergence; every consumer write goes via RULING-W worktree/branch → report; changes land as manifest/template carrier material (replication-first, not one-off fixes).
+> **Relocated verbatim 2026-09-16** to `docs/audits/2026-09-16-technical-backlog-view-narration-relocated.md` §7 — [E8] DECISIONS dispositioned 2026-07-26 — the R1–R8 / R1b / R12 table and its reconciliation-debt list (#389; W3, W4, W6, W7 wording).
 
-**W3 — LIFECYCLE MECHANISMS** (intake→ADR→backlog→close→DELETE — "the process problem"). Carries **seeds 2, 3, 4** + the #269 build. Seed 2: `validate_intake.py` HARD pre-commit gate — closed status enum (+ ratified tech-extension per **R4**), unique `intake-id` (fixes the live id:14 triple collision), required `consumed-by` on CONSUMED, machine-readable `Intake:` provenance on ADRs + citation enforcement (ADR-102/103 backfill or recorded non-intake-origin). **[#398] update (2026-07-23):** the enum is DEPLOYED (README §5 + `gen_intake_index._STATUS_ORDER` + template), the id:14 triple is dissolved, and the R4 tech-extension allowlist is DEAD (rejected by the 2026-07-19 ruling, SUPPLEMENT.md:68-70); the validator's current spec is `docs/audits/2026-07-23-technical-status-enum-reconcile.md` §4 (supersedes night-batch P2c). Seed 3: build #242 (ADR header↔README status reconciliation; ADR-88/89 frozen-Proposed case). Seed 4: `gen_grooming_worksheet.py` + an `audit.py` grooming-cadence/net-delta WARN (witnessed accretion 74→116 in 11 days, ≈3.8/day) + extend `safe_remove.py` M2/M3 as #347's sanctioned REAL-DELETION mechanism per **R3**. Plus #269 (count-tiered audit index, ADR-100). **Done when:** a seeded off-enum status, a duplicate `intake-id`, and an uncited ADR are each flagged with tests; #242 and #269 are built; the grooming worksheet + accretion WARN are live; `safe_remove.py` M2/M3 is the sanctioned deletion path.
-
-**W4 — ARCHIVE LEGIBILITY** (the operator's archiving ask). **R2** decides the shape. Facts already true: file NAMES encode genre+date by convention (`ADR-NN-slug`, date-class-slug audits, date-genre-slug intakes); the ruled convention is stay-in-place (join keys, ADR-101 seal) with status on index surfaces. **Done when:** R2 is ruled AND its build has landed — either (a) the index/status surfaces (seeds 2/3 + #269 + the handoff-README micro-era clause) OR (b) a physical `archive/` with a genre-preserving naming rule via ADR amendment. **NOT both by default; no silent relitigating.** **SEEDLESS** — see the seedless note below.
-
-**W5 — SESSION/WRITE GUARDS** (worktree pain; #353/#344/#349). **This wave carries consolidated-report seed 6** (session-boot + consumer-write guards, S6) — mapped by CONTENT, not by label. Per **R5**, ONE unifying organ: a HEAD-bound operator-authorization token (naming worktree + branch + allowed paths) checked by a `PreToolUse` guard, satisfying #344 Ask-2 (consumer hub-write guard), #353 (boot contract), and the S7 prompt-attestation at once. Plus S6's boot-snapshot `SessionStart` hook, the `.claude/.session-lock` HEAD-movement advisory, #349's close-discipline boot echo, and a signed integration-return token for self-merge detection. **Justification:** six recovered-not-prevented incidents, the sixth carrying a clean reflog trace (a concurrent session swapped HEAD in the primary tree mid-command during handoff generation; no guard fired). **Done when:** the organ REFUSES a witnessed unauthorized write (n≥1 witnessed refusal, not merely installed) — the incident class moves from recovered to prevented.
-
-**W6 — CANON INOCULATION + PROMPT EQUILIBRIUM** (PLAYBOOK/handoff currency). Carries **seeds 1 and 7**. May run FIRST, in parallel, as a doc lane — file-disjoint from W1/W2. Seed 1: transcribe the four un-inoculated rulings (RULING-W · two-tier · worktree side-effect rule · consumer merge-delegation composite) into PLAYBOOK (operational) + ESSENTIALS (one-liner), grep-verified against the ADR amendments; **plus** the staged-diff CO-CHANGE checker (**[#354]**). Seed 7: the 7-item inbound prompt-spec as a PLAYBOOK §2 amendment + a handoff-time self-check probe (**R6** decides hard-probe vs soft). Plus handoff-README micro-era documentation (stage1/stage2 archive class). **Done when:** the four rulings carry PLAYBOOK + ESSENTIALS text grep-verified against their ADR amendments AND the co-change checker flags an ADR-36/41/101 amendment lacking a companion PLAYBOOK/ESSENTIALS edit. *Legibility half already landed at merge `8c913a6a`; the enforcement half is [#354].*
-
-**W7 — TESTING + FLEET STATE** (last, per dependency). Carries **seeds 8 and 9**. Seed 9: dynamic-test evidence gate (code-impact tier in `ship.md` or a versioned `test-harness.yaml`), **WARN-first then FAIL after two demonstrated runs**, depends-on #270; `protocols/AGENTIC_TESTING.md` as #412 config material (re-owned 2026-07-25 — #348 was decomposed to grooming-only; the configured-workflow layer this seed feeds now lives in #412). Seed 8: a scheduled `fleet_collect` PULL collector with watermarks ("silence ≠ absence") subsuming the two reporters; SQL/SIEM stays SHELVED until a witnessed join-pain (**R7** confirms this as the standing answer, matching the intake #14 ruling). **Done when:** the evidence gate is live WARN-first with its FAIL-after-two-runs rule recorded, `AGENTIC_TESTING.md` exists as #348 config, and the collector runs on a watermarked schedule.
-
-#### Seedless waves (do not read the seed list as the wave list)
-
-**W1 and W4 are the SEEDLESS waves** — neither is backed by a seed from the nine-seed consolidated report:
-
-- **W1** is justified by **operator priority and the 2026-08-13 `.vscode` ruling shelf-life — NOT by audit evidence.** It is first because it is the most visible, deliberately (the operator's frustration is itself context: visible results per wave).
-- **W4** owns no seed of its own; it **discharges W3's seeds 2/3** (index/status surfaces) if R2 lands on shape (a). If R2 lands on shape (b), W4 acquires its own build via ADR amendment.
-- **Seeds 5 and 6 map to W2 and W5 by CONTENT, not by label** — they are named explicitly in those waves' text above. A reader matching seed numbers to wave numbers will drop them in execution; that is why they are named rather than numbered.
-
-#### Closure contract (frozen — reproduced verbatim)
-
-```
-ARC 5 is CLOSED when and only when: (a) the ledger exists as a mechanism, four-state, over
-MUST-shaped governed rules — not ADRs; (b) the silently-unenforced count strictly decreases and
-everything still unenforced has moved to declared-unenforced with an owner and a review date;
-(c) each shipped wave carries a frozen done-contract, a Codex review before merge, an educate
-artifact with file-level before→after, and a BACKLOG structural-marker change; (d) backlog
-accretion is net ≤ 0 excluding tickets minted by ARC-5's own waves, every open item adjudicated at
-least once, and the accretion rate measured and reported; (e) enforcement is witnessed, not
-installed — for every guard or gate shipped, a run exists in which it fired or refused; (f) the
-operator confirms, per wave, in his own words, that the named pain is gone.
-NOT closure: waves merged, ship-gate green, tests passing, items marked done.
-```
-
-> **Clause (b) — RULED F1 (operator, 2026-07-27; discharges the R12 fork below).** Clause (b) will be amended to **ratchet + bounded drain**: gate the GROWTH of silent rules (the ratchet — built by [#436], row-independent) *and* drain a bounded slice, rather than dispositioning all 176. The **drain row selection (scope) is still pending** the operator's pick; the drain matrix is **slice × mechanism × owner × review date**. The frozen text above is deliberately UNCHANGED — this records the ruling; the amendment lands with the row selection.
-
-> **Clause (b) — AMENDED (operator ruling D1, 2026-07-28; lands the F1 row selection above).** The frozen contract text stays verbatim — this blockquote is the amendment of record. Clause (b) is discharged by **ratchet + bounded drain**: the ratchet ([#436], BUILT — merge `6195d932`) gates the GROWTH of silent rules, and the **drain slice is [#356] + [#358]–[#361]** (the two still-silent seed-1 rules + the four census escalations; [#362]'s 49 dropped #242 guards are NOT in the slice). **Architect prepares / operator ratifies.** **Review date 2026-08-26.** Matrix unchanged: slice × mechanism × owner × review date. **Recorded, never executed** — this selects the slice; no drain is performed by this entry.
->
-> **Operator intent (2026-07-28):** the FULL silent-rule pool (428 @ detector `silent-rule-v4`) is to be dispositioned over time — drained, mechanized, or DELIBERATELY RETIRED as no-longer-valid; staged, wholesale classes post-flip. **Nothing expires by being forgotten.**
->
-> **Drain-owed now:** `PLAYBOOK.md:1270`, `REPO_ONBOARDING.md:92`, `REPO_ONBOARDING.md:199` + the 43-line delta per `docs/audits/2026-07-27-census-silent-rule-ratchet-arm-measurement.md`, review **2026-08-26**. **Baseline semantics:** architect-proposed 2026-07-27, operator-adopted (D4), test-and-iterate.
-
-#### Metric definition — the declaration test (operative; governs closure clause (b))
-
-Closure clause (b) turns on the four-state ledger, so the boundary between `silent` and
-`declared-unenforced` is load-bearing. Operator-ruled 2026-07-19, recorded verbatim:
-
-```
-A MUST-shaped rule counts as declared-unenforced only if the non-mechanisation clause is BOTH
-on-surface -- at the rule's own file:line or its canonical PLAYBOOK/ESSENTIALS span, because
-`silent` means a reader OF THE RULE cannot tell it is unenforced -- AND bound to an OPEN ticket
-naming the remaining work, per ADR-81(d). Neither condition suffices alone. Without the second,
-N_silent is gameable by writing 'this isn't enforced' next to every rule.
-```
-
-**Baseline — first measurement under that definition, pinned to `bf49cbf9`.** Denominator **320**
-MUST-shaped rules · **N_silent 176 (55%)** · **N_enforced 130** · **N_declared 14**. Scope was
-`protocols/` + `templates/` + `ecosystem/*.yaml`; `docs/decisions/` is deferred to a second sweep
-([#357]), so **176 is a floor, not a total**. N_enforced is deliberately **conservative** — ~55
-partial-mechanism rules (one leg gated, the rest not) are folded into `enforced`, and splitting
-them strictly would raise N_silent. Controls held: the ADR-template intake-id cite rule and the
-merge-delegation composite both measured `silent`; the worktree side-effect rule measured
-`declared-unenforced`, having been converted out of `silent` by `8c913a6a` — the canon inoculation
-working as designed, not a model failure. **Evidence** — the 176-item itemisation, the declared list, the near-misses, and the pending-#242 per-ADR table are archived at `docs/audits/2026-07-19-census-silent-rule-ledger.md`.
-
-#### DECISIONS — dispositioned 2026-07-26 (the "ALL UNRULED" claim was true at filing, false since)
-
-Every decision below was **UNRULED as of its filing** (2026-07-19). The recommendations are the outgoing architect's, carried verbatim in substance; **a recommendation is not a ruling.**
-
-> **Disposition sweep 2026-07-26 (intake #17 §5 micro-window).** Each row was re-verified against LIVE state, not against the filing. The table had survived at least one operator ruling by three days.
->
-> **Delegation authority for the four RULED rows** — and it is a delegation, not a recommendation promoting itself: the operator's 2026-07-26 micro-window execution order (intake #17 §5) instructed that rows verified still-LIVE be recorded as *"RULED per attached recommendation — operator-delegated 2026-07-26"*. That standing instruction is the ruling record for R1b/R3/R5/R6; the per-row cells carry the LIVE-premise verification that qualified each row for it. R8 was excluded by the same order (his own pick) and R12 has no recommendation to delegate to.
->
-> Outcome (final, after two review passes): **1 DEAD-OBE** (R1 — the folder it decides about no longer exists), **3 ALREADY-RULED** (R1b, R2, R4), **4 RULED by operator-delegated adoption** (R3, R5, R6, R7), **1 still open for the operator** (R8 — PARKED, his own pick; **R12 discharged 2026-07-27 by the clause-(b) ruling F1 above**, so the sweep's "2 still open" no longer holds). **All three already-ruled rows went AGAINST their recommendation** — R1b rejected (Pyrefly universal, not a divergence), R2 chose (b) over (a), R4 rejected outright. That is the sweep's most useful finding: where this table had a prior ruling, the recommendation lost 3 times out of 3, so an unverified recommendation is a poor predictor of the operator's call. A ruling here is **recorded, never executed** — each adopted row still needs its build.
->
-> **Reconciliation debt this sweep creates — the FULL list, enumerated after sol's adversarial pass found the first version incomplete.** Dependent rows still carry the pre-sweep status and were deliberately NOT reworded (out of this window's two-row edit scope): **`[#389]`** reads "R6 … **UNRULED**; rule R6 first" and gates its own Done-when on it · **W3 seed 2** says "+ ratified tech-extension per **R4**" (already self-superseded later in the same paragraph by the `[#398]` update) · **W4** says "**R2** decides the shape" though R2 is ruled · **W6 seed 7** says "**R6** decides hard-probe vs soft" · **W7 seed 9** says "**R7** confirms". Reconcile each when its wave opens; none is a silent contradiction now that all five are named.
-
-| Ref | Decision | Status (verified 2026-07-26) | Recommendation as filed (NOT a ruling) |
-|---|---|---|---|
-| **R1** | `assets/` disposition: (a) DISSOLVE — relocate `ruff-pre-commit.yaml` to the canonical config location, delete the folder (RULING-W leg + safe-deletion path); or (b) UNIVERSALIZE `assets/` as a fleet deployment convention | **DEAD-OBE** — the folder is gone. `ai-council/assets/` was dissolved by `6d78851e` (2026-07-21) "dissolve vestigial assets/ and repair its two live references"; `git ls-files assets/` is empty and no `ruff` path remains tracked. Option (a) was executed without the ruling. | **(a)** — one file, no fleet role; (b) would mint a new mandatory folder fleet-wide for no carrier need |
-| **R1b** | mypy posture: declare ai-council's mypy a sanctioned divergence vs roll out fleet-wide | **ALREADY-RULED — REJECTED, against its recommendation.** Caught on sol's adversarial pass: a **BINDING** operator ruling already exists and the delegated adoption first recorded here was withdrawn as a relitigation. `docs/handoffs/2026-07-20-dev-knowledge-architect/SUPPLEMENT.md:113` heads the block "BINDING — do not relitigate" and `:119` reads "Pyrefly is universal across the fleet — **NOT** a sanctioned mypy divergence"; `PASTE_THIS.md:528` records "mypy as a sanctioned divergence → **REJECTED by the operator**. Python stack, tooling universal → Pyrefly". The ruling is UNIVERSALIZE, not diverge. (Method note: the first pass searched JOURNAL/LESSONS/docs-decisions and missed it — `docs/handoffs/` carries binding rulings too.) | **Declare sanctioned divergence** |
-| **R2** | Archive shape: (a) INDEX-ARCHIVE — status/count-tiered index surfaces, files stay, names already carry genre; or (b) PHYSICAL `archive/` folders with a genre-preserving rename rule via ADR-98/100/101 amendments | **ALREADY-RULED 2026-07-22 — and the ruling went to (b), NOT the recommended (a).** "**Archive-inside-each-folder** (operator ruling 2026-07-22)" in `ARCHITECTURE.md` Ch5 (quote the heading, not a line range — this window's own edits shifted it from :563 to :595); six physical `archive/` dirs exist on disk; applied at `JOURNAL.md:548-550`. The recommendation was not followed — recorded so the divergence is not re-litigated as an open pick. | **(a)** — zero join-key breakage, builds already seeded |
-| **R3** | #347 safe-deletion = `safe_remove.py` M2/M3 extension as THE sanctioned mechanism | **RULED per attached recommendation — operator-delegated 2026-07-26.** Premise verified LIVE: `safe_remove.py` exists but is **M1 only** (no M2/M3 in the file), `[#218]` carries M2/M3 and is DEFER, `[#347]` is open and unruled. Recorded, not executed. | **YES** |
-| **R4** | Intake enum: ratify the 6 off-canon statuses as a documented tech-genre extension vs reclassify the docs | **ALREADY-RULED 2026-07-19 — REJECTED, against its recommendation** (reclassified from DEAD-OBE on terra review: a decision that was decided is not one overtaken by events). The 2026-07-19 ruling (`SUPPLEMENT.md:68-70`) rejected ratifying the six off-canon statuses outright; W3's `[#398]` update records "the R4 tech-extension allowlist is DEAD", and the ruled enum SEED→DRAFT→READY→{ACCEPTED\|CONSUMED\|SUPERSEDED\|REJECTED} is deployed in `gen_intake_index._STATUS_ORDER`. | **Ratify-with-documentation** — they are functioning plan-of-record artifacts |
-| **R5** | Unifying HEAD-bound authorization token as ONE organ for #344/#353/attestation, vs three separate builds | **RULED per attached recommendation — operator-delegated 2026-07-26.** Premise verified LIVE: `[#344]` and `[#353]` are both open, the unified organ is unbuilt, and the only HEAD-bound token in code is `/override`'s `logs/.session-override-token` — a different organ. Recorded, not executed. | **ONE organ** |
-| **R6** | Prompt-spec: hard handoff probe vs soft self-check | **RULED per attached recommendation — operator-delegated 2026-07-26.** Premise verified LIVE, against a first-pass misread: `verify_handoff_probes.py` is the **#163 PROBES.md-teeth** validator, NOT the prompt-spec probe R6 decides. No prompt-spec probe exists (`scripts/` has no `prompt_spec`; PLAYBOOK carries no §2 prompt-spec amendment) and W6 seed 7 still reads "**R6** decides hard-probe vs soft". Recorded, not executed. | **Hard probe on the bundle side** — the off-repo prompt itself can't be gated; attestation covers the paste |
-| **R7** | Fleet-state: confirm "collector + reporters now, SQLite shelved" as standing | **RULED per attached recommendation — operator-delegated 2026-07-26.** Corrected on sol's adversarial pass: this was first recorded ALREADY-RULED, but the cited authority says the opposite — `docs/intake/2026-07-12-siem-requirements-ruled-pack.md:61` explicitly retains least commitment, "store/viewer class (SQLite vs DuckDB) … are Phase A build decisions, **not settled here**", and FR-18 lives only in the ARCHIVED provenance draft, not the ruled pack. So the shelving genuinely was open and is ruled here by delegation. Live state already matches: reporters on disk, zero `.db`/`.sqlite` anywhere. | **Confirm** |
-| **R8** | (carried, corp-side) #38 channel pick: 1 primary-direct / 2 worktree / 3 epic-dev | **UNRULED — stays that way.** The operator's own pick; four exhaustive searches across BACKLOG/JOURNAL/docs found no ruling. Explicitly NOT delegated. | *(none recorded — operator's pick)* |
-| **R12** | Closure clause (b) is **not achievable in one arc** at N_silent 176 — "everything still unenforced has moved to declared-unenforced" would require dispositioning 176 rules. Two options: **(i) NARROW** the arc target to a bounded load-bearing slice — the 4 census escalations ([#358]–[#361]) + the 2 still-silent seed-1 rules (RULING-W, merge-delegation, [#356]) + the 49 dropped #242 guards ([#362]); or **(ii) GATE THE GROWTH** of silent rules rather than drain the pool. | **LIVE, and NOT delegable — needs the operator.** Premise verified current: `[#242]`, `[#356]`, `[#358]`–`[#362]` are all still open, N_silent 176 still stands (`BACKLOG:316`, census ledger `:111`), evidence artifact present. But **no recommendation is attached**, so there is nothing to rule by delegation — narrow-vs-gate is a genuine operator choice. | *(none attached — a recommendation is not a ruling)* |
-
-> **Numbering note (2026-07-19):** the census-derived decision above is filed as **R12**, not R9 — the discrepancy below records that R9/R10/R11 never existed in the ARC-5 bundle, and minting R9 now would resurrect a ref the record says does not exist.
-
-> **Discrepancy recorded — the ruling set is R1–R8 (+R1b), nine picks; there is no R9, R10, or R11.** The lane prompt for this filing specified "R1–R11". An exhaustive search of the ARC-5 bundle (`SUPPLEMENT.md`, `PASTE_THIS.md`), all fourteen `docs/audits/2026-07-19-*` night-audit artifacts, and `JOURNAL.md` found exactly the eight R-labels above plus the R1b sub-ruling. The only `R9`/`R10`/`R11` strings in the repo belong to a **different, unrelated R-namespace** (`docs/audits/2026-06-07-methodology-transfer-audit.md`). Three rulings were **NOT invented to reach eleven** — per the filing instruction "do not invent rulings". If the operator holds R9–R11 off-repo, they are missing from every repo source and must be supplied.
-
-#### BINDING (travels verbatim; do NOT relitigate)
-
-The ARC-4 rulings (RULING-W/S/PY/CF; two-tier "compliance IS authorization" in force now); the terra ×7 corrections as applied; sol's 4 mechanism upgrades as accepted strengthenings; **satellite wave FROZEN** until Wave-1 lessons are extracted; luna's floor-misreport corrected (consumers DO carry the floor, hash-matched — Haiku fan-out is indicative, not authoritative); E1 scope honesty (only two organs were fire-proved this run).
-
-**CONSIDERED + REJECTED:** SQL/SIEM now (premature per intake #14 + S8); a `coherence-nudge` extension for co-change (terra: not implementable — see [#354]); blanket new-path blocking (the two-tier rule supersedes); physical file moves for archival as the default (R2 decides; convention says stay-in-place); more audits (operator: enough).
-
-**DO-NOT-REDO:** the nine seeds' adjudication (terra-corrected kill-candidates stand); the 8-domain gap derivation (sol-triangulated); the ARC-4 equalization values (py311 / 120 / >=0.15.5 / minversion 9.0 — at-parity, verified); the grooming closes #306/#307/#328.
-
-**Per-wave standing requirements** (from the closure contract, applied to every wave): a frozen acceptance contract before delegation · Codex terra review pre-merge · RULING-W for any consumer write · replication material over one-off fixes · an educate artifact with file-level before→after · one wave = one merged arc.
+> **BINDING — do NOT relitigate** (relocated verbatim 2026-09-16 to `docs/audits/2026-09-16-technical-backlog-view-narration-relocated.md` §8): the ARC-4 rulings, terra's seven corrections, sol's four mechanism upgrades and every CONSIDERED + REJECTED and DO-NOT-REDO item recorded there stand, and every ARC-5 wave still requires a frozen acceptance contract before delegation, a Codex terra review before merge, RULING-W for any consumer write, replication material over one-off fixes, an educate artifact with file-level before→after, and one merged arc per wave.
 
 ### [S21] Discharge the ARC-5 carried items that no wave has yet absorbed
 So that the three items carried out of the night-audit cycle stop living only in narrative — each becomes a ticket with a done-when, rather than being rediscovered a wave later.
@@ -601,7 +510,7 @@ So that the four-state ledger's first measurement produces tickets rather than a
 ### [S24] Declare desired state once, as data, instead of as N registries — **COMPLETED 2026-08-01**
 So that every check derives from one schema — a check without a schema row is the registry-sprawl anti-pattern that produced "green that means nothing".
 
-**COMPLETED 2026-08-01.** All tasks closed: [#382] (`0acc3328`, merged `f7abe228`) and [#459] (`bf373b13`, merged `31c80714`). The heading is RETAINED, not deleted — retire-not-delete at story level: a completed story keeps its place in the map so the [E9] sequence stays readable and its id is never re-issued, exactly as a retired task keeps its allocation record (ADR-107 §6.3). FIRST empty story on main — this marker is the precedent.
+> **Relocated verbatim 2026-09-16** to `docs/audits/2026-09-16-technical-backlog-view-narration-relocated.md` §9 — [S24] completion notice (#382 and #459 closed; the heading is retained, retire-not-delete).
 
 ### [S25] Converge surfaces in waves, with a mechanical done-signal
 So that a wave closes on a report rather than on a claim — the operator stops verifying convergence by hand.
@@ -622,6 +531,6 @@ So that a version bump researched once reaches every repo through the deploy cha
 
 **About this file** — open `.dev-knowledge` work as a story map (ADR-66): Big Picture → Theme → User Story → Task. Stories are human (goal + `So that`); tasks carry `[#id] [P][size] · Done when · refs`. Done tasks **leave** (ADR-65); git is the implementation record (`git log --grep 'closes \[#'`). Child-repo execution items live in `docs/audits/2026-06-01-child-repo-relocation-proposal.md`. Schema: PLAYBOOK §10; machine-checked by `scripts/validate_backlog.py`.
 
-**ai-council audit residuals (pointer, not filed here)** — the ai-council audit surfaced ai-council-owned cleanups (stale force-added `settings.local.json` pointing at dead paths; an empty `worktrees/fix/` dir; codemap/backlog-hook universalization gaps). Added 2026-07-06 (Wave-3, root adjudication 5): the relative-path pre-commit source (`repo: ../.dev-knowledge`) makes ai-council's toc-freshness gates layout-dependent — ANY out-of-layout checkout (CI, second clone, another machine) silently loses them (witnessed: the sandbox clone; measurement-3 audit) — decide pin-by-URL+rev vs documented layout constraint. Per ADR-41 routing these are filed in a dedicated ai-council session, not duplicated in the hub backlog.
+> **Relocated verbatim 2026-09-16** to `docs/audits/2026-09-16-technical-backlog-view-narration-relocated.md` §10 — ai-council audit residuals — a 2026-07-06 pointer to ai-council-owned cleanups, filed in that repo per ADR-41.
 
-**Grooming log:** git history is the record (`git log --grep 'groom'` + per-session JOURNAL). Recent: 2026-06-12 (#149 flip) · 2026-06-18 (currency pass) · 2026-06-25 (groom pass, n=2: 84→81) · 2026-07-08 (leg-c full ruling pass, operator-ratified, 124→74: 14 KILL / 27 MERGE / 2 MOVE / 9 CLOSE / 5 RE-SCOPE / 19 DEFER-peg / 2 new filings #289 #290; #110 #128 moved-to: ai-council (Wave-1)) · 2026-07-30 (per-handoff lightweight groom, arc 0731-g0-groom: 6 doc_rot accretion rows condensed — #344 #421 #422 #332 #278 #426, no live obligation dropped; 5 warn-doc-rot dispositions retired; ADR-105 night-batch routine activated on #426). · 2026-09-14 (mechanised groom, lane `lane-y-754-backlog-to-bar`: the `archive_row_body.py` trigger run to EXHAUSTION over the rows above the 1320-char ceiling — 60 rows, 66 clauses, 18,107 source chars relocated byte-identically into `tasks/archive/`, 84 records re-proven on legs A–E; accretion arm 5 → 4, #241 cleared; over-ceiling COUNT unmoved at 148 of 322 and `propose` now returns one row, itself already under the ceiling — the mechanism is exhausted above the line, measured rather than asserted, and the residual is 35.3% structural clauses plus 38.2% undated prose, both outside the predicate by construction). Next quarterly: 2026-10-08.
+**Grooming log:** git history + JOURNAL. Recent: 2026-06-12 (#149 flip) · 2026-06-18 (currency pass) · 2026-06-25 (groom pass, n=2: 84→81) · 2026-07-08 (leg-c full ruling pass, operator-ratified, 124→74: 14 KILL / 27 MERGE / 2 MOVE / 9 CLOSE / 5 RE-SCOPE / 19 DEFER-peg / 2 new filings #289 #290; #110 #128 moved-to: ai-council (Wave-1)) · 2026-07-30 (per-handoff lightweight groom, arc 0731-g0-groom: 6 doc_rot accretion rows condensed — #344 #421 #422 #332 #278 #426, no live obligation dropped; 5 warn-doc-rot dispositions retired; ADR-105 night-batch routine activated on #426). · 2026-09-14 (mechanised groom, lane `lane-y-754-backlog-to-bar`: the `archive_row_body.py` trigger run to EXHAUSTION over the rows above the 1320-char ceiling — 60 rows, 66 clauses, 18,107 source chars relocated byte-identically into `tasks/archive/`, 84 records re-proven on legs A–E; accretion arm 5 → 4, #241 cleared; over-ceiling COUNT unmoved at 148 of 322 and `propose` now returns one row, itself already under the ceiling — the mechanism is exhausted above the line, measured rather than asserted, and the residual is 35.3% structural clauses plus 38.2% undated prose, both outside the predicate by construction). Next quarterly: 2026-10-08.
