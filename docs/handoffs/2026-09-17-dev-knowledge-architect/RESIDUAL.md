@@ -101,9 +101,12 @@ parity-REQUIRED hooks were never among the nine over the bar. Restored and **wit
 three headless sessions: `arm_hooks`, `session_end_backpressure`, `deny_and_point`. The nine are off
 individually with rate, owner and re-enable condition (`.claude/settings.json` register key).
 
-1. **`propose_closures.py` still runs** (plugin `Stop`, 15%) — loaded in place from
-   `plugins/tier1-lifecycle/hooks/hooks.json`, so every lever is machine-wide/fleet-wide or reds
-   parity `settings-plugin-tier1` (MUST). **Operator decision owed.**
+1. **`propose_closures.py` is RULED KNOWN-UNGOVERNABLE and stays RUNNING** (plugin `Stop`, 15%,
+   operator 2026-09-17) — loaded in place from `plugins/tier1-lifecycle/hooks/hooks.json`, so every
+   lever is machine-wide/fleet-wide or reds parity `settings-plugin-tier1` (MUST). No per-repo
+   option exists, so disabling it costs more than it saves. **Do not re-derive this dead end**; the
+   settings register carries the reason. It reopens only if Claude Code gains a per-hook off switch
+   outside the tracked settings file.
 2. **`deny_and_point` returned without meeting its own 2026-09-15 condition** (a bounded time that
    fails open with a LOUD in-band record). The harness `timeout` bounds it silently;
    `bounded_hook.py` stays unwired by the 2026-09-17 ruling. Restored on the 2% measurement, and the
@@ -120,12 +123,32 @@ off. That leaves lying to the gate (demote the tier → permanent by accident) o
 third way existed today only because ab-808's measurement existed; the next emergency may have none.
 `[#886]` is the parity-side half and `[#888]`'s declared kill-candidate.
 
-### The six contradicting rule pairs are RULED, UNBUILT
+### The six contradicting rule pairs are ANSWERED and UNBUILT — "ruled" is not "done"
 
 `to-cc/ANSWER-contradicting-rules-2026-09-16.md` — **P1=C P2=A P3=B P4=C P5=A P6=B**, reason per pair.
-Nothing is implemented: P4 (drop the `allow` from the gitignored `settings.local.json`, add a narrow
-ask rule for merges onto `main`) and P5 (wire ADR-110's refusal into the dispatch verb, before a lane
-session starts) name acts no commit has made.
+**Nothing is implemented, and the operator rules that this be said plainly rather than left to read
+as done.** P4 (drop the `allow` from the gitignored `settings.local.json`, add a narrow ask rule for
+merges onto `main`) and P5 (wire ADR-110's refusal into the dispatch verb, so it fires before a lane
+session starts) name acts **no commit has made**. An answered decision with no implementing act is
+the exact gap this window spent itself finding: the answer changes nothing until something enforces
+it, and no row yet carries these six.
+
+### FINDING — a cut can never be complete at its own preflight
+
+Witnessed at this cut, and the same shape as everything else this window: **a gate that cannot see
+the thing it is meant to guarantee.** `gen_handoff.py`'s ten preflight rows run BEFORE the generator
+writes a byte, so no row can see an unfilled `FILL-IN` region in a file that does not yet exist. The
+organs that do see it — `residual_completeness` and `handoff_probes` (P11 leg 2) — are **ship-gate**
+members, and the gate's next run is normally AFTER the bundle is committed. This bundle proved it:
+ten rows passed, `RESIDUAL.md` was filled, the assembler re-run, the bundle committed, merged and
+pushed — with `HANDOFF_BOOT.md`'s four header regions still carrying `_(fill: ...)` placeholder text,
+embedded verbatim into `PASTE_THIS.md`. A seat booting that paste would have read *"(fill: why this
+mode)"* as its session header. Caught by `audit.py ship-gate` afterwards (9 of its 12 hard-fails were
+these regions across BOOT + PASTE_THIS) and repaired in a follow-up commit; JOURNAL 2026-09-17 (y).
+**The rule this leaves:** filling is part of the cut, and the cut is not done until a POST-fill check
+runs — `validate_residual_completeness.py` and `verify_handoff_probes.py` take seconds each, against
+the ~4.5 minutes of the full gate. Whether that belongs in the handoff command as a mechanism rather
+than this sentence is the successor's call.
 
 ### Carried decisions and questions (named here because P11 requires it)
 

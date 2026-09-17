@@ -21,6 +21,22 @@
 
 ---
 
+### 2026-09-17 (z) - CC (Opus 5, handoff seat): the supplement folds VERBATIM, propose_closures is ruled ungovernable-and-running, and aa-13's evidence branch is deleted
+
+**Anchors:** `48901e12` -- `docs/handoff-2026-09-17-supplement`, cut from `74124a1b`.
+
+**Did:** the operator filled `SUPPLEMENT.md` on disk (3,094 -> 14,042 B, 21:32); committed AS WRITTEN and folded by `assemble_paste`. `PASTE_THIS.md` 24,611 -> 37,371 B, window-specific 58%; the previous bundle shipped at 55,340 B. **Not retyped** -- the answers are the browser architect's words and re-transcription is how verbatim becomes approximate. **My own error, recorded:** I first reported that no supplement answers had reached me. They had, out of band on disk; checking the artifact before the claim was the available move and I did it only after asserting the opposite.
+
+**Two operator rulings, recorded so they do not follow the successor.** (1) `propose_closures.py` is **KNOWN-UNGOVERNABLE and stays RUNNING**: it loads in place from `plugins/tier1-lifecycle/hooks/hooks.json`, so every lever is machine-wide or fleet-wide, or reds parity `settings-plugin-tier1` (MUST) -- no per-repo option exists, so disabling costs more than it saves. The settings register carries the reason. (2) The six contradicting rule pairs are **ANSWERED and UNBUILT**: P4 and P5 name acts no commit has made, no row carries them, and the residual says so plainly rather than letting "ruled" read as "done".
+
+**The cut's own finding travels in the bundle, not as a footnote:** a cut can never be complete at its own preflight -- the ten rows run BEFORE the bundle exists, so only a post-cut organ (`residual_completeness`, `handoff_probes`) can see a placeholder header. The same shape as everything else this window: a gate that cannot see the thing it is meant to guarantee.
+
+**Cleanup, on the operator's WITHDRAWN keep-ruling:** `worktree-lane-aa-13-resource-lifecycle` deleted locally and on origin. aa-14 was ruled its survivor, aa-13's two commits (`3da31370` / `01c446f7`) were reviewed and dispositioned at that merge, and the evidence lives in the merge record and the JOURNAL. A branch kept "as evidence" is the leftover class the repo-to-zero pass exists to remove.
+
+**Result:** `validate_residual_completeness` OK, `verify_handoff_probes` 15/15. **Changes:** the bundle's `SUPPLEMENT`/`RESIDUAL`/`PASTE_THIS`, `.claude/settings.json`, `JOURNAL.md`.
+
+**Next:** the successor boots from `PASTE_THIS.md`; its first act is Q1's acceptance test -- one lane, dispatch to merged, under an hour.
+
 ### 2026-09-17 (y) - CC (Opus 5, handoff seat): the bundle shipped with HANDOFF_BOOT unfilled, and the ship-gate organ caught what no preflight row can
 
 **Anchors:** `d0c30a20` -- `docs/handoff-2026-09-17-boot-fill`, cut from `05ca2afc`.
