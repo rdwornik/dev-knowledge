@@ -5,6 +5,99 @@
 
 Consumers: [#808] [#811]
 
+## AMENDMENT 1 (2026-09-17, after merge `06a2bccf`) — the real finding is the nine hooks nobody was watching
+
+> In-file amendment marker (audits are immutable). Everything below this amendment is the artifact
+> as merged, byte-for-byte, including the struck-through figures, which stay visible by operator
+> order.
+
+**Nine hooks are over the operator's bar: more than 10% of runs bypassed over 168 h, on at least 20
+runs.** The window is the week to 2026-09-17, and the rates are counted over the event-fired
+denominator (X-3 below):
+
+```
+surface_triage.ps1          SessionStart    252 / 262    96%
+surface-closures.ps1        SessionStart    145 / 252    58%   ADVISORY (user-level)
+fleet_health.py             SessionStart    107 / 263    41%   the host of this very report
+codespace_regime.py         SessionStart     15 / 45     33%
+resource_lifecycle.py       SessionStart     16 / 63     25%
+billing_leak_sentinel.ps1   SessionStart     45 / 205    22%
+conductor.py session-start  SessionStart     34 / 199    17%
+propose_closures.py         Stop            112 / 737    15%   ADVISORY (plugin)
+changelog_sentinel.py       SessionStart     27 / 263    10.3%
+```
+
+`surface_triage` at 96% and `fleet_health` at 41% are the finding. Nobody was looking at either
+of them. The two guards the window fixated on are within the bar: the prompts guard is at 6%
+(1,066 / 17,047) and `deny_and_point` at 2% (182 / 9,382).
+
+**What survives the retraction, and is sharper for it:**
+- **The guards failed OPEN silently, and nothing counted it.** They judged most calls, but every
+  timeout was a silent permit with no counter.
+- **No rate can see the wedges.** The wedges that cost the seats wrote no record at all (§1.3,
+  §0.1), so they appear as neither a run nor a bypass.
+
+**Ownership, as ruled.** The operator states that the retraction is the operator's: 83% was made
+the window's headline, and this lane was told to lead with it. This lane's part was counting
+records as calls. The struck-through figures below stay visible.
+
+### A1.1 · Correction of the reason given for the commit-gate strip (`6e9f0bb8`)
+
+- **What was cited.** The JOURNAL entry for merge `6e9f0bb8` (`chore/commit-gate-priced`, which
+  moved 31 of 34 hooks to CI) justifies the strip partly by "Lane ab-808 measured the fronting
+  guards permitting 477 of 573 calls". That figure is retracted. The strip commit `ea365b83`'s own
+  message does not cite it.
+- **Where the reason stands.** The decision stands on cost: ~244 s mean commit wall, one commit
+  9+ min detached, a twelve-minute data-free refusal, and no catch counter on any hook. The
+  stated guard figure does not stand.
+- **The correction spread a second error.** The corrections already on main give the "real" rate
+  as **13% and 4%**:
+  - the close packet `docs/audits/2026-09-16-technical-batch-ab-close-packet.md`, lines 101 and 115;
+  - the `[#883]` row;
+  - JOURNAL entry 2026-09-17 (l);
+  - the subject of merge `06a2bccf` ("83% retracted to 13%").
+- **Why 13% is also wrong.** Those figures count only the sessions that left a record, which is the
+  recorded-only denominator X-3 names as the bias behind the 83%. **The ruled figures are 6% and
+  2%** over the week, on the event-fired denominator.
+- **What changed and what did not.** `[#883]` is a living row and is corrected in this branch. The
+  close packet, the JOURNAL and the intake
+  `docs/intake/2026-09-16-tech-browser-seat-findings-off-the-transport.md` (lines 124 and 607, which
+  quote the 83%) are immutable and are **not** edited. This amendment is their correction of record.
+
+### A1.2 · The rulings on §8.6, and what this branch built for each
+
+- **X-1: "Disabled: NO" is correct. Kept.** A declaration that cannot enforce says so, because faking
+  the action would be the silent-success class the week was spent finding. The declaration is a
+  SIGNAL until the suspended-start cause is fixed upstream (`[#863]`). *Built:* the docstring of
+  `_disabled_text` states it, and a witness asserts `Disabled: NO` in the output of a repo
+  declaration.
+- **X-2: a hook DRAFTS; the integrator FILES at batch close.** Cross-cutting writes from a hook are how
+  a retention mover once wrote into a tree nobody could commit. *Built:* every declaration line now
+  reads "Row NOT filed -- drafted to `logs/HOOK-BYPASSES-BROKEN.json`; the integrator files drafted
+  rows at batch close", and a witness asserts it.
+- **X-3: count across ALL sessions (event-fired).** The recorded-only 13% is the bias that produced the
+  83%, and using it would repeat the error inside its own fix. *Built:* no behaviour change; this was
+  already the estimator. The `compute_rates` docstring and the prompts-guard posture reason now state
+  the ruling, and name 13% as the bias rather than an alternative.
+- **X-4: `fleet_health` declared, no special case.** *Built:* `HOST_HOOK_ID`, used only so the report
+  can print "this report's own host (fleet-health-session-start) is DECLARED BROKEN: b/n ... on the
+  boots it times out, this report is not seen at all". The witness asserts that the host IS declared
+  (never exempted) and that the line appears exactly once.
+- **X-5: out-of-repo hooks are ADVISORY.** They are named, with their rates, and routed to the
+  user-level disable. The repo observes what it cannot stop and must not claim to stop it. *Built:*
+  declarations carry `scope: repo | advisory`. Advisory ones print as `[hook-ADVISORY]` with "belongs
+  to the user-level disable", and their draft row is labelled ADVISORY. The witness asserts that no
+  `[hook-BROKEN]` line names an out-of-repo hook.
+
+**Tests.**
+- **RED first:** 3 failed, 18 passed.
+- **Now:** `tests/test_bounded_hook.py` passes 21/21 at `-n 0`.
+- **Wider:** `tests/test_fleet_health.py` and `tests/test_logs_retention.py` together give 248
+  passed, 2 failed. Both failures are in `test_logs_retention` and fail identically on main
+  `a92ff5c4`, because `disableAllHooks` leaves no SessionStart hook to call retention.
+
+---
+
 ## The finding — RETRACTED AND RESTATED (2026-09-17)
 
 **This lane reported, and the operator's ruling quoted, that the prompts guard "timed out and PERMITTED

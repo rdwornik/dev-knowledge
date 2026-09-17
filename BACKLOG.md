@@ -150,6 +150,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#809] [P1][S] The lane branch grammar allows one batch letter and all 26 are spent; widen it, never recycle · tasks/809-the-lane-branch-grammar-has-one-letter-and-all-26-are-used.md
 - [#810] [P1][S] The Codespace runner cannot pass a model, so model enforcement is impossible on that substrate · tasks/810-the-codespace-runner-cannot-pass-a-model.md
 - [#811] [P1][S] A frozen contract can be re-issued after its pin, and a lane still boots on it -- the freeze is nominal · tasks/811-a-frozen-contract-can-be-re-issued-after-its-pin-and-a-lane-still-boots-on-it.md
+- [#812] [P1][M] A figure later falsified inside an immutable artifact has no standing correction path -- the protected file keeps circulating the error · tasks/812-a-falsified-figure-in-an-immutable-artifact-has-no-standing-correction-path.md
 - [#827] [P1][S] The memory floor's per-seat constant was miscalibrated in BOTH directions -- ~7x too low at first, so admission passed work the box could not run, then ~4x too high after recalibration, so it refused work it could have run · tasks/827-the-memory-floor-is-derived-from-a-stale-per-seat-constant.md
 - [#819] [P1][M] A lane's hub half can merge while its win-tooling half sits unmerged, undetected · tasks/819-a-lanes-hub-half-can-merge-while-its-win-too.md
 - [#820] [P2][S] A HANDBACK addressed to a seat that does not exist is an abandoned lane, not a dispatched one · tasks/820-a-handback-addressed-to-a-seat-that-does-not.md

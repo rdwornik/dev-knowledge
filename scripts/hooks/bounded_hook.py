@@ -140,8 +140,9 @@ POSTURES: tuple[Posture, ...] = (
     Posture("prompts-guard", "--prompts-guard", "escalated", False,
             "AX15-1 rules this guard FAIL-CLOSED on any inability to evaluate, and a timeout is "
             "one. Measured: the harness fails it OPEN at its bound, silently -- 1,066 timeouts "
-            "in the week to 2026-09-17, 6% of the calls it matched across every session (13% "
-            "within the sessions that recorded it). Which way it goes past its bound is a class "
+            "in the week to 2026-09-17, 6% of the calls it matched across every session -- the "
+            "event-fired denominator (X-3, operator ruling 2026-09-17; a recorded-only one reads "
+            "13% and is the bias behind the retracted 83%). Which way it goes past its bound is a class "
             "(b) ruling, not a wrapper default -- so it is escalated. Removed from the settings "
             "file by the 2026-09-17 emergency order."),
     Posture("immutable-edits-guard", "block_immutable_edits.py", "escalated", False,
@@ -483,11 +484,26 @@ def _transcript_hook_id(command: str) -> str:
     return "cmd:" + (scripts[-1] if scripts else " ".join(command.split())[:80])
 
 
+#: The SessionStart hook this report prints from. It is held to the same bar as every other hook
+#: and is NOT exempted (operator ruling 2026-09-17, X-4): a measurement organ that is broken must
+#: say so, in its own output. It is named here only so the report can state its own status.
+HOST_HOOK_ID = "fleet-health-session-start"
+
+
+def _scope(hook_id: str) -> str:
+    """`repo` for a hook this repo states a posture for; `advisory` for one it cannot stop --
+    user-level or plugin-registered (operator ruling 2026-09-17, X-5)."""
+    return "repo" if any(p.hook_id == hook_id for p in POSTURES) else "advisory"
+
+
 def _disabled_text(hook_id: str) -> str:
+    """What a declaration can actually do, stated -- never implied (X-1). While the wiring is held
+    every repo declaration says NO, and that is correct: the declaration is a SIGNAL until the
+    suspended-start cause is fixed upstream."""
     posture = next((p for p in POSTURES if p.hook_id == hook_id), None)
     if posture is None:
-        return ("NO -- registered outside this repo's settings (user-level or a plugin), so only "
-                "its owner's settings can stop it")
+        return ("NO -- ADVISORY: registered outside this repo (user-level or a plugin); this repo "
+                "observes it and cannot stop it, so it belongs to the user-level disable")
     if posture.wrapped:
         return "yes -- `bounded_hook.py run` no longer starts it"
     return ("NO -- not routed through `bounded_hook.py run` (wiring held by operator ruling "
@@ -621,7 +637,11 @@ def compute_rates(now: datetime, budget_s: float = SCAN_BUDGET_S) -> tuple[dict,
     registered for that span runs at every firing, silent or not. For PreToolUse the firings are
     the calls of the tools it was seen matching in the window. The attachment count is the floor.
     What this cannot see: a firing in a checkout whose settings did not register the hook (an
-    older worktree), which counts as a run and so can only LOWER the rate -- never declare."""
+    older worktree), which counts as a run and so can only LOWER the rate -- never declare.
+
+    ACROSS ALL SESSIONS, BY RULING (X-3, operator 2026-09-17). Restricting the count to the
+    sessions that left a record is the recorded-only denominator -- precisely the bias that produced
+    the retracted 83% -- so it is not an option here, however much higher a rate it reads."""
     cutoff = now - timedelta(hours=RATE_WINDOW_H)
     cutoff_ts = cutoff.strftime("%Y-%m-%dT%H:%M:%SZ")
     reinstated = load_declarations()["reinstated"]
@@ -672,8 +692,12 @@ def compute_rates(now: datetime, budget_s: float = SCAN_BUDGET_S) -> tuple[dict,
 # --- the rate: the declaration ----------------------------------------------------------------
 
 def _draft_row(hook_id: str, decl: dict) -> str:
+    """A DRAFT, written beside the record. A hook never files a row: filing needs an id, a branch
+    and a commit, and cross-cutting writes from a hook are how a retention mover once wrote into a
+    tree nobody could commit. The integrator files drafted rows at batch close (X-2)."""
     disabled = _disabled_text(hook_id)
-    return (f"- [#NNN] [P1][S] **Hook `{hook_id}` is DECLARED BROKEN: {decl['bypasses']} of "
+    label = "DECLARED BROKEN (ADVISORY)" if decl["scope"] == "advisory" else "DECLARED BROKEN"
+    return (f"- [#NNN] [P1][S] **Hook `{hook_id}` is {label}: {decl['bypasses']} of "
             f"{decl['runs']} runs bypassed ({decl['rate']:.0%}) over {decl['window_h']} h** - "
             f"Declared automatically by `scripts/hooks/bounded_hook.py` at {decl['declared_at']} "
             f"against the stated bar: more than {decl['threshold']:.0%} over {decl['window_h']} h "
@@ -697,7 +721,8 @@ def declare(rates: dict, complete: bool, now: datetime) -> list[str]:
         decl = {"declared_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "runs": runs,
                 "bypasses": bypasses, "rate": round(bypasses / runs, 4),
                 "threshold": BROKEN_RATE, "window_h": RATE_WINDOW_H,
-                "min_runs": BROKEN_MIN_RUNS, "sources": found["sources"]}
+                "min_runs": BROKEN_MIN_RUNS, "sources": found["sources"],
+                "scope": _scope(hook_id)}
         decl["draft_row"] = _draft_row(hook_id, decl)
         data["broken"][hook_id] = decl
         fresh.append(hook_id)
@@ -745,12 +770,22 @@ def surface_lines(window_h: float = SURFACE_WINDOW_H, budget_s: float = SCAN_BUD
         report.append(f"[hook-rate]   {hook_id}: {bypasses}/{runs} bypassed "
                       f"({bypasses / runs:.0%}) -- {verdict} [{', '.join(found['sources'])}]")
 
-    for hook_id, decl in sorted(load_declarations()["broken"].items()):
-        report.append(f"[hook-BROKEN] {hook_id} DECLARED BROKEN {decl.get('declared_at')}: "
+    broken = load_declarations()["broken"]
+    host = broken.get(HOST_HOOK_ID)
+    if host:
+        report.append(f"[hook-BROKEN] this report's own host ({HOST_HOOK_ID}) is DECLARED BROKEN: "
+                      f"{host.get('bypasses')}/{host.get('runs')} runs bypassed over "
+                      f"{host.get('window_h')} h -- on the boots it times out, this report is not "
+                      "seen at all")
+    for hook_id, decl in sorted(broken.items()):
+        scope = decl.get("scope") or _scope(hook_id)
+        tag = "[hook-ADVISORY]" if scope == "advisory" else "[hook-BROKEN]"
+        report.append(f"{tag} {hook_id} DECLARED BROKEN {decl.get('declared_at')}: "
                       f"{decl.get('bypasses')}/{decl.get('runs')} runs bypassed over "
                       f"{decl.get('window_h')} h. Disabled: {_disabled_text(hook_id)}. "
-                      "Row NOT filed -- draft in "
-                      f"{declarations_path()}; reinstate: bounded_hook.py reinstate --id {hook_id}")
+                      f"Row NOT filed -- drafted to {declarations_path()}; the integrator files "
+                      f"drafted rows at batch close. Reinstate: bounded_hook.py reinstate --id "
+                      f"{hook_id}")
     return report
 
 

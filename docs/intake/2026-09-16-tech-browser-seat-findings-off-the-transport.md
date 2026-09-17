@@ -6,6 +6,8 @@ consumed-by:
 note: an INGEST, not a decision. Every figure below is the source digest's measurement, attributed to its file; dedup against rows was re-done on 2026-09-17 against main 33246c0a, every local and origin branch, and origin's `refs/reservations/task-id/*`. No row was filed or closed by this doc.
 ---
 
+**SUPERSEDED FIGURES -- read this before the text below** (marker inserted 2026-09-17 as a pure insertion; nothing below it was edited). Lines 124, 125 and 607 (at `a92ff5c4`) carry the browser seat's "477 of 573 calls (83 %)" and "`deny_and_point` ... all 182 of its calls and judged none"; both are FALSIFIED. The ruled figures are **6% (1,066 of 17,047 matched calls) for the prompts guard and 2% (182 of 9,382) for `deny_and_point`**, over the week to 2026-09-17, counted on the event-fired denominator across ALL sessions (operator ruling X-3, 2026-09-17). The "83%" / "477 of 573" / "182 of 182" counted transcript records as calls, and the later "13% and 4%" counted only the sessions that left a record -- the same bias, smaller. Authority: AMENDMENT 1 at the head of `docs/audits/2026-09-16-technical-lane-ab-808-guard-timeout.md`. Standing correction path: `[#812]`.
+
 <!--
   ADR-98 genre note. This doc is a SEED batch (precedent: 2026-07-30-tech-browser-architect-orientation.md,
   2026-07-07-arc5-pilot-followup-seeds.md): it carries findings off a transport that the repo cannot

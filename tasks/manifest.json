@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "ff7856f6633d8878184e196dd9e274ed20d83c44a15be9c3c9c072545c2f2a86",
+  "generated_sha256": "55eb42adc5b57b34faa2513510326a034d4ff88574a7713c7b975c8080e1cf6c",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -576,6 +576,10 @@
     {
       "task": 811,
       "file": "811-a-frozen-contract-can-be-re-issued-after-its-pin-and-a-lane-still-boots-on-it.md"
+    },
+    {
+      "task": 812,
+      "file": "812-a-falsified-figure-in-an-immutable-artifact-has-no-standing-correction-path.md"
     },
     {
       "task": 827,
