@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "3842fee61312901210c2297ecd7b3b9ddc74350990b4d5780249be2855210e66",
+  "generated_sha256": "cec5dcf788d71450fdbaaaa592b3133e91596f7e14110be14f00ae8547ea35c7",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -628,6 +628,10 @@
     {
       "task": 843,
       "file": "843-contract-freezing-premise-clauses-carry-from-a-stale-digest.md"
+    },
+    {
+      "task": 839,
+      "file": "839-fpg-1-represents-a-missing-target-as-an-explicit.md"
     },
     {
       "task": 883,

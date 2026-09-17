@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-17 (q) - CC (Opus 5, integrator seat, repo-to-zero): lane ab-664 spine witnessed merges WITH FOUR DELIBERATE RED WITNESSES -- not a regression, do not "fix" them
+
+**Anchors:** `8e3cf513`, `15f00e5b` -- `worktree-lane-ab-664-spine-witnessed`, synced at `e57b4ec6` (`tasks/manifest.json` hash-only conflict; generator re-pinned, BACKLOG current at 386 tasks). The operator named `8e3cf513`; the branch had moved to `15f00e5b` (amendment 1, the rulings applied), a descendant, and the descendant is what merged.
+
+**MERGED** `[#664]`, by operator order. `tests/test_graph_spine_commit_tier.py` witnesses the three spine refusals blocking a REAL `git commit`, and since `6e9f0bb8` moved those hooks to `manual` **four of its witnesses are RED, by ruling**: re-pointing them at the conductor while CI enforcement is off would green a tier that enforces nothing. They stay RED until enforcement is ON (re-pointed in the same act) or the refusals return to the local stage under `[#883]`'s counter bar. **The conductor's pytest job will count these four as regressions against the freeze -- they are the witness, recorded here so the next reader does not repair them.** Also landed: census re-measure (17 private edge computations, not 18; `docs/audits/2026-09-17-census-lane-ab-664-edge-class-remeasure.md`); W-G3 migration 1 (manifest links become FPG-1 edges, `batch_manifest` reconciled, `1fbaf7d3`); `[#664]` Done-when amended (conductor tier counts only with CI enforcement ON; "driven to 0" re-scoped to every dangling edge measured and dispositioned, `6b268a59`); `[#839]` filed (FPG-1 represents a missing target as an explicit dangling edge, `81eecabb`); register re-verdicts applied, each citing the census (`f3ad827d`). Block 839-842: 839 used, 840-842 unused. `[#664]` stays OPEN. **No tests run here**, by operator order.
+
+**Did:** merged ab-664 with its red witnesses intact. **Result:** the spine's commit-tier absence is witnessed in the suite rather than hidden. **Changes:** `scripts/graph_queries.py`, `scripts/file_purpose_graph.py`, `scripts/batch_manifest.py`, three test modules, two audits, `tasks/664`, `tasks/839`, `tasks/manifest.json`, `BACKLOG.md`, `JOURNAL.md`. **Next:** `[#839]`; doc-counts and the audit index regenerate on the zero branch.
+
 ### 2026-09-17 (p) - CC (Opus 5, integrator seat, repo-to-zero): lane ab-833 seat registry merges -- the seat is a registered entity, and lane-boot's refusals are now six
 
 **Anchors:** `5a951fab` -- `worktree-lane-ab-833-seat-registry` tip, synced at `78f78a7b`.

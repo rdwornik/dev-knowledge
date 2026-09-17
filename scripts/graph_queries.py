@@ -990,42 +990,145 @@ def _not_an_edge(note: str) -> EdgeComputation:
                            owner="none -- verdicted out of the class", note=note)
 
 
-#: The twenty-one verdicted sites, carried from lane `v-664`'s section 2.5 table on the
-#: merged tree. Two rows are FUNCTIONS rather than modules (`<path>::<symbol>`): `audit.py`
-#: computes two different kinds in two different checks, and collapsing them to one file row
-#: would hide one migration behind the other.
+#: The measurement every verdict below cites, so the next seat re-derives a row rather than
+#: trusting it. Section 3 is the private population with each site's blocker (`D` absent
+#: target, `T` other tree or ref, `C` consumer repo, `G` sub-file granularity); section 4 the
+#: re-verdicts of registered rows; section 5 the not-an-edge population, one reason each.
+_CENSUS = "docs/audits/2026-09-17-census-lane-ab-664-edge-class-remeasure.md"
+
+
+def _measured(section: str, reason: str) -> str:
+    return f"{_CENSUS} section {section}: {reason}"
+
+
+#: The verdicted sites. First carried from lane `v-664`'s section 2.5 table; RE-MEASURED by
+#: lane `ab-664-spine-witnessed` over all 65 shape-matching modules and applied by operator
+#: ruling 2026-09-17 (class (a)), on the condition that every re-verdicted row cites the
+#: measurement behind it. Some rows are FUNCTIONS rather than modules (`<path>::<symbol>`):
+#: `audit.py` computes in more than one check, and collapsing them to one file row would
+#: hide one migration behind the other.
+#:
+#: A `D` blocker is not a migration waiting on effort. By the same ruling, a private site
+#: whose refusal IS an absent target owes a measured, dispositioned dangling edge, and FPG-1
+#: representing that edge at all is `[#839]`.
 EDGE_COMPUTATIONS: dict[str, EdgeComputation] = {
     # ---- reconciled: already FPG-1 inputs, so the graph consumes them rather than rivals them
     "scripts/consumer_at_landing.py": _reconciled("citation", "FPG-1 input 3"),
     "scripts/validate_doc_code_edge.py": _reconciled("citation", "FPG-1 input 1"),
     "scripts/gen_audit_index.py": _reconciled("citation", "its output is FPG-1 input 2"),
-    # ---- private: citation
-    "scripts/funnel_coverage.py": _private("citation"),
-    "scripts/funnel_lifecycle.py": _private("citation"),
-    "scripts/validate_doc_rot.py": _private("citation"),
-    "scripts/preflight_contract.py": _private("citation"),
-    "scripts/verify_handoff_probes.py": _private("citation"),
-    "scripts/validate_reconciliation.py": _private("citation"),
-    "scripts/scan_undeclared_edges.py": _private("citation"),
-    "scripts/batch_manifest.py": _private("citation"),
-    "scripts/archive_row_body.py": _private("citation"),
-    "scripts/audit.py::check_doc_claims": _private("citation"),
-    # ---- private: script call-site. The two closest overlaps with FPG-1's own `imports` and
-    # `triggers` relations are named, because they are the migrations with a landing already
-    # built rather than one a lane would have to grow first.
-    "scripts/codemap/ast_walker.py": _private(
-        "script call-site", "closest overlap with FPG-1's `imports`"),
-    "scripts/audit.py::check_import_edges": _private(
-        "script call-site", "same overlap with `imports`"),
-    "scripts/enforcement_coverage.py": _private("script call-site"),
-    "scripts/reverse_dep_oracle.py": _private("script call-site"),
-    "scripts/generate_organ_index.py": _private(
-        "script call-site", "closest overlap with FPG-1's `triggers`"),
-    "scripts/dispatch_drift.py": _private("script call-site"),
-    # ---- private: test, and template
-    "scripts/proof_layer.py": _private("test"),
-    "scripts/gen_handoff.py": _private("template"),
-    # ---- not-an-edge: the shape matched and the class does not apply
+    # BORN reconciled, never private -- so it is excluded from `migrated` (`BORN_RECONCILED`).
+    "scripts/decision_coverage.py": _reconciled("citation", _measured(
+        "4", "reads FPG-1 input 8 via store.in_edges; the shape came from its date regexes")),
+    # MIGRATED by lane `ab-664-spine-witnessed` (W-G3 migration 1). Was `scripts/batch_manifest.py`
+    # private citation; the parser is now split per linking surface and FPG-1 input 3 imports
+    # it, so every manifest link is a `consumed-by` edge FROM the file that wrote it. Diff = 0
+    # on the fixture and on the live tree but for named self-links, which the graph drops by
+    # construction (`tests/test_graph_migrations.py`).
+    "scripts/batch_manifest.py::manifest_link_surfaces": _reconciled(
+        "citation", "FPG-1 input 3, manifest-link route"),
+    # ---- private: citation (census section 3; blocker in the note)
+    "scripts/validate_reconciliation.py": _private("citation", _measured(
+        "3", "blocker none, S -- the next ruling-free migration")),
+    "scripts/scan_undeclared_edges.py": _private("citation", _measured("3", "blocker G (tier 3)")),
+    "scripts/funnel_coverage.py": _private("citation", _measured("3", "blocker D")),
+    "scripts/funnel_lifecycle.py": _private("citation", _measured("3", "blocker D (leg c)")),
+    "scripts/verify_handoff_probes.py": _private("citation", _measured("3", "blockers D T")),
+    "scripts/preflight_contract.py": _private("citation", _measured("3", "blockers D T")),
+    # KIND CORRECTED from `script call-site` (census section 4): a CLAUDE.md `@include` is
+    # file-names-file, and the earlier "overlap with `imports`" note was false.
+    "scripts/audit.py::check_import_edges": _private("citation", _measured(
+        "3/4", "blockers D C; kind corrected from script call-site")),
+    # MEASURED IN -- sites the register never saw (census section 3, `UNREGISTERED`).
+    "scripts/audit.py::check_preflight_backlog_ids": _private("citation", _measured(
+        "3", "measured in; blocker D")),
+    "scripts/audit_checks/check_floor_integrity.py": _private("citation", _measured(
+        "3", "measured in; blockers D C")),
+    "scripts/governance_health.py": _private("citation", _measured(
+        "3", "measured in; blocker G")),
+    "scripts/propose_closures.py::find_weak": _private("citation", _measured(
+        "3", "measured in, the WEAK leg; blockers C D")),
+    "scripts/gen_dashboard.py::carrier_ids_for": _private("citation", _measured(
+        "3", "measured in, borderline, the intake-mention leg; blocker none, S")),
+    "scripts/fleet_analytics.py::inbound_reference_counts": _private("citation", _measured(
+        "3", "measured in, borderline; blocker T")),
+    # ---- private: script call-site
+    "scripts/codemap/ast_walker.py": _private("script call-site", _measured(
+        "3", "blocker C; closest overlap with FPG-1's `imports`")),
+    "scripts/reverse_dep_oracle.py": _private("script call-site", _measured(
+        "3", "blockers T G")),
+    "scripts/safe_remove.py::_bare_stem_literal_hits": _private("script call-site", _measured(
+        "3", "measured in; no structural blocker, but recall-heavy by design, so moving its "
+             "grammar into FPG-1 `imports` would mint false edges the orphan census trusts")),
+    # ---- not-an-edge: MEASURED OUT of the class (census section 4). Four clear, four on a
+    # lean; each was a registered private row.
+    "scripts/validate_doc_rot.py": _not_an_edge(_measured(
+        "4", "was private citation; date tokens are blanked, no target resolved; every arm "
+             "a one-file property")),
+    "scripts/dispatch_drift.py": _not_an_edge(_measured(
+        "4", "was private call-site; targets are host PowerShell commands (machine), leg 2 "
+             "single-file state")),
+    "scripts/proof_layer.py": _not_an_edge(_measured(
+        "4", "was private test; extracts skipif-probed TOOLS (environment), never test -> "
+             "script")),
+    "scripts/gen_handoff.py": _not_an_edge(_measured(
+        "4", "was private template; template -> bundle is the generator's own hard-coded "
+             "authoring; other legs off-tree transport")),
+    "scripts/audit.py::check_doc_claims": _not_an_edge(_measured(
+        "4", "was private citation, lean; 3 of 4 claims are counts, the 4th is hook-id set "
+             "parity and a hook id is not a corpus file")),
+    "scripts/enforcement_coverage.py": _not_an_edge(_measured(
+        "4", "was private call-site, lean; reads CONSUMER repos' wiring and proves firing by "
+             "execution; the hub leg is n/a")),
+    "scripts/generate_organ_index.py": _not_an_edge(_measured(
+        "4", "was private call-site, lean; an existence inventory, one leg names a script by "
+             "unresolved basename")),
+    "scripts/archive_row_body.py": _not_an_edge(_measured(
+        "4", "was private citation, lean; WRITES the row<->record relation, verify is byte "
+             "parity, FPG-1 `archives` already holds live pairs")),
+    "scripts/file_purpose_graph.py": _not_an_edge(_measured(
+        "4", "it IS FPG-1; the graph cannot owe a migration onto itself")),
+    # ---- not-an-edge: the previously UNVERDICTED population (census section 5, one line each)
+    **{f"scripts/{module}.py": _not_an_edge(_measured("5", reason)) for module, reason in (
+        ("assemble_paste", "writes PASTE_THIS from a fixed manifest (borderline generation, "
+                           "program-authored)"),
+        ("audit_checks/check_amendment_coherence",
+         "declared coupled-surface version agreement"),
+        ("audit_checks/check_handoff_version_stamp", "declared file list, value agreement"),
+        ("audit_checks/check_substrate_declaration",
+         "adapter; naming-grammar date; delegates to validate_substrate"),
+        ("check_derived_copies", "declared derived-copies.yaml + byte parity + staged set"),
+        ("check_provider_registry", "registry value agreement at hard-coded sites"),
+        ("coherence_enumerator",
+         "intra-document line sites; the pair relation is validate_reconciliation's"),
+        ("dispatch_conformance", "writer vs an external verb's dry-run output"),
+        ("dispatch_surface", "value agreement at declared sites + enum checks"),
+        ("export_backlog_view", "renders task files to a view; resolves nothing"),
+        ("fleet_health", "state files, dates, proposal log vs open ids (machine log)"),
+        ("fleet_parity", "consumer repos' wiring (other trees) against a declared manifest"),
+        ("gen_claude_rosters", "inventory of command frontmatter and ADR headers"),
+        ("gen_lane_contract", "contract shape rendering"),
+        ("gen_methodology_roster", "declared manifest read back"),
+        ("gen_seat_boot", "template fill from PLAYBOOK Ch8 tokens, program-authored "
+                          "(borderline template)"),
+        ("gen_task_tree", "the generator of the view; declared clauses FPG-1 already loads"),
+        ("generate_floor", "template render + F5 blacklist"),
+        ("journal_anchor", "JOURNAL -> commit SHA is git history"),
+        ("normalize_headers", "one file's heading format"),
+        ("review_closures", "machine-written PROPOSALS register + state"),
+        ("routing_agreement", "declared-copy parity with L0 + transcripts (machine)"),
+        ("seat_refusals", "footprints in off-tree contracts; declared intent (borderline)"),
+        ("session_end_backpressure", "four state gates"),
+        ("toc/generator", "self-loop inside PLAYBOOK.md (borderline generation)"),
+        ("validate_adr_status", "status grammar + index/header parity"),
+        ("validate_backlog", "declared-clause existence (borderline; FPG-1 loads both "
+                             "clauses)"),
+        ("validate_doc_claims", "see audit.py::check_doc_claims"),
+        ("validate_doc_structure", "intra-file numbering and TOC anchors"),
+        ("validate_landing_predicate", "hand-declared `landed:` sites read back"),
+        ("validate_residual_completeness", "unfilled regions + staged set"),
+        ("validate_substrate", "contract text shape, declared write-scope"),
+    )},
+    # ---- not-an-edge: verdicted before the re-measure, each with its own reason
     "scripts/graph_queries.py": _not_an_edge(
         "this module. It grew an `ast` walk arming this very query, and the gate refused the "
         "commit that armed it -- the first thing the ratchet caught was itself. Its subject "
@@ -1260,6 +1363,10 @@ def edge_class_census(repo_root: Path | str, store: gs.GraphStore,
 #: The three rows already reconciled when the register was written, so `migrated` counts
 #: MOVEMENT rather than restating the arm-time state as progress.
 ARM_TIME_RECONCILED = 3
+#: Rows that were FPG-1 readers from their first commit and were only verdicted later. They
+#: are `reconciled`, but no lane moved them, so counting them as `migrated` would report
+#: progress nobody made.
+BORN_RECONCILED = frozenset({"scripts/decision_coverage.py"})
 
 
 def edge_class_metrics(repo_root: Path | str | None = None,
@@ -1276,9 +1383,11 @@ def edge_class_metrics(repo_root: Path | str | None = None,
     rows = EDGE_COMPUTATIONS if register is None else register
     counted = {status: sum(1 for row in rows.values() if row.status == status)
                for status in REGISTER_STATUSES}
+    born = sum(1 for key, row in rows.items()
+               if key in BORN_RECONCILED and row.status == "reconciled")
     return {"private": counted["private"], "reconciled": counted["reconciled"],
             "not_an_edge": counted["not-an-edge"],
-            "migrated": max(counted["reconciled"] - ARM_TIME_RECONCILED, 0)}
+            "migrated": max(counted["reconciled"] - ARM_TIME_RECONCILED - born, 0)}
 
 
 # --------------------------------------------------------------------------------------- CLI
