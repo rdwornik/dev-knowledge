@@ -1,0 +1,12 @@
+---
+id: "[#890]"
+title: "Per-task execution-state carrier is one of the five intakes still owed -- Phase 1 must reconcile what [#664], tasks/ frontmatter, manifest.json, FPG-1 and the organ index already hold before anything new is built"
+status: open
+priority: P2
+size: M
+theme: "[E7] Tooling & evaluation"
+story: "[S19] Decide the undecided artifact/tool models"
+generates: BACKLOG.md
+---
+
+- [#890] [P2][M] **Per-task execution-state carrier is one of the five intakes still owed -- Phase 1 must reconcile what [#664], tasks/ frontmatter, manifest.json, FPG-1 and the organ index already hold before anything new is built** - intake 103 §C.1 names this "Owner: NO ROW" and all three of this window's benchmarks (maister, the AB-832 copilot-collections comparison, the pending-queue v2 five-intakes list) converge on it independently; the AB-832 comparison lane surfaced it as a CANDIDATE and deliberately left it unfiled, "adoption needs an explicit design and an open row before filing." Benchmark carrier shape named by the source: maister's `orchestrator-state.yml` -- `completed_phases`, `failed_phases`, `auto_fix_attempts`, `task_context.risk_level`. Distinct from `docs/intake/2026-09-07-tech-per-lane-resumable-state-file.md`, which is per LANE, not per TASK · Done when: Phase 1 catalogs what `[#664]`, `tasks/` frontmatter, `tasks/manifest.json`, FPG-1 and the organ index already carry per task, compares that inventory against the benchmark carrier's fields, and records ONE ruled choice from the source's own option list -- extend what exists · new frontmatter fields · a separate carrier · nothing -- rather than building beside what exists by default; implementation of the chosen option is a later lane, not this row · refs `docs/intake/2026-09-16-tech-browser-seat-findings-off-the-transport.md` §C.1 (frozen source, "Owner: NO ROW"), `docs/audits/2026-09-16-technical-lane-ab-832-copilot-collections-comparison.md` (CANDIDATE disposition, not adopted), `docs/intake/2026-09-07-tech-per-lane-resumable-state-file.md` (adjacent, per-lane not per-task), `docs/handoffs/2026-09-17-dev-knowledge-architect/SUPPLEMENT.md` ("Per-task EXECUTION state: extend the existing row, or a new carrier... Phase 1... MUST run before anything is built beside what exists"), `[#664]`, `tasks/manifest.json`, `scripts/file_purpose_graph.py`, `ecosystem/organ-index.md` · kill-candidates: none -- no existing open row owns per-task execution state; this is the required carrier row

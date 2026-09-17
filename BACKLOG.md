@@ -414,6 +414,7 @@ So that cognitive overhead per session drops.
 - [#771] [P2][S] `[#729]` carries no protocol-conformance criterion, so a server can satisfy it completely and not be an MCP server · tasks/771-729-carries-no-protocol-conformance-criterion-so.md
 - [#800] [P1][S] The routing unit is the SESSION, not the turn — the prompt cache is per model, so per-turn switching loses money · tasks/800-the-routing-unit-is-the-session-not-the-turn-the-p.md
 - [#801] [P2][S] Opus is a flat 2.50x Sonnet on every leg — a false 5x figure circulated and a token-shape argument was built on it · tasks/801-opus-is-a-flat-2-50x-sonnet-and-a-false-5x-figure.md
+- [#889] [P1][M] The next window's acceptance test has no row -- one lane end to end, dispatch to merged, under one hour, nothing wedged, no human decision in the middle · tasks/889-lane-acceptance-test.md
 ### [S19] Decide the undecided artifact/tool models
 So that cadence-less artifacts and unevaluated tools don't rot or get adopted blind.
 
@@ -442,6 +443,7 @@ So that cadence-less artifacts and unevaluated tools don't rot or get adopted bl
 - [#701] [P2][S] A Codex quota hit stalls review for 50 minutes and no fallback provider is authorized, so the reviewer role is a single point of failure · tasks/701-codex-quota-hit-stalls-review-with-no-authorized-fallback-provider.md
 - [#706] [P2][S] The operator packet gains D14, folder-as-domain -- and it cannot be decided before the domain census returns · tasks/706-operator-packet-gains-d14-folder-as-domain-decided-after-the-census.md
 - [#722] [P1][S] Interim routing: read-only digests, censuses and scans default to agy as a READER ONLY, with conclusions and verdicts staying on Claude · tasks/722-interim-routing-read-only-work-defaults-to-agy-as-reader-only.md
+- [#890] [P2][M] Per-task execution-state carrier is one of the five intakes still owed -- Phase 1 must reconcile what [#664], tasks/ frontmatter, manifest.json, FPG-1 and the organ index already hold before anything new is built · tasks/890-per-task-execution-state-carrier.md
 ### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)
 So that unattended routines run only with a named consumer, a survival metric, and a bounded operator load — never as rot generators (the fleet-audit lesson; sequencing per the standing operator ruling: the load-gauge lands before anything else in the Tier-2 nightly layer).
 - [#271] [P3][L] Nightly proposal loop · tasks/271-nightly-proposal-loop.md

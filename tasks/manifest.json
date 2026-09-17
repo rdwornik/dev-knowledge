@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "d1548874716e7ef89933bdcf86523fc8ed220975c764e3e1817b84ebe4ddfc6b",
+  "generated_sha256": "f2a30869389d59b2c7e9023037cc28c8da91f20bfba76fc7977b0f477c3a32e1",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1562,6 +1562,10 @@
       "file": "801-opus-is-a-flat-2-50x-sonnet-and-a-false-5x-figure.md"
     },
     {
+      "task": 889,
+      "file": "889-lane-acceptance-test.md"
+    },
+    {
       "prose": "### [S19] Decide the undecided artifact/tool models"
     },
     {
@@ -1668,6 +1672,10 @@
     {
       "task": 722,
       "file": "722-interim-routing-read-only-work-defaults-to-agy-as-reader-only.md"
+    },
+    {
+      "task": 890,
+      "file": "890-per-task-execution-state-carrier.md"
     },
     {
       "prose": "### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)"
