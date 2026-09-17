@@ -16,6 +16,7 @@ pinned:
 from __future__ import annotations
 
 import importlib
+import os
 import re
 import shutil
 import subprocess
@@ -69,9 +70,26 @@ def _commit_manifest(repo: Path) -> None:
     _git(repo, "commit", "-q", "-m", "batch AB manifest")
 
 
+def _live_integrator_registry(repo: Path) -> Path:
+    """A registry holding one LIVE integrator for batch AB, written through the real event writer.
+
+    `[#833]` added two seat-state refusals after the manifest ones, so a lane that passes the
+    manifest now also needs a receiving seat. The registry is built beside the fixture repo, never
+    read from `~/.claude`, so the machine running the suite cannot decide these tests.
+    """
+    reg = importlib.import_module("seat_registry")
+    path = repo.parent / "seats.jsonl"
+    if not path.exists():
+        reg.record_event({"hook_event_name": "SessionStart", "session_id": "int-fixture",
+                          "cwd": str(repo)}, path=path, env={"CLAUDE_PID": str(os.getpid())})
+        reg.bind("integrator", "AB", session_id="int-fixture", path=path)
+    return path
+
+
 def _boot(repo: Path, lane: str = _LANE):
     return CliRunner().invoke(_lane_boot().cli,
-                              ["preflight", "--lane", lane, "--repo", str(repo)])
+                              ["preflight", "--lane", lane, "--repo", str(repo),
+                               "--registry", str(_live_integrator_registry(repo))])
 
 
 @requires_git

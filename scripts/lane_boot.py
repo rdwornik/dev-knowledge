@@ -21,7 +21,16 @@ WHAT `preflight` REFUSES (exit 1), in order, and the first refusal stops the run
      present in a worktree ...)". `open_batches` reads `HEAD`, so a manifest committed on a side
      branch opens the batch for that branch alone, and every lane that bases on `main` would boot
      outside it. That is `[#788]`'s visibility defect at batch scale, and the refusal names the
-     file.
+     file;
+  4. ANOTHER session already owns this lane and is `live` (`seat_refusals.refuse_lane_owned`,
+     `[#833]`) -- on 2026-09-17 a second session was dispatched onto lane ab-833 and found its live
+     owner only by reading staged files and scanning processes;
+  5. the batch has no `live` integrator seat (`seat_refusals.refuse_no_live_integrator`, `[#833]`)
+     -- a lane that boots now hands back to nobody.
+
+  Refusals 4 and 5 read `seat_registry.seats()`, whose `state` is written by hook events and never
+  by a model. They run AFTER the manifest refusals: a lane with no open batch has no batch whose
+  integrator could be asked about.
 
 Exit 2 is an internal error (git unreadable). It never passes.
 
@@ -36,6 +45,7 @@ HONEST LIMITS
 """
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -48,6 +58,7 @@ if str(_SCRIPTS) not in sys.path:  # importable both as a module and as a script
 
 from batch_manifest import open_batches  # noqa: E402
 from preflight_contract import check_open_batch  # noqa: E402
+from seat_refusals import SeatRefusal, refuse_lane_owned, refuse_no_live_integrator  # noqa: E402
 from validate_branch_naming import validate_lane_worktree_name  # noqa: E402
 
 OK = 0
@@ -78,8 +89,21 @@ def _refuse(message: str) -> None:
     sys.exit(REFUSED)
 
 
-def preflight(lane: str, repo: Path, main_ref: str = "main") -> str:
-    """Run the three refusals. Return the OK line, or exit through `_refuse`."""
+def seat_preflight(lane: str, seats: list, *, own_session: str) -> str:
+    """Refusals 4 and 5 over the seat registry (`[#833]`). Return the OK line, or exit 1."""
+    batch = lane.split("-")[1].upper()
+    try:
+        refuse_lane_owned(lane, seats, own_session=own_session)
+        integrator = refuse_no_live_integrator(batch, seats)
+    except SeatRefusal as exc:
+        _refuse(str(exc))
+    return (f"OK   seats: batch {batch} is received by integrator {integrator.session_id}; "
+            f"no other live session holds {lane}")
+
+
+def preflight(lane: str, repo: Path, main_ref: str = "main", *,
+              registry: Path | None = None) -> str:
+    """Run the five refusals. Return the OK lines, or exit through `_refuse`."""
     reason = validate_lane_worktree_name(lane)
     if reason is not None:
         _refuse(reason)
@@ -102,7 +126,10 @@ def preflight(lane: str, repo: Path, main_ref: str = "main") -> str:
                 f"Merge the manifest to `{main_ref}` before the first lane boots ([#804]).")
 
     names = ", ".join(f"{b.path} (batch {b.batch})" for b in open_on_main)
-    return f"OK   {lane} -> branch worktree-{lane}; open on {main_ref}: {names}"
+    import seat_registry  # noqa: PLC0415 -- lazy: only a lane past the manifest refusals reads it
+    seat_line = seat_preflight(lane, seat_registry.seats(registry),
+                               own_session=os.environ.get("CLAUDE_CODE_SESSION_ID", ""))
+    return f"OK   {lane} -> branch worktree-{lane}; open on {main_ref}: {names}\n{seat_line}"
 
 
 @click.group(help="/lane-boot's pre-flight, as one command whose refusals block ([#804]).")
@@ -116,10 +143,13 @@ def cli() -> None:
               show_default=True, help="the primary checkout the lane dispatches from")
 @click.option("--main-ref", default="main", show_default=True,
               help="the ref a manifest must be committed on")
-def cmd_preflight(lane: str, repo: Path, main_ref: str) -> None:
-    """Refuse to boot a lane without an open batch committed on main. Exit 0/1/2."""
+@click.option("--registry", default=None, type=click.Path(dir_okay=False, path_type=Path),
+              help="the seat registry to read (default: seat_registry.REGISTRY_PATH)")
+def cmd_preflight(lane: str, repo: Path, main_ref: str, registry: Path | None) -> None:
+    """Refuse to boot a lane without an open batch on main or a live integrator, or onto a lane
+    another live session already owns. Exit 0/1/2."""
     try:
-        click.echo(preflight(lane, repo, main_ref))
+        click.echo(preflight(lane, repo, main_ref, registry=registry))
     except click.ClickException as exc:
         click.echo(f"LANE-BOOT INTERNAL ERROR: {exc.format_message()} -- refusing to report "
                    f"clean", err=True)
