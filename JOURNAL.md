@@ -1,5 +1,7 @@
 # Journal — .dev-knowledge
 
+**SUPERSEDED FIGURES -- read this before the text below** (marker inserted 2026-09-17 as a pure insertion; nothing below it was edited). Entries 2026-09-17 (m), (l) and (d) cite guard bypass rates that are FALSIFIED: (d) justifies the commit-gate strip `6e9f0bb8` partly by "permitting 477 of 573 calls" (the decision stands on cost; that stated reason does not), and (l) and (m) give the correction as "13% and 4%". The ruled figures are **6% (1,066 of 17,047 matched calls) for the prompts guard and 2% (182 of 9,382) for `deny_and_point`**, over the week to 2026-09-17, counted on the event-fired denominator across ALL sessions (operator ruling X-3, 2026-09-17). The "83%" / "477 of 573" / "182 of 182" counted transcript records as calls, and the later "13% and 4%" counted only the sessions that left a record -- the same bias, smaller. Authority: AMENDMENT 1 at the head of `docs/audits/2026-09-16-technical-lane-ab-808-guard-timeout.md`. Standing correction path: `[#812]`.
+
 <!-- scope: meta -->
 
 > Per-session tactical log of `.dev-knowledge` Claude Code work. Entry shape
