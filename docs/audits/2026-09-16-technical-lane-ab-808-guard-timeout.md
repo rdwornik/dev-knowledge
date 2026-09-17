@@ -117,6 +117,66 @@ not cover, at the hook stage, with no record. A wrapper whose children inherit *
 the harness's, and which stops waiting at its own bound, closes exactly that gap. It is not a rival
 to the harness timer. It also gives the fail-open a durable record, which the harness never writes.
 
-## 2 · Class (b) escalation — the guards whose ruling says fail CLOSED
+## 2 · Posture per hook, and the class (b) escalation
 
-_Filled at step 4._
+The code carries the posture and its reason: `scripts/hooks/bounded_hook.py::POSTURES`, one entry per
+registered hook. `bounded_hook.py check` refuses any hook without an entry. Summary:
+
+```
+hook                         event         posture     wrapped  bound / harness timeout   reason (short)
+prompts-guard                PreToolUse    ESCALATED   no       — / 10 s (unchanged)       AX15-1 fail-CLOSED; harness already fails it open, 83%
+immutable-edits-guard        PreToolUse    ESCALATED   no       — / 600 s (was implicit)   ADR-77 fail-CLOSED in-zone
+session-end-backpressure     Stop          fail-open   yes      15 s / 35 s                advisory in full (ADR-85 A5)
+fleet-health-session-start   SessionStart  fail-open   yes      60 s / 80 s                SessionStart cannot refuse
+surface-triage               SessionStart  fail-open   yes      10 s / 30 s                surfacing only
+billing-leak-sentinel        SessionStart  fail-open   yes      10 s / 30 s                sentinel; cannot refuse
+changelog-sentinel           SessionStart  fail-open   yes      20 s / 40 s                local nudge
+arm-hooks                    SessionStart  fail-open   yes      60 s / 80 s                idempotent; check_hooks_armed backstop
+conductor-session-start      SessionStart  fail-open   yes      25 s / 45 s                surfacing
+logs-retention               SessionStart  fail-open   yes      20 s / 40 s                next session repeats it
+resource-lifecycle           SessionStart  fail-open   yes      30 s / 50 s                surfacing; admission is separate
+codespace-regime             SessionStart  fail-open   yes      15 s / 35 s                surfacing
+hook-bypass-surface (new)    SessionStart  fail-open   no       — / 10 s                   reads one file, spawns nothing
+```
+
+Every wrapped hook's `--bound` is its old harness timeout, so the hook's own time budget is
+unchanged. The harness timeout rises by 20 s (`HARNESS_HEADROOM_S`). Step 1 measured interpreter
+start at up to ~20 s on this box, and without that headroom the harness could cancel the wrapper
+before it writes the record.
+
+### 2.1 · ESCALATED, class (b): the two PreToolUse guards
+
+These are the only hooks on the tool-call path, which is where both wedges happened. They are the two
+this lane may **not** decide.
+
+**E-1 — the prompts guard (`fleet_health.py --prompts-guard`).**
+- **Rule:** `[#808]` asks for every hook to fail OPEN past its bound, loudly.
+- **Ruling:** AX15-1 (2026-09-11) makes this guard fail CLOSED on any inability to evaluate. A guard
+  that has not finished inside its bound has not evaluated.
+- **Measured fact that sharpens the conflict:** the harness already fails this guard OPEN, silently,
+  on **477 of 573** recorded calls. AX15-1's posture holds today only on the calls that finish
+  inside 10 s.
+- **The fork:** (i) wrap it `--posture open`, which records and announces each bypass, the status
+  quo made visible; or (ii) wrap it `--posture closed`, which refuses on timeout. At the measured
+  83% rate that refuses most tool calls on a loaded box: the 2026-09-06 wedge class, with a teaching
+  message instead of silence. Both are one flag; nothing is wired.
+- **Left as is:** the command is byte-identical (`tests/test_prompts_guard_hook_wiring.py` still
+  pins it).
+
+**E-2 — the ADR-77 transcript guard (`block_immutable_edits.py`).**
+- **Rule:** as E-1.
+- **Ruling:** ADR-77, fail-closed in-zone.
+- **Measured fact:** no timeout field, so the default applied: 600 s of holding every
+  `Edit|Write|MultiEdit|NotebookEdit` call, then failing open.
+- **What was written:** an explicit `"timeout": 600`, the same value. That satisfies Done 2 without
+  deciding anything.
+- **The fork:** whether it may fail open sooner, and whether to wrap it at all.
+
+### 2.2 · Unblocked, not done: the deny-and-point guard (`[#727]`)
+
+`//deny-and-point-DISABLED` in `.claude/settings.json` sets its re-enable condition: "a BOUNDED
+EXECUTION TIME and FAILS OPEN on that timeout with a LOUD RECORD". `bounded_hook.py run
+--posture open` is now that mechanism. Re-enabling is still an operator ruling this lane does not
+take, and step 1 adds a fact against doing it as-is: **182 of its 182 recorded runs timed out**, so
+it has never judged a call on this box. Wrapped, it would record a bypass on nearly every matched
+call.
