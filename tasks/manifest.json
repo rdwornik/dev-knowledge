@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "f322d88f92ebd89f0775e61ad29e7b5729d65ab65259d7ac2f8d85228309b81a",
+  "generated_sha256": "f36f57b548109cb091cca326bb66c7157be1ee32b7db5d599a3103907208f122",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -616,6 +616,18 @@
     {
       "task": 843,
       "file": "843-contract-freezing-premise-clauses-carry-from-a-stale-digest.md"
+    },
+    {
+      "task": 863,
+      "file": "863-hook-processes-are-created-suspended-and-never-resumed.md"
+    },
+    {
+      "task": 864,
+      "file": "864-decision-coverage-gate-is-flaky.md"
+    },
+    {
+      "task": 865,
+      "file": "865-user-level-block-onedrive-guard-needs-a-hang-ruling.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
