@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-09-17 (d) - CC (Opus 5, integrator seat, batch AB close): the commit gate stripped to data-loss protection -- 31 hooks moved to the conductor's report-only `commit-gate` job
+
+**Anchors:** `ea365b83` -- `chore/commit-gate-priced` (`.pre-commit-config.yaml`, `.github/workflows/conductor.yml`, `ecosystem/organ-index.md`, `CLAUDE.md`).
+
+**MERGED** `chore/commit-gate-priced` `--no-ff`, operator close order step (2), after (b) hooks-disable `33246c0a` and (c) admission `aacce0f8` were on origin. **Before:** 34 hooks, ~244 s mean commit wall, a single commit 9+ min detached; the `[#761]` amendment commit launched 12:10 was refused ~12:22 by `audit-health` on journal-anchor tree lag -- twelve minutes for a refusal no defect caused. Lane ab-808 measured the fronting guards permitting 477 of 573 calls. **No hook has a catch counter**, so an evidenced catch could not be established, and the ruling for that case applied: **kept local** `audit-index-freshness` + `organ-index-freshness` (pre-commit) and `block-unanchored-push` (the JOURNAL anchor) + `block-ff-push` (pre-push); **moved** the other 31 to `stages: [manual]`, run by conductor job `commit-gate` over the pushed range via the `seal` job's `reset --soft` device, report-only. Skipped in CI and stated: `block-commit-on-main`, `backlog-id-on-close`, `backlog-filing-backpressure`. **After:** the strip commit itself 85.9 s wall (organ-index-freshness fired; box loaded); this merge commit's wall is on the close packet. **No tests run here**, by operator order.
+
+**Did:** stripped the local commit gate. **Result:** local commits pay two index checks, not 34 hooks. **Changes:** `.pre-commit-config.yaml`, `.github/workflows/conductor.yml`, `ecosystem/organ-index.md`, `CLAUDE.md`, `JOURNAL.md`. **Next:** a gate returns to the local stage only with a counter -- caught, cost, window (row filed at close).
+
 ### 2026-09-17 (c) - CC (Opus 5, integrator seat): resource_lifecycle admission refusal DISABLED -- the `admit` verb reports advisory and exits 0 until calibrated from real dispatch measurements
 
 **Anchors:** `b03ec766` -- `worktree-resource-admission-disabled` (`scripts/resource_lifecycle.py`, `ecosystem/quality-requirements.yaml`).
