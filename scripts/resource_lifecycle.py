@@ -757,7 +757,21 @@ def cmd_session_start() -> None:
 
     FAIL-SOFT IN FULL. A session must never fail to start because a reporter could not read
     a process table.
+
+    A THIRD JOB, `[#833]`: this leg is the seat registry's SessionStart EVENT WRITER. The census
+    above counts processes named `claude` and cannot say whose they are; the hook payload on this
+    leg's stdin can -- session id, cwd, transcript path -- so the census is where a seat's `live`
+    is written, by the event and never by a model. Its own try, first, with a bounded stdin read:
+    a registry that cannot be written must not cost the allocation line, and the reverse.
     """
+    try:
+        try:
+            import seat_registry  # noqa: PLC0415 -- lazy: the registry imports this module's probe
+        except ImportError:
+            from scripts import seat_registry  # type: ignore[no-redef]  # noqa: PLC0415
+        seat_registry.record_hook_event(seat_registry.read_hook_stdin())
+    except Exception:  # noqa: BLE001 -- a reporter never blocks a session start
+        pass
     try:
         table = process_table()
         alloc = allocation(table=table)

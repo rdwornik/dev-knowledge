@@ -1,66 +1,7 @@
 {
-  "hooks": {
-    "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/session_end_backpressure.py\"",
-            "timeout": 15
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [],
-    "SessionStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/fleet_health.py\"",
-            "timeout": 60
-          },
-          {
-            "type": "command",
-            "command": "powershell -ExecutionPolicy Bypass -File \"$CLAUDE_PROJECT_DIR/scripts/surface_triage.ps1\"",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/changelog_sentinel.py\"",
-            "timeout": 20
-          },
-          {
-            "type": "command",
-            "command": "uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/arm_hooks.py\"",
-            "timeout": 60
-          },
-          {
-            "type": "command",
-            "command": "uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/conductor.py\" session-start",
-            "timeout": 25
-          },
-          {
-            "type": "command",
-            "command": "uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/logs_retention.py\"",
-            "timeout": 20
-          },
-          {
-            "type": "command",
-            "command": "uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/resource_lifecycle.py\" session-start",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/codespace_regime.py\" session-start",
-            "timeout": 15
-          }
-        ]
-      }
-    ]
-  },
+  "disableAllHooks": true,
+  "hooks": {},
+  "//hooks-ALL-DISABLED-2026-09-17": "ALL hook families DISABLED 2026-09-17 by operator emergency order -- Stop, PreToolUse, SessionStart and every other event on this surface, plus (via disableAllHooks) plugin-contributed hooks such as the tier1-lifecycle Stop hook. This WIDENS and supersedes //hooks-EMERGENCY-DISABLED-2026-09-17 below, which disabled PreToolUse and one SessionStart hook only. EVIDENCE: hook processes are created SUSPENDED and never resumed -- 0 s CPU, no image path, one thread in Wait/Suspended -- so no timeout can fire on them and no single-family disable helps. 20 orphans were killed the morning of 2026-09-17 and sessions kept wedging afterwards on a different family: a session wedged in Stop hooks 2/3 with nine subagents, and a suspended session_end_backpressure.py (Stop) was measured at 11:02. ORDERING: the same disable landed FIRST in the user-level ~/.claude/settings.json (disableAllHooks: true; reason and original block in ~/.claude/settings.hooks-DISABLED-2026-09-17.json), because every settings layer is merged at startup but this repo copy is read from the session's OWN checkout -- a lane worktree branched before this merge keeps its old hooks. A repo-scoped disable cannot protect those sessions; the user-level file can, since disableAllHooks is read after precedence merging and no layer sets it false. The removed Stop and SessionStart blocks are recoverable verbatim from this file at 33246c0a. COLLATERAL, TEMPORARY: the ADR-77 transcript guard, the Stop backpressure gate, the SessionStart fleet digest and arm_hooks self-arm are all off. RE-ENABLE only under [#863] (a zero-CPU hook watchdog that kills the process tree, and the suspended-at-creation cause established from the client's spawn path).",
   "extraKnownMarketplaces": {
     "dev-knowledge-methodology": {
       "source": {

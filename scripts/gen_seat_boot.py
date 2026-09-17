@@ -177,6 +177,22 @@ _REFUSAL_LINES: dict[str, tuple[str, str]] = {
         f"Append the merge, the refusal verbatim and your question to `{ESCALATION_ARTIFACT}`, "
         "STOP that merge, and continue only with entries the plan marked INDEPENDENT.",
     ),
+    # `[#833]`: the two refusals on seat STATE, read from `scripts/seat_registry.py` where `state` is
+    # written by hook events only. The bind is NOT on this line on purpose: a dispatcher or a lane
+    # that ran it would register a role it does not hold, so the clause names who binds.
+    "no-live-integrator": (
+        "uv run --locked python scripts/seat_refusals.py no-live-integrator --batch <batch>",
+        "Before any lane enters the batch. Only a LIVE integrator bound to this batch passes; a "
+        "wedged, starved or absent one is named and refused. The integrator seat itself runs "
+        "`uv run --locked python scripts/seat_registry.py bind --role integrator --batch <batch>` "
+        "from its own session first, then this line to prove the bind took.",
+    ),
+    "lane-owned": (
+        "uv run --locked python scripts/seat_refusals.py lane-owned --lane <lane worktree name>",
+        "A lane's first act. Refuses when another session already owns this lane and is live -- on "
+        "2026-09-17 a second session was dispatched onto lane ab-833 and found its owner only by "
+        "reading staged files. A wedged or absent owner does not refuse: relaunching is the remedy.",
+    ),
     "sleeping-poll": (
         "uv run --locked python scripts/seat_refusals.py sleeping-poll <your own working notes>",
         "Every wait you write is a loop with an interval, a bound and a predicate read from the "
