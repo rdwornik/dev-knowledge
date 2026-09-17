@@ -21,6 +21,16 @@
 
 ---
 
+### 2026-09-17 (y) - CC (Opus 5, handoff seat): the bundle shipped with HANDOFF_BOOT unfilled, and the ship-gate organ caught what no preflight row can
+
+**Anchors:** `d0c30a20` -- `docs/handoff-2026-09-17-boot-fill`, cut from `05ca2afc`.
+
+**Did:** filled `HANDOFF_BOOT.md`'s four FILL-IN regions (`purpose`, `dest-worktree`, `dest-scope`, `dest-mode-basis`) and re-assembled. `a1701d22` had filled RESIDUAL.md and shipped BOOT's placeholders verbatim into `PASTE_THIS.md`: a seat booting that paste would have read *"(fill: why this mode)"* as its session header. **The structural point, recorded because it is not a slip:** `residual_completeness` and `handoff_probes` are SHIP-GATE organs, not preflight rows, and they cannot be otherwise -- the preflight runs before the bundle exists, so no row can see an unfilled region in a file not yet written. The cut passed ten rows honestly and the defect was still there; the gate found it on the next run (12 hard-fails: 9 unfilled-region findings across BOOT + PASTE_THIS, plus the P11-toothless pair that the post-fill assemble had already cleared). A cut is not complete at its preflight, and the seat that cuts it must run the gate AFTER filling.
+
+**Result:** `validate_residual_completeness` OK, `verify_handoff_probes` 15/15 pass / 0 fail / 0 warn. `PASTE_THIS.md` 24,611 B, window-specific 8,732 B (36%), against the 20,000 B advisory ceiling; the previous bundle shipped at 55,340 B. **Changes:** `docs/handoffs/2026-09-17-dev-knowledge-architect/{HANDOFF_BOOT,PASTE_THIS}.md`, `JOURNAL.md`.
+
+**Next:** operator fills `SUPPLEMENT.md` (optional; cold is a defined disposition). The `propose_closures.py` lever decision stays owed.
+
 ### 2026-09-17 (x) - CC (Opus 5, handoff seat): the architect bundle is CUT, filled and merged -- three refusals preceded it and each was right
 
 **Anchors:** `a1701d22` -- `docs/handoff-2026-09-17`, cut from `a82e1420`.
