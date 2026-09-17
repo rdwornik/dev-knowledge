@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-09-17 (g) - CC (Opus 5, integrator seat, batch AB close): intake 103 lands -- the browser seat's findings set, 2026-09-15 through the 2026-09-17 close
+
+**Anchors:** `b9ceb000` -- `worktree-browser-digests-intake` tip, synced at `0cdb2281` (clean).
+
+**MERGED** intake 103 (SEED), `docs/intake/2026-09-16-tech-browser-seat-findings-off-the-transport.md`, by operator order: without it the successor's bundle is empty of the week. It carries harness state by area with evidence, sixteen defects found in passing, five owed intakes, the execution order by cost of inaction, six contradicting rule pairs and the browser seat's own failures. **DATE DISCREPANCY, recorded rather than rewritten:** `b9ceb000`'s subject says "2026-09-15/16 digests", but its dedup was re-done 2026-09-17 against `33246c0a` and it carries today's close -- read its span as **2026-09-15 to 2026-09-17**. A pushed-later commit message is not amended; this entry is the correction. **ANCHOR FLAG RESOLVED, not skipped:** the intake session flagged `aacce0f8` as unanchored. Checked with `journal_anchor.is_anchored` on main: **anchored** (JOURNAL (c) names `b03ec766`, which it introduced), and `unanchored_on_spine(main)` is empty. The flag was tree lag in a worktree behind main, the same shape that refused the `[#761]` commit at 12:22. No row filed, closed or renumbered by this merge.
+
+**Did:** merged intake 103. **Result:** the week's findings are in the repo. **Changes:** `docs/intake/` (record, README, manifest), `JOURNAL.md`. **Next:** triage 103's section G (no row anywhere) in the successor window.
+
 ### 2026-09-17 (f) - CC (Opus 5, integrator seat, batch AB close): lane ab-694 cost telemetry merges -- AX9-5's organ-usage metric, [#685]'s GO refusal at /lane-boot, [#843] filed
 
 **Anchors:** `a95a7143` -- `worktree-lane-ab-694-cost-telemetry` tip, synced at `776a10cf` then re-synced at `ad971356` (`tasks/manifest.json` conflicted on `generated_sha256` only; markers stripped keeping both sides' nodes, `gen_task_tree --emit-source` re-pinned the hash, BACKLOG current at 375 tasks).
