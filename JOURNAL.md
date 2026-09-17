@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-09-17 (e) - CC (Opus 5, integrator seat, batch AB close): lane ab-810 substrate repair merges -- the heartbeat reads the uv pin, the codespace dispatch line carries -Model
+
+**Anchors:** `3488f069` -- `worktree-lane-ab-810-substrate-repair` tip, synced onto main at `6efb91f5` (`ecosystem/doc-counts.md` conflict taken from main; the count is regenerated once at close).
+
+**MERGED** the hub half of `[#810]`: `substrate-heartbeat.yml` reads the uv pin from `pyproject.toml` instead of "latest" (`de6157d1`), `gen_lane_contract`'s codespace shape emits `-Model` (`adf7eeed`), and rows `[#819]`-`[#822]` filed (`[#822]` = a pipe masks the exit code of the command it wraps). Lane-reported evidence: heartbeat workflow run 35160586877 green, targeted pytest green 174 + 109 + 39. **CARRIED, not merged here:** the `win-tooling` half, branch `worktree-lane-ab-810-substrate-repair` @ `35280a3` (unpushed, 8 commits: `Start-DispatchCodespace` carries `-Model`, harvest verb, `[#12]`/`[#13]`); and the two findings the lane wrote but could not file for want of an id-block extension (text only in the lane transcript). **No tests run here**, by operator order.
+
+**Did:** merged ab-810's hub half. **Result:** heartbeat pinned; codespace contracts name their model. **Changes:** `.github/workflows/substrate-heartbeat.yml`, `scripts/gen_lane_contract.py`, `tests/test_gen_lane_contract.py`, `tasks/819`-`822`, `tasks/manifest.json`, `BACKLOG.md`, lane artifact, `JOURNAL.md`. **Next:** win-tooling half merge (carried).
+
 ### 2026-09-17 (d) - CC (Opus 5, integrator seat, batch AB close): the commit gate stripped to data-loss protection -- 31 hooks moved to the conductor's report-only `commit-gate` job
 
 **Anchors:** `ea365b83` -- `chore/commit-gate-priced` (`.pre-commit-config.yaml`, `.github/workflows/conductor.yml`, `ecosystem/organ-index.md`, `CLAUDE.md`).

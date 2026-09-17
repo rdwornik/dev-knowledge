@@ -727,6 +727,43 @@ def test_a_codespace_contract_carries_the_dispatch_codespace_verb(codespace_cont
     assert glc.find_command_line(codespace_contract).startswith("Dispatch-Codespace")
 
 
+def test_a_codespace_contract_carries_its_declared_model_on_the_dispatch_line(codespace_contract):
+    """[#810] Done-contract clause 2: `Dispatch-Codespace` carries `-Model <m>` from the
+    contract's own routing row -- the same failure class `[#717]` closed for the local
+    transport. Before this, the docstring on `dispatch_command` said in as many words that
+    `Dispatch-Codespace` carries no such parameter; a codespace lane dispatched at whatever
+    the runner defaulted to, unstated and unchecked against the routing row."""
+    assert "-Model opus" in codespace_contract, codespace_contract
+    parsed = glc.parse_contract(codespace_contract, expect_shape="codespace")
+    assert parsed.problems == (), parsed.problems
+
+
+def test_the_codespace_dispatch_line_regex_ADMITS_a_model_flag():
+    """A generator rendering what its own parser rejects is worse than one omitting it --
+    the same lesson `[#717]` applied to the local form's regex."""
+    line = "Dispatch-Codespace -Contract LANE-a-1-example.md -Slug lane-a-1-example -Model sonnet"
+    match = glc._CODESPACE_DISPATCH_LINE_RE.search(line)
+    assert match is not None, f"the checker refuses its own generator's line: {line!r}"
+    assert match.group("model") == "sonnet"
+
+
+def test_a_codespace_dispatch_line_carrying_a_model_the_routing_row_contradicts_is_REPORTED(
+        codespace_contract):
+    """Two sources free to disagree is the class this generator removes, and this pair is
+    the one that costs money -- exactly `[#717]`'s reasoning, applied to the third shape."""
+    contract = codespace_contract.replace("-Model opus", "-Model sonnet")
+    problems = glc.parse_contract(contract, expect_shape="codespace").problems
+    assert any("model" in p.lower() for p in problems), problems
+
+
+def test_a_codespace_dispatch_line_carrying_a_model_outside_the_enum_is_REPORTED(
+        codespace_contract):
+    """The admitted value is held to `MODEL_ENUM`, exactly as the local form's already is."""
+    contract = codespace_contract.replace("-Model opus", "-Model gpt")
+    problems = glc.parse_contract(contract, expect_shape="codespace").problems
+    assert any("gpt" in p for p in problems), problems
+
+
 def test_a_codespace_lane_pairs_a_worktree_branch_not_a_claude_one(codespace_contract):
     """Leg 3 — the pairing rule. A codespace lane COMMITS like a local lane, merely
     elsewhere, so it runs on `worktree-<slug>`; `claude/` is the cloud transport's prefix and
