@@ -19,6 +19,14 @@
 
 ---
 
+### 2026-09-17 (l) - CC (Opus 5, integrator seat, batch AB close): lane ab-808 guard timeout merges -- module, tests, surface and check only; its 83% figure retracted to 13%
+
+**Anchors:** `6063c8fd` -- `worktree-lane-ab-808-guard-timeout` tip, synced at `50da495d` (`tasks/manifest.json` hash-only conflict; generator re-pinned, BACKLOG current at 381 tasks).
+
+**MERGED** `[#808]` per the close order -- **module, tests, surface and check, NOT `.claude/settings.json`**: the lane itself returned settings.json and `tests/test_logs_retention.py` to main's bytes (diff against main is empty), every `POSTURES` entry is `wrapped=False`, and the bypass surface prints in-process from `fleet_health.hook_bypass_lines()` -- no new registration, no new interpreter. `scripts/hooks/bounded_hook.py` records a row per outcome and refuses to start a hook DECLARED BROKEN (more than 10% bypass over 168 h on at least 20 runs, sticky until `reinstate`); `[#811]` filed. **RETRACTION, carried into every dependent claim:** the lane's "477 of 573 calls (83%)" counted transcript attachments, which a silently passing hook never writes; joined per call to tool_use ids the guards bypassed **1,016 of 8,046 (13%)** and **161 of 3,626 (4%)**. "The guards were enforcing nothing" does not stand; the operator's close order and (d) quoted the retracted figure, and `[#883]` is corrected on the close branch. Lane-reported: 249 passed, 20 failed, all 20 in `test_prompts_guard_hook_wiring` and reproducing 20/20 on detached main (the hook the emergency order removed). The lane declared `SKIP=doc-counts-pytest-freshness,organ-index-freshness,graph-task-coverage` as integrator-owned: the two regens land on the close branch. Since `bc8ddda5` disabled ALL hooks, the surface has no host until `[#863]`. **No tests run here**, by operator order.
+
+**Did:** merged ab-808's module half. **Result:** a bypass rate exists as a measured signal; the headline number behind today's gate strip was wrong by 6x. **Changes:** `scripts/hooks/bounded_hook.py`, `scripts/fleet_health.py`, `tests/test_bounded_hook.py`, `.gitignore`, `tasks/811`, `tasks/manifest.json`, `BACKLOG.md`, lane artifact, `JOURNAL.md`. **Next:** the lane's escalations X-1..X-5 (artifact section 8.6).
+
 ### 2026-09-17 (k) - CC (Opus 5, integrator seat, batch AB close): lane ab-832 lands -- the three-repo comparison re-run for copilot-collections only
 
 **Anchors:** `058b0971` -- `worktree-lane-ab-832-copilot-collections-comparison` tip, synced at `a3dd8532` then re-synced at `48bfe2ca` onto the all-hooks-disable merge `bc8ddda5` (`tasks/manifest.json` hash-only conflicts; generator re-pinned, BACKLOG current at 380 tasks).

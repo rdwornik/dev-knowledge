@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "f36f57b548109cb091cca326bb66c7157be1ee32b7db5d599a3103907208f122",
+  "generated_sha256": "708c60aa6bcdb8b2a088362eef8e7aa6717e56883832a1a38a4e43252f52ca34",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -572,6 +572,10 @@
     {
       "task": 810,
       "file": "810-the-codespace-runner-cannot-pass-a-model.md"
+    },
+    {
+      "task": 811,
+      "file": "811-a-frozen-contract-can-be-re-issued-after-its-pin-and-a-lane-still-boots-on-it.md"
     },
     {
       "task": 827,
