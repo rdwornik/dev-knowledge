@@ -460,6 +460,12 @@ requirements:
       reported, not gated on; a refusal names the gigabytes to free. The provisional figure is
       replaced by a free-memory reading taken immediately before and 90 s after the next
       admitted dispatch.
+      **REFUSAL DISABLED 2026-09-17 by operator order** -- the `admit` verb now reports its
+      verdict as advisory and exits 0; `admit()` still computes it and this trip test still
+      proves the arithmetic. Reason and re-arm condition live in
+      `resource_lifecycle.ADMISSION_DISABLED`: blocked work three times, per-seat constant ~7x
+      wrong at first and still provisional, no measured failure ever attributed to admitting
+      one lane too many. Returns only when calibrated from real dispatch measurements ([#827]).
 
 
   - id: QR-RES-006
