@@ -13,8 +13,8 @@
 
 ## 2026-09
 
+- [2026-09-16](2026-09-16-technical-lane-ab-834-protocols-heading-gate.md) — Lane ab-834 — one protocols/ heading enforced: the commit-message type prefix
 - [2026-09-16](2026-09-16-technical-lane-ab-804-id-allocator.md) — Lane ab-804 — push-reserved ids, a real manifest refusal at lane boot, and a widened lane grammar
-- [2026-09-16](2026-09-16-technical-lane-ab-802-conductor-freeze.md) — Lane ab-802 — the conductor judges CI by the frozen suite baseline
 - [2026-09-16](2026-09-16-technical-batch-ab-manifest.md) — Batch AB — manifest (dispatch half) · 2026-09-16
 - [2026-09-16](2026-09-16-technical-batch-ab-manifest-amendment-1.md) — Batch AB — manifest amendment 1 · 2026-09-16
 - [2026-09-16](2026-09-16-technical-backlog-view-narration-relocated.md) — BACKLOG view narration relocated — ten prose blocks out of `BACKLOG.md`, and the growth finding the pass uncovered
