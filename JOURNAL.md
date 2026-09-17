@@ -19,6 +19,22 @@
 
 ---
 
+### 2026-09-17 (c) - CC (Opus 5, integrator seat): resource_lifecycle admission refusal DISABLED -- the `admit` verb reports advisory and exits 0 until calibrated from real dispatch measurements
+
+**Anchors:** `b03ec766` -- `worktree-resource-admission-disabled` (`scripts/resource_lifecycle.py`, `ecosystem/quality-requirements.yaml`).
+
+**MERGED** `worktree-resource-admission-disabled` `--no-ff`. Operator order: the admission check is disabled the same way as the hooks
+in (b), with its reason recorded in `resource_lifecycle.ADMISSION_DISABLED` and in QR-RES-001. WHY: it blocked work three times; its
+per-seat constant was ~7x wrong at first (413.3 MB against a ~2.8 GB dispatch delta) and the recalibrated figure is still provisional;
+no measured failure has ever been attributed to admitting one lane too many. `admit()` itself is untouched, so the QR-RES-001 trip
+test still proves the arithmetic; only the verb's exit 1 is withheld, and the SessionStart leg says DISABLED. **Re-arm is
+conditional, not a revert:** only once the per-seat cost is calibrated from the `[#827]` dispatch ledger. **No tests run here** by
+operator order (the branch commit's pre-commit gates passed; ruff clean). This entry rides on the branch, not in the merge commit
+itself: the harness refuses a background seat's direct edits in the shared primary checkout.
+
+**Did:** disabled the admission refusal. **Result:** dispatch is no longer refused on memory arithmetic. **Changes:**
+`scripts/resource_lifecycle.py`, `ecosystem/quality-requirements.yaml`, `JOURNAL.md`. **Next:** `[#827]` calibration ledger, then re-arm.
+
 ### 2026-09-17 (b) - CC (Opus 5, integrator seat): emergency hook disable lands -- all PreToolUse hooks and the billing-leak SessionStart sentinel off, on main so it binds the primary and every new lane
 
 **Anchors:** `426b9cac` -- `worktree-hooks-disable-emergency` tip (`.claude/settings.json`, `ecosystem/organ-index.md`).
