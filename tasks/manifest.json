@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "55eb42adc5b57b34faa2513510326a034d4ff88574a7713c7b975c8080e1cf6c",
+  "generated_sha256": "3842fee61312901210c2297ecd7b3b9ddc74350990b4d5780249be2855210e66",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -616,6 +616,10 @@
     {
       "task": 826,
       "file": "826-id-blocks-must-be-machine-read-not-prose.md"
+    },
+    {
+      "task": 833,
+      "file": "833-a-seat-is-not-a-registered-entity-so-a-wedged-starved-or-absent-seat-is-invisible.md"
     },
     {
       "task": 834,

@@ -1126,6 +1126,34 @@ def cost_health_line(repo_root: Path) -> str | None:
         return None
 
 
+def seat_health_line(repo_root: Path) -> str | None:
+    """`[#833]`'s `[seats]` line: a wedged or starved seat, named WITHOUT anyone asking.
+
+    `seat_registry` owns the numbers and the rendering; this wrapper only adds which batches are
+    OPEN, so the line can also name an open batch nobody is receiving -- the half-day with no
+    integrator in the week of 2026-09-16 was exactly that, and nothing on any boot screen said so.
+    `state` in that registry is written by hook events, never by a model, and wedged / starved are
+    read from event timestamps against thresholds that carry their provenance there.
+
+    SILENT over an empty registry, on the same argument as `[cost]`: no events is no measurement.
+    Fail-soft on its own account, and the open-batch read is fail-soft INSIDE it: a repo whose
+    manifests cannot be read still gets the seat half of the line.
+    """
+    try:
+        if str(_SCRIPTS_DIR) not in sys.path:
+            sys.path.insert(0, str(_SCRIPTS_DIR))
+        import seat_registry  # noqa: E402, PLC0415
+        try:
+            from batch_manifest import open_batches  # noqa: PLC0415
+            batches = [b.batch for b in open_batches(repo_root) if b.batch]
+        except Exception:  # noqa: BLE001 -- the seat half still renders without it
+            batches = []
+        return seat_registry.seat_health_line(open_batches=batches)
+    except Exception as exc:  # noqa: BLE001 -- surfacing organ: never break the digest
+        print(f"fleet_health: WARNING -- seat digest unavailable: {exc!r}", file=sys.stderr)
+        return None
+
+
 def decision_health_line(repo_root: Path) -> str | None:
     """A9-3's `[decisions]` digest line: accepted / executing / done / age of the oldest
     accepted-but-unexecuted decision -- plus the grandfathered count the era bound owes.
@@ -1826,6 +1854,13 @@ def main(argv=None) -> int:
         cost = cost_health_line(_REPO_ROOT)
         if cost:
             print(cost)
+        # [#833]'s `[seats]` line, after the bill and on identical terms: unthrottled, fail-soft,
+        # never a gate. The lines above say what is rotting, undecided and spent; this one says
+        # which SEAT has stopped -- wedged mid-turn, starved after its turn, or a batch nobody
+        # receives -- so the next seat to boot sees it without having to ask.
+        seats_line = seat_health_line(_REPO_ROOT)
+        if seats_line:
+            print(seats_line)
         # Lane h0's dispatch-trace count -- unthrottled and fail-soft, same shape as the
         # groom escalation below: one cheap scandir call, never a gate.
         traces = count_traces_today(_LOGS_DIR, today)

@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-17 (p) - CC (Opus 5, integrator seat, repo-to-zero): lane ab-833 seat registry merges -- the seat is a registered entity, and lane-boot's refusals are now six
+
+**Anchors:** `5a951fab` -- `worktree-lane-ab-833-seat-registry` tip, synced at `78f78a7b`.
+
+**MERGED** `[#833]` by operator order, reversing its CARRIED status in the batch AB close packet. `scripts/seat_registry.py`: seat state written by hook events, never by a model. `seat_refusals.py`: refuse a lane already owned by another live session, and a batch with no live integrator. The SessionStart/Stop legs write seat events (`c103665c`); `fleet_health` prints a `[seats]` line so a stalled seat surfaces itself (`1b2db48a`). RED-first `58ad21d2`. **THE CONFLICT, RESOLVED BY THE INTEGRATOR:** `scripts/lane_boot.py`, where ab-694 (merged `e761afbd`) added refusal 4 (GO artifact, `[#685]`) and this lane added refusals 4-5 (seats). Kept both, in the order main's body already ran them: 1-3 manifest, **4 GO, 5 lane owned, 6 no live integrator**. Also kept both imports (`os`, `re`), 833's `seat_preflight`, main's GO helpers, and the `registry` keyword. `py_compile` and `ruff` clean. `tests/test_lane_boot.py` auto-merged coherently: the fixture manifest carries the GO row and `_boot` passes a live-integrator registry. **Not witnessed here** -- the conductor's pytest job is the first run of the combined file. `BACKLOG.md` taken from main and regenerated (385 tasks). **No tests run here**, by operator order.
+
+**Did:** merged ab-833 with the lane_boot.py resolution. **Result:** a second session onto an owned lane, or a lane into a batch nobody integrates, is refused at boot. **Changes:** `scripts/seat_registry.py`, `scripts/seat_refusals.py`, `scripts/lane_boot.py`, `scripts/fleet_health.py`, `scripts/gen_seat_boot.py`, `scripts/resource_lifecycle.py`, `scripts/session_end_backpressure.py`, tests, `tasks/833`, `tasks/manifest.json`, `BACKLOG.md`, lane artifact, `JOURNAL.md`. **Next:** read the conductor's pytest verdict on this merge; the artifact's five "To file" items.
+
 ### 2026-09-17 (o) - CC (Opus 5, integrator seat, repo-to-zero): [#884] filed -- an unbounded research fan-out ran 17+ hours to re-answer a settled question
 
 **Anchors:** `3cbe6336`, `39e42e42` -- `worktree-file-research-bound-row`, synced at `a29f700c` (`tasks/manifest.json` hash-only conflict; generator re-pinned, BACKLOG current at 384 tasks).
