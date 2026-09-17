@@ -32,7 +32,7 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#67](2026-09-01-tech-lane-packet-artifacts-block.md) — A lane that publishes into a directory the harness deletes has not published
 - [#103](2026-09-16-tech-browser-seat-findings-off-the-transport.md) — The browser seat's findings of 2026-09-15/16 — off the transport and into the repo
 
-### DRAFT (41)
+### DRAFT (42)
 
 - [#34](2026-08-16-code-architecture-enforcement.md) — Fleet code-architecture enforcement doctrine
 - [#35](2026-08-17-tech-agent-instruction-layers-and-distillation.md) — Portable agent-instruction layers, prompt distillation, and unattended runs
@@ -67,6 +67,7 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#90](2026-09-09-tech-window-close-rulings.md) — Who fires the next phase, what dispatch becomes, and where the baseline lives — the three window-close rulings V-10 left on the transport
 - [#91](2026-09-10-tech-review-consumption.md) — REVIEW consumption — the ten night-mission findings and two window findings, dispositioned
 - [#92](2026-09-10-tech-harness-is-process.md) — DECLARE-HARNESS-IS-PROCESS-2026-09-08 — the operator's definition adopted: harness = the set of automatically triggered processes; anything not triggered by a process is not harness
+- [#93](2026-09-11-tech-batch-x-roster.md) — Batch X roster -- the four things that make an unattended night SAFE, frozen by AMEND-001, corrected by AMEND-002, extended by AMEND-006, AMEND-007, AMEND-008 and AMEND-009
 - [#95](2026-09-15-tech-preflight-cannot-evaluate-verdict.md) — A locator predicate that cannot look must say so, not report a refusal
 - [#96](2026-09-15-tech-corpus-wide-locator-resolution.md) — Nothing checks that the locators in our own living documents still resolve
 - [#97](2026-09-15-tech-command-declares-the-module-it-runs.md) — A command file does not declare the module it runs, so no machine can join the two
@@ -121,10 +122,6 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#65](2026-09-01-tech-consumer-at-landing-identifier-gap.md) — A gate that measures a class of artifact it cannot discharge
 - [#70](2026-09-05-tech-aj-second-pass.md) — Architekt Jutra second pass — shipped-vs-specified ranking and a live Maister comparison on a consumer clone
 - [#94](2026-09-13-tech-command-files-as-a-wiring-surface.md) — Whether a command file counts as adoption, and what adoption is allowed to mean
-
-### OTHER (1)
-
-- [MISSING-ID](2026-09-11-tech-batch-x-roster.md) — Batch X roster -- the four things that make an unattended night SAFE, frozen by AMEND-001, corrected by AMEND-002, extended by AMEND-006, AMEND-007, AMEND-008 and AMEND-009
 <!-- INTAKE-INDEX:END -->
 
 ## 1. What this folder is

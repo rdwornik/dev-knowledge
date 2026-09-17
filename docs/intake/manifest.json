@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "63851940a73754fd4d1303c122e2f34038f7b69f2e8404b501500626959bf6c0",
+  "source_sha256": "dbe1f0a1aa2b40922b99bfbf42dec917bbdced7c0ddd349b68256d79a3283b8d",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
     "item_derived_lines": 93,
-    "residue_lines": 300,
-    "total_lines": 393,
+    "residue_lines": 297,
+    "total_lines": 390,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -404,6 +404,10 @@
         "consumed-by",
         "origin"
       ],
+      "2026-09-11-tech-batch-x-roster.md": [
+        "consumed-by",
+        "origin"
+      ],
       "2026-09-13-tech-command-files-as-a-wiring-surface.md": [
         "consumers",
         "decided-by",
@@ -600,7 +604,7 @@
     },
     {
       "t": "line",
-      "v": "### DRAFT (41)"
+      "v": "### DRAFT (42)"
     },
     {
       "t": "line",
@@ -769,6 +773,11 @@
     {
       "t": "item",
       "file": "2026-09-10-tech-harness-is-process.md",
+      "status": "DRAFT"
+    },
+    {
+      "t": "item",
+      "file": "2026-09-11-tech-batch-x-roster.md",
       "status": "DRAFT"
     },
     {
@@ -1034,23 +1043,6 @@
       "t": "item",
       "file": "2026-09-13-tech-command-files-as-a-wiring-surface.md",
       "status": "ACCEPTED"
-    },
-    {
-      "t": "line",
-      "v": ""
-    },
-    {
-      "t": "line",
-      "v": "### OTHER (1)"
-    },
-    {
-      "t": "line",
-      "v": ""
-    },
-    {
-      "t": "item",
-      "file": "2026-09-11-tech-batch-x-roster.md",
-      "status": ""
     },
     {
       "t": "line",

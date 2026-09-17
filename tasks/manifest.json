@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "bc2a3d1bc5d5986338afe96ca4b2961102ce5da4619ced9941c6edde4ed9d3a5",
+  "generated_sha256": "786b3d687ef298d8327674da998fae90ebbaa862f092decd32b9d6b9b40b5cea",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -159,6 +159,10 @@
     {
       "task": 663,
       "file": "663-the-v71-boot-carries-no-interface-block-and-no-floor-item-7.md"
+    },
+    {
+      "task": 887,
+      "file": "887-the-handoff-preflight-scans-the-whole-shared-tra.md"
     },
     {
       "prose": ""
@@ -612,6 +616,10 @@
     {
       "task": 865,
       "file": "865-user-level-block-onedrive-guard-needs-a-hang-ruling.md"
+    },
+    {
+      "task": 886,
+      "file": "886-an-emergency-change-records-its-temporary-debt-a.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
