@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "813963b88f4e5203bc2e8ee69e78c7d88f7b8f7f11293be61a48537f295af483",
+  "generated_sha256": "bc2a3d1bc5d5986338afe96ca4b2961102ce5da4619ced9941c6edde4ed9d3a5",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1597,6 +1597,10 @@
     {
       "task": 832,
       "file": "832-copilot-collections-comparison-rerun.md"
+    },
+    {
+      "task": 885,
+      "file": "885-the-model-a-contract-declares-is-the-model-that-r.md"
     },
     {
       "prose": ""

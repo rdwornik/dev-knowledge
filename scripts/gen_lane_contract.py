@@ -175,6 +175,39 @@ DEFAULT_MODEL = "opus"
 MODE_ENUM: tuple[str, ...] = ("execute", "plan-then-auto", "plan")
 DEFAULT_MODE = "execute"
 
+#: WHAT THE LANE'S WORK **IS** (`[#885]` clause 2) — the variable the routing default keys on,
+#: and the one field in this vocabulary a generator cannot derive from the others.
+#:
+#: DECLARED, NEVER INFERRED, AND THERE IS DELIBERATELY NO DEFAULT. An inferred kind that is
+#: wrong produces a refusal the author cannot act on: they declared nothing, so there is nothing
+#: for them to correct, and the only remedy left is to argue with the gate. A missing
+#: declaration is the one failure whose remedy is unambiguous — state the kind — which is why
+#: absence is refused rather than defaulted. The inference that was available and rejected: read
+#: the footprint out of the `## Steps` section and guess. It reads a draft, not a plan, and it
+#: would have classified this very lane as `text` on its first paragraph.
+#:
+#: THREE VALUES, because the clause-2 table has three rows and a fourth would be this module
+#: legislating. `text` is the contract's "text-only, deletion, read-only digest" row collapsed
+#: to one token — the three share one routing answer, and splitting them would ask an author to
+#: distinguish cases that route identically.
+KIND_ENUM: tuple[str, ...] = ("text", "code", "review")
+
+#: One line per kind, emitted beside the declared value so the contract says what the label
+#: means without the reader going anywhere for it.
+KIND_GLOSS: dict[str, str] = {
+    "text": ("text-only, deletion, or read-only digest — prose, rows, rulings and removals; "
+             "no executable code changes hands"),
+    "code": "changes executable code — `scripts/`, `tests/`, hooks, schema, generators",
+    "review": "judges work someone else produced — a diff, a design, an artifact",
+}
+
+#: The shapes that run UNATTENDED — every shape but `interactive`. Derived rather than listed a
+#: second time: a shape added to `SHAPE_ENUM` is unattended unless it is the attended one, which
+#: is the safe direction for a table whose whole job is refusing tiers nobody can supervise.
+def unattended_shapes() -> tuple[str, ...]:
+    """Every dispatch shape with nobody at the keyboard."""
+    return tuple(s for s in SHAPE_ENUM if s != "interactive")
+
 #: The four dispatch shapes `protocols/PLAYBOOK.md` Ch8 "Dispatching a session" names.
 #: A shape is the SUBSTRATE a session runs on — deliberately NOT `MODE_ENUM`, which is how a
 #: lane *thinks*. `MODE_ENUM` was the tempting hook here (it is already a declared enum on
@@ -407,6 +440,11 @@ _CODESPACE_DISPATCH_LINE_RE = re.compile(
 #: which is the whole property this generator exists to hold.
 _SHAPE_LINE_RE = re.compile(r"^\*\*Shape:\*\*\s+`(?P<shape>[a-z]+)`", re.MULTILINE)
 
+#: `[#885]`. Anchored at line start and fenced-token-only, for the reason `_SHAPE_LINE_RE`
+#: records about itself: unanchored, a contract EXPLAINING the field mid-sentence wins the
+#: precedence race over the real declaration further down.
+_KIND_LINE_RE = re.compile(r"^\*\*Kind:\*\*\s+`(?P<kind>[a-z-]+)`", re.MULTILINE)
+
 #: The command line for each shape, keyed so `find_command_line` and `parse_contract` read
 #: ONE table rather than each carrying its own if-chain that could drift from the other.
 _COMMAND_RES: dict[str, re.Pattern[str]] = {
@@ -510,6 +548,147 @@ def validate_mode(mode: str) -> str:
         raise LaneContractError(
             f"mode {raw!r} is outside the enum {{{' | '.join(MODE_ENUM)}}}")
     return raw
+
+
+def validate_kind(kind: "Optional[str]") -> str:
+    """Return the lane kind, or raise `LaneContractError`. ABSENCE IS A REFUSAL (`[#885]`).
+
+    The one validator here whose empty case is not a default. `validate_model` and friends
+    answer "is this value in the enum"; this one answers that AND "was a value given at all",
+    because clause 2's whole mechanism is a default keyed on the kind — and a generator that
+    supplied the kind would be choosing the routing it exists to check.
+    """
+    raw = (kind or "").strip()
+    if not raw:
+        raise LaneContractError(
+            f"the lane declares no KIND, and the routing default keys on it ([#885] clause 2) "
+            f"— declare one of {{{' | '.join(KIND_ENUM)}}}. It is not inferred: a guessed kind "
+            f"produces a refusal the author cannot act on, because they declared nothing to "
+            f"correct")
+    if raw not in KIND_ENUM:
+        raise LaneContractError(
+            f"lane kind {raw!r} is outside the enum {{{' | '.join(KIND_ENUM)}}} — "
+            f"a miss is refused, never rounded to a neighbour")
+    return raw
+
+
+def background_inert_models() -> "dict[str, str]":
+    """`{tier: why it is inert unattended}` — READ from the dispatch surface, never restated.
+
+    The table is a recorded MEASUREMENT about the CLI and it lives where it was measured
+    (`scripts/dispatch_surface.py`). Keeping a second copy here would be a second copy of a
+    launch vocabulary, which is the precise defect the dispatch register's section V was ruled
+    on. Imported lazily and in the same direction that module already reaches back into this
+    one, so neither is load-order dependent.
+
+    FAIL-LOUD on an unreadable surface. A table that degraded to `{}` would make this
+    generator's most expensive refusal silently stop firing, which is the failure the refusal
+    exists to prevent, arrived at from the other side.
+    """
+    try:
+        from scripts import dispatch_surface as _ds  # noqa: PLC0415
+    except ImportError:                              # pragma: no cover — path-shim fallback
+        import dispatch_surface as _ds               # noqa: PLC0415
+    return dict(_ds.BACKGROUND_INERT_MODELS)
+
+
+def reviewer_cli() -> "Optional[str]":
+    """The CLI the `reviewer` role routes to, READ from `ecosystem/routing-table.yaml`.
+
+    THE AUTHORITY IS NOT RESTATED. Register ruling Z-G3 A2 puts role -> CLI in that file; this
+    module holds the model TIER vocabulary and has no business holding a second opinion about
+    which CLI runs a role. `provider-registry.yaml`'s `roles:` is a RANKING, not an authority,
+    and is deliberately not consulted here — the two vocabularies differ (4 coarse vs 6 fine)
+    on purpose and collapsing them makes one of them lie.
+
+    `None` when the table cannot be read, and the refusal that uses it degrades to naming the
+    FILE rather than the CLI. The refusal still fires: whether a review lane belongs on a
+    `claude` dispatch line does not depend on this repo being able to open a YAML file.
+    """
+    try:
+        from scripts import routing_agreement as _ra  # noqa: PLC0415
+    except ImportError:                               # pragma: no cover — path-shim fallback
+        import routing_agreement as _ra                # noqa: PLC0415
+    try:
+        roles, _ = _ra.load_table(Path(__file__).resolve().parents[1])
+    except Exception:                                  # noqa: BLE001 — see the docstring
+        return None
+    clis = roles.get("reviewer") or []
+    return clis[0] if clis else None
+
+
+#: `ecosystem/routing-table.yaml`, named here so a refusal can cite the authority even when the
+#: file cannot be opened. The PATH is a locator, not a second copy of the table's contents.
+ROUTING_TABLE_REL = "ecosystem/routing-table.yaml"
+
+
+def routing_refusals(*, model: str, kind: str, shape: str) -> list[str]:
+    """Every way this (model, kind, shape) triple declares routing the launcher will not honour.
+
+    `[]` when clean. PURE — no filesystem except `reviewer_cli`'s optional read, which only
+    improves a message and never decides a verdict. Two clauses, kept as separate legs because
+    they fail for unrelated reasons and a reader fixing one must not have to read the other:
+
+    **Leg 1 — RESOLVE (clause 1).** A tier the BACKGROUND LAUNCHER cannot honour is refused
+    HERE, at freeze, rather than passed through to evaporate at dispatch. `opusplan` is the
+    measured case: a SPLIT tier that is Opus only while the session is in plan mode, on a lane
+    whose `--permission-mode bypassPermissions` never enters one. Firing it literally does not
+    honour the order either — it yields Sonnet, which no contract names — so there is no
+    faithful-literal option, and the honest resolution is to refuse the token rather than
+    preserve one that evaporates. The MEASUREMENT is on `local` (`lane-x-689`, 84 of 84
+    assistant messages on `claude-sonnet-5`); the refusal extends to `cloud` and `codespace` by
+    MECHANISM — every unattended shape carries the same permission mode by construction — and
+    the extension is named here rather than smuggled. `interactive` keeps the tier: that seat
+    can plan, and AX22-3 routes the integrator to it.
+
+    **Leg 2 — the default by lane kind (clause 2).** A default that lives in a boot paste is a
+    default a seat can not-read, so it lives where contracts are MADE. `text` never starts on
+    Opus; `review` does not start on a `claude` dispatch line at all, because the reviewer role
+    routes elsewhere; `code` is free to declare either half of the plan/implement split, and the
+    emitted contract says in words that the split is TWO SESSIONS with a file between them
+    rather than one session changing tier mid-flight — the prompt cache is keyed PER MODEL, and
+    at this repo's measured context a single switch costs about 25 consecutive cheap turns to
+    repay.
+
+    THE TEXT-LANE REFUSAL SITS ON A RULE-VS-RULING CONFLICT AND SAYS SO. `protocols/PLAYBOOK.md`
+    Ch8 makes `opus` the default for any arc touching `.dev-knowledge`, keyed on CONTEXT LOAD
+    rather than diff size. Clause 2 narrows that for text-only lanes. A hub text-only lane is
+    exactly where they disagree, which is escalation class (b) — so the refusal REPORTS the
+    conflict at the point it fires instead of a winner being picked silently somewhere a reader
+    would never look.
+    """
+    out: list[str] = []
+    inert = background_inert_models()
+    if shape in unattended_shapes() and model in inert:
+        out.append(
+            f"model {model!r} is REFUSED at freeze on the unattended shape {shape!r}: "
+            f"{inert[model]} Declare a tier this launcher can honour — "
+            f"{' or '.join(m for m in MODEL_ENUM if m not in inert)} — rather than a token that "
+            f"evaporates between the contract and the run ([#885] clause 1, leg RESOLVE)")
+
+    if kind == "text" and model in ("opus", "opusplan"):
+        out.append(
+            f"a {kind!r} lane (text-only, deletion, or read-only digest) declares {model!r}: "
+            f"REFUSED at freeze ([#885] clause 2). The freeze is the last point at which "
+            f"re-cutting is free, which is why this fires here and not at dispatch or at "
+            f"review. Opus is a flat 2.5x Sonnet on BOTH legs (5.0/2.0 input, 25.0/10.0 "
+            f"output) and both cache legs multiply the input rate, so the saving is 2.5x "
+            f"regardless of token shape. CONFLICT, REPORTED RATHER THAN RESOLVED: "
+            f"protocols/PLAYBOOK.md Ch8 'Model + effort are stated at dispatch' makes opus the "
+            f"default for any arc touching `.dev-knowledge`, keyed on context load; clause 2 "
+            f"narrows that for this kind. The two disagree on a hub text lane — escalation "
+            f"class (b). Declare `sonnet` or `haiku`, or declare the kind honestly as `code`")
+
+    if kind == "review":
+        cli = reviewer_cli()
+        names = f"routes the `reviewer` role to `{cli}`" if cli else "is the authority for it"
+        out.append(
+            f"a {kind!r} lane cannot be frozen on this dispatch line ([#885] clause 2). Every "
+            f"shape this generator emits launches a `claude` session, and {ROUTING_TABLE_REL} "
+            f"{names} (register ruling Z-G3 A2 — that file is the AUTHORITY for role -> CLI; "
+            f"`provider-registry.yaml`'s `roles:` is a RANKING and is not consulted here). A "
+            f"review is dispatched through the reviewer's own verb, not through a lane contract")
+    return out
 
 
 def validate_slug(slug: str, *, strict: bool = True) -> str:
@@ -663,6 +842,10 @@ class LaneSpec:
     repo: str = ".dev-knowledge"
     task_id: Optional[str] = None
     model: str = DEFAULT_MODEL
+    #: `[#885]` clause 2. NO DEFAULT, and `validated()` refuses `None` — see `validate_kind`.
+    #: A keyword field rather than a positional one so the dataclass's existing shape survives;
+    #: what makes it mandatory is the validator, not the signature.
+    kind: Optional[str] = None
     mode: str = DEFAULT_MODE
     effort: str = "high"
     shape: str = DEFAULT_SHAPE
@@ -686,19 +869,37 @@ class LaneSpec:
         return self.shape == "cloud"
 
     def validated(self) -> "LaneSpec":
-        """Return a copy with every enum-bearing field checked. Raises `LaneContractError`."""
+        """Return a copy with every enum-bearing field checked, AND its routing resolved.
+
+        THE ROUTING REFUSAL FIRES HERE because every path that produces a contract goes through
+        this method — `render_contract` calls it first thing, and `cmd_emit` calls it again for
+        the line it echoes. A refusal placed on the CLI instead would be one a caller could
+        route around by constructing a spec directly, which is how the last vocabulary gap
+        (`opusplan` admitted at the seat, refused in this module) went unnoticed for two days.
+        """
+        refusals = self.routing_refusals()
+        if refusals:
+            raise LaneContractError("; ".join(refusals))
         return LaneSpec(
             slug=validate_slug(self.slug, strict=self.strict_slug),
             purpose=(self.purpose or "").strip() or "<one sentence — what this lane achieves>",
             repo=(self.repo or "").strip() or ".dev-knowledge",
             task_id=(self.task_id or "").strip() or None,
             model=validate_model(self.model),
+            kind=validate_kind(self.kind),
             mode=validate_mode(self.mode),
             effort=validate_effort(self.effort),
             shape=validate_shape(self.shape),
             strict_slug=self.strict_slug,
             needs_base_sync=self.needs_base_sync,
         )
+
+    def routing_refusals(self) -> list[str]:
+        """This spec's clause-1 and clause-2 refusals. Enum-checked first, so a refusal never
+        reports on a value that was not in the vocabulary to begin with."""
+        return routing_refusals(model=validate_model(self.model),
+                                kind=validate_kind(self.kind),
+                                shape=validate_shape(self.shape))
 
     @property
     def board_label(self) -> str:
@@ -723,6 +924,18 @@ def render_contract(spec: LaneSpec) -> str:
 
     parts.append("## Dispatch\n")
     parts.append(f"**Shape:** `{spec.shape}` — {SHAPE_GLOSS[spec.shape]}.\n")
+    parts.append(f"**Kind:** `{spec.kind}` — {KIND_GLOSS[spec.kind]}.\n")
+    parts.append(
+        f"The kind is DECLARED, not inferred, and it is what the routing default keys on\n"
+        f"(`[#885]` clause 2). A text-only, deletion or read-only-digest lane never starts on\n"
+        f"Opus; a review lane is not dispatched from a lane contract at all, because\n"
+        f"`{ROUTING_TABLE_REL}` is the authority for which CLI runs that role; a code lane\n"
+        f"plans on Opus and implements on Sonnet **as two sessions with a file between them**,\n"
+        f"never as one session changing tier mid-flight. The prompt cache is keyed PER MODEL,\n"
+        f"so a mid-session switch re-writes the whole context: at this repo's measured mean of\n"
+        f"232,875 tokens per call, one switch costs USD 1.46 into Opus or USD 0.58 into Sonnet\n"
+        f"against USD 0.0812 saved per turn moved — about 25 consecutive cheap turns to repay\n"
+        f"one round trip. Anything shaped like plan-then-execute is TWO SESSIONS.\n")
     parts.append("```")
     if spec.shape == "interactive":
         # The session has to exist before a message can reach it, so both halves are
@@ -937,6 +1150,8 @@ class ParsedContract:
     effort: Optional[str] = None
     model: Optional[str] = None
     mode: Optional[str] = None
+    #: `[#885]` — the declared lane kind, or None when the contract declares none (reported).
+    kind: Optional[str] = None
     receipt_fields: tuple[str, ...] = ()
     problems: tuple[str, ...] = field(default=())
 
@@ -983,6 +1198,28 @@ def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedCo
             problems.append(
                 f"declared shape {shape!r} is outside {{{' | '.join(SHAPE_ENUM)}}}")
             shape = None
+    # --- the declared KIND (`[#885]` clause 2) ---------------------------------------------
+    # ABSENT IS REPORTED, and the amnesty question was asked and answered rather than skipped.
+    # The 124 lane contracts already in this tree carry no `**Kind:**` line, and none of them
+    # is checked by the `lane-contract-check` hook: it runs `pass_filenames: false`, so `check`
+    # sees zero paths on every commit and only the contract-manifest predicate fires. The
+    # per-contract legs bite what a caller hands them by name — a freeze, or a deliberate
+    # audit. So refusing an absent kind governs what is frozen NEXT without reddening what was
+    # already written, which is the same line `[#717]` drew for an absent `--model`.
+    kind = None
+    kind_match = _KIND_LINE_RE.search(prose)
+    if kind_match is None:
+        problems.append(
+            f"no `**Kind:** `<kind>`` line found in the `## Dispatch` block — the routing "
+            f"default keys on the lane kind ([#885] clause 2), and it is DECLARED rather than "
+            f"inferred; enum {{{' | '.join(KIND_ENUM)}}}")
+    else:
+        kind = kind_match.group("kind")
+        if kind not in KIND_ENUM:
+            problems.append(
+                f"declared kind {kind!r} is outside {{{' | '.join(KIND_ENUM)}}}")
+            kind = None
+
     if expect_shape is not None and shape is not None and shape != expect_shape:
         problems.append(
             f"contract declares shape {shape!r} but {expect_shape!r} was expected")
@@ -1212,13 +1449,21 @@ def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedCo
             f"{shape} lane carries receipt fields — the receipt gate is an off-machine-lane "
             f"rule (Q5)")
 
+    # The clause-1 and clause-2 refusals, applied to what the file actually DECLARES rather
+    # than to what a spec was built from — the same predicate, read off the bytes. Held back
+    # until here so it runs against the routing row's model, which is parsed above, and only
+    # when all three inputs survived their own enum checks: a refusal computed from a value
+    # already reported as off-enum would report the same defect twice under two names.
+    if model is not None and kind is not None and shape is not None and model in MODEL_ENUM:
+        problems.extend(routing_refusals(model=model, kind=kind, shape=shape))
+
     for ask_class in ("(a)", "(b)", "(c)"):
         if ask_class not in prose:
             problems.append(f"decision budget is missing ask-class {ask_class}")
 
     return ParsedContract(
         sections=sections, slug=slug, contract_file=contract_file, branch=branch,
-        shape=shape, command=command, effort=effort, model=model, mode=mode,
+        shape=shape, command=command, effort=effort, model=model, mode=mode, kind=kind,
         receipt_fields=found_receipt, problems=tuple(problems))
 
 
@@ -1261,6 +1506,9 @@ def cli() -> None:
 @click.option("--repo", default=".dev-knowledge", show_default=True, help="repo display name")
 @click.option("--id", "task_id", default=None, help="BACKLOG task id, digits only (e.g. 539)")
 @click.option("--model", type=click.Choice(MODEL_ENUM), default=DEFAULT_MODEL, show_default=True)
+@click.option("--kind", type=click.Choice(KIND_ENUM), required=True,
+              help="what the lane's work IS — the routing default keys on it ([#885] clause 2); "
+                   "REQUIRED and never inferred")
 @click.option("--mode", type=click.Choice(MODE_ENUM), default=DEFAULT_MODE, show_default=True)
 @click.option("--effort", type=click.Choice(EFFORT_ENUM), default="high", show_default=True)
 @click.option("--shape", type=click.Choice(SHAPE_ENUM), default=DEFAULT_SHAPE,
@@ -1273,8 +1521,8 @@ def cli() -> None:
 @click.option("--stdout", "to_stdout", is_flag=True, default=False,
               help="render to stdout instead of writing a file")
 @click.option("--force", is_flag=True, default=False, help="overwrite an existing contract")
-def cmd_emit(slug: str, purpose: str, repo: str, task_id: Optional[str], model: str, mode: str,
-             effort: str, shape: str, loose_slug: bool, out_dir: Optional[Path],
+def cmd_emit(slug: str, purpose: str, repo: str, task_id: Optional[str], model: str, kind: str,
+             mode: str, effort: str, shape: str, loose_slug: bool, out_dir: Optional[Path],
              to_stdout: bool, force: bool) -> None:
     """Emit one frozen lane contract."""
     # `[#716]`: the step-0 region is a function of the LIVE base-ref property, read once here so
@@ -1289,8 +1537,8 @@ def cmd_emit(slug: str, purpose: str, repo: str, task_id: Optional[str], model: 
     logger.info("step-0 sync region: %s — %s", "EMITTED" if needs_sync else "retired", why)
 
     spec = LaneSpec(slug=slug, purpose=purpose, repo=repo, task_id=task_id, model=model,
-                    mode=mode, effort=effort, shape=shape, strict_slug=not loose_slug,
-                    needs_base_sync=needs_sync)
+                    kind=kind, mode=mode, effort=effort, shape=shape,
+                    strict_slug=not loose_slug, needs_base_sync=needs_sync)
     try:
         text = render_contract(spec)
     except LaneContractError as exc:
@@ -1449,6 +1697,9 @@ def cmd_enums() -> None:
     routed = " | ".join(e for e in EFFORT_ENUM if e in DISPATCH_ROUTED_EFFORT)
     click.echo(f"effort (dispatch-routed): {routed}")
     click.echo(f"model: {' | '.join(MODEL_ENUM)}   default: {DEFAULT_MODEL}")
+    click.echo(f"kind: {' | '.join(KIND_ENUM)}   default: (none — REQUIRED, never inferred)")
+    for _k in KIND_ENUM:
+        click.echo(f"  {_k}: {KIND_GLOSS[_k]}")
     click.echo(f"mode: {' | '.join(MODE_ENUM)}   default: {DEFAULT_MODE}")
     click.echo(f"shape: {' | '.join(SHAPE_ENUM)}   default: {DEFAULT_SHAPE}")
     # The command each shape actually emits, shown against a placeholder lane — the surface a

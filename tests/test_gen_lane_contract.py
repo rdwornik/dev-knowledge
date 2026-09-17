@@ -72,6 +72,11 @@ def caplog_at_info():
 def _spec(**over) -> glc.LaneSpec:
     base = dict(slug="lane-a-539-ch8-codification",
                 purpose="codify the dispatch system into PLAYBOOK Ch8",
+                # `[#787]`: the lane KIND is declared, never inferred, and has no default -- so
+                # every fixture states one. `code` is this fixture's honest value and it is the
+                # kind clause 2 leaves free on either half of the plan/implement split, which
+                # keeps the existing cases testing what they were written to test.
+                kind="code",
                 task_id="539")
     base.update(over)
     return glc.LaneSpec(**base)
@@ -120,7 +125,7 @@ def test_rendering_is_deterministic(local_contract):
 def test_the_file_written_to_disk_is_the_file_that_parses(tmp_path):
     runner = CliRunner()
     result = runner.invoke(glc.cli, [
-        "emit", "--slug", "lane-b-101-widget", "--purpose", "build the widget",
+        "emit", "--kind", "code", "--slug", "lane-b-101-widget", "--purpose", "build the widget",
         "--id", "101", "--out-dir", str(tmp_path)])
     assert result.exit_code == 0, result.output
     written = tmp_path / "LANE-b-101-widget.md"
@@ -359,7 +364,7 @@ def test_a_routed_effort_does_not_warn(caplog):
 
 def test_the_cli_refuses_an_off_enum_effort(tmp_path):
     result = CliRunner().invoke(glc.cli, [
-        "emit", "--slug", "lane-b-101-widget", "--purpose", "x", "--effort", "ultra",
+        "emit", "--kind", "code", "--slug", "lane-b-101-widget", "--purpose", "x", "--effort", "ultra",
         "--out-dir", str(tmp_path)])
     assert result.exit_code != 0
     assert "ultra" in result.output
@@ -426,7 +431,7 @@ def test_the_contract_filename_drops_a_leading_lane_token():
 
 def test_emit_refuses_to_overwrite_a_frozen_contract_without_force(tmp_path):
     runner = CliRunner()
-    args = ["emit", "--slug", "lane-b-101-widget", "--purpose", "x", "--out-dir", str(tmp_path)]
+    args = ["emit", "--kind", "code", "--slug", "lane-b-101-widget", "--purpose", "x", "--out-dir", str(tmp_path)]
     assert runner.invoke(glc.cli, args).exit_code == 0
     second = runner.invoke(glc.cli, args)
     assert second.exit_code != 0
@@ -634,7 +639,7 @@ def test_the_cli_emits_every_shape_and_the_written_file_checks_clean(tmp_path, s
     runner = CliRunner()
     out = tmp_path / shape
     result = runner.invoke(glc.cli, [
-        "emit", "--slug", "lane-b-101-widget", "--purpose", "build the widget",
+        "emit", "--kind", "code", "--slug", "lane-b-101-widget", "--purpose", "build the widget",
         "--id", "101", "--shape", shape, "--out-dir", str(out)])
     assert result.exit_code == 0, result.output
     written = out / "LANE-b-101-widget.md"
@@ -644,7 +649,7 @@ def test_the_cli_emits_every_shape_and_the_written_file_checks_clean(tmp_path, s
 
 def test_the_cli_refuses_an_off_enum_shape(tmp_path):
     result = CliRunner().invoke(glc.cli, [
-        "emit", "--slug", "lane-b-101-widget", "--purpose", "x", "--shape", "remote",
+        "emit", "--kind", "code", "--slug", "lane-b-101-widget", "--purpose", "x", "--shape", "remote",
         "--out-dir", str(tmp_path)])
     assert result.exit_code != 0
     assert not list(tmp_path.iterdir()), "a refused emit leaves no file behind"
@@ -654,7 +659,7 @@ def test_the_emit_log_line_names_the_command_for_the_shape_it_wrote(tmp_path, ca
     """The operator reads this line off the terminal — it is a dispatch surface too."""
     with caplog.at_level("INFO", logger="gen-lane-contract"):
         result = CliRunner().invoke(glc.cli, [
-            "emit", "--slug", "lane-b-101-widget", "--purpose", "x", "--shape", "cloud",
+            "emit", "--kind", "code", "--slug", "lane-b-101-widget", "--purpose", "x", "--shape", "cloud",
             "--out-dir", str(tmp_path)])
     assert result.exit_code == 0, result.output
     logged = " ".join(r.getMessage() for r in caplog.records)
@@ -673,7 +678,7 @@ def test_the_emit_log_line_for_an_interactive_contract_says_to_start_claude_firs
     """
     with caplog.at_level("INFO", logger="gen-lane-contract"):
         result = CliRunner().invoke(glc.cli, [
-            "emit", "--slug", "lane-b-101-widget", "--purpose", "x", "--shape",
+            "emit", "--kind", "code", "--slug", "lane-b-101-widget", "--purpose", "x", "--shape",
             "interactive", "--out-dir", str(tmp_path)])
     assert result.exit_code == 0, result.output
     logged = " ".join(r.getMessage() for r in caplog.records)
@@ -1065,7 +1070,7 @@ def test_emit_writes_the_contract_where_the_dispatch_line_it_prints_will_be_read
     monkeypatch.chdir(elsewhere)
 
     result = CliRunner().invoke(glc.cli, [
-        "emit", "--slug", "lane-x-718-one-key", "--purpose", "one key for writer and reader",
+        "emit", "--kind", "code", "--slug", "lane-x-718-one-key", "--purpose", "one key for writer and reader",
         "--id", "718"])
     assert result.exit_code == 0, result.output
 
@@ -1094,7 +1099,7 @@ def test_an_UNRESOLVED_prompts_directory_is_a_REFUSAL_and_not_a_silent_fall_back
     monkeypatch.setattr(gh.Path, "home", staticmethod(lambda: tmp_path / "no-home"))
 
     result = CliRunner().invoke(glc.cli, [
-        "emit", "--slug", "lane-x-718-unresolved", "--purpose", "refuse rather than guess",
+        "emit", "--kind", "code", "--slug", "lane-x-718-unresolved", "--purpose", "refuse rather than guess",
         "--id", "718"])
     assert result.exit_code != 0, result.output
     assert "CLAUDE_PROMPTS_DIR" in result.output, result.output
@@ -1116,7 +1121,7 @@ def test_an_explicit_out_dir_still_wins_over_the_resolved_root(tmp_path, monkeyp
     monkeypatch.chdir(tmp_path)
 
     result = CliRunner().invoke(glc.cli, [
-        "emit", "--slug", "lane-x-718-explicit", "--purpose", "the override survives",
+        "emit", "--kind", "code", "--slug", "lane-x-718-explicit", "--purpose", "the override survives",
         "--id", "718", "--out-dir", str(chosen)])
     assert result.exit_code == 0, result.output
 
@@ -1256,7 +1261,21 @@ def test_the_FROZEN_BATCH_X_CONTRACTS_still_pass_after_the_widening():
     assert len(frozen) >= 6, [p.name for p in frozen]
     for path in frozen:
         parsed = glc.parse_contract(path.read_text(encoding="utf-8"))
-        assert parsed.problems == (), f"{path.name}: {parsed.problems}"
+        # AMENDED 2026-09-15 BY `[#787]`, AND THE AMENDMENT IS THE HONEST HALF OF ADDING A
+        # REQUIRED FIELD. `**Kind:**` is a field none of these contracts could have carried --
+        # it did not exist when they were frozen -- so the absent-kind report is the ONE problem
+        # a pre-`[#787]` contract is allowed to raise here. Everything else still has to be
+        # clean, which is the property this test was written for and which it still checks.
+        #
+        # THE ALTERNATIVE WAS TO GRANDFATHER INSIDE THE GATE, and it was rejected. An era bound
+        # in `parse_contract` would have to key on something -- a date this corpus does not
+        # carry in its filenames, or the emitted dispatch form, which splits this very directory
+        # 7/1 and would have exempted the wrong file. A gate bent to preserve a test's premise
+        # is weaker everywhere; a test amended to record that its premise changed is weaker
+        # nowhere. The premise that changed is stated above, in the test, where a reader meets
+        # it.
+        residual = tuple(pr for pr in parsed.problems if "`**Kind:**" not in pr)
+        assert residual == (), f"{path.name}: {residual}"
         assert "-Model" not in parsed.command, (
             f"{path.name} was frozen before [#717]; this test's premise is that it carries no "
             f"model flag, and it now does -- re-point the fixture rather than deleting it")
@@ -1274,7 +1293,7 @@ def test_the_emit_log_line_carries_the_model_it_wrote_into_the_file(tmp_path, mo
 
     with caplog_at_info() as records:
         result = CliRunner().invoke(glc.cli, [
-            "emit", "--slug", "lane-x-717-model-row", "--purpose", "render the model",
+            "emit", "--kind", "code", "--slug", "lane-x-717-model-row", "--purpose", "render the model",
             "--id", "717", "--model", "sonnet"])
     assert result.exit_code == 0, result.output
     logged = "\n".join(records)
@@ -1363,7 +1382,7 @@ def test_emit_sets_the_flag_from_the_LIVE_base_ref_predicate(tmp_path, monkeypat
     for holds, slug in ((False, "lane-x-716-unheld"), (True, "lane-x-716-held")):
         monkeypatch.setattr(glc, "base_ref_verdict", lambda repo, h=holds: _verdict(h))
         result = CliRunner().invoke(glc.cli, [
-            "emit", "--slug", slug, "--purpose", "wiring", "--id", "716"])
+            "emit", "--kind", "code", "--slug", slug, "--purpose", "wiring", "--id", "716"])
         assert result.exit_code == 0, result.output
         written = (prompts / glc.contract_filename(slug)).read_text(encoding="utf-8")
         assert ("Step 0" in written) is not holds, (
@@ -1385,12 +1404,27 @@ def test_opusplan_is_an_admitted_model_tier_end_to_end():
     Measured before widening: `claude --print --model opusplan` returns a normal completion,
     while a bogus id returns `[claude-code:unrecognized_model]`. The enum admits a value the
     CLI resolves, not a hopeful string.
+
+    RE-POINTED 2026-09-15 BY `[#787]` CLAUSE 1, ON A MEASUREMENT TAKEN AFTER THIS TEST WAS
+    WRITTEN. The enum-admission property above still holds and is still checked -- `opusplan` is
+    a routed tier and the CLI resolves it. What the 2026-09-13 reading of `lane-x-689`'s own
+    transcript established is that RESOLVING is not HONOURING: that lane ran 84 of 84 assistant
+    messages on `claude-sonnet-5`, because a split tier needs plan mode and every unattended
+    dispatch carries `--permission-mode bypassPermissions`, which never enters one. So the tier
+    is admitted where a seat can plan (`interactive` -- AX22-3's integrator seat, untouched) and
+    REFUSED AT FREEZE where nobody can (`local`, `cloud`, `codespace`).
+
+    The test is amended rather than deleted, and the distinction is the point: the ruling that
+    put `opusplan` in the enum is not overturned, it is SCOPED by a measurement of the same
+    tier's behaviour on a different substrate. Same word, two populations.
     """
-    contract = glc.render_contract(_spec(model="opusplan"))
-    parsed = glc.parse_contract(contract, expect_shape="local")
+    contract = glc.render_contract(_spec(model="opusplan", shape="interactive"))
+    parsed = glc.parse_contract(contract, expect_shape="interactive")
     assert parsed.problems == (), parsed.problems
     assert parsed.model == "opusplan"
-    assert "--model opusplan" in parsed.command
+
+    with pytest.raises(glc.LaneContractError, match="opusplan"):
+        glc.render_contract(_spec(model="opusplan", shape="local"))
 
 
 def test_a_model_outside_the_widened_enum_is_STILL_refused():

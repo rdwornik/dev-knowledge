@@ -247,16 +247,25 @@ def test_an_unpriced_side_call_makes_the_figure_PARTIAL_and_names_it_rather_than
     """[#751]'s rule one level down. The unpriced model's tokens are counted and reported, its
     money is never summed in, and the reader is told how much of the figure is missing.
     Voiding the whole number over a sub-cent bookkeeping call would throw away the comparison
-    this lane exists to make; summing it at zero would understate the bill."""
+    this lane exists to make; summing it at zero would understate the bill.
+
+    RE-POINTED 2026-09-15 BY `[#787]`, AND THE RE-POINT IS THE DELIVERABLE FIRING. This test
+    used `claude-haiku-4-5-20251001` as its unpriced example, because that id WAS the baseline's
+    own pricing gap -- the one holding `usd_comparable` False on every row of
+    `logs/PROVIDER-VERDICTS.json` unconditionally. `[#787]` declared it, so it is no longer an
+    example of anything unpriced and the fixture had to move. It moves to `gpt-5.6-terra`, which
+    is DECLARED in the registry and carries no `rates:` block -- the second of `resolve_rate`'s
+    three refusals, and a genuinely unpriced id rather than a merely absent one. The property
+    under test is unchanged; only the specimen is."""
     run = pb.ProviderRun(provider="claude", outcome="classify-enum", served_model="claude-opus-5")
     run.model_usage = {
         "claude-opus-5": {"input": 2, "output": 3, "cache_read": 107689, "cache_write": 579},
-        "claude-haiku-4-5-20251001": {"input": 903, "output": 15, "cache_read": 0, "cache_write": 0},
+        "gpt-5.6-terra": {"input": 903, "output": 15, "cache_read": 0, "cache_write": 0},
     }
     priced = pb.price(run)
     assert priced["usd"] > 0, "the priced half survives"
     assert priced["usd_is_partial"] is True
-    assert "claude-haiku-4-5-20251001" in priced["unpriced_reason"]
+    assert "gpt-5.6-terra" in priced["unpriced_reason"]
     assert "918 tokens" in priced["unpriced_reason"], "the missing volume is stated, not hidden"
 
 

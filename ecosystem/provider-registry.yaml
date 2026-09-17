@@ -706,6 +706,44 @@ models:
       output: 25.0
     pinned_at: []
 
+  # ADDED 2026-09-15 BY `[#787]`, AND IT IS THE ROW EVERY OTHER PROVIDER'S COMPARABILITY WAS
+  # WAITING ON. `provider_bench.comparability` computes
+  # `comparable = my_usd is not None and base_usd is not None and not my_gap and not base_gap`,
+  # where `base_gap` is the BASELINE's own partial-pricing reason. The claude baseline bills a
+  # small `claude-haiku-4-5-20251001` bookkeeping side-call on four of its ten runs (959 tokens
+  # in the scored set), that id was undeclared, `price()` carried it as an unpriced remainder,
+  # and `usd_is_partial` therefore went true on the baseline. So `usd_comparable` read FALSE on
+  # all six rows of `logs/PROVIDER-VERDICTS.json` UNCONDITIONALLY -- not one of them for a
+  # reason about that provider. No other provider could be fixed first.
+  #
+  # KEYED ON THE CLI-EMITTED STRING, dated suffix and all. `provider_registry.resolve_rate`
+  # looks the attested id up RAW and this registry has no alias field, so a row keyed on the
+  # marketing id `claude-haiku-4-5` would resolve nothing and leave the gap exactly where it
+  # was. The id below is the string the transcripts actually carry.
+  #
+  # THE PRICE IS THE SAME CARD AS ITS THREE SIBLINGS -- Anthropic first-party list prices, the
+  # `claude-api` skill's cached "Current Models" table, cache date 2026-06-24, which is this
+  # file's `rate_card.as_of`. So no per-model `rates.source` is carried: the card's own source
+  # already covers it, and adding one would claim a second provenance for one fact.
+  #
+  # WHAT THIS ROW DOES NOT DO, recorded here so nobody files a false defect against it. Pricing
+  # haiku flips the baseline's partial flag and does NOT reconcile this repo's measured
+  # $0.217038 with the vendor-reported $0.2915 for the same sweep. The 959-token side-call is
+  # worth $0.000959-$0.004795 depending on the input/output split -- 1.3%-6.4% of the $0.0745
+  # gap. The residual is UNATTRIBUTED, most plausibly cache-token accounting, and it stays an
+  # open question rather than a closed one.
+  claude-haiku-4-5-20251001:
+    provider: anthropic
+    tier: S
+    # Holds no role here: which CLI runs which role is `ecosystem/routing-table.yaml`'s
+    # authority (Z-G3 A2) and the ordered ranking is `roles:` above. The row exists so the id
+    # the CLI actually emits is addressable, resolvable and priceable.
+    roles: []
+    rates:
+      input: 1.0
+      output: 5.0
+    pinned_at: []
+
   gpt-5.6-terra:
     provider: openai
     # The doctrinal review lane (PLAYBOOK). The PIN lives at L0

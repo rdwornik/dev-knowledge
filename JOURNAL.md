@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-17 (t) - CC (Opus 5, integrator seat, operator ruling on the three unmerged branches): lane aa-12 enforced routing merges -- its row RENUMBERED a second time, [#793] -> [#885], by a reserved id
+
+**Anchors:** `e17c6200`, `382296f0`, `e788a92f` -- `worktree-lane-aa-12-enforced-routing` rescue tip, sync, doc-counts.
+
+**MERGED** by operator order (ranked the highest-value unlanded work: Opus measured at 99.47%). The model a contract declares is the model that runs: it is resolved at freeze (`gen_lane_contract.routing_refusals`, a lane kind `{text|code|review}` declared with no default), the ordered model is read off the frozen contract (`merge_receipt.ordered_model_from_contract`), the haiku rate is declared, and `provider_bench` re-prices from the persisted `model_usage`. **THE COLLISION, AS PREDICTED:** main already held a different `[#793]` (a withdrawn lane's live worktree built a rival organ, the row aa-13 is evidence for). This lane's row was renumbered MECHANICALLY to **`[#885]`**, **reserved by `id_allocator` (`refs/reservations/task-id/885`) rather than taken from a local maximum**: 2 occurrences in the row file (renamed), 13 in `scripts/gen_lane_contract.py`, 1 in `tests/test_enforced_routing.py`, plus the manifest node. Main's `[#793]` and its citations are untouched, and the rescue commit `e17c6200`'s message still says 793 because commits are immutable. BACKLOG **75,562 B, 365 rows**; doc-counts 6,497 collected. **Stale inside the row, recorded rather than edited:** it says `[#785]` "stays open", but ab-828 closed it one merge earlier; and it cites `docs/audits/2026-09-15-technical-lane-aa-12-enforced-routing.md`, which does not exist, as debt the rescue commit already declared. aa-13 (`01c446f7`) stays unmerged and pushed as `[#793]`'s evidence branch. `py_compile` and ruff clean; **no tests run here**, by operator order.
+
+**Did:** merged aa-12 with a reserved-id renumber. **Result:** a declared tier the launcher cannot honour is refused at freeze, and a receipt whose ran model differs from its ordered model is refused. **Changes:** `scripts/gen_lane_contract.py`, `scripts/merge_receipt.py`, `scripts/provider_bench.py`, `scripts/dispatch_conformance.py`, `ecosystem/provider-registry.yaml`, three test modules, `tasks/885`, `tasks/manifest.json`, `BACKLOG.md`, `ecosystem/doc-counts.md`, `JOURNAL.md`. **Next:** conductor verdict on this merge; `[#885]`'s missing packet.
+
 ### 2026-09-17 (s) - CC (Opus 5, integrator seat, operator ruling on the three unmerged branches): lane ab-828 closure census merges -- batch AB closes 25 rows, not 0
 
 **Anchors:** `7017328e`, `f8bc9249` -- `worktree-lane-ab-828-closure-census` tip, synced at `f8bc9249`.

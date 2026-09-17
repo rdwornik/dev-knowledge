@@ -821,8 +821,53 @@ def record_actions_verdict(repo_root: Path, *, slug: str, sha: str,
     return receipt, verdict
 
 
-def record_model_reading(repo_root: Path, *, slug: str, ordered: str,
-                         worktree=None, read=None) -> tuple[Receipt, "_ra.ModelReading"]:
+def ordered_model_from_contract(contract) -> str:
+    """The tier a FROZEN CONTRACT declares, read off the contract's own routing row.
+
+    THE SURFACE THAT CLOSES THE CIRCLE (`[#787]` clause 1). `record_model_reading` already
+    refuses to be TOLD what ran. The other half was still a typed string: `--ordered` took the
+    seat's word for what had been asked, so a receipt could agree with itself from the ordered
+    side instead of the ran side — the same collapse, one column over, reached by the cheapest
+    route the verb had. The two readings must come from independently produced surfaces or the
+    check is circular, and these two are:
+
+      * THE ORDERED TIER is written by the ARCHITECT at FREEZE, into the contract's
+        `| model | mode | effort |` row, before any session exists. It is read here.
+      * THE RAN MODEL is written by the CLI at RUN TIME, into the session transcript, by a
+        process that never sees this file.
+
+    Neither can be produced from the other, which is what makes a divergence visible at all. A
+    verifier reading both sides off the launcher — the dispatch line for one and the receipt's
+    own ordered field for the other — could not detect a launcher that ignored the order, which
+    is precisely the defect that went unseen: `lane-x-689` froze `opusplan`, the resolved line
+    printed `--model opusplan`, the freeze gate admitted it, `claude --print` resolved it, and
+    84 of 84 assistant messages ran on `claude-sonnet-5`. Every surface that could be read
+    agreed with the order. The only one that disagreed was the one nobody was reading.
+
+    RAISES rather than defaulting when the contract declares no routing row. A default here
+    would invent an order nobody placed and then certify a run against it.
+    """
+    path = Path(contract)
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        raise MergeReceiptError(f"cannot read the contract {path}: {exc!r}") from exc
+    try:
+        from scripts import dispatch_surface as _ds  # noqa: PLC0415
+    except ImportError:                              # pragma: no cover — path-shim fallback
+        import dispatch_surface as _ds               # noqa: PLC0415
+    row = _ds.contract_routing(text)
+    if not row or not row.get("model"):
+        raise MergeReceiptError(
+            f"{path} carries no `| model | mode | effort |` routing row, so the tier it ORDERED "
+            f"cannot be read from it. Refused rather than defaulted: a default would invent an "
+            f"order nobody placed and then certify a run against it")
+    return str(row["model"]).strip()
+
+
+def record_model_reading(repo_root: Path, *, slug: str, ordered: "Optional[str]" = None,
+                         contract=None, worktree=None,
+                         read=None) -> tuple[Receipt, "_ra.ModelReading"]:
     """Record WHAT WAS ORDERED and READ what actually ran, off the lane's own transcript.
 
     THE ASYMMETRY IS THE POINT, and it is `record_actions_verdict`'s asymmetry one field over.
@@ -852,6 +897,15 @@ def record_model_reading(repo_root: Path, *, slug: str, ordered: str,
     in the verb above: a test drives the REAL comparison over a seeded transcript rather than
     asserting a state it typed itself.
     """
+    if (ordered is None) == (contract is None):
+        raise MergeReceiptError(
+            "record_model_reading takes EXACTLY ONE of `ordered` (the tier, typed) and "
+            "`contract` (the frozen contract it is read from). `contract` is the one that "
+            "closes the circle -- see `ordered_model_from_contract`; `ordered` remains for a "
+            "lane whose contract is not on this disk, and its honest limit is that it takes the "
+            "caller's word for what was asked")
+    if contract is not None:
+        ordered = ordered_model_from_contract(contract)
     receipt = load_receipt(repo_root, slug)
     reader = read or _ra.model_reading
     reading = reader(ordered, Path(worktree) if worktree else repo_root)
@@ -1351,7 +1405,11 @@ def cmd_actions(ctx: click.Context, slug: str, sha: str, baseline: Optional[str]
 
 @cli.command("models")
 @click.option("--slug", required=True)
-@click.option("--ordered", required=True,
+@click.option("--contract", "contract", type=click.Path(exists=True, dir_okay=False,
+                                                       path_type=Path), default=None,
+              help="the FROZEN CONTRACT to read the ordered tier off ([#787]) -- preferred: it "
+                   "is a surface the launcher did not write. Exactly one of this and --ordered")
+@click.option("--ordered", required=False, default=None,
               help="the tier the contract's routing row ORDERED for this lane, e.g. opus. It is "
                    "declared because an order IS a declaration -- and it is the ONLY half of the "
                    "pair this verb accepts")
@@ -1359,7 +1417,8 @@ def cmd_actions(ctx: click.Context, slug: str, sha: str, baseline: Optional[str]
               help="the lane's working directory [default: the repo root]; the session store "
                    "files a transcript under it, and that transcript is the measurement")
 @click.pass_context
-def cmd_models(ctx: click.Context, slug: str, ordered: str, worktree: Optional[str]) -> None:
+def cmd_models(ctx: click.Context, slug: str, contract: Optional[Path], ordered: Optional[str],
+               worktree: Optional[str]) -> None:
     """Record the ordered tier and READ, off the lane's own transcript, what it actually ran.
 
     There is deliberately no flag that asserts what ran -- not under any spelling. This verb
@@ -1371,7 +1430,7 @@ def cmd_models(ctx: click.Context, slug: str, ordered: str, worktree: Optional[s
     """
     try:
         _receipt, reading = record_model_reading(ctx.obj["root"], slug=slug, ordered=ordered,
-                                                 worktree=worktree)
+                                                 contract=contract, worktree=worktree)
     except MergeReceiptError as exc:
         raise click.ClickException(str(exc)) from exc
     click.echo(f"{reading.state} -- {reading.detail}")
