@@ -157,7 +157,7 @@ Plugin `tier1-lifecycle@dev-knowledge-methodology` is **enabled** and drives the
 > **A roster, not a manual.** Per-hook rationale, exit codes and **honest limits** live in each module's docstring under `scripts/`; **failure posture** in `ARCHITECTURE.md` Ch2 and its "Validators and enforcement" chapter; the full organ inventory in the generated `ecosystem/organ-index.md`. Read those, never a copy here.
 
 <!-- Machine-read: validate_doc_claims.extract_claimed_hooks takes the leading backtick id of every bullet from this header to the first non-bullet line. Keep it complete and contiguous. -->
-Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless the row says otherwise:
+Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless the row says otherwise. **Since 2026-09-17 only the two index-freshness hooks run locally; the rest are `stages: [manual]`, run by conductor job `commit-gate`** (config header):
 - `normalize-dated-headers` — dated-log header normalization
 - `codemap-freshness` — ARCHITECTURE codemap vs `scripts/`, regen-and-diff
 - `toc-freshness-playbook` — PLAYBOOK TOC staleness

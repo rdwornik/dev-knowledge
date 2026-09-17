@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "72453669ab58b3418bcb02f7a2064506b2ef21eb548787b9233e7ee04d03cc33",
+  "generated_sha256": "4cba5c596ab98f6d12bf10abd3b3a6ba69c461c5005bb03306d9cdc56985aa42",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -576,6 +576,22 @@
     {
       "task": 827,
       "file": "827-the-memory-floor-is-derived-from-a-stale-per-seat-constant.md"
+    },
+    {
+      "task": 819,
+      "file": "819-a-lanes-hub-half-can-merge-while-its-win-too.md"
+    },
+    {
+      "task": 820,
+      "file": "820-a-handback-addressed-to-a-seat-that-does-not.md"
+    },
+    {
+      "task": 821,
+      "file": "821-dispatch-drift-validates-against-one-machines.md"
+    },
+    {
+      "task": 822,
+      "file": "822-a-pipe-masks-the-exit-code-of-the-command-it.md"
     },
     {
       "task": 823,
