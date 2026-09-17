@@ -141,3 +141,60 @@ def test_the_lane_boot_command_file_runs_the_entry_point():
     fences = re.findall(r"```[a-z]*\n(.*?)```", text, flags=re.S)
     assert any("scripts/lane_boot.py preflight" in f for f in fences), \
         "/lane-boot does not run the manifest refusal"
+
+
+# --- [#833]: the seat refusals, at the same STEP 0 ------------------------------------------------
+#
+# A lane is the seat that pays for an absent integrator (its handback has nowhere to land) and the
+# seat that DOUBLES an owned lane (two committing sessions on one index -- the 2026-09-17 near-miss
+# on lane ab-833 itself). Both refusals therefore run here, after the manifest refusals: a lane
+# with no open batch has no batch whose integrator could be asked about.
+#
+# These drive `seat_preflight` on a registry built in `tmp_path` and need no git, so they carry no
+# skip guard.
+
+from datetime import datetime, timedelta, timezone  # noqa: E402
+
+_T0 = datetime(2026, 9, 17, 10, 47, tzinfo=timezone.utc)
+_OWNED = "lane-ab-833-seat-registry"
+_OWNED_CWD = f"C:/Dev/.dev-knowledge/.claude/worktrees/{_OWNED}"
+
+
+def _seat_registry():
+    return importlib.import_module("seat_registry")
+
+
+def _seats(tmp_path, *, integrator_batch=None, owner=None, minutes=1):
+    reg = _seat_registry()
+    path = tmp_path / "seats.jsonl"
+    if integrator_batch:
+        reg.record_event({"hook_event_name": "SessionStart", "session_id": "int-1",
+                          "cwd": "C:/Dev/hub"}, path=path, now=_T0, env={"CLAUDE_PID": "1"})
+        reg.bind("integrator", integrator_batch, session_id="int-1", path=path, now=_T0)
+    if owner:
+        reg.record_event({"hook_event_name": "SessionStart", "session_id": owner,
+                          "cwd": _OWNED_CWD}, path=path, now=_T0, env={"CLAUDE_PID": "2"})
+    return reg.seats(path, now=_T0 + timedelta(minutes=minutes), pid_alive=lambda _p: True,
+                     path_exists=lambda _p: True, transcript_mtime=lambda _p: None)
+
+
+def test_lane_boot_refuses_a_lane_whose_batch_has_no_live_integrator(tmp_path, capsys):
+    with pytest.raises(SystemExit) as exc:
+        _lane_boot().seat_preflight(_OWNED, _seats(tmp_path), own_session="me")
+    assert exc.value.code == 1
+    err = capsys.readouterr().err
+    assert "no-live-integrator" in err and "integrator" in err
+
+
+def test_lane_boot_refuses_a_second_session_onto_an_owned_lane(tmp_path, capsys):
+    seats = _seats(tmp_path, integrator_batch="AB", owner="52a3764d")
+    with pytest.raises(SystemExit) as exc:
+        _lane_boot().seat_preflight(_OWNED, seats, own_session="506ef5c0")
+    assert exc.value.code == 1
+    assert "lane-owned" in capsys.readouterr().err
+
+
+def test_lane_boot_admits_a_lane_with_a_live_integrator_and_no_other_owner(tmp_path):
+    seats = _seats(tmp_path, integrator_batch="AB")
+    line = _lane_boot().seat_preflight(_OWNED, seats, own_session="me")
+    assert "int-1" in line
