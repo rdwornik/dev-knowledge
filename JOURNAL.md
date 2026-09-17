@@ -19,6 +19,30 @@
 
 ---
 
+### 2026-09-17 (f) - CC (Opus 5, integrator seat, batch AB close): lane ab-694 cost telemetry merges -- AX9-5's organ-usage metric, [#685]'s GO refusal at /lane-boot, [#843] filed
+
+**Anchors:** `a95a7143` -- `worktree-lane-ab-694-cost-telemetry` tip, synced at `776a10cf` then re-synced at `ad971356` (`tasks/manifest.json` conflicted on `generated_sha256` only; markers stripped keeping both sides' nodes, `gen_task_tree --emit-source` re-pinned the hash, BACKLOG current at 375 tasks).
+
+**MERGED** `[#694]` under the operator's 2026-09-16 reduced-scope ruling: the refuted premise corrected in place (`c0565024`); `lane_boot.check_go_artifact` -- `/lane-boot` refuses a lane with no `fire now`/`FIRED` row in the batch manifest or its amendments (`31aa12cb`, RED-first; the `RATIFICATION-<date>.md` transport half deliberately not built, `[#685]` archived as a partial discharge); `scripts/organ_usage_metric.py` -- raw-search vs organ calls per session and organs uncalled in 30 days (`7d70c595`); `[#843]` filed: a contract's premise is carried from a digest, never verified against main at freeze (`4cf49681`). Lane-reported targeted suite 12 failed / 1163 passed, all 12 attributed against a baseline worktree (10 pre-existing, 1 environmental flip, 1 by design). **Wired to dispatch and merge: NOT done** -- the metric is a sibling module with no SessionStart or merge wire, by the lane's recorded disposition. **No tests run here**, by operator order.
+
+**Did:** merged ab-694. **Result:** a measured organ-usage number exists; boot refuses an unfired lane. **Changes:** `scripts/lane_boot.py`, `scripts/organ_usage_metric.py`, `scripts/graph_queries.py`, tests, `tasks/694`, `tasks/843`, `tasks/archive/685.md`, `tasks/manifest.json`, `BACKLOG.md`, lane audit, `JOURNAL.md`. **Next:** wire the metric (carried on `[#694]`).
+
+### 2026-09-17 (e) - CC (Opus 5, integrator seat, batch AB close): lane ab-810 substrate repair merges -- the heartbeat reads the uv pin, the codespace dispatch line carries -Model
+
+**Anchors:** `3488f069` -- `worktree-lane-ab-810-substrate-repair` tip, synced onto main at `6efb91f5` (`ecosystem/doc-counts.md` conflict taken from main; the count is regenerated once at close).
+
+**MERGED** the hub half of `[#810]`: `substrate-heartbeat.yml` reads the uv pin from `pyproject.toml` instead of "latest" (`de6157d1`), `gen_lane_contract`'s codespace shape emits `-Model` (`adf7eeed`), and rows `[#819]`-`[#822]` filed (`[#822]` = a pipe masks the exit code of the command it wraps). Lane-reported evidence: heartbeat workflow run 35160586877 green, targeted pytest green 174 + 109 + 39. **CARRIED, not merged here:** the `win-tooling` half, branch `worktree-lane-ab-810-substrate-repair` @ `35280a3` (unpushed, 8 commits: `Start-DispatchCodespace` carries `-Model`, harvest verb, `[#12]`/`[#13]`); and the two findings the lane wrote but could not file for want of an id-block extension (text only in the lane transcript). **No tests run here**, by operator order.
+
+**Did:** merged ab-810's hub half. **Result:** heartbeat pinned; codespace contracts name their model. **Changes:** `.github/workflows/substrate-heartbeat.yml`, `scripts/gen_lane_contract.py`, `tests/test_gen_lane_contract.py`, `tasks/819`-`822`, `tasks/manifest.json`, `BACKLOG.md`, lane artifact, `JOURNAL.md`. **Next:** win-tooling half merge (carried).
+
+### 2026-09-17 (d) - CC (Opus 5, integrator seat, batch AB close): the commit gate stripped to data-loss protection -- 31 hooks moved to the conductor's report-only `commit-gate` job
+
+**Anchors:** `ea365b83` -- `chore/commit-gate-priced` (`.pre-commit-config.yaml`, `.github/workflows/conductor.yml`, `ecosystem/organ-index.md`, `CLAUDE.md`).
+
+**MERGED** `chore/commit-gate-priced` `--no-ff`, operator close order step (2), after (b) hooks-disable `33246c0a` and (c) admission `aacce0f8` were on origin. **Before:** 34 hooks, ~244 s mean commit wall, a single commit 9+ min detached; the `[#761]` amendment commit launched 12:10 was refused ~12:22 by `audit-health` on journal-anchor tree lag -- twelve minutes for a refusal no defect caused. Lane ab-808 measured the fronting guards permitting 477 of 573 calls. **No hook has a catch counter**, so an evidenced catch could not be established, and the ruling for that case applied: **kept local** `audit-index-freshness` + `organ-index-freshness` (pre-commit) and `block-unanchored-push` (the JOURNAL anchor) + `block-ff-push` (pre-push); **moved** the other 31 to `stages: [manual]`, run by conductor job `commit-gate` over the pushed range via the `seal` job's `reset --soft` device, report-only. Skipped in CI and stated: `block-commit-on-main`, `backlog-id-on-close`, `backlog-filing-backpressure`. **After:** the strip commit itself 85.9 s wall (organ-index-freshness fired; box loaded); this merge commit's wall is on the close packet. **No tests run here**, by operator order.
+
+**Did:** stripped the local commit gate. **Result:** local commits pay two index checks, not 34 hooks. **Changes:** `.pre-commit-config.yaml`, `.github/workflows/conductor.yml`, `ecosystem/organ-index.md`, `CLAUDE.md`, `JOURNAL.md`. **Next:** a gate returns to the local stage only with a counter -- caught, cost, window (row filed at close).
+
 ### 2026-09-17 (c) - CC (Opus 5, integrator seat): resource_lifecycle admission refusal DISABLED -- the `admit` verb reports advisory and exits 0 until calibrated from real dispatch measurements
 
 **Anchors:** `b03ec766` -- `worktree-resource-admission-disabled` (`scripts/resource_lifecycle.py`, `ecosystem/quality-requirements.yaml`).
