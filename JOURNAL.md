@@ -21,6 +21,17 @@
 
 ---
 
+### 2026-09-18 (c) - CC (Opus 5, integrator seat, batch AC): M3 merges lane ac-694 -- the insurance census, merged under R4 despite its dispatch-shape deviation
+
+**Anchors:** `9bbb4d89` -- `worktree-lane-ac-694-insurance-census`, 1 commit, +282/-0, `docs/audits/` only.
+
+**Did:** merged `--no-ff` from the primary per `DECLARE-BATCH-AC-CLOSE-2026-09-18` §3 M3 and ruling R4. The contracted leg was the READ-ONLY CLOUD leg C1; it never dispatched, and a local substitute took a worktree and committed four audits the contract forbade (organ-call census, row-age census, ARCHITECTURE byte count, landed-vs-claimed). R4: the fault is the DISPATCH SHAPE, not the lane, which did what its prompt said -- merge the content, file the deviation as a dispatcher defect (primary's W7). Footprint confirmed `docs/audits/` only before merge.
+
+**Result:** merged. **Changes:** 4 audits under `docs/audits/`, `JOURNAL.md`.
+
+**Next:** M4 `worktree-lane-ac-589-backlog-closures`; W7 owed by the primary.
+
+
 ### 2026-09-18 (b) - CC (Opus 5, integrator seat, batch AC): M2 merges lane ac-661 -- SDA-1 evals reported CANNOT RUN, with the missing input named
 
 **Anchors:** `4f7d3aa0` -- `worktree-lane-ac-661-evals`, 1 commit.
