@@ -1475,6 +1475,22 @@ def test_load_build_list_rows_parses_the_table(tmp_path):
     assert "gen_widget.py" in row.prior_art
 
 
+def test_load_build_list_rows_parses_the_context_cost_column(tmp_path):
+    """B2 step 0 adds `context-cost` after `subject`; the seven-column shape must parse too."""
+    repo_root = _distill_repo(tmp_path)
+    (repo_root / "protocols" / "BUILD-LIST.md").write_text(
+        "| subject | context-cost | prior-art | delta | removes | size | done |\n"
+        "|---|---|---|---|---|---|---|\n"
+        "| widget polish | 58 KB (PLAYBOOK Ch3 15) · reduces: YES | `gen_widget.py` (code, fires)"
+        " | WIRE | the manual override | M | no |\n", encoding="utf-8")
+    rows = glc.load_build_list_rows(repo_root)
+    assert len(rows) == 1
+    assert rows[0].subject == "widget polish"
+    assert rows[0].context_cost.startswith("58 KB")
+    assert "gen_widget.py" in rows[0].prior_art
+    assert rows[0].delta == "WIRE"
+
+
 def test_find_build_list_row_matches_case_insensitively(tmp_path):
     rows = glc.load_build_list_rows(_distill_repo(tmp_path))
     row = glc.find_build_list_row(rows, "Widget Polish")

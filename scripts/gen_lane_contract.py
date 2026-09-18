@@ -1491,7 +1491,8 @@ _ORGAN_INDEX_ROW_RE = re.compile(
     r"^\|\s*`(?P<name>[^`]+)`\s*\|\s*(?P<cls>[^|]+?)\s*\|\s*(?P<trigger>[^|]+?)\s*\|"
     r"[^|]*\|\s*(?P<dist>[^|]+?)\s*\|\s*(?P<status>[^|]+?)\s*\|\s*$", re.MULTILINE)
 _BUILD_LIST_ROW_RE = re.compile(
-    r"^\|\s*(?P<subject>[^|]+?)\s*\|\s*(?P<prior_art>[^|]+?)\s*\|\s*(?P<delta>[A-Z]+)\s*\|"
+    r"^\|\s*(?P<subject>[^|]+?)\s*(?:\|\s*(?P<context_cost>\d[^|]*?KB[^|]*?)\s*)?"
+    r"\|\s*(?P<prior_art>[^|]+?)\s*\|\s*(?P<delta>[A-Z]+)\s*\|"
     r"\s*(?P<removes>[^|]+?)\s*\|\s*(?P<size>[SML])\s*\|\s*(?P<done>[^|]+?)\s*\|\s*$",
     re.MULTILINE)
 _TASK_TITLE_RE = re.compile(r'^title:\s*"?(?P<title>[^"\n]+)"?\s*$', re.MULTILINE)
@@ -1510,6 +1511,7 @@ class BuildListRow:
     removes: str
     size: str
     done: str
+    context_cost: str = ""  # B2 step 0's column; absent in the six-column shape
 
 
 def load_build_list_rows(repo_root: Path) -> tuple[BuildListRow, ...]:
@@ -1517,7 +1519,7 @@ def load_build_list_rows(repo_root: Path) -> tuple[BuildListRow, ...]:
     than re-typed. Header, separator and the wider ratchet/decision tables do not match the
     fixed six-column shape and are silently skipped -- they are not rows of this table."""
     text = (repo_root / BUILD_LIST_REL).read_text(encoding="utf-8")
-    return tuple(BuildListRow(**m.groupdict()) for m in _BUILD_LIST_ROW_RE.finditer(text))
+    return tuple(BuildListRow(**{k: v or "" for k, v in m.groupdict().items()}) for m in _BUILD_LIST_ROW_RE.finditer(text))
 
 
 def find_build_list_row(rows: tuple[BuildListRow, ...], subject: str) -> BuildListRow:
