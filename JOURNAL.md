@@ -21,6 +21,17 @@
 
 ---
 
+### 2026-09-18 (q) - CC (Opus 5, integrator seat B2): merges B2 lane 1 -- ARCHITECTURE.md cut 110 KB -> 15 KB, stale PLAYBOOK hook claims fixed
+
+**Anchors:** `fe7cd0eb` -- `worktree-agent-acdd13c1ff82259b6`, 4 commits (`c0c920a9` ARCHITECTURE cut, `035b58c3` PLAYBOOK Ch8 audit-health claims, `dc43139c` Codex review, `fe7cd0eb` fixes for its 2 HIGH + 1 MEDIUM).
+
+**Did:** the lane said 2 targeted failures were pre-existing but had not re-checked. Paired them against the batch-AC baseline instead: the 49 test files that reference ARCHITECTURE/PLAYBOOK, `-n 6 -rf --color=no`, run at lane tip and then in a throwaway worktree at `78d7e98f`, back to back. Both sides: 25 failed / 2,209 passed / 19 skipped, **failing ids identical** (0 tip-only, 0 baseline-only). Pre-existing, so merged `--no-ff` second in the order. A first run was vacuous (ANSI color kept every `FAILED` line out of the grep, so only the counts matched) and was re-run before ruling. The lane's claimed fix of `test_the_live_playbook_doctrine_row_shows_its_reconciled_spec_and_a_derived_date` still fails at the lane tip. The restamp did not flip it.
+
+**Result:** merged, 0 regressions on the paired set. ARCHITECTURE.md 110,357 B -> ~15.3 KB. **Changes:** `ARCHITECTURE.md`, `protocols/PLAYBOOK.md`, `docs/audits/2026-09-18-codex-b2-lane1-docs-delete.md`, `JOURNAL.md`.
+
+**Next:** lanes 2, 3, 4.
+
+
 ### 2026-09-18 (p) - CC (Opus 5, integrator seat B2): merges B2 step 0 -- context-cost on every build-list row, three-repo calibration
 
 **Anchors:** `5f694873` -- `worktree-build-b2-step0`, 3 commits (`b813338f` context-cost column + B2 decisions + ORDERED-vs-RAN row, `f965339d` the three-repo calibration census, `5f694873` its audits index).
