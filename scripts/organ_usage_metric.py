@@ -435,8 +435,11 @@ def process_census(
     workflow or an `import` chain leaves nothing in it and read UNCALLED: 90 of 159 measured,
     77 of them reached by a wiring surface. A process is `uncalled` only when NO transcript
     invoked it in the window AND no wiring surface reaches it (`wiring_reachable`, read from
-    FPG-1, refreshed first when the store is the source; `processes=`/`reachable=` are the
-    injection seams, and an injected caller owns its own freshness). `wiring_reachable` is reported as its own list
+    FPG-1; `reachable=` is the injection seam). READ-ONLY: this never rebuilds the store -- a
+    report over `--repo-root <sibling>` must not write that repo's git-admin graph, and the
+    graph-rebuild pre-commit hook is the freshness contract (`load_processes`' own posture).
+    Staleness is REPORTED (`graph_stale`), not hidden or silently repaired; `is_stale` scans a
+    coarse set of trees, so False means not-proven-stale, not proven-fresh. `wiring_reachable` is reported as its own list
     so "runs invisibly" stays distinguishable from "seen running" -- it is a reachability
     fact, not a firing count: a hook gated `stages: [manual]` is reachable and may never fire.
     """
@@ -444,8 +447,6 @@ def process_census(
     sroot = Path(sessions_root) if sessions_root is not None else DEFAULT_SESSIONS_ROOT
     now = now if now is not None else datetime.now(timezone.utc)
     cutoff = now - timedelta(days=since_days)
-    if processes is None or reachable is None:
-        _gs.ensure(root).close()  # either comes from the store: never read a stale one (terra P1)
     procs = dict(processes) if processes is not None else dict(_dap.load_processes(root))
     reached = reachable if reachable is not None else wiring_reachable(root)
 
@@ -492,6 +493,7 @@ def process_census(
         "not_observable": not_observable,
         "counts": observable_counts,
         "wiring_reachable": wired,
+        "graph_stale": _gs.is_stale(root),
         "uncalled": uncalled,
     }
 
@@ -510,6 +512,9 @@ def render_census(report: dict[str, Any]) -> str:
         f"{report['observable_total']} observable "
         f"(excludes {report['not_observable_total']} not-observable of "
         f"{report['processes_total']} total)",
+        *(["WARNING: the FPG-1 store is STALE (a source file is newer than it) -- reachability "
+           "below may be out of date; rebuild with `graph_store.py rebuild`"]
+          if report["graph_stale"] else []),
         f"wiring-reachable (a hook, CI or import chain reaches it; counted CALLED, not "
         f"uncalled): {len(report['wiring_reachable'])} of {report['observable_total']}",
         "",
