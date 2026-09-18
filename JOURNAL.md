@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-09-19 (x) - CC (Sonnet 5, lane L3 `wave2-dispatch`): scripts/dispatch.py -- the launcher moves into the hub and the token cap gets a home
+
+**Did:** RED-first (ImportError, then a mutation that drops `stop()` -> the cap test red), then `scripts/dispatch.py` (Click): `--provider/--model/--substrate/--token-cap`, cap REQUIRED. Ported from win-tooling `Start-DispatchLane`, `Get-DispatchPromptsDir`, `Get-CloudModelProvider`, `Start-DispatchCodespace` (steps 2-5). The `claude --bg` path is governed by a transcript poll that runs `claude stop <id>` past the cap; codex and codespace are stream-metered. Live: cap=5 terminated a real haiku run at 22,471 (message-granular overshoot, stated), cap=1M finished under.
+
+**Result:** 23 tests in `tests/test_dispatch_py.py`. NOT verified live: a `claude --bg` launch (it would create a worktree), `claude stop`, the codespace execution path (dry-run only). The win-tooling shim is CONTENT ONLY in the audit; that repo was not touched.
+
+**Changes:** `scripts/dispatch.py`, `tests/test_dispatch_py.py`, `docs/audits/2026-09-19-technical-wave2-dispatch-py-move.md`, this entry.
+
+**Abandoned:** porting the whole 3,964-line module; a `--max-budget-usd` flag (print-mode only); a ceiling on the cap (an invented number).
+
+**Next:** the operator/architect confirm the Layer-2 reading (CLAUDE.md section 5 rule 4: a launcher is nearer that line than any validator); apply the shim in win-tooling; live-test `--bg` governance from a disposable worktree.
+
 ### 2026-09-19 (w) - CC (Opus 5, integrator seat B2): B2 CLOSED -- regressions fixed, raise pushed on the operator's word, every worktree dispositioned, [#911] filed
 
 **Anchors:** `6fc296d8` ([#911] filed), `ee40592a` (BUILD-LIST B2 close row), `beae756e` (sync of main `fb06810e` into this branch) -- `fix/b2-regressions`; plus `80df0753`, `548b2cf7`, `aa410ec6` in (v).
