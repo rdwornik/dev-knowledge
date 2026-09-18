@@ -4,7 +4,7 @@ reconciled_with: handoff-process@7.1.0
 
 # Dev Practice Playbook
 
-> **Last updated:** 2026-09-13
+> **Last updated:** 2026-09-18
 > lane `lane-x-628-docs-cut`: the review-pass blockquotes
 > (dated narration accreted since 2026-08-01) are cut per [#628]'s docs-cut item 5; section
 > history lives in git (commit log + JOURNAL `Changes:` line), not in per-section changelog
@@ -1753,9 +1753,10 @@ The bullets below are the mechanism this recipe rests on.
 - **Seed `ecosystem/*/state.yaml` from the primary — treat a fresh worktree as unseeded by
   default; do NOT delete `.worktreeinclude`.** A fresh worktree is a clean checkout and OMITS
   gitignored runtime state — including `ecosystem/*/state.yaml` (ADR-80 high-churn pointers).
-  Without them the `audit-health` pre-commit gate sees `repos registered (none)` → `health:
-  DEGRADED` and **blocks every commit** — a fresh committing worktree is dead on arrival. The
-  committed `.worktreeinclude` lists the 5 `state.yaml` (incl. the dot-prefixed `.dev-knowledge`
+  Without them `audit-health` sees `repos registered (none)` → `health: DEGRADED` — **currently
+  `stages: [manual]`, so it gates at `ship-gate`/`fleet_health`, not the local commit** — an
+  unseeded worktree is dead on arrival at ship time either way. `.worktreeinclude` lists the 5
+  `state.yaml` (incl. the dot-prefixed `.dev-knowledge`
   hub dir) for the native create to copy in, **but neither native nor raw `git worktree add`
   reliably auto-seeds** (n=3 witnessed misses — LESSONS 2026-06-19; the "native seeds for you"
   claim is refuted), so seed by hand from the primary (§2a) before the first commit and do not
@@ -1785,8 +1786,9 @@ manual seed, pwd-confirm)
   no backing issue, use a bare `<kebab-purpose>` slug (e.g. `changelog-sync`). This formalizes the
   de-facto `156-taskgraph` example as the convention — it is not a new scheme.
 - **Manual-seed commands (any fresh worktree — n=3).** A fresh worktree starts WITHOUT the
-  gitignored `ecosystem/*/state.yaml` that `.worktreeinclude` declares, so its first commit is
-  blocked by the `audit-health` gate (`repos registered (none)` → `health: DEGRADED`). Native
+  gitignored `ecosystem/*/state.yaml` that `.worktreeinclude` declares, so it hits `audit-health`
+  (`repos registered (none)` → `health: DEGRADED`) — currently `stages: [manual]`, gating at
+  `ship-gate`/`fleet_health` rather than the local commit. Native
   *may* copy them but n=3 says don't rely on it (LESSONS 2026-06-19), so seed by hand, copying
   exactly what `.worktreeinclude` lists. From the `<repo>` root in PowerShell:
 
