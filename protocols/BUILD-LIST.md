@@ -25,6 +25,9 @@
 | week | date | ref | mechanisms | doc bytes | organs | uncalled organs | open rows |
 |---|---|---|---|---|---|---|---|
 | 0 | 2026-09-18 | `1a3910b0` | 171 | 43,228,069 | 66 | 36 (PROXY) | 386 |
+| B2 close | 2026-09-19 | `6fc296d8` | 171 | 43,211,457 | 65 | 90 of 159 (census; not comparable to the PROXY) | 390 (+4: [#908]-[#911], operator-ordered filings) — ROSE |
+
+B2 close read set (step-0 method, 1 KB = 1,000 B, bytes at `6fc296d8`): boot base 43.4 → 48.1 KB (this file 9.1 → 13.7); median row read set, base-INCLUSIVE, 137.0 → 138.3 KB over 26 rows (step 0's "186 KB" added the base twice); 2 of 26 rows ≤ the 60 KB target. ARCHITECTURE 110.4 → 22.7 KB (the quality register was restored after the 15.4 KB cut) moved only the rows that read it.
 
 Commands (run at the ref; WITNESSED 2026-09-18):
 - mechanisms — `uv run --locked python scripts/graph_queries.py process-list --render` → sum of the `### <class> (T triggered of N)` totals (script 159 + command 10 + skill 2)
