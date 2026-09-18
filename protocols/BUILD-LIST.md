@@ -30,7 +30,7 @@ Commands (run at the ref; WITNESSED 2026-09-18):
 - mechanisms — `uv run --locked python scripts/graph_queries.py process-list --render` → sum of the `### <class> (T triggered of N)` totals (script 159 + command 10 + skill 2)
 - doc bytes — `git ls-tree -r -l <ref>` filtered to `*.md`, size column summed
 - organs — headline line of `ecosystem/organ-index.md` (`**N organs across M classes.**`)
-- uncalled organs — PROXY: count of `- \`…\` -- no trigger` rows in the process-list render above. No organ records invocations over a 30-day window yet; B2 (`build-b2-brakes`) replaces the proxy with a counter
+- uncalled organs — `uv run --locked python scripts/organ_usage_metric.py census` → the `uncalled over 30 days: N of M observable` line (B2 lane 2, replacing week 0's no-trigger PROXY; the two are not comparable). Source is session transcripts, so a hook-fired script reads UNCALLED — N is an upper bound
 - open rows — `uv run --locked python scripts/gen_task_tree.py --rank`: `N open task(s) ranked` (334) + `N deferred row(s) excluded` (52)
 
 ## Rows
