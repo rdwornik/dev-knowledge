@@ -32,6 +32,20 @@
 **Next:** on the operator's word, the BUILD-LIST B2 close row; merge `docs/b2-integration` then this branch `--no-ff`; push main and verify it on origin; tear down the 5 lanes, `b2-integration`, `b2-regressions`, and the husks lane-ab-833 / lane-z-4.
 
 
+### 2026-09-18 (u) - CC (Opus 5, integrator seat B2): B2 integration arc -- full suite finds 6 REGRESSIONS, so the batch stays OPEN and main is NOT pushed; read-set re-measure shows no movement
+
+**Anchors:** `13c0fd2c` (audits index 1031 -> 1037; BUILD-LIST uncalled-organs command -> `organ_usage_metric.py census`), `2b5637e9` ([#908]-[#910] filed) -- `docs/b2-integration`.
+
+**Did:** full suite on the integrated tree (main `8aa1ffc2` + this arc), `-n 6`: **79 failed / 6,417 passed / 26 skipped / 2 xfailed**, 42 min. Diffed per file against the batch-AC 75-failure record, then pair-ran the moved files `-n 0` here and at `78d7e98f`: **6 fail here and PASS at baseline, so they are REGRESSIONS**; 2 baseline failures now pass (`test_archive_row_body` x1, `test_worktree_seed` x1). The 6:
+- `test_deny_and_point.py` x3 (`..._is_WIRED_on_the_tools_it_judges`, `..._WIRED_COMMAND_ITSELF_denies_and_allows_as_configured`, `..._wired_command_FAILS_OPEN_when_the_project_dir_is_unset`), `KeyError: 'PreToolUse'` -- lane 4 unwired the guard deliberately and the tests still assert it is wired.
+- `test_quality_requirements.py::test_the_architecture_section_is_current` -- "ARCHITECTURE.md carries no well-formed marker pair for the register section": lane 1's cut deleted the quality register's generated-section markers.
+- `test_silent_rule_ratchet.py` x2 -- live 452 > committed baseline 447. +1 from `protocols/BUILD-MODE.md` at B1 (`4377e729`, merged before B2), +4 from B2 step 0 (BUILD-LIST +3, BUILD-MODE +1); this arc added 0. The ratchet refuses a baseline raise.
+
+**Result:** batch B2 OPEN. Five merges on local main (`68a409a6` step0, `cfc3104f` lane 1, `e415fd69` lane 2, `bd0768d7` lane 3, `8aa1ffc2` lane 4) are NOT pushed, and teardown is held so the lane branches keep a second copy until main reaches origin. Ratchet on the integrated tree: mechanisms 171 (= week 0), doc bytes 43,195,558 (week 0 43,228,069: fell), organs 65 (66), uncalled 90 of 159 observable (census; not comparable to week 0's PROXY 36). Read set, same method as step 0 (1 KB = 1,000 B): boot base 43.4 -> **48.1 KB** (BUILD-LIST 9.1 -> 13.7 KB); median row read set, base-inclusive, **137.0 -> 138.3 KB** over 26 rows. Step 0's "186 KB" added the base twice, because the column already includes it (merge 49 = 43 + 6). 2 of 26 rows are at or under the 60 KB target. ARCHITECTURE -95 KB moved only the three rows that read it; the rest rose by the base (+4.7) and, for hook-config rows, +4.1.
+
+**Next:** operator ruling on the 6 regressions, then push, teardown, close.
+
+
 ### 2026-09-18 (t) - CC (Opus 5, integrator seat B2): merges B2 lane 4 -- hook role review, 13 commit-layer hooks armed with counter and expiry, PreToolUse deny-and-point unwired
 
 **Anchors:** `ca5660af` -- `worktree-agent-ae596e69d4a642782`, 2 commits (`f3eba9b2` role review + arming + unwire, `ca5660af` Codex review, 0/0/0/0).
