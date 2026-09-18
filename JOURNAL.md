@@ -21,6 +21,17 @@
 
 ---
 
+### 2026-09-18 (d) - CC (Opus 5, integrator seat, batch AC): M4 merges lane ac-589 -- [#889] the one-hour acceptance-test row and [#890] the per-task execution-state carrier are filed
+
+**Anchors:** `367d1391` -- `worktree-lane-ac-589-backlog-closures`, 1 commit.
+
+**Did:** merged `--no-ff` from the primary per `DECLARE-BATCH-AC-CLOSE-2026-09-18` §3 M4. Files [#889] (acceptance test: intake 103 §0.6 verbatim, one lane dispatch-to-merged in under an hour with nothing wedged and no human decision, plus the armed-guard set) and [#890] (per-task execution-state carrier). `tasks/` + `tasks/manifest.json` + the generated `BACKLOG.md`, +2 rows.
+
+**Result:** merged. The night order's "execute the 25 identified closures" leg did NOT arrive on this branch -- it closes nothing; recorded here so the close packet counts rows filed vs closed from the tree, not from the contract. **Changes:** `BACKLOG.md`, `tasks/889-*`, `tasks/890-*`, `tasks/manifest.json`, `JOURNAL.md`.
+
+**Next:** M5 `worktree-lane-ac-863-notification`, after re-confirming its pre-existing test clusters.
+
+
 ### 2026-09-18 (c) - CC (Opus 5, integrator seat, batch AC): M3 merges lane ac-694 -- the insurance census, merged under R4 despite its dispatch-shape deviation
 
 **Anchors:** `9bbb4d89` -- `worktree-lane-ac-694-insurance-census`, 1 commit, +282/-0, `docs/audits/` only.
