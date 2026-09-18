@@ -444,8 +444,8 @@ def process_census(
     sroot = Path(sessions_root) if sessions_root is not None else DEFAULT_SESSIONS_ROOT
     now = now if now is not None else datetime.now(timezone.utc)
     cutoff = now - timedelta(days=since_days)
-    if processes is None and reachable is None:
-        _gs.ensure(root).close()  # both come from the store: never read a stale one (terra P1)
+    if processes is None or reachable is None:
+        _gs.ensure(root).close()  # either comes from the store: never read a stale one (terra P1)
     procs = dict(processes) if processes is not None else dict(_dap.load_processes(root))
     reached = reachable if reachable is not None else wiring_reachable(root)
 

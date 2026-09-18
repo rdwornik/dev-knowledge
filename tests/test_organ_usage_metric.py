@@ -506,3 +506,24 @@ def test_default_census_refreshes_a_stale_graph_before_reading_reachability(tmp_
         repo_root=root, sessions_root=tmp_path / "none",
         now=datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc))
     assert "scripts/late.py" in report["wiring_reachable"]
+
+
+def test_injecting_only_processes_still_refreshes_the_graph_for_reachability(tmp_path):
+    """Codex terra P1 (second pass): `processes=` injected + `reachable` defaulted reads
+    reachability from the store, so the freshness check must fire on EITHER being store-sourced."""
+    import os
+    root = tmp_path / "repo"
+    (root / "scripts").mkdir(parents=True)
+    (root / "scripts" / "a.py").write_text("print(1)\n", encoding="utf-8")
+    (root / ".pre-commit-config.yaml").write_text("repos: []\n", encoding="utf-8")
+    gs.rebuild(root)                                   # built: nothing wired
+    (root / ".pre-commit-config.yaml").write_text(
+        "repos:\n  - repo: local\n    hooks:\n      - id: a\n        name: a\n"
+        "        entry: python scripts/a.py\n        language: system\n", encoding="utf-8")
+    later = os.stat(gs.store_path(root)).st_mtime + 10
+    os.utime(root / "scripts" / "a.py", (later, later))
+
+    report = oum.process_census(
+        repo_root=root, sessions_root=tmp_path / "none", processes={"scripts/a.py": "script"},
+        now=datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc))
+    assert "scripts/a.py" in report["wiring_reachable"]
