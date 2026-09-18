@@ -21,6 +21,17 @@
 
 ---
 
+### 2026-09-18 (l) - CC (Opus 5, integrator seat, batch AC): cost re-derived -- USD 30.59 for the seven AC lane sessions, UNAVAILABLE superseded; [#907] asks for spend by seat kind
+
+**Anchors:** `ac9213c5` ([#907]) and `42102eb6` (the packet's cost marker) -- `docs/batch-ac-cost-and-suite`.
+
+**Did:** executed `to-cc/DECLARE-BATCH-AC-NOT-CLOSED-2026-09-18.md` §2. Ran `lane_cost.py lane --slug <slug> --batch AC` for all seven AC sessions: ac-night-freeze 15.06 (opus-5) · 589 5.07 · 741 4.41 · 863 2.56 · 661 1.92 · 694 1.37 · 285 0.20 (sonnet-5) = **USD 30.59**; per model opus-5 15.06, sonnet-5 15.53; rates as_of 2026-06-24. That matches [#893]'s figure, so the close packet's "cost UNAVAILABLE -- no cost telemetry exists" was false; the packet now carries an inserted SUPERSEDED marker with the number and its method, and §5 stays as landed so the record keeps the error. W2 already stands corrected in [#893]'s own text ("that premise is false"), which is left unedited. Filed [#907]: measure spend by seat kind (architect, primary, dispatcher, integrator, lane) before any further cost work -- the declare withdraws "the non-Claude launch path is the only item that moves 99.47 %", because the lanes are USD 30.59 of a week the architect puts at ~USD 8,721 (not re-derived here).
+
+**Result:** `gen_task_tree --check` ok; markers are pure insertions. **Batch AC is still OPEN:** the §1 C2 full suite on `78d7e98f` (`-n 6`) is running and its result is NOT recorded in this entry. **Changes:** `tasks/907-*`, `tasks/manifest.json`, `BACKLOG.md`, the close packet, `JOURNAL.md`.
+
+**Next:** C3 -- record the suite result against the packet; any failure pair-measured against the baseline.
+
+
 ### 2026-09-18 (k) - CC (Opus 5, integrator seat, batch AC): CORRECTION -- batch AC is NOT closed; the full suite never ran on the merged result
 
 **Anchors:** `16052aa1` -- `docs/batch-ac-not-closed`.
