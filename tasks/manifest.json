@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "1715891c1655faa41646b2bdccef3cb86ce8f1fb3ad7c02f945ebd361e9f1b60",
+  "generated_sha256": "febf1ad0db8f76a1b8c0f11141abc1b037496634338d4e47fe55cc284cc6988c",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1600,6 +1600,10 @@
     {
       "task": 893,
       "file": "893-lane-cost-is-computable-and-nothing-computes-it-at.md"
+    },
+    {
+      "task": 907,
+      "file": "907-spend-is-not-measured-by-seat-kind-so-cost-work-t.md"
     },
     {
       "task": 898,

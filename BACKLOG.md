@@ -424,6 +424,7 @@ So that cognitive overhead per session drops.
 - [#800] [P1][S] The routing unit is the SESSION, not the turn — the prompt cache is per model, so per-turn switching loses money · tasks/800-the-routing-unit-is-the-session-not-the-turn-the-p.md
 - [#801] [P2][S] Opus is a flat 2.50x Sonnet on every leg — a false 5x figure circulated and a token-shape argument was built on it · tasks/801-opus-is-a-flat-2-50x-sonnet-and-a-false-5x-figure.md
 - [#893] [P1][S] Lane cost is computable and nothing computes it at integration -- batch AC's close packet reads cost UNKNOWN · tasks/893-lane-cost-is-computable-and-nothing-computes-it-at.md
+- [#907] [P1][S] Spend is not measured by seat kind, so cost work targets the lanes while the money is in the seats · tasks/907-spend-is-not-measured-by-seat-kind-so-cost-work-t.md
 - [#898] [P2][S] A contracted cloud read-only leg never dispatched and a local substitute committed what the contract forbade -- a dispatcher shape defect · tasks/898-a-contracted-cloud-read-only-leg-never-dispatched.md
 - [#899] [P3][S] gen_audit_index reads HEAD, not the working tree -- every new audit costs a second, index-only commit and --check is falsely green before it · tasks/899-gen-audit-index-reads-head-so-every-new-audit-cos.md
 - [#900] [P2][S] AX9-5's own organ miscounts -- from a worktree it reads one session, its totals ignore the window, and a path mention counts as a call · tasks/900-ax9-5-s-own-organ-miscounts-from-a-worktree-and-t.md
