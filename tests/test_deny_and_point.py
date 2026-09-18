@@ -27,8 +27,6 @@ from __future__ import annotations
 
 import importlib.util
 import json
-import os
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -788,69 +786,23 @@ def test_the_live_store_answers_with_the_repos_real_processes():
     assert all(v in {"script", "command", "skill"} for v in processes.values())
 
 
-def _wired_command() -> str:
+def test_the_guard_is_UNWIRED_from_PreToolUse():
+    """B2 lane 4 (2026-09-18, BUILD-MODE rule 8) unwired this guard: refusals live at git
+    boundaries, and the agent tool-loop carries nothing but path protection. The three tests
+    that asserted the OLD wired design were replaced by this one and the next, on the
+    operator's ruling at B2 integration."""
     settings = json.loads((_REPO / ".claude" / "settings.json").read_text(encoding="utf-8"))
-    for block in settings["hooks"]["PreToolUse"]:
-        for hook in block["hooks"]:
-            if "deny_and_point" in hook.get("command", ""):
-                return hook["command"]
-    raise AssertionError("deny_and_point is not wired into .claude/settings.json PreToolUse")
+    wired = [h.get("command", "")
+             for b in settings.get("hooks", {}).get("PreToolUse", [])
+             for h in b.get("hooks", [])
+             if "deny_and_point" in h.get("command", "")]
+    assert wired == [], f"deny_and_point is wired into PreToolUse again: {wired}"
 
 
-def test_the_guard_is_WIRED_on_the_tools_it_judges():
-    settings = json.loads((_REPO / ".claude" / "settings.json").read_text(encoding="utf-8"))
-    matchers = [b["matcher"] for b in settings["hooks"]["PreToolUse"]
-                if any("deny_and_point" in h.get("command", "") for h in b["hooks"])]
-    assert matchers == ["Bash|PowerShell|Grep"]
+def test_the_guard_script_is_KEPT():
+    """Unwired, not deleted: the module stays on disk and its behaviour stays pinned by the
+    unit tests above, so re-wiring is a settings edit rather than a rebuild."""
     assert _SCRIPT.exists()
-
-
-def test_the_WIRED_COMMAND_ITSELF_denies_and_allows_as_configured():
-    """The wired command is a shell wrapper, and a wrapper that does not run is a hook that
-    does not exist -- while a wrapper that ERRORS is worse, because a PreToolUse hook reads a
-    non-zero exit as DENY and would refuse every matched call ([#684]).
-
-    A pre-merge review raised, twice, that the POSIX `if [ -f ... ]` form cannot run on
-    Windows. It does run here -- Claude Code executes hook commands through Git Bash, measured
-    by lane-w-684 -- but an argument is not a gate. So the property is EXECUTED: the exact
-    string from settings.json is run, both branches, rather than reasoned about.
-    """
-    bash = shutil.which("bash")
-    if not bash:
-        pytest.skip("no POSIX shell on PATH to execute the wired command with")
-    if not guard.load_processes(_REPO):
-        pytest.skip("no persisted store on this tree (pre-commit rebuilds it)")
-    command = _wired_command()
-    env = {**os.environ, "CLAUDE_PROJECT_DIR": str(_REPO)}
-
-    def run(payload):
-        return subprocess.run([bash, "-c", command], input=json.dumps(payload),
-                              capture_output=True, text=True, encoding="utf-8",
-                              errors="replace", cwd=str(_REPO), env=env)
-
-    denied = run(_bash("rg gen_task_tree"))
-    assert denied.returncode == 2, denied.stderr[-500:]
-    assert "file_purpose_graph.py" in json.loads(denied.stdout)["reason"]
-
-    allowed = run(_bash('grep -n "def parse" scripts/'))
-    assert allowed.returncode == 0, allowed.stderr[-500:]
-
-
-def test_the_wired_command_FAILS_OPEN_when_the_project_dir_is_unset():
-    """The reason the existence test is in the COMMAND and not in the module: a garbage
-    script path means the module never loads, and python's own exit 2 would then read as
-    DENY on every matched call -- [#684]'s defect, which W-2' is fixing on line 21 of this
-    same file."""
-    bash = shutil.which("bash")
-    if not bash:
-        pytest.skip("no POSIX shell on PATH to execute the wired command with")
-    env = {k: v for k, v in os.environ.items() if k != "CLAUDE_PROJECT_DIR"}
-    proc = subprocess.run([bash, "-c", _wired_command()],
-                          input=json.dumps(_bash("rg gen_task_tree")),
-                          capture_output=True, text=True, encoding="utf-8",
-                          errors="replace", cwd=str(_REPO), env=env)
-    assert proc.returncode == 0, (
-        "an unset CLAUDE_PROJECT_DIR must ALLOW, never deny every matched call")
 
 
 def test_the_guard_computes_no_edges_of_its_own():
