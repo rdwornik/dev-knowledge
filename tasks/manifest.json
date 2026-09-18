@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "d1548874716e7ef89933bdcf86523fc8ed220975c764e3e1817b84ebe4ddfc6b",
+  "generated_sha256": "06db28508b1d12bed3cb69b6e65eb89396060b7573031616b5f4e1251572694c",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -626,6 +626,18 @@
       "file": "888-the-repo-has-no-degraded-state-an-emergency-that.md"
     },
     {
+      "task": 894,
+      "file": "894-lane-ac-285-wedged-after-a-successful-tool-call-c.md"
+    },
+    {
+      "task": 895,
+      "file": "895-the-lane-ceiling-worktree-leg-refuses-a-conformin.md"
+    },
+    {
+      "task": 896,
+      "file": "896-decision-coverage-the-organ-refuses-and-its-gate-n.md"
+    },
+    {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
     },
     {
@@ -1140,6 +1152,10 @@
       "file": "622-promote-readme-md-into-the-adr-38-canonical-mand.md"
     },
     {
+      "task": 897,
+      "file": "897-architecture-md-is-110-357-b-live-seven-times-its.md"
+    },
+    {
       "prose": "---"
     },
     {
@@ -1562,6 +1578,22 @@
       "file": "801-opus-is-a-flat-2-50x-sonnet-and-a-false-5x-figure.md"
     },
     {
+      "task": 893,
+      "file": "893-lane-cost-is-computable-and-nothing-computes-it-at.md"
+    },
+    {
+      "task": 898,
+      "file": "898-a-contracted-cloud-read-only-leg-never-dispatched.md"
+    },
+    {
+      "task": 899,
+      "file": "899-gen-audit-index-reads-head-so-every-new-audit-cos.md"
+    },
+    {
+      "task": 900,
+      "file": "900-ax9-5-s-own-organ-miscounts-from-a-worktree-and-t.md"
+    },
+    {
       "prose": "### [S19] Decide the undecided artifact/tool models"
     },
     {
@@ -1668,6 +1700,10 @@
     {
       "task": 722,
       "file": "722-interim-routing-read-only-work-defaults-to-agy-as-reader-only.md"
+    },
+    {
+      "task": 892,
+      "file": "892-a-seat-ordered-sonnet-ran-opus-and-nothing-refus.md"
     },
     {
       "prose": "### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)"
