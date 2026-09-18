@@ -428,6 +428,7 @@ So that cognitive overhead per session drops.
 - [#908] [P1][M] A token budget written in a prompt caps nothing -- enforce a hard cap where the agent is launched · tasks/908-a-token-budget-written-in-a-prompt-caps-nothing-en.md
 - [#909] [P1][M] Read-only analysis burns the Claude budget while free and cheap capacity sits unused -- route it off first · tasks/909-read-only-analysis-burns-the-claude-budget-while-f.md
 - [#910] [P1][S] A seat below ~10% context must not begin an integration walk -- retire and boot fresh · tasks/910-a-seat-below-10-percent-context-must-not-begin-an-in.md
+- [#911] [P1][S] A gate whose precondition is passing that same gate -- the silent-rule ratchet cannot accept an operator-approved raise until the raise is already pushed · tasks/911-a-gate-whose-precondition-is-passing-that-same-gat.md
 - [#898] [P2][S] A contracted cloud read-only leg never dispatched and a local substitute committed what the contract forbade -- a dispatcher shape defect · tasks/898-a-contracted-cloud-read-only-leg-never-dispatched.md
 - [#899] [P3][S] gen_audit_index reads HEAD, not the working tree -- every new audit costs a second, index-only commit and --check is falsely green before it · tasks/899-gen-audit-index-reads-head-so-every-new-audit-cos.md
 - [#900] [P2][S] AX9-5's own organ miscounts -- from a worktree it reads one session, its totals ignore the window, and a path mention counts as a call · tasks/900-ax9-5-s-own-organ-miscounts-from-a-worktree-and-t.md

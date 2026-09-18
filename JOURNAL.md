@@ -21,6 +21,43 @@
 
 ---
 
+### 2026-09-19 (w) - CC (Opus 5, integrator seat B2): B2 CLOSED -- regressions fixed, raise pushed on the operator's word, every worktree dispositioned, [#911] filed
+
+**Anchors:** `6fc296d8` ([#911] filed), `ee40592a` (BUILD-LIST B2 close row), `beae756e` (sync of main `fb06810e` into this branch) -- `fix/b2-regressions`; plus `80df0753`, `548b2cf7`, `aa410ec6` in (v).
+
+**Did:** the operator withdrew amendment 1's "HIGH blocks the push" for the silent-rule HIGH. The HIGH was an artefact: the ratchet compares against min(origin/main, main), so the ruled raise could not pass until the push that the HIGH blocked. Filed as [#911], the sixth instance this window of a check green on its own test and blind to its case (kill-candidate [#805], which already carries the authorised-raise leg). `docs/b2-integration` merged to main as `fb06810e`; this branch merges next, then main is pushed, verified on origin, and the ratchet is re-run with both refs at 452.
+
+**Close numbers (at `6fc296d8`):** mechanisms 171 (= week 0) · doc bytes 43,211,457 (week 0 43,228,069: fell 16.6 KB, after the quality register was restored) · organs 65 (66) · uncalled 90 of 159 observable (census) · open rows 390 (386: ROSE +4, the operator-ordered [#908]-[#911]). Read set, step-0 method: boot base 43.4 -> 48.1 KB; median row 137.0 -> 138.3 KB base-inclusive (step 0's 186 double-counted the base); 2 of 26 rows are at or under the 60 KB target.
+
+**Worktree and branch dispositions:**
+- `agent-acdd13c1…` / `worktree-agent-acdd13c1…` (lane 1): MERGED `cfc3104f`.
+- `agent-a987786…` / `worktree-agent-a987786…` (lane 2): MERGED `e415fd69`.
+- `agent-a773b70…` / `worktree-agent-a773b70…` (lane 3): MERGED `bd0768d7`.
+- `agent-ae596e69…` / `worktree-agent-ae596e69…` (lane 4): MERGED `8aa1ffc2`.
+- `build-b2-step0` / `worktree-build-b2-step0`: MERGED `68a409a6`.
+- `b2-integration` / `docs/b2-integration`: MERGED `fb06810e`.
+- `b2-regressions` / `fix/b2-regressions`: MERGED at the merge that carries this entry.
+- `lane-ab-833-seat-registry`, `lane-z-4-non-claude-execution`: DISCARDED. Both are empty directories (0 entries), not registered as worktrees, and left from batches AB and Z. Their commits were already dispositioned in those batches' records.
+- `automation/fleet-audit`: KEPT (explicitly protected; organ replication branch).
+- `origin/claude/conformance-2026-09-18`: KEPT (not this batch's; protected until absorbed).
+- The two `archive/` and `backlog-migration` tags and the `v1.*` tags: KEPT (release and archive tags, not batch work).
+
+**Changes:** `tasks/911-…`, `tasks/manifest.json`, `BACKLOG.md`, `protocols/BUILD-LIST.md`, `JOURNAL.md`.
+
+**Next:** none. B2 closed; the seat stops.
+
+
+### 2026-09-19 (v) - CC (Opus 5, integrator seat B2): B2 regression fixes per option (A); Codex terra HIGH on the baseline raise holds the push
+
+**Anchors:** `80df0753` (deny_and_point tests assert UNWIRED + script KEPT; quality-register marker pair restored in ARCHITECTURE.md), `548b2cf7` (silent-rule baseline 447 -> 452, cause recorded in the yaml), `aa410ec6` (Codex review) -- `fix/b2-regressions`.
+
+**Did:** the operator's option-(A) rulings on the 6 regressions in (u). Class 1: the three wired-guard tests described the old design; they were replaced by `test_the_guard_is_UNWIRED_from_PreToolUse` and `test_the_guard_script_is_KEPT`. Class 2: the `QUALITY-REQUIREMENTS` markers were restored and rendered, so ARCHITECTURE.md goes 15,350 -> 22,726 B. Class 3: baseline raised 447 -> 452 (+1 B1 BUILD-MODE, +4 B2 step 0; measured 452 over 71 files at `80df0753`), recorded in the file as a ONE-OFF with a stated cause, not a precedent. Targeted: deny_and_point + quality_requirements 149 passed; silent_rule_ratchet 51 passed, 1 reading "raise rejected 447 -> 452" against origin/main until push (`_target_baseline_state` = min(origin/main, main), audit.py:3621).
+
+**Result:** Codex terra on `main..fix/b2-regressions` returned **1 HIGH**: "raised baseline fails the ratchet gate" (same detector id). Per operator amendment 1, a HIGH blocks the push, so the push is HELD pending the operator's word. The wrapper's heuristic printed 0/0/0/0, but the findings section carries the HIGH. The code profile did not review ARCHITECTURE.md, because a mixed diff drops prose. **Changes:** `tests/test_deny_and_point.py`, `ARCHITECTURE.md`, `ecosystem/silent-rule-baseline.yaml`, `docs/audits/2026-09-19-codex-b2-regressions-fix.md`, `JOURNAL.md`.
+
+**Next:** on the operator's word, the BUILD-LIST B2 close row; merge `docs/b2-integration` then this branch `--no-ff`; push main and verify it on origin; tear down the 5 lanes, `b2-integration`, `b2-regressions`, and the husks lane-ab-833 / lane-z-4.
+
+
 ### 2026-09-18 (u) - CC (Opus 5, integrator seat B2): B2 integration arc -- full suite finds 6 REGRESSIONS, so the batch stays OPEN and main is NOT pushed; read-set re-measure shows no movement
 
 **Anchors:** `13c0fd2c` (audits index 1031 -> 1037; BUILD-LIST uncalled-organs command -> `organ_usage_metric.py census`), `2b5637e9` ([#908]-[#910] filed) -- `docs/b2-integration`.
