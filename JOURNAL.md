@@ -21,6 +21,17 @@
 
 ---
 
+### 2026-09-18 (e) - CC (Opus 5, integrator seat, batch AC): M5 merges lane ac-863 -- `expiry` beside every individually-disabled hook; its 27-failure cluster is now PAIR-MEASURED pre-existing, not inferred
+
+**Anchors:** `fb50bbeb` -- `worktree-lane-ac-863-notification`, 2 commits (`dc5729fe` the edit, `fb50bbeb` the end-of-lane artifact).
+
+**Did:** merged `--no-ff` from the primary per `DECLARE-BATCH-AC-CLOSE-2026-09-18` §3 M5. `.claude/settings.json` gains an `expiry` field (2026-09-24) beside each individually-disabled hook in the `//`-prefixed comment register -- the [#886]-class debt as DATA, a field not a record type. `propose_closures.py` gets an explanatory non-date `expiry`, since it is RUNNING under a standing ruling. The lane PAUSED the Notification restore on the rule-vs-ruling conflict; R1 has since ruled it into the global `~/.claude` (primary's P4), so nothing about Notification lands here.
+
+**Result -- the reproduction the declaration asked to be re-confirmed, done by measurement:** the lane's own artifact records that only the narrow 2F cluster was pair-measured; its full-pass BASELINE was OOM-killed and the 27F attribution rested on partial output. Re-run here, adjacent in time, `pytest tests/ -k "settings or hook" -n 4`: baseline main `9d1e4638` 27 failed / 212 passed; candidate (this merge, uncommitted) 27 failed / 212 passed; failure ID sets IDENTICAL, 0 regressions. **Changes:** `.claude/settings.json`, 1 audit, `JOURNAL.md`.
+
+**Next:** §4 -- pair-measure `worktree-ac-night-freeze`'s 33 attributed failures before M6.
+
+
 ### 2026-09-18 (d) - CC (Opus 5, integrator seat, batch AC): M4 merges lane ac-589 -- [#889] the one-hour acceptance-test row and [#890] the per-task execution-state carrier are filed
 
 **Anchors:** `367d1391` -- `worktree-lane-ac-589-backlog-closures`, 1 commit.
