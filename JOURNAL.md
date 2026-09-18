@@ -21,6 +21,17 @@
 
 ---
 
+### 2026-09-18 (a) - CC (Opus 5, integrator seat, batch AC): M1 merges lane ac-741 -- the dispatch-surface measurement, docs only
+
+**Anchors:** `7b599303` -- `worktree-lane-ac-741-dispatch-surface`, 5 commits, `docs/audits/` only.
+
+**Did:** merged `--no-ff` from the primary per `DECLARE-BATCH-AC-CLOSE-2026-09-18` §3 M1. The lane measured where the dispatch verb physically lives, whether a launch verb can carry a non-Claude model, and the hub-move cost (`46594fc4`, evidence for [#741]), plus four read-only audits: ARCHITECTURE.md live byte count (`a08ef32a`), the AX9-5 organ-vs-raw-scan census (`62d98f51`, lane reports raw scans ~4.9:1 over organ calls), landed-vs-claimed for nine rows (`54e08913`) and the row-age census (`7b599303`, oldest 50 rows all live, full sweep timed out). These are the lane's claims, carried rather than re-measured here.
+
+**Result:** clean merge, no conflict. `docs/audits/README.md` is NOT regenerated in this commit -- the index reads HEAD, so one index-only arc follows the queue. **Changes:** 5 files under `docs/audits/`, `JOURNAL.md`.
+
+**Next:** M2 `worktree-lane-ac-661-evals`.
+
+
 ### 2026-09-17 (z) - CC (Opus 5, handoff seat): the supplement folds VERBATIM, propose_closures is ruled ungovernable-and-running, and aa-13's evidence branch is deleted
 
 **Anchors:** `48901e12` -- `docs/handoff-2026-09-17-supplement`, cut from `74124a1b`.
