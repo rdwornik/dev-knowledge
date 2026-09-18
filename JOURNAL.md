@@ -21,6 +21,17 @@
 
 ---
 
+### 2026-09-18 (m) - CC (Opus 5, integrator seat, batch AC): batch AC CLOSES on a full-suite witness -- 75 failures on 78d7e98f, every one reproduced at baseline, 0 regressions
+
+**Anchors:** `7788c6fd` (the C3 result marker in the close packet) -- `docs/batch-ac-cost-and-suite`.
+
+**Did:** `to-cc/DECLARE-BATCH-AC-NOT-CLOSED-2026-09-18.md` §1 C2-C3. Free memory measured at 3.6 GB before the run (the consumers above 1 GB were the operator's browsers; the five leftover hook interpreters held ~0 MB, so nothing of the integrator's was left to free). **C2:** `uv run --locked pytest tests/ -n 6` on exactly `78d7e98f`, in a detached throwaway worktree seeded like the earlier paired runs: **75 failed, 6,388 passed, 26 skipped, 2 xfailed**, 44 min. Not green, so **C3** pair-measured against the batch base `87638c8d`. Pair 1: the 36 files holding the failures, `-n 6`, same worktree, back to back -- 74F/1,716P at both commits, failing-test ids identical. Pair 2: the 75th, `test_manifest_link_route.py::test_the_class_enum_is_the_hermetization_module_s_own_object`, did not reproduce at file level on EITHER side; it is the documented xdist-only identity RED, so it was made deterministic -- `-n 0` alone passes, `-n 0` after `tests/test_seal_repo_profile.py` fails, at both `78d7e98f` and `87638c8d`; batch AC's diff touches none of the four implicated files. **Regressions: 0.**
+
+**Result:** batch AC is CLOSED, with this run as its witness, recorded in the packet as a third inserted marker beneath the OPEN one. The 75 failures are pre-existing debt the batch neither created nor reduced -- "closed" does not mean "green". **Changes:** the close packet, `JOURNAL.md`.
+
+**Next:** [#906] (one writer on the primary), R11 (re-key the R2 exemption on the seat registry's lane role and give it a counter within one window, or remove it), W13 (arm `backlog-filing-backpressure` with a counter, priority one), [#907] (spend by seat kind).
+
+
 ### 2026-09-18 (l) - CC (Opus 5, integrator seat, batch AC): cost re-derived -- USD 30.59 for the seven AC lane sessions, UNAVAILABLE superseded; [#907] asks for spend by seat kind
 
 **Anchors:** `ac9213c5` ([#907]) and `42102eb6` (the packet's cost marker) -- `docs/batch-ac-cost-and-suite`.
