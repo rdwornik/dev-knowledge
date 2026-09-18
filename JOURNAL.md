@@ -21,6 +21,17 @@
 
 ---
 
+### 2026-09-18 (p) - CC (Opus 5, integrator seat B2): merges B2 step 0 -- context-cost on every build-list row, three-repo calibration
+
+**Anchors:** `5f694873` -- `worktree-build-b2-step0`, 3 commits (`b813338f` context-cost column + B2 decisions + ORDERED-vs-RAN row, `f965339d` the three-repo calibration census, `5f694873` its audits index).
+
+**Did:** merged `--no-ff` from the primary, first in the operator's B2 order (step0, lane 1..4). Docs only, 0 behind main, no conflicts.
+
+**Result:** merged. **Changes:** `protocols/BUILD-LIST.md`, `protocols/BUILD-MODE.md`, `docs/audits/2026-09-18-census-b2-calibration-three-repos.md`, `docs/audits/README.md`, `JOURNAL.md`.
+
+**Next:** lane 1 (held on the paired pre-existing check), then lanes 2, 3, 4.
+
+
 ### 2026-09-18 (o) - CC (Opus 5, integrator seat): merges BUILD MODE B1 -- the declaration, the build list and its census land on main
 
 **Anchors:** `4aed2848` -- `worktree-build-mode-b1`, 4 commits (`53fc52dc` declares BUILD MODE, `3a4c8949` the B1 build list, `19f91fb3` its audits index, `4aed2848` the branch's own JOURNAL (n)).

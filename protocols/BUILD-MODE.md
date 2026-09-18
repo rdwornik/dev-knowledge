@@ -47,8 +47,10 @@ Week zero, and the command behind each number, is recorded in `protocols/BUILD-L
 ## The build list — row shape
 
 One row per subject, these fields and no others:
-`subject` · `prior-art` · `delta` · `removes` · `size` · `done`
+`subject` · `context-cost` · `prior-art` · `delta` · `removes` · `size` · `done`
 
+- **`context-cost`** — KB of prose a seat must read to do the row correctly today, and whether
+  the row REDUCES it. Added by the B2 order (2026-09-18); the primary B2 sort key.
 - **`prior-art`** — what already exists for this purpose, where, in what form (code / prose /
   configuration / disabled). EMPTY IS ONLY VALID WITH EVIDENCE that the inventory found nothing.
 - **`delta`** — exactly one verb from the CLOSED list:
