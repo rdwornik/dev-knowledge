@@ -21,6 +21,17 @@
 
 ---
 
+### 2026-09-18 (f) - CC (Opus 5): P1 of DECLARE-BATCH-AC-CLOSE-AMENDED -- [#891] the lane handback contract is merged, so the return leg now governs from `main`
+
+**Anchors:** `e0de14a9` -- `worktree-handback-contract-row`, 1 commit.
+
+**Did:** merged `--no-ff`, two-step (`--no-commit` then `git commit`, so the full pre-commit registry ran on the merged tree), per `to-cc/DECLARE-BATCH-AC-CLOSE-AMENDED-2026-09-18.md` §3 P1. The only conflict was `tasks/manifest.json`'s `generated_sha256` line; the node insertion merged clean, HEAD's line was taken and `gen_task_tree.py --emit-source` re-pinned the hash (`--check ok`, 371 tasks).
+
+**Result:** [#891] is on local `main`. P2's handback (`to-browser/HANDBACK-censuses-2026-09-18.md`) is written in the ten-field shape from the two censuses on the UNMERGED branch `worktree-ac-close-followups` (`7fce90c0`) -- the files the declaration cites are not on `main`, which is the gap [#891] names. **Changes:** `BACKLOG.md`, `tasks/891-*.md`, `tasks/manifest.json`, `JOURNAL.md`.
+
+**Next:** §4 rows W9-W12 on their own branch; `git push origin main` stays §2 S4's act.
+
+
 ### 2026-09-18 (e) - CC (Opus 5, integrator seat, batch AC): M5 merges lane ac-863 -- `expiry` beside every individually-disabled hook; its 27-failure cluster is now PAIR-MEASURED pre-existing, not inferred
 
 **Anchors:** `fb50bbeb` -- `worktree-lane-ac-863-notification`, 2 commits (`dc5729fe` the edit, `fb50bbeb` the end-of-lane artifact).

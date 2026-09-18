@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "f2a30869389d59b2c7e9023037cc28c8da91f20bfba76fc7977b0f477c3a32e1",
+  "generated_sha256": "7815c9f1fd60e25f9e3dba4687edd98ff6ae04096608c5b17f81fc6a16053e54",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -624,6 +624,10 @@
     {
       "task": 888,
       "file": "888-the-repo-has-no-degraded-state-an-emergency-that.md"
+    },
+    {
+      "task": 891,
+      "file": "891-lane-handback-contract-lanes-write-a-ten-field-h.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
