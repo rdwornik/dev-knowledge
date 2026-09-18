@@ -1467,6 +1467,235 @@ def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedCo
         receipt_fields=found_receipt, problems=tuple(problems))
 
 
+# --- distillation: (kind, subject) -> contract, composed from other organs (BUILD-MODE.md exit
+# condition 1: "the distiller produces a contract from (kind, subject) with ZERO lines written
+# by the browser"). Every field below is READ from an existing organ -- BUILD-LIST.md,
+# organ-index.md, tasks/, the FPG-1 store, the substrate registry -- and handed to the EXISTING
+# `LaneSpec` / `render_contract` above. This is composition, not a second contract format: the
+# only NEW surface is the input assembly; the output is the same generator's own shape. The two
+# JUDGEMENT fields BUILD MODE reserves for a bounded model call (scope, risk) are emitted as
+# marked SLOTs and never filled here -- v0 wires no model API.
+
+BUILD_LIST_REL = "protocols/BUILD-LIST.md"
+
+#: One row's delta, per the closed list `protocols/BUILD-MODE.md` rule 6 states. Declared here
+#: rather than re-derived from the table, so an off-enum `--kind` is refused at the CLI.
+BUILD_LIST_DELTA_ENUM: tuple[str, ...] = ("ARM", "WIRE", "REWRITE", "MOVE", "DELETE", "BUILD")
+
+#: Size -> effort. A LANE-LOCAL heuristic (bigger removal, more effort), not a restatement of
+#: any other file's authority -- named so a reader can see it is exactly this and nothing else.
+SIZE_TO_EFFORT: dict[str, str] = {"S": "medium", "M": "high", "L": "xhigh"}
+
+_ORGAN_TOKEN_RE = re.compile(r"`([^`]+)`")
+_ORGAN_INDEX_ROW_RE = re.compile(
+    r"^\|\s*`(?P<name>[^`]+)`\s*\|\s*(?P<cls>[^|]+?)\s*\|\s*(?P<trigger>[^|]+?)\s*\|"
+    r"[^|]*\|\s*(?P<dist>[^|]+?)\s*\|\s*(?P<status>[^|]+?)\s*\|\s*$", re.MULTILINE)
+_BUILD_LIST_ROW_RE = re.compile(
+    r"^\|\s*(?P<subject>[^|]+?)\s*(?:\|\s*(?P<context_cost>\d[^|]*?KB[^|]*?)\s*)?"
+    r"\|\s*(?P<prior_art>[^|]+?)\s*\|\s*(?P<delta>[A-Z]+)\s*\|"
+    r"\s*(?P<removes>[^|]+?)\s*\|\s*(?P<size>[SML])\s*\|\s*(?P<done>[^|]+?)\s*\|\s*$",
+    re.MULTILINE)
+_TASK_TITLE_RE = re.compile(r'^title:\s*"?(?P<title>[^"\n]+)"?\s*$', re.MULTILINE)
+_TASK_ID_RE = re.compile(r'^id:\s*"\[#(?P<id>\d+)\]"\s*$', re.MULTILINE)
+_TASK_STATUS_RE = re.compile(r'^status:\s*(?P<status>\S+)\s*$', re.MULTILINE)
+_GRAPH_PATH_RE = re.compile(r"^[\w./-]+\.(?:py|md|ya?ml)$")
+
+
+@dataclass(frozen=True)
+class BuildListRow:
+    """One `protocols/BUILD-LIST.md` row. Read-only distiller input; this module never writes
+    that file (lane ownership: `protocols/*` belongs to a different lane)."""
+    subject: str
+    prior_art: str
+    delta: str
+    removes: str
+    size: str
+    done: str
+    context_cost: str = ""  # B2 step 0's column; absent in the six-column shape
+
+
+def load_build_list_rows(repo_root: Path) -> tuple[BuildListRow, ...]:
+    """Every row of the ONE flat build list (`protocols/BUILD-MODE.md` rule 1), parsed rather
+    than re-typed. Header, separator and the wider ratchet/decision tables do not match the
+    fixed six-column shape and are silently skipped -- they are not rows of this table."""
+    text = (repo_root / BUILD_LIST_REL).read_text(encoding="utf-8")
+    return tuple(BuildListRow(**{k: v or "" for k, v in m.groupdict().items()}) for m in _BUILD_LIST_ROW_RE.finditer(text))
+
+
+def find_build_list_row(rows: tuple[BuildListRow, ...], subject: str) -> BuildListRow:
+    """The row whose subject matches `subject`, case-insensitively. Absent or ambiguous is a
+    REFUSAL naming the candidates -- the same refuse-don't-round posture `validate_shape` and
+    friends already take, so a typo'd subject does not silently distill the wrong row."""
+    needle = subject.strip().casefold()
+    exact = [r for r in rows if r.subject.casefold() == needle]
+    if len(exact) == 1:
+        return exact[0]
+    loose = [r for r in rows if needle in r.subject.casefold()]
+    if len(loose) == 1:
+        return loose[0]
+    pool = exact or loose or rows
+    raise LaneContractError(
+        f"no single BUILD-LIST row matches subject {subject!r} in {BUILD_LIST_REL} — "
+        f"candidates: {', '.join(repr(r.subject) for r in pool[:10])}")
+
+
+def organs_from_prior_art(prior_art: str) -> tuple[str, ...]:
+    """Every backtick-quoted organ name a row's prior-art column cites, in order, deduplicated.
+    Extraction, not inference -- the row already names its own organs."""
+    seen: dict[str, None] = {}
+    for token in _ORGAN_TOKEN_RE.findall(prior_art):
+        seen.setdefault(token, None)
+    return tuple(seen)
+
+
+def organ_index_lines(repo_root: Path, organs: tuple[str, ...]) -> tuple[str, ...]:
+    """Cross-reference each organ against `ecosystem/organ-index.md` -- read-only, deterministic.
+    An organ this index does not carry is a script/config file, not one of its eight classes,
+    and is reported as exactly that rather than silently dropped."""
+    try:
+        text = (repo_root / "ecosystem/organ-index.md").read_text(encoding="utf-8")
+    except OSError as exc:
+        return (f"organ-index.md unreadable: {exc!r}",)
+    rows = {m.group("name"): m for m in _ORGAN_INDEX_ROW_RE.finditer(text)}
+    lines = []
+    for organ in organs:
+        m = rows.get(organ)
+        if m:
+            lines.append(f"- `{organ}`: {m.group('cls')}, trigger={m.group('trigger')}, "
+                        f"{m.group('status')}")
+        else:
+            lines.append(f"- `{organ}`: not an organ-index class (script/config file)")
+    return tuple(lines)
+
+
+def backlog_hit(repo_root: Path, subject: str) -> Optional[tuple[str, str]]:
+    """(task id, status) of the first `tasks/*.md` whose frontmatter `title:` mentions
+    `subject` -- "does a row exist for the subject", read from the backlog index rather than
+    guessed. `None` when no task's title matches; that absence is itself the deterministic
+    answer, not a gap this function papers over."""
+    needle = subject.strip().casefold()
+    tasks_dir = repo_root / "tasks"
+    if not tasks_dir.is_dir():
+        return None
+    for path in sorted(tasks_dir.glob("*.md")):
+        text = path.read_text(encoding="utf-8", errors="replace")
+        title_m = _TASK_TITLE_RE.search(text)
+        if title_m and needle in title_m.group("title").casefold():
+            id_m = _TASK_ID_RE.search(text)
+            status_m = _TASK_STATUS_RE.search(text)
+            return (id_m.group("id") if id_m else "?",
+                    status_m.group("status") if status_m else "?")
+    return None
+
+
+def graph_dependents_lines(repo_root: Path, organs: tuple[str, ...]) -> tuple[str, ...]:
+    """Who references each file-shaped organ, read from the PERSISTED FPG-1 store
+    (`graph_store.py`). READ-ONLY: never rebuilds the store, matching this module's own Layer-2
+    discipline ("writes ONLY the contract path it is given"). An absent OR UNREADABLE store (a
+    corrupt file, a schema-version mismatch) is a named gap, not a silent rebuild the distiller
+    was not asked to perform, and not an unhandled crash of the whole distillation (codex
+    b2-lane3-distiller, HIGH: "unreadable persisted graph aborts distillation")."""
+    try:
+        from scripts import graph_store as _gs  # noqa: PLC0415
+    except ImportError:  # pragma: no cover — path-shim fallback
+        import graph_store as _gs  # noqa: PLC0415
+    db_path = _gs.store_path(repo_root)
+    if not db_path.exists():
+        return (f"no persisted graph at {db_path} — dependents not resolved; "
+                f"`uv run --locked python scripts/graph_store.py rebuild` to populate",)
+    try:
+        store = _gs.open_store(db_path)
+    except Exception as exc:  # noqa: BLE001 — an unreadable store degrades, never aborts
+        return (f"persisted graph at {db_path} is unreadable ({exc!r}) — dependents not "
+                f"resolved; `uv run --locked python scripts/graph_store.py rebuild` to repair",)
+    try:
+        lines: list[str] = []
+        for organ in organs:
+            if not _GRAPH_PATH_RE.match(organ):
+                continue
+            relpath = organ if "/" in organ else f"scripts/{organ}"
+            key = store.key_for_path(relpath)
+            if key is None:
+                lines.append(f"- `{relpath}`: not a graph node")
+                continue
+            deps = sorted({e["src"] for e in store.in_edges(key)})
+            lines.append(f"- `{relpath}`: {len(deps)} dependent(s)"
+                        + (f" — {', '.join(deps[:5])}" if deps else ""))
+        return tuple(lines) or ("no file-shaped organs to query",)
+    finally:
+        store.close()
+
+
+def substrate_live(repo_root: Path, shape: str) -> Optional[bool]:
+    """Whether `shape` is LIVE per `ecosystem/substrate-registry.yaml` -- the substrate router's
+    own registry, read rather than re-declared. `None` when the registry cannot be read."""
+    try:
+        from scripts import validate_substrate as _vs  # noqa: PLC0415
+    except ImportError:  # pragma: no cover — path-shim fallback
+        import validate_substrate as _vs  # noqa: PLC0415
+    try:
+        registry = _vs.load_registry(repo_root)
+    except Exception:  # noqa: BLE001 — degrade to an honest gap, never a guess
+        return None
+    sub = registry.get(shape)
+    return sub.live if sub else None
+
+
+def lane_kind_for_row(row: BuildListRow) -> str:
+    """`code` when the row's prior-art names code or config it touches; `text` otherwise
+    (prose-only subjects). Feeds `LaneSpec.kind`, whose routing default keys on it (`[#885]`
+    clause 2) — derived from the row's own type tags, never guessed from the subject text."""
+    return "code" if re.search(r"\(code|\(config", row.prior_art) else "text"
+
+
+def distilled_effort(size: str) -> str:
+    """`row.size` -> `EFFORT_ENUM` tier, via `SIZE_TO_EFFORT`. Off-table sizes fall back to
+    `high`, this generator's own existing default, rather than refusing a row `--emit` accepts."""
+    return SIZE_TO_EFFORT.get(size, "high")
+
+
+def distilled_model(lane_kind: str) -> str:
+    """A model `validated()` will accept for `lane_kind` without tripping `routing_refusals`
+    clause 2 ("a text lane never starts on Opus") -- picked up front rather than duplicating
+    that rule's text here."""
+    return "sonnet" if lane_kind == "text" else DEFAULT_MODEL
+
+
+def render_distillation(row: BuildListRow, delta_kind: str, spec: LaneSpec,
+                        organ_lines: tuple[str, ...], backlog: Optional[tuple[str, str]],
+                        dependent_lines: tuple[str, ...], live: Optional[bool]) -> str:
+    """The distiller's OWN section, appended after `render_contract`'s existing output. Every
+    field above the `## Judgement` heading is read from a cited organ; nothing here is authored
+    prose about the subject. `scope` and `risk` are the two fields BUILD-MODE's exit condition
+    reserves for ONE bounded model call and are emitted as marked SLOTs, never filled."""
+    diverges = "" if delta_kind.upper() == row.delta else (
+        " — **DIVERGES from the row's recorded delta; a reclassification, not a defect**")
+    parts = [
+        "## Distilled from (kind, subject)\n",
+        f"kind (this lane): `{delta_kind.upper()}` · BUILD-LIST row delta: `{row.delta}`"
+        f"{diverges}\n",
+        f"- **prior-art:** {row.prior_art}",
+        f"- **removes:** {row.removes}",
+        f"- **size:** `{row.size}` -> effort `{spec.effort}` (S->medium, M->high, L->xhigh)",
+        "- **backlog:** " + (f"[#{backlog[0]}] status={backlog[1]}" if backlog
+                             else "no `tasks/*.md` row's title mentions this subject") + "\n",
+        "## Organs this lane calls (`ecosystem/organ-index.md`)\n",
+        *organ_lines, "",
+        "## Dependency graph (FPG-1 store, read-only)\n",
+        *dependent_lines, "",
+        f"## Substrate\n`{spec.shape}` — live per `ecosystem/substrate-registry.yaml`: `{live}`\n",
+        "## Judgement — ONE bounded model call (BUILD-MODE.md exit condition 1)\n"
+        "Everything above this heading is DETERMINISTIC, read from the cited organs with zero\n"
+        "browser-authored lines. These two fields are the only ones a model fills, from exactly\n"
+        "the input recorded above:\n",
+        "- **Scope:** `<SLOT -- model reads: prior-art, removes, organs and dependents above; "
+        "states what is IN and OUT of this lane's footprint>`",
+        "- **Risk:** `<SLOT -- model reads the same input; states what could break and the "
+        "rollback>`\n",
+    ]
+    return "\n".join(parts)
+
+
 # --- CLI --------------------------------------------------------------------------------------
 
 def _default_out_dir() -> Path:
@@ -1714,6 +1943,77 @@ def cmd_enums() -> None:
         fields = ', '.join(RECEIPT_FIELDS_BY_SHAPE[receipt_shape])
         click.echo(f"off-machine section ({receipt_shape}): {CLOUD_SECTION} ({fields})")
     click.echo(f"generated: {_dt.date.today().isoformat()}")
+
+
+@cli.command("distill")
+@click.option("--kind", "delta_kind", required=True,
+              type=click.Choice(BUILD_LIST_DELTA_ENUM, case_sensitive=False),
+              help="this lane's declared BUILD-LIST delta verb (BUILD-MODE.md rule 6's closed "
+                   "list)")
+@click.option("--subject", required=True,
+              help="the protocols/BUILD-LIST.md row subject this contract targets")
+@click.option("--shape", type=click.Choice(SHAPE_ENUM), default=DEFAULT_SHAPE, show_default=True)
+@click.option("--repo", default=".dev-knowledge", show_default=True)
+@click.option("--out-dir", type=click.Path(file_okay=False, path_type=Path), default=None)
+@click.option("--stdout", "to_stdout", is_flag=True, default=False)
+@click.option("--force", is_flag=True, default=False)
+@click.option("--reclassify", is_flag=True, default=False,
+              help="required when --kind disagrees with the row's recorded delta — an explicit "
+                   "opt-in, never a silent override (codex b2-lane3-distiller, HIGH)")
+def cmd_distill(delta_kind: str, subject: str, shape: str, repo: str, out_dir: Optional[Path],
+                to_stdout: bool, force: bool, reclassify: bool) -> None:
+    """Compose a lane contract from (kind, subject) — BUILD-MODE.md exit condition 1.
+
+    Reads `protocols/BUILD-LIST.md` (prior-art / delta / removes / size), cross-references
+    `ecosystem/organ-index.md`, the backlog (`tasks/`), the FPG-1 dependency graph and
+    `ecosystem/substrate-registry.yaml`, then hands the composed spec to the EXISTING
+    `render_contract` — this command adds no second contract format, only the inputs. The two
+    JUDGEMENT fields (scope, risk) are emitted as marked slots for one bounded model call; no
+    model API is called here.
+    """
+    delta_kind = delta_kind.upper()
+    repo_root = _SCRIPTS.parent
+    try:
+        row = find_build_list_row(load_build_list_rows(repo_root), subject)
+        if delta_kind != row.delta and not reclassify:
+            raise LaneContractError(
+                f"--kind {delta_kind!r} disagrees with {subject!r}'s recorded BUILD-LIST delta "
+                f"{row.delta!r} — this is an unrecorded reclassification of a frozen build-list "
+                f"decision (codex b2-lane3-distiller, HIGH), refused by default. Either declare "
+                f"--kind {row.delta!r}, or pass --reclassify to distill it anyway once the "
+                f"reclassification is a deliberate one")
+        lane_kind = lane_kind_for_row(row)
+        try:
+            needs_sync = not base_ref_verdict(repo_root).holds
+        except Exception:  # noqa: BLE001 — a git-less checkout narrows, never wedges
+            needs_sync = True
+        spec = LaneSpec(
+            slug=f"lane-{_dt.date.today():%Y%m%d}-{re.sub(r'[^a-z0-9]+', '-', delta_kind.lower())}"
+                 f"-{re.sub(r'[^a-z0-9]+', '-', subject.strip().lower()).strip('-')}",
+            purpose=f"{delta_kind} {row.subject}: removes {row.removes}", repo=repo,
+            kind=lane_kind, effort=distilled_effort(row.size), model=distilled_model(lane_kind),
+            shape=shape, strict_slug=False, needs_base_sync=needs_sync)
+        organs = organs_from_prior_art(row.prior_art)
+        text = render_contract(spec) + "\n" + render_distillation(
+            row, delta_kind, spec.validated(), organ_index_lines(repo_root, organs),
+            backlog_hit(repo_root, subject), graph_dependents_lines(repo_root, organs),
+            substrate_live(repo_root, shape))
+    except LaneContractError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    if to_stdout:
+        click.echo(text)
+        return
+    try:
+        root = out_dir if out_dir is not None else _default_out_dir()
+    except LaneContractError as exc:
+        raise click.ClickException(str(exc)) from exc
+    target = root / contract_filename(spec.validated().slug)
+    if target.exists() and not force:
+        raise click.ClickException(f"{target} already exists — pass --force to replace it")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(text, encoding="utf-8", newline="\n")
+    logger.info("distilled %s from (kind=%s, subject=%r)", target, delta_kind, subject)
 
 
 if __name__ == "__main__":

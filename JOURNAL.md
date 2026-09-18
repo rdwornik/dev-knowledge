@@ -21,6 +21,17 @@
 
 ---
 
+### 2026-09-18 (s) - CC (Opus 5, integrator seat B2): merges B2 lane 3 -- the (kind, subject) distiller, with 8b962689 reviewed before merge
+
+**Anchors:** `087fb09b` -- `worktree-agent-a773b70aa95731525`, 7 commits (`12b9e258` RED, `b7d930cf` distiller wired, `19d16722` Codex review, `aaf4705f` fixes for its 2 HIGH, `8b962689` seven-column build-list parse, `087fb09b` Codex review of `8b962689`).
+
+**Did:** `8b962689` (the distiller read zero rows from the step-0 build list because of the new context-cost column) was the one change in the batch with no Codex review. Ran `codex-review.ps1 -DiffRange aaf4705f..8b962689` (model `gpt-5.6-terra`, code profile) on that commit alone: **0 Critical / 0 High / 0 Medium / 0 Low**, committed on the lane as `087fb09b`. No HIGH, so lane 3 was not blocked; merged `--no-ff`, fourth in the order. The audit's `Tally:` line stays `TBD` like the other lane audits; `seat_refusals.py reviewer` refuses that line as `tally-malformed`, because it expects the handback tally grammar rather than the wrapper's C/H/M/L one.
+
+**Result:** merged. **Changes:** `scripts/gen_lane_contract.py`, its tests, `docs/audits/2026-09-18-codex-b2-lane3-distiller.md`, `docs/audits/2026-09-18-codex-b2-lane3-fix-8b962689.md`, `JOURNAL.md`.
+
+**Next:** lane 4.
+
+
 ### 2026-09-18 (r) - CC (Opus 5, integrator seat B2): merges B2 lane 2 -- process_census, the ratchet's real uncalled-organ number
 
 **Anchors:** `00e1c49d` -- `worktree-agent-a987786819e3dd5f1`, 5 commits (`461d78dd` RED, `00604bf9` census wired, `a5dc1306` Codex review, `a4030ed9` RED for its 3 HIGH, `00e1c49d` token-level operand match).
