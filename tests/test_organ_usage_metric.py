@@ -480,3 +480,29 @@ def test_reachable_can_be_injected_without_a_store(tmp_path):
         now=datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc))
     assert "scripts/graph_queries.py" not in report["uncalled"]
     assert "scripts/impacted_tests.py" in report["uncalled"]
+
+
+def test_default_census_refreshes_a_stale_graph_before_reading_reachability(tmp_path):
+    """Codex terra P1: only the CLI called `ensure()`, so a programmatic caller reading a store
+    built BEFORE a hook was edited silently got yesterday's reachability."""
+    import os
+    root = tmp_path / "repo"
+    (root / "scripts").mkdir(parents=True)
+    (root / "scripts" / "early.py").write_text("print(1)\n", encoding="utf-8")
+    (root / ".pre-commit-config.yaml").write_text(
+        "repos:\n  - repo: local\n    hooks:\n      - id: e\n        name: e\n"
+        "        entry: python scripts/early.py\n        language: system\n", encoding="utf-8")
+    gs.rebuild(root)                                   # the store is now built...
+    (root / "scripts" / "late.py").write_text("print(2)\n", encoding="utf-8")
+    (root / ".pre-commit-config.yaml").write_text(     # ...and a hook is wired AFTER it
+        "repos:\n  - repo: local\n    hooks:\n      - id: e\n        name: e\n"
+        "        entry: python scripts/early.py\n        language: system\n"
+        "      - id: l\n        name: l\n        entry: python scripts/late.py\n"
+        "        language: system\n", encoding="utf-8")
+    later = os.stat(gs.store_path(root)).st_mtime + 10
+    os.utime(root / "scripts" / "late.py", (later, later))   # source newer than the store
+
+    report = oum.process_census(
+        repo_root=root, sessions_root=tmp_path / "none",
+        now=datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc))
+    assert "scripts/late.py" in report["wiring_reachable"]

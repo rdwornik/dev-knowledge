@@ -435,7 +435,8 @@ def process_census(
     workflow or an `import` chain leaves nothing in it and read UNCALLED: 90 of 159 measured,
     77 of them reached by a wiring surface. A process is `uncalled` only when NO transcript
     invoked it in the window AND no wiring surface reaches it (`wiring_reachable`, read from
-    FPG-1; `reachable=` is the injection seam). `wiring_reachable` is reported as its own list
+    FPG-1, refreshed first when the store is the source; `processes=`/`reachable=` are the
+    injection seams, and an injected caller owns its own freshness). `wiring_reachable` is reported as its own list
     so "runs invisibly" stays distinguishable from "seen running" -- it is a reachability
     fact, not a firing count: a hook gated `stages: [manual]` is reachable and may never fire.
     """
@@ -443,6 +444,8 @@ def process_census(
     sroot = Path(sessions_root) if sessions_root is not None else DEFAULT_SESSIONS_ROOT
     now = now if now is not None else datetime.now(timezone.utc)
     cutoff = now - timedelta(days=since_days)
+    if processes is None and reachable is None:
+        _gs.ensure(root).close()  # both come from the store: never read a stale one (terra P1)
     procs = dict(processes) if processes is not None else dict(_dap.load_processes(root))
     reached = reachable if reachable is not None else wiring_reachable(root)
 
@@ -548,9 +551,7 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
 
     if args.cmd == "census":
-        root = Path(args.repo_root) if args.repo_root else canonical_repo_root()
-        _gs.ensure(root).close()  # the CLI's number must not read a stale store; tests inject
-        report = process_census(repo_root=root, since_days=args.days)
+        report = process_census(repo_root=args.repo_root, since_days=args.days)
         print(json.dumps(report, indent=2, sort_keys=True) if args.json
               else render_census(report))
         return 0
