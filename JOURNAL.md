@@ -21,6 +21,19 @@
 
 ---
 
+### 2026-09-18 (j) - CC (Opus 5, integrator seat, batch AC): CORRECTION -- two entries carry letter (f), (g)'s "Next" was wrong about [#891], and the cause is two writers on one primary; batch AC closes
+
+**Anchors:** `dfeb53be` ([#906]), `5b620735` (the close packet), `37893bf6` (its index) -- `docs/batch-ac-close`.
+
+**Correction, appended -- no earlier entry is edited (JOURNAL is append-only).** (1) **Two entries carry `2026-09-18 (f)`:** "P1 of DECLARE-BATCH-AC-CLOSE-AMENDED -- [#891] the lane handback contract", written by the primary session inside its merge `bb710468`, and "M6 merges the batch AC freeze", written by the integrator inside `ab5f6245`. Both stand; read them by their anchors, not their letter. (2) **Entry (g)'s "Next" line is wrong:** it lists `worktree-handback-contract-row` @ `e0de14a9` as awaiting operator GO, but [#891] had already landed as `bb710468` beneath the integrator's M6. The integrator later completed that branch's teardown (worktree, branch, origin). (3) **CAUSE:** two sessions committed on the same primary checkout concurrently -- the integrator's M5->M6 walk and the primary session's P1 merge -- and nothing refused either; the integrator also merged M6 onto a tree that had moved under it without noticing. Filed as **[#906]**: the primary checkout has ONE writer at a time, and during a batch close the integrator holds it. A mechanism, not an etiquette request (operator decision 3, 2026-09-18).
+
+**Batch AC closes** with `docs/audits/2026-09-17-technical-batch-ac-close-packet.md`, the manifest's `closed_by`: 11 merges; rows **17 filed, 0 closed**; BACKLOG 79,870 B / 385 lines (7,870 B over the [#589] bar); merge-walk median 1.85 min, n=4; cost **UNAVAILABLE** (no cost telemetry; [#893]'s contrary `lane_cost.py` claim carried unverified); acceptance test recorded as **GREEN-WITH-A-NEARLY-EMPTY-ARMED-SET**, not a pass -- 4 of 36 guards fire locally, and dispatch->MERGED, [#889]'s own wording, was median 747.9 min with 0 of 6 inside the hour (dispatch->commit was 39.0 min); AX9-5 0.67 raw searches per organ invocation.
+
+**Result:** `gen_task_tree --check` ok, `gen_audit_index --check` ok, `git worktree list` == primary. **Changes:** `tasks/906-*`, `tasks/manifest.json`, `BACKLOG.md`, the close packet, `docs/audits/README.md`, `JOURNAL.md`.
+
+**Next:** [#906] (single writer on the primary); a counter for R2's Stop-hook exemption before its next review; [#893] to settle whether lane cost is computable.
+
+
 ### 2026-09-18 (i) - CC (Opus 5, integrator seat, batch AC): merges the close follow-ups -- R2's Stop-hook exemption checked NARROW before merge, and it carries NO counter
 
 **Anchors:** `7fce90c0` -- `worktree-ac-close-followups`, 5 commits (`e9390129` RED witnesses, `4c6bb1f8` R2, `db589534` the AX9-5 re-run and full row-age census, `09b9ec20` their index, `7fce90c0` rows [#892]-[#900]).
