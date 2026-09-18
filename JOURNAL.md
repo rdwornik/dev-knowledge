@@ -21,6 +21,17 @@
 
 ---
 
+### 2026-09-18 (f) - CC (Opus 5, integrator seat, batch AC): M6 merges the batch AC freeze -- its 33 attributed live_repo failures are now PAIR-MEASURED, identical lists, zero regressions
+
+**Anchors:** `7f15218b` -- `worktree-ac-night-freeze`, 2 commits (`01ecb63b` the manifest, seven lane contracts and the organs intake; `7f15218b` the forced audit-index follow-up).
+
+**Did:** merged `--no-ff` from the primary per `DECLARE-BATCH-AC-CLOSE-2026-09-18` §4 and `DECLARE-BATCH-AC-CLOSE-AMENDED-2026-09-18` §2 S3. The branch reported `-m live_repo` 34F/127P with ONE pair measured and 33 attributed by diff-scope reasoning -- its own disclosed anti-claim. Measured here, same conditions both sides (detached throwaway worktree seeded like `ac-night-freeze`: the six `ecosystem/*/state.yaml` + `.claude/settings.local.json`; `pytest tests/ -m live_repo -n 4`): baseline `87638c8d` 34F/127P; candidate `7f15218b` 34F/127P (709 s). The FAILING-TEST LISTS are identical with multiplicity -- 34 lines each, 30 distinct ids -- and nothing fails on the candidate that passes at baseline. The first candidate run was killed by Claude Code for critically low system memory; this is the rerun ordered by the AMENDED declare, launched at 1.1 GB free.
+
+**Result:** gate met, merged. `docs/audits/README.md` auto-merged; the index-only regeneration (S5) follows on `docs/batch-ac-integration`. Throwaway worktree removed. **Changes:** the batch AC manifest and its launch contracts under `docs/audits/`, the organs intake, `docs/intake/README.md`, `docs/intake/manifest.json`, `docs/audits/README.md`, `JOURNAL.md`.
+
+**Next:** S4 push `main`; S5 audit-index regeneration with [#901] on `docs/batch-ac-integration`.
+
+
 ### 2026-09-18 (f) - CC (Opus 5): P1 of DECLARE-BATCH-AC-CLOSE-AMENDED -- [#891] the lane handback contract is merged, so the return leg now governs from `main`
 
 **Anchors:** `e0de14a9` -- `worktree-handback-contract-row`, 1 commit.
