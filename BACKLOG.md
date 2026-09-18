@@ -162,6 +162,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#865] [P2][S] The user-level block-onedrive.ps1 PreToolUse guard launches powershell per call and can hang the same way -- it needs a ruling · tasks/865-user-level-block-onedrive-guard-needs-a-hang-ruling.md
 - [#886] [P1][M] An emergency change records its temporary debt as DATA with an owner and an expiry -- JOURNAL prose is invisible to a gate, and a MUST surface has no waiver path at all · tasks/886-an-emergency-change-records-its-temporary-debt-a.md
 - [#888] [P1][M] The repo has no DEGRADED state -- an emergency that removes a required component can only lie to the gate or stop work · tasks/888-the-repo-has-no-degraded-state-an-emergency-that.md
+- [#891] [P1][M] Lane handback contract -- lanes write a ten-field HANDBACK-<lane>.md to the transport as their mandatory final step · tasks/891-lane-handback-contract-lanes-write-a-ten-field-h.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
