@@ -21,6 +21,17 @@
 
 ---
 
+### 2026-09-18 (b) - CC (Opus 5, integrator seat, batch AC): M2 merges lane ac-661 -- SDA-1 evals reported CANNOT RUN, with the missing input named
+
+**Anchors:** `4f7d3aa0` -- `worktree-lane-ac-661-evals`, 1 commit.
+
+**Did:** merged `--no-ff` from the primary per `DECLARE-BATCH-AC-CLOSE-2026-09-18` §3 M2. The lane attempted the [#661] SDA-1 evals against their own design and reports BLOCKED, with the exact reason and the missing input named in `docs/audits/2026-09-18-technical-sda1-cannot-run.md` -- the outcome the night order ruled acceptable ("cannot run, with its reason"). Lane-reported: 91 tests passed, ruff clean.
+
+**Result:** merged. The lane's regenerated `docs/audits/README.md` rides in; it predates M1's five audits, so the index-only arc after the queue still owes it. **Changes:** 1 audit, `docs/audits/README.md`, `JOURNAL.md`.
+
+**Next:** M3 `worktree-lane-ac-694-insurance-census`.
+
+
 ### 2026-09-18 (a) - CC (Opus 5, integrator seat, batch AC): M1 merges lane ac-741 -- the dispatch-surface measurement, docs only
 
 **Anchors:** `7b599303` -- `worktree-lane-ac-741-dispatch-surface`, 5 commits, `docs/audits/` only.
