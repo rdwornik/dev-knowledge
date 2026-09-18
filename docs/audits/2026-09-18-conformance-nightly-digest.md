@@ -93,7 +93,7 @@ Doc health this cycle is otherwise mixed. The always-on boot surfaces (`CLAUDE.m
 - **Proposed fix:** File a correction audit that replaces the fabricated SHAs with the actual proving commit(s) (e.g. `78823b0` covers at least `#470`/`#613`'s underlying tests), or reopen the affected rows pending real evidence — the immutable audit and CLOSED annotations cannot be edited in place per `CLAUDE.md` §5 rule 3.
 - **Note:** Skeptic independently re-ran `git cat-file -t` on all 15 SHAs; every one fails. The underlying work for at least `#470` (cp1252-encodable check-summary tests) and `#613` (routing-table agreement test) does genuinely exist, but was introduced by commit `78823b0`, not the cited SHAs — a real provenance failure in an immutable governance record, not explainable by any documented decision.
 
-### Med (3)
+### Med (2)
 
 **NEW** — `docs/archive/VISION.md:18-19` overstates its own machine-site footprint
 - **Claim:** "thirteen machine constants plus five deploy manifests read its name or its `## H2` spine."
