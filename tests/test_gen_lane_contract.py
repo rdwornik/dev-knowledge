@@ -1437,3 +1437,135 @@ def test_a_model_outside_the_widened_enum_is_STILL_refused():
     contract = glc.render_contract(_spec(model="sonnet")).replace("--model sonnet", "--model gpt")
     problems = glc.parse_contract(contract).problems
     assert any("gpt" in p for p in problems), problems
+
+
+# --- distillation: (kind, subject) -> contract, composed from other organs ([#885] / BUILD-MODE
+# exit condition 1) -----------------------------------------------------------------------------
+
+_BUILD_LIST_FIXTURE = """\
+# BUILD LIST
+
+| subject | prior-art | delta | removes | size | done |
+|---|---|---|---|---|---|
+| widget polish | `gen_widget.py` (code, fires) ; `widget-check` (code, `stages: [manual]`) | WIRE | the manual override on `widget-check` | M | no |
+"""
+
+
+def _distill_repo(tmp_path: Path) -> Path:
+    (tmp_path / "protocols").mkdir()
+    (tmp_path / "protocols" / "BUILD-LIST.md").write_text(_BUILD_LIST_FIXTURE, encoding="utf-8")
+    (tmp_path / "tasks").mkdir()
+    (tmp_path / "ecosystem").mkdir()
+    (tmp_path / "ecosystem" / "organ-index.md").write_text(
+        "| Name | Class | Trigger | Source | Distribution | Status |\n"
+        "|---|---|---|---|---|---|\n"
+        "| `widget-check` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | ARMED |\n",
+        encoding="utf-8")
+    return tmp_path
+
+
+def test_load_build_list_rows_parses_the_table(tmp_path):
+    repo_root = _distill_repo(tmp_path)
+    rows = glc.load_build_list_rows(repo_root)
+    assert len(rows) == 1
+    row = rows[0]
+    assert row.subject == "widget polish"
+    assert row.delta == "WIRE"
+    assert row.size == "M"
+    assert "gen_widget.py" in row.prior_art
+
+
+def test_find_build_list_row_matches_case_insensitively(tmp_path):
+    rows = glc.load_build_list_rows(_distill_repo(tmp_path))
+    row = glc.find_build_list_row(rows, "Widget Polish")
+    assert row.subject == "widget polish"
+
+
+def test_find_build_list_row_refuses_an_absent_subject(tmp_path):
+    rows = glc.load_build_list_rows(_distill_repo(tmp_path))
+    with pytest.raises(glc.LaneContractError, match="no single BUILD-LIST row"):
+        glc.find_build_list_row(rows, "nonexistent subject")
+
+
+def test_organs_from_prior_art_extracts_backtick_tokens_in_order_deduped():
+    organs = glc.organs_from_prior_art("`a.py` (code) ; `b.py` (code) ; `a.py` again")
+    assert organs == ("a.py", "b.py")
+
+
+def test_organ_index_lines_reports_a_known_and_an_unknown_organ(tmp_path):
+    repo_root = _distill_repo(tmp_path)
+    lines = glc.organ_index_lines(repo_root, ("widget-check", "gen_widget.py"))
+    joined = "\n".join(lines)
+    assert "widget-check" in joined and "ARMED" in joined
+    assert "gen_widget.py" in joined and "not an organ-index class" in joined
+
+
+def test_backlog_hit_finds_a_matching_task_title(tmp_path):
+    repo_root = _distill_repo(tmp_path)
+    (repo_root / "tasks" / "9-widget-polish.md").write_text(
+        '---\nid: "[#9]"\ntitle: "Widget polish"\nstatus: open\n---\nbody\n', encoding="utf-8")
+    hit = glc.backlog_hit(repo_root, "widget polish")
+    assert hit == ("9", "open")
+
+
+def test_backlog_hit_is_none_when_no_task_matches(tmp_path):
+    repo_root = _distill_repo(tmp_path)
+    assert glc.backlog_hit(repo_root, "widget polish") is None
+
+
+def test_graph_dependents_lines_degrades_when_no_store_is_persisted(tmp_path):
+    repo_root = _distill_repo(tmp_path)
+    lines = glc.graph_dependents_lines(repo_root, ("gen_widget.py",))
+    assert any("no persisted graph" in line for line in lines)
+
+
+def test_lane_kind_for_row_reads_code_vs_text_from_prior_art():
+    code_row = glc.BuildListRow("s", "`x.py` (code, fires)", "WIRE", "r", "M", "no")
+    text_row = glc.BuildListRow("s", "PLAYBOOK Ch8 (prose)", "REWRITE", "r", "S", "no")
+    assert glc.lane_kind_for_row(code_row) == "code"
+    assert glc.lane_kind_for_row(text_row) == "text"
+
+
+def test_distilled_effort_follows_the_size_table():
+    assert glc.distilled_effort("S") == "medium"
+    assert glc.distilled_effort("M") == "high"
+    assert glc.distilled_effort("L") == "xhigh"
+
+
+def test_distilled_model_keeps_a_text_lane_off_opus():
+    assert glc.distilled_model("text") == "sonnet"
+    assert glc.distilled_model("code") == glc.DEFAULT_MODEL
+
+
+def test_cmd_distill_emits_a_contract_that_check_accepts(tmp_path, monkeypatch):
+    """End to end: (kind, subject) -> a contract `check` accepts, with the two judgement
+    fields still open SLOTS -- zero lines a browser would have had to author by hand."""
+    monkeypatch.setattr(glc, "_SCRIPTS", _distill_repo(tmp_path) / "scripts")
+    (tmp_path / "scripts").mkdir(exist_ok=True)
+    runner = CliRunner()
+    result = runner.invoke(glc.cli, [
+        "distill", "--kind", "wire", "--subject", "widget polish", "--stdout"])
+    assert result.exit_code == 0, result.output
+    parsed = glc.parse_contract(result.output)
+    assert parsed.ok, parsed.problems
+    assert "## Distilled from (kind, subject)" in result.output
+    assert "SLOT" in result.output  # scope/risk are marked slots, not model-authored prose
+    assert "Scope:" in result.output and "Risk:" in result.output
+
+
+def test_cmd_distill_refuses_an_off_enum_kind(tmp_path, monkeypatch):
+    monkeypatch.setattr(glc, "_SCRIPTS", _distill_repo(tmp_path) / "scripts")
+    (tmp_path / "scripts").mkdir(exist_ok=True)
+    result = CliRunner().invoke(glc.cli, [
+        "distill", "--kind", "bogus", "--subject", "widget polish", "--stdout"])
+    assert result.exit_code != 0
+
+
+def test_the_real_pre_action_distillation_row_distills_cleanly():
+    """The BUILD-LIST demo the lane report cites: kind=wire, subject='pre-action distillation',
+    against the LIVE repo tree (no monkeypatch) -- the one real-organ round trip."""
+    result = CliRunner().invoke(glc.cli, [
+        "distill", "--kind", "wire", "--subject", "pre-action distillation", "--stdout"])
+    assert result.exit_code == 0, result.output
+    assert glc.parse_contract(result.output).ok
+    assert "pre-action distillation" in result.output.lower()
