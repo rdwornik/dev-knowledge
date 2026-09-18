@@ -138,7 +138,9 @@ import os
 import shutil
 import sqlite3
 import subprocess
+import sys
 import threading
+import time
 import uuid
 from collections.abc import Callable, Mapping
 from contextlib import contextmanager
@@ -700,3 +702,63 @@ def safe_emit(emitter: Callable[..., int], *args: Any, **kwargs: Any) -> int | N
         return emitter(*args, **kwargs)
     except (sqlite3.Error, OSError):
         return None
+
+
+# ===================================================================================
+# CLI -- B2 lane 4 (hook-role review). The phase-3 wiring this module's docstring named
+# as owed: a hook `entry` needs ONE call that runs the real check AND records a
+# `hook_run` event, without a second `scripts/` file (BUILD MODE rule 7's counter
+# requirement, paid without raising the mechanism count) and without a second
+# `uv run --locked` per hook (this process already holds the synced venv; the wrapped
+# command reuses `sys.executable` rather than re-invoking uv).
+#
+# Usage from a pre-commit `entry:` line:
+#     uv run --locked python scripts/telemetry_emit.py wrap <hook-id> -- <script.py [args...]>
+#     uv run --locked python scripts/telemetry_emit.py wrap <hook-id> -- -m <module> [args...]
+# `pass_filenames: true` hooks are unaffected: pre-commit appends filenames after the
+# whole entry, which lands after `--`, exactly where the wrapped command expects them.
+# ===================================================================================
+
+def _cli_wrap(argv: list[str]) -> int:
+    """`wrap <hook-id> -- <python-args...>`: run `sys.executable <python-args...>`, time it,
+    record one `hook_run` event (outcome pass/block/error, `duration_ms`), and propagate the
+    wrapped command's exit code unchanged -- a recording failure must never turn a passing
+    hook into a failing one (`safe_emit`), and a wrapped-command failure must never be hidden
+    (the hook's own exit code is what pre-commit sees).
+    """
+    if len(argv) < 2 or argv[0] != "wrap":
+        print("usage: telemetry_emit.py wrap <hook-id> -- <python-args...>", file=sys.stderr)
+        return 2
+    hook_id = argv[1]
+    rest = argv[2:]
+    if rest and rest[0] == "--":
+        rest = rest[1:]
+    if not hook_id or not rest:
+        print("usage: telemetry_emit.py wrap <hook-id> -- <python-args...>", file=sys.stderr)
+        return 2
+
+    start = time.monotonic()
+    try:
+        proc = subprocess.run([sys.executable, *rest])
+        rc = proc.returncode
+    except OSError as exc:
+        print(f"telemetry_emit wrap: failed to launch {rest!r}: {exc}", file=sys.stderr)
+        duration_ms = int((time.monotonic() - start) * 1000)
+        safe_emit(emit_hook_run, hook_id, "error", duration_ms=duration_ms)
+        return 2
+    duration_ms = int((time.monotonic() - start) * 1000)
+    outcome = "pass" if rc == 0 else "block"
+    safe_emit(emit_hook_run, hook_id, outcome, duration_ms=duration_ms)
+    return rc
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = list(sys.argv[1:] if argv is None else argv)
+    if args[:1] == ["wrap"]:
+        return _cli_wrap(args)
+    print("usage: telemetry_emit.py wrap <hook-id> -- <python-args...>", file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

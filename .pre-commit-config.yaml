@@ -70,9 +70,11 @@ repos:
         types: [markdown]
         pass_filenames: true
       - id: codemap-freshness
-        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Codemap freshness check
-        entry: uv run --locked python -m scripts.codemap.cli check . --source-root scripts
+        # RE-ARMED 2026-09-18 (B2 lane4 hook-role review): measured clean on a real tree, 14.3s.
+        # Counter: telemetry_emit.py `wrap` -> one hook_run(pass/block) row in gitignored
+        # logs/TELEMETRY.db. Expiry 2026-09-25 -- 0 catches in-window -> REMOVE, never tune.
+        entry: uv run --locked python scripts/telemetry_emit.py wrap codemap-freshness -- -m scripts.codemap.cli check . --source-root scripts
         language: system
         files: '(^scripts/.*\.py$|^pyproject\.toml$|^tach\.toml$|^ARCHITECTURE\.md$)'
         pass_filenames: false
@@ -92,8 +94,10 @@ repos:
         files: '(^protocols/PLAYBOOK\.md$|^scripts/toc/.*\.py$)'
         pass_filenames: false
       - id: roster-freshness
-        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Methodology roster freshness check ([#244] P3)
+        # RE-ARMED 2026-09-18 (B2 lane4 hook-role review): measured clean on a real tree, 13.6s.
+        # Counter: telemetry_emit.py `wrap` -> one hook_run(pass/block) row in gitignored
+        # logs/TELEMETRY.db. Expiry 2026-09-25 -- 0 catches in-window -> REMOVE, never tune.
         # Fail-on-stale, mirroring toc-freshness: regenerate with
         # `python scripts/gen_methodology_roster.py --write`. Catches BOTH drift
         # directions — a hand-edited roster AND a manifest change without a regen —
@@ -107,13 +111,15 @@ repos:
         # peers `audit-index-freshness` and `intake-index-freshness` already list their
         # generators; the omission here was the outlier, and
         # `ecosystem/derived-copies.yaml` is what surfaced it.
-        entry: uv run --locked python scripts/gen_methodology_roster.py --check
+        entry: uv run --locked python scripts/telemetry_emit.py wrap roster-freshness -- scripts/gen_methodology_roster.py --check
         language: system
         files: '(^deploy/manifest-v.*\.yaml$|^\.claude/methodology-roster\.md$|^scripts/gen_methodology_roster\.py$)'
         pass_filenames: false
       - id: claude-rosters-freshness
-        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: CLAUDE.md generated-fragment freshness check ([#258] phase-2)
+        # RE-ARMED 2026-09-18 (B2 lane4 hook-role review): measured clean on a real tree, 11.9s.
+        # Counter: telemetry_emit.py `wrap` -> one hook_run(pass/block) row in gitignored
+        # logs/TELEMETRY.db. Expiry 2026-09-25 -- 0 catches in-window -> REMOVE, never tune.
         # Fail-on-stale regen-and-diff, mirroring roster-freshness: regenerate with
         # `python scripts/gen_claude_rosters.py --write`. Guards the two @-imported
         # CLAUDE.md fragments (.claude/generated/{commands-repo,recent-adrs}.md) —
@@ -126,7 +132,7 @@ repos:
         # peers `audit-index-freshness` and `intake-index-freshness` already list their
         # generators; the omission here was the outlier, and
         # `ecosystem/derived-copies.yaml` is what surfaced it.
-        entry: uv run --locked python scripts/gen_claude_rosters.py --check
+        entry: uv run --locked python scripts/telemetry_emit.py wrap claude-rosters-freshness -- scripts/gen_claude_rosters.py --check
         language: system
         files: '(^\.claude/commands/.*\.md$|^docs/decisions/ADR-.*\.md$|^\.claude/generated/(commands-repo|recent-adrs)\.md$|^scripts/gen_claude_rosters\.py$)'
         pass_filenames: false
@@ -223,7 +229,6 @@ repos:
         files: '(^\.claude/(agents|commands|skills|workflows|rules)/|^\.claude/settings\.json$|^\.pre-commit-config\.yaml$|^plugins/|^ecosystem/organ-registry\.yaml$|^deploy/manifest-v.*\.yaml$|^ecosystem/organ-index\.md$|^scripts/generate_organ_index\.py$)'
         pass_filenames: false
       - id: quality-requirements-freshness
-        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Quality register -- schema, organ resolution and the ARCHITECTURE section ([#765], AN2-1)
         # THE HOOK IS WHAT MAKES THE REGISTER *READ* RATHER THAN MERELY PRESENT, which is
         # done-contract clause 1 of the lane that built it. AN2-1's complaint about the
@@ -255,13 +260,18 @@ repos:
         # hand-edit of the section, and a trip-test module edit that could unname a test the
         # register cites. HUB-ONLY (n=1), like its peer freshness gates. Exit 0 clean, 1 on
         # any defect. Bypass: --no-verify.
-        entry: uv run --locked python scripts/quality_requirements.py check
+        entry: uv run --locked python scripts/telemetry_emit.py wrap quality-requirements-freshness -- scripts/quality_requirements.py check
         language: system
         files: '(^ecosystem/quality-requirements\.yaml$|^scripts/quality_requirements\.py$|^ARCHITECTURE\.md$|^tests/test_quality_requirement_trips\.py$)'
         pass_filenames: false
+        # RE-ARMED 2026-09-18 (B2 lane4 hook-role review): measured clean on a real tree, 9.7s.
+        # Counter: telemetry_emit.py `wrap` -> one hook_run(pass/block) row in gitignored
+        # logs/TELEMETRY.db. Expiry 2026-09-25 -- 0 catches in-window -> REMOVE, never tune.
       - id: validate-hermetization
-        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: ADR-101 hermetization refusal gate (#306; HUB-ONLY, prospective-only)
+        # RE-ARMED 2026-09-18 (B2 lane4 hook-role review): measured clean on a real tree, 10.7s.
+        # Counter: telemetry_emit.py `wrap` -> one hook_run(pass/block) row in gitignored
+        # logs/TELEMETRY.db. Expiry 2026-09-25 -- 0 catches in-window -> REMOVE, never tune.
         # Prospective-only tree seal (ADR-101 §3): inspects only staged ADDs
         # (git diff --cached --diff-filter=A); existing files grandfathered. Rule A BLOCKs a
         # new unsanctioned Tier-1 top-level dir / file-class / docs/<genre>/ folder; Rule B
@@ -269,19 +279,21 @@ repos:
         # CLOSED 11-class enum. Name-shape only, never date-accuracy. HUB-ONLY (the floor/plugin
         # carrier is the P6 rollout). Computes its own staged-add set → always_run. Bypass:
         # --no-verify.
-        entry: uv run --locked python scripts/validate_hermetization.py
+        entry: uv run --locked python scripts/telemetry_emit.py wrap validate-hermetization -- scripts/validate_hermetization.py
         language: system
         always_run: true
         pass_filenames: false
       - id: intake-index-freshness
-        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Intake index freshness check (#307; docs/intake/README.md Contents block)
+        # RE-ARMED 2026-09-18 (B2 lane4 hook-role review): measured clean on a real tree, 12.8s.
+        # Counter: telemetry_emit.py `wrap` -> one hook_run(pass/block) row in gitignored
+        # logs/TELEMETRY.db. Expiry 2026-09-25 -- 0 catches in-window -> REMOVE, never tune.
         # Fail-on-stale regen-and-diff, mirroring audit-index-freshness: regenerate with
         # `python scripts/gen_intake_index.py --write`. Guards the generated status-grouped
         # Contents block in docs/intake/README.md against silent rot. Fires on ANY
         # docs/intake/*.md (a status change or add/remove shifts the index) OR the generator.
         # The --check regen-and-diff is shape-agnostic. HUB-ONLY.
-        entry: uv run --locked python scripts/gen_intake_index.py --check
+        entry: uv run --locked python scripts/telemetry_emit.py wrap intake-index-freshness -- scripts/gen_intake_index.py --check
         language: system
         files: '(^docs/intake/.*\.md$|^scripts/gen_intake_index\.py$)'
         pass_filenames: false
@@ -312,8 +324,10 @@ repos:
         files: '(^BACKLOG\.md$|^tasks/.*\.(md|json)$)'
         pass_filenames: false
       - id: row-archive-proof
-        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Row-body archival byte-identity proof (legs A-E; [#612]/[#664] TRIGGER)
+        # RE-ARMED 2026-09-18 (B2 lane4 hook-role review): measured clean on a real tree, 12.9s.
+        # Counter: telemetry_emit.py `wrap` -> one hook_run(pass/block) row in gitignored
+        # logs/TELEMETRY.db. Expiry 2026-09-25 -- 0 catches in-window -> REMOVE, never tune.
         # [#664]'s ratified TRIGGER row for `scripts/archive_row_body.py`, placed HERE
         # deliberately: the census named "the pre-commit stage, beside the row-lifecycle
         # gates" as its surface, and `validate-backlog` immediately above is that neighbour.
@@ -335,7 +349,7 @@ repos:
         # sit out the failure the leg exists to catch. `BACKLOG.md` is a generated view and
         # is included for the same completeness reason, not because a body edit shows there.
         # Exit is 0 clean / 1 on a failed leg, so a FAIL blocks; the module never raises.
-        entry: uv run --locked python scripts/archive_row_body.py verify
+        entry: uv run --locked python scripts/telemetry_emit.py wrap row-archive-proof -- scripts/archive_row_body.py verify
         language: system
         files: '(^BACKLOG\.md$|^tasks/.*\.(md|json)$|^scripts/archive_row_body\.py$)'
         pass_filenames: false
@@ -376,8 +390,10 @@ repos:
         files: '(^LESSONS\.md$|^JOURNAL\.md$|^logs/TOKEN-LOG\.md$|^LESSONS-legacy-.*\.md$|^scripts/validate_prepend_order\.py$)'
         pass_filenames: false
       - id: provider-registry-agreement
-        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Provider/model registry agreement gate (CLOUD-4 v2; HUB-ONLY)
+        # RE-ARMED 2026-09-18 (B2 lane4 hook-role review): measured clean on a real tree, 14.0s.
+        # Counter: telemetry_emit.py `wrap` -> one hook_run(pass/block) row in gitignored
+        # logs/TELEMETRY.db. Expiry 2026-09-25 -- 0 catches in-window -> REMOVE, never tune.
         # ecosystem/provider-registry.yaml is the declared home for every provider, CLI
         # and model string on the live surface (R2 section 3.3). Sites that can read YAML
         # read it; the rest -- .md frontmatter, a .js object literal, a JSON config,
@@ -391,7 +407,7 @@ repos:
         # says nothing about whether the pinned model is the RIGHT one -- routing is ruled
         # doctrine and its canonical table (~/.claude/ROUTING.md) is L0, outside this repo
         # (ARCHITECTURE Ch3, ruled 2026-08-22).
-        entry: uv run --locked python scripts/check_provider_registry.py
+        entry: uv run --locked python scripts/telemetry_emit.py wrap provider-registry-agreement -- scripts/check_provider_registry.py
         language: system
         # `protocols/AI_COUNCIL_PROCESS.md` joined the pattern with S31 (LANE L1,
         # 2026-08-23): the council provider roster is a checked site, so an edit to it has
@@ -645,8 +661,10 @@ repos:
         always_run: true
         pass_filenames: false
       - id: impacted-tests-guard
-        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Zero-selection refusal -- a changed script no test covers ([#278] leg b)
+        # RE-ARMED 2026-09-18 (B2 lane4 hook-role review): measured clean on a real tree, 12.0s.
+        # Counter: telemetry_emit.py `wrap` -> one hook_run(pass/block) row in gitignored
+        # logs/TELEMETRY.db. Expiry 2026-09-25 -- 0 catches in-window -> REMOVE, never tune.
         # AW2-1 leg (b): "A commit that changes a `scripts/*.py` file and selects zero
         # tests is REFUSED, and the refusal message names the RED-first test to write --
         # the operator's rule that a process deviation raises an exception which teaches
@@ -680,14 +698,16 @@ repos:
         # pins this row so re-adding a filter goes RED rather than quietly narrowing.
         #
         # Exit: 0 clean, 1 on a zero-selection script. Bypass: --no-verify.
-        entry: uv run --locked python scripts/impacted_tests.py guard
+        entry: uv run --locked python scripts/telemetry_emit.py wrap impacted-tests-guard -- scripts/impacted_tests.py guard
         language: system
         always_run: true
         pass_filenames: false
         # HUB-ONLY.
       - id: dispatch-conformance
-        stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
         name: Generator<->verb dispatch conformance (AX25-2, [#675] clause 1; HUB-ONLY)
+        # RE-ARMED 2026-09-18 (B2 lane4 hook-role review): measured clean on a real tree, 11.6s.
+        # Counter: telemetry_emit.py `wrap` -> one hook_run(pass/block) row in gitignored
+        # logs/TELEMETRY.db. Expiry 2026-09-25 -- 0 catches in-window -> REMOVE, never tune.
         # AX25-2's REFUSAL LEG, verbatim: "A commit that changes either side and leaves the
         # test red is refused." That sentence is what makes this a CONFORMANCE gate rather
         # than a regression test -- the seam cannot be re-opened silently by a later patch
@@ -723,7 +743,7 @@ repos:
         # none of which carry a row either.
         #
         # Exit: 0 clean or out of scope, 1 on a non-conforming seam. Bypass: --no-verify.
-        entry: uv run --locked python scripts/dispatch_conformance.py --guard
+        entry: uv run --locked python scripts/telemetry_emit.py wrap dispatch-conformance -- scripts/dispatch_conformance.py --guard
         language: system
         always_run: true
         pass_filenames: false
@@ -751,18 +771,27 @@ repos:
         pass_filenames: true
       - id: backlog-id-on-close
         name: Require [#id] when a commit removes a backlog task
-        entry: uv run --locked python scripts/check_backlog_commit_msg.py
+        # RE-ARMED 2026-09-18 (B2 lane4 hook-role review), stage manual -> commit-msg (its real
+        # stage; `manual` was the 2026-09-17 blanket strip). Measured clean, 11.2s, against a
+        # synthetic non-triggering message. Counter: telemetry_emit.py `wrap` -> one
+        # hook_run(pass/block) row in gitignored logs/TELEMETRY.db. Expiry 2026-09-25 -- 0
+        # catches in-window -> REMOVE, never tune.
+        entry: uv run --locked python scripts/telemetry_emit.py wrap backlog-id-on-close -- scripts/check_backlog_commit_msg.py
         language: system
-        stages: [manual]
+        stages: [commit-msg]
         always_run: true
       - id: backlog-filing-backpressure
         name: Filing backpressure — kill-candidates on new task id (+ #279 intake WARN)
         # Add-side sibling of backlog-id-on-close: a commit ADDING a new `- [#id]` must
         # carry a `kill-candidates:` line (BLOCK); a new L-epic lacking an intake-id earns
         # an advisory WARN (#279, ADR-98). Proposals only — never auto-removes anything.
-        entry: uv run --locked python scripts/check_backlog_filing.py
+        # RE-ARMED 2026-09-18 (B2 lane4 hook-role review), stage manual -> commit-msg. Measured
+        # clean, 12.1s, against a synthetic non-triggering message. Counter: telemetry_emit.py
+        # `wrap` -> one hook_run(pass/block) row in gitignored logs/TELEMETRY.db. Expiry
+        # 2026-09-25 -- 0 catches in-window -> REMOVE, never tune.
+        entry: uv run --locked python scripts/telemetry_emit.py wrap backlog-filing-backpressure -- scripts/check_backlog_filing.py
         language: system
-        stages: [manual]
+        stages: [commit-msg]
         always_run: true
       - id: commit-message-type-prefix
         name: Commit message must carry a Conventional-Commits-shaped type prefix (#834)
@@ -771,13 +800,13 @@ repos:
         # six-type list (perf/build/lessons are live sanctioned extensions) or the
         # ~72-char length / one-logical-change prose, both measured as too disruptive
         # to gate as written (5680/7985 historical commits exceed the length rule).
-        # Measured wall time: ~2.9s warm (uv startup dominated), same order as the two
-        # sibling commit-msg hooks above.
-        # LANDED AT `manual`, 2026-09-17: merged after the commit gate was stripped, and it carries no
-        # catch counter -- under that ruling a new gate does not take a local stage until it has one.
-        entry: uv run --locked python scripts/check_commit_message_type.py
+        # RE-ARMED 2026-09-18 (B2 lane4 hook-role review), stage manual -> commit-msg. Measured
+        # clean, 13.7s, against a synthetic non-triggering message. Counter: telemetry_emit.py
+        # `wrap` -> one hook_run(pass/block) row in gitignored logs/TELEMETRY.db. Expiry
+        # 2026-09-25 -- 0 catches in-window -> REMOVE, never tune.
+        entry: uv run --locked python scripts/telemetry_emit.py wrap commit-message-type-prefix -- scripts/check_commit_message_type.py
         language: system
-        stages: [manual]
+        stages: [commit-msg]
         always_run: true
       - id: block-ff-push
         name: Block direct-to-main / FF push to main (#153 prevent — core-invariant #5)
@@ -821,4 +850,11 @@ repos:
     hooks:
       - id: ruff
         stages: [manual]   # MOVED to the Actions conductor, 2026-09-17 -- see the header
+        # NOT RE-ARMED 2026-09-18 (B2 lane4 hook-role review), despite measuring clean+fast
+        # (11.7s): this hook runs in a `language: python` PRE-COMMIT-MANAGED venv
+        # (astral-sh/ruff-pre-commit), isolated from this repo's own `uv`-managed environment,
+        # so `scripts/telemetry_emit.py` is not importable from inside it -- the counter this
+        # lane wires for every other re-armed hook cannot reach it without converting this to a
+        # `language: system` local hook (a bigger structural change than this lane's scope).
+        # Left manual; flagged as a B3+ candidate. Rule 7 stands: no counter, no arm.
         args: []

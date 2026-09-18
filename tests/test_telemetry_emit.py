@@ -499,3 +499,48 @@ def test_unserializable_context_refuses_rather_than_mangling(tmp_path: Path) -> 
     db = tmp_path / "T.db"
     with pytest.raises(te.TelemetryError, match="not JSON-serializable"):
         te.emit_check_run("x", "pass", context={"o": object()}, db_path=db)
+
+
+# ---------------------------------------------------------------------------
+# `wrap` CLI -- B2 lane 4's counter, wired via a hook `entry:` line rather than a
+# second `scripts/` file. Records a real `hook_run` event and propagates the wrapped
+# command's own exit code unchanged.
+# ---------------------------------------------------------------------------
+
+def test_wrap_runs_the_command_and_records_a_pass(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    db = tmp_path / "T.db"
+    monkeypatch.setenv(te.DB_PATH_ENV, str(db))
+    rc = te.main(["wrap", "sample-hook", "--", "-c", "import sys; sys.exit(0)"])
+    assert rc == 0
+    (row,) = _rows(db)
+    assert (row["event_type"], row["name"], row["outcome"]) == ("hook_run", "sample-hook", "pass")
+    assert isinstance(row["duration_ms"], int) and row["duration_ms"] >= 0
+
+
+def test_wrap_propagates_a_nonzero_exit_and_records_block(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    db = tmp_path / "T.db"
+    monkeypatch.setenv(te.DB_PATH_ENV, str(db))
+    rc = te.main(["wrap", "sample-hook", "--", "-c", "import sys; sys.exit(1)"])
+    assert rc == 1  # the wrapped hook's own exit code reaches pre-commit unchanged
+    (row,) = _rows(db)
+    assert row["outcome"] == "block"
+
+
+def test_wrap_uses_the_current_interpreter_not_a_second_uv_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """No nested `uv run --locked`: the wrapped command reuses `sys.executable`, the venv this
+    process is already running in -- the whole reason `wrap` avoids doubling the ~2.5s uv
+    startup cost measured live on this host (B2 lane 4)."""
+    db = tmp_path / "T.db"
+    monkeypatch.setenv(te.DB_PATH_ENV, str(db))
+    rc = te.main(["wrap", "sample-hook", "--", "-c",
+                  f"import sys; sys.exit(0 if sys.executable == {sys.executable!r} else 1)"])
+    assert rc == 0
+
+
+def test_wrap_usage_error_returns_2_and_records_nothing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    db = tmp_path / "T.db"
+    monkeypatch.setenv(te.DB_PATH_ENV, str(db))
+    assert te.main(["wrap"]) == 2
+    assert te.main(["wrap", "sample-hook"]) == 2  # no command after the hook id
+    assert te.main(["not-wrap"]) == 2
+    assert not db.exists()

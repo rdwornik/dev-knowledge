@@ -21,6 +21,17 @@
 
 ---
 
+### 2026-09-18 (t) - CC (Opus 5, integrator seat B2): merges B2 lane 4 -- hook role review, 13 commit-layer hooks armed with counter and expiry, PreToolUse deny-and-point unwired
+
+**Anchors:** `ca5660af` -- `worktree-agent-ae596e69d4a642782`, 2 commits (`f3eba9b2` role review + arming + unwire, `ca5660af` Codex review, 0/0/0/0).
+
+**Did:** merged `--no-ff`, last in the order; `docs/audits/README.md` auto-merged with step 0's index line and is regenerated on the integration arc. 39 hooks classified, all deterministic. 13 commit-layer hooks (10 pre-commit + the commit-msg trio) measured clean and under 15 s on a clean tree are now armed; each has a counter (`telemetry_emit.py wrap`) and a 2026-09-25 expiry, and zero catches in the window means removal, not tuning. 7 hooks are not armed because they fail on today's content, 9 because they are over 15 s, and ruff is excluded structurally. The PreToolUse `deny_and_point.py` hook is unwired (the script is kept), per BUILD-MODE rule 8.
+
+**Result:** merged. From here on, commits on this checkout run the 13 armed hooks. **Changes:** `.claude/settings.json`, `.pre-commit-config.yaml`, `CLAUDE.md` §9, `scripts/telemetry_emit.py` + test, two audits, `docs/audits/README.md`, `ecosystem/organ-index.md`, `JOURNAL.md`.
+
+**Next:** integration arc on `docs/b2-integration`: audits index, BUILD-LIST census command, rows [#908]-[#910], full suite.
+
+
 ### 2026-09-18 (s) - CC (Opus 5, integrator seat B2): merges B2 lane 3 -- the (kind, subject) distiller, with 8b962689 reviewed before merge
 
 **Anchors:** `087fb09b` -- `worktree-agent-a773b70aa95731525`, 7 commits (`12b9e258` RED, `b7d930cf` distiller wired, `19d16722` Codex review, `aaf4705f` fixes for its 2 HIGH, `8b962689` seven-column build-list parse, `087fb09b` Codex review of `8b962689`).
