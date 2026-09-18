@@ -871,3 +871,81 @@ def test_dirty_tree_output_is_ascii(monkeypatch):
     line = sb.check_dirty_tree()
     assert line
     line.encode("ascii")          # raises UnicodeEncodeError if a non-ASCII glyph crept in
+
+
+# --- R2: commit-and-STOP lane sessions are exempt from the JOURNAL leg ---------------------
+#
+# DECLARE-BATCH-AC-CLOSE-2026-09-18 R2. P-1 (protocols/STANDING_RULINGS.md) makes JOURNAL.md the
+# INTEGRATOR's surface and a lane's arc is anchored later, at merge -- yet this leg told every
+# lane to write the entry P-1 forbids it to write, and two batch-AC lanes each burned a turn
+# escalating the conflict. The exemption is keyed on the ONE lane predicate
+# (`validate_branch_naming.is_lane_branch`) and reaches the JOURNAL leg only.
+
+def _r2_git(branch, *, dirty=""):
+    """A clean (or dirty) arc with one unanchored commit on `branch` (None = detached HEAD)."""
+    return _fake_git({
+        "status": _R(dirty),
+        "rev-parse": _R("", 1),
+        "rev-list": _R(_SHA + "\n"),
+        "show": _journal_show("+a journal entry with no commit sha\n"),
+        "symbolic-ref": _R("", 1) if branch is None else _R(branch + "\n"),
+        "log": _R("+no marker here\n"),
+    })
+
+
+def test_R2_batch_lane_session_is_exempt_from_the_journal_leg(monkeypatch):
+    monkeypatch.setattr(sb, "_git", _r2_git("worktree-lane-ac-863-notification"))
+    assert sb.check_journal_sha_anchor() is None
+
+
+def test_R2_cloud_lane_session_is_exempt_from_the_journal_leg(monkeypatch):
+    monkeypatch.setattr(sb, "_git", _r2_git("claude/lane-ac-694-cloud-census"))
+    assert sb.check_journal_sha_anchor() is None
+
+
+def test_R2_non_lane_branches_still_fire(monkeypatch):
+    # an integrator-owned arc (a plain worktree, a feature branch, main, detached) keeps the leg
+    for branch in ("worktree-ac-close-followups", "feat/x", "main", None):
+        monkeypatch.setattr(sb, "_git", _r2_git(branch))
+        line = sb.check_journal_sha_anchor()
+        assert line and "JOURNAL" in line, branch
+
+
+def test_R2_the_exemption_reaches_the_journal_leg_only(monkeypatch):
+    # the other advisories are lane-owned hygiene and keep firing on a lane branch
+    monkeypatch.setattr(sb, "_git", _r2_git("worktree-lane-ac-863-notification"))
+    assert sb.check_backlog_marker() is not None
+    monkeypatch.setattr(sb, "_git", _r2_git("worktree-lane-ac-863-notification",
+                                            dirty=" M foo.py\n"))
+    assert sb.check_dirty_tree() is not None
+
+
+def test_R2_no_predicate_available_means_no_exemption(monkeypatch):
+    # a standalone consumer copy with no validate_branch_naming alongside: fail toward the leg
+    monkeypatch.setattr(sb, "_is_lane_branch", None)
+    monkeypatch.setattr(sb, "_git", _r2_git("worktree-lane-ac-863-notification"))
+    assert sb.check_journal_sha_anchor() is not None
+
+
+def test_R2_e2e_lane_branch_gets_no_journal_advisory(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "scripts").mkdir(parents=True)
+    for name in ("session_end_backpressure.py", "validate_branch_naming.py"):
+        (repo / "scripts" / name).write_text(
+            (_P.parent / name).read_text(encoding="utf-8"), encoding="utf-8")
+    _git_in(repo, "init", "-q", "-b", "main")
+    _git_in(repo, "config", "user.email", "t@t.t")
+    _git_in(repo, "config", "user.name", "t")
+    _git_in(repo, "add", "scripts")
+    _git_in(repo, "commit", "-q", "-m", "init")
+
+    _git_in(repo, "checkout", "-q", "-b", "worktree-lane-ac-863-notification")
+    _commit(repo, "foo.txt", "change\n", "feat: lane work")
+    ctx = json.loads(_run_hook(repo, {"stop_hook_active": False}))[
+        "hookSpecificOutput"]["additionalContext"]
+    assert "JOURNAL" not in ctx and "BACKLOG (advisory)" in ctx
+
+    _git_in(repo, "checkout", "-q", "-b", "feat/not-a-lane")
+    ctx = json.loads(_run_hook(repo, {"stop_hook_active": False}))[
+        "hookSpecificOutput"]["additionalContext"]
+    assert "JOURNAL (hard)" in ctx
