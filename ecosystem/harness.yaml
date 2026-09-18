@@ -1,0 +1,18 @@
+# ecosystem/harness.yaml -- the spine as DATA (DECLARE-SPINE-AND-B3 s4-5; ADR-97 invariant 5: the contract is the artifact).
+# One row per stage: the argv that realises it, the contract field it fills, deterministic|judgement.
+# NO logic here. `command: null` means the stage does not exist -- dodo.py STOPS the run at it and
+# names it. Placeholders (str.replace, not format): {kind} {subject} <- HARNESS_KIND / HARNESS_SUBJECT.
+# The spine PREPARES A CONTRACT. It moves no row through a phase (that is [#669] / [#689]).
+stages:
+  - {stage: 1, name: kind-subject, field: subject, kind: judgement, command: [git, --no-pager, grep, -n, -F, -e, "| {subject} |", --, protocols/BUILD-LIST.md]}
+  - {stage: 2, name: prior-art, field: prior-art, kind: deterministic, command: [git, --no-pager, grep, -c, -i, -F, -e, "{subject}", --, tasks, scripts, protocols]}
+  - {stage: 3, name: carrier-row, field: carrier, kind: deterministic, command: [uv, run, --locked, python, scripts/gen_task_tree.py, --check]}
+  - {stage: 4, name: change-kind, field: kind, kind: judgement, command: [uv, run, --locked, python, scripts/gen_lane_contract.py, distill, --kind, "{kind}", --subject, "{subject}", --stdout]}
+  - {stage: 5, name: dependencies, field: dependencies, kind: deterministic, command: [uv, run, --locked, python, scripts/file_purpose_graph.py, stats]}
+  - {stage: 6, name: library-first, field: library-first, kind: deterministic, command: null}
+  - {stage: 7, name: substrate, field: substrate, kind: deterministic, command: [uv, run, --locked, python, scripts/validate_substrate.py, --rules]}
+  - {stage: 8, name: provider-model-version, field: model, kind: judgement, command: [uv, run, --locked, python, scripts/routing_agreement.py]}
+  - {stage: 9, name: organs, field: organs, kind: deterministic, command: [uv, run, --locked, python, scripts/generate_organ_index.py, --check]}
+  - {stage: 10, name: impacted-tests, field: tests, kind: deterministic, command: [uv, run, --locked, python, scripts/impacted_tests.py, select, --ref, main]}
+  - {stage: 11, name: token-cap, field: token-cap, kind: deterministic, command: null}
+  - {stage: 12, name: contract, field: contract, kind: deterministic, command: [uv, run, --locked, python, scripts/gen_lane_contract.py, distill, --kind, "{kind}", --subject, "{subject}", --stdout]}
