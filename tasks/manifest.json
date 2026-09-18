@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "59e980e63d38d67885db8044c7c43ea685d611d00ebdd05c220b2409a6ff6c0c",
+  "generated_sha256": "2948efa01cd36f5f2bed7d594f23c208f1f59780d3eda4cdb88dbc38af934b29",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -630,6 +630,10 @@
       "file": "891-lane-handback-contract-lanes-write-a-ten-field-h.md"
     },
     {
+      "task": 902,
+      "file": "902-the-night-capacity-premise-was-false-lane-concur.md"
+    },
+    {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
     },
     {
@@ -666,6 +670,10 @@
     {
       "task": 767,
       "file": "767-a-tool-description-is-gated-only-where-it-is-gen.md"
+    },
+    {
+      "task": 904,
+      "file": "904-the-branch-name-validator-rejects-a-recovered-pr.md"
     },
     {
       "prose": ""
@@ -1142,6 +1150,10 @@
     {
       "task": 622,
       "file": "622-promote-readme-md-into-the-adr-38-canonical-mand.md"
+    },
+    {
+      "task": 903,
+      "file": "903-the-audit-corpus-has-no-retention-rule-what-is-a.md"
     },
     {
       "prose": "---"
