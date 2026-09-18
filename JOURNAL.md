@@ -21,6 +21,17 @@
 
 ---
 
+### 2026-09-18 (k) - CC (Opus 5, integrator seat, batch AC): CORRECTION -- batch AC is NOT closed; the full suite never ran on the merged result
+
+**Anchors:** `16052aa1` -- `docs/batch-ac-not-closed`.
+
+**Correction, appended -- entry (j) is not edited.** (j) says "Batch AC closes", and so did the close packet as first landed. That is false: the integrator ran only targeted and paired gates (M5 `-k "settings or hook"`, M6 `-m live_repo`, R2's Stop-hook test file), and the ADR-110 refuse-to-finish item "full suite run once on the merged result" was never run on `78d7e98f`. The integrator named the gap in its report and still let the packet and (j) say "closes" -- a green claim with no predicate behind it, the defect class this window spent a day naming. Ruling `to-cc/DECLARE-BATCH-AC-NOT-CLOSED-2026-09-18.md` §1 C1: the packet now carries an inserted marker, BATCH AC IS OPEN PENDING THE FULL SUITE ON `78d7e98f`, and this entry records why. Honest limit: the manifest's `closed_by` packet has landed, so its declared-integration-arc exemption has already expired mechanically; "open" here is the refuse-to-finish state, not a re-armed exemption.
+
+**Result:** marker is a pure insertion (2 lines added, 0 deleted). **Changes:** the close packet, `JOURNAL.md`.
+
+**Next:** C2 -- free memory, then `pytest -n 6` over the whole suite on `78d7e98f`; C3 -- record the result against the packet, pair-measuring any failure against the baseline.
+
+
 ### 2026-09-18 (j) - CC (Opus 5, integrator seat, batch AC): CORRECTION -- two entries carry letter (f), (g)'s "Next" was wrong about [#891], and the cause is two writers on one primary; batch AC closes
 
 **Anchors:** `dfeb53be` ([#906]), `5b620735` (the close packet), `37893bf6` (its index) -- `docs/batch-ac-close`.
