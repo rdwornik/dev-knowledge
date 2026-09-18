@@ -377,3 +377,106 @@ def test_not_observable_processes_never_appear_in_counts_json(tmp_path):
         processes=_PROCS, now=datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc))
     assert ".claude/commands/preflight.md" not in report["counts"]
     assert ".claude/skills/verify/SKILL.md" not in report["counts"]
+
+
+# --- the census that lied twice (NIGHT WAVE 2, L4): reachable is CALLED, RED-first ---------
+#
+# A transcript records local Claude Code tool calls. A git hook, a CI workflow and an `import`
+# never appear in one, so a count over transcripts alone reported 90 of 159 observable
+# processes "uncalled" -- 77 of them are reached by a wiring surface or by an import chain
+# (measured live, 2026-09-19). One of those errors was a regex that missed `from .check_x
+# import`: `audit_checks/registry.py` has 23 relative imports. FPG-1 already holds the
+# `triggers` + `imports` relation (relative imports included), so the census READS it rather
+# than computing a second opinion.
+
+import pytest  # noqa: E402
+
+import graph_store as gs  # noqa: E402
+
+
+@pytest.fixture(scope="module")
+def wired_repo(tmp_path_factory):
+    """A tree with four processes: one reachable ONLY from a git hook, one ONLY from CI, one
+    ONLY through a RELATIVE import, and one that nothing reaches (must stay uncalled)."""
+    root = tmp_path_factory.mktemp("wired")
+    files = {
+        ".pre-commit-config.yaml": (
+            "repos:\n"
+            "  - repo: local\n"
+            "    hooks:\n"
+            "      - id: hook-only\n"
+            "        name: hook only\n"
+            "        entry: python scripts/hook_only.py\n"
+            "        language: system\n"
+            "      - id: registry\n"
+            "        name: registry\n"
+            "        entry: python scripts/checks/registry.py\n"
+            "        language: system\n"),
+        ".github/workflows/ci.yml": (
+            "name: ci\non: push\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps:\n"
+            "      - run: python scripts/ci_only.py\n"),
+        "scripts/hook_only.py": "print('hook')\n",
+        "scripts/ci_only.py": "print('ci')\n",
+        "scripts/checks/__init__.py": "",
+        "scripts/checks/registry.py": "from .check_x import run\n",
+        "scripts/checks/check_x.py": "def run():\n    return 1\n",
+        "scripts/orphan.py": "print('nobody calls me')\n",
+    }
+    for rel, text in files.items():
+        path = root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8", newline="\n")
+    gs.rebuild(root)
+    return root
+
+
+def _census_of(root, tmp_path):
+    return oum.process_census(
+        repo_root=root, sessions_root=tmp_path / "no-transcripts",
+        now=datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc))
+
+
+def test_organ_reachable_only_from_a_git_hook_is_not_reported_uncalled(wired_repo, tmp_path):
+    report = _census_of(wired_repo, tmp_path)
+    assert "scripts/hook_only.py" not in report["uncalled"]
+
+
+def test_organ_reachable_only_from_ci_is_not_reported_uncalled(wired_repo, tmp_path):
+    report = _census_of(wired_repo, tmp_path)
+    assert "scripts/ci_only.py" not in report["uncalled"]
+
+
+def test_organ_reachable_only_by_a_relative_import_is_not_reported_uncalled(
+        wired_repo, tmp_path):
+    """`registry.py` does `from .check_x import run` -- `check_x.py` has no other caller."""
+    report = _census_of(wired_repo, tmp_path)
+    assert "scripts/checks/check_x.py" not in report["uncalled"]
+
+
+def test_a_process_nothing_reaches_is_still_reported_uncalled(wired_repo, tmp_path):
+    """The fix must not over-report: an unwired, never-invoked script stays UNCALLED."""
+    report = _census_of(wired_repo, tmp_path)
+    assert "scripts/orphan.py" in report["uncalled"]
+
+
+def test_reachable_processes_are_named_separately_from_transcript_invoked(wired_repo, tmp_path):
+    """Called-by-wiring is a DIFFERENT fact from called-in-a-transcript; the report keeps both
+    so a reader can tell 'runs invisibly' from 'seen running'."""
+    report = _census_of(wired_repo, tmp_path)
+    for path in ("scripts/hook_only.py", "scripts/ci_only.py", "scripts/checks/check_x.py"):
+        assert path in report["wiring_reachable"]
+        assert report["counts"][path] == 0        # no transcript saw it
+    assert "scripts/orphan.py" not in report["wiring_reachable"]
+    text = oum.render_census(report)
+    assert "wiring-reachable" in text.lower()
+    assert "\t" not in text
+
+
+def test_reachable_can_be_injected_without_a_store(tmp_path):
+    """The seam a unit test uses -- same split `organs=` gives `organ_usage_report`."""
+    report = oum.process_census(
+        repo_root=tmp_path, sessions_root=tmp_path / "nope", processes=_PROCS,
+        reachable=frozenset({"scripts/graph_queries.py"}),
+        now=datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc))
+    assert "scripts/graph_queries.py" not in report["uncalled"]
+    assert "scripts/impacted_tests.py" in report["uncalled"]

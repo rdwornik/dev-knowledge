@@ -75,6 +75,8 @@ try:  # the dual package/script import shim `lane_cost.py` documents at its own 
 except ImportError:
     import lane_cost as _lc  # noqa: E402
 import deny_and_point as _dap  # noqa: E402
+import graph_queries as _gq  # noqa: E402
+import graph_store as _gs  # noqa: E402
 
 #: Claude Code's session store -- same default `lane_cost.DEFAULT_SESSIONS_ROOT` names.
 DEFAULT_SESSIONS_ROOT = _lc.DEFAULT_SESSIONS_ROOT
@@ -372,6 +374,31 @@ def render_report(report: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def wiring_reachable(repo_root: Path | str) -> frozenset[str]:
+    """Every process path a wiring surface reaches, transitively -- a git hook, a CI workflow,
+    a settings/plugin hook, or an `import` chain (relative imports included).
+
+    READ FROM FPG-1, never recomputed here: `graph_store` already holds the `triggers` +
+    `imports` relation and `graph_queries.orphan_census` already asks it this same question, so
+    a second walk in this module would be the private edge computation ADR-118 forbids -- and
+    the previous regex-based one missed `from .check_x import` and invented 18 false orphans.
+    Empty when the store is absent or unreadable (a missing store degrades to "nothing proven
+    reachable", the posture `known_organs` takes, never a raise).
+    """
+    db = _gs.store_path(repo_root)
+    if not Path(db).exists():
+        return frozenset()
+    try:
+        store = _gs.open_store(db)
+    except _gs.StoreUnreadable:
+        return frozenset()
+    try:
+        nodes = (store.node(key) for key in store.reachable(store.roots(), _gq.TRIGGER_KINDS))
+        return frozenset(node.path for node in nodes if node is not None and node.path)
+    finally:
+        store.close()
+
+
 def process_census(
     *,
     repo_root: Path | str | None = None,
@@ -379,6 +406,7 @@ def process_census(
     since_days: int = 30,
     now: datetime | None = None,
     processes: dict[str, str] | None = None,
+    reachable: frozenset[str] | None = None,
 ) -> dict[str, Any]:
     """For EVERY process FPG-1's process list knows (script/command/skill), a STRICT,
     WINDOWED invocation count -- the ratchet's replacement for `protocols/BUILD-LIST.md`'s
@@ -401,12 +429,22 @@ def process_census(
     ever appears as an interpreter-headed line in a transcript (a slash command or skill
     invocation leaves no `python <path>` this method can read), so a zero here would be
     indistinguishable from real neglect -- the exact honesty gap `[#900]`'s memory names.
+
+    WIRING-REACHABLE IS CALLED (NIGHT WAVE 2 L4 -- the measurement that lied twice). A
+    transcript sees only a local session's tool calls, so a process fired by a git hook, a CI
+    workflow or an `import` chain leaves nothing in it and read UNCALLED: 90 of 159 measured,
+    77 of them reached by a wiring surface. A process is `uncalled` only when NO transcript
+    invoked it in the window AND no wiring surface reaches it (`wiring_reachable`, read from
+    FPG-1; `reachable=` is the injection seam). `wiring_reachable` is reported as its own list
+    so "runs invisibly" stays distinguishable from "seen running" -- it is a reachability
+    fact, not a firing count: a hook gated `stages: [manual]` is reachable and may never fire.
     """
     root = Path(repo_root) if repo_root is not None else canonical_repo_root()
     sroot = Path(sessions_root) if sessions_root is not None else DEFAULT_SESSIONS_ROOT
     now = now if now is not None else datetime.now(timezone.utc)
     cutoff = now - timedelta(days=since_days)
     procs = dict(processes) if processes is not None else dict(_dap.load_processes(root))
+    reached = reachable if reachable is not None else wiring_reachable(root)
 
     counts: dict[str, int] = dict.fromkeys(procs, 0)
     procs_lower = {p.lower(): p for p in procs}
@@ -438,7 +476,8 @@ def process_census(
     #: from a real zero to a JSON consumer, so those paths are absent rather than zeroed.
     observable_counts = {p: c for p, c in counts.items()
                          if procs[p] not in NOT_OBSERVABLE_CLASSES}
-    uncalled = sorted(p for p, c in observable_counts.items() if c == 0)
+    wired = sorted(p for p in observable_counts if p in reached)
+    uncalled = sorted(p for p, c in observable_counts.items() if c == 0 and p not in reached)
     return {
         "generated_at": now.isoformat(timespec="seconds"),
         "window_days": since_days,
@@ -449,6 +488,7 @@ def process_census(
         "not_observable_total": len(not_observable),
         "not_observable": not_observable,
         "counts": observable_counts,
+        "wiring_reachable": wired,
         "uncalled": uncalled,
     }
 
@@ -467,6 +507,8 @@ def render_census(report: dict[str, Any]) -> str:
         f"{report['observable_total']} observable "
         f"(excludes {report['not_observable_total']} not-observable of "
         f"{report['processes_total']} total)",
+        f"wiring-reachable (a hook, CI or import chain reaches it; counted CALLED, not "
+        f"uncalled): {len(report['wiring_reachable'])} of {report['observable_total']}",
         "",
         "not observable by this source -- a command/skill invocation leaves no interpreter-"
         "headed line in a session transcript, so these are NEVER reported as zero:",
@@ -477,7 +519,12 @@ def render_census(report: dict[str, Any]) -> str:
     for path, count in sorted(report["counts"].items()):
         if path in report["not_observable"]:
             continue
-        status = "UNCALLED" if path in report["uncalled"] else f"called={count}"
+        if path in report["uncalled"]:
+            status = "UNCALLED"
+        elif count == 0:
+            status = "wired"
+        else:
+            status = f"called={count}"
         lines.append(f"  {status:12} {path}")
     return "\n".join(lines)
 
@@ -501,7 +548,9 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
 
     if args.cmd == "census":
-        report = process_census(repo_root=args.repo_root, since_days=args.days)
+        root = Path(args.repo_root) if args.repo_root else canonical_repo_root()
+        _gs.ensure(root).close()  # the CLI's number must not read a stale store; tests inject
+        report = process_census(repo_root=root, since_days=args.days)
         print(json.dumps(report, indent=2, sort_keys=True) if args.json
               else render_census(report))
         return 0
