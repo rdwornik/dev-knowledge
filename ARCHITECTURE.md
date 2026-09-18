@@ -122,20 +122,19 @@ enforcement is out-of-band and read-only.
 ## Organ map
 
 **Chapter 2 — Organ map.** The full behavioural inventory — what fires an organ, its
-layer, trigger, failure posture, current status — is **generated, not hand-maintained
-here**: `ecosystem/organ-index.md`, gated by `organ-index-freshness` (one of the four
-locally-live hooks). The hand table this section used to carry (35 rows vs the index's 8
-classes) went stale by omission and is deleted rather than resynced by hand again. Hook
-roster: `CLAUDE.md` §9.
+layer, trigger, distribution, current status (**not** failure posture — see below) — is
+**generated, not hand-maintained here**: `ecosystem/organ-index.md`, gated by
+`organ-index-freshness` (one of the four locally-live hooks). The hand table this section
+used to carry (35 rows vs the index's 8 classes) went stale by omission and is deleted
+rather than resynced by hand again. Hook roster: `CLAUDE.md` §9.
 
-**Failure-posture legend** (no other home): fail-closed = blocks the action; propose-only
-= writes a proposal, never mutates; fail-soft = logs/exits 0, never blocks; report-only =
-records the outcome, judges nothing, has no gate to arm even in principle.
+**Failure-posture legend** (no other home): fail-closed = blocks; propose-only = writes a
+proposal, never mutates; fail-soft = logs/exits 0, never blocks; report-only = records
+the outcome, judges nothing, no gate to arm even in principle.
 
 **Tier-1 closure loop** (still live): commit closes `[#id]` → `Stop: propose_closures.py`
-writes `logs/PROPOSALS-*.md` → `SessionStart: surface-closures.ps1` prints
-`[closures] N proposed` → `/review-closures` confirms → `BACKLOG.md` updated.
-Detect-and-propose only; the human gate closes (ADR-70).
+writes `logs/PROPOSALS-*.md` → `SessionStart: surface-closures.ps1` → `/review-closures`
+confirms → `BACKLOG.md` updated. Detect-and-propose only; the human gate closes (ADR-70).
 
 **Deploy subsystem** versions the methodology corpus (ADR-91) and delivers via carrier
 modules behind a per-carrier verify-gate (ADR-92); the `floor` carrier additionally arms
@@ -268,10 +267,10 @@ Enforcement → Dissemination — PLAYBOOK "The verification mesh".
 **Layers, current status:**
 - In-session: `verify` skill (advisory: pytest+ruff+git).
 - Pre-merge: `/codex-review` + `/ship` (ship-gate, the full `ALL_CHECKS` sweep).
-- Post-merge, off-host: `.github/workflows/conductor.yml` job `report-only-wall.yml` —
-  re-runs `pytest`/`audit.py health`/JOURNAL-anchor on every push to `main`,
-  **report-only, never blocks**; a green badge means "recorded," never "passed" — verdict
-  is in the job-summary table.
+- Post-merge, off-host: `.github/workflows/report-only-wall.yml` (a standalone workflow,
+  separate from `conductor.yml`) — re-runs `pytest`/`audit.py health`/JOURNAL-anchor on
+  every push to `main`, **report-only, never blocks**; a green badge means "recorded,"
+  never "passed" — verdict is in the job-summary table.
 - Nightly, cloud: conformance Routine (claims-vs-docs digest).
 - Nightly, local: `fleet_health.py`/`audit.py run` → `surface_triage.ps1` + human triage.
 

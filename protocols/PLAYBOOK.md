@@ -1272,7 +1272,7 @@ The living docs `README / ARCHITECTURE / CLAUDE / CONTRIBUTING` carry a `last_re
 
 Append-only (`JOURNAL`, `LESSONS`) and per-session (`BACKLOG`) files are excluded — their freshness is intrinsic. A file with no `last_reviewed` → WARN (lets a repo adopt the convention without a hard failure). **Portable:** the check is parameterised by a file list, so a child repo inherits it unchanged (its own project `CLAUDE.md` is `"CLAUDE.md"`). Operationalizes the ADR-39 "grooming" lifecycle element.
 
-**Scope + caveats (honest limits).** This enforces *edit-hygiene* + a calendar backstop. It does **not** detect content-vs-decision drift — a doc whose prose lagged a new ADR while its file went unedited trips neither signal (that is the doc-truth sweep, BACKLOG [#10]). A2 is **commit-based** (keyed off the file's last *author* date, stable across rebase): an uncommitted working-tree edit is flagged at the next audit *after* it lands in a commit, not while the tree is dirty — the signal is eventually-consistent, not real-time (failing a dirty tree would fire mid-edit, before the reviewer has bumped the stamp). It is **gated at pre-commit**: the `audit-health` hook runs `audit.py health` on every commit, so an A2 FAIL blocks the commit — while A1 (the 30-day backstop) and a missing stamp are WARN and never block (`git commit --no-verify` bypasses). There is no CI/remote in this flow, so pre-commit is the gate; a session-close hook remains a possible future addition.
+**Scope + caveats (honest limits).** This enforces *edit-hygiene* + a calendar backstop. It does **not** detect content-vs-decision drift — a doc whose prose lagged a new ADR while its file went unedited trips neither signal (that is the doc-truth sweep, BACKLOG [#10]). A2 is **commit-based** (keyed off the file's last *author* date, stable across rebase): an uncommitted working-tree edit is flagged at the next audit *after* it lands in a commit, not while the tree is dirty — the signal is eventually-consistent, not real-time (failing a dirty tree would fire mid-edit, before the reviewer has bumped the stamp). It runs inside `audit.py health` (the `audit-health` hook), so an A2 FAIL blocks the commit **when that hook is armed — currently `stages: [manual]`** (conductor `commit-gate` runs it report-only); it still gates at `ship-gate`. A1 (the 30-day backstop) and a missing stamp are WARN and never block.
 
 ### Multi-surface amendment coherence (audit check `amendment_coherence`)
 <!-- scope: meta -->
@@ -1280,7 +1280,7 @@ Append-only (`JOURNAL`, `LESSONS`) and per-session (`BACKLOG`) files are exclude
 
 **A version/authority amendment that spans several hand-maintained surfaces must leave no straggler.** This converts LESSON-#9's advisory "cross-case trace before a multi-surface amendment" guard into an enforced gate — the failure it prevents is the v3.4 self-handoff abort (the skill announced v3.3.3 while the spec was v3.4: a stale version string that mis-signalled authority). The cross-case trace is no longer a remembered intention; it is a gate.
 
-`scripts/audit.py` `amendment_coherence` (in `ALL_CHECKS` → runs in `audit health` and `audit run`) reads a declarative manifest — `_COUPLED_VERSION_SETS`, the cross-case **"checklist as data"**. Each `CoupledSet` names an *anchor* (the authority version) and the *surfaces* that must agree with it at a `granularity` (`major`, or `full` with `3.4 == 3.4.0` normalization). A surface left at a stale version is a **straggler → FAIL**. Add a set when a new family of surfaces must track one authority version; the membership criterion is **semantic intent-to-mirror, not mere co-occurrence** of a version string (an incidental mention that versions independently would false-FAIL — anchor the regex on the *intent-bearing construct*). Child-repo-safe: an absent anchor skips the set (the hub-only sets skip entirely on a child → PASS). FAIL-blocking via the `audit-health` pre-commit hook.
+`scripts/audit.py` `amendment_coherence` (in `ALL_CHECKS` → runs in `audit health` and `audit run`) reads a declarative manifest — `_COUPLED_VERSION_SETS`, the cross-case **"checklist as data"**. Each `CoupledSet` names an *anchor* (the authority version) and the *surfaces* that must agree with it at a `granularity` (`major`, or `full` with `3.4 == 3.4.0` normalization). A surface left at a stale version is a **straggler → FAIL**. Add a set when a new family of surfaces must track one authority version; the membership criterion is **semantic intent-to-mirror, not mere co-occurrence** of a version string (an incidental mention that versions independently would false-FAIL — anchor the regex on the *intent-bearing construct*). Child-repo-safe: an absent anchor skips the set (the hub-only sets skip entirely on a child → PASS). FAIL-blocking via `audit-health` when armed — currently `stages: [manual]`; gates at `ship-gate`.
 
 **Scope + caveats (honest limits).** This guards only surfaces that **still hand-maintain a version**. The superior fix for a coupled surface is to **de-hardcode** it — make it interpolate the spec version (the handoff skill/templates read `{{VERSION}}`), so there is no static token to go stale; de-hardcoded surfaces carry nothing to compare and are **out of scope by design** (de-hardcoding, not this gate, closes their straggler class). So the gate does **not** by itself prevent a literal v3.4 recurrence — it guards the residual hand-maintained surfaces and is the extensible home for future coupled families. The narrow `handoff_version_stamp` check owns the full `stamp vX.Y` mirrors in `ARCHITECTURE`/`CONTRIBUTING`; `amendment_coherence` is the generalized manifest beside it. Per the prose↔state seam, it does not detect drift on de-hardcoded or unmanifested surfaces.
 
@@ -1994,7 +1994,8 @@ step, not a script (Layer 2 never executes — critical rule #4). Run them at th
 worktree/scratch-creating run. The read-only `audit.py` assertion that no stray `<repo>-*` sibling
 exists is now **built** — `check_no_sibling_orphans` (#11), keyed on `git worktree list`
 registration so a *live* registered worktree passes and only an unregistered orphan fails; it runs
-in the `audit-health` pre-commit gate, so an orphan blocks the next commit until removed. The
+in `audit-health`, blocking the next commit until removed when the hook is armed — **currently
+`stages: [manual]`, gating at `ship-gate` instead**. The
 process step above remains the first line of defence (catch it at teardown); the check is the
 backstop that catches what the manual teardown missed. (Recurrence cleaned 2026-06-02 — see LESSONS.)
 
@@ -4103,9 +4104,17 @@ Claude Code (Anthropic's terminal-based agentic coding tool) has four extension 
 
 **Subagents** — Task-tool, read-heavy / write-light (`ecosystem-snapshot`, `report-generator`, both Haiku, user-level): invoke for read-only fan-out (snapshots, report condensation), never as code-gen peers (7d).
 
-**Hooks** — auto vs manual: **every hook fires automatically; none are operator-invoked.** The canonical, drift-tracked roster lives in **CLAUDE.md §9** — the live pre-commit gate set, the project-level SessionStart/Stop/PreToolUse session layer, the pre-push prevent organ, and the `.claude/rules/` — read it there rather than maintaining a duplicate copy here (this table re-drifted twice: a self-stamped enumeration of "6 hooks" while the live config carried 10, and rows describing the retired `/boot`+`/evolve` machinery — the failure this pointer exists to kill). The operational "when":
+**Hooks** — auto vs manual: session hooks fire automatically; **most pre-commit hooks are
+currently `stages: [manual]`** (conductor `commit-gate` runs them report-only since
+2026-09-17 — only `audit-index-freshness`, `organ-index-freshness` (pre-commit) and
+`block-ff-push`, `block-unanchored-push` (pre-push) still fire locally). The canonical,
+drift-tracked roster lives in **CLAUDE.md §9** — read it there rather than maintaining a
+duplicate copy here (this table re-drifted twice already). The operational "when":
 
-- **Pre-commit gates** fire on `git commit`. Two **BLOCK** (`audit-health` on FAIL, `ruff` on violation); the rest normalize, validate, or surface (run `ruff check --fix` / `/save` to auto-fix lint before committing).
+- **Pre-commit gates** fire on `git commit`; today only the two index-freshness hooks
+  actually run there. `audit-health` (FAIL) and `ruff` (violation) still BLOCK, but at
+  `ship-gate`/conductor, not the local commit — run `ruff check --fix` / `/save` before
+  committing regardless, since ship-gate will catch what pre-commit no longer does.
 - **commit-msg** gate (`backlog-id-on-close`) requires `[#id]` when a commit removes a backlog task.
 - **pre-push** prevent organ (`block-ff-push`) refuses a non-merge commit onto main's first-parent spine (one-time local activation: `pre-commit install --hook-type pre-push`).
 - **Session hooks** (`~/.claude/` + the project `.claude/settings.json` layer) fire at SessionStart (surfacing — fleet/triage/billing/changelog), Stop (back-pressure + notify), and PreToolUse (the OneDrive guard + transcript-immutability guard).
@@ -6165,7 +6174,7 @@ The codemap section of every M/L `ARCHITECTURE.md` is an auto-generated **compac
 ### When the generator runs
 <!-- scope: meta -->
 
-A pre-commit hook (`codemap-freshness`) fires whenever Python source files, `pyproject.toml`, `tach.toml`, or `ARCHITECTURE.md` itself change. If the committed codemap block differs from a fresh generation, the hook exits non-zero and blocks the commit. The operator runs `generate --write` and re-stages `ARCHITECTURE.md` before retrying. The generator can also be invoked manually at any time for inspection.
+`codemap-freshness` compares the committed codemap block against a fresh generation whenever Python source files, `pyproject.toml`, `tach.toml`, or `ARCHITECTURE.md` change, and exits non-zero on a diff — **currently `stages: [manual]`** (conductor-run report-only, not a local commit block). The operator runs `generate --write` and re-stages `ARCHITECTURE.md` before retrying; the generator can also be invoked manually at any time for inspection.
 
 ### Manual invocation
 <!-- scope: meta -->
@@ -6232,7 +6241,7 @@ Authority reference: ADR-51 amendment 2026-05-22 § Per-repo adoption — opt-in
 Large canonical docs carry an **auto-maintained table of contents** between `<!-- TOC:START -->` / `<!-- TOC:END -->` markers — **never hand-maintained** (a static TOC rots and contradicts the repo's "drift detected proactively" ethos). It mirrors the codemap mechanism exactly: generator-driven + freshness-gated.
 
 - **Generator:** `python -m scripts.toc.cli generate <file> --write` (dry-run without `--write`). Parses the doc's own `##`/`###` headers into a nested anchor-link list with GitHub-compatible anchors. The full header text is slugged for the anchor (so `## Purpose [CORE]` → `#purpose-core`) while a trailing `[TAG]` is stripped from the visible link text; fenced code blocks are skipped.
-- **Freshness gate:** the `toc-freshness` pre-commit hook (`python -m scripts.toc.cli check <file>`) fails-on-stale with a unified diff, exactly like `codemap-freshness`. It is a standalone hook (not an `audit.py` check), matching where `codemap-freshness` lives. The hook fires only on the target doc's own edits (the TOC depends solely on that doc's headers — no source-root dependency).
+- **Freshness gate:** `toc-freshness` (`python -m scripts.toc.cli check <file>`) fails-on-stale with a unified diff, exactly like `codemap-freshness` — and, like it, **currently `stages: [manual]`**, not a local commit block. Standalone hook (not an `audit.py` check); fires only on the target doc's own edits (no source-root dependency).
 - **Adoption:** insert the two markers in the natural spot (after the title/intro, before the first `##` section), add a `toc-freshness` hook entry scoped to the file, run `generate --write`, and commit. Unlike the codemap (hardwired to `ARCHITECTURE.md`), the TOC CLI takes the target file as an argument, so the same mechanism applies to any doc.
 
 Applied to **`protocols/PLAYBOOK.md` only**, and the hook is named for it
