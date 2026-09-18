@@ -21,6 +21,17 @@
 
 ---
 
+### 2026-09-18 (h) - CC (Opus 5, integrator seat, batch AC): merges the amended-close rows -- [#902] night capacity is gated by measured free memory, [#903] audit-corpus retention, [#904] the branch-name validator's `recovered/` refusal
+
+**Anchors:** `e570dbb7` -- `worktree-ac-amended-rows`, 1 commit, rows only, no code.
+
+**Did:** merged `--no-ff` from the primary on the operator's GO (decision 1, 2026-09-18). Files W9-W11 of `to-cc/DECLARE-BATCH-AC-CLOSE-AMENDED-2026-09-18.md` §4: [#902] the night-capacity premise was false -- lane concurrency must be gated by a free-memory figure measured at dispatch, not by the hour; [#903] the audit corpus has no retention rule; [#904] `validate_branch_naming.py` refuses `recovered/`, filed as a question and not as a new prefix. W12 is NOT here: it duplicated [#901] (already on main, filed under the same declare's §1), and the peer dropped its [#905] before rebasing -- reservation 905 stays on origin unused.
+
+**Result:** clean merge. **Changes:** `tasks/902-*`, `tasks/903-*`, `tasks/904-*`, `tasks/manifest.json`, `BACKLOG.md`, `JOURNAL.md`.
+
+**Next:** the conditional GO on `worktree-ac-close-followups` -- check what R2's Stop-hook exemption keys on before merging.
+
+
 ### 2026-09-18 (g) - CC (Opus 5, integrator seat, batch AC): R3 reversed and undone on the record; [#901] asks what main holds of [#790]; the audits index catches up with M1-M6
 
 **Anchors:** `8ff66be4` ([#901]) and `05d5d389` (audits index) -- `docs/batch-ac-integration`.

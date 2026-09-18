@@ -163,6 +163,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#886] [P1][M] An emergency change records its temporary debt as DATA with an owner and an expiry -- JOURNAL prose is invisible to a gate, and a MUST surface has no waiver path at all · tasks/886-an-emergency-change-records-its-temporary-debt-a.md
 - [#888] [P1][M] The repo has no DEGRADED state -- an emergency that removes a required component can only lie to the gate or stop work · tasks/888-the-repo-has-no-degraded-state-an-emergency-that.md
 - [#891] [P1][M] Lane handback contract -- lanes write a ten-field HANDBACK-<lane>.md to the transport as their mandatory final step · tasks/891-lane-handback-contract-lanes-write-a-ten-field-h.md
+- [#902] [P1][S] The night-capacity premise was false -- lane concurrency must be gated by free memory measured at dispatch, not by the hour · tasks/902-the-night-capacity-premise-was-false-lane-concur.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
@@ -173,6 +174,7 @@ So that drift in transcripts, ADRs, and folders is caught cheaply, not by review
 - [#693] [P1][M] The closure detector proposes the whole queue, its surfacing hook has been dead since the month-bucket move, and the run cap errors -- three defects that together make a closure proposal mean nothing · tasks/693-closure-detector-proposes-the-whole-queue-with-a-dead-surfacing-hook.md
 - [#719] [P2][M] `ecosystem/organ-index` entries answer to no schema -- validate them against Backstage `catalog-model`'s Component shape with our own gate · tasks/719-organ-index-entries-answer-to-no-schema-validate-against-catalog-model.md
 - [#767] [P2][M] A tool description is gated only where it is generated, and no surface gates its parameters at all · tasks/767-a-tool-description-is-gated-only-where-it-is-gen.md
+- [#904] [P3][S] The branch-name validator rejects a recovered/ prefix -- does recovery work get a sanctioned prefix, or ride an author prefix · tasks/904-the-branch-name-validator-rejects-a-recovered-pr.md
 
 ### [S5] Catch spec/dependent drift mechanically, not by memory
 So that "spec bumped, dependent partially updated, caught only because a human remembered" stops being the failure mode — machine-checkable coherence between a dependent doc and its spec.
@@ -304,6 +306,7 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 - [#620] [P2][M] Retire the root-README prohibition across the fleet, not only at the hub · tasks/620-retire-the-root-readme-prohibition-across-the-fl.md
 - [#621] [P2][L] ADR-114 option (C): the nine-repo VISION.md to README.md filename migration · tasks/621-adr-114-option-c-the-nine-repo-vision-md-to-read.md
 - [#622] [P3][M] Promote README.md into the ADR-38 canonical mandatory set · tasks/622-promote-readme-md-into-the-adr-38-canonical-mand.md
+- [#903] [P2][M] The audit corpus has no retention rule -- what is an audit for after its arc closes, and what retires it · tasks/903-the-audit-corpus-has-no-retention-rule-what-is-a.md
 ---
 
 - [#589] [P1][M] One line per row — the BACKLOG view projection, with a size assertion that cannot be silently undone · tasks/589-one-line-per-row-the-backlog-view-projection-wit.md
