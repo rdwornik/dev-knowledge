@@ -157,7 +157,7 @@ Plugin `tier1-lifecycle@dev-knowledge-methodology` is **enabled** and drives the
 > **A roster, not a manual.** Per-hook rationale, exit codes and **honest limits** live in each module's docstring under `scripts/`; **failure posture** in `ARCHITECTURE.md` Ch2 and its "Validators and enforcement" chapter; the full organ inventory in the generated `ecosystem/organ-index.md`. Read those, never a copy here.
 
 <!-- Machine-read: validate_doc_claims.extract_claimed_hooks takes the leading backtick id of every bullet from this header to the first non-bullet line. Keep it complete and contiguous. -->
-Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless the row says otherwise. **Since 2026-09-17 only the two index-freshness and two pre-push hooks run locally; the rest are `stages: [manual]`, run by conductor job `commit-gate`** (config header):
+Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless noted. **B2 lane4 armed 13 (counter+expiry) — `docs/audits/2026-09-18-technical-b2-lane4-hook-role-review.md`**; rest `stages: [manual]` (config header):
 - `normalize-dated-headers` — dated-log header normalization
 - `codemap-freshness` — ARCHITECTURE codemap vs `scripts/`, regen-and-diff
 - `toc-freshness-playbook` — PLAYBOOK TOC staleness
@@ -197,7 +197,7 @@ Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless the row says otherwis
 
 **Arm the two pre-push hooks once per clone:** `pre-commit install --hook-type pre-push` — `default_install_hook_types` wires them only on a fresh install; `SessionStart`'s `arm_hooks.py` then does it idempotently.
 
-Session hooks (`.claude/settings.json`, `disableAllHooks: false`): since 2026-09-17 three run — `SessionStart` `arm_hooks.py`; `Stop` backpressure (advisory); `[#727]` deny-and-point (fail-OPEN). Of nine measured-broken hooks eight are off (plugin `propose_closures` runs), per its register; the ADR-77 guard stays off ([#863]).
+Session hooks (`.claude/settings.json`, `disableAllHooks: false`): two run — `SessionStart` `arm_hooks.py`; `Stop` backpressure (advisory). PreToolUse `[#727]` deny-and-point UNWIRED 2026-09-18 (B2 lane4 rule-8; script kept, see audit above). Of nine measured-broken hooks eight are off (plugin `propose_closures` runs); the ADR-77 guard stays off ([#863]).
 
 Rules (`.claude/rules/`): `git-discipline.md` — mandatory commit after every file edit; clean working tree at session end.
 

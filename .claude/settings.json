@@ -135,20 +135,9 @@
           }
         ]
       }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Bash|PowerShell|Grep",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "G=\"$CLAUDE_PROJECT_DIR/scripts/hooks/deny_and_point.py\"; if [ -f \"$G\" ]; then python \"$G\"; else exit 0; fi",
-            "timeout": 10
-          }
-        ]
-      }
     ]
   },
+  "//pretooluse-deny-and-point-UNWIRED-2026-09-18": "UNWIRED (not deleted -- scripts/hooks/deny_and_point.py stays on disk) by B2 lane4 hook-role review, BUILD-MODE.md rule 8: 'Refusals ONLY at git boundaries ... inside the agent loop, nothing but path protection.' This was a PreToolUse refusal on Bash|PowerShell|Grep, not path protection -- an affordance (steer toward the graph query) mis-built as a denial. Live-witnessed mid-lane: it refused a plain `find` lookup as a 'governed question'. Class (d) in the review's table; the fix is a SKILL that offers the organ call before a raw search, not a tool-call gate that can wedge a session (the twelve-hour PreToolUse hang rule 8 itself cites). Full census: docs/audits/2026-09-18-technical-b2-lane4-hook-role-review.md.",
   "//hooks-ALL-DISABLED-2026-09-17": "SUPERSEDED 2026-09-17 by //hooks-RESTORED-AND-DISABLED-INDIVIDUALLY-2026-09-17 (disableAllHooks false; three required hooks restored; nine measured-broken hooks off individually). Original text recoverable verbatim at 4a3f32bd:.claude/settings.json.",
   "extraKnownMarketplaces": {
     "dev-knowledge-methodology": {
