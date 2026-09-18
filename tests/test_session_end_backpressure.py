@@ -933,10 +933,12 @@ def test_R2_e2e_lane_branch_gets_no_journal_advisory(tmp_path):
     for name in ("session_end_backpressure.py", "validate_branch_naming.py"):
         (repo / "scripts" / name).write_text(
             (_P.parent / name).read_text(encoding="utf-8"), encoding="utf-8")
+    # mirror the real repo: importing the predicate writes bytecode, which must not dirty the tree
+    (repo / ".gitignore").write_text("__pycache__/\n", encoding="utf-8")
     _git_in(repo, "init", "-q", "-b", "main")
     _git_in(repo, "config", "user.email", "t@t.t")
     _git_in(repo, "config", "user.name", "t")
-    _git_in(repo, "add", "scripts")
+    _git_in(repo, "add", "scripts", ".gitignore")
     _git_in(repo, "commit", "-q", "-m", "init")
 
     _git_in(repo, "checkout", "-q", "-b", "worktree-lane-ac-863-notification")
