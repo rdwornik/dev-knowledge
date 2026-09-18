@@ -21,6 +21,17 @@
 
 ---
 
+### 2026-09-18 (g) - CC (Opus 5, integrator seat, batch AC): R3 reversed and undone on the record; [#901] asks what main holds of [#790]; the audits index catches up with M1-M6
+
+**Anchors:** `8ff66be4` ([#901]) and `05d5d389` (audits index) -- `docs/batch-ac-integration`.
+
+**Did:** executed `to-cc/DECLARE-BATCH-AC-CLOSE-AMENDED-2026-09-18.md` §1 and §2. **§1:** R3 is REVERSED -- the integrator's boot-time claim that aa-13's commits were an unowned orphan was wrong, and JOURNAL 2026-09-17 (z) is the witness: the deletion was a deliberate operator act. Deleted on origin and locally: tag `rescue/aa-13-790-01c446f7`, branch `feat/790-runtime-resource-recovered`; `01c446f7` is back to its ruled state, off every ref. Filed [#901] (id reserved by push; 892-900 held by `ac-close-followups`): does [#790]'s increment exist on main, superseded, or nowhere -- the deletion ruling STANDS, the row reads only what main has. **§2:** S1 the two idle lane sessions were gone; S2 their empty husks (741, 694) removed; S3 M6 merged on a pair-measured identical failure list, JOURNAL (f); S4 `87638c8d..ab5f6245` pushed, both pre-push gates passing, and the merged lane/freeze branches deleted from origin; S5 the audits index regenerated.
+
+**Result:** `gen_task_tree --check` ok, `gen_audit_index --check` ok. **Changes:** `tasks/901-*`, `tasks/manifest.json`, `BACKLOG.md`, `docs/audits/README.md`, `JOURNAL.md`.
+
+**Next:** operator GO owed for `worktree-ac-close-followups` @ `7fce90c0` and `worktree-handback-contract-row` @ `e0de14a9` (AMENDED §3 P1); the close packet; §4's W9-W11 rows (W12 is [#901]).
+
+
 ### 2026-09-18 (f) - CC (Opus 5, integrator seat, batch AC): M6 merges the batch AC freeze -- its 33 attributed live_repo failures are now PAIR-MEASURED, identical lists, zero regressions
 
 **Anchors:** `7f15218b` -- `worktree-ac-night-freeze`, 2 commits (`01ecb63b` the manifest, seven lane contracts and the organs intake; `7f15218b` the forced audit-index follow-up).
