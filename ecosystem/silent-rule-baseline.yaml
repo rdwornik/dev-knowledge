@@ -18,12 +18,38 @@
 # commensurable; the check refuses to compare them rather than silently reporting drift.
 
 detector_id: silent-rule-v5
-baseline: 447
-measured_at: 2026-09-06
-measured_at_sha: eeac6bef
-measured_files: 62
+baseline: 452
+measured_at: 2026-09-19
+measured_at_sha: 80df0753
+measured_files: 71
 
 provenance: |
+  RAISE 447 -> 452, operator-RULED 2026-09-19 at the BUILD MODE B2 integration (option (A),
+  ruling class 3). A ONE-OFF WITH A STATED CAUSE, NOT A PRECEDENT: the next raise needs its own
+  justification, recorded here the same way, or the ratchet is worthless. A raise with no
+  recorded cause cannot be told apart from gaming the counter.
+
+    447  committed baseline @ 2026-09-06 (sha eeac6bef), detector v5
+    +1   protocols/BUILD-MODE.md at B1 (4377e729, "BUILD MODE declared"): the file arrived
+         carrying one normative token. It landed on main after the batch-AC suite baseline, so
+         the ratchet test first failed at B2's full suite rather than at B1's.
+    +4   B2 step 0 (merge 68a409a6): protocols/BUILD-LIST.md +3 (its B2 decision lines),
+         protocols/BUILD-MODE.md +1.
+    =452 live @ 80df0753, detector v5, 71 files -- MEASURED on the fix branch, not quoted.
+         Attribution VERIFIED per file: at 78d7e98f (batch-AC baseline) BUILD-LIST 0 /
+         BUILD-MODE 0 (both absent); at 4377e729 0 / 1; at 68a409a6 and after 3 / 2. Every
+         other in-scope file is unchanged against 78d7e98f.
+
+  WHY THE RAISE RATHER THAN A REWRITE. The operator ruled that BUILD-MODE's ten rules and step
+  0's decision lines ARE rules by design. Rewording them so the detector stops seeing them would
+  game this counter, which is the exact class BUILD MODE exists to remove. The tokens stay as
+  written.
+
+  Until this commit reaches origin/main, a branch-side check reads raise-rejected against
+  origin/main's 447. That is expected and self-heals at push, the same behaviour the entries
+  below record.
+  Prior baseline: 447 @ 2026-09-06 (sha eeac6bef), detector v5, 62 files.
+
   RAISE 443 -> 447, operator-RULED 2026-09-06 (batch T lane 3.11, section 3.11) for PLAYBOOK
   Ch8's new "Batch communication" section, which carries intake #72 / architect-inbox item 027's
   seven points and message shapes VERBATIM.
