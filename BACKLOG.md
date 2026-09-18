@@ -162,6 +162,9 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#865] [P2][S] The user-level block-onedrive.ps1 PreToolUse guard launches powershell per call and can hang the same way -- it needs a ruling · tasks/865-user-level-block-onedrive-guard-needs-a-hang-ruling.md
 - [#886] [P1][M] An emergency change records its temporary debt as DATA with an owner and an expiry -- JOURNAL prose is invisible to a gate, and a MUST surface has no waiver path at all · tasks/886-an-emergency-change-records-its-temporary-debt-a.md
 - [#888] [P1][M] The repo has no DEGRADED state -- an emergency that removes a required component can only lie to the gate or stop work · tasks/888-the-repo-has-no-degraded-state-an-emergency-that.md
+- [#894] [P2][S] Lane ac-285 wedged after a successful tool call -- an unexplained single-lane wedge, cause unverified · tasks/894-lane-ac-285-wedged-after-a-successful-tool-call-c.md
+- [#895] [P2][S] The lane-ceiling worktree leg refuses a conforming plan -- it counts the freezing seat's own worktree as a provisioned lane · tasks/895-the-lane-ceiling-worktree-leg-refuses-a-conformin.md
+- [#896] [P1][S] decision_coverage -- the organ refuses correctly and its gate never fires locally (stages:[manual] behind a disabled ruleset) · tasks/896-decision-coverage-the-organ-refuses-and-its-gate-n.md
 - [#891] [P1][M] Lane handback contract -- lanes write a ten-field HANDBACK-<lane>.md to the transport as their mandatory final step · tasks/891-lane-handback-contract-lanes-write-a-ten-field-h.md
 - [#902] [P1][S] The night-capacity premise was false -- lane concurrency must be gated by free memory measured at dispatch, not by the hour · tasks/902-the-night-capacity-premise-was-false-lane-concur.md
 ### [S4] Extend structural validation to more governance artifacts
@@ -306,6 +309,7 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 - [#620] [P2][M] Retire the root-README prohibition across the fleet, not only at the hub · tasks/620-retire-the-root-readme-prohibition-across-the-fl.md
 - [#621] [P2][L] ADR-114 option (C): the nine-repo VISION.md to README.md filename migration · tasks/621-adr-114-option-c-the-nine-repo-vision-md-to-read.md
 - [#622] [P3][M] Promote README.md into the ADR-38 canonical mandatory set · tasks/622-promote-readme-md-into-the-adr-38-canonical-mand.md
+- [#897] [P2][S] ARCHITECTURE.md is 110,357 B live, about seven times its 15 KB target -- and its down-22-percent figure pointed the wrong way across five surfaces · tasks/897-architecture-md-is-110-357-b-live-seven-times-its.md
 - [#903] [P2][M] The audit corpus has no retention rule -- what is an audit for after its arc closes, and what retires it · tasks/903-the-audit-corpus-has-no-retention-rule-what-is-a.md
 ---
 
@@ -418,6 +422,10 @@ So that cognitive overhead per session drops.
 - [#771] [P2][S] `[#729]` carries no protocol-conformance criterion, so a server can satisfy it completely and not be an MCP server · tasks/771-729-carries-no-protocol-conformance-criterion-so.md
 - [#800] [P1][S] The routing unit is the SESSION, not the turn — the prompt cache is per model, so per-turn switching loses money · tasks/800-the-routing-unit-is-the-session-not-the-turn-the-p.md
 - [#801] [P2][S] Opus is a flat 2.50x Sonnet on every leg — a false 5x figure circulated and a token-shape argument was built on it · tasks/801-opus-is-a-flat-2-50x-sonnet-and-a-false-5x-figure.md
+- [#893] [P1][S] Lane cost is computable and nothing computes it at integration -- batch AC's close packet reads cost UNKNOWN · tasks/893-lane-cost-is-computable-and-nothing-computes-it-at.md
+- [#898] [P2][S] A contracted cloud read-only leg never dispatched and a local substitute committed what the contract forbade -- a dispatcher shape defect · tasks/898-a-contracted-cloud-read-only-leg-never-dispatched.md
+- [#899] [P3][S] gen_audit_index reads HEAD, not the working tree -- every new audit costs a second, index-only commit and --check is falsely green before it · tasks/899-gen-audit-index-reads-head-so-every-new-audit-cos.md
+- [#900] [P2][S] AX9-5's own organ miscounts -- from a worktree it reads one session, its totals ignore the window, and a path mention counts as a call · tasks/900-ax9-5-s-own-organ-miscounts-from-a-worktree-and-t.md
 - [#889] [P1][M] The next window's acceptance test has no row -- one lane end to end, dispatch to merged, under one hour, nothing wedged, no human decision in the middle · tasks/889-lane-acceptance-test.md
 ### [S19] Decide the undecided artifact/tool models
 So that cadence-less artifacts and unevaluated tools don't rot or get adopted blind.
@@ -447,6 +455,7 @@ So that cadence-less artifacts and unevaluated tools don't rot or get adopted bl
 - [#701] [P2][S] A Codex quota hit stalls review for 50 minutes and no fallback provider is authorized, so the reviewer role is a single point of failure · tasks/701-codex-quota-hit-stalls-review-with-no-authorized-fallback-provider.md
 - [#706] [P2][S] The operator packet gains D14, folder-as-domain -- and it cannot be decided before the domain census returns · tasks/706-operator-packet-gains-d14-folder-as-domain-decided-after-the-census.md
 - [#722] [P1][S] Interim routing: read-only digests, censuses and scans default to agy as a READER ONLY, with conclusions and verdicts staying on Claude · tasks/722-interim-routing-read-only-work-defaults-to-agy-as-reader-only.md
+- [#892] [P2][S] A seat ordered sonnet ran Opus and nothing refused -- ordered is not ran for an attended seat · tasks/892-a-seat-ordered-sonnet-ran-opus-and-nothing-refus.md
 - [#890] [P2][M] Per-task execution-state carrier is one of the five intakes still owed -- Phase 1 must reconcile what [#664], tasks/ frontmatter, manifest.json, FPG-1 and the organ index already hold before anything new is built · tasks/890-per-task-execution-state-carrier.md
 - [#901] [P2][S] Does [#790]'s runtime-resource organ increment exist on main today, superseded, or nowhere -- intake [#101] still says runtime resources have no owning organ · tasks/901-does-790-s-runtime-resource-increment-exist-anywh.md
 ### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)

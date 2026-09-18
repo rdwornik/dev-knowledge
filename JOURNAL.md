@@ -21,6 +21,17 @@
 
 ---
 
+### 2026-09-18 (i) - CC (Opus 5, integrator seat, batch AC): merges the close follow-ups -- R2's Stop-hook exemption checked NARROW before merge, and it carries NO counter
+
+**Anchors:** `7fce90c0` -- `worktree-ac-close-followups`, 5 commits (`e9390129` RED witnesses, `4c6bb1f8` R2, `db589534` the AX9-5 re-run and full row-age census, `09b9ec20` their index, `7fce90c0` rows [#892]-[#900]).
+
+**Did:** merged `--no-ff` from the primary on the operator's CONDITIONAL GO (decision 2, 2026-09-18), whose condition was checked first. **What R2 keys on:** the current branch's NAME, through the repo's single lane predicate `validate_branch_naming.is_lane_branch` -> `LANE_BRANCH_KINDS` {batch-lane `worktree-lane-<batch>-<id>-<slug>`, `epic/`, `claude/`, `automation/`}. Probed on real names: every generic `worktree-*` branch (`worktree-ac-close-followups` itself, `worktree-ac-night-freeze`, `worktree-anything`) is NOT exempt, nor `docs/`, `feat/`, `main`; detached HEAD or a missing predicate grants nothing. It does not key on "in a worktree" or on JOURNAL activity, so it passes the operator's test. Caveats recorded, not blocking: it is a NAMING key, not a lane-contract marker or seat kind, so a session can exempt itself by branch choice (the seat registry's `lane` role would be the stronger key), and its set is all four machine-lane kinds, not batch lanes alone. The hard leg is untouched: the branch changes no pre-push or pre-commit config, so `block-unanchored-push` still refuses an unanchored push to `main`. **Counter: NONE** -- the exempt path is a bare `return None` that records nothing; under the standing rule this change is removed at its next review unless one is added. **Conflicts** in `tasks/manifest.json` and `BACKLOG.md` resolved mechanically, never by hand-merging markers: main's manifest plus the branch's nine nodes, each after its original predecessor, then `gen_task_tree --emit-source`; `--check` ok, 0 markers, rows 889-904 all present.
+
+**Result:** `tests/test_session_end_backpressure.py`, paired: main `0936c18d` 49 passed; merge candidate 55 passed (+6 new), 0 failed; ruff clean. **Changes:** `scripts/session_end_backpressure.py`, its test, two census audits, `docs/audits/README.md`, `tasks/892-*`..`tasks/900-*`, `tasks/manifest.json`, `BACKLOG.md`, `JOURNAL.md`.
+
+**Next:** the JOURNAL correction and the batch AC close packet, landed last.
+
+
 ### 2026-09-18 (h) - CC (Opus 5, integrator seat, batch AC): merges the amended-close rows -- [#902] night capacity is gated by measured free memory, [#903] audit-corpus retention, [#904] the branch-name validator's `recovered/` refusal
 
 **Anchors:** `e570dbb7` -- `worktree-ac-amended-rows`, 1 commit, rows only, no code.

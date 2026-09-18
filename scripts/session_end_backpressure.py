@@ -143,6 +143,17 @@ else:
     _JOURNAL = "JOURNAL.md"
     _BACKLOG = "BACKLOG.md"
     _CANON = ("VISION.md", "ARCHITECTURE.md", "CLAUDE.md", "CONTRIBUTING.md")
+# R2 (DECLARE-BATCH-AC-CLOSE-2026-09-18): the ONE lane predicate, never a copy of its regex. Same
+# guarded-import shape as `canonical_docs` above, but the fallback is None rather than a literal:
+# a standalone consumer copy with no predicate alongside grants NO exemption, so the JOURNAL leg
+# keeps firing -- the fail direction that cannot silence an integrator's arc.
+try:
+    from scripts.validate_branch_naming import is_lane_branch as _is_lane_branch
+except ImportError:
+    try:
+        from validate_branch_naming import is_lane_branch as _is_lane_branch
+    except ImportError:
+        _is_lane_branch = None
 # Gitignored, HEAD-bound override signal written by `/override` (ADR-85 §4). The hook only
 # READS it (stays a read-only validator per the scripts-are-read-only invariant).
 _TOKEN_PATH = _REPO_ROOT / "logs" / ".session-override-token"
@@ -202,6 +213,21 @@ def _session_shas() -> list[str]:
         head = _head_sha()
         return [head] if head else []
     return [ln.strip() for ln in r.stdout.splitlines() if ln.strip()]
+
+
+def _is_lane_session() -> bool:
+    """True iff HEAD is on a machine-produced LANE branch (`validate_branch_naming.is_lane_branch`).
+
+    A lane is commit-and-STOP: P-1 (protocols/STANDING_RULINGS.md) makes JOURNAL.md the
+    integrator's surface and the lane's arc is anchored at its merge, so the JOURNAL leg
+    addressed to a lane asks for the one entry the lane is forbidden to write (R2,
+    DECLARE-BATCH-AC-CLOSE-2026-09-18). Detached HEAD, an unresolvable name, or no predicate
+    available -> False: no exemption."""
+    if _is_lane_branch is None:
+        return False
+    r = _git("symbolic-ref", "--short", "-q", "HEAD")
+    name = r.stdout.strip() if r.returncode == 0 else ""
+    return bool(name) and _is_lane_branch(name)
 
 
 def _added_lines(*paths: str) -> str:
@@ -345,6 +371,8 @@ def check_journal_sha_anchor():
     session shipped work it has not yet journaled. See ADR-85 amendment 2026-06-19.
     """
     if not _is_clean():  # only at a plausible wrap; skip mid-work
+        return None
+    if _is_lane_session():  # R2: a lane leaves JOURNAL to its integrator (P-1)
         return None
     shas = _session_shas()
     if not shas:  # nothing shipped beyond a real base -> nothing to anchor
