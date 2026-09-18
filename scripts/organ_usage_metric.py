@@ -143,6 +143,48 @@ INTERPRETER_HEADS: frozenset[str] = frozenset({
 #: line in a transcript, so this method cannot see them called and must not report zero.
 NOT_OBSERVABLE_CLASSES: frozenset[str] = frozenset({"command", "skill"})
 
+#: Tokens `_invoked_process` skips while walking to the operand: the runner chain
+#: (`uv run --locked python scripts/x.py`) and the interpreter itself. Any OTHER
+#: non-flag token ends the walk -- it is what actually ran, not the interpreter running it.
+_RUNNER_TOKENS: frozenset[str] = frozenset({
+    "python", "python3", "py", "uv", "run", "pwsh", "powershell", "bash", "sh",
+})
+
+
+def _module_to_path(module: str) -> str:
+    """`scripts.codemap.cli` -> `scripts/codemap/cli.py` -- the `python -m <module>` call
+    shape `.pre-commit-config.yaml` uses for the codemap/toc organs."""
+    return module.replace(".", "/") + ".py"
+
+
+def _invoked_process(line: str, procs_lower: dict[str, str]) -> str | None:
+    """The ONE process path this (already interpreter-headed) line actually RUNS, or `None`.
+
+    Walks tokens rather than scanning the whole line for a substring -- the fix for two HIGH
+    codex-review findings (2026-09-18, b2-lane2-organ-invocations) against the first cut of
+    this function: whole-line matching counted `uv run ruff check scripts/x.py` as invoking
+    `scripts/x.py` (it only names the path as ruff's ARGUMENT), and never recognised
+    `python -m scripts.codemap.cli` at all (no `.py` substring exists on that line). Skip the
+    runner chain and any flag; resolve `-m <module>` to its dotted path; the first remaining
+    positional token is the operand. Best-effort: an unparsable line (odd quoting) matches
+    nothing rather than raising, same posture as `_command_head`.
+    """
+    try:
+        tokens = shlex.split(line, posix=True)
+    except ValueError:
+        return None
+    i = 0
+    while i < len(tokens):
+        token = tokens[i]
+        low = token.lower()
+        if low == "-m" and i + 1 < len(tokens):
+            return procs_lower.get(_module_to_path(tokens[i + 1]).lower())
+        if low in _RUNNER_TOKENS or low.startswith("-"):
+            i += 1
+            continue
+        return procs_lower.get(token.lstrip("./").lower())
+    return None
+
 
 def _git_common_dir(start: Path) -> Path | None:
     """The PRIMARY checkout's `.git` directory, resolved from anywhere inside a worktree.
@@ -367,6 +409,7 @@ def process_census(
     procs = dict(processes) if processes is not None else dict(_dap.load_processes(root))
 
     counts: dict[str, int] = dict.fromkeys(procs, 0)
+    procs_lower = {p.lower(): p for p in procs}
     session_dirs = _session_dirs(root, sroot)
     for directory in session_dirs:
         for transcript in sorted(directory.glob("*.jsonl")):
@@ -385,23 +428,27 @@ def process_census(
                 for line in command.replace("\\", "/").splitlines():
                     if _command_head(line) not in INTERPRETER_HEADS:
                         continue
-                    for path in procs:
-                        if path in line:
-                            counts[path] += 1
+                    invoked = _invoked_process(line, procs_lower)
+                    if invoked is not None:
+                        counts[invoked] += 1
 
     not_observable = sorted(p for p, klass in procs.items() if klass in NOT_OBSERVABLE_CLASSES)
-    observable = {p: c for p, c in counts.items() if procs[p] not in NOT_OBSERVABLE_CLASSES}
-    uncalled = sorted(p for p, c in observable.items() if c == 0)
+    #: `counts` returned to a caller (JSON included) carries OBSERVABLE processes only -- the
+    #: fix for a third HIGH finding: a `0` next to a NOT OBSERVABLE path is indistinguishable
+    #: from a real zero to a JSON consumer, so those paths are absent rather than zeroed.
+    observable_counts = {p: c for p, c in counts.items()
+                         if procs[p] not in NOT_OBSERVABLE_CLASSES}
+    uncalled = sorted(p for p, c in observable_counts.items() if c == 0)
     return {
         "generated_at": now.isoformat(timespec="seconds"),
         "window_days": since_days,
         "repo_root": str(root),
         "transcript_dirs": len(session_dirs),
         "processes_total": len(procs),
-        "observable_total": len(observable),
+        "observable_total": len(observable_counts),
         "not_observable_total": len(not_observable),
         "not_observable": not_observable,
-        "counts": counts,
+        "counts": observable_counts,
         "uncalled": uncalled,
     }
 
