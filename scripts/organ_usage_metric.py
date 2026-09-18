@@ -56,6 +56,7 @@ from __future__ import annotations
 import argparse
 import json
 import shlex
+import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -127,6 +128,100 @@ def classify_tool_call(tool_name: str, tool_input: dict, organs: frozenset[str])
             return "raw_search"
     lowered = command.replace("\\", "/")
     return "organ_call" if any(organ in lowered for organ in organs) else None
+
+
+#: Heads that turn a path MENTION into an actual invocation ([#900]-adjacent F5 fix, from the
+#: 2026-09-18 AX9-5 re-run audit's own strict leg): `git add scripts/x.py` or
+#: `sed -n 1,5p scripts/x.py` name the path without running it -- only a command whose FIRST
+#: token is an interpreter/runner counts.
+INTERPRETER_HEADS: frozenset[str] = frozenset({
+    "python", "python3", "py", "uv", "pwsh", "powershell", "bash", "sh",
+})
+
+#: `process_class` values `graph_store`/FPG-1 records for a process that a slash command or a
+#: skill file names -- neither ever appears as a `python <path>` (or any interpreter-headed)
+#: line in a transcript, so this method cannot see them called and must not report zero.
+NOT_OBSERVABLE_CLASSES: frozenset[str] = frozenset({"command", "skill"})
+
+#: Tokens `_invoked_process` skips while walking to the operand: the runner chain
+#: (`uv run --locked python scripts/x.py`) and the interpreter itself. Any OTHER
+#: non-flag token ends the walk -- it is what actually ran, not the interpreter running it.
+_RUNNER_TOKENS: frozenset[str] = frozenset({
+    "python", "python3", "py", "uv", "run", "pwsh", "powershell", "bash", "sh",
+})
+
+
+def _module_to_path(module: str) -> str:
+    """`scripts.codemap.cli` -> `scripts/codemap/cli.py` -- the `python -m <module>` call
+    shape `.pre-commit-config.yaml` uses for the codemap/toc organs."""
+    return module.replace(".", "/") + ".py"
+
+
+def _invoked_process(line: str, procs_lower: dict[str, str]) -> str | None:
+    """The ONE process path this (already interpreter-headed) line actually RUNS, or `None`.
+
+    Walks tokens rather than scanning the whole line for a substring -- the fix for two HIGH
+    codex-review findings (2026-09-18, b2-lane2-organ-invocations) against the first cut of
+    this function: whole-line matching counted `uv run ruff check scripts/x.py` as invoking
+    `scripts/x.py` (it only names the path as ruff's ARGUMENT), and never recognised
+    `python -m scripts.codemap.cli` at all (no `.py` substring exists on that line). Skip the
+    runner chain and any flag; resolve `-m <module>` to its dotted path; the first remaining
+    positional token is the operand. Best-effort: an unparsable line (odd quoting) matches
+    nothing rather than raising, same posture as `_command_head`.
+    """
+    try:
+        tokens = shlex.split(line, posix=True)
+    except ValueError:
+        return None
+    i = 0
+    while i < len(tokens):
+        token = tokens[i]
+        low = token.lower()
+        if low == "-m" and i + 1 < len(tokens):
+            return procs_lower.get(_module_to_path(tokens[i + 1]).lower())
+        if low in _RUNNER_TOKENS or low.startswith("-"):
+            i += 1
+            continue
+        return procs_lower.get(token.lstrip("./").lower())
+    return None
+
+
+def _git_common_dir(start: Path) -> Path | None:
+    """The PRIMARY checkout's `.git` directory, resolved from anywhere inside a worktree.
+
+    `git rev-parse --git-common-dir` answers the same absolute path from the primary checkout
+    and from every one of its worktrees (unlike `--show-toplevel`, which answers each
+    worktree's OWN root) -- so its parent is the one repo root every session-store directory's
+    name is ultimately derived from, whichever checkout this process happens to run in.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(start), "rev-parse", "--git-common-dir"],
+            capture_output=True, text=True, timeout=10, check=False)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode != 0 or not result.stdout.strip():
+        return None
+    common = Path(result.stdout.strip())
+    if not common.is_absolute():
+        common = (start / common).resolve()
+    return common.parent
+
+
+def canonical_repo_root(start: Path | str | None = None) -> Path:
+    """The PRIMARY checkout root, regardless of whether THIS process runs from the primary
+    checkout or a `.claude/worktrees/<name>` worktree.
+
+    THE FIX FOR F3 (memory: `organ-usage-metric-from-a-worktree-reads-one-session`). Before
+    this, `organ_usage_report`'s default `repo_root` was wherever the process happened to run
+    -- from a worktree, `_session_dirs` then matched only THAT worktree's own transcript
+    directory, and an "uncalled" list produced that way is false with no warning (164 of 171
+    organs, measured 2026-09-18). Falls back to `start` itself when git cannot answer (no git
+    on PATH, not a git checkout) rather than raising -- a non-git context still gets a usable
+    root instead of a crash.
+    """
+    base = Path(start) if start is not None else _dap.REPO_ROOT
+    return _git_common_dir(base) or base
 
 
 def known_organs(repo_root: Path | str | None = None) -> frozenset[str]:
@@ -277,6 +372,116 @@ def render_report(report: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def process_census(
+    *,
+    repo_root: Path | str | None = None,
+    sessions_root: Path | str | None = None,
+    since_days: int = 30,
+    now: datetime | None = None,
+    processes: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    """For EVERY process FPG-1's process list knows (script/command/skill), a STRICT,
+    WINDOWED invocation count -- the ratchet's replacement for `protocols/BUILD-LIST.md`'s
+    "uncalled organs ... (PROXY)" line, which only checks whether a trigger EDGE exists, never
+    whether the harness actually called the process in the last N days.
+
+    Three defects the 2026-09-18 AX9-5 re-run audit found and left as proposed rows are fixed
+    HERE, in this function, rather than in `organ_usage_report` (which keeps its existing,
+    tested, all-time/lenient behaviour unchanged for its own callers):
+
+      F3 -- `repo_root` defaults to `canonical_repo_root()`, the PRIMARY checkout, so this
+      reads every worktree's transcripts (and the primary's) even when invoked from inside one.
+      F4 -- every count is windowed to `[now - since_days, now]` by the call's OWN timestamp,
+      not all-time.
+      F5 -- a process counts as invoked only when its path appears in a command segment ALSO
+      headed by an interpreter/runner token (`INTERPRETER_HEADS`); a bare mention
+      (`git add scripts/x.py`) does not count.
+
+    `command`/`skill`-class processes are reported NOT OBSERVABLE, never a zero count: neither
+    ever appears as an interpreter-headed line in a transcript (a slash command or skill
+    invocation leaves no `python <path>` this method can read), so a zero here would be
+    indistinguishable from real neglect -- the exact honesty gap `[#900]`'s memory names.
+    """
+    root = Path(repo_root) if repo_root is not None else canonical_repo_root()
+    sroot = Path(sessions_root) if sessions_root is not None else DEFAULT_SESSIONS_ROOT
+    now = now if now is not None else datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=since_days)
+    procs = dict(processes) if processes is not None else dict(_dap.load_processes(root))
+
+    counts: dict[str, int] = dict.fromkeys(procs, 0)
+    procs_lower = {p.lower(): p for p in procs}
+    session_dirs = _session_dirs(root, sroot)
+    for directory in session_dirs:
+        for transcript in sorted(directory.glob("*.jsonl")):
+            for ts, tool_name, tool_input in _iter_tool_calls(transcript):
+                if tool_name not in _dap.SHELL_TOOLS or not ts:
+                    continue
+                try:
+                    when = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                except ValueError:
+                    continue
+                if when < cutoff or when > now:
+                    continue
+                command = tool_input.get("command")
+                if not isinstance(command, str) or not command.strip():
+                    continue
+                for line in command.replace("\\", "/").splitlines():
+                    if _command_head(line) not in INTERPRETER_HEADS:
+                        continue
+                    invoked = _invoked_process(line, procs_lower)
+                    if invoked is not None:
+                        counts[invoked] += 1
+
+    not_observable = sorted(p for p, klass in procs.items() if klass in NOT_OBSERVABLE_CLASSES)
+    #: `counts` returned to a caller (JSON included) carries OBSERVABLE processes only -- the
+    #: fix for a third HIGH finding: a `0` next to a NOT OBSERVABLE path is indistinguishable
+    #: from a real zero to a JSON consumer, so those paths are absent rather than zeroed.
+    observable_counts = {p: c for p, c in counts.items()
+                         if procs[p] not in NOT_OBSERVABLE_CLASSES}
+    uncalled = sorted(p for p, c in observable_counts.items() if c == 0)
+    return {
+        "generated_at": now.isoformat(timespec="seconds"),
+        "window_days": since_days,
+        "repo_root": str(root),
+        "transcript_dirs": len(session_dirs),
+        "processes_total": len(procs),
+        "observable_total": len(observable_counts),
+        "not_observable_total": len(not_observable),
+        "not_observable": not_observable,
+        "counts": observable_counts,
+        "uncalled": uncalled,
+    }
+
+
+def render_census(report: dict[str, Any]) -> str:
+    """A flat, `key: value` rendering -- CLAUDE.md SS4's render-layer rule."""
+    lines = [
+        f"organ_invocation_census: generated {report['generated_at']} "
+        f"(window: {report['window_days']}d)",
+        f"repo_root: {report['repo_root']}",
+        f"transcript_dirs: {report['transcript_dirs']}",
+        f"processes_total: {report['processes_total']} "
+        f"(observable={report['observable_total']} "
+        f"not_observable={report['not_observable_total']})",
+        f"uncalled over {report['window_days']} days: {len(report['uncalled'])} of "
+        f"{report['observable_total']} observable "
+        f"(excludes {report['not_observable_total']} not-observable of "
+        f"{report['processes_total']} total)",
+        "",
+        "not observable by this source -- a command/skill invocation leaves no interpreter-"
+        "headed line in a session transcript, so these are NEVER reported as zero:",
+    ]
+    lines.extend(f"  {path}" for path in report["not_observable"])
+    lines.append("")
+    lines.append("per-process invocation counts (strict, windowed):")
+    for path, count in sorted(report["counts"].items()):
+        if path in report["not_observable"]:
+            continue
+        status = "UNCALLED" if path in report["uncalled"] else f"called={count}"
+        lines.append(f"  {status:12} {path}")
+    return "\n".join(lines)
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         prog="organ_usage_metric",
@@ -286,7 +491,20 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--days", type=int, default=30, help="uncalled-organ window (default: 30)")
     r.add_argument("--json", action="store_true", help="emit the report as JSON, not text")
     r.add_argument("--repo-root", default=None, help="repo to scope organs/sessions to")
+    c = sub.add_parser("census", help="per-process invocation counts against the graph's "
+                                       "process list -- the BUILD-LIST ratchet's real number")
+    c.add_argument("--days", type=int, default=30, help="invocation window (default: 30)")
+    c.add_argument("--json", action="store_true", help="emit the report as JSON, not text")
+    c.add_argument("--repo-root", default=None,
+                   help="defaults to the PRIMARY checkout, resolved via git even from a "
+                        "worktree (F3 fix) -- pass this only to override")
     args = ap.parse_args(argv)
+
+    if args.cmd == "census":
+        report = process_census(repo_root=args.repo_root, since_days=args.days)
+        print(json.dumps(report, indent=2, sort_keys=True) if args.json
+              else render_census(report))
+        return 0
 
     report = organ_usage_report(repo_root=args.repo_root, since_days=args.days)
     print(json.dumps(report, indent=2, sort_keys=True) if args.json else render_report(report))

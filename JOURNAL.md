@@ -21,6 +21,17 @@
 
 ---
 
+### 2026-09-18 (r) - CC (Opus 5, integrator seat B2): merges B2 lane 2 -- process_census, the ratchet's real uncalled-organ number
+
+**Anchors:** `00e1c49d` -- `worktree-agent-a987786819e3dd5f1`, 5 commits (`461d78dd` RED, `00604bf9` census wired, `a5dc1306` Codex review, `a4030ed9` RED for its 3 HIGH, `00e1c49d` token-level operand match).
+
+**Did:** merged `--no-ff`, third in the order. `scripts/organ_usage_metric.py census` counts per-process invocations over a window against the graph's process list and replaces the BUILD-LIST's "no trigger" PROXY. Codex terra found 3 HIGH (`python -m` missed, any path in a `uv` command counted as executing it, unobservable processes reported as zero), each fixed RED-first on the lane.
+
+**Result:** merged. **Changes:** `scripts/organ_usage_metric.py`, its tests, `docs/audits/2026-09-18-codex-b2-lane2-organ-invocations.md`, `JOURNAL.md`.
+
+**Next:** lane 3; the BUILD-LIST command swap rides the integration arc.
+
+
 ### 2026-09-18 (q) - CC (Opus 5, integrator seat B2): merges B2 lane 1 -- ARCHITECTURE.md cut 110 KB -> 15 KB, stale PLAYBOOK hook claims fixed
 
 **Anchors:** `fe7cd0eb` -- `worktree-agent-acdd13c1ff82259b6`, 4 commits (`c0c920a9` ARCHITECTURE cut, `035b58c3` PLAYBOOK Ch8 audit-health claims, `dc43139c` Codex review, `fe7cd0eb` fixes for its 2 HIGH + 1 MEDIUM).

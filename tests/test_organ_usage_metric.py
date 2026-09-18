@@ -203,3 +203,177 @@ def test_render_report_is_flat_text_naming_totals_and_uncalled_organs(tmp_path):
     assert "raw_search=0" in text and "organ_call=0" in text
     for organ in _ORGANS:
         assert organ in text
+
+
+# --- process_census(): B2 lane 2 -- the ratchet's real number, replacing the process-list
+# "no trigger" PROXY in `protocols/BUILD-LIST.md`. RED-first ([#900]-adjacent; the F3/F4/F5
+# defects the 2026-09-18 AX9-5 re-run audit found and left as proposed rows, wired here). ------
+
+_PROCS = {
+    "scripts/graph_queries.py": "script",
+    "scripts/impacted_tests.py": "script",
+    ".claude/commands/preflight.md": "command",
+    ".claude/skills/verify/SKILL.md": "skill",
+}
+
+
+def test_command_class_process_is_not_observable_never_reported_uncalled(tmp_path):
+    """LIE: a command/skill process with zero classified calls silently reads as UNCALLED,
+    indistinguishable from a script that really was never called (F5's honesty gap, applied
+    to observability rather than to mention-vs-call)."""
+    repo_root, session_dir = _repo_and_sessions(tmp_path)
+    report = oum.process_census(
+        repo_root=repo_root, sessions_root=session_dir.parent / "nonexistent",
+        processes=_PROCS, now=datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc))
+    assert ".claude/commands/preflight.md" in report["not_observable"]
+    assert ".claude/skills/verify/SKILL.md" in report["not_observable"]
+    assert ".claude/commands/preflight.md" not in report["uncalled"]
+    assert ".claude/skills/verify/SKILL.md" not in report["uncalled"]
+
+
+def test_a_path_mention_with_no_interpreter_head_does_not_count_as_a_call(tmp_path):
+    """LIE (F5): `git add scripts/graph_queries.py` is a mention, not an invocation -- the
+    lenient `organ_call` classifier used by `organ_usage_report` would count this; the strict
+    census must not."""
+    repo_root, session_dir = _repo_and_sessions(tmp_path)
+    _transcript(session_dir, "session-a", [
+        _tool_use("Bash", {"command": "git add scripts/graph_queries.py"},
+                  ts="2026-09-16T10:00:00.000Z", uuid="1"),
+    ])
+    report = oum.process_census(
+        repo_root=repo_root, sessions_root=session_dir.parent, processes=_PROCS,
+        now=datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc))
+    assert report["counts"]["scripts/graph_queries.py"] == 0
+    assert "scripts/graph_queries.py" in report["uncalled"]
+
+
+def test_an_interpreter_headed_command_naming_the_path_counts_as_a_call(tmp_path):
+    repo_root, session_dir = _repo_and_sessions(tmp_path)
+    _transcript(session_dir, "session-a", [
+        _tool_use("Bash", {"command": "uv run --locked python scripts/graph_queries.py list"},
+                  ts="2026-09-16T10:00:00.000Z", uuid="1"),
+    ])
+    report = oum.process_census(
+        repo_root=repo_root, sessions_root=session_dir.parent, processes=_PROCS,
+        now=datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc))
+    assert report["counts"]["scripts/graph_queries.py"] == 1
+    assert "scripts/graph_queries.py" not in report["uncalled"]
+
+
+def test_a_call_outside_the_window_does_not_count_towards_the_total(tmp_path):
+    """LIE (F4): `organ_usage_report`'s `totals` are all-time; the census's per-process counts
+    must be windowed, so an invocation 46 days ago does not hide an organ's real 30-day
+    neglect."""
+    repo_root, session_dir = _repo_and_sessions(tmp_path)
+    _transcript(session_dir, "session-a", [
+        _tool_use("Bash", {"command": "uv run --locked python scripts/graph_queries.py list"},
+                  ts="2026-08-01T10:00:00.000Z", uuid="1"),
+    ])
+    report = oum.process_census(
+        repo_root=repo_root, sessions_root=session_dir.parent, processes=_PROCS,
+        since_days=30, now=datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc))
+    assert report["counts"]["scripts/graph_queries.py"] == 0
+    assert "scripts/graph_queries.py" in report["uncalled"]
+
+
+def test_headline_counts_uncalled_against_observable_total_only(tmp_path):
+    repo_root, session_dir = _repo_and_sessions(tmp_path)
+    report = oum.process_census(
+        repo_root=repo_root, sessions_root=session_dir.parent / "nonexistent",
+        processes=_PROCS, now=datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc))
+    assert report["processes_total"] == 4
+    assert report["observable_total"] == 2
+    assert report["not_observable_total"] == 2
+    assert len(report["uncalled"]) == 2
+
+
+def test_render_census_is_flat_text_with_the_headline_and_no_zero_claim_on_not_observable(
+        tmp_path):
+    repo_root, session_dir = _repo_and_sessions(tmp_path)
+    report = oum.process_census(
+        repo_root=repo_root, sessions_root=session_dir.parent / "nonexistent",
+        processes=_PROCS, since_days=30, now=datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc))
+    text = oum.render_census(report)
+    assert "\t" not in text
+    assert "uncalled over 30 days: 2 of 2 observable" in text
+    assert "not observable" in text.lower()
+    for path in report["not_observable"]:
+        assert path in text
+
+
+def test_canonical_repo_root_uses_git_common_dir_parent(tmp_path, monkeypatch):
+    """F3: the worktree's own `.git` (a file pointing elsewhere) must not silently scope the
+    census to the worktree's own single session directory -- the metric resolves the PRIMARY
+    checkout root via `git rev-parse --git-common-dir` instead of using wherever it runs."""
+    primary = tmp_path / "primary"
+    (primary / ".git").mkdir(parents=True)
+    worktree = tmp_path / "primary" / ".claude" / "worktrees" / "lane-x"
+    worktree.mkdir(parents=True)
+
+    def _fake_run(cmd, **kwargs):
+        class _Result:
+            returncode = 0
+            stdout = str(primary / ".git") + "\n"
+        assert cmd[:2] == ["git", "-C"]
+        return _Result()
+
+    monkeypatch.setattr(oum.subprocess, "run", _fake_run)
+    assert oum.canonical_repo_root(worktree) == primary
+
+
+def test_canonical_repo_root_falls_back_when_git_is_unavailable(tmp_path, monkeypatch):
+    def _raise(cmd, **kwargs):
+        raise OSError("git not found")
+
+    monkeypatch.setattr(oum.subprocess, "run", _raise)
+    fallback = tmp_path / "wherever"
+    assert oum.canonical_repo_root(fallback) == fallback
+
+
+# --- codex-review HIGH findings (2026-09-18, b2-lane2-organ-invocations), RED-first ------
+
+def test_python_dash_m_dotted_module_invocation_counts_as_a_call(tmp_path):
+    """HIGH: substring matching never recognised `python -m scripts.codemap.cli` -- no `.py`
+    substring exists on that line, so a module-form organ (the codemap/toc entry points'
+    OWN documented call shape, per `.pre-commit-config.yaml`) always read UNCALLED."""
+    repo_root, session_dir = _repo_and_sessions(tmp_path)
+    procs = {"scripts/codemap/cli.py": "script"}
+    _transcript(session_dir, "session-a", [
+        _tool_use("Bash",
+                  {"command": "uv run --locked python -m scripts.codemap.cli check ."},
+                  ts="2026-09-16T10:00:00.000Z", uuid="1"),
+    ])
+    report = oum.process_census(
+        repo_root=repo_root, sessions_root=session_dir.parent, processes=procs,
+        now=datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc))
+    assert report["counts"]["scripts/codemap/cli.py"] == 1
+    assert "scripts/codemap/cli.py" not in report["uncalled"]
+
+
+def test_a_path_passed_as_an_argument_to_a_different_tool_does_not_count(tmp_path):
+    """HIGH: `uv run ruff check scripts/graph_queries.py` only names the path as RUFF's
+    argument -- it does not run `scripts/graph_queries.py`. Whole-line substring matching
+    counted this as an invocation; the census must identify the actual operand."""
+    repo_root, session_dir = _repo_and_sessions(tmp_path)
+    procs = {"scripts/graph_queries.py": "script"}
+    _transcript(session_dir, "session-a", [
+        _tool_use("Bash", {"command": "uv run ruff check scripts/graph_queries.py"},
+                  ts="2026-09-16T10:00:00.000Z", uuid="1"),
+    ])
+    report = oum.process_census(
+        repo_root=repo_root, sessions_root=session_dir.parent, processes=procs,
+        now=datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc))
+    assert report["counts"]["scripts/graph_queries.py"] == 0
+    assert "scripts/graph_queries.py" in report["uncalled"]
+
+
+def test_not_observable_processes_never_appear_in_counts_json(tmp_path):
+    """HIGH: `counts` used to hold an explicit `0` for command/skill processes even though
+    they are labelled NOT OBSERVABLE -- a JSON consumer reading `counts["<skill>"] == 0`
+    cannot tell that from a real zero. They must be absent from `counts` entirely."""
+    repo_root, session_dir = _repo_and_sessions(tmp_path)
+    report = oum.process_census(
+        repo_root=repo_root, sessions_root=session_dir.parent / "nonexistent",
+        processes=_PROCS, now=datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc))
+    assert ".claude/commands/preflight.md" not in report["counts"]
+    assert ".claude/skills/verify/SKILL.md" not in report["counts"]
