@@ -1563,9 +1563,46 @@ def test_cmd_distill_refuses_an_off_enum_kind(tmp_path, monkeypatch):
 
 def test_the_real_pre_action_distillation_row_distills_cleanly():
     """The BUILD-LIST demo the lane report cites: kind=wire, subject='pre-action distillation',
-    against the LIVE repo tree (no monkeypatch) -- the one real-organ round trip."""
+    against the LIVE repo tree (no monkeypatch) -- the one real-organ round trip. The row's
+    recorded delta is ARM (B1 census), and this lane's own act IS the reclassification to WIRE,
+    so --reclassify is the honest, explicit opt-in rather than a silent divergence."""
     result = CliRunner().invoke(glc.cli, [
-        "distill", "--kind", "wire", "--subject", "pre-action distillation", "--stdout"])
+        "distill", "--kind", "wire", "--subject", "pre-action distillation", "--stdout",
+        "--reclassify"])
     assert result.exit_code == 0, result.output
     assert glc.parse_contract(result.output).ok
     assert "pre-action distillation" in result.output.lower()
+
+
+def test_cmd_distill_refuses_a_kind_that_diverges_from_the_row_without_reclassify(
+        tmp_path, monkeypatch):
+    """codex b2-lane3-distiller, HIGH: a caller-supplied --kind that disagrees with the row's
+    recorded delta must not be silently combined with that row's prior-art/removes text."""
+    monkeypatch.setattr(glc, "_SCRIPTS", _distill_repo(tmp_path) / "scripts")
+    (tmp_path / "scripts").mkdir(exist_ok=True)
+    result = CliRunner().invoke(glc.cli, [
+        "distill", "--kind", "delete", "--subject", "widget polish", "--stdout"])
+    assert result.exit_code != 0
+    assert "disagrees" in result.output and "--reclassify" in result.output
+
+
+def test_cmd_distill_accepts_a_diverging_kind_with_reclassify(tmp_path, monkeypatch):
+    monkeypatch.setattr(glc, "_SCRIPTS", _distill_repo(tmp_path) / "scripts")
+    (tmp_path / "scripts").mkdir(exist_ok=True)
+    result = CliRunner().invoke(glc.cli, [
+        "distill", "--kind", "delete", "--subject", "widget polish", "--stdout", "--reclassify"])
+    assert result.exit_code == 0, result.output
+    assert "DIVERGES" in result.output
+
+
+def test_graph_dependents_lines_degrades_on_an_unreadable_store_rather_than_crashing(
+        tmp_path, monkeypatch):
+    """codex b2-lane3-distiller, HIGH: a present-but-corrupt store must not abort the whole
+    distillation -- it degrades to a named gap exactly like an absent store."""
+    import graph_store as gs  # noqa: E402 -- already on sys.path via the module header above
+    repo_root = _distill_repo(tmp_path)
+    db_path = gs.store_path(repo_root)  # outside a repo: falls back to `<repo>/.git/...`
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    db_path.write_bytes(b"not a sqlite file")
+    lines = glc.graph_dependents_lines(repo_root, ("gen_widget.py",))
+    assert any("unreadable" in line for line in lines)

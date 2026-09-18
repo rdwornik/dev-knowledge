@@ -1589,9 +1589,10 @@ def backlog_hit(repo_root: Path, subject: str) -> Optional[tuple[str, str]]:
 def graph_dependents_lines(repo_root: Path, organs: tuple[str, ...]) -> tuple[str, ...]:
     """Who references each file-shaped organ, read from the PERSISTED FPG-1 store
     (`graph_store.py`). READ-ONLY: never rebuilds the store, matching this module's own Layer-2
-    discipline ("writes ONLY the contract path it is given"). An absent store is a named gap,
-    not a silent rebuild the distiller was not asked to perform."""
-    db_path = None
+    discipline ("writes ONLY the contract path it is given"). An absent OR UNREADABLE store (a
+    corrupt file, a schema-version mismatch) is a named gap, not a silent rebuild the distiller
+    was not asked to perform, and not an unhandled crash of the whole distillation (codex
+    b2-lane3-distiller, HIGH: "unreadable persisted graph aborts distillation")."""
     try:
         from scripts import graph_store as _gs  # noqa: PLC0415
     except ImportError:  # pragma: no cover — path-shim fallback
@@ -1600,7 +1601,11 @@ def graph_dependents_lines(repo_root: Path, organs: tuple[str, ...]) -> tuple[st
     if not db_path.exists():
         return (f"no persisted graph at {db_path} — dependents not resolved; "
                 f"`uv run --locked python scripts/graph_store.py rebuild` to populate",)
-    store = _gs.open_store(db_path)
+    try:
+        store = _gs.open_store(db_path)
+    except Exception as exc:  # noqa: BLE001 — an unreadable store degrades, never aborts
+        return (f"persisted graph at {db_path} is unreadable ({exc!r}) — dependents not "
+                f"resolved; `uv run --locked python scripts/graph_store.py rebuild` to repair",)
     try:
         lines: list[str] = []
         for organ in organs:
@@ -1950,8 +1955,11 @@ def cmd_enums() -> None:
 @click.option("--out-dir", type=click.Path(file_okay=False, path_type=Path), default=None)
 @click.option("--stdout", "to_stdout", is_flag=True, default=False)
 @click.option("--force", is_flag=True, default=False)
+@click.option("--reclassify", is_flag=True, default=False,
+              help="required when --kind disagrees with the row's recorded delta — an explicit "
+                   "opt-in, never a silent override (codex b2-lane3-distiller, HIGH)")
 def cmd_distill(delta_kind: str, subject: str, shape: str, repo: str, out_dir: Optional[Path],
-                to_stdout: bool, force: bool) -> None:
+                to_stdout: bool, force: bool, reclassify: bool) -> None:
     """Compose a lane contract from (kind, subject) — BUILD-MODE.md exit condition 1.
 
     Reads `protocols/BUILD-LIST.md` (prior-art / delta / removes / size), cross-references
@@ -1965,6 +1973,13 @@ def cmd_distill(delta_kind: str, subject: str, shape: str, repo: str, out_dir: O
     repo_root = _SCRIPTS.parent
     try:
         row = find_build_list_row(load_build_list_rows(repo_root), subject)
+        if delta_kind != row.delta and not reclassify:
+            raise LaneContractError(
+                f"--kind {delta_kind!r} disagrees with {subject!r}'s recorded BUILD-LIST delta "
+                f"{row.delta!r} — this is an unrecorded reclassification of a frozen build-list "
+                f"decision (codex b2-lane3-distiller, HIGH), refused by default. Either declare "
+                f"--kind {row.delta!r}, or pass --reclassify to distill it anyway once the "
+                f"reclassification is a deliberate one")
         lane_kind = lane_kind_for_row(row)
         try:
             needs_sync = not base_ref_verdict(repo_root).holds
