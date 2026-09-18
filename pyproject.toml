@@ -85,6 +85,21 @@ dev = [
     # pytest-xdist, which DOES carry a row: `/ship`'s parallel pre-flight is a deployed
     # mechanism, and #332 witnessed a consumer silently degrading to serial without it.)
     "pytest-timeout>=2.3",
+    # deptry -- stage 6 (library-first) of the spine, DECLARE-SPINE-AND-B3 §9 item 4, operator-
+    # approved 2026-09-19 UNDER THE CONDITION that it is run live over this repo before it is
+    # committed: it was (deptry 0.25.1, `uv run --locked --with deptry deptry .` -> 336 raw
+    # issues; clean via `scripts/stage_library_first.py deptry`, which adds the first-party
+    # sibling list the [tool.deptry] table below cannot hold; the report is in the L5 handback).
+    #   WHY: it answers "is every import declared, and is every declaration used?" from the
+    #   import graph, so a library added without being declared (or declared and never imported)
+    #   is a finding instead of a memory. REJECTED: a hand-written import scanner (the exact
+    #   library-first violation the DECLARE records against the architect); ruff's `TID`/`I`
+    #   import rules (they police import STYLE and banned modules, not declared-vs-imported);
+    #   `pip check` / `uv pip check` (they verify installed metadata consistency, never source
+    #   imports). WHERE: leaf of the dev group, no reverse dependents. `uv lock` measured: 3
+    #   packages added (deptry 0.25.1, requirements-parser 0.13.1, tomli 2.4.1); its click,
+    #   packaging and colorama edges were already in uv.lock.
+    "deptry>=0.25",
 ]
 # L5a descriptive analytics lane ([#384], intake #16 section 3). Separate group: the lane is
 # HUB-ONLY (it mines siblings read-only but runs here), so a consumer never needs it and it
@@ -260,6 +275,30 @@ addopts = "-n auto"
 # is killed produces no number at all, which is the one outcome an unattended sweep must not
 # have; this is the third independent witness of that failure, after the five attempts recorded
 # in DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08.
+
+[tool.deptry]
+# Stage 6 (library-first). Measured 2026-09-19 over this repo, deptry 0.25.1: 336 raw issues =
+# 247 DEP001 + 88 DEP004 + 1 DEP003. Each waiver below is a MEASURED false positive, not a
+# silence:
+#  * first-party siblings (DEP001, 247 of 247 bar structlog): `scripts/` and `deploy/` are
+#    sys.path roots, so `import gen_handoff` is a sibling import deptry cannot know. Not
+#    listed here -- `scripts/stage_library_first.py` derives them from the tree at run time,
+#    so the list cannot drift.
+#  * DEP004 (88): every dependency lives in the `dev` group by design ("Not a package: ...
+#    only the dependency groups", [tool.uv] above), so every third-party import is "a dev
+#    dependency used by prod code". The distinction has no meaning in a repo with no
+#    [project.dependencies].
+#  * DEP003 tomli (1): `scripts/codemap/generator.py` falls back to tomli only on the
+#    ImportError of stdlib tomllib, which cannot occur on requires-python >= 3.12.
+#  * DEP001 structlog (1): `scripts/telemetry_emit.py` imports it only when the backend is
+#    resolved to structlog; deliberately UNDECLARED (see that module: no measured gap
+#    demands it, and "no new deps without confirmation").
+ignore = ["DEP004"]
+extend_exclude = ["\\.claude", "docs/audits", "docs/archive"]
+
+[tool.deptry.per_rule_ignores]
+DEP003 = ["tomli"]
+DEP001 = ["structlog"]
 
 [tool.ruff]
 # === UNIVERSAL (fleet methodology — ARC 4 leg 1, 2026-07-18) ==================
