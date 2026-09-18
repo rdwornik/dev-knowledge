@@ -21,6 +21,17 @@
 
 ---
 
+### 2026-09-19 (v) - CC (Opus 5, integrator seat B2): B2 regression fixes per option (A); Codex terra HIGH on the baseline raise holds the push
+
+**Anchors:** `80df0753` (deny_and_point tests assert UNWIRED + script KEPT; quality-register marker pair restored in ARCHITECTURE.md), `548b2cf7` (silent-rule baseline 447 -> 452, cause recorded in the yaml), `aa410ec6` (Codex review) -- `fix/b2-regressions`.
+
+**Did:** the operator's option-(A) rulings on the 6 regressions in (u). Class 1: the three wired-guard tests described the old design; they were replaced by `test_the_guard_is_UNWIRED_from_PreToolUse` and `test_the_guard_script_is_KEPT`. Class 2: the `QUALITY-REQUIREMENTS` markers were restored and rendered, so ARCHITECTURE.md goes 15,350 -> 22,726 B. Class 3: baseline raised 447 -> 452 (+1 B1 BUILD-MODE, +4 B2 step 0; measured 452 over 71 files at `80df0753`), recorded in the file as a ONE-OFF with a stated cause, not a precedent. Targeted: deny_and_point + quality_requirements 149 passed; silent_rule_ratchet 51 passed, 1 reading "raise rejected 447 -> 452" against origin/main until push (`_target_baseline_state` = min(origin/main, main), audit.py:3621).
+
+**Result:** Codex terra on `main..fix/b2-regressions` returned **1 HIGH**: "raised baseline fails the ratchet gate" (same detector id). Per operator amendment 1, a HIGH blocks the push, so the push is HELD pending the operator's word. The wrapper's heuristic printed 0/0/0/0, but the findings section carries the HIGH. The code profile did not review ARCHITECTURE.md, because a mixed diff drops prose. **Changes:** `tests/test_deny_and_point.py`, `ARCHITECTURE.md`, `ecosystem/silent-rule-baseline.yaml`, `docs/audits/2026-09-19-codex-b2-regressions-fix.md`, `JOURNAL.md`.
+
+**Next:** on the operator's word, the BUILD-LIST B2 close row; merge `docs/b2-integration` then this branch `--no-ff`; push main and verify it on origin; tear down the 5 lanes, `b2-integration`, `b2-regressions`, and the husks lane-ab-833 / lane-z-4.
+
+
 ### 2026-09-18 (t) - CC (Opus 5, integrator seat B2): merges B2 lane 4 -- hook role review, 13 commit-layer hooks armed with counter and expiry, PreToolUse deny-and-point unwired
 
 **Anchors:** `ca5660af` -- `worktree-agent-ae596e69d4a642782`, 2 commits (`f3eba9b2` role review + arming + unwire, `ca5660af` Codex review, 0/0/0/0).
