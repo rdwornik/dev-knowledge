@@ -1,5 +1,7 @@
 # Batch AC — close packet · 2026-09-18
 
+**BATCH AC IS OPEN, PENDING THE FULL SUITE ON `78d7e98f` -- read this before the text below** (marker inserted 2026-09-18 as a pure insertion; nothing below it was edited). This packet, as first landed, asserted that batch AC closes. That is NOT TRUE: the integrator ran only targeted and paired gates (M5, M6, R2), and the ADR-110 refuse-to-finish item "full suite run once on the merged result" was never run. Ruling `to-cc/DECLARE-BATCH-AC-NOT-CLOSED-2026-09-18.md` §1: the batch stays OPEN until the full suite runs on `78d7e98f` with `-n 6`; a green run closes it with the run as its witness, and any failure is pair-measured against the baseline -- a failure that does not reproduce there is a REGRESSION and keeps the batch open until named and ruled. The result is recorded in a further marker below this one. Where the text below says the batch "closes", read "is OPEN".
+
 > The `closed_by` artifact named in `docs/audits/2026-09-17-technical-batch-ac-manifest.md`.
 > Written by the integrator seat (Opus 5, session `c334b928`) under the operator's three close
 > decisions of 2026-09-18 and `to-cc/DECLARE-BATCH-AC-CLOSE-2026-09-18.md` +
