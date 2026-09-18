@@ -21,6 +21,17 @@
 
 ---
 
+### 2026-09-18 (n) - CC (Opus 5 orchestrating; Haiku legs, Sonnet synthesis): BUILD MODE declared and B1 inventory landed -- 25 rows, 0 BUILD, week zero recorded
+
+**Anchors:** `53fc52dc` (rulebook), `3a4c8949` (build list + census audit), `19f91fb3` (audits index) -- `worktree-build-mode-b1`.
+
+**Did:** executed `to-cc/DECLARE-BUILD-MODE-2026-09-18.md` §2 and §3. §2: `protocols/BUILD-MODE.md` (the ten rules verbatim, exit condition, expiry 2026-11-18, ratchet) and `protocols/BUILD-LIST.md`. §3: four parallel Haiku legs over the organs, one Sonnet synthesis that verified and corrected them; week zero measured at `1a3910b0`: mechanisms 171 · doc bytes 43,228,069 · organs 66 · uncalled organs 36 (PROXY) · open rows 386.
+
+**Result:** B1 -> B2 gate met on the list's side (every row has prior-art, delta, removes; week zero recorded). Delta tally ARM 8 · WIRE 11 · REWRITE 5 · DELETE 1 · BUILD 0. Deviations, stated in the audit §5: subagent tokens 363,651 vs a 200k budget; a worktree was used for the writes, which bound the week-zero leg to it and failed it (the seat re-measured deterministically); uncalled-organ count is a proxy. **Changes:** `protocols/BUILD-MODE.md`, `protocols/BUILD-LIST.md`, `docs/audits/2026-09-18-census-build-mode-b1-inventory.md`, `docs/audits/README.md`, `JOURNAL.md`.
+
+**Next:** operator word on re-arming the `stages: [manual]` hooks the ARM/WIRE rows touch (reverses [#863]'s 2026-09-17 order); inventory the §6 B4 candidates as rows before B4; then B2's three lanes.
+
+
 ### 2026-09-18 (m) - CC (Opus 5, integrator seat, batch AC): batch AC CLOSES on a full-suite witness -- 75 failures on 78d7e98f, every one reproduced at baseline, 0 regressions
 
 **Anchors:** `7788c6fd` (the C3 result marker in the close packet) -- `docs/batch-ac-cost-and-suite`.
