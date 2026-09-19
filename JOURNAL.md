@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-19 (av) - CC (Opus 5, architect handoff cut): bundle `2026-09-19-dev-knowledge-architect` cut, filled and landed -- the window closes with a bundle after all
+
+**Anchors:** `8094e4d2` (bundle: generated, supplement transcribed, residual filled) -- `worktree-handoff-fill-0919`, merged --no-ff.
+
+**Did:** cut the architect bundle from the primary checkout on main with zero linked worktrees, once [#926] unblocked the ship-gate preflight row. The row's criterion is 0 hard-fail with the open WARNs carried explicitly, not a green gate -- reading it as green is what deadlocked this window earlier. Transcribed the held supplement answers byte for byte from the transport (re-hashed first, unchanged; the appended region's sha256 matches the source) -- the browser seat authored them, CC authored nothing. Named every `carried-by: OPEN` decision file in the residual, which is the only surface that discharges P11 leg 2, and authored the residual's three FILL-IN regions plus the boot session header.
+
+**Result:** bundle at `docs/handoffs/2026-09-19-dev-knowledge-architect/`; paste sentinel "5 sections - 34425 bytes", over the 20,000-byte soft ceiling by construction (the folded supplement is 11.5 KB). **Changes:** `docs/handoffs/2026-09-19-dev-knowledge-architect/*`, `JOURNAL.md`. **Next:** next session runs the spine and takes its first STOP; [#926] needs a re-ruling before 2026-11-18.
+
 ### 2026-09-19 (au) - CC (Opus 5, [#926] gate-scoping arc): journal_day_letters and substrate_declaration recognise the correction their invariants permit -- time-boxed to 2026-11-18
 
 **Anchors:** `09bd3c89` (RED) · `383f6cd9` (GREEN) · `4a36bb4b`, `38320583`, `10de1105` (Codex terra fixes) -- `worktree-fix-926-gate-scoping`, merged --no-ff.
