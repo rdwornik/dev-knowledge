@@ -23,11 +23,11 @@
 
 ### 2026-09-19 (w2-L1) - CC (Sonnet 5, lane wave2-spine): spine stages 1-12 as data -- ecosystem/harness.yaml + scripts/dodo.py over doit; live run STOPS at stage 6
 
-**Anchors:** `3e90e3fa` (spine + doit), `f664d6b8` (Codex terra P1 fix) -- `worktree-wave2-spine`.
+**Anchors:** `3e90e3fa` (spine + doit), `f664d6b8` and `5a1ea535` (Codex terra P1 fixes) -- `worktree-wave2-spine`.
 
 **Did:** RED first (5 failing in tests/test_dodo.py), then `ecosystem/harness.yaml` (18 lines, cap 60) and `scripts/dodo.py` (~70 lines, cap 100) over doit 0.37.0. A stage with no command becomes a failing task; doit halts; the run prints `stage N does not exist`. Read ADR-73 (per-repo orchestration copies; hub keeps the canonical template -- this is that template) and ADR-97 (only the root merges; the contract is the artifact -- the spine prepares one and never merges). **Live run over this repo** (`HARNESS_KIND=WIRE HARNESS_SUBJECT=intake`): stages 1-5 pass, then `STOP: stage 6 does not exist -- library-first has no command`, exit 1. The live run found two defects no test had: `git grep` waited on a pager (stage 2 hung), and doit's echo thread died on a non-cp1252 glyph from stage 4.
 
-**Result:** stages 6 (library-first) and 11 (token cap) have no command, by design -- L5 and L3 fill them. Codex terra found 1 HIGH-class (P1): a zero-hit prior-art search exited 1 and killed the run at stage 2; fixed RED-first. Targeted tests, not the full suite: `impacted_tests.py select` declined to narrow (pyproject.toml/uv.lock in the diff), so the fleet-parity, hermetization and fleet-shape suites plus test_dodo.py were run: 164 passed.
+**Result:** stages 6 (library-first) and 11 (token cap) have no command, by design -- L5 and L3 fill them. Codex terra found two P1s over three passes -- a zero-hit prior-art search exited 1 and killed the run at stage 2, and CmdAction ran argv through a shell (`%PATH%` in a token was expanded) -- each fixed RED-first; the third pass reported no critical or high findings. Targeted tests, not the full suite: `impacted_tests.py select` declined to narrow (pyproject.toml/uv.lock in the diff), so the fleet-parity, hermetization and fleet-shape suites plus test_dodo.py were run: 164 passed.
 
 **Changes:** `scripts/dodo.py`, `ecosystem/harness.yaml`, `tests/test_dodo.py`, `pyproject.toml`, `uv.lock`, `JOURNAL.md`. Homes differ from the payload's bare names: ADR-101 Rule A refuses new top-level files, and `--no-verify` is not used.
 
