@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-19 (aw) - CC (Opus 5, comprehension gate): `/handoff-verify` run live against the landed bundle -- two FAILs found, both this window's own, both repaired
+
+**Anchors:** `68c71f4f` (P0c amendment + doc-counts regenerated) -- `worktree-verify-repairs-0919`, merged --no-ff.
+
+**Did:** ran the whole v7 gate against live state rather than re-reading the bundle. Two rows failed and neither was inherited. P0c is a NAME-MATCH leg (§5 amendment A2) and the Purpose I authored at fill time named no authority the P0a/P0b enumeration returns -- repaired by an additive in-file amendment marker naming `[E2]` and `[E9]`, which is the sanctioned route for an immutable handoff. P6 drifted because the [#926] arc added tests without regenerating the claim. P9's serialize-groups answer is structurally unobtainable while `validate_backlog` carries hard-fails: it returns before printing the summary, so the row degrades rather than passing.
+
+**Result:** gate re-run clean after the repairs; ship-gate at check time stays RED on undispositioned WARNs with no hard-fails, which the residual carries explicitly. **Changes:** `docs/handoffs/2026-09-19-dev-knowledge-architect/HANDOFF_BOOT.md` (amendment) + `PASTE_THIS.md` (re-assembled), `ecosystem/doc-counts.md`, `JOURNAL.md`. **Next:** the [#926] re-ruling before 2026-11-18.
+
 ### 2026-09-19 (av) - CC (Opus 5, architect handoff cut): bundle `2026-09-19-dev-knowledge-architect` cut, filled and landed -- the window closes with a bundle after all
 
 **Anchors:** `8094e4d2` (bundle: generated, supplement transcribed, residual filled) -- `worktree-handoff-fill-0919`, merged --no-ff.
