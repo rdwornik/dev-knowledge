@@ -536,6 +536,8 @@ surfaces:
   # Script `scripts/hooks/deny_and_point.py` stays on disk (lane-4 audit
   # docs/audits/2026-09-18-technical-b2-lane4-hook-role-review.md). Re-wiring is a ruling that
   # flips this row back, not an edit to settings.json alone.
+  # EXPIRY NOT ENFORCED: rule 8's basis (BUILD MODE) expires 2026-11-18, but this schema has no
+  # row-level expiry the checker reads, so nothing flags this row after that date -- [#928].
   - id: settings-deny-and-point
     kind: settings-hook-block
     tier: {hub: INVERSE}
