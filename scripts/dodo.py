@@ -12,8 +12,10 @@ orchestration copy either: it is the hub-side canonical template, run in one rep
 
 Run:  HARNESS_KIND=WIRE HARNESS_SUBJECT=intake uv run --locked doit -f scripts/dodo.py spine
 """
+import hashlib
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 import yaml
@@ -21,8 +23,19 @@ from doit.action import CmdAction
 
 # doit echoes stage output on a thread; a non-cp1252 glyph from a stage would kill it on a Windows console.
 sys.stdout.reconfigure(errors="replace")
-DOIT_CONFIG = {"default_tasks": ["spine"], "verbosity": 2}
 _ROOT = Path(__file__).resolve().parent.parent  # scripts/ -> repo root
+
+
+def _state_file(root):
+    """doit's db lives OUTSIDE the checkout, keyed by the checkout path: the spine never dirties the
+    tree, and the primary and each worktree keep separate state (no shared lock between runs)."""
+    key = hashlib.sha256(str(root).encode("utf-8")).hexdigest()[:16]
+    state_dir = Path(tempfile.gettempdir()) / "dev-knowledge-doit"
+    state_dir.mkdir(parents=True, exist_ok=True)
+    return state_dir / f"{key}.db"
+
+
+DOIT_CONFIG = {"default_tasks": ["spine"], "verbosity": 2, "dep_file": str(_state_file(_ROOT))}
 
 
 def _stages():

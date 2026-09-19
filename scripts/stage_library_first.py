@@ -211,6 +211,26 @@ def cmd_deptry(root: str) -> None:
         _refuse(exc)
 
 
+@cli.command("emit")
+@click.option("--root", default=".", type=click.Path(file_okay=False))
+def cmd_emit(root: str) -> None:
+    """The stage-6 FILL: run deptry, print `$ <command>` and its real output as a fenced block.
+
+    The block is what `check` accepts as a `library-first` field. Exit is deptry's own, so a
+    red deptry still prints its findings and fails the stage -- nothing is waived here."""
+    root_path = Path(root).resolve()
+    modules = first_party_modules(root_path)
+    cmd = [sys.executable, "-m", "deptry", "."]
+    for name in modules:
+        cmd += ["--known-first-party", name]
+    proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                          cwd=root_path)
+    shown = f"uv run --locked python -m deptry . [+ --known-first-party x{len(modules)}, derived from the tree]"
+    output = (proc.stdout + proc.stderr).strip() or f"exit={proc.returncode}, no output"
+    click.echo(f"```\n$ {shown}\n{output}\nexit={proc.returncode}\n```")
+    sys.exit(1 if proc.returncode else 0)
+
+
 @cli.command("run")
 @click.argument("files", nargs=-1, required=True, type=click.Path(exists=True, dir_okay=False))
 @click.option("--root", default=".", type=click.Path(file_okay=False))
