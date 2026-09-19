@@ -14,6 +14,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 import yaml
 
 _REPO = Path(__file__).resolve().parents[1]
@@ -103,3 +104,72 @@ def test_stage_argv_is_delivered_verbatim_with_no_shell(tmp_path):
     result = _run_spine(path, tmp_path)
     assert result.returncode == 0, result.stdout + result.stderr
     assert marker.read_text(encoding="utf-8") == nasty
+
+
+# --- wave3-spine-fixups: stage 6 is wired; the spine leaves no state in the checkout ---------------
+
+def _run_real_spine(db_file: Path) -> subprocess.CompletedProcess:
+    env = {**os.environ, "HARNESS_KIND": "WIRE", "HARNESS_SUBJECT": "dispatch"}
+    env.pop("HARNESS_YAML", None)
+    return subprocess.run([sys.executable, "-m", "doit", "-f", str(_DODO), "--db-file", str(db_file), "spine"],
+                          capture_output=True, text=True, env=env, cwd=_REPO, timeout=900)
+
+
+def test_real_spine_gets_past_stage_6_on_the_dispatch_subject(tmp_path):
+    """L5 built stage 6's CHECK and never wired its FILL: the spine halted at 6 on every real subject."""
+    out = _run_real_spine(tmp_path / "doit.db")
+    text = out.stdout + out.stderr
+    assert "stage 6 does not exist" not in text, text[-800:]
+
+
+def test_stage_6_fill_round_trips_through_the_check_and_prose_is_still_refused():
+    import stage_library_first as slf  # noqa: PLC0415 -- scripts/ is a sys.path root under pytest
+    stage6 = next(s for s in yaml.safe_load(_HARNESS.read_text(encoding="utf-8"))["stages"] if s["stage"] == 6)
+    assert stage6["command"], "stage 6 must carry a command"
+    out = subprocess.run(stage6["command"], capture_output=True, text=True, encoding="utf-8", cwd=_REPO, timeout=300)
+    assert out.returncode == 0, out.stdout + out.stderr
+    assert "deptry" in out.stdout
+    assert slf.check_contract("library-first:\n" + out.stdout, site="fill") >= 1
+    with pytest.raises(slf.StageRefusal):
+        slf.check_contract("library-first: we looked and found nothing better", site="prose")
+
+
+def _doit_state_files() -> set[Path]:
+    """doit puts its db beside the dodo file (scripts/), not at the root -- look in both."""
+    return set(_REPO.glob(".doit.db*")) | set(_DODO.parent.glob(".doit.db*"))
+
+
+def _load_dodo():
+    import importlib.util  # noqa: PLC0415
+    spec = importlib.util.spec_from_file_location("dodo_under_test", _DODO)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_dodo_config_points_state_outside_the_repo():
+    dep = Path(_load_dodo().DOIT_CONFIG["dep_file"]).resolve()
+    assert _REPO not in dep.parents, f"doit state {dep} lives inside the checkout"
+    assert dep.parent.is_dir(), "the parent dir must exist"
+
+
+def test_dodo_state_is_unique_per_checkout(monkeypatch):
+    """Two checkouts (primary + a worktree) must never share a doit lock/db."""
+    mod = _load_dodo()
+    other = mod._state_file(Path("Z:/another/checkout"))
+    assert other != Path(mod.DOIT_CONFIG["dep_file"])
+    assert other == mod._state_file(Path("Z:/another/checkout")), "stable for one checkout"
+
+
+def test_running_the_spine_creates_no_doit_state_in_the_repo(tmp_path):
+    before = _doit_state_files()
+    harness = _write_harness(tmp_path, tmp_path / "ran.txt", missing=None)
+    env = {**os.environ, "HARNESS_YAML": str(harness), "HARNESS_KIND": "WIRE", "HARNESS_SUBJECT": "x"}
+    try:
+        subprocess.run([sys.executable, "-m", "doit", "-f", str(_DODO), "spine"],
+                       capture_output=True, text=True, env=env, cwd=_REPO, timeout=120)
+        created = _doit_state_files() - before
+        assert not created, f"the spine left {sorted(p.name for p in created)} in the repo root"
+    finally:
+        for p in _doit_state_files() - before:
+            p.unlink()
