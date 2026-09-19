@@ -4648,8 +4648,15 @@ def check_journal_day_letters(repo_path: Path) -> list[Finding]:
     corrected = [d for d in dupes if _journal_collision_corrected(blocks, *d)]
     open_dupes = dupes if expired else [d for d in dupes if d not in corrected]
     label = lambda ds: ", ".join(f"{day} ({letter})" for day, letter in ds)  # noqa: E731
+    # The scoped-out collisions are disclosed on EVERY non-expired run, FAIL included, so the
+    # narrowing is never applied invisibly.
+    tail = ""
+    if corrected and not expired:
+        tail = (f"; {label(corrected)} resolved by a later CORRECTION entry naming both blocks "
+                f"([#926] correction-by-addition, expires "
+                f"{_JOURNAL_CORRECTION_EXPIRES.isoformat()})")
     if open_dupes:
-        note = ""
+        note = tail
         if expired and corrected:
             note = (f" -- the [#926] correction-by-addition narrowing expired on "
                     f"{_JOURNAL_CORRECTION_EXPIRES.isoformat()}, so the corrected "
@@ -4657,11 +4664,6 @@ def check_journal_day_letters(repo_path: Path) -> list[Finding]:
         return [Finding("journal_day_letters", "fail",
                         f"duplicate JOURNAL day-letter(s) since {_JOURNAL_DAY_LETTER_FLOOR}: "
                         + label(open_dupes) + note)]
-    tail = ""
-    if corrected:
-        tail = (f"; {label(corrected)} resolved by a later CORRECTION entry naming both blocks "
-                f"([#926] correction-by-addition, expires "
-                f"{_JOURNAL_CORRECTION_EXPIRES.isoformat()})")
     return [Finding("journal_day_letters", "pass",
                     f"JOURNAL day-letter suffixes are unique per day since "
                     f"{_JOURNAL_DAY_LETTER_FLOOR}{tail}")]

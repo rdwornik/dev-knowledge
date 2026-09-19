@@ -112,9 +112,9 @@ def _today() -> _dt.date:
 def _batch_key(date_part: str, token: str) -> str:
     """Only the ONE sanctioned spelling variation is folded: the optional dash directly after
     `batch` (`batchac` == `batch-ac`). Every other dash is identity -- stripping them all made
-    `batch-x3` and `batch-x-3` one key (Codex terra HIGH 2026-09-19)."""
-    tok = token.lower()
-    tok = tok[len("batch"):] if tok.startswith("batch") else tok
+    `batch-x3` and `batch-x-3` one key (Codex terra HIGH 2026-09-19); case is not folded either
+    (pass 3)."""
+    tok = token[len("batch"):] if token.startswith("batch") else token   # case is identity
     return f"{date_part}:{tok[1:] if tok.startswith('-') else tok}"
 
 

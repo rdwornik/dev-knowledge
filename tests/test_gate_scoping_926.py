@@ -89,7 +89,10 @@ def test_a_correction_for_one_collision_does_not_resolve_another(tmp_path, monke
             f"{other_a}\nbody\n\n{other_b}\nbody\n")
     f = _journal(tmp_path, monkeypatch, text)
     assert f.status == "fail"
-    assert "2026-09-10 (b)" in f.evidence and "2026-09-18 (f)" not in f.evidence
+    failing, _, disclosed = f.evidence.partition("; ")
+    assert "2026-09-10 (b)" in failing and "2026-09-18 (f)" not in failing
+    # Codex terra MED 2026-09-19 (pass 3): the scoped-out collision stays VISIBLE on a FAIL run.
+    assert "2026-09-18 (f) resolved" in disclosed and "[#926]" in disclosed
 
 
 def test_the_journal_narrowing_expires_by_itself_and_names_926(tmp_path, monkeypatch):
@@ -217,6 +220,9 @@ def test_the_batch_key_joins_a_launch_dir_to_its_manifest_across_dash_spelling()
         == adapter._batch_key_of_manifest("docs/audits/2026-09-17-technical-batch-ac-manifest.md")
     assert adapter._batch_key_of_launch_dir("2026-09-13-technical-batch-x3-launch-contracts") \
         != adapter._batch_key_of_manifest("docs/audits/2026-09-13-technical-batch-x4-manifest.md")
+    # Codex terra HIGH 2026-09-19 (pass 3): case is identity, not a folded spelling variation.
+    assert adapter._batch_key_of_launch_dir("2026-09-13-technical-batch-X-launch-contracts") \
+        != adapter._batch_key_of_manifest("docs/audits/2026-09-13-technical-batch-x-manifest.md")
 
 
 def test_a_closed_batch_does_not_scope_out_a_same_day_batch_spelled_one_dash_apart(
