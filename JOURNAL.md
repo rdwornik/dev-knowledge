@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-19 (au) - CC (Opus 5, [#926] gate-scoping arc): journal_day_letters and substrate_declaration recognise the correction their invariants permit -- time-boxed to 2026-11-18
+
+**Anchors:** `09bd3c89` (RED) · `383f6cd9` (GREEN) · `4a36bb4b`, `38320583`, `10de1105` (Codex terra fixes) -- `worktree-fix-926-gate-scoping`, merged --no-ff.
+
+**Did:** both [#926] narrowings, on operator order. journal_day_letters: a duplicate is resolved only by a later CORRECTION-headed entry naming `date (letter)` and quoting both colliding headings. substrate_declaration: leg 8 only, scoped to pre-launch contracts; post-launch = the nearest launch dir's batch manifest has a committed `closed_by:` packet. Each expiry is a module constant the check reads through `_today()`; past it the narrowing switches off and the finding names [#926]. The uncorrected case still fails in both. The deviation-line escape was not used. Codex terra: pass 1 HIGH:1 MED:1, pass 2 HIGH:2 (1 accepted, 1 rejected -- see `38320583`), pass 3 HIGH:1 MED:1, pass 4 HIGH:0 MED:0 LOW:0.
+
+**Result:** live: 2026-09-18 (f) resolved via (aq); LANE-ac-694-cloud-census.md scoped out (batch AC closed). **Changes:** `scripts/audit.py`, `scripts/audit_checks/check_substrate_declaration.py`, `tests/test_gate_scoping_926.py`, `JOURNAL.md`. **Next:** ship-gate re-run; no cut this turn.
+
 ### 2026-09-19 (at) - CC (Opus 5, pre-handoff close-out): three safety amendments to merged work -- window closed, no bundle
 
 **Anchors:** `f8982728` (row 928 filed; rows 916 and 926 amended; parity YAML pointer) -- `worktree-handoff-safety-0919`, merged --no-ff.

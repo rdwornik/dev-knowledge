@@ -4561,6 +4561,55 @@ _JOURNAL_HEADING_RE = re.compile(r"^### (\d{4}-\d{2}-\d{2}) \(([a-z]+)\)", re.MU
 # for this doctrine, and adding one is outside the ~20-line budget this leg was given.
 _JOURNAL_DAY_LETTER_FLOOR = "2026-07-30"
 
+# [#926] correction-by-addition, TEMPORARY BY CONSTRUCTION (operator order 2026-09-19).
+# JOURNAL is append-only, so the only correction its own invariants permit for a landed
+# day-letter collision is a LATER entry that names it. Until this date the check recognises
+# one; after it the narrowing switches itself off, corrected collisions FAIL again, and the
+# evidence names [#926] for re-ruling. The date is BUILD MODE's own expiry
+# (protocols/BUILD-MODE.md), the mode under which the narrowing was ruled.
+_JOURNAL_CORRECTION_EXPIRES = date(2026, 11, 18)
+# A correction entry is a dated heading carrying the uppercase word CORRECTION.
+_JOURNAL_CORRECTION_HEADING_RE = re.compile(r"^### \d{4}-\d{2}-\d{2} \([^)]+\).*\bCORRECTION\b")
+# How much of each colliding heading line the correction must quote to POINT at that block.
+_JOURNAL_POINTER_CHARS = 60
+
+
+def _today() -> date:
+    """The date the time-boxed narrowings are read against -- one seam, so tests can move it."""
+    return date.today()
+
+
+def _journal_blocks(text: str) -> list[tuple[str, str]]:
+    """Every `### ` block as (heading line, block text), in FILE order (newest first)."""
+    starts = [m.start() for m in re.finditer(r"^### ", text, re.MULTILINE)]
+    out = []
+    for i, s in enumerate(starts):
+        e = starts[i + 1] if i + 1 < len(starts) else len(text)
+        block = text[s:e]
+        out.append((block.split("\n", 1)[0].rstrip("\r"), block))
+    return out
+
+
+def _journal_collision_corrected(blocks: list[tuple[str, str]], date_str: str, letter: str) -> bool:
+    """Is the `date (letter)` collision named by a LATER correction pointing at every block?
+
+    LATER = above every colliding block (the file is newest-first). POINTING = the correction
+    quotes the first `_JOURNAL_POINTER_CHARS` characters of each colliding heading line; if two
+    colliding headings share that prefix a quote cannot tell them apart, so the collision is NOT
+    resolved (ambiguous is not corrected).
+    """
+    tag = f"### {date_str} ({letter})"
+    idx = [i for i, (h, _) in enumerate(blocks) if h.startswith(tag)]
+    pointers = [blocks[i][0][:_JOURNAL_POINTER_CHARS] for i in idx]
+    if len(set(pointers)) != len(pointers):
+        return False
+    for heading, block in blocks[:min(idx)]:
+        if not _JOURNAL_CORRECTION_HEADING_RE.match(heading):
+            continue
+        if f"{date_str} ({letter})" in block and all(p in block for p in pointers):
+            return True
+    return False
+
 
 def check_journal_day_letters(repo_path: Path) -> list[Finding]:
     """N2-E4-02 (#524 leg a): every `### YYYY-MM-DD (<letter>)` JOURNAL heading on or after
@@ -4585,20 +4634,39 @@ def check_journal_day_letters(repo_path: Path) -> list[Finding]:
         if date_str < _JOURNAL_DAY_LETTER_FLOOR:
             continue
         by_date.setdefault(date_str, []).append(letter)
-    dupes = []
+    dupes: list[tuple[str, str]] = []
     for date_str, letters in sorted(by_date.items()):
         seen: set[str] = set()
         for letter in letters:
-            if letter in seen:
-                dupes.append(f"{date_str} ({letter})")
+            if letter in seen and (date_str, letter) not in dupes:
+                dupes.append((date_str, letter))
             seen.add(letter)
-    if dupes:
+    # [#926]: a collision a later CORRECTION entry names and points at is resolved -- until
+    # the narrowing's own expiry, after which it counts as a plain duplicate again.
+    expired = _today() > _JOURNAL_CORRECTION_EXPIRES
+    blocks = _journal_blocks(text) if dupes else []
+    corrected = [d for d in dupes if _journal_collision_corrected(blocks, *d)]
+    open_dupes = dupes if expired else [d for d in dupes if d not in corrected]
+    label = lambda ds: ", ".join(f"{day} ({letter})" for day, letter in ds)  # noqa: E731
+    # The scoped-out collisions are disclosed on EVERY non-expired run, FAIL included, so the
+    # narrowing is never applied invisibly.
+    tail = ""
+    if corrected and not expired:
+        tail = (f"; {label(corrected)} resolved by a later CORRECTION entry naming both blocks "
+                f"([#926] correction-by-addition, expires "
+                f"{_JOURNAL_CORRECTION_EXPIRES.isoformat()})")
+    if open_dupes:
+        note = tail
+        if expired and corrected:
+            note = (f" -- the [#926] correction-by-addition narrowing expired on "
+                    f"{_JOURNAL_CORRECTION_EXPIRES.isoformat()}, so the corrected "
+                    f"collision(s) {label(corrected)} count again; re-rule [#926]")
         return [Finding("journal_day_letters", "fail",
                         f"duplicate JOURNAL day-letter(s) since {_JOURNAL_DAY_LETTER_FLOOR}: "
-                        + ", ".join(dupes))]
+                        + label(open_dupes) + note)]
     return [Finding("journal_day_letters", "pass",
                     f"JOURNAL day-letter suffixes are unique per day since "
-                    f"{_JOURNAL_DAY_LETTER_FLOOR}")]
+                    f"{_JOURNAL_DAY_LETTER_FLOOR}{tail}")]
 
 
 def check_preflight_backlog_ids(repo_path: Path) -> list[Finding]:
