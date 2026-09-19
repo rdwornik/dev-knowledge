@@ -166,8 +166,9 @@ def _closed_batch_keys(repo_path: Path) -> set[str]:
 
 def _is_post_launch(rel: str, closed: set[str]) -> bool:
     """A contract is post-launch iff it sits in a launch-contracts dir whose batch is closed.
-    No matching manifest => pre-launch (the refusing side)."""
-    for part in Path(rel).parts[:-1]:
+    No matching manifest => pre-launch (the refusing side). The NEAREST launch-contracts dir
+    owns the contract, so a dir nested inside a closed batch's dir is judged by its own batch."""
+    for part in reversed(Path(rel).parts[:-1]):
         key = _batch_key_of_launch_dir(part)
         if key is not None:
             return key in closed

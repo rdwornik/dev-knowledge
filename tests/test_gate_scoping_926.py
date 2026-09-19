@@ -180,6 +180,21 @@ def test_the_post_launch_scope_out_stays_visible_beside_an_unrelated_warn(tmp_pa
     assert any(f.status == "pass" and "[#926]" in f.evidence for f in out)
 
 
+def test_a_launch_dir_nested_inside_a_closed_batchs_dir_is_judged_by_its_own_batch(
+        tmp_path, monkeypatch):
+    """Codex terra HIGH 2026-09-19 (pass 2): the NEAREST launch-contracts dir owns the contract.
+    Batch R has no manifest (pre-launch) even though it sits inside closed batch Q's dir."""
+    repo = _substrate_repo(tmp_path, manifest=True, closed=True)
+    inner = repo / LAUNCH_DIR / "2026-09-18-technical-batch-r-launch-contracts"
+    inner.mkdir()
+    (inner / "LANE-r-1.md").write_text("# LANE\n\n**Shape:** `cloud`\n", encoding="utf-8")
+    (repo / CONTRACT).unlink()
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "nested")
+    fails = [f for f in _run_adapter(monkeypatch, repo) if f.status == "fail"]
+    assert len(fails) == 1 and "LANE-r-1.md" in fails[0].evidence
+
+
 def test_the_post_launch_scope_covers_leg_8_only(tmp_path, monkeypatch):
     """Every other leg still refuses a closed batch's contract: the narrowing is one leg wide."""
     repo = _substrate_repo(tmp_path, manifest=True, closed=True)
