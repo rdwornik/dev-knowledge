@@ -46,11 +46,7 @@ In order, read:
 <!-- scope: meta -->
 > **[REPO - local]** region `repo-architecture` - this repo owns these lines.
 <!-- methodology:start id=repo-architecture owner=repo -->
-
-`ARCHITECTURE.md` is the structural model — read it before any structural change (ADR-51 as amended 2026-05-23). NOT a code project: markdown governance files plus hub-local validators, generators and gates; no script drives state in a child repo (§5 rule 4).
-
-- **Where to jump:** **Ch2** organ map — which organ fires when, and how it fails · **Ch3** automation axes — cloud/nightly Routine, spec-orchestration, model routing · **Ch4** distribution — carriers, child floor, browser bundle · **Ch6** verification mesh — the nightly outcome loop.
-- **The daily working mode is NOT in ARCHITECTURE.** Parallel worktree lanes, lane dispatch and the ADR-110 batch protocol are `protocols/PLAYBOOK.md` **Ch8 "Session boundaries"**.
+`ARCHITECTURE.md` is the structural model — read it before any structural change (ADR-51). NOT a code project: markdown governance plus hub-local validators, generators and gates; no script drives state in a child repo (§5 rule 4). The daily working mode (worktree lanes, ADR-110 batch protocol) is `protocols/PLAYBOOK.md` Ch8 "Session boundaries".
 <!-- methodology:end id=repo-architecture -->
 
 ## 4. Conventions
@@ -130,12 +126,8 @@ User-level (`~/.claude/commands/`): `/session-summary` — session summary + han
 
 > **[REPO - local]** region `commands-repo-roster` - this repo owns these lines.
 <!-- methodology:start id=commands-repo-roster owner=repo -->
-Repo-level (`./.claude/commands/`, machine-enumerated from command-file frontmatter; regenerate: `gen_claude_rosters.py --write`):
-
-@.claude/generated/commands-repo.md
+Repo-level commands are machine-enumerated in `.claude/generated/commands-repo.md` — read it, or list `.claude/commands/`, when picking a command. Which command when → PLAYBOOK §"Usage protocol".
 <!-- methodology:end id=commands-repo-roster -->
-
-`/handoff` generates a handoff per `HANDOFF_PROCESS.md` v7 (ADR-82); `/handoff-verify` is its check-time counterpart — one run of the whole live gate, one evidence block (v7 §5). `/review-closures` and `/ship` are governed by ADR-70 Tier-1 + `ARCHITECTURE.md` "Tier-1 self-enforcing lifecycle". Which command when → PLAYBOOK §"Usage protocol".
 
 ## 8. Skills active
 <!-- scope: runtime -->
@@ -144,9 +136,7 @@ User-level (`~/.claude/skills/`): `gotchas` — universal dev gotchas (encoding,
 
 > **[REPO - local]** region `skills-repo-roster` - this repo owns these lines.
 <!-- methodology:start id=skills-repo-roster owner=repo -->
-Repo-level (`./.claude/skills/`): `verify` (ecosystem verification, run after `pytest`) + `check-against-spec` (spec-reconciliation site enumerator). Repo-specific empirical patterns live in `LESSONS.md` — append-only; read it before structural changes.
-
-Plugin `tier1-lifecycle@dev-knowledge-methodology` is **enabled** and drives the Tier-1 closure loop here: its `Stop` hook runs `propose_closures.py`, and it ships `/review-closures` + `/ship`. The hub is the marketplace source the children install from → `ARCHITECTURE.md` "Tier-1 self-enforcing lifecycle".
+Repo-level skills live in `.claude/skills/<name>/SKILL.md` — list that directory when a skill-shaped task arises; run `verify` after `pytest`. Repo-specific empirical patterns live in `LESSONS.md` — append-only; read it before structural changes. Plugin `tier1-lifecycle@dev-knowledge-methodology` is enabled (its `Stop` hook runs `propose_closures.py`; it ships `/review-closures` + `/ship`).
 <!-- methodology:end id=skills-repo-roster -->
 
 ## 9. Hooks active
@@ -154,58 +144,47 @@ Plugin `tier1-lifecycle@dev-knowledge-methodology` is **enabled** and drives the
 > **[REPO - local]** region `hooks-repo-roster` - this repo owns these lines.
 <!-- methodology:start id=hooks-repo-roster owner=repo -->
 
-> **A roster, not a manual.** Per-hook rationale, exit codes and **honest limits** live in each module's docstring under `scripts/`; **failure posture** in `ARCHITECTURE.md` Ch2 and its "Validators and enforcement" chapter; the full organ inventory in the generated `ecosystem/organ-index.md`. Read those, never a copy here.
+Gates block: a FAIL is fixed, never bypassed. Pre-commit (`.pre-commit-config.yaml`) hook ids — a hook's one-line purpose is its `name:` there, its rationale, exit codes and honest limits are its `scripts/` module docstring, and the armed-vs-`stages: [manual]` state is that file's header and `ecosystem/organ-index.md`:
+- `normalize-dated-headers`
+- `codemap-freshness`
+- `toc-freshness-playbook`
+- `roster-freshness`
+- `claude-rosters-freshness`
+- `audit-index-freshness`
+- `organ-index-freshness`
+- `doc-counts-pytest-freshness`
+- `validate-hermetization`
+- `audit-title-gate`
+- `intake-index-freshness`
+- `check-seal-identity`
+- `block-commit-on-main`
+- `lane-contract-check`
+- `derived-copies-rebind`
+- `provider-registry-agreement`
+- `validate-backlog`
+- `row-archive-proof`
+- `graph-rebuild`
+- `graph-orphan-census`
+- `graph-task-coverage`
+- `graph-process-list`
+- `impacted-tests-guard`
+- `decision-coverage`
+- `graph-edge-class-census`
+- `quality-requirements-freshness`
+- `prepend-order`
+- `dispatch-conformance`
+- `audit-health`
+- `ruff`
+- `coherence-nudge`
+- `backlog-id-on-close` (commit-msg)
+- `backlog-filing-backpressure` (commit-msg)
+- `commit-message-type-prefix` (commit-msg)
+- `block-ff-push` (pre-push)
+- `block-unanchored-push` (pre-push)
 
-<!-- Machine-read: validate_doc_claims.extract_claimed_hooks takes the leading backtick id of every bullet from this header to the first non-bullet line. Keep it complete and contiguous. -->
-Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless noted. **B2 lane4 armed 13 (counter+expiry) — `docs/audits/2026-09-18-technical-b2-lane4-hook-role-review.md`**; rest `stages: [manual]` (config header):
-- `normalize-dated-headers` — dated-log header normalization
-- `codemap-freshness` — ARCHITECTURE codemap vs `scripts/`, regen-and-diff
-- `toc-freshness-playbook` — PLAYBOOK TOC staleness
-- `roster-freshness` — `.claude/methodology-roster.md` vs the deploy manifest
-- `claude-rosters-freshness` — the two `@`-imported `.claude/generated/` fragments
-- `audit-index-freshness` — generated `docs/audits/README.md`
-- `organ-index-freshness` — generated `ecosystem/organ-index.md`; a stale index is worse than none
-- `doc-counts-pytest-freshness` — the collected-test-count claim, at commit time
-- `validate-hermetization` — ADR-101 tree-seal refusal on staged ADDs: top-level/genre seal, audit-name grammar, home allowlist
-- `audit-title-gate` — every indexed audit carries a `# ` heading; ratchet, 20 grandfathered
-- `intake-index-freshness` — generated Contents block in `docs/intake/README.md`
-- `check-seal-identity` — handoff-bundle seal identity at commit time
-- `block-commit-on-main` — core-invariant #5 PREVENT at commit time
-- `lane-contract-check` — shape gate for a generator-emitted lane contract
-- `derived-copies-rebind` — a staged registered source whose derived copy did not move; also asserts every delegated hook id still exists
-- `provider-registry-agreement` — the nine provider/model seams vs `ecosystem/provider-registry.yaml`
-- `validate-backlog` — BACKLOG story-map schema (ADR-66)
-- `row-archive-proof` — `archive_row_body.py verify`: byte-identity legs A-E over `tasks/archive/`; `verify` only, never the writing subcommands ([#664] TRIGGER row)
-- `graph-rebuild` — rebuilds the persisted FPG-1 store ([#664] clause 1)
-- `graph-orphan-census` — a process no wiring surface reaches, transitively ([#664] clause 2)
-- `graph-task-coverage` — a staged file no OPEN row claims ([#664] clause 2)
-- `graph-process-list` — prose naming a process the graph lacks ([#664] clause 2)
-- `impacted-tests-guard` — a changed `scripts/*.py` no test covers; the refusal names the RED-first test ([#278])
-- `decision-coverage` — an accepted decision no row implements; two legs, era-bounded ([#692])
-- `graph-edge-class-census` — edge-class ratchet ([#664])
-- `quality-requirements-freshness` — quality register ([#765])
-- `prepend-order` — newest-first / append-only logs ([#786])
-- `dispatch-conformance` — generator<->verb ([#675])
-- `audit-health` — `audit.py health`; FAIL blocks the commit, WARN informs
-- `ruff` — lint gate, pinned rev == the `pyproject.toml` required-version floor
-- `coherence-nudge` — **non-blocking**: registered spec changed without a version bump; always exits 0
-- `backlog-id-on-close` (commit-msg) — `[#id]` required when a commit removes a task
-- `backlog-filing-backpressure` (commit-msg) — a commit ADDING a task id needs a flush-left `kill-candidates:` line
-- `commit-message-type-prefix` (commit-msg) — type prefix ([#834])
-- `block-ff-push` (pre-push) — refuses a non-merge commit onto main's first-parent spine; **fails CLOSED**
-- `block-unanchored-push` (pre-push) — **the ADR-85 hard leg**: refuses a push to `main` whose range carries no JOURNAL anchor; **fails CLOSED**, sole escape `git push --no-verify`
+Session hooks and their wiring: `.claude/settings.json` (`SessionStart` `arm_hooks.py` arms the pre-push hooks; `Stop` backpressure, advisory). Rules: `.claude/rules/git-discipline.md` — mandatory commit after every file edit; clean working tree at session end.
 
-**Arm the two pre-push hooks once per clone:** `pre-commit install --hook-type pre-push` — `default_install_hook_types` wires them only on a fresh install; `SessionStart`'s `arm_hooks.py` then does it idempotently.
-
-Session hooks (`.claude/settings.json`, `disableAllHooks: false`): two run — `SessionStart` `arm_hooks.py`; `Stop` backpressure (advisory). PreToolUse `[#727]` deny-and-point UNWIRED 2026-09-18 (B2 lane4 rule-8; script kept, see audit above). Of nine measured-broken hooks eight are off (plugin `propose_closures` runs); the ADR-77 guard stays off ([#863]).
-
-Rules (`.claude/rules/`): `git-discipline.md` — mandatory commit after every file edit; clean working tree at session end.
-
-### Methodology-deployed roster (generated — do not hand-edit)
-
-What the deploy tool ships to a consumer, generated from `deploy/manifest-v*.yaml` and `@`-imported below (`gen_methodology_roster.py --write`; drift-gated by `roster-freshness`). §7–§9 stay hand-authored for the hub-LOCAL surface — the items with no manifest entry.
-
-@.claude/methodology-roster.md
+For deploy/manifest work — which commands, hooks and config a deployed consumer receives — read `.claude/methodology-roster.md`.
 <!-- methodology:end id=hooks-repo-roster -->
 
 ## 10. Anti-patterns specific to Claude Code in this repo
@@ -225,19 +204,14 @@ What the deploy tool ships to a consumer, generated from `deploy/manifest-v*.yam
 <!-- scope: meta -->
 > **[REPO - local]** region `recent-adrs-roster` - this repo owns these lines.
 <!-- methodology:start id=recent-adrs-roster owner=repo -->
-
-Machine-enumerated, last 5 by number (`gen_claude_rosters.py --write`). Editorial one-liners live in `docs/decisions/README.md`; the full governance list is in `ARCHITECTURE.md`.
-
-@.claude/generated/recent-adrs.md
+Last 5 ADRs by number: `.claude/generated/recent-adrs.md`; editorial one-liners in `docs/decisions/README.md`.
 <!-- methodology:end id=recent-adrs-roster -->
 
 ## 12. Section history
 <!-- scope: meta -->
 > **[REPO - local]** region `section-history` - this repo owns these lines.
 <!-- methodology:start id=section-history owner=repo -->
-
-> _Section history RELOCATED 2026-09-05 (architect inbox item 012-A): v2.72–v2.74 moved byte-identically to `docs/audits/2026-09-05-technical-claude-md-section-history-ledger.md`, which is this section's home from now on and where the next entry goes; v1.0–v2.71 were condensed to history earlier per ADR-49/65._
-> _The pointer stays and the entries do not — a changelog of this file's own past revisions is not something a session needs before it can act, which is the genre rule this file states in its own header._
+History of this file's revisions: `docs/audits/2026-09-05-technical-claude-md-section-history-ledger.md`.
 <!-- methodology:end id=section-history -->
 
 ---

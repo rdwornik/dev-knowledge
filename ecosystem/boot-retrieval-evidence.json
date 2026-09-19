@@ -1,0 +1,204 @@
+{
+ "measured_at": "2026-09-19T00:14:02+00:00",
+ "model": "claude-haiku-4-5-20251001",
+ "pointer_runs": 3,
+ "admit_at": 2,
+ "rows": [
+  {
+   "item": "hooks-roster",
+   "arm": "body",
+   "run": 0,
+   "fetched": true,
+   "canary": true
+  },
+  {
+   "item": "repo-commands",
+   "arm": "body",
+   "run": 0,
+   "fetched": true,
+   "canary": true
+  },
+  {
+   "item": "recent-adrs",
+   "arm": "body",
+   "run": 0,
+   "fetched": true,
+   "canary": true
+  },
+  {
+   "item": "methodology-roster",
+   "arm": "body",
+   "run": 0,
+   "fetched": true,
+   "canary": true
+  },
+  {
+   "item": "skills-roster",
+   "arm": "body",
+   "run": 0,
+   "fetched": true,
+   "canary": true
+  },
+  {
+   "item": "architecture-pointer",
+   "arm": "body",
+   "run": 0,
+   "fetched": true,
+   "canary": true
+  },
+  {
+   "item": "control",
+   "arm": "body",
+   "run": 0,
+   "fetched": false,
+   "canary": false
+  },
+  {
+   "item": "hooks-roster",
+   "arm": "pointer",
+   "run": 0,
+   "fetched": true,
+   "canary": false
+  },
+  {
+   "item": "hooks-roster",
+   "arm": "pointer",
+   "run": 1,
+   "fetched": true,
+   "canary": true
+  },
+  {
+   "item": "hooks-roster",
+   "arm": "pointer",
+   "run": 2,
+   "fetched": true,
+   "canary": true
+  },
+  {
+   "item": "repo-commands",
+   "arm": "pointer",
+   "run": 0,
+   "fetched": true,
+   "canary": true
+  },
+  {
+   "item": "repo-commands",
+   "arm": "pointer",
+   "run": 1,
+   "fetched": true,
+   "canary": true
+  },
+  {
+   "item": "repo-commands",
+   "arm": "pointer",
+   "run": 2,
+   "fetched": true,
+   "canary": true
+  },
+  {
+   "item": "recent-adrs",
+   "arm": "pointer",
+   "run": 0,
+   "fetched": true,
+   "canary": true
+  },
+  {
+   "item": "recent-adrs",
+   "arm": "pointer",
+   "run": 1,
+   "fetched": true,
+   "canary": true
+  },
+  {
+   "item": "recent-adrs",
+   "arm": "pointer",
+   "run": 2,
+   "fetched": true,
+   "canary": true
+  },
+  {
+   "item": "methodology-roster",
+   "arm": "pointer",
+   "run": 0,
+   "fetched": true,
+   "canary": true
+  },
+  {
+   "item": "methodology-roster",
+   "arm": "pointer",
+   "run": 1,
+   "fetched": true,
+   "canary": true
+  },
+  {
+   "item": "methodology-roster",
+   "arm": "pointer",
+   "run": 2,
+   "fetched": true,
+   "canary": true
+  },
+  {
+   "item": "skills-roster",
+   "arm": "pointer",
+   "run": 0,
+   "fetched": true,
+   "canary": true
+  },
+  {
+   "item": "skills-roster",
+   "arm": "pointer",
+   "run": 1,
+   "fetched": true,
+   "canary": true
+  },
+  {
+   "item": "skills-roster",
+   "arm": "pointer",
+   "run": 2,
+   "fetched": true,
+   "canary": true
+  },
+  {
+   "item": "architecture-pointer",
+   "arm": "pointer",
+   "run": 0,
+   "fetched": true,
+   "canary": true
+  },
+  {
+   "item": "architecture-pointer",
+   "arm": "pointer",
+   "run": 1,
+   "fetched": true,
+   "canary": true
+  },
+  {
+   "item": "architecture-pointer",
+   "arm": "pointer",
+   "run": 2,
+   "fetched": true,
+   "canary": true
+  },
+  {
+   "item": "control",
+   "arm": "pointer",
+   "run": 0,
+   "fetched": false,
+   "canary": false
+  },
+  {
+   "item": "control",
+   "arm": "pointer",
+   "run": 1,
+   "fetched": false,
+   "canary": false
+  },
+  {
+   "item": "control",
+   "arm": "pointer",
+   "run": 2,
+   "fetched": false,
+   "canary": false
+  }
+ ]
+}
