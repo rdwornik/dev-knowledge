@@ -1,11 +1,31 @@
 #!/usr/bin/env python
-"""dispatch.py -- launch ONE lane with a TOKEN CAP that is enforced, not requested.
+"""dispatch.py -- PLAN one lane and GOVERN it under a TOKEN CAP that is enforced, not requested.
 
 WHY. Four sessions were ordered 180k tokens and used ~845k. A budget written into a prompt caps
-nothing: the session has no instrument for its own spend. The cap therefore lives HERE, at the
-launcher, which is the one place that can see the spend from outside and can stop the lane.
+nothing: the session has no instrument for its own spend. The cap therefore lives HERE, in the
+governor, which is the one place that can see the spend from outside and can stop the lane.
 
-THIS IS A MOVE PLUS A LANGUAGE REWRITE, not a new design. Prior art, read before writing:
+THE SPLIT (wave 3, operator ruling 2026-09-19, protocols/BUILD-LIST.md "Dispatch / Layer 2"):
+THE HUB SHIPS THE CODE, THE CALLER RUNS IT. CLAUDE.md section 5 rule 4 says Layer 2 never
+executes -- no script drives state in a child repo -- and a launcher that starts a
+workspace-writing lane in whatever repo invokes it is exactly that. So this module NEVER spawns a
+lane. It has two verbs, and a thin caller-side shim (`templates/dispatch-shim.ps1`) does the
+spawning between them, from the CALLER's repo root:
+
+  plan     contract -> a JSON plan (argv, env delta, model/effort FROM THE CONTRACT); every
+           pre-launch refusal fires here, before anything exists to clean up
+  govern   lane id  -> bind the lane's own usage by SESSION ID, poll it, STOP the lane past the
+           cap, and witness that a finished lane committed something
+
+`claude stop`, `claude agents` and `git` are control-plane calls this module still makes; none of
+them starts a lane.
+
+THE CAP CANNOT BE LEFT OFF. A launch whose usage cannot be bound, or that runs over its cap, is
+REFUSED and its lane STOPPED -- never left running and reported as ungoverned. (Before this split
+a default `--bg` launch read no usage without `--slug-dir` and went UNGOVERNED after 8 polls: it
+failed loud but did not cap.)
+
+THIS STARTED AS A MOVE PLUS A LANGUAGE REWRITE, not a new design. Prior art, read before writing:
 
   win-tooling/scripts/dev-terminals/bin/dispatch.ps1        `dispatch <file>` entry (77 lines)
   win-tooling/scripts/dispatch/Invoke-Dispatch.ps1          contract flow, Assert-ClaudeCommand (565)
@@ -23,27 +43,29 @@ WHAT CHANGED ON PURPOSE, and why it is not a new design:
   * The head program is chosen by `--provider`, never by a contract. `Assert-ClaudeCommand` refused
     every head but `claude` because a `## Dispatch` block could name the program; here the block is
     not read at all, so the refusal is structural and `codex` is admitted as a provider.
-  * The child environment is built as a dict and handed to the child, so the PS `finally` that
-    restored ANTHROPIC_BASE_URL has nothing to restore: the operator's shell is never touched.
+  * MODEL AND EFFORT COME FROM THE CONTRACT's `| Model | Mode | Effort |` table, or an explicit
+    flag -- never a default (`[#717]`). A contract with neither is REFUSED.
+  * The child environment is a dict delta in the plan, so the PS `finally` that restored
+    ANTHROPIC_BASE_URL has nothing to restore: the operator's shell is never touched.
   * No `Invoke-Expression`, no shell string: every command is an argv list.
 
 WHAT DID NOT MOVE (left in win-tooling; see the audit for the list and the shim content):
   the cloud (Anthropic-hosted) substrate, harvest, Start-DispatchAfter, the deep-code wrapper,
-  the Windows User-scope registry read of CLAUDE_PROMPTS_DIR, and Invoke-Dispatch's derived-line
-  fallback (a Model/Effort table + filename). None of those is on the cap's path.
+  and Invoke-Dispatch's derived-line fallback. None of those is on the cap's path.
 
 THE CAP, and its honest limits:
   * REQUIRED, no default. Counts input + output + cache-write; cache READS are excluded unless
     `--count-cache-reads` (they run to millions on a 100k context and would make any cap void).
-  * `claude --bg` lanes: after launch a governor polls the lane's own transcript (via
-    `lane_cost.lane_usage`, minus the baseline read before launch) and runs `claude stop <id>` past
-    the cap. It is a POLL: a lane can overshoot by one interval of work. Killing this process
-    (Ctrl-C) leaves the lane running UNCAPPED -- said aloud when it happens.
-  * codex and codespace lanes are STREAM-metered: stdout is parsed line by line and the process
-    terminated past the cap. codex reports usage only in `turn.completed`, so it is POST-HOC PER
-    TURN: one over-cap turn completes before the meter can act (no bound on a single turn). Anthropic stream-json reports thinking tokens only in the final
-    `result` event, so a thinking-heavy turn can overshoot until it lands.
-  * A lane whose id or transcript cannot be found is reported UNGOVERNED (exit 4), never "under cap".
+  * `claude --bg` lanes: `govern` reads the lane's session id and cwd from `claude agents --json`
+    and reads that ONE session's transcript by id (`lane_cost.seat_usage`) -- no slug matching, no
+    `--slug-dir`. It runs `claude stop <id>` past the cap. It is a POLL: a lane can overshoot by
+    one interval of work, and by the message in flight (a cap of 5 stopped a lane at 22,471).
+  * Unobservable spend is not "under cap": a lane that cannot be bound, or whose transcript stays
+    unreadable, is STOPPED and the exit code is a refusal. Ctrl-C stops the lane too.
+  * Stream-metered lanes (codex, `claude -p`) have the metering primitive here (`meter_lines`) but
+    NO caller-side spawner yet -- the shim refuses them. codex reports usage only in
+    `turn.completed`, so it is POST-HOC PER TURN; Anthropic stream-json reports thinking tokens
+    only in the final `result` event.
 """
 from __future__ import annotations
 
@@ -56,7 +78,7 @@ import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Mapping, Optional, Sequence
+from typing import Callable, Iterable, Mapping, Optional, Sequence
 
 import click
 
@@ -69,7 +91,10 @@ logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("dispatch")
 
 EXIT_CAP_EXCEEDED = 3
-EXIT_UNGOVERNED = 4
+EXIT_UNGOVERNED = 4       # the cap was NOT enforced and the lane may still be running
+EXIT_REFUSED = 5          # usage could not be bound: the lane was STOPPED, not left running
+EXIT_NO_COMMIT = 6        # finished under cap but committed nothing -- FAILED, not DONE
+EXIT_UNWITNESSED = 7      # finished under cap; whether it committed could not be established
 
 EFFORTS = {"l": "low", "low": "low", "m": "medium", "med": "medium", "medium": "medium",
            "h": "high", "high": "high", "x": "xhigh", "xhigh": "xhigh", "max": "max"}
@@ -108,14 +133,27 @@ class Verdict:
     ungoverned: str = ""      # why the cap could not be enforced; "" when it could
     stop_failed: bool = False
     child_exit: int = 0       # a streamed child's own non-zero exit, never masked as success
+    refused: bool = False     # the lane was unobservable and was STOPPED for it
 
     @property
     def exit_code(self) -> int:
-        if self.stop_failed or self.ungoverned:
+        if self.stop_failed:
+            return EXIT_UNGOVERNED
+        if self.refused:
+            return EXIT_REFUSED
+        if self.ungoverned:
             return EXIT_UNGOVERNED
         if self.exceeded:
             return EXIT_CAP_EXCEEDED
         return self.child_exit
+
+
+def _refuse(why: str, used: int, cap: int, polls: int, stop: Callable[[], Optional[bool]]) -> Verdict:
+    """An unobservable lane is STOPPED. Leaving it running and saying so is the failure this
+    launcher exists to end: a report is not a cap. If the stop itself fails the lane may still be
+    running, and that is the one case reported as UNGOVERNED."""
+    failed = stop() is False
+    return Verdict(False, used, cap, polls, ungoverned=why, stop_failed=failed, refused=not failed)
 
 
 def govern(*, cap: int, read_usage: Callable[[], Optional["lc.TokenUsage"]],
@@ -126,10 +164,11 @@ def govern(*, cap: int, read_usage: Callable[[], Optional["lc.TokenUsage"]],
     """Poll a running lane; STOP it the first time it is past `cap`.
 
     `read_usage` returns None when the spend cannot be observed (no transcript yet / at all):
-    that is UNGOVERNED after `blind_polls` in a row, never zero spend. `stop` returning False
-    is a stop that did not happen. `alive` raising GovernorBlind is an unreadable status probe,
-    not a finished lane. The lane is not killed for being unobservable -- that would destroy work
-    to report a measurement gap -- it is reported, exit 4."""
+    after `blind_polls` in a row the lane is STOPPED and REFUSED, never assumed to be at zero
+    spend and never left running. `stop` returning False is a stop that did not happen.
+    `alive` raising GovernorBlind is an unreadable status probe, not a finished lane: the lane
+    is stopped for that too. A lane that ENDS while its usage was unreadable has nothing left to
+    stop, so it is reported UNGOVERNED (its final spend was never observed)."""
     validate_cap(cap)
     polls, used, blind = 0, 0, 0
     while True:
@@ -137,8 +176,7 @@ def govern(*, cap: int, read_usage: Callable[[], Optional["lc.TokenUsage"]],
         if usage is None:
             blind += 1
             if blind >= blind_polls:
-                return Verdict(False, used, cap, polls + 1,
-                               ungoverned=f"no readable usage for {blind} polls")
+                return _refuse(f"no readable usage for {blind} polls", used, cap, polls + 1, stop)
         else:
             blind = 0
             used = capped_tokens(usage, count_cache_reads)
@@ -148,7 +186,7 @@ def govern(*, cap: int, read_usage: Callable[[], Optional["lc.TokenUsage"]],
         try:
             done = not alive()
         except GovernorBlind as exc:
-            return Verdict(False, used, cap, polls, ungoverned=str(exc))
+            return _refuse(str(exc), used, cap, polls, stop)
         if (max_polls is not None and polls >= max_polls) or done:
             # the last read was blind: the final spend was never observed -- not "under cap"
             return Verdict(False, used, cap, polls,
@@ -230,9 +268,30 @@ def child_env(provider: str, parent: Mapping[str, str],
 
 # --- contract + branch guards: ported from Start-DispatchLane ---------------------------------
 
+def windows_user_env(name: str) -> Optional[str]:
+    """The USER-scope value of an environment variable (HKCU\\Environment), or None.
+
+    The process copy goes stale: a session started before the value was set, or before the
+    authority drive changed, carries the old one for its whole life. Get-DispatchPromptsDir reads
+    the User scope first for that reason. None off Windows or when the value is absent."""
+    if os.name != "nt":
+        return None
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as key:
+            value, _kind = winreg.QueryValueEx(key, name)
+    except (ImportError, OSError):
+        return None
+    return os.path.expandvars(str(value))
+
+
 def prompts_dir(environ: Mapping[str, str] = os.environ, home: Optional[str] = None,
-                root_exists: Callable[[str], bool] = os.path.exists) -> Path:
-    raw = (environ.get("CLAUDE_PROMPTS_DIR") or "").strip()
+                root_exists: Callable[[str], bool] = os.path.exists,
+                user_scope: Callable[[str], Optional[str]] = windows_user_env) -> Path:
+    """Precedence, as Get-DispatchPromptsDir has it: the USER-scope value, then the process copy,
+    then ~/Downloads. A whitespace-only value is unset."""
+    raw = ((user_scope("CLAUDE_PROMPTS_DIR") or "").strip()
+           or (environ.get("CLAUDE_PROMPTS_DIR") or "").strip())
     if raw:
         root = Path(raw).anchor
         if root and not root_exists(root):
@@ -261,9 +320,91 @@ def branch_guard(slug: str, branch_exists: Callable[[str], bool]) -> Optional[st
     return None
 
 
+def _git(*args: str) -> Optional["subprocess.CompletedProcess"]:
+    """A bounded, UTF-8 git call in the CALLER's repo; None when it could not run at all."""
+    try:
+        return subprocess.run(["git", *args], capture_output=True, text=True, encoding="utf-8",
+                              errors="replace", timeout=30)
+    except (subprocess.TimeoutExpired, OSError):
+        return None
+
+
 def _git_branch_exists(branch: str) -> bool:
-    return subprocess.run(["git", "show-ref", "--verify", "--quiet", f"refs/heads/{branch}"],
-                          capture_output=True).returncode == 0
+    done = _git("show-ref", "--verify", "--quiet", f"refs/heads/{branch}")
+    return done is not None and done.returncode == 0
+
+
+def commit_witness(slug: str) -> tuple[str, str]:
+    """DONE MEANS A COMMIT: (`DONE`|`FAILED`|`UNWITNESSED`, reason) for lane `worktree-<slug>`.
+
+    A lane that ran cleanly and committed nothing used to report DONE (PLAYBOOK Ch8 "DONE means a
+    commit on origin"): a clean exit says the SESSION ended well, not that it did any work. The
+    witness is the branch's own start point -- the oldest reflog entry, which is where the lane's
+    worktree was cut -- against its tip, so it needs no baseline captured before launch.
+
+    Three outcomes, not two. An ESTABLISHED absence (no branch, or a tip equal to its start) is
+    FAILED; a question git could not answer is UNWITNESSED, because reporting a transient failure as
+    "the lane did nothing" claims a failure nothing established."""
+    ref = f"refs/heads/worktree-{slug}"
+    tip = _git("rev-parse", "--verify", "--quiet", ref)
+    if tip is None:
+        return "UNWITNESSED", "git could not be run"
+    if tip.returncode == 1:
+        return "FAILED", f"no commit: branch worktree-{slug} does not exist"
+    if tip.returncode != 0:
+        return "UNWITNESSED", f"git could not read {ref}: {tip.stderr.strip()[:120]}"
+    log = _git("reflog", "show", "--format=%H", ref)
+    starts = log.stdout.split() if log is not None and log.returncode == 0 else []
+    if not starts:
+        return "UNWITNESSED", f"{ref} has no reflog to take its start point from"
+    counted = _git("rev-list", "--count", f"{starts[-1]}..{tip.stdout.strip()}")
+    if counted is None or counted.returncode != 0 or not counted.stdout.strip().isdigit():
+        return "UNWITNESSED", "git could not count the branch's commits"
+    n = int(counted.stdout.strip())
+    if n == 0:
+        return "FAILED", f"no commit on worktree-{slug} since its worktree was cut"
+    return "DONE", f"{n} commit(s) on worktree-{slug}"
+
+
+# --- the contract's own model and effort ([#717]: never a default) --------------------------------
+
+_TABLE_HEAD = re.compile(r"^\|\s*Model\s*\|\s*Mode\s*\|\s*Effort\s*\|\s*$", re.IGNORECASE)
+_MODEL = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._\[\]-]*$")
+
+
+def parse_contract_model_effort(text: str) -> tuple[str, str]:
+    """`(model, effort)` from the contract's `| Model | Mode | Effort |` table.
+
+    The `## Dispatch` block is deliberately NOT read: it is the arbitrary-execution surface
+    `Assert-ClaudeCommand` existed to fence. A contract with no parseable table, an empty model,
+    or an effort outside the enum is REFUSED -- the alternative is a default, and a default
+    silently re-decides the most expensive constant on the line."""
+    lines = text.splitlines()
+    for i, line in enumerate(lines):
+        if not _TABLE_HEAD.match(line.strip()):
+            continue
+        rows = [ln.strip() for ln in lines[i + 1:i + 4] if ln.strip().startswith("|")]
+        values = [r for r in rows if not set(r) <= set("|-: ")]
+        cells = [c.strip().strip("`") for c in values[0].strip("|").split("|")] if values else []
+        if len(cells) != 3:
+            break
+        model, _mode, effort = cells
+        if not _MODEL.match(model):
+            raise DispatchRefused(f"the contract's Model cell is {model!r} -- not a model name. "
+                                  "Refusing rather than defaulting to one.")
+        if EFFORTS.get(effort.lower()) is None:
+            raise DispatchRefused(f"the contract's Effort cell is {effort!r}. Valid: low, medium, "
+                                  "high, xhigh, max. Refusing rather than defaulting.")
+        return model, effort.lower()
+    raise DispatchRefused("no parseable `| Model | Mode | Effort |` table in the contract, and no "
+                          "--model/--effort given. Refusing rather than defaulting to a model "
+                          "([#717]).")
+
+
+def slug_from_contract(path: Path) -> str:
+    """`LANE-<slug>.md` -> `<slug>`; '' when the file name does not carry one."""
+    found = re.match(r"^LANE-(.+)\.md$", Path(path).name, re.IGNORECASE)
+    return found.group(1) if found else ""
 
 
 # --- the plan ------------------------------------------------------------------------------
@@ -352,36 +493,21 @@ def usage_from_stream_line(line: str, seen: set[str]) -> Optional["lc.TokenUsage
     return None
 
 
-def _terminate(proc: "subprocess.Popen", grace: float = 10.0) -> bool:
-    """terminate, then kill, and VERIFY the child is gone; False when it survived both."""
-    proc.terminate()
-    try:
-        proc.wait(timeout=grace)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        try:
-            proc.wait(timeout=grace)
-        except subprocess.TimeoutExpired:
-            pass
-    return proc.poll() is not None
+def meter_lines(lines: Iterable[str], cap: int, terminate: Callable[[], bool],
+                count_cache_reads: bool = False) -> Verdict:
+    """Meter a lane's stdout as it arrives; TERMINATE it the moment it is past `cap`.
 
-
-def run_streamed(argv: Sequence[str], env: Mapping[str, str], cap: int,
-                 count_cache_reads: bool = False, cwd: Optional[str] = None) -> Verdict:
-    """Run `argv`, parse its stdout as it arrives, terminate it the moment it is past `cap`."""
-    try:
-        proc = subprocess.Popen(list(argv), env=dict(env), cwd=cwd, stdout=subprocess.PIPE,
-                                stdin=subprocess.DEVNULL, text=True, encoding="utf-8", errors="replace")
-    except OSError as exc:  # absent/unrunnable launcher: a refusal, not a traceback
-        raise DispatchRefused(f"cannot start {argv[0]!r}: {exc}") from exc
+    THE HUB METERS, THE CALLER OWNS THE PROCESS: `terminate` is the caller's callback (it returns
+    True when the child is verified gone), because this module starts no lane and so cannot stop
+    one it does not own. There is no caller-side spawner for stream lanes yet (the shim refuses
+    them) -- this is the metering half, kept tested so it does not have to be re-derived."""
     total, seen, polls, observed = lc.TokenUsage(), set(), 0, False
-    assert proc.stdout is not None
-    for line in proc.stdout:
+    for line in lines:
         polls += 1
         try:
             usage = usage_from_stream_line(line, seen)
         except (ValueError, TypeError, OverflowError) as exc:  # not a (finite) number: stop, never abandon
-            stopped = _terminate(proc)
+            stopped = terminate()
             return Verdict(False, capped_tokens(total, count_cache_reads), cap, polls,
                            ungoverned=f"malformed usage in the stream ({exc}); child stopped",
                            stop_failed=not stopped)
@@ -390,22 +516,28 @@ def run_streamed(argv: Sequence[str], env: Mapping[str, str], cap: int,
             total = total + usage
         used = capped_tokens(total, count_cache_reads)
         if used > cap:
-            return Verdict(True, used, cap, polls, stop_failed=not _terminate(proc))
-    code = proc.wait()
-    blind = "" if observed or code != 0 else "the stream carried no parseable usage event"
-    return Verdict(False, capped_tokens(total, count_cache_reads), cap, polls,
-                   ungoverned=blind, child_exit=code)
+            return Verdict(True, used, cap, polls, stop_failed=not terminate())
+    blind = "" if observed else "the stream carried no parseable usage event"
+    return Verdict(False, capped_tokens(total, count_cache_reads), cap, polls, ungoverned=blind)
 
 
-# --- CLI ---------------------------------------------------------------------------------
+# --- the control plane: binding, stopping, liveness (none of it starts a lane) ---------------
 
-_ID = re.compile(r"\b([0-9a-f]{8})\b")
+_ENDED = frozenset({"done", "stopped", "failed", "error", "exited", "cancelled", "canceled"})
+
+
+@dataclass(frozen=True)
+class LaneBinding:
+    """A `--bg` lane's own identity: the session id its transcript is filed under, and its cwd."""
+    session_id: str
+    cwd: str
 
 
 def _control(argv: list[str]) -> Optional["subprocess.CompletedProcess"]:
     """A bounded control-plane call; None when it hung or could not run."""
     try:
-        return subprocess.run(argv, capture_output=True, text=True, timeout=30)
+        return subprocess.run(argv, capture_output=True, text=True, encoding="utf-8",
+                              errors="replace", timeout=30)
     except (subprocess.TimeoutExpired, OSError):
         return None
 
@@ -415,25 +547,61 @@ def stop_lane(lane_id: str) -> bool:
     return done is not None and done.returncode == 0
 
 
-def lane_alive(lane_id: str) -> bool:
+def _agents() -> list[dict]:
+    """`claude agents --json` as a list of records; GovernorBlind when it cannot be read."""
     listing = _control(["claude", "agents", "--json"])
     if listing is None or listing.returncode != 0 or not listing.stdout.strip():
         raise GovernorBlind("`claude agents --json` failed, hung or was empty")
-    return lane_id in listing.stdout
+    try:
+        data = json.loads(listing.stdout)
+    except ValueError as exc:
+        raise GovernorBlind(f"`claude agents --json` was not JSON ({exc})") from exc
+    if not isinstance(data, list):
+        raise GovernorBlind("`claude agents --json` was not a list")
+    return [entry for entry in data if isinstance(entry, dict)]
 
 
-def _lane_reader(slug: str, baseline: "lc.TokenUsage",
-                 slug_dirs: Sequence[str] = ()) -> Callable[[], Optional["lc.TokenUsage"]]:
+def _find_agent(agents: Sequence[dict], lane_id: str) -> Optional[dict]:
+    """The record for `lane_id` -- its short id, or a prefix of its session id."""
+    for entry in agents:
+        if str(entry.get("id") or "") == lane_id or (
+                lane_id and str(entry.get("sessionId") or "").startswith(lane_id)):
+            return entry
+    return None
+
+
+def bind_lane(lane_id: str) -> Optional[LaneBinding]:
+    """Bind a launched lane to ITS OWN session id, from the listing -- no `--slug-dir`, no slug.
+
+    A `--bg` lane files its transcript under a directory named for its cwd, and the launching
+    session's directory is a different one; slug matching had to guess between them (the move
+    audit's one finding only partly closed). The listing states the session id outright, and a
+    transcript is `<session-id>.jsonl` in whichever directory it landed. None when the lane is not
+    listed or carries no session id -- unbound, which the caller must treat as REFUSED."""
+    try:
+        entry = _find_agent(_agents(), lane_id)
+    except GovernorBlind:
+        return None
+    session_id = str((entry or {}).get("sessionId") or "")
+    if not session_id:
+        return None
+    return LaneBinding(session_id, str((entry or {}).get("cwd") or ""))
+
+
+def lane_alive(lane_id: str) -> bool:
+    """False once the lane has ENDED. A finished `--bg` lane stays LISTED with state `done`, so
+    "is it in the listing" is not liveness. Absent from the listing is ended too."""
+    entry = _find_agent(_agents(), lane_id)
+    return entry is not None and str(entry.get("state") or "").lower() not in _ENDED
+
+
+def _session_reader(session_id: str,
+                    sessions_root: Optional[Path] = None) -> Callable[[], Optional["lc.TokenUsage"]]:
     def read() -> Optional["lc.TokenUsage"]:
-        models = lc.lane_usage(slug, slug_dirs=tuple(slug_dirs) or None)
+        models = lc.seat_usage(session_id, sessions_root)
         if not models:  # no transcript found: unobservable, NOT zero
             return None
-        total = _sum(models)
-        return lc.TokenUsage(
-            input_tokens=max(total.input_tokens - baseline.input_tokens, 0),
-            output_tokens=max(total.output_tokens - baseline.output_tokens, 0),
-            cache_write_tokens=max(total.cache_write_tokens - baseline.cache_write_tokens, 0),
-            cache_read_tokens=max(total.cache_read_tokens - baseline.cache_read_tokens, 0))
+        return _sum(models)
     return read
 
 
@@ -444,95 +612,121 @@ def _sum(models: Mapping[str, "lc.TokenUsage"]) -> "lc.TokenUsage":
     return total
 
 
+# --- CLI ---------------------------------------------------------------------------------
+
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 def cli() -> None:
-    """Launch a lane under an enforced token cap."""
+    """Plan a lane and govern it under an enforced token cap. Never spawns one."""
 
 
-@cli.command("launch")
+@cli.command("plan")
 @click.argument("contract")
-@click.option("--slug", required=True, help="Lane slug; the worktree is worktree-<slug>.")
+@click.option("--slug", default="", help="Lane slug; default: LANE-<slug>.md from the file name.")
 @click.option("--provider", default="anthropic", show_default=True)
-@click.option("--model", default="opus", show_default=True)
-@click.option("--effort", default="medium", show_default=True)
+@click.option("--model", default="", help="Overrides the contract's Model cell. No default.")
+@click.option("--effort", default="", help="Overrides the contract's Effort cell. No default.")
 @click.option("--substrate", type=click.Choice(SUBSTRATES), default="local", show_default=True)
 @click.option("--token-cap", "token_cap", type=int, required=True,
               help="REQUIRED. Tokens (input+output+cache-write) after which the lane is stopped.")
-@click.option("--count-cache-reads", is_flag=True, help="Also count cache reads against the cap.")
 @click.option("--repo", default="", help="owner/name; the codespace substrate only.")
 @click.option("--branch", default="main", show_default=True)
-@click.option("--slug-dir", "slug_dirs", multiple=True,
-              help="Session-store directory holding the lane's transcript when it is not filed "
-                   "under the slug (a --bg lane can be filed under its launcher's directory).")
-@click.option("--interval", type=float, default=15.0, show_default=True)
 @click.option("--secrets-file", type=click.Path(path_type=Path),
               default=Path.home() / "Documents" / ".secrets" / ".env", show_default=True)
-@click.option("--dry-run", is_flag=True, help="Print the plan and stop.")
-def launch(contract: str, slug: str, provider: str, model: str, effort: str, substrate: str,
-           token_cap: int, count_cache_reads: bool, repo: str, branch: str, slug_dirs: tuple[str, ...],
-           interval: float,
-           secrets_file: Path, dry_run: bool) -> None:
+@click.option("--emit-env", is_flag=True,
+              help="Include the env delta's VALUES (the shim passes this; a human should not).")
+def plan_cmd(contract: str, slug: str, provider: str, model: str, effort: str, substrate: str,
+             token_cap: int, repo: str, branch: str, secrets_file: Path, emit_env: bool) -> None:
+    """Print the launch plan as JSON. Every pre-launch refusal fires here."""
     validate_cap(token_cap)
     # the prompts dir is resolved LAZILY: an absolute contract must not be refused because an
     # unrelated authority drive is unmounted (the PS comment in Invoke-Dispatch.ps1 says why)
     path = (Path(contract).resolve() if Path(contract).is_file()
             else resolve_contract(contract, prompts_dir()))
+    if not (model and effort):
+        from_contract = parse_contract_model_effort(path.read_text(encoding="utf-8", errors="replace"))
+        model, effort = model or from_contract[0], effort or from_contract[1]
+    slug = slug or slug_from_contract(path)
+    if not slug:
+        raise DispatchRefused(f"no lane slug: {path.name!r} is not LANE-<slug>.md and --slug was "
+                              "not given")
     prompt = f"Read and execute the frozen contract at {path}"
-    plan = build_plan(provider, model, slug, effort, prompt,
+    lane = build_plan(provider, model, slug, effort, prompt,
                       streamed=(substrate == "codespace" and _provider(provider).head == "claude"))
+    steps: list[dict] = []
     if substrate == "codespace":
         if not repo:
             raise DispatchRefused("--repo owner/name is required for the codespace substrate")
-        head = [plan.argv[0]] + plan.argv[1:]
-        steps = codespace_plan(repo, branch, slug, path, head)
-        click.echo("[dispatch] substrate=codespace machine=basicLinux32gb idle-timeout=30m "
-                   "retention=1d (a STOPPED codespace still bills storage; this never deletes)")
-        for s in steps:
-            click.echo(f"[dispatch]   {s.note}: {' '.join(s.argv)}")
-    label = " (post-hoc per completed turn)" if plan.argv[0] == "codex" else ""
-    click.echo(f"[dispatch] provider={provider} model={model} effort={EFFORTS.get(effort.lower())} "
-               f"token-cap={token_cap} metering={plan.metering}{label}")
-    click.echo(f"[dispatch] {' '.join(plan.argv[:-1])}")
-    click.echo(f"[dispatch] prompt: {prompt}")
-    if dry_run:
-        return
-    if substrate == "codespace":
-        raise DispatchRefused("live codespace execution is not verified in this build (it needs "
-                              "gh auth and bills per minute); run with --dry-run and see the audit")
-    env = child_env(provider, os.environ, read_secrets(secrets_file))
+        steps = [{"argv": s.argv, "note": s.note} for s in codespace_plan(repo, branch, slug, path, lane.argv)]
     if (skip := branch_guard(slug, _git_branch_exists)) is not None:
         raise DispatchRefused(skip)
-    if plan.metering == "stream":
-        verdict = run_streamed(plan.argv, env, token_cap, count_cache_reads)
-        _report(verdict)
-        sys.exit(verdict.exit_code)
-    baseline = _sum(lc.lane_usage(slug, slug_dirs=slug_dirs or None))
-    started = subprocess.run(plan.argv, env=env, capture_output=True, text=True)
-    click.echo(started.stdout.strip())
-    if started.returncode != 0:
-        raise DispatchRefused(f"claude exited {started.returncode}: {started.stderr.strip()[:300]}")
-    found = _ID.search(started.stdout)
-    if not found:
-        click.echo("[dispatch] UNGOVERNED -- could not read the lane id from `claude --bg`; the cap "
-                   "is NOT enforced. Stop the lane by hand if it runs long.", err=True)
-        sys.exit(EXIT_UNGOVERNED)
-    lane_id = found.group(1)
+    env = child_env(provider, os.environ, read_secrets(secrets_file))
+    env_set = {k: v for k, v in env.items() if os.environ.get(k) != v}
+    click.echo(json.dumps({
+        "schema": 1, "slug": slug, "provider": provider, "model": model,
+        "effort": EFFORTS[effort.lower()], "token_cap": token_cap, "substrate": substrate,
+        "metering": lane.metering, "argv": lane.argv, "prompt": prompt, "contract": str(path),
+        "env_set": env_set if emit_env else {k: "<withheld>" for k in env_set},
+        "env_unset": [k for k in os.environ if k not in env], "steps": steps}))
 
-    click.echo(f"[dispatch] governing lane {lane_id} -- cap {token_cap}; Ctrl-C leaves it UNCAPPED")
+
+@cli.command("govern")
+@click.argument("lane_id")
+@click.option("--slug", required=True, help="Lane slug; its branch is worktree-<slug>.")
+@click.option("--token-cap", "token_cap", type=int, required=True,
+              help="REQUIRED. Tokens (input+output+cache-write) after which the lane is stopped.")
+@click.option("--count-cache-reads", is_flag=True, help="Also count cache reads against the cap.")
+@click.option("--interval", type=float, default=15.0, show_default=True)
+@click.option("--bind-polls", type=int, default=8, show_default=True,
+              help="Attempts to find the lane's session id before it is REFUSED and stopped.")
+@click.option("--sessions-root", type=click.Path(path_type=Path), default=None, hidden=True)
+def govern_cmd(lane_id: str, slug: str, token_cap: int, count_cache_reads: bool, interval: float,
+               bind_polls: int, sessions_root: Optional[Path]) -> None:
+    """Govern a launched `--bg` lane: bind, poll, stop past the cap, witness a commit.
+
+    Run from the CALLER's repo root (the commit witness reads its branches)."""
+    validate_cap(token_cap)
     try:
-        verdict = govern(cap=token_cap, read_usage=_lane_reader(slug, baseline, slug_dirs),
-                         stop=lambda: stop_lane(lane_id), interval=interval,
+        binding = None
+        for attempt in range(max(bind_polls, 1)):
+            binding = bind_lane(lane_id)
+            if binding is not None:
+                break
+            if attempt + 1 < bind_polls:
+                time.sleep(min(interval, 3.0))
+        if binding is None:
+            _finish(_refuse(f"lane {lane_id} could not be bound to a session id after "
+                            f"{bind_polls} attempt(s)", 0, token_cap, 0, lambda: stop_lane(lane_id)),
+                    slug)
+        click.echo(f"[dispatch] governing lane {lane_id} (session {binding.session_id}) -- cap "
+                   f"{token_cap}", err=True)
+        verdict = govern(cap=token_cap, read_usage=_session_reader(binding.session_id, sessions_root),
+                         stop=lambda: stop_lane(lane_id), sleep=time.sleep, interval=interval,
                          alive=lambda: lane_alive(lane_id), count_cache_reads=count_cache_reads)
     except KeyboardInterrupt:
-        click.echo(f"[dispatch] governor interrupted -- lane {lane_id} is now UNCAPPED", err=True)
-        sys.exit(EXIT_UNGOVERNED)
+        # a governor that quits leaves the lane uncapped: stop it, do not just say so
+        stopped = stop_lane(lane_id)
+        click.echo(f"[dispatch] governor interrupted -- lane {lane_id} "
+                   f"{'STOPPED' if stopped else 'may STILL BE RUNNING, uncapped'}", err=True)
+        sys.exit(EXIT_REFUSED if stopped else EXIT_UNGOVERNED)
+    _finish(verdict, slug)
+
+
+def _finish(verdict: Verdict, slug: str) -> None:
+    """Report the verdict; a lane that finished under cap must also have committed. Never returns."""
     _report(verdict)
-    sys.exit(verdict.exit_code)
+    code = verdict.exit_code
+    if code == 0:
+        outcome, reason = commit_witness(slug)
+        click.echo(f"[dispatch] {outcome}: {reason}")
+        code = {"DONE": 0, "FAILED": EXIT_NO_COMMIT}.get(outcome, EXIT_UNWITNESSED)
+    sys.exit(code)
 
 
 def _report(verdict: Verdict) -> None:
     if verdict.stop_failed:
-        state = "CAP EXCEEDED but `claude stop` FAILED -- the lane may still be running"
+        state = "CAP NOT ENFORCED -- `claude stop` FAILED; the lane may still be running"
+    elif verdict.refused:
+        state = f"REFUSED ({verdict.ungoverned}) -- the lane was STOPPED"
     elif verdict.ungoverned:
         state = f"UNGOVERNED ({verdict.ungoverned}) -- the cap was NOT enforced"
     elif verdict.exceeded:
