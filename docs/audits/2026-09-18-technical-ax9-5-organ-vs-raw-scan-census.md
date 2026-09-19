@@ -39,3 +39,12 @@ AX9-5's premise **is supported by this sample**: raw scans (grep, rg, find, etc.
 
 **Confidence:** Medium. This is a 10-session sample of 449 available; the ratio is stable across sampled sessions (ranging from 3.5:1 to 168:1, median ~4.9:1), but a larger exhaustive audit or time-series trend would strengthen the claim. The grepped text count is approximate and does not distinguish between live invocations vs. mentions in prose/error output, so the absolute numbers should not be treated as exact. The directional conclusion — that raw scans dominate — is robust to these limits.
 
+
+---
+
+## AMENDMENT 1 — 2026-09-19: the consumer this file did not declare at landing
+
+> **In-file amendment marker** (CLAUDE.md §5 rule 3). Purely additive metadata; nothing above
+> is changed. Added at the 2026-09-19 pre-handoff repair arc, where `consumer_at_landing` refused it.
+
+**Consumer:** `[#694]` — the row that owns AX9-5. Its body carries "AX9-5 ADDS A METRIC CLAUSE TO THIS ROW" (raw-search calls versus organ calls per session, and organs never called in 30 days), and its Done-when includes "plus AX9-5's metric clause". This census is that clause's first measurement. It is also read by `[#747]` ("AX9-5's counter") and ADR-119. The later rerun (`2026-09-18-census-ax9-5-organ-use-rerun.md`) is cited separately by `[#896]` / `[#900]`.
