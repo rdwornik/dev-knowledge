@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-09-19 (ad) - CC (Opus 5, night-wave-2 integrator pass #2): three operator rulings recorded, main pushed, merged lanes torn down, [#912]-[#914] filed
+
+**Anchors:** `7b585263` (the L4 merge, main tip at push), `233294c0` (the L5 merge) -- pushed `14d273fb..7b585263`; this entry rides `worktree-wave2-rows`.
+
+**Did:** recorded three operator rulings as BUILD-LIST Decisions: (1) dispatch -- the hub owns and ships `scripts/dispatch.py`, a thin caller-side shim spawns the lane; L3 (`c00f9c10`) does not merge until that split is built and a default `--bg` launch reads its usage without `--slug-dir`, both verified live; the branch is kept; (2) the ratchet column is UNREACHABLE (13 of 159) -- REACHABLE-BUT-UNOBSERVED (76) is measured and reported, not gated; the ratchet command line now says so; (3) ARCHITECTURE.md not deleted and the map not merged -- removal is an ADR-51 supersession + bump queued after `why` and `spine` exist; L6 (`5596723c`) and its red test kept as evidence. Pushed main (`git push origin main`: `14d273fb..7b585263`, both pre-push gates passed). Tore down the MERGED lanes only: worktrees `wave2-spine`, `wave2-library-first`, `wave2-census-fix` removed + pruned; branches `worktree-wave2-spine`, `worktree-wave2-boot-base`, `worktree-wave2-library-first`, `worktree-wave2-census-fix` deleted with `-d` after `merge-base --is-ancestor` proved each contained (none existed on origin). Filed [#912] (main red on its own, 45 live-state tests), [#913] (duplicate day-letter 2026-09-18 (f)), [#914] (transport unreachable when H: is unmounted), ids reserved by push (`refs/reservations/task-id/912`-`914`).
+
+**Result:** main pushed; worktrees left: L3 `wave2-dispatch`, L6 `wave2-boot-base` (dir name; branch `worktree-wave2-map`), both untouched.
+
+**Changes:** `protocols/BUILD-LIST.md`, `tasks/912-*`, `tasks/913-*`, `tasks/914-*`, `tasks/manifest.json`, `BACKLOG.md`, `JOURNAL.md`.
+
+**Next:** [#912] first -- while main is red, "green impacted tests" can only be proven by a paired baseline run.
+
 ### 2026-09-19 (ac) - CC (Opus 5, night-wave-2 integrator pass #2): merge worktree-wave2-census-fix (L4) into main
 
 **Anchors:** `d6ce5d86` (three-state amendment), `01019968` (lane tip before it) -- `worktree-wave2-census-fix`; main was `233294c0` (the L5 merge) before this merge.

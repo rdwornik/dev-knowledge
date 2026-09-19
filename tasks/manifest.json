@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "38ce3f753267e010f04af476511d0f93dbdf357a8262a45a8d8f95ccf372fb5c",
+  "generated_sha256": "412fdea20281dea33e5690a9d9e08cca6388d98a1c9a8030dd1ecafb4e1d3e50",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1620,6 +1620,18 @@
     {
       "task": 911,
       "file": "911-a-gate-whose-precondition-is-passing-that-same-gat.md"
+    },
+    {
+      "task": 912,
+      "file": "912-main-is-red-on-its-own-45-live-state-tests-fail-i.md"
+    },
+    {
+      "task": 913,
+      "file": "913-duplicate-journal-day-letter-2026-09-18-f-is-on-ma.md"
+    },
+    {
+      "task": 914,
+      "file": "914-the-transport-is-unreachable-whenever-h-is-not-mo.md"
     },
     {
       "task": 898,
