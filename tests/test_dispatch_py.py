@@ -271,6 +271,19 @@ def test_over_cap_terminates_a_stubborn_child_and_verifies_it_is_dead():
     assert __import__("time").monotonic() - started < 30, "must not wait out the child"
 
 
+def test_malformed_numeric_usage_stops_the_child_and_is_ungoverned_not_an_exception():
+    """Codex terra P1 (integrator re-review, 2026-09-19): a parseable event whose usage field is
+    not a number raised ValueError out of run_streamed AFTER the child was spawned, abandoning it
+    uncapped. It must terminate the child and report UNGOVERNED."""
+    import sys
+    bad = '{"type":"turn.completed","usage":{"input_tokens":"unknown","output_tokens":1}}'
+    code = f"import time; print('{bad}', flush=True); time.sleep(60)"
+    started = __import__("time").monotonic()
+    v = d.run_streamed([sys.executable, "-c", code], {}, cap=10**9)
+    assert v.ungoverned and v.exit_code == d.EXIT_UNGOVERNED
+    assert __import__("time").monotonic() - started < 30, "must stop the child, not wait it out"
+
+
 def test_a_hung_or_failing_stop_command_is_a_failed_stop_not_an_exception(monkeypatch):
     import subprocess
 

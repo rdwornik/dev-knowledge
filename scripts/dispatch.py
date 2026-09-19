@@ -375,7 +375,13 @@ def run_streamed(argv: Sequence[str], env: Mapping[str, str], cap: int,
     assert proc.stdout is not None
     for line in proc.stdout:
         polls += 1
-        usage = usage_from_stream_line(line, seen)
+        try:
+            usage = usage_from_stream_line(line, seen)
+        except (ValueError, TypeError) as exc:  # a usage field that is not a number: stop, never abandon
+            stopped = _terminate(proc)
+            return Verdict(False, capped_tokens(total, count_cache_reads), cap, polls,
+                           ungoverned=f"malformed usage in the stream ({exc}); child stopped",
+                           stop_failed=not stopped)
         if usage is not None:
             observed = True
             total = total + usage
