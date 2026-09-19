@@ -9,7 +9,7 @@ stages:
   - {stage: 3, name: carrier-row, field: carrier, kind: deterministic, command: [uv, run, --locked, python, scripts/gen_task_tree.py, --check]}
   - {stage: 4, name: change-kind, field: kind, kind: judgement, command: [uv, run, --locked, python, scripts/gen_lane_contract.py, distill, --kind, "{kind}", --subject, "{subject}", --stdout]}
   - {stage: 5, name: dependencies, field: dependencies, kind: deterministic, command: [uv, run, --locked, python, scripts/file_purpose_graph.py, stats]}
-  - {stage: 6, name: library-first, field: library-first, kind: deterministic, command: null}
+  - {stage: 6, name: library-first, field: library-first, kind: deterministic, command: [uv, run, --locked, python, scripts/stage_library_first.py, emit]}
   - {stage: 7, name: substrate, field: substrate, kind: deterministic, command: [uv, run, --locked, python, scripts/validate_substrate.py, --rules]}
   - {stage: 8, name: provider-model-version, field: model, kind: judgement, command: [uv, run, --locked, python, scripts/routing_agreement.py]}
   - {stage: 9, name: organs, field: organs, kind: deterministic, command: [uv, run, --locked, python, scripts/generate_organ_index.py, --check]}

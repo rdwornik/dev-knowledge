@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-19 (ao) - CC (Opus 5, wave-3 integrator): merge worktree-wave3-spine-fixups -- spine stage 6 wired, doit state out of the checkout
+
+**Anchors:** `4825e25e` (RED: stage 6 and doit state), `49681647` (stage 6 = `stage_library_first.py emit` over deptry; doit db moved to `<tempdir>/dev-knowledge-doit/<sha256(root)[:16]>.db`), `2dd1d955` (report) -- `worktree-wave3-spine-fixups`, merged --no-ff in integration worktree `wave3-spine-integrate`.
+
+**Did:** merged spine-fixups on the same terms as the other wave-3 lanes. Terra: no findings, recorded by the lane as `review=NONE` (default prompt; the two targeted questions were not asked). Impacted tests, which the lane skipped: `impacted_tests.py select --ref main` = 58 files, run PAIRED against a detached checkout of main `b55dc909` (-n 4 each, colour off): merged 51 failed / 2228 passed / 23 skipped; baseline 51 failed / 2223 passed / 23 skipped; the failure sets are IDENTICAL (main's live-state red, [#912]) -- zero new failures; +5 passed = the lane's 5 tests. An earlier colourised run showed 52 failed: one flaky test. Regenerated at merge: `docs/audits/README.md`; `doc-counts` 6689 = 6684 + 5, written by hand from the merged tree. Primary `git status --short` empty before the merge. This lane fixes the stray `scripts/.doit.db.{dat,dir}` seen untracked in the primary at 16:50.
+
+**Result:** spine-fixups merged. Known, not fixed (the lane's own report): spine stage 7 (`validate_substrate.py --rules`) omits its required `paths` argument and exits 2. **Changes:** `ecosystem/harness.yaml`, `scripts/dodo.py`, `scripts/stage_library_first.py`, `tests/test_dodo.py`, `docs/audits/2026-09-19-technical-wave3-spine-fixups.md`, `docs/audits/README.md`, `ecosystem/doc-counts.md`, `JOURNAL.md`. **Next:** merge the [#915]-[#920] filing; run the spine from the primary.
+
 ### 2026-09-19 (an) - CC (Opus 5, wave-3 integrator): merge worktree-wave3-dispatch-split (L3) -- the hub plans and governs, a caller-side shim spawns; wave 2 closed
 
 **Anchors:** `018b1437` (RED: the split), `f09c7ac8` (the split built), `b9a98421` (codex terra fifth pass CLEAN 0/0/0/0), `41157c69` (handback with both live witnesses verbatim); and L3's own `c00f9c10`, `f6a02d58` -- `worktree-wave3-dispatch-split` (branched from `worktree-wave2-dispatch` @ `c00f9c10`), merged --no-ff in integration worktree `wave3-l3-integrate`.
