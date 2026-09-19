@@ -570,3 +570,20 @@ def test_an_unreadable_store_degrades_to_stale_not_a_crash(tmp_path):
         now=datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc))
     assert report["graph_stale"] is True
     assert report["wiring_reachable"] == []
+
+
+def test_a_deleted_or_added_process_file_makes_the_graph_stale(tmp_path):
+    """Codex terra P1 (pass 7): `is_stale` compares mtimes of files that still exist, so a
+    deleted process file kept its edges in `wiring_reachable` while `graph_stale` read False.
+    The census's own subject is the process set, so that comparison is exact: the store's
+    process paths vs the process files on disk."""
+    root = tmp_path / "repo"
+    (root / "scripts").mkdir(parents=True)
+    for name in ("a.py", "b.py"):
+        (root / "scripts" / name).write_text("print(1)" + chr(92) + "n", encoding="utf-8")
+    gs.rebuild(root)
+    kwargs = dict(repo_root=root, sessions_root=tmp_path / "none",
+                  now=datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc))
+    assert oum.process_census(**kwargs)["graph_stale"] is False
+    (root / "scripts" / "b.py").unlink()
+    assert oum.process_census(**kwargs)["graph_stale"] is True

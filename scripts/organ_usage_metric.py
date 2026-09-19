@@ -422,8 +422,10 @@ def _graph_stale(root: Path) -> bool:
         store = _gs.open_store(db)
     except _gs.StoreUnreadable:
         return True  # `wiring_reachable` degrades to empty on this; so does the staleness claim
-    try:  # a DELETED surface leaves its edges behind: the store records the roots it was built from
-        return store.roots() != _gs._wiring_root_keys(fpg, root)
+    try:  # a DELETED surface/process leaves its edges behind: compare what the store was built
+        # from (its recorded roots, its process nodes) with what is on disk -- exact, not mtime
+        return (store.roots() != _gs._wiring_root_keys(fpg, root)
+                or {node.path for node in store.processes()} != fpg._process_paths(root))
     finally:
         store.close()
 
