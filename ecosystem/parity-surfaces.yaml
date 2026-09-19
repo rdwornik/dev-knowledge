@@ -525,13 +525,24 @@ surfaces:
   # SUCCESSOR NAMED: ADR-118 §5 W-G4 ships the graph as a floor component (pull, fleet-uniform),
   # and the consumer tier belongs to that act -- the pointer becomes true for a consumer at the
   # same moment the organs do, not before.
+  #
+  # INVERTED 2026-09-19 (operator ruling, pre-handoff quick-fix order item 3): hub MUST -> INVERSE.
+  # The unwiring stands; the MUST was stale. `f3eba9b2` (B2 lane 4, 2026-09-18) unwired the hook
+  # under BUILD-MODE rule 8 -- "Refusals ONLY at git boundaries ... inside the agent loop, nothing
+  # but path protection" -- the later, operator-ratified decision, on hard evidence: a PreToolUse
+  # refusal hung a session twelve hours. INVERSE keeps a live guard in the CORRECT direction: the
+  # hub now fails fleet_parity (MUST-absent, "surface present where the role forbids it") if the
+  # deny_and_point PreToolUse block is ever re-wired, instead of failing because it is gone.
+  # Script `scripts/hooks/deny_and_point.py` stays on disk (lane-4 audit
+  # docs/audits/2026-09-18-technical-b2-lane4-hook-role-review.md). Re-wiring is a ruling that
+  # flips this row back, not an edit to settings.json alone.
   - id: settings-deny-and-point
     kind: settings-hook-block
-    tier: {hub: MUST}
+    tier: {hub: INVERSE}
     probe: {type: settings_hook, event: PreToolUse, token: deny_and_point}
     ownership:
       value: methodology-generic
-      reason: "PreToolUse deny-and-point guard -- [#727]'s Done-when declares the component floor: MUST and AX4-1 names this registry as the carrier; methodology-owned governance organ, hub tier only until ADR-118 W-G4 ships the graph fleet-wide."
+      reason: "PreToolUse deny-and-point guard -- UNWIRED 2026-09-18 by BUILD-MODE rule 8 (refusals only at git boundaries; f3eba9b2); the hub tier is INVERSE so a re-wiring without a ruling is caught. Was MUST under [#727]/AX4-1; methodology-owned governance organ."
       provenance: *own-prov
   - id: settings-plugin-tier1
     kind: settings-hook-block
