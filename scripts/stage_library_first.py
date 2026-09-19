@@ -157,10 +157,12 @@ def run_deptry(root: Path) -> int:
     root = Path(root)
     with tempfile.TemporaryDirectory() as tmp:
         report = Path(tmp) / "deptry.json"
-        cmd = [sys.executable, "-m", "deptry", str(root), "--json-output", str(report)]
+        root = root.resolve()
+        cmd = [sys.executable, "-m", "deptry", ".", "--json-output", str(report)]
         for name in first_party_modules(root):
             cmd += ["--known-first-party", name]
-        proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
+        proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                              cwd=root)  # deptry reads config from cwd, not from its path argument
         if proc.returncode == 0:
             return 0
         if not report.exists():

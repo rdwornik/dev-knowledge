@@ -111,3 +111,12 @@ def test_deptry_refuses_an_import_that_no_dependency_declares(tmp_path):
 def test_deptry_passes_a_project_whose_imports_are_declared(tmp_path):
     root = _project(tmp_path, imports="import json\n", declared="")
     assert slf.run_deptry(root) == 0
+
+
+def test_deptry_reads_the_target_roots_config_not_the_callers(tmp_path):
+    """Codex terra P1: the subprocess kept the caller's cwd, so this hub's `[tool.deptry]`
+    waiver for `structlog` silently applied to a foreign root. Run from the hub, a target project
+    that imports structlog undeclared must still be refused."""
+    root = _project(tmp_path, imports="import structlog\n", declared="")
+    with pytest.raises(slf.StageRefusal, match="DEP001"):
+        slf.run_deptry(root)
