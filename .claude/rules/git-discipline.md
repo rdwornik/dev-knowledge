@@ -99,7 +99,6 @@ again with no edit required, and keeping it longer needs a new dated entry.
 | carrier branch | tip | closes when | expires |
 |---|---|---|---|
 | `worktree-wave2-dispatch` (L3) | `c00f9c10` | the caller-side dispatch shim lands (BUILD-LIST Decision 2026-09-19, dispatch) | 2026-11-18 |
-| `worktree-wave2-map` (L6) | `5596723c` | ADR-51 is superseded (BUILD-LIST Decision 2026-09-19, ARCHITECTURE) | 2026-11-18 |
 
 - verify: every `worktree-*` branch with no registered worktree is either merged and deleted,
   or listed in the carrier table above, before its expiry, with `git ls-remote --heads origin
