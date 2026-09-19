@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-19 (ak) - CC (Opus 5, wave-3 integrator): merge worktree-wave3-answerable (W3-2)
+
+**Anchors:** `490bc870` (RED: `file_purpose_graph.py list` absent), `e906f1b3` (`list` whole-graph dump), `0c1f33cd` (`/why` and `/spine` registered), `15aa18f0` (W3-2 report) -- `worktree-wave3-answerable`, merged --no-ff in integration worktree `wave3-integrate`, not pushed.
+
+**Did:** merged W3-2 and did the regeneration its handback assigned to the integrator: `gen_claude_rosters.py --write` (`commands-repo.md`), `generate_organ_index.py --write`, `gen_audit_index.py --write`. `doc-counts` written BY HAND from the merged tree, not by the generator (it reads HEAD mid-merge): 6599 collected = main 6597 + 2 lane tests. Main's own claim read 6497 -- 100 stale before this merge. Codex terra: no CRITICAL/HIGH (default prompt, low effort). Primary `git status --short` empty before the merge.
+
+**Result:** `/why` and `/spine` on main locally; discovery bar missed 0/5 (lane open item 1). **Changes:** `.claude/commands/{why,spine}.md`, `.claude/generated/commands-repo.md`, `ecosystem/organ-index.md`, `ecosystem/doc-counts.md`, `docs/audits/README.md`, `docs/audits/2026-09-19-technical-wave3-answerable-w3-2-report.md`, `scripts/file_purpose_graph.py`, `tests/test_file_purpose_graph.py`, `JOURNAL.md`. **Next:** L3 (`wave3-dispatch-split`) at handback.
+
 ### 2026-09-19 (aj) - CC (Opus 5, wave-3 integrator): merge worktree-wave3-hookmap (W3-3)
 
 **Anchors:** `c314c1cc` (W3-3 hook map -- UserPromptSubmit injection proven 6/6 vs control 0/2), `37858811` (codex terra result recorded) -- `worktree-wave3-hookmap`, merged --no-ff in integration worktree `wave3-integrate`, not pushed.

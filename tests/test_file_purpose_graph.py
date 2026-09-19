@@ -576,3 +576,41 @@ def test_live_repo_refuses_a_path_no_input_explains():
     graph = fpg.build(_REPO)
     with pytest.raises(fpg.UnknownFile):
         fpg.why(graph, "scripts/this_file_is_not_governed_by_anything.py")
+
+
+# ----------------------------------------------------------------------------------- `list`
+# RED-FIRST (W3-2): `list` did not exist. One invocation must return every node with path,
+# purpose (or NO_STATED_PURPOSE), edge count and consumer count -- replacing a per-file `why` loop.
+
+
+def _run_list(root: Path):
+    return subprocess.run(
+        [sys.executable, str(_P), "list", "--repo-root", str(root)],
+        capture_output=True, text=True,
+    )
+
+
+def test_cli_list_dumps_every_node_with_purpose_and_counts(mini: Path):
+    proc = _run_list(mini)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    rows = {}
+    for line in proc.stdout.splitlines():
+        cells = line.split("\t")
+        if len(cells) == 4:
+            rows[cells[0]] = cells
+    graph = fpg.build(mini)
+    expected = {n.path for n in (graph.graph[i] for i in graph.graph.node_indices()) if n.path}
+    assert expected and expected <= set(rows), sorted(expected - set(rows))
+    playbook = rows["protocols/PLAYBOOK.md"]
+    assert playbook[1] == "PLAYBOOK"
+    answer = fpg.why(graph, "protocols/PLAYBOOK.md")
+    assert int(playbook[2]) == len(answer.edges)
+    assert int(playbook[3]) == len(answer.consumers)
+
+
+def test_cli_list_states_a_missing_purpose_literally(mini: Path):
+    _write(mini / "tasks" / "44-bare-row.md",
+           '---\nid: "[#44]"\nstatus: open\n---\n\n- [#44] [P2][M] a\n')
+    proc = _run_list(mini)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "tasks/44-bare-row.md\tNO_STATED_PURPOSE\t" in proc.stdout

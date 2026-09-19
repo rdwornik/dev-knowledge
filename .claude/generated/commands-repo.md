@@ -15,3 +15,5 @@
 - `/lane-integrate` — Walk a batch's merge queue serially from the primary checkout, then run the refuse-to-finish checklist mechanically — the batch does not close while an item is open.
 - `/preflight` — Verify every repo locator a contract or prompt cites — file:line, headings, SHAs, [#id] liveness — BEFORE acting on it. Read-only, adoption-first, wired into no gate.
 - `/save` — Stage all changes and commit with a descriptive Conventional Commits message
+- `/spine` — Run the harness spine (stage table in ecosystem/harness.yaml) for a change kind and subject, stopping at the first missing stage.
+- `/why` — Explain what a repo file is for and what reads it -- purpose, consumers and edges from the file-purpose graph; use before editing or deleting an unfamiliar file.
