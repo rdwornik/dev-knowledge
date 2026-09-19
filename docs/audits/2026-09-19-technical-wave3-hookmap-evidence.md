@@ -112,4 +112,4 @@ UserPromptSubmit block (`num_turns=0`, canary never answered): `UserPromptSubmit
 
 ## Codex review
 
-See the commit trailer / handback: `codex exec review -m gpt-5.6-terra --base main < /dev/null`.
+`codex exec review -m gpt-5.6-terra --base main < /dev/null` (model `gpt-5.6-terra`, stdin closed, rc=0). Verdict text: "documentation-only audit artifact ... no critical or high-severity correctness issues." Non-empty run, no HIGH to fix. Limit: the default review prompt was used; the evidence-vs-claim attack prompt the contract suggested was not supplied because `review --base` takes no free-form prompt, so `review=NO-HIGH`, not an adversarial clean bill.
