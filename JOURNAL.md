@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-19 (ag) - CC (Opus 5, night-wave-2 integrator pass #2): anchor for the rulings-and-rows arc
+
+**Anchors:** `d643d70a` (rulings recorded in BUILD-LIST, [#912]-[#914] filed, entry (ad)) -- `worktree-wave2-rows`.
+
+**Did:** the first push of this arc's merge was refused by `block-unanchored-push`: entry (ad) named `7b585263` / `233294c0`, which the merge does not introduce, and not `d643d70a`, which it does. The unpushed local merge was dropped, and this entry was added on the branch naming `d643d70a`. The merge was redone and pushed.
+
+**Result:** see (ad). **Changes:** `JOURNAL.md`. **Next:** none.
+
 ### 2026-09-19 (ad) - CC (Opus 5, night-wave-2 integrator pass #2): three operator rulings recorded, main pushed, merged lanes torn down, [#912]-[#914] filed
 
 **Anchors:** `7b585263` (the L4 merge, main tip at push), `233294c0` (the L5 merge) -- pushed `14d273fb..7b585263`; this entry rides `worktree-wave2-rows`.
