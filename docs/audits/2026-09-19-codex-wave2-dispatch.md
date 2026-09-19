@@ -67,3 +67,5 @@ Review scripts/dispatch.py: token cap enforcement correctness (governor, stream 
 ## LOW
 
 (none)
+
+no-consumer: lane output awaiting integrator merge (night wave 2, L3); it files and closes no BACKLOG row, so no [#id] cites it yet.

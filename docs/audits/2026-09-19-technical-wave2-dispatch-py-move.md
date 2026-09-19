@@ -148,3 +148,5 @@ replace `Start-DispatchCloudV2`.
 
 Not done: an unobservable lane is reported, not killed (killing destroys work to report a gap).
 The re-review of the fixed commit is recorded in the handback, not here.
+
+no-consumer: lane output awaiting integrator merge (night wave 2, L3); it files and closes no BACKLOG row, so no [#id] cites it yet.
