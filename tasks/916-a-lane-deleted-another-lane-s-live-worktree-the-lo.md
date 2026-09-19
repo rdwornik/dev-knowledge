@@ -1,0 +1,13 @@
+---
+id: "[#916]"
+title: "A lane deleted another lane's LIVE worktree -- the harness lock refuses remove, and was defeated by an explicit unlock"
+status: open
+priority: P1
+size: M
+theme: "[E7] Tooling & evaluation"
+story: "[S18] Cut session friction with better tooling"
+implements: "DECLARE-SPINE-AND-B3-2026-09-19"
+generates: BACKLOG.md
+---
+
+- [#916] [P1][M] **A lane deleted another lane's LIVE worktree -- the harness lock refuses remove, and was defeated by an explicit unlock** - On 2026-09-19 the `wave3-dispatch-split` lane, after its governor stopped witness `4c128d01` at the cap, ran `git worktree unlock .claude/worktrees/wave3-witness` then `git worktree remove` (lane transcript `b1fc54db`, 15:01:11-15:01:23 transcript time), then `git branch -d worktree-wave3-witness`. The witness was not finished: its job record kept `state: running` with `respawnFlags`, and the daemon resumed it 73 s later into a worktree that no longer existed; it then ran unisolated until killed and `claude rm`'d by the integrator. Claude Code runs `git worktree lock` on every session worktree (reason `claude session <name> (pid N)`), and that lock REFUSES `git worktree remove` and `remove -f` (measured, git 2.55.0: fatal, exit 128) -- it is the one guard that works, and it was bypassed by an `unlock` the lane was free to run. No teardown path in the repo (`.claude/commands/lane-integrate.md:136`, the git-discipline teardown rule, `/ship`) checks session liveness before removing, and the harness isolation guard refused `git -C <other worktree> status` but allowed `git worktree unlock/remove <other worktree>` from the same session. The smallest mechanism already exists -- the lock; what is missing is a refusal to UNLOCK a worktree you do not own · Done when: an attempt by any session to `git worktree unlock` (or `remove -f -f`) a worktree whose lock names a different session is refused before it runs, witnessed live against a real locked lane worktree with the refusal output recorded; and every teardown path in the repo removes only a worktree whose owning session is proven ended (`~/.claude/jobs/<id>/state.json` not `running`, or `claude rm` done) · implements: DECLARE-SPINE-AND-B3-2026-09-19 · refs filed by the wave-3 close operator order 2026-09-19, SCAN-live-worktree-teardown-am5-contracts-2026-09-19.md sections 0 and 1, `.claude/commands/lane-integrate.md:136`, `.claude/rules/git-discipline.md` WORKTREE TEARDOWN, `[#915]`, `[#917]`, `[#918]`

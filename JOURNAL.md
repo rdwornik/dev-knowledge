@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-19 (ap) - CC (Opus 5, wave-3 integrator): file [#915]-[#920] -- the wave-3 close rows
+
+**Anchors:** `dc186a3b` (six rows filed, ids reserved on origin as `refs/reservations/task-id/915`-`920`) -- `worktree-wave3-rows`, merged --no-ff in integration worktree `wave3-spine-integrate`.
+
+**Did:** filed the five rows the wave-3 close order named, from `to-browser/SCAN-live-worktree-teardown-am5-contracts-2026-09-19.md` and today's merges -- [#915] P1 AM-5's premise falsified; [#916] P1 a lane deleted another lane's live worktree; [#917] P2 our docs are wrong about the lock (fatal, exit 128); [#918] P2 the seat registry is Stop-only; [#919] P2 the cap is polled, not enforced ([#908] advanced, not closed) -- plus [#920] P1 PLAYBOOK Ch8 describes the old dispatch surface, ordered in the previous operator message and not withdrawn. Decision: `implements:` is `DECLARE-SPINE-AND-B3-2026-09-19` (its section 7 is the dispatch-to-hub ruling these rows follow from); the close order is not a transport file, so it is named in each row's refs instead. `validate_backlog`: 10 hard-fails, all pre-existing on main ([#664], [#906] x2, [#908]-[#914]: free-text `implements:` outside the grammar); none from these rows. BACKLOG 393 -> 399 tasks.
+
+**Result:** six rows open under [S18]. **Changes:** `tasks/915-*`..`tasks/920-*`, `tasks/manifest.json`, `BACKLOG.md`, `JOURNAL.md`. **Next:** spine from the primary; push; teardown.
+
 ### 2026-09-19 (ao) - CC (Opus 5, wave-3 integrator): merge worktree-wave3-spine-fixups -- spine stage 6 wired, doit state out of the checkout
 
 **Anchors:** `4825e25e` (RED: stage 6 and doit state), `49681647` (stage 6 = `stage_library_first.py emit` over deptry; doit db moved to `<tempdir>/dev-knowledge-doit/<sha256(root)[:16]>.db`), `2dd1d955` (report) -- `worktree-wave3-spine-fixups`, merged --no-ff in integration worktree `wave3-spine-integrate`.

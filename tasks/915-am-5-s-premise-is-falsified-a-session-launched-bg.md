@@ -1,0 +1,13 @@
+---
+id: "[#915]"
+title: "AM-5's premise is falsified -- a --bg lane launched from inside a session DOES get its own Agent View row, on the host, twice"
+status: open
+priority: P1
+size: M
+theme: "[E7] Tooling & evaluation"
+story: "[S18] Cut session friction with better tooling"
+implements: "DECLARE-SPINE-AND-B3-2026-09-19"
+generates: BACKLOG.md
+---
+
+- [#915] [P1][M] **AM-5's premise is falsified -- a --bg lane launched from inside a session DOES get its own Agent View row, on the host, twice** - AM-5 (`protocols/PLAYBOOK.md:2815-2823`, operator-ratified 2026-08-11) forbids ANY session -- primary, dispatcher or lane -- from spawning a batch lane: "batch lanes are dispatched by the operator via `dispatch <contract>` from a terminal, never spawned from the primary session or any other session". Its whole justification is one premise: a nested session carries no Agent View row. That premise was RATIFIED, not measured: neither the ruling commit `dcafcb51` nor `JOURNAL.md:22864` (2026-08-11 (i)) cites a probe, a CLI version or a row listing. It is contradicted twice by `--bg` launches from inside a session: (1) 2026-08-15 in a Linux container, CLI 2.1.233 (`docs/audits/2026-08-15-technical-night3-research.md:234-240`), which recorded "Q2: re-witness the AM-5 nesting property on the host" (`:630`) -- never done; (2) 2026-09-19 on the host, CLI 2.1.278: witness `4c128d01`, launched by the `wave3-dispatch-split` lane through `templates/dispatch-shim.ps1`, listed in `claude agents --json` as its own `kind: background` row, backed by `~/.claude/jobs/4c128d01/state.json` (`template: bg`, `backend: daemon`). The row is a daemon job and the launcher's identity does not suppress it; what gets no row is an in-process subagent (Agent/Task tool), which AM-5 does not distinguish. Consequence: the operator has been firing every lane by hand on an unmeasured belief. Caveat: the 2026-09-19 launcher was a LANE seat, not a bound dispatcher seat (the seat registry holds no bind for 2026-09-19) · Done when: a probe on the host, at the installed CLI version, launches one `--bg --worktree` lane from inside a bound dispatcher seat and records its `claude agents --json` row verbatim; and the operator rules, in a dated BUILD-LIST Decision, whether AM-5 survives, is narrowed to in-process subagents, or is withdrawn -- and PLAYBOOK:2815-2823 is amended to match the ruling · implements: DECLARE-SPINE-AND-B3-2026-09-19 · refs filed by the wave-3 close operator order 2026-09-19, `protocols/PLAYBOOK.md:2815`, `dcafcb51`, `JOURNAL.md:22864`, `docs/audits/2026-08-15-technical-night3-research.md:234`, `H:\My Drive\CLAUDE PROMPT DIR\to-browser\SCAN-live-worktree-teardown-am5-contracts-2026-09-19.md` section 2, `[#916]` (the same launch deleted a live worktree)
