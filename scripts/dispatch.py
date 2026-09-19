@@ -535,6 +535,7 @@ class LaneBinding:
     listing carries none), and its cwd."""
     session_id: str
     cwd: str
+    live: bool = True   # False for an ENDED record (state done/stopped/...): never the lane to govern
 
 
 def _control(argv: list[str]) -> Optional["subprocess.CompletedProcess"]:
@@ -590,7 +591,8 @@ def bind_lane(lane_id: str) -> Optional[LaneBinding]:
         return None
     # a LISTED lane with no session id is still a lane whose worktree can be checked: it comes back
     # with an empty session id, which the caller refuses and stops -- it does not vanish as "unbound"
-    return LaneBinding(str(entry.get("sessionId") or ""), str(entry.get("cwd") or ""))
+    return LaneBinding(str(entry.get("sessionId") or ""), str(entry.get("cwd") or ""),
+                       live=str(entry.get("state") or "").lower() not in _ENDED)
 
 
 def find_lane_by_slug(slug: str) -> Optional[str]:
@@ -743,6 +745,16 @@ def govern_cmd(lane_id: str, slug: str, token_cap: int, count_cache_reads: bool,
     _finish(verdict, slug)
 
 
+@cli.command("stop")
+@click.option("--slug", required=True, help="Lane slug; the ONE live lane whose worktree is <slug>.")
+def stop_cmd(slug: str) -> None:
+    """Stop a lane by its worktree -- the shim's recovery when the governor itself failed to run.
+
+    Only a LIVE lane whose listed worktree is `.../worktrees/<slug>` is stopped; exit 5 if it was,
+    exit 4 if nothing verified could be stopped (the lane may still be running)."""
+    _recover(find_lane_by_slug(slug) or "", f"stop requested for worktree-{slug}")
+
+
 def _safe_stop(lane_id: str) -> bool:
     """`stop_lane`, contained: a stop that raises or is interrupted is a stop that did not happen.
     Only a VERIFIED lane id may be passed here."""
@@ -772,12 +784,13 @@ def _bind(lane_id: str, slug: str, polls: int, interval: float) -> tuple[str, Op
     """`(verified lane id, binding)`, or `("", None)` when no lane could be tied to the slug.
 
     A PROVISIONAL id (the launcher read it out of `claude --bg`'s output) is trusted only once its
-    listed worktree is the planned slug's. One that is not listed, or belongs to ANOTHER lane, is
-    dropped and never governed or stopped -- stopping someone else's lane while ours runs uncapped is
+    listed worktree is the planned slug's AND its record is LIVE (an old `done` record for the same
+    worktree is not the lane just launched). One that is not listed, is ended, or belongs to
+    ANOTHER lane, is dropped and never governed or stopped -- stopping someone else's lane while ours runs uncapped is
     the worse failure. The lane is then FOUND by worktree (`find_lane_by_slug`)."""
     for attempt in range(max(polls, 1)):
         binding = bind_lane(lane_id) if lane_id else None
-        if binding is None or not _cwd_is_lane(binding.cwd, slug):
+        if binding is None or not binding.live or not _cwd_is_lane(binding.cwd, slug):
             lane_id = find_lane_by_slug(slug) or ""
             binding = bind_lane(lane_id) if lane_id else None
         if binding is not None and lane_id:

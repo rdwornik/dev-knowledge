@@ -136,5 +136,17 @@ $laneArgs = if ($found.Success) { @($found.Groups[1].Value) } else { @() }
 # --- 3. GOVERN -----------------------------------------------------------------------------
 $governArgs = @('govern') + $laneArgs + @('--slug', $plan.slug, '--token-cap', $TokenCap, '--interval', $Interval)
 if ($CountCacheReads) { $governArgs += '--count-cache-reads' }
-Invoke-Hub $governArgs
-exit $LASTEXITCODE
+# A governor that did not even RUN (uv or Python failing, a crash before its own recovery) must not
+# leave the started lane uncapped or hand back an arbitrary exit code. The documented codes pass
+# straight through; anything else is recovered by stopping the lane BY ITS WORKTREE.
+try   { Invoke-Hub $governArgs; $governCode = $LASTEXITCODE }
+catch { $governCode = -1 }
+if ($governCode -in 0, 3, 4, 5, 6, 7) { exit $governCode }
+
+Write-Warning "governor failed (exit $governCode) -- asking the hub to stop worktree-$($plan.slug)"
+try   { Invoke-Hub @('stop', '--slug', $plan.slug); $stopCode = $LASTEXITCODE }
+catch { $stopCode = -1 }
+if ($stopCode -eq 5) { exit 5 }
+Write-Host ("[dispatch] the lane for worktree-$($plan.slug) MAY BE RUNNING, uncapped: the governor " +
+            "failed and it could not be stopped. Stop it by hand (claude agents, claude stop <id>).")
+exit 4
