@@ -429,6 +429,9 @@ So that cognitive overhead per session drops.
 - [#909] [P1][M] Read-only analysis burns the Claude budget while free and cheap capacity sits unused -- route it off first · tasks/909-read-only-analysis-burns-the-claude-budget-while-f.md
 - [#910] [P1][S] A seat below ~10% context must not begin an integration walk -- retire and boot fresh · tasks/910-a-seat-below-10-percent-context-must-not-begin-an-in.md
 - [#911] [P1][S] A gate whose precondition is passing that same gate -- the silent-rule ratchet cannot accept an operator-approved raise until the raise is already pushed · tasks/911-a-gate-whose-precondition-is-passing-that-same-gat.md
+- [#912] [P1][M] main is RED on its own -- 45 live-state tests fail independently of every lane merged in night wave 2, with no owner · tasks/912-main-is-red-on-its-own-45-live-state-tests-fail-i.md
+- [#913] [P2][S] Duplicate JOURNAL day-letter 2026-09-18 (f) is on main -- audit journal_day_letters FAILs · tasks/913-duplicate-journal-day-letter-2026-09-18-f-is-on-ma.md
+- [#914] [P1][M] The transport is unreachable whenever H: is not mounted -- a post-hook must deliver to-browser artifacts regardless of mount, and refuse loudly instead of reporting success after writing to Downloads · tasks/914-the-transport-is-unreachable-whenever-h-is-not-mo.md
 - [#898] [P2][S] A contracted cloud read-only leg never dispatched and a local substitute committed what the contract forbade -- a dispatcher shape defect · tasks/898-a-contracted-cloud-read-only-leg-never-dispatched.md
 - [#899] [P3][S] gen_audit_index reads HEAD, not the working tree -- every new audit costs a second, index-only commit and --check is falsely green before it · tasks/899-gen-audit-index-reads-head-so-every-new-audit-cos.md
 - [#900] [P2][S] AX9-5's own organ miscounts -- from a worktree it reads one session, its totals ignore the window, and a path mention counts as a call · tasks/900-ax9-5-s-own-organ-miscounts-from-a-worktree-and-t.md
