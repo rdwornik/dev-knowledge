@@ -62,3 +62,12 @@ Open for the operator: (a) `emit` output is real deptry output, but `check` cann
 ## Tokens
 ORDERED 100k. ACTUAL (session `79da37c1`, deduped by request): input 48 + output 11,108 + cache-creation 65,712
 = ~77k fresh; cache reads 2,005,322 (context re-reads, not fresh input). Within order on the fresh measure.
+
+---
+
+## AMENDMENT 1 — 2026-09-19: the consumer this file did not declare at landing
+
+> **In-file amendment marker** (CLAUDE.md §5 rule 3). Purely additive metadata; nothing above
+> is changed. Added at the 2026-09-19 pre-handoff quick-fix arc, where `consumer_at_landing` refused it.
+
+**Consumer:** `[#922]` — spine stage 7 is invoked without `validate_substrate.py`'s required `paths` argument (exit 2). This file's "Acceptance 1" is the measurement that found it: with stage 6 wired, stage 7 is where the spine now stops.

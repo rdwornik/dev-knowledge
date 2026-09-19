@@ -102,3 +102,12 @@ fresh (in+out+cache_create) = 117,432 ; control run additional: out 428, cache_c
 ## Tokens ACTUAL vs ORDERED
 
 - ORDERED: 200k. ACTUAL (this session, dedup by message id, measured before writing this section): fresh input 102 + output 18,293 + cache-creation 97,473 = **~115.9k fresh**; **cache reads 5,277,962** reported separately (not counted against the order; they dominate because of the large boot context re-read each turn). Child sessions: 117,432 fresh, reported separately above. Within the 2x stop (400k).
+
+---
+
+## AMENDMENT 1 — 2026-09-19: the consumer this file did not declare at landing
+
+> **In-file amendment marker** (CLAUDE.md §5 rule 3). Purely additive metadata; nothing above
+> is changed. Added at the 2026-09-19 pre-handoff quick-fix arc, where `consumer_at_landing` refused it.
+
+**Consumer:** `[#924]` — the discovery measurement this report produced (0/5 against a >= 3/5 bar, control valid) is pending a re-run after one named affordance; the row owns that measurement.

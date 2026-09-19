@@ -113,3 +113,12 @@ UserPromptSubmit block (`num_turns=0`, canary never answered): `UserPromptSubmit
 ## Codex review
 
 `codex exec review -m gpt-5.6-terra --base main < /dev/null` (model `gpt-5.6-terra`, stdin closed, rc=0). Verdict text: "documentation-only audit artifact ... no critical or high-severity correctness issues." Non-empty run, no HIGH to fix. Limit: the default review prompt was used; the evidence-vs-claim attack prompt the contract suggested was not supplied because `review --base` takes no free-form prompt, so `review=NO-HIGH`, not an adversarial clean bill.
+
+---
+
+## AMENDMENT 1 — 2026-09-19: the consumer this file did not declare at landing
+
+> **In-file amendment marker** (CLAUDE.md §5 rule 3). Purely additive metadata; nothing above
+> is changed. Added at the 2026-09-19 pre-handoff quick-fix arc, where `consumer_at_landing` refused it.
+
+**Consumer:** `[#923]` — the distiller's delivery design rests on this file's answer (`UserPromptSubmit` CAN inject; stdout 3/3, `additionalContext` 3/3, control 0/2), and the row owns the test this file's own caveat defers: whether a distiller-sized injected payload, not a sentinel, is used.

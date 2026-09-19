@@ -23,3 +23,12 @@ Measured 2026-09-18 on shallow clones: maister `f75ef4f`, architekt-jutra-code `
 
 ## Leg cost and model
 Haiku enumerator 63,484 tokens (step cap 60k total, exceeded by the enumerator alone). The Sonnet synthesis was NOT launched; the seat synthesised from deterministic measurements instead. The orchestrating seat RAN Opus 5 (session model) though the primary session was ordered Sonnet — the build-list row "model: ORDERED vs RAN" records it.
+
+---
+
+## AMENDMENT 1 — 2026-09-19: the consumer this file did not declare at landing
+
+> **In-file amendment marker** (CLAUDE.md §5 rule 3). Purely additive metadata; nothing above
+> is changed. Added at the 2026-09-19 pre-handoff quick-fix arc, where `consumer_at_landing` refused it.
+
+**Consumer:** `[#925]` — the owner of this file's per-row read-set target (<= ~60 KB including the boot base), which was ordered by the BUILD-LIST B2 decision and had no row.
