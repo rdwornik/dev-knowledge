@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-17
+last_reviewed: 2026-09-19
 reconciled_with: handoff-process@7.1.0
 status: active
 owner: Rob
@@ -130,12 +130,8 @@ User-level (`~/.claude/commands/`): `/session-summary` — session summary + han
 
 > **[REPO - local]** region `commands-repo-roster` - this repo owns these lines.
 <!-- methodology:start id=commands-repo-roster owner=repo -->
-Repo-level (`./.claude/commands/`, machine-enumerated from command-file frontmatter; regenerate: `gen_claude_rosters.py --write`):
-
-@.claude/generated/commands-repo.md
+Repo-level commands are machine-enumerated in `.claude/generated/commands-repo.md` — read it, or list `.claude/commands/`, when picking a command. Which command when → PLAYBOOK §"Usage protocol".
 <!-- methodology:end id=commands-repo-roster -->
-
-`/handoff` generates a handoff per `HANDOFF_PROCESS.md` v7 (ADR-82); `/handoff-verify` is its check-time counterpart — one run of the whole live gate, one evidence block (v7 §5). `/review-closures` and `/ship` are governed by ADR-70 Tier-1 + `ARCHITECTURE.md` "Tier-1 self-enforcing lifecycle". Which command when → PLAYBOOK §"Usage protocol".
 
 ## 8. Skills active
 <!-- scope: runtime -->
@@ -144,9 +140,7 @@ User-level (`~/.claude/skills/`): `gotchas` — universal dev gotchas (encoding,
 
 > **[REPO - local]** region `skills-repo-roster` - this repo owns these lines.
 <!-- methodology:start id=skills-repo-roster owner=repo -->
-Repo-level (`./.claude/skills/`): `verify` (ecosystem verification, run after `pytest`) + `check-against-spec` (spec-reconciliation site enumerator). Repo-specific empirical patterns live in `LESSONS.md` — append-only; read it before structural changes.
-
-Plugin `tier1-lifecycle@dev-knowledge-methodology` is **enabled** and drives the Tier-1 closure loop here: its `Stop` hook runs `propose_closures.py`, and it ships `/review-closures` + `/ship`. The hub is the marketplace source the children install from → `ARCHITECTURE.md` "Tier-1 self-enforcing lifecycle".
+Repo-level skills live in `.claude/skills/<name>/SKILL.md` — list that directory when a skill-shaped task arises; run `verify` after `pytest`. Repo-specific empirical patterns live in `LESSONS.md` — append-only; read it before structural changes. Plugin `tier1-lifecycle@dev-knowledge-methodology` is enabled (its `Stop` hook runs `propose_closures.py`; it ships `/review-closures` + `/ship`).
 <!-- methodology:end id=skills-repo-roster -->
 
 ## 9. Hooks active
@@ -162,7 +156,7 @@ Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless noted. **B2 lane4 arm
 - `codemap-freshness` — ARCHITECTURE codemap vs `scripts/`, regen-and-diff
 - `toc-freshness-playbook` — PLAYBOOK TOC staleness
 - `roster-freshness` — `.claude/methodology-roster.md` vs the deploy manifest
-- `claude-rosters-freshness` — the two `@`-imported `.claude/generated/` fragments
+- `claude-rosters-freshness` — the two generated `.claude/generated/` fragments
 - `audit-index-freshness` — generated `docs/audits/README.md`
 - `organ-index-freshness` — generated `ecosystem/organ-index.md`; a stale index is worse than none
 - `doc-counts-pytest-freshness` — the collected-test-count claim, at commit time
@@ -235,12 +229,10 @@ Machine-enumerated, last 5 by number (`gen_claude_rosters.py --write`). Editoria
 <!-- scope: meta -->
 > **[REPO - local]** region `section-history` - this repo owns these lines.
 <!-- methodology:start id=section-history owner=repo -->
-
-> _Section history RELOCATED 2026-09-05 (architect inbox item 012-A): v2.72–v2.74 moved byte-identically to `docs/audits/2026-09-05-technical-claude-md-section-history-ledger.md`, which is this section's home from now on and where the next entry goes; v1.0–v2.71 were condensed to history earlier per ADR-49/65._
-> _The pointer stays and the entries do not — a changelog of this file's own past revisions is not something a session needs before it can act, which is the genre rule this file states in its own header._
+History of this file's revisions: `docs/audits/2026-09-05-technical-claude-md-section-history-ledger.md`.
 <!-- methodology:end id=section-history -->
 
 ---
 
-**Last updated:** 2026-09-17
+**Last updated:** 2026-09-19
 **Maintained by:** Rob

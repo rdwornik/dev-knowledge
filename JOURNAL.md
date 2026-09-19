@@ -21,6 +21,21 @@
 
 ---
 
+### 2026-09-19 (w2-I2) - CC (Sonnet 5, night-wave-2 integrator pass #1): merge worktree-wave2-boot-base (L2) into main
+
+**Anchors:** `bc0cf251`, `7879f81f`, `1fd0efc4`, `d6c8ccf7`, `d717be45`, `60d37ad5`, `7d5f9b4f` -- `worktree-wave2-boot-base`; main was `b9cbd881` (the L1 merge) before this merge.
+
+**Did:** verified the handback (`STATUS: DONE`, `audit.py handback` exit 0, Codex terra final pass HIGH:0 MED:0 LOW:0 over `60d37ad5`, `7d5f9b4f` one docs-only commit on top and not separately reviewed, lane process exited(0)); merged `--no-ff --no-commit`. One conflict, `JOURNAL.md` only: L1's entry (already on main) and L2's `(x)` both prepended at the same spot. Resolved by keeping both blocks, newest-first, lossless (19 insertions, 0 deletions against main). No other file conflicted.
+
+**Result:** merged, not pushed. L2's headline stands as written in its `(x)` entry: the LEG 1 saving does not hold (-2.8 KB, not -48 KB); only the command and skill rosters convert.
+
+**Changes:** `CLAUDE.md`, `tests/boot_retrieval.py`, `tests/test_boot_retrieval.py`, `ecosystem/boot-retrieval-evidence.json`, `scripts/gen_claude_rosters.py` (docstring), `.pre-commit-config.yaml` (one comment), `JOURNAL.md`.
+
+**Abandoned:** nothing. Owed, not done here: the memory correction to `child-claude-p-harness-stdin-and-setting-sources` (`--setting-sources local` vs `project`) and the suggested gotcha, both outside this seat's write scope tonight.
+
+**Next:** L6 wave2-map (live) branches from L2's tip; L3, L4, L5 per `to-browser/INTEGRATOR-wave2-2026-09-19.md`.
+
+
 ### 2026-09-19 (w2-I1) - CC (Sonnet 5, night-wave-2 integrator pass #1): merge worktree-wave2-spine (L1) into main
 
 **Anchors:** `3e90e3fa`, `f664d6b8`, `5a1ea535` (code), `ae7b39b8`, `c2404a3f` (journal) -- `worktree-wave2-spine`; main was `14d273fb` before the merge.
@@ -49,6 +64,25 @@
 **Abandoned:** stage skipping on satisfied stages (`result_dep`) -- not built; every run executes 1..N. Closes nothing; [#669] / [#689] untouched.
 
 **Next:** integrator merges; L5 fills stage 6, L3 stage 11; first vertical run per payload s6.
+
+
+### 2026-09-19 (x) - CC (Sonnet 5, night wave 2 lane L2 `wave2-boot-base`): the retrieval test says pointers are fetched 1-2 times in 3, not always; only the command and skill rosters convert (-2.8 KB, not -48 KB)
+
+**Anchors:** `bc0cf251`, `7879f81f`, `1fd0efc4`, `d6c8ccf7`, `d717be45` (harness, review fixes, instrument corrections) -- `worktree-wave2-boot-base`, base `14d273fb`; the final code commit is named in the handback.
+
+**Did:** LEG 1's saving assumed a pointer gets the right item re-read and said that was untested. Wrote the test first (`tests/boot_retrieval.py`: live child-`claude` probe, body arm vs pointer arm, witnessed canary, no-target control, boot-sentinel self-test; `tests/test_boot_retrieval.py`: the deterministic gates binding a CLAUDE.md conversion to `ecosystem/boot-retrieval-evidence.json`). RED first: nothing pointer-form, no evidence, ceiling exceeded. Then converted only what it admits.
+
+**Two instrument failures found by the review loop and by reproduction, both of which had made the first "18/18 fetched" recordings meaningless:** (1) `--setting-sources local` does NOT load the cwd's CLAUDE.md (sentinel test), so both arms ran with no boot text -- now `project`, plus a tool-less sentinel self-test that refuses an arm that does not echo its token; (2) the probe prompt said "use the repo's documentation", priming the very fetch being measured -- my first fix silently failed to apply and I did not check the file; it is now neutral and a unit test pins it.
+
+**Result (Haiku 4.5, unprimed, n=3 per arm per item, self-test passing):** command roster and skill roster: answered 3/3 WITH NO FETCH -- Claude Code injects command and skill descriptions into every session, so CLAUDE.md's copy was a duplicate -> CONVERTED. Methodology roster: fetched 1/3 -> REFUSED. Recent-ADR fragment: fetched 1/3 -> REFUSED. Hook ids (section 9): fetched 2/3 but canary 0/3 (paraphrase; body arm also 0/3) -> REFUSED. Control: 0 fetches. So a pointer is followed roughly a third to two thirds of the time by a small model given a neutral prompt; the retrievable-set saving is NOT free, and the ~27 KB projection does not stand. A canary is a lexical witness and brittle (a paraphrase reads as a miss); a stronger judge was not built.
+
+**Numbers (LEG 1 method, `tests/boot_retrieval.py measure`, bytes on disk, JOURNAL-last-5 held at 9,953 B so the before/after compare):** always-on 79,760 -> 76,949 B (-2,811, -3.5%); repo-tracked boot files 42,500 -> 39,689 B. Removed: the commands `@`-import (1,904 B), section 7/8/12 prose (~900 B net). CLAUDE.md 24,561 -> 23,654. ARCHITECTURE.md 22,726 B measured SEPARATELY (a preload candidate, not in these figures) for L6. Target ~27.3 KB NOT met. Not converted and why: MEMORY.md 15,388 B (auto-memory on-demand retrieval unverified), the three items above (refused), hub-owned regions (byte-matched to templates), git-discipline remainder 5,229 B (no home that is not a new organ; rule-7 carve-out), global CLAUDE.md OneDrive subset (outside the worktree; core-invariants rule 6). NOTE this entry itself lifts JOURNAL-last-5 to ~12.1 KB: the JOURNAL tail is now the largest single retrievable item, and section 1 tells every session to read it.
+
+**Coupling met:** `validate_doc_claims::precommit_hook_roster` reads section 9's hook ids (a machine-checked claim). `gen_claude_rosters.py` and a pre-commit comment called the fragments `@`-imported -- corrected. `test_canonical_docs` has two date-driven failures that predate this lane (verified against `14d273fb`).
+
+**Changes:** `CLAUDE.md`, `tests/boot_retrieval.py`, `tests/test_boot_retrieval.py`, `ecosystem/boot-retrieval-evidence.json`, `scripts/gen_claude_rosters.py` (docstring), `.pre-commit-config.yaml` (one comment), `JOURNAL.md`.
+
+**Next:** L6 branches from this tip. Memory `child-claude-p-harness-stdin-and-setting-sources` says `--setting-sources local` does not stop CLAUDE.md discovery -- measured wrong 2026-09-19; the integrator should correct it (outside this lane's worktree). If the retrievable set is to shrink further, the lever is the JOURNAL tail and MEMORY.md, not more pointers.
 
 
 ### 2026-09-19 (w) - CC (Opus 5, integrator seat B2): B2 CLOSED -- regressions fixed, raise pushed on the operator's word, every worktree dispositioned, [#911] filed

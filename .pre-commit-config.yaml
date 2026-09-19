@@ -121,7 +121,7 @@ repos:
         # Counter: telemetry_emit.py `wrap` -> one hook_run(pass/block) row in gitignored
         # logs/TELEMETRY.db. Expiry 2026-09-25 -- 0 catches in-window -> REMOVE, never tune.
         # Fail-on-stale regen-and-diff, mirroring roster-freshness: regenerate with
-        # `python scripts/gen_claude_rosters.py --write`. Guards the two @-imported
+        # `python scripts/gen_claude_rosters.py --write`. Guards the two generated
         # CLAUDE.md fragments (.claude/generated/{commands-repo,recent-adrs}.md) —
         # [#258] phase-1 generated them but left them ungated, so a new command file
         # or ADR (or a hand-edit) could drift the fragment silently. Fires on BOTH the
