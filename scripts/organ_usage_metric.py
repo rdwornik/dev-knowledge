@@ -399,6 +399,25 @@ def wiring_reachable(repo_root: Path | str) -> frozenset[str]:
         store.close()
 
 
+def _graph_stale(root: Path) -> bool:
+    """`graph_store.is_stale`, plus the wiring surfaces it does not scan.
+
+    `is_stale` compares the store to a coarse set of source TREES; a `.github/workflows/*.yml`
+    edit (a CI trigger added or removed) is invisible to it, yet reachability is exactly what
+    that edit changes (codex terra P1, pass 4). The surface list is `file_purpose_graph`'s own
+    (`WIRING_SURFACES` + `WIRING_WORKFLOW_GLOB`) -- read, not restated. The gap in `is_stale`
+    itself is `graph_store`'s to close; this is the census refusing to depend on it.
+    """
+    if _gs.is_stale(root):
+        return True
+    import file_purpose_graph as fpg  # noqa: PLC0415 -- deferred: heavy, and only a CLI needs it
+
+    built = Path(_gs.store_path(root)).stat().st_mtime
+    surfaces = [root / rel for rel in fpg.WIRING_SURFACES] + sorted(
+        root.glob(fpg.WIRING_WORKFLOW_GLOB))
+    return any(path.is_file() and path.stat().st_mtime > built for path in surfaces)
+
+
 def process_census(
     *,
     repo_root: Path | str | None = None,
@@ -493,7 +512,7 @@ def process_census(
         "not_observable": not_observable,
         "counts": observable_counts,
         "wiring_reachable": wired,
-        "graph_stale": _gs.is_stale(root),
+        "graph_stale": _graph_stale(root),
         "uncalled": uncalled,
     }
 

@@ -513,3 +513,26 @@ def test_census_says_when_the_graph_it_read_is_stale(tmp_path):
     assert stale["graph_stale"] is True
     assert "STALE" in oum.render_census(stale)
 
+
+
+@pytest.mark.parametrize("surface", [".github/workflows/ci.yml", ".pre-commit-config.yaml",
+                                     ".pre-commit-hooks.yaml"])
+def test_a_wiring_surface_edit_after_the_build_makes_the_graph_stale(tmp_path, surface):
+    """Codex terra P1 (pass 4): `graph_store.is_stale` scans source trees but NOT the wiring
+    surfaces, so a workflow/hook-config edit left `graph_stale` False while reachability read
+    obsolete edges. The census adds the wiring surfaces to its own staleness check (the
+    `graph_store` gap itself is outside this lane, handed back)."""
+    import os
+    root = tmp_path / "repo"
+    (root / "scripts").mkdir(parents=True)
+    (root / "scripts" / "a.py").write_text("print(1)" + chr(92) + "n", encoding="utf-8")
+    target = root / surface
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text("name: x" + chr(92) + "n", encoding="utf-8")
+    gs.rebuild(root)
+    kwargs = dict(repo_root=root, sessions_root=tmp_path / "none",
+                  now=datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc))
+    assert oum.process_census(**kwargs)["graph_stale"] is False
+    later = os.stat(gs.store_path(root)).st_mtime + 10
+    os.utime(target, (later, later))
+    assert oum.process_census(**kwargs)["graph_stale"] is True
