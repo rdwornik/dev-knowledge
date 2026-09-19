@@ -150,7 +150,10 @@ def govern(*, cap: int, read_usage: Callable[[], Optional["lc.TokenUsage"]],
         except GovernorBlind as exc:
             return Verdict(False, used, cap, polls, ungoverned=str(exc))
         if (max_polls is not None and polls >= max_polls) or done:
-            return Verdict(False, used, cap, polls)
+            # the last read was blind: the final spend was never observed -- not "under cap"
+            return Verdict(False, used, cap, polls,
+                           ungoverned=(f"lane ended after {blind} unreadable usage poll(s); "
+                                       "final spend never observed") if blind else "")
         sleep(interval)
 
 

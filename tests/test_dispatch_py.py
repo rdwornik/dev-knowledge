@@ -212,6 +212,23 @@ def test_a_lane_whose_usage_cannot_be_read_is_ungoverned_not_under_cap():
     assert verdict.exit_code == d.EXIT_UNGOVERNED and stopped == []
 
 
+def test_a_lane_that_finishes_before_its_usage_is_readable_is_ungoverned_not_under_cap():
+    """Codex terra P1 (integrator review, 2026-09-19): a short `--bg` lane can exit before its
+    transcript is readable. Fewer than `blind_polls` blind reads, then `alive()` says done --
+    the spend was never observed, so the verdict is UNGOVERNED, never an ordinary under-cap."""
+    verdict = d.govern(cap=100, read_usage=lambda: None, stop=lambda: None,
+                       sleep=lambda s: None, alive=lambda: False, blind_polls=8)
+    assert verdict.ungoverned and not verdict.exceeded
+    assert verdict.exit_code == d.EXIT_UNGOVERNED
+
+
+def test_a_lane_that_finishes_after_a_readable_poll_is_under_cap():
+    """The guard for the fix above: an observed spend followed by completion stays governed."""
+    verdict = d.govern(cap=100, read_usage=lambda: _usage(5), stop=lambda: None,
+                       sleep=lambda s: None, alive=lambda: False)
+    assert not verdict.ungoverned and verdict.exit_code == 0 and verdict.used == 5
+
+
 def test_a_failed_stop_is_reported_ungoverned_not_as_a_successful_stop():
     verdict = d.govern(cap=10, read_usage=lambda: _usage(500), stop=lambda: False,
                        sleep=lambda s: None, max_polls=2)
