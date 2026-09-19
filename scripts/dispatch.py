@@ -92,7 +92,7 @@ logger = logging.getLogger("dispatch")
 
 EXIT_CAP_EXCEEDED = 3
 EXIT_UNGOVERNED = 4       # the cap was NOT enforced and the lane may still be running
-EXIT_REFUSED = 5          # usage could not be bound: the lane was STOPPED, not left running
+EXIT_REFUSED = 5          # usage could not be bound: the lane was STOPPED (or had already ended)
 EXIT_NO_COMMIT = 6        # finished under cap but committed nothing -- FAILED, not DONE
 EXIT_UNWITNESSED = 7      # finished under cap; whether it committed could not be established
 
@@ -188,10 +188,13 @@ def govern(*, cap: int, read_usage: Callable[[], Optional["lc.TokenUsage"]],
         except GovernorBlind as exc:
             return _refuse(str(exc), used, cap, polls, stop)
         if (max_polls is not None and polls >= max_polls) or done:
-            # the last read was blind: the final spend was never observed -- not "under cap"
+            # the last read was blind: the final spend was never observed -- not "under cap".
+            # The lane has ENDED, so nothing is left to stop: it is REFUSED (exit 5), which keeps
+            # exit 4 meaning exactly one thing -- the lane may still be running.
             return Verdict(False, used, cap, polls,
                            ungoverned=(f"lane ended after {blind} unreadable usage poll(s); "
-                                       "final spend never observed") if blind else "")
+                                       "final spend never observed") if blind else "",
+                           refused=bool(blind))
         sleep(interval)
 
 
@@ -588,6 +591,23 @@ def bind_lane(lane_id: str) -> Optional[LaneBinding]:
     return LaneBinding(session_id, str((entry or {}).get("cwd") or ""))
 
 
+def find_lane_by_slug(slug: str) -> Optional[str]:
+    """The id of the ONE live lane whose cwd is `.../worktrees/<slug>`, else None.
+
+    For a launch whose output carried no readable id: the listing names each lane's cwd, and a
+    `--bg --worktree` lane's cwd is its worktree. Ambiguity (two live lanes for one slug) is None,
+    never a guess -- stopping the wrong lane is worse than reporting that this one was not found."""
+    try:
+        agents = _agents()
+    except GovernorBlind:
+        return None
+    suffix = f"/worktrees/{slug}".lower()
+    live = [e for e in agents
+            if str(e.get("cwd") or "").replace("\\", "/").rstrip("/").lower().endswith(suffix)
+            and str(e.get("state") or "").lower() not in _ENDED and e.get("id")]
+    return str(live[0]["id"]) if len(live) == 1 else None
+
+
 def lane_alive(lane_id: str) -> bool:
     """False once the lane has ENDED. A finished `--bg` lane stays LISTED with state `done`, so
     "is it in the listing" is not liveness. Absent from the listing is ended too."""
@@ -670,7 +690,7 @@ def plan_cmd(contract: str, slug: str, provider: str, model: str, effort: str, s
 
 
 @cli.command("govern")
-@click.argument("lane_id")
+@click.argument("lane_id", required=False, default="")
 @click.option("--slug", required=True, help="Lane slug; its branch is worktree-<slug>.")
 @click.option("--token-cap", "token_cap", type=int, required=True,
               help="REQUIRED. Tokens (input+output+cache-write) after which the lane is stopped.")
@@ -683,16 +703,24 @@ def govern_cmd(lane_id: str, slug: str, token_cap: int, count_cache_reads: bool,
                bind_polls: int, sessions_root: Optional[Path]) -> None:
     """Govern a launched `--bg` lane: bind, poll, stop past the cap, witness a commit.
 
+    LANE_ID may be omitted when the launcher could not read it from `claude --bg`'s output: the
+    lane is then FOUND by its worktree (`.../worktrees/<slug>`) in `claude agents --json`.
     Run from the CALLER's repo root (the commit witness reads its branches)."""
     validate_cap(token_cap)
     try:
         binding = None
         for attempt in range(max(bind_polls, 1)):
-            binding = bind_lane(lane_id)
+            lane_id = lane_id or find_lane_by_slug(slug) or ""
+            binding = bind_lane(lane_id) if lane_id else None
             if binding is not None:
                 break
             if attempt + 1 < bind_polls:
                 time.sleep(min(interval, 3.0))
+        if not lane_id:
+            # nothing names the lane, so there is nothing to stop: the one honest UNGOVERNED
+            _finish(Verdict(False, 0, token_cap, 0, ungoverned=(
+                f"no lane for worktree-{slug} could be identified in `claude agents --json`; if "
+                "one was started it MAY BE RUNNING, uncapped -- stop it by hand")), slug)
         if binding is None:
             _finish(_refuse(f"lane {lane_id} could not be bound to a session id after "
                             f"{bind_polls} attempt(s)", 0, token_cap, 0, lambda: stop_lane(lane_id)),
@@ -726,7 +754,7 @@ def _report(verdict: Verdict) -> None:
     if verdict.stop_failed:
         state = "CAP NOT ENFORCED -- `claude stop` FAILED; the lane may still be running"
     elif verdict.refused:
-        state = f"REFUSED ({verdict.ungoverned}) -- the lane was STOPPED"
+        state = f"REFUSED ({verdict.ungoverned}) -- the lane is not running"
     elif verdict.ungoverned:
         state = f"UNGOVERNED ({verdict.ungoverned}) -- the cap was NOT enforced"
     elif verdict.exceeded:

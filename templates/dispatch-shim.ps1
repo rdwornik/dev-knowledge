@@ -126,16 +126,13 @@ if ($startCode -ne 0) {
     exit $startCode
 }
 
+# The id is read from the start output; when it cannot be, `govern` FINDS the lane by its worktree
+# (`.../worktrees/<slug>`) in `claude agents --json` rather than leaving a running lane ungoverned.
 $found = [regex]::Match($started, '\b([0-9a-f]{8})\b')
-if (-not $found.Success) {
-    Write-Error ("A lane was started but its id could not be read from the output above, so it " +
-                 "cannot be governed. It is UNCAPPED: stop it by hand (`claude agents`, `claude stop <id>`).")
-    exit 4
-}
-$laneId = $found.Groups[1].Value
+$laneArgs = if ($found.Success) { @($found.Groups[1].Value) } else { @() }
 
 # --- 3. GOVERN -----------------------------------------------------------------------------
-$governArgs = @('govern', $laneId, '--slug', $plan.slug, '--token-cap', $TokenCap, '--interval', $Interval)
+$governArgs = @('govern') + $laneArgs + @('--slug', $plan.slug, '--token-cap', $TokenCap, '--interval', $Interval)
 if ($CountCacheReads) { $governArgs += '--count-cache-reads' }
 Invoke-Hub $governArgs
 exit $LASTEXITCODE
