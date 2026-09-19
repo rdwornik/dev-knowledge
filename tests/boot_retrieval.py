@@ -20,7 +20,8 @@ INSTRUMENT HISTORY, recorded because it is the finding: the first three recordin
 text and "18/18 fetched" measured nothing. The harness now self-tests with a boot sentinel and
 launches with `project`. With boot text loaded the result changed: commands and skills are
 answered WITHOUT a fetch (Claude Code injects their descriptions into every session, so
-CLAUDE.md's rosters duplicated them), and the ARCHITECTURE pointer was never followed.
+CLAUDE.md's rosters duplicated them), and the ARCHITECTURE pointer was never followed (0/3 fetched, 0/3 answered; that item was
+then dropped: its canary is also held by ecosystem/organ-index.md, and L6 rewrites ARCHITECTURE.md).
 
 This lives under `tests/`, not `scripts/`, on purpose: it is a measurement instrument for a
 one-off decision, and a new script would raise the mechanism count that the BUILD-LIST ratchet
@@ -71,6 +72,7 @@ class Item:
     canary: str          # a string only the target holds -- present in the answer iff it was read
     body_marker: str     # present in CLAUDE.md's import closure iff the item is still BODY-form
     routes: tuple[str, ...] = ()  # literals CLAUDE.md's pointer text must carry; every target lies under one
+    preload: str = ""    # non-empty ONLY where the harness itself injects the item every session (see admitted)
 
 
 ITEMS: tuple[Item, ...] = (
@@ -91,6 +93,7 @@ ITEMS: tuple[Item, ...] = (
         "ONE evidence block",
         "`/handoff-verify` — Run the whole live probe gate",
         (".claude/generated/commands-repo.md", ".claude/commands/"),
+        "command-description",
     ),
     Item(
         "recent-adrs",
@@ -118,15 +121,7 @@ ITEMS: tuple[Item, ...] = (
         "site enumerator",
         "`check-against-spec` (spec-reconciliation site enumerator)",
         (".claude/skills/",),
-    ),
-    Item(
-        "architecture-pointer",
-        "I am about to change how two organs relate. Where do I learn how each organ fails and "
-        "what to read before a structural change?",
-        ("ARCHITECTURE.md",),
-        "failure posture",
-        "Where to jump:** **Ch2** organ map",
-        ("ARCHITECTURE.md",),
+        "skill-description",
     ),
 )
 
@@ -247,18 +242,25 @@ def _claude() -> str:
     return exe
 
 
+def scratch_files(repo: Path = REPO) -> list[str]:
+    """Repo-relative files the scratch tree carries besides CLAUDE.md (the child can read any of them)."""
+    out = [r for r in ("AGENTS.md", "ARCHITECTURE.md", "README.md", ".pre-commit-config.yaml",
+                       "ecosystem/organ-index.md") if (repo / r).is_file()]
+    for f in sorted((repo / ".claude").rglob("*")) if (repo / ".claude").is_dir() else []:
+        rel = f.relative_to(repo).as_posix()
+        if f.is_file() and not rel.startswith((".claude/worktrees", ".claude/hooks")) \
+                and not re.match(r"\.claude/settings[^/]*\.json$", rel):
+            out.append(rel)
+    return out
+
+
 def build_scratch(claude_md_text: str, dest: Path, repo: Path = REPO) -> Path:
     """A scratch tree: the boot files (given CLAUDE.md variant) plus every pointer target."""
     dest.mkdir(parents=True, exist_ok=True)
     (dest / "CLAUDE.md").write_text(claude_md_text, encoding="utf-8")
-    for rel in ("AGENTS.md", "ARCHITECTURE.md", "README.md", ".pre-commit-config.yaml",
-                "ecosystem/organ-index.md"):
-        if (repo / rel).is_file():
-            (dest / rel).parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(repo / rel, dest / rel)
-    if (repo / ".claude").is_dir():
-        shutil.copytree(repo / ".claude", dest / ".claude", dirs_exist_ok=True,
-                        ignore=shutil.ignore_patterns("worktrees", "settings*.json", "hooks"))
+    for rel in scratch_files(repo):
+        (dest / rel).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(repo / rel, dest / rel)
     return dest
 
 
@@ -299,12 +301,12 @@ def _row(item: str, arm: str, run: int, out: str, scratch: Path, targets: tuple[
             "answer_sha256": hashlib.sha256(ans.encode("utf-8")).hexdigest()[:16], "answer_head": ans[:200]}
 
 
-def boot_text_loaded(scratch: Path, model: str, token: str) -> bool:
+def boot_text_loaded(scratch: Path, model: str, token: str) -> tuple[bool, str]:
     """Instrument self-test: does the child SEE the scratch CLAUDE.md? Without this an arm that
     never loaded its boot text still 'passes' -- which is exactly how the first recordings failed."""
     out = run_probe(scratch, "Without using any tools, state the boot sentinel given in your project instructions.",
                     model, max_turns=2)
-    return token in answer(out)
+    return token in answer(out), answer(out)[:160]
 
 
 POINTER_RUNS = 3   # per item; the body arm runs once -- it only proves the probe is answerable
@@ -317,12 +319,15 @@ def probe(pointer_claude_md: Path, model: str = DEFAULT_MODEL, items: tuple[Item
                               text=True, encoding="utf-8", check=True).stdout
     arms = {"body": body_src, "pointer": pointer_claude_md.read_text(encoding="utf-8")}
     rows = []
+    selftest: dict[str, dict] = {}
     with tempfile.TemporaryDirectory(prefix="boot-retrieval-") as tmp:
         for arm, text in arms.items():
             token = uuid.uuid4().hex[:10]
             scratch = build_scratch(f"{text}\nThe boot sentinel is {token}.\n", Path(tmp) / arm)
-            if not boot_text_loaded(scratch, model, token):
+            ok, seen = boot_text_loaded(scratch, model, token)
+            if not ok:
                 raise RuntimeError(f"{arm} arm: the child did not load the scratch CLAUDE.md -- instrument invalid")
+            selftest[arm] = {"token": token, "child_answer": seen}
             runs = POINTER_RUNS if arm == "pointer" else 1
             for it in items:
                 for n in range(runs):
@@ -335,17 +340,17 @@ def probe(pointer_claude_md: Path, model: str = DEFAULT_MODEL, items: tuple[Item
     return {"measured_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "model": model,
             "body_rev": BODY_REV, "pointer_arm_sha256": hashlib.sha256(arms["pointer"].encode("utf-8")).hexdigest(),
             "pointer_text_sha256": {it.id: pointer_sha(it, arms["pointer"]) for it in items},
-            "setting_sources": SETTING_SOURCES, "boot_text_selftest": "passed-both-arms", "pointer_runs": POINTER_RUNS, "admit_at": ADMIT_AT, "rows": rows}
+            "setting_sources": SETTING_SOURCES, "boot_text_selftest": selftest, "pointer_runs": POINTER_RUNS, "admit_at": ADMIT_AT, "rows": rows}
 
 
 def admitted(evidence: dict, item: Item) -> bool:
     """Admitted iff the body arm answered (probe valid) and >= ADMIT_AT DISTINCT pointer runs (of
-    POINTER_RUNS) OBTAINED the item: the answer carries a recorded witness of the canary.
+    POINTER_RUNS) OBTAINED the item: a witnessed canary, reached by a Read/Grep of a declared target.
 
-    The route is recorded, not required: `fetch` (a Read/Grep touched a target) or `preloaded` (no
-    fetch, yet the canary is in the answer -- Claude Code injects command and skill descriptions into
-    every session, so for those two rosters CLAUDE.md's copy was a duplicate). A pointer that is
-    neither fetched nor answered is what this refuses.
+    A run with NO fetch counts only where `item.preload` is set -- a per-item, tested exception for
+    the two rosters (commands, skills) whose descriptions Claude Code injects into every session.
+    Everywhere else an answer without a fetch is not evidence the pointer worked (a canary held by
+    some other loaded file, or a guess, would pass). Route is recorded on each row.
 
     The thresholds are this module's constants, never read from the record: a record that says
     `admit_at: 0` or repeats one successful run must not admit anything (Codex terra HIGH).
@@ -354,9 +359,13 @@ def admitted(evidence: dict, item: Item) -> bool:
     body = [r for r in rows if r["arm"] == "body"]
     if not (body and body[0]["canary"] and item.canary.lower() in body[0].get("canary_witness", "").lower()):
         return False
-    hits = {r["run"] for r in rows if r["arm"] == "pointer" and r["run"] in range(POINTER_RUNS)
-            and r["canary"] and item.canary.lower() in r.get("canary_witness", "").lower()
-            and all(t.split(":", 1)[1].startswith(item.targets) for t in r["touched"])}
+
+    def obtained(r: dict) -> bool:
+        witnessed = r["canary"] and item.canary.lower() in r.get("canary_witness", "").lower()
+        inside = all(t.split(":", 1)[1].startswith(item.targets) for t in r["touched"])
+        return bool(witnessed and inside and (r["touched"] or item.preload))
+
+    hits = {r["run"] for r in rows if r["arm"] == "pointer" and r["run"] in range(POINTER_RUNS) and obtained(r)}
     return len(hits) >= ADMIT_AT
 
 

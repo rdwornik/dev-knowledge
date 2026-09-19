@@ -185,13 +185,24 @@ def test_a_canary_boolean_without_a_witness_admits_nothing() -> None:
     assert not admitted(_record(it, witness=False), it)
 
 
-def test_an_answer_with_no_fetch_is_admitted_as_preloaded() -> None:
-    it = ITEMS[0]
-    rec = _record(it)
-    for r in rec["rows"]:
-        if r["arm"] == "pointer":
-            r["touched"] = []
-    assert admitted(rec, it)
+def test_an_answer_with_no_fetch_is_admitted_only_for_a_declared_preload_item() -> None:
+    plain = next(i for i in ITEMS if not i.preload)
+    exempt = next(i for i in ITEMS if i.preload)
+    for it, want in ((plain, False), (exempt, True)):
+        rec = _record(it)
+        for r in rec["rows"]:
+            if r["arm"] == "pointer":
+                r["touched"] = []
+        assert admitted(rec, it) is want, it.id
+
+
+def test_a_preload_exemption_is_only_for_descriptions_the_harness_injects() -> None:
+    for it in ITEMS:
+        if not it.preload:
+            continue
+        texts = [(REPO / t).read_text(encoding="utf-8") for t in it.targets if (REPO / t).is_file()]
+        heads = [x.split("---")[1] for x in texts if x.startswith("---")]
+        assert any(it.canary.lower() in h.lower() for h in heads), f"{it.id}: canary not in a frontmatter description"
 
 
 def test_a_pointer_run_that_neither_answered_nor_fetched_admits_nothing() -> None:
@@ -231,6 +242,19 @@ def test_an_arm_that_never_loaded_its_boot_text_is_refused(monkeypatch, tmp_path
     import boot_retrieval as br
 
     monkeypatch.setattr(br, "run_probe", lambda *_a, **_k: _stream(result="I see no sentinel"))
-    assert not br.boot_text_loaded(tmp_path, "m", "QUASAR-1")
+    assert not br.boot_text_loaded(tmp_path, "m", "QUASAR-1")[0]
     monkeypatch.setattr(br, "run_probe", lambda *_a, **_k: _stream(result="it is QUASAR-1"))
-    assert br.boot_text_loaded(tmp_path, "m", "QUASAR-1")
+    ok, seen = br.boot_text_loaded(tmp_path, "m", "QUASAR-1")
+    assert ok and "QUASAR-1" in seen
+
+
+def test_a_canary_is_held_only_by_its_own_targets_among_the_scratch_inputs() -> None:
+    from boot_retrieval import scratch_files
+
+    for it in ITEMS:
+        own = tuple(it.targets) + tuple(it.routes)
+        for rel in scratch_files(REPO):
+            if rel.startswith(own):
+                continue
+            text = (REPO / rel).read_text(encoding="utf-8", errors="ignore")
+            assert it.canary.lower() not in text.lower(), f"{it.id}: canary also held by {rel}"

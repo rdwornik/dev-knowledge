@@ -1,5 +1,5 @@
 {
- "measured_at": "2026-09-19T01:34:59+00:00",
+ "measured_at": "2026-09-19T01:56:32+00:00",
  "model": "claude-haiku-4-5-20251001",
  "body_rev": "14d273fb",
  "pointer_arm_sha256": "ab637b77d0c547f5a2849e20f30c84856d5cc364d93e65aa5c56d4a253fabbdd",
@@ -8,11 +8,19 @@
   "repo-commands": "f349b3eb7b95de35",
   "recent-adrs": "964e7087ff4585d3",
   "methodology-roster": "83ac26b84236e0eb",
-  "skills-roster": "fbf6181911aec974",
-  "architecture-pointer": "0e86abb8f0b518f9"
+  "skills-roster": "fbf6181911aec974"
  },
  "setting_sources": "project",
- "boot_text_selftest": "passed-both-arms",
+ "boot_text_selftest": {
+  "body": {
+   "token": "641a843ea0",
+   "child_answer": "The boot sentinel is **641a843ea0**.\n\nThis is stated at the end of the CLAUDE.md project instructions file."
+  },
+  "pointer": {
+   "token": "98cd385fdd",
+   "child_answer": "The boot sentinel is **98cd385fdd**.\n\n(Found in the final line of `C:\\Users\\1028120\\AppData\\Local\\Temp\\boot-retrieval-0gzr_lyw\\pointer\\CLAUDE.md`)"
+  }
+ },
  "pointer_runs": 3,
  "admit_at": 2,
  "rows": [
@@ -24,10 +32,11 @@
    "touched": [
     "Read:.pre-commit-config.yaml"
    ],
+   "route": "fetch",
    "canary": true,
-   "canary_witness": "aph-task-coverage` gate **refuses when a staged file has no inbound `implements` edge from an OPEN row** in your backlog.\n\nIn practical terms:\n- ",
-   "answer_sha256": "7b308549078691db",
-   "answer_head": "Based on the repository documentation, here's what `graph-task-coverage` checks and how to get past it:\n\n## What it checks\n\nThe `graph-task-coverage` gate **refuses when a staged file has no inbound `"
+   "canary_witness": "hat it checks\n\n**The gate REFUSES when a staged file has no inbound `implements` edge from an OPEN row.** Specifically:\n- Every file you're stagi",
+   "answer_sha256": "fdbeed5fcb1606c1",
+   "answer_head": "Based on the `.pre-commit-config.yaml` file (lines 567\u2013583), here's what the `graph-task-coverage` gate checks:\n\n## What it checks\n\n**The gate REFUSES when a staged file has no inbound `implements` ed"
   },
   {
    "item": "repo-commands",
@@ -35,10 +44,11 @@
    "run": 0,
    "fetched": false,
    "touched": [],
+   "route": "preloaded",
    "canary": true,
-   "canary_witness": "e gate for a handoff bundle in ONE pass and emits **exactly ONE evidence block** \u2014 the v6 one-round-trip boot (as documented in HANDOFF_PR",
-   "answer_sha256": "8d1ea850333b6da2",
-   "answer_head": "The command is **`/handoff-verify`**.\n\nIt runs the whole live probe gate for a handoff bundle in ONE pass and emits **exactly ONE evidence block** \u2014 the v6 one-round-trip boot (as documented in HANDOF"
+   "canary_witness": "e gate for a handoff bundle in ONE pass**\n- **Emits exactly ONE evidence block** (the v6 one-round-trip boot per HANDOFF_PROCESS \u00a75)",
+   "answer_sha256": "76c0deed64d94383",
+   "answer_head": "The command is **`/handoff-verify`**.\n\nAccording to the repo's commands roster, it:\n- **Runs the whole live probe gate for a handoff bundle in ONE pass**\n- **Emits exactly ONE evidence block** (the v6"
   },
   {
    "item": "recent-adrs",
@@ -46,10 +56,11 @@
    "run": 0,
    "fetched": false,
    "touched": [],
+   "route": "preloaded",
    "canary": true,
-   "canary_witness": "#664]` wiring surface only while invocations are recorded \u2014 adoption decays, it is not conferred\"\n\n**Status: Accepted**",
-   "answer_sha256": "ea57d182a1d37db4",
-   "answer_head": "Based on the recent ADRs listed in the project documentation, **ADR-119** most recently addressed command files and wiring surfaces.\n\n**ADR-119** (Accepted, 2026-09-13): \"A command file counts as a `["
+   "canary_witness": "#664]` wiring surface only while invocations are recorded \u2014 adoption decays, it is not conferred\"",
+   "answer_sha256": "fc6c98ef49e97ac8",
+   "answer_head": "Based on the recent ADRs listed in `.claude/generated/recent-adrs.md`:\n\n**ADR-119** most recently addressed when a command file counts as a wiring surface.\n\n**Status:** Accepted (dated 2026-09-13)\n\n**"
   },
   {
    "item": "methodology-roster",
@@ -57,10 +68,11 @@
    "run": 0,
    "fetched": false,
    "touched": [],
+   "route": "preloaded",
    "canary": true,
-   "canary_witness": "ate; require [#id] when a BACKLOG task line is removed\n5. **floor-hash-verify** \u2014 verifies .claude/CLAUDE-FLOOR.md matches its sha256 sid",
-   "answer_sha256": "0a2050b66935bfc6",
-   "answer_head": "Looking at the `.claude/methodology-roster.md` file, which documents \"the manifest-declared DEPLOYABLE methodology corpus \u2014 the commands / hooks / config a *fully-deployed consumer* receives,\" the **P"
+   "canary_witness": "HITECTURE.md codemap freshness (hub hooks, pinned rev)\n3. **floor-hash-verify** \u2014 verifies .claude/CLAUDE-FLOOR.md matches its sha256 sid",
+   "answer_sha256": "3ba846b61cea935f",
+   "answer_head": "Looking at the `.claude/methodology-roster.md` file (which is the manifest-declared deployable methodology corpus), under the **\"## Pre-commit hooks\"** section, a fully-deployed consumer receives thes"
   },
   {
    "item": "skills-roster",
@@ -68,21 +80,11 @@
    "run": 0,
    "fetched": false,
    "touched": [],
+   "route": "preloaded",
    "canary": true,
-   "canary_witness": "c when the spec version advances. It runs the deterministic site enumerator, then verdicts each extracted site (`stale|fine|not-relevan",
-   "answer_sha256": "fcbea80332cb41de",
-   "answer_head": "Yes, there is a repo-level skill for this.\n\n**Skill name:** `check-against-spec`\n\n**What it does:** Reconciles a dependent doc against its spec when the spec version advances. It runs the deterministi"
-  },
-  {
-   "item": "architecture-pointer",
-   "arm": "body",
-   "run": 0,
-   "fetched": false,
-   "touched": [],
-   "canary": true,
-   "canary_witness": " outcome loop\n3. **\"Validators and enforcement\"** chapter \u2014 failure posture for each validation organ\n\n**For detailed per-hook informat",
-   "answer_sha256": "fbf47523b7ee6743",
-   "answer_head": "Based on the project documentation, here's where to learn about organ failures and what to read before structural changes:\n\n**Primary reference: `ARCHITECTURE.md`**\n\nRead this before any structural ch"
+   "canary_witness": "when the spec's version advances. It runs the deterministic site enumerator, then verdicts EACH extracted site (stale | fine | not-rele",
+   "answer_sha256": "2ebed6b765463557",
+   "answer_head": "The repo-level skill is **`check-against-spec`**.\n\n**What it does:** Reconciles a dependent doc against its spec when the spec's version advances. It runs the deterministic site enumerator, then verdi"
   },
   {
    "item": "control",
@@ -90,10 +92,11 @@
    "run": 0,
    "fetched": false,
    "touched": [],
+   "route": "none",
    "canary": false,
    "canary_witness": "",
-   "answer_sha256": "17c15d1bda012528",
-   "answer_head": "I've read the README.md file. The first paragraph is in the \"Vision\" section (lines 13-16), and the first sentence reads:\n\n\"`.dev-knowledge` is a universal LLM-driven development guide and methodology"
+   "answer_sha256": "8ff643d67315b181",
+   "answer_head": "Looking at the README.md, I'll examine the first sentence of the first paragraph (lines 13-14):\n\n```\n`.dev-knowledge` is a universal LLM-driven development guide and\nmethodology framework.\n```\n\n**The "
   },
   {
    "item": "hooks-roster",
@@ -103,10 +106,11 @@
    "touched": [
     "Read:.pre-commit-config.yaml"
    ],
+   "route": "fetch",
    "canary": true,
-   "canary_witness": "hecks\n\nThe hook **refuses when you stage a file that has no inbound `implements` edge from an OPEN task row**. In other words: every file in your",
-   "answer_sha256": "fe0c0e6001c46215",
-   "answer_head": "Based on the `.pre-commit-config.yaml` at lines 567\u2013583, here's exactly what `graph-task-coverage` checks and how to get past it:\n\n## What it checks\n\nThe hook **refuses when you stage a file that has "
+   "canary_witness": "e` gate (lines 567\u2013583) **refuses when a staged file has no inbound `implements` edge from an OPEN backlog row**. In plain terms:\n\n- Every file y",
+   "answer_sha256": "de79aee6455e90c3",
+   "answer_head": "Based on the `.pre-commit-config.yaml` file in this repository, here's exactly what **`graph-task-coverage`** checks and how to pass it:\n\n## What It Checks\n\nThe `graph-task-coverage` gate (lines 567\u20135"
   },
   {
    "item": "hooks-roster",
@@ -116,10 +120,11 @@
    "touched": [
     "Read:.pre-commit-config.yaml"
    ],
+   "route": "fetch",
    "canary": true,
-   "canary_witness": "\n\n**Purpose:** The hook refuses when a staged file has **no inbound `implements` edge from an OPEN row** \u2014 meaning either:\n- An OPEN task row nam",
-   "answer_sha256": "1888172d0fe3e48f",
-   "answer_head": "Based on the `.pre-commit-config.yaml` in your repo, here's exactly what `graph-task-coverage` does and how to handle it:\n\n## What it checks\n\n**Name:** Task coverage \u2014 a staged file no OPEN row claims"
+   "canary_witness": "tion (lines 569\u2013577):\n\n> \"REFUSES when a staged file has no inbound `implements` edge from an OPEN row -- either the row names the file, or the f",
+   "answer_sha256": "012ba9460288e47b",
+   "answer_head": "Based on the `.pre-commit-config.yaml` definition, here's what **`graph-task-coverage`** checks:\n\n## What it checks\n\n**Every staged file must have a corresponding OPEN backlog row that claims it** \u2014 e"
   },
   {
    "item": "hooks-roster",
@@ -129,10 +134,11 @@
    "touched": [
     "Read:.pre-commit-config.yaml"
    ],
+   "route": "fetch",
    "canary": true,
-   "canary_witness": "k coverage** \u2014 the gate refuses when a **staged file has no inbound `implements` edge from an OPEN row**. \n\nIn plain English: every file you're c",
-   "answer_sha256": "8b29d49915c9a4fc",
-   "answer_head": "Based on the hook definition in `.pre-commit-config.yaml` (lines 567\u2013583), here's what the `graph-task-coverage` gate checks:\n\n## What it checks\n\n**Task coverage** \u2014 the gate refuses when a **staged f"
+   "canary_witness": "ims\"\n\nThe gate **refuses a commit if any staged file has no inbound `implements` edge from an OPEN task row**. In other words:\n\n- Every file you'",
+   "answer_sha256": "db09b29b36e6e9ec",
+   "answer_head": "Based on the gate definition in `.pre-commit-config.yaml`, here's what `graph-task-coverage` checks:\n\n## What it checks\n\n**Gate name:** \"Task coverage \u2014 a staged file no OPEN row claims\"\n\nThe gate **r"
   },
   {
    "item": "repo-commands",
@@ -140,10 +146,11 @@
    "run": 0,
    "fetched": false,
    "touched": [],
+   "route": "preloaded",
    "canary": true,
-   "canary_witness": "e for a handoff bundle in a single pass and emits **exactly ONE evidence block** \u2014 the v6 one-round-trip boot (per HANDOFF_PROCESS \u00a75).\n\nT",
-   "answer_sha256": "d913ea18ab724fd4",
-   "answer_head": "The command is **`/handoff-verify`**.\n\nIt runs the whole live probe gate for a handoff bundle in a single pass and emits **exactly ONE evidence block** \u2014 the v6 one-round-trip boot (per HANDOFF_PROCES"
+   "canary_witness": "e gate for a handoff bundle in ONE pass\n- **Emits** exactly ONE evidence block \u2014 the v6 one-round-trip boot (per HANDOFF_PROCESS \u00a75)\n\nThis",
+   "answer_sha256": "b9c7d7727c28f8a4",
+   "answer_head": "Looking at the available skills in this repo (from the system-reminder), the command you need is:\n\n**`/handoff-verify`**\n\nAccording to the skill definition, it:\n- **Runs** the whole live probe gate fo"
   },
   {
    "item": "repo-commands",
@@ -151,10 +158,11 @@
    "run": 1,
    "fetched": false,
    "touched": [],
+   "route": "preloaded",
    "canary": true,
-   "canary_witness": "robe gate for a handoff bundle in ONE pass and emit exactly ONE evidence block \u2014 the v6 one-round-trip boot (HANDOFF_PROCESS \u00a75)\n\nSo it em",
-   "answer_sha256": "d1effe893a3f8fca",
-   "answer_head": "Looking at the skills available in the system reminder, the command you need is:\n\n**`/handoff-verify`**\n\nAccording to the skill definition, it will:\n> Run the whole live probe gate for a handoff bundl"
+   "canary_witness": "te for a handoff bundle in **ONE pass** and emits exactly **ONE evidence block** \u2014 the v6 one-round-trip boot (as described in `HANDOFF_PR",
+   "answer_sha256": "af795d0aa0869d45",
+   "answer_head": "The command is **`handoff-verify`** (a skill, not a slash command).\n\nIt runs the whole live probe gate for a handoff bundle in **ONE pass** and emits exactly **ONE evidence block** \u2014 the v6 one-round-"
   },
   {
    "item": "repo-commands",
@@ -162,10 +170,11 @@
    "run": 2,
    "fetched": false,
    "touched": [],
+   "route": "preloaded",
    "canary": true,
-   "canary_witness": "ndoff bundle in **ONE pass**.\n\n**What it emits:** Exactly **ONE evidence block** \u2014 the v6 one-round-trip boot (as described in `HANDOFF_PR",
-   "answer_sha256": "a9298f325f47715f",
-   "answer_head": "Based on the repo's `CLAUDE.md` documentation (section 8, \"Skills active\"), the command you need is:\n\n**`/handoff-verify`**\n\n**What it does:** Runs the whole live probe gate for a handoff bundle in **"
+   "canary_witness": "gate for a handoff bundle in ONE pass** and emits exactly **ONE evidence block** \u2014 the v6 one-round-trip boot (referenced in HANDOFF_PROCE",
+   "answer_sha256": "a00488c5f9eb6dbc",
+   "answer_head": "Looking at the available skills in the repo (shown in the system-reminder), the command you need is:\n\n**`/handoff-verify`**\n\nThis skill runs **the whole live probe gate for a handoff bundle in ONE pas"
   },
   {
    "item": "recent-adrs",
@@ -175,10 +184,11 @@
    "touched": [
     "Read:.claude/generated/recent-adrs.md"
    ],
+   "route": "fetch",
    "canary": true,
-   "canary_witness": "#664]` wiring surface only while invocations are recorded \u2014 adoption decays, it is not conferred\n\nThe key principle: a command file is a wiring surface *con",
-   "answer_sha256": "ae2767937936535d",
-   "answer_head": "**Answer:**\n\n**ADR-119** most recently made a command file count as a wiring surface, and its **status is Accepted** (ratified 2026-09-13).\n\nFrom `.claude/generated/recent-adrs.md`:\n> ADR-119 (Accepte"
+   "canary_witness": "#664]` wiring surface only while invocations are recorded \u2014 adoption decays, it is not conferred\"",
+   "answer_sha256": "9810756ad168a456",
+   "answer_head": "Based on the recent ADRs listed in `.claude/generated/recent-adrs.md`:\n\n**ADR-119** most recently addressed this topic. \n\n- **Status:** Accepted\n- **Date:** 2026-09-13\n- **Title:** \"A command file cou"
   },
   {
    "item": "recent-adrs",
@@ -188,10 +198,11 @@
    "touched": [
     "Read:.claude/generated/recent-adrs.md"
    ],
+   "route": "fetch",
    "canary": true,
-   "canary_witness": "s as a wiring surface only while invocations are recorded \u2014 adoption decays, it is not conferred.",
-   "answer_sha256": "b338d940d4ba43b4",
-   "answer_head": "Based on the recent ADRs file:\n\n**ADR-119** is the most recent ADR that made a command file count as a wiring surface.\n\n**Status:** Accepted (dated 2026-09-13)\n\n**Summary:** A command file counts as a"
+   "canary_witness": "#664]` wiring surface only while invocations are recorded \u2014 adoption decays, it is not conferred\"",
+   "answer_sha256": "65bf18333037f82b",
+   "answer_head": "Based on the repository's ADR documentation, **ADR-119** is the most recent ADR that made a command file count as a wiring surface.\n\n**ADR-119 details:**\n- **Status:** Accepted\n- **Date:** 2026-09-13\n"
   },
   {
    "item": "recent-adrs",
@@ -201,10 +212,11 @@
    "touched": [
     "Read:.claude/generated/recent-adrs.md"
    ],
+   "route": "fetch",
    "canary": true,
-   "canary_witness": "#664]` wiring surface only while invocations are recorded \u2014 adoption decays, it is not conferred.\"",
-   "answer_sha256": "46afc36b31423fdb",
-   "answer_head": "Based on the recent ADRs list, **ADR-119** is the most recent ADR that made a command file count as a wiring surface.\n\n**Status:** Accepted (as of 2026-09-13)\n\n**Summary:** ADR-119 states that \"A comm"
+   "canary_witness": "#664]` wiring surface only while invocations are recorded \u2014 adoption decays, it is not conferred\"",
+   "answer_sha256": "57fc42bc79d4a29d",
+   "answer_head": "Based on the recent ADRs list in `.claude/generated/recent-adrs.md`:\n\n**ADR-119** most recently made a command file count as a wiring surface.\n\n- **Status:** Accepted\n- **Date:** 2026-09-13\n- **Summar"
   },
   {
    "item": "methodology-roster",
@@ -214,47 +226,51 @@
    "touched": [
     "Read:.claude/methodology-roster.md"
    ],
+   "route": "fetch",
    "canary": true,
    "canary_witness": "ate; require [#id] when a BACKLOG task line is removed\n5. **floor-hash-verify** \u2014 verifies .claude/CLAUDE-FLOOR.md matches its sha256 sid",
-   "answer_sha256": "55c2081a6566c357",
-   "answer_head": "Per the deploy manifest in `.claude/methodology-roster.md`, a fully-deployed consumer receives **six pre-commit hooks**:\n\n1. **toc-freshness** \u2014 TOC freshness (hub hooks, pinned rev)\n2. **codemap-fres"
-  },
-  {
-   "item": "methodology-roster",
-   "arm": "pointer",
-   "run": 1,
-   "fetched": true,
-   "touched": [
-    "Read:.claude/methodology-roster.md"
-   ],
-   "canary": true,
-   "canary_witness": "ate; require [#id] when a BACKLOG task line is removed |\n| `floor-hash-verify` | Verifies .claude/CLAUDE-FLOOR.md matches its sha256 side",
-   "answer_sha256": "722ea2dbb34d86f9",
-   "answer_head": "Based on the deploy manifest in `.claude/methodology-roster.md`, a **fully-deployed consumer** receives the following **pre-commit hooks**:\n\n| Hook | Purpose |\n|---|---|\n| `toc-freshness` | TOC freshn"
-  },
-  {
-   "item": "methodology-roster",
-   "arm": "pointer",
-   "run": 2,
-   "fetched": true,
-   "touched": [
-    "Read:.claude/methodology-roster.md"
-   ],
-   "canary": true,
-   "canary_witness": "ate; require [#id] when a BACKLOG task line is removed\n5. **floor-hash-verify** \u2014 verifies .claude/CLAUDE-FLOOR.md matches its sha256 sid",
-   "answer_sha256": "f17c3b19d2afd023",
+   "answer_sha256": "6270c6fee5af020a",
    "answer_head": "Based on the deploy manifest in `.claude/methodology-roster.md`, a fully-deployed consumer receives the following **pre-commit hooks**:\n\n1. **toc-freshness** \u2014 TOC freshness (hub hooks, pinned rev)\n2."
   },
   {
+   "item": "methodology-roster",
+   "arm": "pointer",
+   "run": 1,
+   "fetched": true,
+   "touched": [
+    "Read:.claude/methodology-roster.md"
+   ],
+   "route": "fetch",
+   "canary": true,
+   "canary_witness": "ate; require [#id] when a BACKLOG task line is removed\n5. **floor-hash-verify** \u2014 verifies .claude/CLAUDE-FLOOR.md matches its sha256 sid",
+   "answer_sha256": "917ec6085acadc41",
+   "answer_head": "Based on the deploy manifest in `.claude/methodology-roster.md`, a **fully-deployed consumer receives these pre-commit hooks**:\n\n1. **toc-freshness** \u2014 TOC freshness (hub hooks, pinned rev)\n2. **codem"
+  },
+  {
+   "item": "methodology-roster",
+   "arm": "pointer",
+   "run": 2,
+   "fetched": true,
+   "touched": [
+    "Read:.claude/methodology-roster.md"
+   ],
+   "route": "fetch",
+   "canary": true,
+   "canary_witness": "; requires `[#id]` when a BACKLOG task line is removed\n5. **floor-hash-verify** \u2014 verifies `.claude/CLAUDE-FLOOR.md` matches its SHA256 s",
+   "answer_sha256": "f4930ea9f42c3b8a",
+   "answer_head": "Based on `.claude/methodology-roster.md` (the deploy manifest for this hub), a **fully-deployed consumer receives these pre-commit hooks**:\n\n1. **toc-freshness** \u2014 TOC freshness gate (hub hooks, pinne"
+  },
+  {
    "item": "skills-roster",
    "arm": "pointer",
    "run": 0,
    "fetched": false,
    "touched": [],
+   "route": "preloaded",
    "canary": true,
    "canary_witness": "c when the spec version advances. It runs the deterministic site enumerator, then verdicts each extracted site (stale | fine | not-rele",
-   "answer_sha256": "34c3d8bad51ae1ef",
-   "answer_head": "Yes, there is a repo-level skill for this: **`check-against-spec`**.\n\n**What it does:**\nReconciles a dependent doc against its spec when the spec version advances. It runs the deterministic site enume"
+   "answer_sha256": "b1cdf6b80e3454ab",
+   "answer_head": "Yes, there is a repo-level skill for this task.\n\n**Skill name:** `check-against-spec`\n\n**What it does:** Reconciles a dependent doc against its spec when the spec version advances. It runs the determi"
   },
   {
    "item": "skills-roster",
@@ -262,10 +278,11 @@
    "run": 1,
    "fetched": false,
    "touched": [],
+   "route": "preloaded",
    "canary": true,
-   "canary_witness": "c when the spec version advances. It runs the deterministic site enumerator, then verdicts each extracted site (stale|fine|not-relevant",
-   "answer_sha256": "3f1e3193cb7e5dea",
-   "answer_head": "Looking at the available skills listed in the system reminders, the repo-level skill for this is:\n\n**`check-against-spec`** \u2014 Reconcile a dependent doc against its spec when the spec version advances."
+   "canary_witness": "e spec version advances. The skill:\n1. Runs a deterministic site enumerator\n2. Verdicts each extracted site as `stale` | `fine` | `not-",
+   "answer_sha256": "7f19bb17ada36df1",
+   "answer_head": "Yes, there is a repo-level skill for this.\n\n**Skill name:** `check-against-spec`\n\n**What it does:**\nReconciles a dependent doc against its spec when the spec version advances. The skill:\n1. Runs a det"
   },
   {
    "item": "skills-roster",
@@ -273,43 +290,11 @@
    "run": 2,
    "fetched": false,
    "touched": [],
+   "route": "preloaded",
    "canary": true,
-   "canary_witness": "the spec version advances. The skill runs the deterministic site enumerator, then verdicts **each extracted site** (stale | fine | not-",
-   "answer_sha256": "4c16c43cfcd90e66",
-   "answer_head": "**Skill name:** `check-against-spec`\n\n**What it does:** Reconciles a dependent doc against its spec when the spec version advances. The skill runs the deterministic site enumerator, then verdicts **ea"
-  },
-  {
-   "item": "architecture-pointer",
-   "arm": "pointer",
-   "run": 0,
-   "fetched": false,
-   "touched": [],
-   "canary": false,
-   "canary_witness": "",
-   "answer_sha256": "f4e2e3560c65fe40",
-   "answer_head": "Read **`ARCHITECTURE.md`** before any structural change (ADR-51 as amended 2026-05-23).\n\n**Chapter 2 (\"organ map\")** of that file covers:\n- **Which organ fires when**\n- **How it fails**\n\nThat chapter "
-  },
-  {
-   "item": "architecture-pointer",
-   "arm": "pointer",
-   "run": 1,
-   "fetched": false,
-   "touched": [],
-   "canary": false,
-   "canary_witness": "",
-   "answer_sha256": "4b5806ee1924f757",
-   "answer_head": "**Read `ARCHITECTURE.md` before any structural change.**\n\nSpecifically:\n\n- **Chapter 2: \"Organ map\"** \u2014 shows which organ fires when and **how it fails**\n- The full document is the structural model go"
-  },
-  {
-   "item": "architecture-pointer",
-   "arm": "pointer",
-   "run": 2,
-   "fetched": false,
-   "touched": [],
-   "canary": false,
-   "canary_witness": "",
-   "answer_sha256": "6881b8d7ac70d1c3",
-   "answer_head": "Based on the CLAUDE.md in this repo, here's where to look:\n\n**Before a structural change:**\n- Read **`ARCHITECTURE.md`** (ADR-51) \u2014 this is the structural model for this repo\n  - **Chapter 2 specifica"
+   "canary_witness": "en the spec version advances. It:\n1. Runs the deterministic site enumerator\n2. Verdicts each extracted site as `stale|fine|not-relevant",
+   "answer_sha256": "cd2e95a446564ff0",
+   "answer_head": "Yes, there is a repo-level skill for this task.\n\n**Skill name:** `check-against-spec`\n\n**What it does:**\nReconciles a dependent doc against its spec when the spec version advances. It:\n1. Runs the det"
   },
   {
    "item": "control",
@@ -317,10 +302,11 @@
    "run": 0,
    "fetched": false,
    "touched": [],
+   "route": "none",
    "canary": false,
    "canary_witness": "",
-   "answer_sha256": "31791926a151287e",
-   "answer_head": "I've read the README.md file. Looking at the first paragraph under the \"## Vision\" heading (lines 13-16), the first sentence is:\n\n\"`.dev-knowledge` is a universal LLM-driven development guide and meth"
+   "answer_sha256": "b6218046055368fb",
+   "answer_head": "I've read the README.md, and looking at the first paragraph under the \"## Vision\" section, the first sentence is:\n\n\"`.dev-knowledge` is a universal LLM-driven development guide and methodology framewo"
   },
   {
    "item": "control",
@@ -328,10 +314,11 @@
    "run": 1,
    "fetched": false,
    "touched": [],
+   "route": "none",
    "canary": false,
    "canary_witness": "",
-   "answer_sha256": "52e4abe1dcfabcc9",
-   "answer_head": "Looking at the README.md, the first paragraph begins on line 13:\n\n\"`.dev-knowledge` is a universal LLM-driven development guide and methodology framework.\"\n\nI've carefully reviewed this first sentence"
+   "answer_sha256": "83295e4b8c300962",
+   "answer_head": "Looking at the README.md file, I need to locate the first sentence of the first paragraph. After the frontmatter and heading, the first paragraph is in the Vision section:\n\n**Lines 13-14:** \"`.dev-kno"
   },
   {
    "item": "control",
@@ -339,10 +326,11 @@
    "run": 2,
    "fetched": false,
    "touched": [],
+   "route": "none",
    "canary": false,
    "canary_witness": "",
-   "answer_sha256": "3cacb62746f16227",
-   "answer_head": "Looking at the first paragraph of README.md (lines 13\u201316), the first sentence reads:\n\n> `.dev-knowledge` is a universal LLM-driven development guide and methodology framework.\n\nI've examined this sent"
+   "answer_sha256": "cc9db70b7cb7b174",
+   "answer_head": "I've read the README.md file. Looking at the first paragraph under the \"## Vision\" section (lines 13-16), the first sentence is:\n\n> \"`.dev-knowledge` is a universal LLM-driven development guide and me"
   }
  ]
 }
