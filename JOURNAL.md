@@ -21,6 +21,23 @@
 
 ---
 
+### 2026-09-19 (x) - CC (Sonnet 5, night wave 2 lane L2 `wave2-boot-base`): retrieval test written first; boot base 79,760 -> 68,850 B; the first three recordings measured nothing
+
+**Anchors:** `bc0cf251` (conversion + harness), `7879f81f`, `1fd0efc4`, `d6c8ccf7` (review fixes and the instrument correction) -- `worktree-wave2-boot-base`, base `14d273fb`.
+
+**Did:** LEG 1's saving assumed a pointer gets the right item re-read and said it was untested. Wrote that test (`tests/boot_retrieval.py`: live child-`claude` probe, body arm vs pointer arm, canary + witness, no-target control; `tests/test_boot_retrieval.py`: the deterministic gates that bind a CLAUDE.md conversion to `ecosystem/boot-retrieval-evidence.json`). RED first: nothing pointer-form, no evidence, ceiling exceeded. Converted only what it admits.
+
+**The finding that matters:** the first three recordings launched the child with `--setting-sources local`, which does NOT load the cwd's CLAUDE.md (sentinel test) -- both arms had no boot text, and "18/18 fetched" was an artefact of an instrument that never loaded what it tested. Found only because a single reproduction answered "I can't identify this gate" with the gate named in its own CLAUDE.md. The harness now launches with `project` and refuses an arm that does not echo a boot sentinel. Corrected result: hooks / recent-adrs / methodology-roster are FETCHED 3/3; repo-commands and skills-roster are answered 3/3 WITH NO FETCH (Claude Code injects command and skill descriptions into every session, so CLAUDE.md's rosters were duplicates); the ARCHITECTURE pointer was fetched 0/3 and answered 0/3 (section 3 stays body). Control: no over-fetch. Model: Haiku 4.5, n=3 pointer runs + 1 body run per item -- a lower-fidelity signal, not a rate.
+
+**Numbers (LEG 1 method, `tests/boot_retrieval.py measure`, bytes on disk):** always-on 79,760 -> 68,850 B (CLAUDE.md 24,561 -> 20,178; the three @-imports 6,527 B removed; the same JOURNAL-last-5 at 9,953 B in both, up from LEG 1's 5,766). Repo-tracked boot files 42,500 -> 31,590 B. ARCHITECTURE.md 22,726 B measured SEPARATELY (a preload candidate, not in the 68,850) for L6. Target ~27.3 KB NOT met: MEMORY.md 15,388 B (auto-memory on-demand retrieval unverified), JOURNAL-last-5 9,953 B and the hub-owned regions (byte-matched to templates; deploy-wide), git-discipline remainder 5,229 B (no home that is not a new organ; rule-7 carve-out), global CLAUDE.md OneDrive subset (outside the worktree; core-invariants rule 6), section 2 / header (not probed).
+
+**Coupling met:** `validate_doc_claims::precommit_hook_roster` reads the section 9 hook ids, so section 9 is ids-only, not a pointer. Three docs still called the fragments `@`-imported (2 generator docstrings, 1 hook comment) -- corrected. `test_canonical_docs` has two date-driven failures that predate this lane (verified against `14d273fb`'s CLAUDE.md).
+
+**Changes:** `CLAUDE.md`, `tests/boot_retrieval.py`, `tests/test_boot_retrieval.py`, `ecosystem/boot-retrieval-evidence.json`, `scripts/gen_claude_rosters.py` + `scripts/gen_methodology_roster.py` (docstring/comment only), `.pre-commit-config.yaml` (one comment), `JOURNAL.md`.
+
+**Next:** L6 branches from this tip. Memory `child-claude-p-harness-stdin-and-setting-sources` says `--setting-sources local` does not stop CLAUDE.md discovery -- measured wrong here 2026-09-19; the integrator should correct it (outside this lane's worktree).
+
+
 ### 2026-09-19 (w) - CC (Opus 5, integrator seat B2): B2 CLOSED -- regressions fixed, raise pushed on the operator's word, every worktree dispositioned, [#911] filed
 
 **Anchors:** `6fc296d8` ([#911] filed), `ee40592a` (BUILD-LIST B2 close row), `beae756e` (sync of main `fb06810e` into this branch) -- `fix/b2-regressions`; plus `80df0753`, `548b2cf7`, `aa410ec6` in (v).
