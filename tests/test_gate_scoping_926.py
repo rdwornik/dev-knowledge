@@ -202,3 +202,25 @@ def test_the_batch_key_joins_a_launch_dir_to_its_manifest_across_dash_spelling()
         == adapter._batch_key_of_manifest("docs/audits/2026-09-17-technical-batch-ac-manifest.md")
     assert adapter._batch_key_of_launch_dir("2026-09-13-technical-batch-x3-launch-contracts") \
         != adapter._batch_key_of_manifest("docs/audits/2026-09-13-technical-batch-x4-manifest.md")
+
+
+def test_a_closed_batch_does_not_scope_out_a_same_day_batch_spelled_one_dash_apart(
+        tmp_path, monkeypatch):
+    """Codex terra HIGH 2026-09-19: stripping EVERY dash made `batch-x3` and `batch-x-3` one
+    key, so closing x3 silenced leg 8 on x-3's still-open contract. Only the dash directly after
+    `batch` is the sanctioned spelling variation; anything else stays a different batch."""
+    repo = tmp_path / "r"
+    x3_dir = "docs/audits/2026-09-17-technical-batch-x-3-launch-contracts"
+    (repo / x3_dir).mkdir(parents=True)
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "config", "user.email", "t@t.t")
+    _git(repo, "config", "user.name", "t")
+    (repo / x3_dir / "LANE-x-3-1.md").write_text("# LANE\n\n**Shape:** `cloud`\n", encoding="utf-8")
+    closer = "docs/audits/2026-09-17-technical-batch-x3-close-packet.md"
+    (repo / "docs/audits/2026-09-17-technical-batch-x3-manifest.md").write_text(
+        f"---\nbatch: X3\nstatus: open\nclosed_by: {closer}\n---\n\n# Batch X3\n", encoding="utf-8")
+    (repo / closer).write_text("# packet\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "fixture")
+    fails = [f for f in _run_adapter(monkeypatch, repo) if f.status == "fail"]
+    assert len(fails) == 1 and "LANE-x-3-1.md" in fails[0].evidence

@@ -110,7 +110,12 @@ def _today() -> _dt.date:
 
 
 def _batch_key(date_part: str, token: str) -> str:
-    return f"{date_part}:{token.replace('-', '').lower()}"
+    """Only the ONE sanctioned spelling variation is folded: the optional dash directly after
+    `batch` (`batchac` == `batch-ac`). Every other dash is identity -- stripping them all made
+    `batch-x3` and `batch-x-3` one key (Codex terra HIGH 2026-09-19)."""
+    tok = token.lower()
+    tok = tok[len("batch"):] if tok.startswith("batch") else tok
+    return f"{date_part}:{tok[1:] if tok.startswith('-') else tok}"
 
 
 _LAUNCH_KEY_RE = re.compile(r"^(?P<date>\d{4}-\d{2}-\d{2})-technical-(?P<tok>batch.*)-launch-contracts$")
@@ -118,9 +123,9 @@ _MANIFEST_KEY_RE = re.compile(r"^(?P<date>\d{4}-\d{2}-\d{2})-technical-(?P<tok>b
 
 
 def _batch_key_of_launch_dir(name: str) -> str | None:
-    """`2026-09-17-technical-batchac-launch-contracts` -> `2026-09-17:batchac`. Dashes are
-    dropped on BOTH sides because the two homes spell the batch differently (the live witness:
-    `batchac` beside `batch-ac-manifest.md`)."""
+    """`2026-09-17-technical-batchac-launch-contracts` -> `2026-09-17:ac`. The dash after
+    `batch` is dropped on BOTH sides because the two homes spell the batch differently (the live
+    witness: `batchac` beside `batch-ac-manifest.md`); no other dash is."""
     m = _LAUNCH_KEY_RE.match(name)
     return _batch_key(m.group("date"), m.group("tok")) if m else None
 
@@ -144,6 +149,8 @@ def _closed_batch_keys(repo_path: Path) -> set[str]:
         return set()
     manifests = _bm._manifests_in(audits)
     texts = _bm._committed_texts(Path(repo_path), manifests)
+    keys = [_batch_key_of_manifest(rel) for rel in manifests]
+    ambiguous = {k for k in keys if k is not None and keys.count(k) > 1}
     out: set[str] = set()
     for rel in manifests:
         text = texts.get(rel)
@@ -151,7 +158,8 @@ def _closed_batch_keys(repo_path: Path) -> set[str]:
             continue
         closed_by = _bm._frontmatter(text).get("closed_by", "")
         key = _batch_key_of_manifest(rel)
-        if key and _bm._valid_closer(closed_by) and closed_by in audits:
+        # A key two manifests share names no single batch: it closes nothing (refusing side).
+        if key and key not in ambiguous and _bm._valid_closer(closed_by) and closed_by in audits:
             out.add(key)
     return out
 
