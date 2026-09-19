@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-09-19 (ae) - CC (Opus 5, night-wave-2 integrator pass #2): L3 finished -- the dispatch.py port verified, four governor holes closed, KEPT for a Layer-2 ruling
+
+**Anchors:** `7facee2b` (lane tip as it stopped), `02be96b0` (blind-then-done is UNGOVERNED), `59cd27c0` (malformed usage stops the child); the OverflowError / missing-launcher fix is the commit carrying this entry -- `worktree-wave2-dispatch`, NOT merged, NOT pushed.
+
+**Did:** the lane stopped with no handback, "still waiting on the subset run". Established what it completed: the 33/33 was `tests/test_dispatch_py.py` alone, on the tree that became `7facee2b` -- verified (then 35, 36, 38 with the fixes below). The subset run it waited on HAD finished on disk (`%TEMP%\l3_subset_out.txt`, 634 passed / 2 failed, on the pre-`7facee2b` tree). `7facee2b` had never been reviewed. Ran the impacted set on `7facee2b` (`impacted_tests.py select`, 57 files, -n 4): 45 failed / 2221 passed; ALL 45 fail identically on the merge-base `14d273fb` -- none is this branch's (live-state reds: 17 in `test_prompts_guard_hook_wiring`, handoff probes, health, corpus/header tests). Three Codex terra passes over the whole branch (`codex exec review --base main`, gpt-5.6-terra): each P1 that was code was fixed RED-first -- a lane that ends before its usage is readable read "under cap" (`02be96b0`); a non-numeric usage field raised out of `run_streamed` abandoning the child (`59cd27c0`); `1e400` (OverflowError) and a missing launcher (FileNotFoundError) (this commit). Dispatch tests 95 passed (py + drift + surface), ruff clean.
+
+**Result:** the port is preserved and its governor is tighter. NOT green on terra: (1) **Layer-2 orchestration** (P1, raised on passes 1 and 3): a launcher that starts workspace-writing lanes in whichever repo invokes it vs CLAUDE.md SS5 rule 4 / AGENTS.md "never executes" -- the lane's own move audit SS4 recorded this "not resolved" and asked the operator/architect to confirm the reading of rule 4 at merge; (2) **default `--bg` launches read no usage** (P1, pass 2): without `--slug-dir` the governor goes UNGOVERNED after 8 blind polls -- fails loud, does not cap; binding the launch session dir needs a live `--bg --worktree` launch the integrator seat cannot make. The last review was over `59cd27c0`; this commit's two fixes carry tests, not a fourth review.
+
+**Changes:** `scripts/dispatch.py`, `tests/test_dispatch_py.py`, `JOURNAL.md`.
+
+**Next:** operator rules rule 4 for dispatch.py (hub, or back to win-tooling as the execution layer); then the `--bg` session-dir binding; then a fourth terra pass and merge. Branch KEPT -- it holds the only copy of the port.
+
 ### 2026-09-19 (x) - CC (Sonnet 5, lane L3 `wave2-dispatch`): scripts/dispatch.py -- the launcher moves into the hub and the token cap gets a home
 
 **Anchors:** `f6a02d58` (dispatch.py + tests + audit), `fce990d6` (six codex-terra findings fixed RED-first), `da321ac5` (no-consumer notes) -- `worktree-wave2-dispatch`.

@@ -284,6 +284,23 @@ def test_malformed_numeric_usage_stops_the_child_and_is_ungoverned_not_an_except
     assert __import__("time").monotonic() - started < 30, "must stop the child, not wait it out"
 
 
+def test_non_finite_numeric_usage_stops_the_child_and_is_ungoverned():
+    """Codex terra P1 (third integrator pass): `1e400` parses to inf and int() raises
+    OverflowError, which escaped the malformed-usage handler."""
+    import sys
+    bad = '{"type":"turn.completed","usage":{"input_tokens":1e400,"output_tokens":1}}'
+    code = f"import time; print('{bad}', flush=True); time.sleep(60)"
+    v = d.run_streamed([sys.executable, "-c", code], {}, cap=10**9)
+    assert v.ungoverned and v.exit_code == d.EXIT_UNGOVERNED
+
+
+def test_a_missing_stream_executable_is_a_refusal_not_a_traceback():
+    """Codex terra P1 (third integrator pass): Popen of an absent `codex`/`claude` raised
+    FileNotFoundError before any verdict."""
+    with pytest.raises(d.DispatchRefused):
+        d.run_streamed(["definitely-not-a-real-launcher-xyz"], {}, cap=100)
+
+
 def test_a_hung_or_failing_stop_command_is_a_failed_stop_not_an_exception(monkeypatch):
     import subprocess
 

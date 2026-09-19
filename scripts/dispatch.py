@@ -369,15 +369,18 @@ def _terminate(proc: "subprocess.Popen", grace: float = 10.0) -> bool:
 def run_streamed(argv: Sequence[str], env: Mapping[str, str], cap: int,
                  count_cache_reads: bool = False, cwd: Optional[str] = None) -> Verdict:
     """Run `argv`, parse its stdout as it arrives, terminate it the moment it is past `cap`."""
-    proc = subprocess.Popen(list(argv), env=dict(env), cwd=cwd, stdout=subprocess.PIPE,
-                            stdin=subprocess.DEVNULL, text=True, encoding="utf-8", errors="replace")
+    try:
+        proc = subprocess.Popen(list(argv), env=dict(env), cwd=cwd, stdout=subprocess.PIPE,
+                                stdin=subprocess.DEVNULL, text=True, encoding="utf-8", errors="replace")
+    except OSError as exc:  # absent/unrunnable launcher: a refusal, not a traceback
+        raise DispatchRefused(f"cannot start {argv[0]!r}: {exc}") from exc
     total, seen, polls, observed = lc.TokenUsage(), set(), 0, False
     assert proc.stdout is not None
     for line in proc.stdout:
         polls += 1
         try:
             usage = usage_from_stream_line(line, seen)
-        except (ValueError, TypeError) as exc:  # a usage field that is not a number: stop, never abandon
+        except (ValueError, TypeError, OverflowError) as exc:  # not a (finite) number: stop, never abandon
             stopped = _terminate(proc)
             return Verdict(False, capped_tokens(total, count_cache_reads), cap, polls,
                            ungoverned=f"malformed usage in the stream ({exc}); child stopped",
