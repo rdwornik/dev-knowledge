@@ -536,3 +536,21 @@ def test_a_wiring_surface_edit_after_the_build_makes_the_graph_stale(tmp_path, s
     later = os.stat(gs.store_path(root)).st_mtime + 10
     os.utime(target, (later, later))
     assert oum.process_census(**kwargs)["graph_stale"] is True
+
+
+def test_a_deleted_wiring_surface_makes_the_graph_stale(tmp_path):
+    """Codex terra P1 (pass 5): the mtime check sees added/edited surfaces only. A deleted
+    workflow leaves its trigger edges in the store; the stored root set no longer matches the
+    surfaces on disk, and that is stale."""
+    root = tmp_path / "repo"
+    (root / "scripts").mkdir(parents=True)
+    (root / "scripts" / "a.py").write_text("print(1)" + chr(92) + "n", encoding="utf-8")
+    workflow = root / ".github" / "workflows" / "ci.yml"
+    workflow.parent.mkdir(parents=True)
+    workflow.write_text("name: x" + chr(92) + "n", encoding="utf-8")
+    gs.rebuild(root)
+    kwargs = dict(repo_root=root, sessions_root=tmp_path / "none",
+                  now=datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc))
+    assert oum.process_census(**kwargs)["graph_stale"] is False
+    workflow.unlink()
+    assert oum.process_census(**kwargs)["graph_stale"] is True

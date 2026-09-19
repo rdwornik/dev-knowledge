@@ -412,10 +412,17 @@ def _graph_stale(root: Path) -> bool:
         return True
     import file_purpose_graph as fpg  # noqa: PLC0415 -- deferred: heavy, and only a CLI needs it
 
-    built = Path(_gs.store_path(root)).stat().st_mtime
+    db = Path(_gs.store_path(root))
+    built = db.stat().st_mtime
     surfaces = [root / rel for rel in fpg.WIRING_SURFACES] + sorted(
         root.glob(fpg.WIRING_WORKFLOW_GLOB))
-    return any(path.is_file() and path.stat().st_mtime > built for path in surfaces)
+    if any(path.is_file() and path.stat().st_mtime > built for path in surfaces):
+        return True  # an added or edited surface
+    store = _gs.open_store(db)
+    try:  # a DELETED surface leaves its edges behind: the store records the roots it was built from
+        return store.roots() != _gs._wiring_root_keys(fpg, root)
+    finally:
+        store.close()
 
 
 def process_census(
