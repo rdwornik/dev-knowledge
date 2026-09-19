@@ -5,7 +5,7 @@ Phase 1 of the Tier-3 CLAUDE.md-generability plan (docs/audits/
 2026-07-05-draft-tier3-claudemd-generability.md), scoped to the two hand-synced lists the
 epic contract names: the repo-local COMMAND list (CLAUDE.md §7) and the recent-ADR list
 (CLAUDE.md §11). Each is generated into a fragment under `.claude/generated/` and
-read on demand through CLAUDE.md's §7/§11 pointers (`@`-imported until 2026-09-19; converted after `tests/boot_retrieval.py` showed the pointer is fetched) — the [#244] roster seam, extended to disk-derived surfaces.
+`@`-imported from CLAUDE.md (the recent-ADR fragment) or read on demand through a CLAUDE.md pointer (the command fragment, since 2026-09-19) — the [#244] roster seam, extended to disk-derived surfaces.
 CLAUDE.md's hand-prose (doctrine, pointers, §12 history) stays hand-authored and IN the
 `canonical_freshness` gate; these fragments are OUT of `DEFAULT_FRESHNESS_FILES` (currency =
 regeneration, the #222 decouple precedent).

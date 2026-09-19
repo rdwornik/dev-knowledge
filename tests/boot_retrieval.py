@@ -35,7 +35,7 @@ HONEST LIMITS -- read before quoting a number from here
   lower-fidelity signal, not a guarantee.
 * `fetched` means a Read/Grep tool call (content-returning) touched an accepted target. It does not mean the
   session UNDERSTOOD it; the canary check (a string only the target holds) is the answer-side half.
-* n is three pointer runs and one body run per item. A miss is informative; 3 hits are not a rate.
+* n is three runs per arm per item. A miss is informative; 3 hits are not a rate.
 """
 
 from __future__ import annotations
@@ -81,7 +81,7 @@ ITEMS: tuple[Item, ...] = (
         "A commit of mine was refused by the `graph-task-coverage` gate. What exactly does it "
         "check, and what is the correct way to get past it?",
         (".pre-commit-config.yaml",),
-        "inbound `implements` edge",
+        "no OPEN row claims",
         "`graph-task-coverage` — a staged file no OPEN row claims",
         (".pre-commit-config.yaml",),
     ),
@@ -90,7 +90,7 @@ ITEMS: tuple[Item, ...] = (
         "I need to run one command that checks the whole probe gate of a handoff bundle in a "
         "single pass. Which repo command is it and what does it emit?",
         (".claude/generated/commands-repo.md", ".claude/commands/handoff-verify.md"),
-        "ONE evidence block",
+        "evidence block",
         "`/handoff-verify` — Run the whole live probe gate",
         (".claude/generated/commands-repo.md", ".claude/commands/"),
         "command-description",
@@ -271,17 +271,20 @@ def build_scratch(claude_md_text: str, dest: Path, repo: Path = REPO) -> Path:
 SETTING_SOURCES = "project"
 
 
-def run_probe(scratch: Path, task: str, model: str, max_turns: int = 8) -> str:
-    """One child run. Prompt on STDIN (a multi-line argv prompt is corrupted by the .cmd shim)."""
-    prompt = (
-        "You are working in this repository. Do NOT edit anything. Answer the task below by "
-        "using the repo's own documentation where you need it, then state your answer.\n\n"
-        f"TASK: {task}"
-    )
+def run_probe(scratch: Path, task: str, model: str, max_turns: int = 8, tools: bool = True) -> str:
+    """One child run. Prompt on STDIN (a multi-line argv prompt is corrupted by the .cmd shim).
+
+    `tools=False` removes every content-reading tool: the boot-sentinel self-test must be answerable
+    ONLY from loaded context, never by the child opening CLAUDE.md itself.
+    """
+    # NEUTRAL on purpose: no hint to consult docs. A prompt that says "use the documentation" primes
+    # the very fetch this instrument measures (the first recordings had exactly that flaw).
+    prompt = f"Do not edit anything; answer in a few sentences.\n\nTASK: {task}"
+    denied = "Write,Edit,NotebookEdit,Bash,WebFetch,WebSearch" + ("" if tools else ",Read,Grep,Glob")
     proc = subprocess.run(
         [_claude(), "-p", "--setting-sources", SETTING_SOURCES, "--model", model,
          "--output-format", "stream-json", "--verbose", "--max-turns", str(max_turns),
-         "--allowedTools", "Read,Grep,Glob", "--disallowedTools", "Write,Edit,NotebookEdit,Bash,WebFetch,WebSearch",
+         *(["--allowedTools", "Read,Grep,Glob"] if tools else []), "--disallowedTools", denied,
          "--no-session-persistence"],
         input=prompt, capture_output=True, text=True, encoding="utf-8", cwd=scratch, timeout=300,
     )
@@ -305,11 +308,11 @@ def boot_text_loaded(scratch: Path, model: str, token: str) -> tuple[bool, str]:
     """Instrument self-test: does the child SEE the scratch CLAUDE.md? Without this an arm that
     never loaded its boot text still 'passes' -- which is exactly how the first recordings failed."""
     out = run_probe(scratch, "Without using any tools, state the boot sentinel given in your project instructions.",
-                    model, max_turns=2)
+                    model, max_turns=2, tools=False)
     return token in answer(out), answer(out)[:160]
 
 
-POINTER_RUNS = 3   # per item; the body arm runs once -- it only proves the probe is answerable
+POINTER_RUNS = 3   # per item, both arms: the body arm proves the probe is answerable, and one run was too noisy
 ADMIT_AT = 2       # pointer runs (of POINTER_RUNS) that must fetch AND answer
 
 
@@ -328,7 +331,7 @@ def probe(pointer_claude_md: Path, model: str = DEFAULT_MODEL, items: tuple[Item
             if not ok:
                 raise RuntimeError(f"{arm} arm: the child did not load the scratch CLAUDE.md -- instrument invalid")
             selftest[arm] = {"token": token, "child_answer": seen}
-            runs = POINTER_RUNS if arm == "pointer" else 1
+            runs = POINTER_RUNS
             for it in items:
                 for n in range(runs):
                     out = run_probe(scratch, it.task, model)
@@ -356,8 +359,9 @@ def admitted(evidence: dict, item: Item) -> bool:
     `admit_at: 0` or repeats one successful run must not admit anything (Codex terra HIGH).
     """
     rows = [r for r in evidence.get("rows", []) if r.get("item") == item.id]
-    body = [r for r in rows if r["arm"] == "body"]
-    if not (body and body[0]["canary"] and item.canary.lower() in body[0].get("canary_witness", "").lower()):
+    body_ok = {r["run"] for r in rows if r["arm"] == "body" and r["run"] in range(POINTER_RUNS) and r["canary"]
+               and item.canary.lower() in r.get("canary_witness", "").lower()}
+    if len(body_ok) < ADMIT_AT:  # the probe must be answerable from the BODY form, or it measures nothing
         return False
 
     def obtained(r: dict) -> bool:

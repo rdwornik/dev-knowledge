@@ -44,11 +44,12 @@ pytestmark = pytest.mark.live_repo
 
 # Ceiling for what THIS REPO tracks and loads at boot (CLAUDE.md + @-imports + .claude/rules).
 # User-level files and MEMORY.md are per-machine and are excluded so the gate is machine-stable.
-# 42,500 B before the conversion -> 31,590 B after (section 3 was probed, fetched 3/3 but failed the
-# canary rule, and was reverted); the ceiling sits ~1% above so it ratchets the
-# gain rather than restating LEG 1's ~27 KB projection, which needs the hub regions, the
-# git-discipline remainder and MEMORY.md converted too (none was -- see the audit/handback).
-REPO_BOOT_CEILING = 32_000
+# 42,500 B before -> 39,689 B after: only the command and skill rosters survived the retrieval test
+# (Claude Code already injects their descriptions). The hook ids, the recent-ADR fragment and the
+# methodology roster were probed and REFUSED (fetched 1-2 of 3), so their bodies stayed. The ceiling
+# ratchets that small gain; it does not restate LEG 1's ~27 KB projection, which needs the items the
+# evidence did not admit (see the JOURNAL entry and the handback).
+REPO_BOOT_CEILING = 40_000
 
 
 def _stream(*blocks: dict, result: str = "") -> str:
@@ -161,11 +162,11 @@ def test_repo_tracked_boot_base_is_under_its_ceiling() -> None:
 
 
 def _record(item: Item, *, runs=(0, 1, 2), admit_at=2, witness=True) -> dict:
-    row = {"item": item.id, "arm": "body", "run": 0, "fetched": True, "touched": [f"Read:{item.targets[0]}"],
-           "canary": True, "canary_witness": f"..{item.canary}.."}
+    body = [{"item": item.id, "arm": "body", "run": n, "fetched": True, "touched": [f"Read:{item.targets[0]}"],
+             "canary": True, "canary_witness": f"..{item.canary}.."} for n in (0, 1, 2)]
     ptr = [{"item": item.id, "arm": "pointer", "run": n, "fetched": True, "touched": [f"Read:{item.targets[0]}"],
             "canary": True, "canary_witness": f"..{item.canary}.." if witness else ""} for n in runs]
-    return {"admit_at": admit_at, "rows": [row, *ptr]}
+    return {"admit_at": admit_at, "rows": [*body, *ptr]}
 
 
 def test_admission_needs_the_constants_not_the_records_own_threshold() -> None:
@@ -252,9 +253,29 @@ def test_a_canary_is_held_only_by_its_own_targets_among_the_scratch_inputs() -> 
     from boot_retrieval import scratch_files
 
     for it in ITEMS:
-        own = tuple(it.targets) + tuple(it.routes)
         for rel in scratch_files(REPO):
-            if rel.startswith(own):
+            if rel.startswith(tuple(it.targets)):  # declared target FILES only, never a whole routed directory
                 continue
             text = (REPO / rel).read_text(encoding="utf-8", errors="ignore")
+            if it.preload:  # only INJECTED text can satisfy a preload item: the frontmatter description
+                text = text.split("---")[1] if text.startswith("---") else ""
             assert it.canary.lower() not in text.lower(), f"{it.id}: canary also held by {rel}"
+
+
+def test_the_probe_prompt_does_not_prime_a_fetch_and_the_selftest_has_no_read_tools(monkeypatch, tmp_path: Path) -> None:
+    import boot_retrieval as br
+
+    calls: list[tuple[list[str], str]] = []
+
+    class _P:
+        stdout, stderr, returncode = json.dumps({"type": "result", "result": "ok"}), "", 0
+
+    monkeypatch.setattr(br.shutil, "which", lambda _n: "claude")
+    monkeypatch.setattr(br.subprocess, "run", lambda argv, **k: calls.append((argv, k["input"])) or _P())
+    br.run_probe(tmp_path, "the task", "m")
+    br.run_probe(tmp_path, "the task", "m", tools=False)
+    (argv, prompt), (argv_no_tools, _) = calls
+    assert "document" not in prompt.lower() and "repo" not in prompt.lower()  # the priming flaw, guarded
+    assert "--allowedTools" in argv and "Read" not in argv[argv.index("--disallowedTools") + 1].split(",")
+    assert "--allowedTools" not in argv_no_tools
+    assert {"Read", "Grep", "Glob"} <= set(argv_no_tools[argv_no_tools.index("--disallowedTools") + 1].split(","))
