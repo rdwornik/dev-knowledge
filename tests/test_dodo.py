@@ -78,3 +78,13 @@ def test_spine_moves_no_row_through_a_phase():
     for s in yaml.safe_load(_HARNESS.read_text(encoding="utf-8"))["stages"]:
         assert "phase" not in s["name"]
         assert "phase" not in " ".join(s["command"] or [])
+
+
+def test_prior_art_stage_completes_on_a_subject_with_zero_hits():
+    """Codex terra P1: an empty prior-art search is a RESULT, not a failure -- stage 2 must exit 0
+    on zero hits so the run reaches the real STOP instead of dying at the search."""
+    stage2 = next(s for s in yaml.safe_load(_HARNESS.read_text(encoding="utf-8"))["stages"]
+                  if s["stage"] == 2)
+    argv = [t.replace("{subject}", "zzqq-no-such-subject-9f3a") for t in stage2["command"]]
+    result = subprocess.run(argv, capture_output=True, text=True, cwd=_REPO, timeout=60)
+    assert result.returncode == 0, (argv, result.returncode, result.stderr)
