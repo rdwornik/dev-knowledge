@@ -554,3 +554,19 @@ def test_a_deleted_wiring_surface_makes_the_graph_stale(tmp_path):
     assert oum.process_census(**kwargs)["graph_stale"] is False
     workflow.unlink()
     assert oum.process_census(**kwargs)["graph_stale"] is True
+
+
+def test_an_unreadable_store_degrades_to_stale_not_a_crash(tmp_path):
+    """Codex terra P1 (pass 6): `wiring_reachable` degrades on a corrupt store; the staleness
+    check must too, or the census aborts instead of reporting an unreadable graph."""
+    root = tmp_path / "repo"
+    (root / "scripts").mkdir(parents=True)
+    (root / "scripts" / "a.py").write_text("print(1)" + chr(92) + "n", encoding="utf-8")
+    db = gs.store_path(root)
+    db.parent.mkdir(parents=True, exist_ok=True)
+    db.write_bytes(b"this is not a sqlite database" * 50)
+    report = oum.process_census(
+        repo_root=root, sessions_root=tmp_path / "none", processes={"scripts/a.py": "script"},
+        now=datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc))
+    assert report["graph_stale"] is True
+    assert report["wiring_reachable"] == []

@@ -418,7 +418,10 @@ def _graph_stale(root: Path) -> bool:
         root.glob(fpg.WIRING_WORKFLOW_GLOB))
     if any(path.is_file() and path.stat().st_mtime > built for path in surfaces):
         return True  # an added or edited surface
-    store = _gs.open_store(db)
+    try:
+        store = _gs.open_store(db)
+    except _gs.StoreUnreadable:
+        return True  # `wiring_reachable` degrades to empty on this; so does the staleness claim
     try:  # a DELETED surface leaves its edges behind: the store records the roots it was built from
         return store.roots() != _gs._wiring_root_keys(fpg, root)
     finally:
