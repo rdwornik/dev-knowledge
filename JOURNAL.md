@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-19 (ai) - CC (Opus 5, wave-2 close): L6 deleted, its carrier row removed
+
+**Anchors:** `1f4f8500` (carrier-table row removed, BUILD-LIST decision) -- `worktree-wave2-close`.
+
+**Did:** deleted `worktree-wave2-map` (`5596723c`) locally and on origin with `-D` on the operator's ruling (`-d` refused, not contained in main -- expected): it failed its pre-registered bars twice (0.602 vs 2.0x-of-control; reads 6.35 vs < 1.0); the measurement lives in the transport reports. Removed its row from the carrier table in `.claude/rules/git-discipline.md`; recorded the deletion as a dated BUILD-LIST decision superseding "kept as the evidence". ARCHITECTURE.md untouched.
+
+**Result:** one carrier left, `worktree-wave2-dispatch` (L3). **Changes:** `.claude/rules/git-discipline.md`, `protocols/BUILD-LIST.md`, `JOURNAL.md`. **Next:** finish L3 as lane `wave3-dispatch-split`.
+
 ### 2026-09-19 (ah) - CC (Opus 5, pre-wave-3 cleanup): carriers pushed, L6 name hazard recorded, teardown rule narrowed to merged lanes
 
 **Anchors:** `b25335ab` (L6 worktree-name hazard, BUILD-LIST Decision), `d7ce1d43` (teardown rule scope refinement + carrier table) -- `worktree-buildlist-l6-hazard`.
