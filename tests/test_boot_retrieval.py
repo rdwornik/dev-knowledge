@@ -28,6 +28,8 @@ from boot_retrieval import (
     BODY_REV,
     ITEMS,
     REPO,
+    POINTER_RUNS,
+    Item,
     admitted,
     answer,
     body_form,
@@ -41,10 +43,11 @@ pytestmark = pytest.mark.live_repo
 
 # Ceiling for what THIS REPO tracks and loads at boot (CLAUDE.md + @-imports + .claude/rules).
 # User-level files and MEMORY.md are per-machine and are excluded so the gate is machine-stable.
-# 42,500 B before the conversion -> 31,199 B after; the ceiling sits ~1% above so it ratchets the
+# 42,500 B before the conversion -> 31,590 B after (section 3 was probed, fetched 3/3 but failed the
+# canary rule, and was reverted); the ceiling sits ~1% above so it ratchets the
 # gain rather than restating LEG 1's ~27 KB projection, which needs the hub regions, the
 # git-discipline remainder and MEMORY.md converted too (none was -- see the audit/handback).
-REPO_BOOT_CEILING = 31_500
+REPO_BOOT_CEILING = 32_000
 
 
 def _stream(*blocks: dict, result: str = "") -> str:
@@ -128,7 +131,11 @@ def test_every_pointer_form_item_is_admitted_by_recorded_evidence() -> None:
     record = json.loads(EVIDENCE.read_text(encoding="utf-8"))
     assert record["body_rev"] == BODY_REV
     assert all(r["fetched"] == bool(r["touched"]) for r in record["rows"]), "a fetched flag with no recorded tool call"
-    refused = [i for i in converted if not admitted(record, i)]
+    by_id = {it.id: it for it in ITEMS}
+    text = claude.read_text(encoding="utf-8")
+    unbound = [i for i in converted if by_id[i].pointer not in text]  # pointer-form must name what was probed
+    assert not unbound, f"pointer form does not carry the probed target: {unbound}"
+    refused = [i for i in converted if not admitted(record, by_id[i])]
     assert not refused, f"pointer-form without a demonstrated fetch: {refused}"
 
 
@@ -137,3 +144,37 @@ def test_repo_tracked_boot_base_is_under_its_ceiling() -> None:
     repo_bytes = sum(v for k, v in sizes.items()
                      if k in ("CLAUDE.md",) or k.startswith(("import ", "rules/")))
     assert repo_bytes <= REPO_BOOT_CEILING, f"{repo_bytes:,} B tracked boot base exceeds {REPO_BOOT_CEILING:,}"
+
+
+def _record(item: Item, *, runs=(0, 1, 2), admit_at=2, witness=True) -> dict:
+    row = {"item": item.id, "arm": "body", "run": 0, "fetched": True, "touched": [f"Read:{item.targets[0]}"],
+           "canary": True, "canary_witness": f"..{item.canary}.."}
+    ptr = [{"item": item.id, "arm": "pointer", "run": n, "fetched": True, "touched": [f"Read:{item.targets[0]}"],
+            "canary": True, "canary_witness": f"..{item.canary}.." if witness else ""} for n in runs]
+    return {"admit_at": admit_at, "rows": [row, *ptr]}
+
+
+def test_admission_needs_the_constants_not_the_records_own_threshold() -> None:
+    it = ITEMS[0]
+    assert admitted(_record(it), it)
+    assert not admitted(_record(it, runs=(0,), admit_at=0), it)  # one run, self-lowered threshold
+
+
+def test_admission_counts_distinct_runs_not_duplicated_rows() -> None:
+    it = ITEMS[0]
+    assert not admitted(_record(it, runs=(0, 0, 0)), it)
+    assert POINTER_RUNS >= 3
+
+
+def test_a_canary_boolean_without_a_witness_admits_nothing() -> None:
+    it = ITEMS[0]
+    assert not admitted(_record(it, witness=False), it)
+
+
+def test_a_fetch_of_a_non_target_admits_nothing() -> None:
+    it = ITEMS[0]
+    rec = _record(it)
+    for r in rec["rows"]:
+        if r["arm"] == "pointer":
+            r["touched"] = ["Read:README.md"]
+    assert not admitted(rec, it)

@@ -4,7 +4,7 @@
 Closes Fable R3 (consumer CLAUDE.md rosters are hand-prose with no source of truth, so they
 rot). The DEPLOYED methodology surface (commands / hooks / config the deploy tool ships) is
 machine-generated from the single source of truth — `deploy/manifest-v*.yaml`'s
-`components:[].roster` fields — and `@`-imported into CLAUDE.md. CLAUDE.md itself stays 100%
+`components:[].roster` fields — and pointed to from CLAUDE.md §9 (`@`-imported until 2026-09-19). CLAUDE.md itself stays 100%
 hand-prose so the `canonical_freshness` gate keeps full teeth; this generated file is OUT of
 `DEFAULT_FRESHNESS_FILES` (its currency is regeneration, not a review stamp — the #222
 `ecosystem/doc-counts.md` decouple precedent). Hub-local items (the surface with no manifest
@@ -56,7 +56,7 @@ _SECTION_HEADINGS = {
 
 _MANIFEST_VERSION_RE = re.compile(r"^manifest-v(\d+)\.(\d+)\.(\d+)\.yaml$")
 # A roster line that BEGINS with a bare @path (e.g. the floor's "@.claude/CLAUDE-FLOOR.md ...").
-# This file is @-imported into CLAUDE.md and Claude Code recurses into imports, so a bare leading
+# This file was @-imported into CLAUDE.md (until 2026-09-19) and Claude Code recurses into imports, so a bare leading
 # @path would be (mis)read as a nested import — dangling on the hub (no floor). Backtick-wrap it
 # (a code span is inert to the import parser); formatting-only, no content change.
 _LEADING_IMPORT_RE = re.compile(r"^(@[\w./~-]+)")

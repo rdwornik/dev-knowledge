@@ -46,7 +46,11 @@ In order, read:
 <!-- scope: meta -->
 > **[REPO - local]** region `repo-architecture` - this repo owns these lines.
 <!-- methodology:start id=repo-architecture owner=repo -->
-`ARCHITECTURE.md` is the structural model — read it before any structural change (ADR-51). NOT a code project: markdown governance plus hub-local validators, generators and gates; no script drives state in a child repo (§5 rule 4). The daily working mode (worktree lanes, ADR-110 batch protocol) is `protocols/PLAYBOOK.md` Ch8 "Session boundaries".
+
+`ARCHITECTURE.md` is the structural model — read it before any structural change (ADR-51 as amended 2026-05-23). NOT a code project: markdown governance files plus hub-local validators, generators and gates; no script drives state in a child repo (§5 rule 4).
+
+- **Where to jump:** **Ch2** organ map — which organ fires when, and how it fails · **Ch3** automation axes — cloud/nightly Routine, spec-orchestration, model routing · **Ch4** distribution — carriers, child floor, browser bundle · **Ch6** verification mesh — the nightly outcome loop.
+- **The daily working mode is NOT in ARCHITECTURE.** Parallel worktree lanes, lane dispatch and the ADR-110 batch protocol are `protocols/PLAYBOOK.md` **Ch8 "Session boundaries"**.
 <!-- methodology:end id=repo-architecture -->
 
 ## 4. Conventions

@@ -61,6 +61,7 @@ class Item:
     targets: tuple[str, ...]  # repo-relative paths any of which counts as the right fetch
     canary: str          # a string only the target holds -- present in the answer iff it was read
     body_marker: str     # present in CLAUDE.md's import closure iff the item is still BODY-form
+    pointer: str = ""    # the literal path CLAUDE.md's pointer form must carry (binds the run to the text)
 
 
 ITEMS: tuple[Item, ...] = (
@@ -71,6 +72,7 @@ ITEMS: tuple[Item, ...] = (
         (".pre-commit-config.yaml",),
         "inbound `implements` edge",
         "`graph-task-coverage` — a staged file no OPEN row claims",
+        ".pre-commit-config.yaml",
     ),
     Item(
         "repo-commands",
@@ -79,6 +81,7 @@ ITEMS: tuple[Item, ...] = (
         (".claude/generated/commands-repo.md", ".claude/commands/handoff-verify.md"),
         "ONE evidence block",
         "`/handoff-verify` — Run the whole live probe gate",
+        ".claude/generated/commands-repo.md",
     ),
     Item(
         "recent-adrs",
@@ -87,6 +90,7 @@ ITEMS: tuple[Item, ...] = (
         (".claude/generated/recent-adrs.md",),
         "adoption decays, it is not conferred",
         "ADR-119 (Accepted, 2026-09-13)",
+        ".claude/generated/recent-adrs.md",
     ),
     Item(
         "methodology-roster",
@@ -95,6 +99,7 @@ ITEMS: tuple[Item, ...] = (
         (".claude/methodology-roster.md",),
         "floor-hash-verify",
         "floor-hash-verify — verifies",
+        ".claude/methodology-roster.md",
     ),
     Item(
         "skills-roster",
@@ -103,6 +108,7 @@ ITEMS: tuple[Item, ...] = (
         (".claude/skills/check-against-spec/SKILL.md", ".claude/skills"),
         "site enumerator",
         "`check-against-spec` (spec-reconciliation site enumerator)",
+        ".claude/skills/",
     ),
     Item(
         "architecture-pointer",
@@ -111,6 +117,7 @@ ITEMS: tuple[Item, ...] = (
         ("ARCHITECTURE.md",),
         "failure posture",
         "Where to jump:** **Ch2** organ map",
+        "ARCHITECTURE.md",
     ),
 )
 
@@ -259,8 +266,9 @@ def _row(item: str, arm: str, run: int, out: str, scratch: Path, targets: tuple[
     """One evidence row: the scorer's booleans AND what they were computed from (auditable)."""
     ans = answer(out)
     hits = touched(out, scratch, targets)
+    at = ans.lower().find(canary.lower()) if canary else -1
     return {"item": item, "arm": arm, "run": run, "fetched": bool(hits), "touched": hits,
-            "canary": bool(canary) and canary.lower() in ans.lower(),
+            "canary": at >= 0, "canary_witness": ans[max(0, at - 60): at + len(canary) + 60] if at >= 0 else "",
             "answer_sha256": hashlib.sha256(ans.encode("utf-8")).hexdigest()[:16], "answer_head": ans[:200]}
 
 
@@ -287,15 +295,25 @@ def probe(pointer_claude_md: Path, model: str = DEFAULT_MODEL, items: tuple[Item
                 out = run_probe(scratch, CONTROL, model)
                 rows.append(_row("control", arm, n, out, scratch, every, ""))
     return {"measured_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "model": model,
-            "body_rev": BODY_REV, "pointer_runs": POINTER_RUNS, "admit_at": ADMIT_AT, "rows": rows}
+            "body_rev": BODY_REV, "pointer_arm_sha256": hashlib.sha256(arms["pointer"].encode("utf-8")).hexdigest(),
+            "pointer_runs": POINTER_RUNS, "admit_at": ADMIT_AT, "rows": rows}
 
 
-def admitted(evidence: dict, item_id: str) -> bool:
-    """Admitted iff the body arm answered (probe valid) and >= ADMIT_AT pointer runs fetched AND answered."""
-    rows = evidence.get("rows", [])
-    body = [r for r in rows if r["item"] == item_id and r["arm"] == "body"]
-    hits = [r for r in rows if r["item"] == item_id and r["arm"] == "pointer" and r["fetched"] and r["canary"]]
-    return bool(body and body[0]["canary"] and len(hits) >= evidence.get("admit_at", ADMIT_AT))
+def admitted(evidence: dict, item: Item) -> bool:
+    """Admitted iff the body arm answered (probe valid) and >= ADMIT_AT DISTINCT pointer runs (of
+    POINTER_RUNS) fetched a declared target AND answered with a witnessed canary.
+
+    The thresholds are this module's constants, never read from the record: a record that says
+    `admit_at: 0` or repeats one successful run must not admit anything (Codex terra HIGH).
+    """
+    rows = [r for r in evidence.get("rows", []) if r.get("item") == item.id]
+    body = [r for r in rows if r["arm"] == "body"]
+    if not (body and body[0]["canary"] and item.canary.lower() in body[0].get("canary_witness", "").lower()):
+        return False
+    hits = {r["run"] for r in rows if r["arm"] == "pointer" and r["run"] in range(POINTER_RUNS)
+            and set(r["touched"]) and all(t.split(":", 1)[1].startswith(item.targets) for t in r["touched"])
+            and r["canary"] and item.canary.lower() in r.get("canary_witness", "").lower()}
+    return len(hits) >= ADMIT_AT
 
 
 def main(argv: list[str]) -> int:
