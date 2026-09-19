@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-09-19 (x) - CC (Sonnet 5, lane L5 `wave2-library-first`): spine stage 6 (library-first) built, deptry adopted after a live run
+
+**Anchors:** `54e47bdf` (stage 6 + deptry), `6238a261` (codex terra P1 fix) -- `worktree-wave2-library-first`.
+
+**Did:** ran deptry LIVE over the repo before committing it (`uv run --locked --with deptry deptry .` -> 336 raw issues: 247 DEP001 first-party siblings, 88 DEP004 dev-group-by-design, 1 DEP003 tomli; the two real-looking singletons, tomli and structlog, are optional imports). RED first: `tests/test_stage_library_first.py` failed at collection (no module). Built `scripts/stage_library_first.py` (`check` refuses a `library-first` field that is not a fenced `$ <command>` plus output; `deptry` runs it with first-party siblings derived from disk; `run` = both = the stage-6 command). Codex terra found one P1 (deptry read the caller's cwd config, not the target root's); fixed RED-first in `6238a261`.
+
+**Result:** stage 6 refuses a sentence (live: `REFUSED [stage 6] ... holds a sentence, not a fenced command`, exit 1) and deptry over the hub is clean through the stage command; an injected `import zzzundeclared` was refused live and removed. Targeted tests 180 passed (serial, 1.1-1.8 GB free).
+
+**Changes:** `scripts/stage_library_first.py`, `tests/test_stage_library_first.py`, `pyproject.toml` (deptry in dev group with WHY/REJECTED/WHERE; `[tool.deptry]` waivers), `uv.lock` (+deptry, requirements-parser, tomli). NOT touched: `harness.yaml` / `dodo.py` (L1 owns them) -- L1's stage 6 row should call `uv run --locked python scripts/stage_library_first.py run <contract>`. pyproject.toml and uv.lock will conflict textually with L1's pydoit add; resolve by keeping both.
+
+**Abandoned:** adding a `library-first` slot to `gen_lane_contract.render_distillation` (300-line cap); a bare `deptry .` gate (243 first-party false positives).
+
+**Next:** integrator merges after L1; stage 6 command wired into harness.yaml by L1/integrator.
+
 ### 2026-09-19 (w) - CC (Opus 5, integrator seat B2): B2 CLOSED -- regressions fixed, raise pushed on the operator's word, every worktree dispositioned, [#911] filed
 
 **Anchors:** `6fc296d8` ([#911] filed), `ee40592a` (BUILD-LIST B2 close row), `beae756e` (sync of main `fb06810e` into this branch) -- `fix/b2-regressions`; plus `80df0753`, `548b2cf7`, `aa410ec6` in (v).
