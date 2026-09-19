@@ -23,7 +23,7 @@
 
 ### 2026-09-19 (x) - CC (Sonnet 5, night-wave-2 lane L4 `wave2-census-fix`): the census that lied twice -- wiring-reachable is CALLED, 90 uncalled -> 13
 
-**Anchors:** `8a6f885e` (fix), `f9290012` (last fix of seven codex-terra passes) -- `worktree-wave2-census-fix`, NOT merged, NOT pushed (commit-and-STOP).
+**Anchors:** `8a6f885e` (fix), `f9290012` (last fix of seven codex-terra passes), `9ce17ae6` and `244f3d0b` (this entry and its correction) -- `worktree-wave2-census-fix`, NOT merged, NOT pushed (commit-and-STOP).
 
 **Did:** `process_census` (`scripts/organ_usage_metric.py`) counted transcript invocations only, so a process fired by a git hook, a CI workflow or an import chain -- relative imports included -- read UNCALLED. It now reads FPG-1's `triggers`+`imports` reachability from the persisted store (`graph_store.reachable`, the relation `graph_queries.orphan_census` already asks; no second edge computation) and counts a wiring-reachable process as CALLED. New report keys `wiring_reachable`, `graph_stale`; new `reachable=` injection seam. Read-only: never rebuilds the store. RED-first: 5 red + 1 guard green (a true orphan stays uncalled) before the fix; each terra finding got its own RED test.
 
