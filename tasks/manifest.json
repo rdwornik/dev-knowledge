@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "0ef697e6175acba18145e8f7d3909494d53dd4e410a3789bdbea921bea40d987",
+  "generated_sha256": "069742380a20f67f59b216351a1c413b0c7c71cd76590c722dcfffa320145141",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1684,6 +1684,10 @@
     {
       "task": 927,
       "file": "927-user-level-disableallhooks-true-has-disarmed-block.md"
+    },
+    {
+      "task": 928,
+      "file": "928-the-parity-schema-cannot-express-a-time-bounded-ex.md"
     },
     {
       "task": 898,

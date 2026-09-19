@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-19 (at) - CC (Opus 5, pre-handoff close-out): three safety amendments to merged work -- window closed, no bundle
+
+**Anchors:** `f8982728` (row 928 filed; rows 916 and 926 amended; parity YAML pointer) -- `worktree-handoff-safety-0919`, merged --no-ff.
+
+**Did:** close-out amendments on operator order. (1) The INVERSE `settings-deny-and-point` row encodes BUILD-MODE rule 8, and BUILD MODE expires 2026-11-18. Measured: the parity schema has no row-level expiry the checker reads (waiver `review_date` only, INVERSE is non-waivable, `gate_rev_ahead` is revs-only). No field was invented; [#928] is filed instead. (2) [#916]'s body now says the 454 -> 452 ratchet drop removed prose, not risk. (3) [#926] now carries the temporary-by-construction precondition and the recorded refusal of the lying substrate escape. Correction recorded: no SUPPLEMENT was owed -- gate -> bundle -> supplement, and the bundle was refused.
+
+**Result:** no handoff bundle this window; the next window boots from the transport (LEDGER, RATIFICATION-2026-09-19, WAVE3-CLOSE-2026-09-19). Remaining ship-gate hard-fails: journal_day_letters and substrate_declaration, both [#926]. **Changes:** `tasks/916-*`, `tasks/926-*`, `tasks/928-*`, `tasks/manifest.json`, `BACKLOG.md`, `ecosystem/parity-surfaces.yaml`, `JOURNAL.md`. **Next:** none tonight.
+
 ### 2026-09-19 (as) - CC (Opus 5, pre-handoff quick-fix arc): silent rules drained, deny-and-point parity inverted, [#922]-[#927] filed, four audits cite real consumers -- no check changed
 
 **Anchors:** `cf9ef044` (two BUILD-LIST normative tokens removed, pool 454 -> 452, baseline not raised), `f610b798` (parity `settings-deny-and-point` hub MUST -> INVERSE), `40eb07e9` (file [#922]-[#927]), `12cd91bb` (four audits declare consumers by AMENDMENT 1) -- `worktree-handoff-quickfix-0919`, merged --no-ff.
