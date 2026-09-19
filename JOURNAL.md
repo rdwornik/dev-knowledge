@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-19 (as) - CC (Opus 5, pre-handoff quick-fix arc): silent rules drained, deny-and-point parity inverted, [#922]-[#927] filed, four audits cite real consumers -- no check changed
+
+**Anchors:** `cf9ef044` (two BUILD-LIST normative tokens removed, pool 454 -> 452, baseline not raised), `f610b798` (parity `settings-deny-and-point` hub MUST -> INVERSE), `40eb07e9` (file [#922]-[#927]), `12cd91bb` (four audits declare consumers by AMENDMENT 1) -- `worktree-handoff-quickfix-0919`, merged --no-ff.
+
+**Did:** the operator's revised order: quick, truthful fixes only, and no check behaviour changed. The two BUILD-LIST tokens were rewritten; the naming rule now cites AGENTS.md. The commit body records that a ratchet drop is not a fix: the live-worktree-deletion hazard is still only [#916]. The deny-and-point parity row was INVERTED, not retired, because the schema has `INVERSE` natively: a re-wiring without a ruling now fails parity. Four real rows became the four audits' consumers. A search for a sanctioned per-check waiver for a ship-gate FAIL found NONE (the disposition register is warn-only), so journal_day_letters and substrate_declaration are filed as one class, [#926], not waived. LANE-ac-694's local run is not re-filed: [#898] already owns it, as fact. [#927] P1 records that user-level `disableAllHooks: true` has disarmed block-onedrive since 2026-09-17, uncommitted in `~/.claude`. `~/.claude/settings.json` was NOT touched.
+
+**Result:** expected ship-gate hard-fails 8 -> 2 (journal_day_letters, substrate_declaration -- both [#926]). `test_check_fleet_parity_green_on_live_repo` stays red on the pre-existing claude-commands-roster WARNs. **Changes:** `protocols/BUILD-LIST.md`, `ecosystem/parity-surfaces.yaml`, `tasks/922-*`..`927-*`, `tasks/manifest.json`, `BACKLOG.md`, four `docs/audits/` files, `JOURNAL.md`. **Next:** one re-cut; if it refuses, stop.
+
 ### 2026-09-19 (ar) - CC (Opus 5, pre-handoff repair arc): ARCHITECTURE re-read and restamped, R-2 re-landed, AX9-5 consumer declared, [#921] filed -- handoff cut still owed
 
 **Anchors:** `02b2bca3` (ARCHITECTURE.md re-read end-to-end, restamped 2026-09-19, [#513] R-2 re-landed, stale hook-wiring claims corrected), `ce32c26b` (AX9-5 census declares `[#694]` by in-file AMENDMENT 1), `5bb401c2` (file [#921]) -- `worktree-handoff-prep-0919`, merged --no-ff.
