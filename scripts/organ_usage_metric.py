@@ -75,6 +75,8 @@ try:  # the dual package/script import shim `lane_cost.py` documents at its own 
 except ImportError:
     import lane_cost as _lc  # noqa: E402
 import deny_and_point as _dap  # noqa: E402
+import graph_queries as _gq  # noqa: E402
+import graph_store as _gs  # noqa: E402
 
 #: Claude Code's session store -- same default `lane_cost.DEFAULT_SESSIONS_ROOT` names.
 DEFAULT_SESSIONS_ROOT = _lc.DEFAULT_SESSIONS_ROOT
@@ -142,6 +144,11 @@ INTERPRETER_HEADS: frozenset[str] = frozenset({
 #: skill file names -- neither ever appears as a `python <path>` (or any interpreter-headed)
 #: line in a transcript, so this method cannot see them called and must not report zero.
 NOT_OBSERVABLE_CLASSES: frozenset[str] = frozenset({"command", "skill"})
+
+#: The census's three states (operator ruling 2026-09-19) -- see `process_census`.
+CALLED = "CALLED"
+REACHABLE_UNOBSERVED = "REACHABLE-BUT-UNOBSERVED"
+UNREACHABLE = "UNREACHABLE"
 
 #: Tokens `_invoked_process` skips while walking to the operand: the runner chain
 #: (`uv run --locked python scripts/x.py`) and the interpreter itself. Any OTHER
@@ -372,6 +379,62 @@ def render_report(report: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def wiring_reachable(repo_root: Path | str) -> frozenset[str]:
+    """Every process path a wiring surface reaches, transitively -- a git hook, a CI workflow,
+    a settings/plugin hook, or an `import` chain (relative imports included).
+
+    READ FROM FPG-1, never recomputed here: `graph_store` already holds the `triggers` +
+    `imports` relation and `graph_queries.orphan_census` already asks it this same question, so
+    a second walk in this module would be the private edge computation ADR-118 forbids -- and
+    the previous regex-based one missed `from .check_x import` and invented 18 false orphans.
+    Empty when the store is absent or unreadable (a missing store degrades to "nothing proven
+    reachable", the posture `known_organs` takes, never a raise).
+    """
+    db = _gs.store_path(repo_root)
+    if not Path(db).exists():
+        return frozenset()
+    try:
+        store = _gs.open_store(db)
+    except _gs.StoreUnreadable:
+        return frozenset()
+    try:
+        nodes = (store.node(key) for key in store.reachable(store.roots(), _gq.TRIGGER_KINDS))
+        return frozenset(node.path for node in nodes if node is not None and node.path)
+    finally:
+        store.close()
+
+
+def _graph_stale(root: Path) -> bool:
+    """`graph_store.is_stale`, plus the wiring surfaces it does not scan.
+
+    `is_stale` compares the store to a coarse set of source TREES; a `.github/workflows/*.yml`
+    edit (a CI trigger added or removed) is invisible to it, yet reachability is exactly what
+    that edit changes (codex terra P1, pass 4). The surface list is `file_purpose_graph`'s own
+    (`WIRING_SURFACES` + `WIRING_WORKFLOW_GLOB`) -- read, not restated. The gap in `is_stale`
+    itself is `graph_store`'s to close; this is the census refusing to depend on it.
+    """
+    if _gs.is_stale(root):
+        return True
+    import file_purpose_graph as fpg  # noqa: PLC0415 -- deferred: heavy, and only a CLI needs it
+
+    db = Path(_gs.store_path(root))
+    built = db.stat().st_mtime
+    surfaces = [root / rel for rel in fpg.WIRING_SURFACES] + sorted(
+        root.glob(fpg.WIRING_WORKFLOW_GLOB))
+    if any(path.is_file() and path.stat().st_mtime > built for path in surfaces):
+        return True  # an added or edited surface
+    try:
+        store = _gs.open_store(db)
+    except _gs.StoreUnreadable:
+        return True  # `wiring_reachable` degrades to empty on this; so does the staleness claim
+    try:  # a DELETED surface/process leaves its edges behind: compare what the store was built
+        # from (its recorded roots, its process nodes) with what is on disk -- exact, not mtime
+        return (store.roots() != _gs._wiring_root_keys(fpg, root)
+                or {node.path for node in store.processes()} != fpg._process_paths(root))
+    finally:
+        store.close()
+
+
 def process_census(
     *,
     repo_root: Path | str | None = None,
@@ -379,6 +442,7 @@ def process_census(
     since_days: int = 30,
     now: datetime | None = None,
     processes: dict[str, str] | None = None,
+    reachable: frozenset[str] | None = None,
 ) -> dict[str, Any]:
     """For EVERY process FPG-1's process list knows (script/command/skill), a STRICT,
     WINDOWED invocation count -- the ratchet's replacement for `protocols/BUILD-LIST.md`'s
@@ -401,12 +465,33 @@ def process_census(
     ever appears as an interpreter-headed line in a transcript (a slash command or skill
     invocation leaves no `python <path>` this method can read), so a zero here would be
     indistinguishable from real neglect -- the exact honesty gap `[#900]`'s memory names.
+
+    THREE STATES, NEVER A BINARY (NIGHT WAVE 2 L4 -- the measurement that lied twice; operator
+    ruling 2026-09-19 on the lane's Codex terra HIGH:1). A transcript sees only a local
+    session's tool calls, so a process fired by a git hook, a CI workflow or an `import` chain
+    leaves nothing in it: 90 of 159 read "uncalled", 77 of them reached by a wiring surface.
+    Folding those into CALLED (13) was as wrong as leaving them uncalled (90): reachable is not
+    called, and a transcript cannot see hooks, CI or imports. So every observable process gets
+    exactly one `state`:
+      CALLED -- an interpreter-headed invocation observed in the window;
+      REACHABLE-BUT-UNOBSERVED -- a hook, CI or import chain reaches it (`wiring_reachable`,
+        read from FPG-1; `reachable=` is the injection seam), no evidence it fired;
+      UNREACHABLE -- no observed call and no caller anywhere.
+    There is deliberately NO binary `uncalled` key: every collapse to two states produced a
+    wrong number (36, 90, 13). READ-ONLY: this never rebuilds the store -- a
+    report over `--repo-root <sibling>` must not write that repo's git-admin graph, and the
+    graph-rebuild pre-commit hook is the freshness contract (`load_processes`' own posture).
+    Staleness is REPORTED (`graph_stale`), not hidden or silently repaired; `is_stale` scans a
+    coarse set of trees, so False means not-proven-stale, not proven-fresh. `wiring_reachable` is reported as its own list
+    so "runs invisibly" stays distinguishable from "seen running" -- it is a reachability
+    fact, not a firing count: a hook gated `stages: [manual]` is reachable and may never fire.
     """
     root = Path(repo_root) if repo_root is not None else canonical_repo_root()
     sroot = Path(sessions_root) if sessions_root is not None else DEFAULT_SESSIONS_ROOT
     now = now if now is not None else datetime.now(timezone.utc)
     cutoff = now - timedelta(days=since_days)
     procs = dict(processes) if processes is not None else dict(_dap.load_processes(root))
+    reached = reachable if reachable is not None else wiring_reachable(root)
 
     counts: dict[str, int] = dict.fromkeys(procs, 0)
     procs_lower = {p.lower(): p for p in procs}
@@ -438,7 +523,9 @@ def process_census(
     #: from a real zero to a JSON consumer, so those paths are absent rather than zeroed.
     observable_counts = {p: c for p, c in counts.items()
                          if procs[p] not in NOT_OBSERVABLE_CLASSES}
-    uncalled = sorted(p for p, c in observable_counts.items() if c == 0)
+    wired = sorted(p for p in observable_counts if p in reached)
+    state = {p: (CALLED if c > 0 else REACHABLE_UNOBSERVED if p in reached else UNREACHABLE)
+             for p, c in observable_counts.items()}
     return {
         "generated_at": now.isoformat(timespec="seconds"),
         "window_days": since_days,
@@ -449,7 +536,12 @@ def process_census(
         "not_observable_total": len(not_observable),
         "not_observable": not_observable,
         "counts": observable_counts,
-        "uncalled": uncalled,
+        "wiring_reachable": wired,
+        "graph_stale": _graph_stale(root),
+        "state": state,
+        "called": sorted(p for p, s in state.items() if s == CALLED),
+        "reachable_unobserved": sorted(p for p, s in state.items() if s == REACHABLE_UNOBSERVED),
+        "unreachable": sorted(p for p, s in state.items() if s == UNREACHABLE),
     }
 
 
@@ -463,10 +555,17 @@ def render_census(report: dict[str, Any]) -> str:
         f"processes_total: {report['processes_total']} "
         f"(observable={report['observable_total']} "
         f"not_observable={report['not_observable_total']})",
-        f"uncalled over {report['window_days']} days: {len(report['uncalled'])} of "
-        f"{report['observable_total']} observable "
+        f"states over {report['window_days']} days, of {report['observable_total']} observable: "
+        f"CALLED {len(report['called'])} / "
+        f"REACHABLE-BUT-UNOBSERVED {len(report['reachable_unobserved'])} / "
+        f"UNREACHABLE {len(report['unreachable'])} "
         f"(excludes {report['not_observable_total']} not-observable of "
         f"{report['processes_total']} total)",
+        *(["WARNING: the FPG-1 store is STALE (a source file is newer than it) -- reachability "
+           "below may be out of date; rebuild with `graph_store.py rebuild`"]
+          if report["graph_stale"] else []),
+        f"wiring-reachable (a hook, CI or import chain reaches it; a reachability fact, not a "
+        f"firing count): {len(report['wiring_reachable'])} of {report['observable_total']}",
         "",
         "not observable by this source -- a command/skill invocation leaves no interpreter-"
         "headed line in a session transcript, so these are NEVER reported as zero:",
@@ -477,8 +576,9 @@ def render_census(report: dict[str, Any]) -> str:
     for path, count in sorted(report["counts"].items()):
         if path in report["not_observable"]:
             continue
-        status = "UNCALLED" if path in report["uncalled"] else f"called={count}"
-        lines.append(f"  {status:12} {path}")
+        state = report["state"][path]
+        status = f"{CALLED}={count}" if state == CALLED else state
+        lines.append(f"  {status:25} {path}")
     return "\n".join(lines)
 
 
