@@ -438,6 +438,7 @@ So that cognitive overhead per session drops.
 - [#918] [P2][M] The seat registry is Stop-only -- it learns about a seat when it ends, so it cannot answer "is this seat live" · tasks/918-the-seat-registry-is-stop-only-it-cannot-answer-is.md
 - [#919] [P2][M] The token cap is POLLED, not enforced -- a stop-loss, not a limit: witness A overshot 5.5x before the first poll acted · tasks/919-the-token-cap-is-polled-not-enforced-a-stop-loss-n.md
 - [#920] [P1][M] PLAYBOOK Ch8 now describes the OLD dispatch surface -- the sole literal-command site yields wrong syntax to every correct citation · tasks/920-playbook-ch8-now-describes-the-old-dispatch-surfac.md
+- [#921] [P1][M] Accumulated gate debt is seen only by the handoff cut -- 11 hard-fails and 272 unruled WARNs built up in one day of merging and nothing surfaced them · tasks/921-accumulated-gate-debt-is-seen-only-by-the-handoff-cut.md
 - [#898] [P2][S] A contracted cloud read-only leg never dispatched and a local substitute committed what the contract forbade -- a dispatcher shape defect · tasks/898-a-contracted-cloud-read-only-leg-never-dispatched.md
 - [#899] [P3][S] gen_audit_index reads HEAD, not the working tree -- every new audit costs a second, index-only commit and --check is falsely green before it · tasks/899-gen-audit-index-reads-head-so-every-new-audit-cos.md
 - [#900] [P2][S] AX9-5's own organ miscounts -- from a worktree it reads one session, its totals ignore the window, and a path mention counts as a call · tasks/900-ax9-5-s-own-organ-miscounts-from-a-worktree-and-t.md
