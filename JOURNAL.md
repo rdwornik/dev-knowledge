@@ -21,6 +21,23 @@
 
 ---
 
+### 2026-09-19 (ar) - CC (Opus 5, pre-handoff repair arc): ARCHITECTURE re-read and restamped, R-2 re-landed, AX9-5 consumer declared, [#921] filed -- handoff cut still owed
+
+**Anchors:** `02b2bca3` (ARCHITECTURE.md re-read end-to-end, restamped 2026-09-19, [#513] R-2 re-landed, stale hook-wiring claims corrected), `ce32c26b` (AX9-5 census declares `[#694]` by in-file AMENDMENT 1), `5bb401c2` (file [#921]) -- `worktree-handoff-prep-0919`, merged --no-ff.
+
+**Did:** the architect handoff cut refused at main `1a87132b`: ship_gate RED (11 hard-fail organs, 272 undispositioned WARNs), LEDGER stale, RATIFICATION absent. The browser seat wrote RATIFICATION-2026-09-19 and a refreshed LEDGER. On the operator's option (a) this arc made the routine repairs only. ARCHITECTURE.md, read in full, carried six stale wiring claims from before B2 lane 4 and the 2026-09-17 hook shutdown: the live pre-commit set, the closure-loop surfacing leg, the fleet_health SessionStart sweep, quality-requirements-freshness, the zone register's PreToolUse guards and surface_triage. All six were corrected against live config. The B2 lane 1 cut (`c0c920a9`) had dropped R-2's sentence, and the old text was already stale against R-2's 2026-09-02 amendment, so it was rewritten, not restored. Of five audits with no declared consumer, only AX9-5 has a genuine one ([#694]); the other four stay red by operator ruling (no invented citations). [#921] filed on operator order: accumulated gate debt is seen only by the handoff cut.
+
+**Result:** canonical_freshness and landing_predicate cleared; consumer_at_landing 5 -> 4. **Held, not cleared:** silent_rule_ratchet (two `never` tokens in `protocols/BUILD-LIST.md`, shown to the operator before removal), fleet_parity and substrate_declaration (reported for ruling), journal_day_letters (see (aq) -- the check counts headings, so an appended correction cannot clear it). **Changes:** `ARCHITECTURE.md`, `docs/audits/2026-09-18-technical-ax9-5-organ-vs-raw-scan-census.md`, `tasks/921-*`, `tasks/manifest.json`, `BACKLOG.md`, `JOURNAL.md`. **Next:** operator rulings on the held four; then re-cut.
+
+### 2026-09-19 (aq) - CC (Opus 5, pre-handoff repair arc): CORRECTION -- 2026-09-18 carries two entries lettered (f); [#913]
+
+**Correction by addition** (operator ruling 2026-09-19: JOURNAL is append-only; neither entry is edited). Two 2026-09-18 entries both carry the letter (f):
+
+- `### 2026-09-18 (f) - CC (Opus 5): P1 of DECLARE-BATCH-AC-CLOSE-AMENDED -- [#891] the lane handback contract is merged...` -- landed FIRST, by merge `bb710468` (2026-09-18 13:53:57 +0200). **This entry keeps (f).**
+- `### 2026-09-18 (f) - CC (Opus 5, integrator seat, batch AC): M6 merges the batch AC freeze -- its 33 attributed live_repo failures are now PAIR-MEASURED...` -- landed SECOND, by merge `ab5f6245` (14:17:53 +0200), re-using a letter already on main. **Read it as the entry after (f)** (chronologically between the [#891] (f) and (g)).
+
+**Honest limit:** `audit.py::check_journal_day_letters` counts `### YYYY-MM-DD (<letter>)` headings, so this entry does not and cannot clear it; the check stays FAIL until [#913] rules on a sanctioned mechanism in the check itself (a recorded exception, per the row's Done-when). Tracked: [#913].
+
 ### 2026-09-19 (ap) - CC (Opus 5, wave-3 integrator): file [#915]-[#920] -- the wave-3 close rows
 
 **Anchors:** `dc186a3b` (six rows filed, ids reserved on origin as `refs/reservations/task-id/915`-`920`) -- `worktree-wave3-rows`, merged --no-ff in integration worktree `wave3-spine-integrate`.

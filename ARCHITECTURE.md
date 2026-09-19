@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-18
+last_reviewed: 2026-09-19
 reconciled_with: handoff-process@7.1.0
 status: active
 owner: Rob
@@ -18,10 +18,10 @@ owner: Rob
 > hand Organ map table (→ generated `ecosystem/organ-index.md`), the per-validator prose
 > roster (→ script docstrings + `audit.py checks`), the Governing-ADR recap (→
 > `docs/decisions/README.md`), and prose describing a pre-commit hook as firing at commit
-> time — since 2026-09-17 only `audit-index-freshness`, `organ-index-freshness`
-> (pre-commit) and `block-ff-push`, `block-unanchored-push` (pre-push) run locally; the
-> rest of `.pre-commit-config.yaml` is `stages: [manual]`, run report-only by conductor
-> job `commit-gate`. What survives is doctrine with no other home, or a one-line pointer.
+> time — at the cut only four hooks ran locally; B2 lane 4 (2026-09-18) re-armed a
+> subset. **The live set is whatever in `.pre-commit-config.yaml` carries no
+> `stages: [manual]`** (roster: `CLAUDE.md` §9); the manual rest runs report-only in
+> conductor job `commit-gate`. What survives is doctrine with no other home, or a one-line pointer.
 >
 > **How to read this doc.** Ch1 (layers) → Ch2 (organs, now a pointer) → Ch3 (automation)
 > → Ch4 (distribution) → Ch5 (zones) → Ch6 (verification mesh). **Daily working mode is
@@ -124,7 +124,7 @@ enforcement is out-of-band and read-only.
 **Chapter 2 — Organ map.** The full behavioural inventory — what fires an organ, its
 layer, trigger, distribution, current status (**not** failure posture — see below) — is
 **generated, not hand-maintained here**: `ecosystem/organ-index.md`, gated by
-`organ-index-freshness` (one of the four locally-live hooks). The hand table this section
+`organ-index-freshness` (a locally-live pre-commit hook). The hand table this section
 used to carry (35 rows vs the index's 8 classes) went stale by omission and is deleted
 rather than resynced by hand again. Hook roster: `CLAUDE.md` §9.
 
@@ -132,9 +132,11 @@ rather than resynced by hand again. Hook roster: `CLAUDE.md` §9.
 proposal, never mutates; fail-soft = logs/exits 0, never blocks; report-only = records
 the outcome, judges nothing, no gate to arm even in principle.
 
-**Tier-1 closure loop** (still live): commit closes `[#id]` → `Stop: propose_closures.py`
-writes `logs/PROPOSALS-*.md` → `SessionStart: surface-closures.ps1` → `/review-closures`
-confirms → `BACKLOG.md` updated. Detect-and-propose only; the human gate closes (ADR-70).
+**Tier-1 closure loop** (half live): commit closes `[#id]` → `Stop: propose_closures.py`
+(plugin, runs) writes `logs/PROPOSALS-*.md` → `SessionStart: surface-closures.ps1` (user-level;
+**not wired** since 2026-09-17, [#808]) → `/review-closures` confirms → `BACKLOG.md` updated.
+Until surfacing returns, `/review-closures` is run by hand. Detect-and-propose only; the
+human gate closes (ADR-70).
 
 **Deploy subsystem** versions the methodology corpus (ADR-91) and delivers via carrier
 modules behind a per-carrier verify-gate (ADR-92); the `floor` carrier additionally arms
@@ -170,7 +172,8 @@ on its own tree (`audit.py` pushes to `origin`). **Roster not restated here** �
 nested (commit ⊂ ship). **As of 2026-09-17 `audit-health` (the pre-commit hook) is
 itself `stages: [manual]`** (conductor `commit-gate` runs it report-only) — the
 commit-tier legs do not block a local commit today; they still gate at `ship-gate`
-(`/ship`) and SessionStart's `fleet_health` full sweep. Basis:
+(`/ship`). `fleet_health`'s SessionStart sweep is not wired (hub `SessionStart` runs only
+`arm_hooks.py`). Basis:
 `docs/audits/2026-08-27-technical-lane-nb-tiering.md`.
 
 - `scripts/fleet_parity.py` — fleet-wide parity checker; blocking member via
@@ -191,7 +194,7 @@ commit-tier legs do not block a local commit today; they still gate at `ship-gat
 ## Quality requirements
 
 Register: `ecosystem/quality-requirements.yaml`, gated by `quality-requirements-freshness`
-(commit-tier, currently `stages: [manual]`/conductor) + `tests/test_quality_requirements.py`.
+(live pre-commit hook) + `tests/test_quality_requirements.py`.
 A **measured** row names its organ + a RED-first trip-test; a **candidate** row has
 neither. The block below is rendered from the YAML
 (`quality_requirements.py render --write`) — edit the YAML, never the block.
@@ -250,8 +253,15 @@ PR → closed, never merged (ADR-84). Local writer `audit.py::_commit_routine_ou
 writes to `automation/fleet-audit` via `commit-tree`; `main` untouched.
 
 **Model routing:** S=Haiku, M=Sonnet, L=Opus (PLAYBOOK Appx B, ADR-70). **The routing
-table, reviewer pin and Codex config live at L0** (`~/.claude/`, `~/.codex/`), out of
-this repo by ruling (architect, 2026-08-22).
+table, the reviewer pin and the Codex config are L0 surfaces, and they are OUT of this repo's
+universalization scope** (STANDING_RULINGS R-2, 2026-08-22): `~/.claude/ROUTING.md`,
+`~/.claude/bin/codex-review.ps1`, `~/.codex/config.toml`. Their absence here is a placement,
+not a gap. **Amended 2026-09-02 (R-2, batch G):** the *authoritative* role→CLI table is now
+in-repo (`ecosystem/routing-table.yaml`); `routing_agreement.py --render` writes a derived
+region into the L0 `ROUTING.md` and `check_routing_agreement` (ship-tier) asserts the two
+agree. The hub still writes no other L0 file. Consequence: `[#82]` stays partly unverifiable
+from here while the reviewer pin lives at L0. L0 is Ch2's distribution layer, not the
+ADR-113 maturity rung.
 
 **Spec-orchestration:** the cloud Routine has no native `Workflow` launcher; it falls
 back to reading `conformance-hub.js` as spec by hand (re-probed nightly).
@@ -294,8 +304,11 @@ retirement drops a task's manifest node but its file stays as the allocation rec
 **Zone register:** P0 exclusion (`OneDrive - Blue Yonder`) → `block-onedrive.ps1` (global
 PreToolUse). Immutable paths (`docs/decisions/transcripts/**`) → `block_immutable_edits.py`
 (hub PreToolUse; currently a no-op zone). `methodology_surface` scope → `audit.py
-floor_integrity` + child `.sha256` hook + `/ship` gate. All three are session/PreToolUse
-— unaffected by the 2026-09-17 pre-commit strip.
+floor_integrity` + child `.sha256` hook + `/ship` gate. **Neither PreToolUse guard is wired
+today:** hub PreToolUse blocks were removed 2026-09-17 by operator emergency order ([#863])
+and the user-level `~/.claude/settings.json` sets `disableAllHooks: true` with no
+`block-onedrive` block. Until a bounded hook returns, the P0 and ADR-77 zones rest on the
+rules (`~/.claude/rules/core-invariants.md`), not on a hook.
 
 Output formatting for anything copied into browser chat: `CLAUDE.md` §4 / PLAYBOOK §8.
 
@@ -314,14 +327,15 @@ Enforcement → Dissemination — PLAYBOOK "The verification mesh".
   every push to `main`, **report-only, never blocks**; a green badge means "recorded,"
   never "passed" — verdict is in the job-summary table.
 - Nightly, cloud: conformance Routine (claims-vs-docs digest).
-- Nightly, local: `fleet_health.py`/`audit.py run` → `surface_triage.ps1` + human triage.
+- Nightly, local: `fleet_health.py`/`audit.py run` → `surface_triage.ps1` + human triage
+  (`surface_triage.ps1`'s SessionStart leg disabled individually, [#808], expiry 2026-09-24).
 
 Cross-tier disagreement is expected, not a bug — PLAYBOOK "What each tier checks".
 
 **Nightly outcome loop, current status:** digest producer (cloud Routine) **alive**;
 triage/Issue producer **dead since 2026-07-09** (`82227f08`); consumer
-`surface_triage.ps1` **alive but reading a fossil** (15 stale `nightly-triage` Issues).
-Status: ARMED (stale input). Tracked as [#428].
+`surface_triage.ps1` **disabled** (see above; it was reading a fossil — 15 stale
+`nightly-triage` Issues). Tracked as [#428].
 
 **Deployed-version record:** `ecosystem/deployed-versions.yaml`, written only by the
 deploy runbook's verify-gate; read by `fleet_health`.
