@@ -72,3 +72,65 @@ def test_a_lane_that_ended_before_its_usage_was_readable_is_refused_not_left_ung
                        sleep=lambda s: None, alive=lambda: False, blind_polls=8)
     assert verdict.exit_code == d.EXIT_REFUSED != d.EXIT_UNGOVERNED
     assert stopped == [], "a lane that already ended has nothing to stop"
+
+
+# --- the RE-review of 12977bdb (docs/audits/2026-09-19-codex-wave3-dispatch-split-rereview.md) ---
+
+_SID = "11111111-2222-3333-4444-555555555555"
+_OURS = {"id": "abcd1234", "sessionId": _SID, "state": "working",
+         "cwd": "C:\\repo\\.claude\\worktrees\\wave3-witness"}
+_OTHER = {"id": "deadbeef", "sessionId": "99999999-0000-0000-0000-000000000000",
+          "state": "working", "cwd": "C:\\repo\\.claude\\worktrees\\some-other-lane"}
+
+
+def _run_govern(tmp_path, monkeypatch, *args):
+    stopped = []
+    monkeypatch.setattr(d, "stop_lane", lambda lane_id: stopped.append(lane_id) or True)
+    result = CliRunner().invoke(d.cli, ["govern", *args, "--slug", "wave3-witness",
+                                        "--token-cap", "1000", "--interval", "0",
+                                        "--bind-polls", "2", "--sessions-root", str(tmp_path)])
+    return result, stopped
+
+
+def test_a_provisional_id_that_belongs_to_another_lane_is_never_governed_or_stopped(
+        tmp_path, monkeypatch):
+    """RE-REVIEW CRITICAL (shim:129): the shim takes the first 8-hex token in the launcher's output
+    as the id. A false match must not make `govern` stop ANOTHER live lane while the launched one
+    runs uncapped: the bound entry's worktree must be the planned slug's, else the lane is
+    rediscovered by worktree."""
+    _transcript(tmp_path, _SID, tokens=5_000)
+    monkeypatch.setattr(d, "_control", _listing(_OTHER, _OURS))
+    result, stopped = _run_govern(tmp_path, monkeypatch, "deadbeef")
+    assert "deadbeef" not in stopped, "another lane must never be stopped"
+    assert stopped == ["abcd1234"] and result.exit_code == d.EXIT_CAP_EXCEEDED
+
+
+def test_a_provisional_id_of_another_lane_and_no_lane_for_the_slug_is_ungoverned_not_a_stop(
+        tmp_path, monkeypatch):
+    monkeypatch.setattr(d, "_control", _listing(_OTHER))
+    result, stopped = _run_govern(tmp_path, monkeypatch, "deadbeef")
+    assert stopped == [], "the wrong lane must not be stopped"
+    assert result.exit_code == d.EXIT_UNGOVERNED and "running" in result.output.lower()
+
+
+def test_a_transcript_that_cannot_be_read_is_unobservable_not_an_escaped_exception(monkeypatch):
+    """RE-REVIEW CRITICAL (dispatch.py:621): an exception from the transcript reader (malformed
+    numeric usage, a filesystem error) escaped the governor while the lane kept running."""
+    def boom(session_id, sessions_root=None):
+        raise ValueError("invalid literal for int()")
+    monkeypatch.setattr(d.lc, "seat_usage", boom)
+    assert d._session_reader("sid")() is None
+
+
+def test_an_unexpected_governor_failure_stops_the_bound_lane(tmp_path, monkeypatch):
+    """The class behind that finding: whatever raises inside the governor, the lane is stopped
+    rather than left running with nothing watching it."""
+    _transcript(tmp_path, _SID, tokens=10)
+    monkeypatch.setattr(d, "_control", _listing(_OURS))
+
+    def broken(lane_id):
+        raise RuntimeError("the liveness probe blew up")
+    monkeypatch.setattr(d, "lane_alive", broken)
+    result, stopped = _run_govern(tmp_path, monkeypatch, "abcd1234")
+    assert stopped == ["abcd1234"], "a governor that dies must not leave the lane running"
+    assert result.exit_code == d.EXIT_REFUSED
