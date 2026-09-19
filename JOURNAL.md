@@ -23,9 +23,11 @@
 
 ### 2026-09-19 (x) - CC (Sonnet 5, lane L3 `wave2-dispatch`): scripts/dispatch.py -- the launcher moves into the hub and the token cap gets a home
 
+**Anchors:** `f6a02d58` (dispatch.py + tests + audit), `fce990d6` (six codex-terra findings fixed RED-first), `da321ac5` (no-consumer notes) -- `worktree-wave2-dispatch`.
+
 **Did:** RED-first (ImportError, then a mutation that drops `stop()` -> the cap test red), then `scripts/dispatch.py` (Click): `--provider/--model/--substrate/--token-cap`, cap REQUIRED. Ported from win-tooling `Start-DispatchLane`, `Get-DispatchPromptsDir`, `Get-CloudModelProvider`, `Start-DispatchCodespace` (steps 2-5). The `claude --bg` path is governed by a transcript poll that runs `claude stop <id>` past the cap; codex and codespace are stream-metered. Live: cap=5 terminated a real haiku run at 22,471 (message-granular overshoot, stated), cap=1M finished under.
 
-**Result:** 23 tests in `tests/test_dispatch_py.py`. NOT verified live: a `claude --bg` launch (it would create a worktree), `claude stop`, the codespace execution path (dry-run only). The win-tooling shim is CONTENT ONLY in the audit; that repo was not touched.
+**Result:** 28 tests in `tests/test_dispatch_py.py` (23, then 5 RED-first for the Codex findings: unobservable spend / failed stop / blind probe are UNGOVERNED, other providers' keys scrubbed, streamed child exit propagated). NOT verified live: a `claude --bg` launch (it would create a worktree), `claude stop`, the codespace execution path (dry-run only). The win-tooling shim is CONTENT ONLY in the audit; that repo was not touched.
 
 **Changes:** `scripts/dispatch.py`, `tests/test_dispatch_py.py`, `docs/audits/2026-09-19-technical-wave2-dispatch-py-move.md`, this entry.
 

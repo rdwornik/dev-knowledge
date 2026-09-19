@@ -231,3 +231,57 @@ def test_a_streamed_child_that_fails_does_not_exit_zero(tmp_path):
     import sys
     v = d.run_streamed([sys.executable, "-c", "import sys; sys.exit(7)"], {}, cap=100)
     assert v.exceeded is False and v.exit_code == 7
+
+
+# --- codex terra RE-review: the second round ----------------------------------------------
+
+_TURN = ('{"type":"turn.completed","usage":{"input_tokens":900,"cached_input_tokens":0,'
+         '"output_tokens":100}}')
+
+
+def test_a_stream_with_no_parseable_usage_is_ungoverned_not_zero_spend():
+    import sys
+    v = d.run_streamed([sys.executable, "-c", "print('not json at all')"], {}, cap=100)
+    assert v.ungoverned and v.exit_code == d.EXIT_UNGOVERNED
+
+
+def test_over_cap_terminates_a_stubborn_child_and_verifies_it_is_dead():
+    import sys
+    code = f"import time; print('{_TURN}', flush=True); time.sleep(60)"
+    started = __import__("time").monotonic()
+    v = d.run_streamed([sys.executable, "-c", code], {}, cap=500)
+    assert v.exceeded and not v.stop_failed
+    assert __import__("time").monotonic() - started < 30, "must not wait out the child"
+
+
+def test_a_hung_or_failing_stop_command_is_a_failed_stop_not_an_exception(monkeypatch):
+    import subprocess
+
+    def hang(*a, **k):
+        raise subprocess.TimeoutExpired(cmd="claude stop", timeout=1)
+    monkeypatch.setattr(d.subprocess, "run", hang)
+    assert d.stop_lane("abcd1234") is False
+
+
+def test_a_hung_or_failing_liveness_probe_is_blind_not_an_exception(monkeypatch):
+    import subprocess
+
+    def boom(*a, **k):
+        raise OSError("claude not found")
+    monkeypatch.setattr(d.subprocess, "run", boom)
+    with pytest.raises(d.GovernorBlind):
+        d.lane_alive("abcd1234")
+    monkeypatch.setattr(d.subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a, 1, "", ""))
+    with pytest.raises(d.GovernorBlind):
+        d.lane_alive("abcd1234")
+
+
+def test_the_lane_reader_honours_an_explicit_slug_dir(monkeypatch):
+    seen = {}
+
+    def fake(slug, sessions_root=None, slug_dirs=None):
+        seen["dirs"] = slug_dirs
+        return {}
+    monkeypatch.setattr(d.lc, "lane_usage", fake)
+    assert d._lane_reader("s", lc.TokenUsage(), slug_dirs=("launcher-dir",))() is None
+    assert seen["dirs"] == ("launcher-dir",)

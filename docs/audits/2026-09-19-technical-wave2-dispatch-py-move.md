@@ -150,3 +150,14 @@ Not done: an unobservable lane is reported, not killed (killing destroys work to
 The re-review of the fixed commit is recorded in the handback, not here.
 
 no-consumer: lane output awaiting integrator merge (night wave 2, L3); it files and closes no BACKLOG row, so no [#id] cites it yet.
+
+## 9. Codex RE-review of the fixed commit (2 CRITICAL / 2 HIGH) — fixed RED-first, NOT re-reviewed
+
+`docs/audits/2026-09-19-codex-wave2-dispatch-rereview.md`. Four tests red, then 33/33 green:
+
+- a stream with no parseable usage exited "under cap" -> UNGOVERNED (exit 4);
+- `proc.terminate()` was never verified -> terminate, then kill, then check `poll()`; a survivor is `stop_failed`;
+- `claude stop` / `claude agents --json` had no timeout or OSError handling -> `_control()` bounds both at 30 s and maps a hang to failed-stop / `GovernorBlind`;
+- a `--bg` lane's transcript may not be filed under the slug -> `--slug-dir` (repeatable) is passed to the baseline and the poll. **This is the one finding only partly closed:** whether a real `--bg --worktree` lane files under the slug directory was NOT verified (it needs a live launch and a worktree). Unbound, the governor reports UNGOVERNED after 8 blind polls rather than "under cap" — it fails loud, it does not enforce.
+
+No third review pass was run: that round's fixes carry tests, not a reviewer's word.

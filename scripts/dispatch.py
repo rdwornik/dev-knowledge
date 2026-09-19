@@ -349,24 +349,40 @@ def usage_from_stream_line(line: str, seen: set[str]) -> Optional["lc.TokenUsage
     return None
 
 
+def _terminate(proc: "subprocess.Popen", grace: float = 10.0) -> bool:
+    """terminate, then kill, and VERIFY the child is gone; False when it survived both."""
+    proc.terminate()
+    try:
+        proc.wait(timeout=grace)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        try:
+            proc.wait(timeout=grace)
+        except subprocess.TimeoutExpired:
+            pass
+    return proc.poll() is not None
+
+
 def run_streamed(argv: Sequence[str], env: Mapping[str, str], cap: int,
                  count_cache_reads: bool = False, cwd: Optional[str] = None) -> Verdict:
     """Run `argv`, parse its stdout as it arrives, terminate it the moment it is past `cap`."""
     proc = subprocess.Popen(list(argv), env=dict(env), cwd=cwd, stdout=subprocess.PIPE,
                             stdin=subprocess.DEVNULL, text=True, encoding="utf-8", errors="replace")
-    total, seen, polls = lc.TokenUsage(), set(), 0
+    total, seen, polls, observed = lc.TokenUsage(), set(), 0, False
     assert proc.stdout is not None
     for line in proc.stdout:
         polls += 1
         usage = usage_from_stream_line(line, seen)
         if usage is not None:
+            observed = True
             total = total + usage
         used = capped_tokens(total, count_cache_reads)
         if used > cap:
-            proc.terminate()
-            return Verdict(True, used, cap, polls)
+            return Verdict(True, used, cap, polls, stop_failed=not _terminate(proc))
+    code = proc.wait()
+    blind = "" if observed or code != 0 else "the stream carried no parseable usage event"
     return Verdict(False, capped_tokens(total, count_cache_reads), cap, polls,
-                   child_exit=proc.wait())
+                   ungoverned=blind, child_exit=code)
 
 
 # --- CLI ---------------------------------------------------------------------------------
@@ -374,9 +390,30 @@ def run_streamed(argv: Sequence[str], env: Mapping[str, str], cap: int,
 _ID = re.compile(r"\b([0-9a-f]{8})\b")
 
 
-def _lane_reader(slug: str, baseline: "lc.TokenUsage") -> Callable[[], "lc.TokenUsage"]:
+def _control(argv: list[str]) -> Optional["subprocess.CompletedProcess"]:
+    """A bounded control-plane call; None when it hung or could not run."""
+    try:
+        return subprocess.run(argv, capture_output=True, text=True, timeout=30)
+    except (subprocess.TimeoutExpired, OSError):
+        return None
+
+
+def stop_lane(lane_id: str) -> bool:
+    done = _control(["claude", "stop", lane_id])
+    return done is not None and done.returncode == 0
+
+
+def lane_alive(lane_id: str) -> bool:
+    listing = _control(["claude", "agents", "--json"])
+    if listing is None or listing.returncode != 0 or not listing.stdout.strip():
+        raise GovernorBlind("`claude agents --json` failed, hung or was empty")
+    return lane_id in listing.stdout
+
+
+def _lane_reader(slug: str, baseline: "lc.TokenUsage",
+                 slug_dirs: Sequence[str] = ()) -> Callable[[], Optional["lc.TokenUsage"]]:
     def read() -> Optional["lc.TokenUsage"]:
-        models = lc.lane_usage(slug)
+        models = lc.lane_usage(slug, slug_dirs=tuple(slug_dirs) or None)
         if not models:  # no transcript found: unobservable, NOT zero
             return None
         total = _sum(models)
@@ -412,12 +449,16 @@ def cli() -> None:
 @click.option("--count-cache-reads", is_flag=True, help="Also count cache reads against the cap.")
 @click.option("--repo", default="", help="owner/name; the codespace substrate only.")
 @click.option("--branch", default="main", show_default=True)
+@click.option("--slug-dir", "slug_dirs", multiple=True,
+              help="Session-store directory holding the lane's transcript when it is not filed "
+                   "under the slug (a --bg lane can be filed under its launcher's directory).")
 @click.option("--interval", type=float, default=15.0, show_default=True)
 @click.option("--secrets-file", type=click.Path(path_type=Path),
               default=Path.home() / "Documents" / ".secrets" / ".env", show_default=True)
 @click.option("--dry-run", is_flag=True, help="Print the plan and stop.")
 def launch(contract: str, slug: str, provider: str, model: str, effort: str, substrate: str,
-           token_cap: int, count_cache_reads: bool, repo: str, branch: str, interval: float,
+           token_cap: int, count_cache_reads: bool, repo: str, branch: str, slug_dirs: tuple[str, ...],
+           interval: float,
            secrets_file: Path, dry_run: bool) -> None:
     validate_cap(token_cap)
     # the prompts dir is resolved LAZILY: an absolute contract must not be refused because an
@@ -453,7 +494,7 @@ def launch(contract: str, slug: str, provider: str, model: str, effort: str, sub
         verdict = run_streamed(plan.argv, env, token_cap, count_cache_reads)
         _report(verdict)
         sys.exit(verdict.exit_code)
-    baseline = _sum(lc.lane_usage(slug))
+    baseline = _sum(lc.lane_usage(slug, slug_dirs=slug_dirs or None))
     started = subprocess.run(plan.argv, env=env, capture_output=True, text=True)
     click.echo(started.stdout.strip())
     if started.returncode != 0:
@@ -465,19 +506,11 @@ def launch(contract: str, slug: str, provider: str, model: str, effort: str, sub
         sys.exit(EXIT_UNGOVERNED)
     lane_id = found.group(1)
 
-    def stop() -> bool:
-        return subprocess.run(["claude", "stop", lane_id], capture_output=True).returncode == 0
-
-    def alive() -> bool:
-        listing = subprocess.run(["claude", "agents", "--json"], capture_output=True, text=True)
-        if listing.returncode != 0 or not listing.stdout.strip():
-            raise GovernorBlind("`claude agents --json` failed or was empty")
-        return lane_id in listing.stdout
-
     click.echo(f"[dispatch] governing lane {lane_id} -- cap {token_cap}; Ctrl-C leaves it UNCAPPED")
     try:
-        verdict = govern(cap=token_cap, read_usage=_lane_reader(slug, baseline), stop=stop,
-                         interval=interval, alive=alive, count_cache_reads=count_cache_reads)
+        verdict = govern(cap=token_cap, read_usage=_lane_reader(slug, baseline, slug_dirs),
+                         stop=lambda: stop_lane(lane_id), interval=interval,
+                         alive=lambda: lane_alive(lane_id), count_cache_reads=count_cache_reads)
     except KeyboardInterrupt:
         click.echo(f"[dispatch] governor interrupted -- lane {lane_id} is now UNCAPPED", err=True)
         sys.exit(EXIT_UNGOVERNED)
