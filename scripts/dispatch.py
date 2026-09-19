@@ -531,7 +531,8 @@ _ENDED = frozenset({"done", "stopped", "failed", "error", "exited", "cancelled",
 
 @dataclass(frozen=True)
 class LaneBinding:
-    """A `--bg` lane's own identity: the session id its transcript is filed under, and its cwd."""
+    """A `--bg` lane's own identity: the session id its transcript is filed under ('' when the
+    listing carries none), and its cwd."""
     session_id: str
     cwd: str
 
@@ -585,10 +586,11 @@ def bind_lane(lane_id: str) -> Optional[LaneBinding]:
         entry = _find_agent(_agents(), lane_id)
     except GovernorBlind:
         return None
-    session_id = str((entry or {}).get("sessionId") or "")
-    if not session_id:
+    if entry is None:
         return None
-    return LaneBinding(session_id, str((entry or {}).get("cwd") or ""))
+    # a LISTED lane with no session id is still a lane whose worktree can be checked: it comes back
+    # with an empty session id, which the caller refuses and stops -- it does not vanish as "unbound"
+    return LaneBinding(str(entry.get("sessionId") or ""), str(entry.get("cwd") or ""))
 
 
 def find_lane_by_slug(slug: str) -> Optional[str]:
@@ -714,35 +716,51 @@ def govern_cmd(lane_id: str, slug: str, token_cap: int, count_cache_reads: bool,
     lane is then FOUND by its worktree (`.../worktrees/<slug>`) in `claude agents --json`.
     Run from the CALLER's repo root (the commit witness reads its branches)."""
     validate_cap(token_cap)
+    verified = ""  # set ONLY once a lane's worktree has matched the slug: the sole id recovery may stop
     try:
         lane_id, binding = _bind(lane_id, slug, bind_polls, interval)
-        if not lane_id:
-            # nothing names the lane, so there is nothing to stop: the one honest UNGOVERNED
+        if binding is None:
+            # nothing verified names the lane, so there is nothing safe to stop: the one honest
+            # UNGOVERNED. (Stopping an id nothing has tied to this slug could stop ANOTHER lane.)
             _finish(Verdict(False, 0, token_cap, 0, ungoverned=(
                 f"no lane for worktree-{slug} could be identified in `claude agents --json`; if "
                 "one was started it MAY BE RUNNING, uncapped -- stop it by hand")), slug)
-        if binding is None:
-            _finish(_refuse(f"lane {lane_id} could not be bound to a session id after "
-                            f"{bind_polls} attempt(s)", 0, token_cap, 0, lambda: stop_lane(lane_id)),
-                    slug)
+        verified = lane_id
+        if not binding.session_id:
+            _finish(_refuse(f"lane {lane_id} is listed but carries no session id to read its usage "
+                            "from", 0, token_cap, 0, lambda: _safe_stop(verified)), slug)
         click.echo(f"[dispatch] governing lane {lane_id} (session {binding.session_id}) -- cap "
                    f"{token_cap}", err=True)
         verdict = govern(cap=token_cap, read_usage=_session_reader(binding.session_id, sessions_root),
-                         stop=lambda: stop_lane(lane_id), sleep=time.sleep, interval=interval,
+                         stop=lambda: _safe_stop(verified), sleep=time.sleep, interval=interval,
                          alive=lambda: lane_alive(lane_id), count_cache_reads=count_cache_reads)
     except KeyboardInterrupt:
         # a governor that quits leaves the lane uncapped: stop it, do not just say so
-        stopped = stop_lane(lane_id)
-        click.echo(f"[dispatch] governor interrupted -- lane {lane_id} "
-                   f"{'STOPPED' if stopped else 'may STILL BE RUNNING, uncapped'}", err=True)
-        sys.exit(EXIT_REFUSED if stopped else EXIT_UNGOVERNED)
+        _recover(verified, "governor interrupted")
     except Exception as exc:  # noqa: BLE001 -- whatever raised, a governor that dies must not
         # leave the lane it was capping running with nothing watching it
-        stopped = bool(lane_id) and stop_lane(lane_id)
-        click.echo(f"[dispatch] governor failed ({type(exc).__name__}: {exc}) -- lane {lane_id or '?'} "
-                   f"{'STOPPED' if stopped else 'may STILL BE RUNNING, uncapped'}", err=True)
-        sys.exit(EXIT_REFUSED if stopped else EXIT_UNGOVERNED)
+        _recover(verified, f"governor failed ({type(exc).__name__}: {exc})")
     _finish(verdict, slug)
+
+
+def _safe_stop(lane_id: str) -> bool:
+    """`stop_lane`, contained: a stop that raises or is interrupted is a stop that did not happen.
+    Only a VERIFIED lane id may be passed here."""
+    if not lane_id:
+        return False
+    try:
+        return bool(stop_lane(lane_id))
+    except (Exception, KeyboardInterrupt):  # noqa: BLE001 -- recovery must reach an exit code
+        return False
+
+
+def _recover(verified: str, why: str) -> None:
+    """The recovery exit: stop the VERIFIED lane if there is one; exit 5 if it stopped, exit 4 if it
+    may still be running (or nothing verified it, so nothing was stopped). Never returns."""
+    stopped = _safe_stop(verified)
+    click.echo(f"[dispatch] {why} -- lane {verified or '(none verified)'} "
+               f"{'STOPPED' if stopped else 'may STILL BE RUNNING, uncapped'}", err=True)
+    sys.exit(EXIT_REFUSED if stopped else EXIT_UNGOVERNED)
 
 
 def _cwd_is_lane(cwd: str, slug: str) -> bool:
@@ -751,25 +769,22 @@ def _cwd_is_lane(cwd: str, slug: str) -> bool:
 
 
 def _bind(lane_id: str, slug: str, polls: int, interval: float) -> tuple[str, Optional[LaneBinding]]:
-    """`(lane id, binding)`; the id is '' when nothing identifies the lane.
+    """`(verified lane id, binding)`, or `("", None)` when no lane could be tied to the slug.
 
-    A PROVISIONAL id (the launcher read it out of `claude --bg`'s output) whose worktree is not the
-    planned slug's belongs to ANOTHER lane: it is dropped and never governed -- stopping someone
-    else's lane while ours runs uncapped is the worse failure. The lane is then FOUND by worktree."""
-    binding: Optional[LaneBinding] = None
+    A PROVISIONAL id (the launcher read it out of `claude --bg`'s output) is trusted only once its
+    listed worktree is the planned slug's. One that is not listed, or belongs to ANOTHER lane, is
+    dropped and never governed or stopped -- stopping someone else's lane while ours runs uncapped is
+    the worse failure. The lane is then FOUND by worktree (`find_lane_by_slug`)."""
     for attempt in range(max(polls, 1)):
-        if lane_id:
-            binding = bind_lane(lane_id)
-            if binding is not None and not _cwd_is_lane(binding.cwd, slug):
-                binding, lane_id = None, ""
-        if not lane_id:
+        binding = bind_lane(lane_id) if lane_id else None
+        if binding is None or not _cwd_is_lane(binding.cwd, slug):
             lane_id = find_lane_by_slug(slug) or ""
             binding = bind_lane(lane_id) if lane_id else None
-        if binding is not None:
+        if binding is not None and lane_id:
             return lane_id, binding
         if attempt + 1 < polls:
             time.sleep(min(interval, 3.0))
-    return lane_id, None
+    return "", None
 
 
 def _finish(verdict: Verdict, slug: str) -> None:
