@@ -21,6 +21,41 @@
 
 ---
 
+### 2026-09-19 (an) - CC (Opus 5, wave-3 integrator): merge worktree-wave3-dispatch-split (L3) -- the hub plans and governs, a caller-side shim spawns; wave 2 closed
+
+**Anchors:** `018b1437` (RED: the split), `f09c7ac8` (the split built), `b9a98421` (codex terra fifth pass CLEAN 0/0/0/0), `41157c69` (handback with both live witnesses verbatim); and L3's own `c00f9c10`, `f6a02d58` -- `worktree-wave3-dispatch-split` (branched from `worktree-wave2-dispatch` @ `c00f9c10`), merged --no-ff in integration worktree `wave3-l3-integrate`.
+
+**Did:** merged L3. The two ruled P1s close: (a) Layer 2 -- `scripts/dispatch.py` has `plan` / `govern` / `stop --slug` and spawns no lane (AST test); `templates/dispatch-shim.ps1` is the only spawn, with no model or effort default ([#717]); (b) token cap -- a default `--bg --worktree` launch binds by session id from `claude agents --json`, no `--slug-dir`; an unbindable lane is STOPPED (exit 5), never left UNGOVERNED. Live witnesses through the shim (haiku, no `--slug-dir`), re-read by the integrator from the transcripts with `lane_cost.seat_usage`: A over cap 5,000 -> STOPPED exit 3 at 27,670 (the cap is a poll: 5.5x overshoot before the first poll could act); B under cap 1,000,000 -> ran, 39,999, DONE with a commit, exit 0. Terra: five passes (1/1, 2/0, 2/0, 2/0, then 0/0/0/0), each CRITICAL/HIGH RED-first. ORDERED sonnet / RAN `claude-sonnet-5` on 137 of 137 calls; 585,943 fresh tokens vs 200k ordered (2.9x), 34.8M cache reads separate. JOURNAL: L3 carried two entries written on its branch; re-lettered at merge time -- (al) was (x), (am) was (ae); content byte-identical. Carrier table emptied: `worktree-wave2-dispatch` closes here (its close condition, "the caller-side shim lands", fired). Step 0 of the lane was amended by the integrator (reset to `c00f9c10` instead of merging it onto main -- the contract's premise that L3 touched only its own files was false).
+
+**Result:** wave 2 closed in code. Not live yet: win-tooling's PATH `dispatch` still runs the old Invoke-Dispatch until the operator copies the shim over it (handback section 5). Residue: witness sessions `13493aa1` and `4c128d01` survive `claude stop` as idle processes whose worktrees were removed -- no spend growth. **Changes:** `scripts/dispatch.py`, `templates/dispatch-shim.ps1`, `tests/test_dispatch_*.py` (5), nine `docs/audits/2026-09-19-*dispatch*` artifacts, `docs/audits/README.md`, `ecosystem/doc-counts.md`, `.claude/rules/git-discipline.md`, `JOURNAL.md`. **Next:** PLAYBOOK Ch8 still describes the old dispatch surface (handback section 6).
+
+### 2026-09-19 (am) - CC (Opus 5, night-wave-2 integrator pass #2): L3 finished -- the dispatch.py port verified, four governor holes closed, KEPT for a Layer-2 ruling
+
+**Anchors:** `7facee2b` (lane tip as it stopped), `02be96b0` (blind-then-done is UNGOVERNED), `59cd27c0` (malformed usage stops the child); the OverflowError / missing-launcher fix is the commit carrying this entry -- `worktree-wave2-dispatch`, NOT merged, NOT pushed.
+
+**Did:** the lane stopped with no handback, "still waiting on the subset run". Established what it completed: the 33/33 was `tests/test_dispatch_py.py` alone, on the tree that became `7facee2b` -- verified (then 35, 36, 38 with the fixes below). The subset run it waited on HAD finished on disk (`%TEMP%\l3_subset_out.txt`, 634 passed / 2 failed, on the pre-`7facee2b` tree). `7facee2b` had never been reviewed. Ran the impacted set on `7facee2b` (`impacted_tests.py select`, 57 files, -n 4): 45 failed / 2221 passed; ALL 45 fail identically on the merge-base `14d273fb` -- none is this branch's (live-state reds: 17 in `test_prompts_guard_hook_wiring`, handoff probes, health, corpus/header tests). Three Codex terra passes over the whole branch (`codex exec review --base main`, gpt-5.6-terra): each P1 that was code was fixed RED-first -- a lane that ends before its usage is readable read "under cap" (`02be96b0`); a non-numeric usage field raised out of `run_streamed` abandoning the child (`59cd27c0`); `1e400` (OverflowError) and a missing launcher (FileNotFoundError) (this commit). Dispatch tests 95 passed (py + drift + surface), ruff clean.
+
+**Result:** the port is preserved and its governor is tighter. NOT green on terra: (1) **Layer-2 orchestration** (P1, raised on passes 1 and 3): a launcher that starts workspace-writing lanes in whichever repo invokes it vs CLAUDE.md SS5 rule 4 / AGENTS.md "never executes" -- the lane's own move audit SS4 recorded this "not resolved" and asked the operator/architect to confirm the reading of rule 4 at merge; (2) **default `--bg` launches read no usage** (P1, pass 2): without `--slug-dir` the governor goes UNGOVERNED after 8 blind polls -- fails loud, does not cap; binding the launch session dir needs a live `--bg --worktree` launch the integrator seat cannot make. The last review was over `59cd27c0`; this commit's two fixes carry tests, not a fourth review.
+
+**Changes:** `scripts/dispatch.py`, `tests/test_dispatch_py.py`, `JOURNAL.md`.
+
+**Next:** operator rules rule 4 for dispatch.py (hub, or back to win-tooling as the execution layer); then the `--bg` session-dir binding; then a fourth terra pass and merge. Branch KEPT -- it holds the only copy of the port.
+
+### 2026-09-19 (al) - CC (Sonnet 5, lane L3 `wave2-dispatch`): scripts/dispatch.py -- the launcher moves into the hub and the token cap gets a home
+
+**Anchors:** `f6a02d58` (dispatch.py + tests + audit), `fce990d6` (six codex-terra findings fixed RED-first), `da321ac5` (no-consumer notes) -- `worktree-wave2-dispatch`.
+
+**Did:** RED-first (ImportError, then a mutation that drops `stop()` -> the cap test red), then `scripts/dispatch.py` (Click): `--provider/--model/--substrate/--token-cap`, cap REQUIRED. Ported from win-tooling `Start-DispatchLane`, `Get-DispatchPromptsDir`, `Get-CloudModelProvider`, `Start-DispatchCodespace` (steps 2-5). The `claude --bg` path is governed by a transcript poll that runs `claude stop <id>` past the cap; codex and codespace are stream-metered. Live: cap=5 terminated a real haiku run at 22,471 (message-granular overshoot, stated), cap=1M finished under.
+
+**Result:** 28 tests in `tests/test_dispatch_py.py` (23, then 5 RED-first for the Codex findings: unobservable spend / failed stop / blind probe are UNGOVERNED, other providers' keys scrubbed, streamed child exit propagated). NOT verified live: a `claude --bg` launch (it would create a worktree), `claude stop`, the codespace execution path (dry-run only). The win-tooling shim is CONTENT ONLY in the audit; that repo was not touched.
+
+**Changes:** `scripts/dispatch.py`, `tests/test_dispatch_py.py`, `docs/audits/2026-09-19-technical-wave2-dispatch-py-move.md`, this entry.
+
+**Abandoned:** porting the whole 3,964-line module; a `--max-budget-usd` flag (print-mode only); a ceiling on the cap (an invented number).
+
+**Next:** the operator/architect confirm the Layer-2 reading (CLAUDE.md section 5 rule 4: a launcher is nearer that line than any validator); apply the shim in win-tooling; live-test `--bg` governance from a disposable worktree.
+
+
 ### 2026-09-19 (ak) - CC (Opus 5, wave-3 integrator): merge worktree-wave3-answerable (W3-2)
 
 **Anchors:** `490bc870` (RED: `file_purpose_graph.py list` absent), `e906f1b3` (`list` whole-graph dump), `0c1f33cd` (`/why` and `/spine` registered), `15aa18f0` (W3-2 report) -- `worktree-wave3-answerable`, merged --no-ff in integration worktree `wave3-integrate`, not pushed.
