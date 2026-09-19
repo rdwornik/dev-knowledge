@@ -21,6 +21,36 @@
 
 ---
 
+### 2026-09-19 (w2-I1) - CC (Sonnet 5, night-wave-2 integrator pass #1): merge worktree-wave2-spine (L1) into main
+
+**Anchors:** `3e90e3fa`, `f664d6b8`, `5a1ea535` (code), `ae7b39b8`, `c2404a3f` (journal) -- `worktree-wave2-spine`; main was `14d273fb` before the merge.
+
+**Did:** verified the handback (`STATUS: DONE`, `audit.py handback` exit 0, Codex terra final pass HIGH:0 MED:0 LOW:0, tip `c2404a3f` matches the handback SHA, lane process exited(0), worktree clean); merged `--no-ff --no-commit`; ran the impacted tests on the merge result before committing.
+
+**Result:** merged, not pushed. The lane's own entry `(w2-L1)` rides the merge.
+
+**Changes:** `ecosystem/harness.yaml`, `scripts/dodo.py`, `tests/test_dodo.py`, `pyproject.toml` (doit dev dep), `uv.lock`, `JOURNAL.md`.
+
+**Abandoned:** nothing.
+
+**Next:** L2 boot-base, then the rest per `to-browser/INTEGRATOR-wave2-2026-09-19.md`.
+
+
+### 2026-09-19 (w2-L1) - CC (Sonnet 5, lane wave2-spine): spine stages 1-12 as data -- ecosystem/harness.yaml + scripts/dodo.py over doit; live run STOPS at stage 6
+
+**Anchors:** `3e90e3fa` (spine + doit), `f664d6b8` and `5a1ea535` (Codex terra P1 fixes) -- `worktree-wave2-spine`.
+
+**Did:** RED first (5 failing in tests/test_dodo.py), then `ecosystem/harness.yaml` (18 lines, cap 60) and `scripts/dodo.py` (~70 lines, cap 100) over doit 0.37.0. A stage with no command becomes a failing task; doit halts; the run prints `stage N does not exist`. Read ADR-73 (per-repo orchestration copies; hub keeps the canonical template -- this is that template) and ADR-97 (only the root merges; the contract is the artifact -- the spine prepares one and never merges). **Live run over this repo** (`HARNESS_KIND=WIRE HARNESS_SUBJECT=intake`): stages 1-5 pass, then `STOP: stage 6 does not exist -- library-first has no command`, exit 1. The live run found two defects no test had: `git grep` waited on a pager (stage 2 hung), and doit's echo thread died on a non-cp1252 glyph from stage 4.
+
+**Result:** stages 6 (library-first) and 11 (token cap) have no command, by design -- L5 and L3 fill them. Codex terra found two P1s over three passes -- a zero-hit prior-art search exited 1 and killed the run at stage 2, and CmdAction ran argv through a shell (`%PATH%` in a token was expanded) -- each fixed RED-first; the third pass reported no critical or high findings. Targeted tests, not the full suite: `impacted_tests.py select` declined to narrow (pyproject.toml/uv.lock in the diff), so the fleet-parity, hermetization and fleet-shape suites plus test_dodo.py were run: 164 passed.
+
+**Changes:** `scripts/dodo.py`, `ecosystem/harness.yaml`, `tests/test_dodo.py`, `pyproject.toml`, `uv.lock`, `JOURNAL.md`. Homes differ from the payload's bare names: ADR-101 Rule A refuses new top-level files, and `--no-verify` is not used.
+
+**Abandoned:** stage skipping on satisfied stages (`result_dep`) -- not built; every run executes 1..N. Closes nothing; [#669] / [#689] untouched.
+
+**Next:** integrator merges; L5 fills stage 6, L3 stage 11; first vertical run per payload s6.
+
+
 ### 2026-09-19 (w) - CC (Opus 5, integrator seat B2): B2 CLOSED -- regressions fixed, raise pushed on the operator's word, every worktree dispositioned, [#911] filed
 
 **Anchors:** `6fc296d8` ([#911] filed), `ee40592a` (BUILD-LIST B2 close row), `beae756e` (sync of main `fb06810e` into this branch) -- `fix/b2-regressions`; plus `80df0753`, `548b2cf7`, `aa410ec6` in (v).

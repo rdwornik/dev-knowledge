@@ -85,6 +85,17 @@ dev = [
     # pytest-xdist, which DOES carry a row: `/ship`'s parallel pre-flight is a deployed
     # mechanism, and #332 witnessed a consumer silently degrading to serial without it.)
     "pytest-timeout>=2.3",
+    # doit (PyPI `doit`; the pydoit project) -- the spine's task runner: `dodo.py` generates one task
+    # per `harness.yaml` stage, and a stage with no command FAILS its task, so the run STOPS there.
+    # AUTHORIZATION: batch night-wave2 payload s1 ("pydoit ... APPROVED"), conditional on a live run
+    # -- the STOP output is in the wave2-spine handback. WHY: library-first (DECLARE-SPINE-AND-B3 s3
+    # decision matrix: native STOP on a missing action, ordering via task_dep, ~70 lines of adapter vs
+    # ~200 hand-rolled). REJECTED: hand-written runner (no library-first), invoke (no stop/skip
+    # semantics, YAML not native), GitHub Actions (not runnable locally; [#689] owns that leg),
+    # pre-commit (wrong moment). WHERE: a LEAF -- doit 0.37.0 adds no transitive package to uv.lock;
+    # the dev group only, imported by `dodo.py` alone. NO ecosystem/dependency-baseline.yaml row: the
+    # spine is HUB-ONLY (the pandas/analytics precedent).
+    "doit>=0.37.0",
 ]
 # L5a descriptive analytics lane ([#384], intake #16 section 3). Separate group: the lane is
 # HUB-ONLY (it mines siblings read-only but runs here), so a consumer never needs it and it
