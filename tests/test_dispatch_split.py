@@ -88,8 +88,9 @@ def test_a_lane_whose_usage_cannot_be_read_is_stopped_not_left_running():
 
 def test_a_default_launch_that_cannot_be_bound_is_refused_and_the_lane_stopped(
         tmp_path, monkeypatch):
-    """No `--slug-dir`, no session id in the agent listing: nothing to bind. REFUSED, stopped."""
-    seams = _Seams(monkeypatch, binding=None)
+    """No `--slug-dir`, and the lane's listing entry (its worktree is the slug's) carries no session
+    id: nothing to bind. REFUSED, stopped -- it is a lane whose identity IS verified."""
+    seams = _Seams(monkeypatch, binding=d.LaneBinding("", CWD))
     result = _govern(tmp_path)
     assert seams.stopped == ["abcd1234"], "the unbound lane must be stopped"
     assert result.exit_code == d.EXIT_REFUSED

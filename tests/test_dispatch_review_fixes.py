@@ -134,3 +134,49 @@ def test_an_unexpected_governor_failure_stops_the_bound_lane(tmp_path, monkeypat
     result, stopped = _run_govern(tmp_path, monkeypatch, "abcd1234")
     assert stopped == ["abcd1234"], "a governor that dies must not leave the lane running"
     assert result.exit_code == d.EXIT_REFUSED
+
+
+# --- the THIRD pass (docs/audits/2026-09-19-codex-wave3-dispatch-split-rereview-2.md) -------------
+
+def test_an_interrupt_before_the_id_is_verified_never_stops_the_unverified_id(
+        tmp_path, monkeypatch):
+    """CRITICAL (dispatch.py:735): Ctrl-C / a control-plane failure during `_bind` used to stop
+    `lane_id` -- the shim's PROVISIONAL id -- before its worktree had been checked against the slug.
+    Recovery paths may stop only an id whose worktree matched."""
+    def interrupted(lane_id):
+        raise KeyboardInterrupt
+    monkeypatch.setattr(d, "bind_lane", interrupted)
+    monkeypatch.setattr(d, "find_lane_by_slug", lambda slug: None)
+    result, stopped = _run_govern(tmp_path, monkeypatch, "deadbeef")
+    assert stopped == [], "an unverified provisional id must never be stopped"
+    assert result.exit_code == d.EXIT_UNGOVERNED
+
+
+def test_a_lane_that_is_not_listed_at_all_is_ungoverned_and_nothing_is_stopped(
+        tmp_path, monkeypatch):
+    monkeypatch.setattr(d, "_control", _listing())
+    result, stopped = _run_govern(tmp_path, monkeypatch, "abcd1234")
+    assert stopped == [] and result.exit_code == d.EXIT_UNGOVERNED
+    assert "running" in result.output.lower()
+
+
+def test_a_stop_that_raises_inside_the_recovery_handler_is_an_exit_4_verdict_not_an_escape(
+        tmp_path, monkeypatch):
+    """CRITICAL (dispatch.py:741): the catch-all called `stop_lane` unprotected, so a stop that
+    itself raised (or was interrupted) escaped the governor outside the exit-4/5 contract."""
+    _transcript(tmp_path, _SID, tokens=10)
+    monkeypatch.setattr(d, "_control", _listing(_OURS))
+
+    def broken(lane_id):
+        raise RuntimeError("the liveness probe blew up")
+
+    def cannot_stop(lane_id):
+        raise OSError("claude stop could not run")
+    monkeypatch.setattr(d, "lane_alive", broken)
+    monkeypatch.setattr(d, "stop_lane", cannot_stop)
+    result = CliRunner().invoke(d.cli, ["govern", "abcd1234", "--slug", "wave3-witness",
+                                        "--token-cap", "1000", "--interval", "0",
+                                        "--bind-polls", "2", "--sessions-root", str(tmp_path)])
+    assert result.exception is None or isinstance(result.exception, SystemExit)
+    assert result.exit_code == d.EXIT_UNGOVERNED
+    assert "running" in result.output.lower()
