@@ -25,6 +25,7 @@ import pytest
 from boot_retrieval import (
     CONTROL,
     EVIDENCE,
+    BODY_REV,
     ITEMS,
     REPO,
     admitted,
@@ -33,6 +34,7 @@ from boot_retrieval import (
     boot_base,
     fetched,
     import_closure,
+    touched,
 )
 
 pytestmark = pytest.mark.live_repo
@@ -59,6 +61,16 @@ def test_a_read_of_a_target_counts_as_a_fetch(tmp_path: Path) -> None:
 def test_prose_naming_a_target_is_not_a_fetch(tmp_path: Path) -> None:
     ev = _stream({"type": "text", "text": "I would read a.md"}, result="see a.md")
     assert not fetched(ev, tmp_path, ("a.md",))
+
+
+def test_a_shell_command_naming_a_target_is_not_a_fetch(tmp_path: Path) -> None:
+    ev = _stream({"type": "tool_use", "name": "Bash", "input": {"command": "echo a.md"}})
+    assert not fetched(ev, tmp_path, ("a.md",))
+
+
+def test_touched_records_the_tool_and_relative_path(tmp_path: Path) -> None:
+    ev = _stream({"type": "tool_use", "name": "Read", "input": {"file_path": str(tmp_path / "a.md")}})
+    assert touched(ev, tmp_path, ("a.md",)) == ["Read:a.md"]
 
 
 def test_a_read_of_a_different_file_is_not_a_fetch(tmp_path: Path) -> None:
@@ -114,6 +126,8 @@ def test_every_pointer_form_item_is_admitted_by_recorded_evidence() -> None:
     assert converted, "nothing is pointer-form: the conversion the retrieval test gates has not happened"
     assert EVIDENCE.is_file(), "no recorded probe run: convert nothing without it"
     record = json.loads(EVIDENCE.read_text(encoding="utf-8"))
+    assert record["body_rev"] == BODY_REV
+    assert all(r["fetched"] == bool(r["touched"]) for r in record["rows"]), "a fetched flag with no recorded tool call"
     refused = [i for i in converted if not admitted(record, i)]
     assert not refused, f"pointer-form without a demonstrated fetch: {refused}"
 

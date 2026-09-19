@@ -1,6 +1,7 @@
 {
- "measured_at": "2026-09-19T00:14:02+00:00",
+ "measured_at": "2026-09-19T00:45:43+00:00",
  "model": "claude-haiku-4-5-20251001",
+ "body_rev": "14d273fb",
  "pointer_runs": 3,
  "admit_at": 2,
  "rows": [
@@ -9,196 +10,328 @@
    "arm": "body",
    "run": 0,
    "fetched": true,
-   "canary": true
+   "touched": [
+    "Read:.pre-commit-config.yaml"
+   ],
+   "canary": true,
+   "answer_sha256": "b60c574b85e9e882",
+   "answer_head": "Based on the repository's documentation, here's what the `graph-task-coverage` gate checks and how to pass it:\n\n## What it checks\n\nThe `graph-task-coverage` gate (defined at `.pre-commit-config.yaml:5"
   },
   {
    "item": "repo-commands",
    "arm": "body",
    "run": 0,
    "fetched": true,
-   "canary": true
+   "touched": [
+    "Read:.claude/commands/handoff-verify.md"
+   ],
+   "canary": true,
+   "answer_sha256": "6bb39a90f884da7d",
+   "answer_head": "Based on the repository documentation, here's the answer:\n\n**Command:** `/handoff-verify`\n\n**What it does:** Runs the entire live probe gate for a handoff bundle in **one pass** and emits **exactly on"
   },
   {
    "item": "recent-adrs",
    "arm": "body",
    "run": 0,
    "fetched": true,
-   "canary": true
+   "touched": [
+    "Read:.claude/generated/recent-adrs.md"
+   ],
+   "canary": true,
+   "answer_sha256": "fd4fe06ded82dc0d",
+   "answer_head": "Based on the repository documentation, the answer is:\n\n**ADR-119** is the ADR that most recently made a command file count as a wiring surface.\n\n**Status: Accepted** (dated 2026-09-13)\n\nThe ADR states"
   },
   {
    "item": "methodology-roster",
    "arm": "body",
    "run": 0,
    "fetched": true,
-   "canary": true
+   "touched": [
+    "Read:.claude/methodology-roster.md"
+   ],
+   "canary": true,
+   "answer_sha256": "72301f4ab8368eca",
+   "answer_head": "Based on the deploy manifest in this repository's `.claude/methodology-roster.md`, a fully-deployed consumer receives the following **pre-commit hooks**:\n\n1. **toc-freshness** \u2014 TOC freshness (hub hoo"
   },
   {
    "item": "skills-roster",
    "arm": "body",
    "run": 0,
    "fetched": true,
-   "canary": true
+   "touched": [
+    "Read:.claude/skills/check-against-spec/SKILL.md"
+   ],
+   "canary": true,
+   "answer_sha256": "f4154c53485b772a",
+   "answer_head": "Based on the repository documentation, the repo-level skill for reconciling a spec version advance with dependent documentation is:\n\n**`check-against-spec`**\n\n**What it does:** Reconciles a dependent "
   },
   {
    "item": "architecture-pointer",
    "arm": "body",
    "run": 0,
    "fetched": true,
-   "canary": true
+   "touched": [
+    "Read:ARCHITECTURE.md"
+   ],
+   "canary": true,
+   "answer_sha256": "99f07ab36cb60eeb",
+   "answer_head": "Based on the repository's documentation, here's where to learn about organs and before making structural changes:\n\n## How Each Organ Fails\n\n**Read:** `ARCHITECTURE.md` \u00a7 Chapter 2 (Organ map), specifi"
   },
   {
    "item": "control",
    "arm": "body",
    "run": 0,
    "fetched": false,
-   "canary": false
+   "touched": [],
+   "canary": false,
+   "answer_sha256": "91312d8fa1a264ef",
+   "answer_head": "I'll read the README.md file to locate the typo in the first sentence of the first paragraph.\n\nLooking at the README.md file, the first paragraph under the \"Vision\" section (lines 13-16) begins with:\n"
   },
   {
    "item": "hooks-roster",
    "arm": "pointer",
    "run": 0,
    "fetched": true,
-   "canary": false
+   "touched": [
+    "Read:.pre-commit-config.yaml"
+   ],
+   "canary": true,
+   "answer_sha256": "dc9d17f14bf19c23",
+   "answer_head": "Based on the repository documentation, here's what the `graph-task-coverage` gate checks and how to handle it:\n\n## What `graph-task-coverage` checks\n\nThe gate enforces **task coverage** for staged fil"
   },
   {
    "item": "hooks-roster",
    "arm": "pointer",
    "run": 1,
    "fetched": true,
-   "canary": true
+   "touched": [
+    "Read:.pre-commit-config.yaml"
+   ],
+   "canary": true,
+   "answer_sha256": "2ef724612bc2d07a",
+   "answer_head": "Based on the repository documentation, here's what the `graph-task-coverage` gate checks and how to pass it:\n\n## What `graph-task-coverage` checks\n\nThe gate (defined at `.pre-commit-config.yaml:567-58"
   },
   {
    "item": "hooks-roster",
    "arm": "pointer",
    "run": 2,
    "fetched": true,
-   "canary": true
+   "touched": [
+    "Read:.pre-commit-config.yaml"
+   ],
+   "canary": true,
+   "answer_sha256": "060c5fbea87ba1ec",
+   "answer_head": "Based on the repository documentation, here's what the `graph-task-coverage` gate checks:\n\n## What it checks\n\nThe `graph-task-coverage` gate **refuses a commit when a staged file has no inbound `imple"
   },
   {
    "item": "repo-commands",
    "arm": "pointer",
    "run": 0,
    "fetched": true,
-   "canary": true
+   "touched": [
+    "Read:.claude/commands/handoff-verify.md"
+   ],
+   "canary": true,
+   "answer_sha256": "cf41217dbfb62e27",
+   "answer_head": "Based on the repository documentation, here's the answer:\n\n**Command:** `/handoff-verify`\n\n**What it does:** Runs the **entire live probe gate for a handoff bundle in one pass** and emits **exactly on"
   },
   {
    "item": "repo-commands",
    "arm": "pointer",
    "run": 1,
    "fetched": true,
-   "canary": true
+   "touched": [
+    "Read:.claude/commands/handoff-verify.md"
+   ],
+   "canary": true,
+   "answer_sha256": "91a13a65b9ca2247",
+   "answer_head": "Based on the repository documentation in `.claude/commands/handoff-verify.md`, here's the answer:\n\n**The command:** `/handoff-verify`\n\n**What it does:** Runs the **entire** live probe gate for a hando"
   },
   {
    "item": "repo-commands",
    "arm": "pointer",
    "run": 2,
    "fetched": true,
-   "canary": true
+   "touched": [
+    "Read:.claude/commands/handoff-verify.md"
+   ],
+   "canary": true,
+   "answer_sha256": "a8cabd9180350fb2",
+   "answer_head": "Based on the repository documentation, the answer is:\n\n**Command:** `/handoff-verify`\n\n**What it emits:** Exactly **one evidence block** \u2014 a single fenced code block containing a table with all probe "
   },
   {
    "item": "recent-adrs",
    "arm": "pointer",
    "run": 0,
    "fetched": true,
-   "canary": true
+   "touched": [
+    "Read:.claude/generated/recent-adrs.md"
+   ],
+   "canary": true,
+   "answer_sha256": "cd5fdeca509a1e33",
+   "answer_head": "Based on the repository's ADR documentation:\n\n**ADR-119** is the most recent ADR that made a command file count as a wiring surface. \n\n**Status:** Accepted (dated 2026-09-13)\n\n**Decision:** \"A command"
   },
   {
    "item": "recent-adrs",
    "arm": "pointer",
    "run": 1,
    "fetched": true,
-   "canary": true
+   "touched": [
+    "Read:.claude/generated/recent-adrs.md"
+   ],
+   "canary": true,
+   "answer_sha256": "a6af1ef1eeb472e0",
+   "answer_head": "Based on the repository's ADR documentation, I found the answer:\n\n**ADR-119** most recently made a command file count as a wiring surface, and its status is **Accepted** (dated 2026-09-13).\n\nThe full "
   },
   {
    "item": "recent-adrs",
    "arm": "pointer",
    "run": 2,
    "fetched": true,
-   "canary": true
+   "touched": [
+    "Read:.claude/generated/recent-adrs.md"
+   ],
+   "canary": true,
+   "answer_sha256": "c794e99e9625bccc",
+   "answer_head": "Based on the repository's ADR documentation, **ADR-119** is the most recently accepted ADR that made a command file count as a wiring surface.\n\n**Details:**\n- **ADR Number:** ADR-119\n- **Status:** Acc"
   },
   {
    "item": "methodology-roster",
    "arm": "pointer",
    "run": 0,
    "fetched": true,
-   "canary": true
+   "touched": [
+    "Read:.claude/methodology-roster.md"
+   ],
+   "canary": true,
+   "answer_sha256": "0202dccaea50682f",
+   "answer_head": "Based on the deployment manifest in this repository, according to `.claude/methodology-roster.md` (which is the manifest-declared roster of what a fully-deployed consumer receives), the **pre-commit h"
   },
   {
    "item": "methodology-roster",
    "arm": "pointer",
    "run": 1,
    "fetched": true,
-   "canary": true
+   "touched": [
+    "Read:.claude/methodology-roster.md"
+   ],
+   "canary": true,
+   "answer_sha256": "1949fdd50e31218c",
+   "answer_head": "Perfect! I found the answer in the `.claude/methodology-roster.md` file, which is generated from the deploy manifest and documents what a fully-deployed consumer receives.\n\n## Pre-commit hooks for ful"
   },
   {
    "item": "methodology-roster",
    "arm": "pointer",
    "run": 2,
    "fetched": true,
-   "canary": true
+   "touched": [
+    "Read:.claude/methodology-roster.md"
+   ],
+   "canary": true,
+   "answer_sha256": "27cec7576e30b348",
+   "answer_head": "Per the deploy manifest documented in `.claude/methodology-roster.md`, a fully-deployed consumer receives these **pre-commit hooks**:\n\n1. **toc-freshness** \u2014 TOC freshness (hub hooks, pinned rev)\n2. *"
   },
   {
    "item": "skills-roster",
    "arm": "pointer",
    "run": 0,
    "fetched": true,
-   "canary": true
+   "touched": [
+    "Read:.claude/skills/check-against-spec/SKILL.md"
+   ],
+   "canary": true,
+   "answer_sha256": "e5d04439cc3fd0a4",
+   "answer_head": "Based on the repository's documentation, the repo-level skill is:\n\n**`check-against-spec`**\n\n**What it does:** Reconciles a dependent doc against its spec when the spec version advances. Specifically,"
   },
   {
    "item": "skills-roster",
    "arm": "pointer",
    "run": 1,
    "fetched": true,
-   "canary": true
+   "touched": [
+    "Read:.claude/skills/check-against-spec/SKILL.md"
+   ],
+   "canary": true,
+   "answer_sha256": "4a33be0bb2b10a86",
+   "answer_head": "Based on the repository documentation, the skill is:\n\n**`check-against-spec`**\n\n**What it does:** Reconciles a dependent doc against its spec when the spec version advances. Specifically, it:\n\n1. Runs"
   },
   {
    "item": "skills-roster",
    "arm": "pointer",
    "run": 2,
    "fetched": true,
-   "canary": true
+   "touched": [
+    "Read:.claude/skills/check-against-spec/SKILL.md"
+   ],
+   "canary": true,
+   "answer_sha256": "ea5250eaa308890c",
+   "answer_head": "Yes, there is a repo-level skill for this: **`check-against-spec`**\n\n**What it does:**\n\nThis skill reconciles a dependent doc against its spec when the spec version advances. Here's the workflow:\n\n1. "
   },
   {
    "item": "architecture-pointer",
    "arm": "pointer",
    "run": 0,
    "fetched": true,
-   "canary": true
+   "touched": [
+    "Read:ARCHITECTURE.md"
+   ],
+   "canary": true,
+   "answer_sha256": "39f2e1a207960af9",
+   "answer_head": "Based on the repository documentation, here's where to learn about organs and their failure modes before a structural change:\n\n## **Where to learn about organ failures:**\n**`ARCHITECTURE.md` Chapter 2"
   },
   {
    "item": "architecture-pointer",
    "arm": "pointer",
    "run": 1,
    "fetched": true,
-   "canary": true
+   "touched": [
+    "Read:ARCHITECTURE.md"
+   ],
+   "canary": true,
+   "answer_sha256": "b64aa2bdeb022455",
+   "answer_head": "Based on the repository documentation:\n\n## Where to Learn How Each Organ Fails\n\n**\u2192 `ARCHITECTURE.md` Chapter 2: \"Organ map\"**\n\nThe failure-posture legend is explicitly documented there with four mode"
   },
   {
    "item": "architecture-pointer",
    "arm": "pointer",
    "run": 2,
    "fetched": true,
-   "canary": true
+   "touched": [
+    "Read:ARCHITECTURE.md"
+   ],
+   "canary": true,
+   "answer_sha256": "f51581c0bc9cbab4",
+   "answer_head": "Based on the repository's documentation, here's where to learn about organ relationships and failures before making structural changes:\n\n## To learn how each organ fails:\n\n**Read `ARCHITECTURE.md` Cha"
   },
   {
    "item": "control",
    "arm": "pointer",
    "run": 0,
    "fetched": false,
-   "canary": false
+   "touched": [],
+   "canary": false,
+   "answer_sha256": "f534c6b2520bce7f",
+   "answer_head": "Looking at the first sentence of the first paragraph under the \"## Vision\" section (lines 13-14):\n\n**`.dev-knowledge` is a universal LLM-driven development guide and methodology framework.**\n\nThe typo"
   },
   {
    "item": "control",
    "arm": "pointer",
    "run": 1,
    "fetched": false,
-   "canary": false
+   "touched": [],
+   "canary": false,
+   "answer_sha256": "781f67e2e321b401",
+   "answer_head": "I've read the README.md file. The first paragraph after the \"Vision\" heading begins with:\n\n> `.dev-knowledge` is a universal LLM-driven development guide and methodology framework.\n\nI've examined this"
   },
   {
    "item": "control",
    "arm": "pointer",
    "run": 2,
    "fetched": false,
-   "canary": false
+   "touched": [],
+   "canary": false,
+   "answer_sha256": "1b7857cb7d35058f",
+   "answer_head": "The typo is in the first sentence of the Vision section (the first paragraph). Currently it reads:\n\n> `.dev-knowledge` is a universal LLM-driven development guide and methodology framework.\n\nIt should"
   }
  ]
 }

@@ -31,6 +31,7 @@ HONEST LIMITS -- read before quoting a number from here
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import shutil
@@ -45,6 +46,9 @@ REPO = Path(__file__).resolve().parents[1]
 HOME_CLAUDE = Path.home() / ".claude"
 EVIDENCE = REPO / "ecosystem" / "boot-retrieval-evidence.json"
 DEFAULT_MODEL = "claude-haiku-4-5-20251001"
+# The BODY arm is pinned to the last commit BEFORE the conversion, not to HEAD: at HEAD the file is
+# already pointer-form and a re-run would compare pointer against pointer (Codex terra HIGH).
+BODY_REV = "14d273fb"
 _IMPORT = re.compile(r"(?m)^@(\S+)\s*$")
 
 
@@ -178,24 +182,29 @@ def _events(stream: str) -> list[dict]:
     return out
 
 
-def fetched(stream: str, scratch: Path, targets: tuple[str, ...]) -> bool:
-    """True iff a tool call READ/SEARCHED an accepted target. Prose mentioning it does not count."""
+def touched(stream: str, scratch: Path, targets: tuple[str, ...]) -> list[str]:
+    """Targets a Read/Grep/Glob tool call actually pointed at, as `Tool:relative-path`.
+
+    Prose that names a target does not count, and neither does a shell command's text: Bash is
+    disallowed in the probe, and substring-matching a command would score `echo <target>` as a read.
+    """
     want = {(scratch / t).resolve() for t in targets}
+    hits: list[str] = []
     for ev in _events(stream):
         if ev.get("type") != "assistant":
             continue
         for block in ev.get("message", {}).get("content", []):
-            if block.get("type") != "tool_use":
+            if block.get("type") != "tool_use" or block.get("name") not in ("Read", "Grep", "Glob"):
                 continue
             args = block.get("input", {})
-            if block.get("name") in ("Read", "Grep", "Glob"):
-                p = args.get("file_path") or args.get("path")
-                if p and any(Path(p).resolve() == w or w in Path(p).resolve().parents for w in want):
-                    return True
-            cmd = args.get("command", "")
-            if any(t in cmd for t in targets):
-                return True
-    return False
+            p = args.get("file_path") or args.get("path")
+            if p and any(Path(p).resolve() == w or w in Path(p).resolve().parents for w in want):
+                hits.append(f"{block['name']}:{Path(p).resolve().relative_to(scratch.resolve()).as_posix()}")
+    return hits
+
+
+def fetched(stream: str, scratch: Path, targets: tuple[str, ...]) -> bool:
+    return bool(touched(stream, scratch, targets))
 
 
 def answer(stream: str) -> str:
@@ -241,7 +250,18 @@ def run_probe(scratch: Path, task: str, model: str, max_turns: int = 8) -> str:
          "--no-session-persistence"],
         input=prompt, capture_output=True, text=True, encoding="utf-8", cwd=scratch, timeout=300,
     )
+    if not answer(proc.stdout):  # no result event: CLI/auth/model failure, not a miss
+        raise RuntimeError(f"child claude produced no result (rc={proc.returncode}): {proc.stderr[:400]!r}")
     return proc.stdout
+
+
+def _row(item: str, arm: str, run: int, out: str, scratch: Path, targets: tuple[str, ...], canary: str) -> dict:
+    """One evidence row: the scorer's booleans AND what they were computed from (auditable)."""
+    ans = answer(out)
+    hits = touched(out, scratch, targets)
+    return {"item": item, "arm": arm, "run": run, "fetched": bool(hits), "touched": hits,
+            "canary": bool(canary) and canary.lower() in ans.lower(),
+            "answer_sha256": hashlib.sha256(ans.encode("utf-8")).hexdigest()[:16], "answer_head": ans[:200]}
 
 
 POINTER_RUNS = 3   # per item; the body arm runs once -- it only proves the probe is answerable
@@ -250,7 +270,7 @@ ADMIT_AT = 2       # pointer runs (of POINTER_RUNS) that must fetch AND answer
 
 def probe(pointer_claude_md: Path, model: str = DEFAULT_MODEL, items: tuple[Item, ...] = ITEMS) -> dict:
     """Run every item in both arms plus the no-target control; return the evidence record."""
-    body_src = subprocess.run(["git", "show", "HEAD:CLAUDE.md"], cwd=REPO, capture_output=True,
+    body_src = subprocess.run(["git", "show", f"{BODY_REV}:CLAUDE.md"], cwd=REPO, capture_output=True,
                               text=True, encoding="utf-8", check=True).stdout
     arms = {"body": body_src, "pointer": pointer_claude_md.read_text(encoding="utf-8")}
     rows = []
@@ -261,15 +281,13 @@ def probe(pointer_claude_md: Path, model: str = DEFAULT_MODEL, items: tuple[Item
             for it in items:
                 for n in range(runs):
                     out = run_probe(scratch, it.task, model)
-                    rows.append({"item": it.id, "arm": arm, "run": n, "fetched": fetched(out, scratch, it.targets),
-                                 "canary": it.canary.lower() in answer(out).lower()})
+                    rows.append(_row(it.id, arm, n, out, scratch, it.targets, it.canary))
             every = tuple(t for it in items for t in it.targets)
             for n in range(runs):
                 out = run_probe(scratch, CONTROL, model)
-                rows.append({"item": "control", "arm": arm, "run": n, "fetched": fetched(out, scratch, every),
-                             "canary": False})
+                rows.append(_row("control", arm, n, out, scratch, every, ""))
     return {"measured_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "model": model,
-            "pointer_runs": POINTER_RUNS, "admit_at": ADMIT_AT, "rows": rows}
+            "body_rev": BODY_REV, "pointer_runs": POINTER_RUNS, "admit_at": ADMIT_AT, "rows": rows}
 
 
 def admitted(evidence: dict, item_id: str) -> bool:
@@ -292,7 +310,7 @@ def main(argv: list[str]) -> int:
         record = probe(REPO / "CLAUDE.md", model)
         EVIDENCE.write_text(json.dumps(record, indent=1) + "\n", encoding="utf-8")
         for r in record["rows"]:
-            print(r)
+            print({k: v for k, v in r.items() if k != "answer_head"})
         return 0
     print("usage: boot_retrieval.py measure | probe [model]")
     return 2
