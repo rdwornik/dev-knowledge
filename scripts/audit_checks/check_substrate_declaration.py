@@ -91,6 +91,81 @@ LEG_ARM_DATES: dict[str, _dt.date] = {
     _vsub.RULE_HEARTBEAT_DEAD: _vsub.LEG_ARM_DATES[_vsub.RULE_HEARTBEAT_DEAD],
 }
 
+#: [#926] PRE-LAUNCH SCOPE for leg 8, TEMPORARY BY CONSTRUCTION (operator order 2026-09-19).
+#: Leg 8 asks whether the substrate a contract names is live NOW -- a dispatch-time question.
+#: Refusing it before a launch prevents an outcome; refusing it on a contract whose batch has
+#: CLOSED (its `closed_by:` packet is committed) cannot change any outcome, and the contract is
+#: an immutable record, so the refusal could only be discharged by falsifying it. Until this
+#: date such a refusal is reported as scoped-out debt in the pass line; after it the scope
+#: switches itself off, the refusal FAILs again and names [#926] for re-ruling. BUILD MODE's own
+#: expiry (protocols/BUILD-MODE.md), the mode the narrowing was ruled under. Only leg 8 is
+#: scoped; the in-contract `**Substrate deviation:**` escape is deliberately NOT used.
+POST_LAUNCH_NARROWING_EXPIRES = _dt.date(2026, 11, 18)
+_POST_LAUNCH_SCOPED_RULES = frozenset({_vsub.RULE_HEARTBEAT_DEAD})
+
+
+def _today() -> _dt.date:
+    """The date the time-boxed narrowing is read against -- one seam, so tests can move it."""
+    return _dt.date.today()
+
+
+def _batch_key(date_part: str, token: str) -> str:
+    return f"{date_part}:{token.replace('-', '').lower()}"
+
+
+_LAUNCH_KEY_RE = re.compile(r"^(?P<date>\d{4}-\d{2}-\d{2})-technical-(?P<tok>batch.*)-launch-contracts$")
+_MANIFEST_KEY_RE = re.compile(r"^(?P<date>\d{4}-\d{2}-\d{2})-technical-(?P<tok>batch-.+)-manifest\.md$")
+
+
+def _batch_key_of_launch_dir(name: str) -> str | None:
+    """`2026-09-17-technical-batchac-launch-contracts` -> `2026-09-17:batchac`. Dashes are
+    dropped on BOTH sides because the two homes spell the batch differently (the live witness:
+    `batchac` beside `batch-ac-manifest.md`)."""
+    m = _LAUNCH_KEY_RE.match(name)
+    return _batch_key(m.group("date"), m.group("tok")) if m else None
+
+
+def _batch_key_of_manifest(rel: str) -> str | None:
+    m = _MANIFEST_KEY_RE.match(Path(rel).name)
+    return _batch_key(m.group("date"), m.group("tok")) if m else None
+
+
+def _closed_batch_keys(repo_path: Path) -> set[str]:
+    """Batch keys whose `closed_by:` packet is COMMITTED -- the batch is over, every contract
+    in it is post-launch. Reuses `batch_manifest`'s committed-tree reading, so an uncommitted
+    packet closes nothing. Fails toward NO scope-out: unreadable git => empty set => leg 8
+    keeps refusing."""
+    try:
+        from scripts import batch_manifest as _bm
+    except ImportError:            # pragma: no cover - the alternate launch path
+        import batch_manifest as _bm
+    audits = _bm._committed_audits(Path(repo_path))
+    if audits is None:
+        return set()
+    manifests = _bm._manifests_in(audits)
+    texts = _bm._committed_texts(Path(repo_path), manifests)
+    out: set[str] = set()
+    for rel in manifests:
+        text = texts.get(rel)
+        if text is None:
+            continue
+        closed_by = _bm._frontmatter(text).get("closed_by", "")
+        key = _batch_key_of_manifest(rel)
+        if key and _bm._valid_closer(closed_by) and closed_by in audits:
+            out.add(key)
+    return out
+
+
+def _is_post_launch(rel: str, closed: set[str]) -> bool:
+    """A contract is post-launch iff it sits in a launch-contracts dir whose batch is closed.
+    No matching manifest => pre-launch (the refusing side)."""
+    for part in Path(rel).parts[:-1]:
+        key = _batch_key_of_launch_dir(part)
+        if key is not None:
+            return key in closed
+    return False
+
+
 #: The in-tree launch-contract home's directory-name shape (PLAYBOOK Ch8, "Where the contract
 #: file lives"). The leading date is the contract's landing date.
 _LAUNCH_DIR_RE = re.compile(r"^(?P<date>\d{4}-\d{2}-\d{2})-.*-launch-contracts$")
@@ -204,6 +279,9 @@ def check_substrate_declaration(repo_path: Path) -> list[Finding]:
                                f"validated".replace("|", "/")))
 
     leg_grandfathered = 0
+    post_launch: list[str] = []
+    closed = None
+    expired = _today() > POST_LAUNCH_NARROWING_EXPIRES
     for refusal in _vsub.validate_batch(gated, registry=registry):
         leg_arm = LEG_ARM_DATES.get(refusal.rule)
         if leg_arm is not None:
@@ -214,8 +292,19 @@ def check_substrate_declaration(repo_path: Path) -> list[Finding]:
             if any(landed_at.get(s, _dt.date.min) < leg_arm for s in sources):
                 leg_grandfathered += 1
                 continue
+        detail = refusal.render()
+        if refusal.rule in _POST_LAUNCH_SCOPED_RULES:
+            if closed is None:
+                closed = _closed_batch_keys(Path(repo_path))
+            if _is_post_launch(refusal.source, closed):
+                if not expired:
+                    post_launch.append(refusal.source)
+                    continue
+                detail += (f" -- the [#926] pre-launch scope for this leg expired on "
+                           f"{POST_LAUNCH_NARROWING_EXPIRES.isoformat()}, so this post-launch "
+                           f"contract counts again; re-rule [#926]")
         status = "fail" if refusal.severity == _vsub.SEVERITY_REFUSE else "warn"
-        out.append(Finding(CHECK_NAME, status, refusal.render().replace("|", "/")))
+        out.append(Finding(CHECK_NAME, status, detail.replace("|", "/")))
 
     if not out:
         legs = ", ".join(sorted(LEG_ARM_DATES))
@@ -226,4 +315,12 @@ def check_substrate_declaration(repo_path: Path) -> list[Finding]:
                            f"of an already-executed dispatch; {leg_grandfathered} finding(s) "
                            f"from later-armed legs [{legs}] grandfathered as debt — those "
                            f"legs are fully armed at FREEZE)"))
+    if post_launch:
+        # Its OWN line, emitted whatever else the run found: a narrowing that disappears
+        # whenever an unrelated WARN is present is not visible debt, it is a hidden one.
+        out.append(Finding(CHECK_NAME, "pass",
+                           f"{len(post_launch)} leg-8 refusal(s) on post-launch contracts "
+                           f"(batch closed) scoped out under [#926] until "
+                           f"{POST_LAUNCH_NARROWING_EXPIRES.isoformat()}: "
+                           f"{', '.join(post_launch)}"))
     return out

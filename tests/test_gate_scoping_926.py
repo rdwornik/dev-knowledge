@@ -162,8 +162,22 @@ def test_a_contract_with_no_batch_manifest_is_treated_as_pre_launch(tmp_path, mo
 def test_a_POST_LAUNCH_contract_is_out_of_leg_8_scope_and_stays_visible(tmp_path, monkeypatch):
     repo = _substrate_repo(tmp_path, manifest=True, closed=True)
     out = _run_adapter(monkeypatch, repo)
-    assert [f.status for f in out] == ["pass"], [f.evidence for f in out]
-    assert "post-launch" in out[0].evidence and "[#926]" in out[0].evidence
+    assert all(f.status == "pass" for f in out), [f.evidence for f in out]
+    assert any("post-launch" in f.evidence and "[#926]" in f.evidence for f in out)
+
+
+def test_the_post_launch_scope_out_stays_visible_beside_an_unrelated_warn(tmp_path, monkeypatch):
+    """The scope-out must not vanish just because another leg WARNs on the same run."""
+    repo = _substrate_repo(tmp_path, manifest=True, closed=True)
+    monkeypatch.setattr(adapter._vsub, "load_registry", lambda _repo: {})
+    monkeypatch.setattr(adapter._vsub, "validate_batch", lambda gated, registry: [
+        vs.Refusal(rule=vs.RULE_HEARTBEAT_DEAD, source=src, substrate="cloud", detail="dead")
+        for src in gated] + [vs.Refusal(rule=vs.RULE_SECOND_LOCAL_WRITER, source="x",
+                                        severity=vs.SEVERITY_WARN, detail="two writers")])
+    monkeypatch.setattr(adapter, "_today", lambda: _dt.date(2026, 9, 20))
+    out = adapter.check_substrate_declaration(repo)
+    assert any(f.status == "warn" for f in out)
+    assert any(f.status == "pass" and "[#926]" in f.evidence for f in out)
 
 
 def test_the_post_launch_scope_covers_leg_8_only(tmp_path, monkeypatch):
