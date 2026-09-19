@@ -232,7 +232,7 @@ def test_a_lane_that_finishes_before_its_usage_is_readable_is_ungoverned_not_und
     verdict = d.govern(cap=100, read_usage=lambda: None, stop=lambda: None,
                        sleep=lambda s: None, alive=lambda: False, blind_polls=8)
     assert verdict.ungoverned and not verdict.exceeded
-    assert verdict.exit_code == d.EXIT_UNGOVERNED
+    assert verdict.exit_code == d.EXIT_REFUSED  # ended, not running: 4 is reserved for "may run"
 
 
 def test_a_lane_that_finishes_after_a_readable_poll_is_under_cap():
