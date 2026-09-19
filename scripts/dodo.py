@@ -57,7 +57,7 @@ def task_stage():
         name = f"{stage['stage']:02d}-{stage['name']}"
         command = stage["command"]
         yield {"name": name,
-               "actions": [CmdAction(_argv(command), cwd=str(_ROOT)) if command else _stop(stage)],
+               "actions": [CmdAction(_argv(command), cwd=str(_ROOT), shell=False) if command else _stop(stage)],
                "task_dep": [previous] if previous else [],
                "uptodate": [False],
                "verbosity": 2}

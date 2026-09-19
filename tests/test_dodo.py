@@ -88,3 +88,18 @@ def test_prior_art_stage_completes_on_a_subject_with_zero_hits():
     argv = [t.replace("{subject}", "zzqq-no-such-subject-9f3a") for t in stage2["command"]]
     result = subprocess.run(argv, capture_output=True, text=True, cwd=_REPO, timeout=60)
     assert result.returncode == 0, (argv, result.returncode, result.stderr)
+
+
+def test_stage_argv_is_delivered_verbatim_with_no_shell(tmp_path):
+    """Codex terra P1: CmdAction defaulted to shell=True, so an argv token holding shell
+    metacharacters (`|`, `&`, `%`) was re-parsed by cmd.exe / sh -c instead of delivered."""
+    marker = tmp_path / "arg.txt"
+    nasty = "a & b | c %PATH% > d"
+    code = f"import sys; open(r'{marker}', 'w', encoding='utf-8').write(sys.argv[1])"
+    path = tmp_path / "harness.yaml"
+    path.write_text(yaml.safe_dump({"stages": [{
+        "stage": 1, "name": "s1", "field": "f", "kind": "deterministic",
+        "command": [sys.executable, "-c", code, nasty]}]}), encoding="utf-8")
+    result = _run_spine(path, tmp_path)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert marker.read_text(encoding="utf-8") == nasty
