@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "412fdea20281dea33e5690a9d9e08cca6388d98a1c9a8030dd1ecafb4e1d3e50",
+  "generated_sha256": "cf2dfa022c96b4c300211b4783ccadbf57002c578a6dac6ac8d49d5a115ee78f",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1632,6 +1632,30 @@
     {
       "task": 914,
       "file": "914-the-transport-is-unreachable-whenever-h-is-not-mo.md"
+    },
+    {
+      "task": 915,
+      "file": "915-am-5-s-premise-is-falsified-a-session-launched-bg.md"
+    },
+    {
+      "task": 916,
+      "file": "916-a-lane-deleted-another-lane-s-live-worktree-the-lo.md"
+    },
+    {
+      "task": 917,
+      "file": "917-our-own-docs-are-wrong-about-the-worktree-lock-rem.md"
+    },
+    {
+      "task": 918,
+      "file": "918-the-seat-registry-is-stop-only-it-cannot-answer-is.md"
+    },
+    {
+      "task": 919,
+      "file": "919-the-token-cap-is-polled-not-enforced-a-stop-loss-n.md"
+    },
+    {
+      "task": 920,
+      "file": "920-playbook-ch8-now-describes-the-old-dispatch-surfac.md"
     },
     {
       "task": 898,
