@@ -9,10 +9,10 @@ conversion to that evidence:
 * every probe is well formed -- targets exist, the canary is held by the target and NOT leaked by
   the pointer text, the task names neither;
 * an item may be pointer-form in CLAUDE.md only if `ecosystem/boot-retrieval-evidence.json`
-  admits it (body arm could answer AND pointer arm fetched AND answered);
+  admits it (body arm could answer AND the pointer arm OBTAINED it in 2 of 3 runs, witnessed);
 * the repo-tracked boot base stays under the ceiling the conversion measured.
 
-HONEST LIMIT: the evidence file is a recorded one-shot run on a small model. This gate proves a
+HONEST LIMIT: the evidence file is a recorded run on a small model (n=3 per item). This gate proves a
 conversion was tested, not that every future seat retrieves. It cannot run the model.
 """
 
@@ -36,6 +36,7 @@ from boot_retrieval import (
     boot_base,
     fetched,
     import_closure,
+    pointer_sha,
     touched,
 )
 
@@ -74,6 +75,17 @@ def test_a_shell_command_naming_a_target_is_not_a_fetch(tmp_path: Path) -> None:
 def test_touched_records_the_tool_and_relative_path(tmp_path: Path) -> None:
     ev = _stream({"type": "tool_use", "name": "Read", "input": {"file_path": str(tmp_path / "a.md")}})
     assert touched(ev, tmp_path, ("a.md",)) == ["Read:a.md"]
+
+
+def test_a_glob_listing_is_not_a_fetch(tmp_path: Path) -> None:
+    ev = _stream({"type": "tool_use", "name": "Glob", "input": {"pattern": "*", "path": str(tmp_path / "a.md")}})
+    assert not fetched(ev, tmp_path, ("a.md",))
+
+
+def test_every_target_lies_under_a_route_the_pointer_names() -> None:
+    for it in ITEMS:
+        assert it.routes, f"{it.id}: no route"
+        assert all(t.startswith(it.routes) for t in it.targets), f"{it.id}: a target outside its routes"
 
 
 def test_a_read_of_a_different_file_is_not_a_fetch(tmp_path: Path) -> None:
@@ -133,8 +145,10 @@ def test_every_pointer_form_item_is_admitted_by_recorded_evidence() -> None:
     assert all(r["fetched"] == bool(r["touched"]) for r in record["rows"]), "a fetched flag with no recorded tool call"
     by_id = {it.id: it for it in ITEMS}
     text = claude.read_text(encoding="utf-8")
-    unbound = [i for i in converted if by_id[i].pointer not in text]  # pointer-form must name what was probed
-    assert not unbound, f"pointer form does not carry the probed target: {unbound}"
+    unrouted = [i for i in converted if not all(r in text for r in by_id[i].routes)]
+    assert not unrouted, f"pointer form does not carry every probed route: {unrouted}"
+    stale = [i for i in converted if record.get("pointer_text_sha256", {}).get(i) != pointer_sha(by_id[i], text)]
+    assert not stale, f"pointer text changed since the recorded run -- re-run the probe: {stale}"
     refused = [i for i in converted if not admitted(record, by_id[i])]
     assert not refused, f"pointer-form without a demonstrated fetch: {refused}"
 
@@ -171,10 +185,52 @@ def test_a_canary_boolean_without_a_witness_admits_nothing() -> None:
     assert not admitted(_record(it, witness=False), it)
 
 
-def test_a_fetch_of_a_non_target_admits_nothing() -> None:
+def test_an_answer_with_no_fetch_is_admitted_as_preloaded() -> None:
+    it = ITEMS[0]
+    rec = _record(it)
+    for r in rec["rows"]:
+        if r["arm"] == "pointer":
+            r["touched"] = []
+    assert admitted(rec, it)
+
+
+def test_a_pointer_run_that_neither_answered_nor_fetched_admits_nothing() -> None:
+    it = ITEMS[0]
+    rec = _record(it)
+    for r in rec["rows"]:
+        if r["arm"] == "pointer":
+            r.update(touched=[], canary=False, canary_witness="")
+    assert not admitted(rec, it)
+
+
+def test_a_fetch_outside_the_declared_targets_does_not_count() -> None:
     it = ITEMS[0]
     rec = _record(it)
     for r in rec["rows"]:
         if r["arm"] == "pointer":
             r["touched"] = ["Read:README.md"]
     assert not admitted(rec, it)
+
+
+def test_the_child_is_launched_with_a_source_that_loads_claude_md(monkeypatch, tmp_path: Path) -> None:
+    import boot_retrieval as br
+
+    seen: list[list[str]] = []
+
+    class _P:
+        stdout, stderr, returncode = json.dumps({"type": "result", "result": "ok"}), "", 0
+
+    monkeypatch.setattr(br.shutil, "which", lambda _n: "claude")
+    monkeypatch.setattr(br.subprocess, "run", lambda argv, **_k: seen.append(argv) or _P())
+    br.run_probe(tmp_path, "t", "m")
+    argv = seen[0]
+    assert argv[argv.index("--setting-sources") + 1] == "project"  # `local` never loaded CLAUDE.md
+
+
+def test_an_arm_that_never_loaded_its_boot_text_is_refused(monkeypatch, tmp_path: Path) -> None:
+    import boot_retrieval as br
+
+    monkeypatch.setattr(br, "run_probe", lambda *_a, **_k: _stream(result="I see no sentinel"))
+    assert not br.boot_text_loaded(tmp_path, "m", "QUASAR-1")
+    monkeypatch.setattr(br, "run_probe", lambda *_a, **_k: _stream(result="it is QUASAR-1"))
+    assert br.boot_text_loaded(tmp_path, "m", "QUASAR-1")
