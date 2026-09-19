@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-09-19 (x) - CC (Sonnet 5, night-wave-2 lane L4 `wave2-census-fix`): the census that lied twice -- wiring-reachable is CALLED, 90 uncalled -> 13
+
+**Anchors:** `8a6f885e` (fix), `f9290012` (last fix of seven codex-terra passes) -- `worktree-wave2-census-fix`, NOT merged, NOT pushed (commit-and-STOP).
+
+**Did:** `process_census` (`scripts/organ_usage_metric.py`) counted transcript invocations only, so a process fired by a git hook, a CI workflow or an import chain -- relative imports included -- read UNCALLED. It now reads FPG-1's `triggers`+`imports` reachability from the persisted store (`graph_store.reachable`, the relation `graph_queries.orphan_census` already asks; no second edge computation) and counts a wiring-reachable process as CALLED. New report keys `wiring_reachable`, `graph_stale`; new `reachable=` injection seam. Read-only: never rebuilds the store. RED-first: 5 red + 1 guard green (a true orphan stays uncalled) before the fix; each terra finding got its own RED test.
+
+**Result:** live over this repo, before -> after: uncalled 90 of 159 observable -> 13 (wiring-reachable 135 of 159). The 13 left are not "invisible", they are unreached: nothing wires them. The operator's "84 run invisibly" was not reproduced: 77 of the 90 were reachable at the first cut and 135 in total, and a few of the 13 (`propose_closures.py`, `lane_boot.py`) are FPG resolving a plugin-copy path rather than proof of neglect -- not verified individually.
+
+**Changes:** `scripts/organ_usage_metric.py`, `tests/test_organ_usage_metric.py`. 38 tests pass (impacted set = that one file, `impacted_tests.py select`).
+
+**Abandoned:** `ensure()` inside the census (writes a sibling repo's git-admin graph under `--repo-root`); fixing `graph_store._newest_source_mtime` (outside the lane -- it misses `.github/` workflows and deletions; the census now checks those itself).
+
+**Next:** `graph_store.is_stale` blind spots (workflow edits, deletions) are `graph_store`'s to close; BUILD-LIST's "uncalled 90/159" ratchet line is now stale against this number and is the operator's to re-baseline.
+
 ### 2026-09-19 (w) - CC (Opus 5, integrator seat B2): B2 CLOSED -- regressions fixed, raise pushed on the operator's word, every worktree dispositioned, [#911] filed
 
 **Anchors:** `6fc296d8` ([#911] filed), `ee40592a` (BUILD-LIST B2 close row), `beae756e` (sync of main `fb06810e` into this branch) -- `fix/b2-regressions`; plus `80df0753`, `548b2cf7`, `aa410ec6` in (v).
