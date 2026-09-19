@@ -21,6 +21,31 @@
 
 ---
 
+### 2026-09-19 (z) - CC (Opus 5, night-wave-2 integrator pass #2): merge worktree-wave2-library-first (L5) into main
+
+**Anchors:** `54e47bdf`, `6238a261`, `098a363f` -- `worktree-wave2-library-first`; main was `00839806` (the L2 merge) before this merge.
+
+**Did:** state re-established before acting (main `00839806` local, ahead 15, unpushed; L1/L2 merged; L3/L4/L5/L6 unmerged; L6 had committed three more times after the 05:20 report). Merged `--no-ff --no-commit` in a detached integration worktree (the session's isolation guard refuses edits in the primary), main fast-forwarded to the result. Conflicts: `JOURNAL.md` (both blocks kept, L5's day letter re-assigned `(x)` -> `(y)` -- L2 already holds `(x)` on main, letters are assigned at integration), `pyproject.toml` (BOTH dev-group entries kept: L1's `doit`, L5's `deptry`, plus L5's `[tool.deptry]` table), `uv.lock` (main's taken, then `uv lock`: exactly +deptry 0.25.1, +requirements-parser 0.13.1, +tomli 2.4.1, 82 insertions, 0 deletions -- the STOP condition did not fire). `uv sync --locked` clean.
+
+**Result:** the handback's test list PLUS the pyproject-reading files it did not run (16 files + `test_fleet_parity`): 15 failed / 973 passed / 17 skipped. PAIRED baseline on `00839806` over the same files: the IDENTICAL 15 fail -- none is L5's; main was already red on them (live-state tests: settings.json wiring, graph-spine commit tier, handoff probes, health). L5's final Codex terra pass: no HIGH.
+
+**Changes:** merge only -- `scripts/stage_library_first.py`, `tests/test_stage_library_first.py`, `pyproject.toml`, `uv.lock`, `JOURNAL.md`.
+
+**Next:** main's 15 pre-existing reds need an owner; L3/L4/L6 per the integrator report.
+
+### 2026-09-19 (y) - CC (Sonnet 5, lane L5 `wave2-library-first`): spine stage 6 (library-first) built, deptry adopted after a live run
+
+**Anchors:** `54e47bdf` (stage 6 + deptry), `6238a261` (codex terra P1 fix) -- `worktree-wave2-library-first`.
+
+**Did:** ran deptry LIVE over the repo before committing it (`uv run --locked --with deptry deptry .` -> 336 raw issues: 247 DEP001 first-party siblings, 88 DEP004 dev-group-by-design, 1 DEP003 tomli; the two real-looking singletons, tomli and structlog, are optional imports). RED first: `tests/test_stage_library_first.py` failed at collection (no module). Built `scripts/stage_library_first.py` (`check` refuses a `library-first` field that is not a fenced `$ <command>` plus output; `deptry` runs it with first-party siblings derived from disk; `run` = both = the stage-6 command). Codex terra found one P1 (deptry read the caller's cwd config, not the target root's); fixed RED-first in `6238a261`.
+
+**Result:** stage 6 refuses a sentence (live: `REFUSED [stage 6] ... holds a sentence, not a fenced command`, exit 1) and deptry over the hub is clean through the stage command; an injected `import zzzundeclared` was refused live and removed. Targeted tests 180 passed (serial, 1.1-1.8 GB free).
+
+**Changes:** `scripts/stage_library_first.py`, `tests/test_stage_library_first.py`, `pyproject.toml` (deptry in dev group with WHY/REJECTED/WHERE; `[tool.deptry]` waivers), `uv.lock` (+deptry, requirements-parser, tomli). NOT touched: `harness.yaml` / `dodo.py` (L1 owns them) -- L1's stage 6 row should call `uv run --locked python scripts/stage_library_first.py run <contract>`. pyproject.toml and uv.lock will conflict textually with L1's pydoit add; resolve by keeping both.
+
+**Abandoned:** adding a `library-first` slot to `gen_lane_contract.render_distillation` (300-line cap); a bare `deptry .` gate (243 first-party false positives).
+
+**Next:** integrator merges after L1; stage 6 command wired into harness.yaml by L1/integrator.
 ### 2026-09-19 (w2-I2) - CC (Sonnet 5, night-wave-2 integrator pass #1): merge worktree-wave2-boot-base (L2) into main
 
 **Anchors:** `bc0cf251`, `7879f81f`, `1fd0efc4`, `d6c8ccf7`, `d717be45`, `60d37ad5`, `7d5f9b4f` -- `worktree-wave2-boot-base`; main was `b9cbd881` (the L1 merge) before this merge.
