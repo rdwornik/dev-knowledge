@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-17
+last_reviewed: 2026-09-19
 reconciled_with: handoff-process@7.1.0
 status: active
 owner: Rob
@@ -156,7 +156,7 @@ Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless noted. **B2 lane4 arm
 - `codemap-freshness` — ARCHITECTURE codemap vs `scripts/`, regen-and-diff
 - `toc-freshness-playbook` — PLAYBOOK TOC staleness
 - `roster-freshness` — `.claude/methodology-roster.md` vs the deploy manifest
-- `claude-rosters-freshness` — the two `@`-imported `.claude/generated/` fragments
+- `claude-rosters-freshness` — the two generated `.claude/generated/` fragments
 - `audit-index-freshness` — generated `docs/audits/README.md`
 - `organ-index-freshness` — generated `ecosystem/organ-index.md`; a stale index is worse than none
 - `doc-counts-pytest-freshness` — the collected-test-count claim, at commit time
@@ -234,5 +234,5 @@ History of this file's revisions: `docs/audits/2026-09-05-technical-claude-md-se
 
 ---
 
-**Last updated:** 2026-09-17
+**Last updated:** 2026-09-19
 **Maintained by:** Rob
