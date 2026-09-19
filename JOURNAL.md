@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-19 (ah) - CC (Opus 5, pre-wave-3 cleanup): carriers pushed, L6 name hazard recorded, teardown rule narrowed to merged lanes
+
+**Anchors:** `b25335ab` (L6 worktree-name hazard, BUILD-LIST Decision), `d7ce1d43` (teardown rule scope refinement + carrier table) -- `worktree-buildlist-l6-hazard`.
+
+**Did:** found `worktree-wave2-dispatch` (`c00f9c10`) and `worktree-wave2-map` (`5596723c`) local-only (`git ls-remote origin` empty) -- one copy each; pushed both, `ls-remote` confirmed identical tips. Removed their worktree directories (`wave2-dispatch`, `wave2-boot-base`) + prune, branches KEPT. Recorded the hazard that L6 sat in a directory named for L2 (`wave2-boot-base`), and the convention: a worktree directory is named after the branch it holds. Narrowed WORKTREE TEARDOWN IS TWO BRANCHES to MERGED lanes: a kept carrier branch is exempt only while listed, pushed, and unexpired -- dispatch closes when the caller-side shim lands, map when ADR-51 is superseded, both expire 2026-11-18. Confirmed `lane-ab-833-seat-registry` and `lane-z-4-non-claude-execution` empty, unregistered, gitignored, read by no gate.
+
+**Result:** no worktree left but the primary; two carriers on origin. Two `test_canonical_docs.py` failures are pre-existing on main (paired run at `8cd06c52`), not from this arc. **Changes:** `protocols/BUILD-LIST.md`, `.claude/rules/git-discipline.md`, `JOURNAL.md`. **Next:** wave 3.
+
 ### 2026-09-19 (ag) - CC (Opus 5, night-wave-2 integrator pass #2): anchor for the rulings-and-rows arc
 
 **Anchors:** `d643d70a` (rulings recorded in BUILD-LIST, [#912]-[#914] filed, entry (ad)) -- `worktree-wave2-rows`.

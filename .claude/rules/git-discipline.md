@@ -87,6 +87,24 @@ explicitly protected; the rule fixes *what teardown covers*, not who authorizes 
 - verify: after any teardown, `git worktree list` shows no stale entry AND `git branch -a` lists
   no `worktree-*` branch for the removed tree.
 
+**Scope refinement (2026-09-19): the rule above covers a MERGED lane only.** As first written it
+was too narrow — it assumed every removed worktree's branch was merged. A branch KEPT, unmerged,
+as the only carrier of unfinished work is a different case: removing its worktree removes a
+checkout, and deleting its branch would delete the work. A carrier branch is exempt from the
+branch-deletion leg only while it is listed below, pushed to origin, with an expiry and a named
+close condition. When the close condition fires, the branch is merged or abandoned by ruling, and
+this rule then applies to it normally. At the expiry the entry is dead: the branch is flagged
+again with no edit required, and keeping it longer needs a new dated entry.
+
+| carrier branch | tip | closes when | expires |
+|---|---|---|---|
+| `worktree-wave2-dispatch` (L3) | `c00f9c10` | the caller-side dispatch shim lands (BUILD-LIST Decision 2026-09-19, dispatch) | 2026-11-18 |
+| `worktree-wave2-map` (L6) | `5596723c` | ADR-51 is superseded (BUILD-LIST Decision 2026-09-19, ARCHITECTURE) | 2026-11-18 |
+
+- verify: every `worktree-*` branch with no registered worktree is either merged and deleted,
+  or listed in the carrier table above, before its expiry, with `git ls-remote --heads origin
+  <branch>` non-empty.
+
 ### Commit message examples
 - `docs: update PLAYBOOK S5 council debate format`
 - `docs: update ENVIRONMENT with new skills architecture`
