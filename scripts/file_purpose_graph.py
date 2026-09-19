@@ -1751,6 +1751,25 @@ def render(answer: Answer, limit: int = DEFAULT_ROW_LIMIT) -> str:
     return "\n".join(lines)
 
 
+def list_nodes(graph: PurposeGraph) -> list[tuple[str, str, int, int]]:
+    """Every node as (path-or-key, purpose, edge count, consumer count), in ONE pass.
+
+    Shares `_purpose_of` with `why` and counts edges the way `why` lists them (out-edges =
+    `edges`, in-edges = `consumers`), so a row here always agrees with `why <path>`. It exists
+    because answering "what is every file for" by looping `why` per file costs a build per call.
+    """
+    rows = []
+    for idx in graph.graph.node_indices():
+        node = graph.graph[idx]
+        purpose = " ".join(_purpose_of(graph.repo_root, node).split())
+        # The machine-readable dump names the absence with the token, not `why`'s prose form.
+        if not purpose or purpose == NO_STATED_PURPOSE:
+            purpose = "NO_STATED_PURPOSE"
+        rows.append((node.path or node.key, purpose,
+                     graph.graph.out_degree(idx), graph.graph.in_degree(idx)))
+    return sorted(rows)
+
+
 def _main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Query the file-purpose graph (FPG-1). Read-only; wired into no gate.")
@@ -1771,6 +1790,8 @@ def _main(argv: list[str] | None = None) -> int:
     ask.add_argument("--limit", type=int, default=DEFAULT_ROW_LIMIT,
                      help=f"rows per section (default {DEFAULT_ROW_LIMIT}; 0 = all)")
     sub.add_parser("stats", parents=[common], help="node/edge counts per input")
+    sub.add_parser("list", parents=[common],
+                   help="every node: path, purpose, edge count, consumer count (tab-separated)")
 
     args = parser.parse_args(argv)
     # A governance corpus carries em-dashes and typographic quotes, and this command ECHOES
@@ -1791,6 +1812,12 @@ def _main(argv: list[str] | None = None) -> int:
         for source in INPUTS:
             count = sum(1 for edge in graph.all_edges() if edge.source == source)
             print(f"  {source:<22} {count}")
+        return 0
+
+    if args.command == "list":
+        print("path	purpose	edges	consumers")
+        for path, purpose, edges, consumers in list_nodes(graph):
+            print(f"{path}	{purpose}	{edges}	{consumers}")
         return 0
 
     try:

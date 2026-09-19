@@ -609,10 +609,8 @@ def test_cli_list_dumps_every_node_with_purpose_and_counts(mini: Path):
 
 
 def test_cli_list_states_a_missing_purpose_literally(mini: Path):
-    _write(mini / "notes" / "bare.md", "no heading here\n")
-    _write(mini / "tasks" / "43-upstream-row.md", (
-        '---\nid: "[#43]"\ntitle: "The upstream row"\nstatus: open\n---\n\n'
-        "- [#43] cites notes/bare.md\n"))
+    _write(mini / "tasks" / "44-bare-row.md",
+           '---\nid: "[#44]"\nstatus: open\n---\n\n- [#44] [P2][M] a\n')
     proc = _run_list(mini)
     assert proc.returncode == 0, proc.stdout + proc.stderr
-    assert "notes/bare.md\tNO_STATED_PURPOSE\t" in proc.stdout
+    assert "tasks/44-bare-row.md\tNO_STATED_PURPOSE\t" in proc.stdout
