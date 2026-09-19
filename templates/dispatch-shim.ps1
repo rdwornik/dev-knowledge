@@ -128,7 +128,9 @@ if ($startCode -ne 0) {
 
 # The id is read from the start output; when it cannot be, `govern` FINDS the lane by its worktree
 # (`.../worktrees/<slug>`) in `claude agents --json` rather than leaving a running lane ungoverned.
-$found = [regex]::Match($started, '\b([0-9a-f]{8})\b')
+# PROVISIONAL either way: `govern` checks the bound lane's worktree against the slug and drops an
+# id that belongs to another lane.
+$found = [regex]::Match($started, '(?im)^\s*backgrounded\b[^0-9a-f\r\n]*([0-9a-f]{8})\b')
 $laneArgs = if ($found.Success) { @($found.Groups[1].Value) } else { @() }
 
 # --- 3. GOVERN -----------------------------------------------------------------------------

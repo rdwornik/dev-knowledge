@@ -618,7 +618,14 @@ def lane_alive(lane_id: str) -> bool:
 def _session_reader(session_id: str,
                     sessions_root: Optional[Path] = None) -> Callable[[], Optional["lc.TokenUsage"]]:
     def read() -> Optional["lc.TokenUsage"]:
-        models = lc.seat_usage(session_id, sessions_root)
+        try:
+            models = lc.seat_usage(session_id, sessions_root)
+        except Exception as exc:  # noqa: BLE001 -- ANY read failure is unobservable spend, and the
+            # governor turns that into a stop; an exception here would end the governor while the
+            # lane it is capping kept running
+            logger.warning("transcript for session %s unreadable: %s: %s", session_id,
+                           type(exc).__name__, exc)
+            return None
         if not models:  # no transcript found: unobservable, NOT zero
             return None
         return _sum(models)
@@ -708,14 +715,7 @@ def govern_cmd(lane_id: str, slug: str, token_cap: int, count_cache_reads: bool,
     Run from the CALLER's repo root (the commit witness reads its branches)."""
     validate_cap(token_cap)
     try:
-        binding = None
-        for attempt in range(max(bind_polls, 1)):
-            lane_id = lane_id or find_lane_by_slug(slug) or ""
-            binding = bind_lane(lane_id) if lane_id else None
-            if binding is not None:
-                break
-            if attempt + 1 < bind_polls:
-                time.sleep(min(interval, 3.0))
+        lane_id, binding = _bind(lane_id, slug, bind_polls, interval)
         if not lane_id:
             # nothing names the lane, so there is nothing to stop: the one honest UNGOVERNED
             _finish(Verdict(False, 0, token_cap, 0, ungoverned=(
@@ -736,7 +736,40 @@ def govern_cmd(lane_id: str, slug: str, token_cap: int, count_cache_reads: bool,
         click.echo(f"[dispatch] governor interrupted -- lane {lane_id} "
                    f"{'STOPPED' if stopped else 'may STILL BE RUNNING, uncapped'}", err=True)
         sys.exit(EXIT_REFUSED if stopped else EXIT_UNGOVERNED)
+    except Exception as exc:  # noqa: BLE001 -- whatever raised, a governor that dies must not
+        # leave the lane it was capping running with nothing watching it
+        stopped = bool(lane_id) and stop_lane(lane_id)
+        click.echo(f"[dispatch] governor failed ({type(exc).__name__}: {exc}) -- lane {lane_id or '?'} "
+                   f"{'STOPPED' if stopped else 'may STILL BE RUNNING, uncapped'}", err=True)
+        sys.exit(EXIT_REFUSED if stopped else EXIT_UNGOVERNED)
     _finish(verdict, slug)
+
+
+def _cwd_is_lane(cwd: str, slug: str) -> bool:
+    """Is `cwd` the worktree `.../worktrees/<slug>` the planned lane runs in?"""
+    return cwd.replace("\\", "/").rstrip("/").lower().endswith(f"/worktrees/{slug}".lower())
+
+
+def _bind(lane_id: str, slug: str, polls: int, interval: float) -> tuple[str, Optional[LaneBinding]]:
+    """`(lane id, binding)`; the id is '' when nothing identifies the lane.
+
+    A PROVISIONAL id (the launcher read it out of `claude --bg`'s output) whose worktree is not the
+    planned slug's belongs to ANOTHER lane: it is dropped and never governed -- stopping someone
+    else's lane while ours runs uncapped is the worse failure. The lane is then FOUND by worktree."""
+    binding: Optional[LaneBinding] = None
+    for attempt in range(max(polls, 1)):
+        if lane_id:
+            binding = bind_lane(lane_id)
+            if binding is not None and not _cwd_is_lane(binding.cwd, slug):
+                binding, lane_id = None, ""
+        if not lane_id:
+            lane_id = find_lane_by_slug(slug) or ""
+            binding = bind_lane(lane_id) if lane_id else None
+        if binding is not None:
+            return lane_id, binding
+        if attempt + 1 < polls:
+            time.sleep(min(interval, 3.0))
+    return lane_id, None
 
 
 def _finish(verdict: Verdict, slug: str) -> None:

@@ -38,6 +38,10 @@ CONTRACT = """# LANE wave3-witness -- a test contract
 """
 
 
+SID = "11111111-2222-3333-4444-555555555555"
+CWD = "C:\\repo\\.claude\\worktrees\\wave3-witness"  # a `--bg --worktree` lane's cwd is its worktree
+
+
 def _usage(fresh: int = 0) -> lc.TokenUsage:
     return lc.TokenUsage(input_tokens=fresh, calls=1)
 
@@ -59,6 +63,7 @@ class _Seams:
     def __init__(self, monkeypatch, binding=None, alive=True):
         self.stopped: list[str] = []
         monkeypatch.setattr(d, "bind_lane", lambda lane_id: binding)
+        monkeypatch.setattr(d, "find_lane_by_slug", lambda slug: None)
         monkeypatch.setattr(d, "stop_lane", lambda lane_id: self.stopped.append(lane_id) or True)
         monkeypatch.setattr(d, "lane_alive", lambda lane_id: alive)
 
@@ -94,7 +99,7 @@ def test_a_default_launch_that_cannot_be_bound_is_refused_and_the_lane_stopped(
 def test_a_bound_lane_whose_transcript_never_appears_is_refused_and_stopped(
         tmp_path, monkeypatch):
     """Bound to a session id, but no transcript for it exists: the usage is still unreadable."""
-    seams = _Seams(monkeypatch, binding=d.LaneBinding("11111111-2222-3333-4444-555555555555", "cwd"))
+    seams = _Seams(monkeypatch, binding=d.LaneBinding(SID, CWD))
     result = _govern(tmp_path)
     assert seams.stopped == ["abcd1234"]
     assert result.exit_code == d.EXIT_REFUSED
@@ -105,7 +110,7 @@ def test_a_bound_lane_over_its_cap_is_stopped_with_no_slug_dir(tmp_path, monkeyp
     no `--slug-dir`. Its usage passes the cap: the lane is stopped, exit is CAP EXCEEDED."""
     sid = "11111111-2222-3333-4444-555555555555"
     _transcript(tmp_path, sid, tokens=5_000)
-    seams = _Seams(monkeypatch, binding=d.LaneBinding(sid, "cwd"))
+    seams = _Seams(monkeypatch, binding=d.LaneBinding(sid, CWD))
     result = _govern(tmp_path, cap="1000")
     assert seams.stopped == ["abcd1234"]
     assert result.exit_code == d.EXIT_CAP_EXCEEDED
@@ -115,7 +120,7 @@ def test_a_bound_lane_over_its_cap_is_stopped_with_no_slug_dir(tmp_path, monkeyp
 def test_a_bound_lane_under_its_cap_is_left_alone(tmp_path, monkeypatch):
     sid = "11111111-2222-3333-4444-555555555555"
     _transcript(tmp_path, sid, tokens=50)
-    seams = _Seams(monkeypatch, binding=d.LaneBinding(sid, "cwd"), alive=False)
+    seams = _Seams(monkeypatch, binding=d.LaneBinding(sid, CWD), alive=False)
     monkeypatch.setattr(d, "commit_witness", lambda slug: ("DONE", "1 commit"))
     result = _govern(tmp_path, cap="1000")
     assert seams.stopped == [] and result.exit_code == 0
@@ -263,7 +268,7 @@ def test_a_lane_that_finishes_under_cap_but_committed_nothing_does_not_exit_zero
         tmp_path, monkeypatch):
     sid = "11111111-2222-3333-4444-555555555555"
     _transcript(tmp_path, sid, tokens=50)
-    _Seams(monkeypatch, binding=d.LaneBinding(sid, "cwd"), alive=False)
+    _Seams(monkeypatch, binding=d.LaneBinding(sid, CWD), alive=False)
     monkeypatch.setattr(d, "commit_witness", lambda slug: ("FAILED", "no commit on the branch"))
     result = _govern(tmp_path, cap="1000")
     assert result.exit_code == d.EXIT_NO_COMMIT != 0
