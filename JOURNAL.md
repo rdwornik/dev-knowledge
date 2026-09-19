@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-19 (aj) - CC (Opus 5, wave-3 integrator): merge worktree-wave3-hookmap (W3-3)
+
+**Anchors:** `c314c1cc` (W3-3 hook map -- UserPromptSubmit injection proven 6/6 vs control 0/2), `37858811` (codex terra result recorded) -- `worktree-wave3-hookmap`, merged --no-ff in integration worktree `wave3-integrate`, not pushed.
+
+**Did:** merged the lane's one audit (`docs/audits/2026-09-19-technical-wave3-hookmap-evidence.md`, docs-only) and regenerated `docs/audits/README.md` at the merge (integrator is gate-of-record). Codex terra: `review=NO-HIGH` on the default prompt -- the lane records it is not an adversarial clean bill. Primary `git status --short` empty before the merge.
+
+**Result:** W3-3 merged. **Changes:** `docs/audits/2026-09-19-technical-wave3-hookmap-evidence.md`, `docs/audits/README.md`, `JOURNAL.md`. **Next:** merge `worktree-wave3-answerable` (W3-2).
+
 ### 2026-09-19 (ai) - CC (Opus 5, wave-2 close): L6 deleted, its carrier row removed
 
 **Anchors:** `1f4f8500` (carrier-table row removed, BUILD-LIST decision) -- `worktree-wave2-close`.
