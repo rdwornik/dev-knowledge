@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-09-19 (ab) - CC (Opus 5, night-wave-2 integrator pass #2): L4 amended to THREE STATES on the operator's ruling -- the terra HIGH:1 resolved, not overridden
+
+**Anchors:** `01019968` (L4 tip before the amendment) -- `worktree-wave2-census-fix`; the amendment is the commit carrying this entry.
+
+**Did:** the lane's final Codex terra pass (over `244f3d0b`) held HIGH:1 -- "keep reachability distinct from observed calls" -- which the lane left open as contradicting its frozen payload. Operator ruling 2026-09-19: both were right about different things, so the binary is REPLACED. `process_census` now gives every observable process one `state` -- CALLED (observed in the window), REACHABLE-BUT-UNOBSERVED (a hook, CI or import chain reaches it, no evidence it fired), UNREACHABLE (no caller anywhere) -- plus the three sorted lists; the binary `uncalled` key is GONE so no reader can collapse the states again. Headline: `states over 30 days, of M observable: CALLED a / REACHABLE-BUT-UNOBSERVED b / UNREACHABLE c`. RED first: 4 new tests plus every old `uncalled` assertion re-pointed at the state it meant -> 17 failed / 25 passed; then 42 passed, ruff clean.
+
+**Result:** live over the primary: **CALLED 70 / REACHABLE-BUT-UNOBSERVED 76 / UNREACHABLE 13 of 159 observable** (FPG-1 store reported stale). The three wrong numbers were each a two-state collapse: 36 (no-trigger proxy), 90 (reachable counted uncalled), 13 (reachable counted called -- it is the UNREACHABLE count, not the uncalled one).
+
+**Changes:** `scripts/organ_usage_metric.py`, `tests/test_organ_usage_metric.py`, `protocols/BUILD-LIST.md` (the ratchet command line). `organ_usage_report`'s lenient all-time `organs_uncalled` is a different function and untouched.
+
+**Next:** which of the three states the BUILD-LIST ratchet column binds is the operator's call (recorded OPEN there).
+
 ### 2026-09-19 (x) - CC (Sonnet 5, night-wave-2 lane L4 `wave2-census-fix`): the census that lied twice -- wiring-reachable is CALLED, 90 uncalled -> 13
 
 **Anchors:** `8a6f885e` (fix), `f9290012` (last fix of seven codex-terra passes), `9ce17ae6` and `244f3d0b` (this entry and its correction) -- `worktree-wave2-census-fix`, NOT merged, NOT pushed (commit-and-STOP).

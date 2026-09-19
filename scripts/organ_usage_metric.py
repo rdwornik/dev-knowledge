@@ -145,6 +145,11 @@ INTERPRETER_HEADS: frozenset[str] = frozenset({
 #: line in a transcript, so this method cannot see them called and must not report zero.
 NOT_OBSERVABLE_CLASSES: frozenset[str] = frozenset({"command", "skill"})
 
+#: The census's three states (operator ruling 2026-09-19) -- see `process_census`.
+CALLED = "CALLED"
+REACHABLE_UNOBSERVED = "REACHABLE-BUT-UNOBSERVED"
+UNREACHABLE = "UNREACHABLE"
+
 #: Tokens `_invoked_process` skips while walking to the operand: the runner chain
 #: (`uv run --locked python scripts/x.py`) and the interpreter itself. Any OTHER
 #: non-flag token ends the walk -- it is what actually ran, not the interpreter running it.
@@ -461,12 +466,19 @@ def process_census(
     invocation leaves no `python <path>` this method can read), so a zero here would be
     indistinguishable from real neglect -- the exact honesty gap `[#900]`'s memory names.
 
-    WIRING-REACHABLE IS CALLED (NIGHT WAVE 2 L4 -- the measurement that lied twice). A
-    transcript sees only a local session's tool calls, so a process fired by a git hook, a CI
-    workflow or an `import` chain leaves nothing in it and read UNCALLED: 90 of 159 measured,
-    77 of them reached by a wiring surface. A process is `uncalled` only when NO transcript
-    invoked it in the window AND no wiring surface reaches it (`wiring_reachable`, read from
-    FPG-1; `reachable=` is the injection seam). READ-ONLY: this never rebuilds the store -- a
+    THREE STATES, NEVER A BINARY (NIGHT WAVE 2 L4 -- the measurement that lied twice; operator
+    ruling 2026-09-19 on the lane's Codex terra HIGH:1). A transcript sees only a local
+    session's tool calls, so a process fired by a git hook, a CI workflow or an `import` chain
+    leaves nothing in it: 90 of 159 read "uncalled", 77 of them reached by a wiring surface.
+    Folding those into CALLED (13) was as wrong as leaving them uncalled (90): reachable is not
+    called, and a transcript cannot see hooks, CI or imports. So every observable process gets
+    exactly one `state`:
+      CALLED -- an interpreter-headed invocation observed in the window;
+      REACHABLE-BUT-UNOBSERVED -- a hook, CI or import chain reaches it (`wiring_reachable`,
+        read from FPG-1; `reachable=` is the injection seam), no evidence it fired;
+      UNREACHABLE -- no observed call and no caller anywhere.
+    There is deliberately NO binary `uncalled` key: every collapse to two states produced a
+    wrong number (36, 90, 13). READ-ONLY: this never rebuilds the store -- a
     report over `--repo-root <sibling>` must not write that repo's git-admin graph, and the
     graph-rebuild pre-commit hook is the freshness contract (`load_processes`' own posture).
     Staleness is REPORTED (`graph_stale`), not hidden or silently repaired; `is_stale` scans a
@@ -512,7 +524,8 @@ def process_census(
     observable_counts = {p: c for p, c in counts.items()
                          if procs[p] not in NOT_OBSERVABLE_CLASSES}
     wired = sorted(p for p in observable_counts if p in reached)
-    uncalled = sorted(p for p, c in observable_counts.items() if c == 0 and p not in reached)
+    state = {p: (CALLED if c > 0 else REACHABLE_UNOBSERVED if p in reached else UNREACHABLE)
+             for p, c in observable_counts.items()}
     return {
         "generated_at": now.isoformat(timespec="seconds"),
         "window_days": since_days,
@@ -525,7 +538,10 @@ def process_census(
         "counts": observable_counts,
         "wiring_reachable": wired,
         "graph_stale": _graph_stale(root),
-        "uncalled": uncalled,
+        "state": state,
+        "called": sorted(p for p, s in state.items() if s == CALLED),
+        "reachable_unobserved": sorted(p for p, s in state.items() if s == REACHABLE_UNOBSERVED),
+        "unreachable": sorted(p for p, s in state.items() if s == UNREACHABLE),
     }
 
 
@@ -539,15 +555,17 @@ def render_census(report: dict[str, Any]) -> str:
         f"processes_total: {report['processes_total']} "
         f"(observable={report['observable_total']} "
         f"not_observable={report['not_observable_total']})",
-        f"uncalled over {report['window_days']} days: {len(report['uncalled'])} of "
-        f"{report['observable_total']} observable "
+        f"states over {report['window_days']} days, of {report['observable_total']} observable: "
+        f"CALLED {len(report['called'])} / "
+        f"REACHABLE-BUT-UNOBSERVED {len(report['reachable_unobserved'])} / "
+        f"UNREACHABLE {len(report['unreachable'])} "
         f"(excludes {report['not_observable_total']} not-observable of "
         f"{report['processes_total']} total)",
         *(["WARNING: the FPG-1 store is STALE (a source file is newer than it) -- reachability "
            "below may be out of date; rebuild with `graph_store.py rebuild`"]
           if report["graph_stale"] else []),
-        f"wiring-reachable (a hook, CI or import chain reaches it; counted CALLED, not "
-        f"uncalled): {len(report['wiring_reachable'])} of {report['observable_total']}",
+        f"wiring-reachable (a hook, CI or import chain reaches it; a reachability fact, not a "
+        f"firing count): {len(report['wiring_reachable'])} of {report['observable_total']}",
         "",
         "not observable by this source -- a command/skill invocation leaves no interpreter-"
         "headed line in a session transcript, so these are NEVER reported as zero:",
@@ -558,13 +576,9 @@ def render_census(report: dict[str, Any]) -> str:
     for path, count in sorted(report["counts"].items()):
         if path in report["not_observable"]:
             continue
-        if path in report["uncalled"]:
-            status = "UNCALLED"
-        elif count == 0:
-            status = "wired"
-        else:
-            status = f"called={count}"
-        lines.append(f"  {status:12} {path}")
+        state = report["state"][path]
+        status = f"{CALLED}={count}" if state == CALLED else state
+        lines.append(f"  {status:25} {path}")
     return "\n".join(lines)
 
 
