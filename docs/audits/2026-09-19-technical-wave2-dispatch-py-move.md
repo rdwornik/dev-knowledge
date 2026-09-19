@@ -132,3 +132,19 @@ replace `Start-DispatchCloudV2`.
 - `codex` lanes are branch-named by codex's own `--worktree`, not `worktree-<slug>`; `branch_guard`
   does not cover them.
 - Nothing here closes or advances any BACKLOG row; the win-tooling repo was not touched.
+
+## 8. Codex terra review of the first cut (4 CRITICAL / 2 HIGH) — all six fixed, RED-first
+
+`docs/audits/2026-09-19-codex-wave2-dispatch.md`. Each finding got a failing test before its fix
+(5 tests red, then 28/28 green):
+
+- other providers' API keys leaked into a third-party child -> every other provider's key is scrubbed;
+- a missing transcript read as zero spend -> `None` = unobservable; 8 blind polls = UNGOVERNED (exit 4);
+- a failed `claude stop` reported as a stop -> `stop_failed`, exit 4, message says the lane may still run;
+- an unreadable `claude agents --json` read as "lane finished" -> `GovernorBlind` = UNGOVERNED;
+- a failed streamed child exited 0 -> its own exit code is propagated;
+- codex counts usage only at `turn.completed` -> not fixable by code (no incremental source); now
+  LABELLED "post-hoc per completed turn" in the plan output and the module docstring.
+
+Not done: an unobservable lane is reported, not killed (killing destroys work to report a gap).
+The re-review of the fixed commit is recorded in the handback, not here.

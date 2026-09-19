@@ -40,7 +40,8 @@ THE CAP, and its honest limits:
     the cap. It is a POLL: a lane can overshoot by one interval of work. Killing this process
     (Ctrl-C) leaves the lane running UNCAPPED -- said aloud when it happens.
   * codex and codespace lanes are STREAM-metered: stdout is parsed line by line and the process
-    terminated past the cap. Anthropic stream-json reports thinking tokens only in the final
+    terminated past the cap. codex reports usage only in `turn.completed`, so it is POST-HOC PER
+    TURN: one over-cap turn completes before the meter can act (no bound on a single turn). Anthropic stream-json reports thinking tokens only in the final
     `result` event, so a thinking-heavy turn can overshoot until it lands.
   * A lane whose id or transcript cannot be found is reported UNGOVERNED (exit 4), never "under cap".
 """
@@ -94,32 +95,61 @@ def capped_tokens(usage: "lc.TokenUsage", count_cache_reads: bool = False) -> in
     return used + (usage.cache_read_tokens if count_cache_reads else 0)
 
 
+class GovernorBlind(RuntimeError):
+    """The governor cannot observe the lane (status probe failed). NOT evidence it finished."""
+
+
 @dataclass(frozen=True)
 class Verdict:
     exceeded: bool
     used: int
     cap: int
     polls: int = 0
+    ungoverned: str = ""      # why the cap could not be enforced; "" when it could
+    stop_failed: bool = False
+    child_exit: int = 0       # a streamed child's own non-zero exit, never masked as success
 
     @property
     def exit_code(self) -> int:
-        return EXIT_CAP_EXCEEDED if self.exceeded else 0
+        if self.stop_failed or self.ungoverned:
+            return EXIT_UNGOVERNED
+        if self.exceeded:
+            return EXIT_CAP_EXCEEDED
+        return self.child_exit
 
 
-def govern(*, cap: int, read_usage: Callable[[], "lc.TokenUsage"], stop: Callable[[], None],
+def govern(*, cap: int, read_usage: Callable[[], Optional["lc.TokenUsage"]],
+           stop: Callable[[], Optional[bool]],
            sleep: Callable[[float], None] = time.sleep, interval: float = 15.0,
            max_polls: Optional[int] = None, alive: Callable[[], bool] = lambda: True,
-           count_cache_reads: bool = False) -> Verdict:
-    """Poll a running lane; STOP it the first time it is past `cap`."""
+           count_cache_reads: bool = False, blind_polls: int = 8) -> Verdict:
+    """Poll a running lane; STOP it the first time it is past `cap`.
+
+    `read_usage` returns None when the spend cannot be observed (no transcript yet / at all):
+    that is UNGOVERNED after `blind_polls` in a row, never zero spend. `stop` returning False
+    is a stop that did not happen. `alive` raising GovernorBlind is an unreadable status probe,
+    not a finished lane. The lane is not killed for being unobservable -- that would destroy work
+    to report a measurement gap -- it is reported, exit 4."""
     validate_cap(cap)
-    polls, used = 0, 0
+    polls, used, blind = 0, 0, 0
     while True:
-        used = capped_tokens(read_usage(), count_cache_reads)
-        if used > cap:
-            stop()
-            return Verdict(True, used, cap, polls + 1)
+        usage = read_usage()
+        if usage is None:
+            blind += 1
+            if blind >= blind_polls:
+                return Verdict(False, used, cap, polls + 1,
+                               ungoverned=f"no readable usage for {blind} polls")
+        else:
+            blind = 0
+            used = capped_tokens(usage, count_cache_reads)
+            if used > cap:
+                return Verdict(True, used, cap, polls + 1, stop_failed=(stop() is False))
         polls += 1
-        if (max_polls is not None and polls >= max_polls) or not alive():
+        try:
+            done = not alive()
+        except GovernorBlind as exc:
+            return Verdict(False, used, cap, polls, ungoverned=str(exc))
+        if (max_polls is not None and polls >= max_polls) or done:
             return Verdict(False, used, cap, polls)
         sleep(interval)
 
@@ -186,7 +216,8 @@ def child_env(provider: str, parent: Mapping[str, str],
         raise DispatchRefused(f"no {p.key} in the environment or the key store -- {provider} needs "
                               "it. Refusing rather than falling back: a fallback would answer from "
                               "a DIFFERENT model on a DIFFERENT bill.")
-    for name in _ANTHROPIC_CREDS:  # never send the operator's own key to a third party
+    # never send the operator's own key, or ANOTHER provider's key, to this third party
+    for name in _ANTHROPIC_CREDS + tuple(q.key for q in PROVIDERS.values() if q.key and q is not p):
         env.pop(name, None)
     env["ANTHROPIC_BASE_URL"] = p.base_url
     env["ANTHROPIC_AUTH_TOKEN"] = token
@@ -334,8 +365,8 @@ def run_streamed(argv: Sequence[str], env: Mapping[str, str], cap: int,
         if used > cap:
             proc.terminate()
             return Verdict(True, used, cap, polls)
-    proc.wait()
-    return Verdict(False, capped_tokens(total, count_cache_reads), cap, polls)
+    return Verdict(False, capped_tokens(total, count_cache_reads), cap, polls,
+                   child_exit=proc.wait())
 
 
 # --- CLI ---------------------------------------------------------------------------------
@@ -344,10 +375,11 @@ _ID = re.compile(r"\b([0-9a-f]{8})\b")
 
 
 def _lane_reader(slug: str, baseline: "lc.TokenUsage") -> Callable[[], "lc.TokenUsage"]:
-    def read() -> "lc.TokenUsage":
-        total = lc.TokenUsage()
-        for usage in lc.lane_usage(slug).values():
-            total = total + usage
+    def read() -> Optional["lc.TokenUsage"]:
+        models = lc.lane_usage(slug)
+        if not models:  # no transcript found: unobservable, NOT zero
+            return None
+        total = _sum(models)
         return lc.TokenUsage(
             input_tokens=max(total.input_tokens - baseline.input_tokens, 0),
             output_tokens=max(total.output_tokens - baseline.output_tokens, 0),
@@ -404,8 +436,9 @@ def launch(contract: str, slug: str, provider: str, model: str, effort: str, sub
                    "retention=1d (a STOPPED codespace still bills storage; this never deletes)")
         for s in steps:
             click.echo(f"[dispatch]   {s.note}: {' '.join(s.argv)}")
+    label = " (post-hoc per completed turn)" if plan.argv[0] == "codex" else ""
     click.echo(f"[dispatch] provider={provider} model={model} effort={EFFORTS.get(effort.lower())} "
-               f"token-cap={token_cap} metering={plan.metering}")
+               f"token-cap={token_cap} metering={plan.metering}{label}")
     click.echo(f"[dispatch] {' '.join(plan.argv[:-1])}")
     click.echo(f"[dispatch] prompt: {prompt}")
     if dry_run:
@@ -432,11 +465,13 @@ def launch(contract: str, slug: str, provider: str, model: str, effort: str, sub
         sys.exit(EXIT_UNGOVERNED)
     lane_id = found.group(1)
 
-    def stop() -> None:
-        subprocess.run(["claude", "stop", lane_id], capture_output=True)
+    def stop() -> bool:
+        return subprocess.run(["claude", "stop", lane_id], capture_output=True).returncode == 0
 
     def alive() -> bool:
         listing = subprocess.run(["claude", "agents", "--json"], capture_output=True, text=True)
+        if listing.returncode != 0 or not listing.stdout.strip():
+            raise GovernorBlind("`claude agents --json` failed or was empty")
         return lane_id in listing.stdout
 
     click.echo(f"[dispatch] governing lane {lane_id} -- cap {token_cap}; Ctrl-C leaves it UNCAPPED")
@@ -451,7 +486,15 @@ def launch(contract: str, slug: str, provider: str, model: str, effort: str, sub
 
 
 def _report(verdict: Verdict) -> None:
-    state = "CAP EXCEEDED -- lane stopped" if verdict.exceeded else "finished under cap"
+    if verdict.stop_failed:
+        state = "CAP EXCEEDED but `claude stop` FAILED -- the lane may still be running"
+    elif verdict.ungoverned:
+        state = f"UNGOVERNED ({verdict.ungoverned}) -- the cap was NOT enforced"
+    elif verdict.exceeded:
+        state = "CAP EXCEEDED -- lane stopped"
+    else:
+        state = "finished under cap" + (f" (child exited {verdict.child_exit})"
+                                        if verdict.child_exit else "")
     click.echo(f"[dispatch] {state}: used {verdict.used} of {verdict.cap} tokens")
 
 

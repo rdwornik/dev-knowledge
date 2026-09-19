@@ -193,3 +193,41 @@ def test_codespace_plan_ships_a_runner_file_and_never_composes_the_prompt_into_s
 def test_codespace_dry_run_through_the_cli_prints_the_cost_line(tmp_path):
     out = _dry(tmp_path, "--repo", "rdwornik/x", substrate="codespace").output
     assert "basicLinux32gb" in out and "idle-timeout" in out
+
+
+# --- codex terra review findings: a cap that cannot be observed or enforced is UNGOVERNED -----
+
+def test_other_providers_keys_are_scrubbed_from_a_third_party_child():
+    env = d.child_env("zai", parent={"ZAI_API_KEY": "z", "DEEPSEEK_API_KEY": "leak-d",
+                                     "MOONSHOT_API_KEY": "leak-m"})
+    assert "DEEPSEEK_API_KEY" not in env and "MOONSHOT_API_KEY" not in env
+    assert env["ANTHROPIC_AUTH_TOKEN"] == "z"
+
+
+def test_a_lane_whose_usage_cannot_be_read_is_ungoverned_not_under_cap():
+    stopped = []
+    verdict = d.govern(cap=100, read_usage=lambda: None, stop=lambda: stopped.append(1),
+                       sleep=lambda s: None, max_polls=50, blind_polls=3)
+    assert verdict.ungoverned and not verdict.exceeded
+    assert verdict.exit_code == d.EXIT_UNGOVERNED and stopped == []
+
+
+def test_a_failed_stop_is_reported_ungoverned_not_as_a_successful_stop():
+    verdict = d.govern(cap=10, read_usage=lambda: _usage(500), stop=lambda: False,
+                       sleep=lambda s: None, max_polls=2)
+    assert verdict.exceeded and verdict.stop_failed
+    assert verdict.exit_code == d.EXIT_UNGOVERNED
+
+
+def test_an_unavailable_liveness_probe_is_ungoverned_not_completion():
+    def blind():
+        raise d.GovernorBlind("claude agents --json failed")
+    verdict = d.govern(cap=10**9, read_usage=lambda: _usage(1), stop=lambda: None,
+                       sleep=lambda s: None, alive=blind, max_polls=5)
+    assert verdict.ungoverned and verdict.exit_code == d.EXIT_UNGOVERNED
+
+
+def test_a_streamed_child_that_fails_does_not_exit_zero(tmp_path):
+    import sys
+    v = d.run_streamed([sys.executable, "-c", "import sys; sys.exit(7)"], {}, cap=100)
+    assert v.exceeded is False and v.exit_code == 7
