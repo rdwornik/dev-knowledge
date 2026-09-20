@@ -6,9 +6,12 @@
 > `tier1-lifecycle` plugin manifest — plus the DECLARED user-level (`L0`) rows in
 > `ecosystem/organ-registry.yaml`. Vocabulary is `ARCHITECTURE.md` Ch2's:
 > **distribution** is Ch2's Layer (`L0` · `hub` · `plugin` · `pre-commit`),
-> **status** is Ch2's Status (`ARMED` · `RETIRED` · `DECLARED`), and
-> `· deployed` marks an organ the current `deploy/manifest-v*.yaml` ships to
-> consumers.
+> **status** is Ch2's Status (`ARMED` · `RETIRED` · `DECLARED`) plus, for hooks,
+> the arming truth read from the live config: `ARMED` fires at its stage today,
+> `MANUAL` is set to the manual stage only (with its `manual_until` date where one
+> is declared), `ABSENT` is present in a config that is switched off. A hook is
+> never `ARMED` on the strength of being listed. `· deployed` marks an organ the
+> current `deploy/manifest-v*.yaml` ships to consumers.
 >
 > **This index does NOT carry failure posture** (fail-closed / fail-soft /
 > propose-only). That is a judgement about an organ's code, derivable from no
@@ -107,41 +110,41 @@ _git-stage gates declared in `.pre-commit-config.yaml`_
 
 | Name | Class | Trigger | Source | Distribution | Status |
 |---|---|---|---|---|---|
-| `audit-health` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | ARMED |
+| `audit-health` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | MANUAL |
 | `audit-index-freshness` | git-hook | pre-commit | `.pre-commit-config.yaml` | pre-commit | ARMED |
-| `audit-title-gate` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | ARMED |
+| `audit-title-gate` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | MANUAL |
 | `backlog-filing-backpressure` | git-hook | commit-msg | `.pre-commit-config.yaml` | pre-commit | ARMED |
 | `backlog-id-on-close` | git-hook | commit-msg | `.pre-commit-config.yaml` | pre-commit · deployed | ARMED |
-| `block-commit-on-main` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | ARMED |
+| `block-commit-on-main` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | MANUAL |
 | `block-ff-push` | git-hook | pre-push | `.pre-commit-config.yaml` | pre-commit · deployed | ARMED |
 | `block-unanchored-push` | git-hook | pre-push | `.pre-commit-config.yaml` | pre-commit | ARMED |
-| `check-seal-identity` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | ARMED |
+| `check-seal-identity` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | MANUAL |
 | `claude-rosters-freshness` | git-hook | pre-commit | `.pre-commit-config.yaml` | pre-commit | ARMED |
 | `codemap-freshness` | git-hook | pre-commit | `.pre-commit-config.yaml` | pre-commit · deployed | ARMED |
-| `coherence-nudge` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | ARMED |
+| `coherence-nudge` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | MANUAL |
 | `commit-message-type-prefix` | git-hook | commit-msg | `.pre-commit-config.yaml` | pre-commit | ARMED |
-| `decision-coverage` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | ARMED |
-| `derived-copies-rebind` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | ARMED |
+| `decision-coverage` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | MANUAL |
+| `derived-copies-rebind` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | MANUAL |
 | `dispatch-conformance` | git-hook | pre-commit | `.pre-commit-config.yaml` | pre-commit | ARMED |
-| `doc-counts-pytest-freshness` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | ARMED |
-| `graph-edge-class-census` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | ARMED |
-| `graph-orphan-census` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | ARMED |
-| `graph-process-list` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | ARMED |
-| `graph-rebuild` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | ARMED |
-| `graph-task-coverage` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | ARMED |
+| `doc-counts-pytest-freshness` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | MANUAL |
+| `graph-edge-class-census` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | MANUAL |
+| `graph-orphan-census` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | MANUAL |
+| `graph-process-list` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | MANUAL |
+| `graph-rebuild` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | MANUAL |
+| `graph-task-coverage` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | MANUAL |
 | `impacted-tests-guard` | git-hook | pre-commit | `.pre-commit-config.yaml` | pre-commit | ARMED |
 | `intake-index-freshness` | git-hook | pre-commit | `.pre-commit-config.yaml` | pre-commit | ARMED |
-| `lane-contract-check` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | ARMED |
-| `normalize-dated-headers` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | ARMED |
+| `lane-contract-check` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | MANUAL |
+| `normalize-dated-headers` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | MANUAL |
 | `organ-index-freshness` | git-hook | pre-commit | `.pre-commit-config.yaml` | pre-commit | ARMED |
-| `prepend-order` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | ARMED |
+| `prepend-order` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | MANUAL |
 | `provider-registry-agreement` | git-hook | pre-commit | `.pre-commit-config.yaml` | pre-commit | ARMED |
 | `quality-requirements-freshness` | git-hook | pre-commit | `.pre-commit-config.yaml` | pre-commit | ARMED |
 | `roster-freshness` | git-hook | pre-commit | `.pre-commit-config.yaml` | pre-commit | ARMED |
 | `row-archive-proof` | git-hook | pre-commit | `.pre-commit-config.yaml` | pre-commit | ARMED |
-| `ruff` | git-hook | manual | `.pre-commit-config.yaml → https://github.com/astral-sh/ruff-pre-commit` | pre-commit | ARMED |
-| `toc-freshness-playbook` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | ARMED |
-| `validate-backlog` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | ARMED |
+| `ruff` | git-hook | manual | `.pre-commit-config.yaml → https://github.com/astral-sh/ruff-pre-commit` | pre-commit | MANUAL |
+| `toc-freshness-playbook` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | MANUAL |
+| `validate-backlog` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | MANUAL |
 | `validate-hermetization` | git-hook | pre-commit | `.pre-commit-config.yaml` | pre-commit | ARMED |
 
 ## plugin

@@ -94,6 +94,7 @@ from .check_handoff_version_stamp import (
     _STAMP_RE,
     check_handoff_version_stamp,
 )
+from .check_organ_truth import check_organ_truth
 from .check_proof_layer import check_proof_layer
 from .check_reconciled_versions import _vr, check_reconciled_versions
 from .check_residual_completeness import _vrc, check_residual_completeness
@@ -185,6 +186,8 @@ CHECK_ORDER: tuple[str, ...] = (
     "check_proof_layer",                  # [#596] family-3 environment-conditional guards
     "check_funnel_lifecycle",             # FM-2 — facade — _is_hub seam; detector in
                                           # funnel_lifecycle.py
+    "check_organ_truth",                  # lane-l3 — index arming vs live config; organs
+                                          # declared nowhere / optional-unbuilt
 )
 
 # The extracted subset, in CHECK_ORDER-relative order.
@@ -211,6 +214,7 @@ EXTRACTED_CHECKS = (
     check_routing_agreement,
     check_consumer_at_landing,
     check_proof_layer,
+    check_organ_truth,
 )
 
 # The flat surface `audit.py` re-exports. Names beyond the check functions appear here because a
@@ -279,6 +283,7 @@ __all__ = [
     "check_floor_integrity",
     "check_handoff_bundle_structure",
     "check_handoff_version_stamp",
+    "check_organ_truth",
     "check_proof_layer",
     "check_reconciled_versions",
     "check_residual_completeness",

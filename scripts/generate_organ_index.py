@@ -135,7 +135,21 @@ _AUTO = object()
 _STATUS_ARMED = "ARMED"
 _STATUS_RETIRED = "RETIRED"
 _STATUS_DECLARED = "DECLARED"
+# THE ARMING VOCABULARY for hooks (lane-l3-organ-truth). A hook is ARMED only when the live
+# config will actually fire it, MANUAL when its only stage is `manual` (it runs on demand or in
+# the conductor, never at the git event), ABSENT when the config that would fire it is switched
+# off. PRESENT IS NOT ARMED: the index used to stamp every hook it found ARMED, and 19 of 36
+# commit hooks were set to `manual`, so the one surface that answers "what protects us" lied.
+_STATUS_MANUAL = "MANUAL"
+_STATUS_ABSENT = "ABSENT"
+ARMING_STATUSES = (_STATUS_ARMED, _STATUS_MANUAL, _STATUS_ABSENT)
 _UNPARSED = "(unparsed)"
+
+# `manual_until: YYYY-MM-DD` is how a hook DECLARES the date its manual stage lapses. It is read
+# as a token inside the hook's own block of `.pre-commit-config.yaml` (a key OR a comment: the
+# YAML parser drops comments, so this is a text read scoped to ONE hook, not a config parse).
+_HOOK_ID_LINE_RE = re.compile(r"^\s*-\s+id:\s*([^\s#]+)")
+_MANUAL_UNTIL_RE = re.compile(r"manual_until:\s*[\"']?(\d{4}-\d{2}-\d{2})")
 
 
 class Organ(NamedTuple):
@@ -369,7 +383,10 @@ def collect_session_hooks(root: Path, tracked: object = _AUTO) -> list[Organ]:
     if problem == _SETTINGS_BAD:
         return [Organ("(settings.json unparseable)", "session-hook", _UNPARSED, rel,
                       "hub", _UNPARSED)]
-    return _hooks_from_mapping(data.get("hooks"), rel, "hub", _STATUS_ARMED)
+    # `disableAllHooks: true` switches every hook in this file off, so a hook that is merely
+    # PRESENT there reaches nothing -- ABSENT, not ARMED.
+    status = _STATUS_ABSENT if data.get("disableAllHooks") is True else _STATUS_ARMED
+    return _hooks_from_mapping(data.get("hooks"), rel, "hub", status)
 
 
 def _hooks_from_mapping(hooks: object, source: str, distribution: str,
@@ -440,6 +457,7 @@ def collect_git_hooks(root: Path, tracked: object = _AUTO) -> list[Organ]:  # no
     if data is None:
         return bad
     default_stages = _sequence(data.get("default_stages")) or ["pre-commit"]
+    manual_until = _manual_until_by_hook(text)
     repos = _sequence(data.get("repos"))
     if repos is None:
         return bad if data.get("repos") is not None else []
@@ -463,8 +481,40 @@ def collect_git_hooks(root: Path, tracked: object = _AUTO) -> list[Organ]:  # no
             stages = _sequence(h.get("stages")) or default_stages
             source = rel if origin == "local" else f"{rel} → {origin}"
             out.append(Organ(str(hid), "git-hook", ", ".join(str(s) for s in stages),
-                             source, "pre-commit", _STATUS_ARMED))
+                             source, "pre-commit",
+                             _hook_arming(str(hid), stages, manual_until)))
     return sorted(out)
+
+
+def _manual_until_by_hook(text: str) -> dict[str, str]:
+    """`{hook id: 'YYYY-MM-DD'}` for every hook whose own block declares `manual_until:`.
+
+    Scoped to ONE hook: a token attaches to the nearest preceding `- id:` line, so a header
+    comment above the first hook (or a token in a sibling's block) never leaks across.
+    """
+    out: dict[str, str] = {}
+    current: str | None = None
+    for line in text.splitlines():
+        m = _HOOK_ID_LINE_RE.match(line)
+        if m:
+            current = m.group(1)
+            continue
+        d = _MANUAL_UNTIL_RE.search(line)
+        if d and current is not None:
+            out.setdefault(current, d.group(1))
+    return out
+
+
+def _hook_arming(hook_id: str, stages: list, manual_until: dict[str, str]) -> str:
+    """ARMED unless the hook's ONLY stage is `manual`; then MANUAL, dated if it declares one.
+
+    A hook listing `manual` beside a real stage IS armed at that stage -- `manual` adds an
+    on-demand way to run it, it does not switch the automatic one off.
+    """
+    if {str(s) for s in stages} == {"manual"}:
+        until = manual_until.get(hook_id)
+        return f"{_STATUS_MANUAL} until {until}" if until else _STATUS_MANUAL
+    return _STATUS_ARMED
 
 
 def _enabled_plugin_names(root: Path) -> set[str]:
@@ -525,8 +575,11 @@ def collect_plugins(root: Path, tracked: object = _AUTO) -> list[Organ]:
                                  "session-hook", _UNPARSED, _rel(hooks_json, root),
                                  "plugin", _UNPARSED))
             else:
+                # A hook of a plugin that is not enabled reaches nothing: ABSENT (the plugin
+                # and its commands stay DECLARED -- they exist and can be enabled).
+                hook_status = _STATUS_ARMED if status == _STATUS_ARMED else _STATUS_ABSENT
                 out += _hooks_from_mapping(hdata.get("hooks"), _rel(hooks_json, root),
-                                           "plugin", status)
+                                           "plugin", hook_status)
     return out
 
 
@@ -694,9 +747,12 @@ def render_index(root: Path = _REPO_ROOT) -> str:
         "> `tier1-lifecycle` plugin manifest — plus the DECLARED user-level (`L0`) rows in",
         "> `ecosystem/organ-registry.yaml`. Vocabulary is `ARCHITECTURE.md` Ch2's:",
         "> **distribution** is Ch2's Layer (`L0` · `hub` · `plugin` · `pre-commit`),",
-        "> **status** is Ch2's Status (`ARMED` · `RETIRED` · `DECLARED`), and",
-        "> `· deployed` marks an organ the current `deploy/manifest-v*.yaml` ships to",
-        "> consumers.",
+        "> **status** is Ch2's Status (`ARMED` · `RETIRED` · `DECLARED`) plus, for hooks,",
+        "> the arming truth read from the live config: `ARMED` fires at its stage today,",
+        "> `MANUAL` is set to the manual stage only (with its `manual_until` date where one",
+        "> is declared), `ABSENT` is present in a config that is switched off. A hook is",
+        "> never `ARMED` on the strength of being listed. `· deployed` marks an organ the",
+        "> current `deploy/manifest-v*.yaml` ships to consumers.",
         ">",
         "> **This index does NOT carry failure posture** (fail-closed / fail-soft /",
         "> propose-only). That is a judgement about an organ's code, derivable from no",
@@ -730,6 +786,74 @@ def render_index(root: Path = _REPO_ROOT) -> str:
                 f"| `{_cell(o.name)}` | {_cell(o.cls)} | {_cell(o.trigger)} "
                 f"| `{_cell(o.source)}` | {_cell(o.distribution)} | {_cell(o.status)} |")
     return "\n".join(out) + "\n"
+
+
+# --------------------------------------------------------------------------------------
+# the arming claim, read BACK from a rendered index (lane-l3-organ-truth)
+# --------------------------------------------------------------------------------------
+
+_HOOK_CLASSES = ("git-hook", "session-hook")
+
+
+def _arming_word(status: str) -> str:
+    """`MANUAL until 2026-10-04` -> `MANUAL`: the verdict without its date."""
+    return status.split()[0] if status.split() else ""
+
+
+def index_arming_claims(text: str) -> dict[tuple[str, str, str], str]:
+    """`{(class, name, source): status}` for every hook row of a RENDERED index.
+
+    Read from the committed bytes, not recomputed, because the point is to hold what the index
+    SAYS against what the config DOES. A row that does not split into the six columns is
+    skipped (the freshness gate, not this reader, owns a malformed table).
+    """
+    claims: dict[tuple[str, str, str], str] = {}
+    cls: str | None = None
+    for line in text.splitlines():
+        if line.startswith("## "):
+            cls = line[3:].strip()
+            continue
+        if cls not in _HOOK_CLASSES or not line.startswith("| `"):
+            continue
+        cells = [c.strip() for c in re.split(r"(?<!\\)\|", line.strip().strip("|"))]
+        if len(cells) != 6:
+            continue
+        name, source = cells[0].strip("`"), cells[3].strip("`")
+        claims[(cls, name.replace("\\|", "|"), source.replace("\\|", "|"))] = cells[5]
+    return claims
+
+
+def arming_contradictions(root: Path) -> list[str] | None:
+    """Every hook whose arming claim in the COMMITTED index differs from the live config.
+
+    None when there is no index to hold (the caller decides what an absent ground truth
+    means -- register ruling Z-G4 says FAIL, never skip). Otherwise one sentence per
+    contradiction, each naming the hook, what the index claims and what the config says. A
+    hook the live config no longer carries at all is a claim of ARMED against ABSENT.
+
+    NOT CHECKED, stated so a green result is not over-read: a live hook the index OMITS (that
+    is staleness, and `--check` owns it) and rows whose live status is `(unparsed)`.
+    """
+    text = _read(root / _TARGET_REL)
+    if text is None:
+        return None
+    live = {(o.cls, o.name, o.source): o.status
+            for o in collect_organs(root) if o.cls in _HOOK_CLASSES}
+    out: list[str] = []
+    for key, claimed in sorted(index_arming_claims(text).items()):
+        cls, name, source = key
+        actual = live.get(key)
+        if actual is None:
+            # ANY claim -- ARMED or MANUAL -- about a hook the config no longer carries is
+            # false: a MANUAL hook that is gone cannot be run on demand either (terra HIGH).
+            out.append(f"{cls} `{name}` ({source}): the index says {claimed}, and the live "
+                       f"config carries no such hook ({_STATUS_ABSENT})")
+            continue
+        if actual == _UNPARSED or _arming_word(claimed) == _arming_word(actual):
+            continue
+        out.append(f"{cls} `{name}` ({source}): the index says {claimed}, the live config "
+                   f"says {actual}")
+    return out
 
 
 # --------------------------------------------------------------------------------------
