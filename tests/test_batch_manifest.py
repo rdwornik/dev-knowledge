@@ -677,7 +677,9 @@ def test_is_lane_merge_is_seeded_on_both_sides_of_the_grammar(tmp_path):
     """
     repo, _ = _seed(tmp_path)
     conforming = _merge(repo, "worktree-lane-a-514-lane-regex")
-    off_grammar = _merge(repo, "worktree-lane-wave-closures")
+    # was `worktree-lane-wave-closures`; that hyphenated slug is a lane under the 2026-09-20
+    # widening (ANSWER-lane-l1-spine-moments A1), so the off-grammar seed is a malformed batch name
+    off_grammar = _merge(repo, "worktree-lane-abcd-514-four-letters")
 
     assert bm.is_lane_merge(repo, conforming) is True
     assert bm.is_lane_merge(repo, off_grammar) is False
@@ -703,7 +705,7 @@ def test_an_off_grammar_lane_branch_gets_NO_exemption_mid_batch(tmp_path, monkey
     _write_manifest(repo)
     floor = _rev(repo)
     conforming = _merge(repo, "worktree-lane-a-514-lane-regex")
-    off_grammar = _merge(repo, "worktree-lane-wave-closures")
+    off_grammar = _merge(repo, "worktree-lane-abcd-514-four-letters")   # see the note above
 
     monkeypatch.setattr(aud, "_is_hub", lambda p: True)
     monkeypatch.setattr(ja, "floor_sha", lambda p: floor)

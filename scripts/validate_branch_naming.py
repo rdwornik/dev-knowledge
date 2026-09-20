@@ -27,6 +27,11 @@ they need no ruling to exist. A batch lane's worktree is named `lane-<batch>-<id
 its branch is `worktree-lane-<batch>-<id>-<slug>`: one lane = one contract file = one worktree
 = one branch, and an orphan is attributable at a glance (PLAYBOOK Ch8, "The batch protocol").
 
+THE GENERAL LANE FORM `worktree-lane-<slug>` (architect ruling 2026-09-20, `ANSWER-lane-l1-
+spine-moments` A1) is the shape lanes are actually launched under; the batch form above is a
+SUBSET of it. `is_worktree_lane_name` is its predicate and `classify` reads it. The generator
+(`gen_lane_contract.py`) is untouched -- it conforms under the widened rule.
+
 THE INTEGRATOR HAS NO PREFIX, and that is a design statement rather than an omission. The
 integrator works from the primary checkout on `main` and owns no branch of its own; its own
 record-keeping (packet, JOURNAL, manifest) rides an ordinary serial-arc branch. Minting an
@@ -94,6 +99,13 @@ LANE_WORKTREE_RE = re.compile(rf"^lane-{BATCH_TOKEN}-\d+-{_SLUG}$")
 LANE_BRANCH_RE = re.compile(rf"^worktree-lane-{BATCH_TOKEN}-\d+-{_SLUG}$")
 
 _SUFFIX_RE = re.compile(rf"^{_SLUG}$")
+
+#: A slug that opens like a batch lane -- letters, then a numeric id, then more -- but whose
+#: letter token is NOT a valid batch token. That is a MALFORMED batch name (`abcd-505-slug`),
+#: and the general `worktree-lane-<slug>` form must not silently absorb it: it was reported
+#: before the widening and stays reported (`test_worktree_lane_prefix_with_a_broken_grammar_...`).
+_BATCH_SHAPED_RE = re.compile(r"^[a-z]+-\d+-")
+_BATCH_TOKEN_RE = re.compile(rf"^{BATCH_TOKEN}-")
 
 KIND_DEFAULT = "default-branch"
 KIND_SERIAL_ARC = "serial-arc"
@@ -192,6 +204,33 @@ def configured_remotes(repo_path: str = ".") -> tuple[str, ...]:
     return found or DEFAULT_REMOTES
 
 
+def is_worktree_lane_name(name: str) -> bool:
+    """True iff `name` is `worktree-lane-<slug>` with a HYPHENATED slug -- the general lane form.
+
+    Architect ruling 2026-09-20 (`ANSWER-lane-l1-spine-moments` A1, option b): every lane the
+    system runs is `worktree-lane-<slug>` (`worktree-lane-loop-eval`; the generator's
+    `worktree-lane-<date>-<kind>-<subject>`), of which the batch form `worktree-lane-<letters>-
+    <id>-<slug>` is a SUBSET. The generator is not changed -- it conforms under this rule.
+
+    Two things stay refused, both deliberately:
+      * a slug with no hyphen (`worktree-lane-nope`, `worktree-lane-`): a native worktree that
+        merely starts with `lane`, and the empty slug;
+      * a MALFORMED batch name (`worktree-lane-abcd-505-slug`): batch-shaped but past the batch
+        token width. It was reported before the widening and must not be absorbed by it.
+    The prefix still separates lanes from `claude/*`, `automation/*` and `main`. This is the
+    scoped predicate; `is_lane_branch` is the whole set.
+    """
+    prefix = "worktree-lane-"
+    if not name.startswith(prefix):
+        return False
+    slug = name[len(prefix):]
+    if "-" not in slug or not _SUFFIX_RE.match(slug):
+        return False
+    if _BATCH_SHAPED_RE.match(slug) and not _BATCH_TOKEN_RE.match(slug):
+        return False
+    return True
+
+
 def classify(name: str, remotes: tuple[str, ...] = DEFAULT_REMOTES) -> Classification:
     """Resolve one branch name against the enum. Never raises; an unrecognised name is a
     `Classification` with `kind == 'unknown'`, because "outside the enum" is a reportable
@@ -217,6 +256,10 @@ def classify(name: str, remotes: tuple[str, ...] = DEFAULT_REMOTES) -> Classific
     if LANE_BRANCH_RE.match(bare):
         return Classification(raw, KIND_BATCH_LANE,
                               "batch lane — worktree 'lane-<batch>-<id>-<slug>'")
+
+    if is_worktree_lane_name(bare):
+        return Classification(raw, KIND_BATCH_LANE,
+                              "lane — worktree 'lane-<slug>' (architect ruling 2026-09-20 A1)")
 
     if bare.startswith("worktree-"):
         suffix = bare[len("worktree-"):]
