@@ -333,3 +333,68 @@ def test_is_lane_branch_strips_a_remote_segment_like_classify_does():
     assert vbn.is_lane_branch("origin/claude/lane-t-000-aj-research") is True
     assert vbn.is_lane_branch("upstream/claude/x", remotes=("upstream",)) is True
     assert vbn.is_lane_branch("upstream/claude/x") is False
+
+
+# --- `worktree-lane-<slug>`: the enum admits the lanes the system actually runs -----------------
+#
+# Architect ruling `to-cc/ANSWER-lane-l1-spine-moments-2026-09-20.md` A1: the validator described
+# a convention nobody follows. Every lane this batch launches is `worktree-lane-<slug>`; the
+# generator emits `worktree-lane-<date>-<kind>-<subject>`; the batch form is a SUBSET. Widen the
+# enum, do not touch the generator. Teardown and the ADR-110 exemption iterate the same set.
+
+@pytest.mark.parametrize("name", [
+    "worktree-lane-loop-eval",                      # merged 2026-09-20
+    "worktree-lane-l2-dispatch-guards",             # this lane
+    "worktree-lane-20260920-code-dispatch-guards",  # gen_lane_contract.py's shape
+    "worktree-lane-a-505-batch-protocol",           # the old batch form is a subset
+    "worktree-lane-ab-808-guard-timeout",
+])
+def test_the_general_lane_form_is_admitted(name):
+    assert vbn.is_lane_branch(name) is True
+    assert vbn.classify(name).conforms
+
+
+@pytest.mark.parametrize("name", [
+    "main",
+    "claude/x",
+    "automation/fleet-audit",
+    "worktree-lane-",                # empty slug
+])
+def test_the_general_lane_form_refuses_what_is_not_worktree_lane_slug(name):
+    """The widening is scoped to `worktree-lane-<slug>`: `main`, `claude/x` and
+    `automation/fleet-audit` are not admitted BY IT (the two prefixed ones are lane kinds in
+    their own right, pinned by `test_is_lane_branch_admits_every_ruled_lane_form`), and the
+    empty slug is refused outright."""
+    assert vbn.is_worktree_lane_name(name) is False
+
+
+@pytest.mark.parametrize("name", [
+    "main",
+    "worktree-lane-",                # empty slug
+    "worktree-lane",                 # no slug at all -- a native worktree named `lane`
+    "worktree-lane-Upper-case",      # slug grammar still binds
+    "worktree-lane-a--b",            # empty hyphen segment
+    "worktree-lane-loop-eval-",      # trailing hyphen
+    "worktree-lane-abcd-505-slug",   # a MALFORMED batch form stays reported, not waved through
+])
+def test_the_widening_does_not_admit_malformed_names(name):
+    assert vbn.is_lane_branch(name) is False
+
+
+def test_main_and_the_bare_prefixes_are_not_lane_branches():
+    assert vbn.is_lane_branch("main") is False
+    assert vbn.is_lane_branch("worktree-lane-") is False
+    assert vbn.classify("worktree-lane-").kind == vbn.KIND_UNKNOWN
+
+
+def test_widening_does_not_change_the_batch_grammar_constants():
+    """`LANE_BRANCH_RE` stays the BATCH grammar -- `batch_manifest` and the teardown worktree
+    walk read it. Only the SET predicate widened."""
+    assert vbn.LANE_BRANCH_RE.match("worktree-lane-a-505-batch-protocol")
+    assert vbn.LANE_BRANCH_RE.match("worktree-lane-loop-eval") is None
+    assert vbn.validate_lane_worktree_name("lane-loop-eval") is not None
+
+
+def test_a_native_worktree_stays_out_of_the_lane_set():
+    assert vbn.is_lane_branch("worktree-scratch") is False
+    assert vbn.is_lane_branch("worktree-lane-nope") is False    # one token: not a hyphenated slug
