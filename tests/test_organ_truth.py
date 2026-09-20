@@ -19,6 +19,7 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
 import yaml
 
 _SCRIPTS = os.path.join(os.path.dirname(__file__), "..", "scripts")
@@ -308,3 +309,52 @@ def test_the_adversarial_role_resolves_to_a_pinned_model():
     registry = yaml.safe_load((_REPO / "ecosystem" / "provider-registry.yaml").read_text("utf-8"))
     assert row["model"] in registry["models"], (
         "the pin must be a model the repo's own registry already knows -- no invented provider")
+
+
+# ---------- codex terra review (docs/audits/2026-09-20-codex-l3-organ-truth.md), three HIGHs
+
+def test_a_from_import_in_a_dash_c_command_names_its_script(tmp_path):
+    _write(tmp_path / "scripts" / "fleet_health.py", "print(1)\n")
+    _harness(tmp_path, [_moment("lane-end", {
+        "id": "seat_line", "receipt": "MOMENT-X-SEAT.json",
+        "command": ["uv", "run", "python", "-c",
+                    "import sys; sys.path.insert(0, 'scripts'); from fleet_health import f; f()"]})])
+    rows = gq.organ_moments(tmp_path, roster=_roster("scripts/fleet_health.py"))
+    assert _statuses(rows) == {"scripts/fleet_health.py": gq.MOMENT_DECLARED}
+
+
+def test_an_absent_optional_organ_imported_via_dash_c_is_still_unbuilt(tmp_path):
+    _harness(tmp_path, [_moment("lane-end", {
+        "id": "future", "receipt": "MOMENT-X-FUTURE.json", "optional": True,
+        "command": ["uv", "run", "python", "-c",
+                    "import sys; sys.path.insert(0, 'scripts'); import future_organ as f; f.run()"]})])
+    rows = gq.organ_moments(tmp_path, roster=_roster())
+    assert _statuses(rows) == {"scripts/future_organ.py": gq.MOMENT_OPTIONAL_UNBUILT}
+
+
+def test_a_malformed_organ_command_is_refused_not_read_as_empty(tmp_path):
+    _harness(tmp_path, [_moment("teardown", {
+        "id": "bad", "receipt": "MOMENT-X-BAD.json", "optional": True,
+        "command": "python scripts/no_leftovers.py"})])
+    with pytest.raises(gq.MomentsUnreadable):
+        gq.load_declaration(tmp_path)
+
+
+def test_a_malformed_moment_shape_is_refused(tmp_path):
+    _write(tmp_path / "ecosystem" / "harness.yaml",
+           yaml.safe_dump({"stages": [], "moments": [{"name": "m", "organs": "nope"}]}))
+    with pytest.raises(gq.MomentsUnreadable):
+        gq.load_declaration(tmp_path)
+
+
+def test_an_index_row_for_a_hook_the_config_no_longer_carries_contradicts_whatever_it_claims(
+        tmp_path):
+    _clean_repo(tmp_path)
+    index = tmp_path / "ecosystem" / "organ-index.md"
+    ghost = ("| `ghost-hook` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit "
+             "| MANUAL until 2026-10-04 |\n")
+    marker = "| `manual-hook` |"
+    index.write_text(index.read_text(encoding="utf-8").replace(marker, ghost + marker, 1),
+                     encoding="utf-8")
+    contradictions = goi.arming_contradictions(tmp_path)
+    assert any("ghost-hook" in c for c in contradictions), contradictions
