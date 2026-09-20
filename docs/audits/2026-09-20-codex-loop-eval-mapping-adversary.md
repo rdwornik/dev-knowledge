@@ -136,9 +136,10 @@ TALLY HIGH:7 MED:7 LOW:2
                            artifact and the only boot-side GO reader; "does not prove consent" is the fair
                            limit, and it is now stated.
 5   HIGH  ACCEPT           "the same predicate applied to a merge" was an overclaim: boot is per lane;       Reworded to "same style, not the
-                           lane-integrate.md :44-46 says ONE GO for the batch; PLAYBOOK :2387 says          same predicate"; QUESTION Q3
-                           "operator GO each". Verified: the two prose texts DISAGREE. That is a functional  written for the operator.
-                           question (ADR-108 §A), so it is escalated, not decided.
+                           lane-integrate.md :44-46 says ONE GO for the batch; PLAYBOOK :2387 says          same predicate". A first draft
+                           "operator GO each". Verified: the two texts DISAGREE -- and STANDING_RULINGS      escalated this as QUESTION Q3;
+                           AH-B2 already rules one GO per batch (lane-integrate §0 is canon), so Ch8 D2 is   Q3 was WITHDRAWN once AH-B2 was
+                           the defective text. Not a fork; recorded as a PLAYBOOK text defect.              found.
 6   HIGH  ACCEPT IN PART   Same evidence as 2 (dodo.py :7-12; harness.yaml :5-6). KEEP stands — the organ    dodo.py row + ADR name both texts
                            stays and R1 extends it — but the critic is right that KEEP with no qualifier     as text to supersede.
                            hides that the scope text must change.
