@@ -116,6 +116,12 @@ def resolve_transport(root: Optional[str] = None, environ: Mapping[str, str] = o
     dest = base / BROWSER_FOLDER
     if not dest.is_dir():
         raise TransportRefused(f"{dest} does not exist; refusing to create it")
+    # A junction or symlink named `to-browser` can point anywhere -- the agent-bound folder, a
+    # downloads folder -- and the write would still "succeed". Judge where it RESOLVES.
+    real = dest.resolve()
+    if real.name.lower() != BROWSER_FOLDER or not _inside(real, base) or _inside(real, Path.home() / "Downloads"):
+        raise TransportRefused(f"{dest} resolves to {real}, which is not the transport's "
+                               f"{BROWSER_FOLDER} folder")
     return dest
 
 
@@ -167,7 +173,8 @@ def collect_receipts(receipts_dir: Path) -> list[tuple[str, str]]:
         if path.stem == _OWN_RECEIPT:
             continue
         try:
-            data = path.read_bytes()[:MAX_RECEIPT_BYTES + 1]
+            with path.open("rb") as handle:   # never read past the bound: a huge receipt costs the budget
+                data = handle.read(MAX_RECEIPT_BYTES + 1)
         except OSError:
             continue
         text = data[:MAX_RECEIPT_BYTES].decode("utf-8", errors="replace")

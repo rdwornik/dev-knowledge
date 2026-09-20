@@ -89,6 +89,19 @@ def test_digest_is_plain_language_no_internal_identifiers():
     assert "exit_code" not in text and "input_hash" not in text
 
 
+def test_a_receipt_of_an_unrecognised_shape_is_an_open_item_never_dropped(tmp_path):
+    ld = _mod("lane_digest")
+    receipts = tmp_path / "receipts"
+    _write_receipts(receipts, [_receipt("gates")])
+    (receipts / "MOMENT-ODD.json").write_text(json.dumps({"status": "ok"}), encoding="utf-8")
+    (receipts / "MOMENT-LIST.json").write_text("[1, 2]", encoding="utf-8")
+    (receipts / "MOMENT-BROKEN.json").write_text("{not json", encoding="utf-8")
+    lane = ld.LaneInput(name="lane-a", receipts=ld.load_receipts(receipts))
+    assert ld.verdict(lane) == ld.VERDICT_ATTENTION
+    items = ld.open_items(lane)
+    assert len(items) == 3 and all("could not be read" in i for i in items)
+
+
 def test_digest_cli_reads_the_receipts_of_a_batch(tmp_path):
     root = tmp_path / "worktrees"
     _write_receipts(root / "lane-a" / "logs" / "receipts", [_receipt("gates")])

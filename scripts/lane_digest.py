@@ -133,8 +133,10 @@ def load_receipts(receipts_dir: Path) -> list[dict]:
         except (OSError, ValueError):
             rows.append({"organ": path.stem, "status": "unreadable"})
             continue
-        if isinstance(row, dict) and "organ" in row:
+        if isinstance(row, dict) and row.get("organ"):
             rows.append(row)
+        else:   # any shape we do not recognise is an open item, never a silent omission
+            rows.append({"organ": path.stem, "status": "unreadable"})
     return rows
 
 

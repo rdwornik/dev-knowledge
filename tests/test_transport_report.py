@@ -150,6 +150,27 @@ def test_the_report_records_its_own_runtime(world):
     assert isinstance(res["runtime_ms"], int) and res["runtime_ms"] >= 0
 
 
+def test_the_runtime_is_measured_not_defaulted(world, monkeypatch, capsys):
+    """A controlled clock: the recorded runtime is the elapsed time, so removing the measurement
+    (which would leave the default 0) fails here."""
+    tr = _mod("transport_report")
+    ticks = iter([100.0, 100.25, 100.5, 100.75])
+    monkeypatch.setattr(tr.time, "perf_counter", lambda: next(ticks))
+    code = tr.main(["--lane", LANE, "--transport-root", str(world["root"]),
+                    "--receipts-dir", str(world["receipts"]), "--repo", str(world["tmp"])])
+    assert code == 0
+    res = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    assert res["runtime_ms"] == 250
+
+
+def test_an_oversized_receipt_is_bounded_and_marked(world):
+    tr = _mod("transport_report")
+    big = world["receipts"] / "MOMENT-BIG.json"
+    big.write_text('{"organ": "big", "pad": "' + "x" * (tr.MAX_RECEIPT_BYTES * 4) + '"}', encoding="utf-8")
+    ((name, text),) = [r for r in tr.collect_receipts(world["receipts"]) if r[0] == "MOMENT-BIG.json"]
+    assert len(text) < tr.MAX_RECEIPT_BYTES + 100 and "truncated" in text
+
+
 def test_runtime_lands_in_the_wrapper_receipt_and_a_refusal_is_a_nonzero_receipt(world):
     """Through the real wrapper -- the receipt the audit check reads."""
     receipt = world["tmp"] / "MOMENT-LANE-END-TRANSPORT-REPORT.json"
@@ -171,6 +192,56 @@ def test_runtime_lands_in_the_wrapper_receipt_and_a_refusal_is_a_nonzero_receipt
 def test_the_git_summary_cannot_eat_the_shared_budget():
     tr = _mod("transport_report")
     assert tr.GIT_TIMEOUT_S <= 3      # the hook budget is 15 s and is shared with another hook
+
+
+def test_the_two_git_calls_of_one_summary_get_the_same_deadline(world, monkeypatch):
+    tr = _mod("transport_report")
+    seen: list[float] = []
+
+    def fake_git(_repo, args, deadline):
+        seen.append(deadline)
+        return "## worktree-x\n" if args[0] == "status" else "abc one\n"
+
+    monkeypatch.setattr(tr, "_git", fake_git)
+    tr.session_summary(world["tmp"])
+    assert len(seen) >= 2 and len(set(seen)) == 1
+
+
+# --- the destination is judged by where it RESOLVES ---------------------------------------------
+
+def _link(link: Path, target: Path) -> bool:
+    try:
+        os.symlink(target, link, target_is_directory=True)
+        return True
+    except (OSError, NotImplementedError):
+        pass
+    if os.name == "nt":   # a junction needs no privilege
+        done = subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(target)],
+                              capture_output=True, text=True)
+        return done.returncode == 0
+    return False
+
+
+def test_a_to_browser_link_into_the_agent_bound_folder_is_refused(world):
+    root = world["tmp"] / "linked-root"
+    root.mkdir()
+    if not _link(root / "to-browser", world["agent"]):
+        pytest.skip("cannot create a symlink or junction here")
+    proc = _run(world, root=root)
+    assert proc.returncode not in (0, 2)
+    assert _files(world["agent"]) == []
+
+
+def test_a_to_browser_link_into_downloads_is_refused(world, monkeypatch):
+    root = world["tmp"] / "linked-root"
+    root.mkdir()
+    if not _link(root / "to-browser", world["downloads"]):
+        pytest.skip("cannot create a symlink or junction here")
+    tr = _mod("transport_report")
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: world["home"]))  # Downloads is judged vs home
+    with pytest.raises(tr.TransportRefused):
+        tr.resolve_transport(str(root))
+    assert _files(world["downloads"]) == []
 
 
 # --- 3. an unmounted destination is loud and harmless -------------------------------------------
