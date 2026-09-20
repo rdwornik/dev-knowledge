@@ -114,29 +114,75 @@ again. §3 item 1 then reads the hold as an open item, which is what keeps the b
 REPORTED, not that a review happened or that the counts are truthful. A lane that types
 `review=codex HIGH:0` without running anything passes. What it closes is the silent case.
 
+**The order is the one this repo already rules: merge locally, verify, push, THEN tear down.** The
+"verify" and the post-teardown check are not steps typed out here — they are the `merge` and
+`teardown` **moments** declared in `ecosystem/harness.yaml`, called by name, so the organs a moment
+runs are the declaration's and not this file's. This file names the calls; the declaration owns
+which organs and in what order (comparator, review packet, gate list, test pairing; then the
+no-leftovers check). A moment leaves one receipt per organ under `logs/receipts/` and exits
+non-zero if any required organ did.
+
 ```bash
 R="uv run --locked python scripts/merge_receipt.py"
 L="lane-<letter>-<id>-<slug>"
+DOIT="uv run --locked doit -f scripts/dodo.py"
 
+# 1. MERGE locally.
 $R time --slug $L --step merge --class ceremony -- \
   git merge --no-ff worktree-$L
-# Hand the reviewer their inputs BEFORE the review starts ([#675] target 3.5).
-$R time --slug $L --step assemble --class ceremony -- \
-  uv run --locked python scripts/review_packet.py --lane $L \
-    --contract "$env:CLAUDE_PROMPTS_DIR/LANE-<letter>-<id>-<slug>.md" \
-    --range main..worktree-$L --handback "<the HANDBACK line>" \
-    $(git diff --name-only main..worktree-$L | sed 's/^/--changed /') \
-    --out logs/REVIEW-INPUT-$L.md
+M=$(git rev-parse HEAD)
 
-# Suite and review CONCURRENTLY, not review queued behind the suite ([#675] target 3.3).
+# 2. VERIFY -- the merge moment, called after the local merge. It runs the ordered-vs-actual model
+#    comparator FIRST (a disagreement exits non-zero and stops the moment before anything else is
+#    spent), then the review packet, then the gate list (scripts/gates.py: audit, ship-gate, ruff,
+#    impacted tests -- one verdict artifact), then test pairing. HARNESS_CHANGED is a placeholder
+#    the declared row requires: after a merge the packet reads the file list off the merge commit
+#    itself, so no list is typed here and none can be abbreviated.
+HARNESS_LANE=$L HARNESS_BATCH=<n> HARNESS_CONTRACT="$CLAUDE_PROMPTS_DIR/LANE-<letter>-<id>-<slug>.md" \
+HARNESS_HANDBACK="<the HANDBACK line>" HARNESS_CHANGED=$M \
+  $R time --slug $L --step assemble --class ceremony -- $DOIT moment:merge
+
+# Suite and review CONCURRENTLY, not review queued behind the suite ([#675] target 3.3). The
+# reviewer is handed logs/receipts/MOMENT-MERGE-REVIEW-PACKET.md, written by the moment above.
 $R race --slug $L \
   --job "suite:tests=uv run --locked pytest -q --dist worksteal --max-worker-restart=0" \
   --job "review:review=<the reviewer, handed the packet above>"
+
+# 3. PUSH -- only if step 2 and the race exited 0. (Option A of the PUSH FIRST box below.)
+git push
+
+# 4. TEAR DOWN, then call the teardown moment, which verifies the removal was complete.
 $R time --slug $L --step teardown --class ceremony -- \
   git worktree remove .claude/worktrees/$L
 git worktree prune
 git branch -d worktree-$L
+HARNESS_LANE=$L $DOIT moment:teardown
 ```
+
+**A non-zero exit from step 2 is a REFUSAL, and it is recorded.** The comparator's exit code is
+its verdict: the `models` verb exits 0 only when the tier the contract ordered is the tier
+the lane's transcript shows it ran — a divergence, an unverifiable split and an empty store all
+exit non-zero. `doit` stops at the first failed organ, so a refused comparison means no gate ran,
+and the failed organ's receipt (`logs/receipts/MOMENT-MERGE-MODELS.json`, `exit_code`) is the
+record. **Do not push and do not tear down.** The local merge commit stays where it is: undoing it
+is a `git reset`, which is destructive and which this command never runs — hold the lane, tell the
+operator, and stop the walk (the next lane would merge on top of it). The gate list is the same
+shape: `logs/receipts/MOMENT-MERGE-GATES-VERDICT.json` names each gate, its exit code and its
+duration, and a RED verdict is a refusal to push, not a note.
+
+**Why the review range is not `main..worktree-$L` any more — one line:** after the merge, main
+already contains the branch, so that range is **empty by construction**; the packet now reads the
+merge commit against its first parent (`<merge>^1..<merge>`), which is non-empty for the same
+reason. `review_packet.py` swaps an empty range for the merge's own and refuses to render one it
+cannot resolve.
+
+**Honest limit, inherited from the declaration and not fixable from this file.** The `models` row
+carries no `--worktree`, so it reads the transcript filed under the checkout the moment runs in —
+the primary — rather than under the lane's worktree, and the verdict can be `no-transcript` or a
+reading of the integrator's own session. That fails CLOSED (non-zero), never as a false pass, but
+it means step 2 refuses until the declared row names the lane's worktree. Recorded in
+`to-browser/QUESTION-lane-l4-integrator-surface.md`; the declaration is L1/L7's file, not this
+lane's.
 
 **Why those two are one block.** The suite is the merge's longest step and the review does not
 depend on it, so serially the merge pays `suite + review` and raced it pays `max(suite, review)`.
@@ -201,9 +247,11 @@ from an honest unknown are different facts and one of them is a bug.
 > good read supersedes the `IN-PROGRESS` one and the receipt completes. Retrying is the mechanism,
 > not a workaround.
 >
-> **THIS SECTION'S POSITION IN THE WALK IS UNRESOLVED AND THE CHOICE IS NOT A LANE'S** (`[#750]`,
-> escalated at handback). As written this file pushes **once**, after the last lane, while this
-> read sits inside each lane's block — and those two cannot both be right. Until it is ruled:
+> **RESOLVED 2026-09-20 by the frozen L4 contract (clause 1: "merge locally, verify, push, then
+> tear down"): OPTION (A), push per merge.** The block below is written that way. It was open
+> (`[#750]`, escalated at handback) because this file used to push **once**, after the last lane,
+> while this read sits inside each lane's block — and those two cannot both be right. The options
+> as they were put:
 >
 > * **(A) push per merge**, inside this block, before this read. Keeps each receipt's span honest —
 >   one merge, one wall time. Costs: every merge pays its own pre-push gates, and with no open batch
@@ -214,7 +262,7 @@ from an honest unknown are different facts and one of them is a bug.
 >   itemise. Not recommended.
 >
 > **`close` must follow `actions`, and `actions` must follow the push.** That ordering holds under
-> either choice; only where the push sits is open.
+> either choice; the walk now pushes inside each lane's block, before `actions`.
 >
 > **The finding underneath is older than `[#750]` and worth stating once.** `[#675]` target 3.2
 > asks for *"the integrator READING the result"*, and this walk has read the verdict pre-push since
@@ -346,7 +394,7 @@ it seemed fine.
 | 1 | Every lane branch merged-or-explicitly-abandoned | `git branch --list 'worktree-lane-*'` is empty, and every planned lane has a merge SHA or a recorded abandonment |
 | 2 | Full suite run once on the merged result | `uv run --locked pytest -q --dist worksteal --max-worker-restart=0` on the final merged `main`, verdict quoted |
 | 2b | Every merge's Actions result was READ and its verdict recorded ([#675] 3.2) | `uv run --locked python scripts/merge_receipt.py actions --slug <lane> --sha <merge>` was run per merge, **after that merge was pushed** (§2's PUSH FIRST box — pre-push it reads `NO-RUN` and row 2d refuses), and its output is in the batch packet. **Do not pass `--baseline`:** it is derived from `<sha>^1` and a value that is not the first parent is refused, because the baseline selects the verdict. **"Recorded" is now literal, not a habit** (`[#750]`): the state is on the receipt and in the ledger row by name, which is what row 2d then reads — so this row and that one are the same fact checked at two moments, the reading and the ledger. A `PRE-EXISTING` verdict is an OPEN item with the failing jobs NAMED — it is not a pass, and "the run was red before us" is a recorded fact rather than a reason to skip the row. It is nonetheless COMPLETE for row 2d, and those two statements do not conflict: the merge is measurable, and the red is still owed to the packet. `NO-RUN` / `IN-PROGRESS` / `GH-UNAVAILABLE` / `JOBS-UNREADABLE` are each recorded as themselves; none of them is ever written down as green. `JOBS-UNREADABLE` means the run was found and its jobs were not, so the suite result is UNKNOWN — retry the read before recording it, and record the unknown rather than an assumption if it persists ([#742]) |
-| 2c | Every reviewed lane was handed a PRE-ASSEMBLED packet, and review was not cut ([#675] 3.5) | `logs/REVIEW-INPUT-<lane>.md` exists per reviewed lane and the reviewer was pointed at it. The packet's **declared vs actual** section is read, not skimmed: a `WRITTEN BUT NOT DECLARED` entry is an OPEN item, because the contract forbids edits outside the declared footprint and the dispatch-time refusal cannot see them by construction |
+| 2c | Every reviewed lane was handed a PRE-ASSEMBLED packet, and review was not cut ([#675] 3.5) | `logs/receipts/MOMENT-MERGE-REVIEW-PACKET.md` was written by the merge moment for each reviewed lane (the receipts home is per checkout and gitignored, so read it before the next lane's moment overwrites it) and the reviewer was pointed at it. The packet's **declared vs actual** section is read, not skimmed: a `WRITTEN BUT NOT DECLARED` entry is an OPEN item, because the contract forbids edits outside the declared footprint and the dispatch-time refusal cannot see them by construction |
 | 2d | Every merge in the walk range carries a COMPLETE `kind=merge` receipt ([#750], ruling AY1-1) | `uv run --locked python scripts/merge_receipt.py require --range <the FIRST merge's first parent>..HEAD` exits 0, run after the last `close`. It enumerates the first-parent merge commits in the range and REFUSES any that no complete receipt names — a **missing** receipt, or one whose suite verdict is `REGRESSED` or unreadable. It NAMES the merges that passed as well as the ones that did not, and a range holding **no merge at all** says so rather than printing OK, because "0 of 0 unreceipted" is exactly the plausible-value failure `[#675]` is filed about. A bad range **fails CLOSED**. **THREE** ways to read a refusal wrong, and the first is the one that will actually happen: (i) a `NO-RUN` verdict on every merge means **you have not pushed yet** — `actions` reads a run that does not exist until the merge is on origin, so this row refuses the whole batch if the reads ran pre-push (see §2's PUSH FIRST box; `IN-PROGRESS` behaves the same and is fixed by re-reading, since the verdict is last-wins); (ii) an OPEN receipt is invisible to it (close first); (iii) a `PRE-EXISTING` suite verdict is COMPLETE — the row does not refuse a merge for main being red before it |
 | 3 | `git worktree list` == primary only | run it; one line of output |
 | 4 | Manifest/packet archived | the lane manifest and end-of-batch packet are committed in the tree |
