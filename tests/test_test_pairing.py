@@ -438,5 +438,84 @@ def test_parsing_and_isolation_use_only_the_standard_library():
     assert seen - allowed == set(), f"non-stdlib imports: {sorted(seen - allowed)}"
 
 
+# --- the second codex terra pass: four HIGH findings against the plugin path -------------------
+
+def test_a_malformed_event_row_fails_closed(tmp_path):
+    events = tmp_path / "events.jsonl"
+    events.write_text('{"id": "t.py::a", "when": "call", "outcome": "passed"}\n{"id": "t.py::b", "wh\n',
+                      encoding="utf-8")
+    with pytest.raises(test_pairing.PairingError):
+        test_pairing.read_events(events)
+
+
+def test_a_missing_event_file_fails_closed_rather_than_reading_as_all_green(repo, tmp_path,
+                                                                          monkeypatch):
+    root, base = repo
+    head = _commit(root, {"tests/test_new.py": "def test_new():\n    assert False\n"}, "a real red")
+    monkeypatch.setattr(test_pairing, "_PLUGIN", "")  # the reporting plugin does nothing at all
+
+    with pytest.raises(SystemExit) as exc:
+        test_pairing.main([base, head, "--repo", str(root), "--out", str(tmp_path / "v.json"),
+                           "--workers", "0"])
+
+    assert exc.value.code == 2, "a run that reported nothing must not become a CLEAN verdict"
+
+
+def test_a_skipped_only_run_is_not_mistaken_for_a_missing_report(repo, tmp_path):
+    root, base = repo
+    head = _commit(root, {"tests/test_skip.py":
+                          "import pytest\n\n\ndef test_skip():\n    pytest.skip('nope')\n"}, "skips")
+
+    code, verdict = _run(root, base, head, tmp_path)
+
+    assert verdict["verdict"] == "CLEAN" and code == 0
+
+
+def test_many_workers_lose_no_result(tmp_path):
+    clone = tmp_path / "scratch" / "clone"
+    (clone / "tests").mkdir(parents=True)
+    (clone / "tests" / "test_many.py").write_text(
+        "import pytest\n\n\n@pytest.mark.parametrize('n', range(300))\ndef test_n(n):\n    pass\n",
+        encoding="utf-8")
+
+    results = test_pairing.run_pytest(clone, ["tests/test_many.py"], workers=3, timeout=None)
+
+    assert len(results) == 300 and set(results.values()) == {"PASSED"}
+
+
+def test_the_callers_pythonpath_is_not_inherited_by_the_clone_run(repo, tmp_path, monkeypatch):
+    root, base = repo
+    log = tmp_path / "pythonpath.log"
+    monkeypatch.setenv("PAIRING_PP_LOG", str(log))
+    monkeypatch.setenv("PYTHONPATH", str(tmp_path / "the-callers-checkout"))
+    probe = ("import os\n\n\ndef test_probe():\n"
+             "    open(os.environ['PAIRING_PP_LOG'], 'a').write(os.environ.get('PYTHONPATH', '') + '\\n')\n")
+    head = _commit(root, {"tests/test_pp.py": probe}, "probe PYTHONPATH")
+
+    _run(root, base, head, tmp_path)
+
+    seen = log.read_text(encoding="utf-8")
+    assert "the-callers-checkout" not in seen, "the caller's path can shadow the tree under test"
+
+
+@pytest.mark.parametrize("target", ["tests", ".", "scripts", "tests/"])
+def test_explicit_tests_must_be_files_never_a_directory(repo, tmp_path, target):
+    root, base = repo
+    head = _commit(root, {"tests/test_new.py": "def test_new():\n    assert True\n"}, "green")
+    with pytest.raises(SystemExit) as exc:
+        test_pairing.main([base, head, "--repo", str(root), "--out", str(tmp_path / "v.json"),
+                           "--workers", "0", "--tests", target])
+    assert exc.value.code == 2
+
+
+def test_an_explicit_node_id_is_accepted(repo, tmp_path):
+    root, base = repo
+    head = _commit(root, {"tests/test_new.py": "def test_new():\n    assert False\n"}, "red")
+
+    code, verdict = _run(root, base, head, tmp_path, "--tests", "tests/test_new.py::test_new")
+
+    assert _ids(verdict["lane"]) == ["tests/test_new.py::test_new"] and code == 1
+
+
 def test_no_option_can_run_the_full_suite():
     assert "--full" not in (_SCRIPTS / "test_pairing.py").read_text(encoding="utf-8")
