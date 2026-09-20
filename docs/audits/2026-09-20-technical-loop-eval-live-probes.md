@@ -14,7 +14,7 @@ probe  question                                                            verdi
 B1     SDK: does the Python hook fire+deny; does the budget end the run     PASS
        and report its cost?
 B2     codex exec (terra): prompt in -> result + usage out, in B1's shape?  PARTIAL
-B3     pydoit: does a re-run skip completed stages?                         FAIL  (re-executes every stage, by design)
+B3     pydoit: does a re-run skip completed stages?                         FAIL  (re-executes every stage: `uptodate: [False]`, no reason stated)
 B4     a --bg spawn from inside a session gets an Agent View row + record?  PASS
 ```
 
