@@ -451,3 +451,112 @@ def test_a_disagreeing_model_comparison_refuses_the_merge_step(tmp_path):
     assert not (tmp_path / "receipts" / "MOMENT-MERGE-GATES.json").exists(), \
         "the gates ran although the model comparison refused"
     assert not (tmp_path / "gate-ran.txt").exists()
+
+
+# --- Codex terra review findings: RED-first regressions -------------------------------------------
+
+def _commit_tree(repo: Path, *parents: str) -> str:
+    tree = _git(repo, "rev-parse", "HEAD^{tree}")
+    args = ["commit-tree", tree]
+    for parent in parents:
+        args += ["-p", parent]
+    return _git(repo, *args, "-m", "synthetic")
+
+
+def test_an_octopus_merge_is_refused_not_rendered_as_a_lane_merge(tmp_path):
+    import review_packet as rp
+
+    repo, merge = _synthetic_merge(tmp_path)
+    base = _git(repo, "rev-parse", f"{merge}^1")
+    lane = _git(repo, "rev-parse", f"{merge}^2")
+    octopus = _commit_tree(repo, base, lane, base)
+    with pytest.raises(rp.PacketIncomplete):
+        rp.merge_range(repo, octopus)
+
+
+def test_two_merges_of_the_same_tip_are_refused_as_ambiguous(tmp_path):
+    import review_packet as rp
+
+    repo, merge = _synthetic_merge(tmp_path)
+    lane = _git(repo, "rev-parse", f"{merge}^2")
+    again = _commit_tree(repo, merge, lane)
+    _git(repo, "reset", "-q", "--hard", again)
+    with pytest.raises(rp.PacketIncomplete, match="ambiguous|more than one"):
+        rp.resolve_range(repo, f"main..worktree-{LANE}")
+
+
+def test_an_empty_symmetric_range_is_refused_too(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git(repo, "init", "-q", "-b", "main")
+    (repo / "f.txt").write_text("x\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "base")
+    _git(repo, "branch", f"worktree-{LANE}")
+    contract = tmp_path / "LANE-fixture.md"
+    contract.write_text(_CONTRACT, encoding="utf-8", newline="\n")
+    proc = subprocess.run(
+        [sys.executable, str(_SCRIPTS / "review_packet.py"), "--repo", str(repo), "--lane", LANE,
+         "--contract", str(contract), "--range", f"main...worktree-{LANE}", "--handback", "HANDBACK",
+         "--changed", "f.txt", "--out", str(tmp_path / "p.md")],
+        capture_output=True, text=True)
+    assert proc.returncode != 0
+    assert "empty" in (proc.stdout + proc.stderr).lower(), proc.stdout + proc.stderr
+    assert not (tmp_path / "p.md").exists()
+
+
+def test_a_runner_that_calls_sys_exit_is_a_red_gate_not_a_green_process(tmp_path):
+    import gates
+
+    def bad(_cwd, _base):
+        raise SystemExit(0)
+
+    marker = tmp_path / "after"
+    listing = (gates.Gate(name="exits", runner=bad), _marker_gate(gates, "after", marker))
+    verdict = gates.run_gates(listing, lane=LANE, cwd=tmp_path)
+    assert verdict["verdict"] == "RED" and "exits" in verdict["red"]
+    assert marker.exists(), "the gates after the one that exited must still run"
+
+
+def _walk_block() -> str:
+    """The per-lane bash block of the integrator command, placeholders made syntactically valid."""
+    blocks = re.findall(r"```bash\n(.*?)```", _command_text(), flags=re.S)
+    block = next(b for b in blocks if "moment:merge" in b and "git push" in b)
+    return block.replace("<n>", "1")
+
+
+def _run_walk(tmp: Path, fail_on: str) -> list[str]:
+    """Run the REAL block under bash with `uv` and `git` stubbed onto PATH; return every call made."""
+    import shutil
+
+    bash = shutil.which("bash")
+    assert bash, "bash is required to execute the integrator's command block"
+    bindir = tmp / "bin"
+    bindir.mkdir()
+    log = tmp / "calls.log"
+    (bindir / "git").write_text(
+        '#!/bin/sh\necho "git $*" >> "$CALLS"\n[ "$1" = "rev-parse" ] && echo deadbeef\nexit 0\n',
+        encoding="utf-8", newline="\n")
+    (bindir / "uv").write_text(
+        '#!/bin/sh\necho "uv $*" >> "$CALLS"\n'
+        'if [ -n "$FAIL_ON" ]; then case "$*" in *"$FAIL_ON"*) exit 1;; esac; fi\nexit 0\n',
+        encoding="utf-8", newline="\n")
+    env = {**os.environ, "CALLS": str(log), "FAIL_ON": fail_on,
+           "PATH": str(bindir) + os.pathsep + os.environ["PATH"]}
+    subprocess.run([bash, "-c", _walk_block()], env=env, capture_output=True, text=True, cwd=tmp)
+    return log.read_text(encoding="utf-8").splitlines() if log.exists() else []
+
+
+def test_the_walk_reaches_push_when_every_verification_passes(tmp_path):
+    """POSITIVE CONTROL: without it the refusals below would pass on a block that never runs."""
+    calls = _run_walk(tmp_path, fail_on="")
+    assert any(c.startswith("git push") for c in calls), calls
+    assert any("moment:teardown" in c for c in calls), calls
+
+
+@pytest.mark.parametrize("failing", ["moment:merge", "race"])
+def test_a_refused_verification_never_reaches_push_or_teardown(tmp_path, failing):
+    calls = _run_walk(tmp_path, fail_on=failing)
+    assert any(failing in c for c in calls), f"the failing step never ran: {calls}"
+    assert not any(c.startswith("git push") for c in calls), calls
+    assert not any("worktree remove" in c or "moment:teardown" in c for c in calls), calls
