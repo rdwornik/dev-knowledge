@@ -22,10 +22,10 @@ stages:
   - {stage: 10, name: impacted-tests, field: tests, kind: deterministic, always: true, reason: "selects from the live diff against main", command: [uv, run, --locked, python, scripts/impacted_tests.py, select, --ref, main]}
   - {stage: 11, name: token-cap, field: token-cap, kind: deterministic, command: [uv, run, --locked, python, scripts/dispatch.py, plan, "{contract}", --slug, spine-plan, --token-cap, "1000000000000"]}
   - {stage: 12, name: contract, field: contract, kind: deterministic, command: [uv, run, --locked, python, scripts/gen_lane_contract.py, distill, --kind, "{kind}", --subject, "{subject}", --stdout]}
-# Stage 7 validates {contract}. Stage 11 FILLS the cap field (N3: a record, set out of any lane's reach); it runs `plan`, never `govern`.
+# Stage 7 validates {contract}. Stage 11 FILLS the cap field (N3: a record, set out of any lane's reach); it runs `plan`, not `govern`.
 # moments: `doit -f scripts/dodo.py moment:<name>`. Nothing calls a moment yet -- the four native triggers
 # (dispatch shim, Stop hook, integrator command, git pre-push) are wave 2's wiring -- so every organ carries
-# `manual_until` (a date; after it the organ must be armed or re-dated). An organ's `receipt` is UPPERCASE-KEBAB, undated.
+# `manual_until` (a date; after it the organ is armed or re-dated). An organ's `receipt` is UPPERCASE-KEBAB, undated.
 moments:
   - name: lane-start
     trigger: "dispatch shim, immediately before `claude --bg` launches the lane"

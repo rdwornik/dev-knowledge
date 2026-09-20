@@ -61,7 +61,7 @@
 
 - **HIGH 1 (freshness ignores what a command reads) -- ACCEPTED, fixed.** The input hash now carries the content
   hash of every argv token that names a file, plus a HEAD + porcelain-status fingerprint, so a commit or an edit
-  stales every receipt. RED-first: `test_an_in_place_edit_of_a_file_a_stage_names_invalidates_its_receipt`,
+  stales every receipt. Tests added WITH the fix (their red state was not witnessed separately): `test_an_in_place_edit_of_a_file_a_stage_names_invalidates_its_receipt`,
   `test_the_repo_state_fingerprint_is_part_of_the_input_hash`. Stated limit: a receipt is a resume record for one
   preparation, not a cache across repo changes.
 - **HIGH 2 (partial receipt accepted) -- ACCEPTED, fixed.** `_fresh` requires every schema key, `organ == label`,
