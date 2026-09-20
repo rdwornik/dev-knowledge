@@ -6,7 +6,7 @@
 **Diff range:** `main..worktree-lane-l6-test-pairing`
 **Codex version:** codex-cli 0.155.0
 **Mode:** diff-review
-**Tally:** TBD/TBD/TBD/TBD <!-- Critical/High/Medium/Low. FILL FROM THE FINDINGS SECTION before committing. The hub's review_artifact_coverage leg parses four digits here; TBD deliberately does not parse, so an unfilled tally keeps WARNing instead of shipping a number nobody counted. -->
+**Tally:** 0/5/0/0
 
 **Model used:** `gpt-5.6-terra` (pinned; both lanes — [#469])
 **Review profile:** code
@@ -67,3 +67,27 @@
 ## Low
 
 (none)
+
+---
+
+## Disposition (lane-l6-test-pairing, appended after the fixes)
+
+Every HIGH was opened against the code it cites before acceptance. **5 ACCEPT, 0 REJECT.**
+Each fix has its own RED-first test, committed and witnessed failing in its own commit
+(`test(pairing): RED -- the five HIGH findings...`: 8 failed, 16 passed) before the fix commit
+(`fix(pairing): codex terra HIGH 1-5`).
+
+1. **Flaky baseline masks a lane red as pre-existing (`:220`)** -- ACCEPT. The pre-existing set is
+   now rerun once on BASE in one batch; a red that passes there becomes a lane candidate
+   (`was: red-once-on-base`) and faces the HEAD rerun. `--no-confirm-baseline` skips it and the
+   verdict says `baseline_confirmed: false`. Test:
+   `test_a_transient_baseline_red_does_not_mask_a_lane_red_as_preexisting`.
+2. **Unmatched brackets in a parametrised id (`:143`)** -- ACCEPT. The `-rA` summary parser is
+   gone; results come from a pytest plugin that records exact node ids. Test:
+   `test_a_parametrised_id_with_unmatched_brackets_is_recorded_exactly`.
+3. **Collection errors recorded as a first `FAILED` (`:230`)** -- ACCEPT. Observations start from
+   the candidate's real HEAD status. Test: `test_a_collection_error_records_ERROR_as_its_first_observation`.
+4. **`--reruns 0` disables the flake check (`:230`)** -- ACCEPT. Refused (exit 2). Test:
+   `test_zero_reruns_is_refused_because_it_would_disable_the_flake_rule`.
+5. **A leftover clone can exit 0 (`:282`)** -- ACCEPT. An unremoved scratch directory forces
+   exit 2. Test: `test_a_leftover_clone_is_a_non_zero_exit_even_when_the_pairing_is_clean`.
