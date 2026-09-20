@@ -122,6 +122,24 @@ def test_the_cli_turns_an_empty_post_merge_range_into_the_merge_range(tmp_path):
     assert f"main..worktree-{LANE}" not in text
 
 
+def test_a_merge_range_reads_the_file_list_off_the_merge_not_off_the_caller(tmp_path):
+    """The declared organ hands `--changed <one placeholder>`. After a merge the change IS the merge
+    commit, so a caller-supplied list -- necessarily an abbreviation of it -- is not trusted."""
+    repo, merge = _synthetic_merge(tmp_path)
+    contract = tmp_path / "LANE-fixture.md"
+    contract.write_text(_CONTRACT, encoding="utf-8", newline="\n")
+    out = tmp_path / "packet.md"
+    proc = subprocess.run(
+        [sys.executable, str(_SCRIPTS / "review_packet.py"), "--repo", str(repo), "--lane", LANE,
+         "--contract", str(contract), "--range", f"main..worktree-{LANE}",
+         "--handback", "HANDBACK x @ y code review=codex HIGH:0 MED:0 LOW:0",
+         "--changed", "lane-a.txt", "--out", str(out)],
+        capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    text = out.read_text(encoding="utf-8")
+    assert "Files actually changed (2)" in text and "lane-b.txt" in text
+
+
 def test_the_cli_derives_the_changed_files_from_an_explicit_merge(tmp_path):
     repo, merge = _synthetic_merge(tmp_path)
     contract = tmp_path / "LANE-fixture.md"
