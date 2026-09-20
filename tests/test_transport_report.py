@@ -1,4 +1,4 @@
-"""lane-l8-lane-end: every finished lane reports to the transport by itself.
+"""lane-l8-lane-end: transport_report -- every finished lane reports to the transport by itself.
 
 RED-first (ADR-108 s.B, DECLARE-NIGHT N2/N3): authored and witnessed FAILING before
 `scripts/transport_report.py` and `scripts/lane_digest.py` existed.
@@ -253,76 +253,3 @@ def test_an_unexpected_error_is_a_recorded_failure_not_a_traceback_or_a_block(wo
     assert code not in (0, 2)
     res = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
     assert res["delivered"] is False and "synthetic" in res["reason"]
-
-
-# --- 4. the digest ------------------------------------------------------------------------------
-
-def _lane(ld, name, receipts, did=(), cost=None):
-    return ld.LaneInput(name=name, receipts=list(receipts), did=list(did), cost_usd=cost)
-
-
-def test_digest_names_every_lane_and_every_open_item():
-    ld = _mod("lane_digest")
-    lanes = [
-        _lane(ld, "lane-l2-dispatch-guards", [_receipt("lane_cost"), _receipt("gates")],
-              did=["guard the dispatch verb"], cost=3.5),
-        _lane(ld, "lane-l3-organ-truth",
-              [_receipt("lane_cost"), _receipt("gates", "failed", 1),
-               _receipt("no_leftovers", "SKIPPED-NOT-BUILT", 0)], did=["fix the organ table"]),
-        _lane(ld, "lane-l4-integrator-surface", []),
-    ]
-    text = ld.render_digest(lanes)
-    for name in ("lane-l2-dispatch-guards", "lane-l3-organ-truth", "lane-l4-integrator-surface"):
-        assert name in text
-    assert "guard the dispatch verb" in text and "fix the organ table" in text
-    # every non-ok organ is an open item, in words
-    assert "gates" in text and "no leftovers" in text
-    # a lane with no receipts is itself an open item
-    assert "no receipts" in text.lower()
-
-
-def test_digest_gives_each_lane_a_verdict_and_a_cost_or_says_none_was_recorded():
-    ld = _mod("lane_digest")
-    text = ld.render_digest([
-        _lane(ld, "lane-a", [_receipt("gates")], cost=12.34),
-        _lane(ld, "lane-b", [_receipt("gates", "failed", 1)]),
-    ])
-    assert "12.34" in text
-    assert "not recorded" in text.lower()
-    verdicts = ld.verdicts([_lane(ld, "lane-a", [_receipt("gates")]),
-                            _lane(ld, "lane-b", [_receipt("gates", "failed", 1)]),
-                            _lane(ld, "lane-c", [_receipt("gates", "SKIPPED-NOT-BUILT", 0)])])
-    assert verdicts["lane-a"] != verdicts["lane-b"] != verdicts["lane-c"]
-    assert len(set(verdicts.values())) == 3
-
-
-def test_digest_is_plain_language_no_internal_identifiers():
-    ld = _mod("lane_digest")
-    text = ld.render_digest([_lane(ld, "lane-a", [
-        _receipt("gates", "failed", 1), _receipt("digest", "SKIPPED-NOT-BUILT", 0),
-        _receipt("transport_report", "SKIPPED-NO-INPUT", 0)])])
-    assert "SKIPPED" not in text and "abc123" not in text and ".json" not in text
-    assert "exit_code" not in text and "input_hash" not in text
-
-
-def test_digest_cli_reads_the_receipts_of_a_batch(tmp_path):
-    root = tmp_path / "worktrees"
-    _write_receipts(root / "lane-a" / "logs" / "receipts", [_receipt("gates")])
-    _write_receipts(root / "lane-b" / "logs" / "receipts", [_receipt("gates", "failed", 1)])
-    costs = tmp_path / "LANE-COSTS.jsonl"
-    costs.write_text(json.dumps({"slug": "lane-a", "usd": 7.25}) + "\n", encoding="utf-8")
-    proc = subprocess.run([sys.executable, str(_DIGEST), "--root", str(root), "--costs-file", str(costs),
-                           "--repo", str(tmp_path)], capture_output=True, text=True, timeout=60)
-    assert proc.returncode == 0, proc.stderr
-    assert "lane-a" in proc.stdout and "lane-b" in proc.stdout and "7.25" in proc.stdout
-
-
-def test_digest_lane_form_is_the_moment_command_and_never_fails_the_lane(tmp_path):
-    """`lane_digest.py --lane {lane}` is the command harness.yaml declares."""
-    receipts = tmp_path / "receipts"
-    _write_receipts(receipts, [_receipt("gates")])
-    proc = subprocess.run([sys.executable, str(_DIGEST), "--lane", LANE, "--receipts-dir", str(receipts),
-                           "--repo", str(tmp_path), "--costs-file", str(tmp_path / "none.jsonl")],
-                          capture_output=True, text=True, timeout=60)
-    assert proc.returncode == 0, proc.stderr
-    assert LANE in proc.stdout
