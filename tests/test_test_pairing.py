@@ -298,21 +298,132 @@ def test_the_default_verdict_path_honours_the_receipts_home(repo, tmp_path, monk
     assert json.loads((home / "TEST-PAIRING-VERDICT.json").read_text(encoding="utf-8"))["schema"]
 
 
-def test_parsing_reads_the_pytest_summary_lines():
-    text = "\n".join([
-        "PASSED tests/test_a.py::test_ok",
-        "FAILED tests/test_a.py::test_bad - assert 1 == 2",
-        "FAILED tests/test_b.py::test_p[a - b] - AssertionError: x",
-        "ERROR tests/test_c.py - ModuleNotFoundError: No module named 'x'",
-        "SKIPPED [1] tests/test_a.py:9: reason",
-        "== 2 failed, 1 passed in 0.1s ==",
-    ])
-    parsed = test_pairing.parse_results(text)
-    assert parsed["tests/test_a.py::test_ok"] == "PASSED"
-    assert parsed["tests/test_a.py::test_bad"] == "FAILED"
-    assert parsed["tests/test_c.py"] == "ERROR"
-    assert parsed["tests/test_b.py::test_p[a - b]"] == "FAILED"
-    assert len(parsed) == 4, "the SKIPPED and the totals lines are not results"
+def test_results_come_from_exact_node_ids_not_from_a_parsed_summary(tmp_path):
+    events = tmp_path / "events.jsonl"
+    rows = [
+        {"id": "tests/test_a.py::test_ok", "when": "call", "outcome": "passed"},
+        {"id": "tests/test_a.py::test_bad", "when": "call", "outcome": "failed"},
+        {"id": "tests/test_b.py::test_p[a] - [b]", "when": "call", "outcome": "failed"},
+        {"id": "tests/test_c.py", "when": "collect", "outcome": "failed"},
+        {"id": "tests/test_d.py::test_fx", "when": "setup", "outcome": "failed"},
+        {"id": "tests/test_e.py::test_skip", "when": "setup", "outcome": "skipped"},
+        {"id": "tests/test_f.py::test_td", "when": "call", "outcome": "passed"},
+        {"id": "tests/test_f.py::test_td", "when": "teardown", "outcome": "failed"},
+    ]
+    events.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
+
+    parsed = test_pairing.read_events(events)
+
+    assert parsed == {
+        "tests/test_a.py::test_ok": "PASSED",
+        "tests/test_a.py::test_bad": "FAILED",
+        "tests/test_b.py::test_p[a] - [b]": "FAILED",
+        "tests/test_c.py": "ERROR",
+        "tests/test_d.py::test_fx": "ERROR",
+        "tests/test_f.py::test_td": "ERROR",
+    }
+
+
+# --- the codex terra review's five HIGH findings -----------------------------------------------
+
+def test_a_transient_baseline_red_does_not_mask_a_lane_red_as_preexisting(repo, tmp_path,
+                                                                        monkeypatch):
+    root, _ = repo
+    counter = tmp_path / "base-counter.txt"
+    monkeypatch.setenv("PAIRING_FLAKE_COUNTER", str(counter))
+    flaky = (
+        "import os\nfrom pathlib import Path\n\n\ndef test_shared():\n"
+        "    p = Path(os.environ['PAIRING_FLAKE_COUNTER'])\n"
+        "    n = int(p.read_text()) if p.exists() else 0\n"
+        "    p.write_text(str(n + 1))\n"
+        "    assert n >= 1\n"
+    )
+    base = _commit(root, {"tests/test_shared.py": flaky}, "a baseline red that is only transient")
+    head = _commit(root, {"tests/test_shared.py": "def test_shared():\n    assert False\n"},
+                   "the lane makes it really fail")
+
+    code, verdict = _run(root, base, head, tmp_path)
+
+    assert verdict["preexisting"] == [], "a red that passes on a base rerun was never pre-existing"
+    assert _ids(verdict["lane"]) == ["tests/test_shared.py::test_shared"]
+    assert verdict["lane"][0]["was"] == "red-once-on-base"
+    assert verdict["baseline_confirmed"] is True
+    assert code == 1
+
+
+def test_a_stable_baseline_red_is_still_preexisting_after_confirmation(repo, tmp_path):
+    root, _ = repo
+    base = _commit(root, {"scripts/old.py": "X = 1\n",
+                          "tests/test_old.py": "import old\n\n\ndef test_old():\n    assert False\n"},
+                   "a stable red")
+    head = _commit(root, {"scripts/old.py": "X = 2\n"}, "touch")
+
+    code, verdict = _run(root, base, head, tmp_path)
+
+    assert _ids(verdict["preexisting"]) == ["tests/test_old.py::test_old"]
+    assert verdict["baseline_confirmed"] is True and code == 0
+
+
+def test_the_baseline_confirmation_can_be_skipped_and_the_verdict_says_so(repo, tmp_path):
+    root, base = repo
+    head = _commit(root, {"tests/test_new.py": "def test_new():\n    assert True\n"}, "green")
+
+    _, verdict = _run(root, base, head, tmp_path, "--no-confirm-baseline")
+
+    assert verdict["baseline_confirmed"] is False
+
+
+def test_a_parametrised_id_with_unmatched_brackets_is_recorded_exactly(repo, tmp_path):
+    root, base = repo
+    odd = ("import pytest\n\n\n@pytest.mark.parametrize('x', ['a] - [b'])\n"
+           "def test_odd(x):\n    assert False\n")
+    head = _commit(root, {"tests/test_odd.py": odd}, "an id that defeats a bracket count")
+
+    _, verdict = _run(root, base, head, tmp_path)
+
+    assert _ids(verdict["lane"]) == ["tests/test_odd.py::test_odd[a] - [b]"]
+    assert verdict["lane"][0]["observations"] == ["FAILED", "FAILED"], "the rerun target was exact"
+
+
+def test_a_collection_error_records_ERROR_as_its_first_observation(repo, tmp_path):
+    root, base = repo
+    head = _commit(root, {"tests/test_broken.py": "import no_such_module_xyz\n"}, "cannot import")
+
+    _, verdict = _run(root, base, head, tmp_path)
+
+    assert _ids(verdict["lane"]) == ["tests/test_broken.py"]
+    assert verdict["lane"][0]["observations"] == ["ERROR", "ERROR"]
+
+
+def test_zero_reruns_is_refused_because_it_would_disable_the_flake_rule(repo, tmp_path):
+    root, base = repo
+    with pytest.raises(SystemExit) as exc:
+        test_pairing.main([base, base, "--repo", str(root), "--reruns", "0",
+                           "--out", str(tmp_path / "v.json")])
+    assert exc.value.code == 2
+
+
+def test_a_leftover_clone_is_a_non_zero_exit_even_when_the_pairing_is_clean(repo, tmp_path,
+                                                                          monkeypatch):
+    root, base = repo
+    head = _commit(root, {"tests/test_new.py": "def test_new():\n    assert True\n"}, "green")
+    leaked: list[Path] = []
+    real = test_pairing.remove_tree
+
+    def fake(path):
+        leaked.append(path)
+        return False
+
+    monkeypatch.setattr(test_pairing, "remove_tree", fake)
+    try:
+        code, verdict = _run(root, base, head, tmp_path)
+    finally:
+        for p in leaked:
+            real(p)
+
+    assert verdict["verdict"] == "CLEAN"
+    assert verdict["cleanup"].startswith("LEFTOVER")
+    assert code == 2
 
 
 def test_parsing_and_isolation_use_only_the_standard_library():
