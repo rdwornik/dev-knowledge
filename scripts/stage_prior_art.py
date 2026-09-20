@@ -28,8 +28,9 @@ whether it truncated. Its own runtime is printed; the wrapper records the wall t
 LIBRARY-FIRST, as a command and its output (2026-09-20):
   $ git ls-files docs/audits docs/archive | wc -l      ->  ~1,110 files, ~25 MB
   $ uv run --locked python scripts/stage_prior_art.py emit --subject <absent term>
-                                                       ->  runtime_ms=1.3-1.7 s on this box
-                                                           (git log 0.6 s + reading 1,250 files 0.6 s)
+                                                       ->  runtime_ms=1.3-1.7 s idle on this box
+                                                           (git log 0.6 s + reading 1,250 files 0.6 s);
+                                                           5-8 s while other lanes load the disk
   stdlib `pathlib` + `str.lower` chosen over `git grep` (needs a second parse of `path:line:text`, and
   skips untracked files a lane has just written) and over `rg` (not a declared dependency). REJECTED:
   ranking, stemming or a model to "summarise" candidates -- the stage is deterministic, the reader
@@ -43,6 +44,7 @@ Layer-2 / read-only: reads the tree and `git log`, writes nothing.
 """
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import time
@@ -70,33 +72,45 @@ def _snippet(line: str) -> str:
     return line if len(line) <= _SNIPPET else line[:_SNIPPET - 3] + "..."
 
 
-def search_root(root: Path, sub: str, term: str) -> "tuple[int, list[tuple[str, int, str]]]":
-    """Scan one content root. Returns (files scanned, [(path, line, snippet)] -- one per matching file).
+def _walk(base: Path) -> "list[Path]":
+    """Every file under `base`, newest name first. An unreadable directory raises: os.walk (like
+    Path.rglob) would otherwise skip it silently and the caller would print NONE FOUND for a tree
+    it never read."""
+    def fail(exc: OSError) -> None:
+        raise SearchError(f"cannot read directory {exc.filename}: {exc.strerror or exc}") from exc
 
-    Line 0 means the match was on the file NAME only. Newest-first by name (the roots use
-    date-slug names), so a truncated list keeps the most recent records."""
-    base = root / sub
-    needle = term.lower()
-    needle_b = needle.encode("ascii") if needle.isascii() else None
+    files = [Path(d) / f for d, _dirs, names in os.walk(base, onerror=fail) for f in names]
+    return sorted(files, reverse=True)
+
+
+def search_root(root: Path, sub: str, term: str) -> "tuple[int, list[tuple[str, int, str]]]":
+    """Scan one content root. Returns (text files scanned, [(path, line, snippet)] -- one per matching file).
+
+    Line 0 means the match was on the file NAME only (a binary file is never read, but its name is
+    still matched). Newest-first by name (the roots use date-slug names), so a truncated list keeps
+    the most recent records. Matching is Unicode-casefolded, not just lowercased."""
+    needle = term.casefold()
     scanned, hits = 0, []
-    for path in sorted((p for p in base.rglob("*") if p.is_file()), reverse=True):
+    for path in _walk(root / sub):
+        rel = path.relative_to(root).as_posix()
         try:
             data = path.read_bytes()
         except OSError as exc:
-            raise SearchError(f"cannot read {path.relative_to(root).as_posix()}: {exc}") from exc
-        if b"\x00" in data[:4096]:
-            continue  # binary: not searchable text
+            raise SearchError(f"cannot read {rel}: {exc}") from exc
+        if b"\x00" in data[:4096]:  # binary: not searchable text, but the name is still evidence
+            if needle in rel.casefold():
+                hits.append((rel, 0, "(file name matches; binary content not read)"))
+            continue
         scanned += 1
-        rel = path.relative_to(root).as_posix()
-        # ASCII terms (the norm) test the raw bytes, so only a matching file is ever decoded.
-        matched = needle_b in data.lower() if needle_b else needle in data.decode("utf-8", errors="replace").lower()
-        if matched:
-            text = data.decode("utf-8", errors="replace")
+        text = data.decode("utf-8", errors="replace")
+        if needle in text.casefold():
             for n, line in enumerate(text.splitlines(), 1):
-                if needle in line.lower():
+                if needle in line.casefold():
                     hits.append((rel, n, _snippet(line)))
                     break
-        elif needle in rel.lower():
+            else:  # the phrase spans a line break: still a hit, located at the file
+                hits.append((rel, 0, "(phrase spans a line break)"))
+        elif needle in rel.casefold():
             hits.append((rel, 0, "(file name matches)"))
     return scanned, hits
 
@@ -129,9 +143,11 @@ def emit_lines(root: Path, subject: str, limit: int) -> "list[str]":
     commits = search_git(root, term)
     per_root: "list[tuple[str, int | None, list]]" = []
     for sub in CONTENT_ROOTS:
-        if not (root / sub).is_dir():
+        if not (root / sub).exists():
             per_root.append((sub, None, []))  # absent: recorded, never counted as searched
             continue
+        if not (root / sub).is_dir():
+            raise SearchError(f"{sub} exists but is not a directory, so it cannot be searched")
         scanned, hits = search_root(root, sub, term)
         per_root.append((sub, scanned, hits))
     found = len(commits) + sum(len(h) for _, _, h in per_root)
