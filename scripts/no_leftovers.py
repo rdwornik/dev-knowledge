@@ -122,7 +122,7 @@ def _git_out(repo: Path, *args: str) -> tuple[str | None, str]:
 # --- small helpers ---------------------------------------------------------------
 
 def _norm(path: str | Path) -> str:
-    return str(path).replace("\\", "/").rstrip("/").casefold()
+    return re.sub(r"[\\/]+", "/", str(path)).rstrip("/").casefold()
 
 
 def _lane_re(slug: str) -> re.Pattern[str]:
