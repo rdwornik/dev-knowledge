@@ -185,6 +185,24 @@ def test_4_fails_for_an_admin_entry_under_a_renamed_directory_pointing_at_the_la
     assert not _run(hub, jobs)[4].passed
 
 
+def test_4_passes_for_a_digit_suffixed_admin_entry_that_belongs_to_a_live_sibling(hub, jobs):
+    # Codex HIGH: `<slug>1` is git's collision suffix, but it is THIS lane's only if its gitdir says so.
+    _add_lane(hub, SLUG + "1")
+    assert _run(hub, jobs)[4].passed
+
+
+def test_4_fails_closed_on_an_admin_entry_whose_gitdir_cannot_be_read(hub, jobs):
+    # Codex HIGH: unreadable administrative evidence must not be accepted as clean.
+    (hub / ".git" / "worktrees" / "unrelated-name").mkdir(parents=True)
+    res = _run(hub, jobs)[4]
+    assert not res.passed and "unrelated-name" in res.evidence
+
+
+def test_4_fails_closed_on_an_ambiguous_suffixed_entry_with_no_readable_target(hub, jobs):
+    (hub / ".git" / "worktrees" / (SLUG + "2")).mkdir(parents=True)
+    assert not _run(hub, jobs)[4].passed
+
+
 def test_5_fails_for_a_surviving_local_lane_branch(hub, jobs):
     _git(hub, "branch", f"worktree-{SLUG}")
     assert not _run(hub, jobs)[5].passed
@@ -233,11 +251,12 @@ def test_8_matches_a_record_by_branch_when_the_path_is_missing(hub, jobs):
     assert not _run(hub, jobs)[8].passed
 
 
-def test_8_tolerates_an_unparseable_neighbour_record_but_says_so(hub, jobs):
+def test_8_fails_closed_on_a_job_record_it_cannot_parse(hub, jobs):
+    # Codex HIGH: a record that cannot be inspected may still point at the lane.
     (jobs / "deadbeef").mkdir()
     (jobs / "deadbeef" / "state.json").write_text("{not json", encoding="utf-8")
     res = _run(hub, jobs)[8]
-    assert res.passed and "deadbeef" in res.evidence
+    assert not res.passed and "deadbeef" in res.evidence
 
 
 def test_8_fails_when_the_jobs_directory_cannot_be_read(hub, tmp_path):
