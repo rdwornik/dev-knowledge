@@ -332,15 +332,13 @@ def test_slugless_run_is_clean_when_there_is_no_husk(hub, capsys):
     assert nl.main(["verify", "--repo", str(hub)]) == 0
 
 
-def test_a_slugged_run_also_reports_husks_belonging_to_other_lanes(hub, jobs, tmp_path, capsys):
+def test_a_slugged_run_names_other_lanes_husks_but_does_not_let_them_decide_its_verdict(
+        hub, jobs, tmp_path, capsys):
     (hub / ".claude" / "worktrees" / "lane-old-husk").mkdir(parents=True)
-    agents = tmp_path / "agents.json"
-    agents.write_text("[]", encoding="utf-8")
-    rc = nl.main(["verify", "--lane", SLUG, "--repo", str(hub), "--jobs-dir", str(jobs),
-                  "--agents-json", str(agents)])
+    rc = nl.main(_cli(hub, jobs, tmp_path))
     out = capsys.readouterr().out
-    assert "lane-old-husk" in out
-    assert rc == 1                           # a husk anywhere is a leftover the teardown must not call clean
+    assert "lane-old-husk" in out            # visible ...
+    assert rc == 0                           # ... but this lane's teardown is judged on this lane
 
 
 # --- the CLI: exit code and report -------------------------------------------------
