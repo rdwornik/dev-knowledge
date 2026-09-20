@@ -135,6 +135,8 @@ def run_gates(gates: Sequence[Gate], *, lane: str, cwd: Path, base: Optional[str
                 code, text = gate.runner(cwd, base)
             except Exception as exc:  # a gate that raises is a red gate, with the reason on it
                 code, text = 1, f"gate raised {exc!r}"
+            except SystemExit as exc:  # a runner must not end the PROCESS green under the verdict
+                code, text = 1, f"gate runner called sys.exit({exc.code!r}) -- recorded as a failure"
         else:
             code, text = _run_argv(gate.argv, cwd)
         rows.append({"name": gate.name, "argv": list(gate.argv), "exit_code": int(code),

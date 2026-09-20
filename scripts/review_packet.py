@@ -108,9 +108,12 @@ def merge_range(repo: "Path | str", merge_sha: str) -> str:
     REFUSES a commit with fewer than two parents: a plain commit has a first parent too, and its
     `^1..` range would read as a merge's without being one."""
     full = _git(repo, "rev-parse", "--verify", f"{merge_sha}^{{commit}}")
-    if len(_git(repo, "rev-list", "--parents", "-n", "1", full).split()) < 3:
-        raise PacketIncomplete(f"{merge_sha} is not a merge commit (fewer than two parents) -- "
-                               "the merge range is only defined for a merge")
+    parents = _git(repo, "rev-list", "--parents", "-n", "1", full).split()[1:]
+    if len(parents) != 2:
+        raise PacketIncomplete(
+            f"{merge_sha} has {len(parents)} parent(s) -- a lane merge has exactly two. A plain "
+            "commit's `^1..` reads as a merge's without being one, and an octopus's `^1..` folds "
+            "in every non-first-parent branch, so neither is a lane's change")
     return f"{full}^1..{full}"
 
 
@@ -124,11 +127,17 @@ def changed_in_merge(repo: "Path | str", merge_sha: str) -> tuple[str, ...]:
 def _merge_of_tip(repo: "Path | str", base: str, tip: str) -> "str | None":
     """The first-parent merge on `base` whose second parent is `tip` (a `--no-ff` lane merge)."""
     want = _git(repo, "rev-parse", "--verify", f"{tip}^{{commit}}")
+    found = []
     for line in _git(repo, "log", "--first-parent", "--merges", "--format=%H %P", base).splitlines():
         sha, *parents = line.split()
         if len(parents) >= 2 and parents[1] == want:
-            return sha
-    return None
+            found.append(sha)
+    if len(found) > 1:
+        raise PacketIncomplete(
+            f"ambiguous: {len(found)} first-parent merges on {base!r} have {tip!r} as their second "
+            f"parent ({', '.join(s[:10] for s in found)}) -- more than one merge could be the one "
+            "under review; pass --merge <sha> to name it")
+    return found[0] if found else None
 
 
 def resolve_range(repo: "Path | str", diff_range: str) -> str:
@@ -137,11 +146,14 @@ def resolve_range(repo: "Path | str", diff_range: str) -> str:
     An empty `A..B` whose B is a merged lane tip is the old post-merge formulation -- swap it for
     the merge that brought B in. An empty range with no such merge is refused: rendering a packet
     against nothing is the false pass this module exists to prevent."""
-    if ".." not in diff_range or "..." in diff_range:
+    if ".." not in diff_range:
         return diff_range
-    base, tip = diff_range.split("..", 1)
     if _git(repo, "rev-list", diff_range):
         return diff_range
+    if "..." in diff_range:  # a symmetric range has no merge to resolve to: empty is refused outright
+        raise PacketIncomplete(f"the range {diff_range!r} is empty -- refusing to render a packet "
+                               "against nothing")
+    base, tip = diff_range.split("..", 1)
     merge = _merge_of_tip(repo, base, tip)
     if merge is None:
         raise PacketIncomplete(

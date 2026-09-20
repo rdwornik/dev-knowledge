@@ -304,7 +304,7 @@ def _command_text() -> str:
 
 
 def test_the_integrator_calls_the_merge_moment_after_the_local_merge_and_teardown_after_push():
-    text = _command_text()
+    text = _walk_block()  # the executable block, not the prose around it
     merge = text.index("git merge --no-ff")
     moment_merge = text.index("moment:merge")
     push = text.index("git push", moment_merge)
@@ -455,12 +455,12 @@ def test_a_disagreeing_model_comparison_refuses_the_merge_step(tmp_path):
 
 # --- Codex terra review findings: RED-first regressions -------------------------------------------
 
-def _commit_tree(repo: Path, *parents: str) -> str:
+def _commit_tree(repo: Path, *parents: str, message: str = "synthetic") -> str:
     tree = _git(repo, "rev-parse", "HEAD^{tree}")
     args = ["commit-tree", tree]
     for parent in parents:
         args += ["-p", parent]
-    return _git(repo, *args, "-m", "synthetic")
+    return _git(repo, *args, "-m", message)
 
 
 def test_an_octopus_merge_is_refused_not_rendered_as_a_lane_merge(tmp_path):
@@ -469,7 +469,8 @@ def test_an_octopus_merge_is_refused_not_rendered_as_a_lane_merge(tmp_path):
     repo, merge = _synthetic_merge(tmp_path)
     base = _git(repo, "rev-parse", f"{merge}^1")
     lane = _git(repo, "rev-parse", f"{merge}^2")
-    octopus = _commit_tree(repo, base, lane, base)
+    third = _commit_tree(repo, base, message="a third, distinct parent")
+    octopus = _commit_tree(repo, base, lane, third)
     with pytest.raises(rp.PacketIncomplete):
         rp.merge_range(repo, octopus)
 

@@ -122,41 +122,41 @@ which organs and in what order (comparator, review packet, gate list, test pairi
 no-leftovers check). A moment leaves one receipt per organ under `logs/receipts/` and exits
 non-zero if any required organ did.
 
+The four steps, in order — the block below is ONE `&&` chain so that **each step runs only if the
+one before it exited 0**. A refusal at step 2 or in the race therefore cannot reach the push, and a
+failed push cannot reach the teardown; pasted as separate lines, the same commands would push
+regardless (Codex terra review, CRITICAL, `docs/audits/2026-09-20-codex-l4-integrator-surface.md`):
+
+1. **MERGE locally** (`M` is the merge commit).
+2. **VERIFY** — `moment:merge`, called after the local merge. It runs the ordered-vs-actual model
+   comparator FIRST (a disagreement exits non-zero and stops the moment before anything else is
+   spent), then the review packet, then the gate list (`scripts/gates.py`: audit, ship-gate, ruff,
+   impacted tests — one verdict artifact), then test pairing. `HARNESS_CHANGED` is a placeholder the
+   declared row requires: after a merge the packet reads the file list off the merge commit itself,
+   so no list is typed here and none can be abbreviated. Then suite and review run CONCURRENTLY, not
+   review queued behind the suite (`[#675]` target 3.3); the reviewer is handed
+   `logs/receipts/MOMENT-MERGE-REVIEW-PACKET.md`, written by the moment.
+3. **PUSH** (option A of the PUSH FIRST box below).
+4. **TEAR DOWN**, then `moment:teardown`, which verifies the removal was complete.
+
 ```bash
 R="uv run --locked python scripts/merge_receipt.py"
 L="lane-<letter>-<id>-<slug>"
 DOIT="uv run --locked doit -f scripts/dodo.py"
 
-# 1. MERGE locally.
-$R time --slug $L --step merge --class ceremony -- \
-  git merge --no-ff worktree-$L
-M=$(git rev-parse HEAD)
-
-# 2. VERIFY -- the merge moment, called after the local merge. It runs the ordered-vs-actual model
-#    comparator FIRST (a disagreement exits non-zero and stops the moment before anything else is
-#    spent), then the review packet, then the gate list (scripts/gates.py: audit, ship-gate, ruff,
-#    impacted tests -- one verdict artifact), then test pairing. HARNESS_CHANGED is a placeholder
-#    the declared row requires: after a merge the packet reads the file list off the merge commit
-#    itself, so no list is typed here and none can be abbreviated.
-HARNESS_LANE=$L HARNESS_BATCH=<n> HARNESS_CONTRACT="$CLAUDE_PROMPTS_DIR/LANE-<letter>-<id>-<slug>.md" \
-HARNESS_HANDBACK="<the HANDBACK line>" HARNESS_CHANGED=$M \
-  $R time --slug $L --step assemble --class ceremony -- $DOIT moment:merge
-
-# Suite and review CONCURRENTLY, not review queued behind the suite ([#675] target 3.3). The
-# reviewer is handed logs/receipts/MOMENT-MERGE-REVIEW-PACKET.md, written by the moment above.
-$R race --slug $L \
-  --job "suite:tests=uv run --locked pytest -q --dist worksteal --max-worker-restart=0" \
-  --job "review:review=<the reviewer, handed the packet above>"
-
-# 3. PUSH -- only if step 2 and the race exited 0. (Option A of the PUSH FIRST box below.)
-git push
-
-# 4. TEAR DOWN, then call the teardown moment, which verifies the removal was complete.
-$R time --slug $L --step teardown --class ceremony -- \
-  git worktree remove .claude/worktrees/$L
-git worktree prune
-git branch -d worktree-$L
-HARNESS_LANE=$L $DOIT moment:teardown
+$R time --slug $L --step merge --class ceremony -- git merge --no-ff worktree-$L \
+&& M=$(git rev-parse HEAD) \
+&& HARNESS_LANE=$L HARNESS_BATCH=<n> HARNESS_CONTRACT="$CLAUDE_PROMPTS_DIR/LANE-<letter>-<id>-<slug>.md" \
+   HARNESS_HANDBACK="<the HANDBACK line>" HARNESS_CHANGED=$M \
+   $R time --slug $L --step assemble --class ceremony -- $DOIT moment:merge \
+&& $R race --slug $L \
+   --job "suite:tests=uv run --locked pytest -q --dist worksteal --max-worker-restart=0" \
+   --job "review:review=<the reviewer, handed the packet above>" \
+&& git push \
+&& $R time --slug $L --step teardown --class ceremony -- git worktree remove .claude/worktrees/$L \
+&& git worktree prune \
+&& git branch -d worktree-$L \
+&& HARNESS_LANE=$L $DOIT moment:teardown
 ```
 
 **A non-zero exit from step 2 is a REFUSAL, and it is recorded.** The comparator's exit code is
