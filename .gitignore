@@ -181,3 +181,9 @@ temp/
 # record. Not anchored to root: the home is `logs/prompts/` by convention, not a bare
 # top-level name a hermetization rule needs to disambiguate.
 logs/prompts/
+# SPINE / MOMENT RECEIPTS (lane-l1-spine-moments; scripts/dodo.py, `telemetry_emit.py wrap --receipt`) -- one
+# machine-written file per stage or organ run: the doit TARGET, "receipt present = step done" (DECLARE-NIGHT N2).
+# Follows the `logs/prompts/` precedent above (RECON-NIGHT 2026-09-20 s2 shape (a)): under `logs/`, in a
+# sub-directory, gitignored, so it never meets the hermetization gate. Undated names: logs_retention would
+# move a dated one out from under its own doit target.
+logs/receipts/

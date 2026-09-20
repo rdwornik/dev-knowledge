@@ -1,18 +1,54 @@
 # ecosystem/harness.yaml -- the spine as DATA (DECLARE-SPINE-AND-B3 s4-5; ADR-97 invariant 5: the contract is the artifact).
 # One row per stage: the argv that realises it, the contract field it fills, deterministic|judgement.
 # NO logic here. `command: null` means the stage does not exist -- dodo.py STOPS the run at it and
-# names it. Placeholders (str.replace, not format): {kind} {subject} <- HARNESS_KIND / HARNESS_SUBJECT.
+# names it. Placeholders (str.replace, not format): {kind} {subject} {lane} {batch} {contract} {handback}
+# {changed} {receipts} <- HARNESS_KIND / HARNESS_SUBJECT / HARNESS_LANE / ... ({contract} defaults to the stage-4 draft).
 # The spine PREPARES A CONTRACT. It moves no row through a phase (that is [#669] / [#689]).
+# RECEIPTS (DECLARE-NIGHT N2): every stage and organ runs through `telemetry_emit.py wrap` and writes one
+# receipt under logs/receipts/ (gitignored). The receipt is the doit target: a row is up to date when its
+# receipt records exit 0 and the input hash it would compute now. `always: true` + `reason:` exempts a row
+# that reads live state. Moments (below) are where organs fire; L1 owns THIS FILE alone -- a wave-2 lane
+# builds the command a moment already declares (`optional: true` until it exists -> SKIPPED-NOT-BUILT, N4).
 stages:
   - {stage: 1, name: kind-subject, field: subject, kind: judgement, command: [git, --no-pager, grep, -n, -F, -e, "| {subject} |", --, protocols/BUILD-LIST.md]}
   - {stage: 2, name: prior-art, field: prior-art, kind: deterministic, command: [git, --no-pager, log, --oneline, -n, "20", -i, -F, "--grep={subject}", --, tasks, scripts, protocols]}
-  - {stage: 3, name: carrier-row, field: carrier, kind: deterministic, command: [uv, run, --locked, python, scripts/gen_task_tree.py, --check]}
+  - {stage: 3, name: carrier-row, field: carrier, kind: deterministic, always: true, reason: "reads the live task tree, which a lane edits between runs", command: [uv, run, --locked, python, scripts/gen_task_tree.py, --check]}
   - {stage: 4, name: change-kind, field: kind, kind: judgement, command: [uv, run, --locked, python, scripts/gen_lane_contract.py, distill, --kind, "{kind}", --subject, "{subject}", --stdout]}
   - {stage: 5, name: dependencies, field: dependencies, kind: deterministic, command: [uv, run, --locked, python, scripts/file_purpose_graph.py, stats]}
   - {stage: 6, name: library-first, field: library-first, kind: deterministic, command: [uv, run, --locked, python, scripts/stage_library_first.py, emit]}
-  - {stage: 7, name: substrate, field: substrate, kind: deterministic, command: [uv, run, --locked, python, scripts/validate_substrate.py, --rules]}
+  - {stage: 7, name: substrate, field: substrate, kind: deterministic, command: [uv, run, --locked, python, scripts/validate_substrate.py, "{contract}"]}
   - {stage: 8, name: provider-model-version, field: model, kind: judgement, command: [uv, run, --locked, python, scripts/routing_agreement.py]}
-  - {stage: 9, name: organs, field: organs, kind: deterministic, command: [uv, run, --locked, python, scripts/generate_organ_index.py, --check]}
-  - {stage: 10, name: impacted-tests, field: tests, kind: deterministic, command: [uv, run, --locked, python, scripts/impacted_tests.py, select, --ref, main]}
-  - {stage: 11, name: token-cap, field: token-cap, kind: deterministic, command: null}
+  - {stage: 9, name: organs, field: organs, kind: deterministic, always: true, reason: "checks the generated organ index against the live scripts/ tree", command: [uv, run, --locked, python, scripts/generate_organ_index.py, --check]}
+  - {stage: 10, name: impacted-tests, field: tests, kind: deterministic, always: true, reason: "selects from the live diff against main", command: [uv, run, --locked, python, scripts/impacted_tests.py, select, --ref, main]}
+  - {stage: 11, name: token-cap, field: token-cap, kind: deterministic, command: [uv, run, --locked, python, scripts/dispatch.py, plan, "{contract}", --slug, spine-plan, --token-cap, "1000000000000"]}
   - {stage: 12, name: contract, field: contract, kind: deterministic, command: [uv, run, --locked, python, scripts/gen_lane_contract.py, distill, --kind, "{kind}", --subject, "{subject}", --stdout]}
+# Stage 7 validates {contract}. Stage 11 FILLS the cap field (N3: a record, set out of any lane's reach); it runs `plan`, never `govern`.
+# moments: `doit -f scripts/dodo.py moment:<name>`. Nothing calls a moment yet -- the four native triggers
+# (dispatch shim, Stop hook, integrator command, git pre-push) are wave 2's wiring -- so every organ carries
+# `manual_until` (a date; after it the organ must be armed or re-dated). An organ's `receipt` is UPPERCASE-KEBAB, undated.
+moments:
+  - name: lane-start
+    trigger: "dispatch shim, immediately before `claude --bg` launches the lane"
+    organs:
+      - {id: single_flight, receipt: MOMENT-LANE-START-SINGLE-FLIGHT.json, manual_until: 2026-10-04, always: true, reason: "reads the live lock ref", command: [uv, run, --locked, python, scripts/single_flight.py, inspect, "{lane}", --local-only]}
+      - {id: seat_refusals.refuse_no_live_integrator, receipt: MOMENT-LANE-START-NO-LIVE-INTEGRATOR.json, manual_until: 2026-10-04, always: true, reason: "reads the live seat registry", command: [uv, run, --locked, python, scripts/seat_refusals.py, no-live-integrator, --batch, "{batch}"]}
+      - {id: routing_agreement, receipt: MOMENT-LANE-START-ROUTING-AGREEMENT.json, manual_until: 2026-10-04, command: [uv, run, --locked, python, scripts/routing_agreement.py]}
+      - {id: worktree_occupancy, receipt: MOMENT-LANE-START-WORKTREE-OCCUPANCY.json, manual_until: 2026-10-04, optional: true, always: true, reason: "reads live worktrees and sessions", command: [uv, run, --locked, python, scripts/worktree_occupancy.py, "{lane}"]}
+  - name: merge
+    trigger: "integrator command, immediately before each `git merge --no-ff` of a handback"
+    organs:
+      - {id: merge_receipt.models, receipt: MOMENT-MERGE-MODELS.json, manual_until: 2026-10-04, always: true, reason: "reads the lane's live transcript", command: [uv, run, --locked, python, scripts/merge_receipt.py, models, --slug, "{lane}", --contract, "{contract}"]}
+      - {id: review_packet, receipt: MOMENT-MERGE-REVIEW-PACKET.json, manual_until: 2026-10-04, optional: true, always: true, reason: "packs the live diff range", command: [uv, run, --locked, python, scripts/review_packet.py, --lane, "{lane}", --contract, "{contract}", --range, "main..worktree-{lane}", --handback, "{handback}", --changed, "{changed}", --out, "{receipts}/MOMENT-MERGE-REVIEW-PACKET.md"]}
+      - {id: gates, receipt: MOMENT-MERGE-GATES.json, manual_until: 2026-10-04, optional: true, always: true, reason: "runs the gates against the live tree", command: [uv, run, --locked, python, scripts/gates.py, run, --lane, "{lane}"]}
+      - {id: test_pairing, receipt: MOMENT-MERGE-TEST-PAIRING.json, manual_until: 2026-10-04, optional: true, always: true, reason: "pairs the live red set against the merge-base", command: [uv, run, --locked, python, scripts/test_pairing.py, --lane, "{lane}"]}
+  - name: teardown
+    trigger: "integrator command, after merge and push, when the worktree and both its branches are removed"
+    organs:
+      - {id: no_leftovers, receipt: MOMENT-TEARDOWN-NO-LEFTOVERS.json, manual_until: 2026-10-04, optional: true, always: true, reason: "verifies removal against the live worktree and branch lists", command: [uv, run, --locked, python, scripts/no_leftovers.py, verify, --lane, "{lane}"]}
+  - name: lane-end
+    trigger: "Claude Code Stop hook (`session_end_backpressure.py`), at the end of each turn of a `--bg` lane"
+    organs:
+      - {id: lane_cost, receipt: MOMENT-LANE-END-LANE-COST.json, manual_until: 2026-10-04, always: true, reason: "reads the lane's live transcript", command: [uv, run, --locked, python, scripts/lane_cost.py, lane, --slug, "{lane}"]}
+      - {id: fleet_health.seat_health_line, receipt: MOMENT-LANE-END-SEAT-HEALTH.json, manual_until: 2026-10-04, always: true, reason: "reads the live seat registry", command: [uv, run, --locked, python, -c, "import sys; sys.path.insert(0, 'scripts'); import fleet_health as f; from pathlib import Path; print(f.seat_health_line(Path('.')) or '[seats] empty registry')"]}
+      - {id: transport_report, receipt: MOMENT-LANE-END-TRANSPORT-REPORT.json, manual_until: 2026-10-04, optional: true, always: true, reason: "reads the live transport drive", command: [uv, run, --locked, python, scripts/transport_report.py, --lane, "{lane}"]}
+      - {id: digest, receipt: MOMENT-LANE-END-DIGEST.json, manual_until: 2026-10-04, optional: true, always: true, reason: "digests the live lane state", command: [uv, run, --locked, python, scripts/lane_digest.py, --lane, "{lane}"]}

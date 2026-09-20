@@ -719,36 +719,105 @@ def safe_emit(emitter: Callable[..., int], *args: Any, **kwargs: Any) -> int | N
 # whole entry, which lands after `--`, exactly where the wrapped command expects them.
 # ===================================================================================
 
-def _cli_wrap(argv: list[str]) -> int:
-    """`wrap <hook-id> -- <python-args...>`: run `sys.executable <python-args...>`, time it,
-    record one `hook_run` event (outcome pass/block/error, `duration_ms`), and propagate the
-    wrapped command's exit code unchanged -- a recording failure must never turn a passing
-    hook into a failing one (`safe_emit`), and a wrapped-command failure must never be hidden
-    (the hook's own exit code is what pre-commit sees).
-    """
-    if len(argv) < 2 or argv[0] != "wrap":
-        print("usage: telemetry_emit.py wrap <hook-id> -- <python-args...>", file=sys.stderr)
-        return 2
-    hook_id = argv[1]
-    rest = argv[2:]
+# `wrap` options, all BEFORE the `--`. Absent, `wrap` is exactly the hook wrapper above; present,
+# it also writes one RECEIPT file (DECLARE-NIGHT N2: the receipt is the doit target, so a step's
+# "done" is a file). `--value` options take the next token; the rest are flags.
+_WRAP_VALUE_OPTS = {"--receipt": "receipt", "--input-hash": "input_hash", "--stdout-file": "stdout_file",
+                    "--model-requested": "model_requested", "--model-reported": "model_reported",
+                    "--skipped": "skipped"}
+_WRAP_FLAGS = {"--exec": "literal"}
+_RECEIPT_SCHEMA = 1
+
+
+def _parse_wrap_opts(rest: list[str]) -> tuple[dict[str, Any], list[str]]:
+    opts: dict[str, Any] = {}
+    while rest and rest[0] in {*_WRAP_VALUE_OPTS, *_WRAP_FLAGS}:
+        flag = rest[0]
+        if flag in _WRAP_FLAGS:
+            opts[_WRAP_FLAGS[flag]] = True
+            rest = rest[1:]
+        elif len(rest) < 2:
+            raise ValueError(f"{flag} needs a value")
+        else:
+            opts[_WRAP_VALUE_OPTS[flag]] = rest[1]
+            rest = rest[2:]
     if rest and rest[0] == "--":
         rest = rest[1:]
+    return opts, rest
+
+
+def _write_receipt(path: str, body: Mapping[str, Any]) -> None:
+    """One receipt, written whole or not at all: a kill between the write and the rename leaves the
+    previous receipt (or none), never a half-file that reads as "done"."""
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    tmp = target.with_name(f"{target.name}.{os.getpid()}.tmp")
+    tmp.write_text(json.dumps(body, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    os.replace(tmp, target)
+
+
+def _cli_wrap(argv: list[str]) -> int:
+    """`wrap <id> [options] -- <python-args...>`: run `sys.executable <python-args...>` (or the argv
+    itself with `--exec`), time it, record one `hook_run` event (outcome pass/block/error,
+    `duration_ms`), optionally write a receipt file, and propagate the wrapped command's exit code
+    unchanged -- a recording failure must never turn a passing hook into a failing one (`safe_emit`),
+    and a wrapped-command failure must never be hidden (the hook's own exit code is what pre-commit
+    sees).
+
+    Receipt options (`--receipt PATH` turns the receipt on): `--input-hash`, `--stdout-file` (the
+    wrapped stdout is kept there AND echoed), `--model-requested` / `--model-reported`, and
+    `--skipped STATUS` (write the receipt with that status and run nothing).
+    """
+    usage = "usage: telemetry_emit.py wrap <id> [receipt options] -- <python-args...>"
+    if len(argv) < 2 or argv[0] != "wrap":
+        print(usage, file=sys.stderr)
+        return 2
+    hook_id = argv[1]
+    try:
+        opts, rest = _parse_wrap_opts(argv[2:])
+    except ValueError as exc:
+        print(f"telemetry_emit wrap: {exc}\n{usage}", file=sys.stderr)
+        return 2
     if not hook_id or not rest:
-        print("usage: telemetry_emit.py wrap <hook-id> -- <python-args...>", file=sys.stderr)
+        print(usage, file=sys.stderr)
         return 2
 
+    def receipt(status: str, exit_code: int | None, duration_ms: int) -> None:
+        if "receipt" not in opts:
+            return
+        out_name = Path(opts["stdout_file"]).name if opts.get("stdout_file") else None
+        _write_receipt(opts["receipt"], {
+            "schema": _RECEIPT_SCHEMA, "organ": hook_id, "status": status, "exit_code": exit_code,
+            "duration_ms": duration_ms, "input_hash": opts.get("input_hash"),
+            "model_requested": opts.get("model_requested"), "model_reported": opts.get("model_reported"),
+            "command": rest, "output_file": out_name, "finished_at": _utc_now_iso()})
+
+    if opts.get("skipped"):
+        receipt(opts["skipped"], None, 0)
+        return 0
+    argv_run = rest if opts.get("literal") else [sys.executable, *rest]
     start = time.monotonic()
+    capture = opts.get("stdout_file")
     try:
-        proc = subprocess.run([sys.executable, *rest])
+        proc = subprocess.run(argv_run, stdout=subprocess.PIPE if capture else None,
+                              env={**os.environ, "PYTHONUTF8": "1"} if capture else None)
         rc = proc.returncode
     except OSError as exc:
         print(f"telemetry_emit wrap: failed to launch {rest!r}: {exc}", file=sys.stderr)
         duration_ms = int((time.monotonic() - start) * 1000)
         safe_emit(emit_hook_run, hook_id, "error", duration_ms=duration_ms)
+        receipt("error", 2, duration_ms)
         return 2
     duration_ms = int((time.monotonic() - start) * 1000)
+    if capture:
+        Path(capture).parent.mkdir(parents=True, exist_ok=True)
+        Path(capture).write_bytes(proc.stdout or b"")
+        sys.stdout.flush()
+        sys.stdout.buffer.write(proc.stdout or b"")
+        sys.stdout.buffer.flush()
     outcome = "pass" if rc == 0 else "block"
     safe_emit(emit_hook_run, hook_id, outcome, duration_ms=duration_ms)
+    receipt("ok" if rc == 0 else "failed", rc, duration_ms)
     return rc
 
 
@@ -756,7 +825,7 @@ def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     if args[:1] == ["wrap"]:
         return _cli_wrap(args)
-    print("usage: telemetry_emit.py wrap <hook-id> -- <python-args...>", file=sys.stderr)
+    print("usage: telemetry_emit.py wrap <id> [receipt options] -- <python-args...>", file=sys.stderr)
     return 2
 
 
