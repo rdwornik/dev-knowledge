@@ -219,6 +219,48 @@ def test_cli_cannot_look_is_not_reported_as_free(tmp_path, capsys):
     assert "FREE" not in capsys.readouterr().out
 
 
+# --- codex terra review (2026-09-20-codex-l2-dispatch-guards): fail closed ----------------------
+
+@requires_git
+def test_an_unreadable_directory_fails_closed_rather_than_reading_free(repo, monkeypatch):
+    """`Path.exists()` swallows OSError and answers False -- a husk we cannot stat would read
+    FREE. Anything but 'not found' must raise."""
+    real_stat = wo.os.stat
+
+    def boom(path, *a, **k):
+        if str(path).endswith(SLUG):
+            raise PermissionError("denied")
+        return real_stat(path, *a, **k)
+
+    monkeypatch.setattr(wo.os, "stat", boom)
+    with pytest.raises(wo.OccupancyError):
+        wo.check(SLUG, repo, sessions=[])
+
+
+@requires_git
+@pytest.mark.parametrize("bad", [
+    ["not-a-mapping"],
+    [42],
+    [{"status": "busy"}],                        # a busy session with no cwd: cannot be excluded
+    [{"cwd": "x", "status": None}],
+    [{"cwd": "x"}],                              # no status at all
+])
+def test_a_malformed_session_record_fails_closed(repo, bad):
+    with pytest.raises(wo.OccupancyError):
+        wo.check(SLUG, repo, sessions=bad)
+
+
+@requires_git
+def test_a_non_busy_session_without_a_cwd_is_harmless(repo):
+    assert wo.check(SLUG, repo, sessions=[{"status": "idle"}]).occupied is False
+
+
+@requires_git
+def test_the_cli_applies_the_same_validation_to_a_sessions_file(repo, capsys):
+    code, _ = _cli(repo, SLUG, ["oops"], capsys)
+    assert code == 2
+
+
 @requires_git
 def test_primary_root_resolves_from_a_lane_worktree():
     """Run from wherever the suite runs (a lane worktree or the primary): the primary checkout

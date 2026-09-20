@@ -398,3 +398,17 @@ def test_widening_does_not_change_the_batch_grammar_constants():
 def test_a_native_worktree_stays_out_of_the_lane_set():
     assert vbn.is_lane_branch("worktree-scratch") is False
     assert vbn.is_lane_branch("worktree-lane-nope") is False    # one token: not a hyphenated slug
+
+
+# --- codex terra review (2026-09-20-codex-l2-dispatch-guards): truncated batch shapes ----------
+
+@pytest.mark.parametrize("name", [
+    "worktree-lane-a-505",           # valid token + id, no slug: a truncated batch name
+    "worktree-lane-abcd-505",        # over-width token + id, no slug
+    "worktree-lane-ab-808",
+])
+def test_a_truncated_batch_shape_is_not_absorbed_by_the_general_form(name):
+    """These were unknown before the widening (they miss `LANE_BRANCH_RE`) and must stay so:
+    otherwise a merge of one would gain the ADR-110 exemption through the back door."""
+    assert vbn.is_lane_branch(name) is False
+    assert vbn.classify(name).kind == vbn.KIND_UNKNOWN
