@@ -153,6 +153,42 @@ def test_an_empty_subject_is_refused_because_it_would_match_everything(repo):
     assert result.exit_code != 0
 
 
+# --- codex terra review (docs/audits/2026-09-20-codex-l7-prior-art.md): "NONE FOUND" must be TRUE ------
+
+def test_a_present_root_that_is_not_a_directory_is_refused_not_reported_absent(repo):
+    shutil.rmtree(repo / "docs" / "archive")
+    (repo / "docs" / "archive").write_text("i am a file, not a root\n", encoding="utf-8")
+    result = _emit(repo, "zqxv-" + uuid.uuid4().hex)
+    assert result.exit_code == 1, result.output
+    assert "NONE FOUND" not in result.output
+
+
+def test_an_unreadable_root_is_refused_never_a_silent_none_found(repo, monkeypatch):
+    real = os.scandir
+
+    def scandir(path="."):
+        if str(path).replace("\\", "/").endswith("docs/audits"):
+            raise PermissionError(13, "denied", str(path))
+        return real(path)
+
+    monkeypatch.setattr(os, "scandir", scandir)
+    result = _emit(repo, "zqxv-" + uuid.uuid4().hex)
+    assert result.exit_code == 1, result.output
+    assert "NONE FOUND" not in result.output
+
+
+def test_a_binary_file_whose_name_holds_the_subject_is_still_a_candidate(repo):
+    (repo / "docs" / "audits" / "2026-09-03-zyxwbinary-export.bin").write_bytes(b"\x00\x01\x02")
+    result = _emit(repo, "zyxwbinary")
+    assert "docs/audits/2026-09-03-zyxwbinary-export.bin" in result.output, result.output
+
+
+def test_matching_is_unicode_case_folded_not_just_lowercased(repo):
+    (repo / "docs" / "audits" / "2026-09-04-street.md").write_text("die Straße bleibt\n", encoding="utf-8")
+    result = _emit(repo, "STRASSE")
+    assert "docs/audits/2026-09-04-street.md:1:" in result.output, result.output
+
+
 # --- Done-contract 4: bounded and timed -----------------------------------------------------------
 
 def test_the_result_count_is_bounded_and_says_it_truncated(repo):
@@ -214,8 +250,9 @@ def test_stage_2_row_keeps_its_stage_field_and_kind_and_points_at_the_script():
     assert (_REPO / "scripts" / "stage_prior_art.py").is_file()
 
 
-def test_the_other_eleven_stages_are_untouched_by_this_lane():
-    """Only stage 2's line may differ from main: pin the neighbours' commands by their script names."""
+def test_the_neighbouring_stage_rows_still_resolve_to_their_scripts():
+    """NOT a proof that only one line changed (that is `git diff main -- ecosystem/harness.yaml`, quoted
+    in the handback): it pins that stages 1, 6 and 7 still name their commands and 1-12 are all present."""
     stages = {s["stage"]: s for s in yaml.safe_load(_HARNESS.read_text(encoding="utf-8"))["stages"]}
     assert stages[1]["command"][:4] == ["git", "--no-pager", "grep", "-n"]
     assert "scripts/stage_library_first.py" in stages[6]["command"]

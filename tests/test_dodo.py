@@ -8,6 +8,7 @@ a phase -- that is [#669] / [#689] ground -- so `test_spine_moves_no_row_through
 """
 from __future__ import annotations
 
+import json
 import os
 import re
 import subprocess
@@ -124,6 +125,11 @@ def test_real_spine_gets_past_stage_6_on_the_dispatch_subject(tmp_path):
     # Anchored to the engine's own STOP line: stage 2 now echoes archive prose (candidate: lines), and
     # the audits about THIS very bug quote the phrase mid-line.
     assert not re.search(r"^STOP: stage 6 does not exist", text, re.MULTILINE), text[-800:]
+    # ...and the spine really REACHED stage 6 (a stage-2 failure would otherwise stop it earlier and
+    # leave the absence above vacuously true): its receipt is there and records exit 0.
+    receipt = next((tmp_path / "receipts").glob("SPINE-06-*.json"), None)
+    assert receipt is not None, sorted(p.name for p in (tmp_path / "receipts").glob("*"))
+    assert json.loads(receipt.read_text(encoding="utf-8"))["exit_code"] == 0
 
 
 def test_stage_6_fill_round_trips_through_the_check_and_prose_is_still_refused():
