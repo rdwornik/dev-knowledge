@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import ast
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -185,6 +184,7 @@ def test_the_module_states_in_one_line_why_a_clone_and_not_a_worktree():
 
 def test_a_failed_run_still_removes_its_clones(repo, tmp_path, monkeypatch):
     root, base = repo
+    head = _commit(root, {"tests/test_new.py": "def test_new():\n    assert True\n"}, "green")
     made: list[Path] = []
     real = test_pairing.make_clone
 
@@ -194,9 +194,16 @@ def test_a_failed_run_still_removes_its_clones(repo, tmp_path, monkeypatch):
         return path
 
     monkeypatch.setattr(test_pairing, "make_clone", spy)
-    with pytest.raises(SystemExit):
-        test_pairing.main(["nonexistent-sha", "HEAD", "--repo", str(root),
+
+    def boom(*args, **kwargs):
+        raise test_pairing.PairingError("boom")
+
+    monkeypatch.setattr(test_pairing, "run_pytest", boom)
+    with pytest.raises(SystemExit) as exc:
+        test_pairing.main([base, head, "--repo", str(root),
                            "--out", str(tmp_path / "v.json"), "--workers", "0"])
+    assert exc.value.code == 2
+    assert made, "no clone was made, so the cleanup was not exercised"
     assert all(not p.exists() for p in made)
 
 
@@ -304,7 +311,8 @@ def test_parsing_reads_the_pytest_summary_lines():
     assert parsed["tests/test_a.py::test_ok"] == "PASSED"
     assert parsed["tests/test_a.py::test_bad"] == "FAILED"
     assert parsed["tests/test_c.py"] == "ERROR"
-    assert "tests/test_b.py::test_p[a - b]" in parsed or "tests/test_b.py::test_p[a" in "".join(parsed)
+    assert parsed["tests/test_b.py::test_p[a - b]"] == "FAILED"
+    assert len(parsed) == 4, "the SKIPPED and the totals lines are not results"
 
 
 def test_parsing_and_isolation_use_only_the_standard_library():
