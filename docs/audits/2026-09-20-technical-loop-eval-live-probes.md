@@ -138,6 +138,7 @@ RESULT {"subtype": "error_max_budget_usd", "is_error": true, "num_turns": 5, "to
   `0.02` cap, `0.0259` spent (29 % over); (2) the SDK **yields the `ResultMessage` and then raises** `ResultError` from the
   same iterator, so a stage-13 adapter that does not `catch` sees a crash instead of a cost. Also: `dontAsk` + an
   explicit `allowed_tools` list gave a closed tool surface with no prompt.
+- **What B1 did not test** (Codex adversary, finding 12): it exercised one `query()` process with two tools, one hook and one budget. Process-tree teardown when the adapter itself dies, cancellation, crash recovery, a durable run identity, and cap enforcement after the adapter's death were **not** probed — the properties a RUN stage needs so that a writing agent is never left alive. "Adapter-shaped" is what B1 shows; "works as the stage-13 adapter" is not shown.
 
 ---
 
@@ -211,7 +212,7 @@ TaskFailed - taskid:stage:07-substrate
 Command failed: '['uv', 'run', '--locked', 'python', 'scripts/validate_substrate.py', '--rules']' returned 2
 ```
 
-**Verdict: FAIL — as wired, the spine has no resume.** Both runs re-executed stages 1-6 in full (30 s each, no speed-up, stage 5 and 6 re-emitted their output) and both halted at stage 7 with exit 2. The cause is on the page in `scripts/dodo.py:75`: every stage task is declared `"uptodate": [False]`, which tells doit the task is **never** up to date. That is a deliberate choice (a stage is a check against live state, and a cached "pass" would be a stale claim), but it means the answer to "do interrupted runs resume without a lost step" is **no**: a run that stops at stage N restarts at stage 1. doit's state db (`dodo.py:29-35`, in the system temp dir keyed by the checkout path) records task results, but no stage consults it. Resume, if wanted, is a design decision — either drop `uptodate: [False]` for the deterministic stages and key it on input hashes, or keep the recompute and pay the ~30 s per restart — and neither has been made.
+**Verdict: FAIL — as wired, the spine has no resume.** Both runs re-executed stages 1-6 in full (30 s each, no speed-up, stage 5 and 6 re-emitted their output) and both halted at stage 7 with exit 2. The cause is on the page in `scripts/dodo.py:75`: every stage task is declared `"uptodate": [False]`, which tells doit the task is **never** up to date. The file states no reason for it (recomputing is a defensible default for a check against live state, since a cached "pass" can be stale, but that is an inference, not a recorded policy), and the effect is that the answer to "do interrupted runs resume without a lost step" is **no**: a run that stops at stage N restarts at stage 1. doit's state db (`dodo.py:29-35`, in the system temp dir keyed by the checkout path) records task results, but no stage consults it. Resume, if wanted, is a design decision — either drop `uptodate: [False]` for the deterministic stages and key it on input hashes, or keep the recompute and pay the ~30 s per restart — and neither has been made. **Not probed** (Codex adversary, finding 10, UNVERIFIED): the state db is one file per checkout path (`dodo.py:29-38`), so two spine runs in the same checkout would share it; whether doit serialises or corrupts that is not measured here.
 
 ---
 
