@@ -33,8 +33,12 @@ FLAKE RULE. A red that appears once is not attributed on one observation. Each c
 rerun in isolation on HEAD; if any rerun passes it is a FLAKE and the lane is not charged for it.
 A red that stays red keeps both observations, so the integrator can see it was tried twice.
 
-HONEST LIMITS. (1) Only HEAD is rerun: a test that is red on BASE for a flaky reason and green
-on HEAD shows as `fixed`. (2) A test whose result depends on gitignored state (e.g.
+BASELINE RULE. The same doubt applies to BASE: a pre-existing red that passes on a rerun on BASE
+was never pre-existing and could be hiding a lane-caused red of the same id. The pre-existing
+set is rerun once on BASE (batched); any that pass become lane candidates (`was:
+red-once-on-base`) and face the HEAD rerun. `--no-confirm-baseline` skips this, cheaper and weaker.
+
+HONEST LIMITS. (1) A test red on BASE for a flaky reason and green on HEAD shows as `fixed`. (2) A test whose result depends on gitignored state (e.g.
 `ecosystem/*/state.yaml`) sees neither side's copy -- both clones lack it, so it cannot skew the
 PAIR, but the reds it produces are reds of a bare checkout. (3) `impacted_tests` measures a
 miss-rate of about one affected file in twenty; a clean pairing is not a full-suite pass.
@@ -52,6 +56,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -68,8 +73,6 @@ ISOLATION_REASON = (
 )
 
 _RED = ("FAILED", "ERROR")
-_STATUS = re.compile(r"^(PASSED|FAILED|ERROR)\s+(\S.*?)\s*$")
-_SUMMARY_HEADER = "short test summary info"
 _TEST_FILE = re.compile(r"(^|/)(test_[^/]*|[^/]*_test)\.py$")
 
 
@@ -121,45 +124,79 @@ def _xdist_args(workers: int) -> list[str]:
     return ["-n", str(workers)] if importlib.util.find_spec("xdist") else []
 
 
-def parse_results(text: str) -> dict[str, str]:
-    """{nodeid: PASSED|FAILED|ERROR} from `pytest -rA` output; stdlib only.
+#: The results surface. Reading pytest's own hooks gives EXACT node ids; parsing the `-rA`
+#: summary cannot, because a parametrised id may legally contain ` - ` and unmatched brackets
+#: and the summary appends ` - <message>` to the same line. The plugin runs INSIDE pytest, so it
+#: is not part of this module's imports; this module only reads the JSON lines it writes.
+_PLUGIN = """\
+import json
+import os
 
-    Reads the short-summary section (after its header when present) so a test that prints a
-    line starting with `FAILED` cannot forge a result. A `FAILED`/`ERROR` line carries a
-    ` - message` tail; a parametrised id may itself contain ` - `, so the split is taken at
-    the first ` - ` whose prefix has balanced brackets.
+
+def _emit(row):
+    with open(os.environ["TEST_PAIRING_EVENTS"], "a", encoding="utf-8") as fh:
+        fh.write(json.dumps(row) + "\\n")
+
+
+def pytest_runtest_logreport(report):
+    _emit({"id": report.nodeid, "when": report.when, "outcome": report.outcome})
+
+
+def pytest_collectreport(report):
+    if report.failed:
+        _emit({"id": report.nodeid, "when": "collect", "outcome": "failed"})
+"""
+_PLUGIN_NAME = "tp_events_plugin"
+
+
+def read_events(path: Path) -> dict[str, str]:
+    """{nodeid: PASSED|FAILED|ERROR} from the plugin's JSON lines; stdlib only.
+
+    A failed `call` is FAILED; a failed setup/teardown/collect is ERROR; a red is never
+    overwritten by a later green, and a duplicate line (xdist reports in both the worker and
+    the controller) changes nothing.
     """
-    if _SUMMARY_HEADER in text:
-        text = text.rsplit(_SUMMARY_HEADER, 1)[1]
     results: dict[str, str] = {}
-    for raw in text.splitlines():
-        m = _STATUS.match(raw)
-        if not m:
+    if not path.is_file():
+        return results
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        try:
+            row = json.loads(line)
+        except ValueError:
             continue
-        status, rest = m.groups()
-        nodeid = rest
+        test_id, when, outcome = row.get("id"), row.get("when"), row.get("outcome")
+        if not test_id:
+            continue
+        if outcome == "failed":
+            status = "FAILED" if when == "call" else "ERROR"
+        elif outcome == "passed" and when == "call":
+            status = "PASSED"
+        else:
+            continue
         if status in _RED:
-            start = 0
-            while (i := rest.find(" - ", start)) != -1:
-                if rest[:i].count("[") == rest[:i].count("]"):
-                    nodeid = rest[:i]
-                    break
-                start = i + 3
-        results[nodeid.strip()] = status
+            if results.get(test_id) not in _RED:
+                results[test_id] = status
+        else:
+            results.setdefault(test_id, status)
     return results
 
 
 def run_pytest(clone: Path, args: list[str], *, workers: int, timeout: float | None) -> dict[str, str]:
-    cmd = [sys.executable, "-m", "pytest", "-q", "-rA", "--no-header", "--color=no",
-           "-p", "no:cacheprovider", "--continue-on-collection-errors",
+    scratch = clone.parent
+    (scratch / f"{_PLUGIN_NAME}.py").write_text(_PLUGIN, encoding="utf-8", newline="\n")
+    events = scratch / f"events-{uuid.uuid4().hex}.jsonl"
+    cmd = [sys.executable, "-m", "pytest", "-q", "--no-header", "--color=no",
+           "-p", "no:cacheprovider", "-p", _PLUGIN_NAME, "--continue-on-collection-errors",
            *_xdist_args(workers), *args]
-    env = {**os.environ, "PYTHONUTF8": "1", "PYTHONDONTWRITEBYTECODE": "1"}
+    env = {**os.environ, "PYTHONUTF8": "1", "PYTHONDONTWRITEBYTECODE": "1",
+           "TEST_PAIRING_EVENTS": str(events),
+           "PYTHONPATH": os.pathsep.join(filter(None, [str(scratch), os.environ.get("PYTHONPATH")]))}
     try:
         done = subprocess.run(cmd, cwd=clone, capture_output=True, text=True, encoding="utf-8",
                               errors="replace", env=env, timeout=timeout, check=False)
     except subprocess.TimeoutExpired as exc:
         raise PairingError(f"pytest exceeded {timeout}s in {clone.name}") from exc
-    results = parse_results(done.stdout)
+    results = read_events(events)
     if done.returncode in (3, 4) or (done.returncode not in (0, 1, 5) and not results):
         raise PairingError(
             f"pytest exited {done.returncode} in {clone.name}: "
@@ -227,8 +264,9 @@ def classify(base: dict[str, str], head: dict[str, str]) -> dict:
     }
 
 
-def _rerun(clone: Path, test_id: str, *, reruns: int, timeout: float | None) -> list[str]:
-    observations = ["FAILED"]
+def _rerun(clone: Path, test_id: str, first: str, *, reruns: int,
+           timeout: float | None) -> list[str]:
+    observations = [first]
     for _ in range(reruns):
         status = run_pytest(clone, [test_id], workers=0, timeout=timeout).get(test_id, "NOT-RUN")
         observations.append(status)
@@ -238,8 +276,11 @@ def _rerun(clone: Path, test_id: str, *, reruns: int, timeout: float | None) -> 
 
 
 def pair(repo: Path, base: str, head: str, *, tests: list[str] | None = None, reruns: int = 1,
-         workers: int = 6, timeout: float | None = None, workdir: Path | None = None) -> dict:
+         workers: int = 6, timeout: float | None = None, workdir: Path | None = None,
+         confirm_baseline: bool = True) -> dict:
     """Pair BASE against HEAD and return the verdict dict (also the artifact's content)."""
+    if reruns < 1:
+        raise PairingError("--reruns must be at least 1: zero would charge a flake to the lane")
     base_sha, head_sha = resolve(repo, base), resolve(repo, head)
     changed = _changed(repo, base_sha, head_sha)
     scratch = Path(tempfile.mkdtemp(prefix="tp-", dir=workdir))
@@ -255,7 +296,8 @@ def pair(repo: Path, base: str, head: str, *, tests: list[str] | None = None, re
         args = _pytest_args(selection, head_clone)
         verdict = {"schema": SCHEMA, "base": base_sha, "head": head_sha, "isolation": "clone",
                    "isolation_reason": ISOLATION_REASON, "selection": selection,
-                   "preexisting": [], "lane": [], "turned_red": [], "flakes": [], "fixed": []}
+                   "preexisting": [], "lane": [], "turned_red": [], "flakes": [], "fixed": [],
+                   "baseline_confirmed": False}
         if args is None:
             verdict["verdict"] = "NOT-EVALUATED" if selection["declined"] else "CLEAN"
             if not selection["declined"]:
@@ -267,13 +309,23 @@ def pair(repo: Path, base: str, head: str, *, tests: list[str] | None = None, re
             base_results = (run_pytest(base_clone, base_args, workers=workers, timeout=timeout)
                             if base_args else {})
             found = classify(base_results, head_results)
-            for cand in found["candidates"]:
-                obs = _rerun(head_clone, cand["id"], reruns=reruns, timeout=timeout)
+            preexisting, candidates = found["preexisting"], list(found["candidates"])
+            if confirm_baseline and preexisting:
+                # A red on BASE that passes on a rerun was never pre-existing: it could be
+                # hiding a real lane-caused red of the same id. One batched rerun, on BASE.
+                again = run_pytest(base_clone, preexisting, workers=workers, timeout=timeout)
+                unstable = [i for i in preexisting if again.get(i) == "PASSED"]
+                preexisting = [i for i in preexisting if i not in unstable]
+                candidates += [{"id": i, "was": "red-once-on-base"} for i in unstable]
+            verdict["baseline_confirmed"] = confirm_baseline
+            for cand in candidates:
+                obs = _rerun(head_clone, cand["id"], head_results[cand["id"]], reruns=reruns,
+                             timeout=timeout)
                 if "PASSED" in obs[1:]:
                     verdict["flakes"].append({"id": cand["id"], "observations": obs})
                 else:
                     verdict["lane"].append({**cand, "observations": obs})
-            verdict["preexisting"] = found["preexisting"]
+            verdict["preexisting"] = preexisting
             verdict["fixed"] = found["fixed"]
             verdict["turned_red"] = [e["id"] for e in verdict["lane"] if e["was"] == "PASSED"]
             verdict["verdict"] = "LANE-RED" if verdict["lane"] else "CLEAN"
@@ -283,6 +335,8 @@ def pair(repo: Path, base: str, head: str, *, tests: list[str] | None = None, re
     verdict["counts"] = {k: len(verdict[k]) for k in ("preexisting", "lane", "turned_red", "flakes",
                                                      "fixed")}
     verdict["exit_code"] = {"LANE-RED": 1, "NOT-EVALUATED": 3}.get(verdict["verdict"], 0)
+    if not removed and not verdict["exit_code"]:
+        verdict["exit_code"] = 2  # a leaked clone must not ride along on a green verdict
     return verdict
 
 
@@ -300,7 +354,11 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--repo", default=".", help="repository to pair in (default: cwd)")
     p.add_argument("--out", help=f"verdict path (default: <receipts home>/{VERDICT_NAME})")
     p.add_argument("--tests", nargs="+", help="explicit test files, bypassing the selection")
-    p.add_argument("--reruns", type=int, default=1, help="isolated reruns of a lane-red (default 1)")
+    p.add_argument("--reruns", type=int, default=1,
+                   help="isolated reruns of a lane-red, at least 1 (default 1)")
+    p.add_argument("--no-confirm-baseline", action="store_true",
+                   help="do not rerun the pre-existing reds on BASE (cheaper; a transient baseline "
+                        "red can then mask a lane-caused one)")
     p.add_argument("--workers", type=int, default=_default_workers(),
                    help="xdist workers (default 6; 0 = in-process)")
     p.add_argument("--timeout", type=float, help="seconds allowed per pytest invocation")
@@ -324,7 +382,8 @@ def main(argv: list[str] | None = None) -> int:
             parser.error("give BASE HEAD, or --lane NAME")
         verdict = pair(repo, base, head, tests=args.tests, reruns=args.reruns,
                        workers=args.workers, timeout=args.timeout,
-                       workdir=Path(args.workdir) if args.workdir else None)
+                       workdir=Path(args.workdir) if args.workdir else None,
+                       confirm_baseline=not args.no_confirm_baseline)
     except PairingError as exc:
         print(f"test_pairing: {exc}", file=sys.stderr)
         raise SystemExit(2) from exc
