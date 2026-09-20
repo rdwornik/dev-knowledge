@@ -38,10 +38,15 @@ was never pre-existing and could be hiding a lane-caused red of the same id. The
 set is rerun once on BASE (batched); any that pass become lane candidates (`was:
 red-once-on-base`) and face the HEAD rerun. `--no-confirm-baseline` skips this, cheaper and weaker.
 
-HONEST LIMITS. (1) A test red on BASE for a flaky reason and green on HEAD shows as `fixed`. (2) A test whose result depends on gitignored state (e.g.
-`ecosystem/*/state.yaml`) sees neither side's copy -- both clones lack it, so it cannot skew the
-PAIR, but the reds it produces are reds of a bare checkout. (3) `impacted_tests` measures a
-miss-rate of about one affected file in twenty; a clean pairing is not a full-suite pass.
+FAILS CLOSED. No event file, a malformed event row, or a pytest exit code that contradicts the
+events (failures reported, none recorded) is exit 2, never a CLEAN verdict. The caller's
+PYTHONPATH is not passed on, and `--tests` takes files or node ids, never a directory.
+
+HONEST LIMITS. (1) A test red on BASE for a flaky reason and green on HEAD shows as `fixed`.
+(2) A test whose result depends on gitignored state (e.g. `ecosystem/*/state.yaml`) sees neither
+side's copy -- both clones lack it, so it cannot skew the PAIR, but the reds it produces are
+reds of a bare checkout. (3) `impacted_tests` measures a miss-rate of about one affected file in
+twenty; a clean pairing is not a full-suite pass.
 """
 from __future__ import annotations
 
@@ -133,9 +138,17 @@ import json
 import os
 
 
+def _path():
+    return os.environ["TEST_PAIRING_EVENTS"] + "." + str(os.getpid())
+
+
 def _emit(row):
-    with open(os.environ["TEST_PAIRING_EVENTS"], "a", encoding="utf-8") as fh:
+    with open(_path(), "a", encoding="utf-8") as fh:
         fh.write(json.dumps(row) + "\\n")
+
+
+def pytest_sessionstart(session):
+    open(_path(), "a", encoding="utf-8").close()
 
 
 def pytest_runtest_logreport(report):
@@ -152,32 +165,40 @@ _PLUGIN_NAME = "tp_events_plugin"
 def read_events(path: Path) -> dict[str, str]:
     """{nodeid: PASSED|FAILED|ERROR} from the plugin's JSON lines; stdlib only.
 
-    A failed `call` is FAILED; a failed setup/teardown/collect is ERROR; a red is never
-    overwritten by a later green, and a duplicate line (xdist reports in both the worker and
-    the controller) changes nothing.
+    `path` is one file, or the prefix of the per-process files `<prefix>.<pid>` the plugin writes
+    (one writer per file, so xdist workers cannot interleave). It FAILS CLOSED: no file at all
+    means the plugin never ran, and a malformed row means a result may have been lost -- either
+    would otherwise read as "nothing is red". A failed `call` is FAILED; a failed
+    setup/teardown/collect is ERROR; a red is never overwritten by a green; duplicates (xdist
+    reports in both the worker and the controller) change nothing.
     """
+    files = [path] if path.is_file() else sorted(path.parent.glob(path.name + ".*"))
+    if not files:
+        raise PairingError(f"no event file at {path.name}: the reporting plugin did not run")
     results: dict[str, str] = {}
-    if not path.is_file():
-        return results
-    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
-        try:
-            row = json.loads(line)
-        except ValueError:
-            continue
-        test_id, when, outcome = row.get("id"), row.get("when"), row.get("outcome")
-        if not test_id:
-            continue
-        if outcome == "failed":
-            status = "FAILED" if when == "call" else "ERROR"
-        elif outcome == "passed" and when == "call":
-            status = "PASSED"
-        else:
-            continue
-        if status in _RED:
-            if results.get(test_id) not in _RED:
-                results[test_id] = status
-        else:
-            results.setdefault(test_id, status)
+    for file in files:
+        for line in file.read_text(encoding="utf-8", errors="replace").splitlines():
+            if not line.strip():
+                continue
+            try:
+                row = json.loads(line)
+            except ValueError as exc:
+                raise PairingError(f"malformed event row in {file.name}: a result may be lost") from exc
+            test_id, when, outcome = row.get("id"), row.get("when"), row.get("outcome")
+            if not test_id:
+                continue
+            if outcome == "failed":
+                status = "FAILED" if when == "call" else "ERROR"
+            elif outcome == "passed" and when == "call":
+                status = "PASSED"
+            else:
+                continue
+            if status in _RED:
+                if results.get(test_id) not in _RED or (status == "FAILED"
+                                                        and results[test_id] == "ERROR"):
+                    results[test_id] = status
+            else:
+                results.setdefault(test_id, status)
     return results
 
 
@@ -190,18 +211,22 @@ def run_pytest(clone: Path, args: list[str], *, workers: int, timeout: float | N
            *_xdist_args(workers), *args]
     env = {**os.environ, "PYTHONUTF8": "1", "PYTHONDONTWRITEBYTECODE": "1",
            "TEST_PAIRING_EVENTS": str(events),
-           "PYTHONPATH": os.pathsep.join(filter(None, [str(scratch), os.environ.get("PYTHONPATH")]))}
+           # The caller's PYTHONPATH is DROPPED: a source checkout on it could shadow the tree
+           # under test and hide a lane-caused red. Only the plugin's directory is added.
+           "PYTHONPATH": str(scratch)}
     try:
         done = subprocess.run(cmd, cwd=clone, capture_output=True, text=True, encoding="utf-8",
                               errors="replace", env=env, timeout=timeout, check=False)
     except subprocess.TimeoutExpired as exc:
         raise PairingError(f"pytest exceeded {timeout}s in {clone.name}") from exc
+    tail = (done.stderr or done.stdout).strip()[-400:]
+    if done.returncode in (3, 4):
+        raise PairingError(f"pytest exited {done.returncode} in {clone.name}: {tail}")
     results = read_events(events)
-    if done.returncode in (3, 4) or (done.returncode not in (0, 1, 5) and not results):
-        raise PairingError(
-            f"pytest exited {done.returncode} in {clone.name}: "
-            f"{(done.stderr or done.stdout).strip()[-400:]}"
-        )
+    if done.returncode == 2 and not results:
+        raise PairingError(f"pytest was interrupted in {clone.name} with no result: {tail}")
+    if done.returncode == 1 and not any(v in _RED for v in results.values()):
+        raise PairingError(f"pytest reported failures in {clone.name} but the events show none: {tail}")
     return results
 
 
@@ -233,9 +258,22 @@ def choose_tests(clone: Path, changed: list[str]) -> dict:
     }
 
 
+def _file_part(target: str) -> str:
+    return target.split("::", 1)[0]
+
+
+def validate_targets(clone: Path, targets: list[str]) -> None:
+    """Explicit `--tests` are files or node ids in the tree -- never a directory or `.`, which
+    would quietly run the suite the contract says this organ never runs."""
+    for target in targets:
+        path = _file_part(target)
+        if not path.endswith(".py") or not (clone / path).is_file() or ".." in Path(path).parts:
+            raise PairingError(f"--tests takes test files or node ids, not {target!r}")
+
+
 def _pytest_args(selection: dict, clone: Path) -> list[str] | None:
     if selection["test_files"]:
-        return [f for f in selection["test_files"] if (clone / f).is_file()] or None
+        return [f for f in selection["test_files"] if (clone / _file_part(f)).is_file()] or None
     if selection["marker"]:
         return ["-m", selection["marker"]]
     return None
@@ -287,6 +325,7 @@ def pair(repo: Path, base: str, head: str, *, tests: list[str] | None = None, re
     try:
         head_clone = make_clone(repo, head_sha, scratch / "head")
         if tests:
+            validate_targets(head_clone, tests)
             selection = {"declined": False, "ran_full_suite": False, "marker": None,
                          "test_files": sorted(tests), "reasons": {},
                          "note": "explicit --tests, selection not consulted"}
@@ -305,7 +344,9 @@ def pair(repo: Path, base: str, head: str, *, tests: list[str] | None = None, re
         else:
             head_results = run_pytest(head_clone, args, workers=workers, timeout=timeout)
             base_clone = make_clone(repo, base_sha, scratch / "base")
-            base_args = args if args[0] == "-m" else [a for a in args if (base_clone / a).is_file()]
+            # On BASE a node id may not exist yet (a test the lane added), so run its FILE.
+            base_args = args if args[0] == "-m" else sorted(
+                {_file_part(a) for a in args if (base_clone / _file_part(a)).is_file()})
             base_results = (run_pytest(base_clone, base_args, workers=workers, timeout=timeout)
                             if base_args else {})
             found = classify(base_results, head_results)
