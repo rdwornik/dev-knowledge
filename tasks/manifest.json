@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "069742380a20f67f59b216351a1c413b0c7c71cd76590c722dcfffa320145141",
+  "generated_sha256": "c35b10f279c4aa0d471246d1d6be3d18ad1421e62ae1598e5e0e5a42156d6436",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -644,6 +644,10 @@
     {
       "task": 902,
       "file": "902-the-night-capacity-premise-was-false-lane-concur.md"
+    },
+    {
+      "task": 929,
+      "file": "929-the-spine-is-the-whole-work-loop-map-every-organ-onto-stages-1-16-and-run-the-mechanisms-live.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"

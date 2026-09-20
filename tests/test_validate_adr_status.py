@@ -815,7 +815,20 @@ def test_shipped_corpus_parses_one_status_field_per_live_adr():
     # the operator's DECLARE-GRAPH-2026-09-07 ruling. No other member moved. Its status field
     # is `Proposed` for exactly the reason ADR-117's note above records, and that deviation is
     # recorded in the ADR header and its index row rather than only here.
-    assert len(fields) == 91, "live ADR count moved — re-measure the Step-1 baseline"
+    #
+    # RE-MEASURED 2026-09-20 at the batch loop-eval integration: 91 -> 93. The delta is TWO
+    # and BOTH members are named, because the pin was one behind before this merge began.
+    #   * ADR-119 (a command file counts as a wiring surface only while invocations are
+    #     recorded) landed 2026-09-13 on `c8058953` and NO ONE re-measured this pin; the
+    #     baseline file's last touch before today is `cc5dadff`, the ADR-118 filing. So the
+    #     merge-base itself measured 92 against a pinned 91 -- a pre-existing RED on `main`,
+    #     not this batch's, and it is absorbed here rather than left to compound.
+    #   * ADR-120 (the spine is the whole loop) is this merge's own and ONLY delta, verified
+    #     by scanning the merge-base zone and the merged zone side by side: one file added,
+    #     none removed, no member's grammar changed. Its status field is `Proposed` for
+    #     exactly the reason ADR-117's note above records, and it stays Proposed -- the
+    #     browser seat ratifies it, the integrator does not.
+    assert len(fields) == 93, "live ADR count moved — re-measure the Step-1 baseline"
 
 
 def test_shipped_corpus_grammar_distribution_matches_the_measured_baseline():
@@ -834,7 +847,13 @@ def test_shipped_corpus_grammar_distribution_matches_the_measured_baseline():
     # RE-MEASURED 2026-09-07 by seat filings-N3: G1 43 -> 44, the same single cause as the
     # count above (ADR-118 carries a G1-shaped status field). G2/G3/G4 unchanged a third
     # time, which is what confirms the delta is one ADR rather than grammar drift.
-    assert counts == {"G1": 44, "G2": 34, "G3": 12, "G4": 1}
+    #
+    # RE-MEASURED 2026-09-20 at the batch loop-eval integration: G1 44 -> 46, the same two
+    # causes as the count above and in the same order -- ADR-119 (G1, `Accepted`, the
+    # unrecorded pre-existing unit) and ADR-120 (G1, `Proposed`, this merge's own). G2/G3/G4
+    # are unchanged for the fourth time, which is what proves the delta is two ADRs and not
+    # grammar drift wearing their clothes.
+    assert counts == {"G1": 46, "G2": 34, "G3": 12, "G4": 1}
 
 
 def test_shipped_corpus_has_zero_enum_violations():

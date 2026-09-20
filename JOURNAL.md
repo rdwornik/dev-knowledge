@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-20 (a) - CC (Opus 5, integrator batch loop-eval): LANE-loop-eval merged -- 280 organs mapped onto the 16-stage loop, four mechanisms probed live, ADR-120 drafted
+
+**Anchors:** `22cc59bf` (probes verdict table corrected) · `23fd4361` (ADR-120 + STANDING_RULINGS section AI) · `0e32bd77` (MAPPING) · `e06d3159` (LIVE-PROBES) · `6d0c9ea4` (Codex adversary pass) -- `worktree-lane-loop-eval`, merged --no-ff.
+
+**Did:** integrated the one-lane batch loop-eval from the primary checkout, two-step (`--no-commit`, then `git commit`) so the merged tree runs the full pre-commit registry instead of the two commit-msg hooks a one-step merge fires. Docs-only, 1,016 insertions, no conflicts. Registered `[#929]` in `tasks/manifest.json` at the tail of its own `[S3]` span -- `--emit-source` refuses until that node exists, and it misreports an unregistered row as a "retired allocation record", which reads like an id collision and is not one. Regenerated BACKLOG (407 -> 408 tasks), the audits index (1050 -> 1053) and `.claude/generated/recent-adrs.md` (window 115-119 -> 116-120). ADR-120 stays **Proposed** -- the browser seat ratifies it after reading, the integrator does not.
+
+**Result:** the two pinned ADR baselines moved by TWO, and only one unit is this batch's. Scanning the merge-base zone and the merged zone side by side: `main` itself measured 92 / G1 45 against a pin of 91 / G1 44, because ADR-119 landed on `c8058953` (2026-09-13) and nobody re-measured -- a pre-existing RED, absorbed here rather than left to compound. This merge's own delta is exactly ADR-120: one file added, none removed, no member's grammar changed. Both causes are named in the test file rather than the number being bumped silently. **Changes:** the three `docs/audits/2026-09-20-*` records, `docs/decisions/ADR-120-the-spine-is-the-whole-loop.md`, `docs/decisions/README.md`, `protocols/STANDING_RULINGS.md` (section AI), `tasks/929-*`, `tasks/manifest.json`, `BACKLOG.md`, `docs/audits/README.md`, `.claude/generated/recent-adrs.md`, `tests/test_validate_adr_status.py`, `JOURNAL.md`. **Next:** the seat reads the three records and rules on ADR-120; the push is recommended, not taken; `worktree-lane-loop-eval` is KEPT pending its own teardown order.
+
 ### 2026-09-19 (aw) - CC (Opus 5, comprehension gate): `/handoff-verify` run live against the landed bundle -- two FAILs found, both this window's own, both repaired
 
 **Anchors:** `68c71f4f` (P0c amendment + doc-counts regenerated) -- `worktree-verify-repairs-0919`, merged --no-ff.

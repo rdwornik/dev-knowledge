@@ -167,6 +167,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#896] [P1][S] decision_coverage -- the organ refuses correctly and its gate never fires locally (stages:[manual] behind a disabled ruleset) · tasks/896-decision-coverage-the-organ-refuses-and-its-gate-n.md
 - [#891] [P1][M] Lane handback contract -- lanes write a ten-field HANDBACK-<lane>.md to the transport as their mandatory final step · tasks/891-lane-handback-contract-lanes-write-a-ten-field-h.md
 - [#902] [P1][S] The night-capacity premise was false -- lane concurrency must be gated by free memory measured at dispatch, not by the hour · tasks/902-the-night-capacity-premise-was-false-lane-concur.md
+- [#929] [P1][L] The spine is the whole work loop -- map every organ onto stages 1-16 and run the loop's candidate mechanisms live before anything is built · tasks/929-the-spine-is-the-whole-work-loop-map-every-organ-onto-stages-1-16-and-run-the-mechanisms-live.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
