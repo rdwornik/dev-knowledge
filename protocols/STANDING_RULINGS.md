@@ -4335,6 +4335,89 @@ AH-B1 and AH-B3 — the entries this section writes out, which retire only when 
 home carries them (this file's scope boundary). AH-A1, AH-A4, AH-B2 and AH-B4 are citations rather
 than rulings-of-record and retire with the homes they cite.
 
+## AI. The loop-evaluation window rulings — the spine is the whole loop (operator + architect, 2026-09-20)
+
+Seven rulings from `to-cc/DECLARE-LOOP-EVAL-2026-09-20.md` (R1-R7, architect seat SEQ 1, 2026-09-20), the
+last as amended by `to-cc/AMEND-LOOP-EVAL-LAUNCH-2026-09-20.md` (A1-A4). Landed by LANE-loop-eval step 5 on
+branch `worktree-lane-loop-eval`; the DECLARE's `carried-by:` is re-pointed at this section in the same
+lane. Each is tagged OPERATOR (his call, on his word) or ARCHITECT (technical, ADR-108 §A). The carrier ADR
+is `docs/decisions/ADR-120-the-spine-is-the-whole-loop.md` (`Proposed`, not ratified).
+
+### AI-R1 · The spine is the whole loop, not its first half (architect, DECLARE R1)
+
+`ecosystem/harness.yaml`, run by `scripts/dodo.py` on pydoit, **becomes** the one work loop: stages 1-12 as today plus
+**13 RUN** (an agent call behind an adapter — dispatch, the Claude Agent SDK, `codex exec`), **14 REVIEW** (a
+second provider), **15 GATES** (audit / ship-gate / ruff / impacted tests) and **16 MERGE** (the integrator
+protocol; the operator's GO is the stage's condition). An improvement of the existing system, not a
+rewrite: nothing is deleted by this ruling. Carrier: ADR-120, which names the ADRs it amends (28, 110, 118).
+
+```landed
+site: docs/decisions/ADR-120-the-spine-is-the-whole-loop.md | pattern: D1 — The loop is 16 stages in one declared spine
+```
+
+### AI-R2 · Evaluation before build (architect, DECLARE R2)
+
+No stage 13-16, nor the stage-7 / stage-11 fixes, is built until the MAPPING and LIVE-PROBES records are
+merged and read by the seat. The build contract is frozen from them.
+
+```landed
+site: docs/decisions/ADR-120-the-spine-is-the-whole-loop.md | pattern: D5 — Evaluation before build
+```
+
+### AI-R3 · The backlog is the queue (operator, DECLARE R3)
+
+Nothing is implemented without a task row (the operator's rule of 2026-09-09, applied in this window). The
+spine and measurement propose work; a row is filed before execution.
+
+**Written out — no repo home was found for the 2026-09-09 rule itself;** ADR-120's Births line applies it.
+
+### AI-R4 · The OneDrive guard is out of scope for this window (operator, DECLARE R4, ruled 2026-09-20)
+
+**Written out — no repo home was found.** A scoping ruling for one window; it changes no guard, and
+`~/.claude/rules/core-invariants.md` §1 is untouched by it.
+
+### AI-R5 · The dispatch shim copy is deferred (architect, DECLARE R5)
+
+`DISPATCH-CARD-2026-09-20` §6 (Copy-Item + Apply-DevTerminals) waits until the stage-13 build decides
+dispatch's role. The old surface is live and dry-run verified; swapping the launcher mid-batch changes the
+surface under a running lane.
+
+```landed
+site: docs/decisions/ADR-120-the-spine-is-the-whole-loop.md | pattern: D8 — The dispatch shim copy stays deferred
+```
+
+### AI-R6 · The Ch8 effort-enum defect folds into `[#920]` (architect, DECLARE R6)
+
+Ch8 lists `max`; `Invoke-Dispatch.ps1` refuses it. Until `[#920]` lands, contracts use
+`low | medium | high | xhigh` only. `[#920]`'s row body does not yet name this defect; the seat adds the
+clause when it next edits that row — this lane does not edit another row's body. **Recorded conflict:**
+PLAYBOOK Ch8 (:3390-3398) records a 2026-08-22 architect ruling that `max` is a valid contract effort;
+R6 is the later, window-scoped instruction and is followed as such, the earlier ruling not overturned.
+
+```landed
+site: docs/decisions/ADR-120-the-spine-is-the-whole-loop.md | pattern: Contract effort levels are
+```
+
+### AI-R7 · One AM-5 re-witness, and one launch, are authorized (architect, DECLARE R7 as amended by A2/A4)
+
+Probe B4 of LANE-loop-eval may spawn exactly one trivial `--bg` job from inside the session, show its Agent
+View row and job record, and remove it with `claude rm` on that job's own id. The launch of LANE-loop-eval
+itself is authorized from a CC session (AMEND A2, a recorded exception to PLAYBOOK Ch8 AM-5, whose premise
+— a nested session gets no Agent View row — was measured false on 2026-08-15 and 2026-09-19). **This is
+evidence for re-ruling AM-5 and re-rules nothing by itself; AM-5 binds for everything else.** The B4 record
+is `docs/audits/2026-09-20-technical-loop-eval-live-probes.md`. AMEND A1 (the operator is never handed a
+terminal command whose output he must relay) restates a standing operator rule and A3 (how the launching
+session fires: dry-run, verify the resolved line, receipt) is a one-launch procedure; both stay carried by
+the AMEND file until its wave close lands them (Ch8 D5).
+
+```landed
+site: docs/decisions/ADR-120-the-spine-is-the-whole-loop.md | pattern: D3 — AM-5 keeps binding until it is re-ruled
+```
+
+**Expiry (section-wide):** AI-R1, AI-R2 and AI-R5 retire with ADR-120's ratification or supersession; AI-R3
+and AI-R4 are open-ended written-out entries; AI-R6 retires when `[#920]` lands; AI-R7 retires when the
+architect re-rules AM-5.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector

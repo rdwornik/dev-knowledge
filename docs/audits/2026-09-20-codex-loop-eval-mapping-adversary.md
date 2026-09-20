@@ -177,3 +177,7 @@ TALLY HIGH:7 MED:7 LOW:2
 - It raised nothing against **B2** or the **stage 14** analysis, although the prompt named "B1/B2 overclaim" as a check; silence is not a clean bill for those two.
 - It did not run anything: read-only, no suite, no probe re-run. Every finding is a code read.
 - **Independence caveat:** the requested model is `gpt-5.6-sol` and the served model is not attestable (above); the pass is a different vendor from the records' author, which is the property the adversarial role needs, and no more than that is claimed.
+
+## Correction appended after the Opus verdict review (2026-09-20)
+
+Disposition row 1 accepted "review and gates sit between a local merge and the push" and the MAPPING then wrote the order as merge, review, suite, **push**, Actions verdict, teardown. The Opus review opened `lane-integrate.md` and found the order is per lane merge, review packet, suite ∥ review, **teardown**; the single push comes after the whole walk (:386); and the file marks the push position unresolved (:204-217, `[#750]`). The adversary's point stands (review and gates follow a local merge), but the finding-1 change line above describes the corrected order, not the first draft's. Row 8's `dispatch.py :56-59` cite is the adversary's; the "did not move" list is at :52-54 (MAPPING corrected). The MAPPING §8 records the full review.
