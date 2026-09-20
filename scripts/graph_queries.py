@@ -45,6 +45,7 @@ Usage:
     python scripts/graph_queries.py task-coverage  [--repo-root .] [--staged PATH ...]
     python scripts/graph_queries.py process-list   [--repo-root .] [--render]
     python scripts/graph_queries.py edge-class-census [--repo-root .] [--staged PATH ...]
+    python scripts/graph_queries.py moments        [--repo-root .]
 """
 
 from __future__ import annotations
@@ -1390,6 +1391,217 @@ def edge_class_metrics(repo_root: Path | str | None = None,
             "migrated": max(counted["reconciled"] - ARM_TIME_RECONCILED - born, 0)}
 
 
+# ----------------------------------------------------------------- query 5: organ moments
+#
+# lane-l3-organ-truth. L1 declared WHICH organ runs at WHICH moment (`ecosystem/harness.yaml`,
+# `moments:` plus the spine's `stages:`), so "declared nowhere" is finally a computable
+# predicate: an organ in the process roster that no declaration names. This is a READ of that
+# declaration, never an amendment of it, and it is the one query here whose ground truth is a
+# declaration file rather than the FPG-1 store -- the roster it walks is still the store's
+# (`process_list`), so it is a join, not a rival walk of the tree.
+#
+# THE ROSTER IS NOT NARROWED TO PASS. Every process node counts, dispositioned orphans
+# included: a disposition says "this absence of a TRIGGER was looked at", which is a different
+# fact from "this organ is declared at a moment", and conflating them would make the query
+# agree with the register instead of with the declaration.
+
+MOMENTS_DECLARATION_REL = "ecosystem/harness.yaml"
+MOMENT_DECLARED = "declared-at-moment"
+MOMENT_OPTIONAL_UNBUILT = "declared-optional-unbuilt"
+MOMENT_MISSING = "declared-missing"
+MOMENT_NOWHERE = "declared-nowhere"
+MOMENT_STATUSES = (MOMENT_DECLARED, MOMENT_OPTIONAL_UNBUILT, MOMENT_MISSING, MOMENT_NOWHERE)
+
+#: The lane that owes each not-yet-built organ, from the wave-2 order
+#: (`to-cc/WAVE2-ORDER-2026-09-20.md`) and each contract's "Files you own" clause. A declared
+#: organ MAY carry its own `owner:` key, which wins; this table is the fallback for L1's
+#: declaration, which carries none and is not this lane's to edit. An organ with neither is
+#: still a FAIL -- it just cannot name who owes it, and says so.
+OWING_LANE: dict[str, str] = {
+    "scripts/worktree_occupancy.py": "lane-l2-dispatch-guards",
+    "scripts/gates.py": "lane-l4-integrator-surface",
+    "scripts/review_packet.py": "lane-l4-integrator-surface",
+    "scripts/no_leftovers.py": "lane-l5-no-leftovers",
+    "scripts/test_pairing.py": "lane-l6-test-pairing",
+    "scripts/transport_report.py": "lane-l8-lane-end",
+    "scripts/lane_digest.py": "lane-l8-lane-end",
+}
+
+#: A file an organ's command names. `-c` code is handled separately (an import, not a path).
+_COMMAND_PATH_RE = re.compile(
+    r"(?:scripts|\.claude/commands|\.claude/skills|plugins)/[\w./-]+\.(?:py|ps1|md)")
+_COMMAND_IMPORT_RE = re.compile(r"\bimport\s+(\w+)")
+
+
+class MomentsUnreadable(Exception):
+    """The declaration could not be read. A caller REFUSES on it; a query that cannot see its
+    ground truth must not report the empty answer (register ruling Z-G4)."""
+
+
+@dataclass(frozen=True)
+class DeclaredOrgan:
+    """One organ (or spine stage) the declaration names, with the files its command runs."""
+    moment: str
+    organ: str
+    paths: tuple[str, ...]
+    primary: str | None
+    optional: bool
+    owner: str | None
+
+
+@dataclass(frozen=True)
+class MomentRow:
+    """One roster process (or declared-but-unbuilt organ) with its declaration status."""
+    path: str
+    process_class: str
+    status: str
+    moment: str = ""
+    organ: str = ""
+    owing_lane: str | None = None
+    wired_elsewhere: bool = False
+
+
+def _command_paths(command: list, root: Path, organ_id: str) -> tuple[tuple[str, ...], str | None]:
+    """`(every file the command runs, the primary one)` -- the primary is the first file the
+    argv names, else the first module a `-c` snippet imports that exists as a script."""
+    paths: list[str] = []
+    imported: list[str] = []
+    after_c = False
+    for arg in (str(a) for a in command):
+        if after_c:
+            for module in _COMMAND_IMPORT_RE.findall(arg):
+                rel = f"scripts/{module}.py"
+                if (root / rel).is_file():
+                    imported.append(rel)
+            after_c = False
+            continue
+        after_c = arg == "-c"
+        for match in _COMMAND_PATH_RE.findall(arg):
+            paths.append(match)
+    # A dotted organ id (`merge_receipt.models`) names its module by convention.
+    head = organ_id.split(".")[0]
+    if "." in organ_id and (root / f"scripts/{head}.py").is_file():
+        imported.append(f"scripts/{head}.py")
+    everything = tuple(dict.fromkeys(paths + imported))
+    primary = paths[0] if paths else (imported[0] if imported else None)
+    return everything, primary
+
+
+def load_declaration(repo_root: Path | str) -> list[DeclaredOrgan]:
+    """Every organ and spine stage `ecosystem/harness.yaml` declares. Raises `MomentsUnreadable`
+    when the file is absent, unparseable or not the shape L1 wrote."""
+    import yaml  # deferred: the read path of the other queries stays stdlib + sqlite
+
+    root = Path(repo_root)
+    path = root / MOMENTS_DECLARATION_REL
+    try:
+        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        raise MomentsUnreadable(f"cannot read {MOMENTS_DECLARATION_REL}: {exc!r}") from exc
+    if not isinstance(raw, dict):
+        raise MomentsUnreadable(f"{MOMENTS_DECLARATION_REL} is not a mapping")
+    declared: list[DeclaredOrgan] = []
+    for stage in raw.get("stages") or []:
+        if not isinstance(stage, dict) or not isinstance(stage.get("command"), list):
+            continue  # `command: null` is a stage that does not exist yet -- dodo.py names it
+        name = str(stage.get("name") or stage.get("stage"))
+        paths, primary = _command_paths(stage["command"], root, "")
+        declared.append(DeclaredOrgan(f"spine stage {stage.get('stage')} ({name})", name,
+                                      paths, primary, False, None))
+    for moment in raw.get("moments") or []:
+        if not isinstance(moment, dict):
+            continue
+        for organ in moment.get("organs") or []:
+            if not isinstance(organ, dict) or not organ.get("id"):
+                continue
+            command = organ.get("command")
+            paths, primary = _command_paths(
+                command if isinstance(command, list) else [], root, str(organ["id"]))
+            declared.append(DeclaredOrgan(
+                str(moment.get("name")), str(organ["id"]), paths, primary,
+                bool(organ.get("optional")), str(organ["owner"]) if organ.get("owner") else None))
+    return declared
+
+
+def roster_rows(repo_root: Path | str) -> list[ProcessRow]:
+    """The process roster, from the persisted store, through the freshness check."""
+    root = Path(repo_root).resolve()
+    return process_list(root, gs.ensure(root, gs.store_path(root)))
+
+
+def organ_moments(repo_root: Path | str, roster: list[ProcessRow] | None = None,
+                  declaration: list[DeclaredOrgan] | None = None) -> list[MomentRow]:
+    """For every organ in the process roster: declared at a moment, declared optional and not
+    yet built, or declared nowhere -- plus the declared organs whose command is not on disk.
+
+    `roster` and `declaration` are seams for a fixture tree; `None` reads the live ones.
+    """
+    root = Path(repo_root)
+    declared = load_declaration(root) if declaration is None else declaration
+    processes = roster_rows(root) if roster is None else roster
+    by_path: dict[str, DeclaredOrgan] = {}
+    for organ in declared:
+        for rel in organ.paths:
+            by_path.setdefault(rel, organ)
+
+    rows: list[MomentRow] = []
+    seen: set[str] = set()
+    for proc in processes:
+        seen.add(proc.path)
+        organ = by_path.get(proc.path)
+        if organ is None:
+            rows.append(MomentRow(proc.path, proc.process_class, MOMENT_NOWHERE,
+                                  wired_elsewhere=proc.triggered))
+        else:
+            rows.append(MomentRow(proc.path, proc.process_class, MOMENT_DECLARED,
+                                  organ.moment, organ.organ, wired_elsewhere=proc.triggered))
+    for organ in declared:
+        if not organ.primary or organ.primary in seen or (root / organ.primary).exists():
+            continue
+        seen.add(organ.primary)
+        owing = organ.owner or OWING_LANE.get(organ.primary)
+        rows.append(MomentRow(
+            organ.primary, "script",
+            MOMENT_OPTIONAL_UNBUILT if organ.optional else MOMENT_MISSING,
+            organ.moment, organ.organ, owing))
+    return sorted(rows, key=lambda r: (MOMENT_STATUSES.index(r.status), r.path))
+
+
+def unbuilt_evidence(row: MomentRow) -> str:
+    """The sentence a refusal carries for a declared organ whose command does not exist."""
+    owed = (f"owed by {row.owing_lane}" if row.owing_lane
+            else "no owning lane is recorded for it")
+    kind = "optional and not yet built" if row.status == MOMENT_OPTIONAL_UNBUILT else (
+        "NOT optional and does not exist, so its moment will stop at it")
+    return (f"organ `{row.organ}` at moment `{row.moment}` is declared {kind}: its command "
+            f"`{row.path}` is absent -- {owed}.")
+
+
+def moments_findings(rows: list[MomentRow]) -> list[Finding]:
+    """The refusals: one per declared-nowhere organ, one per declared-but-unbuilt organ."""
+    findings: list[Finding] = []
+    for row in rows:
+        if row.status == MOMENT_NOWHERE:
+            findings.append(Finding(
+                row.path, f"{row.process_class} is declared at no moment and no spine stage in "
+                          f"{MOMENTS_DECLARATION_REL}. Declare it there (L1's file, by ruling) "
+                          f"or retire it."))
+        elif row.status in (MOMENT_OPTIONAL_UNBUILT, MOMENT_MISSING):
+            findings.append(Finding(row.path, unbuilt_evidence(row)))
+    return findings
+
+
+def moments_summary(rows: list[MomentRow]) -> str:
+    counts = {status: sum(1 for r in rows if r.status == status) for status in MOMENT_STATUSES}
+    nowhere = [r for r in rows if r.status == MOMENT_NOWHERE]
+    wired = sum(1 for r in nowhere if r.wired_elsewhere)
+    return (f"moments: {len(rows)} organs -- {counts[MOMENT_DECLARED]} declared at a moment, "
+            f"{counts[MOMENT_OPTIONAL_UNBUILT]} declared optional and unbuilt, "
+            f"{counts[MOMENT_MISSING]} declared and missing, {counts[MOMENT_NOWHERE]} declared "
+            f"nowhere ({wired} of those are wired by another surface, {len(nowhere) - wired} "
+            f"by none)")
+
+
 # --------------------------------------------------------------------------------------- CLI
 
 
@@ -1448,6 +1660,8 @@ def main(argv: list[str] | None = None) -> int:
     edges.add_argument("--empty-register", action="store_true",
                        help=("verdict nothing -- the fixture flag the trip-tests use to "
                              "exercise the ratchet leg against a tree that is not this repo"))
+    sub.add_parser("moments", parents=[common],
+                   help="every organ: declared at a moment, optional-unbuilt, or nowhere")
 
     args = parser.parse_args(argv)
     for stream in (sys.stdout, sys.stderr):
@@ -1474,6 +1688,21 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "task-coverage":
         return _report("task-coverage", task_coverage(root, store, args.staged))
+
+    if args.command == "moments":
+        try:
+            rows = organ_moments(root, roster=process_list(root, store))
+        except MomentsUnreadable as exc:
+            print(f"REFUSED: {exc}", file=sys.stderr)
+            return 1
+        print(moments_summary(rows))
+        for row in rows:  # the answer, per organ -- the refusal below only counts them
+            where = f"  [{row.moment} / {row.organ}]" if row.organ else ""
+            owed = f"  (owed by {row.owing_lane})" if row.owing_lane else ""
+            print(f"  {row.status:<26} {row.path}{where}{owed}")
+        findings = moments_findings(rows)
+        print(f"moments: {'REFUSED -- ' + str(len(findings)) + ' finding(s)' if findings else 'OK'}")
+        return 1 if findings else 0
 
     if args.command == "edge-class-census":
         register = {} if args.empty_register else None

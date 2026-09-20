@@ -36,6 +36,7 @@ roles:
 
   adversarial:
     cli: codex
+    model: gpt-5.6-sol
     note: >-
       Adversarial design critique. Distinct from review: the reviewer judges a diff, the
       adversary attacks a design before one exists. REBOUND from `sol` 2026-09-05 (architect
@@ -45,7 +46,16 @@ roles:
       itself a finding". codex is a different vendor from the author of the designs it attacks,
       which is the property the role needs; brief the run ADVERSARIALLY - attack the design -
       because codex also carries the `review` role above and will otherwise judge a diff.
-      Restore `sol` here once it is installed.
+      MODEL PINNED 2026-09-20 (lane-l3-organ-truth): `gpt-5.6-sol`, the model this repo's own
+      adversarial passes have always run at (the `*-sol` adversarial audits under
+      docs/audits/) and a model `ecosystem/provider-registry.yaml` already registers. `sol` was
+      never an absent CLI -- it is a model id `codex exec -c model=gpt-5.6-sol` accepts, which
+      is what the 2026-09-05 rebind mistook it for. The row carried no pin, so the Codex sol
+      pass on the loop-eval map (2026-09-20) could not attest what served it. HONEST LIMIT: a
+      pin names what is REQUESTED; `codex exec` still reports no served model, so "sol
+      answered" stays attested by the flag until a receipt records the reported model.
+      L0's `gpt-6-astra` XL-class opt-in (`~/.claude/ROUTING.md`) is a per-invocation
+      escalation for ruling-class work and is not this default.
 
   fan_out:
     cli: [luna, haiku, gemini]

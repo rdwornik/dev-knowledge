@@ -295,6 +295,7 @@ check_dispatch_drift = _registry.check_dispatch_drift
 check_routing_agreement = _registry.check_routing_agreement
 check_consumer_at_landing = _registry.check_consumer_at_landing
 check_proof_layer = _registry.check_proof_layer
+check_organ_truth = _registry.check_organ_truth
 
 _CONFIG_SUFFIXES = _registry._CONFIG_SUFFIXES
 _DOT_PREFIX_EXCEPTIONS = _registry._DOT_PREFIX_EXCEPTIONS
@@ -5488,6 +5489,15 @@ ALL_CHECKS = [
                                # repair. Promotion condition, written down rather than
                                # remembered: flip to TIER_COMMIT when leg a1 measures 0 on
                                # main. Full argument at the check's docstring
+    _tier(TIER_SHIP, check_organ_truth),           # lane-l3 — the FOURTH declared exception
+                               # to the assignment rule: FAIL-capable and ship anyway, on the
+                               # ground funnel_lifecycle records. It measures NON-ZERO on live
+                               # main (organs declared nowhere; organs owed by other lanes; an
+                               # index awaiting the integrator's regeneration) and none of that
+                               # is clearable by a committing lane -- the declaration is L1's
+                               # file alone. A COMMIT tier would wedge every commit. Promotion
+                               # condition: flip to TIER_COMMIT when it measures 0 on main.
+                               # Full argument at the check's docstring
 ]
 
 
