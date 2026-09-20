@@ -11,7 +11,7 @@
 # builds the command a moment already declares (`optional: true` until it exists -> SKIPPED-NOT-BUILT, N4).
 stages:
   - {stage: 1, name: kind-subject, field: subject, kind: judgement, command: [git, --no-pager, grep, -n, -F, -e, "| {subject} |", --, protocols/BUILD-LIST.md]}
-  - {stage: 2, name: prior-art, field: prior-art, kind: deterministic, command: [git, --no-pager, log, --oneline, -n, "20", -i, -F, "--grep={subject}", --, tasks, scripts, protocols]}
+  - {stage: 2, name: prior-art, field: prior-art, kind: deterministic, command: [uv, run, --locked, python, scripts/stage_prior_art.py, emit, --subject, "{subject}"]}
   - {stage: 3, name: carrier-row, field: carrier, kind: deterministic, always: true, reason: "reads the live task tree, which a lane edits between runs", command: [uv, run, --locked, python, scripts/gen_task_tree.py, --check]}
   - {stage: 4, name: change-kind, field: kind, kind: judgement, command: [uv, run, --locked, python, scripts/gen_lane_contract.py, distill, --kind, "{kind}", --subject, "{subject}", --stdout]}
   - {stage: 5, name: dependencies, field: dependencies, kind: deterministic, command: [uv, run, --locked, python, scripts/file_purpose_graph.py, stats]}

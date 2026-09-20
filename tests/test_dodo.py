@@ -121,7 +121,9 @@ def test_real_spine_gets_past_stage_6_on_the_dispatch_subject(tmp_path):
     """L5 built stage 6's CHECK and never wired its FILL: the spine halted at 6 on every real subject."""
     out = _run_real_spine(tmp_path / "doit.db")
     text = out.stdout + out.stderr
-    assert "stage 6 does not exist" not in text, text[-800:]
+    # Anchored to the engine's own STOP line: stage 2 now echoes archive prose (candidate: lines), and
+    # the audits about THIS very bug quote the phrase mid-line.
+    assert not re.search(r"^STOP: stage 6 does not exist", text, re.MULTILINE), text[-800:]
 
 
 def test_stage_6_fill_round_trips_through_the_check_and_prose_is_still_refused():

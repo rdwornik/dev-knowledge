@@ -162,7 +162,17 @@ def test_the_result_count_is_bounded_and_says_it_truncated(repo):
     assert result.exit_code == 0, result.output
     assert len([ln for ln in result.output.splitlines() if ln.startswith("candidate:")]) == 5
     assert re.search(r"found=30\b", result.output), result.output
-    assert "truncated" in result.output
+    assert "truncated=yes" in result.output
+    assert "truncated=no" in _emit(repo, "manyhit", "--limit", "50").output
+
+
+def test_a_non_ascii_snippet_survives_a_piped_windows_stdout(repo):
+    """The receipt's stdout file is a pipe (cp1252 on Windows); a real audit line holds an arrow."""
+    (repo / "docs" / "audits" / "2026-09-02-arrow.md").write_text("verdict → zyxwarrow kept\n", encoding="utf-8")
+    proc = subprocess.run([sys.executable, str(_SCRIPTS / "stage_prior_art.py"), "emit", "--subject",
+                           "zyxwarrow", "--root", str(repo)], capture_output=True, timeout=60)
+    assert proc.returncode == 0, proc.stderr.decode("utf-8", "replace")
+    assert "→ zyxwarrow".encode("utf-8") in proc.stdout
 
 
 def test_its_own_runtime_is_recorded(repo):
