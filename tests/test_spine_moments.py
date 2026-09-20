@@ -408,3 +408,62 @@ def test_stage_11_fills_the_cap_field_and_never_governs_or_stops(tmp_path):
 @pytest.mark.parametrize("stage", range(1, 13))
 def test_every_real_stage_row_is_still_present_and_ordered(stage):
     assert [s["stage"] for s in _real()["stages"]][stage - 1] == stage
+
+
+# --- codex terra review (docs/audits/2026-09-20-codex-l1-spine-moments.md): the three HIGHs ------------
+
+def test_an_in_place_edit_of_a_file_a_stage_names_invalidates_its_receipt(tmp_path):
+    """HIGH 1: the hash covers the CONTENT of a file named in argv, not just its path."""
+    marker, contract = tmp_path / "ran.txt", tmp_path / "c.md"
+    contract.write_text("v1", encoding="utf-8")
+    stages = _three_stages(marker, **{"1": {"command": [*_touch(marker, "1"), str(contract)]}})
+    harness = _write(tmp_path, stages)
+    assert _doit(tmp_path, harness, "spine").returncode == 0
+    contract.write_text("v2", encoding="utf-8")
+    assert _doit(tmp_path, harness, "spine").returncode == 0
+    assert marker.read_text() == "123123"
+
+
+def test_the_repo_state_fingerprint_is_part_of_the_input_hash(monkeypatch):
+    import importlib.util  # noqa: PLC0415
+    spec = importlib.util.spec_from_file_location("dodo_state_under_test", _DODO)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    monkeypatch.setattr(mod, "_repo_state", lambda: "head-a")
+    first = mod._input_hash(["x"], None)
+    monkeypatch.setattr(mod, "_repo_state", lambda: "head-b")
+    assert mod._input_hash(["x"], None) != first, "a new commit or edit must stale every receipt"
+
+
+def test_a_parseable_but_incomplete_receipt_is_not_up_to_date(tmp_path):
+    """HIGH 2: `{"status": "ok", "exit_code": 0}` with a matching hash is still not a completion record."""
+    marker = tmp_path / "ran.txt"
+    harness = _write(tmp_path, _three_stages(marker))
+    assert _doit(tmp_path, harness, "spine").returncode == 0
+    target = next((tmp_path / "receipts").glob("SPINE-01-*.json"))
+    data = json.loads(target.read_text(encoding="utf-8"))
+    target.write_text(json.dumps({k: data[k] for k in ("status", "exit_code", "input_hash")}), encoding="utf-8")
+    assert _doit(tmp_path, harness, "spine").returncode == 0
+    assert marker.read_text() == "1231"
+
+
+def test_a_receipt_written_for_another_organ_is_not_up_to_date(tmp_path):
+    marker = tmp_path / "ran.txt"
+    harness = _write(tmp_path, _three_stages(marker))
+    assert _doit(tmp_path, harness, "spine").returncode == 0
+    target = next((tmp_path / "receipts").glob("SPINE-01-*.json"))
+    data = json.loads(target.read_text(encoding="utf-8"))
+    target.write_text(json.dumps({**data, "organ": "stage:99-someone-else"}), encoding="utf-8")
+    assert _doit(tmp_path, harness, "spine").returncode == 0
+    assert marker.read_text() == "1231"
+
+
+def test_an_optional_organ_with_command_null_is_skipped_not_crashed(tmp_path):
+    """HIGH 3: the freshness check must not call `_argv(None)` before the skip branch is reached."""
+    marker = tmp_path / "ran.txt"
+    organs = [{"id": "nullcmd", "optional": True, "command": None, "manual_until": "2026-12-31",
+               "receipt": "MOMENT-TEARDOWN-NULLCMD.json"}]
+    harness = _write(tmp_path, _three_stages(marker), [_moment("teardown", organs)])
+    out = _doit(tmp_path, harness, "moment:teardown")
+    assert out.returncode == 0, out.stdout + out.stderr
+    assert _receipt(tmp_path, "NULLCMD")["status"] == "SKIPPED-NOT-BUILT"

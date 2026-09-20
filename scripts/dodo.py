@@ -127,9 +127,37 @@ def _read(path):
     return data if isinstance(data, dict) else None
 
 
+def _repo_state():
+    """HEAD plus the porcelain status: a commit or an edit stales every receipt (a receipt is a resume
+    record for ONE preparation, not a cache across repo changes). Receipts are gitignored, so writing
+    them does not move this."""
+    def probe(*args):
+        try:
+            return subprocess.run(["git", "-C", str(_ROOT), *args], capture_output=True, text=True).stdout
+        except OSError:
+            return ""
+    return hashlib.sha256((probe("rev-parse", "HEAD") + probe("status", "--porcelain")).encode()).hexdigest()
+
+
+def _file_digests(argv):
+    """Content hash of every argv token that names a file (the contract, BUILD-LIST, ...): an in-place
+    edit of a declared input is an input change."""
+    out = {}
+    for token in argv:
+        path = Path(str(token))
+        path = path if path.is_absolute() else _ROOT / path
+        try:
+            if path.is_file():
+                out[str(token)] = hashlib.sha256(path.read_bytes()).hexdigest()
+        except OSError:
+            pass
+    return out
+
+
 def _input_hash(argv, upstream):
     body = {"kind": os.environ.get("HARNESS_KIND", ""), "subject": os.environ.get("HARNESS_SUBJECT", ""),
-            "event": os.environ.get("HARNESS_EVENT", ""), "argv": argv, "upstream": upstream}
+            "event": os.environ.get("HARNESS_EVENT", ""), "argv": argv, "upstream": upstream,
+            "files": _file_digests(argv), "state": _repo_state()}
     return hashlib.sha256(json.dumps(body, sort_keys=True).encode("utf-8")).hexdigest()
 
 
@@ -142,11 +170,17 @@ def _never():
     return False
 
 
-def _fresh(receipt, command, previous):
-    """Up to date = the receipt parses, recorded exit 0 and holds the hash this run would compute."""
+_RECEIPT_KEYS = {"schema", "organ", "status", "exit_code", "duration_ms", "input_hash",
+                 "model_requested", "model_reported", "command", "finished_at"}
+
+
+def _fresh(label, receipt, command, previous):
+    """Up to date = a COMPLETE receipt for this organ, exit 0, holding the hash this run would compute.
+    A row with no command is never fresh: its action writes the SKIPPED receipt (or stops the run)."""
     data = _read(receipt) or {}
-    return (data.get("status") == "ok" and data.get("exit_code") == 0
-            and data.get("input_hash") == _input_hash(_argv(command), _upstream(previous)))
+    return bool(command) and _RECEIPT_KEYS <= set(data) and data["organ"] == label and (
+        data["status"] == "ok" and data["exit_code"] == 0 and isinstance(data["duration_ms"], int)
+        and data["input_hash"] == _input_hash(_argv(command), _upstream(previous)))
 
 
 def _execute(label, row, receipt, previous, optional):
@@ -178,7 +212,7 @@ def _task(name, label, row, receipt, previous, deps, optional=False):
         fresh = _never
     else:
         def fresh():
-            return _fresh(receipt, row["command"], previous)
+            return _fresh(label, receipt, row.get("command"), previous)
     return {"name": name, "actions": [PythonAction(_execute(label, row, receipt, previous, optional))],
             "targets": [str(receipt)], "task_dep": deps, "uptodate": [fresh], "verbosity": 2}
 

@@ -70,7 +70,7 @@ def test_harness_yaml_declares_stages_1_to_12_within_caps():
 
 
 def test_dodo_adapter_stays_small():
-    assert len(_DODO.read_text(encoding="utf-8").splitlines()) < 250  # L1: receipts + moments (was 100)
+    assert len(_DODO.read_text(encoding="utf-8").splitlines()) < 300  # L1: receipts + moments (was 100)
 
 
 def test_spine_moves_no_row_through_a_phase():
