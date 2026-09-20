@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -124,9 +125,37 @@ def live_sessions() -> list:
     return data
 
 
+def _validated_sessions(sessions: object) -> list:
+    """The session list, or `OccupancyError`. A record this cannot judge is never read as "not
+    holding the tree": a non-mapping row, a row with no `status`, or a `busy` row with no `cwd`
+    means the payload has changed shape and the session leg cannot be trusted."""
+    if not isinstance(sessions, list):
+        raise OccupancyError("the session payload is not a list")
+    for i, row in enumerate(sessions):
+        if not isinstance(row, dict):
+            raise OccupancyError(f"session record {i} is not a mapping: {row!r}")
+        if not isinstance(row.get("status"), str):
+            raise OccupancyError(f"session record {i} has no string `status`: {row!r}")
+        if row["status"] == _LIVE_STATUS and not isinstance(row.get("cwd"), str):
+            raise OccupancyError(f"busy session record {i} has no string `cwd`: {row!r}")
+    return sessions
+
+
+def _dir_exists(path: Path) -> bool:
+    """True/False for present/absent; anything else (permissions, I/O) is `OccupancyError`.
+    `Path.exists()` cannot be used: it answers False on an error, so a husk this process cannot
+    stat would read FREE."""
+    try:
+        os.stat(path)
+    except FileNotFoundError:
+        return False
+    except OSError as exc:
+        raise OccupancyError(f"could not stat {path}: {exc!r}") from exc
+    return True
+
+
 def _session_holds(session: dict, tree: str) -> bool:
-    cwd = _norm(str(session.get("cwd") or ""))
-    return session.get("status") == _LIVE_STATUS and cwd == tree
+    return session["status"] == _LIVE_STATUS and _norm(session["cwd"]) == tree
 
 
 def check(slug: str, root: Path, sessions: Optional[list] = None,
@@ -144,12 +173,11 @@ def check(slug: str, root: Path, sessions: Optional[list] = None,
         raise OccupancyError(f"{root} is not a directory")
     tree_dir = root / ".claude" / "worktrees" / slug
     tree = _norm(str(tree_dir))
-    if sessions is None:
-        sessions = live_sessions()
+    sessions = _validated_sessions(live_sessions() if sessions is None else sessions)
     ignored = set(ignore_sessions)
     legs = {
         "worktree": tree in _registered_worktrees(root),
-        "directory": tree_dir.exists(),
+        "directory": _dir_exists(tree_dir),
         "branch": _has_branch(root, f"worktree-{slug}"),
         "session": any(_session_holds(s, tree) for s in sessions
                        if s.get("id") not in ignored and s.get("sessionId") not in ignored),

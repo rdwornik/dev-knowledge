@@ -100,12 +100,13 @@ LANE_BRANCH_RE = re.compile(rf"^worktree-lane-{BATCH_TOKEN}-\d+-{_SLUG}$")
 
 _SUFFIX_RE = re.compile(rf"^{_SLUG}$")
 
-#: A slug that opens like a batch lane -- letters, then a numeric id, then more -- but whose
-#: letter token is NOT a valid batch token. That is a MALFORMED batch name (`abcd-505-slug`),
-#: and the general `worktree-lane-<slug>` form must not silently absorb it: it was reported
-#: before the widening and stays reported (`test_worktree_lane_prefix_with_a_broken_grammar_...`).
-_BATCH_SHAPED_RE = re.compile(r"^[a-z]+-\d+-")
-_BATCH_TOKEN_RE = re.compile(rf"^{BATCH_TOKEN}-")
+#: A slug that OPENS like a batch lane -- letters, then a numeric id, then a slug or nothing.
+#: Such a name is judged by the batch grammar (`LANE_BRANCH_RE`) alone, never by the general
+#: form: `abcd-505-slug` (token too wide) and the truncated `a-505` / `abcd-505` (no slug) were
+#: reported before the widening and stay reported, so the general form cannot become a back door
+#: to the ADR-110 exemption (`test_worktree_lane_prefix_with_a_broken_grammar_...`, and codex
+#: terra HIGH 3, `docs/audits/2026-09-20-codex-l2-dispatch-guards.md`).
+_BATCH_SHAPED_RE = re.compile(r"^[a-z]+-\d+(?:-|$)")
 
 KIND_DEFAULT = "default-branch"
 KIND_SERIAL_ARC = "serial-arc"
@@ -215,8 +216,9 @@ def is_worktree_lane_name(name: str) -> bool:
     Two things stay refused, both deliberately:
       * a slug with no hyphen (`worktree-lane-nope`, `worktree-lane-`): a native worktree that
         merely starts with `lane`, and the empty slug;
-      * a MALFORMED batch name (`worktree-lane-abcd-505-slug`): batch-shaped but past the batch
-        token width. It was reported before the widening and must not be absorbed by it.
+      * a MALFORMED or TRUNCATED batch name (`worktree-lane-abcd-505-slug`, `worktree-lane-a-505`):
+        anything shaped `<letters>-<digits>[-...]` is a batch name and is judged by the batch
+        grammar alone. Reported before the widening; must not be absorbed by it.
     The prefix still separates lanes from `claude/*`, `automation/*` and `main`. This is the
     scoped predicate; `is_lane_branch` is the whole set.
     """
@@ -226,8 +228,8 @@ def is_worktree_lane_name(name: str) -> bool:
     slug = name[len(prefix):]
     if "-" not in slug or not _SUFFIX_RE.match(slug):
         return False
-    if _BATCH_SHAPED_RE.match(slug) and not _BATCH_TOKEN_RE.match(slug):
-        return False
+    if _BATCH_SHAPED_RE.match(slug):
+        return bool(LANE_BRANCH_RE.match(name))
     return True
 
 
