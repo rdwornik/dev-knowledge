@@ -844,9 +844,10 @@ def arming_contradictions(root: Path) -> list[str] | None:
         cls, name, source = key
         actual = live.get(key)
         if actual is None:
-            if _arming_word(claimed) == _STATUS_ARMED:
-                out.append(f"{cls} `{name}` ({source}): the index says {claimed}, and the live "
-                           f"config carries no such hook ({_STATUS_ABSENT})")
+            # ANY claim -- ARMED or MANUAL -- about a hook the config no longer carries is
+            # false: a MANUAL hook that is gone cannot be run on demand either (terra HIGH).
+            out.append(f"{cls} `{name}` ({source}): the index says {claimed}, and the live "
+                       f"config carries no such hook ({_STATUS_ABSENT})")
             continue
         if actual == _UNPARSED or _arming_word(claimed) == _arming_word(actual):
             continue

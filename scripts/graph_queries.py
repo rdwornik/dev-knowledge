@@ -1430,7 +1430,8 @@ OWING_LANE: dict[str, str] = {
 #: A file an organ's command names. `-c` code is handled separately (an import, not a path).
 _COMMAND_PATH_RE = re.compile(
     r"(?:scripts|\.claude/commands|\.claude/skills|plugins)/[\w./-]+\.(?:py|ps1|md)")
-_COMMAND_IMPORT_RE = re.compile(r"\bimport\s+(\w+)")
+#: `import a, b as c` and `from a import x` -- the two ways a `-c` snippet reaches a script.
+_COMMAND_IMPORT_RE = re.compile(r"(?:^|[;\s])(?:from\s+(\w+)\s+import\b|import\s+([\w\s,]+))")
 
 
 class MomentsUnreadable(Exception):
@@ -1461,6 +1462,28 @@ class MomentRow:
     wired_elsewhere: bool = False
 
 
+def _snippet_scripts(code: str, root: Path) -> list[str]:
+    """The `scripts/<module>.py` files a `-c` snippet imports.
+
+    A module counts when its script EXISTS, or -- so an organ that is not built yet is still
+    seen -- when it is not stdlib and the snippet puts `scripts` on the path. Existence is
+    classified afterwards by the caller, never used to DROP a candidate here (terra HIGH).
+    """
+    out: list[str] = []
+    on_scripts_path = "scripts" in code
+    for from_mod, import_list in _COMMAND_IMPORT_RE.findall(code):
+        modules = [from_mod] if from_mod else [
+            part.split(" as ")[0].strip() for part in import_list.split(",")]
+        for module in modules:
+            module = module.split()[0] if module.split() else ""
+            if not module:
+                continue
+            rel = f"scripts/{module}.py"
+            if (root / rel).is_file() or (on_scripts_path and module not in sys.stdlib_module_names):
+                out.append(rel)
+    return out
+
+
 def _command_paths(command: list, root: Path, organ_id: str) -> tuple[tuple[str, ...], str | None]:
     """`(every file the command runs, the primary one)` -- the primary is the first file the
     argv names, else the first module a `-c` snippet imports that exists as a script."""
@@ -1469,10 +1492,7 @@ def _command_paths(command: list, root: Path, organ_id: str) -> tuple[tuple[str,
     after_c = False
     for arg in (str(a) for a in command):
         if after_c:
-            for module in _COMMAND_IMPORT_RE.findall(arg):
-                rel = f"scripts/{module}.py"
-                if (root / rel).is_file():
-                    imported.append(rel)
+            imported.extend(_snippet_scripts(arg, root))
             after_c = False
             continue
         after_c = arg == "-c"
@@ -1502,21 +1522,31 @@ def load_declaration(repo_root: Path | str) -> list[DeclaredOrgan]:
         raise MomentsUnreadable(f"{MOMENTS_DECLARATION_REL} is not a mapping")
     declared: list[DeclaredOrgan] = []
     for stage in raw.get("stages") or []:
-        if not isinstance(stage, dict) or not isinstance(stage.get("command"), list):
+        if not isinstance(stage, dict):
+            raise MomentsUnreadable(f"{MOMENTS_DECLARATION_REL}: a stage is not a mapping")
+        if stage.get("command") is None:
             continue  # `command: null` is a stage that does not exist yet -- dodo.py names it
+        if not isinstance(stage["command"], list):
+            raise MomentsUnreadable(
+                f"{MOMENTS_DECLARATION_REL}: stage {stage.get('stage')} command is not a list")
         name = str(stage.get("name") or stage.get("stage"))
         paths, primary = _command_paths(stage["command"], root, "")
         declared.append(DeclaredOrgan(f"spine stage {stage.get('stage')} ({name})", name,
                                       paths, primary, False, None))
     for moment in raw.get("moments") or []:
-        if not isinstance(moment, dict):
-            continue
+        if not isinstance(moment, dict) or not isinstance(moment.get("organs") or [], list):
+            raise MomentsUnreadable(
+                f"{MOMENTS_DECLARATION_REL}: a moment is not a mapping with an `organs` list")
         for organ in moment.get("organs") or []:
             if not isinstance(organ, dict) or not organ.get("id"):
-                continue
+                raise MomentsUnreadable(
+                    f"{MOMENTS_DECLARATION_REL}: moment {moment.get('name')!r} carries an organ "
+                    f"that is not a mapping with an `id`")
             command = organ.get("command")
-            paths, primary = _command_paths(
-                command if isinstance(command, list) else [], root, str(organ["id"]))
+            if command is not None and not isinstance(command, list):
+                raise MomentsUnreadable(
+                    f"{MOMENTS_DECLARATION_REL}: organ {organ['id']!r} command is not a list")
+            paths, primary = _command_paths(command or [], root, str(organ["id"]))
             declared.append(DeclaredOrgan(
                 str(moment.get("name")), str(organ["id"]), paths, primary,
                 bool(organ.get("optional")), str(organ["owner"]) if organ.get("owner") else None))
