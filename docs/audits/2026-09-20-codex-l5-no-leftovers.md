@@ -6,7 +6,7 @@
 **Diff range:** `main..worktree-lane-l5-no-leftovers`
 **Codex version:** codex-cli 0.155.0
 **Mode:** diff-review
-**Tally:** TBD/TBD/TBD/TBD <!-- Critical/High/Medium/Low. FILL FROM THE FINDINGS SECTION before committing. The hub's review_artifact_coverage leg parses four digits here; TBD deliberately does not parse, so an unfilled tally keeps WARNing instead of shipping a number nobody counted. -->
+**Tally:** 0/3/0/0
 
 **Model used:** `gpt-5.6-terra` (pinned; both lanes — [#469])
 **Review profile:** code
@@ -54,3 +54,19 @@
 ## LOW
 
 (none)
+
+## Dispositions (lane-l5-no-leftovers, same session)
+
+- **HIGH 1 (digit-suffixed admin entry flagged by name) -- ACCEPTED, fixed.** A `.git/worktrees/<slug>N` entry now
+  counts as the lane's only when its `gitdir` target resolves to the lane path; the name alone decides only for an
+  exact `<slug>` entry. `test_4_passes_for_a_digit_suffixed_admin_entry_that_belongs_to_a_live_sibling`
+  (RED witnessed on the old code: failed, evidence named the sibling as a leftover).
+- **HIGH 2 (unreadable admin `gitdir` accepted as clean) -- ACCEPTED, fixed.** An admin entry with an unreadable or
+  empty `gitdir` now FAILS check 4 and is named in the evidence. `test_4_fails_closed_on_an_admin_entry_whose_gitdir_cannot_be_read`
+  (RED witnessed: passed on the old code) and `test_4_fails_closed_on_an_ambiguous_suffixed_entry_with_no_readable_target`
+  (already green on the old code by name match; kept as the guard that the fix did not reopen that case).
+- **HIGH 3 (unparseable job record skipped) -- ACCEPTED, fixed.** A job record that cannot be read or parsed now FAILS
+  check 8. `test_8_fails_closed_on_a_job_record_it_cannot_parse` replaces the earlier test that codified the PASS
+  (RED witnessed: passed on the old code). Stated cost: a `state.json` caught mid-write reads as FAIL until a re-run.
+- The review's fourth focus (slugged run does not fail on OTHER lanes' husks) raised no finding; it stays a deliberate
+  NOTE-only design, stated in the module's HONEST LIMITS.

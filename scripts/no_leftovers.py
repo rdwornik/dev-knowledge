@@ -292,21 +292,24 @@ def run_checks(repo: Path, lane: str, *, jobs_dir: Path, agents: list[dict] | No
         add(4, "worktree-admin-entry-absent", False, "unreadable: git common dir not resolvable")
     else:
         admin_root = common / "worktrees"
-        hits = []
+        hits, unreadable = [], []
         if admin_root.is_dir():
             for d in sorted(admin_root.iterdir()):
                 if not d.is_dir():
                     continue
-                target = ""
                 try:
                     target = (d / "gitdir").read_text(encoding="utf-8", errors="replace").strip()
                 except OSError:
-                    pass
-                if d.name == lane or re.fullmatch(re.escape(lane) + r"\d+", d.name) or \
-                        (target and _norm(Path(target).parent) == lane_norm):
-                    hits.append(d.name)
-        add(4, "worktree-admin-entry-absent", not hits,
-            f"admin entries: {_shown(hits)} under {admin_root}" if hits else f"no admin entry for {lane} under {admin_root}")
+                    target = ""
+                if not target:
+                    unreadable.append(d.name)          # fail closed: unknown evidence is not clean
+                elif d.name == lane or _norm(Path(target).parent) == lane_norm:
+                    hits.append(d.name)                # a `<slug>1` collision suffix counts only by its gitdir target
+        add(4, "worktree-admin-entry-absent", not (hits or unreadable),
+            (f"admin entries for the lane: {_shown(hits)} under {admin_root}" if hits else "")
+            + (f"{'; ' if hits else ''}admin entries with an unreadable gitdir (cannot rule the lane out): "
+               f"{_shown(unreadable)}" if unreadable else "")
+            or f"no admin entry for {lane} under {admin_root}")
 
     # 5
     refs, why = _refs(repo, "refs/heads", "refs/remotes")
@@ -355,10 +358,11 @@ def run_checks(repo: Path, lane: str, *, jobs_dir: Path, agents: list[dict] | No
                 continue
             if isinstance(rec, dict) and _points_at_lane(rec, lane_norm, branch):
                 hits.append(state.parent.name)
-        note = f"; unparseable record(s) skipped: {_shown(unparseable)}" if unparseable else ""
-        add(8, "job-record-absent", not hits,
-            (f"job record(s) pointing at the lane: {_shown(hits)}" if hits
-             else f"0 of {seen} job record(s) point at {lane}") + note)
+        note = (f"{'; ' if hits else ''}job record(s) that could not be read or parsed "
+                f"(cannot rule the lane out): {_shown(unparseable)}") if unparseable else ""
+        add(8, "job-record-absent", not (hits or unparseable),
+            (f"job record(s) pointing at the lane: {_shown(hits)}" if hits else "")
+            + note or f"0 of {seen} job record(s) point at {lane}")
 
     # 9
     if agents is None:
