@@ -401,16 +401,22 @@ class World:
             time.sleep(1)
 
     # the integrator's chain -----------------------------------------------------------------------------------------
-    def integrate_merge(self, slug: str, contract: Path, handback: str) -> tuple[str, dict]:
-        """open -> handback verdict -> `merge --no-ff` -> `moment:merge` (HARNESS_* as lane-integrate.md sets them)."""
+    def integrate_merge(self, slug: str, contract: Path, handback: str) -> tuple[Optional[str], dict]:
+        """open -> handback verdict -> `merge --no-ff` (the HARNESS_* for `moment:merge` are `merge_env`).
+
+        A refused handback verdict is a REFUSAL, as lane-integrate.md has it: nothing is merged and `(None, info)` comes
+        back, so no later step is simulated on top of a merge the integrator would not have made."""
         opened = self.uv("python", "scripts/merge_receipt.py", "open", "--slug", slug, "--batch", BATCH)
         assert opened.returncode == 0, opened.stderr
         verdict = self.uv("python", "scripts/audit.py", "handback", handback)
+        info = {"handback_verdict_exit": verdict.returncode,
+                "handback_verdict_out": (verdict.stdout + verdict.stderr).strip()[-300:]}
+        if verdict.returncode != 0:
+            return None, info
         merged = self.run(["git", "merge", "--no-ff", "-m", f"Merge branch 'worktree-{slug}'\n\nkill-candidates: none",
                            f"worktree-{slug}"])
         assert merged.returncode == 0, merged.stderr
-        return self.git("rev-parse", "HEAD"), {"handback_verdict_exit": verdict.returncode,
-                                               "handback_verdict_out": (verdict.stdout + verdict.stderr).strip()[-300:]}
+        return self.git("rev-parse", "HEAD"), info
 
     def merge_env(self, slug: str, contract: Path, handback: str, merge: str) -> dict[str, str]:
         return {"HARNESS_LANE": slug, "HARNESS_BATCH": BATCH, "HARNESS_CONTRACT": str(contract),
@@ -421,8 +427,8 @@ def _fresh_world(tmp_path_factory: pytest.TempPathFactory, name: str, *, full: b
     return World(tmp_path_factory.mktemp(name), full=full).build()
 
 
-def _transport_fingerprint() -> Optional[set[str]]:
-    """Names of toy-looking files on the operator's REAL transport (None when it cannot be resolved)."""
+def _transport_fingerprint() -> Optional[dict[str, tuple[int, int]]]:
+    """name -> (size, mtime_ns) of toy-looking files on the operator's REAL transport (None when unresolvable)."""
     try:
         import dispatch as d  # noqa: PLC0415
         base = d.prompts_dir()
@@ -430,8 +436,20 @@ def _transport_fingerprint() -> Optional[set[str]]:
         return None
     if not base.is_dir():
         return None
-    return {p.name for folder in ("to-cc", "to-browser") if (base / folder).is_dir()
+    return {f"{folder}/{p.name}": (p.stat().st_size, p.stat().st_mtime_ns)
+            for folder in ("to-cc", "to-browser") if (base / folder).is_dir()
             for p in (base / folder).glob("*") if "toy" in p.name.lower() or BATCH in p.name}
+
+
+def _registry_redirect(world: World) -> str:
+    """Ask a CHILD process (the way every organ runs) where the User-scope transport is: the shim must answer with the
+    test's own folder. `not-applicable` off Windows, where there is no registry read to redirect."""
+    if os.name != "nt":
+        return "not-applicable"
+    probe = world.run([sys.executable, "-c", "import sys; sys.path.insert(0, 'scripts'); import transport_report as t; "
+                       "print(t.windows_user_env('CLAUDE_PROMPTS_DIR'))"])
+    got = probe.stdout.strip()
+    return "verified" if got == str(world.transport) else f"BROKEN: child sees {got!r}, not {world.transport}"
 
 
 # --- the walk -------------------------------------------------------------------------------------------------------
@@ -441,18 +459,26 @@ def walk_the_loop(tmp_path_factory: pytest.TempPathFactory) -> Walk:
     live_before = _transport_fingerprint()
     world = _fresh_world(tmp_path_factory, "connection_world", full=True)
     walk = Walk()
+    walk.integrator["registry_redirect"] = _registry_redirect(world)
     with pytest.MonkeyPatch.context() as mp:
         _walk(world, walk, mp)
     walk.human_writes, walk.standing = world.human_writes, world.standing
     live_after = _transport_fingerprint()
     walk.live_transport_touched = None if live_before is None or live_after is None else live_before != live_after
-    walk.stops = [s for s in (step.stop for step in walk.steps) if s]
     return walk
+
+
+def _record(walk: Walk, step: Step) -> Step:
+    """Add a moment to the walk in order, and its stop (if it did not fire) to the queue."""
+    walk.steps.append(step)
+    if step.stop:
+        walk.stops.append(step.stop)
+    return step
 
 
 def _walk(world: World, walk: Walk, mp: pytest.MonkeyPatch) -> None:
     world.write_task()
-    walk.steps.append(world.spine())
+    _record(walk, world.spine())
     contract_text = (world.repo / "logs" / "receipts" / "SPINE-12-CONTRACT-OUTPUT.txt").read_text(encoding="utf-8")
     slug = re.search(r"^# LANE (\S+)", contract_text, re.M).group(1)
     walk.slug = slug
@@ -463,25 +489,28 @@ def _walk(world: World, walk: Walk, mp: pytest.MonkeyPatch) -> None:
     launched = world.launch(contract, provider, mp)
     pre = world._step("pre-launch", launched.exit_code, world.repo / "logs" / "receipts",
                       [(o["id"], o["receipt"]) for o in world._declared_organs("pre-launch")])
-    walk.steps.append(pre)
+    _record(walk, pre)
     walk.integrator["launch_exit"] = launched.exit_code
     walk.integrator["spawns"] = len(provider.calls)
     if launched.exit_code != 0 or not provider.calls:
         return          # nothing was launched, so there is no lane to walk (a stop, recorded above)
     worktree = world.repo / ".claude" / "worktrees" / slug
 
-    walk.steps.append(world.moment("lane-start", cwd=worktree))
+    _record(walk, world.moment("lane-start", cwd=worktree))
     sha = world.lane_commit(worktree)
     world.lane_transcript(worktree)
     handback = world.write_session(slug, sha)
     world.stop_hook(worktree)
-    walk.steps.append(world._step("lane-end", 0, worktree / "logs" / "receipts",
-                                  [(o["id"], o["receipt"]) for o in world._declared_organs("lane-end")]))
+    _record(walk, world._step("lane-end", 0, worktree / "logs" / "receipts",
+                              [(o["id"], o["receipt"]) for o in world._declared_organs("lane-end")]))
 
     world.write_go()
     merge_sha, verdict = world.integrate_merge(slug, contract, handback)
     walk.integrator.update(verdict, merge=merge_sha)
-    walk.steps.append(world.moment("merge", **world.merge_env(slug, contract, handback, merge_sha)))
+    if merge_sha is None:      # the integrator refuses a handback it cannot verdict: no merge, nothing after it
+        walk.stops.append(Stop("integrate", "handback-verdict", "(audit.py handback)", verdict["handback_verdict_out"]))
+        return
+    _record(walk, world.moment("merge", **world.merge_env(slug, contract, handback, merge_sha)))
 
     # From here the walk CONTINUES past a stop: each later moment gets its best legitimate chance.
     world.uv("python", "scripts/merge_receipt.py", "close", "--slug", slug)
@@ -491,14 +520,13 @@ def _walk(world: World, walk: Walk, mp: pytest.MonkeyPatch) -> None:
     world.git("worktree", "remove", f".claude/worktrees/{slug}")
     world.git("worktree", "prune")
     world.git("branch", "-d", f"worktree-{slug}")
-    walk.steps.append(world.moment("teardown", HARNESS_LANE=slug, HARNESS_BATCH=BATCH))
-    close = world.moment("batch-close", HARNESS_LANE=slug, HARNESS_BATCH=BATCH)
-    walk.steps.append(close)
+    _record(walk, world.moment("teardown", HARNESS_LANE=slug, HARNESS_BATCH=BATCH))
+    _record(walk, world.moment("batch-close", HARNESS_LANE=slug, HARNESS_BATCH=BATCH))
     output = world.repo / "logs" / "receipts" / "MOMENT-BATCH-CLOSE-DIGEST-OUTPUT.txt"
     walk.digest = output.read_text(encoding="utf-8", errors="replace") if output.is_file() else ""
-    if close.stop is None and slug not in walk.digest and SUBJECT not in walk.digest:
-        close.organs[-1] = OrganReceipt("batch-close", "digest-names-the-task", "MOMENT-BATCH-CLOSE-DIGEST-OUTPUT.txt",
-                                        "does-not-name-the-task", 0, close.organs[-1].mtime_ns)
+    if slug not in walk.digest and SUBJECT not in walk.digest:     # a requirement of the loop, kept apart from the receipt
+        walk.stops.append(Stop("batch-close", "digest-names-the-task", "MOMENT-BATCH-CLOSE-DIGEST-OUTPUT.txt",
+                               "the declared digest organ exited 0 and named the batch, never the task or its commits"))
 
 
 # One walk per test RUN, shared across xdist workers through a lock file (the walk is minutes, not seconds).
@@ -518,7 +546,9 @@ def _shared_walk(tmp_path_factory: pytest.TempPathFactory) -> Walk:
         os.close(fd)
         try:
             walk = walk_the_loop(tmp_path_factory)
-            result.write_text(walk.to_json(), encoding="utf-8")
+            partial = result.with_name(result.name + f".{os.getpid()}.tmp")
+            partial.write_text(walk.to_json(), encoding="utf-8")
+            os.replace(partial, result)          # readers see the whole file or none of it
             return walk
         finally:
             lock.unlink(missing_ok=True)
@@ -575,7 +605,8 @@ def test_a_human_writes_at_most_three_files_task_go_and_nothing_else(walk):
 
 
 def test_the_operators_live_transport_was_not_touched(walk):
-    assert walk.live_transport_touched in (False, None), "the walk wrote toy files onto the operator's live transport"
+    assert walk.integrator["registry_redirect"] in ("verified", "not-applicable"), walk.integrator["registry_redirect"]
+    assert walk.live_transport_touched is not True, "the walk wrote toy files onto the operator's live transport"
 
 
 # --- Done-contract 3: negative paths, each its own test ----------------------------------------------------------------
@@ -611,6 +642,7 @@ def test_a_missing_go_file_stops_at_merge(tmp_path_factory):
     world.lane_transcript(worktree)
     handback = world.write_session(NEGATIVE_SLUG, sha)
     merge_sha, _ = world.integrate_merge(NEGATIVE_SLUG, contract, handback)
+    assert merge_sha, "the handback verdict must pass so the refusal under test is the missing GO"
     assert not (world.transport / "to-cc" / f"GO-{BATCH}.md").exists(), "this test must not write a GO"
     step = world.moment("merge", **world.merge_env(NEGATIVE_SLUG, contract, handback, merge_sha))
     assert step.exit_code != 0
