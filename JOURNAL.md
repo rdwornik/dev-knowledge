@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-21 (j) - CC (Opus 5, integrator wave 3): LANE W3-E merged -- the gate's WARN count sheds what was already answered, and a generated-file conflict is resolved by regenerating
+
+**Anchors:** `7fae8848` (register comment + index) · `d44a8691` (Codex record + disposition ledger) · `573e436e` (stale dispositions) -- `worktree-lane-repo-housekeeping`, merged --no-ff.
+
+**Did:** merged W3-E two-step from the primary on top of W3-A and W3-C. The first attempt was refused on a conflict in `ecosystem/doc-counts.md`; under the operator's ruling of 2026-09-21 (a conflict confined to generated files is resolved by regenerating them from the merged tree with their own generators, never by picking a side; a hand-written conflict is still a refusal) the block was regenerated from the merged tree (56 checks, 36 gates, 7065 tests) and matches main. The lane removes three stale dispositions from `ecosystem/disposition-register.yaml` and dispositions the WARNs the 2026-09-20 build reviews left behind, in a ledger inside its Codex record.
+
+**Result:** WARN delta measured against current main: see `SESSION-integrator-wave3-2026-09-21.md`. **Changes:** `ecosystem/disposition-register.yaml`, `docs/audits/2026-09-21-codex-lane-repo-housekeeping.md`, `docs/audits/README.md`, `tasks/929-...md`, `JOURNAL.md`. **Next:** W3-B and W3-D, then W3-F.
+
 ### 2026-09-21 (i) - CC (Opus 5, integrator wave 3): LANE W3-C merged -- the merge gate reads the lane's own model, the census names only the 36 organs nothing calls, and a missing GO is a refusal
 
 **Anchors:** `82e41bc0` (Codex record) · `c38f98d1` (review fixes) · `e24839d9` (implementation) · `70b213a1` (RED-first witness) -- `worktree-lane-merge-truth`, merged --no-ff.
