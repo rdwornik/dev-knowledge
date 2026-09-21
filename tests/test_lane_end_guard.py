@@ -175,7 +175,7 @@ def test_the_hook_starts_one_detached_worker_and_returns_at_once(lane):
     code = _guard().main([], environ=lane["env"], runner=runner, root=lane["root"], detach=True,
                          spawner=lambda argv, cwd, env: spawned.append((argv, env)))
     assert code == 0 and runner.calls == [], "the hook itself never runs the moment"
-    assert len(spawned) == 1 and spawned[0][0][-1] == "--worker"
+    assert len(spawned) == 1 and "--worker" in spawned[0][0] and spawned[0][0][-1] == _guard().handback_key(HANDBACK)
     assert spawned[0][1]["HARNESS_SESSION_FILE"] == str(lane["session"]), "the worker reads the same session file"
     assert _receipt(lane)["status"] == "running"
     # a second turn end while the worker runs (or after) must not start another one
@@ -270,6 +270,100 @@ def test_the_script_as_the_hook_runs_it_drives_the_real_doit_moment(lane, tmp_pa
     before = (lane["receipts"] / RECEIPT_FILE).read_text(encoding="utf-8")
     subprocess.run([sys.executable, str(_GUARD)], env=env, capture_output=True, text=True, timeout=60, cwd=str(_REPO))
     assert (lane["receipts"] / RECEIPT_FILE).read_text(encoding="utf-8") == before
+
+
+# --- the Codex terra review (docs/audits/2026-09-21-codex-lane-end-hook.md): once-only under failure and races ----
+
+def _hook(lane, spawned, closing_line=None, **kw):
+    """One hook turn end with a recording spawner (no process is started)."""
+    return _guard().main([], environ=lane["env"], root=lane["root"], detach=True,
+                         spawner=lambda argv, cwd, env: spawned.append(argv), **kw)
+
+
+def test_an_abandoned_running_claim_becomes_a_terminal_receipt_not_a_retry(lane):
+    """The worker died: a later turn end reaps the stale claim into a FAILED receipt. It never runs the moment again."""
+    lane["session"].write_text(HANDBACK + chr(10), encoding="utf-8")
+    spawned: list = []
+    assert _hook(lane, spawned) == 0 and len(spawned) == 1
+    receipt = lane["receipts"] / RECEIPT_FILE
+    assert _hook(lane, spawned) == 0 and _receipt(lane)["status"] == "running", "a fresh claim is left alone"
+    stale = time.time() - _guard().STALE_RUNNING_S - 60
+    os.utime(receipt, (stale, stale))
+    assert _hook(lane, spawned) == 0
+    rec = _receipt(lane)
+    assert rec["status"] == "FAILED" and rec["exit_code"] != 0 and "presumed dead" in rec["reason"]
+    assert _hook(lane, spawned) == 0 and len(spawned) == 1, "reaped, not retried: one worker was ever started"
+
+
+def test_racing_hooks_for_one_closing_line_start_exactly_one_worker(lane):
+    import threading
+    lane["session"].write_text(HANDBACK + chr(10), encoding="utf-8")
+    spawned: list = []
+    threads = [threading.Thread(target=_hook, args=(lane, spawned)) for _ in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert len(spawned) == 1, f"{len(spawned)} workers started for one closing line"
+
+
+def test_a_closing_line_already_claimed_starts_no_worker(lane):
+    lane["session"].write_text(HANDBACK + chr(10), encoding="utf-8")
+    assert _guard()._take_marker(lane["receipts"], _guard().handback_key(HANDBACK))
+    spawned: list = []
+    assert _hook(lane, spawned) == 0 and spawned == []
+
+
+def test_a_changed_closing_line_while_a_worker_runs_leaves_the_receipt_to_the_newer_worker(lane):
+    g = _guard()
+    newer = "HANDBACK worktree-lane-end-hook @ fffffff code"
+    lane["session"].write_text(HANDBACK + chr(10), encoding="utf-8")
+    spawned: list = []
+    assert _hook(lane, spawned) == 0
+
+    def old_run(argv, cwd, log):    # while the first worker runs, the lane hands back again and its hook claims
+        lane["session"].write_text(HANDBACK + chr(10) + newer + chr(10), encoding="utf-8")
+        assert _hook(lane, spawned) == 0
+        return g.MomentResult(exit_code=0, duration_ms=1)
+
+    assert g.main(["--worker", "--key", g.handback_key(HANDBACK)], environ=lane["env"], runner=old_run,
+                  root=lane["root"]) == 0
+    assert len(spawned) == 2, "the newer closing line got its own worker"
+    rec = _receipt(lane)
+    assert rec["handback"] == newer and rec["status"] == "running", "the old worker did not overwrite the newer claim"
+    assert g.main(["--worker", "--key", g.handback_key(newer)], environ=lane["env"], runner=_Runner(),
+                  root=lane["root"]) == 0
+    assert _receipt(lane)["handback"] == newer and _receipt(lane)["status"] == "ok"
+
+
+def test_a_worker_born_for_another_closing_line_does_nothing(lane):
+    lane["session"].write_text(HANDBACK + chr(10), encoding="utf-8")
+    assert _hook(lane, []) == 0
+    runner = _Runner()
+    assert _guard().main(["--worker", "--key", "not-this-line"], environ=lane["env"], runner=runner,
+                         root=lane["root"]) == 0
+    assert runner.calls == [] and _receipt(lane)["status"] == "running"
+
+
+def test_a_refused_breakaway_is_recorded_not_claimed_as_detached(lane, monkeypatch):
+    """Windows: if the hook's job forbids breakaway the worker starts inside it. The receipt must say so."""
+    g = _guard()
+    calls: list[int] = []
+
+    class _Fake:
+        def __init__(self, argv, **kw):
+            calls.append(kw.get("creationflags", 0))
+            if kw.get("creationflags", 0) & g._BREAKAWAY:
+                raise OSError("job does not allow breakaway")
+
+    monkeypatch.setattr(g, "_IS_NT", True)
+    monkeypatch.setattr(g.subprocess, "Popen", _Fake)
+    assert g.spawn_worker(["x"], lane["root"], {}) is False
+    assert len(calls) == 2 and calls[0] & g._BREAKAWAY and not calls[1] & g._BREAKAWAY
+    lane["session"].write_text(HANDBACK + chr(10), encoding="utf-8")
+    assert g.main([], environ=lane["env"], root=lane["root"], detach=True) == 0
+    rec = _receipt(lane)
+    assert rec["status"] == "running" and rec["detached"] is False and "breakaway" in rec["reason"]
 
 
 def test_the_real_runner_records_a_nonzero_moment_exit(lane):
