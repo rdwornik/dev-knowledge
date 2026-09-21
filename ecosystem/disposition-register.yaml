@@ -564,7 +564,7 @@ dispositions:
   # `docs/audits/2026-08-06-codex-lane-c-504-failclosed.md` still has no `**Tally:**` line (the
   # review happened; only the machine-readable tally is missing, and `docs/audits/` is immutable).
   # But the leg prints only five pairs plus "(+1 more)", and `5af0b33c` is the hidden sixth, so the
-  # entry's `match` can never see it. RENEWAL WAS TRIED AND REFUSED: re-keying on the whole visible
+  # entry's `match` cannot see it. RENEWAL WAS TRIED AND REFUSED: re-keying on the whole visible
   # composition (five pairs + "(+1 more)") was reviewed by Codex terra (`docs/audits/
   # 2026-09-21-codex-lane-repo-housekeeping.md`, CRITICAL) and rightly failed the whole-Finding
   # contract -- the hidden sixth could be any untallied artifact and the match would still hold.
