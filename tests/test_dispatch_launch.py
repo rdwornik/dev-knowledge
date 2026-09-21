@@ -421,7 +421,8 @@ def test_spawn_process_with_a_log_detaches_and_writes_the_log(tmp_path):
 
 # --- rule 4: the declared pre-launch row, run as written ------------------------------------------
 
-def test_the_declared_pre_launch_moment_is_what_run_prelaunch_invokes(contract, monkeypatch):
+def test_the_declared_pre_launch_moment_is_what_run_prelaunch_invokes(contract, monkeypatch, receipts):
+    _organ_receipts(receipts)                 # what a passing moment leaves behind
     declared = [m for m in yaml.safe_load((REPO / "ecosystem" / "harness.yaml").read_text(encoding="utf-8"))["moments"]
                 if m["name"] == "pre-launch"]
     assert declared, "harness.yaml no longer declares moment pre-launch"

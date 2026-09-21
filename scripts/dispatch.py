@@ -63,6 +63,7 @@ from pathlib import Path
 from typing import Callable, Mapping, Optional, Sequence
 
 import click
+import yaml
 
 try:  # pragma: no cover -- exercised by whichever path the caller uses
     from scripts import lane_cost as lc
@@ -88,6 +89,9 @@ EFFORTS = {"l": "low", "low": "low", "m": "medium", "med": "medium", "medium": "
 SUBSTRATES = ("local", "codespace")
 _ANTHROPIC_CREDS = ("ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN")
 _SLUG = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+#: `claude --permission-mode` choices (claude 2.1.278 `--help`). A Dispatch block may pick one of these and nothing else.
+PERMISSION_MODES = frozenset({"acceptEdits", "auto", "bypassPermissions", "manual", "dontAsk", "plan"})
+_ANSI = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")
 
 
 class DispatchRefused(click.ClickException):
@@ -388,7 +392,25 @@ def parse_dispatch_block(text: str) -> Optional[DispatchLine]:
                 got["worktree"] = tokens[i + 1][0]
                 i += 1
         i += 1
+    _validate_line(got)
     return DispatchLine(head=head, **got)
+
+
+def _validate_line(got: Mapping[str, str]) -> None:
+    """A value the parser took after a flag must be a value, not another flag or a free string:
+    `--permission-mode --dangerously-skip-permissions` must not become argv."""
+    for key, value in got.items():
+        if value.startswith("-"):
+            raise DispatchRefused(f"the Dispatch block's {key.replace('_', '-')} value is {value!r}, which "
+                                  "looks like a flag, not a value. Refusing.")
+    if "model" in got and not _MODEL.match(got["model"]):
+        raise DispatchRefused(f"the Dispatch block's model {got['model']!r} is not a model name. Refusing.")
+    if "effort" in got and EFFORTS.get(got["effort"].lower()) is None:
+        raise DispatchRefused(f"the Dispatch block's effort {got['effort']!r} is not one of low, medium, "
+                              "high, xhigh, max. Refusing.")
+    if "permission_mode" in got and got["permission_mode"] not in PERMISSION_MODES:
+        raise DispatchRefused(f"the Dispatch block's permission mode {got['permission_mode']!r} is not one "
+                              f"of {', '.join(sorted(PERMISSION_MODES))}. Refusing.")
 
 
 def _same_effort(a: str, b: str) -> bool:
@@ -522,6 +544,9 @@ def request_from_contract(contract: Path, *, slug: str = "", provider: str = "",
     effort = effort or (line.effort if line else "") or (table[1] if table else "")
     if EFFORTS.get(effort.lower()) is None:
         raise DispatchRefused(f"unknown effort {effort!r}. Valid: low, medium, high, xhigh, max")
+    if permission_mode and permission_mode not in PERMISSION_MODES:
+        raise DispatchRefused(f"unknown permission mode {permission_mode!r}. Valid: "
+                              f"{', '.join(sorted(PERMISSION_MODES))}")
     if token_cap is not None:
         validate_cap(token_cap)
     return LaunchRequest(
@@ -650,6 +675,18 @@ def find_lane_by_slug_in(agents: Sequence[dict], slug: str) -> Optional[str]:
     return str(live[0]["id"]) if len(live) == 1 else None
 
 
+def find_launched_lane_in(agents: Sequence[dict], slug: str, since: float) -> Optional[str]:
+    """The id of the ONE record in `.../worktrees/<slug>` that STARTED at or after `since` (epoch
+    seconds), whatever its state: a one-line lane can be `done` before the listing is first read. An
+    older record for the same worktree is an earlier launch, never this one."""
+    suffix = f"/worktrees/{slug}".lower()
+    found = [e for e in agents
+             if str(e.get("cwd") or "").replace("\\", "/").rstrip("/").lower().endswith(suffix)
+             and e.get("id") and isinstance(e.get("startedAt"), (int, float))
+             and e["startedAt"] / 1000.0 >= since - 5]
+    return str(found[0]["id"]) if len(found) == 1 else None
+
+
 def find_lane_by_slug(slug: str) -> Optional[str]:
     """`find_lane_by_slug_in` over the live listing; None when it cannot be read."""
     try:
@@ -691,9 +728,39 @@ def run_prelaunch(request: LaunchRequest, hub: Path = HUB_ROOT) -> PreLaunch:
     done = subprocess.run(argv, cwd=str(hub), env=env, capture_output=True, text=True,
                           encoding="utf-8", errors="replace")
     if done.returncode == 0:
-        return PreLaunch(True)
+        gaps = _pre_launch_gaps(hub)
+        return PreLaunch(False, "an organ of the declared pre-launch moment did not clear it: " + "; ".join(gaps)
+                         ) if gaps else PreLaunch(True)
     said = [ln for ln in (done.stdout + "\n" + done.stderr).splitlines() if not _DOIT_CHATTER.match(ln)]
     return PreLaunch(False, _tail("\n".join(said)) or f"pre-launch exited {done.returncode}")
+
+
+def _pre_launch_gaps(hub: Path) -> list[str]:
+    """Organs of the DECLARED `pre-launch` moment whose receipt is missing, SKIPPED or non-zero.
+
+    The moment exits 0 when an `optional` organ is not built (`SKIPPED-NOT-BUILT`), which is right for
+    a spine and wrong for a launch: a launch is not cleared by a check that did not run."""
+    path = Path(os.environ.get("HARNESS_YAML") or hub / "ecosystem" / "harness.yaml")
+    try:
+        doc = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError) as exc:
+        return [f"{path} could not be read ({type(exc).__name__})"]
+    moment = next((m for m in doc.get("moments") or [] if m.get("name") == "pre-launch"), None)
+    if moment is None:
+        return ["harness.yaml declares no `pre-launch` moment"]
+    gaps = []
+    for organ in moment.get("organs") or []:
+        try:
+            body = json.loads((receipts_dir() / organ["receipt"]).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            gaps.append(f"{organ['id']} left no receipt ({organ['receipt']})")
+            continue
+        status = str(body.get("status") or "")
+        if status.upper().startswith("SKIPPED"):
+            gaps.append(f"{organ['id']} was {status}")
+        elif body.get("exit_code") != 0:
+            gaps.append(f"{organ['id']} exited {body.get('exit_code')}")
+    return gaps
 
 
 def spawn_process(argv: Sequence[str], env: Mapping[str, str], cwd: Path,
@@ -717,20 +784,79 @@ def spawn_process(argv: Sequence[str], env: Mapping[str, str], cwd: Path,
     return Spawned(0, "", child.pid)
 
 
-_JOB_ID = re.compile(r"(?im)^\s*backgrounded\b[^0-9a-f\r\n]*([0-9a-f]{8})\b")
+_JOB_ID = re.compile(r"(?im)^\s*backgrounded\b[^0-9a-f\r\n]*([0-9a-f]{8})\b")   # after `_ANSI` is stripped
 
 
-def _held_by(receipt: Optional[dict], agents: Callable[[], list[dict]]) -> str:
-    """'' when the slug's earlier launch is over; else what holds it. ListingUnreadable when a
-    Claude job's state cannot be read -- the caller refuses, it does not assume free."""
-    if not receipt or not receipt.get("job_id"):
-        return ""
-    job = str(receipt["job_id"])
+#: How long a launch whose job the listing has not shown yet still holds its slug: `claude --bg` can
+#: return before `claude agents --json` lists the job, and that window is where a second launch gets in.
+LISTING_LAG_SECONDS = 180
+
+
+class LaunchIncomplete(DispatchRefused):
+    """The lane WAS started but a record of it could not be written. Not a refusal: it is running."""
+    exit_code = 8
+
+
+def _age_seconds(stamp: object) -> Optional[float]:
+    try:
+        then = datetime.fromisoformat(str(stamp))
+    except ValueError:
+        return None
+    return (datetime.now(timezone.utc) - then.astimezone(timezone.utc)).total_seconds()
+
+
+def _held_by(slug: str, receipt: Optional[dict], agents: Callable[[], list[dict]]) -> str:
+    """'' when nothing holds the slug; else what does. ListingUnreadable when a Claude lane's state
+    cannot be read -- the caller refuses, it never assumes free.
+
+    Three ways a slug is held: its earlier launch's job is LIVE; a live lane sits in
+    `.../worktrees/<slug>` whatever its id (a receipt that says `unresolved`, or no receipt); or the
+    earlier launch is younger than `LISTING_LAG_SECONDS` and the listing has not shown its job yet."""
+    receipt = receipt or {}
+    job = str(receipt.get("job_id") or "")
     if receipt.get("provider") == "codex":
         pid = receipt.get("pid")
         return f"codex job {job} (pid {pid}) is still running" if isinstance(pid, int) and process_alive(pid) else ""
-    entry = _find_agent(agents(), job)
-    return f"job {job} is {entry.get('state') or 'listed'}" if entry is not None and _is_live(entry) else ""
+    listing = agents()
+    entry = _find_agent(listing, job) if job and job not in ("unresolved", "pending") else None
+    if entry is not None and _is_live(entry):
+        return f"job {job} is {entry.get('state') or 'listed'}"
+    by_worktree = find_lane_by_slug_in(listing, slug)
+    if by_worktree:
+        return f"job {by_worktree} is live in .claude/worktrees/{slug}"
+    age = _age_seconds(receipt.get("launched_at"))
+    if job and entry is None and age is not None and age < LISTING_LAG_SECONDS:
+        return f"job {job} was launched {int(age)}s ago and is not in the listing yet"
+    return ""
+
+
+class _SlugLock:
+    """One launch of a slug at a time: an exclusive-create lock file beside the receipts.
+
+    A launch that finds it refuses (`in progress`); it is removed when the launch ends, refused or
+    not. It is never stolen: a launch killed outright leaves it, and the refusal names the file --
+    removing it is the operator's call, like any other husk."""
+
+    def __init__(self, slug: str):
+        self.path = receipts_dir() / f"LAUNCH-LOCK-{slug.upper()}"
+        self.slug = slug
+
+    def __enter__(self) -> "_SlugLock":
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError as exc:
+            raise LaunchRefused(f"a launch of {self.slug} is in progress (lock {self.path}); if that launch "
+                                "died, remove the lock file by hand") from exc
+        with os.fdopen(fd, "w", encoding="utf-8") as sink:
+            sink.write(f"pid {os.getpid()} at {_stamp()}\n")
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        try:
+            self.path.unlink()
+        except FileNotFoundError:
+            pass
 
 
 def launch_lane(request: LaunchRequest, *,
@@ -742,67 +868,103 @@ def launch_lane(request: LaunchRequest, *,
                 ) -> LaunchResult:
     """Refuse a collision, run `pre-launch`, and only then spawn -- exactly once.
 
-    Raises `LaunchRefused` (exit 5) BEFORE anything is spawned when the slug's earlier launch is
-    still running (or its state cannot be read), when `pre-launch` refuses or cannot run, or when
-    the provider needs a key it lacks; and after a spawn that did not start (nothing is running)."""
+    Raises `LaunchRefused` (exit 5) BEFORE anything is spawned when another launch of the slug is in
+    progress, when the slug's earlier launch (or any lane in its worktree) is still running or its
+    state cannot be read, when `pre-launch` refuses or cannot run, or when the provider needs a key
+    it lacks; and after a spawn that did not start (nothing is running). `LaunchIncomplete` (exit 8)
+    when the lane started but its receipt could not be written."""
     prelaunch = prelaunch or run_prelaunch
     spawn = spawn or spawn_process
     agents = agents or list_agents
     cwd = Path(cwd or Path.cwd())
     provider = _provider(request.provider)
-    try:
-        holder = _held_by(read_launch_receipt(request.slug), agents)
-    except ListingUnreadable as exc:
-        raise LaunchRefused(f"cannot tell whether {request.slug} is already launched ({exc}); "
-                            "refusing rather than assuming it is free") from exc
-    if holder:
-        raise LaunchRefused(f"{request.slug} is already launched: {holder}. Not launching a second lane.")
-    env = child_env(request.provider, environ if environ is not None else os.environ,
-                    read_secrets(secrets_file) if provider.key else None)
-    try:
-        outcome = prelaunch(request)
-    except Exception as exc:  # noqa: BLE001 -- a pre-launch that could not run is a REFUSAL, never a pass
-        raise LaunchRefused(f"pre-launch could not run for {request.slug}: {type(exc).__name__}: {exc}") from exc
-    if not outcome.passed:
-        raise LaunchRefused(f"pre-launch refused {request.slug}: {outcome.reason}")
+    with _SlugLock(request.slug):
+        try:
+            holder = _held_by(request.slug, read_launch_receipt(request.slug), agents)
+        except ListingUnreadable as exc:
+            raise LaunchRefused(f"cannot tell whether {request.slug} is already launched ({exc}); "
+                                "refusing rather than assuming it is free") from exc
+        if holder:
+            raise LaunchRefused(f"{request.slug} is already launched: {holder}. Not launching a second lane.")
+        env = child_env(request.provider, environ if environ is not None else os.environ,
+                        read_secrets(secrets_file) if provider.key else None)
+        try:
+            outcome = prelaunch(request)
+        except Exception as exc:  # noqa: BLE001 -- a pre-launch that could not run is a REFUSAL, never a pass
+            raise LaunchRefused(f"pre-launch could not run for {request.slug}: {type(exc).__name__}: {exc}") from exc
+        if not outcome.passed:
+            raise LaunchRefused(f"pre-launch refused {request.slug}: {outcome.reason}")
 
-    codex = provider.head == "codex"
-    log_path = receipts_dir() / f"LAUNCH-LOG-{request.slug.upper()}.jsonl" if codex else None
-    started = spawn(request.argv, env, cwd, log_path) if codex else spawn(request.argv, env, cwd)
-    if started.returncode != 0:
-        raise LaunchRefused(f"{request.argv[0]} exited {started.returncode} -- no lane was started: "
-                            f"{_tail(started.stdout, 300)}")
+        codex = provider.head == "codex"
+        log_path = receipts_dir() / f"LAUNCH-LOG-{request.slug.upper()}.jsonl" if codex else None
+        # The INTENT receipt goes down before the spawn: a launch interrupted after the provider
+        # started still leaves a fresh receipt, which holds the slug while the listing catches up.
+        try:
+            _write_json(_receipt_path(request.slug), {
+                "schema": 1, "organ": "launch", "launched_at": _stamp(), "exit_code": None,
+                "job_id": "pending", "slug": request.slug, "provider": request.provider,
+                "batch": request.batch, "contract": str(request.contract)})
+        except OSError as exc:
+            raise LaunchRefused(f"cannot write the launch receipt for {request.slug} ({exc}); refusing "
+                                "to start a lane nothing can record") from exc
+        began = time.time()
+        try:
+            started = spawn(request.argv, env, cwd, log_path) if codex else spawn(request.argv, env, cwd)
+        except OSError as exc:
+            _receipt_path(request.slug).unlink(missing_ok=True)
+            raise LaunchRefused(f"{request.argv[0]} could not be started ({type(exc).__name__}: {exc}) -- "
+                                "no lane was started") from exc
+        if started.returncode != 0:
+            _receipt_path(request.slug).unlink(missing_ok=True)
+            raise LaunchRefused(f"{request.argv[0]} exited {started.returncode} -- no lane was started: "
+                                f"{_tail(started.stdout, 300)}")
+        # From here a lane IS running: whatever fails below, the receipt is still written.
+        job_id, session_id, reported_name = _identify(request, started, codex, agents, sleep, began)
+        result = LaunchResult(
+            slug=request.slug, provider=request.provider, model_requested=request.model,
+            model_reported=NOT_ATTESTABLE if codex else MODEL_PENDING,
+            job_id=job_id or "unresolved",
+            worktree="(codex-managed)" if codex else str(cwd / ".claude" / "worktrees" / request.slug),
+            session_name=request.session_name, session_name_reported=reported_name,
+            session_id=session_id, pid=started.pid, log_path=str(log_path or ""), argv=list(request.argv))
+        try:
+            _write_launch_records(request, result)
+        except OSError as exc:
+            raise LaunchIncomplete(f"{request.slug} WAS started (job {result.job_id}) but its launch receipt "
+                                   f"could not be written ({exc}). It is running; nothing was stopped.") from exc
+        if result.job_id == "unresolved":
+            raise LaunchIncomplete(
+                f"{request.slug} was started ({request.argv[0]} exited 0) but no job could be identified: its "
+                "output carried no id and no record in .claude/worktrees/"
+                f"{request.slug} appeared. Run `claude agents` to find it. The launch receipt says "
+                f"`unresolved` and holds the slug for {LISTING_LAG_SECONDS}s; nothing was stopped.")
+        return result
 
-    job_id, session_id, reported_name = "", "", ""
+
+def _identify(request: LaunchRequest, started: Spawned, codex: bool, agents: Callable[[], list[dict]],
+              sleep: Callable[[float], None], since: float) -> tuple[str, str, str]:
+    """`(job id, session id, the name the job record reports)` for a lane that has just started.
+    Blank parts are unknown, never guessed: the id comes from the provider's own output, else the one
+    live lane in the slug's worktree."""
     if codex:
-        job_id = f"codex-{started.pid}"
-    else:
-        found = _JOB_ID.search(started.stdout or "")
-        job_id = found.group(1) if found else ""
-        for attempt in range(4):        # the listing can lag the start by a moment
-            try:
-                jobs = agents()
-            except ListingUnreadable:
-                jobs = []
-            entry = _find_agent(jobs, job_id) if job_id else None
-            if entry is None and not job_id:
-                recovered = find_lane_by_slug_in(jobs, request.slug)
-                entry = _find_agent(jobs, recovered) if recovered else None
-                job_id = str(entry.get("id")) if entry else ""
-            if entry is not None:
-                session_id, reported_name = str(entry.get("sessionId") or ""), str(entry.get("name") or "")
-                break
-            if attempt < 3:
-                sleep(1.0)
-    result = LaunchResult(
-        slug=request.slug, provider=request.provider, model_requested=request.model,
-        model_reported=NOT_ATTESTABLE if codex else MODEL_PENDING,
-        job_id=job_id or "unresolved",
-        worktree="(codex-managed)" if codex else str(cwd / ".claude" / "worktrees" / request.slug),
-        session_name=request.session_name, session_name_reported=reported_name,
-        session_id=session_id, pid=started.pid, log_path=str(log_path or ""), argv=list(request.argv))
-    _write_launch_records(request, result)
-    return result
+        return f"codex-{started.pid}", "", ""
+    found = _JOB_ID.search(_ANSI.sub("", started.stdout or ""))
+    job_id = found.group(1) if found else ""
+    for attempt in range(4):        # the listing can lag the start by a moment
+        try:
+            jobs = agents()
+        except Exception:  # noqa: BLE001 -- an unreadable listing leaves the fields blank; the lane is running
+            jobs = []
+        entry = _find_agent(jobs, job_id) if job_id else None
+        if entry is None and not job_id:
+            recovered = find_launched_lane_in(jobs, request.slug, since)
+            entry = _find_agent(jobs, recovered) if recovered else None
+            job_id = str(entry.get("id")) if entry else ""
+        if entry is not None:
+            return job_id, str(entry.get("sessionId") or ""), str(entry.get("name") or "")
+        if attempt < 3:
+            sleep(1.0)
+    return job_id, "", ""
 
 
 def _write_launch_records(request: LaunchRequest, result: LaunchResult) -> None:
@@ -812,6 +974,8 @@ def _write_launch_records(request: LaunchRequest, result: LaunchResult) -> None:
         "schema": 1, "organ": "launch", "launched_at": when, "exit_code": 0, "batch": request.batch,
         "contract": str(request.contract), "effort": request.effort, "token_cap": request.token_cap,
         **{k: v for k, v in asdict(result).items()}})
+    if result.job_id == "unresolved":
+        return          # one file per job id, and there is none to name
     _write_json(_job_path(result.job_id), {
         "schema": 1, "job_id": result.job_id, "session_id": result.session_id, "slug": request.slug,
         "batch": request.batch, "provider": request.provider, "worktree": result.worktree,
