@@ -174,6 +174,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#933] [P1][M] Wave 3 lane D (lane-end-hook) -- every finished lane reports itself, once, through a real event · tasks/933-wave-3-lane-d-lane-end-hook-every-finished-lane.md
 - [#934] [P1][S] Wave 3 lane E (lane-repo-housekeeping) -- the gate reports only what is real · tasks/934-wave-3-lane-e-lane-repo-housekeeping-the-gate-re.md
 - [#935] [P1][M] Wave 3 lane F (lane-connection-test) -- prove the loop is connected, end to end, with receipts · tasks/935-wave-3-lane-f-lane-connection-test-prove-the-loo.md
+- [#936] [P2][S] Preflight skips an all-digit short sha -- a merge whose hash is all digits reds the pairing and passes a contract unchecked · tasks/936-preflight-skips-an-all-digit-short-sha-so-a-merge-whose-hash-is-digits-reds-the-pairing.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md

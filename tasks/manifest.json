@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "8760f8271197d8068ca8ca40cbe6d8e88359cf5ff8f494b5525cc3ded03e6f22",
+  "generated_sha256": "36409ef798d5e7a04e1e9379699495a30f9be9983131b13cffd2882ecd279b19",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -672,6 +672,10 @@
     {
       "task": 935,
       "file": "935-wave-3-lane-f-lane-connection-test-prove-the-loo.md"
+    },
+    {
+      "task": 936,
+      "file": "936-preflight-skips-an-all-digit-short-sha-so-a-merge-whose-hash-is-digits-reds-the-pairing.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"

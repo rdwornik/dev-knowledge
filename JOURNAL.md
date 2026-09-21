@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-21 (k) - CC (Opus 5, integrator wave 3): row #936 filed for the next wave -- preflight drops an all-digit short sha, and the pairing blamed a lane for it
+
+**Anchors:** `17ecc4c2` (in-repo refs) · `1428e92f` (row #936) -- `docs/row-936-all-digit-merge-sha`, merged --no-ff.
+
+**Did:** filed `[#936]` on operator order. `scripts/preflight_contract.py:371` drops a backticked sha that is all decimal digits before it is checked, so `/preflight` can pass a contract with a locator it never examined. On the wave-3 merge `41021988`, HEAD's short sha was all digits, `test_preflight_contract` went red, and `test_pairing.py` charged it to lane-merge-truth; a direct check showed the hash, not the lane. Id reserved on origin through `id_allocator.py`.
+
+**Result:** row open, P2/S, Done-when names the three conditions. The first merge of it raised a ship-gate hard-fail (`funnel_lifecycle` row-provenance-unresolved: its refs named only transport files); it was unwound before any push, and the refs now cite `scripts/preflight_contract.py` and its test. **Changes:** `tasks/936-...md` (new), `tasks/manifest.json`, `BACKLOG.md`, `JOURNAL.md`. **Next:** W3-D, then W3-B and W3-F.
+
 ### 2026-09-21 (j) - CC (Opus 5, integrator wave 3): LANE W3-E merged -- the gate's WARN count sheds what was already answered, and a generated-file conflict is resolved by regenerating
 
 **Anchors:** `7fae8848` (register comment + index) · `d44a8691` (Codex record + disposition ledger) · `573e436e` (stale dispositions) -- `worktree-lane-repo-housekeeping`, merged --no-ff.
