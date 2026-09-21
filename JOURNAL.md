@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-21 (i) - CC (Opus 5, integrator wave 3): LANE W3-C merged -- the merge gate reads the lane's own model, the census names only the 36 organs nothing calls, and a missing GO is a refusal
+
+**Anchors:** `82e41bc0` (Codex record) · `c38f98d1` (review fixes) · `e24839d9` (implementation) · `70b213a1` (RED-first witness) -- `worktree-lane-merge-truth`, merged --no-ff.
+
+**Did:** merged W3-C two-step from the primary, on top of W3-A (the lane had synced W3-A in at `905942de`). `scripts/merge_receipt.py models` defaults `--worktree` to `.claude/worktrees/<slug>` (R-W3-5), so the declared row compares the lane's transcript, not the integrator's. `check_organ_truth` counts armed or dated-manual pre-commit hooks and conductor jobs as callers (R-W3-4) and names only the organs with no caller anywhere. `scripts/go_reader.py` (new) answers whether `to-cc/GO-<batch>.md` exists and refuses with a receipt when it does not (R-W3-7).
+
+**Result:** Codex terra 0/3/0/0, all three HIGH fixed with tests. It also builds the `go_reader` organ W3-A declared, so the hard-fail W3-A's merge alone showed is owed here. Pairing and gates: `SESSION-integrator-wave3-2026-09-21.md`. **Changes:** `scripts/merge_receipt.py`, `scripts/audit_checks/check_organ_truth.py`, `scripts/go_reader.py` (new), `tests/test_lane_merge_truth.py` (new), `docs/audits/2026-09-21-codex-lane-merge-truth.md`, `docs/audits/README.md`, `ecosystem/doc-counts.md`, `JOURNAL.md`. **Next:** W3-E, then B, D and F.
+
 ### 2026-09-21 (h) - CC (Opus 5, integrator wave 3): LANE W3-A merged -- the loop's six moments are declared and the runner can hold one back until it is time
 
 **Anchors:** `b6752d87` (silent-rule rewording) · `0a717a8e` (Codex fixes) · `3a151660` (GREEN) · `e5c28180` (RED-first witness) · `3b5566b0` (rows #930-#935) -- `worktree-lane-loop-declaration`, merged --no-ff.

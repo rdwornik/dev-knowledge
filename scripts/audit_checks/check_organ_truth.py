@@ -10,7 +10,8 @@ lane-l3-organ-truth. Thin ADAPTER over two readers that hold the logic:
     `.claude/settings.json`?
 
 THREE FAIL LEGS, each one Finding so the operator reads which leg fired:
-  1. an organ declared nowhere;
+  1. an organ with NO CALLER anywhere (R-W3-4: declared at no moment, and not called by an armed
+     or dated-manual pre-commit hook, a conductor job or another wiring surface) -- all named;
   2. an organ declared `optional` and not yet built -- ONE FINDING PER ORGAN, naming the lane
      that owes it (a declared-but-required organ whose command is missing FAILs the same way);
   3. an index arming claim that contradicts the live config, or an index that is absent (a
@@ -41,7 +42,10 @@ Child-repo-safe: no `ecosystem/harness.yaml` -> `n/a` (subject-absent). Read-onl
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
+
+import yaml
 
 from ._common import Finding, _na, _NA_SUBJECT_ABSENT
 
@@ -53,6 +57,15 @@ except ImportError:  # pragma: no cover -- a caller that imports `scripts` as a 
     from scripts import graph_queries as _gq
 
 CHECK_NAME = "organ_truth"
+
+PRECOMMIT_REL = ".pre-commit-config.yaml"
+CONDUCTOR_REL = ".github/workflows/conductor.yml"
+
+#: A script an argv names, and the `python -m scripts.pkg.mod` spelling of one.
+_SCRIPT_PATH_RE = re.compile(r"(?:scripts|plugins)/[\w./-]+\.(?:py|ps1)")
+_DASH_M_RE = re.compile(r"-m\s+(scripts(?:\.\w+)+)")
+#: `SKIP: a,b` -- the hooks a conductor step opts out of.
+_HOOK_ID_RE = re.compile(r"[\w.-]+")
 
 #: How many names a rolled-up Finding spells out before pointing at the query that lists all.
 _SHOWN = 8
@@ -66,6 +79,106 @@ def _rolled(items: list[str], what: str, where: str) -> str:
     shown = ", ".join(items[:_SHOWN])
     more = f" (+{len(items) - _SHOWN} more)" if len(items) > _SHOWN else ""
     return f"{len(items)} {what}: {shown}{more}. Full list: {where}"
+
+
+def _scripts_named(text: str) -> set[str]:
+    """Every `scripts/<x>.py` a command string runs -- by path, or by `-m scripts.x.y`."""
+    named = set(_SCRIPT_PATH_RE.findall(text))
+    for dotted in _DASH_M_RE.findall(text):
+        named.add(dotted.replace(".", "/") + ".py")
+    return named
+
+
+def _precommit_hooks(root: Path) -> list[dict]:
+    """Every hook in `.pre-commit-config.yaml`, with the stages it RESOLVES to and the date its
+    manual stage lapses -- read from the config, never restated. `[]` when the file is absent."""
+    path = root / PRECOMMIT_REL
+    try:
+        text = path.read_text(encoding="utf-8")
+        data = yaml.safe_load(text)
+    except (OSError, yaml.YAMLError):
+        return []
+    if not isinstance(data, dict):
+        return []
+    dated = _goi._manual_until_by_hook(text)
+    defaults = data.get("default_stages") or ["pre-commit"]
+    hooks: list[dict] = []
+    for repo in data.get("repos") or []:
+        for hook in (repo.get("hooks") or []) if isinstance(repo, dict) else []:
+            if not isinstance(hook, dict) or not hook.get("id"):
+                continue
+            hooks.append({"id": str(hook["id"]),
+                          "stages": {str(s) for s in (hook.get("stages") or defaults)},
+                          "manual_until": dated.get(str(hook["id"])),
+                          "scripts": _scripts_named(str(hook.get("entry") or ""))})
+    return hooks
+
+
+def _conductor_steps(root: Path) -> list[tuple[str, str, str]]:
+    """`(job, run text, effective SKIP)` for every `run:` step of every job in the conductor workflow.
+
+    `SKIP` resolves the way Actions resolves any env var: workflow, then job, then step, the
+    narrower scope overriding the wider one (the whole value, not a merge).
+    """
+    try:
+        data = yaml.safe_load((root / CONDUCTOR_REL).read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return []
+    if not isinstance(data, dict):
+        return []
+
+    def skip_of(scope: object, inherited: str) -> str:
+        env = scope.get("env") if isinstance(scope, dict) else None
+        return str(env["SKIP"]) if isinstance(env, dict) and env.get("SKIP") is not None             else inherited
+
+    workflow_skip = skip_of(data, "")
+    steps: list[tuple[str, str, str]] = []
+    for job, body in (data.get("jobs") or {}).items():
+        job_skip = skip_of(body, workflow_skip)
+        for step in (body.get("steps") or []) if isinstance(body, dict) else []:
+            if isinstance(step, dict) and isinstance(step.get("run"), str):
+                steps.append((str(job), step["run"], skip_of(step, job_skip)))
+    return steps
+
+
+def declared_callers(root: Path) -> dict[str, str]:
+    """`{script path: who calls it}` from the two surfaces that fire without a human in the loop.
+
+    R-W3-4. Both are read from their OWN config files, so the answer moves when the config does:
+
+      * `.pre-commit-config.yaml` -- a hook that is ARMED (any stage but `manual`) or is manual
+        WITH a `manual_until` date. An UNDATED manual hook is not a caller on its own: nothing
+        commits to firing it and no date says when it must be re-armed or retired.
+      * `.github/workflows/conductor.yml` -- any script a job's `run:` step names, and the hooks a
+        step sweeps with `pre-commit run --hook-stage manual` (less that step's `SKIP`). A manual
+        hook the conductor actually runs IS called, by the conductor -- not by being called armed.
+
+    HONEST LIMIT: direct callers only. A helper reached only through another script is not named
+    here; the census's own `wired_elsewhere` (the graph's transitive reach) supplies that leg.
+    """
+    hooks = _precommit_hooks(root)
+    callers: dict[str, str] = {}
+    for hook in hooks:
+        if hook["stages"] != {"manual"}:
+            why = f"pre-commit hook `{hook['id']}` (armed)"
+        elif hook["manual_until"]:
+            why = f"pre-commit hook `{hook['id']}` (manual until {hook['manual_until']})"
+        else:
+            continue
+        for script in hook["scripts"]:
+            callers.setdefault(script, why)
+    for job, run, skip in _conductor_steps(root):
+        for script in _scripts_named(run):
+            callers.setdefault(script, f"conductor job `{job}`")
+        if "--hook-stage manual" not in run:
+            continue
+        skipped = set(_HOOK_ID_RE.findall(skip))
+        for hook in hooks:
+            if hook["stages"] == {"manual"} and hook["id"] not in skipped:
+                for script in hook["scripts"]:
+                    callers.setdefault(script, f"conductor job `{job}` (runs manual hook "
+                                               f"`{hook['id']}`)")
+    return callers
 
 
 def check_organ_truth(repo_path: Path) -> list[Finding]:
@@ -84,12 +197,18 @@ def check_organ_truth(repo_path: Path) -> list[Finding]:
     for row in rows:
         if row.status in (_gq.MOMENT_OPTIONAL_UNBUILT, _gq.MOMENT_MISSING):
             findings.append(_fail(_gq.unbuilt_evidence(row)))
-    nowhere = [r.path for r in rows if r.status == _gq.MOMENT_NOWHERE]
-    if nowhere:
-        findings.append(_fail(_rolled(
-            nowhere, f"organ(s) declared at no moment and no spine stage in "
-                     f"{_gq.MOMENTS_DECLARATION_REL}",
-            "`python scripts/graph_queries.py moments`")))
+    # R-W3-4: an organ no MOMENT declares is still an organ someone may call. It fails only when
+    # NOTHING calls it -- not a pre-commit hook (armed, or manual and dated), not a conductor
+    # job, not any other wiring surface the graph reaches it from. Every roster row still counts.
+    callers = declared_callers(root)
+    undeclared = [r for r in rows if r.status == _gq.MOMENT_NOWHERE]
+    uncalled = [r.path for r in undeclared if r.path not in callers and not r.wired_elsewhere]
+    if uncalled:
+        findings.append(_fail(
+            f"{len(uncalled)} organ(s) have no caller anywhere -- no moment or spine stage in "
+            f"{_gq.MOMENTS_DECLARATION_REL}, no armed or dated-manual pre-commit hook, no "
+            f"conductor job, no other wiring surface: {', '.join(uncalled)}. Give each one a "
+            f"moment, a `manual_until` date, or a RETIRE-CANDIDATE fate."))
 
     contradictions = _goi.arming_contradictions(root)
     if contradictions is None:
@@ -103,7 +222,9 @@ def check_organ_truth(repo_path: Path) -> list[Finding]:
     if findings:
         return findings
     at_moment = sum(1 for r in rows if r.status == _gq.MOMENT_DECLARED)
+    called = len(undeclared)
     return [Finding(CHECK_NAME, "pass",
-                    f"all {at_moment} roster organ(s) are declared at a moment or a spine stage, "
-                    f"no declared organ is unbuilt, and every index arming claim matches the "
-                    f"live config")]
+                    f"all {len(rows)} roster organ(s) have a caller: {at_moment} are declared at "
+                    f"a moment or a spine stage and {called} are called by a hook, the conductor "
+                    f"or another wiring surface; no declared organ is unbuilt, and every index "
+                    f"arming claim matches the live config")]
