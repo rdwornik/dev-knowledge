@@ -303,18 +303,21 @@ def _real() -> dict:
     return yaml.safe_load(_HARNESS.read_text(encoding="utf-8"))
 
 
+# W3-A (R-W3-1, R-W3-3, R-W3-7): occupancy/integrator/routing move to `pre-launch`, the digest to
+# `batch-close`, and `go_reader` joins `merge`. `test_loop_declaration.py` pins each move on its own.
 _MOMENT_ORGANS = {
-    "lane-start": ["single_flight", "seat_refusals.refuse_no_live_integrator", "routing_agreement",
-                   "worktree_occupancy"],
-    "merge": ["merge_receipt.models", "review_packet", "gates", "test_pairing"],
+    "pre-launch": ["worktree_occupancy", "seat_refusals.refuse_no_live_integrator", "routing_agreement"],
+    "lane-start": ["single_flight"],
+    "merge": ["merge_receipt.models", "go_reader", "review_packet", "gates", "test_pairing"],
     "teardown": ["no_leftovers"],
-    "lane-end": ["lane_cost", "fleet_health.seat_health_line", "transport_report", "digest"],
+    "lane-end": ["lane_cost", "fleet_health.seat_health_line", "transport_report"],
+    "batch-close": ["digest"],
 }
 _OPTIONAL = {"worktree_occupancy", "gates", "test_pairing", "no_leftovers", "transport_report",
-             "digest", "review_packet"}
+             "digest", "review_packet", "go_reader"}
 
 
-def test_harness_declares_the_four_moments_with_their_organs():
+def test_harness_declares_the_six_moments_with_their_organs():
     moments = {m["name"]: m for m in _real()["moments"]}
     assert set(moments) == set(_MOMENT_ORGANS)
     for name, ids in _MOMENT_ORGANS.items():

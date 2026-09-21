@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-21 (h) - CC (Opus 5, integrator wave 3): LANE W3-A merged -- the loop's six moments are declared and the runner can hold one back until it is time
+
+**Anchors:** `b6752d87` (silent-rule rewording) · `0a717a8e` (Codex fixes) · `3a151660` (GREEN) · `e5c28180` (RED-first witness) · `3b5566b0` (rows #930-#935) -- `worktree-lane-loop-declaration`, merged --no-ff.
+
+**Did:** before the first merge, removed the operator-authorized leftovers after their checks passed: husks `lane-ab-833-seat-registry` and `lane-z-4-non-claude-execution` (empty, unregistered, branchless -- `no_leftovers.py` + `worktree_occupancy.py`) and job record `9c53bd44` (done, worktree gone). Then merged W3-A two-step from the primary. `ecosystem/harness.yaml` now declares `pre-launch` (occupancy moved out of `lane-start`), a once-only `lane-end` behind a HANDBACK precondition, `batch-close` with the digest, the `{merge}` placeholder on the review row, `go_reader` as a strict-input merge organ, and a recorded fate for each of the 36 caller-less organs (all `manual_until: 2026-10-05`, none retired). `scripts/dodo.py` learns preconditions, `continue_on_failure` and `strict_inputs`.
+
+**Result:** refused once at `0a717a8e` -- the silent-rule ratchet read 457 against its baseline 452, all five new tokens in harness.yaml comments; the lane reworded them at `b6752d87` with the baseline untouched. Codex terra 0/3/0/0, two fixed, one escalated as `QUESTION-lane-loop-declaration.md`. The lane raised two size caps in `tests/test_dodo.py` (harness.yaml 100->200 lines, dodo.py 300->400) and flagged it for the seat. Test pairing and gates: see `SESSION-integrator-wave3-2026-09-21.md`. **Changes:** `ecosystem/harness.yaml`, `scripts/dodo.py`, `tests/test_loop_declaration.py` (new), `tests/test_dodo.py`, `tests/test_spine_moments.py`, `tasks/930..935` (new), `tasks/manifest.json`, `BACKLOG.md`, `docs/audits/2026-09-21-codex-w3a-loop-declaration.md`, `docs/audits/README.md`, `ecosystem/doc-counts.md`, `JOURNAL.md`. **Next:** W3-B..E in parallel, then W3-F.
+
 ### 2026-09-21 (g) - CC (Opus 5, integrator night batch): LANE-L8 merged -- the lane-end organs land and the night batch closes, 8 of 8 merged with nothing attributable to a lane
 
 **Anchors:** `b1bb5914` (Codex fixes + split tests) · `2581f898` (RED-first witness) -- `worktree-lane-l8-lane-end`, merged --no-ff.
