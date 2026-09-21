@@ -560,7 +560,7 @@ dispositions:
 
   - id: warn-review-artifact-lane-c-504-no-tally
     organ: review_artifact_coverage
-    match: "5af0b33c -> 2026-08-06-codex-lane-c-504-failclosed.md"
+    match: "14d273fb -> 2026-09-19-codex-b2-regressions-fix.md, 8aa1ffc2 -> 2026-09-18-codex-b2-lane4-hook-roles.md, bd0768d7 -> 2026-09-18-codex-b2-lane3-distiller.md, e415fd69 -> 2026-09-18-codex-b2-lane2-organ-invocations.md, 584fb1ed -> 2026-08-27-codex-lane-na-gates.md (+1 more)"
     ref: "[#504]; LC-1 (docs/audits/2026-08-06-technical-batch1-verification.md §5)"
     review_date: 2026-11-07
     reason: >-
@@ -582,7 +582,20 @@ dispositions:
       tally keeps WARNing instead of shipping a heuristic number nobody verified. Keyed to the
       SPECIFIC sha->file pair per precision-over-recall, so any other untallied artifact
       re-surfaces and REDs the gate. review_date is its shelf-life (ADR-75).
-
+      RENEWED 2026-09-21 (lane-repo-housekeeping) -- the entry was reported `[stale]` and the
+      reading was wrong, so it is renewed rather than removed. The WARN it dispositions is LIVE:
+      the leg reports SIX untallied artifacts but prints only the first five plus "(+1 more)",
+      and `5af0b33c -> 2026-08-06-codex-lane-c-504-failclosed.md` sits in the hidden sixth, so a
+      match keyed on that pair can never see it. Evidence, checked 2026-09-21: `5af0b33c` is a
+      real first-parent merge on main, and `docs/audits/2026-08-06-codex-lane-c-504-failclosed.md`
+      still carries no `**Tally:**` line; the other five visible artifacts each carry the
+      wrapper's unfilled `**Tally:** TBD/TBD/TBD/TBD` placeholder. The match is therefore
+      re-keyed to the WHOLE visible composition, contiguous, ending at "(+1 more)": a seventh
+      untallied artifact, or any one of these six gaining a tally, changes the string and
+      re-surfaces the Finding. The cost is brittleness -- it will decorate stale on the next
+      change, which is the intended behaviour, not a fault. The five TBD placeholders are a
+      lane-side omission (the reviewer never filled the field) and are immutable in place;
+      that is a finding for the operator, not something this entry makes go away.
   # (cleared 2026-07-02, #222) warn-doc-claims-pytest-collected-architecture — #222 relocated
   # the three volatile counts to the committed-generated ecosystem/doc-counts.md, so the
   # pytest_collected claim no longer anchors in ARCHITECTURE.md (doc_claims now reconciles it
@@ -1556,21 +1569,13 @@ dispositions:
   # reason. The cost is real and bounded: a NEW accretion defect on one of these five rows is
   # absorbed by its entry rather than re-surfacing. A sixth row crossing the threshold is not.
 
-  - id: warn-doc-rot-accretion-backlog-241
-    organ: doc_rot
-    match: "backlog-accretion BACKLOG#241"
-    ref: "ADR-41 (groom cadence), ADR-49/65 (condense-preserving form); R5 B5 (ARCHITECT-INBOX-2026-09-05-007), operator-declared in to-cc/R5-DECLARED.md; §3.6 of BATCH-2026-09-06-NIGHT-CONTRACTS.md"
-    review_date: 2026-10-06
-    auto_clearable_by: "the next ADR-41 groom -- condensing [#241]'s dated history below the ARM 1 threshold drops the Finding and decorates this entry stale"
-    reason: >-
-      ACCRETION ROUTED TO THE GROOM THAT OWNS IT. `[#241]` (coherence -- the doc<->code coverage arc) carries three or more
-      distinct dated history blocks spanning 30+ days at over 700 characters -- the ARM 1
-      signature. That is not drift to fix in passing: ADR-49/65's condense-preserving form
-      requires deciding which dates still carry meaning, which is a groom decision and the
-      operator's at the sheet. The live groom is on cadence hold (see
-      warn-doc-rot-grooming-cadence-hold below), so the row's accretion is dispositioned to the
-      groom rather than left to block the ship gate on work no seat is authorised to do tonight.
-
+  # (cleared 2026-09-21, lane-repo-housekeeping) warn-doc-rot-accretion-backlog-241 -- the entry's own
+  # `auto_clearable_by` condition fired: the 2026-09-14 mechanised groom (`412506fb`, lane
+  # `lane-y-754-backlog-to-bar`) relocated [#241]'s over-threshold history byte-identically into
+  # `tasks/archive/`, dropping the ARM 1 Finding ("accretion arm 5 -> 4, #241 cleared" -- BACKLOG
+  # "Grooming log"). Confirmed live: the pre-change ship-gate carries no `backlog-accretion
+  # BACKLOG#241` line and reported this entry `[stale]`. Removed per ADR-75; the sibling
+  # accretion entries are untouched -- each still matches a live WARN.
   - id: warn-doc-rot-accretion-backlog-267
     organ: doc_rot
     match: "backlog-accretion BACKLOG#267"
@@ -1631,26 +1636,14 @@ dispositions:
       warn-doc-rot-grooming-cadence-hold below), so the row's accretion is dispositioned to the
       groom rather than left to block the ship gate on work no seat is authorised to do tonight.
 
-  - id: warn-doc-rot-grooming-cadence-hold
-    organ: doc_rot
-    match: "grooming-cadence BACKLOG#grooming-cadence (last groom 2026-07-30"
-    ref: "ADR-41; DECLARE-GO-2026-09-06 ruling 3 (V4 runs REPORT-stage only tonight; the operator rules the bundles at dawn); docs/audits/2026-09-05-technical-funnel-groom-sheet.md"
-    review_date: 2026-09-13
-    auto_clearable_by: "the BACKLOG 'Grooming log' line gaining a completed groom date -- `_latest_groom_date` reads the most-recent PAST date, so an executed groom clears this and decorates the entry stale"
-    reason: >-
-      THE GROOM DID NOT RUN ON 2026-09-05, AND SAYING SO IS THE POINT. §3.6 anticipated this
-      line being "cleared by V4's witness that the groom ran 09-05" and directed a disposition
-      WITH THE LOCATOR if the stamp was not updated by that witness. It was not, and the locator
-      says why: `docs/audits/2026-09-05-technical-funnel-groom-sheet.md` is a **READ-ONLY
-      proposal sheet** -- its own header records "Zero rows closed, zero files archived". What
-      landed on 09-05 was the groom's INPUT, not the groom. Tonight does not close the gap
-      either: operator consent 3 (DECLARE-GO-2026-09-06 ruling 3) runs V4 at REPORT stage only
-      and reserves the bundles for the operator's word at dawn. So the cadence clock is honestly
-      past (last completed groom 2026-07-30) and the act that resets it is scheduled and
-      consented, not overdue-and-ignored.
-      PRECISION: keyed on the GROOM DATE `2026-07-30`, not on the day count, which moves every
-      midnight. The first genuinely completed groom changes that date, misses this match, and
-      the entry decorates stale the same day -- which is exactly when it should.
+  # (cleared 2026-09-21, lane-repo-housekeeping) warn-doc-rot-grooming-cadence-hold -- its own
+  # `auto_clearable_by` fired ("the BACKLOG 'Grooming log' line gaining a completed groom date"):
+  # the log now records 2026-09-14, the mechanised groom `412506fb`, so `_latest_groom_date` is no
+  # longer 2026-07-30 and the `grooming-cadence BACKLOG#grooming-cadence (last groom 2026-07-30`
+  # match cannot recur. The pre-change ship-gate reported the entry `[stale]` and no such WARN.
+  # The 09-05 record it kept -- the sheet was READ-ONLY and the groom did not run that day -- stays
+  # true and is now history. Removed per ADR-75. Note the accretion entries above still say
+  # "see warn-doc-rot-grooming-cadence-hold below": that pointer is now historical prose.
   # ---- the ONE canonical_freshness line this lane may touch (2026-09-06) ----
   # (CLEARED 2026-09-08, batch CLOSE lane C-1 -- `warn-freshness-handoff-boot-role-pin` matched no
   # live WARN: the `ungated-and-unstamped: 1 - protocols/HANDOFF_BOOT.md` line is gone from the
