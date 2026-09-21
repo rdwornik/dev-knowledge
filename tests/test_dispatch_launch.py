@@ -279,7 +279,7 @@ def test_a_dispatch_model_that_disagrees_with_the_table_is_refused(tmp_path):
 def test_the_block_is_never_executed_only_its_flags_are_read(tmp_path):
     """Whatever else the line carries, the argv is built here from the parsed fields."""
     path = tmp_path / "LANE-x.md"
-    path.write_text(CONTRACT.replace("--worktree lane-launch-adapter", "--worktree lane-launch-adapter; calc.exe"),
+    path.write_text(CONTRACT.replace("--worktree lane-launch-adapter", "--worktree lane-launch-adapter --dangerously-run calc.exe"),
                     encoding="utf-8")
     argv = d.request_from_contract(path).argv
     assert not any("calc" in a for a in argv)
@@ -437,20 +437,24 @@ def test_the_declared_pre_launch_moment_is_what_run_prelaunch_invokes(contract, 
 
 
 @pytest.mark.skipif(shutil.which("uv") is None, reason="needs uv to run the declared moment")
-def test_the_real_pre_launch_moment_refuses_an_occupied_husk(contract, tmp_path, monkeypatch, receipts):
+def test_the_real_pre_launch_moment_refuses_an_occupied_husk(contract, monkeypatch, receipts):
     """No mock: the row is read from harness.yaml and run through doit exactly as declared. A husk
-    directory at `.claude/worktrees/<slug>` is what git cannot see and the occupancy organ can."""
-    slug = "lane-zz-occupancy-witness"
-    husk = REPO / ".claude" / "worktrees" / slug
-    existed = husk.exists()
-    husk.mkdir(parents=True, exist_ok=True)
+    directory at `.claude/worktrees/<slug>` of the PRIMARY checkout is what git cannot see and the
+    occupancy organ can. The husk is made here and removed here (no leftovers)."""
+    import worktree_occupancy as wo
+    slug = f"lane-zz-occupancy-witness-{os.getpid()}"
+    worktrees = wo.primary_root(REPO) / ".claude" / "worktrees"
+    made_parent = not worktrees.exists()
+    husk = worktrees / slug
+    husk.mkdir(parents=True)
     try:
         request = dataclasses.replace(_request(contract, batch="wave3"), slug=slug)
         outcome = d.run_prelaunch(request)
     finally:
-        if not existed:
-            shutil.rmtree(husk, ignore_errors=True)
-    assert not husk.exists() or existed
+        shutil.rmtree(husk, ignore_errors=True)
+        if made_parent:
+            shutil.rmtree(worktrees, ignore_errors=True)
+    assert not husk.exists()
     assert outcome.passed is False
     assert slug in outcome.reason and "directory" in outcome.reason.lower()
 
@@ -512,7 +516,7 @@ def test_the_shim_is_a_thin_wrapper_it_hard_codes_no_lane_line_and_no_stop():
 
 def test_the_shims_help_names_every_dispatch_subcommand():
     text = SHIM.read_text(encoding="utf-8")
-    head = text[: text.index("[CmdletBinding()]")]
+    head = text[: text.index("[CmdletBinding")]
     for name in d.cli.commands:
         assert name in head, f"the shim's help omits the `{name}` subcommand"
     assert "-Help" in text
