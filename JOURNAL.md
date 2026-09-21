@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-21 (l) - CC (Opus 5, integrator wave 3): LANE W3-D merged -- every finished lane reports itself once, from a real Stop event, without holding the turn
+
+**Anchors:** `62e248f2` (Codex fixes) · `597347a1` (guard) · `47e7b242` (RED-first witness) -- `worktree-lane-end-hook`, merged --no-ff.
+
+**Did:** merged W3-D two-step from the primary. `.claude/settings.json` gains one Stop entry, `scripts/lane_end_guard.py || true`: with no HANDBACK line in the lane's session file it exits in about 0.3 s having written nothing; with one, it takes an exclusive per-line claim, starts one detached worker that runs `doit moment:lane-end`, and returns. Later turn ends see the claim and do nothing. The full moment takes about 14 s, the whole Stop budget, which is why it is detached rather than awaited (R-W3-3).
+
+**Result:** Codex terra 0/4/0/0, three fixed, one partly accepted (the breakaway fallback records `detached: false` rather than refusing). Live proof in the lane's own transcript: two skips before the HANDBACK line, one claimed run after it (transport report delivered and read back), one no-op turn end after that. Pairing and gates: `SESSION-integrator-wave3-2026-09-21.md`. **Changes:** `.claude/settings.json`, `scripts/lane_end_guard.py` (new), `tests/test_lane_end_guard.py` (new), `scripts/transport_report.py` (docstring), `ecosystem/organ-index.md`, `docs/audits/2026-09-21-codex-lane-end-hook.md`, `docs/audits/README.md`, `ecosystem/doc-counts.md`, `JOURNAL.md`. **Next:** W3-B, then W3-F.
+
 ### 2026-09-21 (k) - CC (Opus 5, integrator wave 3): row #936 filed for the next wave -- preflight drops an all-digit short sha, and the pairing blamed a lane for it
 
 **Anchors:** `17ecc4c2` (in-repo refs) · `1428e92f` (row #936) -- `docs/row-936-all-digit-merge-sha`, merged --no-ff.
