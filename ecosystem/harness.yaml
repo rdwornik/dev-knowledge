@@ -33,13 +33,13 @@ stages:
 # Until the four native triggers are wired (wave 3 B and D, and the integrator command) every organ carries
 # `manual_until` (a date; after it the organ is armed or re-dated). An organ's `receipt` is UPPERCASE-KEBAB, undated.
 # Keys a moment / organ may carry beyond L1's:
-#   precondition          {file, matches, receipt, reason} -- a line of `file` must match `matches` (a regex) or the
-#                         moment writes ONE `SKIPPED-PRECONDITION` receipt and runs no organ. {session_file} is the
+#   precondition          {file, matches, receipt, reason} -- the runner looks for a line of `file` that matches `matches` (a regex); with none it writes
+#                         line found, the moment writes ONE `SKIPPED-PRECONDITION` receipt and runs no organ. {session_file} is the
 #                         lane's SESSION-<lane>.md on the transport (HARNESS_SESSION_FILE overrides it).
 #   strict_inputs         `optional` then means only "not built yet": once the command exists, an unset input STOPs the moment
-#                         (go_reader is a refusal gate -- omitting the batch must not bypass it).
+#                         (go_reader is a refusal gate, so a batch left unset stops the moment instead of skipping the check).
 #   continue_on_failure   an organ whose failure is RECORDED in its receipt but does not stop the organs after it;
-#                         the moment still exits non-zero naming it (a failure is ordered, never swallowed).
+#                         the moment still exits non-zero naming it (the failure is ordered last, and stays visible in the exit code).
 # {merge} is HARNESS_MERGE, else HEAD (the integrator merges, then runs the moment). {batch} names the batch.
 moments:
   - name: pre-launch
@@ -79,7 +79,7 @@ moments:
 # W3-A ran the census (`graph_queries.py moments`: declared nowhere AND wired by no other surface). Each has EXACTLY ONE
 # recorded fate: `moment: <name>` (it is declared at that moment), `manual_until: <date>` with a one-line `reason`
 # (operator- or seat-invoked until then; after the date it is armed, re-dated or retired), or `retire_candidate: true`
-# with a `reason` (retirement is the operator's GO, never this file's). A fate is a RECORD -- it arms, disarms, deletes
+# with a `reason` (retirement is the operator's GO, decided outside this file). A fate is a RECORD -- it arms, disarms, deletes
 # and narrows nothing, and no organ is dropped from the roster. The reasons cite `ORPHAN_DISPOSITIONS`
 # (scripts/graph_queries.py) where the census already ruled on the same absence.
 fates:
@@ -94,7 +94,7 @@ fates:
   - {path: .claude/commands/spine.md, manual_until: 2026-10-05, reason: "runs the stage table by hand (`doit spine`); no census row yet -- its caller is a seat until the loop's launcher runs the spine"}
   - {path: .claude/commands/why.md, manual_until: 2026-10-05, reason: "read on demand before editing an unfamiliar file; whether a fresh session calls it unprompted is [#924]'s measurement -- no census row yet"}
   - {path: .claude/skills/check-against-spec/SKILL.md, manual_until: 2026-10-05, reason: "no event fires a skill; coherence-nudge flags the spec change but a seat invokes it (ORPHAN_DISPOSITIONS, V+1 list)"}
-  - {path: .claude/skills/verify/SKILL.md, manual_until: 2026-10-05, reason: "no event fires a skill; its mandate becomes a hook, never a graph row ([#664]; ORPHAN_DISPOSITIONS, V+1 list)"}
+  - {path: .claude/skills/verify/SKILL.md, manual_until: 2026-10-05, reason: "no event fires a skill; its mandate becomes a hook rather than a graph row ([#664]; ORPHAN_DISPOSITIONS, V+1 list)"}
   - {path: plugins/tier1-lifecycle/commands/review-closures.md, manual_until: 2026-10-05, reason: "on-demand by the operator (act: ratification) (ORPHAN_DISPOSITIONS)"}
   - {path: plugins/tier1-lifecycle/commands/ship.md, manual_until: 2026-10-05, reason: "on-demand by the operator (act: destructive acts) (ORPHAN_DISPOSITIONS)"}
   - {path: plugins/tier1-lifecycle/scripts/review_closures.py, manual_until: 2026-10-05, reason: "the plugin copy /review-closures invokes (act: ratification); no event fires it and none should (ORPHAN_DISPOSITIONS)"}
