@@ -5,9 +5,10 @@ The `transport_report` organ of the `lane-end` moment (`ecosystem/harness.yaml`;
 summary into ONE file in the transport's browser-bound folder and reads the file back to prove it
 landed.
 
-Two facts shape the whole design (RECON s4): the lane-end trigger is the Stop hook, which fires at
-EVERY turn end of a background lane -- not once at the end -- inside a 15-second budget shared with
-another hook.
+Two facts shaped the whole design (RECON s4): the Stop hook fires at EVERY turn end of a background
+lane, inside a 15-second budget shared with another hook. Since W3-D `lane_end_guard.py` gates the
+moment on the lane's HANDBACK line and runs it once, in a detached worker; the design below stays
+idempotent and cheap regardless.
 
   * IDEMPOTENT AND CHEAP. The artifact is `<transport>/to-browser/LANE-END-<lane>.md`. A re-run
     replaces it (tmp file + `os.replace`), so N turns leave one file, not N. Standard library only

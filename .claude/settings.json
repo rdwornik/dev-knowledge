@@ -134,6 +134,15 @@
             "timeout": 15
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/scripts/lane_end_guard.py\" || true",
+            "timeout": 15
+          }
+        ]
       }
     ]
   },
