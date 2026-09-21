@@ -707,6 +707,19 @@ def test_a_start_whose_job_cannot_be_identified_is_exit_8_not_a_quiet_success(co
     assert not (receipts / "LAUNCH-JOB-unresolved.json").exists(), "one file per job id, and this is none"
 
 
+def test_a_started_lane_whose_receipt_cannot_be_written_is_exit_8_and_says_it_is_running(
+        contract, tmp_path, monkeypatch):
+    def unwritable(request, result):
+        raise OSError("disk full")
+    monkeypatch.setattr(d, "_write_launch_records", unwritable)
+    with pytest.raises(d.LaunchIncomplete) as incomplete:
+        d.launch_lane(_request(contract), prelaunch=_pass, spawn=FakeClaude([]), agents=lambda: [],
+                      cwd=tmp_path, sleep=lambda s: None)
+    assert incomplete.value.exit_code == 8
+    assert "WAS started" in incomplete.value.message and "abcd1234" in incomplete.value.message
+    assert "nothing was stopped" in incomplete.value.message
+
+
 def test_a_launch_interrupted_after_the_provider_started_still_leaves_a_receipt_holding_the_slug(
         contract, tmp_path, receipts):
     def interrupted(argv, env, cwd, log_path=None):
