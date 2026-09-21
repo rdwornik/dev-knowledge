@@ -125,8 +125,9 @@ def test_models_reads_the_repo_root_when_the_lane_worktree_does_not_exist(tmp_pa
 def fixture_repo(tmp_path_factory) -> Path:
     """A repo whose `scripts/` is the real one, so the declared row runs against real code."""
     root = tmp_path_factory.mktemp("fixture-repo")
-    shutil.copytree(_REPO / "scripts", root / "scripts",
-                    ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    for tree in ("scripts", "ecosystem"):        # scripts read their sibling spec files at import
+        shutil.copytree(_REPO / tree, root / tree,
+                        ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     return root
 
 

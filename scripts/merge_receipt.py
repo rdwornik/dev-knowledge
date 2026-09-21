@@ -1250,6 +1250,26 @@ def _root(repo_root: Optional[str]) -> Path:
     return Path(repo_root) if repo_root else _REPO_ROOT
 
 
+#: Where a lane's own worktree lives, under the repo root -- `EnterWorktree` and `--worktree`
+#: both file it here, so the slug alone names it.
+LANE_WORKTREE_TEMPLATE = ".claude/worktrees/{slug}"
+
+
+def default_lane_worktree(repo_root: Path, slug: str) -> Optional[Path]:
+    """The lane's worktree when it exists on this disk, else None (R-W3-5).
+
+    THE INTEGRATOR IS NOT IN THE LANE. `models` reads the transcript filed under a working
+    directory, and with no `--worktree` that directory was the caller's own -- the integrator's,
+    whose transcript is a different session running a different model. The declared `merge` row
+    carries no `--worktree`, so every real merge would have compared the integrator's run to the
+    lane's order and refused. The slug is enough to name the lane's directory, so it is read from
+    there when it exists; an absent directory returns None and the caller keeps the old, honest
+    default of the repo root (a lane that ran in the repo root files its transcript there).
+    """
+    candidate = repo_root / LANE_WORKTREE_TEMPLATE.format(slug=slug)
+    return candidate if candidate.is_dir() else None
+
+
 @click.group(help="Per-step merge minutes, recorded into a durable receipt ([#675] 3.1/3.3/3.6).")
 @click.option("--repo-root", default=None, type=click.Path(file_okay=False),
               help="repo root [default: this script's parent]")
@@ -1414,8 +1434,10 @@ def cmd_actions(ctx: click.Context, slug: str, sha: str, baseline: Optional[str]
                    "declared because an order IS a declaration -- and it is the ONLY half of the "
                    "pair this verb accepts")
 @click.option("--worktree", default=None, type=click.Path(file_okay=False),
-              help="the lane's working directory [default: the repo root]; the session store "
-                   "files a transcript under it, and that transcript is the measurement")
+              help="the lane's working directory [default: .claude/worktrees/<slug> under the "
+                   "repo root when that exists, else the repo root]; the session store files a "
+                   "transcript under it, and that transcript is the measurement. An explicit "
+                   "value always wins")
 @click.pass_context
 def cmd_models(ctx: click.Context, slug: str, contract: Optional[Path], ordered: Optional[str],
                worktree: Optional[str]) -> None:
@@ -1428,6 +1450,8 @@ def cmd_models(ctx: click.Context, slug: str, contract: Optional[Path], ordered:
     Exit follows the STATE: 0 only on agreement. A gap exits non-zero too (Z-G4) -- a check that
     cannot compute its ground truth must not read as a pass to anything shelling out to it.
     """
+    if worktree is None:
+        worktree = default_lane_worktree(ctx.obj["root"], slug)
     try:
         _receipt, reading = record_model_reading(ctx.obj["root"], slug=slug, ordered=ordered,
                                                  contract=contract, worktree=worktree)
