@@ -69,13 +69,14 @@ class FakeClaude:
     """The process boundary. Records every argv; a `--bg` start also files a job whose name is what
     followed `-n`, exactly the shape `claude agents --json` reports."""
 
-    def __init__(self, jobs, stdout="backgrounded abcd1234\n", returncode=0):
+    def __init__(self, jobs, stdout="backgrounded abcd1234\n", returncode=0, job_id="abcd1234"):
         self.calls, self.jobs, self.stdout, self.returncode = [], jobs, stdout, returncode
+        self.job_id = job_id
 
     def __call__(self, argv, env, cwd, log_path=None):
         self.calls.append(list(argv))
-        if "-n" in argv and self.returncode == 0:
-            self.jobs.append({"id": "abcd1234", "sessionId": SID, "name": argv[argv.index("-n") + 1],
+        if "-n" in argv and self.returncode == 0 and self.job_id:
+            self.jobs.append({"id": self.job_id, "sessionId": SID, "name": argv[argv.index("-n") + 1],
                               "cwd": str(Path(cwd) / ".claude" / "worktrees" / argv[argv.index("-n") + 1]),
                               "state": "working", "status": "busy"})
         return d.Spawned(returncode=self.returncode, stdout=self.stdout, pid=4321)
@@ -552,6 +553,260 @@ def test_a_codex_log_with_no_usage_is_unreadable_not_zero(tmp_path):
     log.write_text("nothing here\n", encoding="utf-8")
     assert d._log_reader(log)() is None
     assert d._log_reader(tmp_path / "absent.jsonl")() is None
+
+
+# --- the collision window: a job the listing has not shown yet, a lock, a spawn that fails ----------
+
+def _plant_receipt(receipts, job_id="abcd1234", provider="anthropic", age_seconds=5, pid=None):
+    from datetime import datetime, timedelta, timezone
+    receipts.mkdir(parents=True, exist_ok=True)
+    when = (datetime.now(timezone.utc) - timedelta(seconds=age_seconds)).isoformat(timespec="seconds")
+    (receipts / "LAUNCH-LANE-LAUNCH-ADAPTER.json").write_text(json.dumps(
+        {"slug": "lane-launch-adapter", "job_id": job_id, "provider": provider, "pid": pid,
+         "launched_at": when}), encoding="utf-8")
+
+
+def test_a_fresh_receipt_whose_job_the_listing_has_not_shown_yet_still_holds_the_slug(contract, tmp_path, receipts):
+    """`claude --bg` can return before `claude agents --json` lists the job: the ledger, not the
+    listing alone, is what stops a second launch in that window."""
+    _plant_receipt(receipts, age_seconds=5)
+    spawn = FakeClaude([])
+    with pytest.raises(d.LaunchRefused) as second:
+        d.launch_lane(_request(contract), prelaunch=_pass, spawn=spawn, agents=lambda: [], cwd=tmp_path)
+    assert spawn.calls == [] and "abcd1234" in second.value.message
+
+
+def test_an_old_receipt_whose_job_is_gone_from_the_listing_does_not_hold_the_slug(contract, tmp_path, receipts):
+    _plant_receipt(receipts, age_seconds=3600)
+    result, spawn, _ = _launch(_request(contract), tmp_path)
+    assert len(spawn.calls) == 1 and result.job_id == "abcd1234"
+
+
+def test_a_launch_whose_job_id_was_never_read_is_found_by_its_worktree_and_holds_the_slug(contract, tmp_path, receipts):
+    """The receipt says `unresolved`; the listing has a live lane in `.../worktrees/<slug>`."""
+    _plant_receipt(receipts, job_id="unresolved", age_seconds=3600)
+    live = {"id": "feed0001", "sessionId": SID, "state": "working", "name": "x",
+            "cwd": str(tmp_path / ".claude" / "worktrees" / "lane-launch-adapter")}
+    spawn = FakeClaude([])
+    with pytest.raises(d.LaunchRefused) as refused:
+        d.launch_lane(_request(contract), prelaunch=_pass, spawn=spawn, agents=lambda: [live], cwd=tmp_path)
+    assert spawn.calls == [] and "feed0001" in refused.value.message
+
+
+def test_a_live_lane_in_the_worktree_holds_the_slug_even_with_no_receipt(contract, tmp_path):
+    live = {"id": "feed0002", "sessionId": SID, "state": "working",
+            "cwd": str(tmp_path / ".claude" / "worktrees" / "lane-launch-adapter")}
+    spawn = FakeClaude([])
+    with pytest.raises(d.LaunchRefused):
+        d.launch_lane(_request(contract), prelaunch=_pass, spawn=spawn, agents=lambda: [live], cwd=tmp_path)
+    assert spawn.calls == []
+
+
+def test_a_codex_receipt_whose_process_is_alive_holds_the_slug(tmp_path, receipts, monkeypatch):
+    path = tmp_path / "LANE-codex-x.md"
+    path.write_text(CODEX_CONTRACT, encoding="utf-8")
+    _plant_receipt(receipts, job_id="codex-77", provider="codex", pid=77, age_seconds=3600)
+    monkeypatch.setattr(d, "process_alive", lambda pid: pid == 77)
+    spawn = FakeClaude([])
+    with pytest.raises(d.LaunchRefused) as refused:
+        d.launch_lane(_request(path, slug="lane-launch-adapter"), prelaunch=_pass, spawn=spawn,
+                      agents=lambda: [], cwd=tmp_path)
+    assert spawn.calls == [] and "codex-77" in refused.value.message
+
+
+def test_two_launches_of_one_slug_cannot_run_at_once_a_lock_refuses_the_second(contract, tmp_path, receipts):
+    receipts.mkdir(parents=True)
+    (receipts / "LAUNCH-LOCK-LANE-LAUNCH-ADAPTER").write_text("pid 1", encoding="utf-8")
+    spawn = FakeClaude([])
+    with pytest.raises(d.LaunchRefused) as refused:
+        d.launch_lane(_request(contract), prelaunch=_pass, spawn=spawn, agents=lambda: [], cwd=tmp_path)
+    assert spawn.calls == [] and "in progress" in refused.value.message
+
+
+def test_the_lock_is_removed_after_a_launch_and_after_a_refusal(contract, tmp_path, receipts):
+    lock = receipts / "LAUNCH-LOCK-LANE-LAUNCH-ADAPTER"
+    _launch(_request(contract), tmp_path)
+    assert not lock.exists(), "a successful launch leaves no lock"
+    with pytest.raises(d.LaunchRefused):
+        d.launch_lane(_request(contract), prelaunch=_refuse, spawn=FakeClaude([]), agents=lambda: [], cwd=tmp_path)
+    assert not lock.exists(), "a refused launch leaves no lock"
+
+
+def test_a_spawn_that_cannot_run_is_a_refusal_with_no_receipt(contract, tmp_path, receipts):
+    def cannot(argv, env, cwd, log_path=None):
+        raise FileNotFoundError("claude")
+    with pytest.raises(d.LaunchRefused):
+        d.launch_lane(_request(contract), prelaunch=_pass, spawn=cannot, agents=lambda: [], cwd=tmp_path)
+    assert not list(receipts.glob("LAUNCH-*.json"))
+
+
+def test_a_lane_that_started_always_gets_its_receipt_even_when_the_listing_fails_after(contract, tmp_path, receipts):
+    calls = {"n": 0}
+
+    def flaky():
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return []                       # the pre-spawn ledger read
+        raise RuntimeError("listing exploded after the spawn")
+    result = d.launch_lane(_request(contract), prelaunch=_pass, spawn=FakeClaude([]), agents=flaky,
+                           cwd=tmp_path, sleep=lambda s: None)
+    receipt = json.loads((receipts / "LAUNCH-LANE-LAUNCH-ADAPTER.json").read_text(encoding="utf-8"))
+    assert receipt["job_id"] == result.job_id == "abcd1234", "the id came from `claude --bg`'s own output"
+
+
+# --- codex sol adversarial pass (docs/audits/2026-09-21-codex-sol-adversary-launch-adapter.md) ------
+
+#: What the REAL `claude --bg` (2.1.278) printed on this host, 2026-09-21: the id is wrapped in ANSI
+#: colour codes and the separators are a middle dot. The first live launch found the id unreadable.
+REAL_BG_STDOUT = ("backgrounded · \x1b[36maea4c0ba\x1b[39m · lane-zz-name-proof-2\n"
+                  "\x1b[2m  claude agents             list sessions\x1b[22m\n"
+                  "\x1b[2m  claude attach aea4c0ba    open in this terminal\x1b[22m\n")
+
+
+def test_the_job_id_is_read_from_the_real_claude_bg_output_ansi_codes_and_all(contract, tmp_path):
+    """The listing entry is NOT in the slug's worktree, so only the output can name the job."""
+    elsewhere = {"id": "aea4c0ba", "sessionId": SID, "state": "working", "name": "lane-launch-adapter",
+                 "cwd": "C:\\somewhere\\else"}
+    spawn = FakeClaude([], stdout=REAL_BG_STDOUT, job_id=None)
+    result = d.launch_lane(_request(contract), prelaunch=_pass, spawn=spawn, agents=lambda: [elsewhere],
+                           cwd=tmp_path, sleep=lambda s: None)
+    assert result.job_id == "aea4c0ba" and result.session_name_reported == "lane-launch-adapter"
+
+
+def test_a_lane_that_already_finished_is_still_identified_by_its_worktree(contract, tmp_path):
+    """A one-line lane can be `done` before the listing is read: it is the record in the slug's
+    worktree that started after the launch began."""
+    import time
+    record = {"id": "cafe0001", "sessionId": SID, "state": "done", "name": "lane-launch-adapter",
+              "startedAt": int((time.time() + 1) * 1000),
+              "cwd": str(tmp_path / ".claude" / "worktrees" / "lane-launch-adapter")}
+    spawn = FakeClaude([], stdout="no id on this line\n", job_id=None)
+    result = d.launch_lane(_request(contract), prelaunch=_pass, spawn=spawn, agents=lambda: [record],
+                           cwd=tmp_path, sleep=lambda s: None)
+    assert result.job_id == "cafe0001" and result.session_name_reported == "lane-launch-adapter"
+
+
+def test_an_older_record_in_the_same_worktree_is_not_taken_for_the_new_lane(contract, tmp_path):
+    stale = {"id": "dead0001", "sessionId": SID, "state": "done", "startedAt": 1_000_000,
+             "cwd": str(tmp_path / ".claude" / "worktrees" / "lane-launch-adapter")}
+    spawn = FakeClaude([], stdout="no id on this line\n", job_id=None)
+    with pytest.raises(d.LaunchIncomplete):
+        d.launch_lane(_request(contract), prelaunch=_pass, spawn=spawn, agents=lambda: [stale],
+                      cwd=tmp_path, sleep=lambda s: None)
+
+
+def test_a_start_whose_job_cannot_be_identified_is_exit_8_not_a_quiet_success(contract, tmp_path, receipts):
+    spawn = FakeClaude([], stdout="", job_id=None)
+    with pytest.raises(d.LaunchIncomplete) as incomplete:
+        d.launch_lane(_request(contract), prelaunch=_pass, spawn=spawn, agents=lambda: [], cwd=tmp_path,
+                      sleep=lambda s: None)
+    assert incomplete.value.exit_code == 8 and "claude agents" in incomplete.value.message
+    receipt = json.loads((receipts / "LAUNCH-LANE-LAUNCH-ADAPTER.json").read_text(encoding="utf-8"))
+    assert receipt["job_id"] == "unresolved"
+    assert not (receipts / "LAUNCH-JOB-unresolved.json").exists(), "one file per job id, and this is none"
+
+
+def test_a_launch_interrupted_after_the_provider_started_still_leaves_a_receipt_holding_the_slug(
+        contract, tmp_path, receipts):
+    def interrupted(argv, env, cwd, log_path=None):
+        raise KeyboardInterrupt
+    with pytest.raises(KeyboardInterrupt):
+        d.launch_lane(_request(contract), prelaunch=_pass, spawn=interrupted, agents=lambda: [], cwd=tmp_path)
+    spawn = FakeClaude([])
+    with pytest.raises(d.LaunchRefused):
+        d.launch_lane(_request(contract), prelaunch=_pass, spawn=spawn, agents=lambda: [], cwd=tmp_path)
+    assert spawn.calls == [], "the intent receipt held the slug while the listing could not yet show a job"
+
+
+def test_a_spawn_that_failed_leaves_no_intent_receipt_behind(contract, tmp_path, receipts):
+    with pytest.raises(d.LaunchRefused):
+        d.launch_lane(_request(contract), prelaunch=_pass, spawn=FakeClaude([], returncode=1),
+                      agents=lambda: [], cwd=tmp_path)
+    assert not list(receipts.glob("LAUNCH-*.json"))
+
+
+def test_two_launches_racing_for_one_slug_spawn_exactly_once(contract, tmp_path):
+    import threading
+    import time
+    spawned, outcomes, gate = [], [], threading.Barrier(2)
+
+    def slow(argv, env, cwd, log_path=None):
+        spawned.append(argv)
+        time.sleep(0.4)
+        return d.Spawned(0, "backgrounded abcd1234\n", None)
+
+    def go():
+        gate.wait()
+        try:
+            d.launch_lane(_request(contract), prelaunch=_pass, spawn=slow, agents=lambda: [], cwd=tmp_path,
+                          sleep=lambda s: None)
+            outcomes.append("launched")
+        except d.LaunchRefused:
+            outcomes.append("refused")
+        except d.LaunchIncomplete:
+            outcomes.append("incomplete")
+    threads = [threading.Thread(target=go) for _ in range(2)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert len(spawned) == 1, outcomes
+    assert sorted(outcomes).count("refused") == 1
+
+
+@pytest.mark.parametrize("flag,value", [("--permission-mode", "--dangerously-skip-permissions"),
+                                        ("--model", "--evil"), ("--effort", "--bad"),
+                                        ("--permission-mode", "godmode")])
+def test_a_dispatch_value_that_is_a_flag_or_off_enum_is_refused(tmp_path, flag, value):
+    path = tmp_path / "LANE-x.md"
+    defaults = {"--permission-mode": "bypassPermissions", "--model": "sonnet", "--effort": "high"}
+    hostile = CONTRACT.replace(f"{flag} {defaults[flag]}", f"{flag} {value}")
+    assert hostile != CONTRACT
+    path.write_text(hostile, encoding="utf-8")
+    with pytest.raises(d.DispatchRefused):
+        _request(path)
+
+
+def test_the_argv_is_built_from_the_parsed_fields_and_nothing_else(tmp_path):
+    path = tmp_path / "LANE-x.md"
+    path.write_text(CONTRACT.replace("--worktree lane-launch-adapter", "--worktree lane-launch-adapter --evil calc.exe"),
+                    encoding="utf-8")
+    request = d.request_from_contract(path)
+    assert request.argv == ["claude", "--bg", "-n", "lane-launch-adapter", "--model", "sonnet", "--effort", "high",
+                            "--permission-mode", "bypassPermissions", "--worktree", "lane-launch-adapter",
+                            request.prompt]
+
+
+def _organ_receipts(receipts, **status_by_id):
+    """Write the pre-launch organs' receipts the way `telemetry_emit wrap` does."""
+    moment = next(m for m in yaml.safe_load((REPO / "ecosystem" / "harness.yaml").read_text(encoding="utf-8"))["moments"]
+                  if m["name"] == "pre-launch")
+    receipts.mkdir(parents=True, exist_ok=True)
+    for organ in moment["organs"]:
+        status = status_by_id.get(organ["id"].split(".")[0], "ok")
+        body = {"organ": organ["id"], "status": status, "exit_code": None if status.startswith("SKIPPED") else 0}
+        (receipts / organ["receipt"]).write_text(json.dumps(body), encoding="utf-8")
+    return moment
+
+
+def test_a_pre_launch_organ_that_was_skipped_does_not_clear_the_launch(contract, monkeypatch, receipts):
+    """The occupancy row is declared `optional: true`: a missing script is `SKIPPED-NOT-BUILT` and the
+    moment still exits 0. A launch is not cleared by an organ that did not run."""
+    _organ_receipts(receipts, worktree_occupancy="SKIPPED-NOT-BUILT")
+    monkeypatch.setattr(d.subprocess, "run", lambda argv, **kw: subprocess.CompletedProcess(argv, 0, "", ""))
+    outcome = d.run_prelaunch(_request(contract, batch="wave3"))
+    assert outcome.passed is False and "worktree_occupancy" in outcome.reason and "SKIPPED" in outcome.reason
+
+
+def test_a_pre_launch_whose_organs_all_ran_clears_the_launch(contract, monkeypatch, receipts):
+    _organ_receipts(receipts)
+    monkeypatch.setattr(d.subprocess, "run", lambda argv, **kw: subprocess.CompletedProcess(argv, 0, "", ""))
+    assert d.run_prelaunch(_request(contract, batch="wave3")).passed is True
+
+
+def test_a_pre_launch_with_a_missing_organ_receipt_does_not_clear_the_launch(contract, monkeypatch, receipts):
+    monkeypatch.setattr(d.subprocess, "run", lambda argv, **kw: subprocess.CompletedProcess(argv, 0, "", ""))
+    assert d.run_prelaunch(_request(contract, batch="wave3")).passed is False
 
 
 def test_process_alive_sends_no_signal(monkeypatch):
