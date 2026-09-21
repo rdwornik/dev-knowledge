@@ -503,7 +503,8 @@ def _walk(world: World, walk: Walk, mp: pytest.MonkeyPatch) -> None:
 
 # One walk per test RUN, shared across xdist workers through a lock file (the walk is minutes, not seconds).
 def _shared_walk(tmp_path_factory: pytest.TempPathFactory) -> Walk:
-    shared = tmp_path_factory.getbasetemp().parent
+    base = tmp_path_factory.getbasetemp()
+    shared = base.parent if os.environ.get("PYTEST_XDIST_WORKER") else base   # this RUN's folder, never a stale one
     result, lock = shared / "connection-loop-walk.json", shared / "connection-loop-walk.lock"
     deadline = time.monotonic() + 2 * STOP_TIMEOUT_S
     while time.monotonic() < deadline:
