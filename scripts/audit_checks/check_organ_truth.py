@@ -115,18 +115,29 @@ def _precommit_hooks(root: Path) -> list[dict]:
 
 
 def _conductor_steps(root: Path) -> list[tuple[str, str, str]]:
-    """`(job, run text, SKIP env)` for every `run:` step of every job in the conductor workflow."""
+    """`(job, run text, effective SKIP)` for every `run:` step of every job in the conductor workflow.
+
+    `SKIP` resolves the way Actions resolves any env var: workflow, then job, then step, the
+    narrower scope overriding the wider one (the whole value, not a merge).
+    """
     try:
         data = yaml.safe_load((root / CONDUCTOR_REL).read_text(encoding="utf-8"))
     except (OSError, yaml.YAMLError):
         return []
+    if not isinstance(data, dict):
+        return []
+
+    def skip_of(scope: object, inherited: str) -> str:
+        env = scope.get("env") if isinstance(scope, dict) else None
+        return str(env["SKIP"]) if isinstance(env, dict) and env.get("SKIP") is not None             else inherited
+
+    workflow_skip = skip_of(data, "")
     steps: list[tuple[str, str, str]] = []
-    jobs = data.get("jobs") if isinstance(data, dict) else None
-    for job, body in (jobs or {}).items():
+    for job, body in (data.get("jobs") or {}).items():
+        job_skip = skip_of(body, workflow_skip)
         for step in (body.get("steps") or []) if isinstance(body, dict) else []:
             if isinstance(step, dict) and isinstance(step.get("run"), str):
-                env = step.get("env") if isinstance(step.get("env"), dict) else {}
-                steps.append((str(job), step["run"], str(env.get("SKIP") or "")))
+                steps.append((str(job), step["run"], skip_of(step, job_skip)))
     return steps
 
 

@@ -296,6 +296,42 @@ def test_a_hook_the_conductor_step_skips_is_not_called_by_it(tmp_path, monkeypat
     assert fails and any("scripts/skipped_target.py" in f.evidence for f in fails)
 
 
+def _gate_with_skip(*, workflow: str = "", job: str = "", step: str = "") -> str:
+    def env(value: str, indent: str) -> str:
+        return f"{indent}env:\n{indent}  SKIP: {value}\n" if value else ""
+
+    return ("name: conductor\non: [push]\n" + env(workflow, "") + "jobs:\n  commit-gate:\n"
+            "    runs-on: ubuntu-latest\n" + env(job, "    ") + "    steps:\n"
+            "      - " + (f"env:\n          SKIP: {step}\n        " if step else "")
+            + "run: uv run --locked pre-commit run --hook-stage manual\n")
+
+
+@pytest.mark.parametrize("gate", [
+    _gate_with_skip(job="skipped-hook"),
+    _gate_with_skip(workflow="skipped-hook"),
+    _gate_with_skip(workflow="other-hook", job="skipped-hook"),
+    _gate_with_skip(job="other-hook", step="skipped-hook"),
+], ids=["job-level", "workflow-level", "job-overrides-workflow", "step-overrides-job"])
+def test_a_hook_skipped_at_any_scope_of_the_conductor_is_not_called_by_it(
+        tmp_path, monkeypatch, gate):
+    precommit = _PRECOMMIT + ("      - id: skipped-hook\n        stages: [manual]\n"
+                              "        entry: python scripts/skipped_target.py\n")
+    _tree(tmp_path, precommit=precommit, conductor=gate, scripts=("skipped_target.py",))
+    _roster(monkeypatch, "scripts/built.py", "scripts/skipped_target.py")
+    fails = _fails(tmp_path)
+    assert fails and any("scripts/skipped_target.py" in f.evidence for f in fails)
+
+
+def test_a_narrower_skip_replaces_a_wider_one(tmp_path, monkeypatch):
+    """The step's `SKIP` overrides the job's, so a hook only the job skipped IS run again."""
+    precommit = _PRECOMMIT + ("      - id: skipped-hook\n        stages: [manual]\n"
+                              "        entry: python scripts/skipped_target.py\n")
+    _tree(tmp_path, precommit=precommit, scripts=("skipped_target.py",),
+          conductor=_gate_with_skip(job="skipped-hook", step="other-hook"))
+    _roster(monkeypatch, "scripts/built.py", "scripts/skipped_target.py")
+    assert _fails(tmp_path) == []
+
+
 def test_an_organ_with_no_caller_fails_and_is_named(tmp_path, monkeypatch):
     stray = tuple(f"stray_{n:02d}.py" for n in range(12))     # more than any rolled-up preview
     _tree(tmp_path, conductor=_CONDUCTOR,
@@ -362,6 +398,42 @@ def test_the_declared_go_reader_row_is_accepted_by_the_reader_as_written(tmp_pat
     transport = _transport(tmp_path, "GO-wave3.md")
     monkeypatch.setattr(_go(), "resolve_transport", lambda explicit: transport)
     assert _run(*args).exit_code == 0
+
+
+def test_the_declared_go_reader_row_runs_as_written_and_refuses_an_absent_go(
+        fixture_repo, monkeypatch):
+    """The FULL declared argv -- `uv run --locked python scripts/go_reader.py --batch {batch}` --
+    in a subprocess. The batch is unique, so no GO for it exists on any transport; the transport is
+    only READ, and the answer is a REFUSED receipt whichever drive it resolves to."""
+    import dodo                                                # noqa: PLC0415
+    batch = f"no-such-batch-{os.getpid()}"
+    monkeypatch.setenv("HARNESS_BATCH", batch)
+    row = next(o for m in dodo._doc()["moments"] for o in m["organs"] if o["id"] == "go_reader")
+    argv = dodo._argv(row["command"])
+    assert argv[:4] == ["uv", "run", "--locked", "python"], argv
+    done = subprocess.run(argv, cwd=fixture_repo, capture_output=True, text=True,
+                          encoding="utf-8", timeout=300,
+                          env={**os.environ, "UV_PROJECT_ENVIRONMENT": sys.prefix})
+    assert done.returncode == 1, done.stdout + done.stderr
+    receipt = json.loads(done.stdout.strip().splitlines()[-1])
+    assert receipt["batch"] == batch and receipt["verdict"] == "REFUSED"
+
+
+def test_a_dispatcher_refusal_of_the_transport_stands(tmp_path, monkeypatch):
+    """`prompts_dir` refuses an unmounted authority drive; falling back to the process copy of
+    `CLAUDE_PROMPTS_DIR` would return a GO from the stale directory it exists to prevent."""
+    import dispatch                                            # noqa: PLC0415
+    stale = _transport(tmp_path, "GO-wave3.md")                # a GO the stale copy would find
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(stale))
+
+    def refuse(*_args, **_kwargs):
+        raise dispatch.DispatchRefused("authority drive absent")
+
+    monkeypatch.setattr(dispatch, "prompts_dir", refuse)
+    assert _go().resolve_transport(None) is None
+    result = _run("--batch", "wave3")
+    assert result.exit_code != 0
+    assert json.loads(result.stdout.strip().splitlines()[-1])["verdict"] == "REFUSED"
 
 
 def test_a_present_go_file_is_a_pass(tmp_path):

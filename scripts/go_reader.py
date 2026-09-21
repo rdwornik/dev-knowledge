@@ -71,19 +71,27 @@ def resolve_transport(explicit: Optional[str]) -> Optional[Path]:
 
     `--transport` wins. Otherwise the dispatcher's own precedence (User-scope value, then the
     process copy) so this organ and the launcher never look at two different drives.
+
+    A REFUSAL FROM THE DISPATCHER STANDS. `prompts_dir` refuses when the authority drive is
+    unmounted, and reading the process copy of the variable after that would hand back exactly the
+    stale directory the refusal exists to prevent (E-29) -- a false GO from the wrong drive. The
+    process copy is read only where the dispatcher cannot be imported at all.
     """
     if explicit:
         return Path(explicit)
     try:
+        import dispatch as _dispatch                     # noqa: PLC0415
+    except ImportError:
         try:
-            import dispatch as _dispatch                 # noqa: PLC0415
-        except ImportError:                              # pragma: no cover -- package spelling
-            from scripts import dispatch as _dispatch    # noqa: PLC0415
+            from scripts import dispatch as _dispatch    # noqa: PLC0415  # pragma: no cover
+        except ImportError:                              # pragma: no cover -- no dispatcher here
+            raw = (os.environ.get("CLAUDE_PROMPTS_DIR") or "").strip()
+            return Path(raw) if raw else None
+    try:
         return _dispatch.prompts_dir()
-    except Exception as exc:  # noqa: BLE001 -- an unmounted drive is a refusal, stated below
+    except Exception as exc:  # noqa: BLE001 -- an unmounted authority drive is a refusal
         logger.warning("transport not resolvable through dispatch.prompts_dir: %r", exc)
-    raw = (os.environ.get("CLAUDE_PROMPTS_DIR") or "").strip()
-    return Path(raw) if raw else None
+        return None
 
 
 def read_go(batch: str, transport: Optional[Path]) -> GoReceipt:
