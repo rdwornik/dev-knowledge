@@ -255,6 +255,41 @@ def test_an_undated_manual_hook_is_not_a_caller(tmp_path, monkeypatch):
     assert fails and any("scripts/undated_target.py" in f.evidence for f in fails)
 
 
+_COMMIT_GATE = """name: conductor
+on: [push]
+jobs:
+  commit-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          SKIP: skipped-hook
+        run: uv run --locked pre-commit run --hook-stage manual
+"""
+
+
+def test_a_manual_hook_the_conductor_actually_runs_is_called_by_the_conductor(
+        tmp_path, monkeypatch):
+    _tree(tmp_path, conductor=_COMMIT_GATE, scripts=("undated_target.py",))
+    _roster(monkeypatch, "scripts/built.py", "scripts/undated_target.py")
+    assert _fails(tmp_path) == []
+
+
+def test_a_conductor_that_does_not_sweep_manual_hooks_calls_none_of_them(tmp_path, monkeypatch):
+    _tree(tmp_path, conductor=_CONDUCTOR, scripts=("undated_target.py",))
+    _roster(monkeypatch, "scripts/built.py", "scripts/undated_target.py")
+    fails = _fails(tmp_path)
+    assert fails and any("scripts/undated_target.py" in f.evidence for f in fails)
+
+
+def test_a_hook_the_conductor_step_skips_is_not_called_by_it(tmp_path, monkeypatch):
+    precommit = _PRECOMMIT + ("      - id: skipped-hook\n        stages: [manual]\n"
+                              "        entry: python scripts/skipped_target.py\n")
+    _tree(tmp_path, precommit=precommit, conductor=_COMMIT_GATE, scripts=("skipped_target.py",))
+    _roster(monkeypatch, "scripts/built.py", "scripts/skipped_target.py")
+    fails = _fails(tmp_path)
+    assert fails and any("scripts/skipped_target.py" in f.evidence for f in fails)
+
+
 def test_an_organ_with_no_caller_fails_and_is_named(tmp_path, monkeypatch):
     stray = tuple(f"stray_{n:02d}.py" for n in range(12))     # more than any rolled-up preview
     _tree(tmp_path, conductor=_CONDUCTOR,
@@ -332,9 +367,11 @@ def test_the_reader_writes_no_go_and_nothing_else(tmp_path):
 
 def test_a_batch_that_could_escape_the_inbox_is_refused(tmp_path):
     transport = _transport(tmp_path)
-    _write(tmp_path / "GO-x.md", "GO\n")                       # a file a `..` batch would reach
-    result = _run("--batch", "../GO-x", "--transport", str(transport))
+    _write(tmp_path / "y.md", "GO\n")       # `GO-x/../../y.md` normalises to here on Windows
+    result = _run("--batch", "x/../../y", "--transport", str(transport))
     assert result.exit_code != 0
+    receipt = json.loads(result.stdout.strip().splitlines()[-1])
+    assert receipt["verdict"] == "REFUSED" and receipt["present"] is False
 
 
 def test_an_unresolvable_transport_is_a_refusal_not_a_pass(tmp_path, monkeypatch):
@@ -342,3 +379,5 @@ def test_an_unresolvable_transport_is_a_refusal_not_a_pass(tmp_path, monkeypatch
     monkeypatch.setattr(_go(), "resolve_transport", lambda explicit: None)
     result = _run("--batch", "wave3")
     assert result.exit_code != 0
+    receipt = json.loads(result.stdout.strip().splitlines()[-1])
+    assert receipt["verdict"] == "REFUSED" and "transport" in receipt["reason"]
