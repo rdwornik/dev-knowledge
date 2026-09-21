@@ -816,7 +816,12 @@ def _held_by(slug: str, receipt: Optional[dict], agents: Callable[[], list[dict]
     job = str(receipt.get("job_id") or "")
     if receipt.get("provider") == "codex":
         pid = receipt.get("pid")
-        return f"codex job {job} (pid {pid}) is still running" if isinstance(pid, int) and process_alive(pid) else ""
+        if isinstance(pid, int):
+            return f"codex job {job} (pid {pid}) is still running" if process_alive(pid) else ""
+        age = _age_seconds(receipt.get("launched_at"))   # an INTENT receipt: Popen may already have run
+        if job and age is not None and age < LISTING_LAG_SECONDS:
+            return f"a codex launch ({job}) began {int(age)}s ago and has not recorded its process yet"
+        return ""
     listing = agents()
     entry = _find_agent(listing, job) if job and job not in ("unresolved", "pending") else None
     if entry is not None and _is_live(entry):
