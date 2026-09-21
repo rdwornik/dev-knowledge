@@ -36,6 +36,8 @@ stages:
 #   precondition          {file, matches, receipt, reason} -- a line of `file` must match `matches` (a regex) or the
 #                         moment writes ONE `SKIPPED-PRECONDITION` receipt and runs no organ. {session_file} is the
 #                         lane's SESSION-<lane>.md on the transport (HARNESS_SESSION_FILE overrides it).
+#   strict_inputs         `optional` then means only "not built yet": once the command exists, an unset input STOPs the moment
+#                         (go_reader is a refusal gate -- omitting the batch must not bypass it).
 #   continue_on_failure   an organ whose failure is RECORDED in its receipt but does not stop the organs after it;
 #                         the moment still exits non-zero naming it (a failure is ordered, never swallowed).
 # {merge} is HARNESS_MERGE, else HEAD (the integrator merges, then runs the moment). {batch} names the batch.
@@ -54,7 +56,7 @@ moments:
     trigger: "integrator command, immediately after each local `git merge --no-ff` of a handback (HEAD is the merge commit)"
     organs:
       - {id: merge_receipt.models, receipt: MOMENT-MERGE-MODELS.json, manual_until: 2026-10-04, always: true, reason: "reads the lane's live transcript", command: [uv, run, --locked, python, scripts/merge_receipt.py, models, --slug, "{lane}", --contract, "{contract}"]}
-      - {id: go_reader, receipt: MOMENT-MERGE-GO-READER.json, manual_until: 2026-10-05, optional: true, owner: lane-merge-truth, always: true, reason: "reads the operator's live GO file", command: [uv, run, --locked, python, scripts/go_reader.py, --batch, "{batch}"]}
+      - {id: go_reader, receipt: MOMENT-MERGE-GO-READER.json, manual_until: 2026-10-05, optional: true, strict_inputs: true, owner: lane-merge-truth, always: true, reason: "reads the operator's live GO file", command: [uv, run, --locked, python, scripts/go_reader.py, --batch, "{batch}"]}
       - {id: review_packet, receipt: MOMENT-MERGE-REVIEW-PACKET.json, manual_until: 2026-10-04, optional: true, always: true, reason: "packs the live merge commit", command: [uv, run, --locked, python, scripts/review_packet.py, --lane, "{lane}", --contract, "{contract}", --merge, "{merge}", --handback, "{handback}", --out, "{receipts}/MOMENT-MERGE-REVIEW-PACKET.md"]}
       - {id: gates, receipt: MOMENT-MERGE-GATES.json, manual_until: 2026-10-04, optional: true, always: true, reason: "runs the gates against the live tree", command: [uv, run, --locked, python, scripts/gates.py, run, --lane, "{lane}"]}
       - {id: test_pairing, receipt: MOMENT-MERGE-TEST-PAIRING.json, manual_until: 2026-10-04, optional: true, always: true, reason: "pairs the live red set against the merge-base", command: [uv, run, --locked, python, scripts/test_pairing.py, --lane, "{lane}"]}

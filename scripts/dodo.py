@@ -24,7 +24,9 @@ FIRST and writes ONE receipt: `ok` when it holds, `SKIPPED-PRECONDITION` when it
 organ of the moment runs, so a turn end before the lane has finished reports nothing and spends nothing.
 An organ MAY declare `continue_on_failure: true`: its failure is recorded in its receipt, the moment's
 later organs still run, and the moment then exits non-zero naming it -- a failure is never swallowed,
-only ordered so it cannot stop what comes after it.
+only ordered so it cannot stop what comes after it. `strict_inputs: true` narrows `optional` to "not built
+yet": once the command exists, an unset input is a STOP, not a skip (a refusal gate must not be bypassable by
+omission).
 
 `{merge}` is HARNESS_MERGE, else `HEAD`: the integrator merges and THEN runs `moment:merge`, so HEAD is
 the merge commit (review_packet refuses a commit that is not a two-parent merge, so a wrong HEAD is a
@@ -267,7 +269,7 @@ def _execute(label, row, receipt, previous, optional, moment=None):
                 return False
             wrap += ["--skipped", "SKIPPED-NOT-BUILT"]
         elif missing := _unresolved(command):
-            if not optional:
+            if not optional or row.get("strict_inputs"):  # strict: `optional` covers "not built", never "no input"
                 print(f"STOP: {label} needs {', '.join(missing)} and it is unset (HARNESS_"
                       f"{missing[0].upper()})", file=sys.stderr)
                 return False

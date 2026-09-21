@@ -130,10 +130,15 @@ def _fake_claude(tmp: Path) -> Path:
     return bin_dir
 
 
-def _primary_root() -> Path:
-    out = subprocess.run(["git", "-C", str(_REPO), "rev-parse", "--path-format=absolute", "--git-common-dir"],
-                         capture_output=True, text=True, check=True).stdout.strip()
-    return Path(out).parent
+def _fixture_primary(tmp: Path) -> tuple[Path, dict[str, str]]:
+    """A throwaway primary checkout, and the env that points worktree_occupancy's `--git-common-dir` at it.
+
+    The declared row is untouched (`worktree_occupancy.py {lane}`, no `--repo-root`): it finds the primary
+    checkout through git, and git honours GIT_DIR -- so the test never reads or writes the operator's real
+    `.claude/worktrees`, and cannot race a live launch."""
+    root = tmp / "primary"
+    subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
+    return root, {"GIT_DIR": str(root / ".git")}
 
 
 # --- Done-contract 2: `pre-launch` -----------------------------------------------------------------
@@ -160,18 +165,12 @@ def test_lane_start_keeps_only_in_lane_organs():
 
 
 def test_pre_launch_refuses_an_occupied_fixture_slug(tmp_path):
-    slug = f"zz-w3a-occupied-{uuid.uuid4().hex[:8]}"
-    tree = _primary_root() / ".claude" / "worktrees" / slug
-    made_parent = not tree.parent.exists()
-    tree.mkdir(parents=True)
-    try:
-        path = f"{_fake_claude(tmp_path)}{os.pathsep}{os.environ['PATH']}"
-        out = _doit(tmp_path, None, "moment:pre-launch", HARNESS_LANE=slug, HARNESS_BATCH="fixture", PATH=path)
-    finally:
-        tree.rmdir()
-        if made_parent:
-            tree.parent.rmdir()
-    assert not tree.exists(), "the fixture directory must not outlive the test"
+    slug = "zz-w3a-occupied"
+    primary, git_env = _fixture_primary(tmp_path)
+    (primary / ".claude" / "worktrees" / slug).mkdir(parents=True)
+    path = f"{_fake_claude(tmp_path)}{os.pathsep}{os.environ['PATH']}"
+    out = _doit(tmp_path, None, "moment:pre-launch", HARNESS_LANE=slug, HARNESS_BATCH="fixture", PATH=path,
+                **git_env)
     assert out.returncode != 0, "an occupied slug must refuse the launch\n" + out.stdout + out.stderr
     occupancy = _receipt(tmp_path, "MOMENT-PRE-LAUNCH-WORKTREE-OCCUPANCY.json")
     assert occupancy["exit_code"] == 1 and occupancy["status"] == "failed"
@@ -183,9 +182,10 @@ def test_pre_launch_refuses_an_occupied_fixture_slug(tmp_path):
 
 
 def test_pre_launch_lets_a_free_slug_through_the_occupancy_organ(tmp_path):
-    slug = f"zz-w3a-free-{uuid.uuid4().hex[:8]}"
+    _primary, git_env = _fixture_primary(tmp_path)
     path = f"{_fake_claude(tmp_path)}{os.pathsep}{os.environ['PATH']}"
-    _doit(tmp_path, None, "moment:pre-launch", HARNESS_LANE=slug, HARNESS_BATCH="fixture", PATH=path)
+    _doit(tmp_path, None, "moment:pre-launch", HARNESS_LANE="zz-w3a-free", HARNESS_BATCH="fixture", PATH=path,
+          **git_env)
     occupancy = _receipt(tmp_path, "MOMENT-PRE-LAUNCH-WORKTREE-OCCUPANCY.json")
     assert occupancy["exit_code"] == 0 and occupancy["status"] == "ok", occupancy
 
@@ -338,6 +338,26 @@ def test_a_go_reader_organ_is_declared_optional_at_the_merge_moment_until_it_is_
     assert "scripts/go_reader.py" in command and "{batch}" in command
     ids = [o["id"] for o in _moment("merge")["organs"]]
     assert ids.index("merge_receipt.models") < ids.index("go_reader") < ids.index("review_packet")
+
+
+def test_go_reader_cannot_be_bypassed_by_omitting_the_batch(tmp_path):
+    """Codex terra HIGH: `optional` must mean 'not built yet', never 'no input' -- a GO check that skips
+    when the batch is unset would let a merge through unchecked once go_reader exists."""
+    row = copy.deepcopy(_organ("merge", "go_reader"))
+    assert row["optional"] is True and row["strict_inputs"] is True
+    marker = tmp_path / "ran.txt"
+    row["command"] = _touch(marker, "go") + ["{batch}"]   # the REAL row's flags, a marker for its command
+    doc = {"stages": [{"stage": 1, "name": "s1", "field": "f", "kind": "deterministic",
+                       "command": [sys.executable, "-c", "pass"]}],
+           "moments": [{"name": "merge", "trigger": "derived", "organs": [row]}]}
+    harness = tmp_path / "derived-harness.yaml"
+    harness.write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
+    out = _doit(tmp_path, harness, "moment:merge")   # HARNESS_BATCH unset
+    assert out.returncode != 0, "an unset batch must STOP the moment, not skip the GO check\n" + out.stdout + out.stderr
+    assert "batch" in out.stdout + out.stderr and not marker.exists()
+    assert not (tmp_path / "receipts" / "MOMENT-MERGE-GO-READER.json").exists() or \
+        _receipt(tmp_path, "MOMENT-MERGE-GO-READER.json")["status"] != "SKIPPED-NO-INPUT"
+    assert _doit(tmp_path, harness, "moment:merge", HARNESS_BATCH="b1").returncode == 0, "with the batch it runs"
 
 
 def test_the_declared_go_reader_row_runs_as_written(tmp_path, monkeypatch):
