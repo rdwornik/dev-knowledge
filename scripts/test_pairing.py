@@ -75,10 +75,13 @@ PYTHONPATH is not passed on, and `--tests` takes files or node ids, never a dire
 
 HONEST LIMITS OF THE REGISTRY. A comparison is against the BASE the registry was recorded at, not
 against main's moving tip, so a red an earlier lane of the batch left behind is charged to whichever
-lane is compared next unless the integrator refused it first. A file the registry never ran that
-already existed on the base is charged as `absent` (the fail-closed direction; `selection.
-outside_registry` lists them so the integrator can re-record). A docs-only selection is the
-`live_repo` marker, resolved to its FILES (a superset, the direction `impacted_tests` itself takes).
+lane is compared next unless the integrator refused it first. A selected file the registry never
+ran that ALREADY existed on the base has no known baseline, so the comparison is UNATTRIBUTABLE
+(`unregistered` names them; `record-base --replace` with the lane included); a file the lane added
+did not exist on the base and is the lane's. A docs-only selection is the `live_repo` marker,
+resolved to its FILES (a superset, the direction `impacted_tests` itself takes). The skip guard
+counts skips only over files both sides covered, and refuses any skip the registry lacked even
+when the count is level.
 
 HONEST LIMITS. (1) A test red on BASE for a flaky reason and green on HEAD shows as `fixed`.
 (2) A test whose result depends on gitignored state (e.g. `ecosystem/*/state.yaml`) sees neither
@@ -530,11 +533,24 @@ def load_registry(repo: Path, batch: str) -> Registry:
     return Registry.from_json(data, path.name)
 
 
-def write_registry(path: Path, registry: Registry) -> None:
+def write_registry(path: Path, registry: Registry, *, replace: bool = False) -> None:
+    """Publish the registry atomically. Without `replace` the create is EXCLUSIVE (a hard link
+    fails if the name exists), so two racing `record-base` runs cannot overwrite each other; the
+    temp name is unique per writer and is always removed."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp = path.with_name(f"{path.name}.{uuid.uuid4().hex}.tmp")
     tmp.write_text(json.dumps(registry.to_json(), indent=2) + "\n", encoding="utf-8", newline="\n")
-    os.replace(tmp, path)
+    try:
+        if replace:
+            os.replace(tmp, path)
+        else:
+            try:
+                os.link(tmp, path)
+            except FileExistsError as exc:
+                raise PairingError(f"{path.name} already exists: a registry is written once per "
+                                   "batch (--replace to overwrite)") from exc
+    finally:
+        tmp.unlink(missing_ok=True)
 
 
 def selection_files(clone: Path, selection: dict) -> list[str]:
@@ -601,7 +617,7 @@ def record_base(repo: Path, commit: str, batch: str, *, lanes: list[str] | None 
             passed=tuple(sorted(k for k, v in run.results.items() if v == "PASSED")),
             skipped=tuple(sorted(run.skipped)), base_flakes=tuple(flakes),
             baseline_confirmed=confirm_baseline, lanes=tuple(lane_names), notes=tuple(notes))
-        write_registry(path, registry)
+        write_registry(path, registry, replace=replace)
     finally:
         removed = remove_tree(scratch)
     return registry, path, removed
@@ -624,14 +640,22 @@ def skip_guard(registry: Registry, head_skipped: frozenset[str], files: list[str
 
     A merged tree that runs only the lane's impacted files cannot be held to the registry's whole
     count, so both sides are cut to the same files; when the run covers every registry file the cut
-    is the registry's own skip count. The verdict is on the COUNT; the ids say what moved.
+    is the registry's own skip count. A different COUNT is a mismatch, and so is any skip the
+    registry did not have even when the count is level: un-skipping one test while skipping a red
+    one keeps the count and hides the red.
     """
     covered = {f for f in files if f in registry.files}
     then = sorted(s for s in registry.skipped if _file_part(s) in covered)
     now = sorted(s for s in head_skipped if _file_part(s) in covered)
-    return {"status": "match" if len(then) == len(now) else "mismatch", "registry": len(then),
-            "head": len(now), "added": sorted(set(now) - set(then)),
-            "removed": sorted(set(then) - set(now))}
+    added, removed = sorted(set(now) - set(then)), sorted(set(then) - set(now))
+    return {"status": "match" if len(then) == len(now) and not added else "mismatch",
+            "registry": len(then), "head": len(now), "added": added, "removed": removed}
+
+
+def _exists_at(repo: Path, sha: str, path: str) -> bool:
+    done = subprocess.run(["git", "cat-file", "-e", f"{sha}:{path}"], cwd=repo,
+                          capture_output=True, check=False)
+    return done.returncode == 0
 
 
 def compare(repo: Path, registry: Registry, head: str, *, since: str | None = None,
@@ -652,13 +676,20 @@ def compare(repo: Path, registry: Registry, head: str, *, since: str | None = No
             selection["note"] += "; the live_repo marker was resolved to its files"
         selection["test_files"] = files
         selection["outside_registry"] = [f for f in files if f not in registry.files]
+        # A file the registry never ran that ALREADY existed on the base has an unknown baseline:
+        # any red in it, or any skip hiding one, could be main's. It is refused, not guessed at.
+        # (A file the lane added did not exist on the base and is the lane's by construction.)
+        unregistered = [f for f in selection["outside_registry"]
+                        if _exists_at(repo, registry.commit, f)]
         verdict = {"schema": SCHEMA, "mode": "registry", "batch": registry.batch,
                    "base": registry.commit, "head": head_sha, "isolation": "clone",
                    "isolation_reason": ISOLATION_REASON, "selection": selection,
                    "preexisting": [], "lane": [], "turned_red": [], "flakes": [], "fixed": [],
                    "baseline_confirmed": registry.baseline_confirmed,
-                   "skip_guard": {"status": "not-run"}}
-        if not files:
+                   "unregistered": unregistered, "skip_guard": {"status": "not-run"}}
+        if unregistered:
+            verdict["verdict"] = "UNATTRIBUTABLE"
+        elif not files:
             verdict["verdict"] = "NOT-EVALUATED" if selection["declined"] else "CLEAN"
             if not selection["declined"]:
                 selection["note"] += "; the selection is empty, nothing to run"
@@ -786,7 +817,11 @@ def _registry_main(command: str, argv: list[str]) -> int:
     print(f"test_pairing: {verdict['verdict']} -- lane {c['lane']} (turned red {c['turned_red']}), "
           f"pre-existing {c['preexisting']}, flake {c['flakes']}, fixed {c['fixed']}"
           f"{' -- selection DECLINED' if verdict['selection']['declined'] else ''}", file=sys.stderr)
-    if verdict["verdict"] == "UNATTRIBUTABLE":
+    if verdict["verdict"] == "UNATTRIBUTABLE" and verdict["unregistered"]:
+        print(f"test_pairing: UNATTRIBUTABLE -- {verdict['unregistered']} existed on the base but the "
+              "registry never ran them, so their baseline is unknown; nothing is attributed. "
+              "`record-base --replace` with this lane included.", file=sys.stderr)
+    elif verdict["verdict"] == "UNATTRIBUTABLE":
         print(f"test_pairing: UNATTRIBUTABLE -- the merged tree skips {guard['head']} test(s) where the "
               f"registry recorded {guard['registry']} over the same files (added {guard['added']}, "
               f"removed {guard['removed']}); a skip can hide a red, so nothing is attributed. Look at "

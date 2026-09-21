@@ -819,6 +819,69 @@ def test_a_docs_only_selection_resolves_the_live_repo_marker_to_files(repo, home
     assert verdict["preexisting"] == ["tests/test_live.py::test_live"] and code == 0
 
 
+# --- the codex terra review's three HIGH findings (docs/audits/2026-09-22-codex-lane-known-reds.md) ---
+
+def test_swapping_which_test_is_skipped_keeps_the_count_but_is_still_unattributable(repo, home,
+                                                                                    tmp_path):
+    root, _ = repo
+    red = "def test_hidden():\n    assert False\n"
+    base = _commit(root, {"tests/test_a.py": _SKIP, "tests/test_b.py": red}, "one skipped, one red")
+    _record(root, base, "--tests", "tests/test_a.py", "tests/test_b.py")
+    # the lane un-skips one test and skips the red one: the COUNT is unchanged, the red is hidden
+    merged = _commit(root, {"tests/test_a.py": "def test_skipped():\n    assert True\n",
+                            "tests/test_b.py": "import pytest\n\n\ndef test_hidden():\n"
+                                               "    pytest.skip('hidden')\n"}, "swap the skips")
+
+    code, verdict = _compare(root, merged, tmp_path)
+
+    assert verdict["skip_guard"]["registry"] == verdict["skip_guard"]["head"] == 1
+    assert verdict["skip_guard"]["added"] == ["tests/test_b.py::test_hidden"]
+    assert verdict["verdict"] == "UNATTRIBUTABLE" and code == 4
+
+
+def test_a_selected_file_that_existed_on_the_base_but_is_not_in_the_registry_is_unattributable(
+        repo, home, tmp_path):
+    root, _ = repo
+    base = _commit(root, {"scripts/other.py": "Y = 1\n",
+                          "tests/test_other.py": "import other\n\n\ndef test_other():\n    assert False\n"},
+                   "an unrecorded red on main")
+    _record(root, base, "--tests", "tests/test_mod.py")
+    merged = _commit(root, {"scripts/other.py": "Y = 2\n"}, "a lane touches what the registry never ran")
+
+    code, verdict = _compare(root, merged, tmp_path)
+
+    assert verdict["verdict"] == "UNATTRIBUTABLE" and code == 4
+    assert verdict["unregistered"] == ["tests/test_other.py"]
+    assert verdict["lane"] == [] and verdict["preexisting"] == [], "nothing is classified"
+
+
+def test_a_file_the_lane_added_is_not_unregistered_because_it_did_not_exist_on_the_base(repo, home,
+                                                                                         tmp_path):
+    root, base = repo
+    _record(root, base, "--tests", "tests/test_mod.py")
+    merged = _commit(root, {"tests/test_new.py": _RED}, "the lane adds a red")
+
+    code, verdict = _compare(root, merged, tmp_path)
+
+    assert verdict["unregistered"] == [] and code == 1
+
+
+def test_write_registry_never_replaces_an_existing_registry_unless_told_to(repo, home):
+    root, base = repo
+    _record(root, base, "--tests", "tests/test_mod.py")
+    path = home / _REG_NAME
+    written = path.read_bytes()
+    other = test_pairing.Registry.from_json({**_registry(home), "commit": "0" * 40}, "x")
+
+    with pytest.raises(test_pairing.PairingError):
+        test_pairing.write_registry(path, other)
+
+    assert path.read_bytes() == written, "a racing writer cannot overwrite without --replace"
+    assert [p.name for p in home.iterdir()] == [_REG_NAME], "no temp file left beside the registry"
+    test_pairing.write_registry(path, other, replace=True)
+    assert json.loads(path.read_text(encoding="utf-8"))["commit"] == "0" * 40
+
+
 def test_the_existing_two_commit_form_is_untouched_by_the_registry_commands(repo, tmp_path):
     root, base = repo
     head = _commit(root, {"tests/test_new.py": "def test_new():\n    assert False\n"}, "red")
