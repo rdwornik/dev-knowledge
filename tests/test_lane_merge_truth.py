@@ -128,21 +128,30 @@ def fixture_repo(tmp_path_factory) -> Path:
     for tree in ("scripts", "ecosystem"):        # scripts read their sibling spec files at import
         shutil.copytree(_REPO / tree, root / tree,
                         ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    for name in ("pyproject.toml", "uv.lock", ".python-version"):    # what `uv run --locked` reads
+        shutil.copy2(_REPO / name, root / name)
     return root
 
 
-def _declared_models_argv() -> list[str]:
-    """The `merge_receipt.models` organ's argv, read off `ecosystem/harness.yaml` -- never typed."""
-    raw = yaml.safe_load((_REPO / "ecosystem" / "harness.yaml").read_text(encoding="utf-8"))
-    for moment in raw["moments"]:
+def _declared_models_argv(monkeypatch, slug: str, contract: Path) -> list[str]:
+    """The `merge_receipt.models` row's argv EXACTLY as the harness adapter would expand it.
+
+    Both the row and the placeholder expansion come from `scripts/dodo.py` -- the runner that
+    fires `moment:merge` -- so the test supplies inputs (the lane, the contract) and nothing else:
+    not the launcher, not the flags, not the substitution.
+    """
+    import dodo                                                # noqa: PLC0415
+    monkeypatch.setenv("HARNESS_LANE", slug)
+    monkeypatch.setenv("HARNESS_CONTRACT", str(contract))
+    for moment in dodo._doc()["moments"]:
         for organ in moment["organs"]:
             if organ["id"] == "merge_receipt.models":
-                return [str(part) for part in organ["command"]]
+                return dodo._argv(organ["command"])
     raise AssertionError("harness.yaml declares no merge_receipt.models organ")
 
 
 def test_the_declared_merge_receipt_models_row_compares_the_lanes_transcript_not_the_callers(
-        fixture_repo, tmp_path):
+        fixture_repo, tmp_path, monkeypatch):
     slug = "lane-declared-row"
     lane = fixture_repo / ".claude" / "worktrees" / slug
     lane.mkdir(parents=True)
@@ -152,16 +161,13 @@ def test_the_declared_merge_receipt_models_row_compares_the_lanes_transcript_not
     _file_transcript(sessions, lane, "claude-sonnet-5")             # the lane: as ordered
     _file_transcript(sessions, fixture_repo, "claude-opus-5")       # the caller: NOT what was ordered
 
-    argv = _declared_models_argv()
-    launcher = argv.index("scripts/merge_receipt.py")
-    # Only the launcher is swapped (`uv run --locked python` -> this interpreter); the script,
-    # the verb and every flag stay exactly as the row declares them.
-    argv = [sys.executable, *argv[launcher:]]
-    argv = [a.replace("{lane}", slug).replace("{contract}", str(contract)) for a in argv]
-    env = {**os.environ, "HOME": str(home), "USERPROFILE": str(home)}
+    argv = _declared_models_argv(monkeypatch, slug, contract)
+    assert argv[:4] == ["uv", "run", "--locked", "python"], argv      # run as written, launcher too
+    env = {**os.environ, "HOME": str(home), "USERPROFILE": str(home),
+           "UV_PROJECT_ENVIRONMENT": sys.prefix}                    # reuse this env, no fresh sync
 
     done = subprocess.run(argv, cwd=fixture_repo, env=env, capture_output=True, text=True,
-                          encoding="utf-8", timeout=120)
+                          encoding="utf-8", timeout=300)
 
     assert done.returncode == 0, done.stdout + done.stderr
     assert "claude-sonnet-5" in done.stdout
@@ -343,6 +349,19 @@ def test_a_missing_go_file_is_a_refusal(tmp_path):
     assert receipt["batch"] == "wave3" and receipt["present"] is False
     assert receipt["verdict"] == "REFUSED"
     assert receipt["searched"].endswith("GO-wave3.md")
+
+
+def test_the_declared_go_reader_row_is_accepted_by_the_reader_as_written(tmp_path, monkeypatch):
+    """`harness.yaml`'s `go_reader` row, expanded by the adapter, parses under the real CLI."""
+    import dodo                                                # noqa: PLC0415
+    monkeypatch.setenv("HARNESS_BATCH", "wave3")
+    row = next(o for m in dodo._doc()["moments"] for o in m["organs"] if o["id"] == "go_reader")
+    argv = dodo._argv(row["command"])
+    args = argv[argv.index("scripts/go_reader.py") + 1:]
+    assert args == ["--batch", "wave3"]
+    transport = _transport(tmp_path, "GO-wave3.md")
+    monkeypatch.setattr(_go(), "resolve_transport", lambda explicit: transport)
+    assert _run(*args).exit_code == 0
 
 
 def test_a_present_go_file_is_a_pass(tmp_path):
