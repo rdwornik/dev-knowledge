@@ -65,7 +65,7 @@ pytestmark = pytest.mark.slow
 
 #: The stops the walk recorded when W3-F ran (2026-09-21). Pinned so a change in EITHER direction is loud: a stop that
 #: disappears means wave 4 fixed it (delete its row); a new one means the loop moved. Each row is (moment, organ).
-EXPECTED_STOPS = (("merge", "gates"),)
+EXPECTED_STOPS = (("merge", "gates"), ("batch-close", "digest-names-the-task"))
 
 
 # --- domain: Receipt, Step, Stop ---------------------------------------------------------------------------------------
@@ -535,8 +535,9 @@ def _stops(w: Walk) -> str:
 
 # --- Done-contract 1 + 2: the loop, the receipts, the digest ---------------------------------------------------------
 
-@pytest.mark.xfail(strict=True, reason="W3-F walk (2026-09-21): merge/gates RED -- wave 4's queue. Delete this marker "
-                                       "and EXPECTED_STOPS when the loop is connected.")
+@pytest.mark.xfail(strict=True, reason="W3-F walk (2026-09-21): stops at merge/gates (RED) and at batch-close (the "
+                                       "digest never names the task) -- wave 4's queue. Delete this marker and "
+                                       "EXPECTED_STOPS when the loop is connected.")
 def test_one_toy_task_leaves_a_receipt_at_every_moment_in_order(walk):
     assert not walk.stops, f"the loop stopped: {_stops(walk)}"
     declared = ["spine", "pre-launch", "lane-start", "lane-end", "merge", "teardown", "batch-close"]
