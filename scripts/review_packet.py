@@ -44,11 +44,22 @@ HONEST LIMITS:
     produces an empty declared set, so every write reads as undeclared. That is the true
     answer, and `seat_refusals.undeclared_lanes` names the same absence at dispatch time.
   * `changed_files` IS SUPPLIED, NOT DISCOVERED. The caller owns the range, exactly as it owns
-    the baseline in `actions_verdict` -- `/lane-integrate` states which it passes.
+    the baseline in `actions_verdict` -- `/lane-integrate` states which it passes. The one
+    exception is a range that is EMPTY, or `--merge`: there the merge commit is the ground truth
+    and the range and the file list are read off it (below).
+
+THE RANGE IS THE MERGE'S OWN (lane-l4-integrator-surface). The old formulation, `main..worktree-
+<lane>`, is EMPTY BY CONSTRUCTION once the packet is assembled after the merge: main already
+contains the branch, so no commit is reachable from the branch and not from main. The merge commit
+against its first parent -- `<merge>^1..<merge>` -- is non-empty for exactly the same reason, since
+it is what the merge brought in. `merge_range` states it, `resolve_range` swaps an empty range for
+it (finding the merge as the first-parent commit whose second parent is the lane tip), and an
+empty range with no merge to find is REFUSED rather than rendered.
 """
 from __future__ import annotations
 
 import logging
+import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -76,6 +87,80 @@ declared_footprint_of = _sr.declared_footprint
 
 class PacketIncomplete(RuntimeError):
     """An input the reviewer needs is missing. Raised, never rendered as an empty section."""
+
+
+def _git(repo: "Path | str", *args: str) -> str:
+    """One git call in `repo`; a failure raises PacketIncomplete rather than returning ''."""
+    try:
+        proc = subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True,
+                              encoding="utf-8", errors="replace")
+    except OSError as exc:
+        raise PacketIncomplete(f"git could not be run: {exc!r}") from exc
+    if proc.returncode != 0:
+        raise PacketIncomplete(f"git {' '.join(args)} exited {proc.returncode}: "
+                               f"{proc.stderr.strip()[:200]}")
+    return proc.stdout.strip()
+
+
+def merge_range(repo: "Path | str", merge_sha: str) -> str:
+    """`<merge>^1..<merge>` -- the merge commit against its first parent.
+
+    REFUSES a commit with fewer than two parents: a plain commit has a first parent too, and its
+    `^1..` range would read as a merge's without being one."""
+    full = _git(repo, "rev-parse", "--verify", f"{merge_sha}^{{commit}}")
+    parents = _git(repo, "rev-list", "--parents", "-n", "1", full).split()[1:]
+    if len(parents) != 2:
+        raise PacketIncomplete(
+            f"{merge_sha} has {len(parents)} parent(s) -- a lane merge has exactly two. A plain "
+            "commit's `^1..` reads as a merge's without being one, and an octopus's `^1..` folds "
+            "in every non-first-parent branch, so neither is a lane's change")
+    return f"{full}^1..{full}"
+
+
+def changed_in_merge(repo: "Path | str", merge_sha: str) -> tuple[str, ...]:
+    """Every path the merge changed relative to its first parent, in git's own order."""
+    full = merge_range(repo, merge_sha).split("..")[1]
+    out = _git(repo, "diff", "--name-only", f"{full}^1", full)
+    return tuple(line for line in out.splitlines() if line.strip())
+
+
+def _merge_of_tip(repo: "Path | str", base: str, tip: str) -> "str | None":
+    """The first-parent merge on `base` whose second parent is `tip` (a `--no-ff` lane merge)."""
+    want = _git(repo, "rev-parse", "--verify", f"{tip}^{{commit}}")
+    found = []
+    for line in _git(repo, "log", "--first-parent", "--merges", "--format=%H %P", base).splitlines():
+        sha, *parents = line.split()
+        if len(parents) >= 2 and parents[1] == want:
+            found.append(sha)
+    if len(found) > 1:
+        raise PacketIncomplete(
+            f"ambiguous: {len(found)} first-parent merges on {base!r} have {tip!r} as their second "
+            f"parent ({', '.join(s[:10] for s in found)}) -- more than one merge could be the one "
+            "under review; pass --merge <sha> to name it")
+    return found[0] if found else None
+
+
+def resolve_range(repo: "Path | str", diff_range: str) -> str:
+    """The range as given when it selects commits; the merge's own range when it is EMPTY.
+
+    An empty `A..B` whose B is a merged lane tip is the old post-merge formulation -- swap it for
+    the merge that brought B in. An empty range with no such merge is refused: rendering a packet
+    against nothing is the false pass this module exists to prevent."""
+    if ".." not in diff_range:
+        return diff_range
+    if _git(repo, "rev-list", diff_range):
+        return diff_range
+    if "..." in diff_range:  # a symmetric range has no merge to resolve to: empty is refused outright
+        raise PacketIncomplete(f"the range {diff_range!r} is empty -- refusing to render a packet "
+                               "against nothing")
+    base, tip = diff_range.split("..", 1)
+    merge = _merge_of_tip(repo, base, tip)
+    if merge is None:
+        raise PacketIncomplete(
+            f"the range {diff_range!r} is empty and no merge commit on {base!r} has {tip!r} as "
+            "its second parent -- an empty range is main already containing the branch, and there "
+            "is no merge to read the change off; refusing to render a packet against nothing")
+    return merge_range(repo, merge)
 
 
 @dataclass(frozen=True)
@@ -189,18 +274,44 @@ def assemble(*, lane: str, contract_text: str, changed_files: Sequence[str] | It
 @click.option("--lane", required=True, help="the lane this review is of")
 @click.option("--contract", required=True, type=click.Path(exists=True, dir_okay=False),
               help="the lane's FROZEN contract file")
-@click.option("--range", "diff_range", required=True,
-              help="the diff range the reviewer reads, e.g. main..worktree-lane-x")
+@click.option("--range", "diff_range", default=None,
+              help="the diff range the reviewer reads, e.g. main..worktree-lane-x; an EMPTY range "
+                   "(the branch is already merged) is replaced by the merge's own range")
+@click.option("--merge", "merge_sha", default=None,
+              help="the lane's merge commit: the range is `<merge>^1..<merge>` and, unless "
+                   "--changed is given, the file list is read off it. Exclusive with --range")
+@click.option("--repo", default=".", type=click.Path(file_okay=False),
+              help="the repository the range is read in [default: the cwd]")
 @click.option("--handback", required=True, help="the lane's HANDBACK line, verbatim")
-@click.option("--changed", "changed", multiple=True, required=True,
+@click.option("--changed", "changed", multiple=True,
               help="a changed path; repeatable. Pass EVERY one -- this tool will not "
                    "abbreviate the list and must not be handed an abbreviated one")
 @click.option("--out", required=True, type=click.Path(dir_okay=False),
               help="where to write the packet the reviewer is handed")
-def cli(lane: str, contract: str, diff_range: str, handback: str,
-        changed: tuple[str, ...], out: str) -> None:
+def cli(lane: str, contract: str, diff_range: "str | None", merge_sha: "str | None", repo: str,
+        handback: str, changed: tuple[str, ...], out: str) -> None:
     """Assemble the reviewer's inputs into ONE file, handed over before the review starts."""
     try:
+        if (diff_range is None) == (merge_sha is None):
+            raise PacketIncomplete("pass exactly one of --range and --merge")
+        if merge_sha is not None:
+            diff_range = merge_range(repo, merge_sha)
+            merge_of = merge_sha
+        else:
+            resolved = resolve_range(repo, diff_range)
+            merge_of = resolved.split("..")[1] if resolved != diff_range else None
+            if merge_of:
+                logger.info("range %s is empty (the branch is merged); using the merge's own %s",
+                            diff_range, resolved)
+            diff_range = resolved
+        if merge_of:
+            # After a merge the change IS the merge commit: git's list replaces the caller's, which
+            # can only be an abbreviation of it (the declared organ passes ONE placeholder).
+            derived = changed_in_merge(repo, merge_of)
+            if changed and tuple(changed) != derived:
+                logger.info("ignoring %d caller-supplied --changed; the merge changed %d file(s)",
+                            len(changed), len(derived))
+            changed = derived
         packet = assemble(lane=lane, contract_text=Path(contract).read_text(encoding="utf-8"),
                           changed_files=changed, diff_range=diff_range, handback=handback)
     except PacketIncomplete as exc:
