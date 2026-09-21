@@ -719,6 +719,45 @@ def test_a_launch_interrupted_after_the_provider_started_still_leaves_a_receipt_
     assert spawn.calls == [], "the intent receipt held the slug while the listing could not yet show a job"
 
 
+def test_an_interrupt_after_a_successful_spawn_leaves_the_started_lane_holding_its_slug(contract, tmp_path):
+    """Codex terra (High): the interrupt must land AFTER the provider started. Here `claude --bg`
+    returns and the lane is live; the launch is interrupted while it reads the listing. The listing a
+    second launch sees is still empty, so only the intent receipt can hold the slug."""
+    jobs, seen = [], {"n": 0}
+    spawn = FakeClaude(jobs)
+
+    def interrupted_after_the_start():
+        seen["n"] += 1
+        if seen["n"] == 1:
+            return []                       # the pre-spawn ledger read
+        raise KeyboardInterrupt
+    with pytest.raises(KeyboardInterrupt):
+        d.launch_lane(_request(contract), prelaunch=_pass, spawn=spawn, agents=interrupted_after_the_start,
+                      cwd=tmp_path, sleep=lambda s: None)
+    assert len(spawn.calls) == 1 and jobs, "the provider started and its job is live"
+    second = FakeClaude([])
+    with pytest.raises(d.LaunchRefused):
+        d.launch_lane(_request(contract), prelaunch=_pass, spawn=second, agents=lambda: [], cwd=tmp_path)
+    assert second.calls == []
+
+
+def test_a_fresh_codex_intent_receipt_with_no_pid_yet_holds_the_slug(tmp_path, receipts):
+    """Codex terra (Critical): a codex launch interrupted between Popen and its receipt has an intent
+    receipt with no pid. It must hold the slug like a Claude one does -- and only while fresh."""
+    path = tmp_path / "LANE-codex-x.md"
+    path.write_text(CODEX_CONTRACT, encoding="utf-8")
+    _plant_receipt(receipts, job_id="pending", provider="codex", pid=None, age_seconds=5)
+    spawn = FakeClaude([])
+    with pytest.raises(d.LaunchRefused):
+        d.launch_lane(_request(path, slug="lane-launch-adapter"), prelaunch=_pass, spawn=spawn,
+                      agents=lambda: [], cwd=tmp_path)
+    assert spawn.calls == []
+    _plant_receipt(receipts, job_id="pending", provider="codex", pid=None, age_seconds=3600)
+    d.launch_lane(_request(path, slug="lane-launch-adapter"), prelaunch=_pass, spawn=spawn,
+                  agents=lambda: [], cwd=tmp_path)
+    assert len(spawn.calls) == 1
+
+
 def test_a_spawn_that_failed_leaves_no_intent_receipt_behind(contract, tmp_path, receipts):
     with pytest.raises(d.LaunchRefused):
         d.launch_lane(_request(contract), prelaunch=_pass, spawn=FakeClaude([], returncode=1),
