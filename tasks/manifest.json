@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "c35b10f279c4aa0d471246d1d6be3d18ad1421e62ae1598e5e0e5a42156d6436",
+  "generated_sha256": "8760f8271197d8068ca8ca40cbe6d8e88359cf5ff8f494b5525cc3ded03e6f22",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -648,6 +648,30 @@
     {
       "task": 929,
       "file": "929-the-spine-is-the-whole-work-loop-map-every-organ-onto-stages-1-16-and-run-the-mechanisms-live.md"
+    },
+    {
+      "task": 930,
+      "file": "930-wave-3-lane-a-lane-loop-declaration-the-one-file.md"
+    },
+    {
+      "task": 931,
+      "file": "931-wave-3-lane-b-lane-launch-adapter-one-command-la.md"
+    },
+    {
+      "task": 932,
+      "file": "932-wave-3-lane-c-lane-merge-truth-the-merge-gate-re.md"
+    },
+    {
+      "task": 933,
+      "file": "933-wave-3-lane-d-lane-end-hook-every-finished-lane.md"
+    },
+    {
+      "task": 934,
+      "file": "934-wave-3-lane-e-lane-repo-housekeeping-the-gate-re.md"
+    },
+    {
+      "task": 935,
+      "file": "935-wave-3-lane-f-lane-connection-test-prove-the-loo.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"

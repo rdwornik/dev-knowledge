@@ -168,6 +168,12 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#891] [P1][M] Lane handback contract -- lanes write a ten-field HANDBACK-<lane>.md to the transport as their mandatory final step · tasks/891-lane-handback-contract-lanes-write-a-ten-field-h.md
 - [#902] [P1][S] The night-capacity premise was false -- lane concurrency must be gated by free memory measured at dispatch, not by the hour · tasks/902-the-night-capacity-premise-was-false-lane-concur.md
 - [#929] [P1][L] The spine is the whole work loop -- map every organ onto stages 1-16 and run the loop's candidate mechanisms live before anything is built · tasks/929-the-spine-is-the-whole-work-loop-map-every-organ-onto-stages-1-16-and-run-the-mechanisms-live.md
+- [#930] [P1][M] Wave 3 lane A (lane-loop-declaration) -- the one file declares every moment the loop needs · tasks/930-wave-3-lane-a-lane-loop-declaration-the-one-file.md
+- [#931] [P1][M] Wave 3 lane B (lane-launch-adapter) -- one command launches a lane, refuses a collision, never kills a run · tasks/931-wave-3-lane-b-lane-launch-adapter-one-command-la.md
+- [#932] [P1][M] Wave 3 lane C (lane-merge-truth) -- the merge gate reads the right lane, and the census counts real callers · tasks/932-wave-3-lane-c-lane-merge-truth-the-merge-gate-re.md
+- [#933] [P1][M] Wave 3 lane D (lane-end-hook) -- every finished lane reports itself, once, through a real event · tasks/933-wave-3-lane-d-lane-end-hook-every-finished-lane.md
+- [#934] [P1][S] Wave 3 lane E (lane-repo-housekeeping) -- the gate reports only what is real · tasks/934-wave-3-lane-e-lane-repo-housekeeping-the-gate-re.md
+- [#935] [P1][M] Wave 3 lane F (lane-connection-test) -- prove the loop is connected, end to end, with receipts · tasks/935-wave-3-lane-f-lane-connection-test-prove-the-loo.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
