@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-21 (n) - CC (Opus 5, integrator wave 3): LANE W3-F merged -- the connection test answers "not yet": a toy task travels the loop to the merge and stops at the gates
+
+**Anchors:** `f2d28216` (Codex fixes) · `f8012b9d` · `79dac85e` (the two pinned stops) · `d70376eb` (first cut) -- `worktree-lane-connection-test`, merged --no-ff.
+
+**Did:** merged W3-F two-step from the primary, the last lane of the wave. `tests/test_connection_loop.py` walks one toy task through a throwaway copy of the hub using the real `dodo.py` moments, the real `dispatch.py launch` and the real Stop entry, faking only the provider process and the remote. It records where the loop stops rather than asserting that it connects: the whole-loop test is a strict xfail that turns red the day the loop connects.
+
+**Result:** the loop runs spine stages 1-12, launch, pre-launch, lane-start, lane-end (through the real Stop guard) and the merge organs up to `gates`, which stops it: the 36-organ census hard-fail is real, and the rest of the red in the toy copy is copy artifact or an unexplained worker crash. Second stop: the batch-close digest names the batch, not the task. Negative paths (occupied slug, missing GO, no HANDBACK line) each refuse where they should. Operator touches: 2. Codex terra 0/4/0/0. **Changes:** `tests/test_connection_loop.py` (new), `tests/fixtures/connection_loop/` (new), `docs/audits/2026-09-21-codex-lane-connection-test.md`, `docs/audits/README.md`, `ecosystem/doc-counts.md`, `JOURNAL.md`. **Next:** batch close; wave 4 starts from F's stop list.
+
 ### 2026-09-21 (m) - CC (Opus 5, integrator wave 3): LANE W3-B merged -- one command launches a lane, refuses an occupied slug or a batch with no integrator, and never stops a lane
 
 **Anchors:** `cb37ccad` (sol record consumer) · `9c69fc44` (terra record) · `925ffa7b` (Critical fix) · `3a3a9f00` (sol fixes) · `9a4120ee` (launch) · `15ee8e96` (RED-first witness) -- `worktree-lane-launch-adapter`, merged --no-ff.
