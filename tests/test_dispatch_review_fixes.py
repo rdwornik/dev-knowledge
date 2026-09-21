@@ -14,6 +14,7 @@ import json
 import subprocess
 from pathlib import Path
 
+import pytest
 from click.testing import CliRunner
 
 import dispatch as d
@@ -23,6 +24,12 @@ _OURS = {"id": "abcd1234", "sessionId": _SID, "state": "working",
          "cwd": "C:\\repo\\.claude\\worktrees\\wave3-witness"}
 _OTHER = {"id": "deadbeef", "sessionId": "99999999-0000-0000-0000-000000000000",
           "state": "working", "cwd": "C:\\repo\\.claude\\worktrees\\some-other-lane"}
+
+
+@pytest.fixture(autouse=True)
+def _receipts_in_tmp(tmp_path, monkeypatch):
+    """`govern` appends spend rows under the receipts dir: never the checkout's own `logs/receipts/`."""
+    monkeypatch.setenv("HARNESS_RECEIPTS_DIR", str(tmp_path / "receipts"))
 
 
 def _transcript(root: Path, session_id: str, tokens: int) -> None:

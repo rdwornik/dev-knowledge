@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import subprocess
 
+import pytest
 from click.testing import CliRunner
 
 import dispatch as d
@@ -20,6 +21,11 @@ _CWD = "C:\\repo\\.claude\\worktrees\\wave3-witness"
 _LIVE = {"id": "abcd1234", "sessionId": _SID, "state": "working", "cwd": _CWD}
 _STALE = {"id": "deadbeef", "sessionId": "99999999-0000-0000-0000-000000000000",
           "state": "done", "cwd": _CWD}
+
+
+@pytest.fixture(autouse=True)
+def _receipts_in_tmp(tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_RECEIPTS_DIR", str(tmp_path / "receipts"))
 
 
 def _listing(*entries):
