@@ -208,18 +208,23 @@ def test_lane_end_declares_a_handback_precondition_and_the_report_continues_on_f
 
 
 def test_lane_end_with_no_handback_line_writes_a_skipped_receipt_and_runs_no_organ(tmp_path):
+    # The precondition, ids and order are the REAL declaration's; the commands are markers, because a
+    # regression here must not be able to write the operator's live transport from a test.
+    marker = tmp_path / "ran.txt"
+    harness = _derive(tmp_path, marker, ["lane-end"])
     session = tmp_path / "SESSION-lane-fixture.md"
     session.write_text("# session\n\nstill working, no closing line yet\n", encoding="utf-8")
     for fixture in (tmp_path / "does-not-exist.md", session):
         for stale in (tmp_path / "receipts").glob("*") if (tmp_path / "receipts").exists() else []:
             stale.unlink()
-        out = _doit(tmp_path, None, "moment:lane-end", HARNESS_LANE="lane-fixture",
+        out = _doit(tmp_path, harness, "moment:lane-end", HARNESS_LANE="lane-fixture",
                     HARNESS_SESSION_FILE=str(fixture))
         assert out.returncode == 0, out.stdout + out.stderr
         skipped = _receipt(tmp_path, "MOMENT-LANE-END-PRECONDITION.json")
         assert skipped["status"] == "SKIPPED-PRECONDITION" and skipped["exit_code"] is None
         names = sorted(p.name for p in (tmp_path / "receipts").glob("MOMENT-LANE-END-*.json"))
         assert names == ["MOMENT-LANE-END-PRECONDITION.json"], f"an organ ran: {names}"
+        assert not marker.exists(), f"an organ command ran: {marker.read_text()}"
 
 
 def test_lane_end_runs_its_organs_in_order_once_the_handback_line_is_present(tmp_path):
@@ -328,6 +333,7 @@ def test_the_declared_review_row_runs_as_written_against_a_real_merge(tmp_path, 
 def test_a_go_reader_organ_is_declared_optional_at_the_merge_moment_until_it_is_built():
     organ = _organ("merge", "go_reader")
     assert organ["optional"] is True and organ["receipt"] == "MOMENT-MERGE-GO-READER.json"
+    assert organ["owner"] == "lane-merge-truth", "the census names the lane that owes an unbuilt organ"
     command = [str(t) for t in organ["command"]]
     assert "scripts/go_reader.py" in command and "{batch}" in command
     ids = [o["id"] for o in _moment("merge")["organs"]]

@@ -62,7 +62,9 @@ def test_run_with_every_stage_commanded_completes(tmp_path):
 
 def test_harness_yaml_declares_stages_1_to_12_within_caps():
     lines = _HARNESS.read_text(encoding="utf-8").splitlines()
-    assert len(lines) < 100, f"harness.yaml is {len(lines)} lines; the cap is under 100 (L1: moments added)"
+    # W3-A: 100 -> 200. Six moments and the 36 recorded fates (R-W3-4) are DATA rows, one line each; the cap
+    # exists to keep LOGIC out of the file (`test_dodo_adapter_stays_small` and the no-logic header do that).
+    assert len(lines) < 200, f"harness.yaml is {len(lines)} lines; the cap is under 200 (W3-A: fates added)"
     stages = yaml.safe_load("\n".join(lines))["stages"]
     assert [s["stage"] for s in stages] == list(range(1, 13))
     for s in stages:
@@ -71,7 +73,9 @@ def test_harness_yaml_declares_stages_1_to_12_within_caps():
 
 
 def test_dodo_adapter_stays_small():
-    assert len(_DODO.read_text(encoding="utf-8").splitlines()) < 300  # L1: receipts + moments (was 100)
+    # L1: receipts + moments (was 100). W3-A: 300 -> 400 for the moment precondition, continue_on_failure and
+    # the `{merge}` / `{session_file}` substitutions (~70 code lines; the rest is the module docstring).
+    assert len(_DODO.read_text(encoding="utf-8").splitlines()) < 400
 
 
 def test_spine_moves_no_row_through_a_phase():

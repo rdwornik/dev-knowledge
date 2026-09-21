@@ -18,6 +18,19 @@ MOMENTS. `moment:<name>` runs one declared moment's organs in order. An optional
 is absent writes a `SKIPPED-NOT-BUILT` receipt and the moment carries on (N4); one whose inputs are
 unset writes `SKIPPED-NO-INPUT`; a required organ whose command is absent fails the moment.
 
+A moment MAY declare a `precondition` (wave-3 W3-A, R-W3-3): a file and a pattern one of its lines must
+match -- `lane-end`'s is a HANDBACK line in the lane's session file. `precondition:<moment>` evaluates it
+FIRST and writes ONE receipt: `ok` when it holds, `SKIPPED-PRECONDITION` when it does not -- and then no
+organ of the moment runs, so a turn end before the lane has finished reports nothing and spends nothing.
+An organ MAY declare `continue_on_failure: true`: its failure is recorded in its receipt, the moment's
+later organs still run, and the moment then exits non-zero naming it -- a failure is never swallowed,
+only ordered so it cannot stop what comes after it.
+
+`{merge}` is HARNESS_MERGE, else `HEAD`: the integrator merges and THEN runs `moment:merge`, so HEAD is
+the merge commit (review_packet refuses a commit that is not a two-parent merge, so a wrong HEAD is a
+refusal, never a quiet wrong review). `{session_file}` is HARNESS_SESSION_FILE, else
+`<transport>/SESSION-<lane>.md` through `transport_report.resolve_transport` (unset/unmounted -> none).
+
 Scope: this PREPARES A CONTRACT. It does not move rows through phases (intake -> filed ->
 dispatched -> merged -> archived); that is [#669] / [#689] ground, and a `perform`-style verb here
 would close [#669] by accident and without its RED-first witnesses. It is not ADR-73's per-repo
@@ -83,22 +96,42 @@ def _output_of(receipt):
     return receipt.with_name(receipt.stem + "-OUTPUT.txt")
 
 
+def _session_file(lane):
+    """The lane's session file on the transport, or "" when it cannot be named (never a fallback folder)."""
+    explicit = os.environ.get("HARNESS_SESSION_FILE")
+    if explicit or not lane:
+        return explicit or ""
+    scripts = str(_ROOT / "scripts")
+    if scripts not in sys.path:
+        sys.path.insert(0, scripts)
+    try:
+        import transport_report  # noqa: PLC0415 -- stdlib-only, ~ms; imported only when a moment needs it
+        return str(transport_report.resolve_transport() / f"SESSION-{lane}.md")
+    except Exception:  # noqa: BLE001 -- unresolvable transport == no session file == precondition unmet
+        return ""
+
+
 def _subs():
     """The run's inputs. `{contract}` is HARNESS_CONTRACT, else the stage-4 draft the spine itself wrote."""
     draft = next((_output_of(_stage_receipt(s)) for s in _stages() if s["stage"] == 4), None)
     env = os.environ.get
+    lane = env("HARNESS_LANE") or (_ROOT.name if _ROOT.parent.name == "worktrees" else "")
     return {"{kind}": env("HARNESS_KIND", ""), "{subject}": env("HARNESS_SUBJECT", ""),
-            "{lane}": env("HARNESS_LANE") or (_ROOT.name if _ROOT.parent.name == "worktrees" else ""),
+            "{lane}": lane,
             "{batch}": env("HARNESS_BATCH", ""), "{handback}": env("HARNESS_HANDBACK", ""),
             "{changed}": env("HARNESS_CHANGED", ""), "{receipts}": str(_receipts()),
+            "{merge}": env("HARNESS_MERGE") or "HEAD",
             "{contract}": env("HARNESS_CONTRACT") or (str(draft) if draft and draft.is_file() else "")}
 
 
 def _argv(command):
     """Substitute the run's inputs into one argv (str.replace: a command may hold braces)."""
+    subs = _subs()
+    if any("{session_file}" in str(t) for t in command):  # resolve the transport only when a row names it
+        subs["{session_file}"] = _session_file(subs["{lane}"])
     out = []
     for token in command:
-        for key, value in _subs().items():
+        for key, value in subs.items():
             token = str(token).replace(key, value)
         out.append(token)
     return out
@@ -125,6 +158,42 @@ def _read(path):
     except (OSError, ValueError):
         return None
     return data if isinstance(data, dict) else None
+
+
+def _precondition_met(pre):
+    """`(met, why)` for a moment's declared precondition: does a line of its file match its pattern?
+    An unnamed or unreadable file is unmet, and `why` says which -- never an exception."""
+    path = _argv([pre["file"]])[0]
+    if not path:
+        return False, "no session file can be named (HARNESS_SESSION_FILE unset and the transport unresolved)"
+    try:
+        text = Path(path).read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        return False, f"session file {path} unreadable: {exc.__class__.__name__}"
+    hit = re.search(pre["matches"], text, re.MULTILINE)
+    return (True, f"{hit.group(0).strip()} in {path}") if hit else (False, f"no line of {path} matches {pre['matches']}")
+
+
+def _precondition_skipped(moment):
+    """True when the moment declares a precondition and this run's evaluation of it was not `ok`."""
+    pre = moment.get("precondition")
+    return bool(pre) and (_read(_receipts() / pre["receipt"]) or {}).get("status") != "ok"
+
+
+def _precondition_action(moment):
+    pre, label = moment["precondition"], f"{moment['name']}/precondition"
+    receipt = _receipts() / pre["receipt"]
+
+    def action():
+        met, why = _precondition_met(pre)
+        argv = [sys.executable, "-c", "import sys; print(sys.argv[1])", why]
+        wrap = [sys.executable, _WRAP, "wrap", label, "--receipt", str(receipt), "--input-hash",
+                _input_hash(argv, None), "--stdout-file", str(_output_of(receipt))]
+        if not met:
+            print(f"{label}: SKIPPED-PRECONDITION -- {why}")
+            wrap += ["--skipped", "SKIPPED-PRECONDITION"]
+        return subprocess.run([*wrap, "--exec", "--", *argv], cwd=str(_ROOT)).returncode == 0
+    return action
 
 
 def _repo_state():
@@ -183,8 +252,10 @@ def _fresh(label, receipt, command, previous):
         and data["input_hash"] == _input_hash(_argv(command), _upstream(previous)))
 
 
-def _execute(label, row, receipt, previous, optional):
+def _execute(label, row, receipt, previous, optional, moment=None):
     def action():
+        if moment and _precondition_skipped(moment):
+            return True  # the moment's precondition did not hold: its one SKIPPED receipt is the whole record
         command = row.get("command")
         argv = _argv(command) if command else ["<none>"]
         wrap = [sys.executable, _WRAP, "wrap", label, "--receipt", str(receipt), "--input-hash",
@@ -202,18 +273,23 @@ def _execute(label, row, receipt, previous, optional):
                 return False
             print(f"{label}: SKIPPED-NO-INPUT (unset: {', '.join(missing)})")
             wrap += ["--skipped", "SKIPPED-NO-INPUT"]
-        return subprocess.run([*wrap, "--exec", "--", *argv], cwd=str(_ROOT)).returncode == 0
+        code = subprocess.run([*wrap, "--exec", "--", *argv], cwd=str(_ROOT)).returncode
+        if code and row.get("continue_on_failure"):
+            print(f"{label}: FAILED (exit {code}) -- recorded in its receipt; the moment's remaining "
+                  f"organs still run", file=sys.stderr)
+            return True
+        return code == 0
     return action
 
 
-def _task(name, label, row, receipt, previous, deps, optional=False):
+def _task(name, label, row, receipt, previous, deps, optional=False, moment=None):
     if row.get("always"):
         assert str(row.get("reason", "")).strip(), f"{label} declares always: true with no reason"
         fresh = _never
     else:
         def fresh():
             return _fresh(label, receipt, row.get("command"), previous)
-    return {"name": name, "actions": [PythonAction(_execute(label, row, receipt, previous, optional))],
+    return {"name": name, "actions": [PythonAction(_execute(label, row, receipt, previous, optional, moment))],
             "targets": [str(receipt)], "task_dep": deps, "uptodate": [fresh], "verbosity": 2}
 
 
@@ -244,20 +320,49 @@ def task_spine():
             "verbosity": 2}
 
 
-def task_organ():
-    """One task per declared moment organ, ordered within its moment."""
+def task_precondition():
+    """`precondition:<moment>` -- evaluated once, first, for a moment that declares one; one receipt."""
     for moment in _doc().get("moments") or []:
-        prior = None
+        if moment.get("precondition"):
+            yield {"name": moment["name"], "actions": [PythonAction(_precondition_action(moment))],
+                   "targets": [str(_receipts() / moment["precondition"]["receipt"])], "uptodate": [_never],
+                   "verbosity": 2}
+
+
+def task_organ():
+    """One task per declared moment organ, ordered within its moment (after its precondition, if any)."""
+    for moment in _doc().get("moments") or []:
+        prior = f"precondition:{moment['name']}" if moment.get("precondition") else None
         for organ in moment["organs"]:
             name = f"{moment['name']}--{organ['id']}"
             yield _task(name, f"{moment['name']}/{organ['id']}", organ, _receipts() / organ["receipt"],
-                        None, [prior] if prior else [], optional=bool(organ.get("optional")))
+                        None, [prior] if prior else [], optional=bool(organ.get("optional")), moment=moment)
             prior = f"organ:{name}"
+
+
+def _moment_verdict(moment):
+    """Exit non-zero when a `continue_on_failure` organ failed: it was ordered so it could not stop the
+    others, not so it could be forgotten. A moment whose precondition did not hold ran nothing."""
+    def action():
+        if _precondition_skipped(moment):
+            return True
+        failed = []
+        for organ in moment["organs"]:
+            data = _read(_receipts() / organ["receipt"]) or {}
+            code = data.get("exit_code")
+            if organ.get("continue_on_failure") and isinstance(code, int) and code:
+                failed.append(f"{organ['id']} (exit {code}, receipt {organ['receipt']})")
+        if failed:
+            print(f"FAILED {moment['name']}: {', '.join(failed)} -- recorded; the remaining organs ran",
+                  file=sys.stderr)
+        return not failed
+    return action
 
 
 def task_moment():
     """`moment:<name>` -- fire one declared moment: its organs, in order, each leaving a receipt."""
     for moment in _doc().get("moments") or []:
-        yield {"name": moment["name"], "actions": None, "verbosity": 2,
-               "task_dep": [f"organ:{moment['name']}--{o['id']}" for o in moment["organs"]],
-               "doc": moment["trigger"]}
+        keeps_going = any(o.get("continue_on_failure") for o in moment["organs"])
+        yield {"name": moment["name"], "verbosity": 2, "doc": moment["trigger"],
+               "actions": [PythonAction(_moment_verdict(moment))] if keeps_going else None,
+               "task_dep": [f"organ:{moment['name']}--{o['id']}" for o in moment["organs"]]}

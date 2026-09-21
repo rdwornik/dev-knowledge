@@ -2,12 +2,12 @@
 # One row per stage: the argv that realises it, the contract field it fills, deterministic|judgement.
 # NO logic here. `command: null` means the stage does not exist -- dodo.py STOPS the run at it and
 # names it. Placeholders (str.replace, not format): {kind} {subject} {lane} {batch} {contract} {handback}
-# {changed} {receipts} <- HARNESS_KIND / HARNESS_SUBJECT / HARNESS_LANE / ... ({contract} defaults to the stage-4 draft).
+# {changed} {receipts} {merge} {session_file} <- HARNESS_KIND / HARNESS_SUBJECT / HARNESS_LANE / ... ({contract} defaults to the stage-4 draft).
 # The spine PREPARES A CONTRACT. It moves no row through a phase (that is [#669] / [#689]).
 # RECEIPTS (DECLARE-NIGHT N2): every stage and organ runs through `telemetry_emit.py wrap` and writes one
 # receipt under logs/receipts/ (gitignored). The receipt is the doit target: a row is up to date when its
 # receipt records exit 0 and the input hash it would compute now. `always: true` + `reason:` exempts a row
-# that reads live state. Moments (below) are where organs fire; L1 owns THIS FILE alone -- a wave-2 lane
+# that reads live state. Moments (below) are where organs fire; one lane owns THIS FILE at a time (L1, then W3-A) -- a wave-2 lane
 # builds the command a moment already declares (`optional: true` until it exists -> SKIPPED-NOT-BUILT, N4).
 stages:
   - {stage: 1, name: kind-subject, field: subject, kind: judgement, command: [git, --no-pager, grep, -n, -F, -e, "| {subject} |", --, protocols/BUILD-LIST.md]}
@@ -23,22 +23,39 @@ stages:
   - {stage: 11, name: token-cap, field: token-cap, kind: deterministic, command: [uv, run, --locked, python, scripts/dispatch.py, plan, "{contract}", --slug, spine-plan, --token-cap, "1000000000000"]}
   - {stage: 12, name: contract, field: contract, kind: deterministic, command: [uv, run, --locked, python, scripts/gen_lane_contract.py, distill, --kind, "{kind}", --subject, "{subject}", --stdout]}
 # Stage 7 validates {contract}. Stage 11 FILLS the cap field (N3: a record, set out of any lane's reach); it runs `plan`, not `govern`.
-# moments: `doit -f scripts/dodo.py moment:<name>`. Nothing calls a moment yet -- the four native triggers
-# (dispatch shim, Stop hook, integrator command, git pre-push) are wave 2's wiring -- so every organ carries
+# moments: `doit -f scripts/dodo.py moment:<name>`. Six moments, in the order a lane lives them:
+#   pre-launch  the LAUNCHER, before it spawns a lane        (R-W3-1: is the slug taken / integrator live / routing agrees)
+#   lane-start  INSIDE the lane, at its first turn           (in-lane organs only)
+#   lane-end    the Stop hook, once, when the lane has written its HANDBACK line   (R-W3-3)
+#   merge       the integrator, right after each local `git merge --no-ff`
+#   teardown    the integrator, after merge and push
+#   batch-close the integrator, after the LAST merge of the batch                  (R-W3-3)
+# Until the four native triggers are wired (wave 3 B and D, and the integrator command) every organ carries
 # `manual_until` (a date; after it the organ is armed or re-dated). An organ's `receipt` is UPPERCASE-KEBAB, undated.
+# Keys a moment / organ may carry beyond L1's:
+#   precondition          {file, matches, receipt, reason} -- a line of `file` must match `matches` (a regex) or the
+#                         moment writes ONE `SKIPPED-PRECONDITION` receipt and runs no organ. {session_file} is the
+#                         lane's SESSION-<lane>.md on the transport (HARNESS_SESSION_FILE overrides it).
+#   continue_on_failure   an organ whose failure is RECORDED in its receipt but does not stop the organs after it;
+#                         the moment still exits non-zero naming it (a failure is ordered, never swallowed).
+# {merge} is HARNESS_MERGE, else HEAD (the integrator merges, then runs the moment). {batch} names the batch.
 moments:
+  - name: pre-launch
+    trigger: "the launcher (`dispatch.py launch`), before it spawns the lane -- run from OUTSIDE the lane"
+    organs:
+      - {id: worktree_occupancy, receipt: MOMENT-PRE-LAUNCH-WORKTREE-OCCUPANCY.json, manual_until: 2026-10-04, optional: true, always: true, reason: "reads live worktrees and sessions", command: [uv, run, --locked, python, scripts/worktree_occupancy.py, "{lane}"]}
+      - {id: seat_refusals.refuse_no_live_integrator, receipt: MOMENT-PRE-LAUNCH-NO-LIVE-INTEGRATOR.json, manual_until: 2026-10-04, always: true, reason: "reads the live seat registry", command: [uv, run, --locked, python, scripts/seat_refusals.py, no-live-integrator, --batch, "{batch}"]}
+      - {id: routing_agreement, receipt: MOMENT-PRE-LAUNCH-ROUTING-AGREEMENT.json, manual_until: 2026-10-04, command: [uv, run, --locked, python, scripts/routing_agreement.py]}
   - name: lane-start
-    trigger: "dispatch shim, immediately before `claude --bg` launches the lane"
+    trigger: "the lane's own first turn, inside the lane (the in-lane organs only; the launcher's checks are `pre-launch`)"
     organs:
       - {id: single_flight, receipt: MOMENT-LANE-START-SINGLE-FLIGHT.json, manual_until: 2026-10-04, always: true, reason: "reads the live lock ref", command: [uv, run, --locked, python, scripts/single_flight.py, inspect, "{lane}", --local-only]}
-      - {id: seat_refusals.refuse_no_live_integrator, receipt: MOMENT-LANE-START-NO-LIVE-INTEGRATOR.json, manual_until: 2026-10-04, always: true, reason: "reads the live seat registry", command: [uv, run, --locked, python, scripts/seat_refusals.py, no-live-integrator, --batch, "{batch}"]}
-      - {id: routing_agreement, receipt: MOMENT-LANE-START-ROUTING-AGREEMENT.json, manual_until: 2026-10-04, command: [uv, run, --locked, python, scripts/routing_agreement.py]}
-      - {id: worktree_occupancy, receipt: MOMENT-LANE-START-WORKTREE-OCCUPANCY.json, manual_until: 2026-10-04, optional: true, always: true, reason: "reads live worktrees and sessions", command: [uv, run, --locked, python, scripts/worktree_occupancy.py, "{lane}"]}
   - name: merge
-    trigger: "integrator command, immediately before each `git merge --no-ff` of a handback"
+    trigger: "integrator command, immediately after each local `git merge --no-ff` of a handback (HEAD is the merge commit)"
     organs:
       - {id: merge_receipt.models, receipt: MOMENT-MERGE-MODELS.json, manual_until: 2026-10-04, always: true, reason: "reads the lane's live transcript", command: [uv, run, --locked, python, scripts/merge_receipt.py, models, --slug, "{lane}", --contract, "{contract}"]}
-      - {id: review_packet, receipt: MOMENT-MERGE-REVIEW-PACKET.json, manual_until: 2026-10-04, optional: true, always: true, reason: "packs the live diff range", command: [uv, run, --locked, python, scripts/review_packet.py, --lane, "{lane}", --contract, "{contract}", --range, "main..worktree-{lane}", --handback, "{handback}", --changed, "{changed}", --out, "{receipts}/MOMENT-MERGE-REVIEW-PACKET.md"]}
+      - {id: go_reader, receipt: MOMENT-MERGE-GO-READER.json, manual_until: 2026-10-05, optional: true, owner: lane-merge-truth, always: true, reason: "reads the operator's live GO file", command: [uv, run, --locked, python, scripts/go_reader.py, --batch, "{batch}"]}
+      - {id: review_packet, receipt: MOMENT-MERGE-REVIEW-PACKET.json, manual_until: 2026-10-04, optional: true, always: true, reason: "packs the live merge commit", command: [uv, run, --locked, python, scripts/review_packet.py, --lane, "{lane}", --contract, "{contract}", --merge, "{merge}", --handback, "{handback}", --out, "{receipts}/MOMENT-MERGE-REVIEW-PACKET.md"]}
       - {id: gates, receipt: MOMENT-MERGE-GATES.json, manual_until: 2026-10-04, optional: true, always: true, reason: "runs the gates against the live tree", command: [uv, run, --locked, python, scripts/gates.py, run, --lane, "{lane}"]}
       - {id: test_pairing, receipt: MOMENT-MERGE-TEST-PAIRING.json, manual_until: 2026-10-04, optional: true, always: true, reason: "pairs the live red set against the merge-base", command: [uv, run, --locked, python, scripts/test_pairing.py, --lane, "{lane}"]}
   - name: teardown
@@ -46,9 +63,57 @@ moments:
     organs:
       - {id: no_leftovers, receipt: MOMENT-TEARDOWN-NO-LEFTOVERS.json, manual_until: 2026-10-04, optional: true, always: true, reason: "verifies removal against the live worktree and branch lists", command: [uv, run, --locked, python, scripts/no_leftovers.py, verify, --lane, "{lane}"]}
   - name: lane-end
-    trigger: "Claude Code Stop hook (`session_end_backpressure.py`), at the end of each turn of a `--bg` lane"
+    trigger: "Claude Code Stop hook, once: at the first turn end after the lane wrote its HANDBACK line (a turn end before it runs nothing)"
+    precondition: {file: "{session_file}", matches: '^HANDBACK\s+\S+\s+@\s+\S+', receipt: MOMENT-LANE-END-PRECONDITION.json, reason: "a lane has finished only when its closing HANDBACK line is in its session file"}
     organs:
       - {id: lane_cost, receipt: MOMENT-LANE-END-LANE-COST.json, manual_until: 2026-10-04, always: true, reason: "reads the lane's live transcript", command: [uv, run, --locked, python, scripts/lane_cost.py, lane, --slug, "{lane}"]}
       - {id: fleet_health.seat_health_line, receipt: MOMENT-LANE-END-SEAT-HEALTH.json, manual_until: 2026-10-04, always: true, reason: "reads the live seat registry", command: [uv, run, --locked, python, -c, "import sys; sys.path.insert(0, 'scripts'); import fleet_health as f; from pathlib import Path; print(f.seat_health_line(Path('.')) or '[seats] empty registry')"]}
-      - {id: transport_report, receipt: MOMENT-LANE-END-TRANSPORT-REPORT.json, manual_until: 2026-10-04, optional: true, always: true, reason: "reads the live transport drive", command: [uv, run, --locked, python, scripts/transport_report.py, --lane, "{lane}"]}
-      - {id: digest, receipt: MOMENT-LANE-END-DIGEST.json, manual_until: 2026-10-04, optional: true, always: true, reason: "digests the live lane state", command: [uv, run, --locked, python, scripts/lane_digest.py, --lane, "{lane}"]}
+      - {id: transport_report, receipt: MOMENT-LANE-END-TRANSPORT-REPORT.json, manual_until: 2026-10-04, optional: true, continue_on_failure: true, always: true, reason: "reads the live transport drive", command: [uv, run, --locked, python, scripts/transport_report.py, --lane, "{lane}"]}
+  - name: batch-close
+    trigger: "integrator command, after the last merge of the batch has landed (one digest for the batch, not one per lane)"
+    organs:
+      - {id: digest, receipt: MOMENT-BATCH-CLOSE-DIGEST.json, manual_until: 2026-10-05, optional: true, always: true, reason: "digests the live receipts of the batch", command: [uv, run, --locked, python, scripts/lane_digest.py, --lane, "{batch}", --receipts-dir, "{receipts}"]}
+# fates (R-W3-4; DECLARE-WAVE3 2026-09-21): the organs no moment, spine stage, pre-commit hook or conductor job called when
+# W3-A ran the census (`graph_queries.py moments`: declared nowhere AND wired by no other surface). Each has EXACTLY ONE
+# recorded fate: `moment: <name>` (it is declared at that moment), `manual_until: <date>` with a one-line `reason`
+# (operator- or seat-invoked until then; after the date it is armed, re-dated or retired), or `retire_candidate: true`
+# with a `reason` (retirement is the operator's GO, never this file's). A fate is a RECORD -- it arms, disarms, deletes
+# and narrows nothing, and no organ is dropped from the roster. The reasons cite `ORPHAN_DISPOSITIONS`
+# (scripts/graph_queries.py) where the census already ruled on the same absence.
+fates:
+  - {path: .claude/commands/boot-session.md, manual_until: 2026-10-05, reason: "on-demand by the operator (act: sitting); no event fires a command (ORPHAN_DISPOSITIONS)"}
+  - {path: .claude/commands/changelog-review.md, manual_until: 2026-10-05, reason: "push trigger only: a SessionStart sentinel nudges it and a nudge is not a trigger (ORPHAN_DISPOSITIONS, V+1 list)"}
+  - {path: .claude/commands/handoff-verify.md, manual_until: 2026-10-05, reason: "on-demand by the operator (act: seat release); run by /handoff at the cut (ORPHAN_DISPOSITIONS)"}
+  - {path: .claude/commands/handoff.md, manual_until: 2026-10-05, reason: "on-demand by the operator (act: seat release) (ORPHAN_DISPOSITIONS)"}
+  - {path: .claude/commands/lane-boot.md, manual_until: 2026-10-05, reason: "on-demand by the operator (act: GO); the seat boots one lane by invoking it (ORPHAN_DISPOSITIONS)"}
+  - {path: .claude/commands/lane-integrate.md, manual_until: 2026-10-05, reason: "on-demand by the operator (act: GO); the integrator's walk of the merge queue (ORPHAN_DISPOSITIONS)"}
+  - {path: .claude/commands/preflight.md, manual_until: 2026-10-05, reason: "self-declared wired into no gate; an adoption-first read-only helper (ORPHAN_DISPOSITIONS, V+1 list)"}
+  - {path: .claude/commands/save.md, manual_until: 2026-10-05, reason: "convenience wrapper, not one of the operator's seven acts (ORPHAN_DISPOSITIONS, V+1 list)"}
+  - {path: .claude/commands/spine.md, manual_until: 2026-10-05, reason: "runs the stage table by hand (`doit spine`); no census row yet -- its caller is a seat until the loop's launcher runs the spine"}
+  - {path: .claude/commands/why.md, manual_until: 2026-10-05, reason: "read on demand before editing an unfamiliar file; whether a fresh session calls it unprompted is [#924]'s measurement -- no census row yet"}
+  - {path: .claude/skills/check-against-spec/SKILL.md, manual_until: 2026-10-05, reason: "no event fires a skill; coherence-nudge flags the spec change but a seat invokes it (ORPHAN_DISPOSITIONS, V+1 list)"}
+  - {path: .claude/skills/verify/SKILL.md, manual_until: 2026-10-05, reason: "no event fires a skill; its mandate becomes a hook, never a graph row ([#664]; ORPHAN_DISPOSITIONS, V+1 list)"}
+  - {path: plugins/tier1-lifecycle/commands/review-closures.md, manual_until: 2026-10-05, reason: "on-demand by the operator (act: ratification) (ORPHAN_DISPOSITIONS)"}
+  - {path: plugins/tier1-lifecycle/commands/ship.md, manual_until: 2026-10-05, reason: "on-demand by the operator (act: destructive acts) (ORPHAN_DISPOSITIONS)"}
+  - {path: plugins/tier1-lifecycle/scripts/review_closures.py, manual_until: 2026-10-05, reason: "the plugin copy /review-closures invokes (act: ratification); no event fires it and none should (ORPHAN_DISPOSITIONS)"}
+  - {path: scripts/actions_verdict.py, manual_until: 2026-10-05, reason: "imported by merge_receipt.py and invoked by the lane-integrate command, neither a surface the census reads; [#664] owns whether a command is a trigger"}
+  - {path: scripts/codespace_regime.py, manual_until: 2026-10-05, reason: "temporarily unwired, not retired: its settings.json hook is off since 2026-09-17 and returns when [#863] lands"}
+  - {path: scripts/codespace_state.py, manual_until: 2026-10-05, reason: "unwired by directive until intake 102 settles who observes; its adopter is that ratification (ORPHAN_DISPOSITIONS)"}
+  - {path: scripts/context_reclamation.py, manual_until: 2026-10-05, reason: "a seat calls it when clearing its own context at a checkpoint; no event can make that call; [#791] owns who initiates"}
+  - {path: scripts/cost_usage_telemetry.py, manual_until: 2026-10-05, reason: "keep: imported by provider_router.py and untriggered only because that caller is ([#691] Half B, [#694])"}
+  - {path: scripts/desired_state_loader.py, manual_until: 2026-10-05, reason: "loaded by name in tests/test_membership_agreement.py as the reference reader; retire only together with that pin"}
+  - {path: scripts/dodo.py, manual_until: 2026-10-05, reason: "the moments' own runner (`doit -f scripts/dodo.py moment:<name>`); its callers are the launcher (W3-B) and the Stop hook (W3-D) -- a person or the connection test until they land"}
+  - {path: scripts/export_backlog_view.py, manual_until: 2026-10-05, reason: "orphan by design: tests/test_export_backlog_view.py asserts nothing reads it ([#563]); wiring it would red that test"}
+  - {path: scripts/gen_ledger.py, manual_until: 2026-10-05, reason: "the operator's read surface, generated on demand; arrived after the census (ORPHAN_DISPOSITIONS, V+1 list)"}
+  - {path: scripts/id_allocator.py, manual_until: 2026-10-05, reason: "on-demand (act: GO): /lane-boot reserves a task id by push before the lane writes it; [#804] owns the allocator"}
+  - {path: scripts/lane_boot.py, manual_until: 2026-10-05, reason: "on-demand (act: GO): /lane-boot's pre-flight, before any worktree exists; [#804] owns the refusal"}
+  - {path: scripts/offload_admission.py, manual_until: 2026-10-05, reason: "unwired by design: the offload role's admission gate; creating that role row is a routing decision the operator owns"}
+  - {path: scripts/organ_usage_metric.py, manual_until: 2026-10-05, reason: "an on-demand operator report over session transcripts ([#694] AX9-5); [#709] or a digest command adopts it by calling it"}
+  - {path: scripts/propose_closures.py, manual_until: 2026-10-05, reason: "derived-copy source: the armed process is the plugin copy the plugin Stop hook fires (ecosystem/derived-copies.yaml)"}
+  - {path: scripts/propose_row_closures.py, manual_until: 2026-10-05, reason: "[#730] witness scan: an operator-transport report generator run from the CLI on demand; arrived after the census"}
+  - {path: scripts/provider_bench.py, manual_until: 2026-10-05, reason: "a one-off paid measurement, operator-invoked: a commit-tier trigger would bill the operator per commit ([#785]; owner [#676])"}
+  - {path: scripts/provider_router.py, manual_until: 2026-10-05, reason: "unwired by contract until [#691] Half B routes a non-Claude provider through it"}
+  - {path: scripts/review_closures.py, manual_until: 2026-10-05, reason: "on-demand (act: ratification) through /review-closures; also the derived-copy source of the plugin copy"}
+  - {path: scripts/setup-fleet-scheduler.ps1, manual_until: 2026-10-05, reason: "a one-shot installer, not a recurring process; the scheduled task it registers is live"}
+  - {path: scripts/surface_triage.ps1, manual_until: 2026-10-05, reason: "temporarily unwired, not retired: its settings.json SessionStart hook is off since 2026-09-17 and returns when [#863] lands"}
+  - {path: scripts/worktree_import_proof.py, manual_until: 2026-10-05, reason: "on-demand (act: GO): /lane-boot proves the worktree imports its own source (ORPHAN_DISPOSITIONS)"}
