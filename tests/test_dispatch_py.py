@@ -1,13 +1,13 @@
-"""`scripts/dispatch.py` -- the launcher that gives a token cap a home at launch, RED-first.
+"""`scripts/dispatch.py` -- the providers, the contract and the `plan` verb.
 
-WHY THE CAP, in the operator's words: four sessions were ordered 180k and used ~845k. "A budget
-in a prompt caps nothing" (memory: a-token-budget-in-a-lane-prompt-is-not-enforced). So the
-first test in this file is the one the lane contract names: the cap REFUSES when exceeded.
+HISTORY. This file began as the token cap's RED-first witness ("a budget in a prompt caps
+nothing"). LANE-W3-B (R-W3-2, N3) turned the cap into a RECORD: `govern` is a monitor and nothing
+in `dispatch.py` can end a run, so the tests that asserted a stop, a terminate or a refusal-by-
+kill were removed with the code they tested. The launch acceptance tests are in
+`tests/test_dispatch_launch.py`; the monitor's are there too.
 
 WHAT IS TESTED IS THE DECISION, NOT THE SUBPROCESS. Every test drives the pure functions or
-the Click CLI's `plan` verb; the seams that would touch a real process (`stop` and the usage
-reader) are injected. Nothing here launches `claude`, `codex` or `gh`. The hub no longer spawns
-a lane at all (wave-3 split): the plan/govern half is in `tests/test_dispatch_split.py`.
+the Click CLI's `plan` verb. Nothing here launches `claude`, `codex` or `gh`.
 
 WHAT IS NOT TESTED, and is stated so a green run is not over-read: a live `claude --bg` launch,
 a live `gh codespace` round-trip, and the real transcript files. Those were exercised by hand
@@ -30,25 +30,6 @@ def _usage(fresh: int = 0, cache_read: int = 0) -> lc.TokenUsage:
 
 
 # --- THE RED-FIRST WITNESS: the token cap refuses when exceeded ---------------------------
-
-def test_governor_stops_the_lane_and_refuses_when_the_cap_is_exceeded():
-    stopped = []
-    readings = iter([_usage(50_000), _usage(150_000), _usage(250_000)])
-    verdict = d.govern(cap=200_000, read_usage=lambda: next(readings),
-                       stop=lambda: stopped.append(True), sleep=lambda s: None,
-                       max_polls=10)
-    assert verdict.exceeded is True
-    assert stopped == [True], "exceeding the cap must STOP the lane, not merely report"
-    assert verdict.used == 250_000
-    assert verdict.exit_code == d.EXIT_CAP_EXCEEDED != 0
-
-
-def test_governor_does_not_stop_a_lane_under_its_cap():
-    stopped = []
-    verdict = d.govern(cap=200_000, read_usage=lambda: _usage(10_000),
-                       stop=lambda: stopped.append(True), sleep=lambda s: None, max_polls=3)
-    assert verdict.exceeded is False and stopped == []
-    assert verdict.exit_code == 0
 
 
 def test_cache_reads_are_excluded_from_the_cap_by_default_and_included_on_request():
@@ -91,7 +72,7 @@ def _argv(result) -> str:
 
 def test_local_anthropic_argv_matches_the_ruled_lane_line(tmp_path):
     result = _dry(tmp_path)
-    assert "claude --bg --model sonnet --effort medium --permission-mode bypassPermissions" \
+    assert "claude --bg -n wave2-x --model sonnet --effort medium --permission-mode bypassPermissions" \
         in _argv(result)
     assert "--worktree wave2-x" in _argv(result)
     assert json.loads(result.output)["token_cap"] == 180000
@@ -215,118 +196,10 @@ def test_other_providers_keys_are_scrubbed_from_a_third_party_child():
     assert env["ANTHROPIC_AUTH_TOKEN"] == "z"
 
 
-def test_a_lane_whose_usage_cannot_be_read_is_stopped_never_under_cap():
-    """Superseded by the wave-3 ruling: an unobservable lane used to be REPORTED ungoverned and
-    left running (`stopped == []`, exit 4). It is now STOPPED and refused (exit 5)."""
-    stopped = []
-    verdict = d.govern(cap=100, read_usage=lambda: None, stop=lambda: stopped.append(1),
-                       sleep=lambda s: None, max_polls=50, blind_polls=3)
-    assert verdict.ungoverned and not verdict.exceeded
-    assert verdict.exit_code == d.EXIT_REFUSED and stopped == [1]
-
-
-def test_a_lane_that_finishes_before_its_usage_is_readable_is_ungoverned_not_under_cap():
-    """Codex terra P1 (integrator review, 2026-09-19): a short `--bg` lane can exit before its
-    transcript is readable. Fewer than `blind_polls` blind reads, then `alive()` says done --
-    the spend was never observed, so the verdict is UNGOVERNED, never an ordinary under-cap."""
-    verdict = d.govern(cap=100, read_usage=lambda: None, stop=lambda: None,
-                       sleep=lambda s: None, alive=lambda: False, blind_polls=8)
-    assert verdict.ungoverned and not verdict.exceeded
-    assert verdict.exit_code == d.EXIT_REFUSED  # ended, not running: 4 is reserved for "may run"
-
-
-def test_a_lane_that_finishes_after_a_readable_poll_is_under_cap():
-    """The guard for the fix above: an observed spend followed by completion stays governed."""
-    verdict = d.govern(cap=100, read_usage=lambda: _usage(5), stop=lambda: None,
-                       sleep=lambda s: None, alive=lambda: False)
-    assert not verdict.ungoverned and verdict.exit_code == 0 and verdict.used == 5
-
-
-def test_a_failed_stop_is_reported_ungoverned_not_as_a_successful_stop():
-    verdict = d.govern(cap=10, read_usage=lambda: _usage(500), stop=lambda: False,
-                       sleep=lambda s: None, max_polls=2)
-    assert verdict.exceeded and verdict.stop_failed
-    assert verdict.exit_code == d.EXIT_UNGOVERNED
-
-
-def test_an_unavailable_liveness_probe_stops_the_lane_it_cannot_see_not_completion():
-    def blind():
-        raise d.GovernorBlind("claude agents --json failed")
-    stopped = []
-    verdict = d.govern(cap=10**9, read_usage=lambda: _usage(1), stop=lambda: stopped.append(1),
-                       sleep=lambda s: None, alive=blind, max_polls=5)
-    assert verdict.ungoverned and verdict.exit_code == d.EXIT_REFUSED and stopped == [1]
-
-
-def test_an_unobservable_lane_whose_stop_fails_is_the_one_case_reported_ungoverned():
-    verdict = d.govern(cap=100, read_usage=lambda: None, stop=lambda: False,
-                       sleep=lambda s: None, blind_polls=2)
-    assert verdict.stop_failed and verdict.exit_code == d.EXIT_UNGOVERNED
-
-
-def _terminator(alive_after: bool = False):
-    """A caller-side `terminate` callback: records that it ran, returns whether the child is gone."""
-    calls = []
-
-    def terminate() -> bool:
-        calls.append(1)
-        return not alive_after
-    terminate.calls = calls
-    return terminate
-
-
 # --- codex terra RE-review: the second round (the spawn moved to the caller; the metering stayed) --
 
 _TURN = ('{"type":"turn.completed","usage":{"input_tokens":900,"cached_input_tokens":0,'
          '"output_tokens":100}}')
-
-
-def test_a_stream_with_no_parseable_usage_is_ungoverned_not_zero_spend():
-    v = d.meter_lines(["not json at all\n"], cap=100, terminate=_terminator())
-    assert v.ungoverned and v.exit_code == d.EXIT_UNGOVERNED
-
-
-def test_over_cap_terminates_the_child_and_reports_a_survivor_as_a_failed_stop():
-    gone = _terminator()
-    v = d.meter_lines([_TURN + "\n"], cap=500, terminate=gone)
-    assert v.exceeded and not v.stop_failed and gone.calls == [1]
-    survivor = _terminator(alive_after=True)
-    v = d.meter_lines([_TURN + "\n"], cap=500, terminate=survivor)
-    assert v.exceeded and v.stop_failed and v.exit_code == d.EXIT_UNGOVERNED
-
-
-def test_a_stream_under_its_cap_is_left_alone():
-    quiet = _terminator()
-    v = d.meter_lines([_TURN + "\n"], cap=10**9, terminate=quiet)
-    assert not v.exceeded and not v.ungoverned and quiet.calls == [] and v.used == 1000
-
-
-def test_malformed_numeric_usage_stops_the_child_and_is_ungoverned_not_an_exception():
-    """Codex terra P1 (integrator re-review, 2026-09-19): a parseable event whose usage field is
-    not a number raised ValueError AFTER the child was spawned, abandoning it uncapped. It must
-    terminate the child and report UNGOVERNED."""
-    bad = '{"type":"turn.completed","usage":{"input_tokens":"unknown","output_tokens":1}}'
-    stop = _terminator()
-    v = d.meter_lines([bad + "\n"], cap=10**9, terminate=stop)
-    assert v.ungoverned and v.exit_code == d.EXIT_UNGOVERNED and stop.calls == [1]
-
-
-def test_non_finite_numeric_usage_stops_the_child_and_is_ungoverned():
-    """Codex terra P1 (third integrator pass): `1e400` parses to inf and int() raises
-    OverflowError, which escaped the malformed-usage handler."""
-    bad = '{"type":"turn.completed","usage":{"input_tokens":1e400,"output_tokens":1}}'
-    stop = _terminator()
-    v = d.meter_lines([bad + "\n"], cap=10**9, terminate=stop)
-    assert v.ungoverned and v.exit_code == d.EXIT_UNGOVERNED and stop.calls == [1]
-
-
-def test_a_hung_or_failing_stop_command_is_a_failed_stop_not_an_exception(monkeypatch):
-    import subprocess
-
-    def hang(*a, **k):
-        raise subprocess.TimeoutExpired(cmd="claude stop", timeout=1)
-    monkeypatch.setattr(d.subprocess, "run", hang)
-    assert d.stop_lane("abcd1234") is False
 
 
 def test_a_hung_or_failing_liveness_probe_is_blind_not_an_exception(monkeypatch):
@@ -335,10 +208,10 @@ def test_a_hung_or_failing_liveness_probe_is_blind_not_an_exception(monkeypatch)
     def boom(*a, **k):
         raise OSError("claude not found")
     monkeypatch.setattr(d.subprocess, "run", boom)
-    with pytest.raises(d.GovernorBlind):
+    with pytest.raises(d.ListingUnreadable):
         d.lane_alive("abcd1234")
     monkeypatch.setattr(d.subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a, 1, "", ""))
-    with pytest.raises(d.GovernorBlind):
+    with pytest.raises(d.ListingUnreadable):
         d.lane_alive("abcd1234")
 
 

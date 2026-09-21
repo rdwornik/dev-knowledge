@@ -526,3 +526,37 @@ def test_the_shims_help_names_every_dispatch_subcommand():
 def test_the_shims_help_switch_prints_dispatchs_own_help(tmp_path):
     done, args = _shim(tmp_path, "-Help")
     assert done.returncode == 0 and "--help" in args
+
+
+# --- govern over a codex lane: the usage comes from the log the detached lane writes ---------------
+
+def test_govern_reads_a_codex_lanes_usage_from_its_log_and_records_it(tmp_path, monkeypatch, receipts):
+    log = tmp_path / "codex.jsonl"
+    log.write_text('not json\n{"type":"turn.completed","usage":{"input_tokens":900,'
+                   '"cached_input_tokens":0,"output_tokens":100}}\n', encoding="utf-8")
+    receipts.mkdir(parents=True)
+    (receipts / "LAUNCH-LANE-LAUNCH-ADAPTER.json").write_text(json.dumps(
+        {"slug": "lane-launch-adapter", "provider": "codex", "job_id": "codex-4321", "pid": 4321,
+         "log_path": str(log), "token_cap": 500}), encoding="utf-8")
+    monkeypatch.setattr(d, "process_alive", lambda pid: False)
+    monkeypatch.setattr(d, "commit_witness", lambda slug: ("DONE", "1 commit"))
+    _tripwire(monkeypatch)
+    out = CliRunner().invoke(d.cli, ["govern", "--slug", "lane-launch-adapter", "--interval", "0"])
+    assert out.exit_code == d.EXIT_OVER_CAP, out.output          # 1000 tokens read against a cap of 500
+    row = json.loads((receipts / "LAUNCH-SPEND-LANE-LAUNCH-ADAPTER.jsonl").read_text().splitlines()[-1])
+    assert row["used"] == 1000 and row["cap"] == 500 and row["job_id"] == "codex-4321"
+
+
+def test_a_codex_log_with_no_usage_is_unreadable_not_zero(tmp_path):
+    log = tmp_path / "codex.jsonl"
+    log.write_text("nothing here\n", encoding="utf-8")
+    assert d._log_reader(log)() is None
+    assert d._log_reader(tmp_path / "absent.jsonl")() is None
+
+
+def test_process_alive_sends_no_signal(monkeypatch):
+    """It reads `tasklist` / `ps`; a signal to a pid is how a run gets ended."""
+    seen = []
+    monkeypatch.setattr(d, "_control", lambda argv: seen.append(argv) or subprocess.CompletedProcess(argv, 0, '"x","4321"', ""))
+    d.process_alive(4321)
+    assert seen and seen[0][0] in ("tasklist", "ps")

@@ -1132,9 +1132,25 @@ def govern_cmd(lane_id: str, slug: str, token_cap: Optional[int], count_cache_re
             sink.write(json.dumps({"slug": slug, "job_id": lane_id or receipt.get("job_id", ""), **row}) + "\n")
 
     models: list = []
+    try:
+        verdict = _watch(receipt, lane_id, slug, cap, record, models, interval, bind_polls,
+                         max_polls, blind_polls, count_cache_reads, sessions_root)
+    except KeyboardInterrupt:
+        # ending THE MONITOR is all Ctrl-C does: nothing here holds a handle on the lane
+        verdict = MonitorVerdict(0, None, cap, unobserved="the monitor was interrupted")
+    except Exception as exc:  # noqa: BLE001 -- a monitor that crashes says so and exits; the lane is untouched
+        verdict = MonitorVerdict(0, None, cap, unobserved=f"the monitor failed ({type(exc).__name__}: {exc})")
+    _finish(verdict, slug)
+
+
+def _watch(receipt: dict, lane_id: str, slug: str, cap: Optional[int], record: Callable[[dict], None],
+           models: list, interval: float, bind_polls: int, max_polls: Optional[int], blind_polls: int,
+           count_cache_reads: bool, sessions_root: Optional[Path]) -> MonitorVerdict:
+    """Bind the lane (or its log) and run the monitor. Reads and records; touches nothing."""
     if receipt.get("provider") == "codex" and receipt.get("log_path") and isinstance(receipt.get("pid"), int):
         pid = receipt["pid"]
         read_usage, alive = _log_reader(Path(receipt["log_path"])), (lambda: process_alive(pid))
+        shown = receipt.get("job_id", "?")
     else:
         given = lane_id or (receipt.get("job_id") if receipt.get("job_id") not in (None, "unresolved") else "")
         lane_id, binding = _bind(str(given), slug, bind_polls, interval)
@@ -1142,14 +1158,15 @@ def govern_cmd(lane_id: str, slug: str, token_cap: Optional[int], count_cache_re
             why = (f"no lane for worktree-{slug} could be identified in `claude agents --json`"
                    if binding is None else f"lane {lane_id} carries no session id to read usage from")
             record({"poll": 0, "used": None, "cap": cap, "over_cap": False, "readable": False, "models": []})
-            _finish(MonitorVerdict(0, None, cap, unobserved=why), slug)
+            return MonitorVerdict(0, None, cap, unobserved=why)
         read_usage = _session_reader(binding.session_id, sessions_root, models)
         alive = lambda: lane_alive(lane_id)  # noqa: E731
-    click.echo(f"[dispatch] monitoring {slug} (job {lane_id or receipt.get('job_id', '?')}) -- cap "
-               f"{cap if cap is not None else 'none'}; this never stops the lane", err=True)
-    _finish(monitor(cap=cap, read_usage=read_usage, alive=alive, record=record, interval=interval,
-                    max_polls=max_polls, blind_polls=blind_polls, count_cache_reads=count_cache_reads,
-                    models=models), slug)
+        shown = lane_id
+    click.echo(f"[dispatch] monitoring {slug} (job {shown}) -- cap {cap if cap is not None else 'none'}; "
+               "this never stops the lane", err=True)
+    return monitor(cap=cap, read_usage=read_usage, alive=alive, record=record, interval=interval,
+                   max_polls=max_polls, blind_polls=blind_polls, count_cache_reads=count_cache_reads,
+                   models=models)
 
 
 def _cwd_is_lane(cwd: str, slug: str) -> bool:
