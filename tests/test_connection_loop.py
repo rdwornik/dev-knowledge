@@ -1,0 +1,636 @@
+"""lane-connection-test (wave-3 W3-F, goal G1): is the harness connected? One toy task, the whole loop, a receipt per moment.
+
+WHAT IT DOES. It builds a THROWAWAY repository (a copy of this hub's tracked tree, its own bare `origin`, its own
+seat registry, its own transport folder) and walks ONE toy task through the loop:
+
+    spine stages 1-12 -> `dispatch.py launch` -> pre-launch -> lane-start -> a fixture lane that commits and writes its
+    HANDBACK line -> lane-end (through the REAL Stop-hook guard) -> merge (with a fixture GO file) -> push -> teardown
+    -> batch-close
+
+Every moment is the real `doit -f scripts/dodo.py moment:<name>` reading the real `ecosystem/harness.yaml`; every
+organ is the real script. Only two things are faked: the provider PROCESS (`dispatch.spawn_process`, the one process
+boundary the launcher documents) and the git REMOTE (a local bare repository standing in for origin).
+
+THE ASSERTION IS THE RECEIPTS: one per organ of every moment, in order, each exit 0, and the batch digest naming the
+task. Where a moment does not fire, the walk records a `Stop` (moment, organ, receipt, detail) and CONTINUES the later
+moments -- each given its best legitimate chance, as if an operator had overridden the stop -- so the queue of stops
+is complete rather than first-only. `test_the_loop_stops_where_the_walk_recorded` pins that queue; the strict-xfail
+`test_one_toy_task_leaves_a_receipt_at_every_moment_in_order` is what goes green (XPASS-strict -> red -> delete the
+marker) when the loop is actually connected. A stop is the deliverable, not a failure to hide (Done-contract 6).
+
+FIXTURE-ONLY SUBSTITUTIONS, each named so it is not mistaken for a mock of a moment or an organ:
+  * HOME (USERPROFILE) is redirected so the seat registry, the session store (transcripts), the L0 routing copy and
+    `~/.claude/jobs` are the test's own. The L0 copy is rendered by the repo's own `routing_agreement.py --render`.
+  * On Windows the User-scope `CLAUDE_PROMPTS_DIR` wins over the environment, so `tests/fixtures/connection_loop/
+    sitecustomize.py` redirects that ONE registry read to the test's transport. Without it `go_reader` and the lane-end
+    report would touch the operator's live transport; `live_transport_touched` proves they did not.
+  * The integrator "command" is a markdown chain (`.claude/commands/lane-integrate.md`), not a script, so `integrate()`
+    runs its steps: open, handback verdict, `merge --no-ff`, `moment:merge`, push, teardown, `moment:teardown`. NOT run:
+    `race` (it launches the full suite plus a reviewer) and `actions` (it reads GitHub Actions).
+"""
+from __future__ import annotations
+
+import functools
+import json
+import logging
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+from dataclasses import asdict, dataclass, field
+from pathlib import Path
+from typing import Optional
+
+import pytest
+import yaml
+from click.testing import CliRunner
+
+logger = logging.getLogger("connection-loop")
+
+_HUB = Path(__file__).resolve().parents[1]
+_FIXTURES = Path(__file__).resolve().parent / "fixtures" / "connection_loop"
+_HARNESS = _HUB / "ecosystem" / "harness.yaml"
+_LIGHT_TREE = ("scripts", "ecosystem", "pyproject.toml", "uv.lock", ".python-version", ".gitignore")
+
+BATCH = "TOYBATCH"
+SUBJECT = "toy-connection"
+FEATURE_COMMIT = f"feat: {SUBJECT} -- the toy change"
+INTEGRATOR_SESSION = "toy-integrator"
+NEGATIVE_SLUG = "lane-20260921-wire-toy-negative"
+STOP_TIMEOUT_S = 1800
+
+pytestmark = pytest.mark.slow
+
+#: The stops the walk recorded when W3-F ran (2026-09-21). Pinned so a change in EITHER direction is loud: a stop that
+#: disappears means wave 4 fixed it (delete its row); a new one means the loop moved. Each row is (moment, organ).
+EXPECTED_STOPS = (("merge", "gates"),)
+
+
+# --- domain: Receipt, Step, Stop ---------------------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class OrganReceipt:
+    """One organ's receipt as its moment wrote it."""
+    moment: str
+    organ: str
+    receipt: str
+    status: str
+    exit_code: Optional[int]
+    mtime_ns: int
+
+    @property
+    def fired(self) -> bool:
+        return self.status == "ok" and self.exit_code == 0
+
+
+@dataclass(frozen=True)
+class Stop:
+    """Where the loop did not fire: the moment, the organ, the receipt that says so, and why."""
+    moment: str
+    organ: str
+    receipt: str
+    detail: str
+
+
+@dataclass
+class Step:
+    """One moment as walked: its exit code and the receipts of every organ it declares (missing ones named)."""
+    moment: str
+    exit_code: int
+    organs: list[OrganReceipt] = field(default_factory=list)
+    unreached: list[str] = field(default_factory=list)
+
+    @property
+    def stop(self) -> Optional[Stop]:
+        for organ in self.organs:
+            if not organ.fired:
+                return Stop(self.moment, organ.organ, organ.receipt,
+                            f"receipt status {organ.status!r}, exit_code {organ.exit_code} (moment exit {self.exit_code})")
+        if self.unreached:
+            return Stop(self.moment, self.unreached[0], "(no receipt)",
+                        f"organ never ran (moment exit {self.exit_code}); not reached: {', '.join(self.unreached)}")
+        if self.exit_code != 0:
+            return Stop(self.moment, "(moment)", "(none)", f"every organ receipt is ok but the moment exited {self.exit_code}")
+        return None
+
+
+@dataclass
+class Walk:
+    """The whole loop as walked once: steps in order, the stops, and what a human had to write."""
+    slug: str = ""
+    steps: list[Step] = field(default_factory=list)
+    stops: list[Stop] = field(default_factory=list)
+    human_writes: list[dict] = field(default_factory=list)
+    standing: list[str] = field(default_factory=list)
+    digest: str = ""
+    live_transport_touched: Optional[bool] = None
+    integrator: dict = field(default_factory=dict)
+
+    def to_json(self) -> str:
+        return json.dumps(asdict(self), indent=2)
+
+    @classmethod
+    def from_json(cls, text: str) -> "Walk":
+        raw = json.loads(text)
+        raw["steps"] = [Step(s["moment"], s["exit_code"], [OrganReceipt(**o) for o in s["organs"]], s["unreached"])
+                        for s in raw["steps"]]
+        raw["stops"] = [Stop(**s) for s in raw["stops"]]
+        return cls(**raw)
+
+
+def _declared() -> dict:
+    return yaml.safe_load(_HARNESS.read_text(encoding="utf-8"))
+
+
+def _declared_moment(name: str) -> dict:
+    return next(m for m in _declared()["moments"] if m["name"] == name)
+
+
+def _read_receipt(path: Path) -> Optional[dict]:
+    try:
+        body = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return body if isinstance(body, dict) else None
+
+
+def _slug_of(name: str) -> str:
+    return re.sub(r"[^A-Za-z0-9]+", "-", name).strip("-").upper()
+
+
+# --- the fake provider: the ONE process boundary ---------------------------------------------------------------------
+
+class FakeProvider:
+    """Stands in for `claude --bg`: records the argv, creates the lane worktree the real CLI would, lists the job."""
+
+    def __init__(self) -> None:
+        self.calls: list[list[str]] = []
+        self.agents: list[dict] = []
+
+    def spawn(self, argv, env, cwd, log_path=None):
+        import dispatch as d  # noqa: PLC0415
+        self.calls.append(list(argv))
+        slug = argv[argv.index("--worktree") + 1]
+        worktree = Path(cwd) / ".claude" / "worktrees" / slug
+        subprocess.run(["git", "worktree", "add", "-q", "-b", f"worktree-{slug}", str(worktree)], cwd=str(cwd),
+                       check=True, capture_output=True)
+        self.agents.append({"id": "c0ffee01", "name": slug, "sessionId": "c0ffee01-toy-session", "state": "running",
+                            "status": "busy", "cwd": str(worktree)})
+        return d.Spawned(0, "Backgrounded \u2014 c0ffee01\n", None)
+
+    def listing(self) -> list[dict]:
+        return list(self.agents)
+
+
+# --- the world ------------------------------------------------------------------------------------------------------
+
+class World:
+    """A throwaway repository, its bare origin, a home, a transport and a fake `claude` -- nothing of the operator's."""
+
+    def __init__(self, root: Path, *, full: bool) -> None:
+        self.root = root
+        self.full = full
+        self.repo = root / "repo"
+        self.origin = root / "origin.git"
+        self.home = root / "home"
+        self.transport = root / "transport"
+        self.bin = root / "bin"
+        self.human_writes: list[dict] = []
+        self.standing: list[str] = []
+
+    # environment ----------------------------------------------------------------------------------------------------
+    def env(self, **extra: str) -> dict[str, str]:
+        base = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV" and not k.startswith("HARNESS_")}
+        base.update(
+            UV_PROJECT_ENVIRONMENT=sys.prefix, PYTHONUTF8="1", USERPROFILE=str(self.home), HOME=str(self.home),
+            CT_TRANSPORT=str(self.transport), CLAUDE_PROMPTS_DIR=str(self.transport),
+            DEV_KNOWLEDGE_TELEMETRY_DB=str(self.root / "telemetry.db"),
+            PATH=os.pathsep.join([str(self.bin), str(Path(sys.executable).parent), base.get("PATH", "")]),
+            PYTHONPATH=os.pathsep.join([str(_FIXTURES), base.get("PYTHONPATH", "")]))
+        base.update(extra)
+        return base
+
+    def run(self, argv, cwd: Optional[Path] = None, **extra: str) -> subprocess.CompletedProcess:
+        started = time.monotonic()
+        done = subprocess.run([str(a) for a in argv], cwd=str(cwd or self.repo), env=self.env(**extra), text=True,
+                              capture_output=True, encoding="utf-8", errors="replace", timeout=STOP_TIMEOUT_S)
+        logger.info("$ %s [%s] -> %s in %.1fs", " ".join(map(str, argv))[:120], (cwd or self.repo).name,
+                    done.returncode, time.monotonic() - started)
+        return done
+
+    def git(self, *args: str, cwd: Optional[Path] = None) -> str:
+        done = self.run(["git", *args], cwd=cwd)
+        assert done.returncode == 0, f"git {' '.join(args)} failed in {cwd or self.repo}: {done.stderr}"
+        return done.stdout.strip()
+
+    def uv(self, *args: str, cwd: Optional[Path] = None, **extra: str) -> subprocess.CompletedProcess:
+        return self.run(["uv", "run", "--locked", *args], cwd=cwd, **extra)
+
+    # construction ---------------------------------------------------------------------------------------------------
+    def build(self) -> "World":
+        self._copy_tree()
+        self.git("init", "-q", "-b", "main")
+        for key, value in (("user.email", "toy@example.invalid"), ("user.name", "toy"), ("core.autocrlf", "false")):
+            self.git("config", key, value)
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", "seed")
+        subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(self.origin)], check=True, capture_output=True)
+        self.git("remote", "add", "origin", str(self.origin))
+        self.git("push", "-q", "origin", "main")
+        for folder in (self.home / ".claude" / "jobs", self.transport / "to-cc", self.transport / "to-browser", self.bin):
+            folder.mkdir(parents=True, exist_ok=True)
+        self.standing.append("`~/.claude/jobs` exists (no_leftovers reads it; an absent directory is 'unreadable')")
+        self._fake_claude()
+        self._render_l0_routing_copy()
+        self._bind_integrator()
+        return self
+
+    def _copy_tree(self) -> None:
+        self.repo.mkdir(parents=True)
+        if self.full:
+            listing = subprocess.run(["git", "ls-files", "-z"], cwd=str(_HUB), capture_output=True, check=True)
+            names = [n.decode() for n in listing.stdout.split(b"\0") if n]
+        else:
+            names = [str(p.relative_to(_HUB)) for entry in _LIGHT_TREE for p in
+                     ([_HUB / entry] if (_HUB / entry).is_file() else (_HUB / entry).rglob("*"))
+                     if p.is_file() and "__pycache__" not in p.parts]
+        for name in names:
+            source = _HUB / name
+            if source.is_file():
+                (self.repo / name).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source, self.repo / name)
+
+    def _fake_claude(self) -> None:
+        """`claude agents --json` -> `[]`. The launcher's own listing is replaced in-process (FakeProvider)."""
+        if os.name == "nt":
+            (self.bin / "claude.cmd").write_text("@echo off\r\necho []\r\n", encoding="utf-8")
+        else:
+            exe = self.bin / "claude"
+            exe.write_text("#!/bin/sh\necho '[]'\n", encoding="utf-8")
+            exe.chmod(0o755)
+
+    def _render_l0_routing_copy(self) -> None:
+        rendered = self.uv("python", "scripts/routing_agreement.py", "--render")
+        assert rendered.returncode == 0, rendered.stderr
+        (self.home / ".claude" / "ROUTING.md").write_text(rendered.stdout, encoding="utf-8")
+        self.standing.append("L0 routing copy `~/.claude/ROUTING.md` (rendered by routing_agreement.py --render); "
+                             "absent on a fresh host, where pre-launch and spine stage 8 refuse")
+
+    def _bind_integrator(self) -> None:
+        """A real `bind` and a real SessionStart hook event through the registry's own writers."""
+        import seat_registry as registry  # noqa: PLC0415
+        path = self.home / ".claude" / "seat-registry.jsonl"
+        registry.bind("integrator", BATCH, session_id=INTEGRATOR_SESSION, path=path)
+        registry.record_event({"hook_event_name": "SessionStart", "session_id": INTEGRATOR_SESSION,
+                               "cwd": str(self.repo)}, path=path)
+        self.standing.append(f"integrator seat bound and live for batch {BATCH} (seat_registry bind + a SessionStart event)")
+
+    # what a human writes --------------------------------------------------------------------------------------------
+    def operator_writes(self, kind: str, path: Path, text: str) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8", newline="")
+        self.human_writes.append({"kind": kind, "path": str(path)})
+
+    def write_task(self) -> None:
+        """The task: one BUILD-LIST row (spine stage 1 reads it; stage 4 distills the contract from it)."""
+        build_list = self.repo / "protocols" / "BUILD-LIST.md"
+        lines = build_list.read_text(encoding="utf-8").splitlines(keepends=True)
+        header = next(i for i, ln in enumerate(lines) if ln.startswith("| subject | context-cost"))
+        row = f"| {SUBJECT} | 1 KB · reduces: no | `scripts/dodo.py` (code) | WIRE | nothing | S | no |\n"
+        lines.insert(header + 2, row)
+        self.operator_writes("task", build_list, "".join(lines))
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", f"docs: task row {SUBJECT}")
+        self.git("push", "-q", "origin", "main")
+
+    def write_go(self) -> Path:
+        go = self.transport / "to-cc" / f"GO-{BATCH}.md"
+        self.operator_writes("go", go, "GO\n")
+        return go
+
+    # moments --------------------------------------------------------------------------------------------------------
+    def moment(self, name: str, cwd: Optional[Path] = None, **extra: str) -> Step:
+        cwd = cwd or self.repo
+        done = self.uv("doit", "-f", "scripts/dodo.py", f"moment:{name}", cwd=cwd, **extra)
+        return self._step(name, done.returncode, cwd / "logs" / "receipts",
+                          [(o["id"], o["receipt"]) for o in self._declared_organs(name)])
+
+    def spine(self) -> Step:
+        done = self.uv("doit", "-f", "scripts/dodo.py", "spine", HARNESS_KIND="WIRE", HARNESS_SUBJECT=SUBJECT)
+        expected = [(s["name"], f"SPINE-{s['stage']:02d}-{_slug_of(s['name'])}.json") for s in _declared()["stages"]]
+        return self._step("spine", done.returncode, self.repo / "logs" / "receipts", expected)
+
+    @staticmethod
+    def _declared_organs(moment: str) -> list[dict]:
+        declared = _declared_moment(moment)
+        pre = declared.get("precondition")
+        return ([{"id": "precondition", "receipt": pre["receipt"]}] if pre else []) + list(declared["organs"])
+
+    @staticmethod
+    def _step(name: str, exit_code: int, receipts: Path, expected: list[tuple[str, str]]) -> Step:
+        step = Step(name, exit_code)
+        for organ, receipt in expected:
+            path = receipts / receipt
+            body = _read_receipt(path)
+            if body is None:
+                step.unreached.append(organ)
+                continue
+            step.organs.append(OrganReceipt(name, organ, receipt, str(body.get("status")), body.get("exit_code"),
+                                            path.stat().st_mtime_ns))
+        return step
+
+    # launch ---------------------------------------------------------------------------------------------------------
+    def launch(self, contract: Path, provider: FakeProvider, mp: pytest.MonkeyPatch):
+        """`dispatch.py launch` through its own click command, with the provider process and listing replaced."""
+        import dispatch as d  # noqa: PLC0415
+        real_prelaunch = d.run_prelaunch
+        for key, value in self.env().items():
+            mp.setenv(key, value)
+        mp.setenv("HARNESS_RECEIPTS_DIR", str(self.repo / "logs" / "receipts"))
+        mp.chdir(self.repo)
+        mp.setattr(d, "spawn_process", provider.spawn)
+        mp.setattr(d, "list_agents", provider.listing)
+        mp.setattr(d, "run_prelaunch", functools.partial(real_prelaunch, hub=self.repo))
+        return CliRunner().invoke(d.cli, ["launch", str(contract), "--batch", BATCH])
+
+    # the fixture lane -----------------------------------------------------------------------------------------------
+    def lane_commit(self, worktree: Path) -> str:
+        (worktree / "toy_feature.txt").write_text("the toy change\n", encoding="utf-8")
+        self.git("add", "-A", cwd=worktree)
+        self.git("commit", "-q", "-m", FEATURE_COMMIT, cwd=worktree)
+        return self.git("rev-parse", "--short", "HEAD", cwd=worktree)
+
+    def lane_transcript(self, worktree: Path, model: str = "claude-opus-5") -> None:
+        """The session store files a lane's transcript under its working directory; `merge_receipt models` reads it."""
+        import routing_agreement as ra  # noqa: PLC0415
+        folder = self.home / ".claude" / "projects" / ra.session_slug(worktree)
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / "toy-lane-session.jsonl").write_text(
+            json.dumps({"type": "assistant", "message": {"model": model, "usage": {"input_tokens": 10,
+                                                                                    "output_tokens": 5}}}) + "\n",
+            encoding="utf-8")
+
+    def session_file(self, slug: str) -> Path:
+        return self.transport / "to-browser" / f"SESSION-{slug}.md"
+
+    def write_session(self, slug: str, sha: Optional[str]) -> str:
+        """The lane's session file. With `sha` it closes with the HANDBACK line a conforming lane writes."""
+        line = f"HANDBACK worktree-{slug} @ {sha} code review=codex HIGH:0 MED:0 LOW:0" if sha else ""
+        self.session_file(slug).write_text(f"# SESSION {slug}\n\nthe toy lane's report\n\n{line}\n", encoding="utf-8")
+        return line
+
+    def stop_hook(self, worktree: Path) -> None:
+        """Run the Stop entry `.claude/settings.json` declares for the lane-end guard, as the harness does: through a
+        POSIX shell with CLAUDE_PROJECT_DIR set to the lane's directory. Then wait for the detached worker to finish."""
+        settings = json.loads((_HUB / ".claude" / "settings.json").read_text(encoding="utf-8"))
+        commands = [h["command"] for group in settings["hooks"]["Stop"] for h in group["hooks"]
+                    if "lane_end_guard.py" in h.get("command", "")]
+        assert len(commands) == 1, "settings.json must declare exactly one lane_end_guard Stop entry"
+        shell = next((c for c in (r"C:\Program Files\Git\bin\bash.exe", shutil.which("bash"), shutil.which("sh"))
+                      if c and Path(c).exists()), None)
+        assert shell, "no POSIX shell to run the declared Stop command"
+        self.run([shell, "-c", commands[0]], cwd=worktree, CLAUDE_PROJECT_DIR=worktree.as_posix())
+        receipt = worktree / "logs" / "receipts" / "MOMENT-LANE-END-HOOK.json"
+        deadline = time.monotonic() + 300
+        while time.monotonic() < deadline:
+            body = _read_receipt(receipt)
+            if body and body.get("status") != "running":
+                return
+            time.sleep(1)
+
+    # the integrator's chain -----------------------------------------------------------------------------------------
+    def integrate_merge(self, slug: str, contract: Path, handback: str) -> tuple[str, dict]:
+        """open -> handback verdict -> `merge --no-ff` -> `moment:merge` (HARNESS_* as lane-integrate.md sets them)."""
+        opened = self.uv("python", "scripts/merge_receipt.py", "open", "--slug", slug, "--batch", BATCH)
+        assert opened.returncode == 0, opened.stderr
+        verdict = self.uv("python", "scripts/audit.py", "handback", handback)
+        merged = self.run(["git", "merge", "--no-ff", "-m", f"Merge branch 'worktree-{slug}'\n\nkill-candidates: none",
+                           f"worktree-{slug}"])
+        assert merged.returncode == 0, merged.stderr
+        return self.git("rev-parse", "HEAD"), {"handback_verdict_exit": verdict.returncode,
+                                               "handback_verdict_out": (verdict.stdout + verdict.stderr).strip()[-300:]}
+
+    def merge_env(self, slug: str, contract: Path, handback: str, merge: str) -> dict[str, str]:
+        return {"HARNESS_LANE": slug, "HARNESS_BATCH": BATCH, "HARNESS_CONTRACT": str(contract),
+                "HARNESS_HANDBACK": handback, "HARNESS_CHANGED": merge, "HARNESS_MERGE": merge}
+
+
+def _fresh_world(tmp_path_factory: pytest.TempPathFactory, name: str, *, full: bool) -> World:
+    return World(tmp_path_factory.mktemp(name), full=full).build()
+
+
+def _transport_fingerprint() -> Optional[set[str]]:
+    """Names of toy-looking files on the operator's REAL transport (None when it cannot be resolved)."""
+    try:
+        import dispatch as d  # noqa: PLC0415
+        base = d.prompts_dir()
+    except Exception:  # noqa: BLE001 -- an unresolvable live transport is simply not observable here
+        return None
+    if not base.is_dir():
+        return None
+    return {p.name for folder in ("to-cc", "to-browser") if (base / folder).is_dir()
+            for p in (base / folder).glob("*") if "toy" in p.name.lower() or BATCH in p.name}
+
+
+# --- the walk -------------------------------------------------------------------------------------------------------
+
+def walk_the_loop(tmp_path_factory: pytest.TempPathFactory) -> Walk:
+    """Walk ONE toy task through the loop, recording every moment's receipts and every stop."""
+    live_before = _transport_fingerprint()
+    world = _fresh_world(tmp_path_factory, "connection_world", full=True)
+    walk = Walk()
+    with pytest.MonkeyPatch.context() as mp:
+        _walk(world, walk, mp)
+    walk.human_writes, walk.standing = world.human_writes, world.standing
+    live_after = _transport_fingerprint()
+    walk.live_transport_touched = None if live_before is None or live_after is None else live_before != live_after
+    walk.stops = [s for s in (step.stop for step in walk.steps) if s]
+    return walk
+
+
+def _walk(world: World, walk: Walk, mp: pytest.MonkeyPatch) -> None:
+    world.write_task()
+    walk.steps.append(world.spine())
+    contract_text = (world.repo / "logs" / "receipts" / "SPINE-12-CONTRACT-OUTPUT.txt").read_text(encoding="utf-8")
+    slug = re.search(r"^# LANE (\S+)", contract_text, re.M).group(1)
+    walk.slug = slug
+    contract = world.transport / f"LANE-{slug.removeprefix('lane-')}.md"
+    contract.write_text(contract_text.lstrip(), encoding="utf-8")   # the spine's stage-12 contract, delivered to the transport
+
+    provider = FakeProvider()
+    launched = world.launch(contract, provider, mp)
+    pre = world._step("pre-launch", launched.exit_code, world.repo / "logs" / "receipts",
+                      [(o["id"], o["receipt"]) for o in world._declared_organs("pre-launch")])
+    walk.steps.append(pre)
+    walk.integrator["launch_exit"] = launched.exit_code
+    walk.integrator["spawns"] = len(provider.calls)
+    if launched.exit_code != 0 or not provider.calls:
+        return          # nothing was launched, so there is no lane to walk (a stop, recorded above)
+    worktree = world.repo / ".claude" / "worktrees" / slug
+
+    walk.steps.append(world.moment("lane-start", cwd=worktree))
+    sha = world.lane_commit(worktree)
+    world.lane_transcript(worktree)
+    handback = world.write_session(slug, sha)
+    world.stop_hook(worktree)
+    walk.steps.append(world._step("lane-end", 0, worktree / "logs" / "receipts",
+                                  [(o["id"], o["receipt"]) for o in world._declared_organs("lane-end")]))
+
+    world.write_go()
+    merge_sha, verdict = world.integrate_merge(slug, contract, handback)
+    walk.integrator.update(verdict, merge=merge_sha)
+    walk.steps.append(world.moment("merge", **world.merge_env(slug, contract, handback, merge_sha)))
+
+    # From here the walk CONTINUES past a stop: each later moment gets its best legitimate chance.
+    world.uv("python", "scripts/merge_receipt.py", "close", "--slug", slug)
+    world.git("add", "-A")
+    world.git("commit", "-q", "-m", "chore: merge receipts\n\nkill-candidates: none")
+    world.git("push", "-q", "origin", "main")
+    world.git("worktree", "remove", f".claude/worktrees/{slug}")
+    world.git("worktree", "prune")
+    world.git("branch", "-d", f"worktree-{slug}")
+    walk.steps.append(world.moment("teardown", HARNESS_LANE=slug, HARNESS_BATCH=BATCH))
+    close = world.moment("batch-close", HARNESS_LANE=slug, HARNESS_BATCH=BATCH)
+    walk.steps.append(close)
+    output = world.repo / "logs" / "receipts" / "MOMENT-BATCH-CLOSE-DIGEST-OUTPUT.txt"
+    walk.digest = output.read_text(encoding="utf-8", errors="replace") if output.is_file() else ""
+    if close.stop is None and slug not in walk.digest and SUBJECT not in walk.digest:
+        close.organs[-1] = OrganReceipt("batch-close", "digest-names-the-task", "MOMENT-BATCH-CLOSE-DIGEST-OUTPUT.txt",
+                                        "does-not-name-the-task", 0, close.organs[-1].mtime_ns)
+
+
+# One walk per test RUN, shared across xdist workers through a lock file (the walk is minutes, not seconds).
+def _shared_walk(tmp_path_factory: pytest.TempPathFactory) -> Walk:
+    shared = tmp_path_factory.getbasetemp().parent
+    result, lock = shared / "connection-loop-walk.json", shared / "connection-loop-walk.lock"
+    deadline = time.monotonic() + 2 * STOP_TIMEOUT_S
+    while time.monotonic() < deadline:
+        if result.is_file():
+            return Walk.from_json(result.read_text(encoding="utf-8"))
+        try:
+            fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            time.sleep(2)
+            continue
+        os.close(fd)
+        try:
+            walk = walk_the_loop(tmp_path_factory)
+            result.write_text(walk.to_json(), encoding="utf-8")
+            return walk
+        finally:
+            lock.unlink(missing_ok=True)
+    raise TimeoutError("the shared connection walk never produced a result")
+
+
+@pytest.fixture(scope="module")
+def walk(tmp_path_factory: pytest.TempPathFactory) -> Walk:
+    return _shared_walk(tmp_path_factory)
+
+
+def _stops(w: Walk) -> str:
+    return "; ".join(f"{s.moment}/{s.organ} [{s.receipt}] {s.detail}" for s in w.stops) or "none"
+
+
+# --- Done-contract 1 + 2: the loop, the receipts, the digest ---------------------------------------------------------
+
+@pytest.mark.xfail(strict=True, reason="W3-F walk (2026-09-21): merge/gates RED -- wave 4's queue. Delete this marker "
+                                       "and EXPECTED_STOPS when the loop is connected.")
+def test_one_toy_task_leaves_a_receipt_at_every_moment_in_order(walk):
+    assert not walk.stops, f"the loop stopped: {_stops(walk)}"
+    declared = ["spine", "pre-launch", "lane-start", "lane-end", "merge", "teardown", "batch-close"]
+    assert [s.moment for s in walk.steps] == declared
+    stamps = [max(o.mtime_ns for o in s.organs) for s in walk.steps]
+    assert stamps == sorted(stamps), "the moments' receipts are not in loop order"
+    assert all(o.fired for s in walk.steps for o in s.organs)
+    assert walk.slug in walk.digest or SUBJECT in walk.digest, "the digest does not name the task"
+
+
+def test_the_loop_stops_where_the_walk_recorded(walk):
+    """Everything before the first stop fired, in order, each exit 0; the stops are exactly the recorded queue."""
+    assert tuple((s.moment, s.organ) for s in walk.stops) == EXPECTED_STOPS, _stops(walk)
+    first = walk.stops[0].moment
+    before = walk.steps[:[s.moment for s in walk.steps].index(first)]
+    assert [s.moment for s in before] == ["spine", "pre-launch", "lane-start", "lane-end"]
+    assert all(o.fired for s in before for o in s.organs)
+    stamps = [max(o.mtime_ns for o in s.organs) for s in before]
+    assert stamps == sorted(stamps)
+    merge = next(s for s in walk.steps if s.moment == "merge")
+    assert [o.organ for o in merge.organs if o.fired] == ["merge_receipt.models", "go_reader", "review_packet"]
+
+
+def test_the_toy_task_was_launched_once_by_the_launcher_and_nothing_real_spawned(walk):
+    assert walk.integrator["launch_exit"] == 0 and walk.integrator["spawns"] == 1
+
+
+# --- Done-contract 4: operator touches --------------------------------------------------------------------------------
+
+def test_a_human_writes_at_most_three_files_task_go_and_nothing_else(walk):
+    kinds = [w["kind"] for w in walk.human_writes]
+    assert kinds == ["task", "go"], f"a human would have had to write: {walk.human_writes}"
+    assert len(kinds) <= 3
+
+
+def test_the_operators_live_transport_was_not_touched(walk):
+    assert walk.live_transport_touched in (False, None), "the walk wrote toy files onto the operator's live transport"
+
+
+# --- Done-contract 3: negative paths, each its own test ----------------------------------------------------------------
+
+def _negative_contract(world: World) -> Path:
+    path = world.transport / "LANE-20260921-wire-toy-negative.md"
+    path.write_text((_FIXTURES / "negative-contract.md").read_text(encoding="utf-8"), encoding="utf-8")
+    return path
+
+
+def test_an_occupied_slug_stops_at_pre_launch(tmp_path_factory):
+    world = _fresh_world(tmp_path_factory, "negative_occupied", full=False)
+    world.git("worktree", "add", "-q", "-b", f"worktree-{NEGATIVE_SLUG}", f".claude/worktrees/{NEGATIVE_SLUG}")
+    provider = FakeProvider()
+    with pytest.MonkeyPatch.context() as mp:
+        launched = world.launch(_negative_contract(world), provider, mp)
+    assert launched.exit_code == 5, launched.output
+    assert "occupied" in launched.output.lower() or "OCCUPIED" in launched.output
+    assert provider.calls == [], "a refused launch must not reach the process boundary"
+    receipts = world.repo / "logs" / "receipts"
+    occupancy = _read_receipt(receipts / "MOMENT-PRE-LAUNCH-WORKTREE-OCCUPANCY.json")
+    assert occupancy and occupancy["exit_code"] == 1
+    assert not (receipts / "MOMENT-PRE-LAUNCH-NO-LIVE-INTEGRATOR.json").exists(), "later organs ran past the refusal"
+    assert not list(receipts.glob("LAUNCH-LANE-*.json")), "a refused launch wrote a launch receipt"
+
+
+def test_a_missing_go_file_stops_at_merge(tmp_path_factory):
+    world = _fresh_world(tmp_path_factory, "negative_no_go", full=False)
+    contract = _negative_contract(world)
+    world.git("worktree", "add", "-q", "-b", f"worktree-{NEGATIVE_SLUG}", f".claude/worktrees/{NEGATIVE_SLUG}")
+    worktree = world.repo / ".claude" / "worktrees" / NEGATIVE_SLUG
+    sha = world.lane_commit(worktree)
+    world.lane_transcript(worktree)
+    handback = world.write_session(NEGATIVE_SLUG, sha)
+    merge_sha, _ = world.integrate_merge(NEGATIVE_SLUG, contract, handback)
+    assert not (world.transport / "to-cc" / f"GO-{BATCH}.md").exists(), "this test must not write a GO"
+    step = world.moment("merge", **world.merge_env(NEGATIVE_SLUG, contract, handback, merge_sha))
+    assert step.exit_code != 0
+    fired = [o.organ for o in step.organs if o.fired]
+    assert fired == ["merge_receipt.models"], f"models must pass and nothing after go_reader may run: {step}"
+    assert step.stop and step.stop.organ == "go_reader"
+    refusal = (world.repo / "logs" / "receipts" / "MOMENT-MERGE-GO-READER-OUTPUT.txt").read_text(encoding="utf-8")
+    assert "REFUSED" in refusal and f"GO-{BATCH}.md" in refusal
+    assert step.unreached == ["review_packet", "gates", "test_pairing"]
+
+
+def test_no_handback_line_means_lane_end_does_not_run(tmp_path_factory):
+    world = _fresh_world(tmp_path_factory, "negative_no_handback", full=False)
+    world.git("worktree", "add", "-q", "-b", f"worktree-{NEGATIVE_SLUG}", f".claude/worktrees/{NEGATIVE_SLUG}")
+    worktree = world.repo / ".claude" / "worktrees" / NEGATIVE_SLUG
+    world.lane_commit(worktree)
+    world.write_session(NEGATIVE_SLUG, None)              # a session file, a finished-looking commit, NO closing line
+    world.stop_hook(worktree)                              # the real Stop guard
+    receipts = worktree / "logs" / "receipts"
+    assert not (receipts / "MOMENT-LANE-END-HOOK.json").exists(), "the guard claimed a lane that has not finished"
+    moment = world.moment("lane-end", cwd=worktree)        # and the moment itself refuses on its declared precondition
+    assert moment.exit_code == 0
+    assert [o.status for o in moment.organs] == ["SKIPPED-PRECONDITION"]
+    assert sorted(p.name for p in receipts.glob("MOMENT-LANE-END-*.json")) == ["MOMENT-LANE-END-PRECONDITION.json"]
+    assert not (world.transport / "to-browser" / f"LANE-END-{NEGATIVE_SLUG}.md").exists(), "a report was delivered"
