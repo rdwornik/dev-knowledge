@@ -1,0 +1,12 @@
+---
+id: "[#935]"
+title: "Wave 3 lane F (lane-connection-test) -- prove the loop is connected, end to end, with receipts"
+status: open
+priority: P1
+size: M
+theme: "[E2] Enforced governance"
+story: "[S3] Turn advisory guards into enforced gates"
+generates: BACKLOG.md
+---
+
+- [#935] [P1][M] **Wave 3 lane F (lane-connection-test) -- prove the loop is connected, end to end, with receipts** - filed by LANE-W3-A per `to-cc/DECLARE-WAVE3-CONNECT-2026-09-21.md` hard precondition 2 (every wave row is filed before any other wave-3 lane fires); frozen contract `LANE-W3-F-connection-test.md`, branch `worktree-lane-connection-test`, a lane of the loop `[#929]` evaluated. Value: This is the answer to the question the operator has asked all week: is the harness connected? It either demonstrates a task travelling the whole loop, leaving a receipt at every moment, or it stops at the first moment that does not fire — and that stop is wave 4's queue. · Done when: carried verbatim from the frozen contract — 1. **One toy task**, in a throwaway repository created by the test, travels: spine stages 1-12 → `dispatch.py launch` (provider mocked at the process boundary, nothing real spawned) → `pre-launch` → `lane-start` → a fixture lane that commits and writes its HANDBACK line → `lane-end` → `merge` (with a fixture GO file) → `teardown` → `batch-close`. 2. **The assertion is the receipts:** one receipt per moment, in order, each with exit 0, and the digest names the task. 3. **Negative paths, each its own test:** an occupied slug stops at `pre-launch`; a missing GO file stops at `merge`; no HANDBACK line means `lane-end` does not run. 4. **Operator touches are counted:** the test records every file a human would have had to write and asserts there are at most three (task, GO, and nothing else in the loop). 5. **Real, not simulated, where it matters:** every moment runs through the real `doit -f scripts/dodo.py moment:<name>` and the real `harness.yaml` rows; only the provider spawn and the git remote are faked. 6. **Report:** if the loop stops, the session file names the moment, the organ and the receipt where it stopped — that is the deliverable, not a failure to hide. 7. **Codex terra review** recorded; **handback** per common rules. · refs `to-cc/WAVE3-COMMON-2026-09-21.md`, `to-cc/DECLARE-WAVE3-CONNECT-2026-09-21.md`, `[#929]` · kill-candidates: none -- each wave-3 lane wires an organ that already exists; no open row is absorbed
