@@ -3,6 +3,8 @@
 > **Status:** record. Lane `lane-launch-adapter`, branch `worktree-lane-launch-adapter`. Carrier: LANE-W3-B. This is the
 > adversarial pass on the `launch` INTERFACE; the terra diff review is `2026-09-21-codex-lane-launch-adapter.md`.
 
+**Consumer:** `[#931]` — the row this review served (Wave 3 lane B, `lane-launch-adapter`): its Done-when item 7 requires the Codex sol adversarial pass on the `launch` interface, and this file is that pass.
+
 ## How it was run
 
 ```
