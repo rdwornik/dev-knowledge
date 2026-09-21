@@ -1,19 +1,16 @@
-"""Wave-3 L3 split -- the hub PLANS and GOVERNS a lane, a caller-side shim SPAWNS it. RED-first.
+"""The contract table, the prompts directory and the commit witness -- the parts of the wave-3 split
+that survive LANE-W3-B.
 
-Two rulings bind this file (protocols/BUILD-LIST.md Decisions, 2026-09-19 "Dispatch / Layer 2"):
+SUPERSEDED BY R-W3-2 (2026-09-21): the 2026-09-19 split said the hub PLANS and GOVERNS while a
+caller-side shim SPAWNS, and that a governor stops a lane past its cap. R-W3-2 moved the spawn into
+`dispatch.py launch` and made `govern` a monitor that never stops a lane (N3). The tests that
+pinned the old split -- "the hub spawns nothing", "no launch verb", "a bound lane over its cap is
+stopped" -- were replaced by `tests/test_dispatch_launch.py`, which asserts the opposite on purpose.
 
-  LAYER-2   the hub ships the code, the caller runs it. `scripts/dispatch.py` plans and governs;
-            it never starts a lane. CLAUDE.md section 5 rule 4.
-  TOKEN CAP a default `--bg --worktree` launch binds its OWN usage with no `--slug-dir`; a launch
-            whose usage cannot be bound, or that runs over its cap, is REFUSED / STOPPED -- never
-            left running and reported as ungoverned.
-
-Nothing here launches `claude`, `codex` or `gh`. The control-plane seams (`bind_lane`, `stop_lane`,
-`lane_alive`) are replaced by recorders, and the session store is a temp directory.
+Nothing here launches `claude`, `codex` or `gh`.
 """
 from __future__ import annotations
 
-import ast
 import json
 import subprocess
 from pathlib import Path
@@ -57,112 +54,10 @@ def _transcript(root: Path, session_id: str, tokens: int, directory: str = "any-
     return path
 
 
-class _Seams:
-    """Recorders for the three control-plane calls a govern run makes."""
-
-    def __init__(self, monkeypatch, binding=None, alive=True):
-        self.stopped: list[str] = []
-        monkeypatch.setattr(d, "bind_lane", lambda lane_id: binding)
-        monkeypatch.setattr(d, "find_lane_by_slug", lambda slug: None)
-        monkeypatch.setattr(d, "stop_lane", lambda lane_id: self.stopped.append(lane_id) or True)
-        monkeypatch.setattr(d, "lane_alive", lambda lane_id: alive)
-
-
-def _govern(root: Path, *extra: str, cap: str = "1000"):
-    return CliRunner().invoke(d.cli, ["govern", "abcd1234", "--slug", "wave3-witness",
-                                      "--token-cap", cap, "--interval", "0",
-                                      "--sessions-root", str(root), *extra])
-
-
 # --- DONE-WHEN 1: an unbindable launch is REFUSED and its lane STOPPED, never left running ------
-
-def test_a_lane_whose_usage_cannot_be_read_is_stopped_not_left_running():
-    """The unit form. Before the fix an unobservable lane was REPORTED ungoverned and left to run
-    -- 'fails loud, does not cap'. Now it is stopped, and the exit code is a refusal."""
-    stopped = []
-    verdict = d.govern(cap=100, read_usage=lambda: None, stop=lambda: stopped.append(True) or True,
-                       sleep=lambda s: None, blind_polls=3)
-    assert stopped == [True], "an unbindable lane must be STOPPED, not left running"
-    assert verdict.exit_code == d.EXIT_REFUSED != d.EXIT_UNGOVERNED
-
-
-def test_a_default_launch_that_cannot_be_bound_is_refused_and_the_lane_stopped(
-        tmp_path, monkeypatch):
-    """No `--slug-dir`, and the lane's listing entry (its worktree is the slug's) carries no session
-    id: nothing to bind. REFUSED, stopped -- it is a lane whose identity IS verified."""
-    seams = _Seams(monkeypatch, binding=d.LaneBinding("", CWD))
-    result = _govern(tmp_path)
-    assert seams.stopped == ["abcd1234"], "the unbound lane must be stopped"
-    assert result.exit_code == d.EXIT_REFUSED
-    assert "UNGOVERNED" not in result.output
-
-
-def test_a_bound_lane_whose_transcript_never_appears_is_refused_and_stopped(
-        tmp_path, monkeypatch):
-    """Bound to a session id, but no transcript for it exists: the usage is still unreadable."""
-    seams = _Seams(monkeypatch, binding=d.LaneBinding(SID, CWD))
-    result = _govern(tmp_path)
-    assert seams.stopped == ["abcd1234"]
-    assert result.exit_code == d.EXIT_REFUSED
-
-
-def test_a_bound_lane_over_its_cap_is_stopped_with_no_slug_dir(tmp_path, monkeypatch):
-    """The transcript is found by SESSION ID under an arbitrary directory -- no slug matching,
-    no `--slug-dir`. Its usage passes the cap: the lane is stopped, exit is CAP EXCEEDED."""
-    sid = "11111111-2222-3333-4444-555555555555"
-    _transcript(tmp_path, sid, tokens=5_000)
-    seams = _Seams(monkeypatch, binding=d.LaneBinding(sid, CWD))
-    result = _govern(tmp_path, cap="1000")
-    assert seams.stopped == ["abcd1234"]
-    assert result.exit_code == d.EXIT_CAP_EXCEEDED
-    assert "5000" in result.output and "1000" in result.output
-
-
-def test_a_bound_lane_under_its_cap_is_left_alone(tmp_path, monkeypatch):
-    sid = "11111111-2222-3333-4444-555555555555"
-    _transcript(tmp_path, sid, tokens=50)
-    seams = _Seams(monkeypatch, binding=d.LaneBinding(sid, CWD), alive=False)
-    monkeypatch.setattr(d, "commit_witness", lambda slug: ("DONE", "1 commit"))
-    result = _govern(tmp_path, cap="1000")
-    assert seams.stopped == [] and result.exit_code == 0
 
 
 # --- DONE-WHEN 2: the split ---------------------------------------------------------------------
-
-def test_the_hub_dispatch_module_spawns_no_lane():
-    """No `Popen`, no `os.system`, and no `subprocess.run` of a PLAN's argv. `subprocess.run` is
-    still allowed for the control plane (`claude stop`, `claude agents`, `git`), which is not a
-    spawn of a lane."""
-    tree = ast.parse((REPO / "scripts" / "dispatch.py").read_text(encoding="utf-8"))
-    spawns = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Attribute) and node.attr in {"Popen", "system", "startfile"}:
-            spawns.append(node.attr)
-        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
-                and node.func.attr == "run" and node.args
-                and isinstance(node.args[0], ast.Attribute) and node.args[0].attr == "argv"):
-            spawns.append("run(plan.argv)")
-    assert spawns == []
-
-
-def test_the_cli_exposes_plan_and_govern_and_no_launch_verb():
-    assert {"plan", "govern"} <= set(d.cli.commands)
-    assert "launch" not in d.cli.commands, "a `launch` verb is a hub script that spawns a lane"
-
-
-def test_the_shim_ships_from_the_hub_and_has_no_model_or_effort_default():
-    """[#717]: a default model silently re-decides the most expensive constant on the line."""
-    assert SHIM.is_file(), f"the caller-side shim must ship from the hub at {SHIM}"
-    text = SHIM.read_text(encoding="utf-8")
-    assert "$TokenCap" in text and "Mandatory" in text
-    assert "'opus'" not in text and '"opus"' not in text
-    assert "[string]$Model =" not in text and "[string]$Effort =" not in text
-
-
-def test_the_shim_spawns_and_the_hub_plans_and_governs():
-    text = SHIM.read_text(encoding="utf-8")
-    assert "dispatch.py" in text and " plan" in text and "govern" in text
-    assert "--bg" not in text, "the argv comes from the hub's plan; the shim hard-codes none of it"
 
 
 # --- DONE-WHEN 4: the three preserved behaviours ------------------------------------------------
@@ -265,12 +160,3 @@ def test_done_means_a_commit_git_that_cannot_be_asked_is_unwitnessed(tmp_path, m
     assert d.commit_witness("wave3-witness")[0] == "UNWITNESSED"
 
 
-def test_a_lane_that_finishes_under_cap_but_committed_nothing_does_not_exit_zero(
-        tmp_path, monkeypatch):
-    sid = "11111111-2222-3333-4444-555555555555"
-    _transcript(tmp_path, sid, tokens=50)
-    _Seams(monkeypatch, binding=d.LaneBinding(sid, CWD), alive=False)
-    monkeypatch.setattr(d, "commit_witness", lambda slug: ("FAILED", "no commit on the branch"))
-    result = _govern(tmp_path, cap="1000")
-    assert result.exit_code == d.EXIT_NO_COMMIT != 0
-    assert "FAILED" in result.output

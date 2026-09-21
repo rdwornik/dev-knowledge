@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-21 (m) - CC (Opus 5, integrator wave 3): LANE W3-B merged -- one command launches a lane, refuses an occupied slug or a batch with no integrator, and never stops a lane
+
+**Anchors:** `cb37ccad` (sol record consumer) · `9c69fc44` (terra record) · `925ffa7b` (Critical fix) · `3a3a9f00` (sol fixes) · `9a4120ee` (launch) · `15ee8e96` (RED-first witness) -- `worktree-lane-launch-adapter`, merged --no-ff.
+
+**Did:** merged W3-B two-step from the primary. `scripts/dispatch.py launch <contract>` reads the contract's Dispatch fields, runs `doit moment:pre-launch`, and only on a pass spawns `claude --bg -n <slug>` (or `codex exec`), writing a launch receipt and a job-to-lane record (R-W3-2). A refusal spawns nothing and exits 5; a started lane it cannot identify exits 8 and says it is running. `govern` is now a monitor: it records spend against the cap and never stops, pauses or kills a lane; the `stop` verb is gone. `templates/dispatch-shim.ps1` becomes a thin wrapper over `launch` and is not deployed. Before this merge the integrator bound its seat for WAVE3 (`seat_registry.py bind`), which is what lets `pre-launch` pass for this batch.
+
+**Result:** Codex sol adversarial pass (collision window, unrecorded starts, hostile Dispatch values, skipped optional organ) and terra 1/1/0/0, all fixed with red tests first. Refused once at `9c69fc44`: the sol record declared no consumer, a ship-gate hard-fail; the lane added `[#931]` at `cb37ccad`. Pairing and gates: `SESSION-integrator-wave3-2026-09-21.md`. **Changes:** `scripts/dispatch.py`, `templates/dispatch-shim.ps1`, `tests/test_dispatch_launch.py` (new), five dispatch test files, two Codex records, `docs/audits/README.md`, `ecosystem/doc-counts.md`, `JOURNAL.md`. **Next:** W3-F, the connection test.
+
 ### 2026-09-21 (l) - CC (Opus 5, integrator wave 3): LANE W3-D merged -- every finished lane reports itself once, from a real Stop event, without holding the turn
 
 **Anchors:** `62e248f2` (Codex fixes) · `597347a1` (guard) · `47e7b242` (RED-first witness) -- `worktree-lane-end-hook`, merged --no-ff.

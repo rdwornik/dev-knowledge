@@ -1,14 +1,17 @@
-"""Codex terra fourth pass (docs/audits/2026-09-19-codex-wave3-dispatch-split-rereview-3.md).
+"""Codex terra fourth pass (docs/audits/2026-09-19-codex-wave3-dispatch-split-rereview-3.md), as it
+stands after LANE-W3-B.
 
-CRITICAL 1 -- a stale ENDED record for the same worktree must not be accepted as the lane.
-CRITICAL 2 -- the shim needs a hub verb that stops a lane by its worktree, so a governor that failed
-to even start can be recovered; that verb is `stop`.
+CRITICAL 1 -- a stale ENDED record for the same worktree must not be accepted as the lane. Still
+true: a monitor bound to a `done` record would record a finished lane's spend as the new lane's.
+CRITICAL 2 -- the shim needed a hub verb that stops a lane by its worktree. That verb (`stop`) was
+REMOVED by R-W3-2 / N3: nothing in `dispatch.py` may end a run. The test below asserts it is gone.
 """
 from __future__ import annotations
 
 import json
 import subprocess
 
+import pytest
 from click.testing import CliRunner
 
 import dispatch as d
@@ -18,6 +21,11 @@ _CWD = "C:\\repo\\.claude\\worktrees\\wave3-witness"
 _LIVE = {"id": "abcd1234", "sessionId": _SID, "state": "working", "cwd": _CWD}
 _STALE = {"id": "deadbeef", "sessionId": "99999999-0000-0000-0000-000000000000",
           "state": "done", "cwd": _CWD}
+
+
+@pytest.fixture(autouse=True)
+def _receipts_in_tmp(tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_RECEIPTS_DIR", str(tmp_path / "receipts"))
 
 
 def _listing(*entries):
@@ -32,40 +40,19 @@ def _transcript(root, session_id, tokens):
     (target / f"{session_id}.jsonl").write_text(json.dumps(record) + "\n", encoding="utf-8")
 
 
-def test_a_stale_ended_record_for_the_same_worktree_is_not_accepted_as_the_lane(
-        tmp_path, monkeypatch):
-    """CRITICAL (dispatch.py:783): a false shim id that names an old `done` record for the same
-    worktree used to bind, get stopped, and leave the newly launched live lane uncapped."""
-    _transcript(tmp_path, _SID, tokens=5_000)
-    stopped = []
+def test_a_stale_ended_record_for_the_same_worktree_is_not_accepted_as_the_lane(tmp_path, monkeypatch):
+    _transcript(tmp_path / "sessions", _SID, tokens=5_000)
     monkeypatch.setattr(d, "_control", _listing(_STALE, _LIVE))
-    monkeypatch.setattr(d, "stop_lane", lambda lane_id: stopped.append(lane_id) or True)
+    monkeypatch.setattr(d, "commit_witness", lambda slug: ("DONE", "1 commit"))
+    binding = d.bind_lane("deadbeef")
+    assert binding is not None and binding.live is False, "the stale record reads as ended"
+    assert d._bind("deadbeef", "wave3-witness", 2, 0)[0] == "abcd1234", "the LIVE lane is the one bound"
     result = CliRunner().invoke(d.cli, ["govern", "deadbeef", "--slug", "wave3-witness",
-                                        "--token-cap", "1000", "--interval", "0",
-                                        "--bind-polls", "2", "--sessions-root", str(tmp_path)])
-    assert "deadbeef" not in stopped, "a finished record must never be the verified lane"
-    assert stopped == ["abcd1234"] and result.exit_code == d.EXIT_CAP_EXCEEDED
+                                        "--token-cap", "1000", "--interval", "0", "--bind-polls", "2",
+                                        "--max-polls", "1", "--sessions-root", str(tmp_path / "sessions")])
+    assert result.exit_code == d.EXIT_OVER_CAP
 
 
-def test_stop_verb_stops_the_one_live_lane_for_a_worktree_and_exits_5(monkeypatch):
-    stopped = []
-    monkeypatch.setattr(d, "_control", _listing(_STALE, _LIVE))
-    monkeypatch.setattr(d, "stop_lane", lambda lane_id: stopped.append(lane_id) or True)
-    result = CliRunner().invoke(d.cli, ["stop", "--slug", "wave3-witness"])
-    assert stopped == ["abcd1234"] and result.exit_code == d.EXIT_REFUSED
-
-
-def test_stop_verb_with_no_live_lane_stops_nothing_and_exits_4(monkeypatch):
-    stopped = []
-    monkeypatch.setattr(d, "_control", _listing(_STALE))
-    monkeypatch.setattr(d, "stop_lane", lambda lane_id: stopped.append(lane_id) or True)
-    result = CliRunner().invoke(d.cli, ["stop", "--slug", "wave3-witness"])
-    assert stopped == [] and result.exit_code == d.EXIT_UNGOVERNED
-    assert "running" in result.output.lower()
-
-
-def test_stop_verb_whose_stop_fails_exits_4(monkeypatch):
-    monkeypatch.setattr(d, "_control", _listing(_LIVE))
-    monkeypatch.setattr(d, "stop_lane", lambda lane_id: False)
-    result = CliRunner().invoke(d.cli, ["stop", "--slug", "wave3-witness"])
-    assert result.exit_code == d.EXIT_UNGOVERNED
+def test_there_is_no_verb_that_stops_a_lane_by_its_worktree():
+    assert "stop" not in d.cli.commands
+    assert not hasattr(d, "stop_lane") and not hasattr(d, "_recover")
