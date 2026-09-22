@@ -119,7 +119,7 @@ The more consequential finding for the record remains procedural, now compoundin
 - **Proposed fix:** Same fix as the `ruff` row above — regenerate/reconcile the table's Stage column from the live config in one pass; consider generating the table instead of hand-maintaining it, per the repo's own "never restate a computed surface in prose" convention.
 - **Note:** Same root cause as the HIGH `ruff`-row finding, distinct table cells. `audit-health` kept at MED (contradicts `ARCHITECTURE.md`'s already-reconciled text on the same fact); the other four rows kept at LOW (comparatively lower-stakes hooks, same fix).
 
-### Low (5)
+### Low (6)
 
 **PERSISTING — carried since ≥2026-08-10 (43 days), tonight's skeptic revised severity MED→LOW** — the CLAUDE.md/AGENTS.md split's byte-count justification is stale
 - **Claim:** "a wholesale copy [of CLAUDE.md into AGENTS.md] measures 43.50 KiB against Codex's 32 KiB `project_doc_max_bytes` cap and truncates silently" — stated as present-tense fact.
