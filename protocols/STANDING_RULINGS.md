@@ -4418,6 +4418,142 @@ site: docs/decisions/ADR-120-the-spine-is-the-whole-loop.md | pattern: D3 — AM
 and AI-R4 are open-ended written-out entries; AI-R6 retires when `[#920]` lands; AI-R7 retires when the
 architect re-rules AM-5.
 
+## AJ. The 2026-09-20/21/22 landing-decisions window (LANE-W4-5, architect, 2026-09-22)
+
+Every `DECLARE-*`/`AMEND-*`/`ANSWER-*` file on the transport dated 2026-09-20, -21 or -22 carrying
+`carried-by: OPEN`, inventoried and landed by `LANE-W4-5-landing-decisions.md`. Two are **out of
+scope for this lane** and stay OPEN — see the note at the end of this section.
+
+### AJ-1 · Branch naming widened to the general lane form (ANSWER-lane-l1-spine-moments-2026-09-20, A1-A3)
+
+Already landed. The validator's `is_lane_branch` was widened from the single batch grammar
+(`worktree-lane-<letter>-<id>-<slug>`) to the general form `worktree-lane-<slug>`, so teardown and
+the ADR-110 lane-ceiling exemption stop being blind to every non-batch lane the system runs.
+
+```landed
+site: scripts/validate_branch_naming.py | pattern: architect ruling 2026-09-20, `ANSWER-lane-l1-
+```
+
+### AJ-2 · The night's wiring mechanism, receipts and no-cap rule (DECLARE-NIGHT-ARCHITECTURE-2026-09-20, N1-N7)
+
+Already landed. N1 (a layer ends by writing a file; `doit` wakes on four native triggers) and N2
+(every organ leaves a receipt) are `ecosystem/harness.yaml`'s six-moment design; N3 (no cap may
+ever stop a task) is the objective function every wave since has restated verbatim ("no cap ends a
+task") and is enforced in code by `dispatch.py`'s `govern`-as-monitor (R-W3-2 superseded the
+cap-killing shim). N4 (a declared-but-unbuilt organ is dated debt, not a silent drop) is the fates
+mechanism (`manual_until` / `retire_candidate`) at `harness.yaml`. N5 (impacted tests per lane, full
+suite at CI) and N7 (one integrator closed loop, one GO per batch) restate standing conventions
+(`AGENTS.md` "Suite cadence"; STANDING_RULINGS AH-B2).
+
+```landed
+site: ecosystem/harness.yaml | pattern: R-W3-4
+```
+```landed
+site: scripts/dispatch.py | pattern: R-W3-2
+```
+
+### AJ-3 · Build order (DECLARE-LOOP-BUILD-ORDER-2026-09-20)
+
+Already landed. The six-lane sequential build order (SPINE-UNBLOCK, STAGE-15 gates, STAGE-16
+merge, STAGE-14 review, STAGE-13 run, first full run) is restated, condensed, as ADR-120 D7's
+build order, and executed lane-by-lane across wave 3 (`[#930]`-`[#935]`).
+
+```landed
+site: docs/decisions/ADR-120-the-spine-is-the-whole-loop.md | pattern: D7 — Build order
+```
+
+### AJ-4 · Wave-3 connect rulings (DECLARE-WAVE3-CONNECT-2026-09-21, R-W3-1..9)
+
+Already landed — wave 3 merged 6/6 (`[#930]`-`[#935]`) and each ruling has a code home: R-W3-1
+(occupancy moved caller-side to `pre-launch`) and R-W3-3 (lane-end fires once; `batch-close` is the
+integrator's moment) are in `ecosystem/harness.yaml`; R-W3-2 (`dispatch.py launch`, `govern` as
+monitor) is `scripts/dispatch.py`; R-W3-4 (the 162-nowhere census counts real callers) is the fates
+mechanism in `harness.yaml`; R-W3-5 (`merge_receipt.py models` defaults `--worktree`) and R-W3-7
+(`go_reader.py`) are `scripts/merge_receipt.py` and `scripts/go_reader.py`; R-W3-8 (adversarial role
+pin: sol default) is recorded in `docs/audits/2026-09-21-codex-launch-adapter-sol-adversary.md`;
+R-W3-9 (the general lane-branch form) is AJ-1 above, same ruling, two DECLAREs.
+
+```landed
+site: scripts/dispatch.py | pattern: R-W3-2
+```
+```landed
+site: scripts/go_reader.py | pattern: R-W3-7
+```
+```landed
+site: scripts/merge_receipt.py | pattern: R-W3-5
+```
+
+### AJ-5 · The browser/CC equilibrium, restated from evidence (DECLARE-EQUILIBRIUM-2026-09-21, E1-E6)
+
+Landed by this lane. E1-E5 (what the browser seat does and does not do; state reaches it through
+four named events, never a heartbeat) are the 2026-09-22 amendment to ADR-87. E6 (wave-4
+provisional shape) is not a ruling to land — it is the wave-4 rulings themselves (AJ-6 below) plus
+the wave-5 deferrals filed as rows (AJ-7 below).
+
+**The `HANDOFF_BOOT.md` pointer the DECLARE also names is NOT landed.** The file measured
+17,987 of its 18,000-byte `boot_byte_budget` when this lane ran — 13 bytes of headroom, not enough
+for an honest one-line pointer without cutting existing content this lane does not own the
+judgment call to cut. See ADR-87's amendment, "Honest gap, recorded rather than forced."
+
+```landed
+site: docs/decisions/ADR-87-equilibrium-contract.md | pattern: Amendment — 2026-09-22
+```
+
+### AJ-6 · Wave-4a rulings, adopted for the wave (DECLARE-WAVE4A-2026-09-22, R-W4-1..9)
+
+**Recorded here as the ruling of record; most land in code through the sibling wave-4 lanes
+(`[#930]`-style rows filed by W4-1), running in parallel with this one and not yet merged at the
+time this section was written — do not read the absence of a `landed:` block below as the ruling
+being unadopted.**
+
+- **R-W4-1** an organ's recorded fate is dated debt: `manual_until` is a WARN until its date, a
+  hard-fail after; `retire_candidate: true` is a WARN for the operator; a receipt within 30 days is
+  OK. The census keeps reading `harness.yaml` fates.
+- **R-W4-2** known reds are a batch-level registry — one base run per batch, compared against by
+  every lane's pairing; an all-digit short sha is a valid sha (closes the AJ-note-worthy gap `[#936]`
+  already files against the pairing).
+- **R-W4-3** the batch digest reads lane-end reports and the integrator's receipt, never
+  `git log main..HEAD` after a merge.
+- **R-W4-4** integrator chain order: `merge_receipt open` before `models`; `merge_receipt close`
+  before `moment:teardown`.
+- **R-W4-5** pre-handback self-check — a lane runs the integrator's own hard-fail checks (audit
+  health, the ratchet test, review-record consumer) on its own branch before its HANDBACK line.
+- **R-W4-6** the launcher takes the batch from its environment or the contract, so `launch` never
+  refuses for a missing batch name when an integrator is bound.
+- **R-W4-7** tests are isolated from the live transport by the fixture shim W3-F built; a test that
+  writes to H: is a defect.
+- **R-W4-8** every batch session stops its own polls and heartbeats at close.
+- **R-W4-9** closing rows is the operator's act — a lane prepares closure evidence; it closes
+  nothing. (This lane's own closure evidence for `[#930]`-`[#935]` is in its handback, per this
+  rule, not in this file.)
+
+### AJ-7 · Wave-4b and wave-5 deferred items — filed as rows, one per item
+
+Every item under DECLARE-WAVE4A's "Deferred to wave 4b" and DECLARE-EQUILIBRIUM's E6 "Deferred to
+wave 5" now has a task row; the one item named in both (the fair `why` test) is one row citing
+both, not two. `[#937]` state as data · `[#938]` contracts generated from rows · `[#939]` the
+secrets field · `[#940]` the guards decision · `[#941]` the tool-trial organ · `[#942]` LiteLLM
+behind the stage-13 adapter · `[#943]` the fair `why` test · `[#944]` unbind verb for the
+integrator seat · `[#945]` friction ratio · `[#946]` root-cause taxonomy · `[#947]` Gemini routing
+pin · `[#948]` events that file rows · `[#949]` install the loop in a second repo.
+
+### Out of scope for this lane
+
+`AMEND-HANDOFF-BOOT-DISPATCH-SECTION-2026-09-20-SUPERSEDED-wrong-command.md` and
+`AMEND-HANDOFF-BOOT-INTEGRATOR-SECTION-2026-09-20.md` both name `protocols/HANDOFF_BOOT.md` as
+their landing home, inserting full verbatim sections (dispatch mechanics; integrator mechanics).
+`HANDOFF_BOOT.md` is not in this lane's owned-file set (`STANDING_RULINGS.md`, `docs/decisions/`,
+`LESSONS.md`, task rows, transport `carried-by:` lines). Both files' `carried-by:` stays `OPEN` on
+the transport; landing them needs a lane whose owned files include `HANDOFF_BOOT.md` **and** room
+under `boot_byte_budget` to add them — the file has 13 bytes of headroom (AJ-5). (The
+dispatch-section file's own name records it superseded by a later, uncited correction — a second
+open question for whichever lane picks this up.) The Done-contract's own ADR-87 pointer into
+`HANDOFF_BOOT.md`'s role section is in the same position — see AJ-5's honest-gap note.
+
+**Expiry (section-wide):** none of AJ-1 through AJ-5 expire — they are historical record of an
+already-landed or now-landed decision. AJ-6 retires entry-by-entry as each wave-4 sibling lane
+merges its `landed:` evidence; this section is not the place that evidence lands.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
