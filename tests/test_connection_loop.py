@@ -62,7 +62,21 @@ INTEGRATOR_SESSION = "toy-integrator"
 NEGATIVE_SLUG = "lane-20260921-wire-toy-negative"
 STOP_TIMEOUT_S = 1800
 
-pytestmark = pytest.mark.slow
+#: Done-contract 4/5: this module's tests are NOT independently parallelizable -- exactly one heavy
+#: operation (the shared walk, or a negative-path test) may hold the host's uv/git/doit subprocess
+#: tree at a time (`_exclusive` below already serializes them against EACH OTHER), so a second xdist
+#: WORKER PROCESS sitting alongside it adds pure overhead: another Python interpreter with the full
+#: `dispatch`/`audit`/`click`/`pyyaml` import graph loaded, live at the exact moment the walk's own
+#: subprocess tree peaks. On a host already thin on headroom (this box: ~3.7 GB free of 27.7 GB,
+#: shared with sibling batch lanes) that fixed second-worker cost was enough to occasionally tip a
+#: post-spawn step of `dispatch.py launch` (inside the ONE real walk, read identically by every
+#: consumer -- `_exclusive`'s lock already rules out a second, divergent walk ever being computed)
+#: into a bare uncaught exception, which Click's CliRunner reports as exit 1 with no organ to blame
+#: -- the "launch-step trio" (`launched_once...`, `human_writes...`, `loop_stops...`) all read that
+#: SAME single walk and fail together. `xdist_group` pins every test in this module to ONE worker:
+#: under `-n 2` the second worker simply never loads this module's import graph, which is the
+#: shared-state cost actually inside this module's control (the box's own headroom is not).
+pytestmark = [pytest.mark.slow, pytest.mark.xdist_group(name="connection_loop")]
 
 #: The stops the walk recorded when W3-F ran (2026-09-21). Pinned so a change in EITHER direction is loud: a stop that
 #: disappears means wave 4 fixed it (delete its row); a new one means the loop moved. Each row is (moment, organ).
@@ -558,6 +572,27 @@ def _label_fixture_artifacts(walk: Walk, world: World) -> None:
                           fixture_artifacts=artifacts)
 
 
+def _label_launch_failure(walk: Walk, launched) -> None:
+    """If the walk just stopped at pre-launch, attach `dispatch.py launch`'s own CliRunner output
+    (and exception, if the CLI raised something Click did not turn into a typed exit code) to the
+    Stop's detail. `Step.stop`'s generic "every organ receipt is ok but the moment exited N" names
+    no organ to blame BY DESIGN when every declared pre-launch organ's receipt is green (Done-
+    contract 4) -- that shape is exactly what a bare, uncaught exception in `launch_cmd` AFTER a
+    successful spawn produces (Click's `CliRunner` reports exit 1 for anything that is not a typed
+    `DispatchRefused` subclass), and without the CLI's own text a reader has nothing to go on."""
+    if not (walk.stops and walk.stops[-1].moment == "pre-launch"):
+        return
+    detail = (launched.output or "").strip()
+    if launched.exception is not None:
+        detail = (detail + f"\nexception: {launched.exception!r}").strip()
+    if not detail:
+        return
+    last = walk.stops[-1]
+    walk.stops[-1] = Stop(last.moment, last.organ, last.receipt,
+                          last.detail + " -- dispatch.py launch's own output: " + detail[-2000:],
+                          fixture_artifacts=last.fixture_artifacts)
+
+
 def _walk(world: World, walk: Walk, mp: pytest.MonkeyPatch) -> None:
     world.write_task()
     _record(walk, world.spine())
@@ -572,6 +607,7 @@ def _walk(world: World, walk: Walk, mp: pytest.MonkeyPatch) -> None:
     pre = world._step("pre-launch", launched.exit_code, world.repo / "logs" / "receipts",
                       [(o["id"], o["receipt"]) for o in world._declared_organs("pre-launch")])
     _record(walk, pre)
+    _label_launch_failure(walk, launched)
     walk.integrator["launch_exit"] = launched.exit_code
     walk.integrator["spawns"] = len(provider.calls)
     if launched.exit_code != 0 or not provider.calls:
