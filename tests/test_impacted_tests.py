@@ -115,6 +115,39 @@ def test_an_unrecognised_path_falls_back_to_the_full_suite():
     assert sel.full_suite
 
 
+# --- rule 5: non-Python source families FPG-1's AST pass cannot see -------------
+# W4-4 Done-contract 3: `templates/*.ps1` and `tests/fixtures/**` used to fall through
+# every rule above to the "unmapped" fail-safe -- correct but total, and the queue
+# item this closes is that it made a pairing over them partial rather than precise.
+
+@pytest.mark.live_repo
+def test_a_changed_template_selects_the_tests_that_reference_it():
+    """A `.ps1` template has no import edge; the connection is the literal filename
+    a test uses to find it (`templates/dispatch-shim.ps1` -> `"dispatch-shim.ps1"`)."""
+    sel = impacted_tests.select(REPO_ROOT, ["templates/dispatch-shim.ps1"])
+    assert "tests/test_dispatch_shim.py" in sel.test_files
+    assert not sel.full_suite
+
+
+@pytest.mark.live_repo
+def test_a_changed_fixture_selects_the_tests_that_reference_its_directory():
+    """A fixture file is data, not an import; the connection is the literal fixture
+    directory name a test uses to find it (`fixtures/connection_loop` -> `"connection_loop"`)."""
+    sel = impacted_tests.select(REPO_ROOT, ["tests/fixtures/connection_loop/sitecustomize.py"])
+    assert "tests/test_connection_loop.py" in sel.test_files
+    assert not sel.full_suite
+
+
+@pytest.mark.live_repo
+def test_a_fixture_change_does_not_fall_back_to_the_doc_marker_tier():
+    """Before this rule, a `.md` fixture (like `negative-contract.md`) fell through to
+    the doc rule and selected only `live_repo`-marked files -- not `test_connection_loop.py`,
+    which carries no such marker, so the actual covering test was silently dropped."""
+    sel = impacted_tests.select(REPO_ROOT, ["tests/fixtures/connection_loop/negative-contract.md"])
+    assert "tests/test_connection_loop.py" in sel.test_files
+    assert sel.marker is None
+
+
 # --- the precision leg: the contract's named trap -------------------------------
 
 @pytest.mark.live_repo
