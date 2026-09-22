@@ -30,6 +30,7 @@ FIXTURE-ONLY SUBSTITUTIONS, each named so it is not mistaken for a mock of a mom
 """
 from __future__ import annotations
 
+import contextlib
 import functools
 import json
 import logging
@@ -87,11 +88,16 @@ class OrganReceipt:
 
 @dataclass(frozen=True)
 class Stop:
-    """Where the loop did not fire: the moment, the organ, the receipt that says so, and why."""
+    """Where the loop did not fire: the moment, the organ, the receipt that says so, and why.
+
+    `fixture_artifacts` names known TOY-COPY-ONLY causes bundled into this same red (Done-contract
+    2) -- e.g. a commit-date check that fails because the throwaway repo has one "seed" commit, not
+    real history. Empty for a stop that is (as far as this walk can tell) entirely the loop's own."""
     moment: str
     organ: str
     receipt: str
     detail: str
+    fixture_artifacts: tuple[str, ...] = ()
 
 
 @dataclass
@@ -136,7 +142,8 @@ class Walk:
         raw = json.loads(text)
         raw["steps"] = [Step(s["moment"], s["exit_code"], [OrganReceipt(**o) for o in s["organs"]], s["unreached"])
                         for s in raw["steps"]]
-        raw["stops"] = [Stop(**s) for s in raw["stops"]]
+        raw["stops"] = [Stop(**{**s, "fixture_artifacts": tuple(s.get("fixture_artifacts", ()))})
+                       for s in raw["stops"]]
         return cls(**raw)
 
 
@@ -243,6 +250,14 @@ class World:
             folder.mkdir(parents=True, exist_ok=True)
         self.standing.append("`~/.claude/jobs` exists (no_leftovers reads it; an absent directory is 'unreadable')")
         self._fake_claude()
+        # NOT armed here, and that absence is deliberate, not an oversight (Done-contract 2):
+        # `scripts/arm_hooks.py` was tried and reverted -- it installs REAL pre-push hooks
+        # (block-ff-push, block-unanchored-push), and this fixture's own bootstrap choreography
+        # (write_task's direct push to its own origin/main, the post-merge "chore: merge
+        # receipts" push) is exactly the direct-to-main shape those hooks exist to refuse. Arming
+        # them breaks the fixture that is supposed to be exercising the loop, not gating itself.
+        # `hooks_armed` is therefore recorded as FIXTURE-ARTIFACT (`_FIXTURE_ARTIFACT_MARKERS`)
+        # rather than armed -- the Done-contract's other sanctioned path.
         self._render_l0_routing_copy()
         self._bind_integrator()
         return self
@@ -476,6 +491,66 @@ def _record(walk: Walk, step: Step) -> Step:
     return step
 
 
+#: Known TOY-COPY-ONLY causes, keyed by the gates.py row (audit-health = commit tier,
+#: ship-gate = ship tier) they surface in -- Done-contract 2. `canonical_freshness` and
+#: `journal_spine_anchor` are tied to the throwaway repo having ONE "seed" commit rather than
+#: real history (commit-date-driven); `funnel_lifecycle` is the same class per SESSION-lane-
+#: connection-test.md's own account. `hooks_armed` was TRIED as arm-instead-of-record (installing
+#: real pre-commit/pre-push hooks via scripts/arm_hooks.py) and reverted: those hooks then refuse
+#: this fixture's own direct-to-main bootstrap pushes (write_task, the post-merge "chore: merge
+#: receipts" push), breaking the harness that is supposed to be exercising the loop. Recording is
+#: the sanctioned alternative Done-contract 2 names, and it is the one used here. NEVER list
+#: `organ_truth`: it is the real, same cause the live integrator records -- Done-contract 2's
+#: "the loop's real stops stay visible" is exactly the invariant this exclusion protects.
+_FIXTURE_ARTIFACT_MARKERS: dict[str, tuple[str, ...]] = {
+    "audit-health": ("canonical_freshness", "journal_spine_anchor", "hooks_armed"),
+    "ship-gate": ("funnel_lifecycle",),
+}
+
+
+def _fixture_artifacts_in(verdict: Optional[dict]) -> tuple[str, ...]:
+    """`f"{gate}:{marker}"` for each known toy-copy-only cause found in a RED gate's own output --
+    read from the verdict `gates.py` already wrote (`MOMENT-MERGE-GATES-VERDICT.json`), never a
+    second probe run (that would double the subprocess cost `_exclusive` exists to bound)."""
+    if not verdict:
+        return ()
+    found: list[str] = []
+    for row in verdict.get("gates", []):
+        if row.get("exit_code") == 0:
+            continue
+        text = row.get("output_tail") or ""
+        for marker in _FIXTURE_ARTIFACT_MARKERS.get(row.get("name", ""), ()):
+            if marker in text:
+                found.append(f"{row['name']}:{marker}")
+    return tuple(found)
+
+
+def _assert_transport_untouched(live_before: Optional[dict]) -> None:
+    """Done-contract 5: transport isolation proven before AND after every heavy run, not just
+    the walk. `live_before` is `None`-safe (an unresolvable live transport is simply not
+    observable, per `_transport_fingerprint`'s own contract) so this degrades the same way."""
+    live_after = _transport_fingerprint()
+    assert live_before is None or live_after is None or live_before == live_after, \
+        "this run wrote toy files onto the operator's live transport"
+
+
+def _label_fixture_artifacts(walk: Walk, world: World) -> None:
+    """If the walk just stopped at merge/gates, split any known toy-copy-only causes out of that
+    same red into `Stop.fixture_artifacts`, so a reader is not left to guess which part is the
+    loop and which part is the copy (Done-contract 2)."""
+    if not (walk.stops and walk.stops[-1].moment == "merge" and walk.stops[-1].organ == "gates"):
+        return
+    verdict = _read_receipt(world.repo / "logs" / "receipts" / "MOMENT-MERGE-GATES-VERDICT.json")
+    artifacts = _fixture_artifacts_in(verdict)
+    if not artifacts:
+        return
+    last = walk.stops[-1]
+    walk.stops[-1] = Stop(last.moment, last.organ, last.receipt,
+                          last.detail + f" -- FIXTURE-ARTIFACT (toy-copy-only, not a loop stop): "
+                                        f"{', '.join(artifacts)}",
+                          fixture_artifacts=artifacts)
+
+
 def _walk(world: World, walk: Walk, mp: pytest.MonkeyPatch) -> None:
     world.write_task()
     _record(walk, world.spine())
@@ -511,6 +586,7 @@ def _walk(world: World, walk: Walk, mp: pytest.MonkeyPatch) -> None:
         walk.stops.append(Stop("integrate", "handback-verdict", "(audit.py handback)", verdict["handback_verdict_out"]))
         return
     _record(walk, world.moment("merge", **world.merge_env(slug, contract, handback, merge_sha)))
+    _label_fixture_artifacts(walk, world)
 
     # From here the walk CONTINUES past a stop: each later moment gets its best legitimate chance.
     world.uv("python", "scripts/merge_receipt.py", "close", "--slug", slug)
@@ -529,30 +605,62 @@ def _walk(world: World, walk: Walk, mp: pytest.MonkeyPatch) -> None:
                                "the declared digest organ exited 0 and named the batch, never the task or its commits"))
 
 
-# One walk per test RUN, shared across xdist workers through a lock file (the walk is minutes, not seconds).
-def _shared_walk(tmp_path_factory: pytest.TempPathFactory) -> Walk:
+def _run_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """This test RUN's shared folder -- one per invocation of pytest, common to every
+    xdist worker, never a stale one from an earlier run (a worker's own basetemp is
+    `.../popen-gwN`; its PARENT is what every worker of THIS run shares)."""
     base = tmp_path_factory.getbasetemp()
-    shared = base.parent if os.environ.get("PYTEST_XDIST_WORKER") else base   # this RUN's folder, never a stale one
-    result, lock = shared / "connection-loop-walk.json", shared / "connection-loop-walk.lock"
+    return base.parent if os.environ.get("PYTEST_XDIST_WORKER") else base
+
+
+@contextlib.contextmanager
+def _exclusive(tmp_path_factory: pytest.TempPathFactory, label: str):
+    """One machine-wide mutex for every HEAVY operation this module runs: the walk and
+    each negative-path test spawn several minutes of real `uv`/`git`/`doit` subprocess
+    work against a throwaway repo, sharing this machine's CPU, memory and
+    `UV_PROJECT_ENVIRONMENT` with whatever else this run is doing. Under `-n 4` the walk
+    and all three negative-path tests were free to run fully concurrently -- and that
+    shared load, not a defect in any one test, is what turned three of them red while
+    every one was correct alone (DIGEST-WAVE3-2026-09-21.md queue item 4). Serializing
+    the walk against ITSELF (the original single-purpose lock this generalises) was not
+    enough, because nothing serialized it against its siblings.
+
+    Same technique as the original walk-only lock: an exclusive-create lock file in this
+    RUN's shared folder, held for the CALLER's whole body, not just a result-file check.
+    """
+    lock = _run_dir(tmp_path_factory) / "connection-loop.lock"
     deadline = time.monotonic() + 2 * STOP_TIMEOUT_S
     while time.monotonic() < deadline:
-        if result.is_file():
-            return Walk.from_json(result.read_text(encoding="utf-8"))
         try:
             fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         except FileExistsError:
             time.sleep(2)
             continue
+        os.write(fd, label.encode("utf-8"))
         os.close(fd)
         try:
-            walk = walk_the_loop(tmp_path_factory)
-            partial = result.with_name(result.name + f".{os.getpid()}.tmp")
-            partial.write_text(walk.to_json(), encoding="utf-8")
-            os.replace(partial, result)          # readers see the whole file or none of it
-            return walk
+            yield
         finally:
             lock.unlink(missing_ok=True)
-    raise TimeoutError("the shared connection walk never produced a result")
+        return
+    raise TimeoutError(f"{label} could not acquire the connection-loop module lock")
+
+
+# One walk per test RUN, shared across xdist workers: the RESULT is shared through a file (read
+# lock-free once present); COMPUTING it holds the module-wide `_exclusive` mutex, so it never runs
+# alongside a negative-path test either (not just alongside another worker's own walk attempt).
+def _shared_walk(tmp_path_factory: pytest.TempPathFactory) -> Walk:
+    result = _run_dir(tmp_path_factory) / "connection-loop-walk.json"
+    if result.is_file():
+        return Walk.from_json(result.read_text(encoding="utf-8"))
+    with _exclusive(tmp_path_factory, "walk"):
+        if result.is_file():          # someone else finished while we waited for the lock
+            return Walk.from_json(result.read_text(encoding="utf-8"))
+        walk = walk_the_loop(tmp_path_factory)
+        partial = result.with_name(result.name + f".{os.getpid()}.tmp")
+        partial.write_text(walk.to_json(), encoding="utf-8")
+        os.replace(partial, result)   # readers see the whole file or none of it
+        return walk
 
 
 @pytest.fixture(scope="module")
@@ -596,6 +704,63 @@ def test_the_toy_task_was_launched_once_by_the_launcher_and_nothing_real_spawned
     assert walk.integrator["launch_exit"] == 0 and walk.integrator["spawns"] == 1
 
 
+# --- Done-contract 2: toy-copy artifacts are distinguished from the loop's own stops ------------
+
+def test_fixture_artifacts_in_finds_a_known_toy_copy_cause_in_a_red_gate():
+    verdict = {"gates": [
+        {"name": "audit-health", "exit_code": 1, "output_tail": "... canonical_freshness: FAIL ..."},
+        {"name": "ship-gate", "exit_code": 1, "output_tail": "... organ_truth: 36 organs ..."},
+    ]}
+    assert _fixture_artifacts_in(verdict) == ("audit-health:canonical_freshness",)
+
+
+def test_fixture_artifacts_in_never_lists_organ_truth():
+    """`organ_truth` must never enter the catalogue -- Done-contract 2's "the loop's real stops
+    stay visible" is exactly the invariant this asserts, independent of any one probe's output."""
+    assert all("organ_truth" not in markers for markers in _FIXTURE_ARTIFACT_MARKERS.values())
+
+
+def test_fixture_artifacts_in_ignores_a_green_gate():
+    verdict = {"gates": [{"name": "audit-health", "exit_code": 0,
+                          "output_tail": "canonical_freshness mentioned but this gate is GREEN"}]}
+    assert _fixture_artifacts_in(verdict) == ()
+
+
+def test_fixture_artifacts_in_is_empty_with_no_verdict():
+    assert _fixture_artifacts_in(None) == ()
+
+
+# --- Done-contract 5: transport isolation proven before and after every run --------------------
+
+def test_assert_transport_untouched_passes_when_fingerprints_match(monkeypatch):
+    monkeypatch.setattr(sys.modules[__name__], "_transport_fingerprint", lambda: {"a": (1, 1)})
+    _assert_transport_untouched({"a": (1, 1)})   # no raise
+
+
+def test_assert_transport_untouched_fails_when_fingerprints_differ(monkeypatch):
+    monkeypatch.setattr(sys.modules[__name__], "_transport_fingerprint", lambda: {"a": (2, 2)})
+    with pytest.raises(AssertionError):
+        _assert_transport_untouched({"a": (1, 1)})
+
+
+def test_assert_transport_untouched_is_none_safe():
+    _assert_transport_untouched(None)   # an unresolvable transport is not observable -- never a false alarm
+
+
+def test_the_merge_gates_stop_separates_toy_copy_artifacts_from_the_real_cause(walk):
+    """Integration leg: canonical_freshness's A2 check compares every canonical file's
+    `last_reviewed` stamp against its git commit date, and the toy repo's one "seed" commit makes
+    every file's commit date read "today" -- so if the walk stopped at merge/gates at all, this
+    toy-copy artifact is virtually certain to be among the causes, and must be labelled apart from
+    whatever real cause (organ_truth) is also in that same red."""
+    gates_stop = next((s for s in walk.stops if s.moment == "merge" and s.organ == "gates"), None)
+    if gates_stop is None:
+        pytest.skip("the loop no longer stops at merge/gates")
+    assert not any(a.split(":", 1)[-1] == "organ_truth" for a in gates_stop.fixture_artifacts)
+    assert gates_stop.fixture_artifacts, "expected at least one known toy-copy artifact to be labelled"
+    assert "FIXTURE-ARTIFACT" in gates_stop.detail
+
+
 # --- Done-contract 4: operator touches --------------------------------------------------------------------------------
 
 def test_a_human_writes_at_most_three_files_task_go_and_nothing_else(walk):
@@ -617,54 +782,69 @@ def _negative_contract(world: World) -> Path:
     return path
 
 
+# Each negative-path test holds the SAME module-wide `_exclusive` mutex the walk holds while
+# computing (see `_exclusive`'s docstring): it is a heavy operation too, and nothing about being a
+# short test exempts it from the shared load that turned three of this module's tests red under
+# `-n 4` while every one was correct alone. Each also proves transport isolation before and after
+# itself (Done-contract 5), not just the walk -- `_assert_transport_untouched`.
+
 def test_an_occupied_slug_stops_at_pre_launch(tmp_path_factory):
-    world = _fresh_world(tmp_path_factory, "negative_occupied", full=False)
-    world.git("worktree", "add", "-q", "-b", f"worktree-{NEGATIVE_SLUG}", f".claude/worktrees/{NEGATIVE_SLUG}")
-    provider = FakeProvider()
-    with pytest.MonkeyPatch.context() as mp:
-        launched = world.launch(_negative_contract(world), provider, mp)
-    assert launched.exit_code == 5, launched.output
-    assert "occupied" in launched.output.lower() or "OCCUPIED" in launched.output
-    assert provider.calls == [], "a refused launch must not reach the process boundary"
-    receipts = world.repo / "logs" / "receipts"
-    occupancy = _read_receipt(receipts / "MOMENT-PRE-LAUNCH-WORKTREE-OCCUPANCY.json")
-    assert occupancy and occupancy["exit_code"] == 1
-    assert not (receipts / "MOMENT-PRE-LAUNCH-NO-LIVE-INTEGRATOR.json").exists(), "later organs ran past the refusal"
-    assert not list(receipts.glob("LAUNCH-LANE-*.json")), "a refused launch wrote a launch receipt"
+    with _exclusive(tmp_path_factory, "negative-occupied"):
+        live_before = _transport_fingerprint()
+        world = _fresh_world(tmp_path_factory, "negative_occupied", full=False)
+        world.git("worktree", "add", "-q", "-b", f"worktree-{NEGATIVE_SLUG}", f".claude/worktrees/{NEGATIVE_SLUG}")
+        provider = FakeProvider()
+        with pytest.MonkeyPatch.context() as mp:
+            launched = world.launch(_negative_contract(world), provider, mp)
+        assert launched.exit_code == 5, launched.output
+        assert "occupied" in launched.output.lower() or "OCCUPIED" in launched.output
+        assert provider.calls == [], "a refused launch must not reach the process boundary"
+        receipts = world.repo / "logs" / "receipts"
+        occupancy = _read_receipt(receipts / "MOMENT-PRE-LAUNCH-WORKTREE-OCCUPANCY.json")
+        assert occupancy and occupancy["exit_code"] == 1
+        assert not (receipts / "MOMENT-PRE-LAUNCH-NO-LIVE-INTEGRATOR.json").exists(), "later organs ran past the refusal"
+        assert not list(receipts.glob("LAUNCH-LANE-*.json")), "a refused launch wrote a launch receipt"
+        _assert_transport_untouched(live_before)
 
 
 def test_a_missing_go_file_stops_at_merge(tmp_path_factory):
-    world = _fresh_world(tmp_path_factory, "negative_no_go", full=False)
-    contract = _negative_contract(world)
-    world.git("worktree", "add", "-q", "-b", f"worktree-{NEGATIVE_SLUG}", f".claude/worktrees/{NEGATIVE_SLUG}")
-    worktree = world.repo / ".claude" / "worktrees" / NEGATIVE_SLUG
-    sha = world.lane_commit(worktree)
-    world.lane_transcript(worktree)
-    handback = world.write_session(NEGATIVE_SLUG, sha)
-    merge_sha, _ = world.integrate_merge(NEGATIVE_SLUG, contract, handback)
-    assert merge_sha, "the handback verdict must pass so the refusal under test is the missing GO"
-    assert not (world.transport / "to-cc" / f"GO-{BATCH}.md").exists(), "this test must not write a GO"
-    step = world.moment("merge", **world.merge_env(NEGATIVE_SLUG, contract, handback, merge_sha))
-    assert step.exit_code != 0
-    fired = [o.organ for o in step.organs if o.fired]
-    assert fired == ["merge_receipt.models"], f"models must pass and nothing after go_reader may run: {step}"
-    assert step.stop and step.stop.organ == "go_reader"
-    refusal = (world.repo / "logs" / "receipts" / "MOMENT-MERGE-GO-READER-OUTPUT.txt").read_text(encoding="utf-8")
-    assert "REFUSED" in refusal and f"GO-{BATCH}.md" in refusal
-    assert step.unreached == ["review_packet", "gates", "test_pairing"]
+    with _exclusive(tmp_path_factory, "negative-no-go"):
+        live_before = _transport_fingerprint()
+        world = _fresh_world(tmp_path_factory, "negative_no_go", full=False)
+        contract = _negative_contract(world)
+        world.git("worktree", "add", "-q", "-b", f"worktree-{NEGATIVE_SLUG}", f".claude/worktrees/{NEGATIVE_SLUG}")
+        worktree = world.repo / ".claude" / "worktrees" / NEGATIVE_SLUG
+        sha = world.lane_commit(worktree)
+        world.lane_transcript(worktree)
+        handback = world.write_session(NEGATIVE_SLUG, sha)
+        merge_sha, _ = world.integrate_merge(NEGATIVE_SLUG, contract, handback)
+        assert merge_sha, "the handback verdict must pass so the refusal under test is the missing GO"
+        assert not (world.transport / "to-cc" / f"GO-{BATCH}.md").exists(), "this test must not write a GO"
+        step = world.moment("merge", **world.merge_env(NEGATIVE_SLUG, contract, handback, merge_sha))
+        assert step.exit_code != 0
+        fired = [o.organ for o in step.organs if o.fired]
+        assert fired == ["merge_receipt.models"], f"models must pass and nothing after go_reader may run: {step}"
+        assert step.stop and step.stop.organ == "go_reader"
+        refusal = (world.repo / "logs" / "receipts" / "MOMENT-MERGE-GO-READER-OUTPUT.txt").read_text(encoding="utf-8")
+        assert "REFUSED" in refusal and f"GO-{BATCH}.md" in refusal
+        assert step.unreached == ["review_packet", "gates", "test_pairing"]
+        _assert_transport_untouched(live_before)
 
 
 def test_no_handback_line_means_lane_end_does_not_run(tmp_path_factory):
-    world = _fresh_world(tmp_path_factory, "negative_no_handback", full=False)
-    world.git("worktree", "add", "-q", "-b", f"worktree-{NEGATIVE_SLUG}", f".claude/worktrees/{NEGATIVE_SLUG}")
-    worktree = world.repo / ".claude" / "worktrees" / NEGATIVE_SLUG
-    world.lane_commit(worktree)
-    world.write_session(NEGATIVE_SLUG, None)              # a session file, a finished-looking commit, NO closing line
-    world.stop_hook(worktree)                              # the real Stop guard
-    receipts = worktree / "logs" / "receipts"
-    assert not (receipts / "MOMENT-LANE-END-HOOK.json").exists(), "the guard claimed a lane that has not finished"
-    moment = world.moment("lane-end", cwd=worktree)        # and the moment itself refuses on its declared precondition
-    assert moment.exit_code == 0
-    assert [o.status for o in moment.organs] == ["SKIPPED-PRECONDITION"]
-    assert sorted(p.name for p in receipts.glob("MOMENT-LANE-END-*.json")) == ["MOMENT-LANE-END-PRECONDITION.json"]
-    assert not (world.transport / "to-browser" / f"LANE-END-{NEGATIVE_SLUG}.md").exists(), "a report was delivered"
+    with _exclusive(tmp_path_factory, "negative-no-handback"):
+        live_before = _transport_fingerprint()
+        world = _fresh_world(tmp_path_factory, "negative_no_handback", full=False)
+        world.git("worktree", "add", "-q", "-b", f"worktree-{NEGATIVE_SLUG}", f".claude/worktrees/{NEGATIVE_SLUG}")
+        worktree = world.repo / ".claude" / "worktrees" / NEGATIVE_SLUG
+        world.lane_commit(worktree)
+        world.write_session(NEGATIVE_SLUG, None)          # a session file, a finished-looking commit, NO closing line
+        world.stop_hook(worktree)                          # the real Stop guard
+        receipts = worktree / "logs" / "receipts"
+        assert not (receipts / "MOMENT-LANE-END-HOOK.json").exists(), "the guard claimed a lane that has not finished"
+        moment = world.moment("lane-end", cwd=worktree)    # and the moment itself refuses on its declared precondition
+        assert moment.exit_code == 0
+        assert [o.status for o in moment.organs] == ["SKIPPED-PRECONDITION"]
+        assert sorted(p.name for p in receipts.glob("MOMENT-LANE-END-*.json")) == ["MOMENT-LANE-END-PRECONDITION.json"]
+        assert not (world.transport / "to-browser" / f"LANE-END-{NEGATIVE_SLUG}.md").exists(), "a report was delivered"
+        _assert_transport_untouched(live_before)

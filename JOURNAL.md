@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-22 (b) - CC (Opus 5, integrator wave 4a, day): LANE W4-4 merged -- the connection test's flaky trio is serialized, toy-copy reds are labelled as artifacts, and the selector maps templates and fixtures
+
+**Anchors:** `ad9228d6` (Codex record) · `718ceb09` (lock, artifact labels, transport assertion) · `b99e6b69` (Stop hook declared in the parity surfaces) · `7902e594` (selector maps `templates/*.ps1`, `tests/fixtures/**`) -- `worktree-lane-connection-hygiene`, merged --no-ff.
+
+**Did:** merged W4-4 two-step from the primary, first of the four lanes left from the night. `tests/test_connection_loop.py` serializes its three heavy negative-path tests behind one cross-test lock (the flake was shared state under xdist), labels the toy repo's copy-caused reds FIXTURE-ARTIFACT while `organ_truth` stays a real stop, and asserts the live transport is untouched around every negative-path run. `scripts/impacted_tests.py` selects tests for `templates/*.ps1` and `tests/fixtures/**` by string reference. `ecosystem/parity-surfaces.yaml` declares `lane_end_guard.py` as a hub-local Stop hook -- the file the parity check reads, accepted in place of the deploy manifest the contract named.
+
+**Result:** Codex terra 0/3/0/0, the three HIGHs dispositioned as a diff-range artifact of the night's unpushed local main. Registry comparison and gates: `to-browser/SESSION-integrator-wave4-2026-09-22.md`, day section. **Changes:** `tests/test_connection_loop.py`, `tests/test_impacted_tests.py`, `scripts/impacted_tests.py`, `ecosystem/parity-surfaces.yaml`, `docs/audits/2026-09-22-codex-lane-connection-hygiene.md` (new), `docs/audits/README.md`, `ecosystem/doc-counts.md`, `JOURNAL.md`. **Next:** W4-3, then W4-2, then W4-5.
+
 ### 2026-09-22 (a) - CC (Opus 5, integrator wave 4a): LANE W4-1 merged -- main's known reds are recorded once per batch and each lane is compared against them
 
 **Anchors:** `970e6bdd` (repair: rows 938-941 refs resolve) · `f7869ab3` (row 937 cites its review) · `096d41ef` (Codex fixes + record) · `af701a47` (registry) · `d3efa367` (all-digit sha) · `e94e4b0e` (RED-first witness) · `db18780b` (rows #937-#941) -- `worktree-lane-known-reds`, merged --no-ff.
