@@ -377,7 +377,7 @@ def _merge_moment_harness(tmp: Path, repo: Path, tree: Path, gate_list: Path) ->
     return path
 
 
-def _seed(tmp: Path, ran_model: str) -> tuple[Path, Path, Path, Path, dict]:
+def _seed(tmp: Path, ran_model: str, *, pre_open: bool = True) -> tuple[Path, Path, Path, Path, dict]:
     import routing_agreement as ra
 
     repo = tmp / "repo"
@@ -398,13 +398,19 @@ def _seed(tmp: Path, ran_model: str) -> tuple[Path, Path, Path, Path, dict]:
         sys.executable, "-c", f"open(r'{marker}', 'a').write('x')"]}]), encoding="utf-8")
     env = {**os.environ, "HOME": str(home), "USERPROFILE": str(home),
            "HARNESS_RECEIPTS_DIR": str(tmp / "receipts"), "HARNESS_KIND": "WIRE",
-           "HARNESS_SUBJECT": "x", "HARNESS_LANE": LANE, "HARNESS_CONTRACT": str(contract),
+           "HARNESS_SUBJECT": "x", "HARNESS_LANE": LANE, "HARNESS_BATCH": "x",
+           "HARNESS_CONTRACT": str(contract),
            "DEV_KNOWLEDGE_TELEMETRY_DB": str(tmp / "telemetry.db")}
     env.pop("HARNESS_YAML", None)
-    opened = subprocess.run(
-        [sys.executable, str(_SCRIPTS / "merge_receipt.py"), "--repo-root", str(repo), "open",
-         "--slug", LANE, "--batch", "x"], capture_output=True, text=True, env=env)
-    assert opened.returncode == 0, opened.stdout + opened.stderr
+    if pre_open:
+        # The integrator's own `merge_receipt.py open` (lane-integrate.md §2, before the handback
+        # verdict) -- most fixtures want this already done, the way the walk always does it. The
+        # one that does NOT (`pre_open=False`) is testing the OTHER caller: `doit moment:merge` on
+        # its own, which is what the declared `merge_receipt.open` organ (R-W4-4) is for.
+        opened = subprocess.run(
+            [sys.executable, str(_SCRIPTS / "merge_receipt.py"), "--repo-root", str(repo), "open",
+             "--slug", LANE, "--batch", "x"], capture_output=True, text=True, env=env)
+        assert opened.returncode == 0, opened.stdout + opened.stderr
     return repo, tree, contract, gate_list, env
 
 
@@ -451,6 +457,62 @@ def test_a_disagreeing_model_comparison_refuses_the_merge_step(tmp_path):
     assert not (tmp_path / "receipts" / "MOMENT-MERGE-GATES.json").exists(), \
         "the gates ran although the model comparison refused"
     assert not (tmp_path / "gate-ran.txt").exists()
+
+
+# --- R-W4-4: the declared `merge` moment opens its own receipt before it compares -----------------
+
+def _open_and_models_harness(tmp: Path, repo: Path, tree: Path) -> Path:
+    """The REAL declared `merge_receipt.open` and `merge_receipt.models` organs, in the REAL
+    declared order, with test-plumbing spliced into `models` only -- `open`'s command is the
+    declaration's own `-c` snippet, unmodified, redirected entirely through `MERGE_RECEIPT_ROOT`
+    (its own test seam, since a `-c` argument has no `scripts/merge_receipt.py` token to splice
+    `--repo-root` after)."""
+    organs = _declared_merge_organs()
+    models = dict(organs["merge_receipt.models"])
+    models["command"] = _splice(models["command"], "merge_receipt.py", ["--repo-root", str(repo)])
+    models["command"] += ["--worktree", str(tree)]
+    doc = {"stages": [{"stage": 1, "name": "s", "field": "f", "kind": "deterministic",
+                       "command": [sys.executable, "-c", "pass"]}],
+           "moments": [{"name": "merge", "trigger": "test",
+                       "organs": [dict(organs["merge_receipt.open"]), models]}]}
+    path = tmp / "harness-open.yaml"
+    path.write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
+    return path
+
+
+def test_the_declared_open_organ_lets_a_moment_only_caller_reach_models(tmp_path):
+    """R-W4-4: `merge_receipt.open` is the merge moment's FIRST declared organ so a caller that
+    runs ONLY `doit moment:merge` -- no prior `merge_receipt.py open`, unlike the integrator's own
+    walk -- still reaches `models` with an open receipt instead of stopping on 'no open receipt'.
+    `pre_open=False` is the whole point: this is the moment-only caller the connection test named.
+    """
+    repo, tree, _contract, _gate_list, env = _seed(tmp_path, "claude-sonnet-5", pre_open=False)
+    assert not (repo / "logs" / f".merge-receipt-{LANE}.json").exists(), \
+        "the positive control: nothing opened this receipt yet"
+    harness = _open_and_models_harness(tmp_path, repo, tree)
+    env = {**env, "MERGE_RECEIPT_ROOT": str(repo)}
+    proc = _run_moment(tmp_path, harness, env)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+
+    opened = _receipt(tmp_path, "MOMENT-MERGE-OPEN.json")
+    assert opened["organ"] == "merge/merge_receipt.open" and opened["status"] == "ok"
+    models = _receipt(tmp_path, "MOMENT-MERGE-MODELS.json")
+    assert models["organ"] == "merge/merge_receipt.models"
+    assert models["status"] == "ok" and models["exit_code"] == 0
+
+
+def test_the_declared_open_organ_is_a_no_op_when_the_integrator_already_opened(tmp_path):
+    """The full lane-integrate.md walk opens the receipt itself, well before `doit moment:merge`
+    (§2, before the handback verdict). The declared organ must not then refuse a second open of
+    the SAME slug -- it is `scratch_path(...).exists()` first, `open_receipt` only when that is
+    false, so the ordinary walk (`pre_open=True`, the default) is unaffected by this lane's fix."""
+    repo, tree, _contract, _gate_list, env = _seed(tmp_path, "claude-sonnet-5")  # pre_open=True
+    assert (repo / "logs" / f".merge-receipt-{LANE}.json").exists()
+    harness = _open_and_models_harness(tmp_path, repo, tree)
+    env = {**env, "MERGE_RECEIPT_ROOT": str(repo)}
+    proc = _run_moment(tmp_path, harness, env)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert _receipt(tmp_path, "MOMENT-MERGE-OPEN.json")["status"] == "ok"
 
 
 # --- Codex terra review findings: RED-first regressions -------------------------------------------
@@ -560,4 +622,42 @@ def test_a_refused_verification_never_reaches_push_or_teardown(tmp_path, failing
     calls = _run_walk(tmp_path, fail_on=failing)
     assert any(failing in c for c in calls), f"the failing step never ran: {calls}"
     assert not any(c.startswith("git push") for c in calls), calls
-    assert not any("worktree remove" in c or "moment:teardown" in c for c in calls), calls
+
+
+# --- R-W4-4: the chain order, asserted from the command file's OWN text --------------------------
+
+def test_the_walk_closes_the_receipt_and_commits_the_ledger_before_moment_teardown(tmp_path):
+    """The connection test's first recorded stop, pinned: under the OLD order `close` ran after
+    `moment:teardown` and `no_leftovers` FAILED on the untracked scratch file. The real block must
+    now read: push < actions < close < commit the ledger < moment:teardown."""
+    calls = _run_walk(tmp_path, fail_on="")
+
+    def first(needle: str) -> int:
+        return next(i for i, c in enumerate(calls) if needle in c)
+
+    push_i = first("git push")
+    actions_i = first("merge_receipt.py actions")
+    close_i = first("merge_receipt.py close")
+    commit_i = first("git commit")
+    teardown_i = first("moment:teardown")
+    assert push_i < actions_i < close_i < commit_i < teardown_i, calls
+
+
+def test_the_command_file_text_orders_open_before_the_merge_moment():
+    """R-W4-4's other half: `merge_receipt open` before `models`. `models` is not named in this
+    file's prose any more (the organs run through the declaration -- see the sibling test above),
+    so this is read as `open`'s own explicit command preceding the FIRST mention of `moment:merge`,
+    the call that runs it."""
+    text = _command_text()
+    assert text.index("merge_receipt.py open") < text.index("moment:merge")
+
+
+@pytest.mark.parametrize("failing", ["actions", "close"])
+def test_a_refusal_after_the_push_never_reaches_teardown(tmp_path, failing):
+    """A failure that lands AFTER the push (unlike the `moment:merge`/`race` case above, which
+    never reaches it) must still stop the chain before `moment:teardown` -- an itemised receipt or
+    an unread Actions verdict is exactly the silent case `[#750]`/`[#675]` exist to close."""
+    calls = _run_walk(tmp_path, fail_on=failing)
+    assert any(c.startswith("git push") for c in calls), calls
+    assert any(failing in c for c in calls), f"the failing step never ran: {calls}"
+    assert not any("moment:teardown" in c for c in calls), calls

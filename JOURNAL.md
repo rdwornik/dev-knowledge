@@ -21,6 +21,16 @@
 
 ---
 
+### 2026-09-22 (g) - CC (Opus 5, integrator wave 4a, day): LANE W4-2 rebuilt on origin/main and landed -- a recorded fate is dated debt, and the merge moment opens its own receipt first
+
+**Anchors:** `5902f336` (repair 2 of 2: the two-list test fix, cherry-picked from `ea9d7e18`) · `12a94d46` (the lane's sync merge of origin/main `e125fff8`) · `095ecae7` (Codex record filled, consumer cited) · `e3432469` (two Codex findings fixed) · `165420a9` (Codex record) · `965835d2` (census reads fates; chain order) -- `worktree-lane-merge-gates-truth`, merged --no-ff.
+
+**Did:** merged W4-2 two-step from the primary, the last of the batch. `scripts/audit_checks/check_organ_truth.py` reads the `fates:` block of `ecosystem/harness.yaml`. An uncalled organ with `manual_until: <date>` is a WARN naming its date until that date passes, then a FAIL. `retire_candidate: true` is a listed WARN. A moment fate needs a receipt from the last 30 days (R-W4-1). The `merge` moment's first organ is now `merge_receipt.open`, which is idempotent, and `.claude/commands/lane-integrate.md` closes the receipt and commits the ledger before `moment:teardown` (R-W4-4).
+
+**History:** the first merge (`cefd6258`, never pushed) was refused because its new first organ was missing from two exact lists in `tests/test_connection_loop.py`. Repair 1 fixed both lists. Its branch, however, had synced from local `main` while that held an unpushed merge the integrator later refused. The architect's review refused that branch, and repair 2 rebuilt it: the lane's four reviewed commits, one sync of `origin/main`, and the fix. From now on, lanes sync from `origin/main` only.
+
+**Result:** the census is a dated WARN, not a hard-fail. Codex terra 0/3/0/0 found two real HIGHs, both fixed, and one false positive, recorded as such. The registry comparison, gates and ship-gate results are in `to-browser/SESSION-integrator-wave4-2026-09-22.md`, day section. **Changes:** `scripts/audit_checks/check_organ_truth.py`, `ecosystem/harness.yaml`, `.claude/commands/lane-integrate.md`, `tests/test_organ_truth.py`, `tests/test_integrator_surface.py`, `tests/test_spine_moments.py`, `tests/test_connection_loop.py`, `docs/audits/2026-09-22-codex-lane-merge-gates-truth.md` (new), `docs/audits/README.md`, `ecosystem/doc-counts.md`, `JOURNAL.md`. **Next:** the batch closes: the connection walk on main, `moment:batch-close`, and the zero-leftovers proof.
+
 ### 2026-09-22 (f) - CC (Opus 5, integrator wave 4a, day): LANE W4-5 repaired and landed -- the five deferred rows whose refs named only the transport now cite STANDING_RULINGS AJ-7
 
 **Anchors:** `268d6c63` (repair 1 of 2: refs of #944 #948 #950 #951 #952 resolve) -- `worktree-lane-landing-decisions`, merged --no-ff on top of the lane's first merge `38204a3d` (entry (e)).
