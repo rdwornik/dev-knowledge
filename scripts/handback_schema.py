@@ -107,7 +107,13 @@ class HandbackLine:
             return None
         reviewers = [m.group("reviewer") for m in
                      (audit._REVIEW_TOKEN_RE.match(t) for t in tokens[1:]) if m]
-        reviewer = reviewers[0] if len(reviewers) == 1 else None
+        if len(reviewers) > 1:
+            # `review_handback_verdict` REFUSES >1 review= token outright (D-1: "a line that
+            # contradicts itself asserts nothing") -- collapsing to reviewer=None here would
+            # make `parse(line).validate()` MERGE a line `validate_handback_line(line)` refuses,
+            # the exact round-trip drift this schema exists to make impossible (terra HIGH).
+            return None
+        reviewer = reviewers[0] if reviewers else None
         counts = audit._review_handback_tally(tokens[1:])
         return cls(branch=parsed["branch"], sha=parsed["sha"], cls=branch_cls,
                     reviewer=reviewer,

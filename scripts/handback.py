@@ -42,8 +42,7 @@ calling their existing functions AS THEY ARE. It implements no check and weakens
 new code is this file, `handback_schema.py`, and the refusal path.
 
 Run:  uv run --locked python scripts/handback.py run --lane <lane> --branch <branch>
-        --class code|docs-only [--reviewer <name> --high N --med N --low N]
-        [--repo <path>] [--base origin/main]
+        --class code|docs-only [--reviewer <name> --high N --med N --low N] [--repo <path>]
 """
 from __future__ import annotations
 
@@ -213,6 +212,28 @@ def ratchet_check(repo: Path, runner: Callable[..., tuple[int, str]] = _run) -> 
     return CheckResult("ratchet", True, "tests/test_silent_rule_ratchet.py green")
 
 
+# --- changed files: base..HEAD, fail CLOSED --------------------------------------------------
+
+class ChangedFilesUnknown(Exception):
+    """`git diff` against `base..HEAD` could not be resolved -- distinct from "resolved to zero
+    files", which `_tr.changed_files()` (fixed to `main...HEAD`, and silently `[]` on any git
+    failure -- correct for ITS job, a best-effort report that must never stop a session) cannot
+    tell apart. `review_consumer_check` is a REFUSAL gate, not a report: treating "git failed" as
+    "nothing changed" would let an undeclared review artifact through unnoticed (sol/terra
+    CRITICAL, both adversarial passes)."""
+
+
+def changed_files_or_raise(repo: Path, base: str,
+                           runner: Callable[..., tuple[int, str]] = _run) -> list[str]:
+    """The paths in `base..HEAD`, against the SAME base every other leg uses -- never `main`
+    hardcoded, which is what `_tr.changed_files()` diffs against and would silently disagree
+    with `base` on a repo whose local `main` lags `origin/main`."""
+    code, out = runner(["git", "-C", str(repo), "diff", "--name-only", f"{base}...HEAD"], repo)
+    if code != 0:
+        raise ChangedFilesUnknown(f"git diff --name-only {base}...HEAD failed: {out.strip()[-500:]}")
+    return [ln for ln in out.splitlines() if ln.strip()]
+
+
 # --- self-check leg 4: the review record cites its consumer --------------------------------------
 
 def review_consumer_check(repo: Path, changed: list[str]) -> CheckResult:
@@ -240,15 +261,37 @@ def review_consumer_check(repo: Path, changed: list[str]) -> CheckResult:
 
 # --- self-check leg 5: the branch name is in the ratified enum ----------------------------------
 
-def branch_naming_check(branch: str) -> CheckResult:
+def branch_naming_check(branch: str, repo: Optional[Path] = None,
+                        runner: Callable[..., tuple[int, str]] = _run) -> CheckResult:
     """`--branch` conforms to `validate_branch_naming`'s enum -- composed exactly as its own CLI
-    classifies a name, never a second naming rule invented here."""
+    classifies a name, never a second naming rule invented here.
+
+    With `repo` given (the real self-check path; omitted only by unit tests probing the naming
+    rule in isolation), also ties the asserted name to the branch actually checked out at
+    `repo` -- every OTHER leg inspects `HEAD`, so an unverified `--branch` string would let a
+    lane on a nonconforming or foreign branch supply a conforming name and receive a HANDBACK
+    that names a branch it is not on (sol/terra CRITICAL/HIGH, both adversarial passes)."""
     import validate_branch_naming as vbn  # noqa: PLC0415 -- organ CLI only, not the hook path
     result = vbn.classify(branch)
     if not result.conforms:
         return CheckResult("branch-naming", False,
                            f"{branch!r} is {result.kind!r}, outside the ratified branch/worktree "
                            f"enum ({result.note})")
+    if repo is not None:
+        code, out = runner(["git", "-C", str(repo), "rev-parse", "--abbrev-ref", "HEAD"], repo)
+        actual = out.strip()
+        if code != 0 or not actual or actual == "HEAD":
+            return CheckResult("branch-naming", False,
+                               f"could not resolve the checked-out branch at {repo} to compare "
+                               f"against --branch {branch!r} (detached HEAD or git failure): "
+                               f"{out.strip()[-300:]}")
+        if actual != branch:
+            return CheckResult("branch-naming", False,
+                               f"--branch {branch!r} does not match the checked-out branch "
+                               f"{actual!r} -- every other leg inspects HEAD, so a mismatch "
+                               f"means the artifacts would name a branch this run never checked")
+        return CheckResult("branch-naming", True,
+                           f"{branch!r} is a {result.kind} ({result.note}) and matches HEAD")
     return CheckResult("branch-naming", True, f"{branch!r} is a {result.kind} ({result.note})")
 
 
@@ -311,19 +354,26 @@ def render_self_check_block(checks: list[CheckResult], purity: CheckResult,
 
 # --- the run --------------------------------------------------------------------------------------
 
-def run_self_check(repo: Path, lane: str, branch: str, base: str, changed: list[str],
+def run_self_check(repo: Path, lane: str, branch: str, base: str,
                    resolve_transport: Callable[[], Path]) -> tuple[CheckResult, list[CheckResult]]:
     """Runs every leg (never short-circuits: FR2's own acceptance leg wants "one test each",
     which needs every leg's evidence even when an earlier one already failed). Returns the
     purity leg separately (the session file's own "purity check output" section) and the full
     list (the self-check section)."""
     purity = branch_purity_check(repo, base)
+    try:
+        changed = changed_files_or_raise(repo, base)
+        review_consumer = review_consumer_check(repo, changed)
+    except ChangedFilesUnknown as exc:
+        review_consumer = CheckResult("review-consumer", False,
+                                      f"could not enumerate {base}..HEAD to check for an "
+                                      f"undeclared review artifact: {exc}")
     checks = [
         purity,
         ship_gate_check(repo, base),
         ratchet_check(repo),
-        review_consumer_check(repo, changed),
-        branch_naming_check(branch),
+        review_consumer,
+        branch_naming_check(branch, repo),
         transport_write_check(lane, resolve_transport),
     ]
     return purity, checks
@@ -353,14 +403,57 @@ def run(lane: str, branch: str, cls: str, repo: Path, base: str = DEFAULT_BASE,
     this path already carries."""
     finished_at = _stamp()
     try:
-        changed = _tr.changed_files(repo)
-        purity, checks = run_self_check(repo, lane, branch, base, changed, resolve_transport)
+        if not _tr._LANE_RE.match(lane):
+            # Refused before ANY path is built from `lane` -- including the REFUSED-<lane>.md
+            # a normal refusal would write, since that path is built the same unsafe way
+            # (sol HIGH: session_path()/REFUSED path had no containment check of its own).
+            return EXIT_INTERNAL, {"schema": 1, "organ": "handback", "status": "FAILED",
+                                   "lane": lane,
+                                   "reason": f"{lane!r} is not a lane slug; refusing to build a "
+                                             f"path from it"}
+
+        # Pin HEAD ONCE, before any check runs, and re-verify it has not moved immediately
+        # before publishing -- every leg below inspects the moving ref `HEAD` independently, and
+        # a commit/ref change between the first check and the final write would otherwise let
+        # the organ publish a mergeable HANDBACK for a commit it never actually checked
+        # (sol/terra CRITICAL, both adversarial passes: "checks and emitted artifacts do not
+        # attest one immutable repository snapshot").
+        head_sha = _git_head(repo)
+        if head_sha == "0000000":
+            return EXIT_INTERNAL, {"schema": 1, "organ": "handback", "status": "FAILED",
+                                   "lane": lane, "reason": f"could not resolve HEAD at {repo}"}
+
+        purity, checks = run_self_check(repo, lane, branch, base, resolve_transport)
         failing = [c for c in checks if not c.ok]
 
         if failing:
             return _write_refusal(resolve_transport, lane, branch, checks, finished_at)
 
-        # --- clean: write the three mergeable artifacts -------------------------------------
+        if _git_head(repo) != head_sha:
+            checks.append(CheckResult("head-pinned", False,
+                                      f"HEAD moved from {head_sha} during the self-check -- "
+                                      f"refusing to publish artifacts for a commit that was "
+                                      f"never actually checked"))
+            return _write_refusal(resolve_transport, lane, branch, checks, finished_at)
+
+        # --- clean: validate the mergeable lines FIRST, before anything reaches the transport.
+        # (sol HIGH / terra HIGH: a LANE-END report published before HANDBACK/STATE validation
+        # could leave a clean-looking report behind a run that then fails internally.)
+        handback = HandbackLine(branch=branch, sha=head_sha, cls=cls, reviewer=reviewer,
+                                high=high, med=med, low=low)
+        h_ok, h_msg = handback.validate()
+        if not h_ok:
+            return EXIT_INTERNAL, {"schema": 1, "organ": "handback", "status": "FAILED",
+                                   "lane": lane, "reason": f"HANDBACK line refused: {h_msg}"}
+
+        state = StateLine(lane=lane, verdict=STATE_WAITING, sha=handback.sha,
+                          timestamp=finished_at)
+        s_ok, s_msg = state.validate()
+        if not s_ok:
+            return EXIT_INTERNAL, {"schema": 1, "organ": "handback", "status": "FAILED",
+                                   "lane": lane, "reason": f"STATE line refused: {s_msg}"}
+
+        # --- only now write the three mergeable artifacts -----------------------------------
         transport_root = str(resolve_transport().parent)
         report_argv = ["--lane", lane, "--repo", str(repo), "--transport-root", transport_root]
         report_code = _tr.main(report_argv)
@@ -376,20 +469,6 @@ def run(lane: str, branch: str, cls: str, repo: Path, base: str = DEFAULT_BASE,
             return EXIT_INTERNAL, {"schema": 1, "organ": "handback", "status": "FAILED",
                                    "lane": lane,
                                    "reason": f"LANE-END report failed schema validation: {report_msg}"}
-
-        handback = HandbackLine(branch=branch, sha=_git_head(repo), cls=cls, reviewer=reviewer,
-                                high=high, med=med, low=low)
-        h_ok, h_msg = handback.validate()
-        if not h_ok:
-            return EXIT_INTERNAL, {"schema": 1, "organ": "handback", "status": "FAILED",
-                                   "lane": lane, "reason": f"HANDBACK line refused: {h_msg}"}
-
-        state = StateLine(lane=lane, verdict=STATE_WAITING, sha=handback.sha,
-                          timestamp=finished_at)
-        s_ok, s_msg = state.validate()
-        if not s_ok:
-            return EXIT_INTERNAL, {"schema": 1, "organ": "handback", "status": "FAILED",
-                                   "lane": lane, "reason": f"STATE line refused: {s_msg}"}
 
         block = render_self_check_block(checks, purity, handback, state)
         append_session_block(session_path(lane, resolve_transport), block)
@@ -424,7 +503,12 @@ def _parser() -> argparse.ArgumentParser:
     r.add_argument("--med", type=int, default=None)
     r.add_argument("--low", type=int, default=None)
     r.add_argument("--repo", default=None)
-    r.add_argument("--base", default=DEFAULT_BASE)
+    # No `--base` flag: `base` is a real self-check parameter (what "purity"/"ship-gate delta"
+    # are measured against) and a lane-controlled override of it would let a caller neutralize
+    # both legs outright (`--base HEAD` empties purity and makes every current ship-gate finding
+    # "already on the baseline") -- terra CRITICAL, the adversarial pass this organ exists to
+    # survive. `DEFAULT_BASE` is the only base a real invocation gets; tests reach a different
+    # one through `run()`/the check functions directly, never through this CLI.
     return p
 
 
@@ -432,7 +516,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = _parser().parse_args(argv)
     if args.cmd == "run":
         repo = Path(args.repo) if args.repo else _ROOT
-        code, receipt = run(args.lane, args.branch, args.cls, repo, args.base,
+        code, receipt = run(args.lane, args.branch, args.cls, repo, DEFAULT_BASE,
                             args.reviewer, args.high, args.med, args.low)
         print(json.dumps(receipt, indent=2, sort_keys=True))
         return code

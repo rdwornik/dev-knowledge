@@ -68,6 +68,19 @@ def test_handback_line_parse_rejects_a_malformed_line():
     assert hs.HandbackLine.parse("this is not a handback line") is None
 
 
+def test_handback_line_parse_rejects_ambiguous_duplicate_review_tokens():
+    """terra HIGH: `audit.review_handback_verdict` REFUSES >1 `review=` token outright ("a line
+    that contradicts itself asserts nothing"). Collapsing that to `reviewer=None` in `parse()`
+    would make `parse(line).validate()` MERGE a line `validate_handback_line(line)` refuses --
+    exactly the round-trip drift this schema exists to make impossible."""
+    hs = _mod("handback_schema")
+    audit = _mod("audit")
+    line = "HANDBACK worktree-lane-x @ 1a2b3c4d docs-only review=alice review=bob"
+    assert hs.HandbackLine.parse(line) is None
+    cli_ok, _ = audit.review_handback_verdict(line)
+    assert cli_ok is False
+
+
 # --- 2. StateLine ----------------------------------------------------------------------------
 
 def test_state_line_round_trips_and_validates():

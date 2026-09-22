@@ -131,6 +131,25 @@ def test_branch_naming_check_flags_a_branch_outside_the_enum():
     assert result.ok is False and "some-random-branch" in result.detail
 
 
+def test_branch_naming_check_with_repo_passes_when_branch_matches_head(git_repo):
+    """Real git, not vacuous: checks out a conforming (non-batch-shaped) worktree branch and
+    verifies the cross-check accepts it because it is what `HEAD` actually resolves to."""
+    hb = _mod("handback")
+    _git("checkout", "-b", "worktree-real-branch", cwd=git_repo)
+    result = hb.branch_naming_check("worktree-real-branch", git_repo)
+    assert result.ok is True and "matches HEAD" in result.detail
+
+
+def test_branch_naming_check_with_repo_flags_a_mismatch_against_the_checked_out_branch(git_repo):
+    """A conforming name that is NOT what `HEAD` resolves to -- sol/terra's finding that naming
+    was checked in isolation from the branch every other leg actually inspects."""
+    hb = _mod("handback")
+    _git("checkout", "-b", "worktree-real-branch", cwd=git_repo)
+    result = hb.branch_naming_check("worktree-some-other-lane", git_repo)
+    assert result.ok is False and "does not match the checked-out branch" in result.detail
+    assert "worktree-real-branch" in result.detail
+
+
 # --- leg unit tests: transport-write ---------------------------------------------------------
 
 def test_transport_write_check_flags_a_to_cc_file_naming_the_lane(transport):
@@ -156,6 +175,36 @@ def test_transport_write_check_passes_when_transport_is_unmounted():
 
     result = hb.transport_write_check(LANE, unmounted)
     assert result.ok is True
+
+
+# --- changed-files: real git, fails CLOSED --------------------------------------------------
+
+def test_changed_files_or_raise_reports_the_lanes_own_changed_paths(git_repo):
+    hb = _mod("handback")
+    assert hb.changed_files_or_raise(git_repo, base="main") == ["b.txt"]
+
+
+def test_changed_files_or_raise_raises_rather_than_returning_empty_on_git_failure(tmp_path):
+    """The sol/terra CRITICAL this closes: `_tr.changed_files()` returns `[]` on git failure
+    (correct for a best-effort report), which would let `review_consumer_check` see "no new
+    audits" instead of "I could not tell" -- a fail-OPEN gate. This must fail CLOSED instead."""
+    hb = _mod("handback")
+    tmp_path.mkdir(exist_ok=True)
+    with pytest.raises(hb.ChangedFilesUnknown):
+        hb.changed_files_or_raise(tmp_path, base="origin/main")
+
+
+def test_run_self_check_turns_an_unresolvable_changed_files_into_a_failing_review_consumer_leg(
+        monkeypatch, tmp_path, transport):
+    hb = _mod("handback")
+    _stub_all_checks_ok(monkeypatch, hb)
+    monkeypatch.setattr(hb, "changed_files_or_raise",
+                        lambda *a, **k: (_ for _ in ()).throw(hb.ChangedFilesUnknown("boom")))
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    purity, checks = hb.run_self_check(repo, LANE, BRANCH, hb.DEFAULT_BASE, _resolve(transport))
+    review_consumer = next(c for c in checks if c.name == "review-consumer")
+    assert review_consumer.ok is False and "boom" in review_consumer.detail
 
 
 # --- leg unit tests: ratchet, ship-gate, review-consumer (injected) ------------------------------
@@ -226,7 +275,9 @@ def test_review_consumer_check_passes_when_declared(monkeypatch, tmp_path):
 def _stub_all_checks_ok(monkeypatch, hb) -> None:
     for name in CHECK_NAMES:
         monkeypatch.setattr(hb, name, lambda *a, _n=name, **k: hb.CheckResult(CHECK_NAMES[_n], True, "ok"))
+    monkeypatch.setattr(hb, "changed_files_or_raise", lambda *a, **k: [])
     monkeypatch.setattr(hb._tr, "changed_files", lambda repo: [])
+    monkeypatch.setattr(hb, "_git_head", lambda repo: "1a2b3c4d")
 
 
 @pytest.mark.parametrize("failing_name", ["branch_purity_check", "review_consumer_check",
@@ -334,3 +385,73 @@ def test_the_refused_receipt_never_exits_the_stop_hooks_blocking_code(monkeypatc
     repo.mkdir()
     code, _ = hb.run(LANE, BRANCH, "docs-only", repo, resolve_transport=_resolve(transport))
     assert code not in (0, 2)
+
+
+# --- adversarial-pass hardening (sol/terra, [#958]) ---------------------------------------------
+
+def test_a_lane_slug_with_a_path_separator_is_refused_before_any_path_is_built(monkeypatch,
+                                                                              tmp_path, transport):
+    """sol HIGH: `session_path()`/the REFUSED path interpolated `lane` with no containment
+    check. A `lane` that cannot even be validated must not reach EITHER path -- the REFUSED
+    file's own path is built from the same unsafe string."""
+    hb = _mod("handback")
+    _stub_all_checks_ok(monkeypatch, hb)
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    written_before = list((transport / "to-browser").iterdir())
+
+    code, receipt = hb.run("../escape", BRANCH, "docs-only", repo,
+                          resolve_transport=_resolve(transport))
+
+    assert code == hb.EXIT_INTERNAL
+    assert receipt["status"] == "FAILED"
+    assert "lane slug" in receipt["reason"]
+    assert list((transport / "to-browser").iterdir()) == written_before
+
+
+def test_head_moving_between_checks_and_publish_refuses_rather_than_publishing(monkeypatch,
+                                                                              tmp_path, transport):
+    """sol/terra CRITICAL (TOCTOU): checks and the emitted artifacts must attest one immutable
+    snapshot. Simulates a HEAD that moves during the self-check window by returning a different
+    SHA on the second `_git_head` call (the pre-publish re-verify)."""
+    hb = _mod("handback")
+    _stub_all_checks_ok(monkeypatch, hb)
+    shas = iter(["1a2b3c4d", "9f9f9f9f"])
+    monkeypatch.setattr(hb, "_git_head", lambda repo: next(shas))
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    code, receipt = hb.run(LANE, BRANCH, "docs-only", repo, resolve_transport=_resolve(transport))
+
+    assert code == hb.EXIT_REFUSED
+    assert not (transport / "to-browser" / f"LANE-END-{LANE}.md").exists()
+    session_path = transport / "to-browser" / f"SESSION-{LANE}.md"
+    assert not session_path.exists() or "HANDBACK " not in session_path.read_text(encoding="utf-8")
+    refused_path = transport / "to-browser" / f"REFUSED-{LANE}.md"
+    assert "HEAD moved" in refused_path.read_text(encoding="utf-8")
+
+
+def test_a_malformed_handback_line_writes_no_lane_end_report(monkeypatch, tmp_path, transport):
+    """sol/terra HIGH: the LANE-END report must not land before the mergeable lines validate --
+    a `code` branch with no reviewer refuses the HANDBACK line, and that must leave nothing
+    "clean-looking" behind in the transport."""
+    hb = _mod("handback")
+    _stub_all_checks_ok(monkeypatch, hb)
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    code, receipt = hb.run(LANE, BRANCH, "code", repo, resolve_transport=_resolve(transport))
+
+    assert code == hb.EXIT_INTERNAL
+    assert "HANDBACK line refused" in receipt["reason"]
+    assert not (transport / "to-browser" / f"LANE-END-{LANE}.md").exists()
+
+
+def test_the_cli_does_not_expose_a_base_override():
+    """terra CRITICAL: a caller-controlled `--base` could neutralize purity and the ship-gate
+    delta outright (`--base HEAD` empties both). A real invocation only ever gets
+    `DEFAULT_BASE`; `base` stays a `run()`/check-function parameter for tests."""
+    hb = _mod("handback")
+    with pytest.raises(SystemExit):
+        hb._parser().parse_args(["run", "--lane", LANE, "--branch", BRANCH,
+                                 "--class", "docs-only", "--base", "HEAD"])
