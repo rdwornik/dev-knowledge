@@ -6,10 +6,11 @@
 **Diff range:** `main..worktree-lane-landing-decisions`
 **Codex version:** codex-cli 0.155.0
 **Mode:** diff-review
-**Tally:** TBD/TBD/TBD/TBD <!-- Critical/High/Medium/Low. FILL FROM THE FINDINGS SECTION before committing. The hub's review_artifact_coverage leg parses four digits here; TBD deliberately does not parse, so an unfilled tally keeps WARNing instead of shipping a number nobody counted. -->
+**Tally:** 0/0/0/0 <!-- Critical/High/Medium/Low; verified against the Findings section below, all "(none)". -->
 
 **Model used:** `gpt-5.6-terra` (pinned; both lanes — [#469])
 **Review profile:** code
+**Consumer:** `LANE-W4-5-landing-decisions.md` Done-contract item 8 (this row is the required Codex terra review before handback)
 
 ---
 
