@@ -312,6 +312,99 @@ def test_bad_arguments_do_not_exit_2(world):
     assert proc.returncode not in (0, 2)
 
 
+# --- R-W4-3: commits, changed files and verdict are written into the report -----------------------
+
+def test_report_carries_commits_changed_files_and_verdict(world, monkeypatch, capsys):
+    """transport_report.py writes the three facts `lane_digest.py --reports-root` reads back
+    (LANE-W4-3-batch-digest, clause 1) -- never re-derived from git after the merge."""
+    tr = _mod("transport_report")
+    monkeypatch.setattr(tr, "commit_subjects", lambda _repo: ["feat: a commit", "fix: another"])
+    monkeypatch.setattr(tr, "changed_files", lambda _repo: ["scripts/a.py", "tests/test_a.py"])
+    code = tr.main(["--lane", LANE, "--transport-root", str(world["root"]),
+                    "--receipts-dir", str(world["receipts"]), "--repo", str(world["tmp"])])
+    assert code == 0
+    res = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    body = (world["browser"] / res["artifact"]).read_text(encoding="utf-8")
+    assert "## Commits (2)" in body and "- feat: a commit" in body and "- fix: another" in body
+    assert "## Changed files (2)" in body and "- scripts/a.py" in body
+    assert "## Verdict" in body and tr.VERDICT_INCOMPLETE in body  # lane_cost + SKIPPED digest receipt
+
+
+def test_a_lane_with_no_commits_or_changed_files_says_so(world, monkeypatch, capsys):
+    tr = _mod("transport_report")
+    monkeypatch.setattr(tr, "commit_subjects", lambda _repo: [])
+    monkeypatch.setattr(tr, "changed_files", lambda _repo: [])
+    code = tr.main(["--lane", LANE, "--transport-root", str(world["root"]),
+                    "--receipts-dir", str(world["receipts"]), "--repo", str(world["tmp"])])
+    assert code == 0
+    res = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    body = (world["browser"] / res["artifact"]).read_text(encoding="utf-8")
+    assert "No commits recorded." in body
+    assert "No changed files." in body
+
+
+def test_an_all_ok_lane_gets_the_clean_verdict(world, monkeypatch, capsys):
+    tr = _mod("transport_report")
+    for p in world["receipts"].glob("*.json"):
+        p.unlink()
+    _write_receipts(world["receipts"], [_receipt("gates"), _receipt("no_leftovers")])
+    monkeypatch.setattr(tr, "commit_subjects", lambda _repo: [])
+    monkeypatch.setattr(tr, "changed_files", lambda _repo: [])
+    code = tr.main(["--lane", LANE, "--transport-root", str(world["root"]),
+                    "--receipts-dir", str(world["receipts"]), "--repo", str(world["tmp"])])
+    assert code == 0
+    res = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    body = (world["browser"] / res["artifact"]).read_text(encoding="utf-8")
+    verdict_section = body.split("## Verdict", 1)[1].split("## Session summary", 1)[0]
+    assert tr.VERDICT_CLEAN in verdict_section
+
+
+def test_the_lane_verdict_agrees_with_lane_digest():
+    """The duplicated predicate (module docstring, "THE REPORT CARRIES...") must not drift from
+    `lane_digest.verdict`'s own three-way read, over the same matrix of receipt sets."""
+    tr = _mod("transport_report")
+    ld = _mod("lane_digest")
+    cases = [
+        [], [_receipt("gates")], [_receipt("gates", "failed", 1)],
+        [_receipt("gates", "SKIPPED-NOT-BUILT", 0)],
+        [_receipt("gates"), _receipt("no_leftovers", "error", 1)],
+    ]
+    for rows in cases:
+        assert tr._lane_verdict(rows) == ld.verdict(ld.LaneInput(name="x", receipts=rows))
+
+
+# --- R-W4-3: parse_report reads the report back --------------------------------------------------
+
+def test_parse_report_round_trips_what_build_report_wrote(world, monkeypatch):
+    tr = _mod("transport_report")
+    monkeypatch.setattr(tr, "commit_subjects", lambda _repo: ["feat: one", "fix: two"])
+    monkeypatch.setattr(tr, "changed_files", lambda _repo: ["a.py"])
+    text = tr.build_report(LANE, world["receipts"], world["tmp"])
+    facts = tr.parse_report(text)
+    assert facts.lane == LANE
+    assert facts.commits == ["feat: one", "fix: two"]
+    assert facts.changed == ["a.py"]
+    assert facts.verdict in (tr.VERDICT_CLEAN, tr.VERDICT_ATTENTION, tr.VERDICT_INCOMPLETE)
+    organs = {r["organ"] for r in facts.receipts}
+    assert organs == {"lane_cost", "digest"}   # the `world` fixture's own receipts
+
+
+def test_parse_report_on_a_report_missing_every_new_section_is_empty_not_raised():
+    tr = _mod("transport_report")
+    facts = tr.parse_report("# lane-x -- lane-end report\n\nsome older-format text\n")
+    assert facts.lane == "lane-x"
+    assert facts.commits == [] and facts.changed == [] and facts.verdict is None
+    assert facts.receipts == []
+
+
+def test_an_unreadable_embedded_receipt_is_unreadable_never_dropped():
+    tr = _mod("transport_report")
+    text = ("# lane-x -- lane-end report\n\n## Receipts (1)\n\n"
+           "### MOMENT-BROKEN.json\n\n```json\n{not json\n```\n")
+    facts = tr.parse_report(text)
+    assert facts.receipts == [{"organ": "MOMENT-BROKEN", "status": "unreadable"}]
+
+
 def test_an_unexpected_error_is_a_recorded_failure_not_a_traceback_or_a_block(world, monkeypatch, capsys):
     tr = _mod("transport_report")
 

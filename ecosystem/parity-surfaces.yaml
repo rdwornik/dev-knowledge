@@ -601,9 +601,13 @@ surfaces:
         # already wired on main and already WARN-undeclared there. They are another row's
         # debt, and silently absorbing them into this lane's diff would hide when they were
         # declared and by whom.
+        # lane_end_guard.py added 2026-09-22 by wave-4 lane W4-4 (connection-hygiene),
+        # closing the gap left by the Stop hook W3-D wired (merged df0c1ac8) without this
+        # declaration -- DIGEST-WAVE3-2026-09-21.md queue item 7.
         .dev-knowledge: [fleet_health.py, surface_triage.ps1, billing_leak_sentinel.ps1,
                          changelog_sentinel.py, block_immutable_edits.py,
-                         deny_and_point.py, resource_lifecycle.py, codespace_regime.py]
+                         deny_and_point.py, resource_lifecycle.py, codespace_regime.py,
+                         lane_end_guard.py]
         corp-monorepo: [surface-conformance.ps1]
     ownership:
       value: methodology-generic

@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "bd4f29a57b22197651f8427c768db25a01178349943d83dff9da2eee7ab4e31d",
+  "generated_sha256": "e212563a13e539086872206989b11907d95579118781508d972b39a7fefb0e08",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -696,6 +696,58 @@
     {
       "task": 941,
       "file": "941-wave-4a-lane-5-lane-landing-decisions-this-window.md"
+    },
+    {
+      "task": 942,
+      "file": "942-state-as-data-the-status-surface-the-state-query.md"
+    },
+    {
+      "task": 943,
+      "file": "943-contracts-generated-from-rows-the-spine-writes.md"
+    },
+    {
+      "task": 944,
+      "file": "944-the-secrets-field-a-contracts-dispatch-block.md"
+    },
+    {
+      "task": 945,
+      "file": "945-the-guards-decision-the-operators-build-mode.md"
+    },
+    {
+      "task": 946,
+      "file": "946-the-tool-trial-organ-and-its-first-trials-caveman.md"
+    },
+    {
+      "task": 947,
+      "file": "947-litellm-behind-the-stage-13-adapter-one-provider.md"
+    },
+    {
+      "task": 948,
+      "file": "948-the-fair-why-test-measure-the-why-skill-without.md"
+    },
+    {
+      "task": 949,
+      "file": "949-unbind-verb-for-the-integrator-seat-releasing-a.md"
+    },
+    {
+      "task": 950,
+      "file": "950-friction-ratio-measure-operator-touches-against.md"
+    },
+    {
+      "task": 951,
+      "file": "951-root-cause-taxonomy-classify-why-a-lane-stops.md"
+    },
+    {
+      "task": 952,
+      "file": "952-gemini-routing-pin-a-pinned-model-id-for-the-agy.md"
+    },
+    {
+      "task": 953,
+      "file": "953-events-that-file-rows-some-escalation-events.md"
+    },
+    {
+      "task": 954,
+      "file": "954-install-the-loop-in-a-second-repo-prove-stages.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"

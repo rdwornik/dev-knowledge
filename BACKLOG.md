@@ -180,6 +180,19 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#939] [P1][M] Wave 4a lane 3 (lane-batch-digest) -- the morning digest names the work, written by the machine · tasks/939-wave-4a-lane-3-lane-batch-digest-the-morning-diges.md
 - [#940] [P2][M] Wave 4a lane 4 (lane-connection-hygiene) -- the connection test tells the truth, stably · tasks/940-wave-4a-lane-4-lane-connection-hygiene-the-connect.md
 - [#941] [P2][M] Wave 4a lane 5 (lane-landing-decisions) -- this window's decisions leave the transport and enter the repo · tasks/941-wave-4a-lane-5-lane-landing-decisions-this-window.md
+- [#942] [P2][M] State as data -- the STATUS surface, the state query, and the four escalation events · tasks/942-state-as-data-the-status-surface-the-state-query.md
+- [#943] [P2][M] Contracts generated from rows -- the spine writes the skeleton, the architect writes only Done-when and decision budget · tasks/943-contracts-generated-from-rows-the-spine-writes.md
+- [#944] [P3][S] The secrets field -- a contract's Dispatch block can declare a secret without leaking it to the transport · tasks/944-the-secrets-field-a-contracts-dispatch-block.md
+- [#945] [P2][S] The guards decision -- the operator's build-mode answer on write guards for the loop · tasks/945-the-guards-decision-the-operators-build-mode.md
+- [#946] [P2][M] The tool-trial organ and its first trials -- Caveman skill, RTK, Headroom, import-linter · tasks/946-the-tool-trial-organ-and-its-first-trials-caveman.md
+- [#947] [P2][M] LiteLLM behind the stage-13 adapter -- one provider interface, not four bespoke ones · tasks/947-litellm-behind-the-stage-13-adapter-one-provider.md
+- [#948] [P2][S] The fair `why` test -- measure the `why` skill without the bias its earlier trial carried · tasks/948-the-fair-why-test-measure-the-why-skill-without.md
+- [#949] [P2][S] Unbind verb for the integrator seat -- releasing a batch's integrator binding is currently a no-op path · tasks/949-unbind-verb-for-the-integrator-seat-releasing-a.md
+- [#950] [P3][S] Friction ratio -- measure operator touches against merged work, as a trend, not a per-batch count · tasks/950-friction-ratio-measure-operator-touches-against.md
+- [#951] [P3][M] Root-cause taxonomy -- classify why a lane stops, instead of re-deriving it by hand each time · tasks/951-root-cause-taxonomy-classify-why-a-lane-stops.md
+- [#952] [P3][S] Gemini routing pin -- a pinned model id for the `agy` adversarial/producer role, recorded like the other providers · tasks/952-gemini-routing-pin-a-pinned-model-id-for-the-agy.md
+- [#953] [P3][M] Events that file rows -- some escalation events should produce a task row automatically, not just a STATUS entry · tasks/953-events-that-file-rows-some-escalation-events.md
+- [#954] [P2][M] Install the loop in a second repo -- prove stages 1-16 are not `.dev-knowledge`-specific · tasks/954-install-the-loop-in-a-second-repo-prove-stages.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md

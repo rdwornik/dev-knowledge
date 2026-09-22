@@ -21,6 +21,38 @@
 
 ---
 
+### 2026-09-22 (f) - CC (Opus 5, integrator wave 4a, day): LANE W4-5 repaired and landed -- the five deferred rows whose refs named only the transport now cite STANDING_RULINGS AJ-7
+
+**Anchors:** `268d6c63` (repair 1 of 2: refs of #944 #948 #950 #951 #952 resolve) -- `worktree-lane-landing-decisions`, merged --no-ff on top of the lane's first merge `38204a3d` (entry (e)).
+
+**Did:** entry (e)'s merge `38204a3d` was refused before it was pushed: `audit.py ship-gate` found five `funnel_lifecycle row-provenance-unresolved` hard-fails -- rows `[#944]`, `[#948]`, `[#950]`, `[#951]`, `[#952]` cited only `to-cc/DECLARE-*.md` transport files -- and `tests/test_funnel_lifecycle.py::test_live_tree_leg_c_measures_zero_so_arming_cannot_red_a_clean_tree` turned red. The registry comparison never ran that test: `impacted_tests` maps no `tasks/*.md` change to `tests/test_funnel_lifecycle.py`, and the test is outside the live-tree marker set; ship-gate caught it. `38204a3d` was unwound, the lane repaired in its worktree (repair 1 of 2, launched by the integrator), and the unpushed `38204a3d` was reinstated by fast-forward because W4-2's repaired branch already carried it; this merge adds the repair on top. Each of the five rows' refs gains `protocols/STANDING_RULINGS.md` (AJ-7), which names all five; the transport tokens stay.
+
+**Result:** `scripts/funnel_lifecycle.py` prints no FAIL; the live-tree test passes. Comparison and gates: `to-browser/SESSION-integrator-wave4-2026-09-22.md`, day section. **Changes:** `tasks/944-*.md`, `tasks/948-*.md`, `tasks/950-*.md`, `tasks/951-*.md`, `tasks/952-*.md`, `JOURNAL.md`. **Next:** W4-2 @ `ea9d7e18`.
+
+### 2026-09-22 (e) - CC (Opus 5, integrator wave 4a, day): LANE W4-5 merged -- this window's decisions leave the transport: ADR-120 Accepted, ADR-87 gains the equilibrium, STANDING_RULINGS gains AJ
+
+**Anchors:** `e31b2a8d` (Codex re-review record, 0/0/0/0) · `68033b62` (re-review) · `1c655d06` (sync with main, rows renumbered to #942-#954) · `2b900636` (first review) · `e4ea8a2f` (the decisions land) -- `worktree-lane-landing-decisions`, merged --no-ff.
+
+**Did:** merged W4-5 two-step from the primary, fourth of the day (ahead of W4-2, which is in repair). ADR-120 moves Proposed -> Accepted (2026-09-22); ADR-87 gains a 2026-09-22 amendment restating the browser/CC equilibrium (E1-E5); `protocols/STANDING_RULINGS.md` gains section AJ (AJ-1..AJ-7), where each OPEN decision file of 2026-09-20..22 now lives in the repo, with `landed:` predicates. Thirteen rows `[#942]`-`[#954]` carry wave 4b's and wave 5's deferred items. Closure evidence for `[#930]`-`[#935]` is prepared in the lane's session file; nothing is closed (R-W4-9).
+
+**Result:** Codex terra 0/0/0/0 on the re-review (the first review caught the row-id collision with W4-1's `[#937]`-`[#941]`, fixed by renumbering). Two AMEND files stay OPEN: they name `protocols/HANDOFF_BOOT.md`, 13 bytes under its budget. Registry comparison and gates: `to-browser/SESSION-integrator-wave4-2026-09-22.md`, day section. **Changes:** `docs/decisions/ADR-120-the-spine-is-the-whole-loop.md`, `docs/decisions/ADR-87-equilibrium-contract.md`, `docs/decisions/README.md`, `protocols/STANDING_RULINGS.md`, `tasks/942..954-*.md` (new), `tasks/manifest.json`, `BACKLOG.md`, `.claude/generated/recent-adrs.md`, `docs/audits/2026-09-22-codex-lane-landing-decisions.md` (new), `docs/audits/README.md`, `JOURNAL.md`. **Next:** W4-2's repaired handback.
+
+### 2026-09-22 (c) - CC (Opus 5, integrator wave 4a, day): LANE W4-3 merged -- the batch digest names every lane from its own lane-end report, never from git log after a merge
+
+**Anchors:** `c7591550` (merge sha looked up per batch) · `cdecb29a` (digest reads the lane-end reports) -- `worktree-lane-batch-digest`, merged --no-ff.
+
+**Did:** merged W4-3 two-step from the primary, second of the day. `scripts/transport_report.py` writes each lane's commit subjects, changed files and verdict into its `LANE-END-<lane>.md` from inside the lane's worktree at lane-end, while `main..HEAD` is still right. `scripts/lane_digest.py` composes the batch digest from the named lanes' reports (`--lanes` or `$HARNESS_LANES`) plus the merge sha `logs/MERGE-RECEIPTS.jsonl` records for the batch; a named lane with no report reads "no report reached the transport", never dropped (R-W4-3). The `batch-close` row in `ecosystem/harness.yaml` is unchanged; `$HARNESS_LANES` selects the reports view through it.
+
+**Result:** Codex terra 0/1/0/0, the HIGH (a reused lane slug could take a later batch's merge sha) fixed with its regression test. Registry comparison and gates: `to-browser/SESSION-integrator-wave4-2026-09-22.md`, day section. **Changes:** `scripts/lane_digest.py`, `scripts/transport_report.py`, `tests/test_lane_digest.py`, `tests/test_transport_report.py`, `docs/audits/2026-09-22-codex-lane-batch-digest.md` (new), `docs/audits/README.md`, `ecosystem/doc-counts.md`, `JOURNAL.md`. **Next:** W4-2, then W4-5.
+
+### 2026-09-22 (b) - CC (Opus 5, integrator wave 4a, day): LANE W4-4 merged -- the connection test's flaky trio is serialized, toy-copy reds are labelled as artifacts, and the selector maps templates and fixtures
+
+**Anchors:** `ad9228d6` (Codex record) · `718ceb09` (lock, artifact labels, transport assertion) · `b99e6b69` (Stop hook declared in the parity surfaces) · `7902e594` (selector maps `templates/*.ps1`, `tests/fixtures/**`) -- `worktree-lane-connection-hygiene`, merged --no-ff.
+
+**Did:** merged W4-4 two-step from the primary, first of the four lanes left from the night. `tests/test_connection_loop.py` serializes its three heavy negative-path tests behind one cross-test lock (the flake was shared state under xdist), labels the toy repo's copy-caused reds FIXTURE-ARTIFACT while `organ_truth` stays a real stop, and asserts the live transport is untouched around every negative-path run. `scripts/impacted_tests.py` selects tests for `templates/*.ps1` and `tests/fixtures/**` by string reference. `ecosystem/parity-surfaces.yaml` declares `lane_end_guard.py` as a hub-local Stop hook -- the file the parity check reads, accepted in place of the deploy manifest the contract named.
+
+**Result:** Codex terra 0/3/0/0, the three HIGHs dispositioned as a diff-range artifact of the night's unpushed local main. Registry comparison and gates: `to-browser/SESSION-integrator-wave4-2026-09-22.md`, day section. **Changes:** `tests/test_connection_loop.py`, `tests/test_impacted_tests.py`, `scripts/impacted_tests.py`, `ecosystem/parity-surfaces.yaml`, `docs/audits/2026-09-22-codex-lane-connection-hygiene.md` (new), `docs/audits/README.md`, `ecosystem/doc-counts.md`, `JOURNAL.md`. **Next:** W4-3, then W4-2, then W4-5.
+
 ### 2026-09-22 (a) - CC (Opus 5, integrator wave 4a): LANE W4-1 merged -- main's known reds are recorded once per batch and each lane is compared against them
 
 **Anchors:** `970e6bdd` (repair: rows 938-941 refs resolve) · `f7869ab3` (row 937 cites its review) · `096d41ef` (Codex fixes + record) · `af701a47` (registry) · `d3efa367` (all-digit sha) · `e94e4b0e` (RED-first witness) · `db18780b` (rows #937-#941) -- `worktree-lane-known-reds`, merged --no-ff.

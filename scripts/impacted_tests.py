@@ -180,6 +180,25 @@ def _is_doc(rel: str) -> bool:
     return rel.endswith(DOC_SUFFIXES)
 
 
+#: `templates/*.ps1` has no import edge FPG-1's AST pass can see (it is not Python),
+#: and `tests/fixtures/**` is data, often not Python either, and even where it is
+#: (`sitecustomize.py`) it is not under a SOURCE_ROOT. Both families are connected to
+#: their tests only by a literal string a test writes to find them -- a filename or a
+#: fixture directory name -- never by an import.
+TEMPLATE_SUFFIXES = (".ps1",)
+TEMPLATE_ROOTS = ("templates",)
+
+
+def _is_template(rel: str) -> bool:
+    return rel.endswith(TEMPLATE_SUFFIXES) and any(
+        rel.startswith(f"{root}/") for root in TEMPLATE_ROOTS
+    )
+
+
+def _is_fixture(rel: str) -> bool:
+    return any(rel.startswith(f"{root}/fixtures/") for root in TEST_ROOTS)
+
+
 #: THE MAPPING. Order matters: the first rule that claims a path wins, and the
 #: environment rule is deliberately ahead of the doc rule so `pyproject.toml` reaches the
 #: full suite rather than the markdown tier. Emptying this tuple is what the RED-first
@@ -195,6 +214,14 @@ RULES: tuple[Rule, ...] = (
          "tests reaching this module through FPG-1 import edges, plus the "
          "test_<x>.py naming convention",
          _is_source),
+    Rule("template-reference", "covering",
+         "a `templates/*.ps1` file has no import edge FPG-1's AST pass can see; the "
+         "connection is the literal filename a test uses to find it",
+         _is_template),
+    Rule("fixture-reference", "covering",
+         "a `tests/fixtures/**` file is data, not an import; the connection is the "
+         "literal fixture directory name a test uses to find it",
+         _is_fixture),
     Rule("source-tree-config", "full",
          "a machine-read config file under a source root IS behaviour, and mapping it to "
          "tests needs path-string edges the import graph does not carry",
@@ -366,6 +393,59 @@ def _convention_pairs(repo_root: pathlib.Path) -> dict[str, list[str]]:
     return pairs
 
 
+def _grep_referencing_tests(repo_root: pathlib.Path, needle: str) -> list[str]:
+    """Test files (TEST_ROOTS) whose text contains `needle` verbatim.
+
+    The string-reference edge for a non-Python source: FPG-1's AST pass only sees
+    Python import/call syntax, so a `.ps1` template or a data fixture is connected to
+    its tests by the literal name a test writes to find it, not by a parsed edge.
+    """
+    hits: list[str] = []
+    for rel in all_test_files(repo_root):
+        try:
+            text = (repo_root / rel).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        if needle in text:
+            hits.append(rel)
+    return hits
+
+
+def template_covering_tests(repo_root: pathlib.Path) -> dict[str, list[str]]:
+    """`templates/*.ps1` relpath -> tests referencing it by filename."""
+    covers: dict[str, list[str]] = {}
+    for root in TEMPLATE_ROOTS:
+        directory = repo_root / root
+        if not directory.is_dir():
+            continue
+        for path in sorted(directory.glob(f"*{TEMPLATE_SUFFIXES[0]}")):
+            rel = path.relative_to(repo_root).as_posix()
+            covers[rel] = sorted(set(_grep_referencing_tests(repo_root, path.name)))
+    return covers
+
+
+def fixture_covering_tests(repo_root: pathlib.Path) -> dict[str, list[str]]:
+    """`tests/fixtures/**` relpath -> tests referencing its fixture name.
+
+    A top-level entry under `<TEST_ROOT>/fixtures/` -- a directory (`connection_loop`)
+    or a standalone file (`manifest-v1.1.0-pre-essence.yaml`) -- is the unit a test
+    names literally; every file beneath a fixture directory shares its directory's
+    covering set, since the reader opens the directory, not one file inside it.
+    """
+    covers: dict[str, list[str]] = {}
+    for root in TEST_ROOTS:
+        base = repo_root / root / "fixtures"
+        if not base.is_dir():
+            continue
+        for entry in sorted(base.iterdir()):
+            hits = sorted(set(_grep_referencing_tests(repo_root, entry.name)))
+            members = ([p for p in entry.rglob("*") if p.is_file()] if entry.is_dir() else [entry])
+            for member in members:
+                rel = member.relative_to(repo_root).as_posix()
+                covers[rel] = hits
+    return covers
+
+
 def covering_tests(repo_root: pathlib.Path, depth: int = DEFAULT_DEPTH) -> dict[str, list[str]]:
     """source relpath -> the test files that cover it. The mapping's core table."""
     modules = _module_map(repo_root)
@@ -375,6 +455,10 @@ def covering_tests(repo_root: pathlib.Path, depth: int = DEFAULT_DEPTH) -> dict[
         for reached in _closure(edges, test, depth):
             covers.setdefault(reached, set()).add(test)
     for src, tests in _convention_pairs(repo_root).items():
+        covers.setdefault(src, set()).update(tests)
+    for src, tests in template_covering_tests(repo_root).items():
+        covers.setdefault(src, set()).update(tests)
+    for src, tests in fixture_covering_tests(repo_root).items():
         covers.setdefault(src, set()).update(tests)
     return {k: sorted(v) for k, v in covers.items()}
 

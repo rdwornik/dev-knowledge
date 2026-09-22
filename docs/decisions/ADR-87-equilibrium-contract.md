@@ -131,3 +131,51 @@ context, generic gotchas, and the prompt skeleton.
 **Out of scope.** Which tier any given repo or arc actually boots at is not decided here — the
 routing matrix is `protocols/PLAYBOOK.md` Ch8, "Model + effort are stated at dispatch — the
 routing matrix". This amendment fixes *who states the boot tier*, not *what it is*.
+
+## Amendment — 2026-09-22: the browser/CC equilibrium, restated from evidence
+
+> **The browser seat rules at a fork and writes Done-when/decision-budget; it does not write
+> contract skeletons, watch logs, or assert an unmeasured tool property. State reaches it through
+> four named events, never a heartbeat.**
+
+Ratified 2026-09-21 (`to-cc/DECLARE-EQUILIBRIUM-2026-09-21.md`, architect seat); landed 2026-09-22
+by LANE-W4-5 (landing-decisions).
+
+**This is an amendment section, not an edit.** The 2026-08-08 amendment above stands; this section
+narrows the *browser seat's* half of the equilibrium further, on the same evidence method (measured
+behavior, not restated intention) the base ADR uses.
+
+**E1 — What the browser seat does.** Rules at a fork the standing rulings do not cover; writes a
+task's Done-when and decision budget (never the skeleton — the spine generates it from the task
+row); adjudicates a refusal or a QUESTION; educates the operator at batch close.
+
+**E2 — What it does not do.** Write contract skeletons by hand (this window wrote fifteen while the
+generator that exists produced none — the pre-window "architect is a manual generator" failure,
+ended here); watch logs, poll, or relay state (it is called by an event, never a heartbeat); assert
+a tool or library property it has not seen measured.
+
+**E3 — What CC does.** Recon, build, verification, integration, and *state* — state lives in the
+repo and on the transport as data, because the browser's context expires every window and CC's
+repo does not.
+
+**E4 — Four events, one file each, carry state to the browser:** a batch closing (the batch
+digest, integrator-written); a lane refused or a merge hard-fail (the seat's STATUS file "now"
+section, integrator-written); a lane filing a question (`to-browser/QUESTION-<lane>.md`,
+lane-written); a wait exceeding its limit (the seat's STATUS file, dispatcher-written). The STATUS
+surface already exists in the handoff probes; wave 4b builds the state query on it — nothing new
+invented (deferred, per `[#942]` filed by this lane).
+
+**E5 — Operator monitoring: access yes, reacting no.** The operator may have log access; reacting —
+refusing, waiting, failing a check — stays the machine's. The browser is summoned only when the
+machine has a question no standing rule answers.
+
+**Out of scope.** E6 (wave-4 provisional shape) and the wave-5 deferrals are not ruled here — they
+are task rows (this lane files them), not equilibrium doctrine.
+
+**Honest gap, recorded rather than forced.** `to-cc/DECLARE-EQUILIBRIUM-2026-09-21.md`'s
+`lands-via:` also names `protocols/HANDOFF_BOOT.md`'s role section for a one-line pointer to this
+amendment. `HANDOFF_BOOT.md` was measured at 17,987 of its 18,000-byte budget (`boot_byte_budget`)
+when this lane landed the amendment — 13 bytes of headroom, not enough for an honest pointer
+without cutting existing content this lane does not own the judgment call to cut. The pointer is
+not landed; this ADR is reachable today only from `protocols/HANDOFF_BOOT.md`'s existing line 42
+("The equilibrium contract — who emits what: **ADR-87**"), which does not yet name the amendment.
