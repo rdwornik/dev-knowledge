@@ -17,6 +17,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from click.testing import CliRunner
 
 import plan_lint
 
@@ -296,6 +297,40 @@ def test_is_ordered_is_transitive(tmp_path):
     assert not plan_lint.is_ordered(edges, "lane-a", "lane-a-does-not-exist")
 
 
+def test_find_cycle_detects_a_circular_starts_after(tmp_path):
+    """Codex terra review (`[#961]` diff, HIGH): a cyclic `Starts after` made `is_ordered`
+    read the two lanes as ordered, silently downgrading a real collision to ORDERED."""
+    a = _contract(tmp_path, "LANE-a.md", "lane-a", "`x`.",
+                  extra_body="**Starts after `lane-b` are merged**")
+    b = _contract(tmp_path, "LANE-b.md", "lane-b", "`y`.",
+                  extra_body="**Starts after `lane-a` are merged**")
+    lanes = plan_lint.load_contracts([a, b])
+    edges = plan_lint.build_edges(lanes)
+    cycle = plan_lint.find_cycle(lanes, edges)
+    assert cycle is not None
+    assert set(cycle) == {"lane-a", "lane-b"}
+
+
+def test_lint_refuses_a_cyclic_dependency_instead_of_reading_it_as_ordered(tmp_path):
+    a = _contract(tmp_path, "LANE-a.md", "lane-a", "`tests/shared.py`.",
+                  extra_body="**Starts after `lane-b` are merged**")
+    b = _contract(tmp_path, "LANE-b.md", "lane-b", "`tests/shared.py`.",
+                  extra_body="**Starts after `lane-a` are merged**")
+    lanes = plan_lint.load_contracts([a, b])
+    with pytest.raises(plan_lint.PlanLintError):
+        plan_lint.lint(lanes, tmp_path)
+
+
+def test_estimate_wave_also_refuses_a_cyclic_dependency(tmp_path):
+    a = _contract(tmp_path, "LANE-a.md", "lane-a", "`x`.",
+                  extra_body="**Starts after `lane-b` are merged**")
+    b = _contract(tmp_path, "LANE-b.md", "lane-b", "`y`.",
+                  extra_body="**Starts after `lane-a` are merged**")
+    lanes = plan_lint.load_contracts([a, b])
+    with pytest.raises(plan_lint.PlanLintError):
+        plan_lint.estimate_wave(lanes, tmp_path)
+
+
 def test_longest_chain_counts_lanes_not_edges(tmp_path):
     a = _contract(tmp_path, "LANE-a.md", "lane-a", "`x`.")
     b = _contract(tmp_path, "LANE-b.md", "lane-b", "`y`.",
@@ -407,3 +442,24 @@ def test_render_findings_reports_no_findings_over_a_clean_wave(tmp_path):
     b = _contract(tmp_path, "LANE-b.md", "lane-b", "`scripts/b.py`.")
     lanes = plan_lint.load_contracts([a, b])
     assert plan_lint.render_findings(plan_lint.lint(lanes, tmp_path)) == "plan-lint: no findings"
+
+
+# --- CLI exit codes --------------------------------------------------------------------------
+
+def test_cmd_report_exits_nonzero_on_a_blocking_finding(tmp_path):
+    """Codex terra review (`[#961]` diff, HIGH): `report` calls itself the freeze-time command
+    but always exited 0, so an automated gate using it would accept an invalid plan."""
+    a = _contract(tmp_path, "LANE-a.md", "lane-a", "`scripts/shared.py`.")
+    b = _contract(tmp_path, "LANE-b.md", "lane-b", "`scripts/shared.py`.")
+    result = CliRunner().invoke(plan_lint.cli, [
+        "report", str(a), str(b), "--repo-root", str(tmp_path)])
+    assert result.exit_code != 0
+    assert "BLOCKING" in result.output
+
+
+def test_cmd_report_exits_zero_on_a_clean_wave(tmp_path):
+    a = _contract(tmp_path, "LANE-a.md", "lane-a", "`scripts/a.py`.")
+    b = _contract(tmp_path, "LANE-b.md", "lane-b", "`scripts/b.py`.")
+    result = CliRunner().invoke(plan_lint.cli, [
+        "report", str(a), str(b), "--repo-root", str(tmp_path)])
+    assert result.exit_code == 0

@@ -277,6 +277,44 @@ def is_ordered(edges: frozenset[tuple[str, str]], a: str, b: str) -> bool:
     return _reachable(edges, a, b) or _reachable(edges, b, a)
 
 
+def find_cycle(lanes: Sequence[LaneContract],
+               edges: frozenset[tuple[str, str]]) -> Optional[tuple[str, ...]]:
+    """A cycle among the declared edges, or `None`. Codex terra review (`[#961]` diff, HIGH):
+    a cyclic `Starts after` (A after B, B after A) made `is_ordered(A, B)` True by construction,
+    which silently downgraded a genuine collision to `ORDERED` for a pair with NO executable
+    ordering at all -- the opposite of what that severity claims. Checked once, before any
+    finding is classified, rather than left for `_longest_chain`'s internal guard to paper over
+    on every call site that walks the graph."""
+    adjacency: dict[str, list[str]] = {}
+    for a, b in edges:
+        adjacency.setdefault(a, []).append(b)
+    WHITE, GRAY, BLACK = 0, 1, 2
+    color: dict[str, int] = {lane.slug: WHITE for lane in lanes}
+    path: list[str] = []
+
+    def visit(node: str) -> Optional[tuple[str, ...]]:
+        color[node] = GRAY
+        path.append(node)
+        for nxt in adjacency.get(node, ()):
+            if color.get(nxt) == GRAY:
+                start = path.index(nxt)
+                return tuple(path[start:] + [nxt])
+            if color.get(nxt, WHITE) == WHITE:
+                found = visit(nxt)
+                if found is not None:
+                    return found
+        path.pop()
+        color[node] = BLACK
+        return None
+
+    for lane in lanes:
+        if color[lane.slug] == WHITE:
+            found = visit(lane.slug)
+            if found is not None:
+                return found
+    return None
+
+
 def _longest_chain(lanes: Sequence[LaneContract], edges: frozenset[tuple[str, str]]) -> int:
     """The longest dependency chain in this set, counted in LANES (a lane alone with no edge is
     a chain of 1). Used by `estimate_wave` — see the module docstring's estimate formula."""
@@ -503,10 +541,20 @@ def find_serial_mismatches(lanes: Sequence[LaneContract]) -> list[Finding]:
     return out
 
 
+def _refuse_cycles(lanes: Sequence[LaneContract], edges: frozenset[tuple[str, str]]) -> None:
+    cycle = find_cycle(lanes, edges)
+    if cycle is not None:
+        raise PlanLintError(
+            f"declared dependency edges form a cycle: {' -> '.join(cycle)} -- a cyclic "
+            f"ordering has no executable schedule, and `is_ordered` would otherwise read every "
+            f"pair on the cycle as ordered, silently downgrading a real collision to ORDERED")
+
+
 def lint(lanes: Sequence[LaneContract], repo_root: Path) -> list[Finding]:
     """All four finding classes, over one set of contracts read together (a wave, or any set the
     caller wants cross-checked)."""
     edges = build_edges(lanes)
+    _refuse_cycles(lanes, edges)
     findings: list[Finding] = []
     findings.extend(find_file_collisions(lanes, edges))
     findings.extend(find_missing_producers(lanes))
@@ -564,10 +612,11 @@ class WaveEstimate:
 
 
 def estimate_wave(lanes: Sequence[LaneContract], repo_root: Path) -> WaveEstimate:
+    edges = build_edges(lanes)
+    _refuse_cycles(lanes, edges)
     receipts = mr.read_ledger(repo_root)
     lane_median = mr.median_report(receipts, kind=mr.KIND_ARC)
     merge_median = mr.median_report(receipts, kind=mr.KIND_MERGE)
-    edges = build_edges(lanes)
     chain_len = _longest_chain(lanes, edges)
     return WaveEstimate(lane_median=lane_median, merge_median=merge_median,
                         serial_chain_len=chain_len, lane_count=len(lanes))
@@ -608,12 +657,19 @@ def cmd_estimate(contracts: tuple[Path, ...], repo_root: Path) -> None:
 @click.option("--repo-root", type=click.Path(file_okay=False, path_type=Path),
               default=_SCRIPTS.parent, show_default=True)
 def cmd_report(contracts: tuple[Path, ...], repo_root: Path) -> None:
-    """Findings AND the estimate, in one run -- what a freeze-time check calls."""
+    """Findings AND the estimate, in one run -- what a freeze-time check calls.
+
+    Exits non-zero on a BLOCKING finding, same as `check` (Codex terra review, `[#961]` diff,
+    HIGH: this command's own docstring calls it the freeze-time command, and a freeze-time
+    command that always exits 0 lets an automated gate accept an invalid plan)."""
     lanes = load_contracts(contracts)
     root = Path(repo_root)
-    click.echo(render_findings(lint(lanes, root)))
+    findings = lint(lanes, root)
+    click.echo(render_findings(findings))
     click.echo("")
     click.echo(estimate_wave(lanes, root).render())
+    if any(f.severity == BLOCKING for f in findings):
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
