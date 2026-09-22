@@ -519,3 +519,373 @@ def test_an_explicit_node_id_is_accepted(repo, tmp_path):
 
 def test_no_option_can_run_the_full_suite():
     assert "--full" not in (_SCRIPTS / "test_pairing.py").read_text(encoding="utf-8")
+
+
+# =============================================================================================
+# lane-known-reds (W4-1, R-W4-2): the BATCH-LEVEL registry. One base run per batch records main's
+# reds and skip count; every lane is then compared against that registry instead of getting a
+# fresh base run of its own. Written before the code: this is the frozen pass/fail criterion.
+# Synthetic repositories only, receipts home redirected into tmp_path, never the live hub.
+# =============================================================================================
+
+_REG_NAME = "TEST-PAIRING-REGISTRY-B1.json"
+_RED = "def test_red():\n    assert False\n"
+_SKIP = "import pytest\n\n\ndef test_skipped():\n    pytest.skip('env')\n"
+
+
+@pytest.fixture
+def home(tmp_path: Path, monkeypatch) -> Path:
+    """The receipts home, redirected: the only place a registry may be created."""
+    path = tmp_path / "receipts"
+    monkeypatch.setenv("HARNESS_RECEIPTS_DIR", str(path))
+    monkeypatch.delenv("HARNESS_BATCH", raising=False)
+    return path
+
+
+def _record(root: Path, commit: str, *extra: str) -> int:
+    return test_pairing.main(["record-base", "--commit", commit, "--batch", "B1", "--repo", str(root),
+                              "--workers", "0", *extra])
+
+
+def _compare(root: Path, head: str, tmp_path: Path, *extra: str) -> tuple[int, dict]:
+    out = tmp_path / "verdict.json"
+    code = test_pairing.main(["compare", "--batch", "B1", "--head", head, "--repo", str(root),
+                              "--out", str(out), "--workers", "0", *extra])
+    return code, json.loads(out.read_text(encoding="utf-8"))
+
+
+def _registry(home: Path) -> dict:
+    return json.loads((home / _REG_NAME).read_text(encoding="utf-8"))
+
+
+def _spy_clones(monkeypatch) -> list[tuple[str, Path]]:
+    made: list[tuple[str, Path]] = []
+    real = test_pairing.make_clone
+
+    def spy(repo, sha, dest):
+        path = real(repo, sha, dest)
+        made.append((sha, path))
+        return path
+
+    monkeypatch.setattr(test_pairing, "make_clone", spy)
+    return made
+
+
+def test_record_base_writes_the_red_set_and_the_skip_count_into_the_receipts_home(repo, home):
+    root, _ = repo
+    base = _commit(root, {"tests/test_red.py": _RED, "tests/test_skip.py": _SKIP}, "main's state")
+
+    code = _record(root, base, "--tests", "tests/test_mod.py", "tests/test_red.py", "tests/test_skip.py")
+
+    assert code == 0
+    registry = _registry(home)
+    assert registry["schema"] == "test-pairing-registry/1"
+    assert registry["batch"] == "B1" and registry["commit"] == base
+    assert sorted(registry["red"]) == ["tests/test_red.py::test_red"]
+    assert registry["skip_count"] == 1, "the skip count is recorded WITH the red set"
+    assert registry["skipped"] == ["tests/test_skip.py::test_skipped"]
+    assert registry["files"] == ["tests/test_mod.py", "tests/test_red.py", "tests/test_skip.py"]
+
+
+def test_the_registry_lives_in_the_cited_receipts_home_undated_and_nowhere_else(repo, home, tmp_path):
+    root, base = repo
+    before = {p.name for p in tmp_path.iterdir()}
+
+    _record(root, base, "--tests", "tests/test_mod.py")
+
+    assert [p.name for p in home.iterdir()] == [_REG_NAME], "UPPERCASE-KEBAB, no date in the name"
+    assert {p.name for p in tmp_path.iterdir()} - before == {"receipts"}, "nothing outside the home"
+    doc = test_pairing.__doc__
+    assert "RECON-NIGHT-2026-09-20" in doc and "shape (a)" in doc, "the choice is cited in the module"
+
+
+def test_the_registry_is_written_once_and_reused_by_every_comparison(repo, home, tmp_path,
+                                                                    monkeypatch):
+    root, _ = repo
+    base = _commit(root, {"scripts/old.py": "X = 1\n",
+                          "tests/test_old.py": "import old\n\n\ndef test_old():\n    assert False\n"},
+                   "a red on main")
+    made = _spy_clones(monkeypatch)
+    _record(root, base, "--tests", "tests/test_mod.py", "tests/test_old.py")
+    written = (home / _REG_NAME).read_bytes()
+    assert [sha for sha, _ in made] == [base], "the base is run exactly once, at record time"
+    lane_a = _commit(root, {"scripts/old.py": "X = 2\n"}, "lane a")
+    lane_b = _commit(root, {"scripts/mod.py": "def value():\n    return 1\n# b\n"}, "lane b")
+    made.clear()
+
+    code_a, verdict_a = _compare(root, lane_a, tmp_path)
+    code_b, verdict_b = _compare(root, lane_b, tmp_path)
+
+    assert (home / _REG_NAME).read_bytes() == written, "a comparison never rewrites the registry"
+    assert base not in [sha for sha, _ in made], "no comparison ran the base commit again"
+    assert [sha for sha, _ in made] == [lane_a, lane_b], "one clone per comparison: the merged tree"
+    assert all(not path.exists() for _, path in made), "no leftovers"
+    assert verdict_a["preexisting"] == ["tests/test_old.py::test_old"] and code_a == 0
+    assert verdict_b["verdict"] == "CLEAN" and code_b == 0
+
+
+def test_a_second_record_base_is_refused_because_it_would_launder_a_red_into_the_registry(repo, home):
+    root, base = repo
+    _record(root, base, "--tests", "tests/test_mod.py")
+    written = (home / _REG_NAME).read_bytes()
+
+    with pytest.raises(SystemExit) as exc:
+        _record(root, base, "--tests", "tests/test_mod.py")
+
+    assert exc.value.code == 2
+    assert (home / _REG_NAME).read_bytes() == written
+    assert _record(root, base, "--tests", "tests/test_mod.py", "--replace") == 0
+
+
+def test_a_red_in_both_the_registry_and_the_merged_tree_is_preexisting(repo, home, tmp_path):
+    root, _ = repo
+    base = _commit(root, {"scripts/old.py": "X = 1\n",
+                          "tests/test_old.py": "import old\n\n\ndef test_old():\n    assert False\n"},
+                   "a red on main")
+    _record(root, base, "--tests", "tests/test_mod.py", "tests/test_old.py")
+    merged = _commit(root, {"scripts/old.py": "X = 2\n"}, "the lane touches the module the red covers")
+
+    code, verdict = _compare(root, merged, tmp_path)
+
+    assert verdict["preexisting"] == ["tests/test_old.py::test_old"]
+    assert verdict["lane"] == [] and verdict["turned_red"] == []
+    assert verdict["verdict"] == "CLEAN" and code == 0
+
+
+def test_a_red_only_in_the_merged_tree_is_the_lanes(repo, home, tmp_path):
+    root, base = repo
+    _record(root, base, "--tests", "tests/test_mod.py")
+    merged = _commit(root, {"tests/test_new.py": _RED}, "the lane adds a red test")
+
+    code, verdict = _compare(root, merged, tmp_path)
+
+    assert _ids(verdict["lane"]) == ["tests/test_new.py::test_red"]
+    assert verdict["lane"][0]["was"] == "absent"
+    assert verdict["preexisting"] == []
+    assert verdict["verdict"] == "LANE-RED" and code == 1
+
+
+def test_a_registry_green_that_is_red_in_the_merged_tree_is_newly_red(repo, home, tmp_path):
+    root, base = repo
+    _record(root, base, "--tests", "tests/test_mod.py")
+    merged = _commit(root, {"scripts/mod.py": "def value():\n    return 2\n"}, "the lane breaks mod")
+
+    code, verdict = _compare(root, merged, tmp_path)
+
+    assert verdict["lane"][0]["was"] == "PASSED"
+    assert verdict["turned_red"] == ["tests/test_mod.py::test_value"]
+    assert code == 1
+
+
+def test_a_red_that_passes_on_rerun_is_a_flake_not_the_lanes(repo, home, tmp_path, monkeypatch):
+    root, base = repo
+    monkeypatch.setenv("PAIRING_FLAKE_COUNTER", str(tmp_path / "flaky-counter.txt"))
+    _record(root, base, "--tests", "tests/test_mod.py")
+    flaky = ("import os\nfrom pathlib import Path\n\n\ndef test_flaky():\n"
+             "    p = Path(os.environ['PAIRING_FLAKE_COUNTER'])\n"
+             "    n = int(p.read_text()) if p.exists() else 0\n"
+             "    p.write_text(str(n + 1))\n    assert n >= 1\n")
+    merged = _commit(root, {"tests/test_flaky.py": flaky}, "a test that is red only once")
+
+    code, verdict = _compare(root, merged, tmp_path)
+
+    assert verdict["lane"] == [] and [f["id"] for f in verdict["flakes"]] == ["tests/test_flaky.py::test_flaky"]
+    assert verdict["flakes"][0]["observations"] == ["FAILED", "PASSED"]
+    assert code == 0
+
+
+# --- the skip-count guard --------------------------------------------------------------------
+
+def test_a_comparison_whose_skip_count_differs_from_the_registrys_is_refused_as_unattributable(
+        repo, home, tmp_path, capsys):
+    root, _ = repo
+    base = _commit(root, {"tests/test_skip.py": _SKIP}, "main skips one test")
+    _record(root, base, "--tests", "tests/test_mod.py", "tests/test_skip.py")
+    # the lane silences a second test: a red it would have shown is now a skip
+    merged = _commit(root, {"tests/test_skip.py": _SKIP + "# touched, still skipped\n",
+                            "tests/test_mod.py":
+                            "import pytest\n\n\ndef test_value():\n    pytest.skip('hidden')\n"},
+                     "the lane skips a test and touches the one main already skips")
+
+    code, verdict = _compare(root, merged, tmp_path)
+
+    assert code == 4, "a distinct exit: not clean, not lane-red, not a tool failure"
+    assert verdict["verdict"] == "UNATTRIBUTABLE"
+    assert verdict["lane"] == [] and verdict["preexisting"] == [], "nothing is classified on a mismatch"
+    assert verdict["skip_guard"]["registry"] == 1 and verdict["skip_guard"]["head"] == 2
+    assert verdict["skip_guard"]["added"] == ["tests/test_mod.py::test_value"]
+    err = capsys.readouterr().err
+    assert "unattributable" in err.lower() and "skip" in err.lower()
+
+
+def test_a_comparison_with_the_same_skip_count_is_attributed_normally(repo, home, tmp_path):
+    root, _ = repo
+    base = _commit(root, {"tests/test_skip.py": _SKIP}, "main skips one test")
+    _record(root, base, "--tests", "tests/test_mod.py", "tests/test_skip.py")
+    merged = _commit(root, {"tests/test_new.py": _RED, "tests/test_skip.py": _SKIP + "# touched\n"},
+                     "the lane adds a red and touches the test main already skips")
+
+    code, verdict = _compare(root, merged, tmp_path)
+
+    assert verdict["skip_guard"] == {"status": "match", "registry": 1, "head": 1,
+                                     "added": [], "removed": []}
+    assert _ids(verdict["lane"]) == ["tests/test_new.py::test_red"] and code == 1
+
+
+def test_a_lane_added_skipped_test_does_not_trip_the_guard_because_the_registry_never_ran_it(
+        repo, home, tmp_path):
+    root, base = repo
+    _record(root, base, "--tests", "tests/test_mod.py")
+    merged = _commit(root, {"tests/test_new.py": _SKIP}, "the lane adds a test that skips")
+
+    code, verdict = _compare(root, merged, tmp_path)
+
+    assert verdict["skip_guard"]["status"] == "match", "the guard counts the tests both sides ran"
+    assert code == 0
+
+
+# --- the shape of the command and its refusals -------------------------------------------------
+
+def test_a_batch_is_required_and_must_be_a_plain_name(repo, home):
+    root, base = repo
+    for extra in (["--batch", "../escape"], ["--batch", "a b"], []):
+        argv = ["record-base", "--commit", base, "--repo", str(root), "--workers", "0",
+                "--tests", "tests/test_mod.py"]
+        if extra:
+            argv = [a for a in argv] + extra
+        with pytest.raises(SystemExit) as exc:
+            test_pairing.main(argv)
+        assert exc.value.code == 2, extra
+    assert not home.exists(), "a refused registry left nothing behind"
+
+
+def test_the_batch_falls_back_to_the_environment(repo, home, monkeypatch):
+    root, base = repo
+    monkeypatch.setenv("HARNESS_BATCH", "B1")
+
+    code = test_pairing.main(["record-base", "--commit", base, "--repo", str(root), "--workers", "0",
+                              "--tests", "tests/test_mod.py"])
+
+    assert code == 0 and (home / _REG_NAME).is_file()
+
+
+def test_comparing_without_a_registry_fails_closed_rather_than_reading_as_clean(repo, home, tmp_path):
+    root, base = repo
+    with pytest.raises(SystemExit) as exc:
+        test_pairing.main(["compare", "--batch", "B1", "--head", base, "--repo", str(root),
+                           "--out", str(tmp_path / "v.json"), "--workers", "0"])
+    assert exc.value.code == 2
+
+
+def test_a_registry_of_another_schema_is_refused(repo, home, tmp_path):
+    root, base = repo
+    _record(root, base, "--tests", "tests/test_mod.py")
+    data = _registry(home)
+    data["schema"] = "test-pairing-registry/0"
+    (home / _REG_NAME).write_text(json.dumps(data), encoding="utf-8")
+    with pytest.raises(SystemExit) as exc:
+        test_pairing.main(["compare", "--batch", "B1", "--head", base, "--repo", str(root),
+                           "--out", str(tmp_path / "v.json"), "--workers", "0"])
+    assert exc.value.code == 2
+
+
+def test_record_base_takes_its_files_from_the_batchs_lanes(repo, home):
+    root, _ = repo
+    _git(root, "checkout", "-b", "worktree-demo")
+    _commit(root, {"scripts/mod.py": "def value():\n    return 1\n# lane\n",
+                   "tests/test_new.py": _RED}, "lane work")
+    _git(root, "checkout", "main")
+    base = _commit(root, {"README.md": "main moved on\n"}, "main advances")
+
+    code = _record(root, base, "--lane", "demo")
+
+    registry = _registry(home)
+    assert code == 0
+    assert registry["files"] == ["tests/test_mod.py"], "a test the lane adds does not exist on the base"
+    assert registry["lanes"] == ["demo"]
+
+
+def test_a_docs_only_selection_resolves_the_live_repo_marker_to_files(repo, home, tmp_path):
+    root, _ = repo
+    live = ("import pytest\n\npytestmark = pytest.mark.live_repo\n\n\ndef test_live():\n"
+            "    assert False\n")
+    base = _commit(root, {"tests/test_live.py": live}, "a live-repo red on main")
+    _record(root, base, "--tests", "tests/test_mod.py", "tests/test_live.py")
+    merged = _commit(root, {"README.md": "a docs-only lane\n"}, "docs only")
+
+    code, verdict = _compare(root, merged, tmp_path)
+
+    assert verdict["selection"]["test_files"] == ["tests/test_live.py"]
+    assert verdict["preexisting"] == ["tests/test_live.py::test_live"] and code == 0
+
+
+# --- the codex terra review's three HIGH findings (docs/audits/2026-09-22-codex-lane-known-reds.md) ---
+
+def test_swapping_which_test_is_skipped_keeps_the_count_but_is_still_unattributable(repo, home,
+                                                                                    tmp_path):
+    root, _ = repo
+    red = "def test_hidden():\n    assert False\n"
+    base = _commit(root, {"tests/test_a.py": _SKIP, "tests/test_b.py": red}, "one skipped, one red")
+    _record(root, base, "--tests", "tests/test_a.py", "tests/test_b.py")
+    # the lane un-skips one test and skips the red one: the COUNT is unchanged, the red is hidden
+    merged = _commit(root, {"tests/test_a.py": "def test_skipped():\n    assert True\n",
+                            "tests/test_b.py": "import pytest\n\n\ndef test_hidden():\n"
+                                               "    pytest.skip('hidden')\n"}, "swap the skips")
+
+    code, verdict = _compare(root, merged, tmp_path)
+
+    assert verdict["skip_guard"]["registry"] == verdict["skip_guard"]["head"] == 1
+    assert verdict["skip_guard"]["added"] == ["tests/test_b.py::test_hidden"]
+    assert verdict["verdict"] == "UNATTRIBUTABLE" and code == 4
+
+
+def test_a_selected_file_that_existed_on_the_base_but_is_not_in_the_registry_is_unattributable(
+        repo, home, tmp_path):
+    root, _ = repo
+    base = _commit(root, {"scripts/other.py": "Y = 1\n",
+                          "tests/test_other.py": "import other\n\n\ndef test_other():\n    assert False\n"},
+                   "an unrecorded red on main")
+    _record(root, base, "--tests", "tests/test_mod.py")
+    merged = _commit(root, {"scripts/other.py": "Y = 2\n"}, "a lane touches what the registry never ran")
+
+    code, verdict = _compare(root, merged, tmp_path)
+
+    assert verdict["verdict"] == "UNATTRIBUTABLE" and code == 4
+    assert verdict["unregistered"] == ["tests/test_other.py"]
+    assert verdict["lane"] == [] and verdict["preexisting"] == [], "nothing is classified"
+
+
+def test_a_file_the_lane_added_is_not_unregistered_because_it_did_not_exist_on_the_base(repo, home,
+                                                                                         tmp_path):
+    root, base = repo
+    _record(root, base, "--tests", "tests/test_mod.py")
+    merged = _commit(root, {"tests/test_new.py": _RED}, "the lane adds a red")
+
+    code, verdict = _compare(root, merged, tmp_path)
+
+    assert verdict["unregistered"] == [] and code == 1
+
+
+def test_write_registry_never_replaces_an_existing_registry_unless_told_to(repo, home):
+    root, base = repo
+    _record(root, base, "--tests", "tests/test_mod.py")
+    path = home / _REG_NAME
+    written = path.read_bytes()
+    other = test_pairing.Registry.from_json({**_registry(home), "commit": "0" * 40}, "x")
+
+    with pytest.raises(test_pairing.PairingError):
+        test_pairing.write_registry(path, other)
+
+    assert path.read_bytes() == written, "a racing writer cannot overwrite without --replace"
+    assert [p.name for p in home.iterdir()] == [_REG_NAME], "no temp file left beside the registry"
+    test_pairing.write_registry(path, other, replace=True)
+    assert json.loads(path.read_text(encoding="utf-8"))["commit"] == "0" * 40
+
+
+def test_the_existing_two_commit_form_is_untouched_by_the_registry_commands(repo, tmp_path):
+    root, base = repo
+    head = _commit(root, {"tests/test_new.py": "def test_new():\n    assert False\n"}, "red")
+
+    code, verdict = _run(root, base, head, tmp_path)
+
+    assert code == 1 and _ids(verdict["lane"]) == ["tests/test_new.py::test_new"]

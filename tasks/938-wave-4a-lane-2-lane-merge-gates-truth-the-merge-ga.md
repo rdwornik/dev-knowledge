@@ -1,0 +1,12 @@
+---
+id: "[#938]"
+title: "Wave 4a lane 2 (lane-merge-gates-truth) -- the merge gate reads the fates the declaration records"
+status: open
+priority: P1
+size: M
+theme: "[E2] Enforced governance"
+story: "[S3] Turn advisory guards into enforced gates"
+generates: BACKLOG.md
+---
+
+- [#938] [P1][M] **Wave 4a lane 2 (lane-merge-gates-truth) -- the merge gate reads the fates the declaration records** - filed by LANE-W4-1 per `to-cc/DECLARE-WAVE4A-2026-09-22.md` hard precondition 3 (rows for lanes 1-5 exist before lanes 2-5 fire; R-W4-1, R-W4-4); frozen contract `LANE-W4-2-merge-gates-truth.md`, branch `worktree-lane-merge-gates-truth`, a wave-4a lane closing the loop `[#929]` evaluated. Value: Lane A recorded a fate for each of the 36 uncalled organs; the check that fails the gate never reads them, so data and check disagree — our disease in miniature, and the loop's first stop. After this lane a dated fate is dated debt: the gate warns until the date and fails after it, and the walk passes the merge gates. · Done when: carried verbatim from the frozen contract -- 1. **The census check reads fates (R-W4-1):** `manual_until` in the future -> WARN naming the date; past -> hard-fail; `retire_candidate: true` -> WARN in a list headed for the operator; declared at a moment with a receipt in the last 30 days -> OK; no fate and no caller -> hard-fail. The roster is not narrowed. 2. **The integrator chain order (R-W4-4)** in `lane-integrate.md`: `merge_receipt open` before `models`; `merge_receipt close` before `moment:teardown`. The `merge` moment in `harness.yaml` declares `merge_receipt open` as its first organ so a caller that runs only the moment does not stop at `models`. 3. **Live result recorded:** `audit.py ship-gate` on your branch shows 0 hard-fails from the census and the 36 as dated WARNs; the number is in your handback. 4. **Tests (common rules):** each fate class yields the declared verdict; a past date fails; the declared `merge` moment, read from `harness.yaml` and run as written on a fixture, opens before it compares; the chain order is asserted from the command file's text. 5. **Codex terra review** with its consumer cited; **pre-handback self-check**; **handback**. · refs `LANE-W4-2-merge-gates-truth.md`, `to-cc/WAVE4-COMMON-2026-09-22.md`, `to-cc/DECLARE-WAVE4A-2026-09-22.md`, `ecosystem/harness.yaml` · kill-candidates: none -- no open row covers this lane's work

@@ -175,6 +175,11 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#934] [P1][S] Wave 3 lane E (lane-repo-housekeeping) -- the gate reports only what is real · tasks/934-wave-3-lane-e-lane-repo-housekeeping-the-gate-re.md
 - [#935] [P1][M] Wave 3 lane F (lane-connection-test) -- prove the loop is connected, end to end, with receipts · tasks/935-wave-3-lane-f-lane-connection-test-prove-the-loo.md
 - [#936] [P2][S] Preflight skips an all-digit short sha -- a merge whose hash is all digits reds the pairing and passes a contract unchecked · tasks/936-preflight-skips-an-all-digit-short-sha-so-a-merge-whose-hash-is-digits-reds-the-pairing.md
+- [#937] [P1][M] Wave 4a lane 1 (lane-known-reds) -- one base run per batch, so a merge takes minutes instead of an hour · tasks/937-wave-4a-lane-1-lane-known-reds-one-base-run-per-ba.md
+- [#938] [P1][M] Wave 4a lane 2 (lane-merge-gates-truth) -- the merge gate reads the fates the declaration records · tasks/938-wave-4a-lane-2-lane-merge-gates-truth-the-merge-ga.md
+- [#939] [P1][M] Wave 4a lane 3 (lane-batch-digest) -- the morning digest names the work, written by the machine · tasks/939-wave-4a-lane-3-lane-batch-digest-the-morning-diges.md
+- [#940] [P2][M] Wave 4a lane 4 (lane-connection-hygiene) -- the connection test tells the truth, stably · tasks/940-wave-4a-lane-4-lane-connection-hygiene-the-connect.md
+- [#941] [P2][M] Wave 4a lane 5 (lane-landing-decisions) -- this window's decisions leave the transport and enter the repo · tasks/941-wave-4a-lane-5-lane-landing-decisions-this-window.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md

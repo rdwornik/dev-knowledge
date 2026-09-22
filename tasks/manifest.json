@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "36409ef798d5e7a04e1e9379699495a30f9be9983131b13cffd2882ecd279b19",
+  "generated_sha256": "bd4f29a57b22197651f8427c768db25a01178349943d83dff9da2eee7ab4e31d",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -676,6 +676,26 @@
     {
       "task": 936,
       "file": "936-preflight-skips-an-all-digit-short-sha-so-a-merge-whose-hash-is-digits-reds-the-pairing.md"
+    },
+    {
+      "task": 937,
+      "file": "937-wave-4a-lane-1-lane-known-reds-one-base-run-per-ba.md"
+    },
+    {
+      "task": 938,
+      "file": "938-wave-4a-lane-2-lane-merge-gates-truth-the-merge-ga.md"
+    },
+    {
+      "task": 939,
+      "file": "939-wave-4a-lane-3-lane-batch-digest-the-morning-diges.md"
+    },
+    {
+      "task": 940,
+      "file": "940-wave-4a-lane-4-lane-connection-hygiene-the-connect.md"
+    },
+    {
+      "task": 941,
+      "file": "941-wave-4a-lane-5-lane-landing-decisions-this-window.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
