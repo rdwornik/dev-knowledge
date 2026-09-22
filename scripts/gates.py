@@ -27,12 +27,26 @@ THE VERDICT ARTIFACT is `MOMENT-MERGE-GATES-VERDICT.json` in the receipts home (
 gitignored, `HARNESS_RECEIPTS_DIR` overrides -- L1's convention). The organ RECEIPT beside it is
 written by `telemetry_emit.py wrap`; this file is what the receipt's exit code summarises.
 
+PER-ORGAN FINDINGS (FR4, W4B-3). `audit.py health` and `audit.py ship-gate` each run many
+self-audit checks (organs) and print one line per Finding in the LOCKED shape `[MARKER] check_name:
+evidence` (`audit.py`'s own `_marker` table: `[OK]`/`[~~]`/`[!!]`/`[??]`/`[--]`). Grepping a
+truncated TAIL of that text for a hard-fail name is exactly the failure this organ existed to
+remove one layer down: the fail/warn lines sit wherever they sit in run order, not necessarily near
+the end, so a tail can miss them entirely (WAVE4-FINAL digest, finding 4). Every gate's FULL
+captured text (not the truncated `output_tail`) is parsed for that same locked line shape, and
+every fail/warn line becomes one entry in the row's new `findings` list: `{"check_name", "status",
+"evidence"}` -- the organ's own identity and verdict, structured, independent of where in the
+output it printed. A gate whose output carries no such lines (ruff, impacted-tests) simply yields
+`findings: []`; nothing about the existing `output_tail` or any other field changes -- this is new
+data alongside old (common rule 8).
+
 Run:  uv run --locked python scripts/gates.py run --lane <lane> [--base <ref>]
 """
 from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -47,6 +61,26 @@ _ROOT = Path(__file__).resolve().parent.parent
 _VERDICT_NAME = "MOMENT-MERGE-GATES-VERDICT.json"
 _TAIL_CHARS = 2000
 _NOT_STARTED = 127
+
+#: The locked `audit.py` Finding-line shape (`_marker` there: OK/~~/!!/??/--) -> our status name.
+#: Read from FULL gate text, never a truncated tail (FR4): a hard-fail's line does not move just
+#: because it happens to print early in a long ship-gate run.
+_FINDING_MARKER_STATUS = {"OK": "pass", "~~": "warn", "!!": "fail", "??": "unavailable", "--": "n/a"}
+_FINDING_LINE_RE = re.compile(
+    r"^[ \t]*\[(OK|~~|!!|\?\?|--)\][ \t]+([A-Za-z_]\w*): (.*)$", re.MULTILINE)
+
+
+def _findings_in(text: str) -> list[dict]:
+    """Every hard-fail/warning Finding printed in `text`, as `{check_name, status, evidence}` --
+    parsed from the same locked `[MARKER] check_name: evidence` line `audit.py` already prints, so
+    this reads real CLI output rather than re-running the checks in-process (no doubled cost). A
+    gate with no such lines (ruff, impacted-tests) yields `[]`, not an error."""
+    found = []
+    for marker, name, evidence in _FINDING_LINE_RE.findall(text or ""):
+        status = _FINDING_MARKER_STATUS[marker]
+        if status in ("fail", "warn"):
+            found.append({"check_name": name, "status": status, "evidence": evidence})
+    return found
 
 
 @dataclass(frozen=True)
@@ -141,7 +175,8 @@ def run_gates(gates: Sequence[Gate], *, lane: str, cwd: Path, base: Optional[str
             code, text = _run_argv(gate.argv, cwd)
         rows.append({"name": gate.name, "argv": list(gate.argv), "exit_code": int(code),
                      "duration_ms": int((time.monotonic() - started) * 1000),
-                     "output_tail": (text or "")[-_TAIL_CHARS:]})
+                     "output_tail": (text or "")[-_TAIL_CHARS:],
+                     "findings": _findings_in(text or "")})
     red = [row["name"] for row in rows if row["exit_code"] != 0]
     return {"schema": 1, "lane": lane, "base": base, "list": source,
             "verdict": "RED" if red else "GREEN", "red": red, "gates": rows,
