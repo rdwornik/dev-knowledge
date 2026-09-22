@@ -83,6 +83,14 @@ class HookReceipt:
     schema: int = 1
     organ: str = "lane_end_guard"
     detached: bool = True  # False: the worker started INSIDE the hook's job (breakaway refused) and may not outlive it
+    # Structurally parsed via `handback_schema.HandbackLine` (LANE-W4B-2, RC3) -- `None` when
+    # `handback` is `None` or does not parse against the schema's HANDBACK grammar. This does
+    # NOT change what triggers the moment (`HANDBACK_PATTERN` above still governs that, and
+    # stays byte-identical to `harness.yaml`'s declared precondition); it only enriches the
+    # receipt so a consumer reading it does not have to re-parse `handback` itself.
+    handback_branch: Optional[str] = None
+    handback_sha: Optional[str] = None
+    handback_class: Optional[str] = None
 
 
 def moment_argv() -> list[str]:
@@ -174,11 +182,27 @@ def _ms() -> int:
     return int((time.perf_counter() - _T0) * 1000)
 
 
+def _parse_handback(handback: Optional[str]) -> tuple[Optional[str], Optional[str], Optional[str]]:
+    """`(branch, sha, cls)` from `handback_schema.HandbackLine.parse`, or `(None, None, None)`
+    when there is no line or it does not structurally parse. Best-effort: a schema import or
+    parse failure enriches nothing rather than failing the receipt this guard must always write."""
+    if not handback:
+        return None, None, None
+    try:
+        import handback_schema  # noqa: PLC0415 -- only once a lane has a closing line to parse
+        parsed = handback_schema.HandbackLine.parse(handback)
+    except Exception:  # noqa: BLE001 -- enrichment only; never blocks the receipt
+        return None, None, None
+    return (parsed.branch, parsed.sha, parsed.cls) if parsed else (None, None, None)
+
+
 def _receipt(lane: str, status: str, exit_code: int, handback: Optional[str], reason: str,
              guard_ms: int, moment_ms: int = 0, detached: bool = True) -> HookReceipt:
+    branch, sha, cls = _parse_handback(handback)
     return HookReceipt(lane=lane, status=status, exit_code=exit_code, handback=handback, reason=reason,
                        guard_ms=guard_ms, moment_ms=moment_ms, hook_limit_s=HOOK_LIMIT_S,
-                       within_hook_limit=guard_ms < HOOK_LIMIT_S * 1000, finished_at=_stamp(), detached=detached)
+                       within_hook_limit=guard_ms < HOOK_LIMIT_S * 1000, finished_at=_stamp(), detached=detached,
+                       handback_branch=branch, handback_sha=sha, handback_class=cls)
 
 
 def _default_resolve_transport() -> Path:

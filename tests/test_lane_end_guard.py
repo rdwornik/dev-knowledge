@@ -456,3 +456,83 @@ def test_the_handback_pattern_matches_only_a_closing_line():
     pat = _guard().HANDBACK_PATTERN
     assert pat.search(HANDBACK) and pat.search("x\n" + HANDBACK + "\n")
     assert not pat.search("the HANDBACK line comes last") and not pat.search("HANDBACK")
+
+
+# --- LANE-W4B-2-handback-organ Done-contract 2/3: schema enrichment and the two locked-in
+# properties the contract names ("finds the session file by worktree slug"; "ends ok or failed,
+# never running") -------------------------------------------------------------------------------
+
+def test_the_receipt_is_enriched_from_the_schema_without_changing_the_trigger(lane):
+    """Additive only: `HANDBACK_PATTERN` (the trigger) is untouched; `handback_schema.HandbackLine`
+    just parses the SAME line for three extra fields on the receipt."""
+    code_line = "HANDBACK worktree-lane-end-hook @ abc1234 code review=codex HIGH:0 MED:1 LOW:2"
+    lane["session"].write_text(code_line + "\n", encoding="utf-8")
+    assert _run(lane, _Runner()) == 0
+    rec = _receipt(lane)
+    assert rec["handback_branch"] == "worktree-lane-end-hook"
+    assert rec["handback_sha"] == "abc1234"
+    assert rec["handback_class"] == "code"
+
+
+def test_a_handback_line_that_does_not_parse_leaves_the_enrichment_none(lane):
+    """`HANDBACK_PATTERN` is looser than the schema's grammar (no `[code|docs-only]` class
+    required to TRIGGER the moment); a line the trigger accepts but the schema does not parse
+    enriches nothing rather than raising."""
+    lane["session"].write_text("HANDBACK worktree-x @ notashaoraclass\n", encoding="utf-8")
+    assert _run(lane, _Runner()) == 0
+    rec = _receipt(lane)
+    assert rec["handback_branch"] is None and rec["handback_sha"] is None
+    assert rec["handback_class"] is None
+
+
+def test_the_guard_finds_the_session_file_by_worktree_slug(tmp_path):
+    """The Done-contract's own words: with no `HARNESS_SESSION_FILE` override, the session file
+    is named after the WORKTREE directory, not an arbitrary lane label."""
+    g = _guard()
+    root = tmp_path / ".claude" / "worktrees" / "lane-my-slug"
+    root.mkdir(parents=True)
+    assert g.resolve_lane({}, root) == "lane-my-slug"
+
+    calls: list[Path] = []
+
+    def fake_resolve_transport() -> Path:
+        calls.append(True)
+        return tmp_path / "to-browser"
+
+    (tmp_path / "to-browser").mkdir()
+    (tmp_path / "to-browser" / "SESSION-lane-my-slug.md").write_text(HANDBACK + "\n", encoding="utf-8")
+    env = {"HARNESS_RECEIPTS_DIR": str(tmp_path / "receipts")}
+    assert g.main([], environ=env, runner=_Runner(), root=root,
+                 resolve_transport=fake_resolve_transport) == 0
+    assert calls, "the guard resolved the session file through the transport, by the worktree slug"
+    rec = json.loads((tmp_path / "receipts" / RECEIPT_FILE).read_text(encoding="utf-8"))
+    assert rec["status"] == "ok"
+
+
+def test_the_terminal_receipt_is_always_ok_or_failed_never_running(lane):
+    """The Done-contract's other clause. `running` is a legitimate TRANSIENT claim (the moment
+    is a detached worker outliving the 15s hook), but every receipt this guard ever settles to
+    -- a normal finish, a crash, a reaped abandoned claim -- lands on `ok` or `FAILED`,
+    never leaves `running` as a final answer."""
+    g = _guard()
+
+    # a normal, undetached finish
+    lane["session"].write_text(HANDBACK + "\n", encoding="utf-8")
+    assert _run(lane, _Runner()) == 0
+    assert _receipt(lane)["status"] in ("ok", "FAILED", "REFUSED")
+
+    # a crash
+    lane["session"].write_text("HANDBACK worktree-x @ deadbee1 code\n", encoding="utf-8")
+    assert g.main([], environ=lane["env"], runner=_Runner(raises=RuntimeError("boom")),
+                 root=lane["root"]) == 0
+    assert _receipt(lane)["status"] in ("ok", "FAILED", "REFUSED")
+
+    # an abandoned `running` claim, reaped rather than left running
+    receipt_path = lane["receipts"] / RECEIPT_FILE
+    current = json.loads(receipt_path.read_text(encoding="utf-8"))
+    current["status"] = "running"
+    receipt_path.write_text(json.dumps(current), encoding="utf-8")
+    stale = time.time() - g.STALE_RUNNING_S - 60
+    os.utime(receipt_path, (stale, stale))
+    assert g.main([], environ=lane["env"], runner=_Runner(), root=lane["root"]) == 0
+    assert _receipt(lane)["status"] != "running"
