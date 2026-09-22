@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-22 (e) - CC (Opus 5, integrator wave 4a, day): LANE W4-5 merged -- this window's decisions leave the transport: ADR-120 Accepted, ADR-87 gains the equilibrium, STANDING_RULINGS gains AJ
+
+**Anchors:** `e31b2a8d` (Codex re-review record, 0/0/0/0) · `68033b62` (re-review) · `1c655d06` (sync with main, rows renumbered to #942-#954) · `2b900636` (first review) · `e4ea8a2f` (the decisions land) -- `worktree-lane-landing-decisions`, merged --no-ff.
+
+**Did:** merged W4-5 two-step from the primary, fourth of the day (ahead of W4-2, which is in repair). ADR-120 moves Proposed -> Accepted (2026-09-22); ADR-87 gains a 2026-09-22 amendment restating the browser/CC equilibrium (E1-E5); `protocols/STANDING_RULINGS.md` gains section AJ (AJ-1..AJ-7), where each OPEN decision file of 2026-09-20..22 now lives in the repo, with `landed:` predicates. Thirteen rows `[#942]`-`[#954]` carry wave 4b's and wave 5's deferred items. Closure evidence for `[#930]`-`[#935]` is prepared in the lane's session file; nothing is closed (R-W4-9).
+
+**Result:** Codex terra 0/0/0/0 on the re-review (the first review caught the row-id collision with W4-1's `[#937]`-`[#941]`, fixed by renumbering). Two AMEND files stay OPEN: they name `protocols/HANDOFF_BOOT.md`, 13 bytes under its budget. Registry comparison and gates: `to-browser/SESSION-integrator-wave4-2026-09-22.md`, day section. **Changes:** `docs/decisions/ADR-120-the-spine-is-the-whole-loop.md`, `docs/decisions/ADR-87-equilibrium-contract.md`, `docs/decisions/README.md`, `protocols/STANDING_RULINGS.md`, `tasks/942..954-*.md` (new), `tasks/manifest.json`, `BACKLOG.md`, `.claude/generated/recent-adrs.md`, `docs/audits/2026-09-22-codex-lane-landing-decisions.md` (new), `docs/audits/README.md`, `JOURNAL.md`. **Next:** W4-2's repaired handback.
+
 ### 2026-09-22 (c) - CC (Opus 5, integrator wave 4a, day): LANE W4-3 merged -- the batch digest names every lane from its own lane-end report, never from git log after a merge
 
 **Anchors:** `c7591550` (merge sha looked up per batch) · `cdecb29a` (digest reads the lane-end reports) -- `worktree-lane-batch-digest`, merged --no-ff.
