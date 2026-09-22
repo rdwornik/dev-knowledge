@@ -6,7 +6,7 @@
 **Diff range:** `main..worktree-lane-merge-gates-truth`
 **Codex version:** codex-cli 0.155.0
 **Mode:** diff-review
-**Tally:** TBD/TBD/TBD/TBD <!-- Critical/High/Medium/Low. FILL FROM THE FINDINGS SECTION before committing. The hub's review_artifact_coverage leg parses four digits here; TBD deliberately does not parse, so an unfilled tally keeps WARNing instead of shipping a number nobody counted. -->
+**Tally:** 0/3/0/0 <!-- Critical/High/Medium/Low. Filled from the Findings section (see the Amendment below re: one of the three HIGHs). -->
 
 **Model used:** `gpt-5.6-terra` (pinned; both lanes — [#469])
 **Review profile:** code
@@ -55,3 +55,33 @@
 ## Low
 
 (none)
+
+---
+
+## Amendment (post-landing, 2026-09-22)
+
+**Consumer:** `[#938]` — lane-merge-gates-truth's own backlog row
+(`tasks/938-wave-4a-lane-2-lane-merge-gates-truth-the-merge-ga.md`), the WAVE4a Done-contract
+item requiring "Codex terra review with its consumer cited". This review's findings are
+disposed against that row's Done-contract, not a separate governance surface.
+
+**Two of the three HIGH findings were genuine and are fixed** in
+`e3432469 fix: two genuine findings from the codex terra review of 965835d`:
+the future-dated-receipt gap (`check_organ_truth.py:270`) and the receipt-open race
+(`harness.yaml:58`, closed by switching from a separate `.exists()` pre-check to
+`contextlib.suppress(MergeReceiptError)` around `open_receipt` itself).
+
+**The third HIGH ("Fate dispositions are never applied", `check_organ_truth.py:307`) was a
+FALSE POSITIVE**, not a defect in the reviewed commit (`965835d2`). This review ran (via
+`-AutoCommit`, backgrounded) concurrently with this lane's own mutation-based vacuity check —
+a temporary edit to that exact loop, reverted with `git checkout --` before this commit landed.
+The review read the working tree mid-mutation: a shared-working-tree race between two of this
+lane's own processes, not a defect a peer would hit. Verified directly:
+`git show 965835d2:scripts/audit_checks/check_organ_truth.py` carries the full fate-branching
+logic the finding says is absent, and the fate tests it predicts should fail were green in the
+commit that landed (`tests/test_organ_truth.py`, all passing). Recorded here as an amendment
+rather than by editing the Findings section above, per this repo's audit-immutability rule.
+
+**Lesson for next time (recorded, not re-litigated):** a codex-review invocation and a local
+mutation-based vacuity check must not run concurrently against the same working tree — the
+review reads live files, not a frozen diff, and races a concurrent edit.
