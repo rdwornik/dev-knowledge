@@ -697,7 +697,7 @@ def test_the_loop_stops_where_the_walk_recorded(walk):
     stamps = [max(o.mtime_ns for o in s.organs) for s in before]
     assert stamps == sorted(stamps)
     merge = next(s for s in walk.steps if s.moment == "merge")
-    assert [o.organ for o in merge.organs if o.fired] == ["merge_receipt.models", "go_reader", "review_packet"]
+    assert [o.organ for o in merge.organs if o.fired] == ["merge_receipt.open", "merge_receipt.models", "go_reader", "review_packet"]
 
 
 def test_the_toy_task_was_launched_once_by_the_launcher_and_nothing_real_spawned(walk):
@@ -823,7 +823,7 @@ def test_a_missing_go_file_stops_at_merge(tmp_path_factory):
         step = world.moment("merge", **world.merge_env(NEGATIVE_SLUG, contract, handback, merge_sha))
         assert step.exit_code != 0
         fired = [o.organ for o in step.organs if o.fired]
-        assert fired == ["merge_receipt.models"], f"models must pass and nothing after go_reader may run: {step}"
+        assert fired == ["merge_receipt.open", "merge_receipt.models"], f"models must pass and nothing after go_reader may run: {step}"
         assert step.stop and step.stop.organ == "go_reader"
         refusal = (world.repo / "logs" / "receipts" / "MOMENT-MERGE-GO-READER-OUTPUT.txt").read_text(encoding="utf-8")
         assert "REFUSED" in refusal and f"GO-{BATCH}.md" in refusal
