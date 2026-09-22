@@ -267,7 +267,11 @@ def _moment_ran_recently(root: Path, moment_name: str, today: _dt.date) -> bool:
             mtime = _dt.date.fromtimestamp(receipt.stat().st_mtime)
         except OSError:
             continue
-        if (today - mtime).days <= _FATE_RECEIPT_WINDOW_DAYS:
+        # 0 <= age -- a future-dated receipt (clock skew, or a fixture's mistake) is not evidence
+        # the moment ran in the past 30 days; it is refused the same as one that never fired
+        # (Codex terra review, HIGH, docs/audits/2026-09-22-codex-lane-merge-gates-truth.md).
+        age = (today - mtime).days
+        if 0 <= age <= _FATE_RECEIPT_WINDOW_DAYS:
             return True
     return False
 

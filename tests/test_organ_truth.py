@@ -332,6 +332,28 @@ def test_the_check_is_ok_on_a_moment_fate_whose_moment_recently_ran(tmp_path, mo
     assert [f.status for f in findings] == ["pass"], [f.evidence for f in findings]
 
 
+def test_the_check_fails_a_moment_fate_whose_receipt_is_future_dated(tmp_path, monkeypatch):
+    """A receipt mtime AHEAD of `_today()` (clock skew, or a fixture mistake) is not evidence the
+    moment ran in the past 30 days -- `age = today - mtime` goes negative and `negative <= 30` is
+    true, so the age must also be bounded below at 0 (Codex terra review, HIGH,
+    docs/audits/2026-09-22-codex-lane-merge-gates-truth.md)."""
+    _clean_repo(tmp_path)
+    _write(tmp_path / "scripts" / "stray.py", "print(2)\n")
+    _harness(tmp_path, [_moment("lane-start", _organ("built", "scripts/built.py"))],
+             fates=[{"path": "scripts/stray.py", "moment": "lane-start",
+                    "reason": "fires alongside lane-start's own organ"}])
+    receipt = tmp_path / "logs" / "receipts" / "MOMENT-X-BUILT.json"
+    receipt.parent.mkdir(parents=True, exist_ok=True)
+    receipt.write_text("{}", encoding="utf-8")
+    future = _dt.datetime(2026, 10, 15).timestamp()
+    os.utime(receipt, (future, future))
+    monkeypatch.setattr(cot, "_today", lambda: _dt.date(2026, 9, 22))
+    _patch_roster(monkeypatch, "scripts/built.py", "scripts/stray.py")
+    fails = [f for f in aud.check_organ_truth(tmp_path) if f.status == "fail"]
+    assert fails and any(
+        "scripts/stray.py" in f.evidence and "lane-start" in f.evidence for f in fails), fails
+
+
 def test_the_check_fails_a_moment_fate_whose_moment_left_no_recent_receipt(tmp_path, monkeypatch):
     _clean_repo(tmp_path)
     _write(tmp_path / "scripts" / "stray.py", "print(2)\n")
