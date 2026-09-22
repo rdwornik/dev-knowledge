@@ -180,6 +180,22 @@ def test_reports_root_shows_the_merge_sha_from_the_integrators_ledger(tmp_path):
     assert "Merge: cafef00d" in text
 
 
+def test_a_reused_lane_slug_across_batches_does_not_misattribute_the_merge_sha(tmp_path):
+    """Codex terra HIGH (2026-09-22): with no batch filter, a later batch's row for a reused slug
+    would win as "the newest", handing an EARLIER batch's digest a merge sha that is not its own."""
+    ld = _mod("lane_digest")
+    ledger = tmp_path / "MERGE-RECEIPTS.jsonl"
+    ledger.write_text(
+        json.dumps({"slug": "lane-a", "batch": "WAVE3", "merge_sha": "wave3sha", "closed": "2026-09-01"}) + "\n"
+        + json.dumps({"slug": "lane-a", "batch": "WAVE4", "merge_sha": "wave4sha", "closed": "2026-09-22"}) + "\n",
+        encoding="utf-8")
+    assert ld.load_merge_shas(ledger, batch="WAVE3") == {"lane-a": "wave3sha"}
+    assert ld.load_merge_shas(ledger, batch="WAVE4") == {"lane-a": "wave4sha"}
+    # unnamed batch: the old, batch-unaware behaviour (newest row overall) -- unchanged for a
+    # caller that does not know which batch to prefer.
+    assert ld.load_merge_shas(ledger) == {"lane-a": "wave4sha"}
+
+
 def test_lane_roster_prefers_the_explicit_flag_then_the_env_then_a_glob(tmp_path, monkeypatch):
     ld = _mod("lane_digest")
     reports = tmp_path / "to-browser"

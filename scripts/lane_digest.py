@@ -212,10 +212,17 @@ def batch_lanes(root: Path, costs: dict[str, float]) -> list[LaneInput]:
 
 # --- the transport-reports batch view (R-W4-3) ----------------------------------------------------
 
-def load_merge_shas(ledger_file: Path) -> dict[str, str]:
+def load_merge_shas(ledger_file: Path, batch: Optional[str] = None) -> dict[str, str]:
     """slug -> the newest merge sha `merge_receipt.py` recorded for it in the append-only ledger
     (a later row for the same slug wins). Missing or unreadable: empty, never raised -- a digest
-    must never stop on a ledger it cannot read."""
+    must never stop on a ledger it cannot read.
+
+    FILTERED BY BATCH WHEN ONE IS NAMED (codex terra HIGH, 2026-09-22): a lane slug is not unique
+    across the ledger's whole history -- a later batch can reuse an earlier one's slug -- and
+    selecting "the newest row for this slug" with no batch filter would then hand an earlier
+    batch's digest a LATER batch's merge sha, silently misattributing whose merge it was. With no
+    `batch` given (an ad hoc, batch-unaware invocation) every row is still considered, which is
+    the pre-fix behaviour and the only thing possible without knowing which batch to prefer."""
     shas: dict[str, str] = {}
     try:
         text = ledger_file.read_text(encoding="utf-8")
@@ -227,11 +234,14 @@ def load_merge_shas(ledger_file: Path) -> dict[str, str]:
             sha = row.get("merge_sha")
         except (ValueError, AttributeError):
             continue
-        if sha:
-            try:
-                shas[str(row["slug"])] = str(sha)
-            except KeyError:
-                continue
+        if not sha:
+            continue
+        if batch and str(row.get("batch") or "") != batch:
+            continue
+        try:
+            shas[str(row["slug"])] = str(sha)
+        except KeyError:
+            continue
     return shas
 
 
@@ -299,6 +309,10 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--lanes", default=None,
                    help="with --reports-root: the batch's lane roster, comma/whitespace-separated "
                         "(default: $HARNESS_LANES, else every LANE-END-*.md found)")
+    p.add_argument("--batch", default=None,
+                   help="with --reports-root: the batch a merge sha is looked up under (default: "
+                        "--lane, else $HARNESS_BATCH) -- a lane slug is not unique across the "
+                        "ledger's whole history, so an unnamed batch reads every row for the slug")
     p.add_argument("--merge-ledger", default=None,
                    help="with --reports-root: default <repo>/logs/MERGE-RECEIPTS.jsonl")
     p.add_argument("--receipts-dir", default=None,
@@ -327,8 +341,13 @@ def main(argv: Optional[list[str]] = None) -> int:
             lanes = batch_lanes(Path(args.root), costs)
         elif wants_reports:
             folder = _tr.resolve_transport(args.reports_root or None)
+            # The batch identity a merge-sha lookup filters on: `--batch` first, then whatever
+            # `--lane` carries (the unedited harness.yaml row's `{batch}` substitution lands
+            # there), then `$HARNESS_BATCH` directly.
+            batch = args.batch or args.lane or os.environ.get("HARNESS_BATCH")
             merge_shas = load_merge_shas(
-                Path(args.merge_ledger) if args.merge_ledger else repo / "logs" / "MERGE-RECEIPTS.jsonl")
+                Path(args.merge_ledger) if args.merge_ledger else repo / "logs" / "MERGE-RECEIPTS.jsonl",
+                batch=batch)
             lanes = reports_root_lanes(folder, lane_roster(folder, args.lanes), costs, merge_shas)
         else:
             name = args.lane or repo.resolve().name
