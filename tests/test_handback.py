@@ -33,6 +33,7 @@ CHECK_NAMES = {
     "ship_gate_check": "ship-gate",
     "ratchet_check": "ratchet",
     "review_consumer_check": "review-consumer",
+    "branch_naming_check": "branch-naming",
     "transport_write_check": "transport-write",
 }
 
@@ -114,6 +115,20 @@ def test_branch_purity_check_reports_an_unresolvable_base(tmp_path):
     tmp_path.mkdir(exist_ok=True)
     result = hb.branch_purity_check(tmp_path, base="origin/main")
     assert result.ok is False
+
+
+# --- leg unit tests: branch-naming -----------------------------------------------------------
+
+def test_branch_naming_check_passes_a_ratified_worktree_branch():
+    hb = _mod("handback")
+    result = hb.branch_naming_check("worktree-handback-organ")
+    assert result.ok is True
+
+
+def test_branch_naming_check_flags_a_branch_outside_the_enum():
+    hb = _mod("handback")
+    result = hb.branch_naming_check("some-random-branch")
+    assert result.ok is False and "some-random-branch" in result.detail
 
 
 # --- leg unit tests: transport-write ---------------------------------------------------------

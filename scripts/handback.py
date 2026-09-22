@@ -31,7 +31,9 @@ REDESIGNED:
   4. `review-consumer`  -- `consumer_at_landing.py`'s undeclared set carries none of this lane's
                           own new `docs/audits/` artifacts (the lane's Codex review record must
                           name its consumer).
-  5. `transport-write`  -- the transport's `to-cc/` (architect-inbound, never lane-writable)
+  5. `branch-naming`    -- `--branch` conforms to `validate_branch_naming.py`'s ratified
+                          branch/worktree enum.
+  6. `transport-write`  -- the transport's `to-cc/` (architect-inbound, never lane-writable)
                           carries nothing naming this lane.
 
 LIBRARY-FIRST (PLAN-WAVE4B-SESSION). This organ composes `lane_end_guard`, `transport_report`,
@@ -236,7 +238,21 @@ def review_consumer_check(repo: Path, changed: list[str]) -> CheckResult:
                        f"declare a consumer")
 
 
-# --- self-check leg 5: the transport's inbound folder is untouched -------------------------------
+# --- self-check leg 5: the branch name is in the ratified enum ----------------------------------
+
+def branch_naming_check(branch: str) -> CheckResult:
+    """`--branch` conforms to `validate_branch_naming`'s enum -- composed exactly as its own CLI
+    classifies a name, never a second naming rule invented here."""
+    import validate_branch_naming as vbn  # noqa: PLC0415 -- organ CLI only, not the hook path
+    result = vbn.classify(branch)
+    if not result.conforms:
+        return CheckResult("branch-naming", False,
+                           f"{branch!r} is {result.kind!r}, outside the ratified branch/worktree "
+                           f"enum ({result.note})")
+    return CheckResult("branch-naming", True, f"{branch!r} is a {result.kind} ({result.note})")
+
+
+# --- self-check leg 6: the transport's inbound folder is untouched -------------------------------
 
 def transport_write_check(lane: str,
                           resolve_transport: Callable[[], Path] = _tr.resolve_transport
@@ -295,7 +311,7 @@ def render_self_check_block(checks: list[CheckResult], purity: CheckResult,
 
 # --- the run --------------------------------------------------------------------------------------
 
-def run_self_check(repo: Path, lane: str, base: str, changed: list[str],
+def run_self_check(repo: Path, lane: str, branch: str, base: str, changed: list[str],
                    resolve_transport: Callable[[], Path]) -> tuple[CheckResult, list[CheckResult]]:
     """Runs every leg (never short-circuits: FR2's own acceptance leg wants "one test each",
     which needs every leg's evidence even when an earlier one already failed). Returns the
@@ -307,6 +323,7 @@ def run_self_check(repo: Path, lane: str, base: str, changed: list[str],
         ship_gate_check(repo, base),
         ratchet_check(repo),
         review_consumer_check(repo, changed),
+        branch_naming_check(branch),
         transport_write_check(lane, resolve_transport),
     ]
     return purity, checks
@@ -337,7 +354,7 @@ def run(lane: str, branch: str, cls: str, repo: Path, base: str = DEFAULT_BASE,
     finished_at = _stamp()
     try:
         changed = _tr.changed_files(repo)
-        purity, checks = run_self_check(repo, lane, base, changed, resolve_transport)
+        purity, checks = run_self_check(repo, lane, branch, base, changed, resolve_transport)
         failing = [c for c in checks if not c.ok]
 
         if failing:
