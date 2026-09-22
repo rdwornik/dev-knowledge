@@ -253,7 +253,20 @@ class World:
     def build(self) -> "World":
         self._copy_tree()
         self.git("init", "-q", "-b", "main")
-        for key, value in (("user.email", "toy@example.invalid"), ("user.name", "toy"), ("core.autocrlf", "false")):
+        # `core.longpaths` (Done-contract 4): the toy repo's own longest tracked path plus this
+        # world's pytest-xdist temp prefix (`...\pytest-NNNN\popen-gwN\connection_worldM\repo\...`)
+        # crosses Windows' 260-char MAX_PATH once `.claude\worktrees\<slug>\` is prepended for the
+        # FakeProvider's `git worktree add` checkout -- measured on this box: a real failing run's
+        # own path (150 chars to the worktree dir) plus this repo's longest tracked file (117 chars,
+        # `tasks/957-...-when-green.md`) is 268, over the limit; `-n 0` has no `popen-gwN` segment
+        # (10 fewer chars), which is why the SAME toy repo checks out fine there and not at `-n 2`
+        # (WAVE4-FINAL finding 10; root-caused via `CalledProcessError` captured by
+        # `_label_launch_failure`, not "shared load" -- Windows itself has `LongPathsEnabled=1`, but
+        # git-for-windows also needs its OWN `core.longpaths`, which is unset repo/global/system on
+        # this box). This is a real Windows-git interaction the toy repo can hit that the operator's
+        # own checkouts do not (their paths are shallower), so it is set HERE, not proposed globally.
+        for key, value in (("user.email", "toy@example.invalid"), ("user.name", "toy"),
+                          ("core.autocrlf", "false"), ("core.longpaths", "true")):
             self.git("config", key, value)
         self.git("add", "-A")
         self.git("commit", "-q", "-m", "seed")
