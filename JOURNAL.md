@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-22 (a) - CC (Opus 5, integrator wave 4a): LANE W4-1 merged -- main's known reds are recorded once per batch and each lane is compared against them
+
+**Anchors:** `970e6bdd` (repair: rows 938-941 refs resolve) · `f7869ab3` (row 937 cites its review) · `096d41ef` (Codex fixes + record) · `af701a47` (registry) · `d3efa367` (all-digit sha) · `e94e4b0e` (RED-first witness) · `db18780b` (rows #937-#941) -- `worktree-lane-known-reds`, merged --no-ff.
+
+**Did:** merged W4-1 two-step from the primary, the serial-first lane of batch WAVE4. `scripts/test_pairing.py` gains `record-base` (runs the selected tests on one commit, once per batch, in a clone, and writes the red set with its skip count to `logs/receipts/TEST-PAIRING-REGISTRY-<BATCH>.json`, write-once) and `compare` (runs only the merged tree and classifies each red as pre-existing, the lane's, newly red or a flake). A comparison whose skip count differs from the registry's is refused as unattributable (R-W4-2). `preflight_contract.py` now checks an all-digit short sha instead of dropping it (`[#936]`'s defect). The lane filed the five wave-4a rows `[#937]`-`[#941]` first and closed none (R-W4-9).
+
+**Result:** Codex terra 0/3/0/0, all three fixed with red tests first. Refused once at `f7869ab3`: rows `[#938]`-`[#941]` cited only transport files, so `funnel_lifecycle` leg (c) failed them (a ship-gate hard-fail and a turned-red live-tree test); the repair at `970e6bdd` added one in-repo token to each row's refs. Pairing and gates: `to-browser/SESSION-integrator-wave4-2026-09-22.md`. **Changes:** `scripts/test_pairing.py`, `scripts/preflight_contract.py`, `tests/test_test_pairing.py`, `tests/test_preflight_contract.py`, `tasks/937..941-*.md` (new), `tasks/manifest.json`, `BACKLOG.md`, `docs/audits/2026-09-22-codex-lane-known-reds.md`, `docs/audits/README.md`, `ecosystem/doc-counts.md`, `JOURNAL.md`. **Next:** record the batch base once, then W4-2..W4-5.
+
 ### 2026-09-21 (n) - CC (Opus 5, integrator wave 3): LANE W3-F merged -- the connection test answers "not yet": a toy task travels the loop to the merge and stops at the gates
 
 **Anchors:** `f2d28216` (Codex fixes) · `f8012b9d` · `79dac85e` (the two pinned stops) · `d70376eb` (first cut) -- `worktree-lane-connection-test`, merged --no-ff.

@@ -4502,16 +4502,23 @@ site: docs/decisions/ADR-87-equilibrium-contract.md | pattern: Amendment — 202
 ### AJ-6 · Wave-4a rulings, adopted for the wave (DECLARE-WAVE4A-2026-09-22, R-W4-1..9)
 
 **Recorded here as the ruling of record; most land in code through the sibling wave-4 lanes
-(`[#930]`-style rows filed by W4-1), running in parallel with this one and not yet merged at the
-time this section was written — do not read the absence of a `landed:` block below as the ruling
-being unadopted.**
+(`[#937]`-`[#941]`, the rows W4-1 filed for lanes 1-5), running in parallel with this one — do not
+read the absence of a `landed:` block below as the ruling being unadopted. W4-1 (known-reds) merged
+into `main` while this lane was running: this lane synced onto that merge (renumbering its own new
+rows out of the `[#937]`-`[#941]` collision — AJ-7's note) and confirms R-W4-2 below is live.**
 
 - **R-W4-1** an organ's recorded fate is dated debt: `manual_until` is a WARN until its date, a
   hard-fail after; `retire_candidate: true` is a WARN for the operator; a receipt within 30 days is
   OK. The census keeps reading `harness.yaml` fates.
 - **R-W4-2** known reds are a batch-level registry — one base run per batch, compared against by
-  every lane's pairing; an all-digit short sha is a valid sha (closes the AJ-note-worthy gap `[#936]`
-  already files against the pairing).
+  every lane's pairing; an all-digit short sha is a valid sha. Already landed (W4-1, merged):
+
+  ```landed
+  site: scripts/test_pairing.py | pattern: record-base
+  ```
+  ```landed
+  site: scripts/preflight_contract.py | pattern: isdigit
+  ```
 - **R-W4-3** the batch digest reads lane-end reports and the integrator's receipt, never
   `git log main..HEAD` after a merge.
 - **R-W4-4** integrator chain order: `merge_receipt open` before `models`; `merge_receipt close`
@@ -4531,11 +4538,14 @@ being unadopted.**
 
 Every item under DECLARE-WAVE4A's "Deferred to wave 4b" and DECLARE-EQUILIBRIUM's E6 "Deferred to
 wave 5" now has a task row; the one item named in both (the fair `why` test) is one row citing
-both, not two. `[#937]` state as data · `[#938]` contracts generated from rows · `[#939]` the
-secrets field · `[#940]` the guards decision · `[#941]` the tool-trial organ · `[#942]` LiteLLM
-behind the stage-13 adapter · `[#943]` the fair `why` test · `[#944]` unbind verb for the
-integrator seat · `[#945]` friction ratio · `[#946]` root-cause taxonomy · `[#947]` Gemini routing
-pin · `[#948]` events that file rows · `[#949]` install the loop in a second repo.
+both, not two. **Renumbered from this lane's first cut (937-949) to 942-954** when this lane's
+branch synced with main and found `[#937]`-`[#941]` already claimed by the wave-4a lane rows
+W4-1 filed (`[#937]`-`[#941]` below, AJ-6) — a real collision, caught by Codex terra review, not a
+false alarm. `[#942]` state as data · `[#943]` contracts generated from rows · `[#944]` the
+secrets field · `[#945]` the guards decision · `[#946]` the tool-trial organ · `[#947]` LiteLLM
+behind the stage-13 adapter · `[#948]` the fair `why` test · `[#949]` unbind verb for the
+integrator seat · `[#950]` friction ratio · `[#951]` root-cause taxonomy · `[#952]` Gemini routing
+pin · `[#953]` events that file rows · `[#954]` install the loop in a second repo.
 
 ### Out of scope for this lane
 

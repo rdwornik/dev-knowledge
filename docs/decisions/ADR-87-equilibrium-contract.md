@@ -163,7 +163,7 @@ digest, integrator-written); a lane refused or a merge hard-fail (the seat's STA
 section, integrator-written); a lane filing a question (`to-browser/QUESTION-<lane>.md`,
 lane-written); a wait exceeding its limit (the seat's STATUS file, dispatcher-written). The STATUS
 surface already exists in the handoff probes; wave 4b builds the state query on it — nothing new
-invented (deferred, per `[#937]` filed by this lane).
+invented (deferred, per `[#942]` filed by this lane).
 
 **E5 — Operator monitoring: access yes, reacting no.** The operator may have log access; reacting —
 refusing, waiting, failing a check — stays the machine's. The browser is summoned only when the

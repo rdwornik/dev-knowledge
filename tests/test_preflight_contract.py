@@ -25,6 +25,7 @@ unmet preconditions, not bad locators). Adoption-first: nothing wires it into a 
 """
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
@@ -619,3 +620,66 @@ def test_the_same_missing_input_is_reported_once(tmp_path):
     contract = _at(root, "docs/c.md",
                    "**Basis:** `docs/audits/ghost.md`\n\n**Reads:** `docs/audits/ghost.md`\n")
     assert _artifact_failures(pf.verify(contract, root)) == ["docs/audits/ghost.md"]
+
+
+# ---------------------------------------------------------------------------
+# [#936] / lane-known-reds: a short sha made only of digits is a sha. The extractor used to
+# drop it before `add()`, so it was neither checked nor failed -- a false CLEAN, and the
+# reason the pairing charged a lane for its merge commit's digits.
+# ---------------------------------------------------------------------------
+
+def _repo_whose_short_sha_is_all_digits(tmp_path: Path) -> tuple[Path, str]:
+    """A throwaway repo holding one commit whose 7-char abbreviation is all decimal digits.
+
+    Plumbing only (`commit-tree`, fixed dates and identity), so the search is deterministic and
+    needs no working tree: the same loop finds the same commit on every machine.
+    """
+    root = tmp_path / "digit-repo"
+    root.mkdir()
+    root.joinpath("BACKLOG.md").write_text("# Backlog\n", encoding="utf-8", newline="\n")
+    env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
+           "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t",
+           "GIT_AUTHOR_DATE": "2026-01-01T00:00:00Z", "GIT_COMMITTER_DATE": "2026-01-01T00:00:00Z"}
+
+    def git(*args: str, stdin: str | None = None) -> str:
+        done = subprocess.run(["git", *args], cwd=root, env=env, input=stdin, check=True,
+                              capture_output=True, text=True)
+        return done.stdout.strip()
+
+    git("init", "-b", "main")
+    tree = git("hash-object", "-t", "tree", "-w", "--stdin", stdin="")
+    for n in range(5000):
+        sha = git("commit-tree", tree, "-m", f"c{n}")
+        if sha[:7].isdigit():
+            return root, sha[:7]
+    raise AssertionError("no commit with an all-digit short sha in 5000 tries")
+
+
+def test_an_all_digit_short_sha_that_is_a_commit_is_checked_and_passes(tmp_path):
+    root, short = _repo_whose_short_sha_is_all_digits(tmp_path)
+    assert short.isdigit(), "the fixture must actually be all digits or this test is vacuous"
+
+    report = pf.verify(_write(tmp_path, f"# C\n\n- landed at `{short}`\n"), root)
+
+    assert [(c.kind, c.raw, c.ok) for c in report.checked] == [("sha", short, True)]
+
+
+def test_an_all_digit_token_that_is_no_commit_is_a_visible_failure_not_a_skip(tmp_path):
+    root, short = _repo_whose_short_sha_is_all_digits(tmp_path)
+    absent = "9999999"
+    assert absent != short
+
+    report = pf.verify(_write(tmp_path, f"# C\n\n- a count or a stale sha `{absent}`\n"), root)
+
+    assert [(c.kind, c.raw, c.ok) for c in report.checked] == [("sha", absent, False)]
+    assert "all-digit" in report.checked[0].detail, "the failure must say why it is ambiguous"
+
+
+def test_a_contract_citing_both_an_all_digit_sha_and_a_lettered_one_checks_both(tmp_path):
+    root, short = _repo_whose_short_sha_is_all_digits(tmp_path)
+    lettered = subprocess.run(["git", "-C", str(_REPO_ROOT), "rev-parse", "--short", "HEAD"],
+                              capture_output=True, text=True).stdout.strip()
+
+    report = pf.verify(_write(tmp_path, f"# C\n\n- `{short}` and `{lettered}`\n"), root)
+
+    assert {c.raw for c in report.checked} == {short, lettered}, "half the locators went unexamined"

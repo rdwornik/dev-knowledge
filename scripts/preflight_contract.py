@@ -368,8 +368,11 @@ def verify(contract: Path, repo_root: Path = _REPO_ROOT) -> Report:
 
     for m in _SHA_RE.finditer(text):
         sha = m.group(1)
-        if sha.isdigit():
-            continue  # a run of digits is a count far more often than a commit
+        # A short sha made only of digits IS a sha (about 1 commit in 48 abbreviates to one).
+        # It used to be dropped here as "a count more often than a commit", which made the
+        # locator neither checked nor failed -- a false CLEAN ([#936]). It is checked like any
+        # other; when it does not resolve, the failure says it may be a count, so the operator
+        # can tell a stale sha from a number that was never one.
         r = _git(repo_root, "cat-file", "-e", f"{sha}^{{commit}}")
         if r.returncode == 0:
             add("sha", sha, True)
@@ -379,7 +382,10 @@ def verify(contract: Path, repo_root: Path = _REPO_ROOT) -> Report:
             # dangling commit passes. Saying "not reachable in history" over-claimed what the
             # probe establishes. Ref-set reachability is a real improvement and is recorded as
             # a known limit on [#483] rather than half-built here.
-            add("sha", sha, False, "not present in this repo's object store")
+            add("sha", sha, False,
+                "all-digit token, not present in this repo's object store (a stale sha, or a "
+                "count that is not one)" if sha.isdigit()
+                else "not present in this repo's object store")
         else:
             # "could not check" is NOT "checked and stale" (terra HIGH, 2026-08-04). git exits 1
             # for BOTH a missing object and a broken invocation, so without the health probe a

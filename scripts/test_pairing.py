@@ -21,7 +21,38 @@ undated like every other receipt; stdout carries the same JSON):
 
 EXIT CODE: 0 nothing is the lane's; 1 the lane's set is non-empty; 2 the tool could not run;
 3 the selection declined to narrow and there was nothing safe to fall back on (NOT-EVALUATED --
-"I evaluated nothing" must not read as "nothing is red").
+"I evaluated nothing" must not read as "nothing is red"); 4 the comparison is UNATTRIBUTABLE
+(registry mode only: the skip counts differ, see below).
+
+BATCH REGISTRY MODE (lane-known-reds, R-W4-2). The two-commit form above runs BASE and HEAD
+for every lane, which is what cost the wave-3 integrator an hour a merge. A batch has ONE base,
+so the base is run ONCE per batch and every lane is compared against that record:
+
+    test_pairing.py record-base --commit REF --batch B (--lane NAME ... | --tests FILE ...)
+    test_pairing.py compare     --head REF   --batch B [--since REF]
+
+`record-base` runs the selected test files on the base commit once and writes the REGISTRY: the
+red set, the passed ids, the skipped ids and their count. It refuses to overwrite a registry
+(`--replace` says so out loud): re-recording mid-batch would launder a lane's red into "pre-existing".
+`compare` runs only the merged tree -- the tests impacted by what changed since the base (or
+`--since`) -- and classifies against the registry, with the same verdict keys as the two-commit form:
+red in the registry AND the merged tree is `preexisting`; red only in the merged tree is `lane`
+(`was: absent` -- a test the lane added -- or `PASSED` -- a registry green it turned red, listed
+again in `turned_red`); a merged-tree red that passes on an isolated rerun is a `flake`.
+
+THE SKIP-COUNT GUARD. A comparison whose skip count differs from the registry's, over the test
+files both runs covered, is REFUSED as UNATTRIBUTABLE (exit 4, nothing classified): a lane that
+skips, xfails or importorskips a test turns a red it would have shown into a green-looking skip,
+and the integrator found that blind spot on 2026-09-20. Collection-level skips count too.
+
+THE REGISTRY HOME. `RECON-NIGHT-2026-09-20.md` section 2.2 names exactly three admissible shapes
+for a machine-written receipt and this is shape (a): a gitignored, per-batch file in
+`logs/receipts/` (`HARNESS_RECEIPTS_DIR` overrides), UPPERCASE-KEBAB with no date in the name
+(`TEST-PAIRING-REGISTRY-<BATCH>.json`), because `logs_retention.py` moves a dated name out from
+under its own path. It is the home lane L1 chose for every receipt (`scripts/dodo.py`, `.gitignore`
+"SPINE / MOMENT RECEIPTS"). Shape (b) is a committed flat file, which a per-batch target cannot be,
+and shape (c) is a new committed directory, which needs an operator ruling; no option here writes
+a registry anywhere else.
 
 THE SELECTION IS `impacted_tests.select`, NOT THE FULL SUITE. When it declines to narrow (it
 returns `full_suite` for an environment file, an unmapped path...) that is written into the
@@ -41,6 +72,16 @@ red-once-on-base`) and face the HEAD rerun. `--no-confirm-baseline` skips this, 
 FAILS CLOSED. No event file, a malformed event row, or a pytest exit code that contradicts the
 events (failures reported, none recorded) is exit 2, never a CLEAN verdict. The caller's
 PYTHONPATH is not passed on, and `--tests` takes files or node ids, never a directory.
+
+HONEST LIMITS OF THE REGISTRY. A comparison is against the BASE the registry was recorded at, not
+against main's moving tip, so a red an earlier lane of the batch left behind is charged to whichever
+lane is compared next unless the integrator refused it first. A selected file the registry never
+ran that ALREADY existed on the base has no known baseline, so the comparison is UNATTRIBUTABLE
+(`unregistered` names them; `record-base --replace` with the lane included); a file the lane added
+did not exist on the base and is the lane's. A docs-only selection is the `live_repo` marker,
+resolved to its FILES (a superset, the direction `impacted_tests` itself takes). The skip guard
+counts skips only over files both sides covered, and refuses any skip the registry lacked even
+when the count is level.
 
 HONEST LIMITS. (1) A test red on BASE for a flaky reason and green on HEAD shows as `fixed`.
 (2) A test whose result depends on gitignored state (e.g. `ecosystem/*/state.yaml`) sees neither
@@ -62,6 +103,7 @@ import sys
 import tempfile
 import time
 import uuid
+from dataclasses import dataclass
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -158,24 +200,45 @@ def pytest_runtest_logreport(report):
 def pytest_collectreport(report):
     if report.failed:
         _emit({"id": report.nodeid, "when": "collect", "outcome": "failed"})
+    elif report.skipped:
+        _emit({"id": report.nodeid, "when": "collect", "outcome": "skipped"})
 """
 _PLUGIN_NAME = "tp_events_plugin"
 
 
+@dataclass(frozen=True)
+class RunResult:
+    """One pytest run as the plugin saw it: the verdicts, and the ids that were skipped.
+
+    A skip is not a verdict and never enters `results`; it is kept apart because the registry's
+    skip-count guard needs it and `read_events` callers must keep seeing PASSED/FAILED/ERROR only.
+    """
+
+    results: dict[str, str]
+    skipped: frozenset[str]
+
+
 def read_events(path: Path) -> dict[str, str]:
-    """{nodeid: PASSED|FAILED|ERROR} from the plugin's JSON lines; stdlib only.
+    """{nodeid: PASSED|FAILED|ERROR} from the plugin's JSON lines; see `read_run`."""
+    return read_run(path).results
+
+
+def read_run(path: Path) -> RunResult:
+    """The plugin's JSON lines as a `RunResult`; stdlib only.
 
     `path` is one file, or the prefix of the per-process files `<prefix>.<pid>` the plugin writes
     (one writer per file, so xdist workers cannot interleave). It FAILS CLOSED: no file at all
     means the plugin never ran, and a malformed row means a result may have been lost -- either
     would otherwise read as "nothing is red". A failed `call` is FAILED; a failed
     setup/teardown/collect is ERROR; a red is never overwritten by a green; duplicates (xdist
-    reports in both the worker and the controller) change nothing.
+    reports in both the worker and the controller) change nothing. A skipped setup, call (this
+    is also how an xfail reports) or collection is SKIPPED -- unless the same id also went red.
     """
     files = [path] if path.is_file() else sorted(path.parent.glob(path.name + ".*"))
     if not files:
         raise PairingError(f"no event file at {path.name}: the reporting plugin did not run")
     results: dict[str, str] = {}
+    skipped: set[str] = set()
     for file in files:
         for line in file.read_text(encoding="utf-8", errors="replace").splitlines():
             if not line.strip():
@@ -191,6 +254,9 @@ def read_events(path: Path) -> dict[str, str]:
                 status = "FAILED" if when == "call" else "ERROR"
             elif outcome == "passed" and when == "call":
                 status = "PASSED"
+            elif outcome == "skipped" and when in ("setup", "call", "collect"):
+                skipped.add(test_id)
+                continue
             else:
                 continue
             if status in _RED:
@@ -199,10 +265,15 @@ def read_events(path: Path) -> dict[str, str]:
                     results[test_id] = status
             else:
                 results.setdefault(test_id, status)
-    return results
+    return RunResult(results, frozenset(skipped - results.keys()))
 
 
 def run_pytest(clone: Path, args: list[str], *, workers: int, timeout: float | None) -> dict[str, str]:
+    return run_pytest_full(clone, args, workers=workers, timeout=timeout).results
+
+
+def run_pytest_full(clone: Path, args: list[str], *, workers: int,
+                    timeout: float | None) -> RunResult:
     scratch = clone.parent
     (scratch / f"{_PLUGIN_NAME}.py").write_text(_PLUGIN, encoding="utf-8", newline="\n")
     events = scratch / f"events-{uuid.uuid4().hex}.jsonl"
@@ -222,12 +293,12 @@ def run_pytest(clone: Path, args: list[str], *, workers: int, timeout: float | N
     tail = (done.stderr or done.stdout).strip()[-400:]
     if done.returncode in (3, 4):
         raise PairingError(f"pytest exited {done.returncode} in {clone.name}: {tail}")
-    results = read_events(events)
-    if done.returncode == 2 and not results:
+    run = read_run(events)
+    if done.returncode == 2 and not run.results:
         raise PairingError(f"pytest was interrupted in {clone.name} with no result: {tail}")
-    if done.returncode == 1 and not any(v in _RED for v in results.values()):
+    if done.returncode == 1 and not any(v in _RED for v in run.results.values()):
         raise PairingError(f"pytest reported failures in {clone.name} but the events show none: {tail}")
-    return results
+    return run
 
 
 # --- selection ---------------------------------------------------------------------------
@@ -381,6 +452,279 @@ def pair(repo: Path, base: str, head: str, *, tests: list[str] | None = None, re
     return verdict
 
 
+# --- the batch registry ------------------------------------------------------------------
+
+REGISTRY_SCHEMA = "test-pairing-registry/1"
+REGISTRY_STEM = "TEST-PAIRING-REGISTRY-"
+EXIT_UNATTRIBUTABLE = 4
+_BATCH_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}\Z")
+
+
+def receipts_home(repo: Path) -> Path:
+    """L1's receipts home: `HARNESS_RECEIPTS_DIR`, else the checkout's gitignored `logs/receipts/`."""
+    return Path(os.environ.get("HARNESS_RECEIPTS_DIR") or repo / "logs" / "receipts")
+
+
+def resolve_batch(given: str | None) -> str:
+    """The batch name, from `--batch` or `HARNESS_BATCH`; a plain name only (it becomes a filename)."""
+    batch = given or os.environ.get("HARNESS_BATCH") or ""
+    if not batch:
+        raise PairingError("no batch: give --batch NAME or set HARNESS_BATCH")
+    if not _BATCH_NAME.match(batch):
+        raise PairingError(f"--batch takes a plain name (letters, digits, . _ -), not {batch!r}")
+    return batch
+
+
+def registry_path(repo: Path, batch: str) -> Path:
+    return receipts_home(repo) / f"{REGISTRY_STEM}{resolve_batch(batch)}.json"
+
+
+@dataclass(frozen=True)
+class Registry:
+    """What main looked like when the batch began: the record every lane is compared against."""
+
+    batch: str
+    commit: str
+    files: tuple[str, ...]
+    red: dict[str, str]
+    passed: tuple[str, ...]
+    skipped: tuple[str, ...]
+    base_flakes: tuple[str, ...]
+    baseline_confirmed: bool
+    lanes: tuple[str, ...]
+    notes: tuple[str, ...]
+
+    @property
+    def skip_count(self) -> int:
+        return len(self.skipped)
+
+    def to_json(self) -> dict:
+        return {"schema": REGISTRY_SCHEMA, "batch": self.batch, "commit": self.commit,
+                "isolation": "clone", "isolation_reason": ISOLATION_REASON,
+                "lanes": list(self.lanes), "notes": list(self.notes), "files": list(self.files),
+                "baseline_confirmed": self.baseline_confirmed, "red": dict(sorted(self.red.items())),
+                "base_flakes": list(self.base_flakes), "skip_count": self.skip_count,
+                "skipped": list(self.skipped), "passed": list(self.passed)}
+
+    @classmethod
+    def from_json(cls, data: dict, source: str) -> Registry:
+        if data.get("schema") != REGISTRY_SCHEMA:
+            raise PairingError(f"{source}: schema {data.get('schema')!r}, expected "
+                               f"{REGISTRY_SCHEMA!r} -- record the base again")
+        try:
+            return cls(batch=data["batch"], commit=data["commit"], files=tuple(data["files"]),
+                       red=dict(data["red"]), passed=tuple(data["passed"]),
+                       skipped=tuple(data["skipped"]), base_flakes=tuple(data["base_flakes"]),
+                       baseline_confirmed=bool(data["baseline_confirmed"]),
+                       lanes=tuple(data["lanes"]), notes=tuple(data["notes"]))
+        except (KeyError, TypeError) as exc:
+            raise PairingError(f"{source}: registry is missing or has a malformed field: {exc}") from exc
+
+
+def load_registry(repo: Path, batch: str) -> Registry:
+    path = registry_path(repo, batch)
+    if not path.is_file():
+        raise PairingError(f"no registry for batch {batch!r} at {path}: run `record-base` first -- "
+                           "an absent registry must not read as 'main has no reds'")
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        raise PairingError(f"{path.name} is not valid JSON: {exc}") from exc
+    return Registry.from_json(data, path.name)
+
+
+def write_registry(path: Path, registry: Registry, *, replace: bool = False) -> None:
+    """Publish the registry atomically. Without `replace` the create is EXCLUSIVE (a hard link
+    fails if the name exists), so two racing `record-base` runs cannot overwrite each other; the
+    temp name is unique per writer and is always removed."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f"{path.name}.{uuid.uuid4().hex}.tmp")
+    tmp.write_text(json.dumps(registry.to_json(), indent=2) + "\n", encoding="utf-8", newline="\n")
+    try:
+        if replace:
+            os.replace(tmp, path)
+        else:
+            try:
+                os.link(tmp, path)
+            except FileExistsError as exc:
+                raise PairingError(f"{path.name} already exists: a registry is written once per "
+                                   "batch (--replace to overwrite)") from exc
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
+def selection_files(clone: Path, selection: dict) -> list[str]:
+    """The FILES a selection means. A docs-only selection is the `live_repo` marker; running
+    `-m` would make the registry and the comparison disagree on what a file list covers, so the
+    marker is resolved to the files carrying it (a superset -- see `impacted_tests`)."""
+    files = {_file_part(f) for f in selection["test_files"] if (clone / _file_part(f)).is_file()}
+    if not files and selection["marker"]:
+        files = set(impacted_tests.live_repo_test_files(clone))
+    return sorted(files)
+
+
+def record_base(repo: Path, commit: str, batch: str, *, lanes: list[str] | None = None,
+                tests: list[str] | None = None, workers: int = 6, timeout: float | None = None,
+                workdir: Path | None = None, confirm_baseline: bool = True,
+                replace: bool = False) -> tuple[Registry, Path, bool]:
+    """Run the batch's selected tests on `commit` ONCE and write the registry.
+
+    Returns (registry, its path, whether the scratch clone was removed). The base is a CLONE for
+    the reason in ISOLATION_REASON. With `lanes`, the files are the union of what each lane's diff
+    (against its merge-base with `commit`) impacts, restricted to files that exist on `commit`;
+    with `tests`, the named files. Reds are confirmed once here, so no comparison repeats it.
+    """
+    batch = resolve_batch(batch)
+    path = registry_path(repo, batch)
+    if path.exists() and not replace:
+        raise PairingError(f"{path.name} already exists: a registry is written once per batch -- "
+                           "re-recording mid-batch would turn a lane's red into a pre-existing one "
+                           "(--replace if that is really what you mean)")
+    if bool(lanes) == bool(tests):
+        raise PairingError("give the batch's --lane NAME (one or more) or explicit --tests, not both "
+                           "and not neither")
+    sha = resolve(repo, commit)
+    scratch = Path(tempfile.mkdtemp(prefix="tp-", dir=workdir))
+    try:
+        clone = make_clone(repo, sha, scratch / "base")
+        notes: list[str] = []
+        if tests:
+            validate_targets(clone, tests)
+            files = sorted({_file_part(t) for t in tests})
+            lane_names: list[str] = []
+        else:
+            lane_names = list(dict.fromkeys(lanes or []))
+            found: set[str] = set()
+            for lane in lane_names:
+                head = resolve(repo, f"worktree-{lane}")
+                selection = choose_tests(clone, _changed(repo, _git(repo, "merge-base", sha, head), head))
+                found.update(selection_files(clone, selection))
+                if selection["declined"]:
+                    notes.append(f"{lane}: {selection['note']}")
+            files = sorted(found)
+        if not files:
+            raise PairingError("nothing to record: the batch's lanes select no test file that exists "
+                               f"on {sha[:8]}")
+        run = run_pytest_full(clone, files, workers=workers, timeout=timeout)
+        red = {k: v for k, v in run.results.items() if v in _RED}
+        flakes: list[str] = []
+        if confirm_baseline and red:
+            again = run_pytest(clone, sorted(red), workers=workers, timeout=timeout)
+            flakes = sorted(i for i in red if again.get(i) == "PASSED")
+            red = {k: v for k, v in red.items() if k not in flakes}
+        registry = Registry(
+            batch=batch, commit=sha, files=tuple(files), red=red,
+            passed=tuple(sorted(k for k, v in run.results.items() if v == "PASSED")),
+            skipped=tuple(sorted(run.skipped)), base_flakes=tuple(flakes),
+            baseline_confirmed=confirm_baseline, lanes=tuple(lane_names), notes=tuple(notes))
+        write_registry(path, registry, replace=replace)
+    finally:
+        removed = remove_tree(scratch)
+    return registry, path, removed
+
+
+def _was_in_registry(test_id: str, registry: Registry) -> str:
+    """What a merged-tree red was at the registry's base, in `classify`'s vocabulary."""
+    if test_id in registry.base_flakes:
+        return "red-once-on-base"
+    passed = set(registry.passed)
+    if test_id in passed:
+        return "PASSED"
+    if "::" not in test_id and any(p.startswith(test_id + "::") for p in passed):
+        return "PASSED"  # a file that now errors at collection: judge it by its old tests
+    return "absent"
+
+
+def skip_guard(registry: Registry, head_skipped: frozenset[str], files: list[str]) -> dict:
+    """Compare skips over the test files BOTH the registry and this run covered.
+
+    A merged tree that runs only the lane's impacted files cannot be held to the registry's whole
+    count, so both sides are cut to the same files; when the run covers every registry file the cut
+    is the registry's own skip count. A different COUNT is a mismatch, and so is any skip the
+    registry did not have even when the count is level: un-skipping one test while skipping a red
+    one keeps the count and hides the red.
+    """
+    covered = {f for f in files if f in registry.files}
+    then = sorted(s for s in registry.skipped if _file_part(s) in covered)
+    now = sorted(s for s in head_skipped if _file_part(s) in covered)
+    added, removed = sorted(set(now) - set(then)), sorted(set(then) - set(now))
+    return {"status": "match" if len(then) == len(now) and not added else "mismatch",
+            "registry": len(then), "head": len(now), "added": added, "removed": removed}
+
+
+def _exists_at(repo: Path, sha: str, path: str) -> bool:
+    done = subprocess.run(["git", "cat-file", "-e", f"{sha}:{path}"], cwd=repo,
+                          capture_output=True, check=False)
+    return done.returncode == 0
+
+
+def compare(repo: Path, registry: Registry, head: str, *, since: str | None = None,
+            reruns: int = 1, workers: int = 6, timeout: float | None = None,
+            workdir: Path | None = None) -> dict:
+    """Run the merged tree at `head` and classify it against `registry`; no base run happens."""
+    if reruns < 1:
+        raise PairingError("--reruns must be at least 1: zero would charge a flake to the lane")
+    head_sha = resolve(repo, head)
+    changed = _changed(repo, resolve(repo, since) if since else registry.commit, head_sha)
+    scratch = Path(tempfile.mkdtemp(prefix="tp-", dir=workdir))
+    try:
+        clone = make_clone(repo, head_sha, scratch / "head")
+        selection = choose_tests(clone, changed)
+        selection["changed"] = changed
+        files = selection_files(clone, selection)
+        if selection["marker"] and not selection["test_files"] and files:
+            selection["note"] += "; the live_repo marker was resolved to its files"
+        selection["test_files"] = files
+        selection["outside_registry"] = [f for f in files if f not in registry.files]
+        # A file the registry never ran that ALREADY existed on the base has an unknown baseline:
+        # any red in it, or any skip hiding one, could be main's. It is refused, not guessed at.
+        # (A file the lane added did not exist on the base and is the lane's by construction.)
+        unregistered = [f for f in selection["outside_registry"]
+                        if _exists_at(repo, registry.commit, f)]
+        verdict = {"schema": SCHEMA, "mode": "registry", "batch": registry.batch,
+                   "base": registry.commit, "head": head_sha, "isolation": "clone",
+                   "isolation_reason": ISOLATION_REASON, "selection": selection,
+                   "preexisting": [], "lane": [], "turned_red": [], "flakes": [], "fixed": [],
+                   "baseline_confirmed": registry.baseline_confirmed,
+                   "unregistered": unregistered, "skip_guard": {"status": "not-run"}}
+        if unregistered:
+            verdict["verdict"] = "UNATTRIBUTABLE"
+        elif not files:
+            verdict["verdict"] = "NOT-EVALUATED" if selection["declined"] else "CLEAN"
+            if not selection["declined"]:
+                selection["note"] += "; the selection is empty, nothing to run"
+        else:
+            run = run_pytest_full(clone, files, workers=workers, timeout=timeout)
+            verdict["skip_guard"] = skip_guard(registry, run.skipped, files)
+            if verdict["skip_guard"]["status"] != "match":
+                verdict["verdict"] = "UNATTRIBUTABLE"
+            else:
+                head_red = {k for k, s in run.results.items() if s in _RED}
+                registry_red = set(registry.red)
+                verdict["preexisting"] = sorted(head_red & registry_red)
+                verdict["fixed"] = sorted(k for k in registry_red - head_red
+                                          if run.results.get(k) == "PASSED")
+                for test_id in sorted(head_red - registry_red):
+                    obs = _rerun(clone, test_id, run.results[test_id], reruns=reruns, timeout=timeout)
+                    if "PASSED" in obs[1:]:
+                        verdict["flakes"].append({"id": test_id, "observations": obs})
+                    else:
+                        verdict["lane"].append({"id": test_id, "was": _was_in_registry(test_id, registry),
+                                                "observations": obs})
+                verdict["turned_red"] = [e["id"] for e in verdict["lane"] if e["was"] == "PASSED"]
+                verdict["verdict"] = "LANE-RED" if verdict["lane"] else "CLEAN"
+    finally:
+        removed = remove_tree(scratch)
+    verdict["cleanup"] = "removed" if removed else f"LEFTOVER {scratch}"
+    verdict["counts"] = {k: len(verdict[k]) for k in ("preexisting", "lane", "turned_red", "flakes",
+                                                     "fixed")}
+    verdict["exit_code"] = {"LANE-RED": 1, "NOT-EVALUATED": 3,
+                            "UNATTRIBUTABLE": EXIT_UNATTRIBUTABLE}.get(verdict["verdict"], 0)
+    if not removed and not verdict["exit_code"]:
+        verdict["exit_code"] = 2  # a leaked clone must not ride along on a green verdict
+    return verdict
+
+
 # --- command line ------------------------------------------------------------------------
 
 def _default_workers() -> int:
@@ -407,7 +751,90 @@ def _parser() -> argparse.ArgumentParser:
     return p
 
 
+def _registry_parser(command: str) -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(prog=f"test_pairing.py {command}",
+                                description=f"batch registry mode: {command} (see the module docstring)")
+    p.add_argument("--batch", help="the batch name (default: $HARNESS_BATCH)")
+    p.add_argument("--repo", default=".", help="repository to pair in (default: cwd)")
+    p.add_argument("--workers", type=int, default=_default_workers(),
+                   help="xdist workers (default 6; 0 = in-process)")
+    p.add_argument("--timeout", type=float, help="seconds allowed per pytest invocation")
+    p.add_argument("--workdir", help="parent directory for the clones (default: system temp)")
+    if command == "record-base":
+        p.add_argument("--commit", required=True, help="the batch's base commit (main before any merge)")
+        p.add_argument("--lane", action="append", help="a lane of the batch (repeatable); its impacted "
+                       "test files join the registry")
+        p.add_argument("--tests", nargs="+", help="explicit test files instead of --lane")
+        p.add_argument("--replace", action="store_true", help="overwrite an existing registry")
+        p.add_argument("--no-confirm-baseline", action="store_true",
+                       help="do not rerun the reds once on the base (a transient red then becomes "
+                            "'pre-existing' for the whole batch)")
+    else:
+        p.add_argument("--head", required=True, help="the merged tree to compare")
+        p.add_argument("--since", help="select tests impacted by changes since this ref "
+                                       "(default: the registry's base commit)")
+        p.add_argument("--out", help=f"verdict path (default: <receipts home>/{VERDICT_NAME})")
+        p.add_argument("--reruns", type=int, default=1,
+                       help="isolated reruns of a lane-red, at least 1 (default 1)")
+    return p
+
+
+def _publish(verdict: dict, out: Path) -> None:
+    out.parent.mkdir(parents=True, exist_ok=True)
+    tmp = out.with_suffix(out.suffix + ".tmp")
+    tmp.write_text(json.dumps(verdict, indent=2) + "\n", encoding="utf-8", newline="\n")
+    os.replace(tmp, out)
+    print(json.dumps(verdict, indent=2))
+
+
+def _registry_main(command: str, argv: list[str]) -> int:
+    args = _registry_parser(command).parse_args(argv)
+    workdir = Path(args.workdir) if args.workdir else None
+    try:
+        repo = Path(_git(Path(args.repo).resolve(), "rev-parse", "--show-toplevel"))
+        batch = resolve_batch(args.batch)
+        if command == "record-base":
+            registry, path, removed = record_base(
+                repo, args.commit, batch, lanes=args.lane, tests=args.tests, workers=args.workers,
+                timeout=args.timeout, workdir=workdir, confirm_baseline=not args.no_confirm_baseline,
+                replace=args.replace)
+            print(json.dumps({"registry": str(path), "batch": batch, "commit": registry.commit,
+                              "files": len(registry.files), "red": len(registry.red),
+                              "skip_count": registry.skip_count,
+                              "cleanup": "removed" if removed else "LEFTOVER"}, indent=2))
+            print(f"test_pairing: registry {path.name} -- {len(registry.files)} file(s) at "
+                  f"{registry.commit[:8]}, {len(registry.red)} red, {registry.skip_count} skipped",
+                  file=sys.stderr)
+            return 0 if removed else 2
+        verdict = compare(repo, load_registry(repo, batch), args.head, since=args.since,
+                          reruns=args.reruns, workers=args.workers, timeout=args.timeout,
+                          workdir=workdir)
+    except PairingError as exc:
+        print(f"test_pairing: {exc}", file=sys.stderr)
+        raise SystemExit(2) from exc
+    _publish(verdict, Path(args.out) if args.out else receipts_home(repo) / VERDICT_NAME)
+    c, guard = verdict["counts"], verdict["skip_guard"]
+    print(f"test_pairing: {verdict['verdict']} -- lane {c['lane']} (turned red {c['turned_red']}), "
+          f"pre-existing {c['preexisting']}, flake {c['flakes']}, fixed {c['fixed']}"
+          f"{' -- selection DECLINED' if verdict['selection']['declined'] else ''}", file=sys.stderr)
+    if verdict["verdict"] == "UNATTRIBUTABLE" and verdict["unregistered"]:
+        print(f"test_pairing: UNATTRIBUTABLE -- {verdict['unregistered']} existed on the base but the "
+              "registry never ran them, so their baseline is unknown; nothing is attributed. "
+              "`record-base --replace` with this lane included.", file=sys.stderr)
+    elif verdict["verdict"] == "UNATTRIBUTABLE":
+        print(f"test_pairing: UNATTRIBUTABLE -- the merged tree skips {guard['head']} test(s) where the "
+              f"registry recorded {guard['registry']} over the same files (added {guard['added']}, "
+              f"removed {guard['removed']}); a skip can hide a red, so nothing is attributed. Look at "
+              "the skips, or `record-base --replace` if main itself changed.", file=sys.stderr)
+    if verdict["cleanup"] != "removed":
+        print(f"test_pairing: {verdict['cleanup']}", file=sys.stderr)
+    return verdict["exit_code"]
+
+
 def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] in ("record-base", "compare"):
+        return _registry_main(argv[0], argv[1:])
     parser = _parser()
     args = parser.parse_args(argv)
     try:
@@ -428,14 +855,7 @@ def main(argv: list[str] | None = None) -> int:
     except PairingError as exc:
         print(f"test_pairing: {exc}", file=sys.stderr)
         raise SystemExit(2) from exc
-    out = Path(args.out) if args.out else (
-        Path(os.environ.get("HARNESS_RECEIPTS_DIR") or repo / "logs" / "receipts") / VERDICT_NAME
-    )
-    out.parent.mkdir(parents=True, exist_ok=True)
-    tmp = out.with_suffix(out.suffix + ".tmp")
-    tmp.write_text(json.dumps(verdict, indent=2) + "\n", encoding="utf-8", newline="\n")
-    os.replace(tmp, out)
-    print(json.dumps(verdict, indent=2))
+    _publish(verdict, Path(args.out) if args.out else receipts_home(repo) / VERDICT_NAME)
     c = verdict["counts"]
     print(f"test_pairing: {verdict['verdict']} -- lane {c['lane']} (turned red {c['turned_red']}), "
           f"pre-existing {c['preexisting']}, flake {c['flakes']}, fixed {c['fixed']}"
