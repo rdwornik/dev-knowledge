@@ -193,6 +193,13 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#952] [P3][S] Gemini routing pin -- a pinned model id for the `agy` adversarial/producer role, recorded like the other providers · tasks/952-gemini-routing-pin-a-pinned-model-id-for-the-agy.md
 - [#953] [P3][M] Events that file rows -- some escalation events should produce a task row automatically, not just a STATUS entry · tasks/953-events-that-file-rows-some-escalation-events.md
 - [#954] [P2][M] Install the loop in a second repo -- prove stages 1-16 are not `.dev-knowledge`-specific · tasks/954-install-the-loop-in-a-second-repo-prove-stages.md
+- [#955] [P1][L] Wave 4b -- one merge path, handback as an organ, verification in the lanes (FR1-FR5) · tasks/955-wave-4b-one-merge-path-handback-as-an-organ-verification-in-the-lanes.md
+- [#956] [P1][M] Wave 4b lane 0 (lane-hooks-rearm) -- the eight emergency-disabled session hooks come back on evidence · tasks/956-wave-4b-lane-0-lane-hooks-rearm-the-eight-emergency-disabled-session-hooks-come-back-on-evidence.md
+- [#957] [P1][M] Wave 4b lane 1 (lane-merge-path) -- one merge path: the moment, in an integration worktree, main only when green · tasks/957-wave-4b-lane-1-lane-merge-path-one-merge-path-the-moment-in-an-integration-worktree-main-only-when-green.md
+- [#958] [P1][M] Wave 4b lane 2 (lane-handback-organ) -- a lane hands back through one organ that checks it first · tasks/958-wave-4b-lane-2-lane-handback-organ-a-lane-hands-back-through-one-organ-that-checks-it-first.md
+- [#959] [P1][M] Wave 4b lane 3 (lane-gate-verdicts) -- gates speak data, and the connection test reads it · tasks/959-wave-4b-lane-3-lane-gate-verdicts-gates-speak-data-and-the-connection-test-reads-it.md
+- [#960] [P1][M] Wave 4b lane 4 (lane-verify-in-lane) -- a lane tests itself in parallel; the integrator only confirms · tasks/960-wave-4b-lane-4-lane-verify-in-lane-a-lane-tests-itself-in-parallel-the-integrator-only-confirms.md
+- [#961] [P1][M] Wave 4b lane 5 (lane-plan-lint) -- the architect's plan is checked by code before it freezes · tasks/961-wave-4b-lane-5-lane-plan-lint-the-architects-plan-is-checked-by-code-before-it-freezes.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
