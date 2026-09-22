@@ -827,6 +827,8 @@ def record_lane(repo: Path, batch: str, lane: str, *, main_ref: str = "origin/ma
     `lane_record_path`. `lane_ref` defaults to `worktree-<lane>`, matching the `--lane`
     convention the two-commit CLI already uses.
     """
+    if reruns < 1:
+        raise PairingError("--reruns must be at least 1: zero would charge a flake to the lane")
     batch = resolve_batch(batch)
     registry = load_registry(repo, batch)
     main_sha = resolve(repo, main_ref)

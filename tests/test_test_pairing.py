@@ -973,6 +973,20 @@ def test_record_lane_writes_a_record_keyed_by_the_tree_and_origin_main_sha(lane_
     assert _ids(record["verdict"]["lane"]) == ["tests/test_new.py::test_new"]
 
 
+def test_record_lane_rejects_zero_reruns_same_as_pair_and_compare(lane_registry_repo, home):
+    """Codex terra P1: `record-lane --reruns 0` skipped the flake rerun entirely and would
+    classify every initially failing lane test as LANE-RED with no flake protection --
+    `pair()`/`compare()` already refuse this; `record_lane()` must refuse it identically."""
+    root, _ = lane_registry_repo
+    _commit(root, {"tests/test_new.py": "def test_new():\n    assert False\n"}, "lane work")
+
+    with pytest.raises(SystemExit) as exc:
+        _record_lane(root, "demo", "--reruns", "0")
+
+    assert exc.value.code == 2
+    assert not (home / "TEST-PAIRING-LANE-B1-demo.json").exists()
+
+
 def test_record_lane_selects_from_the_lanes_own_diff_not_the_registrys_two_dot_range(
         lane_registry_repo, home):
     """The registry's base and the lane's sync point can differ; record-lane uses the
