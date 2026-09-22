@@ -18,6 +18,7 @@ is the leg that refuses the degenerate answer a non-empty assertion would wave t
 from __future__ import annotations
 
 import pathlib
+import subprocess
 
 import pytest
 
@@ -485,3 +486,125 @@ def test_selection_is_non_empty_for_a_docs_diff_and_a_code_diff():
     code = impacted_tests.select(REPO_ROOT, ["scripts/fleet_health.py"])
     assert docs.marker or docs.test_files or docs.full_suite
     assert code.test_files
+
+
+# =============================================================================================
+# lane-verify-in-lane (W4B-4), Done-contract 1: selection from the LANE'S OWN diff.
+#
+# `origin/main...<lane>` (merge-base triple-dot) rather than `changed_from_git`'s two-dot
+# working-tree-vs-ref, because the two-dot form also carries whatever main did AFTER the lane
+# branched -- exactly the thing a lane-side verification must not be charged for. Every test
+# below builds a synthetic git repo (never the live hub or its worktrees, per the contract's
+# "what NOT to do") with real branches, so the merge-base arithmetic is exercised for real.
+# =============================================================================================
+
+def _git(repo: pathlib.Path, *args: str) -> str:
+    cmd = ["git", "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false",
+           "-c", "core.hooksPath=", *args]
+    done = subprocess.run(cmd, cwd=repo, check=True, capture_output=True, text=True)
+    return done.stdout.strip()
+
+
+def _write(repo: pathlib.Path, files: dict[str, str]) -> None:
+    for rel, text in files.items():
+        target = repo / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(text, encoding="utf-8", newline="\n")
+
+
+def _commit(repo: pathlib.Path, files: dict[str, str], message: str) -> str:
+    _write(repo, files)
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "--no-verify", "-m", message)
+    return _git(repo, "rev-parse", "HEAD")
+
+
+@pytest.fixture
+def lane_repo(tmp_path: pathlib.Path) -> pathlib.Path:
+    """main with one module+test, and a `lane` branch checked out at its tip."""
+    root = tmp_path / "lane-src"
+    root.mkdir()
+    _git(root, "init", "-b", "main")
+    _commit(root, {
+        "pyproject.toml": '[tool.pytest.ini_options]\npythonpath = ["scripts"]\n',
+        "scripts/mod.py": "def value():\n    return 1\n",
+        "tests/test_mod.py": "import mod\n\n\ndef test_value():\n    assert mod.value() == 1\n",
+    }, "base")
+    _git(root, "checkout", "-b", "lane")
+    return root
+
+
+def test_the_lane_diff_mode_ignores_what_main_did_after_the_lane_branched(lane_repo):
+    """The two-dot form would blame the lane for main's own later commit; triple-dot must not."""
+    _commit(lane_repo, {"scripts/mod.py": "def value():\n    return 2\n"}, "lane touches mod")
+    _git(lane_repo, "checkout", "main")
+    _commit(lane_repo, {"scripts/other.py": "Y = 1\n",
+                        "tests/test_other.py": "def test_other():\n    assert False\n"},
+           "main moves on after the lane branched")
+    _git(lane_repo, "checkout", "lane")
+
+    sel = impacted_tests.select_lane_diff(lane_repo, main_ref="main", lane_ref="lane")
+
+    assert sel.test_files == ("tests/test_mod.py",), (
+        "main's own post-branch commit must not appear in the lane's own diff"
+    )
+
+
+def test_integrator_regenerated_files_are_excluded_from_lane_diff_selection(lane_repo):
+    """A lane's copy of an index the integrator regenerates at merge must not tax it.
+
+    Citation for the exclusion set: protocols/PLAYBOOK.md "Index freshness on lane
+    material" ("the audits index, the intake index, the organ index ... regenerated
+    once, by the integrator, at the merge") and `.claude/commands/lane-integrate.md`
+    item 4b / [#590] for the audits index concretely.
+    """
+    for rel in impacted_tests.INTEGRATOR_REGENERATED_FILES:
+        _write(lane_repo, {rel: "stale copy\n"})
+    _git(lane_repo, "add", "-A")
+    _git(lane_repo, "commit", "--no-verify", "-m", "lane's stale copies of the regenerated indices")
+
+    sel = impacted_tests.select_lane_diff(lane_repo, main_ref="main", lane_ref="lane")
+
+    assert sel.test_files == () and not sel.full_suite, (
+        "a diff containing ONLY integrator-regenerated files must select nothing and must "
+        "never fall back to the full suite -- there is nothing here for the lane to answer for"
+    )
+    for rel in impacted_tests.INTEGRATOR_REGENERATED_FILES:
+        assert sel.reasons[rel][0] == "integrator-regenerated"
+
+
+def test_a_regenerated_file_is_excluded_even_inside_a_mixed_diff(lane_repo):
+    _commit(lane_repo, {
+        "scripts/mod.py": "def value():\n    return 2\n",
+        "docs/audits/README.md": "stale copy\n",
+    }, "real change plus a stale regenerated index")
+
+    sel = impacted_tests.select_lane_diff(lane_repo, main_ref="main", lane_ref="lane")
+
+    assert sel.test_files == ("tests/test_mod.py",)
+    assert sel.reasons["docs/audits/README.md"][0] == "integrator-regenerated"
+
+
+def test_the_old_two_dot_mode_is_unchanged_by_the_new_lane_diff_entry_point(lane_repo):
+    """Common rule 8: a new mode, never a changed flag on the old one."""
+    sel = impacted_tests.select(lane_repo, ["scripts/mod.py"])
+    assert sel.test_files == ("tests/test_mod.py",)
+
+
+@pytest.mark.live_repo
+def test_a_rows_only_change_maps_to_the_funnel_test():
+    """Finding 3 (DIGEST-WAVE4-FINAL): a tasks/*.md row must map to the funnel detector.
+
+    Before this rule a `tasks/*.md` change fell through to the generic doc-marker tier,
+    which only selects files carrying the `live_repo` marker -- and
+    `tests/test_funnel_lifecycle.py` carries no such marker, so it was silently dropped.
+    """
+    sel = impacted_tests.select(REPO_ROOT, ["tasks/960-some-row.md"])
+    assert "tests/test_funnel_lifecycle.py" in sel.test_files
+    assert not sel.full_suite
+
+
+@pytest.mark.live_repo
+def test_a_rows_only_change_does_not_fall_back_to_the_full_suite():
+    sel = impacted_tests.select(REPO_ROOT, ["tasks/960-some-row.md"])
+    assert not sel.full_suite, "a tasks/*.md row is mapped, not unmapped"
