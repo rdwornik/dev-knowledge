@@ -718,6 +718,34 @@ def test_a_comparison_whose_skip_count_differs_from_the_registrys_is_refused_as_
     assert "unattributable" in err.lower() and "skip" in err.lower()
 
 
+def test_a_new_skipped_test_added_inside_an_existing_covered_file_is_not_unattributable(
+        repo, home, tmp_path):
+    """Finding 2 (DIGEST-WAVE4-FINAL-2026-09-22): the skip-guard asymmetry.
+
+    Before the fix, a NEW node id skipping inside an EXISTING (registry-covered) file
+    tripped the guard identically to a KNOWN id being silenced -- purely because file-level
+    `covered` membership was the only boundary the guard could see. The SAME new test added
+    to a brand-NEW file was already exempt (`test_a_lane_added_skipped_test_does_not_trip_
+    the_guard_because_the_registry_never_ran_it` below), so the asymmetry was which side of
+    a FILE boundary the new id happened to land on -- not anything about risk: a node id
+    the registry never recorded (not red, not passed, not skipped) cannot be hiding a
+    registry-known result, because there was nothing recorded for it to hide.
+    """
+    root, base = repo
+    _record(root, base, "--tests", "tests/test_mod.py")
+    merged = _commit(root, {"tests/test_mod.py":
+                            "import pytest\nimport mod\n\n\ndef test_value():\n"
+                            "    assert mod.value() == 1\n\n\ndef test_added():\n"
+                            "    pytest.skip('new')\n"}, "a new skipped test in an existing file")
+
+    code, verdict = _compare(root, merged, tmp_path)
+
+    assert verdict["skip_guard"]["status"] == "match", (
+        "a brand-new node id has no registry identity to hide behind a skip"
+    )
+    assert verdict["verdict"] == "CLEAN" and code == 0
+
+
 def test_a_comparison_with_the_same_skip_count_is_attributed_normally(repo, home, tmp_path):
     root, _ = repo
     base = _commit(root, {"tests/test_skip.py": _SKIP}, "main skips one test")
@@ -889,3 +917,147 @@ def test_the_existing_two_commit_form_is_untouched_by_the_registry_commands(repo
     code, verdict = _run(root, base, head, tmp_path)
 
     assert code == 1 and _ids(verdict["lane"]) == ["tests/test_new.py::test_new"]
+
+
+# =============================================================================================
+# lane-verify-in-lane (W4B-4), Done-contract 2: RECORD BY TREE. A lane runs its own selection
+# on `origin/main + lane`, classifies against the batch registry, and persists the verdict
+# keyed by (tree sha, origin/main sha) -- `record-lane`. A second mode, `reuse-check`, tells
+# the integrator whether that record still applies: REUSABLE (origin/main unchanged),
+# STALE-TREE (the lane advanced -- the record answers for a tree that no longer exists at the
+# lane's tip), or MAIN-MOVED (only main moved -- report the SUBSET impacted by main's own
+# diff, not the lane's whole selection again). Synthetic repos only, as above.
+# =============================================================================================
+
+def _record_lane(root: Path, lane: str, *extra: str) -> int:
+    return test_pairing.main(["record-lane", "--batch", "B1", "--lane", lane, "--main", "main",
+                              "--repo", str(root), "--workers", "0", *extra])
+
+
+def _reuse_check(root: Path, lane: str, *extra: str) -> tuple[int, dict]:
+    proc = subprocess.run(
+        [sys.executable, str(_SCRIPTS / "test_pairing.py"), "reuse-check", "--batch", "B1",
+         "--lane", lane, "--main", "main", "--repo", str(root), *extra],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+    )
+    return proc.returncode, json.loads(proc.stdout)
+
+
+def _lane_record(home: Path, lane: str) -> dict:
+    return json.loads((home / f"TEST-PAIRING-LANE-B1-{lane}.json").read_text(encoding="utf-8"))
+
+
+@pytest.fixture
+def lane_registry_repo(repo, home) -> tuple[Path, str]:
+    """A registry recorded off `main`, with `worktree-demo` branched from it."""
+    root, base = repo
+    _record(root, base, "--tests", "tests/test_mod.py")
+    _git(root, "checkout", "-b", "worktree-demo")
+    return root, base
+
+
+def test_record_lane_writes_a_record_keyed_by_the_tree_and_origin_main_sha(lane_registry_repo, home):
+    root, main_sha = lane_registry_repo
+    _commit(root, {"tests/test_new.py": "def test_new():\n    assert False\n"}, "lane work")
+    lane_sha = _git(root, "rev-parse", "HEAD")
+
+    code = _record_lane(root, "demo")
+
+    assert code == 1, "the lane's own red is exit 1, same vocabulary as compare()"
+    record = _lane_record(home, "demo")
+    assert record["schema"] == "test-pairing-lane-record/1"
+    assert record["batch"] == "B1" and record["lane"] == "demo"
+    assert record["tree"] == lane_sha, "keyed by the LANE'S tree sha"
+    assert record["origin_main"] == main_sha, "keyed by the origin/main sha it ran against"
+    assert record["verdict"]["verdict"] == "LANE-RED"
+    assert _ids(record["verdict"]["lane"]) == ["tests/test_new.py::test_new"]
+
+
+def test_record_lane_selects_from_the_lanes_own_diff_not_the_registrys_two_dot_range(
+        lane_registry_repo, home):
+    """The registry's base and the lane's sync point can differ; record-lane uses the
+    lane's OWN diff against `--main` (impacted_tests.select_lane_diff), not a two-dot
+    diff against the registry's recorded commit."""
+    root, main_sha = lane_registry_repo
+    _commit(root, {"scripts/mod.py": "def value():\n    return 1\n# touched\n"}, "lane touches mod")
+
+    _record_lane(root, "demo")
+
+    record = _lane_record(home, "demo")
+    assert record["verdict"]["selection"]["test_files"] == ["tests/test_mod.py"]
+
+
+def test_record_lane_is_overwritten_by_a_later_run_no_replace_flag_needed(lane_registry_repo, home):
+    """Unlike `record-base`, a lane's own record is never exclusive -- it is the lane's,
+    and re-verifying after a new commit is the normal path, not a laundering risk."""
+    root, _ = lane_registry_repo
+    _commit(root, {"tests/test_new.py": "def test_new():\n    assert True\n"}, "green")
+    assert _record_lane(root, "demo") == 0
+    _commit(root, {"tests/test_new.py": "def test_new():\n    assert False\n"}, "now red")
+
+    code = _record_lane(root, "demo")
+
+    assert code == 1
+    assert _lane_record(home, "demo")["verdict"]["verdict"] == "LANE-RED"
+
+
+def test_reuse_check_reports_not_recorded_when_no_record_exists(lane_registry_repo, home):
+    root, _ = lane_registry_repo
+
+    code, status = _reuse_check(root, "demo")
+
+    assert status["status"] == "NOT-RECORDED" and status["reusable"] is False
+    assert code == 5
+
+
+def test_reuse_check_reports_reusable_when_neither_tree_nor_origin_main_moved(
+        lane_registry_repo, home):
+    root, _ = lane_registry_repo
+    _commit(root, {"tests/test_new.py": "def test_new():\n    assert True\n"}, "green")
+    _record_lane(root, "demo")
+
+    code, status = _reuse_check(root, "demo")
+
+    assert status["status"] == "REUSABLE" and status["reusable"] is True
+    assert status["verdict"]["verdict"] == "CLEAN"
+    assert code == 0
+
+
+def test_reuse_check_reports_stale_tree_when_the_lane_advanced_since_the_record(
+        lane_registry_repo, home):
+    root, _ = lane_registry_repo
+    _commit(root, {"tests/test_new.py": "def test_new():\n    assert True\n"}, "green")
+    _record_lane(root, "demo")
+    _commit(root, {"tests/test_new.py": "def test_new():\n    assert False\n"}, "the lane moved on")
+
+    code, status = _reuse_check(root, "demo")
+
+    assert status["status"] == "STALE-TREE" and status["reusable"] is False
+    assert code == 6
+
+
+def test_reuse_check_reports_the_rerun_subset_when_only_origin_main_moved(lane_registry_repo, home):
+    root, _ = lane_registry_repo
+    _commit(root, {"tests/test_new.py": "def test_new():\n    assert True\n"}, "green")
+    _record_lane(root, "demo")
+    _git(root, "checkout", "main")
+    _commit(root, {"scripts/other.py": "Y = 1\n",
+                   "tests/test_other.py": "def test_other():\n    assert False\n"},
+           "main advances while the lane waits")
+    _git(root, "checkout", "worktree-demo")
+
+    code, status = _reuse_check(root, "demo")
+
+    assert status["status"] == "MAIN-MOVED" and status["reusable"] is False
+    assert status["rerun_selection"]["test_files"] == ["tests/test_other.py"], (
+        "only what main's OWN diff impacts, never the lane's whole selection again"
+    )
+    assert code == 7
+
+
+def test_the_registry_commands_are_untouched_by_the_new_lane_commands(repo, home):
+    root, base = repo
+
+    code = _record(root, base, "--tests", "tests/test_mod.py")
+
+    assert code == 0 and (home / "TEST-PAIRING-REGISTRY-B1.json").is_file()
