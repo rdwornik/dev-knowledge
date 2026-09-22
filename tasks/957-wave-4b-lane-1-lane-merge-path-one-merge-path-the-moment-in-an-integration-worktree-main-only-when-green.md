@@ -1,0 +1,13 @@
+---
+id: "[#957]"
+title: "Wave 4b lane 1 (lane-merge-path) -- one merge path: the moment, in an integration worktree, main only when green"
+status: open
+priority: P1
+size: M
+theme: "[E2] Enforced governance"
+story: "[S3] Turn advisory guards into enforced gates"
+implements: "ADR-120"
+generates: BACKLOG.md
+---
+
+- [#957] [P1][M] **Wave 4b lane 1 (lane-merge-path) -- one merge path: the moment, in an integration worktree, main only when green** - filed by LANE-W4B-0 per `to-cc/WAVE4B-COMMON-2026-09-22.md` rule 1; frozen contract `LANE-W4B-1-merge-path.md`, branch `worktree-lane-merge-path`. Starts after `lane-handback-organ` (`[#958]`) and `lane-gate-verdicts` (`[#959]`) are merged; depends on lane 0 (`[#956]`). Value: the harness declared one merge and operated another -- the prose two-step never wrote the merge ledger (the digest had no merges) and held unverified merges on the shared local `main` (two contaminated lanes). After this lane there is one path: the integrator runs the merge moment in an integration worktree, `main` moves only when the moment is green, and every merge writes its ledger row. It is ADR-120 stage 16 made real. · implements: ADR-120 · Done when: 1. **FR1 as written in the plan:** `lane-integrate.md` performs the merge by `doit moment:merge` in a dedicated integration worktree on a temporary branch (home derived from conventions and cited; not under `.claude/worktrees/`, which is the lanes' namespace), then fast-forwards `main` and pushes in the same step, then removes the integration worktree. The prose two-step is removed from the command. 2. **Ledger:** the moment writes exactly one `MERGE-RECEIPTS.jsonl` row per merge (open and close); if the organ list changes, update the connection test's expected lists in the same commit. 3. **FR5:** `lane_digest.py` reads merges from the ledger and commits from the organ-written LANE-END reports (schema from `lane-handback-organ`), and reads the integrator's STATE lines. 4. **Acceptance tests of FR1 and FR5** from the plan, red first, including: after every step of a fixture merge, `git log origin/main..main` on the primary is empty. 5. **Live proof:** the walk on this branch passes `merge/gates` or names the new stop. 6. **Codex terra review** with its consumer cited; **self-check and purity**; **handback** · refs `LANE-W4B-1-merge-path.md`, `to-cc/WAVE4B-COMMON-2026-09-22.md`, `to-cc/PLAN-WAVE4B-SESSION-2026-09-22.md` (FR1, FR5), `to-cc/DECLARE-WAVE4B-DIRECTION-2026-09-22.md` (RC1, RC4), `[#955]` (the epic this row implements), `[#958]`, `[#959]` (the two lanes this one depends on) · kill-candidates: none -- no open row covers the merge-path unification

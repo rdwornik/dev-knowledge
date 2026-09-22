@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-22 (h) - CC (Opus 5.5, integrator wave 4b): LANE W4B-0 landed -- six emergency-disabled SessionStart hooks come back on live evidence, two stay off with measured reasons
+
+**Anchors:** `226c9fbf` (audit pair filed under [#956]) · `7de244a4` (row 956 cites its records) · `4c77c538` (audits index) · `f0c31b44` (Codex terra 0/0/0/0) · `c6de680c` (six hooks re-armed, two kept off; `tests/test_hooks_rearm.py`) · `b5e8662b` (wave-4b rows: epic [#955] `implements: ADR-120`, lane rows [#956]-[#961]) -- `worktree-lane-hooks-rearm`, merged --no-ff in an integration worktree off origin/main `3689b5ab`.
+
+**Did:** merged W4B-0, the batch's serial first lane, by the wave-4b path: temporary branch in a worktree under the integrator's job directory, `merge_receipt.py open` before the merge, `main` fast-forwarded only after the verdict. `.claude/settings.json` SessionStart now carries `arm_hooks.py` plus `surface_triage.ps1`, `changelog_sentinel.py`, `conductor.py`, `resource_lifecycle.py`, `codespace_regime.py`, `billing_leak_sentinel.ps1`; `surface-closures.ps1` (out of repo scope) and `fleet_health.py` stay disabled with new dated expiries and reasons.
+
+**Result:** the lane's live test of `fleet_health.py` found a detached `audit.py run` grandchild that survives a tree kill and whose `_commit_routine_outputs` committed an untracked `docs/audits/` draft onto `automation/fleet-audit` and removed it from the working tree -- triaged CANDIDATE by the lane (`docs/audits/2026-09-22-technical-lane-hooks-rearm-live-measurement.md` §2.1). Comparison, gates and ship-gate: `to-browser/SESSION-integrator-wave4b-2026-09-22.md`. **Changes:** `.claude/settings.json`, `tests/test_hooks_rearm.py` (new), `tasks/955`-`961` (new), `tasks/manifest.json`, `BACKLOG.md`, three `docs/audits/2026-09-22-*lane-hooks-rearm*` records (new), `docs/audits/README.md`, `ecosystem/organ-index.md`, `ecosystem/doc-counts.md` (tests 7204 -> 7221), `JOURNAL.md`, `logs/MERGE-RECEIPTS.jsonl`. **Next:** lanes W4B-2..5 in parallel.
+
 ### 2026-09-22 (g) - CC (Opus 5, integrator wave 4a, day): LANE W4-2 rebuilt on origin/main and landed -- a recorded fate is dated debt, and the merge moment opens its own receipt first
 
 **Anchors:** `5902f336` (repair 2 of 2: the two-list test fix, cherry-picked from `ea9d7e18`) · `12a94d46` (the lane's sync merge of origin/main `e125fff8`) · `095ecae7` (Codex record filled, consumer cited) · `e3432469` (two Codex findings fixed) · `165420a9` (Codex record) · `965835d2` (census reads fates; chain order) -- `worktree-lane-merge-gates-truth`, merged --no-ff.
