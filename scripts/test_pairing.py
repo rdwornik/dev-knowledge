@@ -87,7 +87,19 @@ HONEST LIMITS. (1) A test red on BASE for a flaky reason and green on HEAD shows
 (2) A test whose result depends on gitignored state (e.g. `ecosystem/*/state.yaml`) sees neither
 side's copy -- both clones lack it, so it cannot skew the PAIR, but the reds it produces are
 reds of a bare checkout. (3) `impacted_tests` measures a miss-rate of about one affected file in
-twenty; a clean pairing is not a full-suite pass.
+twenty; a clean pairing is not a full-suite pass. (4) THE REGISTRY IS NODE-ID GRANULAR, NOT
+FINDING GRANULAR (finding 8, DIGEST-WAVE4-FINAL-2026-09-22): a test already red in the registry
+stays `preexisting` even when the LANE'S diff adds a second, distinct cause of that same test's
+failure -- classification here is PASSED/FAILED per node id, and a node id carries no notion of
+"which finding, or how many". This is not a bug to patch here: it is what "the registry compares
+pytest outcomes" means, and widening it would mean parsing assertion messages per test, which no
+option in this module does. THE INSTRUMENT THAT CAN SEE IT is whatever already reports FINDINGS
+rather than a pass/fail verdict for the test wrapping them -- `scripts/decision_coverage.py check`
+is the live example: it prints one `ProbeFinding` (`.subject`, `.evidence`) per uncovered decision,
+so two decisions missing their row are TWO printed lines even while
+`tests/test_decision_coverage.py::test_the_live_tree_carries_no_IN_ERA_uncovered_decision` is a
+single red node id either way. A lane whose diff could plausibly ADD a finding inside an
+already-red test should read that instrument directly rather than trust this registry to notice.
 """
 from __future__ import annotations
 

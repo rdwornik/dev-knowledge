@@ -1055,6 +1055,55 @@ def test_reuse_check_reports_the_rerun_subset_when_only_origin_main_moved(lane_r
     assert code == 7
 
 
+# --- finding 8 (DIGEST-WAVE4-FINAL): the registry is node-id granular, not finding granular ---
+
+def test_a_second_distinct_cause_inside_an_already_red_test_stays_masked_as_preexisting(
+        repo, home, tmp_path):
+    """Finding 8, disposed rather than silently accepted: documents the HONEST LIMIT.
+
+    Base has ONE reason `test_old` is red; the lane's diff adds a SECOND, independent
+    reason inside the SAME test. The node-id registry classifies this identically to a
+    lane that touched nothing -- `preexisting`, not surfaced -- because a node id carries
+    no notion of "which finding, or how many". This is the behaviour the module docstring
+    names as an honest limit, not a defect this lane's contract asks it to fix.
+    """
+    root, _ = repo
+    base = _commit(root, {"scripts/old.py": "def a():\n    return False\ndef b():\n    return True\n",
+                          "tests/test_old.py":
+                          "import old\n\n\ndef test_old():\n    assert old.a()\n"},
+                   "one reason test_old is red")
+    _record(root, base, "--tests", "tests/test_mod.py", "tests/test_old.py")
+    merged = _commit(root, {"scripts/old.py":
+                            "def a():\n    return False\ndef b():\n    return False\n",
+                            "tests/test_old.py":
+                            "import old\n\n\ndef test_old():\n    assert old.a()\n    assert old.b()\n"},
+                     "the lane adds a SECOND, independent reason the same test is red")
+
+    code, verdict = _compare(root, merged, tmp_path)
+
+    assert verdict["preexisting"] == ["tests/test_old.py::test_old"], (
+        "the second cause is real but invisible at node-id granularity -- masked, as documented"
+    )
+    assert verdict["lane"] == [] and verdict["verdict"] == "CLEAN" and code == 0
+
+
+def test_the_named_alternative_instrument_is_finding_granular_not_node_id_granular():
+    """`decision_coverage.py check` is what the docstring names as able to see it: it
+    prints one ProbeFinding per decision, not one verdict per wrapping pytest node id."""
+    import dataclasses
+    import inspect
+
+    sys.path.insert(0, str(_SCRIPTS))
+    import decision_coverage as dc  # noqa: E402
+
+    fields = {f.name for f in dataclasses.fields(dc.Finding)}
+    assert {"subject", "evidence"} <= fields
+    src = inspect.getsource(dc.main)
+    assert "for finding in findings" in src, (
+        "the CLI must print PER FINDING, not a single pass/fail for the whole check"
+    )
+
+
 def test_the_registry_commands_are_untouched_by_the_new_lane_commands(repo, home):
     root, base = repo
 
