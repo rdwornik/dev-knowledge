@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-22 (c) - CC (Opus 5, integrator wave 4a, day): LANE W4-3 merged -- the batch digest names every lane from its own lane-end report, never from git log after a merge
+
+**Anchors:** `c7591550` (merge sha looked up per batch) · `cdecb29a` (digest reads the lane-end reports) -- `worktree-lane-batch-digest`, merged --no-ff.
+
+**Did:** merged W4-3 two-step from the primary, second of the day. `scripts/transport_report.py` writes each lane's commit subjects, changed files and verdict into its `LANE-END-<lane>.md` from inside the lane's worktree at lane-end, while `main..HEAD` is still right. `scripts/lane_digest.py` composes the batch digest from the named lanes' reports (`--lanes` or `$HARNESS_LANES`) plus the merge sha `logs/MERGE-RECEIPTS.jsonl` records for the batch; a named lane with no report reads "no report reached the transport", never dropped (R-W4-3). The `batch-close` row in `ecosystem/harness.yaml` is unchanged; `$HARNESS_LANES` selects the reports view through it.
+
+**Result:** Codex terra 0/1/0/0, the HIGH (a reused lane slug could take a later batch's merge sha) fixed with its regression test. Registry comparison and gates: `to-browser/SESSION-integrator-wave4-2026-09-22.md`, day section. **Changes:** `scripts/lane_digest.py`, `scripts/transport_report.py`, `tests/test_lane_digest.py`, `tests/test_transport_report.py`, `docs/audits/2026-09-22-codex-lane-batch-digest.md` (new), `docs/audits/README.md`, `ecosystem/doc-counts.md`, `JOURNAL.md`. **Next:** W4-2, then W4-5.
+
 ### 2026-09-22 (b) - CC (Opus 5, integrator wave 4a, day): LANE W4-4 merged -- the connection test's flaky trio is serialized, toy-copy reds are labelled as artifacts, and the selector maps templates and fixtures
 
 **Anchors:** `ad9228d6` (Codex record) · `718ceb09` (lock, artifact labels, transport assertion) · `b99e6b69` (Stop hook declared in the parity surfaces) · `7902e594` (selector maps `templates/*.ps1`, `tests/fixtures/**`) -- `worktree-lane-connection-hygiene`, merged --no-ff.

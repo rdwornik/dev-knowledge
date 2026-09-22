@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -112,6 +113,137 @@ def test_digest_cli_reads_the_receipts_of_a_batch(tmp_path):
                            "--repo", str(tmp_path)], capture_output=True, text=True, timeout=60)
     assert proc.returncode == 0, proc.stderr
     assert "lane-a" in proc.stdout and "lane-b" in proc.stdout and "7.25" in proc.stdout
+
+
+# --- R-W4-3: the reports-root batch view (never git, never the integrator's checkout) ------------
+
+def _write_report(reports_dir: Path, lane: str, commits: list[str] = (),
+                  receipts: list[dict] = ()) -> None:
+    tr = _mod("transport_report")
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    parts = [f"# {lane} -- lane-end report", "", "generated: 2026-09-22T00:00:00Z", "",
+             f"## Commits ({len(commits)})", ""]
+    parts += [f"- {c}" for c in commits] if commits else ["No commits recorded."]
+    parts += ["", "## Changed files (0)", "", "No changed files.", "",
+             "## Verdict", "", tr._lane_verdict(list(receipts)), "",
+             "## Session summary", "", "branch: x", "",
+             f"## Receipts ({len(receipts)})", ""]
+    for i, row in enumerate(receipts):
+        parts += [f"### MOMENT-{i}.json", "", "```json", json.dumps(row), "```", ""]
+    (reports_dir / f"LANE-END-{lane}.md").write_text("\n".join(parts), encoding="utf-8")
+
+
+def test_reports_root_names_every_roster_lane_including_a_missing_one(tmp_path):
+    ld = _mod("lane_digest")
+    reports = tmp_path / "to-browser"
+    _write_report(reports, "lane-a", commits=["fix: a thing"], receipts=[_receipt("gates")])
+    # lane-b is named in the roster but never wrote a report -- must be NAMED, not dropped.
+    lanes = ld.reports_root_lanes(reports, ["lane-a", "lane-b"], {}, {})
+    names = {lane.name for lane in lanes}
+    assert names == {"lane-a", "lane-b"}
+    text = ld.render_digest(lanes)
+    assert "lane-a" in text and "lane-b" in text
+    assert "no report reached the transport" in text
+    assert ld.verdict([lane for lane in lanes if lane.name == "lane-b"][0]) == ld.VERDICT_INCOMPLETE
+
+
+def test_reports_root_reads_did_from_the_report_never_git(tmp_path):
+    ld = _mod("lane_digest")
+    reports = tmp_path / "to-browser"
+    _write_report(reports, "lane-a", commits=["feat: from the report, not git"])
+    # tmp_path is not a git repository at all -- if this read shelled out to git it would find
+    # nothing (or error), never this commit subject.
+    lanes = ld.reports_root_lanes(reports, ["lane-a"], {}, {})
+    assert lanes[0].did == ["feat: from the report, not git"]
+
+
+def test_a_report_with_no_commits_says_so_in_the_digest(tmp_path):
+    ld = _mod("lane_digest")
+    reports = tmp_path / "to-browser"
+    _write_report(reports, "lane-a", commits=[])
+    text = ld.render_digest(ld.reports_root_lanes(reports, ["lane-a"], {}, {}))
+    assert "Did: no commits recorded." in text
+
+
+def test_reports_root_shows_the_merge_sha_from_the_integrators_ledger(tmp_path):
+    ld = _mod("lane_digest")
+    reports = tmp_path / "to-browser"
+    ledger = tmp_path / "MERGE-RECEIPTS.jsonl"
+    ledger.write_text(
+        json.dumps({"slug": "lane-a", "batch": "WAVE4", "merge_sha": "deadbeef", "closed": "x"}) + "\n"
+        + json.dumps({"slug": "lane-a", "batch": "WAVE4", "merge_sha": "cafef00d", "closed": "y"}) + "\n",
+        encoding="utf-8")
+    _write_report(reports, "lane-a", commits=["x"])
+    shas = ld.load_merge_shas(ledger)
+    assert shas == {"lane-a": "cafef00d"}   # the newest row for the slug wins
+    text = ld.render_digest(ld.reports_root_lanes(reports, ["lane-a"], {}, shas))
+    assert "Merge: cafef00d" in text
+
+
+def test_a_reused_lane_slug_across_batches_does_not_misattribute_the_merge_sha(tmp_path):
+    """Codex terra HIGH (2026-09-22): with no batch filter, a later batch's row for a reused slug
+    would win as "the newest", handing an EARLIER batch's digest a merge sha that is not its own."""
+    ld = _mod("lane_digest")
+    ledger = tmp_path / "MERGE-RECEIPTS.jsonl"
+    ledger.write_text(
+        json.dumps({"slug": "lane-a", "batch": "WAVE3", "merge_sha": "wave3sha", "closed": "2026-09-01"}) + "\n"
+        + json.dumps({"slug": "lane-a", "batch": "WAVE4", "merge_sha": "wave4sha", "closed": "2026-09-22"}) + "\n",
+        encoding="utf-8")
+    assert ld.load_merge_shas(ledger, batch="WAVE3") == {"lane-a": "wave3sha"}
+    assert ld.load_merge_shas(ledger, batch="WAVE4") == {"lane-a": "wave4sha"}
+    # unnamed batch: the old, batch-unaware behaviour (newest row overall) -- unchanged for a
+    # caller that does not know which batch to prefer.
+    assert ld.load_merge_shas(ledger) == {"lane-a": "wave4sha"}
+
+
+def test_lane_roster_prefers_the_explicit_flag_then_the_env_then_a_glob(tmp_path, monkeypatch):
+    ld = _mod("lane_digest")
+    reports = tmp_path / "to-browser"
+    _write_report(reports, "lane-a")
+    _write_report(reports, "lane-b")
+    assert ld.lane_roster(reports, "lane-x, lane-y") == ["lane-x", "lane-y"]
+    monkeypatch.setenv("HARNESS_LANES", "lane-z lane-w")
+    assert ld.lane_roster(reports, None) == ["lane-z", "lane-w"]
+    monkeypatch.delenv("HARNESS_LANES", raising=False)
+    assert ld.lane_roster(reports, None) == ["lane-a", "lane-b"]
+
+
+def test_the_unedited_harness_row_reaches_reports_mode_through_harness_lanes(tmp_path, monkeypatch, capsys):
+    """`ecosystem/harness.yaml`'s `batch-close` row is out of this lane's reach (the contract: "do
+    not edit harness.yaml ... the trigger exists"; DECLARE-WAVE4A hard precondition 5 confines every
+    harness.yaml edit this wave to lane W4-2's `merge` moment). So its declared command --
+    `lane_digest.py --lane {batch} --receipts-dir {receipts}` -- must reach the reports view
+    UNCHANGED, armed only by `$HARNESS_LANES` in the environment (the same convention `HARNESS_BATCH`
+    already is). This drives that exact argv shape, in-process so the resolution is pinned to a
+    synthetic transport rather than racing this machine's own registered `CLAUDE_PROMPTS_DIR`."""
+    ld = _mod("lane_digest")
+    reports = tmp_path / "drive" / "to-browser"
+    _write_report(reports, "lane-a", commits=["feat: from the transport"], receipts=[_receipt("gates")])
+    receipts_dir = tmp_path / "integrator-checkout" / "logs" / "receipts"   # empty; must be ignored
+    receipts_dir.mkdir(parents=True)
+    monkeypatch.setattr(ld._tr, "resolve_transport", lambda root=None: reports)
+    monkeypatch.setenv("HARNESS_LANES", "lane-a,lane-missing")
+    code = ld.main(["--lane", "WAVE4", "--receipts-dir", str(receipts_dir), "--repo", str(tmp_path)])
+    assert code == 0
+    out = capsys.readouterr().out
+    assert "lane-a" in out and "feat: from the transport" in out
+    assert "lane-missing" in out and "no report reached the transport" in out
+    assert "WAVE4" not in out   # never read as a lane name in this mode
+
+
+def test_reports_root_cli_reads_a_synthetic_transport_never_the_real_drive(tmp_path):
+    """Transport isolation: an explicit `--reports-root` path is a synthetic tmp_path tree, and
+    nothing here reaches CLAUDE_PROMPTS_DIR or a real H: drive."""
+    reports = tmp_path / "drive" / "to-browser"
+    _write_report(reports, "lane-a", commits=["feat: isolated"], receipts=[_receipt("gates")])
+    proc = subprocess.run(
+        [sys.executable, str(_DIGEST), "--reports-root", str(tmp_path / "drive"),
+         "--lanes", "lane-a,lane-missing", "--repo", str(tmp_path)],
+        capture_output=True, text=True, timeout=60,
+        env={**os.environ, "CLAUDE_PROMPTS_DIR": str(tmp_path / "nonexistent-drive")})
+    assert proc.returncode == 0, proc.stderr
+    assert "lane-a" in proc.stdout and "lane-missing" in proc.stdout
+    assert "no report reached the transport" in proc.stdout
 
 
 def test_digest_lane_form_is_the_moment_command_and_never_fails_the_lane(tmp_path):

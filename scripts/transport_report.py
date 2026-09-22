@@ -26,6 +26,16 @@ stdout is ONE JSON object on its last line: `lane delivered verified artifact de
 runtime_ms exit_code reason`. Writes to the agent-bound folder (`to-cc`) do not exist here; the
 browser-bound folder is the report's only home.
 
+THE REPORT CARRIES THE LANE'S WORK (R-W4-3, lane-batch-digest). `git log main..HEAD` reads right
+HERE, in the lane's own worktree, at lane-end -- and nowhere else, because a merge fast-forwards
+HEAD onto main and a torn-down worktree does not exist at all. So the report writes three facts
+while they are still readable: the lane's commit subjects (`## Commits`), the files it changed
+(`## Changed files`) and its own verdict (`## Verdict`, the same three-way read
+`lane_digest.verdict` uses over the lane's receipts). `lane_digest.py --reports-root` reads these
+sections back (`parse_report`) instead of re-deriving them from git after the merge, when the
+range is empty by construction -- the defect wave 3's batch digest hit (`git log main..HEAD`
+after the merge answered "no commits recorded" for a batch that landed six lanes).
+
 FLOOR: hub-only. One-line reason: it reads the operator's transport drive, a machine-level surface a
 consumer repo has no copy of.
 """
@@ -39,6 +49,7 @@ import re
 import subprocess
 import sys
 import time
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Mapping, Optional
@@ -52,10 +63,20 @@ GIT_TIMEOUT_S = 3            # ONE shared deadline for every git call in a run (
 MAX_RECEIPT_BYTES = 64 * 1024
 MAX_RECEIPTS = 200
 MAX_COMMITS = 30
+MAX_CHANGED_FILES = 200
 BROWSER_FOLDER = "to-browser"
 ARTIFACT_PREFIX = "LANE-END-"
 _LANE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$")
 _OWN_RECEIPT = "MOMENT-LANE-END-TRANSPORT-REPORT"   # excluded: it is written AFTER this run
+
+# The lane's own verdict (R-W4-3): the same three-way read `lane_digest.verdict` computes over a
+# batch's lanes, duplicated in miniature here rather than imported. `lane_digest` already imports
+# THIS module (for `parse_report`); importing it back would make the two modules import each
+# other. The predicate is five lines and stable, so a second copy is the safer trade -- pinned
+# against drift by `tests/test_transport_report.py::test_the_lane_verdict_agrees_with_lane_digest`.
+VERDICT_CLEAN = "finished clean"
+VERDICT_ATTENTION = "needs attention"
+VERDICT_INCOMPLETE = "incomplete"
 
 _ROOT = Path(__file__).resolve().parents[1]
 
@@ -165,6 +186,99 @@ def commit_subjects(repo: Path) -> list[str]:
     return [ln for ln in (log or "").splitlines() if ln.strip()]
 
 
+def changed_files(repo: Path) -> list[str]:
+    """The paths this lane touched, against `main`'s merge-base; empty when git cannot say.
+
+    Own deadline, same pattern as `commit_subjects` above rather than `session_summary`'s shared
+    one -- each top-level fact here already budgets independently, and three such windows (status
+    log, commit log, this diff) stay well inside the 15 s hook budget."""
+    deadline = time.monotonic() + GIT_TIMEOUT_S
+    diff = _git(repo, ["diff", "--name-only", "main...HEAD"], deadline)
+    return [ln for ln in (diff or "").splitlines() if ln.strip()][:MAX_CHANGED_FILES]
+
+
+def _lane_verdict(rows: list[dict]) -> str:
+    """The lane's own verdict from its own receipts -- see the module docstring for why this is a
+    small duplicate of `lane_digest.verdict` rather than an import."""
+    if not rows:
+        return VERDICT_INCOMPLETE
+    statuses = {str(r.get("status") or "") for r in rows}
+    if statuses & {"failed", "error", "unreadable"}:
+        return VERDICT_ATTENTION
+    if statuses - {"ok"}:
+        return VERDICT_INCOMPLETE
+    return VERDICT_CLEAN
+
+
+def _receipt_rows(receipts: list[tuple[str, str]]) -> list[dict]:
+    """Parse each collected `(file name, verbatim text)` receipt into a dict, the same
+    never-silently-dropped rule `lane_digest.load_receipts` applies to receipts read from disk:
+    unreadable JSON or an unrecognised shape becomes an `unreadable` row, never an omission."""
+    rows = []
+    for name, text in receipts:
+        try:
+            row = json.loads(text)
+        except ValueError:
+            row = None
+        if not (isinstance(row, dict) and row.get("organ")):
+            row = {"organ": name.rsplit(".", 1)[0], "status": "unreadable"}
+        rows.append(row)
+    return rows
+
+
+@dataclass
+class ReportFacts:
+    """What `parse_report` reads back out of a `LANE-END-<lane>.md` this module wrote."""
+    lane: Optional[str] = None
+    commits: list[str] = field(default_factory=list)
+    changed: list[str] = field(default_factory=list)
+    verdict: Optional[str] = None
+    receipts: list[dict] = field(default_factory=list)
+
+
+_HEADING_RE = re.compile(r"^#\s+(\S+)\s+--\s+lane-end report\s*$", re.MULTILINE)
+_RECEIPT_BLOCK_RE = re.compile(r"^###\s+(\S+\.json)\s*$\n+```json\n(.*?)\n```",
+                               re.MULTILINE | re.DOTALL)
+
+
+def _section(text: str, heading: str) -> Optional[str]:
+    """The body of one `## heading` (or `## heading (N)`) section, up to the next `## ` or the end
+    of the text. `None` when the heading is not there at all -- distinct from an empty section."""
+    pattern = re.compile(rf"^##\s+{re.escape(heading)}(?:\s*\(\d+\))?\s*$\n(.*?)(?=^##\s|\Z)",
+                         re.MULTILINE | re.DOTALL)
+    match = pattern.search(text)
+    return match.group(1).strip("\n") if match else None
+
+
+def _bullets(body: Optional[str]) -> list[str]:
+    if not body:
+        return []
+    return [line[2:].rstrip() for line in body.splitlines() if line.startswith("- ")]
+
+
+def parse_report(text: str) -> ReportFacts:
+    """Read a `LANE-END-<lane>.md` this module wrote back into structured facts (R-W4-3's other
+    half): `lane_digest.py --reports-root` calls this so the writer stays the one place the
+    format is defined. Never raises -- a section that is not there reads as empty/None, the same
+    "never silently dropped, always named" posture `load_receipts` takes on a malformed file."""
+    heading = _HEADING_RE.search(text)
+    receipts = []
+    for name, body in _RECEIPT_BLOCK_RE.findall(_section(text, "Receipts") or ""):
+        try:
+            row = json.loads(body)
+        except ValueError:
+            row = None
+        if not (isinstance(row, dict) and row.get("organ")):
+            row = {"organ": name.rsplit(".", 1)[0], "status": "unreadable"}
+        receipts.append(row)
+    verdict_body = _section(text, "Verdict")
+    return ReportFacts(lane=heading.group(1) if heading else None,
+                       commits=_bullets(_section(text, "Commits")),
+                       changed=_bullets(_section(text, "Changed files")),
+                       verdict=verdict_body.strip() if verdict_body else None,
+                       receipts=receipts)
+
+
 def collect_receipts(receipts_dir: Path) -> list[tuple[str, str]]:
     """(file name, verbatim text) for each `*.json` receipt, sorted, bounded, own receipt excluded."""
     if not receipts_dir.is_dir():
@@ -188,8 +302,16 @@ def collect_receipts(receipts_dir: Path) -> list[tuple[str, str]]:
 def build_report(lane: str, receipts_dir: Path, repo: Path) -> str:
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     receipts = collect_receipts(receipts_dir)
+    commits = commit_subjects(repo)
+    changed = changed_files(repo)
+    verdict = _lane_verdict(_receipt_rows(receipts))
     parts = [f"# {lane} -- lane-end report", "",
              f"generated: {stamp} (replaced at every turn end; the newest run is the only copy)", "",
+             f"## Commits ({len(commits)})", ""]
+    parts += [f"- {c}" for c in commits] if commits else ["No commits recorded."]
+    parts += ["", f"## Changed files ({len(changed)})", ""]
+    parts += [f"- {c}" for c in changed] if changed else ["No changed files."]
+    parts += ["", "## Verdict", "", verdict, "",
              "## Session summary", "", session_summary(repo), "",
              f"## Receipts ({len(receipts)})", ""]
     if not receipts:
