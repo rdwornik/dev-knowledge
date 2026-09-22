@@ -308,7 +308,11 @@ def _real() -> dict:
 _MOMENT_ORGANS = {
     "pre-launch": ["worktree_occupancy", "seat_refusals.refuse_no_live_integrator", "routing_agreement"],
     "lane-start": ["single_flight"],
-    "merge": ["merge_receipt.models", "go_reader", "review_packet", "gates", "test_pairing"],
+    # R-W4-4: `merge_receipt.open` is the FIRST organ, so a caller that runs only this moment
+    # (no prior `merge_receipt.py open`, unlike the integrator's own walk) still opens a receipt
+    # before `models` needs one -- lane-merge-gates-truth.
+    "merge": ["merge_receipt.open", "merge_receipt.models", "go_reader", "review_packet", "gates",
+             "test_pairing"],
     "teardown": ["no_leftovers"],
     "lane-end": ["lane_cost", "fleet_health.seat_health_line", "transport_report"],
     "batch-close": ["digest"],

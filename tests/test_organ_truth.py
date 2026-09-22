@@ -14,6 +14,7 @@ rather than today's contents of this repo. The declaration is read from `ecosyst
 """
 from __future__ import annotations
 
+import datetime as _dt
 import json
 import os
 import sys
@@ -28,6 +29,7 @@ sys.path.insert(0, _SCRIPTS)
 import audit as aud  # noqa: E402
 import generate_organ_index as goi  # noqa: E402
 import graph_queries as gq  # noqa: E402
+from audit_checks import check_organ_truth as cot  # noqa: E402
 
 _REPO = Path(__file__).resolve().parent.parent
 
@@ -69,9 +71,11 @@ def _index_tree(root: Path, *, disable_all_hooks: bool = False) -> Path:
     return root
 
 
-def _harness(root: Path, moments=None, stages=None) -> None:
-    _write(root / "ecosystem" / "harness.yaml", yaml.safe_dump(
-        {"stages": stages or [], "moments": moments or []}, sort_keys=False))
+def _harness(root: Path, moments=None, stages=None, fates=None) -> None:
+    doc = {"stages": stages or [], "moments": moments or []}
+    if fates is not None:
+        doc["fates"] = fates
+    _write(root / "ecosystem" / "harness.yaml", yaml.safe_dump(doc, sort_keys=False))
 
 
 def _organ(oid: str, script: str, *, optional: bool = False, **extra) -> dict:
@@ -268,6 +272,109 @@ def test_the_check_fails_an_optional_unbuilt_organ_and_names_the_owing_lane(
     assert len(fails) == 1
     assert "scripts/test_pairing.py" in fails[0].evidence
     assert "lane-l6-test-pairing" in fails[0].evidence
+
+
+# ------------------------------------------- R-W4-1: a recorded fate is dated debt, not silence
+
+def test_the_check_warns_on_a_manual_until_fate_not_yet_due(tmp_path, monkeypatch):
+    _clean_repo(tmp_path)
+    _write(tmp_path / "scripts" / "stray.py", "print(2)\n")
+    _harness(tmp_path, [_moment("lane-start", _organ("built", "scripts/built.py"))],
+             fates=[{"path": "scripts/stray.py", "manual_until": "2099-01-01",
+                    "reason": "on-demand, not yet a wiring surface"}])
+    _patch_roster(monkeypatch, "scripts/built.py", "scripts/stray.py")
+    findings = aud.check_organ_truth(tmp_path)
+    assert [f.status for f in findings] == ["warn"], [f.evidence for f in findings]
+    assert "scripts/stray.py" in findings[0].evidence and "2099-01-01" in findings[0].evidence
+
+
+def test_the_check_fails_a_manual_until_fate_that_has_passed(tmp_path, monkeypatch):
+    _clean_repo(tmp_path)
+    _write(tmp_path / "scripts" / "stray.py", "print(2)\n")
+    _harness(tmp_path, [_moment("lane-start", _organ("built", "scripts/built.py"))],
+             fates=[{"path": "scripts/stray.py", "manual_until": "2020-01-01",
+                    "reason": "long overdue"}])
+    _patch_roster(monkeypatch, "scripts/built.py", "scripts/stray.py")
+    fails = [f for f in aud.check_organ_truth(tmp_path) if f.status == "fail"]
+    assert fails and any(
+        "scripts/stray.py" in f.evidence and "PASSED" in f.evidence for f in fails), fails
+
+
+def test_the_check_warns_on_a_retire_candidate_fate(tmp_path, monkeypatch):
+    _clean_repo(tmp_path)
+    _write(tmp_path / "scripts" / "stray.py", "print(2)\n")
+    _harness(tmp_path, [_moment("lane-start", _organ("built", "scripts/built.py"))],
+             fates=[{"path": "scripts/stray.py", "retire_candidate": True,
+                    "reason": "superseded, awaiting the operator's GO"}])
+    _patch_roster(monkeypatch, "scripts/built.py", "scripts/stray.py")
+    findings = aud.check_organ_truth(tmp_path)
+    assert [f.status for f in findings] == ["warn"], [f.evidence for f in findings]
+    assert "scripts/stray.py" in findings[0].evidence
+    assert "RETIRE-CANDIDATE" in findings[0].evidence
+
+
+def test_the_check_is_ok_on_a_moment_fate_whose_moment_recently_ran(tmp_path, monkeypatch):
+    """`moment: <name>` reads OK -- no Finding at all -- once that moment's own organ left a
+    receipt inside the 30-day window (R-W4-1); the roster is not narrowed to reach this."""
+    _clean_repo(tmp_path)
+    _write(tmp_path / "scripts" / "stray.py", "print(2)\n")
+    _harness(tmp_path, [_moment("lane-start", _organ("built", "scripts/built.py"))],
+             fates=[{"path": "scripts/stray.py", "moment": "lane-start",
+                    "reason": "fires alongside lane-start's own organ"}])
+    receipt = tmp_path / "logs" / "receipts" / "MOMENT-X-BUILT.json"
+    receipt.parent.mkdir(parents=True, exist_ok=True)
+    receipt.write_text("{}", encoding="utf-8")
+    recent = _dt.datetime(2026, 9, 10).timestamp()
+    os.utime(receipt, (recent, recent))
+    monkeypatch.setattr(cot, "_today", lambda: _dt.date(2026, 9, 22))
+    _patch_roster(monkeypatch, "scripts/built.py", "scripts/stray.py")
+    findings = aud.check_organ_truth(tmp_path)
+    assert [f.status for f in findings] == ["pass"], [f.evidence for f in findings]
+
+
+def test_the_check_fails_a_moment_fate_whose_moment_left_no_recent_receipt(tmp_path, monkeypatch):
+    _clean_repo(tmp_path)
+    _write(tmp_path / "scripts" / "stray.py", "print(2)\n")
+    _harness(tmp_path, [_moment("lane-start", _organ("built", "scripts/built.py"))],
+             fates=[{"path": "scripts/stray.py", "moment": "lane-start",
+                    "reason": "fires alongside lane-start's own organ"}])
+    monkeypatch.setattr(cot, "_today", lambda: _dt.date(2026, 9, 22))
+    _patch_roster(monkeypatch, "scripts/built.py", "scripts/stray.py")
+    fails = [f for f in aud.check_organ_truth(tmp_path) if f.status == "fail"]
+    assert fails and any(
+        "scripts/stray.py" in f.evidence and "lane-start" in f.evidence for f in fails), fails
+
+
+def test_the_check_still_fails_an_uncalled_organ_with_no_fate_at_all(tmp_path, monkeypatch):
+    """The R-W4-1 split does not narrow the base case (R-W3-4): no fate, no caller, still FAILs."""
+    _clean_repo(tmp_path)
+    _write(tmp_path / "scripts" / "stray.py", "print(2)\n")
+    _harness(tmp_path, [_moment("lane-start", _organ("built", "scripts/built.py"))], fates=[])
+    _patch_roster(monkeypatch, "scripts/built.py", "scripts/stray.py")
+    fails = [f for f in aud.check_organ_truth(tmp_path) if f.status == "fail"]
+    assert fails and any(
+        "scripts/stray.py" in f.evidence and "no recorded fate" in f.evidence for f in fails)
+
+
+def test_the_check_fails_when_a_fates_entry_names_no_recognised_shape(tmp_path, monkeypatch):
+    _clean_repo(tmp_path)
+    _write(tmp_path / "scripts" / "stray.py", "print(2)\n")
+    _harness(tmp_path, [_moment("lane-start", _organ("built", "scripts/built.py"))],
+             fates=[{"path": "scripts/stray.py", "reason": "no shape declared at all"}])
+    _patch_roster(monkeypatch, "scripts/built.py", "scripts/stray.py")
+    fails = [f for f in aud.check_organ_truth(tmp_path) if f.status == "fail"]
+    assert fails and any("could not be read" in f.evidence for f in fails)
+
+
+def test_the_check_fails_when_a_fates_entry_names_two_shapes(tmp_path, monkeypatch):
+    _clean_repo(tmp_path)
+    _write(tmp_path / "scripts" / "stray.py", "print(2)\n")
+    _harness(tmp_path, [_moment("lane-start", _organ("built", "scripts/built.py"))],
+             fates=[{"path": "scripts/stray.py", "manual_until": "2099-01-01",
+                    "retire_candidate": True, "reason": "ambiguous"}])
+    _patch_roster(monkeypatch, "scripts/built.py", "scripts/stray.py")
+    fails = [f for f in aud.check_organ_truth(tmp_path) if f.status == "fail"]
+    assert fails and any("could not be read" in f.evidence for f in fails)
 
 
 def test_the_check_fails_an_index_claim_that_contradicts_the_live_config(tmp_path, monkeypatch):

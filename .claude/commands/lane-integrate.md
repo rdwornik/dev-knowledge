@@ -122,7 +122,7 @@ which organs and in what order (comparator, review packet, gate list, test pairi
 no-leftovers check). A moment leaves one receipt per organ under `logs/receipts/` and exits
 non-zero if any required organ did.
 
-The four steps, in order — the block below is ONE `&&` chain so that **each step runs only if the
+The steps, in order — the block below is ONE `&&` chain so that **each step runs only if the
 one before it exited 0**. A refusal at step 2 or in the race therefore cannot reach the push, and a
 failed push cannot reach the teardown; pasted as separate lines, the same commands would push
 regardless (Codex terra review, CRITICAL, `docs/audits/2026-09-20-codex-l4-integrator-surface.md`):
@@ -137,7 +137,18 @@ regardless (Codex terra review, CRITICAL, `docs/audits/2026-09-20-codex-l4-integ
    review queued behind the suite (`[#675]` target 3.3); the reviewer is handed
    `logs/receipts/MOMENT-MERGE-REVIEW-PACKET.md`, written by the moment.
 3. **PUSH** (option A of the PUSH FIRST box below).
-4. **TEAR DOWN**, then `moment:teardown`, which verifies the removal was complete.
+4. **READ ACTIONS** — `merge_receipt.py actions`, right after the push (the PUSH FIRST box below
+   explains why not before): it reads this merge's Actions run and records its STATE on the
+   receipt, which must still be OPEN here (`load_receipt` refuses a slug with no open receipt).
+5. **TEAR DOWN, THEN CLOSE THE RECEIPT, THEN `moment:teardown`** (R-W4-4: `merge_receipt open`
+   before `models`, `merge_receipt close` before `moment:teardown`). Inside this step the order is
+   itself load-bearing: `git worktree remove` is timed against the STILL-OPEN receipt (closing
+   first would leave that duration unrecorded as `UNRECORDED` instead of `teardown`), closing the
+   receipt commits its one-line ledger append so the tree is clean, and only THEN does
+   `moment:teardown` run — which verifies the removal was complete. Closing after `moment:teardown`
+   is the connection test's first recorded stop: the scratch file `logs/.merge-receipt-$L.json`
+   stays untracked until `close` deletes it, and `no_leftovers`'s working-tree-clean check FAILs on
+   it.
 
 ```bash
 R="uv run --locked python scripts/merge_receipt.py"
@@ -153,9 +164,13 @@ $R time --slug $L --step merge --class ceremony -- git merge --no-ff worktree-$L
    --job "suite:tests=uv run --locked pytest -q --dist worksteal --max-worker-restart=0" \
    --job "review:review=<the reviewer, handed the packet above>" \
 && git push \
+&& $R actions --slug $L --sha $M \
 && $R time --slug $L --step teardown --class ceremony -- git worktree remove .claude/worktrees/$L \
 && git worktree prune \
 && git branch -d worktree-$L \
+&& $R close --slug $L \
+&& git add logs/MERGE-RECEIPTS.jsonl \
+&& git commit -q -m "chore(receipts): close the merge receipt for $L" \
 && HARNESS_LANE=$L $DOIT moment:teardown
 ```
 
@@ -202,12 +217,8 @@ each absence, because a packet that shows 50 of 400 files looks like pre-assembl
 
 **Read the Actions result for the merge you just made** (`[#675]` target 3.2 — "with the
 integrator READING the result; not merely running there, because a green run nobody reads is not
-a gate"):
-
-```bash
-uv run --locked python scripts/merge_receipt.py actions --slug lane-<letter>-<id>-<slug> \
-  --sha <merge sha>
-```
+a gate"). That is the `$R actions --slug $L --sha $M` call already in the chain above, positioned
+right after the push and before teardown — the receipt is still OPEN there, which `actions` needs.
 
 **Where the local suite is barred** (no `race --job suite:...` on this box), pass `--step suite`:
 the Actions read then IS the receipt's `suite` step. Without it `actions` records under `actions`,
@@ -261,8 +272,9 @@ from an honest unknown are different facts and one of them is a bug.
 >   B, C and D, so A's wall absorbs their ceremony — precisely the inflation `[#675]` exists to
 >   itemise. Not recommended.
 >
-> **`close` must follow `actions`, and `actions` must follow the push.** That ordering holds under
-> either choice; the walk now pushes inside each lane's block, before `actions`.
+> **`close` must follow `actions` and must itself finish before `moment:teardown` runs (R-W4-4);
+> `actions` must follow the push.** That ordering holds under either choice; the walk now pushes
+> inside each lane's block, before `actions`.
 >
 > **The finding underneath is older than `[#750]` and worth stating once.** `[#675]` target 3.2
 > asks for *"the integrator READING the result"*, and this walk has read the verdict pre-push since
@@ -314,19 +326,25 @@ green merge.
 regeneration on Actions. The runner has no index-regeneration job, so a green run covers the
 suite only; the verdict says so, and stops saying it the moment such a job appears.
 
-**Close each lane's receipt at the end of ITS block** — the last act of the per-lane sequence,
-before moving to the next queue item. `median` and row 2d's `require` run ONCE, after the last
-lane. Commit `logs/MERGE-RECEIPTS.jsonl` with the batch: it is durable and append-only, the
-`logs/TOKEN-LOG.md` class, because a median over a real run of merges (`[#675]` target 3.6) needs
-receipts that outlive the run that produced them:
+**Close each lane's receipt, and commit the ledger append, BEFORE `moment:teardown`** (R-W4-4) —
+both calls are already in the chain above, right after `git branch -d worktree-$L`: `close` prints
+the itemised view, `git add` + `git commit` land the one-line append to the durable, append-only
+`logs/MERGE-RECEIPTS.jsonl` (the `logs/TOKEN-LOG.md` class, kept so a median over a real run of
+merges — `[#675]` target 3.6 — has receipts that outlive the run that produced them). Committing it
+**per lane**, not batched at the end, is the other half of the same fix: an uncommitted append is
+itself a dirty path, and `no_leftovers`'s working-tree-clean check would refuse the very next
+lane's teardown on it exactly as it refused on the uncommitted scratch file before this ordering
+existed.
+
+`median` and row 2d's `require` still run ONCE, after the LAST lane:
 
 ```bash
-uv run --locked python scripts/merge_receipt.py close --slug lane-<letter>-<id>-<slug>   # per merge; prints the itemised view
-uv run --locked python scripts/merge_receipt.py median                                   # ONCE, at the end -- every merge so far, WITH its spread
+uv run --locked python scripts/merge_receipt.py median   # ONCE, at the end -- every merge so far, WITH its spread
 ```
 
-**`require` reads the LEDGER, so close every receipt before running row 2d.** An open receipt is
-one it cannot see, and the row would refuse a merge you did itemise.
+**`require` reads the LEDGER, so it needs every receipt already closed** — which each lane did,
+before its own `moment:teardown`, above. An open receipt is one it cannot see, and the row would
+refuse a merge you did itemise.
 
 **The itemised view now accounts for the WHOLE arc, which it did not before `[#750]`.** Wall time
 is the span `opened -> closed`; the summed-children figure keeps its own name (`RECORDED`); and

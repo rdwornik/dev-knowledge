@@ -9,13 +9,28 @@ lane-l3-organ-truth. Thin ADAPTER over two readers that hold the logic:
     the committed `ecosystem/organ-index.md` contradict the live `.pre-commit-config.yaml` /
     `.claude/settings.json`?
 
-THREE FAIL LEGS, each one Finding so the operator reads which leg fired:
-  1. an organ with NO CALLER anywhere (R-W3-4: declared at no moment, and not called by an armed
-     or dated-manual pre-commit hook, a conductor job or another wiring surface) -- all named;
+FAIL AND WARN LEGS, each one Finding so the operator reads which leg fired:
+  1. an organ with NO CALLER anywhere AND no recorded fate (R-W3-4: declared at no moment, and
+     not called by an armed or dated-manual pre-commit hook, a conductor job, another wiring
+     surface, or a `fates:` entry in the declaration) -- all named;
+  1a. an organ with no caller whose `fates:` entry (R-W4-1) has a `manual_until` date that has
+      PASSED -- dated debt come due is a FAIL, not a warning, so it does not sit forever;
   2. an organ declared `optional` and not yet built -- ONE FINDING PER ORGAN, naming the lane
      that owes it (a declared-but-required organ whose command is missing FAILs the same way);
   3. an index arming claim that contradicts the live config, or an index that is absent (a
      check that cannot compute its ground truth FAILs, it does not skip -- register ruling Z-G4).
+
+TWO WARN LEGS (R-W4-1): an organ with no caller whose fate is a `manual_until` date not yet
+reached (the date itself is quoted, so the WARN names when it becomes a FAIL); an organ whose
+fate is `retire_candidate: true` (rolled into one list headed for the operator's GO). A fate
+whose shape is `moment: <name>` reads as OK -- no Finding at all -- when that moment's own
+organs left a receipt in the last 30 days (the organ fires as part of a moment the census's own
+reader does not credit it at); with no such receipt it falls back to leg 1, unfated.
+
+FATES ARE A RECORD, NOT A NARROWING (R-W3-4, R-W4-1). `ecosystem/harness.yaml`'s `fates:` block
+is the disposition a prior census recorded for the organs it found uncalled -- this check reads
+it, it does not write it, and it never treats a fate as excusing the roster: every uncalled
+organ is still counted and named in exactly one of the four legs above.
 
 THE TIER, AND THE CONVENTION IT FOLLOWS. `audit.py`'s tier rule puts a FAIL-capable check at
 COMMIT ("rule (a)"), and this one is FAIL-capable. It is declared `TIER_SHIP` anyway, as the
@@ -42,6 +57,7 @@ Child-repo-safe: no `ecosystem/harness.yaml` -> `n/a` (subject-absent). Read-onl
 
 from __future__ import annotations
 
+import datetime as _dt
 import re
 from pathlib import Path
 
@@ -73,6 +89,10 @@ _SHOWN = 8
 
 def _fail(evidence: str) -> Finding:
     return Finding(CHECK_NAME, "fail", evidence.replace("|", "/"))
+
+
+def _warn(evidence: str) -> Finding:
+    return Finding(CHECK_NAME, "warn", evidence.replace("|", "/"))
 
 
 def _rolled(items: list[str], what: str, where: str) -> str:
@@ -181,6 +201,77 @@ def declared_callers(root: Path) -> dict[str, str]:
     return callers
 
 
+#: How many days old a moment's own receipt may be and still count as "the moment is firing" for
+#: a `moment:` fate (R-W4-1).
+_FATE_RECEIPT_WINDOW_DAYS = 30
+
+
+def _today() -> _dt.date:
+    """The date a `manual_until` fate is read against -- one seam, so a test can move it."""
+    return _dt.date.today()
+
+
+def _parse_date(value: object) -> "_dt.date | None":
+    """`YYYY-MM-DD` -> a date, or `None` on anything else. `None` reads as a FAIL (dated debt
+    with an unparseable date is not honestly WARN-able), never as a silent pass."""
+    try:
+        return _dt.date.fromisoformat(str(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def _load_fates(root: Path) -> dict[str, dict]:
+    """`{organ path: fate mapping}` from `ecosystem/harness.yaml`'s `fates:` block (R-W3-4,
+    R-W4-1) -- the disposition a prior census recorded for each organ it found with no caller.
+    Each entry carries EXACTLY ONE of `manual_until`, `retire_candidate`, `moment` (the shape the
+    declaration's own comment names); a malformed entry raises, the same posture as an unreadable
+    declaration -- a check that cannot see its own ground truth FAILs, it does not skip it.
+    """
+    path = root / _gq.MOMENTS_DECLARATION_REL
+    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise ValueError(f"{_gq.MOMENTS_DECLARATION_REL} is not a mapping")
+    fates: dict[str, dict] = {}
+    for entry in raw.get("fates") or []:
+        if not isinstance(entry, dict) or not entry.get("path"):
+            raise ValueError(
+                f"{_gq.MOMENTS_DECLARATION_REL}: a fates entry is not a mapping with a `path`")
+        shapes = [k for k in ("manual_until", "retire_candidate", "moment")
+                 if entry.get(k) not in (None, False)]
+        if len(shapes) != 1:
+            raise ValueError(
+                f"{_gq.MOMENTS_DECLARATION_REL}: fate for {entry['path']!r} must carry exactly "
+                f"one of manual_until, retire_candidate, moment (found {shapes or 'none'})")
+        fates[str(entry["path"])] = entry
+    return fates
+
+
+def _moment_ran_recently(root: Path, moment_name: str, today: _dt.date) -> bool:
+    """Did ANY organ `harness.yaml` declares at `moment_name` leave a receipt in the last
+    `_FATE_RECEIPT_WINDOW_DAYS` days? The evidence a `moment: <name>` fate needs (R-W4-1): the
+    organ is not itself declared there (the census's own reader would have found it and this
+    fate would not exist), but the moment it claims to ride along with is actually firing.
+    """
+    try:
+        doc = yaml.safe_load((root / _gq.MOMENTS_DECLARATION_REL).read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return False
+    moment = next((m for m in (doc or {}).get("moments") or []
+                  if isinstance(m, dict) and m.get("name") == moment_name), None)
+    if not moment:
+        return False
+    receipts_dir = root / "logs" / "receipts"
+    for organ in moment.get("organs") or []:
+        receipt = receipts_dir / str(organ.get("receipt") or "")
+        try:
+            mtime = _dt.date.fromtimestamp(receipt.stat().st_mtime)
+        except OSError:
+            continue
+        if (today - mtime).days <= _FATE_RECEIPT_WINDOW_DAYS:
+            return True
+    return False
+
+
 def check_organ_truth(repo_path: Path) -> list[Finding]:
     root = Path(repo_path)
     if not (root / _gq.MOMENTS_DECLARATION_REL).is_file():
@@ -190,9 +281,10 @@ def check_organ_truth(repo_path: Path) -> list[Finding]:
     findings: list[Finding] = []
     try:
         rows = _gq.organ_moments(root, roster=_gq.roster_rows(root))
+        fates = _load_fates(root)
     except Exception as exc:  # noqa: BLE001 -- a check that cannot see its subject FAILs loudly
-        return [_fail(f"the organ roster or the moments declaration could not be read, so no "
-                      f"organ was checked: {exc!r}")]
+        return [_fail(f"the organ roster, the moments declaration or its `fates:` block could "
+                      f"not be read, so no organ was checked: {exc!r}")]
 
     for row in rows:
         if row.status in (_gq.MOMENT_OPTIONAL_UNBUILT, _gq.MOMENT_MISSING):
@@ -202,13 +294,57 @@ def check_organ_truth(repo_path: Path) -> list[Finding]:
     # job, not any other wiring surface the graph reaches it from. Every roster row still counts.
     callers = declared_callers(root)
     undeclared = [r for r in rows if r.status == _gq.MOMENT_NOWHERE]
-    uncalled = [r.path for r in undeclared if r.path not in callers and not r.wired_elsewhere]
-    if uncalled:
+    uncalled = [r for r in undeclared if r.path not in callers and not r.wired_elsewhere]
+
+    # R-W4-1: a recorded fate is DATED DEBT, not silence. Split the uncalled roster by what
+    # harness.yaml's `fates:` block says about each -- the roster is not narrowed, every row
+    # above still lands in exactly one bucket below.
+    today = _today()
+    unfated: list[str] = []
+    past_due: list[str] = []
+    dated_debt: list[str] = []
+    retiring: list[str] = []
+    for row in uncalled:
+        fate = fates.get(row.path)
+        if fate is None:
+            unfated.append(row.path)
+        elif fate.get("retire_candidate"):
+            retiring.append(row.path)
+        elif fate.get("manual_until"):
+            until = _parse_date(fate["manual_until"])
+            label = f"{row.path} (manual_until {fate['manual_until']})"
+            (past_due if until is None or until < today else dated_debt).append(label)
+        elif fate.get("moment"):
+            if _moment_ran_recently(root, str(fate["moment"]), today):
+                continue  # OK: the fate is satisfied, no Finding at all
+            unfated.append(f"{row.path} (fate declares moment `{fate['moment']}` but it left no "
+                           f"receipt in the last {_FATE_RECEIPT_WINDOW_DAYS} days)")
+        else:  # pragma: no cover -- `_load_fates` already refuses any other shape
+            unfated.append(row.path)
+
+    # These four ALL-NAME, never `_rolled()`'s truncated preview: the roster is not narrowed even
+    # in what the operator is shown (pinned by test_an_organ_with_no_caller_fails_and_is_named,
+    # which fixtures more organs than any rolled-up preview would list).
+    if unfated:
         findings.append(_fail(
-            f"{len(uncalled)} organ(s) have no caller anywhere -- no moment or spine stage in "
-            f"{_gq.MOMENTS_DECLARATION_REL}, no armed or dated-manual pre-commit hook, no "
-            f"conductor job, no other wiring surface: {', '.join(uncalled)}. Give each one a "
-            f"moment, a `manual_until` date, or a RETIRE-CANDIDATE fate."))
+            f"{len(unfated)} organ(s) have no caller anywhere and no recorded fate -- no moment "
+            f"or spine stage in {_gq.MOMENTS_DECLARATION_REL}, no armed or dated-manual "
+            f"pre-commit hook, no conductor job, no other wiring surface, and no `fates:` entry: "
+            f"{', '.join(unfated)}. Give each one a moment, a `manual_until` date, or a "
+            f"RETIRE-CANDIDATE fate."))
+    if past_due:
+        findings.append(_fail(
+            f"{len(past_due)} organ(s) carry a `manual_until` fate that has PASSED -- dated debt "
+            f"is now due: {', '.join(past_due)}. Arm each one, re-date it with a fresh reason, or "
+            f"record a RETIRE-CANDIDATE fate."))
+    if dated_debt:
+        findings.append(_warn(
+            f"{len(dated_debt)} organ(s) carry a `manual_until` fate not yet due: "
+            f"{', '.join(dated_debt)}"))
+    if retiring:
+        findings.append(_warn(
+            f"{len(retiring)} organ(s) carry a RETIRE-CANDIDATE fate for the operator's GO: "
+            f"{', '.join(retiring)}"))
 
     contradictions = _goi.arming_contradictions(root)
     if contradictions is None:
