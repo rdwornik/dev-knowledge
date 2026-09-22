@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-22 (f) - CC (Opus 5, integrator wave 4a, day): LANE W4-5 repaired and landed -- the five deferred rows whose refs named only the transport now cite STANDING_RULINGS AJ-7
+
+**Anchors:** `268d6c63` (repair 1 of 2: refs of #944 #948 #950 #951 #952 resolve) -- `worktree-lane-landing-decisions`, merged --no-ff on top of the lane's first merge `38204a3d` (entry (e)).
+
+**Did:** entry (e)'s merge `38204a3d` was refused before it was pushed: `audit.py ship-gate` found five `funnel_lifecycle row-provenance-unresolved` hard-fails -- rows `[#944]`, `[#948]`, `[#950]`, `[#951]`, `[#952]` cited only `to-cc/DECLARE-*.md` transport files -- and `tests/test_funnel_lifecycle.py::test_live_tree_leg_c_measures_zero_so_arming_cannot_red_a_clean_tree` turned red. The registry comparison never ran that test: `impacted_tests` maps no `tasks/*.md` change to `tests/test_funnel_lifecycle.py`, and the test is outside the live-tree marker set; ship-gate caught it. `38204a3d` was unwound, the lane repaired in its worktree (repair 1 of 2, launched by the integrator), and the unpushed `38204a3d` was reinstated by fast-forward because W4-2's repaired branch already carried it; this merge adds the repair on top. Each of the five rows' refs gains `protocols/STANDING_RULINGS.md` (AJ-7), which names all five; the transport tokens stay.
+
+**Result:** `scripts/funnel_lifecycle.py` prints no FAIL; the live-tree test passes. Comparison and gates: `to-browser/SESSION-integrator-wave4-2026-09-22.md`, day section. **Changes:** `tasks/944-*.md`, `tasks/948-*.md`, `tasks/950-*.md`, `tasks/951-*.md`, `tasks/952-*.md`, `JOURNAL.md`. **Next:** W4-2 @ `ea9d7e18`.
+
 ### 2026-09-22 (e) - CC (Opus 5, integrator wave 4a, day): LANE W4-5 merged -- this window's decisions leave the transport: ADR-120 Accepted, ADR-87 gains the equilibrium, STANDING_RULINGS gains AJ
 
 **Anchors:** `e31b2a8d` (Codex re-review record, 0/0/0/0) · `68033b62` (re-review) · `1c655d06` (sync with main, rows renumbered to #942-#954) · `2b900636` (first review) · `e4ea8a2f` (the decisions land) -- `worktree-lane-landing-decisions`, merged --no-ff.
