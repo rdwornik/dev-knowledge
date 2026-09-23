@@ -6,10 +6,14 @@
 **Diff range:** `main..worktree-lane-gate-verdicts`
 **Codex version:** codex-cli 0.155.0
 **Mode:** diff-review
-**Tally:** TBD/TBD/TBD/TBD <!-- Critical/High/Medium/Low. FILL FROM THE FINDINGS SECTION before committing. The hub's review_artifact_coverage leg parses four digits here; TBD deliberately does not parse, so an unfilled tally keeps WARNing instead of shipping a number nobody counted. -->
+**Tally:** 0/1/0/0 <!-- Critical/High/Medium/Low. -->
 
 **Model used:** `gpt-5.6-terra` (pinned; both lanes — [#469])
 **Review profile:** code
+**Consumer:** `[#959]` — lane-gate-verdicts' own backlog row
+(`tasks/959-wave-4b-lane-3-lane-gate-verdicts-gates-speak-data-and-the-connection-test-reads-it.md`),
+the W4B-3 Done-contract item requiring "Codex terra review with its consumer cited". This review's
+finding is disposed against that row's Done-contract, not a separate governance surface.
 
 ---
 
@@ -44,3 +48,37 @@
 (none)
 
 The findings parser matches `audit.py`’s actual emitted finding shape and correctly returns `[]` for unrelated output. The new tail-window regression tests are non-vacuous. `core.longpaths` is set through `git config` in the freshly initialized toy repo, so it does not modify the real repository’s configuration.
+
+---
+
+## Dispositions ([#959], 2026-09-23)
+
+**The one HIGH finding was genuine and independently reproduced before this review ran.**
+Investigating Done-contract item 5 (module runtime `<= 10 min` at `-n 2`), three measured
+`-n 2` runs of `tests/test_connection_loop.py` came back at 17m33s / 18m29s / 17m42s — unchanged
+from the pre-lane baseline (18:08, WAVE4-FINAL digest). `--durations=0` on the third run showed
+TWO separate multi-hundred-second `setup` costs for the module-scoped `walk` fixture (1056.58s and
+676.85s) in the SAME run, which is only possible if the module ran split across both `-n 2`
+workers rather than pinned to one. Checked against the installed `pytest-xdist` source
+(`xdist/remote.py`: `config.option.loadgroup = config.getvalue("dist") == "loadgroup"`) and this
+repo's `pyproject.toml` (`addopts = "-n auto"`, no `--dist=loadgroup` anywhere in the repo,
+including `.claude/skills/verify/verify.py`'s own `--dist worksteal`), the marker added in
+`e2ebec18` never activates under any invocation this repo actually uses.
+
+**Fixed:** `tests/test_connection_loop.py`'s module-level comment claiming `xdist_group` "pins
+every test in this module to ONE worker" is corrected in place to state the measured truth — the
+marker is inert under `-n auto`/bare `-n 2`, kept only as a harmless forward declaration for a
+future `--dist=loadgroup` invocation that no part of this repo currently sets. **Not fixed (out of
+this lane's owned files):** making the marker actually effective needs a `--dist=loadgroup`
+invocation flag, either in `pyproject.toml`'s global `addopts` (repo-wide, cross-cutting, not owned
+by this lane) or in whatever future organ standardizes this module's invocation. It is also not
+proven to *reduce* wall-clock time — pinning removes the duplicate `walk` build but also removes
+the cross-worker parallelism this module currently gets by accident, so serializing everything onto
+one worker could net out slower, not faster; that trade-off needs its own measurement, not a
+guess written into this lane's diff.
+
+**Done-contract 4 stands regardless:** the launch-step trio's actual, verified fix is
+`core.longpaths` in the toy repo's own git config (`c9529fa4`) — proven by 3/3 green `-n 2` runs
+(21 passed, 1 xfailed, 0 failed, every time) measured AFTER the comment correction above, with the
+`xdist_group` marker confirmed still inert. **Done-contract 5 is NOT met on a strict `<= 10 min`
+reading** — see the SESSION file for the full runtime finding and which tests are inherently slow.

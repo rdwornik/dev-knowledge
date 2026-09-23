@@ -73,9 +73,21 @@ STOP_TIMEOUT_S = 1800
 #: consumer -- `_exclusive`'s lock already rules out a second, divergent walk ever being computed)
 #: into a bare uncaught exception, which Click's CliRunner reports as exit 1 with no organ to blame
 #: -- the "launch-step trio" (`launched_once...`, `human_writes...`, `loop_stops...`) all read that
-#: SAME single walk and fail together. `xdist_group` pins every test in this module to ONE worker:
-#: under `-n 2` the second worker simply never loads this module's import graph, which is the
-#: shared-state cost actually inside this module's control (the box's own headroom is not).
+#: SAME single walk and fail together.
+#:
+#: CORRECTION (W4B-3, 2026-09-23, codex terra review confirmed it independently): the claim that
+#: `xdist_group` "pins every test in this module to ONE worker" is FALSE as stated. `xdist_group`
+#: is scheduled only under pytest-xdist's `--dist=loadgroup`; this repo's `-n auto` / bare `-n 2`
+#: invocations use the default `--dist=load`, under which the marker is a documented no-op (xdist's
+#: own scheduler only reads it when `dist == "loadgroup"`). Measured directly: `pytest -n 2
+#: tests/test_connection_loop.py --durations=0` shows TWO separate multi-hundred-second `setup`
+#: costs for the module-scoped `walk` fixture in the same run -- one per worker that drew a
+#: walk-consuming test -- which is only possible if the module was split across both workers. The
+#: marker is kept anyway (harmless today, and it becomes real the day some invocation adds
+#: `--dist=loadgroup`; adding that flag repo-wide is a cross-cutting pytest-config decision this
+#: lane does not own). It did NOT fix the launch-step trio: `core.longpaths` in the toy repo's own
+#: git config (`c9529fa4`) is the actual, verified fix -- proven by 3/3 green `-n 2` runs measured
+#: after this correction, with the marker still inert.
 pytestmark = [pytest.mark.slow, pytest.mark.xdist_group(name="connection_loop")]
 
 #: The stops the walk recorded when W3-F ran (2026-09-21). Pinned so a change in EITHER direction is loud: a stop that
