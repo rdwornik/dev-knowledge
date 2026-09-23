@@ -1,0 +1,47 @@
+# scripts/memory_admission_gate.py reads this. LANE-5A-3 (D7: "8+ reaps, 2 lanes lost to OOM,
+# `-n` set by hand" -- no admission control). Every field here is a chosen margin over a
+# measured watermark, not a measurement itself -- same honesty bar `resource_lifecycle.py`
+# sets for its own thresholds (`THRESHOLD_PROVENANCE`). Re-derive from `sample`/receipts before
+# trusting these numbers past this wave.
+
+# Memory held back from the budget entirely (GB). Matches resource_lifecycle.RESERVE_GB
+# (2026-09-16 operator ruling, batch AB) -- the two modules read memory differently (psutil
+# here, WMI/proc there) but there is no reason for the margin itself to differ, so it is
+# carried rather than re-derived.
+reserve_gb: 2.0
+
+# One worker's memory cost, in MB -- the same figure as resource_lifecycle.PER_SEAT_MB
+# (measured 2026-09-16, batch AB: 646.1 MB, whole-box free delta around one dispatch). A pytest
+# xdist worker is not a seat, but no per-worker measurement exists yet and a shared, cited
+# figure beats an invented one; [#827]-style recalibration from this gate's own receipts
+# replaces it once there is a ledger to derive from.
+per_worker_mb: 646.1
+
+# Machine-wide concurrent heavy-run slots. Matches ADR-110's lane ceiling (4-6 concurrent
+# lanes) at its floor: a slot is a HEAVY RUN (pytest / ship-gate), not a lane, and more than
+# one can be in flight per lane over a session, so the floor of the lane ceiling is the
+# conservative starting point.
+slots: 4
+
+# `-n` is never computed below this even when memory is tight -- pytest -n 0 means "no xdist",
+# and WAVE4B-COMMON's manual "-n 2" floor is what this gate exists to replace, not undercut.
+min_workers: 1
+
+# `-n` is never computed above this even when memory is abundant. NOT independently measured
+# for this gate -- xdist worker count has its own ceiling independent of RAM (import
+# contention, disk, CPU count) and a memory-only formula can recommend more workers than the
+# box can usefully run. 6 is a chosen starting ceiling, pending a receipt-derived bound; lower
+# it if a gated run still degrades at this count.
+max_workers: 6
+
+# Seconds between free-memory re-checks while waiting for admission.
+poll_interval_s: 5.0
+
+# Seconds a sampler thread waits between peak-memory readings while a gated command runs.
+sample_interval_s: 2.0
+
+# Hard ceiling on how long `wait` will sit before giving up and refusing (never silently
+# running under-reserve). None/absent means wait indefinitely -- DECLARE-NIGHT-AUTONOMY N2
+# wants a killed run RESUMED, not abandoned, so the default is no timeout; a caller that wants
+# one passes --timeout.
+wait_timeout_s: null

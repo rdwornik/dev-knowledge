@@ -134,6 +134,14 @@ ISOLATION_REASON = (
 _RED = ("FAILED", "ERROR")
 _TEST_FILE = re.compile(r"(^|/)(test_[^/]*|[^/]*_test)\.py$")
 
+#: LANE-5A-3 (D7): the heavy-run admission gate, invoked as a SUBPROCESS -- see the comment at
+#: `run_pytest_full`'s call site for why this is `subprocess` (stdlib), never `import
+#: memory_admission_gate`. Both constants are paired with that module's own
+#: `DISABLE_ENV`/`TIMEOUT_EXIT_CODE` and must move together if either changes.
+_MEMORY_GATE_SCRIPT = Path(__file__).resolve().parent / "memory_admission_gate.py"
+_MEMORY_GATE_DISABLE_ENV = "HARNESS_MEMORY_GATE_DISABLE"
+_MEMORY_GATE_TIMEOUT_EXIT_CODE = 124
+
 
 class PairingError(RuntimeError):
     """The tool could not produce a verdict (as opposed to a verdict of red)."""
@@ -301,19 +309,55 @@ def run_pytest_full(clone: Path, args: list[str], *, workers: int,
     scratch = clone.parent
     (scratch / f"{_PLUGIN_NAME}.py").write_text(_PLUGIN, encoding="utf-8", newline="\n")
     events = scratch / f"events-{uuid.uuid4().hex}.jsonl"
-    cmd = [sys.executable, "-m", "pytest", "-q", "--no-header", "--color=no",
-           "-p", "no:cacheprovider", "-p", _PLUGIN_NAME, "--continue-on-collection-errors",
-           *_xdist_args(workers), *args]
+    base_cmd = [sys.executable, "-m", "pytest", "-q", "--no-header", "--color=no",
+               "-p", "no:cacheprovider", "-p", _PLUGIN_NAME, "--continue-on-collection-errors"]
     env = {**os.environ, "PYTHONUTF8": "1", "PYTHONDONTWRITEBYTECODE": "1",
            "TEST_PAIRING_EVENTS": str(events),
            # The caller's PYTHONPATH is DROPPED: a source checkout on it could shadow the tree
            # under test and hide a lane-caused red. Only the plugin's directory is added.
            "PYTHONPATH": str(scratch)}
-    try:
-        done = subprocess.run(cmd, cwd=clone, capture_output=True, text=True, encoding="utf-8",
-                              errors="replace", env=env, timeout=timeout, check=False)
-    except subprocess.TimeoutExpired as exc:
-        raise PairingError(f"pytest exceeded {timeout}s in {clone.name}") from exc
+    # LANE-5A-3 (D7): every pytest subprocess this module spawns waits for a memory reserve
+    # and a machine-wide slot before it runs, and its `-n` is computed from free memory rather
+    # than the caller's literal `workers` -- EXCEPT `workers == 0` (an isolated single-test
+    # rerun, e.g. flake/baseline confirmation), which asks for serial explicitly and is never
+    # promoted to parallel. `HARNESS_MEMORY_GATE_DISABLE` is the done-contract's "old behaviour
+    # by a flag": both gates are skipped and `-n <workers>` (the caller's own number, verbatim,
+    # matching this function's pre-gate behaviour byte for byte) is used instead.
+    #
+    # SHELLED OUT, NEVER IMPORTED: `memory_admission_gate.py` depends on click/psutil/filelock/
+    # pyyaml, and `test_parsing_and_isolation_use_only_the_standard_library` (this module's
+    # own tested invariant) forbids this file from importing anything but `impacted_tests` and
+    # the standard library -- this tool is the final arbiter of "is this red the lane's fault"
+    # and must keep working even when the dependency graph is broken. `subprocess` (stdlib) is
+    # the boundary; `memory_admission_gate.py run` is the process-boundary entry point built
+    # for exactly this caller (see that command's own docstring).
+    gate_disabled = bool(os.environ.get(_MEMORY_GATE_DISABLE_ENV))
+    if gate_disabled:
+        cmd = [*base_cmd, *_xdist_args(workers), *args]
+        try:
+            done = subprocess.run(cmd, cwd=clone, capture_output=True, text=True,
+                                  encoding="utf-8", errors="replace", env=env,
+                                  timeout=timeout, check=False)
+        except subprocess.TimeoutExpired as exc:
+            raise PairingError(f"pytest exceeded {timeout}s in {clone.name}") from exc
+    else:
+        want_xdist = workers != 0 and importlib.util.find_spec("xdist") is not None
+        cmd = [*base_cmd, *args]
+        gate_cmd = [sys.executable, str(_MEMORY_GATE_SCRIPT), "run"]
+        if want_xdist:
+            gate_cmd += ["--workers-flag", "-n"]
+        if timeout is not None:
+            gate_cmd += ["--timeout", str(timeout)]
+        gate_cmd += ["--", *cmd]
+        # NO outer timeout: the gate's OWN `--timeout` bounds pytest once it starts (pytest is
+        # its direct child, so its kill cannot orphan a grandchild -- see
+        # `resource_lifecycle.py`'s own "naive_kill leaves grandchild running" note for why
+        # that distinction matters); waiting for MEMORY has no timeout by design
+        # (DECLARE-NIGHT-AUTONOMY N2: a run is resumed, not abandoned).
+        done = subprocess.run(gate_cmd, cwd=clone, capture_output=True, text=True,
+                              encoding="utf-8", errors="replace", env=env, check=False)
+        if done.returncode == _MEMORY_GATE_TIMEOUT_EXIT_CODE:
+            raise PairingError(f"pytest exceeded {timeout}s in {clone.name}")
     tail = (done.stderr or done.stdout).strip()[-400:]
     if done.returncode in (3, 4):
         raise PairingError(f"pytest exited {done.returncode} in {clone.name}: {tail}")

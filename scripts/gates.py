@@ -57,6 +57,8 @@ from typing import Callable, Optional, Sequence
 
 import click
 
+import memory_admission_gate  # LANE-5A-3: the ship-gate and pytest calls are gated
+
 _ROOT = Path(__file__).resolve().parent.parent
 _VERDICT_NAME = "MOMENT-MERGE-GATES-VERDICT.json"
 _TAIL_CHARS = 2000
@@ -101,6 +103,22 @@ def _run_argv(argv: Sequence[str], cwd: Path) -> tuple[int, str]:
     return proc.returncode, (proc.stdout or "") + (proc.stderr or "")
 
 
+def _run_argv_gated(argv: Sequence[str], cwd: Path, *,
+                    workers_flag: Optional[str] = None) -> tuple[int, str]:
+    """`_run_argv`, but through the LANE-5A-3 heavy-run gate (D7): waits for a memory reserve
+    and a machine-wide slot, computes `workers_flag`'s value from free memory when given, and
+    writes a receipt. `HARNESS_MEMORY_GATE_DISABLE` (the done-contract's "old behaviour by a
+    flag") is read by `run_gated` itself -- nothing here needs to branch on it."""
+    try:
+        gate = memory_admission_gate.run_gated(
+            list(argv), cwd=str(cwd), capture_output=True, text=True,
+            encoding="utf-8", errors="replace", workers_flag=workers_flag)
+    except (OSError, ValueError) as exc:
+        return _NOT_STARTED, f"could not start {argv[0] if argv else '<empty>'}: {exc!r}"
+    proc = gate.completed
+    return proc.returncode, (proc.stdout or "") + (proc.stderr or "")
+
+
 # --- the impacted-tests gate: select, then run ONLY what was selected -----------------------------
 
 _UV = ("uv", "run", "--locked")
@@ -119,7 +137,7 @@ def _select_impacted(cwd: Path, base: str) -> tuple[int, str]:
 
 
 def _run_pytest(cwd: Path, args: list[str]) -> tuple[int, str]:
-    return _run_argv((*_UV, "pytest", "-x", "--tb=short", *args), cwd)
+    return _run_argv_gated((*_UV, "pytest", "-x", "--tb=short", *args), cwd, workers_flag="-n")
 
 
 def impacted_tests_gate(cwd: Path, base: str = "HEAD^1") -> tuple[int, str]:
@@ -137,10 +155,17 @@ def impacted_tests_gate(cwd: Path, base: str = "HEAD^1") -> tuple[int, str]:
     return _run_pytest(cwd, args)
 
 
+def _ship_gate(cwd: Path, base: str) -> tuple[int, str]:  # noqa: ARG001 -- `base` unused, runner shape
+    return _run_argv_gated((*_UV, "python", "scripts/audit.py", "ship-gate"), cwd)
+
+
 #: THE DECLARED LIST. Order is the order they run; add a gate by adding a row, never by a flag.
+#: `ship-gate` and `impacted-tests` (via `_run_pytest`) run through the LANE-5A-3 heavy-run gate
+#: (D7) -- `audit-health` and `ruff` do not, matching the done-contract's own naming ("their
+#: pytest and ship-gate calls").
 GATES: tuple[Gate, ...] = (
     Gate("audit-health", (*_UV, "python", "scripts/audit.py", "health")),
-    Gate("ship-gate", (*_UV, "python", "scripts/audit.py", "ship-gate")),
+    Gate("ship-gate", runner=_ship_gate),
     Gate("ruff", (*_UV, "ruff", "check")),
     Gate("impacted-tests", runner=lambda cwd, base: impacted_tests_gate(cwd, base)),
 )
