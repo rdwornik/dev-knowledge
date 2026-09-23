@@ -21,6 +21,22 @@
 
 ---
 
+### 2026-09-23 (b) - CC (Opus 5.5, integrator wave 4b): LANE W4B-2 repaired and landed -- a lane hands back through one organ that checks it first
+
+**Anchors:** `9a2c2814` (repair 1 of 2: the organ's own `fates:` line and the disposition of its two review records) · `0d8a81ed` (doc-counts) · `2fe3fb12` (Codex sol adversary + terra records filed) · `f5b790c0` (organ hardened against its own review) · `64e12240` (validate_branch_naming as self-check leg 5) · `0a563743` (handback organ + inter-seat schema) -- `worktree-lane-handback-organ`, merged --no-ff in an integration worktree off origin/main `e8ec23fc`.
+
+**Did:** merged W4B-2 after one refusal. The first merge (`3f535db5`, never on main) introduced an `organ_truth` hard-fail -- `scripts/handback.py` had no caller and no fate -- and left both Codex records cited by no governance surface; the only cure was a line in `ecosystem/harness.yaml`, which the lane's contract forbade, so the integrator asked and the architect ruled (`to-cc/ANSWER-integrator-wave4b-handback-organ.md`): one dated `fates:` line, plus the in-lane consumer fix. Repair 1 did exactly that. `scripts/handback.py` runs the lane's self-check and writes the handback artifacts or a refusal receipt; `scripts/handback_schema.py` types the inter-seat artifacts; `transport_report.py` and `lane_end_guard.py` use it. `ecosystem/doc-counts.md` conflicted (generated) and was regenerated from the merged tree.
+
+**Result:** Codex sol adversary + terra HIGH:2 records, now cited by row 958 and FILED in `docs/audits/2026-09-23-technical-lane-handback-organ-disposition.md`. Comparison, gates and ship-gate: `to-browser/SESSION-integrator-wave4b-2026-09-22.md`. **Changes:** `scripts/handback.py` (new), `scripts/handback_schema.py` (new), `scripts/lane_end_guard.py`, `scripts/transport_report.py`, `tests/test_handback.py` (new), `tests/test_handback_schema.py` (new), `tests/test_lane_end_guard.py`, `ecosystem/harness.yaml` (one fate), `tasks/958-*.md`, three `docs/audits/` records (new), `docs/audits/README.md`, `ecosystem/doc-counts.md` (tests 7253 -> 7306), `JOURNAL.md`, `logs/MERGE-RECEIPTS.jsonl`. **Next:** W4B-4 (`lane-verify-in-lane`), then the resumed W4B-3 and W4B-6; W4B-1 last.
+
+### 2026-09-23 (a) - CC (Opus 5.5, integrator wave 4b): LANE W4B-5 landed -- a wave's lane contracts are checked by code before they freeze
+
+**Anchors:** `123a8c46` (plan-lint's own `fates:` line, per the wave-4b batch-wide ruling) · `e6dae202` (row 961 cites its Codex record) · `15dadc90` (non-zero exit on BLOCKING; cyclic deps refused) · `98220f38` (plan-lint) -- `worktree-lane-plan-lint`, merged --no-ff in an integration worktree off origin/main `2fd8f256`.
+
+**Did:** merged W4B-5. `scripts/plan_lint.py check <contracts...>` reads a wave's `LANE-*.md` contracts and reports file collisions, missing producers, moment/test coupling (the W4-2/W4-4 class, from `ecosystem/harness.yaml` moments vs tests that hard-code organ ids) and serial mismatches, each BLOCKING or ORDERED by declared dependencies; `estimate_wave()` derives a wave estimate from `logs/MERGE-RECEIPTS.jsonl`. Run over the real wave-4a contracts it flags the W4-2/W4-4 conflict. `ecosystem/harness.yaml` gains one `fates:` line (`manual_until: 2026-10-05`) under `to-cc/ANSWER-integrator-wave4b-handback-organ.md`.
+
+**Result:** Codex terra HIGH:2: `docs/audits/2026-09-22-codex-lane-plan-lint.md` (consumer `[#961]`). Comparison, gates and ship-gate: `to-browser/SESSION-integrator-wave4b-2026-09-22.md`. **Changes:** `scripts/plan_lint.py` (new), `tests/test_plan_lint.py` (new), `ecosystem/harness.yaml` (one fate), `tasks/961-*.md`, `docs/audits/2026-09-22-codex-lane-plan-lint.md` (new), `docs/audits/README.md`, `ecosystem/doc-counts.md` (tests 7221 -> 7253), `JOURNAL.md`, `logs/MERGE-RECEIPTS.jsonl`. **Next:** the handback-organ repair and the resumed lanes, in arrival order; W4B-1 last.
+
 ### 2026-09-22 (h) - CC (Opus 5.5, integrator wave 4b): LANE W4B-0 landed -- six emergency-disabled SessionStart hooks come back on live evidence, two stay off with measured reasons
 
 **Anchors:** `226c9fbf` (audit pair filed under [#956]) · `7de244a4` (row 956 cites its records) · `4c77c538` (audits index) · `f0c31b44` (Codex terra 0/0/0/0) · `c6de680c` (six hooks re-armed, two kept off; `tests/test_hooks_rearm.py`) · `b5e8662b` (wave-4b rows: epic [#955] `implements: ADR-120`, lane rows [#956]-[#961]) -- `worktree-lane-hooks-rearm`, merged --no-ff in an integration worktree off origin/main `3689b5ab`.
