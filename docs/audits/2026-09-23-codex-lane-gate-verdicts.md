@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-23
 **Branch:** `worktree-lane-gate-verdicts`
-**HEAD:** `c9529fa4`
+**HEAD:** `020037c9`
 **Diff range:** `main..worktree-lane-gate-verdicts`
 **Codex version:** codex-cli 0.155.0
 **Mode:** diff-review
@@ -29,17 +29,11 @@
 
 ## HIGH
 
-## [HIGH] scripts/plan_lint.py:1 — plan-lint capability and its test suite are deleted
+### tests/test_connection_loop.py:79 — `xdist_group` is inert under the repo’s pytest invocations
 
-**What:** The diff removes the entire plan-lint CLI and all 465 lines of its tests, with no replacement in the reviewed code.  
-**Why:** This silently removes the freeze-time checks for lane collisions, dependency cycles, missing producers, and related planning hazards.  
-**Fix direction:** Restore the module and tests, or land their removal only with an explicit replacement/migration.
-
-## [HIGH] tests/test_connection_loop.py:79 — `xdist_group` does not pin this module under the configured pytest invocation
-
-**What:** `xdist_group` is only applied by pytest-xdist’s `--dist=loadgroup`; this repository runs `-n auto` without that distribution mode.  
-**Why:** The claimed single-worker isolation does not occur, so the reliability/resource mitigation described in commit `e2ebec18` is ineffective.  
-**Fix direction:** Use an invocation/configuration that enables `loadgroup`, or enforce module-level worker affinity by a mechanism active under the repository’s actual pytest command.
+**What:** `pytest.mark.xdist_group(name="connection_loop")` only affects pytest-xdist’s `--dist=loadgroup` scheduler; this repo uses `-n auto` / `-n 2` without that option.  
+**Why:** Tests in this module can still be assigned to separate workers, so commit `e2ebec18`’s claim that the marker “pins every test in this module to one worker” is false and its intended resource/flakiness mitigation is not delivered.  
+**Fix direction:** Use `--dist=loadgroup` in the relevant pytest invocation/config, or remove/reword the marker and claim.
 
 ## MEDIUM
 
@@ -49,4 +43,4 @@
 
 (none)
 
-The findings parser itself matches `audit.py`’s real `[OK]/[~~]/[!!]/[??]/[--] check_name: evidence` lines and returns `[]` for unrelated output. The structured-findings regression is non-vacuous: its marker is explicitly absent from `output_tail`, and the end-to-end test pushes it outside the tail window. The `core.longpaths` change is correctly repository-local to the temporary toy repository and does not modify the real repository’s Git configuration.
+The findings parser matches `audit.py`’s actual emitted finding shape and correctly returns `[]` for unrelated output. The new tail-window regression tests are non-vacuous. `core.longpaths` is set through `git config` in the freshly initialized toy repo, so it does not modify the real repository’s configuration.
