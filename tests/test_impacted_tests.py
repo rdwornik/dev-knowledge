@@ -591,6 +591,14 @@ def test_the_old_two_dot_mode_is_unchanged_by_the_new_lane_diff_entry_point(lane
     assert sel.test_files == ("tests/test_mod.py",)
 
 
+def test_changed_from_lane_diff_raises_on_a_bad_ref_instead_of_selecting_nothing(lane_repo):
+    """Codex terra HIGH: `check=False` with no returncode check meant an invalid/unfetched
+    ref (e.g. `select-lane` called before `git fetch origin`) silently returned `[]`, and
+    an empty selection reads as "nothing to verify", not "the ref lookup failed"."""
+    with pytest.raises(RuntimeError, match="git diff"):
+        impacted_tests.changed_from_lane_diff(lane_repo, "origin/main", "lane")
+
+
 @pytest.mark.live_repo
 def test_a_rows_only_change_maps_to_the_funnel_test():
     """Finding 3 (DIGEST-WAVE4-FINAL): a tasks/*.md row must map to the funnel detector.

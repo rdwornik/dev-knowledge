@@ -153,6 +153,18 @@ def resolve(repo: Path, ref: str) -> str:
     return _git(repo, "rev-parse", "--verify", f"{ref}^{{commit}}")
 
 
+def _is_ancestor(repo: Path, ancestor: str, descendant: str) -> bool:
+    """`True` iff `ancestor` is reachable from `descendant` -- `git merge-base --is-ancestor`,
+    whose exit 1 means "no" (a normal outcome, not a git failure) so it cannot go through
+    `_git`'s check-returncode-!=-0-is-an-error convention."""
+    done = subprocess.run(["git", "merge-base", "--is-ancestor", ancestor, descendant],
+                          cwd=repo, capture_output=True, text=True, check=False)
+    if done.returncode not in (0, 1):
+        raise PairingError(f"git merge-base --is-ancestor {ancestor} {descendant} failed: "
+                           f"{done.stderr.strip() or done.stdout.strip()}")
+    return done.returncode == 0
+
+
 def make_clone(repo: Path, sha: str, dest: Path) -> Path:
     """A shared clone of `repo`, detached at `sha` -- see ISOLATION_REASON."""
     _git(dest.parent, "clone", "--quiet", "--shared", "--no-checkout", str(repo), str(dest))
@@ -692,7 +704,15 @@ def skip_guard(registry: Registry, head_skipped: frozenset[str], files: list[str
     # already exempt (a new file is never `in registry.files`), so the asymmetry was which
     # side of a FILE boundary the same new id happened to land on, not anything about risk.
     known = set(registry.red) | set(registry.passed) | set(registry.skipped)
-    dangerous_added = [a for a in added if a in known]
+    # Codex terra HIGH: a COLLECTION-level skip (a module unconditionally `pytest.skip()`-ed
+    # at import time, or file-level `collect_ignore`) reports a single skip whose id is the
+    # FILE, not any one test node -- so it never equals a known per-test node id and slid
+    # past the check above even while it silences every known red/passed/skipped node in
+    # that file. `_file_part` a known id has no "::" for a file-level `a`, so a file-level
+    # `a` that names a file carrying known ids is exactly as dangerous as a known id itself.
+    known_files = {_file_part(k) for k in known}
+    dangerous_added = [a for a in added
+                       if a in known or ("::" not in a and a in known_files)]
     return {"status": "match" if not dangerous_added else "mismatch",
             "registry": len(then), "head": len(now), "added": added, "removed": removed}
 
@@ -832,7 +852,21 @@ def record_lane(repo: Path, batch: str, lane: str, *, main_ref: str = "origin/ma
     batch = resolve_batch(batch)
     registry = load_registry(repo, batch)
     main_sha = resolve(repo, main_ref)
-    head_sha = resolve(repo, lane_ref or f"worktree-{lane}")
+    resolved_lane_ref = lane_ref or f"worktree-{lane}"
+    head_sha = resolve(repo, resolved_lane_ref)
+    # Codex terra HIGH: the clone below is detached at `head_sha` alone and NEVER
+    # combines `main_sha` into the tested tree, so a record claiming to answer for
+    # "origin/main + lane" (the schema's own `origin_main` field) would be false for a
+    # lane that has not synced -- it tested only itself. Refuse rather than silently
+    # narrow what the record means; WAVE4B-COMMON rule 1 already requires the lane to
+    # `git fetch origin && git merge origin/main`, so a synced lane passes trivially.
+    if not _is_ancestor(repo, main_sha, head_sha):
+        raise PairingError(
+            f"record-lane: {main_ref} ({main_sha[:8]}) is not merged into "
+            f"{resolved_lane_ref} ({head_sha[:8]}) -- sync the lane first "
+            "(git fetch origin && git merge origin/main); a record keyed to an "
+            "origin/main sha the lane never actually combined with would be false"
+        )
     scratch = Path(tempfile.mkdtemp(prefix="tp-", dir=workdir))
     try:
         clone = make_clone(repo, head_sha, scratch / "head")

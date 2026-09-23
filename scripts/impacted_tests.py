@@ -583,6 +583,13 @@ def changed_from_lane_diff(
     main's later movement, not the lane's change. `git diff A...B` is git's own spelling
     of "what B added since the merge-base of A and B", which is the lane's diff by
     construction.
+
+    Raises on a git failure (an invalid/unfetched `main_ref` or `lane_ref`) rather than
+    following `changed_from_git`'s check=False-and-ignore convention: THAT function feeds
+    a two-dot diff a caller already resolved, but this one is the LANE'S OWN selection
+    entry point (`select-lane` takes `--main-ref`/`--lane-ref` straight from the CLI) --
+    a bad ref silently returning `[]` would report an empty, successful selection instead
+    of skipping verification loudly (Codex terra HIGH).
     """
     import subprocess
 
@@ -590,6 +597,11 @@ def changed_from_lane_diff(
         ["git", "diff", "--name-only", f"{main_ref}...{lane_ref}"],
         cwd=repo_root, capture_output=True, text=True, check=False,
     )
+    if out.returncode != 0:
+        raise RuntimeError(
+            f"git diff --name-only {main_ref}...{lane_ref} failed (exit {out.returncode}): "
+            f"{out.stderr.strip() or out.stdout.strip()}"
+        )
     return [line.strip() for line in out.stdout.splitlines() if line.strip()]
 
 

@@ -746,6 +746,29 @@ def test_a_new_skipped_test_added_inside_an_existing_covered_file_is_not_unattri
     assert verdict["verdict"] == "CLEAN" and code == 0
 
 
+def test_a_collection_level_skip_that_silences_a_known_file_is_not_missed(repo, home, tmp_path):
+    """Codex terra HIGH: a module skipped at COLLECTION time (`pytest.skip(...,
+    allow_module_level=True)`, or a file-level `collect_ignore`) reports ONE skip whose id
+    is the FILE, never a per-test node id -- so the old check (`a in known`, node ids only)
+    let it slide past even while it silences every known result the registry has for that
+    file. A file-level added id naming a file that carries known ids is exactly as
+    dangerous as a known node id itself.
+    """
+    root, base = repo
+    _record(root, base, "--tests", "tests/test_mod.py")
+    merged = _commit(root, {"tests/test_mod.py":
+                            "import pytest\npytest.skip('silenced', allow_module_level=True)\n"
+                            "import mod\n\n\ndef test_value():\n    assert mod.value() == 1\n"},
+                     "the lane skips the whole module at collection time")
+
+    code, verdict = _compare(root, merged, tmp_path)
+
+    assert verdict["skip_guard"]["status"] == "mismatch", (
+        "a file-level collection skip that silences a known node must not read as a match"
+    )
+    assert verdict["verdict"] == "UNATTRIBUTABLE" and code == 4
+
+
 def test_a_comparison_with_the_same_skip_count_is_attributed_normally(repo, home, tmp_path):
     root, _ = repo
     base = _commit(root, {"tests/test_skip.py": _SKIP}, "main skips one test")
@@ -1013,6 +1036,23 @@ def test_record_lane_is_overwritten_by_a_later_run_no_replace_flag_needed(lane_r
 
     assert code == 1
     assert _lane_record(home, "demo")["verdict"]["verdict"] == "LANE-RED"
+
+
+def test_record_lane_refuses_when_the_lane_has_not_merged_main(lane_registry_repo, home):
+    """Codex terra HIGH: `record_lane` clones only the lane's tip and never combines
+    `--main` into the tested tree, so a record keyed to an origin/main sha the lane never
+    actually merged would be false. Refuse rather than write a misleading REUSABLE claim.
+    """
+    root, _ = lane_registry_repo
+    _git(root, "checkout", "main")
+    _commit(root, {"scripts/other.py": "Y = 1\n"}, "main advances; the lane never merges it")
+    _git(root, "checkout", "worktree-demo")
+
+    with pytest.raises(SystemExit) as exc:
+        _record_lane(root, "demo")
+
+    assert exc.value.code == 2
+    assert not (home / "TEST-PAIRING-LANE-B1-demo.json").exists()
 
 
 def test_reuse_check_reports_not_recorded_when_no_record_exists(lane_registry_repo, home):
