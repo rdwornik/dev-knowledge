@@ -21,6 +21,13 @@
 
 ---
 
+### 2026-09-24 (a) - CC (Opus 5.5, integrator wave 5a): S1 landed -- the changelog review closes a 2.5-month gap
+
+**Anchors:** `66a616a9` (changelog-review claude-code 2.1.205-2.1.281 + codex 0.144.0-0.156.1; intake 105) -- `worktree-postwave-changelog`, merged --no-ff in an integration worktree off origin/main `4667f731`.
+
+**Did:** merged the post-wave changelog review (merge priority 5 of `to-cc/INTEGRATOR-WAVE5A-2026-09-23.md`): 3 ADOPT (`/skill-doctor`, the `/doctor` CLAUDE.md-trim check, `omitClaudeMd` agent frontmatter), 0 OBSOLETES, 0 STALE-NAMES, 3 VERIFY; the three ADOPT findings filed as SEED intake 105 for architect triage; review state bumped in `ecosystem/tool-versions.yaml`.
+
+**Result:** `docs/audits/2026-09-23-changelog-review.md` (the Opus 5.5 rate source lane-provider-registry cites). Verification (ship-gate diff, split test attribution against the WAVE5A registry): `to-browser/SESSION-integrator-wave5a-2026-09-23.md`. **Changes:** `docs/audits/2026-09-23-changelog-review.md` (new), `docs/intake/2026-09-23-changelog-review-seeds.md` (new), `docs/intake/README.md`, `docs/intake/manifest.json`, `ecosystem/tool-versions.yaml`, `docs/audits/README.md`, `ecosystem/doc-counts.md`, `JOURNAL.md`, `logs/MERGE-RECEIPTS.jsonl`. **Next:** the wave-5a lanes in merge-priority order; ADR-121's branch (priority 6).
 ### 2026-09-23 (e) - CC (Opus 5.5, integrator wave 4b): LANE W4B-4 landed on its repair -- a lane tests itself; the integrator only confirms
 
 **Anchors:** `ee6215e9` (row 960 also cites its disposition ledger) · `46e30708` (doc-counts regenerated after the sync) · `b0b0c4c9` (row 960 cites its two review records; disposition filed) · `481f84e7` (the lane's sync merge of origin/main `de97dad5`) · `ea217336` (Codex terra: 3 HIGH confirmed and fixed) · `e54898e3` (record-lane refuses zero reruns) · `4b0171cc` (merge-queue measurement, 10 pushes) · `55ce18f4` (finding 8 -- what can see a masked second finding) · `fc1218b9` (record a lane's verification by tree; reuse it when main has not moved) · `afecb6fd` (impacted tests select from the lane's own diff) -- `worktree-lane-verify-in-lane`, merged --no-ff in an integration worktree off origin/main `3d3b3a0e`.
