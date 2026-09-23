@@ -8,6 +8,7 @@ is the thing under test and a fake one would prove nothing about cross-process e
 """
 from __future__ import annotations
 
+import itertools
 import json
 import subprocess
 import sys
@@ -208,7 +209,11 @@ def test_run_gated_computes_and_appends_the_workers_flag(tmp_path):
 def test_run_gated_waits_when_below_reserve_then_runs(tmp_path):
     stub = _stub_run()
     cfg = _config(reserve_gb=1.0, per_worker_mb=250.0, poll_interval_s=0.01)
-    readings = iter([500.0, 500.0, 2000.0])
+    # Two "not enough" reads, then 2000.0 forever: `run_gated`'s atomic reservation recheck
+    # (codex-review 2026-09-24) reads `free_mb_fn` once more than `wait_for_memory` alone
+    # would, so a fixed-length iterator exhausted at exactly the admitting read is the wrong
+    # shape here -- the exact READ COUNT is not this test's claim, "waits, then runs" is.
+    readings = itertools.chain([500.0, 500.0], itertools.repeat(2000.0))
     result = mag.run_gated(
         ["audit.py", "ship-gate"], config=cfg,
         receipt_path=tmp_path / "receipt.json",
@@ -306,6 +311,121 @@ def test_run_gated_releases_the_slot_even_when_the_command_raises(tmp_path):
     # the slot must be free again -- a second acquisition must not time out.
     handle = mag.acquire_slot(slots=1, lock_dir=lock_dir, poll_interval_s=0.01, timeout_s=1.0)
     handle.release()
+
+
+# ------------------------------------------------------------------- reservation ledger (codex)
+
+def test_reserved_mb_excluding_is_zero_with_no_reservations(tmp_path):
+    directory = tmp_path / "slots"
+    directory.mkdir()
+    assert mag._reserved_mb_excluding(directory, own_slot_id=0) == 0.0
+
+
+def test_reserved_mb_excluding_counts_a_reservation_whose_slot_is_still_locked(tmp_path):
+    directory = tmp_path / "slots"
+    directory.mkdir()
+    held = mag.acquire_slot(slots=4, lock_dir=directory, poll_interval_s=0.01)
+    mag._write_reservations(directory, {str(held.slot_id): 777.0})
+    assert mag._reserved_mb_excluding(directory, own_slot_id=99) == 777.0
+    held.release()
+
+
+def test_reserved_mb_excluding_ignores_a_stale_entry_whose_slot_is_not_locked(tmp_path):
+    """Crash-safety: a reservation entry survives only while its slot id is actually locked. An
+    entry naming a slot nobody holds (e.g. a killed process that never reached its own
+    `finally`) must not count -- otherwise a single crash permanently shrinks perceived free
+    memory and every future admission on the box starves."""
+    directory = tmp_path / "slots"
+    directory.mkdir()
+    mag._write_reservations(directory, {"2": 999.0})  # no lock ever taken on slot-2
+    assert mag._reserved_mb_excluding(directory, own_slot_id=0) == 0.0
+
+
+def test_reserved_mb_excluding_excludes_the_callers_own_slot(tmp_path):
+    directory = tmp_path / "slots"
+    directory.mkdir()
+    held = mag.acquire_slot(slots=4, lock_dir=directory, poll_interval_s=0.01)
+    mag._write_reservations(directory, {str(held.slot_id): 500.0})
+    assert mag._reserved_mb_excluding(directory, own_slot_id=held.slot_id) == 0.0
+    held.release()
+
+
+def test_run_gated_does_not_admit_a_second_call_whose_estimate_would_exceed_free_memory(tmp_path):
+    """The finding this closes (codex-review 2026-09-24, HIGH): two concurrent admissions each
+    independently reading the same free-memory value could both pass and both start, together
+    exceeding the reserve. Simulated single-threaded: the first call's `subprocess_run` itself
+    launches the second gated call (so the first's reservation is live, registered, and not yet
+    released -- the same shape a real second process racing in mid-run would see) with a free
+    reading that clears the reserve ALONE but not on top of the first's still-held estimate."""
+    lock_dir = tmp_path / "slots"
+    cfg = _config(reserve_gb=0.0, per_worker_mb=100.0, slots=4, poll_interval_s=0.0,
+                 wait_timeout_s=0.2)
+    free_mb = 700.0  # clears one 600 MB estimate alone, not two
+
+    def outer_run(argv, cwd=None, **kwargs):
+        # The inner call must NOT be admitted while the outer's 600 MB reservation is live.
+        with pytest.raises(mag.MemoryGateTimeout):
+            mag.run_gated(
+                ["inner"], config=cfg, estimate_mb=600.0,
+                receipt_path=tmp_path / "inner-receipt.json", lock_dir=lock_dir,
+                free_mb_fn=lambda: free_mb, used_mb_fn=lambda: 1000.0,
+                sleep_fn=lambda s: None, clock_fn=_incrementing_clock(0.05),
+                subprocess_run=_stub_run(),
+            )
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    result = mag.run_gated(
+        ["outer"], config=cfg, estimate_mb=600.0,
+        receipt_path=tmp_path / "outer-receipt.json", lock_dir=lock_dir,
+        free_mb_fn=lambda: free_mb, used_mb_fn=lambda: 1000.0,
+        sleep_fn=lambda s: None, clock_fn=_incrementing_clock(0.05),
+        subprocess_run=outer_run,
+    )
+    assert result.returncode == 0
+
+
+def test_run_gated_deregisters_its_reservation_so_the_next_caller_can_be_admitted(tmp_path):
+    lock_dir = tmp_path / "slots"
+    cfg = _config(reserve_gb=0.0, per_worker_mb=100.0, slots=4, poll_interval_s=0.0)
+    mag.run_gated(
+        ["first"], config=cfg, estimate_mb=600.0,
+        receipt_path=tmp_path / "r1.json", lock_dir=lock_dir,
+        free_mb_fn=lambda: 700.0, used_mb_fn=lambda: 1000.0,
+        sleep_fn=lambda s: None, clock_fn=_incrementing_clock(), subprocess_run=_stub_run(),
+    )
+    # first's reservation is gone once it returns -- a second call at the same free reading,
+    # needing the same estimate, must be admitted immediately rather than waiting/timing out.
+    result = mag.run_gated(
+        ["second"], config=cfg, estimate_mb=600.0,
+        receipt_path=tmp_path / "r2.json", lock_dir=lock_dir,
+        free_mb_fn=lambda: 700.0, used_mb_fn=lambda: 1000.0,
+        sleep_fn=lambda s: None, clock_fn=_incrementing_clock(), subprocess_run=_stub_run(),
+    )
+    assert result.ran is True
+
+
+def test_run_gated_surfaces_sampler_failures_instead_of_swallowing_them(tmp_path):
+    """codex-review 2026-09-24 (CRITICAL): a broken sampler produced an apparently valid
+    receipt with a silently missing/stale `peak_used_mb`. Now the read failure is recorded."""
+    def broken_used_mb() -> float:
+        raise RuntimeError("psutil exploded")
+
+    def slow_run(argv, cwd=None, **kwargs):
+        time.sleep(0.05)
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    receipt = tmp_path / "receipt.json"
+    result = mag.run_gated(
+        ["sleep-ish"], config=_config(sample_interval_s=0.01),
+        receipt_path=receipt, lock_dir=tmp_path / "slots",
+        free_mb_fn=lambda: 4096.0, used_mb_fn=broken_used_mb,
+        sleep_fn=lambda s: None, clock_fn=_incrementing_clock(),
+        subprocess_run=slow_run,
+    )
+    assert result.peak_used_mb is None
+    assert result.sampler_errors and "psutil exploded" in result.sampler_errors[0]
+    payload = json.loads(receipt.read_text(encoding="utf-8"))
+    assert payload["sampler_errors"] and "psutil exploded" in payload["sampler_errors"][0]
 
 
 # ---------------------------------------------------------------------------------- config

@@ -122,6 +122,12 @@ def _run_argv_gated(argv: Sequence[str], cwd: Path, *,
             encoding="utf-8", errors="replace", workers_flag=workers_flag)
     except (OSError, ValueError) as exc:
         return _NOT_STARTED, f"could not start {argv[0] if argv else '<empty>'}: {exc!r}"
+    except (memory_admission_gate.MemoryGateTimeout, subprocess.TimeoutExpired) as exc:
+        # codex-review 2026-09-24 (HIGH): left uncaught, this propagated out of `run_gates`'
+        # dispatch loop entirely -- one gate's admission timeout aborted the WHOLE run before a
+        # verdict was ever written, instead of producing a failed row like any other gate
+        # failure and letting the remaining gates still run.
+        return _NOT_STARTED, f"admission gate timed out for {argv[0] if argv else '<empty>'}: {exc!r}"
     proc = gate.completed
     return proc.returncode, (proc.stdout or "") + (proc.stderr or "")
 

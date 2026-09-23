@@ -23,11 +23,11 @@ per_worker_mb: 646.1
 # conservative starting point.
 slots: 4
 
-# `-n` is never computed below this even when memory is tight -- pytest -n 0 means "no xdist",
+# `-n` stays at or above this floor even when memory is tight -- pytest -n 0 means "no xdist",
 # and WAVE4B-COMMON's manual "-n 2" floor is what this gate exists to replace, not undercut.
 min_workers: 1
 
-# `-n` is never computed above this even when memory is abundant. NOT independently measured
+# `-n` stays at or below this ceiling even when memory is abundant. NOT independently measured
 # for this gate -- xdist worker count has its own ceiling independent of RAM (import
 # contention, disk, CPU count) and a memory-only formula can recommend more workers than the
 # box can usefully run. 6 is a chosen starting ceiling, pending a receipt-derived bound; lower
@@ -40,8 +40,8 @@ poll_interval_s: 5.0
 # Seconds a sampler thread waits between peak-memory readings while a gated command runs.
 sample_interval_s: 2.0
 
-# Hard ceiling on how long `wait` will sit before giving up and refusing (never silently
-# running under-reserve). None/absent means wait indefinitely -- DECLARE-NIGHT-AUTONOMY N2
+# Hard ceiling on how long `wait` will sit before giving up and refusing -- refusing rather
+# than silently running under-reserve. None/absent means wait indefinitely -- DECLARE-NIGHT-AUTONOMY N2
 # wants a killed run RESUMED, not abandoned, so the default is no timeout; a caller that wants
 # one passes --timeout.
 wait_timeout_s: null

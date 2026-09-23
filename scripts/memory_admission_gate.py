@@ -239,6 +239,53 @@ class SlotHandle:
         self._lock.release()
 
 
+_RESERVATIONS_FILE = "reservations.json"
+_RESERVATIONS_LOCK = "reservations.lock"
+
+
+def _read_reservations(directory: Path) -> dict:
+    path = directory / _RESERVATIONS_FILE
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return {}
+
+
+def _write_reservations(directory: Path, data: dict) -> None:
+    path = directory / _RESERVATIONS_FILE
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(json.dumps(data), encoding="utf-8")
+    os.replace(tmp, path)
+
+
+def _reserved_mb_excluding(directory: Path, own_slot_id: int) -> float:
+    """Sum of OTHER admissions' estimated memory, keyed by slot id -- codex-review 2026-09-24:
+    without this, every concurrent admission independently reads the same free-memory value
+    and all can pass at once, collectively exhausting RAM -- exactly the OOM this gate exists
+    to prevent. Self-bounded at `slots` entries (the key space) and self-healing on a crash: an
+    entry counts only while the slot id it names is still actually locked, probed as a
+    non-blocking acquire on that slot's own OS-level lock file -- the same file `acquire_slot`
+    holds for the run's whole duration and that the OS already releases on process death, so a
+    killed holder's reservation stops counting on the very next read with no separate liveness
+    protocol or cleanup pass needed."""
+    total = 0.0
+    for key, mb in _read_reservations(directory).items():
+        try:
+            slot_id = int(key)
+        except ValueError:
+            continue
+        if slot_id == own_slot_id:
+            continue
+        probe = filelock.FileLock(str(directory / f"slot-{slot_id}.lock"), thread_local=False)
+        try:
+            probe.acquire(timeout=0)
+        except filelock.Timeout:
+            total += mb
+        else:
+            probe.release()
+    return total
+
+
 def acquire_slot(*, slots: int, lock_dir: Optional[Path] = None,
                  poll_interval_s: float = 1.0, timeout_s: Optional[float] = None,
                  sleep_fn: Callable[[float], None] = time.sleep,
@@ -273,14 +320,17 @@ def acquire_slot(*, slots: int, lock_dir: Optional[Path] = None,
 # ======================================================================== peak-memory sampler
 
 def _sample_peak(stop: threading.Event, interval_s: float, samples: list[float],
-                 used_mb_fn: Callable[[], float]) -> None:
+                 used_mb_fn: Callable[[], float], errors: list[str]) -> None:
     """Append one reading, then wait -- so a run shorter than `interval_s` still yields one
-    sample rather than none."""
+    sample rather than none. A read failure is recorded into `errors` (codex-review
+    2026-09-24: a bare `except: pass` here let a broken sampler produce an apparently valid
+    receipt with a silently missing/stale `peak_used_mb`) rather than raised -- the sampler
+    itself must still never abort the run it is watching."""
     while not stop.is_set():
         try:
             samples.append(used_mb_fn())
-        except Exception:  # noqa: BLE001 -- a sampler must never abort the run it is watching
-            pass
+        except Exception as exc:  # noqa: BLE001 -- must never abort the run it is watching
+            errors.append(repr(exc))
         stop.wait(interval_s)
 
 
@@ -297,6 +347,7 @@ class GateResult:
     returncode: Optional[int]
     argv: list[str]
     completed: Optional[subprocess.CompletedProcess] = None
+    sampler_errors: tuple[str, ...] = ()
 
 
 def _default_receipt_dir() -> Path:
@@ -314,6 +365,7 @@ def _write_receipt(result: GateResult, path: Optional[Path]) -> Path:
         "slot_id": result.slot_id,
         "workers": result.workers,
         "peak_used_mb": round(result.peak_used_mb, 1) if result.peak_used_mb is not None else None,
+        "sampler_errors": list(result.sampler_errors),
         "returncode": result.returncode,
         "argv": result.argv,
         "written_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -381,14 +433,54 @@ def run_gated(argv: Sequence[str], *, cwd: Optional[Path] = None,
     slot = acquire_slot(slots=cfg.slots, lock_dir=lock_dir, poll_interval_s=cfg.poll_interval_s,
                         timeout_s=cfg.wait_timeout_s, sleep_fn=sleep_fn, clock_fn=clock_fn)
     slot_waited_s = clock_fn() - slot_wait_start
+    directory = _slot_lock_dir(lock_dir)
+    needed = cfg.reserve_mb + estimate
+    mem_wait_start = clock_fn()
+    mem_waited_s = 0.0
     try:
-        wait = wait_for_memory(reserve_mb=cfg.reserve_mb, estimate_mb=estimate,
-                               poll_interval_s=cfg.poll_interval_s, timeout_s=cfg.wait_timeout_s,
-                               free_mb_fn=free_mb_fn, sleep_fn=sleep_fn, clock_fn=clock_fn)
+        # Reserve-then-run, not check-then-run: `wait_for_memory`'s own read is advisory (it
+        # reads a `free_mb_fn` already adjusted for OTHER live reservations, see
+        # `_reserved_mb_excluding`), because two concurrent admissions could otherwise both
+        # observe the same headroom and both start. The ledger recheck-and-register below,
+        # under `_RESERVATIONS_LOCK`, is the actual atomic commit; losing that race just loops
+        # back into `wait_for_memory` instead of raising.
+        while True:
+            if cfg.wait_timeout_s is not None:
+                remaining = cfg.wait_timeout_s - (clock_fn() - mem_wait_start)
+                if remaining <= 0:
+                    raise MemoryGateTimeout(
+                        f"no reservable memory (others hold "
+                        f"{_reserved_mb_excluding(directory, slot.slot_id):.0f} MB) after "
+                        f"{clock_fn() - mem_wait_start:.1f}s")
+            else:
+                remaining = None
+
+            def adjusted_free_fn(_free=free_mb_fn, _dir=directory, _sid=slot.slot_id) -> float:
+                return _free() - _reserved_mb_excluding(_dir, _sid)
+
+            wait = wait_for_memory(reserve_mb=cfg.reserve_mb, estimate_mb=estimate,
+                                   poll_interval_s=cfg.poll_interval_s, timeout_s=remaining,
+                                   free_mb_fn=adjusted_free_fn, sleep_fn=sleep_fn,
+                                   clock_fn=clock_fn)
+            mem_waited_s += wait.waited_s
+            reservation_lock = filelock.FileLock(str(directory / _RESERVATIONS_LOCK),
+                                                 thread_local=False)
+            reservation_lock.acquire()
+            try:
+                if free_mb_fn() - _reserved_mb_excluding(directory, slot.slot_id) >= needed:
+                    data = _read_reservations(directory)
+                    data[str(slot.slot_id)] = estimate
+                    _write_reservations(directory, data)
+                    break
+            finally:
+                reservation_lock.release()
+
         samples: list[float] = []
+        sampler_errors: list[str] = []
         stop = threading.Event()
         sampler = threading.Thread(target=_sample_peak,
-                                   args=(stop, cfg.sample_interval_s, samples, used_mb_fn),
+                                   args=(stop, cfg.sample_interval_s, samples, used_mb_fn,
+                                        sampler_errors),
                                    daemon=True)
         sampler.start()
         try:
@@ -397,12 +489,21 @@ def run_gated(argv: Sequence[str], *, cwd: Optional[Path] = None,
             stop.set()
             sampler.join(timeout=5.0)
         peak = max(samples) if samples else None
-        result = GateResult(ran=True, gated=True, waited_s=slot_waited_s + wait.waited_s,
+        result = GateResult(ran=True, gated=True, waited_s=slot_waited_s + mem_waited_s,
                             slot_id=slot.slot_id, workers=workers, peak_used_mb=peak,
-                            returncode=proc.returncode, argv=full_argv, completed=proc)
+                            returncode=proc.returncode, argv=full_argv, completed=proc,
+                            sampler_errors=tuple(sampler_errors))
         _write_receipt(result, receipt_path)
         return result
     finally:
+        reservation_lock = filelock.FileLock(str(directory / _RESERVATIONS_LOCK), thread_local=False)
+        reservation_lock.acquire()
+        try:
+            data = _read_reservations(directory)
+            data.pop(str(slot.slot_id), None)
+            _write_reservations(directory, data)
+        finally:
+            reservation_lock.release()
         slot.release()
 
 
