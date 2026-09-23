@@ -1,0 +1,8 @@
+# scripts/fleet_health.py's SessionStart TRIGGER reads this (load_stale_after_hours).
+# This lane, [#962] item 3: "when the digest is older than a threshold held in config
+# (YAML, cited home)". The reader always prints the cached digest and its age, every
+# session, regardless of this value; the trigger fires ONE detached producer only once
+# the digest's completed_at is missing, never-completed, or older than the threshold
+# below. See scripts/fleet_health.py::needs_refresh for the exact predicate.
+
+stale_after_hours: 24

@@ -11,7 +11,7 @@ from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
 
-
+import click
 import pytest
 
 import audit as aud
@@ -1912,6 +1912,102 @@ def test_routine_outputs_fail_soft_warns_no_raise(
     assert any("ADR-84 commit" in r.message and "failed" in r.message.lower() for r in caplog.records)
     assert git("status", "--porcelain").stdout.strip() == ""  # finally restored the tree
     assert not report.exists()
+
+
+# ---------------------------------------------------------------------------
+# [#962] item 5 safety net: the durable-scope restore never deletes a file it
+# did not create. RED-first witnesses for the 2026-09-22 live-measurement finding
+# (docs/audits/2026-09-22-technical-lane-hooks-rearm-live-measurement.md §2.1):
+# a lane's own untracked docs/audits/ draft was swept up and then deleted.
+# ---------------------------------------------------------------------------
+
+def test_expected_routine_output_paths_matches_the_real_naming() -> None:
+    """Pure unit test of the allowlist against write_report's / _history_path's own
+    naming conventions -- the two must never drift apart silently."""
+    run_date = date(2026, 6, 14)
+    expected = aud._expected_routine_output_paths(run_date, ["repo-a", "repo-b"])
+    assert "docs/audits/2026-06-14-ecosystem-audit.md" in expected
+    assert "docs/audits/2026-06-14-repo-a-audit.md" in expected
+    assert "docs/audits/2026-06-14-repo-b-audit.md" in expected
+    assert "ecosystem/repo-a/history/2026-06-14.md" in expected
+    assert "ecosystem/repo-b/history/2026-06-14.md" in expected
+    # closed set: nothing else sneaks in for two repos on one date
+    assert len(expected) == 5
+
+
+def test_untracked_draft_with_a_foreign_name_survives_a_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """THE MEASURED INCIDENT, reproduced with a fixture instead of a live 9-minute run:
+    an untracked docs/audits/ file whose name does not match this run's naming
+    convention must survive `_commit_routine_outputs` byte-for-byte -- never staged,
+    never committed, never deleted."""
+    monkeypatch.delenv("HARNESS_RECEIPTS_DIR", raising=False)
+    repo, git = _fleet_repo(tmp_path, monkeypatch)
+    _write_run_outputs(repo)
+    draft = repo / "docs" / "audits" / "2026-06-14-technical-some-other-lanes-draft.md"
+    draft.write_text("mid-draft, not this run's output\n", encoding="utf-8")
+
+    with pytest.raises(aud.DurableScopeDirty):
+        aud._commit_routine_outputs(date(2026, 6, 14))
+
+    assert draft.exists()
+    assert draft.read_text(encoding="utf-8") == "mid-draft, not this run's output\n"
+    # the genuine output is ALSO left alone -- an all-or-nothing refusal, not a partial one.
+    assert (repo / "docs" / "audits" / "2026-06-14-ecosystem-audit.md").exists()
+    assert (repo / "ecosystem" / "repo-a" / "history" / "2026-06-14.md").exists()
+    assert git("rev-parse", "--verify", _AUTO_BRANCH, check=False).returncode != 0
+
+
+def test_refusal_writes_a_receipt_naming_the_unexpected_paths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("HARNESS_RECEIPTS_DIR", raising=False)
+    repo, git = _fleet_repo(tmp_path, monkeypatch)
+    _write_run_outputs(repo)
+    draft = repo / "docs" / "audits" / "someones-draft.md"
+    draft.write_text("draft\n", encoding="utf-8")
+
+    with pytest.raises(aud.DurableScopeDirty):
+        aud._commit_routine_outputs(date(2026, 6, 14))
+
+    receipt_path = repo / "logs" / "receipts" / "AUDIT-PUBLISH.json"
+    assert receipt_path.exists()
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert receipt["status"] == "REFUSED"
+    assert "docs/audits/someones-draft.md" in receipt["paths"]
+
+
+def test_a_modified_tracked_file_out_of_scope_also_refuses(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Not only untracked -- a TRACKED file this run's naming convention did not touch,
+    modified in the same scope, refuses too (the contract names both)."""
+    monkeypatch.delenv("HARNESS_RECEIPTS_DIR", raising=False)
+    repo, git = _fleet_repo(tmp_path, monkeypatch)
+    _write_run_outputs(repo)
+    legacy = repo / "docs" / "audits" / "2026-06-01-ecosystem-audit.md"
+    legacy.write_text("someone edited the legacy report\n", encoding="utf-8")
+
+    with pytest.raises(aud.DurableScopeDirty):
+        aud._commit_routine_outputs(date(2026, 6, 14))
+
+    assert legacy.read_text(encoding="utf-8") == "someone edited the legacy report\n"
+
+
+def test_durable_scope_dirty_is_a_click_exception_with_a_nonzero_exit_code() -> None:
+    assert issubclass(aud.DurableScopeDirty, click.ClickException)
+    assert aud.DurableScopeDirty("x").exit_code != 0
+
+
+def test_clean_run_is_unaffected_by_the_safety_net(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """No unexpected dirt -> the existing happy path is untouched (no DurableScopeDirty)."""
+    monkeypatch.delenv("HARNESS_RECEIPTS_DIR", raising=False)
+    repo, git = _fleet_repo(tmp_path, monkeypatch)
+    _write_run_outputs(repo)
+    assert aud._commit_routine_outputs(date(2026, 6, 14)) is True
 
 
 def test_parse_porcelain_classifies_status() -> None:
