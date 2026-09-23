@@ -622,16 +622,19 @@ def test_a_rows_only_change_does_not_fall_back_to_the_full_suite():
 # The ledger (`logs/MERGE-RECEIPTS.jsonl`) sits in nearly every merge diff -- every merge
 # folds one appended line into it. Before this rule it matched no rule in the table, so it
 # fell to the "unmapped" fail-safe: replaying this selector on the five wave-4b merge diffs
-# (docs/audits/2026-09-23-technical-lane-test-selection-measured-proof.md) returned
+# (docs/audits/2026-09-24-technical-lane-test-selection-measured-proof.md) returned
 # `full_suite=True` on all five for that reason alone, and `gates.py`'s per-merge gate
 # REFUSES rather than runs a selector's FULL SUITE answer -- so the ledger's own presence,
 # not anything it broke, was enough to red the gate.
 
 @pytest.mark.live_repo
 def test_the_merge_receipts_ledger_never_forces_the_full_suite():
+    """Codex terra HIGH (2026-09-24): asserting only ONE of the two fixed targets lets a
+    regression that drops `test_lane_digest.py` from `MERGE_RECEIPTS_TEST_TARGET` pass
+    silently -- assert the complete expected set, not a single member of it."""
     sel = impacted_tests.select(REPO_ROOT, [impacted_tests.MERGE_RECEIPTS_LEDGER])
     assert not sel.full_suite
-    assert "tests/test_merge_receipt.py" in sel.test_files
+    assert set(sel.test_files) == impacted_tests.MERGE_RECEIPTS_TEST_TARGET
 
 
 @pytest.mark.live_repo
@@ -646,7 +649,7 @@ def test_the_ledger_alongside_a_normal_diff_still_does_not_force_the_full_suite(
 
 # --- LANE-5A-2 Done-contract item 1: a prose/generated edit no longer unions in the ------
 # --- corpus-wide 58-file `live_repo` tier on top of a mixed diff's own selection ---------
-# Measured (docs/audits/2026-09-23-technical-lane-test-selection-measured-proof.md): on the
+# Measured (docs/audits/2026-09-24-technical-lane-test-selection-measured-proof.md): on the
 # same five merge diffs with the ledger set aside, the OLD selector added 58-60 files to
 # every mixed diff (the whole `live_repo`-marked corpus); the fix below removes that.
 
