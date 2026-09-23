@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-23 (a) - CC (Opus 5.5, integrator wave 4b): LANE W4B-5 landed -- a wave's lane contracts are checked by code before they freeze
+
+**Anchors:** `123a8c46` (plan-lint's own `fates:` line, per the wave-4b batch-wide ruling) · `e6dae202` (row 961 cites its Codex record) · `15dadc90` (non-zero exit on BLOCKING; cyclic deps refused) · `98220f38` (plan-lint) -- `worktree-lane-plan-lint`, merged --no-ff in an integration worktree off origin/main `2fd8f256`.
+
+**Did:** merged W4B-5. `scripts/plan_lint.py check <contracts...>` reads a wave's `LANE-*.md` contracts and reports file collisions, missing producers, moment/test coupling (the W4-2/W4-4 class, from `ecosystem/harness.yaml` moments vs tests that hard-code organ ids) and serial mismatches, each BLOCKING or ORDERED by declared dependencies; `estimate_wave()` derives a wave estimate from `logs/MERGE-RECEIPTS.jsonl`. Run over the real wave-4a contracts it flags the W4-2/W4-4 conflict. `ecosystem/harness.yaml` gains one `fates:` line (`manual_until: 2026-10-05`) under `to-cc/ANSWER-integrator-wave4b-handback-organ.md`.
+
+**Result:** Codex terra HIGH:2: `docs/audits/2026-09-22-codex-lane-plan-lint.md` (consumer `[#961]`). Comparison, gates and ship-gate: `to-browser/SESSION-integrator-wave4b-2026-09-22.md`. **Changes:** `scripts/plan_lint.py` (new), `tests/test_plan_lint.py` (new), `ecosystem/harness.yaml` (one fate), `tasks/961-*.md`, `docs/audits/2026-09-22-codex-lane-plan-lint.md` (new), `docs/audits/README.md`, `ecosystem/doc-counts.md` (tests 7221 -> 7253), `JOURNAL.md`, `logs/MERGE-RECEIPTS.jsonl`. **Next:** the handback-organ repair and the resumed lanes, in arrival order; W4B-1 last.
+
 ### 2026-09-22 (h) - CC (Opus 5.5, integrator wave 4b): LANE W4B-0 landed -- six emergency-disabled SessionStart hooks come back on live evidence, two stay off with measured reasons
 
 **Anchors:** `226c9fbf` (audit pair filed under [#956]) · `7de244a4` (row 956 cites its records) · `4c77c538` (audits index) · `f0c31b44` (Codex terra 0/0/0/0) · `c6de680c` (six hooks re-armed, two kept off; `tests/test_hooks_rearm.py`) · `b5e8662b` (wave-4b rows: epic [#955] `implements: ADR-120`, lane rows [#956]-[#961]) -- `worktree-lane-hooks-rearm`, merged --no-ff in an integration worktree off origin/main `3689b5ab`.

@@ -112,6 +112,7 @@ fates:
   - {path: scripts/lane_boot.py, manual_until: 2026-10-05, reason: "on-demand (act: GO): /lane-boot's pre-flight, before any worktree exists; [#804] owns the refusal"}
   - {path: scripts/offload_admission.py, manual_until: 2026-10-05, reason: "unwired by design: the offload role's admission gate; creating that role row is a routing decision the operator owns"}
   - {path: scripts/organ_usage_metric.py, manual_until: 2026-10-05, reason: "an on-demand operator report over session transcripts ([#694] AX9-5); [#709] or a digest command adopts it by calling it"}
+  - {path: scripts/plan_lint.py, manual_until: 2026-10-05, reason: "run by a lane or the integrator before a wave's contracts freeze; no caller wired yet -- a moment declaration is owed by the next wave (ANSWER-integrator-wave4b-handback-organ.md)"}
   - {path: scripts/propose_closures.py, manual_until: 2026-10-05, reason: "derived-copy source: the armed process is the plugin copy the plugin Stop hook fires (ecosystem/derived-copies.yaml)"}
   - {path: scripts/propose_row_closures.py, manual_until: 2026-10-05, reason: "[#730] witness scan: an operator-transport report generator run from the CLI on demand; arrived after the census"}
   - {path: scripts/provider_bench.py, manual_until: 2026-10-05, reason: "a one-off paid measurement, operator-invoked: a commit-tier trigger would bill the operator per commit ([#785]; owner [#676])"}
