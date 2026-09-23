@@ -21,11 +21,16 @@ THE TWO GATES, IN THE ORDER A CALLER CROSSES THEM.
      timeout by default (DECLARE-NIGHT-AUTONOMY N2 wants a run RESUMED, not abandoned); a
      caller that wants one sets `wait_timeout_s` in the YAML config or passes one explicitly.
   2. SLOT: `acquire_slot` claims one of `slots` machine-wide lock files under
-     `logs/receipts/memory-gate-slots/` (gitignored, `HARNESS_RECEIPTS_DIR` overrides same as
-     every other receipt home in this repo). `filelock` is the arbiter because every
-     contender here shares one machine by construction -- contrast `scripts/single_flight.py`,
-     whose git-ref lock exists for racers that may NOT share a filesystem, a stronger and more
-     expensive property this gate does not need.
+     `logs/receipts/memory-gate-slots/` (gitignored, `HARNESS_MEMORY_GATE_SLOTS_DIR` overrides).
+     DELIBERATELY its own env var, never `HARNESS_RECEIPTS_DIR`: that var is `test_pairing.py`'s
+     per-test registry-home redirection convention, and a caller (`test_pairing.py` itself,
+     gating its own subprocess pytest runs) that inherits its FULL environment into a gated
+     command would otherwise steer this machine-wide semaphore into a test's throwaway tmp_path
+     -- found live via `test_write_registry_never_replaces_an_existing_registry_unless_told_to`
+     going red with a `memory-gate-slots` dir beside the registry it asserts is alone. `filelock`
+     is the arbiter because every contender here shares one machine by construction -- contrast
+     `scripts/single_flight.py`, whose git-ref lock exists for racers that may NOT share a
+     filesystem, a stronger and more expensive property this gate does not need.
 
 THE RECEIPT (`run_gated`'s callers get one per call): `waited_s`, `gated`, `ran`, `workers`
 (`-n` computed, or null when no `workers_flag` was requested), `peak_used_mb` (system-wide
@@ -82,6 +87,10 @@ _RECEIPT_PREFIX = "MEMORY-GATE-RECEIPT"
 
 #: Old behaviour, by a flag (done-contract item 2). Non-empty disables BOTH gates.
 DISABLE_ENV = "HARNESS_MEMORY_GATE_DISABLE"
+
+#: The slot lock directory's own override -- deliberately NOT `HARNESS_RECEIPTS_DIR` (see the
+#: module docstring's gate-2 paragraph for why the two must never share a var).
+SLOTS_DIR_ENV = "HARNESS_MEMORY_GATE_SLOTS_DIR"
 
 #: `run` subcommand only: the wrapped command's own `subprocess.TimeoutExpired` fired. The
 #: POSIX `timeout(1)` convention -- distinguishable from any real exit code the wrapped
@@ -216,8 +225,7 @@ def _slot_lock_dir(lock_dir: Optional[Path]) -> Path:
     if lock_dir is not None:
         base = Path(lock_dir)
     else:
-        base = Path(os.environ.get("HARNESS_RECEIPTS_DIR") or (_REPO_ROOT / "logs" / "receipts"))
-        base = base / _SLOT_LOCK_SUBDIR
+        base = Path(os.environ.get(SLOTS_DIR_ENV) or (_REPO_ROOT / "logs" / "receipts" / _SLOT_LOCK_SUBDIR))
     base.mkdir(parents=True, exist_ok=True)
     return base
 

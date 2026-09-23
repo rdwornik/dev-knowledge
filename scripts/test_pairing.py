@@ -343,7 +343,13 @@ def run_pytest_full(clone: Path, args: list[str], *, workers: int,
     else:
         want_xdist = workers != 0 and importlib.util.find_spec("xdist") is not None
         cmd = [*base_cmd, *args]
-        gate_cmd = [sys.executable, str(_MEMORY_GATE_SCRIPT), "run"]
+        # `--receipt` pinned HERE, per call, inside `scratch` (never the gate's own
+        # `HARNESS_RECEIPTS_DIR`-derived default): `scratch` is this invocation's own throwaway
+        # dir, same as `events` above, so the gate's admission receipt can never land beside a
+        # caller's own redirected receipts home (e.g. `test_test_pairing.py`'s `home` fixture,
+        # which inherits `env` below and asserts nothing but its own registry lives there).
+        gate_receipt = scratch / f"memory-gate-receipt-{uuid.uuid4().hex}.json"
+        gate_cmd = [sys.executable, str(_MEMORY_GATE_SCRIPT), "run", "--receipt", str(gate_receipt)]
         if want_xdist:
             gate_cmd += ["--workers-flag", "-n"]
         if timeout is not None:
