@@ -49,10 +49,24 @@ import re
 import subprocess
 import sys
 import time
-from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Mapping, Optional
+
+_SCRIPTS = Path(__file__).resolve().parent
+if str(_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS))
+
+# LANE-END is one of the four inter-seat shapes `handback_schema` owns (RC3, LANE-W4B-2). The
+# render/parse pair moved there verbatim; this module keeps the names below as the stable public
+# API `lane_digest.py` and this module's own tests already import.
+from handback_schema import (  # noqa: E402
+    LaneEndReport as ReportFacts,
+    VERDICT_ATTENTION,
+    VERDICT_CLEAN,
+    VERDICT_INCOMPLETE,
+    render_lane_end_report,
+)
 
 EXIT_OK = 0
 EXIT_REFUSED = 3   # not a mounted browser-bound folder / bad lane name / bad arguments
@@ -74,9 +88,8 @@ _OWN_RECEIPT = "MOMENT-LANE-END-TRANSPORT-REPORT"   # excluded: it is written AF
 # THIS module (for `parse_report`); importing it back would make the two modules import each
 # other. The predicate is five lines and stable, so a second copy is the safer trade -- pinned
 # against drift by `tests/test_transport_report.py::test_the_lane_verdict_agrees_with_lane_digest`.
-VERDICT_CLEAN = "finished clean"
-VERDICT_ATTENTION = "needs attention"
-VERDICT_INCOMPLETE = "incomplete"
+# VERDICT_CLEAN / VERDICT_ATTENTION / VERDICT_INCOMPLETE are `handback_schema`'s (imported
+# above) and re-exported under these names for every existing caller and test.
 
 _ROOT = Path(__file__).resolve().parents[1]
 
@@ -226,57 +239,10 @@ def _receipt_rows(receipts: list[tuple[str, str]]) -> list[dict]:
     return rows
 
 
-@dataclass
-class ReportFacts:
-    """What `parse_report` reads back out of a `LANE-END-<lane>.md` this module wrote."""
-    lane: Optional[str] = None
-    commits: list[str] = field(default_factory=list)
-    changed: list[str] = field(default_factory=list)
-    verdict: Optional[str] = None
-    receipts: list[dict] = field(default_factory=list)
-
-
-_HEADING_RE = re.compile(r"^#\s+(\S+)\s+--\s+lane-end report\s*$", re.MULTILINE)
-_RECEIPT_BLOCK_RE = re.compile(r"^###\s+(\S+\.json)\s*$\n+```json\n(.*?)\n```",
-                               re.MULTILINE | re.DOTALL)
-
-
-def _section(text: str, heading: str) -> Optional[str]:
-    """The body of one `## heading` (or `## heading (N)`) section, up to the next `## ` or the end
-    of the text. `None` when the heading is not there at all -- distinct from an empty section."""
-    pattern = re.compile(rf"^##\s+{re.escape(heading)}(?:\s*\(\d+\))?\s*$\n(.*?)(?=^##\s|\Z)",
-                         re.MULTILINE | re.DOTALL)
-    match = pattern.search(text)
-    return match.group(1).strip("\n") if match else None
-
-
-def _bullets(body: Optional[str]) -> list[str]:
-    if not body:
-        return []
-    return [line[2:].rstrip() for line in body.splitlines() if line.startswith("- ")]
-
-
-def parse_report(text: str) -> ReportFacts:
-    """Read a `LANE-END-<lane>.md` this module wrote back into structured facts (R-W4-3's other
-    half): `lane_digest.py --reports-root` calls this so the writer stays the one place the
-    format is defined. Never raises -- a section that is not there reads as empty/None, the same
-    "never silently dropped, always named" posture `load_receipts` takes on a malformed file."""
-    heading = _HEADING_RE.search(text)
-    receipts = []
-    for name, body in _RECEIPT_BLOCK_RE.findall(_section(text, "Receipts") or ""):
-        try:
-            row = json.loads(body)
-        except ValueError:
-            row = None
-        if not (isinstance(row, dict) and row.get("organ")):
-            row = {"organ": name.rsplit(".", 1)[0], "status": "unreadable"}
-        receipts.append(row)
-    verdict_body = _section(text, "Verdict")
-    return ReportFacts(lane=heading.group(1) if heading else None,
-                       commits=_bullets(_section(text, "Commits")),
-                       changed=_bullets(_section(text, "Changed files")),
-                       verdict=verdict_body.strip() if verdict_body else None,
-                       receipts=receipts)
+# `ReportFacts` (== `handback_schema.LaneEndReport`) and `parse_report` (==
+# `handback_schema.LaneEndReport.parse`) are imported at module top -- kept under these names
+# so `lane_digest.py` and this module's own tests need no change.
+parse_report = ReportFacts.parse
 
 
 def collect_receipts(receipts_dir: Path) -> list[tuple[str, str]]:
@@ -305,20 +271,8 @@ def build_report(lane: str, receipts_dir: Path, repo: Path) -> str:
     commits = commit_subjects(repo)
     changed = changed_files(repo)
     verdict = _lane_verdict(_receipt_rows(receipts))
-    parts = [f"# {lane} -- lane-end report", "",
-             f"generated: {stamp} (replaced at every turn end; the newest run is the only copy)", "",
-             f"## Commits ({len(commits)})", ""]
-    parts += [f"- {c}" for c in commits] if commits else ["No commits recorded."]
-    parts += ["", f"## Changed files ({len(changed)})", ""]
-    parts += [f"- {c}" for c in changed] if changed else ["No changed files."]
-    parts += ["", "## Verdict", "", verdict, "",
-             "## Session summary", "", session_summary(repo), "",
-             f"## Receipts ({len(receipts)})", ""]
-    if not receipts:
-        parts += ["No receipts found for this lane.", ""]
-    for name, text in receipts:
-        parts += [f"### {name}", "", "```json", text.rstrip(), "```", ""]
-    return "\n".join(parts)
+    return render_lane_end_report(lane, stamp, commits, changed, verdict,
+                                  session_summary(repo), receipts)
 
 
 # --- delivery ------------------------------------------------------------------------------------
