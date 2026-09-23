@@ -221,16 +221,6 @@ def test_repo_root_answers_about_the_caller_not_about_the_library(tmp_path: Path
     assert Path(__file__).resolve().parent.parent not in resolved.resolve().parents
 
 
-@pytest.mark.skipif(not _HAS_GIT, reason="needs git")
-def test_the_derived_store_follows_the_resolved_root(tmp_path: Path,
-                                                     monkeypatch: pytest.MonkeyPatch) -> None:
-    """`default_db_path()` under a CWD inside another repository lands in THAT repository."""
-    seeded = _seed_repo(tmp_path / "elsewhere")
-    monkeypatch.delenv(te.DB_PATH_ENV, raising=False)
-    monkeypatch.chdir(seeded)
-    assert te.default_db_path() == seeded.resolve() / te.DEFAULT_DB_RELPATH
-
-
 def test_a_root_that_cannot_be_resolved_refuses_rather_than_guessing(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """No override and no repository is a WIRING defect, and it stops loudly.
@@ -239,7 +229,7 @@ def test_a_root_that_cannot_be_resolved_refuses_rather_than_guessing(
     original defect) or the CWD (a `logs/` store scattered wherever a process started).
     """
     monkeypatch.delenv(te.DB_PATH_ENV, raising=False)
-    monkeypatch.setattr(te, "repo_root", lambda *a, **k: None)
+    monkeypatch.setattr(te, "common_repo_root", lambda *a, **k: None)
     with pytest.raises(te.TelemetryError, match="cannot resolve the telemetry store"):
         te.default_db_path()
 
@@ -251,6 +241,114 @@ def test_repo_root_is_none_outside_a_repository(tmp_path: Path,
     outside.mkdir()
     monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path))
     assert te.repo_root(outside) is None
+
+
+# ---------------------------------------------------------------------------
+# lane-hooks-urgent (2026-09-2x): the counter store shares one file across every worktree of a
+# repository, via `common_repo_root()` (git-common-dir), NOT `repo_root()` (--show-toplevel) --
+# so a lane's rows outlive `git worktree remove`. Contract done-when: "A test proves a count
+# survives git worktree remove."
+# ---------------------------------------------------------------------------
+
+@pytest.mark.skipif(not _HAS_GIT, reason="needs git")
+def test_the_derived_store_follows_the_resolved_root(tmp_path: Path,
+                                                     monkeypatch: pytest.MonkeyPatch) -> None:
+    """`default_db_path()` under a CWD inside another (non-worktree) repository lands in THAT
+    repository -- git-common-dir's parent equals --show-toplevel for a repo with one checkout,
+    so this is unchanged by the move off `repo_root()`."""
+    seeded = _seed_repo(tmp_path / "elsewhere")
+    monkeypatch.delenv(te.DB_PATH_ENV, raising=False)
+    monkeypatch.chdir(seeded)
+    assert te.default_db_path() == seeded.resolve() / te.DEFAULT_DB_RELPATH
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(not _HAS_GIT, reason="needs git")
+def test_default_db_path_from_a_worktree_resolves_to_the_primary_checkout(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The direct fix: called from inside a LINKED WORKTREE, `default_db_path()` answers the
+    PRIMARY checkout's `logs/TELEMETRY.db`, not the worktree's own -- `--show-toplevel` would
+    answer the worktree; `--git-common-dir`'s parent answers the primary either way."""
+    primary = _seed_repo(tmp_path / "primary")
+    worktree = tmp_path / "wt"
+    _git(primary, "worktree", "add", "-b", "wt-branch", str(worktree))
+    monkeypatch.delenv(te.DB_PATH_ENV, raising=False)
+    monkeypatch.chdir(worktree)
+    assert te.default_db_path() == primary.resolve() / te.DEFAULT_DB_RELPATH
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(not _HAS_GIT, reason="needs git")
+def test_a_counter_survives_git_worktree_remove(tmp_path: Path,
+                                                monkeypatch: pytest.MonkeyPatch) -> None:
+    """Contract done-when, proven end to end: emit a `hook_run` from inside a worktree, remove
+    that worktree, and the row is still readable from the primary checkout's store."""
+    primary = _seed_repo(tmp_path / "primary")
+    worktree = tmp_path / "wt"
+    _git(primary, "worktree", "add", "-b", "wt-branch-2", str(worktree))
+    monkeypatch.delenv(te.DB_PATH_ENV, raising=False)
+    monkeypatch.chdir(worktree)
+    te.emit_hook_run("codemap-freshness", "pass", duration_ms=42)
+
+    shared_db = primary.resolve() / te.DEFAULT_DB_RELPATH
+    assert shared_db.exists()
+    before = _rows(shared_db)
+    assert [r["name"] for r in before] == ["codemap-freshness"]
+    assert not (worktree / te.DEFAULT_DB_RELPATH).exists(), \
+        "the row must not have landed in the worktree's own tree"
+
+    monkeypatch.chdir(primary)
+    _git(primary, "worktree", "remove", "--force", str(worktree))
+    assert not worktree.exists()
+
+    after = _rows(shared_db)
+    assert [r["name"] for r in after] == ["codemap-freshness"], \
+        "the counter must survive `git worktree remove`"
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="needs git")
+def test_legacy_per_checkout_store_is_migrated_into_the_shared_store(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A worktree that already wrote its OWN `logs/TELEMETRY.db` (the pre-fix shape, keyed off
+    `repo_root()`) has that row folded into the shared store the first time `default_db_path()`
+    is resolved from inside it -- existing per-checkout counts are not silently dropped."""
+    primary = _seed_repo(tmp_path / "primary")
+    worktree = tmp_path / "wt"
+    _git(primary, "worktree", "add", "-b", "wt-branch-3", str(worktree))
+
+    legacy_db = worktree / te.DEFAULT_DB_RELPATH
+    te.emit_hook_run("roster-freshness", "block", db_path=legacy_db)
+    assert legacy_db.exists()
+
+    monkeypatch.delenv(te.DB_PATH_ENV, raising=False)
+    monkeypatch.chdir(worktree)
+    resolved = te.default_db_path()  # triggers the migration as a side effect
+
+    shared_db = primary.resolve() / te.DEFAULT_DB_RELPATH
+    assert resolved == shared_db
+    migrated = _rows(shared_db)
+    assert [r["name"] for r in migrated] == ["roster-freshness"]
+    assert not legacy_db.exists(), "the legacy file is claimed (renamed), never left in place"
+    # Excludes WAL/SHM sidecars (`*-wal`/`*-shm`), which SQLite creates/leaves beside any
+    # WAL-mode file by suffix and are not the claimed backup itself.
+    backups = [p for p in worktree.glob("logs/TELEMETRY.db.migrated-*")
+               if not p.name.endswith(("-wal", "-shm"))]
+    assert len(backups) == 1, "the claimed legacy file is kept as evidence, not deleted"
+
+    # Idempotent: resolving again finds no legacy file left to migrate, and does not duplicate.
+    te.default_db_path()
+    assert [r["name"] for r in _rows(shared_db)] == ["roster-freshness"]
+
+
+def test_migrate_legacy_checkout_store_is_a_noop_for_the_primary_itself(
+        tmp_path: Path) -> None:
+    """The primary checkout's own legacy path IS its shared path -- migrating a file onto itself
+    would truncate it via the rename, so this must return 0 and touch nothing."""
+    shared = tmp_path / "logs" / "TELEMETRY.db"
+    te.emit_hook_run("x", "pass", db_path=shared)
+    before = shared.read_bytes()
+    assert te.migrate_legacy_checkout_store(shared, legacy_root=tmp_path) == 0
+    assert shared.read_bytes() == before
 
 
 # ---------------------------------------------------------------------------

@@ -278,10 +278,14 @@ def repo_root(start: str | os.PathLike[str] | None = None) -> Path | None:
     HONEST LIMIT, stated because the ruling's own wording invites the question:
     `--show-toplevel` in a LINKED WORKTREE returns THAT WORKTREE, not the primary checkout. So
     two lanes running in two worktrees of one repo write two stores, one per tree, rather than
-    sharing one. That is the ruled shape (R6(c) names `--show-toplevel` specifically); the
-    alternative resolver, `--git-common-dir` as used by `fleet_analytics._git_common_dir`, would
-    merge them into a single store. Nothing here quietly substitutes it. Correlating across the
-    two trees is `run_id`'s job ([#565]), not the path's.
+    sharing one. That is the ruled shape (R6(c) names `--show-toplevel` specifically) for THIS
+    resolver's remaining callers (the shallow-history check has no reason to leave its own tree).
+
+    `default_db_path()` no longer calls this function (lane-hooks-urgent, 2026-09-2x): a counter
+    store dying with `git worktree remove` cannot back a fleet-wide expiry verdict, so that ONE
+    call site moved to `common_repo_root()` below, which resolves via `--git-common-dir` instead.
+    Correlating across trees for everything that still uses `repo_root()` is `run_id`'s job
+    ([#565]), not the path's.
 
     The git-env scrub applies for the same reason it applies to the shallow probe: an inherited
     `GIT_DIR` overrides both cwd and `-C`, so without it this would answer about the PARENT
@@ -300,6 +304,108 @@ def repo_root(start: str | os.PathLike[str] | None = None) -> Path | None:
         return None
     answer = proc.stdout.strip()
     return Path(answer) if answer else None
+
+
+def common_repo_root(start: str | os.PathLike[str] | None = None) -> Path | None:
+    """The PRIMARY checkout's root -- the same directory from `start` itself and from every one
+    of its linked worktrees. `git rev-parse --path-format=absolute --git-common-dir` answers the
+    primary's `.git` from anywhere inside the repository (unlike `--show-toplevel`, which answers
+    each worktree's OWN root, per `repo_root()` above); its parent is that shared root. `None`
+    when the question cannot be answered, same tri-state discipline as `repo_root()`.
+
+    THE EXISTING CONVENTION THIS REUSES -- cited rather than reinvented: `fleet_analytics.
+    _git_common_dir`, `organ_usage_metric._git_common_dir`/`canonical_repo_root`, `fleet_parity.py`,
+    `worktree_occupancy.py`, `worktree_seed.py`, `no_leftovers.py` and `gen_handoff.py` all resolve
+    the same shared root the same way, for the same reason: a lane worktree and the primary
+    checkout are one logical repository for anything meant to outlive the worktree.
+
+    `[#529]`/lane-hooks-urgent (2026-09-2x): the commit-hook counter store (`default_db_path`)
+    is the first `telemetry_emit` consumer to need this. `repo_root()`'s own docstring records
+    ruling R6(c), which chose `--show-toplevel` DELIBERATELY for the general-purpose resolver
+    (a linked worktree keeps its own store) -- that choice stands for `repo_root()`'s other
+    callers (the shallow-history check has no reason to leave its own tree). This function is a
+    SEPARATE resolver for the one call site that must NOT follow a worktree: a counter written in
+    `.claude/worktrees/<lane>/logs/TELEMETRY.db` dies with `git worktree remove`, which is exactly
+    backwards for a store a fleet-wide expiry verdict reads days or weeks later.
+    """
+    where = Path(start) if start is not None else Path.cwd()
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(where), "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            env=_gitenv.scrubbed_git_env(),
+        )
+    except OSError:
+        return None
+    if proc.returncode != 0:
+        return None
+    answer = proc.stdout.strip()
+    return Path(answer).parent if answer else None
+
+
+def _copy_rows(src: Path, dst: Path) -> int:
+    """Append every `events` row of `src` onto `dst`; return how many. `dst` is created/migrated
+    (schema + `_MIGRATIONS`) first, exactly like `connect()`, so a legacy file predating a schema
+    change still copies cleanly. Never raises `sqlite3.Error` -- a corrupt or half-written legacy
+    file yields 0 copied rows rather than blocking the hook the migration rides in on."""
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(str(dst)) as d:
+        for pragma, value in WAL_PRAGMAS:
+            d.execute(f"PRAGMA {pragma}={value}")
+        d.execute(SCHEMA)
+        _migrate(d)
+        try:
+            with sqlite3.connect(str(src)) as s:
+                rows = s.execute(
+                    "SELECT ts, event_type, name, outcome, duration_ms, context_json, run_id "
+                    "FROM events").fetchall()
+        except sqlite3.Error:
+            return 0
+        d.executemany(
+            "INSERT INTO events (ts, event_type, name, outcome, duration_ms, context_json, run_id) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)", rows)
+        d.commit()
+        return len(rows)
+
+
+def migrate_legacy_checkout_store(shared_path: Path, legacy_root: Path | None = None) -> int:
+    """Fold a PER-CHECKOUT store (written before the counter moved to the primary checkout, or by
+    a stray caller that still resolves `repo_root()`) into the shared `shared_path`. Returns the
+    number of rows migrated (0 when there is nothing to migrate).
+
+    CLAIM BY RENAME, THEN COPY -- the concurrency-safe order. `os.replace` is atomic, so of any
+    number of processes racing this at once, exactly one renames the legacy file to a
+    `.migrated-<pid>-<ts>` sibling; every other process finds the legacy path already gone and
+    returns 0 immediately. The winner then owns an unshared file and copies at leisure -- no lock
+    contention with a hook that is, at that moment, writing fresh rows into `shared_path` under
+    its own WAL. The renamed backup is left on disk (not deleted): a migration is exactly the kind
+    of one-time act whose evidence should survive its own bug.
+
+    A no-op when `legacy_root` (default: `repo_root()`, this checkout's own `--show-toplevel`) IS
+    the checkout `shared_path` already belongs to -- the primary checkout's legacy path and its
+    shared path are the same file, and "migrating" a file onto itself would truncate it via the
+    rename.
+    """
+    root = legacy_root if legacy_root is not None else repo_root()
+    if root is None:
+        return 0
+    legacy_path = root / DEFAULT_DB_RELPATH
+    try:
+        if legacy_path.resolve() == shared_path.resolve():
+            return 0
+    except OSError:
+        return 0
+    if not legacy_path.is_file():
+        return 0
+    claimed = legacy_path.with_name(f"{legacy_path.name}.migrated-{os.getpid()}-{int(time.time())}")
+    try:
+        os.replace(legacy_path, claimed)
+    except OSError:
+        return 0  # another process claimed it first, or it vanished between the exists() and here
+    try:
+        return _copy_rows(claimed, shared_path)
+    except sqlite3.Error:
+        return 0
 
 
 def new_run_id() -> str:
@@ -427,30 +533,51 @@ def coverage_value(resolved: int | None) -> int | str:
 
 
 def default_db_path() -> Path:
-    """The store location: `$DEV_KNOWLEDGE_TELEMETRY_DB` if set, else `<repo>/logs/TELEMETRY.db`
-    where `<repo>` is `repo_root()` -- the CALLER's repository, resolved at call time.
+    """The store location: `$DEV_KNOWLEDGE_TELEMETRY_DB` if set, else `<primary>/logs/TELEMETRY.db`
+    where `<primary>` is `common_repo_root()` -- the repository's PRIMARY checkout, shared by every
+    linked worktree, resolved at call time.
 
     Resolved per call, never cached at import, so a test or a sandbox can set the env var
     after this module is already imported.
 
+    NOT `repo_root()` (lane-hooks-urgent, 2026-09-2x): a hook run inside a lane worktree used to
+    write `<worktree>/logs/TELEMETRY.db`, which `git worktree remove` deletes along with every
+    row in it -- exactly the store a fleet-wide "0 runs in-window -> REMOVE" expiry verdict reads,
+    and exactly backwards. `common_repo_root()` answers the same primary checkout from the primary
+    itself AND from every worktree, so all of them now share one file and a lane's counters
+    outlive its worktree. See `common_repo_root()`'s docstring for the convention this reuses and
+    why `repo_root()` itself is unchanged for its other callers.
+
+    MIGRATES a pre-existing per-checkout store on the way out, via
+    `migrate_legacy_checkout_store()` -- a worktree that already wrote its own
+    `logs/TELEMETRY.db` before this change folds those rows into the shared store the first time
+    a hook resolves this path from inside it, rather than losing them silently. Swallows its own
+    errors (never raises, never blocks a hook on a migration defect): the durable guarantee this
+    function makes is the PATH it returns, not that every legacy row makes it across.
+
     REFUSES (rather than guessing) when neither the override nor a repository answers. The
     alternatives are both worse than a loud stop: falling back to the library's own directory
-    is the R6(c) defect this function was just fixed for, and falling back to the CWD scatters
-    a `logs/TELEMETRY.db` into whatever directory a process happened to start in. A gate always
+    is the R6(c) defect `repo_root()` was fixed for, and falling back to the CWD scatters a
+    `logs/TELEMETRY.db` into whatever directory a process happened to start in. A gate always
     runs inside a repository, so this path is a wiring defect, and `TelemetryError` is the class
     `safe_emit` deliberately does not swallow for exactly that reason.
     """
     override = os.environ.get(DB_PATH_ENV)
     if override:
         return Path(override)
-    root = repo_root()
+    root = common_repo_root()
     if root is None:
         raise TelemetryError(
-            f"cannot resolve the telemetry store: `git rev-parse --show-toplevel` did not answer "
+            f"cannot resolve the telemetry store: `git rev-parse --git-common-dir` did not answer "
             f"from {Path.cwd()}. Set ${DB_PATH_ENV} to an explicit path, pass `db_path=`, or run "
             f"inside a repository"
         )
-    return root / DEFAULT_DB_RELPATH
+    shared = root / DEFAULT_DB_RELPATH
+    try:
+        migrate_legacy_checkout_store(shared)
+    except Exception:  # a migration defect must never block the hook resolving its store path
+        pass
+    return shared
 
 
 def _migrate(conn: sqlite3.Connection) -> None:
