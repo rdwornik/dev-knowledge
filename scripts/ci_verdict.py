@@ -245,10 +245,17 @@ def wait_for_run(sha: str, *, repo_root: Path, workflow: str = WORKFLOW,
     deadline = clock_fn() + timeout_s
     run: Optional[dict] = None
     while True:
+        previously_known = run
         try:
             run = view_fn(run["databaseId"], repo_root=repo_root) if run is not None \
                 else find_run(sha, repo_root=repo_root, workflow=workflow, list_fn=list_fn)
         except GhUnavailable as exc:
+            # A run already FOUND is not un-found by a later poll's transient failure -- the
+            # caller still gets its id and url, with the honest reason that the LATEST read
+            # failed, rather than losing everything it already knew.
+            if previously_known is not None:
+                return previously_known, (f"run {previously_known.get('databaseId')} was "
+                                          f"found, but a later poll could not read it: {exc}")
             return None, f"gh unavailable: {exc}"
         if run is not None and run.get("status") == "completed":
             return run, ""
@@ -262,12 +269,23 @@ def wait_for_run(sha: str, *, repo_root: Path, workflow: str = WORKFLOW,
 
 def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = WORKFLOW,
                 timeout_s: int = POLL_TIMEOUT_S, interval_s: int = POLL_INTERVAL_S,
-                list_fn: Callable = list_runs, view_fn: Callable = fetch_run_status,
-                jobs_fn: Callable = fetch_jobs, log_fn: Callable = fetch_job_log,
+                list_fn: Optional[Callable] = None, view_fn: Optional[Callable] = None,
+                jobs_fn: Optional[Callable] = None, log_fn: Optional[Callable] = None,
                 sleep_fn: Callable = time.sleep,
                 clock_fn: Callable = time.monotonic) -> CiVerdict:
-    """CI's verdict for `ref`: green, red (with the new reds named), or not-run."""
+    """CI's verdict for `ref`: green, red (with the new reds named), or not-run.
+
+    The four `_fn` defaults resolve by NAME, here, rather than as bound parameter defaults --
+    a default bound at `def` time would freeze the ORIGINAL function object, so a caller (the
+    CLI, a test) that monkeypatches `ci_verdict.list_runs` et al. would silently keep calling
+    the un-patched one. Resolving inside the body re-reads the module's current attribute on
+    every call, which is what makes the CLI's own defaults patchable at all.
+    """
     root = repo_root or _REPO_ROOT
+    list_fn = list_fn or list_runs
+    view_fn = view_fn or fetch_run_status
+    jobs_fn = jobs_fn or fetch_jobs
+    log_fn = log_fn or fetch_job_log
     sha = resolve_sha(ref, repo_root=root)
     run, wait_reason = wait_for_run(sha, repo_root=root, workflow=workflow, timeout_s=timeout_s,
                                     interval_s=interval_s, list_fn=list_fn, view_fn=view_fn,

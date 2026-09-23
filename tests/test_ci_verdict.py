@@ -146,13 +146,37 @@ def test_an_UNREADABLE_job_list_is_NOT_RUN_not_a_silent_pass():
 
 
 def test_a_run_still_IN_PROGRESS_past_the_timeout_is_NOT_RUN_and_NAMES_the_run():
+    """Fully hermetic: a fake clock so the timeout fires without any real waiting, and an
+    injected `view_fn` so re-polling never shells out to the real `gh`."""
+    clock = {"t": 0.0}
     verdict = cv.verdict_for(
         "abc", repo_root=None, list_fn=_list_fn([_run("abc", status="in_progress")]),
-        timeout_s=1, interval_s=1, sleep_fn=_no_sleep)
+        view_fn=lambda run_id, *, repo_root: _run("abc", status="in_progress"),
+        timeout_s=10, interval_s=5, sleep_fn=lambda seconds: clock.__setitem__("t", clock["t"] + seconds),
+        clock_fn=lambda: clock["t"])
 
     assert verdict.verdict == cv.STATE_NOT_RUN
     assert verdict.run_id == 1
     assert "still in_progress" in verdict.reason
+
+
+def test_a_run_FOUND_then_UNREADABLE_on_a_later_poll_keeps_the_run_id_it_already_had():
+    """The honest-limit fix: a transient `gh` failure on a RE-poll must not erase a run this
+    organ already confirmed existed."""
+    calls = {"n": 0}
+
+    def flaky_view(run_id, *, repo_root):
+        calls["n"] += 1
+        raise cv.GhUnavailable("HTTP 502")
+
+    verdict = cv.verdict_for(
+        "abc", repo_root=None, list_fn=_list_fn([_run("abc", status="in_progress")]),
+        view_fn=flaky_view, timeout_s=10, interval_s=5, sleep_fn=_no_sleep)
+
+    assert verdict.verdict == cv.STATE_NOT_RUN
+    assert verdict.run_id == 1
+    assert "could not read it" in verdict.reason
+    assert calls["n"] == 1
 
 
 # --- polling actually waits ------------------------------------------------------------------
