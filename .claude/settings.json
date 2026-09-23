@@ -20,17 +20,6 @@
         "reenable_when": "OUT OF SCOPE for this repo's settings.json -- re-armed 2026-09-22 (lane-hooks-rearm, docs/audits/2026-09-22-technical-lane-hooks-rearm-live-measurement.md 0.1): confirmed live that user-level ~/.claude/settings.json carries no SessionStart array at all, and no surface-closures.ps1 file exists in this repo. Re-arming it is a global-infra edit (global CLAUDE.md rule 6) this lane does not have a ruling for. Expiry reset to a 90-day scope re-check, not a retest date -- nothing in this repo can retest it."
       },
       {
-        "hook": "fleet_health.py",
-        "event": "SessionStart",
-        "wired": "repo",
-        "bypassed": 107,
-        "runs": 263,
-        "rate": "41%",
-        "owner": "[#808]",
-        "expiry": "2026-09-29",
-        "reenable_when": "LIVE-TESTED 2026-09-22 (lane-hooks-rearm, docs/audits/2026-09-22-technical-lane-hooks-rearm-live-measurement.md 2.1): FAILED, severely. Run through its exact SessionStart command, it printed 'running cross-repo audit (stale or first run)...' and did not return past its 80s kill bound (60s budget + 20s headroom); the VISIBLE process tree was terminated by hand, but its detached `audit.py run` grandchild (spawned by run_audit's subprocess.run, own command line names only audit.py) was NOT caught by that kill and kept running unnoticed for ~9 more minutes. On completion it committed BOTH its own output AND this lane's untracked in-progress docs/audits/ file onto automation/fleet-audit, then deleted that untracked file from the working tree as part of restoring it (audit.py::_commit_routine_outputs assumes 'the durable scope is clean going in', which does not hold live) -- recovered by hand from the orphan branch. This independently reproduces the 41% bypass rate AND surfaces a second, distinct defect: silent destructive data loss of untracked docs/audits/ work, not just a timeout. Both are inside scripts this lane does not own (`Files you own` is settings.json/tests/rows only); the destructive-restore finding is triaged CANDIDATE per ADR-111 and surfaced in this lane's handback for operator routing to intake, not self-filed as a row. Re-enable needs both defects fixed plus a repeat of this lane's live-test method, not a fresh bypass-rate window."
-      },
-      {
         "hook": "propose_closures.py",
         "event": "Stop",
         "wired": "plugin tier1-lifecycle Stop hook, loaded IN PLACE from plugins/tier1-lifecycle/hooks/hooks.json in the primary checkout (debug log, session f2d6cb3c) -- the same source every repo on this machine loads",
@@ -55,9 +44,10 @@
       "resource_lifecycle.py session-start": "PASS -- exit 0, ~1.1s vs 30s budget, 0 orphans",
       "billing_leak_sentinel.ps1": "PASS with a disclosed residual -- exit 0, 3.98s vs 10s budget, 0 orphans; this hook was ALSO named in //hooks-EMERGENCY-DISABLED-2026-09-17's suspended-at-creation incident, whose original re-enable bar included 'only once the suspended-at-creation cause is identified' -- that cause was never identified. RATIFICATION-2026-09-22 O-2 names this lane's fresh live-test evidence, not a resolved root cause, as the re-enable condition for the 2026-09-17 emergency disable; the residual is carried here, not dropped.",
       "conductor.py session-start": "PASS -- exit 0, ~1.1s vs 25s budget, 0 orphans",
-      "changelog_sentinel.py": "PASS -- exit 0, ~1.1s vs 20s budget, 0 orphans"
+      "changelog_sentinel.py": "PASS -- exit 0, ~1.1s vs 20s budget, 0 orphans",
+      "fleet_health.py": "PASS 2026-09-23 ([#962], LANE-W4B-6-fleet-health-split.md, wave 4b) -- SUPERSEDES the 2026-09-22 FAILED entry below (not a fresh bypass-rate window; the two defects that entry names are fixed, not waited out). Root cause was architectural, per docs/audits/2026-09-22-technical-lane-hooks-rearm-live-measurement.md 2.1: the SessionStart hook ran the full cross-repo audit SYNCHRONOUSLY in-session. Fixed by splitting it into reader / trigger / isolated producer: the SessionStart hook now only reads the last-published digest (prints it plus its age, e.g. '[fleet] digest age: 0.1h') and, only when that digest is older than ecosystem/fleet-health-config.yaml's stale_after_hours, takes an exclusive claim (scripts/fleet_health.py::_claim_producer, the same O_CREAT|O_EXCL pattern as lane_end_guard.py) and spawns ONE detached producer (lane_end_guard.spawn_worker -- Windows job-object breakaway, own process group, closed stdio) that runs the audit in its OWN isolated git worktree (scripts/fleet_health.py::provision_isolated_checkout, OUTSIDE every session's working tree) and removes that worktree when done; the SessionStart hook itself never blocks on the audit and never runs it in-tree. LIVE-TESTED 2026-09-23, same method as the six entries above (exact command `uv run --locked python scripts/fleet_health.py`, real repo, no nested claude session): exit 0, 8.83s vs 60s budget (digest was fresh, 0.1h old, so only the reader path ran; the reader/trigger slice itself is proven <1s and 0-blocking in isolation by tests/test_fleet_health.py::test_maybe_trigger_producer_returns_without_waiting_for_the_producer, decoupled from this hook's several OTHER pre-existing slow digest lines -- hook-rate, cost, seats, traces -- that this lane does not own and that account for nearly all of the 8.83s), 0 orphans (python/uv process count 22 before -> 20 after). The second, distinct defect the 2026-09-22 entry surfaced -- audit.py::_commit_routine_outputs silently deleting a sibling lane's untracked docs/audits/ draft on restore -- is fixed in the SAME lane (its publishing step, `_commit_routine_outputs`, is one of this lane's owned files): it now computes the exact closed set of paths a run may have touched and REFUSES (DurableScopeDirty, receipt-logged) rather than restoring, the instant the working tree's durable scope carries anything outside that set; tests/test_audit.py::test_untracked_draft_with_a_foreign_name_survives_a_run and ::test_a_modified_tracked_file_out_of_scope_also_refuses reproduce the incident directly and pass. Full method, code citations and test names: this lane's row and handback."
     },
-    "stays_disabled": "surface-closures.ps1 (out of this repo's file ownership, see disabled_individually above) and fleet_health.py (measured hang past its 60s budget on a cold cross-repo-audit cache path, PLUS a detached audit.py run descendant that survives a process-tree kill and silently deletes untracked docs/audits/ work on completion -- a destructive-data-loss hazard, not just slowness; see disabled_individually above and docs/audits/2026-09-22-technical-lane-hooks-rearm-live-measurement.md 2.1) -- both updated in place above with new dated expiries and reasons, per the contract's 'No hook is deleted.'"
+    "stays_disabled": "surface-closures.ps1 (out of this repo's file ownership, see disabled_individually above) -- fleet_health.py is RE-ARMED as of 2026-09-23 ([#962]) and its entry was REMOVED from disabled_individually above (that array lists currently-disabled hooks; it is no longer one). Its FAILED 2026-09-22 history -- what broke, how it was measured, and what fixed it -- is preserved verbatim in rearmed.fleet_health.py above and in docs/audits/2026-09-22-technical-lane-hooks-rearm-live-measurement.md 2.1; no hook or its record was deleted, only moved from 'disabled' to 'rearmed', per the contract's 'No hook is deleted.'"
   },
   "hooks": {
     "SessionStart": [
@@ -97,6 +87,11 @@
             "type": "command",
             "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"$CLAUDE_PROJECT_DIR/scripts/billing_leak_sentinel.ps1\"",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/fleet_health.py\"",
+            "timeout": 60
           }
         ]
       }

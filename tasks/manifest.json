@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "b4c906ac8a763f570e2faff7aa3248de7250511b1ffba5e201efa98790a20f94",
+  "generated_sha256": "3afbfd93ad46418e13017164f7cbf9010a9396dc0e83297c9919326fa2e0a2aa",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -776,6 +776,10 @@
     {
       "task": 961,
       "file": "961-wave-4b-lane-5-lane-plan-lint-the-architects-plan-is-checked-by-code-before-it-freezes.md"
+    },
+    {
+      "task": 962,
+      "file": "962-wave-4b-lane-6-lane-fleet-health-split-a-guarded-background-producer.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"

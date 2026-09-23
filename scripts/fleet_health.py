@@ -38,7 +38,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from datetime import date, datetime, timedelta
+import time
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
@@ -46,6 +47,30 @@ _REPO_ROOT = _SCRIPTS_DIR.parent
 _LOGS_DIR = _REPO_ROOT / "logs"
 _HEALTH_FILE = _LOGS_DIR / "FLEET-HEALTH.md"
 _ECOSYSTEM_DIR = _REPO_ROOT / "ecosystem"
+
+# --- SessionStart split ([#962]): reader / trigger / isolated producer -----------------
+# `docs/audits/2026-09-22-technical-lane-hooks-rearm-live-measurement.md` §2.1 measured
+# the pre-split hook running `audit.py run` IN-SESSION: it hung past its budget, its
+# detached grandchild survived a process-tree kill, and on completion the destructive
+# working-tree restore in `audit.py::_commit_routine_outputs` deleted a lane's own
+# untracked `docs/audits/` draft. From this lane on: the SessionStart entry only READS
+# the cached digest (below); when it is stale it takes an exclusive CLAIM and starts one
+# DETACHED producer (item 3, the claim/receipt/reaper pattern of `lane_end_guard.py`);
+# the producer runs the audit in its own ISOLATED checkout, outside every session's
+# working tree, and removes that checkout when it is done (item 4).
+_CONFIG_PATH = _REPO_ROOT / "ecosystem" / "fleet-health-config.yaml"
+_DEFAULT_STALE_AFTER_HOURS = 24
+_STALE_HOURS_RE = re.compile(r"^stale_after_hours:\s*(\d+)", re.M)
+
+_PRODUCER_FLAG = "--producer"
+_PRODUCER_RECEIPT_NAME = "FLEET-HEALTH-PRODUCER.json"
+# Generous over the ~9-minute worst case the live measurement recorded (§2.1 above); a
+# claim still "running" past this is presumed dead and reaped -- never retried by the
+# reaper itself, mirroring `lane_end_guard._reap_abandoned`: reap now, claim later.
+_PRODUCER_STALE_RUNNING_S = 1800
+_WORKTREE_PROVISION_TIMEOUT_S = 120
+_WORKTREE_REMOVE_TIMEOUT_S = 60
+_WORKTREE_PRUNE_TIMEOUT_S = 30
 
 # Per-repo timeout allowance for the audit subprocess (config; version-controlled
 # here per ADR-76 §4). The single `audit.py run` subprocess audits every repo
@@ -193,6 +218,57 @@ def is_completed_stale(text: str, now: datetime, max_age_hours: int = _STALE_AFT
     except ValueError:
         return False
     return (now - ts) > timedelta(hours=max_age_hours)
+
+
+def load_stale_after_hours(path: Path = _CONFIG_PATH, default: int = _DEFAULT_STALE_AFTER_HOURS) -> int:
+    """The trigger's threshold ([#962] item 3: "a threshold held in config (YAML, cited
+    home)"). A minimal regex read, not a `yaml` import -- this sits on the SessionStart
+    reader's cheap path, the same reasoning `_load_state_yaml` already uses below for the
+    same reason (`_import_enforcement_coverage`'s docstring). Fail-soft to `default` on
+    any absent, unreadable, or malformed config -- a broken config must never block the
+    reader or the trigger.
+    """
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return default
+    m = _STALE_HOURS_RE.search(text)
+    return int(m.group(1)) if m else default
+
+
+def needs_refresh(health_file: Path, threshold_hours: int, now: datetime) -> bool:
+    """True when the digest is missing, has never completed a full pass, or its last
+    completion is older than `threshold_hours` ([#962] item 3's trigger condition).
+
+    This is the TRIGGER's own gate, config-driven and hour-granular; it replaces the old
+    calendar-day `is_stale` as what decides whether to start a producer. `is_stale` itself
+    is unchanged and still answers its own question (missing, or wrong calendar day).
+    """
+    if not health_file.exists():
+        return True
+    text = health_file.read_text(encoding="utf-8", errors="replace")
+    if parse_completed_at(text) is None:
+        return True
+    return is_completed_stale(text, now, max_age_hours=threshold_hours)
+
+
+def digest_age_line(health_file: Path, now: datetime):
+    """[#962] item 2: the reader prints the digest's age, not only its content. `None`
+    when there is no completed baseline to measure an age from -- `surface_line` already
+    says so in that case, so this line adds nothing to duplicate.
+    """
+    if not health_file.exists():
+        return None
+    text = health_file.read_text(encoding="utf-8", errors="replace")
+    completed = parse_completed_at(text)
+    if completed is None:
+        return None
+    try:
+        ts = datetime.fromisoformat(completed)
+    except ValueError:
+        return None
+    hours = (now - ts).total_seconds() / 3600
+    return f"[fleet] digest age: {hours:.1f}h"
 
 
 def groom_escalation_line(backlog_text: str, today: date):
@@ -1310,6 +1386,223 @@ def refresh(repo_root: Path, ecosystem_dir: Path,
 
 
 # ---------------------------------------------------------------------------
+# [#962] item 3: claim / receipt / reaper -- the pattern of scripts/lane_end_guard.py,
+# reused for a recurring event (a digest going stale again) rather than a one-time one
+# (a lane's closing HANDBACK line). The difference that matters: lane_end_guard's claim
+# is permanent (never removed, never retried); this claim is removed by the WINNER on
+# completion (replaced with a terminal receipt) so the NEXT stale window can claim fresh.
+# ---------------------------------------------------------------------------
+
+def _receipts_dir(environ) -> Path:
+    """`logs/receipts/` -- gitignored, the same durable-but-untracked home
+    `lane_end_guard.py`'s own receipts use (`HARNESS_RECEIPTS_DIR`, else `logs/receipts`
+    under the repo root)."""
+    return Path(environ.get("HARNESS_RECEIPTS_DIR") or (_LOGS_DIR / "receipts"))
+
+
+def _producer_receipt_path(environ) -> Path:
+    return _receipts_dir(environ) / _PRODUCER_RECEIPT_NAME
+
+
+def _now_stamp() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _write_producer_receipt(path: Path, **fields) -> None:
+    """Never raises -- a receipt that fails to write must not become a second failure on
+    top of whatever it is trying to record (same posture as `_atomic_write`'s callers)."""
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {"schema": 1, "organ": "fleet_health_producer", "finished_at": _now_stamp(),
+                  **fields}
+        tmp = path.with_name(f".{path.name}.tmp")
+        tmp.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+        os.replace(tmp, path)
+    except OSError:
+        pass
+
+
+def _read_producer_receipt(path: Path) -> dict:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _reap_abandoned_producer_claim(path: Path) -> None:
+    """A claim still `running` long after its mtime means its worker died (or the box
+    went down mid-run). Removing it lets the NEXT trigger claim fresh; this call itself
+    never retries in the same turn (`lane_end_guard._reap_abandoned`'s own posture: reap
+    now, claim later)."""
+    current = _read_producer_receipt(path)
+    if current.get("status") != "running":
+        return
+    try:
+        age = time.time() - path.stat().st_mtime
+    except OSError:
+        return
+    if age > _PRODUCER_STALE_RUNNING_S:
+        try:
+            path.unlink()
+        except OSError:
+            pass
+
+
+def _claim_producer(path: Path) -> bool:
+    """The once-at-a-time claim (item 3): an exclusive create, so of two sessions in the
+    same stale window exactly one wins and starts a producer -- the other's call returns
+    False and does nothing further. Reaped by whichever session next finds it stale
+    (`_reap_abandoned_producer_claim`); replaced with a terminal receipt by the producer
+    that wins it (`run_producer`)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps({"schema": 1, "organ": "fleet_health_producer", "status": "running",
+                          "started_at": _now_stamp()}, sort_keys=True).encode("utf-8")
+    try:
+        fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError:
+        _reap_abandoned_producer_claim(path)
+        return False
+    with os.fdopen(fd, "wb") as f:
+        f.write(payload)
+    return True
+
+
+def _import_lane_end_guard():
+    """Lazy sibling import, same shape as `_import_funnel_lifecycle`: keeps the reader's
+    cheap, spawns-nothing path free of anything only the trigger leg needs."""
+    if str(_SCRIPTS_DIR) not in sys.path:
+        sys.path.insert(0, str(_SCRIPTS_DIR))
+    import lane_end_guard  # noqa: E402
+    return lane_end_guard
+
+
+def maybe_trigger_producer(environ=None) -> None:
+    """The trigger ([#962] item 3): called from `main()` only once `needs_refresh` says
+    the digest is stale. Takes the exclusive claim; a second session in the same stale
+    window does nothing (`_claim_producer` returns False and this returns at once).
+    Spawning reuses `lane_end_guard.spawn_worker` directly -- the SAME detach mechanism
+    (Windows job breakaway, closed stdio, its own process group), not a re-implementation
+    of it. Never raises into `main()`: a worker that could not start is a FAILED receipt,
+    exactly as a crashing moment is in `lane_end_guard`.
+    """
+    environ = os.environ if environ is None else environ
+    receipt_path = _producer_receipt_path(environ)
+    if not _claim_producer(receipt_path):
+        return
+    worker_argv = [sys.executable, str(Path(__file__).resolve()), _PRODUCER_FLAG]
+    try:
+        le = _import_lane_end_guard()
+        le.spawn_worker(worker_argv, _REPO_ROOT, dict(os.environ))
+    except BaseException as exc:  # noqa: BLE001 -- no worker means no producer: record it, never block SessionStart
+        _write_producer_receipt(receipt_path, status="FAILED",
+                                reason=f"could not start the worker: {type(exc).__name__}: {exc}")
+
+
+# ---------------------------------------------------------------------------
+# [#962] item 4: the isolated producer. Runs the fleet audit in its own private git
+# worktree, outside every session's working tree, so a hang or a crash mid-run can never
+# again touch a live session's untracked work the way §2.1 measured.
+# ---------------------------------------------------------------------------
+
+def _seed_untracked_state(worktree: Path) -> None:
+    """Copy each registered repo's gitignored `state.yaml` into the isolated checkout.
+
+    `git worktree add` checks out TRACKED content only, and `audit.py` needs each
+    repo's on-disk `path:` (state.yaml) to find its siblings -- without this the
+    isolated audit would see every sibling as unregistered. Read-only from the live
+    tree; writes only into the fresh, private worktree, never back.
+    """
+    if not _ECOSYSTEM_DIR.exists():
+        return
+    for child in _ECOSYSTEM_DIR.iterdir():
+        src = child / "state.yaml"
+        if child.is_dir() and src.exists():
+            dst = worktree / "ecosystem" / child.name / "state.yaml"
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dst)
+
+
+def provision_isolated_checkout(repo_root: Path = _REPO_ROOT) -> Path:
+    """A private `git worktree`, detached at HEAD, parented under the system temp dir --
+    OUTSIDE every session's own working tree (item 4). Raises on any failure; the caller
+    (`run_producer`) turns that into a FAILED receipt rather than a hung claim.
+
+    `tempfile.mkdtemp` reserves the PARENT only: the child path `git worktree add`
+    creates must not already exist (git refuses an existing target, even an empty one),
+    so the worktree itself is always a fresh name under a uniquely-owned parent.
+    """
+    parent = Path(tempfile.mkdtemp(prefix="fleet-health-producer-"))
+    worktree = parent / "wt"
+    result = subprocess.run(
+        ["git", "-C", str(repo_root), "worktree", "add", "--detach", str(worktree), "HEAD"],
+        capture_output=True, text=True, timeout=_WORKTREE_PROVISION_TIMEOUT_S,
+    )
+    if result.returncode != 0:
+        shutil.rmtree(parent, ignore_errors=True)
+        raise RuntimeError(f"git worktree add failed: {result.stderr.strip()[:300]}")
+    _seed_untracked_state(worktree)
+    return worktree
+
+
+def remove_isolated_checkout(worktree: Path, repo_root: Path = _REPO_ROOT) -> None:
+    """Removes the checkout AND its temp parent (repo rule 9: no leftovers). Best-effort
+    and never raises -- a cleanup failure must not become a second, louder failure on top
+    of whatever the producer already recorded in its receipt."""
+    subprocess.run(
+        ["git", "-C", str(repo_root), "worktree", "remove", "--force", str(worktree)],
+        capture_output=True, text=True, timeout=_WORKTREE_REMOVE_TIMEOUT_S,
+    )
+    subprocess.run(
+        ["git", "-C", str(repo_root), "worktree", "prune"],
+        capture_output=True, text=True, timeout=_WORKTREE_PRUNE_TIMEOUT_S,
+    )
+    shutil.rmtree(worktree.parent, ignore_errors=True)
+
+
+def run_producer(environ=None) -> int:
+    """The detached worker (`--producer`, item 4): runs the fleet audit in an isolated
+    checkout outside every session's working tree, publishes into THIS repo's own
+    `logs/FLEET-HEALTH.md` exactly as `refresh()` always has, then removes the checkout.
+    Its whole process tree ends with it -- there is nothing left running once this
+    returns; unlike the pre-split hook, nothing here is subject to a session's timeout
+    kill, because nothing here runs inside a session at all.
+
+    HONEST LIMIT: the operator-load gauge (BACKLOG bands, pending closures) reads the
+    isolated checkout's BACKLOG.md / docs/audits, frozen at the moment the worktree was
+    provisioned, not the live tree at publish time -- at most a few minutes of staleness,
+    traded for the isolation this whole lane exists to buy. The digest's repo table and
+    the durable audit outputs themselves are unaffected: those come from the audit this
+    producer itself just ran, inside that same isolated checkout.
+    """
+    environ = os.environ if environ is None else environ
+    receipt_path = _producer_receipt_path(environ)
+    # Read the CURRENT globals explicitly at call time (never a bound default argument):
+    # a default is captured once at function-definition time, so a caller (or a test)
+    # that reassigns `_REPO_ROOT`/`_LOGS_DIR`/`_HEALTH_FILE` after import would otherwise
+    # be silently ignored and this would keep targeting whatever they were at import time.
+    repo_root = _REPO_ROOT
+    started = time.perf_counter()
+    worktree = None
+    try:
+        worktree = provision_isolated_checkout(repo_root)
+        ok = refresh(worktree, worktree / "ecosystem", _LOGS_DIR, _HEALTH_FILE, date.today())
+        _write_producer_receipt(
+            receipt_path, status="ok" if ok else "FAILED",
+            reason="" if ok else "audit.py run did not complete a full pass",
+            duration_ms=int((time.perf_counter() - started) * 1000))
+        return 0 if ok else 1
+    except BaseException as exc:  # noqa: BLE001 -- a crashing producer is a receipt, never a hung claim
+        _write_producer_receipt(
+            receipt_path, status="FAILED", reason=f"{type(exc).__name__}: {exc}",
+            duration_ms=int((time.perf_counter() - started) * 1000))
+        return 1
+    finally:
+        if worktree is not None:
+            remove_isolated_checkout(worktree, repo_root)
+
+
+# ---------------------------------------------------------------------------
 # CLAUDE_PROMPTS_DIR scope guard (DEFECT E-29 / architect inbox 013-A)
 # ---------------------------------------------------------------------------
 # A session inherits the prompts-dir variable from the long-lived process that spawned it.
@@ -1794,8 +2087,11 @@ def _session_start_exit(prompts_verdict, preflight_verdict) -> int:
 
 
 def main(argv=None) -> int:
-    if _PROMPTS_GUARD_FLAG in (sys.argv[1:] if argv is None else argv):
+    args = sys.argv[1:] if argv is None else argv
+    if _PROMPTS_GUARD_FLAG in args:
         return prompts_guard()
+    if _PRODUCER_FLAG in args:
+        return run_producer()
     today = date.today()
     prompts_verdict = PROMPTS_OK
     preflight_verdict = GUARD_PREFLIGHT_OK
@@ -1866,20 +2162,26 @@ def main(argv=None) -> int:
         traces = count_traces_today(_LOGS_DIR, today)
         if traces is not None:
             print(f"[traces] {traces} today")
-        stale = is_stale(_HEALTH_FILE)
-        if stale and not siblings_available(_ECOSYSTEM_DIR, _REPO_ROOT):
-            # Isolated / cloud clone: sibling repos are absent. Skip the
-            # cross-repo audit so we neither record spurious path-missing FAILs
-            # nor overwrite (dirty) the committed digest at SessionStart.
-            # Surface the cached digest as-is -- fail-soft, no writes.
-            print("fleet_health: sibling repos not present (isolated/cloud clone) "
-                  "-- skipping cross-repo audit, surfacing cached digest.",
-                  file=sys.stderr)
-        elif stale:
-            print("fleet_health: running cross-repo audit (stale or first run)...",
-                  file=sys.stderr)
-            refresh(_REPO_ROOT, _ECOSYSTEM_DIR, _LOGS_DIR, _HEALTH_FILE, today)
-        # Stale-completion check on BOTH paths (skip/surface and run): a digest
+        # [#962] items 2-3: the READER always just prints (below); the TRIGGER below is
+        # the only thing that can start work, and it never runs work itself -- it takes
+        # an exclusive claim and starts one DETACHED producer in an isolated checkout
+        # (item 4). Spawns nothing and writes nothing when the digest is fresh.
+        now = datetime.now()
+        threshold_hours = load_stale_after_hours()
+        if needs_refresh(_HEALTH_FILE, threshold_hours, now):
+            if not siblings_available(_ECOSYSTEM_DIR, _REPO_ROOT):
+                # Isolated / cloud clone: sibling repos are absent. Skip the producer so
+                # we neither record spurious path-missing FAILs nor spawn work that can
+                # only fail -- fail-soft, no writes, surface the cached digest as-is.
+                print("fleet_health: sibling repos not present (isolated/cloud clone) "
+                      "-- skipping producer, surfacing cached digest.",
+                      file=sys.stderr)
+            else:
+                print(f"fleet_health: digest stale (>{threshold_hours}h or never completed) "
+                      "-- triggering a detached producer in an isolated checkout...",
+                      file=sys.stderr)
+                maybe_trigger_producer()
+        # Stale-completion check on BOTH paths (skip/trigger and fresh): a digest
         # whose last successful completion is >48h old means the scheduled run
         # may be silently failing. Fail-soft -- one line, never blocks.
         if _HEALTH_FILE.exists():
@@ -1895,6 +2197,10 @@ def main(argv=None) -> int:
             if groom:
                 print(groom)
         print(surface_line(_HEALTH_FILE))
+        # [#962] item 2: the reader prints the digest's age, not only its content.
+        age_line = digest_age_line(_HEALTH_FILE, now)
+        if age_line:
+            print(age_line)
         # Operator-load gauge ([#270]): surfaced EVERY session by reading the
         # rendered line back out of the digest -- the counts are computed once a
         # day on the refresh path above, so this costs one file read and no gh

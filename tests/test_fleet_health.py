@@ -5,6 +5,8 @@ import importlib.util
 import json
 import os
 import re
+import subprocess
+import time
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from unittest import mock
@@ -477,6 +479,314 @@ def test_refresh_incomplete_omits_completed_at(tmp_path):
     assert ok is False
     text = health.read_text(encoding="utf-8")
     assert "completed_at:" not in text and "incomplete" in text.lower()
+
+
+# ---------------------------------------------------------------------------
+# [#962] the SessionStart split: reader / trigger / isolated producer.
+# docs/audits/2026-09-22-technical-lane-hooks-rearm-live-measurement.md §2.1 is the
+# live measurement these tests are RED-first witnesses for.
+# ---------------------------------------------------------------------------
+
+# --- needs_refresh (the trigger's own gate) ---------------------------------
+
+def test_needs_refresh_true_when_digest_missing(tmp_path):
+    assert fh.needs_refresh(tmp_path / "absent.md", 24, datetime(2026, 6, 2, 12, 0, 0)) is True
+
+
+def test_needs_refresh_true_when_never_completed(tmp_path):
+    health = tmp_path / "FLEET-HEALTH.md"
+    health.write_text(fh.build_digest(_STATES, date(2026, 6, 2), completed_at=None),
+                      encoding="utf-8")
+    assert fh.needs_refresh(health, 24, datetime(2026, 6, 2, 12, 0, 0)) is True
+
+
+def test_needs_refresh_false_when_within_threshold(tmp_path):
+    health = tmp_path / "FLEET-HEALTH.md"
+    stamp = "2026-06-02T10:00:00"
+    health.write_text(fh.build_digest(_STATES, date(2026, 6, 2), completed_at=stamp),
+                      encoding="utf-8")
+    now = datetime(2026, 6, 2, 12, 0, 0)  # 2h later
+    assert fh.needs_refresh(health, 24, now) is False
+
+
+def test_needs_refresh_true_when_older_than_threshold(tmp_path):
+    health = tmp_path / "FLEET-HEALTH.md"
+    stamp = "2026-06-01T10:00:00"
+    health.write_text(fh.build_digest(_STATES, date(2026, 6, 1), completed_at=stamp),
+                      encoding="utf-8")
+    now = datetime(2026, 6, 2, 12, 0, 0)  # 26h later
+    assert fh.needs_refresh(health, 24, now) is True
+
+
+# --- load_stale_after_hours (config, [#962] item 3) -------------------------
+
+def test_load_stale_after_hours_reads_the_config(tmp_path):
+    cfg = tmp_path / "cfg.yaml"
+    cfg.write_text("stale_after_hours: 6\n", encoding="utf-8")
+    assert fh.load_stale_after_hours(cfg, default=24) == 6
+
+
+def test_load_stale_after_hours_default_when_absent(tmp_path):
+    assert fh.load_stale_after_hours(tmp_path / "absent.yaml", default=24) == 24
+
+
+def test_load_stale_after_hours_default_when_malformed(tmp_path):
+    cfg = tmp_path / "cfg.yaml"
+    cfg.write_text("not: a threshold\n", encoding="utf-8")
+    assert fh.load_stale_after_hours(cfg, default=24) == 24
+
+
+def test_versioned_config_carries_the_expected_key():
+    """The version-controlled config this repo ships ([#962] item 3's "cited home")."""
+    cfg = fh._REPO_ROOT / "ecosystem" / "fleet-health-config.yaml"
+    assert cfg.exists()
+    assert fh.load_stale_after_hours(cfg, default=-1) > 0
+
+
+# --- digest_age_line (item 2) ------------------------------------------------
+
+def test_digest_age_line_reports_hours(tmp_path):
+    health = tmp_path / "FLEET-HEALTH.md"
+    health.write_text(
+        fh.build_digest(_STATES, date(2026, 6, 2), completed_at="2026-06-02T10:00:00"),
+        encoding="utf-8")
+    line = fh.digest_age_line(health, datetime(2026, 6, 2, 13, 0, 0))
+    assert line == "[fleet] digest age: 3.0h"
+
+
+def test_digest_age_line_none_when_never_completed(tmp_path):
+    health = tmp_path / "FLEET-HEALTH.md"
+    health.write_text(fh.build_digest(_STATES, date(2026, 6, 2), completed_at=None),
+                      encoding="utf-8")
+    assert fh.digest_age_line(health, datetime(2026, 6, 2, 13, 0, 0)) is None
+
+
+def test_digest_age_line_none_when_missing(tmp_path):
+    assert fh.digest_age_line(tmp_path / "absent.md", datetime.now()) is None
+
+
+# --- claim / receipt / reaper (item 3, lane_end_guard.py's own pattern) -----
+
+def test_claim_producer_wins_once_a_second_call_does_nothing(tmp_path):
+    receipt = tmp_path / "receipts" / fh._PRODUCER_RECEIPT_NAME
+    assert fh._claim_producer(receipt) is True
+    assert fh._claim_producer(receipt) is False  # item 3: a second session does nothing
+
+
+def test_claim_reaps_a_stale_running_claim_but_does_not_itself_retry(tmp_path):
+    receipt = tmp_path / "receipts" / fh._PRODUCER_RECEIPT_NAME
+    receipt.parent.mkdir(parents=True)
+    receipt.write_text(json.dumps({"status": "running"}), encoding="utf-8")
+    old = time.time() - fh._PRODUCER_STALE_RUNNING_S - 60
+    os.utime(receipt, (old, old))
+
+    assert fh._claim_producer(receipt) is False  # this call reaps, does not itself win
+    assert not receipt.exists(), "the abandoned claim was removed"
+    assert fh._claim_producer(receipt) is True  # the NEXT call claims fresh
+
+
+def test_claim_leaves_a_fresh_running_claim_alone(tmp_path):
+    receipt = tmp_path / "receipts" / fh._PRODUCER_RECEIPT_NAME
+    receipt.parent.mkdir(parents=True)
+    receipt.write_text(json.dumps({"status": "running"}), encoding="utf-8")
+    assert fh._claim_producer(receipt) is False
+    assert receipt.exists(), "a claim within the reap window is left alone"
+
+
+# --- maybe_trigger_producer: exactly one spawn under a race ----------------
+
+def test_maybe_trigger_producer_spawns_exactly_once_across_two_calls(tmp_path, monkeypatch):
+    receipts = tmp_path / "receipts"
+    spawned = []
+
+    class _FakeLaneEndGuard:
+        @staticmethod
+        def spawn_worker(argv, cwd, env):
+            spawned.append(argv)
+            return True
+
+    monkeypatch.setattr(fh, "_import_lane_end_guard", lambda: _FakeLaneEndGuard)
+    environ = {"HARNESS_RECEIPTS_DIR": str(receipts)}
+
+    fh.maybe_trigger_producer(environ)
+    fh.maybe_trigger_producer(environ)  # a second session in the same stale window
+
+    assert len(spawned) == 1
+    assert spawned[0][-1] == fh._PRODUCER_FLAG
+
+
+def test_maybe_trigger_producer_records_a_failed_receipt_when_the_worker_cannot_start(
+    tmp_path, monkeypatch
+):
+    receipts = tmp_path / "receipts"
+
+    class _BrokenLaneEndGuard:
+        @staticmethod
+        def spawn_worker(argv, cwd, env):
+            raise OSError("no interpreter")
+
+    monkeypatch.setattr(fh, "_import_lane_end_guard", lambda: _BrokenLaneEndGuard)
+    fh.maybe_trigger_producer({"HARNESS_RECEIPTS_DIR": str(receipts)})
+
+    receipt = json.loads((receipts / fh._PRODUCER_RECEIPT_NAME).read_text(encoding="utf-8"))
+    assert receipt["status"] == "FAILED"
+    assert "could not start the worker" in receipt["reason"]
+
+
+# --- run_producer: the isolated checkout (item 4) ---------------------------
+
+def _seed_git_repo(root: Path):
+    def git(*args, check=True):
+        return subprocess.run(["git", "-C", str(root), *args],
+                              capture_output=True, text=True, check=check)
+    root.mkdir(parents=True, exist_ok=True)
+    git("init", "-b", "main")
+    git("config", "user.email", "test@example.com")
+    git("config", "user.name", "Test")
+    (root / "README.md").write_text("seed\n", encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-m", "seed")
+    return git
+
+
+def test_run_producer_runs_refresh_against_an_isolated_checkout_and_removes_it(
+    tmp_path, monkeypatch
+):
+    repo = tmp_path / "repo"
+    git = _seed_git_repo(repo)
+    monkeypatch.setattr(fh, "_REPO_ROOT", repo)
+    monkeypatch.setattr(fh, "_LOGS_DIR", tmp_path / "logs")
+    monkeypatch.setattr(fh, "_HEALTH_FILE", tmp_path / "logs" / "FLEET-HEALTH.md")
+
+    seen = {}
+
+    def fake_refresh(repo_root, ecosystem_dir, logs_dir, health_file, today):
+        seen["repo_root"] = repo_root
+        seen["logs_dir"] = logs_dir
+        seen["health_file"] = health_file
+        assert repo_root != repo, "the audit must run OUTSIDE the live checkout"
+        assert repo_root.exists()
+        assert (repo_root / "README.md").exists(), "a real worktree, checked out at HEAD"
+        return True
+
+    monkeypatch.setattr(fh, "refresh", fake_refresh)
+    receipts = tmp_path / "receipts"
+
+    exit_code = fh.run_producer({"HARNESS_RECEIPTS_DIR": str(receipts)})
+
+    assert exit_code == 0
+    assert seen["logs_dir"] == fh._LOGS_DIR
+    assert seen["health_file"] == fh._HEALTH_FILE
+    worktree = seen["repo_root"]
+    assert not worktree.exists(), "item 4: the producer removes its own checkout"
+    assert str(worktree) not in git("worktree", "list").stdout, "no stale worktree registration"
+    receipt = json.loads((receipts / fh._PRODUCER_RECEIPT_NAME).read_text(encoding="utf-8"))
+    assert receipt["status"] == "ok"
+
+
+def test_run_producer_never_touches_the_live_repos_docs_audits(tmp_path, monkeypatch):
+    """THE MEASURED INCIDENT, from the producer side: an untracked draft sitting in the
+    LIVE repo's docs/audits/ survives a producer run byte-for-byte, because the producer
+    never writes into the live tree's durable scope at all -- only into its own isolated
+    checkout, which `_commit_routine_outputs` isolates further still."""
+    repo = tmp_path / "repo"
+    _seed_git_repo(repo)
+    (repo / "docs" / "audits").mkdir(parents=True)
+    draft = repo / "docs" / "audits" / "2026-09-22-technical-someone-elses-draft.md"
+    draft.write_text("mid-draft\n", encoding="utf-8")
+
+    monkeypatch.setattr(fh, "_REPO_ROOT", repo)
+    monkeypatch.setattr(fh, "_LOGS_DIR", tmp_path / "logs")
+    monkeypatch.setattr(fh, "_HEALTH_FILE", tmp_path / "logs" / "FLEET-HEALTH.md")
+    monkeypatch.setattr(fh, "refresh", lambda *a, **k: True)
+
+    fh.run_producer({"HARNESS_RECEIPTS_DIR": str(tmp_path / "receipts")})
+
+    assert draft.exists()
+    assert draft.read_text(encoding="utf-8") == "mid-draft\n"
+
+
+def test_run_producer_records_a_failed_receipt_when_provisioning_fails(tmp_path, monkeypatch):
+    not_a_repo = tmp_path / "not-a-repo"
+    not_a_repo.mkdir()
+    monkeypatch.setattr(fh, "_REPO_ROOT", not_a_repo)
+    receipts = tmp_path / "receipts"
+
+    exit_code = fh.run_producer({"HARNESS_RECEIPTS_DIR": str(receipts)})
+
+    assert exit_code == 1
+    receipt = json.loads((receipts / fh._PRODUCER_RECEIPT_NAME).read_text(encoding="utf-8"))
+    assert receipt["status"] == "FAILED"
+
+
+def test_provision_isolated_checkout_seeds_gitignored_state_yaml(tmp_path, monkeypatch):
+    repo = tmp_path / "repo"
+    _seed_git_repo(repo)
+    (repo / "ecosystem" / "repo-a").mkdir(parents=True)
+    (repo / "ecosystem" / "repo-a" / "state.yaml").write_text("name: repo-a\n", encoding="utf-8")
+    monkeypatch.setattr(fh, "_ECOSYSTEM_DIR", repo / "ecosystem")
+
+    worktree = fh.provision_isolated_checkout(repo)
+    try:
+        assert (worktree / "ecosystem" / "repo-a" / "state.yaml").read_text(
+            encoding="utf-8") == "name: repo-a\n"
+    finally:
+        fh.remove_isolated_checkout(worktree, repo)
+
+
+# --- main(): the reader/trigger boundary ------------------------------------
+
+def test_main_does_not_trigger_a_producer_when_the_digest_is_fresh(tmp_path, monkeypatch):
+    monkeypatch.setattr(fh, "_HEALTH_FILE", tmp_path / "FLEET-HEALTH.md")
+    monkeypatch.setattr(fh, "_LOGS_DIR", tmp_path)
+    monkeypatch.setattr(fh, "_ECOSYSTEM_DIR", tmp_path / "ecosystem")
+    now_stamp = datetime.now().isoformat(timespec="seconds")
+    fh._HEALTH_FILE.write_text(
+        fh.build_digest(_STATES, date.today(), completed_at=now_stamp), encoding="utf-8")
+    called = []
+    monkeypatch.setattr(fh, "maybe_trigger_producer", lambda *a, **k: called.append(True))
+
+    with _prompts_dir_matching():
+        fh.main([])
+
+    assert called == [], "item 2: a fresh digest spawns nothing"
+
+
+def test_maybe_trigger_producer_returns_without_waiting_for_the_producer(tmp_path, monkeypatch):
+    """[#962] item 2/4: the trigger only takes a claim and spawns a detached process --
+    it must never block on the producer's own (multi-minute) audit work. `main()`'s
+    total wall-clock is not a reliable proxy for this (it also prints several unrelated,
+    pre-existing slow digest lines that this lane does not own), so this asserts the
+    fleet-health trigger call itself, isolated, stays fast."""
+    receipts = tmp_path / "receipts"
+
+    class _FakeLaneEndGuard:
+        @staticmethod
+        def spawn_worker(argv, cwd, env):
+            return True
+
+    monkeypatch.setattr(fh, "_import_lane_end_guard", lambda: _FakeLaneEndGuard)
+
+    start = time.perf_counter()
+    fh.maybe_trigger_producer({"HARNESS_RECEIPTS_DIR": str(receipts)})
+    elapsed = time.perf_counter() - start
+
+    assert elapsed < 1.0, "item 2: the trigger returns immediately after spawning"
+
+
+def test_main_triggers_a_producer_when_the_digest_is_stale(tmp_path, monkeypatch):
+    monkeypatch.setattr(fh, "_HEALTH_FILE", tmp_path / "FLEET-HEALTH.md")
+    monkeypatch.setattr(fh, "_LOGS_DIR", tmp_path)
+    monkeypatch.setattr(fh, "_ECOSYSTEM_DIR", tmp_path / "ecosystem")
+    (tmp_path / "ecosystem").mkdir()
+    monkeypatch.setattr(fh, "siblings_available", lambda *a, **k: True)
+    called = []
+    monkeypatch.setattr(fh, "maybe_trigger_producer", lambda *a, **k: called.append(True))
+
+    with _prompts_dir_matching():
+        fh.main([])
+
+    assert called == [True]
 
 
 # --- drift roll-up ([#244] P4 Step 7) ---------------------------------------

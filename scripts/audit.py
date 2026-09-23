@@ -6119,7 +6119,7 @@ def _parse_porcelain(raw: str) -> list:
     return out
 
 
-def _restore_durable_scope(pathspecs: list) -> None:
+def _restore_durable_scope(pathspecs: list, expected: Optional[set] = None) -> None:
     """Return the working tree to HEAD within the durable output paths.
 
     Crash-safe cleanup (called from a `finally`): RE-DERIVES the dirty state in
@@ -6128,6 +6128,15 @@ def _restore_durable_scope(pathspecs: list) -> None:
     NEW untracked outputs and restores MODIFIED tracked files from HEAD. Only
     paths git reports dirty IN SCOPE are touched — never arbitrary files.
     Best-effort: a git-status or per-path failure is logged, never raised.
+
+    `expected` (this lane, [#962] item 5): the closed set of paths this run's OWN
+    naming convention could have produced (`_expected_routine_output_paths`). When
+    given, anything dirty in scope that is NOT in it is left untouched and logged —
+    never deleted, never reverted. This is the second leg of the safety net; the
+    first is the upfront refusal in `_commit_routine_outputs`. A path that appears
+    here despite that upfront check (a narrow race between the initial scan and this
+    restore) is exactly the same "not created by this run" case and gets the same
+    answer: hands off. `None` keeps the pre-existing behaviour for any other caller.
     """
     st = subprocess.run(
         ["git", "-C", _REPO_ROOT, "status", "--porcelain", "--untracked-files=all", "--", *pathspecs],
@@ -6138,6 +6147,13 @@ def _restore_durable_scope(pathspecs: list) -> None:
                        st.stderr.strip())
         return
     changed = _parse_porcelain(st.stdout)
+    if expected is not None:
+        foreign = sorted(p for (_xy, p) in changed if p not in expected)
+        if foreign:
+            logger.warning(
+                "ADR-84 restore: leaving %d path(s) untouched — not this run's own output: %s",
+                len(foreign), ", ".join(foreign))
+        changed = [(xy, p) for (xy, p) in changed if p in expected]
     untracked = [p for (xy, p) in changed if xy == "??"]
     tracked = [p for (xy, p) in changed if xy != "??"]
     for p in untracked:
@@ -6208,6 +6224,72 @@ def _push_routine_branch(repo_path: Optional[Path] = None) -> tuple[bool, str]:
     return (True, "pushed")
 
 
+def _expected_routine_output_paths(run_date: date, repo_names: list) -> set:
+    """The CLOSED, deterministic set of durable-scope paths this run's own naming
+    convention can produce (this lane, [#962] item 5).
+
+    `cmd_run` writes `docs/audits/<run_date>-ecosystem-audit.md`; `cmd_repo <name>`
+    writes `docs/audits/<run_date>-<name>-audit.md` (`write_report`); both write
+    `ecosystem/<name>/history/<run_date>.md` per repo (`_history_path`). Every name
+    here is knowable from `run_date` and the registered repo list alone — no run
+    identity or timing is needed, which is what lets this be computed BEFORE the
+    single git-status call `_commit_routine_outputs` uses for everything (staging,
+    the refusal check, and the restore all read the SAME set).
+
+    Anything dirty in the durable-scope pathspecs that is NOT in this set was not
+    written by this run's naming convention, whoever put it there — a lane's own
+    untracked in-progress `docs/audits/` draft is the measured instance
+    (docs/audits/2026-09-22-technical-lane-hooks-rearm-live-measurement.md §2.1):
+    its filename matches neither pattern, so it is never mistaken for this run's
+    output.
+    """
+    audits_rel = AUDITS_DIR.relative_to(_REPO_ROOT).as_posix()
+    expected = {f"{audits_rel}/{run_date.isoformat()}-ecosystem-audit.md"}
+    for name in repo_names:
+        expected.add(f"{audits_rel}/{run_date.isoformat()}-{name}-audit.md")
+        history_rel = (ECOSYSTEM_DIR / name / "history").relative_to(_REPO_ROOT).as_posix()
+        expected.add(f"{history_rel}/{run_date.isoformat()}.md")
+    return expected
+
+
+def _publish_receipts_dir() -> Path:
+    """`logs/receipts/` — gitignored, the same durable-but-untracked home
+    `lane_end_guard.py`'s Stop-hook receipts use (`HARNESS_RECEIPTS_DIR`, else
+    `logs/receipts` under the repo root)."""
+    return Path(os.environ.get("HARNESS_RECEIPTS_DIR") or (Path(_REPO_ROOT) / "logs" / "receipts"))
+
+
+def _write_publish_receipt(status: str, reason: str, paths: Optional[list] = None) -> None:
+    """The publishing step's own receipt (this lane, [#962] item 5). Never raises — a
+    receipt that failed to write must not hide the refusal it exists to record; the
+    loud logger.error beside every call site is the fallback record."""
+    path = _publish_receipts_dir() / "AUDIT-PUBLISH.json"
+    payload = {
+        "schema": 1, "organ": "audit_commit_routine_outputs", "status": status,
+        "reason": reason, "paths": sorted(paths or []),
+        "finished_at": datetime.now().isoformat(timespec="seconds"),
+    }
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(f".{path.name}.tmp")
+        tmp.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+        os.replace(tmp, path)
+    except OSError as exc:
+        logger.warning("ADR-84 publish receipt not written — %s", exc)
+
+
+class DurableScopeDirty(click.ClickException):
+    """Raised by `_commit_routine_outputs` when the durable scope carries dirt this
+    run's own naming convention did not produce (this lane, [#962] item 5's safety
+    net). `click` prints the message on stderr and exits non-zero (`exit_code`
+    below); nothing is staged, committed, or restored when this is raised — the
+    tree is left exactly as the caller left it, for a human to sort out, because
+    that is the one answer that holds "never deletes a file it did not create"
+    when this function cannot tell whose file it is looking at.
+    """
+    exit_code = 4
+
+
 def _commit_routine_outputs(run_date: date) -> bool:
     """Capture this run's durable audit outputs onto the `automation/fleet-audit`
     branch via git plumbing — never to `main` (ADR-84 / Q9 writer isolation).
@@ -6225,7 +6307,18 @@ def _commit_routine_outputs(run_date: date) -> bool:
     Fail-soft + crash-safe: any git error logs a WARN and returns; the
     working-tree restore always runs in a `finally`. Enumerates concrete history/
     paths (no glob — git on Windows does not expand `*` in a subprocess pathspec).
-    Assumes the durable scope is clean going in (the automation invariant).
+
+    SAFETY NET (this lane, [#962] item 5). "The durable scope is clean going in"
+    used to be an ASSUMPTION, not a check, and 2026-09-22 measured it false live
+    (docs/audits/2026-09-22-technical-lane-hooks-rearm-live-measurement.md §2.1):
+    a lane's own untracked `docs/audits/` draft was swept into the git-status scan
+    below alongside this run's genuine output, committed onto `automation/fleet-
+    audit` too, and then DELETED by the working-tree restore — because every dirty
+    path in the pathspecs was treated as this run's own. It is not, in general.
+    This function now computes the CLOSED set of paths its own naming convention
+    could have produced (`_expected_routine_output_paths`) and REFUSES outright —
+    no staging, no commit, no restore, nothing touched — the moment anything else
+    dirty turns up in scope. See `DurableScopeDirty`.
 
     Returns True when this run's outputs are ON the branch (freshly committed, or
     already there under an identical tree), else False. [#296]: the caller needs
@@ -6243,9 +6336,16 @@ def _commit_routine_outputs(run_date: date) -> bool:
         if ECOSYSTEM_DIR.exists()
         else []
     )
+    repo_names = (
+        [d.name for d in sorted(ECOSYSTEM_DIR.iterdir()) if d.is_dir()]
+        if ECOSYSTEM_DIR.exists()
+        else []
+    )
     pathspecs = history_specs + [AUDITS_DIR.relative_to(repo).as_posix()]
+    expected = _expected_routine_output_paths(run_date, repo_names)
 
     tmp_index = None
+    refused = False
     try:
         # Snapshot durable-scope changes for the branch commit. The early-returns
         # below are INSIDE the try, so the finally always runs the restore — which
@@ -6266,6 +6366,25 @@ def _commit_routine_outputs(run_date: date) -> bool:
         # prior outputs (which the restore removes from the working tree). Adding the
         # exact changed paths makes the branch ACCUMULATE.
         changed_paths = [p for (_xy, p) in changed]
+
+        unexpected = sorted(p for p in changed_paths if p not in expected)
+        if unexpected:
+            refused = True
+            _write_publish_receipt(
+                "REFUSED",
+                "the durable scope carries dirt this run's own naming convention did not "
+                "produce — refusing to stage, commit, or restore it (item 5 safety net)",
+                unexpected,
+            )
+            logger.error(
+                "ADR-84 commit REFUSED: durable scope carries %d unexpected path(s) — %s — "
+                "nothing staged, committed, or restored", len(unexpected), ", ".join(unexpected))
+            raise DurableScopeDirty(
+                f"the durable scope (docs/audits/, ecosystem/*/history/) carries "
+                f"{len(unexpected)} path(s) this run's own naming convention did not "
+                f"produce: {', '.join(unexpected[:5])}"
+                + (f" (+{len(unexpected) - 5} more)" if len(unexpected) > 5 else "")
+                + " — refusing to touch the working tree; see logs/receipts/AUDIT-PUBLISH.json")
 
         fd, tmp_index = tempfile.mkstemp(prefix="q9-fleet-idx-")
         os.close(fd)
@@ -6344,11 +6463,16 @@ def _commit_routine_outputs(run_date: date) -> bool:
         # act, not a follow-on chore — the follow-on chore is precisely what died in July.
         _push_routine_branch(repo)
         return True
+    except DurableScopeDirty:
+        raise  # the refusal itself — never swallowed, never touches the tree (see finally)
     except Exception as exc:
         logger.warning("ADR-84 commit: unexpected error — %s", exc)
         return False
     finally:
-        _restore_durable_scope(pathspecs)
+        # On a refusal the tree is left EXACTLY as the caller left it — no restore, because
+        # a restore is itself the destructive act item 5 exists to gate (this lane, [#962]).
+        if not refused:
+            _restore_durable_scope(pathspecs, expected)
         if tmp_index and os.path.exists(tmp_index):
             try:
                 os.remove(tmp_index)

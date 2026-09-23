@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-23 (c) - CC (Opus 5.5, integrator wave 4b): LANE W4B-6 landed -- sessions read fleet health; a guarded background producer makes it
+
+**Anchors:** `9a45febe` (config comment reworded for the silent-rule ratchet) · `aa279430` (row 962 cites its records; disposition ledger) · `3b25ad16` (Codex terra 0/0/0/0) · `5ebb8331` (reader / trigger / isolated producer; the publish step refuses on dirt) · `94091c53` (row 962) -- `worktree-lane-fleet-health-split`, merged --no-ff in an integration worktree off origin/main `de97dad5`.
+
+**Did:** merged W4B-6, the lane the operator added to the batch after W4B-0's live test found `fleet_health.py`'s in-session audit deleting an untracked `docs/audits/` draft. The SessionStart entry now only reads the last published digest and its age; when the digest is older than `ecosystem/fleet-health-config.yaml`'s threshold it takes an exclusive claim and starts one detached producer that runs the audit in its own isolated checkout; `audit.py::_commit_routine_outputs` refuses with a receipt (`logs/receipts/AUDIT-PUBLISH.json`) when its durable scope holds anything it did not produce. `.claude/settings.json` re-arms `fleet_health.py` on fresh live evidence.
+
+**Result:** Codex terra 0/0/0/0: `docs/audits/2026-09-23-codex-lane-962-fleet-health-split.md`, cited by `[#962]` and FILED in `docs/audits/2026-09-23-technical-lane-fleet-health-split-disposition.md`. Comparison, gates and ship-gate: `to-browser/SESSION-integrator-wave4b-2026-09-22.md`. **Changes:** `scripts/fleet_health.py`, `scripts/audit.py`, `.claude/settings.json`, `ecosystem/fleet-health-config.yaml` (new), `tests/test_fleet_health.py`, `tests/test_audit.py`, `tests/test_hooks_rearm.py`, `tasks/962-*.md` (new), `tasks/manifest.json`, `BACKLOG.md`, two `docs/audits/` records (new), `docs/audits/README.md`, `ecosystem/organ-index.md`, `ecosystem/doc-counts.md` (tests 7306 -> 7337), `JOURNAL.md`, `logs/MERGE-RECEIPTS.jsonl`. **Next:** W4B-3, the W4B-4 repair; W4B-1 last.
+
 ### 2026-09-23 (b) - CC (Opus 5.5, integrator wave 4b): LANE W4B-2 repaired and landed -- a lane hands back through one organ that checks it first
 
 **Anchors:** `9a2c2814` (repair 1 of 2: the organ's own `fates:` line and the disposition of its two review records) · `0d8a81ed` (doc-counts) · `2fe3fb12` (Codex sol adversary + terra records filed) · `f5b790c0` (organ hardened against its own review) · `64e12240` (validate_branch_naming as self-check leg 5) · `0a563743` (handback organ + inter-seat schema) -- `worktree-lane-handback-organ`, merged --no-ff in an integration worktree off origin/main `e8ec23fc`.

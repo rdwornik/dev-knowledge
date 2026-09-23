@@ -39,9 +39,19 @@ _REARMED_HOOK_NAMES = (
     "billing_leak_sentinel.ps1",
 )
 
-# The two entries this lane leaves disabled, each for its own stated reason (contract: "No hook
-# is deleted").
-_STILL_DISABLED_HOOK_NAMES = ("surface-closures.ps1", "fleet_health.py")
+# fleet_health.py was ALSO left disabled by this lane (contract: "No hook is deleted"), pending
+# the architectural fix (reader/trigger/isolated-producer split) [#956]'s own handback named as
+# CANDIDATE. That fix landed in lane-fleet-health-split [#962] (2026-09-23), which re-armed it --
+# see _LANE_962_REARMED_HOOK_NAMES below. Only surface-closures.ps1 remains still-disabled here.
+_STILL_DISABLED_HOOK_NAMES = ("surface-closures.ps1",)
+
+# [#962] lane-fleet-health-split (2026-09-23): fleet_health.py's SessionStart entry re-armed on
+# fresh live evidence after the reader/trigger/isolated-producer split fixed both defects this
+# lane's own FAILED 2026-09-22 entry named (the synchronous in-session audit hang, and
+# audit.py::_commit_routine_outputs silently deleting untracked docs/audits/ work on restore).
+# Kept separate from _REARMED_HOOK_NAMES above: that tuple is [#956]'s own six-hook set from its
+# 2026-09-22 measurement and this is a distinct, later re-arm event by a different lane.
+_LANE_962_REARMED_HOOK_NAMES = ("fleet_health.py",)
 
 _COMMAND_SCRIPT_RE = re.compile(r'"\$CLAUDE_PROJECT_DIR/scripts/([^"]+\.(?:py|ps1))"')
 
@@ -75,9 +85,9 @@ def _script_path_from_command(command: str) -> Path:
 def test_every_session_start_command_names_a_script_that_exists():
     settings = _load_settings()
     commands = _session_start_commands(settings)
-    assert len(commands) == 7, (
-        f"expected arm_hooks.py plus the six re-armed hooks (7 total), found {len(commands)}: "
-        f"{commands}"
+    assert len(commands) == 8, (
+        f"expected arm_hooks.py, the six [#956] re-armed hooks, and [#962]'s fleet_health.py "
+        f"(8 total), found {len(commands)}: {commands}"
     )
     for command in commands:
         path = _script_path_from_command(command)
@@ -157,6 +167,49 @@ def test_no_stale_disabled_entries_remain_for_the_six_rearmed_hooks():
     entries = settings["//hooks-RESTORED-AND-DISABLED-INDIVIDUALLY-2026-09-17"]["disabled_individually"]
     disabled_names = {e["hook"] for e in entries}
     for hook_name in _REARMED_HOOK_NAMES:
+        assert hook_name not in disabled_names, (
+            f"{hook_name} is armed in hooks.SessionStart but still listed as disabled -- "
+            f"remove the stale disabled_individually entry"
+        )
+
+
+# --- [#962] lane-fleet-health-split (2026-09-23): fleet_health.py re-armed --------------------
+
+@pytest.mark.parametrize("hook_name", _LANE_962_REARMED_HOOK_NAMES)
+def test_lane_962_rearmed_hook_is_wired_in_session_start(hook_name):
+    settings = _load_settings()
+    commands = _session_start_commands(settings)
+    matching = [c for c in commands if hook_name in c]
+    assert len(matching) == 1, (
+        f"{hook_name} should appear exactly once in hooks.SessionStart, found {len(matching)}"
+    )
+    group = settings["hooks"]["SessionStart"][0]
+    entry = next(h for h in group["hooks"] if hook_name in h["command"])
+    assert isinstance(entry.get("timeout"), int) and entry["timeout"] > 0, (
+        f"{hook_name}'s SessionStart entry has no explicit positive timeout: {entry}"
+    )
+
+
+@pytest.mark.parametrize("hook_name", _LANE_962_REARMED_HOOK_NAMES)
+def test_lane_962_rearmed_hook_script_is_runnable(hook_name, tmp_path):
+    settings = _load_settings()
+    commands = _session_start_commands(settings)
+    command = next(c for c in commands if hook_name in c)
+    path = _script_path_from_command(command)
+    assert path.is_file()
+    out = tmp_path / f"{path.stem}.pyc"
+    py_compile.compile(str(path), cfile=str(out), doraise=True)
+    assert out.exists()
+
+
+def test_no_stale_disabled_entry_remains_for_fleet_health():
+    """fleet_health.py must not ALSO still carry a disabled_individually entry now that it is
+    armed in hooks.SessionStart -- the same disagreement test_no_stale_disabled_entries_remain_
+    for_the_six_rearmed_hooks guards for [#956]'s six, applied to [#962]'s re-arm."""
+    settings = _load_settings()
+    entries = settings["//hooks-RESTORED-AND-DISABLED-INDIVIDUALLY-2026-09-17"]["disabled_individually"]
+    disabled_names = {e["hook"] for e in entries}
+    for hook_name in _LANE_962_REARMED_HOOK_NAMES:
         assert hook_name not in disabled_names, (
             f"{hook_name} is armed in hooks.SessionStart but still listed as disabled -- "
             f"remove the stale disabled_individually entry"
