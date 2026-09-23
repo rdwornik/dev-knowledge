@@ -78,6 +78,7 @@ class HookVerdict:
     hook_id: str
     runs: int
     blocks: int
+    errors: int
     earliest_ts: str | None
     latest_ts: str | None
     history_hours: float
@@ -111,9 +112,10 @@ def verdict_for(hook_id: str, rows: list[tuple[str, str]], now: datetime,
     internally) so a test can pin the clock without patching a module global."""
     runs = len(rows)
     blocks = sum(1 for _, outcome in rows if outcome == "block")
+    errors = sum(1 for _, outcome in rows if outcome == "error")
     if runs == 0:
         return HookVerdict(
-            hook_id, 0, 0, None, None, 0.0, VERDICT_UNMEASURED,
+            hook_id, 0, 0, 0, None, None, 0.0, VERDICT_UNMEASURED,
             "0 runs recorded -- a hook that has not been exercised is not evidence it never "
             "catches anything; REMOVE would delete it for having had no opportunity to fire")
 
@@ -126,18 +128,27 @@ def verdict_for(hook_id: str, rows: list[tuple[str, str]], now: datetime,
 
     if history_hours < window_h:
         return HookVerdict(
-            hook_id, runs, blocks, earliest_ts, latest_ts, history_hours, VERDICT_UNMEASURED,
+            hook_id, runs, blocks, errors, earliest_ts, latest_ts, history_hours,
+            VERDICT_UNMEASURED,
             f"counter history spans {history_hours:.1f}h ({runs} runs), short of the "
             f"{window_h:g}h judgment window -- too young to judge, not measured-and-clean")
 
+    if blocks == 0 and errors > 0:
+        return HookVerdict(
+            hook_id, runs, blocks, errors, earliest_ts, latest_ts, history_hours,
+            VERDICT_UNMEASURED,
+            f"{errors} of {runs} runs over {history_hours:.1f}h errored (failed to launch) -- a "
+            "hook that could not run is not evidence it caught nothing; REMOVE would delete it "
+            "for never getting the chance to check anything")
+
     if blocks == 0:
         return HookVerdict(
-            hook_id, runs, blocks, earliest_ts, latest_ts, history_hours, VERDICT_REMOVE,
+            hook_id, runs, blocks, errors, earliest_ts, latest_ts, history_hours, VERDICT_REMOVE,
             f"{runs} runs over {history_hours:.1f}h (>= the {window_h:g}h window), 0 blocks -- "
             "a full judgment window with no catch")
 
     return HookVerdict(
-        hook_id, runs, blocks, earliest_ts, latest_ts, history_hours, VERDICT_KEEP,
+        hook_id, runs, blocks, errors, earliest_ts, latest_ts, history_hours, VERDICT_KEEP,
         f"{blocks} of {runs} runs blocked over {history_hours:.1f}h -- caught something")
 
 

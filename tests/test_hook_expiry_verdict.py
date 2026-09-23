@@ -53,6 +53,28 @@ def test_full_window_with_zero_blocks_is_remove() -> None:
     assert v.runs == 2 and v.blocks == 0
 
 
+def test_full_window_of_launch_errors_and_zero_blocks_is_unmeasured_never_remove() -> None:
+    """A hook whose wrapper repeatedly failed to LAUNCH (outcome 'error', e.g. a broken
+    interpreter path) racks up runs and 0 blocks over a full window -- but it never executed its
+    check, so it is not evidence of "no catch". Codex-caught: `blocks == 0` alone used to read
+    this as REMOVE, deleting a hook for having been broken rather than for having caught nothing."""
+    earliest = _NOW - timedelta(hours=200)
+    rows = [(earliest.isoformat(), "error"), ((_NOW - timedelta(hours=1)).isoformat(), "error")]
+    v = hev.verdict_for("audit-health", rows, _NOW, window_h=168.0)
+    assert v.verdict == hev.VERDICT_UNMEASURED
+    assert v.runs == 2 and v.blocks == 0 and v.errors == 2
+    assert "errored" in v.reason
+
+
+def test_a_genuine_block_still_wins_over_interleaved_errors() -> None:
+    """Errors alongside a real catch must not mask the catch -- KEEP, not UNMEASURED."""
+    earliest = _NOW - timedelta(hours=200)
+    rows = [(earliest.isoformat(), "error"), ((_NOW - timedelta(hours=1)).isoformat(), "block")]
+    v = hev.verdict_for("ruff", rows, _NOW, window_h=168.0)
+    assert v.verdict == hev.VERDICT_KEEP
+    assert v.blocks == 1 and v.errors == 1
+
+
 def test_full_window_with_a_block_is_keep() -> None:
     """A hook that caught something over its full window is KEEP, regardless of run count."""
     earliest = _NOW - timedelta(hours=200)

@@ -344,10 +344,13 @@ def common_repo_root(start: str | os.PathLike[str] | None = None) -> Path | None
 
 
 def _copy_rows(src: Path, dst: Path) -> int:
-    """Append every `events` row of `src` onto `dst`; return how many. `dst` is created/migrated
-    (schema + `_MIGRATIONS`) first, exactly like `connect()`, so a legacy file predating a schema
-    change still copies cleanly. Never raises `sqlite3.Error` -- a corrupt or half-written legacy
-    file yields 0 copied rows rather than blocking the hook the migration rides in on."""
+    """Append every `events` row of `src` onto `dst`; return how many. Both `dst` AND `src` are
+    migrated (schema + `_MIGRATIONS`) first, exactly like `connect()`, so a legacy file predating
+    a schema change -- e.g. one written before `run_id` ([#565]) existed -- gains the column with
+    its default rather than making the SELECT below raise `sqlite3.OperationalError` and silently
+    drop every row in the file (the bug: migrating `dst` alone left `src` short a column the
+    fixed SELECT names explicitly). Never raises `sqlite3.Error` -- a corrupt or half-written
+    legacy file yields 0 copied rows rather than blocking the hook the migration rides in on."""
     dst.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(str(dst)) as d:
         for pragma, value in WAL_PRAGMAS:
@@ -356,6 +359,8 @@ def _copy_rows(src: Path, dst: Path) -> int:
         _migrate(d)
         try:
             with sqlite3.connect(str(src)) as s:
+                s.execute(SCHEMA)
+                _migrate(s)
                 rows = s.execute(
                     "SELECT ts, event_type, name, outcome, duration_ms, context_json, run_id "
                     "FROM events").fetchall()
@@ -552,8 +557,9 @@ def default_db_path() -> Path:
     `migrate_legacy_checkout_store()` -- a worktree that already wrote its own
     `logs/TELEMETRY.db` before this change folds those rows into the shared store the first time
     a hook resolves this path from inside it, rather than losing them silently. Swallows its own
-    errors (never raises, never blocks a hook on a migration defect): the durable guarantee this
-    function makes is the PATH it returns, not that every legacy row makes it across.
+    errors rather than raising or blocking a hook on a migration defect, but prints one line to
+    stderr when it does (never fully silent): the durable guarantee this function makes is the
+    PATH it returns, not that every legacy row makes it across.
 
     REFUSES (rather than guessing) when neither the override nor a repository answers. The
     alternatives are both worse than a loud stop: falling back to the library's own directory
@@ -575,8 +581,9 @@ def default_db_path() -> Path:
     shared = root / DEFAULT_DB_RELPATH
     try:
         migrate_legacy_checkout_store(shared)
-    except Exception:  # a migration defect must never block the hook resolving its store path
-        pass
+    except Exception as exc:  # a migration defect must never block the hook resolving its path
+        print(f"telemetry_emit: legacy-store migration failed, continuing without it: {exc!r}",
+              file=sys.stderr)
     return shared
 
 

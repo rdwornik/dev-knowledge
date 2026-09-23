@@ -340,6 +340,35 @@ def test_legacy_per_checkout_store_is_migrated_into_the_shared_store(
     assert [r["name"] for r in _rows(shared_db)] == ["roster-freshness"]
 
 
+def test_legacy_store_predating_run_id_column_still_migrates(tmp_path: Path) -> None:
+    """A legacy per-checkout file written before `run_id` ([#565]) existed has no such column.
+    `_copy_rows` reads it with a SELECT that names `run_id` explicitly -- migrating only the
+    DESTINATION schema and reading the SOURCE as-is raised `sqlite3.OperationalError: no such
+    column: run_id`, caught by the broad `except sqlite3.Error: return 0`, silently discarding
+    every row in the file. Fixed by migrating `src`'s schema too, before the SELECT."""
+    legacy_root = tmp_path / "legacy"
+    legacy_db = legacy_root / te.DEFAULT_DB_RELPATH
+    legacy_db.parent.mkdir(parents=True)
+    conn = sqlite3.connect(str(legacy_db))
+    try:
+        conn.execute(
+            "CREATE TABLE events (id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT NOT NULL, "
+            "event_type TEXT NOT NULL, name TEXT NOT NULL, outcome TEXT, duration_ms INTEGER, "
+            "context_json TEXT NOT NULL DEFAULT '{}')")
+        conn.execute(
+            "INSERT INTO events (ts, event_type, name, outcome, duration_ms) "
+            "VALUES ('2026-09-01T00:00:00+00:00', 'hook_run', 'pre-run-id-hook', 'block', 5)")
+        conn.commit()
+    finally:
+        conn.close()  # a `with sqlite3.connect(...)` block only commits/rollbacks, never closes
+        # -- the still-open handle would make the following os.replace() fail on Windows.
+
+    shared = tmp_path / "shared" / te.DEFAULT_DB_RELPATH
+    migrated = te.migrate_legacy_checkout_store(shared, legacy_root=legacy_root)
+    assert migrated == 1, "the pre-run_id row must not be silently dropped"
+    assert [r["name"] for r in _rows(shared)] == ["pre-run-id-hook"]
+
+
 def test_migrate_legacy_checkout_store_is_a_noop_for_the_primary_itself(
         tmp_path: Path) -> None:
     """The primary checkout's own legacy path IS its shared path -- migrating a file onto itself
