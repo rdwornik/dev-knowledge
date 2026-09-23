@@ -156,6 +156,35 @@ def test_copilot_enterprise_is_now_admitted_on_implement(router):
     )
 
 
+def test_the_licence_fix_also_opens_copilot_on_read_though_its_admission_there_is_untouched(
+        router):
+    """A side effect of the LICENCE ruling, made explicit rather than left implicit (codex terra
+    review, `docs/audits/2026-09-24-codex-lane-provider-registry.md`, High).
+
+    `providers.copilot-enterprise.licence` is a PROVIDER-level fact — fixing it repo-wide (O-3)
+    clears the licence gate on every role Copilot appears in, not just `implement`. On `read`,
+    that is enough on its own: the role is not admission-gated (`ADMISSION_GATED_ROLES` is
+    `{"implement"}` only) and this entry sets no `requires_admission`, so once the licence gate
+    clears, nothing else stands between Copilot and eligibility — even though its `read`-role
+    `admission:` is untouched at `unevaluated` (`test_admission_copilot_enterprise_is_admitted_
+    on_implement_not_elsewhere`, tests/test_provider_roles.py). This is the DESIGNED shape of
+    `read` (its own registry description: "a not-yet-admitted reader is still a coherent idea …
+    CC verifies"), not an oversight — asserted here so it is a checked property instead of an
+    untested consequence of the licence edit above.
+    """
+    verdicts = {v.provider: v for v in router.explain("read", repo=".dev-knowledge")}
+    assert verdicts["copilot-enterprise"].refusal is None, (
+        f"expected copilot-enterprise eligible on read once its licence is permitted, got: "
+        f"{verdicts['copilot-enterprise']}"
+    )
+    got = [c.provider for c in router.route("read", repo=".dev-knowledge")]
+    assert got == ["antigravity", "copilot-enterprise", "anthropic"], (
+        "read's declared order is unchanged; copilot-enterprise now clears every gate on it "
+        "and shows up as a survivor in its declared position, same as antigravity (also "
+        "unadmitted-but-licensed on this role)"
+    )
+
+
 def test_refusal_2_does_NOT_apply_to_review(router):
     """THE SCOPING, asserted in the direction that is easy to get wrong.
 
