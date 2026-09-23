@@ -19,8 +19,8 @@ the real test files those contracts claim to own, and `logs/MERGE-RECEIPTS.jsonl
 estimate. It writes nothing, ever — Layer 2 never executes (Critical Rule #4; ADR-28/36), and a
 plan LINT is a reader by its very nature.
 
-FOUR FINDING CLASSES (the Done-contract's own enumeration), each returning the two contracts
-involved:
+FIVE FINDING CLASSES (the Done-contract's own enumeration, plus D14's addition), each returning
+the two contracts involved:
 
   1. **File collision** — two lanes' `Files you own` overlap (exact path, or one path is a
      directory ancestor of the other).
@@ -35,6 +35,10 @@ involved:
      waiting for its merge, and another lane in the same set explicitly declares it "wait[s] for
      none" / "depend[s] on no other lane" (a direct textual contradiction); or a lane declares it
      waits for a specifically named lane's merge that lane never declares itself serial for.
+  5. **New organ, no fate** (DECLARE-WINDOW-DEFECTS-2026-09-23 D14, the LANE-W4B-2 instance) — a
+     lane's `Files you own` names a `scripts/*.py` file that does not exist yet, and nothing in
+     the contract's own text commits to a `fates:` line or a moment for it. See
+     `find_new_organs_without_fate` for the full account.
 
 ORDERING SUPPRESSES CLASSES 1 AND 3, NEVER CLASS 4 — and that split is deliberate, not an
 oversight. A file collision or a moment/test coupling is a REAL hazard only while the two lanes
@@ -141,6 +145,13 @@ _CONSUMES_RE = re.compile(r"\*\*Consumes:\*\*\s*(?P<body>[^\n]*)")
 #: contract's STRUCTURE and raises on a malformed one, where this module's job is to read
 #: whatever a real, already-frozen contract says, structurally valid or not.
 _SLUG_RE = re.compile(r"slug\s+`(?P<slug>[^`]+)`")
+#: A contract's own commitment to give a new organ a fate or a moment (class 5, D14): a
+#: `fates:` mention, either dated shape (`manual_until`/`retire_candidate`), or the bare word
+#: "moment" — which also covers the `_MOMENT_OWNERSHIP_RE` grammar above, since that phrase
+#: itself contains "moment". Anywhere in the contract, not scoped to `Files you own` — a fate
+#: is typically declared in the Done-contract section, not the file list.
+_FATE_MENTION_RE = re.compile(r"\bfates?\b|\bmanual_until\b|\bretire.candidate\b|\bmoment\b",
+                              re.IGNORECASE)
 
 
 def _quoted_tokens(text: str) -> tuple[str, ...]:
@@ -160,6 +171,7 @@ class LaneContract:
     title: str
     owned_paths: tuple[str, ...] = ()
     files_you_own_text: str = ""
+    full_text: str = ""
     moments_touched: tuple[str, ...] = ()
     serial: bool = False
     serial_detail: str = ""
@@ -212,7 +224,7 @@ def parse_lane_contract(path: Path) -> LaneContract:
 
     return LaneContract(
         path=path, slug=slug, title=title, owned_paths=owned, files_you_own_text=files_text,
-        moments_touched=moments, serial=serial, serial_detail=serial_detail,
+        full_text=text, moments_touched=moments, serial=serial, serial_detail=serial_detail,
         starts_after=starts_after, wait_for_none=wait_for_none, named_waits=named_waits,
         produces=tuple(dict.fromkeys(produces)), consumes=tuple(dict.fromkeys(consumes)))
 
@@ -401,6 +413,56 @@ def find_missing_producers(lanes: Sequence[LaneContract]) -> list[Finding]:
     return out
 
 
+# --- class 5: a new organ with no declared fate or moment (D14) -------------------------------
+
+def find_new_organs_without_fate(lanes: Sequence[LaneContract], repo_root: Path) -> list[Finding]:
+    """Class 5 (DECLARE-WINDOW-DEFECTS-2026-09-23 D14): a lane's `Files you own` names a
+    `scripts/*.py` file that does not exist yet, with no textual commitment anywhere in the
+    CONTRACT to give it a fate or a moment.
+
+    THE INSTANCE THIS CATCHES BEFORE FREEZE. `LANE-W4B-2-handback-organ.md` introduced
+    `scripts/handback.py`, forbade `ecosystem/harness.yaml` by name, and said nothing about a
+    fate for the new organ. `check_organ_truth` refused the merge over exactly that gap, and an
+    8-hour ruling (`ANSWER-integrator-wave4b-handback-organ.md`) had to authorize one dated
+    `fates:` line after the lane had already written the code. This class is that same read,
+    run over the CONTRACT PROSE before a lane starts.
+
+    A lane already declaring itself at ANY `harness.yaml` moment (`moments_touched`) is exempt
+    for every script it owns -- the same coarse, per-lane (not per-script) grain
+    `find_moment_test_conflicts` already reads at; a lane that owns the ecosystem declaration is
+    presumed to know it needs one.
+
+    HONEST LIMIT (consistent with the module's others): this reads the CONTRACT's commitment,
+    not whether the fate is actually correct or later honoured -- `check_organ_truth` still
+    enforces that at merge. Gated on `ecosystem/harness.yaml` being readable at `repo_root` at
+    all (`gq.MomentsUnreadable` -> no findings): a repo that declares no moments has nothing
+    for a fate to be declared IN, the same posture `check_organ_truth` itself takes.
+    """
+    try:
+        gq.load_declaration(repo_root)
+    except gq.MomentsUnreadable:
+        return []
+    out: list[Finding] = []
+    for lane in lanes:
+        if lane.moments_touched:
+            continue
+        for token in lane.owned_paths:
+            if not token.startswith("scripts/") or not token.endswith(".py"):
+                continue
+            if (Path(repo_root) / token).is_file():
+                continue
+            if _FATE_MENTION_RE.search(lane.full_text):
+                continue
+            out.append(Finding(
+                "new-script-no-fate", BLOCKING, lane.slug, lane.slug,
+                f"owns `{token}`, a script that does not exist yet, with no fate or moment "
+                f"declared anywhere in this contract -- give it a `fates:` line "
+                f"(`manual_until`/`retire_candidate`/`moment`) in ecosystem/harness.yaml or "
+                f"name the moment it runs at, or `organ_truth` will refuse it at merge "
+                f"(the LANE-W4B-2 instance, DECLARE D14)"))
+    return out
+
+
 #: Below this many literal organ-id hits, a match is an incidental mention, not a hard-coded list.
 _MIN_ORGAN_HITS = 2
 #: Words too common in this corpus's prose to anchor a directory scan (see the module docstring's
@@ -560,6 +622,7 @@ def lint(lanes: Sequence[LaneContract], repo_root: Path) -> list[Finding]:
     findings.extend(find_missing_producers(lanes))
     findings.extend(find_moment_test_conflicts(lanes, repo_root, edges))
     findings.extend(find_serial_mismatches(lanes))
+    findings.extend(find_new_organs_without_fate(lanes, repo_root))
     return findings
 
 
