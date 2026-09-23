@@ -159,13 +159,19 @@ def test_order_refuses_a_model_pin_that_crosses_providers(live):
 def test_admission_every_non_claude_entry_is_recorded_not_admitted(live):
     """THE HALF A / HALF B BOUNDARY, asserted as a property of the shipped file.
 
-    AX23-2 splits this arc: Half A builds the mechanism with no non-Claude provider ordered;
-    Half B measures admission. This test is what makes that split checkable rather than
-    merely stated — if a later edit quietly admits one of these, this goes RED, and the
-    admission would be a DECLARED one, which is exactly what AX21-2 and AX22-1 forbid.
+    AX23-2 splits this arc: Half A builds the mechanism with no non-Claude provider ordered
+    through AX22-1's >= 8-of-10 MEASUREMENT; Half B is where that measurement happens. This
+    test is what makes that split checkable rather than merely stated — if a later edit
+    quietly admits one of these ON THE STRENGTH OF A DECLARED (unmeasured) ranking, this goes
+    RED, and the admission would be exactly what AX21-2 and AX22-1 forbid.
 
-    `anthropic` is the sole admitted provider and holds that verdict in every role it appears
-    in. Reporting an admission state is not the same act as measuring one.
+    `copilot-enterprise` is the DOCUMENTED EXCEPTION, added 2026-09-23 (`lane-provider-
+    registry`, operator ruling O-3): its `implement` admission is NOT an AX22-1 measurement —
+    it is an operator ruling on IN-REPO evidence of prior real production
+    (`docs/audits/2026-09-23-technical-copilot-admission-evidence.md`) — but it is still an
+    ADMITTED verdict in the `roles:` collection, so this test's set must carry it or the
+    property it asserts (which providers hold an admitted verdict anywhere) would be false.
+    Reporting an admission state is not the same act as measuring one, on either provider.
     """
     registry = ProviderRegistry.model_validate(live)
     admitted_providers = {
@@ -174,23 +180,45 @@ def test_admission_every_non_claude_entry_is_recorded_not_admitted(live):
         for entry in role.order
         if entry.admission is not None and entry.admission.verdict == "admitted"
     }
-    assert admitted_providers == {"anthropic"}
+    assert admitted_providers == {"anthropic", "copilot-enterprise"}
 
 
 def test_admission_the_four_trip_test_targets_are_all_present_and_not_admitted(live):
     """The lane contract requires exactly these to be LISTED so the router's refusals have real
     rows to bite on. Presence and non-admission are asserted together, because either alone is
     the wrong state: absent, and the refusal is untestable; admitted, and Half A has silently
-    done Half B's job."""
+    done Half B's job.
+
+    `copilot-enterprise` moved out of this set 2026-09-23 (operator ruling O-3) — it is now
+    ADMITTED on `implement` (see the test above), so it no longer belongs among the NOT ADMITTED
+    trip-test targets. It is asserted separately, right below, on its remaining role (`read`),
+    where it is still NOT ADMITTED and still trip-tests the router's refusal there.
+    """
     registry = ProviderRegistry.model_validate(live)
     listed: dict[str, bool] = {}
     for role in registry.roles.values():
         for entry in role.order:
             admitted = entry.admission is not None and entry.admission.verdict == "admitted"
             listed[entry.provider] = listed.get(entry.provider, False) or admitted
-    for provider in ("antigravity", "xai", "copilot-enterprise", "openai"):
+    for provider in ("antigravity", "xai", "openai"):
         assert provider in listed, f"{provider} must be LISTED for the router refusal to be trip-testable"
         assert listed[provider] is False, f"{provider} is NOT ADMITTED in Half A"
+
+
+def test_admission_copilot_enterprise_is_admitted_on_implement_not_elsewhere(live):
+    """The 2026-09-23 exception, pinned precisely: `copilot-enterprise` is ADMITTED on
+    `implement` (operator ruling O-3) and remains NOT ADMITTED on every other role it appears
+    in (`read`) — the ruling is scoped to the role the in-repo evidence actually demonstrates
+    (two production lanes), not a blanket admission across the registry."""
+    registry = ProviderRegistry.model_validate(live)
+    by_role: dict[str, bool] = {}
+    for role_name, role in registry.roles.items():
+        for entry in role.order:
+            if entry.provider != "copilot-enterprise":
+                continue
+            by_role[role_name] = entry.admission is not None and entry.admission.verdict == "admitted"
+    assert by_role.get("implement") is True
+    assert by_role.get("read") is False
 
 
 def test_admission_refuses_a_verdict_with_no_provenance(live):
@@ -266,28 +294,44 @@ def test_licence_an_absent_block_reads_as_unknown_never_permitted(live):
     assert registry.licence_of("xai") == "unknown"
 
 
-def test_licence_the_employer_metered_seat_is_recorded_unknown(live):
+def test_licence_the_employer_metered_seat_was_ruled_2026_09_23(live):
     """The one genuinely OPEN licence on this surface, and the row that made the field worth
     adding. copilot-enterprise is metered to the BY-Product-Development enterprise org seat;
-    whether that may be spent on this repository is a FUNCTIONAL question and therefore the
-    operator's under ADR-108 §A. The lane records the state and stops — `unknown` is a
-    first-class verdict here, neither a soft refusal nor a soft permission."""
+    whether that may be spent on this repository was a FUNCTIONAL question and therefore the
+    operator's under ADR-108 §A. `lane-x-691-routing-half-a` recorded the state and stopped —
+    `unknown` was a first-class verdict there, neither a soft refusal nor a soft permission.
+
+    RULED 2026-09-23 (operator O-3, `RATIFICATION-2026-09-23-copilot.md`; in-repo evidence at
+    `docs/audits/2026-09-23-technical-copilot-admission-evidence.md`): `permitted`, repo-wide —
+    a licence ruling is a property of the PROVIDER, not of one role, so it is not scoped to
+    `implement` even though the evidence that prompted it is an `implement`-role admission.
+    """
     registry = ProviderRegistry.model_validate(live)
-    assert registry.licence_of("copilot-enterprise") == "unknown"
+    assert registry.licence_of("copilot-enterprise") == "permitted"
 
 
 def test_licence_refuses_admitting_a_provider_whose_licence_does_not_permit(live):
     """THE LEG (c) REFUSAL. `[#691]`'s Done-when: only providers *"whose licence permits the
     use"* may be routable. Enforced on ADMISSION rather than on LISTING — see this module's
-    docstring for why that is the reading with teeth."""
+    docstring for why that is the reading with teeth.
+
+    Fixture-based since 2026-09-23: `order[1]` on `implement` (copilot-enterprise) carries a
+    `permitted` licence now (operator ruling O-3), so admitting it no longer trips this refusal
+    on its own — the mutation below gives `xai` (already `order[2]`) a non-permitting licence
+    instead, restricted rather than unknown, to also cover the RULED (not just the unruled) half
+    of the vocabulary."""
     def mutate(d):
-        d["roles"]["implement"]["order"][1]["admission"] = {
+        d["providers"]["xai"]["licence"] = {
+            "status": "restricted", "reason": "fixture", "decided_by": "t",
+            "decided_on": "2026-09-23",
+        }
+        d["roles"]["implement"]["order"][2]["admission"] = {
             "verdict": "admitted", "decided_by": "t", "decided_on": "2026-09-12",
             "evidence": "docs/audits/x.md",
         }
 
     message = _refuses(_mutated(live, mutate))
-    assert "licence" in message and "unknown" in message
+    assert "licence" in message and "restricted" in message
 
 
 def test_licence_refuses_a_decided_status_with_no_decider(live):
@@ -435,8 +479,12 @@ def test_the_default_is_the_most_restrictive_entry(manifest):
 def test_a_work_repository_excludes_the_paid_third_party_route(manifest):
     """AX22-5's own carve-out: *"work repositories may exclude paid third-party APIs."*
     `corp-monorepo` excludes `xai` (pay-per-call on the operator's PERSONAL credential) and
-    `copilot-enterprise` (metered to the employer org seat whose licence is unruled). The two
-    exclusions point in opposite directions and both are deliberate."""
+    `copilot-enterprise` (metered to the employer org seat). The two exclusions point in
+    opposite directions and both are deliberate. `copilot-enterprise`'s licence was RULED
+    `permitted` for THIS repo 2026-09-23 (operator O-3) — that ruling is about spending the
+    BY-Product-Development seat on `.dev-knowledge`'s own work, and does not itself extend to
+    `corp-monorepo`; the manifest's per-repo allowlist, not the registry's per-provider licence,
+    is what would have to change to admit it there, and nothing has ruled that yet."""
     allowed = set(manifest["providers"]["allowed"]["corp-monorepo"])
     assert "xai" not in allowed
     assert "copilot-enterprise" not in allowed
