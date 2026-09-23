@@ -48,7 +48,7 @@ import logging
 import pathlib
 import sys
 from collections.abc import Callable, Iterable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import click
 
@@ -133,9 +133,11 @@ class Rule:
     """
 
     name: str
-    kind: str  # "self" | "covering" | "marker" | "full"
+    kind: str  # "self" | "covering" | "marker" | "full" | "fixed"
     reason: str
     matches: Callable[[str], bool]
+    #: Only meaningful for kind "fixed" -- a path-independent set this rule always adds.
+    targets: frozenset[str] = frozenset()
 
 
 def _is_test(rel: str) -> bool:
@@ -180,6 +182,21 @@ def _is_doc(rel: str) -> bool:
     return rel.endswith(DOC_SUFFIXES)
 
 
+#: A BACKLOG row -- decision-coverage / funnel source, not prose that only breaks a
+#: live-tree assertion. Finding 3 (DIGEST-WAVE4-FINAL-2026-09-22.md): before this rule a
+#: `tasks/*.md` change fell through to `_is_doc` and selected only the `live_repo`-marked
+#: files, which never included `tests/test_funnel_lifecycle.py` (it carries no such
+#: marker) -- so the one test that watches row provenance was silently skipped on exactly
+#: the diffs most likely to move it.
+def _is_task_row(rel: str) -> bool:
+    return rel.startswith("tasks/") and rel.endswith(".md")
+
+
+#: Fixed target for the task-row rule. A frozenset rather than a bare tuple so `Rule`'s
+#: `targets` field stays consistent in type across every "fixed" rule this table may gain.
+FUNNEL_TEST_TARGET = frozenset({"tests/test_funnel_lifecycle.py"})
+
+
 #: `templates/*.ps1` has no import edge FPG-1's AST pass can see (it is not Python),
 #: and `tests/fixtures/**` is data, often not Python either, and even where it is
 #: (`sitecustomize.py`) it is not under a SOURCE_ROOT. Both families are connected to
@@ -222,6 +239,11 @@ RULES: tuple[Rule, ...] = (
          "a `tests/fixtures/**` file is data, not an import; the connection is the "
          "literal fixture directory name a test uses to find it",
          _is_fixture),
+    Rule("task-row", "fixed",
+         "a tasks/*.md row is BACKLOG/decision-coverage source; the funnel detector "
+         "needs its own coverage independent of the live_repo marker tier (finding 3, "
+         "DIGEST-WAVE4-FINAL-2026-09-22.md)",
+         _is_task_row, targets=FUNNEL_TEST_TARGET),
     Rule("source-tree-config", "full",
          "a machine-read config file under a source root IS behaviour, and mapping it to "
          "tests needs path-string edges the import graph does not carry",
@@ -495,6 +517,8 @@ def select(
                 full = True
             elif rule.kind == "self":
                 selected.add(rel)
+            elif rule.kind == "fixed":
+                selected.update(rule.targets)
             elif rule.kind == "marker":
                 marker = LIVE_REPO_MARKER
             elif rule.kind == "covering":
@@ -527,6 +551,92 @@ def select(
     return Selection(
         test_files=tuple(sorted(selected)), marker=marker, reasons=reasons
     )
+
+
+#: Files the integrator regenerates ONCE, at the merge -- never a lane's own concern.
+#:
+#: Citation: `protocols/PLAYBOOK.md` "Index freshness on lane material" -- "A generated
+#: index -- the audits index, the intake index, the organ index -- is regenerated once,
+#: by the integrator, at the merge" -- and `.claude/commands/lane-integrate.md` item 4b
+#: / [#590] for the audits index concretely (`docs/audits/README.md` is `merge=ours`
+#: pinned in `.gitattributes` for exactly this reason). A lane's own diff touching one of
+#: these -- typically because it ran the generator locally, or because it synced a
+#: sibling lane's regenerated copy -- must not drive selection: the integrator's regen
+#: pass overwrites it before it is ever compared, so charging the lane a selection for it
+#: (up to and including the full-suite fail-safe an unmapped `.md` under `docs/` would
+#: not even trigger, since these three already have covering-tier answers) buys nothing.
+INTEGRATOR_REGENERATED_FILES = frozenset({
+    "docs/audits/README.md",
+    "docs/intake/README.md",
+    "ecosystem/organ-index.md",
+})
+
+
+def changed_from_lane_diff(
+    repo_root: pathlib.Path, main_ref: str, lane_ref: str = "HEAD"
+) -> list[str]:
+    """Changed paths via the merge-base TRIPLE-dot diff `{main_ref}...{lane_ref}`.
+
+    Deliberately not `changed_from_git`'s two-dot form (working-tree-vs-ref, or ref-vs-
+    HEAD): a two-dot diff also carries whatever `main_ref` did AFTER the lane branched,
+    which is exactly what a LANE'S OWN verification must not be charged for -- that is
+    main's later movement, not the lane's change. `git diff A...B` is git's own spelling
+    of "what B added since the merge-base of A and B", which is the lane's diff by
+    construction.
+
+    Raises on a git failure (an invalid/unfetched `main_ref` or `lane_ref`) rather than
+    following `changed_from_git`'s check=False-and-ignore convention: THAT function feeds
+    a two-dot diff a caller already resolved, but this one is the LANE'S OWN selection
+    entry point (`select-lane` takes `--main-ref`/`--lane-ref` straight from the CLI) --
+    a bad ref silently returning `[]` would report an empty, successful selection instead
+    of skipping verification loudly (Codex terra HIGH).
+    """
+    import subprocess
+
+    out = subprocess.run(
+        ["git", "diff", "--name-only", f"{main_ref}...{lane_ref}"],
+        cwd=repo_root, capture_output=True, text=True, check=False,
+    )
+    if out.returncode != 0:
+        raise RuntimeError(
+            f"git diff --name-only {main_ref}...{lane_ref} failed (exit {out.returncode}): "
+            f"{out.stderr.strip() or out.stdout.strip()}"
+        )
+    return [line.strip() for line in out.stdout.splitlines() if line.strip()]
+
+
+def select_lane_diff(
+    repo_root: pathlib.Path | str,
+    main_ref: str = "origin/main",
+    lane_ref: str = "HEAD",
+    depth: int = DEFAULT_DEPTH,
+) -> Selection:
+    """Select the tests impacted by the LANE'S OWN diff, `main_ref...lane_ref`.
+
+    A SECOND ENTRY POINT, not a new flag on `select()`/`changed_from_git` -- WAVE4B-COMMON
+    rule 8 (backward-compatible CLIs): a script another organ calls keeps its current
+    flags and exit codes, and the old two-dot mode is untouched by this function's
+    existence. `INTEGRATOR_REGENERATED_FILES` is stripped from the changed set before it
+    ever reaches `select()`, with the exclusion recorded in `reasons` exactly like every
+    other rule's verdict, so `--explain` still accounts for every path in the diff.
+    """
+    root = pathlib.Path(repo_root).resolve()
+    raw = changed_from_lane_diff(root, main_ref, lane_ref)
+    excluded = [c for c in raw if c in INTEGRATOR_REGENERATED_FILES]
+    changed = [c for c in raw if c not in INTEGRATOR_REGENERATED_FILES]
+    exclusion_reasons = {
+        c: ("integrator-regenerated",
+            "excluded: regenerated once by the integrator at merge, never the lane's own concern")
+        for c in excluded
+    }
+    if not changed:
+        # Nothing left to answer for -- this is deliberately NOT the full-suite fail-safe.
+        # An unmapped path means "the mechanism does not know what it cannot see"; a diff
+        # that is ENTIRELY regenerated indices means the mechanism knows exactly what it
+        # saw and has already decided none of it is the lane's to run.
+        return Selection(reasons=exclusion_reasons)
+    sel = select(root, changed, depth=depth)
+    return replace(sel, reasons={**exclusion_reasons, **sel.reasons})
 
 
 def changed_from_git(repo_root: pathlib.Path, ref: str | None = None) -> list[str]:
@@ -674,6 +784,33 @@ def select_cmd(repo_root: str, changed: tuple[str, ...], ref: str | None,
         click.echo("# no changed paths; nothing to select")
         return
     sel = select(root, paths, depth=depth)
+    if explain:
+        for rel, (name, why) in sorted(sel.reasons.items()):
+            click.echo(f"# {rel}: [{name}] {why}", err=True)
+        click.echo(f"# selected {len(sel.test_files)} test file(s)", err=True)
+    if sel.full_suite:
+        click.echo("# FULL SUITE -- the selector declined to narrow")
+        return
+    click.echo(" ".join(sel.pytest_args()))
+
+
+@cli.command("select-lane")
+@click.option("--repo-root", default=".", help="Repository root to select against.")
+@click.option("--main-ref", default="origin/main", show_default=True,
+              help="The lane's sync point (merge-base end).")
+@click.option("--lane-ref", default="HEAD", show_default=True, help="The lane's tip.")
+@click.option("--depth", default=DEFAULT_DEPTH, show_default=True,
+              help="Bounded transitive import depth.")
+@click.option("--explain", is_flag=True, help="Print why each path selected what it did.")
+def select_lane_cmd(repo_root: str, main_ref: str, lane_ref: str, depth: int,
+                    explain: bool) -> None:
+    """Print the pytest arguments for `main_ref...lane_ref` -- the LANE'S OWN diff.
+
+    A separate command from `select`, not a flag on it (WAVE4B-COMMON rule 8): `select`
+    keeps its current two-dot behaviour and exit shape untouched.
+    """
+    root = pathlib.Path(repo_root).resolve()
+    sel = select_lane_diff(root, main_ref=main_ref, lane_ref=lane_ref, depth=depth)
     if explain:
         for rel, (name, why) in sorted(sel.reasons.items()):
             click.echo(f"# {rel}: [{name}] {why}", err=True)

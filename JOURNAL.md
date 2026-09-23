@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-23 (e) - CC (Opus 5.5, integrator wave 4b): LANE W4B-4 landed on its repair -- a lane tests itself; the integrator only confirms
+
+**Anchors:** `ee6215e9` (row 960 also cites its disposition ledger) · `46e30708` (doc-counts regenerated after the sync) · `b0b0c4c9` (row 960 cites its two review records; disposition filed) · `481f84e7` (the lane's sync merge of origin/main `de97dad5`) · `ea217336` (Codex terra: 3 HIGH confirmed and fixed) · `e54898e3` (record-lane refuses zero reruns) · `4b0171cc` (merge-queue measurement, 10 pushes) · `55ce18f4` (finding 8 -- what can see a masked second finding) · `fc1218b9` (record a lane's verification by tree; reuse it when main has not moved) · `afecb6fd` (impacted tests select from the lane's own diff) -- `worktree-lane-verify-in-lane`, merged --no-ff in an integration worktree off origin/main `3d3b3a0e`.
+
+**Did:** merged W4B-4 after repair 1 of 2 (first handback `ea217336` refused 2026-09-23 ~10:45Z: its two review records were cited by no governance surface, plus funnel_coverage). `scripts/impacted_tests.py` selects from the lane's own diff, not from main's later moves; `scripts/test_pairing.py` gains `record-lane` -- a lane records its verification keyed by tree, and the integrator reuses it while main has not moved. The merge-queue measurement compares the CI verdict with the local gate list over 10 pushes. The only conflict, `ecosystem/doc-counts.md`, is generated and was regenerated from the merged tree (standing ruling of 2026-09-21).
+
+**Result:** Codex terra `docs/audits/2026-09-23-codex-lane-verify-in-lane-960-terra.md` and the measurement `docs/audits/2026-09-22-technical-lane-verify-in-lane-merge-queue-measurement.md`, both consumed by `[#960]` and dispositioned in `docs/audits/2026-09-23-technical-lane-verify-in-lane-disposition.md`. Verification under the architect's split-attribution ruling; comparison, gates and ship-gate in `to-browser/SESSION-integrator-wave4b-2026-09-22.md`. **Changes:** `scripts/impacted_tests.py`, `scripts/test_pairing.py`, their tests, `tasks/960-*.md`, three `docs/audits/` records (new), `docs/audits/README.md`, `ecosystem/doc-counts.md`, `JOURNAL.md`, `logs/MERGE-RECEIPTS.jsonl`. **Next:** batch WAVE4B closes (W4B-1 deferred by the architect).
+
 ### 2026-09-23 (d) - CC (Opus 5.5, integrator wave 4b): LANE W4B-3 landed -- gates speak data, and the connection test reads it
 
 **Anchors:** `ee207181` (row 959 cites its records) · `2af7145f` (false xdist_group pinning claim corrected; review disposed) · `8d6cf0a9` (Codex record) · `020037c9` (the lane's sync merge of origin/main `e8ec23fc`) · `5764c66a` (Codex record) · `c9529fa4` (`core.longpaths` in the toy repo -- the launch-step trio's real cause) · `e2ebec18` (a launch stop labels its own output) · `b7e7567e` (structured per-organ findings) -- `worktree-lane-gate-verdicts`, merged --no-ff in an integration worktree off origin/main `10a4c9f5`.

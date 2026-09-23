@@ -87,7 +87,19 @@ HONEST LIMITS. (1) A test red on BASE for a flaky reason and green on HEAD shows
 (2) A test whose result depends on gitignored state (e.g. `ecosystem/*/state.yaml`) sees neither
 side's copy -- both clones lack it, so it cannot skew the PAIR, but the reds it produces are
 reds of a bare checkout. (3) `impacted_tests` measures a miss-rate of about one affected file in
-twenty; a clean pairing is not a full-suite pass.
+twenty; a clean pairing is not a full-suite pass. (4) THE REGISTRY IS NODE-ID GRANULAR, NOT
+FINDING GRANULAR (finding 8, DIGEST-WAVE4-FINAL-2026-09-22): a test already red in the registry
+stays `preexisting` even when the LANE'S diff adds a second, distinct cause of that same test's
+failure -- classification here is PASSED/FAILED per node id, and a node id carries no notion of
+"which finding, or how many". This is not a bug to patch here: it is what "the registry compares
+pytest outcomes" means, and widening it would mean parsing assertion messages per test, which no
+option in this module does. THE INSTRUMENT THAT CAN SEE IT is whatever already reports FINDINGS
+rather than a pass/fail verdict for the test wrapping them -- `scripts/decision_coverage.py check`
+is the live example: it prints one `ProbeFinding` (`.subject`, `.evidence`) per uncovered decision,
+so two decisions missing their row are TWO printed lines even while
+`tests/test_decision_coverage.py::test_the_live_tree_carries_no_IN_ERA_uncovered_decision` is a
+single red node id either way. A lane whose diff could plausibly ADD a finding inside an
+already-red test should read that instrument directly rather than trust this registry to notice.
 """
 from __future__ import annotations
 
@@ -139,6 +151,18 @@ def _git(repo: Path, *args: str) -> str:
 
 def resolve(repo: Path, ref: str) -> str:
     return _git(repo, "rev-parse", "--verify", f"{ref}^{{commit}}")
+
+
+def _is_ancestor(repo: Path, ancestor: str, descendant: str) -> bool:
+    """`True` iff `ancestor` is reachable from `descendant` -- `git merge-base --is-ancestor`,
+    whose exit 1 means "no" (a normal outcome, not a git failure) so it cannot go through
+    `_git`'s check-returncode-!=-0-is-an-error convention."""
+    done = subprocess.run(["git", "merge-base", "--is-ancestor", ancestor, descendant],
+                          cwd=repo, capture_output=True, text=True, check=False)
+    if done.returncode not in (0, 1):
+        raise PairingError(f"git merge-base --is-ancestor {ancestor} {descendant} failed: "
+                           f"{done.stderr.strip() or done.stdout.strip()}")
+    return done.returncode == 0
 
 
 def make_clone(repo: Path, sha: str, dest: Path) -> Path:
@@ -308,14 +332,18 @@ def _changed(repo: Path, base: str, head: str) -> list[str]:
     return [line for line in out.splitlines() if line]
 
 
-def choose_tests(clone: Path, changed: list[str]) -> dict:
-    """The selection block: what to run on HEAD, and whether the selector declined."""
-    selection = impacted_tests.select(clone, changed)
+def _selection_to_dict(clone: Path, changed: list[str], selection, note: str) -> dict:
+    """`impacted_tests.Selection` -> the plain dict shape every downstream helper expects.
+
+    Shared by `choose_tests` (a two-dot diff against a supplied `changed` list) and
+    `choose_tests_from_lane_diff` (the lane's own `main...lane` diff) -- everything past
+    "what did impacted_tests decide" is identical between the two entry points.
+    """
     if selection.full_suite:
         own = sorted(c for c in changed if _TEST_FILE.search(c) and (clone / c).is_file())
         return {
             "declined": True, "ran_full_suite": False, "marker": None, "test_files": own,
-            "reasons": {k: list(v) for k, v in selection.reasons.items()},
+            "reasons": {k: list(v) for k, v in selection.reasons.items()}, "changed": changed,
             "note": ("impacted selection declined to narrow (full suite); "
                      + ("ran only the test files this diff changed -- a PARTIAL pairing"
                         if own else "no changed test file to fall back on -- nothing was run")),
@@ -324,9 +352,28 @@ def choose_tests(clone: Path, changed: list[str]) -> dict:
     return {
         "declined": False, "ran_full_suite": False,
         "marker": selection.marker if not files else None, "test_files": files,
-        "reasons": {k: list(v) for k, v in selection.reasons.items()},
-        "note": "narrowed by impacted_tests.select",
+        "reasons": {k: list(v) for k, v in selection.reasons.items()}, "changed": changed,
+        "note": note,
     }
+
+
+def choose_tests(clone: Path, changed: list[str]) -> dict:
+    """The selection block: what to run on HEAD, and whether the selector declined."""
+    selection = impacted_tests.select(clone, changed)
+    return _selection_to_dict(clone, changed, selection, "narrowed by impacted_tests.select")
+
+
+def choose_tests_from_lane_diff(clone: Path, main_ref: str, lane_ref: str) -> dict:
+    """Like `choose_tests`, sourced from the LANE'S OWN diff `main_ref...lane_ref`
+    (`impacted_tests.select_lane_diff`) rather than a two-dot diff against a supplied
+    list. `main_ref`/`lane_ref` are resolved SHAs, never symbolic names: the clone this
+    runs in has no `origin` remote of its own, so a name like `origin/main` would not
+    resolve inside it, but the commit objects are present either way (a shared clone).
+    """
+    changed = impacted_tests.changed_from_lane_diff(clone, main_ref, lane_ref)
+    selection = impacted_tests.select_lane_diff(clone, main_ref=main_ref, lane_ref=lane_ref)
+    return _selection_to_dict(clone, changed, selection,
+                              "narrowed by impacted_tests.select_lane_diff")
 
 
 def _file_part(target: str) -> str:
@@ -648,7 +695,25 @@ def skip_guard(registry: Registry, head_skipped: frozenset[str], files: list[str
     then = sorted(s for s in registry.skipped if _file_part(s) in covered)
     now = sorted(s for s in head_skipped if _file_part(s) in covered)
     added, removed = sorted(set(now) - set(then)), sorted(set(then) - set(now))
-    return {"status": "match" if len(then) == len(now) and not added else "mismatch",
+    # A brand-new node id -- never red, passed, OR skipped in the registry -- cannot be
+    # hiding a registry-known result, because there was nothing recorded for it to hide.
+    # Finding 2 (DIGEST-WAVE4-FINAL-2026-09-22): before this, a lane that added a new test
+    # INSIDE an existing (covered) file and marked it skipped tripped the guard identically
+    # to a KNOWN id being silenced -- purely because file-level `covered` membership was the
+    # only boundary the guard could see. The identical new test in a brand-NEW file was
+    # already exempt (a new file is never `in registry.files`), so the asymmetry was which
+    # side of a FILE boundary the same new id happened to land on, not anything about risk.
+    known = set(registry.red) | set(registry.passed) | set(registry.skipped)
+    # Codex terra HIGH: a COLLECTION-level skip (a module unconditionally `pytest.skip()`-ed
+    # at import time, or file-level `collect_ignore`) reports a single skip whose id is the
+    # FILE, not any one test node -- so it never equals a known per-test node id and slid
+    # past the check above even while it silences every known red/passed/skipped node in
+    # that file. `_file_part` a known id has no "::" for a file-level `a`, so a file-level
+    # `a` that names a file carrying known ids is exactly as dangerous as a known id itself.
+    known_files = {_file_part(k) for k in known}
+    dangerous_added = [a for a in added
+                       if a in known or ("::" not in a and a in known_files)]
+    return {"status": "match" if not dangerous_added else "mismatch",
             "registry": len(then), "head": len(now), "added": added, "removed": removed}
 
 
@@ -656,6 +721,61 @@ def _exists_at(repo: Path, sha: str, path: str) -> bool:
     done = subprocess.run(["git", "cat-file", "-e", f"{sha}:{path}"], cwd=repo,
                           capture_output=True, check=False)
     return done.returncode == 0
+
+
+def _run_against_registry(clone: Path, registry: Registry, selection: dict, head_sha: str, *,
+                          reruns: int, workers: int, timeout: float | None) -> dict:
+    """Run `selection`'s files on `clone` and classify against `registry`.
+
+    Shared by `compare()` (selection sourced from a two-dot diff against the registry's own
+    base commit) and `record_lane()` (selection sourced from the lane's OWN diff against
+    `--main`) -- everything past "what to run" is identical between the two entry points,
+    and duplicating it was how the FR3 lane-record mode would have drifted from `compare()`'s
+    already-hardened classification the first time either one changed.
+    """
+    files = selection_files(clone, selection)
+    if selection["marker"] and not selection["test_files"] and files:
+        selection["note"] += "; the live_repo marker was resolved to its files"
+    selection["test_files"] = files
+    selection["outside_registry"] = [f for f in files if f not in registry.files]
+    # A file the registry never ran that ALREADY existed on the base has an unknown baseline:
+    # any red in it, or any skip hiding one, could be main's. It is refused, not guessed at.
+    # (A file the lane added did not exist on the base and is the lane's by construction.)
+    unregistered = [f for f in selection["outside_registry"]
+                    if _exists_at(clone, registry.commit, f)]
+    verdict = {"schema": SCHEMA, "mode": "registry", "batch": registry.batch,
+               "base": registry.commit, "head": head_sha, "isolation": "clone",
+               "isolation_reason": ISOLATION_REASON, "selection": selection,
+               "preexisting": [], "lane": [], "turned_red": [], "flakes": [], "fixed": [],
+               "baseline_confirmed": registry.baseline_confirmed,
+               "unregistered": unregistered, "skip_guard": {"status": "not-run"}}
+    if unregistered:
+        verdict["verdict"] = "UNATTRIBUTABLE"
+    elif not files:
+        verdict["verdict"] = "NOT-EVALUATED" if selection["declined"] else "CLEAN"
+        if not selection["declined"]:
+            selection["note"] += "; the selection is empty, nothing to run"
+    else:
+        run = run_pytest_full(clone, files, workers=workers, timeout=timeout)
+        verdict["skip_guard"] = skip_guard(registry, run.skipped, files)
+        if verdict["skip_guard"]["status"] != "match":
+            verdict["verdict"] = "UNATTRIBUTABLE"
+        else:
+            head_red = {k for k, s in run.results.items() if s in _RED}
+            registry_red = set(registry.red)
+            verdict["preexisting"] = sorted(head_red & registry_red)
+            verdict["fixed"] = sorted(k for k in registry_red - head_red
+                                      if run.results.get(k) == "PASSED")
+            for test_id in sorted(head_red - registry_red):
+                obs = _rerun(clone, test_id, run.results[test_id], reruns=reruns, timeout=timeout)
+                if "PASSED" in obs[1:]:
+                    verdict["flakes"].append({"id": test_id, "observations": obs})
+                else:
+                    verdict["lane"].append({"id": test_id, "was": _was_in_registry(test_id, registry),
+                                            "observations": obs})
+            verdict["turned_red"] = [e["id"] for e in verdict["lane"] if e["was"] == "PASSED"]
+            verdict["verdict"] = "LANE-RED" if verdict["lane"] else "CLEAN"
+    return verdict
 
 
 def compare(repo: Path, registry: Registry, head: str, *, since: str | None = None,
@@ -671,48 +791,8 @@ def compare(repo: Path, registry: Registry, head: str, *, since: str | None = No
         clone = make_clone(repo, head_sha, scratch / "head")
         selection = choose_tests(clone, changed)
         selection["changed"] = changed
-        files = selection_files(clone, selection)
-        if selection["marker"] and not selection["test_files"] and files:
-            selection["note"] += "; the live_repo marker was resolved to its files"
-        selection["test_files"] = files
-        selection["outside_registry"] = [f for f in files if f not in registry.files]
-        # A file the registry never ran that ALREADY existed on the base has an unknown baseline:
-        # any red in it, or any skip hiding one, could be main's. It is refused, not guessed at.
-        # (A file the lane added did not exist on the base and is the lane's by construction.)
-        unregistered = [f for f in selection["outside_registry"]
-                        if _exists_at(repo, registry.commit, f)]
-        verdict = {"schema": SCHEMA, "mode": "registry", "batch": registry.batch,
-                   "base": registry.commit, "head": head_sha, "isolation": "clone",
-                   "isolation_reason": ISOLATION_REASON, "selection": selection,
-                   "preexisting": [], "lane": [], "turned_red": [], "flakes": [], "fixed": [],
-                   "baseline_confirmed": registry.baseline_confirmed,
-                   "unregistered": unregistered, "skip_guard": {"status": "not-run"}}
-        if unregistered:
-            verdict["verdict"] = "UNATTRIBUTABLE"
-        elif not files:
-            verdict["verdict"] = "NOT-EVALUATED" if selection["declined"] else "CLEAN"
-            if not selection["declined"]:
-                selection["note"] += "; the selection is empty, nothing to run"
-        else:
-            run = run_pytest_full(clone, files, workers=workers, timeout=timeout)
-            verdict["skip_guard"] = skip_guard(registry, run.skipped, files)
-            if verdict["skip_guard"]["status"] != "match":
-                verdict["verdict"] = "UNATTRIBUTABLE"
-            else:
-                head_red = {k for k, s in run.results.items() if s in _RED}
-                registry_red = set(registry.red)
-                verdict["preexisting"] = sorted(head_red & registry_red)
-                verdict["fixed"] = sorted(k for k in registry_red - head_red
-                                          if run.results.get(k) == "PASSED")
-                for test_id in sorted(head_red - registry_red):
-                    obs = _rerun(clone, test_id, run.results[test_id], reruns=reruns, timeout=timeout)
-                    if "PASSED" in obs[1:]:
-                        verdict["flakes"].append({"id": test_id, "observations": obs})
-                    else:
-                        verdict["lane"].append({"id": test_id, "was": _was_in_registry(test_id, registry),
-                                                "observations": obs})
-                verdict["turned_red"] = [e["id"] for e in verdict["lane"] if e["was"] == "PASSED"]
-                verdict["verdict"] = "LANE-RED" if verdict["lane"] else "CLEAN"
+        verdict = _run_against_registry(clone, registry, selection, head_sha,
+                                        reruns=reruns, workers=workers, timeout=timeout)
     finally:
         removed = remove_tree(scratch)
     verdict["cleanup"] = "removed" if removed else f"LEFTOVER {scratch}"
@@ -723,6 +803,152 @@ def compare(repo: Path, registry: Registry, head: str, *, since: str | None = No
     if not removed and not verdict["exit_code"]:
         verdict["exit_code"] = 2  # a leaked clone must not ride along on a green verdict
     return verdict
+
+
+# --- FR3: lane-side record by tree ---------------------------------------------------------
+#
+# `compare()` above answers ONE question per invocation and never persists it for reuse. FR3
+# (`to-cc/PLAN-WAVE4B-SESSION-2026-09-22.md`) asks for the LANE to run its own verification
+# and hand the integrator a record it can trust WITHOUT re-running it, provided the one thing
+# that could invalidate it -- origin/main moving -- did not happen. `record_lane` writes that
+# record, KEYED BY (tree sha, origin/main sha) as the two fields on it that answer "does this
+# still apply"; `reuse_check` is the second mode that answers that question.
+#
+# THE RECORD IS NOT THE BATCH REGISTRY. The registry (`record_base`/`Registry`) is written
+# ONCE per batch and is exclusive by design -- re-recording it would launder a lane's red into
+# "pre-existing" for every other lane. A lane's own record is the opposite: it is the LANE'S,
+# re-verifying after a new commit is the normal path rather than a laundering risk, and it is
+# always overwritten (`os.replace`, no exclusivity) -- the file always answers for the lane's
+# CURRENT tree, and `reuse_check`'s STALE-TREE outcome is what tells a caller a stored record
+# has gone stale rather than silently comparing an old one.
+
+LANE_RECORD_SCHEMA = "test-pairing-lane-record/1"
+LANE_RECORD_STEM = "TEST-PAIRING-LANE-"
+
+LANE_STATUS_REUSABLE = "REUSABLE"
+LANE_STATUS_STALE_TREE = "STALE-TREE"
+LANE_STATUS_MAIN_MOVED = "MAIN-MOVED"
+LANE_STATUS_NOT_RECORDED = "NOT-RECORDED"
+
+EXIT_NOT_RECORDED = 5
+EXIT_STALE_TREE = 6
+EXIT_MAIN_MOVED = 7
+
+
+def lane_record_path(repo: Path, batch: str, lane: str) -> Path:
+    return receipts_home(repo) / f"{LANE_RECORD_STEM}{resolve_batch(batch)}-{lane}.json"
+
+
+def record_lane(repo: Path, batch: str, lane: str, *, main_ref: str = "origin/main",
+                lane_ref: str | None = None, reruns: int = 1, workers: int = 6,
+                timeout: float | None = None, workdir: Path | None = None) -> dict:
+    """Run the LANE'S OWN selection on its current tree, classify against the batch
+    registry, and persist the verdict keyed by (tree sha, origin/main sha) at
+    `lane_record_path`. `lane_ref` defaults to `worktree-<lane>`, matching the `--lane`
+    convention the two-commit CLI already uses.
+    """
+    if reruns < 1:
+        raise PairingError("--reruns must be at least 1: zero would charge a flake to the lane")
+    batch = resolve_batch(batch)
+    registry = load_registry(repo, batch)
+    main_sha = resolve(repo, main_ref)
+    resolved_lane_ref = lane_ref or f"worktree-{lane}"
+    head_sha = resolve(repo, resolved_lane_ref)
+    # Codex terra HIGH: the clone below is detached at `head_sha` alone and NEVER
+    # combines `main_sha` into the tested tree, so a record claiming to answer for
+    # "origin/main + lane" (the schema's own `origin_main` field) would be false for a
+    # lane that has not synced -- it tested only itself. Refuse rather than silently
+    # narrow what the record means; WAVE4B-COMMON rule 1 already requires the lane to
+    # `git fetch origin && git merge origin/main`, so a synced lane passes trivially.
+    if not _is_ancestor(repo, main_sha, head_sha):
+        raise PairingError(
+            f"record-lane: {main_ref} ({main_sha[:8]}) is not merged into "
+            f"{resolved_lane_ref} ({head_sha[:8]}) -- sync the lane first "
+            "(git fetch origin && git merge origin/main); a record keyed to an "
+            "origin/main sha the lane never actually combined with would be false"
+        )
+    scratch = Path(tempfile.mkdtemp(prefix="tp-", dir=workdir))
+    try:
+        clone = make_clone(repo, head_sha, scratch / "head")
+        selection = choose_tests_from_lane_diff(clone, main_sha, head_sha)
+        verdict = _run_against_registry(clone, registry, selection, head_sha,
+                                        reruns=reruns, workers=workers, timeout=timeout)
+    finally:
+        removed = remove_tree(scratch)
+    verdict["cleanup"] = "removed" if removed else f"LEFTOVER {scratch}"
+    verdict["counts"] = {k: len(verdict[k]) for k in ("preexisting", "lane", "turned_red", "flakes",
+                                                     "fixed")}
+    verdict["exit_code"] = {"LANE-RED": 1, "NOT-EVALUATED": 3,
+                            "UNATTRIBUTABLE": EXIT_UNATTRIBUTABLE}.get(verdict["verdict"], 0)
+    if not removed and not verdict["exit_code"]:
+        verdict["exit_code"] = 2
+    record = {"schema": LANE_RECORD_SCHEMA, "batch": batch, "lane": lane,
+              "tree": head_sha, "origin_main": main_sha, "verdict": verdict}
+    path = lane_record_path(repo, batch, lane)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f"{path.name}.{uuid.uuid4().hex}.tmp")
+    tmp.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8", newline="\n")
+    os.replace(tmp, path)  # always overwritten -- see the section note above
+    return record
+
+
+def reuse_check(repo: Path, batch: str, lane: str, *, main_ref: str = "origin/main",
+               lane_ref: str | None = None) -> dict:
+    """Tell the integrator whether `lane`'s recorded run is REUSABLE, without re-running it.
+
+    Four outcomes, each answering a DIFFERENT question:
+      * NOT-RECORDED -- no record exists for this lane; run `record-lane` first.
+      * STALE-TREE   -- the lane has new commits since the record: the tree sha itself
+                        changed, so the record's SELECTION was computed against a tree
+                        that no longer exists at the lane's tip. A full `record-lane`
+                        re-run is needed, not a subset.
+      * MAIN-MOVED   -- the recorded tree is UNCHANGED, but origin/main advanced since
+                        the record was made (typically: a sibling lane merged). The
+                        subset that must re-run is exactly what `impacted_tests.select`
+                        finds for the diff main itself made (`old_origin_main
+                        ...new_origin_main`) -- never the lane's whole selection again.
+      * REUSABLE     -- neither moved; the recorded verdict stands as-is.
+    """
+    batch = resolve_batch(batch)
+    path = lane_record_path(repo, batch, lane)
+    if not path.is_file():
+        return {"status": LANE_STATUS_NOT_RECORDED, "reusable": False,
+                "note": f"no record at {path.name}: run `record-lane` first"}
+    try:
+        record = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        raise PairingError(f"{path.name} is not valid JSON: {exc}") from exc
+    if record.get("schema") != LANE_RECORD_SCHEMA:
+        raise PairingError(f"{path.name}: schema {record.get('schema')!r}, expected "
+                           f"{LANE_RECORD_SCHEMA!r} -- record the lane again")
+    current_tree = resolve(repo, lane_ref or f"worktree-{lane}")
+    current_main = resolve(repo, main_ref)
+    if record["tree"] != current_tree:
+        return {"status": LANE_STATUS_STALE_TREE, "reusable": False,
+                "recorded_tree": record["tree"], "current_tree": current_tree,
+                "note": "the lane advanced since the record; run `record-lane` again"}
+    if record["origin_main"] == current_main:
+        return {"status": LANE_STATUS_REUSABLE, "reusable": True,
+                "tree": current_tree, "origin_main": current_main, "verdict": record["verdict"],
+                "note": (f"origin/main unchanged since the record ({current_main[:8]}); reusing "
+                         f"it without a re-run -- verdict {record['verdict']['verdict']}")}
+    changed = impacted_tests.changed_from_lane_diff(repo, record["origin_main"], current_main)
+    selection = impacted_tests.select(repo, changed) if changed else impacted_tests.Selection()
+    return {
+        "status": LANE_STATUS_MAIN_MOVED, "reusable": False, "tree": current_tree,
+        "recorded_origin_main": record["origin_main"], "current_origin_main": current_main,
+        "rerun_selection": {"full_suite": selection.full_suite,
+                            "test_files": list(selection.test_files), "marker": selection.marker},
+        "note": ("origin/main advanced since the record; re-run only the tests impacted by "
+                 "what main itself changed, not the lane's whole selection again"),
+    }
+
+
+def _reuse_check_exit_code(status: dict) -> int:
+    if status["status"] == LANE_STATUS_REUSABLE:
+        return status["verdict"]["exit_code"]
+    return {LANE_STATUS_NOT_RECORDED: EXIT_NOT_RECORDED, LANE_STATUS_STALE_TREE: EXIT_STALE_TREE,
+           LANE_STATUS_MAIN_MOVED: EXIT_MAIN_MOVED}[status["status"]]
 
 
 # --- command line ------------------------------------------------------------------------
@@ -777,6 +1003,51 @@ def _registry_parser(command: str) -> argparse.ArgumentParser:
         p.add_argument("--reruns", type=int, default=1,
                        help="isolated reruns of a lane-red, at least 1 (default 1)")
     return p
+
+
+def _lane_parser(command: str) -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(prog=f"test_pairing.py {command}",
+                                description=f"FR3 lane-record mode: {command} (see the module docstring)")
+    p.add_argument("--batch", help="the batch name (default: $HARNESS_BATCH)")
+    p.add_argument("--lane", required=True, help="the lane's slug (branch worktree-<lane>)")
+    p.add_argument("--main", default="origin/main", help="the lane's sync point (default: origin/main)")
+    p.add_argument("--repo", default=".", help="repository to run in (default: cwd)")
+    if command == "record-lane":
+        p.add_argument("--workers", type=int, default=_default_workers(),
+                       help="xdist workers (default 6; 0 = in-process)")
+        p.add_argument("--timeout", type=float, help="seconds allowed per pytest invocation")
+        p.add_argument("--workdir", help="parent directory for the clone (default: system temp)")
+        p.add_argument("--reruns", type=int, default=1,
+                       help="isolated reruns of a lane-red, at least 1 (default 1)")
+    else:
+        p.add_argument("--out", help="also write the status JSON to this path")
+    return p
+
+
+def _lane_main(command: str, argv: list[str]) -> int:
+    args = _lane_parser(command).parse_args(argv)
+    try:
+        repo = Path(_git(Path(args.repo).resolve(), "rev-parse", "--show-toplevel"))
+        batch = resolve_batch(args.batch)
+        if command == "record-lane":
+            record = record_lane(repo, batch, args.lane, main_ref=args.main,
+                                 reruns=args.reruns, workers=args.workers, timeout=args.timeout,
+                                 workdir=Path(args.workdir) if args.workdir else None)
+            print(json.dumps(record, indent=2))
+            v = record["verdict"]
+            print(f"test_pairing: recorded lane {args.lane} at {record['tree'][:8]} against "
+                  f"origin/main {record['origin_main'][:8]} -- {v['verdict']}", file=sys.stderr)
+            return v["exit_code"]
+        status = reuse_check(repo, batch, args.lane, main_ref=args.main)
+    except PairingError as exc:
+        print(f"test_pairing: {exc}", file=sys.stderr)
+        raise SystemExit(2) from exc
+    if getattr(args, "out", None):
+        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.out).write_text(json.dumps(status, indent=2) + "\n", encoding="utf-8", newline="\n")
+    print(json.dumps(status, indent=2))
+    print(f"test_pairing: {status['status']} -- {status['note']}", file=sys.stderr)
+    return _reuse_check_exit_code(status)
 
 
 def _publish(verdict: dict, out: Path) -> None:
@@ -835,6 +1106,8 @@ def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     if argv and argv[0] in ("record-base", "compare"):
         return _registry_main(argv[0], argv[1:])
+    if argv and argv[0] in ("record-lane", "reuse-check"):
+        return _lane_main(argv[0], argv[1:])
     parser = _parser()
     args = parser.parse_args(argv)
     try:
