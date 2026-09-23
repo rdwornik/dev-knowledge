@@ -616,3 +616,71 @@ def test_a_rows_only_change_maps_to_the_funnel_test():
 def test_a_rows_only_change_does_not_fall_back_to_the_full_suite():
     sel = impacted_tests.select(REPO_ROOT, ["tasks/960-some-row.md"])
     assert not sel.full_suite, "a tasks/*.md row is mapped, not unmapped"
+
+
+# --- LANE-5A-2 Done-contract item 2: the merge-receipts ledger never forces FULL SUITE ---
+# The ledger (`logs/MERGE-RECEIPTS.jsonl`) sits in nearly every merge diff -- every merge
+# folds one appended line into it. Before this rule it matched no rule in the table, so it
+# fell to the "unmapped" fail-safe: replaying this selector on the five wave-4b merge diffs
+# (docs/audits/2026-09-23-technical-lane-test-selection-measured-proof.md) returned
+# `full_suite=True` on all five for that reason alone, and `gates.py`'s per-merge gate
+# REFUSES rather than runs a selector's FULL SUITE answer -- so the ledger's own presence,
+# not anything it broke, was enough to red the gate.
+
+@pytest.mark.live_repo
+def test_the_merge_receipts_ledger_never_forces_the_full_suite():
+    sel = impacted_tests.select(REPO_ROOT, [impacted_tests.MERGE_RECEIPTS_LEDGER])
+    assert not sel.full_suite
+    assert "tests/test_merge_receipt.py" in sel.test_files
+
+
+@pytest.mark.live_repo
+def test_the_ledger_alongside_a_normal_diff_still_does_not_force_the_full_suite():
+    """The ledger is present in EVERY wave-4b merge diff replayed for this lane's proof
+    table; a real diff always carries it beside other, unrelated changes."""
+    sel = impacted_tests.select(
+        REPO_ROOT, [impacted_tests.MERGE_RECEIPTS_LEDGER, "JOURNAL.md"]
+    )
+    assert not sel.full_suite
+
+
+# --- LANE-5A-2 Done-contract item 1: a prose/generated edit no longer unions in the ------
+# --- corpus-wide 58-file `live_repo` tier on top of a mixed diff's own selection ---------
+# Measured (docs/audits/2026-09-23-technical-lane-test-selection-measured-proof.md): on the
+# same five merge diffs with the ledger set aside, the OLD selector added 58-60 files to
+# every mixed diff (the whole `live_repo`-marked corpus); the fix below removes that.
+
+@pytest.mark.live_repo
+def test_a_mixed_diff_does_not_union_in_the_corpus_wide_live_repo_tier():
+    """`scripts/journal_anchor.py` alone has a truth set of ONE covering test (pinned by
+    `test_a_changed_source_selects_the_test_that_covers_it` above); a `JOURNAL.md` change
+    in the SAME diff must not add anything beyond that one file."""
+    code_only = impacted_tests.select(REPO_ROOT, ["scripts/journal_anchor.py"])
+    mixed = impacted_tests.select(REPO_ROOT, ["scripts/journal_anchor.py", "JOURNAL.md"])
+    assert mixed.marker == "live_repo", "the doc tier still matched -- it must stay reachable"
+    assert set(mixed.test_files) == set(code_only.test_files), (
+        f"a prose file in the same diff added {set(mixed.test_files) - set(code_only.test_files)} "
+        "-- the marker was resolved into the lane's own file list again"
+    )
+
+
+@pytest.mark.live_repo
+def test_the_prose_tier_stays_reachable_on_its_own_in_a_mixed_diff():
+    """The doc tier is not dropped -- it is *decoupled*, so whoever runs it (the
+    integrator, once per batch) can still get it, separately from the lane's own run."""
+    sel = impacted_tests.select(REPO_ROOT, ["scripts/journal_anchor.py", "JOURNAL.md"])
+    assert sel.docs_tier_args() == ["-m", "live_repo"]
+    assert "-m" not in sel.pytest_args(), "the lane's own run must not be narrowed by it"
+
+
+@pytest.mark.live_repo
+def test_docs_tier_args_is_none_when_nothing_prose_matched():
+    sel = impacted_tests.select(REPO_ROOT, ["scripts/journal_anchor.py"])
+    assert sel.docs_tier_args() is None
+
+
+@pytest.mark.live_repo
+def test_docs_tier_args_matches_pytest_args_in_the_pure_docs_case():
+    """The already-declared `/ship` docs-only tier is unchanged by this fix."""
+    sel = impacted_tests.select(REPO_ROOT, ["JOURNAL.md"])
+    assert sel.docs_tier_args() == sel.pytest_args() == ["-m", "live_repo"]
