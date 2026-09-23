@@ -62,7 +62,33 @@ INTEGRATOR_SESSION = "toy-integrator"
 NEGATIVE_SLUG = "lane-20260921-wire-toy-negative"
 STOP_TIMEOUT_S = 1800
 
-pytestmark = pytest.mark.slow
+#: Done-contract 4/5: this module's tests are NOT independently parallelizable -- exactly one heavy
+#: operation (the shared walk, or a negative-path test) may hold the host's uv/git/doit subprocess
+#: tree at a time (`_exclusive` below already serializes them against EACH OTHER), so a second xdist
+#: WORKER PROCESS sitting alongside it adds pure overhead: another Python interpreter with the full
+#: `dispatch`/`audit`/`click`/`pyyaml` import graph loaded, live at the exact moment the walk's own
+#: subprocess tree peaks. On a host already thin on headroom (this box: ~3.7 GB free of 27.7 GB,
+#: shared with sibling batch lanes) that fixed second-worker cost was enough to occasionally tip a
+#: post-spawn step of `dispatch.py launch` (inside the ONE real walk, read identically by every
+#: consumer -- `_exclusive`'s lock already rules out a second, divergent walk ever being computed)
+#: into a bare uncaught exception, which Click's CliRunner reports as exit 1 with no organ to blame
+#: -- the "launch-step trio" (`launched_once...`, `human_writes...`, `loop_stops...`) all read that
+#: SAME single walk and fail together.
+#:
+#: CORRECTION (W4B-3, 2026-09-23, codex terra review confirmed it independently): the claim that
+#: `xdist_group` "pins every test in this module to ONE worker" is FALSE as stated. `xdist_group`
+#: is scheduled only under pytest-xdist's `--dist=loadgroup`; this repo's `-n auto` / bare `-n 2`
+#: invocations use the default `--dist=load`, under which the marker is a documented no-op (xdist's
+#: own scheduler only reads it when `dist == "loadgroup"`). Measured directly: `pytest -n 2
+#: tests/test_connection_loop.py --durations=0` shows TWO separate multi-hundred-second `setup`
+#: costs for the module-scoped `walk` fixture in the same run -- one per worker that drew a
+#: walk-consuming test -- which is only possible if the module was split across both workers. The
+#: marker is kept anyway (harmless today, and it becomes real the day some invocation adds
+#: `--dist=loadgroup`; adding that flag repo-wide is a cross-cutting pytest-config decision this
+#: lane does not own). It did NOT fix the launch-step trio: `core.longpaths` in the toy repo's own
+#: git config (`c9529fa4`) is the actual, verified fix -- proven by 3/3 green `-n 2` runs measured
+#: after this correction, with the marker still inert.
+pytestmark = [pytest.mark.slow, pytest.mark.xdist_group(name="connection_loop")]
 
 #: The stops the walk recorded when W3-F ran (2026-09-21). Pinned so a change in EITHER direction is loud: a stop that
 #: disappears means wave 4 fixed it (delete its row); a new one means the loop moved. Each row is (moment, organ).
@@ -239,7 +265,20 @@ class World:
     def build(self) -> "World":
         self._copy_tree()
         self.git("init", "-q", "-b", "main")
-        for key, value in (("user.email", "toy@example.invalid"), ("user.name", "toy"), ("core.autocrlf", "false")):
+        # `core.longpaths` (Done-contract 4): the toy repo's own longest tracked path plus this
+        # world's pytest-xdist temp prefix (`...\pytest-NNNN\popen-gwN\connection_worldM\repo\...`)
+        # crosses Windows' 260-char MAX_PATH once `.claude\worktrees\<slug>\` is prepended for the
+        # FakeProvider's `git worktree add` checkout -- measured on this box: a real failing run's
+        # own path (150 chars to the worktree dir) plus this repo's longest tracked file (117 chars,
+        # `tasks/957-...-when-green.md`) is 268, over the limit; `-n 0` has no `popen-gwN` segment
+        # (10 fewer chars), which is why the SAME toy repo checks out fine there and not at `-n 2`
+        # (WAVE4-FINAL finding 10; root-caused via `CalledProcessError` captured by
+        # `_label_launch_failure`, not "shared load" -- Windows itself has `LongPathsEnabled=1`, but
+        # git-for-windows also needs its OWN `core.longpaths`, which is unset repo/global/system on
+        # this box). This is a real Windows-git interaction the toy repo can hit that the operator's
+        # own checkouts do not (their paths are shallower), so it is set HERE, not proposed globally.
+        for key, value in (("user.email", "toy@example.invalid"), ("user.name", "toy"),
+                          ("core.autocrlf", "false"), ("core.longpaths", "true")):
             self.git("config", key, value)
         self.git("add", "-A")
         self.git("commit", "-q", "-m", "seed")
@@ -492,16 +531,18 @@ def _record(walk: Walk, step: Step) -> Step:
 
 
 #: Known TOY-COPY-ONLY causes, keyed by the gates.py row (audit-health = commit tier,
-#: ship-gate = ship tier) they surface in -- Done-contract 2. `canonical_freshness` and
-#: `journal_spine_anchor` are tied to the throwaway repo having ONE "seed" commit rather than
-#: real history (commit-date-driven); `funnel_lifecycle` is the same class per SESSION-lane-
-#: connection-test.md's own account. `hooks_armed` was TRIED as arm-instead-of-record (installing
-#: real pre-commit/pre-push hooks via scripts/arm_hooks.py) and reverted: those hooks then refuse
-#: this fixture's own direct-to-main bootstrap pushes (write_task, the post-merge "chore: merge
-#: receipts" push), breaking the harness that is supposed to be exercising the loop. Recording is
-#: the sanctioned alternative Done-contract 2 names, and it is the one used here. NEVER list
-#: `organ_truth`: it is the real, same cause the live integrator records -- Done-contract 2's
-#: "the loop's real stops stay visible" is exactly the invariant this exclusion protects.
+#: ship-gate = ship tier) they surface in -- Done-contract 2. Each name is a `check_name` gates.py
+#: parses out of that gate's FULL output as a structured `findings` entry (FR4) -- not a text
+#: marker searched for as a substring. `canonical_freshness` and `journal_spine_anchor` are tied to
+#: the throwaway repo having ONE "seed" commit rather than real history (commit-date-driven);
+#: `funnel_lifecycle` is the same class per SESSION-lane-connection-test.md's own account.
+#: `hooks_armed` was TRIED as arm-instead-of-record (installing real pre-commit/pre-push hooks via
+#: scripts/arm_hooks.py) and reverted: those hooks then refuse this fixture's own direct-to-main
+#: bootstrap pushes (write_task, the post-merge "chore: merge receipts" push), breaking the harness
+#: that is supposed to be exercising the loop. Recording is the sanctioned alternative Done-contract
+#: 2 names, and it is the one used here. NEVER list `organ_truth`: it is the real, same cause the
+#: live integrator records -- Done-contract 2's "the loop's real stops stay visible" is exactly the
+#: invariant this exclusion protects.
 _FIXTURE_ARTIFACT_MARKERS: dict[str, tuple[str, ...]] = {
     "audit-health": ("canonical_freshness", "journal_spine_anchor", "hooks_armed"),
     "ship-gate": ("funnel_lifecycle",),
@@ -509,18 +550,23 @@ _FIXTURE_ARTIFACT_MARKERS: dict[str, tuple[str, ...]] = {
 
 
 def _fixture_artifacts_in(verdict: Optional[dict]) -> tuple[str, ...]:
-    """`f"{gate}:{marker}"` for each known toy-copy-only cause found in a RED gate's own output --
-    read from the verdict `gates.py` already wrote (`MOMENT-MERGE-GATES-VERDICT.json`), never a
-    second probe run (that would double the subprocess cost `_exclusive` exists to bound)."""
+    """`f"{gate}:{check_name}"` for each known toy-copy-only cause found in a RED gate's
+    STRUCTURED findings (Done-contract 3, FR4) -- `gates.py`'s own `findings` list on the verdict
+    it already wrote (`MOMENT-MERGE-GATES-VERDICT.json`), one `{check_name, status, evidence}`
+    entry per hard-fail/warning `gates.py` parsed from that gate's FULL output. Never a second
+    probe run (that would double the subprocess cost `_exclusive` exists to bound), and never a
+    substring search over a truncated `output_tail` -- that missed markers that printed before the
+    tail's window (WAVE4-FINAL digest, finding 4): a name is either IN the structured list or it
+    is not, independent of where in the gate's output it happened to print."""
     if not verdict:
         return ()
     found: list[str] = []
     for row in verdict.get("gates", []):
         if row.get("exit_code") == 0:
             continue
-        text = row.get("output_tail") or ""
+        names = {f.get("check_name") for f in row.get("findings", []) if isinstance(f, dict)}
         for marker in _FIXTURE_ARTIFACT_MARKERS.get(row.get("name", ""), ()):
-            if marker in text:
+            if marker in names:
                 found.append(f"{row['name']}:{marker}")
     return tuple(found)
 
@@ -551,6 +597,27 @@ def _label_fixture_artifacts(walk: Walk, world: World) -> None:
                           fixture_artifacts=artifacts)
 
 
+def _label_launch_failure(walk: Walk, launched) -> None:
+    """If the walk just stopped at pre-launch, attach `dispatch.py launch`'s own CliRunner output
+    (and exception, if the CLI raised something Click did not turn into a typed exit code) to the
+    Stop's detail. `Step.stop`'s generic "every organ receipt is ok but the moment exited N" names
+    no organ to blame BY DESIGN when every declared pre-launch organ's receipt is green (Done-
+    contract 4) -- that shape is exactly what a bare, uncaught exception in `launch_cmd` AFTER a
+    successful spawn produces (Click's `CliRunner` reports exit 1 for anything that is not a typed
+    `DispatchRefused` subclass), and without the CLI's own text a reader has nothing to go on."""
+    if not (walk.stops and walk.stops[-1].moment == "pre-launch"):
+        return
+    detail = (launched.output or "").strip()
+    if launched.exception is not None:
+        detail = (detail + f"\nexception: {launched.exception!r}").strip()
+    if not detail:
+        return
+    last = walk.stops[-1]
+    walk.stops[-1] = Stop(last.moment, last.organ, last.receipt,
+                          last.detail + " -- dispatch.py launch's own output: " + detail[-2000:],
+                          fixture_artifacts=last.fixture_artifacts)
+
+
 def _walk(world: World, walk: Walk, mp: pytest.MonkeyPatch) -> None:
     world.write_task()
     _record(walk, world.spine())
@@ -565,6 +632,7 @@ def _walk(world: World, walk: Walk, mp: pytest.MonkeyPatch) -> None:
     pre = world._step("pre-launch", launched.exit_code, world.repo / "logs" / "receipts",
                       [(o["id"], o["receipt"]) for o in world._declared_organs("pre-launch")])
     _record(walk, pre)
+    _label_launch_failure(walk, launched)
     walk.integrator["launch_exit"] = launched.exit_code
     walk.integrator["spawns"] = len(provider.calls)
     if launched.exit_code != 0 or not provider.calls:
@@ -706,12 +774,27 @@ def test_the_toy_task_was_launched_once_by_the_launcher_and_nothing_real_spawned
 
 # --- Done-contract 2: toy-copy artifacts are distinguished from the loop's own stops ------------
 
+def _finding(check_name: str, status: str = "fail", evidence: str = "...") -> dict:
+    return {"check_name": check_name, "status": status, "evidence": evidence}
+
+
 def test_fixture_artifacts_in_finds_a_known_toy_copy_cause_in_a_red_gate():
     verdict = {"gates": [
-        {"name": "audit-health", "exit_code": 1, "output_tail": "... canonical_freshness: FAIL ..."},
-        {"name": "ship-gate", "exit_code": 1, "output_tail": "... organ_truth: 36 organs ..."},
+        {"name": "audit-health", "exit_code": 1, "findings": [_finding("canonical_freshness")]},
+        {"name": "ship-gate", "exit_code": 1, "findings": [_finding("organ_truth", "warn",
+                                                                    "36 organs ...")]},
     ]}
     assert _fixture_artifacts_in(verdict) == ("audit-health:canonical_freshness",)
+
+
+def test_fixture_artifacts_in_reads_the_structured_list_not_a_tail_substring():
+    """Done-contract 3: a marker present in `findings` but ABSENT from `output_tail` (as it would
+    be if the finding printed before a truncated tail's window, WAVE4-FINAL finding 4) must still
+    be found -- proves the reader no longer greps text."""
+    verdict = {"gates": [{"name": "ship-gate", "exit_code": 1,
+                          "output_tail": "nothing resembling that check name is in this tail",
+                          "findings": [_finding("funnel_lifecycle", "warn", "toy seed commit")]}]}
+    assert _fixture_artifacts_in(verdict) == ("ship-gate:funnel_lifecycle",)
 
 
 def test_fixture_artifacts_in_never_lists_organ_truth():
@@ -722,12 +805,89 @@ def test_fixture_artifacts_in_never_lists_organ_truth():
 
 def test_fixture_artifacts_in_ignores_a_green_gate():
     verdict = {"gates": [{"name": "audit-health", "exit_code": 0,
-                          "output_tail": "canonical_freshness mentioned but this gate is GREEN"}]}
+                          "findings": [_finding("canonical_freshness")]}]}
     assert _fixture_artifacts_in(verdict) == ()
 
 
 def test_fixture_artifacts_in_is_empty_with_no_verdict():
     assert _fixture_artifacts_in(None) == ()
+
+
+def test_fixture_artifacts_in_is_empty_with_no_findings_key():
+    """A gate row from before FR4 (no `findings` key at all) must degrade to no match, not raise."""
+    verdict = {"gates": [{"name": "audit-health", "exit_code": 1,
+                          "output_tail": "... canonical_freshness: FAIL ..."}]}
+    assert _fixture_artifacts_in(verdict) == ()
+
+
+# --- FR4: gates.py's structured per-organ findings, read straight (not through the walk) --------
+
+def test_gates_findings_in_parses_the_locked_finding_line_shape():
+    """`gates._findings_in` reads the exact `[MARKER] check_name: evidence` line `audit.py`
+    already prints per Finding -- `pass`/`n/a`/`unavailable` lines are not findings (only fail and
+    warn are "every hard-fail and warning name", FR4's own words)."""
+    import gates  # noqa: PLC0415
+
+    text = ("operational:\n  [OK] repos registered  (['x'])\n"
+            "self-audit (.dev-knowledge) - 40/44 pass:\n"
+            "  [OK] doc_structure: fine\n"
+            "  [!!] organ_truth: 3 organ(s) have no caller anywhere: a, b, c\n"
+            "  [~~] canonical_freshness: 2 file(s) stale: x.md, y.md\n"
+            "  [??] handoff_probes: n/a\n"
+            "ship-gate: RED -- not shipped-ready (1 hard-fail organ(s))\n")
+    assert gates._findings_in(text) == [
+        {"check_name": "organ_truth", "status": "fail",
+         "evidence": "3 organ(s) have no caller anywhere: a, b, c"},
+        {"check_name": "canonical_freshness", "status": "warn",
+         "evidence": "2 file(s) stale: x.md, y.md"},
+    ]
+
+
+def test_gates_findings_in_is_empty_for_output_with_no_finding_lines():
+    import gates  # noqa: PLC0415
+
+    assert gates._findings_in("ruff check: all good\n") == []
+    assert gates._findings_in("") == []
+
+
+def test_gates_run_gates_attaches_findings_regardless_of_tail_truncation(tmp_path):
+    """The regression this lane exists to fix: a Finding line that prints BEFORE a large amount of
+    trailing output falls out of the truncated `output_tail` but must still land in `findings` --
+    proves gates.py itself parses FULL text, not the tail it also keeps for humans."""
+    import gates  # noqa: PLC0415
+
+    filler = "x" * (gates._TAIL_CHARS + 500)
+    src = ("import sys; "
+           "sys.stdout.write('  [!!] organ_truth: 36 organ(s) carry a fate\\n'); "
+           f"sys.stdout.write({filler!r} + '\\n'); "
+           "sys.exit(1)")
+    gate = gates.Gate(name="fake-ship-gate", argv=(sys.executable, "-c", src))
+    verdict = gates.run_gates((gate,), lane="toy", cwd=tmp_path)
+    row = verdict["gates"][0]
+    assert "organ_truth" not in row["output_tail"], \
+        "the tail must have pushed the finding line out for this test to be meaningful"
+    assert row["findings"] == [{"check_name": "organ_truth", "status": "fail",
+                                "evidence": "36 organ(s) carry a fate"}]
+
+
+def test_gates_findings_in_preserves_every_dated_organ_the_census_names():
+    """Done-contract 2: the census (`check_organ_truth.check_organ_truth`) names EVERY dated
+    organ in ONE Finding's evidence, never a rolled-up preview -- its own docstring: "These four
+    ALL-NAME, never `_rolled()`'s truncated preview". `gates.py` parsing FULL text (not a tail)
+    must therefore carry all of them into the JSON, whatever the count. Built from the exact
+    format `check_organ_truth._fail`/`_warn` produce (`{N} organ(s) carry a \\`manual_until\\`
+    fate not yet due: {joined labels}`), pinned at the WAVE4-FINAL digest's own count (36) so a
+    future truncation regression is caught by an exact count, not by eyeballing a long string."""
+    import gates  # noqa: PLC0415
+
+    organs = [f"scripts/organ_{i:02d}.py (manual_until 2026-10-05)" for i in range(36)]
+    evidence = f"36 organ(s) carry a `manual_until` fate not yet due: {', '.join(organs)}"
+    text = f"  [~~] organ_truth: {evidence}\nship-gate: RED -- not shipped-ready (...)\n"
+    findings = gates._findings_in(text)
+    assert len(findings) == 1
+    assert findings[0]["check_name"] == "organ_truth" and findings[0]["status"] == "warn"
+    for organ in organs:
+        assert organ in findings[0]["evidence"], f"{organ} dropped from the JSON"
 
 
 # --- Done-contract 5: transport isolation proven before and after every run --------------------

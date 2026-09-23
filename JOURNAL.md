@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-23 (d) - CC (Opus 5.5, integrator wave 4b): LANE W4B-3 landed -- gates speak data, and the connection test reads it
+
+**Anchors:** `ee207181` (row 959 cites its records) · `2af7145f` (false xdist_group pinning claim corrected; review disposed) · `8d6cf0a9` (Codex record) · `020037c9` (the lane's sync merge of origin/main `e8ec23fc`) · `5764c66a` (Codex record) · `c9529fa4` (`core.longpaths` in the toy repo -- the launch-step trio's real cause) · `e2ebec18` (a launch stop labels its own output) · `b7e7567e` (structured per-organ findings) -- `worktree-lane-gate-verdicts`, merged --no-ff in an integration worktree off origin/main `10a4c9f5`.
+
+**Did:** merged W4B-3 (resumed after an OOM stop, operator ruling 2026-09-23). `scripts/gates.py` writes a per-organ `findings` list (`check_name`, `status`, `evidence`) parsed from each gate's full output, beside the unchanged human-readable tail; `tests/test_connection_loop.py` reads toy-copy markers from that list, not from a truncated tail (wave-4 finding 4). The launch-step trio's `-n 2` failures were a Windows `MAX_PATH` trip in the toy repo's git config, fixed by `core.longpaths`. Not met, stated by the lane: the module's `-n 2` runtime stays ~17.5 min (three measurements) -- four full walks through the real gate stack, serialized by the module's cross-worker lock.
+
+**Result:** Codex terra `docs/audits/2026-09-23-codex-lane-gate-verdicts.md` (consumer `[#959]`). Comparison, gates and ship-gate: `to-browser/SESSION-integrator-wave4b-2026-09-22.md`. **Changes:** `scripts/gates.py`, `tests/test_connection_loop.py`, `tasks/959-*.md`, `docs/audits/2026-09-23-codex-lane-gate-verdicts.md` (new), `docs/audits/README.md`, `ecosystem/doc-counts.md` (tests 7337 -> 7343), `JOURNAL.md`, `logs/MERGE-RECEIPTS.jsonl`. **Next:** the W4B-4 repair, then the batch closes (W4B-1 deferred by the architect).
+
 ### 2026-09-23 (c) - CC (Opus 5.5, integrator wave 4b): LANE W4B-6 landed -- sessions read fleet health; a guarded background producer makes it
 
 **Anchors:** `9a45febe` (config comment reworded for the silent-rule ratchet) · `aa279430` (row 962 cites its records; disposition ledger) · `3b25ad16` (Codex terra 0/0/0/0) · `5ebb8331` (reader / trigger / isolated producer; the publish step refuses on dirt) · `94091c53` (row 962) -- `worktree-lane-fleet-health-split`, merged --no-ff in an integration worktree off origin/main `de97dad5`.
