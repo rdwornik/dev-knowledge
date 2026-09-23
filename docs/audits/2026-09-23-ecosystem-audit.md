@@ -3,15 +3,15 @@
 <!-- scope: meta -->
 
 **Date:** 2026-09-23  
-**Generated:** 2026-09-23T12:36:44  
+**Generated:** 2026-09-23T16:30:46  
 **Repos audited:** 6  
-**Checks:** 798 total — 152 pass, 8 fail, 452 warn, 0 unavailable, 186 n/a
+**Checks:** 798 total — 153 pass, 8 fail, 451 warn, 0 unavailable, 186 n/a
 
 ---
 
 ## .dev-knowledge — PASS
 
-**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-5mkd6m32\wt`  
+**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-csfjq4og\wt`  
 **Last audit:** 2026-09-23
 
 | Check | Status | Evidence |
@@ -31,7 +31,7 @@
 | `generated_artifact_freshness` | WARN | conformance-dashboard: 18d stale (baseline 4d) — ecosystem/conformance.md committed 2026-09-05, newest input BACKLOG.md committed 2026-09-23; regenerate + commit: python scripts/gen_dashboard.py --write |
 | `generated_artifact_freshness` | PASS | audits-index: 0d stale (baseline 0d) — docs/audits/README.md committed 2026-09-23, newest input docs/audits committed 2026-09-23 |
 | `no_sibling_orphans` | PASS | No orphaned 'wt-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `stale_worktrees` | PASS | 6 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
+| `stale_worktrees` | PASS | 4 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
 | `stale_worktrees` | PASS | git stash list is empty - no stashed work outliving its lane |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 | `handoff_version_stamp` | PASS | All stamp occurrences in ['ARCHITECTURE.md', 'CONTRIBUTING.md'] match canonical HANDOFF_PROCESS v7.1.0 |
@@ -39,7 +39,7 @@
 | `floor_integrity` | N/A | [n/a-reason:NOT-APPLICABLE] no .claude/CLAUDE-FLOOR.md — repo has not adopted the methodology floor (skip) |
 | `hooks_armed` | PASS | pre-commit / commit-msg / pre-push installed and pre-commit-managed; merge.ours.driver armed for the declared merge=ours pin |
 | `git_backlog_drift` | PASS | no closed-but-present backlog drift (direction (a) STRONG, full history) |
-| `doc_claims` | WARN | 1 prose claim(s) drifted from repo state: pytest_collected@ecosystem/doc-counts.md (doc 7253 != actual 7284) |
+| `doc_claims` | PASS | 4 doc self-claim(s) match repo state |
 | `no_ff_merges` | WARN | non-merge commit on main (FF/direct — expected a --no-ff merge): 533109f20 (2026-06-26) docs(journal): record 2026-06-26 freshness re-stamp session (3bd2cd1) |
 | `no_ff_merges` | WARN | non-merge commit on main (FF/direct — expected a --no-ff merge): 3a894eeb5 (2026-06-19) docs(journal): 2026-06-19 session-wrap — anchor d0f9ead (transcript archive) |
 | `no_ff_merges` | WARN | non-merge commit on main (FF/direct — expected a --no-ff merge): d0f9ead67 (2026-06-19) chore(transcripts): archive 2 deep-research reports (dependency-detection + doc<->code traceability) |
@@ -492,7 +492,7 @@
 | `proof_layer` | WARN | test_worktree_seed.py gates 1 test(s) behind a function-level skipif on 'git' — a proof that can be skipped on the machine that breaks the property is not a mechanism. Guard key: test_worktree_seed.py::test_A_LANES_BASE_EQUALS_MAIN_HEAD_AT_DISPATCH — the per-guard identity a #147 disposition must match, and the spelling the baseline lists; the module name alone would absorb every other guard in that file, including ones not yet written. Move the property that cannot be skipped OUT from behind the guard, or propagate the skip predicate into a reporting surface so a skipped proof renders as not-proven (sweep sections 9.2 and 9.6) |
 | `proof_layer` | WARN | test_worktree_seed.py gates 1 test(s) behind a function-level skipif on 'git' — a proof that can be skipped on the machine that breaks the property is not a mechanism. Guard key: test_worktree_seed.py::test_the_verdict_names_WHY_rather_than_only_failing — the per-guard identity a #147 disposition must match, and the spelling the baseline lists; the module name alone would absorb every other guard in that file, including ones not yet written. Move the property that cannot be skipped OUT from behind the guard, or propagate the skip predicate into a reporting surface so a skipped proof renders as not-proven (sweep sections 9.2 and 9.6) |
 | `funnel_lifecycle` | PASS | 94 live + 12 archived intake(s), 93 live ADR(s), 617 row(s): no terminal object left in a live home, every ACCEPTED doc still owns an open row, and all 281 row(s) landed on/after 2026-08-27 carry resolving provenance |
-| `organ_truth` | WARN | 35 organ(s) carry a `manual_until` fate not yet due: .claude/commands/boot-session.md (manual_until 2026-10-05), .claude/commands/changelog-review.md (manual_until 2026-10-05), .claude/commands/handoff-verify.md (manual_until 2026-10-05), .claude/commands/handoff.md (manual_until 2026-10-05), .claude/commands/lane-boot.md (manual_until 2026-10-05), .claude/commands/lane-integrate.md (manual_until 2026-10-05), .claude/commands/preflight.md (manual_until 2026-10-05), .claude/commands/save.md (manual_until 2026-10-05), .claude/commands/spine.md (manual_until 2026-10-05), .claude/commands/why.md (manual_until 2026-10-05), .claude/skills/check-against-spec/SKILL.md (manual_until 2026-10-05), .claude/skills/verify/SKILL.md (manual_until 2026-10-05), plugins/tier1-lifecycle/commands/review-closures.md (manual_until 2026-10-05), plugins/tier1-lifecycle/commands/ship.md (manual_until 2026-10-05), plugins/tier1-lifecycle/scripts/review_closures.py (manual_until 2026-10-05), scripts/actions_verdict.py (manual_until 2026-10-05), scripts/codespace_state.py (manual_until 2026-10-05), scripts/context_reclamation.py (manual_until 2026-10-05), scripts/cost_usage_telemetry.py (manual_until 2026-10-05), scripts/desired_state_loader.py (manual_until 2026-10-05), scripts/dodo.py (manual_until 2026-10-05), scripts/export_backlog_view.py (manual_until 2026-10-05), scripts/gen_ledger.py (manual_until 2026-10-05), scripts/id_allocator.py (manual_until 2026-10-05), scripts/lane_boot.py (manual_until 2026-10-05), scripts/offload_admission.py (manual_until 2026-10-05), scripts/organ_usage_metric.py (manual_until 2026-10-05), scripts/plan_lint.py (manual_until 2026-10-05), scripts/propose_closures.py (manual_until 2026-10-05), scripts/propose_row_closures.py (manual_until 2026-10-05), scripts/provider_bench.py (manual_until 2026-10-05), scripts/provider_router.py (manual_until 2026-10-05), scripts/review_closures.py (manual_until 2026-10-05), scripts/setup-fleet-scheduler.ps1 (manual_until 2026-10-05), scripts/worktree_import_proof.py (manual_until 2026-10-05) |
+| `organ_truth` | WARN | 36 organ(s) carry a `manual_until` fate not yet due: .claude/commands/boot-session.md (manual_until 2026-10-05), .claude/commands/changelog-review.md (manual_until 2026-10-05), .claude/commands/handoff-verify.md (manual_until 2026-10-05), .claude/commands/handoff.md (manual_until 2026-10-05), .claude/commands/lane-boot.md (manual_until 2026-10-05), .claude/commands/lane-integrate.md (manual_until 2026-10-05), .claude/commands/preflight.md (manual_until 2026-10-05), .claude/commands/save.md (manual_until 2026-10-05), .claude/commands/spine.md (manual_until 2026-10-05), .claude/commands/why.md (manual_until 2026-10-05), .claude/skills/check-against-spec/SKILL.md (manual_until 2026-10-05), .claude/skills/verify/SKILL.md (manual_until 2026-10-05), plugins/tier1-lifecycle/commands/review-closures.md (manual_until 2026-10-05), plugins/tier1-lifecycle/commands/ship.md (manual_until 2026-10-05), plugins/tier1-lifecycle/scripts/review_closures.py (manual_until 2026-10-05), scripts/actions_verdict.py (manual_until 2026-10-05), scripts/codespace_state.py (manual_until 2026-10-05), scripts/context_reclamation.py (manual_until 2026-10-05), scripts/cost_usage_telemetry.py (manual_until 2026-10-05), scripts/desired_state_loader.py (manual_until 2026-10-05), scripts/dodo.py (manual_until 2026-10-05), scripts/export_backlog_view.py (manual_until 2026-10-05), scripts/gen_ledger.py (manual_until 2026-10-05), scripts/handback.py (manual_until 2026-10-05), scripts/id_allocator.py (manual_until 2026-10-05), scripts/lane_boot.py (manual_until 2026-10-05), scripts/offload_admission.py (manual_until 2026-10-05), scripts/organ_usage_metric.py (manual_until 2026-10-05), scripts/plan_lint.py (manual_until 2026-10-05), scripts/propose_closures.py (manual_until 2026-10-05), scripts/propose_row_closures.py (manual_until 2026-10-05), scripts/provider_bench.py (manual_until 2026-10-05), scripts/provider_router.py (manual_until 2026-10-05), scripts/review_closures.py (manual_until 2026-10-05), scripts/setup-fleet-scheduler.ps1 (manual_until 2026-10-05), scripts/worktree_import_proof.py (manual_until 2026-10-05) |
 
 History: [`ecosystem\.dev-knowledge\history/`](ecosystem\.dev-knowledge\history/)
 
@@ -882,9 +882,9 @@ History: [`ecosystem\win-tooling\history/`](ecosystem\win-tooling\history/)
 ## Summary
 
 - 6 repo(s) audited
-- 152/798 checks passed
+- 153/798 checks passed
 - **8 failure(s)** — route findings to repo owners
-- 452 warning(s)
+- 451 warning(s)
 - 186 n/a (check not applicable to that repo)
 
 *Report generated by `scripts/audit.py`. Do not edit manually.*
