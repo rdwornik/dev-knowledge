@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "3afbfd93ad46418e13017164f7cbf9010a9396dc0e83297c9919326fa2e0a2aa",
+  "generated_sha256": "39b23d24fd611caeb0b33468957147ed31bf8abd0b1149bb3af4af4c4a599a72",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1840,6 +1840,10 @@
     {
       "task": 889,
       "file": "889-lane-acceptance-test.md"
+    },
+    {
+      "task": 963,
+      "file": "963-wave-5a-lane-2-lane-test-selection-prose-stops-pulling-in-the-whole-live-repo-test-set.md"
     },
     {
       "prose": "### [S19] Decide the undecided artifact/tool models"
