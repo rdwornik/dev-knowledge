@@ -200,6 +200,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#959] [P1][M] Wave 4b lane 3 (lane-gate-verdicts) -- gates speak data, and the connection test reads it · tasks/959-wave-4b-lane-3-lane-gate-verdicts-gates-speak-data-and-the-connection-test-reads-it.md
 - [#960] [P1][M] Wave 4b lane 4 (lane-verify-in-lane) -- a lane tests itself in parallel; the integrator only confirms · tasks/960-wave-4b-lane-4-lane-verify-in-lane-a-lane-tests-itself-in-parallel-the-integrator-only-confirms.md
 - [#961] [P1][M] Wave 4b lane 5 (lane-plan-lint) -- the architect's plan is checked by code before it freezes · tasks/961-wave-4b-lane-5-lane-plan-lint-the-architects-plan-is-checked-by-code-before-it-freezes.md
+- [#962] [P1][M] Wave 4b lane 6 (lane-fleet-health-split) -- sessions read fleet health; a guarded background producer makes it · tasks/962-wave-4b-lane-6-lane-fleet-health-split-a-guarded-background-producer.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
