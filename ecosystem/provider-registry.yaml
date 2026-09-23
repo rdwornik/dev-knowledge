@@ -209,7 +209,7 @@ providers:
     # THE ADMISSION-VS-LICENCE DISTINCTION STILL HOLDS: the schema refuses to mark any entry
     # `admitted` under a non-`permitted` licence, and the router refuses a non-`permitted`
     # provider in a PRODUCING role — but admission and licence are separate gates, and clearing
-    # one never clears the other. The `implement` role's `admission:` block (below, under
+    # one does not clear the other. The `implement` role's `admission:` block (below, under
     # `roles.implement.order`) is the second, independent clearance; see
     # `docs/audits/2026-09-23-technical-copilot-admission-evidence.md` for its evidence.
     licence:
@@ -219,8 +219,8 @@ providers:
         licence. RULED 2026-09-23 by the operator (O-3, `RATIFICATION-2026-09-23-copilot.md`):
         "the corporate Copilot budget may be used for this repository" -- the precondition of
         `DECLARE-COPILOT-TRIAL-2026-09-23.md` (transport) is recorded met. Both RATIFICATION
-        files are transport-only and cited here for the ruling's date and author, never as the
-        admission evidence itself; that evidence is in-repo
+        files are transport-only and cited here only for the ruling's date and author, not as
+        the admission evidence itself; that evidence is in-repo
         (`docs/audits/2026-09-23-technical-copilot-admission-evidence.md`).
       decided_by: operator
       decided_on: "2026-09-23"
@@ -500,15 +500,15 @@ providers:
 # `--model` flag names now RESOLVES to `claude-opus-5-5`, not to `claude-opus-4-8` -- the id this
 # file's `orchestrate`/`plan` entries pin below. That is a silent repoint: nothing in this
 # registry moved and nothing in a lane contract that says `--model opus` changed, yet the model
-# actually served underneath it did. THIS REGISTRY WAS NEVER EXPOSED TO THAT DRIFT, and the
-# reason is the discipline already practised below: every `order[].model` in this file names the
-# VERSIONED id (`claude-opus-4-8`, `claude-sonnet-5`, `grok-4.6`, ...), never a bare CLI alias --
+# actually served underneath it did. THIS REGISTRY STAYED CLEAR OF THAT DRIFT, and the reason
+# is the discipline already practised below: every `order[].model` in this file names the
+# VERSIONED id (`claude-opus-4-8`, `claude-sonnet-5`, `grok-4.6`, ...), not a bare CLI alias --
 # so no entry here silently repointed when the alias did.
 # `tests/test_provider_router.py::test_every_role_entry_pins_a_versioned_model_id_not_a_bare_alias`
 # guards that this stays true. THE ORCHESTRATE/PLAN PIN ITSELF IS UNCHANGED by this lane --
 # `claude-opus-4-8` stays the pinned id below; moving it to `claude-opus-5-5` is a fresh
 # admission ceremony (the A/B `docs/audits/2026-09-23-changelog-review.md` Part C proposes),
-# ruled by the operator on that A/B's result, never an automatic inherit from the alias moving.
+# ruled by the operator on that A/B's result, not an automatic inherit from the alias moving.
 # ===========================================================================================
 roles:
 
@@ -559,7 +559,7 @@ roles:
       O-3, on in-repo evidence -- see its order entry below), which is a DIFFERENT clearance
       than AX22-1's >= 8-of-10 measurement bar. ORDER stays Sonnet-first: the position swap
       AX21-1 declares is gated on that measurement specifically, not on admission in general,
-      and AX21-2 makes the swap a re-rank's job, never a hand edit.
+      and AX21-2 makes the swap a re-rank's job, not a hand edit.
     routing_table_role: producer
     order:
       - provider: anthropic
@@ -578,7 +578,7 @@ roles:
       - provider: copilot-enterprise
         note: >-
           ADMITTED 2026-09-23 by operator ruling O-3 (`RATIFICATION-2026-09-23-copilot.md`,
-          transport-only; cited for date/author, never as the evidence itself). The evidence is
+          transport-only; cited for date/author only, not as the evidence itself). The evidence is
           IN-REPO: `JOURNAL.md` lines 962 and 1113, merge `88dc48f4`, and the ab-828/ab-832
           receipts (`HANDBACK.json`, `copilot-usage.json`), which existed only on the transport
           and are committed with a provenance header at
