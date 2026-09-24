@@ -1,0 +1,314 @@
+{
+  "schema": "known-reds-registry/1",
+  "baseline_id": "2026-09-24-6b1c6bf4df83",
+  "measured_at_sha": "aca2385b083cacdfba86d0dd60e1960383dc48bf",
+  "measured_via": "gh-run:35939312231",
+  "workers": 4,
+  "members": {
+    "plugins/tier1-lifecycle/tests/test_plugin_paths.py::test_propose_operates_on_host_repo_not_plugin": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_archive_row_body.py::test_every_committed_record_still_proves_out": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_audit.py::test_check_fleet_parity_green_on_live_repo": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_audit.py::test_health_ok_with_registered_repo": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_audit.py::test_health_stays_ok_with_na_status": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_audit_parallel.py::test_health_accepts_the_parallel_flags_and_defaults_to_serial": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_boot_retrieval.py::test_repo_tracked_boot_base_is_under_its_ceiling": {
+      "attribution": {
+        "first_bad_sha": "d7ce1d43e5c74d2e20785dda54ec1db4f68b7203",
+        "lane": "buildlist-l6-hazard"
+      }
+    },
+    "tests/test_bounded_hook.py::test_a_hook_that_must_fail_closed_is_named_as_escalated_never_wrapped_open": {
+      "attribution": {
+        "first_bad_sha": "597347a16742775402b834c4df6faf66e6a45457",
+        "lane": "lane-end-hook"
+      }
+    },
+    "tests/test_bounded_hook.py::test_every_registered_hook_has_a_stated_posture_with_a_reason": {
+      "attribution": {
+        "first_bad_sha": "597347a16742775402b834c4df6faf66e6a45457",
+        "lane": "lane-end-hook"
+      }
+    },
+    "tests/test_bounded_hook.py::test_the_live_settings_pass_the_check": {
+      "attribution": {
+        "first_bad_sha": "597347a16742775402b834c4df6faf66e6a45457",
+        "lane": "lane-end-hook"
+      }
+    },
+    "tests/test_canonical_docs.py::test_the_derived_leg_is_warn_class_on_arrival": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_canonical_docs.py::test_the_live_playbook_doctrine_row_shows_its_reconciled_spec_and_a_derived_date": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_check_derived_copies.py::test_every_delegated_gate_exists_in_precommit_config": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_consumer_at_landing.py::test_the_live_corpus_measures_and_the_baseline_matches_it": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_desired_state_loader.py::test_live_repo_loads_clean_and_writes_nothing": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_desired_state_schema.py::test_enums_match_parity_surfaces_on_disk": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_dispatch_conformance.py::test_head_token_normalises_the_way_the_reader_normalises[\"C:\\\\Program Files\\\\claude.exe\" --bg-claude]": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_dispatch_launch.py::test_the_real_pre_launch_moment_refuses_an_occupied_husk": {
+      "attribution": {
+        "first_bad_sha": "aca2385b083cacdfba86d0dd60e1960383dc48bf",
+        "lane": "lane-memory-gate"
+      }
+    },
+    "tests/test_doc_code_edge.py::test_edge_check_registered_and_resolves_starter_set": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_enforcement_coverage.py::test_anchor_gate_probe_distinguishes_installed_from_absent": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_export_backlog_view.py::test_no_gate_hook_or_script_reads_the_export": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_fleet_health.py::test_prompts_dir_case_difference_is_not_staleness": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_fleet_health.py::test_prompts_dir_trailing_separator_is_not_staleness": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_floor_mechanisms.py::test_pre_existing_components_are_untouched_by_the_mechanism_reader": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_funnel_coverage.py::test_committed_baseline_agrees_with_a_live_measurement": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_gen_handoff.py::test_dogfood_generated_bundle_has_no_failing_probe": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_gen_handoff.py::test_dogfood_no_probe_row_carries_an_answer_value": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_gen_handoff.py::test_epic_bundle_has_no_failing_probe": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_gen_handoff.py::test_suffixed_bundle_probes_resolve_against_their_own_directory": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_gen_handoff_preflight.py::test_session_slug_matches_a_REAL_session_store_directory_name": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_gen_ledger.py::test_the_worktree_line_counts_lanes_rather_than_trees": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_gen_task_tree.py::test_the_live_view_is_under_the_589_done_when_byte_bar": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_generator_newlines.py::test_every_text_write_in_scripts_pins_newline": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_graph_spine.py::test_a_disposition_register_entry_cannot_manufacture_its_own_trigger": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_graph_spine.py::test_the_live_orphan_census_reaches_zero_against_its_stated_class": {
+      "attribution": {
+        "first_bad_sha": "7d5f9b4fa84db9a5bf39c7e53351e96efbc0040b",
+        "lane": "wave2-boot-base"
+      }
+    },
+    "tests/test_graph_spine_commit_tier.py::test_the_live_spine_is_ordered_rebuild_first_and_always_runs": {
+      "attribution": "witness",
+      "reason": "[#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise"
+    },
+    "tests/test_graph_spine_commit_tier.py::test_the_refusal_blocks_a_real_commit_and_only_its_own_hook_blocks_it[graph-orphan-census]": {
+      "attribution": "witness",
+      "reason": "[#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise"
+    },
+    "tests/test_graph_spine_commit_tier.py::test_the_refusal_blocks_a_real_commit_and_only_its_own_hook_blocks_it[graph-process-list]": {
+      "attribution": "witness",
+      "reason": "[#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise"
+    },
+    "tests/test_graph_spine_commit_tier.py::test_the_refusal_blocks_a_real_commit_and_only_its_own_hook_blocks_it[graph-task-coverage]": {
+      "attribution": "witness",
+      "reason": "[#664] commit-tier witness -- deliberately never frozen; a run showing it is expected, not a surprise"
+    },
+    "tests/test_handoff_modes.py::test_boot_carries_both_postures": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_integrator_surface.py::test_a_refusal_after_the_push_never_reaches_teardown[actions]": {
+      "attribution": {
+        "first_bad_sha": "aca2385b083cacdfba86d0dd60e1960383dc48bf",
+        "lane": "lane-memory-gate"
+      }
+    },
+    "tests/test_integrator_surface.py::test_a_refusal_after_the_push_never_reaches_teardown[close]": {
+      "attribution": {
+        "first_bad_sha": "aca2385b083cacdfba86d0dd60e1960383dc48bf",
+        "lane": "lane-memory-gate"
+      }
+    },
+    "tests/test_integrator_surface.py::test_a_refused_verification_never_reaches_push_or_teardown[moment:merge]": {
+      "attribution": {
+        "first_bad_sha": "aca2385b083cacdfba86d0dd60e1960383dc48bf",
+        "lane": "lane-memory-gate"
+      }
+    },
+    "tests/test_integrator_surface.py::test_a_refused_verification_never_reaches_push_or_teardown[race]": {
+      "attribution": {
+        "first_bad_sha": "aca2385b083cacdfba86d0dd60e1960383dc48bf",
+        "lane": "lane-memory-gate"
+      }
+    },
+    "tests/test_integrator_surface.py::test_the_walk_closes_the_receipt_and_commits_the_ledger_before_moment_teardown": {
+      "attribution": {
+        "first_bad_sha": "aca2385b083cacdfba86d0dd60e1960383dc48bf",
+        "lane": "lane-memory-gate"
+      }
+    },
+    "tests/test_integrator_surface.py::test_the_walk_reaches_push_when_every_verification_passes": {
+      "attribution": {
+        "first_bad_sha": "aca2385b083cacdfba86d0dd60e1960383dc48bf",
+        "lane": "lane-memory-gate"
+      }
+    },
+    "tests/test_logs_retention.py::test_a_session_hook_CALLS_run_retention_and_not_only_the_test_suite": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_logs_retention.py::test_the_retention_trigger_row_and_its_disposition_cannot_both_be_live": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_manifest_link_route.py::test_the_class_enum_is_the_hermetization_module_s_own_object": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_offload_admission.py::test_a_destination_REPLACED_during_publication_is_REPORTED_not_silently_used": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_offload_admission.py::test_the_probe_cli_REPORTS_a_replaced_destination_rather_than_reporting_success": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_preflight_freeze_predicates.py::test_i_off_repo_path_that_does_not_exist_is_refused": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_preflight_freeze_predicates.py::test_vi_batch1_reproduces_the_off_repo_input_defect": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_preflight_freeze_predicates.py::test_vi_batch1_reproduces_the_wrong_id_citation": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_falls_back_to_cwd_when_claude_project_dir_is_set_but_wrong": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_falls_back_to_cwd_when_claude_project_dir_is_set_empty": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_names_the_guard_flag_and_the_guard_module": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_propagates_the_guards_refusal": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_a_bare_exit_2_with_a_message_that_teaches": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_a_shadow_interpreter_that_never_runs_the_guard": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_an_exit_0_that_carries_no_evaluated_marker": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_output_that_merely_contains_the_marker": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_when_no_root_resolves": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_when_the_guard_crashes": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_refuses_when_the_interpreter_is_unavailable": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_resolves_a_root_whose_path_contains_spaces": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_resolves_the_script_without_claude_project_dir": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_still_passes_when_the_guard_passes": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_still_prefers_claude_project_dir_when_it_is_set": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_still_runs_the_real_guard_from_the_repo_root": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_prompts_guard_hook_wiring.py::test_hook_command_tests_for_the_marker_the_guard_module_actually_emits": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_prompts_guard_hook_wiring.py::test_matcher_is_not_match_all": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_prompts_guard_hook_wiring.py::test_matcher_leaves_the_break_glass_reachable": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_prompts_guard_hook_wiring.py::test_matcher_still_covers_every_class_a_stale_prompts_dir_makes_lie": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_proof_layer.py::test_the_live_guard_population_is_at_or_below_its_baseline": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_release_lint.py::test_cli_green_exit_0": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_release_lint.py::test_live_hub_state_is_green": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_release_lint.py::test_live_v120_state_is_green": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_release_lint.py::test_missing_tag_is_warn_not_fail": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_release_lint.py::test_unmutated_copy_is_green": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_reverse_dep_oracle.py::test_extract_dependents_excludes_declaration": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_reverse_dep_oracle.py::test_position_points_at_name_not_keyword": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_routing_agreement.py::test_the_live_table_is_well_formed": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_telemetry_wiring.py::test_a_wired_health_run_puts_no_telemetry_line_on_stderr": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_telemetry_wiring.py::test_health_exposes_the_telemetry_flag_and_defaults_to_off": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_telemetry_wiring.py::test_the_env_switch_turns_health_on_and_the_explicit_flag_still_wins": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_v6_frozen_contract.py::test_fr6_repo_root_and_cross_repo_are_codified_and_cli_mapped": {
+      "attribution": "pre-freeze"
+    },
+    "tests/test_validate_doc_rot.py::test_citation_regex_strips_only_real_dated_artifact_identifiers": {
+      "attribution": "pre-freeze"
+    }
+  },
+  "notes": []
+}

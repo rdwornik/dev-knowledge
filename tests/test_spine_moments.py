@@ -312,13 +312,13 @@ _MOMENT_ORGANS = {
     # (no prior `merge_receipt.py open`, unlike the integrator's own walk) still opens a receipt
     # before `models` needs one -- lane-merge-gates-truth.
     "merge": ["merge_receipt.open", "merge_receipt.models", "go_reader", "review_packet", "gates",
-             "test_pairing"],
+             "test_pairing", "known_reds_refresh"],
     "teardown": ["no_leftovers"],
     "lane-end": ["lane_cost", "fleet_health.seat_health_line", "transport_report"],
     "batch-close": ["digest"],
 }
 _OPTIONAL = {"worktree_occupancy", "gates", "test_pairing", "no_leftovers", "transport_report",
-             "digest", "review_packet", "go_reader"}
+             "digest", "review_packet", "go_reader", "known_reds_refresh"}
 
 
 def test_harness_declares_the_six_moments_with_their_organs():

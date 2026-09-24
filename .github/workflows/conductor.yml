@@ -120,6 +120,23 @@ jobs:
           rc=$?
           cat suite-gate.out
           echo "exit=$rc" >> "$GITHUB_OUTPUT"
+      - name: Compare against the committed known-reds registry (LANE-5A-1, ADR-121 step 1)
+        id: known_reds
+        # NON-BLOCKING, on purpose, while both comparators run side by side: item 4 of the
+        # lane's done-contract retires logs/SUITE-BASELINE-FREEZE.md only after one CI run has
+        # come back green or named its new reds AGAINST THIS REGISTRY -- that proof is what
+        # this step exists to gather. The [#802] gate above stays the one that fails the job
+        # until that proof is in hand and a follow-up flips this step to blocking and deletes
+        # the frozen file.
+        continue-on-error: true
+        run: |
+          set +e
+          uv run --locked python scripts/known_reds.py compare \
+            --pytest-output pytest.out --workers 4 --pytest-exit "${{ steps.run.outputs.exit }}" \
+            --registry logs/KNOWN-REDS-REGISTRY.json --out known-reds-compare.out
+          rc=$?
+          cat known-reds-compare.out
+          echo "exit=$rc" >> "$GITHUB_OUTPUT"
       - name: Write the record
         if: always()
         run: |
@@ -129,6 +146,12 @@ jobs:
             echo '```'
             cat suite-gate.out 2>/dev/null || echo "no gate output"
             echo '```'
+            echo
+            echo "## known-reds compare (LANE-5A-1) — \`${{ github.sha }}\`"
+            echo
+            echo '```'
+            cat known-reds-compare.out 2>/dev/null || echo "no known-reds output"
+            echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
@@ -137,6 +160,7 @@ jobs:
           path: |
             pytest.out
             suite-gate.out
+            known-reds-compare.out
           retention-days: 90
           if-no-files-found: warn
       - name: Fail the job on the [#802] gate's verdict, not pytest's raw exit code
