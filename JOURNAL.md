@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-24 (r) - CC (Opus 5.5, architect handoff cut): bundle `2026-09-24-dev-knowledge-architect` cut, filled and landed -- the first paste under the 20,000 B gate
+
+**Anchors:** `34b23388` (bundle: generated cold, residual and boot header filled, OPEN carriers named) -- `worktree-handoff-fill-0924`, merged `--no-ff`.
+
+**Did:** cut the architect bundle from the primary checkout on main `6b849c25` with zero linked worktrees and no open batch. The first attempt was refused by preflight row `question_disposition`: six transport QUESTION files (integrator-wave4b, lane-l1, lane-l2, lane-l4, lane-loop-declaration, lane-loop-eval) had been answered by existing rulings (two ANSWER files, DECLARE-WAVE3-CONNECT R-W3-1/5/6/8/9, DECLARE-WAVE4A R-W4-3) but carried no `disposition:` line. Each got one flush-left disposition citing its answer; nothing was ruled at the cut (the L2 husk directories stay the operator's call). Re-cut, moved the untracked bundle into the worktree, filled the four HANDOFF_BOOT regions and RESIDUAL's three, named all 27 `carried-by: OPEN` files, re-assembled. **Result:** paste 17,444 B, under the ceiling; `validate_residual_completeness` OK; `verify_handoff_probes` 15/16 -- P13-decision-ledger FAILs by design as the incoming seat's A9-2 obligation. SUPPLEMENT committed empty (cold cut). **Changes:** `docs/handoffs/2026-09-24-dev-knowledge-architect/*`, `JOURNAL.md`. **Next:** the next seat runs ADR-122 step 0 and then the GH-Issues trial; the `question_disposition` exact-name blind spot is residual §4 item 6 and needs a row once filing is unblocked.
+
 ### 2026-09-24 (q) - CC (Opus 5.5, INTEGRATOR precut): today's rulings and digests land on main before the cut
 
 **Anchors:** `e8b61e84` (`docs(audits): land the 2026-09-24 precut rulings and digests, plus STANDING_RULINGS AL`) -- `worktree-lane-precut-landing` (sonnet, served `claude-sonnet-5`), merged `--no-ff` from an integration worktree off origin/main `502628f6`.
