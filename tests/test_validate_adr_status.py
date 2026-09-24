@@ -833,7 +833,12 @@ def test_shipped_corpus_parses_one_status_field_per_live_adr():
     # is named: ADR-121 (operational state is a single-writer event log on a git state ref),
     # drafted on to-cc/BATCH-ADR-STATE-STORE-2026-09-23. Measured on base `4667f731` + this
     # lane's one added file; no other member moved. Status `Proposed` until the operator rules.
-    assert len(fields) == 94, "live ADR count moved — re-measure the Step-1 baseline"
+    #
+    # RE-MEASURED 2026-09-24 by lane-adr-backlog: 94 -> 95. The delta is ONE ADR and it is
+    # named: ADR-122 (a task is a typed record in git; every backlog view is a projection),
+    # drafted on to-cc/BATCH-ADR-BACKLOG-2026-09-24. Measured on base `665e2a3b` + this lane's
+    # one added file; no other member moved. Status `Proposed` until the operator rules.
+    assert len(fields) == 95, "live ADR count moved — re-measure the Step-1 baseline"
 
 
 def test_shipped_corpus_grammar_distribution_matches_the_measured_baseline():
@@ -862,7 +867,11 @@ def test_shipped_corpus_grammar_distribution_matches_the_measured_baseline():
     # RE-MEASURED 2026-09-23 by lane-adr-state-store: G1 46 -> 47, the same single cause as
     # the count above (ADR-121 carries a G1-shaped `Proposed` status field). G2/G3/G4
     # unchanged a fifth time, so the delta is one ADR and not grammar drift.
-    assert counts == {"G1": 47, "G2": 34, "G3": 12, "G4": 1}
+    #
+    # RE-MEASURED 2026-09-24 by lane-adr-backlog: G1 47 -> 48, the same single cause as the
+    # count above (ADR-122 carries a G1-shaped `Proposed` status field). G2/G3/G4 unchanged a
+    # sixth time, so the delta is one ADR and not grammar drift.
+    assert counts == {"G1": 48, "G2": 34, "G3": 12, "G4": 1}
 
 
 def test_shipped_corpus_has_zero_enum_violations():
