@@ -25,12 +25,15 @@ from __future__ import annotations
 
 import copy
 import importlib.util
+import shutil
 import sqlite3
 import sys
 from pathlib import Path
 
 import pytest
 import yaml
+
+import provider_registry as preg  # noqa: E402
 
 _ROOT = Path(__file__).resolve().parent.parent
 
@@ -465,3 +468,194 @@ def test_every_role_entry_pins_a_versioned_model_id_not_a_bare_alias(live_regist
             assert model in live_registry["models"], (
                 f"role `{role}` order[{i}] pins `{model}`, which is not a declared model id"
             )
+
+
+# --- LANE-5B-2 Done item 2: the cache-write multiplier is 2x, not 1.25x ---------------------
+
+
+def test_cache_write_multiplier_is_2x(live_registry):
+    """`docs/audits/2026-09-24-technical-digest-measurements.md`: a paired opus-4-8/opus-5-5
+    A/B reproduced the CLI's own billed dollar figures only at a 2.0x cache-write multiplier —
+    the registry's former 1.25x undercounted every model priced through the shared card (none
+    overrides `cache_write` today, so the card's multiplier is the only place this is priced)."""
+    assert live_registry["rate_card"]["cache_write_multiplier"] == 2.0
+
+
+def test_resolve_rate_computes_one_cache_write_cost_at_2x():
+    """RED-FIRST PROOF: before this lane's fix this assertion read `cache_write == 6.25` (the
+    1.25x-derived figure) and `usd(...) == 6.25`; the registry's `cache_write_multiplier: 2.0`
+    edit is what turns this red-under-the-old-value case green, which is the mechanism item 2
+    asks for -- "a test that computes one cache-write cost."""
+    rate = preg.resolve_rate("claude-opus-4-8")
+    assert rate.input == pytest.approx(5.0)
+    assert rate.cache_write == pytest.approx(rate.input * 2.0)
+    assert rate.cache_write == pytest.approx(10.0)
+    assert rate.usd(cache_write_tokens=1_000_000) == pytest.approx(10.0)
+
+
+# --- LANE-5B-2 Done item 4: model currency as a mechanism -----------------------------------
+
+#: The five providers the Done-contract names by CLI (`google`/gemini is retired and
+#: `deepseek`/`cursor` carry no live CLI on this repo's surface -- out of scope by the
+#: contract's own enumeration, not an oversight here).
+_CURRENCY_PROVIDERS: dict[str, str] = {
+    "anthropic": "claude",
+    "openai": "codex",
+    "antigravity": "agy",
+    "copilot-enterprise": "copilot",
+    "xai": "grok",
+}
+
+
+def test_the_five_named_providers_each_declare_model_currency(live_registry):
+    providers = live_registry["providers"]
+    for pid in _CURRENCY_PROVIDERS:
+        mc = providers[pid].get("model_currency")
+        assert mc is not None, (
+            f"provider `{pid}` is one of the five LANE-5B-2 Done item 4 providers but carries "
+            f"no `model_currency:` block"
+        )
+        assert mc.get("command") is not None or mc.get("exception") is not None, (
+            f"provider `{pid}`'s `model_currency` names neither a probe `command` nor an "
+            f"`exception` -- neither checkable nor excused"
+        )
+
+
+def test_a_provider_with_no_listing_command_carries_a_dated_exception(live_registry):
+    """`claude` and `copilot`: measured 2026-09-24 (Part Z step0) to have no model-listing
+    subcommand at all. Skipped (with the reason recorded) when the CLI itself is absent from
+    this box, matching the Done-contract's own "skipped, and said so" clause."""
+    providers = live_registry["providers"]
+    for pid, cli in _CURRENCY_PROVIDERS.items():
+        if shutil.which(cli) is None:
+            continue
+        mc = providers[pid]["model_currency"]
+        if mc.get("command") is not None:
+            continue
+        exc = mc.get("exception")
+        assert exc is not None
+        assert exc.get("reason") and exc.get("decided_by") and exc.get("decided_on"), (
+            f"provider `{pid}`'s currency exception is missing provenance"
+        )
+
+
+def test_the_probe_command_names_its_own_provider_cli(live_registry):
+    """The recorded `command`'s argv[0] is the provider's own `cli:` -- a currency probe that
+    named the wrong binary would validate nothing while looking like a real check."""
+    providers = live_registry["providers"]
+    for pid in _CURRENCY_PROVIDERS:
+        mc = providers[pid]["model_currency"]
+        command = mc.get("command")
+        if command is None:
+            continue
+        assert command[0] == providers[pid]["cli"], (
+            f"provider `{pid}`'s `model_currency.command` runs `{command[0]}`, not its own "
+            f"`cli: {providers[pid]['cli']}`"
+        )
+
+
+def _version_key(model_id: str) -> tuple[tuple[int, ...], tuple[object, ...]]:
+    """`(version_tuple, shape)` for a `<prefix...>-<version>[-<family...>]` id.
+
+    `shape` pairs the segment COUNT with every non-version segment (prefix segments, then
+    family segments), so two ids compare as siblings only when they share that exact shape --
+    `gpt-5.6-terra` and `gpt-6-astra` do not (different family segment), `gpt-5.6-terra` and a
+    hypothetical `gpt-6-terra` would. This is deliberately narrow rather than a looser
+    same-prefix heuristic: a looser rule would have to GUESS whether `grok-4.20-0309-non-
+    reasoning` is "the same tier" as `grok-4.6`, and this repo's standing posture (this file's
+    own alias-drift and Q9 history) is to refuse a guess rather than manufacture one. See
+    `test_grok_pins_are_stale_against_a_freshly_re_measured_listing_and_therefore_excepted`
+    below for the live case this narrowness deliberately leaves unresolved rather than guesses.
+    """
+    parts = model_id.split("-")
+    version_idx = next((i for i, p in enumerate(parts) if any(c.isdigit() for c in p)), None)
+    if version_idx is None:
+        return (), (model_id,)
+    version = parts[version_idx]
+    shape = (len(parts), tuple(parts[:version_idx]), tuple(parts[version_idx + 1:]))
+    version_tuple = tuple(int(x) for x in version.split(".") if x.isdigit())
+    return version_tuple, shape
+
+
+def _newest_sharing_shape(model_id: str, listed_ids: list[str]) -> str:
+    """The highest-version id among `listed_ids` that shares `model_id`'s exact shape, or
+    `model_id` itself when nothing shares it (including `model_id` not being present)."""
+    _, shape = _version_key(model_id)
+    siblings = [m for m in listed_ids if _version_key(m)[1] == shape]
+    if not siblings:
+        return model_id
+    return max(siblings, key=lambda m: _version_key(m)[0])
+
+
+def test_newest_sharing_shape_finds_the_correct_sibling_in_a_captured_codex_listing():
+    """FIXTURE, not a live subprocess call -- the precedent is `tests/test_changelog_sentinel.
+    py`: the currency MECHANISM's comparison logic is unit-tested against a captured snapshot;
+    shelling out to a real vendor CLI on every `pytest` run is a production/manual concern (the
+    SessionStart sentinel's own job), not something this suite does for external dependencies.
+
+    Captured 2026-09-25 via `codex debug models </dev/null`, `slug` where `visibility ==
+    "list"` -- reproduces Part Z's 2026-09-24 reading exactly (`to-browser/SESSION-step0-
+    wave5b-n1-2026-09-24.md` §1: "NO gpt-6-terra").
+    """
+    listed = [
+        "gpt-6-astra", "gpt-6-sol", "gpt-6-luna",
+        "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5",
+    ]
+    assert _newest_sharing_shape("gpt-5.6-terra", listed) == "gpt-5.6-terra"
+
+
+def test_newest_sharing_shape_catches_a_stale_pin():
+    """RED-FIRST PROOF the comparator detects drift rather than rubber-stamping it: a newer
+    sibling sharing the pinned id's exact shape is picked over the older one."""
+    listed = ["grok-4.3", "grok-4.5", "grok-4.6", "grok-4.7"]
+    assert _newest_sharing_shape("grok-4.6", listed) == "grok-4.7"
+
+
+def test_reviews_codex_pin_is_current_against_the_captured_listing_and_needs_no_exception(
+    live_registry,
+):
+    """The one role-pinned id in this batch whose provider both HAS a listing command (codex)
+    and HOLDS a role pin today: `review`'s `gpt-5.6-terra`. It is already the newest in its
+    shape family, so it carries no `currency_exception` -- and should not need one."""
+    listed = [
+        "gpt-6-astra", "gpt-6-sol", "gpt-6-luna",
+        "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5",
+    ]
+    entry = next(
+        e for e in live_registry["roles"]["review"]["order"] if e["provider"] == "openai"
+    )
+    assert entry["model"] == _newest_sharing_shape(entry["model"], listed)
+    assert entry.get("currency_exception") is None
+
+
+def test_grok_pins_are_stale_against_a_freshly_re_measured_listing_and_therefore_excepted(
+    live_registry,
+):
+    """LANE-5B-2's own 2026-09-25 re-measurement of `grok models` (NOT Part Z's 2026-09-24
+    reading -- see `providers.xai.model_currency`'s comment for both) found `grok-4.7` listed
+    above the pinned `grok-4.6`. This asserts the mechanism agrees a `currency_exception` is
+    required wherever that leaves a role entry stale, and that every such entry carries one --
+    the registry is not left silently claiming a currency it does not have.
+    """
+    listed = [
+        "grok-4.20-0309-non-reasoning", "grok-4.20-0309-reasoning",
+        "grok-4.20-multi-agent-0309", "grok-4.3", "grok-4.5", "grok-4.6", "grok-4.7",
+        "grok-build-0.1",
+    ]
+    grok_entries = [
+        (role, e)
+        for role, spec in live_registry["roles"].items()
+        for e in spec["order"]
+        if e["provider"] == "xai" and e.get("model") is not None
+    ]
+    assert grok_entries, "no `xai` role entry pins a model -- nothing for this test to check"
+    for role, entry in grok_entries:
+        newest = _newest_sharing_shape(entry["model"], listed)
+        if newest == entry["model"]:
+            continue
+        assert entry.get("currency_exception") is not None, (
+            f"role `{role}`'s `{entry['model']}` pin is stale against the re-measured listing "
+            f"(newest sharing its shape: `{newest}`) and carries no `currency_exception`"
+        )
+        exc = entry["currency_exception"]
+        assert exc.get("reason") and exc.get("decided_by") and exc.get("decided_on")
