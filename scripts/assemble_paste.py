@@ -693,7 +693,10 @@ def main(pin_only: bool, bundle_dir: Path | None) -> None:
     body = (body + _SECTION_SEP
             + f"=== END OF PASTE — {len(sections)} sections · {content_bytes} bytes ===")
     paste_path = bundle_dir / "PASTE_THIS.md"
-    size = len(body.encode("utf-8"))
+    # The gate measures EXACTLY the bytes written, terminal LF included — measuring `body` alone
+    # let a 20,000 B body write a 20,001 B file (Codex terra, LANE-5A-9 review, HIGH).
+    written = body + "\n"
+    size = len(written.encode("utf-8"))
     # THE PASTE GATE (LANE-5A-9): measured before a byte is written, so a refused paste never
     # exists as a file. Each section's size is printed so the repair names its largest term.
     if size > PASTE_BYTE_CEILING:
@@ -705,7 +708,7 @@ def main(pin_only: bool, bundle_dir: Path | None) -> None:
             click.echo(f"  | {len(content.encode('utf-8'))} B  {label}", err=True)
         _invalidate_oversized_paste(bundle_dir, size)
         sys.exit(1)
-    paste_path.write_text(body + "\n", encoding="utf-8", newline="\n")
+    paste_path.write_text(written, encoding="utf-8", newline="\n")
     # CUT-3 / [#611]: the ratio is measured over the SAME sections list, against the SAME
     # content_bytes denominator already computed above for the END sentinel -- one span,
     # never two disagreeing measurements. The SUPPLEMENT section is a generated pointer since

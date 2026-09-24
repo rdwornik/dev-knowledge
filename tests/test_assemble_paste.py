@@ -1040,7 +1040,9 @@ def test_the_decision_ledger_stays_out_of_the_paste(tmp_path: Path) -> None:
 
 
 def _paste_bytes(bundle: Path) -> int:
-    return len((bundle / "PASTE_THIS.md").read_text(encoding="utf-8").rstrip("\n").encode())
+    """The file's size on disk, terminal LF included — what the ceiling bounds (Codex terra
+    HIGH on this lane: a gate that measured the body alone let a 20,001 B file through)."""
+    return len((bundle / "PASTE_THIS.md").read_bytes())
 
 
 def _pad_to(tmp_path: Path, target: int) -> tuple[Path, subprocess.CompletedProcess[str]]:
