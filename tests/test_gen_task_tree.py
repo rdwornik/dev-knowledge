@@ -1154,37 +1154,52 @@ def test_rank_reports_the_live_queue():
 
 # --- [#589] the view projection + its size assertions ----------------------------
 
-def test_the_live_view_is_under_the_589_done_when_byte_bar():
+def test_the_live_view_is_under_the_589_view_budget():
     """[#589]'s measured claim, asserted rather than left in a closed row.
 
     Measured at the flip (2026-08-26, 202 rows): 279,814 B -> 66,526 B, a 76% cut.
 
-    RE-BASELINED 2026-09-01 TO 72,000 AFTER A GROOMING PASS, ON THE ARCHITECT'S RULING, and
-    the arithmetic is here because the row this asserts says the assertion may not be
-    SILENTLY undone. It bound, which this docstring already called the point rather than a
-    broken test, and it named the two lawful answers: groom, or re-baseline deliberately.
-    Both were taken, in that order.
+    ADR-122 STEP 0 (docs/audits/2026-09-24-technical-declare-adr-122-rulings.md) ruled that
+    this bar and the `--check` ceiling in `gen_task_tree.py` were TWO TRUTHS for the same
+    thing -- a 72,000 B test bar here, a 100,000 B gate bar there, free to drift apart
+    because nothing forced them to agree. They now collapse into ONE CONFIG VALUE,
+    `scripts/view_budget.yaml`, loaded by `gtt.load_view_budget()` -- this test reads it
+    rather than restating the number, so the two can never again silently diverge; see
+    `test_check_and_the_size_bar_read_the_same_view_budget` for the proof they still agree.
 
-        corpus at the 2026-09-01 groom   70,276 B   223 rows
-          row lines                      32,383 B   mean 145 B/row
-          scaffolding (themes/stories/prose)        37,893 B  -- 54% of the file
-        old bar                          70,000 B   -> breached by 276 B
-        new bar                          72,000 B   -> 1,724 B headroom, ~11 rows
+    Interim budget, per the ADR-122 step 0 ruling: 150,000 B, cause "ADR-122 step 0; the
+    view is uncommitted and field-only at step 2", `manual_until: 2026-10-15`.
 
-    THE GROOM CAME FIRST AND FOUND NOTHING TO CLOSE, which is why re-baselining is the
-    remaining move rather than the easy one. Zero manifest nodes carried a terminal status;
-    the tree was coherent; and all three STRONG closure candidates FAILED content
-    verification -- #430 is open on half (b) (ship-gate determinism) with only half (a)
-    landed, #554's Done-when needs `pytest -m 'not slow'` in-container and a VPS
-    `devcontainer up` that no receipt shows, and #614 was a false positive from this arc's
-    own reference tags. Closing a row to buy bytes is closing undone work.
+    Superseded arithmetic from the pre-step-0 72,000 B bar, kept for the historical record:
+    a 2026-09-01 groom found nothing to close (zero manifest nodes carried a terminal
+    status; all three STRONG closure candidates failed content verification -- #430, #554,
+    #614) and re-baselined 70,000 -> 72,000 deliberately rather than closing rows to buy
+    bytes.
 
     ONLY THE POINT-IN-TIME TOTAL MOVES. `_VIEW_ROW_BYTE_CEILING` -- the per-row, growth-proof
-    half that `find_incoherences` enforces on every commit -- is untouched, as is the 100,000
-    per-commit gate in `gen_task_tree.py`, which sits deliberately above this bar so ordinary
-    queue growth can never wedge a commit.
+    half that `find_incoherences` enforces on every commit -- is untouched by ADR-122 step 0,
+    and sits deliberately below the total-bytes budget so ordinary queue growth can never
+    wedge a commit.
     """
-    assert len(BACKLOG.read_bytes()) < 72_000
+    assert len(BACKLOG.read_bytes()) < gtt.load_view_budget().value
+
+
+def test_check_and_the_size_bar_read_the_same_view_budget():
+    """ADR-122 step 0's own done-when: ONE config value, not two truths.
+
+    Before this lane, `gen_task_tree.py --check` (`view_problems`, via
+    `_VIEW_BYTE_CEILING`) enforced 100,000 B and this file's size test asserted 72,000 B --
+    two independently hardcoded numbers with no mechanism forcing them to agree. This test
+    proves both now come from the same `scripts/view_budget.yaml` read, at the interim
+    value ADR-122 step 0 ruled (150,000 B, cause "ADR-122 step 0; the view is uncommitted
+    and field-only at step 2", `manual_until: 2026-10-15`) -- so a future edit to one copy
+    without the other fails here rather than silently drifting again.
+    """
+    budget = gtt.load_view_budget()
+    assert gtt._VIEW_BYTE_CEILING == budget.value
+    assert budget.value == 150_000
+    assert budget.cause == "ADR-122 step 0; the view is uncommitted and field-only at step 2"
+    assert budget.manual_until == "2026-10-15"
 
 
 def test_the_view_is_one_line_per_row_and_carries_no_bodies():
