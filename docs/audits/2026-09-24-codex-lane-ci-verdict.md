@@ -12,6 +12,13 @@
 **Model used:** `gpt-5.6-terra` (pinned; both lanes — [#469])
 **Review profile:** code
 
+no-consumer: this lane files no BACKLOG row of its own for these findings tonight -- row ids
+for a Codex-review finding belong to lane-landing-window (LANE-5A-5), the same filing
+convention `2026-09-24-codex-lane-memory-gate.md`'s own no-consumer line cites for its D7 --
+so this review's findings are disposed against the frozen contract directly (below), the same
+governance identity `harness.yaml`'s new `fates:` line for `scripts/ci_verdict.py` already
+cites.
+
 ---
 
 ## Focus
@@ -55,3 +62,27 @@
 ## LOW
 
 (none)
+
+---
+
+## Dispositions (LANE-5A-6 repair 1, 2026-09-24)
+
+All 3 HIGH findings were genuine; all 3 fixed in the same session, follow-up commit `51315dd6`
+("ci_verdict fixes 3 HIGH findings from its own Codex terra review"), each re-verified against
+the live run (`run_id 35907748018`):
+
+1. **HIGH, ci_verdict.py:323, non-success conclusion read green.** `run["conclusion"]` is now
+   checked directly: a completed run whose workflow-level conclusion is non-success is no
+   longer reported green solely because no job failed.
+2. **HIGH, ci_verdict.py:210, suite-gate parsing unscoped.** The parse is now scoped to the
+   gate step's own time window (`_step_window`, read from the job's `steps` array), padded by
+   one second each side for the second-vs-microsecond resolution mismatch caught while
+   re-verifying this fix against the live run.
+3. **HIGH, test_ci_verdict.py:121, busy-loop on the real timeout.** The no-matching-run test
+   now uses a bounded fake clock instead of the real monotonic one.
+
+See `to-browser/SESSION-lane-ci-verdict.md` for the per-finding detail.
+
+| File | Disposition | Evidence locator |
+|---|---|---|
+| 2026-09-24-codex-lane-ci-verdict.md | ACTIONED | 51315dd6 |
