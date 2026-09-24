@@ -175,7 +175,7 @@ providers:
     # LANE-5B-2 Done item 4. NO `command`: `claude --help` lists no model-listing subcommand,
     # and `claude models` is NOT a verb -- it runs as a headless PROMPT that spends real tokens
     # to ANSWER in prose rather than printing a machine-readable list (measured 2026-09-24, Part
-    # Z step0, `to-browser/SESSION-step0-wave5b-n1-2026-09-24.md`). A currency test must not
+    # Z step0, `to-browser/SESSION-step0-wave5b-n1-2026-09-24.md`). A currency test does not
     # call it, so this provider is excepted rather than probed.
     model_currency:
       command: null
