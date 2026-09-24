@@ -8,7 +8,10 @@
 > number. Scope note carried from the source: two further digests
 > (`DIGEST-SELF-CONTAINERIZE-2026-09-23.md`, `DIGEST-TRANSPORT-CONTRACT-2026-09-23.md`) were never
 > produced by operator ruling; nothing here covers them.
-> Carrier rows: D1-D5 (`to-cc/DECLARE-WINDOW-DEFECTS-2026-09-23.md`), filed by `lane-landing-window`.
+> Carrier rows: D1-D5 (`to-cc/DECLARE-WINDOW-DEFECTS-2026-09-23.md`), filed by `lane-landing-window`:
+> D2 `[#965]`, D3 `[#966]`, D4 `[#967]`, D5 `[#968]`. D1 ("one verification stage") has no
+> standalone row — it is `ADR-120`'s own subject ("the spine is the whole loop"), so it is carried
+> by the ADR rather than duplicated as a backlog row.
 
 carried-by: CC session (hub root, read-only crosscheck)
 answers: to-cc/BATCH-AUDIT-CROSSCHECK-2026-09-23.md

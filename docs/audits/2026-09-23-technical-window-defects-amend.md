@@ -4,7 +4,8 @@
 > was `carried-by: OPEN`. Source: `to-cc/AMEND-WINDOW-DEFECTS-2026-09-23.md`. Amends
 > `2026-09-23-technical-window-defects.md` (adds D30-D34; corrects D16/D17).
 > Carrier rows: one row per D30-D34 item, filed by `lane-landing-window` (D30 folds into the O-4a
-> row where the two mechanisms coincide; see this contract's Done-contract item 1).
+> row where the two mechanisms coincide; see this contract's Done-contract item 1): D30 `[#988]`,
+> D31 `[#990]`, D32 `[#989]`, D33 `[#991]`, D34 `[#992]`.
 
 carried-by: OPEN
 lands-via: LANE-5A-5 (the same rows as the register) and the night batch
