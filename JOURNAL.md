@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-24 (f) - CC (Opus 5.5, integrator wave 5a): LANE 5A-4 landed -- one ship-gate comparator, collision-free refusal names, a fate-less new script is a plan-lint finding, a fresh seat bind reads live
+
+**Anchors:** `39bb1d32` (mechanical ship-gate findings from landing its audit) · `ee11b7bf` (the lane's sync merge of origin/main) · `b14be1f8` (its own no-consumer Codex record admitted into the consumer baseline, +1) · `734ad52e` (Codex terra HIGH findings fixed) · `b6b2038c` (D14 plan-lint) · `1a6633a8` (D10/D11 handback) · `1018bfd3` (D23 seats) -- `worktree-lane-handback-fixes`, merged --no-ff in an integration worktree.
+
+**Did:** merged LANE-5A-4 (merge priority 7), four window defects. D10/D11: `scripts/ship_gate_diff.py` (new) is the one ship-gate comparator `handback.py` calls, and a refusal filename can no longer collide. D14: `plan_lint.py` reports a new script with no declared fate or moment. D23: a fresh seat bind reads live, and `worktree_occupancy.py` accepts a starting record's state. The lane handed back PARTIAL: the pre-existing `conformance.md` staleness and three `proof_layer` WARNs stay open, and neither is this lane's diff. The integrator accepted the +1 consumer-baseline admission as a finding: the record declares `no-consumer:`, and the baseline's provenance line records the same escape for batch F.
+
+**Result:** Codex terra `docs/audits/2026-09-24-codex-lane-handback-fixes.md` (HIGH fixed). Verification: `to-browser/SESSION-integrator-wave5a-2026-09-23.md`. **Changes:** `scripts/ship_gate_diff.py` (new), `tests/test_ship_gate_diff.py` (new), `scripts/handback.py`, `scripts/handback_schema.py`, `scripts/plan_lint.py`, `scripts/seat_registry.py`, `scripts/worktree_occupancy.py`, their tests, `ecosystem/harness.yaml` (one fate), `ecosystem/audit-consumer-baseline.json`, `ecosystem/audit-funnel-baseline.json`, `docs/audits/2026-09-24-codex-lane-handback-fixes.md` (new), `docs/audits/README.md`, `ecosystem/doc-counts.md`, `JOURNAL.md`, `logs/MERGE-RECEIPTS.jsonl`. **Next:** LANE-5A-5 files the D10/D11/D14/D23 rows.
+
 ### 2026-09-24 (e) - CC (Opus 5.5, integrator wave 5a): LANE 5A-6 landed on its repair -- CI's verdict read as data and recorded beside the local one
 
 **Anchors:** `e78f0278` (the lane's sync merge of origin/main) · `55769abb` (Codex review disposed; no-consumer declared) · `b6ff21ec` (`scripts/ci_verdict.py`'s dated fate) · `da8fc753` (the unscoped parse test states the true last-match-wins behaviour) · `f6dc1b78` (sync merge of origin/main `aca2385b`) · `51315dd6` (3 High from its own Codex terra review fixed) · `81e31b3b` (Codex record) · `4b7268b1` (injectable functions resolve by name) · `30c63993` (`ci_verdict.py`) -- `worktree-lane-ci-verdict`, merged --no-ff in an integration worktree.

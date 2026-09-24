@@ -299,7 +299,7 @@ def test_the_organ_refuses_with_a_receipt_for_each_named_cause(monkeypatch, tmp_
     assert receipt["status"] == "REFUSED"
     assert CHECK_NAMES[failing_name] in receipt["reasons"][0]
 
-    refused_path = transport / "to-browser" / f"REFUSED-{LANE}.md"
+    refused_path = transport / "to-browser" / f"HANDBACK-REFUSED-{LANE}.md"
     assert refused_path.is_file()
     order = hs.RefusedOrder.parse(refused_path.read_text(encoding="utf-8"))
     assert order is not None
@@ -324,7 +324,7 @@ def test_a_clean_lane_yields_all_four_schema_valid_artifacts(monkeypatch, tmp_pa
 
     assert code == hb.EXIT_OK
     assert receipt["status"] == "ok"
-    assert not (transport / "to-browser" / f"REFUSED-{LANE}.md").exists()
+    assert not (transport / "to-browser" / f"HANDBACK-REFUSED-{LANE}.md").exists()
 
     # 1. the LANE-END report, byte-validated against the schema
     report_path = transport / "to-browser" / f"LANE-END-{LANE}.md"
@@ -427,7 +427,7 @@ def test_head_moving_between_checks_and_publish_refuses_rather_than_publishing(m
     assert not (transport / "to-browser" / f"LANE-END-{LANE}.md").exists()
     session_path = transport / "to-browser" / f"SESSION-{LANE}.md"
     assert not session_path.exists() or "HANDBACK " not in session_path.read_text(encoding="utf-8")
-    refused_path = transport / "to-browser" / f"REFUSED-{LANE}.md"
+    refused_path = transport / "to-browser" / f"HANDBACK-REFUSED-{LANE}.md"
     assert "HEAD moved" in refused_path.read_text(encoding="utf-8")
 
 

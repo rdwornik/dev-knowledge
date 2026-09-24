@@ -11,9 +11,16 @@ mechanical: a lane runs ONE command, and either
 
   (a) every self-check leg passed, and the organ itself writes the LANE-END report, appends the
       STATE and HANDBACK lines to the canonical session file, and exits 0; or
-  (b) at least one leg failed, and the organ writes `to-browser/REFUSED-<lane>.md` (a
+  (b) at least one leg failed, and the organ writes `to-browser/HANDBACK-REFUSED-<lane>.md` (a
       `RefusedOrder`, `handback_schema.py`) naming every failing leg with its evidence, appends
       NOTHING mergeable to the session file (no HANDBACK line reaches it), and exits non-zero.
+      The `HANDBACK-` prefix is D10 (DECLARE-WINDOW-DEFECTS-2026-09-23): `to-browser/REFUSED-
+      <lane>.md` is the INTEGRATOR's own repair-order path, and wave-4B measured the collision
+      -- this organ's self-refusal receipt landed at that exact filename and overwrote the
+      integrator's executable order once, and would have triggered the dispatcher's repair
+      loop into the lane's own still-live worktree a second time had the dispatcher not caught
+      it by hand. A lane's self-refusal and the integrator's repair order are now two filenames
+      that cannot collide.
 
 Nothing in between: the organ never appends a HANDBACK line on a path where any check failed,
 because `lane_end_guard.py`'s precondition triggers on that line alone, and a partial success
@@ -26,7 +33,11 @@ REDESIGNED:
                           `origin/main` (WAVE4B-COMMON rule 2).
   2. `ship-gate`        -- `audit.py ship-gate`'s hard-fail/undispositioned-WARN set, run at HEAD
                           and at `origin/main`; only what HEAD introduces blocks (the wording of
-                          the rule is "no hard-fail your branch introduced").
+                          the rule is "no hard-fail your branch introduced"). The comparator is
+                          `ship_gate_diff.py` (D11) -- ONE implementation this organ AND the
+                          integrator's own procedure both call, after a bare-`check_name` diff
+                          here read a genuine new hard-fail as "already on the baseline" because
+                          the SAME check_name also carried an unrelated, pre-existing warn.
   3. `ratchet`          -- `tests/test_silent_rule_ratchet.py` passes.
   4. `review-consumer`  -- `consumer_at_landing.py`'s undeclared set carries none of this lane's
                           own new `docs/audits/` artifacts (the lane's Codex review record must
@@ -50,7 +61,6 @@ import argparse
 import json
 import subprocess
 import sys
-import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Optional
@@ -59,6 +69,7 @@ _SCRIPTS = Path(__file__).resolve().parent
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
 
+import ship_gate_diff as _sgd  # noqa: E402
 import transport_report as _tr  # noqa: E402
 from handback_schema import (  # noqa: E402
     CheckResult,
@@ -125,79 +136,62 @@ def branch_purity_check(repo: Path, base: str = DEFAULT_BASE,
 
 
 # --- self-check leg 2: ship-gate, only what the branch introduces --------------------------------
+#
+# D11 (DECLARE-WINDOW-DEFECTS-2026-09-23): this leg used to diff by bare `check_name`, which
+# silently swallowed a NEW fail arriving under a check_name the baseline already carried as a
+# warn (the wave-4B `organ_truth` false negative -- see `ship_gate_diff.py`'s module docstring
+# for the full account). Both functions below now delegate to `ship_gate_diff`, the ONE
+# comparator the integrator's own procedure calls too, rather than holding a second
+# implementation that could drift from it again.
 
-def ship_gate_fails_at_head(repo: Path) -> frozenset[str]:
-    """The check names ship-gate would RED on: hard-fails, plus WARNs the `#147` disposition
-    register does not cover -- imported and called exactly as `audit.cmd_ship_gate` computes
-    them, never reimplemented, so this cannot drift from what `audit.py ship-gate` would print."""
-    import audit  # noqa: PLC0415 -- heavy; only the organ CLI pays for it, never the hook path
-    findings = audit.run_checks(Path(repo))
-    dispositions = audit._load_dispositions()
-    fails = {f.check_name for f in findings if f.status == "fail"}
-    undispositioned = {f.check_name for f in findings if f.status == "warn"
-                       and audit._match_disposition(f, dispositions) is None}
-    return frozenset(fails | undispositioned)
+def ship_gate_fails_at_head(repo: Path) -> frozenset:
+    """The `(check_name, status, evidence)` triples ship-gate would RED on -- see
+    `ship_gate_diff.py`."""
+    return _sgd.blocking_at_head(repo)
 
 
 def ship_gate_fails_at_ref(repo: Path, ref: str,
-                          runner: Callable[..., tuple[int, str]] = _run) -> frozenset[str]:
-    """The same set, computed against `ref` in a disposable detached worktree -- so a fail
-    already present on `origin/main` is a baseline fact, not this branch's introduction. Shares
-    the calling interpreter's already-loaded dependencies (`sys.executable`); only `audit.py`'s
-    CONTENT at `ref` differs, so no `uv sync` is needed in the throwaway tree."""
-    with tempfile.TemporaryDirectory(prefix="handback-ship-gate-baseline-") as tmp:
-        worktree = Path(tmp) / "wt"
-        code, out = runner(
-            ["git", "-C", str(repo), "worktree", "add", "--detach", str(worktree), ref], repo)
-        if code != 0:
-            raise RuntimeError(f"could not create a baseline worktree at {ref}: {out.strip()[-500:]}")
-        try:
-            script = (
-                "import sys, json\n"
-                "sys.path.insert(0, 'scripts')\n"
-                "import audit\n"
-                "from pathlib import Path\n"
-                "findings = audit.run_checks(Path('.'))\n"
-                "disp = audit._load_dispositions()\n"
-                "fails = {f.check_name for f in findings if f.status == 'fail'}\n"
-                "warns = {f.check_name for f in findings if f.status == 'warn' "
-                "and audit._match_disposition(f, disp) is None}\n"
-                "print(json.dumps(sorted(fails | warns)))\n"
-            )
-            proc_code, proc_out = runner([sys.executable, "-c", script], worktree,
-                                         SHIP_GATE_TIMEOUT_S)
-            if proc_code != 0:
-                raise RuntimeError(f"baseline ship-gate at {ref} could not run: "
-                                  f"{proc_out.strip()[-2000:]}")
-            line = [ln for ln in proc_out.splitlines() if ln.strip()][-1]
-            return frozenset(json.loads(line))
-        finally:
-            runner(["git", "-C", str(repo), "worktree", "remove", "--force", str(worktree)], repo)
+                          runner: Callable[..., tuple[int, str]] = _run) -> frozenset:
+    """The same identities, computed against `ref` in a disposable detached worktree -- see
+    `ship_gate_diff.blocking_at_ref`."""
+    return _sgd.blocking_at_ref(repo, ref, runner=runner)
+
+
+def _fmt_identity(x: object) -> str:
+    """A `(check_name, status, evidence)` triple renders as `check_name (status): evidence`; a
+    plain opaque identity (what this leg's own unit tests inject) renders as itself -- this
+    function does not care which shape `head_fails`/`base_fails` hand it."""
+    if isinstance(x, tuple) and len(x) == 3:
+        return f"{x[0]} ({x[1]}): {x[2][:200]}"
+    return str(x)
 
 
 def ship_gate_check(repo: Path, base: str = DEFAULT_BASE,
-                    head_fails: Callable[[Path], frozenset[str]] = ship_gate_fails_at_head,
-                    base_fails: Optional[Callable[[], frozenset[str]]] = None) -> CheckResult:
+                    head_fails: Callable[[Path], frozenset] = ship_gate_fails_at_head,
+                    base_fails: Optional[Callable[[], frozenset]] = None) -> CheckResult:
     head = head_fails(repo)
     if not head:
         return CheckResult("ship-gate", True, "GREEN")
     if base_fails is None:
-        def base_fails() -> frozenset[str]:
+        def base_fails() -> frozenset:
             return ship_gate_fails_at_ref(repo, base)
     try:
         baseline = base_fails()
     except RuntimeError as exc:
         return CheckResult("ship-gate", False,
                            f"HEAD carries {len(head)} hard-fail/undispositioned-WARN organ(s) "
-                           f"({', '.join(sorted(head))}) and the {base} baseline could not be "
-                           f"measured to tell which it introduced: {exc}")
+                           f"({', '.join(_fmt_identity(x) for x in sorted(head))}) and the "
+                           f"{base} baseline could not be measured to tell which it "
+                           f"introduced: {exc}")
     introduced = head - baseline
     if introduced:
         return CheckResult("ship-gate", False,
                            f"{len(introduced)} hard-fail/undispositioned-WARN organ(s) "
-                           f"introduced by this branch vs {base}: {', '.join(sorted(introduced))}")
+                           f"introduced by this branch vs {base}: "
+                           f"{', '.join(_fmt_identity(x) for x in sorted(introduced))}")
     return CheckResult("ship-gate", True,
-                       f"RED against {base} too ({len(head)}: {', '.join(sorted(head))}), "
+                       f"RED against {base} too ({len(head)}: "
+                       f"{', '.join(_fmt_identity(x) for x in sorted(head))}), "
                        f"none introduced by this branch")
 
 
@@ -389,7 +383,9 @@ def _write_refusal(resolve_transport: Callable[[], Path], lane: str, branch: str
                                "reason": f"REFUSED order failed its own validation: {why}"}
     browser = resolve_transport()
     browser.mkdir(parents=True, exist_ok=True)
-    path = browser / f"REFUSED-{lane}.md"
+    # D10: `HANDBACK-REFUSED-<lane>.md`, never `REFUSED-<lane>.md` -- that filename is the
+    # INTEGRATOR's own repair-order path (see the module docstring for the wave-4B collision).
+    path = browser / f"HANDBACK-REFUSED-{lane}.md"
     path.write_text(order.render(), encoding="utf-8", newline="\n")
     return EXIT_REFUSED, order.to_receipt()
 
@@ -404,9 +400,10 @@ def run(lane: str, branch: str, cls: str, repo: Path, base: str = DEFAULT_BASE,
     finished_at = _stamp()
     try:
         if not _tr._LANE_RE.match(lane):
-            # Refused before ANY path is built from `lane` -- including the REFUSED-<lane>.md
-            # a normal refusal would write, since that path is built the same unsafe way
-            # (sol HIGH: session_path()/REFUSED path had no containment check of its own).
+            # Refused before ANY path is built from `lane` -- including the
+            # HANDBACK-REFUSED-<lane>.md a normal refusal would write, since that path is built
+            # the same unsafe way (sol HIGH: session_path()/REFUSED path had no containment
+            # check of its own).
             return EXIT_INTERNAL, {"schema": 1, "organ": "handback", "status": "FAILED",
                                    "lane": lane,
                                    "reason": f"{lane!r} is not a lane slug; refusing to build a "
