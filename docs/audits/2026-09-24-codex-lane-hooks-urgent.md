@@ -11,6 +11,10 @@
 **Model used:** `gpt-5.6-terra` (pinned; both lanes — [#469])
 **Review profile:** code
 
+no-consumer: this lane files no BACKLOG row of its own for these findings -- row ids for
+tonight's wave are allocated in the landing window (LANE-5A-5), not per-lane, so this
+artifact names no `[#id]` of its own; its disposition is recorded directly below instead.
+
 ---
 
 ## Focus
@@ -86,3 +90,9 @@ Re-verified after the fix: `uv run --locked pytest tests/test_telemetry_emit.py
 tests/test_hook_expiry_verdict.py -q` -- 58 passed; `uv run --locked ruff check
 scripts/telemetry_emit.py scripts/hook_expiry_verdict.py tests/test_telemetry_emit.py
 tests/test_hook_expiry_verdict.py` -- clean.
+
+## Disposition ledger
+
+| File | Disposition | Evidence locator |
+|---|---|---|
+| 2026-09-24-codex-lane-hooks-urgent.md | ACTIONED | e87fb7eb |
