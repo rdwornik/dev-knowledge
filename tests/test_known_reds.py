@@ -309,3 +309,108 @@ def test_attribute_skips_commits_where_the_test_file_does_not_yet_exist(kr, toy_
     result = kr.attribute(toy_repo, "tests/test_new.py::test_new", good=good_sha, bad=bad_sha,
                           venv_python=Path(sys.executable), timeout=60.0)
     assert result["first_bad_sha"] == break_sha
+
+
+def test_find_lane_walks_past_an_origin_main_sync_merge_to_the_real_lane_merge(kr, toy_repo):
+    """Codex terra HIGH #2: an intervening `Merge remote-tracking branch 'origin/main' into
+    worktree-...` sync merge must be walked PAST, not stopped at -- it never carries a lane's
+    work into main itself."""
+    _git(toy_repo, "checkout", "-q", "-b", "worktree-my-lane")
+    (toy_repo / "f.txt").write_text("x\n", encoding="utf-8")
+    _git(toy_repo, "add", "f.txt")
+    _git(toy_repo, "commit", "-q", "-m", "work")
+    first_bad = _git(toy_repo, "rev-parse", "HEAD")
+
+    _git(toy_repo, "checkout", "-q", "main")
+    _git(toy_repo, "commit", "-q", "--allow-empty", "-m", "unrelated main progress")
+    _git(toy_repo, "checkout", "-q", "worktree-my-lane")
+    _git(toy_repo, "merge", "--no-ff", "-q", "-m",
+        "Merge remote-tracking branch 'origin/main' into worktree-my-lane", "main")
+
+    _git(toy_repo, "checkout", "-q", "main")
+    _git(toy_repo, "merge", "--no-ff", "-q", "-m", "Merge branch 'worktree-my-lane' @ deadbeef",
+        "worktree-my-lane")
+    tip = _git(toy_repo, "rev-parse", "HEAD")
+    assert kr.find_lane(toy_repo, first_bad, tip) == "my-lane"
+
+
+def test_bisect_step_prefers_a_definitive_returncode_over_skip_looking_output(kr, monkeypatch):
+    """Codex terra HIGH #1: a genuinely failing test (returncode 1) whose output happens to
+    contain a skip-ish phrase (e.g. inside a traceback/assertion message) must still be
+    classified `1` (bad), never `125` (skip)."""
+    class _FakeDone:
+        returncode = 1
+        stdout = "AssertionError: no tests ran the way I expected\n1 failed in 0.01s\n"
+        stderr = ""
+
+    monkeypatch.setattr(kr.subprocess, "run", lambda *a, **k: _FakeDone())
+    monkeypatch.setenv("_KNOWN_REDS_BISECT_TEST_ID", "tests/x.py::t")
+    monkeypatch.setenv("_KNOWN_REDS_BISECT_VENV_PY", sys.executable)
+    monkeypatch.setenv("_KNOWN_REDS_BISECT_CLONE", ".")
+    monkeypatch.setenv("_KNOWN_REDS_BISECT_TIMEOUT", "60")
+    assert kr._bisect_step() == 1
+
+
+def test_bisect_step_still_skips_a_genuine_zero_collection(kr, monkeypatch):
+    class _FakeDone:
+        returncode = 5
+        stdout = "no tests ran\n"
+        stderr = ""
+
+    monkeypatch.setattr(kr.subprocess, "run", lambda *a, **k: _FakeDone())
+    monkeypatch.setenv("_KNOWN_REDS_BISECT_TEST_ID", "tests/x.py::t")
+    monkeypatch.setenv("_KNOWN_REDS_BISECT_VENV_PY", sys.executable)
+    monkeypatch.setenv("_KNOWN_REDS_BISECT_CLONE", ".")
+    monkeypatch.setenv("_KNOWN_REDS_BISECT_TIMEOUT", "60")
+    assert kr._bisect_step() == 125
+
+
+# --- refresh CLI: ancestor validation of --previous -------------------------------------------
+
+def test_main_refresh_refuses_a_previous_registry_not_an_ancestor_of_commit(kr, toy_repo, tmp_path):
+    """Codex terra HIGH #3: a --previous registry measured on unrelated history must not be
+    trusted to carry members forward."""
+    _git(toy_repo, "checkout", "-q", "-b", "side")
+    _git(toy_repo, "commit", "-q", "--allow-empty", "-m", "unrelated side history")
+    side_sha = _git(toy_repo, "rev-parse", "HEAD")
+    _git(toy_repo, "checkout", "-q", "main")
+    _git(toy_repo, "commit", "-q", "--allow-empty", "-m", "main progress")
+    main_sha = _git(toy_repo, "rev-parse", "HEAD")
+
+    previous = kr.Registry(schema=kr.SCHEMA, baseline_id="2026-09-01-deadbeefcafe",
+                           measured_at_sha=side_sha, measured_via="local", workers=4,
+                           members={"tests/a.py::t1": {"attribution": kr.PRE_FREEZE}})
+    prev_path = tmp_path / "previous.json"
+    kr.write_registry(prev_path, previous)
+
+    pytest_out = tmp_path / "pytest.out"
+    pytest_out.write_text("FAILED tests/a.py::t1 - x\n", encoding="utf-8")
+    registry_out = tmp_path / "registry.json"
+
+    rc = kr.main(["--repo-root", str(toy_repo), "refresh", "--pytest-output", str(pytest_out),
+                 "--workers", "4", "--commit", main_sha, "--date", "2026-09-24",
+                 "--previous", str(prev_path), "--registry", str(registry_out)])
+    assert rc == 1
+    assert not registry_out.exists()
+
+
+def test_main_refresh_accepts_a_previous_registry_that_is_an_ancestor(kr, toy_repo, tmp_path):
+    ancestor_sha = _git(toy_repo, "rev-parse", "HEAD")
+    _git(toy_repo, "commit", "-q", "--allow-empty", "-m", "main progress")
+    tip_sha = _git(toy_repo, "rev-parse", "HEAD")
+
+    previous = kr.Registry(schema=kr.SCHEMA, baseline_id="2026-09-01-deadbeefcafe",
+                           measured_at_sha=ancestor_sha, measured_via="local", workers=4,
+                           members={"tests/a.py::t1": {"attribution": kr.PRE_FREEZE}})
+    prev_path = tmp_path / "previous.json"
+    kr.write_registry(prev_path, previous)
+
+    pytest_out = tmp_path / "pytest.out"
+    pytest_out.write_text("FAILED tests/a.py::t1 - x\n", encoding="utf-8")
+    registry_out = tmp_path / "registry.json"
+
+    rc = kr.main(["--repo-root", str(toy_repo), "refresh", "--pytest-output", str(pytest_out),
+                 "--workers", "4", "--commit", tip_sha, "--date", "2026-09-24",
+                 "--previous", str(prev_path), "--registry", str(registry_out)])
+    assert rc == 0
+    assert registry_out.exists()

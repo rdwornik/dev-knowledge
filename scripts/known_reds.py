@@ -272,11 +272,12 @@ def _git(repo: Path, *args: str) -> str:
 
 
 def find_lane(repo: Path, first_bad_sha: str, bad_ref: str) -> str | None:
-    """The `worktree-<lane>` name of the first merge on the ancestry path from `first_bad_sha`
-    to `bad_ref` -- the merge that actually carried it into main -- or `None` if `first_bad_sha`
-    itself is that merge (a lane's tip merged with no fix-up commits after it), in which case
-    the caller already has the merge subject line to parse, or if no merge is found at all
-    (the range never merges, e.g. a still-open branch)."""
+    """The `worktree-<lane>` name of the first LANE-MERGE (`Merge branch '...'`) on the
+    ancestry path from `first_bad_sha` to `bad_ref` -- the merge that actually carried it
+    into main -- or `None` if no such merge is found. Intervening `Merge remote-tracking
+    branch 'origin/main' into worktree-...` sync merges (or any other merge subject that
+    doesn't match the lane-merge pattern) are walked PAST, not stopped at, since they never
+    carry a lane's work into main themselves."""
     if first_bad_sha == _git(repo, "rev-parse", first_bad_sha):
         subject = _git(repo, "log", "-1", "--format=%s", first_bad_sha)
         m = re.match(r"^Merge branch '(?:worktree-)?([^']+)'", subject)
@@ -284,9 +285,11 @@ def find_lane(repo: Path, first_bad_sha: str, bad_ref: str) -> str | None:
             return m.group(1)
     out = _git(repo, "log", "--merges", "--ancestry-path", "--reverse", "--format=%s",
               f"{first_bad_sha}..{bad_ref}")
-    first_line = out.splitlines()[0] if out else ""
-    m = re.match(r"^Merge branch '(?:worktree-)?([^']+)'", first_line)
-    return m.group(1) if m else None
+    for line in out.splitlines():
+        m = re.match(r"^Merge branch '(?:worktree-)?([^']+)'", line)
+        if m:
+            return m.group(1)
+    return None
 
 
 def attribute(repo: Path, test_id: str, *, good: str, bad: str, venv_python: Path,
@@ -361,13 +364,17 @@ def _bisect_step() -> int:
         return 125  # untestable at this commit within budget -- skip rather than misreport
     out = done.stdout + done.stderr
     sys.stderr.write(out[-2000:])
-    lowered = out.lower()
-    if "no tests ran" in lowered or "error: not found" in lowered or "collected 0 items" in out:
-        return 125
+    # pytest's own exit code is definitive for a real run (0 all passed, 1 some collected and
+    # failed) -- checked BEFORE any substring sniffing, so a failing test whose output happens
+    # to contain a skip-ish phrase (e.g. "no tests ran" inside a failure message/traceback) is
+    # never misclassified as a bisect skip.
     if done.returncode == 0:
         return 0
     if done.returncode == 1:
         return 1
+    lowered = out.lower()
+    if "no tests ran" in lowered or "error: not found" in lowered or "collected 0 items" in out:
+        return 125
     return 125  # collection error / interrupted / usage error: ambiguous, never call it bad
 
 
@@ -425,6 +432,18 @@ def main(argv: list[str] | None = None) -> int:
         text = Path(args.pytest_output).read_text(encoding="utf-8", errors="replace")
         failed = conductor.parse_failed_node_ids(text)
         previous = load_registry(root / args.previous) if args.previous else None
+        if previous is not None:
+            try:
+                _git(root, "merge-base", "--is-ancestor", previous.measured_at_sha, args.commit)
+            except KnownRedsError:
+                print(f"known_reds: refusing -- previous registry's measured_at_sha "
+                     f"{previous.measured_at_sha!r} is not an ancestor of --commit "
+                     f"{args.commit!r}; a --previous registry measured on unrelated or "
+                     f"future history cannot be trusted to carry members forward. Pass a "
+                     f"--previous registry measured on this history, or omit --previous to "
+                     f"start a fresh baseline with no carried-forward members.",
+                     file=sys.stderr)
+                return 1
         attribution = _load_attribution_file(args.attribution)
         try:
             registry, dropped = refresh(failed=failed, workers=args.workers, commit=args.commit,
