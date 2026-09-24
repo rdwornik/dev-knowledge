@@ -290,7 +290,10 @@ def test_each_source_body_is_inlined_verbatim(tmp_path: Path) -> None:
     # the other source bodies must each appear verbatim
     assert "Drift flags." in paste       # RESIDUAL.md
     assert "P1 probe here." in paste     # PROBES.md
-    assert "Strategic brief." in paste   # SUPPLEMENT.md — the folded ANSWERS region
+    # SUPPLEMENT.md: LANE-5A-9 shed — the ANSWERS travel as a POINTER, never inlined (the paste
+    # gate). The section is still present, so `supplement_folded` still sees the fold.
+    assert "Strategic brief." not in paste
+    assert "=== SUPPLEMENT.md ===" in paste
     # the session-header is extracted only up to the first '## ' heading:
     # the slug (before the heading) is inlined; body under the heading is excluded
     assert "test" in paste                  # slug, from the Field/Value table
@@ -353,7 +356,8 @@ def test_architect_mode_answered_supplement_folds_answers_only(tmp_path: Path) -
     assert "[warn]" not in result.stderr
 
     paste = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
-    assert "Strategic brief." in paste            # the ANSWERS region folded in
+    assert "=== SUPPLEMENT.md ===" in paste       # the ANSWERS region is carried, by pointer
+    assert "Strategic brief." not in paste        # ...and not inlined (LANE-5A-9 shed)
     assert _ANSWERS_MARKER not in paste           # the divider is stripped, never folded
     assert _QUESTIONS_MARKER not in paste          # the questions are for the outgoing browser
 
@@ -413,7 +417,9 @@ def test_nonempty_answers_fold_into_paste(tmp_path: Path) -> None:
 
     paste = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
     assert "SUPPLEMENT.md" in _labels(paste)
-    assert "The why: chose X over Y because Z." in paste
+    # LANE-5A-9: the answers reach the next seat by a named pointer, pulled JIT, not inlined.
+    assert "The why: chose X over Y because Z." not in paste
+    assert "bundle/SUPPLEMENT.md" in paste
     assert _ANSWERS_MARKER not in paste
     assert _QUESTIONS_MARKER not in paste
 
@@ -478,16 +484,18 @@ def test_normal_bundle_surfaces_size_without_warn(tmp_path: Path) -> None:
 # Test 14: An oversized paste trips a non-gating [warn] (RF-2: arrest paste growth)
 # ------------------------------------------------------------------ #
 
-def test_oversized_paste_emits_size_warn(tmp_path: Path) -> None:
-    """A paste past PASTE_BYTE_CEILING trips a [warn] — but assembly still succeeds (a WARN,
-    not a gate), so an over-budget bundle surfaces the bloat without blocking regeneration."""
+def test_oversized_paste_fails_the_gate(tmp_path: Path) -> None:
+    """LANE-5A-9 (Done-contract item 2): a paste past PASTE_BYTE_CEILING is REFUSED — exit 1,
+    no PASTE_THIS.md written. Until this lane it was a [warn], and the live paste reached
+    34,998 B against the 20,000 B ceiling with nothing stopping it."""
     bundle, script = _make_bundle(tmp_path, mode="architect")
     (bundle / "RESIDUAL.md").write_text("# R\n\n" + ("padding " * 12000), encoding="utf-8")
 
     result = _run(script, bundle)
-    assert result.returncode == 0, result.stderr   # WARN, never a gate
-    assert "[warn]" in result.stderr
-    assert "heavy boot" in result.stderr
+    assert result.returncode == 1, result.stderr
+    assert "[error]" in result.stderr
+    assert "20000" in result.stderr
+    assert not (bundle / "PASTE_THIS.md").exists()
 
 
 # ------------------------------------------------------------------ #
@@ -611,9 +619,10 @@ def test_pin_only_missing_spec_still_refuses_cleanly(tmp_path: Path) -> None:
 # docs/audits/2026-09-02-technical-lane-g-611-bundle-thinning.md §1.2
 # ------------------------------------------------------------------ #
 
-def test_window_specific_ratio_counts_fill_in_bodies_and_folded_answers(tmp_path: Path) -> None:
-    """The printed ratio counts FILL-IN region BODIES (never the marker comments) plus the
-    folded SUPPLEMENT ANSWERS, over content_bytes -- and PROBES.md (no FILL-IN regions)
+def test_window_specific_ratio_counts_fill_in_bodies_not_the_supplement_pointer(
+        tmp_path: Path) -> None:
+    """The printed ratio counts FILL-IN region BODIES (never the marker comments), over
+    content_bytes; the SUPPLEMENT section is a generated pointer since LANE-5A-9 -- and PROBES.md (no FILL-IN regions)
     contributes 0, exactly the census's own finding that PROBES.md is 96% invariant."""
     bundle, script = _make_bundle(tmp_path, mode="architect", supplement_answers="Real answer text.")
     driftflags_body = "Shipped the thing because of the reason."
@@ -634,8 +643,9 @@ def test_window_specific_ratio_counts_fill_in_bodies_and_folded_answers(tmp_path
     assert m, result.stdout
     ws_bytes, content_bytes, pct = int(m.group(1)), int(m.group(2)), int(m.group(3))
 
-    # driftflags body + the folded answers text -- nothing from PROBES.md or the scaffolding.
-    expected = len(driftflags_body.encode("utf-8")) + len("Real answer text.".encode("utf-8"))
+    # driftflags body only. LANE-5A-9: the SUPPLEMENT answers are no longer inlined -- the
+    # paste carries a generated POINTER to them, which is not window-specific content.
+    expected = len(driftflags_body.encode("utf-8"))
     assert ws_bytes == expected
     assert pct == round(expected * 100 / content_bytes)
 
@@ -925,3 +935,171 @@ def test_a_refusal_invalidates_the_stale_paste_the_cold_pass_left(tmp_path: Path
     assert "REFUSED" in text
     assert _OPEN_DECISION in text                  # the stub names what is owed
     assert "ROLE PIN" not in text                  # the pasteable handoff is GONE
+
+
+# ------------------------------------------------------------------ #
+# LANE-5A-9 — the paste shed (DIGEST-HANDOFF-READINESS-2026-09-23 §4 SHED) and the 20,000 B gate
+# ------------------------------------------------------------------ #
+#
+# RED-FIRST (ADR-108 §B): every test below failed against the pre-lane assembler, which inlined
+# RESIDUAL whole, folded the SUPPLEMENT ANSWERS verbatim, copied the header's pointer blocks
+# (one of which named PLAYBOOK Ch8 as the launch authority, against ruling O-5), and only WARNed
+# past the ceiling. The shed keeps what a seat needs on turn one and points at the rest.
+
+_SECTIONED_RESIDUAL = (
+    "# Residual — test-slug\n\n"
+    "> **What this is (§2).** preamble prose that re-explains the residual.\n\n"
+    "---\n\n"
+    "## §1 — Drift-flags (THE HEADLINE)\n\n"
+    "DRIFT-BODY-MARKER: a flag the next seat must see first.\n\n"
+    "---\n\n"
+    "## §2 — Shipped this window\n\n"
+    "SHIPPED-BODY-MARKER: narrative the repo already encodes.\n\n"
+    "---\n\n"
+    "## §4 — Next-frontier decisions\n\n"
+    "FRONTIER-BODY-MARKER: names `to-cc/" + _OPEN_DECISION + "` as work.\n"
+)
+
+_POINTER_HEADER_BOOT = (
+    "# Handoff boot — session header\n\n"
+    "| Field | Value |\n|---|---|\n| **Slug** | test |\n| **Mode** | **architect** (test) |\n\n"
+    "> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`.\n\n"
+    "> **Nothing doctrinal is copied into this paste.** Launch commands:\n"
+    "> `protocols/PLAYBOOK.md` Ch8 \"The dispatch table — the SOLE literal-command site\".\n\n"
+    "## What the operator does\n\nSteps go here.\n"
+)
+
+
+def test_residual_sheds_to_drift_flags_open_list_and_a_pointer(tmp_path: Path) -> None:
+    """RESIDUAL becomes drift-flags + the OPEN list + a pointer: the §1 body is inlined, the
+    other sections are not, and the seat is told where they live and where the live ledger is."""
+    bundle, script = _make_bundle(tmp_path, residual=_SECTIONED_RESIDUAL)
+    result = _run(script, bundle)
+    assert result.returncode == 0, result.stderr
+    paste = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
+
+    assert "DRIFT-BODY-MARKER" in paste
+    assert "SHIPPED-BODY-MARKER" not in paste
+    assert "FRONTIER-BODY-MARKER" not in paste
+    assert "preamble prose" not in paste
+    assert "bundle/RESIDUAL.md" in paste              # the pointer to the rest
+    assert "to-browser/LEDGER-" in paste              # the live ledger, not the snapshot
+    assert f"to-cc/{_OPEN_DECISION}" in paste          # outside a bundle home: the named files
+
+
+def test_the_open_list_is_the_p11_predicates_open_set_in_a_window_bundle(tmp_path: Path) -> None:
+    """In a real bundle home the OPEN list is read off the transport by the P11 predicate's own
+    helpers — so a residual that names the file in a section the shed drops still hands it on."""
+    bundle, script = _make_bundle(
+        tmp_path, bundle_rel="docs/handoffs/2026-09-24-shed", residual=_SECTIONED_RESIDUAL,
+        supplement_answers="Filled.")
+    transport = _transport_with_open_carrier(tmp_path)
+    result = _run(script, bundle, transport=transport)
+    assert result.returncode == 0, result.stderr
+    paste = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
+    assert "FRONTIER-BODY-MARKER" not in paste         # the naming section itself was shed
+    assert f"to-cc/{_OPEN_DECISION}" in paste           # ...and the OPEN file still travels
+
+
+def test_an_unsectioned_residual_is_inlined_whole(tmp_path: Path) -> None:
+    """Nothing to shed without `## ` sections: a hand residual is carried as written."""
+    bundle, script = _make_bundle(tmp_path, residual="# Residual\n\nDrift flags only.\n")
+    assert _run(script, bundle).returncode == 0
+    assert "Drift flags only." in (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
+
+
+def test_header_pointer_blocks_become_one_forms_line_off_the_playbook(tmp_path: Path) -> None:
+    """The bundle header's pointer blocks collapse to ONE forms line, which names the launcher's
+    own --help, the four templates and the routing registry — never the PLAYBOOK (ruling O-5)."""
+    bundle, script = _make_bundle(tmp_path)
+    (bundle / "HANDOFF_BOOT.md").write_text(_POINTER_HEADER_BOOT, encoding="utf-8")
+    result = _run(script, bundle)
+    assert result.returncode == 0, result.stderr
+    paste = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
+    header = paste.split("=== ROLE PIN", 1)[0]
+
+    assert "PLAYBOOK" not in header
+    assert "SOLE literal-command site" not in header
+    assert "fold into `PASTE_THIS.md`" not in header     # a claim the shed made false
+    assert "| **Slug** | test |" in header              # the Field/Value table survives
+    assert sum(1 for ln in header.splitlines() if ln.startswith(">")) == 1
+    for pointer in ("scripts/dispatch.py launch --help", "ecosystem/provider-registry.yaml",
+                    "templates/dispatcher-order-template.md",
+                    "templates/integrator-order-template.md",
+                    "templates/batch-common-rules-template.md",
+                    "templates/lane-contract-template.md"):
+        assert pointer in header, pointer
+
+
+def test_the_decision_ledger_stays_out_of_the_paste(tmp_path: Path) -> None:
+    """DECISION_LEDGER.md is a snapshot the live ledger supersedes; it is never folded."""
+    bundle, script = _make_bundle(tmp_path)
+    (bundle / "DECISION_LEDGER.md").write_text("LEDGER-SNAPSHOT-MARKER\n", encoding="utf-8")
+    assert _run(script, bundle).returncode == 0
+    assert "LEDGER-SNAPSHOT-MARKER" not in (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
+
+
+def _paste_bytes(bundle: Path) -> int:
+    return len((bundle / "PASTE_THIS.md").read_text(encoding="utf-8").rstrip("\n").encode())
+
+
+def _pad_to(tmp_path: Path, target: int) -> tuple[Path, subprocess.CompletedProcess[str]]:
+    """A bundle whose assembled paste measures exactly `target` bytes: a probe run, then pad.
+    The END sentinel prints the content size, so the probe is padded into the same digit-width
+    (five digits) as the target — then the padding delta is exact."""
+    probe_pad = 19_000
+    bundle, script = _make_bundle(tmp_path, residual="# R\n\n" + "x" * probe_pad)
+    probe = _run(script, bundle)
+    assert probe.returncode == 0, probe.stderr
+    pad = probe_pad + target - _paste_bytes(bundle)
+    (bundle / "RESIDUAL.md").write_text("# R\n\n" + "x" * pad, encoding="utf-8")
+    return bundle, _run(script, bundle)
+
+
+def test_a_paste_exactly_at_the_ceiling_passes(tmp_path: Path) -> None:
+    bundle, result = _pad_to(tmp_path, 20_000)
+    assert result.returncode == 0, result.stderr
+    assert _paste_bytes(bundle) == 20_000
+
+
+def test_one_byte_over_the_ceiling_is_refused(tmp_path: Path) -> None:
+    _bundle, result = _pad_to(tmp_path, 20_001)
+    assert result.returncode == 1, result.stdout
+    assert "[error]" in result.stderr
+
+
+def test_an_over_ceiling_refusal_invalidates_a_stale_paste(tmp_path: Path) -> None:
+    """Same discipline as the P11 refusal: a pasteable file from an earlier run is replaced by
+    a notice, never left behind to be pasted."""
+    bundle, script = _make_bundle(tmp_path)
+    assert _run(script, bundle).returncode == 0
+    (bundle / "RESIDUAL.md").write_text("# R\n\n" + ("padding " * 12000), encoding="utf-8")
+    assert _run(script, bundle).returncode == 1
+    text = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
+    assert "REFUSED" in text and "ROLE PIN" not in text
+
+
+_LIVE_BUNDLE = (Path(__file__).parent.parent / "docs" / "handoffs"
+                / "2026-09-19-dev-knowledge-architect")
+
+
+def test_the_live_35kb_bundle_sheds_under_the_ceiling(tmp_path: Path) -> None:
+    """The measured case: the 2026-09-19 bundle assembled to 34,998 B. A COPY of it (the sealed
+    bundle is immutable and is not touched), assembled outside a bundle home so the P11 gate —
+    not this lane's subject — stays out of the measurement, now lands under 20,000 B."""
+    import pytest
+    if not _LIVE_BUNDLE.is_dir():
+        pytest.skip("the 2026-09-19 bundle is no longer in docs/handoffs/")
+    assert len((_LIVE_BUNDLE / "PASTE_THIS.md").read_bytes()) > 20_000   # the measured defect
+    bundle, script = _make_bundle(tmp_path)
+    repo = Path(__file__).parent.parent
+    for name in ("HANDOFF_BOOT.md", "HANDOFF_PROCESS.md"):
+        shutil.copy(repo / "protocols" / name, tmp_path / "protocols" / name)
+    shutil.rmtree(bundle)
+    shutil.copytree(_LIVE_BUNDLE, bundle)
+    (bundle / "PASTE_THIS.md").unlink()
+    result = _run(script, bundle)
+    assert result.returncode == 0, result.stderr
+    assert _paste_bytes(bundle) <= 20_000
+    header = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8").split("=== ROLE PIN", 1)[0]
+    assert "PLAYBOOK" not in header

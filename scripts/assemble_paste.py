@@ -5,15 +5,21 @@ Usage: python scripts/assemble_paste.py <bundle_dir>
 
 Manifest (in order):
   0. <bundle>/HANDOFF_BOOT.md session-header (optional; extracted from the bundle's
-     own HANDOFF_BOOT.md up to the first '##' heading — slug/mode/purpose/generated-at)
+     own HANDOFF_BOOT.md up to the first '##' heading — slug/mode/purpose/generated-at;
+     its `>` pointer blocks are SHED to one forms line, see _shed_header)
   1. ROLE PIN  (required — a 3-line pin naming the role file's version + sha256, NOT the
      role file itself; the role is RESIDENT in the browser project instructions since
      HANDOFF_PROCESS v6.3.0 / census R1. See _role_pin below.)
-  2. <bundle>/RESIDUAL.md       (required — drift-flags + planning why + task-graph)
+  2. <bundle>/RESIDUAL.md       (required — SHED to drift-flags + the OPEN list + a pointer
+     to the rest and to the live ledger, see shed_residual)
   3. <bundle>/PROBES.md         (required — orientation + teeth probes)
-  4. <bundle>/SUPPLEMENT.md     (architect strategic supplement — an always-generated
-     fillable file; only its filled-in ANSWERS region folds in, and only when non-empty,
-     since the QUESTIONS are for the OUTGOING browser, not the incoming session)
+  4. <bundle>/SUPPLEMENT.md     (architect strategic supplement — when its ANSWERS region is
+     filled, a POINTER section names it; the answers themselves are pulled JIT, not inlined)
+
+DECISION_LEDGER.md is never folded: the live ledger on the transport supersedes the snapshot.
+
+THE PASTE GATE (LANE-5A-9): an assembled paste above PASTE_BYTE_CEILING is REFUSED — exit 1,
+no PASTE_THIS.md written, a stale one replaced by a refusal notice.
 
 Output: <bundle>/PASTE_THIS.md  (UTF-8, LF, never hand-edited)
 """
@@ -40,9 +46,11 @@ _SECTION_SEP = "\n\n---\n\n"
 # arithmetic, done twice, drifting apart only because nothing forced the two sites to agree).
 # One number now; window_metrics imports THIS one rather than declaring its own.
 #
-# A WARN, not a gate — assembly still succeeds, mirroring check_boot_byte_budget's split-by-site
-# pattern (WARN at generation, a FAIL-class gate — if the operator wants one — belongs in
-# audit.py, out of this lane's write-scope).
+# A GATE since LANE-5A-9 (2026-09-24), no longer a WARN. The WARN let the live paste reach
+# 34,998 B — 75 % over — with nothing stopping it (DIGEST-HANDOFF-READINESS-2026-09-23 §4 item 3).
+# The shed below brought the same bundle under it, so the ceiling can refuse without refusing
+# the documented flow. Unlike the boot budget, the refusal sits HERE: the paste has no later
+# merge gate to catch it — it is handed to a browser, not shipped through the ship-gate.
 PASTE_BYTE_CEILING = 20_000
 
 # A10 item 2 / R4 ([#446]): the stated numeric byte budget for the browser role file
@@ -133,6 +141,118 @@ def _extract_answers(text: str) -> str | None:
     region = text[m.end():] if m else text
     stripped = _HTML_COMMENT_RE.sub("", region).strip()
     return stripped or None
+
+
+# --- the SHED (LANE-5A-9; DIGEST-HANDOFF-READINESS-2026-09-23 §4 "SHED") ------------------
+#
+# WHAT THE PASTE IS FOR. The browser re-reads the whole paste on every turn of the window, so a
+# byte in it is billed per turn, and prose the seat reads once belongs one hop away. The live
+# 2026-09-19 paste measured 34,998 B: the SUPPLEMENT answers (11.5 KB) and the RESIDUAL's
+# narrative sections were inlined whole, and the header carried three pointer paragraphs — one
+# of them naming PLAYBOOK Ch8 as the launch authority, which ruling O-5 (RATIFICATION
+# 2026-09-23-playbook) withdrew. The shed keeps what a seat needs on turn one and POINTS at the
+# rest; nothing is lost, because CC holds every file and pulls it on request.
+
+#: The ONE forms line the session header's pointer blocks collapse into. Code and data describe
+#: themselves (O-5): the launcher's own --help, the four seat templates, the routing registry.
+FORMS_LINE = (
+    "> **Forms by pointer — code and data describe themselves (O-5).** Launch: "
+    "`uv run --locked python scripts/dispatch.py launch --help` · seat orders + lane contract: "
+    "`templates/dispatcher-order-template.md`, `templates/integrator-order-template.md`, "
+    "`templates/batch-common-rules-template.md`, `templates/lane-contract-template.md` · "
+    "routing: `ecosystem/provider-registry.yaml` · rules: `protocols/STANDING_RULINGS.md` · "
+    "runbook: `docs/handoffs/README.md`. Ask CC to pull any of them.")
+
+
+def _shed_header(header: str) -> str:
+    """The session header with every `>` pointer block replaced by the ONE forms line.
+
+    The title and the Field/Value table (slug, mode, purpose, destination) stay verbatim: they
+    are this window's own facts. The `>` blocks are the generator's doctrine pointers, and one
+    of them — the fill-state banner — says the ANSWERS "fold into PASTE_THIS.md", a claim the
+    supplement pointer below made false. A header with no `>` block gains no line."""
+    lines = header.splitlines()
+    if not any(ln.startswith(">") for ln in lines):
+        return header
+    kept = [ln for ln in lines if not ln.startswith(">")]
+    body = re.sub(r"\n{3,}", "\n\n", "\n".join(kept)).rstrip()
+    return f"{body}\n\n{FORMS_LINE}"
+
+
+_H2_SPLIT_RE = re.compile(r"^(?=## )", re.MULTILINE)
+_DRIFT_HEADING_RE = re.compile(r"(?i)^## [^\n]*drift")
+#: A transport-qualified decision-file path as a residual writes it — the same `to-cc/NAME.md`
+#: form `gen_handoff._residual_names` reads (either separator; a Windows paste writes `\`).
+_QUALIFIED_RE = re.compile(r"\bto-(?:cc|browser)[/\\][\w.\-]+\.md\b")
+
+
+def _bundle_ref(bundle_dir: Path, repo_root: Path, name: str) -> str:
+    """`docs/handoffs/<slug>/<name>` when the bundle is in the repo, else `<dir>/<name>`."""
+    try:
+        rel = bundle_dir.resolve().relative_to(repo_root.resolve())
+    except (ValueError, OSError):
+        rel = Path(bundle_dir.name)
+    return f"{rel.as_posix()}/{name}"
+
+
+def open_list(bundle_dir: Path, repo_root: Path, residual: str) -> list[str]:
+    """The OPEN decision files this handoff carries, transport-qualified.
+
+    In a real bundle home the set is READ OFF THE TRANSPORT with P11's own helpers
+    (`gen_handoff.decision_files` + `carried_by_value` + its anchored OPEN predicate), so it is
+    complete by construction and cannot shrink with the shed: a residual that named a file in a
+    section the shed drops still hands that file on. Anywhere else — a fixture, an ad-hoc
+    directory, no transport — it is the qualified paths the residual itself names."""
+    if _is_window_bundle(bundle_dir, repo_root):
+        from gen_handoff import (  # noqa: PLC0415 (sibling CLI; deferred import)
+            _OPEN_VALUE_RE,
+            carried_by_value,
+            decision_files,
+            transport_root,
+        )
+        transport = transport_root()
+        if transport is not None:
+            return [f"{p.parent.name}/{p.name}" for p in decision_files(transport)
+                    if _OPEN_VALUE_RE.match(carried_by_value(p) or "")]
+    return list(dict.fromkeys(m.replace("\\", "/") for m in _QUALIFIED_RE.findall(residual)))
+
+
+def shed_residual(text: str, opens: list[str], residual_ref: str) -> str:
+    """RESIDUAL shed to: its title, the drift-flags section(s), the OPEN list, and a pointer.
+
+    A residual with no `## ` sections is a hand residual with nothing to shed and is returned
+    whole. The pointer names the full residual (shipped map, next-frontier "why", task-state)
+    and the LIVE ledger — `to-browser/LEDGER-<repo>.md` — rather than the bundle's
+    DECISION_LEDGER.md snapshot, which the digest found presenting itself as the ledger."""
+    parts = _H2_SPLIT_RE.split(text)
+    preamble, sections = parts[0], parts[1:]
+    if not sections:
+        return text.rstrip()
+    title = next((ln for ln in preamble.splitlines() if ln.startswith("# ")), "# Residual")
+    kept = [re.sub(r"\n-{3,}\s*\Z", "", s.rstrip()).rstrip()
+            for s in sections if _DRIFT_HEADING_RE.match(s)]
+    if not kept:
+        kept = ["_(this residual has no drift-flags section — ask CC to pull it)_"]
+    listing = "\n".join(f"- `{p}`" for p in opens) if opens else "- _(none)_"
+    open_block = ("**OPEN decision files this handoff carries** (`carried-by: OPEN` — work, "
+                  f"not filing; P11):\n{listing}")
+    pointer = (f"**The rest of this residual is not inlined** (the paste gate): the shipped map, "
+               f"the next-frontier decisions and task-state are in `{residual_ref}` — ask CC to "
+               "pull it. The live decision ledger is `to-browser/LEDGER-<repo>.md` on the "
+               "transport; the bundle's `DECISION_LEDGER.md` is a snapshot, never pasted.")
+    return "\n\n".join([title, *kept, open_block, pointer])
+
+
+def supplement_pointer(supplement_ref: str) -> str:
+    """The SUPPLEMENT section: the ANSWERS are filled and live at `supplement_ref`.
+
+    The section keeps its `=== SUPPLEMENT.md ===` label so `audit.py::supplement_folded` still
+    sees the answers REACH the paste — by a pointer the seat acts on, rather than 11 KB it is
+    billed for on every turn."""
+    return (f"The outgoing architect's ANSWERS are FILLED, in `{supplement_ref}` below its "
+            "divider — not inlined (the paste gate). Ask CC to pull them before the §13(d) "
+            "operator-context beat, which then NARROWS to *\"anything changed since the "
+            "supplement was written?\"*.")
 
 
 # --- the ROLE PIN (HANDOFF_PROCESS v6.3.0; census R1 mechanism, operator ruling D-R1) ----
@@ -316,6 +436,23 @@ def _invalidate_stale_paste(bundle_dir: Path, unnamed) -> None:
                f"notice; {paste} is not pasteable", err=True)
 
 
+def _invalidate_oversized_paste(bundle_dir: Path, size: int) -> None:
+    """The paste-gate twin of `_invalidate_stale_paste`: same remit, same only-if-it-exists
+    rule, so an over-ceiling refusal never leaves an earlier pasteable file behind."""
+    paste = bundle_dir / "PASTE_THIS.md"
+    if not paste.exists():
+        return
+    paste.write_text(
+        "=== THIS HANDOFF WAS REFUSED — DO NOT PASTE ===\n\n"
+        f"The assembled paste measured {size} bytes, over the {PASTE_BYTE_CEILING}-byte ceiling\n"
+        "(scripts/assemble_paste.py PASTE_BYTE_CEILING), and the paste that used to be here was\n"
+        "replaced by this notice. Shed the largest section — move prose behind a pointer — then\n"
+        "re-run scripts/assemble_paste.py on this directory.\n",
+        encoding="utf-8", newline="\n")
+    click.echo(f"  -> the stale PASTE_THIS.md was REPLACED with a refusal notice; {paste} is "
+               "not pasteable", err=True)
+
+
 # rule: handoff-open-carrier-named
 def _residual_is_an_untouched_render(text: str) -> bool:
     """True when EVERY FILL-IN region in `text` still holds the generator's own placeholder.
@@ -481,7 +618,7 @@ def main(pin_only: bool, bundle_dir: Path | None) -> None:
         mode = _extract_mode(boot_text)
         header = _extract_session_header(boot_text)
         if header:
-            sections.append(("HANDOFF_BOOT.md (session header)", header))
+            sections.append(("HANDOFF_BOOT.md (session header)", _shed_header(header)))
 
     # 1. ROLE PIN — the role file is RESIDENT, not inlined (v6.3.0; census R1, ruling D-R1).
     role_path = repo_root / "protocols" / "HANDOFF_BOOT.md"
@@ -507,7 +644,8 @@ def main(pin_only: bool, bundle_dir: Path | None) -> None:
                "(v6.3.0 residency; install protocols/HANDOFF_BOOT.md as the browser project's "
                "instructions once — protocols/OPERATOR-INTERFACE.md)", err=True)
 
-    # 2-3. Required sources (inlined verbatim — the file-less browser must RECEIVE these).
+    # 2-3. Required sources. PROBES.md is inlined verbatim (the file-less browser must RECEIVE
+    #      its rows); RESIDUAL.md is SHED — drift-flags + the OPEN list + a pointer (LANE-5A-9).
     required: list[tuple[str, Path]] = [
         ("RESIDUAL.md", bundle_dir / "RESIDUAL.md"),
         ("PROBES.md", bundle_dir / "PROBES.md"),
@@ -517,18 +655,22 @@ def main(pin_only: bool, bundle_dir: Path | None) -> None:
             click.echo(f"[error] Required source missing: {path}", err=True)
             sys.exit(1)
         text = path.read_text(encoding="utf-8")
+        if label == "RESIDUAL.md":
+            text = shed_residual(text, open_list(bundle_dir, repo_root, text),
+                                 _bundle_ref(bundle_dir, repo_root, "RESIDUAL.md"))
         sections.append((label, text.rstrip()))
 
     # 4. SUPPLEMENT.md — the architect strategic supplement (an always-generated fillable
-    #    file). Fold ONLY its filled-in ANSWERS region, and ONLY when non-empty: the
-    #    QUESTIONS are for the OUTGOING browser, and an empty ANSWERS section (a cold or
-    #    not-yet-filled handoff) is the defined N/A disposition, not folded. CC never
-    #    fabricates answers, so an unfilled supplement folds nothing — by design.
+    #    file). Only a filled-in ANSWERS region earns a section, and since LANE-5A-9 that
+    #    section is a POINTER to the answers, not the answers: the QUESTIONS are for the
+    #    OUTGOING browser, and an empty ANSWERS section (a cold or not-yet-filled handoff) is
+    #    the defined N/A disposition. CC never fabricates answers — by design.
     supplement = bundle_dir / "SUPPLEMENT.md"
     if supplement.exists():
         answers = _extract_answers(supplement.read_text(encoding="utf-8"))
         if answers:
-            sections.append(("SUPPLEMENT.md", answers))
+            sections.append(("SUPPLEMENT.md", supplement_pointer(
+                _bundle_ref(bundle_dir, repo_root, "SUPPLEMENT.md"))))
             _report_promotion_debt(answers)
         else:
             click.echo(
@@ -551,19 +693,27 @@ def main(pin_only: bool, bundle_dir: Path | None) -> None:
     body = (body + _SECTION_SEP
             + f"=== END OF PASTE — {len(sections)} sections · {content_bytes} bytes ===")
     paste_path = bundle_dir / "PASTE_THIS.md"
-    paste_path.write_text(body + "\n", encoding="utf-8", newline="\n")
     size = len(body.encode("utf-8"))
+    # THE PASTE GATE (LANE-5A-9): measured before a byte is written, so a refused paste never
+    # exists as a file. Each section's size is printed so the repair names its largest term.
+    if size > PASTE_BYTE_CEILING:
+        click.echo(f"[error] the assembled paste is {size} bytes, over the {PASTE_BYTE_CEILING}-"
+                   "byte ceiling (PASTE_BYTE_CEILING). Refusing to write PASTE_THIS.md — shed "
+                   "the largest section behind a pointer (RF-2/RF-6) and re-run. Sections:",
+                   err=True)
+        for label, content in sections:
+            click.echo(f"  | {len(content.encode('utf-8'))} B  {label}", err=True)
+        _invalidate_oversized_paste(bundle_dir, size)
+        sys.exit(1)
+    paste_path.write_text(body + "\n", encoding="utf-8", newline="\n")
     # CUT-3 / [#611]: the ratio is measured over the SAME sections list, against the SAME
     # content_bytes denominator already computed above for the END sentinel -- one span,
-    # never two disagreeing measurements.
-    ws_bytes = window_specific_bytes(sections)
+    # never two disagreeing measurements. The SUPPLEMENT section is a generated pointer since
+    # LANE-5A-9, so no section is counted whole any more (`answers_label=""`).
+    ws_bytes = window_specific_bytes(sections, answers_label="")
     ws_pct = round(ws_bytes * 100 / content_bytes) if content_bytes else 0
     click.echo(f"Written: {paste_path} ({size} bytes; window-specific {ws_bytes}/{content_bytes} "
                f"B = {ws_pct}%)")
-    if size > PASTE_BYTE_CEILING:
-        click.echo(f"[warn] PASTE_THIS.md is {size} bytes (> {PASTE_BYTE_CEILING}) — heavy boot; "
-                   "check for re-narration creep (RF-2/RF-6) before shipping; artifacts other "
-                   "than PASTE_THIS must not be pasted at all (intake #18 A2)", err=True)
 
 
 if __name__ == "__main__":
