@@ -30,9 +30,36 @@
         "reenable_when": "fixed, then `scripts/hooks/bounded_hook.py reinstate --id <hook>`, and a full 168 h window at or under the 10% bar on >= 20 runs (bar: operator ruling 2026-09-17 item 2)",
         "state": "RUNNING (not disabled)",
         "expiry": "n/a -- KNOWN-UNGOVERNABLE is a standing operator ruling, not a time-boxed disable: this entry is RUNNING, not off, so a calendar expiry would misrepresent it as pending re-measurement like its eight siblings. Revisit only on the condition already stated in owner (a per-hook off switch)."
+      },
+      {
+        "hook": "fleet_health.py --prompts-guard",
+        "event": "PreToolUse",
+        "wired": "removed from this file's hooks{} by //hooks-EMERGENCY-DISABLED-2026-09-17; NOT in the 2026-09-17 individual-restore set above (still_off_not_restored_by_this_act) and NOT touched by the 2026-09-22 //hooks-REARMED-ON-EVIDENCE-2026-09-22 act, which re-armed only the six SessionStart hooks",
+        "rate": "6% within bar (pre-disable measurement, X-3 event-fired denominator)",
+        "owner": "[#863]",
+        "expiry": "2026-10-08",
+        "reenable_when": "awaiting the hook target design (wave 5b) -- redated 2026-09-24 (lane-hooks-urgent, LANE-5A-7) from a standing no-expiry record per that lane's contract item 3; the redate is bookkeeping only and re-arms nothing. See DIGEST-HOOK-ARCHITECTURE-2026-09-23.md §6/A7 for the ADR draft (READER/TRIGGER/PATH GUARD/GATE classes) this guard's eventual PATH GUARD shape depends on."
+      },
+      {
+        "hook": "block_immutable_edits.py",
+        "event": "PreToolUse",
+        "wired": "removed from this file's hooks{} by //hooks-EMERGENCY-DISABLED-2026-09-17 (the ADR-77 transcript-immutability guard); NOT in the 2026-09-17 individual-restore set above and NOT touched by the 2026-09-22 re-arm act",
+        "rate": "not measured post-removal (no counter existed pre-disable; carried no timeout, so the harness's 600 s default applied)",
+        "owner": "[#863]",
+        "expiry": "2026-10-08",
+        "reenable_when": "awaiting the hook target design (wave 5b) -- redated 2026-09-24 (lane-hooks-urgent, LANE-5A-7) from a standing no-expiry record per that lane's contract item 3; the redate is bookkeeping only and re-arms nothing. CLAUDE.md's own '#4 Out of scope' line calling this guard 'armed' is stale (DIGEST-HOOK-ARCHITECTURE-2026-09-23-APPENDIX.md A6 item 1) and is corrected in the same commit as this redate."
+      },
+      {
+        "hook": "logs_retention.py",
+        "event": "SessionStart",
+        "wired": "removed from this file's hooks{} by //hooks-EMERGENCY-DISABLED-2026-09-17; NOT in the 2026-09-17 individual-restore set above and NOT touched by the 2026-09-22 re-arm act",
+        "rate": "6% within bar (pre-disable measurement)",
+        "owner": "[#863]",
+        "expiry": "2026-10-08",
+        "reenable_when": "awaiting the hook target design (wave 5b) -- redated 2026-09-24 (lane-hooks-urgent, LANE-5A-7) from a standing no-expiry record per that lane's contract item 3; the redate is bookkeeping only and re-arms nothing."
       }
     ],
-    "still_off_not_restored_by_this_act": "ADR-77 transcript guard (block_immutable_edits.py), prompts guard (fleet_health.py --prompts-guard, 6% within), logs_retention.py (6% within): not in the order's restore set; their return stays [#863]'s act.",
+    "still_off_not_restored_by_this_act": "ADR-77 transcript guard (block_immutable_edits.py), prompts guard (fleet_health.py --prompts-guard), logs_retention.py: not in the order's restore set; their return stays [#863]'s act. Each now carries its own dated `disabled_individually` entry above (redated 2026-10-08 by lane-hooks-urgent 2026-09-24) rather than only this prose line.",
     "record_gap": "[#888]: the repo has no DEGRADED state; this per-hook list is a comment-key register, not a gate-read record.",
     "known_ungovernable": "propose_closures.py -- see its entry: over the bypass bar, measured 15%, and deliberately left running because no per-repo lever exists."
   },

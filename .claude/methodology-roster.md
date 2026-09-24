@@ -30,7 +30,7 @@
 - Stop: propose_closures (tier1-lifecycle plugin, non-blocking closure proposals)
 - SessionStart: check_floor_hash.py --require-present (floor guard) + python -m pre_commit install (arms the commit hooks)
 - SessionStart: arm_hooks.py arms pre-commit / commit-msg / pre-push in the RESOLVED hooks dir (honors core.hooksPath)
-- Stop: session_end_backpressure.py — deterministic session-end gate (JOURNAL SHA-anchor hard block)
+- Stop: session_end_backpressure.py — deterministic session-end gate (JOURNAL SHA-anchor nudge, advisory since the ADR-85 amendment 2026-08-03)
 - SessionStart: fleet_health.py prints [asks] OPERATOR ASKS then [funnel] rot/orphan/unblocked/batch before the existing fleet digest
 
 ## Pre-commit hooks

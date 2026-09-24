@@ -201,6 +201,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#960] [P1][M] Wave 4b lane 4 (lane-verify-in-lane) -- a lane tests itself in parallel; the integrator only confirms · tasks/960-wave-4b-lane-4-lane-verify-in-lane-a-lane-tests-itself-in-parallel-the-integrator-only-confirms.md
 - [#961] [P1][M] Wave 4b lane 5 (lane-plan-lint) -- the architect's plan is checked by code before it freezes · tasks/961-wave-4b-lane-5-lane-plan-lint-the-architects-plan-is-checked-by-code-before-it-freezes.md
 - [#962] [P1][M] Wave 4b lane 6 (lane-fleet-health-split) -- sessions read fleet health; a guarded background producer makes it · tasks/962-wave-4b-lane-6-lane-fleet-health-split-a-guarded-background-producer.md
+- [#963] [P1][L] State store ADR -- where the harness holds its operational state, which part is the truth, and where it executes · tasks/963-state-store-adr-where-the-harness-holds-its-operational-state-and-where-it-executes.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
@@ -484,7 +485,7 @@ So that cognitive overhead per session drops.
 - [#899] [P3][S] gen_audit_index reads HEAD, not the working tree -- every new audit costs a second, index-only commit and --check is falsely green before it · tasks/899-gen-audit-index-reads-head-so-every-new-audit-cos.md
 - [#900] [P2][S] AX9-5's own organ miscounts -- from a worktree it reads one session, its totals ignore the window, and a path mention counts as a call · tasks/900-ax9-5-s-own-organ-miscounts-from-a-worktree-and-t.md
 - [#889] [P1][M] The next window's acceptance test has no row -- one lane end to end, dispatch to merged, under one hour, nothing wedged, no human decision in the middle · tasks/889-lane-acceptance-test.md
-- [#963] [P1][S] Wave 5a lane 2 (lane-test-selection) -- prose stops pulling in the whole live_repo test set · tasks/963-wave-5a-lane-2-lane-test-selection-prose-stops-pulling-in-the-whole-live-repo-test-set.md
+- [#1009] [P1][S] Wave 5a lane 2 (lane-test-selection) -- prose stops pulling in the whole live_repo test set · tasks/1009-wave-5a-lane-2-lane-test-selection-prose-stops-pulling-in-the-whole-live-repo-test-set.md
 ### [S19] Decide the undecided artifact/tool models
 So that cadence-less artifacts and unevaluated tools don't rot or get adopted blind.
 

@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "39b23d24fd611caeb0b33468957147ed31bf8abd0b1149bb3af4af4c4a599a72",
+  "generated_sha256": "4791f01b49bd1a7a1327479fe382c93e7a6c0e682d9e669fe9ed7942429adfbc",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -780,6 +780,10 @@
     {
       "task": 962,
       "file": "962-wave-4b-lane-6-lane-fleet-health-split-a-guarded-background-producer.md"
+    },
+    {
+      "task": 963,
+      "file": "963-state-store-adr-where-the-harness-holds-its-operational-state-and-where-it-executes.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -1842,8 +1846,8 @@
       "file": "889-lane-acceptance-test.md"
     },
     {
-      "task": 963,
-      "file": "963-wave-5a-lane-2-lane-test-selection-prose-stops-pulling-in-the-whole-live-repo-test-set.md"
+      "task": 1009,
+      "file": "1009-wave-5a-lane-2-lane-test-selection-prose-stops-pulling-in-the-whole-live-repo-test-set.md"
     },
     {
       "prose": "### [S19] Decide the undecided artifact/tool models"

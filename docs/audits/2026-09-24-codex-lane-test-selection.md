@@ -8,7 +8,7 @@
 **Mode:** diff-review
 **Tally:** 0/2/0/0 <!-- Critical/High/Medium/Low -->
 
-**Consumer:** [#963] (this lane's row, `LANE-5A-2-test-selection.md`)
+**Consumer:** [#1009] (this lane's row, `LANE-5A-2-test-selection.md`)
 
 **Model used:** `gpt-5.6-terra` (pinned; both lanes — [#469])
 **Review profile:** code
@@ -27,7 +27,7 @@ per-merge gate) to call the new `Selection.docs_tier_args()` once per batch is n
 work, not something this lane can close. Until that wiring lands, a mixed diff's `compare`
 run no longer exercises the live-tree marker tier — CI's full suite remains the backstop net
 the module's own docstring already names ("the integrator keeps one full suite per
-integration as the net"). Recorded as a FINDING in this lane's session file and row `[#963]`
+integration as the net"). Recorded as a FINDING in this lane's session file and row `[#1009]`
 for the next consumer to pick up.
 
 ---

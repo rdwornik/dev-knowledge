@@ -2,7 +2,7 @@
 
 **Lane:** `lane-test-selection` · **Branch:** `worktree-lane-test-selection` · **Date:** 2026-09-24
 
-Consumer: `[#963]` (this lane's row, Done-contract item 3).
+Consumer: `[#1009]` (this lane's row, Done-contract item 3).
 
 **Method.** Read-only against the live tree, per `scripts/impacted_tests.py`'s own honest
 limit ("Selection is computed from the repo TREE, so it answers for the working state, not
