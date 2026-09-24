@@ -10,7 +10,7 @@
   in — it names the batch, its plan and any rule it adds — and does not restate these.
 
   ROUTING IS DATA. No model name is typed here: which provider and model serve which role is
-  `ecosystem/provider-registry.yaml`. Commands come from `--help`, never from prose (ruling O-5).
+  `ecosystem/provider-registry.yaml`. Commands come from `--help`, not from prose (ruling O-5).
   Replace every <angle-bracket> placeholder; delete this comment.
 -->
 carried-by: OPEN
@@ -25,19 +25,19 @@ Read by every seat of the batch, first. Also binding: <any earlier common-rules 
 
 ## 1. Nobody waits for the operator
 
-- Never stop for an answer. Decide by your contract's **Value** line, record it in your session
+- Do not stop for an answer. Decide by your contract's **Value** line, record it in your session
   file as `DECIDED-BY-LANE: <question> -> <decision> (why)`, and carry on.
 - If a step is impossible, do the rest and hand back **PARTIAL** with the reason.
-- Write a `QUESTION-*.md` only for the morning; never block on it.
+- Write a `QUESTION-*.md` only for the morning; do not block on it.
 - An act that needs the operator (global config, a purchase, a ratification) is recorded as an
-  `OPERATOR-ACTION: <act> (why)` line, never waited on.
+  `OPERATOR-ACTION: <act> (why)` line, not waited on.
 
 ## 2. Pre-authorized rulings (no one asks for these)
 
 - (a) A new script organ may add one dated `fates:` line (`manual_until: <date>`).
-- (b) A generated file in conflict is regenerated, never hand-merged.
+- (b) A generated file in conflict is regenerated, not hand-merged.
 - (c) A file at its byte budget (`CLAUDE.md`, `protocols/HANDOFF_BOOT.md`) takes new content by
-  pointer, never by overflow.
+  pointer, not by overflow.
 - (d) A red already in the registry, or in the standing freeze, is not yours.
 - (e) Fix a Codex review's P1 findings; record the rest.
 - (f) Additive conflicts in list-shaped files (`harness.yaml` fates, registries) keep both entries.
@@ -45,7 +45,7 @@ Read by every seat of the batch, first. Also binding: <any earlier common-rules 
 
 ## 3. Sync, purity, self-check
 
-- **Sync only from origin:** `git fetch origin`, then `git merge origin/main`. Never `git merge
+- **Sync only from origin:** `git fetch origin`, then `git merge origin/main`. Not `git merge
   main` — worktrees share the local `main`, which may hold the integrator's unverified work.
 - **Purity before handback:** `git log origin/main..HEAD` lists only your commits and merges of
   `origin/main`. Anything else: stop and write a QUESTION.
@@ -68,13 +68,13 @@ Read by every seat of the batch, first. Also binding: <any earlier common-rules 
 ## 5. Record what served
 
 Record the model that actually served each step you ran. A routed tool that did not answer is a
-**SUBSTITUTION** — record it, never hide it. Routing: `ecosystem/provider-registry.yaml`.
+**SUBSTITUTION** — record it, do not hide it. Routing: `ecosystem/provider-registry.yaml`.
 
 ## 6. Files
 
 - Your session file is exactly `to-browser/SESSION-<worktree-slug>.md` — the lane-end hook finds
   your handback only there.
-- Never write outside your worktree, your job tmp, or your own transport files.
+- Do not write outside your worktree, your job tmp, or your own transport files.
 
 ## Handback (every lane)
 

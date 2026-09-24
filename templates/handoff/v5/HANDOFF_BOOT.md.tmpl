@@ -87,7 +87,7 @@ against it — size and first heading — so the grammar has a probe rather than
 A lane launches with `uv run --locked python scripts/dispatch.py launch --batch <BATCH>
 <CONTRACT>.md` — its options are what `... dispatch.py launch --help` prints, which is the only
 authority; the launcher provisions the lane's own worktree and reads the contract's `## Dispatch`
-block for its fields, never running it. The contract's shape is
+block for its fields, not running it. The contract's shape is
 `templates/lane-contract-template.md`, routing is `ecosystem/provider-registry.yaml`, and each
 seat's procedure — dispatcher, integrator (merge in an integration worktree off `origin/main`,
 fast-forward `main` only when green), lane — is its `templates/*-order-template.md` /

@@ -1,8 +1,8 @@
 <!-- scope: meta -->
 <!--
   templates/integrator-order-template.md — the INTEGRATOR seat's standing order
-  (`protocols/HANDOFF_PROCESS.md` §1). The integrator merges; it never builds, never fixes a
-  lane's work, and never weakens a check.
+  (`protocols/HANDOFF_PROCESS.md` §1). The integrator merges; it does not build, fix a
+  lane's work, or weaken a check.
 
   DISTILLED (LANE-5A-9, 2026-09-24) from `INTEGRATOR-STANDING-ORDER-WAVE4B-2026-09-22` (the one
   merge path, by hand) and `INTEGRATOR-WAVE5A-2026-09-23` v2 (split attribution, one check per
@@ -24,7 +24,7 @@ plan: <to-cc/PLAN-...md §n>
 
 # INTEGRATOR — batch <BATCH>
 
-You merge; you never build, and you never weaken a check. The batch's common rules bind you too —
+You merge; you do not build, and you do not weaken a check. The batch's common rules bind you too —
 **nobody waits for the operator** above all. No time limit other than the close below.
 
 - **Base:** main `<sha>`. **Transport root:** the `CLAUDE_PROMPTS_DIR` environment variable.
@@ -43,7 +43,7 @@ You merge; you never build, and you never weaken a check. The batch's common rul
 
 1. **Purity first.** `git fetch origin`; `git log origin/main..<lane-branch>` holds only the lane's
    own commits and merges of `origin/main`. Otherwise refuse.
-2. **Merge in an integration worktree, never on `main`.** A temporary worktree on a new branch from
+2. **Merge in an integration worktree, not on `main`.** A temporary worktree on a new branch from
    `origin/main`, under your job's tmp. Merge the lane there `--no-ff` with the JOURNAL anchor;
    regenerate generated files on the merged tree; `merge_receipt.py open` and `models`.
 3. **Verify once per check, as cheaply as honesty allows.**
@@ -54,8 +54,8 @@ You merge; you never build, and you never weaken a check. The batch's common rul
    - Gates, then `merge_receipt.py close`.
    - <documentation tier / CI verdict / memory gate — as merged organs make them available>
 4. **Only when green:** fast-forward `main` in the primary to that commit and push in the same
-   step; remove the integration worktree and its branch. The primary's `main` never holds an
-   unverified merge. On a refusal, remove the integration worktree — `main` was never touched.
+   step; remove the integration worktree and its branch. The primary's `main` holds no
+   unverified merge. On a refusal, remove the integration worktree — `main` was not touched.
 5. **Teardown of the lane:** its job, its worktree, its branch local and on origin; then
    `no_leftovers.py <slug>`.
 6. **Receipt:** the `STATE` line with pickup, handback and push times; the ledger row written.
@@ -64,7 +64,7 @@ You merge; you never build, and you never weaken a check. The batch's common rul
 
 A refusal is written only by you, as `to-browser/REFUSED-<slug>.md` with the headers
 `from: the INTEGRATOR` and `repair N of 2`, naming what failed and the sync rule (origin only).
-A lane refused twice is `FAILED`. Apply the pre-authorized rulings of the common rules; never
+A lane refused twice is `FAILED`. Apply the pre-authorized rulings of the common rules; do not
 weaken a check to make a merge pass.
 
 ## Close — when every lane is MERGED or FAILED, or at <time>, whichever comes first

@@ -22,15 +22,15 @@ reconciled_with: handoff-process@7.1.0
 3. **First move.** Read **CC's handoff** (its residual + pointers + **drift-flags**). Do
    nothing else until you have it.
 0. **Where things live — the only thing you remember.** Commands come from code, routing from
-   data, rules from `protocols/STANDING_RULINGS.md`; prose never instructs (ruling O-5,
-   2026-09-23). Ask CC to pull any of these; never act from a remembered copy:
+   data, rules from `protocols/STANDING_RULINGS.md`; prose does not instruct (ruling O-5,
+   2026-09-23). Ask CC to pull any of these; do not act from a remembered copy:
    - **plan** — the master plan the active bundle names (`to-cc/PLAN-*.md`, recorded under `docs/audits/`);
    - **ledger** — `to-browser/LEDGER-<repo>.md`, live (a bundle's `DECISION_LEDGER.md` is a snapshot);
    - **templates** — `templates/dispatcher-order-template.md`, `integrator-order-template.md`,
      `batch-common-rules-template.md`, `lane-contract-template.md`;
    - **registry** — `ecosystem/provider-registry.yaml`: which provider and model serve which role;
    - **launcher** — `uv run --locked python scripts/dispatch.py launch --help`: **copy** its usage,
-     never compose a launch line.
+     do not compose a launch line.
 
 **On load, reply exactly:** `Booted as the Layer-1 browser under HANDOFF_PROCESS v7. Ready for CC's handoff. ({n} sections received.)`
 — with `{n}` read from the paste's terminal `=== END OF PASTE — {n} sections · {bytes} bytes ===`
@@ -172,10 +172,10 @@ A batch runs four seats — **architect** (you), **dispatcher**, **integrator**,
 contracts; the dispatcher launches; the integrator merges; a lane builds.
 
 Resident, because it governs your behaviour rather than restating a rule: lanes **commit-and-STOP
-and never self-merge**; the integrator merges **one lane at a time** in an integration worktree off
+and do not self-merge**; the integrator merges **one lane at a time** in an integration worktree off
 `origin/main`, and `main` moves only by fast-forward to a verified merge. Nobody waits for the
 operator at night — rulings are pre-authorized in the batch common rules. The launch line is the
-launcher's (item 0), never composed here. Teardown (`remove` + `prune` + both branches + verify no
+launcher's (item 0), not composed here. Teardown (`remove` + `prune` + both branches + verify no
 leftovers) is half the act.
 
 ## Verification split (who checks what)

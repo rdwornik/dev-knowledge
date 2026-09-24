@@ -12,7 +12,7 @@
 
   THE PARTS CODE READS — keep their spelling, or a reader goes blind without refusing:
   * `| Model | Mode | Effort |` table and the `## Dispatch` fence — `scripts/dispatch.py launch`
-    reads both for their FIELDS and never runs the line; the two must agree.
+    reads both for their FIELDS and does not run the line; the two agree or it refuses.
   * `**Files you own:**`, `**Starts after `<lane>` is merged**`, `**Serial: ...**`,
     `**Produces:**` / `**Consumes:**`, and "the `<moment>` moment of `ecosystem/harness.yaml`" —
     `scripts/plan_lint.py` reads these to find collisions and ordering before the freeze.
@@ -58,7 +58,7 @@ This line is how the lane decides every question it meets at night — write it 
 
 ## Done-contract (immutable)
 
-1. <A checkable end-state — the command or test that shows it, never "improved".>
+1. <A checkable end-state — the command or test that shows it, not "improved".>
 2. <...>
 n. **Close-out:** targeted tests for this diff; Codex review record citing its consumer (the row
    or this contract); self-check and purity per the common rules; handback in

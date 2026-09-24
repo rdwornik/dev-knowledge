@@ -2,7 +2,7 @@
 <!--
   templates/dispatcher-order-template.md — the DISPATCHER seat's order (`protocols/HANDOFF_PROCESS.md`
   §1). The dispatcher launches lanes and continuation/repair sessions and writes receipts. It
-  never merges and never builds.
+  does not merge and does not build.
 
   DISTILLED (LANE-5A-9, 2026-09-24) from the dispatcher role and sequence of
   `BATCH-WAVE5A-2026-09-23` (v2). The shared rules are `templates/batch-common-rules-template.md`
@@ -12,7 +12,7 @@
 
   COMMANDS COME FROM CODE (ruling O-5). The launch line is `scripts/dispatch.py launch`; its
   options are whatever `uv run --locked python scripts/dispatch.py launch --help` prints today —
-  read them there, never from a copy. No model name is typed here: `dispatch.py` reads each
+  read them there, not from a copy. No model name is typed here: `dispatch.py` reads each
   contract's Model table and Dispatch block, and routing is `ecosystem/provider-registry.yaml`.
   Replace every <angle-bracket> placeholder; delete this comment.
 -->
@@ -30,7 +30,7 @@ The common rules — `to-cc/<BATCH-COMMON-...>.md`, filled from
 
 ## Your role
 
-You launch lanes and continuation or repair sessions, and write receipts. **You never merge.**
+You launch lanes and continuation or repair sessions, and write receipts. **You do not merge.**
 
 - **Seat:** `uv run --locked python scripts/seat_registry.py bind --role dispatcher --batch <BATCH>`.
 - **Receipt:** `to-browser/SESSION-dispatcher-<batch-slug>.md`.
@@ -58,7 +58,7 @@ You launch lanes and continuation or repair sessions, and write receipts. **You 
    worktree — at most <2>.
 5. **Repairs.** Launch a repair only from a `to-browser/REFUSED-<slug>.md` that carries both
    `from: the INTEGRATOR` and `repair N of 2`. `HANDBACK-REFUSED-*` files are a lane's own
-   self-refusals: never repair from them.
+   self-refusals: do not repair from them.
 6. **Close** when `to-browser/STATE-BATCH-<BATCH>.md` reads `CLOSED`:
    - write the summary — per lane: job, extra sessions, result, and the model that served;
    - confirm it on the transport;

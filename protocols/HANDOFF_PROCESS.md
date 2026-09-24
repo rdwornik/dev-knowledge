@@ -65,9 +65,9 @@ initiates*, since CC is the only actor holding live repo state.
 batch as four named seats, each bound by `seat_registry.py bind --role` (the architect binds as
 `browser`) and each started from its own order. The template **is** the seat's order — a batch's dated order fills one in; it does not
 restate it. Routing (which provider and model serve a seat) is data, in
-`ecosystem/provider-registry.yaml`, never a model name typed into an order.
+`ecosystem/provider-registry.yaml`, not a model name typed into an order.
 
-| Seat | Actor | Does | Never | Order (template) |
+| Seat | Actor | Does | Does not | Order (template) |
 |---|---|---|---|---|
 | **architect** | browser (Layer 1) | writes the plan, freezes lane contracts, rules technical forks | executes, merges | this spec + `protocols/HANDOFF_BOOT.md`; the contracts it writes follow `templates/lane-contract-template.md` |
 | **dispatcher** | CC | runs plan lint, launches lanes and repairs, keeps liveness, writes receipts | merges, builds | `templates/dispatcher-order-template.md` |
@@ -193,7 +193,7 @@ rest. The 2026-09-19 paste measured 34,998 B against a ceiling that only warned
 - **SUPPLEMENT** — when filled, a pointer to its ANSWERS; the section keeps its label, so
   `audit.py::supplement_folded` still sees the answers reach the paste.
 
-`DECISION_LEDGER.md` is never pasted — it is a snapshot; the live ledger supersedes it. Above
+`DECISION_LEDGER.md` is not pasted — it is a snapshot; the live ledger supersedes it. Above
 `PASTE_BYTE_CEILING` the assembler **refuses**: exit 1, each section's size printed, no paste
 written, a stale one replaced by a refusal notice. The shed is deterministic, so a refusal means
 a section outgrew its role and has to move behind a pointer.
@@ -216,7 +216,7 @@ the operator's check is a look rather than a gate. Where the seat's arcs carry t
 `## Dispatch` blocks, the sample is the line one of those blocks would produce. Form and mechanics
 come from the launcher itself — `uv run --locked python scripts/dispatch.py launch --help` — and
 routing from `ecosystem/provider-registry.yaml` (ruling O-5, 2026-09-23: the PLAYBOOK is human
-documentation, never the authority for a command); the bundle's "Operator-facing forms" section
+documentation, not the authority for a command); the bundle's "Operator-facing forms" section
 (`templates/handoff/v5/HANDOFF_BOOT.md.tmpl`) points at both.
 
 *Honest limit, stated so this is not read as enforced.* This is prose discipline, not a mechanism:
