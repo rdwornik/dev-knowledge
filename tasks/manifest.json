@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "0d025d5c3d6f718ed03e119e580170f8740ca4a07aa256fafc374bcf7ed02a87",
+  "generated_sha256": "e5a88748aedece01f7c8aa9e28707a6b3cc7135f24e33d8f6e4ecee759c39b86",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -768,10 +768,6 @@
     {
       "task": 959,
       "file": "959-wave-4b-lane-3-lane-gate-verdicts-gates-speak-data-and-the-connection-test-reads-it.md"
-    },
-    {
-      "task": 960,
-      "file": "960-wave-4b-lane-4-lane-verify-in-lane-a-lane-tests-itself-in-parallel-the-integrator-only-confirms.md"
     },
     {
       "task": 961,

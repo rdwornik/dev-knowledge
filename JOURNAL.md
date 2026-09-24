@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-24 (n) - CC (Opus 5.5, review-closures): [#960] closed on operator approval -- the other 10 STRONG and all WEAK proposals left open
+
+**Anchors:** evidence `ea217336b` (`fix(test-pairing,impacted-tests): Codex terra review -- 3 HIGH confirmed and fixed [#960]`) -- `worktree-close-960`.
+
+**Did:** ran `/tier1-lifecycle:review-closures` over `logs/2026-09/PROPOSALS-2026-09-24-72.md` (11 STRONG, 460 WEAK). The operator approved `960` ONLY -- not `y`, which would have closed STRONG proposals the operator judged false positives. `review_closures.py plan --ids 960` re-verified it: close, strong, no skips. Flipped host, so retired per ADR-107 section 6.3: manifest node removed, task file kept with `status: closed`, `BACKLOG.md` regenerated.
+
+**Result:** `gen_task_tree.py --check`: ok. `validate_backlog.py`: OK. **Changes:** `tasks/manifest.json`, `tasks/960-*.md`, `BACKLOG.md`, `JOURNAL.md`. **Next:** the remaining STRONG proposals stay unapproved; the proposer's false-positive rate on STRONG is itself worth a look.
+
 ### 2026-09-24 (m) - CC (sonnet, LANE-5A-11): the night's WAVE5A findings become data -- 3 landed as rows, 12 deferred by a real byte-ceiling wall
 
 **Anchors:** `3cd334b7` (3 rows + landed digest) · `1209236e` (Codex-review citation fixes) -- `worktree-lane-landing-night-findings`, not yet merged.
