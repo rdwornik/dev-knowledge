@@ -201,6 +201,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#960] [P1][M] Wave 4b lane 4 (lane-verify-in-lane) -- a lane tests itself in parallel; the integrator only confirms · tasks/960-wave-4b-lane-4-lane-verify-in-lane-a-lane-tests-itself-in-parallel-the-integrator-only-confirms.md
 - [#961] [P1][M] Wave 4b lane 5 (lane-plan-lint) -- the architect's plan is checked by code before it freezes · tasks/961-wave-4b-lane-5-lane-plan-lint-the-architects-plan-is-checked-by-code-before-it-freezes.md
 - [#962] [P1][M] Wave 4b lane 6 (lane-fleet-health-split) -- sessions read fleet health; a guarded background producer makes it · tasks/962-wave-4b-lane-6-lane-fleet-health-split-a-guarded-background-producer.md
+- [#963] [P1][L] State store ADR -- where the harness holds its operational state, which part is the truth, and where it executes · tasks/963-state-store-adr-where-the-harness-holds-its-operational-state-and-where-it-executes.md
 - [#964] [P1][M] One verification stage -- every check runs once at merge, results reused · tasks/964-one-verification-stage-every-check-runs-once-at-merge.md
 - [#965] [P1][M] One known-reds registry, read by CI and local, refreshed at the merge moment · tasks/965-one-known-reds-registry-read-by-ci-and-local-refreshed.md
 - [#966] [P1][M] CI's full-suite verdict becomes the merge gate; local runs only Windows-only tests · tasks/966-cis-full-suite-verdict-becomes-the-merge-gate-local.md

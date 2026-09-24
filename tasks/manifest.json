@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "a84f874210e957d8163b9cd9336ec24bdef98075455145cf41ff207fb62253b2",
+  "generated_sha256": "916cbb11511138199c6b5c5532122ad695a46f894ec562ea0c368654c4f28742",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -780,6 +780,10 @@
     {
       "task": 962,
       "file": "962-wave-4b-lane-6-lane-fleet-health-split-a-guarded-background-producer.md"
+    },
+    {
+      "task": 963,
+      "file": "963-state-store-adr-where-the-harness-holds-its-operational-state-and-where-it-executes.md"
     },
     {
       "task": 964,
