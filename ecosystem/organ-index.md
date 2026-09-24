@@ -99,14 +99,14 @@ _Claude Code lifecycle hooks (SessionStart / Stop / PreToolUse / …)_
 | `Notification: claude-notify.ps1` | session-hook | Notification | `~/.claude/claude-notify.ps1` | L0 | ARMED |
 | `PreToolUse: block-onedrive.ps1` | session-hook | PreToolUse (Bash\|PowerShell\|Edit\|Write\|NotebookEdit\|Read) | `~/.claude/hooks/block-onedrive.ps1` | L0 | DISARMED |
 | `SessionStart: arm_hooks.py` | session-hook | SessionStart | `.claude/settings.json` | hub | ARMED |
-| `SessionStart: billing_leak_sentinel.ps1` | session-hook | SessionStart | `.claude/settings.json` | hub | ARMED |
+| `SessionStart: billing_leak_sentinel.py` | session-hook | SessionStart | `.claude/settings.json` | hub | ARMED |
 | `SessionStart: changelog_sentinel.py` | session-hook | SessionStart | `.claude/settings.json` | hub | ARMED |
 | `SessionStart: codespace_regime.py` | session-hook | SessionStart | `.claude/settings.json` | hub | ARMED |
 | `SessionStart: conductor.py` | session-hook | SessionStart | `.claude/settings.json` | hub | ARMED |
 | `SessionStart: fleet_health.py` | session-hook | SessionStart | `.claude/settings.json` | hub | ARMED |
 | `SessionStart: resource_lifecycle.py` | session-hook | SessionStart | `.claude/settings.json` | hub | ARMED |
 | `SessionStart: surface-closures.ps1` | session-hook | SessionStart | `~/.claude/hooks/surface-closures.ps1` | L0 | DISARMED |
-| `SessionStart: surface_triage.ps1` | session-hook | SessionStart | `.claude/settings.json` | hub | ARMED |
+| `SessionStart: surface_triage.py` | session-hook | SessionStart | `.claude/settings.json` | hub | ARMED |
 | `Stop: claude-notify.ps1` | session-hook | Stop | `~/.claude/claude-notify.ps1` | L0 | DISARMED |
 | `Stop: lane_end_guard.py` | session-hook | Stop | `.claude/settings.json` | hub | ARMED |
 | `Stop: propose_closures.py` | session-hook | Stop | `plugins/tier1-lifecycle/hooks/hooks.json` | plugin · deployed | ARMED |

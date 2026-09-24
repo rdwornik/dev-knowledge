@@ -1,5 +1,10 @@
 # billing_leak_sentinel.ps1 — BACKLOG #101 SessionStart billing-leak sentinel.
 #
+# RETIRED 2026-09-25 (LANE-5B-5 lane-hooks-port): no longer wired in .claude/settings.json --
+# PowerShell was the harness's only hard break on a Linux/cloud substrate. The live hook is now
+# scripts/billing_leak_sentinel.py (same behaviour, `uv run --locked python`). Kept on disk,
+# unwired, per this lane's contract ("no hook is deleted").
+#
 # Fail-soft tripwire. If ANTHROPIC_API_KEY is visible inside this Claude Code
 # session, print ONE WARN line; a clean session stays silent. A non-empty key
 # silently switches CC from Max-subscription billing to API billing with no TUI
