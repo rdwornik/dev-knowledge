@@ -247,6 +247,9 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#1006] [P2][S] Boot banner stops printing re-armed hooks as 'DECLARED BROKEN' · tasks/1006-boot-banner-stops-printing-re-armed-hooks-as-declared.md
 - [#1007] [P2][M] SessionEnd writes the seat absent record; lane-start gets its trigger · tasks/1007-sessionend-writes-the-seat-absent-record-lane-start.md
 - [#1008] [P2][S] Stale-statement sweep: reconcile 6 doc claims against live hook/organ state · tasks/1008-stale-statement-sweep-reconcile-6-doc-claims-against.md
+- [#1010] [P1][S] A Stop hook refuses to end a lane session without a machine `HANDBACK <branch> @ <sha> <kind>` line · tasks/1010-a-stop-hook-refuses-to-end-a-lane-session-withou.md
+- [#1012] [P1][M] A dispatcher-held producer shell must run as its own session or a detached process, not a bg shell the reaper can kill · tasks/1012-a-dispatcher-held-producer-shell-must-run-as-its.md
+- [#1014] [P1][M] A post-merge check runs before push, because a `--no-ff` merge commit bypasses nearly every pre-commit hook · tasks/1014-a-post-merge-check-runs-before-push-because-a-no.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
