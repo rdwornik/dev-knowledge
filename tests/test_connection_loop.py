@@ -987,7 +987,7 @@ def test_a_missing_go_file_stops_at_merge(tmp_path_factory):
         assert step.stop and step.stop.organ == "go_reader"
         refusal = (world.repo / "logs" / "receipts" / "MOMENT-MERGE-GO-READER-OUTPUT.txt").read_text(encoding="utf-8")
         assert "REFUSED" in refusal and f"GO-{BATCH}.md" in refusal
-        assert step.unreached == ["review_packet", "gates", "test_pairing"]
+        assert step.unreached == ["review_packet", "gates", "test_pairing", "known_reds_refresh"]
         _assert_transport_untouched(live_before)
 
 
