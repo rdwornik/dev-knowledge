@@ -93,29 +93,53 @@ organs:
   # --- session hooks (global settings.json) --------------------------------------
   # The P0 exclusion-zone guard. ARCHITECTURE Ch2 carries its failure posture
   # (fail-closed); this index carries its trigger and reach.
+  #
+  # DISARMED since 2026-09-17 (owner [#865]; DIGEST-HOOK-ARCHITECTURE-2026-09-23-APPENDIX.md
+  # A6 item 4, fixed by lane-hooks-urgent 2026-09-24): live `~/.claude/settings.json` carries
+  # `disableAllHooks: true` and wires Notification only -- this hook does not fire today. The
+  # sidecar `~/.claude/settings.hooks-DISABLED-2026-09-17.json` holds the removed block; only a
+  # `permissions.deny Read(...)` rule still binds ([#865] evidence, S2 headline). Re-arming this
+  # is a global-infra edit outside this repo's authority (global CLAUDE.md rule 6) -- update
+  # this row's `status` back to ARMED only once it is re-armed at `~/.claude`, on evidence.
   - name: "PreToolUse: block-onedrive.ps1"
     class: session-hook
     trigger: "PreToolUse (Bash|PowerShell|Edit|Write|NotebookEdit|Read)"
     source: "~/.claude/hooks/block-onedrive.ps1"
     distribution: L0
-    status: ARMED
+    status: DISARMED
 
   # The L0 half of the ADR-70 Tier-1 closure loop: the plugin's Stop hook proposes,
   # this one surfaces the proposals at the next session start (the #73 5c convergence).
+  #
+  # DISARMED since 2026-09-17 (owner [#808], out-of-repo; fixed by lane-hooks-urgent
+  # 2026-09-24): confirmed live (docs/audits/2026-09-22-technical-lane-hooks-rearm-live-measurement.md
+  # 0.1) that `~/.claude/settings.json` carries no SessionStart array at all, and no
+  # `surface-closures.ps1` file exists on this host -- same live state `.claude/settings.json`'s
+  # own `disabled_individually` entry for this hook already records.
   - name: "SessionStart: surface-closures.ps1"
     class: session-hook
     trigger: SessionStart
     source: "~/.claude/hooks/surface-closures.ps1"
     distribution: L0
-    status: ARMED
+    status: DISARMED
 
+  # DISARMED since 2026-09-17 (no owner named; fixed by lane-hooks-urgent 2026-09-24): the same
+  # `disableAllHooks: true` that disarms the PreToolUse guard above disarms every Stop hook this
+  # global file registers. See the Notification row below for the ONE trigger class this repo
+  # cannot yet confirm either way.
   - name: "Stop: claude-notify.ps1"
     class: session-hook
     trigger: Stop
     source: "~/.claude/claude-notify.ps1"
     distribution: L0
-    status: ARMED
+    status: DISARMED
 
+  # LEFT ARMED, deliberately, unlike its three Stop/SessionStart/PreToolUse siblings above:
+  # whether a Notification-class hook is exempted from `disableAllHooks: true` is UNWITNESSED
+  # (DIGEST-HOOK-ARCHITECTURE-2026-09-23-APPENDIX.md A5 -- no attachment for it in the 30 newest
+  # transcripts either way), not evidenced DISARMED. Flipping this row on a guess would trade one
+  # unproven ARMED claim for an equally unproven DISARMED one; leave it for whichever lane next
+  # gets live evidence.
   - name: "Notification: claude-notify.ps1"
     class: session-hook
     trigger: Notification
