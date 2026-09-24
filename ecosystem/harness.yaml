@@ -112,6 +112,7 @@ fates:
   - {path: scripts/hook_expiry_verdict.py, manual_until: 2026-10-05, reason: "judges hook expiry for the 2026-09-25 zero-catch rule; no caller wired yet -- a moment declaration is owed by wave 5b (LANE-5A-7)"}
   - {path: scripts/id_allocator.py, manual_until: 2026-10-05, reason: "on-demand (act: GO): /lane-boot reserves a task id by push before the lane writes it; [#804] owns the allocator"}
   - {path: scripts/lane_boot.py, manual_until: 2026-10-05, reason: "on-demand (act: GO): /lane-boot's pre-flight, before any worktree exists; [#804] owns the refusal"}
+  - {path: scripts/memory_admission_gate.py, manual_until: 2026-10-05, reason: "LANE-5A-3, pre-authorized ruling 2(a): called from inside test_pairing.py and gates.py (an import and a subprocess invocation, neither a moment `command:`), so the census sees no wiring surface for it; a moment declaration is owed if/when it gains its own"}
   - {path: scripts/offload_admission.py, manual_until: 2026-10-05, reason: "unwired by design: the offload role's admission gate; creating that role row is a routing decision the operator owns"}
   - {path: scripts/organ_usage_metric.py, manual_until: 2026-10-05, reason: "an on-demand operator report over session transcripts ([#694] AX9-5); [#709] or a digest command adopts it by calling it"}
   - {path: scripts/plan_lint.py, manual_until: 2026-10-05, reason: "run by a lane or the integrator before a wave's contracts freeze; no caller wired yet -- a moment declaration is owed by the next wave (ANSWER-integrator-wave4b-handback-organ.md)"}
