@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-24 (q) - CC (Opus 5.5, INTEGRATOR precut): today's rulings and digests land on main before the cut
+
+**Anchors:** `e8b61e84` (`docs(audits): land the 2026-09-24 precut rulings and digests, plus STANDING_RULINGS AL`) -- `worktree-lane-precut-landing` (sonnet, served `claude-sonnet-5`), merged `--no-ff` from an integration worktree off origin/main `502628f6`.
+
+**Did:** plan-lint on LANE-PRECUT-landing (no findings); bound the integrator seat for PRECUT (the launcher refused without one); launched; handback verified as text: purity 1 commit / 12 files, all additions in owned paths; the 9 full records byte-compared against the live transport (only the lane's own `carried-by:` line differs); `STANDING_RULINGS` AL matches RATIFICATION-2026-09-24 wording (pointers added, nothing reworded). `docs/audits/README.md` regenerated on the merged tree (ruling b). **Result:** docs-only landing; 10 owed rows listed in the lane's session file, none filed (ADR-122 step 0 / [#589] view ceiling). **Changes:** `JOURNAL.md`, `docs/audits/README.md`, `logs/MERGE-RECEIPTS.jsonl` (+ the lane's 12 files). **Next:** the handoff cut from this main; re-upload `protocols/HANDOFF_BOOT.md` (AL-B 12).
+
 ### 2026-09-24 (p) - CC (Opus 5.5, INTEGRATOR prehandoff): ADR-122 (Proposed) lands on main
 
 **Anchors:** `a97d3088` (`docs(decisions): ADR-122 -- a task is a typed record in git; every backlog view is a projection`) -- `worktree-lane-adr-backlog`, merged `--no-ff` from an integration worktree off origin/main `5930b9e1`.

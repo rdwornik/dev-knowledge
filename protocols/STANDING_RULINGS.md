@@ -4730,6 +4730,76 @@ section.
 AK-10 each retire their "not yet landed" clause the moment a future lane files the row or lands the
 code they name; this section is not the place that evidence lands, the same convention AJ uses.
 
+## AL. The 2026-09-24 precut landing (LANE-precut-landing, operator, 2026-09-24)
+
+Every item of `to-browser/RATIFICATION-2026-09-24.md` (status: CONFIRMED by the operator in
+chat, 2026-09-24, v4 — B13 deferred pending the GitHub Issues live trial), landed here so an
+agent applies these silently rather than re-asking. Section A is delegation (the operator
+delegates function; the harness performs the acts); section B is the day's specific decisions.
+
+### AL-A · Delegation (O-6 through O-12)
+
+- **O-6 Closing rows.** A row closes automatically at the merge moment when a criterion's
+  runnable check is green — including through a `Closes:` trailer, or GitHub's `Closes #N` if
+  Issues win. A row whose criteria are prose goes to review; that is the cost of prose.
+- **O-6a New rows.** A new row without a runnable check, a review rubric, or an explicit "not
+  yet decided" per criterion is rejected by validation, whatever the store.
+- **O-7 Removal.** No consumer and no importing test after a 30-day grace → removed by the
+  sweep, one reversible commit per sweep, listed in the digest.
+- **O-8 Warnings.** Undispositioned for 30 days → hard-fail, or retired by O-7.
+- **O-9 GO.** The paste of a batch order is its GO. Night batches are pre-authorized.
+- **O-10 Built-ins first.** Claude Code's own commands replace organs that do the same
+  (`/compact`, `/loop` for dispatcher and integrator only, `/batch`, `/deep-research`,
+  `/simplify`, `/verify`, `/security-review`, `/context` and `/cost` per session). Codex terra
+  stays the code reviewer.
+- **O-11 `AGENTS.md`.** Kept; `CLAUDE.md` imports it with `@AGENTS.md`. (Already true of this
+  repo — see `CLAUDE.md` §2.)
+- **O-12 No tools for building tools.** Before any harness organ is written, an existing
+  product or library that CC can drive from the console (`gh`, Claude Code built-ins, stdlib)
+  is tried first and measured; a custom organ needs a recorded reason why the existing one
+  fails.
+
+What stays the operator's: functional rulings and edits to his own machine-level config.
+
+### AL-B · The day's decisions (B1 through B15)
+
+1. **ADR-121:** direction ratified, with the pilot thresholds and the files fallback.
+2. **Debate D1:** a seat acts only on pushed state; local-only state counts only inside the
+   integrator's own step.
+3. **Compute:** the Linux VM (16 vCPU / 64 GB) and the GitHub Team plan — approved.
+4. **ai-council: stays**, to be reworked; the router-based debate organ is built from its
+   patterns.
+5. **Opus 5.5** admitted for orchestrate/plan, by explicit model id.
+6. **The handoff shed:** confirmed.
+7. **Organ retirements held** until the backlog decision names each reader's fate (see
+   `docs/audits/2026-09-24-technical-digest-organ-triage.md` C1/C3).
+8. **Required checks on,** after the baseline is honest and the commit-gate is diff-scoped.
+9. **Skills:** the 8 synced Anthropic skills off; the 4 never-invoked project skills wired or
+   removed.
+10. Run `/doctor` interactively once.
+11. **Backlog ceiling:** truth has no ceiling; the view budget per
+    `docs/audits/2026-09-24-technical-declare-adr-122-rulings.md` (step 0).
+12. Re-upload `protocols/HANDOFF_BOOT.md` (main after PRECUT) to the browser project before the
+    next seat.
+13. **ADR-122 — DEFERRED, not ratified.** Its rejection of GitHub Issues was on paper (O2
+    never run live). Offline is not the operator's requirement; truth-in-git can be a snapshot
+    projection; the `[#id]` numbers are a one-time migration with one trap (`#N` auto-links).
+    The next window runs `BATCH-TRIAL-GH-ISSUES-2026-09-24` — the same 20 rows, `gh` only,
+    issue forms as schema, `Closes #N`, one issue to the Copilot coding agent, the compat
+    renderer on the 13 readers, a re-weighted two-column matrix (offline 0; "no custom code"
+    and "Copilot pipeline" added). The operator ratifies the winner afterwards. Tie-breaker: CC
+    runs it all through `gh` with no new tool.
+14. **Q2 — the browser's view:** if YAML: a small view on the transport at batch close and at
+    the cut. If Issues: the seat reads GitHub directly.
+15. **Q3 — untyped prose:** a clause any script reads becomes a field; the rest is notes and
+    governs nothing — under either store.
+
+**Not yet landed as code or rows:** none of AL-A/AL-B create new mechanism by themselves — B1,
+B7, B11 and B13 point at other artifacts (ADR-121, the organ-triage digest, the ADR-122
+ruling, the GH-Issues trial batch) that are this window's own carriers, tracked there, not
+here. This entry is the citation `gen_handoff` and a future reader need; it does not itself
+discharge any of those open items.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
