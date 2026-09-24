@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-19
+last_reviewed: 2026-09-24
 reconciled_with: handoff-process@7.1.0
 status: active
 owner: Rob
@@ -77,7 +77,7 @@ In order, read:
 - **Dependencies (ADR-106):** declared by `pyproject.toml` + `uv.lock` + `.python-version`, rebuilt by `uv sync --locked`, `uv` pinned **exactly** — a uv bump is its own gated change. Every gate runs `uv run --locked …`, so a bare `python`/`pytest` in a doc is a defect, not a shorthand
 - **Decision funnel (ADR-111):** every audit finding is triaged into **exactly one** of OWNED / DISCHARGED / CANDIDATE / REJECTED — no finding becomes a backlog row without triage, and the only path is CANDIDATE → intake (ADR-98) → ratification. Question routing is ADR-108 §A: the operator rules **functional** questions, the architect **technical** ones
 
-**Out of scope:** code-level implementation → child repos · runtime config → `~/.claude/`. The in-hub Council transcript archive was **deleted 2026-07-22** by operator ruling — do not recreate it; the ADR-77 guard stays armed.
+**Out of scope:** code-level implementation → child repos · runtime config → `~/.claude/`. The in-hub Council transcript archive was **deleted 2026-07-22** by operator ruling — do not recreate it; the ADR-77 guard is OFF since 2026-09-17 (expiry 2026-10-08, [#863]; §9).
 
 > **[HUB - methodology]** region `conventions-output-formatting` - single-sourced from the hub; do not edit these lines here.
 <!-- methodology:start id=conventions-output-formatting owner=hub -->
@@ -191,7 +191,7 @@ Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless noted. **B2 lane4 arm
 
 **Arm the two pre-push hooks once per clone:** `pre-commit install --hook-type pre-push` — `default_install_hook_types` wires them only on a fresh install; `SessionStart`'s `arm_hooks.py` then does it idempotently.
 
-Session hooks (`.claude/settings.json`, `disableAllHooks: false`): two run — `SessionStart` `arm_hooks.py`; `Stop` backpressure (advisory). PreToolUse `[#727]` deny-and-point UNWIRED 2026-09-18 (B2 lane4 rule-8; script kept, see audit above). Of nine measured-broken hooks eight are off (plugin `propose_closures` runs); the ADR-77 guard stays off ([#863]).
+Session hooks (`.claude/settings.json`, `disableAllHooks: false`): **8 SessionStart** (`arm_hooks`, `surface_triage`, `changelog_sentinel`, `conductor` session-start, `resource_lifecycle` session-start, `codespace_regime` session-start, `billing_leak_sentinel`, `fleet_health`) **+ 2 Stop** (`session_end_backpressure`, advisory; `lane_end_guard`). PreToolUse `[#727]` deny-and-point UNWIRED 2026-09-18 (B2 lane4 rule-8; script kept, see audit above). Off since 2026-09-17, expiry 2026-10-08 pending wave 5b ([#863]): the prompts guard, the ADR-77 transcript guard, `logs_retention.py`. `propose_closures` (plugin Stop) still runs, KNOWN-UNGOVERNABLE.
 
 Rules (`.claude/rules/`): `git-discipline.md` — mandatory commit after every file edit; clean working tree at session end.
 
@@ -234,5 +234,5 @@ History of this file's revisions: `docs/audits/2026-09-05-technical-claude-md-se
 
 ---
 
-**Last updated:** 2026-09-19
+**Last updated:** 2026-09-24
 **Maintained by:** Rob

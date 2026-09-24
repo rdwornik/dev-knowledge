@@ -174,6 +174,32 @@ $R time --slug $L --step merge --class ceremony -- git merge --no-ff worktree-$L
 && HARNESS_LANE=$L $DOIT moment:teardown
 ```
 
+**Then, standalone — NOT chained onto the walk above, and NOT a gate:** record CI's verdict
+beside the local one (LANE-5A-6). Nothing has read CI's own ~8-minute result as data before now,
+so the integrator has been recomputing locally for an hour every time; this reads it and files it
+next to the LOCAL verdict (`logs/receipts/MOMENT-MERGE-GATES-VERDICT.json`) so the morning packet
+can read how often the two already agree — the evidence owed before CI can become the gate. `$M`
+and `$L` are still in scope from the chain above; the organ needs the worktree for neither.
+
+```bash
+uv run --locked python scripts/ci_verdict.py --ref $M \
+  > logs/receipts/CI-VERDICT-$L.json 2>logs/receipts/CI-VERDICT-$L.log; true
+cat logs/receipts/CI-VERDICT-$L.json
+```
+
+**`; true`, deliberately.** `ci_verdict.py` exits non-zero on every verdict but a clean `green`
+(the same convention `actions_verdict.py` uses, for the same reason — a gate silent on success
+has not been read, it has been assumed) — but that convention is for a caller that treats the
+exit code as a gate, and this walk does not, tonight. CI ran 20/20 red against a stale baseline
+on 2026-09-23 (`to-browser/DIGEST-AUDIT-CROSSCHECK-2026-09-23.md`); chaining this onto the walk
+would refuse every merge in the batch on a disagreement the batch exists to MEASURE, not enforce.
+The JSON on disk is the record; the walk's own exit code stays whatever the chain above decided.
+
+**It POLLS, in-process, for up to 15 minutes by default** (`--timeout`; CI's own run costs about
+8 minutes, measured). A run still in progress past the timeout reads back `not-run`, naming the
+run id so a plain re-run (`scripts/ci_verdict.py --ref $M`) picks it up once CI finishes — a
+retry, not a refusal.
+
 **A non-zero exit from step 2 is a REFUSAL, and it is recorded.** The comparator's exit code is
 its verdict: the `models` verb exits 0 only when the tier the contract ordered is the tier
 the lane's transcript shows it ran — a divergence, an unverifiable split and an empty store all

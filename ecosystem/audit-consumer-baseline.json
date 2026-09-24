@@ -5,8 +5,8 @@
   "measured_at_sha": "9644e815",
   "corpus": 920,
   "pool_files": 568,
-  "unconsumed": 630,
-  "provenance": "batch-F freeze: 7 lane contracts + the manifest landed; the contracts declare No-consumer per the check's own escape and are structurally uncitable (no YYYY-MM-DD in the filename)",
+  "unconsumed": 631,
+  "provenance": "batch-F freeze: 7 lane contracts + the manifest landed; the contracts declare No-consumer per the check's own escape and are structurally uncitable (no YYYY-MM-DD in the filename). Addendum 2026-09-24 (lane-handback-fixes): +1 surgical entry only -- docs/audits/2026-09-24-codex-lane-handback-fixes.md, this lane's own Codex terra review, declares `no-consumer:` in the artifact itself (LANE-5A-5 files the DECLARE-WINDOW-DEFECTS-2026-09-23 governance rows, not this lane). No other entry touched; the pre-2026-09-24 debt in this list is untouched and not this lane's to resolve.",
   "artifacts": [
     "2026-03-30-dev-practice-os-state-audit.md",
     "2026-04-21-corp-monorepo-operating-model-analysis.md",
@@ -567,6 +567,7 @@
     "2026-08-30-technical-window-close-operator-brief.md",
     "2026-08-31-technical-dm2-otel-genai-events.md",
     "2026-09-01-technical-dm4-local-memory-tier-l-evaluation.md",
+    "2026-09-24-codex-lane-handback-fixes.md",
     "BATCH1-LANE-CONTRACTS-2026-08-28.md",
     "CUT.md",
     "LANE-CS-codespace-transport.md",

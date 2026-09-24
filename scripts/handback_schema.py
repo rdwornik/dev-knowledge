@@ -27,9 +27,13 @@ a caller improvising its own string formatting.
                         `transport_report.py` verbatim (byte-for-byte the same output); that
                         module now imports both rather than defining its own copy.
   * `RefusedOrder`   -- new: what the handback organ writes when its self-check fails. A
-                        `to-browser/REFUSED-<lane>.md` naming which leg failed and why, plus
-                        the same facts as a JSON receipt, so a refusal is inspectable by a human
-                        (the file) and a machine (the receipt) from one write.
+                        `to-browser/HANDBACK-REFUSED-<lane>.md` naming which leg failed and why,
+                        plus the same facts as a JSON receipt, so a refusal is inspectable by a
+                        human (the file) and a machine (the receipt) from one write. The
+                        `HANDBACK-` prefix is D10 (DECLARE-WINDOW-DEFECTS-2026-09-23): plain
+                        `REFUSED-<lane>.md` is the INTEGRATOR's own repair-order filename, and
+                        wave-4B measured the collision when this organ's self-refusal receipt
+                        landed there and overwrote the integrator's executable order.
 
 Read-only where it can be (rendering and parsing are pure functions of their inputs); the one
 side effect this module can have is `HandbackLine`'s import of `audit.py` for the grammar it
@@ -306,10 +310,11 @@ class CheckResult:
 
 @dataclass
 class RefusedOrder:
-    """What the handback organ writes when any self-check leg fails: `to-browser/REFUSED-
-    <lane>.md` (human-readable) and, embedded in it, the same facts as a JSON receipt (machine-
-    readable) -- one write, two readers, the D-1 discipline applied to a refusal rather than a
-    merge."""
+    """What the handback organ writes when any self-check leg fails: `to-browser/HANDBACK-
+    REFUSED-<lane>.md` (human-readable) and, embedded in it, the same facts as a JSON receipt
+    (machine-readable) -- one write, two readers, the D-1 discipline applied to a refusal
+    rather than a merge. The `HANDBACK-` prefix (D10) keeps this filename distinct from the
+    integrator's own `REFUSED-<lane>.md` repair order -- see the module docstring."""
     lane: str
     branch: str
     checks: list[CheckResult]
@@ -342,8 +347,8 @@ class RefusedOrder:
 
     @classmethod
     def parse(cls, text: str) -> Optional["RefusedOrder"]:
-        """Reads a `REFUSED-<lane>.md` this module wrote back into structure, via its embedded
-        receipt block -- the same round-trip discipline the other three shapes carry."""
+        """Reads a `HANDBACK-REFUSED-<lane>.md` this module wrote back into structure, via its
+        embedded receipt block -- the same round-trip discipline the other three shapes carry."""
         m = re.search(r"^```json\n(.*?)\n```", text, re.MULTILINE | re.DOTALL)
         if not m:
             return None

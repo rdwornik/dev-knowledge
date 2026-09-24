@@ -58,7 +58,9 @@ HONEST LIMITS
   * No PreToolUse heartbeat. Between a SessionStart and a Stop the only activity signal is the
     transcript's mtime, which moves when a tool call RETURNS. A single call longer than
     `WEDGED_AFTER_MIN` -- or a seat supervising a background agent for that long -- reads wedged.
-  * A `browser` seat has no hook surface. It can be bound; with no event it reads `absent`.
+  * A `browser` seat has no hook surface. It can be bound; with no event yet it reads `live`
+    (D23: a fresh bind is a seat that just started, not one that is gone -- it ages to `wedged`
+    on the same `WEDGED_AFTER_MIN` threshold as any other silent seat if no event ever follows).
   * The dispatch verb (win-tooling `dispatch.ps1`) calls no hub script, so a seat that types
     `dispatch` without `/lane-boot` is not refused by anything here.
   * The registry is never compacted; every SessionStart reads it whole. Bounded today by one row
@@ -361,8 +363,16 @@ def seats(path: Optional[Path] = None, *, now: Optional[datetime] = None,
         role = bound["role"] if bound else ("lane" if lane else None)
         batch = bound["batch"] if bound else (_batch_of(lane) if lane else None)
         if not rows:
+            # D23: a fresh bind used to read `absent` until this session's first hook event --
+            # long enough that a dispatcher checking occupancy right after a bind saw a seat
+            # that looked gone (SESSION-integrator-wave4b-2026-09-22.md s1: two pre-launch
+            # refusals while the seat read absent). A bind with no event YET is a seat that just
+            # started; it ages on the same wedge threshold as any other silent seat, so a bind
+            # that never gets a first event still eventually reads as stalled.
             ts = datetime.fromisoformat(bound["ts"])  # type: ignore[index]
-            state, activity, kind = "absent", ts, "bind"
+            idle_min = (moment - ts).total_seconds() / 60.0
+            state = "wedged" if idle_min > WEDGED_AFTER_MIN else "live"
+            activity, kind = ts, "bind"
         else:
             state, activity, kind = _derive(rows, lane, moment, pid_alive=pid_alive,
                                             path_exists=path_exists,
