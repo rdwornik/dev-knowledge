@@ -6,10 +6,14 @@
 **Diff range:** `main..worktree-lane-launcher-fixes`
 **Codex version:** codex-cli 0.155.0
 **Mode:** diff-review
-**Tally:** TBD/TBD/TBD/TBD <!-- Critical/High/Medium/Low. FILL FROM THE FINDINGS SECTION before committing. The hub's review_artifact_coverage leg parses four digits here; TBD deliberately does not parse, so an unfilled tally keeps WARNing instead of shipping a number nobody counted. -->
+**Tally:** 1/2/0/0 <!-- Critical/High/Medium/Low -->
 
 **Model used:** `gpt-5.6-terra` (pinned; both lanes — [#469])
 **Review profile:** code
+
+no-consumer: this lane files no BACKLOG row of its own for these findings -- all three were
+fixed directly in the same session's commit `cc098d48`, the same direct-disposition route
+`2026-09-24-codex-lane-provider-registry.md`'s own no-consumer line takes for its finding.
 
 ---
 
@@ -56,3 +60,42 @@
 ## LOW
 
 (none)
+
+---
+
+## Dispositions (lane-launcher-fixes, same session, commit `cc098d48`)
+
+- **CRITICAL (Copilot launches stop holding their slug after 180 seconds) — ACCEPTED, fixed.**
+  `_held_by`'s PID-liveness branch was keyed on the literal string `"codex"`; generalized to
+  `provider in _DETACHED_HEADS` (`{"codex", "copilot"}`), so a live Copilot process now holds its
+  slug by `process_alive(pid)` exactly as codex does, past `LISTING_LAG_SECONDS`. Fixed:
+  `test_a_copilot_receipt_whose_process_is_alive_holds_the_slug_past_the_listing_lag` and
+  `test_a_copilot_receipt_whose_process_has_ended_frees_the_slug`
+  (`tests/test_dispatch_launch.py`).
+
+- **HIGH 1 (REFUSED-line output can still truncate the integrator bind command) — ACCEPTED,
+  fixed by removing the cap rather than raising it.** A raised-but-fixed budget is the same
+  defect at a larger radius: a long enough `--batch` value, or a second refusal sharing the
+  budget, can still cut the command. `run_prelaunch` no longer passes a matched `REFUSED [...]`
+  line (or several) through `_tail` at all -- it joins and returns them whole. Fixed:
+  `test_a_very_long_batch_value_does_not_cut_the_command_out_of_its_own_remedy` and
+  `test_two_refusals_in_one_run_both_survive_in_full` (`tests/test_dispatch_launch.py`).
+
+- **HIGH 2 (Copilot lanes cannot be governed through their detached log) — ACCEPTED, fixed by
+  making the gap explicit rather than building an unverified reader.** The CLI does carry a
+  supported usage surface (`copilot --help`: `--usage-output-file`, `--output-format json`), but
+  this session did not run a live `copilot` invocation to confirm the per-line event shape
+  against the code that would parse it -- guessing that shape would risk a reader that silently
+  mis-parses rather than one that is honestly absent. `_watch` now branches on
+  `provider == "copilot"` explicitly, records an honest `UNOBSERVED` naming the real reason (no
+  claude-agent identity, no usage-format reader yet) instead of falling through to a
+  claude-agent bind that can never succeed and a misleading reason. Wiring a real reader for
+  `--usage-output-file`'s JSON (the shape is already witnessed in-repo:
+  `docs/audits/2026-09-23-technical-copilot-admission-evidence.md`'s `copilot-usage.json`
+  artifacts) is left as a ROWS-OWED finding rather than fixed blind. Fixed:
+  `test_govern_on_a_copilot_receipt_is_an_honest_unobserved_never_a_false_zero`
+  (`tests/test_dispatch_launch.py`).
+
+| File | Disposition | Evidence locator |
+|---|---|---|
+| 2026-09-25-codex-lane-launcher-fixes.md | ACTIONED | cc098d48 |
