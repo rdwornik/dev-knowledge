@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-09-24 (o) - CC (Opus 5.5, INTEGRATOR prehandoff): [#960]'s closure lands on main
+
+**Anchors:** `04439e11` (`chore(backlog): retire [#960] on operator-approved Tier-1 closure`) -- `worktree-close-960`, merged `--no-ff` from an integration worktree off origin/main `665e2a3b`.
+
+**Did:** purity (1 commit, 4 files), merged, `gen_task_tree --check` ok, `validate_backlog` OK (490 tasks); `ship_gate_diff.py diff --base origin/main`: introduced none; CI conductor run 36027304876 vs main's 36003152417: new = only the 4 known branch-run artifacts (4/4 pass locally), fixed 0. **Result:** clean, local and CI agree. **Changes:** `JOURNAL.md`, `logs/MERGE-RECEIPTS.jsonl` (+ the lane's four files). **Next:** `worktree-lane-adr-backlog` per `to-cc/INTEGRATOR-PREHANDOFF-2026-09-24.md` section 2.
+
+### 2026-09-24 (n) - CC (Opus 5.5, review-closures): [#960] closed on operator approval -- the other 10 STRONG and all WEAK proposals left open
+
+**Anchors:** evidence `ea217336b` (`fix(test-pairing,impacted-tests): Codex terra review -- 3 HIGH confirmed and fixed [#960]`) -- `worktree-close-960`.
+
+**Did:** ran `/tier1-lifecycle:review-closures` over `logs/2026-09/PROPOSALS-2026-09-24-72.md` (11 STRONG, 460 WEAK). The operator approved `960` ONLY -- not `y`, which would have closed STRONG proposals the operator judged false positives. `review_closures.py plan --ids 960` re-verified it: close, strong, no skips. Flipped host, so retired per ADR-107 section 6.3: manifest node removed, task file kept with `status: closed`, `BACKLOG.md` regenerated.
+
+**Result:** `gen_task_tree.py --check`: ok. `validate_backlog.py`: OK. **Changes:** `tasks/manifest.json`, `tasks/960-*.md`, `BACKLOG.md`, `JOURNAL.md`. **Next:** the remaining STRONG proposals stay unapproved; the proposer's false-positive rate on STRONG is itself worth a look.
+
 ### 2026-09-24 (m) - CC (sonnet, LANE-5A-11): the night's WAVE5A findings become data -- 3 landed as rows, 12 deferred by a real byte-ceiling wall
 
 **Anchors:** `3cd334b7` (3 rows + landed digest) · `1209236e` (Codex-review citation fixes) -- `worktree-lane-landing-night-findings`, not yet merged.

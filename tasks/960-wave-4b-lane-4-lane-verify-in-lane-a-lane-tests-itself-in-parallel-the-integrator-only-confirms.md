@@ -1,7 +1,7 @@
 ---
 id: "[#960]"
 title: "Wave 4b lane 4 (lane-verify-in-lane) -- a lane tests itself in parallel; the integrator only confirms"
-status: open
+status: closed
 priority: P1
 size: M
 theme: "[E2] Enforced governance"
