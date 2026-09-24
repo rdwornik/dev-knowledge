@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-25 (a) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): ADR-122 step 0 lands -- one view budget, row filing reopened
+
+**Anchors:** `aeab4577` (`feat(gen_task_tree): ADR-122 step 0 -- one view-budget config, first row filed`) -- `worktree-lane-adr122-step0` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree off origin/main `2ae86d07`.
+
+**Did:** purity 1 commit / 6 files; merged in `worktree-integrate-lane-adr122-step0`; regenerated doc-counts (7503 -> 7504), audits/intake indices, rosters, organ index on the merged tree (ruling b); ship-gate diffed base vs merge; lane-changed `tests/test_gen_task_tree.py` run on the merged tree; CI paired against main's run. **Result:** `scripts/view_budget.yaml` (150000, `manual_until: 2026-10-15`) is read by both `gen_task_tree --check` and the size test; `[#1015]` filed -- rows can be filed again (ruling h lifts). **Changes:** `JOURNAL.md`, `ecosystem/doc-counts.md`, `logs/MERGE-RECEIPTS.jsonl` (+ the lane's 6 files). **Next:** the rest of the WAVE5B-N1 queue.
+
 ### 2026-09-24 (s) - CC (Opus 5.5, architect handoff cut): supplement filled -- the outgoing architect's answers travel with the bundle
 
 **Anchors:** `1d790f20` (supplement transcribed, paste re-assembled) -- `worktree-handoff-fill-0924`, merged `--no-ff` on the operator's in-chat "merge approved".

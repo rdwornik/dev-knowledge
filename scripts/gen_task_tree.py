@@ -111,6 +111,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+import yaml
+
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS_DIR.parent
 _DEFAULT_SOURCE = _REPO_ROOT / "BACKLOG.md"
@@ -171,13 +173,18 @@ _FM_ID_RE = re.compile(r'^id: "\[#(\d+)\]"$', re.MULTILINE)
 #     re-baselined, and a single row rendered back at body length (mean 1,199 B) trips it
 #     on its own.
 #   * TOTAL BYTES records the [#589] done-when bar as an enforced fact rather than a
-#     claim in a closed row. It is NOT growth-proof and is not pretended to be: at 66,290 B
-#     today it holds ~230 further rows before it binds. When it does bind, that is the
-#     backlog outgrowing its declared budget -- groom, or raise this deliberately, the same
-#     way `validate_doc_rot._FILE_SIZE_BUDGETS` treats CLAUDE.md's 200-line budget. Set at
-#     100,000 rather than at the done-when's 70,000 so ordinary queue growth cannot wedge a
-#     PER-COMMIT gate; the 70,000 figure is asserted where a point-in-time measurement
-#     belongs, in `tests/test_gen_task_tree.py`.
+#     claim in a closed row. It is NOT growth-proof and is not pretended to be: when it
+#     binds, that is the backlog outgrowing its declared budget -- groom, or raise this
+#     deliberately, the same way `validate_doc_rot._FILE_SIZE_BUDGETS` treats CLAUDE.md's
+#     200-line budget. ADR-122 STEP 0 (docs/audits/2026-09-24-technical-declare-adr-122-
+#     rulings.md) ruled that this ceiling and the point-in-time bar in
+#     `tests/test_gen_task_tree.py` were TWO TRUTHS for the same thing -- this file hardcoded
+#     100,000, the test hardcoded 72,000, and nothing forced them to agree. They now collapse
+#     into ONE CONFIG VALUE, `scripts/view_budget.yaml`, read by both through
+#     `load_view_budget()` below (interim: 150,000 B, cause "ADR-122 step 0; the view is
+#     uncommitted and field-only at step 2", `manual_until: 2026-10-15`); see
+#     `tests/test_gen_task_tree.py::test_check_and_the_size_bar_read_the_same_view_budget`
+#     for the proof neither copy can silently diverge from the other again.
 #
 # NOT THE SAME CONTRACT AS `validate_doc_rot._BACKLOG_ROW_CEILING = 1320`, recorded
 # 2026-09-14 by lane `lane-y-754-backlog-to-bar` / row `[#754]` after that lane's own
@@ -190,7 +197,41 @@ _FM_ID_RE = re.compile(r'^id: "\[#(\d+)\]"$', re.MULTILINE)
 # never carried those clauses. Neither ceiling was retired; both are live and both are right.
 # THIS ONE IS HEALTHY AND UNCHANGED: longest live view row 301 B against 400, never fired.
 _VIEW_ROW_BYTE_CEILING = 400
-_VIEW_BYTE_CEILING = 100_000
+
+
+@dataclass(frozen=True)
+class ViewBudget:
+    """The [#589]/ADR-122-step-0 total-bytes view budget, as `scripts/view_budget.yaml`
+    declares it -- `value` is the ceiling in bytes, `cause` and `manual_until` are the
+    ruling's own record of why it is interim and when to revisit (neither is enforced by
+    code; `manual_until` is a date to revisit, not an expiry anything checks)."""
+    value: int
+    cause: str
+    manual_until: str
+
+
+_VIEW_BUDGET_CONFIG_PATH = _SCRIPTS_DIR / "view_budget.yaml"
+
+
+def load_view_budget(path: Path = _VIEW_BUDGET_CONFIG_PATH) -> ViewBudget:
+    """The ONE [#589]/ADR-122-step-0 view-byte budget, read from `path`.
+
+    Both `view_problems` (via `_VIEW_BYTE_CEILING`, loaded at import time below) and
+    `tests/test_gen_task_tree.py`'s live-view size test call this rather than each
+    carrying their own number -- see the constants-block comment above for why that
+    mattered (ADR-122 step 0's "two truths" finding).
+    """
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    return ViewBudget(
+        value=int(data["value"]),
+        cause=str(data["cause"]),
+        manual_until=str(data["manual_until"]),
+    )
+
+
+#: Loaded once at import time so `view_problems` pays no per-call file-read cost; the value
+#: is `load_view_budget().value`, never a second hardcoded number.
+_VIEW_BYTE_CEILING = load_view_budget().value
 # The projection's own pointer prefix -- one place, so the renderer and any reader agree.
 _VIEW_POINTER_DIR = "tasks/"
 # THE PROJECTION'S GRAMMAR, in one place, because two different jobs must agree on it:

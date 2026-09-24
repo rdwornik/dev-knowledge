@@ -249,6 +249,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#1010] [P1][S] A Stop hook refuses to end a lane session without a machine `HANDBACK <branch> @ <sha> <kind>` line · tasks/1010-a-stop-hook-refuses-to-end-a-lane-session-withou.md
 - [#1012] [P1][M] A dispatcher-held producer shell must run as its own session or a detached process, not a bg shell the reaper can kill · tasks/1012-a-dispatcher-held-producer-shell-must-run-as-its.md
 - [#1014] [P1][M] A post-merge check runs before push, because a `--no-ff` merge commit bypasses nearly every pre-commit hook · tasks/1014-a-post-merge-check-runs-before-push-because-a-no.md
+- [#1015] [P2][S] `scripts/plan_lint.py` silently reads zero ownership from a contract using only an `Owns:` label · tasks/1015-plan-lint-cannot-read-a-contract-that-uses-only-owns.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
