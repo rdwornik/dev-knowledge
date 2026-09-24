@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "65474c689e41a1474c937f0d4a9536a25a97d8bed18468a3516b6b4ccd4d09c3",
+  "generated_sha256": "0d025d5c3d6f718ed03e119e580170f8740ca4a07aa256fafc374bcf7ed02a87",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -964,6 +964,18 @@
     {
       "task": 1008,
       "file": "1008-stale-statement-sweep-reconcile-6-doc-claims-against.md"
+    },
+    {
+      "task": 1010,
+      "file": "1010-a-stop-hook-refuses-to-end-a-lane-session-withou.md"
+    },
+    {
+      "task": 1012,
+      "file": "1012-a-dispatcher-held-producer-shell-must-run-as-its.md"
+    },
+    {
+      "task": 1014,
+      "file": "1014-a-post-merge-check-runs-before-push-because-a-no.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
