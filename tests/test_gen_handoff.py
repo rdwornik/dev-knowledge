@@ -1012,22 +1012,26 @@ def test_dispatch_form_degrades_to_a_pointer_not_a_remembered_command(tmp_path):
     assert "dispatch <" not in block
 
 
-def test_generated_boot_carries_the_rendered_dispatch_line(tmp_path):
-    """End-to-end through the stub repo, which has no PLAYBOOK — so this also proves the
-    DEGRADE path reaches the bundle intact rather than leaving a raw token behind."""
+def test_generated_boot_points_the_launch_form_at_the_launcher(tmp_path):
+    """LANE-5A-9 (ruling O-5, 2026-09-23): the forms card no longer renders PLAYBOOK Ch8's
+    dispatch table, which stopped describing how lanes launch; it points at the launcher's own
+    --help. End-to-end through the stub repo, so no raw token is left behind either."""
     boot = (_gen(tmp_path).bundle_dir / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
     assert "{{DISPATCH_FORM}}" not in boot
-    assert "could not be rendered" in boot
+    assert "scripts/dispatch.py launch --help" in boot
+    assert "SOLE literal-command site" not in boot
 
 
 def test_template_holds_no_second_copy_of_the_dispatch_command():
-    """The R5 contract in one assertion: the forms card renders the verb, it never hardcodes
-    it. A fenced `dispatch …` line reappearing in the template is the regression."""
+    """The R5 contract, re-pointed by LANE-5A-9: the forms card carries no copied launch verb —
+    it names the launcher and its --help. A fenced `dispatch …` line reappearing in the
+    template is the regression."""
     import dispatch_surface as ds
     tmpl = (_REPO / "templates" / "handoff" / "v5" / "HANDOFF_BOOT.md.tmpl").read_text(
         encoding="utf-8")
     verb = ds.ruled_verb(_REPO)
-    assert "{{DISPATCH_FORM}}" in tmpl
+    assert "{{DISPATCH_FORM}}" not in tmpl
+    assert "scripts/dispatch.py launch --help" in tmpl
     assert not any(ln.split()[:1] == [verb] for ln in ds.fenced_lines(tmpl))
 
 

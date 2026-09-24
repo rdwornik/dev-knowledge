@@ -61,6 +61,24 @@ initiates*, since CC is the only actor holding live repo state.
 | **Browser** (Layer 1) | Thin reactive architect. Boots from `HANDOFF_BOOT.md`; verifies the **artifact**; filters CC output to the operator; research; exception-handler; launch-config for genuine forks. |
 | **Operator** | Relays between CC and the browser; makes the calls the browser surfaces; runs the promotion gate. |
 
+**The four standing seats of a batch (LANE-5A-9, 2026-09-24).** The three actors above run a
+batch as four named seats, each bound by `seat_registry.py bind --role` (the architect binds as
+`browser`) and each started from its own order. The template **is** the seat's order — a batch's dated order fills one in; it does not
+restate it. Routing (which provider and model serve a seat) is data, in
+`ecosystem/provider-registry.yaml`, not a model name typed into an order.
+
+| Seat | Actor | Does | Does not | Order (template) |
+|---|---|---|---|---|
+| **architect** | browser (Layer 1) | writes the plan, freezes lane contracts, rules technical forks | executes, merges | this spec + `protocols/HANDOFF_BOOT.md`; the contracts it writes follow `templates/lane-contract-template.md` |
+| **dispatcher** | CC | runs plan lint, launches lanes and repairs, keeps liveness, writes receipts | merges, builds | `templates/dispatcher-order-template.md` |
+| **integrator** | CC, primary checkout | merges one lane at a time in an integration worktree off `origin/main`, verifies, fast-forwards `main` | builds, fixes a lane's work, weakens a check | `templates/integrator-order-template.md` |
+| **lane** | CC, its own worktree | builds one frozen contract, self-checks, hands back | self-merges, waits for the operator | `templates/lane-contract-template.md` |
+
+Rules every seat of a batch shares — no waiting for the operator, the pre-authorized rulings, sync
+and purity, waiting and processes, recording what served — live in
+`templates/batch-common-rules-template.md`. Commands come from `uv run --locked python
+scripts/dispatch.py launch --help`, not from prose (ruling O-5, 2026-09-23).
+
 ---
 
 ## 2. What CC emits — the residual (not a re-transmission)
@@ -158,6 +176,28 @@ travelling in the body.
 The boot ends with an on-load acknowledgment line so a partial/missing paste is visible
 (the ADR-79 visible-paste idea).
 
+**The paste shed — and the 20,000 B gate (LANE-5A-9, 2026-09-24).** The browser re-reads the
+whole paste on every turn, so the paste carries what a seat needs on turn one and points at the
+rest. The 2026-09-19 paste measured 34,998 B against a ceiling that only warned
+(`DIGEST-HANDOFF-READINESS-2026-09-23` §4). `scripts/assemble_paste.py` now builds:
+
+- **session header** — the bundle's title and Field/Value table; its `>` pointer blocks collapse
+  to ONE forms line naming the launcher's `--help`, the four seat templates (§1) and the routing
+  registry;
+- **ROLE PIN** — unchanged;
+- **RESIDUAL** — the drift-flags section(s), the **OPEN list**, and a pointer to the rest of the
+  residual and to the live ledger (`to-browser/LEDGER-<repo>.md`). In a real bundle home the OPEN
+  list is read off the transport with P11's own helpers, so it names **every** `carried-by: OPEN`
+  file, not only those the residual author remembered (digest item 10);
+- **PROBES** — unchanged;
+- **SUPPLEMENT** — when filled, a pointer to its ANSWERS; the section keeps its label, so
+  `audit.py::supplement_folded` still sees the answers reach the paste.
+
+`DECISION_LEDGER.md` is not pasted — it is a snapshot; the live ledger supersedes it. Above
+`PASTE_BYTE_CEILING` the assembler **refuses**: exit 1, each section's size printed, no paste
+written, a stale one replaced by a refusal notice. The shed is deterministic, so a refusal means
+a section outgrew its role and has to move behind a pointer.
+
 **BOOT DRILL — one sample dispatch line, read by the operator before the first real dispatch
 (v6.2.0).** Before an incoming seat dispatches anything, it emits **one sample dispatch line** for
 the operator to read: not a description of what it intends to dispatch, but the literal line, in
@@ -174,9 +214,10 @@ wrongness is visible, placed where being wrong still costs nothing.
 *What it is not.* The sample is for reading, not for launching — the drill dispatches nothing, and
 the operator's check is a look rather than a gate. Where the seat's arcs carry their own
 `## Dispatch` blocks, the sample is the line one of those blocks would produce. Form and mechanics
-live at `protocols/PLAYBOOK.md` Ch8 "The dispatch surface is `dispatch <file>`" and the routing
-matrix beside it; the typed form also rides resident in every bundle (the "Operator-facing forms"
-section of `templates/handoff/v5/HANDOFF_BOOT.md.tmpl`).
+come from the launcher itself — `uv run --locked python scripts/dispatch.py launch --help` — and
+routing from `ecosystem/provider-registry.yaml` (ruling O-5, 2026-09-23: the PLAYBOOK is human
+documentation, not the authority for a command); the bundle's "Operator-facing forms" section
+(`templates/handoff/v5/HANDOFF_BOOT.md.tmpl`) points at both.
 
 *Honest limit, stated so this is not read as enforced.* This is prose discipline, not a mechanism:
 no probe binds it and no gate reads it, so a seat that skips the drill produces a bundle
@@ -200,8 +241,9 @@ read once.
    `pip install --target` provisioning*, a measurement Ch8's Q1 row holds as an amendment
    candidate with the routing unchanged.
 
-Both are **rendered from their doctrine home**, exactly as form 1 renders the dispatch line out of
-Ch8's dispatch table: the home is `protocols/PLAYBOOK.md` Ch8 "The night batch — the batch
+Both are **rendered from their doctrine home**, as form 1 rendered the dispatch line out of Ch8's
+dispatch table until LANE-5A-9 (2026-09-24) re-pointed form 1 at the launcher's own `--help`,
+because that table no longer described how lanes launch (O-5): the home is `protocols/PLAYBOOK.md` Ch8 "The night batch — the batch
 protocol run unattended, in five phases", subsection "Two standing boundary rules the night
 inherits". The card holds no independent copy, so the two cannot drift apart the way four rival
 dispatch commands did (§V, ~30 seats).
@@ -327,7 +369,8 @@ alone regresses):
 [#611] moved the probe *contract* here and left the per-block rationale in the rendered
 `PROBES.md`. The v7.1 cut finishes the move: **`PROBES.md` carries rows plus one pointer, and
 every line of doctrine about a row lives here.** The reason is a measured cost, not tidiness —
-the assembled paste has a 20,000-byte ceiling (`assemble_paste.PASTE_BYTE_CEILING`), the browser
+the assembled paste has a 20,000-byte ceiling (`assemble_paste.PASTE_BYTE_CEILING` — a **gate**
+since 2026-09-24: above it the assembler exits 1 and writes no paste; see *The paste shed* in §4), the browser
 re-processes the whole paste on **every turn of the window** (inbox 030), and `PROBES.md` is the
 largest template-controlled term in it. Prose that a seat reads once, billed every turn, is the
 definition of the wrong place to keep it.
@@ -1017,7 +1060,10 @@ The lane's closing report, **required before any merge**:
 The architect then: reviews the return vs the contract → serial merge `--no-ff` → applies the
 backlog delta, applied per the queue's shape (`tasks/` edit + regen on a flipped host) →
 declares closure → teardown (worktree remove + prune + branch -d + orphan
-check). **The loop closes at the root, always.**
+check). **The loop closes at the root, always** — and since wave 4B the root is reached by a
+verified merge, not by merging on it: the merge is made and verified in an integration worktree off
+`origin/main`, and the root's `main` only fast-forwards to it once green. Today that is a hand
+procedure, per `templates/integrator-order-template.md`.
 
 **Generator.** `templates/handoff/epic/{EPIC_BOOT,EPIC_RETURN}.md.tmpl`, emitted by
 `scripts/gen_handoff.py --mode epic` (reuses the v5 assembler; **probes stay** — an epic lane
@@ -1613,3 +1659,12 @@ file). Proven by re-running `reconciled_versions`, `silent_rule_ratchet` and
   frontmatter re-stamp changes the digest and the pin moves with it. Leg 3 stays manual until
   v7.2: the **operator** re-uploads `protocols/HANDOFF_BOOT.md` to the browser project's
   instructions (`protocols/OPERATOR-INTERFACE.md` §5). Refs ruling 9, `[#642]`, intake #68.
+- **2026-09-24 — LANE-5A-9 handoff repair (no version bump; stamp stays 7.1.0).** Four seats named
+  in §1 (architect · dispatcher · integrator · lane), each pointing to its order template; the
+  paste shed and the 20,000 B paste **gate** (§4, §5 v7.1); the launch form points to
+  `scripts/dispatch.py launch --help` and the routing registry instead of PLAYBOOK Ch8 (ruling
+  O-5); §14b's root closing names the integration-worktree path. Stale statements 2, 3 and 5 of
+  `DIGEST-HANDOFF-READINESS-2026-09-23` §4 fixed here. **Why no bump:** the `reconciled_with`
+  dependents include `protocols/PLAYBOOK.md` and `CLAUDE.md`, which this lane may not edit; the
+  bump and its re-stamps are owed at the next cut. **ROLE PIN moves** — `protocols/HANDOFF_BOOT.md`
+  changed, so the operator re-uploads it to the browser project's instructions.
