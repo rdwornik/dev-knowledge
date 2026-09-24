@@ -329,19 +329,22 @@ def _log_line_at(ts: str, text: str) -> str:
 
 def test_parse_suite_gate_block_WINDOW_ignores_a_shape_match_outside_the_real_step():
     """The defect Codex terra found (2026-09-24, HIGH): text shaped like the gate's own output,
-    printed by an EARLIER step (pytest's own captured stdout can echo anything), must not be
-    read as the verdict once a window scopes the read to the real step's own time range."""
-    decoy = _log_line_at("2026-09-24T00:00:01.0000000Z", "baseline sha   : deadbeef00")
+    printed by ANOTHER step (pytest's own captured stdout can echo anything), must not be read
+    as the verdict once a window scopes the read to the real step's own time range. Unscoped,
+    the parser has no notion of "the real one" -- it keeps overwriting as it walks the log, so
+    whichever matching line comes LAST wins; here that is a decoy that sorts after the real
+    line, which is exactly why an unscoped read cannot be trusted."""
     real = _log_line_at("2026-09-24T00:05:00.0000000Z", "baseline sha   : c5108329")
-    log = "\n".join([decoy, _log_line_at("2026-09-24T00:05:00.0000000Z",
-                                        "conductor suite-baseline gate"), real])
+    decoy = _log_line_at("2026-09-24T00:10:00.0000000Z", "baseline sha   : deadbeef00")
+    log = "\n".join([_log_line_at("2026-09-24T00:05:00.0000000Z",
+                                  "conductor suite-baseline gate"), real, decoy])
     window = (cv.datetime.fromisoformat("2026-09-24T00:04:00+00:00"),
              cv.datetime.fromisoformat("2026-09-24T00:06:00+00:00"))
 
     unscoped = cv.parse_suite_gate_block(log)
     scoped = cv.parse_suite_gate_block(log, window=window)
 
-    assert unscoped["baseline_id"] == "deadbeef00", "the decoy IS read without a window"
+    assert unscoped["baseline_id"] == "deadbeef00", "unscoped, the LAST matching line wins -- the decoy, not the real one"
     assert scoped["baseline_id"] == "c5108329"
 
 
