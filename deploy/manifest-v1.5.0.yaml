@@ -1071,7 +1071,7 @@ components:
       - wiring: ".claude/settings.json Stop hook -> python $CLAUDE_PROJECT_DIR/scripts/session_end_backpressure.py"
     roster:
       section: session-hook
-      line: "Stop: session_end_backpressure.py — deterministic session-end gate (JOURNAL SHA-anchor hard block)"
+      line: "Stop: session_end_backpressure.py — deterministic session-end gate (JOURNAL SHA-anchor nudge, advisory since the ADR-85 amendment 2026-08-03)"
 
   - id: canonical-freshness
     kind: organ
