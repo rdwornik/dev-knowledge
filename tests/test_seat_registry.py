@@ -186,6 +186,24 @@ def test_session_end_is_absent(tmp_path):
     assert _seats(path, now=T0 + timedelta(minutes=2))["s1"].state == "absent"
 
 
+def test_a_fresh_bind_with_no_event_yet_reads_live(tmp_path):
+    """D23: the seat used to read `absent` until its first hook event arrived, long enough for
+    a dispatcher to refuse a launch onto a seat that had, in fact, just bound
+    (SESSION-integrator-wave4b-2026-09-22.md s1). A bind alone is a seat that just started."""
+    path = tmp_path / "seats.jsonl"
+    reg.bind("integrator", "AB", session_id="s1", path=path, now=T0)
+    seat = _seats(path, now=T0)["s1"]
+    assert seat.state == "live"
+
+
+def test_a_bind_with_no_event_ever_ages_to_wedged_not_absent(tmp_path):
+    path = tmp_path / "seats.jsonl"
+    reg.bind("integrator", "AB", session_id="s1", path=path, now=T0)
+    later = T0 + timedelta(minutes=reg.WEDGED_AFTER_MIN + 1)
+    seat = _seats(path, now=later)["s1"]
+    assert seat.state == "wedged"
+
+
 def test_every_state_is_in_the_closed_enum():
     assert reg.STATES == ("live", "wedged", "absent", "starved")
     assert reg.ROLES == ("dispatcher", "integrator", "lane", "browser")

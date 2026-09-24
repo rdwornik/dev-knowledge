@@ -13,8 +13,9 @@ is enough -- the four DISAGREED that night:
              and the contents but not the directory); no git command sees them.
   branch     a local `worktree-<slug>` branch exists. `Start-DispatchLane` refuses when it does,
              so a surviving branch is its own refusal.
-  session    a live (`status: busy`) session from `claude agents --json` whose `cwd` ends in
-             `.claude/worktrees/<slug>`. The leg that was missing on the day.
+  session    a live (`busy`, read off `status` or -- a session still STARTING -- `state`) session
+             from `claude agents --json` whose `cwd` ends in `.claude/worktrees/<slug>`. The leg
+             that was missing on the day.
 
 Exit 0 = free, 1 = occupied (the legs that fired are named), 2 = could not look or bad slug. A
 tool that cannot look never prints FREE.
@@ -125,18 +126,43 @@ def live_sessions() -> list:
     return data
 
 
+def _status_of(row: dict) -> Optional[str]:
+    """A session record's liveness field, for the READABILITY check only (is there SOME string
+    naming a status at all). Most records carry `status`; a record for a session still
+    STARTING carries `state` instead (D23: `worktree_occupancy` exited 2 -- "could not look" --
+    on a starting record, because it read `status` alone and a payload naming only `state` is a
+    different external shape, not an unreadable one). A record naming neither is genuinely
+    unreadable, not a quiet "not busy". Liveness ITSELF is `_is_live`, not this function -- see
+    its docstring for why the two fields are not simply preferred one over the other."""
+    for key in ("status", "state"):
+        value = row.get(key)
+        if isinstance(value, str):
+            return value
+    return None
+
+
+def _is_live(row: dict) -> bool:
+    """RECON s5.3 leg 4 is a `busy` session. EITHER `status` or `state` claiming `busy` is
+    enough -- a record naming both fields with CONFLICTING values (one busy, one not) is read
+    as busy. Codex terra review, HIGH (`docs/audits/2026-09-24-codex-lane-handback-fixes.md`):
+    preferring `status` alone let `{"status": "idle", "state": "busy", "cwd": <tree>}` read as
+    non-live, missing a session mid-transition between the two external shapes. Fail-closed
+    toward OCCUPIED on a record this reader was not told to expect, never toward FREE."""
+    return any(row.get(key) == _LIVE_STATUS for key in ("status", "state"))
+
+
 def _validated_sessions(sessions: object) -> list:
     """The session list, or `OccupancyError`. A record this cannot judge is never read as "not
-    holding the tree": a non-mapping row, a row with no `status`, or a `busy` row with no `cwd`
-    means the payload has changed shape and the session leg cannot be trusted."""
+    holding the tree": a non-mapping row, a row with no `status`/`state`, or a `busy` row with
+    no `cwd` means the payload has changed shape and the session leg cannot be trusted."""
     if not isinstance(sessions, list):
         raise OccupancyError("the session payload is not a list")
     for i, row in enumerate(sessions):
         if not isinstance(row, dict):
             raise OccupancyError(f"session record {i} is not a mapping: {row!r}")
-        if not isinstance(row.get("status"), str):
-            raise OccupancyError(f"session record {i} has no string `status`: {row!r}")
-        if row["status"] == _LIVE_STATUS and not isinstance(row.get("cwd"), str):
+        if _status_of(row) is None:
+            raise OccupancyError(f"session record {i} has no string `status`/`state`: {row!r}")
+        if _is_live(row) and not isinstance(row.get("cwd"), str):
             raise OccupancyError(f"busy session record {i} has no string `cwd`: {row!r}")
     return sessions
 
@@ -155,7 +181,7 @@ def _dir_exists(path: Path) -> bool:
 
 
 def _session_holds(session: dict, tree: str) -> bool:
-    return session["status"] == _LIVE_STATUS and _norm(session["cwd"]) == tree
+    return _is_live(session) and _norm(session["cwd"]) == tree
 
 
 def check(slug: str, root: Path, sessions: Optional[list] = None,

@@ -6,8 +6,8 @@
   "corpus": 843,
   "dispositioned": 78,
   "pending": 2,
-  "uncovered": 763,
-  "provenance": "",
+  "uncovered": 764,
+  "provenance": "Addendum 2026-09-24 (lane-handback-fixes): +1 surgical entry only -- docs/audits/2026-09-24-codex-lane-handback-fixes.md, this lane's own Codex terra review (D10/D11/D14/D23), whose 3 HIGH findings were already fixed in this same lane's commit 734ad52e (an honest ACTIONED case) but a proper ledger row is deferred to avoid recursively minting a new undispositioned docs/audits/ artifact just to disposition this one. No other entry touched; the pre-2026-09-24 debt in this list is untouched and not this lane's to resolve.",
   "artifacts": [
     "2026-03-30-dev-practice-os-state-audit.md",
     "2026-04-21-corp-monorepo-operating-model-analysis.md",
@@ -771,6 +771,7 @@
     "2026-09-01-technical-tierb-b1-otel-genai-event-schema.md",
     "2026-09-01-technical-tierb-b2-sda1-harbor-translation.md",
     "2026-09-01-technical-universalization-instantiation-prep.md",
-    "2026-09-01-verification-batche-post-merge-terra-round.md"
+    "2026-09-01-verification-batche-post-merge-terra-round.md",
+    "2026-09-24-codex-lane-handback-fixes.md"
   ]
 }

@@ -270,6 +270,81 @@ def test_serial_mismatch_is_silent_on_a_consistent_pair(tmp_path):
     assert plan_lint.find_serial_mismatches(lanes) == []
 
 
+# --- class 5: a new organ with no declared fate or moment (D14) -------------------------------
+
+def test_new_script_no_fate_flagged_for_an_undeclared_new_script(tmp_path):
+    """The plan's own acceptance text: "a contract that adds a new script without a declared
+    fate or moment is a finding" -- the LANE-W4B-2 instance, `scripts/handback.py`."""
+    _harness(tmp_path, "merge", ["organ_one"])
+    a = _contract(tmp_path, "LANE-a.md", "lane-a", "`scripts/handback.py`, its tests.")
+    lanes = plan_lint.load_contracts([a])
+    findings = plan_lint.find_new_organs_without_fate(lanes, tmp_path)
+    assert len(findings) == 1
+    f = findings[0]
+    assert f.category == "new-script-no-fate"
+    assert f.severity == plan_lint.BLOCKING
+    assert f.lane_a == "lane-a" and f.lane_b == "lane-a"
+    assert "scripts/handback.py" in f.detail
+
+
+def test_new_script_no_fate_is_silent_when_the_script_already_exists(tmp_path):
+    _harness(tmp_path, "merge", ["organ_one"])
+    scripts_dir = tmp_path / "scripts"
+    scripts_dir.mkdir()
+    (scripts_dir / "existing.py").write_text("pass\n", encoding="utf-8")
+    a = _contract(tmp_path, "LANE-a.md", "lane-a", "`scripts/existing.py`, its tests.")
+    lanes = plan_lint.load_contracts([a])
+    assert plan_lint.find_new_organs_without_fate(lanes, tmp_path) == []
+
+
+def test_new_script_no_fate_is_silent_when_the_contract_declares_a_fate(tmp_path):
+    _harness(tmp_path, "merge", ["organ_one"])
+    a = _contract(tmp_path, "LANE-a.md", "lane-a", "`scripts/new_thing.py`, its tests.",
+                  extra_body=("Add one dated `fates:` line for `scripts/new_thing.py` "
+                              "(`manual_until: 2026-10-05`)."))
+    lanes = plan_lint.load_contracts([a])
+    assert plan_lint.find_new_organs_without_fate(lanes, tmp_path) == []
+
+
+def test_new_script_no_fate_is_silent_when_the_lane_touches_a_moment(tmp_path):
+    _harness(tmp_path, "merge", ["organ_one"])
+    a = _contract(tmp_path, "LANE-a.md", "lane-a",
+                  "`scripts/new_thing.py`, the `merge` moment of `ecosystem/harness.yaml`.")
+    lanes = plan_lint.load_contracts([a])
+    assert plan_lint.find_new_organs_without_fate(lanes, tmp_path) == []
+
+
+def test_new_script_no_fate_is_silent_without_a_harness_declaration(tmp_path):
+    """No `ecosystem/harness.yaml` at all -- nothing for a fate to be declared IN, the same
+    posture `check_organ_truth` itself takes (subject-absent, not a finding)."""
+    a = _contract(tmp_path, "LANE-a.md", "lane-a", "`scripts/new_thing.py`, its tests.")
+    lanes = plan_lint.load_contracts([a])
+    assert plan_lint.find_new_organs_without_fate(lanes, tmp_path) == []
+
+
+def test_new_script_no_fate_is_silent_on_a_non_scripts_path(tmp_path):
+    _harness(tmp_path, "merge", ["organ_one"])
+    a = _contract(tmp_path, "LANE-a.md", "lane-a", "`tests/test_new_thing.py`, its fixtures.")
+    lanes = plan_lint.load_contracts([a])
+    assert plan_lint.find_new_organs_without_fate(lanes, tmp_path) == []
+
+
+def test_new_script_no_fate_still_fires_on_ordinary_prose_using_fate_or_moment(tmp_path):
+    """Codex terra review, HIGH (`docs/audits/2026-09-24-codex-lane-handback-fixes.md`): a
+    first cut matched the bare words "fate" and "moment" anywhere in the contract, so ordinary
+    prose ("this has no fate yet", "at this moment we are focusing on X") silently suppressed
+    the finding for every new script the lane owned. Only the literal `fates:` key or a dated
+    shape keyword counts as a declared commitment."""
+    _harness(tmp_path, "merge", ["organ_one"])
+    a = _contract(tmp_path, "LANE-a.md", "lane-a", "`scripts/new_thing.py`, its tests.",
+                  extra_body=("This organ has no fate yet -- at this moment we are focusing "
+                              "on the happy path."))
+    lanes = plan_lint.load_contracts([a])
+    findings = plan_lint.find_new_organs_without_fate(lanes, tmp_path)
+    assert len(findings) == 1
+    assert findings[0].category == "new-script-no-fate"
+
+
 # --- the dependency graph -----------------------------------------------------------------------
 
 def test_build_edges_from_serial_and_starts_after(tmp_path):
@@ -434,7 +509,7 @@ def test_lint_combines_every_class(tmp_path):
     findings = plan_lint.lint(lanes, tmp_path)
     categories = {f.category for f in findings}
     assert categories == {"file-collision", "missing-producer", "moment-test-coupling",
-                          "serial-mismatch"}
+                          "serial-mismatch", "new-script-no-fate"}
 
 
 def test_render_findings_reports_no_findings_over_a_clean_wave(tmp_path):

@@ -424,6 +424,38 @@ def test_a_declaration_is_sticky_until_reinstated_and_old_bypasses_do_not_re_dec
     assert _declarations(log) == {}, "the pre-reinstatement window re-declared the hook"
 
 
+def test_reinstating_a_hook_stops_the_banner_calling_it_DECLARED_BROKEN(tmp_path):
+    """lane-hooks-urgent (LANE-5A-7) done-contract item 4, proven directly against the banner
+    TEXT rather than only the JSON store: a hook that keeps its `broken` entry after being fixed
+    keeps printing `[hook-BROKEN] <id> DECLARED BROKEN ...` at every SessionStart even though the
+    settings.json wiring already re-armed it -- the exact "the banner lies" defect this lane was
+    filed to fix (DIGEST-HOOK-ARCHITECTURE-2026-09-23-APPENDIX.md A6 item 6). Once reinstated,
+    the surfaced report must no longer name that hook as broken at all.
+    """
+    module = _load_wrapper()
+    log = tmp_path / "HOOK-BYPASSES.jsonl"
+    old = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 3600))
+    runs = module.BROKEN_MIN_RUNS + 5
+    log.write_text(_run_rows("fleet-health-session-start", runs, runs, ts=old), encoding="utf-8")
+
+    before = _surface(log)
+    assert "fleet-health-session-start" in _declarations(log)
+    assert "fleet-health-session-start" in before.stdout and "DECLARED BROKEN" in before.stdout
+
+    res = subprocess.run(
+        [sys.executable, str(_WRAPPER), "reinstate", "--id", "fleet-health-session-start"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace", env=_env(log))
+    assert res.returncode == 0, res.stdout + res.stderr
+
+    after = _surface(log)
+    assert after.returncode == 0, after.stderr
+    assert "fleet-health-session-start" not in _declarations(log)
+    broken_lines = [line for line in after.stdout.splitlines()
+                   if "DECLARED BROKEN" in line and "fleet-health-session-start" in line]
+    assert broken_lines == [], (
+        f"the banner still calls a reinstated hook DECLARED BROKEN: {broken_lines}")
+
+
 def _transcript(dir_: Path, name: str, lines: list[dict]) -> None:
     dir_.mkdir(parents=True, exist_ok=True)
     (dir_ / name).write_text("".join(json.dumps(line) + "\n" for line in lines), encoding="utf-8")

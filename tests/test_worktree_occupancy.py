@@ -255,6 +255,36 @@ def test_a_non_busy_session_without_a_cwd_is_harmless(repo):
     assert wo.check(SLUG, repo, sessions=[{"status": "idle"}]).occupied is False
 
 
+# --- D23(b): a starting record carries `state`, not `status` ------------------------------------
+
+@requires_git
+def test_a_starting_record_with_state_but_no_status_does_not_fail_closed(repo):
+    """D23: `worktree_occupancy` exited 2 ("could not look") on a session record still
+    STARTING -- an external shape that names `state`, not `status`. A record naming either
+    field is readable; only a record naming NEITHER is unreadable."""
+    assert wo.check(SLUG, repo, sessions=[{"cwd": "x", "state": "starting"}]).occupied is False
+
+
+@requires_git
+def test_a_busy_record_named_by_state_alone_holds_the_tree(repo):
+    cwd = str(repo / ".claude" / "worktrees" / SLUG)
+    res = wo.check(SLUG, repo, sessions=[{"cwd": cwd, "state": "busy"}])
+    assert res.fired == ("session",)
+    assert res.occupied
+
+
+@requires_git
+def test_conflicting_status_and_state_fields_read_as_busy_not_free(repo):
+    """Codex terra review, HIGH (`docs/audits/2026-09-24-codex-lane-handback-fixes.md`):
+    preferring `status` alone let a record naming both fields with conflicting values --
+    `status: idle`, `state: busy` -- read as non-live, missing a session mid-transition
+    between the two external shapes. Either field claiming `busy` must hold the tree."""
+    cwd = str(repo / ".claude" / "worktrees" / SLUG)
+    res = wo.check(SLUG, repo, sessions=[{"cwd": cwd, "status": "idle", "state": "busy"}])
+    assert res.fired == ("session",)
+    assert res.occupied
+
+
 @requires_git
 def test_the_cli_applies_the_same_validation_to_a_sessions_file(repo, capsys):
     code, _ = _cli(repo, SLUG, ["oops"], capsys)

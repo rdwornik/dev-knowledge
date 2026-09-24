@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "3afbfd93ad46418e13017164f7cbf9010a9396dc0e83297c9919326fa2e0a2aa",
+  "generated_sha256": "6a5199b528a398cd287d72015b60cfbf15036263b9b80508b4bd5905bfef11d0",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -780,6 +780,190 @@
     {
       "task": 962,
       "file": "962-wave-4b-lane-6-lane-fleet-health-split-a-guarded-background-producer.md"
+    },
+    {
+      "task": 963,
+      "file": "963-state-store-adr-where-the-harness-holds-its-operational-state-and-where-it-executes.md"
+    },
+    {
+      "task": 964,
+      "file": "964-one-verification-stage-every-check-runs-once-at-merge.md"
+    },
+    {
+      "task": 965,
+      "file": "965-one-known-reds-registry-read-by-ci-and-local-refreshed.md"
+    },
+    {
+      "task": 966,
+      "file": "966-cis-full-suite-verdict-becomes-the-merge-gate-local.md"
+    },
+    {
+      "task": 967,
+      "file": "967-test-selection-stops-being-93-prose-triggered-a-doc.md"
+    },
+    {
+      "task": 968,
+      "file": "968-logs-merge-receipts-jsonl-gets-an-impacted-tests-rules.md"
+    },
+    {
+      "task": 969,
+      "file": "969-connection-walk-gets-json-verdicts-and-a-slow-tier.md"
+    },
+    {
+      "task": 970,
+      "file": "970-memory-admission-gate-heavy-runs-wait-for-free-memory-n.md"
+    },
+    {
+      "task": 971,
+      "file": "971-autonomy-pre-authorized-ruling-table-liveness-watchdog.md"
+    },
+    {
+      "task": 972,
+      "file": "972-session-janitor-stops-every-poll-and-wake-up-a-lane.md"
+    },
+    {
+      "task": 973,
+      "file": "973-handback-organ-writes-handback-refused-lane-md-never.md"
+    },
+    {
+      "task": 974,
+      "file": "974-one-comparator-the-handback-organs-self-check-and-the.md"
+    },
+    {
+      "task": 975,
+      "file": "975-origin-only-sync-purity-check-a-lane-never-merges-a.md"
+    },
+    {
+      "task": 976,
+      "file": "976-merge-receipts-record-the-merge-sha-and-timed-steps-so.md"
+    },
+    {
+      "task": 977,
+      "file": "977-provider-fallback-list-a-sonnet-outage-no-longer-stalls.md"
+    },
+    {
+      "task": 978,
+      "file": "978-transport-file-kind-registry-enforced-by-an-adapter-no.md"
+    },
+    {
+      "task": 979,
+      "file": "979-path-layer-reads-harness-drive-root-harness-prompts.md"
+    },
+    {
+      "task": 980,
+      "file": "980-portability-a-path-layer-drive-api-adapter-container-ci.md"
+    },
+    {
+      "task": 981,
+      "file": "981-compute-an-off-box-execution-host-so-the-laptop-stops.md"
+    },
+    {
+      "task": 982,
+      "file": "982-seat-bind-marks-live-immediately-occupancy-accepts-a.md"
+    },
+    {
+      "task": 983,
+      "file": "983-decisions-and-audits-land-in-the-repo-every-wave-a.md"
+    },
+    {
+      "task": 984,
+      "file": "984-a-state-store-adr-121-carries-decisions-across-a.md"
+    },
+    {
+      "task": 985,
+      "file": "985-plan-lint-rejects-an-audit-order-that-carries-no-codex.md"
+    },
+    {
+      "task": 986,
+      "file": "986-architecture-level-changes-require-adr-matrix-debate.md"
+    },
+    {
+      "task": 987,
+      "file": "987-batch-close-regenerates-the-ledger-from-the-state-store.md"
+    },
+    {
+      "task": 988,
+      "file": "988-copilot-admission-lands-in-the-registry-with-in-repo.md"
+    },
+    {
+      "task": 989,
+      "file": "989-launcher-is-wired-to-the-existing-provider-router.md"
+    },
+    {
+      "task": 990,
+      "file": "990-opus-5-5-rate-row-admission-a-b-for-the-orchestrate.md"
+    },
+    {
+      "task": 991,
+      "file": "991-changelog-review-runs-on-a-weekly-conductor-schedule.md"
+    },
+    {
+      "task": 992,
+      "file": "992-measure-skill-doctor-and-doctors-claude-md-trim.md"
+    },
+    {
+      "task": 993,
+      "file": "993-build-mode-exit-condition-1-the-connection-walk-is.md"
+    },
+    {
+      "task": 994,
+      "file": "994-build-mode-exit-condition-2-one-real-backlog-row.md"
+    },
+    {
+      "task": 995,
+      "file": "995-build-mode-exit-condition-every-disabled-guard-is-re.md"
+    },
+    {
+      "task": 996,
+      "file": "996-every-operator-request-becomes-a-row-the-same-day-it-is.md"
+    },
+    {
+      "task": 997,
+      "file": "997-r-09-19-3-architecture-md-kept-ruling-gets-a-standing.md"
+    },
+    {
+      "task": 998,
+      "file": "998-r-09-19-7-lane-count-is-by-need-not-a-fixed-6-lane.md"
+    },
+    {
+      "task": 999,
+      "file": "999-r-09-19-10-the-dispatcher-dispatches-lands-once-declare.md"
+    },
+    {
+      "task": 1000,
+      "file": "1000-doctrine-the-backbone-is-code-prose-is-intent-lands-in.md"
+    },
+    {
+      "task": 1001,
+      "file": "1001-sessionstart-becomes-one-stdlib-reader-8-interpreters.md"
+    },
+    {
+      "task": 1002,
+      "file": "1002-re-arm-evidence-must-be-measured-in-session-under-the.md"
+    },
+    {
+      "task": 1003,
+      "file": "1003-closure-proposals-run-once-per-new-commit-with-a-reader.md"
+    },
+    {
+      "task": 1004,
+      "file": "1004-commit-gate-counter-survives-worktree-teardown-0-runs.md"
+    },
+    {
+      "task": 1005,
+      "file": "1005-path-protection-comes-back-as-permissions-deny-rules-no.md"
+    },
+    {
+      "task": 1006,
+      "file": "1006-boot-banner-stops-printing-re-armed-hooks-as-declared.md"
+    },
+    {
+      "task": 1007,
+      "file": "1007-sessionend-writes-the-seat-absent-record-lane-start.md"
+    },
+    {
+      "task": 1008,
+      "file": "1008-stale-statement-sweep-reconcile-6-doc-claims-against.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"

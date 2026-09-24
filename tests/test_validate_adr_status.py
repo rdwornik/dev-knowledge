@@ -828,7 +828,12 @@ def test_shipped_corpus_parses_one_status_field_per_live_adr():
     #     none removed, no member's grammar changed. Its status field is `Proposed` for
     #     exactly the reason ADR-117's note above records, and it stays Proposed -- the
     #     browser seat ratifies it, the integrator does not.
-    assert len(fields) == 93, "live ADR count moved — re-measure the Step-1 baseline"
+    #
+    # RE-MEASURED 2026-09-23 by lane-adr-state-store: 93 -> 94. The delta is ONE ADR and it
+    # is named: ADR-121 (operational state is a single-writer event log on a git state ref),
+    # drafted on to-cc/BATCH-ADR-STATE-STORE-2026-09-23. Measured on base `4667f731` + this
+    # lane's one added file; no other member moved. Status `Proposed` until the operator rules.
+    assert len(fields) == 94, "live ADR count moved — re-measure the Step-1 baseline"
 
 
 def test_shipped_corpus_grammar_distribution_matches_the_measured_baseline():
@@ -853,7 +858,11 @@ def test_shipped_corpus_grammar_distribution_matches_the_measured_baseline():
     # unrecorded pre-existing unit) and ADR-120 (G1, `Proposed`, this merge's own). G2/G3/G4
     # are unchanged for the fourth time, which is what proves the delta is two ADRs and not
     # grammar drift wearing their clothes.
-    assert counts == {"G1": 46, "G2": 34, "G3": 12, "G4": 1}
+    #
+    # RE-MEASURED 2026-09-23 by lane-adr-state-store: G1 46 -> 47, the same single cause as
+    # the count above (ADR-121 carries a G1-shaped `Proposed` status field). G2/G3/G4
+    # unchanged a fifth time, so the delta is one ADR and not grammar drift.
+    assert counts == {"G1": 47, "G2": 34, "G3": 12, "G4": 1}
 
 
 def test_shipped_corpus_has_zero_enum_violations():
