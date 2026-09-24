@@ -16,7 +16,7 @@ Manifest (in order):
   4. <bundle>/SUPPLEMENT.md     (architect strategic supplement — when its ANSWERS region is
      filled, a POINTER section names it; the answers themselves are pulled JIT, not inlined)
 
-DECISION_LEDGER.md is never folded: the live ledger on the transport supersedes the snapshot.
+The bundle's decision-ledger snapshot is never folded: the live ledger on the transport supersedes it.
 
 THE PASTE GATE (LANE-5A-9): an assembled paste above PASTE_BYTE_CEILING is REFUSED — exit 1,
 no PASTE_THIS.md written, a stale one replaced by a refusal notice.
@@ -223,7 +223,7 @@ def shed_residual(text: str, opens: list[str], residual_ref: str) -> str:
     A residual with no `## ` sections is a hand residual with nothing to shed and is returned
     whole. The pointer names the full residual (shipped map, next-frontier "why", task-state)
     and the LIVE ledger — `to-browser/LEDGER-<repo>.md` — rather than the bundle's
-    DECISION_LEDGER.md snapshot, which the digest found presenting itself as the ledger."""
+    decision-ledger snapshot, which the digest found presenting itself as the ledger."""
     parts = _H2_SPLIT_RE.split(text)
     preamble, sections = parts[0], parts[1:]
     if not sections:
@@ -239,7 +239,7 @@ def shed_residual(text: str, opens: list[str], residual_ref: str) -> str:
     pointer = (f"**The rest of this residual is not inlined** (the paste gate): the shipped map, "
                f"the next-frontier decisions and task-state are in `{residual_ref}` — ask CC to "
                "pull it. The live decision ledger is `to-browser/LEDGER-<repo>.md` on the "
-               "transport; the bundle's `DECISION_LEDGER.md` is a snapshot, never pasted.")
+               "transport; the bundle's decision-ledger file is a snapshot, never pasted.")
     return "\n\n".join([title, *kept, open_block, pointer])
 
 
