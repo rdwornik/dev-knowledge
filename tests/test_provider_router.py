@@ -109,11 +109,15 @@ def test_refusal_1_applies_to_every_role_not_just_implement(router):
 
 
 def test_refusal_2_a_non_admitted_producer_is_refused_on_implement(router):
-    """The done-contract's second named refusal, trip-tested against the two real NOT ADMITTED
-    rows the registry ships on this role: copilot-enterprise and xai."""
+    """The done-contract's second named refusal, trip-tested against the one real NOT ADMITTED
+    row the registry now ships on this role: xai. (copilot-enterprise was ADMITTED here
+    2026-09-23 by operator ruling O-3 — see `test_copilot_enterprise_is_now_admitted_on_implement`
+    below — so it is no longer this test's example.)"""
     got = [c.provider for c in router.route("implement", repo=".dev-knowledge")]
-    assert got == ["anthropic"], (
-        "Half A admits nothing but anthropic, so implement resolves to Sonnet alone"
+    assert got == ["anthropic", "copilot-enterprise"], (
+        "Sonnet stays first (AX22-1's >= 8-of-10 bar is unmet), and copilot-enterprise now "
+        "follows it: admitted and licensed, still declared second because admission-by-ruling "
+        "is not the measurement that would move its position (AX21-2's re-rank is)"
     )
 
 
@@ -123,14 +127,62 @@ def test_refusal_2_names_the_clause_and_the_measurement_that_would_lift_it(route
     that the lift is a measurement rather than an edit."""
     verdicts = router.explain("implement", repo=".dev-knowledge")
     blocked = [v for v in verdicts if v.refusal == "not-admitted"]
-    # `xai` alone, and copilot-enterprise's ABSENCE from this set is the documented
-    # one-reason-per-verdict limit rather than a miss: it is blocked twice over and the LICENCE
-    # gate runs first, so it is reported there. `test_refusal_3_*` is where its second block
-    # shows. A verdict naming every gate that would have bitten would be more complete and less
-    # useful — a caller fixing one reason still has the others.
+    # `xai` alone. copilot-enterprise no longer appears here at all (admitted 2026-09-23) —
+    # contrast the pre-2026-09-23 state, where its absence from this set was the documented
+    # one-reason-per-verdict limit (blocked twice over, licence gate ran first). Now it clears
+    # every gate on this role and shows up in `route()`'s survivors instead.
     assert {v.provider for v in blocked} == {"xai"}
     assert "AX22-1" in blocked[0].reason
     assert "Half B" in blocked[0].reason, "a refusal should say what would lift it"
+
+
+def test_copilot_enterprise_is_now_admitted_on_implement(router):
+    """`[691]`'s Half A / Half B boundary drew copilot-enterprise as NOT ADMITTED on every role.
+    2026-09-23 (operator ruling O-3, `RATIFICATION-2026-09-23-copilot.md`) admitted it on
+    `implement` specifically, on IN-REPO evidence (`JOURNAL.md`:962/:1113, merge `88dc48f4`, the
+    ab-828/ab-832 receipts committed at
+    `docs/audits/2026-09-23-technical-copilot-admission-evidence.md`) — not the AX22-1
+    >= 8-of-10 measurement Half B still owns. This is the router admitting Copilot for implement,
+    trip-tested against the live row rather than a fixture."""
+    verdicts = {v.provider: v for v in router.explain("implement", repo=".dev-knowledge")}
+    assert verdicts["copilot-enterprise"].refusal is None, (
+        f"expected copilot-enterprise eligible on implement, got: {verdicts['copilot-enterprise']}"
+    )
+    got = [c.provider for c in router.route("implement", repo=".dev-knowledge")]
+    assert "copilot-enterprise" in got
+    assert got.index("copilot-enterprise") == 1, (
+        "admission did not move its declared position — Sonnet stays first until AX22-1's "
+        "measurement, per AX21-2, moves it"
+    )
+
+
+def test_the_licence_fix_also_opens_copilot_on_read_though_its_admission_there_is_untouched(
+        router):
+    """A side effect of the LICENCE ruling, made explicit rather than left implicit (codex terra
+    review, `docs/audits/2026-09-24-codex-lane-provider-registry.md`, High).
+
+    `providers.copilot-enterprise.licence` is a PROVIDER-level fact — fixing it repo-wide (O-3)
+    clears the licence gate on every role Copilot appears in, not just `implement`. On `read`,
+    that is enough on its own: the role is not admission-gated (`ADMISSION_GATED_ROLES` is
+    `{"implement"}` only) and this entry sets no `requires_admission`, so once the licence gate
+    clears, nothing else stands between Copilot and eligibility — even though its `read`-role
+    `admission:` is untouched at `unevaluated` (`test_admission_copilot_enterprise_is_admitted_
+    on_implement_not_elsewhere`, tests/test_provider_roles.py). This is the DESIGNED shape of
+    `read` (its own registry description: "a not-yet-admitted reader is still a coherent idea …
+    CC verifies"), not an oversight — asserted here so it is a checked property instead of an
+    untested consequence of the licence edit above.
+    """
+    verdicts = {v.provider: v for v in router.explain("read", repo=".dev-knowledge")}
+    assert verdicts["copilot-enterprise"].refusal is None, (
+        f"expected copilot-enterprise eligible on read once its licence is permitted, got: "
+        f"{verdicts['copilot-enterprise']}"
+    )
+    got = [c.provider for c in router.route("read", repo=".dev-knowledge")]
+    assert got == ["antigravity", "copilot-enterprise", "anthropic"], (
+        "read's declared order is unchanged; copilot-enterprise now clears every gate on it "
+        "and shows up as a survivor in its declared position, same as antigravity (also "
+        "unadmitted-but-licensed on this role)"
+    )
 
 
 def test_refusal_2_does_NOT_apply_to_review(router):
@@ -154,14 +206,35 @@ def test_refusal_2_does_NOT_apply_to_read_or_verify(router):
 # --- REFUSAL 3: the licence (`[#691]` leg c) -------------------------------------------------
 
 
-def test_refusal_3_a_provider_without_a_permitting_licence_is_refused(router):
-    """copilot-enterprise is blocked TWICE OVER on implement and the two blocks are
-    independent: unadmitted (AX22-1 has not measured it) and unlicensed (the BY org seat's
-    terms are unruled). `explain` reports the licence refusal on a role where admission does
-    not apply, which is where the two can be told apart."""
-    verdicts = {v.provider: v for v in router.explain("read", repo=".dev-knowledge")}
-    assert verdicts["copilot-enterprise"].refusal == "licence"
-    assert "unknown" in verdicts["copilot-enterprise"].reason
+def test_refusal_3_a_provider_without_a_permitting_licence_is_refused(router, live_registry,
+                                                                       tmp_path):
+    """A RULED, non-`permitted` licence refuses just as an unruled one does — `restricted` is
+    "permitted for some uses and not others", not "forbidden", and the router still refuses it
+    because only `permitted` routes.
+
+    Pre-2026-09-23 this was trip-tested against copilot-enterprise's live `read`-role row, which
+    was blocked TWICE OVER (unadmitted AND unlicensed). Operator ruling O-3 (`RATIFICATION-2026-
+    09-23-copilot.md`) ruled the licence `permitted` repo-wide (see `ecosystem/provider-
+    registry.yaml`'s `providers.copilot-enterprise.licence` and
+    `docs/audits/2026-09-23-technical-copilot-admission-evidence.md`), so the live registry no
+    longer contains a REAL row with a ruled, non-permitting licence — every provider it lists is
+    now `permitted` or `not-applicable` (google, deepseek — retired/absent, not routed on any
+    role). A fixture is therefore the honest lever here, same shape as the unruled-licence test
+    below, but for the RULED half of the vocabulary.
+    """
+    data = copy.deepcopy(live_registry)
+    data["providers"]["xai"]["licence"] = {
+        "status": "restricted",
+        "reason": "fixture: a ruled, non-permitting licence.",
+        "decided_by": "test",
+        "decided_on": "2026-09-23",
+    }
+    path = tmp_path / "reg.yaml"
+    path.write_text(yaml.safe_dump(data), encoding="utf-8")
+    verdicts = {v.provider: v for v in
+                router.explain("implement", repo=".dev-knowledge", registry_path=path)}
+    assert verdicts["xai"].refusal == "licence"
+    assert "restricted" in verdicts["xai"].reason
 
 
 def test_refusal_3_an_unruled_licence_is_refused_not_assumed(router, live_registry, tmp_path):
@@ -201,10 +274,13 @@ def test_refusal_4_the_producing_provider_is_excluded_from_reviewing_its_own_wor
 
 def test_refusal_4_applies_only_where_the_registry_sets_the_flag(router):
     """The exclusion is data, not a hardcoded special case for one role name. A `produced_by`
-    on a role whose `excludes_producer` is false changes nothing."""
+    on a role whose `excludes_producer` is false changes nothing — `implement` doesn't set
+    `excludes_producer`, so naming anthropic as producer here drops no candidate; the survivor
+    list is unchanged from a call with no `produced_by` at all."""
     with_producer = [c.provider for c in
                      router.route("implement", repo=".dev-knowledge", produced_by="anthropic")]
-    assert with_producer == ["anthropic"]
+    without_producer = [c.provider for c in router.route("implement", repo=".dev-knowledge")]
+    assert with_producer == without_producer == ["anthropic", "copilot-enterprise"]
 
 
 def test_refusal_4_reports_its_clause(router):
@@ -351,3 +427,41 @@ def test_the_router_places_no_call():
     assert not (imported & dispatching), (
         f"the router imports {sorted(imported & dispatching)}; it is a resolver, not a dispatcher"
     )
+
+
+# --- alias drift, made visible (2026-09-23, S1 of POSTWAVE-CHAIN-2026-09-22) -------------------
+
+
+#: The CLI-resolved marketing aliases a `--model` flag can name at dispatch time. Claude Code
+#: 2.1.280 repointed `opus` from `claude-opus-4-8` to `claude-opus-5-5` with no registry edit —
+#: the whole point of an alias is that its target can move underneath it. A registry entry that
+#: named one of these instead of a versioned id would silently repoint the next time the CLI's
+#: alias table changed, with nothing here to notice.
+_BARE_CLI_ALIASES = {"opus", "sonnet", "haiku", "opusplan"}
+
+
+def test_every_role_entry_pins_a_versioned_model_id_not_a_bare_alias(live_registry):
+    """Alias drift, guarded rather than merely noted. `ecosystem/provider-registry.yaml` carries
+    a dated comment (above `roles:`) recording that the bare `opus` alias now resolves to
+    `claude-opus-5-5` rather than to `claude-opus-4-8`, the id `orchestrate`/`plan` still pin —
+    a fact nothing in a lane contract's `--model opus` dispatch line would otherwise surface.
+
+    This test is the enforcement half: every role-order entry that names a model at all names
+    the VERSIONED id, never the bare alias a CLI resolves at dispatch time. It passes today by
+    construction — every live entry already pins a real id — and it exists so a future hand-edit
+    that swaps one back to a bare alias fails loudly instead of drifting silently the way the
+    CLI's own alias table just did.
+    """
+    for role, spec in live_registry.get("roles", {}).items():
+        for i, entry in enumerate(spec.get("order") or []):
+            model = entry.get("model")
+            if model is None:
+                continue
+            assert model not in _BARE_CLI_ALIASES, (
+                f"role `{role}` order[{i}] pins the bare alias `{model}` — name the versioned "
+                f"model id it resolves to today; the CLI's alias->id mapping can move (2.1.280 "
+                f"repointed `opus` from claude-opus-4-8 to claude-opus-5-5) with no edit here"
+            )
+            assert model in live_registry["models"], (
+                f"role `{role}` order[{i}] pins `{model}`, which is not a declared model id"
+            )

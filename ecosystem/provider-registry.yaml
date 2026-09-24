@@ -195,26 +195,35 @@ providers:
     # is metered to the ENTERPRISE ORG SEAT (org BY-Product-Development) and is visible only on
     # that org's Copilot billing page. That is an EMPLOYER-provisioned seat.
     #
-    # THE QUESTION that follows from it, stated rather than answered: whether an employer
+    # THE QUESTION that followed from it, stated rather than left implicit: whether an employer
     # enterprise seat may be spent on this repository's work is a FUNCTIONAL question about the
     # terms the seat is held under. Under ADR-108 §A a functional question is the operator's to
-    # rule, so `lane-x-691-routing-half-a` records the state and stops. `unknown` is the honest
-    # verdict and is a first-class one in this vocabulary — it is not a soft refusal and not a
-    # soft permission.
+    # rule, so `lane-x-691-routing-half-a` recorded the state and stopped.
     #
-    # THE CONSEQUENCE, so the entry is actionable rather than merely accurate: the schema
-    # refuses to mark any entry `admitted` under a non-`permitted` licence, and the router
-    # refuses a non-`permitted` provider in a PRODUCING role. So copilot-enterprise is currently
-    # ineligible twice over — unadmitted (Half B has not measured it) and unlicensed (nobody has
-    # ruled). Those two are INDEPENDENT: an admission measurement would not clear this, and a
-    # licence ruling would not admit it.
+    # RULED 2026-09-23 (O-3, `RATIFICATION-2026-09-23-copilot.md`, transport) — see `licence:`
+    # below. This comment block is kept rather than deleted because it records WHY the ruling was
+    # needed (an employer-provisioned seat is not self-evidently spendable on this repo's work)
+    # and what the two independent blocks were before either cleared — a reader landing on this
+    # row after the fact should see the question that was resolved, not just the answer.
+    #
+    # THE ADMISSION-VS-LICENCE DISTINCTION STILL HOLDS: the schema refuses to mark any entry
+    # `admitted` under a non-`permitted` licence, and the router refuses a non-`permitted`
+    # provider in a PRODUCING role — but admission and licence are separate gates, and clearing
+    # one does not clear the other. The `implement` role's `admission:` block (below, under
+    # `roles.implement.order`) is the second, independent clearance; see
+    # `docs/audits/2026-09-23-technical-copilot-admission-evidence.md` for its evidence.
     licence:
-      status: unknown
+      status: permitted
       reason: >-
         Metered to the BY-Product-Development enterprise org seat -- an employer-provisioned
-        licence. Whether it may be spent on this repository's work is unruled; it is a
-        functional question and therefore the operator's under ADR-108 section A. Recorded as
-        unknown rather than guessed in either direction.
+        licence. RULED 2026-09-23 by the operator (O-3, `RATIFICATION-2026-09-23-copilot.md`):
+        "the corporate Copilot budget may be used for this repository" -- the precondition of
+        `DECLARE-COPILOT-TRIAL-2026-09-23.md` (transport) is recorded met. Both RATIFICATION
+        files are transport-only and cited here only for the ruling's date and author, not as
+        the admission evidence itself; that evidence is in-repo
+        (`docs/audits/2026-09-23-technical-copilot-admission-evidence.md`).
+      decided_by: operator
+      decided_on: "2026-09-23"
   # copilot-enterprise operational doctrine is NOT stored here -- this registry is a thin
   # provider/CLI identity surface and its schema forbids the extra fields. The measured
   # capability profile (284.3k context floor, the 75% payload gate, sonnet-5 default vs
@@ -461,13 +470,21 @@ providers:
 #                     entry `admitted` under a non-`permitted` licence.
 #
 # LISTED IS NOT ELIGIBLE, and the distinction is deliberate rather than a loophole. `[#691]`'s
-# Done-when says only admitted, licence-permitting providers "may appear on it" -- but this
-# lane's contract REQUIRES agy, Grok 4.6, Copilot Enterprise and Codex terra to appear as
-# NOT ADMITTED entries, precisely so the router's two refusals can be trip-tested against real
-# rows rather than against fixtures. Both are satisfied by separating the two acts: a provider
-# is LISTABLE under any state, and only an `admitted` + `permitted` + on-the-repo-allowlist
-# entry is ROUTABLE. `scripts/provider_router.py` is where that is enforced; nothing here
-# routes anything.
+# Done-when says only admitted, licence-permitting providers "may appear on it" -- but the
+# `[#691]` lane's contract REQUIRED agy, Grok 4.6, Copilot Enterprise and Codex terra to appear
+# as NOT ADMITTED entries at THAT time, precisely so the router's two refusals could be
+# trip-tested against real rows rather than against fixtures. Both were satisfied by separating
+# the two acts: a provider is LISTABLE under any state, and only an `admitted` + `permitted` +
+# on-the-repo-allowlist entry is ROUTABLE. `scripts/provider_router.py` is where that is
+# enforced; nothing here routes anything.
+#
+# UPDATE 2026-09-23 (`lane-provider-registry`, WAVE5A): copilot-enterprise's `implement`-role
+# entry moved to `admitted` (see that entry, and its licence above) -- so the NOT-ADMITTED
+# roster this paragraph describes is now agy, Grok 4.6 and Codex terra, plus
+# copilot-enterprise's OWN entries on every role other than `implement` (e.g. `read`, below).
+# The trip-tests this paragraph names still pass: `tests/test_provider_router.py`'s allowlist
+# and admission refusals now exercise xai/agy/Codex-terra rows instead of copilot-enterprise's,
+# and a new test exercises copilot-enterprise's admitted `implement` row instead.
 #
 # THE ORDER BELOW IS DECLARED, NOT EARNED -- AX21-2's distinction, and stating it here is the
 # point. `provider_router.rerank()` reorders these lists by MEASURED pass rate per cost over
@@ -476,6 +493,22 @@ providers:
 # steady state on the implement role is Copilot -> Grok -> Sonnet, and it is deliberately NOT
 # written below, because writing it would be the "fixed list wearing a router's name" failure
 # AX21-2 exists to name. Until admission, implement order is SONNET FIRST.
+#
+# ALIAS DRIFT, MADE VISIBLE -- RECORDED 2026-09-23 (`lane-provider-registry`, WAVE5A, citing
+# `docs/audits/2026-09-23-changelog-review.md` Part C / `A5`). Claude Code 2.1.280 made
+# `claude-opus-5-5` the DEFAULT Opus model, which means the bare `opus` alias a dispatch line's
+# `--model` flag names now RESOLVES to `claude-opus-5-5`, not to `claude-opus-4-8` -- the id this
+# file's `orchestrate`/`plan` entries pin below. That is a silent repoint: nothing in this
+# registry moved and nothing in a lane contract that says `--model opus` changed, yet the model
+# actually served underneath it did. THIS REGISTRY STAYED CLEAR OF THAT DRIFT, and the reason
+# is the discipline already practised below: every `order[].model` in this file names the
+# VERSIONED id (`claude-opus-4-8`, `claude-sonnet-5`, `grok-4.6`, ...), not a bare CLI alias --
+# so no entry here silently repointed when the alias did.
+# `tests/test_provider_router.py::test_every_role_entry_pins_a_versioned_model_id_not_a_bare_alias`
+# guards that this stays true. THE ORCHESTRATE/PLAN PIN ITSELF IS UNCHANGED by this lane --
+# `claude-opus-4-8` stays the pinned id below; moving it to `claude-opus-5-5` is a fresh
+# admission ceremony (the A/B `docs/audits/2026-09-23-changelog-review.md` Part C proposes),
+# ruled by the operator on that A/B's result, not an automatic inherit from the alias moving.
 # ===========================================================================================
 roles:
 
@@ -522,14 +555,21 @@ roles:
       Produce code and artifacts. AX21-1's declared target order is Copilot Enterprise (bounded,
       small) -> Grok 4.6 (multi-step, long-horizon) -> Sonnet -- but AX22-1 overrides it UNTIL
       ADMISSION: "Implement order until admission: Sonnet first." That is what is encoded here.
+      2026-09-23: copilot-enterprise's ADMISSION verdict flipped to `admitted` (operator ruling
+      O-3, on in-repo evidence -- see its order entry below), which is a DIFFERENT clearance
+      than AX22-1's >= 8-of-10 measurement bar. ORDER stays Sonnet-first: the position swap
+      AX21-1 declares is gated on that measurement specifically, not on admission in general,
+      and AX21-2 makes the swap a re-rank's job, not a hand edit.
     routing_table_role: producer
     order:
       - provider: anthropic
         model: claude-sonnet-5
         note: >-
-          FIRST, per AX22-1, and this position is a measurement gate rather than a preference:
-          it holds until Copilot and Grok clear the >= 8-of-10 bar, at which point AX21-2's
-          re-rank -- not a hand edit -- moves them.
+          FIRST for now. AX22-1's measurement gate ("it holds until Copilot and Grok clear the
+          >= 8-of-10 bar, at which point AX21-2's re-rank -- not a hand edit -- moves them") is
+          UNCHANGED by copilot-enterprise's 2026-09-23 admission below: that admission is an
+          operator ruling on demonstrated fact, not the >= 8-of-10 measurement, so it does not
+          itself clear this bar or move this position.
         admission:
           verdict: admitted
           decided_by: operator
@@ -537,12 +577,23 @@ roles:
           evidence: docs/audits/2026-09-11-technical-batch-x-manifest.md
       - provider: copilot-enterprise
         note: >-
-          NOT ADMITTED and NOT LICENCE-CLEARED -- two independent blocks. Listed so the router's
-          refusals are trip-tested against a real row. AX21-1 would place it first on bounded
-          work once both clear; neither has.
+          ADMITTED 2026-09-23 by operator ruling O-3 (`RATIFICATION-2026-09-23-copilot.md`,
+          transport-only; cited for date/author only, not as the evidence itself). The evidence is
+          IN-REPO: `JOURNAL.md` lines 962 and 1113, merge `88dc48f4`, and the ab-828/ab-832
+          receipts (`HANDBACK.json`, `copilot-usage.json`), which existed only on the transport
+          and are committed with a provenance header at
+          `docs/audits/2026-09-23-technical-copilot-admission-evidence.md`. Those two lanes were
+          Copilot-produced (served `gpt-5.6-luna`) and Codex-terra-reviewed on 2026-09-16.
+          THE ADMITTED INVOCATION IS THE TRANSPORT SCRIPT `run-lane-copilot.ps1`, not an in-repo
+          producer verb -- that moves in-repo in wave 5b. This is an OPERATOR admission on
+          demonstrated fact, not an AX22-1 >= 8-of-10 measurement: AX22-1's bar is still
+          Half B's to clear, and clearing it is what would move this entry ahead of Sonnet per
+          AX21-2's re-rank (not a hand edit -- position is UNCHANGED by this lane).
         admission:
-          verdict: unevaluated
-          floors: ["AX22-1"]
+          verdict: admitted
+          decided_by: operator
+          decided_on: "2026-09-23"
+          evidence: docs/audits/2026-09-23-technical-copilot-admission-evidence.md
       - provider: xai
         model: grok-4.6
         note: >-
@@ -704,6 +755,43 @@ models:
     rates:
       input: 5.0
       output: 25.0
+    pinned_at: []
+
+  # ADDED 2026-09-23 (`lane-provider-registry`, WAVE5A, S1 of POSTWAVE-CHAIN-2026-09-22). Claude
+  # Code 2.1.280 shipped `claude-opus-5-5` as the new DEFAULT Opus model -- and, per the
+  # `roles.orchestrate`/`roles.plan` alias-drift note below, the bare `opus` alias a dispatch
+  # line names now resolves here instead of to `claude-opus-4-8`. The row exists so the id this
+  # repo's live surface can now emit is addressable, resolvable and priceable; it grants NO ROLE
+  # (`roles: []`, `pinned_at: []`, same precedent as `claude-opus-5`/`grok-4.6`). Moving the
+  # `orchestrate`/`plan` PIN itself to this id is explicitly OUT OF SCOPE for this lane (its
+  # contract: "The orchestrate/plan pin is unchanged; the operator rules after the A/B") --
+  # that pin stays `claude-opus-4-8` above.
+  #
+  # PRICE, from the same card as its siblings (`rate_card.as_of` covers list-price provenance
+  # generally) but with its OWN `rates.source`, because $4/$20/Mtok and $0.20/Mtok cache reads
+  # were not in the 2026-06-24 cache the shared card cites -- they are Claude Code 2.1.280's own
+  # release content, read via `docs/audits/2026-09-23-changelog-review.md` (landing this wave
+  # from branch `worktree-postwave-changelog`; at authoring time this row's citation is ahead of
+  # that branch's merge to `main`, which the same wave's integrator step closes).
+  #
+  # `cache_read: 0.20` is an EXPLICIT OVERRIDE, not the card's derived `input * 0.1` (which would
+  # read $0.40) -- Anthropic quotes this model's cache-read price outright rather than as a
+  # multiple, the documented case `ModelRates.cache_read` exists for. `cache_write` carries no
+  # override: no outright cache-write figure is in the source cited above, so it resolves to the
+  # card's derived `input * 1.25` ($5.00), the honest default for a number nobody has quoted
+  # differently.
+  claude-opus-5-5:
+    provider: anthropic
+    tier: L
+    roles: []
+    rates:
+      input: 4.0
+      output: 20.0
+      cache_read: 0.20
+      source: >-
+        Claude Code 2.1.280 release content ("now the default Opus model: 1M context, $4/$20
+        per Mtok, $0.20/Mtok cache reads"), read via `docs/audits/2026-09-23-changelog-
+        review.md` Part C / `A5`, not the shared card's 2026-06-24 cache.
     pinned_at: []
 
   # ADDED 2026-09-15 BY `[#787]`, AND IT IS THE ROW EVERY OTHER PROVIDER'S COMPARABILITY WAS

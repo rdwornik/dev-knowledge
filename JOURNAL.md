@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-24 (j) - CC (Opus 5.5, integrator wave 5a): LANE 5A-8 landed -- Copilot Enterprise admitted for implement on in-repo evidence
+
+**Anchors:** `7bc04c65` (the lane's sync merge of origin/main `10b1570e`) · `54c663ce` (repair 1 of 2: consumer and disposition declared for its two records) · `1e71d88f` (copilot's newly-licensed read-role eligibility asserted) · `6685bec9` (the silent-rule ratchet growth from the prior commit's prose drained) · `ab19d916` (Copilot Enterprise admitted for implement on in-repo evidence) -- `worktree-lane-provider-registry`, merged --no-ff in an integration worktree.
+
+**Did:** merged LANE-5A-8 (merge priority 4) after repair 1 of 2: the first merge (8c891882, refused 04:30Z) landed two records with no consumer declaration. `ecosystem/provider-registry.yaml` records the operator's 2026-09-23 admission of Copilot Enterprise as a bounded implement producer, citing `docs/audits/2026-09-23-technical-copilot-admission-evidence.md` (new; the in-repo evidence). The router and role tests assert the new eligibility. AX22-1's >= 8-of-10 measurement still governs routing weight; the admission does not replace it. Its first handback line sat inside backticks, so the integrator did not see it for 4 h 23 min; recorded as a finding.
+
+**Result:** Codex terra `docs/audits/2026-09-24-codex-lane-provider-registry.md` (1 High, disposed). Verification: `to-browser/SESSION-integrator-wave5a-2026-09-23.md`. **Changes:** `ecosystem/provider-registry.yaml`, `tests/test_provider_router.py`, `tests/test_provider_roles.py`, `tests/test_provider_rerank.py`, two `docs/audits/` records (new), `docs/audits/README.md`, `ecosystem/doc-counts.md`, `JOURNAL.md`, `logs/MERGE-RECEIPTS.jsonl`. **Next:** LANE-5A-10 (graph-stage-edge) depended on this merge.
+
 ### 2026-09-24 (i) - CC (Opus 5.5, integrator wave 5a): LANE 5A-2 landed -- a prose change stops pulling in the whole live-repo test set
 
 **Anchors:** `e812e481` (repair 1 of 2: merged origin/main `30930b1e`, and the spent-id collision renumbered to `[#1009]`) · `615b4dc8` (row registered in the manifest) · `3e3fe55c` (the merge-receipts test tightened; Codex terra review recorded) · `d5959e49` (prose selection narrowed; the merge-receipts ledger mapped) -- `worktree-lane-test-selection`, merged --no-ff in an integration worktree.

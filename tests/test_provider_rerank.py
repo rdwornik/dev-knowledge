@@ -192,7 +192,11 @@ def test_the_report_names_every_provider_admission_state(router):
     rows = router.admission_report()
     by_provider = {r.provider: r for r in rows}
     assert by_provider["anthropic"].admitted_in, "anthropic holds admission in at least one role"
-    for provider in ("xai", "copilot-enterprise", "antigravity", "openai"):
+    # `copilot-enterprise` is the 2026-09-23 exception (operator ruling O-3): ADMITTED on
+    # `implement` specifically, still NOT ADMITTED on every other role it appears in. Checked
+    # separately below rather than folded into the "admitted nowhere" loop, which now excludes it.
+    assert by_provider["copilot-enterprise"].admitted_in == ["implement"]
+    for provider in ("xai", "antigravity", "openai"):
         assert by_provider[provider].admitted_in == [], f"{provider} is NOT ADMITTED anywhere"
 
 
@@ -206,11 +210,16 @@ def test_the_report_distinguishes_reporting_from_measuring(router):
 
 def test_the_report_carries_the_licence_alongside_the_admission(router):
     """The two gates are independent and a report showing only one invites the wrong
-    conclusion: copilot-enterprise is blocked on BOTH, and an admission measurement would not
-    clear its licence."""
+    conclusion. Before 2026-09-23, copilot-enterprise was blocked on BOTH, and an admission
+    measurement would not have cleared its licence — that pairing is why the report carries
+    both fields at all. Operator ruling O-3 (2026-09-23) cleared its licence repo-wide; its
+    `implement` admission followed on in-repo evidence (see `test_provider_router.py`), so both
+    fields now read cleared for it, and `xai` — licensed but still genuinely unadmitted
+    everywhere — is what still demonstrates the two-fields-are-independent point directly."""
     by_provider = {r.provider: r for r in router.admission_report()}
-    assert by_provider["copilot-enterprise"].licence == "unknown"
+    assert by_provider["copilot-enterprise"].licence == "permitted"
     assert by_provider["xai"].licence == "permitted"
+    assert by_provider["xai"].admitted_in == [], "xai: licensed but still unadmitted anywhere"
 
 
 # --- the CLI (done-contract item 4: "Click for a CLI where one is warranted") -----------------
