@@ -62,14 +62,25 @@ def test_a_working_listing_state_reads_as_LIVE_never_stopped(receipts):
     assert sessions[0].live is True
 
 
-def test_a_job_absent_from_the_listing_reads_as_finished(receipts):
-    """`dispatch.py::lane_alive`'s own rule: a finished `--bg` job normally stays LISTED, so
-    absence is the ended case with no state to name -- and this janitor's job records outlive
-    any listing-lag window the way dispatch's own callers assume."""
+def test_a_job_absent_from_the_listing_is_UNPROVEN_never_a_stop_target(receipts):
+    """CODEX HIGH FINDING, fixed: the first draft copied `dispatch.py::lane_alive`'s "absent is
+    ended too" rule, which is safe for THAT module's purpose (a stale "ended" reading costs at
+    most a launch collision) and unsafe for this one (it feeds `claude stop`). A snapshot that
+    happens to miss a live job is not evidence the job is over -- absent reads `live=True`, the
+    same as an explicit non-terminal state, so it is never targeted."""
     _write_job(receipts, job_id="a1", slug="lane-a", batch="B1")
     sessions = bj.read_sessions("B1", agents=_listing())
-    assert sessions[0].live is False
+    assert sessions[0].live is True
     assert sessions[0].state == "ABSENT"
+
+
+def test_ENDED_STATES_still_matches_dispatchs_own_ENDED():
+    """The duplication the module docstring names, made CHECKABLE rather than merely asserted
+    (Codex MEDIUM finding on the earlier draft). `dispatch.py` is owned by a different lane of
+    this batch (`lane-launcher-fixes`) and this lane's Do-not forbids editing it to expose a
+    public reader, so a loud test is the honest floor: the day `dispatch._ENDED` gains or drops
+    a state, this fails instead of `batch_janitor` silently leaving a finished session resident."""
+    assert bj._ENDED_STATES == bj._ds._ENDED
 
 
 def test_a_job_of_ANOTHER_batch_is_not_named_at_all(receipts):

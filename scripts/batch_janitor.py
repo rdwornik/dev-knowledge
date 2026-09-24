@@ -8,10 +8,18 @@ WHAT "FINISHED" MEANS, and where that answer comes from. A `--bg` session is a d
 `claude agents --json` keeps listing it, at a TERMINAL state (`done`, `stopped`, `failed`,
 `error`, `exited`, `cancelled`/`canceled`), long after the work is over — it does not vanish
 the moment the lane hands back. This module reads that listing once per run and calls a job
-FINISHED when its listed state is terminal, or it is absent from the listing at all (the same
-"absent is ended too" convention `dispatch.py::lane_alive` already states, because an ended
-`--bg` job normally stays listed rather than disappearing — an absence is the ended case with
-no state to name).
+FINISHED ONLY WHEN AN ENTRY IS PRESENT AND ITS OWN STATE IS TERMINAL.
+
+ABSENCE IS NOT EVIDENCE OF FINISHED, AND THIS IS A DELIBERATE DIVERGENCE FROM
+`dispatch.py::lane_alive`'s "absent is ended too" convention, made after a review caught the
+first draft copying that rule into a context where it is the DANGEROUS direction. `lane_alive`
+reads absence as ended to decide whether a SLUG IS FREE TO LAUNCH INTO — there, a stale "ended"
+reading from a listing gap costs at most a launch collision, caught downstream. Here, "ended"
+is the predicate that FEEDS `claude stop`: a transient listing gap (a snapshot taken mid-poll,
+a `claude agents --json` hiccup) read as "ended" would stop a session that is actually still
+running, which is the one failure mode this module's whole "fails closed" posture exists to
+rule out. A job absent from the listing is reported (`state="ABSENT"`) but is NEVER a target —
+`read_sessions` below marks it `live=True`, the same as an explicit non-terminal state.
 
 WHICH JOBS BELONG TO THE BATCH, and why that question has exactly one answer surface.
 `claude agents --json` names no batch at all — nothing in the live listing says which night's
@@ -67,11 +75,16 @@ logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("batch-janitor")
 
 #: Terminal job-listing states. MIRRORS `dispatch.py`'s OWN `_ENDED` set — that name is
-#: private to that module (no public "is this listing entry live" reader exists to import), so
-#: the small vocabulary is duplicated here rather than reached into across the module boundary.
-#: It is git's/the CLI's own fixed enum, not expected to drift the way a structured protocol
-#: would; if it ever does, `tests/test_batch_janitor.py` and `tests/test_dispatch_py.py` both
-#: pin their own copy and would disagree.
+#: private to that module (no public "is this listing entry live" reader exists to import, and
+#: `dispatch.py` belongs to a DIFFERENT lane of this batch, `lane-launcher-fixes` — this lane's
+#: Do-not forbids editing it to expose one), so the small vocabulary is duplicated here rather
+#: than reached into across the module boundary.
+#:
+#: THE DUPLICATION IS TESTED, NOT JUST ASSERTED IN PROSE (a Codex review's MEDIUM finding on an
+#: earlier draft, which only claimed the two would "disagree" without a test that could ever
+#: catch it): `tests/test_batch_janitor.py::test_ENDED_STATES_still_matches_dispatchs_own_ENDED`
+#: reads `dispatch._ENDED` directly and fails loudly the day the two diverge, which is the
+#: honest floor available without editing a file this lane does not own.
 _ENDED_STATES = frozenset({"done", "stopped", "failed", "error", "exited", "cancelled",
                            "canceled"})
 
@@ -91,8 +104,11 @@ class LaneSession:
     worktree: str
     #: The listing's own state string; `"ABSENT"` when the job carries no listing entry at all.
     state: str
-    #: False = FINISHED -- a terminal state, or absent from the listing entirely (the same
-    #: "absent is ended too" rule `dispatch.py::lane_alive` states for a `--bg` job).
+    #: False = FINISHED, and ONLY when an entry was found with an explicit terminal state.
+    #: True on a non-terminal state AND on ABSENCE -- an absent job is UNPROVEN, never
+    #: assumed ended (see the module docstring: this deliberately diverges from
+    #: `dispatch.py::lane_alive`'s "absent is ended too", which is safe for a launch-collision
+    #: check and unsafe for a kill decision).
     live: bool
 
 
@@ -193,6 +209,12 @@ def read_sessions(batch: str, *,
     read `claude agents --json` and guessed "probably finished" would be the one mechanism in
     this repo where that guess KILLS a live session. Refusing beats guessing here more than it
     does almost anywhere else in this codebase.
+
+    `live` IS FALSE ONLY ON AN OBSERVED TERMINAL STATE. A job ABSENT from this listing is
+    `live=True` -- UNPROVEN, not "probably ended": a snapshot that happens to miss a job is not
+    evidence the job is over, and this predicate feeds `stop_session`, where the wrong guess is
+    irreversible (a Codex review caught the first draft treating absence as safe-to-stop, the
+    same defect one level up).
     """
     fetch = agents or _ds.list_agents
     try:
@@ -206,8 +228,11 @@ def read_sessions(batch: str, *,
     for job in batch_jobs(batch):
         job_id = str(job.get("job_id") or "")
         entry = _find_entry(listing, job_id) if job_id else None
-        state = str(entry.get("state") or "") if entry is not None else "ABSENT"
-        live = entry is not None and str(entry.get("state") or "").lower() not in _ENDED_STATES
+        if entry is None:
+            state, live = "ABSENT", True
+        else:
+            state = str(entry.get("state") or "")
+            live = state.lower() not in _ENDED_STATES
         out.append(LaneSession(slug=str(job.get("slug") or ""), job_id=job_id,
                                worktree=str(job.get("worktree") or ""), state=state, live=live))
     return tuple(out)

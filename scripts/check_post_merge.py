@@ -23,15 +23,19 @@ sibling gap). It is wired into no hook — `lane-organ-wirings` owns wiring a mo
 today it is a checklist row with an exit code, run by hand between the merge and the push, the
 same way `merge_receipt.py require` is run over the integrator's own walk range.
 
-WHICH FILES ARE READ, and why the answer is narrower than "every file the merge commit
-mentions". `git diff-tree -c` on a merge commit lists only the paths whose content in the
-merge's tree differs from EVERY parent — git's own COMBINED-diff narrowing, and NOT the
-default: plain `diff-tree` prints nothing at all for a merge commit unless told `-c`/`-m`/
-`--cc` (measured on a scratch repo). A file identical to at least one parent was carried
-through untouched by the merge and cannot hold a marker this merge introduced; scanning it
-would cost a `git show` per path for a question already answered by git. On a single-parent
-SHA the same command degrades to an ordinary diff against that one parent, which is still the
-right question to ask.
+WHICH FILES ARE READ. `git diff-tree <sha>^1 <sha>` — the diff between the merge's FIRST
+PARENT and the merge itself, the same baseline `merge_receipt.first_parent_of` derives for
+its own attribution ("the differential must mean 'what THIS merge changed'"). Every path where
+main gained or changed content because of this merge is scanned, including one carried in
+WHOLESALE from the other side: an earlier draft of this module used `git diff-tree -c`
+(COMBINED diff — paths differing from EVERY parent), which is git's own narrowing to "genuinely
+touched by conflict resolution" and is NARROWER than that. Measured on a scratch repo: a file
+identical to the merge's SECOND parent but different from the first (a marker baked into a
+feature commit long before this merge, never itself in conflict) is INVISIBLE to `-c` and
+VISIBLE to the first-parent diff — and `[#1014]`'s Done-when is "a conflict marker in a file
+touched by a --no-ff merge commit", not only a file `-c` calls genuinely merged. On a
+single-parent SHA the same command degrades to an ordinary diff against that one parent, which
+is still the right question to ask.
 
 THE BLOB READ IS THE COMMIT'S, NEVER THE WORKING TREE'S. `git show <sha>:<path>` reads the
 merge commit's own tree, so the verdict is a property of the commit under test and does not
@@ -131,23 +135,26 @@ def _run(argv: list[str], *, timeout: float = 60) -> "subprocess.CompletedProces
 
 
 def touched_files(repo_root: Path, merge_sha: str) -> list[str]:
-    """The paths whose content in `merge_sha`'s tree differs from EVERY parent.
+    """The paths that differ between `merge_sha`'s FIRST PARENT and `merge_sha` itself.
 
-    `git diff-tree --no-commit-id --name-only -r -c <sha>` -- `-c` (COMBINED diff) IS THE
-    NARROWING, and it is not the default: plain `diff-tree` prints NOTHING for a merge commit
-    unless told how to diff one (measured on a scratch repo -- a real `--no-ff` merge of a
-    genuinely conflicting file prints zero paths without `-c`/`-m`/`--cc`). `-c`'s own
-    definition is "paths that differ from every parent", which is exactly the set a leftover
-    marker can live in: a path identical to at least one parent was carried through untouched
-    and cannot hold a marker THIS merge introduced. `-m` (one diff PER parent) was rejected
-    because it names a file once per parent it differs from, and de-duplicating that in this
-    module would just reimplement what `-c` already computes.
+    `git diff-tree --no-commit-id --name-only -r <sha>^1 <sha>` -- an ordinary two-tree diff
+    against the derived first-parent baseline, the same one `merge_receipt.first_parent_of`
+    uses ("the differential must mean 'what THIS merge changed'").
+
+    NOT `git diff-tree -c <sha>` (COMBINED diff, "paths differing from EVERY parent") --
+    REJECTED after measurement. `-c` is git's own narrowing to paths a human visibly resolved,
+    and it is NARROWER than "touched by this merge": a path identical to the merge's SECOND
+    parent but different from the first — a marker baked into a feature commit long before this
+    merge, never itself in conflict — is invisible to `-c` and would land in main with nobody
+    having scanned it. Measured on a scratch repo (three-file fixture, one marker file
+    untouched on the feature side): `-c` named one of two genuinely differing paths; the
+    first-parent diff named both.
     """
     proc = _run(["git", "-C", str(repo_root), "diff-tree", "--no-commit-id", "--name-only",
-                "-r", "-c", merge_sha])
+                "-r", f"{merge_sha}^1", merge_sha])
     if proc.returncode != 0:
         raise PostMergeCheckError(
-            f"git diff-tree {merge_sha!r} exited {proc.returncode}: "
+            f"git diff-tree {merge_sha!r}^1..{merge_sha!r} exited {proc.returncode}: "
             f"{proc.stderr.strip()[:200]} -- refusing to read that as 'nothing touched', "
             f"because an unresolvable SHA and a no-op merge are different facts")
     return [line.strip() for line in proc.stdout.splitlines() if line.strip()]

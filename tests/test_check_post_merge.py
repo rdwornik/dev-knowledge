@@ -83,6 +83,37 @@ def test_check_merge_FAILS_on_a_conflict_marker_landed_by_a_no_ff_merge(tmp_path
 
 
 @requires_git
+def test_check_merge_CATCHES_a_marker_baked_in_unchanged_from_one_parent(tmp_path):
+    """CODEX HIGH FINDING, reproduced and fixed: a file identical to the merge's SECOND parent
+    (never itself in conflict -- carried in wholesale) but different from the first still
+    counts as 'touched by this merge', and a marker sitting in it must not slip through. A
+    combined-diff (`git diff-tree -c`) narrowing MISSES this path entirely; measured on this
+    exact fixture before the fix (`-c` named one of two genuinely-differing paths)."""
+    repo = _init_repo(tmp_path)
+    _run(repo, "checkout", "-q", "-b", "feature")
+    (repo / "OTHER.md").write_text("<<<<<<< baked in on feature, never conflicts\n",
+                                   encoding="utf-8")
+    _run(repo, "add", "-A")
+    _run(repo, "commit", "-q", "-m", "feature: bake a marker into OTHER.md")
+    (repo / "JOURNAL.md").write_text("feature change\n", encoding="utf-8")
+    _run(repo, "commit", "-q", "-am", "feature: edit JOURNAL.md")
+    _run(repo, "checkout", "-q", "main")
+    (repo / "JOURNAL.md").write_text("main change\n", encoding="utf-8")
+    _run(repo, "commit", "-q", "-am", "main: edit JOURNAL.md")
+    _attempt_conflicting_merge(repo)
+    (repo / "JOURNAL.md").write_text("resolved\n", encoding="utf-8")
+    _run(repo, "add", "-A")
+    _run(repo, "commit", "-q", "-m", "merge feature (JOURNAL.md resolved, OTHER.md untouched)")
+    sha = _run(repo, "rev-parse", "HEAD").stdout.strip()
+
+    verdict = cpm.check_merge(repo, sha)
+
+    assert "OTHER.md" in verdict.touched, "a file taken wholesale from one parent is still TOUCHED"
+    assert not verdict.ok
+    assert "OTHER.md" in {hit.path for hit in verdict.hits}
+
+
+@requires_git
 def test_check_merge_PASSES_a_clean_no_ff_merge(tmp_path):
     """The same divergence, resolved properly before commit -- no marker anywhere."""
     repo = _init_repo(tmp_path)
