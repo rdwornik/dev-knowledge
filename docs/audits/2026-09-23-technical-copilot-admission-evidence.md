@@ -6,6 +6,10 @@ copilot-enterprise.admission` and `providers.copilot-enterprise.licence`, both m
 `admitted` / `permitted` by this lane under operator ruling O-3 (`RATIFICATION-2026-09-23-
 copilot.md`, transport-only — cited here for date/author, never as the evidence itself).
 
+**Consumer:** `ecosystem/provider-registry.yaml:596`, copilot-enterprise's `implement`-role
+admission entry (`evidence: docs/audits/2026-09-23-technical-copilot-admission-evidence.md`),
+which cites this file by path as its evidence.
+
 ## Why this file exists
 
 The lane's done-contract requires the admission entry's evidence to cite **in-repo artifacts

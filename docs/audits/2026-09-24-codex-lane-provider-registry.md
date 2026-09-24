@@ -11,6 +11,11 @@
 **Model used:** `gpt-5.6-terra` (pinned; both lanes — [#469])
 **Review profile:** code
 
+no-consumer: this lane files no BACKLOG row of its own for this finding -- it was fixed
+directly in the same session's commit `1e71d88f`, so the disposition below and the
+self-disposition row at the foot of this file are the record, the same direct-disposition
+route `2026-09-24-codex-lane-ci-verdict.md`'s own no-consumer line takes for its findings.
+
 ---
 
 ## Focus
@@ -56,3 +61,7 @@
   test_the_licence_fix_also_opens_copilot_on_read_though_its_admission_there_is_untouched`
   asserts the eligibility and the exact `read` survivor order
   (`["antigravity", "copilot-enterprise", "anthropic"]`) as a checked property.
+
+| File | Disposition | Evidence locator |
+|---|---|---|
+| 2026-09-24-codex-lane-provider-registry.md | ACTIONED | 1e71d88f |
