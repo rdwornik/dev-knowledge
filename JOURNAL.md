@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-25 (b) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): merge hygiene lands -- timed receipt steps, a post-merge conflict check, a batch janitor
+
+**Anchors:** `2697a87d`, `cce67b55`, `239beb29` (`feat(merge-receipt)` + the Codex-review fixes + the review tally) -- `worktree-lane-merge-hygiene` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree off origin/main `04868005`.
+
+**Did:** purity 3 commits / 8 files; merged in `worktree-integrate-lane-merge-hygiene`; regenerated doc-counts and the audits index on the merged tree (ruling b); the two `fates:` lines in `ecosystem/harness.yaml` are the lane's ruling-(a) additions; ship-gate diffed base vs merge; lane-changed tests on the merged tree; CI paired against main. **Result:** `merge_receipt.py` shows each step's start and end; `scripts/check_post_merge.py check --sha` refuses a conflict marker in a merge's first-parent diff; `scripts/batch_janitor.py run --batch --dry-run` lists the finished sessions it would stop ([#1014]). From this merge on the integrator's post-merge check and janitor run through them. **Changes:** `JOURNAL.md`, `ecosystem/doc-counts.md`, `docs/audits/README.md`, `logs/MERGE-RECEIPTS.jsonl` (+ the lane's 8 files). **Next:** the rest of the WAVE5B-N1 queue.
+
 ### 2026-09-25 (a) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): ADR-122 step 0 lands -- one view budget, row filing reopened
 
 **Anchors:** `aeab4577` (`feat(gen_task_tree): ADR-122 step 0 -- one view-budget config, first row filed`) -- `worktree-lane-adr122-step0` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree off origin/main `2ae86d07`.
