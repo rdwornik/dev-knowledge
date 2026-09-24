@@ -4700,14 +4700,19 @@ this entry plus the two audit files. The D-backbone doctrine that opens the sour
 
 Both files are explicitly `status: PROPOSAL, NOT A DECISION` / an amendment to a batch order, not an
 architect ruling — the operator required an ADR, a decision matrix and a debate before any of
-H1-H4 becomes policy, because an earlier version of the same idea was ruled too fast. `ADR-121`
-(Proposed, unmerged branch `worktree-lane-adr-state-store` @ 48c0cdc2) is the resulting ADR;
-`[#984]` is its carrier row (D25). The debate-track-2 amendment (run ai-council from its own front
-door, on the same question, and compare against the Claude-vs-Codex-Astra track) has no separate
-row — it is a step inside the `BATCH-ADR-STATE-STORE-2026-09-23` order, not a standing mechanism,
-and lands, if at all, inside ADR-121's own record. **Honest gap:** neither file is "landed" in the
-sense the other AK entries use the word; this entry is the citation the "no repo citation" finding
-asked for, not a claim that the proposal was adopted.
+H1-H4 becomes policy, because an earlier version of the same idea was ruled too fast.
+**Update (lane-landing-window, 2026-09-24, sync with main):** `worktree-lane-adr-state-store`
+merged (`48c0cdc2`) while this lane ran. `ADR-121` (`docs/decisions/ADR-121-operational-state-is-
+a-single-writer-event-log-on-a-git-state-ref.md`) is now on `main`, Status still **Proposed** (not
+Accepted — ratification per ADR-94 remains open); `[#984]` and `[#963]` are its carrier rows.
+The debate-track-2 amendment (run ai-council from its own front door, on the same question, and
+compare against the Claude-vs-Codex-Astra track) **did land**: `docs/audits/2026-09-23-technical-
+state-store-debate.md` §3 ("Track 2 — ai-council from its own front door") runs it and records a
+verdict (§3.5); it has no separate backlog row of its own, carried instead by `[#963]`.
+**Remaining honest gap:** the ADR's one functional question (may a seat act on locally-saved,
+not-yet-pushed state?) is still unanswered by the operator, its Status line is not yet flipped by
+ADR-94, and its migration steps 1-4 are not yet filed as rows — `[#963]`'s own Done-when tracks
+all three.
 
 ### Out of scope for this lane
 
