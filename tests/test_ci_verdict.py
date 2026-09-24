@@ -64,6 +64,23 @@ def _no_sleep(_seconds):
     return None
 
 
+def _fake_time():
+    """A controllable (clock_fn, sleep_fn) pair. Every test whose `wait_for_run` loop can run
+    more than one iteration MUST use this (or an equivalent bound) rather than the real clock --
+    a real `time.monotonic` with a no-op `sleep_fn` busy-loops for the WHOLE real `timeout_s`
+    (Codex terra, 2026-09-24, HIGH: this is exactly what made the first real run of this file
+    take ~900s on one test alone)."""
+    clock = {"t": 0.0}
+
+    def clock_fn():
+        return clock["t"]
+
+    def sleep_fn(seconds):
+        clock["t"] += seconds
+
+    return clock_fn, sleep_fn
+
+
 # --- green --------------------------------------------------------------------------------
 
 def test_a_clean_run_is_GREEN_and_carries_the_baseline_id_even_with_no_regressions():
@@ -100,6 +117,21 @@ def test_a_run_with_REGRESSIONS_is_RED_and_NAMES_the_new_reds_from_the_gates_own
     assert "new red" in verdict.reason
 
 
+def test_a_run_that_CONCLUDES_non_success_with_no_failing_job_is_RED_not_green():
+    """The workflow's own `conclusion` is checked too, never inferred solely from job
+    conclusions -- a `cancelled`/`timed_out` run with every listed job reading success/skipped
+    (or an empty job list) must not read as green (Codex terra, 2026-09-24, HIGH)."""
+    jobs = [{"name": "pytest", "conclusion": "success", "databaseId": 9}]
+    verdict = cv.verdict_for(
+        "jkl012", repo_root=None,
+        list_fn=_list_fn([_run("jkl012", conclusion="cancelled")]), jobs_fn=_jobs_fn(jobs),
+        log_fn=_log_fn({9: _suite_gate_log("c5108329")}), sleep_fn=_no_sleep)
+
+    assert verdict.verdict == cv.STATE_RED
+    assert verdict.new_reds == ("workflow:cancelled",)
+    assert "cancelled" in verdict.reason
+
+
 def test_a_RED_run_with_no_suite_gate_block_falls_back_to_NAMING_the_failing_jobs():
     """`ruff` broke before the pytest job's gate step ever ran -- there is no regression list
     to read, so the fallback names what actually failed rather than reporting nothing."""
@@ -118,7 +150,12 @@ def test_a_RED_run_with_no_suite_gate_block_falls_back_to_NAMING_the_failing_job
 # --- not-run --------------------------------------------------------------------------------
 
 def test_no_matching_run_is_NOT_RUN_and_never_reads_as_a_pass():
-    verdict = cv.verdict_for("ghost", repo_root=None, list_fn=_list_fn([]), sleep_fn=_no_sleep)
+    """A bounded fake clock, not the real one -- an empty `list_fn` never finds a run, so an
+    unbounded wait would spin for the real `timeout_s` (see `_fake_time`'s docstring)."""
+    clock_fn, sleep_fn = _fake_time()
+
+    verdict = cv.verdict_for("ghost", repo_root=None, list_fn=_list_fn([]),
+                             timeout_s=30, interval_s=10, sleep_fn=sleep_fn, clock_fn=clock_fn)
 
     assert verdict.verdict == cv.STATE_NOT_RUN
     assert verdict.run_id is None
@@ -148,12 +185,11 @@ def test_an_UNREADABLE_job_list_is_NOT_RUN_not_a_silent_pass():
 def test_a_run_still_IN_PROGRESS_past_the_timeout_is_NOT_RUN_and_NAMES_the_run():
     """Fully hermetic: a fake clock so the timeout fires without any real waiting, and an
     injected `view_fn` so re-polling never shells out to the real `gh`."""
-    clock = {"t": 0.0}
+    clock_fn, sleep_fn = _fake_time()
     verdict = cv.verdict_for(
         "abc", repo_root=None, list_fn=_list_fn([_run("abc", status="in_progress")]),
         view_fn=lambda run_id, *, repo_root: _run("abc", status="in_progress"),
-        timeout_s=10, interval_s=5, sleep_fn=lambda seconds: clock.__setitem__("t", clock["t"] + seconds),
-        clock_fn=lambda: clock["t"])
+        timeout_s=10, interval_s=5, sleep_fn=sleep_fn, clock_fn=clock_fn)
 
     assert verdict.verdict == cv.STATE_NOT_RUN
     assert verdict.run_id == 1
@@ -192,12 +228,18 @@ def test_waiting_POLLS_IN_PROCESS_until_the_run_completes():
         return _run("abc", status=status)
 
     sleeps = []
+    clock_fn, real_sleep_fn = _fake_time()
+
+    def sleep_fn(seconds):
+        sleeps.append(seconds)
+        real_sleep_fn(seconds)
+
     verdict = cv.verdict_for(
         "abc", repo_root=None, list_fn=_list_fn([_run("abc", status="in_progress")]),
         view_fn=view_fn, jobs_fn=_jobs_fn([{"name": "pytest", "conclusion": "success",
                                             "databaseId": 9}]),
         log_fn=_log_fn({9: _suite_gate_log("c5108329")}),
-        sleep_fn=sleeps.append, timeout_s=1000, interval_s=5)
+        sleep_fn=sleep_fn, timeout_s=1000, interval_s=5, clock_fn=clock_fn)
 
     assert verdict.verdict == cv.STATE_GREEN
     assert calls["n"] >= 1
@@ -279,3 +321,50 @@ def test_parse_suite_gate_block_reports_NOT_FOUND_when_the_gate_step_never_ran()
     assert block["found"] is False
     assert block["baseline_id"] is None
     assert block["regressions"] == ()
+
+
+def _log_line_at(ts: str, text: str) -> str:
+    return f"pytest\tUNKNOWN STEP\t{ts} {text}"
+
+
+def test_parse_suite_gate_block_WINDOW_ignores_a_shape_match_outside_the_real_step():
+    """The defect Codex terra found (2026-09-24, HIGH): text shaped like the gate's own output,
+    printed by an EARLIER step (pytest's own captured stdout can echo anything), must not be
+    read as the verdict once a window scopes the read to the real step's own time range."""
+    decoy = _log_line_at("2026-09-24T00:00:01.0000000Z", "baseline sha   : deadbeef00")
+    real = _log_line_at("2026-09-24T00:05:00.0000000Z", "baseline sha   : c5108329")
+    log = "\n".join([decoy, _log_line_at("2026-09-24T00:05:00.0000000Z",
+                                        "conductor suite-baseline gate"), real])
+    window = (cv.datetime.fromisoformat("2026-09-24T00:04:00+00:00"),
+             cv.datetime.fromisoformat("2026-09-24T00:06:00+00:00"))
+
+    unscoped = cv.parse_suite_gate_block(log)
+    scoped = cv.parse_suite_gate_block(log, window=window)
+
+    assert unscoped["baseline_id"] == "deadbeef00", "the decoy IS read without a window"
+    assert scoped["baseline_id"] == "c5108329"
+
+
+def test_step_window_reads_the_gate_steps_own_started_and_completed_PADDED_by_one_second():
+    """Padded, not exact -- `steps[].startedAt`/`completedAt` carry second resolution while the
+    log's own timestamps carry microseconds; a step that starts and ends within one reported
+    second (measured live, 2026-09-24) would otherwise exclude its own output. See
+    `_STEP_WINDOW_PAD`'s docstring."""
+    job = {"steps": [{"name": "Sync the locked environment",
+                      "startedAt": "2026-09-24T00:00:00Z", "completedAt": "2026-09-24T00:01:00Z"},
+                     {"name": cv.SUITE_GATE_STEP_NAME,
+                      "startedAt": "2026-09-24T00:05:00Z",
+                      "completedAt": "2026-09-24T00:05:30Z"}]}
+
+    window = cv._step_window(job, cv.SUITE_GATE_STEP_NAME)
+
+    assert window is not None
+    assert window[0].isoformat() == "2026-09-24T00:04:59+00:00"
+    assert window[1].isoformat() == "2026-09-24T00:05:31+00:00"
+
+
+def test_step_window_is_NONE_when_the_step_never_ran():
+    job = {"steps": [{"name": "Sync the locked environment",
+                      "startedAt": "2026-09-24T00:00:00Z", "completedAt": "2026-09-24T00:01:00Z"}]}
+
+    assert cv._step_window(job, cv.SUITE_GATE_STEP_NAME) is None

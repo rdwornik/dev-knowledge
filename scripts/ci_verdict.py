@@ -56,7 +56,13 @@ HONEST LIMITS:
     directly -- this organ trusts the runner's own rendering rather than re-deriving it, so a
     change to `render_suite_gate`'s wording (the `baseline sha   :` / `  REGRESSION    ` prefixes)
     is a breaking change to this parser too. Format confirmed live against
-    `gh run view --job 107339568361 --log` on run `35907748018`, 2026-09-24.
+    `gh run view --job 107339568361 --log` on run `35907748018`, 2026-09-24. Parsing is SCOPED
+    to the `SUITE_GATE_STEP_NAME` step's own `startedAt`/`completedAt` window (`_step_window`),
+    not the log text's step field -- that field renders as the literal `UNKNOWN STEP` on every
+    line of a real `run:` step, measured the same day, so it cannot itself discriminate. Without
+    a resolvable window (the step never ran, or its timing is missing) parsing falls back to
+    unscoped, which is safe exactly because there is then no real gate output anywhere to
+    misattribute (Codex terra, 2026-09-24, HIGH).
   * WAITING IS BOUNDED. A run still queued or running past `--timeout` reads as `not-run` with the
     run named in `reason` -- re-run this organ rather than raising the default past what one
     `conductor.yml` push run costs (about 8 minutes, per the batch's measured VERIFY-TIME digest).
@@ -68,7 +74,7 @@ import re
 import subprocess
 import time
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -93,11 +99,19 @@ STATE_NOT_RUN = "not-run"
 
 _RUN_FIELDS = "databaseId,headSha,status,conclusion,displayTitle,url,createdAt,updatedAt"
 #: `gh run view --job <id> --log` lines are TAB-separated `<job>\t<step>\t<timestamp> <text>`.
-#: Measured live, not assumed -- see the module docstring's honest limit on this format.
-_LOG_TIMESTAMP_RE = re.compile(r"^\S+Z ?")
+#: Measured live, not assumed -- see the module docstring's honest limit on this format. The
+#: step field itself was measured as the literal string `UNKNOWN STEP` on every line of a real
+#: `run:`-step log (2026-09-24) -- gh does not resolve it to the step's real name in this text
+#: format, so this organ never trusts that field; scoping is done by TIMESTAMP against the
+#: step's own `startedAt`/`completedAt` window (`_step_window`), read from `gh run view --json
+#: jobs`'s per-job `steps` array, which DOES carry real names and real times.
+_LOG_LINE_RE = re.compile(r"^(?:[^\t]*\t){0,2}(\S+Z) ?(.*)$")
 _BASELINE_SHA_RE = re.compile(r"^baseline sha\s*:\s*(\S+)$")
 _REGRESSION_RE = re.compile(r"^  REGRESSION\s+(\S.*)$")
 _SUITE_GATE_HEADER = "conductor suite-baseline gate"
+#: `conductor.yml`'s pytest job, step id `gate` -- the ONLY step whose log this organ trusts
+#: for a baseline id or a regression list. A rename there is a breaking change here too.
+SUITE_GATE_STEP_NAME = "Judge the run against the frozen baseline, by node id ([#802])"
 
 
 class GhUnavailable(RuntimeError):
@@ -199,24 +213,71 @@ def fetch_job_log(run_id, job_id, *, repo_root: Path) -> Optional[str]:
         return None
 
 
-def parse_suite_gate_block(log_text: str) -> dict:
+#: `gh run view --json jobs`'s `steps[].startedAt`/`completedAt` carry SECOND resolution only;
+#: the log text's own timestamps carry microseconds. A step measured 2026-09-24 completed in
+#: under one second -- `startedAt == completedAt == "...:47Z"` -- so its true content, logged at
+#: "...:47.2155844Z", falls AFTER that second's zero-microsecond instant and would be excluded
+#: by an unpadded window. One second of pad on each side absorbs the resolution gap; it can
+#: never admit a DIFFERENT step's whole output, since steps run sequentially and are each
+#: measured in single-digit seconds at worst.
+_STEP_WINDOW_PAD = timedelta(seconds=1)
+
+
+def _step_window(job: dict, step_name: str) -> Optional[tuple]:
+    """The `(started, completed)` datetimes of `step_name` in `job`'s own `steps` array, padded
+    for the resolution gap above, or `None` when that step is not there -- it never ran, or the
+    run predates this organ's step name. `None` means "cannot scope"; callers fall back to
+    unscoped parsing rather than silently finding nothing."""
+    for step in job.get("steps") or []:
+        if step.get("name") != step_name:
+            continue
+        started, completed = step.get("startedAt"), step.get("completedAt")
+        if not started or not completed:
+            return None
+        try:
+            return (datetime.fromisoformat(str(started).replace("Z", "+00:00")) - _STEP_WINDOW_PAD,
+                    datetime.fromisoformat(str(completed).replace("Z", "+00:00")) + _STEP_WINDOW_PAD)
+        except ValueError:
+            return None
+    return None
+
+
+def parse_suite_gate_block(log_text: str, *, window: Optional[tuple] = None) -> dict:
     """The baseline sha and named regressions `render_suite_gate` logged, read back out of the
     job's own log text. `found=False` means the block never printed -- the gate step did not
-    run -- which the caller must not confuse with "printed and found nothing wrong"."""
+    run -- which the caller must not confuse with "printed and found nothing wrong".
+
+    `window`, when given, is a `(started, completed)` pair (see `_step_window`): only log lines
+    whose OWN timestamp falls inside it are read. Unscoped (`window=None`), a line anywhere in
+    the job's log that happens to shape-match `baseline sha   : ...` or `  REGRESSION    ...`
+    -- pytest's own captured stdout can, in principle, echo arbitrary text -- would be misread
+    as the gate's verdict. Scoping by the step's real `startedAt`/`completedAt` (not the log
+    text's own step field, which gh renders as the literal string `UNKNOWN STEP` -- see the
+    module docstring) closes that.
+    """
     baseline_id = None
     regressions = []
     found = False
     for raw in log_text.splitlines():
-        tail = raw.rsplit("\t", 1)[-1] if "\t" in raw else raw
-        line = _LOG_TIMESTAMP_RE.sub("", tail)
+        m = _LOG_LINE_RE.match(raw)
+        if not m:
+            continue
+        ts_text, line = m.group(1), m.group(2)
+        if window is not None:
+            try:
+                ts = datetime.fromisoformat(ts_text.replace("Z", "+00:00"))
+            except ValueError:
+                continue
+            if not (window[0] <= ts <= window[1]):
+                continue
         if line.startswith(_SUITE_GATE_HEADER):
             found = True
-        m = _BASELINE_SHA_RE.match(line)
-        if m:
-            baseline_id = m.group(1)
-        m = _REGRESSION_RE.match(line)
-        if m:
-            regressions.append(m.group(1))
+        bm = _BASELINE_SHA_RE.match(line)
+        if bm:
+            baseline_id = bm.group(1)
+        rm = _REGRESSION_RE.match(line)
+        if rm:
+            regressions.append(rm.group(1))
     return {"baseline_id": baseline_id, "regressions": tuple(regressions), "found": found}
 
 
@@ -308,6 +369,14 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
     job_map = {j.get("name"): j.get("conclusion") for j in jobs}
     failing = sorted(n for n, c in job_map.items() if c not in ("success", "skipped", None))
 
+    # THE RUN'S OWN CONCLUSION IS ALWAYS CHECKED TOO, never inferred solely from job
+    # conclusions. A completed run can conclude non-success (`cancelled`, `timed_out`, a
+    # startup failure) with an EMPTY job list or with every listed job reading success/skipped
+    # -- GitHub's run-level and job-level bookkeeping are separate facts, and reading only the
+    # job map would report such a run GREEN (Codex terra, 2026-09-24, HIGH).
+    run_conclusion = run.get("conclusion")
+    workflow_level_failure = not failing and run_conclusion not in ("success", "skipped", None)
+
     baseline_id = None
     regressions: tuple = ()
     gate_found = False
@@ -315,12 +384,13 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
     if pytest_job is not None and pytest_job.get("databaseId") is not None:
         log_text = log_fn(run_id, pytest_job["databaseId"], repo_root=root)
         if log_text:
-            block = parse_suite_gate_block(log_text)
+            window = _step_window(pytest_job, SUITE_GATE_STEP_NAME)
+            block = parse_suite_gate_block(log_text, window=window)
             baseline_id = block["baseline_id"]
             gate_found = block["found"]
             regressions = block["regressions"]
 
-    if not failing:
+    if not failing and not workflow_level_failure:
         return CiVerdict(ref=ref, sha=sha, verdict=STATE_GREEN, run_id=run_id, run_url=run_url,
                          duration_seconds=duration, baseline_id=baseline_id,
                          reason="every job concluded success or skipped")
@@ -329,12 +399,16 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
         new_reds = regressions
         reason = (f"{len(new_reds)} new red(s) named by the pytest job's own suite-baseline "
                   f"gate, against baseline {baseline_id}")
-    else:
+    elif failing:
         new_reds = tuple(failing)
         reason = f"job(s) did not conclude success: {', '.join(failing)}"
         if not gate_found:
             reason += (" (the pytest job's suite-baseline gate block was not found in its log "
                       "-- naming jobs, not tests)")
+    else:
+        new_reds = (f"workflow:{run_conclusion}",)
+        reason = (f"no job named a failure, but the workflow itself concluded "
+                  f"'{run_conclusion}'")
     return CiVerdict(ref=ref, sha=sha, verdict=STATE_RED, run_id=run_id, run_url=run_url,
                      duration_seconds=duration, baseline_id=baseline_id, new_reds=new_reds,
                      reason=reason)

@@ -6,7 +6,8 @@
 **Diff range:** `main..worktree-lane-ci-verdict`
 **Codex version:** codex-cli 0.155.0
 **Mode:** diff-review
-**Tally:** TBD/TBD/TBD/TBD <!-- Critical/High/Medium/Low. FILL FROM THE FINDINGS SECTION before committing. The hub's review_artifact_coverage leg parses four digits here; TBD deliberately does not parse, so an unfilled tally keeps WARNing instead of shipping a number nobody counted. -->
+**Tally:** 0/3/0/0 <!-- Critical/High/Medium/Low. All 3 HIGH findings fixed in 4b7268b1's follow-up commits: the run-level conclusion check, the window-scoped suite-gate parse (plus a second-resolution padding fix found while verifying it against the live run), and the busy-loop test fix. -->
+**Disposition:** all 3 HIGH findings FIXED (pre-authorized ruling 2(e): fix a Codex review's P1 findings). Re-verified against the live run (`run_id 35907748018`) after each fix; see LANE-5A-6's session file.
 
 **Model used:** `gpt-5.6-terra` (pinned; both lanes — [#469])
 **Review profile:** code
