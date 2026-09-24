@@ -117,6 +117,39 @@ def test_the_receipt_itemises_per_step_minutes_rather_than_one_wall_number(tmp_p
     assert "1.00 min" in rendered and "merge" in rendered
 
 
+def test_summary_shows_each_steps_start_AND_end_not_only_its_minutes(tmp_path):
+    """lane-merge-hygiene done-contract clause 1: 'each step's start, end and minutes'.
+
+    Minutes alone pins a DURATION but not WHEN a step ran, and target 3.1's own complaint is
+    that an itemised view should let a reader attribute time -- attributing needs the clock,
+    not only the stopwatch. `started` was already recorded and never shown; `ended` did not
+    exist at all until this clause, so both are asserted here rather than assumed from minutes.
+    """
+    mr.open_receipt(tmp_path, slug="m", batch="x")
+    receipt = mr.load_receipt(tmp_path, "m")
+    step = mr.StepTiming(step="suite", step_class=mr.CLASS_TESTS, seconds=90.0, ok=True,
+                         returncode=0, command="pytest", started=_stamp(0.0))
+    receipt.steps.append(step)
+    mr.save_receipt(tmp_path, receipt)
+
+    rendered = mr.render_summary(mr.load_receipt(tmp_path, "m"))
+
+    assert step.started in rendered, "the step's START must be shown, not folded into a total"
+    assert step.ended is not None, "90.0 recorded seconds off a parseable `started` must yield an END"
+    assert step.ended in rendered, "the step's END must be shown, not only its duration"
+    assert "1.50 min" in rendered
+
+
+def test_step_ended_is_None_when_started_does_not_parse(tmp_path):
+    """The same honest-absence rule `Receipt._span_seconds` uses for the arc: an unreadable
+    timestamp is an UNKNOWN end, never a fabricated one. `started="-"` is this suite's own
+    placeholder for a step with no real clock reading (`_step`, above) -- exercised for real
+    here rather than asserted only over the helper's intent."""
+    step = mr.StepTiming(step="merge", step_class=mr.CLASS_CEREMONY, seconds=10.0, ok=True,
+                         returncode=0, command="-", started="-")
+    assert step.ended is None
+
+
 def test_an_UNRECORDED_required_step_is_named_rather_than_read_as_a_fast_one(tmp_path):
     """The receipt's own blind spot, declared by the receipt.
 

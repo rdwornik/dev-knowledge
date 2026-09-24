@@ -101,7 +101,7 @@ import statistics
 import subprocess
 import time
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional, Sequence
 
@@ -259,6 +259,28 @@ class StepTiming:
     @property
     def minutes(self) -> float:
         return self.seconds / 60.0
+
+    @property
+    def ended(self) -> Optional[str]:
+        """`started` + `seconds`, as an ISO timestamp -- the step's END.
+
+        UNTIL THIS FIELD, THE RECEIPT KNEW A STEP'S END AND NEVER SAID SO. `started` and
+        `seconds` were both recorded, so the end was always arithmetic a reader could do by
+        hand; `render_summary` did it for nobody. The lane-merge-hygiene done-contract asks
+        for "each step's start, end and minutes" as three things shown, not one shown and one
+        implied.
+
+        None WHEN `started` DOES NOT PARSE -- the same honest-absence rule
+        `Receipt._span_seconds` uses for the arc as a whole. This suite's own placeholder
+        (`started="-"`, in `_step`) and every ledger row written before `[#750]` gave `started`
+        a real clock reading; a receipt that never had one reports an unknown end, not a
+        fabricated one at `seconds` past the epoch.
+        """
+        try:
+            start = datetime.fromisoformat(self.started)
+        except (TypeError, ValueError):
+            return None
+        return (start + timedelta(seconds=self.seconds)).isoformat(timespec="seconds")
 
 
 @dataclass
@@ -582,7 +604,11 @@ class Receipt:
     def to_dict(self) -> dict:
         data = asdict(self)
         data["steps"] = [
-            {**asdict(s), "raced_with": list(s.raced_with)} for s in self.steps]
+            # DERIVED, never a second home for the value -- same argument as `suite_verdict`
+            # just above: `ended` is `started` + `seconds`, computed fresh on every read, and
+            # this key exists so a ledger row is greppable for it rather than requiring the
+            # arithmetic back from a reader.
+            {**asdict(s), "raced_with": list(s.raced_with), "ended": s.ended} for s in self.steps]
         data["wall_seconds"] = round(self.wall_seconds(), 3)
         data["recorded_seconds"] = round(self.recorded_seconds(), 3)
         data["unrecorded_seconds"] = round(self.unrecorded_seconds(), 3)
@@ -1188,8 +1214,13 @@ def render_summary(receipt: Receipt) -> str:
         # not a reading. It is derived rather than typed, and printing it is what lets a reader
         # check that rather than take it on trust.
         against = f" vs {step.baseline_sha[:12]}" if step.baseline_sha else ""
+        # START AND END, ALONGSIDE THE MINUTES -- the done-contract's three things, not two
+        # shown and one implied. `ended` is None on an unparseable `started` (a receipt written
+        # before this field, or this suite's own placeholder), and that gap is named rather
+        # than rendered as a fabricated clock reading.
+        when = f"  {step.started} -> {step.ended or 'unknown'}"
         lines.append(f"  {step.minutes:6.2f} min  [{step.step_class:8s}] {step.step:12s} "
-                     f"{verdict}{state}{against}{raced}")
+                     f"{verdict}{state}{against}{raced}{when}")
     wall = receipt.wall_seconds() / 60.0
     recorded = receipt.recorded_seconds() / 60.0
     serial = receipt.serial_seconds() / 60.0
