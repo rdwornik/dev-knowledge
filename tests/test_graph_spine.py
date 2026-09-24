@@ -553,11 +553,13 @@ moments:
     trigger: "a seat, for this fixture"
     organs:
       - {id: momented, receipt: R.json, command: [uv, run, --locked, python, scripts/momented.py]}
+      - {id: dashced, receipt: R2.json, command: [uv, run, --locked, python, -c, "import sys; sys.path.insert(0, 'scripts'); import dashced as d; d.go()"]}
 fates:
   - {path: scripts/fated_only.py, manual_until: 2026-10-05, reason: "not wired yet -- a moment declaration is owed by a future wave, see scripts/fated_only.py"}
 """)
     _write(root / "scripts" / "staged.py", "def emit():\n    return 1\n")
     _write(root / "scripts" / "momented.py", "def go():\n    return 1\n")
+    _write(root / "scripts" / "dashced.py", "def go():\n    return 1\n")
     _write(root / "scripts" / "fated_only.py", "def nothing():\n    return 0\n")
     return root
 
@@ -567,7 +569,15 @@ def test_harness_stage_and_moment_commands_trigger_their_scripts(harness_repo: P
     their script over `triggers`, sourced from `ecosystem/harness.yaml`."""
     targets = fpg.wiring_targets(harness_repo)
     assert targets[fpg.HARNESS_DECLARATION_RELPATH] == {
-        "scripts/staged.py", "scripts/momented.py"}
+        "scripts/staged.py", "scripts/momented.py", "scripts/dashced.py"}
+
+
+def test_harness_dash_c_snippet_organ_triggers_its_import(harness_repo: Path):
+    """Codex terra review finding (LANE-5A-10, HIGH): a `python -c "..."` organ's script
+    name lives inside the code string, not as a `scripts/*.py` argv token -- the plain-argv
+    pass alone would silently omit this real edge."""
+    targets = fpg.wiring_targets(harness_repo)
+    assert "scripts/dashced.py" in targets[fpg.HARNESS_DECLARATION_RELPATH]
 
 
 def test_harness_fates_entries_do_not_manufacture_a_trigger(harness_repo: Path):

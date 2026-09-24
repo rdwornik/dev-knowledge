@@ -688,6 +688,32 @@ def _import_targets(path: Path, root: Path, modules: dict[str, str]) -> set[str]
     return found
 
 
+#: `python -c "...; import X as Y; ..."` -- the ONE other executable spelling harness.yaml's
+#: moment organs use besides a literal `scripts/*.py` argv token. `merge_receipt.open` and
+#: `fleet_health.seat_health_line` both `sys.path.insert(0, 'scripts')` then `import <bare
+#: module>`, the same shape `graph_queries._command_paths`/`_snippet_scripts` already resolve
+#: for the SAME file read for the moments query -- matches both `import a, b as c` and
+#: `from a import x`, `graph_queries._COMMAND_IMPORT_RE`'s own two shapes.
+_HARNESS_DASH_C_IMPORT_RE = re.compile(
+    r"(?:^|[;\s])(?:from\s+(\w+)\s+import\b|import\s+([\w\s,]+))")
+
+
+def _dash_c_targets(snippet: str, modules: dict[str, str]) -> set[str]:
+    """The scripts a `python -c` snippet imports, resolved against the same `modules` map
+    every other import-based edge in this file uses -- a stdlib name simply misses and
+    contributes nothing, so nothing here needs to know the stdlib's module list."""
+    found: set[str] = set()
+    for from_mod, import_list in _HARNESS_DASH_C_IMPORT_RE.findall(snippet):
+        names = [from_mod] if from_mod else [
+            part.split(" as ")[0].strip() for part in import_list.split(",")]
+        for name in names:
+            name = name.split()[0] if name.split() else ""
+            target = modules.get(name)
+            if target:
+                found.add(target)
+    return found
+
+
 def _harness_command_targets(text: str, modules: dict[str, str], root: Path,
                              bases: tuple[str, ...]) -> set[str]:
     """The scripts `ecosystem/harness.yaml`'s stages and moment organs actually RUN.
@@ -702,6 +728,12 @@ def _harness_command_targets(text: str, modules: dict[str, str], root: Path,
     dress. So only `stages[].command` and `moments[].organs[].command` are read; `fates` is
     never touched. `command: null` (a stage not built yet) contributes nothing, the same rule
     `graph_queries.load_declaration` applies reading the same file for the moments query.
+
+    `-c` SNIPPET ARGV IS A SECOND CASE, not folded into the plain-argv pass above (Codex
+    terra review, LANE-5A-10): a `python -c "<code>"` organ's script name lives INSIDE the
+    code string, not as a `scripts/*.py` path token, so `_resolved_targets` alone never sees
+    it -- `_dash_c_targets` resolves that shape the same way `graph_queries._snippet_scripts`
+    resolves it for the same file.
     """
     try:
         raw = yaml.safe_load(text)
@@ -721,9 +753,17 @@ def _harness_command_targets(text: str, modules: dict[str, str], root: Path,
                 commands.append(organ["command"])
     found: set[str] = set()
     for command in commands:
+        after_c = False
         for arg in command:
-            if isinstance(arg, str):
-                found |= _resolved_targets(arg, modules, root, bases)
+            if not isinstance(arg, str):
+                after_c = False
+                continue
+            if after_c:
+                found |= _dash_c_targets(arg, modules)
+                after_c = False
+                continue
+            after_c = arg == "-c"
+            found |= _resolved_targets(arg, modules, root, bases)
     return found
 
 
