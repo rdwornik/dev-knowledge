@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-24 (p) - CC (Opus 5.5, INTEGRATOR prehandoff): ADR-122 (Proposed) lands on main
+
+**Anchors:** `a97d3088` (`docs(decisions): ADR-122 -- a task is a typed record in git; every backlog view is a projection`) -- `worktree-lane-adr-backlog`, merged `--no-ff` from an integration worktree off origin/main `5930b9e1`.
+
+**Did:** purity (1 commit, 6 files, one test pin 94->95 / G1 47->48 with the cause named); verified as code: `tests/test_validate_adr_status.py` 201 passed on the merged tree; CI conductor run 36033031578 vs main's 36030094232: new = only the 4 known branch-run artifacts (4/4 pass locally), fixed 0; `ship_gate_diff.py`: 0 hard-fail introduced, 2 WARN `funnel_coverage` on the lane's two records (consumed by ADR-122, no ledger disposition -- finding, not refusal, the ADR-121 precedent). ADR-122 Status reads Proposed. `docs/audits/README.md` regenerated on the merged tree. **Result:** clean, local and CI agree. **Changes:** `JOURNAL.md`, `docs/audits/README.md`, `logs/MERGE-RECEIPTS.jsonl` (+ the lane's six files). **Next:** the operator's two ADR-122 questions and the architect's view-ceiling decision (migration step 0) -- no carrier row could be filed.
+
 ### 2026-09-24 (o) - CC (Opus 5.5, INTEGRATOR prehandoff): [#960]'s closure lands on main
 
 **Anchors:** `04439e11` (`chore(backlog): retire [#960] on operator-approved Tier-1 closure`) -- `worktree-close-960`, merged `--no-ff` from an integration worktree off origin/main `665e2a3b`.
