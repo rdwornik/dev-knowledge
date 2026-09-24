@@ -210,6 +210,26 @@ def test_a_gate_that_cannot_start_is_red_not_swallowed(tmp_path):
     assert verdict["gates"][0]["exit_code"] is not None
 
 
+def test_a_memory_gate_timeout_is_red_not_an_uncaught_crash(tmp_path, monkeypatch):
+    """codex-review 2026-09-24 (HIGH): `MemoryGateTimeout` from a `gated=True` gate's admission
+    check propagated straight out of `run_gates`, aborting the WHOLE run (no verdict written,
+    remaining gates never run) instead of producing one failed row like any other gate
+    failure."""
+    import gates
+    import memory_admission_gate
+
+    def _always_times_out(*args, **kwargs):
+        raise memory_admission_gate.MemoryGateTimeout("no free slot among 4 after 900.0s")
+
+    monkeypatch.setattr(memory_admission_gate, "run_gated", _always_times_out)
+    listing = (gates.Gate(name="ship-gate", argv=("does-not-run",), gated=True),
+              _marker_gate(gates, "after", tmp_path / "after"))
+    verdict = gates.run_gates(listing, lane=LANE, cwd=tmp_path)
+    assert verdict["verdict"] == "RED"
+    assert verdict["gates"][0]["exit_code"] not in (0, None)
+    assert (tmp_path / "after").exists(), "a timed-out gate must not stop the remaining gates"
+
+
 def test_an_all_green_list_is_green_and_exits_zero(tmp_path):
     import gates
 

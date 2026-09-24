@@ -17,20 +17,32 @@
 # fires for claude-code (gap) and is silent for codex (current).
 tools:
   claude-code:
-    # 2.1.203–2.1.204 reviewed 2026-07-09 (digest: docs/audits/2026-07-09-changelog-review.md);
-    # installed 2.1.204. 0 ADOPT, 0 OBSOLETES, 0 STALE-NAMES, 2 VERIFY (V1 worktree-subagent
-    # cross-lane contamination re-test vs the absolute-paths LESSON; V2 background-output empty
-    # file on Windows), ~15 notable auto-fixes for our background/worktree/Windows stack, ~24
-    # NOISE. No SEED doc (no ADOPT/OBSOLETES). Prior: 2.1.202 reviewed 2026-07-07.
-    last_reviewed_version: "2.1.204"
-    reviewed_date: "2026-07-09"
+    # 2.1.205-2.1.281 reviewed 2026-09-23 (digest: docs/audits/2026-09-23-changelog-review.md);
+    # installed 2.1.281. 3 ADOPT (/skill-doctor, /doctor CLAUDE.md-trim check, omitClaudeMd
+    # agent frontmatter -- SEED doc docs/intake/2026-09-23-changelog-review-seeds.md,
+    # intake-id 105), 0 OBSOLETES, 0 STALE-NAMES (TaskOutput removal and codex --full-auto
+    # removal both checked against live repo files -- no drift), 3 VERIFY (V1 Task/Todo tools
+    # gated off Sonnet 5/Opus 5.5 unless CLAUDE_CODE_ENABLE_TODO_TOOLS=1; V2 Monitor persistent
+    # option removed, now a hard deadline; V3 a worktree-isolation Bash false positive hit live
+    # in this session, not one of the documented fixed shapes), ~2000+ entries across 77
+    # versions mostly NOISE (background/worktree/Windows reliability fixes land free; VSCode,
+    # Claude Tag, Claude Code on the web, enterprise-gateway features are out of scope for our
+    # stack). This review closed a 2.5-month gap (previous review 2026-07-09) -- the operator's
+    # own standing request had gone unactioned, per the same neglect pattern RATIFICATION notes
+    # for Copilot. Prior: 2.1.204 reviewed 2026-07-09.
+    last_reviewed_version: "2.1.281"
+    reviewed_date: "2026-09-23"
     source_url: "https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md"
   codex:
-    # 0.143.0 (1 stable) reviewed 2026-07-09 (digest: docs/audits/2026-07-09-changelog-review.md);
-    # installed is still 0.136.0 — reviewed AHEAD of installed is intended. All NOISE for our
-    # /codex-review-only usage (Windows ConPTY + sandbox-credential-retry fixes noted, low
-    # relevance to non-interactive `codex exec`). Alphas skipped. Prior: 0.140.0–0.142.5
-    # reviewed 2026-07-06.
-    last_reviewed_version: "0.143.0"
-    reviewed_date: "2026-07-09"
+    # 0.156.1 (last stable in range) reviewed 2026-09-23 (digest:
+    # docs/audits/2026-09-23-changelog-review.md); reviewed AHEAD of whatever is installed is
+    # intended. ~30 stable releases (0.144.0-0.156.1) all NOISE for our /codex-review-only usage
+    # -- dominated by the "Guardian" automatic-approval-review subsystem, a new voice mode and
+    # fullscreen TUI, and further Windows sandbox hardening, none of which touches our narrow
+    # non-interactive `codex exec` reviewer usage. The `codex exec --full-auto` flag removal
+    # (~0.144.0) was checked against live repo files -- appears only in immutable historical
+    # audits, no drift. Alphas/pre-releases skipped throughout. Prior: 0.143.0 reviewed
+    # 2026-07-09.
+    last_reviewed_version: "0.156.1"
+    reviewed_date: "2026-09-23"
     source_url: "https://github.com/openai/codex/releases"
