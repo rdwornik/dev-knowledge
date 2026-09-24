@@ -197,6 +197,25 @@ def _is_task_row(rel: str) -> bool:
 FUNNEL_TEST_TARGET = frozenset({"tests/test_funnel_lifecycle.py"})
 
 
+#: The append-only merge-receipts ledger (`merge_receipt.py::LEDGER_RELPATH`, [#395]). Every
+#: merge folds one appended line into it, so it sits in nearly every merge diff -- and before
+#: this rule it matched NOTHING (no `.jsonl` suffix in `DOC_SUFFIXES`), which sent it to the
+#: "unmapped" fail-safe. `gates.py`'s per-merge gate REFUSES rather than runs a selector's
+#: `# FULL SUITE` answer, so the ledger's own presence -- not anything it broke -- was enough
+#: to red the gate on close to every wave-4b merge (measured: replaying this selector on the
+#: five wave-4b merge diffs returned `full_suite=True` on all five before this rule existed).
+def _is_merge_receipts_ledger(rel: str) -> bool:
+    return rel == MERGE_RECEIPTS_LEDGER
+
+
+MERGE_RECEIPTS_LEDGER = "logs/MERGE-RECEIPTS.jsonl"
+
+#: What actually reads/asserts on the ledger, named directly rather than guessed at -- the
+#: ledger is data, not an import, so a `covering`-kind rule would need a path-string edge
+#: FPG-1's AST pass cannot see.
+MERGE_RECEIPTS_TEST_TARGET = frozenset({"tests/test_merge_receipt.py", "tests/test_lane_digest.py"})
+
+
 #: `templates/*.ps1` has no import edge FPG-1's AST pass can see (it is not Python),
 #: and `tests/fixtures/**` is data, often not Python either, and even where it is
 #: (`sitecustomize.py`) it is not under a SOURCE_ROOT. Both families are connected to
@@ -244,6 +263,11 @@ RULES: tuple[Rule, ...] = (
          "needs its own coverage independent of the live_repo marker tier (finding 3, "
          "DIGEST-WAVE4-FINAL-2026-09-22.md)",
          _is_task_row, targets=FUNNEL_TEST_TARGET),
+    Rule("merge-receipts-ledger", "fixed",
+         "the append-only merge-receipts ledger sits in nearly every merge diff; it is "
+         "data, not an import, and its own presence must never force the full suite "
+         "([#278] LANE-5A-2 Done-contract item 2)",
+         _is_merge_receipts_ledger, targets=MERGE_RECEIPTS_TEST_TARGET),
     Rule("source-tree-config", "full",
          "a machine-read config file under a source root IS behaviour, and mapping it to "
          "tests needs path-string edges the import graph does not carry",
@@ -269,20 +293,40 @@ class Selection:
     reasons: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
     def pytest_args(self) -> list[str]:
-        """The argv tail a caller hands to pytest.
+        """The argv tail a caller hands to pytest -- the lane's OWN code/test selection.
 
         THE MARKER AND A FILE LIST MUST NEVER BE EMITTED TOGETHER. `pytest -m live_repo
         a.py b.py` INTERSECTS them -- it runs only the live_repo-marked tests inside
-        those files, silently dropping every covering test that carries no marker. A
-        mixed diff therefore resolves the marker to its FILES in `select()` and emits a
-        plain union; `-m` survives only for the pure docs-only case, which is the
-        repo's already-declared `/ship` docs tier.
+        those files, silently dropping every covering test that carries no marker.
+
+        A MIXED diff (code/test paths alongside a prose or generated one) therefore
+        drops the marker here rather than resolving it to files: `self.marker` stays
+        set on the `Selection` for a caller that wants to know a doc tier also matched
+        (see `docs_tier_args`), but it never joins `test_files`. Before [#278]
+        LANE-5A-2, this resolved the marker into every `live_repo`-marked file in the
+        corpus (58 of them) and unioned them in -- the measured cost the Done-contract
+        exists to remove (see the module docstring's before/after reference). `-m`
+        alone survives only for the pure docs-only case, which is the repo's
+        already-declared `/ship` docs tier.
         """
         if self.full_suite:
             return []
         if self.marker and not self.test_files:
             return ["-m", self.marker]
         return list(self.test_files)
+
+    def docs_tier_args(self) -> list[str] | None:
+        """The prose/generated tier's OWN pytest argv, or `None` if none matched.
+
+        A NARROW, SEPARATELY SELECTABLE ANSWER (LANE-5A-2 Done-contract item 1): a
+        prose or generated edit no longer expands the lane's own `pytest_args()` into
+        the 58-file `live_repo` union. Instead it stays available here, decoupled from
+        the lane's own code/test run, for whoever owns running it -- the integrator,
+        once per batch, rather than once per merge inside every mixed diff.
+        """
+        if self.marker is None:
+            return None
+        return ["-m", self.marker]
 
 
 def all_test_files(repo_root: pathlib.Path) -> tuple[str, ...]:
@@ -542,12 +586,12 @@ def select(
     if full:
         return Selection(full_suite=True, reasons=reasons)
 
-    if marker and selected:
-        # MIXED diff. Resolving the marker to files here is what keeps `pytest_args`
-        # from emitting `-m` alongside a file list, which pytest would read as an
-        # intersection and quietly under-select. See `Selection.pytest_args`.
-        selected.update(live_repo_test_files(root))
-
+    # A MIXED diff keeps `marker` set but never resolves it into `selected` -- doing
+    # so used to union in every `live_repo`-marked file in the corpus (58 of them) on
+    # top of the covering/self/fixed set, which is the cost LANE-5A-2 Done-contract
+    # item 1 removes. `pytest_args()` already drops a bare `marker` once `test_files`
+    # is non-empty, so the lane's own run is unaffected; `docs_tier_args()` is where a
+    # caller reaches the prose tier this diff also touched, on its own.
     return Selection(
         test_files=tuple(sorted(selected)), marker=marker, reasons=reasons
     )

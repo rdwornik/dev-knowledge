@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-24 (i) - CC (Opus 5.5, integrator wave 5a): LANE 5A-2 landed -- a prose change stops pulling in the whole live-repo test set
+
+**Anchors:** `e812e481` (repair 1 of 2: merged origin/main `30930b1e`, and the spent-id collision renumbered to `[#1009]`) · `615b4dc8` (row registered in the manifest) · `3e3fe55c` (the merge-receipts test tightened; Codex terra review recorded) · `d5959e49` (prose selection narrowed; the merge-receipts ledger mapped) -- `worktree-lane-test-selection`, merged --no-ff in an integration worktree.
+
+**Did:** merged LANE-5A-2 (merge priority 2) after repair 1 of 2. On the first handback (615b4dc8, refused 03:05Z), the lane's row reused `[#963]`, which ADR-121 had spent on main; `gen_task_tree` refused the merged tree. The repair renumbered the row to `[#1009]`. `scripts/impacted_tests.py` narrows what a prose change selects, so a PROSE edit outside the source roots no longer pulls in every live-tree test, and it maps `logs/MERGE-RECEIPTS.jsonl` to its test. `docs/audits/2026-09-24-technical-lane-test-selection-measured-proof.md` replays the five wave-4b merges that carry a measured compare time. The handback reached the integrator 2 h 06 min late (a poll defect on the integrator's side, recorded in the receipt).
+
+**Result:** Codex terra `docs/audits/2026-09-24-codex-lane-test-selection.md` (2 High). Verification: `to-browser/SESSION-integrator-wave5a-2026-09-23.md`. **Changes:** `scripts/impacted_tests.py`, `tests/test_impacted_tests.py`, `tasks/1009-*` (new), `tasks/manifest.json`, `BACKLOG.md`, two `docs/audits/` records (new), `docs/audits/README.md`, `ecosystem/doc-counts.md`, `JOURNAL.md`, `logs/MERGE-RECEIPTS.jsonl`. **Next:** the documentation tier runs once at batch close, now that selection has landed.
+
 ### 2026-09-24 (h) - CC (Opus 5.5, integrator wave 5a): LANE 5A-9 landed -- the handoff paste is shed and gated at 20,000 B; the boot points to where things live
 
 **Anchors:** `94c13673` (the lane's sync merge of origin/main `50a257d2`) · `1611a194` (repair 1 of 2: the assembler names the decision ledger without its file name) · `29870c72` (seat templates declare their edge to HANDOFF_PROCESS) · `48797cd5` (seat prose without silent-rule tokens) · `d0716eaa` (the paste gate measures the bytes actually written -- Codex terra HIGH) · `c1a2decf` (the lane's sync merge of origin/main `aca2385b`) · `c6b52277` (four seats, templates, pointers instead of the PLAYBOOK) · `51bcc8c5` (shed the paste and gate it at 20,000 B) -- `worktree-lane-handoff-repair`, merged --no-ff in an integration worktree.
