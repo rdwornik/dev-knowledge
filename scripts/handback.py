@@ -145,7 +145,8 @@ def branch_purity_check(repo: Path, base: str = DEFAULT_BASE,
 # implementation that could drift from it again.
 
 def ship_gate_fails_at_head(repo: Path) -> frozenset:
-    """The `(check_name, status)` pairs ship-gate would RED on -- see `ship_gate_diff.py`."""
+    """The `(check_name, status, evidence)` triples ship-gate would RED on -- see
+    `ship_gate_diff.py`."""
     return _sgd.blocking_at_head(repo)
 
 
@@ -157,11 +158,11 @@ def ship_gate_fails_at_ref(repo: Path, ref: str,
 
 
 def _fmt_identity(x: object) -> str:
-    """A `(check_name, status)` pair renders as `check_name (status)`; a plain opaque identity
-    (what this leg's own unit tests inject) renders as itself -- this function does not care
-    which shape `head_fails`/`base_fails` hand it."""
-    if isinstance(x, tuple) and len(x) == 2:
-        return f"{x[0]} ({x[1]})"
+    """A `(check_name, status, evidence)` triple renders as `check_name (status): evidence`; a
+    plain opaque identity (what this leg's own unit tests inject) renders as itself -- this
+    function does not care which shape `head_fails`/`base_fails` hand it."""
+    if isinstance(x, tuple) and len(x) == 3:
+        return f"{x[0]} ({x[1]}): {x[2][:200]}"
     return str(x)
 
 

@@ -127,16 +127,28 @@ def live_sessions() -> list:
 
 
 def _status_of(row: dict) -> Optional[str]:
-    """A session record's liveness field. Most records carry `status`; a record for a session
-    still STARTING carries `state` instead (D23: `worktree_occupancy` exited 2 -- "could not
-    look" -- on a starting record, because it read `status` alone and a payload naming only
-    `state` is a different external shape, not an unreadable one). Read whichever is a string;
-    a record naming neither is genuinely unreadable, not a quiet "not busy"."""
+    """A session record's liveness field, for the READABILITY check only (is there SOME string
+    naming a status at all). Most records carry `status`; a record for a session still
+    STARTING carries `state` instead (D23: `worktree_occupancy` exited 2 -- "could not look" --
+    on a starting record, because it read `status` alone and a payload naming only `state` is a
+    different external shape, not an unreadable one). A record naming neither is genuinely
+    unreadable, not a quiet "not busy". Liveness ITSELF is `_is_live`, not this function -- see
+    its docstring for why the two fields are not simply preferred one over the other."""
     for key in ("status", "state"):
         value = row.get(key)
         if isinstance(value, str):
             return value
     return None
+
+
+def _is_live(row: dict) -> bool:
+    """RECON s5.3 leg 4 is a `busy` session. EITHER `status` or `state` claiming `busy` is
+    enough -- a record naming both fields with CONFLICTING values (one busy, one not) is read
+    as busy. Codex terra review, HIGH (`docs/audits/2026-09-24-codex-lane-handback-fixes.md`):
+    preferring `status` alone let `{"status": "idle", "state": "busy", "cwd": <tree>}` read as
+    non-live, missing a session mid-transition between the two external shapes. Fail-closed
+    toward OCCUPIED on a record this reader was not told to expect, never toward FREE."""
+    return any(row.get(key) == _LIVE_STATUS for key in ("status", "state"))
 
 
 def _validated_sessions(sessions: object) -> list:
@@ -148,10 +160,9 @@ def _validated_sessions(sessions: object) -> list:
     for i, row in enumerate(sessions):
         if not isinstance(row, dict):
             raise OccupancyError(f"session record {i} is not a mapping: {row!r}")
-        status = _status_of(row)
-        if status is None:
+        if _status_of(row) is None:
             raise OccupancyError(f"session record {i} has no string `status`/`state`: {row!r}")
-        if status == _LIVE_STATUS and not isinstance(row.get("cwd"), str):
+        if _is_live(row) and not isinstance(row.get("cwd"), str):
             raise OccupancyError(f"busy session record {i} has no string `cwd`: {row!r}")
     return sessions
 
@@ -170,7 +181,7 @@ def _dir_exists(path: Path) -> bool:
 
 
 def _session_holds(session: dict, tree: str) -> bool:
-    return _status_of(session) == _LIVE_STATUS and _norm(session["cwd"]) == tree
+    return _is_live(session) and _norm(session["cwd"]) == tree
 
 
 def check(slug: str, root: Path, sessions: Optional[list] = None,

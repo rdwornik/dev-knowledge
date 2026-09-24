@@ -18,13 +18,26 @@ sat under the one string `"organ_truth"`, `head_names - base_names` read EMPTY: 
 was already "in" the baseline set (via the pre-existing warn), so the new fail's arrival was
 invisible to a set built only from names.
 
-THE FIX: diff by the PAIR `(check_name, status)`, not the bare name. A `(check_name, status)`
-head carries that the baseline does not is introduced, whatever OTHER status of the same
-check_name already sat on the baseline. This is coarse enough to ignore evidence-text-only
-drift under an status that already existed (a WARN's row count moving, a staleness counter
-advancing a day is the SAME failure mode restated with a new number, not a new one) and fine
-enough to catch a check that gains a NEW status it did not carry before -- which is a new
-failure mode wearing an old check's name, exactly the wave-4B instance.
+THE FIX: diff by the FULL TRIPLE `(check_name, status, evidence)`, not the bare name. A first
+cut of this module compared `(check_name, status)` only -- coarse enough to resolve the
+wave-4B case, but a Codex terra review (HIGH, `docs/audits/2026-09-24-codex-lane-handback-
+fixes.md`) found it still hides a SECOND new failure arriving under a status that ALREADY had
+one: `check_organ_truth` can emit an `unfated` fail AND a separate `past_due` fail in the same
+run, both `("organ_truth", "fail")` -- a baseline `past_due` fail plus a branch-introduced
+`unfated` fail would still diff to empty. The full evidence text is what actually
+distinguishes two DIFFERENT reasons under one check/status pair, so nothing narrower is safe.
+
+This trades away one thing the `(check_name, status)` cut had: an UNDISPOSITIONED warn or fail
+whose evidence text drifts for a reason that is not a new problem (a row count, a staleness
+day) now reads as "introduced" too. That is an intentional, and lesser, cost: the disposition
+register (`audit._load_dispositions` / `_match_disposition`) is the actual mechanism this repo
+uses to say "this evidence shape is known and does not block" -- it suppresses a WHOLE Finding
+by matching a stable substring of its evidence, and a dispositioned WARN never enters this
+comparator's identity set at all, however its evidence text moves. An UNDISPOSITIONED
+warn/fail that merely restates a familiar number is already blocking ship-gate at both ends;
+this leg's job is only to say whether THIS branch is the one that introduced the block, and a
+false "yes" there (a needless refusal, correctable by dispositioning the register entry) is
+cheaper than a false "no" (a genuinely new failure waved through).
 
 ONE COMPARATOR, TWO CALLERS (D11's own mechanism, "the organ and the integrator call one
 comparator"): `scripts/handback.py`'s `ship-gate` self-check leg imports `blocking_at_head` /
@@ -35,9 +48,9 @@ computation -- one implementation, never two that can silently disagree again.
 
 LIBRARY-FIRST: `audit.run_checks`, `audit._load_dispositions` and `audit._match_disposition`
 compute the findings and the disposition register exactly as `audit.py ship-gate` does; this
-module holds no second copy of either, only the `(check_name, status)` comparator and the
-worktree-baseline plumbing needed to run that computation against a ref other than the working
-tree.
+module holds no second copy of either, only the `(check_name, status, evidence)` comparator
+and the worktree-baseline plumbing needed to run that computation against a ref other than the
+working tree.
 """
 from __future__ import annotations
 
@@ -57,9 +70,10 @@ DEFAULT_BASE = "origin/main"
 TIMEOUT_S = 1800
 _ROOT = Path(__file__).resolve().parents[1]
 
-#: `(check_name, status)` -- the identity a Finding is compared by. See the module docstring
-#: for why the pair, not the bare `check_name`, is what makes this comparator correct.
-Identity = tuple[str, str]
+#: `(check_name, status, evidence)` -- the identity a Finding is compared by. See the module
+#: docstring for why the full triple, not the bare `check_name` or the `(check_name, status)`
+#: pair, is what makes this comparator correct.
+Identity = tuple[str, str, str]
 
 
 def _run(argv: list[str], cwd: Path, timeout: Optional[float] = None) -> tuple[int, str]:
@@ -80,15 +94,16 @@ def findings_at_head(repo: Path) -> list:
 
 
 def blocking_identities(findings, dispositions) -> frozenset:
-    """The `(check_name, status)` pairs that would RED `audit.py ship-gate`: every FAIL, and
-    every undispositioned WARN. `dispositions` is `audit._load_dispositions()`'s own return."""
+    """The `(check_name, status, evidence)` triples that would RED `audit.py ship-gate`: every
+    FAIL, and every undispositioned WARN. `dispositions` is `audit._load_dispositions()`'s own
+    return."""
     import audit  # noqa: PLC0415
     out: set[Identity] = set()
     for f in findings:
         if f.status == "fail":
-            out.add((f.check_name, f.status))
+            out.add((f.check_name, f.status, f.evidence))
         elif f.status == "warn" and audit._match_disposition(f, dispositions) is None:
-            out.add((f.check_name, f.status))
+            out.add((f.check_name, f.status, f.evidence))
     return frozenset(out)
 
 
@@ -112,9 +127,9 @@ _BASELINE_SCRIPT = (
     "out = set()\n"
     "for f in findings:\n"
     "    if f.status == 'fail':\n"
-    "        out.add((f.check_name, f.status))\n"
+    "        out.add((f.check_name, f.status, f.evidence))\n"
     "    elif f.status == 'warn' and audit._match_disposition(f, disp) is None:\n"
-    "        out.add((f.check_name, f.status))\n"
+    "        out.add((f.check_name, f.status, f.evidence))\n"
     "print(json.dumps(sorted(out)))\n"
 )
 
@@ -138,7 +153,7 @@ def blocking_at_ref(repo: Path, ref: str,
                 raise RuntimeError(f"baseline ship-gate at {ref} could not run: "
                                   f"{proc_out.strip()[-2000:]}")
             line = [ln for ln in proc_out.splitlines() if ln.strip()][-1]
-            return frozenset(tuple(pair) for pair in json.loads(line))
+            return frozenset(tuple(triple) for triple in json.loads(line))
         finally:
             runner(["git", "-C", str(repo), "worktree", "remove", "--force", str(worktree)], repo)
 
@@ -155,7 +170,8 @@ def diff(repo: Path, base: str = DEFAULT_BASE,
 
 
 def _fmt(identities) -> str:
-    return ", ".join(f"{name} ({status})" for name, status in sorted(identities))
+    return "; ".join(f"{name} ({status}): {evidence[:200]}"
+                     for name, status, evidence in sorted(identities))
 
 
 def cmd_diff(argv: Optional[list[str]] = None) -> int:

@@ -145,13 +145,17 @@ _CONSUMES_RE = re.compile(r"\*\*Consumes:\*\*\s*(?P<body>[^\n]*)")
 #: contract's STRUCTURE and raises on a malformed one, where this module's job is to read
 #: whatever a real, already-frozen contract says, structurally valid or not.
 _SLUG_RE = re.compile(r"slug\s+`(?P<slug>[^`]+)`")
-#: A contract's own commitment to give a new organ a fate or a moment (class 5, D14): a
-#: `fates:` mention, either dated shape (`manual_until`/`retire_candidate`), or the bare word
-#: "moment" — which also covers the `_MOMENT_OWNERSHIP_RE` grammar above, since that phrase
-#: itself contains "moment". Anywhere in the contract, not scoped to `Files you own` — a fate
-#: is typically declared in the Done-contract section, not the file list.
-_FATE_MENTION_RE = re.compile(r"\bfates?\b|\bmanual_until\b|\bretire.candidate\b|\bmoment\b",
-                              re.IGNORECASE)
+#: A contract's own commitment to give a new organ a fate (class 5, D14): the literal YAML key
+#: `fates:` (colon required — a bare "fate"/"fates" is ordinary English and would suppress the
+#: finding on unrelated prose, Codex terra review HIGH,
+#: `docs/audits/2026-09-24-codex-lane-handback-fixes.md`) or one of the two dated-fate shape
+#: keywords `manual_until` / `retire_candidate`. The bare word "moment" is deliberately NOT
+#: matched here — a lane declaring itself at a `harness.yaml` moment is already exempted at
+#: the per-lane level via `moments_touched` (see `find_new_organs_without_fate`), and matching
+#: "moment" as loose English (as in "at this moment") is exactly the over-suppression the same
+#: review flagged. Anywhere in the contract, not scoped to `Files you own` — a fate is
+#: typically declared in the Done-contract section, not the file list.
+_FATE_MENTION_RE = re.compile(r"fates:|manual_until|retire.candidate", re.IGNORECASE)
 
 
 def _quoted_tokens(text: str) -> tuple[str, ...]:

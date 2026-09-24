@@ -329,6 +329,22 @@ def test_new_script_no_fate_is_silent_on_a_non_scripts_path(tmp_path):
     assert plan_lint.find_new_organs_without_fate(lanes, tmp_path) == []
 
 
+def test_new_script_no_fate_still_fires_on_ordinary_prose_using_fate_or_moment(tmp_path):
+    """Codex terra review, HIGH (`docs/audits/2026-09-24-codex-lane-handback-fixes.md`): a
+    first cut matched the bare words "fate" and "moment" anywhere in the contract, so ordinary
+    prose ("this has no fate yet", "at this moment we are focusing on X") silently suppressed
+    the finding for every new script the lane owned. Only the literal `fates:` key or a dated
+    shape keyword counts as a declared commitment."""
+    _harness(tmp_path, "merge", ["organ_one"])
+    a = _contract(tmp_path, "LANE-a.md", "lane-a", "`scripts/new_thing.py`, its tests.",
+                  extra_body=("This organ has no fate yet -- at this moment we are focusing "
+                              "on the happy path."))
+    lanes = plan_lint.load_contracts([a])
+    findings = plan_lint.find_new_organs_without_fate(lanes, tmp_path)
+    assert len(findings) == 1
+    assert findings[0].category == "new-script-no-fate"
+
+
 # --- the dependency graph -----------------------------------------------------------------------
 
 def test_build_edges_from_serial_and_starts_after(tmp_path):
