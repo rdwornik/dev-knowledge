@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-24 (e) - CC (Opus 5.5, integrator wave 5a): LANE 5A-6 landed on its repair -- CI's verdict read as data and recorded beside the local one
+
+**Anchors:** `e78f0278` (the lane's sync merge of origin/main) · `55769abb` (Codex review disposed; no-consumer declared) · `b6ff21ec` (`scripts/ci_verdict.py`'s dated fate) · `da8fc753` (the unscoped parse test states the true last-match-wins behaviour) · `f6dc1b78` (sync merge of origin/main `aca2385b`) · `51315dd6` (3 High from its own Codex terra review fixed) · `81e31b3b` (Codex record) · `4b7268b1` (injectable functions resolve by name) · `30c63993` (`ci_verdict.py`) -- `worktree-lane-ci-verdict`, merged --no-ff in an integration worktree.
+
+**Did:** merged LANE-5A-6 (merge priority 8) after repair 1 of 2: the first handback (`f6dc1b78`, refused 2026-09-24 01:15Z) carried a red in its own new test, a new organ with no caller and no fate, and a review record no surface consumed; the repair corrected the test to the parser's true behaviour, added one dated `fates:` line (batch ruling (a)), and dispositioned the record. `scripts/ci_verdict.py` (new), given a ref, finds the matching `conductor.yml` Actions run, waits for it in-process, and returns a JSON verdict -- green, red with the new reds its suite-baseline gate named, or not-run -- with the run URL, duration and baseline id; read-only against GitHub. `.claude/commands/lane-integrate.md` gains one step recording CI's verdict beside the local one -- **not a gate** tonight.
+
+**Result:** Codex terra `docs/audits/2026-09-24-codex-lane-ci-verdict.md` (3 High, fixed and dispositioned). Verification: `to-browser/SESSION-integrator-wave5a-2026-09-23.md`. **Changes:** `scripts/ci_verdict.py` (new), `tests/test_ci_verdict.py` (new), `.claude/commands/lane-integrate.md`, `ecosystem/harness.yaml` (one fate), `docs/audits/2026-09-24-codex-lane-ci-verdict.md` (new), `docs/audits/README.md`, `ecosystem/doc-counts.md`, `JOURNAL.md`, `logs/MERGE-RECEIPTS.jsonl`. **Next:** later merges record CI's verdict through this organ.
+
 ### 2026-09-24 (d) - CC (Opus 5.5, integrator wave 5a): LANE 5A-7 landed on its repair -- hook counters outlive their worktree; silence is UNMEASURED, never REMOVE
 
 **Anchors:** `53093b2c` (the lane's sync merge of origin/main `aca2385b`) · `ebddb608` (repair 1 of 2: the organ's own `fates:` line; the review record's consumer and dispositions) · `27fc7d49` (Codex review dispositions) · `e87fb7eb` (2 Critical + 1 High from the lane's own Codex review fixed) · `df84c665` (Codex record) · `5b4e4bbe` (six stale hook-posture statements fixed) · `57538eea` (reinstate stops the banner naming a hook DECLARED BROKEN) · `70e7e66f` (the 2026-09-17 emergency disables redated to 2026-10-08) · `cf0fea7d` (hook-expiry verdict: UNMEASURED vs REMOVE) · `e49e9f0b` (hook counters survive worktree teardown) -- `worktree-lane-hooks-urgent`, merged --no-ff in an integration worktree off origin/main `c9132e7f`.

@@ -100,6 +100,7 @@ fates:
   - {path: plugins/tier1-lifecycle/commands/ship.md, manual_until: 2026-10-05, reason: "on-demand by the operator (act: destructive acts) (ORPHAN_DISPOSITIONS)"}
   - {path: plugins/tier1-lifecycle/scripts/review_closures.py, manual_until: 2026-10-05, reason: "the plugin copy /review-closures invokes (act: ratification); no event fires it and none should (ORPHAN_DISPOSITIONS)"}
   - {path: scripts/actions_verdict.py, manual_until: 2026-10-05, reason: "imported by merge_receipt.py and invoked by the lane-integrate command, neither a surface the census reads; [#664] owns whether a command is a trigger"}
+  - {path: scripts/ci_verdict.py, manual_until: 2026-10-05, reason: "records CI's verdict beside the local one at each merge (lane-integrate step); not a gate yet -- a moment declaration is owed by wave 5b (LANE-5A-6)"}
   - {path: scripts/codespace_regime.py, manual_until: 2026-10-05, reason: "temporarily unwired, not retired: its settings.json hook is off since 2026-09-17 and returns when [#863] lands"}
   - {path: scripts/codespace_state.py, manual_until: 2026-10-05, reason: "unwired by directive until intake 102 settles who observes; its adopter is that ratification (ORPHAN_DISPOSITIONS)"}
   - {path: scripts/context_reclamation.py, manual_until: 2026-10-05, reason: "a seat calls it when clearing its own context at a checkpoint; no event can make that call; [#791] owns who initiates"}
