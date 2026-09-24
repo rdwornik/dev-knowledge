@@ -4564,6 +4564,159 @@ open question for whichever lane picks this up.) The Done-contract's own ADR-87 
 already-landed or now-landed decision. AJ-6 retires entry-by-entry as each wave-4 sibling lane
 merges its `landed:` evidence; this section is not the place that evidence lands.
 
+## AK. The 2026-09-23 wave-5a landing window (LANE-5A-5, architect, 2026-09-24)
+
+Every architect ruling and operator ratification that `to-browser/DIGEST-HANDOFF-READINESS-2026-09-23.md`
+§5 lists under "no repo citation", plus `RATIFICATION-2026-09-23-playbook` (O-5) and two rulings
+carried only in this lane's own frozen contract, landed by `LANE-5A-5-landing-window.md`.
+
+### AK-1 · The PLAYBOOK is human documentation, never an authority for Claude (RATIFICATION-2026-09-23-playbook, O-5)
+
+Commands come from `scripts/dispatch.py launch --help`; routing from
+`ecosystem/provider-registry.yaml`; rules from `STANDING_RULINGS.md`. A boot section, contract or
+check that cites the PLAYBOOK as the reason a rule holds is wrong regardless of what the PLAYBOOK
+says — it may explain, never require.
+
+- **Landed:** this ruling's text, here and in `docs/audits/2026-09-23-technical-plan-wave5.md` §1
+  ("The PLAYBOOK is human documentation, never an authority for Claude").
+- **Not yet landed:** the wave-5b check that flags a file citing the PLAYBOOK as authority
+  (`PLAN-WAVE5` §6.10) — no row exists for it as of this lane; recorded here as an open gap so a
+  future reader does not mistake O-5's *statement* for O-5 *enforced*.
+
+```landed
+site: docs/audits/2026-09-23-technical-plan-wave5.md | pattern: never an authority for Claude
+```
+
+### AK-2 · Copilot's licence and its routing mandate (RATIFICATION-2026-09-23-copilot, O-3/O-4)
+
+O-3: the operator's licence precondition for Copilot is met. O-4: Copilot becomes a routine bounded
+producer, not a forgotten trial — every operator request that follows becomes a same-day row, per
+O-4c (filed as `[#996]`). Mechanism: `[#988]` (Copilot registry admission — evidence lanes
+ab-828/ab-832, JOURNAL.md:962/:1113, `to-cc/run-lane-copilot.ps1`) and `[#989]` (launcher wired to
+the router).
+
+```landed
+site: tasks/988-copilot-admission-lands-in-the-registry-with-in-repo.md | pattern: ab-828
+```
+
+### AK-3 · No cap stops a task; `[#908]` becomes telemetry
+
+Resolves the contradiction `docs/audits/2026-09-23-technical-handoff-readiness.md` §6 flagged
+("D-cap 'no cap may ever stop a task' vs `[#908]` 'hard token cap at launch': these contradict; the
+architect must rule which one stands"). Ruling, carried only in this lane's own frozen contract
+(`LANE-5A-5-landing-window.md`, Done-contract item 3): the D-cap position stands — no mechanism
+ever kills or refuses a run for exceeding a token budget. `[#908]`'s frontmatter and body are left
+unedited here (P9's "no row-meaning change" constraint governs this lane's backlog edits); this
+entry is the citation that supersedes its enforcement language ("it kills or refuses the run at the
+cap") going forward. A future edit to `[#908]` should narrow it to *measurement* (ordered vs. ran,
+via `scripts/lane_cost.py`), never *enforcement*, citing this entry.
+
+### AK-4 · The backbone is code; prose is intent
+
+Landed verbatim, operator ruling 2026-09-23: "the backbone is code — scripts, hooks, gates, data.
+Prose only states intent and double-checks against the code; it never triggers the process."
+Transport source: `to-cc/DECLARE-WINDOW-DEFECTS-2026-09-23.md` (preamble). Also carried verbatim in
+`docs/audits/2026-09-23-technical-window-defects.md`. Carrier row: `[#1000]`.
+
+```landed
+site: docs/audits/2026-09-23-technical-window-defects.md | pattern: the backbone is code
+```
+
+### AK-5 · Routing by role, size and kind — the router resolves the model (DECLARE-MODEL-AGNOSTIC-2026-09-23)
+
+Contracts name role, size and kind; `scripts/provider_router.py` and
+`ecosystem/provider-registry.yaml` resolve the model — nothing new is built, the launcher is wired
+to what already exists. Six parts in the source: one routing table (including the two distinct
+Copilot accounts); one run interface with a "model served" attestation; admission before routing;
+fallback, never failure; telemetry never a cap (`[#908]`, see AK-3); plan lint bars model names in
+contracts. Carrier rows: `[#989]` (launcher wired to the router — folds D16, D17, D32 and O-4b),
+`[#990]` (Opus 5.5 rate row and the alias-vs-pin A/B, D31).
+
+### AK-6 · The Copilot trial, three tiers (DECLARE-COPILOT-TRIAL-2026-09-23)
+
+T1 review, T2 off-box producer, T3 CLI producer — sequenced now that O-3's licence precondition is
+met (AK-2). Carrier row: `[#988]`.
+
+### AK-7 · Night autonomy: memory admission, liveness, pre-authorized rulings, no hanging prompts (DECLARE-NIGHT-AUTONOMY-2026-09-23)
+
+Seven mechanisms in the source (memory admission gate, launch admission, liveness watchdog,
+pre-authorized ruling table, a narrow deny-and-point guard for root-path writes, session janitor,
+off-box heavy work) land via the first serial lane of the next batch. Until then, this batch and
+this window received the pre-authorized-ruling and no-hanging-prompt behavior **by order, not by
+code** — `PLAN-WAVE5` §1 doctrine ("nobody waits for the operator at night") and this lane's own
+contract are that order. Carrier row for the memory piece specifically: `[#970]` (memory gate, D7).
+The other six mechanisms have no row yet — the SMART goals table (N1-N6 in the source) is the
+acceptance surface a future lane cites when it files them; recorded here as still open so a later
+reader does not assume they landed with D7.
+
+### AK-8 · Off-box portability: one path layer, one transport adapter, the container as reference environment (DECLARE-OFFBOX-PORTABILITY-2026-09-23)
+
+Supersedes the withdrawn `to-cc/DECLARE-OFFBOX-BUS-2026-09-23-superseded.md` — "Drive has no Linux
+client" was a false premise carried from an earlier window without being checked; the official
+Drive API client and rclone both reach Drive off-box. Drive stays the bus. Carrier rows: `[#979]`
+(path layer, D20), `[#980]` (Codespace portability, D21), `[#981]` (compute ADR, D22). Sequencing
+(P1 path layer, P2 transport adapter, P3 memory gate, then P4 the end-to-end Codespace proof) is
+`PLAN-WAVE5` §6/§7 territory, not yet its own row.
+
+### AK-9 · One registry of transport file kinds (DECLARE-TRANSPORT-SCHEMA-2026-09-23)
+
+The Drive transport is the bus between every seat and had no schema — names and contents were
+invented per session and collided; the source records its own author's self-critique for inventing
+`PLAN-`, `POSTWAVE-CHAIN`, `WAVE4B-COMMON` and rename-to-superseded against the operator's standing
+rule to use the grammar already on the transport. The source's table (14 kinds: architect ruling,
+operator act, reply, batch order, integrator order, lane contract, seat receipt, lane-end report,
+lane state, batch state, question, repair order, self-refusal receipt, batch digest) is the
+starting registry, enforced by the transport adapter once AK-8's P2 lands. Carrier row: `[#978]`
+(D19).
+
+### AK-10 · One known-reds registry, CI as the gate — PROVISIONAL (DECLARE-WAVE5A-VERIFICATION-2026-09-23)
+
+Status in the source stays PROVISIONAL, frozen only after the independent cross-check confirms its
+numbers — but the underlying defects it describes are already data in this repo regardless of that
+freeze, via `docs/audits/2026-09-23-technical-window-defects.md` and their carrier rows: `[#964]`
+(one verification stage, D1), `[#965]` (one known-reds registry, D2), `[#966]` (CI becomes the
+merge gate, D3), `[#967]` (test-selection stops being prose-triggered, D4). This entry exists so a
+reader does not treat "PROVISIONAL" as "unlanded": the finding is landed; only the source DECLARE's
+own freeze status is not.
+
+### AK-11 · The window-defects register and its amendment — landed as data, not prose (DECLARE-WINDOW-DEFECTS-2026-09-23, its AMEND)
+
+Already committed verbatim: `docs/audits/2026-09-23-technical-window-defects.md` and
+`docs/audits/2026-09-23-technical-window-defects-amend.md`. One backlog row per D1-D34 item
+(D14/D15 cite the already-merged `[#961]`; D26 cites the already-merged `[#962]`; D16/D17/D32/O-4b
+fold into `[#989]`; D30/O-4a fold into `[#988]`) — see `tasks/manifest.json` nodes 964-1000. Cited
+here only because the DIGEST named the DECLARE itself as having "no repo citation"; that citation is
+this entry plus the two audit files. The D-backbone doctrine that opens the source is AK-4.
+
+### AK-12 · State-store learning loop and the ai-council debate track — inputs to ADR-121, not a ruling (DECLARE-STATE-STORE-LEARNING-2026-09-23, AMEND-ADR-STATE-STORE-2026-09-23)
+
+Both files are explicitly `status: PROPOSAL, NOT A DECISION` / an amendment to a batch order, not an
+architect ruling — the operator required an ADR, a decision matrix and a debate before any of
+H1-H4 becomes policy, because an earlier version of the same idea was ruled too fast. `ADR-121`
+(Proposed, unmerged branch `worktree-lane-adr-state-store` @ 48c0cdc2) is the resulting ADR;
+`[#984]` is its carrier row (D25). The debate-track-2 amendment (run ai-council from its own front
+door, on the same question, and compare against the Claude-vs-Codex-Astra track) has no separate
+row — it is a step inside the `BATCH-ADR-STATE-STORE-2026-09-23` order, not a standing mechanism,
+and lands, if at all, inside ADR-121's own record. **Honest gap:** neither file is "landed" in the
+sense the other AK entries use the word; this entry is the citation the "no repo citation" finding
+asked for, not a claim that the proposal was adopted.
+
+### Out of scope for this lane
+
+The four "homed but not marked" transport files (`RATIFICATION-2026-09-22` O-1/O-2,
+`DECLARE-WAVE4B-DIRECTION-2026-09-22`, `AMEND-HANDOFF-BOOT-INTEGRATOR-SECTION-0920`,
+`DECLARE-SPINE-AND-B3-2026-09-19`) get their `carried-by:` line directly on the transport (this
+lane's P11 step), not a STANDING_RULINGS entry — three already have a real repo home
+(`settings.json`/tasks/JOURNAL); the fourth's target section (`HANDOFF_BOOT.md`) stays unlanded per
+AJ's own "Out of scope for this lane" note above, and its `carried-by:` says so rather than
+claiming a landing that did not happen. The broader P11 pass (every decision file 2026-09-19..23,
+and the 31 executed orders) is this lane's Done-contract item 4, tracked separately from this
+section.
+
+**Expiry:** none of AK-1 through AK-12 expire on their own. AK-1, AK-3, AK-5, AK-7, AK-8, AK-9 and
+AK-10 each retire their "not yet landed" clause the moment a future lane files the row or lands the
+code they name; this section is not the place that evidence lands, the same convention AJ uses.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
