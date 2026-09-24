@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-24 (l) - CC (Opus 5.5, integrator finish-5a): LANE 5A-10 landed -- the graph learns which script each harness stage and moment runs
+
+**Anchors:** `aefbe892` (the Codex record disposed; `no-consumer:` declared) · `366661fd` (`python -c` snippet organs resolve to their imported script -- Codex terra HIGH) · `fdb4d321` (Codex terra review) · `263822c1` (the harness stage/moment -> script trigger edge) -- `worktree-lane-graph-stage-edge`, merged --no-ff in an integration worktree.
+
+**Did:** merged LANE-5A-10. SUBSTITUTION: the Copilot producer was reaped before its first commit; Sonnet 5 produced the lane in the same worktree. `scripts/file_purpose_graph.py` reads `ecosystem/harness.yaml` as a wiring surface -- `stages[].command` and `moments[].organs[].command` only, never `fates:` -- so a script the loop runs is no longer a false orphan. Orphan census on the merged tree: 18 -> 8. Four `graph_queries.ORPHAN_DISPOSITIONS` rows discharge on the new edge (kept as comments), and `test_the_census_and_the_query_disagree_and_the_disagreement_is_REPORTED` is retired because its premise (`single_flight.py` is an orphan) is now false; intake #86 AC 2 has no live witness left (finding). `harness.yaml` itself is untouched, so the architect's conditional ruling on it did not arise.
+
+**Result:** Codex terra `docs/audits/2026-09-24-codex-lane-graph-stage-edge.md` (1 High, fixed). Verification: `to-browser/SESSION-finish-5a-2026-09-24.md`. **Changes:** `scripts/file_purpose_graph.py`, `scripts/graph_queries.py`, `tests/test_graph_spine.py`, `docs/audits/2026-09-24-codex-lane-graph-stage-edge.md` (new), `docs/audits/README.md`, `ecosystem/doc-counts.md`, `JOURNAL.md`. **Next:** the eight remaining orphans carry `fates:` rows owed by wave 5b.
+
 ### 2026-09-24 (k) - CC (Opus 5.5, integrator finish-5a): LANE 5A-1 landed -- every CI regression above the 09-17 freeze is attributed, and every verdict names its baseline id
 
 **Anchors:** `0d750e2d` (repair 1 of 2: the merge moment's unreached list gains `known_reds_refresh`) · `4826c96a` (the lane's sync merge of origin/main `10b1570e`) · `0ea4fec9` (repair 1 of 2: the step's reason drops a silent-rule token) · `d254e2d0` (Codex terra: 3 High fixed) · `82d62997` (the known-reds registry and its baseline id) -- `worktree-lane-one-registry-ci`, merged --no-ff in an integration worktree.

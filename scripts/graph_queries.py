@@ -277,44 +277,27 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
     # scope: a stopwatch has nothing to gate. Elapsed time is not a property a commit can be
     # refused for, and a hook that ran the receipt would have Layer 2 execute the very merge
     # this module is built not to drive (Critical Rule #4).
-    "scripts/merge_receipt.py": Disposition(
-        reason="[#675] target 3.1. Wired to .claude/commands/lane-integrate.md (open / time / "
-               "race / close across the merge walk), which is not one of the [#664] wiring "
-               "surfaces the census reads -- so an operator-invoked organ reads as an orphan "
-               "by construction. A pre-commit trigger is wrong on the merits, not merely out "
-               "of scope: a stopwatch has nothing to gate, and a hook that ran it would make "
-               "Layer 2 execute the merge this module exists NOT to drive",
-        owner="the [#664] wiring-surface list, which owns whether .claude/commands/*.md is a "
-              "trigger surface; this row is deleted by that decision, not by a lane"),
-    # SAME CLASS AS `merge_receipt.py` ABOVE, and the repetition is the point: two organs added
-    # by one lane, both genuinely adopted by `.claude/commands/lane-integrate.md`, both reading
-    # as orphans because a command file is not a `[#664]` wiring surface. One such row is a
-    # curiosity; two from a single lane is the shape of a gap, and it is recorded as one here
-    # rather than left for a third lane to rediscover.
-    "scripts/actions_verdict.py": Disposition(
-        reason="[#675] target 3.2. Wired to .claude/commands/lane-integrate.md (the merge-walk "
-               "read of the Actions verdict, and refuse-to-finish checklist row 2b), which is "
-               "not one of the [#664] wiring surfaces the census reads. A pre-commit trigger "
-               "is wrong on the merits: it reads a GitHub Actions run for a merge SHA, which "
-               "does not exist at commit time -- the gate would query a run that cannot have "
-               "started and refuse every commit",
-        owner="the [#664] wiring-surface list, which owns whether .claude/commands/*.md is a "
-              "trigger surface; this row is deleted by that decision, not by a lane"),
-    # THIRD OF THE SAME SHAPE FROM ONE LANE, and at three it stops being a coincidence and
-    # becomes the finding: `[#675]` added `merge_receipt.py`, `actions_verdict.py` and this,
-    # all three adopted by `.claude/commands/lane-integrate.md`, all three orphans to a census
-    # whose wiring surfaces do not include command files. The lane's end artifact carries the
-    # proposed diff; these rows carry the evidence that it is a class rather than an instance.
-    "scripts/review_packet.py": Disposition(
-        reason="[#675] target 3.5. Wired to .claude/commands/lane-integrate.md (the assemble "
-               "step of the merge walk, and refuse-to-finish checklist row 2c), which is not "
-               "one of the [#664] wiring surfaces the census reads. A pre-commit trigger is "
-               "wrong on the merits: it assembles a REVIEW input over a merge range against a "
-               "lane contract, neither of which exists at commit time in the lane being "
-               "reviewed",
-        owner="the [#664] wiring-surface list, which owns whether .claude/commands/*.md is a "
-              "trigger surface; this row is deleted by that decision, not by a lane"),
-    # A DIFFERENT SHAPE FROM THE THREE ABOVE, and the difference is the whole disposition.
+    # `scripts/merge_receipt.py` HAD A ROW HERE AND NO LONGER NEEDS ONE -- DISCHARGED
+    # 2026-09-24 (LANE-5A-10). Not by the [#664] wiring-surface decision the row named as its
+    # owner: `ecosystem/harness.yaml`'s `merge` moment runs `scripts/merge_receipt.py models`
+    # directly, and that file was ADDED to `WIRING_SURFACES` by this lane, so the census now
+    # sees the trigger the row said it could not. The lane-integrate.md adoption the row
+    # described is still real and still not a trigger surface -- this row discharges on a
+    # DIFFERENT edge than the one it was waiting for, kept as a comment rather than deleted
+    # silently for the same reason the `provision_legs.py` note above gives.
+    # `scripts/actions_verdict.py` HAD A ROW HERE AND NO LONGER NEEDS ONE -- DISCHARGED
+    # 2026-09-24 (LANE-5A-10), FOR THE SAME REASON AND TRANSITIVELY: it is imported by
+    # `scripts/merge_receipt.py` (its own former row said so), which is now triggered as
+    # above, and `imports` is one of `TRIGGER_KINDS`.
+    # `scripts/review_packet.py` HAD A ROW HERE AND NO LONGER NEEDS ONE -- DISCHARGED
+    # 2026-09-24 (LANE-5A-10), SAME SHAPE AS `merge_receipt.py`: `ecosystem/harness.yaml`'s
+    # `merge` moment runs `scripts/review_packet.py` directly.
+    # SAME CLASS AS `merge_receipt.py` ABOVE, and the repetition was the point while both rows
+    # lived here: two organs added by one lane, both genuinely adopted by `.claude/commands/
+    # lane-integrate.md`, both reading as orphans because a command file is not a `[#664]`
+    # wiring surface. Discharged with `merge_receipt.py` above, on the harness.yaml edge
+    # rather than the lane-integrate.md one.
+    # A DIFFERENT SHAPE FROM THOSE THREE, and the difference is the whole disposition.
     # Those three have a trigger the census cannot see. This one has no trigger AT ALL and
     # should not have one.
     # THE SAME SHAPE AS `provider_bench.py` BELOW -- no trigger AT ALL, and none is wanted --
@@ -467,15 +450,16 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
         reason="ON-DEMAND-BY-OPERATOR, act = GO. Invoked by /lane-boot "
                "(.claude/commands/lane-boot.md:174)",
         owner="operator -- one of the census's seven acts"),
-    "scripts/single_flight.py": Disposition(
-        reason="ON-DEMAND-BY-OPERATOR, act = GO. Invoked by /lane-boot "
-               "(.claude/commands/lane-boot.md:71) and /lane-integrate:132. A FINDING "
-               "AGAINST THE CENSUS, recorded rather than quietly absorbed: it is absent "
-               "from the census's 20 and this query finds it, which is exactly intake #86's "
-               "acceptance criterion 2 -- 'every orphan the query finds that the sweep "
-               "missed is recorded as a finding against the sweep', reported and never "
-               "silently reconciled",
-        owner="operator -- one of the census's seven acts"),
+    # `scripts/single_flight.py` HAD A ROW HERE AND NO LONGER NEEDS ONE -- DISCHARGED
+    # 2026-09-24 (LANE-5A-10). It was recorded as "A FINDING AGAINST THE CENSUS" (intake #86
+    # AC 2): invoked by /lane-boot and /lane-integrate, absent from the 2026-09-08 census's
+    # 20, and found orphan by this query regardless -- the exact disagreement AC 2 asks to be
+    # reported rather than reconciled. It is real machine-triggered use now, not merely a
+    # census disagreement: `ecosystem/harness.yaml`'s `lane-start` moment runs
+    # `scripts/single_flight.py inspect "{lane}" --local-only` directly, and that file was
+    # ADDED to `WIRING_SURFACES` by this lane. `test_the_census_and_the_query_disagree_and_
+    # the_disagreement_is_REPORTED`, which pinned this row's text, is retired in the same
+    # commit rather than left to assert a disagreement that closed.
     "scripts/id_allocator.py": Disposition(
         reason="ON-DEMAND-BY-OPERATOR, act = GO. Invoked by /lane-boot "
                "(.claude/commands/lane-boot.md, section 6 'Run the lane') when a lane needs a "

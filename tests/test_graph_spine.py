@@ -531,6 +531,86 @@ def test_task_implements_input_runs_from_an_OPEN_row_only(tiny_repo: Path):
         "a CLOSED row confers no coverage -- at OPEN and not only at CLOSE")
 
 
+# ------------------------------------------- LANE-5A-10: harness.yaml stage/moment triggers
+
+
+@pytest.fixture
+def harness_repo(tmp_path: Path) -> Path:
+    """A minimal tree carrying `ecosystem/harness.yaml` with one stage, one moment organ, and
+    a `fates:` row naming a THIRD script that no `command:` anywhere runs.
+
+    `staged.py` and `momented.py` must become TRIGGERED; `fated_only.py` must NOT -- it is
+    named only inside `fates:`, which records scripts the loop does NOT yet run, and a
+    generic leaf-walk over the file would misread that record as a call site.
+    """
+    root = tmp_path / "harness-tiny"
+    _write(root / "ecosystem" / "harness.yaml", """\
+stages:
+  - {stage: 1, name: only-stage, field: x, kind: deterministic, command: [uv, run, --locked, python, scripts/staged.py, emit]}
+  - {stage: 2, name: not-built-yet, field: y, kind: deterministic, command: null}
+moments:
+  - name: only-moment
+    trigger: "a seat, for this fixture"
+    organs:
+      - {id: momented, receipt: R.json, command: [uv, run, --locked, python, scripts/momented.py]}
+      - {id: dashced, receipt: R2.json, command: [uv, run, --locked, python, -c, "import sys; sys.path.insert(0, 'scripts'); import dashced as d; d.go()"]}
+fates:
+  - {path: scripts/fated_only.py, manual_until: 2026-10-05, reason: "not wired yet -- a moment declaration is owed by a future wave, see scripts/fated_only.py"}
+""")
+    _write(root / "scripts" / "staged.py", "def emit():\n    return 1\n")
+    _write(root / "scripts" / "momented.py", "def go():\n    return 1\n")
+    _write(root / "scripts" / "dashced.py", "def go():\n    return 1\n")
+    _write(root / "scripts" / "fated_only.py", "def nothing():\n    return 0\n")
+    return root
+
+
+def test_harness_stage_and_moment_commands_trigger_their_scripts(harness_repo: Path):
+    """LANE-5A-10's edge: a stage's `command:` and a moment organ's `command:` each reach
+    their script over `triggers`, sourced from `ecosystem/harness.yaml`."""
+    targets = fpg.wiring_targets(harness_repo)
+    assert targets[fpg.HARNESS_DECLARATION_RELPATH] == {
+        "scripts/staged.py", "scripts/momented.py", "scripts/dashced.py"}
+
+
+def test_harness_dash_c_snippet_organ_triggers_its_import(harness_repo: Path):
+    """Codex terra review finding (LANE-5A-10, HIGH): a `python -c "..."` organ's script
+    name lives inside the code string, not as a `scripts/*.py` argv token -- the plain-argv
+    pass alone would silently omit this real edge."""
+    targets = fpg.wiring_targets(harness_repo)
+    assert "scripts/dashced.py" in targets[fpg.HARNESS_DECLARATION_RELPATH]
+
+
+def test_harness_fates_entries_do_not_manufacture_a_trigger(harness_repo: Path):
+    """The false-positive guard: a script named only in `fates:` -- a `path:` key plus prose
+    that names it again -- must stay untriggered. Reading `fates:` as call sites would
+    silently un-orphan exactly the scripts it exists to record as not yet wired."""
+    targets = fpg.wiring_targets(harness_repo)
+    assert "scripts/fated_only.py" not in targets[fpg.HARNESS_DECLARATION_RELPATH]
+
+    graph = fpg.build(harness_repo)
+    census = gq.orphan_census(harness_repo, gs.open_store(_rebuilt(harness_repo)))
+    subjects = {f.subject for f in census}
+    assert "scripts/staged.py" not in subjects
+    assert "scripts/momented.py" not in subjects
+    assert "scripts/fated_only.py" in subjects
+    del graph  # built once above only to prove `fpg.build` itself does not raise on the fixture
+
+
+def _rebuilt(repo: Path):
+    db = repo / "_store" / "FPG.db"
+    gs.rebuild(repo, db)
+    return db
+
+
+def test_harness_declaration_relpath_is_a_wiring_root(harness_repo: Path):
+    """`ecosystem/harness.yaml` must be a ROOT the reachability BFS starts from, the same way
+    `.pre-commit-config.yaml` already is -- a `triggers` edge nobody can reach from a root
+    convinces nothing."""
+    db = _rebuilt(harness_repo)
+    roots = gs.open_store(db).roots()
+    assert fpg._file_key(fpg.HARNESS_DECLARATION_RELPATH) in roots
+
+
 def test_process_class_is_DERIVED_from_path_never_a_rival_node_kind():
     """intake #40 §1: layer is derived from kind and path, never hand-declared. A second
     vertex for one file is the defect `node_for_path` exists to prevent."""
@@ -635,18 +715,15 @@ def test_the_query_finds_every_orphan_the_census_found(live_store):
     assert missed == [], f"the census found these and this query does not: {missed}"
 
 
-def test_the_census_and_the_query_disagree_and_the_disagreement_is_REPORTED(live_store):
-    """intake #86 AC 2: *"The converse is a finding, not a bug."*
-
-    `scripts/single_flight.py` is an orphan this query finds and the 2026-09-08 census did
-    not list. The criterion asks that such a disagreement be REPORTED and never silently
-    reconciled, so this pins that its disposition SAYS SO -- the finding lives in the
-    register where a reader meets it, not only in a lane artifact nobody reopens."""
-    orphans = {f.subject for f in gq.orphan_census(REPO_ROOT, live_store, dispositions={})}
-    assert "scripts/single_flight.py" in orphans
-    assert "scripts/single_flight.py" not in CENSUS_SCRIPT_ORPHANS
-    reason = gq.ORPHAN_DISPOSITIONS["scripts/single_flight.py"].reason
-    assert "FINDING AGAINST THE CENSUS" in reason
+# `test_the_census_and_the_query_disagree_and_the_disagreement_is_REPORTED` pinned intake #86
+# AC 2 (*"the converse is a finding, not a bug"*) against `scripts/single_flight.py`: an
+# orphan this query found and the 2026-09-08 census did not list. RETIRED 2026-09-24
+# (LANE-5A-10), not silently: `single_flight.py` is triggered now -- `ecosystem/harness.yaml`'s
+# `lane-start` moment runs it directly -- so the disagreement this test pinned has closed, and
+# a test asserting a closed disagreement is stale documentation, not a live gate. AC 2's
+# property (an unreconciled disagreement gets reported, not silently absorbed) is not
+# otherwise untested: `graph_queries.ORPHAN_DISPOSITIONS`'s own discharge comment for this row
+# is the record, in the same place a reader meets every other one.
 
 
 def test_a_disposition_register_entry_cannot_manufacture_its_own_trigger(live_store):

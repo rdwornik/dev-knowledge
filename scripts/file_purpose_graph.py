@@ -301,6 +301,19 @@ DEPLOY_RELPATH = "deploy"
 #: make every `scripts/*.py` that any shell script names into a non-orphan. The admitted set is
 #: this CLOSED TUPLE, not shell scripts as a class, and
 #: `test_widening_the_enum_moves_only_the_provisioning_chain` measures which nodes changed side.
+#: `ecosystem/harness.yaml` -- ADDED by LANE-5A-10 (2026-09-24), the SAME kind of admission as
+#: provisioning above and for the same reason: it satisfies the census's own predicate
+#: verbatim. A stage fires under the spine runner (`dodo.py`) and a moment fires under the
+#: launcher, the Stop hook or the integrator command -- none of the six needs a human
+#: deciding in the moment. Before this admission the file carried no trigger at all, so every
+#: script a stage or moment names came back a false orphan; measured live, nine of the
+#: census's orphans were exactly this (`docs/handoffs/.../DIGEST-HANDOFF-READINESS-2026-09-23
+#: .md` §3: "orphan-census 5 -> 14 (9 are scripts harness.yaml DOES run)"). Parsed by a
+#: DEDICATED reader, `_harness_command_targets`, never the generic leaf-walk the other six
+#: surfaces use -- see that function's docstring for why the generic walk is the wrong tool
+#: for this one file.
+HARNESS_DECLARATION_RELPATH = "ecosystem/harness.yaml"
+
 WIRING_SURFACES: tuple[str, ...] = (
     ".pre-commit-config.yaml",
     ".pre-commit-hooks.yaml",
@@ -309,6 +322,7 @@ WIRING_SURFACES: tuple[str, ...] = (
     "scripts/fleet-baseline.task.xml",
     ".devcontainer/devcontainer.json",
     ".devcontainer/provision.sh",
+    HARNESS_DECLARATION_RELPATH,
 )
 #: The CI leg. The census records this as `push`-triggered, not scheduled; either way it
 #: fires without a human deciding in the moment, which is the census's own predicate.
@@ -674,6 +688,85 @@ def _import_targets(path: Path, root: Path, modules: dict[str, str]) -> set[str]
     return found
 
 
+#: `python -c "...; import X as Y; ..."` -- the ONE other executable spelling harness.yaml's
+#: moment organs use besides a literal `scripts/*.py` argv token. `merge_receipt.open` and
+#: `fleet_health.seat_health_line` both `sys.path.insert(0, 'scripts')` then `import <bare
+#: module>`, the same shape `graph_queries._command_paths`/`_snippet_scripts` already resolve
+#: for the SAME file read for the moments query -- matches both `import a, b as c` and
+#: `from a import x`, `graph_queries._COMMAND_IMPORT_RE`'s own two shapes.
+_HARNESS_DASH_C_IMPORT_RE = re.compile(
+    r"(?:^|[;\s])(?:from\s+(\w+)\s+import\b|import\s+([\w\s,]+))")
+
+
+def _dash_c_targets(snippet: str, modules: dict[str, str]) -> set[str]:
+    """The scripts a `python -c` snippet imports, resolved against the same `modules` map
+    every other import-based edge in this file uses -- a stdlib name simply misses and
+    contributes nothing, so nothing here needs to know the stdlib's module list."""
+    found: set[str] = set()
+    for from_mod, import_list in _HARNESS_DASH_C_IMPORT_RE.findall(snippet):
+        names = [from_mod] if from_mod else [
+            part.split(" as ")[0].strip() for part in import_list.split(",")]
+        for name in names:
+            name = name.split()[0] if name.split() else ""
+            target = modules.get(name)
+            if target:
+                found.add(target)
+    return found
+
+
+def _harness_command_targets(text: str, modules: dict[str, str], root: Path,
+                             bases: tuple[str, ...]) -> set[str]:
+    """The scripts `ecosystem/harness.yaml`'s stages and moment organs actually RUN.
+
+    A DEDICATED reader, not the generic `_surface_strings` leaf-walk every other wiring
+    surface uses. This file also carries a `fates:` section whose entire point is to record
+    scripts the loop does NOT yet run -- a `path:` key plus prose `reason:` text that names
+    still more scripts by path (e.g. "called by lanes at handback; a moment declaration is
+    owed by the next wave"). A leaf-walk would read every one of those as a call site and
+    manufacture a `triggers` edge for exactly the scripts the census must keep reporting as
+    orphans -- the over-triggering `_config_strings`'s own docstring warns against, in a new
+    dress. So only `stages[].command` and `moments[].organs[].command` are read; `fates` is
+    never touched. `command: null` (a stage not built yet) contributes nothing, the same rule
+    `graph_queries.load_declaration` applies reading the same file for the moments query.
+
+    `-c` SNIPPET ARGV IS A SECOND CASE, not folded into the plain-argv pass above (Codex
+    terra review, LANE-5A-10): a `python -c "<code>"` organ's script name lives INSIDE the
+    code string, not as a `scripts/*.py` path token, so `_resolved_targets` alone never sees
+    it -- `_dash_c_targets` resolves that shape the same way `graph_queries._snippet_scripts`
+    resolves it for the same file.
+    """
+    try:
+        raw = yaml.safe_load(text)
+    except yaml.YAMLError:
+        return set()
+    if not isinstance(raw, dict):
+        return set()
+    commands: list = []
+    for stage in raw.get("stages") or []:
+        if isinstance(stage, dict) and isinstance(stage.get("command"), list):
+            commands.append(stage["command"])
+    for moment in raw.get("moments") or []:
+        if not isinstance(moment, dict):
+            continue
+        for organ in moment.get("organs") or []:
+            if isinstance(organ, dict) and isinstance(organ.get("command"), list):
+                commands.append(organ["command"])
+    found: set[str] = set()
+    for command in commands:
+        after_c = False
+        for arg in command:
+            if not isinstance(arg, str):
+                after_c = False
+                continue
+            if after_c:
+                found |= _dash_c_targets(arg, modules)
+                after_c = False
+                continue
+            after_c = arg == "-c"
+            found |= _resolved_targets(arg, modules, root, bases)
+    return found
+
+
 def wiring_targets(root: Path) -> dict[str, set[str]]:
     """`{wiring surface: the repo files it names in executable position}`.
 
@@ -693,8 +786,13 @@ def wiring_targets(root: Path) -> dict[str, set[str]]:
         rel = path.relative_to(root).as_posix()
         bases = _ancestor_bases(rel)
         targets: set[str] = set()
-        for value in _surface_strings(path):
-            targets |= _resolved_targets(value, modules, root, bases)
+        if rel == HARNESS_DECLARATION_RELPATH:
+            text = _read(path)
+            if text is not None:
+                targets |= _harness_command_targets(text, modules, root, bases)
+        else:
+            for value in _surface_strings(path):
+                targets |= _resolved_targets(value, modules, root, bases)
         targets.discard(rel)                     # a surface naming itself is not a call site
         if targets:
             out[rel] = targets
