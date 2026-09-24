@@ -6,10 +6,17 @@
 **Diff range:** `main..worktree-lane-graph-stage-edge`
 **Codex version:** codex-cli 0.155.0
 **Mode:** diff-review
-**Tally:** TBD/TBD/TBD/TBD <!-- Critical/High/Medium/Low. FILL FROM THE FINDINGS SECTION before committing. The hub's review_artifact_coverage leg parses four digits here; TBD deliberately does not parse, so an unfilled tally keeps WARNing instead of shipping a number nobody counted. -->
+**Tally:** 0/1/0/0 <!-- Critical/High/Medium/Low. The 1 HIGH finding fixed in 366661fd (pre-authorized ruling 2(e): fix a Codex review's P1 findings). -->
+**Disposition:** the 1 HIGH finding FIXED (pre-authorized ruling 2(e)). Re-verified with a
+RED-first regression test (`test_harness_dash_c_snippet_organ_triggers_its_import`) confirmed
+red before the fix and green after; see `to-browser/SESSION-lane-graph-stage-edge.md`.
 
 **Model used:** `gpt-5.6-terra` (pinned; both lanes — [#469])
 **Review profile:** code
+
+no-consumer: this lane files no BACKLOG row of its own for this finding tonight -- it is
+disposed against the frozen contract directly (below), the same shape
+`2026-09-24-codex-lane-ci-verdict.md`'s own no-consumer line uses.
 
 ---
 
@@ -42,3 +49,24 @@
 ## LOW
 
 (none)
+
+---
+
+## Dispositions (2026-09-24)
+
+The 1 HIGH finding was genuine and fixed in the same session, follow-up commit `366661fd`
+("resolve python -c snippet imports in harness moment organs"):
+
+1. **HIGH, file_purpose_graph.py:725, `-c` snippet organs contributed no trigger edge.**
+   `_dash_c_targets` now resolves a `python -c "..."` organ's `import <module>` (after
+   `sys.path.insert(0, 'scripts')`) the same way `graph_queries._snippet_scripts` already
+   resolves it reading the same file for the moments query. No live orphan-census change:
+   `scripts/fleet_health.py` is already wired via `.claude/settings.json`, so this closes a
+   real completeness gap in the graph's view of `ecosystem/harness.yaml`, not a census
+   regression.
+
+See `to-browser/SESSION-lane-graph-stage-edge.md` for the per-finding detail.
+
+| File | Disposition | Evidence locator |
+|---|---|---|
+| 2026-09-24-codex-lane-graph-stage-edge.md | ACTIONED | 366661fd |
