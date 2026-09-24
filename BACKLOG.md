@@ -202,6 +202,51 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#961] [P1][M] Wave 4b lane 5 (lane-plan-lint) -- the architect's plan is checked by code before it freezes · tasks/961-wave-4b-lane-5-lane-plan-lint-the-architects-plan-is-checked-by-code-before-it-freezes.md
 - [#962] [P1][M] Wave 4b lane 6 (lane-fleet-health-split) -- sessions read fleet health; a guarded background producer makes it · tasks/962-wave-4b-lane-6-lane-fleet-health-split-a-guarded-background-producer.md
 - [#963] [P1][L] State store ADR -- where the harness holds its operational state, which part is the truth, and where it executes · tasks/963-state-store-adr-where-the-harness-holds-its-operational-state-and-where-it-executes.md
+- [#964] [P1][M] One verification stage -- every check runs once at merge, results reused · tasks/964-one-verification-stage-every-check-runs-once-at-merge.md
+- [#965] [P1][M] One known-reds registry, read by CI and local, refreshed at the merge moment · tasks/965-one-known-reds-registry-read-by-ci-and-local-refreshed.md
+- [#966] [P1][M] CI's full-suite verdict becomes the merge gate; local runs only Windows-only tests · tasks/966-cis-full-suite-verdict-becomes-the-merge-gate-local.md
+- [#967] [P1][M] Test selection stops being 93% prose-triggered -- a doc-test tier, not a 58-file union · tasks/967-test-selection-stops-being-93-prose-triggered-a-doc.md
+- [#968] [P1][S] `logs/MERGE-RECEIPTS.jsonl` gets an `impacted_tests.RULES` mapping before it reds every gate · tasks/968-logs-merge-receipts-jsonl-gets-an-impacted-tests-rules.md
+- [#969] [P2][M] Connection walk gets JSON verdicts and a slow-tier split; the 18m59s bar comes down · tasks/969-connection-walk-gets-json-verdicts-and-a-slow-tier.md
+- [#970] [P1][M] Memory admission gate: heavy runs wait for free memory; `-n` is computed, not hand-set · tasks/970-memory-admission-gate-heavy-runs-wait-for-free-memory-n.md
+- [#971] [P1][M] Autonomy: pre-authorized ruling table, liveness watchdog, and a deny-and-point guard for root writes · tasks/971-autonomy-pre-authorized-ruling-table-liveness-watchdog.md
+- [#972] [P2][S] Session janitor stops every poll and wake-up a lane leaves running at batch close · tasks/972-session-janitor-stops-every-poll-and-wake-up-a-lane.md
+- [#973] [P1][S] Handback organ writes `HANDBACK-REFUSED-<lane>.md`, never the integrator's own `REFUSED-<lane>.md` · tasks/973-handback-organ-writes-handback-refused-lane-md-never.md
+- [#974] [P1][S] One comparator: the handback organ's self-check and the integrator's call the same function · tasks/974-one-comparator-the-handback-organs-self-check-and-the.md
+- [#975] [P1][M] Origin-only sync + purity check: a lane never merges a local, unverified main · tasks/975-origin-only-sync-purity-check-a-lane-never-merges-a.md
+- [#976] [P1][M] Merge receipts record the merge sha and timed steps, so batch-close can name the task · tasks/976-merge-receipts-record-the-merge-sha-and-timed-steps-so.md
+- [#977] [P2][S] Provider fallback list: a Sonnet outage no longer stalls every lane · tasks/977-provider-fallback-list-a-sonnet-outage-no-longer-stalls.md
+- [#978] [P1][M] Transport file-kind registry, enforced by an adapter -- no more invented names or collisions · tasks/978-transport-file-kind-registry-enforced-by-an-adapter-no.md
+- [#979] [P2][S] Path layer reads HARNESS_DRIVE_ROOT/HARNESS_PROMPTS_SUBDIR -- no direct env-var reads outside it · tasks/979-path-layer-reads-harness-drive-root-harness-prompts.md
+- [#980] [P2][L] Portability: a path layer + Drive API adapter + container CI job removes the Codespace blocker · tasks/980-portability-a-path-layer-drive-api-adapter-container-ci.md
+- [#981] [P2][L] Compute: an off-box execution host, so the laptop stops being the harness's substrate · tasks/981-compute-an-off-box-execution-host-so-the-laptop-stops.md
+- [#982] [P2][S] Seat bind marks live immediately; occupancy accepts a starting record instead of exit 2 · tasks/982-seat-bind-marks-live-immediately-occupancy-accepts-a.md
+- [#983] [P1][M] Decisions and audits land in the repo every wave -- a recurring step, not a one-off catch-up · tasks/983-decisions-and-audits-land-in-the-repo-every-wave-a.md
+- [#984] [P1][L] A state store (ADR-121) carries decisions across a handoff instead of losing them to prose · tasks/984-a-state-store-adr-121-carries-decisions-across-a.md
+- [#985] [P2][S] Plan lint rejects an audit order that carries no Codex verification step · tasks/985-plan-lint-rejects-an-audit-order-that-carries-no-codex.md
+- [#986] [P1][M] Architecture-level changes require ADR + matrix + debate + operator ratification, not a fast browser accept · tasks/986-architecture-level-changes-require-adr-matrix-debate.md
+- [#987] [P2][M] Batch close regenerates the ledger from the state store -- it stops going stale for days · tasks/987-batch-close-regenerates-the-ledger-from-the-state-store.md
+- [#988] [P1][M] Copilot admission lands in the registry with in-repo evidence -- the router stops blocking a producer that already ran · tasks/988-copilot-admission-lands-in-the-registry-with-in-repo.md
+- [#989] [P1][M] Launcher is wired to the existing provider_router -- routing stops living in prose and hard-coded models · tasks/989-launcher-is-wired-to-the-existing-provider-router.md
+- [#990] [P2][M] Opus 5.5 rate row + admission A/B for the orchestrate/plan role · tasks/990-opus-5-5-rate-row-admission-a-b-for-the-orchestrate.md
+- [#991] [P2][S] `/changelog-review` runs on a weekly conductor schedule instead of an operator-invoked one-off · tasks/991-changelog-review-runs-on-a-weekly-conductor-schedule.md
+- [#992] [P2][S] Measure `/skill-doctor` and `/doctor`'s CLAUDE.md-trim proposal; adopt `omitClaudeMd` for bounded roles · tasks/992-measure-skill-doctor-and-doctors-claude-md-trim.md
+- [#993] [P1][M] BUILD MODE exit condition 1: the connection walk is clean on main, xfail removed · tasks/993-build-mode-exit-condition-1-the-connection-walk-is.md
+- [#994] [P1][L] BUILD MODE exit condition 2: one real backlog row travels row-to-merge through the whole loop · tasks/994-build-mode-exit-condition-2-one-real-backlog-row.md
+- [#995] [P1][M] BUILD MODE exit condition: every disabled guard is re-armed with a live pass/fail test · tasks/995-build-mode-exit-condition-every-disabled-guard-is-re.md
+- [#996] [P2][M] Every operator request becomes a row the same day it is made -- a boot-time count, target 0 · tasks/996-every-operator-request-becomes-a-row-the-same-day-it-is.md
+- [#997] [P2][S] R-09-19-3: ARCHITECTURE.md KEPT ruling gets a STANDING_RULINGS entry, not just a BUILD-LIST line · tasks/997-r-09-19-3-architecture-md-kept-ruling-gets-a-standing.md
+- [#998] [P2][S] R-09-19-7: lane count is by need, not a fixed 6-lane ceiling -- lands in STANDING_RULINGS · tasks/998-r-09-19-7-lane-count-is-by-need-not-a-fixed-6-lane.md
+- [#999] [P2][S] R-09-19-10: 'the dispatcher dispatches' -- lands once DECLARE-NIGHT-AUTONOMY is in STANDING_RULINGS · tasks/999-r-09-19-10-the-dispatcher-dispatches-lands-once-declare.md
+- [#1000] [P1][S] Doctrine 'the backbone is code; prose is intent' lands in STANDING_RULINGS · tasks/1000-doctrine-the-backbone-is-code-prose-is-intent-lands-in.md
+- [#1001] [P1][M] SessionStart becomes one stdlib reader -- 8 interpreters to 1, p90 under 2s · tasks/1001-sessionstart-becomes-one-stdlib-reader-8-interpreters.md
+- [#1002] [P1][S] Re-arm evidence must be measured in-session, under the real concurrent hook set, over 20+ events · tasks/1002-re-arm-evidence-must-be-measured-in-session-under-the.md
+- [#1003] [P1][M] Closure proposals run once per new commit, with a reader, not once per turn · tasks/1003-closure-proposals-run-once-per-new-commit-with-a-reader.md
+- [#1004] [P1][M] Commit-gate counter survives worktree teardown; '0 runs' reads UNMEASURED, not REMOVE · tasks/1004-commit-gate-counter-survives-worktree-teardown-0-runs.md
+- [#1005] [P1][M] Path protection comes back as `permissions.deny` rules -- no process per PreToolUse call · tasks/1005-path-protection-comes-back-as-permissions-deny-rules-no.md
+- [#1006] [P2][S] Boot banner stops printing re-armed hooks as 'DECLARED BROKEN' · tasks/1006-boot-banner-stops-printing-re-armed-hooks-as-declared.md
+- [#1007] [P2][M] SessionEnd writes the seat absent record; lane-start gets its trigger · tasks/1007-sessionend-writes-the-seat-absent-record-lane-start.md
+- [#1008] [P2][S] Stale-statement sweep: reconcile 6 doc claims against live hook/organ state · tasks/1008-stale-statement-sweep-reconcile-6-doc-claims-against.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
