@@ -511,6 +511,37 @@ def test_a_no_live_integrator_refusal_survives_doits_own_chatter_untruncated(con
     assert _REMEDY_CMD in outcome.reason, outcome.reason
 
 
+# codex terra review (2026-09-25): the fix above still shared a fixed 2000-char cap across every
+# refused line, and a long --batch value is interpolated INSIDE the remedy itself -- so a long
+# batch name, or a second refusal sharing the cap, could still cut the exact command.
+
+def test_a_very_long_batch_value_does_not_cut_the_command_out_of_its_own_remedy(contract, monkeypatch, receipts):
+    long_batch = "WAVE5B-N1-" + "X" * 3000   # long enough to overflow any fixed shared cap
+    remedy_cmd = f"uv run --locked python scripts/seat_registry.py bind --role integrator --batch {long_batch}"
+    refused_line = (f"REFUSED [no-live-integrator]: batch {long_batch} has no live integrator seat "
+                    f"-- boot the integrator for batch {long_batch} and run `{remedy_cmd}`; then dispatch.")
+
+    def fake_run(argv, **kw):
+        return subprocess.CompletedProcess(argv, 1, stdout=_NOISE, stderr=refused_line)
+    monkeypatch.setattr(d.subprocess, "run", fake_run)
+    outcome = d.run_prelaunch(_request(contract, batch=long_batch))
+    assert outcome.passed is False
+    assert remedy_cmd in outcome.reason, outcome.reason
+
+
+def test_two_refusals_in_one_run_both_survive_in_full(contract, monkeypatch, receipts):
+    remedy_cmd = _REMEDY_CMD
+    other_refusal = "REFUSED [lane-owned]: lane-launch-adapter already has a live owner -- message the owner instead"
+
+    def fake_run(argv, **kw):
+        return subprocess.CompletedProcess(argv, 1, stdout=_NOISE, stderr=other_refusal + "\n" + _REFUSED_LINE)
+    monkeypatch.setattr(d.subprocess, "run", fake_run)
+    outcome = d.run_prelaunch(_request(contract, batch="WAVE5B-N1"))
+    assert outcome.passed is False
+    assert remedy_cmd in outcome.reason, outcome.reason
+    assert "lane-owned" in outcome.reason, outcome.reason
+
+
 def test_the_launch_cli_prints_the_exact_bind_command_and_exits_non_zero(contract, monkeypatch, receipts):
     def fake_run(argv, **kw):
         return subprocess.CompletedProcess(argv, 1, stdout=_NOISE, stderr=_REFUSED_LINE)
@@ -635,6 +666,27 @@ def test_govern_reads_a_codex_lanes_usage_from_its_log_and_records_it(tmp_path, 
     assert row["used"] == 1000 and row["cap"] == 500 and row["job_id"] == "codex-4321"
 
 
+# codex terra review (2026-09-25): a copilot receipt fell through to the claude-agent bind, which
+# can never succeed for it and reported a misleading reason. It must be an honest, explicit
+# UNOBSERVED instead -- never a false zero, never a stop, and the message must not claim a
+# claude-agent search that was never applicable.
+
+def test_govern_on_a_copilot_receipt_is_an_honest_unobserved_never_a_false_zero(tmp_path, receipts, monkeypatch):
+    receipts.mkdir(parents=True)
+    (receipts / "LAUNCH-LANE-LAUNCH-ADAPTER.json").write_text(json.dumps(
+        {"slug": "lane-launch-adapter", "provider": "copilot", "job_id": "copilot-4321", "pid": 4321,
+         "token_cap": 500}), encoding="utf-8")
+    monkeypatch.setattr(d, "commit_witness", lambda slug: ("DONE", "1 commit"))
+    _tripwire(monkeypatch)
+    out = CliRunner().invoke(d.cli, ["govern", "--slug", "lane-launch-adapter", "--interval", "0"])
+    assert out.exit_code == d.EXIT_UNOBSERVED, out.output
+    assert "not touched" in out.output.lower() or "NOT touched" in out.output
+    row = json.loads((receipts / "LAUNCH-SPEND-LANE-LAUNCH-ADAPTER.jsonl").read_text().splitlines()[-1])
+    assert row["readable"] is False and row["used"] is None
+    assert "claude agents" not in out.output.lower(), \
+        "the reason must not claim a claude-agent search that copilot was never eligible for"
+
+
 def test_a_codex_log_with_no_usage_is_unreadable_not_zero(tmp_path):
     log = tmp_path / "codex.jsonl"
     log.write_text("nothing here\n", encoding="utf-8")
@@ -699,6 +751,43 @@ def test_a_codex_receipt_whose_process_is_alive_holds_the_slug(tmp_path, receipt
         d.launch_lane(_request(path, slug="lane-launch-adapter"), prelaunch=_pass, spawn=spawn,
                       agents=lambda: [], cwd=tmp_path)
     assert spawn.calls == [] and "codex-77" in refused.value.message
+
+
+# --- codex terra review (2026-09-25): a copilot receipt fell through to the claude-agent lookup --
+# and was released once the receipt aged past LISTING_LAG_SECONDS, even with its process still
+# alive -- a second lane could then launch into the same, still-running, worktree.
+
+def test_a_copilot_receipt_whose_process_is_alive_holds_the_slug_past_the_listing_lag(
+        tmp_path, receipts, monkeypatch):
+    path = tmp_path / "LANE-copilot-x.md"
+    path.write_text(COPILOT_CONTRACT, encoding="utf-8")
+    _plant_receipt(receipts, job_id="copilot-77", provider="copilot", pid=77,
+                   age_seconds=d.LISTING_LAG_SECONDS + 60)   # past the lag: only pid-liveness saves it
+    monkeypatch.setattr(d, "process_alive", lambda pid: pid == 77)
+
+    def fake_spawn(argv, env, cwd, log_path=None):
+        pytest.fail("a held slug must not spawn a second lane")
+    with pytest.raises(d.LaunchRefused) as refused:
+        d.launch_lane(_request(path, slug="lane-launch-adapter"), prelaunch=_pass, spawn=fake_spawn,
+                      agents=lambda: [], cwd=tmp_path)
+    assert "copilot-77" in refused.value.message
+    assert "still running" in refused.value.message
+
+
+def test_a_copilot_receipt_whose_process_has_ended_frees_the_slug(tmp_path, receipts, monkeypatch):
+    path = tmp_path / "LANE-copilot-x.md"
+    path.write_text(COPILOT_CONTRACT, encoding="utf-8")
+    _plant_receipt(receipts, job_id="copilot-77", provider="copilot", pid=77,
+                   age_seconds=d.LISTING_LAG_SECONDS + 60)
+    monkeypatch.setattr(d, "process_alive", lambda pid: False)   # the process has ended
+    calls = []
+
+    def fake_spawn(argv, env, cwd, log_path=None):
+        calls.append(list(argv))
+        return d.Spawned(returncode=0, stdout="", pid=88)
+    d.launch_lane(_request(path, slug="lane-launch-adapter"), prelaunch=_pass, spawn=fake_spawn,
+                 agents=lambda: [], cwd=tmp_path)
+    assert len(calls) == 1
 
 
 def test_two_launches_of_one_slug_cannot_run_at_once_a_lock_refuses_the_second(contract, tmp_path, receipts):

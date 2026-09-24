@@ -791,15 +791,12 @@ _DOIT_CHATTER = re.compile(r"^(\.\s+organ:|TaskFailed|Python Task failed|warning
 #: `no-live-integrator`'s remedy names the exact `seat_registry.py bind` command a missing
 #: integrator needs). WAVE5A blind spot 1: the refusal fired, but its fix scrolled off `_tail`'s
 #: 600-char budget underneath doit's own per-task chatter and telemetry prints -- the launch was
-#: refused without saying how to fix it. `run_prelaunch` below surfaces a line matching this
-#: pattern WHOLE, at a much larger budget, rather than letting it compete for `_tail`'s space with
-#: everything else doit printed.
+#: refused without saying how to fix it. `run_prelaunch` below surfaces every line matching this
+#: pattern WHOLE and UNTRUNCATED (never through `_tail`'s cap), rather than letting it compete for
+#: shared budget with everything else doit printed, or with a SECOND refusal, or with its own
+#: `--batch` value repeated inside the remedy (terra HIGH, 2026-09-25: a fixed cap on the joined
+#: refusals can still cut the command out from under a long batch name or multiple refusals).
 _REFUSED_LINE_RE = re.compile(r"^REFUSED \[[^\]]+\]:")
-
-#: The budget for a REFUSED line specifically -- large enough that a remedy carrying a full shell
-#: command (e.g. `uv run --locked python scripts/seat_registry.py bind --role integrator --batch
-#: <BATCH>`) is never the part that gets cut.
-_REFUSAL_TAIL_LIMIT = 2000
 
 
 def run_prelaunch(request: LaunchRequest, hub: Path = HUB_ROOT) -> PreLaunch:
@@ -823,7 +820,9 @@ def run_prelaunch(request: LaunchRequest, hub: Path = HUB_ROOT) -> PreLaunch:
     said = [ln for ln in (done.stdout + "\n" + done.stderr).splitlines() if not _DOIT_CHATTER.match(ln)]
     refused = [ln.strip() for ln in said if _REFUSED_LINE_RE.match(ln.strip())]
     if refused:
-        return PreLaunch(False, _tail(" | ".join(refused), _REFUSAL_TAIL_LIMIT))
+        # NEVER through `_tail`: a fixed cap shared across every refused line -- or spent inside
+        # one line's own repeated `--batch` value -- can still cut the exact remedy command out.
+        return PreLaunch(False, " | ".join(refused))
     return PreLaunch(False, _tail("\n".join(said)) or f"pre-launch exited {done.returncode}")
 
 
@@ -906,13 +905,14 @@ def _held_by(slug: str, receipt: Optional[dict], agents: Callable[[], list[dict]
     earlier launch is younger than `LISTING_LAG_SECONDS` and the listing has not shown its job yet."""
     receipt = receipt or {}
     job = str(receipt.get("job_id") or "")
-    if receipt.get("provider") == "codex":
+    provider = str(receipt.get("provider") or "")
+    if provider in _DETACHED_HEADS:  # codex, copilot: self-identified by pid, never claude-listed
         pid = receipt.get("pid")
         if isinstance(pid, int):
-            return f"codex job {job} (pid {pid}) is still running" if process_alive(pid) else ""
+            return f"{provider} job {job} (pid {pid}) is still running" if process_alive(pid) else ""
         age = _age_seconds(receipt.get("launched_at"))   # an INTENT receipt: Popen may already have run
         if job and age is not None and age < LISTING_LAG_SECONDS:
-            return f"a codex launch ({job}) began {int(age)}s ago and has not recorded its process yet"
+            return f"a {provider} launch ({job}) began {int(age)}s ago and has not recorded its process yet"
         return ""
     listing = agents()
     entry = _find_agent(listing, job) if job and job not in ("unresolved", "pending") else None
@@ -1419,10 +1419,23 @@ def _watch(receipt: dict, lane_id: str, slug: str, cap: Optional[int], record: C
            models: list, interval: float, bind_polls: int, max_polls: Optional[int], blind_polls: int,
            count_cache_reads: bool, sessions_root: Optional[Path]) -> MonitorVerdict:
     """Bind the lane (or its log) and run the monitor. Reads and records; touches nothing."""
-    if receipt.get("provider") == "codex" and receipt.get("log_path") and isinstance(receipt.get("pid"), int):
+    provider = receipt.get("provider")
+    if provider == "codex" and receipt.get("log_path") and isinstance(receipt.get("pid"), int):
         pid = receipt["pid"]
         read_usage, alive = _log_reader(Path(receipt["log_path"])), (lambda: process_alive(pid))
         shown = receipt.get("job_id", "?")
+    elif provider == "copilot":
+        # Copilot is not a claude agent (`claude agents --json` never lists it), so falling
+        # through to the claude-agent bind below would search a listing that can never carry it
+        # and report a MISLEADING reason (terra HIGH, 2026-09-25). Copilot's CLI does carry a
+        # supported usage surface (`--usage-output-file`, `--output-format json`), but this
+        # module does not read either one yet: honest, explicit UNOBSERVED -- never a false zero,
+        # never a stop -- until that reader exists.
+        record({"poll": 0, "used": None, "cap": cap, "over_cap": False, "readable": False, "models": []})
+        return MonitorVerdict(0, None, cap, unobserved=(
+            "copilot governance is not implemented yet: no claude-agent identity to bind to, and "
+            "no reader for the CLI's own usage surface (--usage-output-file / --output-format "
+            "json)"))
     else:
         given = lane_id or (receipt.get("job_id") if receipt.get("job_id") not in (None, "unresolved") else "")
         lane_id, binding = _bind(str(given), slug, bind_polls, interval)
