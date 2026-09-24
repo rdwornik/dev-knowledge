@@ -21,6 +21,13 @@
 
 ---
 
+### 2026-09-24 (b) - CC (Opus 5.5, integrator wave 5a): LANE 5A-3 landed -- heavy runs wait for memory and a slot instead of dying
+
+**Anchors:** `7cceb75d` (Codex terra: 1 Critical + 2 High confirmed and fixed) · `f9d9403b` (the slot lock's env var decoupled from `HARNESS_RECEIPTS_DIR`) · `661e4d74` (ship-gate's argv stays introspectable while gated) · `047733d7` (memory admission gate for heavy pytest / ship-gate runs) -- `worktree-lane-memory-gate`, merged --no-ff in an integration worktree.
+
+**Did:** merged LANE-5A-3 (merge priority 1; DECLARE-NIGHT-AUTONOMY items 1-2, defect D7). `scripts/memory_admission_gate.py` (new) waits until free memory clears a reserve plus the command's estimate and a machine-wide `filelock` slot is free, reserves its estimate in a ledger so concurrent admissions cannot double-book, runs the command in the foreground with `-n` computed from free memory, and writes a receipt; reserve, slots and per-worker estimate live in `ecosystem/memory-gate-config.yaml`. Wired inside `scripts/test_pairing.py` and `scripts/gates.py`; `HARNESS_MEMORY_GATE_DISABLE=1` keeps the old behaviour. `psutil` and `filelock` enter `pyproject.toml` / `uv.lock`; one dated `fates:` line in `ecosystem/harness.yaml` (batch ruling (a)).
+
+**Result:** Codex terra `docs/audits/2026-09-24-codex-lane-memory-gate.md` (1 Critical + 2 High, fixed). Verification (ship-gate diff; full-suite pairing by CI, since a dependency change selects the whole suite): `to-browser/SESSION-integrator-wave5a-2026-09-23.md`. **Changes:** `scripts/memory_admission_gate.py` (new), `ecosystem/memory-gate-config.yaml` (new), `scripts/gates.py`, `scripts/test_pairing.py`, `pyproject.toml`, `uv.lock`, `ecosystem/harness.yaml`, `tests/test_memory_admission_gate.py` (new), `tests/test_integrator_surface.py`, `docs/audits/2026-09-24-codex-lane-memory-gate.md` (new), `docs/audits/README.md`, `ecosystem/doc-counts.md`, `JOURNAL.md`, `logs/MERGE-RECEIPTS.jsonl`. **Next:** lane-one-registry-ci may now launch (it depends on this lane).
 ### 2026-09-24 (a) - CC (Opus 5.5, integrator wave 5a): S1 landed -- the changelog review closes a 2.5-month gap
 
 **Anchors:** `66a616a9` (changelog-review claude-code 2.1.205-2.1.281 + codex 0.144.0-0.156.1; intake 105) -- `worktree-postwave-changelog`, merged --no-ff in an integration worktree off origin/main `4667f731`.

@@ -111,6 +111,38 @@ dev = [
     #   packages added (deptry 0.25.1, requirements-parser 0.13.1, tomli 2.4.1); its click,
     #   packaging and colorama edges were already in uv.lock.
     "deptry>=0.25",
+    # psutil -- scripts/memory_admission_gate.py (LANE-5A-3, D7: "8+ reaps, 2 lanes lost to
+    # OOM, `-n` set by hand -- no admission control"). AUTHORIZATION: the frozen contract
+    # itself (LANE-5A-3, "Owns" line) names this dependency's addition to pyproject.toml/
+    # uv.lock as the lane's deliverable, dispatched under DECLARE-NIGHT-AUTONOMY mechanism 1
+    # ("Libraries: psutil for memory and process trees ... established; neither is new code")
+    # -- the operator's paste of the batch order is the confirmation P0's "no new deps
+    # without confirmation" asks for.
+    #   LIBRARY-FIRST, STATED SO THE PRIOR CALL IS NOT SILENTLY REVERSED: resource_lifecycle.py
+    #   (this repo, [#792]) explicitly declined psutil for the SAME free-memory question,
+    #   citing stdlib-first (WMI via PowerShell / `/proc/meminfo`) plus the no-new-deps rule.
+    #   That call stands for that module. This module reverses it ONLY for itself, on this
+    #   contract's explicit direction, because psutil also answers this gate's SECOND question
+    #   (workers computed from free memory) with one cross-platform call instead of two
+    #   platform-specific parsers, and pytest-xdist worker sizing has no existing in-repo
+    #   reader to reuse. The two modules therefore read memory through two different
+    #   instruments on purpose; unifying them is future work, not a defect this lane owes.
+    # NO ecosystem/dependency-baseline.yaml row -- the pandas/packaging/doit precedent: the
+    # gate wraps HUB-ONLY organs (test_pairing.py, gates.py), ships in no carrier and no
+    # deploy-manifest component, so no consumer needs it to operate a methodology mechanism.
+    "psutil>=6.0",
+    # filelock -- scripts/memory_admission_gate.py's machine-wide SLOT (the same contract and
+    # DECLARE-NIGHT-AUTONOMY mechanism as psutil above). LIBRARY-FIRST: filelock was ALREADY
+    # resolved transitively (pre-commit -> virtualenv -> filelock, uv.lock) but UNDECLARED --
+    # this follows the packaging/markdown-it-py precedent above: a dependency this module
+    # relies on directly must not ride a transitive edge it does not own. NOT the same
+    # mechanism as scripts/single_flight.py's git-ref lock: that guard is explicitly built for
+    # racers that may not share a filesystem (research evidence T2), which is a stronger and
+    # more expensive property this gate does not need -- every slot-holder here already shares
+    # one machine by construction (LANE-5A-3's own "machine-wide slot"), so a filesystem lock
+    # is the right-sized tool and the distributed one would be solving a problem this gate
+    # does not have. NO ecosystem/dependency-baseline.yaml row -- same reasoning as psutil.
+    "filelock>=3.32",
 ]
 # L5a descriptive analytics lane ([#384], intake #16 section 3). Separate group: the lane is
 # HUB-ONLY (it mines siblings read-only but runs here), so a consumer never needs it and it
