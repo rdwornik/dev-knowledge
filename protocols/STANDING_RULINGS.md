@@ -4644,7 +4644,15 @@ pre-authorized ruling table, a narrow deny-and-point guard for root-path writes,
 off-box heavy work) land via the first serial lane of the next batch. Until then, this batch and
 this window received the pre-authorized-ruling and no-hanging-prompt behavior **by order, not by
 code** — `PLAN-WAVE5` §1 doctrine ("nobody waits for the operator at night") and this lane's own
-contract are that order. Carrier row for the memory piece specifically: `[#970]` (memory gate, D7).
+contract are that order.
+
+**R-09-19-10 · the dispatcher dispatches.** The source's liveness-watchdog mechanism (item 3)
+states it plainly: the dispatcher seat classifies fired lanes and relaunches or reports — "it
+never asks the operator." Its job is to dispatch, not to decide; a QUESTION in a known
+pre-authorized class resolves by the integrator's default, never by the dispatcher inventing a
+ruling. Carrier row: `[#999]`.
+
+Carrier row for the memory piece specifically: `[#970]` (memory gate, D7).
 The other six mechanisms have no row yet — the SMART goals table (N1-N6 in the source) is the
 acceptance surface a future lane cites when it files them; recorded here as still open so a later
 reader does not assume they landed with D7.
