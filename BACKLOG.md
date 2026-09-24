@@ -237,14 +237,14 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#996] [P2][M] Every operator request becomes a row the same day it is made -- a boot-time count, target 0 · tasks/996-every-operator-request-becomes-a-row-the-same-day-it-is.md
 - [#997] [P2][S] R-09-19-3: ARCHITECTURE.md KEPT ruling gets a STANDING_RULINGS entry, not just a BUILD-LIST line · tasks/997-r-09-19-3-architecture-md-kept-ruling-gets-a-standing.md
 - [#998] [P2][S] R-09-19-7: lane count is by need, not a fixed 6-lane ceiling -- lands in STANDING_RULINGS · tasks/998-r-09-19-7-lane-count-is-by-need-not-a-fixed-6-lane.md
-- [#999] [P2][S] R-09-19-10: "the dispatcher dispatches" -- lands once DECLARE-NIGHT-AUTONOMY is in STANDING_RULINGS · tasks/999-r-09-19-10-the-dispatcher-dispatches-lands-once-declare.md
-- [#1000] [P1][S] Doctrine "the backbone is code; prose is intent" lands in STANDING_RULINGS · tasks/1000-doctrine-the-backbone-is-code-prose-is-intent-lands-in.md
+- [#999] [P2][S] R-09-19-10: 'the dispatcher dispatches' -- lands once DECLARE-NIGHT-AUTONOMY is in STANDING_RULINGS · tasks/999-r-09-19-10-the-dispatcher-dispatches-lands-once-declare.md
+- [#1000] [P1][S] Doctrine 'the backbone is code; prose is intent' lands in STANDING_RULINGS · tasks/1000-doctrine-the-backbone-is-code-prose-is-intent-lands-in.md
 - [#1001] [P1][M] SessionStart becomes one stdlib reader -- 8 interpreters to 1, p90 under 2s · tasks/1001-sessionstart-becomes-one-stdlib-reader-8-interpreters.md
 - [#1002] [P1][S] Re-arm evidence must be measured in-session, under the real concurrent hook set, over 20+ events · tasks/1002-re-arm-evidence-must-be-measured-in-session-under-the.md
 - [#1003] [P1][M] Closure proposals run once per new commit, with a reader, not once per turn · tasks/1003-closure-proposals-run-once-per-new-commit-with-a-reader.md
-- [#1004] [P1][M] Commit-gate counter survives worktree teardown; "0 runs" reads UNMEASURED, not REMOVE · tasks/1004-commit-gate-counter-survives-worktree-teardown-0-runs.md
+- [#1004] [P1][M] Commit-gate counter survives worktree teardown; '0 runs' reads UNMEASURED, not REMOVE · tasks/1004-commit-gate-counter-survives-worktree-teardown-0-runs.md
 - [#1005] [P1][M] Path protection comes back as `permissions.deny` rules -- no process per PreToolUse call · tasks/1005-path-protection-comes-back-as-permissions-deny-rules-no.md
-- [#1006] [P2][S] Boot banner stops printing re-armed hooks as "DECLARED BROKEN" · tasks/1006-boot-banner-stops-printing-re-armed-hooks-as-declared.md
+- [#1006] [P2][S] Boot banner stops printing re-armed hooks as 'DECLARED BROKEN' · tasks/1006-boot-banner-stops-printing-re-armed-hooks-as-declared.md
 - [#1007] [P2][M] SessionEnd writes the seat absent record; lane-start gets its trigger · tasks/1007-sessionend-writes-the-seat-absent-record-lane-start.md
 - [#1008] [P2][S] Stale-statement sweep: reconcile 6 doc claims against live hook/organ state · tasks/1008-stale-statement-sweep-reconcile-6-doc-claims-against.md
 ### [S4] Extend structural validation to more governance artifacts
