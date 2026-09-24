@@ -25,8 +25,11 @@ from __future__ import annotations
 
 import copy
 import importlib.util
+import json
+import os
 import shutil
 import sqlite3
+import subprocess
 import sys
 from pathlib import Path
 
@@ -577,13 +580,22 @@ def _version_key(model_id: str) -> tuple[tuple[int, ...], tuple[object, ...]]:
     return version_tuple, shape
 
 
-def _newest_sharing_shape(model_id: str, listed_ids: list[str]) -> str:
+def _newest_sharing_shape(model_id: str, listed_ids: list[str]) -> str | None:
     """The highest-version id among `listed_ids` that shares `model_id`'s exact shape, or
-    `model_id` itself when nothing shares it (including `model_id` not being present)."""
+    `None` when `listed_ids` contains no such id AT ALL -- including `model_id` itself.
+
+    Codex terra HIGH (`docs/audits/2026-09-25-codex-lane-registry-models.md`): an earlier
+    version of this function returned `model_id` itself in that case, which read a fully
+    RETIRED pin (absent from the listing, not merely incomparable) as current by omission --
+    the one gap a currency mechanism cannot have. `None` never equals a real model id, so a
+    caller comparing `entry["model"] == _newest_sharing_shape(...)` now correctly treats an
+    absent id as stale and requires a `currency_exception`, the same as an id a newer sibling
+    has overtaken.
+    """
     _, shape = _version_key(model_id)
     siblings = [m for m in listed_ids if _version_key(m)[1] == shape]
     if not siblings:
-        return model_id
+        return None
     return max(siblings, key=lambda m: _version_key(m)[0])
 
 
@@ -609,6 +621,14 @@ def test_newest_sharing_shape_catches_a_stale_pin():
     sibling sharing the pinned id's exact shape is picked over the older one."""
     listed = ["grok-4.3", "grok-4.5", "grok-4.6", "grok-4.7"]
     assert _newest_sharing_shape("grok-4.6", listed) == "grok-4.7"
+
+
+def test_newest_sharing_shape_does_not_wave_through_a_fully_retired_id():
+    """Codex terra HIGH (`docs/audits/2026-09-25-codex-lane-registry-models.md`): a pinned id
+    absent from the listing altogether -- not merely lacking a same-shape sibling -- must
+    compare as stale, never as trivially current because there was nothing to compare it to."""
+    assert _newest_sharing_shape("grok-4.6", ["gpt-5.5", "gpt-6-astra"]) is None
+    assert _newest_sharing_shape("grok-4.6", []) is None
 
 
 def test_reviews_codex_pin_is_current_against_the_captured_listing_and_needs_no_exception(
@@ -659,3 +679,92 @@ def test_grok_pins_are_stale_against_a_freshly_re_measured_listing_and_therefore
         )
         exc = entry["currency_exception"]
         assert exc.get("reason") and exc.get("decided_by") and exc.get("decided_on")
+
+
+# --- LANE-5B-2: the designated live probe (opt-in) ------------------------------------------
+
+
+def _live_listing(provider_id: str, command: tuple[str, ...]) -> list[str]:
+    """Run `command` and parse it into the ids that provider currently serves.
+
+    Codex terra HIGH (`docs/audits/2026-09-25-codex-lane-registry-models.md`): the tests above
+    compare role pins against a captured snapshot and only check `command[0]` for identity --
+    real, ongoing currency detection needs something that actually EXECUTES the declared
+    `command` and parses it. This is that something. Per-provider parsing matches each
+    provider's own `model_currency.parse` prose in `ecosystem/provider-registry.yaml`, each
+    verified against a real run of the command on 2026-09-25.
+    """
+    # WINDOWS: `CreateProcess` does not consult `PATHEXT`, so a bare `"codex"` argv[0] dies
+    # with `WinError 2` even though the CLI runs fine from a shell -- npm-installed CLIs are
+    # `.cmd` shims, not `.exe`. `shutil.which` (called from native Windows Python, not
+    # MSYS/Git-Bash) resolves the real extension; resolve argv[0] through it rather than
+    # passing the declared command's bare name straight to `subprocess.run`.
+    resolved = shutil.which(command[0])
+    argv = (resolved, *command[1:]) if resolved else command
+    # NO `text=True`: it decodes with `locale.getpreferredencoding()` (cp1252 on this box),
+    # which mojibakes any non-ASCII byte a CLI emits (codex's listing carries real em dashes)
+    # and can outright crash the reader thread, leaving `.stdout` `None` instead of raising.
+    # Capture bytes and decode utf-8 explicitly instead.
+    result = subprocess.run(argv, stdin=subprocess.DEVNULL, capture_output=True, timeout=30)
+    result.check_returncode()
+    stdout = result.stdout.decode("utf-8")
+    if provider_id == "openai":
+        # `codex debug models`: JSON, `slug` where `visibility == "list"`.
+        data = json.loads(stdout)
+        return [m["slug"] for m in data.get("models", []) if m.get("visibility") == "list"]
+    if provider_id == "antigravity":
+        # `agy models`: a "Fetching..." banner, then `<id>\t<display name>` per line.
+        return [line.split("\t", 1)[0].strip() for line in stdout.splitlines() if "\t" in line]
+    if provider_id == "xai":
+        # `grok models`: banner/prose lines, then `[*-] <id>[ (default)]` per model line.
+        ids = []
+        for line in stdout.splitlines():
+            line = line.strip()
+            if line.startswith(("*", "-")):
+                line = line[1:].strip()
+            token = line.split()[0] if line.split() else ""
+            if token.startswith("grok-"):
+                ids.append(token)
+        return ids
+    raise NotImplementedError(f"no live parser registered for provider `{provider_id}`")
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(
+    not os.environ.get("RUN_LIVE_CURRENCY_PROBE"),
+    reason="opt-in live vendor-CLI probe (network/subprocess); set RUN_LIVE_CURRENCY_PROBE=1",
+)
+def test_live_probe_executes_the_declared_command_and_applies_the_comparison(live_registry):
+    """The mechanism, actually run: for every named provider with its CLI present, execute
+    the registry's own declared `model_currency.command`, parse it, and apply
+    `_newest_sharing_shape` to today's real listing -- not a captured one.
+
+    OPT-IN, on the `RUN_E2E` precedent (`tests/test_e2e_consumer_lifecycle.py`): a live vendor
+    CLI call is network- and account-dependent and does not belong in an ordinary `pytest -x`
+    run. `shutil.which` still skips a provider whose CLI is absent from this box, matching the
+    Done-contract's own "skipped, and said so" clause.
+    """
+    checked_any = False
+    for pid, cli in _CURRENCY_PROVIDERS.items():
+        if shutil.which(cli) is None:
+            continue
+        mc = live_registry["providers"][pid].get("model_currency") or {}
+        command = mc.get("command")
+        if command is None:
+            continue
+        listed = _live_listing(pid, tuple(command))
+        assert listed, f"`{' '.join(command)}` returned no parseable model ids"
+        for role, spec in live_registry["roles"].items():
+            for entry in spec["order"]:
+                if entry["provider"] != pid or entry.get("model") is None:
+                    continue
+                checked_any = True
+                newest = _newest_sharing_shape(entry["model"], listed)
+                if newest == entry["model"]:
+                    continue
+                assert entry.get("currency_exception") is not None, (
+                    f"role `{role}`'s `{entry['model']}` pin is stale against the LIVE "
+                    f"listing just measured (newest sharing its shape: `{newest}`) and "
+                    f"carries no `currency_exception`"
+                )
+    assert checked_any, "no probeable provider held a role pin on this box -- nothing was checked"
