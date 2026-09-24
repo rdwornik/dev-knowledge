@@ -21,6 +21,14 @@
 
 ---
 
+### 2026-09-24 (k) - CC (Opus 5.5, integrator finish-5a): LANE 5A-1 landed -- every CI regression above the 09-17 freeze is attributed, and every verdict names its baseline id
+
+**Anchors:** `0d750e2d` (repair 1 of 2: the merge moment's unreached list gains `known_reds_refresh`) · `4826c96a` (the lane's sync merge of origin/main `10b1570e`) · `0ea4fec9` (repair 1 of 2: the step's reason drops a silent-rule token) · `d254e2d0` (Codex terra: 3 High fixed) · `82d62997` (the known-reds registry and its baseline id) -- `worktree-lane-one-registry-ci`, merged --no-ff in an integration worktree.
+
+**Did:** merged LANE-5A-1 (ADR-121 step 1) after repair 1 of 2: the first merge (refused 04:40Z) raised the silent-rule ratchet 452 -> 453 and left `tests/test_connection_loop.py` expecting three unreached merge steps where the new `known_reds_refresh` step makes four. `scripts/known_reds.py` bisects each red to its first bad sha and lane; `logs/KNOWN-REDS-REGISTRY.json` carries the reds with baseline id `2026-09-24-6b1c6bf4df83`, none anonymous; `scripts/test_pairing.py`'s registry and verdicts carry a baseline id; `conductor.yml` runs `known_reds.py compare` beside the `[#802]` suite gate, non-blocking. `logs/SUITE-BASELINE-FREEZE.md` stays: eight CI-only reds are unadjudicated (the lane's ROW 5).
+
+**Result:** Codex terra review in `to-browser/SESSION-lane-one-registry-ci.md` (0/3/0/0, all fixed). Verification: `to-browser/SESSION-finish-5a-2026-09-24.md`. **Changes:** `scripts/known_reds.py` (new), `tests/test_known_reds.py` (new), `logs/KNOWN-REDS-REGISTRY.json` (new), `scripts/test_pairing.py`, `.github/workflows/conductor.yml`, `ecosystem/harness.yaml`, `tests/test_connection_loop.py`, `tests/test_spine_moments.py`, `ecosystem/doc-counts.md`, `JOURNAL.md`. **Next:** LANE-5A-10 (graph-stage-edge) rebuilds on this merge's `harness.yaml`.
+
 ### 2026-09-24 (j) - CC (Opus 5.5, integrator wave 5a): LANE 5A-8 landed -- Copilot Enterprise admitted for implement on in-repo evidence
 
 **Anchors:** `7bc04c65` (the lane's sync merge of origin/main `10b1570e`) · `54c663ce` (repair 1 of 2: consumer and disposition declared for its two records) · `1e71d88f` (copilot's newly-licensed read-role eligibility asserted) · `6685bec9` (the silent-rule ratchet growth from the prior commit's prose drained) · `ab19d916` (Copilot Enterprise admitted for implement on in-repo evidence) -- `worktree-lane-provider-registry`, merged --no-ff in an integration worktree.

@@ -104,6 +104,8 @@ already-red test should read that instrument directly rather than trust this reg
 from __future__ import annotations
 
 import argparse
+import datetime
+import hashlib
 import importlib.util
 import json
 import os
@@ -576,6 +578,19 @@ def registry_path(repo: Path, batch: str) -> Path:
     return receipts_home(repo) / f"{REGISTRY_STEM}{resolve_batch(batch)}.json"
 
 
+def compute_baseline_id(red: dict[str, str], *, date: str) -> str:
+    """`<date>-<12 hex chars>`; the hash is over the sorted red dict, so two registries with the
+    same red set share a baseline id regardless of write order, and any change to WHICH tests
+    are red changes it (done-contract item 2, LANE-5A-1: "gains a baseline id: date plus content
+    hash"). Not identity-bearing on its own (two different batches can share a baseline id if
+    they measured the same red set on the same day) -- `commit` + `batch` still disambiguate;
+    the baseline id exists so a MISMATCH between two verdicts is visible without diffing either
+    one's full red set by hand."""
+    canonical = json.dumps(dict(sorted(red.items())), sort_keys=True)
+    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:12]
+    return f"{date}-{digest}"
+
+
 @dataclass(frozen=True)
 class Registry:
     """What main looked like when the batch began: the record every lane is compared against."""
@@ -590,6 +605,7 @@ class Registry:
     baseline_confirmed: bool
     lanes: tuple[str, ...]
     notes: tuple[str, ...]
+    baseline_id: str
 
     @property
     def skip_count(self) -> int:
@@ -598,6 +614,7 @@ class Registry:
     def to_json(self) -> dict:
         return {"schema": REGISTRY_SCHEMA, "batch": self.batch, "commit": self.commit,
                 "isolation": "clone", "isolation_reason": ISOLATION_REASON,
+                "baseline_id": self.baseline_id,
                 "lanes": list(self.lanes), "notes": list(self.notes), "files": list(self.files),
                 "baseline_confirmed": self.baseline_confirmed, "red": dict(sorted(self.red.items())),
                 "base_flakes": list(self.base_flakes), "skip_count": self.skip_count,
@@ -609,13 +626,22 @@ class Registry:
             raise PairingError(f"{source}: schema {data.get('schema')!r}, expected "
                                f"{REGISTRY_SCHEMA!r} -- record the base again")
         try:
+            red = dict(data["red"])
+            # A registry written before LANE-5A-1 (no `baseline_id` key) is not re-derived
+            # silently: its own date is lost, so a computed id here would carry TODAY's date
+            # for a red set measured on an earlier one, which is exactly the false-identity
+            # this field exists to prevent. `record-base --replace` is the honest fix.
+            baseline_id = data["baseline_id"]
             return cls(batch=data["batch"], commit=data["commit"], files=tuple(data["files"]),
-                       red=dict(data["red"]), passed=tuple(data["passed"]),
+                       red=red, passed=tuple(data["passed"]),
                        skipped=tuple(data["skipped"]), base_flakes=tuple(data["base_flakes"]),
                        baseline_confirmed=bool(data["baseline_confirmed"]),
-                       lanes=tuple(data["lanes"]), notes=tuple(data["notes"]))
+                       lanes=tuple(data["lanes"]), notes=tuple(data["notes"]),
+                       baseline_id=baseline_id)
         except (KeyError, TypeError) as exc:
-            raise PairingError(f"{source}: registry is missing or has a malformed field: {exc}") from exc
+            raise PairingError(f"{source}: registry is missing or has a malformed field: {exc} "
+                               "-- a registry from before baseline ids needs `record-base "
+                               "--replace`") from exc
 
 
 def load_registry(repo: Path, batch: str) -> Registry:
@@ -713,7 +739,8 @@ def record_base(repo: Path, commit: str, batch: str, *, lanes: list[str] | None 
             batch=batch, commit=sha, files=tuple(files), red=red,
             passed=tuple(sorted(k for k, v in run.results.items() if v == "PASSED")),
             skipped=tuple(sorted(run.skipped)), base_flakes=tuple(flakes),
-            baseline_confirmed=confirm_baseline, lanes=tuple(lane_names), notes=tuple(notes))
+            baseline_confirmed=confirm_baseline, lanes=tuple(lane_names), notes=tuple(notes),
+            baseline_id=compute_baseline_id(red, date=datetime.date.today().isoformat()))
         write_registry(path, registry, replace=replace)
     finally:
         removed = remove_tree(scratch)
@@ -796,6 +823,7 @@ def _run_against_registry(clone: Path, registry: Registry, selection: dict, head
     verdict = {"schema": SCHEMA, "mode": "registry", "batch": registry.batch,
                "base": registry.commit, "head": head_sha, "isolation": "clone",
                "isolation_reason": ISOLATION_REASON, "selection": selection,
+               "baseline_id": registry.baseline_id,
                "preexisting": [], "lane": [], "turned_red": [], "flakes": [], "fixed": [],
                "baseline_confirmed": registry.baseline_confirmed,
                "unregistered": unregistered, "skip_guard": {"status": "not-run"}}
@@ -1120,12 +1148,13 @@ def _registry_main(command: str, argv: list[str]) -> int:
                 timeout=args.timeout, workdir=workdir, confirm_baseline=not args.no_confirm_baseline,
                 replace=args.replace)
             print(json.dumps({"registry": str(path), "batch": batch, "commit": registry.commit,
+                              "baseline_id": registry.baseline_id,
                               "files": len(registry.files), "red": len(registry.red),
                               "skip_count": registry.skip_count,
                               "cleanup": "removed" if removed else "LEFTOVER"}, indent=2))
-            print(f"test_pairing: registry {path.name} -- {len(registry.files)} file(s) at "
-                  f"{registry.commit[:8]}, {len(registry.red)} red, {registry.skip_count} skipped",
-                  file=sys.stderr)
+            print(f"test_pairing: registry {path.name} -- baseline {registry.baseline_id}, "
+                  f"{len(registry.files)} file(s) at {registry.commit[:8]}, {len(registry.red)} "
+                  f"red, {registry.skip_count} skipped", file=sys.stderr)
             return 0 if removed else 2
         verdict = compare(repo, load_registry(repo, batch), args.head, since=args.since,
                           reruns=args.reruns, workers=args.workers, timeout=args.timeout,
@@ -1135,8 +1164,10 @@ def _registry_main(command: str, argv: list[str]) -> int:
         raise SystemExit(2) from exc
     _publish(verdict, Path(args.out) if args.out else receipts_home(repo) / VERDICT_NAME)
     c, guard = verdict["counts"], verdict["skip_guard"]
-    print(f"test_pairing: {verdict['verdict']} -- lane {c['lane']} (turned red {c['turned_red']}), "
-          f"pre-existing {c['preexisting']}, flake {c['flakes']}, fixed {c['fixed']}"
+    baseline_note = f" (baseline {verdict['baseline_id']})" if verdict.get("baseline_id") else ""
+    print(f"test_pairing: {verdict['verdict']}{baseline_note} -- lane {c['lane']} "
+          f"(turned red {c['turned_red']}), pre-existing {c['preexisting']}, flake {c['flakes']}, "
+          f"fixed {c['fixed']}"
           f"{' -- selection DECLINED' if verdict['selection']['declined'] else ''}", file=sys.stderr)
     if verdict["verdict"] == "UNATTRIBUTABLE" and verdict["unregistered"]:
         print(f"test_pairing: UNATTRIBUTABLE -- {verdict['unregistered']} existed on the base but the "
