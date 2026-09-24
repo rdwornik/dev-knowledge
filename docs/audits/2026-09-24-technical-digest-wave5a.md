@@ -1,5 +1,8 @@
 > **Status:** landed verbatim by `lane-landing-night-findings` (LANE-5A-11) from the transport.
-> Source: `to-browser/DIGEST-WAVE5A-2026-09-24.md`. Carrier rows: three of the Done-contract
+> Source: `to-browser/DIGEST-WAVE5A-2026-09-24.md` (a Drive transport path, not retained in this
+> repo -- verifiable against the bytes landed below by their hash,
+> `sha256:ea0078ff9d114f8b9866c53bc2284134f676c607df481b01794e1e2ea04c7aa9`, 12,791 B, computed
+> by this lane at landing time). Carrier rows: three of the Done-contract
 > item 1 findings landed as full backlog rows -- `[#1010]` (Stop hook / HANDBACK grammar),
 > `[#1012]` (dispatcher-held producer must run detached from the reaper), `[#1014]` (post-merge
 > check before push, `--no-ff` bypasses pre-commit) -- and three more were already covered by an
