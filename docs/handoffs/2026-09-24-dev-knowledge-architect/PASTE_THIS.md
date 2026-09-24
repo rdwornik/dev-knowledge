@@ -96,6 +96,7 @@ not a claim this bundle makes.
 - `to-cc/DECLARE-HARNESS-IS-PROCESS-2026-09-08.md`
 - `to-cc/DECLARE-HARNESS-PROVENANCE-2026-09-08.md`
 - `to-cc/DECLARE-LANE-HANDBACK-CONTRACT-2026-09-18.md`
+- `to-cc/DECLARE-OPERATOR-FEEDBACK-2026-09-24.md`
 - `to-cc/DECLARE-SEAT-KNOWLEDGE-2026-09-24.md`
 - `to-cc/DECLARE-STATE-STORE-LEARNING-2026-09-23.md`
 
@@ -133,7 +134,7 @@ not a claim this bundle makes.
 
 **Gate:** no design until both orienting lines are held, read live and substring-matched. Then the
 operator-context beat fires (§13d).
-This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — *"what off-repo context: intent, priorities, findings not in the repo, changed decisions?"* — not a narrowed "anything changed since?". (If the operator runs `supplement filled`, its ANSWERS fold in and the beat narrows.)
+The operator has **filled** the supplement, so its ANSWERS are in the paste and the beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ## Teeth probes (state fidelity — answers withheld, §5)
 
@@ -157,4 +158,10 @@ execution order.
 
 ---
 
-=== END OF PASTE — 4 sections · 17386 bytes ===
+=== SUPPLEMENT.md ===
+
+The outgoing architect's ANSWERS are FILLED, in `docs/handoffs/2026-09-24-dev-knowledge-architect/SUPPLEMENT.md` below its divider — not inlined (the paste gate). Ask CC to pull them before the §13(d) operator-context beat, which then NARROWS to *"anything changed since the supplement was written?"*.
+
+---
+
+=== END OF PASTE — 5 sections · 17626 bytes ===

@@ -116,6 +116,8 @@ or re-declares the carriage:
 - `to-cc/DECLARE-HARNESS-IS-PROCESS-2026-09-08.md`
 - `to-cc/DECLARE-HARNESS-PROVENANCE-2026-09-08.md`
 - `to-cc/DECLARE-LANE-HANDBACK-CONTRACT-2026-09-18.md`
+- `to-cc/DECLARE-OPERATOR-FEEDBACK-2026-09-24.md` (written after the cut; the supplement's Q7 names
+  `protocols/STANDING_RULINGS.md` as its intended home)
 - `to-cc/DECLARE-SEAT-KNOWLEDGE-2026-09-24.md`
 - `to-cc/DECLARE-STATE-STORE-LEARNING-2026-09-23.md`
 
