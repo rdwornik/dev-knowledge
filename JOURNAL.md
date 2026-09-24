@@ -21,6 +21,13 @@
 
 ---
 
+### 2026-09-24 (c) - CC (Opus 5.5, integrator wave 5a): ADR-121 filed Proposed -- operational state as a single-writer event log on a git state ref
+
+**Anchors:** `48c0cdc2` (ADR-121 + its research, compute-substrate and debate records; carrier row [#963]) -- `worktree-lane-adr-state-store`, merged --no-ff in an integration worktree off origin/main `aca2385b`.
+
+**Did:** merged the ADR-121 branch (merge priority 6 of `to-cc/INTEGRATOR-WAVE5A-2026-09-23.md`). ADR-121 lands with **Status: Proposed** -- one functional question stays with the operator (debate point D1: may a seat act on state saved locally but not pushed). Its evidence: the state-store research (A1 measurements, A2 git findings), the compute-substrate record (Part B), and the debate record (Claude vs Codex gpt-6-astra, the ai-council track, a gpt-6-sol independent check of 26 claims). Carrier row [#963] filed; the two ADR baselines re-measured with the cause named. Declared docs-only, but it edits `tests/test_validate_adr_status.py` (two pinned integers), so it was verified as code.
+
+**Result:** `docs/decisions/ADR-121-operational-state-is-a-single-writer-event-log-on-a-git-state-ref.md` (Proposed). Verification: `to-browser/SESSION-integrator-wave5a-2026-09-23.md`. **Changes:** ADR-121 (new), three `docs/audits/` records (new), `docs/decisions/README.md`, `.claude/generated/recent-adrs.md`, `tasks/963-*.md` (new), `tasks/manifest.json`, `BACKLOG.md`, `tests/test_validate_adr_status.py`, `docs/audits/README.md`, `ecosystem/doc-counts.md`, `JOURNAL.md`, `logs/MERGE-RECEIPTS.jsonl`. **Next:** the operator rules ADR-121's direction (morning); lane-one-registry-ci implements its step 1.
 ### 2026-09-24 (b) - CC (Opus 5.5, integrator wave 5a): LANE 5A-3 landed -- heavy runs wait for memory and a slot instead of dying
 
 **Anchors:** `7cceb75d` (Codex terra: 1 Critical + 2 High confirmed and fixed) · `f9d9403b` (the slot lock's env var decoupled from `HARNESS_RECEIPTS_DIR`) · `661e4d74` (ship-gate's argv stays introspectable while gated) · `047733d7` (memory admission gate for heavy pytest / ship-gate runs) -- `worktree-lane-memory-gate`, merged --no-ff in an integration worktree.
