@@ -1,3 +1,6 @@
+---
+reconciled_with: handoff-process@7.1.0
+---
 <!-- scope: meta -->
 <!--
   templates/batch-common-rules-template.md — the rules EVERY seat of a batch shares (dispatcher,

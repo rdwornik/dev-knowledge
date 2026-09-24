@@ -1,3 +1,6 @@
+---
+reconciled_with: handoff-process@7.1.0
+---
 <!-- scope: meta -->
 <!--
   templates/integrator-order-template.md — the INTEGRATOR seat's standing order

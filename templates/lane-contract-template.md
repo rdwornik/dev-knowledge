@@ -1,3 +1,6 @@
+---
+reconciled_with: handoff-process@7.1.0
+---
 <!-- scope: meta -->
 <!--
   templates/lane-contract-template.md — the shape of a LANE's frozen contract
@@ -6,9 +9,8 @@
   it after the freeze (a revision is a new file, the old one kept as `-v1-superseded`).
 
   DISTILLED (LANE-5A-9, 2026-09-24) from the wave-5A contracts (`LANE-5A-*.md`) and the handback
-  rules of `WAVE4B-COMMON-2026-09-22`. For a single, non-batch session use
-  `templates/prompt-template.md`; `scripts/gen_lane_contract.py` emits a contract with the
-  mechanical regions baked in.
+  rules of `WAVE4B-COMMON-2026-09-22`. `scripts/gen_lane_contract.py` emits a contract with
+  the mechanical regions baked in.
 
   THE PARTS CODE READS — keep their spelling, or a reader goes blind without refusing:
   * `| Model | Mode | Effort |` table and the `## Dispatch` fence — `scripts/dispatch.py launch`

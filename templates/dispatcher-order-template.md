@@ -1,3 +1,6 @@
+---
+reconciled_with: handoff-process@7.1.0
+---
 <!-- scope: meta -->
 <!--
   templates/dispatcher-order-template.md — the DISPATCHER seat's order (`protocols/HANDOFF_PROCESS.md`
