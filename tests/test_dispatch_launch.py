@@ -49,6 +49,10 @@ slug `lane-launch-adapter` -> branch `worktree-lane-launch-adapter`
 CODEX_CONTRACT = CONTRACT.replace(
     'claude --bg -n lane-launch-adapter --model sonnet --effort high --permission-mode bypassPermissions --worktree lane-launch-adapter',
     'codex exec -m gpt-5 --worktree').replace("| sonnet |", "| gpt-5 |")
+COPILOT_CONTRACT = CONTRACT.replace(
+    'claude --bg -n lane-launch-adapter --model sonnet --effort high --permission-mode bypassPermissions --worktree lane-launch-adapter',
+    'copilot --model gpt-5.6-luna --effort high -n lane-launch-adapter --worktree lane-launch-adapter'
+    ).replace("| sonnet |", "| gpt-5.6-luna |")
 
 
 @pytest.fixture
@@ -220,6 +224,45 @@ def test_the_codex_path_returns_not_attestable_for_the_served_model(tmp_path):
     assert result.model_requested == "gpt-5"
     assert result.model_reported == "not attestable" == d.NOT_ATTESTABLE
     assert result.job_id == "codex-4321"
+
+
+# --- a Copilot contract launches DETACHED, never as a shell of the dispatcher (blind spot 8) ------
+
+def test_a_copilot_contract_is_spawned_detached_not_run_to_completion(tmp_path):
+    """Proof 2 of 2 (Done-when item 2): `--dry-run` (below) can only show the resolved ARGV, never
+    the spawn-level detach flags (`Popen` + the platform's process-group flags are not part of the
+    resolved request's JSON) -- so the detach itself is asserted here, against a mocked spawner,
+    exactly as the contract's fallback anticipates."""
+    path = tmp_path / "LANE-copilot-x.md"
+    path.write_text(COPILOT_CONTRACT, encoding="utf-8")
+    calls = []
+
+    def fake_spawn(argv, env, cwd, log_path=None):
+        calls.append({"argv": list(argv), "log_path": log_path})
+        return d.Spawned(returncode=0, stdout="", pid=9999)
+
+    result = d.launch_lane(_request(path), prelaunch=_pass, spawn=fake_spawn, agents=lambda: [], cwd=tmp_path)
+    assert calls[0]["argv"][0] == "copilot"
+    assert "-p" in calls[0]["argv"] and "--allow-all-tools" in calls[0]["argv"]
+    assert calls[0]["log_path"] is not None, (
+        "a copilot lane must be spawned with a log path -- that is the signal spawn_process reads "
+        "to Popen it DETACHED, rather than running it to completion inside the dispatcher's own "
+        "process (blind spot 8: a Copilot producer ran as a dispatcher shell and died with it)")
+    assert result.provider == "copilot"
+    assert result.model_requested == "gpt-5.6-luna"
+    assert result.model_reported == d.NOT_ATTESTABLE
+    assert result.job_id == "copilot-9999"
+
+
+def test_a_copilot_dry_run_resolves_its_argv_and_starts_nothing(tmp_path):
+    """Proof 1 of 2 (Done-when item 2, first preference): `--dry-run` shows the resolved request."""
+    path = tmp_path / "LANE-copilot-y.md"
+    path.write_text(COPILOT_CONTRACT, encoding="utf-8")
+    out = CliRunner().invoke(d.cli, ["launch", str(path), "--dry-run"])
+    assert out.exit_code == 0
+    plan = json.loads(out.output)
+    assert plan["argv"][0] == "copilot" and "--allow-all-tools" in plan["argv"]
+    assert plan["slug"] == "lane-launch-adapter"
 
 
 # --- the launch receipt and the job-to-lane record -----------------------------------------------
@@ -436,6 +479,49 @@ def test_the_declared_pre_launch_moment_is_what_run_prelaunch_invokes(contract, 
     assert outcome.passed
     assert seen["argv"][-1] == "moment:pre-launch" and "scripts/dodo.py" in " ".join(seen["argv"]).replace("\\", "/")
     assert seen["env"]["HARNESS_LANE"] == "lane-launch-adapter" and seen["env"]["HARNESS_BATCH"] == "wave3"
+
+
+# --- Done-contract 1: an unbound integrator's fix survives doit's own chatter (blind spot 1) -----
+
+_REMEDY_CMD = ("uv run --locked python scripts/seat_registry.py bind --role integrator "
+               "--batch WAVE5B-N1")
+_REFUSED_LINE = (
+    "REFUSED [no-live-integrator]: batch WAVE5B-N1 has no live integrator seat (none registered) "
+    "-- a lane dispatched now hands back to nobody -- boot the integrator for batch WAVE5B-N1 "
+    f"and, from ITS OWN session, run `{_REMEDY_CMD}`; then dispatch. A dispatcher or lane never "
+    "binds a role it does not hold")
+# padding that is NOT doit chatter (telemetry-style prints `_DOIT_CHATTER` does not match), long
+# enough alone to fill the OLD `_tail`'s 600-char budget before the REFUSED line is even reached.
+_NOISE = ("telemetry: wrapped pre-launch/worktree_occupancy exit=0 duration_ms=142 receipt=logs/"
+          "receipts/MOMENT-PRE-LAUNCH-WORKTREE-OCCUPANCY.json\n") * 6
+
+
+def test_a_no_live_integrator_refusal_survives_doits_own_chatter_untruncated(contract, monkeypatch, receipts):
+    """RED against the old `_tail(text, 600)` join: `len(_NOISE) > 600`, so the old code's single
+    600-char budget, shared across ALL non-chatter output, is spent on the noise before the REFUSED
+    line's own remedy command is ever reached -- reproducing WAVE5A blind spot 1 (the refusal fired
+    but the fix scrolled off truncated)."""
+    assert len(_NOISE) > 600, "the padding must be enough to defeat the OLD shared 600-char budget"
+
+    def fake_run(argv, **kw):
+        return subprocess.CompletedProcess(argv, 1, stdout=_NOISE, stderr=_REFUSED_LINE)
+    monkeypatch.setattr(d.subprocess, "run", fake_run)
+    outcome = d.run_prelaunch(_request(contract, batch="WAVE5B-N1"))
+    assert outcome.passed is False
+    assert _REMEDY_CMD in outcome.reason, outcome.reason
+
+
+def test_the_launch_cli_prints_the_exact_bind_command_and_exits_non_zero(contract, monkeypatch, receipts):
+    def fake_run(argv, **kw):
+        return subprocess.CompletedProcess(argv, 1, stdout=_NOISE, stderr=_REFUSED_LINE)
+    monkeypatch.setattr(d.subprocess, "run", fake_run)
+    monkeypatch.setattr(d, "list_agents", lambda: [])
+    spawned = []
+    monkeypatch.setattr(d, "spawn_process", lambda *a, **k: spawned.append(a))
+    out = CliRunner().invoke(d.cli, ["launch", str(contract), "--batch", "WAVE5B-N1"])
+    assert out.exit_code == d.EXIT_REFUSED != 0
+    assert _REMEDY_CMD in out.output
+    assert spawned == [], "a refused launch must not reach the process boundary"
 
 
 @pytest.mark.skipif(shutil.which("uv") is None, reason="needs uv to run the declared moment")
