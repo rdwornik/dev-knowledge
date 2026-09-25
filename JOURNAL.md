@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-25 (i) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): the commit-gate judges a lane branch by its merge-base with main
+
+**Anchors:** `2d5d86be`, `a1dedc0a`, `177dbb35` (`fix(ci)` + the clean Codex review + the doc-counts regen; `f53e282f` is its sync of origin/main) -- `worktree-lane-ci-commit-gate` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree off origin/main `1c9fbf4d`.
+
+**Did:** purity 3 lane commits + 1 merge of origin/main, 4 files; merged in `worktree-integrate-lane-ci-commit-gate`; `ecosystem/doc-counts.md` conflicted and was regenerated, not hand-merged (ruling b); ship-gate diffed base vs merge; lane-changed `tests/test_conductor.py` on the merged tree; CI paired against main. **Result:** a `workflow_dispatch` run on any ref other than `main` resolves the commit-gate's BASE as `git merge-base HEAD origin/main`, so it judges only the diff a merge would introduce -- the lane's live runs 36078308690 and 36079802105 judged exactly its own four files; `main`'s push run keeps `event.before` (B8's prerequisite). **Changes:** `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl` (+ the lane's 4 files). **Next:** the rest of the WAVE5B-N1 queue.
+
 ### 2026-09-25 (h) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): the SessionStart hooks leave PowerShell -- the container's only hard break is gone
 
 **Anchors:** `76eda9c1` (`refactor(hooks): port surface_triage and billing_leak_sentinel off PowerShell`), `13e97d44` (repair 1: the fake `gh` resolves on POSIX too) -- `worktree-lane-hooks-port` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree off origin/main `4fab7aea`.

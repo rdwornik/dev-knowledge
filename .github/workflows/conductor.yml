@@ -254,10 +254,23 @@ jobs:
           SKIP: block-commit-on-main,backlog-id-on-close,backlog-filing-backpressure
         run: |
           set +e
+          # LANE-5B-7: `on.push.branches == ["main"]` above means the ONLY automatic trigger
+          # for this job is a push to `main` -- a lane's own branch is judged solely by a
+          # manual `workflow_dispatch` run against it. `github.event.before` does not exist on
+          # that event (empty on a branch's first push; on any later one it is the branch's
+          # OWN prior tip, never main's), so resolving BASE from it here judged nothing on a
+          # lane branch -- a vacuous pass on exactly the run this gate exists to make real.
+          # A non-main ref is therefore judged against its merge-base with `origin/main`: the
+          # diff a merge into `main` would actually introduce, never the branch's own history.
+          # `main`'s own run stays on `event.before` / the PR base sha -- that run is the
+          # integrator's evidence, not this lane's, and is unchanged.
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE="${{ github.event.pull_request.base.sha }}"
-          else
+          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
             BASE="${{ github.event.before }}"
+          else
+            git fetch origin main --quiet 2>/dev/null
+            BASE=$(git merge-base HEAD origin/main 2>/dev/null)
           fi
           if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] \
              || ! git merge-base --is-ancestor "$BASE" "HEAD" 2>/dev/null; then
