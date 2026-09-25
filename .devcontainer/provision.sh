@@ -526,6 +526,52 @@ leg3_hooks() {
   say "L3 OK — pre-commit / commit-msg / pre-push all armed and pre-commit-managed"
 }
 
+# --- L-PC: pre-commit on the LOGIN PATH, not just inside a `uv run`/activated shell ---------------
+#
+# MEASURED (WAVE5B-N2, REFUSED-lane-codespace-proof.md, repair 1). `pyproject.toml` pins
+# `pre-commit>=4.5`, `sync_environment` above installs it into `.venv/bin/pre-commit`, and
+# `leg3_hooks` uses exactly that binary to arm the git hooks — so every leg in THIS process sees
+# it. The codespace admission test does not run in this process: it runs `command -v pre-commit`
+# in a FRESH LOGIN shell right after provisioning exits, and that shell's PATH carries no
+# `.venv/bin` at all — only a shell that has already run `uv run` or activated the venv does.
+# Deterministic, and the receipt named it exactly: `"admission":{"ok":false,...,"pre_commit":"",
+# ...},"error":"pre-commit is not on the login PATH -- a lane that commits here would land work
+# past every gate"}`.
+#
+# THE FIX REUSES leg1_uv's OWN CHANNEL rather than inventing a second one. leg1_uv already
+# persists a marker-guarded `export PATH=...` line onto `~/.bashrc` so `uv` resolves in every
+# later login shell; this leg does the identical thing for `.venv/bin`, under its own marker, so
+# a login shell that sources `~/.bashrc` (the standard Debian/Ubuntu skeleton's `~/.profile`
+# sources it for an interactive bash login shell) resolves `pre-commit` too. Idempotent by the
+# same shape as leg1_uv: the append is guarded by grepping for the marker, so a second run is a
+# no-op that still asserts.
+leg_pc_login_path() {
+  local venv_bin="${REPO_ROOT}/.venv/bin"
+  local marker='# dev-knowledge provision: pre-commit (venv) on PATH'
+
+  [ -x "${venv_bin}/pre-commit" ] \
+    || die "L-PC FAILED — ${venv_bin}/pre-commit absent; sync_environment should already have installed pre-commit (pyproject.toml pins pre-commit>=4.5) before this leg runs"
+
+  if [ -f "${HOME}/.bashrc" ] && ! grep -Fq "${marker}" "${HOME}/.bashrc"; then
+    { echo ''
+      echo "${marker}"
+      echo "export PATH=\"${venv_bin}:\$PATH\""
+    } >> "${HOME}/.bashrc"
+    CHANGED=$((CHANGED + 1))
+  fi
+
+  # Also make it resolvable for the REST OF THIS RUN (the smoke test below, and any later leg),
+  # not only for a future login shell that re-sources ~/.bashrc.
+  case ":${PATH}:" in
+    *":${venv_bin}:"*) ;;
+    *) export PATH="${venv_bin}:${PATH}" ;;
+  esac
+
+  command -v pre-commit >/dev/null 2>&1 \
+    || die "L-PC FAILED — pre-commit still not resolvable on PATH after adding ${venv_bin} — a lane here would commit work past every gate"
+  say "L-PC OK — pre-commit resolvable on PATH ($(command -v pre-commit)); persisted onto every login shell via ~/.bashrc"
+}
+
 # --- C2: gate-liveness smoke — prove a REAL gate actually executes --------------------------------
 
 smoke_gate_liveness() {
@@ -815,6 +861,7 @@ main() {
   leg2b_history
   leg5_ecosystem
   leg3_hooks
+  leg_pc_login_path
   leg_f1_claude
   leg_f2_git_credential
   leg_f4_workspace_trust
