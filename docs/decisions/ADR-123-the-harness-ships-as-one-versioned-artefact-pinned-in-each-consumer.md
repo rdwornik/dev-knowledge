@@ -29,9 +29,11 @@
 
 ## Context
 
-1. **Today five channels ship the methodology, and none ships the harness.** `deploy/tool.py` reconciles four
-   (pinned pre-commit hooks, the floor, the enforcement mesh, the `tier1-lifecycle` plugin) plus the global
-   Codex config (C1, confirmed against `deploy/` at `da11291b`). The organs "harness mode" needs in a consumer
+1. **Today six carriers ship the methodology, and none ships the harness.** `deploy/tool.py::make_carriers()`
+   (`deploy/tool.py:428-449`) registers six: the global Codex config, the `tier1-lifecycle` plugin, pinned
+   pre-commit hooks, the floor, the enforcement mesh and the docs templates (`carrier_docs.py`). `ARCHITECTURE.md`
+   Ch4 counts *channels* (five, the browser boot among them), not carriers; C1 listed five carriers and missed
+   `carrier_docs` (corrected here after the Codex terra review). The organs "harness mode" needs in a consumer
    lane — `dispatch.py`, the gates, `lane_handback_gate.py`, `plan_lint.py`, the contract grammar — are not
    carried at all; the mesh byte-copies two scripts (`session_end_backpressure.py`, `canonical_freshness_gate.py`).
 2. **Byte copies drift invisibly.** Carried scripts sit outside any lock; the v1.5.0 manifest header records that
@@ -115,9 +117,9 @@ footprint — ships only the consumer's part, no in-tree edits fighting upstream
 single-surface options that outscore it (O7 420, O1 410) are exactly the components O9 folds in: O7's pinned-gate
 shape becomes D2(b), O1's plugin payload becomes D2(c). **Sensitivity:** O9 minus O8 is +20 on K2 and +30 on K7
 against −10 on K6; O8 overtakes O9 only if K6 (effort) weighs more than 50, i.e. only if effort outweighs every
-other criterion combined. O9 leads O6 by 30, all of it on K2 (+40) and K5 (+20) against O6's K1 (+20) and K3 (+15);
-the order flips only if in-tree copies are judged as reviewable as a lock bump (K2 equal) *and* consumer edits are
-judged harmless (K5 equal).
+other criterion combined. O9 leads O6 by 30: O9 gains on K2 (+40), K5 (+20) and K4 (+15); O6 gains on K1 (+20),
+K3 (+15) and K6 (+10). The order flips if in-tree copies are judged as reviewable as a lock bump (K2 equal, −40),
+or if consumer edits are judged harmless *and* the payload gap closes (K5 and K4 equal, −35).
 
 ## Migration — steps with measurable exit criteria
 

@@ -53,7 +53,12 @@
   entries, `@`-imports, boot reads); (1) successor built RED-first; (2) every reader re-pointed, gates green;
   (3) the file frozen for one batch — a gate refuses additions; (4) the operator's removal list; (5) removal
   through git (history keeps every byte; ADR/audit/handoff immutability is untouched because those files are not
-  on any list here).
+  on any list here). **Two append-only logs are excluded from this generic path.** `LESSONS.md`: its entries leave
+  the active file **only** by ADR-29's sanctioned move (amend. 2026-07-17) — a contiguous older block relocated
+  byte-identical into a dated `LESSONS-legacy-<span>.md` with a boundary pointer; nothing is deleted or rewritten,
+  and D2 applies only to *new* learnings, which go to their successors instead. `JOURNAL.md`: append-only
+  (`CLAUDE.md` §5 rule 2) and the carrier of ADR-85's anchor; D2 may freeze it, but removing it needs its own
+  decision amending ADR-85 and that rule — this ADR does not authorise it.
 - **D3 — Order by reader risk, lowest first** (§Migration): no-reader files → generated files not read at boot →
   instructing prose with script readers → JOURNAL (a fail-closed pre-push gate) → ARCHITECTURE and the handoff
   files (read by the boot probes) last.
@@ -98,7 +103,7 @@
 | File | Bytes | Readers (L1 floor; name-grep upper bound where measured) | Successor (D1) | Step |
 |---|---|---|---|---|
 | `JOURNAL.md` | 4,213,943 | `journal_anchor.py`, `block_unanchored_push.py` (pre-push, fails closed); boot reads last 5 entries; 20 script files name it | merge trailers (ADR-121: `Lane`/`Batch`/`Task`/`Event-Id`) + ADR-121 events; boot's "last 5" becomes a `git log --first-parent` projection; the ADR-85 anchor becomes a trailer check | 4 |
-| `LESSONS.md` | 323,767 | `logs_retention.py`, `normalize_headers.py`; `git-discipline.md` rule; 14 name it | each lesson → a candidate row with a regression check (WAVE5B-N2 lane 13, learning distiller v0) or a gotcha; narrative relocated byte-identical (ADR-29) | 3 |
+| `LESSONS.md` | 323,767 | `logs_retention.py`, `normalize_headers.py`; `git-discipline.md` rule; 14 name it | new learnings → a candidate row with a regression check (WAVE5B-N2 lane 13, learning distiller v0) or a gotcha; existing entries leave only by ADR-29's byte-identical relocation to dated `LESSONS-legacy-<span>.md` with a boundary pointer — never deleted (D2 exclusion) | 3 |
 | `protocols/STANDING_RULINGS.md` | 334,328 | `audit.py`, `decision_coverage.py`, `validate_hermetization.py`, +11 | a ruling register as data (id, date, text, provenance, verifier); scripts read ids | 3 |
 | `protocols/PLAYBOOK.md` | 500,379 | `audit.py`, `batch_manifest.py`, `gen_lane_contract.py`, +8; toc-freshness hook | per chapter: rules → gates / `.claude/rules`; procedures → skills; rationale → ADRs | 3 |
 | `protocols/{AI_COUNCIL_PROCESS, BUILD-LIST, BUILD-MODE, DEFINITION_OF_DONE, ENVIRONMENT, SESSION_SETUP, README}.md` | 3,505-26,409 each | `audit.py`, `canonical_docs.py`, `gen_lane_contract.py`, `.claude/settings.json` (BUILD-MODE), `preflight_contract.py` (README) | per file by D1; checklists → gates, the rest → skills | 3 |
@@ -154,12 +159,13 @@ Each step is one or more lanes; each removal list goes to the operator before an
 2. **Generated files not read at boot** — dashboards first (plan §3.6: re-point `generated_artifact_freshness.py`
    to the generator), then `organ-index.md`. **Exit:** each file's readers call the generator; the file is no
    longer committed; 0 readers broken.
-3. **Instructing prose with script readers** — LESSONS, STANDING_RULINGS, PLAYBOOK chapter by chapter, the smaller
-   `protocols/` files. **Exit per file:** exact census = successor readers; the file frozen one batch with 0
-   additions; removed on his GO.
+3. **Instructing prose with script readers** — STANDING_RULINGS, PLAYBOOK chapter by chapter, the smaller
+   `protocols/` files; LESSONS by ADR-29 relocation only (D2 exclusion). **Exit per file:** exact census = successor
+   readers; the file frozen one batch with 0 additions; removed on his GO (LESSONS: relocated, never removed).
 4. **JOURNAL.md.** The anchor moves to merge trailers and events. **Exit:** `block_unanchored_push.py`'s replacement
    refuses an unanchored push in a RED-first test; the boot's last-five read comes from `git log`; one batch with
-   no JOURNAL write; then his GO.
+   no JOURNAL write. Leaving the tree then needs a separate decision amending ADR-85 and `CLAUDE.md` §5 rule 2
+   (D2 exclusion), and his GO.
 5. **ARCHITECTURE.md and the handoff files, last** (plan W3). **Exit:** the boot probes P1a/P1b read their data
    successors; a new seat boots in ≤ 5 turns.
 
@@ -190,8 +196,9 @@ Each step is one or more lanes; each removal list goes to the operator before an
 - The corpus shrinks by the measured bytes of each removed file, and the number of rules only prose enforces
   falls to the ones D1 routes to skills.
 - Each step costs a census and a successor before it removes anything; the order makes the cheap wins first.
-- JOURNAL's four-million-byte history leaves the working tree but not git; the anchor that protected against
-  unrecorded pushes is carried by trailers the merge already writes.
+- JOURNAL stops growing once the anchor is carried by trailers the merge already writes; whether its
+  four-million-byte history then leaves the working tree (never git) is a later decision amending ADR-85, not this one.
+- LESSONS keeps ADR-29's invariant: its entries only ever move, byte-identical, into dated legacy files.
 - New data surfaces to own (a ruling register, the lesson rows); they must stay typed (Flip-condition, third bullet).
 
 ## Operator decision options
