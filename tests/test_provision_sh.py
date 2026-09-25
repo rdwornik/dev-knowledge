@@ -219,11 +219,15 @@ def test_leg_pc_login_path_persists_precommit_onto_a_fresh_shells_path(tmp_path:
     here would land work past every gate` was the refusal.
 
     This runs the extracted leg body against a FAKE HOME + FAKE venv (no real container), then
-    proves the fix in a SEPARATE bash process that inherits nothing from this run except
-    HOME and a bare PATH — exactly what a fresh login shell has before anything is sourced —
-    by sourcing only `~/.bashrc` and resolving `pre-commit` there. A test that only checked the
-    leg's own process PATH would miss the actual failure: the login shell is a DIFFERENT
-    process than provisioning's.
+    proves the fix in a SEPARATE, genuine `bash -lc` process — the EXACT invocation the
+    codespace admission test runs, and a LOGIN-but-NOT-INTERACTIVE shell. `~/.bashrc` here is
+    seeded with the REAL Debian/Ubuntu skeleton's early-return guard
+    (`case $- in *i*) ;; *) return;; esac`), which fires for exactly this shell shape and is
+    what sank the first version of this leg — it appended to `~/.bashrc` and the terra review
+    caught that `bash -lc` never reaches a line below that guard
+    (`docs/audits/2026-09-25-codex-codex-lane-codespace-proof-repair-1.md`). A test that
+    sourced `~/.bashrc` directly (skipping the guard) or checked only the leg's own process PATH
+    would miss that failure entirely.
     """
     text = _PROVISION_SH.read_text(encoding="utf-8")
     body = _bash_function(text, "leg_pc_login_path")
@@ -236,7 +240,19 @@ def test_leg_pc_login_path_persists_precommit_onto_a_fresh_shells_path(tmp_path:
     fake_pc = venv_bin / "pre-commit"
     fake_pc.write_text("#!/usr/bin/env bash\necho fake-pre-commit\n", encoding="utf-8")
     fake_pc.chmod(0o755)
-    (home / ".bashrc").write_text("", encoding="utf-8")
+    # THE REALISTIC GUARD, verbatim from Debian/Ubuntu's /etc/skel/.bashrc. Left untouched by
+    # the leg (it must never need to touch ~/.bashrc), and proving it stays untouched is part of
+    # what this test checks.
+    (home / ".bashrc").write_text(
+        "# If not running interactively, don't do anything\n"
+        "case $- in\n"
+        "    *i*) ;;\n"
+        "      *) return;;\n"
+        "esac\n"
+        "\n"
+        "echo 'THIS LINE MUST NEVER RUN UNDER bash -lc' >&2\n"
+        "export PATH=\"/this/path/must/never/be/used:$PATH\"\n",
+        encoding="utf-8")
 
     # RESOLVE THE CANONICAL PATH SPELLING THROUGH BASH ITSELF, not `Path.as_posix()`. A real
     # container computes REPO_ROOT via `cd .. && pwd` (top of this file) and every path it ever
@@ -275,22 +291,33 @@ def test_leg_pc_login_path_persists_precommit_onto_a_fresh_shells_path(tmp_path:
     run = subprocess.run([bash_exe, str(harness)], capture_output=True, text=True, timeout=60)
     assert run.returncode == 0, f"stdout={run.stdout!r} stderr={run.stderr!r}"
 
-    bashrc = (home / ".bashrc").read_text(encoding="utf-8")
-    assert venv_bin_c in bashrc, (
+    # NOT ~/.bashrc: none of `.bash_profile`/`.bash_login`/`.profile` existed, so the leg must
+    # have created `~/.profile` (the documented fallback) — and left the decoy `~/.bashrc`
+    # completely alone, since nothing in the real login-shell resolution chain reads it here.
+    profile = home / ".profile"
+    assert profile.exists(), "the leg must create a real login-startup file when none exists"
+    assert venv_bin_c in profile.read_text(encoding="utf-8"), (
         "the leg must persist the venv bin dir onto every login shell's PATH, "
         "not only export it inside its own process")
+    bashrc_after = (home / ".bashrc").read_text(encoding="utf-8")
+    assert "dev-knowledge provision" not in bashrc_after, (
+        "the leg must never touch ~/.bashrc — that file is what sank the first version of "
+        "this leg (a non-interactive login shell never reaches a line below its guard)")
 
-    # THE PROOF: a SEPARATE bash process inheriting nothing from this run except HOME and a bare
-    # PATH — exactly what a fresh codespace login shell has before anything is sourced.
+    # THE PROOF: a SEPARATE, GENUINE `bash -lc` process — the EXACT invocation the codespace
+    # admission test runs — inheriting nothing from this run except HOME and a bare PATH, which
+    # is what a fresh login shell has before anything is sourced.
     child_env = dict(os.environ)
     child_env["HOME"] = home_c
     child_env["PATH"] = "/usr/bin:/bin"
     fresh = subprocess.run(
-        [bash_exe, "-c", 'source "$HOME/.bashrc"; command -v pre-commit'],
+        [bash_exe, "-lc", "command -v pre-commit"],
         capture_output=True, text=True, timeout=30, env=child_env,
     )
+    assert "THIS LINE MUST NEVER RUN UNDER bash -lc" not in fresh.stderr, (
+        "the decoy ~/.bashrc ran — the test setup does not isolate what it claims to")
     assert fresh.returncode == 0, (
-        f"pre-commit did not resolve in a fresh shell after sourcing ~/.bashrc: "
+        f"pre-commit did not resolve in a real `bash -lc` login shell: "
         f"stdout={fresh.stdout!r} stderr={fresh.stderr!r}")
     assert fake_pc_c in fresh.stdout
 

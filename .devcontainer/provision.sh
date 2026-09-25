@@ -538,30 +538,45 @@ leg3_hooks() {
 # ...},"error":"pre-commit is not on the login PATH -- a lane that commits here would land work
 # past every gate"}`.
 #
-# THE FIX REUSES leg1_uv's OWN CHANNEL rather than inventing a second one. leg1_uv already
-# persists a marker-guarded `export PATH=...` line onto `~/.bashrc` so `uv` resolves in every
-# later login shell; this leg does the identical thing for `.venv/bin`, under its own marker, so
-# a login shell that sources `~/.bashrc` (the standard Debian/Ubuntu skeleton's `~/.profile`
-# sources it for an interactive bash login shell) resolves `pre-commit` too. Idempotent by the
-# same shape as leg1_uv: the append is guarded by grepping for the marker, so a second run is a
-# no-op that still asserts.
+# NOT `~/.bashrc` (terra P1, 2026-09-25 — the first version of this leg appended there and was
+# refused before it ever shipped). bash's LOGIN-shell startup reads `/etc/profile`, then the
+# FIRST EXISTING of `~/.bash_profile`, `~/.bash_login`, `~/.profile` — never `~/.bashrc` on its
+# own. The codespace admission test runs `bash -lc '...'`: a login shell, but NOT an interactive
+# one, and the Debian/Ubuntu skeleton `~/.bashrc` opens with
+#   case $- in *i*) ;; *) return;; esac
+# which returns immediately for exactly this shape of shell — so anything appended below that
+# line in `~/.bashrc` is dead code for `bash -lc`, even though a genuinely interactive login
+# shell (a human's terminal) would still reach it. None of the three real login-startup files
+# carries that guard, so this replicates bash's own resolution order rather than guessing one of
+# them (`terra` review, `docs/audits/2026-09-25-codex-codex-lane-codespace-proof-repair-1.md`).
 leg_pc_login_path() {
   local venv_bin="${REPO_ROOT}/.venv/bin"
   local marker='# dev-knowledge provision: pre-commit (venv) on PATH'
+  local login_rc="" candidate
 
   [ -x "${venv_bin}/pre-commit" ] \
     || die "L-PC FAILED — ${venv_bin}/pre-commit absent; sync_environment should already have installed pre-commit (pyproject.toml pins pre-commit>=4.5) before this leg runs"
 
-  if [ -f "${HOME}/.bashrc" ] && ! grep -Fq "${marker}" "${HOME}/.bashrc"; then
+  for candidate in "${HOME}/.bash_profile" "${HOME}/.bash_login" "${HOME}/.profile"; do
+    if [ -f "${candidate}" ]; then
+      login_rc="${candidate}"
+      break
+    fi
+  done
+  # None of the three exist yet: `~/.profile` is the conventional one to create — bash will then
+  # find it first (the other two still don't exist) and no existing file's behaviour changes.
+  [ -n "${login_rc}" ] || login_rc="${HOME}/.profile"
+
+  if ! grep -Fq "${marker}" "${login_rc}" 2>/dev/null; then
     { echo ''
       echo "${marker}"
       echo "export PATH=\"${venv_bin}:\$PATH\""
-    } >> "${HOME}/.bashrc"
+    } >> "${login_rc}"
     CHANGED=$((CHANGED + 1))
   fi
 
   # Also make it resolvable for the REST OF THIS RUN (the smoke test below, and any later leg),
-  # not only for a future login shell that re-sources ~/.bashrc.
+  # not only for a future login shell that re-reads its startup file.
   case ":${PATH}:" in
     *":${venv_bin}:"*) ;;
     *) export PATH="${venv_bin}:${PATH}" ;;
@@ -569,7 +584,7 @@ leg_pc_login_path() {
 
   command -v pre-commit >/dev/null 2>&1 \
     || die "L-PC FAILED — pre-commit still not resolvable on PATH after adding ${venv_bin} — a lane here would commit work past every gate"
-  say "L-PC OK — pre-commit resolvable on PATH ($(command -v pre-commit)); persisted onto every login shell via ~/.bashrc"
+  say "L-PC OK — pre-commit resolvable on PATH ($(command -v pre-commit)); persisted onto every LOGIN shell via ${login_rc}"
 }
 
 # --- C2: gate-liveness smoke — prove a REAL gate actually executes --------------------------------
