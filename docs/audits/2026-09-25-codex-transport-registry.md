@@ -57,3 +57,12 @@
 (none)
 
 `derive` currently reports 17 prefixes with none missing from the registry. The handback switch preserves its existing paths and normal output behavior for current callers.
+
+## Disposition ledger
+
+Self-dispositioning (architect ruling 2026-08-17; a new ledger discharges itself by carrying
+its own row rather than landing as one more undispositioned artifact).
+
+| File | Disposition | Evidence locator |
+|---|---|---|
+| 2026-09-25-codex-transport-registry.md | ACTIONED | 46d37a7c -- both HIGH findings above fixed in code (folder-check in `_check()`, `_DestinationLock` around `append()`'s critical section) with regression tests, before this lane's handback |

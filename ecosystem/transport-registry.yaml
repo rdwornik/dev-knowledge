@@ -1,11 +1,11 @@
 # ecosystem/transport-registry.yaml -- the transport's kinds, as data (lane-transport-registry,
 # BATCH-WAVE5B-N1 #9). Read by scripts/transport.py (write()/append() refuse an unregistered
-# writer; scan() is the stray-file report) and tests/test_transport_registry.py (which derives
+# writer; scan() is the stray-file report) and tests/test_transport.py (which derives
 # the kind set from the code and asserts every derived prefix is a row here -- Done-when 1).
 #
 # THE TRANSPORT is the operator's `CLAUDE_PROMPTS_DIR` (a Drive-mounted folder outside this repo):
 #   to-cc/       architect/operator-inbound. A lane may READ it (handback's own transport-write
-#                check does) but never WRITE it -- OPERATOR-INTERFACE.md S1.
+#                check does) but does not WRITE it -- OPERATOR-INTERFACE.md S1.
 #   to-browser/  agent/lane-writable, operator-readable.
 #   (root)       the transport's own root, outside both subfolders (the LANE-*.md contracts a
 #                dispatcher pastes a lane's launch command from).
@@ -26,7 +26,7 @@
 #   folder      to-cc | to-browser | root -- where this kind lives.
 #   writers     who may create/replace this kind. A script's own module name (no `.py`), or a
 #               ROLE for a human/session act no in-repo script performs: `operator` (the browser
-#               seat / the operator directly, via Drive -- never through transport.write, since
+#               seat / the operator directly, via Drive -- not through transport.write, since
 #               nothing in this repo authors it), `lane` (any lane's own prose, written by the
 #               Claude session itself rather than a script), `integrator` (the integrator
 #               session's own repair-order/plan artifacts).
@@ -45,7 +45,7 @@ kinds:
     repo_scope: hub
     versioned: false
     notes: >-
-      The operator's one-question-one-answer batch GO (`go_reader.py`'s own docstring). Never
+      The operator's one-question-one-answer batch GO (`go_reader.py`'s own docstring). Not
       written by a lane or by the dispatcher/integrator.
 
   - kind: LEDGER
@@ -58,7 +58,7 @@ kinds:
     versioned: false
     notes: >-
       One per repo (`LEDGER-<repo>.md`, leading dot of `.dev-knowledge` stripped). Generated,
-      read-only source: `gen_ledger.py` never hand-edited (its own docstring).
+      read-only source: `gen_ledger.py` is not hand-edited (its own docstring).
 
   - kind: PLAN
     prefix: "PLAN-"
@@ -112,7 +112,7 @@ kinds:
     readers: [lane_digest]
     repo_scope: hub
     versioned: false
-    notes: "`transport_report.ARTIFACT_PREFIX`; one per lane, replaced idempotently, never appended."
+    notes: "`transport_report.ARTIFACT_PREFIX`; one per lane, replaced idempotently, not appended."
 
   - kind: HANDBACK_REFUSED
     prefix: "HANDBACK-REFUSED-"
@@ -124,7 +124,7 @@ kinds:
     versioned: false
     notes: >-
       D10 (DECLARE-WINDOW-DEFECTS-2026-09-23): deliberately distinct from `REFUSED-<lane>.md`,
-      the INTEGRATOR's own repair-order path, so the two can never collide.
+      the INTEGRATOR's own repair-order path, so the two cannot collide.
 
   - kind: SESSION
     prefix: "SESSION-"
@@ -137,7 +137,7 @@ kinds:
     notes: >-
       One per lane/seat (`to-browser/SESSION-<lane-or-seat>.md`). `handback` APPENDS its
       HANDBACK/STATE block; a lane's own narrative (written directly by the session, not by a
-      script) may already be there and is never overwritten (`handback.append_session_block`).
+      script) may already be there and is not overwritten (`handback.append_session_block`).
 
   - kind: REFUSED
     prefix: "REFUSED-"
@@ -148,7 +148,7 @@ kinds:
     repo_scope: hub
     versioned: false
     notes: >-
-      The INTEGRATOR's own repair-order path (D10). `handback` must NEVER write this name --
+      The INTEGRATOR's own repair-order path (D10). `handback` does not write this name --
       the collision this registry exists partly to make mechanically impossible
       (`transport.write("handback", .../f"REFUSED-{lane}.md", ...)` is refused: wrong writer).
 
