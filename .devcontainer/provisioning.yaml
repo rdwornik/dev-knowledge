@@ -75,6 +75,13 @@ features:
       A `pre-commit install` for three hook types in the RESOLVED hooks dir (honoring
       `core.hooksPath`) is repo-specific; the published pre-commit features install the tool,
       which `uv sync --locked` already does from the lockfile.
+  leg_pc_login_path:
+    verdict: no-feature
+    reason: >-
+      WAVE5B-N2 repair 1: exposing a repo-pinned venv's OWN binary (`pre-commit>=4.5`, resolved
+      into `.venv/bin` by `uv sync --locked`) onto a fresh login shell's PATH is this repo's own
+      admission-contract gap, not something a general devcontainer feature has a concept of — no
+      published feature manages PATH visibility for an already-installed project dependency.
   leg_f1_claude:
     verdict: feature
     feature: ghcr.io/anthropics/devcontainer-features/claude-code:1.0

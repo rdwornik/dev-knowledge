@@ -9,7 +9,7 @@
   one `dispatch.py launch ...` call and hands back its exit code. It hard-codes no lane line, no
   model and no effort, and it has no path that can end a run.
 
-  dispatch.py has three subcommands (`dispatch.py --help` describes each; `-Help` here runs it):
+  dispatch.py has five subcommands (`dispatch.py --help` describes each; `-Help` here runs it):
 
     launch  <contract>   what this shim runs. Reads the contract's Dispatch block, runs
                          `doit moment:pre-launch` for the lane (occupancy, live integrator,
@@ -20,6 +20,12 @@
     govern  <slug>       a MONITOR, run by hand: `dispatch.py govern --slug <slug>`. Records the
                          lane's spend against the cap field. It never stops, pauses or kills a lane.
     plan    <contract>   prints the launch plan as JSON and starts nothing (harness stage 11).
+    queue   <contracts>  the launch order (priority, Starts after, serialize-group, substrate),
+                         and, unless --dry-run, one pass or a bounded --watch loop firing whatever
+                         clears the dependency/cap/RAM gates. Not wrapped by this shim -- run
+                         `dispatch.py queue` directly.
+    repair  <slug> <contract>   relaunch a repair into slug's EXISTING worktree, never a fresh
+                         `--worktree`. Not wrapped by this shim -- run `dispatch.py repair` directly.
 
   Model and effort come from the contract (its Dispatch block or its `| Model | Mode | Effort |`
   table) or from -Model / -Effort. There is no default and no cap argument: -TokenCap is optional
