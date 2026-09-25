@@ -59,8 +59,9 @@ You merge; you do not build, and you do not weaken a check. The batch's common r
 4. **Only when green:** fast-forward `main` in the primary to that commit and push in the same
    step; remove the integration worktree and its branch. The primary's `main` holds no
    unverified merge. On a refusal, remove the integration worktree — `main` was not touched.
-5. **Teardown of the lane:** its job, its worktree, its branch local and on origin; then
-   `no_leftovers.py <slug>`.
+5. **Teardown of the lane:** stop its session (`scripts/batch_janitor.py run --batch <BATCH>`) --
+   never remove it, so the session and its transcript survive; remove its worktree and its
+   branch, local and on origin; then `no_leftovers.py verify --lane <slug>`.
 6. **Receipt:** the `STATE` line with pickup, handback and push times; the ledger row written.
 
 ## Refusals and repairs
@@ -75,7 +76,9 @@ weaken a check to make a merge pass.
 1. Re-run the connection walk on `main`; run `moment:batch-close` with `HARNESS_BATCH=<BATCH>`.
 2. Write `to-browser/DIGEST-<BATCH>-<date>.md` (at most 15 KB): per merge the sha, pickup-to-push
    minutes and the verdict; the medians; reaps; operator inputs (target 0); the registry and
-   baseline id; what is left and its state; the zero-leftovers proof; and a **MORNING** section
-   listing every `DECIDED-BY-LANE`, `OPERATOR-ACTION` and `QUESTION` the lanes left.
+   baseline id; what is left and its state; the zero-leftovers proof; **per lane, its session id
+   and transcript path** (R3 — teardown stops the session rather than removing it, so this digest
+   line is the only remaining pointer to where it and its transcript are); and a **MORNING**
+   section listing every `DECIDED-BY-LANE`, `OPERATOR-ACTION` and `QUESTION` the lanes left.
 3. Write `to-browser/STATE-BATCH-<BATCH>.md` reading `CLOSED <time>`.
 4. Stop every Monitor, poll and shell of yours, and stop.

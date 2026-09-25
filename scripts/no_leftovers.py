@@ -22,10 +22,18 @@ THE ELEVEN CHECKS (numbers are the spec's order)
    5 no-lane-branch                     no `worktree-<slug>` in local or remote-tracking branches
    6 no-ref-names-lane                  no ref of any kind whose name carries the slug
    7 no-remote-head                     `git ls-remote --heads origin` carries no head for the lane
-   8 job-record-absent                  no `~/.claude/jobs/<id>/state.json` points at the lane
-   9 job-not-in-agents                  `claude agents --json` lists no session cwd'd in the lane
+   8 job-record-absent                  no LIVE `~/.claude/jobs/<id>/state.json` points at the lane
+   9 job-not-in-agents                  `claude agents --json` lists no LIVE session cwd'd in the lane
   10 working-tree-clean                 the primary's `git status --porcelain` is empty
   11 main-equals-origin-main            local `main` == the remote's `main` (read with ls-remote, never a stale tracking ref)
+
+R3 (2026-09-25, LANE-5B2-5-teardown-visible): teardown STOPS a lane's session (`batch_janitor.py`)
+rather than removing it, so its transcript survives -- which means its job record and its
+`claude agents --json` entry are BOTH expected to keep pointing at the lane after a clean
+teardown. Checks 8 and 9 therefore read each record's own `state` field and only count a
+pointing record as a leftover when that state is NOT one of `batch_janitor`'s own
+`_ENDED_STATES` (imported, never re-typed) -- a record with no readable `state` still fails
+closed, the same posture every other unreadable-evidence case here takes.
 
 With no slug it runs the husk scan alone: every directory under `.claude/worktrees/` that git does
 not register, and every registration whose directory is gone.
@@ -60,6 +68,15 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+
+# THE ONE HOME FOR "IS THIS JOB'S OWN STATE TERMINAL", imported rather than re-typed -- R3
+# (checks 8/9 below) reads the same vocabulary `batch_janitor.py` already owns and tests against
+# `dispatch.py`'s own `_ENDED`, for the same reason `batch_janitor` imports `dispatch` instead of
+# guessing: a third private copy would drift from the two that already agree.
+try:
+    from scripts import batch_janitor as _bj
+except ImportError:  # pragma: no cover -- exercised by the scripts/-on-sys.path entrypoint
+    import batch_janitor as _bj
 
 EXIT_OK = 0
 EXIT_LEFTOVER = 1
@@ -232,6 +249,14 @@ def _refs(repo: Path, *patterns: str) -> tuple[list[str] | None, str]:
     return (None, why) if out is None else ([ln for ln in out.splitlines() if ln], "")
 
 
+def _is_ended(state_value: object) -> bool:
+    """True only when `state_value` is a string naming one of `batch_janitor`'s own terminal
+    states. R3: a job/agent record that still points at a torn-down lane is expected to survive
+    with a terminal `state` -- that is not a leftover. Anything else (missing, non-string,
+    unrecognized) fails closed: unread or unknown evidence is not clean here either."""
+    return isinstance(state_value, str) and state_value.lower() in _bj._ENDED_STATES
+
+
 def _points_at_lane(rec: dict, lane_path: str, branch: str) -> bool:
     for key in ("cwd", "worktreePath"):
         v = rec.get(key)
@@ -356,22 +381,24 @@ def run_checks(repo: Path, lane: str, *, jobs_dir: Path, agents: list[dict] | No
             except (OSError, ValueError):
                 unparseable.append(state.parent.name)
                 continue
-            if isinstance(rec, dict) and _points_at_lane(rec, lane_norm, branch):
+            if isinstance(rec, dict) and _points_at_lane(rec, lane_norm, branch) \
+                    and not _is_ended(rec.get("state")):
                 hits.append(state.parent.name)
         note = (f"{'; ' if hits else ''}job record(s) that could not be read or parsed "
                 f"(cannot rule the lane out): {_shown(unparseable)}") if unparseable else ""
         add(8, "job-record-absent", not (hits or unparseable),
-            (f"job record(s) pointing at the lane: {_shown(hits)}" if hits else "")
-            + note or f"0 of {seen} job record(s) point at {lane}")
+            (f"LIVE job record(s) pointing at the lane: {_shown(hits)}" if hits else "")
+            + note or f"0 of {seen} job record(s) point at {lane}, live")
 
     # 9
     if agents is None:
         add(9, "job-not-in-agents", False, "unreadable: `claude agents --json` could not be read")
     else:
         hits = [f"{a.get('id', '?')}({a.get('status', '?')})" for a in agents
-                if isinstance(a, dict) and _points_at_lane(a, lane_norm, branch)]
+                if isinstance(a, dict) and _points_at_lane(a, lane_norm, branch)
+                and not _is_ended(a.get("state"))]
         add(9, "job-not-in-agents", not hits,
-            f"session(s) in the lane: {_shown(hits)}" if hits else f"0 of {len(agents)} listed session(s) are in {lane}")
+            f"LIVE session(s) in the lane: {_shown(hits)}" if hits else f"0 of {len(agents)} listed session(s) are LIVE in {lane}")
 
     # 10
     out, why = _git_out(repo, "status", "--porcelain")

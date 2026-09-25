@@ -266,6 +266,15 @@ def test_8_fails_when_the_jobs_directory_cannot_be_read(hub, tmp_path):
     assert "no-such-jobs" in res.evidence
 
 
+def test_8_passes_when_the_pointing_job_record_is_TERMINAL(hub, jobs):
+    """R3: teardown STOPS a lane's session rather than removing it (`batch_janitor.py`), and
+    `claude stop` "leaves ... the job record in place" -- so a record that still points at the
+    (now torn-down) lane is not itself a leftover once its own `state` says the job ended."""
+    _job(jobs, "deadbeef", worktreePath=str(_lane_dir(hub)), worktreeBranch=f"worktree-{SLUG}",
+         state="stopped")
+    assert _run(hub, jobs)[8].passed
+
+
 def test_9_fails_while_a_live_session_is_cwd_d_in_the_lane(hub, jobs):
     agents = [{"id": "9c53bd44", "cwd": str(_lane_dir(hub)), "status": "busy"}]
     res = _run(hub, jobs, agents)[9]
@@ -283,6 +292,14 @@ def test_9_fails_when_the_agent_list_could_not_be_read(hub, jobs):
     res = {r.number: r for r in nl.run_checks(hub, SLUG, jobs_dir=jobs, agents=None)}[9]
     assert not res.passed
     assert "claude agents" in res.evidence
+
+
+def test_9_passes_when_the_pointing_agents_entry_is_TERMINAL(hub, jobs):
+    """R3: a session survives its own teardown, so `claude agents --json` keeps listing it,
+    cwd and all -- only a still-LIVE entry counts as a leftover here."""
+    agents = [{"id": "9c53bd44", "cwd": str(_lane_dir(hub)), "status": "done",
+               "state": "stopped"}]
+    assert _run(hub, jobs, agents)[9].passed
 
 
 def test_10_fails_for_a_dirty_primary_working_tree(hub, jobs):
