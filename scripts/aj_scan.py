@@ -219,9 +219,15 @@ def scan_repo_commits(
     repo_root: Optional[Path] = None,
     runner: Callable[..., Any] = subprocess.run,
 ) -> list[dict[str, Any]]:
-    """`gh api repos/<repo>/commits?since=<since_iso>`, parsed. Empty state (`[]`) and "no
-    commits" are the same fact and both return `[]`; only an unreadable `gh` result raises."""
-    command = ["gh", "api", f"repos/{repo}/commits?since={since_iso}"]
+    """`gh api --paginate --slurp repos/<repo>/commits?since=<since_iso>`, parsed and flattened.
+
+    `--paginate` alone would under-report past GitHub's default page size (measured: the bare
+    call above returns only the first page's ~30 commits on a busy repo, silently dropping the
+    rest -- a Codex terra HIGH finding on this lane). `--slurp` wraps every page's array inside
+    one outer array (measured on this host, `gh 2.93.0`: `[[c1, c2, ...], [c3, ...]]`), which is
+    flattened here rather than left for the caller so every other reader of this function's
+    return value keeps the flat `list[commit]` shape it already expects."""
+    command = ["gh", "api", "--paginate", "--slurp", f"repos/{repo}/commits?since={since_iso}"]
     try:
         proc = runner(
             command, cwd=str(repo_root or _REPO_ROOT), capture_output=True, text=True,
@@ -234,14 +240,15 @@ def scan_repo_commits(
             f"gh api commits for {repo} exited {proc.returncode}: {proc.stderr.strip()[:200]}"
         )
     try:
-        commits = json.loads(proc.stdout or "[]")
+        pages = json.loads(proc.stdout or "[]")
     except json.JSONDecodeError as exc:
         raise ScanError(f"gh returned unreadable JSON for {repo}: {exc}") from exc
-    if not isinstance(commits, list):
+    if not isinstance(pages, list) or not all(isinstance(page, list) for page in pages):
         raise ScanError(
-            f"gh api commits for {repo} did not return a list: {str(proc.stdout)[:200]}"
+            f"gh api --slurp commits for {repo} did not return a list of pages: "
+            f"{str(proc.stdout)[:200]}"
         )
-    return commits
+    return [commit for page in pages for commit in page]
 
 
 # --- the delegated large-read leg -------------------------------------------------------------
@@ -347,10 +354,25 @@ def build_candidates(
         if not commits:
             continue
         shas = ", ".join(str(c.get("sha", ""))[:9] for c in commits)
+        messages = "; ".join(
+            (str((c.get("commit") or {}).get("message", "")).splitlines() or [""])[0]
+            for c in commits
+        )
+        # The delegated leg gets only the commit MESSAGES, never a diff -- reading the actual
+        # diff content is out of this call's scope (same corpus-content boundary as the course
+        # branch above: this module hands a describe prompt to a subagent rather than fetching
+        # and parsing diff bytes itself). A delegate that cannot say more than the messages
+        # allow is expected to say so, same as any other honest "not enough to tell" answer.
+        prompt = (
+            f"Commits on {repo} since the last scan (messages only, no diff read): {messages}. "
+            "In one sentence, what would this change in the harness -- or say plainly that the "
+            "messages alone do not say?"
+        )
+        result = delegate(prompt)
         new_id = f"C-{next_seq}"
         row = CandidateRow(
-            id=new_id, already_in=f"{repo} {shas}", what="unknown until the diff is read",
-            cost="S -- one scoped diff read (delegated), ~15 min",
+            id=new_id, already_in=f"{repo} {shas}", what=result.response,
+            cost="S -- one scoped diff read (delegated), ~15 min", served_model=result.served_model,
         )
         rows.append(row)
         new_carried.append(CarriedCandidate(id=row.id, already_in=row.already_in, what=row.what,
@@ -364,6 +386,32 @@ def build_candidates(
         repos=dict(state.repos), carried_candidates=new_carried, next_candidate_seq=next_seq,
     )
     return rows, new_state
+
+
+def _commit_date(commit: dict[str, Any]) -> Optional[str]:
+    return (commit.get("commit") or {}).get("author", {}).get("date")
+
+
+def _next_repo_since(
+    commits: Sequence[dict[str, Any]], *, previously_seen: bool, old_since: str, now_iso: str,
+) -> str:
+    """The repo's next high-water mark -- never `now_iso` when the query might have missed a
+    commit that lands between the query and the moment `now_iso` is stamped (Codex terra HIGH
+    finding on this lane: advancing to a post-query timestamp permanently skips it).
+
+    * Commits found -> advance to the LATEST COMMIT'S OWN DATE, a boundary that existed and was
+      observed, never a clock reading taken after the query ran.
+    * No commits, but this repo was already tracked -> DO NOT ADVANCE. Re-querying the same
+      window next time costs one extra `gh` call; skipping it silently costs a commit.
+    * No commits, and this repo is newly added to tracking -> `now_iso` is the only baseline
+      available; accepted once, on first sighting, rather than never recording one.
+    """
+    dates = [d for c in commits if (d := _commit_date(c))]
+    if dates:
+        return max(dates)
+    if previously_seen:
+        return old_since
+    return now_iso
 
 
 # --- orchestration -------------------------------------------------------------------------
@@ -417,7 +465,10 @@ def run_scan(
 
     new_repos = dict(next_state.repos)
     for repo in repos:
-        new_repos[repo] = RepoState(since=now_iso)
+        new_repos[repo] = RepoState(since=_next_repo_since(
+            repo_commits[repo], previously_seen=repo in state.repos,
+            old_since=state.repos.get(repo, RepoState(since="")).since, now_iso=now_iso,
+        ))
 
     final_state = ScanState(
         last_scan_date=now_iso[:10],

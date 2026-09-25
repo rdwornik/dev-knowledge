@@ -7,11 +7,11 @@ last_scan_date: '2026-09-25'
 course_high_water: '2026-09-21T12:57:00Z'
 repos:
   Architekt-Jutra/architekt-jutra-code:
-    since: '2026-09-25T22:02:46Z'
+    since: '2026-09-21T00:00:00Z'
   TheSoftwareHouse/copilot-collections:
-    since: '2026-09-25T22:02:46Z'
+    since: '2026-09-21T00:00:00Z'
   SkillPanel/maister:
-    since: '2026-09-25T22:02:46Z'
+    since: '2026-09-22T20:19:10Z'
 carried_candidates:
 - id: C-1
   already_in: M05-LESSONS:339 - M05L03.2 ~1118-1145, ebook p.19/24 -- 9-category agent
@@ -50,6 +50,8 @@ carried_candidates:
   cost: S -- landing lane, ~1 h
 - id: C-6
   already_in: SkillPanel/maister 4151c9c4d, d412d49f1
-  what: unknown until the diff is read
+  what: The commit messages alone do not say what would change in the harness, as
+    they record only a version bump and unspecified backported fixes from the v3 branch
+    without diff details.
   cost: S -- one scoped diff read (delegated), ~15 min
 next_candidate_seq: 7

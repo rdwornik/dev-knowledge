@@ -17,6 +17,7 @@ import os
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -136,6 +137,54 @@ def test_scan_repo_commits_raises_when_gh_cannot_be_run() -> None:
         scan_mod.scan_repo_commits("a/b", "2026-09-21T00:00:00Z", runner=raising_runner)
 
 
+def test_scan_repo_commits_flattens_multiple_pages() -> None:
+    """The Codex terra HIGH finding this closes: a bare (unpaginated) `gh api` call returns
+    only the first page, permanently dropping the rest on a busy repo."""
+    slurped = json.dumps([[{"sha": "a" * 40}, {"sha": "b" * 40}], [{"sha": "c" * 40}]])
+    commits = scan_mod.scan_repo_commits("a/b", "2026-09-21T00:00:00Z",
+                                          runner=_fake_runner(stdout=slurped))
+    assert [c["sha"][0] for c in commits] == ["a", "b", "c"]
+
+
+def test_scan_repo_commits_passes_paginate_and_slurp_to_gh() -> None:
+    seen: dict[str, Any] = {}
+
+    def capturing_runner(command, **kwargs):
+        seen["command"] = command
+        return subprocess.CompletedProcess(command, 0, stdout="[[]]", stderr="")
+
+    scan_mod.scan_repo_commits("a/b", "2026-09-21T00:00:00Z", runner=capturing_runner)
+    assert "--paginate" in seen["command"]
+    assert "--slurp" in seen["command"]
+
+
+# --- repo cursor advancement: never a post-query clock reading -------------------------------
+
+
+def test_next_repo_since_advances_to_the_latest_commit_date() -> None:
+    commits = [
+        {"commit": {"author": {"date": "2026-09-22T09:00:00Z"}}},
+        {"commit": {"author": {"date": "2026-09-22T14:30:00Z"}}},
+    ]
+    since = scan_mod._next_repo_since(commits, previously_seen=True, old_since="2026-09-21T00:00:00Z",
+                                       now_iso="2026-09-25T00:00:00Z")
+    assert since == "2026-09-22T14:30:00Z"
+
+
+def test_next_repo_since_does_not_advance_a_tracked_repo_with_nothing_found() -> None:
+    """The Codex terra HIGH finding this closes: advancing an empty repo to `now_iso` (a clock
+    reading taken AFTER the query ran) permanently skips a commit landing in between."""
+    since = scan_mod._next_repo_since([], previously_seen=True, old_since="2026-09-21T00:00:00Z",
+                                       now_iso="2026-09-25T00:00:00Z")
+    assert since == "2026-09-21T00:00:00Z"
+
+
+def test_next_repo_since_uses_now_iso_for_a_newly_seen_empty_repo() -> None:
+    since = scan_mod._next_repo_since([], previously_seen=False, old_since="",
+                                       now_iso="2026-09-25T00:00:00Z")
+    assert since == "2026-09-25T00:00:00Z"
+
+
 # --- the delegated large-read leg -----------------------------------------------------------
 
 
@@ -196,11 +245,13 @@ def test_build_candidates_assigns_ids_to_each_repo_with_new_commits() -> None:
     rows, _ = scan_mod.build_candidates(
         state, course_new=[],
         repo_commits={"a/b": [{"sha": "1234567890"}], "c/d": [], "e/f": [{"sha": "abcdefabcd"}]},
+        delegate=_delegate_stub("unknown until the diff is read", model="stub-model"),
     )
     # `c/d` had no commits and gets no row; the other two do, in a stable order
     assert [r.id for r in rows] == ["C-1", "C-2"]
     assert "a/b" in rows[0].already_in
     assert "e/f" in rows[1].already_in
+    assert rows[0].served_model == "stub-model"
 
 
 # --- the pinned reproduction: 09-21 state + today's folders = C-1..C-7 ----------------------
@@ -227,8 +278,16 @@ def test_scan_against_09_21_state_reproduces_the_digests_seven_candidates(tmp_pa
         stdout = maister_fixture if repo == "SkillPanel/maister" else empty_fixture
         return scan_mod.scan_repo_commits(repo, since_iso, runner=_fake_runner(stdout=stdout))
 
-    def failing_delegate(prompt: str) -> scan_mod.DelegateResult:  # pragma: no cover
-        raise AssertionError("no course delta in this fixture -- the delegate must not be called")
+    calls: list[str] = []
+
+    def logging_delegate(prompt: str) -> scan_mod.DelegateResult:
+        # No course delta in this fixture, so the only call this scan can make is the
+        # repo-commit describe leg -- matching the digest's own "Diff content ... not
+        # found" limitation, the stub answers exactly that, with the digest's own
+        # attestation that the day's serving model went undisclosed.
+        calls.append(prompt)
+        return scan_mod.DelegateResult(response="unknown until the diff is read",
+                                        served_model=scan_mod.UNDISCLOSED_MODEL)
 
     result = scan_mod.run_scan(
         course_dir=course_dir,
@@ -236,16 +295,19 @@ def test_scan_against_09_21_state_reproduces_the_digests_seven_candidates(tmp_pa
         state=state,
         scan_date="2026-09-25T00:00:00Z",
         commit_scanner=commit_scanner,
-        delegate=failing_delegate,
+        delegate=logging_delegate,
     )
 
     ids = [r.id for r in result.rows]
     assert ids == ["C-1", "C-2", "C-3", "C-4", "C-5", "C-6", "C-7"]
+    assert len(calls) == 1, "exactly one delegated describe leg -- the maister commit delta"
 
     by_id = {r.id: r for r in result.rows}
     assert "SkillPanel/maister" in by_id["C-6"].already_in
     assert "d412d49f1" in by_id["C-6"].already_in
     assert "4151c9c4d" in by_id["C-6"].already_in
+    assert by_id["C-6"].what == "unknown until the diff is read"
+    assert by_id["C-6"].served_model == scan_mod.UNDISCLOSED_MODEL
     assert by_id["C-7"].already_in == "landing gap itself"
 
     assert result.course_new == []
@@ -259,6 +321,13 @@ def test_scan_against_09_21_state_reproduces_the_digests_seven_candidates(tmp_pa
     assert [c.id for c in result.state.carried_candidates] == [
         "C-1", "C-2", "C-3", "C-4", "C-5", "C-7", "C-6",
     ]
+
+    # repo cursors: maister advances to its LATEST COMMIT's own date, never to scan_date's
+    # "now" (the Codex terra HIGH finding this fix closes); the two empty repos do not
+    # advance at all, since nothing was observed to justify moving their mark forward.
+    assert result.state.repos["SkillPanel/maister"].since == "2026-09-22T14:30:00Z"
+    assert result.state.repos["Architekt-Jutra/architekt-jutra-code"].since == "2026-09-21T00:00:00Z"
+    assert result.state.repos["TheSoftwareHouse/copilot-collections"].since == "2026-09-21T00:00:00Z"
 
 
 # --- CLI: --help documents the command (Done-contract item 3) -------------------------------
