@@ -30,13 +30,23 @@ _REPO = Path(__file__).resolve().parents[1]
 _SETTINGS = _REPO / ".claude" / "settings.json"
 
 # The six hooks this lane re-armed on live evidence (docs/audits/2026-09-22-technical-lane-hooks-rearm-live-measurement.md).
+#
+# UPDATED 2026-09-25 (LANE-5B-5 lane-hooks-port): the two entries that were `.ps1` at the
+# 2026-09-22 rearm (surface_triage, billing_leak_sentinel) are now their ported `.py` modules --
+# PowerShell was the harness's only hard break on a Linux/cloud substrate, so both were rewired
+# in .claude/settings.json to run through `uv run --locked python`. The `.ps1` sources are
+# retired in place (unwired, not deleted); their own regression guard
+# (tests/test_surface_triage.py) still exercises the unchanged `.ps1` behaviour directly. As a
+# consequence, the `.ps1` existence-and-size branch of test_rearmed_hook_script_is_runnable
+# below is no longer reached by any entry in this tuple -- it stays live code for a future
+# still-`.ps1` hook (see _STILL_DISABLED_HOOK_NAMES).
 _REARMED_HOOK_NAMES = (
-    "surface_triage.ps1",
+    "surface_triage.py",
     "changelog_sentinel.py",
     "conductor.py",
     "resource_lifecycle.py",
     "codespace_regime.py",
-    "billing_leak_sentinel.ps1",
+    "billing_leak_sentinel.py",
 )
 
 # fleet_health.py was ALSO left disabled by this lane (contract: "No hook is deleted"), pending

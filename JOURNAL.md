@@ -21,6 +21,48 @@
 
 ---
 
+### 2026-09-25 (k) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): the organ census's harness.yaml moment path gets its own test
+
+**Anchors:** `5dc84cde`, `018a2cb8` (`test(organ-usage-metric)` + the Codex review with its LOW fixed) -- `worktree-lane-census-instrument` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on the lane-trial-gh-issues merge `fdc64921`.
+
+**Did:** purity 2 commits / 3 files; merged in `worktree-integrate-lane-census-instrument`; regenerated generated files on the merged tree (ruling b); ship-gate diffed against the stacked base; lane-changed `tests/test_organ_usage_metric.py` on the merged tree; CI paired against main. **Result:** the census already counted harness.yaml moments as observation on origin/main (LANE-5A-10); this lane adds the test that exercises that parser (`scripts/moment_only.py` fixture reachable only through a moment) and names the source in the docstrings and the printed label. UNOBSERVED before and after on the primary: CALLED 82 / REACHABLE-BUT-UNOBSERVED 82 / UNREACHABLE 16 of 194 -- none of the 74 wired organs reads UNREACHABLE. **Changes:** `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl` (+ the lane's 3 files). **Next:** the rest of the WAVE5B-N1 queue.
+
+### 2026-09-25 (j) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): the GitHub Issues trial lands -- ADR-122's store choice now rests on live measurements
+
+**Anchors:** `b287ac3a`, `fa8b2952` (`docs(audit)`: the live trial record and the reader-harness figures; ADR-122 amended, still Proposed) -- `worktree-lane-trial-gh-issues` (ordered `claude-opus-5-5`), merged `--no-ff` from an integration worktree stacked on the lane-ci-commit-gate merge `211a4e26`.
+
+**Did:** purity 2 commits / 2 files, docs only; the ADR-122 diff is additions only (an in-file amendment, status line unchanged); merged in `worktree-integrate-lane-trial-gh-issues`; regenerated generated files on the merged tree (ruling b); ship-gate diffed against the stacked base; CI paired against main. **Result:** `docs/audits/2026-09-25-technical-backlog-record-gh-issues-trial.md` -- the two-column matrix with every O2 cell backed by a live measurement in the scratch repository `rdwornik/dk-trial-gh-issues-20260925` (24 issues, PR #25 by the Copilot CLI under the Enterprise seat); ADR-122 carries "Amendment -- 2026-09-25", still Proposed (ratification is the operator's). The lane handed back PARTIAL: its own self-checks and lane-diff terra review were reaped under memory pressure. **Changes:** `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl` (+ the lane's 2 files). **Next:** the operator deletes the scratch repository and rules ADR-122 (MORNING).
+
+### 2026-09-25 (i) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): the commit-gate judges a lane branch by its merge-base with main
+
+**Anchors:** `2d5d86be`, `a1dedc0a`, `177dbb35` (`fix(ci)` + the clean Codex review + the doc-counts regen; `f53e282f` is its sync of origin/main) -- `worktree-lane-ci-commit-gate` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree off origin/main `1c9fbf4d`.
+
+**Did:** purity 3 lane commits + 1 merge of origin/main, 4 files; merged in `worktree-integrate-lane-ci-commit-gate`; `ecosystem/doc-counts.md` conflicted and was regenerated, not hand-merged (ruling b); ship-gate diffed base vs merge; lane-changed `tests/test_conductor.py` on the merged tree; CI paired against main. **Result:** a `workflow_dispatch` run on any ref other than `main` resolves the commit-gate's BASE as `git merge-base HEAD origin/main`, so it judges only the diff a merge would introduce -- the lane's live runs 36078308690 and 36079802105 judged exactly its own four files; `main`'s push run keeps `event.before` (B8's prerequisite). **Changes:** `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl` (+ the lane's 4 files). **Next:** the rest of the WAVE5B-N1 queue.
+
+### 2026-09-25 (h) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): the SessionStart hooks leave PowerShell -- the container's only hard break is gone
+
+**Anchors:** `76eda9c1` (`refactor(hooks): port surface_triage and billing_leak_sentinel off PowerShell`), `13e97d44` (repair 1: the fake `gh` resolves on POSIX too) -- `worktree-lane-hooks-port` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree off origin/main `4fab7aea`.
+
+**Did:** refused once (the Linux CI red in its own `tests/test_surface_triage.py`: a `gh.cmd`-only fixture let the runner's real `gh` answer); the repair adds a POSIX shim, green on the lane's own Linux run 36084474837. Merged in `worktree-integrate-lane-hooks-port`; the lane's files equal the ship-gate-verified integration tree `c5787f99` except the one repaired test file, so the ship-gate leg is not repeated; lane-changed tests and the CI pairing on this merge. **Result:** `surface_triage` and `billing_leak_sentinel` run as `uv run --locked python`, `lane_end_guard` through `uv run`; `.claude/settings.json`'s hooks carry no `powershell` (the `.ps1` sources retired in place). PARTIAL on the contract's timing item, in the lane's own words: the three-start chain median is not below before (50.8 s -> 53.7 s, dominated by an untouched hook's variance), measured by direct invocation, 0 timeouts. **Changes:** `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl` (+ the lane's 12 files). **Next:** lanes 11 and 12 start after this merge.
+
+### 2026-09-25 (d) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): the launcher refuses without a bound integrator, launches Copilot detached, and warns on a model alias
+
+**Anchors:** `fb01eaf7`, `8e126b0f`, `cc098d48`, `a1bc262e` (`fix(dispatch)` + the Codex review and its fixes + the tally) -- `worktree-lane-launcher-fixes` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on the lane-registry-models merge `7afbb69a`.
+
+**Did:** purity 4 commits / 4 files; merged in `worktree-integrate-lane-launcher-fixes`; regenerated generated files on the merged tree (ruling b); ship-gate diffed against the stacked base; lane-changed dispatch tests on the merged tree; CI paired against main. **Result:** a launch with no bound integrator prints the exact bind command and exits non-zero (the REFUSED line is never truncated); a Copilot contract launches detached (proved by `--dry-run` plus a mocked-spawner unit test for the detach flags) and holds its slug; a model alias in a contract is warned with the explicit id (blind spots 1 and 8). **Changes:** `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl` (+ the lane's 4 files). **Next:** the rest of the WAVE5B-N1 queue.
+
+### 2026-09-25 (c) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): the registry admits Opus 5.5 by id, prices cache writes at 2x, and declares model currency per provider
+
+**Anchors:** `6859c4d2`, `357322c7`, `8db4408a` (`feat(registry)` + the Codex-review fixes + the ratchet wording fix) -- `worktree-lane-registry-models` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree off origin/main `2b5a4ef8`.
+
+**Did:** purity 3 commits / 5 files; merged in `worktree-integrate-lane-registry-models`; regenerated generated files on the merged tree (ruling b); ship-gate diffed base vs merge; lane-changed tests on the merged tree; CI paired against main. **Result:** `roles.orchestrate` / `roles.plan` order `claude-opus-5-5` by explicit id (RATIFICATION B5); `cache_write_multiplier: 2.0`; every role pins a versioned id; a `model_currency:` probe or dated `exception:` per provider, with an opt-in live probe (`RUN_LIVE_CURRENCY_PROBE`). Schema 1.1.0 -> 1.2.0 (`ecosystem/schema/provider_registry.py`, outside the contract's list: DECIDED-BY-LANE). **Changes:** `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl` (+ the lane's 5 files). **Next:** `lane-launcher-fixes`, stacked on this merge.
+
+### 2026-09-25 (b) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): merge hygiene lands -- timed receipt steps, a post-merge conflict check, a batch janitor
+
+**Anchors:** `2697a87d`, `cce67b55`, `239beb29` (`feat(merge-receipt)` + the Codex-review fixes + the review tally) -- `worktree-lane-merge-hygiene` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree off origin/main `04868005`.
+
+**Did:** purity 3 commits / 8 files; merged in `worktree-integrate-lane-merge-hygiene`; regenerated doc-counts and the audits index on the merged tree (ruling b); the two `fates:` lines in `ecosystem/harness.yaml` are the lane's ruling-(a) additions; ship-gate diffed base vs merge; lane-changed tests on the merged tree; CI paired against main. **Result:** `merge_receipt.py` shows each step's start and end; `scripts/check_post_merge.py check --sha` refuses a conflict marker in a merge's first-parent diff; `scripts/batch_janitor.py run --batch --dry-run` lists the finished sessions it would stop ([#1014]). From this merge on the integrator's post-merge check and janitor run through them. **Changes:** `JOURNAL.md`, `ecosystem/doc-counts.md`, `docs/audits/README.md`, `logs/MERGE-RECEIPTS.jsonl` (+ the lane's 8 files). **Next:** the rest of the WAVE5B-N1 queue.
+
 ### 2026-09-25 (a) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): ADR-122 step 0 lands -- one view budget, row filing reopened
 
 **Anchors:** `aeab4577` (`feat(gen_task_tree): ADR-122 step 0 -- one view-budget config, first row filed`) -- `worktree-lane-adr122-step0` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree off origin/main `2ae86d07`.

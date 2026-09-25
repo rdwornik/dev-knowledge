@@ -108,6 +108,59 @@ def test_an_unknown_provider_is_refused_naming_the_known_ones(tmp_path):
     assert "deepseek" in r.output and "codex" in r.output
 
 
+# --- copilot: a third non-claude head, non-interactive and allow-all-tools -----------------------
+
+def test_copilot_is_a_known_head_and_gets_a_non_interactive_argv(tmp_path):
+    plan = d.build_plan("copilot", "gpt-5.6-luna", "lane-x", "medium", "prompt text")
+    assert plan.argv[0] == "copilot"
+    assert plan.argv[plan.argv.index("-p") + 1] == "prompt text"
+    assert plan.argv[plan.argv.index("--model") + 1] == "gpt-5.6-luna"
+    assert plan.argv[plan.argv.index("--reasoning-effort") + 1] == "medium"
+    assert "--allow-all-tools" in plan.argv
+    assert plan.argv[plan.argv.index("-n") + 1] == "lane-x"
+    assert "--bg" not in plan.argv
+    assert plan.metering == "stream"
+
+
+def test_a_dispatch_head_of_copilot_is_accepted_never_refused():
+    line = d.parse_dispatch_block(
+        "## Dispatch\n```\ncopilot --model gpt-5.6-luna --effort high -n lane-x\n```\n")
+    assert line.head == "copilot"
+
+
+# --- a bare model alias is warned, never refused, never rewritten ([#... ] launcher fixes) --------
+
+@pytest.mark.parametrize("alias,expect", [
+    ("opus", "claude-opus-5-5"),
+    ("Opus", "claude-opus-5-5"),          # case-insensitive: a contract cell may be capitalised
+    ("sonnet", "claude-sonnet-5"),
+    ("haiku", "claude-haiku-4-5-20251001"),
+    ("opusplan", "claude-opus-5-5"),
+])
+def test_a_bare_model_alias_is_warned_with_its_explicit_id(alias, expect):
+    warning = d.warn_model_alias(alias)
+    assert warning is not None and expect in warning
+
+
+@pytest.mark.parametrize("versioned", ["claude-sonnet-5", "claude-opus-5-5", "gpt-5.6-luna"])
+def test_a_versioned_model_id_is_not_an_alias_and_is_not_warned(versioned):
+    assert d.warn_model_alias(versioned) is None
+
+
+def test_an_alias_in_the_contract_is_warned_but_the_launch_is_not_refused(tmp_path, caplog):
+    import logging
+
+    contract = tmp_path / "LANE-alias-x.md"
+    contract.write_text(
+        "# LANE lane-alias-x\n\n| Model | Mode | Effort |\n|---|---|---|\n| opus | execute | high |\n",
+        encoding="utf-8")
+    with caplog.at_level(logging.WARNING, logger="dispatch"):
+        request = d.request_from_contract(contract, slug="lane-alias-x")
+    assert request.model == "opus", "the alias is launched exactly as the contract wrote it"
+    assert any("claude-opus-5-5" in r.message for r in caplog.records), \
+        "the explicit id the registry maps the alias to must be named in the warning"
+
+
 # --- third-party routing: env is built for the child, the operator's shell is never touched --
 
 def test_third_party_provider_scrubs_anthropic_credentials_and_routes_to_its_base_url():
