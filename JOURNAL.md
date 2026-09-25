@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-25 (n) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): a lane session cannot end without a clean HANDBACK line
+
+**Anchors:** `e1a30321`, `d144be6c` (`feat(hooks)` + the Codex-review fixes; `4159ef9c` is its sync of origin/main) -- `worktree-lane-handback-stop-hook` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on origin/main `1d464924` (the lane-transport-registry merge).
+
+**Did:** purity 2 lane commits + 1 merge of origin/main, 10 files; merged in `worktree-integrate-lane-handback-stop-hook`; `ecosystem/doc-counts.md` conflicted and was regenerated (ruling b); the audits index regenerated once on the merged result (the lane deliberately left it, [#590]); ship-gate diffed against the stacked base; lane-changed tests on the merged tree; CI paired against main. **Result:** new Stop hook `scripts/lane_handback_gate.py` blocks a fresh stop of a lane session whose session file lacks an unwrapped `HANDBACK <branch> @ <sha> <kind>` line; fire-once via `stop_hook_active`; non-lane sessions untouched; [#1010] closed. **Changes:** `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl` (+ the lane's files). **Next:** the batch close.
+
 ### 2026-09-25 (m) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): the transport becomes data -- a registry the code reads, and a write gate
 
 **Anchors:** `cf724ac9`, `46d37a7c`, `a64d3eda` (`feat(transport)` + the Codex-review fixes + the ratchet/index fixes; `c8827164` is its sync of origin/main) -- `worktree-lane-transport-registry` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on origin/main `145b1223` (the lane-plan-lint-grammar merge).

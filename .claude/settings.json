@@ -141,6 +141,15 @@
             "timeout": 15
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run --locked python \"$CLAUDE_PROJECT_DIR/scripts/lane_handback_gate.py\" || true",
+            "timeout": 15
+          }
+        ]
       }
     ]
   },
