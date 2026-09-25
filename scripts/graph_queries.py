@@ -1483,7 +1483,7 @@ def _command_paths(command: list, root: Path, organ_id: str) -> tuple[tuple[str,
         for match in _COMMAND_PATH_RE.findall(arg):
             paths.append(match)
     # A dotted organ id (`merge_receipt.models`) names its module by convention.
-    head = organ_id.split(".")[0]
+    head = organ_id.split(".", maxsplit=1)[0]
     if "." in organ_id and (root / f"scripts/{head}.py").is_file():
         imported.append(f"scripts/{head}.py")
     everything = tuple(dict.fromkeys(paths + imported))

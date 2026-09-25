@@ -28,7 +28,6 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS_DIR.parent
@@ -41,7 +40,7 @@ except ImportError:
 _LOG_PATH = _REPO_ROOT / "logs" / "COHERENCE-NUDGE.log"
 
 
-def _extract_version(text: str) -> Optional[str]:
+def _extract_version(text: str) -> str | None:
     """The spec version parsed from arbitrary spec TEXT (HEAD or staged) in NUMERIC comparison
     form, or None.
 
@@ -71,7 +70,7 @@ def should_nudge(head_text: str, staged_text: str, spec: SpecSource) -> bool:
     return hv is not None and sv is not None and hv == sv
 
 
-def _git_head_text(repo_root: Path, rel: str) -> Optional[str]:
+def _git_head_text(repo_root: Path, rel: str) -> str | None:
     """The committed (HEAD) text of `rel`, or None when the file is new / git unavailable."""
     try:
         proc = subprocess.run(
@@ -83,7 +82,7 @@ def _git_head_text(repo_root: Path, rel: str) -> Optional[str]:
     return proc.stdout if proc.returncode == 0 else None
 
 
-def _spec_for(rel: str) -> Optional[SpecSource]:
+def _spec_for(rel: str) -> SpecSource | None:
     """The registered SpecSource whose path equals `rel` (posix), or None."""
     norm = rel.replace("\\", "/")
     for spec in _SPEC_REGISTRY.values():
@@ -102,8 +101,8 @@ def _append_log(rel: str, version: str, head_text: str, staged_text: str,
         fh.write(line)
 
 
-def process(repo_root: Path, rel: str, now: Optional[datetime] = None,
-            log_path: Path = _LOG_PATH) -> Optional[str]:
+def process(repo_root: Path, rel: str, now: datetime | None = None,
+            log_path: Path = _LOG_PATH) -> str | None:
     """If `rel` is a registered spec changed-without-bump, log + return the nudge message.
 
     Returns the nudge string (also the signal a fire happened) or None. Pure given the
@@ -127,7 +126,7 @@ def process(repo_root: Path, rel: str, now: Optional[datetime] = None,
             f"reconciled_with). Non-blocking — logged to logs/COHERENCE-NUDGE.log.")
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     """pre-commit entry: each staged filename arg is checked; print nudges; ALWAYS exit 0."""
     argv = sys.argv[1:] if argv is None else argv
     for rel in argv:

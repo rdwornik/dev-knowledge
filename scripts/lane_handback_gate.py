@@ -96,7 +96,7 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import Iterator, Mapping, Optional
+from collections.abc import Iterator, Mapping
 
 from markdown_it import MarkdownIt
 
@@ -144,7 +144,7 @@ def _prose_and_code_chunks(children) -> Iterator[tuple[bool, str]]:
         yield False, "".join(buf)
 
 
-def classify(text: str) -> tuple[str, Optional[str]]:
+def classify(text: str) -> tuple[str, str | None]:
     """`(status, line)` -- the LAST HANDBACK-shaped candidate found anywhere in the document
     wins outright (closing-line semantics: whatever the LAST attempt looked like is the verdict,
     never "any clean one found anywhere"). A candidate counts as clean only when it sits in
@@ -156,8 +156,8 @@ def classify(text: str) -> tuple[str, Optional[str]]:
         tokens = _MD.parse(text)
     except Exception:
         tokens = []
-    last_status: Optional[str] = None
-    last_line: Optional[str] = None
+    last_status: str | None = None
+    last_line: str | None = None
     saw_word = False
 
     def consider(chunk: str, is_code: bool) -> None:
@@ -190,7 +190,7 @@ def classify(text: str) -> tuple[str, Optional[str]]:
     return STATUS_MISSING, None
 
 
-def reason(status: str, line: Optional[str], session_path: str) -> str:
+def reason(status: str, line: str | None, session_path: str) -> str:
     """`what failed -> expected -> directive` (the same shape `session_end_backpressure.py`
     uses for its own advisory lines) -- empty for `STATUS_OK`, since a clean line never blocks."""
     where = f"in {session_path}"
@@ -214,7 +214,7 @@ def _default_resolve_transport() -> Path:
     return transport_report.resolve_transport()
 
 
-def _read_stop_hook_active(environ: Mapping[str, str]) -> Optional[bool]:
+def _read_stop_hook_active(environ: Mapping[str, str]) -> bool | None:
     """`stop_hook_active` from the Stop-hook's JSON stdin payload -- `True` on the host's own
     automatic retry after a block, `False` on a fresh stop attempt, `None` when the field is
     absent or stdin is empty/unparseable (fail-soft, matching `session_end_backpressure.py`'s
@@ -238,7 +238,7 @@ def _read_stop_hook_active(environ: Mapping[str, str]) -> Optional[bool]:
     return bool(data["stop_hook_active"])
 
 
-def main(argv: Optional[list[str]] = None, *, environ: Mapping[str, str] = os.environ,
+def main(argv: list[str] | None = None, *, environ: Mapping[str, str] = os.environ,
          root: Path = _ROOT, resolve_transport=None) -> int:
     """Returns 0 on every path (never the code a Stop hook reads as a raw block). A refusal is
     communicated ONLY via `{"decision":"block","reason":...}` JSON on stdout -- the live

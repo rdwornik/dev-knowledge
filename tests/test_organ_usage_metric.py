@@ -23,7 +23,7 @@ established for the same class of problem.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 
 import organ_usage_metric as oum
 
@@ -135,7 +135,7 @@ def test_report_tallies_raw_search_and_organ_call_per_session(tmp_path):
 
     report = oum.organ_usage_report(
         repo_root=repo_root, sessions_root=sessions_root, organs=_ORGANS,
-        now=datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc))
+        now=datetime(2026, 9, 16, 12, 0, tzinfo=UTC))
 
     assert report["totals"] == {"raw_search": 1, "organ_call": 2}
     assert report["sessions"]["session-a"] == {"raw_search": 1, "organ_call": 2}
@@ -151,7 +151,7 @@ def test_organ_never_called_in_any_transcript_is_reported_uncalled(tmp_path):
 
     report = oum.organ_usage_report(
         repo_root=repo_root, sessions_root=sessions_root, organs=_ORGANS,
-        now=datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc))
+        now=datetime(2026, 9, 16, 12, 0, tzinfo=UTC))
 
     assert report["organs_uncalled"] == ["scripts/impacted_tests.py"]
 
@@ -166,7 +166,7 @@ def test_organ_called_outside_the_window_is_reported_uncalled(tmp_path):
 
     report = oum.organ_usage_report(
         repo_root=repo_root, sessions_root=sessions_root, organs=_ORGANS, since_days=30,
-        now=datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc))
+        now=datetime(2026, 9, 16, 12, 0, tzinfo=UTC))
 
     assert "scripts/impacted_tests.py" in report["organs_uncalled"]
 
@@ -181,7 +181,7 @@ def test_organ_called_inside_the_window_is_not_reported_uncalled(tmp_path):
 
     report = oum.organ_usage_report(
         repo_root=repo_root, sessions_root=sessions_root, organs=_ORGANS, since_days=30,
-        now=datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc))
+        now=datetime(2026, 9, 16, 12, 0, tzinfo=UTC))
 
     assert "scripts/impacted_tests.py" not in report["organs_uncalled"]
 
@@ -224,7 +224,7 @@ def test_command_class_process_is_not_observable_never_reported_uncalled(tmp_pat
     repo_root, session_dir = _repo_and_sessions(tmp_path)
     report = oum.process_census(
         repo_root=repo_root, sessions_root=session_dir.parent / "nonexistent",
-        processes=_PROCS, now=datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc))
+        processes=_PROCS, now=datetime(2026, 9, 16, 12, 0, tzinfo=UTC))
     assert ".claude/commands/preflight.md" in report["not_observable"]
     assert ".claude/skills/verify/SKILL.md" in report["not_observable"]
     assert ".claude/commands/preflight.md" not in report["state"]
@@ -242,7 +242,7 @@ def test_a_path_mention_with_no_interpreter_head_does_not_count_as_a_call(tmp_pa
     ])
     report = oum.process_census(
         repo_root=repo_root, sessions_root=session_dir.parent, processes=_PROCS,
-        now=datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc))
+        now=datetime(2026, 9, 16, 12, 0, tzinfo=UTC))
     assert report["counts"]["scripts/graph_queries.py"] == 0
     assert report["state"]["scripts/graph_queries.py"] == oum.UNREACHABLE
 
@@ -255,7 +255,7 @@ def test_an_interpreter_headed_command_naming_the_path_counts_as_a_call(tmp_path
     ])
     report = oum.process_census(
         repo_root=repo_root, sessions_root=session_dir.parent, processes=_PROCS,
-        now=datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc))
+        now=datetime(2026, 9, 16, 12, 0, tzinfo=UTC))
     assert report["counts"]["scripts/graph_queries.py"] == 1
     assert report["state"]["scripts/graph_queries.py"] == oum.CALLED
 
@@ -271,7 +271,7 @@ def test_a_call_outside_the_window_does_not_count_towards_the_total(tmp_path):
     ])
     report = oum.process_census(
         repo_root=repo_root, sessions_root=session_dir.parent, processes=_PROCS,
-        since_days=30, now=datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc))
+        since_days=30, now=datetime(2026, 9, 16, 12, 0, tzinfo=UTC))
     assert report["counts"]["scripts/graph_queries.py"] == 0
     assert report["state"]["scripts/graph_queries.py"] == oum.UNREACHABLE
 
@@ -280,7 +280,7 @@ def test_headline_counts_states_against_observable_total_only(tmp_path):
     repo_root, session_dir = _repo_and_sessions(tmp_path)
     report = oum.process_census(
         repo_root=repo_root, sessions_root=session_dir.parent / "nonexistent",
-        processes=_PROCS, now=datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc))
+        processes=_PROCS, now=datetime(2026, 9, 16, 12, 0, tzinfo=UTC))
     assert report["processes_total"] == 4
     assert report["observable_total"] == 2
     assert report["not_observable_total"] == 2
@@ -293,7 +293,7 @@ def test_render_census_is_flat_text_with_the_headline_and_no_zero_claim_on_not_o
     repo_root, session_dir = _repo_and_sessions(tmp_path)
     report = oum.process_census(
         repo_root=repo_root, sessions_root=session_dir.parent / "nonexistent",
-        processes=_PROCS, since_days=30, now=datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc))
+        processes=_PROCS, since_days=30, now=datetime(2026, 9, 16, 12, 0, tzinfo=UTC))
     text = oum.render_census(report)
     assert "\t" not in text
     assert ("states over 30 days, of 2 observable: CALLED 0 / REACHABLE-BUT-UNOBSERVED 0 / "
@@ -347,7 +347,7 @@ def test_python_dash_m_dotted_module_invocation_counts_as_a_call(tmp_path):
     ])
     report = oum.process_census(
         repo_root=repo_root, sessions_root=session_dir.parent, processes=procs,
-        now=datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc))
+        now=datetime(2026, 9, 16, 12, 0, tzinfo=UTC))
     assert report["counts"]["scripts/codemap/cli.py"] == 1
     assert report["state"]["scripts/codemap/cli.py"] == oum.CALLED
 
@@ -364,7 +364,7 @@ def test_a_path_passed_as_an_argument_to_a_different_tool_does_not_count(tmp_pat
     ])
     report = oum.process_census(
         repo_root=repo_root, sessions_root=session_dir.parent, processes=procs,
-        now=datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc))
+        now=datetime(2026, 9, 16, 12, 0, tzinfo=UTC))
     assert report["counts"]["scripts/graph_queries.py"] == 0
     assert report["state"]["scripts/graph_queries.py"] == oum.UNREACHABLE
 
@@ -376,7 +376,7 @@ def test_not_observable_processes_never_appear_in_counts_json(tmp_path):
     repo_root, session_dir = _repo_and_sessions(tmp_path)
     report = oum.process_census(
         repo_root=repo_root, sessions_root=session_dir.parent / "nonexistent",
-        processes=_PROCS, now=datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc))
+        processes=_PROCS, now=datetime(2026, 9, 16, 12, 0, tzinfo=UTC))
     assert ".claude/commands/preflight.md" not in report["counts"]
     assert ".claude/skills/verify/SKILL.md" not in report["counts"]
 
@@ -444,7 +444,7 @@ def wired_repo(tmp_path_factory):
 def _census_of(root, tmp_path):
     return oum.process_census(
         repo_root=root, sessions_root=tmp_path / "no-transcripts",
-        now=datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc))
+        now=datetime(2026, 9, 19, 12, 0, tzinfo=UTC))
 
 
 def test_organ_reachable_only_from_a_git_hook_is_reachable_not_unreachable(wired_repo, tmp_path):
@@ -503,7 +503,7 @@ def test_reachable_can_be_injected_without_a_store(tmp_path):
     report = oum.process_census(
         repo_root=tmp_path, sessions_root=tmp_path / "nope", processes=_PROCS,
         reachable=frozenset({"scripts/graph_queries.py"}),
-        now=datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc))
+        now=datetime(2026, 9, 19, 12, 0, tzinfo=UTC))
     assert report["state"]["scripts/graph_queries.py"] == oum.REACHABLE_UNOBSERVED
     assert report["state"]["scripts/impacted_tests.py"] == oum.UNREACHABLE
 
@@ -539,7 +539,7 @@ def test_an_observed_call_is_called_even_when_the_process_is_also_reachable(tmp_
     report = oum.process_census(
         repo_root=repo_root, sessions_root=session_dir.parent, processes=_PROCS,
         reachable=frozenset({"scripts/graph_queries.py"}),
-        now=datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc))
+        now=datetime(2026, 9, 16, 12, 0, tzinfo=UTC))
     assert report["state"]["scripts/graph_queries.py"] == oum.CALLED
     assert report["called"] == ["scripts/graph_queries.py"]
     assert "scripts/graph_queries.py" not in report["reachable_unobserved"]
@@ -572,7 +572,7 @@ def test_census_never_writes_a_store_it_only_reads(tmp_path):
     (root / "scripts").mkdir(parents=True)
     (root / "scripts" / "a.py").write_text("print(1)\n", encoding="utf-8")
     oum.process_census(repo_root=root, sessions_root=tmp_path / "none",
-                       now=datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc))
+                       now=datetime(2026, 9, 19, 12, 0, tzinfo=UTC))
     assert not gs.store_path(root).exists()
 
 
@@ -586,12 +586,12 @@ def test_census_says_when_the_graph_it_read_is_stale(tmp_path):
     (root / "scripts" / "a.py").write_text("print(1)\n", encoding="utf-8")
     gs.rebuild(root)
     fresh = oum.process_census(repo_root=root, sessions_root=tmp_path / "none",
-                               now=datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc))
+                               now=datetime(2026, 9, 19, 12, 0, tzinfo=UTC))
     assert fresh["graph_stale"] is False
     later = os.stat(gs.store_path(root)).st_mtime + 10
     os.utime(root / "scripts" / "a.py", (later, later))
     stale = oum.process_census(repo_root=root, sessions_root=tmp_path / "none",
-                               now=datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc))
+                               now=datetime(2026, 9, 19, 12, 0, tzinfo=UTC))
     assert stale["graph_stale"] is True
     assert "STALE" in oum.render_census(stale)
 
@@ -613,7 +613,7 @@ def test_a_wiring_surface_edit_after_the_build_makes_the_graph_stale(tmp_path, s
     target.write_text("name: x" + chr(92) + "n", encoding="utf-8")
     gs.rebuild(root)
     kwargs = dict(repo_root=root, sessions_root=tmp_path / "none",
-                  now=datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc))
+                  now=datetime(2026, 9, 19, 12, 0, tzinfo=UTC))
     assert oum.process_census(**kwargs)["graph_stale"] is False
     later = os.stat(gs.store_path(root)).st_mtime + 10
     os.utime(target, (later, later))
@@ -632,7 +632,7 @@ def test_a_deleted_wiring_surface_makes_the_graph_stale(tmp_path):
     workflow.write_text("name: x" + chr(92) + "n", encoding="utf-8")
     gs.rebuild(root)
     kwargs = dict(repo_root=root, sessions_root=tmp_path / "none",
-                  now=datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc))
+                  now=datetime(2026, 9, 19, 12, 0, tzinfo=UTC))
     assert oum.process_census(**kwargs)["graph_stale"] is False
     workflow.unlink()
     assert oum.process_census(**kwargs)["graph_stale"] is True
@@ -649,7 +649,7 @@ def test_an_unreadable_store_degrades_to_stale_not_a_crash(tmp_path):
     db.write_bytes(b"this is not a sqlite database" * 50)
     report = oum.process_census(
         repo_root=root, sessions_root=tmp_path / "none", processes={"scripts/a.py": "script"},
-        now=datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc))
+        now=datetime(2026, 9, 19, 12, 0, tzinfo=UTC))
     assert report["graph_stale"] is True
     assert report["wiring_reachable"] == []
 
@@ -665,7 +665,7 @@ def test_a_deleted_or_added_process_file_makes_the_graph_stale(tmp_path):
         (root / "scripts" / name).write_text("print(1)" + chr(92) + "n", encoding="utf-8")
     gs.rebuild(root)
     kwargs = dict(repo_root=root, sessions_root=tmp_path / "none",
-                  now=datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc))
+                  now=datetime(2026, 9, 19, 12, 0, tzinfo=UTC))
     assert oum.process_census(**kwargs)["graph_stale"] is False
     (root / "scripts" / "b.py").unlink()
     assert oum.process_census(**kwargs)["graph_stale"] is True

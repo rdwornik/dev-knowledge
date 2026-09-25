@@ -31,12 +31,43 @@ target-version = "py311"        # RULING-PY baseline; "always newest Python" lif
 line-length = 120               # agreed fleet line-length (ARC 4 D1)
 
 # === REPO-PERSONAL (this repo's lint posture — may differ; declared) ==========
-# Each repo keeps its own select / ignore / per-file-ignores / format. Examples:
-#   hub:        extend-select = []                         (default rule set)
+# Each repo keeps its own select / ignore / per-file-ignores / format. The hub's own
+# posture (below) is a live worked example, hand-merged into consumers under RULING-W —
+# not a value every consumer inherits verbatim.
 #   corp:       select = ["E", "F", "I"]; ignore = ["E501"]
 #   ai-council: select = ["E", "F", "I", "W"]; [tool.ruff.format] quote-style = "double"
 [tool.ruff.lint]
 # select = [...]   # repo-personal
+#
+# hub posture, lane-python-standard-1 (2026-09-25): first code-standard tool, traced to
+# to-browser/SESSION-lane-research-python-standard.md (C3). Candidate universe was C3's
+# proposed families (B,SIM,C90,PL,RET,PERF,FURB,PTH,N,UP,ARG,ERA,TRY,FBT,RUF), measured
+# tree-wide (6797 violations @ da11291b), auto-fixed with `--fix` (never `--unsafe-fixes`)
+# only under scripts/+tests/ files no other WAVE5B-N2 lane owns, then re-measured. These
+# twelve individual codes are the only ones that reached ZERO violations tree-wide after
+# that pass; every other candidate code is measured-not-enforced (see
+# to-browser/SESSION-lane-python-standard-1.md for the full before/after table and
+# ROWS-OWED). Kept identical to pyproject.toml's `[tool.ruff.lint]` by hand (RULING-W);
+# test_fleet_parity.py does not currently gate this specific list's identity.
+# NOTE: RUF100 (unused-noqa) must never be included in a NARROWED `--select ... --fix`
+# pass — its "unused noqa" check is evaluated against whatever rules are active in that
+# specific invocation, so a select that omits e.g. E402 makes RUF100 misjudge every
+# `# noqa: E402` as dead and delete it. Always exclude RUF100 from a scoped fix pass, or
+# use the real full config.
+extend-select = [
+    "FURB122",  # for-loop-writes
+    "PLE2515",  # invalid-character-zero-width-space
+    "PLR1711",  # useless-return
+    "RET501",   # unnecessary-return-none
+    "RUF010",   # explicit-f-string-type-conversion
+    "RUF019",   # unnecessary-key-check
+    "SIM300",   # yoda-conditions
+    "SIM905",   # split-static-string
+    "SIM910",   # dict-get-with-none-default
+    "UP012",    # unnecessary-encode-utf8
+    "UP033",    # lru-cache-with-maxsize-none
+    "UP034",    # extraneous-parentheses
+]
 
 [tool.pytest.ini_options]
 # === UNIVERSAL (fleet methodology) ===========================================

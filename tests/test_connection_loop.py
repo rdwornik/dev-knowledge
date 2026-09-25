@@ -42,7 +42,6 @@ import sys
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Optional
 
 import pytest
 import yaml
@@ -104,7 +103,7 @@ class OrganReceipt:
     organ: str
     receipt: str
     status: str
-    exit_code: Optional[int]
+    exit_code: int | None
     mtime_ns: int
 
     @property
@@ -135,7 +134,7 @@ class Step:
     unreached: list[str] = field(default_factory=list)
 
     @property
-    def stop(self) -> Optional[Stop]:
+    def stop(self) -> Stop | None:
         for organ in self.organs:
             if not organ.fired:
                 return Stop(self.moment, organ.organ, organ.receipt,
@@ -157,14 +156,14 @@ class Walk:
     human_writes: list[dict] = field(default_factory=list)
     standing: list[str] = field(default_factory=list)
     digest: str = ""
-    live_transport_touched: Optional[bool] = None
+    live_transport_touched: bool | None = None
     integrator: dict = field(default_factory=dict)
 
     def to_json(self) -> str:
         return json.dumps(asdict(self), indent=2)
 
     @classmethod
-    def from_json(cls, text: str) -> "Walk":
+    def from_json(cls, text: str) -> Walk:
         raw = json.loads(text)
         raw["steps"] = [Step(s["moment"], s["exit_code"], [OrganReceipt(**o) for o in s["organs"]], s["unreached"])
                         for s in raw["steps"]]
@@ -181,7 +180,7 @@ def _declared_moment(name: str) -> dict:
     return next(m for m in _declared()["moments"] if m["name"] == name)
 
 
-def _read_receipt(path: Path) -> Optional[dict]:
+def _read_receipt(path: Path) -> dict | None:
     try:
         body = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -245,7 +244,7 @@ class World:
         base.update(extra)
         return base
 
-    def run(self, argv, cwd: Optional[Path] = None, **extra: str) -> subprocess.CompletedProcess:
+    def run(self, argv, cwd: Path | None = None, **extra: str) -> subprocess.CompletedProcess:
         started = time.monotonic()
         done = subprocess.run([str(a) for a in argv], cwd=str(cwd or self.repo), env=self.env(**extra), text=True,
                               capture_output=True, encoding="utf-8", errors="replace", timeout=STOP_TIMEOUT_S)
@@ -253,16 +252,16 @@ class World:
                     done.returncode, time.monotonic() - started)
         return done
 
-    def git(self, *args: str, cwd: Optional[Path] = None) -> str:
+    def git(self, *args: str, cwd: Path | None = None) -> str:
         done = self.run(["git", *args], cwd=cwd)
         assert done.returncode == 0, f"git {' '.join(args)} failed in {cwd or self.repo}: {done.stderr}"
         return done.stdout.strip()
 
-    def uv(self, *args: str, cwd: Optional[Path] = None, **extra: str) -> subprocess.CompletedProcess:
+    def uv(self, *args: str, cwd: Path | None = None, **extra: str) -> subprocess.CompletedProcess:
         return self.run(["uv", "run", "--locked", *args], cwd=cwd, **extra)
 
     # construction ---------------------------------------------------------------------------------------------------
-    def build(self) -> "World":
+    def build(self) -> World:
         self._copy_tree()
         self.git("init", "-q", "-b", "main")
         # `core.longpaths` (Done-contract 4): the toy repo's own longest tracked path plus this
@@ -365,7 +364,7 @@ class World:
         return go
 
     # moments --------------------------------------------------------------------------------------------------------
-    def moment(self, name: str, cwd: Optional[Path] = None, **extra: str) -> Step:
+    def moment(self, name: str, cwd: Path | None = None, **extra: str) -> Step:
         cwd = cwd or self.repo
         done = self.uv("doit", "-f", "scripts/dodo.py", f"moment:{name}", cwd=cwd, **extra)
         return self._step(name, done.returncode, cwd / "logs" / "receipts",
@@ -429,7 +428,7 @@ class World:
     def session_file(self, slug: str) -> Path:
         return self.transport / "to-browser" / f"SESSION-{slug}.md"
 
-    def write_session(self, slug: str, sha: Optional[str]) -> str:
+    def write_session(self, slug: str, sha: str | None) -> str:
         """The lane's session file. With `sha` it closes with the HANDBACK line a conforming lane writes."""
         line = f"HANDBACK worktree-{slug} @ {sha} code review=codex HIGH:0 MED:0 LOW:0" if sha else ""
         self.session_file(slug).write_text(f"# SESSION {slug}\n\nthe toy lane's report\n\n{line}\n", encoding="utf-8")
@@ -455,7 +454,7 @@ class World:
             time.sleep(1)
 
     # the integrator's chain -----------------------------------------------------------------------------------------
-    def integrate_merge(self, slug: str, contract: Path, handback: str) -> tuple[Optional[str], dict]:
+    def integrate_merge(self, slug: str, contract: Path, handback: str) -> tuple[str | None, dict]:
         """open -> handback verdict -> `merge --no-ff` (the HARNESS_* for `moment:merge` are `merge_env`).
 
         A refused handback verdict is a REFUSAL, as lane-integrate.md has it: nothing is merged and `(None, info)` comes
@@ -481,7 +480,7 @@ def _fresh_world(tmp_path_factory: pytest.TempPathFactory, name: str, *, full: b
     return World(tmp_path_factory.mktemp(name), full=full).build()
 
 
-def _transport_fingerprint() -> Optional[dict[str, tuple[int, int]]]:
+def _transport_fingerprint() -> dict[str, tuple[int, int]] | None:
     """name -> (size, mtime_ns) of toy-looking files on the operator's REAL transport (None when unresolvable)."""
     try:
         import dispatch as d  # noqa: PLC0415
@@ -549,7 +548,7 @@ _FIXTURE_ARTIFACT_MARKERS: dict[str, tuple[str, ...]] = {
 }
 
 
-def _fixture_artifacts_in(verdict: Optional[dict]) -> tuple[str, ...]:
+def _fixture_artifacts_in(verdict: dict | None) -> tuple[str, ...]:
     """`f"{gate}:{check_name}"` for each known toy-copy-only cause found in a RED gate's
     STRUCTURED findings (Done-contract 3, FR4) -- `gates.py`'s own `findings` list on the verdict
     it already wrote (`MOMENT-MERGE-GATES-VERDICT.json`), one `{check_name, status, evidence}`
@@ -571,7 +570,7 @@ def _fixture_artifacts_in(verdict: Optional[dict]) -> tuple[str, ...]:
     return tuple(found)
 
 
-def _assert_transport_untouched(live_before: Optional[dict]) -> None:
+def _assert_transport_untouched(live_before: dict | None) -> None:
     """Done-contract 5: transport isolation proven before AND after every heavy run, not just
     the walk. `live_before` is `None`-safe (an unresolvable live transport is simply not
     observable, per `_transport_fingerprint`'s own contract) so this degrades the same way."""
@@ -622,7 +621,7 @@ def _walk(world: World, walk: Walk, mp: pytest.MonkeyPatch) -> None:
     world.write_task()
     _record(walk, world.spine())
     contract_text = (world.repo / "logs" / "receipts" / "SPINE-12-CONTRACT-OUTPUT.txt").read_text(encoding="utf-8")
-    slug = re.search(r"^# LANE (\S+)", contract_text, re.M).group(1)
+    slug = re.search(r"^# LANE (\S+)", contract_text, re.MULTILINE).group(1)
     walk.slug = slug
     contract = world.transport / f"LANE-{slug.removeprefix('lane-')}.md"
     contract.write_text(contract_text.lstrip(), encoding="utf-8")   # the spine's stage-12 contract, delivered to the transport

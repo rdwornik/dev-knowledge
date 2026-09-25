@@ -103,7 +103,6 @@ import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 import click
 
@@ -391,7 +390,7 @@ class _EitherForm:
     def __init__(self, *patterns: re.Pattern[str]) -> None:
         self._patterns = patterns
 
-    def search(self, text: str) -> "Optional[re.Match[str]]":
+    def search(self, text: str) -> re.Match[str] | None:
         for pattern in self._patterns:
             match = pattern.search(text)
             if match is not None:
@@ -550,7 +549,7 @@ def validate_mode(mode: str) -> str:
     return raw
 
 
-def validate_kind(kind: "Optional[str]") -> str:
+def validate_kind(kind: str | None) -> str:
     """Return the lane kind, or raise `LaneContractError`. ABSENCE IS A REFUSAL (`[#885]`).
 
     The one validator here whose empty case is not a default. `validate_model` and friends
@@ -572,7 +571,7 @@ def validate_kind(kind: "Optional[str]") -> str:
     return raw
 
 
-def background_inert_models() -> "dict[str, str]":
+def background_inert_models() -> dict[str, str]:
     """`{tier: why it is inert unattended}` — READ from the dispatch surface, never restated.
 
     The table is a recorded MEASUREMENT about the CLI and it lives where it was measured
@@ -592,7 +591,7 @@ def background_inert_models() -> "dict[str, str]":
     return dict(_ds.BACKGROUND_INERT_MODELS)
 
 
-def reviewer_cli() -> "Optional[str]":
+def reviewer_cli() -> str | None:
     """The CLI the `reviewer` role routes to, READ from `ecosystem/routing-table.yaml`.
 
     THE AUTHORITY IS NOT RESTATED. Register ruling Z-G3 A2 puts role -> CLI in that file; this
@@ -722,11 +721,11 @@ def contract_filename(slug: str) -> str:
     `LANE-539-ch8-codification.md`) rather than invented — and it stays a pure derivation,
     which is what lets `parse_contract` check the pairing rather than trust it.
     """
-    stem = slug[len("lane-"):] if slug.startswith("lane-") else slug
+    stem = slug.removeprefix("lane-")
     return f"LANE-{stem}.md"
 
 
-def branch_name(slug: str, shape: str = DEFAULT_SHAPE) -> Optional[str]:
+def branch_name(slug: str, shape: str = DEFAULT_SHAPE) -> str | None:
     """The branch a lane of this `shape` runs on, or `None` when it has no lane branch.
 
     * `local` — `worktree-<slug>`, what `claude --worktree <slug>` produces. Prefixed exactly
@@ -817,7 +816,7 @@ def dispatch_command(slug: str, contract_file: str, effort: str, shape: str,
             f'{READER_PROMPTS_DIR_TOKEN}\\{contract_file}"')
 
 
-def find_command_line(text: str) -> Optional[str]:
+def find_command_line(text: str) -> str | None:
     """The dispatch command line a contract carries, or `None` when it carries none.
 
     Tries each shape's pattern and returns the first hit's matched text. Order does not
@@ -840,12 +839,12 @@ class LaneSpec:
     slug: str
     purpose: str
     repo: str = ".dev-knowledge"
-    task_id: Optional[str] = None
+    task_id: str | None = None
     model: str = DEFAULT_MODEL
     #: `[#885]` clause 2. NO DEFAULT, and `validated()` refuses `None` — see `validate_kind`.
     #: A keyword field rather than a positional one so the dataclass's existing shape survives;
     #: what makes it mandatory is the validator, not the signature.
-    kind: Optional[str] = None
+    kind: str | None = None
     mode: str = DEFAULT_MODE
     effort: str = "high"
     shape: str = DEFAULT_SHAPE
@@ -868,7 +867,7 @@ class LaneSpec:
         """
         return self.shape == "cloud"
 
-    def validated(self) -> "LaneSpec":
+    def validated(self) -> LaneSpec:
         """Return a copy with every enum-bearing field checked, AND its routing resolved.
 
         THE ROUTING REFUSAL FIRES HERE because every path that produces a contract goes through
@@ -986,7 +985,7 @@ def render_contract(spec: LaneSpec) -> str:
             f"and the dispatch binds Revision `main`. `Dispatch-CloudV2` carries no `-Effort`\n"
             f"parameter, so this lane's tier is on the record in the routing table above\n"
             f"(`{spec.model}` / `{spec.effort}`) rather than on the command line. Permission\n"
-            f"mode is `{PERMISSION_MODE.split()[-1]}`, as it is for an on-machine lane.\n"
+            f"mode is `{PERMISSION_MODE.rsplit(maxsplit=1)[-1]}`, as it is for an on-machine lane.\n"
             f"A cloud session clones from `origin`, so every input this contract names is\n"
             f"pushed before dispatch: it cannot see an unpushed branch or a local file.\n")
     elif spec.shape == "codespace":
@@ -996,7 +995,7 @@ def render_contract(spec: LaneSpec) -> str:
             f"payload, because a PowerShell string reaching a bash login shell through gh's\n"
             f"transport is parsed twice. Tier is on the record in the routing table above\n"
             f"(`{spec.model}` / `{spec.effort}`) — `Dispatch-Codespace` carries no `-Effort`.\n"
-            f"Permission mode is `{PERMISSION_MODE.split()[-1]}`, as on every substrate.\n"
+            f"Permission mode is `{PERMISSION_MODE.rsplit(maxsplit=1)[-1]}`, as on every substrate.\n"
             f"**The container is CREATED, never rebuilt** (ruling 2026-08-31): a rebuilt\n"
             f"container has not applied its own `devcontainer.json` — no features, no\n"
             f"`postCreateCommand`, a stale clone — while a fresh create from the same HEAD\n"
@@ -1142,16 +1141,16 @@ def render_contract(spec: LaneSpec) -> str:
 class ParsedContract:
     """What `parse_contract` recovers from an emitted contract. `problems` empty == valid."""
     sections: tuple[str, ...] = ()
-    slug: Optional[str] = None
-    contract_file: Optional[str] = None
-    branch: Optional[str] = None
-    shape: Optional[str] = None
-    command: Optional[str] = None
-    effort: Optional[str] = None
-    model: Optional[str] = None
-    mode: Optional[str] = None
+    slug: str | None = None
+    contract_file: str | None = None
+    branch: str | None = None
+    shape: str | None = None
+    command: str | None = None
+    effort: str | None = None
+    model: str | None = None
+    mode: str | None = None
     #: `[#885]` — the declared lane kind, or None when the contract declares none (reported).
-    kind: Optional[str] = None
+    kind: str | None = None
     receipt_fields: tuple[str, ...] = ()
     problems: tuple[str, ...] = field(default=())
 
@@ -1160,7 +1159,7 @@ class ParsedContract:
         return not self.problems
 
 
-def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedContract:
+def parse_contract(text: str, *, expect_shape: str | None = None) -> ParsedContract:
     """Parse a lane contract and report every problem found, rather than the first.
 
     `expect_shape=None` (the default) takes the shape from the contract's own `**Shape:**`
@@ -1568,7 +1567,7 @@ def organ_index_lines(repo_root: Path, organs: tuple[str, ...]) -> tuple[str, ..
     return tuple(lines)
 
 
-def backlog_hit(repo_root: Path, subject: str) -> Optional[tuple[str, str]]:
+def backlog_hit(repo_root: Path, subject: str) -> tuple[str, str] | None:
     """(task id, status) of the first `tasks/*.md` whose frontmatter `title:` mentions
     `subject` -- "does a row exist for the subject", read from the backlog index rather than
     guessed. `None` when no task's title matches; that absence is itself the deterministic
@@ -1626,7 +1625,7 @@ def graph_dependents_lines(repo_root: Path, organs: tuple[str, ...]) -> tuple[st
         store.close()
 
 
-def substrate_live(repo_root: Path, shape: str) -> Optional[bool]:
+def substrate_live(repo_root: Path, shape: str) -> bool | None:
     """Whether `shape` is LIVE per `ecosystem/substrate-registry.yaml` -- the substrate router's
     own registry, read rather than re-declared. `None` when the registry cannot be read."""
     try:
@@ -1662,8 +1661,8 @@ def distilled_model(lane_kind: str) -> str:
 
 
 def render_distillation(row: BuildListRow, delta_kind: str, spec: LaneSpec,
-                        organ_lines: tuple[str, ...], backlog: Optional[tuple[str, str]],
-                        dependent_lines: tuple[str, ...], live: Optional[bool]) -> str:
+                        organ_lines: tuple[str, ...], backlog: tuple[str, str] | None,
+                        dependent_lines: tuple[str, ...], live: bool | None) -> str:
     """The distiller's OWN section, appended after `render_contract`'s existing output. Every
     field above the `## Judgement` heading is read from a cited organ; nothing here is authored
     prose about the subject. `scope` and `risk` are the two fields BUILD-MODE's exit condition
@@ -1750,8 +1749,8 @@ def cli() -> None:
 @click.option("--stdout", "to_stdout", is_flag=True, default=False,
               help="render to stdout instead of writing a file")
 @click.option("--force", is_flag=True, default=False, help="overwrite an existing contract")
-def cmd_emit(slug: str, purpose: str, repo: str, task_id: Optional[str], model: str, kind: str,
-             mode: str, effort: str, shape: str, loose_slug: bool, out_dir: Optional[Path],
+def cmd_emit(slug: str, purpose: str, repo: str, task_id: str | None, model: str, kind: str,
+             mode: str, effort: str, shape: str, loose_slug: bool, out_dir: Path | None,
              to_stdout: bool, force: bool) -> None:
     """Emit one frozen lane contract."""
     # `[#716]`: the step-0 region is a function of the LIVE base-ref property, read once here so
@@ -1807,7 +1806,7 @@ def cmd_emit(slug: str, purpose: str, repo: str, task_id: Optional[str], model: 
                 type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.option("--expect-shape", "expect_shape", type=click.Choice(SHAPE_ENUM), default=None,
               help="assert the lane's substrate; omitted, it is read from the contract")
-def cmd_check(paths: tuple[Path, ...], expect_shape: Optional[str]) -> None:
+def cmd_check(paths: tuple[Path, ...], expect_shape: str | None) -> None:
     """Check existing contract(s): every mandatory field present and internally consistent,
     AND ([#630]) that an open batch's manifest and these contracts declare the SAME set of
     lane slugs.
@@ -1960,7 +1959,7 @@ def cmd_enums() -> None:
 @click.option("--reclassify", is_flag=True, default=False,
               help="required when --kind disagrees with the row's recorded delta — an explicit "
                    "opt-in, never a silent override (codex b2-lane3-distiller, HIGH)")
-def cmd_distill(delta_kind: str, subject: str, shape: str, repo: str, out_dir: Optional[Path],
+def cmd_distill(delta_kind: str, subject: str, shape: str, repo: str, out_dir: Path | None,
                 to_stdout: bool, force: bool, reclassify: bool) -> None:
     """Compose a lane contract from (kind, subject) — BUILD-MODE.md exit condition 1.
 

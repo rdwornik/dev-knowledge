@@ -175,13 +175,13 @@ class Violation:
 
 def _tail(text: str, heading_re: str) -> str | None:
     """Text from the first dated entry heading onward, or None if there is none."""
-    m = re.compile(heading_re, re.M).search(text)
+    m = re.compile(heading_re, re.MULTILINE).search(text)
     return text[m.start():] if m else None
 
 
 def _entry_blocks(tail: str, heading_re: str) -> list[tuple[int, str]]:
     """[(offset, block)] for each entry in `tail`, in file order (newest first)."""
-    starts = [m.start() for m in re.compile(heading_re, re.M).finditer(tail)]
+    starts = [m.start() for m in re.compile(heading_re, re.MULTILINE).finditer(tail)]
     bounds = starts + [len(tail)]
     return [(starts[i], tail[starts[i]:bounds[i + 1]]) for i in range(len(starts))]
 

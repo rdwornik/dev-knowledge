@@ -81,7 +81,7 @@ import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 import click
@@ -2016,7 +2016,7 @@ def emit_events(findings: list[ParityFinding], targets: list[RepoTarget],
     else -- an emitter that could break the checker would reintroduce the failure
     class this layer exists to catch (FR-8)."""
     try:
-        ts_utc = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        ts_utc = datetime.now(UTC).isoformat(timespec="seconds")
         head_by_repo = {t.repo_id: facts_by_repo.get(t.repo_id, {}).get("head", "unknown")
                         for t in targets}
         dirty_by_repo = {t.repo_id: ("dirty" if facts_by_repo.get(t.repo_id, {}).get("dirty")
@@ -2064,8 +2064,7 @@ def emit_events(findings: list[ParityFinding], targets: list[RepoTarget],
         if path.exists() and path.stat().st_size > max_bytes:
             os.replace(path, Path(str(path) + ".1"))  # single backup; Windows-safe
         with open(path, "a", encoding="utf-8", newline="\n") as fh_:
-            for line in lines:
-                fh_.write(line + "\n")
+            fh_.writelines(line + "\n" for line in lines)
         return None
     except Exception as exc:  # noqa: BLE001 -- fail-open BY CONTRACT (FR-8)
         return f"events emission skipped (fail-open): {_ascii(repr(exc))}"
@@ -2098,7 +2097,7 @@ class WalkResult:
     baseline: dict
 
 
-def walk(run_date: str, *, hub_root: "Path | None" = None,
+def walk(run_date: str, *, hub_root: Path | None = None,
          manifest_path=DEFAULT_MANIFEST, baseline_path=DEFAULT_BASELINE,
          registry_path=DEFAULT_REGISTRY, ecosystem_dir=DEFAULT_ECOSYSTEM_DIR,
          only_repos: tuple = (), repo_roots: tuple = (),

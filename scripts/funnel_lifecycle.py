@@ -514,7 +514,7 @@ def build_ref_universe(repo_root: Path, row_ids: set, intake_docs: list[IntakeDo
         if not d.is_dir():
             continue
         for child in d.iterdir():
-            name = child.name[:-3] if child.name.endswith(".md") else child.name
+            name = child.name.removesuffix(".md")
             if _DATED_NAME_RE.match(name):
                 stems.add(name)
     return RefUniverse(frozenset(row_ids), frozenset(adr_numbers), frozenset(intake_ids),

@@ -8,13 +8,13 @@ the same firing-tests-not-presence discipline `test_telemetry_emit.py` states.
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 from pathlib import Path
 
 import hook_expiry_verdict as hev
 import telemetry_emit as te
 
-_NOW = datetime(2026, 9, 25, 0, 0, 0, tzinfo=timezone.utc)
+_NOW = datetime(2026, 9, 25, 0, 0, 0, tzinfo=UTC)
 
 
 def _emit(db: Path, hook_id: str, outcome: str, ts: datetime) -> None:

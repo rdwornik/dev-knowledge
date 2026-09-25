@@ -320,12 +320,12 @@ def test_parallel_worker_width_is_sized_to_the_checks_that_actually_run(monkeypa
     calls = []
     checks = [_tiered_sentinel(f"s{i}", aud.TIER_SHIP, calls) for i in range(5)]
     checks.append(_tiered_sentinel("c", aud.TIER_COMMIT, calls))
-    aud.run_checks(Path("."), checks=checks, parallel=True, tier=aud.TIER_COMMIT)
+    aud.run_checks(Path(), checks=checks, parallel=True, tier=aud.TIER_COMMIT)
     assert seen["width"] == 1          # one runnable check, not six
     assert calls == ["c"]
 
     calls.clear()
-    aud.run_checks(Path("."), checks=checks[:5], parallel=True, tier=aud.TIER_COMMIT)
+    aud.run_checks(Path(), checks=checks[:5], parallel=True, tier=aud.TIER_COMMIT)
     assert seen["width"] == 1          # all deferred: floored at 1, never 0
     assert calls == []
 
@@ -489,7 +489,6 @@ def test_nested_cache_contexts_restore_exactly_once():
 def test_the_cache_depth_returns_to_zero_even_when_the_body_raises():
     """A leaked depth would make every LATER context think it was nested and quietly never
     install -- the cache would go inert again, which is the exact failure this lane fixed."""
-    with pytest.raises(ValueError):
-        with aud._cached_reads():
-            raise ValueError("boom")
+    with pytest.raises(ValueError), aud._cached_reads():
+        raise ValueError("boom")
     assert aud._CACHED_READS_DEPTH == 0

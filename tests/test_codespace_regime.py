@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import json
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -24,7 +24,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from scripts import codespace_regime as cs  # noqa: E402
 
-_T0 = datetime(2026, 9, 15, 12, 20, 40, tzinfo=timezone.utc)
+_T0 = datetime(2026, 9, 15, 12, 20, 40, tzinfo=UTC)
 
 
 # ------------------------------------------------------------------ the metered quantity

@@ -51,9 +51,9 @@ import json
 import logging
 import sys
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
-from typing import Mapping, Optional
+from collections.abc import Mapping
 
 import click
 
@@ -130,8 +130,8 @@ THRESHOLD_PROVENANCE: dict[str, str] = {
 
 # ======================================================================== the metered quantity
 
-def uptime_minutes(created: Optional[datetime], deleted: Optional[datetime] = None,
-                   now: Optional[datetime] = None) -> float:
+def uptime_minutes(created: datetime | None, deleted: datetime | None = None,
+                   now: datetime | None = None) -> float:
     """Minutes of metered container life.
 
     AN OPEN CONTAINER IS MEASURED AGAINST NOW, never reported as zero. A container still
@@ -141,7 +141,7 @@ def uptime_minutes(created: Optional[datetime], deleted: Optional[datetime] = No
     """
     if created is None:
         raise ValueError("uptime needs a creation timestamp; there is no uptime without one")
-    end = deleted if deleted is not None else (now or datetime.now(timezone.utc))
+    end = deleted if deleted is not None else (now or datetime.now(UTC))
     seconds = (end - created).total_seconds()
     if seconds < 0:
         raise ValueError(
@@ -158,10 +158,10 @@ class ReceiptIncomplete(RuntimeError):
 
 
 def write_receipt(slug: str, batch: str, codespace: str,
-                  created: Optional[datetime], deleted: Optional[datetime],
+                  created: datetime | None, deleted: datetime | None,
                   machine: str, prebuild: bool, tokens: Mapping[str, int],
-                  ledger_path: Optional[Path] = None,
-                  now: Optional[datetime] = None) -> dict:
+                  ledger_path: Path | None = None,
+                  now: datetime | None = None) -> dict:
     """Append one cloud-lane receipt, carrying uptime MINUTES alongside tokens.
 
     THE REFUSAL IS THE POINT. The frozen contract's clause is that a Codespace lane's receipt
@@ -190,7 +190,7 @@ def write_receipt(slug: str, batch: str, codespace: str,
         "open": deleted is None,
         "uptime_minutes": round(minutes, 2),
         "tokens": dict(tokens),
-        "recorded": (now or datetime.now(timezone.utc)).isoformat(timespec="seconds"),
+        "recorded": (now or datetime.now(UTC)).isoformat(timespec="seconds"),
     }
     path = Path(ledger_path) if ledger_path else (_REPO_ROOT / RECEIPT_LEDGER_RELPATH)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -199,7 +199,7 @@ def write_receipt(slug: str, batch: str, codespace: str,
     return row
 
 
-def open_receipts(ledger_path: Optional[Path] = None) -> list[dict]:
+def open_receipts(ledger_path: Path | None = None) -> list[dict]:
     """Rows whose container was never recorded as deleted -- our own record of what is live."""
     path = Path(ledger_path) if ledger_path else (_REPO_ROOT / RECEIPT_LEDGER_RELPATH)
     if not path.is_file():
@@ -307,7 +307,7 @@ def prebuild_ruling(creations_per_week: float) -> PrebuildRuling:
 
 # ============================================================================================ CLI
 
-def _parse_ts(value: Optional[str]) -> Optional[datetime]:
+def _parse_ts(value: str | None) -> datetime | None:
     if not value:
         return None
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
@@ -333,7 +333,7 @@ def cmd_session_start() -> None:
         if not rows:
             click.echo("[codespace] no open container in the receipt ledger")
             return
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         for row in rows:
             created = _parse_ts(row.get("created"))
             age_days = ((now - created).total_seconds() / 86400.0) if created else 0.0
@@ -368,7 +368,7 @@ def cmd_prebuild(creations_per_week: float) -> None:
 @click.option("--machine", required=True)
 @click.option("--prebuild/--no-prebuild", default=False)
 def cmd_receipt(slug: str, batch: str, codespace: str, created: str,
-                deleted: Optional[str], machine: str, prebuild: bool) -> None:
+                deleted: str | None, machine: str, prebuild: bool) -> None:
     """Append one cloud-lane receipt. Exit 1 when it would price the wrong resource."""
     try:
         row = write_receipt(slug=slug, batch=batch, codespace=codespace,

@@ -8,4 +8,4 @@ __version__ = "0.1.0"
 from .generator import generate_codemap
 from .check import check_codemap
 
-__all__ = ["generate_codemap", "check_codemap", "__version__"]
+__all__ = ["__version__", "check_codemap", "generate_codemap"]

@@ -155,7 +155,7 @@ def remove_task(backlog_text: str, task_id: str) -> tuple:
     newline. Refuses (removed=False, text unchanged) if the line is absent or not
     unique — ambiguity must never silently delete the wrong thing.
     """
-    pat = re.compile(rf"^- \[#{re.escape(task_id)}\] ", re.M)
+    pat = re.compile(rf"^- \[#{re.escape(task_id)}\] ", re.MULTILINE)
     lines = backlog_text.splitlines(keepends=True)
     idx = [i for i, ln in enumerate(lines) if pat.match(ln)]
     if len(idx) != 1:

@@ -497,8 +497,7 @@ def _strip_wrappers(argv: list[str]) -> list[str]:
             i, seen = i + 1, True
             continue
         base = tok.lstrip("\\").rsplit("/", 1)[-1].rsplit("\\", 1)[-1].lower()
-        if base.endswith(".exe"):
-            base = base[:-4]
+        base = base.removesuffix(".exe")
         if base in _WRAPPERS:
             value_flags = _WRAPPERS[base]                # this wrapper's own option grammar
             i, seen = i + 1, True
@@ -520,8 +519,7 @@ def _patterns_of(argv: list[str]) -> list[str]:
     if not argv:
         return []
     head = argv[0].lstrip("\\").rsplit("/", 1)[-1].rsplit("\\", 1)[-1].lower()
-    if head.endswith(".exe"):
-        head = head[:-4]
+    head = head.removesuffix(".exe")
     if head not in SEARCH_HEADS:
         return []
     if head == "find":

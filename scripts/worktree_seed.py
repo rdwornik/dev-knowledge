@@ -376,11 +376,11 @@ class BaseRefVerdict:
     set to the default" are the same behaviour and different facts, and a fix has to change the
     first.
     """
-    setting: "str | None"
+    setting: str | None
     effective: str
     base_label: str
-    base_sha: "str | None"
-    main_sha: "str | None"
+    base_sha: str | None
+    main_sha: str | None
     holds: bool
     why: str
     #: True when the SHAs coincide RIGHT NOW under a configuration that does not bind them.
@@ -418,7 +418,7 @@ def settings_chain(repo: Path) -> tuple[Path, ...]:
     )
 
 
-def read_base_ref(repo: Path, chain: "tuple[Path, ...] | None" = None) -> "str | None":
+def read_base_ref(repo: Path, chain: tuple[Path, ...] | None = None) -> str | None:
     """The effective `worktree.baseRef`, or None when no file in the chain declares one.
 
     NESTED read (`{"worktree": {"baseRef": ...}}`), which is the shape the binary writes and
@@ -426,7 +426,7 @@ def read_base_ref(repo: Path, chain: "tuple[Path, ...] | None" = None) -> "str |
     `settings.local.json` legitimately does not exist on a fresh clone, and a hand-edited file
     with a trailing comma should narrow this answer, not wedge the caller.
     """
-    found: "str | None" = None
+    found: str | None = None
     for path in (settings_chain(repo) if chain is None else chain):
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
@@ -442,7 +442,7 @@ def read_base_ref(repo: Path, chain: "tuple[Path, ...] | None" = None) -> "str |
     return found
 
 
-def _rev(repo: Path, ref: str) -> "str | None":
+def _rev(repo: Path, ref: str) -> str | None:
     """`ref`'s SHA, or None when it does not resolve. Unresolvable is a REPORT, not a raise:
     a clone with no `origin` has a real answer to give about `fresh`."""
     try:
@@ -451,7 +451,7 @@ def _rev(repo: Path, ref: str) -> "str | None":
         return None
 
 
-def base_ref_verdict(repo: Path = Path("."), default_branch: str = "main") -> BaseRefVerdict:
+def base_ref_verdict(repo: Path = Path(), default_branch: str = "main") -> BaseRefVerdict:
     """Whether a lane dispatched now would branch from `default_branch` HEAD.
 
     The two resolutions are the two enum values, and neither is a guess:

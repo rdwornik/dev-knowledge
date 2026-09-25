@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import json
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 
 import pytest
 
@@ -37,7 +37,7 @@ import merge_receipt as mr
 
 # --- helpers ----------------------------------------------------------------
 
-_OPENED = datetime(2026, 9, 12, 0, 0, 0, tzinfo=timezone.utc)
+_OPENED = datetime(2026, 9, 12, 0, 0, 0, tzinfo=UTC)
 
 
 def _stamp(offset_seconds: float = 0.0) -> str:

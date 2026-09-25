@@ -51,9 +51,9 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
-from typing import Callable, Optional, Sequence
+from collections.abc import Callable, Sequence
 
 import click
 
@@ -97,7 +97,7 @@ class Gate:
     and_holds_no_full_suite` checks for)."""
     name: str
     argv: tuple[str, ...] = ()
-    runner: Optional[Callable[..., tuple[int, str]]] = None
+    runner: Callable[..., tuple[int, str]] | None = None
     gated: bool = False
 
 
@@ -111,7 +111,7 @@ def _run_argv(argv: Sequence[str], cwd: Path) -> tuple[int, str]:
 
 
 def _run_argv_gated(argv: Sequence[str], cwd: Path, *,
-                    workers_flag: Optional[str] = None) -> tuple[int, str]:
+                    workers_flag: str | None = None) -> tuple[int, str]:
     """`_run_argv`, but through the LANE-5A-3 heavy-run gate (D7): waits for a memory reserve
     and a machine-wide slot, computes `workers_flag`'s value from free memory when given, and
     writes a receipt. `HARNESS_MEMORY_GATE_DISABLE` (the done-contract's "old behaviour by a
@@ -191,7 +191,7 @@ def default_base(cwd: Path) -> str:
     return "main"
 
 
-def run_gates(gates: Sequence[Gate], *, lane: str, cwd: Path, base: Optional[str] = None,
+def run_gates(gates: Sequence[Gate], *, lane: str, cwd: Path, base: str | None = None,
               source: str = "declared") -> dict:
     """Run each gate once, in order; return the verdict. Nothing is swallowed and nothing stops early."""
     base = base or default_base(cwd)
@@ -216,7 +216,7 @@ def run_gates(gates: Sequence[Gate], *, lane: str, cwd: Path, base: Optional[str
     red = [row["name"] for row in rows if row["exit_code"] != 0]
     return {"schema": 1, "lane": lane, "base": base, "list": source,
             "verdict": "RED" if red else "GREEN", "red": red, "gates": rows,
-            "finished_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+            "finished_at": datetime.now(UTC).isoformat(timespec="seconds")}
 
 
 def exit_code_for(verdict: dict) -> int:
@@ -255,7 +255,7 @@ def cli() -> None:
 @click.option("--gate-list", "gate_list", default=None, type=click.Path(exists=True, dir_okay=False),
               help="TEST PLUMBING: a JSON list of {name, argv} replacing the declared list; the "
                    "verdict is stamped `override` so it cannot pass for the declared run")
-def run_cmd(lane: str, base: Optional[str], out: Optional[str], gate_list: Optional[str]) -> None:
+def run_cmd(lane: str, base: str | None, out: str | None, gate_list: str | None) -> None:
     """Run every declared gate once; write the verdict; exit non-zero if any gate is red."""
     if gate_list:
         gates, source = _load_override(gate_list), f"override:{gate_list}"

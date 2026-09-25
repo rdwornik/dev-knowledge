@@ -140,7 +140,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 import click
 
@@ -289,7 +289,7 @@ class LaneContract:
     named_waits: tuple[str, ...] = ()
     produces: tuple[str, ...] = ()
     consumes: tuple[str, ...] = ()
-    serialize_group: Optional[str] = None
+    serialize_group: str | None = None
     model_tokens: tuple[str, ...] = ()
 
 
@@ -438,7 +438,7 @@ def is_ordered(edges: frozenset[tuple[str, str]], a: str, b: str) -> bool:
 
 
 def find_cycle(lanes: Sequence[LaneContract],
-               edges: frozenset[tuple[str, str]]) -> Optional[tuple[str, ...]]:
+               edges: frozenset[tuple[str, str]]) -> tuple[str, ...] | None:
     """A cycle among the declared edges, or `None`. Codex terra review (`[#961]` diff, HIGH):
     a cyclic `Starts after` (A after B, B after A) made `is_ordered(A, B)` True by construction,
     which silently downgraded a genuine collision to `ORDERED` for a pair with NO executable
@@ -452,7 +452,7 @@ def find_cycle(lanes: Sequence[LaneContract],
     color: dict[str, int] = {lane.slug: WHITE for lane in lanes}
     path: list[str] = []
 
-    def visit(node: str) -> Optional[tuple[str, ...]]:
+    def visit(node: str) -> tuple[str, ...] | None:
         color[node] = GRAY
         path.append(node)
         for nxt in adjacency.get(node, ()):
@@ -826,13 +826,13 @@ def render_findings(findings: Sequence[Finding]) -> str:
 class WaveEstimate:
     """`serial_chain_len x lane_median + lane_count x merge_median` — see the module docstring's
     estimate honest limit for what this formula assumes and does not know."""
-    lane_median: "mr.MedianReport"
-    merge_median: "mr.MedianReport"
+    lane_median: mr.MedianReport
+    merge_median: mr.MedianReport
     serial_chain_len: int
     lane_count: int
 
     @property
-    def minutes(self) -> Optional[float]:
+    def minutes(self) -> float | None:
         if self.lane_median.n == 0 or self.merge_median.n == 0:
             return None
         return (self.serial_chain_len * self.lane_median.median_minutes

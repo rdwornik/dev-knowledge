@@ -236,7 +236,7 @@ def test_audit_check_is_registered_and_fails_on_unfilled(monkeypatch):
 
     monkeypatch.setattr(aud._vrc, "find_unfilled",
                         lambda p: [vrc.Unfilled("docs/handoffs/x/RESIDUAL.md", "frontier")])
-    findings = aud.check_residual_completeness(Path("."))
+    findings = aud.check_residual_completeness(Path())
     assert [f.status for f in findings] == ["fail"]
     assert "frontier" in findings[0].evidence
     assert "|" not in findings[0].evidence          # markdown-table-safe Finding contract
@@ -245,7 +245,7 @@ def test_audit_check_is_registered_and_fails_on_unfilled(monkeypatch):
 def test_audit_check_passes_when_clean(monkeypatch):
     import audit as aud
     monkeypatch.setattr(aud._vrc, "find_unfilled", lambda p: [])
-    findings = aud.check_residual_completeness(Path("."))
+    findings = aud.check_residual_completeness(Path())
     assert [f.status for f in findings] == ["pass"]
 
 
@@ -256,5 +256,5 @@ def test_audit_check_is_fail_soft(monkeypatch):
         raise RuntimeError("git exploded")
 
     monkeypatch.setattr(aud._vrc, "find_unfilled", boom)
-    findings = aud.check_residual_completeness(Path("."))
+    findings = aud.check_residual_completeness(Path())
     assert [f.status for f in findings] == ["warn"]

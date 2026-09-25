@@ -58,9 +58,9 @@ import threading
 import time
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
-from typing import Callable, Optional, Sequence
+from collections.abc import Callable, Sequence
 
 import click
 
@@ -116,7 +116,7 @@ class GateConfig:
     max_workers: int
     poll_interval_s: float
     sample_interval_s: float
-    wait_timeout_s: Optional[float]
+    wait_timeout_s: float | None
 
     @property
     def reserve_mb(self) -> float:
@@ -128,7 +128,7 @@ _DEFAULTS = GateConfig(reserve_gb=2.0, per_worker_mb=646.1, slots=4, min_workers
                        wait_timeout_s=None)
 
 
-def load_config(path: Optional[Path] = None) -> GateConfig:
+def load_config(path: Path | None = None) -> GateConfig:
     """`ecosystem/memory-gate-config.yaml`, or `path`. A missing file yields the built-in
     defaults rather than refusing -- the gate must still work in a checkout that has not yet
     synced the config (e.g. a test fixture), and the defaults are the same numbers the shipped
@@ -193,7 +193,7 @@ class WaitResult:
 
 
 def wait_for_memory(*, reserve_mb: float, estimate_mb: float, poll_interval_s: float,
-                    timeout_s: Optional[float] = None,
+                    timeout_s: float | None = None,
                     free_mb_fn: Callable[[], float] = free_memory_mb,
                     sleep_fn: Callable[[float], None] = time.sleep,
                     clock_fn: Callable[[], float] = time.monotonic) -> WaitResult:
@@ -221,7 +221,7 @@ def wait_for_memory(*, reserve_mb: float, estimate_mb: float, poll_interval_s: f
 
 # ========================================================================= gate 2: the slot
 
-def _slot_lock_dir(lock_dir: Optional[Path]) -> Path:
+def _slot_lock_dir(lock_dir: Path | None) -> Path:
     if lock_dir is not None:
         base = Path(lock_dir)
     else:
@@ -233,7 +233,7 @@ def _slot_lock_dir(lock_dir: Optional[Path]) -> Path:
 @dataclass
 class SlotHandle:
     slot_id: int
-    _lock: "filelock.FileLock"
+    _lock: filelock.FileLock
 
     def release(self) -> None:
         self._lock.release()
@@ -286,8 +286,8 @@ def _reserved_mb_excluding(directory: Path, own_slot_id: int) -> float:
     return total
 
 
-def acquire_slot(*, slots: int, lock_dir: Optional[Path] = None,
-                 poll_interval_s: float = 1.0, timeout_s: Optional[float] = None,
+def acquire_slot(*, slots: int, lock_dir: Path | None = None,
+                 poll_interval_s: float = 1.0, timeout_s: float | None = None,
                  sleep_fn: Callable[[float], None] = time.sleep,
                  clock_fn: Callable[[], float] = time.monotonic) -> SlotHandle:
     """Claim one of `slots` machine-wide slots. Tries every slot file once per round (not just
@@ -341,12 +341,12 @@ class GateResult:
     ran: bool
     gated: bool
     waited_s: float
-    slot_id: Optional[int]
-    workers: Optional[int]
-    peak_used_mb: Optional[float]
-    returncode: Optional[int]
+    slot_id: int | None
+    workers: int | None
+    peak_used_mb: float | None
+    returncode: int | None
     argv: list[str]
-    completed: Optional[subprocess.CompletedProcess] = None
+    completed: subprocess.CompletedProcess | None = None
     sampler_errors: tuple[str, ...] = ()
 
 
@@ -354,7 +354,7 @@ def _default_receipt_dir() -> Path:
     return Path(os.environ.get("HARNESS_RECEIPTS_DIR") or (_REPO_ROOT / "logs" / "receipts"))
 
 
-def _write_receipt(result: GateResult, path: Optional[Path]) -> Path:
+def _write_receipt(result: GateResult, path: Path | None) -> Path:
     out = Path(path) if path else (_default_receipt_dir() / f"{_RECEIPT_PREFIX}-{uuid.uuid4().hex}.json")
     out.parent.mkdir(parents=True, exist_ok=True)
     payload = {
@@ -368,7 +368,7 @@ def _write_receipt(result: GateResult, path: Optional[Path]) -> Path:
         "sampler_errors": list(result.sampler_errors),
         "returncode": result.returncode,
         "argv": result.argv,
-        "written_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "written_at": datetime.now(UTC).isoformat(timespec="seconds"),
     }
     tmp = out.with_name(out.name + ".tmp")
     tmp.write_text(json.dumps(payload, indent=2), encoding="utf-8", newline="\n")
@@ -376,13 +376,13 @@ def _write_receipt(result: GateResult, path: Optional[Path]) -> Path:
     return out
 
 
-def run_gated(argv: Sequence[str], *, cwd: Optional[Path] = None,
-             estimate_mb: Optional[float] = None,
-             workers_flag: Optional[str] = None,
-             config: Optional[GateConfig] = None,
-             disabled: Optional[bool] = None,
-             receipt_path: Optional[Path] = None,
-             lock_dir: Optional[Path] = None,
+def run_gated(argv: Sequence[str], *, cwd: Path | None = None,
+             estimate_mb: float | None = None,
+             workers_flag: str | None = None,
+             config: GateConfig | None = None,
+             disabled: bool | None = None,
+             receipt_path: Path | None = None,
+             lock_dir: Path | None = None,
              free_mb_fn: Callable[[], float] = free_memory_mb,
              used_mb_fn: Callable[[], float] = used_memory_mb,
              sleep_fn: Callable[[float], None] = time.sleep,
@@ -415,7 +415,7 @@ def run_gated(argv: Sequence[str], *, cwd: Optional[Path] = None,
         _write_receipt(result, receipt_path)
         return result
 
-    workers: Optional[int] = None
+    workers: int | None = None
     estimate = estimate_mb if estimate_mb is not None else cfg.per_worker_mb
     if workers_flag:
         workers = compute_workers(free_mb_fn(), reserve_mb=cfg.reserve_mb,
@@ -536,8 +536,8 @@ def cmd_ceiling() -> None:
                   f"{TIMEOUT_EXIT_CODE} on expiry")
 @click.option("--receipt", "receipt_path", type=click.Path(dir_okay=False), default=None)
 @click.argument("argv", nargs=-1, type=click.UNPROCESSED, required=True)
-def cmd_run(workers_flag: Optional[str], estimate_mb: Optional[float],
-           timeout_s: Optional[float], receipt_path: Optional[str], argv: tuple[str, ...]) -> None:
+def cmd_run(workers_flag: str | None, estimate_mb: float | None,
+           timeout_s: float | None, receipt_path: str | None, argv: tuple[str, ...]) -> None:
     """Gate, then run ARGV (everything after `--`) in the FOREGROUND, inheriting this
     process's stdio and cwd so a caller capturing THIS process's output transparently
     captures the wrapped command's -- no output is read or re-printed by this command itself.
@@ -564,7 +564,7 @@ def cmd_run(workers_flag: Optional[str], estimate_mb: Optional[float],
 @cli.command("wait")
 @click.option("--estimate-mb", type=float, default=None)
 @click.option("--timeout", "timeout_s", type=float, default=None)
-def cmd_wait(estimate_mb: Optional[float], timeout_s: Optional[float]) -> None:
+def cmd_wait(estimate_mb: float | None, timeout_s: float | None) -> None:
     """Block until admission would succeed; exit 1 on timeout. Manual/diagnostic use."""
     cfg = load_config()
     estimate = estimate_mb if estimate_mb is not None else cfg.per_worker_mb

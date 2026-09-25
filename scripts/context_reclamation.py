@@ -54,7 +54,7 @@ import statistics
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Mapping, Optional, Sequence
+from collections.abc import Mapping, Sequence
 
 import click
 
@@ -264,8 +264,8 @@ class ReclaimDecision:
     cleared: bool
     reason: str
     resume_from: dict[str, Path]
-    trigger: Optional[TriggerVerdict] = None
-    resume: Optional[ResumeVerdict] = None
+    trigger: TriggerVerdict | None = None
+    resume: ResumeVerdict | None = None
 
 
 def reclaim(kind: str, resolved: Mapping[str, Path],

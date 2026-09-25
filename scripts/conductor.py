@@ -501,7 +501,7 @@ def session_start(repo_root: Path | None = None, *, use_gh: bool = True) -> str:
                          "fires on the next push to main")
         for r in runs:
             lines.append(f"[conductor] {str(r.get('createdAt'))[:16]}  "
-                         f"{str(r.get('conclusion') or 'in-progress'):<12} "
+                         f"{r.get('conclusion') or 'in-progress'!s:<12} "
                          f"{r.get('event')}  {str(r.get('displayTitle'))[:56]}")
     try:
         verdicts, census, schema_hard = phase_gate(root)

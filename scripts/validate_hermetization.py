@@ -92,9 +92,9 @@ import logging
 import re
 import subprocess
 import sys
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import click
 import yaml
@@ -135,7 +135,7 @@ class ShapeSpecError(RuntimeError):
     """
 
 
-def load_shape_spec(path: Optional[Path] = None) -> dict[str, Any]:
+def load_shape_spec(path: Path | None = None) -> dict[str, Any]:
     """Parse the fleet shape spec and return its `clauses:` mapping.
 
     Structural validation only, and on purpose: every clause below is consumed by a named
@@ -356,8 +356,8 @@ class RepoProfile:
     """
 
     name: str
-    audit_class_enum: Optional[frozenset[str]] = None
-    home_patterns: Optional[tuple[str, ...]] = None
+    audit_class_enum: frozenset[str] | None = None
+    home_patterns: tuple[str, ...] | None = None
 
 
 HUB_PROFILE = RepoProfile(
@@ -369,14 +369,14 @@ HUB_PROFILE = RepoProfile(
 FLEET_PROFILE = RepoProfile(name="<undeclared>")
 
 
-@lru_cache(maxsize=None)
+@cache
 def _class_by_len(enum: frozenset[str]) -> tuple[str, ...]:
     """Longest-match order for one profile's enum -- the module-level `_ENUM_BY_LEN` rule,
     applied to whichever vocabulary the repo under test actually declares."""
     return tuple(sorted(enum, key=len, reverse=True))
 
 
-def _declared_list(block: dict[str, Any], key: str, where: Path) -> Optional[list[str]]:
+def _declared_list(block: dict[str, Any], key: str, where: Path) -> list[str] | None:
     """One optional list-of-strings key, or a refusal naming the file that carries it."""
     value = block.get(key)
     if value is None:
@@ -389,7 +389,7 @@ def _declared_list(block: dict[str, Any], key: str, where: Path) -> Optional[lis
     return value
 
 
-def profile_for_repo(repo_root: Any, name: Optional[str] = None) -> RepoProfile:
+def profile_for_repo(repo_root: Any, name: str | None = None) -> RepoProfile:
     """Resolve one repository's profile from its OWN `.methodology.yaml`.
 
     Three outcomes, in order. A repo that declares a `shape_profile:` block is policed by
@@ -404,7 +404,7 @@ def profile_for_repo(repo_root: Any, name: Optional[str] = None) -> RepoProfile:
     root = Path(repo_root)
     label = name or root.name
     declaration = root / SHAPE_PROFILE_REL
-    block: Optional[dict[str, Any]] = None
+    block: dict[str, Any] | None = None
     if declaration.exists():
         try:
             data = yaml.safe_load(declaration.read_text(encoding="utf-8"))
@@ -646,7 +646,7 @@ def _posix_parts(path: str) -> list[str]:
     return path.replace("\\", "/").strip("/").split("/")
 
 
-def rule_a_violation(path: str) -> Optional[str]:
+def rule_a_violation(path: str) -> str | None:
     """Rule A (top-level seal). Return a BLOCK reason, or None if the added path is
     sanctioned by the top-level rules."""
     parts = _posix_parts(path)
@@ -676,7 +676,7 @@ def rule_a_violation(path: str) -> Optional[str]:
     return None
 
 
-def rule_b_violation(path: str, profile: RepoProfile = HUB_PROFILE) -> Optional[str]:
+def rule_b_violation(path: str, profile: RepoProfile = HUB_PROFILE) -> str | None:
     """Rule B (audit grammar + R4 casing). Applies ONLY to an added docs/audits/*.md.
     Return a BLOCK reason, or None.
 
@@ -735,7 +735,7 @@ def rule_b_violation(path: str, profile: RepoProfile = HUB_PROFILE) -> Optional[
             f"{'/'.join(sorted(profile.audit_class_enum))}")
 
 
-def rule_c_violation(path: str, profile: RepoProfile = HUB_PROFILE) -> Optional[str]:
+def rule_c_violation(path: str, profile: RepoProfile = HUB_PROFILE) -> str | None:
     """Rule C (home allowlist). Return a BLOCK reason, or None.
 
     Scoped to paths whose top-level entry is ALREADY sanctioned: when it is not, Rule A
@@ -757,7 +757,7 @@ def rule_c_violation(path: str, profile: RepoProfile = HUB_PROFILE) -> Optional[
             f"an operator decision recorded as a ruling, not a drive-by add")
 
 
-def classify(path: str, profile: RepoProfile = HUB_PROFILE) -> Optional[str]:
+def classify(path: str, profile: RepoProfile = HUB_PROFILE) -> str | None:
     """One added path -> the first BLOCK reason (Rule A, then B, then C), or None."""
     return (rule_a_violation(path)
             or rule_b_violation(path, profile)
@@ -814,8 +814,8 @@ def _git_out(repo_root: Path, *args: str) -> str:
     return out.stdout
 
 
-def seal_repo(repo_root: Any, profile: Optional[RepoProfile] = None,
-              name: Optional[str] = None) -> SealReport:
+def seal_repo(repo_root: Any, profile: RepoProfile | None = None,
+              name: str | None = None) -> SealReport:
     """Seal one repository READ-ONLY and return its out-of-pattern items.
 
     RETROSPECTIVE, and deliberately unlike the pre-commit gate: it reads every TRACKED
@@ -834,9 +834,7 @@ def seal_repo(repo_root: Any, profile: Optional[RepoProfile] = None,
     for p in paths:
         parts = _posix_parts(p)
         if rule_a_violation(p) is not None:
-            if len(parts) == 1:
-                item = parts[0]
-            elif parts[0] not in SANCTIONED_TIER1_DIRS:
+            if len(parts) == 1 or parts[0] not in SANCTIONED_TIER1_DIRS:
                 item = parts[0]
             else:
                 item = f"{parts[0]}/{parts[1]}"
@@ -918,7 +916,7 @@ def cli(ctx: click.Context) -> None:
               help="Label for the repository (default: its directory name).")
 @click.option("--items/--no-items", default=True, show_default=True,
               help="List every out-of-pattern item, not only the counts.")
-def report_command(repo_root: Path, name: Optional[str], items: bool) -> None:
+def report_command(repo_root: Path, name: str | None, items: bool) -> None:
     """REPORT mode: seal one repository READ-ONLY and log its out-of-pattern items.
 
     Writes NOTHING in REPO_ROOT -- `git ls-files` and `git rev-parse` only.

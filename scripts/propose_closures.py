@@ -48,7 +48,7 @@ _LOGS_DIR = _REPO_ROOT / "logs"
 
 # A closing keyword immediately before a [#id] — the documented convention is
 # `closes [#N]` (mirrors check_backlog_commit_msg.py / `git log --grep`).
-CLOSES_RE = re.compile(r"\b(?:closes?|closed|fixes?|fixed)\s+\[#(\d+)\]", re.I)
+CLOSES_RE = re.compile(r"\b(?:closes?|closed|fixes?|fixed)\s+\[#(\d+)\]", re.IGNORECASE)
 
 # [#437] — a closes-token counts ONLY as a plain-text directive (CONTRIBUTING.md:
 # `feat: …, closes [#57]`). Occurrences inside quoting contexts are prose ABOUT the
@@ -61,10 +61,10 @@ CLOSES_RE = re.compile(r"\b(?:closes?|closed|fixes?|fixed)\s+\[#(\d+)\]", re.I)
 # standard quoted form). Order: fenced → inline code → block-quote lines →
 # double-quoted spans.
 _STRIP_RES = (
-    re.compile(r"```.*?```", re.S),      # fenced block (multi-line by nature)
-    re.compile(r"~~~.*?~~~", re.S),      # tilde fence — the other CommonMark delimiter
+    re.compile(r"```.*?```", re.DOTALL),      # fenced block (multi-line by nature)
+    re.compile(r"~~~.*?~~~", re.DOTALL),      # tilde fence — the other CommonMark delimiter
     re.compile(r"(`+)[^`\r\n]*?\1"),     # inline span, same line, equal-length runs
-    re.compile(r"^[ \t]*>.*$", re.M),    # block-quote line (quoted ruling/doc text)
+    re.compile(r"^[ \t]*>.*$", re.MULTILINE),    # block-quote line (quoted ruling/doc text)
     re.compile(r'"[^"\r\n]*"'),          # straight-double-quoted span, same line
     re.compile(r"“[^”\r\n]*”"),  # curly-double-quoted span “…”
 )
@@ -171,13 +171,13 @@ def find_weak(open_tasks: dict, commits: list, strong_ids: set) -> dict:
 
 def _first_clause(text: str) -> str:
     """The leading action clause of a task (before the first ` · `)."""
-    return text.split(" · ")[0].strip() if text else "(task text unavailable)"
+    return text.split(" · ", maxsplit=1)[0].strip() if text else "(task text unavailable)"
 
 
 def render(strong: dict, weak: dict, run_date: date, head: str, since,
            n_commits: int, open_tasks: dict, weak_suppressed: bool = False) -> str:
     """Render the PROPOSALS markdown. Flat/plain so it is cheap to scan."""
-    since_disp = since if since else "(none — cold start / no prior baseline)"
+    since_disp = since or "(none — cold start / no prior baseline)"
     lines = [
         "---",
         f"generated: {run_date.isoformat()}",
@@ -439,7 +439,7 @@ def _existing_anywhere(logs_dir: Path, name: str) -> bool:
 
 
 def _next_free_dated_path(logs_dir: Path, prefix: str, ext: str = "md",
-                          today: "date | None" = None) -> Path:
+                          today: date | None = None) -> Path:
     """First free `<prefix>-<YYYY-MM-DD>-<NN>.<ext>`, checking flat AND bucketed.
 
     PER-RUN GRAMMAR (operator declaration 2026-09-04): every run carries a sequence, starting

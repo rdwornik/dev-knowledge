@@ -18,8 +18,8 @@ import re
 import subprocess
 import sys
 
-_REMOVED_RE = re.compile(r"^-- \[#(\d+)\]", re.M)
-_ADDED_RE = re.compile(r"^\+- \[#(\d+)\]", re.M)
+_REMOVED_RE = re.compile(r"^-- \[#(\d+)\]", re.MULTILINE)
+_ADDED_RE = re.compile(r"^\+- \[#(\d+)\]", re.MULTILINE)
 _REF_RE = re.compile(r"\[#(\d+)\]")
 
 

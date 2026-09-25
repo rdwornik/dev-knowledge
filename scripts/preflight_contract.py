@@ -142,7 +142,7 @@ _TABLE_ROW = re.compile(r"^\s*\|")
 # The first cell must be EXACTLY a closed-state word — the cell has to end there (terra HIGH
 # 2026-08-04). A `\b` boundary let `| closed-loop notes |` open closed-table mode and suppress
 # every following row of an unrelated table.
-_CLOSED_HEADER = re.compile(r"^\s*\|\s*(closed|shipped|superseded|retired|done)\s*\|", re.I)
+_CLOSED_HEADER = re.compile(r"^\s*\|\s*(closed|shipped|superseded|retired|done)\s*\|", re.IGNORECASE)
 # A real markdown table has a separator row under its header. Requiring it stops a stray
 # pipe-prefixed prose line from opening suppression on everything that follows.
 _TABLE_SEPARATOR = re.compile(r"^\s*\|[\s:|-]*-[\s:|-]*\|?\s*$")
@@ -477,8 +477,8 @@ PREDICATE_KINDS = ("off-repo-input", "unwitnessed-claim", "cited-id", "do-not-to
 # line-unit detector would report that as unwitnessed because the witness wrapped, which is
 # a false positive produced purely by typography.
 
-_FENCE_RE = re.compile(r"^ {0,3}(?:```|~~~).*?(?:^ {0,3}(?:```|~~~)|\Z)", re.M | re.S)
-_QUOTE_LINE_RE = re.compile(r"^ {0,3}>.*$", re.M)
+_FENCE_RE = re.compile(r"^ {0,3}(?:```|~~~).*?(?:^ {0,3}(?:```|~~~)|\Z)", re.MULTILINE | re.DOTALL)
+_QUOTE_LINE_RE = re.compile(r"^ {0,3}>.*$", re.MULTILINE)
 _BLOCK_BREAK_RE = re.compile(r"^\s*(?:$|#{1,6}\s|[-*+]\s|\d+\.\s|\|)")
 _SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+(?=[A-Z(`*\[])")
 
@@ -560,7 +560,7 @@ _OFF_REPO_PATH_RE = re.compile(
 # there is no path to check, and that IS the defect.
 _INPUT_CLAUSE_RE = re.compile(
     r"^ {0,3}\*{0,2}(?P<field>Basis|Inputs?|Reads|Reads from|Fixture|Source artifact|"
-    r"Prior art|Depends on)\*{0,2}\s*:\*{0,2}[ \t]*(?P<body>\S.*)$", re.M | re.I)
+    r"Prior art|Depends on)\*{0,2}\s*:\*{0,2}[ \t]*(?P<body>\S.*)$", re.MULTILINE | re.IGNORECASE)
 # A locator is something OPENABLE, and backticks alone do not make it one (terra HIGH, this
 # arc): ``**Basis:** `SDA-1 artifact` `` is the same unopenable claim with quotes around it,
 # and accepting it would let the C-G defect discharge itself by adding punctuation. So a
@@ -570,7 +570,7 @@ _INPUT_CLAUSE_RE = re.compile(
 _LOCATOR_RE = re.compile(
     r"`[^`\n]*(?:/|\\|\.[A-Za-z0-9]{1,6}\b)[^`\n]*`|\[#\d+\]|\bADR-\d+\b")
 # "nothing" is a real, complete answer to `**Depends on:**` and must not read as a miss.
-_NO_INPUT_RE = re.compile(r"^\s*(nothing|none|n/?a)\b", re.I)
+_NO_INPUT_RE = re.compile(r"^\s*(nothing|none|n/?a)\b", re.IGNORECASE)
 
 
 def _expand_off_repo(raw: str) -> tuple[Path | None, str]:
@@ -656,7 +656,7 @@ def check_off_repo_inputs(text: str) -> list[Claim]:
 # contract this costs nothing: every obligation there that fires is one a reader would
 # agree should name a command.
 
-_CLAIM_TRIGGER_RE = re.compile(r"\b(?:verif|measur)\w*", re.I)
+_CLAIM_TRIGGER_RE = re.compile(r"\b(?:verif|measur)\w*", re.IGNORECASE)
 
 #: What counts as a witness: a COMMAND or a LOCATOR, never a bare subject. `CLAUDE.md` is
 #: what a claim is ABOUT; `boundary_headers.py --check` is what established it.
@@ -727,9 +727,9 @@ def check_witnessed_claims(text: str) -> list[Claim]:
 # reads it beside their own prose, and a citation whose surrounding prose describes the row
 # in content words the title does not share is FLAGGED.
 
-_TASK_ID_RE = re.compile(r'^id:\s*"?\[#(\d+)\]"?', re.M)
-_TASK_TITLE_RE = re.compile(r'^title:\s*"?(.*?)"?\s*$', re.M)
-_TASK_STATUS_RE = re.compile(r'^status:\s*"?([A-Za-z-]+)"?', re.M)
+_TASK_ID_RE = re.compile(r'^id:\s*"?\[#(\d+)\]"?', re.MULTILINE)
+_TASK_TITLE_RE = re.compile(r'^title:\s*"?(.*?)"?\s*$', re.MULTILINE)
+_TASK_STATUS_RE = re.compile(r'^status:\s*"?([A-Za-z-]+)"?', re.MULTILINE)
 TERMINAL_STATUSES = frozenset({"closed", "retired", "superseded"})
 
 _ADR_RE = re.compile(r"\bADR-(\d{1,3})\b")
@@ -751,7 +751,7 @@ _REGISTER_KEYWORD_RE = re.compile(
     r"\b(?:register|registers|standing ruling|standing rulings|ruling|rulings)\s+"
     r"(?:`[^`]*`\s+)?(?:`|\*\*)?(?!ADR-)([A-Z]{1,2}-?[A-Z]?-?\d{1,2})(?:`|\*\*)?\b")
 _REGISTER_BARE_RE = re.compile(r"(?:`|\*\*)?(?!ADR-)\b([A-Z]{1,2}-?[A-Z]?-?\d{1,2})\b")
-_REGISTER_FILE_RE = re.compile(r"STANDING_RULINGS", re.I)
+_REGISTER_FILE_RE = re.compile(r"STANDING_RULINGS", re.IGNORECASE)
 #: `per`/`under` are readmitted -- but ONLY for an id whose SECTION LETTER is one the live
 #: register actually uses (terra HIGH, this arc). Dropping the weak keywords outright was
 #: correct about `per W2/D5` (a session-plan id) and wrong about `per Z-G3`, which is a real
@@ -761,7 +761,7 @@ _REGISTER_FILE_RE = re.compile(r"STANDING_RULINGS", re.I)
 #: inside a live section still surfaces, which is the case that matters.
 _REGISTER_WEAK_RE = re.compile(
     r"\b(?:per|under)\s+(?:`|\*\*)?(?!ADR-)([A-Z]{1,2}-?[A-Z]?-?\d{1,2})(?:`|\*\*)?\b")
-_REGISTER_HEADING_RE = re.compile(r"^#{2,4}\s+([A-Z]{1,2})-?[A-Z]?-?\d{1,2}\b", re.M)
+_REGISTER_HEADING_RE = re.compile(r"^#{2,4}\s+([A-Z]{1,2})-?[A-Z]?-?\d{1,2}\b", re.MULTILINE)
 
 #: How far past an `[#id]` to read for a description of the row. Bounded by the first
 #: clause-ending mark: the words immediately after a citation are the ones making a claim
@@ -776,9 +776,7 @@ _ID_WINDOW_BEFORE_RE = re.compile(r"[^,;.·()\[\]—\n]{0,120}$")
 _ID_DESCRIPTION_FLOOR = 2
 
 _STOPWORDS = frozenset(
-    "the a an and or of to in on at by for with from is are was were be been it its this "
-    "that these those as not no than then so if into per via when where which who whom "
-    "lane lanes contract done when item items green must shall never only also".split())
+    ["the", "a", "an", "and", "or", "of", "to", "in", "on", "at", "by", "for", "with", "from", "is", "are", "was", "were", "be", "been", "it", "its", "this", "that", "these", "those", "as", "not", "no", "than", "then", "so", "if", "into", "per", "via", "when", "where", "which", "who", "whom", "lane", "lanes", "contract", "done", "when", "item", "items", "green", "must", "shall", "never", "only", "also"])
 
 
 def _content_words(phrase: str) -> set[str]:
@@ -917,7 +915,7 @@ def _register_heading_exists(repo_root: Path, rid: str) -> bool:
         raise PreflightError(
             f"no {reg} -- cannot judge register ids; refusing to report them clean")
     body = reg.read_text(encoding="utf-8", errors="replace")
-    return re.search(rf"^#{{2,4}}\s+{re.escape(rid)}\b", body, re.M) is not None
+    return re.search(rf"^#{{2,4}}\s+{re.escape(rid)}\b", body, re.MULTILINE) is not None
 
 
 # --- (iv) do-not-touch vs detector scope roots -------------------------------------------
@@ -929,8 +927,8 @@ def _register_heading_exists(repo_root: Path, rid: str) -> bool:
 
 _UNTOUCHED_RE = re.compile(
     r"\b(?:untouched|not touched|do(?:es)? not touch|must not touch|outside\b[^.]{0,60}?"
-    r"\bscope|delta (?:is|of|must be)\s*(?:0|zero)|zero delta)", re.I)
-_RATCHET_CTX_RE = re.compile(r"\bratchet\b|\bscope root|silent[_ -]rule", re.I)
+    r"\bscope|delta (?:is|of|must be)\s*(?:0|zero)|zero delta)", re.IGNORECASE)
+_RATCHET_CTX_RE = re.compile(r"\bratchet\b|\bscope root|silent[_ -]rule", re.IGNORECASE)
 #: Casefolded, because the detector casefolds (`silent_rule_detector._fold`). `Ecosystem/`
 #: and `ecosystem/` are the same root to it, so they must be the same root here.
 _DIR_TOKEN_RE = re.compile(r"(?<![\w/])([A-Za-z][A-Za-z0-9_-]*)/")
@@ -938,7 +936,7 @@ _DIR_TOKEN_RE = re.compile(r"(?<![\w/])([A-Za-z][A-Za-z0-9_-]*)/")
 #: `templates/claude-regions/*.md`, `CLAUDE.md`.
 _PATH_TOKEN_RE = re.compile(r"`([^`\n]+)`")
 _WRITE_SCOPE_RE = re.compile(
-    r"^ {0,3}\*{0,2}Write[- ]scope\*{0,2}\s*:\*{0,2}[ \t]*(?P<body>\S.*)$", re.M | re.I)
+    r"^ {0,3}\*{0,2}Write[- ]scope\*{0,2}\s*:\*{0,2}[ \t]*(?P<body>\S.*)$", re.MULTILINE | re.IGNORECASE)
 
 
 def ratchet_scope_roots() -> tuple[str, ...]:
@@ -980,7 +978,7 @@ def path_in_ratchet_scope(rel: str) -> bool:
 _CONSUMED_CLAUSE_RE = re.compile(
     r"^ {0,3}[-*]?[ ]?\*{0,2}(?P<field>Basis|Inputs?|Reads|Reads from|Fixture|"
     r"Source artifact|Prior art|Depends on|Consumed by|Consumes|refs)\*{0,2}"
-    r"\s*:\*{0,2}[ \t]*(?P<body>\S.*)$", re.M | re.I)
+    r"\s*:\*{0,2}[ \t]*(?P<body>\S.*)$", re.MULTILINE | re.IGNORECASE)
 
 #: A backticked token inside such a clause. Judged only if it looks like an in-repo PATH:
 #: it carries a `/`, and it either has a file extension or ends in `/` (a directory, which is how

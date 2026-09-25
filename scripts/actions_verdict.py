@@ -74,7 +74,7 @@ import logging
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import click
 
@@ -142,10 +142,10 @@ class Verdict:
     """One SHA's Actions result, as the integrator must read it."""
     sha: str
     state: str
-    jobs: dict[str, Optional[str]] = field(default_factory=dict)
-    run_id: Optional[int] = None
+    jobs: dict[str, str | None] = field(default_factory=dict)
+    run_id: int | None = None
     title: str = ""
-    baseline: Optional[str] = None
+    baseline: str | None = None
     newly_failing: tuple[str, ...] = ()
     pre_existing: tuple[str, ...] = ()
     newly_passing: tuple[str, ...] = ()
@@ -197,8 +197,8 @@ class Verdict:
                 "covers_index_regeneration": self.covers_index_regeneration}
 
 
-def fetch_run(sha: str, *, repo_root: Optional[Path] = None,
-              workflow: str = WORKFLOW) -> Optional[dict]:
+def fetch_run(sha: str, *, repo_root: Path | None = None,
+              workflow: str = WORKFLOW) -> dict | None:
     """The Actions run whose head is `sha`, or None when there is none.
 
     Raises `ActionsUnavailable` when `gh` cannot be reached -- never returns None for that,
@@ -250,13 +250,13 @@ def _jobs_were_read(run: dict) -> bool:
     return run.get("jobs", []) is not None
 
 
-def _job_map(run: dict) -> dict[str, Optional[str]]:
+def _job_map(run: dict) -> dict[str, str | None]:
     return {j["name"]: j.get("conclusion") for j in run.get("jobs", []) or []}
 
 
-def verdict_for(sha: str, *, baseline: Optional[str] = None,
-                fetch: Optional[Callable[..., Optional[dict]]] = None,
-                repo_root: Optional[Path] = None) -> Verdict:
+def verdict_for(sha: str, *, baseline: str | None = None,
+                fetch: Callable[..., dict | None] | None = None,
+                repo_root: Path | None = None) -> Verdict:
     """Read the Actions result for `sha`, attributed against `baseline` when one is given."""
     fetch = fetch or fetch_run
     try:
@@ -282,7 +282,7 @@ def verdict_for(sha: str, *, baseline: Optional[str] = None,
 
     failing = {name for name, c in jobs.items() if c not in ("success", "skipped", None)}
 
-    base_jobs: dict[str, Optional[str]] = {}
+    base_jobs: dict[str, str | None] = {}
     base_read = False
     if baseline:
         try:
@@ -327,7 +327,7 @@ def verdict_for(sha: str, *, baseline: Optional[str] = None,
               help="the SHA to attribute against -- normally the merge's FIRST PARENT, so the "
                    "differential means 'what this merge changed'")
 @click.option("--repo-root", default=None, type=click.Path(file_okay=False))
-def cli(sha: str, baseline: Optional[str], repo_root: Optional[str]) -> None:
+def cli(sha: str, baseline: str | None, repo_root: str | None) -> None:
     """Read this merge's GitHub Actions result. Exits non-zero unless it is a clean PASS."""
     verdict = verdict_for(sha, baseline=baseline,
                           repo_root=Path(repo_root) if repo_root else None)

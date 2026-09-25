@@ -60,7 +60,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Callable, Optional
+from collections.abc import Callable
 
 _SCRIPTS = Path(__file__).resolve().parent
 if str(_SCRIPTS) not in sys.path:  # dual-import shim, as every sibling uses
@@ -76,7 +76,7 @@ _ROOT = Path(__file__).resolve().parents[1]
 Identity = tuple[str, str, str]
 
 
-def _run(argv: list[str], cwd: Path, timeout: Optional[float] = None) -> tuple[int, str]:
+def _run(argv: list[str], cwd: Path, timeout: float | None = None) -> tuple[int, str]:
     try:
         proc = subprocess.run(argv, cwd=str(cwd), capture_output=True, text=True,
                               encoding="utf-8", errors="replace", timeout=timeout)
@@ -100,9 +100,7 @@ def blocking_identities(findings, dispositions) -> frozenset:
     import audit  # noqa: PLC0415
     out: set[Identity] = set()
     for f in findings:
-        if f.status == "fail":
-            out.add((f.check_name, f.status, f.evidence))
-        elif f.status == "warn" and audit._match_disposition(f, dispositions) is None:
+        if f.status == "fail" or (f.status == "warn" and audit._match_disposition(f, dispositions) is None):
             out.add((f.check_name, f.status, f.evidence))
     return frozenset(out)
 
@@ -159,8 +157,8 @@ def blocking_at_ref(repo: Path, ref: str,
 
 
 def diff(repo: Path, base: str = DEFAULT_BASE,
-         head: Optional[frozenset] = None,
-         base_ids: Optional[frozenset] = None) -> tuple[frozenset, frozenset]:
+         head: frozenset | None = None,
+         base_ids: frozenset | None = None) -> tuple[frozenset, frozenset]:
     """`(introduced, resolved)` -- what HEAD adds vs `base` that it did not carry, and what
     `base` carried that HEAD no longer does. `head`/`base_ids` are seams for a caller that has
     already computed one side (tests; a caller re-using a `base` run across several heads)."""
@@ -174,7 +172,7 @@ def _fmt(identities) -> str:
                      for name, status, evidence in sorted(identities))
 
 
-def cmd_diff(argv: Optional[list[str]] = None) -> int:
+def cmd_diff(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="ship_gate_diff.py", description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
     d = sub.add_parser("diff", help="what HEAD introduces vs a baseline ref -- exit 1 if anything")
@@ -203,7 +201,7 @@ def cmd_diff(argv: Optional[list[str]] = None) -> int:
     return 1 if introduced else 0
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     return cmd_diff(argv)
 
 

@@ -9,4 +9,4 @@ __version__ = "0.1.0"
 from .generator import generate_toc
 from .check import check_toc
 
-__all__ = ["generate_toc", "check_toc", "__version__"]
+__all__ = ["__version__", "check_toc", "generate_toc"]

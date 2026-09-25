@@ -13,7 +13,6 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 from ._common import Finding
 
@@ -73,7 +72,7 @@ def _norm_version(raw: str, granularity: str) -> tuple[int, ...]:
 
 # rule: coherence-amendment
 def check_amendment_coherence(
-    repo_path: Path, _sets: Optional[list[CoupledSet]] = None) -> list[Finding]:
+    repo_path: Path, _sets: list[CoupledSet] | None = None) -> list[Finding]:
     """#11 multi-surface amendment gate: coupled surfaces must share one authority version.
 
     Converts LESSON-#9's advisory "cross-case trace before a multi-surface amendment" guard

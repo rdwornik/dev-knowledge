@@ -30,7 +30,7 @@ _ROUTINE_LOOKALIKE_RE = re.compile("[•∙‧⋅]\\s*routine\\s*:")
 _ROUTINE_ANYFIELD_RE = re.compile(r"\b(consumer|consumption_path|trigger|scope)\s*=")
 _ROUTINE_FENCE_RE = re.compile(r"^(?P<indent> {0,3})(?P<fence>`{3,}|~{3,})")
 _ROUTINE_TICK_RUN_RE = re.compile(r"`+")
-_ROUTINE_INVISIBLE = str.maketrans({c: None for c in "​‌‍﻿⁠"})
+_ROUTINE_INVISIBLE = str.maketrans({c: None for c in "\u200b‌‍﻿⁠"})
 # Values that carry word characters but name nothing.
 _ROUTINE_SENTINELS = frozenset({"tbd", "todo", "tba", "n/a", "na", "none", "xxx", "?"})
 

@@ -76,7 +76,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import click
 
@@ -124,10 +124,10 @@ class CiVerdict:
     ref: str
     sha: str
     verdict: str
-    run_id: Optional[int] = None
-    run_url: Optional[str] = None
-    duration_seconds: Optional[float] = None
-    baseline_id: Optional[str] = None
+    run_id: int | None = None
+    run_url: str | None = None
+    duration_seconds: float | None = None
+    baseline_id: str | None = None
     new_reds: tuple = field(default_factory=tuple)
     reason: str = ""
 
@@ -182,7 +182,7 @@ def list_runs(*, repo_root: Path, workflow: str = WORKFLOW, limit: int = 40) -> 
 
 
 def find_run(sha: str, *, repo_root: Path, workflow: str = WORKFLOW,
-            list_fn: Callable = list_runs) -> Optional[dict]:
+            list_fn: Callable = list_runs) -> dict | None:
     runs = list_fn(repo_root=repo_root, workflow=workflow)
     return next((r for r in runs if str(r.get("headSha", "")).startswith(sha)), None)
 
@@ -193,7 +193,7 @@ def fetch_run_status(run_id, *, repo_root: Path) -> dict:
                     repo_root=repo_root)
 
 
-def fetch_jobs(run_id, *, repo_root: Path) -> Optional[list]:
+def fetch_jobs(run_id, *, repo_root: Path) -> list | None:
     """The run's job list, or `None` when it could not be read -- distinct from a genuinely
     job-less `[]`, the same distinction `actions_verdict._jobs_were_read` guards (`[#742]`)."""
     try:
@@ -204,7 +204,7 @@ def fetch_jobs(run_id, *, repo_root: Path) -> Optional[list]:
     return (result or {}).get("jobs") if result is not None else None
 
 
-def fetch_job_log(run_id, job_id, *, repo_root: Path) -> Optional[str]:
+def fetch_job_log(run_id, job_id, *, repo_root: Path) -> str | None:
     """One job's full log text, or `None` when it could not be read."""
     try:
         return _gh_text(["gh", "run", "view", str(run_id), "--job", str(job_id), "--log"],
@@ -223,7 +223,7 @@ def fetch_job_log(run_id, job_id, *, repo_root: Path) -> Optional[str]:
 _STEP_WINDOW_PAD = timedelta(seconds=1)
 
 
-def _step_window(job: dict, step_name: str) -> Optional[tuple]:
+def _step_window(job: dict, step_name: str) -> tuple | None:
     """The `(started, completed)` datetimes of `step_name` in `job`'s own `steps` array, padded
     for the resolution gap above, or `None` when that step is not there -- it never ran, or the
     run predates this organ's step name. `None` means "cannot scope"; callers fall back to
@@ -242,7 +242,7 @@ def _step_window(job: dict, step_name: str) -> Optional[tuple]:
     return None
 
 
-def parse_suite_gate_block(log_text: str, *, window: Optional[tuple] = None) -> dict:
+def parse_suite_gate_block(log_text: str, *, window: tuple | None = None) -> dict:
     """The baseline sha and named regressions `render_suite_gate` logged, read back out of the
     job's own log text. `found=False` means the block never printed -- the gate step did not
     run -- which the caller must not confuse with "printed and found nothing wrong".
@@ -281,7 +281,7 @@ def parse_suite_gate_block(log_text: str, *, window: Optional[tuple] = None) -> 
     return {"baseline_id": baseline_id, "regressions": tuple(regressions), "found": found}
 
 
-def _duration_seconds(run: dict) -> Optional[float]:
+def _duration_seconds(run: dict) -> float | None:
     started, ended = run.get("createdAt"), run.get("updatedAt")
     if not started or not ended:
         return None
@@ -304,7 +304,7 @@ def wait_for_run(sha: str, *, repo_root: Path, workflow: str = WORKFLOW,
     in a completed run -- a completed run's reason is decided by its verdict, not by the wait.
     """
     deadline = clock_fn() + timeout_s
-    run: Optional[dict] = None
+    run: dict | None = None
     while True:
         previously_known = run
         try:
@@ -328,10 +328,10 @@ def wait_for_run(sha: str, *, repo_root: Path, workflow: str = WORKFLOW,
         sleep_fn(interval_s)
 
 
-def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = WORKFLOW,
+def verdict_for(ref: str, *, repo_root: Path | None = None, workflow: str = WORKFLOW,
                 timeout_s: int = POLL_TIMEOUT_S, interval_s: int = POLL_INTERVAL_S,
-                list_fn: Optional[Callable] = None, view_fn: Optional[Callable] = None,
-                jobs_fn: Optional[Callable] = None, log_fn: Optional[Callable] = None,
+                list_fn: Callable | None = None, view_fn: Callable | None = None,
+                jobs_fn: Callable | None = None, log_fn: Callable | None = None,
                 sleep_fn: Callable = time.sleep,
                 clock_fn: Callable = time.monotonic) -> CiVerdict:
     """CI's verdict for `ref`: green, red (with the new reds named), or not-run.
@@ -420,7 +420,7 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
 @click.option("--timeout", default=POLL_TIMEOUT_S, type=int,
              help="seconds to wait, in-process, for the matched run to complete")
 @click.option("--interval", default=POLL_INTERVAL_S, type=int, help="seconds between polls")
-def cli(ref: str, repo_root: Optional[str], timeout: int, interval: int) -> None:
+def cli(ref: str, repo_root: str | None, timeout: int, interval: int) -> None:
     """Read CI's verdict for --ref, waiting for its Actions run. Read-only against GitHub;
     prints one JSON object and is never a gate -- see the module docstring."""
     verdict = verdict_for(ref, repo_root=Path(repo_root) if repo_root else None,

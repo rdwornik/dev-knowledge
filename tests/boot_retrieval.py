@@ -49,7 +49,7 @@ import sys
 import tempfile
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -340,7 +340,7 @@ def probe(pointer_claude_md: Path, model: str = DEFAULT_MODEL, items: tuple[Item
             for n in range(runs):
                 out = run_probe(scratch, CONTROL, model)
                 rows.append(_row("control", arm, n, out, scratch, every, ""))
-    return {"measured_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "model": model,
+    return {"measured_at": datetime.now(UTC).isoformat(timespec="seconds"), "model": model,
             "body_rev": BODY_REV, "pointer_arm_sha256": hashlib.sha256(arms["pointer"].encode("utf-8")).hexdigest(),
             "pointer_text_sha256": {it.id: pointer_sha(it, arms["pointer"]) for it in items},
             "setting_sources": SETTING_SOURCES, "boot_text_selftest": selftest, "pointer_runs": POINTER_RUNS, "admit_at": ADMIT_AT, "rows": rows}

@@ -25,7 +25,6 @@ import subprocess
 import sys
 from datetime import date, datetime
 from pathlib import Path
-from typing import Optional
 
 import yaml
 
@@ -84,7 +83,7 @@ else:
 FRESHNESS_CADENCE_DAYS = 30
 
 
-def parse_last_reviewed(text: str) -> Optional[date]:
+def parse_last_reviewed(text: str) -> date | None:
     """Extract `last_reviewed` from a file's YAML frontmatter, or None if absent.
 
     Returns None when the file has no frontmatter, the frontmatter is unclosed or not a
@@ -115,7 +114,7 @@ def parse_last_reviewed(text: str) -> Optional[date]:
     return None
 
 
-def git_last_commit_date(repo_path: Path, filename: str) -> Optional[date]:
+def git_last_commit_date(repo_path: Path, filename: str) -> date | None:
     """Author date (short ISO) of the most recent commit touching `filename`.
 
     Uses author date (`%as`), not committer date: author date survives rebase / cherry-pick /
@@ -139,9 +138,9 @@ def git_last_commit_date(repo_path: Path, filename: str) -> Optional[date]:
         return None
 
 
-def evaluate(repo_path: Path, freshness_files: Optional[list[str]] = None, *,
+def evaluate(repo_path: Path, freshness_files: list[str] | None = None, *,
              parse_fn=parse_last_reviewed, git_date_fn=git_last_commit_date,
-             today: Optional[date] = None) -> tuple[list[str], list[str]]:
+             today: date | None = None) -> tuple[list[str], list[str]]:
     """Pure freshness evaluation -> (fails, warns) of per-file detail strings.
 
     `parse_fn` / `git_date_fn` are injectable so the audit leg keeps its monkeypatch seam

@@ -86,9 +86,9 @@ import json
 import logging
 import re
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
-from typing import Iterable, Optional, Sequence
+from collections.abc import Iterable, Sequence
 
 import click
 
@@ -163,7 +163,7 @@ class TokenUsage:
     cache_read_tokens: int = 0
     calls: int = 0
 
-    def __add__(self, other: "TokenUsage") -> "TokenUsage":
+    def __add__(self, other: TokenUsage) -> TokenUsage:
         return TokenUsage(
             input_tokens=self.input_tokens + other.input_tokens,
             output_tokens=self.output_tokens + other.output_tokens,
@@ -188,7 +188,7 @@ class TokenUsage:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "TokenUsage":
+    def from_dict(cls, data: dict) -> TokenUsage:
         return cls(
             input_tokens=int(data.get("input_tokens", 0)),
             output_tokens=int(data.get("output_tokens", 0)),
@@ -214,9 +214,9 @@ def _usage_from_turn(usage: dict) -> TokenUsage:
     )
 
 
-def read_transcript_usage(path: Path, seen: Optional[set[str]] = None, *,
-                          since: Optional[str] = None,
-                          until: Optional[str] = None) -> dict[str, TokenUsage]:
+def read_transcript_usage(path: Path, seen: set[str] | None = None, *,
+                          since: str | None = None,
+                          until: str | None = None) -> dict[str, TokenUsage]:
     """`{model: usage}` for one `.jsonl` transcript.
 
     `seen` carries de-duplication ACROSS files when a caller passes one set for a whole lane:
@@ -261,8 +261,8 @@ def read_transcript_usage(path: Path, seen: Optional[set[str]] = None, *,
 
 
 def _accumulate_usage(lines: Iterable[str], path: Path, out: dict[str, TokenUsage],
-                      seen: set[str], *, since: Optional[str] = None,
-                      until: Optional[str] = None) -> dict[str, TokenUsage]:
+                      seen: set[str], *, since: str | None = None,
+                      until: str | None = None) -> dict[str, TokenUsage]:
     """The per-line body of `read_transcript_usage`, split out so the reader can stream.
 
     Takes any iterable of lines rather than a file object: the accumulation is the same
@@ -350,8 +350,8 @@ def _matches_segment(name: str, wanted: str) -> bool:
             or f"-{wanted}-" in name)
 
 
-def transcript_dirs(slug: str, sessions_root: Optional[Path] = None,
-                    slug_dirs: Optional[Sequence[str]] = None) -> list[Path]:
+def transcript_dirs(slug: str, sessions_root: Path | None = None,
+                    slug_dirs: Sequence[str] | None = None) -> list[Path]:
     """Every session-store directory belonging to `slug`.
 
     MATCHED, NOT GUESSED, AND NEVER WIDENED. A directory qualifies when its normalised name
@@ -383,8 +383,8 @@ def transcript_dirs(slug: str, sessions_root: Optional[Path] = None,
     return matched
 
 
-def lane_usage(slug: str, sessions_root: Optional[Path] = None,
-               slug_dirs: Optional[Sequence[str]] = None) -> dict[str, TokenUsage]:
+def lane_usage(slug: str, sessions_root: Path | None = None,
+               slug_dirs: Sequence[str] | None = None) -> dict[str, TokenUsage]:
     """`{model: usage}` for one lane, summed over every transcript it owns and de-duplicated
     across them."""
     seen: set[str] = set()
@@ -404,10 +404,10 @@ class ModelCost:
 
     model: str
     usage: TokenUsage
-    usd: Optional[float] = None
+    usd: float | None = None
     #: Why it could not be priced, in the reader's own words. Carried rather than recomputed
     #: so a reader of the ledger months later sees the reason the run saw.
-    unpriced_reason: Optional[str] = None
+    unpriced_reason: str | None = None
 
     @property
     def is_priced(self) -> bool:
@@ -419,13 +419,13 @@ class ModelCost:
                 "unpriced_reason": self.unpriced_reason}
 
     @classmethod
-    def from_dict(cls, data: dict) -> "ModelCost":
+    def from_dict(cls, data: dict) -> ModelCost:
         return cls(model=str(data["model"]), usage=TokenUsage.from_dict(data.get("usage", {})),
                    usd=data.get("usd"), unpriced_reason=data.get("unpriced_reason"))
 
 
 def price_usage(model: str, usage: TokenUsage,
-                registry_path: Optional[Path] = None) -> ModelCost:
+                registry_path: Path | None = None) -> ModelCost:
     """Price one model's usage, or record WHY it could not be priced.
 
     The refusal is caught here and carried rather than raised onward, because a lane that ran
@@ -464,7 +464,7 @@ class LaneCost:
     #: so it could not catch the case it exists for -- a paired comparison measured under two
     #: different windows. The DECLARATION rides the row; the reader can then check that the
     #: baseline and its successor were measured the same way.
-    window: Optional[tuple[str, str]] = None
+    window: tuple[str, str] | None = None
 
     @property
     def usd(self) -> float:
@@ -540,7 +540,7 @@ class LaneCost:
         return row
 
     @classmethod
-    def from_dict(cls, data: dict) -> "LaneCost":
+    def from_dict(cls, data: dict) -> LaneCost:
         window = data.get("window")
         return cls(slug=str(data["slug"]), batch=str(data.get("batch", "")),
                    models=tuple(ModelCost.from_dict(m) for m in data.get("models", [])),
@@ -594,10 +594,10 @@ class LaneCost:
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
-def _rates_as_of(registry_path: Optional[Path]) -> str:
+def _rates_as_of(registry_path: Path | None) -> str:
     try:
         return str(pr.rate_card(registry_path).get("as_of", ""))
     except pr.RegistryError as exc:
@@ -605,9 +605,9 @@ def _rates_as_of(registry_path: Optional[Path]) -> str:
         return ""
 
 
-def lane_cost(slug: str, *, batch: str = "", sessions_root: Optional[Path] = None,
-              slug_dirs: Optional[Sequence[str]] = None,
-              registry_path: Optional[Path] = None) -> LaneCost:
+def lane_cost(slug: str, *, batch: str = "", sessions_root: Path | None = None,
+              slug_dirs: Sequence[str] | None = None,
+              registry_path: Path | None = None) -> LaneCost:
     """One lane's cost, read from its transcripts and priced from the registry."""
     per_model = lane_usage(slug, sessions_root, slug_dirs)
     costs = tuple(price_usage(model, usage, registry_path)
@@ -633,7 +633,7 @@ def lane_cost(slug: str, *, batch: str = "", sessions_root: Optional[Path] = Non
 # population no verb here could measure.
 
 def seat_session_transcripts(session_id: str,
-                             sessions_root: Optional[Path] = None) -> list[Path]:
+                             sessions_root: Path | None = None) -> list[Path]:
     """Every transcript file belonging to one session id, across the whole store.
 
     MATCHED ON THE FILE STEM, not on a directory, and the search is store-wide because a seat's
@@ -664,9 +664,9 @@ def seat_session_transcripts(session_id: str,
     return found
 
 
-def seat_usage(session_id: str, sessions_root: Optional[Path] = None, *,
-               since: Optional[str] = None,
-               until: Optional[str] = None) -> dict[str, TokenUsage]:
+def seat_usage(session_id: str, sessions_root: Path | None = None, *,
+               since: str | None = None,
+               until: str | None = None) -> dict[str, TokenUsage]:
     """`{model: usage}` for one seat's sitting, bounded by an optional UTC window."""
     seen: set[str] = set()
     out: dict[str, TokenUsage] = {}
@@ -678,9 +678,9 @@ def seat_usage(session_id: str, sessions_root: Optional[Path] = None, *,
 
 
 def seat_cost(session_id: str, *, batch: str = "", slug: str = "",
-              sessions_root: Optional[Path] = None,
-              since: Optional[str] = None, until: Optional[str] = None,
-              registry_path: Optional[Path] = None) -> LaneCost:
+              sessions_root: Path | None = None,
+              since: str | None = None, until: str | None = None,
+              registry_path: Path | None = None) -> LaneCost:
     """ONE ATTENDED SEAT'S COST -- the measurement definition this repo prices a seat by.
 
     THE DEFINITION, stated once here because a paired comparison is only worth as much as the
@@ -740,7 +740,7 @@ def read_cost_ledger(repo_root: Path) -> list[LaneCost]:
     return out
 
 
-def uncosted_reason(repo_root: Path, slug: str) -> Optional[str]:
+def uncosted_reason(repo_root: Path, slug: str) -> str | None:
     """WHY this slug's receipt carries no money, or None when it does.
 
     THE REASON IS RETURNED, NOT A BARE BOOLEAN -- the argument `merge_receipt.
@@ -932,7 +932,7 @@ def batch_report(repo_root: Path) -> BatchCostReport:
     return BatchCostReport(rows=tuple(read_cost_ledger(repo_root)))
 
 
-def seat_cost_gap(repo_root: Path) -> Optional[str]:
+def seat_cost_gap(repo_root: Path) -> str | None:
     """Batches whose ledger carries LANE rows and NO SEAT row, or None when none do.
 
     THE BATCH-Z FINDING, TURNED INTO SOMETHING THAT FIRES ON ITS OWN. That close packet found
@@ -983,7 +983,7 @@ def seat_cost_gap(repo_root: Path) -> Optional[str]:
               "--since <t> --until <t>`.")
 
 
-def cost_health_line(repo_root: Path) -> Optional[str]:
+def cost_health_line(repo_root: Path) -> str | None:
     """The `[cost]` digest line for `fleet_health` -- per batch and per model, in one line.
 
     ONE FILE READ, no transcript scanning: SessionStart pays for this on every boot, and a
@@ -1022,7 +1022,7 @@ def cost_health_line(repo_root: Path) -> Optional[str]:
 _TOKEN_LOG_HEADER_LINES = 4
 
 
-def token_log_entry(report: BatchCostReport, *, on: Optional[str] = None) -> str:
+def token_log_entry(report: BatchCostReport, *, on: str | None = None) -> str:
     """One `logs/TOKEN-LOG.md` entry in that file's own established format.
 
     THE FORMAT IS THE FILE'S, NOT THIS MODULE'S -- a `## YYYY-MM-DD (...)` header, a delta
@@ -1036,7 +1036,7 @@ def token_log_entry(report: BatchCostReport, *, on: Optional[str] = None) -> str
     counts them. An entry that did not say which it was would invite a reader to diff two
     incomparable numbers and call the difference a trend.
     """
-    day = on or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    day = on or datetime.now(UTC).strftime("%Y-%m-%d")
     usage_by_model = report.tokens_by_model()
     money_by_model = report.by_model()
     total = TokenUsage()
@@ -1147,7 +1147,7 @@ def _window_options(func):
 @_window_options
 @click.pass_context
 def cmd_seat(ctx: click.Context, session_id: str, batch: str,
-             since: Optional[str], until: Optional[str]) -> None:
+             since: str | None, until: str | None) -> None:
     """Compute and PRINT one attended seat's cost, per model. Writes nothing."""
     click.echo(seat_cost(session_id, batch=batch, since=since, until=until).render())
 
@@ -1158,7 +1158,7 @@ def cmd_seat(ctx: click.Context, session_id: str, batch: str,
 @_window_options
 @click.pass_context
 def cmd_seat_close(ctx: click.Context, session_id: str, batch: str,
-                   since: Optional[str], until: Optional[str]) -> None:
+                   since: str | None, until: str | None) -> None:
     """Compute one attended seat's cost and APPEND it to the cost ledger."""
     cost = seat_cost(session_id, batch=batch, since=since, until=until)
     append_cost(_root(ctx), cost)

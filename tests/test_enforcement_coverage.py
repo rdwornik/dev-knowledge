@@ -161,7 +161,7 @@ def _hub_script_closure(entry_stem: str) -> dict[str, str]:
             continue
         text = path.read_text(encoding="utf-8")
         seen[stem] = text
-        for m in re.finditer(r"^\s*(?:import|from)\s+([A-Za-z_][A-Za-z0-9_]*)", text, re.M):
+        for m in re.finditer(r"^\s*(?:import|from)\s+([A-Za-z_][A-Za-z0-9_]*)", text, re.MULTILINE):
             if (scripts / f"{m.group(1)}.py").exists():
                 pending.append(m.group(1))
     return {f"scripts/{stem}.py": text for stem, text in seen.items()}

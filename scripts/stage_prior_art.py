@@ -72,7 +72,7 @@ def _snippet(line: str) -> str:
     return line if len(line) <= _SNIPPET else line[:_SNIPPET - 3] + "..."
 
 
-def _walk(base: Path) -> "list[Path]":
+def _walk(base: Path) -> list[Path]:
     """Every file under `base`, newest name first. An unreadable directory raises: os.walk (like
     Path.rglob) would otherwise skip it silently and the caller would print NONE FOUND for a tree
     it never read."""
@@ -83,7 +83,7 @@ def _walk(base: Path) -> "list[Path]":
     return sorted(files, reverse=True)
 
 
-def search_root(root: Path, sub: str, term: str) -> "tuple[int, list[tuple[str, int, str]]]":
+def search_root(root: Path, sub: str, term: str) -> tuple[int, list[tuple[str, int, str]]]:
     """Scan one content root. Returns (text files scanned, [(path, line, snippet)] -- one per matching file).
 
     Line 0 means the match was on the file NAME only (a binary file is never read, but its name is
@@ -115,7 +115,7 @@ def search_root(root: Path, sub: str, term: str) -> "tuple[int, list[tuple[str, 
     return scanned, hits
 
 
-def search_git(root: Path, term: str) -> "list[tuple[str, str, str]]":
+def search_git(root: Path, term: str) -> list[tuple[str, str, str]]:
     """The old stage 2, kept: [(sha, subject, first touched path)] for the last GIT_COMMITS matches."""
     cmd = ["git", "--no-pager", "log", "-n", str(GIT_COMMITS), "-i", "-F", f"--grep={term}",
            "--name-only", "--format=%x1e%h%x1f%s", "--", *GIT_PATHSPEC]
@@ -135,13 +135,13 @@ def search_git(root: Path, term: str) -> "list[tuple[str, str, str]]":
     return commits
 
 
-def emit_lines(root: Path, subject: str, limit: int) -> "list[str]":
+def emit_lines(root: Path, subject: str, limit: int) -> list[str]:
     term = subject.strip()
     if not term:
         raise SearchError("an empty subject matches everything and proves nothing")
     started = time.perf_counter()
     commits = search_git(root, term)
-    per_root: "list[tuple[str, int | None, list]]" = []
+    per_root: list[tuple[str, int | None, list]] = []
     for sub in CONTENT_ROOTS:
         if not (root / sub).exists():
             per_root.append((sub, None, []))  # absent: recorded, never counted as searched

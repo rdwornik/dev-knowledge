@@ -47,7 +47,6 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 import yaml
 
@@ -143,7 +142,7 @@ class ReconResult:
 
 # --- frontmatter + version parsing (pure) -----------------------------------
 
-def _frontmatter(text: str) -> Optional[dict]:
+def _frontmatter(text: str) -> dict | None:
     """The YAML frontmatter mapping, or None when absent/unclosed/not-a-mapping."""
     if not text.startswith("---"):
         return None
@@ -157,7 +156,7 @@ def _frontmatter(text: str) -> Optional[dict]:
     return fm if isinstance(fm, dict) else None
 
 
-def parse_reconciled_with(text: str) -> Optional[str]:
+def parse_reconciled_with(text: str) -> str | None:
     """The raw `reconciled_with` frontmatter value, or None when the key is absent."""
     fm = _frontmatter(text)
     if fm is None:
@@ -169,7 +168,7 @@ def parse_reconciled_with(text: str) -> Optional[str]:
 _EDGE_RE = re.compile(r"^\s*([A-Za-z0-9_.-]+)@(\d+(?:\.\d+)*)\s*$")
 
 
-def split_edge(raw: str) -> Optional[tuple[str, str]]:
+def split_edge(raw: str) -> tuple[str, str] | None:
     """Parse a `<spec-id>@<version>` value into (spec_id, version), or None if malformed."""
     m = _EDGE_RE.match(raw)
     return (m.group(1), m.group(2)) if m else None
@@ -237,7 +236,7 @@ def spec_version_numeric(text: str) -> str:
     return _numeric_version(parse_spec_version(text))
 
 
-def spec_current_version(repo_root: Path, spec: SpecSource) -> Optional[str]:
+def spec_current_version(repo_root: Path, spec: SpecSource) -> str | None:
     """The spec's current version, numeric-normalized, read live; None if absent/unparseable.
 
     Reads the live spec file and returns its `spec_version_numeric` comparison form — A's

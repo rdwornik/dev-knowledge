@@ -72,7 +72,7 @@ import subprocess
 import sys
 import threading
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 from pathlib import Path
 from typing import NamedTuple
 
@@ -217,7 +217,7 @@ def record_path() -> Path:
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def append_record(row: dict) -> Path | None:
@@ -578,7 +578,7 @@ def scan_transcripts(root: Path, cutoff_hour: str, budget_s: float) -> tuple[dic
     state = {"version": 2, "files": dict(cache.get("files") or {}),
              **{table: dict(cache.get(table) or {}) for table in _TABLES}}
     cutoff_epoch = datetime.strptime(cutoff_hour, "%Y-%m-%dT%H").replace(
-        tzinfo=timezone.utc).timestamp()
+        tzinfo=UTC).timestamp()
     try:
         files = sorted(root.glob(f"{TRANSCRIPT_GLOB}/*.jsonl"),
                        key=lambda f: f.stat().st_mtime, reverse=True)
@@ -735,7 +735,7 @@ def declare(rates: dict, complete: bool, now: datetime) -> list[str]:
 
 def surface_lines(window_h: float = SURFACE_WINDOW_H, budget_s: float = SCAN_BUDGET_S,
                   now: datetime | None = None) -> list[str]:
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     report: list[str] = []
 
     cutoff = (now - timedelta(hours=window_h)).strftime("%Y-%m-%dT%H:%M:%SZ")

@@ -110,7 +110,6 @@ import sys
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Optional
 
 # Same dual-import shape every sibling in scripts/ uses: run as a script the siblings are
 # importable bare, imported as `scripts.*` they are not.
@@ -197,7 +196,7 @@ def split_clauses(body: str) -> list[str]:
     return body.split(SEP)
 
 
-def is_structural(clause: str) -> Optional[str]:
+def is_structural(clause: str) -> str | None:
     """The reason `clause` may never be relocated, or None."""
     low = clause.lower()
     for marker, why in _STRUCTURAL_MARKERS:
@@ -249,7 +248,7 @@ def worth_relocating(before_chars: int, after_chars: int, pointer: str) -> bool:
     return (before_chars - after_chars) >= len(pointer)
 
 
-def eligible_run(body: str, pointer: Optional[str], today: date) -> list[str]:
+def eligible_run(body: str, pointer: str | None, today: date) -> list[str]:
     """The contiguous run of relocatable clauses ending just before `pointer` (or at EOL).
 
     Returns the clauses in row order, or `[]` when nothing is eligible. Clause 0 is never
@@ -315,7 +314,7 @@ def record_filename(task_id: int) -> str:
     return f"{task_id}.md"
 
 
-def _fm_get(fm: str, key: str) -> Optional[str]:
+def _fm_get(fm: str, key: str) -> str | None:
     m = re.search(rf"^{re.escape(key)}: (.*)$", fm, re.MULTILINE)
     if not m:
         return None
@@ -590,7 +589,7 @@ def _set_row_body(path: Path, new_body: str) -> None:
 
 # --- commands ---------------------------------------------------------------------------
 
-def propose(repo_root: Path, ids: Optional[list[int]], today: date) -> list[tuple]:
+def propose(repo_root: Path, ids: list[int] | None, today: date) -> list[tuple]:
     """One tuple per row with a relocatable run: (id, before, after, n_clauses, under)."""
     out = []
     existing = {r.task_id: r for r in _safe_records(repo_root)}
@@ -881,11 +880,11 @@ def verify(repo_root: Path, today: date) -> tuple[list[str], list[str], int]:
 
 # --- CLI --------------------------------------------------------------------------------
 
-def _ids(arg: Optional[str]) -> Optional[list[int]]:
+def _ids(arg: str | None) -> list[int] | None:
     return [int(x) for x in arg.replace(",", " ").split()] if arg else None
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description="[#612] relocate dated-amendment narration out of a backlog row into a "
                     "durable per-row record under tasks/archive/, byte-identically.")

@@ -127,7 +127,7 @@ class Receipt:
     readings: dict[str, dict]
 
     @classmethod
-    def empty(cls) -> "Receipt":
+    def empty(cls) -> Receipt:
         return cls({})
 
     def reading(self, substrate: str) -> dict | None:
@@ -218,7 +218,7 @@ def declaration_findings(repo_root: Path) -> list[str]:
 def probe(repo_root: Path, substrate: str, *, now: dt.datetime | None = None,
           source: str = "local") -> Reading:
     """Is this substrate's declared provisioning chain coherent right now? Never raises."""
-    now = now or dt.datetime.now(dt.timezone.utc)
+    now = now or dt.datetime.now(dt.UTC)
     try:
         findings = declaration_findings(Path(repo_root))
     except Exception as exc:                      # the probe must report, never crash a schedule
@@ -228,13 +228,13 @@ def probe(repo_root: Path, substrate: str, *, now: dt.datetime | None = None,
 
 
 def _stamp(moment: dt.datetime) -> str:
-    return moment.astimezone(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return moment.astimezone(dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _parse(stamp: str) -> dt.datetime | None:
     try:
         return dt.datetime.strptime(stamp, "%Y-%m-%dT%H:%M:%SZ").replace(
-            tzinfo=dt.timezone.utc)
+            tzinfo=dt.UTC)
     except (TypeError, ValueError):
         return None
 
@@ -295,7 +295,7 @@ def predispatch(repo_root: Path, substrate: str, *, now: dt.datetime | None = No
     and treating that as neutral is how the defect survived. The refusal is discharged by
     running the probe, which is cheap and needs no credential.
     """
-    now = now or dt.datetime.now(dt.timezone.utc)
+    now = now or dt.datetime.now(dt.UTC)
     receipt = read_receipt(repo_root, env=env) if receipt is None else receipt
     reading = receipt.reading(substrate)
     if reading is None:

@@ -448,7 +448,7 @@ def test_feeding_refuses_to_create_the_file_it_is_supposed_to_feed(tmp_path):
 # correct, so nothing below touches the pricing path.
 
 
-def _unmeasured_row(slug: str, batch: str = "Y") -> "lc.LaneCost":
+def _unmeasured_row(slug: str, batch: str = "Y") -> lc.LaneCost:
     """A cost row for a lane whose transcript was never found.
 
     NOT a synthetic edge case: `transcript_dirs` documents that a `--bg` lane's transcript is
@@ -708,7 +708,7 @@ def test_the_line_bound_clears_the_largest_line_this_repo_has_ever_written():
     well above it, so what it catches is corruption, not size.
     """
     largest_real_line_bytes = 1_360_000
-    assert lc.MAX_TRANSCRIPT_LINE_BYTES > largest_real_line_bytes * 2, (
+    assert largest_real_line_bytes * 2 < lc.MAX_TRANSCRIPT_LINE_BYTES, (
         f"the bound {lc.MAX_TRANSCRIPT_LINE_BYTES} leaves less than 2x headroom over the "
         f"largest line actually measured ({largest_real_line_bytes}) -- it would start "
         f"dropping real turns")

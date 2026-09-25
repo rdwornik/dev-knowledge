@@ -31,7 +31,6 @@ import re
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Optional
 
 import click
 
@@ -66,7 +65,7 @@ class GoReceipt:
         return self.verdict == VERDICT_GO
 
 
-def resolve_transport(explicit: Optional[str]) -> Optional[Path]:
+def resolve_transport(explicit: str | None) -> Path | None:
     """The transport directory, or None when it cannot be resolved.
 
     `--transport` wins. Otherwise the dispatcher's own precedence (User-scope value, then the
@@ -94,7 +93,7 @@ def resolve_transport(explicit: Optional[str]) -> Optional[Path]:
         return None
 
 
-def read_go(batch: str, transport: Optional[Path]) -> GoReceipt:
+def read_go(batch: str, transport: Path | None) -> GoReceipt:
     """Answer the one question. Never raises: every failure is a REFUSED receipt."""
     if not _BATCH_RE.fullmatch(batch or "") or ".." in batch:
         return GoReceipt(batch, "", False, VERDICT_REFUSED,
@@ -119,7 +118,7 @@ def read_go(batch: str, transport: Optional[Path]) -> GoReceipt:
 @click.option("--transport", default=None, type=click.Path(file_okay=False),
               help="the transport directory holding to-cc/ [default: the dispatcher's "
                    "CLAUDE_PROMPTS_DIR resolution]")
-def cli(batch: str, transport: Optional[str]) -> None:
+def cli(batch: str, transport: str | None) -> None:
     receipt = read_go(batch, resolve_transport(transport))
     click.echo(json.dumps(asdict(receipt), sort_keys=True))
     logger.info("go_reader batch=%s verdict=%s", batch, receipt.verdict)

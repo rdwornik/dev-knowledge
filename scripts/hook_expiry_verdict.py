@@ -33,7 +33,7 @@ import re
 import sqlite3
 import sys
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 try:
@@ -123,7 +123,7 @@ def verdict_for(hook_id: str, rows: list[tuple[str, str]], now: datetime,
     latest_ts, _ = rows[-1]
     earliest = datetime.fromisoformat(earliest_ts)
     if earliest.tzinfo is None:
-        earliest = earliest.replace(tzinfo=timezone.utc)
+        earliest = earliest.replace(tzinfo=UTC)
     history_hours = (now - earliest).total_seconds() / 3600.0
 
     if history_hours < window_h:
@@ -156,7 +156,7 @@ def compute_verdicts(db_path: Path | None = None, now: datetime | None = None,
                      hook_ids: tuple[str, ...] | None = None,
                      window_h: float = JUDGMENT_WINDOW_H) -> list[HookVerdict]:
     resolved_db = db_path if db_path is not None else _te.default_db_path()
-    resolved_now = now if now is not None else datetime.now(timezone.utc)
+    resolved_now = now if now is not None else datetime.now(UTC)
     resolved_ids = hook_ids if hook_ids is not None else judged_hook_ids()
     return [verdict_for(hook_id, _hook_run_rows(resolved_db, hook_id), resolved_now, window_h)
             for hook_id in resolved_ids]

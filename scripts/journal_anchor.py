@@ -188,7 +188,7 @@ def floor_sha(repo: Path) -> str:
     return found[0]
 
 
-def _legacy_names(names: "list[str]") -> list[str]:
+def _legacy_names(names: list[str]) -> list[str]:
     """`JOURNAL-legacy-*.md` names from `names`, sorted -- date order by construction.
 
     The rotation convention is `JOURNAL-legacy-<span>.md` with an ISO-prefixed span, and the

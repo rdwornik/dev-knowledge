@@ -35,7 +35,7 @@ import substrate_heartbeat as hb
 import validate_substrate as vs
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-NOW = dt.datetime(2026, 9, 15, 12, 0, tzinfo=dt.timezone.utc)
+NOW = dt.datetime(2026, 9, 15, 12, 0, tzinfo=dt.UTC)
 
 
 @pytest.fixture()
@@ -304,7 +304,7 @@ def test_every_provisioning_leg_carries_a_library_first_verdict():
         (REPO_ROOT / ".devcontainer/provisioning.yaml").read_text(encoding="utf-8"))["features"]
     legs = set(re.findall(
         r"^(leg[a-z0-9_]*)\(\)",
-        (REPO_ROOT / ".devcontainer/provision.sh").read_text(encoding="utf-8"), re.M))
+        (REPO_ROOT / ".devcontainer/provision.sh").read_text(encoding="utf-8"), re.MULTILINE))
 
     missing = sorted(legs - set(declared))
     assert not missing, (

@@ -46,7 +46,8 @@ import logging
 import re
 import sys
 from pathlib import Path
-from typing import Any, Iterable, Optional
+from typing import Any
+from collections.abc import Iterable
 
 import click
 import yaml
@@ -88,11 +89,11 @@ class RegisterError(RuntimeError):
 # ---------------------------------------------------------------------------- loading
 
 
-def register_path(repo_root: Optional[Path] = None) -> Path:
+def register_path(repo_root: Path | None = None) -> Path:
     return Path(repo_root or _REPO_ROOT) / REGISTER_REL
 
 
-def load(repo_root: Optional[Path] = None) -> dict[str, Any]:
+def load(repo_root: Path | None = None) -> dict[str, Any]:
     """Parse the register and return its mapping, or raise `RegisterError`.
 
     An absent or unparseable register raises rather than returning an empty mapping: a
@@ -220,7 +221,7 @@ def schema_defects(register: dict[str, Any]) -> list[str]:
 
 
 def unresolved_organs(register: dict[str, Any],
-                      repo_root: Optional[Path] = None) -> list[str]:
+                      repo_root: Path | None = None) -> list[str]:
     """Measured entries whose `organ` or `trip_test` file does not exist in the tree."""
     root = Path(repo_root or _REPO_ROOT)
     out: list[str] = []
@@ -312,7 +313,7 @@ def _split_architecture(text: str) -> tuple[str, str]:
     return text[: start + len(START_MARKER)], text[end:]
 
 
-def current_section(repo_root: Optional[Path] = None) -> str:
+def current_section(repo_root: Path | None = None) -> str:
     """The committed body between the markers, stripped of the surrounding newlines."""
     path = Path(repo_root or _REPO_ROOT) / ARCHITECTURE_REL
     text = path.read_text(encoding="utf-8")
@@ -324,7 +325,7 @@ def current_section(repo_root: Optional[Path] = None) -> str:
     return text[start + len(START_MARKER): end].strip("\n")
 
 
-def render_defects(repo_root: Optional[Path] = None) -> list[str]:
+def render_defects(repo_root: Path | None = None) -> list[str]:
     """A unified diff of committed-vs-regenerated, or an empty list when they agree."""
     register = load(repo_root)
     want = render_section(register)
@@ -339,7 +340,7 @@ def render_defects(repo_root: Optional[Path] = None) -> list[str]:
             f"{REGISTER_REL}:"] + list(diff)
 
 
-def write_section(repo_root: Optional[Path] = None) -> bool:
+def write_section(repo_root: Path | None = None) -> bool:
     """Splice the regenerated section into ARCHITECTURE.md. True when bytes changed."""
     root = Path(repo_root or _REPO_ROOT)
     path = root / ARCHITECTURE_REL

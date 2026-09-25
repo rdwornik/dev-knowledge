@@ -112,7 +112,7 @@ def test_an_undispositioned_evidence_drift_is_treated_as_introduced():
 
 def test_diff_uses_injected_head_and_base_identities():
     introduced, resolved = sgd.diff(
-        Path("."), base="origin/main",
+        Path(), base="origin/main",
         head=frozenset({("a", "fail", "ea"), ("b", "warn", "eb")}),
         base_ids=frozenset({("b", "warn", "eb"), ("c", "fail", "ec")}))
     assert introduced == frozenset({("a", "fail", "ea")})
@@ -132,7 +132,7 @@ def test_blocking_at_ref_raises_when_the_worktree_cannot_be_created():
     def runner(argv, cwd, timeout=None):
         return 1, "fatal: could not create work tree"
     with pytest.raises(RuntimeError):
-        sgd.blocking_at_ref(Path("."), "origin/main", runner=runner)
+        sgd.blocking_at_ref(Path(), "origin/main", runner=runner)
 
 
 # --- the CLI, the integrator's own way to call the same comparator (D11) -------------------------

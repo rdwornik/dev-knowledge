@@ -35,9 +35,9 @@ import subprocess
 import sys
 import time
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
-from typing import Callable, Mapping, Optional
+from collections.abc import Callable, Mapping
 
 _T0 = time.perf_counter()
 _ROOT = Path(__file__).resolve().parents[1]
@@ -73,7 +73,7 @@ class HookReceipt:
     lane: str
     status: str
     exit_code: int
-    handback: Optional[str]
+    handback: str | None
     reason: str
     guard_ms: int          # the hook path: startup, session-file read, claim, spawn
     moment_ms: int         # the moment itself (0 while running)
@@ -88,9 +88,9 @@ class HookReceipt:
     # NOT change what triggers the moment (`HANDBACK_PATTERN` above still governs that, and
     # stays byte-identical to `harness.yaml`'s declared precondition); it only enriches the
     # receipt so a consumer reading it does not have to re-parse `handback` itself.
-    handback_branch: Optional[str] = None
-    handback_sha: Optional[str] = None
-    handback_class: Optional[str] = None
+    handback_branch: str | None = None
+    handback_sha: str | None = None
+    handback_class: str | None = None
 
 
 def moment_argv() -> list[str]:
@@ -106,7 +106,7 @@ def resolve_lane(environ: Mapping[str, str], root: Path) -> str:
     return environ.get("HARNESS_LANE") or (root.name if root.parent.name == "worktrees" else "")
 
 
-def last_handback(text: str) -> Optional[str]:
+def last_handback(text: str) -> str | None:
     """The lane's closing HANDBACK line (the last one), or None."""
     hits = list(HANDBACK_PATTERN.finditer(text))
     if not hits:
@@ -116,7 +116,7 @@ def last_handback(text: str) -> Optional[str]:
     return text[start:end if end != -1 else len(text)].strip()
 
 
-def run_moment(argv: list[str], cwd: Path, log: Path, env: Optional[Mapping[str, str]] = None) -> MomentResult:
+def run_moment(argv: list[str], cwd: Path, log: Path, env: Mapping[str, str] | None = None) -> MomentResult:
     """Run the moment to completion. There is no deadline: nothing here may stop or truncate a task (N3)."""
     started = time.perf_counter()
     log.parent.mkdir(parents=True, exist_ok=True)
@@ -175,14 +175,14 @@ def _read_receipt(path: Path) -> dict:
 
 
 def _stamp() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _ms() -> int:
     return int((time.perf_counter() - _T0) * 1000)
 
 
-def _parse_handback(handback: Optional[str]) -> tuple[Optional[str], Optional[str], Optional[str]]:
+def _parse_handback(handback: str | None) -> tuple[str | None, str | None, str | None]:
     """`(branch, sha, cls)` from `handback_schema.HandbackLine.parse`, or `(None, None, None)`
     when there is no line or it does not structurally parse. Best-effort: a schema import or
     parse failure enriches nothing rather than failing the receipt this guard must always write."""
@@ -196,7 +196,7 @@ def _parse_handback(handback: Optional[str]) -> tuple[Optional[str], Optional[st
     return (parsed.branch, parsed.sha, parsed.cls) if parsed else (None, None, None)
 
 
-def _receipt(lane: str, status: str, exit_code: int, handback: Optional[str], reason: str,
+def _receipt(lane: str, status: str, exit_code: int, handback: str | None, reason: str,
              guard_ms: int, moment_ms: int = 0, detached: bool = True) -> HookReceipt:
     branch, sha, cls = _parse_handback(handback)
     return HookReceipt(lane=lane, status=status, exit_code=exit_code, handback=handback, reason=reason,
@@ -247,10 +247,10 @@ def _finish(receipt_path: Path, claim: dict, lane: str, run: Callable[[], Moment
         print(f"lane_end_guard: {final.status} -- {final.reason}", file=sys.stderr)
 
 
-def main(argv: Optional[list[str]] = None, *, environ: Mapping[str, str] = os.environ,
-         runner: Optional[Callable[..., MomentResult]] = None, moment_argv: Optional[list[str]] = None,
-         root: Path = _ROOT, resolve_transport: Optional[Callable[[], Path]] = None,
-         detach: bool = False, spawner: Optional[Callable[..., None]] = None) -> int:
+def main(argv: list[str] | None = None, *, environ: Mapping[str, str] = os.environ,
+         runner: Callable[..., MomentResult] | None = None, moment_argv: list[str] | None = None,
+         root: Path = _ROOT, resolve_transport: Callable[[], Path] | None = None,
+         detach: bool = False, spawner: Callable[..., None] | None = None) -> int:
     """The Stop hook (and, with `--worker`, the detached worker it starts). Returns 0 on every path.
 
     `detach=False` runs the moment in this process (tests, manual runs); the CLI entry passes True."""
@@ -259,7 +259,7 @@ def main(argv: Optional[list[str]] = None, *, environ: Mapping[str, str] = os.en
     receipts = Path(environ.get("HARNESS_RECEIPTS_DIR") or root / "logs" / "receipts")
     receipt_path = receipts / RECEIPT_NAME
     lane = ""
-    handback: Optional[str] = None
+    handback: str | None = None
     try:
         lane = resolve_lane(environ, root)
         if not lane:

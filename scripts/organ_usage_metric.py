@@ -58,9 +58,10 @@ import json
 import shlex
 import subprocess
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
+from collections.abc import Iterator
 
 _SCRIPTS = Path(__file__).resolve().parent
 if str(_SCRIPTS) not in sys.path:  # importable both as a module and as a script
@@ -106,7 +107,7 @@ def _command_head(line: str) -> str:
     if not tokens:
         return ""
     head = tokens[0].rstrip("\\").rsplit("/", 1)[-1].rsplit("\\", 1)[-1].lower()
-    return head[:-4] if head.endswith(".exe") else head
+    return head.removesuffix(".exe")
 
 
 def classify_tool_call(tool_name: str, tool_input: dict, organs: frozenset[str]) -> str | None:
@@ -306,7 +307,7 @@ def organ_usage_report(
     """
     root = Path(repo_root) if repo_root is not None else _dap.REPO_ROOT
     sroot = Path(sessions_root) if sessions_root is not None else DEFAULT_SESSIONS_ROOT
-    now = now if now is not None else datetime.now(timezone.utc)
+    now = now if now is not None else datetime.now(UTC)
     cutoff = now - timedelta(days=since_days)
     resolved_organs = organs if organs is not None else known_organs(root)
 
@@ -495,7 +496,7 @@ def process_census(
     """
     root = Path(repo_root) if repo_root is not None else canonical_repo_root()
     sroot = Path(sessions_root) if sessions_root is not None else DEFAULT_SESSIONS_ROOT
-    now = now if now is not None else datetime.now(timezone.utc)
+    now = now if now is not None else datetime.now(UTC)
     cutoff = now - timedelta(days=since_days)
     procs = dict(processes) if processes is not None else dict(_dap.load_processes(root))
     reached = reachable if reachable is not None else wiring_reachable(root)

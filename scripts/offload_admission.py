@@ -76,7 +76,8 @@ import shutil
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
-from typing import Any, Callable, Optional
+from typing import Any
+from collections.abc import Callable
 
 import click
 
@@ -242,7 +243,7 @@ def load_record(path: Path) -> dict[str, Any]:
     return data
 
 
-def _registry_cli(provider: str, registry_path: Optional[Path]) -> Optional[str]:
+def _registry_cli(provider: str, registry_path: Path | None) -> str | None:
     """The CLI the registry binds to `provider`, or None when the provider is not declared."""
     try:
         rows = _pr.providers(registry_path)
@@ -305,7 +306,7 @@ def _resolve_in_corpus(rel: str, corpus_root: Path) -> Path:
     return resolved
 
 
-def _verify_ground_truth(ground_truth: tuple["PlantedDefect", ...],
+def _verify_ground_truth(ground_truth: tuple[PlantedDefect, ...],
                         corpus_root: Path) -> None:
     """Prove the corpus still carries every planted clause, or FAIL LOUD.
 
@@ -338,7 +339,7 @@ def _verify_ground_truth(ground_truth: tuple["PlantedDefect", ...],
                     f"ground truth describes, so no answer can be scored against it")
 
 
-def _verify_locator(finding: dict[str, Any], corpus_root: Path) -> Optional[Refusal]:
+def _verify_locator(finding: dict[str, Any], corpus_root: Path) -> Refusal | None:
     """Re-open the finding's locator on disk. `None` means it holds exactly."""
     label = f"finding rank {finding.get('rank')!r}"
     raw = finding.get("locator")
@@ -390,7 +391,7 @@ def _verify_locator(finding: dict[str, Any], corpus_root: Path) -> Optional[Refu
 
 def adjudicate(record: dict[str, Any],
                corpus_root: Path,
-               registry_path: Optional[Path] = None,
+               registry_path: Path | None = None,
                ground_truth: tuple[PlantedDefect, ...] = ()) -> Verdict:
     """ADMIT or REFUSE one admission record. Refusals accumulate; they do not short-circuit.
 
@@ -1161,8 +1162,8 @@ def seeded_report(root: Path) -> SeededReport:
 @click.option("--probe-corpus", "probe_root", type=click.Path(path_type=Path), default=None,
               help="materialise the LIVE probe corpus in DIR and print the probe question.")
 @click.option("--json", "as_json", is_flag=True, help="emit the verdict as JSON.")
-def cli(record_path: Optional[Path], corpus_root: Path, registry_path: Optional[Path],
-        ground_truth_name: Optional[str], seeded: bool, probe_root: Optional[Path],
+def cli(record_path: Path | None, corpus_root: Path, registry_path: Path | None,
+        ground_truth_name: str | None, seeded: bool, probe_root: Path | None,
         as_json: bool) -> None:
     """Adjudicate an `offload` admission record, or re-measure the seeded-defect suite.
 

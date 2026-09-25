@@ -109,7 +109,7 @@ def _origin_main(repo_root: Path, *, offline: bool = False) -> str:
     return out.split()[0]
 
 
-def _worktrees(repo_root: Path) -> "tuple[list[str], bool]":
+def _worktrees(repo_root: Path) -> tuple[list[str], bool]:
     """`(trees, read_ok)`. The flag is what keeps a failed probe from rendering as "primary only"."""
     out = _git(repo_root, "worktree", "list", "--porcelain")
     if out == _UNKNOWN:
@@ -136,7 +136,7 @@ def _journal_head(repo_root: Path) -> str:
     return _UNKNOWN
 
 
-def _open_batches(repo_root: Path) -> "tuple[list, str | None]":
+def _open_batches(repo_root: Path) -> tuple[list, str | None]:
     """`(batches, error)` -- committed manifests declaring a batch open right now.
 
     The ERROR is returned rather than swallowed. A reader that turns a failed read into `[]` makes
@@ -322,7 +322,7 @@ def render(state: dict, *, date: str, repo_name: str = ".dev-knowledge") -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def default_out(repo_root: Path, repo_name: str) -> "Path | None":
+def default_out(repo_root: Path, repo_name: str) -> Path | None:
     """The transport home for this repo's ledger, or None when no transport is resolvable."""
     transport = _gh.transport_root()
     return Path(transport) / out_relpath(repo_name) if transport else None
@@ -336,8 +336,8 @@ def default_out(repo_root: Path, repo_name: str) -> "Path | None":
 @click.option("--date", default=None, help="the window date; defaults to today")
 @click.option("--offline", is_flag=True, help="skip the ls-remote read of origin/main")
 @click.option("--dry-run", is_flag=True, help="print to stdout and write nothing")
-def cli(out_path: "str | None", repo_root: "str | None", repo_name: str,
-        date: "str | None", offline: bool, dry_run: bool) -> None:
+def cli(out_path: str | None, repo_root: str | None, repo_name: str,
+        date: str | None, offline: bool, dry_run: bool) -> None:
     root = Path(repo_root) if repo_root else _REPO_ROOT
     when = date or _dt.date.today().isoformat()
     text = render(collect(root, offline=offline), date=when, repo_name=repo_name)

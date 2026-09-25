@@ -134,11 +134,11 @@ _CITATION_RES: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("a backlog row", re.compile(r"\[#\d+\]")),
     ("an ADR", re.compile(r"\bADR-\d+(?![0-9])")),
     ("the standing-rulings register", re.compile(r"STANDING_RULINGS")),
-    ("an intake", re.compile(r"\bintake\s+#\d+", re.I)),
+    ("an intake", re.compile(r"\bintake\s+#\d+", re.IGNORECASE)),
 )
 
 #: The explicit escape. `<reason>` runs to end of line.
-_NO_CONSUMER_RE = re.compile(r"^\W{0,4}no[- ]consumer\W{0,4}:\s*(?P<reason>.+)$", re.I | re.M)
+_NO_CONSUMER_RE = re.compile(r"^\W{0,4}no[- ]consumer\W{0,4}:\s*(?P<reason>.+)$", re.IGNORECASE | re.MULTILINE)
 
 #: A reason shorter than this is a token, not a reason — the same substance floor
 #: `funnel_coverage._REJECTED_MIN_LOCATOR` applies to a REJECTED locator, and the same honest

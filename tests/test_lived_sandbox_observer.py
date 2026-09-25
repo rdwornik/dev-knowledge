@@ -339,7 +339,7 @@ def test_observe_spawn_extracts_structured_events(tmp_path):
 
 def _spawn_result(stdout: str, exit_code: int = 0):
     return sp.SpawnResult(exit_code=exit_code, stdout=stdout, events=[], transcript_path=None,
-                          config_dir=Path("does-not-exist"), work_dir=Path("."))
+                          config_dir=Path("does-not-exist"), work_dir=Path())
 
 
 def test_gate_zero_proven_when_isolated_and_exit0():
@@ -551,7 +551,7 @@ def test_git_state_machine_level_path_not_probed_g4c():
     """G4c: a ~-rooted signature is machine-level state a clone cannot witness — the probe
     says so honestly instead of path-testing the signature's first token."""
     o = orc.load_oracle(_MANIFEST_V120)
-    r = obs.observe([], o, clone=Path("."))
+    r = obs.observe([], o, clone=Path())
     codex = next(f for f in r.findings if f.component_id == "codex-agents-config")
     assert codex.verdict == obs.NOT_OBSERVED
     assert "unobservable from a clone" in codex.evidence

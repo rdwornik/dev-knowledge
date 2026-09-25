@@ -60,7 +60,6 @@ import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 import click
 
@@ -126,7 +125,7 @@ class PostMergeVerdict:
         return "\n".join(lines)
 
 
-def _run(argv: list[str], *, timeout: float = 60) -> "subprocess.CompletedProcess[str]":
+def _run(argv: list[str], *, timeout: float = 60) -> subprocess.CompletedProcess[str]:
     try:
         return subprocess.run(argv, capture_output=True, text=True, encoding="utf-8",
                               errors="replace", timeout=timeout)
@@ -191,7 +190,7 @@ def check_merge(repo_root: Path, merge_sha: str) -> PostMergeVerdict:
 
 # --- CLI -------------------------------------------------------------------------------------
 
-def _root(repo_root: Optional[str]) -> Path:
+def _root(repo_root: str | None) -> Path:
     return Path(repo_root) if repo_root else _REPO_ROOT
 
 
@@ -205,7 +204,7 @@ def cli() -> None:
 @click.option("--sha", required=True, help="the merge commit to read")
 @click.option("--repo-root", default=None, type=click.Path(file_okay=False),
              help="repo root [default: this script's parent]")
-def cmd_check(sha: str, repo_root: Optional[str]) -> None:
+def cmd_check(sha: str, repo_root: str | None) -> None:
     """Read SHA's tree; refuse (exit 1) on any conflict-marker line in a touched file."""
     try:
         verdict = check_merge(_root(repo_root), sha)

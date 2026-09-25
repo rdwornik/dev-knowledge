@@ -27,7 +27,7 @@ _SECRET_RE = re.compile(r"sk-ant-[A-Za-z0-9_-]{8}")
 def _result(a: bool, b: bool, exitA: int = 0, exitB: int = 0) -> iso.IsolationResult:
     return iso.IsolationResult(marker="M", present_in_configA=a, absent_in_configB=b,
                                exitA=exitA, exitB=exitB, transcriptA=None, transcriptB=None,
-                               tempdir=Path("."))
+                               tempdir=Path())
 
 
 def test_isolation_passes_only_when_both_legs_hold():

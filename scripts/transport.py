@@ -37,7 +37,6 @@ import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 _SCRIPTS = Path(__file__).resolve().parent
 if str(_SCRIPTS) not in sys.path:
@@ -65,7 +64,7 @@ class TransportWriteRefused(Exception):
 class Kind:
     name: str
     prefix: str                 # the literal prefix a code-derived template also reduces to
-    regex: "re.Pattern[str]"
+    regex: re.Pattern[str]
     folder: str                 # "to-cc" | "to-browser" | "root"
     writers: tuple[str, ...]
     readers: tuple[str, ...] = field(default_factory=tuple)
@@ -119,7 +118,7 @@ def load_registry(path: Path = DEFAULT_REGISTRY) -> list[Kind]:
     return out
 
 
-def classify(filename: str, registry: list[Kind]) -> Optional[Kind]:
+def classify(filename: str, registry: list[Kind]) -> Kind | None:
     """The first (longest-prefix) registered kind whose pattern matches `filename`, or None."""
     for kind in registry:
         if kind.matches(filename):
@@ -158,7 +157,7 @@ def _check(writer: str, dest: Path, registry: list[Kind]) -> Kind:
     return kind
 
 
-def write(writer: str, dest: Path, data: str, *, registry: Optional[list[Kind]] = None) -> Path:
+def write(writer: str, dest: Path, data: str, *, registry: list[Kind] | None = None) -> Path:
     """Write `data` (text) to `dest` WHOLE (atomic tmp+replace, `transport_report.deliver`'s own
     pattern), but only when `dest.name` is a registered kind, `writer` is its registered writer,
     AND `dest` sits in that kind's registered folder. Raises `TransportWriteRefused` before
@@ -183,9 +182,9 @@ class _DestinationLock:
     def __init__(self, dest: Path, timeout_s: float = 10.0):
         self._lock_path = dest.parent / f".{dest.name}.append.lock"
         self._timeout_s = timeout_s
-        self._fd: Optional[int] = None
+        self._fd: int | None = None
 
-    def __enter__(self) -> "_DestinationLock":
+    def __enter__(self) -> _DestinationLock:
         import time
         deadline = time.monotonic() + self._timeout_s
         while True:
@@ -209,7 +208,7 @@ class _DestinationLock:
             pass
 
 
-def append(writer: str, dest: Path, block: str, *, registry: Optional[list[Kind]] = None) -> Path:
+def append(writer: str, dest: Path, block: str, *, registry: list[Kind] | None = None) -> Path:
     """Append `block` to `dest` (creating it if absent), gated the same way as `write()`.
     Used for a kind multiple callers add to over time (`SESSION-<lane>.md`), where a full
     atomic replace would erase what an earlier writer already left. Serialized per-destination
@@ -217,13 +216,12 @@ def append(writer: str, dest: Path, block: str, *, registry: Optional[list[Kind]
     reg = registry if registry is not None else load_registry()
     _check(writer, dest, reg)
     dest.parent.mkdir(parents=True, exist_ok=True)
-    with _DestinationLock(dest):
-        with dest.open("a", encoding="utf-8", newline="\n") as fh:
-            if dest.stat().st_size and not block.startswith("\n"):
-                fh.write("\n")
-            fh.write(block)
-            if not block.endswith("\n"):
-                fh.write("\n")
+    with _DestinationLock(dest), dest.open("a", encoding="utf-8", newline="\n") as fh:
+        if dest.stat().st_size and not block.startswith("\n"):
+            fh.write("\n")
+        fh.write(block)
+        if not block.endswith("\n"):
+            fh.write("\n")
     return dest
 
 
@@ -235,7 +233,7 @@ class StrayFinding:
     reason: str          # "unregistered kind" | "kind KIND belongs in FOLDER, found in HERE"
 
 
-def scan(transport_root: Path, registry: Optional[list[Kind]] = None) -> list[StrayFinding]:
+def scan(transport_root: Path, registry: list[Kind] | None = None) -> list[StrayFinding]:
     """Non-recursive over `to-cc/` and `to-browser/` (the convention `gen_handoff.decision_files`
     already uses) plus the transport root itself (`LANE-*.md` contracts live there, not in
     either subfolder). Report-only: never renames, moves or deletes anything (Do-not clause)."""
@@ -287,9 +285,9 @@ _LIT_CONTENT_RE = re.compile(r'"([^"\n]*)"|\'([^\'\n]*)\'')
 
 _JOIN_RE = re.compile(r"/\s*f?(" + _LITERAL + r")")
 _GLOB_RE = re.compile(r"\.glob\(\s*f?(" + _LITERAL + r")")
-_NAME_RE = re.compile(r"PREFIX|NAME|ARTIFACT|TEMPLATE|FILENAME", re.I)
-_ASSIGN_RE = re.compile(r"^[ \t]*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$", re.M)
-_DEF_RE = re.compile(r"^[ \t]*def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(", re.M)
+_NAME_RE = re.compile(r"PREFIX|NAME|ARTIFACT|TEMPLATE|FILENAME", re.IGNORECASE)
+_ASSIGN_RE = re.compile(r"^[ \t]*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$", re.MULTILINE)
+_DEF_RE = re.compile(r"^[ \t]*def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(", re.MULTILINE)
 _FOLDER_TOKENS = ("to-browser", "to-cc")
 
 #: The (join)/(glob)/(named) shapes are common Python -- shared with plenty of code that has
@@ -422,7 +420,7 @@ def derive_kinds_from_code(scripts_dir: Path = _SCRIPTS) -> set[str]:
 
 # --- CLI ----------------------------------------------------------------------------------------
 
-def _resolve_root(explicit: Optional[str]) -> Path:
+def _resolve_root(explicit: str | None) -> Path:
     if explicit:
         return Path(explicit)
     root = _tr.windows_user_env("CLAUDE_PROMPTS_DIR") or os.environ.get("CLAUDE_PROMPTS_DIR")
@@ -465,7 +463,7 @@ def _parser() -> argparse.ArgumentParser:
     return p
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     return args.func(args)
 

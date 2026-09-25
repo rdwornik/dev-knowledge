@@ -354,8 +354,38 @@ line-length = 120               # agreed fleet line-length (ARC 4 D1)
 # .ruff.toml retired 2026-07-13 (W3) — this [tool.ruff] table is the one config home.
 
 # === REPO-PERSONAL (this repo's lint posture — may differ; declared) ==========
+# lane-python-standard-1 (2026-09-25): first code-standard tool, traced to
+# to-browser/SESSION-lane-research-python-standard.md (C3). Candidate universe was C3's
+# proposed families (B,SIM,C90,PL,RET,PERF,FURB,PTH,N,UP,ARG,ERA,TRY,FBT,RUF), measured
+# tree-wide (6797 violations @ da11291b), auto-fixed with `--fix` (never `--unsafe-fixes`)
+# only under scripts/+tests/ files no other WAVE5B-N2 lane owns, then re-measured. These
+# twelve individual codes are the only ones that reached ZERO violations tree-wide after
+# that pass; every other candidate code is measured-not-enforced (see this lane's session
+# file to-browser/SESSION-lane-python-standard-1.md for the full before/after table and
+# ROWS-OWED). Not whole rule families — per-code selection, since most C3 families still
+# carry violations this lane cannot touch (owned by other lanes) or cannot auto-fix.
+# NOTE: RUF100 (unused-noqa) is excluded from every ruff invocation this lane ran with a
+# narrowed --select, because RUF100's "is this noqa used" check is evaluated against
+# WHATEVER rules are active in that invocation — a narrowed --select without E402/E731/etc.
+# makes RUF100 misjudge every `# noqa: E402` as dead and `--fix` deletes it (caught and
+# reverted once, see session file). Never run `--select ...RUF... --fix` without also either
+# excluding RUF100 or using the real full config; this repo carries live `# noqa: E4xx`
+# suppressions (313 at this writing) that a narrowed-select fix pass will destroy.
 [tool.ruff.lint]
-extend-select = []
+extend-select = [
+    "FURB122",  # for-loop-writes
+    "PLE2515",  # invalid-character-zero-width-space
+    "PLR1711",  # useless-return
+    "RET501",   # unnecessary-return-none
+    "RUF010",   # explicit-f-string-type-conversion
+    "RUF019",   # unnecessary-key-check
+    "SIM300",   # yoda-conditions
+    "SIM905",   # split-static-string
+    "SIM910",   # dict-get-with-none-default
+    "UP012",    # unnecessary-encode-utf8
+    "UP033",    # lru-cache-with-maxsize-none
+    "UP034",    # extraneous-parentheses
+]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/fixtures/**" = ["F401", "F811", "E402"]

@@ -144,7 +144,7 @@ import time
 import uuid
 from collections.abc import Callable, Mapping
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 from typing import Any
 
@@ -639,7 +639,7 @@ def connect(db_path: str | os.PathLike[str] | None = None):
 
 
 def _utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="microseconds")
+    return datetime.now(UTC).isoformat(timespec="microseconds")
 
 
 def _log_event(row: Mapping[str, Any]) -> None:

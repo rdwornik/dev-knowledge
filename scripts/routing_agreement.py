@@ -44,7 +44,6 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 try:
     import yaml
@@ -95,15 +94,15 @@ def l0_path(declared: str) -> Path:
 _REGION_LINES = 3
 
 
-def _role_regions(role: str, lines: list[str], all_roles: "list[str]") -> list[str]:
+def _role_regions(role: str, lines: list[str], all_roles: list[str]) -> list[str]:
     """The text region(s) of `l0_text` that describe `role`, lower-cased.
 
     A region starts at a line naming the role and ends at whichever comes first: the next line
     naming a DIFFERENT role, or `_REGION_LINES` lines later. That bound is the whole point --
     see `compare`.
     """
-    needle = re.compile(role.replace("_", "[ _-]?"), re.I)
-    others = [re.compile(r.replace("_", "[ _-]?"), re.I)
+    needle = re.compile(role.replace("_", "[ _-]?"), re.IGNORECASE)
+    others = [re.compile(r.replace("_", "[ _-]?"), re.IGNORECASE)
               for r in all_roles if r != role]
     regions: list[str] = []
     for i, line in enumerate(lines):
@@ -194,7 +193,7 @@ def render_table(roles: dict[str, list[str]]) -> str:
             f"{REGION_END}\n")
 
 
-def scan(repo_path: Path) -> tuple[str, Optional[list[Divergence]], str]:
+def scan(repo_path: Path) -> tuple[str, list[Divergence] | None, str]:
     """`(state, divergences, detail)`.
 
     `state` is one of `agree` / `diverge` / `l0-absent`. `divergences` is None when there was
@@ -346,7 +345,7 @@ def ran_models(worktree, sessions_root=None) -> dict[str, int]:
     return tally
 
 
-def ran_model(worktree, sessions_root=None) -> Optional[str]:
+def ran_model(worktree, sessions_root=None) -> str | None:
     """The model a lane predominantly ran at, or None when nothing was read.
 
     Ties break on the model id, so two readings of one transcript never disagree -- a reader that
@@ -356,7 +355,7 @@ def ran_model(worktree, sessions_root=None) -> Optional[str]:
     return max(sorted(tally), key=lambda model: tally[model]) if tally else None
 
 
-def compare_order(ordered: Optional[str], ran: Optional[str]) -> tuple[str, str]:
+def compare_order(ordered: str | None, ran: str | None) -> tuple[str, str]:
     """`(state, detail)` from the ordered tier and the ran model id. PURE -- no filesystem.
 
     Pure on purpose: `merge_receipt` judges a receipt's two RECORDED strings with this, long after
@@ -402,7 +401,7 @@ class ModelReading:
     """What a lane was ordered at, what it ran, and whether those are the same claim."""
     state: str
     ordered: str
-    ran: Optional[str]
+    ran: str | None
     tally: dict
     detail: str
 
@@ -431,7 +430,7 @@ def model_reading(ordered: str, worktree, sessions_root=None) -> ModelReading:
     return ModelReading(state=state, ordered=ordered, ran=ran, tally=tally, detail=detail)
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     """`--render` emits the L0 region; with no flag, report the agreement state.
 
     Exit code follows the STATE, not the transport: 0 on `agree`, 1 otherwise -- so `l0-absent`
