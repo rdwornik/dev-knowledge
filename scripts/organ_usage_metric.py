@@ -381,7 +381,8 @@ def render_report(report: dict[str, Any]) -> str:
 
 def wiring_reachable(repo_root: Path | str) -> frozenset[str]:
     """Every process path a wiring surface reaches, transitively -- a git hook, a CI workflow,
-    a settings/plugin hook, or an `import` chain (relative imports included).
+    an `ecosystem/harness.yaml` stage or moment declaration, a settings/plugin hook, or an
+    `import` chain (relative imports included).
 
     READ FROM FPG-1, never recomputed here: `graph_store` already holds the `triggers` +
     `imports` relation and `graph_queries.orphan_census` already asks it this same question, so
@@ -448,6 +449,11 @@ def process_census(
     WINDOWED invocation count -- the ratchet's replacement for `protocols/BUILD-LIST.md`'s
     "uncalled organs ... (PROXY)" line, which only checks whether a trigger EDGE exists, never
     whether the harness actually called the process in the last N days.
+
+    COUNTS AS OBSERVATION, per the census's own Value line: an import chain, a git hook or CI
+    step, and an `ecosystem/harness.yaml` stage/moment declaration -- all three read through
+    `wiring_reachable` below, the SAME reachability fact whichever of the three surfaces it
+    came from; a caller reading `reachable_unobserved` cannot and need not tell them apart.
 
     Three defects the 2026-09-18 AX9-5 re-run audit found and left as proposed rows are fixed
     HERE, in this function, rather than in `organ_usage_report` (which keeps its existing,
