@@ -24,7 +24,7 @@ reconciled_with: handoff-process@7.1.0
     (`lane-plan-lint-grammar`, WAVE5B-N1): keep the two in agreement rather than drifting one and
     patching the other's regex around it.
   * A bare alias (`opus`, `sonnet`, `haiku`, `opusplan`) in the Model cell or the Dispatch
-    line's `--model` — never write one; the night rule wants an explicit, versioned id, and
+    line's `--model` — one is not written; the night rule wants an explicit, versioned id, and
     `plan_lint.py` refuses a contract that names one instead.
 
   ROUTING IS DATA. The Model cell names the model the registry routes this lane's ROLE to
@@ -55,7 +55,7 @@ this line by hand only when the launcher refuses, recording that it did.
 <**Starts after `<lane>` is merged.** — exactly one dependency>
 <**Starts after `<lane>`, `<lane>` — every lane named here — are merged.** — more than one>
 <only when this lane depends on another; delete whichever line does not apply>
-<serialize-group: <label> — only when this lane must not run concurrently with another lane
+<serialize-group: <label> — only when this lane does not run concurrently with another lane
 sharing the label, and neither declares the other a dependency>
 
 ## Worktree pairing
