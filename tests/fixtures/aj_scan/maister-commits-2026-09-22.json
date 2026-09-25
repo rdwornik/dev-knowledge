@@ -1,0 +1,16 @@
+[
+  {
+    "sha": "d412d49f10000000000000000000000000000000",
+    "commit": {
+      "message": "version bump to 2.2.4",
+      "author": {"date": "2026-09-22T09:00:00Z"}
+    }
+  },
+  {
+    "sha": "4151c9c4d0000000000000000000000000000000",
+    "commit": {
+      "message": "port the v3 branch's fixes to the stable release",
+      "author": {"date": "2026-09-22T14:30:00Z"}
+    }
+  }
+]
