@@ -1,0 +1,21 @@
+# [#589] / ADR-122 step 0 -- the ONE view-byte budget.
+#
+# Read by BOTH `gen_task_tree.py --check` (`view_problems`, via `_VIEW_BYTE_CEILING`,
+# loaded through `load_view_budget()`) and `tests/test_gen_task_tree.py`'s live-view size
+# test. Before this file existed the two carried independently hardcoded numbers -- a
+# 100,000 B `--check` ceiling and a 72,000 B test bar -- free to drift apart because
+# nothing forced them to agree. ADR-122 step 0 ruled that a "two truths" split and
+# collapsed it into this one value both readers load.
+#
+# `docs/audits/2026-09-24-technical-declare-adr-122-rulings.md`:
+#   "Interim, to unblock filing today: the budget is 150,000 B for the generated view,
+#    with the named cause 'ADR-122 step 0; the view is uncommitted and field-only at
+#    step 2' and manual_until: 2026-10-15."
+#
+# `manual_until` is a date to revisit, not an enforced expiry -- nothing in this repo reads
+# it to change behaviour on that date. At step 2 (ADR-122's migration step 2) the view stops
+# being committed and this budget becomes a render budget rather than a commit-gate ceiling
+# (ADR-122 §Migration step 0's own "Target (step 2)" note).
+value: 150000
+cause: "ADR-122 step 0; the view is uncommitted and field-only at step 2"
+manual_until: "2026-10-15"
