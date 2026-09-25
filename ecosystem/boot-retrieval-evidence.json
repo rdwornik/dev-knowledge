@@ -6,7 +6,7 @@
  "pointer_text_sha256": {
   "hooks-roster": "9790e48ef85e768d",
   "repo-commands": "f349b3eb7b95de35",
-  "recent-adrs": "964e7087ff4585d3",
+  "recent-adrs": "63efada883c23317",
   "methodology-roster": "83ac26b84236e0eb",
   "skills-roster": "fbf6181911aec974"
  },
@@ -95,42 +95,6 @@
    "canary_witness": "for a handoff bundle in a single pass and emits exactly one evidence block \u2014 the v6 one-round-trip boot as described in `HANDOFF_PROCE",
    "answer_sha256": "80313d35ae325fec",
    "answer_head": "The command is `/handoff-verify`. It runs the whole live probe gate for a handoff bundle in a single pass and emits exactly one evidence block \u2014 the v6 one-round-trip boot as described in `HANDOFF_PRO"
-  },
-  {
-   "item": "recent-adrs",
-   "arm": "body",
-   "run": 0,
-   "fetched": false,
-   "touched": [],
-   "route": "preloaded",
-   "canary": true,
-   "canary_witness": "#664]` wiring surface only while invocations are recorded \u2014 adoption decays, it is not conferred.\" The ADR establishes that command files are only treated a",
-   "answer_sha256": "8f8b33053239091b",
-   "answer_head": "**ADR-119** (Accepted, 2026-09-13) most recently addressed this topic. It states: \"A command file counts as a `[#664]` wiring surface only while invocations are recorded \u2014 adoption decays, it is not c"
-  },
-  {
-   "item": "recent-adrs",
-   "arm": "body",
-   "run": 1,
-   "fetched": false,
-   "touched": [],
-   "route": "preloaded",
-   "canary": true,
-   "canary_witness": "#664]` wiring surface only while invocations are recorded \u2014 adoption decays, it is not conferred.\" The ADR is **Accepted** status.",
-   "answer_sha256": "14c659963dc03e3b",
-   "answer_head": "**ADR-119** (Accepted, 2026-09-13) most recently addressed this topic. Its key claim: \"A command file counts as a `[#664]` wiring surface only while invocations are recorded \u2014 adoption decays, it is n"
-  },
-  {
-   "item": "recent-adrs",
-   "arm": "body",
-   "run": 2,
-   "fetched": false,
-   "touched": [],
-   "route": "preloaded",
-   "canary": true,
-   "canary_witness": "#664]` wiring surface only while invocations are recorded \u2014 adoption decays, it is not conferred.\"",
-   "answer_sha256": "77281a2bb0dc70b1",
-   "answer_head": "**ADR-119** (Accepted, 2026-09-13) most recently addressed this: it states that \"A command file counts as a `[#664]` wiring surface only while invocations are recorded \u2014 adoption decays, it is not con"
   },
   {
    "item": "methodology-roster",
@@ -317,44 +281,6 @@
    "answer_head": "Use the **`handoff-verify`** skill:\n\n```\n/handoff-verify\n```\n\nIt runs the entire live probe gate for a handoff bundle in one pass and emits **exactly one evidence block** \u2014 the v6 one-round-trip boot "
   },
   {
-   "item": "recent-adrs",
-   "arm": "pointer",
-   "run": 0,
-   "fetched": false,
-   "touched": [],
-   "route": "none",
-   "canary": false,
-   "canary_witness": "",
-   "answer_sha256": "d89c3d44046155ea",
-   "answer_head": "I don't have enough information in the provided context to answer this accurately. While CLAUDE.md references multiple ADRs and mentions command files in section 7, it doesn't explicitly state which A"
-  },
-  {
-   "item": "recent-adrs",
-   "arm": "pointer",
-   "run": 1,
-   "fetched": true,
-   "touched": [
-    "Read:.claude/generated/recent-adrs.md"
-   ],
-   "route": "fetch",
-   "canary": true,
-   "canary_witness": "#664]` wiring surface only while invocations are recorded \u2014 adoption decays, it is not conferred.\" This means command files are considered wiring surfaces o",
-   "answer_sha256": "246388f39a6c937b",
-   "answer_head": "**ADR-119** is the most recent ADR making this change. Its status is **Accepted** (dated 2026-09-13). \n\nThe decision states: \"A command file counts as a `[#664]` wiring surface only while invocations "
-  },
-  {
-   "item": "recent-adrs",
-   "arm": "pointer",
-   "run": 2,
-   "fetched": false,
-   "touched": [],
-   "route": "none",
-   "canary": false,
-   "canary_witness": "",
-   "answer_sha256": "b6ef3107896b2a87",
-   "answer_head": "I don't see an explicit reference to the specific ADR that made command files a wiring surface in the provided CLAUDE.md excerpt. The file delegates to `.claude/generated/recent-adrs.md` for the last "
-  },
-  {
    "item": "methodology-roster",
    "arm": "pointer",
    "run": 0,
@@ -463,6 +389,100 @@
    "canary_witness": "",
    "answer_sha256": "e2e35d14b847badf",
    "answer_head": "Looking at the first paragraph under the Vision section (lines 13\u201315), the first sentence reads:\n\n> `.dev-knowledge` is a universal LLM-driven development guide and methodology framework.\n\nThe typo is"
+  },
+  {
+   "item": "recent-adrs",
+   "arm": "body",
+   "run": 0,
+   "fetched": false,
+   "touched": [],
+   "route": "preloaded",
+   "canary": true,
+   "canary_witness": "question. Its title is \"Lanes route to a substrate by data; parallelism runs across repositories, capped by measured limits\" (2026-09-25). Its current statu",
+   "answer_sha256": "bbfcfdb8cebf9a5e",
+   "answer_head": "**ADR-126** most recently addressed this question. Its title is \"Lanes route to a substrate by data; parallelism runs across repositories, capped by measured limits\" (2026-09-25). Its current status i"
+  },
+  {
+   "item": "recent-adrs",
+   "arm": "body",
+   "run": 1,
+   "fetched": false,
+   "touched": [],
+   "route": "preloaded",
+   "canary": true,
+   "canary_witness": "allelism. Its title is \"Lanes route to a substrate by data; parallelism runs across repositories, capped by measured limits.\" Its status is **Proposed** as ",
+   "answer_sha256": "f0f37025262390d1",
+   "answer_head": "**ADR-126** most recently decided on lanes and parallelism. Its title is \"Lanes route to a substrate by data; parallelism runs across repositories, capped by measured limits.\" Its status is **Proposed"
+  },
+  {
+   "item": "recent-adrs",
+   "arm": "body",
+   "run": 2,
+   "fetched": false,
+   "touched": [],
+   "route": "preloaded",
+   "canary": true,
+   "canary_witness": "parallel. Its title is \"Lanes route to a substrate by data; parallelism runs across repositories, capped by measured limits.\"\n\nIts current status is **Propo",
+   "answer_sha256": "da1f41131de7f9a2",
+   "answer_head": "**ADR-126** (Proposed, 2026-09-25) most recently decided where lanes run and how they run in parallel. Its title is \"Lanes route to a substrate by data; parallelism runs across repositories, capped by"
+  },
+  {
+   "item": "recent-adrs",
+   "arm": "pointer",
+   "run": 0,
+   "fetched": false,
+   "touched": [],
+   "route": "preloaded",
+   "canary": true,
+   "canary_witness": "recently decided this: \"Lanes route to a substrate by data; parallelism runs across repositories, capped by measured limits.\" It addresses both where lanes ",
+   "answer_sha256": "c24cd0c83ca48777",
+   "answer_head": "**ADR-126** most recently decided this: \"Lanes route to a substrate by data; parallelism runs across repositories, capped by measured limits.\" It addresses both where lanes run (to a substrate determi"
+  },
+  {
+   "item": "recent-adrs",
+   "arm": "pointer",
+   "run": 1,
+   "fetched": false,
+   "touched": [],
+   "route": "preloaded",
+   "canary": true,
+   "canary_witness": "pic. Its full title is \"Lanes route to a substrate by data; parallelism runs across repositories, capped by measured limits,\" and its current status is **Pr",
+   "answer_sha256": "8342d8451b16a724",
+   "answer_head": "ADR-126 most recently addressed this topic. Its full title is \"Lanes route to a substrate by data; parallelism runs across repositories, capped by measured limits,\" and its current status is **Propose"
+  },
+  {
+   "item": "recent-adrs",
+   "arm": "pointer",
+   "run": 2,
+   "fetched": false,
+   "touched": [],
+   "route": "preloaded",
+   "canary": true,
+   "canary_witness": "allelism. Its title is \"Lanes route to a substrate by data; parallelism runs across repositories, capped by measured limits.\"\n\nIts current status is **Propo",
+   "answer_sha256": "8eef34bc0fe27c71",
+   "answer_head": "**ADR-126** most recently decided on lanes and parallelism. Its title is \"Lanes route to a substrate by data; parallelism runs across repositories, capped by measured limits.\"\n\nIts current status is *"
   }
- ]
+ ],
+ "item_refresh": {
+  "recent-adrs": {
+   "measured_at": "2026-09-25T21:20:54+00:00",
+   "model": "claude-haiku-4-5-20251001",
+   "pointer_arm_sha256": "05766bdd14eeded6009c3b5a17aa5a58151a75a3e2930a1a418509a38bdb5f68",
+   "setting_sources": "project",
+   "boot_text_selftest": {
+    "body": {
+     "token": "255685e344",
+     "child_answer": "The boot sentinel given in the project instructions is **255685e344**."
+    },
+    "pointer": {
+     "token": "0ddf52ae43",
+     "child_answer": "The boot sentinel is **0ddf52ae43**, stated at the end of the `CLAUDE.md` project instructions."
+    }
+   },
+   "pointer_runs": 3,
+   "admit_at": 2,
+   "scope": "rows of this item only; control rows and other items keep the top-level run",
+   "why": "to-browser/REFUSED-lane-adr-drafts.md repair step 2 (probe re-pointed to ADR-126)"
+  }
+ }
 }
