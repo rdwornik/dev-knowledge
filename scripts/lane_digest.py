@@ -57,7 +57,7 @@ import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from collections.abc import Sequence
+from typing import Optional, Sequence
 
 try:  # pragma: no cover -- whichever entry point the caller uses (package mode vs script)
     from scripts import transport_report as _tr
@@ -87,10 +87,10 @@ class LaneInput:
     name: str
     receipts: list[dict] = field(default_factory=list)
     did: list[str] = field(default_factory=list)
-    cost_usd: float | None = None
+    cost_usd: Optional[float] = None
     #: The merge commit the integrator's own ledger (`logs/MERGE-RECEIPTS.jsonl`) recorded for
     #: this lane -- R-W4-3's "integrator's receipt" half. `None` when the ledger names none.
-    merge_sha: str | None = None
+    merge_sha: Optional[str] = None
 
 
 def _words(organ: str) -> str:
@@ -212,7 +212,7 @@ def batch_lanes(root: Path, costs: dict[str, float]) -> list[LaneInput]:
 
 # --- the transport-reports batch view (R-W4-3) ----------------------------------------------------
 
-def load_merge_shas(ledger_file: Path, batch: str | None = None) -> dict[str, str]:
+def load_merge_shas(ledger_file: Path, batch: Optional[str] = None) -> dict[str, str]:
     """slug -> the newest merge sha `merge_receipt.py` recorded for it in the append-only ledger
     (a later row for the same slug wins). Missing or unreadable: empty, never raised -- a digest
     must never stop on a ledger it cannot read.
@@ -245,7 +245,7 @@ def load_merge_shas(ledger_file: Path, batch: str | None = None) -> dict[str, st
     return shas
 
 
-def lane_roster(reports_dir: Path, lanes_arg: str | None) -> list[str]:
+def lane_roster(reports_dir: Path, lanes_arg: Optional[str]) -> list[str]:
     """The batch's lane names, named explicitly rather than discovered.
 
     `lanes_arg` (the `--lanes` flag) wins; then `$HARNESS_LANES` -- the same env-var-carries-the-
@@ -322,7 +322,7 @@ def _parser() -> argparse.ArgumentParser:
     return p
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: Optional[list[str]] = None) -> int:
     try:
         try:
             args = _parser().parse_args(argv)

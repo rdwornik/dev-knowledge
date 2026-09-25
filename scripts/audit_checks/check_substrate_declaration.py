@@ -114,8 +114,8 @@ def _batch_key(date_part: str, token: str) -> str:
     `batch` (`batchac` == `batch-ac`). Every other dash is identity -- stripping them all made
     `batch-x3` and `batch-x-3` one key (Codex terra HIGH 2026-09-19); case is not folded either
     (pass 3)."""
-    tok = token.removeprefix("batch")   # case is identity
-    return f"{date_part}:{tok.removeprefix('-')}"
+    tok = token[len("batch"):] if token.startswith("batch") else token   # case is identity
+    return f"{date_part}:{tok[1:] if tok.startswith('-') else tok}"
 
 
 _LAUNCH_KEY_RE = re.compile(r"^(?P<date>\d{4}-\d{2}-\d{2})-technical-(?P<tok>batch.*)-launch-contracts$")

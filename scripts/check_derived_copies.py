@@ -75,7 +75,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from collections.abc import Sequence
+from typing import Optional, Sequence
 
 import yaml
 
@@ -101,7 +101,7 @@ class DerivedCopiesError(RuntimeError):
 class Finding:
     """One refusal. `copy_id` is None for a finding about the registry as a whole."""
 
-    copy_id: str | None
+    copy_id: Optional[str]
     detail: str
     remedy: str
 
@@ -246,7 +246,7 @@ def configured_hook_ids(repo: Path) -> frozenset[str]:
     return frozenset(configured_hooks(repo))
 
 
-def hook_covers(hook: dict, sources: Sequence[str]) -> str | None:
+def hook_covers(hook: dict, sources: Sequence[str]) -> Optional[str]:
     """None if `hook` really guards `sources` at the pre-commit stage, else why not.
 
     THIS IS THE LEG-2 STRENGTHENING terra's review forced (HIGH, 2026-09-07), and the
@@ -405,8 +405,8 @@ def _verify_region(cid: str, copy: DerivedCopy, repo: Path,
         f"re-render it and place the region: {copy.render}")]
 
 
-def extract_region(text: str, begin: str | None,
-                   end: str | None) -> tuple[str, str | None]:
+def extract_region(text: str, begin: Optional[str],
+                   end: Optional[str]) -> tuple[str, Optional[str]]:
     """The marker-bounded region of `text`, or `("", why-not)`.
 
     REPLACES A SUBSTRING TEST, on terra's review (HIGH, 2026-09-07). The first cut asked
@@ -434,14 +434,14 @@ def extract_region(text: str, begin: str | None,
 # --- CLI --------------------------------------------------------------------------------
 
 
-def run(repo: Path, staged: Sequence[str] | None = None) -> list[Finding]:
+def run(repo: Path, staged: Optional[Sequence[str]] = None) -> list[Finding]:
     """Both legs. `staged` is injectable so tests never need a real index."""
     registry = load_registry(repo)
     paths = staged_paths(repo) if staged is None else tuple(staged)
     return check_disarm(registry, repo) + check_rebinds(registry, repo, paths)
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="check_derived_copies",
         description="Refuse a commit that stages a registered source without re-rendering "
