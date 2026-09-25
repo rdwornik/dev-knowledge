@@ -110,9 +110,16 @@ jobs:
 
   container:
     name: devcontainer build + L1 marker verify
-    # ARMED 2026-09-15 by operator ruling, and armed NARROWLY. workflow_dispatch ONLY: the
-    # ruling was "not on a schedule", so this job is skipped on the daily cron and on the
-    # provisioning push trigger, and runs only when a human asks for it by name.
+    # ARMED 2026-09-15 by operator ruling, NARROWLY: workflow_dispatch ONLY, because the ruling
+    # was "not on a schedule". RE-ARMED ON THE SCHEDULE 2026-09-25 (LANE-5B2-8,
+    # AMEND-BATCH-WAVE5B-N2-LANE8-2026-09-25, R2; the earlier narrowing was the caution that
+    # `devcontainers/ci` was a new third-party action and that Actions minutes had a spend
+    # ruling — both already resolved below, "ARMING RECORD"). A build leg that only fires when a
+    # human asks for it by name has the exact usage-dependency the declaration job's own header
+    # names as the defect: "the substrate died at one commit and nobody noticed for two weeks
+    # BECAUSE NOTHING RAN THERE." Running the real build only on request reintroduces that gap
+    # one layer up from the declaration probe. It still runs on workflow_dispatch too, so the
+    # operator can still fire it by hand.
     #
     # WHY IT EXISTS AT ALL. The `declaration` job above probes the DECLARATION -- every file the
     # provisioning surfaces name still exists, the pins read, the lifecycle commands reach the
@@ -120,7 +127,12 @@ jobs:
     # is exactly what happened: the build failed, Codespaces silently substituted a recovery
     # container, and the platform reported Available. Only a real build answers that question,
     # and this is the leg that does it WITHOUT provisioning a billable codespace to find out.
-    if: github.event_name == 'workflow_dispatch'
+    #
+    # NOT on the push trigger, deliberately, unlike `declaration` above: a push-triggered build
+    # would run on every commit touching `.devcontainer/**`, and this leg costs a real ~5 min
+    # image build rather than a few seconds of declaration-reading. The daily cron is what makes
+    # it a heartbeat; workflow_dispatch is what makes it immediate when a human wants to check.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     # A CEILING ON SPEND, not merely on hangs. ~5 minutes is the expected run. 30 bounds a build
     # that wedges, so one bad iteration cannot quietly consume an afternoon of minutes while
@@ -150,7 +162,47 @@ jobs:
           # secrets at all (`gh secret list` -> []). Verifying that a real provisioning run wrote
           # a verifiable provenance marker is not a task a model does, so no model credential is
           # referenced and the leg cannot be permanently red for want of one.
-          runCmd: uv run --locked python scripts/substrate_provenance.py verify --require-marker
+          #
+          # THE FOUR EVIDENCE LINES BELOW ARE THE JOB'S OWN (LANE-5B2-8 Done-contract item 1),
+          # not merely inferred from provision.sh's internal asserts. `devcontainer up` already
+          # runs onCreateCommand / updateContentCommand / postCreateCommand / postStartCommand
+          # before this runCmd executes, and `provision.sh` refuses non-zero if the uv pin,
+          # `claude`, or `node` are wrong or absent (leg1_uv, leg_f1_claude) -- so by the time
+          # this step runs, a red build already means one of those failed. What was missing was a
+          # reader-visible line IN THIS STEP saying so, rather than a reader having to already
+          # know to scroll into provision.sh's own log output to find it.
+          #
+          #   1. uv --version, read fresh inside the built container and compared against the
+          #      SINGLE SOURCE (`pyproject.toml [tool.uv] required-version`, ADR-106,
+          #      must-not-repeat 3) -- never a second hardcoded pin.
+          #   2/3. `claude` and `node` on PATH, each with its own line -- the exact pairing that
+          #      was misdiagnosed as an authentication failure in the 2026-09-15 lane
+          #      (provision.sh's leg_f1_claude comment carries that history).
+          #   4. `updateContentCommand` IS the refresh command devcontainer.json declares -- read
+          #      back from the declaration itself rather than assumed, so a future edit to the
+          #      hook that forgets to keep this evidence line honest fails loudly here instead of
+          #      silently asserting a command that no longer runs.
+          runCmd: |
+            set -euo pipefail
+            have_uv="$(uv --version | awk '{print $2}')"
+            want_uv="$(awk '
+              /^\[/                                            { section = $0 }
+              section == "[tool.uv]" && /^required-version[[:space:]]*=/ {
+                if (match($0, /"[^"]*"/)) { print substr($0, RSTART + 1, RLENGTH - 2); exit }
+              }
+            ' pyproject.toml)"
+            want_uv="${want_uv#==}"
+            [ -n "${want_uv}" ] || { echo "[container-job] REFUSED: pyproject.toml [tool.uv] required-version not found" >&2; exit 1; }
+            [ "${have_uv}" = "${want_uv}" ] || { echo "[container-job] REFUSED: uv --version is ${have_uv}, pyproject.toml [tool.uv] required-version pins ${want_uv}" >&2; exit 1; }
+            echo "[container-job] uv --version: ${have_uv} == pyproject.toml [tool.uv] required-version"
+            command -v claude >/dev/null 2>&1 || { echo "[container-job] REFUSED: claude is not on PATH" >&2; exit 1; }
+            echo "[container-job] claude on PATH: $(claude --version 2>/dev/null | head -1)"
+            command -v node >/dev/null 2>&1 || { echo "[container-job] REFUSED: node is not on PATH" >&2; exit 1; }
+            echo "[container-job] node on PATH: $(node --version 2>/dev/null)"
+            declared="$(grep -o '"updateContentCommand"[[:space:]]*:[[:space:]]*"[^"]*"' .devcontainer/devcontainer.json | sed -E 's/.*"([^"]*)"$/\1/')"
+            [ -n "${declared}" ] || { echo "[container-job] REFUSED: devcontainer.json declares no updateContentCommand" >&2; exit 1; }
+            echo "[container-job] updateContentCommand is what runs: ${declared} (declared in devcontainer.json; devcontainer up already ran it, ordered before postCreateCommand, before this step)"
+            uv run --locked python scripts/substrate_provenance.py verify --require-marker
 
 # ---------------------------------------------------------------------------------------------
 # ARMING RECORD: the container-build leg, armed 2026-09-15.
@@ -202,3 +254,29 @@ jobs:
 # runner, not the Codespaces platform, so it cannot exercise prebuilds, the recovery-container
 # substitution, development-environment secrets, or the idle timer. Those need the one
 # authorised billable codespace, and that is what it is for.
+#
+# ---------------------------------------------------------------------------------------------
+# RE-ARMED ON THE SCHEDULE, 2026-09-25 (LANE-5B2-8, contract v2 AMEND LANE8;
+# AMEND-BATCH-WAVE5B-N2-LANE8-2026-09-25; to-browser/RATIFICATION-2026-09-25.md R2).
+#
+# THE `if:` ABOVE NOW ALSO FIRES ON `schedule`, NOT ONLY `workflow_dispatch`. The 2026-09-15
+# ruling that narrowed this job to workflow_dispatch-only named two blockers: `devcontainers/ci`
+# as a new third-party action, and Actions minutes against a spend ruling. Both are resolved in
+# the ARMING RECORD immediately above this line — the SHA pin answers the first, and the
+# measured $0.00 netAmount on a public repo answers the second. With both resolved, running the
+# real build only on request carries the identical usage-dependency defect the `declaration`
+# job's own module header names as the reason this heartbeat exists at all: "a health signal
+# that only fires when someone happens to use the thing is not a health signal, it is a usage
+# log." The row this closes (DIGEST-REPO-RESEARCH §3.5) named exactly this: the scheduled proof
+# that builds the devcontainer, not merely the declaration a schedule already checked.
+#
+# WHAT WAS NOT ADDED: an agent leg (`claude -p` writing a commit) inside this job. R2 forbids a
+# repository/Actions secret, which that leg needs, so it is NOT attempted here — it is filed as
+# a ROWS-OWED item (the session record for this lane) to run instead through `Dispatch-Codespace`
+# from the operator's machine, on the account-level Codespaces secret. `lane-codespace-proof` is
+# its first manual instance.
+#
+# THE THREE EVIDENCE LINES ADDED TO `runCmd` above (uv / claude+node / updateContentCommand) are
+# new in this lane too — the build already asserted all three internally via `provision.sh`
+# (a red build already meant one of them failed), but nothing in THIS job's own log said so in
+# terms a reader could find without already knowing to look inside provision.sh's output.
