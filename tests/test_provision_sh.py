@@ -18,6 +18,7 @@ is asserted here instead is that the script HANDS OVER to the refreshed copy.
 """
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -166,7 +167,7 @@ def test_provision_sh_runs_the_history_repair_before_arming_hooks():
                                "smoke_gate_liveness", "write_stamp")]
     assert steps == [
         "leg1_uv", "leg2_unshallow", "refresh_source_tree", "sync_environment",
-        "leg2b_history", "leg5_ecosystem", "leg3_hooks", "leg_f1_claude",
+        "leg2b_history", "leg5_ecosystem", "leg3_hooks", "leg_pc_login_path", "leg_f1_claude",
         "leg_f2_git_credential", "leg_f4_workspace_trust", "smoke_gate_liveness", "write_stamp",
         # L1 ([#554]) is LAST, and the position is the claim: the provenance marker records what
         # is LIVE, so every tool it names must already be installed when it is written. Anywhere
@@ -202,6 +203,123 @@ def test_the_handover_guard_is_exported_so_the_new_process_can_see_it():
     and a plain shell variable does not survive it, so the successor would re-exec forever."""
     code = _uncommented(_PROVISION_SH.read_text(encoding="utf-8"))
     assert re.search(r"export\s+DEV_KNOWLEDGE_PROVISION_REEXEC", code), "not exported"
+
+
+# --- the WAVE5B-N2 repair-1 class: pre-commit exists in the venv but is invisible to a fresh
+# login shell, which is what the codespace admission test actually runs -----------------------
+
+
+@pytest.mark.skipif(shutil.which("bash") is None, reason="no bash on PATH")
+def test_leg_pc_login_path_persists_precommit_onto_a_fresh_shells_path(tmp_path: Path):
+    """REFUSED-lane-codespace-proof.md (WAVE5B-N2 repair 1): `.venv/bin/pre-commit` existed
+    (`uv sync` installs it, pyproject.toml pins `pre-commit>=4.5`) but a codespace's LOGIN
+    shell — the shell the admission test runs `command -v pre-commit` in, right after
+    provisioning — has no `.venv/bin` on its PATH; only a shell that already ran `uv run` or
+    activated the venv sees it. `pre_commit is not on the login PATH -- a lane that commits
+    here would land work past every gate` was the refusal.
+
+    This runs the extracted leg body against a FAKE HOME + FAKE venv (no real container), then
+    proves the fix in a SEPARATE, genuine `bash -lc` process — the EXACT invocation the
+    codespace admission test runs, and a LOGIN-but-NOT-INTERACTIVE shell. `~/.bashrc` here is
+    seeded with the REAL Debian/Ubuntu skeleton's early-return guard
+    (`case $- in *i*) ;; *) return;; esac`), which fires for exactly this shell shape and is
+    what sank the first version of this leg — it appended to `~/.bashrc` and the terra review
+    caught that `bash -lc` never reaches a line below that guard
+    (`docs/audits/2026-09-25-codex-codex-lane-codespace-proof-repair-1.md`). A test that
+    sourced `~/.bashrc` directly (skipping the guard) or checked only the leg's own process PATH
+    would miss that failure entirely.
+    """
+    text = _PROVISION_SH.read_text(encoding="utf-8")
+    body = _bash_function(text, "leg_pc_login_path")
+    bash_exe = shutil.which("bash")
+
+    home = tmp_path / "home"
+    home.mkdir()
+    venv_bin = tmp_path / "repo" / ".venv" / "bin"
+    venv_bin.mkdir(parents=True)
+    fake_pc = venv_bin / "pre-commit"
+    fake_pc.write_text("#!/usr/bin/env bash\necho fake-pre-commit\n", encoding="utf-8")
+    fake_pc.chmod(0o755)
+    # THE REALISTIC GUARD, verbatim from Debian/Ubuntu's /etc/skel/.bashrc. Left untouched by
+    # the leg (it must never need to touch ~/.bashrc), and proving it stays untouched is part of
+    # what this test checks.
+    (home / ".bashrc").write_text(
+        "# If not running interactively, don't do anything\n"
+        "case $- in\n"
+        "    *i*) ;;\n"
+        "      *) return;;\n"
+        "esac\n"
+        "\n"
+        "echo 'THIS LINE MUST NEVER RUN UNDER bash -lc' >&2\n"
+        "export PATH=\"/this/path/must/never/be/used:$PATH\"\n",
+        encoding="utf-8")
+
+    # RESOLVE THE CANONICAL PATH SPELLING THROUGH BASH ITSELF, not `Path.as_posix()`. A real
+    # container computes REPO_ROOT via `cd .. && pwd` (top of this file) and every path it ever
+    # writes is already POSIX-native — there is no second spelling to reconcile. This dev host
+    # is Windows, so `tmp_path.as_posix()` (`C:/Users/.../AppData/Local/Temp/...`) is a spelling
+    # bash accepts when RESOLVING a path (`cd`, `ls`) but does not re-derive when a later
+    # `export PATH=...` merely copies that string verbatim — MSYS/Cygwin's win->posix path
+    # translation runs on specific env vars AT PROCESS STARTUP (HOME among them, confirmed
+    # below), never on a value assigned by a running shell. Resolving once through `cd && pwd`
+    # gets the SAME canonical form the leg's own `export PATH=...` line will carry, so the two
+    # can be compared, and a later shell's PATH search actually finds the file.
+    def _canon(p: Path) -> str:
+        r = subprocess.run([bash_exe, "-c", f'cd "{p.as_posix()}" && pwd'],
+                            capture_output=True, text=True, timeout=30)
+        assert r.returncode == 0, f"could not resolve {p} through bash: {r.stderr!r}"
+        return r.stdout.strip()
+
+    home_c = _canon(home)
+    repo_root_c = _canon(tmp_path / "repo")
+    venv_bin_c = f"{repo_root_c}/.venv/bin"
+    fake_pc_c = f"{venv_bin_c}/pre-commit"
+
+    harness = tmp_path / "harness.sh"
+    harness.write_text(
+        "set -euo pipefail\n"
+        f'HOME="{home_c}"\n'
+        f'REPO_ROOT="{repo_root_c}"\n'
+        'CHANGED=0\n'
+        'say() { printf "[t] %s\\n" "$*"; }\n'
+        'noop() { printf "[t] %s (no-op)\\n" "$*"; }\n'
+        'die() { printf "[t] REFUSED: %s\\n" "$*" >&2; exit 1; }\n'
+        f'leg_pc_login_path() {{{body}\n}}\n'
+        'leg_pc_login_path\n',
+        encoding="utf-8")
+
+    run = subprocess.run([bash_exe, str(harness)], capture_output=True, text=True, timeout=60)
+    assert run.returncode == 0, f"stdout={run.stdout!r} stderr={run.stderr!r}"
+
+    # NOT ~/.bashrc: none of `.bash_profile`/`.bash_login`/`.profile` existed, so the leg must
+    # have created `~/.profile` (the documented fallback) — and left the decoy `~/.bashrc`
+    # completely alone, since nothing in the real login-shell resolution chain reads it here.
+    profile = home / ".profile"
+    assert profile.exists(), "the leg must create a real login-startup file when none exists"
+    assert venv_bin_c in profile.read_text(encoding="utf-8"), (
+        "the leg must persist the venv bin dir onto every login shell's PATH, "
+        "not only export it inside its own process")
+    bashrc_after = (home / ".bashrc").read_text(encoding="utf-8")
+    assert "dev-knowledge provision" not in bashrc_after, (
+        "the leg must never touch ~/.bashrc — that file is what sank the first version of "
+        "this leg (a non-interactive login shell never reaches a line below its guard)")
+
+    # THE PROOF: a SEPARATE, GENUINE `bash -lc` process — the EXACT invocation the codespace
+    # admission test runs — inheriting nothing from this run except HOME and a bare PATH, which
+    # is what a fresh login shell has before anything is sourced.
+    child_env = dict(os.environ)
+    child_env["HOME"] = home_c
+    child_env["PATH"] = "/usr/bin:/bin"
+    fresh = subprocess.run(
+        [bash_exe, "-lc", "command -v pre-commit"],
+        capture_output=True, text=True, timeout=30, env=child_env,
+    )
+    assert "THIS LINE MUST NEVER RUN UNDER bash -lc" not in fresh.stderr, (
+        "the decoy ~/.bashrc ran — the test setup does not isolate what it claims to")
+    assert fresh.returncode == 0, (
+        f"pre-commit did not resolve in a real `bash -lc` login shell: "
+        f"stdout={fresh.stdout!r} stderr={fresh.stderr!r}")
+    assert fake_pc_c in fresh.stdout
 
 
 @pytest.mark.skipif(shutil.which("bash") is None, reason="no bash on PATH")
