@@ -219,7 +219,8 @@ Each step is a lane with RED-first witnesses (ADR-108 §B); nothing here is buil
   within ~12 s — though without dependency links). Measured in O2's favour: every operation through
   `gh`; no generated shared file in the merge path; `Closes #N` closed the issue 1 s after merge, and a
   ruleset made CI the closing gate (refusal measured); server-side dependency integrity (cycle 422,
-  dangling 404); lossless compat (20/20 byte-identical with a carrier). The "Alternatives considered"
+  dangling 404); lossless compat (20/20 byte-identical with a carrier; the 13 harness readers 13/13 equal to
+  baseline, 12/13 without the carrier). The "Alternatives considered"
   O2 entry above is read with this amendment: its "fails offline" ground no longer weighs.
 - **What held, measured live:** no server-side schema (0 of 5 invalid writes refused; the issue form
   binds the web UI only; the raw API creates unknown labels); a stale body edit is silently lost; the

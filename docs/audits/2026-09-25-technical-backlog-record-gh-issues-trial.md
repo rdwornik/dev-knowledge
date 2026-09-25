@@ -16,7 +16,7 @@
 ```
 step | requested | served | evidence
 orchestrate, trial items 1-3 and 5-8, write | claude-opus-5-5 | Claude Opus 5.5 (this session) | session
-reader harness (item 3) | Sonnet subagent | claude-sonnet-5 subagent | its report, §2.3
+reader harness (item 3) | Sonnet subagent | Sonnet subagent (Agent tool, model sonnet), 110 tool calls, 75 min | its report, §2.3
 item 4 implementation | Copilot CLI, claude-opus-5.5 | claude-opus-5.5 (usage file `currentModel`), 41 requests | copilot-usage.json
 item 4 code review | Codex terra | gpt-5.6-terra, 54,557 tokens | codex log "model: gpt-5.6-terra"
 item 9 independent check | Codex sol | gpt-6-sol, --search, read-only, 115,506 tokens | codex log "model: gpt-6-sol"
@@ -94,8 +94,21 @@ in a headless background session; recorded as not run (the session file says so)
 - **With the verbatim carrier: 20/20 byte-identical** (filename included, once carried). **From the
   typed sections only (no carrier): 16/20 byte-identical, 20/20 clause-set-identical** — the 4
   differences are clause order (463, 702, 743, 784), the same class O1 recorded without its carrier.
-- The 13 readers of research record §3 (R1-R14, R8 absent), run on a baseline clone and on each
-  variant: READERS-PENDING
+- The 13 readers of research record §3 (R1-R14, R8 absent), rebuilt by a Sonnet subagent and run on
+  three `git clone --local` copies of the scratch repository (baseline; the 20 row files replaced by
+  each variant), output per reader compared with the baseline's:
+
+```
+variant | readers equal to baseline (of 13) | what broke
+O2 compat, carrier | 13 | -
+O2 compat, typed sections only | 12 | R3 export_backlog_view: 4/20 exported rows differ (463, 702, 743, 784 — clause order, carried verbatim into the export)
+```
+
+  As in the research record, "equal" is not "green": R4 (`preflight_contract`) exits 1 at baseline,
+  and it reads the committed BACKLOG.md, which no variant regenerates — its "equal" says nothing about
+  the row files. The harness had to force `PYTHONUTF8=1` for its reader subprocesses (cp1252 console
+  crashes on em-dashes would have faked a reader difference). O2's carrier compat therefore ties O1,
+  O5 and beads (13/13); without the carrier it beats git-bug (10) and Backlog.md (6).
 - Harness defect, found and corrected: 21 of 22 multi-line bodies came back CRLF. The one created with
   an inline `--body` (#23) kept LF: the CRLF was introduced by the harness (Python
   `subprocess(text=True)` on Windows translates `\n` on the stdin pipe to `gh --body-file -`), **not
@@ -213,7 +226,7 @@ verifier as data | 10 | 4 | 2 | 1 | a verifier-kind field (text); a ruleset make
 links | 8 | 5 | 4 | 3 | typed blocked-by with cycle 422 and dangling 404 on the server; the rest are body text
 no byte ceiling on truth | 6 | 5 | 5 | 5 | body limit 65,536 chars; largest trial body 10,395
 offline | 0 | 5 | 1 | 1 | weight 0 by ruling
-migration cost (5 = cheap) | 10 | 3 | 2 | 1 | lossless compat 20/20 with a carrier; ids lost or a >= 66 min aligned migration with 280 placeholders under a freeze; filename must be carried
+migration cost (5 = cheap) | 10 | 3 | 2 | 1 | lossless compat 20/20 with a carrier, readers 13/13; ids lost or a >= 66 min aligned migration with 280 placeholders under a freeze; filename must be carried
 one source of truth (snapshot counted) | 10 | 4 | 3 | 2 | the git snapshot trails by ~12 s but lacks links (2.6)
 library-first | 6 | 4 | 4 | 4 | gh + GitHub; unchanged
 ADR-121 fit | 6 | 4 | 2 | 1 | state outside git; the snapshot is a projection, not an event log
