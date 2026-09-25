@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-25 (h) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): the SessionStart hooks leave PowerShell -- the container's only hard break is gone
+
+**Anchors:** `76eda9c1` (`refactor(hooks): port surface_triage and billing_leak_sentinel off PowerShell`), `13e97d44` (repair 1: the fake `gh` resolves on POSIX too) -- `worktree-lane-hooks-port` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree off origin/main `4fab7aea`.
+
+**Did:** refused once (the Linux CI red in its own `tests/test_surface_triage.py`: a `gh.cmd`-only fixture let the runner's real `gh` answer); the repair adds a POSIX shim, green on the lane's own Linux run 36084474837. Merged in `worktree-integrate-lane-hooks-port`; the lane's files equal the ship-gate-verified integration tree `c5787f99` except the one repaired test file, so the ship-gate leg is not repeated; lane-changed tests and the CI pairing on this merge. **Result:** `surface_triage` and `billing_leak_sentinel` run as `uv run --locked python`, `lane_end_guard` through `uv run`; `.claude/settings.json`'s hooks carry no `powershell` (the `.ps1` sources retired in place). PARTIAL on the contract's timing item, in the lane's own words: the three-start chain median is not below before (50.8 s -> 53.7 s, dominated by an untouched hook's variance), measured by direct invocation, 0 timeouts. **Changes:** `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl` (+ the lane's 12 files). **Next:** lanes 11 and 12 start after this merge.
+
 ### 2026-09-25 (d) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): the launcher refuses without a bound integrator, launches Copilot detached, and warns on a model alias
 
 **Anchors:** `fb01eaf7`, `8e126b0f`, `cc098d48`, `a1bc262e` (`fix(dispatch)` + the Codex review and its fixes + the tally) -- `worktree-lane-launcher-fixes` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on the lane-registry-models merge `7afbb69a`.

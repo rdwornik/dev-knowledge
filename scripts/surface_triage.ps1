@@ -1,5 +1,11 @@
 # SessionStart surfacing for the nightly conformance loop (Phase C4 / ADR-68).
 #
+# RETIRED 2026-09-25 (LANE-5B-5 lane-hooks-port): no longer wired in .claude/settings.json --
+# PowerShell was the harness's only hard break on a Linux/cloud substrate. The live hook is now
+# scripts/surface_triage.py (same behaviour, `uv run --locked python`). Kept on disk, unwired,
+# per this lane's contract ("no hook is deleted"); its own regression guard
+# (tests/test_surface_triage.py) still runs against this file's unchanged behaviour.
+#
 # Mirrors the L0 surface-closures.ps1 pattern: READ-ONLY, fail-soft, ALWAYS exit 0,
 # silent on the happy path (gh absent / offline, or nothing to report). Surfaces
 # two things, each only when there is something to say:

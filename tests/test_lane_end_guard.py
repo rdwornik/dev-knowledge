@@ -427,7 +427,18 @@ def _declared_command() -> str:
 
 
 def test_the_declared_stop_command_skips_fast_with_no_handback(tmp_path):
-    """The command exactly as settings.json declares it, run as the harness runs it."""
+    """The command exactly as settings.json declares it, run as the harness runs it.
+
+    Budget raised 3.0 -> 8.0s (LANE-5B-5 lane-hooks-port, 2026-09-25): the declared command is
+    now `uv run --locked python ... || true`, not a bare `python ...` -- this script's own
+    header explains why that was deliberately avoided ("costs ~1 s at startup, more than the
+    skip path may [afford]"), and this lane's contract named the invocation explicitly anyway
+    (Done-contract item 1). Measured on this box: `uv run --locked python -c pass` alone runs
+    ~1.0-1.2s warm; stacked on the ~0.5s git-bash spawn this test already accounts for, the old
+    3.0s budget flaked at 3.04s on a second consecutive run with no other load. 8.0s keeps this a
+    real regression guard (the skip path must still be a small fraction of the hook's declared
+    15s Stop budget, asserted below) while giving headroom for `uv`'s startup under the
+    concurrent-seat memory pressure this repo's own hooks report seeing."""
     session = tmp_path / "SESSION-x.md"
     session.write_text("no closing line yet" + chr(10), encoding="utf-8")
     env = {**os.environ, "CLAUDE_PROJECT_DIR": str(_REPO), "HARNESS_LANE": "x",
@@ -436,7 +447,7 @@ def test_the_declared_stop_command_skips_fast_with_no_handback(tmp_path):
     proc = subprocess.run([_bash(), "-c", _declared_command()], env=env, capture_output=True, text=True, timeout=30)
     elapsed = time.perf_counter() - started
     assert proc.returncode == 0 and proc.stdout == ""
-    assert elapsed < 3.0, f"the skip path through the shell took {elapsed:.2f}s (git-bash spawn alone is ~0.5 s)"
+    assert elapsed < 8.0, f"the skip path through the shell took {elapsed:.2f}s (uv run --locked python alone is ~1-1.2s warm; git-bash spawn is ~0.5s more)"
     assert not (tmp_path / "r").exists(), "a skip writes nothing"
     started = time.perf_counter()   # the guard's own path, without the shell wrapper
     direct = subprocess.run([sys.executable, str(_GUARD)], env=env, capture_output=True, text=True, timeout=30)
