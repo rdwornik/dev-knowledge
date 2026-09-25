@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-25 (c) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): the registry admits Opus 5.5 by id, prices cache writes at 2x, and declares model currency per provider
+
+**Anchors:** `6859c4d2`, `357322c7`, `8db4408a` (`feat(registry)` + the Codex-review fixes + the ratchet wording fix) -- `worktree-lane-registry-models` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree off origin/main `2b5a4ef8`.
+
+**Did:** purity 3 commits / 5 files; merged in `worktree-integrate-lane-registry-models`; regenerated generated files on the merged tree (ruling b); ship-gate diffed base vs merge; lane-changed tests on the merged tree; CI paired against main. **Result:** `roles.orchestrate` / `roles.plan` order `claude-opus-5-5` by explicit id (RATIFICATION B5); `cache_write_multiplier: 2.0`; every role pins a versioned id; a `model_currency:` probe or dated `exception:` per provider, with an opt-in live probe (`RUN_LIVE_CURRENCY_PROBE`). Schema 1.1.0 -> 1.2.0 (`ecosystem/schema/provider_registry.py`, outside the contract's list: DECIDED-BY-LANE). **Changes:** `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl` (+ the lane's 5 files). **Next:** `lane-launcher-fixes`, stacked on this merge.
+
 ### 2026-09-25 (b) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): merge hygiene lands -- timed receipt steps, a post-merge conflict check, a batch janitor
 
 **Anchors:** `2697a87d`, `cce67b55`, `239beb29` (`feat(merge-receipt)` + the Codex-review fixes + the review tally) -- `worktree-lane-merge-hygiene` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree off origin/main `04868005`.
