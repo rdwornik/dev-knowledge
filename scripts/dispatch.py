@@ -1502,14 +1502,33 @@ def decide_lane(lane: QueuedLane, *, states: Mapping[str, str], live_slugs: Iter
 def plan_pass(lanes: Sequence[QueuedLane], order: Sequence[str], *, fired: Iterable[str],
              states: Mapping[str, str], live_slugs: Iterable[str], local_cap: int,
              local_live_count: int, free_mb: float, floor_mb: float) -> list[QueueDecision]:
-    """One decision per not-yet-`fired` slug in `order`, in order."""
+    """One decision per not-yet-RESOLVED slug in `order` (`fired` names every slug this pass
+    should skip -- fired, held-failed or routed in an earlier pass; the name is kept for the
+    common case, a fired lane, but callers pass every terminal slug here).
+
+    RESERVES within THIS pass: a `FIRE` decision immediately counts toward `local_live_count` and
+    joins `live_slugs` for every LATER decision in the same call -- Codex terra review, HIGH
+    (`docs/audits/2026-09-25-codex-lane-launch-queue.md`): a single shared snapshot let several
+    ready local lanes all pass a cap of four at once, and let two ready members of one
+    `serialize-group` both read `FIRE` in the same pass, in direct violation of "never two members
+    live". A `HELD-FAILED`/`ROUTE-CODESPACE` decision reserves NOTHING further -- neither one is a
+    real local occupant, so it must not block a later `serialize-group` sibling in the same pass."""
     by_slug = {lane.slug: lane for lane in lanes}
-    fired_set = set(fired)
-    return [
-        decide_lane(by_slug[slug], states=states, live_slugs=live_slugs, all_lanes=lanes,
-                   local_cap=local_cap, local_live_count=local_live_count, free_mb=free_mb,
-                   floor_mb=floor_mb)
-        for slug in order if slug not in fired_set]
+    already = set(fired)
+    live = set(live_slugs)
+    count = local_live_count
+    decisions: list[QueueDecision] = []
+    for slug in order:
+        if slug in already:
+            continue
+        decision = decide_lane(by_slug[slug], states=states, live_slugs=live, all_lanes=lanes,
+                               local_cap=local_cap, local_live_count=count, free_mb=free_mb,
+                               floor_mb=floor_mb)
+        decisions.append(decision)
+        if decision.action == ACTION_FIRE:
+            count += 1
+            live.add(slug)
+    return decisions
 
 
 # --- a repair relaunches into the lane's EXISTING worktree, never a fresh one --------------------
@@ -1576,9 +1595,23 @@ def repair_lane(request: RepairRequest, *, repo_root: Path,
 
 @dataclass(frozen=True)
 class WatchResult:
+    """`fired` is ONLY `ACTION_FIRE` -- lanes this watcher actually asked `on_fire` to launch.
+    `held_failed` and `routed_codespace` are the other two ways a lane stops being pending, kept
+    SEPARATE from `fired` (Codex terra review, HIGH,
+    `docs/audits/2026-09-25-codex-lane-launch-queue.md`: folding all three into one `fired` set let
+    `queue --watch` report "fired N/N; all clear" for a run where a dependency-failed lane was
+    only HELD, or a codespace lane was never spawned at all -- neither is a launch, and a caller
+    reading `fired` as "launched" would believe one happened that did not)."""
     polls: int
     expired: bool
     fired: tuple[str, ...]
+    held_failed: tuple[str, ...] = ()
+    routed_codespace: tuple[str, ...] = ()
+
+    @property
+    def terminal(self) -> frozenset[str]:
+        """Every slug this watcher is done waiting on, for any of the three reasons."""
+        return frozenset(self.fired) | frozenset(self.held_failed) | frozenset(self.routed_codespace)
 
 
 def watch_queue(lanes: Sequence[QueuedLane], order: Sequence[str], *, deadline_s: float,
@@ -1592,23 +1625,33 @@ def watch_queue(lanes: Sequence[QueuedLane], order: Sequence[str], *, deadline_s
                 local_cap: int = 4, floor_mb: float = 3072.0,
                 max_polls: Optional[int] = None) -> WatchResult:
     """Poll `plan_pass` until every lane is `FIRE`d or terminal (`HELD-FAILED`/`ROUTE-CODESPACE`),
-    OR `deadline_s` elapses -- whichever comes first, NEVER longer.
+    OR `deadline_s` elapses -- whichever comes first, NEVER longer (each sleep is CLAMPED to what
+    is left before the deadline, Codex terra review HIGH: a full, un-clamped `poll_interval_s`
+    sleep with little time left overshoots past `deadline_s` before the next check catches it).
 
     This is the fix for N1's 13 orphan watcher loops: every watcher this queue starts carries its
     own deadline and self-terminates at it, still-pending lanes and all (the caller reads
-    `WatchResult.expired` and `order` minus `fired` to see what is left). `on_fire`, when given, is
-    called once per lane the instant it clears every gate -- the caller's own launch (local) or
-    routing (codespace) side effect; this function itself never spawns anything."""
+    `WatchResult.expired` and `order` minus `.terminal` to see what is left). `on_fire`, when
+    given, is called once per lane the instant it clears every gate -- the caller's own launch
+    (local) side effect; this function itself never spawns anything, and never calls `on_fire` for
+    a `HELD-FAILED`/`ROUTE-CODESPACE` decision (neither one is a launch)."""
     states_fn = states_fn or (lambda: {})
     live_slugs_fn = live_slugs_fn or (lambda: ())
     local_live_count_fn = local_live_count_fn or (lambda: 0)
     free_mb_fn = free_mb_fn or (lambda: float("inf"))
     start = clock()
     fired: set[str] = set()
+    held_failed: set[str] = set()
+    routed: set[str] = set()
     polls = 0
+
+    def _result(expired: bool) -> WatchResult:
+        return WatchResult(polls, expired, tuple(fired), tuple(held_failed), tuple(routed))
+
     while True:
         polls += 1
-        decisions = plan_pass(lanes, order, fired=fired, states=states_fn(),
+        resolved = fired | held_failed | routed
+        decisions = plan_pass(lanes, order, fired=resolved, states=states_fn(),
                               live_slugs=live_slugs_fn(), local_cap=local_cap,
                               local_live_count=local_live_count_fn(), free_mb=free_mb_fn(),
                               floor_mb=floor_mb)
@@ -1617,14 +1660,18 @@ def watch_queue(lanes: Sequence[QueuedLane], order: Sequence[str], *, deadline_s
                 if on_fire is not None:
                     on_fire(decision.slug)
                 fired.add(decision.slug)
-            elif decision.action in (ACTION_HELD_FAILED, ACTION_ROUTE_CODESPACE):
-                fired.add(decision.slug)   # terminal for this watcher: nothing left to wait for
-        if all(slug in fired for slug in order):
-            return WatchResult(polls, expired=False, fired=tuple(fired))
+            elif decision.action == ACTION_HELD_FAILED:
+                held_failed.add(decision.slug)
+            elif decision.action == ACTION_ROUTE_CODESPACE:
+                routed.add(decision.slug)
+        resolved = fired | held_failed | routed
+        if all(slug in resolved for slug in order):
+            return _result(expired=False)
         elapsed = clock() - start
         if elapsed >= deadline_s or (max_polls is not None and polls >= max_polls):
-            return WatchResult(polls, expired=True, fired=tuple(fired))
-        sleep(poll_interval_s)
+            return _result(expired=True)
+        remaining = deadline_s - elapsed
+        sleep(min(poll_interval_s, remaining) if remaining > 0 else 0.0)
 
 
 # --- CLI ---------------------------------------------------------------------------------
@@ -1960,7 +2007,10 @@ def queue_cmd(contracts: tuple[Path, ...], batch: str, cap: int, floor_mb: float
 
     def do_launch(slug: str) -> None:
         request = request_from_contract(by_slug[slug].contract, batch=batch)
-        result = launch_lane(request, secrets_file=secrets_file)
+        # `cwd=repo_root`: Codex terra review, HIGH -- without it, `launch_lane` defaulted to
+        # `Path.cwd()`, so `--repo-root` was accepted but silently had no effect on where a
+        # queued local lane's worktree was created.
+        result = launch_lane(request, secrets_file=secrets_file, cwd=repo_root)
         click.echo(f"[queue] FIRE {slug}: job {result.job_id}", err=True)
 
     def live_slugs() -> set:
@@ -1980,8 +2030,11 @@ def queue_cmd(contracts: tuple[Path, ...], batch: str, cap: int, floor_mb: float
                              on_fire=do_launch, states_fn=states_fn, live_slugs_fn=live_slugs,
                              local_live_count_fn=local_live_count, free_mb_fn=mag.free_memory_mb,
                              local_cap=cap, floor_mb=floor_mb)
-        click.echo(f"[queue] watch ended after {result.polls} poll(s): fired {len(result.fired)}/"
-                   f"{len(order)}; {'DEADLINE -- still pending: ' + ', '.join(s for s in order if s not in result.fired) if result.expired else 'all clear'}")
+        pending = [s for s in order if s not in result.terminal]
+        click.echo(f"[queue] watch ended after {result.polls} poll(s): fired {len(result.fired)}, "
+                   f"held-failed {len(result.held_failed)}, routed-codespace "
+                   f"{len(result.routed_codespace)}, of {len(order)}; "
+                   f"{'DEADLINE -- still pending: ' + ', '.join(pending) if result.expired else 'all clear'}")
         return
 
     decisions = plan_pass(lanes, order, fired=(), states=states_fn(), live_slugs=live_slugs(),

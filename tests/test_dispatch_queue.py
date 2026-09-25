@@ -26,8 +26,19 @@ from pathlib import Path
 from typing import Optional
 
 import pytest
+from click.testing import CliRunner
 
 import dispatch as d
+
+
+@pytest.fixture(autouse=True)
+def receipts(tmp_path, monkeypatch):
+    """Isolate `launch_lane`'s receipt/lock reads from the real (shared) `logs/receipts/` --
+    the same discipline `test_dispatch_launch.py` applies. Without this, the CLI-level queue
+    test below collides with any real or leftover `LAUNCH-LANE-A.json` on disk."""
+    target = tmp_path / "receipts"
+    monkeypatch.setenv("HARNESS_RECEIPTS_DIR", str(target))
+    return target
 
 
 # --- fixtures: the minimal contract grammar `queue` reads ---------------------------------------
@@ -358,6 +369,46 @@ def test_plan_pass_skips_already_fired_slugs():
     assert [dec.slug for dec in decisions] == ["lane-b"]
 
 
+def test_plan_pass_reserves_the_local_cap_within_the_same_pass():
+    """Codex terra review, HIGH (`docs/audits/2026-09-25-codex-lane-launch-queue.md`): every
+    decision in ONE `plan_pass` call used to read the SAME `local_live_count` snapshot, so several
+    ready local lanes could all clear a cap of four at once. With cap=1 and TWO ready local lanes,
+    only the FIRST may FIRE; the second must see the first's reservation and HOLD."""
+    a = _lane("lane-a", priority=0)
+    b = _lane("lane-b", priority=1)
+    decisions = d.plan_pass([a, b], ["lane-a", "lane-b"], fired=(), states={}, live_slugs=(),
+                            local_cap=1, local_live_count=0, free_mb=8000.0, floor_mb=3072.0)
+    assert [(dec.slug, dec.action) for dec in decisions] == [
+        ("lane-a", d.ACTION_FIRE), ("lane-b", d.ACTION_HOLD)]
+
+
+def test_plan_pass_reserves_a_serialize_group_within_the_same_pass():
+    """The same race for `serialize-group`: two ready members of ONE group must not both read
+    `FIRE` out of a single pass -- "never two members live" (Done-contract item 2) has to hold
+    WITHIN a pass, not only across polls."""
+    a = _lane("lane-a", priority=0, serialize_group="g")
+    b = _lane("lane-b", priority=1, serialize_group="g")
+    decisions = d.plan_pass([a, b], ["lane-a", "lane-b"], fired=(), states={}, live_slugs=(),
+                            local_cap=4, local_live_count=0, free_mb=8000.0, floor_mb=3072.0)
+    assert [(dec.slug, dec.action) for dec in decisions] == [
+        ("lane-a", d.ACTION_FIRE), ("lane-b", d.ACTION_HOLD)]
+    assert "serialize-group" in decisions[1].reason
+
+
+def test_plan_pass_a_held_failed_or_routed_codespace_lane_reserves_nothing():
+    """A `HELD-FAILED` or `ROUTE-CODESPACE` decision is not a real local occupant, so it must not
+    consume the cap or block a `serialize-group` sibling within the same pass."""
+    failed_dep = _lane("lane-a", priority=0, starts_after=("lane-x",))
+    sibling = _lane("lane-b", priority=1, serialize_group="g")
+    other = _lane("lane-c", priority=2, serialize_group="g")
+    decisions = d.plan_pass([failed_dep, sibling, other],
+                            ["lane-a", "lane-b", "lane-c"], fired=(),
+                            states={"lane-x": "FAILED"}, live_slugs=(), local_cap=1,
+                            local_live_count=0, free_mb=8000.0, floor_mb=3072.0)
+    assert [(dec.slug, dec.action) for dec in decisions] == [
+        ("lane-a", d.ACTION_HELD_FAILED), ("lane-b", d.ACTION_FIRE), ("lane-c", d.ACTION_HOLD)]
+
+
 # --- repair: relaunch into the EXISTING worktree, never a fresh one ------------------------------
 
 def test_build_repair_plan_carries_no_worktree_flag():
@@ -452,13 +503,19 @@ def test_watch_queue_fires_every_lane_and_ends_before_the_deadline():
 
 
 def test_watch_queue_routes_a_codespace_lane_without_ever_spawning_it():
+    """`fired` names only a real launch (Codex terra review, HIGH,
+    `docs/audits/2026-09-25-codex-lane-launch-queue.md`): a routed codespace lane is terminal
+    (nothing left to wait for) but must NEVER read as `fired`, or `queue --watch`'s own "fired
+    N/N" summary would claim a launch that never happened."""
     lane = _lane("lane-cs", substrate="codespace")
     on_fire_calls = []
     result = d.watch_queue([lane], ["lane-cs"], deadline_s=60.0, poll_interval_s=10.0,
                            sleep=lambda s: None, clock=iter([0.0, 100.0]).__next__,
                            on_fire=on_fire_calls.append)
     assert on_fire_calls == []   # never spawned
-    assert result.fired == ("lane-cs",)   # but not left pending either -- terminal, ROUTE-CODESPACE
+    assert result.fired == ()
+    assert result.routed_codespace == ("lane-cs",)
+    assert result.terminal == {"lane-cs"}   # not left pending either
 
 
 def test_watch_queue_marks_a_failed_dependency_terminal_without_spawning():
@@ -468,7 +525,22 @@ def test_watch_queue_marks_a_failed_dependency_terminal_without_spawning():
                            sleep=lambda s: None, clock=iter([0.0, 100.0]).__next__,
                            on_fire=on_fire_calls.append, states_fn=lambda: {"lane-a": "FAILED"})
     assert on_fire_calls == []
-    assert result.fired == ("lane-b",)
+    assert result.fired == ()
+    assert result.held_failed == ("lane-b",)
+    assert result.terminal == {"lane-b"}
+
+
+def test_watch_queue_never_sleeps_past_a_non_divisible_deadline():
+    """A 125s deadline with a 60s poll interval: the THIRD sleep must be clamped to the 5s
+    remaining, not the full 60s -- Codex terra review, HIGH: an un-clamped sleep with little time
+    left overshoots `deadline_s` by up to a whole interval before the next check catches it."""
+    lane = _lane("lane-b", starts_after=("lane-a",))   # never clears: proves the loop still ends
+    clock = _FakeClock()
+    result = d.watch_queue([lane], ["lane-b"], deadline_s=125.0, poll_interval_s=60.0,
+                           sleep=clock.sleep, clock=clock.clock)
+    assert result.expired is True
+    assert clock.now == 125.0            # exact -- no overshoot past the deadline
+    assert clock.sleeps == [60.0, 60.0, 5.0]
 
 
 def test_watch_queue_respects_max_polls_independent_of_the_deadline():
@@ -478,3 +550,40 @@ def test_watch_queue_respects_max_polls_independent_of_the_deadline():
                            sleep=clock.sleep, clock=clock.clock, max_polls=3)
     assert result.expired is True
     assert result.polls == 3
+
+
+# --- `queue`'s CLI: --repo-root actually reaches the local launch it fires ----------------------
+
+def test_queue_cli_passes_repo_root_to_the_local_launch(tmp_path, monkeypatch):
+    """Codex terra review, HIGH (`docs/audits/2026-09-25-codex-lane-launch-queue.md`): `queue_cmd`
+    accepted `--repo-root` but never threaded it into `launch_lane`'s `cwd`, so a queued launch
+    silently used the CALLER's cwd instead of the repository root the operator named."""
+    contract = _contract(tmp_path, "LANE-a.md", "lane-a", head="claude")
+    other_root = tmp_path / "elsewhere"
+    other_root.mkdir()
+    calls = []
+    spawned = {"yet": False}
+
+    def fake_spawn(argv, env, cwd, log_path=None):
+        calls.append(Path(cwd))
+        spawned["yet"] = True
+        return d.Spawned(returncode=0, stdout="backgrounded abcd1234\n", pid=4321)
+
+    def fake_agents():
+        # empty until AFTER the spawn (the pre-launch collision check must see nothing live yet);
+        # a matching LIVE entry afterward lets `_identify` resolve on its first read instead of
+        # polling (its own retry loop sleeps a real second between attempts otherwise).
+        if not spawned["yet"]:
+            return []
+        return [{"id": "abcd1234", "sessionId": "sid-1", "name": "lane-a",
+                 "cwd": str(other_root / ".claude" / "worktrees" / "lane-a"),
+                 "state": "working", "status": "busy"}]
+
+    monkeypatch.setattr(d, "run_prelaunch", lambda request: d.PreLaunch(passed=True))
+    monkeypatch.setattr(d, "spawn_process", fake_spawn)
+    monkeypatch.setattr(d, "list_agents", fake_agents)
+
+    out = CliRunner().invoke(d.cli, ["queue", str(contract), "--repo-root", str(other_root),
+                                     "--floor-mb", "0"])
+    assert out.exit_code == 0, out.output
+    assert calls == [other_root]
