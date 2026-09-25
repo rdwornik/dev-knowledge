@@ -164,6 +164,62 @@ def test_write_is_atomic_and_replaces_rather_than_appends(t, world, registry):
     assert dest.read_text(encoding="utf-8") == "second\n"
 
 
+def test_write_refuses_a_registered_kind_sitting_in_the_wrong_folder(t, world, registry):
+    """Codex terra HIGH (this lane's own review): `_check` matched `dest.name` alone, so a
+    registered writer could recreate the exact wrong-folder failure the registry exists to
+    end -- a correctly-NAMED SESSION file written into `to-cc/` instead of `to-browser/`."""
+    dest = world["cc"] / "SESSION-lane-x.md"
+    with pytest.raises(t.TransportWriteRefused, match="to-browser"):
+        t.write("handback", dest, "x", registry=registry)
+    assert not dest.exists()
+
+
+def test_write_refuses_a_lane_contract_kind_sitting_inside_a_subfolder(t, world, registry):
+    """LANE_CONTRACT's folder is `root` (the transport root itself, not to-cc/to-browser) --
+    a lane contract written into either subfolder is also a wrong-folder refusal."""
+    dest = world["cc"] / "LANE-a-539-ch8.md"
+    with pytest.raises(t.TransportWriteRefused, match="root"):
+        t.write("gen_lane_contract", dest, "x", registry=registry)
+    assert not dest.exists()
+
+
+def test_write_accepts_a_lane_contract_kind_at_the_transport_root(t, world, registry):
+    dest = world["root"] / "LANE-a-539-ch8.md"
+    got = t.write("gen_lane_contract", dest, "x", registry=registry)
+    assert got.read_text(encoding="utf-8") == "x"
+
+
+def test_concurrent_appends_to_the_same_destination_serialize_without_interleaving(t, world, registry):
+    """Codex terra HIGH (this lane's own review): the separator-size-check-then-write was not
+    one protected step; two threads appending to the same SESSION file must not interleave or
+    disagree about whether a separating newline is needed."""
+    import threading
+
+    dest = world["browser"] / "SESSION-lane-x.md"
+    blocks = [f"block-{i}" for i in range(20)]
+    errors: list[BaseException] = []
+
+    def worker(block: str) -> None:
+        try:
+            t.append("handback", dest, block, registry=registry)
+        except BaseException as exc:  # noqa: BLE001
+            errors.append(exc)
+
+    threads = [threading.Thread(target=worker, args=(b,)) for b in blocks]
+    for th in threads:
+        th.start()
+    for th in threads:
+        th.join(timeout=30)
+
+    assert not errors, errors
+    text = dest.read_text(encoding="utf-8")
+    # every block landed on its own line, exactly once, never merged with a neighbour mid-word
+    # ("block-1" is a substring of "block-10".."block-19", so this compares whole LINES, not
+    # substring counts)
+    lines = [ln for ln in text.splitlines() if ln.startswith("block-")]
+    assert sorted(lines) == sorted(blocks)
+
+
 def test_append_is_gated_the_same_way_as_write(t, world, registry):
     dest = world["browser"] / "REFUSED-lane-x.md"
     with pytest.raises(t.TransportWriteRefused):

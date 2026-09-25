@@ -129,6 +129,14 @@ def classify(filename: str, registry: list[Kind]) -> Optional[Kind]:
 
 # --- the write gate --------------------------------------------------------------------------
 
+def _folder_of(dest: Path) -> str:
+    """`dest`'s own folder name, as `scan()`'s convention reads it: `to-cc`/`to-browser` when
+    the immediate parent is named that, else `root` (a `LANE-*.md` contract, sitting directly
+    under the transport root rather than either subfolder)."""
+    parent_name = dest.parent.name
+    return parent_name if parent_name in ("to-cc", "to-browser") else "root"
+
+
 def _check(writer: str, dest: Path, registry: list[Kind]) -> Kind:
     kind = classify(dest.name, registry)
     if kind is None:
@@ -139,13 +147,22 @@ def _check(writer: str, dest: Path, registry: list[Kind]) -> Kind:
         raise TransportWriteRefused(
             f"{dest.name!r} is kind {kind.name!r}, whose registered writer(s) are "
             f"{kind.writers!r}; {writer!r} is not among them")
+    actual_folder = _folder_of(dest)
+    if actual_folder != kind.folder:
+        # Codex terra HIGH (this lane's own review): matching `dest.name` alone let a registered
+        # writer recreate the exact "landed in the wrong folder" failure the registry exists to
+        # end -- e.g. `handback` writing a correctly-named SESSION file into `to-cc/`.
+        raise TransportWriteRefused(
+            f"{dest!r} is kind {kind.name!r}, registered to {kind.folder}/, but the "
+            f"destination's own folder is {actual_folder}/; refusing to write it there")
     return kind
 
 
 def write(writer: str, dest: Path, data: str, *, registry: Optional[list[Kind]] = None) -> Path:
     """Write `data` (text) to `dest` WHOLE (atomic tmp+replace, `transport_report.deliver`'s own
-    pattern), but only when `dest.name` is a registered kind AND `writer` is its registered
-    writer. Raises `TransportWriteRefused` before touching the filesystem otherwise."""
+    pattern), but only when `dest.name` is a registered kind, `writer` is its registered writer,
+    AND `dest` sits in that kind's registered folder. Raises `TransportWriteRefused` before
+    touching the filesystem otherwise."""
     reg = registry if registry is not None else load_registry()
     _check(writer, dest, reg)
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -153,19 +170,60 @@ def write(writer: str, dest: Path, data: str, *, registry: Optional[list[Kind]] 
     return dest
 
 
+class _DestinationLock:
+    """An exclusive, cross-process advisory lock scoped to ONE destination path -- a sibling
+    `.<name>.append.lock` file, created with `O_EXCL` (atomic on both POSIX and Windows) and
+    removed on release. Bounded retry with backoff, never an indefinite wait (Codex terra HIGH,
+    this lane's own review: two concurrent `append()` calls to the SAME `SESSION-<lane>.md`
+    could otherwise interleave, or both read the pre-write file size and agree on the same
+    separator decision against a file the other has already appended to)."""
+
+    _POLL_S = 0.05
+
+    def __init__(self, dest: Path, timeout_s: float = 10.0):
+        self._lock_path = dest.parent / f".{dest.name}.append.lock"
+        self._timeout_s = timeout_s
+        self._fd: Optional[int] = None
+
+    def __enter__(self) -> "_DestinationLock":
+        import time
+        deadline = time.monotonic() + self._timeout_s
+        while True:
+            try:
+                self._fd = os.open(str(self._lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                return self
+            except FileExistsError:
+                if time.monotonic() >= deadline:
+                    raise TransportWriteRefused(
+                        f"could not acquire the append lock for {self._lock_path.name} within "
+                        f"{self._timeout_s}s; another writer appears to be appending to the "
+                        f"same destination")
+                time.sleep(self._POLL_S)
+
+    def __exit__(self, *exc_info: object) -> None:
+        if self._fd is not None:
+            os.close(self._fd)
+        try:
+            self._lock_path.unlink()
+        except OSError:
+            pass
+
+
 def append(writer: str, dest: Path, block: str, *, registry: Optional[list[Kind]] = None) -> Path:
     """Append `block` to `dest` (creating it if absent), gated the same way as `write()`.
     Used for a kind multiple callers add to over time (`SESSION-<lane>.md`), where a full
-    atomic replace would erase what an earlier writer already left."""
+    atomic replace would erase what an earlier writer already left. Serialized per-destination
+    (`_DestinationLock`) so the separator decision and the write happen as one protected step."""
     reg = registry if registry is not None else load_registry()
     _check(writer, dest, reg)
     dest.parent.mkdir(parents=True, exist_ok=True)
-    with dest.open("a", encoding="utf-8", newline="\n") as fh:
-        if dest.stat().st_size and not block.startswith("\n"):
-            fh.write("\n")
-        fh.write(block)
-        if not block.endswith("\n"):
-            fh.write("\n")
+    with _DestinationLock(dest):
+        with dest.open("a", encoding="utf-8", newline="\n") as fh:
+            if dest.stat().st_size and not block.startswith("\n"):
+                fh.write("\n")
+            fh.write(block)
+            if not block.endswith("\n"):
+                fh.write("\n")
     return dest
 
 
