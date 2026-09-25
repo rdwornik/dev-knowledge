@@ -2122,3 +2122,170 @@ def test_a_cold_bundle_committed_then_filled_is_still_judged(tmp_path, monkeypat
     row = _by_id(vhp.verify(bundle)).get(vhp._CARRIAGE_FINDING_ID)
     assert row is not None and row.status == "fail", row
     assert name in row.detail
+
+
+# --- lane-boot-contract (WAVE5B-N2 row 12, 2026-09-25): the boot's DATA rows are probes -----
+#
+# A bundle cut in the boot-data era carries its HANDOFF_BOOT header as a DATA block (every row
+# checked by a rule in `BOOT_DATA_RULES`) and a PROSE block (hand-authored, byte-budgeted). A
+# row with no rule is refused: a fact nobody checks belongs in the prose, where it is read as
+# prose. These fixtures build the header by hand so each rule's teeth are proven on its own.
+
+_BOOT_SLUG = "2026-09-25-b"
+_BOOT_FILES = {
+    **_FILES,
+    "protocols/HANDOFF_PROCESS.md": "# H\n\nVersion: 7.1.0\n",
+    "protocols/HANDOFF_BOOT.md": "# role\n",
+    "protocols/STANDING_RULINGS.md": "# rules\n",
+    "scripts/dispatch.py": "@cli.command(\"launch\")\ndef launch(): ...\n",
+    "templates/dispatcher-order-template.md": "x\n",
+    "templates/integrator-order-template.md": "x\n",
+    "templates/batch-common-rules-template.md": "x\n",
+    "templates/lane-contract-template.md": "x\n",
+    "ecosystem/provider-registry.yaml": "x: 1\n",
+    "ecosystem/harness.yaml": "x: 1\n",
+    "docs/handoffs/README.md": "# runbook\n",
+}
+
+
+def _boot_rows(slug=_BOOT_SLUG, **override):
+    rows = {
+        "Slug": f"`{slug}`",
+        "Chat title": f"`[dev-knowledge] Technical Architect — {slug} · SEQ 1`",
+        "Mode": "**architect**",
+        "Destination": "branch `main`",
+        "Role": "`protocols/HANDOFF_BOOT.md` @ handoff-process v7.1.0",
+        "Launch": "`uv run --locked python scripts/dispatch.py launch --help`",
+        "Probes": f"`docs/handoffs/{slug}/PROBES.md`",
+        "Receipt": f"`docs/handoffs/{slug}/HANDOFF_RECEIPT.json`",
+        "Seat orders": ("`templates/dispatcher-order-template.md` · "
+                        "`templates/integrator-order-template.md` · "
+                        "`templates/batch-common-rules-template.md` · "
+                        "`templates/lane-contract-template.md`"),
+        "Routing": "`ecosystem/provider-registry.yaml`",
+        "Rules": "`protocols/STANDING_RULINGS.md`",
+        "Runbook": "`docs/handoffs/README.md`",
+        "Harness": "`ecosystem/harness.yaml`",
+    }
+    rows.update(override)
+    return {k: v for k, v in rows.items() if v is not None}
+
+
+def _boot_md(rows, prose="| **Purpose** | ship the boot split |"):
+    data = "\n".join(f"| **{k}** | {v} |" for k, v in rows.items())
+    return (f"# Handoff boot — session header (architect mode)\n\n"
+            f"{vhp.BOOT_DATA_BEGIN}\n| Data | Probe-checked |\n|---|---|\n{data}\n"
+            f"{vhp.BOOT_DATA_END}\n\n{vhp.BOOT_PROSE_BEGIN}\n{prose}\n{vhp.BOOT_PROSE_END}\n\n"
+            "## What the operator does\n")
+
+
+def _boot_bundle(tmp_path, rows=None, *, prose=None, receipt="ok", slug=_BOOT_SLUG):
+    bundle = _init_bundle(tmp_path, [_PASS_SYMBOL], repo_files=_BOOT_FILES, slug=slug,
+                          probes_md="# Probe manifest — architect mode\n\n" + _table([_PASS_SYMBOL]) + "\n")
+    kw = {} if prose is None else {"prose": prose}
+    (bundle / "HANDOFF_BOOT.md").write_text(
+        _boot_md(_boot_rows(slug) if rows is None else rows, **kw), encoding="utf-8")
+    if receipt == "ok":
+        receipt = {"boot_cost": {"metric": "turns to first correct dispatch", "value": None,
+                                 "status": "unmeasured — no tally was recorded"}}
+    if receipt is not None:
+        import json
+        (bundle / "HANDOFF_RECEIPT.json").write_text(json.dumps(receipt), encoding="utf-8")
+    return bundle
+
+
+def _bd(results):
+    return {r.probe_id: r for r in results if r.probe_id.startswith(("BD-", "BP-"))}
+
+
+def test_a_well_formed_boot_data_block_passes_every_row(tmp_path):
+    by = _bd(vhp.verify(_boot_bundle(tmp_path)))
+    assert {f"BD-{vhp.boot_data_id(k)}" for k in _boot_rows()} <= set(by)
+    bad = {k: (r.status, r.detail) for k, r in by.items() if r.status == "fail"}
+    assert bad == {}, bad
+
+
+def test_a_data_row_no_rule_checks_is_refused(tmp_path):
+    rows = {**_boot_rows(), "Mood": "optimistic"}
+    by = _bd(vhp.verify(_boot_bundle(tmp_path, rows)))
+    r = by[f"BD-{vhp.boot_data_id('Mood')}"]
+    assert r.status == "fail" and "no probe" in r.detail
+
+
+@pytest.mark.parametrize("key,value,needle", [
+    ("Slug", "`2026-09-25-other`", "directory"),
+    ("Mode", "**execution**", "PROBES.md"),
+    ("Chat title", "`[dev-knowledge] Developer — 2026-09-25-b · SEQ 1`", "role"),
+    ("Role", "`protocols/HANDOFF_BOOT.md` @ handoff-process v6.0.0", "7.1.0"),
+    ("Launch", "`uv run --locked python scripts/dispatch.py fly --help`", "fly"),
+    ("Routing", "`ecosystem/gone-registry.yaml`", "gone-registry.yaml"),
+    ("Seat orders", "`templates/dispatcher-order-template.md` · `templates/ghost.md`", "ghost.md"),
+    ("Runbook", "the runbook, somewhere", "binds no file"),
+])
+def test_each_data_rule_has_teeth(tmp_path, key, value, needle):
+    by = _bd(vhp.verify(_boot_bundle(tmp_path, _boot_rows(**{key: value}))))
+    r = by[f"BD-{vhp.boot_data_id(key)}"]
+    assert r.status == "fail", (key, r)
+    assert needle in r.detail, r.detail
+
+
+@pytest.mark.parametrize("receipt,needle", [
+    (None, "missing"),
+    ({"boot_cost": {"metric": "turns to first correct dispatch", "value": None,
+                    "status": "unmeasured"}}, "reason"),
+    ({"boot_cost": {"metric": "turns to first correct dispatch", "value": 0,
+                    "status": "measured"}}, "positive"),
+    ({"boot_cost": {"metric": "wall-clock", "value": None,
+                    "status": "unmeasured — x"}}, "metric"),
+    ({}, "boot_cost"),
+])
+def test_the_receipt_row_checks_the_boot_cost_field(tmp_path, receipt, needle):
+    by = _bd(vhp.verify(_boot_bundle(tmp_path, receipt=receipt)))
+    r = by[f"BD-{vhp.boot_data_id('Receipt')}"]
+    assert r.status == "fail" and needle in r.detail, r
+
+
+def test_a_measured_boot_cost_passes_the_receipt_row(tmp_path):
+    receipt = {"boot_cost": {"metric": "turns to first correct dispatch", "value": 4,
+                             "status": "measured"}}
+    by = _bd(vhp.verify(_boot_bundle(tmp_path, receipt=receipt)))
+    assert by[f"BD-{vhp.boot_data_id('Receipt')}"].status == "pass"
+
+
+def test_prose_over_its_budget_fails(tmp_path):
+    import gen_handoff as gh
+    prose = "| **Purpose** | " + "x" * (gh.BOOT_PROSE_BYTE_BUDGET + 1) + " |"
+    by = _bd(vhp.verify(_boot_bundle(tmp_path, prose=prose)))
+    assert by["BP-budget"].status == "fail" and str(gh.BOOT_PROSE_BYTE_BUDGET) in by["BP-budget"].detail
+
+
+def test_an_in_era_boot_without_a_data_block_fails(tmp_path):
+    bundle = _boot_bundle(tmp_path)
+    (bundle / "HANDOFF_BOOT.md").write_text(
+        "# Handoff boot\n\n| **Slug** | `2026-09-25-b` |\n\n## Operator\n", encoding="utf-8")
+    by = _bd(vhp.verify(bundle))
+    assert by["BD-block"].status == "fail"
+
+
+def test_a_pre_era_boot_is_not_judged_by_the_data_rule(tmp_path):
+    bundle = _boot_bundle(tmp_path, slug="2026-09-24-b", rows=_boot_rows("2026-09-24-b"))
+    (bundle / "HANDOFF_BOOT.md").write_text(
+        "# Handoff boot\n\n| **Slug** | `2026-09-24-b` |\n\n## Operator\n", encoding="utf-8")
+    assert _bd(vhp.verify(bundle)) == {}
+
+
+def test_boot_data_is_not_judged_on_a_cross_repo_verify(tmp_path):
+    bundle = _boot_bundle(tmp_path, _boot_rows(Mood="x"))
+    assert _bd(vhp.verify(bundle, repo_root=tmp_path / "repo", cross_repo=True)) == {}
+
+
+def test_a_bundle_self_locator_resolves_against_the_bundle_outside_the_repo(tmp_path):
+    """The dry-cut shape: a bundle directory that is NOT under the repo still names itself as
+    `docs/handoffs/<slug>/…`. Those rows bind to the bundle under verification."""
+    inside = _boot_bundle(tmp_path)
+    outside = tmp_path / "dry" / _BOOT_SLUG
+    shutil.copytree(inside, outside)
+    shutil.rmtree(inside)
+    by = _bd(vhp.verify(outside, repo_root=tmp_path / "repo"))
+    for key in ("Probes", "Receipt"):
+        assert by[f"BD-{vhp.boot_data_id(key)}"].status == "pass", by[f"BD-{vhp.boot_data_id(key)}"]
