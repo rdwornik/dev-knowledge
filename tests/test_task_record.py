@@ -183,6 +183,16 @@ def test_convert_row_prose_done_when_is_unresolved_with_reason():
     assert rec.legacy_body is None
 
 
+def test_convert_row_preserves_an_uncaptured_clause_in_legacy_body():
+    """HIGH finding, codex terra review of this lane: a clause D1-D9 names no field for
+    (e.g. `routine:`) must land in legacy_body, not vanish."""
+    body = ('- [#9004] [P2][S] **x** - text · Done when: it holds -- `true` · '
+            'routine: consumer=foo path=bar/baz.py')
+    rec = tr.convert_row(9004, body, theme=None, story=None, frontmatter_status=None)
+    assert rec.legacy_body is not None
+    assert "routine:" in rec.legacy_body
+
+
 def test_convert_row_terminal_status_preserved_from_frontmatter():
     body = '- [#9003] [P2][S] **Closed row** - text · Done when: it shipped -- `true`'
     rec = tr.convert_row(9003, body, theme=None, story=None, frontmatter_status="closed")
@@ -248,6 +258,64 @@ def test_cli_check_refuses_a_record_with_unresolved_closure(tmp_path):
     }), encoding="utf-8")
     rc = tr.main(["check", "--record", str(bad)])
     assert rc == 1
+
+
+def test_cli_new_refuses_a_record_path_inside_tasks_dir(tmp_path, monkeypatch):
+    """CRITICAL finding, codex terra review of this lane: the write verbs must never
+    be able to land a scratch record inside the live tasks/ tree — ADR-122 step 1
+    explicitly does not flip the source of truth."""
+    monkeypatch.setattr(tr, "_TASKS_DIR", tmp_path / "tasks")
+    (tmp_path / "tasks").mkdir()
+    target = tmp_path / "tasks" / "sneaky.json"
+    rc = tr.main(["new", "--record", str(target), "--id", "[#1]", "--title", "t",
+                  "--kill-candidates-none", "x"])
+    assert rc == 1
+    assert not target.exists()
+
+
+def test_cli_set_refuses_a_record_path_inside_tasks_dir(tmp_path, monkeypatch):
+    monkeypatch.setattr(tr, "_TASKS_DIR", tmp_path / "tasks")
+    (tmp_path / "tasks").mkdir()
+    target = tmp_path / "tasks" / "sneaky.json"
+    target.write_text('{"id": "[#1]"}', encoding="utf-8")
+    rc = tr.main(["set", "--record", str(target), "--field", 'title="x"'])
+    assert rc == 1
+
+
+def test_cli_close_refuses_a_record_path_inside_tasks_dir(tmp_path, monkeypatch):
+    monkeypatch.setattr(tr, "_TASKS_DIR", tmp_path / "tasks")
+    (tmp_path / "tasks").mkdir()
+    target = tmp_path / "tasks" / "sneaky.json"
+    target.write_text('{"id": "[#1]"}', encoding="utf-8")
+    rc = tr.main(["close", "--record", str(target), "--commit", "deadbeef",
+                  "--definition-digest", "abc"])
+    assert rc == 1
+
+
+def test_cli_new_writes_outside_tasks_dir(tmp_path, monkeypatch):
+    monkeypatch.setattr(tr, "_TASKS_DIR", tmp_path / "tasks")
+    target = tmp_path / "scratch" / "rec.json"
+    target.parent.mkdir()
+    rc = tr.main(["new", "--record", str(target), "--id", "[#1]", "--title", "t",
+                  "--kill-candidates-none", "x"])
+    assert rc == 0
+    assert json.loads(target.read_text(encoding="utf-8"))["id"] == "[#1]"
+
+
+def test_cli_set_then_close_round_trip(tmp_path, monkeypatch):
+    monkeypatch.setattr(tr, "_TASKS_DIR", tmp_path / "tasks")
+    target = tmp_path / "rec.json"
+    target.write_text(tr.TaskRecord(
+        id="[#1]", title="t", status=tr.TaskStatus.open,
+        kill_candidates=tr.KillCandidates(none_reason="x"),
+        criteria=(tr.Criterion(id="c1", requirement="r",
+                                verifier=tr.CommandVerifier(argv=("true",))),),
+    ).model_dump_json(), encoding="utf-8")
+    assert tr.main(["set", "--record", str(target), "--field", 'title="renamed"']) == 0
+    assert json.loads(target.read_text(encoding="utf-8"))["title"] == "renamed"
+    assert tr.main(["close", "--record", str(target), "--commit", "deadbeef",
+                     "--definition-digest", "abc"]) == 0
+    assert json.loads(target.read_text(encoding="utf-8"))["status"] == "closed"
 
 
 def test_cli_check_accepts_a_well_formed_record(tmp_path):

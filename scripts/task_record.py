@@ -45,11 +45,32 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, StrictStr, model_validator
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
+_REPO_ROOT = _SCRIPTS_DIR.parent
+_TASKS_DIR = (_REPO_ROOT / "tasks").resolve()
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 import gen_task_tree as gtt  # noqa: E402
 
 SCHEMA_VERSION = "1.0.0"
+
+
+class TasksDirWriteRefused(Exception):
+    """Raised by `_refuse_tasks_dir_write` — never caught internally, so a caller that
+    forgets to check exit code still sees a loud traceback rather than a silent write."""
+
+
+def _refuse_tasks_dir_write(path: Path) -> None:
+    """D9's write verbs (`new`/`set`/`close`) exist for SCRATCH records only — step 1
+    explicitly does not flip the source of truth (ADR-122 "Do not"), so no CLI write
+    path may land inside the live `tasks/` tree, whatever `--record` names. Resolved
+    against the real filesystem path (not just string-prefixed) so a `..`-relative or
+    symlinked escape is still caught."""
+    resolved = Path(path).resolve()
+    if resolved == _TASKS_DIR or _TASKS_DIR in resolved.parents:
+        raise TasksDirWriteRefused(
+            f"task_record: REFUSED (nothing written) — {path} resolves inside {_TASKS_DIR}; "
+            f"the task CLI's write verbs may not touch the live tasks/ tree (ADR-122 step 1 "
+            f"does not flip the source of truth). Point --record at scratch/job-tmp instead.")
 
 
 class _Contract(BaseModel):
@@ -269,6 +290,23 @@ _KILL_CANDIDATES_RE = re.compile(r"·\s*kill-candidates:\s*(.+?)(?=\s+·\s+\S|$)
 _TRAILING_COMMAND_RE = re.compile(r"--\s*`([^`]+)`\s*$")
 _KILL_IDS_RE = re.compile(r"#\d+")
 _THEME_ID_RE = re.compile(r"\[([A-Za-z]\d+)\]")
+#: Generic clause splitter — same " · " boundary every clause regex above already
+#: assumes. `parts[0]` is the leading band+title+narrative segment, never a clause.
+_CLAUSE_SPLIT_RE = re.compile(r"\s·\s")
+#: Clause prefixes already captured into a typed field or `criteria` above (codex
+#: terra HIGH, this lane: a clause this repo's body grammar carries but D1-D9 names
+#: no field for — e.g. `routine:`, `supersedes:`, `phase:`, `Source:` — must not be
+#: silently dropped; it belongs in `legacy_body`, which is exactly what falling
+#: through this allowlist produces).
+_ALREADY_CAPTURED_PREFIXES = (
+    "done when:", "refs", "kill-candidates:", "implements:", "depends-on:",
+    "serialize-group:", "defer",
+)
+
+
+def _uncaptured_clauses(raw: str) -> list[str]:
+    parts = [p.strip() for p in _CLAUSE_SPLIT_RE.split(raw)[1:]]
+    return [p for p in parts if p and not p.lower().startswith(_ALREADY_CAPTURED_PREFIXES)]
 
 
 def _extract_clause(pattern: re.Pattern[str], raw: str) -> str | None:
@@ -346,6 +384,7 @@ def convert_row(task_id: int, raw: str, *, theme: str | None, story: str | None,
                 kill_candidates = KillCandidates(ids=ids)
             else:
                 leftover_parts.append(f"kill-candidates: {kc_text}")
+    leftover_parts.extend(_uncaptured_clauses(raw))
 
     theme_id = None
     story_id = None
@@ -390,10 +429,10 @@ def _cmd_show(args: argparse.Namespace) -> int:
 
 
 def _cmd_check(args: argparse.Namespace) -> int:
-    data = json.loads(Path(args.record).read_text(encoding="utf-8"))
     try:
+        data = json.loads(Path(args.record).read_text(encoding="utf-8"))
         TaskRecord.model_validate(data)
-    except Exception as exc:  # pydantic.ValidationError, or a malformed shape
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
         print(f"task_record: check FAIL — {exc}", file=sys.stderr)
         return 1
     print("task_record: check ok")
@@ -401,9 +440,11 @@ def _cmd_check(args: argparse.Namespace) -> int:
 
 
 def _cmd_new(args: argparse.Namespace) -> int:
-    """D9 `new` — writes a fresh scratch TaskRecord JSON at `--record`. Never touches
-    `tasks/`: the path is whatever the caller names, and step 1's own corpus run points
-    it at job tmp."""
+    """D9 `new` — writes a fresh scratch TaskRecord JSON at `--record`. NEVER `tasks/`:
+    `_refuse_tasks_dir_write` refuses before anything is written, whatever path the
+    caller names (a step-1 boundary, not a convention — ADR-122 "Do not: flip the
+    source of truth")."""
+    _refuse_tasks_dir_write(Path(args.record))
     rec = TaskRecord(id=args.id, title=args.title, status=TaskStatus(args.status),
                       kill_candidates=KillCandidates(none_reason=args.kill_candidates_none))
     out = Path(args.record)
@@ -414,16 +455,18 @@ def _cmd_new(args: argparse.Namespace) -> int:
 
 def _cmd_set(args: argparse.Namespace) -> int:
     """D9 `set` — merges `--field key=value` pairs (JSON-valued) into an existing
-    scratch record and re-validates. Refuses (exit 1, nothing written) on a bad merge,
-    matching every other write path in this repo's script organs (plan-then-write)."""
+    scratch record and re-validates. Refuses (exit 1, nothing written) on a bad merge
+    or a `tasks/`-resolving path, matching every other write path in this repo's
+    script organs (plan-then-write, refuse-before-write)."""
+    _refuse_tasks_dir_write(Path(args.record))
     path = Path(args.record)
-    data = json.loads(path.read_text(encoding="utf-8"))
-    for pair in args.field:
-        key, _, value = pair.partition("=")
-        data[key] = json.loads(value)
     try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        for pair in args.field:
+            key, _, value = pair.partition("=")
+            data[key] = json.loads(value)
         rec = TaskRecord.model_validate(data)
-    except Exception as exc:
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
         print(f"task_record: set REFUSED (nothing written) — {exc}", file=sys.stderr)
         return 1
     path.write_text(rec.model_dump_json(indent=2), encoding="utf-8")
@@ -434,14 +477,24 @@ def _cmd_set(args: argparse.Namespace) -> int:
 def _cmd_close(args: argparse.Namespace) -> int:
     """D9 `close` — sets status=closed with a ClosureRecord, refused (D2/D4) when any
     criterion is still unresolved. This is the CLI's own enforcement of the same
-    invariant `TaskRecord._closure_needs_resolved_criteria` holds structurally."""
+    invariant `TaskRecord._closure_needs_resolved_criteria` holds structurally.
+
+    HONEST LIMIT (codex terra review, this lane): this verb records the closure's
+    commit/digest citation — it does NOT itself execute a CommandVerifier or collect
+    ReviewVerifier evidence, so a criterion whose command would actually fail can
+    still be cited as closed. Step 1 builds the record shape and the structural
+    refusal (an *unresolved* criterion cannot close, which is enforced); wiring a real
+    command-execution/evidence-collection gate in front of `close` is step 2's job
+    (the closure sweep, D4) — recorded here rather than silently assumed done.
+    """
+    _refuse_tasks_dir_write(Path(args.record))
     path = Path(args.record)
-    data = json.loads(path.read_text(encoding="utf-8"))
-    data["status"] = "closed"
-    data["closure"] = {"commit": args.commit, "definition_digest": args.definition_digest}
     try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data["status"] = "closed"
+        data["closure"] = {"commit": args.commit, "definition_digest": args.definition_digest}
         rec = TaskRecord.model_validate(data)
-    except Exception as exc:
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
         print(f"task_record: close REFUSED (nothing written) — {exc}", file=sys.stderr)
         return 1
     path.write_text(rec.model_dump_json(indent=2), encoding="utf-8")
@@ -450,7 +503,11 @@ def _cmd_close(args: argparse.Namespace) -> int:
 
 
 def _cmd_list(args: argparse.Namespace) -> int:
-    records = [json.loads(Path(p).read_text(encoding="utf-8")) for p in args.record]
+    try:
+        records = [json.loads(Path(p).read_text(encoding="utf-8")) for p in args.record]
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"task_record: list FAIL — {exc}", file=sys.stderr)
+        return 1
     if args.json:
         print(json.dumps(records, indent=2))
     return 0
@@ -501,7 +558,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    return args.func(args)
+    try:
+        return args.func(args)
+    except TasksDirWriteRefused as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    except OSError as exc:
+        print(f"task_record: {args.cmd} FAIL — {exc}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
