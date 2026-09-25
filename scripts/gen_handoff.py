@@ -72,11 +72,15 @@ __all__ = [
     "PreflightError",
     "PreflightRow",
     "BundleIdentityError",
+    "DryCutTargetError",
     "GenResult",
     "OpenBatchError",
     "assert_batch_boundary",
     "assert_boundary_hygiene",
     "assert_preflight",
+    "boot_cost",
+    "boot_data_block",
+    "boot_data_rows",
     "carriage_shortfall",
     "carriage_verdicts",
     "carried_by_value",
@@ -90,6 +94,7 @@ __all__ = [
     "journal_draft",
     "preflight_rows",
     "reflow_framing",
+    "spec_version",
     "standing_vs_new",
     "verify_seal_identity",
 ]
@@ -102,6 +107,21 @@ try:
     from scripts import canonical_docs as _cdocs
 except ImportError:  # pragma: no cover - exercised by the scripts/-on-sys.path entrypoint
     import canonical_docs as _cdocs
+
+# lane-boot-contract (WAVE5B-N2 row 12): the boot's DATA/PROSE contract is the VERIFIER's — it
+# decides what "probe-checked" means — so the delimiters, the receipt name and the boot-cost
+# metric are imported from it, never restated here. Same dual-entry shim as `canonical_docs`.
+try:
+    from scripts import verify_handoff_probes as _vhp
+except ImportError:  # pragma: no cover - exercised by the scripts/-on-sys.path entrypoint
+    import verify_handoff_probes as _vhp
+
+BOOT_DATA_BEGIN = _vhp.BOOT_DATA_BEGIN
+BOOT_DATA_END = _vhp.BOOT_DATA_END
+BOOT_PROSE_BEGIN = _vhp.BOOT_PROSE_BEGIN
+BOOT_PROSE_END = _vhp.BOOT_PROSE_END
+RECEIPT_FILE = _vhp.RECEIPT_FILE
+BOOT_COST_METRIC = _vhp.BOOT_COST_METRIC
 
 _SCRIPTS = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS.parent
@@ -1957,6 +1977,160 @@ def _splice_fill_regions(rendered: str, existing: str | None) -> str:
     return FILL_IN_RE.sub(_repl, rendered)
 
 
+# --- the boot as DATA + PROSE (lane-boot-contract, WAVE5B-N2 row 12) ----------------------
+#
+# The pasted header of HANDOFF_BOOT.md is two delimited parts. The DATA block is emitted here,
+# row by row, and every row has a rule in `verify_handoff_probes.BOOT_DATA_RULES` — the two sets
+# are held equal by a test, so a fact added here without a probe FAILs rather than riding along
+# as unchecked text. The PROSE block is the template's, and holds only the hand-authored FILL-IN
+# regions (purpose, the destination's worktree / write-scope / mode basis) plus the one
+# generated-at line, under the byte budget below. The doctrine pointers that used to ride in
+# unverified `>` blocks are DATA rows now; the assembler's shed has nothing left to shed.
+#
+# ANSWER-FREE, unchanged: every row is an identity (slug, mode, title, destination), the role
+# pin's version (already in the paste's ROLE PIN) or a pointer — never a count, sha or verdict.
+
+#: The PROSE block's budget, in bytes of prose a seat reads (HTML comments — the FILL-IN
+#: markers — excluded; `verify_handoff_probes.prose_bytes`). MEASURED, not invented: the
+#: 2026-09-24 bundle's own hand-authored purpose / worktree / write-scope / mode-basis, re-laid
+#: in this shape, measure 1,541 B (an unfilled render: 527 B); the budget is that plus ~30 %
+#: headroom, rounded. Checked by probe
+#: `BP-budget` at /handoff-verify and on every commit that stages the bundle.
+BOOT_PROSE_BYTE_BUDGET = 2_000
+
+#: The seat orders the boot points at, in the order a seat reads them.
+_SEAT_ORDER_TEMPLATES = ("dispatcher-order", "integrator-order", "batch-common-rules",
+                         "lane-contract")
+
+
+def spec_version(repo_root: Path) -> "str | None":
+    """The live HANDOFF_PROCESS `Version:` — the assembler's ONE regex, read, never hard-coded.
+    None when the spec or its line is absent (the Role row then renders `unreadable` and its
+    probe FAILs, which is the honest outcome)."""
+    spec = Path(repo_root) / "protocols" / "HANDOFF_PROCESS.md"
+    if not spec.is_file():
+        return None
+    sys.path.insert(0, str(_SCRIPTS))
+    from assemble_paste import _VERSION_RE  # noqa: PLC0415 (sibling CLI; deferred import)
+    m = _VERSION_RE.search(spec.read_text(encoding="utf-8", errors="replace"))
+    return m.group(1) if m else None
+
+
+def boot_data_rows(slug: str, mode: str, chat_title: str,
+                   role_version: "str | None") -> list[tuple[str, str]]:
+    """The DATA rows, in paste order. Each key has exactly one rule in `BOOT_DATA_RULES`."""
+    return [
+        ("Slug", f"`{slug}`"),
+        ("Chat title", f"`{chat_title}`"),
+        ("Mode", f"**{mode}**"),
+        ("Destination", f"branch `{_PRIMARY_TREE_BOOT_DESTINATION}`"),
+        ("Role", f"`protocols/HANDOFF_BOOT.md` @ handoff-process v{role_version or 'unreadable'}"),
+        ("Launch", "`uv run --locked python scripts/dispatch.py launch --help`"),
+        ("Probes", f"`docs/handoffs/{slug}/PROBES.md`"),
+        ("Receipt", f"`docs/handoffs/{slug}/{RECEIPT_FILE}`"),
+        ("Seat orders", " · ".join(f"`templates/{n}-template.md`" for n in _SEAT_ORDER_TEMPLATES)),
+        ("Routing", "`ecosystem/provider-registry.yaml`"),
+        ("Rules", "`protocols/STANDING_RULINGS.md`"),
+        ("Runbook", "`docs/handoffs/README.md`"),
+        ("Harness", "`ecosystem/harness.yaml`"),
+    ]
+
+
+def boot_data_block(rows: list[tuple[str, str]]) -> str:
+    """The delimited DATA block, verbatim as it lands in the boot header."""
+    body = "\n".join(f"| **{k}** | {v} |" for k, v in rows)
+    return (f"{BOOT_DATA_BEGIN}\n| Data | Probe-checked — `verify_handoff_probes` BD-* |\n"
+            f"|---|---|\n{body}\n{BOOT_DATA_END}")
+
+
+# --- the handoff receipt and its boot-cost field ---------------------------------------------
+#
+# WHAT IS MEASURED. "Turns to first correct dispatch" of the seat that booted from the bundle
+# this cut SUPERSEDES — the plan's P3 gate ("a new seat boots in <= 5 turns") read as the C4
+# research's sharper form: turns to a dispatch that held, not to any output. It is measured at
+# the NEXT cut because that is the first moment it has happened.
+#
+# WHY A TALLY, and why it is honest to say so. The architect seat is a browser chat: it keeps no
+# transcript the repo can read (HANDOFF_PROCESS §5 — "the browser has no file access"), so no
+# organ can count its turns. The one instrument that can is the operator, who watched them; the
+# C4 research names that as the honest instrument for a turn count. The generator therefore
+# records the operator's count ONLY when it names the dispatch it counts to, and only when that
+# dispatch is witnessable: an order under `to-cc/` that exists on the transport and was not
+# superseded. Anything less is `unmeasured — <why>`, never a guess and never a zero.
+
+_BOOT_COST_MEASURES = "the seat that booted from the bundle this cut supersedes"
+
+
+def boot_cost(turns: "int | None" = None, dispatch: "str | None" = None,
+              transport: "Path | None" = None) -> dict:
+    """The receipt's `boot_cost` field: measured, or `unmeasured — <why>` with no value."""
+    norm = dispatch.replace("\\", "/").lstrip("./") if dispatch else None
+    base = {"metric": BOOT_COST_METRIC, "value": None, "status": "", "dispatch": norm,
+            "measures": _BOOT_COST_MEASURES}
+    if turns is None and norm is None:
+        why = ("no tally recorded at this cut — the browser seat keeps no transcript the repo "
+               "can read (HANDOFF_PROCESS §5), so the count is the operator's; pass "
+               "--boot-turns N --boot-dispatch to-cc/<order>.md when cutting")
+    elif turns is None:
+        why = f"a dispatch (`{norm}`) with no turn count"
+    elif isinstance(turns, bool) or not isinstance(turns, int) or turns < 1:
+        why = f"not a turn count: {turns!r}"
+    elif norm is None:
+        why = "a turn count that names no dispatch cannot say which dispatch was correct"
+    elif not (norm.startswith("to-cc/") and norm.endswith(".md")):
+        why = f"`{norm}` is not a dispatch order (a `to-cc/<order>.md` file)"
+    elif "superseded" in norm.lower():
+        why = f"`{norm}` was superseded — a withdrawn order is not a correct dispatch"
+    elif transport is None:
+        why = f"the transport is unresolved, so `{norm}` cannot be witnessed"
+    elif not (Path(transport) / norm).is_file():
+        why = f"`{norm}` does not exist on the transport"
+    else:
+        return {**base, "value": turns, "status": "measured",
+                "source": "operator tally, dispatch witnessed on the transport"}
+    return {**base, "status": _vhp._UNMEASURED_PREFIX + why, "source": None}
+
+
+def _write_receipt(bundle_dir: Path, *, slug: str, mode: str, date: str, cut: str,
+                   cost: dict, paste: dict) -> Path:
+    """Write `<bundle>/HANDOFF_RECEIPT.json`, WHOLE, every generation (the FUNNEL_HEALTH
+    contract: overwritten, never merged). A bundle artifact, not a browser-visible one — the
+    assembler never reads it — so its numbers do not touch the answer-free paste."""
+    import json  # noqa: PLC0415
+    out = bundle_dir / RECEIPT_FILE
+    body = {"schema": "handoff-receipt/1", "generator": "scripts/gen_handoff.py", "slug": slug,
+            "mode": mode, "date": date, "cut": cut, "boot_cost": cost, "paste": paste}
+    out.write_text(json.dumps(body, indent=2, ensure_ascii=False) + "\n", encoding="utf-8",
+                   newline="\n")
+    return out
+
+
+def _paste_record(bundle_dir: Path, assembled: "int | None") -> dict:
+    """The receipt's `paste` field: the bytes the gate measured, against the ceiling it states."""
+    sys.path.insert(0, str(_SCRIPTS))
+    from assemble_paste import PASTE_BYTE_CEILING  # noqa: PLC0415
+    rec = {"bytes": None, "ceiling_bytes": PASTE_BYTE_CEILING,
+           "ceiling_source": "scripts/assemble_paste.py::PASTE_BYTE_CEILING"}
+    paste = bundle_dir / "PASTE_THIS.md"
+    if assembled is None:
+        return {**rec, "status": "not assembled (--no-assemble)"}
+    if assembled != 0 or not paste.is_file():
+        return {**rec, "status": f"refused (assembler exit {assembled})"}
+    return {**rec, "bytes": paste.stat().st_size, "status": "assembled"}
+
+
+class DryCutTargetError(ValueError):
+    """A dry cut was pointed inside the repository — it writes outside it, or not at all."""
+
+
+def _inside(path: Path, root: Path) -> bool:
+    try:
+        Path(path).resolve().relative_to(Path(root).resolve())
+    except (ValueError, OSError):
+        return False
+    return True
+
+
 def _tokens(mode: str, slug: str, repo: str, date: str, state: _State, filled: bool) -> dict[str, str]:
     """The structural / framing substitutions. NO probe-answer value appears here — only the
     session identity, the mode framing, the sanctioned {{BRANCH}} pointer, and the fill-state
@@ -1977,6 +2151,9 @@ def _tokens(mode: str, slug: str, repo: str, date: str, state: _State, filled: b
         "SUPPLEMENT_BANNER": _framing("SUPPLEMENT_BANNER", filled),
         "P1_GATE_NOTE": _framing("P1_GATE_NOTE", filled),
         "PASTE_STEP6": _framing("PASTE_STEP6", filled),
+        # lane-boot-contract: the PROSE block's delimiters, owned by the verifier.
+        "BOOT_PROSE_BEGIN": BOOT_PROSE_BEGIN,
+        "BOOT_PROSE_END": BOOT_PROSE_END,
         # #287: slug-based title for architect/execution/functional; the epic branch of
         # generate() overrides this with an epic-slug-aware title after EPIC_SLUG is resolved.
         "CHAT_TITLE": _chat_title(mode, repo, slug),
@@ -2331,8 +2508,22 @@ def _run_assembler(bundle_dir: Path) -> int:
 def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str | None = None,
              repo: str | None = None, date: str | None = None, force_filled: bool | None = None,
              assemble: bool = True, bundle_root: Path | None = None,
-             epic_slug: str | None = None, allow_suffix: bool = False) -> GenResult:
+             epic_slug: str | None = None, allow_suffix: bool = False,
+             boot_turns: "int | None" = None, boot_dispatch: "str | None" = None,
+             dry_cut: bool = False) -> GenResult:
     """Emit a v5 bundle from committed repo state. Returns the bundle dir + the JOURNAL draft.
+
+    lane-boot-contract (WAVE5B-N2 row 12): the v5 boot header is a probe-checked DATA block and
+    a short PROSE block, and every v5 cut writes `HANDOFF_RECEIPT.json` carrying the paste's
+    measured bytes and a `boot_cost` field — `boot_turns` / `boot_dispatch` are the operator's
+    tally for the seat this cut supersedes (see `boot_cost`); without them it is `unmeasured`.
+
+    `dry_cut=True` renders and assembles a real bundle OUTSIDE the repository (it refuses a
+    `bundle_root` inside it, with ValueError) and skips the three cut-boundary gates — the batch
+    boundary, boundary hygiene and the preflight rows — because those guard what a COMMITTED
+    bundle claims, and a dry cut can never be committed: `docs/handoffs/` is out of its reach.
+    It is how a change to the boot is proven end to end without cutting a handoff. The receipt
+    says `"cut": "dry"`.
 
     force_filled overrides the auto-detected fill-state (RF-2's `--filled`). bundle_root defaults
     to <repo_root>/docs/handoffs (overridable for tests). SUPPLEMENT.md is written only if absent
@@ -2376,6 +2567,9 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     date = date or _dt.date.today().isoformat()
     slug = slug or f"{date}-{repo.lstrip('.')}-{mode}"
     bundle_root = bundle_root or (repo_root / "docs" / "handoffs")
+    if dry_cut and _inside(bundle_root, repo_root):
+        raise DryCutTargetError(f"a dry cut writes outside the repository; {bundle_root} is inside "
+                         f"{repo_root} — pass a directory under your job's tmp")
     # RM-8 / R5: refuse a target that already holds git-tracked files (or, with the
     # explicit opt-in, divert to a fresh sibling). `exist_ok=True` survives ONLY on the
     # path this guard has cleared — the in-flight, not-yet-committed bundle — so the
@@ -2385,13 +2579,14 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     # a refused cut leaves no half-written directory behind (which would itself be the
     # untracked in-flight target RM-8 sanctions). RM-8 resolves first because its complaint
     # is the more specific one — it names the colliding directory.
-    assert_batch_boundary(repo_root)
-    assert_boundary_hygiene(repo_root)
-    # The nine PRE-HANDOFF HYGIENE rows, LAST of the three and for the same reason the other two
-    # are ordered as they are: it is the most expensive (the ship-gate leg alone measured 4m30s),
-    # so a cut that a cheaper invariant already refuses never pays for it. Still before mkdir --
-    # a refused cut writes nothing.
-    assert_preflight(repo_root, today=date, repo_name=repo)
+    if not dry_cut:     # a dry cut cannot be committed, so it seals no boundary claim
+        assert_batch_boundary(repo_root)
+        assert_boundary_hygiene(repo_root)
+        # The nine PRE-HANDOFF HYGIENE rows, LAST of the three and for the same reason the other
+        # two are ordered as they are: it is the most expensive (the ship-gate leg alone measured
+        # 4m30s), so a cut that a cheaper invariant already refuses never pays for it. Still
+        # before mkdir -- a refused cut writes nothing.
+        assert_preflight(repo_root, today=date, repo_name=repo)
     bundle_dir.mkdir(parents=True, exist_ok=True)
     # [#473] B — THE FIX, and it is this one line. `_resolve_bundle_dir` may DIVERT the write
     # to a `-<n>` sibling under `--allow-suffix`, but every render token below was built from
@@ -2456,6 +2651,9 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     # R5: the forms card's dispatch line, RENDERED from Ch8's dispatch table rather than held as
     # a second copy — the whole point of STANDING_RULINGS §V.
     tokens["DISPATCH_FORM"] = dispatch_form(repo_root)
+    # lane-boot-contract: the probe-checked DATA block of the boot header.
+    tokens["BOOT_DATA"] = boot_data_block(
+        boot_data_rows(slug, mode, tokens["CHAT_TITLE"], spec_version(repo_root)))
 
     _render("HANDOFF_BOOT.md.tmpl", tokens, bundle_dir, "HANDOFF_BOOT.md")
     _render("RESIDUAL.md.tmpl", tokens, bundle_dir, "RESIDUAL.md")
@@ -2486,12 +2684,23 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     hints = collect_hints(repo_root)
     draft = journal_draft(slug, date, state, hints)
 
+    # lane-boot-contract: the receipt's boot-cost field. The transport is read only when a
+    # tally names a dispatch to witness — an untallied cut never touches it.
+    cost = boot_cost(boot_turns, boot_dispatch,
+                     transport_root() if boot_dispatch is not None else None)
+    code: "int | None" = None
     if assemble:
         # THE COLD PASS. RESIDUAL.md was rendered a few lines above, so leg 2's second operand
         # does not exist yet — the assembler recognises that from the residual itself and
         # defers (loudly) to the post-fill re-run. Any non-zero the child still returns — a
         # missing required source, a broken template — refuses the cut below.
         code = _run_assembler(bundle_dir)
+    # Written AFTER the assembler, refused or not, so the paste bytes it records are the ones
+    # the gate measured — and a refused cut still leaves the receipt that says it was refused.
+    _write_receipt(bundle_dir, slug=slug, mode=mode, date=date,
+                   cut="dry" if dry_cut else "real", cost=cost,
+                   paste=_paste_record(bundle_dir, code))
+    if assemble:
         if code != 0:
             # The bundle is deliberately LEFT ON DISK. Every other refusal in this function
             # fires before `mkdir` and leaves nothing behind; this one fires after the render,
@@ -2527,9 +2736,19 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
               help="print the JOURNAL generation-entry DRAFT to stdout (never writes JOURNAL.md)")
 @click.option("--preflight-only", is_flag=True, default=False,
               help="print the nine pre-handoff hygiene rows and exit (1 on any FAIL); cut nothing")
+@click.option("--dry-cut", "dry_cut_dir", default=None,
+              type=click.Path(file_okay=False, path_type=Path),
+              help="render + assemble a real bundle into DIR (must be OUTSIDE the repo), skipping "
+                   "the cut-boundary gates; it is never a handoff and can never be committed")
+@click.option("--boot-turns", type=int, default=None,
+              help="the operator's tally: turns the superseded bundle's seat took to its first "
+                   "correct dispatch (recorded in HANDOFF_RECEIPT.json boot_cost)")
+@click.option("--boot-dispatch", default=None,
+              help="that first correct dispatch, as a transport path `to-cc/<order>.md`")
 def main(mode: str, epic_slug: str | None, slug: str | None, repo: str | None, date: str | None,
          force_filled: bool | None, assemble: bool, allow_suffix: bool, emit_journal: bool,
-         preflight_only: bool) -> None:
+         preflight_only: bool, dry_cut_dir: "Path | None" = None, boot_turns: "int | None" = None,
+         boot_dispatch: "str | None" = None) -> None:
     """Generate a v5 handoff bundle from committed repo state."""
     if preflight_only:
         rows = preflight_rows(_REPO_ROOT, today=date)
@@ -2545,9 +2764,11 @@ def main(mode: str, epic_slug: str | None, slug: str | None, repo: str | None, d
     try:
         res = generate(_REPO_ROOT, mode=mode, slug=slug, repo=repo, date=date,
                        force_filled=force_filled, assemble=assemble, epic_slug=epic_slug,
-                       allow_suffix=allow_suffix)
+                       allow_suffix=allow_suffix, boot_turns=boot_turns,
+                       boot_dispatch=boot_dispatch, bundle_root=dry_cut_dir,
+                       dry_cut=dry_cut_dir is not None)
     except (BundleCollisionError, OpenBatchError, BoundaryHygieneError, PreflightError,
-            AssemblyRefusedError) as exc:
+            AssemblyRefusedError, DryCutTargetError) as exc:
         # A REFUSAL, not a crash — one diagnostic line, non-zero exit. RM-8 (target collision)
         # and the two boundary invariants share this exit: each names what it found, and none
         # of them is recoverable by re-running unchanged.
