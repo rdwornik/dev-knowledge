@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-25 (r) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): a batch's refusals and faults become candidate rows with a runnable check -- `learning_distiller.py`
+
+**Anchors:** `5b8c0721`, `2ab4bd55`, `70d92f9e`, `ead0f7cc` -- `worktree-lane-learning-distiller` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on origin/main `bc969abc`.
+
+**Did:** new read-only organ `scripts/learning_distiller.py run --integrator --dispatcher [--refused ...] [--format text|json]` turns REFUSED-repair, FAILED-lane and dispatcher-fault receipts into candidate rows, each with title, provenance and a regression check; it files nothing (ruling h). The N1 fixture yields exactly the two repairs and the one dispatcher fault (pinned by tests); one `fates:` line in `ecosystem/harness.yaml` (ruling a). Refused once (the ship-gate leg of the close-out never completed); repair 1 ran it through the memory gate to completion (0 hard-fail), no code change. Codex terra 0/3/0/0, all fixed; 26 tests. **Result:** a batch's lessons are distilled into rows instead of fixed by hand and forgotten. **Changes:** `scripts/learning_distiller.py`, `ecosystem/harness.yaml`, its tests and fixtures, the terra record, `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl`. **Next:** run it over WAVE5B-N2's own receipts at close.
+
 ### 2026-09-25 (q) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): the dispatcher's launch queue becomes code -- `dispatch.py queue`
 
 **Anchors:** `9d2b3d13`, `a09af554` -- `worktree-lane-launch-queue` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree stacked on lane 8's merge.
