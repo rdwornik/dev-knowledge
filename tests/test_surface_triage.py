@@ -26,9 +26,11 @@ import pytest
 _SCRIPT = Path(__file__).resolve().parent.parent / "scripts" / "surface_triage.py"
 
 
-# The fake `gh`: a tiny Python script driven directly by sys.executable (no shell wrapper
-# needed -- surface_triage.py resolves gh via shutil.which, which finds an .exe/.cmd/.bat on
-# Windows or an executable file on POSIX; a .cmd shim mirrors the ps1 suite's own fixture).
+# The fake `gh`: a tiny Python script driven directly by sys.executable. surface_triage.py
+# resolves gh via shutil.which, which on Windows matches an .exe/.cmd/.bat and on POSIX
+# matches only a file with the executable bit set -- shutil.which never resolves a `.cmd` on
+# POSIX (repair 1, WAVE5B-N1: the .cmd-only fixture let a POSIX runner's real, unauthenticated
+# `gh` win the resolution instead, so this writes BOTH shims and each substrate finds its own).
 _FAKE_GH_TEMPLATE = r'''
 import sys
 args = sys.argv[1:]
@@ -51,6 +53,13 @@ def _fake_gh(tmp_path, auth_exit=0, issues="[]"):
         "exit /b %ERRORLEVEL%\r\n",
         encoding="utf-8",
     )
+    posix_shim = tmp_path / "gh"
+    posix_shim.write_text(
+        "#!/bin/sh\n"
+        f'exec "{sys.executable}" "$(dirname "$0")/fake_gh.py" "$@"\n',
+        encoding="utf-8",
+    )
+    posix_shim.chmod(posix_shim.stat().st_mode | 0o111)
     return tmp_path
 
 
