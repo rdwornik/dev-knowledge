@@ -111,8 +111,19 @@ def test_teardown_stops_the_session_removes_worktree_and_branch_transcript_survi
     transcript = transcript_dir / f"sess-{JOB_ID}.jsonl"
     transcript.write_text('{"type": "assistant"}\n', encoding="utf-8")
 
-    # the lane already handed back -- FINISHED in the listing, before the janitor ever runs
-    reads = [[{"id": JOB_ID, "state": "done"}], [{"id": JOB_ID, "state": "stopped"}]]
+    # ONE shared listing stands for "what `claude agents --json` reads after the stop" --
+    # CODEX HIGH, fixed: the first draft asserted nothing about the janitor's own post-stop
+    # read and fed no_leftovers a second, disconnected record instead. Now the exact same
+    # object is what the janitor's second read returns AND what no_leftovers reads below, so
+    # `report.after` is the proof, not a fabrication alongside it. It still carries `cwd` and
+    # `worktreeBranch` -- `claude stop` "leaves ... the job record in place" (batch_janitor's
+    # own docstring), and nothing erases the launch cwd from the live listing either, so this
+    # is the hard case: without the R3 fix, no_leftovers would read this surviving pointer as
+    # a leftover forever.
+    branch = f"worktree-{SLUG}"
+    after_listing = [{"id": JOB_ID, "state": "stopped", "sessionId": f"sess-{JOB_ID}",
+                      "cwd": str(worktree_path), "worktreeBranch": branch}]
+    reads = [[{"id": JOB_ID, "state": "done"}], after_listing]
     stop_calls: list[list[str]] = []
 
     def fake_run(argv: list[str]) -> subprocess.CompletedProcess:
@@ -125,34 +136,28 @@ def test_teardown_stops_the_session_removes_worktree_and_branch_transcript_survi
         "the janitor's own stop verb -- never `claude rm` -- is what teardown calls"
     assert report.stopped[0].ok
 
+    # the janitor's OWN post-stop observation: the session is still LISTED, stopped not gone
+    after_session = next(s for s in report.after if s.job_id == JOB_ID)
+    assert after_session.state == "stopped", \
+        "the session survives teardown -- the janitor's own re-read must still list it"
+    assert after_session.live is False
+
     # R3's other half: worktree and branch removed. The job/session is untouched by this.
     _remove_worktree_and_branch_only(hub, SLUG)
 
-    # the job record and the agents listing both keep pointing at the now-removed lane path --
-    # `claude stop` "leaves ... the job record in place" (batch_janitor's own docstring), and
-    # nothing here erases the launch cwd from the live listing either. This is the hard case:
-    # without the R3 fix, no_leftovers would read either surviving pointer as a leftover forever.
-    branch = f"worktree-{SLUG}"
     (jobs / JOB_ID).mkdir()
     (jobs / JOB_ID / "state.json").write_text(json.dumps({
         "worktreePath": str(worktree_path), "worktreeBranch": branch, "state": "stopped",
     }), encoding="utf-8")
-    after_agents = [{"id": JOB_ID, "state": "stopped", "sessionId": f"sess-{JOB_ID}",
-                     "cwd": str(worktree_path), "worktreeBranch": branch}]
 
-    # 1. the session is still LISTED, stopped rather than gone
-    listed = bj._find_entry(after_agents, JOB_ID)
-    assert listed is not None, "the session survives teardown -- it must still be listed"
-    assert listed["state"] == "stopped"
-
-    # 2. its transcript exists at the path the test resolves, byte-identical to what was written
+    # its transcript exists at the path the test resolves, byte-identical to what was written
     resolved = ra.transcript_paths(worktree_path, sessions_root=sessions_root)
     assert resolved == [transcript]
     assert transcript.read_text(encoding="utf-8") == '{"type": "assistant"}\n'
 
-    # 3. the worktree and branch are gone -- no_leftovers CLEAN, even with the surviving,
-    #    now-terminal session record still on file
-    results = nl.run_checks(hub, SLUG, jobs_dir=jobs, agents=after_agents)
+    # the worktree and branch are gone -- no_leftovers CLEAN, fed the SAME listing the janitor
+    # itself just observed as stopped, not a second record invented for this assertion alone
+    results = nl.run_checks(hub, SLUG, jobs_dir=jobs, agents=after_listing)
     failed = [r for r in results if not r.passed]
     assert not failed, f"no_leftovers not CLEAN: {[(r.name, r.evidence) for r in failed]}"
 

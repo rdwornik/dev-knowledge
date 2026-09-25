@@ -275,6 +275,14 @@ def test_8_passes_when_the_pointing_job_record_is_TERMINAL(hub, jobs):
     assert _run(hub, jobs)[8].passed
 
 
+def test_8_fails_closed_on_a_pointing_record_with_an_UNKNOWN_state(hub, jobs):
+    """CODEX HIGH: an unrecognized `state` string must not be silently treated as terminal --
+    only a name `batch_janitor._ENDED_STATES` actually lists proves the job ended."""
+    _job(jobs, "deadbeef", worktreePath=str(_lane_dir(hub)), worktreeBranch=f"worktree-{SLUG}",
+         state="quux")
+    assert not _run(hub, jobs)[8].passed
+
+
 def test_9_fails_while_a_live_session_is_cwd_d_in_the_lane(hub, jobs):
     agents = [{"id": "9c53bd44", "cwd": str(_lane_dir(hub)), "status": "busy"}]
     res = _run(hub, jobs, agents)[9]
@@ -300,6 +308,13 @@ def test_9_passes_when_the_pointing_agents_entry_is_TERMINAL(hub, jobs):
     agents = [{"id": "9c53bd44", "cwd": str(_lane_dir(hub)), "status": "done",
                "state": "stopped"}]
     assert _run(hub, jobs, agents)[9].passed
+
+
+def test_9_fails_closed_on_a_pointing_entry_with_an_UNKNOWN_state(hub, jobs):
+    """CODEX HIGH: the same fail-closed floor as check 8, for the live listing."""
+    agents = [{"id": "9c53bd44", "cwd": str(_lane_dir(hub)), "status": "done",
+               "state": "quux"}]
+    assert not _run(hub, jobs, agents)[9].passed
 
 
 def test_10_fails_for_a_dirty_primary_working_tree(hub, jobs):
