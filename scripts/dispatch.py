@@ -76,7 +76,7 @@ import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable, Mapping, Optional, Sequence
+from typing import Callable, Iterable, Mapping, Optional, Sequence
 
 import click
 import yaml
@@ -85,6 +85,16 @@ try:  # pragma: no cover -- exercised by whichever path the caller uses
     from scripts import lane_cost as lc
 except ImportError:  # pragma: no cover
     import lane_cost as lc
+
+try:  # pragma: no cover -- `queue`'s own ordering: no second contract-grammar reader here
+    from scripts import plan_lint as pl
+except ImportError:  # pragma: no cover
+    import plan_lint as pl
+
+try:  # pragma: no cover -- `queue`'s own RAM read: no second memory reader here
+    from scripts import memory_admission_gate as mag
+except ImportError:  # pragma: no cover
+    import memory_admission_gate as mag
 
 logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("dispatch")
@@ -1220,6 +1230,403 @@ def _sum(models: Mapping[str, "lc.TokenUsage"]) -> "lc.TokenUsage":
     return total
 
 
+# --- queue: the dispatcher's hand procedure becomes code (LANE-5B2-9) --------------------------
+#
+# WHY. WAVE5B-N1's dispatcher ran the queue BY HAND: a RAM gate read by eye off a screenshot, a
+# dependency hold worked out by re-reading the integrator's prose receipts every tick, and 13
+# orphan watcher loops that outlived their own usefulness (`to-browser/SESSION-dispatcher-wave5b-
+# n1-2026-09-24.md`, "an-expired-monitor-leaves-its-bash-loop-running"). This section is that
+# procedure as code: `launch_order` computes a static schedule from the contracts alone (priority
+# = input order, `Starts after`, `serialize-group`, substrate); `decide_lane` turns that schedule
+# plus LIVE state (an integrator receipt fixture, a local-lane count, free memory) into one
+# decision per lane; `watch_queue` polls `decide_lane` in a loop that is BOUNDED BY CONSTRUCTION
+# -- it returns at `deadline_s` whatever is still pending, so nothing started here can become an
+# orphan loop the way N1's watchers did.
+#
+# NO SECOND CONTRACT-GRAMMAR READER. `launch_order` reuses `plan_lint.parse_lane_contract` /
+# `build_edges` / `find_cycle` for the `Starts after` and `serialize-group` edges -- the exact
+# grammar `lane-plan-lint-grammar` already wrote and reads, not a second regex set here that could
+# drift from it. This module's only new reading is the substrate column (`dispatch_head` /
+# `lane_substrate`), which plan_lint has no reason to know about.
+#
+# THE INTEGRATOR RECEIPT FIXTURE. No machine-readable "STATE <lane> MERGED <sha>" format existed
+# before this lane -- the dispatcher's own session files carry that as PROSE, written by hand into
+# a transcript. `read_lane_states` defines the smallest JSON shape a dependency hold can act on:
+# `{"lanes": {"<slug>": {"state": "MERGED"|"FAILED", "sha": "..."}}}`. A slug this file does not
+# mention reads WAITING, never a guessed MERGED -- an unreadable or absent fixture holds every
+# dependent lane rather than assuming its dependency is done.
+#
+# SUBSTRATE IS READ, NEVER LAUNCHED. A `Dispatch-Codespace` head (`lane_substrate` via
+# `dispatch_head`) routes a lane to `ROUTE-CODESPACE` and this module never spawns it -- exactly
+# the refusal `dispatch.py launch` already gives a non-claude/codex/copilot head, surfaced here as
+# a decision instead of an exception so a mixed-substrate queue does not stop on its first
+# codespace lane. The codespace verb itself (`Dispatch-Codespace` / `Start-DispatchCodespace`) is
+# PowerShell, outside this module's reach by design (the dispatcher order's own words: "NOT
+# `scripts/dispatch.py launch`, which launches `claude`/`codex` heads only and refuses any other").
+#
+# A REPAIR IS NOT A LAUNCH. `launch_lane`'s `--worktree <slug>` provisions a FRESH tree; a repair
+# must run inside the lane's EXISTING (locked) worktree or it abandons the branch the repair exists
+# to fix -- the WAVE5A precedent `DECIDED-BY-LANE` in `SESSION-dispatcher-wave5b-n1-2026-09-24.md`
+# ("Repairs"). `build_repair_plan` never emits `--worktree`; `repair_lane` spawns with `cwd` set to
+# the pre-existing tree and REFUSES when it is not there (starting one is a fresh launch's job).
+#
+# HONEST LIMITS
+#   * `local_live_count`/`live_slugs` read `claude agents --json` (via the caller's injected
+#     functions, same as `govern`) -- a codespace lane's liveness is NOT observable this way (it is
+#     a `gh codespace`, not a claude agent), so this module never claims to know one is live; it
+#     only ever ROUTES a codespace lane away, never gates it on codespace-substrate occupancy.
+#   * `launch_order` is a STATIC schedule from the contracts as given, not a live re-plan: it does
+#     not know which lane is already running or already MERGED. `decide_lane`/`watch_queue` are
+#     what reads live state; a caller wanting an order that reflects today's progress re-runs
+#     `launch_order` after removing already-fired/terminal slugs from its input, the same way
+#     `plan_pass` already skips them.
+#   * `watch_queue`'s RAM and local-cap reads are single per-poll SNAPSHOTS, the same limits
+#     `memory_admission_gate`'s own gate already carries -- two lanes clearing the same headroom
+#     in the same poll is a real race this module does not arbitrate (the box-wide reserve is
+#     `memory_admission_gate`'s job for a HEAVY COMMAND; this queue's floor is a coarser, launch-
+#     time-only check, not a second admission-control system).
+
+
+@dataclass(frozen=True)
+class QueuedLane:
+    """One contract, read for exactly what `queue` needs to place it in the schedule."""
+    slug: str
+    contract: Path
+    priority: int                        # index in the order the caller passed the contracts
+    starts_after: tuple[str, ...]
+    serialize_group: Optional[str]
+    substrate: str                        # "local" | "codespace"
+
+
+#: "substrate: local" / "substrate: **codespace**" -- the contract header's own note (both real
+#: spellings: LANE-5B2-1's is bolded, LANE-5B2-5's is not). Read only as a FALLBACK -- the Dispatch
+#: block's own head is authoritative when it names `Dispatch-Codespace` (see `lane_substrate`).
+_SUBSTRATE_LABEL_RE = re.compile(r"substrate:\s*\*{0,2}(?P<sub>[a-z]+)\*{0,2}", re.IGNORECASE)
+
+
+def dispatch_head(text: str) -> str:
+    """The `## Dispatch` fence's first token, lowercased -- read, never validated: unlike
+    `parse_dispatch_block`, this must not raise on a `Dispatch-Codespace` head (queue reads EVERY
+    lane's substrate, including the codespace ones `parse_dispatch_block` exists to refuse).
+    '' when the contract carries no Dispatch fence at all."""
+    lines = _dispatch_lines(text)
+    if not lines:
+        return ""
+    tokens = _tokens(lines[0])
+    return Path(tokens[0][0]).stem.lower() if tokens else ""
+
+
+def lane_substrate(text: str) -> str:
+    """`"codespace"` or `"local"` for one contract's full text.
+
+    The Dispatch block's own head decides first: a `Dispatch-Codespace` head can ONLY be the
+    codespace verb (`dispatch.py launch` refuses that head outright), so queue must route it away
+    from a local spawn before `launch_lane` would ever get the chance to raise. A `claude`/`codex`/
+    `copilot` head falls through to the contract's own `substrate: <label>` note, because
+    `dispatch.py` CAN spawn those heads locally -- the label is what still says whether this lane
+    sits outside the local RAM cap (a cloud/codespace lane dispatched some other way) or inside it.
+    No note at all defaults to `"local"`, the common case."""
+    if dispatch_head(text) == "dispatch-codespace":
+        return "codespace"
+    match = _SUBSTRATE_LABEL_RE.search(text)
+    if match:
+        label = match.group("sub").lower()
+        if label in SUBSTRATES:
+            return label
+    return "local"
+
+
+def load_queue(contracts: Sequence[Path]) -> tuple[QueuedLane, ...]:
+    """Every contract in `contracts`, in the order given -- that order IS the priority ("merge
+    priority = table order", `BATCH-WAVE5B-N2-2026-09-25.md` §2). Reuses `plan_lint.load_contracts`
+    for the slug/`Starts after`/`serialize-group` grammar (a duplicate slug refuses, same as
+    plan-lint itself); adds only the substrate read plan-lint has no reason to make."""
+    parsed = pl.load_contracts(contracts)
+    return tuple(
+        QueuedLane(slug=lane.slug, contract=lane.path, priority=i, starts_after=lane.starts_after,
+                  serialize_group=lane.serialize_group, substrate=lane_substrate(lane.full_text))
+        for i, lane in enumerate(parsed))
+
+
+#: Codespace before local when a round's ties are broken: a codespace lane never touches the local
+#: RAM cap, so trying it first costs a static schedule nothing and mirrors the real batch's own
+#: wave α (its one codespace lane sits first even though it is also lowest-priority by number).
+_SUBSTRATE_RANK = {"codespace": 0, "local": 1}
+
+
+def launch_order(lanes: Sequence[QueuedLane]) -> list[str]:
+    """The static launch order: a BFS-layered topological sort over plan_lint's OWN dependency
+    graph (`Starts after` + `serialize-group`, built exactly as `plan_lint.build_edges` builds it
+    -- no second edge-builder here). Every lane whose dependencies are ALL already placed forms one
+    ROUND, sorted by `(substrate, priority)`; the next round is computed only after the whole
+    round is placed. LAYERED, not a flat priority queue: a lane a single edge frees late (wave
+    gamma's 2/3/4/6/7/10) must never preempt a lane still waiting from an EARLIER round just
+    because it happens to rank higher on substrate or priority -- a flat pop-lowest queue lets a
+    freshly-freed codespace lane jump the entire local wave still sitting in the ready set, which
+    is not the batch's own wave α/β/γ shape (`DISPATCHER-WAVE5B-N2-2026-09-25.md` §Sequence).
+
+    Raises `DispatchRefused` on a cycle (reusing `plan_lint.find_cycle`'s own check) or when the
+    graph leaves lanes unplaced -- the latter should be unreachable once the cycle check has
+    passed, and is refused rather than silently dropping a lane from the printed order."""
+    contracts = pl.load_contracts([lane.contract for lane in lanes])
+    edges = pl.build_edges(contracts)
+    cycle = pl.find_cycle(contracts, edges)
+    if cycle is not None:
+        raise DispatchRefused(
+            f"queue: declared dependency edges form a cycle: {' -> '.join(cycle)} -- no launch "
+            "order exists for this set of contracts")
+    by_slug = {lane.slug: lane for lane in lanes}
+    indeg: dict[str, int] = {lane.slug: 0 for lane in lanes}
+    children: dict[str, list[str]] = {lane.slug: [] for lane in lanes}
+    for a, b in edges:
+        if a in by_slug and b in by_slug:
+            indeg[b] += 1
+            children[a].append(b)
+
+    def _round_sort(slugs: list[str]) -> list[str]:
+        return sorted(slugs, key=lambda s: (_SUBSTRATE_RANK.get(by_slug[s].substrate, 1),
+                                            by_slug[s].priority))
+
+    order: list[str] = []
+    placed: set[str] = set()
+    round_ = _round_sort([slug for slug, d in indeg.items() if d == 0])
+    while round_:
+        order.extend(round_)
+        placed.update(round_)
+        for slug in round_:
+            for child in children[slug]:
+                indeg[child] -= 1
+        round_ = _round_sort([slug for slug, d in indeg.items() if d == 0 and slug not in placed])
+    missing = set(by_slug) - placed
+    if missing:
+        raise DispatchRefused(f"queue: {len(missing)} lane(s) never became ready: {sorted(missing)} "
+                              "-- a dependency this graph could not resolve")
+    return order
+
+
+# --- live decisions: dependency, serialize-group, local cap, RAM --------------------------------
+
+def read_lane_states(path: Optional[Path]) -> dict[str, str]:
+    """The integrator's lane-state fixture: `{"lanes": {"<slug>": {"state": "MERGED"|"FAILED",
+    "sha": "..."}}}`. `path=None`, a missing file, or unreadable JSON all read as `{}` -- every
+    dependency then reads WAITING, never a guessed MERGED (see the section docstring)."""
+    if path is None:
+        return {}
+    try:
+        body = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    lanes = body.get("lanes") if isinstance(body, dict) else None
+    if not isinstance(lanes, dict):
+        return {}
+    out: dict[str, str] = {}
+    for slug, row in lanes.items():
+        if isinstance(row, dict) and isinstance(row.get("state"), str):
+            out[str(slug)] = row["state"].strip().upper()
+    return out
+
+
+DEP_READY = "READY"
+DEP_WAITING = "WAITING"
+DEP_BLOCKED_FAILED = "BLOCKED-FAILED"
+
+
+def dependency_status(lane: QueuedLane, states: Mapping[str, str]) -> str:
+    """`READY` (no dependency, or every named one reads MERGED); `BLOCKED-FAILED` (any named one
+    reads FAILED -- the Sequence's own rule: "A lane whose dependency is FAILED is not launched");
+    else `WAITING` (a dependency is absent from the fixture, or present but not yet terminal)."""
+    if not lane.starts_after:
+        return DEP_READY
+    seen = [states.get(dep, "") for dep in lane.starts_after]
+    if any(s == "FAILED" for s in seen):
+        return DEP_BLOCKED_FAILED
+    if all(s == "MERGED" for s in seen):
+        return DEP_READY
+    return DEP_WAITING
+
+
+def serialize_group_clear(lane: QueuedLane, all_lanes: Sequence[QueuedLane],
+                          live_slugs: Iterable[str]) -> bool:
+    """True when no OTHER member of `lane`'s `serialize-group` is currently live -- "never two
+    members live" (Done-contract item 2). A lane with no group is trivially clear."""
+    if not lane.serialize_group:
+        return True
+    live = set(live_slugs)
+    members = {other.slug for other in all_lanes
+              if other.serialize_group == lane.serialize_group and other.slug != lane.slug}
+    return not (members & live)
+
+
+ACTION_FIRE = "FIRE"
+ACTION_HOLD = "HOLD"
+ACTION_HELD_FAILED = "HELD-FAILED"
+ACTION_ROUTE_CODESPACE = "ROUTE-CODESPACE"
+
+
+@dataclass(frozen=True)
+class QueueDecision:
+    slug: str
+    action: str
+    reason: str
+
+
+def decide_lane(lane: QueuedLane, *, states: Mapping[str, str], live_slugs: Iterable[str],
+                all_lanes: Sequence[QueuedLane], local_cap: int, local_live_count: int,
+                free_mb: float, floor_mb: float) -> QueueDecision:
+    """One lane's decision, gate by gate, in the order a real launch must clear them: dependency,
+    then `serialize-group`, then substrate (a codespace lane is ROUTED, never gated on cap/RAM --
+    it does not use either), then the local cap, then the RAM floor."""
+    dep = dependency_status(lane, states)
+    if dep == DEP_BLOCKED_FAILED:
+        return QueueDecision(lane.slug, ACTION_HELD_FAILED,
+                             f"dependency FAILED: {', '.join(lane.starts_after)}")
+    if dep == DEP_WAITING:
+        return QueueDecision(lane.slug, ACTION_HOLD,
+                             f"waiting on {', '.join(lane.starts_after)} to read MERGED")
+    if not serialize_group_clear(lane, all_lanes, live_slugs):
+        return QueueDecision(lane.slug, ACTION_HOLD,
+                             f"serialize-group {lane.serialize_group!r} has a live member")
+    if lane.substrate == "codespace":
+        return QueueDecision(lane.slug, ACTION_ROUTE_CODESPACE,
+                             "Dispatch-Codespace head -- the codespace verb launches this, never "
+                             "a local spawn (dispatch.py launch refuses that head by design)")
+    if local_live_count >= local_cap:
+        return QueueDecision(lane.slug, ACTION_HOLD,
+                             f"local cap {local_cap} full ({local_live_count} live)")
+    if free_mb < floor_mb:
+        return QueueDecision(lane.slug, ACTION_HOLD,
+                             f"free {free_mb:.0f} MB is below the {floor_mb:.0f} MB floor")
+    return QueueDecision(lane.slug, ACTION_FIRE, "clear")
+
+
+def plan_pass(lanes: Sequence[QueuedLane], order: Sequence[str], *, fired: Iterable[str],
+             states: Mapping[str, str], live_slugs: Iterable[str], local_cap: int,
+             local_live_count: int, free_mb: float, floor_mb: float) -> list[QueueDecision]:
+    """One decision per not-yet-`fired` slug in `order`, in order."""
+    by_slug = {lane.slug: lane for lane in lanes}
+    fired_set = set(fired)
+    return [
+        decide_lane(by_slug[slug], states=states, live_slugs=live_slugs, all_lanes=lanes,
+                   local_cap=local_cap, local_live_count=local_live_count, free_mb=free_mb,
+                   floor_mb=floor_mb)
+        for slug in order if slug not in fired_set]
+
+
+# --- a repair relaunches into the lane's EXISTING worktree, never a fresh one --------------------
+
+def build_repair_plan(model: str, slug: str, attempt: int, effort: str, prompt: str,
+                      permission_mode: str = "bypassPermissions") -> Plan:
+    """`claude --bg -n <slug>-repair-<attempt> ...` -- deliberately NO `--worktree` flag (unlike
+    `build_plan`'s local-claude branch): a repair's `cwd` IS the lane's existing worktree, and
+    `--worktree <slug>` would provision a fresh one, abandoning the branch under repair."""
+    eff = EFFORTS.get(effort.lower())
+    if eff is None:
+        raise DispatchRefused(f"unknown effort {effort!r}. Valid: low, medium, high, xhigh, max "
+                              "(or l/m/h/x)")
+    name = f"{slug}-repair-{attempt}"
+    argv = ["claude", "--bg", "-n", name, "--model", model, "--effort", eff, "--permission-mode",
+            permission_mode, prompt]
+    return Plan(argv, "transcript")
+
+
+@dataclass(frozen=True)
+class RepairRequest:
+    slug: str
+    attempt: int
+    model: str
+    effort: str
+    contract: Path
+    permission_mode: str = "bypassPermissions"
+
+    @property
+    def session_name(self) -> str:
+        return f"{self.slug}-repair-{self.attempt}"
+
+    @property
+    def prompt(self) -> str:
+        return (f"Repair for {self.slug} (attempt {self.attempt}): read the refusal and the "
+                f"frozen contract at {self.contract}; fix only what the refusal names; hand back "
+                "per the common rules.")
+
+    @property
+    def argv(self) -> list[str]:
+        return build_repair_plan(self.model, self.slug, self.attempt, self.effort, self.prompt,
+                                 self.permission_mode).argv
+
+
+def repair_worktree_path(repo_root: Path, slug: str) -> Path:
+    return Path(repo_root) / ".claude" / "worktrees" / slug
+
+
+def repair_lane(request: RepairRequest, *, repo_root: Path,
+                spawn: Callable[..., "Spawned"] = None,
+                environ: Optional[Mapping[str, str]] = None) -> "Spawned":
+    """Spawn the repair INTO `request.slug`'s existing worktree. Refuses (never spawns) when that
+    worktree is not there: starting one is a fresh launch's job, not a repair's."""
+    spawn = spawn or spawn_process
+    tree = repair_worktree_path(repo_root, request.slug)
+    if not tree.is_dir():
+        raise DispatchRefused(f"no existing worktree at {tree} -- a repair reuses the lane's own "
+                              "worktree; it does not start one (that is launch_lane's job)")
+    env = dict(environ if environ is not None else os.environ)
+    return spawn(request.argv, env, tree)
+
+
+# --- watch: one bounded loop, never an orphan --------------------------------------------------
+
+@dataclass(frozen=True)
+class WatchResult:
+    polls: int
+    expired: bool
+    fired: tuple[str, ...]
+
+
+def watch_queue(lanes: Sequence[QueuedLane], order: Sequence[str], *, deadline_s: float,
+                poll_interval_s: float = 60.0, sleep: Callable[[float], None] = time.sleep,
+                clock: Callable[[], float] = time.monotonic,
+                on_fire: Optional[Callable[[str], None]] = None,
+                states_fn: Optional[Callable[[], Mapping[str, str]]] = None,
+                live_slugs_fn: Optional[Callable[[], Iterable[str]]] = None,
+                local_live_count_fn: Optional[Callable[[], int]] = None,
+                free_mb_fn: Optional[Callable[[], float]] = None,
+                local_cap: int = 4, floor_mb: float = 3072.0,
+                max_polls: Optional[int] = None) -> WatchResult:
+    """Poll `plan_pass` until every lane is `FIRE`d or terminal (`HELD-FAILED`/`ROUTE-CODESPACE`),
+    OR `deadline_s` elapses -- whichever comes first, NEVER longer.
+
+    This is the fix for N1's 13 orphan watcher loops: every watcher this queue starts carries its
+    own deadline and self-terminates at it, still-pending lanes and all (the caller reads
+    `WatchResult.expired` and `order` minus `fired` to see what is left). `on_fire`, when given, is
+    called once per lane the instant it clears every gate -- the caller's own launch (local) or
+    routing (codespace) side effect; this function itself never spawns anything."""
+    states_fn = states_fn or (lambda: {})
+    live_slugs_fn = live_slugs_fn or (lambda: ())
+    local_live_count_fn = local_live_count_fn or (lambda: 0)
+    free_mb_fn = free_mb_fn or (lambda: float("inf"))
+    start = clock()
+    fired: set[str] = set()
+    polls = 0
+    while True:
+        polls += 1
+        decisions = plan_pass(lanes, order, fired=fired, states=states_fn(),
+                              live_slugs=live_slugs_fn(), local_cap=local_cap,
+                              local_live_count=local_live_count_fn(), free_mb=free_mb_fn(),
+                              floor_mb=floor_mb)
+        for decision in decisions:
+            if decision.action == ACTION_FIRE:
+                if on_fire is not None:
+                    on_fire(decision.slug)
+                fired.add(decision.slug)
+            elif decision.action in (ACTION_HELD_FAILED, ACTION_ROUTE_CODESPACE):
+                fired.add(decision.slug)   # terminal for this watcher: nothing left to wait for
+        if all(slug in fired for slug in order):
+            return WatchResult(polls, expired=False, fired=tuple(fired))
+        elapsed = clock() - start
+        if elapsed >= deadline_s or (max_polls is not None and polls >= max_polls):
+            return WatchResult(polls, expired=True, fired=tuple(fired))
+        sleep(poll_interval_s)
+
+
 # --- CLI ---------------------------------------------------------------------------------
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -1234,6 +1641,12 @@ def cli() -> None:
                        It never stops, pauses or kills a lane -- not on an over-cap
                        reading, not on unreadable usage.
     plan    CONTRACT   print the launch plan as JSON; starts nothing.
+    queue   CONTRACTS  the launch order (priority, Starts after, serialize-group,
+                       substrate), and, unless --dry-run, one pass or a bounded
+                       --watch loop firing whatever clears the dependency/cap/RAM
+                       gates. A codespace lane is routed, never spawned here.
+    repair  SLUG CONTRACT   relaunch a repair into SLUG's EXISTING worktree -- never
+                       a fresh `--worktree`.
 
     Run `dispatch.py <verb> --help` for a verb's options. The contract's Dispatch
     block is read for its fields (head, -n, --worktree, --model, --effort), never run."""
@@ -1501,6 +1914,103 @@ def _report(verdict: MonitorVerdict) -> None:
         state = f"monitor ended after {verdict.polls} poll(s); the lane was not touched"
     used = "unread" if verdict.used is None else verdict.used
     click.echo(f"[dispatch] {state}: used {used} of {verdict.cap if verdict.cap is not None else 'no cap'}")
+
+
+@cli.command("queue")
+@click.argument("contracts", nargs=-1, required=True, type=click.Path(exists=True, path_type=Path))
+@click.option("--batch", default="", help="Passed through as --batch to every local launch fired.")
+@click.option("--cap", type=int, default=4, show_default=True,
+              help="Max live LOCAL lanes at once (codespace lanes never count against it).")
+@click.option("--floor-mb", type=float, default=3072.0, show_default=True,
+              help="Minimum free memory to fire a local lane.")
+@click.option("--state-file", type=click.Path(path_type=Path), default=None,
+              help="The integrator's lane-state fixture (JSON): {\"lanes\": {\"<slug>\": "
+                   "{\"state\": \"MERGED\"|\"FAILED\"}}}. Default: none -- every dependency "
+                   "reads WAITING.")
+@click.option("--dry-run", is_flag=True, help="Print the static order only. Reads and spawns "
+                                              "nothing.")
+@click.option("--watch", is_flag=True, help="Loop, firing lanes as they clear, until every lane "
+                                            "is fired/terminal or --deadline-s passes.")
+@click.option("--deadline-s", type=float, default=3600.0, show_default=True)
+@click.option("--poll-interval", type=float, default=60.0, show_default=True)
+@click.option("--repo-root", type=click.Path(file_okay=False, path_type=Path), default=HUB_ROOT,
+              show_default=True)
+@click.option("--secrets-file", type=click.Path(path_type=Path),
+              default=Path.home() / "Documents" / ".secrets" / ".env", show_default=True)
+def queue_cmd(contracts: tuple[Path, ...], batch: str, cap: int, floor_mb: float,
+             state_file: Optional[Path], dry_run: bool, watch: bool, deadline_s: float,
+             poll_interval: float, repo_root: Path, secrets_file: Path) -> None:
+    """The launch order for CONTRACTS, computed from the contracts alone (priority = the order
+    given, `Starts after`, `serialize-group`, substrate) -- reusing plan_lint's own dependency
+    grammar, never a second reader of it.
+
+    --dry-run prints that static order and exits; touches nothing live. Otherwise this runs ONE
+    pass over it (or, with --watch, a bounded loop -- see `watch_queue`) firing whatever clears
+    its dependency (the --state-file fixture), `serialize-group`, local-cap and RAM gates. A
+    codespace lane (`Dispatch-Codespace` head) is reported ROUTE-CODESPACE and never spawned here
+    -- `dispatch.py launch` refuses that head by design; use the codespace verb for it."""
+    lanes = load_queue(list(contracts))
+    order = launch_order(lanes)
+    by_slug = {lane.slug: lane for lane in lanes}
+    if dry_run:
+        click.echo(f"[queue] {len(order)} lane(s), static order:")
+        for i, slug in enumerate(order, 1):
+            click.echo(f"  {i:2d}. {slug} ({by_slug[slug].substrate})")
+        return
+
+    def do_launch(slug: str) -> None:
+        request = request_from_contract(by_slug[slug].contract, batch=batch)
+        result = launch_lane(request, secrets_file=secrets_file)
+        click.echo(f"[queue] FIRE {slug}: job {result.job_id}", err=True)
+
+    def live_slugs() -> set:
+        try:
+            agents = list_agents()
+        except ListingUnreadable:
+            return set()
+        return {lane.slug for lane in lanes if find_lane_by_slug_in(agents, lane.slug)}
+
+    def local_live_count() -> int:
+        return len({s for s in live_slugs() if by_slug[s].substrate == "local"})
+
+    states_fn = lambda: read_lane_states(state_file)  # noqa: E731
+
+    if watch:
+        result = watch_queue(lanes, order, deadline_s=deadline_s, poll_interval_s=poll_interval,
+                             on_fire=do_launch, states_fn=states_fn, live_slugs_fn=live_slugs,
+                             local_live_count_fn=local_live_count, free_mb_fn=mag.free_memory_mb,
+                             local_cap=cap, floor_mb=floor_mb)
+        click.echo(f"[queue] watch ended after {result.polls} poll(s): fired {len(result.fired)}/"
+                   f"{len(order)}; {'DEADLINE -- still pending: ' + ', '.join(s for s in order if s not in result.fired) if result.expired else 'all clear'}")
+        return
+
+    decisions = plan_pass(lanes, order, fired=(), states=states_fn(), live_slugs=live_slugs(),
+                          local_cap=cap, local_live_count=local_live_count(),
+                          free_mb=mag.free_memory_mb(), floor_mb=floor_mb)
+    for decision in decisions:
+        if decision.action == ACTION_FIRE:
+            do_launch(decision.slug)
+        else:
+            click.echo(f"[queue] {decision.action} {decision.slug}: {decision.reason}")
+
+
+@cli.command("repair")
+@click.argument("slug")
+@click.argument("contract", type=click.Path(exists=True, path_type=Path))
+@click.option("--attempt", type=int, default=1, show_default=True)
+@click.option("--model", required=True)
+@click.option("--effort", required=True)
+@click.option("--permission-mode", default="bypassPermissions", show_default=True)
+@click.option("--repo-root", type=click.Path(file_okay=False, path_type=Path), default=HUB_ROOT,
+              show_default=True)
+def repair_cmd(slug: str, contract: Path, attempt: int, model: str, effort: str,
+              permission_mode: str, repo_root: Path) -> None:
+    """Relaunch a REPAIR of SLUG into its EXISTING worktree -- never a fresh `--worktree`.
+    Refuses when that worktree is not there (starting one is a fresh launch's job)."""
+    request = RepairRequest(slug=slug, attempt=attempt, model=model, effort=effort,
+                            contract=Path(contract).resolve(), permission_mode=permission_mode)
+    spawned = repair_lane(request, repo_root=Path(repo_root))
+    click.echo(f"[dispatch] repair {request.session_name} spawned: {_tail(spawned.stdout, 300)}")
 
 
 if __name__ == "__main__":  # pragma: no cover
