@@ -88,14 +88,14 @@ def test_the_role_vocabulary_is_exactly_the_ax21_1_table():
     refuses with `extra="forbid"`.
     """
     mod = _load()
-    assert mod.ROLES == frozenset(
+    assert frozenset(
         {"orchestrate", "plan", "implement", "review", "read", "verify"}
-    )
+    ) == mod.ROLES
 
 
 def test_the_outcome_vocabulary_is_closed_and_carries_unknown():
     mod = _load()
-    assert mod.CALL_OUTCOMES == frozenset({"passed", "failed", "unknown"})
+    assert frozenset({"passed", "failed", "unknown"}) == mod.CALL_OUTCOMES
 
 
 @pytest.mark.parametrize("bad", ["implment", "IMPLEMENT", "producer", ""])

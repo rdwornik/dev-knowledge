@@ -340,7 +340,6 @@ class _EmptyStore:
 
     def node(self, key):
         del key
-        return None
 
 
 # ------------------------------------------- witness 6: the `implements:` frontmatter key
@@ -661,7 +660,7 @@ def test_the_onboarding_era_is_pinned_to_the_organs_own_ARM_DATE():
     come to different conclusions about the same decision."""
     import verify_handoff_probes as vhp
 
-    assert vhp._DECISION_ERA == dc.ARM_DATE.isoformat()
+    assert dc.ARM_DATE.isoformat() == vhp._DECISION_ERA
 
 
 def test_a_PRE_ERA_bundle_is_not_judged(tmp_path: Path, monkeypatch):

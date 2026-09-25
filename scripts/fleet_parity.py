@@ -2064,8 +2064,7 @@ def emit_events(findings: list[ParityFinding], targets: list[RepoTarget],
         if path.exists() and path.stat().st_size > max_bytes:
             os.replace(path, Path(str(path) + ".1"))  # single backup; Windows-safe
         with open(path, "a", encoding="utf-8", newline="\n") as fh_:
-            for line in lines:
-                fh_.write(line + "\n")
+            fh_.writelines(line + "\n" for line in lines)
         return None
     except Exception as exc:  # noqa: BLE001 -- fail-open BY CONTRACT (FR-8)
         return f"events emission skipped (fail-open): {_ascii(repr(exc))}"

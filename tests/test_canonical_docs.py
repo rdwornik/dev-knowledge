@@ -131,8 +131,8 @@ def test_retired_and_hub_scoped_names_keep_their_casing_check():
 # --- the eight hard repoints ---------------------------------------------------------------
 
 def test_check_canonical_md_visibility_reads_the_registry():
-    assert _CANONICAL_MANDATORY == list(cdocs.CANONICAL_MANDATORY)
-    assert _CANONICAL_ALL == list(cdocs.CANONICAL_ALL)
+    assert list(cdocs.CANONICAL_MANDATORY) == _CANONICAL_MANDATORY
+    assert list(cdocs.CANONICAL_ALL) == _CANONICAL_ALL
     # The re-export contract is a name, a value AND a type: tests/test_audit.py reads
     # `aud._CANONICAL_MANDATORY` and a tuple would be a silent behaviour change.
     assert isinstance(_CANONICAL_MANDATORY, list)
@@ -181,12 +181,12 @@ def test_check_vision_md_uses_the_registry_name():
 
 
 def test_validate_doc_rot_reads_the_registry():
-    assert vdr._SECTION_HISTORY_DOCS == list(cdocs.SECTION_HISTORY_DOCS)
+    assert list(cdocs.SECTION_HISTORY_DOCS) == vdr._SECTION_HISTORY_DOCS
     assert vdr._FILE_SIZE_BUDGETS == {cdocs.CLAUDE: 200}
 
 
 def test_validate_doc_structure_reads_the_registry():
-    assert vds._STRUCTURE_DOCS == list(cdocs.STRUCTURE_DOCS)
+    assert list(cdocs.STRUCTURE_DOCS) == vds._STRUCTURE_DOCS
 
 
 def test_validate_hermetization_seals_exactly_the_registry_living_docs():
@@ -273,7 +273,7 @@ def _literal_fallback(module, symbol: str):
 
 
 def test_freshness_gate_live_value_is_the_registry():
-    assert cfg.DEFAULT_FRESHNESS_FILES == list(cdocs.FRESHNESS_FILES)
+    assert list(cdocs.FRESHNESS_FILES) == cfg.DEFAULT_FRESHNESS_FILES
 
 
 def test_freshness_gate_consumer_fallback_equals_the_registry():
@@ -293,7 +293,7 @@ def test_vision_leaves_the_freshness_files_registry_in_both_places():
 
 
 def test_backpressure_live_values_are_the_registry():
-    assert seb._CANON == tuple(cdocs.BACKPRESSURE_CANON)
+    assert tuple(cdocs.BACKPRESSURE_CANON) == seb._CANON
     assert seb._JOURNAL == cdocs.JOURNAL
     assert seb._BACKLOG == cdocs.BACKLOG
 

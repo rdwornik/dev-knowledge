@@ -615,7 +615,7 @@ def test_the_planted_map_the_TEST_reads_is_the_one_the_MODULE_scores_against(tmp
     miss into a hit. `PROBE_REQUIRED_SITES` is derived from `PROBE_PLANTED`, so the sites
     this file asserts and the sites `adjudicate` scores are the same object.
     """
-    assert oa.PROBE_GROUND_TRUTH == tuple(d for _, d in sorted(oa.PROBE_PLANTED.items()))
+    assert tuple(d for _, d in sorted(oa.PROBE_PLANTED.items())) == oa.PROBE_GROUND_TRUTH
     assert set(_PLANTED) == set(oa.PROBE_PLANTED)
 
 

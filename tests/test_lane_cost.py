@@ -708,7 +708,7 @@ def test_the_line_bound_clears_the_largest_line_this_repo_has_ever_written():
     well above it, so what it catches is corruption, not size.
     """
     largest_real_line_bytes = 1_360_000
-    assert lc.MAX_TRANSCRIPT_LINE_BYTES > largest_real_line_bytes * 2, (
+    assert largest_real_line_bytes * 2 < lc.MAX_TRANSCRIPT_LINE_BYTES, (
         f"the bound {lc.MAX_TRANSCRIPT_LINE_BYTES} leaves less than 2x headroom over the "
         f"largest line actually measured ({largest_real_line_bytes}) -- it would start "
         f"dropping real turns")

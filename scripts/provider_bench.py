@@ -996,7 +996,7 @@ def census(*, probe_versions: bool = True) -> list[dict[str, Any]]:
                     [exe, "--version"], capture_output=True, text=True,
                     encoding="utf-8", errors="replace",
                     stdin=subprocess.DEVNULL, timeout=120, check=False)
-                version = strip_ansi((proc.stdout or proc.stderr)).strip().splitlines()
+                version = strip_ansi(proc.stdout or proc.stderr).strip().splitlines()
                 version = version[0] if version else None
             except (OSError, subprocess.TimeoutExpired) as exc:
                 version = f"version probe failed: {exc}"

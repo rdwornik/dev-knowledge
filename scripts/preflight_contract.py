@@ -776,9 +776,7 @@ _ID_WINDOW_BEFORE_RE = re.compile(r"[^,;.·()\[\]—\n]{0,120}$")
 _ID_DESCRIPTION_FLOOR = 2
 
 _STOPWORDS = frozenset(
-    "the a an and or of to in on at by for with from is are was were be been it its this "
-    "that these those as not no than then so if into per via when where which who whom "
-    "lane lanes contract done when item items green must shall never only also".split())
+    ["the", "a", "an", "and", "or", "of", "to", "in", "on", "at", "by", "for", "with", "from", "is", "are", "was", "were", "be", "been", "it", "its", "this", "that", "these", "those", "as", "not", "no", "than", "then", "so", "if", "into", "per", "via", "when", "where", "which", "who", "whom", "lane", "lanes", "contract", "done", "when", "item", "items", "green", "must", "shall", "never", "only", "also"])
 
 
 def _content_words(phrase: str) -> set[str]:
