@@ -399,8 +399,9 @@ import graph_store as gs  # noqa: E402
 
 @pytest.fixture(scope="module")
 def wired_repo(tmp_path_factory):
-    """A tree with four processes: one reachable ONLY from a git hook, one ONLY from CI, one
-    ONLY through a RELATIVE import, and one that nothing reaches (must read UNREACHABLE)."""
+    """A tree with five processes: one reachable ONLY from a git hook, one ONLY from CI, one
+    ONLY through a RELATIVE import, one ONLY through an `ecosystem/harness.yaml` MOMENT
+    declaration, and one that nothing reaches (must read UNREACHABLE)."""
     root = tmp_path_factory.mktemp("wired")
     files = {
         ".pre-commit-config.yaml": (
@@ -418,8 +419,15 @@ def wired_repo(tmp_path_factory):
         ".github/workflows/ci.yml": (
             "name: ci\non: push\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps:\n"
             "      - run: python scripts/ci_only.py\n"),
+        "ecosystem/harness.yaml": (
+            "moments:\n"
+            "  - name: some-moment\n"
+            "    organs:\n"
+            "      - {id: moment_only, command: [uv, run, --locked, python, "
+            "scripts/moment_only.py]}\n"),
         "scripts/hook_only.py": "print('hook')\n",
         "scripts/ci_only.py": "print('ci')\n",
+        "scripts/moment_only.py": "print('moment')\n",
         "scripts/checks/__init__.py": "",
         "scripts/checks/registry.py": "from .check_x import run\n",
         "scripts/checks/check_x.py": "def run():\n    return 1\n",
@@ -456,6 +464,20 @@ def test_organ_reachable_only_by_a_relative_import_is_reachable_not_unreachable(
     assert report["state"]["scripts/checks/check_x.py"] == oum.REACHABLE_UNOBSERVED
 
 
+def test_organ_reachable_only_from_a_harness_moment_is_reachable_not_unreachable(
+        wired_repo, tmp_path):
+    """`ecosystem/harness.yaml` moment declarations are a FOURTH observation source, alongside
+    git hooks, CI and imports -- the census's Value line ("it counts import chains, hooks and
+    moments as observation"). `moment_only.py` has no import, no pre-commit hook and no CI
+    step naming it: its ONLY path to `wiring_reachable` is `_harness_command_targets`'s
+    dedicated moment-organ parser (a different code path than the generic leaf-walk the hook
+    and CI surfaces above exercise) reading it out of `moments[].organs[].command`. Without
+    that parser recognising the moment, this organ would have no caller in the fixture at all
+    and would read UNREACHABLE, same as `orphan.py` below."""
+    report = _census_of(wired_repo, tmp_path)
+    assert report["state"]["scripts/moment_only.py"] == oum.REACHABLE_UNOBSERVED
+
+
 def test_a_process_nothing_reaches_is_reported_unreachable(wired_repo, tmp_path):
     """The fix must not over-report: an unwired, never-invoked script reads UNREACHABLE."""
     report = _census_of(wired_repo, tmp_path)
@@ -466,7 +488,8 @@ def test_reachable_processes_are_named_separately_from_transcript_invoked(wired_
     """Called-by-wiring is a DIFFERENT fact from called-in-a-transcript; the report keeps both
     so a reader can tell 'runs invisibly' from 'seen running'."""
     report = _census_of(wired_repo, tmp_path)
-    for path in ("scripts/hook_only.py", "scripts/ci_only.py", "scripts/checks/check_x.py"):
+    for path in ("scripts/hook_only.py", "scripts/ci_only.py", "scripts/checks/check_x.py",
+                 "scripts/moment_only.py"):
         assert path in report["wiring_reachable"]
         assert report["counts"][path] == 0        # no transcript saw it
     assert "scripts/orphan.py" not in report["wiring_reachable"]
@@ -496,7 +519,8 @@ def test_reachable_can_be_injected_without_a_store(tmp_path):
 def test_census_reports_three_states_and_no_binary_uncalled_key(wired_repo, tmp_path):
     report = _census_of(wired_repo, tmp_path)
     assert "uncalled" not in report
-    for path in ("scripts/hook_only.py", "scripts/ci_only.py", "scripts/checks/check_x.py"):
+    for path in ("scripts/hook_only.py", "scripts/ci_only.py", "scripts/checks/check_x.py",
+                 "scripts/moment_only.py"):
         assert report["state"][path] == oum.REACHABLE_UNOBSERVED
         assert path in report["reachable_unobserved"]
         assert path not in report["called"]

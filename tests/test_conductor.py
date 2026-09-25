@@ -559,6 +559,24 @@ def test_the_seal_job_does_not_run_the_validator_bare(workflow):
     assert "merge-base --is-ancestor" in seal, "an unresolvable range must SKIP, not seal the tree"
 
 
+def test_the_commit_gate_judges_a_lane_branch_against_its_merge_base_with_main(workflow):
+    # LANE-5B-7: the commit-gate's ONLY automatic trigger is `push` to `main` (§4's
+    # `on.push.branches == ["main"]`, asserted above), so a lane's OWN branch is judged only
+    # by a manual `workflow_dispatch` run against it. `github.event.before` does not exist on
+    # that event -- it is empty on a branch's first push and, on any later one, it is the
+    # branch's OWN prior tip, never main's. Before this fix the gate's BASE resolution had no
+    # branch case at all, so a lane branch's run always saw an empty/unresolvable BASE and
+    # the gate exited 0 having judged nothing -- a vacuous pass on exactly the run this
+    # contract requires to be real. The fix must resolve BASE, for any non-`main`-ref run,
+    # from the branch's merge-base with `origin/main`, so the gate judges only the diff a
+    # merge into `main` would introduce -- never the branch's own prior history.
+    gate = "\n".join(str(step.get("run", "")) for step in workflow["jobs"]["commit-gate"]["steps"])
+    assert 'github.ref' in gate and 'refs/heads/main' in gate, \
+        "the BASE resolution must branch on whether this run is on main"
+    assert "merge-base HEAD origin/main" in gate, \
+        "a non-main ref must resolve BASE from the merge-base with origin/main, not event.before"
+
+
 # --- the §4 SessionStart surface --------------------------------------------------------
 
 def test_session_start_never_raises_and_never_blocks(cond, tmp_path, monkeypatch):
