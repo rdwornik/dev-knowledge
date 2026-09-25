@@ -52,10 +52,18 @@ def test_n1_dispatcher_fault_row_names_the_repair_launch_incident(n1_rows):
     assert "argv" in fault.title.lower() or "argv" in fault.detail.lower()
 
 
-def test_every_n1_row_has_a_runnable_check(n1_rows):
+def test_every_n1_row_has_a_check_command_never_a_bare_comment(n1_rows):
     for row in n1_rows:
         assert row.check.strip()
         assert not row.check.strip().startswith("#"), row.check
+
+
+def test_n1_repair_rows_are_not_proposed_dispatcher_fault_row_is(n1_rows):
+    for row in n1_rows:
+        if row.kind == "repair":
+            assert row.proposed is False, row
+        elif row.kind == "dispatcher_fault":
+            assert row.proposed is True, row
 
 
 # --- repair rows: the regression check is DERIVED from the REFUSED file's own evidence --
@@ -151,6 +159,43 @@ def test_to_dict_round_trips_every_field(n1_rows):
         assert d["kind"] == row.kind
         assert d["slug"] == row.slug
         assert d["check"] == row.check
+        assert d["proposed"] == row.proposed
+
+
+# --- unit-level: lane_terminal_state / _verify_refused_row -------------------------------
+
+def test_lane_terminal_state_reads_the_last_matching_state_line():
+    text = (
+        "STATE lane-x REFUSED abc123 2026-09-25T00:00+02:00 - repair 1 of 2\n"
+        "STATE lane-x MERGED def4567 2026-09-25T01:00+02:00\n"
+    )
+    assert ld.lane_terminal_state(text, "lane-x") == ("MERGED", "def4567")
+
+
+def test_lane_terminal_state_none_when_slug_never_appears():
+    assert ld.lane_terminal_state("STATE lane-y MERGED abc1234", "lane-x") is None
+
+
+def test_verify_refused_row_reclassifies_an_unmerged_refusal():
+    row = ld.CandidateRow(kind="repair", slug="lane-never-merged", title="t",
+                          provenance="p", check="uv run --locked pytest tests/x.py -q")
+    verified = ld._verify_refused_row(row, "STATE lane-never-merged REFUSED abc FAILED foo")
+    # no MERGED line for this exact slug -> reclassified
+    assert verified.kind == "unverified_refusal"
+    assert "UNVERIFIED" in verified.title
+
+
+def test_verify_refused_row_keeps_repair_kind_when_merged():
+    row = ld.CandidateRow(kind="repair", slug="lane-ok", title="t", provenance="p", check="c")
+    verified = ld._verify_refused_row(row, "STATE lane-ok MERGED abc1234")
+    assert verified.kind == "repair"
+    assert verified.title == "t"
+
+
+def test_n1_fixture_refused_rows_are_verified_merged_via_the_real_integrator_text(n1_rows):
+    # both N1 REFUSED lanes really did land (STATE ... MERGED ...) later in the same
+    # integrator receipt, so the real fixture must NOT trip the unverified path.
+    assert all(r.kind != "unverified_refusal" for r in n1_rows)
 
 
 # --- CLI: the real entry point, end to end -----------------------------------------------

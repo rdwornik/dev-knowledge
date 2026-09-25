@@ -26,9 +26,18 @@ HONEST LIMITS:
     the `tests/*.py::test_*` node id(s) named in the REFUSED file's own "What failed"
     section, reduced to file scope. When none is named, the check says so rather than
     guessing a file that was never mentioned.
-  * A `dispatcher_fault` row has no failing test to point at by construction -- the fault is
-    a launcher/scripting defect, not a red test -- so its check names the regression test
-    that does not exist yet (RED-first, ADR-108 §B), not a passing command today.
+  * A `repair` row is claimed only once the integrator receipt itself shows the SAME slug's
+    last `STATE <slug> ...` line as `MERGED` -- a REFUSED file alone proves only that a lane
+    was once refused, not that the repair landed. Anything else (no STATE line found, or the
+    last one is not `MERGED`) is emitted as `kind="unverified_refusal"` instead, its title
+    saying which state the integrator actually recorded, so an unfinished or re-refused
+    repair is never presented as a completed learning (terra HIGH, 2026-09-25).
+  * `check` NEVER claims to be runnable when it is not: `proposed=True` marks a check that
+    names a regression command not yet written (a `dispatcher_fault` row, whose fault is a
+    launcher/scripting defect with no failing test to point at by construction; or a `failed`
+    row, whose cause this module cannot read a test id out of). `render()` and the JSON
+    output both say `proposed` explicitly rather than let the command line alone imply it
+    passes today (terra HIGH x2, 2026-09-25).
   * `find_failed_lanes` reads `STATE <slug> FAILED <sha>` lines; no batch fixture exercises
     it yet (N1 had no outright FAILED lane), so it is unit-tested against a synthetic
     string rather than pinned to a fixture.
@@ -38,7 +47,7 @@ from __future__ import annotations
 import json
 import re
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Optional, Sequence
 
@@ -63,11 +72,16 @@ def _relpath(path: Path) -> str:
 class CandidateRow:
     """One learning, ready to become a `tasks/` row (by a lane that owns filing).
 
-    `kind` is one of `repair` (a REFUSED file whose lane went on to repair and merge),
-    `failed` (a lane that ended `STATE ... FAILED`), or `dispatcher_fault` (a `**DISPATCHER
-    FAULT**` marker in the dispatcher's own session file). `check` is always a single
-    runnable command line -- a real one where the receipts named a failing test, a
-    proposed-but-not-yet-written one otherwise (see module docstring).
+    `kind` is one of `repair` (a REFUSED file whose slug the integrator receipt later shows
+    `MERGED`), `unverified_refusal` (a REFUSED file whose slug the integrator receipt does
+    NOT show `MERGED` -- refused again, still open, or the receipt says nothing), `failed`
+    (a lane that ended `STATE ... FAILED`), or `dispatcher_fault` (a `**DISPATCHER FAULT**`
+    marker in the dispatcher's own session file).
+
+    `check` is a single command line. `proposed=True` means it names a regression test that
+    does not exist yet (RED-first, ADR-108 §B) -- it is NOT a claim that the command passes
+    today, only that this is the check to write. `proposed=False` means the receipts named a
+    real, already-existing test the check runs.
     """
 
     kind: str
@@ -76,6 +90,7 @@ class CandidateRow:
     provenance: str
     check: str
     detail: str = ""
+    proposed: bool = False
 
     def to_dict(self) -> dict:
         return {
@@ -84,15 +99,17 @@ class CandidateRow:
             "title": self.title,
             "provenance": self.provenance,
             "check": self.check,
+            "proposed": self.proposed,
             "detail": self.detail,
         }
 
     def render(self) -> str:
+        check_label = "check (proposed -- not yet written, not yet passing)" if self.proposed else "check"
         lines = [
             f"## candidate row: {self.kind} -- {self.slug}",
             f"title: {self.title}",
             f"provenance: {self.provenance}",
-            f"check: {self.check}",
+            f"{check_label}: {self.check}",
         ]
         if self.detail:
             lines.append(f"detail: {self.detail}")
@@ -116,6 +133,12 @@ _BOLD_RE = re.compile(r"\*\*(.+?)\*\*", re.S)
 # A concrete pytest node id: `tests/<...>.py::<test...>` -- the `::` is required so a bare
 # prose mention of a test FILE (a suggestion, not a failure) is never mistaken for evidence.
 _TEST_NODE_RE = re.compile(r"\btests/[\w./-]+\.py::[\w:\[\]./-]+")
+
+
+def _slug_to_snake(slug: str) -> str:
+    """`lane-hooks-port` -> `hooks_port`, for a proposed test module's stem."""
+    stem = slug[len("lane-"):] if slug.startswith("lane-") else slug
+    return re.sub(r"[^\w]+", "_", stem).strip("_") or "lane"
 
 
 def _test_files(text: str) -> list[str]:
@@ -149,9 +172,11 @@ def parse_refused(text: str, path: Path) -> Optional[CandidateRow]:
     body = what_failed_m.group("body").strip() if what_failed_m else ""
 
     test_files = _test_files(body)
+    proposed = not test_files
     check = (f"uv run --locked pytest {' '.join(test_files)} -q" if test_files
-             else f"# no `tests/*.py::test_*` node id found in {path.name}'s "
-                  f"'What failed' -- name a regression check by hand")
+             else f"uv run --locked pytest tests/test_{_slug_to_snake(slug)}_regression.py -q  "
+                  f"# proposed regression test (not yet written) -- {path.name}'s "
+                  f"'What failed' named no `tests/*.py::test_*` node id")
     provenance = (
         f"{_relpath(path)} (from: {from_m.group(1).strip() if from_m else '?'}, "
         f"repair {n} of {m}, batch {batch_m.group(1).strip() if batch_m else '?'}, "
@@ -159,7 +184,7 @@ def parse_refused(text: str, path: Path) -> Optional[CandidateRow]:
     )
     return CandidateRow(
         kind="repair", slug=slug, title=_title_from_what_failed(slug, body),
-        provenance=provenance, check=check, detail=body[:600],
+        provenance=provenance, check=check, detail=body[:600], proposed=proposed,
     )
 
 
@@ -168,6 +193,22 @@ def parse_refused(text: str, path: Path) -> Optional[CandidateRow]:
 # ---------------------------------------------------------------------------
 
 _STATE_FAILED_RE = re.compile(r"^STATE\s+(?P<slug>\S+)\s+FAILED\s+(?P<sha>\S+)?", re.M)
+_STATE_LINE_RE = re.compile(r"^STATE\s+(?P<slug>\S+)\s+(?P<state>MERGED|FAILED)\s+(?P<sha>\S+)", re.M)
+
+
+def lane_terminal_state(integrator_text: str, slug: str) -> Optional[tuple]:
+    """`(state, sha)` of the LAST `STATE <slug> (MERGED|FAILED) <sha>` line for `slug` in an
+    integrator session, or `None` if that exact slug never appears with either state.
+
+    LAST, not first: a repaired-then-re-refused lane can carry more than one `STATE` line for
+    the same slug (REFUSED, then a repair's own MERGED, or another REFUSED), and only the
+    final one says what actually landed on main.
+    """
+    result = None
+    for m in _STATE_LINE_RE.finditer(integrator_text):
+        if m.group("slug") == slug:
+            result = (m.group("state"), m.group("sha"))
+    return result
 
 
 def find_failed_lanes(text: str, path: Path) -> list[CandidateRow]:
@@ -178,11 +219,12 @@ def find_failed_lanes(text: str, path: Path) -> list[CandidateRow]:
         sha = m.group("sha") or "?"
         window_start = text.rfind("\n\n", 0, m.start())
         context = text[(window_start + 2 if window_start != -1 else 0):m.start()].strip()
+        check = (f"uv run --locked pytest tests/test_{_slug_to_snake(slug)}_regression.py -q  "
+                 f"# proposed regression test (not yet written) for {slug}'s FAILED lane at {sha}")
         rows.append(CandidateRow(
             kind="failed", slug=slug, title=f"{slug}: lane FAILED at {sha}",
             provenance=f"{_relpath(path)} (STATE {slug} FAILED {sha})",
-            check=f"# name the regression check for {slug}'s FAILED cause by hand",
-            detail=context[-600:],
+            check=check, detail=context[-600:], proposed=True,
         ))
     return rows
 
@@ -249,7 +291,7 @@ def find_dispatcher_faults(text: str, path: Path) -> list[CandidateRow]:
         rows.append(CandidateRow(
             kind="dispatcher_fault", slug=slug, title=_title_from_fault_block(block),
             provenance=f"{_relpath(path)} @ {time} (DISPATCHER FAULT)",
-            check=check, detail=block.strip()[:600],
+            check=check, detail=block.strip()[:600], proposed=True,
         ))
     return rows
 
@@ -258,16 +300,32 @@ def find_dispatcher_faults(text: str, path: Path) -> list[CandidateRow]:
 # Distill + render
 # ---------------------------------------------------------------------------
 
+def _verify_refused_row(row: CandidateRow, integrator_text: str) -> CandidateRow:
+    """A REFUSED file alone proves a lane was refused, never that its repair landed --
+    that is a fact only the integrator's own receipt carries. `row.kind` stays `repair`
+    only when `slug`'s LAST `STATE` line in `integrator_text` is `MERGED`; otherwise the
+    row is re-kinded `unverified_refusal` and its title says which state was actually
+    found, so an unfinished or re-refused repair is never presented as a completed one."""
+    terminal = lane_terminal_state(integrator_text, row.slug)
+    if terminal is not None and terminal[0] == "MERGED":
+        return row
+    state_word = f"{terminal[0]} {terminal[1]}" if terminal else "no STATE line for this slug"
+    return replace(
+        row, kind="unverified_refusal",
+        title=f"{row.title} [UNVERIFIED: integrator's last STATE line reads {state_word}, not MERGED]",
+    )
+
+
 def distill(integrator_path: Path, dispatcher_path: Path,
             refused_paths: Sequence[Path] = ()) -> list[CandidateRow]:
     """Every candidate row across one batch's receipts. Read-only."""
+    integrator_text = Path(integrator_path).read_text(encoding="utf-8", errors="replace")
     rows: list[CandidateRow] = []
     for p in refused_paths:
         p = Path(p)
         row = parse_refused(p.read_text(encoding="utf-8", errors="replace"), p)
         if row is not None:
-            rows.append(row)
-    integrator_text = Path(integrator_path).read_text(encoding="utf-8", errors="replace")
+            rows.append(_verify_refused_row(row, integrator_text))
     rows.extend(find_failed_lanes(integrator_text, Path(integrator_path)))
     dispatcher_text = Path(dispatcher_path).read_text(encoding="utf-8", errors="replace")
     rows.extend(find_dispatcher_faults(dispatcher_text, Path(dispatcher_path)))
