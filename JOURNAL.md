@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-25 (q) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): the dispatcher's launch queue becomes code -- `dispatch.py queue`
+
+**Anchors:** `9d2b3d13`, `a09af554` -- `worktree-lane-launch-queue` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree stacked on lane 8's merge.
+
+**Did:** `dispatch.py queue [--dry-run|--watch]` derives a batch's launch order from the lane contracts' declared edges (the `plan_lint` grammar, no second reader): topological readiness rounds, then substrate, then declared priority, with cap and serialize-group reserved within a pass. `repair` joins it; the shim's help names both (a pre-existing test forces it, proven red without the edit). On the 16 WAVE5B-N2 contracts, positions 1-10 equal the dispatcher order's §Sequence byte for byte; wave gamma satisfies all six stated precedence facts (§Sequence gives no total order there -- DECIDED-BY-INTEGRATOR). Refused once (item 1 evidence, ship-gate and gated tests missing, shim ownership); repair 1 supplied all four, no code change. Codex terra 0/4/0/0, all fixed. **Result:** the launch order is computed, not hand-transcribed. **Changes:** `scripts/dispatch.py`, `templates/dispatch-shim.ps1`, `tests/test_dispatch_queue.py`, its terra record, `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl`. **Next:** `queue --watch` adoption into the dispatcher procedure (ROWS-OWED).
+
 ### 2026-09-25 (p) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): the heartbeat's devcontainer build runs on the daily schedule again, with its evidence in its own log
 
 **Anchors:** `9d19bf65`, `e90f61ba` -- `worktree-lane-codespace-roundtrip-ci` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on origin/main `3d13a2d2`.
