@@ -97,11 +97,12 @@ ITEMS: tuple[Item, ...] = (
     ),
     Item(
         "recent-adrs",
-        "Which ADR most recently made a command file count as a wiring surface, and what is its "
-        "status?",
+        "Which ADR most recently decided where lanes run and how far they run in parallel, and "
+        "what is its status?",
         (".claude/generated/recent-adrs.md",),
-        "adoption decays, it is not conferred",
-        "ADR-119 (Accepted, 2026-09-13)",
+        "parallelism runs across repositories",
+        "ADR-126 (",  # status-free: a ratification must not flip body_form; re-point when 126 leaves the last-5
+
         (".claude/generated/recent-adrs.md",),
     ),
     Item(

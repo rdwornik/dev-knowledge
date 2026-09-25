@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-25 (s) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): four Proposed ADRs for the operator -- distribution, code standard, prose to data, substrate
+
+**Anchors:** `6731556c`, `530c1c86`, `e3c3ea84`, `017041e1`, `2be3eaa5` -- `worktree-lane-adr-drafts` (ordered `claude-opus-5-5`), merged `--no-ff` from an integration worktree stacked on lane 13's merge.
+
+**Did:** landed ADR-123 (the harness ships as one versioned artefact pinned in each consumer), ADR-124 (one code standard, enforced by tools adopted one at a time, with the thesis quality-attribute section), ADR-125 (governing prose replaced by code and data, then removed; the L1 inventory with readers), ADR-126 (lanes route to a substrate by data; six substrates with their numbers, none excluded before the matrix) -- all **Proposed**, each with a scored decision matrix and `## Operator decision options`. Codex terra 0/2/1/0, all fixed. Refused once (the four new ADRs pushed ADR-119 out of the last-5 roster, turning two `test_boot_retrieval` probe tests red); repair 1 re-pointed the `recent-adrs` probe at ADR-126 with a status-free marker and refreshed its evidence by a live scoped probe (6/6 canary witnessed, spliced by script, not hand-edited). **Result:** four decisions ready for ratification; nothing Accepted. **Changes:** `docs/decisions/ADR-123..126`, `docs/decisions/README.md`, `.claude/generated/recent-adrs.md`, `tests/test_validate_adr_status.py` (two baselines), the terra record, `tests/boot_retrieval.py`, `ecosystem/boot-retrieval-evidence.json`, `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl`. **Next:** operator ratification (OPERATOR-ACTION).
+
 ### 2026-09-25 (r) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): a batch's refusals and faults become candidate rows with a runnable check -- `learning_distiller.py`
 
 **Anchors:** `5b8c0721`, `2ab4bd55`, `70d92f9e`, `ead0f7cc` -- `worktree-lane-learning-distiller` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on origin/main `bc969abc`.
