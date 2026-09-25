@@ -480,8 +480,9 @@ def process_census(
     called, and a transcript cannot see hooks, CI or imports. So every observable process gets
     exactly one `state`:
       CALLED -- an interpreter-headed invocation observed in the window;
-      REACHABLE-BUT-UNOBSERVED -- a hook, CI or import chain reaches it (`wiring_reachable`,
-        read from FPG-1; `reachable=` is the injection seam), no evidence it fired;
+      REACHABLE-BUT-UNOBSERVED -- a hook, CI, a harness.yaml moment or import chain reaches it
+        (`wiring_reachable`, read from FPG-1; `reachable=` is the injection seam), no evidence
+        it fired;
       UNREACHABLE -- no observed call and no caller anywhere.
     There is deliberately NO binary `uncalled` key: every collapse to two states produced a
     wrong number (36, 90, 13). READ-ONLY: this never rebuilds the store -- a
@@ -570,8 +571,9 @@ def render_census(report: dict[str, Any]) -> str:
         *(["WARNING: the FPG-1 store is STALE (a source file is newer than it) -- reachability "
            "below may be out of date; rebuild with `graph_store.py rebuild`"]
           if report["graph_stale"] else []),
-        f"wiring-reachable (a hook, CI or import chain reaches it; a reachability fact, not a "
-        f"firing count): {len(report['wiring_reachable'])} of {report['observable_total']}",
+        f"wiring-reachable (a hook, CI, a harness.yaml moment or import chain reaches it; a "
+        f"reachability fact, not a firing count): {len(report['wiring_reachable'])} of "
+        f"{report['observable_total']}",
         "",
         "not observable by this source -- a command/skill invocation leaves no interpreter-"
         "headed line in a session transcript, so these are NEVER reported as zero:",
