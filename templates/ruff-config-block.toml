@@ -44,11 +44,15 @@ line-length = 120               # agreed fleet line-length (ARC 4 D1)
 # proposed families (B,SIM,C90,PL,RET,PERF,FURB,PTH,N,UP,ARG,ERA,TRY,FBT,RUF), measured
 # tree-wide (6797 violations @ da11291b), auto-fixed with `--fix` (never `--unsafe-fixes`)
 # only under scripts/+tests/ files no other WAVE5B-N2 lane owns, then re-measured. These
-# twelve individual codes are the only ones that reached ZERO violations tree-wide after
-# that pass; every other candidate code is measured-not-enforced (see
+# ten individual codes are the only ones that reached ZERO violations tree-wide on the
+# files this lane may touch; every other candidate code is measured-not-enforced (see
 # to-browser/SESSION-lane-python-standard-1.md for the full before/after table and
 # ROWS-OWED). Kept identical to pyproject.toml's `[tool.ruff.lint]` by hand (RULING-W);
-# test_fleet_parity.py does not currently gate this specific list's identity.
+# test_fleet_parity.py does not currently gate this specific list's identity. PLE2515 and
+# RUF010 were dropped in Repair 1 (integrator refusal,
+# to-browser/REFUSED-lane-python-standard-1.md): their sole remaining tree-wide instances
+# live inside scripts/audit_checks/check_routine_consumers.py and scripts/conductor.py,
+# both owned by LANE-5B2-17-ci-signal.md.
 # NOTE: RUF100 (unused-noqa) must never be included in a NARROWED `--select ... --fix`
 # pass — its "unused noqa" check is evaluated against whatever rules are active in that
 # specific invocation, so a select that omits e.g. E402 makes RUF100 misjudge every
@@ -56,10 +60,8 @@ line-length = 120               # agreed fleet line-length (ARC 4 D1)
 # use the real full config.
 extend-select = [
     "FURB122",  # for-loop-writes
-    "PLE2515",  # invalid-character-zero-width-space
     "PLR1711",  # useless-return
     "RET501",   # unnecessary-return-none
-    "RUF010",   # explicit-f-string-type-conversion
     "RUF019",   # unnecessary-key-check
     "SIM300",   # yoda-conditions
     "SIM905",   # split-static-string

@@ -359,11 +359,16 @@ line-length = 120               # agreed fleet line-length (ARC 4 D1)
 # proposed families (B,SIM,C90,PL,RET,PERF,FURB,PTH,N,UP,ARG,ERA,TRY,FBT,RUF), measured
 # tree-wide (6797 violations @ da11291b), auto-fixed with `--fix` (never `--unsafe-fixes`)
 # only under scripts/+tests/ files no other WAVE5B-N2 lane owns, then re-measured. These
-# twelve individual codes are the only ones that reached ZERO violations tree-wide after
-# that pass; every other candidate code is measured-not-enforced (see this lane's session
-# file to-browser/SESSION-lane-python-standard-1.md for the full before/after table and
-# ROWS-OWED). Not whole rule families — per-code selection, since most C3 families still
-# carry violations this lane cannot touch (owned by other lanes) or cannot auto-fix.
+# ten individual codes are the only ones that reached ZERO violations tree-wide on the
+# files this lane may touch; every other candidate code is measured-not-enforced (see this
+# lane's session file to-browser/SESSION-lane-python-standard-1.md for the full
+# before/after table and ROWS-OWED). Not whole rule families — per-code selection, since
+# most C3 families still carry violations this lane cannot touch (owned by other lanes) or
+# cannot auto-fix. PLE2515 and RUF010 were dropped in Repair 1 (integrator refusal,
+# to-browser/REFUSED-lane-python-standard-1.md): their sole remaining tree-wide instances
+# live inside scripts/audit_checks/check_routine_consumers.py and scripts/conductor.py,
+# both owned by LANE-5B2-17-ci-signal.md — this lane cannot fix them, so it cannot claim
+# zero (see ROWS-OWED, measured-not-enforced table).
 # NOTE: RUF100 (unused-noqa) is excluded from every ruff invocation this lane ran with a
 # narrowed --select, because RUF100's "is this noqa used" check is evaluated against
 # WHATEVER rules are active in that invocation — a narrowed --select without E402/E731/etc.
@@ -374,10 +379,8 @@ line-length = 120               # agreed fleet line-length (ARC 4 D1)
 [tool.ruff.lint]
 extend-select = [
     "FURB122",  # for-loop-writes
-    "PLE2515",  # invalid-character-zero-width-space
     "PLR1711",  # useless-return
     "RET501",   # unnecessary-return-none
-    "RUF010",   # explicit-f-string-type-conversion
     "RUF019",   # unnecessary-key-check
     "SIM300",   # yoda-conditions
     "SIM905",   # split-static-string
