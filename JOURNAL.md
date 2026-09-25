@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-25 (l) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): one contract grammar -- plan_lint reads is/are merged, serialize-group and a model alias
+
+**Anchors:** `e254e469`, `a5bb0e4c` (`feat(plan-lint)` + the Codex-review fixes), `d82b157c` (repair 1: two silent-rule tokens drained from the template) -- `worktree-lane-plan-lint-grammar` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree off origin/main `8b196c33`.
+
+**Did:** refused once (a hard-fail it introduced: `silent_rule_ratchet` live 454 > baseline 452, both tokens in `templates/lane-contract-template.md`); the repair rewords them ("never write one" -> "one is not written", "must not run concurrently" -> "does not run concurrently"), the baseline untouched. Merged in `worktree-integrate-lane-plan-lint-grammar`; regenerated generated files (ruling b); the silent-rule count measured on the committed merge; ship-gate diffed base vs merge; lane-changed tests on the merged tree; CI paired against main. **Result:** the template writes and `plan_lint.py` reads one grammar (`is merged` / `are merged`, the slug pairing line); `serialize-group:` orders a shared-label pair without overriding a declared edge; a bare model alias in the Model table or the Dispatch fence is a BLOCKING finding naming the explicit id. **Changes:** `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl` (+ the lane's 4 files). **Next:** lane 13 is not launched tonight (06:00 cut-off).
+
 ### 2026-09-25 (k) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): the organ census's harness.yaml moment path gets its own test
 
 **Anchors:** `5dc84cde`, `018a2cb8` (`test(organ-usage-metric)` + the Codex review with its LOW fixed) -- `worktree-lane-census-instrument` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on the lane-trial-gh-issues merge `fdc64921`.

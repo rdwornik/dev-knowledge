@@ -12,15 +12,29 @@ this lane read the two contracts side by side and noticed they touch the same co
 module is that read, run BEFORE a wave's contracts freeze rather than discovered mid-batch.
 
 WHAT IT READS, AND WHAT IT NEVER DOES. Four inputs, all read-only: the wave's `LANE-*.md`
-contracts (this repo's transport format — `## Dispatch`, `**Files you own:**`, an optional
-`**Serial: …**` or `**Starts after `<lane>` … are merged**` clause), `ecosystem/harness.yaml`
-(via `graph_queries.load_declaration`, library-first — this module holds no second YAML reader),
-the real test files those contracts claim to own, and `logs/MERGE-RECEIPTS.jsonl` for the
-estimate. It writes nothing, ever — Layer 2 never executes (Critical Rule #4; ADR-28/36), and a
-plan LINT is a reader by its very nature.
+contracts (this repo's transport format — `## Dispatch`, `**Files you own:**`, `slug `<slug>``
+the pairing line, an optional `**Serial: …**`, `**Starts after `<lane>` … is/are merged**`
+clause, or `serialize-group: <label>`), `ecosystem/harness.yaml` (via
+`graph_queries.load_declaration`, library-first — this module holds no second YAML reader), the
+real test files those contracts claim to own, and `logs/MERGE-RECEIPTS.jsonl` for the estimate.
+It writes nothing, ever — Layer 2 never executes (Critical Rule #4; ADR-28/36), and a plan LINT
+is a reader by its very nature.
 
-FIVE FINDING CLASSES (the Done-contract's own enumeration, plus D14's addition), each returning
-the two contracts involved:
+ONE GRAMMAR, WRITTEN AND READ (`lane-plan-lint-grammar`, WAVE5B-N1). Before this lane three
+shapes of the same clause existed: `templates/lane-contract-template.md` wrote
+`**Starts after `<lane>` is merged.**` (singular) and carried no `slug `<slug>`` pairing line at
+all; this module's `_STARTS_AFTER_RE` matched only the plural `…are merged**`, silently blind to
+the template's own singular spelling; `scripts/gen_lane_contract.py` enforces a THIRD shape
+entirely (`## Decision budget` / `## Steps` / `## What NOT to do`, a `--model`-less Dispatch
+line, and a `{opus|sonnet|haiku|opusplan}` alias in its routing row — the opposite of the
+explicit-id rule below) and is out of this lane's scope (`Do not`). The template now carries the
+pairing line and both the singular and plural spellings (proper subject-verb agreement: one
+named dependency reads `is merged`, more than one reads `…are merged`); `_STARTS_AFTER_RE` below
+reads both, so the grammar the template WRITES is the one this module READS.
+
+SIX FINDING CLASSES (the Done-contract's own enumeration, plus D14's and this lane's additions),
+each returning the two contracts involved (class 6 returns one contract against itself — a
+self-finding, the same shape class 5 already uses):
 
   1. **File collision** — two lanes' `Files you own` overlap (exact path, or one path is a
      directory ancestor of the other).
@@ -39,6 +53,15 @@ the two contracts involved:
      lane's `Files you own` names a `scripts/*.py` file that does not exist yet, and nothing in
      the contract's own text commits to a `fates:` line or a moment for it. See
      `find_new_organs_without_fate` for the full account.
+  6. **Model alias** (`lane-plan-lint-grammar`, WAVE5B-N1) — a contract's Model table or
+     Dispatch line names a bare alias (`opus`, `sonnet`, `haiku`, `opusplan`) instead of an
+     explicit, versioned id — the night rule `BATCH-COMMON-WAVE5B-N1-2026-09-24.md` §5 states
+     ("Ordered models tonight … explicit ids, no alias") and the registry's own alias-drift note
+     explains why it matters (`ecosystem/provider-registry.yaml`, roles.orchestrate: Claude Code
+     2.1.280 silently repointed the bare `opus` alias to a different model than the id the
+     registry pins). A FREEZE-time refusal, distinct from `lane-launcher-fixes`' own alias check
+     in `scripts/dispatch.py launch` (a LAUNCH-time warning that does not refuse). See
+     `find_model_aliases` for the full account, including the honest limit on the id it names.
 
 ORDERING SUPPRESSES CLASSES 1 AND 3, NEVER CLASS 4 — and that split is deliberate, not an
 oversight. A file collision or a moment/test coupling is a REAL hazard only while the two lanes
@@ -56,11 +79,34 @@ HONEST LIMITS, so a finding here is not over-read:
 
   * **"Files you own" is prose, and this is a pattern reader, not a parser of English.** Only the
     grammar this repo's transport actually uses is recognised: backtick-quoted paths inside the
-    `**Files you own:**` paragraph, `**Serial: …**`, `**Starts after `<lane>` … are merged**`,
-    "wait for none" / "depend(s) on no other lane". A contract that states an ownership or a
-    dependency some other way is invisible to this reader and produces no finding — silently, not
-    with a refusal, because there is no way to distinguish "states nothing" from "states it in a
-    form not yet taught to this module" from the text alone.
+    `**Files you own:**` paragraph, `**Serial: …**`, `**Starts after `<lane>` … is/are merged**`
+    (either subject-verb agreement, and the em-dash appositive real contracts add — "…every lane
+    named here — are merged" — is transparent to the match either way), "wait for none" /
+    "depend(s) on no other lane", `serialize-group: <label>`. A contract that states an ownership
+    or a dependency some other way is invisible to this reader and produces no finding —
+    silently, not with a refusal, because there is no way to distinguish "states nothing" from
+    "states it in a form not yet taught to this module" from the text alone.
+  * **`serialize-group:` orders a group, but not WHICH member runs first, and never overrides a
+    DECLARED order.** The label (same grammar `tasks/*.md` frontmatter and
+    `scripts/validate_backlog.py` already use — a shared-mutable-resource DISJOINTNESS marker,
+    not a stated order) says two lanes must not run concurrently; it does not say which one goes
+    first. For a pair with no `Serial`/`Starts after` edge between them, this module orders them
+    in the sequence they were PASSED to `lint`/`build_edges` — the same sequence the batch's own
+    "merge priority = the table's order" convention already gives a caller reason to pass them
+    in. For a pair a `Serial`/`Starts after` edge ALREADY orders (in either direction), that
+    declared edge wins and the input-order guess is dropped — an earlier version let the guess
+    fight a real edge and manufacture a cycle out of a legitimate plan (Codex terra review,
+    HIGH). A caller that passes a group in some other order gets that guessed order instead for
+    the pairs with no declared edge; this module never re-derives "the table's order" from
+    anything but its own argument sequence.
+  * **The model-alias explicit id is a STATED snapshot, not a live query.** No CLI on this host
+    exposes a model-listing subcommand for `claude` (Part Z, `to-browser/SESSION-step0-wave5b-n1-
+    2026-09-24.md`: "claude 2.1.282: no model-listing subcommand"), so nothing in this repo can
+    re-derive "what does `opus` resolve to today" at lint time; `_ALIAS_EXPLICIT_ID` is a small,
+    dated, cited table, and a future alias repoint (the exact failure the registry's own
+    "ALIAS DRIFT, MADE VISIBLE" note records already happened once) makes it stale until someone
+    re-reads the source and edits it — this module cannot detect that staleness, only state the
+    id it currently believes.
   * **A bare-directory ownership claim (`tests/` with no filename) is scoped to the CANDIDATE
     files this module can name, not every file under that directory.** The candidate set is the
     `.py` files directly inside the directory whose stem shares a keyword (5+ letters, common
@@ -82,8 +128,12 @@ HONEST LIMITS, so a finding here is not over-read:
 
 LIBRARY-FIRST, each cited: `graph_queries.load_declaration` reads `ecosystem/harness.yaml` (no
 second YAML reader here); `merge_receipt.read_ledger` / `median_report` read and summarise
-`logs/MERGE-RECEIPTS.jsonl` (no second statistics pass here). This module's only new code is the
-contract-prose grammar, the dependency-edge graph over it, and the four finding predicates.
+`logs/MERGE-RECEIPTS.jsonl` (no second statistics pass here). The alias table is local, static
+data, not a live registry read — `ecosystem/provider-registry.yaml` records model IDENTITY and
+ROLE RANKING (its own header), not a bare-alias resolution table, and no CLI on this host can be
+queried for one (see the honest limit above) — so there is no second reader to defer to here.
+This module's only new code is the contract-prose grammar, the dependency-edge graph over it,
+and the six finding predicates.
 """
 from __future__ import annotations
 
@@ -124,9 +174,25 @@ _MOMENT_OWNERSHIP_RE = re.compile(
     r"the `(?P<moment>[\w-]+)` moment (?:of|in) `ecosystem/harness\.yaml`")
 #: "**Serial: <detail>**" — a single bolded span, the live grammar (`LANE-W4-1`, `LANE-W4B-0`).
 _SERIAL_RE = re.compile(r"\*\*Serial:\s*(?P<detail>[^*]+)\*\*")
-#: "**Starts after `<lane>` and `<lane>` … are merged**" (`LANE-W4B-1`) — an explicit, named
-#: ordering, distinct from the `Serial` clause's implicit "every other lane" scope.
-_STARTS_AFTER_RE = re.compile(r"\*\*Starts after\s+(?P<body>.*?)\s*are merged\.?\*\*", re.DOTALL)
+#: "**Starts after `<lane>` and `<lane>` … is/are merged**" (`LANE-W4B-1`, and the corrected
+#: `templates/lane-contract-template.md`) — an explicit, named ordering, distinct from the
+#: `Serial` clause's implicit "every other lane" scope. ONE GRAMMAR, READ BOTH WAYS
+#: (`lane-plan-lint-grammar`, WAVE5B-N1): before this lane the regex matched only the plural
+#: `…are merged**`, so the template's own singular `**Starts after `<lane>` is merged.**` (one
+#: named dependency, correct subject-verb agreement) was invisible to it — the exact grammar
+#: mismatch `LANE-5B-6-plan-lint-grammar.md`'s Value line names. `(?:is|are)` reads both; the
+#: real corpus's em-dash appositive ("… — every lane named here — are merged") falls inside the
+#: non-greedy `body` group either way, so it is transparent to the match, not a third spelling.
+_STARTS_AFTER_RE = re.compile(
+    r"\*\*Starts after\s+(?P<body>.*?)\s*(?:is|are) merged\.?\*\*", re.DOTALL)
+#: "serialize-group: <label>" — the SAME clause grammar `tasks/*.md` frontmatter and
+#: `scripts/validate_backlog.py::_SERIALIZE_CLAUSE_RE` already use for "these share a mutable
+#: resource, do not run them concurrently": an ASCII token, `[A-Za-z0-9][A-Za-z0-9_-]*`. Not yet
+#: used by a real `LANE-*.md` contract (the real corpus expresses the one instance of this need —
+#: three lanes all touching `ecosystem/harness.yaml` — through ruling (g)/(f)'s additive-conflict
+#: carve-out instead); introduced here for a future contract to adopt, exercised by the synthetic
+#: acceptance tests, the same posture as `Produces:`/`Consumes:` below.
+_SERIALIZE_GROUP_RE = re.compile(r"serialize-group:\s*(?P<group>[A-Za-z0-9][A-Za-z0-9_-]*)")
 #: "wait for none" / "depend(s) on no other lane" (`LANE-W4-4` v1) — an explicit disclaimer of
 #: every dependency, checked against a `Serial` lane's claim that this lane waits for it.
 _WAIT_FOR_NONE_RE = re.compile(r"wait for none|depends? on no other lane", re.IGNORECASE)
@@ -156,6 +222,45 @@ _SLUG_RE = re.compile(r"slug\s+`(?P<slug>[^`]+)`")
 #: review flagged. Anywhere in the contract, not scoped to `Files you own` — a fate is
 #: typically declared in the Done-contract section, not the file list.
 _FATE_MENTION_RE = re.compile(r"fates:|manual_until|retire.candidate", re.IGNORECASE)
+#: The `| Model | Mode | Effort |` table's data row (`templates/lane-contract-template.md`,
+#: `scripts/dispatch.py launch` reads the same table for the same field) — the first cell.
+_MODEL_TABLE_RE = re.compile(
+    r"\|\s*Model\s*\|\s*Mode\s*\|\s*Effort\s*\|\s*\n"
+    r"\s*\|[-:\s|]+\|\s*\n"
+    r"\s*\|\s*(?P<model>[^|\n]+?)\s*\|")
+#: The `## Dispatch` heading's own fenced code block — scoped so `--model` is read ONLY from the
+#: actual launch command, never from unrelated prose elsewhere in the contract (a `Do not` line
+#: quoting `--model opus` as an example, or a `Read first` bullet). Codex terra review, HIGH: an
+#: earlier version searched the WHOLE contract text for `--model`, so documentation mentioning
+#: the flag could trip a BLOCKING alias finding that named no real Dispatch line.
+_DISPATCH_FENCE_RE = re.compile(r"##\s*Dispatch\s*\n+```[^\n]*\n(?P<body>.*?)```", re.DOTALL)
+#: The `--model <value>` token, read only within `_DISPATCH_FENCE_RE`'s captured body.
+_DISPATCH_MODEL_RE = re.compile(r"--model\s+(?P<model>[^\s\"]+)")
+#: Class 6's closed vocabulary — the four bare aliases the batch's night rule (`BATCH-COMMON-
+#: WAVE5B-N1-2026-09-24.md` §5, "no alias in any contract") and `scripts/gen_lane_contract.py`'s
+#: own `MODEL_ENUM` both name, matched only as an EXACT, case-insensitive value of the Model
+#: table's first cell or a `--model` argument INSIDE the `## Dispatch` fence
+#: (`_DISPATCH_FENCE_RE`) — never as a substring scan of the contract's whole prose, which would
+#: false-positive on every explicit id that CONTAINS one of these words (`claude-opus-5-5`,
+#: `claude-sonnet-5`), on ordinary discussion of the alias itself (this contract's own
+#: Done-contract item 3 names all four), and on a `--model` mentioned outside the real launch
+#: command (a `Do not` example, a `Read first` bullet) -- Codex terra review, HIGH, on the
+#: `--model` leg specifically.
+_ALIASES = frozenset({"opus", "opusplan", "sonnet", "haiku"})
+#: Alias -> the explicit id it resolves to TODAY, per the registry's own alias-drift note
+#: (`ecosystem/provider-registry.yaml`, `roles.orchestrate`: "Claude Code 2.1.280 made
+#: `claude-opus-5-5` the DEFAULT Opus model, which means the bare `opus` alias … now RESOLVES to
+#: `claude-opus-5-5`") and Part Z's per-provider currency probe
+#: (`to-browser/SESSION-step0-wave5b-n1-2026-09-24.md`). `opusplan` is a MODE (plan mode) layered
+#: on the opus alias (`scripts/gen_lane_contract.py`'s `MODEL_ENUM` comment), not a separate
+#: model, so it resolves to the same id. HONEST LIMIT: a snapshot, not a live query — see the
+#: module docstring's honest limits for why nothing in this repo can re-derive it at lint time.
+_ALIAS_EXPLICIT_ID: dict[str, str] = {
+    "opus": "claude-opus-5-5",
+    "opusplan": "claude-opus-5-5",
+    "sonnet": "claude-sonnet-5",
+    "haiku": "claude-haiku-4-5-20251001",
+}
 
 
 def _quoted_tokens(text: str) -> tuple[str, ...]:
@@ -184,6 +289,8 @@ class LaneContract:
     named_waits: tuple[str, ...] = ()
     produces: tuple[str, ...] = ()
     consumes: tuple[str, ...] = ()
+    serialize_group: Optional[str] = None
+    model_tokens: tuple[str, ...] = ()
 
 
 _TITLE_RE = re.compile(r"^#\s+LANE\s+\S+\s+—\s+(?P<title>.+?)\s*$", re.MULTILINE)
@@ -226,11 +333,24 @@ def parse_lane_contract(path: Path) -> LaneContract:
     for m in _CONSUMES_RE.finditer(text):
         consumes.extend(_quoted_tokens(m.group("body")))
 
+    group_match = _SERIALIZE_GROUP_RE.search(text)
+    serialize_group = group_match.group("group") if group_match else None
+
+    model_tokens: list[str] = []
+    model_table_match = _MODEL_TABLE_RE.search(text)
+    if model_table_match is not None:
+        model_tokens.append(model_table_match.group("model").strip())
+    dispatch_match = _DISPATCH_FENCE_RE.search(text)
+    if dispatch_match is not None:
+        model_tokens.extend(
+            m.group("model") for m in _DISPATCH_MODEL_RE.finditer(dispatch_match.group("body")))
+
     return LaneContract(
         path=path, slug=slug, title=title, owned_paths=owned, files_you_own_text=files_text,
         full_text=text, moments_touched=moments, serial=serial, serial_detail=serial_detail,
         starts_after=starts_after, wait_for_none=wait_for_none, named_waits=named_waits,
-        produces=tuple(dict.fromkeys(produces)), consumes=tuple(dict.fromkeys(consumes)))
+        produces=tuple(dict.fromkeys(produces)), consumes=tuple(dict.fromkeys(consumes)),
+        serialize_group=serialize_group, model_tokens=tuple(dict.fromkeys(model_tokens)))
 
 
 def load_contracts(paths: Sequence[Path]) -> tuple[LaneContract, ...]:
@@ -256,11 +376,17 @@ class PlanLintError(ValueError):
 def build_edges(lanes: Sequence[LaneContract]) -> frozenset[tuple[str, str]]:
     """Every `(before, after)` ordering pair this set of contracts declares.
 
-    Two sources, kept distinct because they answer different questions (see the module
+    Three sources, kept distinct because they answer different questions (see the module
     docstring): a `Serial` lane orders itself before every OTHER lane in `lanes` (the live
     grammar's "every other lane" / "N lanes wait" is read as scoped to the set it is asked
     about, not to some larger wave this function was not given); `Starts after` orders the named
-    lane(s) before this one, however many or few other lanes exist.
+    lane(s) before this one, however many or few other lanes exist; `serialize-group:` orders
+    every PAIR of lanes sharing a label against each other that a `Serial`/`Starts after` edge
+    does not ALREADY order, in the order they appear in `lanes` — the label itself only says the
+    two must not run concurrently (the same DISJOINTNESS reading `boot_frontier.py`/
+    `validate_backlog.py` give it), not which one goes first, so this function supplies a
+    direction from its own argument order rather than inventing one from the label, and never
+    lets that guess override a real declared edge (see the module docstring's honest limit).
     """
     slugs = tuple(lane.slug for lane in lanes)
     edges: set[tuple[str, str]] = set()
@@ -268,6 +394,24 @@ def build_edges(lanes: Sequence[LaneContract]) -> frozenset[tuple[str, str]]:
         if lane.serial:
             edges.update((lane.slug, other) for other in slugs if other != lane.slug)
         edges.update((dep, lane.slug) for dep in lane.starts_after if dep in slugs)
+    #: The DECLARED edges only (Serial + Starts after), frozen BEFORE serialize-group runs.
+    #: Codex terra review, HIGH: an earlier version let `serialize-group`'s input-order guess
+    #: add an edge opposite a REAL declared dependency, manufacturing a cycle out of a
+    #: legitimate plan and refusing it (`_refuse_cycles`) for a reason that was this function's
+    #: own guess, not the contract's. A group pair already ordered the other way by a declared
+    #: edge is left alone; only a pair `serialize-group` is the SOLE source of ordering for gets
+    #: one, from input order (the honest limit above still applies to that case).
+    declared_edges = frozenset(edges)
+    groups: dict[str, list[str]] = {}
+    for lane in lanes:
+        if lane.serialize_group:
+            groups.setdefault(lane.serialize_group, []).append(lane.slug)
+    for members in groups.values():
+        for i, earlier in enumerate(members):
+            for later in members[i + 1:]:
+                if _reachable(declared_edges, later, earlier):
+                    continue
+                edges.add((earlier, later))
     return frozenset(edges)
 
 
@@ -467,6 +611,41 @@ def find_new_organs_without_fate(lanes: Sequence[LaneContract], repo_root: Path)
     return out
 
 
+# --- class 6: a model alias where an explicit id belongs (`lane-plan-lint-grammar`) -----------
+
+def find_model_aliases(lanes: Sequence[LaneContract]) -> list[Finding]:
+    """Class 6: a bare model alias (`opus`, `sonnet`, `haiku`, `opusplan`) named in a contract's
+    Model table or Dispatch line, where the night rule requires an explicit, versioned id.
+
+    A SELF-FINDING, the same shape class 5 already uses (`lane_a == lane_b`) — this is a
+    property of one contract, not a relationship between two. FREEZE-TIME, and distinct from
+    `lane-launcher-fixes`' own alias check in `scripts/dispatch.py launch` (a LAUNCH-time
+    warning that does not refuse a launch) — this one runs before any lane launches, over the
+    contract text itself, and is BLOCKING: the night rule (`BATCH-COMMON-WAVE5B-N1-2026-09-24.md`
+    §5) states "no alias in any contract", not "warn on one".
+
+    ONLY the Model table's first cell and a Dispatch `--model` argument are read — an EXACT,
+    case-insensitive match against the closed alias vocabulary, never a substring scan of the
+    contract's prose (see `_ALIASES`'s own comment for why: it would false-positive on every
+    explicit id built from one of these words, and on ordinary discussion of the alias itself).
+    """
+    out: list[Finding] = []
+    for lane in lanes:
+        seen: set[str] = set()
+        for token in lane.model_tokens:
+            key = token.lower()
+            if key not in _ALIASES or key in seen:
+                continue
+            seen.add(key)
+            explicit = _ALIAS_EXPLICIT_ID.get(
+                key, "no explicit id on file here -- see plan_lint.py's honest limit")
+            out.append(Finding(
+                "model-alias", BLOCKING, lane.slug, lane.slug,
+                f"names the alias `{token}` in its Model table or Dispatch line, where an "
+                f"explicit, versioned id belongs -- resolves today to `{explicit}`"))
+    return out
+
+
 #: Below this many literal organ-id hits, a match is an incidental mention, not a hard-coded list.
 _MIN_ORGAN_HITS = 2
 #: Words too common in this corpus's prose to anchor a directory scan (see the module docstring's
@@ -617,7 +796,7 @@ def _refuse_cycles(lanes: Sequence[LaneContract], edges: frozenset[tuple[str, st
 
 
 def lint(lanes: Sequence[LaneContract], repo_root: Path) -> list[Finding]:
-    """All four finding classes, over one set of contracts read together (a wave, or any set the
+    """All six finding classes, over one set of contracts read together (a wave, or any set the
     caller wants cross-checked)."""
     edges = build_edges(lanes)
     _refuse_cycles(lanes, edges)
@@ -627,6 +806,7 @@ def lint(lanes: Sequence[LaneContract], repo_root: Path) -> list[Finding]:
     findings.extend(find_moment_test_conflicts(lanes, repo_root, edges))
     findings.extend(find_serial_mismatches(lanes))
     findings.extend(find_new_organs_without_fate(lanes, repo_root))
+    findings.extend(find_model_aliases(lanes))
     return findings
 
 

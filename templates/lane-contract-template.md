@@ -15,9 +15,17 @@ reconciled_with: handoff-process@7.1.0
   THE PARTS CODE READS — keep their spelling, or a reader goes blind without refusing:
   * `| Model | Mode | Effort |` table and the `## Dispatch` fence — `scripts/dispatch.py launch`
     reads both for their FIELDS and does not run the line; the two agree or it refuses.
-  * `**Files you own:**`, `**Starts after `<lane>` is merged**`, `**Serial: ...**`,
-    `**Produces:**` / `**Consumes:**`, and "the `<moment>` moment of `ecosystem/harness.yaml`" —
-    `scripts/plan_lint.py` reads these to find collisions and ordering before the freeze.
+  * `` slug `<slug>` `` the pairing line, `**Files you own:**`,
+    `**Starts after `<lane>` is/are merged**` (one dependency reads `is merged`, more than one
+    `… are merged` — correct subject-verb agreement, not two grammars), `**Serial: ...**`,
+    `**Produces:**` / `**Consumes:**`, `serialize-group: <label>`, and "the `<moment>` moment of
+    `ecosystem/harness.yaml`" — `scripts/plan_lint.py` reads these to find collisions and
+    ordering before the freeze. ONE GRAMMAR, WRITTEN HERE AND READ THERE
+    (`lane-plan-lint-grammar`, WAVE5B-N1): keep the two in agreement rather than drifting one and
+    patching the other's regex around it.
+  * A bare alias (`opus`, `sonnet`, `haiku`, `opusplan`) in the Model cell or the Dispatch
+    line's `--model` — one is not written; the night rule wants an explicit, versioned id, and
+    `plan_lint.py` refuses a contract that names one instead.
 
   ROUTING IS DATA. The Model cell names the model the registry routes this lane's ROLE to
   (`ecosystem/provider-registry.yaml` — produce, review, orchestrate, ...); do not pick a model
@@ -44,7 +52,15 @@ claude --bg -n <slug> --model <model> --effort <effort> --permission-mode bypass
 The launcher reads this block; the dispatcher runs
 `uv run --locked python scripts/dispatch.py launch --batch <BATCH> LANE-<id>-<slug>.md`, and uses
 this line by hand only when the launcher refuses, recording that it did.
-<**Starts after `<lane>` is merged.** — only when this lane depends on another>
+<**Starts after `<lane>` is merged.** — exactly one dependency>
+<**Starts after `<lane>`, `<lane>` — every lane named here — are merged.** — more than one>
+<only when this lane depends on another; delete whichever line does not apply>
+<serialize-group: <label> — only when this lane does not run concurrently with another lane
+sharing the label, and neither declares the other a dependency>
+
+## Worktree pairing
+
+slug `<slug>` -> branch `worktree-<slug>` -> contract `LANE-<id>-<slug>.md`
 
 **Owns:**
 
