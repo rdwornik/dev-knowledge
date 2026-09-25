@@ -427,3 +427,73 @@ def test_a_verdict_outside_the_closed_vocabulary_is_refused():
     d["models"]["acme-1"]["role_admission"] = {"fan-out": {"verdict": "probably-fine"}}
     with pytest.raises(ValidationError, match="verdict"):
         _validate(d)
+
+
+# --- LANE-5B-2 Done item 4: `Provider.model_currency` / `RoleEntry.currency_exception` -----
+
+def test_model_currency_with_neither_command_nor_exception_is_refused():
+    """A provider that is neither checkable (`command`) nor excused (`exception`) is silence
+    wearing this field's name — the same shape as a `RoleAdmission` with no provenance."""
+    d = _mutate()
+    d["providers"]["acme"]["model_currency"] = {}
+    with pytest.raises(ValidationError, match="model_currency"):
+        _validate(d)
+
+
+def test_model_currency_with_only_an_exception_is_legal():
+    d = _mutate()
+    d["providers"]["acme"]["model_currency"] = {
+        "exception": {
+            "reason": "no listing subcommand",
+            "decided_by": "architect",
+            "decided_on": "2026-09-24",
+        }
+    }
+    assert _validate(d) is not None
+
+
+def test_model_currency_with_only_a_command_is_legal():
+    d = _mutate()
+    d["providers"]["acme"]["model_currency"] = {"command": ["acmecli", "models"]}
+    assert _validate(d) is not None
+
+
+def test_a_role_entrys_currency_exception_needs_full_provenance():
+    """Reuses `CurrencyException`'s own required fields — this is not a second provenance rule,
+    it is the same one `RoleAdmission`/`ProviderLicence` already enforce, applied here too."""
+    d = _mutate()
+    d["roles"] = {
+        "implement": {
+            "description": "produce",
+            "order": [
+                {
+                    "provider": "acme",
+                    "model": "acme-1",
+                    "currency_exception": {"reason": "stale", "decided_by": "architect"},
+                }
+            ],
+        }
+    }
+    with pytest.raises(ValidationError, match="decided_on"):
+        _validate(d)
+
+
+def test_a_role_entrys_currency_exception_with_full_provenance_is_legal():
+    d = _mutate()
+    d["roles"] = {
+        "implement": {
+            "description": "produce",
+            "order": [
+                {
+                    "provider": "acme",
+                    "model": "acme-1",
+                    "currency_exception": {
+                        "reason": "stale",
+                        "decided_by": "architect",
+                        "decided_on": "2026-09-25",
+                    },
+                }
+            ],
+        }
+    }
+    assert _validate(d) is not None

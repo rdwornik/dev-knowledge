@@ -39,13 +39,15 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, StrictStr, model_validator
 
-#: 1.1.0 — `[#691]` adds the THIRD collection (`roles:`: ordered fallback lists, per-entry
-#: admission, the reviewer-not-producer flag) and the per-provider `licence:` block. MINOR, not
-#: major: both additions are optional, so every pre-`[#691]` registry still validates unchanged.
-#: Not a member of `validate_reconciliation._SPEC_REGISTRY` (which registers `handoff-process`
-#: and `prompt-template` only), so this bump carries no reconciliation obligation — checked
-#: rather than assumed.
-SCHEMA_VERSION = "1.1.0"
+#: 1.2.0 — LANE-5B-2 adds `Provider.model_currency` and `RoleEntry.currency_exception` (Done
+#: item 4: a role's pinned id is the newest its provider's CLI lists, or carries a dated
+#: exception). MINOR, not major: both fields are optional, so every pre-LANE-5B-2 registry
+#: still validates unchanged. 1.1.0 was `[#691]`'s THIRD collection (`roles:`: ordered
+#: fallback lists, per-entry admission, the reviewer-not-producer flag) and the per-provider
+#: `licence:` block. Not a member of `validate_reconciliation._SPEC_REGISTRY` (which registers
+#: `handoff-process` and `prompt-template` only), so this bump carries no reconciliation
+#: obligation — checked rather than assumed.
+SCHEMA_VERSION = "1.2.0"
 
 #: A verdict's closed vocabulary. `unevaluated` is a first-class member on purpose: a provider
 #: nobody has run through the admission pipeline is a KNOWN state, not a missing one, and
@@ -231,6 +233,51 @@ class ProviderLicence(_Contract):
         return self
 
 
+class CurrencyException(_Contract):
+    """Why a model id's currency cannot be, or was not, verified against a live CLI listing —
+    LANE-5B-2 Done item 4. Dated and provenance-bearing on the same principle as
+    `RoleAdmission` and `ProviderLicence`: "we didn't check" is a fact that decays exactly
+    like an admission does, so it is recorded rather than left implicit in an absence.
+    """
+
+    reason: StrictStr
+    decided_by: StrictStr
+    decided_on: datetime.date
+    #: Where a reader can independently corroborate currency when no live listing exists for
+    #: it (e.g. a changelog-review audit). Optional: an exception may simply record that no
+    #: such source exists yet.
+    source: Optional[StrictStr] = None
+
+
+class ModelCurrency(_Contract):
+    """How this provider's served-model currency is checked, or why it is not — LANE-5B-2
+    Done item 4: *"a test asserts ... that each role's pinned id is the newest id that CLI
+    lists for its tier, or that the registry row carries a dated `exception:` line."*
+
+    DATA, not code: the probe command a currency test runs is read from `command` here rather
+    than hard-coded per provider in test source, so a CLI's listing syntax changing needs one
+    YAML edit, not a test-source edit.
+    """
+
+    #: argv that lists this provider's currently-served model ids, when the CLI offers one.
+    #: `None` when it does not (`claude`, `copilot-enterprise` measured 2026-09-24: neither
+    #: CLI has a listing subcommand) — `exception` is then mandatory, see the validator below.
+    command: Optional[tuple[StrictStr, ...]] = None
+    #: Free text: how to read `command`'s output into a set of currently-served ids (a JSON
+    #: path, a visibility filter, a delimiter). Only meaningful alongside `command`.
+    parse: Optional[StrictStr] = None
+    exception: Optional[CurrencyException] = None
+
+    @model_validator(mode="after")
+    def _no_listing_command_needs_a_dated_exception(self) -> "ModelCurrency":
+        if self.command is None and self.exception is None:
+            raise ValueError(
+                "`model_currency` names no `command` and no `exception` — a provider that is "
+                "neither checkable nor excused is silence wearing this field's name"
+            )
+        return self
+
+
 class Provider(_Contract):
     """A vendor, the CLI that reaches it, and the host-side config that pins it."""
 
@@ -241,6 +288,10 @@ class Provider(_Contract):
     #: commit that introduced the field, which is how a registry acquires six fabricated
     #: values and one real one.
     licence: Optional[ProviderLicence] = None
+    #: LANE-5B-2 Done item 4. OPTIONAL because most of this file's providers (deepseek, cursor,
+    #: google) hold no role and are out of the named scope (`claude, codex, agy, copilot,
+    #: grok`); the five named providers each carry one.
+    model_currency: Optional[ModelCurrency] = None
     #: The token `protocols/AI_COUNCIL_PROCESS.md` names this provider by. It is a SEPARATE
     #: string from the registry key for two of five providers (`anthropic`/`claude`,
     #: `xai`/`grok`), which is exactly why it is data: without it the checker holding the
@@ -497,6 +548,11 @@ class RoleEntry(_Contract):
     #: Why this entry sits where it sits — the DECLARED rationale, which the re-rank may later
     #: override. Optional; an entry with none is exactly as valid.
     note: Optional[StrictStr] = None
+    #: LANE-5B-2 Done item 4, entry-level. Set when a currency test has found THIS pinned
+    #: `model` is not the newest its provider's CLI currently lists for its tier — recorded
+    #: rather than silently re-pinned, because moving an unadmitted position to an
+    #: unverified id would manufacture the same kind of drift this field exists to end.
+    currency_exception: Optional[CurrencyException] = None
 
 
 class Role(_Contract):
@@ -749,8 +805,10 @@ class ProviderRegistry(_Contract):
 __all__ = [
     "ROLE_NAMES",
     "SCHEMA_VERSION",
+    "CurrencyException",
     "Licence",
     "Model",
+    "ModelCurrency",
     "Pin",
     "Provider",
     "ProviderLicence",
