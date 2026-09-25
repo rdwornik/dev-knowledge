@@ -72,3 +72,16 @@ directly in the same session's follow-up commit `9582c4ab`, the same direct-disp
 | File | Disposition | Evidence locator |
 |---|---|---|
 | 2026-09-25-codex-lane-teardown-visible.md | ACTIONED | 9582c4ab |
+
+---
+
+## Amendment — consumer citation (2026-09-25, repair 1 of batch WAVE5B-N2)
+
+This record's consumer, named inside the record per the Done-contract's "Codex terra
+review record citing its consumer (this contract)" (and common rules §3's "citing its
+consumer (your contract or row) inside the record"): **`LANE-5B2-5-teardown-visible.md`**
+(batch WAVE5B-N2, lane `lane-teardown-visible`).
+
+Appended as an in-file amendment marker, not an edit in place — CLAUDE.md §5 rule 3 reads
+audits as immutable already (no ADR-94-style exception is carved out for them), so this
+adds a new section rather than changing any line above it.
