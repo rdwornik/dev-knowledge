@@ -86,14 +86,19 @@ HONEST LIMITS, so a finding here is not over-read:
     or a dependency some other way is invisible to this reader and produces no finding —
     silently, not with a refusal, because there is no way to distinguish "states nothing" from
     "states it in a form not yet taught to this module" from the text alone.
-  * **`serialize-group:` orders a group, but not WHICH member runs first.** The label (same
-    grammar `tasks/*.md` frontmatter and `scripts/validate_backlog.py` already use — a
-    shared-mutable-resource DISJOINTNESS marker, not a stated order) says two lanes must not run
-    concurrently; it does not say which one goes first. This module orders a group's members in
-    the sequence they were PASSED to `lint`/`build_edges` — the same sequence the batch's own
+  * **`serialize-group:` orders a group, but not WHICH member runs first, and never overrides a
+    DECLARED order.** The label (same grammar `tasks/*.md` frontmatter and
+    `scripts/validate_backlog.py` already use — a shared-mutable-resource DISJOINTNESS marker,
+    not a stated order) says two lanes must not run concurrently; it does not say which one goes
+    first. For a pair with no `Serial`/`Starts after` edge between them, this module orders them
+    in the sequence they were PASSED to `lint`/`build_edges` — the same sequence the batch's own
     "merge priority = the table's order" convention already gives a caller reason to pass them
-    in. A caller that passes a group in some other order gets that order instead; this module
-    does not re-derive "the table's order" from anything but its own argument sequence.
+    in. For a pair a `Serial`/`Starts after` edge ALREADY orders (in either direction), that
+    declared edge wins and the input-order guess is dropped — an earlier version let the guess
+    fight a real edge and manufacture a cycle out of a legitimate plan (Codex terra review,
+    HIGH). A caller that passes a group in some other order gets that guessed order instead for
+    the pairs with no declared edge; this module never re-derives "the table's order" from
+    anything but its own argument sequence.
   * **The model-alias explicit id is a STATED snapshot, not a live query.** No CLI on this host
     exposes a model-listing subcommand for `claude` (Part Z, `to-browser/SESSION-step0-wave5b-n1-
     2026-09-24.md`: "claude 2.1.282: no model-listing subcommand"), so nothing in this repo can
@@ -223,15 +228,24 @@ _MODEL_TABLE_RE = re.compile(
     r"\|\s*Model\s*\|\s*Mode\s*\|\s*Effort\s*\|\s*\n"
     r"\s*\|[-:\s|]+\|\s*\n"
     r"\s*\|\s*(?P<model>[^|\n]+?)\s*\|")
-#: The `## Dispatch` fence's `--model <value>` token.
+#: The `## Dispatch` heading's own fenced code block — scoped so `--model` is read ONLY from the
+#: actual launch command, never from unrelated prose elsewhere in the contract (a `Do not` line
+#: quoting `--model opus` as an example, or a `Read first` bullet). Codex terra review, HIGH: an
+#: earlier version searched the WHOLE contract text for `--model`, so documentation mentioning
+#: the flag could trip a BLOCKING alias finding that named no real Dispatch line.
+_DISPATCH_FENCE_RE = re.compile(r"##\s*Dispatch\s*\n+```[^\n]*\n(?P<body>.*?)```", re.DOTALL)
+#: The `--model <value>` token, read only within `_DISPATCH_FENCE_RE`'s captured body.
 _DISPATCH_MODEL_RE = re.compile(r"--model\s+(?P<model>[^\s\"]+)")
 #: Class 6's closed vocabulary — the four bare aliases the batch's night rule (`BATCH-COMMON-
 #: WAVE5B-N1-2026-09-24.md` §5, "no alias in any contract") and `scripts/gen_lane_contract.py`'s
 #: own `MODEL_ENUM` both name, matched only as an EXACT, case-insensitive value of the Model
-#: table's first cell or a `--model` argument — never as a substring scan of the contract's
-#: prose, which would false-positive on every explicit id that CONTAINS one of these words
-#: (`claude-opus-5-5`, `claude-sonnet-5`) or on ordinary discussion of the alias itself (this
-#: contract's own Done-contract item 3 names all four).
+#: table's first cell or a `--model` argument INSIDE the `## Dispatch` fence
+#: (`_DISPATCH_FENCE_RE`) — never as a substring scan of the contract's whole prose, which would
+#: false-positive on every explicit id that CONTAINS one of these words (`claude-opus-5-5`,
+#: `claude-sonnet-5`), on ordinary discussion of the alias itself (this contract's own
+#: Done-contract item 3 names all four), and on a `--model` mentioned outside the real launch
+#: command (a `Do not` example, a `Read first` bullet) -- Codex terra review, HIGH, on the
+#: `--model` leg specifically.
 _ALIASES = frozenset({"opus", "opusplan", "sonnet", "haiku"})
 #: Alias -> the explicit id it resolves to TODAY, per the registry's own alias-drift note
 #: (`ecosystem/provider-registry.yaml`, `roles.orchestrate`: "Claude Code 2.1.280 made
@@ -326,7 +340,10 @@ def parse_lane_contract(path: Path) -> LaneContract:
     model_table_match = _MODEL_TABLE_RE.search(text)
     if model_table_match is not None:
         model_tokens.append(model_table_match.group("model").strip())
-    model_tokens.extend(m.group("model") for m in _DISPATCH_MODEL_RE.finditer(text))
+    dispatch_match = _DISPATCH_FENCE_RE.search(text)
+    if dispatch_match is not None:
+        model_tokens.extend(
+            m.group("model") for m in _DISPATCH_MODEL_RE.finditer(dispatch_match.group("body")))
 
     return LaneContract(
         path=path, slug=slug, title=title, owned_paths=owned, files_you_own_text=files_text,
@@ -364,11 +381,12 @@ def build_edges(lanes: Sequence[LaneContract]) -> frozenset[tuple[str, str]]:
     grammar's "every other lane" / "N lanes wait" is read as scoped to the set it is asked
     about, not to some larger wave this function was not given); `Starts after` orders the named
     lane(s) before this one, however many or few other lanes exist; `serialize-group:` orders
-    every PAIR of lanes sharing a label against each other, in the order they appear in `lanes` —
-    the label itself only says the two must not run concurrently (the same DISJOINTNESS reading
-    `boot_frontier.py`/`validate_backlog.py` give it), not which one goes first, so this function
-    supplies a direction from its own argument order rather than inventing one from the label
-    (see the module docstring's honest limit on this).
+    every PAIR of lanes sharing a label against each other that a `Serial`/`Starts after` edge
+    does not ALREADY order, in the order they appear in `lanes` — the label itself only says the
+    two must not run concurrently (the same DISJOINTNESS reading `boot_frontier.py`/
+    `validate_backlog.py` give it), not which one goes first, so this function supplies a
+    direction from its own argument order rather than inventing one from the label, and never
+    lets that guess override a real declared edge (see the module docstring's honest limit).
     """
     slugs = tuple(lane.slug for lane in lanes)
     edges: set[tuple[str, str]] = set()
@@ -376,6 +394,14 @@ def build_edges(lanes: Sequence[LaneContract]) -> frozenset[tuple[str, str]]:
         if lane.serial:
             edges.update((lane.slug, other) for other in slugs if other != lane.slug)
         edges.update((dep, lane.slug) for dep in lane.starts_after if dep in slugs)
+    #: The DECLARED edges only (Serial + Starts after), frozen BEFORE serialize-group runs.
+    #: Codex terra review, HIGH: an earlier version let `serialize-group`'s input-order guess
+    #: add an edge opposite a REAL declared dependency, manufacturing a cycle out of a
+    #: legitimate plan and refusing it (`_refuse_cycles`) for a reason that was this function's
+    #: own guess, not the contract's. A group pair already ordered the other way by a declared
+    #: edge is left alone; only a pair `serialize-group` is the SOLE source of ordering for gets
+    #: one, from input order (the honest limit above still applies to that case).
+    declared_edges = frozenset(edges)
     groups: dict[str, list[str]] = {}
     for lane in lanes:
         if lane.serialize_group:
@@ -383,6 +409,8 @@ def build_edges(lanes: Sequence[LaneContract]) -> frozenset[tuple[str, str]]:
     for members in groups.values():
         for i, earlier in enumerate(members):
             for later in members[i + 1:]:
+                if _reachable(declared_edges, later, earlier):
+                    continue
                 edges.add((earlier, later))
     return frozenset(edges)
 

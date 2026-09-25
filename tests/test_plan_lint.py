@@ -369,6 +369,25 @@ def test_serialize_group_does_not_order_lanes_in_different_groups(tmp_path):
     assert findings[0].severity == plan_lint.BLOCKING
 
 
+def test_serialize_group_never_overrides_a_declared_edge_the_other_way(tmp_path):
+    """Codex terra review, HIGH: a first cut let `serialize-group`'s input-order guess add an
+    edge OPPOSITE a real declared `Starts after` dependency, manufacturing a cycle out of a
+    legitimate plan and refusing it. Here `lane-b` is passed BEFORE `lane-a` (so the naive
+    input-order guess would read `lane-b` before `lane-a`), but `lane-b` itself declares
+    `Starts after `lane-a``  -- the declared edge must win: no cycle, and `is_ordered` still
+    reads `lane-a` before `lane-b`, never the reverse."""
+    b = _contract(tmp_path, "LANE-b.md", "lane-b", "`x`.",
+                  extra_body=("**Starts after `lane-a` are merged**\n\n"
+                              "serialize-group: g"))
+    a = _contract(tmp_path, "LANE-a.md", "lane-a", "`y`.", extra_body="serialize-group: g")
+    lanes = plan_lint.load_contracts([b, a])  # b passed FIRST -- opposite the declared order
+    edges = plan_lint.build_edges(lanes)  # must not raise / must not encode a cycle
+    cycle = plan_lint.find_cycle(lanes, edges)
+    assert cycle is None
+    assert plan_lint.is_ordered(edges, "lane-a", "lane-b")
+    assert ("lane-b", "lane-a") not in edges
+
+
 # --- class 5: a new organ with no declared fate or moment (D14) -------------------------------
 
 def test_new_script_no_fate_flagged_for_an_undeclared_new_script(tmp_path):
@@ -484,6 +503,18 @@ def test_model_alias_is_silent_on_an_explicit_id(tmp_path):
     """Negative control -- an explicit id CONTAINING one of the alias words (`claude-opus-5-5`
     contains `opus`) must not false-positive; only an EXACT alias value counts."""
     path = _contract_with_model(tmp_path, "LANE-a.md", "lane-a", "claude-opus-5-5")
+    lanes = plan_lint.load_contracts([path])
+    assert plan_lint.find_model_aliases(lanes) == []
+
+
+def test_model_alias_ignores_a_dash_dash_model_mention_outside_the_dispatch_fence(tmp_path):
+    """Codex terra review, HIGH: a first cut scanned `--model` anywhere in the contract, so a
+    `Do not` line or a `Read first` bullet that merely MENTIONS the flag (documentation, not a
+    real launch command) could trip a BLOCKING finding. Only the `## Dispatch` fence counts."""
+    path = _contract_with_model(tmp_path, "LANE-a.md", "lane-a", "claude-sonnet-5")
+    extra = path.read_text(encoding="utf-8") + (
+        "\n## Do not\n\n- Never launch with `--model opus`; use the pinned id instead.\n")
+    path.write_text(extra, encoding="utf-8")
     lanes = plan_lint.load_contracts([path])
     assert plan_lint.find_model_aliases(lanes) == []
 
