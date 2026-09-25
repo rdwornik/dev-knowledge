@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-25 (o) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): pre-commit on the codespace login PATH -- lane 1's admission refusal repaired
+
+**Anchors:** `84c40a92`, `09306d18`, `24d3fbb3` -- `worktree-lane-codespace-proof-repair-1` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on origin/main `da11291b`.
+
+**Did:** lane-codespace-proof was REFUSED at ADMISSION (container `pre-commit` off the login PATH; 0 turns, 0 commits). Repair 1 of 2 adds `leg_pc_login_path` to `.devcontainer/provision.sh`: the venv's `pre-commit` goes onto the first existing login startup file (`~/.bash_profile|~/.bash_login|~/.profile`), never `~/.bashrc`, whose non-interactive guard defeated the first version (terra CRITICAL, fixed before landing). Accepted only on the operator's criterion: a fresh-container admission probe on the repair branch (codespace `repair1-probe-q4jgvgr573699x`, branch `provision.sh` re-ran in postCreate) resolved `pre_commit` in a login shell with the deployed DispatchHelpers admission test byte-unchanged (sha256 re-hashed), then deleted, `total_count` 0 == before. **Result:** a codespace lane is admissible; lane 1 attempt 2 runs from main under AMEND-QUEUE §A. **Changes:** `.devcontainer/provision.sh`, `.devcontainer/provisioning.yaml`, `tests/test_provision_sh.py`, its terra record, `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl`. **Next:** lane 1 attempt 2 (the one-commit proof).
+
 ### 2026-09-25 (n) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): a lane session cannot end without a clean HANDBACK line
 
 **Anchors:** `e1a30321`, `d144be6c` (`feat(hooks)` + the Codex-review fixes; `4159ef9c` is its sync of origin/main) -- `worktree-lane-handback-stop-hook` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on origin/main `1d464924` (the lane-transport-registry merge).
