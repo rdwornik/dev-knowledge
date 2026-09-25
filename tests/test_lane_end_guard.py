@@ -391,7 +391,10 @@ def test_one_new_stop_entry_and_the_existing_one_untouched():
     backpressure = [c for c in cmds if "session_end_backpressure.py" in c["command"]]
     assert backpressure == [{"type": "command", "timeout": 15,
                              "command": 'uv run --locked python "$CLAUDE_PROJECT_DIR/scripts/session_end_backpressure.py"'}]
-    assert len(cmds) == 2, "one new entry beside the existing one; nothing else added or removed"
+    # lane-handback-stop-hook ([#1010]) added a THIRD Stop entry, lane_handback_gate.py, beside
+    # this one and session_end_backpressure.py -- see tests/test_lane_handback_gate.py for its
+    # own declared-row assertions; this count only needs to stay in step with theirs.
+    assert len(cmds) == 3, "this guard's entry, the backpressure entry, and the handback gate's"
     assert guard[0]["timeout"] <= 15, "shares the declared 15-second limit"
 
 
