@@ -21,9 +21,15 @@
 
 ---
 
+### 2026-09-25 (k) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): the organ census's harness.yaml moment path gets its own test
+
+**Anchors:** `5dc84cde`, `018a2cb8` (`test(organ-usage-metric)` + the Codex review with its LOW fixed) -- `worktree-lane-census-instrument` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on the lane-trial-gh-issues merge `fdc64921`.
+
+**Did:** purity 2 commits / 3 files; merged in `worktree-integrate-lane-census-instrument`; regenerated generated files on the merged tree (ruling b); ship-gate diffed against the stacked base; lane-changed `tests/test_organ_usage_metric.py` on the merged tree; CI paired against main. **Result:** the census already counted harness.yaml moments as observation on origin/main (LANE-5A-10); this lane adds the test that exercises that parser (`scripts/moment_only.py` fixture reachable only through a moment) and names the source in the docstrings and the printed label. UNOBSERVED before and after on the primary: CALLED 82 / REACHABLE-BUT-UNOBSERVED 82 / UNREACHABLE 16 of 194 -- none of the 74 wired organs reads UNREACHABLE. **Changes:** `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl` (+ the lane's 3 files). **Next:** the rest of the WAVE5B-N1 queue.
+
 ### 2026-09-25 (j) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): the GitHub Issues trial lands -- ADR-122's store choice now rests on live measurements
 
-**Anchors:** `b287ac3a`, `fa8b2952` (`docs(audit)`: the live trial record and the reader-harness figures; ADR-122 amended, still Proposed) -- `worktree-lane-trial-gh-issues` (ordered `claude-opus-5-5`), merged `--no-ff` from an integration worktree on the lane-ci-commit-gate merge `af80705a`.
+**Anchors:** `b287ac3a`, `fa8b2952` (`docs(audit)`: the live trial record and the reader-harness figures; ADR-122 amended, still Proposed) -- `worktree-lane-trial-gh-issues` (ordered `claude-opus-5-5`), merged `--no-ff` from an integration worktree stacked on the lane-ci-commit-gate merge `211a4e26`.
 
 **Did:** purity 2 commits / 2 files, docs only; the ADR-122 diff is additions only (an in-file amendment, status line unchanged); merged in `worktree-integrate-lane-trial-gh-issues`; regenerated generated files on the merged tree (ruling b); ship-gate diffed against the stacked base; CI paired against main. **Result:** `docs/audits/2026-09-25-technical-backlog-record-gh-issues-trial.md` -- the two-column matrix with every O2 cell backed by a live measurement in the scratch repository `rdwornik/dk-trial-gh-issues-20260925` (24 issues, PR #25 by the Copilot CLI under the Enterprise seat); ADR-122 carries "Amendment -- 2026-09-25", still Proposed (ratification is the operator's). The lane handed back PARTIAL: its own self-checks and lane-diff terra review were reaped under memory pressure. **Changes:** `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl` (+ the lane's 2 files). **Next:** the operator deletes the scratch repository and rules ADR-122 (MORNING).
 
