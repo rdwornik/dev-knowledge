@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "f517b96bdfe8d4cd1eda105d2d014829579afe8fab04046e651119a57e41b8e9",
+  "generated_sha256": "2502c47b76f2307f5b37a03cfec4232acd4bd1ac0cc262d65b0052479cfdf9b3",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -636,10 +636,6 @@
     {
       "task": 896,
       "file": "896-decision-coverage-the-organ-refuses-and-its-gate-n.md"
-    },
-    {
-      "task": 891,
-      "file": "891-lane-handback-contract-lanes-write-a-ten-field-h.md"
     },
     {
       "task": 902,
@@ -2450,6 +2446,174 @@
     {
       "task": 770,
       "file": "770-nothing-notices-an-external-specification-revisi.md"
+    },
+    {
+      "prose": ""
+    },
+    {
+      "prose": "## [E10] Batch convergence"
+    },
+    {
+      "prose": "### [S28] File every owed item with in-repo provenance"
+    },
+    {
+      "prose": "So that an item found once does not have to be re-derived by the next seat that meets it."
+    },
+    {
+      "task": 1016,
+      "file": "1016-registry-models-reconcile-the-grok-4-6-currency-discrep.md"
+    },
+    {
+      "task": 1017,
+      "file": "1017-registry-models-the-proof-layer-warn-on-test-provider-r.md"
+    },
+    {
+      "task": 1018,
+      "file": "1018-launcher-fixes-copilot-usage-governance-has-no-reader-f.md"
+    },
+    {
+      "task": 1019,
+      "file": "1019-hooks-port-the-flaky-test-the-slower-sentinel-the-bound.md"
+    },
+    {
+      "task": 1020,
+      "file": "1020-ci-commit-gate-a-ship-gate-rerun-is-owed-and-the-commit.md"
+    },
+    {
+      "task": 1021,
+      "file": "1021-trial-gh-issues-stage-2-prior-art-scan-has-no-content-r.md"
+    },
+    {
+      "task": 1022,
+      "file": "1022-trial-gh-issues-test-citation-regex-strips-only-real-da.md"
+    },
+    {
+      "task": 1023,
+      "file": "1023-integrator-test-wal-concurrency-smoke-real-processes-fl.md"
+    },
+    {
+      "task": 1024,
+      "file": "1024-integrator-merge-receipt-py-reports-unknown-tier-for-ev.md"
+    },
+    {
+      "task": 1025,
+      "file": "1025-integrator-batch-janitor-py-has-no-per-lane-scope-and-r.md"
+    },
+    {
+      "task": 1026,
+      "file": "1026-integrator-batch-janitor-py-reads-a-removed-job-as-live.md"
+    },
+    {
+      "task": 1027,
+      "file": "1027-integrator-the-watcher-self-deadline-pattern-an-expired.md"
+    },
+    {
+      "task": 1028,
+      "file": "1028-integrator-the-moment-batch-close-digest-organ-reads-no.md"
+    },
+    {
+      "task": 1029,
+      "file": "1029-transport-registry-docs-audits-2026-09-25-codex-transpo.md"
+    },
+    {
+      "task": 1030,
+      "file": "1030-registry-models-docs-audits-2026-09-25-codex-lane-regis.md"
+    },
+    {
+      "task": 1031,
+      "file": "1031-ci-commit-gate-docs-audits-2026-09-25-codex-lane-ci-com.md"
+    },
+    {
+      "task": 1032,
+      "file": "1032-a-portability-check-flags-windows-only-path-literals-a.md"
+    },
+    {
+      "task": 1033,
+      "file": "1033-export-backlog-view-py-offload-admission-py-retirement.md"
+    },
+    {
+      "task": 1034,
+      "file": "1034-the-8-claude-ai-synced-anthropic-skills-stay-on-althoug.md"
+    },
+    {
+      "task": 1035,
+      "file": "1035-the-4-never-invoked-project-entries-preflight-spine-why.md"
+    },
+    {
+      "task": 1036,
+      "file": "1036-run-doctor-interactively-once-per-standing-rulings-al-b.md"
+    },
+    {
+      "task": 1037,
+      "file": "1037-the-handoff-boot-integrator-section-is-still-not-landed.md"
+    },
+    {
+      "task": 1038,
+      "file": "1038-digest-handoff-design-2026-09-25-the-handoff-design-res.md"
+    },
+    {
+      "task": 1039,
+      "file": "1039-the-execution-provenance-mechanism-declare-harness-prov.md"
+    },
+    {
+      "task": 1040,
+      "file": "1040-the-five-operator-judging-rules-declare-operator-feedba.md"
+    },
+    {
+      "task": 1041,
+      "file": "1041-the-seat-knowledge-table-declare-seat-knowledge-2026-09.md"
+    },
+    {
+      "task": 1042,
+      "file": "1042-ac-not-closed-residue-the-operator-ruling-on-machine-ti.md"
+    },
+    {
+      "task": 1043,
+      "file": "1043-ac-not-closed-residue-r11-re-key-the-stop-hook-exemptio.md"
+    },
+    {
+      "task": 1044,
+      "file": "1044-census-verdicts-w14-no-keep-or-retire-row-exists-for-th.md"
+    },
+    {
+      "task": 1045,
+      "file": "1045-census-verdicts-w16-the-17-no-organ-sessions-have-no-ro.md"
+    },
+    {
+      "task": 1046,
+      "file": "1046-census-verdicts-w17-the-class-named-organ-blind-spot-ha.md"
+    },
+    {
+      "task": 1047,
+      "file": "1047-aj-c-1-a-closed-root-cause-enum-9-category-agent-error.md"
+    },
+    {
+      "task": 1048,
+      "file": "1048-aj-c-2-per-lane-process-efficiency-vsm-work-over-cycle.md"
+    },
+    {
+      "task": 1049,
+      "file": "1049-aj-c-3-a-responder-observer-rollout-rule-for-future-aut.md"
+    },
+    {
+      "task": 1050,
+      "file": "1050-aj-c-4-the-5-criteria-task-filter-real-recent-represent.md"
+    },
+    {
+      "task": 1051,
+      "file": "1051-aj-c-5-true-throughput-dxi-is-blocked-flagged-not-built.md"
+    },
+    {
+      "task": 1052,
+      "file": "1052-aj-c-6-the-maister-commit-4151c9c4d-2026-09-22-diff-has.md"
+    },
+    {
+      "task": 1053,
+      "file": "1053-aj-c-7-the-09-21-aj-companion-digests-are-not-landed-or.md"
+    },
+    {
+      "task": 1054,
+      "file": "1054-the-2-000-minute-actions-allowance-claim-in-substrate-h.md"
     },
     {
       "prose": ""

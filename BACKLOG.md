@@ -165,7 +165,6 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#894] [P2][S] Lane ac-285 wedged after a successful tool call -- an unexplained single-lane wedge, cause unverified · tasks/894-lane-ac-285-wedged-after-a-successful-tool-call-c.md
 - [#895] [P2][S] The lane-ceiling worktree leg refuses a conforming plan -- it counts the freezing seat's own worktree as a provisioned lane · tasks/895-the-lane-ceiling-worktree-leg-refuses-a-conformin.md
 - [#896] [P1][S] decision_coverage -- the organ refuses correctly and its gate never fires locally (stages:[manual] behind a disabled ruleset) · tasks/896-decision-coverage-the-organ-refuses-and-its-gate-n.md
-- [#891] [P1][M] Lane handback contract -- lanes write a ten-field HANDBACK-<lane>.md to the transport as their mandatory final step · tasks/891-lane-handback-contract-lanes-write-a-ten-field-h.md
 - [#902] [P1][S] The night-capacity premise was false -- lane concurrency must be gated by free memory measured at dispatch, not by the hour · tasks/902-the-night-capacity-premise-was-false-lane-concur.md
 - [#929] [P1][L] The spine is the whole work loop -- map every organ onto stages 1-16 and run the loop's candidate mechanisms live before anything is built · tasks/929-the-spine-is-the-whole-work-loop-map-every-organ-onto-stages-1-16-and-run-the-mechanisms-live.md
 - [#930] [P1][M] Wave 3 lane A (lane-loop-declaration) -- the one file declares every moment the loop needs · tasks/930-wave-3-lane-a-lane-loop-declaration-the-one-file.md
@@ -651,6 +650,49 @@ So that a version bump researched once reaches every repo through the deploy cha
 - [#385] [P3][M] L4 tech-currency lane · tasks/385-l4-tech-currency-lane.md
 - [#495] [P3][S] Tech-currency cadence — give [#385] a recurring lane instead of a one-off · DEFER · tasks/495-tech-currency-cadence-give-385-a-recurring-lane.md
 - [#770] [P2][M] Nothing notices an external specification revising under us, and `[#729]` proposes to build on one · tasks/770-nothing-notices-an-external-specification-revisi.md
+
+## [E10] Batch convergence
+### [S28] File every owed item with in-repo provenance
+So that an item found once does not have to be re-derived by the next seat that meets it.
+- [#1016] [P2][S] registry-models: reconcile the grok-4.6 currency discrepancy rather than leaving it filed · tasks/1016-registry-models-reconcile-the-grok-4-6-currency-discrep.md
+- [#1017] [P3][S] registry-models: the proof_layer WARN on test_provider_router's live probe is undispositioned · tasks/1017-registry-models-the-proof-layer-warn-on-test-provider-r.md
+- [#1018] [P2][M] launcher-fixes: Copilot usage governance has no reader for --usage-output-file / --output-format json · tasks/1018-launcher-fixes-copilot-usage-governance-has-no-reader-f.md
+- [#1019] [P2][M] hooks-port: the flaky test, the slower sentinel, the bounded_hook gap and the 18 [#802] regressions have no landed digest or row · tasks/1019-hooks-port-the-flaky-test-the-slower-sentinel-the-bound.md
+- [#1020] [P2][S] ci-commit-gate: a ship-gate rerun is owed, and the commit-gate job's first live reds need triage · tasks/1020-ci-commit-gate-a-ship-gate-rerun-is-owed-and-the-commit.md
+- [#1021] [P3][S] trial-gh-issues: stage-2 prior-art scan has no CONTENT_ROOTS entry for decisions/intake · tasks/1021-trial-gh-issues-stage-2-prior-art-scan-has-no-content-r.md
+- [#1022] [P2][S] trial-gh-issues: test_citation_regex_strips_only_real_dated_artifact_identifiers is red on base · tasks/1022-trial-gh-issues-test-citation-regex-strips-only-real-da.md
+- [#1023] [P2][S] integrator: test_wal_concurrency_smoke_real_processes flaked once on CI, not in the known-reds registry · tasks/1023-integrator-test-wal-concurrency-smoke-real-processes-fl.md
+- [#1024] [P3][S] integrator: merge_receipt.py reports unknown-tier for every explicit model id · tasks/1024-integrator-merge-receipt-py-reports-unknown-tier-for-ev.md
+- [#1025] [P3][S] integrator: batch_janitor.py has no per-lane scope and resolves receipts under its own checkout · tasks/1025-integrator-batch-janitor-py-has-no-per-lane-scope-and-r.md
+- [#1026] [P3][S] integrator: batch_janitor.py reads a removed job as live · tasks/1026-integrator-batch-janitor-py-reads-a-removed-job-as-live.md
+- [#1027] [P2][S] integrator: the watcher self-deadline pattern (an expired Monitor leaves its loop running) needs a harness-level fix, not a per-batch workaround · tasks/1027-integrator-the-watcher-self-deadline-pattern-an-expired.md
+- [#1028] [P3][S] integrator: the moment:batch-close digest organ reads no receipt, treating a whole batch as one lane · tasks/1028-integrator-the-moment-batch-close-digest-organ-reads-no.md
+- [#1029] [P3][S] transport-registry: docs/audits/2026-09-25-codex-transport-registry.md has no consumer · tasks/1029-transport-registry-docs-audits-2026-09-25-codex-transpo.md
+- [#1030] [P3][S] registry-models: docs/audits/2026-09-25-codex-lane-registry-models.md has no consumer · tasks/1030-registry-models-docs-audits-2026-09-25-codex-lane-regis.md
+- [#1031] [P3][S] ci-commit-gate: docs/audits/2026-09-25-codex-lane-ci-commit-gate.md has no consumer (graph-task-coverage: no implements edge from an OPEN row) · tasks/1031-ci-commit-gate-docs-audits-2026-09-25-codex-lane-ci-com.md
+- [#1032] [P2][M] a portability check flags Windows-only path literals ([A-Z]:\\, $env:, powershell) in scripts/hooks/templates -- distinct from [#980]'s adapter build · tasks/1032-a-portability-check-flags-windows-only-path-literals-a.md
+- [#1033] [P2][S] export_backlog_view.py / offload_admission.py retirement claims collide with [#563] -- needs an explicit operator GO · tasks/1033-export-backlog-view-py-offload-admission-py-retirement.md
+- [#1034] [P3][S] the 8 claude.ai-synced Anthropic skills stay on although STANDING_RULINGS §AL-B9 says off · tasks/1034-the-8-claude-ai-synced-anthropic-skills-stay-on-althoug.md
+- [#1035] [P3][S] the 4 never-invoked project entries (preflight, spine, why, conformance-hub) need wiring or removal · tasks/1035-the-4-never-invoked-project-entries-preflight-spine-why.md
+- [#1036] [P3][S] run /doctor interactively once, per STANDING_RULINGS AL-B10 · tasks/1036-run-doctor-interactively-once-per-standing-rulings-al-b.md
+- [#1037] [P2][M] the HANDOFF_BOOT integrator section is still not landed -- needs byte headroom first · tasks/1037-the-handoff-boot-integrator-section-is-still-not-landed.md
+- [#1038] [P3][S] DIGEST-HANDOFF-DESIGN-2026-09-25 (the handoff-design research lane) has not landed · tasks/1038-digest-handoff-design-2026-09-25-the-handoff-design-res.md
+- [#1039] [P2][M] the execution-provenance mechanism (DECLARE-HARNESS-PROVENANCE-2026-09-08) is still LIVE, grandfathered 16+ days · tasks/1039-the-execution-provenance-mechanism-declare-harness-prov.md
+- [#1040] [P2][S] the five operator judging rules (DECLARE-OPERATOR-FEEDBACK-2026-09-24) are not in STANDING_RULINGS · tasks/1040-the-five-operator-judging-rules-declare-operator-feedba.md
+- [#1041] [P3][M] the seat-knowledge table (DECLARE-SEAT-KNOWLEDGE-2026-09-24) has not landed under docs/audits/ · tasks/1041-the-seat-knowledge-table-declare-seat-knowledge-2026-09.md
+- [#1042] [P3][S] AC-NOT-CLOSED residue: the operator ruling on machine time vs operator latency has no home · tasks/1042-ac-not-closed-residue-the-operator-ruling-on-machine-ti.md
+- [#1043] [P3][M] AC-NOT-CLOSED residue R11: re-key the Stop-hook exemption on the seat registry plus a counter · tasks/1043-ac-not-closed-residue-r11-re-key-the-stop-hook-exemptio.md
+- [#1044] [P3][S] CENSUS-VERDICTS W14: no keep-or-retire row exists for the ten uncalled organs · tasks/1044-census-verdicts-w14-no-keep-or-retire-row-exists-for-th.md
+- [#1045] [P3][S] CENSUS-VERDICTS W16: the 17% no-organ sessions have no row · tasks/1045-census-verdicts-w16-the-17-no-organ-sessions-have-no-ro.md
+- [#1046] [P3][S] CENSUS-VERDICTS W17: the class-named-organ blind spot has no row · tasks/1046-census-verdicts-w17-the-class-named-organ-blind-spot-ha.md
+- [#1047] [P3][M] AJ C-1: a closed root-cause enum (9-category agent error taxonomy) belongs beside severity in review_packet.py's verdict schema · tasks/1047-aj-c-1-a-closed-root-cause-enum-9-category-agent-error.md
+- [#1048] [P3][M] AJ C-2: per-lane process efficiency (VSM work over cycle time) is not computed by lane_cost.py · tasks/1048-aj-c-2-per-lane-process-efficiency-vsm-work-over-cycle.md
+- [#1049] [P3][S] AJ C-3: a Responder/Observer rollout rule for future autonomous agents has no PLAYBOOK paragraph · tasks/1049-aj-c-3-a-responder-observer-rollout-rule-for-future-aut.md
+- [#1050] [P3][S] AJ C-4: the 5-criteria task filter (real/recent/representative/full/production) has no rubric for seeding frozen contracts · tasks/1050-aj-c-4-the-5-criteria-task-filter-real-recent-represent.md
+- [#1051] [P3][S] AJ C-5: "true throughput" / DXI is blocked -- flagged, not built, pending the retired trend dashboard · tasks/1051-aj-c-5-true-throughput-dxi-is-blocked-flagged-not-built.md
+- [#1052] [P3][S] AJ C-6: the Maister commit 4151c9c4d (2026-09-22) diff has not been read · tasks/1052-aj-c-6-the-maister-commit-4151c9c4d-2026-09-22-diff-has.md
+- [#1053] [P3][M] AJ C-7: the 09-21 AJ companion digests are not landed or indexed against the current repo · tasks/1053-aj-c-7-the-09-21-aj-companion-digests-are-not-landed-or.md
+- [#1054] [P3][S] the 2,000-minute Actions-allowance claim in substrate-heartbeat.yml is the Free-tier figure, uncorrected for GitHub Pro's 3,000 · tasks/1054-the-2-000-minute-actions-allowance-claim-in-substrate-h.md
 
 ---
 
