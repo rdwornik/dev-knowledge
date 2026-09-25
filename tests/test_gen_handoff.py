@@ -1774,8 +1774,9 @@ def test_a_dry_cut_bundle_passes_its_probes_outside_the_repo(tmp_path):
 
 
 # --- terra review 2026-09-25: the dry cut may not land where it could be committed ---------
+# NOT skipif-on-git: the dry-cut refusal is a proof, and a proof that can be skipped on the box
+# that lacks git is not a mechanism (audit.py proof_layer). Without git these FAIL, loudly.
 
-@pytest.mark.skipif(shutil.which("git") is None, reason="git not in PATH")
 def test_dry_cut_refuses_a_target_inside_another_git_work_tree(tmp_path):
     """A sibling worktree's `docs/handoffs/` is OUTSIDE this repo and is still committable."""
     repo = _stub_repo(tmp_path)
@@ -1788,7 +1789,6 @@ def test_dry_cut_refuses_a_target_inside_another_git_work_tree(tmp_path):
                     date="2026-07-04", bundle_root=other / "docs" / "handoffs", dry_cut=True)
 
 
-@pytest.mark.skipif(shutil.which("git") is None, reason="git not in PATH")
 def test_dry_cut_accepts_a_path_the_containing_work_tree_ignores(tmp_path):
     """The job-tmp shape: `~/.claude` is a git repo whose `.gitignore` ignores `jobs/`."""
     repo = _stub_repo(tmp_path)
