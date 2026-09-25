@@ -1004,6 +1004,25 @@ BOOT_PROSE_END = "<!-- BOOT-PROSE:END -->"
 RECEIPT_FILE = "HANDOFF_RECEIPT.json"
 BOOT_COST_METRIC = "turns to first correct dispatch"
 _UNMEASURED_PREFIX = "unmeasured — "
+#: The sanctioned launcher line (ruling O-5: the launcher describes itself via --help). A DATA
+#: row must carry exactly this, not merely something that mentions a script (terra HIGH).
+LAUNCH_COMMAND = "uv run --locked python scripts/dispatch.py launch --help"
+#: The canonical pointer of each pointer row, in order. Existence alone passed a plausible but
+#: WRONG file (terra HIGH, 2026-09-25), so each row must name exactly these; the generator
+#: renders from this table rather than keeping a second copy.
+BOOT_POINTERS = {
+    "Role": ("protocols/HANDOFF_BOOT.md",),
+    "Seat orders": ("templates/dispatcher-order-template.md",
+                    "templates/integrator-order-template.md",
+                    "templates/batch-common-rules-template.md",
+                    "templates/lane-contract-template.md"),
+    "Routing": ("ecosystem/provider-registry.yaml",),
+    "Rules": ("protocols/STANDING_RULINGS.md",),
+    "Runbook": ("docs/handoffs/README.md",),
+    "Harness": ("ecosystem/harness.yaml",),
+}
+#: Rows that name a file IN the bundle itself: `docs/handoffs/<this bundle>/<file>`.
+BOOT_SELF_POINTERS = {"Probes": "PROBES.md", "Receipt": RECEIPT_FILE}
 _BOOT_DATA_ERA = "2026-09-25"
 _BOOT_FILE = "HANDOFF_BOOT.md"
 _BOLD_KEY_RE = re.compile(r"\A\*\*(?P<key>[^*]+)\*\*\Z")
@@ -1039,6 +1058,27 @@ def parse_boot_blocks(text: str) -> "tuple[list[tuple[str, str]] | None, str | N
     return rows, prose
 
 
+def stray_data_lines(text: str) -> list[str]:
+    """Lines inside the DATA block that are none of: blank, the table's own header row (the
+    first table row), its separator, or a bold-key data row. The block promises ONLY checked
+    rows, so anything else is an unchecked fact riding inside it (terra HIGH, 2026-09-25)."""
+    data = _between(text, BOOT_DATA_BEGIN, BOOT_DATA_END) or ""
+    stray: list[str] = []
+    seen_header = False
+    for line in data.splitlines():
+        if not line.strip() or _is_separator(line):
+            continue
+        if _is_table_row(line):
+            cells = split_row(line)
+            if cells and _BOLD_KEY_RE.match(cells[0].strip()):
+                continue
+            if not seen_header:
+                seen_header = True
+                continue
+        stray.append(line.strip())
+    return stray
+
+
 def boot_data_id(key: str) -> str:
     """The stable result id of a data row: `Seat orders` -> `seat-orders` (reported `BD-…`)."""
     return re.sub(r"[^a-z0-9]+", "-", key.lower()).strip("-")
@@ -1065,7 +1105,13 @@ def _self_locator_file(rel: str, bundle_dir: Path) -> "Path | None":
     m = _BUNDLE_LOCATOR_RE.match(rel)
     if m is None or m.group("slug") != bundle_dir.name:
         return None
-    p = bundle_dir / m.group("rest")
+    # CONTAINED, or not a self-locator (terra HIGH, 2026-09-25): `<slug>/../other/PROBES.md`
+    # must not bind a sibling, nor an absolute `rest` escape the bundle on Windows.
+    try:
+        p = (bundle_dir / m.group("rest")).resolve()
+        p.relative_to(bundle_dir.resolve())
+    except (ValueError, OSError):
+        return None
     return p if p.is_file() else None
 
 
@@ -1082,15 +1128,31 @@ def _resolve_boot_token(tok: str, ctx: _BootCtx) -> "Path | None":
     return _resolve_path(ctx.repo_root, tok)
 
 
-def _rule_pointer(value: str, ctx: _BootCtx) -> tuple[str, str]:
-    """Every file the row names resolves (in the repo, or in this bundle for a self-locator)."""
+def _check_pointer(value: str, expected: tuple, ctx: _BootCtx) -> tuple[str, str]:
+    """The row names EXACTLY `expected` (in order) and every one of them resolves."""
     toks = _boot_file_tokens(value)
     if not toks:
         return "fail", "the row binds no file — a pointer must name one in a `backtick` span"
+    if tuple(toks) != tuple(expected):
+        return "fail", f"names {', '.join(toks)}; the contract names {', '.join(expected)}"
     missing = [t for t in toks if _resolve_boot_token(t, ctx) is None]
     if missing:
         return "fail", f"missing: {', '.join(missing)}"
     return "pass", f"resolves: {', '.join(toks)}"
+
+
+def _pointer_rule(key: str):
+    """The rule for a canonical pointer row: exactly `BOOT_POINTERS[key]`, each resolving."""
+    def rule(value: str, ctx: _BootCtx) -> tuple[str, str]:
+        return _check_pointer(value, BOOT_POINTERS[key], ctx)
+    rule.__name__ = f"_rule_pointer_{boot_data_id(key)}"
+    return rule
+
+
+def _self_pointer(key: str, value: str, ctx: _BootCtx) -> tuple[str, str]:
+    """A row naming a file in THIS bundle: exactly `docs/handoffs/<this bundle>/<file>`."""
+    return _check_pointer(value, (f"docs/handoffs/{ctx.bundle.name}/{BOOT_SELF_POINTERS[key]}",),
+                          ctx)
 
 
 def _rule_slug(value: str, ctx: _BootCtx) -> tuple[str, str]:
@@ -1156,7 +1218,7 @@ def _rule_destination(value: str, ctx: _BootCtx) -> tuple[str, str]:
 
 
 def _rule_role(value: str, ctx: _BootCtx) -> tuple[str, str]:
-    status, detail = _rule_pointer(value, ctx)
+    status, detail = _check_pointer(value, BOOT_POINTERS["Role"], ctx)
     if status != "pass":
         return status, detail
     m = re.search(r"handoff-process v(\S+)", value)
@@ -1176,24 +1238,21 @@ def _rule_role(value: str, ctx: _BootCtx) -> tuple[str, str]:
 
 def _rule_launch(value: str, ctx: _BootCtx) -> tuple[str, str]:
     cmd = first_span(value)
-    toks = file_tokens(cmd)
-    if len(toks) != 1 or "--help" not in cmd.split():
-        return "fail", "not one launcher script with `--help` (O-5: the code describes itself)"
-    script = _resolve_path(ctx.repo_root, toks[0])
-    if script is None:
-        return "fail", f"missing: {toks[0]}"
+    if cmd != LAUNCH_COMMAND or len(backtick_spans(value)) != 1:
+        return "fail", f"`{cmd}` is not the sanctioned launcher line `{LAUNCH_COMMAND}` (O-5)"
     words = cmd.split()
-    after = words[words.index(toks[0]) + 1:] if toks[0] in words else []
-    verb = after[0] if after and not after[0].startswith("-") else ""
-    if verb:
-        src = script.read_text(encoding="utf-8", errors="replace")
-        if not re.search(rf"""(?:command|add_parser)\(\s*["']{re.escape(verb)}["']""", src):
-            return "fail", f"`{toks[0]}` declares no `{verb}` subcommand"
-    return "pass", f"`{toks[0]}` declares `{verb or '(root)'}` and describes itself via --help"
+    script_rel, verb = words[4], words[5]
+    script = _resolve_path(ctx.repo_root, script_rel)
+    if script is None:
+        return "fail", f"missing: {script_rel}"
+    src = script.read_text(encoding="utf-8", errors="replace")
+    if not re.search(rf"""(?:command|add_parser)\(\s*["']{re.escape(verb)}["']""", src):
+        return "fail", f"`{script_rel}` declares no `{verb}` subcommand"
+    return "pass", f"`{script_rel}` declares `{verb}` and describes itself via --help"
 
 
 def _rule_probes(value: str, ctx: _BootCtx) -> tuple[str, str]:
-    status, detail = _rule_pointer(value, ctx)
+    status, detail = _self_pointer("Probes", value, ctx)
     if status != "pass":
         return status, detail
     target = _resolve_boot_token(_boot_file_tokens(value)[0], ctx)
@@ -1207,7 +1266,7 @@ def _rule_receipt(value: str, ctx: _BootCtx) -> tuple[str, str]:
     count, or `unmeasured — <why>` with no value. A bare `unmeasured` is refused — the reason is
     the whole content of an absent measurement."""
     import json  # noqa: PLC0415
-    status, detail = _rule_pointer(value, ctx)
+    status, detail = _self_pointer("Receipt", value, ctx)
     if status != "pass":
         return status, detail
     target = _resolve_boot_token(_boot_file_tokens(value)[0], ctx)
@@ -1222,9 +1281,13 @@ def _rule_receipt(value: str, ctx: _BootCtx) -> tuple[str, str]:
         return "fail", f"boot_cost metric is {cost.get('metric')!r}, not '{BOOT_COST_METRIC}'"
     val, st = cost.get("value"), str(cost.get("status", ""))
     if st == "measured":
-        if isinstance(val, int) and not isinstance(val, bool) and val >= 1:
-            return "pass", f"measured: {val}"
-        return "fail", f"a measured boot cost must be a positive turn count, got {val!r}"
+        if not (isinstance(val, int) and not isinstance(val, bool) and val >= 1):
+            return "fail", f"a measured boot cost must be a positive turn count, got {val!r}"
+        # A measurement names its instrument and what it counted to (terra HIGH, 2026-09-25).
+        if not (cost.get("source") and cost.get("dispatch") and cost.get("dispatch_sha256")):
+            return "fail", ("a measured boot cost must name its source and the dispatch it "
+                            "counted to, bound by dispatch_sha256")
+        return "pass", f"measured: {val} ({cost['source'].split(' — ')[0]})"
     if st.startswith(_UNMEASURED_PREFIX) and st[len(_UNMEASURED_PREFIX):].strip() and val is None:
         return "pass", "unmeasured, with its reason"
     return "fail", ("boot_cost must be `measured` with a turn count, or `unmeasured — <reason>` "
@@ -1242,11 +1305,7 @@ BOOT_DATA_RULES = {
     "Launch": _rule_launch,
     "Probes": _rule_probes,
     "Receipt": _rule_receipt,
-    "Seat orders": _rule_pointer,
-    "Routing": _rule_pointer,
-    "Rules": _rule_pointer,
-    "Runbook": _rule_pointer,
-    "Harness": _rule_pointer,
+    **{key: _pointer_rule(key) for key in BOOT_POINTERS if key != "Role"},
 }
 
 
@@ -1262,13 +1321,20 @@ def verify_boot(bundle_path, repo_root) -> list[ProbeResult]:
     if not boot.is_file() or not bundle_at_or_after(bundle_path.name, _BOOT_DATA_ERA):
         return []
     name = bundle_path.name
-    rows, prose = parse_boot_blocks(boot.read_text(encoding="utf-8", errors="replace"))
+    text = boot.read_text(encoding="utf-8", errors="replace")
+    rows, prose = parse_boot_blocks(text)
     if rows is None:
         return [ProbeResult("BD-block", "fail",
                             "HANDOFF_BOOT.md carries no BOOT-DATA block — a boot-data-era bundle "
                             "states its facts as probe-checked rows (lane-boot-contract)", name)]
     ctx = _BootCtx(bundle_path, repo_root, dict(rows))
     results: list[ProbeResult] = []
+    stray = stray_data_lines(text)
+    if stray:
+        results.append(ProbeResult(
+            "BD-content", "fail",
+            (f"{len(stray)} line(s) in the DATA block are not probe-checked rows: "
+             + "; ".join(s[:80] for s in stray)).replace("|", "/"), name))
     for key, value in rows:
         rule = BOOT_DATA_RULES.get(key)
         if rule is None:

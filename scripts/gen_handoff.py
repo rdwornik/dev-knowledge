@@ -1998,10 +1998,6 @@ def _splice_fill_regions(rendered: str, existing: str | None) -> str:
 #: `BP-budget` at /handoff-verify and on every commit that stages the bundle.
 BOOT_PROSE_BYTE_BUDGET = 2_000
 
-#: The seat orders the boot points at, in the order a seat reads them.
-_SEAT_ORDER_TEMPLATES = ("dispatcher-order", "integrator-order", "batch-common-rules",
-                         "lane-contract")
-
 
 def spec_version(repo_root: Path) -> "str | None":
     """The live HANDOFF_PROCESS `Version:` — the assembler's ONE regex, read, never hard-coded.
@@ -2018,21 +2014,28 @@ def spec_version(repo_root: Path) -> "str | None":
 
 def boot_data_rows(slug: str, mode: str, chat_title: str,
                    role_version: "str | None") -> list[tuple[str, str]]:
-    """The DATA rows, in paste order. Each key has exactly one rule in `BOOT_DATA_RULES`."""
+    """The DATA rows, in paste order. Each key has exactly one rule in `BOOT_DATA_RULES`, and
+    every pointer, self-pointer and the launcher line is rendered FROM the verifier's tables
+    (`BOOT_POINTERS`, `BOOT_SELF_POINTERS`, `LAUNCH_COMMAND`), so the two cannot disagree."""
+    def ptr(key: str) -> str:
+        return " · ".join(f"`{p}`" for p in _vhp.BOOT_POINTERS[key])
+
+    def own(key: str) -> str:
+        return f"`docs/handoffs/{slug}/{_vhp.BOOT_SELF_POINTERS[key]}`"
     return [
         ("Slug", f"`{slug}`"),
         ("Chat title", f"`{chat_title}`"),
         ("Mode", f"**{mode}**"),
         ("Destination", f"branch `{_PRIMARY_TREE_BOOT_DESTINATION}`"),
-        ("Role", f"`protocols/HANDOFF_BOOT.md` @ handoff-process v{role_version or 'unreadable'}"),
-        ("Launch", "`uv run --locked python scripts/dispatch.py launch --help`"),
-        ("Probes", f"`docs/handoffs/{slug}/PROBES.md`"),
-        ("Receipt", f"`docs/handoffs/{slug}/{RECEIPT_FILE}`"),
-        ("Seat orders", " · ".join(f"`templates/{n}-template.md`" for n in _SEAT_ORDER_TEMPLATES)),
-        ("Routing", "`ecosystem/provider-registry.yaml`"),
-        ("Rules", "`protocols/STANDING_RULINGS.md`"),
-        ("Runbook", "`docs/handoffs/README.md`"),
-        ("Harness", "`ecosystem/harness.yaml`"),
+        ("Role", f"{ptr('Role')} @ handoff-process v{role_version or 'unreadable'}"),
+        ("Launch", f"`{_vhp.LAUNCH_COMMAND}`"),
+        ("Probes", own("Probes")),
+        ("Receipt", own("Receipt")),
+        ("Seat orders", ptr("Seat orders")),
+        ("Routing", ptr("Routing")),
+        ("Rules", ptr("Rules")),
+        ("Runbook", ptr("Runbook")),
+        ("Harness", ptr("Harness")),
     ]
 
 
@@ -2086,8 +2089,15 @@ def boot_cost(turns: "int | None" = None, dispatch: "str | None" = None,
     elif not (Path(transport) / norm).is_file():
         why = f"`{norm}` does not exist on the transport"
     else:
-        return {**base, "value": turns, "status": "measured",
-                "source": "operator tally, dispatch witnessed on the transport"}
+        # The count is the operator's and says so (terra HIGH, 2026-09-25: a CLI value must not
+        # read as machine-witnessed). What IS witnessed is the dispatch, and it is bound by
+        # content hash, so a later edit or rename of that order is detectable from the receipt.
+        import hashlib  # noqa: PLC0415
+        digest = hashlib.sha256((Path(transport) / norm).read_bytes()).hexdigest()
+        return {**base, "value": turns, "status": "measured", "dispatch_sha256": digest,
+                "source": ("operator tally (--boot-turns) — the count is the operator's, not "
+                           "machine-witnessed; the dispatch is witnessed on the transport and "
+                           "bound by dispatch_sha256")}
     return {**base, "status": _vhp._UNMEASURED_PREFIX + why, "source": None}
 
 
@@ -2120,7 +2130,41 @@ def _paste_record(bundle_dir: Path, assembled: "int | None") -> dict:
 
 
 class DryCutTargetError(ValueError):
-    """A dry cut was pointed inside the repository — it writes outside it, or not at all."""
+    """A dry cut was pointed where its output could be committed — it writes outside every git
+    work tree (or into a path that tree ignores), or not at all."""
+
+
+def _dry_cut_refusal(bundle_root: Path, repo_root: Path) -> "str | None":
+    """Why `bundle_root` may not take a dry cut, or None when it may.
+
+    NOT MERELY "outside this repo" (terra CRITICAL, 2026-09-25): a sibling worktree's
+    `docs/handoffs/` is outside `repo_root` and is exactly where a bundle gets committed, so a
+    cut that skipped the boundary gates could land there. The rule is therefore: the target is
+    in NO git work tree, or in one that IGNORES it (a job's tmp under an ignored directory).
+    Anything git cannot answer about is refused — an unknown boundary is not a clean one."""
+    if _inside(bundle_root, repo_root):
+        return f"{bundle_root} is inside {repo_root}"
+    target = Path(bundle_root).resolve()
+    anchor = target
+    while not anchor.exists() and anchor != anchor.parent:
+        anchor = anchor.parent
+    env = {k: v for k, v in os.environ.items() if k not in _git_location_env()}
+    try:
+        p = subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=str(anchor),
+                           capture_output=True, text=True, timeout=30, env=env)
+    except (OSError, subprocess.SubprocessError) as exc:
+        return f"git could not say whether {target} is in a work tree ({type(exc).__name__})"
+    if p.returncode != 0:
+        if "not a git repository" in p.stderr:
+            return None
+        return f"git could not say whether {target} is in a work tree: {p.stderr.strip()}"
+    top = Path(p.stdout.strip()).resolve()
+    rel = target.relative_to(top).as_posix() if target != top else "."
+    ignored, _out = _git_status(top, "check-ignore", "-q", rel)
+    if ignored:
+        return None
+    return (f"{target} is inside the git work tree {top} and not ignored there — a bundle "
+            "written there could be committed")
 
 
 def _inside(path: Path, root: Path) -> bool:
@@ -2567,9 +2611,11 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     date = date or _dt.date.today().isoformat()
     slug = slug or f"{date}-{repo.lstrip('.')}-{mode}"
     bundle_root = bundle_root or (repo_root / "docs" / "handoffs")
-    if dry_cut and _inside(bundle_root, repo_root):
-        raise DryCutTargetError(f"a dry cut writes outside the repository; {bundle_root} is inside "
-                         f"{repo_root} — pass a directory under your job's tmp")
+    if dry_cut:
+        why = _dry_cut_refusal(bundle_root, repo_root)
+        if why is not None:
+            raise DryCutTargetError(f"a dry cut writes outside every git work tree (or into an "
+                                    f"ignored path); {why} — pass a directory under your job's tmp")
     # RM-8 / R5: refuse a target that already holds git-tracked files (or, with the
     # explicit opt-in, divert to a fresh sibling). `exist_ok=True` survives ONLY on the
     # path this guard has cleared — the in-flight, not-yet-committed bundle — so the

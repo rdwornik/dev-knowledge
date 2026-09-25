@@ -1771,3 +1771,44 @@ def test_a_dry_cut_bundle_passes_its_probes_outside_the_repo(tmp_path):
                     dry_cut=True).bundle_dir
     fails = [(r.probe_id, r.detail) for r in vhp.verify(b, repo_root=repo) if r.status == "fail"]
     assert fails == [], fails
+
+
+# --- terra review 2026-09-25: the dry cut may not land where it could be committed ---------
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git not in PATH")
+def test_dry_cut_refuses_a_target_inside_another_git_work_tree(tmp_path):
+    """A sibling worktree's `docs/handoffs/` is OUTSIDE this repo and is still committable."""
+    repo = _stub_repo(tmp_path)
+    other = tmp_path / "other"
+    (other / "docs" / "handoffs").mkdir(parents=True)
+    (other / "README.md").write_text("x\n", encoding="utf-8")
+    _git_init_commit(other)
+    with pytest.raises(gh.DryCutTargetError, match="could be committed"):
+        gh.generate(repo, mode="architect", slug="0000-00-00-t", repo=".dev-knowledge",
+                    date="2026-07-04", bundle_root=other / "docs" / "handoffs", dry_cut=True)
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git not in PATH")
+def test_dry_cut_accepts_a_path_the_containing_work_tree_ignores(tmp_path):
+    """The job-tmp shape: `~/.claude` is a git repo whose `.gitignore` ignores `jobs/`."""
+    repo = _stub_repo(tmp_path)
+    home = tmp_path / "home"
+    home.mkdir()
+    (home / ".gitignore").write_text("/jobs/\n", encoding="utf-8")
+    _git_init_commit(home)
+    out = home / "jobs" / "x" / "tmp" / "dry"
+    b = gh.generate(repo, mode="architect", slug="0000-00-00-t", repo=".dev-knowledge",
+                    date="2026-07-04", bundle_root=out, assemble=False, dry_cut=True).bundle_dir
+    assert b.parent == out
+
+
+def test_a_measured_boot_cost_names_its_instrument_and_binds_its_dispatch(tmp_path):
+    import hashlib
+    transport = tmp_path / "transport"
+    (transport / "to-cc").mkdir(parents=True)
+    order = transport / "to-cc" / "BATCH-X-2026-09-25.md"
+    order.write_text("order\n", encoding="utf-8")
+    cost = gh.boot_cost(turns=2, dispatch="to-cc/BATCH-X-2026-09-25.md", transport=transport)
+    assert cost["dispatch_sha256"] == hashlib.sha256(order.read_bytes()).hexdigest()
+    assert cost["source"].startswith("operator tally")
+    assert "not machine-witnessed" in cost["source"]

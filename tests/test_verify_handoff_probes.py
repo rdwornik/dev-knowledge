@@ -2247,9 +2247,55 @@ def test_the_receipt_row_checks_the_boot_cost_field(tmp_path, receipt, needle):
 
 def test_a_measured_boot_cost_passes_the_receipt_row(tmp_path):
     receipt = {"boot_cost": {"metric": "turns to first correct dispatch", "value": 4,
-                             "status": "measured"}}
+                             "status": "measured", "dispatch": "to-cc/BATCH-X.md",
+                             "dispatch_sha256": "ab" * 32, "source": "operator tally — x"}}
     by = _bd(vhp.verify(_boot_bundle(tmp_path, receipt=receipt)))
     assert by[f"BD-{vhp.boot_data_id('Receipt')}"].status == "pass"
+
+
+# --- terra review 2026-09-25 (1 CRITICAL / 5 HIGH): each finding pinned -----------------------
+
+def test_a_measured_boot_cost_without_its_provenance_fails(tmp_path):
+    receipt = {"boot_cost": {"metric": "turns to first correct dispatch", "value": 4,
+                             "status": "measured"}}
+    r = _bd(vhp.verify(_boot_bundle(tmp_path, receipt=receipt)))[
+        f"BD-{vhp.boot_data_id('Receipt')}"]
+    assert r.status == "fail" and "source" in r.detail
+
+
+@pytest.mark.parametrize("key,value", [
+    ("Routing", "`protocols/STANDING_RULINGS.md`"),              # exists, but the wrong file
+    ("Seat orders", "`templates/lane-contract-template.md`"),     # a subset of the set
+    ("Harness", "`ecosystem/provider-registry.yaml`"),
+    ("Launch", "`python scripts/dispatch.py launch --help`"),    # not the sanctioned runner
+])
+def test_a_plausible_but_wrong_existing_pointer_fails(tmp_path, key, value):
+    r = _bd(vhp.verify(_boot_bundle(tmp_path, _boot_rows(**{key: value}))))[
+        f"BD-{vhp.boot_data_id(key)}"]
+    assert r.status == "fail", (key, r)
+
+
+def test_a_self_locator_cannot_traverse_out_of_its_bundle(tmp_path):
+    bundle = _boot_bundle(tmp_path)
+    sib = bundle.parent / "2026-09-25-other"
+    sib.mkdir()
+    (sib / "PROBES.md").write_text((bundle / "PROBES.md").read_text(encoding="utf-8"),
+                                   encoding="utf-8")
+    assert vhp._self_locator_file(f"docs/handoffs/{bundle.name}/../2026-09-25-other/PROBES.md",
+                                  bundle) is None
+    rows = _boot_rows(Probes=f"`docs/handoffs/{bundle.name}/../2026-09-25-other/PROBES.md`")
+    (bundle / "HANDOFF_BOOT.md").write_text(_boot_md(rows), encoding="utf-8")
+    assert _bd(vhp.verify(bundle))[f"BD-{vhp.boot_data_id('Probes')}"].status == "fail"
+
+
+def test_an_unchecked_line_inside_the_data_block_fails(tmp_path):
+    bundle = _boot_bundle(tmp_path)
+    boot = (bundle / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
+    boot = boot.replace(vhp.BOOT_DATA_END, "| Budget | 40 turns |\nthe paste is fine\n"
+                        + vhp.BOOT_DATA_END)
+    (bundle / "HANDOFF_BOOT.md").write_text(boot, encoding="utf-8")
+    r = _bd(vhp.verify(bundle))["BD-content"]
+    assert r.status == "fail" and "2 line(s)" in r.detail
 
 
 def test_prose_over_its_budget_fails(tmp_path):
