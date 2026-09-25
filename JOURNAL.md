@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-09-25 (q) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): the dispatcher's launch queue becomes code -- `dispatch.py queue`
+
+**Anchors:** `9d2b3d13`, `a09af554` -- `worktree-lane-launch-queue` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree stacked on lane 8's merge.
+
+**Did:** `dispatch.py queue [--dry-run|--watch]` derives a batch's launch order from the lane contracts' declared edges (the `plan_lint` grammar, no second reader): topological readiness rounds, then substrate, then declared priority, with cap and serialize-group reserved within a pass. `repair` joins it; the shim's help names both (a pre-existing test forces it, proven red without the edit). On the 16 WAVE5B-N2 contracts, positions 1-10 equal the dispatcher order's §Sequence byte for byte; wave gamma satisfies all six stated precedence facts (§Sequence gives no total order there -- DECIDED-BY-INTEGRATOR). Refused once (item 1 evidence, ship-gate and gated tests missing, shim ownership); repair 1 supplied all four, no code change. Codex terra 0/4/0/0, all fixed. **Result:** the launch order is computed, not hand-transcribed. **Changes:** `scripts/dispatch.py`, `templates/dispatch-shim.ps1`, `tests/test_dispatch_queue.py`, its terra record, `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl`. **Next:** `queue --watch` adoption into the dispatcher procedure (ROWS-OWED).
+
+### 2026-09-25 (p) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): the heartbeat's devcontainer build runs on the daily schedule again, with its evidence in its own log
+
+**Anchors:** `9d19bf65`, `e90f61ba` -- `worktree-lane-codespace-roundtrip-ci` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on origin/main `3d13a2d2`.
+
+**Did:** the `container` job of `.github/workflows/substrate-heartbeat.yml` fires on `schedule` as well as `workflow_dispatch`, and prints its own evidence lines (uv pin == `required-version`, `claude` and `node` on PATH, the `updateContentCommand` actually declared). Proven by dispatched run 36155929898 (both jobs green), not inferred; no `secrets.*` expansion (R2). Refused once (targeted tests not through the memory gate); repair 1 re-ran them gated (`-n 1`, 97 passed, exit 0), no code change. Codex terra 0/0/0/0. **Result:** a silently regressed devcontainer build fails on the daily schedule, with the failing leg named. **Changes:** `.github/workflows/substrate-heartbeat.yml`, `tests/test_substrate_heartbeat.py`, its terra record, `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl`. **Next:** the scheduled codespace agent round-trip (ROWS-OWED).
+
 ### 2026-09-25 (o) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): pre-commit on the codespace login PATH -- lane 1's admission refusal repaired
 
 **Anchors:** `84c40a92`, `09306d18`, `24d3fbb3` -- `worktree-lane-codespace-proof-repair-1` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on origin/main `da11291b`.
