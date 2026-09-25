@@ -205,3 +205,39 @@ Each step is a lane with RED-first witnesses (ADR-108 §B); nothing here is buil
 - New surface to own: the schema, the `task` library/CLI, the closure sweep, the projection library,
   the legacy adapter. Paid down by deleting prose parsers and measured against the reversal thresholds.
 - The browser seat gains a delivery dependency (operator question 1) in place of reading a committed file.
+
+## Amendment — 2026-09-25: GitHub Issues (O2) run live; the decision stands at O1, still Proposed
+
+- **Why:** the operator deferred ratification (RATIFICATION B13) until O2 was evaluated for real —
+  offline is not a requirement, no tools built to build tools, ties to "CC operates it all through
+  `gh`". Order: `to-cc/BATCH-TRIAL-GH-ISSUES-2026-09-24.md`; lane `lane-trial-gh-issues`.
+- **Record:** `docs/audits/2026-09-25-technical-backlog-record-gh-issues-trial.md` (items 1-9, the
+  re-weighted matrix, the Codex `gpt-6-sol` check, one Claude-vs-Codex `gpt-6-astra` round). Scratch
+  repository `rdwornik/dk-trial-gh-issues-20260925`, the same 20 rows as the research record.
+- **What changed on the evidence.** Two of this ADR's three grounds against O2 fall away: offline is
+  weighted 0, and truth-in-git is recoverable as a snapshot (an Action re-exports every issue to git
+  within ~12 s — though without dependency links). Measured in O2's favour: every operation through
+  `gh`; no generated shared file in the merge path; `Closes #N` closed the issue 1 s after merge, and a
+  ruleset made CI the closing gate (refusal measured); server-side dependency integrity (cycle 422,
+  dangling 404); lossless compat (20/20 byte-identical with a carrier). The "Alternatives considered"
+  O2 entry above is read with this amendment: its "fails offline" ground no longer weighs.
+- **What held, measured live:** no server-side schema (0 of 5 invalid writes refused; the issue form
+  binds the web UI only; the raw API creates unknown labels); a stale body edit is silently lost; the
+  `#N` trap fired — a legacy-style `fixes #5` commit closed the wrong row, and 2,212 existing commit
+  refs point at numbers <= 74; ids and filenames need a carrier, and an id-preserving migration needs
+  280 placeholder issues, >= ~66 min under GitHub's content-creation limit and a repository freeze.
+- **Re-weighted matrix** (offline 0; + no custom code 10, + Copilot pipeline 6; /550, computed):
+  **O1 418, O2 352**; under Codex Astra's cells O1 396, O2 346. The order flips only if "no custom
+  code" weighs 43. **Both debaters: O1** (Codex "provisionally"). The tie-breaker favours O2 but
+  decides ties only.
+- **Copilot (item 4, re-routed):** the Copilot CLI under the Enterprise seat implemented one issue
+  (legacy [#190]) in 10.7 min for 197 AI credits (`claude-opus-5.5` served); PR opened by `rdwornik`;
+  CI red on a pre-existing test; Codex terra found one P1. The cloud agent is not applicable outside
+  the enterprise (contract fact). The CLI takes any text, so O1 feeds it equally.
+- **Adopted into this ADR's migration as requirements, not a store change:** the closure sweep (D4)
+  takes a PR / CI-gated close as its model; the whole-graph check (D3) must refuse cycles and dangling
+  ids as GitHub's dependency API does; the browser view (operator question 1) is a raw-JSON
+  projection read as data.
+- **Still open for the operator:** ratification of the winner (functional, ADR-108 §A) — this
+  amendment does not change the status line; Projects v2 fields were not tried (the token lacks the
+  `project` scope) and are the one lever that could move O2's schema score.
