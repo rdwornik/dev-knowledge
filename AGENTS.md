@@ -97,10 +97,12 @@ uv run --locked python scripts/audit.py health     # self-conformance gate
 - **Generated — never hand-edit:** `BACKLOG.md` (edit `tasks/`, then
   `uv run --locked python scripts/gen_task_tree.py --emit-source`), and the generated
   rosters and indices under `.claude/generated/` and `ecosystem/`.
-- **Never restate a count or roster in prose** — cite the surface that computes it. A number
-  typed into a doc is stale at the next commit.
-- **Resolve a locator before acting on it.** A `file:line`, heading, SHA or `[#id]` you have
-  not opened is a claim, not evidence.
+- **Never restate a count or roster in prose** — cite the surface that computes it
+  (`audit.py checks`, `ecosystem/doc-counts.md`, `ecosystem/organ-index.md`, the manifest
+  `carriers:` block). A number typed into a doc is stale at the next commit.
+- **Resolve a locator before acting on it.** A `file:line`, heading, SHA, branch or `[#id]`
+  you have not opened is a claim, not evidence — run `/preflight` first (most-recorded
+  executor failure, 2026-08-21 governance-drift audit).
 
 ## Gates
 
