@@ -126,10 +126,20 @@ rate_card:
     Anthropic first-party API list prices, as carried by the `claude-api` skill's cached
     "Current Models" table (cache date 2026-06-24, reproduced in `as_of`). Partner-operated
     routes (Bedrock, Vertex) price separately and are NOT covered by this card.
-  # A cache write costs 1.25x the input rate; a cache read 0.1x. Declared here once and applied
+  # A cache write costs 2.0x the input rate; a cache read 0.1x. Declared here once and applied
   # by `provider_registry.resolve_rate` — nothing in `scripts/lane_cost.py` knows either number,
   # which is what makes an edit to this file move every dollar figure the repo reports.
-  cache_write_multiplier: 1.25
+  #
+  # CORRECTED 2026-09-24 (LANE-5B-2) FROM 1.25x TO 2.0x, AND THE OLD NUMBER WAS A REAL
+  # UNDERCOUNT, NOT A ROUNDING CHOICE. `docs/audits/2026-09-24-technical-digest-measurements.md`
+  # priced a paired opus-4-8/opus-5-5 A/B at both the registry's 1.25x and the CLI-BILLED rate,
+  # and only 2.0x reproduced the CLI's own reported dollar figures exactly across every leg of
+  # both runs — the two price columns disagreed for exactly this one reason, named there as "a
+  # registry gap, independent of the A/B." The registry's rate card was describing the vendor's
+  # 5-minute cache-write price; what this repo's sessions actually write is the 1-hour cache,
+  # which Anthropic bills at 2x input, not 1.25x. Every model priced through this card (there is
+  # no per-model override for `cache_write` today) was undercosted by that gap until this edit.
+  cache_write_multiplier: 2.0
   cache_read_multiplier: 0.1
 
 providers:
@@ -162,6 +172,26 @@ providers:
         in. No third-party or employer terms are in play.
       decided_by: operator
       decided_on: "2026-09-11"
+    # LANE-5B-2 Done item 4. NO `command`: `claude --help` lists no model-listing subcommand,
+    # and `claude models` is NOT a verb -- it runs as a headless PROMPT that spends real tokens
+    # to ANSWER in prose rather than printing a machine-readable list (measured 2026-09-24, Part
+    # Z step0, `to-browser/SESSION-step0-wave5b-n1-2026-09-24.md`). A currency test does not
+    # call it, so this provider is excepted rather than probed.
+    model_currency:
+      command: null
+      exception:
+        reason: >-
+          No model-listing subcommand exists on this CLI (`claude --help`'s Commands are
+          agents/attach/auth/auto-mode/doctor/gateway/import/install/logs/mcp/plugin/project/
+          respawn/rm/setup-token/stop/ultrareview/update — no `models`). `claude models` runs
+          as a billed prompt rather than a verb, so it is not a listing this test may call.
+          Currency for this provider's role pins is read instead from the CHANGELOG: Claude
+          Code 2.1.280 named `claude-opus-5-5` its default Opus model, corroborated by that
+          same prompt's own testimony (Fable 5.1, Opus 5.5, Sonnet 5, Haiku 4.5) agreeing with
+          the harness's own model list for the authoring session.
+        decided_by: architect
+        decided_on: "2026-09-24"
+        source: docs/audits/2026-09-23-changelog-review.md
 
   openai:
     display_name: OpenAI
@@ -177,6 +207,15 @@ providers:
         route (`ecosystem/routing-table.yaml` reviewer row, pinned at L0 `~/.codex/AGENTS.md`).
       decided_by: operator
       decided_on: "2026-09-11"
+    # LANE-5B-2 Done item 4. `codex debug models` lists every model this CLI currently offers,
+    # each row carrying `slug` and `visibility` (`</dev/null` is required: `codex models` alone
+    # refuses non-interactively with "stdin is not a terminal", measured 2026-09-24/25).
+    model_currency:
+      command: ["codex", "debug", "models"]
+      parse: >-
+        stdin redirected from empty/null. JSON object with a `models` array; each entry's
+        `slug` is a model id and `visibility` is `"list"` for a currently-offered model
+        (`"hide"` entries, e.g. `gpt-reserve`, are not currently offered and are excluded).
 
   copilot-enterprise:
     display_name: GitHub Copilot Enterprise
@@ -224,6 +263,21 @@ providers:
         (`docs/audits/2026-09-23-technical-copilot-admission-evidence.md`).
       decided_by: operator
       decided_on: "2026-09-23"
+    # LANE-5B-2 Done item 4. NO `command`: `copilot --help` documents `--model <model>` / `auto`
+    # only -- SELECTION, not discovery -- so there is no machine-readable way to ask this CLI
+    # what it currently serves (measured 2026-09-24, Part Z step0, `to-browser/SESSION-step0-
+    # wave5b-n1-2026-09-24.md`: "no listing subcommand found in --help").
+    model_currency:
+      command: null
+      exception:
+        reason: >-
+          `copilot --help` offers no listing verb, only `--model <model>` (a selector) or
+          `auto`. No role currently pins a specific `copilot-enterprise` model id (its
+          `implement`/`read` order entries name the provider only), so there is nothing this
+          exception excuses today beyond the provider-level fact that currency cannot be
+          checked live at all for this CLI.
+        decided_by: architect
+        decided_on: "2026-09-24"
   # copilot-enterprise operational doctrine is NOT stored here -- this registry is a thin
   # provider/CLI identity surface and its schema forbids the extra fields. The measured
   # capability profile (284.3k context floor, the 75% payload gate, sonnet-5 default vs
@@ -279,6 +333,28 @@ providers:
         before dispatch). Licence and cost envelope are separate constraints and both bind.
       decided_by: operator
       decided_on: "2026-08-26"
+    # LANE-5B-2 Done item 4. `grok models` prints the default model plus every other model this
+    # CLI currently offers, one id per line -- a free listing call (no generation, so it is
+    # outside the POINT-USE / pay-per-call cost envelope recorded above).
+    #
+    # RE-MEASURED 2026-09-25 AND IT DISAGREED WITH THE SAME NIGHT'S PART Z READING, RECORDED
+    # RATHER THAN RECONCILED. Part Z step0 (`to-browser/SESSION-step0-wave5b-n1-2026-09-24.md`
+    # §1) read `grok models` a few hours earlier as `grok-4.6 (default), grok-4.5` -- two ids.
+    # This lane's own re-run of the identical command on the identical host returned a
+    # completely different roster: default `grok-4.20-0309-non-reasoning`, plus `grok-4.3`
+    # through `grok-4.7`, `grok-4.20-0309-{non-,}reasoning`, `grok-4.20-multi-agent-0309`,
+    # `grok-build-0.1`, and four `grok-imagine-*` image/video ids. Two readings of one command,
+    # same box, same day, disagreeing on the DEFAULT model is not the shape of ordinary
+    # per-token drift -- it is the standing-ruling-Q9 substitution risk this file's own header
+    # was written to guard against (`[#492]`: "a client quietly serving `grok-4.5` cost a
+    # window"). NOT ACTED ON HERE: re-pinning `grok-4.6` from one ambiguous local read would
+    # substitute one unverified guess for another. See the `currency_exception` on both `xai`
+    # role-order entries below and `ROWS-OWED` in this lane's handback.
+    model_currency:
+      command: ["grok", "models"]
+      parse: >-
+        Plain text, one id per line; the line marked "(default)" is the CLI's own current
+        default. Preceded by an `XAI_API_KEY`/credential banner line, which is not a model id.
 
   google:
     display_name: Google
@@ -385,6 +461,16 @@ providers:
         route is untouched by it.
       decided_by: operator
       decided_on: "2026-08-26"
+    # LANE-5B-2 Done item 4. `agy models` prints every model family this CLI currently serves,
+    # one id per line, grouped by family. No role currently pins a specific `antigravity`
+    # model id (`roles.read`'s entry names the provider only, per the `[#578]` rerun-question
+    # comment above this row), so there is nothing today for a currency comparison to check --
+    # the command is still declared, so the mechanism exists the day a role does pin one here.
+    model_currency:
+      command: ["agy", "models"]
+      parse: >-
+        Plain text, one id per line, grouped by family (e.g.
+        `gemini-3.8-flash-{high,medium,low}`).
 
   # CURSOR — BLOCKED-WITH-CAUSE (was: ABSENT). Operator-dictated correction A5, ruling of
   # 2026-08-25, applied at batch-1 integration 2026-08-26; the content is the operator's, not
@@ -497,27 +583,31 @@ providers:
 # ALIAS DRIFT, MADE VISIBLE -- RECORDED 2026-09-23 (`lane-provider-registry`, WAVE5A, citing
 # `docs/audits/2026-09-23-changelog-review.md` Part C / `A5`). Claude Code 2.1.280 made
 # `claude-opus-5-5` the DEFAULT Opus model, which means the bare `opus` alias a dispatch line's
-# `--model` flag names now RESOLVES to `claude-opus-5-5`, not to `claude-opus-4-8` -- the id this
-# file's `orchestrate`/`plan` entries pin below. That is a silent repoint: nothing in this
-# registry moved and nothing in a lane contract that says `--model opus` changed, yet the model
-# actually served underneath it did. THIS REGISTRY STAYED CLEAR OF THAT DRIFT, and the reason
-# is the discipline already practised below: every `order[].model` in this file names the
-# VERSIONED id (`claude-opus-4-8`, `claude-sonnet-5`, `grok-4.6`, ...), not a bare CLI alias --
+# `--model` flag names now RESOLVES to `claude-opus-5-5`. That is a silent repoint: nothing in
+# this registry moved and nothing in a lane contract that says `--model opus` changed, yet the
+# model actually served underneath it did. THIS REGISTRY STAYED CLEAR OF THAT DRIFT, and the
+# reason is the discipline already practised below: every `order[].model` in this file names the
+# VERSIONED id (`claude-opus-5-5`, `claude-sonnet-5`, `grok-4.6`, ...), not a bare CLI alias --
 # so no entry here silently repointed when the alias did.
 # `tests/test_provider_router.py::test_every_role_entry_pins_a_versioned_model_id_not_a_bare_alias`
-# guards that this stays true. THE ORCHESTRATE/PLAN PIN ITSELF IS UNCHANGED by this lane --
-# `claude-opus-4-8` stays the pinned id below; moving it to `claude-opus-5-5` is a fresh
-# admission ceremony (the A/B `docs/audits/2026-09-23-changelog-review.md` Part C proposes),
-# ruled by the operator on that A/B's result, not an automatic inherit from the alias moving.
+# guards that this stays true.
+#
+# ORCHESTRATE/PLAN PIN MOVED TO `claude-opus-5-5` -- LANE-5B-2, 2026-09-24, ON THE ADMISSION
+# CEREMONY THE COMMENT ABOVE SAID WOULD BE NEEDED. The operator held that ceremony: B5 of
+# `to-browser/RATIFICATION-2026-09-24.md`, landed at `protocols/STANDING_RULINGS.md` §AL-B item
+# 5, reads in full "Opus 5.5 admitted for orchestrate/plan, by explicit model id." That is the
+# fresh admission the previous note deferred to, not an automatic inherit from the alias moving
+# -- the alias's silent repoint is still recorded above as the reason the pin needed a ruling at
+# all, and the ruling is what actually moved it, dated separately from the alias's own drift.
 # ===========================================================================================
 roles:
 
   orchestrate:
     description: >-
-      Decide what the other roles do. AX21-1: "orchestrate / plan -> Opus only". Opus-5 is what
-      a lane actually dispatches at; the registry's `claude-opus-4-8` row is the id this file
-      already carries, and the entry pins the PROVIDER rather than a model string this registry
-      has not verified on a live surface.
+      Decide what the other roles do. AX21-1: "orchestrate / plan -> Opus only". `claude-opus-5-5`
+      is what a lane actually dispatches at (it is the CLI's own default Opus model as of
+      2.1.280) and the operator admitted it here by explicit id (B5) rather than leaving the
+      entry to track whatever the bare `opus` alias resolves to next.
     # AX21-1's one line that is NOT subject to re-ranking. The clause is quoted verbatim, and
     # enforced, on `Role.rerankable` in `ecosystem/schema/provider_registry.py`; the effect here
     # is that a cheap model scoring well on pass-rate-per-cost stays out of the seat that
@@ -527,13 +617,16 @@ roles:
     routing_table_role: null   # routing-table.yaml has no orchestration row; it is CC's own seat
     order:
       - provider: anthropic
-        model: claude-opus-4-8
-        note: "Opus only (AX21-1). No fallback -- a degraded orchestrator is worse than a stopped one."
+        model: claude-opus-5-5
+        note: >-
+          Opus only (AX21-1). No fallback -- a degraded orchestrator is worse than a stopped
+          one. MOVED from `claude-opus-4-8` 2026-09-24 (LANE-5B-2) on the operator's explicit
+          admission, B5: "Opus 5.5 admitted for orchestrate/plan, by explicit model id."
         admission:
           verdict: admitted
           decided_by: operator
-          decided_on: "2026-09-11"
-          evidence: docs/audits/2026-09-11-technical-batch-x-manifest.md
+          decided_on: "2026-09-24"
+          evidence: protocols/STANDING_RULINGS.md
   plan:
     description: >-
       Design before build. Shares orchestrate's constraint verbatim (AX21-1 names the two
@@ -543,13 +636,15 @@ roles:
     routing_table_role: null
     order:
       - provider: anthropic
-        model: claude-opus-4-8
-        note: "Opus only (AX21-1), same clause and same reason as orchestrate."
+        model: claude-opus-5-5
+        note: >-
+          Opus only (AX21-1), same clause and same reason as orchestrate. MOVED from
+          `claude-opus-4-8` 2026-09-24 (LANE-5B-2) on the same B5 admission.
         admission:
           verdict: admitted
           decided_by: operator
-          decided_on: "2026-09-11"
-          evidence: docs/audits/2026-09-11-technical-batch-x-manifest.md
+          decided_on: "2026-09-24"
+          evidence: protocols/STANDING_RULINGS.md
   implement:
     description: >-
       Produce code and artifacts. AX21-1's declared target order is Copilot Enterprise (bounded,
@@ -605,6 +700,18 @@ roles:
         admission:
           verdict: unevaluated
           floors: ["AX22-1", "AX21-3"]
+        currency_exception:
+          reason: >-
+            `grok models`, re-run 2026-09-25 (LANE-5B-2), disagreed with Part Z's same-night
+            reading of the identical command on the identical box: Part Z read `grok-4.6
+            (default), grok-4.5`; this run's default was `grok-4.20-0309-non-reasoning`, with
+            `grok-4.7` also listed above the pinned `grok-4.6`. Two disagreeing readings of one
+            command on one day is the Q9 substitution-risk shape this registry exists to catch
+            ([#492]), not an ordinary currency gap -- so the pin is left alone rather than moved
+            to either unverified reading, and the discrepancy is filed rather than resolved.
+            Full readings: this file's `providers.xai.model_currency` comment.
+          decided_by: architect
+          decided_on: "2026-09-25"
   review:
     description: >-
       Judge a diff before merge. AX21-1 routes this to Codex terra and excludes the producing
@@ -647,6 +754,13 @@ roles:
         admission:
           verdict: unevaluated
           floors: ["AX22-1"]
+        currency_exception:
+          reason: >-
+            Same LANE-5B-2 finding as the `implement` role's `xai`/`grok-4.6` entry: `grok
+            models` re-run 2026-09-25 disagreed with Part Z's same-night reading of the
+            identical command. See `providers.xai.model_currency` for the full readings.
+          decided_by: architect
+          decided_on: "2026-09-25"
       - provider: anthropic
         model: claude-sonnet-5
         note: >-
@@ -761,11 +875,14 @@ models:
   # Code 2.1.280 shipped `claude-opus-5-5` as the new DEFAULT Opus model -- and, per the
   # `roles.orchestrate`/`roles.plan` alias-drift note below, the bare `opus` alias a dispatch
   # line names now resolves here instead of to `claude-opus-4-8`. The row exists so the id this
-  # repo's live surface can now emit is addressable, resolvable and priceable; it grants NO ROLE
-  # (`roles: []`, `pinned_at: []`, same precedent as `claude-opus-5`/`grok-4.6`). Moving the
-  # `orchestrate`/`plan` PIN itself to this id is explicitly OUT OF SCOPE for this lane (its
-  # contract: "The orchestrate/plan pin is unchanged; the operator rules after the A/B") --
-  # that pin stays `claude-opus-4-8` above.
+  # repo's live surface can now emit is addressable, resolvable and priceable.
+  #
+  # `roles: [orchestrate, plan]` AS OF 2026-09-24 (LANE-5B-2). At WAVE5A authoring this held
+  # `roles: []` -- the same "addressable but grants no role" precedent `claude-opus-5`/`grok-4.6`
+  # still set -- because moving the `orchestrate`/`plan` PIN was explicitly out of that lane's
+  # scope ("the operator rules after the A/B"). The operator has now ruled (B5, `protocols/
+  # STANDING_RULINGS.md` §AL-B item 5: "Opus 5.5 admitted for orchestrate/plan, by explicit
+  # model id"), so this row now holds the two roles its pin (above, in `roles:`) claims.
   #
   # PRICE, from the same card as its siblings (`rate_card.as_of` covers list-price provenance
   # generally) but with its OWN `rates.source`, because $4/$20/Mtok and $0.20/Mtok cache reads
@@ -778,12 +895,12 @@ models:
   # read $0.40) -- Anthropic quotes this model's cache-read price outright rather than as a
   # multiple, the documented case `ModelRates.cache_read` exists for. `cache_write` carries no
   # override: no outright cache-write figure is in the source cited above, so it resolves to the
-  # card's derived `input * 1.25` ($5.00), the honest default for a number nobody has quoted
-  # differently.
+  # card's derived multiplier -- `input * 2.0` ($8.00) as of 2026-09-24 (see `rate_card` below),
+  # not the $5.00 the card's earlier 1.25x multiplier would have produced.
   claude-opus-5-5:
     provider: anthropic
     tier: L
-    roles: []
+    roles: [orchestrate, plan]
     rates:
       input: 4.0
       output: 20.0

@@ -21,6 +21,24 @@
 
 ---
 
+### 2026-09-25 (d) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): the launcher refuses without a bound integrator, launches Copilot detached, and warns on a model alias
+
+**Anchors:** `fb01eaf7`, `8e126b0f`, `cc098d48`, `a1bc262e` (`fix(dispatch)` + the Codex review and its fixes + the tally) -- `worktree-lane-launcher-fixes` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on the lane-registry-models merge `7afbb69a`.
+
+**Did:** purity 4 commits / 4 files; merged in `worktree-integrate-lane-launcher-fixes`; regenerated generated files on the merged tree (ruling b); ship-gate diffed against the stacked base; lane-changed dispatch tests on the merged tree; CI paired against main. **Result:** a launch with no bound integrator prints the exact bind command and exits non-zero (the REFUSED line is never truncated); a Copilot contract launches detached (proved by `--dry-run` plus a mocked-spawner unit test for the detach flags) and holds its slug; a model alias in a contract is warned with the explicit id (blind spots 1 and 8). **Changes:** `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl` (+ the lane's 4 files). **Next:** the rest of the WAVE5B-N1 queue.
+
+### 2026-09-25 (c) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): the registry admits Opus 5.5 by id, prices cache writes at 2x, and declares model currency per provider
+
+**Anchors:** `6859c4d2`, `357322c7`, `8db4408a` (`feat(registry)` + the Codex-review fixes + the ratchet wording fix) -- `worktree-lane-registry-models` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree off origin/main `2b5a4ef8`.
+
+**Did:** purity 3 commits / 5 files; merged in `worktree-integrate-lane-registry-models`; regenerated generated files on the merged tree (ruling b); ship-gate diffed base vs merge; lane-changed tests on the merged tree; CI paired against main. **Result:** `roles.orchestrate` / `roles.plan` order `claude-opus-5-5` by explicit id (RATIFICATION B5); `cache_write_multiplier: 2.0`; every role pins a versioned id; a `model_currency:` probe or dated `exception:` per provider, with an opt-in live probe (`RUN_LIVE_CURRENCY_PROBE`). Schema 1.1.0 -> 1.2.0 (`ecosystem/schema/provider_registry.py`, outside the contract's list: DECIDED-BY-LANE). **Changes:** `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl` (+ the lane's 5 files). **Next:** `lane-launcher-fixes`, stacked on this merge.
+
+### 2026-09-25 (b) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): merge hygiene lands -- timed receipt steps, a post-merge conflict check, a batch janitor
+
+**Anchors:** `2697a87d`, `cce67b55`, `239beb29` (`feat(merge-receipt)` + the Codex-review fixes + the review tally) -- `worktree-lane-merge-hygiene` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree off origin/main `04868005`.
+
+**Did:** purity 3 commits / 8 files; merged in `worktree-integrate-lane-merge-hygiene`; regenerated doc-counts and the audits index on the merged tree (ruling b); the two `fates:` lines in `ecosystem/harness.yaml` are the lane's ruling-(a) additions; ship-gate diffed base vs merge; lane-changed tests on the merged tree; CI paired against main. **Result:** `merge_receipt.py` shows each step's start and end; `scripts/check_post_merge.py check --sha` refuses a conflict marker in a merge's first-parent diff; `scripts/batch_janitor.py run --batch --dry-run` lists the finished sessions it would stop ([#1014]). From this merge on the integrator's post-merge check and janitor run through them. **Changes:** `JOURNAL.md`, `ecosystem/doc-counts.md`, `docs/audits/README.md`, `logs/MERGE-RECEIPTS.jsonl` (+ the lane's 8 files). **Next:** the rest of the WAVE5B-N1 queue.
+
 ### 2026-09-25 (a) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): ADR-122 step 0 lands -- one view budget, row filing reopened
 
 **Anchors:** `aeab4577` (`feat(gen_task_tree): ADR-122 step 0 -- one view-budget config, first row filed`) -- `worktree-lane-adr122-step0` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree off origin/main `2ae86d07`.
