@@ -36,8 +36,23 @@ nothing in this module starts a process against a running lane. `claude agents -
 are read-only control-plane calls.
 
 MODEL REPORTED. Codex cannot attest which model served a turn: its `model_reported` is
-`not attestable`. A Claude launch has served nothing yet, so its `model_reported` is `pending`; the
-served model lands in `govern`'s spend rows and in `merge_receipt.py models`, from the transcript.
+`not attestable`. Copilot is the same -- there is no live transcript this module reads a served
+model back from -- so it carries the same value. A Claude launch has served nothing yet, so its
+`model_reported` is `pending`; the served model lands in `govern`'s spend rows and in
+`merge_receipt.py models`, from the transcript.
+
+COPILOT RUNS DETACHED, NEVER AS A SHELL OF THE DISPATCHER (wave 5b blind spot 8: a Copilot
+producer ran as a dispatcher shell and died with it). Like Codex, a Copilot launch is spawned
+through `spawn_process`'s `log_path` branch -- `Popen` with the platform's detach flags, stdout to
+a log file, no handle this module keeps -- rather than `subprocess.run` to completion. Its job id
+is `copilot-<pid>`; it has no `--worktree` flag of its own, so (HONEST LIMIT) it runs in the
+launch's own `cwd`, never a managed worktree the way Codex's does.
+
+A MODEL ALIAS (`opus`, `sonnet`, `haiku`, `opusplan`) IS WARNED, NEVER REFUSED, NEVER REWRITTEN.
+`warn_model_alias` names the explicit id `ecosystem/provider-registry.yaml` records that alias as
+currently resolving to; the launch still runs with the alias exactly as the contract wrote it,
+because resolving it here would be the same silent repoint the registry's own ALIAS DRIFT note
+exists to make visible instead of committing again.
 
 HONEST LIMITS
   * `launch` runs `doit moment:pre-launch` from the HUB root (dodo.py's own root) and spawns from the
@@ -46,6 +61,7 @@ HONEST LIMITS
     that has not been listed yet is not seen; the occupancy organ's session leg has the same window.
   * Codex `--worktree` is a managed worktree whose path this launcher does not choose: its receipt
     records `(codex-managed)`, and its job id is `codex-<pid>`.
+  * Copilot has no such flag: unlike Codex, its worktree is whatever `cwd` this launcher was given.
   * `govern` is a POLL. A lane that finishes between two polls is recorded at its last reading.
 """
 from __future__ import annotations
@@ -149,8 +165,17 @@ PROVIDERS: dict[str, Provider] = {
         "CLAUDE_CODE_SUBAGENT_MODEL": "kimi-k3[1m]",
         "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "1048576"}),
     "codex": Provider("codex", metering="stream"),
+    # No key/base_url: the `copilot` CLI holds its own auth (`copilot login`), the way `codex`
+    # does. Detached like codex -- see `launch_lane`'s `detached` set -- because it has no live
+    # transcript this module reads a served model back from either.
+    "copilot": Provider("copilot", metering="stream"),
 }
-_HEAD_PROVIDER = {"claude": "anthropic", "codex": "codex"}
+_HEAD_PROVIDER = {"claude": "anthropic", "codex": "codex", "copilot": "copilot"}
+#: Heads whose lane is spawned DETACHED (Popen + the platform's detach flags, stdout to a log
+#: file) rather than run to completion in the caller's own process. Both report their own pid as
+#: the job id (`_identify`) rather than being looked up in `claude agents --json`, and neither can
+#: be attested for the model actually served (`NOT_ATTESTABLE`).
+_DETACHED_HEADS = frozenset({"codex", "copilot"})
 
 
 def _provider(name: str) -> Provider:
@@ -292,6 +317,43 @@ def commit_witness(slug: str) -> tuple[str, str]:
     return "DONE", f"{n} commit(s) on worktree-{slug}"
 
 
+# --- a bare model ALIAS is warned, never refused, never rewritten ---------------------------------
+#
+# `ecosystem/provider-registry.yaml`'s own ALIAS DRIFT note records that Claude Code 2.1.280 made
+# the bare `opus` alias resolve to `claude-opus-5-5` rather than the id lane contracts have
+# pinned -- "a silent repoint: nothing in this registry moved and nothing in a lane contract that
+# says `--model opus` changed, yet the model actually served underneath it did". That registry
+# deliberately carries no alias FIELD (every `order[].model` there is a versioned id, by design),
+# so this table is dispatch.py's own record of what each alias currently resolves to, cited
+# against the same registry rows the note and the `models:` section already carry. It exists to
+# make the drift VISIBLE at launch time, never to resolve it: `warn_model_alias` never changes
+# `model`, because resolving the alias here would be the exact silent repoint the note exists to
+# stop happening again.
+MODEL_ALIASES: dict[str, str] = {
+    # provider-registry.yaml's ALIAS DRIFT note (Claude Code 2.1.280+ default Opus).
+    "opus": "claude-opus-5-5",
+    # provider-registry.yaml `models.claude-sonnet-5` (roles.implement's pinned id).
+    "sonnet": "claude-sonnet-5",
+    # provider-registry.yaml `models.claude-haiku-4-5-20251001` (the id the CLI actually emits).
+    "haiku": "claude-haiku-4-5-20251001",
+    # a COMBO alias (Opus while planning, Sonnet while building) -- no single id, so both are named.
+    "opusplan": "claude-opus-5-5 (plan mode) / claude-sonnet-5 (build mode)",
+}
+
+
+def warn_model_alias(model: str) -> Optional[str]:
+    """A one-line warning when `model` is a bare Claude Code alias, naming the explicit id
+    `MODEL_ALIASES` records the registry as currently resolving it to. `None` for a versioned id
+    (or anything else `MODEL_ALIASES` does not name) -- never raised, and never changes what gets
+    launched: the caller logs this and launches with `model` exactly as given."""
+    target = MODEL_ALIASES.get(model.strip().lower())
+    if target is None:
+        return None
+    return (f"the model {model!r} is a bare alias, not a versioned id -- the registry currently "
+            f"resolves it to {target}. Launching with the alias exactly as the contract wrote "
+            "it; pin the versioned id there to stop this from silently repointing again.")
+
+
 # --- the contract's own model and effort ([#717]: never a default) --------------------------------
 
 _TABLE_HEAD = re.compile(r"^\|\s*Model\s*\|\s*Mode\s*\|\s*Effort\s*\|\s*$", re.IGNORECASE)
@@ -379,7 +441,7 @@ def parse_dispatch_block(text: str) -> Optional[DispatchLine]:
     head = Path(tokens[0][0]).stem.lower() if tokens else ""
     if head not in _HEAD_PROVIDER:
         raise DispatchRefused(f"the Dispatch block starts with {tokens[0][0] if tokens else ''!r}; "
-                              "only `claude` and `codex` are launched. Refusing.")
+                              "only `claude`, `codex` and `copilot` are launched. Refusing.")
     got: dict[str, str] = {}
     i = 1
     while i < len(tokens):
@@ -435,6 +497,14 @@ def build_plan(provider: str, model: str, slug: str, effort: str, prompt: str,
     if p.head == "codex":
         argv = ["codex", "exec", "--json", "--skip-git-repo-check", "--worktree", "-m", model,
                 "-c", f"model_reasoning_effort={eff}", "-s", "workspace-write", prompt]
+        return Plan(argv, "stream")
+    if p.head == "copilot":
+        # `-p` (non-interactive; exits after completion) + `--allow-all-tools` (required for
+        # non-interactive mode, per `copilot --help`) + `-n <slug>` (the same session-naming
+        # discipline as Claude's `-n`, so a listing can name the lane back). `--reasoning-effort`
+        # is copilot's own flag name for the same enum `--effort` names elsewhere.
+        argv = ["copilot", "-p", prompt, "--model", model, "--reasoning-effort", eff,
+                "--allow-all-tools", "-n", slug]
         return Plan(argv, "stream")
     if streamed:  # a headless claude, for a substrate that cannot hand over a transcript
         argv = ["claude", "-p", "--output-format", "stream-json", "--verbose", "--model", model,
@@ -542,6 +612,11 @@ def request_from_contract(contract: Path, *, slug: str = "", provider: str = "",
                 f"{from_table!r}. Refusing rather than picking one: pass --{label} to say which.")
     model = model or (line.model if line else "") or (table[0] if table else "")
     effort = effort or (line.effort if line else "") or (table[1] if table else "")
+    # WARNED, NEVER REFUSED: an alias in the Model table or the Dispatch line is visible now
+    # rather than silently re-deciding which id actually served the lane later. See the warning's
+    # own docstring for why this never rewrites `model`.
+    if (alias_warning := warn_model_alias(model)) is not None:
+        logger.warning("%s: %s", slug, alias_warning)
     if EFFORTS.get(effort.lower()) is None:
         raise DispatchRefused(f"unknown effort {effort!r}. Valid: low, medium, high, xhigh, max")
     if permission_mode and permission_mode not in PERMISSION_MODES:
@@ -712,6 +787,17 @@ def _tail(text: str, limit: int = 600) -> str:
 
 _DOIT_CHATTER = re.compile(r"^(\.\s+organ:|TaskFailed|Python Task failed|warning:|\s*$)")
 
+#: A `seat_refusals.SeatRefusal`'s own rendering (`REFUSED [<id>]: <detail> -- <remedy>`; e.g.
+#: `no-live-integrator`'s remedy names the exact `seat_registry.py bind` command a missing
+#: integrator needs). WAVE5A blind spot 1: the refusal fired, but its fix scrolled off `_tail`'s
+#: 600-char budget underneath doit's own per-task chatter and telemetry prints -- the launch was
+#: refused without saying how to fix it. `run_prelaunch` below surfaces every line matching this
+#: pattern WHOLE and UNTRUNCATED (never through `_tail`'s cap), rather than letting it compete for
+#: shared budget with everything else doit printed, or with a SECOND refusal, or with its own
+#: `--batch` value repeated inside the remedy (terra HIGH, 2026-09-25: a fixed cap on the joined
+#: refusals can still cut the command out from under a long batch name or multiple refusals).
+_REFUSED_LINE_RE = re.compile(r"^REFUSED \[[^\]]+\]:")
+
 
 def run_prelaunch(request: LaunchRequest, hub: Path = HUB_ROOT) -> PreLaunch:
     """Run the DECLARED `pre-launch` moment (ecosystem/harness.yaml) for this lane, from the hub.
@@ -732,6 +818,11 @@ def run_prelaunch(request: LaunchRequest, hub: Path = HUB_ROOT) -> PreLaunch:
         return PreLaunch(False, "an organ of the declared pre-launch moment did not clear it: " + "; ".join(gaps)
                          ) if gaps else PreLaunch(True)
     said = [ln for ln in (done.stdout + "\n" + done.stderr).splitlines() if not _DOIT_CHATTER.match(ln)]
+    refused = [ln.strip() for ln in said if _REFUSED_LINE_RE.match(ln.strip())]
+    if refused:
+        # NEVER through `_tail`: a fixed cap shared across every refused line -- or spent inside
+        # one line's own repeated `--batch` value -- can still cut the exact remedy command out.
+        return PreLaunch(False, " | ".join(refused))
     return PreLaunch(False, _tail("\n".join(said)) or f"pre-launch exited {done.returncode}")
 
 
@@ -814,13 +905,14 @@ def _held_by(slug: str, receipt: Optional[dict], agents: Callable[[], list[dict]
     earlier launch is younger than `LISTING_LAG_SECONDS` and the listing has not shown its job yet."""
     receipt = receipt or {}
     job = str(receipt.get("job_id") or "")
-    if receipt.get("provider") == "codex":
+    provider = str(receipt.get("provider") or "")
+    if provider in _DETACHED_HEADS:  # codex, copilot: self-identified by pid, never claude-listed
         pid = receipt.get("pid")
         if isinstance(pid, int):
-            return f"codex job {job} (pid {pid}) is still running" if process_alive(pid) else ""
+            return f"{provider} job {job} (pid {pid}) is still running" if process_alive(pid) else ""
         age = _age_seconds(receipt.get("launched_at"))   # an INTENT receipt: Popen may already have run
         if job and age is not None and age < LISTING_LAG_SECONDS:
-            return f"a codex launch ({job}) began {int(age)}s ago and has not recorded its process yet"
+            return f"a {provider} launch ({job}) began {int(age)}s ago and has not recorded its process yet"
         return ""
     listing = agents()
     entry = _find_agent(listing, job) if job and job not in ("unresolved", "pending") else None
@@ -901,7 +993,11 @@ def launch_lane(request: LaunchRequest, *,
             raise LaunchRefused(f"pre-launch refused {request.slug}: {outcome.reason}")
 
         codex = provider.head == "codex"
-        log_path = receipts_dir() / f"LAUNCH-LOG-{request.slug.upper()}.jsonl" if codex else None
+        # DETACHED (codex, copilot): `Popen` + the platform's detach flags, stdout to a log file,
+        # no handle kept here -- never `subprocess.run` to completion in the caller's own process
+        # (wave 5b blind spot 8: a Copilot producer ran as a dispatcher shell and died with it).
+        detached = provider.head in _DETACHED_HEADS
+        log_path = receipts_dir() / f"LAUNCH-LOG-{request.slug.upper()}.jsonl" if detached else None
         # The INTENT receipt goes down before the spawn: a launch interrupted after the provider
         # started still leaves a fresh receipt, which holds the slug while the listing catches up.
         try:
@@ -914,7 +1010,7 @@ def launch_lane(request: LaunchRequest, *,
                                 "to start a lane nothing can record") from exc
         began = time.time()
         try:
-            started = spawn(request.argv, env, cwd, log_path) if codex else spawn(request.argv, env, cwd)
+            started = spawn(request.argv, env, cwd, log_path) if detached else spawn(request.argv, env, cwd)
         except OSError as exc:
             _receipt_path(request.slug).unlink(missing_ok=True)
             raise LaunchRefused(f"{request.argv[0]} could not be started ({type(exc).__name__}: {exc}) -- "
@@ -924,12 +1020,15 @@ def launch_lane(request: LaunchRequest, *,
             raise LaunchRefused(f"{request.argv[0]} exited {started.returncode} -- no lane was started: "
                                 f"{_tail(started.stdout, 300)}")
         # From here a lane IS running: whatever fails below, the receipt is still written.
-        job_id, session_id, reported_name = _identify(request, started, codex, agents, sleep, began)
+        self_identified = provider.head if detached else ""
+        job_id, session_id, reported_name = _identify(request, started, self_identified, agents, sleep, began)
         result = LaunchResult(
             slug=request.slug, provider=request.provider, model_requested=request.model,
-            model_reported=NOT_ATTESTABLE if codex else MODEL_PENDING,
+            model_reported=NOT_ATTESTABLE if detached else MODEL_PENDING,
             job_id=job_id or "unresolved",
-            worktree="(codex-managed)" if codex else str(cwd / ".claude" / "worktrees" / request.slug),
+            worktree=("(codex-managed)" if codex
+                      else str(cwd) if provider.head == "copilot"  # no --worktree flag of its own
+                      else str(cwd / ".claude" / "worktrees" / request.slug)),
             session_name=request.session_name, session_name_reported=reported_name,
             session_id=session_id, pid=started.pid, log_path=str(log_path or ""), argv=list(request.argv))
         try:
@@ -946,13 +1045,17 @@ def launch_lane(request: LaunchRequest, *,
         return result
 
 
-def _identify(request: LaunchRequest, started: Spawned, codex: bool, agents: Callable[[], list[dict]],
-              sleep: Callable[[float], None], since: float) -> tuple[str, str, str]:
+def _identify(request: LaunchRequest, started: Spawned, self_identified: str,
+              agents: Callable[[], list[dict]], sleep: Callable[[float], None],
+              since: float) -> tuple[str, str, str]:
     """`(job id, session id, the name the job record reports)` for a lane that has just started.
     Blank parts are unknown, never guessed: the id comes from the provider's own output, else the one
-    live lane in the slug's worktree."""
-    if codex:
-        return f"codex-{started.pid}", "", ""
+    live lane in the slug's worktree.
+
+    `self_identified` is the provider HEAD when it reports its own pid rather than being looked up
+    in `claude agents --json` (codex, copilot -- neither is a claude subagent); '' for claude."""
+    if self_identified:
+        return f"{self_identified}-{started.pid}", "", ""
     found = _JOB_ID.search(_ANSI.sub("", started.stdout or ""))
     job_id = found.group(1) if found else ""
     for attempt in range(4):        # the listing can lag the start by a moment
@@ -1316,10 +1419,23 @@ def _watch(receipt: dict, lane_id: str, slug: str, cap: Optional[int], record: C
            models: list, interval: float, bind_polls: int, max_polls: Optional[int], blind_polls: int,
            count_cache_reads: bool, sessions_root: Optional[Path]) -> MonitorVerdict:
     """Bind the lane (or its log) and run the monitor. Reads and records; touches nothing."""
-    if receipt.get("provider") == "codex" and receipt.get("log_path") and isinstance(receipt.get("pid"), int):
+    provider = receipt.get("provider")
+    if provider == "codex" and receipt.get("log_path") and isinstance(receipt.get("pid"), int):
         pid = receipt["pid"]
         read_usage, alive = _log_reader(Path(receipt["log_path"])), (lambda: process_alive(pid))
         shown = receipt.get("job_id", "?")
+    elif provider == "copilot":
+        # Copilot is not a claude agent (`claude agents --json` never lists it), so falling
+        # through to the claude-agent bind below would search a listing that can never carry it
+        # and report a MISLEADING reason (terra HIGH, 2026-09-25). Copilot's CLI does carry a
+        # supported usage surface (`--usage-output-file`, `--output-format json`), but this
+        # module does not read either one yet: honest, explicit UNOBSERVED -- never a false zero,
+        # never a stop -- until that reader exists.
+        record({"poll": 0, "used": None, "cap": cap, "over_cap": False, "readable": False, "models": []})
+        return MonitorVerdict(0, None, cap, unobserved=(
+            "copilot governance is not implemented yet: no claude-agent identity to bind to, and "
+            "no reader for the CLI's own usage surface (--usage-output-file / --output-format "
+            "json)"))
     else:
         given = lane_id or (receipt.get("job_id") if receipt.get("job_id") not in (None, "unresolved") else "")
         lane_id, binding = _bind(str(given), slug, bind_polls, interval)

@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-25 (d) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): the launcher refuses without a bound integrator, launches Copilot detached, and warns on a model alias
+
+**Anchors:** `fb01eaf7`, `8e126b0f`, `cc098d48`, `a1bc262e` (`fix(dispatch)` + the Codex review and its fixes + the tally) -- `worktree-lane-launcher-fixes` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on the lane-registry-models merge `7afbb69a`.
+
+**Did:** purity 4 commits / 4 files; merged in `worktree-integrate-lane-launcher-fixes`; regenerated generated files on the merged tree (ruling b); ship-gate diffed against the stacked base; lane-changed dispatch tests on the merged tree; CI paired against main. **Result:** a launch with no bound integrator prints the exact bind command and exits non-zero (the REFUSED line is never truncated); a Copilot contract launches detached (proved by `--dry-run` plus a mocked-spawner unit test for the detach flags) and holds its slug; a model alias in a contract is warned with the explicit id (blind spots 1 and 8). **Changes:** `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl` (+ the lane's 4 files). **Next:** the rest of the WAVE5B-N1 queue.
+
 ### 2026-09-25 (c) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): the registry admits Opus 5.5 by id, prices cache writes at 2x, and declares model currency per provider
 
 **Anchors:** `6859c4d2`, `357322c7`, `8db4408a` (`feat(registry)` + the Codex-review fixes + the ratchet wording fix) -- `worktree-lane-registry-models` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree off origin/main `2b5a4ef8`.
