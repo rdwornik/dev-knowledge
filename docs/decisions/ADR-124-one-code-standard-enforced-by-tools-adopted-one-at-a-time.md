@@ -16,6 +16,7 @@
   born from a batch order.
 - **Decommission:** none. `templates/ruff-config-block.toml`'s REPO-PERSONAL `select` examples become UNIVERSAL
   keys when D3 lands; nothing is deleted.
+- **Review:** Codex `gpt-5.6-terra`, `docs/audits/2026-09-25-codex-lane-adr-drafts.md` (tally 0/2/1/0; all three findings fixed before handback).
 - **Source (in-repo):** `pyproject.toml:25` (uv `==0.11.19`), `:31` (ruff `==0.15.5` dev pin), `:99-113` and
   `[tool.deptry]` (deptry adopted), `:349-358` (`[tool.ruff]` universal keys; `extend-select = []`);
   `.pre-commit-config.yaml:19-30` (the 2026-09-17 strip: 34 hooks, ~244 s mean commit wall, "a hook returns to the

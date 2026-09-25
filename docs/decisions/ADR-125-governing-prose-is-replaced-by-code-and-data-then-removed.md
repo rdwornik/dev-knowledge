@@ -15,6 +15,7 @@
   **Intake:** none — born from a batch order.
 - **Decommission:** none by this ADR. Each step below names a removal list; nothing leaves the tree without the
   operator's GO on that list.
+- **Review:** Codex `gpt-5.6-terra`, `docs/audits/2026-09-25-codex-lane-adr-drafts.md` (tally 0/2/1/0; all three findings fixed before handback).
 - **Source (in-repo):** the files inventoried below, at `da11291b`; `ecosystem/harness.yaml` (`manual_until:
   2026-10-05` entries for `batch_janitor.py`, `check_post_merge.py`, `hook_expiry_verdict.py`, `plan_lint.py`);
   `scripts/generated_artifact_freshness.py:148` and `scripts/gen_dashboard.py:79` (the dashboards' only reader and

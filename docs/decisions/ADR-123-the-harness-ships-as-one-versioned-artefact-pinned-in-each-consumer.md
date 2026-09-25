@@ -17,6 +17,7 @@
   from a batch order.
 - **Decommission:** none now. Each carrier in §Migration step 3 is removed only after its replacement is
   green in the first consumer (replace-then-remove).
+- **Review:** Codex `gpt-5.6-terra`, `docs/audits/2026-09-25-codex-lane-adr-drafts.md` (tally 0/2/1/0; all three findings fixed before handback).
 - **Source (in-repo):** `ARCHITECTURE.md` Ch4 "Distribution and transfer" (five channels; "Cloud clones are
   hub-independent by design"); `deploy/tool.py`, `deploy/carrier_{precommit,floor,mesh,plugin,docs,globalconfig}.py`,
   `deploy/manifest-v1.5.0.yaml` header (the floor-digest drift it documents); `.claude-plugin/marketplace.json`;

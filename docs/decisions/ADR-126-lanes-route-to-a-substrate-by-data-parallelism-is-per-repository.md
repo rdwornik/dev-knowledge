@@ -14,6 +14,7 @@
   integration is"), §2 W4 (quota watch before the first multi-repository night). **Intake:** none — born from a
   batch order.
 - **Decommission:** none.
+- **Review:** Codex `gpt-5.6-terra`, `docs/audits/2026-09-25-codex-lane-adr-drafts.md` (tally 0/2/1/0; all three findings fixed before handback).
 - **Source (in-repo):** `docs/audits/2026-09-23-technical-compute-substrate.md` (§2 laptop, §3 the Codespace
   stalls, §4 comparison, §5 recommendation); `docs/audits/2026-08-20-technical-codespaces-audit.md` (§0, §1.1
   machine menu, §2 pricing, §4 Hetzner CX53, §5.3 timings, §6.5-§6.6 breakeven and the 4-core wall, the
