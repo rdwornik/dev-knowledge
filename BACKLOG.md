@@ -358,6 +358,11 @@ So that growth past 65 ADRs doesn't bury or quietly contradict prior decisions.
 - [#700] [P2][S] AW5-4 ruled that machine-read control surfaces are STATE rather than narrative, and the ruling reached the close packet and none of the surfaces that state amendment discipline · tasks/700-aw54-control-surfaces-are-state-ruling-reached-no-enforcing-surface.md
 
 - [#791] [P1][M] Carry intake 101 — the runtime-resource organ — through the decision engine to a ratified ADR · tasks/791-carry-intake-101-the-runtime-resource-organ-throug.md
+- [#1076] [P2][S] R1a: PR / CI-gated close is the closure-sweep model · tasks/1076-r1a-pr-ci-gated-close-is-the-closure-sweep-model.md
+- [#1077] [P2][S] R1b: the whole-graph check refuses cycles and dangling ids · tasks/1077-r1b-the-whole-graph-check-refuses-cycles-and-dangl.md
+- [#1078] [P2][S] R1c: a raw-JSON projection of the records is the browser seat's view · tasks/1078-r1c-a-raw-json-projection-of-the-records-is-the-brow.md
+- [#1079] [P3][S] ADR-122 step 1 remainder: 4 rows' non-canonical Done-when separator breaks the converter · tasks/1079-adr-122-step-1-remainder-four-rows-body-grammar-b.md
+- [#1080] [P3][M] ADR-122 step 1 remainder: eliminate legacy_body carriers (671/671 live rows, 86/86 archive records) · tasks/1080-adr-122-step-1-remainder-eliminate-legacy-body-ca.md
 ### [S12] Close the small ADR cross-reference + registry amendments
 So that the ADR web is internally consistent.
 - [#19] [P3][M] Complete the ADR-39 register · DEFER · tasks/19-complete-the-adr-39-register.md

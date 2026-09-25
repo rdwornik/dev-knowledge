@@ -128,5 +128,6 @@ fates:
   - {path: scripts/setup-fleet-scheduler.ps1, manual_until: 2026-10-05, reason: "a one-shot installer, not a recurring process; the scheduled task it registers is live"}
   - {path: scripts/ship_gate_diff.py, manual_until: 2026-10-05, reason: "LANE-5A-4 (D11): called from inside handback.py's ship-gate self-check leg (an import, not a moment `command:`), so the census sees no wiring surface for it; a moment declaration is owed if/when it gains its own"}
   - {path: scripts/surface_triage.ps1, manual_until: 2026-10-05, reason: "temporarily unwired, not retired: its settings.json SessionStart hook is off since 2026-09-17 and returns when [#863] lands"}
+  - {path: scripts/task_record.py, manual_until: 2026-10-05, reason: "ADR-122 step 1 (lane-adr122-accept, ruling (a)): the pydantic model + converter + CLI, invoked by hand (the lane's own job-tmp corpus run) and by tests/test_task_record.py; no moment calls it until step 2 flips the source of truth"}
   - {path: scripts/worktree_import_proof.py, manual_until: 2026-10-05, reason: "on-demand (act: GO): /lane-boot proves the worktree imports its own source (ORPHAN_DISPOSITIONS)"}
   - {path: scripts/transport.py, manual_until: 2026-10-15, reason: "lane-transport-registry: an import-only write gate (handback.py calls write()/append()) and a report-only CLI (report/derive); no moment fires it directly"}

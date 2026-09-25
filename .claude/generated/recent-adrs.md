@@ -10,4 +10,4 @@
 - ADR-119 (Accepted, 2026-09-13): A command file counts as a `[#664]` wiring surface only while invocations are recorded — adoption decays, it is not conferred
 - ADR-120 (Accepted, 2026-09-20): The spine is the whole loop — `harness.yaml` runs stages 1-16, evaluation before build
 - ADR-121 (Proposed, 2026-09-23): Operational state is a single-writer event log on a git state ref; SQLite is a disposable projection
-- ADR-122 (Proposed, 2026-09-24): A task is a typed record in git; every backlog view is a projection
+- ADR-122 (Accepted, 2026-09-24): A task is a typed record in git; every backlog view is a projection

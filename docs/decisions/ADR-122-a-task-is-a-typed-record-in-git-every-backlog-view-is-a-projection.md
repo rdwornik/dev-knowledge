@@ -1,6 +1,7 @@
 # ADR-122: A task is a typed record in git; every backlog view is a projection
 
-- **Status:** Proposed
+- **Status:** Accepted (ADR-94 in-place edit; ratified 2026-09-25, RATIFICATION-2026-09-25 R1 —
+  see the Amendment section below)
 - **Date:** 2026-09-24
 - **Decision tier:** Architecture (Path A — the architect's technical ruling under ADR-108 §A, drafted by
   `lane-adr-backlog` on `to-cc/BATCH-ADR-BACKLOG-2026-09-24.md`. **Stays Proposed until the operator
@@ -242,3 +243,25 @@ Each step is a lane with RED-first witnesses (ADR-108 §B); nothing here is buil
 - **Still open for the operator:** ratification of the winner (functional, ADR-108 §A) — this
   amendment does not change the status line; Projects v2 fields were not tried (the token lacks the
   `project` scope) and are the one lever that could move O2's schema score.
+
+## Amendment — 2026-09-25: RATIFICATION-2026-09-25 R1 — O1 ratified, status flips to Accepted
+
+- **Why:** the operator ratified the option with the higher score, **O1, typed YAML records in
+  git** (418 vs 352 of 550 on the re-weighted matrix above; 396 vs 346 on Codex's own cells). His
+  reason: "it is always better to have things locally; GitHub can be tried again later." This
+  answers the "Still open for the operator" item above; the status line is edited in place under
+  the ADR-94 exception.
+- **R1a–R1c, carried into the migration as requirements** (from the live GitHub Issues trial, each
+  already a row): **R1a** a PR / CI-gated close is the model for the closure sweep (a task closes
+  when its PR merges green, not by hand) — already D4's model above; **R1b** the graph check
+  refuses cycles and dangling ids (as GitHub's dependency API does: 422 / 404) — already D3's
+  whole-graph check above; **R1c** a raw-JSON projection of the records is the browser seat's view
+  — already named in "Adopted into this ADR's migration as requirements" above. This amendment
+  does not change D3/D4/D8; it records that the operator's ratification binds them as R1a/R1b/R1c.
+- **What would reopen it** (recorded, not scheduled): Projects v2 typed fields tried live; an edit
+  path that refuses stale writes; minutes-per-completed-task measured on both stores.
+- **Landed:** `protocols/STANDING_RULINGS.md` §AM carries R1 verbatim in substance plus R2–R7 in
+  one line each (R2 no secret in a repository; R3 finished lane sessions stay visible; R4 the
+  scratch trial repository deleted; R5 speed-first substrate choice; R6 a Codespace lane proven
+  end to end; R7 quota measurement per SKU). Three rows file R1a/R1b/R1c under `tasks/`
+  (`lane-adr122-accept`'s id range 1076–1085), each citing this section and §AM.

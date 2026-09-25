@@ -4800,6 +4800,45 @@ ruling, the GH-Issues trial batch) that are this window's own carriers, tracked 
 here. This entry is the citation `gen_handoff` and a future reader need; it does not itself
 discharge any of those open items.
 
+## AM. RATIFICATION-2026-09-25 R1–R7 — ADR-122 Accepted, O1 ratified (operator, 2026-09-25)
+
+Landed by `lane-adr122-accept` (batch WAVE5B-N2). `to-browser/RATIFICATION-2026-09-25.md` is the
+transport source; this section is the in-repo home ADR-122's Amendment (2026-09-25) points at.
+
+**R1 (operator, functional, ADR-108 §A) — verbatim in substance:** The operator ratifies the
+option with the higher score: **O1, typed YAML records in git** (418 vs 352 of 550 on the
+re-weighted matrix; 396 vs 346 on Codex's own cells). His reason: "it is always better to have
+things locally; GitHub can be tried again later." ADR-122 moves from Proposed to Accepted.
+Carried into O1 as requirements (from the live GitHub Issues trial, each a row): **R1a** a PR /
+CI-gated close is the model for the closure sweep (a task closes when its PR merges green, not by
+hand); **R1b** the graph check refuses cycles and dangling ids (as GitHub's dependency API does:
+422 / 404); **R1c** a raw-JSON projection of the records is the browser seat's view. What would
+reopen it (recorded, not scheduled): Projects v2 typed fields tried live; an edit path that
+refuses stale writes; minutes-per-completed-task measured on both stores.
+
+**R2–R7, one line each:**
+
+- **R2** No secret in a repository or as a repository/Actions secret; account-level (Codespaces
+  user) secrets allowed.
+- **R3** Finished lane sessions stay visible: teardown uses `claude stop`, never the
+  session-removal verb; the digest names each lane's session.
+- **R4** Scratch repository `rdwornik/dk-trial-gh-issues-20260925` deleted by the operator
+  2026-09-25.
+- **R5** Speed first, the laptop is not the substrate, cloud cost secondary (supersedes the
+  2026-08-20 "free Codespaces tier only" ruling); the harness chooses local / Codespaces /
+  Anthropic cloud from data; `Robert-Dwornik_ghub` is a managed user and cannot create codespaces
+  for personal repos; `rdwornik` (Pro) includes 180 core-hours and 20 GB-month.
+- **R6** A Codespace lane works only when proven end to end, each step observed by the harness;
+  the dispatcher monitors every codespace lane.
+- **R7** The harness measures usage per SKU against the included quota, burn rate and projected
+  exhaustion, warns at 50 / 80 / 100 % and any first billed dollar, and every batch digest carries
+  a cost line; a plan that would cross a quota states it before launch, as a fact, not a veto.
+
+- **Expiry:** none of R1–R7 expire on their own. R1a/R1b/R1c retire their "carried as
+  requirement, not yet built" clause the moment ADR-122 migration step 2/3 lands the closure
+  sweep, the whole-graph refusal and the browser-view projection respectively; this section is
+  not where that evidence lands.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
