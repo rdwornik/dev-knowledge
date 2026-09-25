@@ -70,6 +70,7 @@ if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
 
 import ship_gate_diff as _sgd  # noqa: E402
+import transport as _transport  # noqa: E402
 import transport_report as _tr  # noqa: E402
 from handback_schema import (  # noqa: E402
     CheckResult,
@@ -323,14 +324,12 @@ def session_path(lane: str, resolve_transport: Callable[[], Path] = _tr.resolve_
 def append_session_block(path: Path, block: str) -> None:
     """Append, never overwrite -- the lane's own narrative may already be in this file, and
     `lane_end_guard.last_handback` reads the LAST HANDBACK-shaped line, so appending keeps this
-    organ's line the one that governs."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8", newline="\n") as fh:
-        if path.stat().st_size and not block.startswith("\n"):
-            fh.write("\n")
-        fh.write(block)
-        if not block.endswith("\n"):
-            fh.write("\n")
+    organ's line the one that governs.
+
+    Routed through `transport.append` (lane-transport-registry): `path`'s name must classify as
+    a kind `ecosystem/transport-registry.yaml` registers `handback` as a writer for (SESSION-),
+    the one write gate every transport writer now composes rather than reinventing."""
+    _transport.append("handback", path, block)
 
 
 def render_self_check_block(checks: list[CheckResult], purity: CheckResult,
@@ -382,11 +381,14 @@ def _write_refusal(resolve_transport: Callable[[], Path], lane: str, branch: str
                                "lane": lane,
                                "reason": f"REFUSED order failed its own validation: {why}"}
     browser = resolve_transport()
-    browser.mkdir(parents=True, exist_ok=True)
     # D10: `HANDBACK-REFUSED-<lane>.md`, never `REFUSED-<lane>.md` -- that filename is the
     # INTEGRATOR's own repair-order path (see the module docstring for the wave-4B collision).
+    # `transport.write` (lane-transport-registry) is the second guarantee of that separation,
+    # mechanical rather than a filename this function merely chose carefully: `REFUSED-<lane>.md`
+    # is registered to the integrator, not `handback`, so this call itself could never build
+    # that path even if the D10 comment above were deleted.
     path = browser / f"HANDBACK-REFUSED-{lane}.md"
-    path.write_text(order.render(), encoding="utf-8", newline="\n")
+    _transport.write("handback", path, order.render())
     return EXIT_REFUSED, order.to_receipt()
 
 

@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-25 (m) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): the transport becomes data -- a registry the code reads, and a write gate
+
+**Anchors:** `cf724ac9`, `46d37a7c`, `a64d3eda` (`feat(transport)` + the Codex-review fixes + the ratchet/index fixes; `c8827164` is its sync of origin/main) -- `worktree-lane-transport-registry` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on origin/main `145b1223` (the lane-plan-lint-grammar merge).
+
+**Did:** purity 3 lane commits + 1 merge of origin/main, 8 files; merged in `worktree-integrate-lane-transport-registry`; `ecosystem/doc-counts.md` conflicted and was regenerated (ruling b); the one dated `fates:` line in `ecosystem/harness.yaml` is the lane's ruling-(a) addition; ship-gate diffed against the stacked base; lane-changed tests on the merged tree; CI paired against main. **Result:** `ecosystem/transport-registry.yaml` lists the 21 kinds the code uses (incl. `GO-`, `LEDGER-`, `PLAN-`, `-v<n>` + `supersedes:`); `scripts/transport.py` refuses an unregistered kind, writer or folder before touching the filesystem and serialises concurrent appends; `handback.py` writes through it; `transport.py report` is report-only (300 strays on the live transport, owed as rows). **Changes:** `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl` (+ the lane's files). **Next:** the batch close.
+
 ### 2026-09-25 (l) - CC (Opus 5.5, INTEGRATOR WAVE5B-N1): one contract grammar -- plan_lint reads is/are merged, serialize-group and a model alias
 
 **Anchors:** `e254e469`, `a5bb0e4c` (`feat(plan-lint)` + the Codex-review fixes), `d82b157c` (repair 1: two silent-rule tokens drained from the template) -- `worktree-lane-plan-lint-grammar` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree off origin/main `8b196c33`.

@@ -1,0 +1,270 @@
+# ecosystem/transport-registry.yaml -- the transport's kinds, as data (lane-transport-registry,
+# BATCH-WAVE5B-N1 #9). Read by scripts/transport.py (write()/append() refuse an unregistered
+# writer; scan() is the stray-file report) and tests/test_transport.py (which derives
+# the kind set from the code and asserts every derived prefix is a row here -- Done-when 1).
+#
+# THE TRANSPORT is the operator's `CLAUDE_PROMPTS_DIR` (a Drive-mounted folder outside this repo):
+#   to-cc/       architect/operator-inbound. A lane may READ it (handback's own transport-write
+#                check does) but does not WRITE it -- OPERATOR-INTERFACE.md S1.
+#   to-browser/  agent/lane-writable, operator-readable.
+#   (root)       the transport's own root, outside both subfolders (the LANE-*.md contracts a
+#                dispatcher pastes a lane's launch command from).
+#
+# Field meaning, per row:
+#   kind        a short machine name, UPPER_SNAKE, unique.
+#   prefix      the literal template prefix the code itself carries (what `derive_kinds_from_
+#               code()` extracts) -- always ends in "-". Cross-checked byte-for-byte against the
+#               derivation, so this is not free text.
+#   pattern     a `re.match` regex over the bare filename (no directory component). Where
+#               `versioned: true`, the pattern also accepts an optional `-v<n>` / `-v<n>-
+#               superseded` revision suffix before the extension (OPERATOR-INTERFACE S1's
+#               "-v1-superseded" convention, `templates/lane-contract-template.md` line 9) --
+#               revision n>1 is expected to carry a `supersedes:` frontmatter line naming the
+#               prior file (not machine-checked here; the stray-file report only classifies the
+#               name, and this comment records the convention so a future check has it in one
+#               place).
+#   folder      to-cc | to-browser | root -- where this kind lives.
+#   writers     who may create/replace this kind. A script's own module name (no `.py`), or a
+#               ROLE for a human/session act no in-repo script performs: `operator` (the browser
+#               seat / the operator directly, via Drive -- not through transport.write, since
+#               nothing in this repo authors it), `lane` (any lane's own prose, written by the
+#               Claude session itself rather than a script), `integrator` (the integrator
+#               session's own repair-order/plan artifacts).
+#   readers     scripts that read this kind back, if any (informational).
+#   repo_scope  hub (this repo's own batch/lane apparatus only) | any (every repo sharing the
+#               transport -- currently only LEDGER, one file per repo).
+#   versioned   whether a `-v<n>[-superseded]` revision of this kind is a live convention.
+
+kinds:
+  - kind: GO
+    prefix: "GO-"
+    pattern: '^GO-[A-Za-z0-9._-]+\.md$'
+    folder: to-cc
+    writers: [operator]
+    readers: [go_reader]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      The operator's one-question-one-answer batch GO (`go_reader.py`'s own docstring). Not
+      written by a lane or by the dispatcher/integrator.
+
+  - kind: LEDGER
+    prefix: "LEDGER-"
+    pattern: '^LEDGER-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [gen_ledger]
+    readers: [gen_handoff]
+    repo_scope: any
+    versioned: false
+    notes: >-
+      One per repo (`LEDGER-<repo>.md`, leading dot of `.dev-knowledge` stripped). Generated,
+      read-only source: `gen_ledger.py` is not hand-edited (its own docstring).
+
+  - kind: PLAN
+    prefix: "PLAN-"
+    pattern: '^PLAN-[A-Za-z0-9._-]+(-v[0-9]+(-superseded)?)?\.md$'
+    folder: to-cc
+    writers: [operator]
+    readers: []
+    repo_scope: hub
+    versioned: true
+    notes: >-
+      The architect's master plan file (e.g. `PLAN-WAVE5-2026-09-23.md`); revisions carry a
+      `version:`/`supersedes:` frontmatter pair per the OPERATOR-INTERFACE grammar.
+
+  - kind: BATCH
+    prefix: "BATCH-"
+    pattern: '^BATCH-[A-Za-z0-9._-]+(-v[0-9]+(-superseded)?)?\.md$'
+    folder: to-cc
+    writers: [operator]
+    readers: [gen_handoff]
+    repo_scope: any
+    versioned: true
+    notes: >-
+      A batch's frozen order/parameters (`gen_handoff.CARRIAGE_PREFIXES`); observed carrying a
+      `version:`/`supersedes:` pair (`BATCH-WAVE5B-N1-2026-09-24.md` v4).
+
+  - kind: DECLARE
+    prefix: "DECLARE-"
+    pattern: '^DECLARE-[A-Za-z0-9._-]+\.md$'
+    folder: to-cc
+    writers: [operator]
+    readers: [gen_handoff]
+    repo_scope: any
+    versioned: false
+    notes: "An operator ruling that gates an item (`gen_handoff.CARRIAGE_PREFIXES`)."
+
+  - kind: AMEND
+    prefix: "AMEND-"
+    pattern: '^AMEND-[A-Za-z0-9._-]+\.md$'
+    folder: to-cc
+    writers: [operator]
+    readers: [gen_handoff]
+    repo_scope: any
+    versioned: false
+    notes: "An additive clarification to a live batch contract (`gen_handoff.CARRIAGE_PREFIXES`)."
+
+  - kind: LANE_END
+    prefix: "LANE-END-"
+    pattern: '^LANE-END-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [transport_report]
+    readers: [lane_digest]
+    repo_scope: hub
+    versioned: false
+    notes: "`transport_report.ARTIFACT_PREFIX`; one per lane, replaced idempotently, not appended."
+
+  - kind: HANDBACK_REFUSED
+    prefix: "HANDBACK-REFUSED-"
+    pattern: '^HANDBACK-REFUSED-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [handback]
+    readers: []
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      D10 (DECLARE-WINDOW-DEFECTS-2026-09-23): deliberately distinct from `REFUSED-<lane>.md`,
+      the INTEGRATOR's own repair-order path, so the two cannot collide.
+
+  - kind: SESSION
+    prefix: "SESSION-"
+    pattern: '^SESSION-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [handback, lane]
+    readers: [lane_end_guard, gen_handoff, dodo]
+    repo_scope: any
+    versioned: false
+    notes: >-
+      One per lane/seat (`to-browser/SESSION-<lane-or-seat>.md`). `handback` APPENDS its
+      HANDBACK/STATE block; a lane's own narrative (written directly by the session, not by a
+      script) may already be there and is not overwritten (`handback.append_session_block`).
+
+  - kind: REFUSED
+    prefix: "REFUSED-"
+    pattern: '^REFUSED-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [integrator]
+    readers: []
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      The INTEGRATOR's own repair-order path (D10). `handback` does not write this name --
+      the collision this registry exists partly to make mechanically impossible
+      (`transport.write("handback", .../f"REFUSED-{lane}.md", ...)` is refused: wrong writer).
+
+  - kind: SEAT_BOOT
+    prefix: "SEAT-BOOT-"
+    pattern: '^SEAT-BOOT-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [gen_seat_boot]
+    readers: []
+    repo_scope: hub
+    versioned: false
+
+  - kind: MERGE_PLAN
+    prefix: "MERGE-PLAN-"
+    pattern: '^MERGE-PLAN-[A-Za-z0-9._-]+\.md$'
+    folder: to-cc
+    writers: [integrator]
+    readers: []
+    repo_scope: hub
+    versioned: false
+    notes: "`gen_seat_boot.HANDOFF_ARTIFACT`: the integrator's own hand-off-to-next-integrator artifact."
+
+  - kind: ESCALATE
+    prefix: "ESCALATE-"
+    pattern: '^ESCALATE-[A-Za-z0-9._-]+\.md$'
+    folder: to-cc
+    writers: [integrator]
+    readers: []
+    repo_scope: hub
+    versioned: false
+    notes: "`gen_seat_boot.ESCALATION_ARTIFACT`."
+
+  - kind: LANE_CONTRACT
+    prefix: "LANE-"
+    pattern: '^LANE-(?!END-)[A-Za-z0-9._-]+\.md$'
+    folder: root
+    writers: [gen_lane_contract]
+    readers: [dispatch]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      `gen_lane_contract.contract_filename`: written to the transport ROOT (not to-cc/ or
+      to-browser/), the path a dispatcher pastes a lane's launch command from. The negative
+      lookahead keeps this kind from swallowing LANE_END's `LANE-END-<lane>.md`.
+
+  - kind: RATIFICATION
+    prefix: "RATIFICATION-"
+    pattern: '^RATIFICATION-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [operator]
+    readers: [gen_handoff]
+    repo_scope: any
+    versioned: false
+    notes: "The sitting's decision list, one row per item (OPERATOR-INTERFACE S1 grammar)."
+
+  - kind: STATUS
+    prefix: "STATUS-"
+    pattern: '^STATUS-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [lane]
+    readers: [gen_handoff]
+    repo_scope: any
+    versioned: false
+    notes: "A seat's running findings, kept current while it works (OPERATOR-INTERFACE S1 grammar)."
+
+  - kind: QUESTION
+    prefix: "QUESTION-"
+    pattern: '^QUESTION-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [lane]
+    readers: [gen_handoff]
+    repo_scope: any
+    versioned: false
+    notes: "A question raised without stopping, under night autonomy (BATCH-COMMON rule 1)."
+
+  - kind: ANSWER
+    prefix: "ANSWER-"
+    pattern: '^ANSWER-[A-Za-z0-9._-]+\.md$'
+    folder: to-cc
+    writers: [operator]
+    readers: [gen_handoff]
+    repo_scope: any
+    versioned: false
+    notes: "The reply to one QUESTION file."
+
+  - kind: CLOSURE_LIST
+    prefix: "CLOSURE-LIST-"
+    pattern: '^CLOSURE-LIST-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [propose_row_closures]
+    readers: []
+    repo_scope: hub
+    versioned: false
+
+  - kind: STATE_BATCH
+    prefix: "STATE-BATCH-"
+    pattern: '^STATE-BATCH-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [integrator]
+    readers: []
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      Not code-built (no script constructs this path); added from the live stray-file report
+      run over the real transport, which found the kind already in active use and named in
+      `to-cc/BATCH-WAVE5B-N1-2026-09-24.md` S1 ("Close artifacts") -- reads `CLOSED <time>`.
+
+  - kind: DIGEST
+    prefix: "DIGEST-"
+    pattern: '^DIGEST-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [operator, integrator]
+    readers: []
+    repo_scope: any
+    versioned: false
+    notes: >-
+      Not code-built. The single largest bucket in the live stray-file report (32 files) and
+      named as a batch's own close artifact in `to-cc/BATCH-WAVE5B-N1-2026-09-24.md` S1
+      (`DIGEST-WAVE5B-N1-2026-09-25.md`) -- clearly load-bearing, not one-off noise.
