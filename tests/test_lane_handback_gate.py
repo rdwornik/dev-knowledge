@@ -10,11 +10,15 @@ Distinct from `lane_end_guard.py` on purpose: that guard's own invariant (DECLAR
 a SEPARATE Stop entry, scoped to lane sessions only, that DOES block -- via the
 `{"decision":"block","reason":...}` JSON contract `session_end_backpressure.py` already
 established as the live Stop-hook protocol in this Claude Code runtime (plain stdout / a bare
-non-zero exit do not reach the model). Scoping the block to lanes only (never the operator's
-own interactive sessions) is what keeps this safe from the ADR-85 block-cap exhaustion that
-retired session_end_backpressure's own HARD leg (`scripts/session_end_backpressure.py`
-module docstring) -- a lane stops rarely (completion + at most two dispatcher nudges), not on
-every reply the way an interactive session does.
+non-zero exit do not reach the model).
+
+FIRE-ONCE, not scope alone, is what keeps this safe from the ADR-85 block-cap exhaustion that
+retired `session_end_backpressure.py`'s own HARD leg (a terra review, `docs/audits/
+2026-09-25-codex-lane-handback-stop-hook.md`, CRITICAL, rejected the earlier "lane scope is
+enough" reasoning: a lane can genuinely pause mid-work at a Stop boundary). `stop_hook_active`
+(read from stdin JSON in production, or the `HARNESS_STOP_HOOK_ACTIVE` test override) gates
+every blocking test below to a fresh attempt (`False`); the fire-once tests assert the retry
+(`True`) and unknown (absent) cases both stay silent.
 """
 from __future__ import annotations
 
@@ -40,7 +44,7 @@ def _gate():
     return importlib.import_module("lane_handback_gate")
 
 
-# --- classify(): the pure grammar/backtick check --------------------------------------------
+# --- classify(): the pure grammar/code-span check --------------------------------------------
 
 def test_classify_ok_on_a_clean_unwrapped_line():
     g = _gate()
@@ -90,6 +94,18 @@ def test_classify_wrapped_in_an_indented_code_block():
     assert status == g.STATUS_WRAPPED
 
 
+def test_classify_wrapped_in_an_inline_code_span_that_crosses_a_line_break():
+    """terra HIGH (docs/audits/2026-09-25-codex-lane-handback-stop-hook.md): a CommonMark inline
+    code span can itself cross a physical line break -- the newline collapses to a space inside
+    it, so the HANDBACK line's OWN physical line carries no backtick at all. A per-line substring
+    check misses this; the token-based walk (`_prose_and_code_chunks`) does not, because the
+    whole span arrives as one opaque `code_inline` child regardless of how it was wrapped."""
+    g = _gate()
+    text = f"# SESSION\n\n`\n{CLEAN}\n`\n"
+    status, _line = g.classify(text)
+    assert status == g.STATUS_WRAPPED
+
+
 def test_classify_malformed_missing_the_kind_field():
     g = _gate()
     status, line = g.classify("HANDBACK worktree-lane-handback-stop-hook @ abc1234\n")
@@ -103,21 +119,26 @@ def test_classify_malformed_the_word_appears_but_no_shape_matches():
     assert status == g.STATUS_MALFORMED and line is None
 
 
-def test_classify_takes_the_last_line_the_closing_semantics():
-    """An earlier bad candidate does not poison a later clean one -- `last_handback`'s own rule
-    (lane_end_guard.py), applied here too."""
+def test_classify_a_later_clean_line_overrides_an_earlier_bad_one():
+    """The closing-line rule: whatever comes LAST is the verdict, so a stale bad draft earlier
+    in the log never poisons the true closing line (`lane_end_guard.last_handback`'s own rule,
+    applied here too)."""
     g = _gate()
     text = f"`HANDBACK worktree-x @ deadbee1 code`\n\n{CLEAN}\n"
     assert g.classify(text) == (g.STATUS_OK, CLEAN)
 
 
-def test_classify_a_later_wrapped_line_does_not_downgrade_an_earlier_clean_one_missing_case():
-    """The scan still reports the clean line as ok even when a wrapped mention follows it --
-    ok always wins once found, regardless of position."""
+def test_classify_a_later_wrapped_mention_downgrades_an_earlier_clean_line():
+    """terra HIGH (docs/audits/2026-09-25-codex-lane-handback-stop-hook.md): the first cut let
+    ANY clean candidate found anywhere win, so a stray later backtick-wrapped mention of the
+    SAME line -- e.g. someone quoting the already-written closing line back in a later message
+    -- could not downgrade it, contradicting the "last one wins" rule this function documents.
+    The true verdict is whichever candidate is LAST in the document, whatever its shape."""
     g = _gate()
     text = f"{CLEAN}\n\nsee also `{CLEAN}`\n"
     status, line = g.classify(text)
-    assert status == g.STATUS_OK and line == CLEAN
+    assert status == g.STATUS_WRAPPED
+    assert "HANDBACK" in (line or "")
 
 
 # --- reason(): named, directive messages -----------------------------------------------------
@@ -135,12 +156,13 @@ def test_reason_is_empty_for_ok():
     assert g.reason(g.STATUS_OK, CLEAN, "SESSION-x.md") == ""
 
 
-# --- main(): the Done-contract itself ---------------------------------------------------------
+# --- main(): the Done-contract itself, on a FRESH stop attempt --------------------------------
 
 @pytest.fixture()
 def lane(tmp_path: Path) -> dict:
     session = tmp_path / "SESSION-lane-handback-stop-hook.md"
-    env = {"HARNESS_LANE": "lane-handback-stop-hook", "HARNESS_SESSION_FILE": str(session)}
+    env = {"HARNESS_LANE": "lane-handback-stop-hook", "HARNESS_SESSION_FILE": str(session),
+           "HARNESS_STOP_HOOK_ACTIVE": "false"}  # a fresh attempt -- see the fire-once section below
     return {"session": session, "env": env, "root": tmp_path}
 
 
@@ -187,7 +209,7 @@ def test_a_non_lane_session_is_unaffected_even_with_no_handback_at_all(tmp_path,
     .claude/worktrees) with no HARNESS_LANE set must never block, regardless of content."""
     session = tmp_path / "SESSION-not-a-lane.md"
     session.write_text("no handback here\n", encoding="utf-8")
-    env = {"HARNESS_SESSION_FILE": str(session)}
+    env = {"HARNESS_SESSION_FILE": str(session), "HARNESS_STOP_HOOK_ACTIVE": "false"}
     assert _gate().main([], environ=env, root=tmp_path) == 0
     assert capsys.readouterr().out == ""
 
@@ -203,6 +225,60 @@ def test_an_internal_error_never_blocks(lane, monkeypatch, capsys):
     captured = capsys.readouterr()
     assert captured.out == ""
     assert "DEGRADED" in captured.err
+
+
+# --- fire-once: the ADR-85 block-cap safety net ------------------------------------------------
+
+def test_a_retry_attempt_never_blocks_even_with_the_same_bad_line(lane, capsys):
+    """stop_hook_active=True: the host's own automatic retry after THIS hook's last block. A
+    second consecutive block here is exactly what exhausts the cap (ADR-85) -- fire-once must
+    stay silent regardless of the line's shape."""
+    lane["session"].write_text("HANDBACK worktree-x @ abc1234\n", encoding="utf-8")
+    lane["env"]["HARNESS_STOP_HOOK_ACTIVE"] = "true"
+    assert _gate().main([], environ=lane["env"], root=lane["root"]) == 0
+    assert capsys.readouterr().out == ""
+
+
+def test_an_unknown_stop_hook_active_never_blocks_the_structural_floor(lane, capsys):
+    """stop_hook_active absent entirely (e.g. a runtime that never sends the field): the
+    STRUCTURAL FLOOR fails toward silent, not toward unconditional blocking with no reset
+    signal -- the same posture session_end_backpressure.py's own floor takes."""
+    lane["session"].write_text("HANDBACK worktree-x @ abc1234\n", encoding="utf-8")
+    del lane["env"]["HARNESS_STOP_HOOK_ACTIVE"]
+    assert _gate().main([], environ=lane["env"], root=lane["root"]) == 0
+    assert capsys.readouterr().out == ""
+
+
+def test_a_fresh_attempt_after_a_retry_can_block_again(lane, capsys):
+    """A NEW genuine stop attempt (e.g. after a dispatcher nudge) is a fresh False boundary and
+    refuses again if the line is still bad -- fire-once suppresses only the automatic retry
+    chain of ONE attempt, never the next real one."""
+    lane["session"].write_text("HANDBACK worktree-x @ abc1234\n", encoding="utf-8")
+    g = _gate()
+    lane["env"]["HARNESS_STOP_HOOK_ACTIVE"] = "true"
+    assert g.main([], environ=lane["env"], root=lane["root"]) == 0
+    assert capsys.readouterr().out == "", "the retry stayed silent"
+    lane["env"]["HARNESS_STOP_HOOK_ACTIVE"] = "false"
+    assert g.main([], environ=lane["env"], root=lane["root"]) == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["decision"] == "block", "the next fresh attempt refuses again"
+
+
+def test_read_stop_hook_active_reads_real_stdin_json(lane, monkeypatch):
+    """The production path (no HARNESS_STOP_HOOK_ACTIVE override): stdin carries the Stop-hook
+    JSON payload, matching session_end_backpressure.py's own `_read_hook_input` contract."""
+    import io
+    g = _gate()
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps({"stop_hook_active": False})))
+    assert g._read_stop_hook_active({}) is False
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps({"stop_hook_active": True})))
+    assert g._read_stop_hook_active({}) is True
+    monkeypatch.setattr(sys, "stdin", io.StringIO(""))
+    assert g._read_stop_hook_active({}) is None
+    monkeypatch.setattr(sys, "stdin", io.StringIO("not json"))
+    assert g._read_stop_hook_active({}) is None
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps({"other_field": 1})))
+    assert g._read_stop_hook_active({}) is None
 
 
 # --- the declared rows, run as declared -------------------------------------------------------
@@ -236,22 +312,40 @@ def test_no_powershell_in_the_new_entry():
 def test_witness_the_declared_stop_command_refuses_a_malformed_handback_and_passes_a_clean_one(tmp_path):
     """The Done-contract's own words: 'a witness run demonstrates the refusal on a synthetic
     malformed handback and passes on a clean one.' Runs the real script as a subprocess, exactly
-    as the Stop hook invokes it (module entry point, not the test's own main() call)."""
+    as the Stop hook invokes it (module entry point, not the test's own main() call), feeding it
+    the same `{"stop_hook_active": false}` JSON payload the real harness pipes on a fresh
+    attempt."""
     import os as _os
 
     session = tmp_path / "SESSION-lane-handback-stop-hook.md"
     env = {**_os.environ, "HARNESS_LANE": "lane-handback-stop-hook",
            "HARNESS_SESSION_FILE": str(session)}
+    stdin_payload = json.dumps({"stop_hook_active": False})
 
     session.write_text("HANDBACK worktree-lane-handback-stop-hook @ abc1234\n", encoding="utf-8")
-    bad = subprocess.run([sys.executable, str(_GATE)], env=env, input="", capture_output=True,
-                         text=True, timeout=30)
+    bad = subprocess.run([sys.executable, str(_GATE)], env=env, input=stdin_payload,
+                         capture_output=True, text=True, timeout=30)
     assert bad.returncode == 0
     out = json.loads(bad.stdout)
     assert out["decision"] == "block" and "malformed" in out["reason"].lower()
 
     session.write_text(f"{CLEAN}\n", encoding="utf-8")
-    clean = subprocess.run([sys.executable, str(_GATE)], env=env, input="", capture_output=True,
-                           text=True, timeout=30)
+    clean = subprocess.run([sys.executable, str(_GATE)], env=env, input=stdin_payload,
+                           capture_output=True, text=True, timeout=30)
     assert clean.returncode == 0
     assert clean.stdout.strip() == ""
+
+
+def test_witness_a_retry_payload_never_blocks(tmp_path):
+    """The same subprocess path, `stop_hook_active: true`: the fire-once floor holds end to end,
+    not just through the pure-Python main() call."""
+    import os as _os
+
+    session = tmp_path / "SESSION-lane-handback-stop-hook.md"
+    env = {**_os.environ, "HARNESS_LANE": "lane-handback-stop-hook",
+           "HARNESS_SESSION_FILE": str(session)}
+    session.write_text("HANDBACK worktree-x @ abc1234\n", encoding="utf-8")
+    retry = subprocess.run([sys.executable, str(_GATE)], env=env,
+                           input=json.dumps({"stop_hook_active": True}),
+                           capture_output=True, text=True, timeout=30)
+    assert retry.returncode == 0 and retry.stdout.strip() == ""

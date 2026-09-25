@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "c445e50fa6ea6288a877a1e5729e1a66d640085da9caf8e8ba444f224cfe4822",
+  "generated_sha256": "f517b96bdfe8d4cd1eda105d2d014829579afe8fab04046e651119a57e41b8e9",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -960,10 +960,6 @@
     {
       "task": 1008,
       "file": "1008-stale-statement-sweep-reconcile-6-doc-claims-against.md"
-    },
-    {
-      "task": 1010,
-      "file": "1010-a-stop-hook-refuses-to-end-a-lane-session-withou.md"
     },
     {
       "task": 1012,
