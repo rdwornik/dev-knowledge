@@ -83,7 +83,7 @@ def default_out(generated_on: str) -> Path | None:
         else None
 
 
-def _resolve_ref(git: _gd.GitReader, candidates: tuple[str, ...]) -> str | None:
+def _resolve_ref(git: "_gd.GitReader", candidates: tuple[str, ...]) -> str | None:
     """The first candidate ref that actually resolves, or None (never crash on a fresh
     clone / detached checkout with no `main`)."""
     for ref in candidates:
@@ -92,12 +92,12 @@ def _resolve_ref(git: _gd.GitReader, candidates: tuple[str, ...]) -> str | None:
     return None
 
 
-def _merge_base(git: _gd.GitReader, a: str, b: str) -> str | None:
+def _merge_base(git: "_gd.GitReader", a: str, b: str) -> str | None:
     out = git._run("merge-base", a, b)
     return out.strip() if out else None
 
 
-def open_ids_at_ref(repo_root: Path, git: _gd.GitReader, ref: str) -> set[int]:
+def open_ids_at_ref(repo_root: Path, git: "_gd.GitReader", ref: str) -> set[int]:
     """Every task id still open (manifest-referenced) at `ref`. Empty on any read failure --
     an unreadable ref witnesses nothing rather than crashing the scan.
 
@@ -125,7 +125,7 @@ def open_ids_at_ref(repo_root: Path, git: _gd.GitReader, ref: str) -> set[int]:
 
 
 def _log_pairs_for_ref(
-    git: _gd.GitReader, relpath: str, since_rev: str, ref: str
+    git: "_gd.GitReader", relpath: str, since_rev: str, ref: str
 ) -> list[tuple[str, str, str]]:
     """Like `GitReader.log_pairs`, but walking an arbitrary `ref` instead of hardcoded HEAD --
     the one thing this module needs from git history that the reused class does not expose."""
@@ -145,7 +145,7 @@ def _log_pairs_for_ref(
     return pairs
 
 
-def witnessed_closures(repo_root: Path, compare_ref: str) -> list[_gd.ClosedRow]:
+def witnessed_closures(repo_root: Path, compare_ref: str) -> list["_gd.ClosedRow"]:
     """[#730] AX16-2/AX27-5 -- rows this branch (HEAD) still shows OPEN that `compare_ref`
     has already closed, each one witnessed by the exact commit that removed it.
 
@@ -180,7 +180,7 @@ def witnessed_closures(repo_root: Path, compare_ref: str) -> list[_gd.ClosedRow]
     return rows
 
 
-def render_closure_list(rows: list[_gd.ClosedRow], compare_ref: str, generated_on: str) -> str:
+def render_closure_list(rows: list["_gd.ClosedRow"], compare_ref: str, generated_on: str) -> str:
     lines = [
         f"# Closure list -- {generated_on}",
         "",

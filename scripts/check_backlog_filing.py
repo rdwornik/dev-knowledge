@@ -30,18 +30,18 @@ import sys
 
 # Added / removed task-id LINES in a `git diff -U0` (bullet `- [#id]` => `+- [#id]`).
 # Group 1 = the full added bullet line (sans the `+`); group 2 = the id.
-_ADDED_LINE_RE = re.compile(r"^\+(- \[#(\d+)\].*)$", re.MULTILINE)
-_REMOVED_ID_RE = re.compile(r"^-- \[#(\d+)\]", re.MULTILINE)
+_ADDED_LINE_RE = re.compile(r"^\+(- \[#(\d+)\].*)$", re.M)
+_REMOVED_ID_RE = re.compile(r"^-- \[#(\d+)\]", re.M)
 
 # Leg 1 -- a `kill-candidates:` line naming >=1 `#id` OR the `none -- <reason>` form.
-_KILL_RE = re.compile(r"^kill-candidates:\s*(none\b.*|.*#\d+.*)$", re.MULTILINE | re.IGNORECASE)
+_KILL_RE = re.compile(r"^kill-candidates:\s*(none\b.*|.*#\d+.*)$", re.M | re.I)
 
 # Leg 3 (#279) -- size-L band `[P{1-3}][L]` (witnessed BACKLOG format, e.g. `[P2][L]`).
 # An `intake` mention satisfies the citation (also matches the `intake: n/a -- reason`
 # escape); a residual/bugfix keyword exempts the filing entirely.
 _LBAND_RE = re.compile(r"\[P[1-3]\]\[L\]")
-_INTAKE_RE = re.compile(r"intake", re.IGNORECASE)
-_EXEMPT_RE = re.compile(r"\b(bugfix|chore|residual|fix follow-up)\b", re.IGNORECASE)
+_INTAKE_RE = re.compile(r"intake", re.I)
+_EXEMPT_RE = re.compile(r"\b(bugfix|chore|residual|fix follow-up)\b", re.I)
 
 
 def check(msg, diff):

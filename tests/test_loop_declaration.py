@@ -196,8 +196,8 @@ def test_lane_end_declares_a_handback_precondition_and_the_report_continues_on_f
     moment = _moment("lane-end")
     pre = moment["precondition"]
     assert pre["file"] == "{session_file}" and pre["receipt"] == "MOMENT-LANE-END-PRECONDITION.json"
-    assert re.search(pre["matches"], _HANDBACK, re.MULTILINE), "the declared pattern must match a real HANDBACK line"
-    assert not re.search(pre["matches"], "no closing line here", re.MULTILINE)
+    assert re.search(pre["matches"], _HANDBACK, re.M), "the declared pattern must match a real HANDBACK line"
+    assert not re.search(pre["matches"], "no closing line here", re.M)
     ids = [o["id"] for o in moment["organs"]]
     assert "digest" not in ids, "the digest moved to batch-close (R-W3-3)"
     report = _organ("lane-end", "transport_report")

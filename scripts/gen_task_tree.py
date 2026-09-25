@@ -412,14 +412,14 @@ def derive_title(raw: str) -> str:
         end = rest.find("**", 2)
         if end != -1:
             title = rest[2:end].strip()
-            return title or "task"
+            return title if title else "task"
     cut = len(rest)
     for delim in _TITLE_FALLBACK_DELIMS:
         idx = rest.find(delim)
         if idx != -1 and idx < cut:
             cut = idx
     title = rest[:cut].replace("*", "").strip()
-    return title or "task"
+    return title if title else "task"
 
 
 def slugify(title: str) -> str:
@@ -427,7 +427,7 @@ def slugify(title: str) -> str:
     slug = slug.strip("-")
     slug = re.sub(r"-+", "-", slug)
     slug = slug[:48].rstrip("-")
-    return slug or "task"
+    return slug if slug else "task"
 
 
 def task_filename(task: TaskRow) -> str:

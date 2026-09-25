@@ -52,7 +52,7 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from collections.abc import Callable
+from typing import Callable
 
 import rustworkx
 

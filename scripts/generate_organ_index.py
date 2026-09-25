@@ -797,7 +797,7 @@ _HOOK_CLASSES = ("git-hook", "session-hook")
 
 def _arming_word(status: str) -> str:
     """`MANUAL until 2026-10-04` -> `MANUAL`: the verdict without its date."""
-    return status.split(maxsplit=1)[0] if status.split() else ""
+    return status.split()[0] if status.split() else ""
 
 
 def index_arming_claims(text: str) -> dict[tuple[str, str, str], str]:

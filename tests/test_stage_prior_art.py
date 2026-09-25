@@ -208,7 +208,7 @@ def test_a_non_ascii_snippet_survives_a_piped_windows_stdout(repo):
     proc = subprocess.run([sys.executable, str(_SCRIPTS / "stage_prior_art.py"), "emit", "--subject",
                            "zyxwarrow", "--root", str(repo)], capture_output=True, timeout=60)
     assert proc.returncode == 0, proc.stderr.decode("utf-8", "replace")
-    assert "→ zyxwarrow".encode() in proc.stdout
+    assert "→ zyxwarrow".encode("utf-8") in proc.stdout
 
 
 def test_its_own_runtime_is_recorded(repo):

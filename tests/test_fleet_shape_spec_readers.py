@@ -157,9 +157,9 @@ def test_one_doctored_load_proves_every_load_time_clause_is_read(tmp_path):
     try:
         # root_allowlist / genre_folders / naming_grammar / home_grammar.patterns -- the
         # four already-read clauses, re-proven here so the census is one surface.
-        assert frozenset({"scripts", "warehouse"}) == doctored.SANCTIONED_TIER1_DIRS
-        assert frozenset({"ledgers"}) == doctored.SANCTIONED_GENRES
-        assert frozenset({"inventory"}) == doctored.AUDIT_CLASS_ENUM
+        assert doctored.SANCTIONED_TIER1_DIRS == frozenset({"scripts", "warehouse"})
+        assert doctored.SANCTIONED_GENRES == frozenset({"ledgers"})
+        assert doctored.AUDIT_CLASS_ENUM == frozenset({"inventory"})
         assert doctored._HOME_PATTERNS == ("warehouse", "warehouse/**", "bays", "crates")
 
         # python_layout -- NEWLY read. The declared layout selects the source home.

@@ -76,7 +76,7 @@ import importlib.util
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import yaml
 
@@ -133,9 +133,9 @@ class Candidate:
     """One provider the router WOULD route to, in rank order."""
 
     provider: str
-    model: str | None
+    model: Optional[str]
     position: int
-    note: str | None = None
+    note: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -149,13 +149,13 @@ class Verdict:
     """
 
     provider: str
-    model: str | None
+    model: Optional[str]
     position: int
-    refusal: str | None
+    refusal: Optional[str]
     reason: str
 
 
-def manifest_path(path: Path | None = None) -> Path:
+def manifest_path(path: Optional[Path] = None) -> Path:
     if path is not None:
         return Path(path)
     override = os.environ.get(MANIFEST_PATH_ENV)
@@ -164,7 +164,7 @@ def manifest_path(path: Path | None = None) -> Path:
     return _REPO_ROOT / MANIFEST_RELPATH
 
 
-def allowlist(repo: str, path: Path | None = None) -> list[str]:
+def allowlist(repo: str, path: Optional[Path] = None) -> list[str]:
     """The providers `repo` may reach — AX22-5's per-repo list, from the deploy manifest.
 
     An UNLISTED repo falls to `providers.default`, which is `[anthropic]`. The default is the
@@ -189,7 +189,7 @@ def allowlist(repo: str, path: Path | None = None) -> list[str]:
     return list(providers.get("default") or [])
 
 
-def declared_order(role: str, registry_path: Path | None = None) -> list[dict[str, Any]]:
+def declared_order(role: str, registry_path: Optional[Path] = None) -> list[dict[str, Any]]:
     """The registry's DECLARED order for `role` — before any gate, before any re-rank.
 
     Exposed because a report needs to show what was declared alongside what survived; a reader
@@ -201,7 +201,7 @@ def declared_order(role: str, registry_path: Path | None = None) -> list[dict[st
         raise RouterRefusal(str(exc)) from exc
 
 
-def _role_spec(role: str, registry_path: Path | None = None) -> dict[str, Any]:
+def _role_spec(role: str, registry_path: Optional[Path] = None) -> dict[str, Any]:
     spec = _registry.roles(registry_path).get(role)
     if spec is None:
         raise RouterRefusal(
@@ -215,9 +215,9 @@ def explain(
     role: str,
     repo: str,
     *,
-    produced_by: str | None = None,
-    registry_path: Path | None = None,
-    manifest: Path | None = None,
+    produced_by: Optional[str] = None,
+    registry_path: Optional[Path] = None,
+    manifest: Optional[Path] = None,
 ) -> list[Verdict]:
     """Every declared candidate for `role` in `repo`, each with its disposition.
 
@@ -296,9 +296,9 @@ def route(
     role: str,
     repo: str,
     *,
-    produced_by: str | None = None,
-    registry_path: Path | None = None,
-    manifest: Path | None = None,
+    produced_by: Optional[str] = None,
+    registry_path: Optional[Path] = None,
+    manifest: Optional[Path] = None,
     strict: bool = True,
 ) -> list[Candidate]:
     """The eligible candidates for `role` in `repo`, in declared rank order.
@@ -333,19 +333,19 @@ def record_routing_call(
     *,
     role: str,
     provider: str,
-    model: str | None = None,
+    model: Optional[str] = None,
     outcome: str = "unknown",
-    cost_usd: float | None = None,
-    input_tokens: int | None = None,
-    output_tokens: int | None = None,
-    duration_ms: int | None = None,
-    reviewed_by: str | None = None,
-    repo: str | None = None,
-    lane_id: str | None = None,
-    batch_id: str | None = None,
-    registry_path: Path | None = None,
-    manifest: Path | None = None,
-    db_path: Path | None = None,
+    cost_usd: Optional[float] = None,
+    input_tokens: Optional[int] = None,
+    output_tokens: Optional[int] = None,
+    duration_ms: Optional[int] = None,
+    reviewed_by: Optional[str] = None,
+    repo: Optional[str] = None,
+    lane_id: Optional[str] = None,
+    batch_id: Optional[str] = None,
+    registry_path: Optional[Path] = None,
+    manifest: Optional[Path] = None,
+    db_path: Optional[Path] = None,
 ) -> int | None:
     """Record one routed call in the tally the re-rank reads — AX21-2's write half.
 
@@ -443,7 +443,7 @@ class ProviderStats:
     cost_usd: float
 
     @property
-    def pass_rate(self) -> float | None:
+    def pass_rate(self) -> Optional[float]:
         """`passed / judged`, or `None` when nothing has been judged.
 
         `None` rather than `0.0`: a provider nobody has judged has NO measured rate, and a zero
@@ -453,11 +453,11 @@ class ProviderStats:
         return (self.passed / self.judged) if self.judged else None
 
     @property
-    def mean_cost(self) -> float | None:
+    def mean_cost(self) -> Optional[float]:
         return (self.cost_usd / self.calls) if self.calls and self.cost_usd else None
 
     @property
-    def score(self) -> float | None:
+    def score(self) -> Optional[float]:
         """Pass rate per cost — `None` when either term is unmeasured. See the section note."""
         rate, cost = self.pass_rate, self.mean_cost
         if rate is None or cost is None:
@@ -492,7 +492,7 @@ class AdmissionRow:
     basis: str
 
 
-def measure(role: str, db_path: Path | None = None) -> dict[str, ProviderStats]:
+def measure(role: str, db_path: Optional[Path] = None) -> dict[str, ProviderStats]:
     """Per-provider stats for `role`, from the `genai_spans` tally.
 
     Reads the store `cost_usage_telemetry` writes and `record_routing_call` feeds. An absent
@@ -555,9 +555,9 @@ def rerank(
     role: str,
     repo: str,
     *,
-    db_path: Path | None = None,
-    registry_path: Path | None = None,
-    manifest: Path | None = None,
+    db_path: Optional[Path] = None,
+    registry_path: Optional[Path] = None,
+    manifest: Optional[Path] = None,
     min_sample: int = DEFAULT_MIN_SAMPLE,
 ) -> RerankResult:
     """Re-rank `role`'s eligible candidates by measured pass rate per cost — AX21-2.
@@ -614,7 +614,7 @@ def rerank(
                f"declared position"))
 
 
-def admission_report(registry_path: Path | None = None) -> list[AdmissionRow]:
+def admission_report(registry_path: Optional[Path] = None) -> list[AdmissionRow]:
     """Each provider's RECORDED admission state and licence — the contract's step 5, part two.
 
     *"Report each provider's recorded admission state ... and reporting it is not the same act
@@ -674,7 +674,7 @@ if click is not None:
 
     @cli.command(name="report")
     @click.option("--registry", type=click.Path(path_type=Path), default=None)
-    def _report(registry: Path | None) -> None:
+    def _report(registry: Optional[Path]) -> None:
         """Each provider's RECORDED admission state and licence."""
         click.echo("Recorded admission state -- NOT a measurement (AX22-1's bar is Half B's).")
         click.echo("")
@@ -686,7 +686,7 @@ if click is not None:
     @click.argument("role")
     @click.option("--repo", default=".dev-knowledge", show_default=True)
     @click.option("--produced-by", default=None)
-    def _route(role: str, repo: str, produced_by: str | None) -> None:
+    def _route(role: str, repo: str, produced_by: Optional[str]) -> None:
         """Who answers ROLE in --repo, and every candidate refused, with its reason."""
         for verdict in explain(role, repo, produced_by=produced_by):
             mark = "OK " if verdict.refusal is None else f"{verdict.refusal}:"
@@ -709,27 +709,27 @@ else:  # pragma: no cover
 
 __all__ = [
     "ADMISSION_GATED_ROLES",
+    "AdmissionRow",
     "DEFAULT_MIN_SAMPLE",
+    "ProviderStats",
+    "RerankResult",
+    "admission_report",
+    "cli",
+    "measure",
+    "rank_by_score",
+    "rerank",
+    "main",
+    "Candidate",
     "MANIFEST_PATH_ENV",
     "MANIFEST_RELPATH",
     "PERMITTING_LICENCE",
-    "AdmissionRow",
-    "Candidate",
-    "ProviderStats",
-    "RerankResult",
     "RouterRefusal",
     "Verdict",
-    "admission_report",
     "allowlist",
-    "cli",
     "declared_order",
     "explain",
-    "main",
     "manifest_path",
-    "measure",
-    "rank_by_score",
     "record_routing_call",
-    "rerank",
     "route",
 ]
 

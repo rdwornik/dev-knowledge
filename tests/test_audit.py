@@ -2957,8 +2957,8 @@ def test_routine_consumers_punctuation_only_value_fails(tmp_path: Path) -> None:
 
 
 def test_routine_consumers_zero_width_value_is_blank(tmp_path: Path) -> None:
-    f = _rt(tmp_path, "- [#705] p · routine: trigger=x · consumer=\u200b "
-                      "· consumption_path=\u200b")
+    f = _rt(tmp_path, "- [#705] p · routine: trigger=x · consumer=​ "
+                      "· consumption_path=​")
     assert f.status == "fail"
 
 

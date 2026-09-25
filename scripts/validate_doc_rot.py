@@ -93,6 +93,7 @@ import sys
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
+from typing import Optional
 
 # CLOUD-4 v2 (R2 §1.5 GO-b) — canonical filenames come from the one registry. Dual-import
 # mirrors this module's existing `scripts.toc` / `toc` shape: run as `python
@@ -267,7 +268,7 @@ def _history_dates(line: str, today: date) -> list[date]:
     return sorted(out)
 
 
-def _percentile(sorted_vals: list[int], pct: int) -> int | None:
+def _percentile(sorted_vals: list[int], pct: int) -> Optional[int]:
     """The NEAREST-RANK percentile of an already-sorted list, or None when it is empty.
 
     Nearest rank, never interpolated: every percentile this module reports is therefore a
@@ -297,7 +298,7 @@ _PRIOR_CORPUS_COUNT_RE = re.compile(r"(\d+) of \d+ rows over the declared ceilin
 _PRIOR_PER_ROW_MARK = "backlog-row-length BACKLOG#"
 
 
-def _prior_row_length_count(repo_root: Path) -> int | None:
+def _prior_row_length_count(repo_root: Path) -> Optional[int]:
     """The previous run's count of rows over the ceiling, or None if nothing recorded one.
 
     None and 0 are DIFFERENT and the difference is the whole function. A state file with no
@@ -332,7 +333,7 @@ def _prior_row_length_count(repo_root: Path) -> int | None:
 
 
 def _row_length_finding(all_lengths: list[int], over: list[int],
-                        prior_count: int | None) -> RotFinding:
+                        prior_count: Optional[int]) -> RotFinding:
     """ARM 2's ONE corpus-level Finding — the count, the shape, and the direction.
 
     Three terms, and each answers a question the per-row form could not:
@@ -366,8 +367,8 @@ def _row_length_finding(all_lengths: list[int], over: list[int],
         f"trend: {trend}")
 
 
-def scan_backlog_accretion(backlog_text: str, today: date | None = None,
-                           prior_count: int | None = None) -> list[RotFinding]:
+def scan_backlog_accretion(backlog_text: str, today: Optional[date] = None,
+                           prior_count: Optional[int] = None) -> list[RotFinding]:
     """The BACKLOG row scanner — TWO independently-named arms over the same single pass.
 
     Each arm emits its OWN category so the output always says which contract was breached
@@ -440,7 +441,7 @@ def scan_backlog_accretion(backlog_text: str, today: date | None = None,
     return out
 
 
-def _count_history_entries(text: str) -> int | None:
+def _count_history_entries(text: str) -> Optional[int]:
     """Entries in a doc's FIRST Section-history / changelog block, or None if it has none.
 
     A block = the bullets (`- `) from a history heading to the next heading of the same-or-
@@ -508,7 +509,7 @@ def scan_file_budget(rel: str, text: str, budget: int) -> list[RotFinding]:
     return []
 
 
-def _latest_groom_date(backlog_text: str, today: date) -> date | None:
+def _latest_groom_date(backlog_text: str, today: date) -> Optional[date]:
     """The most-recent past grooming date on the BACKLOG 'Grooming log' line, or None.
 
     The 'Next quarterly:' target date is excluded **regardless of past or future** — it
@@ -551,7 +552,7 @@ def scan_grooming_cadence(backlog_text: str, today: date) -> list[RotFinding]:
 # --- scan (pure orchestration) ----------------------------------------------
 
 # rule: coherence-doc-rot
-def scan(repo_root: Path, *, today: date | None = None) -> list[RotFinding]:
+def scan(repo_root: Path, *, today: Optional[date] = None) -> list[RotFinding]:
     """Run every sub-detector against the repo; return one RotFinding per rot locus.
 
     Read-only. An empty list = clean (the audit adapter synthesizes the `pass` Finding).

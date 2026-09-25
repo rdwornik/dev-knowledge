@@ -257,14 +257,14 @@ NO_STATED_PURPOSE = "<no stated purpose>"
 
 # ------------------------------------------------------------------------------ small parsers
 
-_H1_RE = re.compile(r"^#\s+(?P<title>.+?)\s*$", re.MULTILINE)
-_FRONTMATTER_RE = re.compile(r"\A---\r?\n(?P<body>.*?)\r?\n---\r?\n", re.DOTALL)
+_H1_RE = re.compile(r"^#\s+(?P<title>.+?)\s*$", re.M)
+_FRONTMATTER_RE = re.compile(r"\A---\r?\n(?P<body>.*?)\r?\n---\r?\n", re.S)
 _TASK_ID_RE = re.compile(r"\[#(\d+)\]")
 _ADR_RE = re.compile(r"\bADR-(\d+)(?![0-9])")
-_INTAKE_RE = re.compile(r"\bintake\s+#(\d+)", re.IGNORECASE)
+_INTAKE_RE = re.compile(r"\bintake\s+#(\d+)", re.I)
 _WF_RE = re.compile(r"\b(wf-[0-9a-f]{6,})\b")
 #: A generated-index row: `- [2026-08-29](2026-08-29-slug.md) - Title`. Link target only.
-_INDEX_ROW_RE = re.compile(r"^\s*[-*]\s*\[[^\]]*\]\((?P<target>[^)]+)\)", re.MULTILINE)
+_INDEX_ROW_RE = re.compile(r"^\s*[-*]\s*\[[^\]]*\]\((?P<target>[^)]+)\)", re.M)
 _MANIFEST_VERSION_RE = re.compile(r"manifest-v(?P<v>[0-9]+(?:\.[0-9]+)*)\.yaml$")
 _STANDING_RULINGS_PATH = "protocols/STANDING_RULINGS.md"
 

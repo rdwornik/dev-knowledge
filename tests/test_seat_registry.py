@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import json
 import sys
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -36,7 +36,7 @@ if str(_SCRIPTS) not in sys.path:
 import seat_registry as reg  # noqa: E402
 from seat_refusals import SeatRefusal  # noqa: E402
 
-T0 = datetime(2026, 9, 17, 10, 47, tzinfo=UTC)
+T0 = datetime(2026, 9, 17, 10, 47, tzinfo=timezone.utc)
 LANE_CWD = "C:/Dev/.dev-knowledge/.claude/worktrees/lane-ab-833-seat-registry"
 
 
@@ -312,7 +312,7 @@ def test_fleet_health_surfaces_a_wedged_integrator_at_session_start(tmp_path, mo
     import fleet_health
     path = tmp_path / "seats.jsonl"
     monkeypatch.setattr(reg, "REGISTRY_PATH", path)
-    then = datetime.now(UTC) - timedelta(minutes=reg.WEDGED_AFTER_MIN + 15)
+    then = datetime.now(timezone.utc) - timedelta(minutes=reg.WEDGED_AFTER_MIN + 15)
     reg.record_event({"hook_event_name": "SessionStart", "session_id": "int-wedged",
                       "cwd": str(tmp_path)}, now=then, env={"CLAUDE_PID": str(os.getpid())})
     reg.bind("integrator", "AB", session_id="int-wedged", now=then)

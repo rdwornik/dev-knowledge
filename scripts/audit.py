@@ -46,8 +46,9 @@ from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
-from datetime import date, datetime, UTC
+from datetime import date, datetime, timezone
 from pathlib import Path
+from typing import Optional
 
 import click
 import yaml
@@ -510,7 +511,7 @@ class RepoState:
     """
     name: str
     path: str
-    last_audit: str | None
+    last_audit: Optional[str]
     findings: list[Finding] = field(default_factory=list)
 
     def to_dict(self) -> dict:
@@ -525,7 +526,7 @@ class RepoState:
         }
 
     @classmethod
-    def from_dict(cls, d: dict) -> RepoState:
+    def from_dict(cls, d: dict) -> "RepoState":
         findings = [
             Finding(f["check_name"], f["status"], f["evidence"])
             for f in d.get("findings", [])
@@ -546,7 +547,7 @@ def _history_path(repo_name: str, run_date: date) -> Path:
     return ECOSYSTEM_DIR / repo_name / "history" / f"{run_date.isoformat()}.md"
 
 
-def load_state(repo_name: str) -> RepoState | None:
+def load_state(repo_name: str) -> Optional[RepoState]:
     p = _state_path(repo_name)
     if not p.exists():
         return None
@@ -661,10 +662,10 @@ def repo_root_env_var(repo_name: str) -> str:
 
 def resolve_repo_path(
     repo_name: str,
-    stored_path: str | None,
+    stored_path: Optional[str],
     *,
-    explicit: str | None = None,
-    env: Mapping[str, str] | None = None,
+    explicit: Optional[str] = None,
+    env: Optional[Mapping[str, str]] = None,
 ) -> Path:
     """The tree to audit for `repo_name` — the seam where the hub finds itself.
 
@@ -865,20 +866,20 @@ class DerivationRefused(RuntimeError):
 class DocFreshness:
     """One living doc's declared-vs-derived freshness row. The doctrine table's record type."""
     path: str
-    declared: date | None
+    declared: Optional[date]
     surface: str
-    derived: date | None
-    derived_sha: str | None
+    derived: Optional[date]
+    derived_sha: Optional[str]
     touch_skipped: int
     refined: bool
     gated: bool
-    version: str | None
+    version: Optional[str]
     doc_class: str
-    stamp_sha: str | None = None      # the commit that SET the current declared stamp
+    stamp_sha: Optional[str] = None      # the commit that SET the current declared stamp
     unreviewed_after_stamp: int = 0      # CONTENT commits ordered after it - the same-day hole
 
     @property
-    def delta_days(self) -> int | None:
+    def delta_days(self) -> Optional[int]:
         """Derived minus declared, in days. Positive = content is newer than its review."""
         if self.declared is None or self.derived is None:
             return None
@@ -918,7 +919,7 @@ class DocFreshness:
         ).replace("|", "/")
 
 
-def parse_declared_freshness(text: str) -> tuple[date | None, str]:
+def parse_declared_freshness(text: str) -> tuple[Optional[date], str]:
     """The date a doc DECLARES it was last reviewed, and which surface declared it.
 
     Two surfaces exist and they are NOT interchangeable: frontmatter `last_reviewed` is
@@ -957,7 +958,7 @@ def _frontmatter_map(text: str) -> dict:
     return fm if isinstance(fm, dict) else {}
 
 
-def parse_declared_version(text: str) -> str | None:
+def parse_declared_version(text: str) -> Optional[str]:
     """The version a doctrine doc declares, or None.
 
     A DOC'S OWN VERSION OUTRANKS THE SPEC IT RECONCILES AGAINST, and the order matters for the
@@ -987,7 +988,7 @@ def parse_declared_version(text: str) -> str | None:
     return str(reconciled) if reconciled is not None else None
 
 
-def _derive_git(repo_path, args: list[str]) -> str | None:
+def _derive_git(repo_path, args: list[str]) -> Optional[str]:
     """One read-only git call under the [#396] location scrub, or None on any failure.
 
     The scrub is not optional here: an inherited `GIT_DIR` overrides BOTH `cwd=` and `git -C`,
@@ -1004,7 +1005,7 @@ def _derive_git(repo_path, args: list[str]) -> str | None:
     return p.stdout if p.returncode == 0 else None
 
 
-def _git_is_shallow(repo_path) -> bool | None:
+def _git_is_shallow(repo_path) -> Optional[bool]:
     """True/False for a resolvable git repo; None when git is absent or this is not a repo."""
     out = _derive_git(repo_path, ["rev-parse", "--is-shallow-repository"])
     return None if out is None else out.strip() == "true"
@@ -1055,7 +1056,7 @@ def _parse_unified_zero(body: str) -> tuple[tuple, tuple, bool]:
     return tuple(hunks), tuple(changed), created
 
 
-def _classify_touch(hunks, changed, created, blobs) -> str | None:
+def _classify_touch(hunks, changed, created, blobs) -> Optional[str]:
     """The ONE CONTENT-vs-TOUCH classifier. Done-contract item 2.
 
     A whitespace, regeneration or index-refresh commit does not invalidate a review; a delta
@@ -1199,7 +1200,7 @@ def _blob_pair(repo_path, sha: str, path: str):
     return read
 
 
-def _touch_reason(repo_path, sha: str, path: str) -> str | None:
+def _touch_reason(repo_path, sha: str, path: str) -> Optional[str]:
     """Why commit `sha` is a TOUCH of `path` — or None, meaning it is CONTENT.
 
     The single-commit feed into `_classify_touch`. `derive_doc_freshness` uses the batched
@@ -1215,7 +1216,7 @@ def _touch_reason(repo_path, sha: str, path: str) -> str | None:
     return _classify_touch(hunks, changed, created, _blob_pair(repo_path, sha, path))
 
 
-def _declared_stamp_needle(text: str) -> str | None:
+def _declared_stamp_needle(text: str) -> Optional[str]:
     """The literal stamp LINE a doc declares — the string whose introduction dates its review.
 
     The LINE, not the date: a bare `2026-08-29` would match any commit that changed how often
@@ -1231,7 +1232,7 @@ def _declared_stamp_needle(text: str) -> str | None:
     return m.group(0) if m else None
 
 
-def _stamp_setting_commit(needle: str, diffs: list[_CommitDiff]) -> str | None:
+def _stamp_setting_commit(needle: str, diffs: list[_CommitDiff]) -> Optional[str]:
     """The commit that SET the doc's current stamp — its review's identity.
 
     The newest commit whose diff ADDS the stamp line. That is precisely what `git log -S`
@@ -1270,7 +1271,7 @@ def _unreviewed_after_stamp(repo_path, path: str, setter: str,
 
 
 def _last_content_commit(repo_path, path: str,
-                         diffs: list[_CommitDiff] | None = None):
+                         diffs: Optional[list[_CommitDiff]] = None):
     """`(sha, date, touch_skipped)` for the newest CONTENT commit touching `path`.
 
     Walks newest-first and STOPS at the first CONTENT commit. `diffs` is the pre-batched index;
@@ -1568,7 +1569,7 @@ def check_generated_artifact_freshness(repo_path: Path) -> list[Finding]:
     return findings
 
 
-def _git_registered_worktrees(repo_path: Path) -> set[str] | None:
+def _git_registered_worktrees(repo_path: Path) -> Optional[set[str]]:
     """Normcased absolute paths of every git worktree registered for `repo_path`.
 
     Read-only (`git worktree list --porcelain`). Returns None when git is absent or the
@@ -1597,7 +1598,7 @@ def _git_registered_worktrees(repo_path: Path) -> set[str] | None:
     return registered
 
 
-def _git_repo_root_name(repo_path: Path) -> str | None:
+def _git_repo_root_name(repo_path: Path) -> Optional[str]:
     """Directory name of the MAIN worktree (repo root) for `repo_path`.
 
     A linked worktree's own basename is a throwaway (`.dev-knowledge-<topic>`); the durable
@@ -1714,7 +1715,7 @@ def check_no_sibling_orphans(repo_path: Path) -> list[Finding]:
 _STALE_WORKTREE_HORIZON_DAYS = 7
 
 
-def _git_commit_epoch(repo_path: Path, rev: str | None) -> int | None:
+def _git_commit_epoch(repo_path: Path, rev: Optional[str]) -> Optional[int]:
     """Committer epoch of `rev`, or None when it cannot be read.
 
     None is a real answer, not an error code: the caller reports an unreadable date as
@@ -1734,7 +1735,7 @@ def _git_commit_epoch(repo_path: Path, rev: str | None) -> int | None:
         return None
 
 
-def _git_linked_worktrees(repo_path: Path) -> list[dict] | None:
+def _git_linked_worktrees(repo_path: Path) -> Optional[list[dict]]:
     """Every LINKED worktree of `repo_path` — the main one is excluded — carrying the two facts
     staleness needs: whether the directory still exists, and when its checked-out tip was
     committed.
@@ -1761,7 +1762,7 @@ def _git_linked_worktrees(repo_path: Path) -> list[dict] | None:
     consumer degrades gracefully (the check is then n/a) — the `_git_registered_worktrees`
     contract.
     """
-    def _run(extra: list[str]) -> subprocess.CompletedProcess | None:
+    def _run(extra: list[str]) -> Optional[subprocess.CompletedProcess]:
         try:
             return subprocess.run(
                 ["git", "-C", str(repo_path), "worktree", "list", "--porcelain", *extra],
@@ -1811,7 +1812,7 @@ def _git_linked_worktrees(repo_path: Path) -> list[dict] | None:
     return out
 
 
-def _git_stash_entries(repo_path: Path) -> list[str] | None:
+def _git_stash_entries(repo_path: Path) -> Optional[list[str]]:
     """Every entry in the repository's stash, one string per entry, newest first.
 
     WHY THIS IS A SEPARATE READER FROM THE WORKTREE ONE, and why the leg it feeds exists at
@@ -1890,7 +1891,7 @@ def _stash_findings(repo_path: Path, git_known_good: bool = False) -> list[Findi
                     .replace("|", "/"))]
 
 
-def check_stale_worktrees(repo_path: Path, now: float | None = None) -> list[Finding]:
+def check_stale_worktrees(repo_path: Path, now: Optional[float] = None) -> list[Finding]:
     """[#505] batch hygiene — WARN on a linked worktree no live batch owns (ADR-110 §1 item 4).
 
     THE GAP THIS COVERS, and why `check_no_sibling_orphans` above does not: that check looks for
@@ -1950,7 +1951,7 @@ def check_stale_worktrees(repo_path: Path, now: float | None = None) -> list[Fin
                         "no linked worktrees registered (primary only) - nothing to close out"),
                 *stash]
     if now is None:
-        now = datetime.now(UTC).timestamp()
+        now = datetime.now(timezone.utc).timestamp()
     horizon_secs = _STALE_WORKTREE_HORIZON_DAYS * 86400
     problems: list[str] = []
     live = 0
@@ -2408,7 +2409,7 @@ def _chunk_pathspecs(paths: list[str]) -> list[list[str]]:
 
 def _select_active_bundle(
     repo_path: Path, candidates: list[Path]
-) -> tuple[Path | None, str, str]:
+) -> tuple[Optional[Path], str, str]:
     """Pick the ACTIVE handoff bundle from `candidates` by GIT ADD DATE, not slug order.
 
     Returns ``(bundle, kind, detail)`` where kind is one of:
@@ -2440,7 +2441,7 @@ def _select_active_bundle(
     scrub = _git_location_env()
     env = {k: v for k, v in os.environ.items() if k not in scrub}
 
-    def _run(args: list[str]) -> str | None:
+    def _run(args: list[str]) -> Optional[str]:
         try:
             p = subprocess.run(["git", "-C", str(repo_path), *args], capture_output=True,
                                text=True, encoding="utf-8", errors="replace", env=env)
@@ -2507,7 +2508,7 @@ def _select_active_bundle(
             # optimisation must not change a failure mode, and it must never fall back to
             # the lexical heuristic -- that fallback IS the defect this function replaced.
             return None, "degraded", f"batched git log failed for {len(chunk)} bundle path(s)"
-        stamp: int | None = None
+        stamp: Optional[int] = None
         for line in out.splitlines():
             if line.startswith("\x02"):
                 try:
@@ -3140,7 +3141,7 @@ def check_doc_code_coverage_drift(repo_path: Path) -> list[Finding]:
 
 
 def _fleet_parity_findings(parity_findings, register: dict,
-                           fail_verdicts: set, warn_verdicts: set) -> list[Finding]:
+                           fail_verdicts: set, warn_verdicts: set) -> list["Finding"]:
     """Testable core of check_fleet_parity ([#337]): map fleet_parity ParityFinding verdicts
     to gating Findings. ONE Finding PER blocking row (disposition contract, Codex CRITICAL
     2026-06-10) -- a register entry keys on check_name='fleet_parity' + a substring of THIS
@@ -3450,7 +3451,7 @@ _IMPORT_RE = re.compile(r"(?<!\S)@([A-Za-z0-9_~./\\-]+)")
 _IMPORT_MAX_DEPTH = 5  # Claude Code resolves @imports recursively up to 5 hops
 
 
-def _blank_preserving_lines(match: re.Match[str]) -> str:
+def _blank_preserving_lines(match: "re.Match[str]") -> str:
     """Replace a multi-line match with the same number of newlines (keeps line nos)."""
     return "\n" * match.group(0).count("\n")
 
@@ -3604,7 +3605,7 @@ def _index_worktree_divergence(repo_path: Path, *paths: str) -> tuple[str, list[
     return ("diverged", divergent) if divergent else ("ok", [])
 
 
-def _load_silent_rule_baseline(repo_path: Path) -> dict | None:
+def _load_silent_rule_baseline(repo_path: Path) -> Optional[dict]:
     """Read ecosystem/silent-rule-baseline.yaml. Returns None when absent/malformed.
 
     Fail-soft to None rather than raising: an unreadable baseline must surface as an
@@ -3621,7 +3622,7 @@ def _load_silent_rule_baseline(repo_path: Path) -> dict | None:
 _BASELINE_REFS = ("origin/main", "main")
 
 
-def _git(repo_path: Path, *args: str) -> subprocess.CompletedProcess | None:
+def _git(repo_path: Path, *args: str) -> Optional[subprocess.CompletedProcess]:
     """Run a git command, or None if git itself could not be invoked."""
     try:
         return subprocess.run(["git", *args], cwd=str(repo_path), capture_output=True,
@@ -3630,7 +3631,7 @@ def _git(repo_path: Path, *args: str) -> subprocess.CompletedProcess | None:
         return None
 
 
-def _target_baseline_state(repo_path: Path) -> tuple[str, int | None, str | None]:
+def _target_baseline_state(repo_path: Path) -> tuple[str, Optional[int], Optional[str]]:
     """The baseline on the INTEGRATION TARGET as a PROVEN state, not an inference.
 
     Returns one of:
@@ -3677,7 +3678,7 @@ def _target_baseline_state(repo_path: Path) -> tuple[str, int | None, str | None
     return "valid", value, detector
 
 
-def _ref_baseline_state(repo_path: Path, ref: str) -> tuple[str, int | None, str | None]:
+def _ref_baseline_state(repo_path: Path, ref: str) -> tuple[str, Optional[int], Optional[str]]:
     """One ref's baseline state: unresolved / absent / valid / invalid.
 
     Absence is proven with `git ls-tree`, not `git cat-file -e` (terra HIGH, 4th pass).
@@ -3722,10 +3723,10 @@ def _ref_baseline_state(repo_path: Path, ref: str) -> tuple[str, int | None, str
     return "valid", value, detector
 
 
-def _ratchet_findings(live: _srd.Measurement, baseline: dict | None,
-                      previous: int | None = None,
+def _ratchet_findings(live: "_srd.Measurement", baseline: Optional[dict],
+                      previous: Optional[int] = None,
                       ref_state: str = "absent",
-                      previous_detector: str | None = None) -> list[Finding]:
+                      previous_detector: Optional[str] = None) -> list[Finding]:
     """Testable core of check_silent_rule_ratchet ([#436]).
 
     Kept pure (no filesystem, no git) so the four contract cases -- pass-at-baseline,
@@ -4073,7 +4074,7 @@ def check_fleet_audit_replication(repo_path: Path) -> list[Finding]:
     scrub = _git_location_env()
     env = {k: v for k, v in os.environ.items() if k not in scrub}
 
-    def _run(args: list[str]) -> str | None:
+    def _run(args: list[str]) -> Optional[str]:
         try:
             p = subprocess.run(["git", "-C", str(repo_path), *args], capture_output=True,
                                text=True, encoding="utf-8", errors="replace", env=env)
@@ -4797,7 +4798,7 @@ _REVIEW_TITLE_RE = re.compile(r"(?m)^# Codex Review\b")
 # date depending on where it was authored. `%ct` is a UTC instant; the cutoff is UTC midnight
 # of the ruling date. Deterministic rather than ambient -- an evidence bar cannot rest on a
 # boundary that moves with the committer's clock.
-_REVIEW_CUTOFF_EPOCH = int(datetime(2026, 8, 5, tzinfo=UTC).timestamp())
+_REVIEW_CUTOFF_EPOCH = int(datetime(2026, 8, 5, tzinfo=timezone.utc).timestamp())
 _REVIEW_BRANCH_RE = re.compile(r"(?m)^\*\*Branch:\*\*[ \t]*`?([^`\s]+?)`?[ \t]*$")
 _REVIEW_HEAD_RE = re.compile(r"(?m)^\*\*HEAD:\*\*[ \t]*`?([0-9a-f]{7,40})`?")
 _REVIEW_MERGE_SUBJECT_RE = re.compile(r"^Merge branch '([^']+)'")
@@ -5502,7 +5503,7 @@ ALL_CHECKS = [
 
 def detect_unconditionally_inert_checks(
     repo_paths: dict[str, Path],
-    checks: Sequence[Callable[[Path], list[Finding]]] | None = None,
+    checks: "Sequence[Callable[[Path], list[Finding]]] | None" = None,
 ) -> list[Finding]:
     """[#465] leg 4 / FR-2 — WARN for any check that can only ever return SUBJECT-ABSENT.
 
@@ -5555,8 +5556,8 @@ def detect_unconditionally_inert_checks(
     return out + classify_inert_checks(by_check, sorted(repo_paths))
 
 
-def classify_inert_checks(by_check: dict[str, dict[str, list[Finding]]],
-                          repo_names: Sequence[str]) -> list[Finding]:
+def classify_inert_checks(by_check: "dict[str, dict[str, list[Finding]]]",
+                          repo_names: "Sequence[str]") -> list[Finding]:
     """THE RULE, defined once, over findings that have ALREADY been computed.
 
     Extracted so the production path costs nothing (terra HIGH r1, 2026-08-04). `cmd_run` has
@@ -6066,7 +6067,7 @@ def generate_report(states: list[RepoState], run_date: date, repo_root: Path) ->
     return "".join(lines)
 
 
-def write_report(content: str, run_date: date, single_repo: str | None = None) -> Path:
+def write_report(content: str, run_date: date, single_repo: Optional[str] = None) -> Path:
     AUDITS_DIR.mkdir(parents=True, exist_ok=True)
     if single_repo:
         filename = f"{run_date.isoformat()}-{single_repo}-audit.md"
@@ -6118,7 +6119,7 @@ def _parse_porcelain(raw: str) -> list:
     return out
 
 
-def _restore_durable_scope(pathspecs: list, expected: set | None = None) -> None:
+def _restore_durable_scope(pathspecs: list, expected: Optional[set] = None) -> None:
     """Return the working tree to HEAD within the durable output paths.
 
     Crash-safe cleanup (called from a `finally`): RE-DERIVES the dirty state in
@@ -6172,7 +6173,7 @@ def _restore_durable_scope(pathspecs: list, expected: set | None = None) -> None
 _PUSH_TIMEOUT_S = 120
 
 
-def _push_routine_branch(repo_path: Path | None = None) -> tuple[bool, str]:
+def _push_routine_branch(repo_path: Optional[Path] = None) -> tuple[bool, str]:
     """[#460] — replicate `automation/fleet-audit` to origin. Returns (ok, detail).
 
     PLACEMENT: called by `_commit_routine_outputs` immediately after `update-ref`, so the
@@ -6258,7 +6259,7 @@ def _publish_receipts_dir() -> Path:
     return Path(os.environ.get("HARNESS_RECEIPTS_DIR") or (Path(_REPO_ROOT) / "logs" / "receipts"))
 
 
-def _write_publish_receipt(status: str, reason: str, paths: list | None = None) -> None:
+def _write_publish_receipt(status: str, reason: str, paths: Optional[list] = None) -> None:
     """The publishing step's own receipt (this lane, [#962] item 5). Never raises — a
     receipt that failed to write must not hide the refusal it exists to record; the
     loud logger.error beside every call site is the fallback record."""
@@ -6518,7 +6519,7 @@ def cli() -> None:
 @cli.command("run")
 @click.option("--repo-path", "repo_path", default=None,
               help="Bootstrap: path to a repo not yet registered. Creates state.yaml on first use.")
-def cmd_run(repo_path: str | None) -> None:
+def cmd_run(repo_path: Optional[str]) -> None:
     """Run the full ecosystem audit; write a report to docs/audits/.
 
     Runs ALL_CHECKS against every registered repo, saves each repo's state.yaml,
@@ -6542,7 +6543,7 @@ def cmd_run(repo_path: str | None) -> None:
     # left to be re-read from state.yaml: since [#605] the env var outranks the stored
     # path, so a set DEV_KNOWLEDGE_REPO_ROOT_<SLUG> would otherwise silently audit a
     # different tree than the one the operator just registered on this command line.
-    bootstrapped: tuple[str, str] | None = None
+    bootstrapped: Optional[tuple[str, str]] = None
 
     if repo_path:
         rp = Path(repo_path).resolve()
@@ -6624,7 +6625,7 @@ def cmd_run(repo_path: str | None) -> None:
               help="Consumer working-tree path, overriding every other resolution step. "
                    "Without it: DEV_KNOWLEDGE_REPO_ROOT_<SLUG>, then the stored path in "
                    "ecosystem/<repo>/state.yaml, then the sibling default ([#605]).")
-def cmd_repo(name: str, repo_path: str | None) -> None:
+def cmd_repo(name: str, repo_path: Optional[str]) -> None:
     """Audit a single repo by name.
 
     Same state.yaml / history / report writes as `run`, scoped to one repo. The
@@ -6784,7 +6785,7 @@ def _load_dispositions() -> list[dict]:
     return [d for d in items if isinstance(d, dict)]
 
 
-def _match_disposition(finding: Finding, dispositions: list[dict]) -> dict | None:
+def _match_disposition(finding: "Finding", dispositions: list[dict]) -> Optional[dict]:
     """Return the register entry that dispositions this WARN finding, or None.
 
     A match requires `organ == finding.check_name` AND the entry's `match` substring to

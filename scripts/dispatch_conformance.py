@@ -74,6 +74,7 @@ import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Optional
 
 logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("dispatch-conformance")
@@ -188,7 +189,7 @@ def fence_line(contract_text: str) -> str:
 
 # --- host resolution -------------------------------------------------------------------------
 
-def find_powershell() -> str | None:
+def find_powershell() -> Optional[str]:
     """The PowerShell this host has, or None. `pwsh` first — the shell the dispatch helpers are
     deployed for — then `powershell` (5.1). Same order as `dispatch_drift.find_powershell`."""
     for exe in ("pwsh", "powershell"):
@@ -198,7 +199,7 @@ def find_powershell() -> str | None:
     return None
 
 
-def verb_resolves(verb: str = RULED_VERB, *, shell: str | None = None) -> bool:
+def verb_resolves(verb: str = RULED_VERB, *, shell: Optional[str] = None) -> bool:
     """Does the ruled verb resolve on this host?
 
     `Get-Command`, never `Get-Alias`: these verbs reach the session through PSModulePath
@@ -218,7 +219,7 @@ def verb_resolves(verb: str = RULED_VERB, *, shell: str | None = None) -> bool:
     return "OK" in (out.stdout or "")
 
 
-def host_tier(*, shell: str | None = None, verb: str = RULED_VERB) -> str:
+def host_tier(*, shell: Optional[str] = None, verb: str = RULED_VERB) -> str:
     """Which tier this host is on. Declared, so a caller REPORTS it instead of skipping."""
     shell = shell or find_powershell()
     if shell is None:
@@ -254,7 +255,7 @@ class Probe:
     #: The verb's exit code, recorded rather than trusted — every `-DryRun` on this fleet exits
     #: 1 while printing a correct resolution (batch-x2 manifest §4, defect 2), so a caller that
     #: branched on it would read every success as a refusal.
-    returncode: int | None = None
+    returncode: Optional[int] = None
     notes: tuple[str, ...] = field(default_factory=tuple)
 
     def properties(self) -> dict[str, bool]:
@@ -385,7 +386,7 @@ def render_probe_contract(out_dir: Path, *, slug: str, model: str, effort: str,
 
 
 def run_verb_dryrun(contract: Path, *, verb: str = RULED_VERB,
-                    shell: str | None = None) -> tuple[str, str, int | None]:
+                    shell: Optional[str] = None) -> tuple[str, str, Optional[int]]:
     """`dispatch <bare filename> -DryRun`, from the contract's own directory.
 
     BARE FILENAME and `cwd=<the directory the writer wrote to>`, which is the `location`
@@ -412,7 +413,7 @@ def run_verb_dryrun(contract: Path, *, verb: str = RULED_VERB,
 
 def probe(out_dir: Path, *, slug: str = "lane-probe-conformance", model: str = "sonnet",
           effort: str = "high", purpose: str = "probe the generator<->verb seam",
-          tier: str | None = None, shell: str | None = None,
+          tier: Optional[str] = None, shell: Optional[str] = None,
           verb: str = RULED_VERB) -> Probe:
     """Generate a contract and measure the four properties against the strongest evidence this
     host affords. Never skips; the tier and the evidence are on the record.
@@ -459,7 +460,7 @@ def probe(out_dir: Path, *, slug: str = "lane-probe-conformance", model: str = "
                                "is the line under test",)))
 
 
-def verify_admission_live(out_dir: Path, *, shell: str | None = None,
+def verify_admission_live(out_dir: Path, *, shell: Optional[str] = None,
                           verb: str = RULED_VERB) -> list[str]:
     """Keep the PIN honest: does the reader still refuse a non-`claude` head token, by the name
     the pin records?

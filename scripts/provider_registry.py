@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, Optional
 
 import yaml
 
@@ -59,7 +59,7 @@ class RateUnavailable(RegistryError):
     """
 
 
-def load_registry(path: Path | None = None) -> dict[str, Any]:
+def load_registry(path: Optional[Path] = None) -> dict[str, Any]:
     """Parse the registry, validate it against the declared schema, return the raw mapping.
 
     The two-collection guard below stays ahead of the schema on purpose: it produces the
@@ -97,7 +97,7 @@ def load_registry(path: Path | None = None) -> dict[str, Any]:
     return data
 
 
-def council_aliases(path: Path | None = None) -> dict[str, str]:
+def council_aliases(path: Optional[Path] = None) -> dict[str, str]:
     """`{council alias: provider id}` — the closed vocabulary `AI_COUNCIL_PROCESS` names.
 
     Providers the council does not panel (`council_alias: null`) are omitted. Uniqueness is
@@ -110,7 +110,7 @@ def council_aliases(path: Path | None = None) -> dict[str, str]:
     }
 
 
-def role_admissions(path: Path | None = None) -> dict[tuple[str, str], dict[str, Any]]:
+def role_admissions(path: Optional[Path] = None) -> dict[tuple[str, str], dict[str, Any]]:
     """`{(model_id, role): verdict record}` for every recorded admission verdict.
 
     Empty for a model with no `role_admission:` block, which is the common and fully valid
@@ -123,17 +123,17 @@ def role_admissions(path: Path | None = None) -> dict[tuple[str, str], dict[str,
     return out
 
 
-def providers(path: Path | None = None) -> dict[str, Any]:
+def providers(path: Optional[Path] = None) -> dict[str, Any]:
     """`{provider_id: fields}`."""
     return load_registry(path)["providers"]
 
 
-def models(path: Path | None = None) -> dict[str, Any]:
+def models(path: Optional[Path] = None) -> dict[str, Any]:
     """`{model_id: fields}`."""
     return load_registry(path)["models"]
 
 
-def version_commands(path: Path | None = None) -> dict[str, list[str]]:
+def version_commands(path: Optional[Path] = None) -> dict[str, list[str]]:
     """`{tool_versions.yaml key: argv that prints the installed version}` — seam S7.
 
     Providers with no CLI on this repo's surface (`cli: null`) are omitted: an entry with no
@@ -152,7 +152,7 @@ def version_commands(path: Path | None = None) -> dict[str, list[str]]:
     return out
 
 
-def changelog_source_urls(path: Path | None = None) -> dict[str, str]:
+def changelog_source_urls(path: Optional[Path] = None) -> dict[str, str]:
     """`{tool_versions.yaml key: changelog source url}` — the S8 identity half."""
     out: dict[str, str] = {}
     for fields in providers(path).values():
@@ -163,17 +163,17 @@ def changelog_source_urls(path: Path | None = None) -> dict[str, str]:
     return out
 
 
-def models_for_role(role: str, path: Path | None = None) -> list[str]:
+def models_for_role(role: str, path: Optional[Path] = None) -> list[str]:
     """Every model id carrying `role`, in registry order."""
     return [mid for mid, f in models(path).items() if role in (f.get("roles") or [])]
 
 
-def model_ids(path: Path | None = None) -> list[str]:
+def model_ids(path: Optional[Path] = None) -> list[str]:
     """The closed vocabulary of model ids the repo is allowed to name."""
     return list(models(path).keys())
 
 
-def roles(path: Path | None = None) -> dict[str, Any]:
+def roles(path: Optional[Path] = None) -> dict[str, Any]:
     """`{role: spec}` — `[#691]`'s third collection, the role-keyed ORDERED fallback lists.
 
     Empty for a registry predating `[#691]`, which is why the key is read with `.get`: the
@@ -182,7 +182,7 @@ def roles(path: Path | None = None) -> dict[str, Any]:
     return load_registry(path).get("roles") or {}
 
 
-def role_order(role: str, path: Path | None = None) -> list[dict[str, Any]]:
+def role_order(role: str, path: Optional[Path] = None) -> list[dict[str, Any]]:
     """One role's DECLARED fallback list, in file order.
 
     DECLARED, not measured — the distinction AX21-2 turns on. `provider_router.rerank()` is what
@@ -215,7 +215,7 @@ def is_admitted(entry: dict[str, Any]) -> bool:
     return str(admission.get("verdict") or "") == "admitted"
 
 
-def licences(path: Path | None = None) -> dict[str, str]:
+def licences(path: Optional[Path] = None) -> dict[str, str]:
     """`{provider_id: licence status}` — `[#691]` leg (c).
 
     A provider carrying NO `licence:` block resolves to `"unknown"`, never to `"permitted"`.
@@ -229,7 +229,7 @@ def licences(path: Path | None = None) -> dict[str, str]:
     }
 
 
-def pins_by_path(path: Path | None = None) -> dict[str, list[tuple[str, str, str]]]:
+def pins_by_path(path: Optional[Path] = None) -> dict[str, list[tuple[str, str, str]]]:
     """`{repo-relative path: [(model_id, seam, format), ...]}` — the checker's work list."""
     out: dict[str, list[tuple[str, str, str]]] = {}
     for mid, fields in models(path).items():
@@ -239,7 +239,7 @@ def pins_by_path(path: Path | None = None) -> dict[str, list[tuple[str, str, str
     return out
 
 
-def rate_card(path: Path | None = None) -> dict[str, Any]:
+def rate_card(path: Optional[Path] = None) -> dict[str, Any]:
     """The `rate_card:` block — currency, unit, `as_of`, provenance, cache multipliers.
 
     Raises rather than returning `{}` when absent, on this module's standing rule: a caller
@@ -283,7 +283,7 @@ class ModelRate(NamedTuple):
     cache_write: float
     cache_read: float
     #: Where this model's price came from, when it differs from the card's own source.
-    source: str | None = None
+    source: Optional[str] = None
 
     def usd(self, *, input_tokens: int = 0, output_tokens: int = 0,
             cache_write_tokens: int = 0, cache_read_tokens: int = 0) -> float:
@@ -301,7 +301,7 @@ class ModelRate(NamedTuple):
                 + cache_read_tokens * self.cache_read) / per_unit
 
 
-def resolve_rate(model_id: str, path: Path | None = None) -> ModelRate:
+def resolve_rate(model_id: str, path: Optional[Path] = None) -> ModelRate:
     """The fully-resolved rate for one model, or `RateUnavailable` NAMING it.
 
     THE REFUSAL IS THE FEATURE. Three distinct absences reach this function — the file has no
@@ -344,14 +344,14 @@ def resolve_rate(model_id: str, path: Path | None = None) -> ModelRate:
     )
 
 
-def priced_models(path: Path | None = None) -> list[str]:
+def priced_models(path: Optional[Path] = None) -> list[str]:
     """Every model id carrying a `rates:` block, sorted. The complement — every id in
     `models()` not in here — is the unpriced set, which is reported rather than assumed empty.
     """
     return sorted(mid for mid, row in models(path).items() if isinstance(row.get("rates"), dict))
 
 
-def attribution_tokens(path: Path | None = None) -> dict[str, str]:
+def attribution_tokens(path: Optional[Path] = None) -> dict[str, str]:
     """`{model_id: the literal string that model is attributed by on disk}`.
 
     Defaults to the id itself; `grok-l5` is the live counter-example (`grok L5` in prose).

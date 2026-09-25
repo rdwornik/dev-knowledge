@@ -75,7 +75,7 @@ _REMEDY = ("paste the search you ran as a fenced block: a `$ <command>` line, th
            "(a search with no hits: write `exit=1, no matches`)")
 
 
-def _field_body(text: str) -> str | None:
+def _field_body(text: str) -> "str | None":
     lines = text.splitlines()
     for i, line in enumerate(lines):
         m = _FIELD_RE.match(line)
@@ -98,9 +98,9 @@ def _head(cmd: str) -> str:
     return ""
 
 
-def _blocks(body: str) -> list[list[str]]:
-    blocks: list[list[str]] = []
-    cur: list[str] | None = None
+def _blocks(body: str) -> "list[list[str]]":
+    blocks: "list[list[str]]" = []
+    cur: "list[str] | None" = None
     for line in body.splitlines():
         if _FENCE_RE.match(line):
             if cur is None:
@@ -121,7 +121,7 @@ def check_contract(text: str, *, site: str) -> int:
         raise StageRefusal(f"{site}: no `library-first` field", remedy=_REMEDY)
     if not body.strip():
         raise StageRefusal(f"{site}: `library-first` field is empty", remedy=_REMEDY)
-    groups: list[tuple[str, list[str]]] = []
+    groups: "list[tuple[str, list[str]]]" = []
     for block in _blocks(body):
         for line in block:
             m = _PROMPT_RE.match(line)
@@ -139,10 +139,10 @@ def check_contract(text: str, *, site: str) -> int:
     return len(groups)
 
 
-def first_party_modules(root: Path) -> list[str]:
+def first_party_modules(root: Path) -> "list[str]":
     """Module names that resolve through a sys.path root inside the tree (a `.py` stem or a
     directory on the way to a `.py`), derived from disk so the list cannot drift."""
-    names: set[str] = set()
+    names: "set[str]" = set()
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = [d for d in dirnames if d not in _PRUNE]
         py = [f for f in filenames if f.endswith(".py")]
@@ -190,7 +190,7 @@ def _refuse(exc: StageRefusal) -> None:
 
 @cli.command("check")
 @click.argument("files", nargs=-1, required=True, type=click.Path(exists=True, dir_okay=False))
-def cmd_check(files: tuple[str, ...]) -> None:
+def cmd_check(files: "tuple[str, ...]") -> None:
     """Refuse a contract whose `library-first` field is not a command and its output."""
     try:
         for f in files:
@@ -235,7 +235,7 @@ def cmd_emit(root: str) -> None:
 @click.argument("files", nargs=-1, required=True, type=click.Path(exists=True, dir_okay=False))
 @click.option("--root", default=".", type=click.Path(file_okay=False))
 @click.pass_context
-def cmd_run(ctx: click.Context, files: tuple[str, ...], root: str) -> None:
+def cmd_run(ctx: click.Context, files: "tuple[str, ...]", root: str) -> None:
     """The stage-6 command: `check` every contract, then `deptry`."""
     ctx.invoke(cmd_check, files=files)
     ctx.invoke(cmd_deptry, root=root)

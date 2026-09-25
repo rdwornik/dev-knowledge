@@ -47,7 +47,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from collections.abc import Iterable
+from typing import Iterable, Optional
 
 LEGS = ("worktree", "directory", "branch", "session")
 
@@ -77,7 +77,7 @@ class Occupancy:
         return bool(self.fired)
 
 
-def _run(argv: list, cwd: Path | None = None, timeout: int = 30) -> str:
+def _run(argv: list, cwd: Optional[Path] = None, timeout: int = 30) -> str:
     try:
         proc = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8",
                               cwd=str(cwd) if cwd else None, timeout=timeout)
@@ -88,7 +88,7 @@ def _run(argv: list, cwd: Path | None = None, timeout: int = 30) -> str:
     return proc.stdout
 
 
-def primary_root(start: Path = Path()) -> Path:
+def primary_root(start: Path = Path(".")) -> Path:
     """The primary checkout, resolved through `--git-common-dir` so a lane worktree finds the
     hub whose `.claude/worktrees/` holds its siblings."""
     out = _run(["git", "-C", str(start), "rev-parse", "--path-format=absolute",
@@ -126,7 +126,7 @@ def live_sessions() -> list:
     return data
 
 
-def _status_of(row: dict) -> str | None:
+def _status_of(row: dict) -> Optional[str]:
     """A session record's liveness field, for the READABILITY check only (is there SOME string
     naming a status at all). Most records carry `status`; a record for a session still
     STARTING carries `state` instead (D23: `worktree_occupancy` exited 2 -- "could not look" --
@@ -184,7 +184,7 @@ def _session_holds(session: dict, tree: str) -> bool:
     return _is_live(session) and _norm(session["cwd"]) == tree
 
 
-def check(slug: str, root: Path, sessions: list | None = None,
+def check(slug: str, root: Path, sessions: Optional[list] = None,
           ignore_sessions: Iterable[str] = ()) -> Occupancy:
     """Run the four legs for `slug` against the primary checkout `root`.
 
@@ -211,7 +211,7 @@ def check(slug: str, root: Path, sessions: list | None = None,
     return Occupancy(slug, legs)
 
 
-def main(argv: list | None = None) -> int:
+def main(argv: Optional[list] = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("slug", help="the lane slug, e.g. lane-l2-dispatch-guards")

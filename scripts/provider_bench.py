@@ -55,8 +55,7 @@ import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
-from collections.abc import Callable
+from typing import Any, Callable, Optional
 
 import click
 
@@ -228,7 +227,7 @@ def _candidate_lines(out: str) -> list[str]:
 _STRING_LITERAL = re.compile(r"""^[rbuf]{0,2}(['"])(.*)\1$""", re.IGNORECASE | re.DOTALL)
 
 
-def _unwrap_string_literal(line: str) -> str | None:
+def _unwrap_string_literal(line: str) -> Optional[str]:
     """The contents of a Python string literal, or None.
 
     ADDED AFTER IT DECIDED A SCORE, AND THE INCONSISTENCY IS THE REASON RATHER THAN THE
@@ -375,7 +374,7 @@ class Provider:
     executable: str
     args: Callable[[str, Path], list[str]]
     #: How the served model and the token counts are read back out of this CLI.
-    parse: Callable[[ProviderRun], None]
+    parse: Callable[["ProviderRun"], None]
     #: What the vendor actually bills for. Naming it is the honest alternative to a
     #: manufactured per-token rate.
     metering_unit: str
@@ -391,22 +390,22 @@ class ProviderRun:
     provider: str
     outcome: str
     argv: list[str] = field(default_factory=list)
-    exit_code: int | None = None
+    exit_code: Optional[int] = None
     stdout: str = ""
     stderr: str = ""
     wall_seconds: float = 0.0
-    served_model: str | None = None
-    input_tokens: int | None = None
-    output_tokens: int | None = None
-    cache_read_tokens: int | None = None
-    cache_write_tokens: int | None = None
+    served_model: Optional[str] = None
+    input_tokens: Optional[int] = None
+    output_tokens: Optional[int] = None
+    cache_read_tokens: Optional[int] = None
+    cache_write_tokens: Optional[int] = None
     #: The vendor's own billing counter, where it exposes one (copilot premium requests).
-    vendor_units: float | None = None
-    usage_path: Path | None = None
+    vendor_units: Optional[float] = None
+    usage_path: Optional[Path] = None
     #: True unless the CLI stopped on something only a human could answer.
     unattended: bool = True
-    blocking_prompt: str | None = None
-    error: str | None = None
+    blocking_prompt: Optional[str] = None
+    error: Optional[str] = None
     #: WHERE the served-model id came from, in the CLI's own words. Standing ruling Q9 makes
     #: the substitution probe a hard precondition, so "which model answered" is never allowed
     #: to be a guess: a provider that discloses nothing records `none` and is reported as
@@ -414,7 +413,7 @@ class ProviderRun:
     model_attestation: str = "none"
     #: The vendor's own correlation handle for this call, kept so a later reader can rejoin a
     #: row to the CLI's log without re-running anything.
-    vendor_call_id: str | None = None
+    vendor_call_id: Optional[str] = None
     #: `{model_id: {input, output, cache_read, cache_write}}` when ONE invocation bills more
     #: than one model. Present on the claude leg, where a session also bills a small Haiku
     #: side-call for its own bookkeeping. Pricing the "primary" alone would under-report a
@@ -590,7 +589,7 @@ AGY_ATTESTATION_NONE = ("none -- agy 1.2.x discloses no model id in its JSON env
                         "log no longer carries the 1.1.x `Resolving model` line")
 
 
-def _agy_served_model(conversation_id: str | None) -> str | None:
+def _agy_served_model(conversation_id: Optional[str]) -> Optional[str]:
     """The Q9 served-id attestation, which the JSON envelope does not carry. The 1.1.x CLI
     log did, bound by conversation_id so parallel runs still joined log to item exactly.
     Kept because the line may return; absent log, absent line, absent id -- never a guess."""
@@ -645,7 +644,7 @@ def _parse_claude(run: ProviderRun) -> None:
     run.stdout = str(envelope.get("result") or run.stdout)
 
 
-def _last_json_object(text: str) -> dict | None:
+def _last_json_object(text: str) -> Optional[dict]:
     """The last line that parses as a JSON object. These CLIs print progress before the
     envelope, so 'the last object' is the envelope and 'the first' is noise."""
     for line in reversed([ln.strip() for ln in text.splitlines() if ln.strip()]):
@@ -710,7 +709,7 @@ BLOCKING_PATTERNS: tuple[tuple[str, str], ...] = (
 )
 
 
-def detect_blocking(capture: str) -> str | None:
+def detect_blocking(capture: str) -> Optional[str]:
     """The exact blocking text, quoted, or None. Recording the QUOTE rather than a boolean
     is what makes `unattended: false` a result a later reader can act on."""
     for needle, _why in BLOCKING_PATTERNS:
@@ -723,7 +722,7 @@ def detect_blocking(capture: str) -> str | None:
 # --- running ----------------------------------------------------------------------------
 
 
-def bench_cwd(root: Path | None = None) -> Path:
+def bench_cwd(root: Optional[Path] = None) -> Path:
     """The ONE neutral, empty, non-git directory every provider is invoked from."""
     base = root or Path(os.environ.get("CLAUDE_JOB_DIR", REPO_ROOT / ".bench")) / "tmp"
     path = base / "bench-cwd"
@@ -786,7 +785,7 @@ def score(run: ProviderRun, outcome: Outcome) -> dict[str, Any]:
             "answer_lines": len(body_lines)}
 
 
-def price(run: ProviderRun, registry_path: Path | None = None) -> dict[str, Any]:
+def price(run: ProviderRun, registry_path: Optional[Path] = None) -> dict[str, Any]:
     """USD for this run, or the named refusal. NEVER a zero for an unknown rate."""
     import provider_registry as pr                             # noqa: PLC0415 -- sibling
 
@@ -831,7 +830,7 @@ def price(run: ProviderRun, registry_path: Path | None = None) -> dict[str, Any]
 
 
 def record(run: ProviderRun, outcome: Outcome, *,
-           registry_path: Path | None = None) -> dict[str, Any]:
+           registry_path: Optional[Path] = None) -> dict[str, Any]:
     """One ledger row: what was asked, what came back, what it cost, and how it was judged."""
     row: dict[str, Any] = {
         "row": ROW,
@@ -877,7 +876,7 @@ def record(run: ProviderRun, outcome: Outcome, *,
 
 
 def reprice_row(row: dict[str, Any],
-                registry_path: Path | None = None) -> dict[str, Any]:
+                registry_path: "Optional[Path]" = None) -> dict[str, Any]:
     """A COPY of one stored ledger row with its price fields recomputed from the CURRENT card.
 
     WHY A STORED PRICE IS NOT A FACT THE WAY A TOKEN COUNT IS. A token count is what the vendor
@@ -936,7 +935,7 @@ def reprice_row(row: dict[str, Any],
 
 
 def reprice(rows: list[dict[str, Any]],
-            registry_path: Path | None = None) -> list[dict[str, Any]]:
+            registry_path: "Optional[Path]" = None) -> list[dict[str, Any]]:
     """`reprice_row` over a whole ledger. ORDER IS PRESERVED -- `latest_per_cell` reads it."""
     return [reprice_row(r, registry_path) for r in rows]
 
@@ -997,7 +996,7 @@ def census(*, probe_versions: bool = True) -> list[dict[str, Any]]:
                     [exe, "--version"], capture_output=True, text=True,
                     encoding="utf-8", errors="replace",
                     stdin=subprocess.DEVNULL, timeout=120, check=False)
-                version = strip_ansi(proc.stdout or proc.stderr).strip().splitlines()
+                version = strip_ansi((proc.stdout or proc.stderr)).strip().splitlines()
                 version = version[0] if version else None
             except (OSError, subprocess.TimeoutExpired) as exc:
                 version = f"version probe failed: {exc}"
@@ -1046,7 +1045,7 @@ def verify_traps(cwd: Path, *, short_timeout: int = 90,
 
 
 def _capture(argv: list[str], cwd: Path, timeout: int, *,
-             stdin_open: bool = False) -> tuple[int | None, str, str | None]:
+             stdin_open: bool = False) -> tuple[Optional[int], str, Optional[str]]:
     """`(exit_code, combined_output, error)`. `stdin_open=True` leaves stdin attached to an
     empty pipe that is never closed -- the exact condition that wedges `codex exec`."""
     try:
@@ -1090,7 +1089,7 @@ def _trap_copilot_model(cwd: Path, timeout: int) -> dict[str, Any]:
                         "evidence before touching any verdict that rested on this")}
 
 
-def _really_open_stdin(argv: list[str], cwd: Path, timeout: int) -> tuple[int | None, str, str | None]:
+def _really_open_stdin(argv: list[str], cwd: Path, timeout: int) -> tuple[Optional[int], str, Optional[str]]:
     """Run with a stdin pipe that is genuinely HELD OPEN for the whole wait.
 
     `subprocess.run(stdin=PIPE)` does NOT do this: `communicate()` closes the write end
@@ -1107,7 +1106,7 @@ def _really_open_stdin(argv: list[str], cwd: Path, timeout: int) -> tuple[int | 
         proc = subprocess.Popen(                               # noqa: S603 -- the measurement
             argv, cwd=str(cwd), stdin=subprocess.PIPE, stdout=out, stderr=err, text=True)
         try:
-            code: int | None = proc.wait(timeout=timeout)
+            code: Optional[int] = proc.wait(timeout=timeout)
             error = None
         except subprocess.TimeoutExpired:
             proc.kill()
@@ -1198,7 +1197,7 @@ def cli() -> None:
 @cli.command("census")
 @click.option("--json-out", type=click.Path(path_type=Path), default=None,
               help="write the census rows here as JSON as well as logging them")
-def cmd_census(json_out: Path | None) -> None:
+def cmd_census(json_out: Optional[Path]) -> None:
     """Presence and version for every provider the contract names."""
     rows = census()
     for row in rows:
@@ -1216,7 +1215,7 @@ def cmd_census(json_out: Path | None) -> None:
               help="seconds before a trap probe is called wedged")
 @click.option("--only", "only", multiple=True, type=click.Choice(sorted(TRAP_PROBES)),
               help="repeatable; re-probe just these traps (they are paid calls)")
-def cmd_traps(json_out: Path | None, timeout: int, only: tuple[str, ...]) -> None:
+def cmd_traps(json_out: Optional[Path], timeout: int, only: tuple[str, ...]) -> None:
     """Re-run the three recorded invocation traps and report whether each still bites."""
     rows = verify_traps(bench_cwd(), short_timeout=timeout, only=only)
     for row in rows:
@@ -1237,7 +1236,7 @@ def cmd_traps(json_out: Path | None, timeout: int, only: tuple[str, ...]) -> Non
 @click.option("--timeout", type=int, default=900, show_default=True,
               help="per-invocation seconds before the run is recorded as blocked")
 def cmd_run(providers: tuple[str, ...], outcomes: tuple[str, ...],
-            ledger: Path | None, timeout: int) -> None:
+            ledger: Optional[Path], timeout: int) -> None:
     """Run outcomes against providers and append the results to the ledger."""
     chosen_p = list(providers) or [*IN_SCOPE, "claude"]
     chosen_o = [o for o in OUTCOMES if not outcomes or o.key in outcomes]
@@ -1265,7 +1264,7 @@ def cmd_run(providers: tuple[str, ...], outcomes: tuple[str, ...],
 
 @cli.command("report")
 @click.option("--ledger", type=click.Path(path_type=Path), default=None)
-def cmd_report(ledger: Path | None) -> None:
+def cmd_report(ledger: Optional[Path]) -> None:
     """Render the pass matrix and the money, flat, for a packet."""
     rows = read_ledger(ledger or (REPO_ROOT / LEDGER_REL))
     if not rows:
@@ -1427,7 +1426,7 @@ def compare_to_opus(rows: list[dict[str, Any]], provider: str) -> dict[str, Any]
     won = [k for k in shared if mine[k].get("predicate_pass") and not base[k].get("predicate_pass")]
     both = [k for k in shared if mine[k].get("predicate_pass") and base[k].get("predicate_pass")]
 
-    def _money(cells: dict[str, dict[str, Any]]) -> tuple[float | None, str | None]:
+    def _money(cells: dict[str, dict[str, Any]]) -> tuple[Optional[float], Optional[str]]:
         # FALL BACK TO EVERY CELL WHEN NOTHING IS SHARED. A provider with no comparable
         # outcome (gemini: refused at auth ten times) still has a reason it cannot be
         # priced, and "no rate" is not that reason -- the auth refusal is. Reporting the
@@ -1604,7 +1603,7 @@ VERDICTS_REL = "logs/PROVIDER-VERDICTS.json"
 @click.option("--ledger", type=click.Path(path_type=Path), default=None)
 @click.option("--json-out", type=click.Path(path_type=Path), default=None,
               help=f"write the verdicts as JSON (the committed artifact is {VERDICTS_REL})")
-def cmd_verdict(ledger: Path | None, json_out: Path | None) -> None:
+def cmd_verdict(ledger: Optional[Path], json_out: Optional[Path]) -> None:
     """One verdict per provider, each one priced against the same ten outcomes on Opus."""
     rows = read_ledger(ledger or (REPO_ROOT / LEDGER_REL))
     if not rows:

@@ -73,9 +73,9 @@ import os
 import sys
 import threading
 from dataclasses import dataclass
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from pathlib import Path, PurePath
-from collections.abc import Callable, Iterable, Mapping
+from typing import Callable, Iterable, Mapping, Optional
 
 import click
 
@@ -152,7 +152,7 @@ THRESHOLD_PROVENANCE: dict[str, str] = {
 # ============================================================================ writing: events only
 
 def _now() -> datetime:
-    return datetime.now(UTC)
+    return datetime.now(timezone.utc)
 
 
 def _append(path: Path, row: dict) -> None:
@@ -161,7 +161,7 @@ def _append(path: Path, row: dict) -> None:
         fh.write(json.dumps(row, sort_keys=True) + "\n")
 
 
-def lane_of(cwd: str) -> str | None:
+def lane_of(cwd: str) -> Optional[str]:
     """The lane worktree name `cwd` sits in, or None. Read off the path's own segments against
     the ruled grammar (`validate_lane_worktree_name`), so this module compiles no regex."""
     parts = PurePath(str(cwd).replace("\\", "/")).parts
@@ -176,8 +176,8 @@ def _batch_of(lane: str) -> str:
     return lane.split("-")[1].upper()
 
 
-def record_event(payload: Mapping, *, path: Path | None = None,
-                 now: datetime | None = None, env: Mapping[str, str] | None = None) -> dict:
+def record_event(payload: Mapping, *, path: Optional[Path] = None,
+                 now: Optional[datetime] = None, env: Optional[Mapping[str, str]] = None) -> dict:
     """Append ONE event row built from a hook payload. Raise `SeatRefusal` on anything else."""
     if not isinstance(payload, Mapping):
         raise SeatRefusal("not-an-event", f"payload is a {type(payload).__name__}, not a hook "
@@ -211,8 +211,8 @@ def record_event(payload: Mapping, *, path: Path | None = None,
     return row
 
 
-def bind(role: str, batch: str, *, session_id: str, path: Path | None = None,
-         now: datetime | None = None) -> dict:
+def bind(role: str, batch: str, *, session_id: str, path: Optional[Path] = None,
+         now: Optional[datetime] = None) -> dict:
     """Record a seat's IDENTITY. Never a state -- there is no parameter to carry one."""
     if role not in ROLES:
         raise SeatRefusal("unknown-role", f"{role!r} is not a seat role ({', '.join(ROLES)})",
@@ -243,7 +243,7 @@ def read_hook_stdin(timeout: float = 2.0) -> dict:
     return data if isinstance(data, dict) else {}
 
 
-def record_hook_event(payload: Mapping) -> dict | None:
+def record_hook_event(payload: Mapping) -> Optional[dict]:
     """The hook legs' entry point. FAIL-SOFT IN FULL: a reporter never blocks a session.
 
     A payload with no session_id of its own writes NOTHING -- it is not a hook payload, and
@@ -263,9 +263,9 @@ def record_hook_event(payload: Mapping) -> dict | None:
 @dataclass(frozen=True)
 class Seat:
     session_id: str
-    role: str | None
-    batch: str | None
-    lane: str | None
+    role: Optional[str]
+    batch: Optional[str]
+    lane: Optional[str]
     state: str
     last_event: datetime
     last_kind: str
@@ -287,7 +287,7 @@ def _valid(row: object) -> bool:
     return False
 
 
-def read_rows(path: Path | None = None) -> list[dict]:
+def read_rows(path: Optional[Path] = None) -> list[dict]:
     try:
         text = Path(path or REGISTRY_PATH).read_text(encoding="utf-8", errors="replace")
     except OSError:
@@ -311,16 +311,16 @@ def _default_pid_alive(pid: int) -> bool:
     return pid_is_alive(pid)
 
 
-def _default_transcript_mtime(path: str) -> datetime | None:
+def _default_transcript_mtime(path: str) -> Optional[datetime]:
     try:
-        return datetime.fromtimestamp(Path(path).stat().st_mtime, tz=UTC)
+        return datetime.fromtimestamp(Path(path).stat().st_mtime, tz=timezone.utc)
     except (OSError, ValueError):
         return None
 
 
-def _derive(events: list[dict], lane: str | None, now: datetime, *,
+def _derive(events: list[dict], lane: Optional[str], now: datetime, *,
             pid_alive: Callable[[int], bool], path_exists: Callable[[str], bool],
-            transcript_mtime: Callable[[str], datetime | None]) -> tuple[str, datetime, str]:
+            transcript_mtime: Callable[[str], Optional[datetime]]) -> tuple[str, datetime, str]:
     """(state, last activity, last hook event kind) -- a pure function of event timestamps."""
     last = events[-1]
     hook_ts = datetime.fromisoformat(last["ts"])
@@ -341,10 +341,10 @@ def _derive(events: list[dict], lane: str | None, now: datetime, *,
     return ("wedged" if idle_min > WEDGED_AFTER_MIN else "live"), activity, kind
 
 
-def seats(path: Path | None = None, *, now: datetime | None = None,
+def seats(path: Optional[Path] = None, *, now: Optional[datetime] = None,
           pid_alive: Callable[[int], bool] = _default_pid_alive,
           path_exists: Callable[[str], bool] = lambda p: Path(p).exists(),
-          transcript_mtime: Callable[[str], datetime | None] = _default_transcript_mtime,
+          transcript_mtime: Callable[[str], Optional[datetime]] = _default_transcript_mtime,
           ) -> list[Seat]:
     """Every session the registry has seen, each with its READ state."""
     moment = now or _now()
@@ -387,8 +387,8 @@ def _label(seat: Seat) -> str:
     return f"{who} {seat.session_id[:8]} ({seat.minutes_since:.0f} min since last event)"
 
 
-def seat_health_line(path: Path | None = None, *, now: datetime | None = None,
-                     open_batches: Iterable[str] = (), **probes) -> str | None:
+def seat_health_line(path: Optional[Path] = None, *, now: Optional[datetime] = None,
+                     open_batches: Iterable[str] = (), **probes) -> Optional[str]:
     """The SessionStart `[seats]` line: stalled seats named WITHOUT anyone asking.
 
     SILENT over an empty registry -- no events is no measurement, and a `0 live` would be

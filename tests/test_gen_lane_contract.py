@@ -897,7 +897,7 @@ import batch_manifest as bm  # noqa: E402
 
 
 def _write_open_manifest(tmp_path, table: str, *,
-                         name="2026-09-02-technical-batch-z-manifest.md") -> bm.OpenBatch:
+                         name="2026-09-02-technical-batch-z-manifest.md") -> "bm.OpenBatch":
     rel = f"docs/audits/{name}"
     target = tmp_path / rel
     target.parent.mkdir(parents=True, exist_ok=True)

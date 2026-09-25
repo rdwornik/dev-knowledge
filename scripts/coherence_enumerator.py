@@ -123,7 +123,7 @@ def _spec_key_terms(spec_name: str) -> tuple[re.Pattern, ...]:
     here as noise.
     """
     pats: list[re.Pattern] = []
-    prefix = spec_name.split("_", maxsplit=1)[0]
+    prefix = spec_name.split("_")[0]
     if prefix.isupper() and len(prefix) >= 3:
         # the post-underscore char may be a digit too (e.g. a FOO_2025 family member)
         pats.append(re.compile(rf"\b{re.escape(prefix)}_[A-Z0-9][A-Z0-9_]*\b"))

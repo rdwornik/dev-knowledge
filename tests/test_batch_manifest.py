@@ -1001,7 +1001,7 @@ def test_malformed_batch_output_falls_back_instead_of_misaligning(tmp_path, monk
     def truncating_run(*a, **kw):
         out = real_run(*a, **kw)
         args = a[0] if a else kw.get("args")
-        if any(str(x) == "--batch" for x in args):
+        if any("--batch" == str(x) for x in args):
             out.stdout = out.stdout[:len(out.stdout) // 2]      # lose the tail mid-object
         return out
 

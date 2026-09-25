@@ -344,7 +344,7 @@ def parse_done_when(raw: str) -> str:
     return m.group(1).strip() if m else ""
 
 
-def _rows_by_id(backlog_text: str) -> dict[int, object]:
+def _rows_by_id(backlog_text: str) -> dict[int, "object"]:
     model = _gtt.parse_backlog(backlog_text.replace("\r\n", "\n"))
     return {payload.id: payload for kind, payload in model.nodes if kind == "task"}
 
@@ -925,7 +925,7 @@ def gate_health(audits_dir: Path) -> GateHealth:
             if len(rows) < 2:
                 continue
             idx = _current_column(columns)
-            total = sum(v[idx] for _, v in rows) if idx >= 0 else 0
+            total = sum(v[idx] for _, v in rows) if 0 <= idx else 0
             return GateHealth(source=str(path.relative_to(audits_dir.parent.parent)).replace("\\", "/"),
                               columns=columns, rows=tuple(rows), current_index=idx,
                               current_total=total, commit_tax=tax, commit_tax_date=tax_date,

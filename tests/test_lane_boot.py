@@ -230,7 +230,7 @@ def test_the_lane_boot_command_file_runs_the_entry_point():
     state this lane found. `/lane-boot`'s pre-flight must RUN `lane_boot.py preflight` inside a
     fenced block, which is the part a seat actually types."""
     text = (_REPO_ROOT / ".claude" / "commands" / "lane-boot.md").read_text(encoding="utf-8")
-    fences = re.findall(r"```[a-z]*\n(.*?)```", text, flags=re.DOTALL)
+    fences = re.findall(r"```[a-z]*\n(.*?)```", text, flags=re.S)
     assert any("scripts/lane_boot.py preflight" in f for f in fences), \
         "/lane-boot does not run the manifest refusal"
 
@@ -245,9 +245,9 @@ def test_the_lane_boot_command_file_runs_the_entry_point():
 # These drive `seat_preflight` on a registry built in `tmp_path` and need no git, so they carry no
 # skip guard.
 
-from datetime import datetime, timedelta, UTC  # noqa: E402
+from datetime import datetime, timedelta, timezone  # noqa: E402
 
-_T0 = datetime(2026, 9, 17, 10, 47, tzinfo=UTC)
+_T0 = datetime(2026, 9, 17, 10, 47, tzinfo=timezone.utc)
 _OWNED = "lane-ab-833-seat-registry"
 _OWNED_CWD = f"C:/Dev/.dev-knowledge/.claude/worktrees/{_OWNED}"
 

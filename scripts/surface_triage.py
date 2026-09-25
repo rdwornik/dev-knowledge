@@ -25,9 +25,10 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Optional
 
 
-def resolve_gh() -> str | None:
+def resolve_gh() -> Optional[str]:
     """gh's path: PATH first, then the default Windows install location as a fallback (the
     SessionStart shell does not always inherit an updated PATH)."""
     found = shutil.which("gh")
@@ -41,7 +42,7 @@ def resolve_gh() -> str | None:
     return None
 
 
-def _run_gh(gh: str, *args: str, cwd: Path | None = None, timeout: int = 20):
+def _run_gh(gh: str, *args: str, cwd: Optional[Path] = None, timeout: int = 20):
     return subprocess.run(
         [gh, *args], capture_output=True, text=True, encoding="utf-8", errors="replace",
         timeout=timeout, cwd=str(cwd) if cwd else None,
@@ -56,7 +57,7 @@ def gh_auth_is_valid(gh: str) -> bool:
     return result.returncode == 0
 
 
-def triage_lines(gh: str, cwd: Path | None) -> list[str]:
+def triage_lines(gh: str, cwd: Optional[Path]) -> list[str]:
     """The [triage] line, or [] when there are zero open nightly-triage issues (or gh's answer
     could not be parsed -- fail-soft, never a false-clear crash)."""
     result = _run_gh(gh, "issue", "list", "--label", "nightly-triage", "--state", "open",

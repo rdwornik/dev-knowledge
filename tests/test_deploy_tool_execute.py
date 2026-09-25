@@ -382,7 +382,7 @@ def test_set_repo_record_raises_for_unknown_repo():
 def _fake_ctx():
     return tool.PreflightContext(
         repo="ai-council", version="v1.0.0", bare_version="1.0.0",
-        repo_root=Path(), source_tag="v1.0.0",
+        repo_root=Path("."), source_tag="v1.0.0",
         manifest=manifest_of("precommit"), manifest_path=Path("m"),
     )
 

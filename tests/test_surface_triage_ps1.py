@@ -73,7 +73,7 @@ def fake_gh_dir(tmp_path):
     return tmp_path
 
 
-def _run(fake_gh_dir) -> subprocess.CompletedProcess[str]:
+def _run(fake_gh_dir) -> "subprocess.CompletedProcess[str]":
     powershell = shutil.which("powershell")
     if not powershell:
         pytest.skip("Windows PowerShell (powershell.exe) not on PATH")

@@ -63,7 +63,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from collections.abc import Iterable, Sequence
+from typing import Iterable, Sequence
 
 import click
 
@@ -89,7 +89,7 @@ class PacketIncomplete(RuntimeError):
     """An input the reviewer needs is missing. Raised, never rendered as an empty section."""
 
 
-def _git(repo: Path | str, *args: str) -> str:
+def _git(repo: "Path | str", *args: str) -> str:
     """One git call in `repo`; a failure raises PacketIncomplete rather than returning ''."""
     try:
         proc = subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True,
@@ -102,7 +102,7 @@ def _git(repo: Path | str, *args: str) -> str:
     return proc.stdout.strip()
 
 
-def merge_range(repo: Path | str, merge_sha: str) -> str:
+def merge_range(repo: "Path | str", merge_sha: str) -> str:
     """`<merge>^1..<merge>` -- the merge commit against its first parent.
 
     REFUSES a commit with fewer than two parents: a plain commit has a first parent too, and its
@@ -117,14 +117,14 @@ def merge_range(repo: Path | str, merge_sha: str) -> str:
     return f"{full}^1..{full}"
 
 
-def changed_in_merge(repo: Path | str, merge_sha: str) -> tuple[str, ...]:
+def changed_in_merge(repo: "Path | str", merge_sha: str) -> tuple[str, ...]:
     """Every path the merge changed relative to its first parent, in git's own order."""
     full = merge_range(repo, merge_sha).split("..")[1]
     out = _git(repo, "diff", "--name-only", f"{full}^1", full)
     return tuple(line for line in out.splitlines() if line.strip())
 
 
-def _merge_of_tip(repo: Path | str, base: str, tip: str) -> str | None:
+def _merge_of_tip(repo: "Path | str", base: str, tip: str) -> "str | None":
     """The first-parent merge on `base` whose second parent is `tip` (a `--no-ff` lane merge)."""
     want = _git(repo, "rev-parse", "--verify", f"{tip}^{{commit}}")
     found = []
@@ -140,7 +140,7 @@ def _merge_of_tip(repo: Path | str, base: str, tip: str) -> str | None:
     return found[0] if found else None
 
 
-def resolve_range(repo: Path | str, diff_range: str) -> str:
+def resolve_range(repo: "Path | str", diff_range: str) -> str:
     """The range as given when it selects commits; the merge's own range when it is EMPTY.
 
     An empty `A..B` whose B is a merged lane tip is the old post-merge formulation -- swap it for
@@ -222,7 +222,7 @@ class ReviewPacket:
                       "Stated rather than left silent: silence reads as 'not checked'.", ""]
         return "\n".join(lines)
 
-    def write(self, path: Path | str) -> Path:
+    def write(self, path: "Path | str") -> Path:
         out = Path(path)
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(self.render(), encoding="utf-8", newline="\n")
@@ -288,7 +288,7 @@ def assemble(*, lane: str, contract_text: str, changed_files: Sequence[str] | It
                    "abbreviate the list and must not be handed an abbreviated one")
 @click.option("--out", required=True, type=click.Path(dir_okay=False),
               help="where to write the packet the reviewer is handed")
-def cli(lane: str, contract: str, diff_range: str | None, merge_sha: str | None, repo: str,
+def cli(lane: str, contract: str, diff_range: "str | None", merge_sha: "str | None", repo: str,
         handback: str, changed: tuple[str, ...], out: str) -> None:
     """Assemble the reviewer's inputs into ONE file, handed over before the review starts."""
     try:

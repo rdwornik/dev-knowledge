@@ -578,7 +578,7 @@ def render(seat: str, *, batch: str, date: str, repo_root: Path | None = None,
     return rendered.rstrip() + "\n"
 
 
-def write_bundle(bundle_dir: str | Path, *, batch: str, date: str,
+def write_bundle(bundle_dir: "str | Path", *, batch: str, date: str,
                  repo_root: Path | None = None) -> list[Path]:
     """Render all five boots into `bundle_dir`. Returns the written paths, in seat order.
 
@@ -601,7 +601,7 @@ def write_bundle(bundle_dir: str | Path, *, batch: str, date: str,
     return written
 
 
-def verify(bundle_dir: str | Path, *, repo_root: Path | None = None) -> list[str]:
+def verify(bundle_dir: "str | Path", *, repo_root: Path | None = None) -> list[str]:
     """PROBE P12 -- every SEAT-BOOT file in the bundle equals a fresh render from Ch8.
 
     Returns a list of drift descriptions; empty means PASS. `batch` and `date` are read back out

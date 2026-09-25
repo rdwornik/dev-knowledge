@@ -103,7 +103,7 @@ import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass, field
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from pathlib import Path
 
 logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
@@ -386,7 +386,7 @@ def collect(repo_root: Path, env: dict | None = None, probe: LiveProbe | None = 
         "python_pin": pins["python_pin"],
         "uv_pin": pins["uv_pin"],
         "tools": {tool: probe.tool_version(tool) for tool in TRACKED_TOOLS},
-        "written_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "written_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "writer": writer,
     }
 

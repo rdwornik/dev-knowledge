@@ -62,14 +62,14 @@ _SITE_LINE_RE = re.compile(
 class SiteResult:
     path: str
     pattern: str
-    landed: bool | None   # None = site file missing / unreadable / bad pattern
+    landed: "bool | None"   # None = site file missing / unreadable / bad pattern
 
 
 @dataclass(frozen=True)
 class LandedEntry:
     ruling_id: str
     title: str
-    sites: tuple[SiteResult, ...]
+    sites: "tuple[SiteResult, ...]"
 
     @property
     def mixed(self) -> bool:
@@ -78,11 +78,11 @@ class LandedEntry:
         return len(vals) > 1
 
     @property
-    def errors(self) -> tuple[SiteResult, ...]:
+    def errors(self) -> "tuple[SiteResult, ...]":
         return tuple(s for s in self.sites if s.landed is None)
 
 
-def _landed_fence_blocks(text: str) -> list[tuple[int, str]]:
+def _landed_fence_blocks(text: str) -> "list[tuple[int, str]]":
     """[(0-indexed start line, block content), ...] for every ```landed fenced code block,
     located via markdown_it (CommonMark-correct fence detection, not a regex over the file)."""
     out: list[tuple[int, str]] = []
@@ -92,7 +92,7 @@ def _landed_fence_blocks(text: str) -> list[tuple[int, str]]:
     return out
 
 
-def parse_landed_entries(text: str) -> list[tuple[str, str, list[tuple[str, str]]]]:
+def parse_landed_entries(text: str) -> "list[tuple[str, str, list[tuple[str, str]]]]":
     """[(ruling_id, title, [(path, pattern), ...]), ...] — one tuple per ```landed block,
     associated with the nearest `### <id> ...` heading at or before the block's start line."""
     lines = text.splitlines()
@@ -122,7 +122,7 @@ def parse_landed_entries(text: str) -> list[tuple[str, str, list[tuple[str, str]
     return out
 
 
-def _resolve_site(repo_root: Path, path: str, pattern: str) -> bool | None:
+def _resolve_site(repo_root: Path, path: str, pattern: str) -> "bool | None":
     fp = repo_root / path
     if not fp.exists() or not fp.is_file():
         return None
@@ -133,7 +133,7 @@ def _resolve_site(repo_root: Path, path: str, pattern: str) -> bool | None:
         return None
 
 
-def scan(repo_root: Path, register: Path | None = None) -> list[LandedEntry]:
+def scan(repo_root: Path, register: "Path | None" = None) -> "list[LandedEntry]":
     """Evaluate every declared `landed:` predicate in `register` (default
     `protocols/STANDING_RULINGS.md`) against the live tree at `repo_root`. Returns one
     `LandedEntry` per declaration, in file order; [] if the register is absent (hub-only
@@ -159,7 +159,7 @@ def format_entry(entry: LandedEntry) -> str:
     return f"{entry.ruling_id} ({entry.title}): {site_desc}"
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: "list[str] | None" = None) -> int:
     entries = scan(_REPO_ROOT)
     mixed = [e for e in entries if e.mixed]
     errored = [e for e in entries if e.errors and not e.mixed]

@@ -603,7 +603,7 @@ def test_a_runner_that_calls_sys_exit_is_a_red_gate_not_a_green_process(tmp_path
 
 def _walk_block() -> str:
     """The per-lane bash block of the integrator command, placeholders made syntactically valid."""
-    blocks = re.findall(r"```bash\n(.*?)```", _command_text(), flags=re.DOTALL)
+    blocks = re.findall(r"```bash\n(.*?)```", _command_text(), flags=re.S)
     block = next(b for b in blocks if "moment:merge" in b and "git push" in b)
     return block.replace("<n>", "1")
 

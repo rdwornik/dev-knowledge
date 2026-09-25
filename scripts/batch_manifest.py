@@ -86,8 +86,7 @@ import importlib.util
 import re
 import subprocess
 from pathlib import Path, PurePosixPath
-from typing import NamedTuple
-from collections.abc import Mapping
+from typing import Mapping, NamedTuple, Optional
 
 # The [#355] git-env scrub, single-sourced in the LEAF module `scripts/gitenv.py` ([#396]).
 # A leaf — stdlib-only, zero repo imports — so this adds no import edge that could reach the
@@ -239,7 +238,7 @@ def _valid_closer(closed_by: str) -> bool:
     return p.parts[:2] == ("docs", "audits") and p.suffix == ".md"
 
 
-def _git(repo_path: Path, *args: str) -> str | None:
+def _git(repo_path: Path, *args: str) -> Optional[str]:
     """Read-only git in a SCRUBBED env, or None on any failure. None always reduces to
     "no exemption".
 
@@ -262,7 +261,7 @@ def _git(repo_path: Path, *args: str) -> str | None:
     return r.stdout if r.returncode == 0 else None
 
 
-def _committed_audits(repo_path: Path) -> set[str] | None:
+def _committed_audits(repo_path: Path) -> Optional[set[str]]:
     """Every path committed under `docs/audits/` at HEAD, or None when git could not answer.
 
     P2 (intake #71): ONE `ls-tree` already answers both questions `open_batches` asks of the
@@ -284,7 +283,7 @@ def _committed_audits(repo_path: Path) -> set[str] | None:
 
 def _manifests_in(paths: set[str]) -> list[str]:
     """The manifest-grammar members of `paths`, oldest path first."""
-    pat = MANIFEST_GLOB.rsplit("/", maxsplit=1)[-1]
+    pat = MANIFEST_GLOB.split("/")[-1]
     return sorted(p for p in paths if PurePosixPath(p).match(pat))
 
 
@@ -294,7 +293,7 @@ def _committed_manifests(repo_path: Path) -> list[str]:
     return [] if paths is None else _manifests_in(paths)
 
 
-def _committed_text(repo_path: Path, rel: str) -> str | None:
+def _committed_text(repo_path: Path, rel: str) -> Optional[str]:
     """The blob at `HEAD:<rel>`, or None. Reading the COMMITTED blob is the whole point.
 
     EVERYTHING HERE IS HEAD-BASED, and the second terra HIGH of 2026-08-07 is why. The first
@@ -306,7 +305,7 @@ def _committed_text(repo_path: Path, rel: str) -> str | None:
     return _git(repo_path, "show", f"HEAD:{rel}")
 
 
-def _committed_texts(repo_path: Path, rels: list[str]) -> dict[str, str | None]:
+def _committed_texts(repo_path: Path, rels: list[str]) -> dict[str, Optional[str]]:
     """`{rel: blob text at HEAD}` for every `rel`, in ONE `git cat-file --batch` spawn.
 
     P2 (intake #71): `open_batches` read one blob per committed manifest, one `git show`
@@ -337,7 +336,7 @@ def _committed_texts(repo_path: Path, rels: list[str]) -> dict[str, str | None]:
     if proc is None or proc.returncode != 0:
         return {rel: _committed_text(repo_path, rel) for rel in rels}
 
-    out: dict[str, str | None] = {}
+    out: dict[str, Optional[str]] = {}
     buf, pos = proc.stdout, 0
     for rel in rels:
         nl = buf.find(b"\n", pos)
@@ -442,7 +441,7 @@ _COMMIT_META_MAXSIZE = 4096
 _META_FORMAT = "%H %P%x00%s"
 
 
-def warm_commit_meta(repo_path: Path, shas: list[str]) -> None:
+def warm_commit_meta(repo_path: Path, shas: "list[str]") -> None:
     """Populate `_COMMIT_META` for `shas` in ONE `git log --no-walk`, best-effort.
 
     P2 (intake #71). Each sha previously cost a `rev-list --parents -n 1` plus a
@@ -472,7 +471,7 @@ def warm_commit_meta(repo_path: Path, shas: list[str]) -> None:
         _COMMIT_META[(str(repo_path), parts[0])] = (parts, subject.strip())
 
 
-def _commit_meta(repo_path: Path, sha: str) -> tuple[list[str], str] | None:
+def _commit_meta(repo_path: Path, sha: str) -> Optional[tuple[list[str], str]]:
     """`(rev-list --parents output, subject)` for `sha`, from the memo or from git.
 
     The tuple's first element keeps `rev-list --parents -n 1`'s exact shape -- the commit
@@ -506,7 +505,7 @@ def _commit_meta(repo_path: Path, sha: str) -> tuple[list[str], str] | None:
     return parents, subject
 
 
-def merged_branch_name(repo_path: Path, sha: str) -> str | None:
+def merged_branch_name(repo_path: Path, sha: str) -> Optional[str]:
     """The branch a merge commit merged IN, read from its subject — or None.
 
     None for a non-merge commit, for a merge whose subject does not carry the
@@ -567,7 +566,7 @@ _LANEISH_IN_SUBJECT_RE = re.compile(
     rf"(?:worktree-)?lane-{BATCH_TOKEN}-\d+-[a-z0-9]+(?:-[a-z0-9]+)*")
 
 
-def subject_style_miss(repo_path: Path, sha: str) -> str | None:
+def subject_style_miss(repo_path: Path, sha: str) -> Optional[str]:
     """The lane name a merge subject NAMES but does not expose to the parser, or None.
 
     THE TRAP THIS EXISTS TO END (measured 2026-08-31, [#614] integration). The exemption reads
@@ -601,7 +600,7 @@ def subject_style_miss(repo_path: Path, sha: str) -> str | None:
 
 
 def exempt(repo_path: Path, shas: list[str],
-           batches: list[OpenBatch] | None = None) -> set[str]:
+           batches: Optional[list[OpenBatch]] = None) -> set[str]:
     """The subset of `shas` the declared-integration-arc exemption covers.
 
     Empty set when no batch is open — which is the overwhelmingly common state, and costs
@@ -647,16 +646,16 @@ LEG_ARM_DATES: dict[str, _dt.date] = {
 
 #: The manifest's own `## THE LANES` heading, however many hyphens/words follow it on the
 #: same line (`— 7 committing, frozen 2026-09-01`, `-- 15 committing, frozen 2026-08-31`).
-_LANES_HEADING_RE = re.compile(r"^ {0,3}#{1,6}\s*THE LANES\b.*$", re.IGNORECASE | re.MULTILINE)
+_LANES_HEADING_RE = re.compile(r"^ {0,3}#{1,6}\s*THE LANES\b.*$", re.I | re.M)
 #: Any heading, used to bound the LANES section the same way `validate_substrate` bounds its
 #: own sections -- the next heading ends the block.
-_ANY_HEADING_RE = re.compile(r"^ {0,3}#{1,6}\s+\S", re.MULTILINE)
+_ANY_HEADING_RE = re.compile(r"^ {0,3}#{1,6}\s+\S", re.M)
 #: A lane-slug-shaped token: `lane-<batch>-<digits>-<slug>`, reading the enum's BATCH_TOKEN
 #: (`[#809]`). Deliberately NOT
 #: `validate_branch_naming.LANE_BRANCH_RE` -- that matches a BRANCH (`worktree-lane-...`), and
 #: a manifest's lane table names the SLUG, not the branch. The two are related by a fixed
 #: prefix, never by identity.
-_SLUG_TOKEN_RE = re.compile(rf"\blane-{BATCH_TOKEN}-\d+(?:-[a-z0-9]+)+\b", re.IGNORECASE)
+_SLUG_TOKEN_RE = re.compile(rf"\blane-{BATCH_TOKEN}-\d+(?:-[a-z0-9]+)+\b", re.I)
 
 
 def manifest_lane_slugs(text: str) -> set[str]:
@@ -814,10 +813,10 @@ def manifest_link_surfaces(repo_path: Path) -> dict[str, ManifestLinks]:
             for hit in _AUDITS_PATH_RE.findall(surface):
                 name = hit.rsplit("/", 1)[-1]
                 explicit.add(name)
-                explicit.add(name.removesuffix(".md"))
+                explicit.add(name[:-3] if name.endswith(".md") else name)
             for stem in _LINKED_STEM_RE.findall(surface):
                 explicit.add(stem)
-                explicit.add(stem.removesuffix(".md"))
+                explicit.add(stem[:-3] if stem.endswith(".md") else stem)
             slugs |= manifest_lane_slugs(surface)
     return {rel: ManifestLinks(frozenset(explicit), frozenset(slugs), tuple(sorted(manifests)))
             for rel, (explicit, slugs, manifests) in sorted(by_surface.items())}
@@ -836,7 +835,7 @@ _FALLBACK_CLASS_RE = re.compile(r"^[a-z0-9]+-(?P<tail>.+)$")
 _CLASS_BY_LEN = tuple(sorted(AUDIT_CLASS_ENUM, key=len, reverse=True))
 
 
-def artifact_tail(stem: str) -> str | None:
+def artifact_tail(stem: str) -> Optional[str]:
     """The descriptive tail of `stem` -- what follows `<date>-<class>-` -- or None.
 
     THE SPLIT IS ENUM-FIRST, THEN ONE SEGMENT (terra HIGH, pass 2). A single `[a-z]+` class
@@ -863,7 +862,7 @@ def artifact_tail(stem: str) -> str | None:
     return match.group("tail") if match else None
 
 
-def links_artifact(links: ManifestLinks, name: str) -> str | None:
+def links_artifact(links: ManifestLinks, name: str) -> Optional[str]:
     """The link kind by which `name` is reachable, or None. `'explicit'` beats `'lane-slug'`.
 
     THE LANE-SLUG LEG IS ANCHORED, NOT CONTAINMENT (terra HIGH, pre-merge). It was
@@ -880,7 +879,7 @@ def links_artifact(links: ManifestLinks, name: str) -> str | None:
     commentary names something else first. A stem that carries no dated `<date>-<class>-`
     prefix has no tail to anchor against and is refused rather than fuzzily matched.
     """
-    stem = name.removesuffix(".md")
+    stem = name[:-3] if name.endswith(".md") else name
     if name in links.explicit or stem in links.explicit:
         return "explicit"
     tail = artifact_tail(stem)

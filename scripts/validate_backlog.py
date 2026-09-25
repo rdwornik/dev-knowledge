@@ -408,7 +408,7 @@ def _check_implements_references(tasks, repo_root=None):
     if intake_dir.is_dir():
         for path in intake_dir.glob("*.md"):
             m = re.search(r"^intake-id:\s*(\d+)\s*$",
-                          path.read_text(encoding="utf-8", errors="replace"), re.MULTILINE)
+                          path.read_text(encoding="utf-8", errors="replace"), re.M)
             if m:
                 intakes.add(m.group(1))
     hard = []

@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import Optional
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS_DIR.parent
@@ -68,7 +69,7 @@ def has_task_tree(repo_root: Path | None = None) -> bool:
     return (root / "tasks" / "manifest.json").is_file()
 
 
-def canonical_text(repo_root: Path | None = None) -> str | None:
+def canonical_text(repo_root: Path | None = None) -> Optional[str]:
     """The FULL-BODY backlog text for `repo_root`, or None when there is none.
 
     Returns the `tasks/` reassembly on a repo with a source tree, else the raw

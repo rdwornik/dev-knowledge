@@ -53,7 +53,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from collections.abc import Callable
+from typing import Callable, Optional
 
 import yaml
 
@@ -74,7 +74,7 @@ class ClaimResult:
 class Claim:
     name: str
     doc: str
-    anchor: re.Pattern | None                 # count kind: group(1) = claimed int
+    anchor: Optional[re.Pattern]                 # count kind: group(1) = claimed int
     kind: str                                    # "count" | "set"
     deriver: Callable[[Path, int], object]       # ground truth; 2nd arg = injected check count
     expensive: bool = False                      # True -> only when run_expensive
@@ -96,7 +96,7 @@ _PRECOMMIT_LINE_RE = re.compile(r"Pre-commit", re.IGNORECASE)
 _BULLET_ID_RE = re.compile(r"^-\s+`([a-z0-9-]+)`")
 
 
-def extract_claimed_hooks(claude_md_text: str) -> set[str] | None:
+def extract_claimed_hooks(claude_md_text: str) -> Optional[set[str]]:
     """The pre-commit hook ids NAMED in CLAUDE.md §9, as a set.
 
     Window-bounded to the `## 9. Hooks active` block (heading → next `## `) so the
@@ -130,7 +130,7 @@ def extract_claimed_hooks(claude_md_text: str) -> set[str] | None:
     return ids or None
 
 
-def _derive_pytest_collected(repo_root: Path, _check_count: int) -> int | None:
+def _derive_pytest_collected(repo_root: Path, _check_count: int) -> Optional[int]:
     """Collected test count via `pytest --collect-only -q` (claim 3, expensive).
 
     Returns the parsed count, 0 when collection ran but found nothing, or None when
@@ -182,9 +182,9 @@ def _fmt_set(s) -> str:
 
 
 # rule: coherence-doc-claims
-def reconcile(repo_root: Path, audit_check_count: int | None,
+def reconcile(repo_root: Path, audit_check_count: Optional[int],
               run_expensive: bool = False,
-              claims: list[Claim] | None = None) -> list[ClaimResult]:
+              claims: Optional[list["Claim"]] = None) -> list[ClaimResult]:
     """Evaluate every claim against ground truth. Pure; reads only. Claim 3 is skipped
     unless run_expensive. `audit_check_count` is the injected len(ALL_CHECKS) (claim 1) —
     supplied by the caller that drives reconcile (audit.check_doc_claims / tests); pass

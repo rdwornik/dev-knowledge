@@ -190,7 +190,7 @@ def render_index(audits_dir: Path | None = None,
         if month != current_month:
             current_month = month
             out += ["", f"## {month}", ""]
-        label = date or slug
+        label = date if date else slug
         out.append(f"- [{label}]({filename}) — {title}")
     return "\n".join(out) + "\n"
 

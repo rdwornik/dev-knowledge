@@ -1196,7 +1196,7 @@ def test_check_and_the_size_bar_read_the_same_view_budget():
     without the other fails here rather than silently drifting again.
     """
     budget = gtt.load_view_budget()
-    assert budget.value == gtt._VIEW_BYTE_CEILING
+    assert gtt._VIEW_BYTE_CEILING == budget.value
     assert budget.value == 150_000
     assert budget.cause == "ADR-122 step 0; the view is uncommitted and field-only at step 2"
     assert budget.manual_until == "2026-10-15"
@@ -1304,8 +1304,8 @@ def test_check_fails_when_the_tree_stops_reassembling_losslessly(tmp_path):
     # and abort at leg 1, which proves the wrong thing: the point is that leg 6 catches a
     # tree that still PARSES and still PROJECTS but no longer reassembles losslessly.
     victim = next(p for p in sorted(out_dir.glob("*.md")) if p.name[0].isdigit())
-    victim.write_bytes(victim.read_bytes().replace("—".encode(),
-                                                   "—\r".encode()))
+    victim.write_bytes(victim.read_bytes().replace("—".encode("utf-8"),
+                                                   "—\r".encode("utf-8")))
     problems = gtt.find_incoherences(source, out_dir)
     assert any("lossless" in p for p in problems), problems
 

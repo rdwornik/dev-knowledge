@@ -101,9 +101,9 @@ import statistics
 import subprocess
 import time
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from collections.abc import Sequence
+from typing import Optional, Sequence
 
 import click
 
@@ -235,7 +235,7 @@ class StepTiming:
     step_class: str
     seconds: float
     ok: bool
-    returncode: int | None
+    returncode: Optional[int]
     command: str
     started: str
     #: Set when this step ran concurrently with others, naming the `race` group it belonged to.
@@ -247,21 +247,21 @@ class StepTiming:
     #: STEP's verdict state", and because a RETRY has to be expressible: `JOBS-UNREADABLE`'s own
     #: remedy is "RETRY it", so a second read must be able to supersede the first with both still
     #: visible. `Receipt.suite_verdict()` takes the last one recorded.
-    verdict_state: str | None = None
+    verdict_state: Optional[str] = None
     #: THE COMMIT THIS READING WAS ATTRIBUTED AGAINST -- the merge's first parent, derived rather
     #: than supplied. Recorded because a differential is only meaningful relative to its
     #: baseline: a `PRE-EXISTING` whose baseline nobody can name is not an auditable reading, it
     #: is a claim. `None` on a step that read no verdict, and on a ledger row written before the
     #: baseline was derived -- which is honest, because those readings took a baseline that was
     #: typed and is no longer recoverable.
-    baseline_sha: str | None = None
+    baseline_sha: Optional[str] = None
 
     @property
     def minutes(self) -> float:
         return self.seconds / 60.0
 
     @property
-    def ended(self) -> str | None:
+    def ended(self) -> Optional[str]:
         """`started` + `seconds`, as an ISO timestamp -- the step's END.
 
         UNTIL THIS FIELD, THE RECEIPT KNEW A STEP'S END AND NEVER SAID SO. `started` and
@@ -300,7 +300,7 @@ class Receipt:
     #: not a question the ledger could answer, and `median` was a median over batches printed as
     #: "median merge minutes" -- the `kind`-field failure with the discriminator moved one level
     #: out. One receipt per merge, each naming its merge.
-    merge_sha: str | None = None
+    merge_sha: Optional[str] = None
     #: THE TIER THE CONTRACT ORDERED, and THE MODEL THE LANE ACTUALLY RAN (`[#752]`).
     #:
     #: THE SPLIT IS AY1-1's, REUSED. `ordered_model` is an INPUT -- it is what the contract's
@@ -322,14 +322,14 @@ class Receipt:
     #: field is `Verdict.ok`'s trap with a new field in it. A receipt carrying exactly ONE of them
     #: is a different case and IS refused, because asking a question and failing to answer it is
     #: not the answer being yes.
-    ordered_model: str | None = None
-    ran_model: str | None = None
+    ordered_model: Optional[str] = None
+    ran_model: Optional[str] = None
     steps: list[StepTiming] = field(default_factory=list)
-    closed: str | None = None
+    closed: Optional[str] = None
 
     # -- arithmetic ---------------------------------------------------------------------------
 
-    def _span_seconds(self) -> float | None:
+    def _span_seconds(self) -> Optional[float]:
         """`opened` -> `closed` in seconds, or **None when that cannot be read**.
 
         None rather than 0.0, and the distinction is the same one `[#742]` drew one organ over
@@ -343,7 +343,7 @@ class Receipt:
         try:
             start = datetime.fromisoformat(self.opened)
             end = (datetime.fromisoformat(self.closed) if self.closed
-                   else datetime.now(UTC))
+                   else datetime.now(timezone.utc))
             span = (end - start).total_seconds()
         except (TypeError, ValueError):
             return None
@@ -413,7 +413,7 @@ class Receipt:
         parallel saving is measured against, kept explicit rather than implied."""
         return sum(s.seconds for s in self.steps)
 
-    def suite_verdict(self) -> str | None:
+    def suite_verdict(self) -> Optional[str]:
         """The suite result's STATE as this receipt recorded it, or None when none was.
 
         THE LAST ONE WINS, deliberately. `JOBS-UNREADABLE`'s own remedy is "RETRY it", so a
@@ -475,7 +475,7 @@ class Receipt:
 
     # -- completeness (`[#744]`) --------------------------------------------------------------
 
-    def incompleteness_reason(self) -> str | None:
+    def incompleteness_reason(self) -> Optional[str]:
         """WHY this receipt is not a usable measurement, or None when it is.
 
         ONE EXPLICIT PREDICATE IN CODE, which is `[#744]`'s own requirement -- "rather than left
@@ -624,7 +624,7 @@ class Receipt:
         return data
 
     @classmethod
-    def from_dict(cls, data: dict) -> Receipt:
+    def from_dict(cls, data: dict) -> "Receipt":
         steps = [StepTiming(step=s["step"], step_class=s["step_class"], seconds=s["seconds"],
                             ok=s["ok"], returncode=s.get("returncode"),
                             command=s.get("command", ""), started=s.get("started", ""),
@@ -674,7 +674,7 @@ def count_concurrent_seats(repo_root: Path) -> int:
 
 
 def _now() -> str:
-    return datetime.now(UTC).isoformat(timespec="seconds")
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
 def scratch_path(repo_root: Path, slug: str) -> Path:
@@ -726,7 +726,7 @@ def save_receipt(repo_root: Path, receipt: Receipt) -> None:
 
 
 def run_timed(command: Sequence[str], *, step: str, step_class: str,
-              cwd: Path | None = None) -> StepTiming:
+              cwd: Optional[Path] = None) -> StepTiming:
     """Run `command`, timed. The child's stdout/stderr are NOT captured — they go straight to the
     operator's terminal, because a wrapper that swallowed a merge step's output would make itself
     the thing between the integrator and their own merge."""
@@ -734,7 +734,7 @@ def run_timed(command: Sequence[str], *, step: str, step_class: str,
     clock = time.perf_counter()
     try:
         proc = subprocess.run(list(command), cwd=str(cwd) if cwd else None, check=False)
-        rc: int | None = proc.returncode
+        rc: Optional[int] = proc.returncode
     except (OSError, subprocess.SubprocessError) as exc:
         logger.error("step %s could not be run: %r", step, exc)
         rc = None
@@ -780,8 +780,8 @@ def _same_commit(left: str, right: str) -> bool:
 
 
 def record_actions_verdict(repo_root: Path, *, slug: str, sha: str,
-                           baseline: str | None = None, step: str = ACTIONS_STEP,
-                           fetch=None, first_parent=None) -> tuple[Receipt, _av.Verdict]:
+                           baseline: Optional[str] = None, step: str = ACTIONS_STEP,
+                           fetch=None, first_parent=None) -> tuple[Receipt, "_av.Verdict"]:
     """Read this merge's Actions verdict, record its STATE on the receipt, bind the merge SHA.
 
     RULING AY1-1'S CARRIER. Until `[#750]` this was a `time --step actions -- actions_verdict.py
@@ -891,9 +891,9 @@ def ordered_model_from_contract(contract) -> str:
     return str(row["model"]).strip()
 
 
-def record_model_reading(repo_root: Path, *, slug: str, ordered: str | None = None,
+def record_model_reading(repo_root: Path, *, slug: str, ordered: "Optional[str]" = None,
                          contract=None, worktree=None,
-                         read=None) -> tuple[Receipt, _ra.ModelReading]:
+                         read=None) -> tuple[Receipt, "_ra.ModelReading"]:
     """Record WHAT WAS ORDERED and READ what actually ran, off the lane's own transcript.
 
     THE ASYMMETRY IS THE POINT, and it is `record_actions_verdict`'s asymmetry one field over.
@@ -964,7 +964,7 @@ def first_parent_merges(repo_root: Path, rev_range: str) -> list[str]:
 
 
 def audit_merges(merge_shas: Sequence[str],
-                 receipts: Sequence[Receipt]) -> list[tuple[str, str | None]]:
+                 receipts: Sequence[Receipt]) -> list[tuple[str, Optional[str]]]:
     """Per merge SHA, the problem with its receipt -- or None when there is none.
 
     DONE-CONTRACT CLAUSE 1's REFUSAL, as a pure function over a SHA list and a ledger, so the
@@ -989,7 +989,7 @@ def audit_merges(merge_shas: Sequence[str],
     """
     named: dict[str, Receipt] = {r.merge_sha: r for r in receipts
                                  if r.kind == KIND_MERGE and r.merge_sha}
-    out: list[tuple[str, str | None]] = []
+    out: list[tuple[str, Optional[str]]] = []
     for sha in merge_shas:
         receipt = named.get(sha) or next(
             (r for key, r in named.items()
@@ -1006,7 +1006,7 @@ def audit_merges(merge_shas: Sequence[str],
     return out
 
 
-def render_require(problems: Sequence[tuple[str, str | None]], rev_range: str) -> str:
+def render_require(problems: Sequence[tuple[str, Optional[str]]], rev_range: str) -> str:
     """`require`'s report. It NAMES the merges that passed as well as the ones that did not.
 
     AND IT NAMES ITS OWN VACUITY. A range holding no merge commit says so, because "0 of 0
@@ -1277,7 +1277,7 @@ def render_summary(receipt: Receipt) -> str:
 
 # --- CLI -------------------------------------------------------------------------------------
 
-def _root(repo_root: str | None) -> Path:
+def _root(repo_root: Optional[str]) -> Path:
     return Path(repo_root) if repo_root else _REPO_ROOT
 
 
@@ -1286,7 +1286,7 @@ def _root(repo_root: str | None) -> Path:
 LANE_WORKTREE_TEMPLATE = ".claude/worktrees/{slug}"
 
 
-def default_lane_worktree(repo_root: Path, slug: str) -> Path | None:
+def default_lane_worktree(repo_root: Path, slug: str) -> Optional[Path]:
     """The lane's worktree when it exists on this disk, else None (R-W3-5).
 
     THE INTEGRATOR IS NOT IN THE LANE. `models` reads the transcript filed under a working
@@ -1305,7 +1305,7 @@ def default_lane_worktree(repo_root: Path, slug: str) -> Path | None:
 @click.option("--repo-root", default=None, type=click.Path(file_okay=False),
               help="repo root [default: this script's parent]")
 @click.pass_context
-def cli(ctx: click.Context, repo_root: str | None) -> None:
+def cli(ctx: click.Context, repo_root: Optional[str]) -> None:
     ctx.ensure_object(dict)
     ctx.obj["root"] = _root(repo_root)
 
@@ -1435,7 +1435,7 @@ def cmd_race(ctx: click.Context, slug: str, jobs: tuple[str, ...]) -> None:
 @click.option("--step", default=ACTIONS_STEP, show_default=True,
               help="the step id to record under; a retry records under its own id and wins")
 @click.pass_context
-def cmd_actions(ctx: click.Context, slug: str, sha: str, baseline: str | None,
+def cmd_actions(ctx: click.Context, slug: str, sha: str, baseline: Optional[str],
                 step: str) -> None:
     """Read this merge's Actions verdict, RECORD ITS STATE, exit with the verdict's own code.
 
@@ -1470,8 +1470,8 @@ def cmd_actions(ctx: click.Context, slug: str, sha: str, baseline: str | None,
                    "transcript under it, and that transcript is the measurement. An explicit "
                    "value always wins")
 @click.pass_context
-def cmd_models(ctx: click.Context, slug: str, contract: Path | None, ordered: str | None,
-               worktree: str | None) -> None:
+def cmd_models(ctx: click.Context, slug: str, contract: Optional[Path], ordered: Optional[str],
+               worktree: Optional[str]) -> None:
     """Record the ordered tier and READ, off the lane's own transcript, what it actually ran.
 
     There is deliberately no flag that asserts what ran -- not under any spelling. This verb
@@ -1533,7 +1533,7 @@ def cmd_close(ctx: click.Context, slug: str) -> None:
 @click.option("--strict", is_flag=True, default=False,
               help=f"exit 1 unless every required step is recorded ({', '.join(REQUIRED_STEPS)})")
 @click.pass_context
-def cmd_summary(ctx: click.Context, slug: str | None, strict: bool) -> None:
+def cmd_summary(ctx: click.Context, slug: Optional[str], strict: bool) -> None:
     """Itemised per-step minutes for one receipt (target 3.1)."""
     root = ctx.obj["root"]
     if slug:

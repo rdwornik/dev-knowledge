@@ -709,7 +709,7 @@ def test_the_fenced_registration_diff_and_the_wrapper_test_cannot_DRIFT():
         not a behaviour change). Naive, and knowingly so: a `#` inside a string literal would
         be truncated. Neither copy contains one, and a test that silently compared LESS than
         it claimed would be the exact defect this file exists to catch."""
-        return " ".join(line.split("  #", maxsplit=1)[0].split())
+        return " ".join(line.split("  #")[0].split())
 
     def _as_test_spelling(line: str) -> str:
         return _code_only(

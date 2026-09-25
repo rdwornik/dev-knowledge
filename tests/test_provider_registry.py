@@ -135,7 +135,7 @@ def test_a_registry_missing_a_collection_raises(tmp_path):
 
 def test_changelog_sentinel_tools_are_derived_from_the_registry():
     """Seam S7. The sentinel's `_TOOLS` is the registry's `version_commands()`, not a copy."""
-    assert preg.version_commands() == cs._TOOLS
+    assert cs._TOOLS == preg.version_commands()
     assert cs._TOOLS == {"claude-code": ["claude", "--version"],
                          "codex": ["codex", "--version"]}
 

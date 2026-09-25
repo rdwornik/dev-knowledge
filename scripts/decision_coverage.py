@@ -159,7 +159,7 @@ TRANSPORT_PREFIXES = ("DECLARE-", "AMEND-")
 #: `**Date:** 2026-06-16` and `- **Date:** 2026-09-07` are BOTH live ADR grammars -- 58 of the
 #: 84 accepted ADRs use one and the rest the other. One pattern for both; reading only the
 #: flush-left form answered NO-DATE for 26 real ADRs when this was measured.
-_ADR_DATE_RE = re.compile(r"^\s*(?:[-*]\s+)?\*\*Date:\*\*\s*(\d{4}-\d{2}-\d{2})", re.MULTILINE)
+_ADR_DATE_RE = re.compile(r"^\s*(?:[-*]\s+)?\*\*Date:\*\*\s*(\d{4}-\d{2}-\d{2})", re.M)
 #: A `YYYY-MM-DD` prefix on a filename: `docs/intake/2026-09-10-tech-....md`, and the dated
 #: half of the transport's naming (`DECLARE-cv-f2-2026-09-10.md`).
 _FILENAME_DATE_RE = re.compile(r"(\d{4}-\d{2}-\d{2})")

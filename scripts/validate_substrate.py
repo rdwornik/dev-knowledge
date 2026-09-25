@@ -76,7 +76,7 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from collections.abc import Iterable, Mapping
+from typing import Iterable, Mapping, Optional
 
 import yaml
 
@@ -212,7 +212,7 @@ class Substrate:
     admits_gate_dependent_work: bool
     operator_disk: bool
     shared_checkout: bool = False
-    branch_prefix: str | None = None
+    branch_prefix: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -221,7 +221,7 @@ class Refusal:
     rule: str
     source: str
     detail: str
-    substrate: str | None = None
+    substrate: Optional[str] = None
     severity: str = SEVERITY_REFUSE
     overridden: bool = False
 
@@ -311,18 +311,18 @@ def load_registry(repo_path: Path) -> dict[str, Substrate]:
 #: the precedence race over the real declaration further down, masking it exactly the way
 #: the prose heading did. Layer 1 anchors for the same reason; matching its anchoring is the
 #: rest of matching its grammar.
-_SHAPE_RE = re.compile(r"^\*\*Shape:\*\*\s*`(?P<value>[A-Za-z][A-Za-z0-9_-]*)`", re.IGNORECASE | re.MULTILINE)
+_SHAPE_RE = re.compile(r"^\*\*Shape:\*\*\s*`(?P<value>[A-Za-z][A-Za-z0-9_-]*)`", re.I | re.M)
 #: Ch8's spelling, bolded or not, with or without the colon inside the bold markers:
 #: `**Substrate:** cloud` · `**Substrate: LOCAL worktree**` · `Substrate: codespace`.
 _SUBSTRATE_RE = re.compile(
-    r"\*{0,2}Substrate\*{0,2}\s*:\s*\*{0,2}\s*`?(?P<value>[A-Za-z][A-Za-z0-9_-]*)`?", re.IGNORECASE)
+    r"\*{0,2}Substrate\*{0,2}\s*:\s*\*{0,2}\s*`?(?P<value>[A-Za-z][A-Za-z0-9_-]*)`?", re.I)
 
 #: `**Substrate deviation:** <rule-id> — <reason>`. The dash is any of the three the corpus
 #: writes (em dash, en dash, hyphen) or a colon; a deviation refused on punctuation would be a
 #: refusal about typography rather than about substance.
 _DEVIATION_RE = re.compile(
     r"\*{0,2}Substrate deviation\*{0,2}\s*:\s*\*{0,2}\s*`?(?P<rule>[a-z][a-z0-9-]*)`?\s*"
-    r"[—–:-]\s*(?P<reason>.+)", re.IGNORECASE)
+    r"[—–:-]\s*(?P<reason>.+)", re.I)
 
 #: The Done-when section, by any of its live headings. `gen_lane_contract` emits
 #: `## Done-contract (immutable)`; intake #52 and the rows say "Done-when"; hand-authored
@@ -332,33 +332,33 @@ _DEVIATION_RE = re.compile(
 #: column-0-only match returns an EMPTY Done-when section — which looks exactly like a
 #: contract with no gate in it, i.e. leg 2 silently stops firing rather than reporting.
 _DONE_HEADING_RE = re.compile(
-    r"^ {0,3}(?:#{1,6}\s*|\*{0,2})(?:Done[- ]contract|Done[- ]when|Done)\b", re.IGNORECASE | re.MULTILINE)
-_ANY_HEADING_RE = re.compile(r"^ {0,3}#{1,6}\s+\S", re.MULTILINE)
+    r"^ {0,3}(?:#{1,6}\s*|\*{0,2})(?:Done[- ]contract|Done[- ]when|Done)\b", re.I | re.M)
+_ANY_HEADING_RE = re.compile(r"^ {0,3}#{1,6}\s+\S", re.M)
 
 #: Gate tokens, taken from Ch8 Layer-1 Q1's own parenthetical — "(suite / hooks / ship-gate)"
 #: — plus the two literal gate invocations this repo's contracts actually write. Deliberately
 #: NOT the bare word "gate": it appears in ordinary prose and would refuse on a mention.
 _GATE_TOKEN_RES: tuple[tuple[str, re.Pattern[str]], ...] = (
-    ("pytest", re.compile(r"\bpytest\b", re.IGNORECASE)),
-    ("audit.py health", re.compile(r"audit\.py\s+health", re.IGNORECASE)),
-    ("ship-gate", re.compile(r"\bship[- ]gate\b", re.IGNORECASE)),
-    ("pre-commit", re.compile(r"\bpre-commit\b", re.IGNORECASE)),
-    ("ruff", re.compile(r"\bruff\b", re.IGNORECASE)),
-    ("uv run", re.compile(r"\buv run\b", re.IGNORECASE)),
-    ("suite green", re.compile(r"\bsuite\s+green\b", re.IGNORECASE)),
-    ("hooks armed", re.compile(r"\bhooks?\s+armed\b", re.IGNORECASE)),
-    ("gates green", re.compile(r"\bgates?\s+green\b", re.IGNORECASE)),
+    ("pytest", re.compile(r"\bpytest\b", re.I)),
+    ("audit.py health", re.compile(r"audit\.py\s+health", re.I)),
+    ("ship-gate", re.compile(r"\bship[- ]gate\b", re.I)),
+    ("pre-commit", re.compile(r"\bpre-commit\b", re.I)),
+    ("ruff", re.compile(r"\bruff\b", re.I)),
+    ("uv run", re.compile(r"\buv run\b", re.I)),
+    ("suite green", re.compile(r"\bsuite\s+green\b", re.I)),
+    ("hooks armed", re.compile(r"\bhooks?\s+armed\b", re.I)),
+    ("gates green", re.compile(r"\bgates?\s+green\b", re.I)),
 )
 
 #: Operator-disk path shapes. Each is a shape the operator's machine has and an off-machine
 #: clone does not.
 _OPERATOR_PATH_RES: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("a Windows drive path", re.compile(r"\b[A-Za-z]:[\\/]{1,2}[A-Za-z0-9_.$-]")),
-    ("the home-relative Downloads dir", re.compile(r"~[\\/]Downloads\b", re.IGNORECASE)),
+    ("the home-relative Downloads dir", re.compile(r"~[\\/]Downloads\b", re.I)),
     ("the prompts-dir token", re.compile(r"<PROMPTS_DIR>")),
-    ("the prompts-dir environment variable", re.compile(r"\$env:CLAUDE_PROMPTS_DIR", re.IGNORECASE)),
-    ("a Windows profile variable", re.compile(r"%USERPROFILE%|%USERNAME%", re.IGNORECASE)),
-    ("a WSL host mount", re.compile(r"/mnt/[a-z]/", re.IGNORECASE)),
+    ("the prompts-dir environment variable", re.compile(r"\$env:CLAUDE_PROMPTS_DIR", re.I)),
+    ("a Windows profile variable", re.compile(r"%USERPROFILE%|%USERNAME%", re.I)),
+    ("a WSL host mount", re.compile(r"/mnt/[a-z]/", re.I)),
 )
 
 #: The worktree-pairing line, in both live shapes. Reused rather than re-derived: the branch
@@ -376,7 +376,7 @@ PRIMARY_CHECKOUT = "<primary checkout>"
 #: The write-scope section heading. `(frozen)` is the live spelling but is not required — a
 #: contract that drops the parenthetical still declares a scope, and refusing to read it would
 #: make leg 6 silently vacuous, which is the green-by-skip class `[#583]` sweeps for.
-_SCOPE_HEADING_RE = re.compile(r"^ {0,3}#{1,6}\s*Write[- ]scope\b.*$", re.IGNORECASE | re.MULTILINE)
+_SCOPE_HEADING_RE = re.compile(r"^ {0,3}#{1,6}\s*Write[- ]scope\b.*$", re.I | re.M)
 
 #: A backticked token inside the write-scope section that is shaped like a repo path. A bare
 #: word in backticks (a rule id, a verb, a flag) is not a path and must not create a phantom
@@ -392,7 +392,7 @@ _SCOPE_NONE_RE = re.compile(r"\bNONE\b")
 _SCOPE_ITEM_RE = re.compile(r"^\s{0,3}[-*+]\s+")
 
 
-def declared_substrate(text: str) -> str | None:
+def declared_substrate(text: str) -> Optional[str]:
     """The substrate a contract declares, lower-cased, or None when it declares none.
 
     `**Shape:**` is read FIRST because it is the generator's own field and therefore the
@@ -448,7 +448,7 @@ def checkout_key(text: str, substrate: Substrate) -> str:
     return match.group("branch").strip() if match else PRIMARY_CHECKOUT
 
 
-def lane_branch(text: str) -> str | None:
+def lane_branch(text: str) -> Optional[str]:
     """The lane branch a contract pairs itself to, or None when it declares no pairing.
 
     Distinct from `checkout_key`, which answers *which checkout writes* and collapses the
@@ -459,7 +459,7 @@ def lane_branch(text: str) -> str | None:
     return match.group("branch").strip() if match else None
 
 
-def contract_slug(text: str) -> str | None:
+def contract_slug(text: str) -> Optional[str]:
     """The lane slug a contract's own pairing line declares, lower-cased, or None.
 
     The FIRST field of `slug -> branch -> contract` -- a contract's own claim about its
@@ -520,7 +520,7 @@ def write_scope_paths(text: str) -> set[str]:
 
 #: An `Amendment` block, however it is spelled: a heading (`## Amendment 1 — ...`) or a bold
 #: lead-in (`**Amendment:**`). Same heading-detection shape as `_SCOPE_HEADING_RE` above.
-_AMENDMENT_HEADING_RE = re.compile(r"^ {0,3}(?:#{1,6}\s*|\*{0,2})Amendment\b.*$", re.IGNORECASE | re.MULTILINE)
+_AMENDMENT_HEADING_RE = re.compile(r"^ {0,3}(?:#{1,6}\s*|\*{0,2})Amendment\b.*$", re.I | re.M)
 
 #: The three subtraction targets the requirement names by name: "an act, step or write-scope
 #: entry". `Act <word>` covers the DC-3 shape itself; `Step <n>` and a backticked token cover
@@ -536,7 +536,7 @@ _NEGATION_RE = re.compile(
     r"\b(?:do(?:es)?\s+not|no\s+longer|never|skip(?:s|ped)?|remov(?:e|es|ed)|drop(?:s|ped)?|"
     r"forbid(?:s)?|cancel(?:s|led|ed)?|without\s+(?:performing|running|doing))\b"
     r"[^.\n]{0,80}?(?P<target>" + _SUBTRACTION_TARGET + r")",
-    re.IGNORECASE)
+    re.I)
 
 
 def _amendment_blocks(text: str) -> list[tuple[int, str]]:
@@ -599,7 +599,7 @@ _HEARTBEAT_AUTO = object()
 
 
 def _heartbeat_refusal(substrate: Substrate, source: str, heartbeat,
-                       now: _dt.datetime | None) -> Refusal | None:
+                       now: Optional[_dt.datetime]) -> Optional[Refusal]:
     """Leg 8: is the substrate this contract names actually proven live? See RULE_HEARTBEAT_DEAD.
 
     Never raises and never REFUSES ON ITS OWN ABSENCE: if the heartbeat module cannot be
@@ -636,7 +636,7 @@ def _heartbeat_refusal(substrate: Substrate, source: str, heartbeat,
 def validate_contract(text: str, *, source: str,
                       registry: Mapping[str, Substrate],
                       heartbeat=_HEARTBEAT_AUTO,
-                      now: _dt.datetime | None = None) -> list[Refusal]:
+                      now: Optional[_dt.datetime] = None) -> list[Refusal]:
     """Legs 1-3 and 8 plus the unknown-override report, for ONE contract.
 
     Leg 4 needs the whole batch and lives in `validate_batch`. Every problem is returned, not

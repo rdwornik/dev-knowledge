@@ -50,7 +50,7 @@ def test_essence_sections_present_and_inert_shape():
     live, old = _load(LIVE_MANIFEST), _load(PRE_ESSENCE_FIXTURE)
     assert set(old) <= set(live)  # every pre-essence key survives
     for key in ("anchors", "components", "doc_shapes"):
-        assert live.get(key), f"essence section {key!r} missing/empty"
+        assert key in live and live[key], f"essence section {key!r} missing/empty"
 
 
 # ---------------------------------------------------------------------------

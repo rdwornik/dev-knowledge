@@ -100,7 +100,7 @@ import os
 import sqlite3
 from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
@@ -308,7 +308,7 @@ def connect(db_path: str | os.PathLike[str] | None = None):
 
 
 def _utc_now_iso() -> str:
-    return datetime.now(UTC).isoformat(timespec="microseconds")
+    return datetime.now(timezone.utc).isoformat(timespec="microseconds")
 
 
 def _check_int(label: str, value: Any) -> None:

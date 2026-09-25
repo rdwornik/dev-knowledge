@@ -95,9 +95,10 @@ import sys
 import tempfile
 from collections import Counter
 from dataclasses import dataclass, field
-from datetime import date, datetime, UTC
+from datetime import date, datetime, timezone
 from itertools import combinations
 from pathlib import Path
+from typing import Optional
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS_DIR.parent
@@ -152,7 +153,7 @@ _TOKEN_RE = re.compile(r"(?:[\w.\-]+[/\\])*[\w\-]+\.[A-Za-z0-9]{1,8}")
 @dataclass(frozen=True)
 class FileChange:
     path: str
-    old_path: str | None
+    old_path: Optional[str]
     added: int
     deleted: int
     binary: bool
@@ -242,7 +243,7 @@ def parse_numstat_stream(raw: bytes) -> tuple[list[CommitRec], list[str]]:
         return commits, anomalies
 
     tokens = raw.split(b"\0")
-    cur: dict | None = None
+    cur: Optional[dict] = None
     changes: list[FileChange] = []
     i = 0
 
@@ -307,7 +308,7 @@ def parse_numstat_stream(raw: bytes) -> tuple[list[CommitRec], list[str]]:
     return commits, anomalies
 
 
-def _int_or_none(s: str) -> int | None:
+def _int_or_none(s: str) -> Optional[int]:
     try:
         return int(s)
     except ValueError:
@@ -380,7 +381,7 @@ def indent_profile(text: str, *, tab_width: int = 4, indent_unit: int = 4) -> In
 
 
 def revision_counts(commits: list[CommitRec], alias: dict[str, str], existing: set[str],
-                    *, since_ts: int | None, cfg: Config) -> Counter:
+                    *, since_ts: Optional[int], cfg: Config) -> Counter:
     """path -> in-window revision count, over CANONICAL paths that still exist at HEAD.
 
     Alias resolution runs BEFORE the existence intersection: otherwise a renamed file loses
@@ -458,7 +459,7 @@ def concentration(values: list[int]) -> tuple[float, float]:
 # ---------------------------------------------------------------------------
 
 def commit_file_sets(commits: list[CommitRec], alias: dict[str, str], existing: set[str],
-                     *, since_ts: int | None, cfg: Config
+                     *, since_ts: Optional[int], cfg: Config
                      ) -> tuple[list[frozenset], int]:
     """(per-commit file sets, commits_skipped_wide).
 
@@ -726,7 +727,7 @@ def to_finding(r: RepoAnalytics) -> Finding:
         f"{d.get('rot', 0)} rot candidates, {d.get('orphans', 0)} orphans"))
 
 
-def _table(df, columns: list[str], limit: int, repo_col: str | None = None) -> list[str]:
+def _table(df, columns: list[str], limit: int, repo_col: Optional[str] = None) -> list[str]:
     """Render a DataFrame slice as a plain markdown table (ASCII, no padding)."""
     header = ([repo_col] if repo_col else []) + columns
     out = ["| " + " | ".join(header) + " |", "|" + "---|" * len(header)]
@@ -1017,7 +1018,7 @@ def _git(args: list[str], cwd: Path, *, timeout: int = 180) -> tuple[int, bytes]
     return p.returncode, p.stdout
 
 
-def mine_repo_log(root: Path) -> tuple[bytes, str | None]:
+def mine_repo_log(root: Path) -> tuple[bytes, Optional[str]]:
     """Full-history non-merge numstat for one repo -> (raw bytes, error or None).
 
     ONE mine serves both windows: the hotspot/coupling frames filter to the 365-day window
@@ -1071,7 +1072,7 @@ def read_texts(root: Path, paths: set[str], *, cfg: Config) -> tuple[dict[str, s
     return texts, unread
 
 
-def _git_common_dir(path: Path) -> Path | None:
+def _git_common_dir(path: Path) -> Optional[Path]:
     """The repo's shared git dir (worktrees of one repo share it). Fail-soft: None on error."""
     rc, out = _git(["rev-parse", "--git-common-dir"], path, timeout=10)
     if rc != 0:
@@ -1095,7 +1096,7 @@ def _is_hub(root: Path, repo_root: Path) -> bool:
     return a is not None and a == b
 
 
-def _resolve_root(name: str) -> Path | None:
+def _resolve_root(name: str) -> Optional[Path]:
     """On-disk root for a registered repo: its state.yaml `path:`, fallback
     `<repo_root.parent>/<name>` (mirrors audit/fleet_health). None if unresolvable."""
     st = audit.load_state(name)
@@ -1121,7 +1122,7 @@ def _hub_name(repo_root: Path) -> str:
     return repo_root.name
 
 
-def enumerate_fleet(repo_root: Path = _REPO_ROOT) -> list[tuple[str, Path | None]]:
+def enumerate_fleet(repo_root: Path = _REPO_ROOT) -> list[tuple[str, Optional[Path]]]:
     """(name, root) for every mining target, HUB FIRST.
 
     The hub is NOT registered in ecosystem/ (which holds only the 5 consumers), and unlike
@@ -1129,7 +1130,7 @@ def enumerate_fleet(repo_root: Path = _REPO_ROOT) -> list[tuple[str, Path | None
     hub is a first-class mining target here. So it is prepended explicitly, and consumers
     that resolve to the same logical repo are deduped via _is_hub.
     """
-    out: list[tuple[str, Path | None]] = [(_hub_name(repo_root), repo_root)]
+    out: list[tuple[str, Optional[Path]]] = [(_hub_name(repo_root), repo_root)]
     for name in audit.discover_repos():
         root = _resolve_root(name)
         if root is not None and _is_hub(root, repo_root):
@@ -1138,7 +1139,7 @@ def enumerate_fleet(repo_root: Path = _REPO_ROOT) -> list[tuple[str, Path | None
     return out
 
 
-def analyze_repo(name: str, root: Path | None, cfg: Config, now_ts: int) -> RepoAnalytics:
+def analyze_repo(name: str, root: Optional[Path], cfg: Config, now_ts: int) -> RepoAnalytics:
     """Mine and frame one repo. Fail-soft: any failure -> status 'unavailable', never raises."""
     if root is None:
         return RepoAnalytics(name, "unavailable", note="path unresolvable")
@@ -1192,12 +1193,12 @@ def analyze_repo(name: str, root: Path | None, cfg: Config, now_ts: int) -> Repo
         return RepoAnalytics(name, "unavailable", note=f"{type(exc).__name__}: {exc}")
 
 
-def run_report(repo_root: Path = _REPO_ROOT, *, today: str | None = None,
-               cfg: Config | None = None) -> tuple[list[Finding], str]:
+def run_report(repo_root: Path = _REPO_ROOT, *, today: Optional[str] = None,
+               cfg: Optional[Config] = None) -> tuple[list[Finding], str]:
     """Mine the fleet and build the digest. Read-only; returns (findings, digest_text)."""
     cfg = cfg or Config()
     run_date = today or date.today().isoformat()
-    now_ts = int(datetime.now(UTC).timestamp())
+    now_ts = int(datetime.now(timezone.utc).timestamp())
 
     repos = [analyze_repo(n, r, cfg, now_ts) for n, r in enumerate_fleet(repo_root)]
 
@@ -1228,7 +1229,7 @@ def _atomic_write(path: Path, text: str) -> None:
             os.remove(tmp)
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: Optional[list[str]] = None) -> int:
     """CLI entry -- write the digest, print the surface line. ALWAYS returns 0 (a reporter
     never breaks its caller)."""
     ap = argparse.ArgumentParser(

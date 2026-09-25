@@ -140,11 +140,11 @@ def test_the_workspace_file_is_a_fleet_glob_not_the_hubs_own_name():
 # --- the wiring: the values come from the FILE ----------------------------------------
 
 def test_constants_equal_the_spec_payload():
-    assert frozenset(CLAUSES["root_allowlist"]["directories"]) == vh.SANCTIONED_TIER1_DIRS
-    assert frozenset(CLAUSES["genre_folders"]["genres"]) == vh.SANCTIONED_GENRES
-    assert tuple(CLAUSES["home_grammar"]["patterns"]) == vh._HOME_PATTERNS
-    assert frozenset(CLAUSES["naming_grammar"]["audit_class_enum"]) == vh.AUDIT_CLASS_ENUM
-    assert tuple(CLAUSES["root_allowlist"]["file_globs"]) == vh.SANCTIONED_TIER1_FILE_GLOBS
+    assert vh.SANCTIONED_TIER1_DIRS == frozenset(CLAUSES["root_allowlist"]["directories"])
+    assert vh.SANCTIONED_GENRES == frozenset(CLAUSES["genre_folders"]["genres"])
+    assert vh._HOME_PATTERNS == tuple(CLAUSES["home_grammar"]["patterns"])
+    assert vh.AUDIT_CLASS_ENUM == frozenset(CLAUSES["naming_grammar"]["audit_class_enum"])
+    assert vh.SANCTIONED_TIER1_FILE_GLOBS == tuple(CLAUSES["root_allowlist"]["file_globs"])
 
 
 def test_the_canonical_living_docs_are_joined_in_not_restated():
@@ -190,7 +190,7 @@ def test_the_seal_reads_the_file_and_not_a_literal(tmp_path):
                            "vh_doctored")
     try:
         # The doctored grammar is in force...
-        assert frozenset({"scripts", "warehouse"}) == doctored.SANCTIONED_TIER1_DIRS
+        assert doctored.SANCTIONED_TIER1_DIRS == frozenset({"scripts", "warehouse"})
         assert doctored.rule_c_violation("warehouse/bay/4/crate.md") is None
         assert doctored.rule_a_violation("project.sublime-project") is None
         # ...and this repo's real shape is NOT, which is what proves the file is the source.

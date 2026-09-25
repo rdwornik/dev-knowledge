@@ -57,7 +57,7 @@ _GIT_OUT = " M scripts/audit.py\n?? notes.txt\n"
 ])
 def test_every_failure_carries_all_four_fields(fields):
     for key in _REQUIRED:
-        assert fields.get(key), f"{key} missing or empty"
+        assert key in fields and fields[key], f"{key} missing or empty"
 
 
 def test_pytest_block_names_the_failing_test_and_the_assertion():

@@ -39,7 +39,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from datetime import date, datetime, timedelta, UTC
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
@@ -60,7 +60,7 @@ _ECOSYSTEM_DIR = _REPO_ROOT / "ecosystem"
 # working tree, and removes that checkout when it is done (item 4).
 _CONFIG_PATH = _REPO_ROOT / "ecosystem" / "fleet-health-config.yaml"
 _DEFAULT_STALE_AFTER_HOURS = 24
-_STALE_HOURS_RE = re.compile(r"^stale_after_hours:\s*(\d+)", re.MULTILINE)
+_STALE_HOURS_RE = re.compile(r"^stale_after_hours:\s*(\d+)", re.M)
 
 _PRODUCER_FLAG = "--producer"
 _PRODUCER_RECEIPT_NAME = "FLEET-HEALTH-PRODUCER.json"
@@ -83,8 +83,8 @@ _PER_REPO_TIMEOUT_S = 120
 # warning (the scheduled run may be silently failing). ADR-76 §3 / R2.
 _STALE_AFTER_HOURS = 48
 
-_DATE_RE = re.compile(r"^run_date:\s*(\d{4}-\d{2}-\d{2})", re.MULTILINE)
-_COMPLETED_RE = re.compile(r"^completed_at:\s*(\S+)", re.MULTILINE)
+_DATE_RE = re.compile(r"^run_date:\s*(\d{4}-\d{2}-\d{2})", re.M)
+_COMPLETED_RE = re.compile(r"^completed_at:\s*(\S+)", re.M)
 
 # Overdue-quarterly-groom escalation (BACKLOG "Grooming log" footer). The digest gains
 # one line when the most-recent past groom is older than this. Mirrors the footer parse
@@ -122,11 +122,11 @@ _GH_TIMEOUT_S = 20
 # whole gauge is built on the rule that an unknown is `n/a` and never a plausible digit.
 _GH_ISSUE_LIMIT = 1000
 _UNCHECKED_PROPOSAL_RE = re.compile(r"-\s+\[ \]\s+\*\*#(\d+)\*\*")
-_BACKLOG_ID_RE = re.compile(r"^- \[#(\d+)\]", re.MULTILINE)
+_BACKLOG_ID_RE = re.compile(r"^- \[#(\d+)\]", re.M)
 # Mirrors gen_task_tree._PRIORITY_RE. BACKLOG.md carries OPEN rows only
 # (done-items-leave, ADR-65), so a row count by band IS the open count by band.
-_BACKLOG_PRIORITY_RE = re.compile(r"^- \[#\d+\] \[(P\d)\]", re.MULTILINE)
-_DISPOSITION_ID_RE = re.compile(r"^\s+- id:\s*\S", re.MULTILINE)
+_BACKLOG_PRIORITY_RE = re.compile(r"^- \[#\d+\] \[(P\d)\]", re.M)
+_DISPOSITION_ID_RE = re.compile(r"^\s+- id:\s*\S", re.M)
 # THE PRECISION LEVER for ARCHITECT-REVIEW-PENDING. A bare substring grep over
 # docs/audits/ scores 7 hits on the live tree, of which FIVE are prose ABOUT the
 # marker (this row's own design doc, the batch-4 evidence sheet, a table cell in
@@ -153,7 +153,7 @@ _DISPOSITION_ID_RE = re.compile(r"^\s+- id:\s*\S", re.MULTILINE)
 # false positive over-reports load and gets read and dismissed, while a miss silently
 # under-reports it -- which is M1's own failure mode, the exact thing this row exists to
 # stop. Precision was bought where it was free; it is not bought here at recall's expense.
-_ARP_HEADING_RE = re.compile(r"^#{1,6} .*\(ARCHITECT-REVIEW-PENDING\)\s*$", re.MULTILINE)
+_ARP_HEADING_RE = re.compile(r"^#{1,6} .*\(ARCHITECT-REVIEW-PENDING\)\s*$", re.M)
 _ARP_BOLD_RE = re.compile(r"\*\*ARCHITECT-REVIEW-PENDING:\s*[A-Z][A-Z0-9]*-?\d+\s*\*\*")
 
 LOAD_CSV_NAME = "OPERATOR-LOAD.csv"
@@ -378,10 +378,10 @@ def _load_state_yaml(path: Path) -> dict:
         text = path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return {}
-    name_m = re.search(r"^name:\s*(.+)", text, re.MULTILINE)
-    date_m = re.search(r"^last_audit:\s*'?([^'\n]+)", text, re.MULTILINE)
-    path_m = re.search(r"^path:\s*(.+)", text, re.MULTILINE)
-    statuses = re.findall(r"^\s+status:\s*(\w+)", text, re.MULTILINE)
+    name_m = re.search(r"^name:\s*(.+)", text, re.M)
+    date_m = re.search(r"^last_audit:\s*'?([^'\n]+)", text, re.M)
+    path_m = re.search(r"^path:\s*(.+)", text, re.M)
+    statuses = re.findall(r"^\s+status:\s*(\w+)", text, re.M)
     return {
         "name": name_m.group(1).strip() if name_m else "?",
         "path": path_m.group(1).strip() if path_m else "",
@@ -837,7 +837,7 @@ def load_surface_line(health_file: Path):
         text = health_file.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return None
-    m = re.search(r"^\[load\] .*$", text, re.MULTILINE)
+    m = re.search(r"^\[load\] .*$", text, re.M)
     return m.group(0) if m else None
 
 
@@ -1017,8 +1017,8 @@ def surface_line(health_file: Path) -> str:
     if not health_file.exists():
         return "[fleet] no health data yet -- run fleet_health.py"
     text = health_file.read_text(encoding="utf-8", errors="replace")
-    total_m = re.search(r"^repos_total:\s*(\d+)", text, re.MULTILINE)
-    green_m = re.search(r"^repos_green:\s*(\d+)", text, re.MULTILINE)
+    total_m = re.search(r"^repos_total:\s*(\d+)", text, re.M)
+    green_m = re.search(r"^repos_green:\s*(\d+)", text, re.M)
     date_m = _DATE_RE.search(text)
     total = int(total_m.group(1)) if total_m else "?"
     green = int(green_m.group(1)) if green_m else "?"
@@ -1405,7 +1405,7 @@ def _producer_receipt_path(environ) -> Path:
 
 
 def _now_stamp() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _write_producer_receipt(path: Path, **fields) -> None:

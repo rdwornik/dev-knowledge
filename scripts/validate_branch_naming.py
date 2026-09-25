@@ -65,6 +65,7 @@ import re
 import subprocess
 import sys
 from dataclasses import dataclass
+from typing import Optional
 
 # --- the enum ---------------------------------------------------------------------------
 
@@ -312,7 +313,7 @@ def is_lane_branch(name: str, remotes: tuple[str, ...] = DEFAULT_REMOTES) -> boo
     return classify(name, remotes).kind in LANE_BRANCH_KINDS
 
 
-def validate_lane_worktree_name(name: str) -> str | None:
+def validate_lane_worktree_name(name: str) -> Optional[str]:
     """None when `name` is a well-formed batch-lane WORKTREE name, else the reason it is not.
 
     This is the form `/lane-boot` checks before provisioning anything — the cheapest possible

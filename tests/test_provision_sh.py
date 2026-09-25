@@ -44,7 +44,7 @@ _INVOCATION_RE = re.compile(
         | \bpython[0-9.]*\s+-m\s+scripts\.(?P<mod>[A-Za-z0-9_]+)  # python -m scripts.x
         | (?<![-\w/])(?P<bare>scripts/[A-Za-z0-9_]+\.py)\b        # bare scripts/x.py (shebang)
         )""",
-    re.VERBOSE,
+    re.X,
 )
 
 

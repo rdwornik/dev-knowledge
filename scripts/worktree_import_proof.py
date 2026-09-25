@@ -228,7 +228,7 @@ def _package_dir_exists(root: Path, name: str) -> bool:
     `node_modules`-shaped tree turns a fast predicate into a slow one, and a namespace package
     whose only `.py` files are three levels deep is not a shape worth paying for.
     """
-    top = name.split(".", maxsplit=1)[0]
+    top = name.split(".")[0]
     for base in (root, root / "src"):
         candidate = base / top
         if (candidate / "__init__.py").is_file() or (base / f"{top}.py").is_file():
@@ -249,7 +249,7 @@ def top_level(name: str) -> str:
     Nothing is lost by resolving only the top level: the top-level package's origin is what
     determines which checkout the whole subtree comes from, which is the entire question.
     """
-    return name.split(".", maxsplit=1)[0]
+    return name.split(".")[0]
 
 
 def declared_packages(root: Path) -> tuple[str, ...]:

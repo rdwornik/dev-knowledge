@@ -29,7 +29,7 @@ import audit as aud
 _SKIP_EVIDENCE_RE = re.compile(
     r"\bskipped\b|nothing to validate|no probe bundle|advisory inactive"
     r"|no reconciled_with edges declared|unreadable|git unavailable",
-    re.IGNORECASE,
+    re.I,
 )
 
 

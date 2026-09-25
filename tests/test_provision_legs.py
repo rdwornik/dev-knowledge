@@ -854,7 +854,7 @@ def test_seed_self_registration_writes_under_the_REQUESTED_root(
 
     assert Path(written) == root / "ecosystem" / ".dev-knowledge" / "state.yaml"
     assert (root / "ecosystem" / ".dev-knowledge" / "state.yaml").exists()
-    assert hub_state == audit.ECOSYSTEM_DIR          # restored, not left pointing elsewhere
+    assert audit.ECOSYSTEM_DIR == hub_state          # restored, not left pointing elsewhere
 
 
 @pytest.mark.parametrize("name", ["../escape", "a/b", "..", ".", "", "/abs/path"])

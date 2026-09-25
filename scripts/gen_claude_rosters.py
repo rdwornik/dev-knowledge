@@ -177,7 +177,7 @@ def render_adrs(decisions_dir: Path = _DECISIONS_DIR) -> str:
     return "\n".join(out) + "\n"
 
 
-_TARGETS: list[tuple[Path, callable]] = [
+_TARGETS: list[tuple[Path, "callable"]] = [
     (_COMMANDS_TARGET, render_commands),
     (_ADRS_TARGET, render_adrs),
 ]

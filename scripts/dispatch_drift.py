@@ -74,7 +74,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from collections.abc import Callable, Iterable
+from typing import Callable, Iterable, Optional
 
 logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("dispatch-drift")
@@ -102,7 +102,7 @@ _RIVAL_FORM_RES: tuple[tuple[str, re.Pattern[str]], ...] = (
 TIER_HOST = "host"
 TIER_NO_SHELL = "no-shell"
 
-_FENCE_BLOCK_RE = re.compile(r"^```.*?\n(?P<body>.*?)^```", re.MULTILINE | re.DOTALL)
+_FENCE_BLOCK_RE = re.compile(r"^```.*?\n(?P<body>.*?)^```", re.M | re.S)
 #: A command token: an identifier or a PowerShell Verb-Noun. Anchored whole so a flag
 #: (`-DryRun`), a bracketed parameter (`[-Machine`) or a path never reads as a command.
 _COMMAND_TOKEN_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*$")
@@ -175,7 +175,7 @@ def extract_commands(section: str) -> list[CommandRef]:
 
 # --- host resolution -----------------------------------------------------------------------
 
-def find_powershell() -> str | None:
+def find_powershell() -> Optional[str]:
     """The PowerShell this host has, or None.
 
     `pwsh` first (PowerShell 7, the shell the dispatch helpers are deployed for), then
@@ -188,12 +188,12 @@ def find_powershell() -> str | None:
     return None
 
 
-def host_tier(shell: str | None = None) -> str:
+def host_tier(shell: Optional[str] = None) -> str:
     """Which tier this host is on. Declared, so a caller can report it rather than skip."""
     return TIER_HOST if (shell or find_powershell()) else TIER_NO_SHELL
 
 
-def resolve_via_get_command(names: Iterable[str], *, shell: str | None = None,
+def resolve_via_get_command(names: Iterable[str], *, shell: Optional[str] = None,
                             timeout: int = 60) -> list[Resolution]:
     """Resolve every name in ONE `Get-Command` invocation.
 
@@ -261,7 +261,7 @@ def _fenced_and_prose(text: str) -> tuple[str, str]:
 #: is what separates a sanctioned record from a live instruction, and this is that word-set.
 _SUPERSESSION_LABEL_RE = re.compile(
     r"fallback|supersed|deprecat|no longer|until \d{4}-\d{2}-\d{2}|previously|used to",
-    re.IGNORECASE)
+    re.I)
 #: How far around a mention to look for its label — one paragraph either side, measured
 #: generously rather than tightly, because a false WARN here would push an author to delete a
 #: true historical note.
@@ -349,7 +349,7 @@ def check_commands(commands: list[CommandRef], *, tier: str,
     return out
 
 
-def scan(repo_root: Path, *, tier: str | None = None,
+def scan(repo_root: Path, *, tier: Optional[str] = None,
          resolver: Callable[[Iterable[str]], list[Resolution]] | None = None,
          ) -> tuple[str, list[DriftFinding], list[CommandRef]]:
     """Both legs. Returns `(tier, findings, commands)`. Raises `DispatchDriftError` on a

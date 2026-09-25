@@ -277,8 +277,8 @@ def refuse_sleeping_poll(text: str, *, site: str) -> int:
 
 # --- 2. the lane ceiling, checked at step 0 ----------------------------------------------------
 
-def refuse_lane_ceiling(lanes: list[str], *, ceiling: int = LANE_CEILING,
-                        already_provisioned: list[str] | None = None) -> list[str]:
+def refuse_lane_ceiling(lanes: "list[str]", *, ceiling: int = LANE_CEILING,
+                        already_provisioned: "list[str] | None" = None) -> list[str]:
     """The batch plan's lane list is within ADR-110's ceiling, and was checked BEFORE provisioning.
 
     Returns `lanes` unchanged when it passes. Three refusals:
@@ -425,7 +425,7 @@ def declared_footprint(contract_text: str) -> set[str]:
             if _is_declarable(path)}
 
 
-def undeclared_lanes(footprints: dict[str, set[str]]) -> list[str]:
+def undeclared_lanes(footprints: "dict[str, set[str]]") -> list[str]:
     """Lanes whose contract declared NO repo path -- reported, never counted as clean.
 
     NEVER GREEN-BY-SKIP (the 2026-08-25 tiered-machine-dependence sweep, applied to a different
@@ -436,9 +436,9 @@ def undeclared_lanes(footprints: dict[str, set[str]]) -> list[str]:
     return sorted(lane for lane, paths in footprints.items() if not paths)
 
 
-def refuse_file_collision(contracts: dict[str, str], *,
-                          already_provisioned: list[str] | None = None
-                          ) -> dict[str, set[str]]:
+def refuse_file_collision(contracts: "dict[str, str]", *,
+                          already_provisioned: "list[str] | None" = None
+                          ) -> "dict[str, set[str]]":
     """No two lanes in this batch declare writes to the same file. Dispatcher STEP 0.
 
     `contracts` maps lane name -> contract TEXT. Returns `{lane: footprint}` when it passes, so
@@ -483,7 +483,7 @@ def refuse_file_collision(contracts: dict[str, str], *,
 
     footprints = {lane: declared_footprint(text) for lane, text in contracts.items()}
 
-    claimants: dict[str, list[str]] = {}
+    claimants: "dict[str, list[str]]" = {}
     for lane in sorted(footprints):
         for path in footprints[lane]:
             claimants.setdefault(path, []).append(lane)
@@ -558,7 +558,7 @@ class PlanEntry:
         return self.verdict == _MERGE_VERDICT
 
 
-def plan_entries(plan_text: str) -> list[PlanEntry]:
+def plan_entries(plan_text: str) -> "list[PlanEntry]":
     """Every ruling in a merge plan, IN THE PLAN'S OWN ORDER.
 
     The order is itself a ruling, and most of what the plan half was paid to produce. A queue the
@@ -577,7 +577,7 @@ def plan_entries(plan_text: str) -> list[PlanEntry]:
     return out
 
 
-def ruled_merges(plan_text: str, *, include_unmergeable: bool = False) -> list[PlanEntry]:
+def ruled_merges(plan_text: str, *, include_unmergeable: bool = False) -> "list[PlanEntry]":
     """The queue the execute half walks, in the plan's order.
 
     `include_unmergeable` is for REPORTING -- a seat saying what it did not do, which the
@@ -763,7 +763,7 @@ def refuse_uncarried_decision_write(filename: str, text: str) -> bool:
     return True
 
 
-def write_decision_file(path: str | Path, text: str, *, encoding: str = "utf-8") -> Path:
+def write_decision_file(path: "str | Path", text: str, *, encoding: str = "utf-8") -> Path:
     """Write a transport decision file, refusing FIRST.
 
     The order is the whole point: a check that writes and then complains has refused nothing, and
@@ -801,7 +801,7 @@ def isolate_step0(text: str) -> str:
     return "\n".join(lines[start:end])
 
 
-def refuse_dispatcher_step0_without_dryrun(step0_text: str, *, contracts: list[str]) -> int:
+def refuse_dispatcher_step0_without_dryrun(step0_text: str, *, contracts: "list[str]") -> int:
     """Step 0 ends by DryRunning every generated contract. Returns the count DryRun'd.
 
     Batch V discovered a generator/verb defect by running the DryRun, after freezing six
@@ -854,7 +854,7 @@ def refuse_dispatcher_step0_without_dryrun(step0_text: str, *, contracts: list[s
 # stays importable by the registry itself (which raises `SeatRefusal`) without a cycle, and so a
 # test hands them a registry built in `tmp_path`.
 
-def refuse_no_live_integrator(batch: str, seats: list) -> object:
+def refuse_no_live_integrator(batch: str, seats: "list") -> "object":
     """A lane may enter `batch` only while a `live` integrator seat is bound to it.
 
     Returns that seat (the most recently active, if several). A wedged, starved or absent integrator
@@ -877,7 +877,7 @@ def refuse_no_live_integrator(batch: str, seats: list) -> object:
     )
 
 
-def refuse_lane_owned(lane: str, seats: list, *, own_session: str) -> None:
+def refuse_lane_owned(lane: str, seats: "list", *, own_session: str) -> None:
     """A second session may not boot onto a lane whose owner is `live`.
 
     Only `live` refuses. A wedged or absent owner is exactly the case where a relaunch IS the
@@ -888,7 +888,7 @@ def refuse_lane_owned(lane: str, seats: list, *, own_session: str) -> None:
     owners = [s for s in seats
               if s.lane == lane and s.session_id != own_session and s.state == "live"]
     if not owners:
-        return
+        return None
     owner = max(owners, key=lambda s: s.last_event)
     raise SeatRefusal(
         "lane-owned",
@@ -908,7 +908,7 @@ def refuse_lane_owned(lane: str, seats: list, *, own_session: str) -> None:
 # the refusal message goes to stderr, so a caller piping stdout still sees why it stopped.
 
 
-def _fail(exc: SeatRefusal) -> None:
+def _fail(exc: SeatRefusal) -> "None":
     click.echo(str(exc), err=True)
     raise SystemExit(1)
 
@@ -962,7 +962,7 @@ def cmd_sleeping_poll(files: tuple[str, ...]) -> None:
               help="read the live worktree list instead of trusting --provisioned")
 @click.option("--repo-root", default=None, type=click.Path(file_okay=False))
 def cmd_lane_ceiling(lanes: tuple[str, ...], provisioned: tuple[str, ...],
-                     check_worktrees: bool, repo_root: str | None) -> None:
+                     check_worktrees: bool, repo_root: "str | None") -> None:
     """STEP 0 ONLY: the batch plan is within ADR-110's lane ceiling."""
     already = list(provisioned)
     if check_worktrees:
@@ -988,7 +988,7 @@ def cmd_lane_ceiling(lanes: tuple[str, ...], provisioned: tuple[str, ...],
               help="read the live worktree list instead of trusting --provisioned")
 @click.option("--repo-root", default=None, type=click.Path(file_okay=False))
 def cmd_file_collision(contracts: tuple[str, ...], provisioned: tuple[str, ...],
-                       check_worktrees: bool, repo_root: str | None) -> None:
+                       check_worktrees: bool, repo_root: "str | None") -> None:
     """STEP 0 ONLY: no two lanes in this batch declare writes to the same file."""
     already = list(provisioned)
     if check_worktrees:

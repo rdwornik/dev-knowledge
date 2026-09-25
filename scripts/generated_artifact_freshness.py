@@ -70,6 +70,7 @@ import subprocess
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
+from typing import Optional
 
 # `gitenv` is loaded BY PATH, never by name: `import gitenv` and `from scripts import gitenv`
 # each have a shadow hole (terra HIGH x3, 2026-08-08 -- see that module's docstring), and both
@@ -160,7 +161,7 @@ DASHBOARD = GeneratedArtifact(
 #: `inputs` is DATA + CODE, the same rule the dashboard's set follows. Note the index EXCLUDES
 #: itself from its own scan (`gen_audit_index.collect_audits` skips README.md), so listing the
 #: directory here cannot make the artifact its own input.
-def _audit_index_matches(repo_path: Path) -> bool | None:
+def _audit_index_matches(repo_path: Path) -> Optional[bool]:
     """Regen-and-diff the audits index IN `repo_path`. True current / False drifted / None n-a.
 
     The SAME comparison `gen_audit_index --check` makes, called in-process rather than shelled
@@ -238,7 +239,7 @@ WARN_VERDICTS: tuple[str, ...] = tuple(
     v for v, status in STATUS_FOR_VERDICT.items() if status == "warn")
 
 
-def git_last_commit_date(repo_path: Path, pathspec: str) -> date | None:
+def git_last_commit_date(repo_path: Path, pathspec: str) -> Optional[date]:
     """COMMITTER date (`%cs`) of the newest commit touching `pathspec`, or None.
 
     ONE DATE SEMANTIC, ON BOTH SIDES, and it is deliberately NOT the sibling's. This is the one
@@ -321,16 +322,16 @@ class Measurement:
     #: The two are different facts and collapsing them is exactly the "skip rendered as pass"
     #: class `_na_reason` exists to prevent.
     subject_absent: bool
-    staleness_days: int | None
+    staleness_days: Optional[int]
     baseline_days: int
-    output_date: date | None
-    stalest_output: str | None
-    input_date: date | None
-    newest_input: str | None
+    output_date: Optional[date]
+    stalest_output: Optional[str]
+    input_date: Optional[date]
+    newest_input: Optional[str]
     detail: str
 
 
-def _exact_verdict(repo_path: Path, artifact: GeneratedArtifact) -> bool | None:
+def _exact_verdict(repo_path: Path, artifact: GeneratedArtifact) -> Optional[bool]:
     """Run `artifact.content_check`, or None when it has none / cannot answer.
 
     NEVER RAISES, and that is the contract the field's docstring promises. A verifier is
@@ -522,7 +523,7 @@ def measure(repo_path: Path, artifact: GeneratedArtifact = DASHBOARD, *,
                        output_date, stalest_output, input_date, newest_input, detail)
 
 
-def evaluate(repo_path: Path, artifacts: tuple[GeneratedArtifact, ...] | None = None, *,
+def evaluate(repo_path: Path, artifacts: Optional[tuple[GeneratedArtifact, ...]] = None, *,
              git_date_fn=git_last_commit_date) -> tuple[list[str], list[str]]:
     """Pure evaluation -> `(fails, warns)`, matching `canonical_freshness_gate.evaluate`.
 

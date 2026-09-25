@@ -59,7 +59,7 @@ import tempfile
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
-from collections.abc import Callable
+from typing import Callable
 
 import click
 import yaml

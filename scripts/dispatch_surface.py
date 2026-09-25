@@ -370,7 +370,7 @@ def resolve_launch(*, model: str, mode: str, effort: str, shape: str, slug: str)
 
 # --- reading a CONTRACT, which is where the declaration actually lives -------------------------
 
-def contract_routing(text: str) -> dict[str, str] | None:
+def contract_routing(text: str) -> "dict[str, str] | None":
     """`{model, mode, effort}` from a contract's routing table, or None when it declares none.
 
     None rather than a default, for the reason `[#717]` records: the model is the most expensive
@@ -384,7 +384,7 @@ def contract_routing(text: str) -> dict[str, str] | None:
     return {key: match.group(key).strip() for key in ("model", "mode", "effort")}
 
 
-def contract_shape(text: str) -> str | None:
+def contract_shape(text: str) -> "str | None":
     """The declared ``**Shape:** `x` `` value, or None.
 
     A DECLARATION IS A FENCED TOKEN AND PROSE IS NOT, anchored at line start -- the grammar
@@ -395,7 +395,7 @@ def contract_shape(text: str) -> str | None:
     return match.group("shape").strip() if match else None
 
 
-def contract_slug(text: str) -> str | None:
+def contract_slug(text: str) -> "str | None":
     """The slug from the ADR-110 worktree-pairing line (`slug X -> branch Y -> contract Z`)."""
     match = re.search(r"slug\s+`(?P<slug>[^`]+)`\s*->", text)
     return match.group("slug").strip() if match else None

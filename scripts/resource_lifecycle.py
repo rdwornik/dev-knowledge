@@ -70,9 +70,9 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from pathlib import Path
-from collections.abc import Sequence
+from typing import Optional, Sequence
 
 import click
 
@@ -261,7 +261,7 @@ def _windows_process_table() -> list[Proc]:
         return []
     if isinstance(rows, dict):
         rows = [rows]
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
     table: list[Proc] = []
     for row in rows:
         pid = row.get("ProcessId")
@@ -274,7 +274,7 @@ def _windows_process_table() -> list[Proc]:
             digits = "".join(ch for ch in created if ch.isdigit() or ch == "-")
             if digits.lstrip("-").isdigit():
                 try:
-                    started = datetime.fromtimestamp(int(digits) / 1000.0, tz=UTC)
+                    started = datetime.fromtimestamp(int(digits) / 1000.0, tz=timezone.utc)
                     age = max(0.0, (now - started).total_seconds())
                 except (ValueError, OSError, OverflowError):
                     age = 0.0
@@ -389,7 +389,7 @@ def naive_kill(pid: int) -> None:
         pass
 
 
-def tree_pids(root_pid: int, table: Sequence[Proc] | None = None) -> tuple[int, ...]:
+def tree_pids(root_pid: int, table: Optional[Sequence[Proc]] = None) -> tuple[int, ...]:
     """`root_pid` and every transitive descendant, deepest LAST.
 
     THE SNAPSHOT IS THE MECHANISM. This walk must happen while the parent is still alive: on
@@ -432,7 +432,7 @@ class TeardownResult:
 
 
 def teardown_tree(root_pid: int, timeout_s: float = 30.0,
-                  table: Sequence[Proc] | None = None) -> TeardownResult:
+                  table: Optional[Sequence[Proc]] = None) -> TeardownResult:
     """Kill the whole process TREE and VERIFY the kill rather than assuming it.
 
     Three properties, each of which a naive implementation loses:
@@ -490,10 +490,10 @@ class Allocation:
     ceiling: int
 
 
-def allocation(total_gb: float | None = None, claude_gb: float | None = None,
-               free_gb: float | None = None, per_seat_mb: float = PER_SEAT_MB,
+def allocation(total_gb: Optional[float] = None, claude_gb: Optional[float] = None,
+               free_gb: Optional[float] = None, per_seat_mb: float = PER_SEAT_MB,
                reserve_gb: float = RESERVE_GB,
-               table: Sequence[Proc] | None = None) -> Allocation:
+               table: Optional[Sequence[Proc]] = None) -> Allocation:
     """The ceiling, computed. Any argument left None is READ FROM THE BOX."""
     if total_gb is None or free_gb is None or claude_gb is None:
         rows = list(table) if table is not None else process_table()
@@ -626,8 +626,8 @@ def retirement_verdict(rss_mb: float, age_hours: float, merges: int) -> Retireme
 
 # ========================================================================================= sample
 
-def sample(ledger_path: Path | None = None,
-           table: Sequence[Proc] | None = None,
+def sample(ledger_path: Optional[Path] = None,
+           table: Optional[Sequence[Proc]] = None,
            name: str = SEAT_PROCESS_NAME) -> list[dict]:
     """Append one row per seat process to the longitudinal ledger.
 
@@ -639,7 +639,7 @@ def sample(ledger_path: Path | None = None,
     """
     rows_in = list(table) if table is not None else process_table()
     path = Path(ledger_path) if ledger_path else SAMPLE_LEDGER_PATH
-    now = datetime.now(UTC).isoformat(timespec="seconds")
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     out: list[dict] = []
     for proc in rows_in:
         if proc.name.lower() != name:
@@ -699,7 +699,7 @@ def cmd_ceiling() -> None:
 @cli.command("admit")
 @click.option("--seats", type=int, default=None,
               help="Live seat count; read from the box when omitted.")
-def cmd_admit(seats: int | None) -> None:
+def cmd_admit(seats: Optional[int]) -> None:
     """REFUSE (exit 1) when another local seat would breach the budget."""
     table = process_table()
     alloc = allocation(table=table)
@@ -716,7 +716,7 @@ def cmd_admit(seats: int | None) -> None:
 
 @cli.command("sample")
 @click.option("--ledger", type=click.Path(path_type=Path), default=None)
-def cmd_sample(ledger: Path | None) -> None:
+def cmd_sample(ledger: Optional[Path]) -> None:
     """Append one longitudinal sample of every seat process."""
     rows = sample(ledger_path=ledger)
     click.echo(f"sampled {len(rows)} seat process(es) -> {ledger or SAMPLE_LEDGER_PATH}")
