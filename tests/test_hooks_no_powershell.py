@@ -82,7 +82,15 @@ def test_lane_end_guard_stop_entry_runs_through_uv_run_locked_python():
     assert command.endswith("|| true"), command
 
 
-# --- sanity: the count of SessionStart commands is unchanged (2 rewired, not added/removed) --
+# --- sanity: the count of SessionStart commands is pinned, not just non-decreasing ----------
+#
+# DECIDED-BY-LANE (lane-wire-quota-distiller, repair 2 of 2): this test pinned the count at
+# eight when this file's own two hooks were rewired PowerShell->python (no net change). Kept
+# the same name-then-number shape rather than the original literal name
+# (`..._unchanged_at_eight`) because "unchanged" stopped being true the moment a NINTH command
+# (`scripts/hooks/quota_daily.py`, LANE-5B3-2-wire-quota-distiller.md) was added on top of this
+# lane's own rewiring -- a name asserting "unchanged" while the file's own diff changes the
+# count would be a false claim baked into the test's identity, not just its body.
 
-def test_session_start_command_count_is_unchanged_at_eight():
-    assert len(_session_start_commands()) == 8, _session_start_commands()
+def test_session_start_command_count_is_nine():
+    assert len(_session_start_commands()) == 9, _session_start_commands()

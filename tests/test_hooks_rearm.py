@@ -93,11 +93,16 @@ def _script_path_from_command(command: str) -> Path:
 # --- Done-contract 5a: every armed hook's command is runnable -------------------------------
 
 def test_every_session_start_command_names_a_script_that_exists():
+    # DECIDED-BY-LANE (lane-wire-quota-distiller, repair 2 of 2, LANE-5B3-2-wire-quota-distiller.md):
+    # count moved 8 -> 9 with the addition of scripts/hooks/quota_daily.py, the daily
+    # quota_watch.py SessionStart trigger. Neither this file nor test_hooks_no_powershell.py is
+    # this lane's ownership; the settings.json hunk that reds them is, so the fix lands here.
     settings = _load_settings()
     commands = _session_start_commands(settings)
-    assert len(commands) == 8, (
-        f"expected arm_hooks.py, the six [#956] re-armed hooks, and [#962]'s fleet_health.py "
-        f"(8 total), found {len(commands)}: {commands}"
+    assert len(commands) == 9, (
+        f"expected arm_hooks.py, the six [#956] re-armed hooks, [#962]'s fleet_health.py, and "
+        f"lane-wire-quota-distiller's scripts/hooks/quota_daily.py (9 total), found "
+        f"{len(commands)}: {commands}"
     )
     for command in commands:
         path = _script_path_from_command(command)
