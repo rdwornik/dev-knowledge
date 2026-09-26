@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-09-25 (w) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): the live transport has zero unclassified strays, and a check keeps it there -- `transport.py strays`
+
+**Anchors:** `356c5649` -- `worktree-lane-transport-strays` repair 1 of 2 (ordered and served `claude-sonnet-5`; original tip `ca153c56`), merged `--no-ff` from an integration worktree on origin/main `4e27a9d5`.
+
+**Did:** `ecosystem/transport-registry.yaml` gains 83 kind rows covering every historical stray-filename prefix on the live transport (the `DIGEST` kind now admits `.png|.yaml|.json`). `transport.py strays` exits non-zero on any stray and reports `unclassified_count` separately from `misfoldered_count`; a fixture pins the exit on one stray. On the live transport: 0 unclassified. 29 mis-foldered files were moved through the registered write gate and recorded from -> to; 3 were blocked by a same-named file; nothing was deleted, and 14 dead files are listed for the operator. The contract named `transport_report.py`, which is the lane-end writer, so the verb went into `transport.py`, where the registry reader lives (DECIDED-BY-INTEGRATOR; no other lane owns it). Codex terra: no findings. Repair 1 reworded three registry comments that added `never` (silent-rule 454 -> 451) and kept lane-quota-watch's `QUOTA_WARN` row additively (ruling (f)). **Result:** a stray in the transport is a check failure, not a silent pile-up. **Changes:** `ecosystem/transport-registry.yaml`, `scripts/transport.py`, `tests/test_transport.py`, `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl`. **Next:** the operator's deletion list (OPERATOR-ACTION); LANE-x-675's two differing copies.
+
+### 2026-09-25 (v) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): every included quota gets a live read, and a Codespaces launch that would cross its core-hour allowance is refused -- `quota_watch.py`
+
+**Anchors:** `5cdf98fb`, `e47cef2d`, `60f6e268`, `5da4cd68` -- `worktree-lane-quota-watch` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on origin/main `461d4316`.
+
+**Did:** `quota_watch.py report` gives used/quota/%/burn/projected exhaustion per SKU (Codespaces core-hours and storage, Actions minutes, Copilot credits, first billed dollar) against the declared allowances in `ecosystem/quotas.yaml`. A 50/80/100% crossing is detected by comparison against an append-only ledger, and a crossing or the first billed dollar writes a registered `QUOTA-WARN-<date>.md` transport file (a new registry kind). A Codespaces launch whose projected core-hours cross the quota is refused, the one hard veto R7 specifies. The dispatcher and integrator order templates gain the pre-launch check and the close cost line. Codex terra review recorded, findings fixed (exhaustion capped at cycle reset, ledger serialized, negative projections refused). Two ratchet-counting words were drained from the prose. **Result:** a batch cannot burn past the Codespaces allowance unseen. **Changes:** `scripts/quota_watch.py`, `ecosystem/quotas.yaml`, `ecosystem/harness.yaml` (one fates line), `ecosystem/transport-registry.yaml` (QUOTA_WARN), two order templates, `tests/test_quota_watch.py` + fixtures, the terra record, `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl`. **Next:** wire `quota_watch.py record` into the batch moments (ROWS-OWED).
+
 ### 2026-09-25 (u) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): the Architekt Jutra delta scan becomes a mechanism -- `aj_scan.py` and its skill
 
 **Anchors:** `fd021236`, `0d5ae669`, `c53d43fc`, `6e0e0ff3`, `19f846b0` -- `worktree-lane-aj-scan` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on origin/main `20dfe91a`.

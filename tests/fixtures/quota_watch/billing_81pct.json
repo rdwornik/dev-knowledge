@@ -1,0 +1,12 @@
+{
+  "timePeriod": {"year": 2026, "month": 9},
+  "user": "rdwornik",
+  "usageItems": [
+    {"product": "Codespaces", "sku": "codespaces_compute_d4", "grossQuantity": 36.45,
+     "discountQuantity": 0.0, "netQuantity": 36.45, "grossAmount": 13.122, "discountAmount": 0.0,
+     "netAmount": 0.0, "pricePerUnit": 0.36, "unitType": "hours"},
+    {"product": "Actions", "sku": "actions_linux", "grossQuantity": 110.0,
+     "discountQuantity": 110.0, "netQuantity": 0.0, "grossAmount": 0.66, "discountAmount": 0.66,
+     "netAmount": 0.0, "pricePerUnit": 0.006, "unitType": "minutes"}
+  ]
+}
