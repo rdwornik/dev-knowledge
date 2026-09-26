@@ -25,10 +25,12 @@ import sys
 from pathlib import Path
 
 import pytest
+import yaml
 
 requires_git = pytest.mark.skipif(shutil.which("git") is None, reason="git not available")
 
-_SCRIPT = Path(__file__).resolve().parent.parent / "scripts" / "block_commit_on_main.py"
+_REPO = Path(__file__).resolve().parent.parent
+_SCRIPT = _REPO / "scripts" / "block_commit_on_main.py"
 
 
 def _run(repo, *args):
@@ -144,3 +146,20 @@ def test_the_integrator_replay_never_refuses_its_own_path(tmp_path):
     _run(primary, "fetch", "-q", "origin")
     assert _rev(primary, "origin/main") == integ_tip
     assert _rev(primary, "origin/main") != base_main
+
+
+def test_the_hook_this_replay_exercises_is_actually_armed_at_pre_commit():
+    """The replay above installs the REAL SCRIPT directly as a hook (mirroring
+    test_block_commit_on_main.py's own `_arm`), never `.pre-commit-config.yaml`'s own
+    `stages:` line -- so reverting that line to `stages: [manual]` would leave every
+    replay assertion above green while the real, pre-commit-framework-driven hook went
+    back to disarmed. This is the check that would catch that revert (Codex terra
+    review, HIGH, docs/audits/2026-09-26-codex-lane-organ-wirings.md)."""
+    data = yaml.safe_load((_REPO / ".pre-commit-config.yaml").read_text(encoding="utf-8"))
+    default = set(data.get("default_stages") or ["pre-commit"])
+    hooks = {h["id"]: h for repo in data["repos"] for h in (repo.get("hooks") or [])}
+    assert "block-commit-on-main" in hooks, "the hook entry itself is gone from the config"
+    stages = set(hooks["block-commit-on-main"].get("stages") or default)
+    assert "pre-commit" in stages, (
+        f"block-commit-on-main is not armed at pre-commit (stages={stages!r}) -- "
+        "the replay above would stay green even though the real hook is disarmed")

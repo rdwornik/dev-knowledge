@@ -527,6 +527,22 @@ def test_every_organ_wiring_fate_has_exactly_one_recognised_shape():
         assert row.get("reason"), f"{path}'s fate carries no reason"
 
 
+def test_every_organ_wiring_fate_stays_manual_until_not_moment_or_retire():
+    """DECIDED-BY-LANE (this contract): each of the four is manual_until, specifically --
+    not moment: (which would claim a live caller none of these four has) and not
+    retire_candidate: (none of them is being proposed for removal). A fate silently
+    flipping to either shape at the same path is the regression this pins against
+    (Codex terra review, HIGH, docs/audits/2026-09-26-codex-lane-organ-wirings.md:
+    `test_every_organ_wiring_fate_has_exactly_one_recognised_shape` alone would still
+    pass if any of these four became `moment:` or `retire_candidate:`)."""
+    fates = _live_fates()
+    for path in _ORGAN_WIRING_FATES:
+        row = fates[path]
+        assert str(row.get("manual_until")) == "2026-10-05", (path, row)
+        assert "retire_candidate" not in row, (path, row)
+        assert "moment" not in row, (path, row)
+
+
 def test_handback_s_fate_cites_the_lane_end_moment_it_precedes():
     """handback.py PRODUCES lane-end's own precondition (the HANDBACK line lane_end_guard.py
     checks for) -- it cannot be one of lane-end's listed organs without either never running
