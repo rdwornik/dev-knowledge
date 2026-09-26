@@ -211,6 +211,57 @@ def test_the_heartbeat_workflow_runs_on_a_schedule():
 
 
 @pytest.mark.live_repo
+def test_the_container_job_runs_on_a_schedule_not_dispatch_only():
+    """LANE-5B2-8 (AMEND-BATCH-WAVE5B-N2-LANE8, R2): the devcontainer-build job re-arms on the
+    daily cron, not only on a human's workflow_dispatch. A build leg that only fires when
+    someone asks for it by name is the same usage-dependency this whole heartbeat exists to
+    remove, one layer up."""
+    spec = yaml.safe_load(
+        (REPO_ROOT / ".github/workflows/substrate-heartbeat.yml").read_text(encoding="utf-8"))
+    container_if = spec["jobs"]["container"]["if"]
+    assert "schedule" in container_if, (
+        f"container job's `if:` is {container_if!r} — it still gates on workflow_dispatch alone")
+    assert "workflow_dispatch" in container_if, (
+        "the operator must still be able to fire the build leg by hand")
+
+
+@pytest.mark.live_repo
+def test_the_container_job_asserts_uv_claude_node_and_update_content_command():
+    """Done-contract item 1 (LANE-5B2-8): the container job asserts, INSIDE the built container
+    and with its own evidence lines, that `uv --version` equals the pyproject.toml pin, that
+    `claude` and `node` are on PATH, and that `updateContentCommand` is the command that runs —
+    not merely inferred from provision.sh's internal asserts, which a reader of the CI log
+    cannot see without already knowing where to look."""
+    spec = yaml.safe_load(
+        (REPO_ROOT / ".github/workflows/substrate-heartbeat.yml").read_text(encoding="utf-8"))
+    steps = spec["jobs"]["container"]["steps"]
+    build_step = next(s for s in steps if "runCmd" in s.get("with", {}))
+    run_cmd = build_step["with"]["runCmd"]
+
+    assert "uv --version" in run_cmd, "no evidence line for the live uv version"
+    assert "pyproject.toml" in run_cmd, "the uv pin must be read from its single source"
+    assert "command -v claude" in run_cmd, "no assertion that claude is on PATH"
+    assert "command -v node" in run_cmd, "no assertion that node is on PATH"
+    assert "updateContentCommand" in run_cmd, "no evidence line naming updateContentCommand"
+    assert "scripts/substrate_provenance.py verify --require-marker" in run_cmd, (
+        "the L1 marker verify must still run")
+
+
+@pytest.mark.live_repo
+def test_the_container_job_needs_no_model_credential():
+    """The build leg is credential-free by the same measurement as the scheduled leg above — a
+    repo with no Actions secrets at all cannot arm a leg that expands `secrets.*` on a schedule
+    without going permanently red."""
+    spec = yaml.safe_load(
+        (REPO_ROOT / ".github/workflows/substrate-heartbeat.yml").read_text(encoding="utf-8"))
+    steps = spec["jobs"]["container"]["steps"]
+    build_step = next(s for s in steps if "runCmd" in s.get("with", {}))
+    run_cmd = build_step["with"]["runCmd"]
+    used = set(__import__("re").findall(r"\$\{\{\s*secrets\.([A-Za-z0-9_]+)", run_cmd))
+    assert not used, f"the container job's runCmd expands {sorted(used)} — no secret is read"
+
+
+@pytest.mark.live_repo
 def test_the_heartbeat_workflow_needs_no_model_credential():
     """MEASURED BLOCKER, designed around rather than discovered: this repo has no Actions
     secrets at all. A scheduled leg that referenced one would never run."""
