@@ -22,7 +22,7 @@ can confirm that, not a token match. Automating the write would risk asserting a
 prose never actually claims.
 
 WHAT "MET" MEANS, and its one honest limit. `lands-via`'s value is prose, not a grammar --
-"the WAVE5B-N3 lanes through the integrator; to-browser/DIGEST-WAVE5B-N3-<date>.md ..." names
+"the WAVE5B-N3 lanes through the integrator; to-browser/<DIGEST file for the batch> ..." names
 an intention, several homes, or none at all. This organ reuses `gen_handoff`'s own carrier-token
 extraction (`_carrier_tokens`) rather than inventing a second tokenizer that could disagree with
 the one the carried-by leg already trusts, but NARROWS what counts as "met" to tokens that
