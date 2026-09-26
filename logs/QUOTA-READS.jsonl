@@ -1,0 +1,3 @@
+{"billed": false, "cycle": "2026-09-01", "group": "codespaces_core_hours", "measured": "2026-09-26T14:54:19+00:00", "pct": 0.22057288888888887, "quota": 180.0, "used": 39.70312}
+{"billed": false, "cycle": "2026-09-01", "group": "codespaces_storage", "measured": "2026-09-26T14:54:19+00:00", "pct": 7.579079239726027e-05, "quota": 20.0, "used": 0.0015158158479452054}
+{"billed": false, "cycle": "2026-09-01", "group": "actions_minutes", "measured": "2026-09-26T14:54:19+00:00", "pct": 1.8836666666666666, "quota": 3000.0, "used": 5651.0}
