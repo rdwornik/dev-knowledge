@@ -493,8 +493,35 @@ def test_the_workflow_carries_the_four_triggers_section_4_names(workflow):
     # always-vacuous test.
     triggers = workflow[True]
     assert set(triggers) == {"push", "pull_request", "schedule", "workflow_dispatch"}
-    assert triggers["push"]["branches"] == ["main"]
+    # LANE-5B3-8, O3 first step: `worktree-*` widens the push trigger so a pushed lane branch
+    # runs this workflow on its own, not only via a manual `workflow_dispatch`. `main` stays
+    # first in the list -- the integrator's run is still the one the ruleset can ever gate.
+    assert triggers["push"]["branches"] == ["main", "worktree-*"]
     assert triggers["schedule"], "a schedule leg is what makes the runner more than a push-reactor"
+
+
+def test_ship_gate_is_a_job_and_is_advisory_only(workflow, ruleset):
+    # O3 first step (LANE-5B3-8): a lane's own pushed branch gets an `audit.py ship-gate` job.
+    # ADVISORY, not a lane self-check substitute (R9 keeps that as `audit.py health` + targeted
+    # tests) and not a gate on anything: `continue-on-error` at job level, and absent from the
+    # required-checks ruleset, same asymmetry as `terra`.
+    job = workflow["jobs"]["ship-gate"]
+    assert job.get("continue-on-error") is True
+    run_text = "\n".join(str(s.get("run", "")) for s in job["steps"])
+    assert "audit.py ship-gate" in run_text
+    contexts = {c["context"] for c in
+                ruleset["rules"][0]["parameters"]["required_status_checks"]}
+    assert "ship-gate" not in contexts
+
+
+def test_ship_gate_never_touches_an_existing_verdict_steps_continue_on_error(workflow):
+    # "Do not": no `continue-on-error` added to an existing verdict step to turn a red green.
+    # The pytest job's final gate step and the ruff job's check step must still be unconditional.
+    pytest_gate_step = next(s for s in workflow["jobs"]["pytest"]["steps"]
+                             if s.get("name", "").startswith("Fail the job on the [#802] gate"))
+    assert "continue-on-error" not in pytest_gate_step
+    ruff_step = next(s for s in workflow["jobs"]["ruff"]["steps"] if s.get("name") == "ruff")
+    assert "continue-on-error" not in ruff_step
 
 
 def test_every_required_context_is_a_real_job_in_the_workflow(workflow, ruleset):

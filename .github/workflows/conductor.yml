@@ -56,7 +56,11 @@ name: conductor
 
 on:
   push:
-    branches: [main]
+    # LANE-5B3-8, O3 FIRST STEP: `worktree-*` added so a pushed lane branch gets its own
+    # automatic run, not only `workflow_dispatch` by hand -- CI stops being main-only signal.
+    # The existing jobs already carry non-main-ref logic (commit-gate's LANE-5B-7 comment,
+    # seal's ancestry check) built anticipating exactly this trigger widening.
+    branches: [main, "worktree-*"]
   pull_request:
     branches: [main]
   schedule:
@@ -254,16 +258,16 @@ jobs:
           SKIP: block-commit-on-main,backlog-id-on-close,backlog-filing-backpressure
         run: |
           set +e
-          # LANE-5B-7: `on.push.branches == ["main"]` above means the ONLY automatic trigger
-          # for this job is a push to `main` -- a lane's own branch is judged solely by a
-          # manual `workflow_dispatch` run against it. `github.event.before` does not exist on
-          # that event (empty on a branch's first push; on any later one it is the branch's
-          # OWN prior tip, never main's), so resolving BASE from it here judged nothing on a
-          # lane branch -- a vacuous pass on exactly the run this gate exists to make real.
-          # A non-main ref is therefore judged against its merge-base with `origin/main`: the
-          # diff a merge into `main` would actually introduce, never the branch's own history.
-          # `main`'s own run stays on `event.before` / the PR base sha -- that run is the
-          # integrator's evidence, not this lane's, and is unchanged.
+          # LANE-5B-7, widened by LANE-5B3-8's `worktree-*` trigger: a lane branch now runs
+          # this job on its own push too, not only via a manual `workflow_dispatch`.
+          # `github.event.before` does not exist on that event (empty on a branch's first
+          # push; on any later one it is the branch's OWN prior tip, never main's), so
+          # resolving BASE from it here judged nothing on a lane branch -- a vacuous pass on
+          # exactly the run this gate exists to make real. A non-main ref is therefore judged
+          # against its merge-base with `origin/main`: the diff a merge into `main` would
+          # actually introduce, never the branch's own history. `main`'s own run stays on
+          # `event.before` / the PR base sha -- that run is the integrator's evidence, not
+          # this lane's, and is unchanged.
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE="${{ github.event.pull_request.base.sha }}"
           elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
@@ -326,6 +330,48 @@ jobs:
             commit-gate.out
             audit-health.out
             known-reds-hook.out
+          retention-days: 90
+          if-no-files-found: warn
+
+  ship-gate:
+    # O3 FIRST STEP (LANE-5B3-8): the R9 ADVISORY leg of "audit.py ship-gate" as its own job,
+    # so a lane branch gets one shown on every push -- never the lane's own self-check
+    # obligation (R9 keeps that as `audit.py health` + targeted tests; the integrator still
+    # runs the real ship-gate on the MERGED tree, which stays the verdict). ADVISORY ONLY:
+    # `continue-on-error: true` at job level, so a ship-gate FAIL never reds this workflow run
+    # or blocks anything -- no existing verdict step anywhere in this file gained
+    # `continue-on-error`, and this job is not in `deploy/conductor-required-checks.ruleset.json`.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.11.19"
+      - name: Sync the locked environment
+        run: uv sync --locked --group analytics
+      - name: audit.py ship-gate (advisory)
+        run: |
+          set +e
+          start=$(date +%s)
+          uv run --locked python scripts/audit.py ship-gate > ship-gate.out 2>&1
+          rc=$?
+          echo "wall_seconds=$(( $(date +%s) - start )) exit=$rc" >> ship-gate.out
+          cat ship-gate.out
+          {
+            echo "## ship-gate (advisory) — \`${{ github.sha }}\` exit \`$rc\`"
+            echo
+            echo '```'
+            tail -n 120 ship-gate.out
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $rc
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ship-gate-${{ github.sha }}
+          path: ship-gate.out
           retention-days: 90
           if-no-files-found: warn
 
