@@ -549,16 +549,25 @@ _LANE_5B3_4_RESIDUAL_SUBJECTS = frozenset({
     # DECISION_DISPOSITIONS, moving them here instead of leaving them falsely marked done.
     "to-cc/AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25.md",
     "to-cc/AMEND-BATCH-WAVE5B-N2-QUEUE3-2026-09-25.md",
+    # Added on Codex terra review round 3: round 2's own individually-reasoned QUEUE/QUEUE4/
+    # QUEUE6 dispositions each admitted a genuine gap (QUEUE's lane 18, QUEUE4's lane 24) or a
+    # still-executing lane (QUEUE6's lane 31/27) and registered a whole-file Disposition anyway
+    # -- the register has no partial-file shape, so that silently read the admitted gap/still-
+    # executing lane as `done`. Removed from DECISION_DISPOSITIONS, moved here instead.
+    "to-cc/AMEND-BATCH-WAVE5B-N2-QUEUE-2026-09-25.md",
+    "to-cc/AMEND-BATCH-WAVE5B-N2-QUEUE4-2026-09-25.md",
+    "to-cc/AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25.md",
 })
 
 
 def test_the_live_tree_carries_no_IN_ERA_uncovered_decision(live_store, live_transport):
     """The bar this lane must leave green: nothing accepted on or after `ARM_DATE` may sit
-    without a row or a disposition when the lane ends -- OTHER than the 13 named residuals
+    without a row or a disposition when the lane ends -- OTHER than the 16 named residuals
     LANE-5B3-4-decision-debt filed as `ROWS-OWED` (measured population: 40 undisposed at the
-    lane's start, 27 disposed, 13 residual -- 11 at first disposition plus QUEUE2/QUEUE3, moved
-    here on Codex terra review round 2 once their WAVE5B-N2 disposition was found to overclaim).
-    A subject not in that named set still fails this test; the named 13 do not silently vanish
+    lane's start, 24 disposed, 16 residual -- 11 at first disposition, plus QUEUE2/QUEUE3 on
+    Codex terra review round 2, plus QUEUE/QUEUE4/QUEUE6 on round 3 once THEIR own
+    individually-reasoned WAVE5B-N2 dispositions were found to still overclaim a settled file).
+    A subject not in that named set still fails this test; the named 16 do not silently vanish
     -- they are asserted present, so the day one
     lands a real disposition or a row, this set (and the session file's `ROWS-OWED`) must
     shrink to match or this test starts failing for the opposite reason."""
