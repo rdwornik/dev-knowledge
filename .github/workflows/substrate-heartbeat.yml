@@ -127,6 +127,13 @@ jobs:
         # admission predicate above and the L1 marker verify below, proven to go red on the two
         # deliberate breakages (Done-contract item 5); this leg is additive visibility onto an
         # operator-owned gap, not a second gate on the same job.
+        #
+        # Codex terra review, 2026-09-26 ([HIGH],
+        # docs/audits/2026-09-26-codex-lane-heartbeat-admission.md) flagged this same
+        # `continue-on-error` as masking a refused/undetermined verdict from the job's own
+        # pass/fail. Reviewed and kept for the reason above (Done-item 4 would be structurally
+        # unreachable otherwise, against a real and currently-true staleness) — recorded as
+        # DECIDED-BY-LANE in the handback session file, not a finding this lane missed.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true

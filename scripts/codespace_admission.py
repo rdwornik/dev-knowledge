@@ -81,6 +81,13 @@ predicate actually targets does not. A test fixture built to model "absent from 
 "present on PATH" needs to mean the same thing on both, so `Probe.which` does a plain
 basename-in-directory search instead — the same portable simplification this lane's tests need
 DispatchHelpers.psm1 to have to be testable at all, since it is bash `command -v` under the hood.
+`Probe.which` still requires `os.access(candidate, os.X_OK)` (codex terra review, 2026-09-26,
+docs/audits/2026-09-26-codex-lane-heartbeat-admission.md [HIGH]): a regular file present but not
+executable is exactly what bash's own `command -v` refuses, and admitting it here would let this
+predicate diverge from the deployed test in the direction that matters (admitting a container the
+deployed test would refuse). `os.access(..., X_OK)` is a no-op true on Windows (no exec-bit
+concept there) and a real check on the Linux container this predicate targets — the same
+platform split the paragraph above already lives with.
 
 Layer-2 / read-only-except-the-checks-it-runs: this module writes nothing of its own. Every
 condition it names is deterministic and, where they touch the network at all (git ls-remote,
@@ -129,7 +136,7 @@ class Probe:
             if not entry:
                 continue
             candidate = Path(entry) / exe
-            if candidate.is_file():
+            if candidate.is_file() and os.access(candidate, os.X_OK):
                 return str(candidate)
         return None
 

@@ -379,10 +379,34 @@ def _prebuild_declaration(repo_root: Path) -> dict:
     return data.get("prebuild", {}) if isinstance(data, dict) else {}
 
 
+def _resolve_main_ref(repo_root: Path) -> str | None:
+    """The first of `origin/main`, `main`, `HEAD` that this clone can resolve, in that order --
+    `origin/main` first because a `workflow_dispatch` run checks out the DISPATCHING branch, not
+    main, and this leg's question is about main (codex terra review, 2026-09-26,
+    docs/audits/2026-09-26-codex-lane-heartbeat-admission.md [HIGH]: `_newest_devcontainer_commit`
+    read HEAD -- whichever ref triggered the run -- rather than main, so a lane branch dispatch
+    could report a stale-relative-to-ITSELF answer instead of stale-relative-to-main. `main` and
+    `HEAD` remain as fallbacks for a clone with no `origin` remote (a local dev checkout, or this
+    module's own test fixtures) rather than turning "no origin" into "cannot answer"."""
+    for ref in ("origin/main", "main", "HEAD"):
+        try:
+            proc = subprocess.run(
+                ["git", "-C", str(repo_root), "rev-parse", "--verify", "--quiet", ref],
+                capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=20)
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if proc.returncode == 0:
+            return ref
+    return None
+
+
 def _newest_devcontainer_commit(repo_root: Path) -> str | None:
+    ref = _resolve_main_ref(repo_root)
+    if ref is None:
+        return None
     try:
         proc = subprocess.run(
-            ["git", "-C", str(repo_root), "log", "-1", "--format=%H", "--", ".devcontainer"],
+            ["git", "-C", str(repo_root), "log", "-1", "--format=%H", ref, "--", ".devcontainer"],
             capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=20)
     except (OSError, subprocess.SubprocessError):
         return None

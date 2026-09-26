@@ -227,6 +227,46 @@ def _repo_with_devcontainer_history(tmp_path: Path, *, repo="acme/widget") -> tu
     return root, old_sha, dc_sha
 
 
+def _bare_origin_with_main(tmp_path: Path) -> Path:
+    """A bare `origin` remote carrying one commit on `main`, with no `.devcontainer/` history."""
+    origin = tmp_path / "origin.git"
+    subprocess.run(["git", "init", "-q", "--bare", str(origin)], check=True)
+    seed = tmp_path / "seed"
+    seed.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=seed, check=True)
+    subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=seed, check=True)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=seed, check=True)
+    (seed / "README.md").write_text("x\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=seed, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=seed, check=True)
+    subprocess.run(["git", "branch", "-q", "-M", "main"], cwd=seed, check=True)
+    subprocess.run(["git", "remote", "add", "origin", str(origin)], cwd=seed, check=True)
+    subprocess.run(["git", "push", "-q", "origin", "main"], cwd=seed, check=True)
+    return origin
+
+
+def test_devcontainer_freshness_reads_origin_main_not_the_checked_out_branch(tmp_path):
+    """Codex terra review, 2026-09-26 [HIGH]
+    (docs/audits/2026-09-26-codex-lane-heartbeat-admission.md): a `workflow_dispatch` run checks
+    out the DISPATCHING branch, not main. A lane branch that adds its own `.devcontainer/` commit
+    -- never pushed to origin's `main` -- must not make this leg answer against itself; it answers
+    against `origin/main`, which here has no `.devcontainer/` history at all."""
+    origin = _bare_origin_with_main(tmp_path)
+    work = tmp_path / "work"
+    subprocess.run(["git", "clone", "-q", str(origin), str(work)], check=True)
+    subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=work, check=True)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=work, check=True)
+    subprocess.run(["git", "checkout", "-q", "-b", "lane"], cwd=work, check=True)
+    (work / ".devcontainer").mkdir()
+    (work / ".devcontainer" / "devcontainer.json").write_text("{}\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=work, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "add devcontainer on lane only"], cwd=work,
+                   check=True)
+
+    assert hb._resolve_main_ref(work) == "origin/main"
+    assert hb._newest_devcontainer_commit(work) is None
+
+
 _WORKFLOWS_WITH_PREBUILD = {"workflows": [
     {"id": 1, "path": ".github/workflows/conductor.yml"},
     {"id": 42, "path": "dynamic/codespaces/create_codespaces_prebuilds"},

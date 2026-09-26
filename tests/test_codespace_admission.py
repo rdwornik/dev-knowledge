@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -23,11 +24,15 @@ import codespace_admission as ca
 # --- Probe fixtures --------------------------------------------------------------------------
 
 def _path_with(tmp_path: Path, *names: str) -> ca.Probe:
-    """A Probe whose PATH resolves exactly the given basenames (each an empty stub file)."""
+    """A Probe whose PATH resolves exactly the given basenames (each an executable stub file --
+    `Probe.which` requires the exec bit, so a "present" fixture must carry it or every present
+    case would fail on POSIX)."""
     bindir = tmp_path / "bin"
     bindir.mkdir(exist_ok=True)
     for name in names:
-        (bindir / name).write_text("", encoding="utf-8")
+        stub = bindir / name
+        stub.write_text("", encoding="utf-8")
+        stub.chmod(0o755)
     return ca.Probe(env={"PATH": str(bindir)})
 
 
@@ -48,6 +53,20 @@ class _StubRunProbe(ca.Probe):
 
     def run(self, argv, *, cwd=None, timeout=30):
         return subprocess.CompletedProcess(argv, self._returncode, stdout="", stderr="")
+
+
+# --- executable bit (codex terra review, 2026-09-26, [HIGH]) --------------------------------
+
+@pytest.mark.skipif(sys.platform == "win32",
+                     reason="POSIX exec bit only -- Windows has no X_OK concept to violate")
+def test_present_but_not_executable_is_treated_as_absent(tmp_path):
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    stub = bindir / "claude"
+    stub.write_text("", encoding="utf-8")
+    stub.chmod(0o644)
+    probe = ca.Probe(env={"PATH": str(bindir)})
+    assert probe.which("claude") is None
 
 
 # --- claude on PATH ----------------------------------------------------------------------------
@@ -140,6 +159,7 @@ def test_gh_present_and_broken_refuses(tmp_path):
     bindir = tmp_path / "bin"
     bindir.mkdir()
     (bindir / "gh").write_text("", encoding="utf-8")
+    (bindir / "gh").chmod(0o755)
     probe = _StubRunProbe({"PATH": str(bindir)}, returncode=1)
     cond = ca.check_gh_not_broken(probe)
     assert not cond.ok
@@ -151,6 +171,7 @@ def test_gh_present_and_authenticated_admits(tmp_path):
     bindir = tmp_path / "bin"
     bindir.mkdir()
     (bindir / "gh").write_text("", encoding="utf-8")
+    (bindir / "gh").chmod(0o755)
     probe = _StubRunProbe({"PATH": str(bindir)}, returncode=0)
     cond = ca.check_gh_not_broken(probe)
     assert cond.ok
@@ -318,7 +339,9 @@ def test_cli_exit_codes(tmp_path, monkeypatch, capsys):
     bindir = tmp_path / "full-bin"
     bindir.mkdir()
     for exe in ("claude", "uv", "python3", "pre-commit"):
-        (bindir / exe).write_text("", encoding="utf-8")
+        stub = bindir / exe
+        stub.write_text("", encoding="utf-8")
+        stub.chmod(0o755)
     monkeypatch.setenv("PATH", os.pathsep.join([str(bindir), *real_git_dirs]))
     assert ca.main(["--repo-root", str(repo)]) == 0
 
