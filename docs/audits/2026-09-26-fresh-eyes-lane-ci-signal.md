@@ -1,5 +1,6 @@
 # Fresh-Eyes Review (DEGRADED-REVIEW) — lane-ci-signal
 
+**Contract:** LANE-5B2-17-ci-signal, `[#802]` (main CI red 30/30 runs)
 **Date:** 2026-09-26
 **Branch:** `worktree-lane-ci-signal`
 **HEAD at review time:** `cd563d9f` (this record's fix landed after, at `511094fd`)
