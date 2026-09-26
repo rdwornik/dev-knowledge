@@ -34,7 +34,24 @@ _STUB_FILES = {
     "scripts/validate_backlog.py": "x\n",
     "scripts/gen_task_tree.py": "x\n",     # P0a's currency assertion target (R2, [#446])
     "BACKLOG.md": "x\n",
-    "protocols/HANDOFF_PROCESS.md": "# H\n\nno per-bundle README\n",
+    "protocols/HANDOFF_PROCESS.md": "# H\n\nVersion: 7.1.0\n\nno per-bundle README\n",
+    # The boot's DATA block points at these, and `verify_handoff_probes` resolves every pointer,
+    # so the stub carries each target (lane-boot-contract, 2026-09-25).
+    "protocols/HANDOFF_BOOT.md": "# Browser role\n",
+    "protocols/STANDING_RULINGS.md": "# Standing rulings\n",
+    "scripts/dispatch.py": "@cli.command(\"launch\")\ndef launch(): ...\n",
+    "templates/dispatcher-order-template.md": "x\n",
+    "templates/integrator-order-template.md": "x\n",
+    "templates/batch-common-rules-template.md": "x\n",
+    "templates/lane-contract-template.md": "x\n",
+    "ecosystem/provider-registry.yaml": "x: 1\n",
+    "ecosystem/harness.yaml": "x: 1\n",
+    "docs/handoffs/README.md": "# Runbook\n",
+    # P1a binds `README.md` `## Vision` since ADR-114 and P8b the grammar table; without these
+    # two a generated bundle cannot pass its own probes in the stub (the dry-cut test needs it).
+    "README.md": "# R\n\n## Vision\nWhat .dev-knowledge is.\n",
+    "protocols/OPERATOR-INTERFACE.md": (
+        "# O\n\n## 1. File exchange goes through the Downloads directory\n"),
     "ecosystem/doc-counts.md": "- tests: **1 collected**\n",
     "ecosystem/disposition-register.yaml": "dispositions: []\n",
     "docs/intake/README.md": "# INTAKE AREA DEFINITION\n",
@@ -72,7 +89,8 @@ def test_dogfood_no_probe_row_carries_an_answer_value(tmp_path):
     # ANTI-BLUFF BY CONSTRUCTION: no generated probe ROW may print an `expected:` answer hint
     # (the exact RF-1 regression). Re-runs every generation, so the property cannot silently rot.
     rows = _rows(_gen(tmp_path).bundle_dir)
-    assert len(rows) == 13  # 11 -> 14: P0a/P0b/P0c standing-topic legs added (R2 / [#446], 2026-07-31);
+    assert len(rows) == 15  # 13 -> 15: P8a/P8b split + P11 (v7.1); an inherited red, fixed
+    # 11 -> 14: P0a/P0b/P0c standing-topic legs added (R2 / [#446], 2026-07-31);
     # 14 -> 13: P10 (BACKLOG grooming) REMOVED 2026-08-26 — it asked for unbounded judgment
     # over an open set, which HANDOFF_PROCESS §5 cond. 4 rejects and names P10 as its origin.
     # Now P0a/P0b/P0c + P1a/P1b + P2..P9.
@@ -87,7 +105,11 @@ def test_dogfood_generated_bundle_has_no_failing_probe(tmp_path):
     # `fail`; a fail would mean a toothless/malformed/missing-source generated row.)
     res = _gen(tmp_path)
     results = vhp.verify(res.bundle_dir, repo_root=res.bundle_dir.parents[2])
-    assert len(results) == 13  # 11 -> 14: P0a/P0b/P0c standing-topic legs added (R2 / [#446], 2026-07-31);
+    # lane-boot-contract (2026-09-25): the boot's DATA rows are probe-checked too, and ride in
+    # the same result list under a `BD-` id; the count below is the PROBES.md table only.
+    results = [r for r in results if not r.probe_id.startswith(("BD-", "BP-"))]
+    assert len(results) == 15  # 13 -> 15: P8a/P8b split + P11 added (v7.1); see the test above.
+    # 11 -> 14: P0a/P0b/P0c standing-topic legs added (R2 / [#446], 2026-07-31);
     # 14 -> 13: P10 (BACKLOG grooming) REMOVED 2026-08-26 — it asked for unbounded judgment
     # over an open set, which HANDOFF_PROCESS §5 cond. 4 rejects and names P10 as its origin.
     # Now P0a/P0b/P0c + P1a/P1b + P2..P9.
@@ -1583,3 +1605,210 @@ def test_collect_hints_still_reads_the_check_count_from_the_repo_it_is_given(tmp
     assert hints["all_checks"].startswith("unknown ("), (
         f"the stub repo declares `ALL_CHECKS = []`, so the only honest hint is the degrade "
         f"pointer this function promises -- got {hints['all_checks']!r}")
+
+
+# --- lane-boot-contract (WAVE5B-N2 row 12, 2026-09-25): the boot as DATA + PROSE -------------
+#
+# The boot a seat pastes used to MIX facts a probe could verify (slug, mode, destination
+# branch, the role pin's version, the launcher, the pointers) with prose it could only trust
+# (purpose, write-scope, mode basis), and the pointers rode in `>` blocks no probe read. The
+# generator now emits the header as two delimited parts: a DATA block every row of which a
+# `verify_handoff_probes` rule checks, and a short PROSE block holding only the hand-authored
+# regions. These tests are the contract: the split, the coupling (no data row without a rule),
+# the prose budget, the receipt's boot-cost field, and the dry cut.
+
+import json  # noqa: E402
+
+
+def _header(boot_text: str) -> str:
+    """The pasted part of HANDOFF_BOOT.md: everything above the first `## ` heading."""
+    return re.split(r"(?m)^## ", boot_text, maxsplit=1)[0]
+
+
+def test_boot_header_is_a_data_block_then_a_prose_block(tmp_path):
+    boot = (_gen(tmp_path).bundle_dir / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
+    head = _header(boot)
+    d0, d1 = head.find(gh.BOOT_DATA_BEGIN), head.find(gh.BOOT_DATA_END)
+    p0, p1 = head.find(gh.BOOT_PROSE_BEGIN), head.find(gh.BOOT_PROSE_END)
+    assert -1 not in (d0, d1, p0, p1), "the pasted header must carry both delimited blocks"
+    assert d0 < d1 < p0 < p1, "DATA first, then PROSE, each closed before the next opens"
+    # No doctrine pointer rides in an unverified `>` block any more: the pointers are DATA rows.
+    assert not [ln for ln in head.splitlines() if ln.startswith(">")], \
+        "a `>` pointer block in the pasted header is prose no probe reads"
+
+
+def test_every_boot_data_row_has_a_probe_rule(tmp_path):
+    boot = (_gen(tmp_path).bundle_dir / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
+    rows, _prose = vhp.parse_boot_blocks(boot)
+    assert rows, "the generated DATA block parsed to no rows"
+    keys = [k for k, _v in rows]
+    unruled = [k for k in keys if k not in vhp.BOOT_DATA_RULES]
+    assert unruled == [], f"data rows no probe checks (move them to PROSE): {unruled}"
+    # The generator's declared row set and the verifier's rule set are the SAME set, both ways:
+    # a rule with no row is a probe that can never fire, a row with no rule is an unverified fact.
+    assert set(keys) == set(vhp.BOOT_DATA_RULES), (set(keys) ^ set(vhp.BOOT_DATA_RULES))
+
+
+def test_generated_boot_data_rows_all_pass_their_probes(tmp_path):
+    res = _gen(tmp_path, assemble=True)
+    results = [r for r in vhp.verify(res.bundle_dir, repo_root=res.bundle_dir.parents[2])
+               if r.probe_id.startswith(("BD-", "BP-"))]
+    ids = {r.probe_id for r in results}
+    assert {f"BD-{vhp.boot_data_id(k)}" for k in vhp.BOOT_DATA_RULES} <= ids
+    assert "BP-budget" in ids
+    fails = [(r.probe_id, r.detail) for r in results if r.status == "fail"]
+    assert fails == [], f"generated boot data fails its own probes: {fails}"
+
+
+def test_prose_block_holds_the_hand_authored_regions_and_nothing_else(tmp_path):
+    boot = (_gen(tmp_path).bundle_dir / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
+    head = _header(boot)
+    data = head[head.find(gh.BOOT_DATA_BEGIN):head.find(gh.BOOT_DATA_END)]
+    prose = head[head.find(gh.BOOT_PROSE_BEGIN):head.find(gh.BOOT_PROSE_END)]
+    names = {m.group("name") for m in gh.FILL_IN_RE.finditer(prose)}
+    assert {"purpose", "dest-worktree", "dest-scope", "dest-mode-basis"} <= names
+    assert not list(gh.FILL_IN_RE.finditer(data)), "a hand-authored region inside the DATA block"
+
+
+def test_prose_budget_is_stated_in_code_and_the_render_fits_it(tmp_path):
+    assert isinstance(gh.BOOT_PROSE_BYTE_BUDGET, int) and gh.BOOT_PROSE_BYTE_BUDGET > 0
+    boot = (_gen(tmp_path).bundle_dir / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
+    _rows, prose = vhp.parse_boot_blocks(boot)
+    assert prose is not None
+    assert vhp.prose_bytes(prose) <= gh.BOOT_PROSE_BYTE_BUDGET
+
+
+def test_assembled_paste_is_under_the_ceiling_the_code_states(tmp_path):
+    import assemble_paste as ap
+    b = _gen(tmp_path, assemble=True).bundle_dir
+    size = (b / "PASTE_THIS.md").stat().st_size
+    assert size <= ap.PASTE_BYTE_CEILING
+    receipt = json.loads((b / gh.RECEIPT_FILE).read_text(encoding="utf-8"))
+    assert receipt["paste"]["bytes"] == size
+    assert receipt["paste"]["ceiling_bytes"] == ap.PASTE_BYTE_CEILING
+
+
+# --- the handoff receipt and its boot-cost field ------------------------------------------
+
+def test_generation_writes_a_receipt_with_a_boot_cost_field(tmp_path):
+    b = _gen(tmp_path).bundle_dir
+    receipt = json.loads((b / gh.RECEIPT_FILE).read_text(encoding="utf-8"))
+    cost = receipt["boot_cost"]
+    assert cost["metric"] == gh.BOOT_COST_METRIC == "turns to first correct dispatch"
+    # No tally was passed, so the only honest value is none, with the reason stated.
+    assert cost["value"] is None
+    assert cost["status"].startswith("unmeasured — ") and len(cost["status"]) > len("unmeasured — ")
+    assert receipt["slug"] == b.name and receipt["cut"] == "real"
+
+
+def test_boot_cost_is_measured_when_the_tally_names_a_dispatch_that_exists(tmp_path):
+    transport = tmp_path / "transport"
+    (transport / "to-cc").mkdir(parents=True)
+    (transport / "to-cc" / "BATCH-X-2026-09-25.md").write_text("order\n", encoding="utf-8")
+    cost = gh.boot_cost(turns=4, dispatch="to-cc/BATCH-X-2026-09-25.md", transport=transport)
+    assert cost["value"] == 4 and cost["status"] == "measured"
+    assert cost["dispatch"] == "to-cc/BATCH-X-2026-09-25.md"
+
+
+@pytest.mark.parametrize("turns,dispatch,why", [
+    (4, "to-cc/GONE.md", "does not exist"),        # the dispatch cannot be witnessed
+    (4, "to-browser/X.md", "to-cc/"),               # not a dispatch order at all
+    (4, None, "names no dispatch"),                 # a count with no dispatch proves nothing
+    (0, "to-cc/BATCH-X-2026-09-25.md", "turn count"),  # not a count of turns
+])
+def test_boot_cost_degrades_to_unmeasured_with_its_reason(tmp_path, turns, dispatch, why):
+    transport = tmp_path / "transport"
+    (transport / "to-cc").mkdir(parents=True)
+    (transport / "to-cc" / "BATCH-X-2026-09-25.md").write_text("order\n", encoding="utf-8")
+    cost = gh.boot_cost(turns=turns, dispatch=dispatch, transport=transport)
+    assert cost["value"] is None
+    assert cost["status"].startswith("unmeasured — ") and why in cost["status"], cost["status"]
+
+
+def test_receipt_carries_a_measured_tally_through_generate(tmp_path, monkeypatch):
+    transport = tmp_path / "transport"
+    (transport / "to-cc").mkdir(parents=True)
+    (transport / "to-cc" / "BATCH-X-2026-09-25.md").write_text("order\n", encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROMPTS_DIR", str(transport))
+    repo = _stub_repo(tmp_path)
+    b = gh.generate(repo, mode="architect", slug="0000-00-00-t", repo=".dev-knowledge",
+                    date="2026-07-04", bundle_root=repo / "docs" / "handoffs", assemble=False,
+                    boot_turns=3, boot_dispatch="to-cc/BATCH-X-2026-09-25.md").bundle_dir
+    cost = json.loads((b / gh.RECEIPT_FILE).read_text(encoding="utf-8"))["boot_cost"]
+    assert (cost["value"], cost["status"]) == (3, "measured")
+
+
+# --- the dry cut: a real render + assembly, outside the repo, never a handoff -------------
+
+def test_dry_cut_refuses_a_target_inside_the_repo(tmp_path):
+    repo = _stub_repo(tmp_path)
+    with pytest.raises(ValueError, match="outside"):
+        gh.generate(repo, mode="architect", slug="0000-00-00-t", repo=".dev-knowledge",
+                    date="2026-07-04", bundle_root=repo / "docs" / "handoffs", dry_cut=True)
+
+
+def test_dry_cut_skips_the_cut_boundaries_and_says_so_in_its_receipt(tmp_path, monkeypatch):
+    def _refuse(*_a, **_k):
+        raise AssertionError("a dry cut must not run a real cut's boundary gates")
+    for name in ("assert_batch_boundary", "assert_boundary_hygiene", "assert_preflight"):
+        monkeypatch.setattr(gh, name, _refuse)
+    repo = _stub_repo(tmp_path)
+    out = tmp_path / "dry"
+    b = gh.generate(repo, mode="architect", slug="0000-00-00-t", repo=".dev-knowledge",
+                    date="2026-07-04", bundle_root=out, assemble=True, dry_cut=True).bundle_dir
+    assert b.parent == out
+    receipt = json.loads((b / gh.RECEIPT_FILE).read_text(encoding="utf-8"))
+    assert receipt["cut"] == "dry"
+    assert (b / "PASTE_THIS.md").exists()
+
+
+def test_a_dry_cut_bundle_passes_its_probes_outside_the_repo(tmp_path):
+    """A bundle's self-locators (`docs/handoffs/<slug>/…`) name ITS OWN directory, so a bundle
+    outside the repo still binds them — resolved against the bundle, never against a sibling."""
+    repo = _stub_repo(tmp_path)
+    b = gh.generate(repo, mode="architect", slug="0000-00-00-t", repo=".dev-knowledge",
+                    date="2026-07-04", bundle_root=tmp_path / "dry", assemble=True,
+                    dry_cut=True).bundle_dir
+    fails = [(r.probe_id, r.detail) for r in vhp.verify(b, repo_root=repo) if r.status == "fail"]
+    assert fails == [], fails
+
+
+# --- terra review 2026-09-25: the dry cut may not land where it could be committed ---------
+# NOT skipif-on-git: the dry-cut refusal is a proof, and a proof that can be skipped on the box
+# that lacks git is not a mechanism (audit.py proof_layer). Without git these FAIL, loudly.
+
+def test_dry_cut_refuses_a_target_inside_another_git_work_tree(tmp_path):
+    """A sibling worktree's `docs/handoffs/` is OUTSIDE this repo and is still committable."""
+    repo = _stub_repo(tmp_path)
+    other = tmp_path / "other"
+    (other / "docs" / "handoffs").mkdir(parents=True)
+    (other / "README.md").write_text("x\n", encoding="utf-8")
+    _git_init_commit(other)
+    with pytest.raises(gh.DryCutTargetError, match="could be committed"):
+        gh.generate(repo, mode="architect", slug="0000-00-00-t", repo=".dev-knowledge",
+                    date="2026-07-04", bundle_root=other / "docs" / "handoffs", dry_cut=True)
+
+
+def test_dry_cut_accepts_a_path_the_containing_work_tree_ignores(tmp_path):
+    """The job-tmp shape: `~/.claude` is a git repo whose `.gitignore` ignores `jobs/`."""
+    repo = _stub_repo(tmp_path)
+    home = tmp_path / "home"
+    home.mkdir()
+    (home / ".gitignore").write_text("/jobs/\n", encoding="utf-8")
+    _git_init_commit(home)
+    out = home / "jobs" / "x" / "tmp" / "dry"
+    b = gh.generate(repo, mode="architect", slug="0000-00-00-t", repo=".dev-knowledge",
+                    date="2026-07-04", bundle_root=out, assemble=False, dry_cut=True).bundle_dir
+    assert b.parent == out
+
+
+def test_a_measured_boot_cost_names_its_instrument_and_binds_its_dispatch(tmp_path):
+    import hashlib
+    transport = tmp_path / "transport"
+    (transport / "to-cc").mkdir(parents=True)
+    order = transport / "to-cc" / "BATCH-X-2026-09-25.md"
+    order.write_text("order\n", encoding="utf-8")
+    cost = gh.boot_cost(turns=2, dispatch="to-cc/BATCH-X-2026-09-25.md", transport=transport)
+    assert cost["dispatch_sha256"] == hashlib.sha256(order.read_bytes()).hexdigest()
+    assert cost["source"].startswith("operator tally")
+    assert "not machine-witnessed" in cost["source"]
