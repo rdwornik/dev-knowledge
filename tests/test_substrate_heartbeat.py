@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -192,6 +193,161 @@ def test_cli_exit_codes(tmp_path, state, monkeypatch):
                     "--write-receipt"]) == 0
     assert hb.main(["predispatch", "--repo-root", str(root), "--substrate", "codespace"]) == 0
     assert hb.main(["predispatch", "--repo-root", str(root), "--substrate", "cloud"]) == 1
+
+
+# --- the prebuild-freshness leg (LANE-5B2-23 / LANE-5B3-9 Done-contract item 3) --------------
+
+def _git(root: Path, *args: str) -> str:
+    return subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True,
+                          check=True).stdout.strip()
+
+
+def _repo_with_devcontainer_history(tmp_path: Path, *, repo="acme/widget") -> tuple[Path, str, str]:
+    """A real repo with two commits: an initial one, then one adding `.devcontainer/`.
+    Returns (root, sha_before_devcontainer, sha_with_devcontainer)."""
+    root = tmp_path / "repo"
+    root.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+    subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=root, check=True)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=root, check=True)
+    (root / "README.md").write_text("x\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=root, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=root, check=True)
+    old_sha = _git(root, "rev-parse", "HEAD")
+
+    (root / ".devcontainer").mkdir()
+    (root / ".devcontainer" / "devcontainer.json").write_text("{}\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=root, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "add devcontainer"], cwd=root, check=True)
+    dc_sha = _git(root, "rev-parse", "HEAD")
+
+    (root / ".devcontainer" / "provisioning.yaml").write_text(
+        f"prebuild:\n  repository: {repo}\n  ref: main\n  regions: [EuropeWest]\n",
+        encoding="utf-8")
+    return root, old_sha, dc_sha
+
+
+_WORKFLOWS_WITH_PREBUILD = {"workflows": [
+    {"id": 1, "path": ".github/workflows/conductor.yml"},
+    {"id": 42, "path": "dynamic/codespaces/create_codespaces_prebuilds"},
+]}
+_WORKFLOWS_WITHOUT_PREBUILD = {"workflows": [
+    {"id": 1, "path": ".github/workflows/conductor.yml"}]}
+
+
+def test_no_declared_repository_is_undetermined(tmp_path):
+    root, _old, _dc = _repo_with_devcontainer_history(tmp_path)
+    (root / ".devcontainer" / "provisioning.yaml").write_text("prebuild:\n  ref: main\n",
+                                                              encoding="utf-8")
+    verdict = hb.prebuild_freshness(root)
+    assert verdict.status == "undetermined"
+    assert verdict.exit_code == 2
+
+
+def test_unreadable_workflow_list_falls_back_to_machines(monkeypatch, tmp_path):
+    root, _old, _dc = _repo_with_devcontainer_history(tmp_path)
+    calls = []
+
+    def fake_gh_json(argv, *, env=None, timeout=30):
+        calls.append(argv)
+        if "actions/workflows" in argv[1]:
+            return None
+        if "codespaces/machines" in argv[1]:
+            return {"machines": [{"name": "basicLinux32gb", "prebuild_availability": "ready"}]}
+        raise AssertionError(f"unexpected gh call: {argv}")
+
+    monkeypatch.setattr(hb, "_gh_json", fake_gh_json)
+    verdict = hb.prebuild_freshness(root)
+
+    assert verdict.status == "undetermined"
+    assert verdict.exit_code == 2
+    assert any("prebuild_availability" in f for f in verdict.findings), verdict.findings
+    assert len(calls) == 2
+
+
+def test_both_read_paths_failing_is_undetermined_and_names_both(monkeypatch, tmp_path):
+    root, _old, _dc = _repo_with_devcontainer_history(tmp_path)
+    monkeypatch.setattr(hb, "_gh_json", lambda argv, env=None, timeout=30: None)
+    verdict = hb.prebuild_freshness(root)
+    assert verdict.status == "undetermined"
+    assert any("also failed" in f for f in verdict.findings), verdict.findings
+
+
+def test_no_prebuild_workflow_configured_is_undetermined(monkeypatch, tmp_path):
+    root, _old, _dc = _repo_with_devcontainer_history(tmp_path)
+    monkeypatch.setattr(hb, "_gh_json",
+                        lambda argv, env=None, timeout=30: _WORKFLOWS_WITHOUT_PREBUILD)
+    verdict = hb.prebuild_freshness(root)
+    assert verdict.status == "undetermined"
+    assert any("no auto-generated" in f for f in verdict.findings), verdict.findings
+
+
+def test_prebuild_workflow_never_succeeded_is_undetermined(monkeypatch, tmp_path):
+    root, _old, _dc = _repo_with_devcontainer_history(tmp_path)
+
+    def fake(argv, *, env=None, timeout=30):
+        if "actions/workflows" in argv[1] and "runs" not in argv[1]:
+            return _WORKFLOWS_WITH_PREBUILD
+        return {"workflow_runs": []}
+
+    monkeypatch.setattr(hb, "_gh_json", fake)
+    verdict = hb.prebuild_freshness(root)
+    assert verdict.status == "undetermined"
+    assert any("never completed" in f for f in verdict.findings), verdict.findings
+
+
+def test_prebuild_containing_the_newest_devcontainer_commit_is_fresh(monkeypatch, tmp_path):
+    root, _old, dc_sha = _repo_with_devcontainer_history(tmp_path)
+    head = _git(root, "rev-parse", "HEAD")  # == dc_sha here; the prebuild is fully current
+
+    def fake(argv, *, env=None, timeout=30):
+        if "runs" in argv[1]:
+            return {"workflow_runs": [{"id": 999, "head_sha": head,
+                                       "created_at": "2026-09-26T00:00:00Z"}]}
+        return _WORKFLOWS_WITH_PREBUILD
+
+    monkeypatch.setattr(hb, "_gh_json", fake)
+    verdict = hb.prebuild_freshness(root)
+
+    assert verdict.status == "ok", verdict.findings
+    assert verdict.exit_code == 0
+    assert verdict.prebuild_run_id == 999
+    assert verdict.prebuild_sha == head
+
+
+def test_prebuild_missing_the_newest_devcontainer_commit_is_refused(monkeypatch, tmp_path):
+    """THE 2026-08-26 DEFECT SHAPE: the prebuild's sha is OLDER than the newest commit that
+    touches .devcontainer/**, so a codespace built from it would run stale provisioning."""
+    root, old_sha, dc_sha = _repo_with_devcontainer_history(tmp_path)
+
+    def fake(argv, *, env=None, timeout=30):
+        if "runs" in argv[1]:
+            return {"workflow_runs": [{"id": 7, "head_sha": old_sha,
+                                       "created_at": "2026-08-22T00:00:00Z"}]}
+        return _WORKFLOWS_WITH_PREBUILD
+
+    monkeypatch.setattr(hb, "_gh_json", fake)
+    verdict = hb.prebuild_freshness(root)
+
+    assert verdict.status == "refused"
+    assert verdict.exit_code == 1
+    assert verdict.prebuild_run_id == 7
+    assert verdict.prebuild_sha == old_sha
+    assert any(dc_sha[:12] in f and "does NOT contain" in f for f in verdict.findings), \
+        verdict.findings
+
+
+def test_prebuild_cli_exit_codes(monkeypatch, tmp_path):
+    root, _old, dc_sha = _repo_with_devcontainer_history(tmp_path)
+    head = _git(root, "rev-parse", "HEAD")
+
+    def fake(argv, *, env=None, timeout=30):
+        if "runs" in argv[1]:
+            return {"workflow_runs": [{"id": 1, "head_sha": head}]}
+        return _WORKFLOWS_WITH_PREBUILD
+
+    monkeypatch.setattr(hb, "_gh_json", fake)
+    assert hb.main(["prebuild", "--repo-root", str(root)]) == 0
 
 
 # --- the scheduled leg ----------------------------------------------------------------------

@@ -73,13 +73,22 @@ jobs:
     name: substrate declaration probe
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # OVERRIDES the workflow-level `contents: read` above (LANE-5B2-23 / LANE-5B3-9): the
+    # prebuild-freshness step below reads Actions workflow-run history via `gh api`, which needs
+    # `actions: read` on the token. Still no stored secret — this is the default GITHUB_TOKEN
+    # every Actions run already gets (R2; `.devcontainer/provision.sh`'s own leg_f2 comment: "no
+    # PAT is invented here"), scoped only wider, never swapped for a credential.
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@v4
         with:
-          # The probe reads only the working tree, so a shallow clone is sufficient here — and
-          # saying so explicitly matters in THIS repo, where "not shallow" is a provisioning leg
-          # of its own precisely because the gates that DO walk history read it.
-          fetch-depth: 1
+          # WIDENED from 1 to 0 (LANE-5B2-23 / LANE-5B3-9): the prebuild-freshness step below
+          # needs `git log -- .devcontainer` and `git merge-base --is-ancestor` against a commit
+          # a shallow clone may not carry — the same "not shallow" requirement the module header
+          # above already names as a provisioning leg of its own, now needed here too.
+          fetch-depth: 0
 
       - uses: astral-sh/setup-uv@v5
         with:
@@ -96,6 +105,32 @@ jobs:
           uv run --locked python scripts/substrate_heartbeat.py probe
           --substrate codespace --source actions --write-receipt
           --receipt-path SUBSTRATE-HEARTBEAT.json
+
+      - name: Assert the newest Codespaces prebuild contains the newest .devcontainer/** commit
+        # LANE-5B2-23 / LANE-5B3-9 Done-contract item 3. `prebuild` reads Actions run history for
+        # the auto-generated "Codespaces Prebuilds" workflow via `gh api` with the ambient
+        # GITHUB_TOKEN — no stored secret (R2) — and falls back to the one field
+        # `codespaces/machines` exposes (recording UNDETERMINED, never a false clean) when that
+        # read is unavailable; its own docstring in scripts/substrate_heartbeat.py carries the
+        # full reasoning and the measured endpoint.
+        #
+        # `continue-on-error: true` IS DELIBERATE, and it is not a downgrade of the check — the
+        # verdict, the run id and both shas are still printed to this step's log every time,
+        # which is the whole of what Done-contract item 3 asks for. Measured LIVE the day this
+        # leg was built: the real prebuild (run 35017568664, sha e580518bad3d) does NOT contain
+        # 09306d18ac3a ("persist pre-commit PATH via a real login-startup file"), a genuinely
+        # current staleness this leg is the first thing to have ever caught — see ROWS-OWED in
+        # this lane's session file. Gating the JOB on it would make Done-contract item 4 (one
+        # GREEN dispatched run) mechanically unreachable until the operator refreshes the
+        # prebuild by hand (a repo-Settings act this lane cannot perform, and `.devcontainer/*`
+        # is outside its ownership regardless). The heartbeat's PRIMARY red/green signal is the
+        # admission predicate above and the L1 marker verify below, proven to go red on the two
+        # deliberate breakages (Done-contract item 5); this leg is additive visibility onto an
+        # operator-owned gap, not a second gate on the same job.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+        run: uv run --locked python scripts/substrate_heartbeat.py prebuild --repo-root .
 
       - name: Publish the reading
         # `always()`, because the reading of a DEAD substrate is the one worth keeping. Uploading
@@ -203,6 +238,22 @@ jobs:
             [ -n "${declared}" ] || { echo "[container-job] REFUSED: devcontainer.json declares no updateContentCommand" >&2; exit 1; }
             echo "[container-job] updateContentCommand is what runs: ${declared} (declared in devcontainer.json; devcontainer up already ran it, ordered before postCreateCommand, before this step)"
             uv run --locked python scripts/substrate_provenance.py verify --require-marker
+
+            # -- THE ADMISSION PREDICATE, IN A LOGIN SHELL (LANE-5B2-23 / LANE-5B3-9 Done-contract
+            # item 2). Everything above runs in whatever shell `devcontainers/ci` invokes runCmd
+            # under -- NOT a login shell, so `command -v` here answers a DIFFERENT question than
+            # `Dispatch-Codespace`'s own admission test asks, which runs `bash -lc '...'`
+            # (DispatchHelpers.psm1, the deployed module). MEASURED (WAVE5B-N2,
+            # REFUSED-lane-codespace-proof.md): the venv's `pre-commit` resolved everywhere ABOVE
+            # this line and was still refused at real admission, because a login shell reads a
+            # different set of startup files and the PATH persistence for it lives in
+            # ~/.bash_profile / ~/.bash_login / ~/.profile (leg_pc_login_path), never ~/.bashrc.
+            # So this runs `codespace_admission.py` itself under `bash -l`, via plain `python3`
+            # (not `uv run`) -- `uv`'s own login-shell PATH persistence goes through ~/.bashrc,
+            # the exact non-login-shell-only file the pre-commit fix above had to stop using, and
+            # this predicate must not depend on that same gap to even START.
+            echo "[container-job] running the codespace admission predicate in a login shell (bash -l)"
+            bash -l -c 'python3 scripts/codespace_admission.py'
 
 # ---------------------------------------------------------------------------------------------
 # ARMING RECORD: the container-build leg, armed 2026-09-15.
