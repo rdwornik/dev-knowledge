@@ -248,21 +248,36 @@ class SkuStatus:
                 f"({self.pct:.1%}), burn {burn}, exhaustion {exhaustion}")
 
 
+def _cycle_end(cycle_start: date) -> date:
+    """The first day of the NEXT cycle -- an exclusive upper bound. A monthly quota resets
+    there, so a projection landing on or after it is not an exhaustion of THIS cycle at all."""
+    if cycle_start.month == 12:
+        return date(cycle_start.year + 1, 1, 1)
+    return date(cycle_start.year, cycle_start.month + 1, 1)
+
+
 def sku_status(group: str, quota: SkuQuota, used: float, cycle_start: date,
               now: Optional[date] = None) -> SkuStatus:
     """Burn is USED SO FAR divided by days elapsed in the cycle (at least 1, so day one of a
     cycle does not divide by zero) -- a straight-line average, not a trend fit. Exhaustion
     projects forward from `now` at that average rate; a quota already exceeded projects
-    exhaustion as `now` itself rather than a nonsensical date in the past."""
+    exhaustion as `now` itself rather than a nonsensical date in the past. A projection that
+    lands ON OR AFTER the cycle's own reset date is not an exhaustion of this cycle (Codex terra
+    HIGH, this lane's own review: a straight-line projection with no cap could report a
+    December exhaustion date for September's usage) -- it reads as "not projected to exhaust
+    this cycle" instead of a technically-correct but meaningless future date.
+    """
     now = now or datetime.now(timezone.utc).date()
     days_elapsed = max((now - cycle_start).days, 1)
     burn = (used / days_elapsed) if used > 0 else None
     pct = (used / quota.quota) if quota.quota else 0.0
     remaining = quota.quota - used
+    cycle_end = _cycle_end(cycle_start)
     if remaining <= 0:
         exhaustion: Optional[date] = now
     elif burn:
-        exhaustion = now + timedelta(days=remaining / burn)
+        projected = now + timedelta(days=remaining / burn)
+        exhaustion = projected if projected < cycle_end else None
     else:
         exhaustion = None
     return SkuStatus(group=group, used=used, quota=quota.quota, unit=quota.unit, pct=pct,
@@ -346,6 +361,47 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+class _LedgerLock:
+    """An exclusive, cross-process advisory lock scoped to ONE ledger file -- a sibling
+    `.<name>.lock` file, created with `O_EXCL` (atomic on both POSIX and Windows). Bounded
+    retry with backoff, never an indefinite wait (`transport.py::_DestinationLock`'s own
+    pattern, for the same reason): two concurrent `record` invocations could otherwise both
+    read the same PRIOR row and independently emit the same crossing (Codex terra HIGH, this
+    lane's own review) -- the read-detect-append sequence in `record_read` must run as one
+    protected step, not three independent ones."""
+
+    _POLL_S = 0.05
+
+    def __init__(self, ledger_path: Path, timeout_s: float = 10.0):
+        self._lock_path = Path(ledger_path).parent / f".{Path(ledger_path).name}.lock"
+        self._timeout_s = timeout_s
+        self._fd: Optional[int] = None
+
+    def __enter__(self) -> "_LedgerLock":
+        import time
+        self._lock_path.parent.mkdir(parents=True, exist_ok=True)
+        deadline = time.monotonic() + self._timeout_s
+        while True:
+            try:
+                self._fd = os.open(str(self._lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                return self
+            except FileExistsError:
+                if time.monotonic() >= deadline:
+                    raise QuotaWatchError(
+                        f"could not acquire the ledger lock {self._lock_path.name} within "
+                        f"{self._timeout_s}s; another `record` invocation appears to be "
+                        f"reading/appending the same ledger")
+                time.sleep(self._POLL_S)
+
+    def __exit__(self, *exc_info: object) -> None:
+        if self._fd is not None:
+            os.close(self._fd)
+        try:
+            self._lock_path.unlink()
+        except OSError:
+            pass
+
+
 @dataclass(frozen=True)
 class CrossingResult:
     group: str
@@ -361,16 +417,23 @@ def record_read(ledger_path: Path, group: str, quota: SkuQuota, used: float,
                 cycle_start: date, billed: bool, now: Optional[date] = None) -> CrossingResult:
     """Compute this read's status, compare it against the ledger's PRIOR row for the same
     group+cycle, append the new row, and return whatever crossed. Called once per SKU-group per
-    invocation of `record`; the ledger is the only state that persists between invocations."""
+    invocation of `record`; the ledger is the only state that persists between invocations.
+
+    THE READ, THE DETECT AND THE APPEND ARE ONE PROTECTED STEP (`_LedgerLock`), not three --
+    two concurrent invocations reading the same prior row would otherwise both claim the same
+    crossing, which breaks the "a crossing fires once" contract this module is built on.
+    """
     status = sku_status(group, quota, used, cycle_start, now=now)
     cycle = cycle_start.isoformat()
-    prev = last_read(ledger_path, group, cycle)
-    crossings = [f"{t:.0%}" for t in
-                detect_crossings(prev.pct if prev else None, status.pct, quota.thresholds)]
-    if detect_billed_dollar_crossing(prev.billed if prev else False, billed):
-        crossings.append("FIRST_BILLED_DOLLAR")
-    append_read(ledger_path, QuotaRead(group=group, cycle=cycle, used=used, quota=quota.quota,
-                                       pct=status.pct, billed=billed, measured=_now_iso()))
+    with _LedgerLock(ledger_path):
+        prev = last_read(ledger_path, group, cycle)
+        crossings = [f"{t:.0%}" for t in
+                    detect_crossings(prev.pct if prev else None, status.pct, quota.thresholds)]
+        if detect_billed_dollar_crossing(prev.billed if prev else False, billed):
+            crossings.append("FIRST_BILLED_DOLLAR")
+        append_read(ledger_path, QuotaRead(group=group, cycle=cycle, used=used,
+                                           quota=quota.quota, pct=status.pct, billed=billed,
+                                           measured=_now_iso()))
     return CrossingResult(group=group, status=status, crossings=tuple(crossings))
 
 
@@ -385,7 +448,16 @@ class LaunchVerdict:
 def codespaces_launch_check(used_core_hours: float, projected_core_hours: float,
                             quota: float) -> LaunchVerdict:
     """R7's ONE veto: would `used + projected` push CUMULATIVE Codespaces core-hours past the
-    declared quota? Nothing else in this module refuses a launch -- see the module docstring."""
+    declared quota? Nothing else in this module refuses a launch -- see the module docstring.
+
+    `projected_core_hours` must be >= 0 (Codex terra HIGH, this lane's own review): a negative
+    value would SUBTRACT from cumulative usage and could turn a real crossing into a false OK
+    verdict for the one command in this module that is allowed to refuse a launch.
+    """
+    if projected_core_hours < 0:
+        raise ValueError(
+            f"projected_core_hours must be >= 0, got {projected_core_hours!r} -- a negative "
+            f"projection would understate cumulative usage and could mask a real crossing")
     projected_total = used_core_hours + projected_core_hours
     if projected_total > quota:
         return LaunchVerdict(True, (
@@ -533,7 +605,8 @@ def cmd_report(registry: Optional[Path], billing_json: Optional[str],
 
 
 @cli.command("check")
-@click.option("--projected-core-hours", type=float, required=True)
+@click.option("--projected-core-hours", type=click.FloatRange(min=0), required=True,
+             help="Core-hours the prospective launch(es) would add; must be >= 0.")
 @_registry_option
 @_billing_json_option
 @_account_option

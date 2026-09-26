@@ -134,6 +134,56 @@ class TestCrossingIsAComparison:
         assert qw.detect_billed_dollar_crossing(False, False) is False
 
 
+class TestProjectedExhaustionIsCappedAtTheCycleReset:
+    """Codex terra HIGH (this lane's own review): an uncapped straight-line projection can
+    report an exhaustion date past the monthly reset, which is not an exhaustion of THIS
+    cycle at all."""
+
+    def test_a_projection_landing_past_the_cycle_reset_reports_no_exhaustion(self):
+        quota = qw.SkuQuota(group="g", quota=180.0, unit="core-hours",
+                            thresholds=(0.5, 0.8, 1.0), account="rdwornik")
+        # 1 core-hour used on day 1 of a 30-day September -> burn 1/day; 179 remaining takes
+        # 179 days, landing in March -- long past the 2026-10-01 reset.
+        status = qw.sku_status("g", quota, used=1.0, cycle_start=date(2026, 9, 1),
+                               now=date(2026, 9, 1))
+        assert status.projected_exhaustion is None
+
+    def test_a_projection_landing_inside_the_cycle_is_reported(self):
+        quota = qw.SkuQuota(group="g", quota=10.0, unit="core-hours",
+                            thresholds=(0.5, 0.8, 1.0), account="rdwornik")
+        # 9 used by day 5 -> burn 1.8/day; 1 remaining exhausts in <1 day, well inside September.
+        status = qw.sku_status("g", quota, used=9.0, cycle_start=date(2026, 9, 1),
+                               now=date(2026, 9, 5))
+        assert status.projected_exhaustion is not None
+        assert status.projected_exhaustion < date(2026, 10, 1)
+
+    def test_cycle_end_rolls_over_december_into_january(self):
+        assert qw._cycle_end(date(2026, 12, 1)) == date(2027, 1, 1)
+
+
+class TestLedgerLockSerializesConcurrentRecords:
+    """Codex terra HIGH (this lane's own review): two concurrent `record` invocations reading
+    the same prior row could both claim the same crossing. `_LedgerLock` is the fix; these
+    tests exercise the lock mechanics directly rather than a real race (which is timing-
+    dependent and not reproducible in a unit test)."""
+
+    def test_a_held_lock_blocks_a_second_acquire_until_released(self, tmp_path):
+        ledger = tmp_path / "QUOTA-READS.jsonl"
+        lock = qw._LedgerLock(ledger, timeout_s=0.3)
+        with lock:
+            second = qw._LedgerLock(ledger, timeout_s=0.3)
+            with pytest.raises(qw.QuotaWatchError):
+                with second:
+                    pass  # unreachable: the outer lock is still held
+
+    def test_the_lock_releases_and_can_be_reacquired(self, tmp_path):
+        ledger = tmp_path / "QUOTA-READS.jsonl"
+        with qw._LedgerLock(ledger, timeout_s=1.0):
+            pass
+        with qw._LedgerLock(ledger, timeout_s=1.0):
+            pass  # no timeout: the first `with` released it
+
+
 class TestRecordReadAgainstTheLedger:
     """`record_read` ties the pure predicate to a persisted ledger row per SKU-group+cycle --
     the thing that makes "79% then 81%" possible across two separate process invocations."""
@@ -206,6 +256,22 @@ class TestTheOneHardVeto:
         verdict = qw.codespaces_launch_check(used_core_hours=164.0, projected_core_hours=16.0,
                                              quota=180.0)
         assert verdict.refused is False
+
+    def test_a_negative_projection_is_refused_at_the_function_boundary(self):
+        """Codex terra HIGH (this lane's own review): a negative projection would SUBTRACT from
+        cumulative usage and could turn a real crossing into a false OK -- for the one command
+        in this module allowed to refuse a launch."""
+        with pytest.raises(ValueError):
+            qw.codespaces_launch_check(used_core_hours=170.0, projected_core_hours=-50.0,
+                                       quota=180.0)
+
+    def test_check_cli_refuses_a_negative_projection_before_computing_anything(self):
+        from click.testing import CliRunner
+        result = CliRunner().invoke(qw.cli, [
+            "check", "--projected-core-hours", "-1",
+            "--billing-json", str(_FIXTURES / "billing_baseline.json")])
+        assert result.exit_code != 0
+        assert "REFUSED" not in result.output  # never reads as the real veto's own message
 
     def test_check_cli_exits_1_on_refusal(self):
         from click.testing import CliRunner
