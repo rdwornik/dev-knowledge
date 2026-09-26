@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-26 (d) - CC (Opus 5.5, INTEGRATOR WAVE5B-N3): every live owed item of WAVE5B-N2 is a row with in-repo provenance and a runnable check -- 39 rows filed, [#891] closed as superseded
+
+**Anchors:** `7ebf63ba`, `fa4f7de5`, `14f58622` (N2 lane 2 on kept branch `worktree-lane-rows-owed`), `941e2799`, `716f2f9d`, `70740c47` -- `worktree-lane-rows-owed-2` (ordered and served `claude-sonnet-5`), merged `--no-ff` from an integration worktree stacked on the (c) merge.
+
+**Did:** 39 rows in the contract's id range 1016-1075 file every live owed item N2's lanes left, each citing in-repo provenance and carrying a runnable check; `[#891]` (lane handback contract) closes as superseded by `scripts/handback.py`. The repair that failed N2: rows [#1027] [#1028] [#1038] [#1042] [#1045] [#1046] now carry `refs` tokens that resolve in-repo (a repo file or a `docs/audits/` record, never only a transport file), so `funnel_lifecycle` leg (c) reads 0 row-provenance hard-fails. `tasks/manifest.json` conflicted only on `generated_sha256`; regenerated with `gen_task_tree.py --emit-source` (ruling (b)). **Result:** N2's debt is in the backlog where a check can see it, not in transport prose. **Changes:** `tasks/1016-1075-*.md` (39 new), `tasks/891-*.md`, `tasks/manifest.json`, `BACKLOG.md`, two Codex records, generated files, `JOURNAL.md`, `logs/MERGE-RECEIPTS.jsonl`. **Next:** the rows themselves.
+
 ### 2026-09-26 (c) - CC (Opus 5.5, INTEGRATOR WAVE5B-N3): ADR-122 is Accepted on main, header and index row together; R1-R7 have an in-repo home; step 1's typed task record lands -- `task_record.py`
 
 **Anchors:** `02e63686`, `eee729c4`, `3d29eca3`, `b25cd317`, `f3cd9af0` (N2 lane 3 on kept branch `worktree-lane-adr122-accept`), `af3d4a8b`, `fc80dfa9`, `d3e0c635`, `5d16450d` -- `worktree-lane-adr122-accept-2` (ordered and served `claude-sonnet-5`), merged `--no-ff` from an integration worktree stacked on the (b) merge.
