@@ -290,6 +290,7 @@ jobs:
             tail -n 80 commit-gate.out
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+          exit $rc
       - name: known-reds verdict on audit-health (LANE-5B2-17, [#802] evidence run 36099478580)
         # RAISES THE SIGNAL, NEVER LOWERS IT. The step above already ran every manual hook and
         # is `continue-on-error: true` at the JOB level (so a hook failure here never reds the
