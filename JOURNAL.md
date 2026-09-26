@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-25 (u) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): the Architekt Jutra delta scan becomes a mechanism -- `aj_scan.py` and its skill
+
+**Anchors:** `fd021236`, `0d5ae669`, `c53d43fc`, `6e0e0ff3`, `19f846b0` -- `worktree-lane-aj-scan` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on origin/main `20dfe91a`.
+
+**Did:** `aj_scan.py scan` reads the course's repositories since the last recorded state (paginated, race-free per-repo cursors, delegated commit reads) and writes `ecosystem/aj-scan-state.yaml` with the carried candidates. The `aj-scan` skill invokes it, and `harness.yaml` registers it. This replaces a one-off Gemini read. Codex terra 0/3/0/0, all fixed. Refused once: the new state file quoted a normative keyword, taking the silent-rule pool to 453 at zero headroom, and the tests were not gated. Repair 1 cited the source by locator instead, bringing the count back to 452, and ran the targeted tests through the memory gate. **Result:** the delta scan is repeatable and leaves state behind. **Changes:** `scripts/aj_scan.py`, `.claude/skills/aj-scan/SKILL.md`, `ecosystem/aj-scan-state.yaml`, `ecosystem/harness.yaml`, `tests/test_aj_scan.py` + fixtures, the terra record, `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl`. **Next:** the 7 carried candidates C-1..C-7 (ROWS-OWED).
+
 ### 2026-09-25 (t) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): the boot contract is data plus a short prose half, and every cut writes a receipt
 
 **Anchors:** `15d16701`, `0722fa37`, `eb7ab636`, `e3adc109`, `8e1e1d7f`, `973af104` -- `worktree-lane-boot-contract` (ordered `claude-opus-5-5`), merged `--no-ff` from an integration worktree on origin/main `bff9a8c1`.
