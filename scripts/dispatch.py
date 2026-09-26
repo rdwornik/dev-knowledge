@@ -1406,24 +1406,45 @@ def launch_order(lanes: Sequence[QueuedLane]) -> list[str]:
 
 # --- live decisions: dependency, serialize-group, local cap, RAM --------------------------------
 
+#: The integrator's own receipt grammar, exactly as `SESSION-integrator-wave5b-n2-2026-09-25.md`
+#: writes it throughout, e.g. `STATE lane-launch-queue MERGED bc969abc 22:20 108` and
+#: `STATE lane-teardown-visible FAILED - 20:42 -`: five whitespace-separated tokens after the
+#: literal `STATE` -- slug, one of the five terminal states, a sha or `-`, a timestamp (ISO or
+#: bare `HH:MM`), and a minutes figure or `-`. Any OTHER state word the integrator writes (its
+#: transcript also carries `BOUND` and `HANDBACK-SEEN`) is not one `dependency_status` ever reads,
+#: so this pattern deliberately matches only the five the Done-contract names.
+_STATE_LINE_RE = re.compile(
+    r"^STATE\s+(?P<slug>\S+)\s+(?P<state>MERGED|REFUSED|WAITING|FAILED|REPORTED)\s+"
+    r"(?P<sha>\S+)\s+(?P<time>\S+)\s+(?P<min>\S+)\s*$", re.MULTILINE)
+
+
+def parse_state_lines(text: str) -> dict[str, str]:
+    """Every `STATE <lane> ...` line in `text`, keyed by slug. A lane's state MOVES over a batch
+    (WAITING -> REFUSED -> MERGED as repairs land, `SESSION-integrator-wave5b-n2-2026-09-25.md`
+    shows `lane-launch-queue` doing exactly this) and the integrator's receipt is append-only, so
+    the LAST line for a slug in the text is its current state -- a plain iteration order, not a
+    timestamp parse (the time column mixes ISO and bare `HH:MM` and is not reliably sortable)."""
+    out: dict[str, str] = {}
+    for match in _STATE_LINE_RE.finditer(text):
+        out[match.group("slug")] = match.group("state")
+    return out
+
+
 def read_lane_states(path: Optional[Path]) -> dict[str, str]:
-    """The integrator's lane-state fixture: `{"lanes": {"<slug>": {"state": "MERGED"|"FAILED",
-    "sha": "..."}}}`. `path=None`, a missing file, or unreadable JSON all read as `{}` -- every
-    dependency then reads WAITING, never a guessed MERGED (see the section docstring)."""
+    """The dependency hold's live state, read from the integrator's OWN receipt
+    (`to-browser/SESSION-integrator-<batch>.md` or any text carrying its `STATE <lane>
+    MERGED|REFUSED|WAITING|FAILED|REPORTED <sha|-> <time> <min>` lines) -- not an invented
+    fixture. (N2 lane 9's `{"lanes": {"<slug>": {"state": ...}}}` JSON had no real writer anywhere
+    in the harness; ROWS-OWED from that lane's own handback, reconciled here rather than kept.)
+    `path=None`, a missing file, or an unreadable read all read as `{}` -- every dependency then
+    reads WAITING, never a guessed MERGED (see the section docstring)."""
     if path is None:
         return {}
     try:
-        body = json.loads(Path(path).read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+        text = Path(path).read_text(encoding="utf-8", errors="replace")
+    except OSError:
         return {}
-    lanes = body.get("lanes") if isinstance(body, dict) else None
-    if not isinstance(lanes, dict):
-        return {}
-    out: dict[str, str] = {}
-    for slug, row in lanes.items():
-        if isinstance(row, dict) and isinstance(row.get("state"), str):
-            out[str(slug)] = row["state"].strip().upper()
-    return out
+    return parse_state_lines(text)
 
 
 DEP_READY = "READY"
@@ -1971,9 +1992,9 @@ def _report(verdict: MonitorVerdict) -> None:
 @click.option("--floor-mb", type=float, default=3072.0, show_default=True,
               help="Minimum free memory to fire a local lane.")
 @click.option("--state-file", type=click.Path(path_type=Path), default=None,
-              help="The integrator's lane-state fixture (JSON): {\"lanes\": {\"<slug>\": "
-                   "{\"state\": \"MERGED\"|\"FAILED\"}}}. Default: none -- every dependency "
-                   "reads WAITING.")
+              help="The integrator's own session receipt (to-browser/SESSION-integrator-<batch>.md), "
+                   "or any text carrying its `STATE <lane> MERGED|REFUSED|WAITING|FAILED|REPORTED "
+                   "<sha|-> <time> <min>` lines. Default: none -- every dependency reads WAITING.")
 @click.option("--dry-run", is_flag=True, help="Print the static order only. Reads and spawns "
                                               "nothing.")
 @click.option("--watch", is_flag=True, help="Loop, firing lanes as they clear, until every lane "

@@ -125,7 +125,7 @@ _git-stage gates declared in `.pre-commit-config.yaml`_
 | `audit-title-gate` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | MANUAL |
 | `backlog-filing-backpressure` | git-hook | commit-msg | `.pre-commit-config.yaml` | pre-commit | ARMED |
 | `backlog-id-on-close` | git-hook | commit-msg | `.pre-commit-config.yaml` | pre-commit · deployed | ARMED |
-| `block-commit-on-main` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | MANUAL |
+| `block-commit-on-main` | git-hook | pre-commit | `.pre-commit-config.yaml` | pre-commit | ARMED |
 | `block-ff-push` | git-hook | pre-push | `.pre-commit-config.yaml` | pre-commit · deployed | ARMED |
 | `block-unanchored-push` | git-hook | pre-push | `.pre-commit-config.yaml` | pre-commit | ARMED |
 | `check-seal-identity` | git-hook | manual | `.pre-commit-config.yaml` | pre-commit | MANUAL |
