@@ -591,8 +591,8 @@ kinds:
     notes: >-
       Pre-LANE-<slug>.md-convention lane contract, dated-slug named, sitting at the
       transport root like LANE_CONTRACT itself. Mutually exclusive with DATED_SLUG (to-
-      browser) by the `-lane-contract.md` suffix, never by registry row order (lane-
-      transport-strays).
+      browser), matched by the `-lane-contract.md` suffix, not by registry row order
+      (lane-transport-strays).
 
   - kind: AJ_SECOND_PASS
     prefix: "AJ-SECOND-PASS-"
@@ -883,8 +883,8 @@ kinds:
     versioned: false
     notes: >-
       The bare MAP- shape; the lookahead keeps it from also matching
-      MAP_DATA/MAP_VERIFICATION textually, never relying on registry row order (lane-
-      transport-strays).
+      MAP_DATA/MAP_VERIFICATION textually, matched by the pattern itself, not by registry
+      row order (lane-transport-strays).
 
   - kind: MAP_DATA
     prefix: "MAP-DATA-"
@@ -1068,8 +1068,8 @@ kinds:
     versioned: false
     notes: >-
       The bare STATE- shape; the lookahead keeps it from also matching
-      STATE_BATCH/STATE_OF_THE_HARNESS textually, never relying on registry row order (lane-
-      transport-strays).
+      STATE_BATCH/STATE_OF_THE_HARNESS textually, matched by the pattern itself, not by
+      registry row order (lane-transport-strays).
 
   - kind: STATE_OF_THE_HARNESS
     prefix: "STATE-OF-THE-HARNESS-"
