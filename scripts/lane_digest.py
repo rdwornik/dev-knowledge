@@ -133,12 +133,42 @@ def verdicts(lanes: Sequence[LaneInput]) -> dict[str, str]:
     return {lane.name: verdict(lane) for lane in lanes}
 
 
-def render_digest(lanes: Sequence[LaneInput]) -> str:
+#: `main` is not red until it has stayed red past this many hours -- `ci_red_age.RED_AGE_THRESHOLD_H`,
+#: duplicated as a plain float rather than imported so this module keeps its own zero-dependency
+#: floor (`ci_red_age.py` pulls in `click`; `lane_digest.py`'s consumer is a Stop hook, and a
+#: digest that cannot render because an unrelated organ's import broke is the exact failure
+#: mode ADR-108's "reads only ... never stops a session" line rules out). A test pins the two
+#: constants equal so they cannot drift apart silently.
+_CI_RED_THRESHOLD_H = 24.0
+
+
+def ci_red_line(ci_red: Optional[dict]) -> Optional[str]:
+    """The `OPERATOR-ACTION` line for a stale-red main, or `None` when there is nothing to say.
+
+    `ci_red` is `ci_red_age.RedAge.to_dict()`'s own shape (`since`/`hours`/`sha`/`url`), or
+    `None` -- this module stays gh-free and reads a dict its caller already computed (the CLI's
+    `--ci-red-json`), never calling `ci_red_age` itself. `None` covers both "no `--ci-red-json`
+    was given" and "main's newest judged run is green" (`ci_red_age.py --out-json` writes a
+    literal JSON `null` for that case) identically -- neither is an operator action.
+    """
+    if not ci_red:
+        return None
+    hours = ci_red.get("hours")
+    if not isinstance(hours, (int, float)) or hours <= _CI_RED_THRESHOLD_H:
+        return None
+    return (f"OPERATOR-ACTION: main CI red {hours:.1f} h since {ci_red.get('sha', '?')} "
+            f"({ci_red.get('url', '?')})")
+
+
+def render_digest(lanes: Sequence[LaneInput], *, ci_red: Optional[dict] = None) -> str:
     tally = verdicts(lanes)
     counts = {v: sum(1 for x in tally.values() if x == v)
               for v in (VERDICT_CLEAN, VERDICT_ATTENTION, VERDICT_INCOMPLETE)}
-    out = [f"# Lane digest -- {len(lanes)} lane{'s' if len(lanes) != 1 else ''}", "",
-           f"{counts[VERDICT_CLEAN]} finished clean, {counts[VERDICT_ATTENTION]} need attention, "
+    out = [f"# Lane digest -- {len(lanes)} lane{'s' if len(lanes) != 1 else ''}", ""]
+    line = ci_red_line(ci_red)
+    if line:
+        out += [line, ""]
+    out += [f"{counts[VERDICT_CLEAN]} finished clean, {counts[VERDICT_ATTENTION]} need attention, "
            f"{counts[VERDICT_INCOMPLETE]} incomplete.", ""]
     for lane in lanes:
         items = open_items(lane)
@@ -319,6 +349,10 @@ def _parser() -> argparse.ArgumentParser:
                    help="with --lane: the lane's receipts (default $HARNESS_RECEIPTS_DIR or <repo>/logs/receipts)")
     p.add_argument("--repo", default=None, help="the checkout to read commits from (default: this repo)")
     p.add_argument("--costs-file", default=None, help="default <repo>/logs/LANE-COSTS.jsonl")
+    p.add_argument("--ci-red-json", default=None,
+                   help="a JSON file written by `ci_red_age.py --out-json` (since/hours/sha/url, "
+                        "or a literal `null`); its OPERATOR-ACTION line renders at batch close "
+                        "when main has been red past ci_red_age.RED_AGE_THRESHOLD_H")
     return p
 
 
@@ -354,7 +388,13 @@ def main(argv: Optional[list[str]] = None) -> int:
             receipts = Path(args.receipts_dir or os.environ.get("HARNESS_RECEIPTS_DIR")
                             or repo / "logs" / "receipts")
             lanes = [_lane_from(name, receipts, repo, costs)]
-        sys.stdout.write(render_digest(lanes))
+        ci_red = None
+        if args.ci_red_json:
+            try:
+                ci_red = json.loads(Path(args.ci_red_json).read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                ci_red = None  # an unreadable file says nothing, same posture as load_costs
+        sys.stdout.write(render_digest(lanes, ci_red=ci_red))
         return EXIT_OK
     except BaseException as exc:  # noqa: BLE001 -- a digest must never raise out of a Stop hook
         print(f"lane_digest: {type(exc).__name__}: {exc}", file=sys.stderr)

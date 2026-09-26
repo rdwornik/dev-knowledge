@@ -133,6 +133,26 @@ def test_load_registry_wrong_schema_refuses(kr, tmp_path):
         kr.load_registry(path)
 
 
+def test_registry_hooks_field_defaults_empty_and_round_trips(kr, tmp_path):
+    """A registry written with no `hooks` key (every registry before lane-ci-signal) loads
+    with `hooks == {}` rather than erroring -- the extension is additive, never a breaking
+    schema bump (contract done-contract item 1: "the existing readers ... stay unchanged")."""
+    path = tmp_path / "registry.json"
+    path.write_text(
+        '{"schema": "known-reds-registry/1", "baseline_id": "b", "measured_at_sha": "s", '
+        '"measured_via": "local", "workers": 4, "members": {}}', encoding="utf-8")
+    loaded = kr.load_registry(path)
+    assert loaded.hooks == {}
+
+    registry = kr.Registry(schema=kr.SCHEMA, baseline_id="2026-09-26-abc", measured_at_sha="s",
+                           measured_via="local", workers=4, members={},
+                           hooks={"audit-health": {"attribution": kr.ENVIRONMENT_MISMATCH,
+                                                   "reason": "why"}})
+    kr.write_registry(path, registry)
+    round_tripped = kr.load_registry(path)
+    assert round_tripped == registry
+
+
 # --- compare -------------------------------------------------------------------------------
 
 def _registry(kr, members, workers=4):
@@ -206,6 +226,55 @@ def test_render_compare_uses_no_pipe_tables(kr):
     report = kr.render_compare(result)
     assert "|" not in report
     assert registry.baseline_id in report
+
+
+# --- compare-hook (lane-ci-signal: the non-pytest sibling of `compare`) --------------------
+
+def _registry_with_hooks(kr, hooks):
+    return kr.Registry(schema=kr.SCHEMA, baseline_id="2026-09-26-hooks", measured_at_sha="s",
+                       measured_via="local", workers=4, members={}, hooks=hooks)
+
+
+def test_compare_hook_a_clean_exit_passes_even_if_unregistered(kr):
+    registry = _registry_with_hooks(kr, {})
+    result = kr.compare_hook("audit-health", 0, registry)
+    assert result["verdict"] == "pass"
+    assert result["baseline_id"] == registry.baseline_id
+
+
+def test_compare_hook_a_registered_red_passes_and_names_the_entry(kr):
+    entry = {"attribution": kr.ENVIRONMENT_MISMATCH, "reason": "CI checkout mismatch"}
+    registry = _registry_with_hooks(kr, {"audit-health": entry})
+    result = kr.compare_hook("audit-health", 1, registry)
+    assert result["verdict"] == "pass"
+    assert result["registered"] == entry
+
+
+def test_compare_hook_an_unregistered_red_is_a_regression(kr):
+    registry = _registry_with_hooks(kr, {})
+    result = kr.compare_hook("derived-copies-rebind", 1, registry)
+    assert result["verdict"] == "fail"
+    assert result["regressions"] == ["derived-copies-rebind"]
+    assert "REGRESSION" in result["reason"]
+
+
+def test_compare_hook_does_not_launder_a_different_hooks_registration(kr):
+    """A registration for one hook id never covers another -- the register names WHICH check,
+    not "some check failed", the same specificity `compare`'s node-id keying already has."""
+    registry = _registry_with_hooks(kr, {"audit-health": {"attribution": kr.ENVIRONMENT_MISMATCH,
+                                                          "reason": "x"}})
+    result = kr.compare_hook("graph-orphan-census", 1, registry)
+    assert result["verdict"] == "fail"
+
+
+def test_render_compare_hook_uses_no_pipe_tables(kr):
+    registry = _registry_with_hooks(kr, {"audit-health": {"attribution": kr.ENVIRONMENT_MISMATCH,
+                                                          "reason": "x"}})
+    result = kr.compare_hook("audit-health", 1, registry)
+    report = kr.render_compare_hook(result)
+    assert "|" not in report
+    assert registry.baseline_id in report
+    assert "audit-health" in report
 
 
 # --- find_lane -------------------------------------------------------------------------------

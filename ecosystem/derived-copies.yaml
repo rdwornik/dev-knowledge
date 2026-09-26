@@ -123,22 +123,25 @@ copies:
     render: "uv run --locked python scripts/gen_doc_counts.py --write"
     kind: command
     verify: ["scripts/gen_doc_counts.py", "--check"]
-    commit_gate: gate
-    gate: doc-counts-pytest-freshness
+    commit_gate: self
     uncovered_inputs:
       - scripts/audit.py
       - .pre-commit-config.yaml
       - scripts/gen_doc_counts.py
     note: >-
-      `sources` mirrors the live `files:` selector of the named hook, including
-      `conftest.py` -- which is ABSENT from this repo and stays absent: a root
-      `conftest.py` is refused by the [#430](a) ruling. The glob is prospective there, and
-      keeping it agrees with the hook rather than second-guessing it. `uncovered_inputs`
-      is the honest half (terra HIGH, 2026-09-07): this document carries three values and
-      the named hook guards only the pytest-collection one, so an added ALL_CHECKS member
-      or pre-commit hook can leave it stale with nothing refusing at commit. The ship-tier
-      `doc_claims` check is the backstop for those, and the hook's own comment records the
-      cost reason it is scoped this narrowly.
+      `sources` mirrors the live `files:` selector this row used to delegate to. RE-HOMED
+      FROM `commit_gate: gate` / `gate: doc-counts-pytest-freshness` on lane-ci-signal
+      (2026-09-26): that hook moved to `stages: [manual]` on 2026-09-17 (batch AB close),
+      so it no longer runs at the pre-commit stage and `check_derived_copies`'s LEG 2
+      correctly refused the stale claim (`derived-copies-rebind`, [#802] evidence run
+      36099478580). `commit_gate: self` runs this row's own `verify:` at commit time
+      instead -- the same guarantee, held directly rather than by a hook that no longer
+      provides it. `conftest.py` is ABSENT from this repo and stays absent: a root
+      `conftest.py` is refused by the [#430](a) ruling; the glob is prospective there.
+      `uncovered_inputs` is the honest half (terra HIGH, 2026-09-07): this document
+      carries three values and `verify:` guards only the pytest-collection one, so an
+      added ALL_CHECKS member can leave it stale with nothing refusing at commit. The
+      ship-tier `doc_claims` check is the backstop for those.
 
   intake-index:
     what: the status-grouped Contents block of the intake index
@@ -250,11 +253,17 @@ copies:
     render: "uv run --locked python -m scripts.toc.cli generate protocols/PLAYBOOK.md --write"
     kind: command
     verify: ["-m", "scripts.toc.cli", "check", "protocols/PLAYBOOK.md"]
-    commit_gate: gate
-    gate: toc-freshness-playbook
+    commit_gate: self
     note: >-
       Source and target are the same file: the TOC is a region derived from the headings
       around it. That is a legitimate shape for a derived copy and the registry admits it.
+      RE-HOMED FROM `commit_gate: gate` / `gate: toc-freshness-playbook` on lane-ci-signal
+      (2026-09-26): that hook moved to `stages: [manual]` on 2026-09-17 (batch AB close),
+      so it no longer runs at the pre-commit stage and `check_derived_copies`'s LEG 2
+      correctly refused the stale claim (`derived-copies-rebind`, [#802] evidence run
+      36099478580). `commit_gate: self` runs this row's own `verify:` at commit time
+      instead -- the same guarantee, held directly rather than by a hook that no longer
+      provides it.
 
   architecture-codemap:
     what: the codemap section of the structural model, derived from the script tree

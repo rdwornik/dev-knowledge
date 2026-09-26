@@ -587,6 +587,91 @@ ORPHAN_DISPOSITIONS: dict[str, Disposition] = {
                "and `tests/` -- deciding whether a command file should invoke it is a "
                "successor act, not spent here",
         owner="V+1 retirement-or-wiring list"),
+    # ---- population D: ARRIVED AFTER THE CENSUS, and already carry their own `fates:` row in
+    # ecosystem/harness.yaml naming the same gap and the same owner -- lane-ci-signal (2026-09-26)
+    # adds the graph-side row so `graph-orphan-census` reads a ruling instead of re-finding what
+    # harness.yaml already says. Every reason below quotes that row rather than re-deriving it,
+    # so the two surfaces cannot drift into disagreement about WHY the same file is unwired.
+    ".claude/commands/spine.md": Disposition(
+        reason="harness.yaml fates: \"runs the stage table by hand (`doit spine`); no census "
+               "row yet -- its caller is a seat until the loop's launcher runs the spine\". "
+               "Population C (commands): no event fires a command file, and this one postdates "
+               "the 2026-09-08 census's closed seven-act list rather than fitting one of its acts",
+        owner="the loop's launcher (W3-B), once it runs the spine itself; manual_until 2026-10-05"),
+    ".claude/commands/why.md": Disposition(
+        reason="harness.yaml fates: \"read on demand before editing an unfamiliar file; whether "
+               "a fresh session calls it unprompted is [#924]'s measurement -- no census row "
+               "yet\". Population C (commands): no event fires a command file, and [#924] "
+               "measured 0/5 fresh sessions using it unprompted -- a finding about adoption, "
+               "not a trigger this census can see",
+        owner="[#924]'s measurement and whatever wires a boot pointer to the graph; manual_until 2026-10-05"),
+    "scripts/batch_janitor.py": Disposition(
+        reason="harness.yaml fates: \"stops a named batch's finished --bg sessions by hand "
+               "today; lane-organ-wirings owns wiring it into a moment (Do-not: this lane does "
+               "not wire hooks)\" ([#1014], DIGEST-WAVE5A-2026-09-24 blind spot 3)",
+        owner="lane-organ-wirings; manual_until 2026-10-05"),
+    "scripts/check_post_merge.py": Disposition(
+        reason="harness.yaml fates: \"refuses a --no-ff merge commit that landed a conflict "
+               "marker, run by hand today; lane-organ-wirings owns wiring it into a moment "
+               "(Do-not: this lane does not wire hooks)\" ([#1014], DIGEST-WAVE5A-2026-09-24 "
+               "blind spot 4). The module's own docstring states the same posture: "
+               "\"DETECT-AND-SURFACE, NOT PREVENT ... wired into no hook\"",
+        owner="lane-organ-wirings; manual_until 2026-10-05"),
+    "scripts/ci_red_age.py": Disposition(
+        reason="harness.yaml fates: \"LANE-5B2-17 ruling (a): reads main's own conductor.yml "
+               "run history and reports how long it has been red; its declared consumer is "
+               "lane_digest.py's --ci-red-json flag (data in, no subprocess call), so no "
+               "moment fires this organ itself yet -- a moment declaration (batch-close, "
+               "before the digest renders) is owed once a lane wires it\"",
+        owner="lane-organ-wirings; manual_until 2026-10-15"),
+    "scripts/ci_verdict.py": Disposition(
+        reason="harness.yaml fates: \"records CI's verdict beside the local one at each merge "
+               "(lane-integrate step); not a gate yet -- a moment declaration is owed by wave "
+               "5b (LANE-5A-6)\". Its one call site, `.claude/commands/lane-integrate.md:185`, "
+               "is a command file -- Population C, invisible to the [#664] wiring-surface list",
+        owner="LANE-5A-6 / wave 5b; manual_until 2026-10-05"),
+    "scripts/dodo.py": Disposition(
+        reason="harness.yaml fates: \"the moments' own runner (`doit -f scripts/dodo.py "
+               "moment:<name>`); its callers are the launcher (W3-B) and the Stop hook (W3-D) "
+               "-- a person or the connection test until they land\". The stage/moment ENGINE "
+               "that reads `ecosystem/harness.yaml` is not the same node as the scripts NAMED "
+               "inside it: harness.yaml's admission to `WIRING_SURFACES` (LANE-5A-10) reaches "
+               "the targets its commands name, not the interpreter invoked to run them -- today "
+               "that invocation is `.claude/commands/spine.md` and `.claude/commands/"
+               "lane-integrate.md`, both Population C",
+        owner="W3-B (launcher) / W3-D (Stop hook); manual_until 2026-10-05"),
+    "scripts/handback.py": Disposition(
+        reason="harness.yaml fates: \"called by lanes at handback; a moment declaration is "
+               "owed by the next wave\". A lane invokes it by hand at handback per its own "
+               "docstring (FR2/RC3); no [#664] wiring surface names it yet",
+        owner="the next wave's moment declaration; manual_until 2026-10-05"),
+    "scripts/hook_expiry_verdict.py": Disposition(
+        reason="harness.yaml fates: \"judges hook expiry for the 2026-09-25 zero-catch rule; "
+               "no caller wired yet -- a moment declaration is owed by wave 5b (LANE-5A-7)\". "
+               "Its own docstring states it prints a verdict and exits 0 always -- \"a report, "
+               "not a gate\"; acting on a REMOVE verdict is an operator/architect act, same "
+               "posture as `provider_bench.py`'s row above",
+        owner="LANE-5A-7 / wave 5b; manual_until 2026-10-05"),
+    "scripts/learning_distiller.py": Disposition(
+        reason="harness.yaml fates: \"5e v0 (LANE-5B2-13, ruling a): run by hand over a closed "
+               "batch's receipts; emits candidate rows and files nothing (ruling h) -- a "
+               "moment declaration is owed once a lane wires it into batch close\"",
+        owner="the lane that wires it into batch-close (N2 lane 13's successor); manual_until 2026-10-15"),
+    "scripts/ship_gate_diff.py": Disposition(
+        reason="harness.yaml fates: \"LANE-5A-4 (D11): called from inside handback.py's "
+               "ship-gate self-check leg (an import, not a moment `command:`), so the census "
+               "sees no wiring surface for it; a moment declaration is owed if/when it gains "
+               "its own\". `scripts/handback.py:72` imports it directly, but `handback.py` "
+               "itself is this same population (row above) -- an import from an unwired module "
+               "reaches no wiring surface either",
+        owner="LANE-5A-4, jointly with the handback.py row above; manual_until 2026-10-05"),
+    "scripts/transport.py": Disposition(
+        reason="harness.yaml fates: \"lane-transport-registry: an import-only write gate "
+               "(handback.py calls write()/append()) and a report-only CLI (report/derive); no "
+               "moment fires it directly\". Imported by `scripts/handback.py` and "
+               "`scripts/lane_digest.py`; the former is this same population (row above), so "
+               "the import inherits handback.py's own gap rather than closing it",
+        owner="lane-transport-registry, jointly with the handback.py row above; manual_until 2026-10-15"),
 }
 
 

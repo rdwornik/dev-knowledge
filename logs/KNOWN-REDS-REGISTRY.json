@@ -310,5 +310,13 @@
       "attribution": "pre-freeze"
     }
   },
+  "hooks": {
+    "audit-health": {
+      "attribution": "environment-mismatch",
+      "reason": "lane-ci-signal, [#802] evidence run gh-run:36099478580 (push, main da11291b) and gh-run:36120953646 (schedule): `conductor.yml`'s `commit-gate` job runs `pre-commit run --hook-stage manual`, and `audit-health` FAILs there on three findings that are properties of the ephemeral GitHub Actions checkout, not of the committed tree -- `hooks_armed` (scripts/audit.py) because a fresh Actions clone never runs `pre-commit install`; `repos registered` (scripts/audit.py, the operational: section) because ecosystem/ repo registration lives on the operator's own disk and a stateless runner has none; `dispatch_drift` (scripts/audit_checks/check_dispatch_drift.py -> scripts/dispatch_drift.py) because ubuntu-latest ships pwsh (so tier resolves to `host`, not the degraded no-PowerShell tier the check's own docstring treats as `warn`) and then fails to resolve 12 PowerShell functions/aliases (`dispatch`, `Dispatch-Cloud`, `claude`, `Dispatch-Codespace`, `Harvest-Codespace`, `Dispatch-Local`, `Dispatch-Lane`, `Dispatch-CloudV2`, `Get-CloudSession`, `Archive-CloudSession`, `Dispatch-CloudBrief`, `Stop-DispatchCodespace`, `Harvest-Cloud`) that exist only in the operator's own Windows profile and are never installed on a stock runner. All three live in scripts/audit.py or scripts/dispatch_drift.py, neither owned by lane-ci-signal (LANE-5B2-17-ci-signal owns scripts/audit_checks/ only for a check module audit.py health reports as FAIL, and scripts/graph_queries.py's three verbs) -- confirmed FIXABLE-IN-OWNED-FILES for the other four commit-gate hooks this same run failed (derived-copies-rebind: ecosystem/derived-copies.yaml re-homed to `commit_gate: self`; graph-orphan-census: 11 new ORPHAN_DISPOSITIONS rows in scripts/graph_queries.py, each citing its ecosystem/harness.yaml `fates:` row; graph-task-coverage and graph-edge-class-census: already clean at merge time, resolved by intervening commits). `uv run --locked pre-commit run audit-health --hook-stage manual --all-files` on this same tree, on the operator's own Windows machine with hooks armed, passes -- the finding is real only in the CI checkout, not in the tree.",
+      "since_measured_via": "gh-run:36099478580",
+      "since_sha": "da11291b"
+    }
+  },
   "notes": []
 }

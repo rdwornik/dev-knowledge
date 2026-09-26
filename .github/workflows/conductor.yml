@@ -290,7 +290,43 @@ jobs:
             tail -n 80 commit-gate.out
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-          exit $rc
+      - name: known-reds verdict on audit-health (LANE-5B2-17, [#802] evidence run 36099478580)
+        # RAISES THE SIGNAL, NEVER LOWERS IT. The step above already ran every manual hook and
+        # is `continue-on-error: true` at the JOB level (so a hook failure here never reds the
+        # overall workflow run) -- this step adds nothing to that exit-code decision. What it
+        # adds is the one thing a raw pre-commit summary cannot say: whether `audit-health`'s own
+        # failure is a REGISTERED known-red (logs/KNOWN-REDS-REGISTRY.json's `hooks` section,
+        # cause: a stock ephemeral runner has no armed git hooks, no registered repos, and none
+        # of the operator's own PowerShell dispatch aliases -- see the registry entry for the
+        # full account) or a genuine new one -- exactly the distinction the Value line names
+        # ("a new red raises no alarm ... a REGISTERED entry carries its cause").
+        if: always()
+        run: |
+          set +e
+          uv run --locked pre-commit run audit-health --hook-stage manual > audit-health.out 2>&1
+          audit_rc=$?
+          uv run --locked python scripts/known_reds.py compare-hook \
+            --hook-id audit-health --exit-code "$audit_rc" --out known-reds-hook.out
+          verdict_rc=$?
+          cat known-reds-hook.out
+          {
+            echo "## known-reds compare-hook — \`${{ github.sha }}\`"
+            echo
+            echo '```'
+            cat known-reds-hook.out 2>/dev/null || echo "no known-reds-hook output"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $verdict_rc
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: commit-gate-${{ github.sha }}
+          path: |
+            commit-gate.out
+            audit-health.out
+            known-reds-hook.out
+          retention-days: 90
+          if-no-files-found: warn
 
   terra:
     # REPORT-ONLY, AND THE ONE OF THE FOUR THAT IS NOT ARMABLE. §4 says "Codex review becomes
