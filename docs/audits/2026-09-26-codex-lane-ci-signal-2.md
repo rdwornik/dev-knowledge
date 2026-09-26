@@ -14,7 +14,7 @@
 **Consumer:** `LANE-5B3-8-ci-signal-2.md` Done-contract item 5 — the terra re-review N2's
 `LANE-5B2-17-ci-signal.md` owed once Codex quota reset (N2's own record,
 `docs/audits/2026-09-26-fresh-eyes-lane-ci-signal.md`, ran DEGRADED on grok because Codex was
-quota-blocked at the time).
+quota-blocked at the time). Serves `[#802]` (`tasks/802-the-conductor-emails-on-every-push-because-it-does.md`), the row both lanes' contracts implement.
 
 ---
 
