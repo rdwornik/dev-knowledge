@@ -228,7 +228,7 @@ def test_render_compare_uses_no_pipe_tables(kr):
     assert registry.baseline_id in report
 
 
-# --- compare-hook (lane-ci-signal: the non-pytest sibling of `compare`) --------------------
+# --- compare-hook (lane-ci-signal, [#802]: the non-pytest sibling of `compare`) -------------
 
 def _registry_with_hooks(kr, hooks):
     return kr.Registry(schema=kr.SCHEMA, baseline_id="2026-09-26-hooks", measured_at_sha="s",

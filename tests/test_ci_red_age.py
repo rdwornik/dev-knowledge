@@ -1,4 +1,4 @@
-"""scripts/ci_red_age.py -- LANE-5B2-17: how long has main's CI been red, and since when.
+"""scripts/ci_red_age.py -- LANE-5B2-17 ([#802]): how long has main's CI been red, and since when.
 
 RED-FIRST (ADR-108 SS B). Every test here was authored and witnessed FAILING before
 scripts/ci_red_age.py existed.
