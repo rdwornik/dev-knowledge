@@ -52,7 +52,7 @@ You launch lanes and continuation or repair sessions, and write receipts. **You 
   ceiling = 16 core-hours), multiplied by (codespaces of this batch already live + 1) when a
   slot is already occupied. Every other quota (Actions minutes, storage, Copilot credits) only
   warns via `QUOTA-WARN-<date>.md` (`quota_watch.py record`, run by the lane or the integrator)
-  — never a launch refusal.
+  — not a launch refusal.
 
 ## Sequence
 

@@ -18,7 +18,8 @@
 #               than treating an absent quota as zero.
 #   unit        the display unit `quota_watch.py` renders this row in.
 #   thresholds  the warn crossings `record` checks, as fractions of quota (R7: 50/80/100%).
-#   account     the `gh` login this SKU is billed to (pinned per call, must-not-repeat 8).
+#   account     the `gh` login this SKU is billed to (pinned per call, the account-pin
+#               discipline every gh-calling organ here follows).
 #   notes       how `used` is computed for this group -- see `quota_watch.py`'s own readers.
 
 account: rdwornik
@@ -32,7 +33,7 @@ skus:
     account: rdwornik
     notes: >-
       sum over every `codespaces_compute_d<N>` SKU of grossQuantity(hours) x N -- N read from
-      the SKU name itself (`quota_watch.codespaces_core_hours_used`), never a per-SKU table, so
+      the SKU name itself (`quota_watch.codespaces_core_hours_used`), not a per-SKU table, so
       a machine size this account has not used before still prices correctly the first time.
 
   codespaces_storage:
