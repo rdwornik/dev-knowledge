@@ -40,7 +40,7 @@ carried_candidates:
   already_in: M05-LESSONS:446 - M05L05 ~1354-1418 -- 'true throughput' (PRs weighted
     by complexity), DXI
   what: a candidate fleet metric, in tension with the retired gen_trend_dashboard.py
-    (front door 'must not rebuild')
+    (see docs/audits/2026-09-21-technical-aj-all-front.md:49)
   cost: blocked -- flag only
 - id: C-7
   already_in: landing gap itself
