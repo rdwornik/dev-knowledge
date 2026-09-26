@@ -4820,7 +4820,7 @@ refuses stale writes; minutes-per-completed-task measured on both stores.
 
 - **R2** No secret in a repository or as a repository/Actions secret; account-level (Codespaces
   user) secrets allowed.
-- **R3** Finished lane sessions stay visible: teardown uses `claude stop`, never the
+- **R3** Finished lane sessions stay visible: teardown uses `claude stop` in place of the
   session-removal verb; the digest names each lane's session.
 - **R4** Scratch repository `rdwornik/dk-trial-gh-issues-20260925` deleted by the operator
   2026-09-25.
