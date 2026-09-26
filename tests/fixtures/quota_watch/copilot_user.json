@@ -1,0 +1,15 @@
+{
+  "id": 267220665,
+  "login": "Robert-Dwornik_ghub",
+  "access_type_sku": "copilot_enterprise_seat_quota",
+  "copilot_plan": "enterprise",
+  "quota_reset_date": "2026-10-01",
+  "quota_snapshots": {
+    "chat": {"unlimited": true, "credits_used": 0, "entitlement": 0},
+    "completions": {"unlimited": true, "credits_used": 0, "entitlement": 0},
+    "premium_interactions": {
+      "overage_count": 0, "overage_permitted": true, "percent_remaining": 98.7,
+      "unlimited": false, "credits_used": 285, "remaining": 22215, "entitlement": 22500
+    }
+  }
+}

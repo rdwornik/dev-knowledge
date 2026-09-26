@@ -1,0 +1,57 @@
+# ecosystem/aj-scan-state.yaml -- scripts/aj_scan.py's own state: the last recorded
+# scan (course high-water mark, per-repo commit high-water marks, carried candidate
+# rows not yet filed). Rewritten by every `aj_scan.py scan` run; do not hand-edit
+# except to remove a candidate once its row is filed. No operator-disk path lives
+# here -- the course directory is always a CLI argument (ruling (a), LANE-5B2-15).
+last_scan_date: '2026-09-25'
+course_high_water: '2026-09-21T12:57:00Z'
+repos:
+  Architekt-Jutra/architekt-jutra-code:
+    since: '2026-09-21T00:00:00Z'
+  TheSoftwareHouse/copilot-collections:
+    since: '2026-09-21T00:00:00Z'
+  SkillPanel/maister:
+    since: '2026-09-22T20:19:10Z'
+carried_candidates:
+- id: C-1
+  already_in: M05-LESSONS:339 - M05L03.2 ~1118-1145, ebook p.19/24 -- 9-category agent
+    error taxonomy
+  what: 'a closed root-cause enum in scripts/review_packet.py''s verdict schema, alongside
+    severity -- fills the front door''s open rec #8'
+  cost: S -- enum + schema test, ~1 lane-hour
+- id: C-2
+  already_in: M05-LESSONS:169 - M05L02.2 ~538-706, miro L02.2 p.5-7 -- VSM cycle/wait/work
+    time; efficiency = work / cycle
+  what: per-lane 'process efficiency' in scripts/lane_cost.py, computed from contract-freeze,
+    first-commit and merge timestamps
+  cost: M -- needs one new timestamp capture point in dispatch; prototype on 1 lane
+- id: C-3
+  already_in: M05-LESSONS:371 - M05L03.2 ~1076-1116, miro L03.2 p.5 -- Responder/Observer
+    rollout
+  what: a design rule for any future autonomous agent (e.g. [#729] MCP surface) --
+    one PLAYBOOK paragraph now, a mandatory stage when such an agent is built
+  cost: S now; build cost deferred
+- id: C-4
+  already_in: M05-LESSONS:179 - M05L02.2 ~376-403 -- 5-criteria task filter (real/recent/representative/full/production)
+  what: 'a rubric for choosing which past lanes seed a frozen lane contract (refines
+    front-door rec #7)'
+  cost: S -- checklist
+- id: C-5
+  already_in: M05-LESSONS:446 - M05L05 ~1354-1418 -- 'true throughput' (PRs weighted
+    by complexity), DXI
+  what: a candidate fleet metric, in tension with the retired gen_trend_dashboard.py
+    (see docs/audits/2026-09-21-technical-aj-all-front.md:49)
+  cost: blocked -- flag only
+- id: C-7
+  already_in: landing gap itself
+  what: land or index the 09-21 companion digests (or record their ADOPT rows as tasks),
+    so the next scan compares against the repo, not a transport folder the cloud cannot
+    see
+  cost: S -- landing lane, ~1 h
+- id: C-6
+  already_in: SkillPanel/maister 4151c9c4d, d412d49f1
+  what: The commit messages alone do not say what would change in the harness, as
+    they record only a version bump and unspecified backported fixes from the v3 branch
+    without diff details.
+  cost: S -- one scoped diff read (delegated), ~15 min
+next_candidate_seq: 7

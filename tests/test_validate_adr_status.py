@@ -838,7 +838,13 @@ def test_shipped_corpus_parses_one_status_field_per_live_adr():
     # named: ADR-122 (a task is a typed record in git; every backlog view is a projection),
     # drafted on to-cc/BATCH-ADR-BACKLOG-2026-09-24. Measured on base `665e2a3b` + this lane's
     # one added file; no other member moved. Status `Proposed` until the operator rules.
-    assert len(fields) == 95, "live ADR count moved — re-measure the Step-1 baseline"
+    #
+    # RE-MEASURED 2026-09-25 by lane-adr-drafts: 95 -> 99. The delta is FOUR ADRs and each is
+    # named: ADR-123 (harness distribution), ADR-124 (code standard), ADR-125 (prose -> data),
+    # ADR-126 (substrate and parallelism), drafted on LANE-5B2-11-adr-drafts (batch WAVE5B-N2
+    # row 11). Measured on base `da11291b` + this lane's four added files, RED first (99 vs 95)
+    # before this pin moved; no other member moved. All four `Proposed` until the operator rules.
+    assert len(fields) == 99, "live ADR count moved — re-measure the Step-1 baseline"
 
 
 def test_shipped_corpus_grammar_distribution_matches_the_measured_baseline():
@@ -871,7 +877,11 @@ def test_shipped_corpus_grammar_distribution_matches_the_measured_baseline():
     # RE-MEASURED 2026-09-24 by lane-adr-backlog: G1 47 -> 48, the same single cause as the
     # count above (ADR-122 carries a G1-shaped `Proposed` status field). G2/G3/G4 unchanged a
     # sixth time, so the delta is one ADR and not grammar drift.
-    assert counts == {"G1": 48, "G2": 34, "G3": 12, "G4": 1}
+    #
+    # RE-MEASURED 2026-09-25 by lane-adr-drafts: G1 48 -> 52, the same four causes as the count
+    # above (ADR-123..126, each a G1-shaped `Proposed` status field). G2/G3/G4 unchanged a
+    # seventh time, so the delta is four ADRs and not grammar drift.
+    assert counts == {"G1": 52, "G2": 34, "G3": 12, "G4": 1}
 
 
 def test_shipped_corpus_has_zero_enum_violations():

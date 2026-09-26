@@ -1131,3 +1131,16 @@ kinds:
     versioned: false
     notes: >-
       (lane-transport-strays)
+
+  - kind: QUOTA_WARN
+    prefix: "QUOTA-WARN-"
+    pattern: '^QUOTA-WARN-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [quota_watch]
+    readers: [gen_handoff]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      R7 (LANE-5B2-6-quota-watch): written on a 50/80/100% quota crossing or the first billed
+      dollar (`scripts/quota_watch.py::cmd_record`). Additive kind, ruling (f) -- nothing else
+      in this file touched by that lane.
