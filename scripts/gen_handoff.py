@@ -110,18 +110,33 @@ except ImportError:  # pragma: no cover - exercised by the scripts/-on-sys.path 
 
 # lane-boot-contract (WAVE5B-N2 row 12): the boot's DATA/PROSE contract is the VERIFIER's — it
 # decides what "probe-checked" means — so the delimiters, the receipt name and the boot-cost
-# metric are imported from it, never restated here. Same dual-entry shim as `canonical_docs`.
-try:
-    from scripts import verify_handoff_probes as _vhp
-except ImportError:  # pragma: no cover - exercised by the scripts/-on-sys.path entrypoint
-    import verify_handoff_probes as _vhp
+# metric are read from it, never restated here.
+#
+# Imported at USE time, not at module load (repair 1, WAVE5B-N2): a top-level import made every
+# importer of this module need `verify_handoff_probes` beside it, and `assemble_paste.py` run as
+# a script from a copied `scripts/` dir (tests/test_assemble_paste.py) had neither the package
+# nor the sibling — 41 reds that only need `reflow_framing` / `detect_fill_state`. Deferred, the
+# dependency binds only the code paths that render or receipt a boot, and a miss there still
+# raises (no fallback value): the silent-placeholder hazard `canonical_docs` is kept whole for
+# does not reopen. The six names below stay module attributes via `__getattr__` (PEP 562).
+_VERIFIER_NAMES = frozenset({"BOOT_DATA_BEGIN", "BOOT_DATA_END", "BOOT_PROSE_BEGIN",
+                             "BOOT_PROSE_END", "RECEIPT_FILE", "BOOT_COST_METRIC"})
 
-BOOT_DATA_BEGIN = _vhp.BOOT_DATA_BEGIN
-BOOT_DATA_END = _vhp.BOOT_DATA_END
-BOOT_PROSE_BEGIN = _vhp.BOOT_PROSE_BEGIN
-BOOT_PROSE_END = _vhp.BOOT_PROSE_END
-RECEIPT_FILE = _vhp.RECEIPT_FILE
-BOOT_COST_METRIC = _vhp.BOOT_COST_METRIC
+
+def _vhp():
+    """`verify_handoff_probes`, resolved under both entry shapes (package, or `scripts/` on
+    `sys.path`) — the same dual shim as `canonical_docs`, run when first needed."""
+    try:
+        from scripts import verify_handoff_probes as vhp  # noqa: PLC0415
+    except ImportError:  # pragma: no cover - exercised by the scripts/-on-sys.path entrypoint
+        import verify_handoff_probes as vhp  # noqa: PLC0415
+    return vhp
+
+
+def __getattr__(name: str):
+    if name in _VERIFIER_NAMES:
+        return getattr(_vhp(), name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 _SCRIPTS = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS.parent
@@ -2018,17 +2033,17 @@ def boot_data_rows(slug: str, mode: str, chat_title: str,
     every pointer, self-pointer and the launcher line is rendered FROM the verifier's tables
     (`BOOT_POINTERS`, `BOOT_SELF_POINTERS`, `LAUNCH_COMMAND`), so the two cannot disagree."""
     def ptr(key: str) -> str:
-        return " · ".join(f"`{p}`" for p in _vhp.BOOT_POINTERS[key])
+        return " · ".join(f"`{p}`" for p in _vhp().BOOT_POINTERS[key])
 
     def own(key: str) -> str:
-        return f"`docs/handoffs/{slug}/{_vhp.BOOT_SELF_POINTERS[key]}`"
+        return f"`docs/handoffs/{slug}/{_vhp().BOOT_SELF_POINTERS[key]}`"
     return [
         ("Slug", f"`{slug}`"),
         ("Chat title", f"`{chat_title}`"),
         ("Mode", f"**{mode}**"),
         ("Destination", f"branch `{_PRIMARY_TREE_BOOT_DESTINATION}`"),
         ("Role", f"{ptr('Role')} @ handoff-process v{role_version or 'unreadable'}"),
-        ("Launch", f"`{_vhp.LAUNCH_COMMAND}`"),
+        ("Launch", f"`{_vhp().LAUNCH_COMMAND}`"),
         ("Probes", own("Probes")),
         ("Receipt", own("Receipt")),
         ("Seat orders", ptr("Seat orders")),
@@ -2042,8 +2057,9 @@ def boot_data_rows(slug: str, mode: str, chat_title: str,
 def boot_data_block(rows: list[tuple[str, str]]) -> str:
     """The delimited DATA block, verbatim as it lands in the boot header."""
     body = "\n".join(f"| **{k}** | {v} |" for k, v in rows)
-    return (f"{BOOT_DATA_BEGIN}\n| Data | Probe-checked — `verify_handoff_probes` BD-* |\n"
-            f"|---|---|\n{body}\n{BOOT_DATA_END}")
+    vhp = _vhp()
+    return (f"{vhp.BOOT_DATA_BEGIN}\n| Data | Probe-checked — `verify_handoff_probes` BD-* |\n"
+            f"|---|---|\n{body}\n{vhp.BOOT_DATA_END}")
 
 
 # --- the handoff receipt and its boot-cost field ---------------------------------------------
@@ -2068,7 +2084,7 @@ def boot_cost(turns: "int | None" = None, dispatch: "str | None" = None,
               transport: "Path | None" = None) -> dict:
     """The receipt's `boot_cost` field: measured, or `unmeasured — <why>` with no value."""
     norm = dispatch.replace("\\", "/").lstrip("./") if dispatch else None
-    base = {"metric": BOOT_COST_METRIC, "value": None, "status": "", "dispatch": norm,
+    base = {"metric": _vhp().BOOT_COST_METRIC, "value": None, "status": "", "dispatch": norm,
             "measures": _BOOT_COST_MEASURES}
     if turns is None and norm is None:
         why = ("no tally recorded at this cut — the browser seat keeps no transcript the repo "
@@ -2098,7 +2114,7 @@ def boot_cost(turns: "int | None" = None, dispatch: "str | None" = None,
                 "source": ("operator tally (--boot-turns) — the count is the operator's, not "
                            "machine-witnessed; the dispatch is witnessed on the transport and "
                            "bound by dispatch_sha256")}
-    return {**base, "status": _vhp._UNMEASURED_PREFIX + why, "source": None}
+    return {**base, "status": _vhp()._UNMEASURED_PREFIX + why, "source": None}
 
 
 def _write_receipt(bundle_dir: Path, *, slug: str, mode: str, date: str, cut: str,
@@ -2107,7 +2123,7 @@ def _write_receipt(bundle_dir: Path, *, slug: str, mode: str, date: str, cut: st
     contract: overwritten, never merged). A bundle artifact, not a browser-visible one — the
     assembler never reads it — so its numbers do not touch the answer-free paste."""
     import json  # noqa: PLC0415
-    out = bundle_dir / RECEIPT_FILE
+    out = bundle_dir / _vhp().RECEIPT_FILE
     body = {"schema": "handoff-receipt/1", "generator": "scripts/gen_handoff.py", "slug": slug,
             "mode": mode, "date": date, "cut": cut, "boot_cost": cost, "paste": paste}
     out.write_text(json.dumps(body, indent=2, ensure_ascii=False) + "\n", encoding="utf-8",
@@ -2196,8 +2212,8 @@ def _tokens(mode: str, slug: str, repo: str, date: str, state: _State, filled: b
         "P1_GATE_NOTE": _framing("P1_GATE_NOTE", filled),
         "PASTE_STEP6": _framing("PASTE_STEP6", filled),
         # lane-boot-contract: the PROSE block's delimiters, owned by the verifier.
-        "BOOT_PROSE_BEGIN": BOOT_PROSE_BEGIN,
-        "BOOT_PROSE_END": BOOT_PROSE_END,
+        "BOOT_PROSE_BEGIN": _vhp().BOOT_PROSE_BEGIN,
+        "BOOT_PROSE_END": _vhp().BOOT_PROSE_END,
         # #287: slug-based title for architect/execution/functional; the epic branch of
         # generate() overrides this with an epic-slug-aware title after EPIC_SLUG is resolved.
         "CHAT_TITLE": _chat_title(mode, repo, slug),
