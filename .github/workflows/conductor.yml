@@ -311,7 +311,8 @@ jobs:
           uv run --locked pre-commit run audit-health --hook-stage manual > audit-health.out 2>&1
           audit_rc=$?
           uv run --locked python scripts/known_reds.py compare-hook \
-            --hook-id audit-health --exit-code "$audit_rc" --out known-reds-hook.out
+            --hook-id audit-health --exit-code "$audit_rc" --hook-output audit-health.out \
+            --out known-reds-hook.out
           verdict_rc=$?
           cat known-reds-hook.out
           {

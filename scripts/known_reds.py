@@ -119,12 +119,15 @@ class Registry:
     workers: int
     members: dict  # {node_id: {"attribution": ...} | {"attribution": ..., "reason": ...}}
     notes: tuple = field(default_factory=tuple)
-    #: {hook_id: {"attribution": ..., "reason": ...}} -- the non-pytest sibling of `members`,
-    #: for a manual-stage pre-commit hook (`derived-copies-rebind`, `audit-health`, ...) that
-    #: carries no pytest node id at all. ADDITIVE (lane-ci-signal, [#802] evidence run
-    #: 36099478580): defaults to `{}` so every registry written before this field existed still
-    #: loads, and `compare`'s existing pytest-only reading is untouched -- only `compare_hook`
-    #: reads this field.
+    #: {hook_id: {"attribution": ..., "reason": ..., "checks": [...]?}} -- the non-pytest
+    #: sibling of `members`, for a manual-stage pre-commit hook (`derived-copies-rebind`,
+    #: `audit-health`, ...) that carries no pytest node id at all. ADDITIVE (lane-ci-signal,
+    #: [#802] evidence run 36099478580): defaults to `{}` so every registry written before this
+    #: field existed still loads, and `compare`'s existing pytest-only reading is untouched --
+    #: only `compare_hook` reads this field. The optional `checks` list (LANE-5B3-8, Codex terra
+    #: HIGH 2026-09-26) scopes the registration to the specific `audit.py health` check names it
+    #: was measured against, when `compare_hook` is given the hook's raw output -- an entry with
+    #: no `checks` list keeps the prior whole-hook-known behavior.
     hooks: dict = field(default_factory=dict)
 
     def to_json(self) -> dict:
@@ -246,13 +249,44 @@ def compare(failed: frozenset, registry: Registry, *, workers: int,
             "unattributed": unattributed_known}
 
 
-def compare_hook(hook_id: str, exit_code: int, registry: Registry) -> dict:
+#: Codex terra HIGH (2026-09-26, LANE-5B3-8): `[!!] <name>` from `audit.py health`'s self-audit
+#: section (`click.echo(f"  {marker} {f.check_name}: {f.evidence}")`) and its operational
+#: preflight section (`click.echo(f"  {marker} {label}{suffix}")`, suffix always non-empty on a
+#: failing operational check). Two patterns because the two sections format differently; neither
+#: check name contains the other section's separator, so they never cross-match.
+_FAIL_SELF_AUDIT_RE = re.compile(r"^\s*\[!!\]\s+([^:\n]+):", re.MULTILINE)
+_FAIL_OPERATIONAL_RE = re.compile(r"^\s*\[!!\]\s+([^:\n(]+?)\s{2}\(", re.MULTILINE)
+
+
+def extract_failing_check_names(hook_output: str) -> set:
+    """The specific `audit.py health` check names reported `[!!]` in raw hook stdout/stderr --
+    NOT the hook's bare exit code. Used to scope a hook registration to the findings it was
+    actually measured against (Codex terra HIGH, 2026-09-26): a hook registered whole-sale by
+    `hook_id` alone would silently launder a NEW, different failing check under the same
+    registration, exactly the "membership by count, not by identity" trap [#802]'s own pytest
+    side already refuses ("A file with 3 frozen members that fails 4 has a regression, and the
+    count alone hides it")."""
+    names = {m.strip() for m in _FAIL_SELF_AUDIT_RE.findall(hook_output)}
+    names |= {m.strip() for m in _FAIL_OPERATIONAL_RE.findall(hook_output)}
+    return names
+
+
+def compare_hook(hook_id: str, exit_code: int, registry: Registry,
+                 hook_output: str | None = None) -> dict:
     """Judge one pre-commit hook's exit code against `registry.hooks` -- `compare`'s sibling for
     a check that carries no pytest node id (a manual-stage hook run by `pre-commit run
     --hook-stage manual`, as `conductor.yml`'s `commit-gate` job does). Same shape as `compare`:
     'pass' on a clean exit OR a REGISTERED known-red; 'fail' (REGRESSION) on an unregistered
     non-zero exit. A registration is keyed by `hook_id` alone -- it never covers a different
     hook, the same specificity `compare`'s per-node-id keying already has.
+
+    `hook_output`, when given, and the entry carries a `checks:` allowlist (the specific
+    `audit.py health` check names this registration was measured against): the ACTUAL failing
+    check names extracted from `hook_output` must be a subset of that allowlist, or the names
+    outside it are reported as a genuine regression even though `hook_id` itself is registered
+    (Codex terra HIGH, 2026-09-26 -- see `extract_failing_check_names`). Omitting `hook_output`,
+    or a registration with no `checks:` list, keeps the prior whole-hook behavior exactly
+    (backward-compatible: no existing caller or committed registry entry is broken by this).
     """
     base = {"baseline_id": registry.baseline_id, "hook_id": hook_id}
     if exit_code == 0:
@@ -264,6 +298,16 @@ def compare_hook(hook_id: str, exit_code: int, registry: Registry) -> dict:
                 "reason": f"REGRESSION -- {hook_id} exited {exit_code} and is not in the "
                           f"registry's hooks (baseline {registry.baseline_id})",
                 "regressions": [hook_id], "registered": None}
+    allowed = entry.get("checks")
+    if hook_output is not None and allowed:
+        failing = extract_failing_check_names(hook_output)
+        unknown = sorted(failing - set(allowed))
+        if unknown:
+            return {**base, "verdict": "fail",
+                    "reason": f"REGRESSION -- {hook_id} exited {exit_code} with check(s) "
+                              f"{', '.join(unknown)} outside the registered set {sorted(allowed)} "
+                              f"(baseline {registry.baseline_id})",
+                    "regressions": unknown, "registered": entry}
     return {**base, "verdict": "pass",
             "reason": f"{hook_id}: known (registered {entry.get('attribution', UNATTRIBUTED)}) "
                       f"-- exit {exit_code} (baseline {registry.baseline_id})",
@@ -476,6 +520,10 @@ def main(argv: list[str] | None = None) -> int:
     cmp_hook.add_argument("--hook-id", required=True)
     cmp_hook.add_argument("--exit-code", required=True, type=int)
     cmp_hook.add_argument("--registry", default=REGISTRY_PATH)
+    cmp_hook.add_argument("--hook-output", default=None,
+                          help="raw hook stdout/stderr; scopes a `checks:`-bearing "
+                               "registration to the specific failing check names it names, "
+                               "instead of the whole hook (Codex terra HIGH, 2026-09-26)")
 
     attr = sub.add_parser("attribute", help="git bisect run, one test, and name the lane")
     attr.add_argument("--test", required=True)
@@ -543,7 +591,9 @@ def main(argv: list[str] | None = None) -> int:
         except KnownRedsError as exc:
             print(str(exc), file=sys.stderr)
             return EXIT_UNCOMPARABLE
-        result = compare_hook(args.hook_id, args.exit_code, registry)
+        hook_output = (Path(args.hook_output).read_text(encoding="utf-8", errors="replace")
+                      if args.hook_output else None)
+        result = compare_hook(args.hook_id, args.exit_code, registry, hook_output=hook_output)
         report = render_compare_hook(result)
         if args.out:
             Path(args.out).write_text(report + "\n", encoding="utf-8", newline="\n")
