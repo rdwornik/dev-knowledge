@@ -218,20 +218,121 @@ class PopulationUnreadable(RuntimeError):
 # sweep reads. Relocating it there is an OWED follow-up, named in this lane's artifact rather
 # than left to be discovered.
 #
-# IT IS DELIBERATELY ALMOST EMPTY. The whole population was measured before this register was
-# written: of the 104 transport decision files, 95 carry a `carried-by:` that resolves on
-# `main` and are `done` by P11's own verdict; of the nine that do not, eight are dated before
-# `ARM_DATE` and are grandfathered. Exactly ONE in-era decision needed a ruling, and it already
-# had one -- which is the difference between a register and a set of paper suppressions.
+# IT WAS DELIBERATELY ALMOST EMPTY at first writing (one in-era decision, already ruled). Grown
+# by LANE-5B3-4-decision-debt (2026-09-26) once P13's own onboarding rung named 40 accepted-and-
+# undisposed in-era decisions -- measured live, not asserted: `decision_coverage.py ledger` at
+# this lane's start. 13 of the 40 were resolved a different way first (their transport carrier
+# turned out to have already landed; see `carrier_landed_check.py` and the lane's session file
+# for the old/new `carried-by:` lines and shas), which moved them to `done` and off this
+# register's population before a disposition was ever needed. The 29 entries below are the rest
+# -- two GROUNDED classes, never invented:
+#   * ADR-121..126 and every DRAFT/SEED intake here are Proposed/pre-triage. MEASURED pattern on
+#     this tree: ADR-119 and ADR-120 (both Accepted) already carry implementing rows; no
+#     Proposed ADR in this population does. Filing a row against an unratified ADR, or an
+#     untriaged intake, would pre-empt the operator's own ratification / the funnel's own triage
+#     (ADR-94; ADR-98; ADR-111) -- the disposition IS that reserved act, not yet performed.
+#   * The eleven live `AMEND-BATCH-WAVE5B-N2-*` queue amendments are EXECUTING IN BATCH N2 (A9-2's
+#     own third category), not refused: the operator-authorized batch has not closed (no
+#     `docs/audits/` digest for WAVE5B-N2 exists, and `BATCH-RECOVERY-WAVE5B-N2-2026-09-26.md`
+#     exists precisely because it needed a recovery order rather than a clean close). A backlog
+#     row here would duplicate the batch's own lane table, not dispose anything.
+# The remaining 11 of the 40 have NEITHER grounding: no ratification/triage process governs them
+# and no batch claims them as still executing. Those are `ROWS-OWED` lines in this lane's session
+# file, per ruling (h) -- this lane files no rows.
+
+#: The single reasoning ADR-121..126 and the pre-triage intakes below share, factored out so six
+#: ADR entries and twelve intake entries do not restate it with room to drift.
+_AWAITING_RATIFICATION = (
+    "Proposed, awaiting the operator's ratification (ADR-94) -- one of the five reserved "
+    "operator-only decisions (PLAYBOOK: GO / ratification / tag / destructive acts / seat "
+    "release). MEASURED pattern on this tree, 2026-09-26: ADR-119 and ADR-120 (both Accepted) "
+    "carry implementing rows; no Proposed ADR in this population carries one. Filing a row "
+    "against a still-Proposed ADR would pre-empt the operator's own ruling on whether to adopt "
+    "it at all.")
+_AWAITING_TRIAGE = (
+    "DRAFT or SEED, awaiting ADR-98's intake funnel (DRAFT -> ... -> CONSUMED) and ADR-111's "
+    "decision funnel (OWNED / DISCHARGED / CANDIDATE / REJECTED). A row is filed once triage "
+    "promotes the intake to CANDIDATE and a ruling accepts it -- filing one pre-emptively, "
+    "before the funnel disposes the finding, would jump the process both ADRs exist to enforce.")
+_EXECUTING_WAVE5B_N2 = (
+    "EXECUTING IN BATCH WAVE5B-N2 (A9-2's 'executing in batch N' category), not refused. The "
+    "operator authorized WAVE5B-N2 as a night batch (`to-cc/BATCH-WAVE5B-N2-2026-09-25.md`); "
+    "this is one of its queue-management amendments and the batch has not closed -- no "
+    "WAVE5B-N2 digest has landed under `docs/audits/` (measured 2026-09-26), and "
+    "`to-cc/BATCH-RECOVERY-WAVE5B-N2-2026-09-26.md` exists precisely because N2 needed a "
+    "recovery order rather than a clean close. A backlog row would duplicate the batch's own "
+    "lane table rather than dispose anything; the batch's own eventual digest is the "
+    "disposition, once it closes.")
+_SUPERSEDED_WAVE5B_N2_QUEUE = (
+    "SUPERSEDED by its own later revision in the same WAVE5B-N2 queue-amendment chain -- a "
+    "dead branch of a batch decision already covered by the 'executing in batch WAVE5B-N2' "
+    "disposition on its successor file. A second row, or a second disposition with different "
+    "content, for the same batch decision would duplicate rather than dispose.")
+
+# `declare:AMEND-CV-V10-001`'s disposition (OUT OF POPULATION, the batch X manifest's own
+# scoping) was REMOVED here -- LANE-5B3-4-decision-debt, 2026-09-26 -- once
+# `stale_dispositions` (correctly; see its own docstring) flagged it: no file named
+# `AMEND-CV-V10-001*` exists anywhere on the live transport any more (checked directly, not
+# inferred), pre-dating this lane's own edits -- this lane never touched, created or deleted
+# any CV-V10 file. The disposition named a decision that is gone; removing it is maintaining
+# the register, not writing a new one, and needs no ruling of its own -- the ruling it cited
+# (the batch X manifest / AMEND-SESSION-PLAN-005 A5-1) already discharged by that decision's
+# own disappearance from the corpus it was scoped out of.
 
 DECISION_DISPOSITIONS: dict[str, Disposition] = {
-    "declare:AMEND-CV-V10-001": Disposition(
-        reason="OUT OF POPULATION by the operator's own scoping, not waived here. The batch X "
-               "manifest's seat-refusals block records it in terms -- the carried-by check runs "
-               "on 'batch X decision files only, per AMEND-SESSION-PLAN-005 A5-1', and names "
-               "AMEND-CV-V10-001 as 'another workstream'. It rules the CV build, which is not "
-               "this repo's corpus and can have no row in this backlog",
-        owner="operator -- the AMEND-SESSION-PLAN-005 A5-1 scoping"),
+    # -- ADR-121..126: Proposed, ratification pending (ADR-94) -- LANE-5B3-4-decision-debt -----
+    "adr:121": Disposition(reason=_AWAITING_RATIFICATION,
+                           owner="the operator's ratification act, tracked at ADR-121's Status line"),
+    "adr:122": Disposition(reason=_AWAITING_RATIFICATION,
+                           owner="the operator's ratification act, tracked at ADR-122's Status line"),
+    "adr:123": Disposition(reason=_AWAITING_RATIFICATION,
+                           owner="the operator's ratification act, tracked at ADR-123's Status line"),
+    "adr:124": Disposition(reason=_AWAITING_RATIFICATION,
+                           owner="the operator's ratification act, tracked at ADR-124's Status line"),
+    "adr:125": Disposition(reason=_AWAITING_RATIFICATION,
+                           owner="the operator's ratification act, tracked at ADR-125's Status line"),
+    "adr:126": Disposition(reason=_AWAITING_RATIFICATION,
+                           owner="the operator's ratification act, tracked at ADR-126's Status line"),
+
+    # -- pre-triage intakes (DRAFT/SEED) -- LANE-5B3-4-decision-debt --------------------------
+    "intake:93": Disposition(reason=_AWAITING_TRIAGE, owner="ADR-98/ADR-111's intake funnel, not yet run over intake #93"),
+    "intake:95": Disposition(reason=_AWAITING_TRIAGE, owner="ADR-98/ADR-111's intake funnel, not yet run over intake #95"),
+    "intake:96": Disposition(reason=_AWAITING_TRIAGE, owner="ADR-98/ADR-111's intake funnel, not yet run over intake #96"),
+    "intake:97": Disposition(reason=_AWAITING_TRIAGE, owner="ADR-98/ADR-111's intake funnel, not yet run over intake #97"),
+    "intake:98": Disposition(reason=_AWAITING_TRIAGE, owner="ADR-98/ADR-111's intake funnel, not yet run over intake #98"),
+    "intake:99": Disposition(reason=_AWAITING_TRIAGE, owner="ADR-98/ADR-111's intake funnel, not yet run over intake #99"),
+    "intake:100": Disposition(reason=_AWAITING_TRIAGE, owner="ADR-98/ADR-111's intake funnel, not yet run over intake #100"),
+    "intake:101": Disposition(reason=_AWAITING_TRIAGE, owner="ADR-98/ADR-111's intake funnel, not yet run over intake #101"),
+    "intake:102": Disposition(reason=_AWAITING_TRIAGE, owner="ADR-98/ADR-111's intake funnel, not yet run over intake #102"),
+    "intake:103": Disposition(reason=_AWAITING_TRIAGE, owner="ADR-98/ADR-111's intake funnel, not yet run over intake #103"),
+    "intake:104": Disposition(reason=_AWAITING_TRIAGE, owner="ADR-98/ADR-111's intake funnel, not yet run over intake #104"),
+    "intake:105": Disposition(reason=_AWAITING_TRIAGE, owner="ADR-98/ADR-111's intake funnel, not yet run over intake #105"),
+
+    # -- live WAVE5B-N2 queue amendments: executing, batch not closed -- LANE-5B3-4-decision-debt
+    "declare:AMEND-BATCH-WAVE5B-N2-LANE8-2026-09-25": Disposition(
+        reason=_EXECUTING_WAVE5B_N2, owner="the WAVE5B-N2 batch's own integrator close (not yet reached)"),
+    "declare:AMEND-BATCH-WAVE5B-N2-QUEUE-2026-09-25": Disposition(
+        reason=_EXECUTING_WAVE5B_N2, owner="the WAVE5B-N2 batch's own integrator close (not yet reached)"),
+    "declare:AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25": Disposition(
+        reason=_EXECUTING_WAVE5B_N2, owner="the WAVE5B-N2 batch's own integrator close (not yet reached)"),
+    "declare:AMEND-BATCH-WAVE5B-N2-QUEUE3-2026-09-25": Disposition(
+        reason=_EXECUTING_WAVE5B_N2, owner="the WAVE5B-N2 batch's own integrator close (not yet reached)"),
+    "declare:AMEND-BATCH-WAVE5B-N2-QUEUE4-2026-09-25": Disposition(
+        reason=_EXECUTING_WAVE5B_N2, owner="the WAVE5B-N2 batch's own integrator close (not yet reached)"),
+    "declare:AMEND-BATCH-WAVE5B-N2-QUEUE5-2026-09-25": Disposition(
+        reason=_EXECUTING_WAVE5B_N2, owner="the WAVE5B-N2 batch's own integrator close (not yet reached)"),
+    "declare:AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25": Disposition(
+        reason=_EXECUTING_WAVE5B_N2, owner="the WAVE5B-N2 batch's own integrator close (not yet reached)"),
+
+    # -- superseded WAVE5B-N2 queue amendments: dead branches -- LANE-5B3-4-decision-debt -------
+    "declare:AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25-v1-superseded": Disposition(
+        reason=_SUPERSEDED_WAVE5B_N2_QUEUE, owner="superseded by AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25 (final)"),
+    "declare:AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25-v2-superseded": Disposition(
+        reason=_SUPERSEDED_WAVE5B_N2_QUEUE, owner="superseded by AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25 (final)"),
+    "declare:AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25-v1-superseded": Disposition(
+        reason=_SUPERSEDED_WAVE5B_N2_QUEUE, owner="superseded by AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25 (final)"),
+    "declare:AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25-v2-superseded": Disposition(
+        reason=_SUPERSEDED_WAVE5B_N2_QUEUE, owner="superseded by AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25 (final)"),
 }
 
 
