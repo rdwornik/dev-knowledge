@@ -899,6 +899,12 @@ def test_shipped_corpus_coherence_divergences_are_the_three_measured():
     `index_effective_status` regression that dropped a non-divergent row would raise
     `unindexed` while leaving ADR-45/46/47 unchanged — and this test still passed.
     """
+    # RE-MEASURED 2026-09-26 by lane-adr122-accept-2: R_WRAP 1 -> 2. ADR-122's own
+    # `- **Status:** Accepted (... ratified 2026-09-25, RATIFICATION-2026-09-25 R1 —`
+    # line (landed by the kept N2 branch this lane resumes) genuinely continues onto
+    # the next physical line, a real lazy continuation the parser is right to flag —
+    # not a regression this lane introduced. R_GRAMMAR/R_COHERENCE/R_DUPLICATE
+    # unchanged, so the delta is that one wrap and nothing else.
     fields, missing, extra = vas.scan_zone(vas.LIVE_DIR)
     eff = vas.index_effective_status(
         (vas.LIVE_DIR / "README.md").read_text(encoding="utf-8"))
@@ -912,7 +918,7 @@ def test_shipped_corpus_coherence_divergences_are_the_three_measured():
     assert counts == {
         vas.R_GRAMMAR: 47,
         vas.R_COHERENCE: 3,
-        vas.R_WRAP: 1,
+        vas.R_WRAP: 2,
         vas.R_DUPLICATE: 2,
     }, counts
     # enum / single-field / unindexed are the legs measured at ZERO — assert their absence
@@ -1409,8 +1415,9 @@ def test_hub_evidence_separates_this_legs_warns_from_the_inherited_baseline():
     """The dispatcher pin: *say what YOUR leg adds*, so the next reader can tell the new WARNs
     from the four inherited populations. They are separate keys in one tally, never a merged
     total."""
+    # wrapped-value=1 -> 2: same ADR-122 header wrap measured above.
     ev = check_adr_status_grammar(vas._REPO_ROOT)[0].evidence
-    for inherited in ("grammar=47", "coherence=3", "duplicate-id=2", "wrapped-value=1"):
+    for inherited in ("grammar=47", "coherence=3", "duplicate-id=2", "wrapped-value=2"):
         assert inherited in ev, ev
     assert "flip-condition-legacy=89" in ev, ev
     assert "alternatives-considered-legacy=32" in ev, ev

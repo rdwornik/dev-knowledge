@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-26 (c) - CC (Opus 5.5, INTEGRATOR WAVE5B-N3): ADR-122 is Accepted on main, header and index row together; R1-R7 have an in-repo home; step 1's typed task record lands -- `task_record.py`
+
+**Anchors:** `02e63686`, `eee729c4`, `3d29eca3`, `b25cd317`, `f3cd9af0` (N2 lane 3 on kept branch `worktree-lane-adr122-accept`), `af3d4a8b`, `fc80dfa9`, `d3e0c635`, `5d16450d` -- `worktree-lane-adr122-accept-2` (ordered and served `claude-sonnet-5`), merged `--no-ff` from an integration worktree stacked on the (b) merge.
+
+**Did:** ADR-122's status line reads Accepted (ADR-94) with one appended amendment citing R1 and `protocols/STANDING_RULINGS.md` §AM (R1-R7, dated, cited); the `docs/decisions/README.md` index row now reads Accepted too -- the defect that failed N2 -- and `validate_adr_status` coherence equals main's (3). Rows [#1076]-[#1080] file R1a/R1b/R1c and step 1's two remainders, each with a runnable check. `scripts/task_record.py` (pydantic model, converter, CLI; refuses `tasks/` writes) with `tests/test_task_record.py`. Step 1's corpus-wide zero-`legacy_body` exit bar is not reached: `(optional)` item 4 OPTIONAL-UNMET, remainder [#1080]. DECIDED-BY-INTEGRATOR: lesson (d)'s "same commit" is met on main's first-parent spine -- this one merge lands header and row together; the header's own commit is N2's, on the kept branch. `harness.yaml` conflict kept both sides (ruling (f)): lane 5's corrected `surface_triage` fates plus this lane's `task_record` line. **Result:** the backlog-store decision is ratified on main, and `lane-backlog-o1-step1` can start. **Changes:** `docs/decisions/ADR-122-*.md`, `docs/decisions/README.md`, `protocols/STANDING_RULINGS.md`, `tasks/1076-1080-*.md` (+ 4 touched rows), `scripts/task_record.py`, `tests/test_task_record.py`, `tests/test_validate_adr_status.py`, `ecosystem/harness.yaml` (one fates line), two Codex records, generated files, `JOURNAL.md`, `logs/MERGE-RECEIPTS.jsonl`. **Next:** [#1080]; `lane-backlog-o1-step1`.
+
 ### 2026-09-26 (b) - CC (Opus 5.5, INTEGRATOR WAVE5B-N3): the dispatcher launches through `dispatch.py queue --watch` and repairs through `dispatch.py repair`, and the queue's dependency hold reads the integrator's real receipt
 
 **Anchors:** `e3c2a5b9`, `5fe80f24` -- `worktree-lane-wire-queue` (ordered and served `claude-sonnet-5`), merged `--no-ff` from an integration worktree stacked on the (a) merge.

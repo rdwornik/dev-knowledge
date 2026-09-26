@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "f517b96bdfe8d4cd1eda105d2d014829579afe8fab04046e651119a57e41b8e9",
+  "generated_sha256": "1bb1780c895b76282096de1c5ca2616382ee9aa6c4e55d1467e7a3d18b6ca4ba",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1372,6 +1372,26 @@
     {
       "task": 791,
       "file": "791-carry-intake-101-the-runtime-resource-organ-throug.md"
+    },
+    {
+      "task": 1076,
+      "file": "1076-r1a-pr-ci-gated-close-is-the-closure-sweep-model.md"
+    },
+    {
+      "task": 1077,
+      "file": "1077-r1b-the-whole-graph-check-refuses-cycles-and-dangl.md"
+    },
+    {
+      "task": 1078,
+      "file": "1078-r1c-a-raw-json-projection-of-the-records-is-the-brow.md"
+    },
+    {
+      "task": 1079,
+      "file": "1079-adr-122-step-1-remainder-four-rows-body-grammar-b.md"
+    },
+    {
+      "task": 1080,
+      "file": "1080-adr-122-step-1-remainder-eliminate-legacy-body-ca.md"
     },
     {
       "prose": "### [S12] Close the small ADR cross-reference + registry amendments"
