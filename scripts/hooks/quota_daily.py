@@ -58,6 +58,12 @@ except ImportError:  # pragma: no cover
 _PRODUCER_FLAG = "--producer"
 _CLAIM_NAME = "QUOTA-DAILY-CLAIM.json"
 
+#: Bounds the one `quota_watch.py record` subprocess (a handful of `gh api` calls) -- generous
+#: versus a live network round trip, well under `_CLAIM_STALE_S` so a run that finishes late is
+#: still reaped and retried inside the same day rather than blocking it (Codex terra HIGH,
+#: 2026-09-26: an unbounded `subprocess.run` could hang past the SessionStart hook's own life).
+_PRODUCER_TIMEOUT_S = 120
+
 #: Generous versus a `gh api` round trip, tight versus a worker that died mid-call --
 #: `fleet_health._PRODUCER_STALE_RUNNING_S` (1800s) sizes for a multi-minute audit; this
 #: organ's live read is a handful of `gh api` calls, not an audit, so ten minutes is ample
@@ -180,12 +186,25 @@ def maybe_trigger_read(repo_root: Path = _REPO_ROOT, environ: Optional[dict] = N
     worker_argv = [sys.executable, str(Path(__file__).resolve()), _PRODUCER_FLAG]
     try:
         le = _import_lane_end_guard()
-        le.spawn_worker(worker_argv, repo_root, dict(environ))
-        print("[quota] no read recorded today; spawned a detached live read")
+        broke_away = le.spawn_worker(worker_argv, repo_root, dict(environ))
     except BaseException as exc:  # noqa: BLE001 -- no worker means no read: record it, never block SessionStart
         _write_claim_result(claim_path, status="FAILED",
                             reason=f"could not start the worker: {type(exc).__name__}: {exc}")
         print(f"[quota] could not spawn the live read (fail-open): {exc}")
+        return
+    if not broke_away:
+        # Codex terra HIGH, 2026-09-26: `spawn_worker` returning False means the worker started
+        # INSIDE this hook's own job (breakaway was refused), so it can be killed the instant
+        # this SessionStart hook's process ends -- a `running` claim from a worker that never
+        # gets to finish would otherwise suppress every read for the rest of `_CLAIM_STALE_S`.
+        # Treated as failed immediately so the NEXT SessionStart retries instead of waiting it out.
+        _write_claim_result(
+            claim_path, status="FAILED",
+            reason="spawn_worker could not break the worker away from this hook's own job; "
+                  "it may be killed with the hook, so this read is not trusted")
+        print("[quota] worker could not detach from this hook's job (fail-open, treated as failed)")
+        return
+    print("[quota] no read recorded today; spawned a detached live read")
 
 
 def run_producer(repo_root: Path = _REPO_ROOT, environ: Optional[dict] = None) -> int:
@@ -200,8 +219,25 @@ def run_producer(repo_root: Path = _REPO_ROOT, environ: Optional[dict] = None) -
     environ = os.environ if environ is None else environ
     claim_path = _claim_path(repo_root)
     quota_watch_path = _SCRIPTS_DIR / "quota_watch.py"
-    proc = subprocess.run([sys.executable, str(quota_watch_path), "record"],
-                          cwd=str(repo_root), capture_output=True, env=dict(environ))
+    try:
+        proc = subprocess.run([sys.executable, str(quota_watch_path), "record"],
+                              cwd=str(repo_root), capture_output=True, env=dict(environ),
+                              timeout=_PRODUCER_TIMEOUT_S)
+    except subprocess.TimeoutExpired as exc:
+        # Codex terra HIGH, 2026-09-26: an unbounded `subprocess.run` could hang past this
+        # worker's own useful life with no claim result ever written -- bounded and turned into
+        # a terminal FAILED result so a later session's `_reap_stale_claim` is not the only thing
+        # standing between a hung `gh api` call and a claim stuck at `running` all day.
+        _write_claim_result(
+            claim_path, status="FAILED",
+            reason=f"quota_watch.py record exceeded the {_PRODUCER_TIMEOUT_S}s producer "
+                  f"timeout: {exc}")
+        return 1
+    except OSError as exc:
+        _write_claim_result(
+            claim_path, status="FAILED",
+            reason=f"could not launch quota_watch.py record: {type(exc).__name__}: {exc}")
+        return 1
     ok = proc.returncode == 0
     _write_claim_result(
         claim_path, status=("ok" if ok else "FAILED"), returncode=proc.returncode,

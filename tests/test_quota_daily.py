@@ -145,6 +145,64 @@ def test_a_worker_that_cannot_start_still_returns_0_and_records_failed(tmp_path,
     assert "could not start the worker" in claim["reason"]
 
 
+def test_a_worker_that_could_not_break_away_is_treated_as_failed(tmp_path, monkeypatch):
+    """Codex terra HIGH, 2026-09-26: `spawn_worker` returning False means the worker is
+    still inside this hook's own job and can die with it -- that must not be read as a
+    successful spawn, or a `running` claim could sit unreaped for `_CLAIM_STALE_S`."""
+    monkeypatch.setattr(qd, "_REPO_ROOT", tmp_path)
+
+    class _NonBreakawayLaneEndGuard:
+        @staticmethod
+        def spawn_worker(argv, cwd, env):
+            return False
+
+    monkeypatch.setattr(qd, "_import_lane_end_guard", lambda: _NonBreakawayLaneEndGuard)
+
+    assert qd.main([]) == 0
+
+    claim = json.loads(
+        (tmp_path / "logs" / "receipts" / qd._CLAIM_NAME).read_text(encoding="utf-8"))
+    assert claim["status"] == "FAILED"
+    assert "break" in claim["reason"].lower()
+
+
+def test_run_producer_records_failed_on_timeout(tmp_path, monkeypatch):
+    """Codex terra HIGH, 2026-09-26: the producer's `subprocess.run` must be bounded, and a
+    timeout must still leave a terminal claim result rather than none at all."""
+    monkeypatch.setattr(qd, "_REPO_ROOT", tmp_path)
+
+    import subprocess as _subprocess
+
+    def _fake_run(*args, **kwargs):
+        assert kwargs.get("timeout") == qd._PRODUCER_TIMEOUT_S
+        raise _subprocess.TimeoutExpired(cmd=args[0], timeout=kwargs["timeout"])
+
+    monkeypatch.setattr(qd.subprocess, "run", _fake_run)
+
+    assert qd.run_producer(tmp_path) == 1
+
+    claim = json.loads(
+        (tmp_path / "logs" / "receipts" / qd._CLAIM_NAME).read_text(encoding="utf-8"))
+    assert claim["status"] == "FAILED"
+    assert "timeout" in claim["reason"].lower()
+
+
+def test_run_producer_records_failed_when_the_subprocess_cannot_launch(tmp_path, monkeypatch):
+    monkeypatch.setattr(qd, "_REPO_ROOT", tmp_path)
+
+    def _fake_run(*args, **kwargs):
+        raise OSError("no interpreter")
+
+    monkeypatch.setattr(qd.subprocess, "run", _fake_run)
+
+    assert qd.run_producer(tmp_path) == 1
+
+    claim = json.loads(
+        (tmp_path / "logs" / "receipts" / qd._CLAIM_NAME).read_text(encoding="utf-8"))
+    assert claim["status"] == "FAILED"
+    assert "could not launch" in claim["reason"].lower()
+
+
 # --- budget: p95 of >= 10 runs, both paths --------------------------------------
 
 def _p95(samples):
