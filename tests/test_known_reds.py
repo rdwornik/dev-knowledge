@@ -98,6 +98,24 @@ def test_refresh_drops_members_no_longer_failing(kr):
     assert "tests/fixed.py::t9" not in registry.members
 
 
+def test_refresh_carries_forward_the_previous_registrys_hooks_section(kr):
+    """lane-ci-signal, [#802] evidence run gh-run:36220172268: `refresh` built its next
+    Registry without passing `hooks=`, so a live refresh silently dropped the committed
+    `audit-health` hook registration -- caught only because the compare-hook step's own
+    verdict flipped from PASS to a bare exit-1 refusal on the very next run. `hooks` carries
+    no pytest node id and is never touched by the failed-set walk above it, so it must be
+    carried forward unconditionally, the same way `notes` already is."""
+    previous = kr.Registry(schema=kr.SCHEMA, baseline_id="b", measured_at_sha="old",
+                           measured_via="local", workers=4,
+                           members={"tests/a.py::t1": {"attribution": "pre-freeze"}},
+                           hooks={"audit-health": {"attribution": "environment-mismatch",
+                                                    "reason": "pre-existing"}})
+    registry, _ = kr.refresh(failed=frozenset({"tests/a.py::t1"}), workers=4, commit="new",
+                             measured_via="local", date="2026-09-24", attribution={},
+                             previous=previous)
+    assert registry.hooks == previous.hooks
+
+
 def test_refresh_is_idempotent_on_the_same_failed_set(kr):
     previous = kr.Registry(schema=kr.SCHEMA, baseline_id="b", measured_at_sha="old",
                            measured_via="local", workers=4,

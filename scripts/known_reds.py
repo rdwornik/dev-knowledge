@@ -202,7 +202,8 @@ def refresh(*, failed: frozenset, workers: int, commit: str, measured_via: str, 
     baseline_id = compute_baseline_id(members, date=date)
     registry = Registry(schema=SCHEMA, baseline_id=baseline_id, measured_at_sha=commit,
                         measured_via=measured_via, workers=workers, members=members,
-                        notes=previous.notes if previous else ())
+                        notes=previous.notes if previous else (),
+                        hooks=dict(previous.hooks) if previous else {})
     return registry, dropped
 
 

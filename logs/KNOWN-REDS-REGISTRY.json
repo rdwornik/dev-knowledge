@@ -1,12 +1,16 @@
 {
   "schema": "known-reds-registry/1",
-  "baseline_id": "2026-09-24-6b1c6bf4df83",
-  "measured_at_sha": "aca2385b083cacdfba86d0dd60e1960383dc48bf",
-  "measured_via": "gh-run:35939312231",
+  "baseline_id": "2026-09-26-395375b34fd6",
+  "measured_at_sha": "3dc1be046425b538362764dbb7f44e929d6e08ea",
+  "measured_via": "gh-run:36220172268",
   "workers": 4,
   "members": {
     "plugins/tier1-lifecycle/tests/test_plugin_paths.py::test_propose_operates_on_host_repo_not_plugin": {
       "attribution": "pre-freeze"
+    },
+    "provision_legs:provision_legs.py:775 history: ref 'main' does not resolve in this clone": {
+      "attribution": "environment-mismatch",
+      "reason": "lane-ci-signal, [#802] evidence run gh-run:36220172268 (workflow_dispatch, 3dc1be046425b538362764dbb7f44e929d6e08ea): all five share one root cause -- `actions/checkout@v4`'s default shallow, single-ref clone leaves the local `main` branch ref unresolvable on the runner (`fatal: Not a valid object name main`), so any check that walks history against a local `main` ref (provision_legs.py's own history check, validate_branch_naming.py's local-branch reader, worktree_seed.py's base-ref comparison) fails there and passes on every clone that carries `main` locally -- the operator's own machine, and any CI runner configured with `fetch-depth: 0` or a post-checkout `git fetch origin main`. None of the four owned files for this lane (.github/workflows/conductor.yml, scripts/conductor.py's suite-gate verb, scripts/known_reds.py, scripts/graph_queries.py's three verbs, scripts/audit_checks/) touch checkout depth or these four unowned test/script files (scripts/provision_legs.py, tests/test_provision_legs.py, scripts/validate_branch_naming.py, tests/test_validate_branch_naming.py, scripts/worktree_seed.py, tests/test_worktree_seed.py) -- same FIXABLE-IN-OWNED-FILES boundary already applied to the audit-health hook entry above. `uv run --locked pytest -n 0 tests/test_provision_legs.py tests/test_validate_branch_naming.py tests/test_worktree_seed.py` on this same tree, on the operator's own Windows clone (which carries `main` locally), passes -- the finding is real only in the ephemeral CI checkout."
     },
     "tests/test_archive_row_body.py::test_every_committed_record_still_proves_out": {
       "attribution": "pre-freeze"
@@ -270,6 +274,10 @@
     "tests/test_proof_layer.py::test_the_live_guard_population_is_at_or_below_its_baseline": {
       "attribution": "pre-freeze"
     },
+    "tests/test_provision_legs.py::test_history_check_exits_0_on_this_repo": {
+      "attribution": "environment-mismatch",
+      "reason": "lane-ci-signal, [#802] evidence run gh-run:36220172268 (workflow_dispatch, 3dc1be046425b538362764dbb7f44e929d6e08ea): all five share one root cause -- `actions/checkout@v4`'s default shallow, single-ref clone leaves the local `main` branch ref unresolvable on the runner (`fatal: Not a valid object name main`), so any check that walks history against a local `main` ref (provision_legs.py's own history check, validate_branch_naming.py's local-branch reader, worktree_seed.py's base-ref comparison) fails there and passes on every clone that carries `main` locally -- the operator's own machine, and any CI runner configured with `fetch-depth: 0` or a post-checkout `git fetch origin main`. None of the four owned files for this lane (.github/workflows/conductor.yml, scripts/conductor.py's suite-gate verb, scripts/known_reds.py, scripts/graph_queries.py's three verbs, scripts/audit_checks/) touch checkout depth or these four unowned test/script files (scripts/provision_legs.py, tests/test_provision_legs.py, scripts/validate_branch_naming.py, tests/test_validate_branch_naming.py, scripts/worktree_seed.py, tests/test_worktree_seed.py) -- same FIXABLE-IN-OWNED-FILES boundary already applied to the audit-health hook entry above. `uv run --locked pytest -n 0 tests/test_provision_legs.py tests/test_validate_branch_naming.py tests/test_worktree_seed.py` on this same tree, on the operator's own Windows clone (which carries `main` locally), passes -- the finding is real only in the ephemeral CI checkout."
+    },
     "tests/test_release_lint.py::test_cli_green_exit_0": {
       "attribution": "pre-freeze"
     },
@@ -306,8 +314,20 @@
     "tests/test_v6_frozen_contract.py::test_fr6_repo_root_and_cross_repo_are_codified_and_cli_mapped": {
       "attribution": "pre-freeze"
     },
+    "tests/test_validate_branch_naming.py::test_local_branches_reads_the_live_repo": {
+      "attribution": "environment-mismatch",
+      "reason": "lane-ci-signal, [#802] evidence run gh-run:36220172268 (workflow_dispatch, 3dc1be046425b538362764dbb7f44e929d6e08ea): all five share one root cause -- `actions/checkout@v4`'s default shallow, single-ref clone leaves the local `main` branch ref unresolvable on the runner (`fatal: Not a valid object name main`), so any check that walks history against a local `main` ref (provision_legs.py's own history check, validate_branch_naming.py's local-branch reader, worktree_seed.py's base-ref comparison) fails there and passes on every clone that carries `main` locally -- the operator's own machine, and any CI runner configured with `fetch-depth: 0` or a post-checkout `git fetch origin main`. None of the four owned files for this lane (.github/workflows/conductor.yml, scripts/conductor.py's suite-gate verb, scripts/known_reds.py, scripts/graph_queries.py's three verbs, scripts/audit_checks/) touch checkout depth or these four unowned test/script files (scripts/provision_legs.py, tests/test_provision_legs.py, scripts/validate_branch_naming.py, tests/test_validate_branch_naming.py, scripts/worktree_seed.py, tests/test_worktree_seed.py) -- same FIXABLE-IN-OWNED-FILES boundary already applied to the audit-health hook entry above. `uv run --locked pytest -n 0 tests/test_provision_legs.py tests/test_validate_branch_naming.py tests/test_worktree_seed.py` on this same tree, on the operator's own Windows clone (which carries `main` locally), passes -- the finding is real only in the ephemeral CI checkout."
+    },
     "tests/test_validate_doc_rot.py::test_citation_regex_strips_only_real_dated_artifact_identifiers": {
       "attribution": "pre-freeze"
+    },
+    "tests/test_worktree_seed.py::test_A_LANES_BASE_EQUALS_MAIN_HEAD_AT_DISPATCH": {
+      "attribution": "environment-mismatch",
+      "reason": "lane-ci-signal, [#802] evidence run gh-run:36220172268 (workflow_dispatch, 3dc1be046425b538362764dbb7f44e929d6e08ea): all five share one root cause -- `actions/checkout@v4`'s default shallow, single-ref clone leaves the local `main` branch ref unresolvable on the runner (`fatal: Not a valid object name main`), so any check that walks history against a local `main` ref (provision_legs.py's own history check, validate_branch_naming.py's local-branch reader, worktree_seed.py's base-ref comparison) fails there and passes on every clone that carries `main` locally -- the operator's own machine, and any CI runner configured with `fetch-depth: 0` or a post-checkout `git fetch origin main`. None of the four owned files for this lane (.github/workflows/conductor.yml, scripts/conductor.py's suite-gate verb, scripts/known_reds.py, scripts/graph_queries.py's three verbs, scripts/audit_checks/) touch checkout depth or these four unowned test/script files (scripts/provision_legs.py, tests/test_provision_legs.py, scripts/validate_branch_naming.py, tests/test_validate_branch_naming.py, scripts/worktree_seed.py, tests/test_worktree_seed.py) -- same FIXABLE-IN-OWNED-FILES boundary already applied to the audit-health hook entry above. `uv run --locked pytest -n 0 tests/test_provision_legs.py tests/test_validate_branch_naming.py tests/test_worktree_seed.py` on this same tree, on the operator's own Windows clone (which carries `main` locally), passes -- the finding is real only in the ephemeral CI checkout."
+    },
+    "tests/test_worktree_seed.py::test_the_verdict_names_WHY_rather_than_only_failing": {
+      "attribution": "environment-mismatch",
+      "reason": "lane-ci-signal, [#802] evidence run gh-run:36220172268 (workflow_dispatch, 3dc1be046425b538362764dbb7f44e929d6e08ea): all five share one root cause -- `actions/checkout@v4`'s default shallow, single-ref clone leaves the local `main` branch ref unresolvable on the runner (`fatal: Not a valid object name main`), so any check that walks history against a local `main` ref (provision_legs.py's own history check, validate_branch_naming.py's local-branch reader, worktree_seed.py's base-ref comparison) fails there and passes on every clone that carries `main` locally -- the operator's own machine, and any CI runner configured with `fetch-depth: 0` or a post-checkout `git fetch origin main`. None of the four owned files for this lane (.github/workflows/conductor.yml, scripts/conductor.py's suite-gate verb, scripts/known_reds.py, scripts/graph_queries.py's three verbs, scripts/audit_checks/) touch checkout depth or these four unowned test/script files (scripts/provision_legs.py, tests/test_provision_legs.py, scripts/validate_branch_naming.py, tests/test_validate_branch_naming.py, scripts/worktree_seed.py, tests/test_worktree_seed.py) -- same FIXABLE-IN-OWNED-FILES boundary already applied to the audit-health hook entry above. `uv run --locked pytest -n 0 tests/test_provision_legs.py tests/test_validate_branch_naming.py tests/test_worktree_seed.py` on this same tree, on the operator's own Windows clone (which carries `main` locally), passes -- the finding is real only in the ephemeral CI checkout."
     }
   },
   "hooks": {
