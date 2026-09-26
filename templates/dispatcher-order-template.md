@@ -45,6 +45,14 @@ You launch lanes and continuation or repair sessions, and write receipts. **You 
 - **Before each fire:**
   - `worktree_occupancy.py` — 0: fire · 1: record, do not fire · 2: wait 60 s and retry;
   - at least <N> GB free and at most <M> heavy lane sessions running.
+- **Before each CODESPACE fire (W2, R7 — the one hard veto):**
+  `uv run --locked python scripts/quota_watch.py check --projected-core-hours <n>` — exit 0
+  (OK): fire · exit 1 (REFUSED): record the refusal verbatim, do not fire. `<n>` is that
+  codespace's core count × its idle-timeout ceiling in hours (e.g. 4-core × the 240-min idle
+  ceiling = 16 core-hours), multiplied by (codespaces of this batch already live + 1) when a
+  slot is already occupied. Every other quota (Actions minutes, storage, Copilot credits) only
+  warns via `QUOTA-WARN-<date>.md` (`quota_watch.py record`, run by the lane or the integrator)
+  — not a launch refusal.
 
 ## Sequence
 

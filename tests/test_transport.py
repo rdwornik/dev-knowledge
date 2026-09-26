@@ -61,19 +61,197 @@ def test_the_real_registry_loads_and_every_row_is_well_formed(t, registry):
     for k in registry:
         assert k.folder in t.FOLDERS
         assert k.writers, f"{k.name} has no writer"
-        assert k.prefix.endswith("-"), f"{k.name}'s prefix must end in '-': {k.prefix!r}"
+        # Three sanctioned prefix shapes (lane-transport-strays widened this beyond the
+        # original code-derived-only set, which was always a hyphen-terminated template lead-in):
+        #   (a) a live template prefix, ending in "-", with variable content after it
+        #       (the ORIGINAL and still the common shape: `GO-`, `SESSION-`, ...), or a bare
+        #       word lead-in the pattern extends with more required content (`WAVE`, `LEG`,
+        #       `PASTE_THIS`) -- proven by a PLAIN (non-regex) substring check: the prefix is
+        #       literal text with no regex metacharacters, so it must appear verbatim right
+        #       after the pattern's `^` anchor. (`re.escape` is deliberately NOT used here --
+        #       it escapes `-` too, which would make this assert the wrong thing for every
+        #       hyphen-bearing prefix, hiding the one real drift this exists to catch.)
+        #   (b) empty -- no fixed lead-in exists at all (a pure dated-slug/regex-driven kind,
+        #       e.g. DATED_SLUG); every such kind's own pattern is exercised by a dedicated
+        #       test below instead of this generic round-trip;
+        #   (c) a one-off EXACT filename with no placeholder at all (`STATUS.md`,
+        #       `R5-DECLARED.md`) -- its own pattern must therefore match the prefix text
+        #       verbatim as a complete filename.
+        pattern_text = k.regex.pattern
+        assert pattern_text.startswith("^"), f"{k.name}'s pattern must be left-anchored"
+        if k.prefix:
+            assert pattern_text[1:].startswith(k.prefix) or k.regex.match(k.prefix), (
+                f"{k.name}: prefix {k.prefix!r} is neither a literal lead-in of its own "
+                f"pattern {k.regex.pattern!r} nor a complete match against it")
 
 
-def test_every_kind_classifies_a_filename_shaped_from_its_own_prefix(t, registry):
-    """Round-trip: a synthetic filename built from a kind's own `prefix` must classify back to
-    THAT kind (not a shorter sibling prefix) -- catches a `pattern` that drifted from `prefix`."""
+#: The kinds `lane-transport-registry` (BATCH-WAVE5B-N1 #9) originally built the registry with --
+#: every one of these follows exactly one shape (prefix + arbitrary content + `.md`), so a
+#: synthetic "prefix+example+date+.md" sample is a faithful round-trip for them. Everything else
+#: in the registry is a `lane-transport-strays` addition; several require specific literal
+#: content right after the prefix (`DISPATCH-(CARD|CONTRACT)-`, `BROWSER-SEAT-FLOOR-(DRAFT|PIN)-`,
+#: ...) or a non-`.md` extension (`.zip`, `.js`, `.log`, `.json`/`.stderr.txt`) that a generic
+#: sample cannot satisfy -- those are proven instead, against their REAL observed filenames, by
+#: `test_lane_transport_strays_additions_classify_their_real_observed_filenames` below.
+_ORIGINAL_KIND_NAMES = {
+    "GO", "LEDGER", "PLAN", "BATCH", "DECLARE", "AMEND", "LANE_END", "HANDBACK_REFUSED",
+    "SESSION", "REFUSED", "SEAT_BOOT", "MERGE_PLAN", "ESCALATE", "LANE_CONTRACT",
+    "RATIFICATION", "STATUS", "QUESTION", "ANSWER", "CLOSURE_LIST", "STATE_BATCH", "DIGEST",
+}
+
+
+def test_every_hyphen_terminated_kind_classifies_a_filename_shaped_from_its_own_prefix(t, registry):
+    """Round-trip for shape (a) above: a synthetic filename built from a kind's own `prefix`
+    (which ends in "-") must classify back to THAT kind (not a shorter sibling prefix) --
+    catches a `pattern` that drifted from `prefix`. Shapes (b)/(c) (no trailing hyphen, or
+    empty) cannot build a generic sample this way -- see the dedicated tests below."""
     for k in registry:
+        if k.name not in _ORIGINAL_KIND_NAMES or not k.prefix.endswith("-"):
+            continue
         sample = f"{k.prefix}example-2026-09-25.md"
         got = t.classify(sample, registry)
         assert got is not None, f"{k.name}'s own prefix {k.prefix!r} does not self-classify"
         assert got.name == k.name, (
             f"{sample!r} classified as {got.name!r}, not {k.name!r} -- a shorter sibling "
             f"prefix (e.g. LANE- vs LANE-END-) is shadowing it")
+
+
+# --- lane-transport-strays: the widened shapes (literal filenames, bare word lead-ins, and
+# no-fixed-lead-in kinds a 300-file historical-debris classification pass actually needed) ------
+
+#: Real filenames the live transport's stray-file report actually held (300+ files, lane-
+#: transport-strays), one per new kind this lane's registry additions classify -- proof against
+#: ground truth rather than a synthetically-generated sample, since many of these kinds require
+#: specific literal content after their prefix or a non-`.md` extension a generic sample cannot
+#: exercise (see the scoping note on the round-trip test above).
+_LANE_TRANSPORT_STRAYS_SAMPLES = {
+    "ADDENDUM-lane-t-000-nc1-clear-A2.md": "ADDENDUM",
+    "AMEND2-PLAN-WAVE5-2026-09-24.md": "AMEND_PLAN",
+    "ARCHITECT-INBOX-2026-09-05.md": "ARCHITECT_INBOX",
+    "ARCHITECT-INBOX-2026-09-05-002.md": "ARCHITECT_INBOX",
+    "CONTRACT-cv-rewrite-v4-2026-09-10.md": "CONTRACT",
+    "CONTRACT-github-profile-copy-2026-09-10-v1-superseded.md": "CONTRACT",
+    "dispatch-measure.ps1": "DISPATCH_MEASURE_SCRIPT",
+    "DISPATCHER-WAVE5B-N1-2026-09-24-v1-superseded.md": "DISPATCHER",
+    "DRAFT-cv-copy-v8-2026-09-10.md": "DRAFT",
+    "FINAL-batch-u-close-packet.md": "FINAL",
+    "FINDING-filings-N2-P11-form.md": "FINDING",
+    "FINISH-5A-2026-09-24.md": "FINISH",
+    "FIX-BATCH-W-002-guard-root.md": "FIX",
+    "FLEET-READINESS-CONTRACT-2026-09-05.md": "FLEET_READINESS_CONTRACT",
+    "INBOX-dev-knowledge-2026-09-06-028.md": "INBOX_DEV_KNOWLEDGE",
+    "INTEGRATOR-FINISH-WAVE4A-2026-09-22-v2-superseded.md": "INTEGRATOR_FINISH",
+    "INTEGRATOR-PREHANDOFF-2026-09-24.md": "INTEGRATOR_PREHANDOFF",
+    "INTEGRATOR-STANDING-ORDER-WAVE4B-2026-09-22.md": "INTEGRATOR_STANDING_ORDER",
+    "INTEGRATOR-STANDING-ORDER-2026-09-20.md": "INTEGRATOR_STANDING_ORDER",
+    "INTEGRATOR-WAVE5A-2026-09-23-v1-superseded.md": "INTEGRATOR_WAVE",
+    "INTEGRATOR-WAVE5B-N1-2026-09-24.md": "INTEGRATOR_WAVE",
+    "lane-3-9-window-metrics.patch": "LANE_WINDOW_METRICS_PATCH",
+    "POSTWAVE-CHAIN-2026-09-22-v1-superseded.md": "POSTWAVE_CHAIN",
+    "PRECUT-2026-09-24.md": "PRECUT",
+    "R5-DECLARED.md": "R5_DECLARED",
+    "RECOVERED-lane-u-000-branch-enum-parity.patch": "RECOVERED",
+    "RULING-RELAY-DECLARE-SITTING-2026-09-06.md": "RULING_RELAY",
+    "run-lane-copilot.ps1": "RUN_LANE_COPILOT_SCRIPT",
+    "SUITE-ANALYTICS-CODESPACES-2026-09-08.log": "SUITE_LOG",
+    "SUITE-BASELINE-CODESPACES-2026-09-08.log": "SUITE_LOG",
+    "SUPPLEMENT-ANSWERS-2026-09-07.md": "SUPPLEMENT_ANSWERS",
+    "SUPPLEMENT-ANSWERS-CITATIONS-2026-09-08.md": "SUPPLEMENT_ANSWERS",
+    "SUPPLEMENT-QUESTIONS-2026-09-24.md": "SUPPLEMENT_QUESTIONS",
+    "WAVE2-ORDER-2026-09-20.md": "WAVE_ORDER",
+    "WAVE2-SUBWAVE-PLAN.md": "WAVE_SUBWAVE_PLAN",
+    "WAVE3-COMMON-2026-09-21.md": "WAVE_COMMON",
+    "WAVE4B-COMMON-2026-09-22.md": "WAVE_COMMON",
+    "WAVE3-CLOSE-2026-09-19.md": "WAVE_CLOSE",
+    "AJ-SECOND-PASS-2026-09-05.md": "AJ_SECOND_PASS",
+    "FUNNEL-GROOM-2026-09-05.md": "FUNNEL_GROOM",
+    "ADR-120-the-spine-is-the-whole-loop.md": "ADR_COPY",
+    "BOOT-SESSION-8-SECTION-2026-09-08.md": "BOOT_SESSION",
+    "BRIEFING-2026-09-17-retrospective-priorities-and-how-to-operate.md": "BRIEFING",
+    "BROWSER-SEAT-FLOOR-DRAFT-2026-09-06.md": "BROWSER_SEAT_FLOOR",
+    "BROWSER-SEAT-FLOOR-DRAFT-2026-09-06.md.sha256": "BROWSER_SEAT_FLOOR",
+    "BROWSER-SEAT-FLOOR-PIN-2026-09-06.txt": "BROWSER_SEAT_FLOOR",
+    "browser-seat-skills-2026-09-06.zip": "BROWSER_SEAT_SKILLS",
+    "CARRIED-QUESTIONS-ELEVEN-2026-09-08.md": "CARRIED_QUESTIONS",
+    "CLOSE-2026-09-17-window-close-and-successor-start.md": "CLOSE",
+    "CLOSURE-VERDICTS-2026-09-13.md": "CLOSURE_VERDICTS",
+    "COPY-MEMORY.md": "COPY",
+    "COPY-2026-09-06-technical-batch-t-close-packet.md": "COPY",
+    "DECISION-SHEET-cv-f2-2026-09-10.md": "DECISION_SHEET",
+    "DEFECT-transport-grammar-seat-name-collision.md": "DEFECT",
+    "DELETE-LIST-2026-09-13.md": "DELETE_LIST",
+    "DISPATCH-CARD-2026-09-20.md": "DISPATCH_ARTIFACT",
+    "DISPATCH-CONTRACT-2026-09-19.md": "DISPATCH_ARTIFACT",
+    "DOCS-CUT-LIST-2026-09-13.md": "DOCS_CUT_LIST",
+    "HANDBACK-batch-AC-consolidated.md": "HANDBACK",
+    "HANDBACK-wave2-boot-base-2026-09-19.md": "HANDBACK",
+    "HANDOFF-SUPPLEMENT-2026-09-06.md": "HANDOFF_SUPPLEMENT",
+    "HANDOFF-VERIFY-2026-09-08-architect-2.md": "HANDOFF_VERIFY",
+    "HANDOFF_BOOT-2026-09-06-architect.md": "HANDOFF_BOOT_TRANSPORT",
+    "HANDOVER-ARCHITECTURE-2026-09-08.md": "HANDOVER",
+    "HOW-TO-DISPATCH-AND-INTEGRATE-2026-09-20-v1-superseded.md": "HOW_TO_DISPATCH_AND_INTEGRATE",
+    "INTEGRATOR-STOP-wave2-2026-09-19.md": "INTEGRATOR_WAVE2",
+    "INTEGRATOR-wave2-2026-09-19.md": "INTEGRATOR_WAVE2",
+    "INTEGRATOR-wave2-pass2-2026-09-19.md": "INTEGRATOR_WAVE2",
+    "LAUNCH-REPORT-night-wave2-2026-09-19.md": "LAUNCH_REPORT",
+    "LEG1-BOOT-BASE-ITEMISED-2026-09-19.md": "LEG_REPORT",
+    "LEG2-SPINE-PRIOR-ART-2026-09-19.md": "LEG_REPORT",
+    "NIGHT-LEG1-ARMED-CENSUS-2026-09-19.md": "NIGHT_LEG",
+    "MAP-2026-09-16-harness-state-and-defects.md": "MAP",
+    "MAP-DATA-CORRECTED-2026-09-20.js": "MAP_DATA",
+    "MAP-VERIFICATION-2026-09-20.md": "MAP_VERIFICATION",
+    "NEW-ARCHITECT-03-PLAN-2026-09-20-SUPERSEDED-v1.md": "NEW_ARCHITECT",
+    "NEW-ARCHITECT-03-PLAN-2026-09-20.md": "NEW_ARCHITECT",
+    "PASTE_THIS.md": "PASTE_THIS",
+    "PASTE_THIS-2026-09-19-dev-knowledge-architect.md": "PASTE_THIS",
+    "PERMISSION-DIAGNOSIS-night-wave2-2026-09-19.md": "PERMISSION_DIAGNOSIS",
+    "PIN-2026-09-07.md": "PIN",
+    "POSTURE-v3-split-2026-09-06-r2.md": "POSTURE",
+    "POSTURE-v3-split-2026-09-06.md": "POSTURE",
+    "PREPARED-filing-transport-delivery-refuses-loudly-2026-09-19.md": "PREPARED",
+    "PROPOSED-CLOSURES-2026-09-24.md": "PROPOSED_CLOSURES_LEGACY",
+    "RECEIPT-wave2-integrator-pass1-2026-09-19.json": "RECEIPT_WAVE2",
+    "RECEIPT-wave2-integrator-pass1-2026-09-19.stderr.txt": "RECEIPT_WAVE2",
+    "RECON-NIGHT-2026-09-20.md": "RECON_NIGHT",
+    "REGISTER-2026-09-17-unfinished-work-intakes-models-codespace.md": "REGISTER",
+    "REPOMAP-EVALUATION-2026-09-19.md": "REPOMAP_EVALUATION",
+    "RESUME-zed-config-2026-09-15.md": "RESUME",
+    "REVIEW-lane-v-643-enforcement-debt.md": "REVIEW",
+    "SCAN-fpg1-coverage-roster-2026-09-19.md": "SCAN",
+    "SPINE-FIRST-STOP-2026-09-19.md": "SPINE_FIRST_STOP",
+    "STATE-2026-09-14-waves-x1-x3-and-y.md": "STATE",
+    "STATE-OF-THE-HARNESS-2026-09-20.md": "STATE_OF_THE_HARNESS",
+    "STATUS.md": "STATUS_BARE",
+    "UNOWNED-2026-09-06.md": "UNOWNED",
+    "WATCHER-LOG-night-wave2-2026-09-19.md": "WATCHER",
+    "WATCHER-night-wave2-2026-09-19.md": "WATCHER",
+    "WINDOW-GOALS-2026-09-25-superseded-moved-into-LEDGER.md": "WINDOW_GOALS",
+}
+
+
+@pytest.mark.parametrize("filename,expected_kind", sorted(_LANE_TRANSPORT_STRAYS_SAMPLES.items()))
+def test_lane_transport_strays_additions_classify_their_real_observed_filenames(
+        t, registry, filename, expected_kind):
+    got = t.classify(filename, registry)
+    assert got is not None and got.name == expected_kind, f"{filename!r} -> {got}"
+
+
+def test_no_fixed_lead_in_kinds_classify_their_dated_shape_and_stay_mutually_exclusive(t, registry):
+    assert t.classify("2026-09-19-technical-wave3-answerable-lane-contract.md", registry).name \
+        == "DATED_SLUG_LANE_CONTRACT"
+    assert t.classify("2026-09-05-technical-fleet-readiness.md", registry).name == "DATED_SLUG"
+    # the mutual exclusion is textual (negative lookahead), never registry row order (see the
+    # registry's own notes on both kinds)
+    assert t.classify("2026-09-05-technical-fleet-readiness.md", list(reversed(registry))).name \
+        == "DATED_SLUG"
+
+
+def test_the_widened_digest_pattern_covers_non_markdown_attachments(t, registry):
+    for filename in ("DIGEST-cv-build-2026-09-10-after-p1.png",
+                     "DIGEST-github-review-2026-09-10-acts.yaml",
+                     "DIGEST-WAVE5B-N1-2026-09-25.md"):
+        got = t.classify(filename, registry)
+        assert got is not None and got.name == "DIGEST", f"{filename!r} -> {got}"
 
 
 def test_longest_prefix_wins_lane_end_over_the_bare_lane_contract_kind(t, registry):
@@ -269,3 +447,36 @@ def test_scan_never_writes_moves_or_deletes_anything(t, world, registry):
     t.scan(world["root"], registry)
     after = sorted(p.name for p in world["browser"].iterdir())
     assert before == after
+
+
+# --- lane-transport-strays Done-when 1: an exit-code-gated check, pinned by a fixture ----------
+
+def test_cmd_strays_exits_zero_on_a_clean_transport(t, world):
+    (world["cc"] / "GO-batch1.md").write_text("x", encoding="utf-8")
+    rc = t.main(["strays", "--transport-root", str(world["root"])])
+    assert rc == 0
+
+
+def test_cmd_strays_exits_nonzero_on_a_fixture_with_exactly_one_unclassified_stray(t, world):
+    (world["browser"] / "ODD-NAME-not-in-the-registry.md").write_text("x", encoding="utf-8")
+    rc = t.main(["strays", "--transport-root", str(world["root"])])
+    assert rc == 1
+
+
+def test_cmd_strays_unclassified_count_excludes_a_misfoldered_but_known_kind(t, world):
+    """Done-when 1's literal wording is '0 UNCLASSIFIED' -- a registered kind sitting in the
+    wrong folder is a real, reported finding (still nonzero exit, still worth fixing), but it
+    is not what this exit code is keyed to; the JSON breaks the two counts out so a caller can
+    tell "unknown kind" apart from "known kind, wrong home"."""
+    (world["cc"] / "HANDBACK-REFUSED-lane-x.md").write_text("x", encoding="utf-8")
+    rc = t.main(["strays", "--transport-root", str(world["root"])])
+    assert rc == 1  # still a nonzero exit: SOME stray exists
+    import io
+    import contextlib
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        t.main(["strays", "--transport-root", str(world["root"])])
+    import json
+    payload = json.loads(buf.getvalue())
+    assert payload["unclassified_count"] == 0
+    assert payload["misfoldered_count"] == 1
