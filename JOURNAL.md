@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-26 (e) - CC (Opus 5.5, INTEGRATOR WAVE5B-N3): the second real Codespace lane lands -- `CLAUDE.md` stops restating two rules `AGENTS.md` already carries, with a test that keeps each shared rule in exactly one place
+
+**Anchors:** `3e72a566` -- `worktree-lane-codespace-proof-2`, built in codespace `lane-codespace-proof-2-9q5gr74w99rcg59` (ordered and served `claude-sonnet-5`, headless `claude -p`, exit DONE), plus `e6ede322` (the dispatcher's local Codex terra record, 0/0/0/0); merged `--no-ff` from an integration worktree stacked on the (d) merge.
+
+**Did:** the full codespace lifecycle was observed a second time (repeatability, R6): created 16:33, admission `ok`, one run, exactly ONE lane commit witnessed on origin, session file harvested, codespace deleted 16:52 with `total_count` back to 0 and the name absent (dispatcher receipt). The content: the two Conventions bullets "never restate a count or roster in prose" and "resolve a locator before acting on it" move whole into `AGENTS.md`'s File-rules list and leave `CLAUDE.md`, which already imports `@AGENTS.md`; `tests/test_agents_import_single_block.py` asserts each shared marker appears exactly once across the pair (red first, then green). `CLAUDE.md` + `AGENTS.md` fall from 29,831 B to 29,522 B; both re-stamped `last_reviewed: 2026-09-26` after an end-to-end re-read, which is what failed N2's attempt. **Result:** a Codespace lane is a repeatable substrate, not a one-off. **Changes:** `CLAUDE.md`, `AGENTS.md`, `tests/test_agents_import_single_block.py`, `docs/audits/2026-09-26-codex-codex-lane-codespace-proof-2.md`, generated files, `JOURNAL.md`, `logs/MERGE-RECEIPTS.jsonl`. **Next:** the three `test_preflight_freeze_predicates.py` path-separator reds the lane saw only on Linux.
+
 ### 2026-09-26 (d) - CC (Opus 5.5, INTEGRATOR WAVE5B-N3): every live owed item of WAVE5B-N2 is a row with in-repo provenance and a runnable check -- 39 rows filed, [#891] closed as superseded
 
 **Anchors:** `7ebf63ba`, `fa4f7de5`, `14f58622` (N2 lane 2 on kept branch `worktree-lane-rows-owed`), `941e2799`, `716f2f9d`, `70740c47` -- `worktree-lane-rows-owed-2` (ordered and served `claude-sonnet-5`), merged `--no-ff` from an integration worktree stacked on the (c) merge.
