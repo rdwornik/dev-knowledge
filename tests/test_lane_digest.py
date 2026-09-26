@@ -103,6 +103,87 @@ def test_a_receipt_of_an_unrecognised_shape_is_an_open_item_never_dropped(tmp_pa
     assert len(items) == 3 and all("could not be read" in i for i in items)
 
 
+# --- LANE-5B2-17: the CI-red OPERATOR-ACTION line -----------------------------------------
+
+def test_the_ci_red_threshold_never_drifts_from_ci_red_ages_own(monkeypatch):
+    """The two threshold constants are duplicated (module docstring: `lane_digest.py` stays
+    gh/click-free), so they can only be caught agreeing or disagreeing -- never merged into one
+    import -- by a test that reads both."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("ci_red_age_pin", _SCRIPTS / "ci_red_age.py")
+    cra = importlib.util.module_from_spec(spec)
+    sys.modules["ci_red_age_pin"] = cra  # dataclass field resolution needs the module registered
+    spec.loader.exec_module(cra)
+    ld = _mod("lane_digest")
+    assert ld._CI_RED_THRESHOLD_H == cra.RED_AGE_THRESHOLD_H
+
+
+def test_ci_red_line_is_none_below_the_threshold():
+    ld = _mod("lane_digest")
+    assert ld.ci_red_line({"since": "s", "hours": 23.0, "sha": "a", "url": "u"}) is None
+
+
+def test_ci_red_line_is_none_with_no_ci_red_data():
+    ld = _mod("lane_digest")
+    assert ld.ci_red_line(None) is None
+    assert ld.ci_red_line({}) is None
+
+
+def test_ci_red_line_names_hours_sha_and_url_over_the_threshold():
+    ld = _mod("lane_digest")
+    line = ld.ci_red_line({"since": "s", "hours": 25.3, "sha": "deadbeef", "url": "http://run"})
+    assert line == "OPERATOR-ACTION: main CI red 25.3 h since deadbeef (http://run)"
+
+
+def test_render_digest_prepends_the_ci_red_line_when_over_threshold():
+    ld = _mod("lane_digest")
+    text = ld.render_digest([_lane(ld, "lane-a", [_receipt("gates")])],
+                            ci_red={"since": "s", "hours": 30.0, "sha": "abc", "url": "u"})
+    assert "OPERATOR-ACTION: main CI red 30.0 h since abc (u)" in text
+    assert text.index("OPERATOR-ACTION") < text.index("lane-a")
+
+
+def test_render_digest_omits_the_ci_red_line_when_absent():
+    ld = _mod("lane_digest")
+    text = ld.render_digest([_lane(ld, "lane-a", [_receipt("gates")])])
+    assert "OPERATOR-ACTION" not in text
+
+
+def test_digest_cli_reads_ci_red_json_and_renders_the_line(tmp_path):
+    root = tmp_path / "worktrees"
+    _write_receipts(root / "lane-a" / "logs" / "receipts", [_receipt("gates")])
+    ci_red = tmp_path / "ci-red.json"
+    ci_red.write_text(json.dumps({"since": "2026-09-25T00:00:00Z", "hours": 30.0,
+                                  "sha": "deadbeef", "url": "http://run"}), encoding="utf-8")
+    proc = subprocess.run([sys.executable, str(_DIGEST), "--root", str(root),
+                          "--ci-red-json", str(ci_red), "--repo", str(tmp_path)],
+                         capture_output=True, text=True, timeout=60)
+    assert proc.returncode == 0, proc.stderr
+    assert "OPERATOR-ACTION: main CI red 30.0 h since deadbeef (http://run)" in proc.stdout
+
+
+def test_digest_cli_reads_ci_red_json_null_and_renders_nothing(tmp_path):
+    root = tmp_path / "worktrees"
+    _write_receipts(root / "lane-a" / "logs" / "receipts", [_receipt("gates")])
+    ci_red = tmp_path / "ci-red.json"
+    ci_red.write_text("null", encoding="utf-8")
+    proc = subprocess.run([sys.executable, str(_DIGEST), "--root", str(root),
+                          "--ci-red-json", str(ci_red), "--repo", str(tmp_path)],
+                         capture_output=True, text=True, timeout=60)
+    assert proc.returncode == 0, proc.stderr
+    assert "OPERATOR-ACTION" not in proc.stdout
+
+
+def test_digest_cli_an_unreadable_ci_red_json_never_fails_the_digest(tmp_path):
+    root = tmp_path / "worktrees"
+    _write_receipts(root / "lane-a" / "logs" / "receipts", [_receipt("gates")])
+    proc = subprocess.run([sys.executable, str(_DIGEST), "--root", str(root),
+                          "--ci-red-json", str(tmp_path / "absent.json"), "--repo", str(tmp_path)],
+                         capture_output=True, text=True, timeout=60)
+    assert proc.returncode == 0, proc.stderr
+    assert "OPERATOR-ACTION" not in proc.stdout
+
+
 def test_digest_cli_reads_the_receipts_of_a_batch(tmp_path):
     root = tmp_path / "worktrees"
     _write_receipts(root / "lane-a" / "logs" / "receipts", [_receipt("gates")])

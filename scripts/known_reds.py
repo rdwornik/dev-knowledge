@@ -69,6 +69,13 @@ EXIT_UNCOMPARABLE = 2
 WITNESS = "witness"
 PRE_FREEZE = "pre-freeze"
 UNATTRIBUTED = "unattributed"
+#: A hook-red's attribution class, lane-ci-signal ([#802] evidence run 36099478580): the check
+#: is genuinely FAIL on a stock ephemeral CI checkout (no armed git hooks, no registered repos,
+#: PowerShell-alias resolution failing against commands that exist only in an operator's own
+#: profile) and genuinely clean on the machine it was designed to police. Distinct from
+#: `UNATTRIBUTED` -- the cause IS known, it is just not a tree defect this registry's usual
+#: "first bad commit" shape can name, because no commit made it red; the environment did.
+ENVIRONMENT_MISMATCH = "environment-mismatch"
 
 #: The four [#664] commit-tier witnesses: `logs/SUITE-BASELINE-FREEZE.md` keeps them OUT of its
 #: frozen set on purpose so every run keeps reporting them; this registry keeps them OUT of
@@ -112,12 +119,23 @@ class Registry:
     workers: int
     members: dict  # {node_id: {"attribution": ...} | {"attribution": ..., "reason": ...}}
     notes: tuple = field(default_factory=tuple)
+    #: {hook_id: {"attribution": ..., "reason": ..., "checks": [...]?}} -- the non-pytest
+    #: sibling of `members`, for a manual-stage pre-commit hook (`derived-copies-rebind`,
+    #: `audit-health`, ...) that carries no pytest node id at all. ADDITIVE (lane-ci-signal,
+    #: [#802] evidence run 36099478580): defaults to `{}` so every registry written before this
+    #: field existed still loads, and `compare`'s existing pytest-only reading is untouched --
+    #: only `compare_hook` reads this field. The optional `checks` list (LANE-5B3-8, Codex terra
+    #: HIGH 2026-09-26) scopes the registration to the specific `audit.py health` check names it
+    #: was measured against, when `compare_hook` is given the hook's raw output -- an entry with
+    #: no `checks` list keeps the prior whole-hook-known behavior.
+    hooks: dict = field(default_factory=dict)
 
     def to_json(self) -> dict:
         return {"schema": self.schema, "baseline_id": self.baseline_id,
                 "measured_at_sha": self.measured_at_sha, "measured_via": self.measured_via,
                 "workers": self.workers,
                 "members": {k: self.members[k] for k in sorted(self.members)},
+                "hooks": {k: self.hooks[k] for k in sorted(self.hooks)},
                 "notes": list(self.notes)}
 
     @classmethod
@@ -128,6 +146,7 @@ class Registry:
             return cls(schema=data["schema"], baseline_id=data["baseline_id"],
                        measured_at_sha=data["measured_at_sha"], measured_via=data["measured_via"],
                        workers=int(data["workers"]), members=dict(data["members"]),
+                       hooks=dict(data.get("hooks", {})),
                        notes=tuple(data.get("notes", ())))
         except (KeyError, TypeError) as exc:
             raise KnownRedsError(f"{source}: malformed registry field: {exc}") from exc
@@ -186,7 +205,8 @@ def refresh(*, failed: frozenset, workers: int, commit: str, measured_via: str, 
     baseline_id = compute_baseline_id(members, date=date)
     registry = Registry(schema=SCHEMA, baseline_id=baseline_id, measured_at_sha=commit,
                         measured_via=measured_via, workers=workers, members=members,
-                        notes=previous.notes if previous else ())
+                        notes=previous.notes if previous else (),
+                        hooks=dict(previous.hooks) if previous else {})
     return registry, dropped
 
 
@@ -227,6 +247,85 @@ def compare(failed: frozenset, registry: Registry, *, workers: int,
                       f"0 outside the registry (baseline {registry.baseline_id})",
             "regressions": [], "pre_existing": pre_existing, "witnesses": witnesses,
             "unattributed": unattributed_known}
+
+
+#: Codex terra HIGH (2026-09-26, LANE-5B3-8): `[!!] <name>` from `audit.py health`'s self-audit
+#: section (`click.echo(f"  {marker} {f.check_name}: {f.evidence}")`) and its operational
+#: preflight section (`click.echo(f"  {marker} {label}{suffix}")`, suffix always non-empty on a
+#: failing operational check). Two patterns because the two sections format differently; neither
+#: check name contains the other section's separator, so they never cross-match.
+_FAIL_SELF_AUDIT_RE = re.compile(r"^\s*\[!!\]\s+([^:\n]+):", re.MULTILINE)
+_FAIL_OPERATIONAL_RE = re.compile(r"^\s*\[!!\]\s+([^:\n(]+?)\s{2}\(", re.MULTILINE)
+
+
+def extract_failing_check_names(hook_output: str) -> set:
+    """The specific `audit.py health` check names reported `[!!]` in raw hook stdout/stderr --
+    NOT the hook's bare exit code. Used to scope a hook registration to the findings it was
+    actually measured against (Codex terra HIGH, 2026-09-26): a hook registered whole-sale by
+    `hook_id` alone would silently launder a NEW, different failing check under the same
+    registration, exactly the "membership by count, not by identity" trap [#802]'s own pytest
+    side already refuses ("A file with 3 frozen members that fails 4 has a regression, and the
+    count alone hides it")."""
+    names = {m.strip() for m in _FAIL_SELF_AUDIT_RE.findall(hook_output)}
+    names |= {m.strip() for m in _FAIL_OPERATIONAL_RE.findall(hook_output)}
+    return names
+
+
+def compare_hook(hook_id: str, exit_code: int, registry: Registry,
+                 hook_output: str | None = None) -> dict:
+    """Judge one pre-commit hook's exit code against `registry.hooks` -- `compare`'s sibling for
+    a check that carries no pytest node id (a manual-stage hook run by `pre-commit run
+    --hook-stage manual`, as `conductor.yml`'s `commit-gate` job does). Same shape as `compare`:
+    'pass' on a clean exit OR a REGISTERED known-red; 'fail' (REGRESSION) on an unregistered
+    non-zero exit. A registration is keyed by `hook_id` alone -- it never covers a different
+    hook, the same specificity `compare`'s per-node-id keying already has.
+
+    `hook_output`, when given, and the entry carries a `checks:` allowlist (the specific
+    `audit.py health` check names this registration was measured against): the ACTUAL failing
+    check names extracted from `hook_output` must be a subset of that allowlist, or the names
+    outside it are reported as a genuine regression even though `hook_id` itself is registered
+    (Codex terra HIGH, 2026-09-26 -- see `extract_failing_check_names`). Omitting `hook_output`,
+    or a registration with no `checks:` list, keeps the prior whole-hook behavior exactly
+    (backward-compatible: no existing caller or committed registry entry is broken by this).
+    """
+    base = {"baseline_id": registry.baseline_id, "hook_id": hook_id}
+    if exit_code == 0:
+        return {**base, "verdict": "pass", "reason": f"{hook_id}: clean (exit 0)",
+                "regressions": [], "registered": None}
+    entry = registry.hooks.get(hook_id)
+    if entry is None:
+        return {**base, "verdict": "fail",
+                "reason": f"REGRESSION -- {hook_id} exited {exit_code} and is not in the "
+                          f"registry's hooks (baseline {registry.baseline_id})",
+                "regressions": [hook_id], "registered": None}
+    allowed = entry.get("checks")
+    if hook_output is not None and allowed:
+        failing = extract_failing_check_names(hook_output)
+        unknown = sorted(failing - set(allowed))
+        if unknown:
+            return {**base, "verdict": "fail",
+                    "reason": f"REGRESSION -- {hook_id} exited {exit_code} with check(s) "
+                              f"{', '.join(unknown)} outside the registered set {sorted(allowed)} "
+                              f"(baseline {registry.baseline_id})",
+                    "regressions": unknown, "registered": entry}
+    return {**base, "verdict": "pass",
+            "reason": f"{hook_id}: known (registered {entry.get('attribution', UNATTRIBUTED)}) "
+                      f"-- exit {exit_code} (baseline {registry.baseline_id})",
+            "regressions": [], "registered": entry}
+
+
+def render_compare_hook(result: dict) -> str:
+    """Flat key/value + bullet lines (CLAUDE.md section 4): no pipe tables."""
+    lines = ["known-reds compare-hook", "", f"baseline id    : {result['baseline_id']}",
+             f"hook id        : {result['hook_id']}"]
+    if result["registered"]:
+        lines.append(f"registered as  : {result['registered'].get('attribution', UNATTRIBUTED)}")
+    lines.append(f"regressions    : {len(result['regressions'])}")
+    for hid in result["regressions"]:
+        lines.append(f"  REGRESSION    {hid}")
+    lines.append("")
+    lines.append(f"verdict        : {result['verdict'].upper()} -- {result['reason']}")
+    return "\n".join(lines)
 
 
 def render_compare(result: dict) -> str:
@@ -415,6 +514,17 @@ def main(argv: list[str] | None = None) -> int:
     cmp_.add_argument("--pytest-exit", default=None, type=int)
     cmp_.add_argument("--registry", default=REGISTRY_PATH)
 
+    cmp_hook = sub.add_parser("compare-hook",
+                              help="judge one non-pytest hook's exit code against "
+                                   "the registry's `hooks` section")
+    cmp_hook.add_argument("--hook-id", required=True)
+    cmp_hook.add_argument("--exit-code", required=True, type=int)
+    cmp_hook.add_argument("--registry", default=REGISTRY_PATH)
+    cmp_hook.add_argument("--hook-output", default=None,
+                          help="raw hook stdout/stderr; scopes a `checks:`-bearing "
+                               "registration to the specific failing check names it names, "
+                               "instead of the whole hook (Codex terra HIGH, 2026-09-26)")
+
     attr = sub.add_parser("attribute", help="git bisect run, one test, and name the lane")
     attr.add_argument("--test", required=True)
     attr.add_argument("--good", required=True)
@@ -423,7 +533,7 @@ def main(argv: list[str] | None = None) -> int:
     attr.add_argument("--workdir", default=None)
     attr.add_argument("--timeout", default=180.0, type=float)
 
-    for p in (ref, cmp_, attr):
+    for p in (ref, cmp_, cmp_hook, attr):
         p.add_argument("--out", default=None)
     args = ap.parse_args(argv)
     root = Path(args.repo_root).resolve() if args.repo_root else Path.cwd()
@@ -470,6 +580,21 @@ def main(argv: list[str] | None = None) -> int:
             return EXIT_UNCOMPARABLE
         result = compare(failed, registry, workers=args.workers, pytest_exit=args.pytest_exit)
         report = render_compare(result)
+        if args.out:
+            Path(args.out).write_text(report + "\n", encoding="utf-8", newline="\n")
+        print(report)
+        return 0 if result["verdict"] == "pass" else 1
+
+    if args.command == "compare-hook":
+        try:
+            registry = load_registry(root / args.registry)
+        except KnownRedsError as exc:
+            print(str(exc), file=sys.stderr)
+            return EXIT_UNCOMPARABLE
+        hook_output = (Path(args.hook_output).read_text(encoding="utf-8", errors="replace")
+                      if args.hook_output else None)
+        result = compare_hook(args.hook_id, args.exit_code, registry, hook_output=hook_output)
+        report = render_compare_hook(result)
         if args.out:
             Path(args.out).write_text(report + "\n", encoding="utf-8", newline="\n")
         print(report)

@@ -98,6 +98,24 @@ def test_refresh_drops_members_no_longer_failing(kr):
     assert "tests/fixed.py::t9" not in registry.members
 
 
+def test_refresh_carries_forward_the_previous_registrys_hooks_section(kr):
+    """lane-ci-signal, [#802] evidence run gh-run:36220172268: `refresh` built its next
+    Registry without passing `hooks=`, so a live refresh silently dropped the committed
+    `audit-health` hook registration -- caught only because the compare-hook step's own
+    verdict flipped from PASS to a bare exit-1 refusal on the very next run. `hooks` carries
+    no pytest node id and is never touched by the failed-set walk above it, so it must be
+    carried forward unconditionally, the same way `notes` already is."""
+    previous = kr.Registry(schema=kr.SCHEMA, baseline_id="b", measured_at_sha="old",
+                           measured_via="local", workers=4,
+                           members={"tests/a.py::t1": {"attribution": "pre-freeze"}},
+                           hooks={"audit-health": {"attribution": "environment-mismatch",
+                                                    "reason": "pre-existing"}})
+    registry, _ = kr.refresh(failed=frozenset({"tests/a.py::t1"}), workers=4, commit="new",
+                             measured_via="local", date="2026-09-24", attribution={},
+                             previous=previous)
+    assert registry.hooks == previous.hooks
+
+
 def test_refresh_is_idempotent_on_the_same_failed_set(kr):
     previous = kr.Registry(schema=kr.SCHEMA, baseline_id="b", measured_at_sha="old",
                            measured_via="local", workers=4,
@@ -131,6 +149,26 @@ def test_load_registry_wrong_schema_refuses(kr, tmp_path):
     path.write_text('{"schema": "something-else/1"}', encoding="utf-8")
     with pytest.raises(kr.KnownRedsError, match="schema"):
         kr.load_registry(path)
+
+
+def test_registry_hooks_field_defaults_empty_and_round_trips(kr, tmp_path):
+    """A registry written with no `hooks` key (every registry before lane-ci-signal) loads
+    with `hooks == {}` rather than erroring -- the extension is additive, never a breaking
+    schema bump (contract done-contract item 1: "the existing readers ... stay unchanged")."""
+    path = tmp_path / "registry.json"
+    path.write_text(
+        '{"schema": "known-reds-registry/1", "baseline_id": "b", "measured_at_sha": "s", '
+        '"measured_via": "local", "workers": 4, "members": {}}', encoding="utf-8")
+    loaded = kr.load_registry(path)
+    assert loaded.hooks == {}
+
+    registry = kr.Registry(schema=kr.SCHEMA, baseline_id="2026-09-26-abc", measured_at_sha="s",
+                           measured_via="local", workers=4, members={},
+                           hooks={"audit-health": {"attribution": kr.ENVIRONMENT_MISMATCH,
+                                                   "reason": "why"}})
+    kr.write_registry(path, registry)
+    round_tripped = kr.load_registry(path)
+    assert round_tripped == registry
 
 
 # --- compare -------------------------------------------------------------------------------
@@ -206,6 +244,117 @@ def test_render_compare_uses_no_pipe_tables(kr):
     report = kr.render_compare(result)
     assert "|" not in report
     assert registry.baseline_id in report
+
+
+# --- compare-hook (lane-ci-signal, [#802]: the non-pytest sibling of `compare`) -------------
+
+def _registry_with_hooks(kr, hooks):
+    return kr.Registry(schema=kr.SCHEMA, baseline_id="2026-09-26-hooks", measured_at_sha="s",
+                       measured_via="local", workers=4, members={}, hooks=hooks)
+
+
+def test_compare_hook_a_clean_exit_passes_even_if_unregistered(kr):
+    registry = _registry_with_hooks(kr, {})
+    result = kr.compare_hook("audit-health", 0, registry)
+    assert result["verdict"] == "pass"
+    assert result["baseline_id"] == registry.baseline_id
+
+
+def test_compare_hook_a_registered_red_passes_and_names_the_entry(kr):
+    entry = {"attribution": kr.ENVIRONMENT_MISMATCH, "reason": "CI checkout mismatch"}
+    registry = _registry_with_hooks(kr, {"audit-health": entry})
+    result = kr.compare_hook("audit-health", 1, registry)
+    assert result["verdict"] == "pass"
+    assert result["registered"] == entry
+
+
+def test_compare_hook_an_unregistered_red_is_a_regression(kr):
+    registry = _registry_with_hooks(kr, {})
+    result = kr.compare_hook("derived-copies-rebind", 1, registry)
+    assert result["verdict"] == "fail"
+    assert result["regressions"] == ["derived-copies-rebind"]
+    assert "REGRESSION" in result["reason"]
+
+
+def test_compare_hook_does_not_launder_a_different_hooks_registration(kr):
+    """A registration for one hook id never covers another -- the register names WHICH check,
+    not "some check failed", the same specificity `compare`'s node-id keying already has."""
+    registry = _registry_with_hooks(kr, {"audit-health": {"attribution": kr.ENVIRONMENT_MISMATCH,
+                                                          "reason": "x"}})
+    result = kr.compare_hook("graph-orphan-census", 1, registry)
+    assert result["verdict"] == "fail"
+
+
+def test_render_compare_hook_uses_no_pipe_tables(kr):
+    registry = _registry_with_hooks(kr, {"audit-health": {"attribution": kr.ENVIRONMENT_MISMATCH,
+                                                          "reason": "x"}})
+    result = kr.compare_hook("audit-health", 1, registry)
+    report = kr.render_compare_hook(result)
+    assert "|" not in report
+    assert registry.baseline_id in report
+    assert "audit-health" in report
+
+
+# --- compare-hook `checks` scoping (Codex terra HIGH, 2026-09-26: a whole-hook registration
+# silently launders a NEW, different failing check under the same registration) -------------
+
+def test_extract_failing_check_names_reads_both_audit_py_health_sections(kr):
+    output = (
+        "operational:\n"
+        "  [OK] click importable\n"
+        "  [!!] repos registered  (none)\n"
+        "self-audit (.dev-knowledge) - 5/6 pass:\n"
+        "  [OK] git_backlog_drift: clean\n"
+        "  [!!] hooks_armed: no .git/hooks/pre-commit\n"
+        "  [!!] dispatch_drift: 12 unresolved\n"
+        "health: DEGRADED\n"
+    )
+    assert kr.extract_failing_check_names(output) == {
+        "repos registered", "hooks_armed", "dispatch_drift"}
+
+
+def test_compare_hook_with_checks_allowlist_passes_on_exactly_the_registered_set(kr):
+    entry = {"attribution": kr.ENVIRONMENT_MISMATCH, "reason": "x",
+             "checks": ["hooks_armed", "repos registered", "dispatch_drift"]}
+    registry = _registry_with_hooks(kr, {"audit-health": entry})
+    output = ("operational:\n  [!!] repos registered  (none)\n"
+             "self-audit (.dev-knowledge) - 4/6 pass:\n"
+             "  [!!] hooks_armed: x\n  [!!] dispatch_drift: y\nhealth: DEGRADED\n")
+    result = kr.compare_hook("audit-health", 1, registry, hook_output=output)
+    assert result["verdict"] == "pass"
+
+
+def test_compare_hook_with_checks_allowlist_is_a_regression_on_a_new_unregistered_check(kr):
+    """RED-FIRST witness for the Codex terra HIGH finding: before `checks` scoping existed, a
+    registered `audit-health` hook laundered ANY new failing check under the same registration.
+    This is the failure that scoping refuses."""
+    entry = {"attribution": kr.ENVIRONMENT_MISMATCH, "reason": "x",
+             "checks": ["hooks_armed", "repos registered", "dispatch_drift"]}
+    registry = _registry_with_hooks(kr, {"audit-health": entry})
+    output = ("operational:\n  [!!] repos registered  (none)\n"
+             "self-audit (.dev-knowledge) - 3/6 pass:\n"
+             "  [!!] hooks_armed: x\n  [!!] dispatch_drift: y\n"
+             "  [!!] a_brand_new_check_name: this is a real regression\nhealth: DEGRADED\n")
+    result = kr.compare_hook("audit-health", 1, registry, hook_output=output)
+    assert result["verdict"] == "fail"
+    assert result["regressions"] == ["a_brand_new_check_name"]
+    assert "a_brand_new_check_name" in result["reason"]
+
+
+def test_compare_hook_without_hook_output_keeps_the_prior_whole_hook_behavior(kr):
+    """Backward-compatible: an existing caller that never passes `--hook-output` (or a
+    registration with no `checks` list at all) is unaffected by the scoping."""
+    entry = {"attribution": kr.ENVIRONMENT_MISMATCH, "reason": "x",
+             "checks": ["hooks_armed", "repos registered", "dispatch_drift"]}
+    registry = _registry_with_hooks(kr, {"audit-health": entry})
+    result = kr.compare_hook("audit-health", 1, registry)
+    assert result["verdict"] == "pass"
+
+    entry_no_checks = {"attribution": kr.ENVIRONMENT_MISMATCH, "reason": "x"}
+    registry2 = _registry_with_hooks(kr, {"audit-health": entry_no_checks})
+    result2 = kr.compare_hook("audit-health", 1, registry2,
+                              hook_output="self-audit - 0/1 pass:\n  [!!] anything: z\n")
+    assert result2["verdict"] == "pass"
 
 
 # --- find_lane -------------------------------------------------------------------------------
