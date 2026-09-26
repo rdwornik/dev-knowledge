@@ -3,7 +3,7 @@
 <!-- scope: meta -->
 
 **Date:** 2026-09-26  
-**Generated:** 2026-09-26T17:01:48  
+**Generated:** 2026-09-26T17:25:03  
 **Repos audited:** 6  
 **Checks:** 911 total — 155 pass, 8 fail, 562 warn, 0 unavailable, 186 n/a
 
@@ -11,7 +11,7 @@
 
 ## .dev-knowledge — PASS
 
-**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-35y_kwrb\wt`  
+**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-p1vvqxfw\wt`  
 **Last audit:** 2026-09-26
 
 | Check | Status | Evidence |
