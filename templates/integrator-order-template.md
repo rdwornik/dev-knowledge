@@ -70,17 +70,33 @@ A refusal is written only by you, as `to-browser/REFUSED-<slug>.md` with the hea
 A lane refused twice is `FAILED`. Apply the pre-authorized rulings of the common rules; do not
 weaken a check to make a merge pass.
 
+Right after writing that file, distil it: `uv run --locked python scripts/learning_distiller.py
+run --integrator to-browser/SESSION-integrator-<BATCH>-<date>.md --dispatcher
+to-browser/SESSION-dispatcher-<BATCH>-<date>.md --refused to-browser/REFUSED-<slug>.md` — one
+candidate row proposed at the moment of refusal rather than held for the close (ruling h: this
+organ still files nothing).
+
 ## Close — when every lane is MERGED or FAILED, or at <time>, whichever comes first
 
 1. Re-run the connection walk on `main`; run `moment:batch-close` with `HARNESS_BATCH=<BATCH>`.
-2. **Cost line (R7, F3):** `uv run --locked python scripts/quota_watch.py line --cloud-sessions
-   <n>` (`<n>` from `claude agents --json`) if `lane-quota-watch` is MERGED; otherwise by hand,
-   each figure with its command — Codespaces core-hours used/remaining, Actions minutes used,
-   Copilot credits used (Enterprise login), cloud sessions used.
-3. Write `to-browser/DIGEST-<BATCH>-<date>.md` (at most 15 KB): the cost line; per merge the sha,
+2. **Cost line (R7, F3):** `uv run --locked python scripts/quota_watch.py record` (appends
+   `logs/QUOTA-READS.jsonl`, writes a `QUOTA-WARN-<date>.md` on any crossing), then `uv run
+   --locked python scripts/quota_watch.py line --cloud-sessions <n>` (`<n>` from `claude agents
+   --json`) for the digest's `[quota]` line — both if `lane-quota-watch` is MERGED; otherwise by
+   hand, each figure with its own command — Codespaces core-hours used/remaining, Actions
+   minutes used, Copilot credits used (Enterprise login), cloud sessions used.
+3. **Learn from this batch's refusals (ruling h — this organ proposes rows, it does not file
+   them):** `uv run --locked python scripts/learning_distiller.py run --integrator
+   to-browser/SESSION-integrator-<BATCH>-<date>.md --dispatcher
+   to-browser/SESSION-dispatcher-<BATCH>-<date>.md --refused to-browser/REFUSED-<slug1>.md
+   [--refused to-browser/REFUSED-<slug2>.md ...]` — one `--refused` per refusal file this batch
+   wrote (§ Refusals and repairs above already ran it once per file as each was written; this is
+   the whole-batch pass over all of them together) — paste the candidate rows into the digest.
+4. Write `to-browser/DIGEST-<BATCH>-<date>.md` (at most 15 KB): the cost line; per merge the sha,
    pickup-to-push minutes and the verdict; the medians; reaps; operator inputs (target 0); the
-   registry and baseline id; what is left and its state; the zero-leftovers proof; and a
+   registry and baseline id; what is left and its state; the zero-leftovers proof; the
+   learning-distiller candidate rows from step 3; and a
    **MORNING** section listing every `DECIDED-BY-LANE`, `OPERATOR-ACTION` and `QUESTION` the
    lanes left.
-4. Write `to-browser/STATE-BATCH-<BATCH>.md` reading `CLOSED <time>`.
-5. Stop every Monitor, poll and shell of yours, and stop.
+5. Write `to-browser/STATE-BATCH-<BATCH>.md` reading `CLOSED <time>`.
+6. Stop every Monitor, poll and shell of yours, and stop.
