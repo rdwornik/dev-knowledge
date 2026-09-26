@@ -198,14 +198,22 @@ class TaskRecord(_Contract):
     provenance: TaskProvenance | None = None
     supersedes: StrictStr | None = None
     serialize_group: tuple[StrictStr, ...] = ()
+    # ADR-122 step-1 extension (this lane, closing [#1080]): D1-D9 names no typed field
+    # for a live row's near-universal `refs` clause even though the common rules treat
+    # it as load-bearing ("Rows cite in-repo provenance — a `refs` token that resolves
+    # in-repo... every row carries a runnable check", batch common rules §3). Typed here
+    # as raw citation tokens (comma-split, unresolved) rather than falling through to
+    # legacy_body, closing the measured step-1 gap without inventing new semantics.
+    refs: tuple[StrictStr, ...] = ()
     routine: Routine | None = None
     kill_candidates: KillCandidates | None = None
     closure: ClosureRecord | None = None
-    # D10 / step-1 measurement carrier: unclassified leftover clause text (e.g. `refs`,
-    # which D1-D9 names no typed field for) or, for a legacy prose Done-when, the sibling
-    # kill-candidates value when it names ids rather than `none`. NOT part of D1-D9's
-    # design — a step-1 exit criterion is "zero legacy_body carriers left in the
-    # converted set", i.e. this field existing at all is the measured gap, not the goal.
+    # D10 / step-1 measurement carrier: unclassified leftover clause text (a clause the
+    # body grammar carries that D1-D9 names no typed field for, e.g. `routine:`) or, for
+    # a legacy prose Done-when, the sibling kill-candidates value when it names ids
+    # rather than `none`. NOT part of D1-D9's design — a step-1 exit criterion is "zero
+    # legacy_body carriers left in the converted set", i.e. this field existing at all is
+    # the measured gap, not the goal.
     legacy_body: StrictStr | None = None
 
     @model_validator(mode="after")
@@ -295,12 +303,16 @@ _THEME_ID_RE = re.compile(r"\[([A-Za-z]\d+)\]")
 _CLAUSE_SPLIT_RE = re.compile(r"\s·\s")
 #: Clause prefixes already captured into a typed field or `criteria` above (codex
 #: terra HIGH, this lane: a clause this repo's body grammar carries but D1-D9 names
-#: no field for — e.g. `routine:`, `supersedes:`, `phase:`, `Source:` — must not be
-#: silently dropped; it belongs in `legacy_body`, which is exactly what falling
-#: through this allowlist produces).
+#: no field for — e.g. `routine:`, `supersedes:`, `phase:`, `Source:`, `DEFER` — must
+#: not be silently dropped; it belongs in `legacy_body`, which is exactly what falling
+#: through this allowlist produces). `DEFER` is deliberately NOT in this allowlist (this
+#: lane, discovered while closing [#1080]): it was previously excluded here, which
+#: silently discarded the deferral's peg/reason text instead of routing it to
+#: legacy_body — a genuine step-1 "unexplained field difference" (operator question 2:
+#: "no ... deferral ... may stay hidden in prose"), not a step-1 remainder by design.
 _ALREADY_CAPTURED_PREFIXES = (
     "done when:", "refs", "kill-candidates:", "implements:", "depends-on:",
-    "serialize-group:", "defer",
+    "serialize-group:",
 )
 
 
@@ -369,11 +381,11 @@ def convert_row(task_id: int, raw: str, *, theme: str | None, story: str | None,
         criteria = (_build_criterion(done_when_text),)
 
     refs_text = _extract_clause(_REFS_RE, raw)
+    refs = tuple(t.strip() for t in refs_text.split(",") if t.strip()) if refs_text else ()
+
     kc_text = _extract_clause(_KILL_CANDIDATES_RE, raw)
     kill_candidates: KillCandidates | None = None
     leftover_parts: list[str] = []
-    if refs_text:
-        leftover_parts.append(f"refs {refs_text}")
     if kc_text:
         if kc_text.lower().startswith("none"):
             reason = kc_text.split("--", 1)[1].strip() if "--" in kc_text else kc_text
@@ -413,6 +425,7 @@ def convert_row(task_id: int, raw: str, *, theme: str | None, story: str | None,
         depends_on=(depends_on_raw,) if depends_on_raw else (),
         implements=tuple(t.strip() for t in implements_raw.split(",")) if implements_raw else (),
         serialize_group=(serialize_group,) if serialize_group else (),
+        refs=refs,
         kill_candidates=kill_candidates,
         legacy_body="; ".join(leftover_parts) if leftover_parts else None,
     )

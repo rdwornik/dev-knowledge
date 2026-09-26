@@ -168,6 +168,8 @@ def test_convert_row_classifies_command_verifier_and_known_clauses():
     assert rec.kill_candidates.none_reason is not None
     assert rec.theme_id == "E4"
     assert rec.story_id == "S11"
+    assert rec.refs == ("some/other.md",)
+    assert rec.legacy_body is None
 
 
 def test_convert_row_prose_done_when_is_unresolved_with_reason():
@@ -181,6 +183,19 @@ def test_convert_row_prose_done_when_is_unresolved_with_reason():
     # `KillCandidates.ids`, not legacy_body.
     assert rec.kill_candidates == tr.KillCandidates(ids=("#9001",))
     assert rec.legacy_body is None
+
+
+def test_convert_row_preserves_a_defer_clause_in_legacy_body():
+    """Discovered while closing [#1080]: `DEFER` was previously listed in
+    `_ALREADY_CAPTURED_PREFIXES`, which silently discarded the deferral's peg/reason
+    text instead of routing it to legacy_body like every other untyped clause —
+    operator question 2 names deferral as content that may never stay hidden in prose."""
+    body = ('- [#9005] [P2][S] **x** - text · Done when: it holds -- `true` · '
+            'DEFER -- peg: something not tracked anywhere else')
+    rec = tr.convert_row(9005, body, theme=None, story=None, frontmatter_status="deferred")
+    assert rec.status == tr.TaskStatus.deferred
+    assert rec.legacy_body is not None
+    assert "DEFER" in rec.legacy_body
 
 
 def test_convert_row_preserves_an_uncaptured_clause_in_legacy_body():
@@ -208,6 +223,30 @@ def test_convert_row_no_unexplained_field_difference_vs_gen_task_tree_derivers()
     assert rec.priority == gtt.derive_priority(_SYNTH_BODY_COMMAND)
     assert rec.size == gtt.derive_size(_SYNTH_BODY_COMMAND)
     assert rec.title == gtt.derive_title(_SYNTH_BODY_COMMAND)
+
+
+# --- [#1080]: refs is a typed field, not a legacy_body carrier -------------------------
+
+def test_convert_row_refs_only_clause_is_typed_not_legacy_body():
+    """[#1080]'s own Done-when: a live row carrying only a refs-shaped clause converts
+    with legacy_body is None."""
+    body = ('- [#1] [P1][S] **x** - y · Done when: z · '
+            'refs some/file.md')
+    rec = tr.convert_row(1, body, theme=None, story=None, frontmatter_status=None)
+    assert rec.legacy_body is None
+    assert rec.refs == ("some/file.md",)
+
+
+def test_convert_row_refs_splits_multiple_comma_separated_tokens():
+    body = ('- [#1] [P1][S] **x** - y · Done when: z · '
+            'refs docs/decisions/ADR-122-a-task-is-a-typed-record-in-git-every-backlog-view-is-a-projection.md, '
+            'scripts/task_record.py')
+    rec = tr.convert_row(1, body, theme=None, story=None, frontmatter_status=None)
+    assert rec.refs == (
+        "docs/decisions/ADR-122-a-task-is-a-typed-record-in-git-every-backlog-view-is-a-projection.md",
+        "scripts/task_record.py",
+    )
+    assert rec.legacy_body is None
 
 
 # --- convert_archive_record ------------------------------------------------------------

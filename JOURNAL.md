@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-26 (h) - CC (Opus 5.5, INTEGRATOR WAVE5B-N3): ADR-122 step 1's converter keeps what it used to drop -- `refs` is a typed field and a DEFER marker no longer vanishes -- `task_record.py`
+
+**Anchors:** `87f44c72`, `665c59ad`, `fe3783f4` -- `worktree-lane-backlog-o1-step1` (ordered and served `claude-sonnet-5`, high effort; started after the ADR-122 merge `41d11127`, F2 `merge-base --is-ancestor` exit 0), merged `--no-ff` from an integration worktree stacked on the (g) merge.
+
+**Did:** the gap check quotes ADR-122's migration step 1 ("contract and reconciliation": the model, the task library and CLI, the converter) and shows ADR-121's step 1 is a different store, so the first backlog-store step is ADR-122's alone; the SQLite projection and the query library are step 2 (`ADR-122-...md:169-174`), and no CI/pre-push check is named at step 1, so neither is built (the contract: "each only if the first step names it" -- DECIDED-BY-INTEGRATOR: accepted as scoped). `TaskRecord.refs` is typed, closing [#1080]'s named remainder: live-row `legacy_body` carriage falls from 100% to 52.9% over 712 rows, 0 conversion errors; a discovered defect -- a DEFER marker was silently discarded -- is fixed in the same commit. The converter is a pure function of the git-tracked `tasks/` tree (two independent corpus runs byte-identical); `task show` returns `[#1080]`'s real record with `legacy_body: null`. Codex terra: 0/1/0/0 (the HIGH -- narrative text between a row's title and its first clause -- recorded, ruling (e)). **Result:** the typed-record migration moves from "defined" to "converts most of the corpus losslessly". **Changes:** `scripts/task_record.py`, `tests/test_task_record.py`, Codex record, generated files, `JOURNAL.md`, `logs/MERGE-RECEIPTS.jsonl`. **Next:** the Codex HIGH; the remaining 47% `legacy_body` carriers; step 2.
+
 ### 2026-09-26 (g) - CC (Opus 5.5, INTEGRATOR WAVE5B-N3): main CI turns green or red only on registered known-reds, a day-old red is named, and every pushed `worktree-*` branch gets an advisory ship-gate job -- O3's first step
 
 **Anchors:** `86733343`, `cd563d9f`, `511094fd`, `a8547e00`, `3dc1be04`, `c67450a5`, `44724333` (N2 lane 17 on kept branch `worktree-lane-ci-signal`), `4bb84c0d`, `aeec9e86`, `e9fd02ad`, `066e9100`, `5196cc51`, `8ab85a53` -- `worktree-lane-ci-signal-2` (ordered and served `claude-sonnet-5`), repair 1 of 2, merged `--no-ff` from an integration worktree stacked on the (f) merge.
