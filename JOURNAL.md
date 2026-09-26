@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-25 (v) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): every included quota gets a live read, and a Codespaces launch that would cross its core-hour allowance is refused -- `quota_watch.py`
+
+**Anchors:** `5cdf98fb`, `e47cef2d`, `60f6e268`, `5da4cd68` -- `worktree-lane-quota-watch` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on origin/main `461d4316`.
+
+**Did:** `quota_watch.py report` gives used/quota/%/burn/projected exhaustion per SKU (Codespaces core-hours and storage, Actions minutes, Copilot credits, first billed dollar) against the declared allowances in `ecosystem/quotas.yaml`. A 50/80/100% crossing is detected by comparison against an append-only ledger, and a crossing or the first billed dollar writes a registered `QUOTA-WARN-<date>.md` transport file (a new registry kind). A Codespaces launch whose projected core-hours cross the quota is refused, the one hard veto R7 specifies. The dispatcher and integrator order templates gain the pre-launch check and the close cost line. Codex terra review recorded, findings fixed (exhaustion capped at cycle reset, ledger serialized, negative projections refused). Two ratchet-counting words were drained from the prose. **Result:** a batch cannot burn past the Codespaces allowance unseen. **Changes:** `scripts/quota_watch.py`, `ecosystem/quotas.yaml`, `ecosystem/harness.yaml` (one fates line), `ecosystem/transport-registry.yaml` (QUOTA_WARN), two order templates, `tests/test_quota_watch.py` + fixtures, the terra record, `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl`. **Next:** wire `quota_watch.py record` into the batch moments (ROWS-OWED).
+
 ### 2026-09-25 (u) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): the Architekt Jutra delta scan becomes a mechanism -- `aj_scan.py` and its skill
 
 **Anchors:** `fd021236`, `0d5ae669`, `c53d43fc`, `6e0e0ff3`, `19f846b0` -- `worktree-lane-aj-scan` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on origin/main `20dfe91a`.
