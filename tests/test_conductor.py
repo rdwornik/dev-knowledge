@@ -516,10 +516,16 @@ def test_ship_gate_is_a_job_and_is_advisory_only(workflow, ruleset):
 
 def test_ship_gate_never_touches_an_existing_verdict_steps_continue_on_error(workflow):
     # "Do not": no `continue-on-error` added to an existing verdict step to turn a red green.
-    # The pytest job's final gate step and the ruff job's check step must still be unconditional.
+    # The pytest job's final verdict step and the ruff job's check step must still be
+    # unconditional. LANE-5B3-8 repair 1 retired the [#802] frozen-baseline gate from this role
+    # (it can never go green while the 4 permanent [#664] witnesses stay out of the freeze by
+    # design) -- the known-reds compare is the verdict now, and it is equally unconditional.
     pytest_gate_step = next(s for s in workflow["jobs"]["pytest"]["steps"]
-                             if s.get("name", "").startswith("Fail the job on the [#802] gate"))
+                             if s.get("name", "").startswith("Fail the job on the known-reds"))
     assert "continue-on-error" not in pytest_gate_step
+    known_reds_step = next(s for s in workflow["jobs"]["pytest"]["steps"]
+                           if s.get("id") == "known_reds")
+    assert "continue-on-error" not in known_reds_step
     ruff_step = next(s for s in workflow["jobs"]["ruff"]["steps"] if s.get("name") == "ruff")
     assert "continue-on-error" not in ruff_step
 

@@ -108,14 +108,21 @@ jobs:
                                                  # fleet_analytics tests fail on the import
       - name: pytest, pinned at -n 4 (logs/SUITE-BASELINE-FREEZE.md's comparison command)
         id: run
-        continue-on-error: true   # judged by the [#802] suite-baseline gate below, not this
-                                   # raw exit code -- main carries pre-existing failures today
+        continue-on-error: true   # judged by the known-reds compare below, not this raw exit
+                                   # code -- main carries pre-existing failures today
         run: |
           set +e
           uv run --locked pytest -q --tb=short -n 4 2>&1 | tee pytest.out
           echo "exit=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
       - name: Judge the run against the frozen baseline, by node id ([#802])
         id: gate
+        # REPORT-ONLY (LANE-5B3-8 repair 1): retired as this job's verdict -- the frozen
+        # 87-member set has no path to admit the four permanent [#664] witnesses (deliberately
+        # kept OUT of logs/SUITE-BASELINE-FREEZE.md so every run keeps reporting them), so a
+        # gate keyed on that set alone can never go green while they exist. Kept running, and
+        # kept under this exact step name, purely for the record: scripts/ci_verdict.py
+        # (SUITE_GATE_STEP_NAME) parses this step's own name and log window, so renaming it
+        # breaks that reader.
         run: |
           set +e
           uv run --locked python scripts/conductor.py suite-gate \
@@ -126,13 +133,12 @@ jobs:
           echo "exit=$rc" >> "$GITHUB_OUTPUT"
       - name: Compare against the committed known-reds registry (LANE-5A-1, ADR-121 step 1)
         id: known_reds
-        # NON-BLOCKING, on purpose, while both comparators run side by side: item 4 of the
-        # lane's done-contract retires logs/SUITE-BASELINE-FREEZE.md only after one CI run has
-        # come back green or named its new reds AGAINST THIS REGISTRY -- that proof is what
-        # this step exists to gather. The [#802] gate above stays the one that fails the job
-        # until that proof is in hand and a follow-up flips this step to blocking and deletes
-        # the frozen file.
-        continue-on-error: true
+        # THE JOB'S VERDICT (LANE-5B3-8 repair 1, retiring the [#802] frozen-baseline gate above
+        # from that role): every failure this run reports outside the 87-member freeze is
+        # already REGISTERED here -- 17 real known-reds plus the 4 permanent [#664] witnesses
+        # (attribution `witness`), which `known_reds.compare` reports separately from a genuine
+        # regression rather than folding them into either bucket. A report-only step is a
+        # different step, not a softened verdict, so this one carries no `continue-on-error`.
         run: |
           set +e
           uv run --locked python scripts/known_reds.py compare \
@@ -167,8 +173,8 @@ jobs:
             known-reds-compare.out
           retention-days: 90
           if-no-files-found: warn
-      - name: Fail the job on the [#802] gate's verdict, not pytest's raw exit code
-        run: exit ${{ steps.gate.outputs.exit }}
+      - name: Fail the job on the known-reds compare's verdict, not the frozen-baseline gate's (LANE-5B3-8 repair 1)
+        run: exit ${{ steps.known_reds.outputs.exit }}
 
   ruff:
     runs-on: ubuntu-latest
