@@ -254,18 +254,23 @@ _AWAITING_TRIAGE = (
     "decision funnel (OWNED / DISCHARGED / CANDIDATE / REJECTED). A row is filed once triage "
     "promotes the intake to CANDIDATE and a ruling accepts it -- filing one pre-emptively, "
     "before the funnel disposes the finding, would jump the process both ADRs exist to enforce.")
-_EXECUTING_WAVE5B_N2 = (
-    "EXECUTING IN BATCH WAVE5B-N2 (A9-2's 'executing in batch N' category), not refused. The "
+_EXECUTED_WAVE5B_N2 = (
+    "EXECUTED IN BATCH WAVE5B-N2 (A9-2's 'executing in batch N' category), not refused. The "
     "operator authorized WAVE5B-N2 as a night batch (`to-cc/BATCH-WAVE5B-N2-2026-09-25.md`); "
-    "this is one of its queue-management amendments and the batch has not closed -- no "
-    "WAVE5B-N2 digest has landed under `docs/audits/` (measured 2026-09-26), and "
-    "`to-cc/BATCH-RECOVERY-WAVE5B-N2-2026-09-26.md` exists precisely because N2 needed a "
-    "recovery order rather than a clean close. A backlog row would duplicate the batch's own "
-    "lane table rather than dispose anything; the batch's own eventual digest is the "
-    "disposition, once it closes.")
+    "this is one of its queue-management amendments. CORRECTED 2026-09-26 (Codex terra review "
+    "of this lane's own diff, verified directly rather than taken on faith): an earlier draft "
+    "of this reason claimed the batch 'has not closed', citing only the absence of an in-repo "
+    "`docs/audits/` digest -- true for P11 carried-by purposes, but wrong for whether the batch "
+    "itself closed. `to-browser/STATE-BATCH-WAVE5B-N2.md` reads `CLOSED 2026-09-26T15:17+02:00 "
+    "(after reboot; closed by recovery)`, and its close digest "
+    "(`to-browser/DIGEST-WAVE5B-N2-2026-09-26.md` S1 'G2') confirms these amendments "
+    "('LANE8, QUEUE..QUEUE6') were consumed as operator inputs during the batch's live run. "
+    "A backlog row would duplicate the batch's own lane table rather than dispose anything; "
+    "the batch's own close digest -- transport-based, not yet landed under `docs/audits/`, but "
+    "a real, citable, dated close record -- is the disposition.")
 _SUPERSEDED_WAVE5B_N2_QUEUE = (
     "SUPERSEDED by its own later revision in the same WAVE5B-N2 queue-amendment chain -- a "
-    "dead branch of a batch decision already covered by the 'executing in batch WAVE5B-N2' "
+    "dead branch of a batch decision already covered by the 'executed in batch WAVE5B-N2' "
     "disposition on its successor file. A second row, or a second disposition with different "
     "content, for the same batch decision would duplicate rather than dispose.")
 
@@ -310,19 +315,19 @@ DECISION_DISPOSITIONS: dict[str, Disposition] = {
 
     # -- live WAVE5B-N2 queue amendments: executing, batch not closed -- LANE-5B3-4-decision-debt
     "declare:AMEND-BATCH-WAVE5B-N2-LANE8-2026-09-25": Disposition(
-        reason=_EXECUTING_WAVE5B_N2, owner="the WAVE5B-N2 batch's own integrator close (not yet reached)"),
+        reason=_EXECUTED_WAVE5B_N2, owner="the WAVE5B-N2 batch's own close digest, to-browser/DIGEST-WAVE5B-N2-2026-09-26.md (CLOSED 2026-09-26T15:17+02:00)"),
     "declare:AMEND-BATCH-WAVE5B-N2-QUEUE-2026-09-25": Disposition(
-        reason=_EXECUTING_WAVE5B_N2, owner="the WAVE5B-N2 batch's own integrator close (not yet reached)"),
+        reason=_EXECUTED_WAVE5B_N2, owner="the WAVE5B-N2 batch's own close digest, to-browser/DIGEST-WAVE5B-N2-2026-09-26.md (CLOSED 2026-09-26T15:17+02:00)"),
     "declare:AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25": Disposition(
-        reason=_EXECUTING_WAVE5B_N2, owner="the WAVE5B-N2 batch's own integrator close (not yet reached)"),
+        reason=_EXECUTED_WAVE5B_N2, owner="the WAVE5B-N2 batch's own close digest, to-browser/DIGEST-WAVE5B-N2-2026-09-26.md (CLOSED 2026-09-26T15:17+02:00)"),
     "declare:AMEND-BATCH-WAVE5B-N2-QUEUE3-2026-09-25": Disposition(
-        reason=_EXECUTING_WAVE5B_N2, owner="the WAVE5B-N2 batch's own integrator close (not yet reached)"),
+        reason=_EXECUTED_WAVE5B_N2, owner="the WAVE5B-N2 batch's own close digest, to-browser/DIGEST-WAVE5B-N2-2026-09-26.md (CLOSED 2026-09-26T15:17+02:00)"),
     "declare:AMEND-BATCH-WAVE5B-N2-QUEUE4-2026-09-25": Disposition(
-        reason=_EXECUTING_WAVE5B_N2, owner="the WAVE5B-N2 batch's own integrator close (not yet reached)"),
+        reason=_EXECUTED_WAVE5B_N2, owner="the WAVE5B-N2 batch's own close digest, to-browser/DIGEST-WAVE5B-N2-2026-09-26.md (CLOSED 2026-09-26T15:17+02:00)"),
     "declare:AMEND-BATCH-WAVE5B-N2-QUEUE5-2026-09-25": Disposition(
-        reason=_EXECUTING_WAVE5B_N2, owner="the WAVE5B-N2 batch's own integrator close (not yet reached)"),
+        reason=_EXECUTED_WAVE5B_N2, owner="the WAVE5B-N2 batch's own close digest, to-browser/DIGEST-WAVE5B-N2-2026-09-26.md (CLOSED 2026-09-26T15:17+02:00)"),
     "declare:AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25": Disposition(
-        reason=_EXECUTING_WAVE5B_N2, owner="the WAVE5B-N2 batch's own integrator close (not yet reached)"),
+        reason=_EXECUTED_WAVE5B_N2, owner="the WAVE5B-N2 batch's own close digest, to-browser/DIGEST-WAVE5B-N2-2026-09-26.md (CLOSED 2026-09-26T15:17+02:00)"),
 
     # -- superseded WAVE5B-N2 queue amendments: dead branches -- LANE-5B3-4-decision-debt -------
     "declare:AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25-v1-superseded": Disposition(
