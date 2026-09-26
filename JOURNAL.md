@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-25 (w) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): the live transport has zero unclassified strays, and a check keeps it there -- `transport.py strays`
+
+**Anchors:** `356c5649` -- `worktree-lane-transport-strays` repair 1 of 2 (ordered and served `claude-sonnet-5`; original tip `ca153c56`), merged `--no-ff` from an integration worktree on origin/main `4e27a9d5`.
+
+**Did:** `ecosystem/transport-registry.yaml` gains 83 kind rows covering every historical stray-filename prefix on the live transport (the `DIGEST` kind now admits `.png|.yaml|.json`). `transport.py strays` exits non-zero on any stray and reports `unclassified_count` separately from `misfoldered_count`; a fixture pins the exit on one stray. On the live transport: 0 unclassified. 29 mis-foldered files were moved through the registered write gate and recorded from -> to; 3 were blocked by a same-named file; nothing was deleted, and 14 dead files are listed for the operator. The contract named `transport_report.py`, which is the lane-end writer, so the verb went into `transport.py`, where the registry reader lives (DECIDED-BY-INTEGRATOR; no other lane owns it). Codex terra: no findings. Repair 1 reworded three registry comments that added `never` (silent-rule 454 -> 451) and kept lane-quota-watch's `QUOTA_WARN` row additively (ruling (f)). **Result:** a stray in the transport is a check failure, not a silent pile-up. **Changes:** `ecosystem/transport-registry.yaml`, `scripts/transport.py`, `tests/test_transport.py`, `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl`. **Next:** the operator's deletion list (OPERATOR-ACTION); LANE-x-675's two differing copies.
+
 ### 2026-09-25 (v) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): every included quota gets a live read, and a Codespaces launch that would cross its core-hour allowance is refused -- `quota_watch.py`
 
 **Anchors:** `5cdf98fb`, `e47cef2d`, `60f6e268`, `5da4cd68` -- `worktree-lane-quota-watch` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on origin/main `461d4316`.
