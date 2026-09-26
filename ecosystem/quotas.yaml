@@ -1,0 +1,59 @@
+# ecosystem/quotas.yaml -- included quota per account per SKU (R7, LANE-5B2-6-quota-watch).
+# Read by scripts/quota_watch.py::load_quotas. Values are this account's GitHub PERSONAL
+# PRO-tier included allowances, live-verified 2026-09-26 against
+# `gh api users/rdwornik/settings/billing/usage/summary` (raw read and figures recorded in
+# to-browser/SESSION-lane-quota-watch.md).
+#
+# COPILOT IS DELIBERATELY ABSENT FROM `skus:` BELOW. `gh api copilot_internal/user` already
+# states ITS OWN included quota per cycle (`quota_snapshots.premium_interactions.entitlement`
+# -- live-verified 2026-09-26: 22,500, credits_used 285; NOT the ~20,000 a 2026-09-24 note
+# approximated one cycle earlier, and the two are not even measuring the same cycle -- this
+# one resets 2026-10-01). Declaring a second, hand-typed copy of a number the API already
+# reports on every call would be exactly the drift `ecosystem/*.yaml` registries exist to
+# end, so `quota_watch.py` reads it live instead (`parse_copilot_credits`).
+#
+# Field meaning per SKU-group row:
+#   quota       included quantity per billing cycle, in `unit`. Absent (see Copilot above) means
+#               "read live, not declared" -- `quota_watch.load_quotas` skips such a row rather
+#               than treating an absent quota as zero.
+#   unit        the display unit `quota_watch.py` renders this row in.
+#   thresholds  the warn crossings `record` checks, as fractions of quota (R7: 50/80/100%).
+#   account     the `gh` login this SKU is billed to (pinned per call, must-not-repeat 8).
+#   notes       how `used` is computed for this group -- see `quota_watch.py`'s own readers.
+
+account: rdwornik
+cycle: monthly
+
+skus:
+  codespaces_core_hours:
+    quota: 180
+    unit: core-hours
+    thresholds: [0.5, 0.8, 1.0]
+    account: rdwornik
+    notes: >-
+      sum over every `codespaces_compute_d<N>` SKU of grossQuantity(hours) x N -- N read from
+      the SKU name itself (`quota_watch.codespaces_core_hours_used`), never a per-SKU table, so
+      a machine size this account has not used before still prices correctly the first time.
+
+  codespaces_storage:
+    quota: 20
+    unit: gb-month
+    thresholds: [0.5, 0.8, 1.0]
+    account: rdwornik
+    notes: >-
+      `codespaces_storage`'s grossQuantity is gigabyte-HOURS; normalised to gigabyte-MONTHS by
+      dividing by 730 (average hours/month) -- a client-side approximation, not a bill
+      reconciliation (`quota_watch.codespaces_storage_used`), the same honest-limits posture
+      `lane_cost.py` documents for its own figures.
+
+  actions_minutes:
+    quota: 3000
+    unit: minutes
+    thresholds: [0.5, 0.8, 1.0]
+    account: rdwornik
+    notes: >-
+      `actions_linux` SKU grossQuantity, directly. The hub has been PUBLIC since ~2026-09-15,
+      so its GitHub-hosted Actions minutes are free regardless of this declared quota
+      (RATIFICATION-2026-09-25 R9 correction) -- this row still tracks USAGE against the
+      historical private-repo allowance; `first_billed_dollar` is the figure that actually says
+      whether anything is being charged.
