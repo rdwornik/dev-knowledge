@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-26 (a) - CC (Opus 5.5, INTEGRATOR WAVE5B-N3): a direct commit on `main` is refused at the default pre-commit stage, and the organ-wiring fates are true -- `block-commit-on-main` armed
+
+**Anchors:** `897e84fc`, `6d8b7b60`, `7ad6a23f`, `f89ef405` -- N2 lane 10's commits on kept branch `worktree-lane-organ-wirings`, verified by `worktree-lane-organ-wirings-verify` (ordered and served `claude-sonnet-5`), merged `--no-ff` from an integration worktree on origin/main `abb03452`.
+
+**Did:** `.pre-commit-config.yaml` runs `block-commit-on-main` at `stages: [pre-commit]`; `tests/test_block_commit_on_main_replay.py` replays the integrator's own path (integration-branch `--no-ff` merge, regenerated files, receipt line, `git push origin HEAD:main`) and proves each step passes the hook. `ecosystem/harness.yaml` gains fates for `handback`, `lane_boot`, `plan_lint` and `deny_and_point`, and fixes two stale reasons (`codespace_regime`, `surface_triage`); the two normative words that refused N2 are gone (silent-rule 451 == main). **Result:** the core-invariant #5 guard is live by default instead of manual-stage. **Changes:** `.pre-commit-config.yaml`, `ecosystem/harness.yaml`, `tests/test_block_commit_on_main_replay.py`, `tests/test_organ_truth.py`, `docs/audits/2026-09-26-codex-lane-organ-wirings.md`, generated files, `JOURNAL.md`, `logs/MERGE-RECEIPTS.jsonl`. **Next:** the lane's ROWS-OWED (lane_boot naming grammar, batch-scoped plan_lint false positives, `graph_queries.py` stale disposition).
+
 ### 2026-09-25 (w) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): the live transport has zero unclassified strays, and a check keeps it there -- `transport.py strays`
 
 **Anchors:** `356c5649` -- `worktree-lane-transport-strays` repair 1 of 2 (ordered and served `claude-sonnet-5`; original tip `ca153c56`), merged `--no-ff` from an integration worktree on origin/main `4e27a9d5`.
