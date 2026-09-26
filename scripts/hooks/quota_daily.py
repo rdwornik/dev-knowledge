@@ -21,7 +21,11 @@ claims and detaches; there is no "try inline, fall back to detached" branch to r
 
 GUARD CONTRACT (Done-contract item 2): fail-open on every error (`main()`'s outer try/except
 prints the cause and returns 0 -- a SessionStart hook must never block a session); skipped
-when `logs/QUOTA-READS.jsonl` already carries a row measured today (UTC, matching
+in every LINKED WORKTREE (`_is_linked_worktree`, REFUSED-lane-wire-quota-distiller.md repair
+1 -- `logs/QUOTA-READS.jsonl` is a TRACKED ledger, and this hook's own `$CLAUDE_PROJECT_DIR`
+is whichever checkout started the session, so firing from every lane worktree would write N
+diverging tracked copies; the batch-close leg alone writes it, from the pinned primary);
+skipped when `logs/QUOTA-READS.jsonl` already carries a row measured today (UTC, matching
 `quota_watch.py`'s own `_now_iso()`); a same-day claim file (`logs/receipts/
 QUOTA-DAILY-CLAIM.json`, the same O_CREAT|O_EXCL exclusive-create as `_claim_producer`)
 de-duplicates spawns across SessionStart calls inside the same stale window, and is reaped
@@ -91,6 +95,45 @@ def _has_read_today(ledger_path: Path, today: str) -> bool:
         if row.measured[:10] == today:
             return True
     return False
+
+
+def _git_rev_parse(repo_root: Path, arg: str) -> Optional[str]:
+    """One `git rev-parse` call, textual stdout on success, `None` on any failure (git
+    missing, `repo_root` not a repository, timeout) -- never raises."""
+    try:
+        proc = subprocess.run(["git", "rev-parse", arg], cwd=str(repo_root),
+                              capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if proc.returncode != 0:
+        return None
+    return proc.stdout.strip()
+
+
+def _is_linked_worktree(repo_root: Path) -> bool:
+    """DECIDED-BY-LANE (REFUSED-lane-wire-quota-distiller.md repair 1): the daily read fires
+    from the PRIMARY checkout only, detected the way git itself distinguishes a linked
+    worktree from its primary (git-worktree(1)) -- `--git-dir` is worktree-specific
+    (`<primary>/.git/worktrees/<name>`) while `--git-common-dir` always resolves to the
+    primary's own `.git`; the two are equal only in the primary. Chosen over "write to a
+    gitignored path" or "resolve the primary and redirect the write there" because it needs
+    no new path convention and no cross-checkout write -- it just leaves every OTHER
+    checkout's SessionStart a no-op for this organ, exactly as the batch-close leg (which
+    writes from the pinned primary alone) already assumes.
+
+    Returns True -- SKIP, not fire -- when git itself cannot answer (not a repository, no git
+    on PATH, a timeout): Codex terra HIGH, 2026-09-26 (this repair): an unconfirmed checkout
+    is exactly the class this guard exists to distrust, and returning False there would let a
+    checkout git cannot identify recreate the very divergent-tracked-ledger bug being fixed.
+    Fail-open still holds -- the SessionStart hook itself never blocks the session (`main()`'s
+    outer try/except) -- but "never block the session" and "prove I am the primary before
+    writing a tracked file" are different guarantees, and only skipping satisfies both.
+    """
+    git_dir = _git_rev_parse(repo_root, "--git-dir")
+    common_dir = _git_rev_parse(repo_root, "--git-common-dir")
+    if git_dir is None or common_dir is None:
+        return True
+    return (repo_root / git_dir).resolve() != (repo_root / common_dir).resolve()
 
 
 def _claim_path(repo_root: Path) -> Path:
@@ -251,6 +294,10 @@ def main(argv: Optional[list] = None) -> int:
     if _PRODUCER_FLAG in argv:
         return run_producer()
     try:
+        if _is_linked_worktree(_REPO_ROOT):
+            print("[quota] linked worktree; the daily read fires from the primary checkout "
+                  "only (skip, fail-open)")
+            return 0
         today = _today_utc()
         ledger_path = qw.reads_ledger_path(_REPO_ROOT)
         if _has_read_today(ledger_path, today):
