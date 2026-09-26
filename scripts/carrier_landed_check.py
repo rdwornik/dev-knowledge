@@ -24,20 +24,23 @@ prose never actually claims.
 WHAT "MET" MEANS, and its one honest limit. `lands-via`'s value is prose, not a grammar --
 "the WAVE5B-N3 lanes through the integrator; to-browser/DIGEST-WAVE5B-N3-<date>.md ..." names
 an intention, several homes, or none at all. This organ reuses `gen_handoff`'s own carrier-token
-extraction (`_carrier_tokens` / `_resolves_on_main`) rather than inventing a second tokenizer
-that could disagree with the one the carried-by leg already trusts, but NARROWS its output to
-FILE-shaped tokens only (a known extension) -- unlike a `carried-by:` value, where a bare
-directory is a legitimate claim ("the whole tree is the home"), a `lands-via:` naming a
-directory is almost always a generic promise ("the next landing under docs/audits/"), and
-`docs/audits/` resolves on `main` in every commit this repo has ever made. MEASURED live,
-2026-09-26: the unfiltered tokenizer flagged 12 files on exactly that false-positive class,
-zero of them evidence that a SPECIFIC ruling landed. Filtering to a real filename cuts that
-class to zero. A "met" verdict is therefore *"at least one specific file this text named now
-exists"* -- necessary evidence that the prediction came true, never proof that the file's
-CONTENT carries this ruling (the same honest limit `carriage_verdicts` itself states for
-`carried-by`). A `lands-via` with no file-shaped token (a bare directory, or a narrative like
-"the operator's ratification") or none of whose tokens resolve is `unmet`, not a false negative
--- the debt is real and belongs in the contract's RESIDUAL-CARRIERS block, not dropped here.
+extraction (`_carrier_tokens`) rather than inventing a second tokenizer that could disagree with
+the one the carried-by leg already trusts, but NARROWS what counts as "met" to tokens that
+resolve on `main` as a FILE (a git blob), not a directory (a git tree) -- unlike a `carried-by:`
+value, where a bare directory is a legitimate claim ("the whole tree is the home"), a
+`lands-via:` naming a directory is almost always a generic promise ("the next landing under
+docs/audits/"), and `docs/audits/` resolves on `main` in every commit this repo has ever made.
+MEASURED live, 2026-09-26: the unfiltered tokenizer flagged 12 files on exactly that
+false-positive class, zero of them evidence that a SPECIFIC ruling landed. The blob-vs-tree
+check (`_is_blob_on_main`, CORRECTED from an earlier extension-allowlist version -- see its own
+docstring) cuts that class to zero without also silently dropping a genuinely-landed file whose
+extension an allowlist did not happen to name. A "met" verdict is therefore *"at least one
+specific file this text named now exists"* -- necessary evidence that the prediction came true,
+never proof that the file's CONTENT carries this ruling (the same honest limit
+`carriage_verdicts` itself states for `carried-by`). A `lands-via` with no file-shaped token (a
+bare directory, or a narrative like "the operator's ratification") or none of whose tokens
+resolve is `unmet`, not a false negative -- the debt is real and belongs in the contract's
+RESIDUAL-CARRIERS block, not dropped here.
 
 SCOPE: only files P11 itself reads as `CARRIAGE_OPEN` -- a file with no anchored `carried-by:`
 key, or one whose value is UNRESOLVED prose, is a different defect this organ does not
@@ -72,15 +75,31 @@ import gen_handoff as gh  # noqa: E402
 #: one, so the same window that anchors one anchors the other.
 _LANDS_VIA_RE = re.compile(r"^lands-via:[ \t]*(\S.*)$", re.MULTILINE)
 
-#: A FILE-shaped candidate only -- unlike `gen_handoff._carrier_tokens` (which admits a bare
-#: directory, because a `carried-by:` naming a tree is a legitimate claim that the whole tree
-#: is the home), a `lands-via:` naming a directory is near-universally a GENERIC promise
-#: ("the next landing under docs/audits/") rather than a specific one. MEASURED live,
-#: 2026-09-26: filtering by directory alone flagged 12 files on `docs/audits/` or
-#: `docs/decisions` resolving -- true of every commit in this repo's history, and therefore
-#: no evidence at all that THIS ruling landed. Requiring a real extension cuts that class to
-#: zero and keeps the signal to "a specific file this text named now exists".
-_FILE_SHAPED_RE = re.compile(r"\.(?:py|md|ya?ml|toml|json|sh|ps1)$", re.IGNORECASE)
+def _is_blob_on_main(repo_root, token: str) -> bool:
+    """True when `token` resolves on `main` AND names a FILE (a git blob), not a directory
+    (a git tree).
+
+    CORRECTED (Codex terra review round 2, LANE-5B3-4-decision-debt): the first version of
+    this organ filtered candidate tokens by a small file-extension allowlist
+    (`py|md|yaml|toml|json|sh|ps1`) to keep out bare-directory mentions -- unlike
+    `gen_handoff._carrier_tokens` (which admits a bare directory as a legitimate `carried-by:`
+    claim, "the whole tree is the home"), a `lands-via:` naming a directory is near-universally
+    a GENERIC promise ("the next landing under docs/audits/"), and `docs/audits/` resolves on
+    `main` in every commit this repo has ever made. MEASURED live, 2026-09-26: filtering by
+    directory alone flagged 12 files on exactly that class. But the extension allowlist was the
+    wrong instrument for that -- `gen_handoff._carrier_tokens` already only emits a bare
+    (no-`/`) token when it ends in a recognized extension, so every path-shaped token it emits
+    (anything containing `/`, e.g. `logs/result.jsonl`, `config/settings.ini`) is EXTENSION-FREE
+    at that layer already; re-filtering it by a narrower allowlist here silently dropped a
+    genuinely-landed file whose extension the list did not happen to name. Asking git directly
+    whether the resolved object is a blob (not a tree) is the actual distinction this organ
+    needs, and it is extension-agnostic by construction.
+    """
+    rel = token.rstrip("/")
+    if not rel:
+        return False
+    ok, out = gh._git_status(Path(repo_root), "cat-file", "-t", f"main:{rel}")  # noqa: SLF001
+    return ok and out.strip() == "blob"
 
 
 @dataclass(frozen=True)
@@ -123,9 +142,8 @@ def landed_verdicts(transport, repo_root) -> list[LandedVerdict]:
                                      "no anchored `lands-via:` key -- predates the convention, "
                                      "not judgeable by this organ"))
             continue
-        tokens = [t for t in gh._carrier_tokens(value)  # noqa: SLF001 -- reused seam
-                 if _FILE_SHAPED_RE.search(t)]
-        home = next((t for t in tokens if gh._resolves_on_main(repo_root, t)), None)  # noqa: SLF001
+        tokens = gh._carrier_tokens(value)  # noqa: SLF001 -- reused seam
+        home = next((t for t in tokens if _is_blob_on_main(repo_root, t)), None)
         if home is not None:
             out.append(LandedVerdict(
                 v.path, value, True, home,
@@ -133,13 +151,14 @@ def landed_verdicts(transport, repo_root) -> list[LandedVerdict]:
         elif tokens:
             out.append(LandedVerdict(
                 v.path, value, False, None,
-                f"lands-via names {len(tokens)} file candidate(s), none resolving on `main` "
-                "yet: " + ", ".join(tokens)))
+                f"lands-via names {len(tokens)} candidate(s), none resolving on `main` as a "
+                "file yet (a directory candidate resolving as a tree is not evidence a "
+                "specific ruling landed): " + ", ".join(tokens)))
         else:
             out.append(LandedVerdict(
                 v.path, value, False, None,
-                "lands-via names no specific repo file -- a bare directory, or a narrative "
-                "condition (an act, a ratification, a merge) this organ cannot resolve"))
+                "lands-via names no repo-path-shaped token at all -- a narrative condition "
+                "(an act, a ratification, a merge) this organ cannot resolve"))
     return out
 
 
@@ -165,6 +184,14 @@ def main(argv: "list[str] | None" = None) -> int:
     if transport is None:
         print("carrier-landed-check: SKIPPED -- CLAUDE_PROMPTS_DIR is unresolved, nothing "
               "measured (a boundary is not a clean pass)")
+        return 0
+    # An explicit --transport that does not exist is the SAME boundary, not an empty
+    # population: `_open_carriers`'s glob over a missing directory returns [] silently, which
+    # would otherwise print "0 OPEN carrier(s) measured" -- indistinguishable from "the real
+    # transport genuinely has none" (Codex terra review round 2, LANE-5B3-4-decision-debt).
+    if not Path(transport).is_dir():
+        print(f"carrier-landed-check: SKIPPED -- --transport {transport!r} does not exist, "
+              "nothing measured (a boundary is not a clean pass)")
         return 0
 
     verdicts = landed_verdicts(transport, root)

@@ -9,9 +9,8 @@ nothing ever flagged) cannot pass:
   3. unmet-OPEN      -- honestly still open: measured, never flagged.
   4. unresolvable transport -- `SKIPPED`, not a silent pass reading as "0 findings, clean".
 
-The git predicate (`gen_handoff._resolves_on_main`) is monkeypatched, the same seam
-`tests/test_gen_handoff_preflight.py` patches for the same reason: a fixture tree has no
-real git history, and the subject under test is this organ's own logic, not git.
+The git predicate (`carrier_landed_check._is_blob_on_main`) is monkeypatched -- a fixture tree
+has no real git history, and the subject under test is this organ's own logic, not git.
 """
 
 from __future__ import annotations
@@ -25,17 +24,22 @@ import gen_handoff as gh
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "carrier_landed_check"
 
-#: The one repo home the fixtures' `lands-via:` values name as "eventually landing".
+#: The repo homes the fixtures' `lands-via:` values name as "eventually landing".
 _LANDED_HOME = "docs/decisions/ADR-900-fixture.md"
+_LANDED_HOME_NONSTANDARD_EXT = "logs/result.jsonl"
 
 
 @pytest.fixture
 def _on_main(monkeypatch):
-    """Stub the ONE `main` lookup: `_LANDED_HOME` AND the trivial `docs/audits` directory
-    both resolve -- the directory is included deliberately, so the file-shape filter is what
-    keeps it from being reported as evidence, not an accident of the stub never resolving it."""
-    monkeypatch.setattr(gh, "_resolves_on_main", lambda _root, tok:
-                        tok == _LANDED_HOME or tok.rstrip("/") == "docs/audits")
+    """Stub the ONE `main` lookup: `_LANDED_HOME` and `_LANDED_HOME_NONSTANDARD_EXT` resolve as
+    a FILE (blob) each; the trivial `docs/audits` directory resolves too, but as a TREE, not a
+    blob -- included deliberately, so the blob-vs-tree distinction is what keeps it from being
+    reported as evidence, not an accident of the stub never resolving it (Codex terra review
+    round 2: an earlier version of this organ used a file-extension allowlist for this
+    distinction instead, which silently missed a genuinely-landed file whose extension the list
+    did not name)."""
+    monkeypatch.setattr(clc, "_is_blob_on_main", lambda _root, tok:
+                        tok in (_LANDED_HOME, _LANDED_HOME_NONSTANDARD_EXT))
 
 
 def test_a_met_lands_via_with_carried_by_still_open_is_flagged(tmp_path, _on_main):
@@ -73,6 +77,28 @@ def test_a_bare_directory_lands_via_is_never_flagged(tmp_path, _on_main):
     assert by_name["DECLARE-DIR-ONLY-LANDS-VIA.md"].met is False
     flagged = {v.path.name for v in clc.landed_but_open(FIXTURES, tmp_path / "repo")}
     assert "DECLARE-DIR-ONLY-LANDS-VIA.md" not in flagged
+
+
+def test_a_landed_file_with_a_nonstandard_extension_is_flagged(tmp_path, _on_main):
+    """The false-negative class Codex terra review round 2 found: the organ's first version
+    filtered candidate tokens through a small file-extension allowlist, which silently missed
+    a genuinely-landed file (e.g. `logs/result.jsonl`) whose extension the list did not name.
+    The fix asks git whether the object is a blob (not a tree), which is extension-agnostic."""
+    flagged = {v.path.name for v in clc.landed_but_open(FIXTURES, tmp_path / "repo")}
+    assert "DECLARE-MET-NONSTANDARD-EXT.md" in flagged
+
+
+def test_an_explicit_nonexistent_transport_is_SKIPPED_not_zero_measured(capsys, tmp_path):
+    """A typo'd or stale `--transport PATH` must read as SKIPPED, never as '0 OPEN carrier(s)
+    measured' -- indistinguishable from a real transport that genuinely has none (Codex terra
+    review round 2: the first version of this organ only checked the AUTO-DETECTED transport
+    for None, and silently proceeded on an explicit-but-nonexistent path)."""
+    missing = tmp_path / "does-not-exist"
+    rc = clc.main(["check", "--repo-root", str(tmp_path), "--transport", str(missing)])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "SKIPPED" in out
+    assert "0 OPEN carrier" not in out
 
 
 def test_a_carrier_with_no_lands_via_key_is_measured_honestly(tmp_path, _on_main):

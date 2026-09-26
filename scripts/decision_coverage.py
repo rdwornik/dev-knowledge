@@ -224,21 +224,24 @@ class PopulationUnreadable(RuntimeError):
 # this lane's start. 13 of the 40 were resolved a different way first (their transport carrier
 # turned out to have already landed; see `carrier_landed_check.py` and the lane's session file
 # for the old/new `carried-by:` lines and shas), which moved them to `done` and off this
-# register's population before a disposition was ever needed. The 29 entries below are the rest
+# register's population before a disposition was ever needed. The 27 entries below are the rest
 # -- two GROUNDED classes, never invented:
 #   * ADR-121..126 and every DRAFT/SEED intake here are Proposed/pre-triage. MEASURED pattern on
 #     this tree: ADR-119 and ADR-120 (both Accepted) already carry implementing rows; no
 #     Proposed ADR in this population does. Filing a row against an unratified ADR, or an
 #     untriaged intake, would pre-empt the operator's own ratification / the funnel's own triage
 #     (ADR-94; ADR-98; ADR-111) -- the disposition IS that reserved act, not yet performed.
-#   * The eleven live `AMEND-BATCH-WAVE5B-N2-*` queue amendments are EXECUTING IN BATCH N2 (A9-2's
-#     own third category), not refused: the operator-authorized batch has not closed (no
-#     `docs/audits/` digest for WAVE5B-N2 exists, and `BATCH-RECOVERY-WAVE5B-N2-2026-09-26.md`
-#     exists precisely because it needed a recovery order rather than a clean close). A backlog
-#     row here would duplicate the batch's own lane table, not dispose anything.
-# The remaining 11 of the 40 have NEITHER grounding: no ratification/triage process governs them
-# and no batch claims them as still executing. Those are `ROWS-OWED` lines in this lane's session
-# file, per ruling (h) -- this lane files no rows.
+#   * Five of the seven live `AMEND-BATCH-WAVE5B-N2-*` queue amendments (LANE8, QUEUE, QUEUE4,
+#     QUEUE5, QUEUE6) carry an individually-reasoned disposition, each citing the specific
+#     per-lane outcome the N2 close digest and the N3 batch manifest record for it -- CORRECTED
+#     2026-09-26 (Codex terra review round 2) from a first-draft blanket "EXECUTED IN BATCH"
+#     reason that overclaimed uniform completion across all seven; see the comment above
+#     `_EXECUTED_WAVE5B_N2_*` entries below for the per-file grounding.
+# The remaining 13 of the 40 have NEITHER grounding: no ratification/triage process governs them
+# and no batch claims them as still executing (this includes QUEUE2 and QUEUE3, whose held /
+# never-launched lanes have no honest disposition either -- removed from this register on the
+# same Codex round-2 correction). Those are `ROWS-OWED` lines in this lane's session file, per
+# ruling (h) -- this lane files no rows.
 
 #: The single reasoning ADR-121..126 and the pre-triage intakes below share, factored out so six
 #: ADR entries and twelve intake entries do not restate it with room to drift.
@@ -254,25 +257,20 @@ _AWAITING_TRIAGE = (
     "decision funnel (OWNED / DISCHARGED / CANDIDATE / REJECTED). A row is filed once triage "
     "promotes the intake to CANDIDATE and a ruling accepts it -- filing one pre-emptively, "
     "before the funnel disposes the finding, would jump the process both ADRs exist to enforce.")
-_EXECUTED_WAVE5B_N2 = (
-    "EXECUTED IN BATCH WAVE5B-N2 (A9-2's 'executing in batch N' category), not refused. The "
-    "operator authorized WAVE5B-N2 as a night batch (`to-cc/BATCH-WAVE5B-N2-2026-09-25.md`); "
-    "this is one of its queue-management amendments. CORRECTED 2026-09-26 (Codex terra review "
-    "of this lane's own diff, verified directly rather than taken on faith): an earlier draft "
-    "of this reason claimed the batch 'has not closed', citing only the absence of an in-repo "
-    "`docs/audits/` digest -- true for P11 carried-by purposes, but wrong for whether the batch "
-    "itself closed. `to-browser/STATE-BATCH-WAVE5B-N2.md` reads `CLOSED 2026-09-26T15:17+02:00 "
-    "(after reboot; closed by recovery)`, and its close digest "
-    "(`to-browser/DIGEST-WAVE5B-N2-2026-09-26.md` S1 'G2') confirms these amendments "
-    "('LANE8, QUEUE..QUEUE6') were consumed as operator inputs during the batch's live run. "
-    "A backlog row would duplicate the batch's own lane table rather than dispose anything; "
-    "the batch's own close digest -- transport-based, not yet landed under `docs/audits/`, but "
-    "a real, citable, dated close record -- is the disposition.")
-_SUPERSEDED_WAVE5B_N2_QUEUE = (
-    "SUPERSEDED by its own later revision in the same WAVE5B-N2 queue-amendment chain -- a "
-    "dead branch of a batch decision already covered by the 'executed in batch WAVE5B-N2' "
-    "disposition on its successor file. A second row, or a second disposition with different "
-    "content, for the same batch decision would duplicate rather than dispose.")
+# CORRECTED 2026-09-26 (Codex terra review round 2, LANE-5B3-4-decision-debt, verified against
+# ground truth rather than taken on faith): a first draft here used ONE blanket
+# "EXECUTED IN BATCH WAVE5B-N2" reason for all 7 queue-amendment files, on the premise that the
+# batch's close digest closing = its content executing. Direct comparison of each file's own
+# appended-lane table against `to-browser/DIGEST-WAVE5B-N2-2026-09-26.md`'s per-lane outcomes
+# (§2) and `to-cc/BATCH-WAVE5B-N3-2026-09-26.md`'s own lane table shows that is true for some
+# files and false for others -- several lanes were HELD or NEVER-LAUNCHED in N2 with no
+# continuing lane anywhere, which "executed" cannot honestly cover. Each entry below is now
+# reasoned individually against the two source documents, per Codex's fix direction: "retain
+# dispositions only where the cited close record establishes the amendment's decision was
+# actually completed or superseded." QUEUE2 and QUEUE3 (see below) get NO entry in this
+# register at all: each has a real, never-launched portion with no continuing lane anywhere in
+# WAVE5B-N3's own manifest, and are filed as ROWS-OWED in this lane's session file instead,
+# since "executing" or "superseded" would both overclaim them.
 
 # `declare:AMEND-CV-V10-001`'s disposition (OUT OF POPULATION, the batch X manifest's own
 # scoping) was REMOVED here -- LANE-5B3-4-decision-debt, 2026-09-26 -- once
@@ -313,31 +311,84 @@ DECISION_DISPOSITIONS: dict[str, Disposition] = {
     "intake:104": Disposition(reason=_AWAITING_TRIAGE, owner="ADR-98/ADR-111's intake funnel, not yet run over intake #104"),
     "intake:105": Disposition(reason=_AWAITING_TRIAGE, owner="ADR-98/ADR-111's intake funnel, not yet run over intake #105"),
 
-    # -- live WAVE5B-N2 queue amendments: executing, batch not closed -- LANE-5B3-4-decision-debt
+    # -- live WAVE5B-N2 queue amendments, reasoned individually -- LANE-5B3-4-decision-debt ----
+    # QUEUE2 and QUEUE3 have NO entry (see the note above the ADR/intake constants) -- filed as
+    # ROWS-OWED in the session file instead.
     "declare:AMEND-BATCH-WAVE5B-N2-LANE8-2026-09-25": Disposition(
-        reason=_EXECUTED_WAVE5B_N2, owner="the WAVE5B-N2 batch's own close digest, to-browser/DIGEST-WAVE5B-N2-2026-09-26.md (CLOSED 2026-09-26T15:17+02:00)"),
+        reason="EXECUTED, its own Required Done-when met: lane 8 (codespace-roundtrip-ci) "
+               "MERGED @ 32791ac3, the devcontainer heartbeat green (run 36155929898, per "
+               "AMEND-BATCH-WAVE5B-N2-QUEUE4-2026-09-25's own review of it). The Optional item "
+               "(an agent round-trip in Actions) was explicitly marked optional and not "
+               "attempted -- by this file's own text, not a gap. Its own ROWS-OWED clause "
+               "('scheduled agent round-trip through Dispatch-Codespace') is carried verbatim "
+               "into the batch's close digest.",
+        owner="to-browser/DIGEST-WAVE5B-N2-2026-09-26.md §2 (lane 8) and §5 (the carried ROWS-OWED clause)"),
     "declare:AMEND-BATCH-WAVE5B-N2-QUEUE-2026-09-25": Disposition(
-        reason=_EXECUTED_WAVE5B_N2, owner="the WAVE5B-N2 batch's own close digest, to-browser/DIGEST-WAVE5B-N2-2026-09-26.md (CLOSED 2026-09-26T15:17+02:00)"),
-    "declare:AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25": Disposition(
-        reason=_EXECUTED_WAVE5B_N2, owner="the WAVE5B-N2 batch's own close digest, to-browser/DIGEST-WAVE5B-N2-2026-09-26.md (CLOSED 2026-09-26T15:17+02:00)"),
-    "declare:AMEND-BATCH-WAVE5B-N2-QUEUE3-2026-09-25": Disposition(
-        reason=_EXECUTED_WAVE5B_N2, owner="the WAVE5B-N2 batch's own close digest, to-browser/DIGEST-WAVE5B-N2-2026-09-26.md (CLOSED 2026-09-26T15:17+02:00)"),
+        reason="PARTIALLY EXECUTED, the rest CONTINUING IN WAVE5B-N3 (the currently-running "
+               "successor batch -- N2 itself is CLOSED, per to-browser/STATE-BATCH-WAVE5B-N2.md, "
+               "so nothing is 'executing in N2' any more). Of its 3 appended lanes: lane 17 "
+               "(ci-signal) continues as N3's own lane 8 ('finish N2 lane 17'); lane 19 "
+               "(moments-fire) continues as N3's lane 3 (same intent: emit the merge/lane-start/"
+               "teardown moments). Lane 18 (reuse-before-write) has NO continuing lane in N3's "
+               "manifest -- a genuine gap, named in this lane's session file ROWS-OWED rather "
+               "than silently dropped. Rules A/B (lane-1 re-dispatch criteria; the stopped-job "
+               "watch rule) were procedural and were followed per the close digest.",
+        owner="to-cc/BATCH-WAVE5B-N3-2026-09-26.md lanes 3 and 8; this lane's session file ROWS-OWED for lane 18's gap"),
     "declare:AMEND-BATCH-WAVE5B-N2-QUEUE4-2026-09-25": Disposition(
-        reason=_EXECUTED_WAVE5B_N2, owner="the WAVE5B-N2 batch's own close digest, to-browser/DIGEST-WAVE5B-N2-2026-09-26.md (CLOSED 2026-09-26T15:17+02:00)"),
+        reason="PARTIALLY EXECUTED, the rest CONTINUING IN WAVE5B-N3 (see the QUEUE entry above "
+               "for why N3, not N2, is the citable successor). Of its 2 appended lanes: lane 23 "
+               "(heartbeat-admission) continues as N3's own lane 9 ('N2's LANE-5B2-23... "
+               "dependencies now met'); lane 24 (dispatcher-adopts-queue) has NO continuing lane "
+               "in N3's manifest -- a genuine gap, named in this lane's session file ROWS-OWED. "
+               "Its §3 ROWS-OWED items (1-4) are carried VERBATIM into the batch's own close "
+               "digest -- a real, citable disposition for that half of the file's content.",
+        owner="to-cc/BATCH-WAVE5B-N3-2026-09-26.md lane 9; to-browser/DIGEST-WAVE5B-N2-2026-09-26.md §5 (items 1-4); this lane's session file ROWS-OWED for lane 24's gap"),
     "declare:AMEND-BATCH-WAVE5B-N2-QUEUE5-2026-09-25": Disposition(
-        reason=_EXECUTED_WAVE5B_N2, owner="the WAVE5B-N2 batch's own close digest, to-browser/DIGEST-WAVE5B-N2-2026-09-26.md (CLOSED 2026-09-26T15:17+02:00)"),
+        reason="EXECUTED, both of its own lanes' Done-when met: lane 25 "
+               "(decision-verification-level) and lane 26 (decision-codespace-substrate) each "
+               "REPORTED, producing the required SESSION-lane-*.md and HANDBACK kind report. "
+               "(Lane 26's 51 KB cloud brief exceeded the batch's own 40 KB rule and was not "
+               "re-run -- a caveat on HOW it ran, not evidence its Done-when went unmet: the "
+               "report itself exists.) The holding rules (H1/H2) were procedural and were "
+               "applied per the digest's own lane accounting.",
+        owner="to-browser/DIGEST-WAVE5B-N2-2026-09-26.md §2 (lanes 25, 26)"),
     "declare:AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25": Disposition(
-        reason=_EXECUTED_WAVE5B_N2, owner="the WAVE5B-N2 batch's own close digest, to-browser/DIGEST-WAVE5B-N2-2026-09-26.md (CLOSED 2026-09-26T15:17+02:00)"),
+        reason="EXECUTED / EXECUTING across all 4 of its lanes: lane 28 "
+               "(handoff-system-design) and lane 30 (tool-trials-research) REPORTED, each "
+               "meeting its own Done-when; lane 31 (process-agent-architecture) fired but was "
+               "never harvested in N2, and continues as WAVE5B-N3's own lane 13 ('N2's "
+               "LANE-5B2-31 re-dispatched'); lane 27 (decision-debt) IS this very lane "
+               "(LANE-5B3-4-decision-debt, WAVE5B-N3's own lane 4) -- its execution is this "
+               "file's own disposition being written.",
+        owner="to-browser/DIGEST-WAVE5B-N2-2026-09-26.md §2 (lanes 28, 30); to-cc/BATCH-WAVE5B-N3-2026-09-26.md lanes 4 and 13"),
 
     # -- superseded WAVE5B-N2 queue amendments: dead branches -- LANE-5B3-4-decision-debt -------
     "declare:AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25-v1-superseded": Disposition(
-        reason=_SUPERSEDED_WAVE5B_N2_QUEUE, owner="superseded by AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25 (final)"),
+        reason="SUPERSEDED by its own later revision in the same queue-amendment chain -- a "
+               "dead branch. Its successor, AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25 (final), "
+               "carries no disposition of its own here (ROWS-OWED, this lane's session file) -- "
+               "this earlier draft needs no separate action beyond that.",
+        owner="superseded by AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25 (final), itself ROWS-OWED"),
     "declare:AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25-v2-superseded": Disposition(
-        reason=_SUPERSEDED_WAVE5B_N2_QUEUE, owner="superseded by AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25 (final)"),
+        reason="SUPERSEDED by its own later revision in the same queue-amendment chain -- a "
+               "dead branch. Its successor, AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25 (final), "
+               "carries no disposition of its own here (ROWS-OWED, this lane's session file) -- "
+               "this earlier draft needs no separate action beyond that.",
+        owner="superseded by AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25 (final), itself ROWS-OWED"),
     "declare:AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25-v1-superseded": Disposition(
-        reason=_SUPERSEDED_WAVE5B_N2_QUEUE, owner="superseded by AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25 (final)"),
+        reason="SUPERSEDED by its own later revision in the same queue-amendment chain -- a "
+               "dead branch of a batch decision already covered by the disposition on its "
+               "successor file (executed/executing, see above). A second row, or a second "
+               "disposition with different content, for the same batch decision would "
+               "duplicate rather than dispose.",
+        owner="superseded by AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25 (final)"),
     "declare:AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25-v2-superseded": Disposition(
-        reason=_SUPERSEDED_WAVE5B_N2_QUEUE, owner="superseded by AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25 (final)"),
+        reason="SUPERSEDED by its own later revision in the same queue-amendment chain -- a "
+               "dead branch of a batch decision already covered by the disposition on its "
+               "successor file (executed/executing, see above). A second row, or a second "
+               "disposition with different content, for the same batch decision would "
+               "duplicate rather than dispose.",
+        owner="superseded by AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25 (final)"),
 }
 
 

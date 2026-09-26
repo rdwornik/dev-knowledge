@@ -543,15 +543,23 @@ _LANE_5B3_4_RESIDUAL_SUBJECTS = frozenset({
     "to-cc/DECLARE-LANE-HANDBACK-CONTRACT-2026-09-18.md",
     "to-cc/DECLARE-OPERATOR-FEEDBACK-2026-09-24.md",
     "to-cc/DECLARE-SEAT-KNOWLEDGE-2026-09-24.md",
+    # Added on Codex terra review round 2: the shared "EXECUTED IN BATCH" disposition for all
+    # seven WAVE5B-N2 queue amendments overclaimed -- QUEUE2 (lanes 21-22) and QUEUE3 have no
+    # honest disposition (held/never-launched, no N3 lane continues them) and were REMOVED from
+    # DECISION_DISPOSITIONS, moving them here instead of leaving them falsely marked done.
+    "to-cc/AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25.md",
+    "to-cc/AMEND-BATCH-WAVE5B-N2-QUEUE3-2026-09-25.md",
 })
 
 
 def test_the_live_tree_carries_no_IN_ERA_uncovered_decision(live_store, live_transport):
     """The bar this lane must leave green: nothing accepted on or after `ARM_DATE` may sit
-    without a row or a disposition when the lane ends -- OTHER than the 11 named residuals
+    without a row or a disposition when the lane ends -- OTHER than the 13 named residuals
     LANE-5B3-4-decision-debt filed as `ROWS-OWED` (measured population: 40 undisposed at the
-    lane's start, 29 disposed, 11 residual). A subject not in that named set still fails this
-    test; the named 11 do not silently vanish -- they are asserted present, so the day one
+    lane's start, 27 disposed, 13 residual -- 11 at first disposition plus QUEUE2/QUEUE3, moved
+    here on Codex terra review round 2 once their WAVE5B-N2 disposition was found to overclaim).
+    A subject not in that named set still fails this test; the named 13 do not silently vanish
+    -- they are asserted present, so the day one
     lands a real disposition or a row, this set (and the session file's `ROWS-OWED`) must
     shrink to match or this test starts failing for the opposite reason."""
     findings = dc.decision_coverage(REPO_ROOT, live_store, staged=[], era_leg=True,
