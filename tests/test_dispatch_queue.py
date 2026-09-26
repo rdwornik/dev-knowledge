@@ -21,7 +21,6 @@ discipline `test_dispatch_launch.py` already applies to `launch_lane`.
 """
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Optional
 
@@ -226,20 +225,70 @@ def test_launch_order_refuses_a_cycle(tmp_path):
         d.launch_order(lanes)
 
 
-# --- the dependency hold: an integrator receipt fixture ------------------------------------------
+# --- the dependency hold: the integrator's REAL receipt, not an invented fixture -----------------
+#
+# N2 lane 9 (`LANE-5B2-9-launch-queue`) invented a `{"lanes": {"<slug>": {"state": ...}}}` JSON
+# shape with no writer anywhere in the harness -- carried into this lane's own ROWS-OWED
+# ("reconcile if a real format exists elsewhere", `to-browser/SESSION-lane-launch-queue.md`
+# Repair item 5). The real format is the free-text `STATE <lane> ...` line the integrator writes
+# into its own session receipt. `_STATE_TEXT` below is a VERBATIM copy of eight such lines from
+# `to-browser/SESSION-integrator-wave5b-n2-2026-09-25.md` (lines 37, 99, 122, 200, 269, 325, 375,
+# 376) -- unedited, in the file's own order, including the mid-batch WAITING->REFUSED->MERGED
+# transitions two of the slugs actually go through as repairs land.
+
+_STATE_TEXT = """\
+STATE lane-codespace-proof REFUSED - 2026-09-25T17:02 -
+STATE lane-teardown-visible REFUSED - 2026-09-25T17:56 -
+STATE lane-launch-queue REFUSED - 2026-09-25T18:15 -
+STATE lane-codespace-proof-repair-1 WAITING - 2026-09-25T18:57 -
+STATE lane-codespace-proof-repair-1 MERGED 3d13a2d2 2026-09-25T19:42 47
+STATE lane-teardown-visible FAILED - 20:42 -
+STATE lane-codespace-roundtrip-ci MERGED 32791ac3 22:20 96
+STATE lane-launch-queue MERGED bc969abc 22:20 108
+"""
+
 
 def test_read_lane_states_missing_file_reads_empty(tmp_path):
-    assert d.read_lane_states(tmp_path / "absent.json") == {}
+    assert d.read_lane_states(tmp_path / "absent.md") == {}
     assert d.read_lane_states(None) == {}
 
 
-def test_read_lane_states_reads_merged_and_failed(tmp_path):
-    fixture = tmp_path / "state.json"
-    fixture.write_text(json.dumps({"lanes": {
-        "lane-a": {"state": "MERGED", "sha": "04868005"},
-        "lane-b": {"state": "failed"},
-    }}), encoding="utf-8")
-    assert d.read_lane_states(fixture) == {"lane-a": "MERGED", "lane-b": "FAILED"}
+def test_parse_state_lines_reads_the_real_integrator_grammar():
+    assert d.parse_state_lines(_STATE_TEXT) == {
+        "lane-codespace-proof": "REFUSED",
+        "lane-teardown-visible": "FAILED",
+        "lane-codespace-proof-repair-1": "MERGED",
+        "lane-launch-queue": "MERGED",
+        "lane-codespace-roundtrip-ci": "MERGED",
+    }
+
+
+def test_parse_state_lines_last_occurrence_wins_across_a_transition():
+    """`lane-launch-queue` appears twice in `_STATE_TEXT`: REFUSED (line 122), then MERGED (line
+    376) once its repair landed. The append-only receipt's LAST line for a slug is its current
+    state -- a dependent waiting on it must read MERGED, not the earlier REFUSED."""
+    assert d.parse_state_lines(_STATE_TEXT)["lane-launch-queue"] == "MERGED"
+
+
+def test_parse_state_lines_ignores_a_state_word_outside_the_five():
+    """The integrator's transcript also carries `STATE integrator BOUND - ... -` and
+    `STATE <lane> HANDBACK-SEEN - ... -` -- neither is one of the five states
+    `dependency_status` ever reads, so the pattern must not match them."""
+    text = ("STATE integrator BOUND - 2026-09-25T15:51 -\n"
+           "STATE lane-handoff-system-design HANDBACK-SEEN - 22:1x -\n")
+    assert d.parse_state_lines(text) == {}
+
+
+def test_read_lane_states_reads_the_real_receipt_from_disk(tmp_path):
+    receipt = tmp_path / "SESSION-integrator-wave5b-n2-2026-09-25.md"
+    receipt.write_text(_STATE_TEXT, encoding="utf-8")
+    assert d.read_lane_states(receipt) == {
+        "lane-codespace-proof": "REFUSED",
+        "lane-teardown-visible": "FAILED",
+        "lane-codespace-proof-repair-1": "MERGED",
+        "lane-launch-queue": "MERGED",
+        "lane-codespace-roundtrip-ci": "MERGED",
+    }
 
 
 def test_dependency_status_ready_with_no_dependency():

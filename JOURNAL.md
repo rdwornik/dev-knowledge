@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-26 (b) - CC (Opus 5.5, INTEGRATOR WAVE5B-N3): the dispatcher launches through `dispatch.py queue --watch` and repairs through `dispatch.py repair`, and the queue's dependency hold reads the integrator's real receipt
+
+**Anchors:** `e3c2a5b9`, `5fe80f24` -- `worktree-lane-wire-queue` (ordered and served `claude-sonnet-5`), merged `--no-ff` from an integration worktree stacked on the (a) merge.
+
+**Did:** `templates/dispatcher-order-template.md` launches every local lane through `dispatch.py queue --watch` and handles a refusal through `dispatch.py repair`; the hand launch line survives only as the recorded fallback when the launcher refuses. `scripts/dispatch.py`'s receipt reader parses the integrator's real `STATE <lane> MERGED|REFUSED|WAITING|FAILED|REPORTED <sha|-> <time> <min>` lines, and the invented fixture format of N2 lane 9 is reconciled to it; a unit test holds a dependent lane on a verbatim copy of real receipt lines. `launch`, `queue` and `repair` keep their flags and exit codes (a test). One real `queue --dry-run` over the batch's contracts read the live N3 integrator receipt. Codex terra: 0/0/0/0. **Result:** a dependent lane cannot be launched early by a dispatcher that misreads the receipt. **Changes:** `scripts/dispatch.py`, `templates/dispatcher-order-template.md`, `tests/test_dispatch_queue.py`, `tests/test_dispatcher_order_adopts_queue.py`, `docs/audits/2026-09-26-codex-lane-wire-queue.md`, generated files, `JOURNAL.md`, `logs/MERGE-RECEIPTS.jsonl`. **Next:** `lane-moments-fire` and `lane-orchestrator-cycling` are now eligible.
+
 ### 2026-09-26 (a) - CC (Opus 5.5, INTEGRATOR WAVE5B-N3): a direct commit on `main` is refused at the default pre-commit stage, and the organ-wiring fates are true -- `block-commit-on-main` armed
 
 **Anchors:** `897e84fc`, `6d8b7b60`, `7ad6a23f`, `f89ef405` -- N2 lane 10's commits on kept branch `worktree-lane-organ-wirings`, verified by `worktree-lane-organ-wirings-verify` (ordered and served `claude-sonnet-5`), merged `--no-ff` from an integration worktree on origin/main `abb03452`.
