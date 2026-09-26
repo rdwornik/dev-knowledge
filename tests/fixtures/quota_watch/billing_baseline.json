@@ -1,0 +1,27 @@
+{
+  "timePeriod": {"year": 2026, "month": 9},
+  "user": "rdwornik",
+  "usageItems": [
+    {"product": "Actions", "sku": "actions_linux", "grossQuantity": 5375.0,
+     "discountQuantity": 5375.0, "netQuantity": 0.0, "grossAmount": 32.25,
+     "discountAmount": 32.25, "netAmount": 0.0, "pricePerUnit": 0.006, "unitType": "minutes"},
+    {"product": "Actions", "sku": "actions_storage", "grossQuantity": 5.480127458,
+     "discountQuantity": 5.480127458, "netQuantity": 0.0, "grossAmount": 0.001841144,
+     "discountAmount": 0.001841144, "netAmount": 0.0, "pricePerUnit": 0.00033602,
+     "unitType": "gigabyte-hours"},
+    {"product": "Codespaces", "sku": "codespaces_compute_d2", "grossQuantity": 8.01392,
+     "discountQuantity": 8.01392, "netQuantity": 0.0, "grossAmount": 1.4425056,
+     "discountAmount": 1.4425056, "netAmount": 0.0, "pricePerUnit": 0.18, "unitType": "hours"},
+    {"product": "Codespaces", "sku": "codespaces_compute_d4", "grossQuantity": 5.91882,
+     "discountQuantity": 5.91882, "netQuantity": 0.0, "grossAmount": 2.1307752,
+     "discountAmount": 2.1307752, "netAmount": 0.0, "pricePerUnit": 0.36, "unitType": "hours"},
+    {"product": "Codespaces", "sku": "codespaces_prebuild_storage", "grossQuantity": 3.792107596,
+     "discountQuantity": 3.792107596, "netQuantity": 0.0, "grossAmount": 0.265447028,
+     "discountAmount": 0.265447028, "netAmount": 0.0, "pricePerUnit": 0.07,
+     "unitType": "gigabyte-hours"},
+    {"product": "Codespaces", "sku": "codespaces_storage", "grossQuantity": 1.106545569,
+     "discountQuantity": 1.106545569, "netQuantity": 0.0, "grossAmount": 0.077457712,
+     "discountAmount": 0.077457712, "netAmount": 0.0, "pricePerUnit": 0.07,
+     "unitType": "gigabyte-hours"}
+  ]
+}

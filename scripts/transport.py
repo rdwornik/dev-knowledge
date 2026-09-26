@@ -445,6 +445,35 @@ def _cmd_report(args: argparse.Namespace) -> int:
     return 0  # report-only: never a refusal exit
 
 
+def _cmd_strays(args: argparse.Namespace) -> int:
+    """Done-when 1 (lane-transport-strays, [#1016+]): an EXIT-CODE-GATED check, distinct from
+    `report`'s always-0 report-only exit -- "a check keeps the count at zero" (the lane's Value
+    line) needs a nonzero signal to gate on, which `report` deliberately never gives.
+
+    The exit code fires on ANY finding (unclassified OR a registered kind sitting in the wrong
+    folder) -- both are real, actionable strays. The two counts are broken out separately in the
+    JSON because they carry different next steps: `unclassified_count` is the contract's own
+    literal wording ("reports 0 unclassified") and should always be drivable to zero by adding a
+    registry row; `misfoldered_count` can include a same-name, different-CONTENT collision this
+    script must never force-resolve (Do-not: never delete, never move an ambiguous file) -- see
+    the lane's session file for the live transport's residual OPERATOR-ACTION cases."""
+    root = _resolve_root(args.transport_root)
+    if not root.is_dir():
+        print(json.dumps({"transport": str(root), "resolved": False,
+                          "reason": "not mounted or does not exist"}, sort_keys=True))
+        return 1
+    findings = scan(root)
+    unclassified = [f for f in findings if f.reason == "unregistered kind"]
+    misfoldered = [f for f in findings if f not in unclassified]
+    print(json.dumps({"transport": str(root), "resolved": True,
+                      "stray_count": len(findings),
+                      "unclassified_count": len(unclassified),
+                      "misfoldered_count": len(misfoldered),
+                      "stray": [{"path": f.path, "reason": f.reason} for f in findings]},
+                     indent=2, sort_keys=True))
+    return 1 if findings else 0
+
+
 def _cmd_derive(_args: argparse.Namespace) -> int:
     derived = sorted(derive_kinds_from_code())
     registry = load_registry()
@@ -460,6 +489,9 @@ def _parser() -> argparse.ArgumentParser:
     r = sub.add_parser("report", help="report-only: stray/misplaced files on the live transport")
     r.add_argument("--transport-root", default=None)
     r.set_defaults(func=_cmd_report)
+    s = sub.add_parser("strays", help="exit-code-gated: nonzero if any stray finding exists")
+    s.add_argument("--transport-root", default=None)
+    s.set_defaults(func=_cmd_strays)
     d = sub.add_parser("derive", help="derive kind prefixes from the code; diff against the registry")
     d.set_defaults(func=_cmd_derive)
     return p

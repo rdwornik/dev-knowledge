@@ -73,9 +73,14 @@ weaken a check to make a merge pass.
 ## Close — when every lane is MERGED or FAILED, or at <time>, whichever comes first
 
 1. Re-run the connection walk on `main`; run `moment:batch-close` with `HARNESS_BATCH=<BATCH>`.
-2. Write `to-browser/DIGEST-<BATCH>-<date>.md` (at most 15 KB): per merge the sha, pickup-to-push
-   minutes and the verdict; the medians; reaps; operator inputs (target 0); the registry and
-   baseline id; what is left and its state; the zero-leftovers proof; and a **MORNING** section
-   listing every `DECIDED-BY-LANE`, `OPERATOR-ACTION` and `QUESTION` the lanes left.
-3. Write `to-browser/STATE-BATCH-<BATCH>.md` reading `CLOSED <time>`.
-4. Stop every Monitor, poll and shell of yours, and stop.
+2. **Cost line (R7, F3):** `uv run --locked python scripts/quota_watch.py line --cloud-sessions
+   <n>` (`<n>` from `claude agents --json`) if `lane-quota-watch` is MERGED; otherwise by hand,
+   each figure with its command — Codespaces core-hours used/remaining, Actions minutes used,
+   Copilot credits used (Enterprise login), cloud sessions used.
+3. Write `to-browser/DIGEST-<BATCH>-<date>.md` (at most 15 KB): the cost line; per merge the sha,
+   pickup-to-push minutes and the verdict; the medians; reaps; operator inputs (target 0); the
+   registry and baseline id; what is left and its state; the zero-leftovers proof; and a
+   **MORNING** section listing every `DECIDED-BY-LANE`, `OPERATOR-ACTION` and `QUESTION` the
+   lanes left.
+4. Write `to-browser/STATE-BATCH-<BATCH>.md` reading `CLOSED <time>`.
+5. Stop every Monitor, poll and shell of yours, and stop.

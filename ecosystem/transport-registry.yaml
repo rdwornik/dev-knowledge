@@ -258,7 +258,7 @@ kinds:
 
   - kind: DIGEST
     prefix: "DIGEST-"
-    pattern: '^DIGEST-[A-Za-z0-9._-]+\.md$'
+    pattern: '^DIGEST-[A-Za-z0-9._-]+\.(md|png|yaml|json)$'
     folder: to-browser
     writers: [operator, integrator]
     readers: []
@@ -268,3 +268,879 @@ kinds:
       Not code-built. The single largest bucket in the live stray-file report (32 files) and
       named as a batch's own close artifact in `to-cc/BATCH-WAVE5B-N1-2026-09-24.md` S1
       (`DIGEST-WAVE5B-N1-2026-09-25.md`) -- clearly load-bearing, not one-off noise.
+      WIDENED (lane-transport-strays, [#1016+]): the pattern was `\.md$` only, so a
+      DIGEST-prefixed .png/.yaml file (screenshots and a data export a lane attached to a
+      digest) classified as an unregistered stray though its own prefix was already
+      registered -- same kind, wider extension set, no folder/writer change.
+
+  - kind: ADDENDUM
+    prefix: "ADDENDUM-"
+    pattern: '^ADDENDUM-[A-Za-z0-9._-]+\.md$'
+    folder: to-cc
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      Historical operator addenda predating this registry (lane-transport-strays).
+
+  - kind: AMEND_PLAN
+    prefix: "AMEND"
+    pattern: '^AMEND[0-9]+-PLAN-[A-Za-z0-9._-]+\.md$'
+    folder: to-cc
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      Distinct from the registered AMEND kind (`AMEND-<slug>.md`): this is the older
+      `AMENDn-PLAN-<slug>.md` numbered-amendment-to-a-plan shape (lane-transport-strays).
+
+  - kind: ARCHITECT_INBOX
+    prefix: "ARCHITECT-INBOX-"
+    pattern: '^ARCHITECT-INBOX-[A-Za-z0-9._-]+\.md$'
+    folder: to-cc
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      Pre-registry architect inbound batch (lane-transport-strays).
+
+  - kind: CONTRACT
+    prefix: "CONTRACT-"
+    pattern: '^CONTRACT-[A-Za-z0-9._-]+(-v[0-9]+(-superseded)?)?\.md$'
+    folder: to-cc
+    writers: [operator]
+    repo_scope: hub
+    versioned: true
+    notes: >-
+      Pre-LANE-contract-convention operator contracts (lane-transport-strays).
+
+  - kind: DISPATCH_MEASURE_SCRIPT
+    prefix: "dispatch-measure.ps1"
+    pattern: '^dispatch-measure\.ps1$'
+    folder: to-cc
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      A one-off measurement script pasted to the transport; not code-produced (lane-
+      transport-strays).
+
+  - kind: DISPATCHER
+    prefix: "DISPATCHER-"
+    pattern: '^DISPATCHER-[A-Za-z0-9._-]+(-v[0-9]+(-superseded)?)?\.md$'
+    folder: to-cc
+    writers: [operator]
+    repo_scope: hub
+    versioned: true
+    notes: >-
+      The dispatcher's own rendered order document (lane-transport-strays).
+
+  - kind: DRAFT
+    prefix: "DRAFT-"
+    pattern: '^DRAFT-[A-Za-z0-9._-]+\.md$'
+    folder: to-cc
+    writers: [operator]
+    repo_scope: hub
+    versioned: true
+    notes: >-
+      Operator drafts, some carrying a bare `-v<n>` revision suffix (lane-transport-strays).
+
+  - kind: FINAL
+    prefix: "FINAL-"
+    pattern: '^FINAL-[A-Za-z0-9._-]+\.md$'
+    folder: to-cc
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: FINDING
+    prefix: "FINDING-"
+    pattern: '^FINDING-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      A lane's own finding note; canonical folder to-browser -- one to-cc instance moved
+      here (lane-transport-strays).
+
+  - kind: FINISH
+    prefix: "FINISH-"
+    pattern: '^FINISH-[A-Za-z0-9._-]+\.md$'
+    folder: to-cc
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: FIX
+    prefix: "FIX-"
+    pattern: '^FIX-[A-Za-z0-9._-]+\.md$'
+    folder: to-cc
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: FLEET_READINESS_CONTRACT
+    prefix: "FLEET-READINESS-CONTRACT-"
+    pattern: '^FLEET-READINESS-CONTRACT-[A-Za-z0-9._-]+\.md$'
+    folder: to-cc
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: INBOX_DEV_KNOWLEDGE
+    prefix: "INBOX-dev-knowledge-"
+    pattern: '^INBOX-dev-knowledge-[A-Za-z0-9._-]+\.md$'
+    folder: to-cc
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      Canonical folder to-cc (majority); one to-browser instance moved here (lane-transport-
+      strays).
+
+  - kind: INTEGRATOR_FINISH
+    prefix: "INTEGRATOR-FINISH-"
+    pattern: '^INTEGRATOR-FINISH-[A-Za-z0-9._-]+(-v[0-9]+(-superseded)?)?\.md$'
+    folder: to-cc
+    writers: [operator]
+    repo_scope: hub
+    versioned: true
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: INTEGRATOR_PREHANDOFF
+    prefix: "INTEGRATOR-PREHANDOFF-"
+    pattern: '^INTEGRATOR-PREHANDOFF-[A-Za-z0-9._-]+\.md$'
+    folder: to-cc
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: INTEGRATOR_STANDING_ORDER
+    prefix: "INTEGRATOR-STANDING-ORDER"
+    pattern: '^INTEGRATOR-STANDING-ORDER(-WAVE[0-9A-Z]+)?-[A-Za-z0-9._-]+(-v[0-9]+(-superseded)?)?\.md$'
+    folder: to-cc
+    writers: [operator]
+    repo_scope: hub
+    versioned: true
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: INTEGRATOR_WAVE
+    prefix: "INTEGRATOR-WAVE"
+    pattern: '^INTEGRATOR-WAVE5[AB](-N[0-9]+)?-[A-Za-z0-9._-]+(-v[0-9]+(-superseded)?)?\.md$'
+    folder: to-cc
+    writers: [operator]
+    repo_scope: hub
+    versioned: true
+    notes: >-
+      The WAVE5A/5B integrator order, to-cc; distinct from the lower-case wave2-era
+      INTEGRATOR_WAVE2 kind, to-browser (lane-transport-strays).
+
+  - kind: LANE_WINDOW_METRICS_PATCH
+    prefix: "lane-3-9-window-metrics.patch"
+    pattern: '^lane-3-9-window-metrics\.patch$'
+    folder: to-cc
+    writers: [operator, lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      A one-off patch file; distinct from the RECOVERED- prefixed copy of the same content
+      (lane-transport-strays).
+
+  - kind: POSTWAVE_CHAIN
+    prefix: "POSTWAVE-CHAIN-"
+    pattern: '^POSTWAVE-CHAIN-[A-Za-z0-9._-]+(-v[0-9]+(-superseded)?)?\.md$'
+    folder: to-cc
+    writers: [operator]
+    repo_scope: hub
+    versioned: true
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: PRECUT
+    prefix: "PRECUT-"
+    pattern: '^PRECUT-[A-Za-z0-9._-]+\.md$'
+    folder: to-cc
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: R5_DECLARED
+    prefix: "R5-DECLARED.md"
+    pattern: '^R5-DECLARED\.md$'
+    folder: to-cc
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      A one-off ruling-relay artifact (lane-transport-strays).
+
+  - kind: RECOVERED
+    prefix: "RECOVERED-"
+    pattern: '^RECOVERED-[A-Za-z0-9._-]+\.(patch|md)$'
+    folder: to-cc
+    writers: [operator, lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      Canonical folder to-cc (majority); one to-browser instance moved here (lane-transport-
+      strays).
+
+  - kind: RULING_RELAY
+    prefix: "RULING-RELAY-"
+    pattern: '^RULING-RELAY-[A-Za-z0-9._-]+\.md$'
+    folder: to-cc
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: RUN_LANE_COPILOT_SCRIPT
+    prefix: "run-lane-copilot.ps1"
+    pattern: '^run-lane-copilot\.ps1$'
+    folder: to-cc
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      A one-off script pasted to the transport; not code-produced (lane-transport-strays).
+
+  - kind: SUITE_LOG
+    prefix: "SUITE-"
+    pattern: '^SUITE-(ANALYTICS|BASELINE)-CODESPACES-[A-Za-z0-9._-]+\.log$'
+    folder: to-cc
+    writers: [operator, lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: SUPPLEMENT_ANSWERS
+    prefix: "SUPPLEMENT-ANSWERS"
+    pattern: '^SUPPLEMENT-ANSWERS(-CITATIONS)?-[A-Za-z0-9._-]+\.md$'
+    folder: to-cc
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      Pairs with SUPPLEMENT_QUESTIONS (to-browser) the way ANSWER pairs with QUESTION (lane-
+      transport-strays).
+
+  - kind: SUPPLEMENT_QUESTIONS
+    prefix: "SUPPLEMENT-QUESTIONS-"
+    pattern: '^SUPPLEMENT-QUESTIONS-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      Pairs with SUPPLEMENT_ANSWERS, to-cc (lane-transport-strays).
+
+  - kind: WAVE_ORDER
+    prefix: "WAVE"
+    pattern: '^WAVE[0-9]+-ORDER-[A-Za-z0-9._-]+\.md$'
+    folder: to-cc
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      Pre-BATCH-COMMON-convention wave order document (lane-transport-strays).
+
+  - kind: WAVE_SUBWAVE_PLAN
+    prefix: "WAVE"
+    pattern: '^WAVE[0-9]+-SUBWAVE-PLAN\.md$'
+    folder: to-cc
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: WAVE_COMMON
+    prefix: "WAVE"
+    pattern: '^WAVE[0-9]+[AB]?-COMMON-[A-Za-z0-9._-]+\.md$'
+    folder: to-cc
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      Pre-BATCH-COMMON-convention common-rules document (lane-transport-strays).
+
+  - kind: DATED_SLUG_LANE_CONTRACT
+    prefix: ""
+    pattern: '^\d{4}-\d{2}-\d{2}-[a-z0-9-]+-lane-contract\.md$'
+    folder: root
+    writers: [operator, gen_lane_contract]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      Pre-LANE-<slug>.md-convention lane contract, dated-slug named, sitting at the
+      transport root like LANE_CONTRACT itself. Mutually exclusive with DATED_SLUG (to-
+      browser), matched by the `-lane-contract.md` suffix, not by registry row order
+      (lane-transport-strays).
+
+  - kind: AJ_SECOND_PASS
+    prefix: "AJ-SECOND-PASS-"
+    pattern: '^AJ-SECOND-PASS-[A-Za-z0-9._-]+\.md$'
+    folder: root
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: FUNNEL_GROOM
+    prefix: "FUNNEL-GROOM-"
+    pattern: '^FUNNEL-GROOM-[A-Za-z0-9._-]+\.md$'
+    folder: root
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: DATED_SLUG
+    prefix: ""
+    pattern: '^\d{4}-\d{2}-\d{2}-(?!.*-lane-contract\.md$)[a-z0-9-]+\.md$'
+    folder: to-browser
+    writers: [operator, lane]
+    repo_scope: any
+    versioned: false
+    notes: >-
+      The bare dated-slug class lane-transport-registry's own report already named ('no-
+      prefix / dated-slug'). Negative lookahead keeps this from swallowing
+      DATED_SLUG_LANE_CONTRACT's root-only shape regardless of registry row order (lane-
+      transport-strays).
+
+  - kind: ADR_COPY
+    prefix: "ADR-"
+    pattern: '^ADR-[0-9]+-[a-z0-9-]+\.md$'
+    folder: to-browser
+    writers: [operator, integrator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      A copy of an in-repo docs/decisions/ ADR pushed to the transport for the browser
+      seat's reading (lane-transport-strays).
+
+  - kind: BOOT_SESSION
+    prefix: "BOOT-SESSION-"
+    pattern: '^BOOT-SESSION-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: BRIEFING
+    prefix: "BRIEFING-"
+    pattern: '^BRIEFING-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: BROWSER_SEAT_FLOOR
+    prefix: "BROWSER-SEAT-FLOOR-"
+    pattern: '^BROWSER-SEAT-FLOOR-(DRAFT|PIN)-[A-Za-z0-9._-]+\.(md|sha256|txt)$'
+    folder: to-browser
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      The browser seat's own floor draft/pin, plus its .sha256 sidecar (lane-transport-
+      strays).
+
+  - kind: BROWSER_SEAT_SKILLS
+    prefix: "browser-seat-skills-"
+    pattern: '^browser-seat-skills-[A-Za-z0-9._-]+\.zip$'
+    folder: to-browser
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: CARRIED_QUESTIONS
+    prefix: "CARRIED-QUESTIONS-"
+    pattern: '^CARRIED-QUESTIONS-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: CLOSE
+    prefix: "CLOSE-"
+    pattern: '^CLOSE-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: CLOSURE_VERDICTS
+    prefix: "CLOSURE-VERDICTS-"
+    pattern: '^CLOSURE-VERDICTS-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [integrator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: COPY
+    prefix: "COPY-"
+    pattern: '^COPY-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: DECISION_SHEET
+    prefix: "DECISION-SHEET-"
+    pattern: '^DECISION-SHEET-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: DEFECT
+    prefix: "DEFECT-"
+    pattern: '^DEFECT-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: DELETE_LIST
+    prefix: "DELETE-LIST-"
+    pattern: '^DELETE-LIST-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [lane, operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      A prior lane's own deletion-list precedent for exactly what this lane's contract also
+      produces (lane-transport-strays).
+
+  - kind: DISPATCH_ARTIFACT
+    prefix: "DISPATCH-"
+    pattern: '^DISPATCH-(CARD|CONTRACT)-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [operator, integrator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: DOCS_CUT_LIST
+    prefix: "DOCS-CUT-LIST-"
+    pattern: '^DOCS-CUT-LIST-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: HANDBACK
+    prefix: "HANDBACK-"
+    pattern: '^HANDBACK-(?!REFUSED-)[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [lane, integrator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      A lane's or the integrator's own hand-written handback note, distinct from
+      handback.py's own HANDBACK-REFUSED- kind (longer prefix, sorts first regardless)
+      (lane-transport-strays).
+
+  - kind: HANDOFF_SUPPLEMENT
+    prefix: "HANDOFF-SUPPLEMENT-"
+    pattern: '^HANDOFF-SUPPLEMENT-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [operator, lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: HANDOFF_VERIFY
+    prefix: "HANDOFF-VERIFY-"
+    pattern: '^HANDOFF-VERIFY-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: HANDOFF_BOOT_TRANSPORT
+    prefix: "HANDOFF_BOOT-"
+    pattern: '^HANDOFF_BOOT-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      A transport-side copy under the protocols/HANDOFF_BOOT.md name (underscore, not
+      hyphen); distinct from the in-repo living doc (lane-transport-strays).
+
+  - kind: HANDOVER
+    prefix: "HANDOVER-"
+    pattern: '^HANDOVER-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: HOW_TO_DISPATCH_AND_INTEGRATE
+    prefix: "HOW-TO-DISPATCH-AND-INTEGRATE-"
+    pattern: '^HOW-TO-DISPATCH-AND-INTEGRATE-[A-Za-z0-9._-]+(-v[0-9]+(-superseded)?)?\.md$'
+    folder: to-browser
+    writers: [operator]
+    repo_scope: hub
+    versioned: true
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: INTEGRATOR_WAVE2
+    prefix: "INTEGRATOR-"
+    pattern: '^INTEGRATOR-(STOP-)?wave2(-pass[0-9]+)?-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [integrator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      The lower-case wave2-era integrator note, to-browser; distinct from the upper-case
+      WAVE5A/5B INTEGRATOR_WAVE kind, to-cc (lane-transport-strays).
+
+  - kind: LAUNCH_REPORT
+    prefix: "LAUNCH-REPORT-"
+    pattern: '^LAUNCH-REPORT-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [operator, integrator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: LEG_REPORT
+    prefix: "LEG"
+    pattern: '^LEG[0-9]+-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      Distinct from the NIGHT_LEG kind's `NIGHT-LEG<n>-` shape (lane-transport-strays).
+
+  - kind: NIGHT_LEG
+    prefix: "NIGHT-LEG"
+    pattern: '^NIGHT-LEG[0-9]+-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: MAP
+    prefix: "MAP-"
+    pattern: '^MAP-(?!DATA-|VERIFICATION-)[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      The bare MAP- shape; the lookahead keeps it from also matching
+      MAP_DATA/MAP_VERIFICATION textually, matched by the pattern itself, not by registry
+      row order (lane-transport-strays).
+
+  - kind: MAP_DATA
+    prefix: "MAP-DATA-"
+    pattern: '^MAP-DATA-[A-Za-z0-9._-]+\.js$'
+    folder: to-browser
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: MAP_VERIFICATION
+    prefix: "MAP-VERIFICATION-"
+    pattern: '^MAP-VERIFICATION-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: NEW_ARCHITECT
+    prefix: "NEW-ARCHITECT-"
+    pattern: '^NEW-ARCHITECT-[A-Za-z0-9._-]+(-SUPERSEDED-v[0-9]+)?\.md$'
+    folder: to-browser
+    writers: [operator]
+    repo_scope: hub
+    versioned: true
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: PASTE_THIS
+    prefix: "PASTE_THIS"
+    pattern: '^PASTE_THIS(-[A-Za-z0-9._-]+)?\.md$'
+    folder: to-browser
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: PERMISSION_DIAGNOSIS
+    prefix: "PERMISSION-DIAGNOSIS-"
+    pattern: '^PERMISSION-DIAGNOSIS-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: PIN
+    prefix: "PIN-"
+    pattern: '^PIN-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: POSTURE
+    prefix: "POSTURE-"
+    pattern: '^POSTURE-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [operator]
+    repo_scope: hub
+    versioned: true
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: PREPARED
+    prefix: "PREPARED-"
+    pattern: '^PREPARED-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: PROPOSED_CLOSURES_LEGACY
+    prefix: "PROPOSED-CLOSURES-"
+    pattern: '^PROPOSED-CLOSURES-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [propose_row_closures]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      The pre-CLOSURE-LIST- filename this organ used before the rename; kept as its own kind
+      rather than merged into CLOSURE_LIST, since the literal prefix differs (lane-
+      transport-strays).
+
+  - kind: RECEIPT_WAVE2
+    prefix: "RECEIPT-wave2-"
+    pattern: '^RECEIPT-wave2-[A-Za-z0-9._-]+\.(json|stderr\.txt)$'
+    folder: to-browser
+    writers: [integrator, lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: RECON_NIGHT
+    prefix: "RECON-NIGHT-"
+    pattern: '^RECON-NIGHT-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: REGISTER
+    prefix: "REGISTER-"
+    pattern: '^REGISTER-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: REPOMAP_EVALUATION
+    prefix: "REPOMAP-EVALUATION-"
+    pattern: '^REPOMAP-EVALUATION-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: RESUME
+    prefix: "RESUME-"
+    pattern: '^RESUME-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: REVIEW
+    prefix: "REVIEW-"
+    pattern: '^REVIEW-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [lane, operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      Transport-side review notes; distinct from the in-repo Codex terra review record under
+      docs/audits/ (lane-transport-strays).
+
+  - kind: SCAN
+    prefix: "SCAN-"
+    pattern: '^SCAN-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: SPINE_FIRST_STOP
+    prefix: "SPINE-FIRST-STOP-"
+    pattern: '^SPINE-FIRST-STOP-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: STATE
+    prefix: "STATE-"
+    pattern: '^STATE-(?!BATCH-|OF-THE-HARNESS-)[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      The bare STATE- shape; the lookahead keeps it from also matching
+      STATE_BATCH/STATE_OF_THE_HARNESS textually, matched by the pattern itself, not by
+      registry row order (lane-transport-strays).
+
+  - kind: STATE_OF_THE_HARNESS
+    prefix: "STATE-OF-THE-HARNESS-"
+    pattern: '^STATE-OF-THE-HARNESS-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [operator, lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: STATUS_BARE
+    prefix: "STATUS.md"
+    pattern: '^STATUS\.md$'
+    folder: to-browser
+    writers: [lane]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      The literal bare filename; the registered STATUS kind requires a `STATUS-` prefix and
+      does not match it (lane-transport-strays).
+
+  - kind: UNOWNED
+    prefix: "UNOWNED-"
+    pattern: '^UNOWNED-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: WATCHER
+    prefix: "WATCHER"
+    pattern: '^WATCHER(-LOG)?-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [lane, integrator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: WAVE_CLOSE
+    prefix: "WAVE"
+    pattern: '^WAVE[0-9]+-CLOSE-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [operator, integrator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: WINDOW_GOALS
+    prefix: "WINDOW-GOALS-"
+    pattern: '^WINDOW-GOALS-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [operator]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      (lane-transport-strays)
+
+  - kind: QUOTA_WARN
+    prefix: "QUOTA-WARN-"
+    pattern: '^QUOTA-WARN-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [quota_watch]
+    readers: [gen_handoff]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      R7 (LANE-5B2-6-quota-watch): written on a 50/80/100% quota crossing or the first billed
+      dollar (`scripts/quota_watch.py::cmd_record`). Additive kind, ruling (f) -- nothing else
+      in this file touched by that lane.
