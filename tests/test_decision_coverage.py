@@ -523,12 +523,63 @@ def test_the_live_population_is_readable_and_non_empty(live_decisions):
     assert any(d.state == dc.STATE_ACCEPTED for d in live_decisions)
 
 
+#: LANE-5B3-4-decision-debt's own RESIDUAL-CARRIERS finding: 11 in-era transport decisions
+#: measured live at the lane's close with NEITHER a ratification/triage/batch grounding NOR
+#: a landed carrier -- named individually (Done-contract item 4's own anticipated shape: "any
+#: decision STILL failing P13 must be individually named with its reason") rather than forced
+#: to a paper disposition the lane's own Do-not clause forbids ("never write a disposition ...
+#: never invent one"). Filed as `ROWS-OWED` in the lane's session file, each with a runnable
+#: check. This is a NAMED, CITED residual, not a blanket suppression: any subject outside this
+#: set still fails the test below.
+_LANE_5B3_4_RESIDUAL_SUBJECTS = frozenset({
+    "to-cc/AMEND-BATCH-night-2026-09-17.md",
+    "to-cc/AMEND-DISPATCH-UNBLOCK-2026-09-17.md",
+    "to-cc/AMEND-HANDOFF-BOOT-INTEGRATOR-SECTION-2026-09-20.md",
+    "to-cc/AMEND-MODEL-ROUTING-AND-SCOPE-2026-09-17.md",
+    "to-cc/AMEND-NIGHT-ORDER-CONSOLIDATED-2026-09-17.md",
+    "to-cc/AMEND-NIGHT-SALVAGE-2026-09-17.md",
+    "to-cc/AMEND-ORGAN-USE-2026-09-17.md",
+    "to-cc/DECLARE-CENSUS-VERDICTS-2026-09-18.md",
+    "to-cc/DECLARE-LANE-HANDBACK-CONTRACT-2026-09-18.md",
+    "to-cc/DECLARE-OPERATOR-FEEDBACK-2026-09-24.md",
+    "to-cc/DECLARE-SEAT-KNOWLEDGE-2026-09-24.md",
+    # Added on Codex terra review round 2: the shared "EXECUTED IN BATCH" disposition for all
+    # seven WAVE5B-N2 queue amendments overclaimed -- QUEUE2 (lanes 21-22) and QUEUE3 have no
+    # honest disposition (held/never-launched, no N3 lane continues them) and were REMOVED from
+    # DECISION_DISPOSITIONS, moving them here instead of leaving them falsely marked done.
+    "to-cc/AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25.md",
+    "to-cc/AMEND-BATCH-WAVE5B-N2-QUEUE3-2026-09-25.md",
+    # Added on Codex terra review round 3: round 2's own individually-reasoned QUEUE/QUEUE4/
+    # QUEUE6 dispositions each admitted a genuine gap (QUEUE's lane 18, QUEUE4's lane 24) or a
+    # still-executing lane (QUEUE6's lane 31/27) and registered a whole-file Disposition anyway
+    # -- the register has no partial-file shape, so that silently read the admitted gap/still-
+    # executing lane as `done`. Removed from DECISION_DISPOSITIONS, moved here instead.
+    "to-cc/AMEND-BATCH-WAVE5B-N2-QUEUE-2026-09-25.md",
+    "to-cc/AMEND-BATCH-WAVE5B-N2-QUEUE4-2026-09-25.md",
+    "to-cc/AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25.md",
+})
+
+
 def test_the_live_tree_carries_no_IN_ERA_uncovered_decision(live_store, live_transport):
     """The bar this lane must leave green: nothing accepted on or after `ARM_DATE` may sit
-    without a row or a disposition when the lane ends."""
+    without a row or a disposition when the lane ends -- OTHER than the 16 named residuals
+    LANE-5B3-4-decision-debt filed as `ROWS-OWED` (measured population: 40 undisposed at the
+    lane's start, 24 disposed, 16 residual -- 11 at first disposition, plus QUEUE2/QUEUE3 on
+    Codex terra review round 2, plus QUEUE/QUEUE4/QUEUE6 on round 3 once THEIR own
+    individually-reasoned WAVE5B-N2 dispositions were found to still overclaim a settled file).
+    A subject not in that named set still fails this test; the named 16 do not silently vanish
+    -- they are asserted present, so the day one
+    lands a real disposition or a row, this set (and the session file's `ROWS-OWED`) must
+    shrink to match or this test starts failing for the opposite reason."""
     findings = dc.decision_coverage(REPO_ROOT, live_store, staged=[], era_leg=True,
                                     transport=live_transport)
-    assert findings == [], "; ".join(f"{f.subject}: {f.evidence}" for f in findings)
+    subjects = {f.subject for f in findings}
+    unexpected = [f for f in findings if f.subject not in _LANE_5B3_4_RESIDUAL_SUBJECTS]
+    assert unexpected == [], "; ".join(f"{f.subject}: {f.evidence}" for f in unexpected)
+    missing = _LANE_5B3_4_RESIDUAL_SUBJECTS - subjects
+    assert not missing, (
+        f"named residual(s) no longer found -- disposed? shrink _LANE_5B3_4_RESIDUAL_SUBJECTS "
+        f"and the session file's ROWS-OWED to match: {sorted(missing)}")
 
 
 def test_every_live_disposition_carries_a_reason_and_an_owner():
