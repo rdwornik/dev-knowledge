@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-26 (f) - CC (Opus 5.5, INTEGRATOR WAVE5B-N3): the substrate heartbeat runs the dispatcher's codespace admission predicate as one hub script, checks prebuild freshness, and turns red on two deliberate breakages -- `codespace_admission.py`
+
+**Anchors:** `987f2b47`, `5c031df6` -- `worktree-lane-heartbeat-admission` (ordered and served `claude-sonnet-5`; N2's LANE-5B2-23, dependencies met), merged `--no-ff` from an integration worktree on origin/main 7d5816bd.
+
+**Did:** `scripts/codespace_admission.py` extracts the deployed admission test into one hub predicate (8 conditions); the container job of `.github/workflows/substrate-heartbeat.yml` runs it under `bash -l`; `scripts/substrate_heartbeat.py` gains a prebuild-freshness leg. Green run `36255862857` on the lane's own tip shows the admission verdict and the prebuild id/sha; two scratch branches (closed-enum names) each turned the heartbeat red naming its cause, and both were deleted local and on origin. Codex terra: two HIGH fixed. **Result:** the same predicate that admits a codespace lane now watches the substrate daily, so a broken image is seen before a lane burns core-hours on it. **Changes:** `scripts/codespace_admission.py`, `scripts/substrate_heartbeat.py`, `.github/workflows/substrate-heartbeat.yml`, `tests/test_codespace_admission.py`, `tests/test_substrate_heartbeat.py`, `ecosystem/harness.yaml` (one fates line), Codex record, generated files, `JOURNAL.md`, `logs/MERGE-RECEIPTS.jsonl`. **Next:** the lane's ROWS-OWED (prebuild staleness finding).
+
 ### 2026-09-26 (e) - CC (Opus 5.5, INTEGRATOR WAVE5B-N3): the second real Codespace lane lands -- `CLAUDE.md` stops restating two rules `AGENTS.md` already carries, with a test that keeps each shared rule in exactly one place
 
 **Anchors:** `3e72a566` -- `worktree-lane-codespace-proof-2`, built in codespace `lane-codespace-proof-2-9q5gr74w99rcg59` (ordered and served `claude-sonnet-5`, headless `claude -p`, exit DONE), plus `e6ede322` (the dispatcher's local Codex terra record, 0/0/0/0); merged `--no-ff` from an integration worktree stacked on the (d) merge.
