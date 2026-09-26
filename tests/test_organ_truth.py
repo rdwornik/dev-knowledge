@@ -487,3 +487,60 @@ def test_an_index_row_for_a_hook_the_config_no_longer_carries_contradicts_whatev
                      encoding="utf-8")
     contradictions = goi.arming_contradictions(tmp_path)
     assert any("ghost-hook" in c for c in contradictions), contradictions
+
+
+# --------------------- lane-organ-wirings: the live `fates:` corrections (Done-contract item 1)
+#
+# handback/lane_boot/plan_lint/deny_and_point are DECIDED-BY-LANE not wired as live moment
+# organs (dispatch.py's pre-launch gate and lane_end_guard.py's lane-end run for real,
+# fleet-wide, with no continue_on_failure escape -- wiring an untested organ into either is a
+# permanent, unconditional refusal of every future lane, not a soft addition). "Shown by the
+# harness's own listing" is this fates: block; these pin that each entry still says so.
+
+_ORGAN_WIRING_FATES = (
+    "scripts/handback.py",
+    "scripts/hooks/deny_and_point.py",
+    "scripts/lane_boot.py",
+    "scripts/plan_lint.py",
+)
+
+
+def _live_fates() -> dict[str, dict]:
+    doc = yaml.safe_load((_REPO / "ecosystem" / "harness.yaml").read_text(encoding="utf-8"))
+    return {row["path"]: row for row in doc["fates"]}
+
+
+def test_the_live_fates_block_carries_all_four_organ_wiring_entries():
+    fates = _live_fates()
+    for path in _ORGAN_WIRING_FATES:
+        assert path in fates, f"{path} has no ecosystem/harness.yaml fates: entry"
+
+
+def test_every_organ_wiring_fate_has_exactly_one_recognised_shape():
+    """Same rule check_organ_truth enforces (test_the_check_fails_when_a_fates_entry_names_two_shapes
+    / ..._no_recognised_shape above) -- pinned here against the LIVE entries, not a synthetic one."""
+    fates = _live_fates()
+    for path in _ORGAN_WIRING_FATES:
+        row = fates[path]
+        shapes = [k for k in ("manual_until", "retire_candidate", "moment") if k in row]
+        assert len(shapes) == 1, (path, row)
+        assert row.get("reason"), f"{path}'s fate carries no reason"
+
+
+def test_handback_s_fate_cites_the_lane_end_moment_it_precedes():
+    """handback.py PRODUCES lane-end's own precondition (the HANDBACK line lane_end_guard.py
+    checks for) -- it cannot be one of lane-end's listed organs without either never running
+    or re-running its full self-check on every lane-end, fleet-wide (see the reason itself)."""
+    assert "lane-end" in _live_fates()["scripts/handback.py"]["reason"]
+
+
+def test_lane_boot_and_plan_lint_fates_cite_the_pre_launch_moment_they_are_proposed_into():
+    fates = _live_fates()
+    for path in ("scripts/lane_boot.py", "scripts/plan_lint.py"):
+        assert "pre-launch" in fates[path]["reason"], fates[path]["reason"]
+
+
+def test_deny_and_point_s_fate_cites_its_own_unwired_pinning_tests():
+    reason = _live_fates()["scripts/hooks/deny_and_point.py"]["reason"]
+    assert "test_deny_and_point.py" in reason
+    assert "UNWIRED" in reason

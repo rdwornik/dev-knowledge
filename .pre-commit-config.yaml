@@ -57,9 +57,23 @@ repos:
         # pre-push entries cannot make a reader guess which stage this one runs at.
         # HUB-ONLY. Fails CLOSED (exit 2) on internal error. Bypass: `git commit --no-verify`
         # (block-ff-push then still refuses the push).
+        #
+        # RE-ARMED 2026-09-26 (lane-organ-wirings, WIRE-PROPOSED: docs/audits/2026-09-24-
+        # technical-digest-organ-triage.md -- core-invariant #5 PREVENT was inert, S3 SS2).
+        # `stages: [manual]` demoted this alongside the rest of the 2026-09-17 commit-gate
+        # strip (comment above), but that ruling's own list of what stayed local names
+        # data-loss protection (the JOURNAL anchor, index-freshness) and the ~244 s mean
+        # commit wall it measured came from the OTHER 33 hooks -- audits, codemaps,
+        # generated-file checks -- not this one, which is a single `git symbolic-ref HEAD`
+        # read with no repo-content work (tested live 2026-09-26: exits 0 immediately on a
+        # non-main branch). It never refuses the integrator's own path either: a clean
+        # `--no-ff` merge runs `pre-merge-commit`, never `pre-commit`, so this hook does not
+        # see it, and a conflicted merge's resolution commit lands on the INTEGRATION
+        # branch, never literally `main` -- `tests/test_block_commit_on_main_replay.py`
+        # replays the integrator template's own steps against this hook to prove it.
         entry: uv run --locked python scripts/block_commit_on_main.py
         language: system
-        stages: [manual]
+        stages: [pre-commit]
         always_run: true
         pass_filenames: false
       - id: normalize-dated-headers
