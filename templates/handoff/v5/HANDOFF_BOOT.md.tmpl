@@ -1,45 +1,42 @@
 <!--
   HANDOFF_BOOT.md.tmpl — v5 bundle session-header + paste-pointer (HANDOFF_PROCESS §13).
-  Rendered by scripts/gen_handoff.py. Two region classes:
-    {{TOKEN}} spans                  are structural / framing, re-substituted every render.
-    FILL-IN:<name> comment regions   are hand-authored narrative; the generator copies each
-                                     region byte-for-byte from the on-disk file on re-render, so
-                                     a --filled re-run never clobbers what CC wrote (RF-6).
+  Rendered by scripts/gen_handoff.py. The PASTED part is everything above the first `## `
+  heading, and since lane-boot-contract (WAVE5B-N2 row 12, 2026-09-25) it is TWO blocks:
+    BOOT_DATA token the DATA block, emitted row by row by gen_handoff.boot_data_rows — every
+                    row is checked by a rule in verify_handoff_probes.BOOT_DATA_RULES (BD-*),
+                    and a row with no rule FAILs. Facts and pointers live here, never in `>`.
+    BOOT-PROSE      the hand-authored FILL-IN regions only (purpose; the destination's
+                    worktree / write-scope / mode basis) plus the generated-at line — read, not
+                    verified, under gen_handoff.BOOT_PROSE_BYTE_BUDGET (probe BP-budget).
+  FILL-IN:<name> regions are copied byte-for-byte from the on-disk file on re-render (RF-6).
   ANSWER-FREE: no SHA / count / verdict / date value is ever templated here — those are the
-  probes' live answers (P3/P4/P6/P7). Only two branch-name tokens appear, and they answer
-  DIFFERENT questions: {{BRANCH}} = which branch this was cut on (`Generated at`), and
-  {{BOOT_DESTINATION}} = where the seat LANDS at boot (`Destination`, P3's operand; §13(c″)).
+  probes' live answers. The BRANCH token = which branch this was cut on (`Generated at`); the DATA
+  block's Destination row = where the seat LANDS at boot (P3's operand; §13(c″)).
 -->
 # Handoff boot — session header + paste-pointer ({{MODE}} mode)
 <!-- scope: meta -->
 
-| Field | Value |
+{{BOOT_DATA}}
+
+{{BOOT_PROSE_BEGIN}}
+| Prose | Read, not verified |
 |---|---|
-| **Slug** | `{{SLUG}}` |
-| **Chat title** | `{{CHAT_TITLE}}` — name the fresh browser chat this (bump `SEQ` per parallel chat) |
-| **Mode** | **{{MODE}}** (HANDOFF_PROCESS §13 — {{MODE_SCOPE}}) |
-| **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->_(fill: one-line session purpose — what the next session should achieve; ~3 sentences + a `BACKLOG.md` pointer, no re-narration)_<!-- FILL-IN:purpose END --> |
-| **Destination** | worktree <!-- FILL-IN:dest-worktree START (hand-authored — the worktree name, or `none (primary tree)`) -->_(fill: worktree name, or `none (primary tree)`)_<!-- FILL-IN:dest-worktree END --> · branch `{{BOOT_DESTINATION}}` · write-scope <!-- FILL-IN:dest-scope START (hand-authored — what this lane may write; PROSE, deliberately outside P3) -->_(fill: what this lane may write)_<!-- FILL-IN:dest-scope END --> · MODE **{{MODE}}** — basis <!-- FILL-IN:dest-mode-basis START (hand-authored — WHY this mode, per ADR-87 item 5; PROSE, deliberately outside P3) -->_(fill: why this mode)_<!-- FILL-IN:dest-mode-basis END --> |
-| **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `{{BRANCH}}`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
+| **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a header, NOT a second residual) -->_(fill: one-line session purpose — what the next session should achieve; ~3 sentences + a `BACKLOG.md` pointer, no re-narration)_<!-- FILL-IN:purpose END --> |
+| **Destination (prose)** | worktree <!-- FILL-IN:dest-worktree START (hand-authored — the worktree name, or `none (primary tree)`) -->_(fill: worktree name, or `none (primary tree)`)_<!-- FILL-IN:dest-worktree END --> · write-scope <!-- FILL-IN:dest-scope START (hand-authored — what this lane may write; outside P3) -->_(fill: what this lane may write)_<!-- FILL-IN:dest-scope END --> · mode basis <!-- FILL-IN:dest-mode-basis START (hand-authored — WHY this mode, ADR-87 item 5; outside P3) -->_(fill: why this mode)_<!-- FILL-IN:dest-mode-basis END --> |
+| **Generated at** | Cut by `scripts/gen_handoff.py` from **committed** state on branch `{{BRANCH}}` — no sha, count or verdict; re-derive live (`PROBES.md` P3). |
+{{BOOT_PROSE_END}}
+
+## What the operator does (paste-pointer)
 
 {{SUPPLEMENT_BANNER}}
 
-> **The `Destination` row is declared ex-ante** — a lane inherits none of it. Only its **branch**
-> field has a mechanical counterpart (`PROBES.md` **P3**; mismatch = FAIL). Worktree, write-scope
-> and MODE-basis stay prose and carry no probe leg — a leg that cannot fail honestly discredits
-> the block (R3).
+> **The pasted header is DATA + PROSE.** Every DATA row — identity, the destination branch, the
+> role pin's version, the launcher, each pointer — is checked by a `verify_handoff_probes` rule
+> (`BD-*`) at `/handoff-verify`; a row with no rule is refused. The PROSE is only what the
+> outgoing seat wrote, under a byte budget (`BP-budget`). The `Destination` row is declared
+> ex-ante — a lane inherits none of it; only its **branch** has a mechanical counterpart
+> (`PROBES.md` **P3**), and worktree, write-scope and mode basis stay prose (R3).
 
-> **Nothing doctrinal is copied into this paste — pointers, one hop each; code and data describe
-> themselves (ruling O-5).** Launch: `uv run --locked python scripts/dispatch.py launch --help`
-> (**copy** its usage; a composed line is the defect class that cost ~30 consecutive seats their
-> lane — `STANDING_RULINGS.md` §V). Seat orders and the lane-contract shape:
-> `templates/{dispatcher-order,integrator-order,batch-common-rules,lane-contract}-template.md`.
-> Routing: `ecosystem/provider-registry.yaml`. Standing rulings applied without asking:
-> `protocols/STANDING_RULINGS.md`. Operator runbook (who each file is for, the run loop):
-> `docs/handoffs/README.md` — bundles carry no per-bundle README. Anti-bluff contract: this
-> bundle's own `PROBES.md` header, spec `HANDOFF_PROCESS.md` §5. Ask CC to pull any of them.
-
-## What the operator does (paste-pointer)
 
 1. Open a fresh Claude.ai chat.
 2. Paste **`PASTE_THIS.md`** (in this bundle directory) — the browser role file + residual + probes (+ the
@@ -85,7 +82,7 @@ against it — size and first heading — so the grammar has a probe rather than
 
 **1–3 — Launch, isolate, integrate: one line, and it points at code (ruling O-5, 2026-09-23).**
 A lane launches with `uv run --locked python scripts/dispatch.py launch --batch <BATCH>
-<CONTRACT>.md` — its options are what `... dispatch.py launch --help` prints, which is the only
+<CONTRACT>.md` — its options are what `uv run --locked python scripts/dispatch.py launch --help` prints, which is the only
 authority; the launcher provisions the lane's own worktree and reads the contract's `## Dispatch`
 block for its fields, not running it. The contract's shape is
 `templates/lane-contract-template.md`, routing is `ecosystem/provider-registry.yaml`, and each

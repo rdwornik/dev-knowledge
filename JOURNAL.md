@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-25 (t) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): the boot contract is data plus a short prose half, and every cut writes a receipt
+
+**Anchors:** `15d16701`, `0722fa37`, `eb7ab636`, `e3adc109`, `8e1e1d7f`, `973af104` -- `worktree-lane-boot-contract` (ordered `claude-opus-5-5`), merged `--no-ff` from an integration worktree on origin/main `bff9a8c1`.
+
+**Did:** `gen_handoff` renders HANDOFF_BOOT's header as a BOOT-DATA block (13 rows, each checked by one `verify_handoff_probes` BD-* rule; a set-equality test pins rows == rules) plus a BOOT-PROSE block under `BOOT_PROSE_BYTE_BUDGET`. Every cut writes `HANDOFF_RECEIPT.json` (paste bytes vs `PASTE_BYTE_CEILING`, and `boot_cost` = turns to first correct dispatch, `unmeasured` unless `--boot-turns/--boot-dispatch` are passed). `--dry-cut DIR` renders a full bundle and refuses any committable location. Dry cut: paste 14,567 B of 20,000 B, 29/29 probes warm; the two cold-run FAILs (P11, P13) are inherited hub debt (DECIDED-BY-LANE). RED first (43 failed), then green; Codex terra 1/5/0/0, all fixed. Refused once (`test_assemble_paste.py` 41 red on the merge: the new top-level `verify_handoff_probes` import did not resolve when `gen_handoff` runs from a copied `scripts/`); repair 1 moved the import to use time (the same dual shim inside `_vhp()`, re-exports via PEP 562 `__getattr__`), red 41 then green 47, every script-mode caller's tests in the targeted set. **Result:** the boot's data half is generated and probe-checked, its prose half is budgeted. **Changes:** `scripts/gen_handoff.py`, `scripts/verify_handoff_probes.py`, `templates/handoff/v5/HANDOFF_BOOT.md.tmpl`, their tests, the terra record, `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl`. **Next:** a measured `boot_cost` at the next real cut (OPERATOR-ACTION).
+
 ### 2026-09-25 (s) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): four Proposed ADRs for the operator -- distribution, code standard, prose to data, substrate
 
 **Anchors:** `6731556c`, `530c1c86`, `e3c3ea84`, `017041e1`, `2be3eaa5` -- `worktree-lane-adr-drafts` (ordered `claude-opus-5-5`), merged `--no-ff` from an integration worktree stacked on lane 13's merge.
