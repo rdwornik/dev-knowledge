@@ -21,6 +21,30 @@
 
 ---
 
+### 2026-09-25 (s) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): four Proposed ADRs for the operator -- distribution, code standard, prose to data, substrate
+
+**Anchors:** `6731556c`, `530c1c86`, `e3c3ea84`, `017041e1`, `2be3eaa5` -- `worktree-lane-adr-drafts` (ordered `claude-opus-5-5`), merged `--no-ff` from an integration worktree stacked on lane 13's merge.
+
+**Did:** landed ADR-123 (the harness ships as one versioned artefact pinned in each consumer), ADR-124 (one code standard, enforced by tools adopted one at a time, with the thesis quality-attribute section), ADR-125 (governing prose replaced by code and data, then removed; the L1 inventory with readers), ADR-126 (lanes route to a substrate by data; six substrates with their numbers, none excluded before the matrix) -- all **Proposed**, each with a scored decision matrix and `## Operator decision options`. Codex terra 0/2/1/0, all fixed. Refused once (the four new ADRs pushed ADR-119 out of the last-5 roster, turning two `test_boot_retrieval` probe tests red); repair 1 re-pointed the `recent-adrs` probe at ADR-126 with a status-free marker and refreshed its evidence by a live scoped probe (6/6 canary witnessed, spliced by script, not hand-edited). **Result:** four decisions ready for ratification; nothing Accepted. **Changes:** `docs/decisions/ADR-123..126`, `docs/decisions/README.md`, `.claude/generated/recent-adrs.md`, `tests/test_validate_adr_status.py` (two baselines), the terra record, `tests/boot_retrieval.py`, `ecosystem/boot-retrieval-evidence.json`, `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl`. **Next:** operator ratification (OPERATOR-ACTION).
+
+### 2026-09-25 (r) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): a batch's refusals and faults become candidate rows with a runnable check -- `learning_distiller.py`
+
+**Anchors:** `5b8c0721`, `2ab4bd55`, `70d92f9e`, `ead0f7cc` -- `worktree-lane-learning-distiller` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on origin/main `bc969abc`.
+
+**Did:** new read-only organ `scripts/learning_distiller.py run --integrator --dispatcher [--refused ...] [--format text|json]` turns REFUSED-repair, FAILED-lane and dispatcher-fault receipts into candidate rows, each with title, provenance and a regression check; it files nothing (ruling h). The N1 fixture yields exactly the two repairs and the one dispatcher fault (pinned by tests); one `fates:` line in `ecosystem/harness.yaml` (ruling a). Refused once (the ship-gate leg of the close-out never completed); repair 1 ran it through the memory gate to completion (0 hard-fail), no code change. Codex terra 0/3/0/0, all fixed; 26 tests. **Result:** a batch's lessons are distilled into rows instead of fixed by hand and forgotten. **Changes:** `scripts/learning_distiller.py`, `ecosystem/harness.yaml`, its tests and fixtures, the terra record, `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl`. **Next:** run it over WAVE5B-N2's own receipts at close.
+
+### 2026-09-25 (q) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): the dispatcher's launch queue becomes code -- `dispatch.py queue`
+
+**Anchors:** `9d2b3d13`, `a09af554` -- `worktree-lane-launch-queue` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree stacked on lane 8's merge.
+
+**Did:** `dispatch.py queue [--dry-run|--watch]` derives a batch's launch order from the lane contracts' declared edges (the `plan_lint` grammar, no second reader): topological readiness rounds, then substrate, then declared priority, with cap and serialize-group reserved within a pass. `repair` joins it; the shim's help names both (a pre-existing test forces it, proven red without the edit). On the 16 WAVE5B-N2 contracts, positions 1-10 equal the dispatcher order's §Sequence byte for byte; wave gamma satisfies all six stated precedence facts (§Sequence gives no total order there -- DECIDED-BY-INTEGRATOR). Refused once (item 1 evidence, ship-gate and gated tests missing, shim ownership); repair 1 supplied all four, no code change. Codex terra 0/4/0/0, all fixed. **Result:** the launch order is computed, not hand-transcribed. **Changes:** `scripts/dispatch.py`, `templates/dispatch-shim.ps1`, `tests/test_dispatch_queue.py`, its terra record, `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl`. **Next:** `queue --watch` adoption into the dispatcher procedure (ROWS-OWED).
+
+### 2026-09-25 (p) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): the heartbeat's devcontainer build runs on the daily schedule again, with its evidence in its own log
+
+**Anchors:** `9d19bf65`, `e90f61ba` -- `worktree-lane-codespace-roundtrip-ci` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on origin/main `3d13a2d2`.
+
+**Did:** the `container` job of `.github/workflows/substrate-heartbeat.yml` fires on `schedule` as well as `workflow_dispatch`, and prints its own evidence lines (uv pin == `required-version`, `claude` and `node` on PATH, the `updateContentCommand` actually declared). Proven by dispatched run 36155929898 (both jobs green), not inferred; no `secrets.*` expansion (R2). Refused once (targeted tests not through the memory gate); repair 1 re-ran them gated (`-n 1`, 97 passed, exit 0), no code change. Codex terra 0/0/0/0. **Result:** a silently regressed devcontainer build fails on the daily schedule, with the failing leg named. **Changes:** `.github/workflows/substrate-heartbeat.yml`, `tests/test_substrate_heartbeat.py`, its terra record, `JOURNAL.md`, generated files, `logs/MERGE-RECEIPTS.jsonl`. **Next:** the scheduled codespace agent round-trip (ROWS-OWED).
+
 ### 2026-09-25 (o) - CC (Opus 5.5, INTEGRATOR WAVE5B-N2): pre-commit on the codespace login PATH -- lane 1's admission refusal repaired
 
 **Anchors:** `84c40a92`, `09306d18`, `24d3fbb3` -- `worktree-lane-codespace-proof-repair-1` (ordered `claude-sonnet-5`), merged `--no-ff` from an integration worktree on origin/main `da11291b`.
