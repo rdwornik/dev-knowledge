@@ -308,3 +308,109 @@ def test_an_ordered_tier_outside_the_enum_is_reported_not_guessed(tmp_path):
     reading = ra.model_reading("gpt", tree, sessions_root=store)
     assert reading.state != "agree"
     assert "gpt" in reading.detail
+
+
+# --- SUBAGENT ATTRIBUTION, RED-first (`lane-subagent-cost`, `[#Context 5]`) ----------------
+#
+# Before this lane, `transcript_paths` globbed only `session_dir.glob("*.jsonl")` and never a
+# session's sibling `session_dir/<session-id>/subagents/*.jsonl`, so a subagent's model escaped
+# the ordered-vs-ran check entirely -- the docstring above already claimed "SUBAGENTS INCLUDED";
+# the code did not.
+
+_FIXTURES_ROOT = pathlib.Path(__file__).resolve().parent / "fixtures"
+
+
+def _fixed_to_subagent_session(monkeypatch):
+    """Points `ra.session_slug` at the checked-in fixture regardless of the `worktree` argument
+    -- the fixture is a fixed directory name, not a path this test derives one from."""
+    monkeypatch.setattr(ra, "session_slug", lambda path: "subagent_session")
+
+
+def test_a_checked_in_subagent_fixture_is_read_and_classified_main_subagent(monkeypatch):
+    """Done-contract item 1, from the checked-in synthetic fixture
+    `tests/fixtures/subagent_session/`: its tokens and model are counted, AND classified
+    main/subagent rather than blended into one tally.
+    """
+    _fixed_to_subagent_session(monkeypatch)
+    by_role = ra.ran_models_by_role("irrelevant", sessions_root=_FIXTURES_ROOT)
+    assert by_role["main"] == {"claude-opus-5": 1}
+    assert by_role["subagent"] == {"claude-haiku-4-5-20251001": 1}
+    assert ra.ran_models("irrelevant", sessions_root=_FIXTURES_ROOT) == {
+        "claude-opus-5": 1,
+        "claude-haiku-4-5-20251001": 1,
+    }
+
+
+def test_a_subagents_directory_is_included_in_the_ordered_vs_ran_tally(tmp_path):
+    """The tally the docstring already promised: a lane that ran mostly Opus with a Haiku
+    subagent must show BOTH, not only the main thread -- the same property
+    `test_the_whole_tally_is_reported_not_only_the_winner` checks for a flat store, now proven
+    for the `subagents/` directory specifically.
+
+    `_seed` writes the main transcript to `session.jsonl`, so its sibling subagents directory
+    -- keyed by that FILE'S OWN STEM, as measured on this host -- is `session/subagents/`, not
+    a directory shared across the whole store entry.
+    """
+    store, tree = tmp_path / "store", tmp_path / "tree"
+    d = _seed(store, tree, ["claude-opus-5"] * 9)
+    sub = d / "session" / "subagents"
+    sub.mkdir(parents=True, exist_ok=True)
+    (sub / "agent-x.jsonl").write_text(
+        "\n".join(json.dumps({"type": "assistant", "message": {"model": "claude-haiku-4-5"}})
+                 for _ in range(1)) + "\n",
+        encoding="utf-8", newline="\n")
+
+    reading = ra.model_reading("opus", tree, sessions_root=store)
+    assert reading.state == "agree"
+    assert reading.tally == {"claude-opus-5": 9, "claude-haiku-4-5": 1}
+    assert "claude-haiku-4-5" in reading.detail
+
+
+def test_a_subagent_running_a_different_family_can_flip_the_dominant_model(tmp_path):
+    """`ran_model` breaks ties on the model id and otherwise reports the plain majority --
+    enough subagent messages must be able to move the dominant reading, since the tally is a
+    real count, not a main-thread-only figure with subagents decorating it."""
+    store, tree = tmp_path / "store", tmp_path / "tree"
+    d = _seed(store, tree, ["claude-opus-5"])
+    sub = d / "session" / "subagents"
+    sub.mkdir(parents=True, exist_ok=True)
+    rows = [json.dumps({"type": "assistant", "message": {"model": "claude-haiku-4-5"}})
+           for _ in range(5)]
+    (sub / "agent-y.jsonl").write_text("\n".join(rows) + "\n", encoding="utf-8", newline="\n")
+
+    assert ra.ran_model(tree, sessions_root=store) == "claude-haiku-4-5"
+    reading = ra.model_reading("opus", tree, sessions_root=store)
+    assert reading.state == "diverge"
+
+
+def test_a_worktree_with_no_subagents_directory_reads_exactly_as_before(tmp_path):
+    """A lane that never spawned a subagent must not gain a phantom `subagent` role bucket
+    with content."""
+    store, tree = tmp_path / "store", tmp_path / "tree"
+    _seed(store, tree, ["claude-opus-5"])
+    by_role = ra.ran_models_by_role(tree, sessions_root=store)
+    assert by_role["subagent"] == {}
+    assert by_role["main"] == {"claude-opus-5": 1}
+
+
+def test_a_turn_replayed_across_main_and_subagent_is_counted_once(tmp_path):
+    """Codex review, `lane-subagent-cost`: a record identity (`message.id`, falling back to
+    the row's own `uuid`) that somehow appears under BOTH roles must still be counted once --
+    the same guarantee `lane_cost`'s cross-role de-duplication gives, now proven here. Without
+    a shared `seen` set, this could inflate a model's tally enough to flip the dominant
+    `ran_model` and turn a real agreement into a false divergence."""
+    store, tree = tmp_path / "store", tmp_path / "tree"
+    d = _seed(store, tree, ["claude-opus-5"] * 3)
+    sub = d / "session" / "subagents"
+    sub.mkdir(parents=True, exist_ok=True)
+    replayed = json.dumps({"type": "assistant", "uuid": "replayed-1",
+                           "message": {"id": "msg-replayed-1", "model": "claude-haiku-4-5"}})
+    (d / "session.jsonl").write_text(
+        (d / "session.jsonl").read_text(encoding="utf-8") + replayed + "\n",
+        encoding="utf-8", newline="\n")
+    (sub / "agent-z.jsonl").write_text(replayed + "\n", encoding="utf-8", newline="\n")
+
+    by_role = ra.ran_models_by_role(tree, sessions_root=store)
+    assert by_role["main"] == {"claude-opus-5": 3, "claude-haiku-4-5": 1}
+    assert by_role["subagent"] == {}, "the replayed turn was counted again under its own role"
+    assert ra.ran_models(tree, sessions_root=store) == {"claude-opus-5": 3, "claude-haiku-4-5": 1}

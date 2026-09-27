@@ -19,6 +19,7 @@ fails correctly.
 | Fixture | Represents | Tests / checks |
 |---|---|---|
 | `repo-with-structural-checks` | A fully compliant repo — all three current structural checks pass (`vision_md`, `adr38_baseline`, `claude_md`). Contains `VISION.md` with valid frontmatter, `pyproject.toml`, `src/`, `README.md`, `CLAUDE.md`, `LESSONS.md`, and `BACKLOG.md`. Every `_FRESHNESS_FILES` member is present with a fresh `last_reviewed` stamp ([#621] lane-g-621-c7 closure 3: `docs/handoffs/README.md`, `protocols/ESSENTIALS.md`, `protocols/SESSION_SETUP.md`, `protocols/AI_COUNCIL_PROCESS.md`, `protocols/DEFINITION_OF_DONE.md` added — absence now FAILs `canonical_freshness` instead of skipping). | `test_audit_run_passes_structural_checks_on_synthetic_repo` (`test_audit.py:355`) |
+| `subagent_session` | NOT a mini-repo (the one exception to this file's own framing) — a synthetic Claude Code PROJECT-DIRECTORY: `main.jsonl` (a session transcript) plus its sibling `main/subagents/agent-<id>.jsonl` + `.meta.json`, shaped exactly as measured on this host (subagents nest under a directory of the SAME STEM as the session `.jsonl`, not a directory shared across a project's sessions). Consumer is `scripts/lane_cost.py` / `scripts/routing_agreement.py`, not `audit.py`. No real transcript content — every field is synthetic. | `test_lane_cost.py`, `test_routing_agreement.py` (`lane-subagent-cost`, `[#Context 5]`) |
 
 ## Maintenance rule
 

@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-09-27 (d) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): a lane's cost and its ordered-vs-ran model check include its Task-tool subagents
+
+**Anchors:** `f9926cb4`, `442b026e`, `2bcd2f9d`, `0ad891f1` -- `worktree-lane-subagent-cost` (ordered and served `claude-sonnet-5`), first handback, re-admitted by operator word after its dependency failed; merged `--no-ff` from an integration worktree on origin/main `316d3205`.
+
+**Did:** `scripts/lane_cost.py` and `scripts/routing_agreement.py` read each session's sibling `<session>/subagents/agent-*.jsonl`, classify every read as `main` or `subagent`, and count a replayed turn once. A synthetic fixture (`tests/fixtures/subagent_session/`) pins it, RED first. On a real project directory with subagent history the cost moved from USD 16.78 to 19.42 -- a subagent model (`claude-opus-4-8`, 22 calls) that neither check could see. A batch lane with no subagents reads the same before and after. Codex terra 0/2/0/0: the de-duplication High fixed; the other High is lane-ci-matrix's file, carried.
+
+**Result:** the batch's cost and model-agreement numbers now count what subagents spent (SMART 8). Seat-level reads still see the top-level file only.
+
+**Changes:** `scripts/lane_cost.py`, `scripts/routing_agreement.py`, their tests, one fixture directory and its `tests/fixtures/README.md` row, one Codex audit; regenerated `docs/audits/README.md`, `ecosystem/doc-counts.md`.
+
+**Next:** ROWS-OWED -- seat cost (`lane_cost.py seat`) and store-wide seat reads do not yet follow a session's `subagents/` folder.
+
 ### 2026-09-27 (c) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): CI runs the suite on Windows and Linux for every lane, integration and main push -- both durations recorded, the local-main clone artefact gone
 
 **Anchors:** `4ad29e44`, `5131bbc7`, `7d722ef4`, `74278b87`, `daf59073`, `d190970e` -- `worktree-lane-ci-matrix` (ordered and served `claude-sonnet-5`), repair 1 of 2, merged `--no-ff` from an integration worktree on origin/main `1a0dc573`.

@@ -306,26 +306,65 @@ def session_slug(path) -> str:
     return re.sub(r"[^A-Za-z0-9_-]", "-", str(Path(path).resolve()))
 
 
-def transcript_paths(worktree, sessions_root=None) -> list[Path]:
-    """Every transcript filed for `worktree`. `[]` when there is no store -- which is a GAP."""
+def transcript_paths_by_role(worktree, sessions_root=None) -> dict[str, list[Path]]:
+    """`{"main": [...], "subagent": [...]}` for `worktree` -- the classified read
+    `transcript_paths` flattens away (`[#Context 5]`: subagent transcripts were invisible to
+    every reader here).
+
+    SUBAGENTS ARE FILED PER SESSION, NOT PER PROJECT DIRECTORY -- measured on this host: a
+    session `<id>.jsonl` (a FILE directly under the project directory `session_slug` names) has
+    a SIBLING directory of the exact same stem, and a session that ever ran a Task tool has
+    `<id>/subagents/agent-<agent-id>.jsonl` under that. ONE FLAT DIRECTORY regardless of spawn
+    depth -- no `subagents/*/subagents` nesting even where a Task-tool child itself spawned a
+    further Task -- but a project directory holding more than one session's `.jsonl` (a resume,
+    an interactive seat's history) has one such sibling PER SESSION, so this reads it keyed by
+    each main transcript's own stem rather than one glob shared across the directory. This
+    starts no session and reads only what the CLI already wrote (ADR-28/36).
+    """
     root = SESSIONS_ROOT if sessions_root is None else Path(sessions_root)
+    session_dir = root / session_slug(worktree)
     try:
-        return sorted(p for p in (root / session_slug(worktree)).glob("*.jsonl") if p.is_file())
+        main = sorted(p for p in session_dir.glob("*.jsonl") if p.is_file())
     except OSError:
-        return []
+        return {"main": [], "subagent": []}
+    subagent: list[Path] = []
+    for one_main in main:
+        try:
+            sub_dir = session_dir / one_main.stem / "subagents"
+            subagent += sorted(p for p in sub_dir.glob("*.jsonl") if p.is_file())
+        except OSError:
+            continue
+    return {"main": main, "subagent": sorted(subagent)}
 
 
-def ran_models(worktree, sessions_root=None) -> dict[str, int]:
-    """`{model id: assistant messages}` for a lane, read off its own transcript(s).
+def transcript_paths(worktree, sessions_root=None) -> list[Path]:
+    """Every transcript filed for `worktree`, MAIN AND SUBAGENT flattened. `[]` when there is no
+    store at all -- which is a GAP. See `transcript_paths_by_role` for the classified read."""
+    by_role = transcript_paths_by_role(worktree, sessions_root)
+    return by_role["main"] + by_role["subagent"]
+
+
+def _tally_transcripts(paths: list[Path], seen: Optional[set[str]] = None) -> dict[str, int]:
+    """`{model id: assistant messages}` over a flat list of transcript files.
 
     AN UNPARSEABLE LINE IS SKIPPED, NOT FATAL, and that is a measurement rather than leniency: a
     LIVE transcript is appended to while it is read, so its last line is routinely a half-written
     object. Refusing the file on one would make every reading of a running lane report nothing --
     an absence manufactured by the instrument, which is the failure this organ exists to avoid on
     the other side.
+
+    `seen` DE-DUPLICATES ON THE TURN'S OWN IDENTITY (`message.id`, falling back to the record's
+    own `uuid`; the same fallback `lane_cost.read_transcript_usage` uses), across every path this
+    call is given -- so a caller summing main AND subagent paths in one tally must pass ONE set
+    across both, not one per role. Codex review, `lane-subagent-cost`: without this, a turn
+    replayed across a resumed session's files -- now doubled in reach by the subagent glob --
+    counted twice and could flip the dominant `ran_model`. A record with no id at all (every
+    synthetic fixture in this suite) is never deduplicated away; only a REPEATED identity is.
     """
+    if seen is None:
+        seen = set()
     tally: dict[str, int] = {}
-    for path in transcript_paths(worktree, sessions_root):
+    for path in paths:
         try:
             text = path.read_text(encoding="utf-8", errors="replace")
         except OSError:
@@ -340,10 +379,38 @@ def ran_models(worktree, sessions_root=None) -> dict[str, int]:
             if not isinstance(row, dict) or row.get("type") != "assistant":
                 continue
             message = row.get("message")
-            model = message.get("model") if isinstance(message, dict) else None
-            if isinstance(model, str) and model:
-                tally[model] = tally.get(model, 0) + 1
+            if not isinstance(message, dict):
+                continue
+            model = message.get("model")
+            if not (isinstance(model, str) and model):
+                continue
+            key = str(message.get("id") or row.get("uuid") or "")
+            if key:
+                if key in seen:
+                    continue
+                seen.add(key)
+            tally[model] = tally.get(model, 0) + 1
     return tally
+
+
+def ran_models(worktree, sessions_root=None) -> dict[str, int]:
+    """`{model id: assistant messages}` for a lane, read off its own transcript(s) AND its
+    subagents' (`transcript_paths`). See `ran_models_by_role` for the classified read."""
+    return _tally_transcripts(transcript_paths(worktree, sessions_root))
+
+
+def ran_models_by_role(worktree, sessions_root=None) -> dict[str, dict[str, int]]:
+    """`{"main": {model: count}, "subagent": {model: count}}` -- the CLASSIFIED reading
+    `ran_models` sums together. A lane whose main thread and subagents ran different model
+    families is a distinguishable fact, not one blended tally.
+
+    ONE `seen` SET ACROSS BOTH ROLES, matching `ran_models`'s own flattened read and
+    `lane_cost.lane_usage_by_role`'s cross-role de-duplication: a turn's identity does not
+    depend on which directory it was filed under.
+    """
+    seen: set[str] = set()
+    by_role = transcript_paths_by_role(worktree, sessions_root)
+    return {role: _tally_transcripts(paths, seen) for role, paths in by_role.items()}
 
 
 def ran_model(worktree, sessions_root=None) -> Optional[str]:

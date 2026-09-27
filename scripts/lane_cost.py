@@ -45,6 +45,12 @@ THE HONEST LIMITS, stated so a figure from here is not over-read
     same fact for ownership). So a lane whose slug matches no project directory reports NO
     TRANSCRIPT -- explicitly, by name -- and never $0.00. Attributing an unfound lane to zero
     would make the cheapest lane in any report the one nobody could measure.
+  * **A TASK-TOOL SUBAGENT IS A DIFFERENT CASE FROM THE ONE ABOVE, AND IS COVERED.** The bullet
+    above is about a `--bg` LANE -- a whole separate session, filed under its launching
+    session's directory. A Task-tool subagent spawned WITHIN one session is filed inside that
+    same session's directory, at `subagents/agent-<id>.jsonl`, and this reader now counts it
+    (`lane_usage_by_role`) -- before this lane it did not, and a lane's Task-tool spend was
+    invisible to its own cost the way a `--bg` lane's is to a directory match.
   * **A REPEATED TURN IS ONE TURN.** Transcripts carry the same assistant message on more than
     one line (measured on this host: adjacent lines with byte-identical `usage`). Summing them
     doubles the bill, and a doubled bill is indistinguishable from a busy day, so turns are
@@ -383,16 +389,74 @@ def transcript_dirs(slug: str, sessions_root: Optional[Path] = None,
     return matched
 
 
+#: The subagent transcript directory Claude Code files per SESSION, not per project directory --
+#: measured on this host: a session `<id>.jsonl` (a FILE directly under the project directory)
+#: has a SIBLING directory of the exact same stem, `<project-dir>/<id>/`, and a session that ever
+#: ran a Task tool has `<project-dir>/<id>/subagents/agent-<agent-id>.jsonl` under that (+ a
+#: sidecar `.meta.json` this module does not need). ONE FLAT DIRECTORY regardless of spawn depth
+#: -- no `subagents/*/subagents` nesting even where a Task-tool child itself spawned a further
+#: Task -- but keyed PER SESSION: a project directory holding several sessions' `.jsonl` files
+#: has one such sibling directory per session, never one shared `subagents/` for the directory.
+SUBAGENTS_DIRNAME = "subagents"
+
+#: The two roles a directory's transcripts are read under. Not an enum class -- these are dict
+#: keys threaded through `lane_usage_by_role` and its CLI/report consumers, and a class would
+#: buy type-checking this module's tests already provide by asserting on the literal strings.
+ROLE_MAIN = "main"
+ROLE_SUBAGENT = "subagent"
+
+
+def _role_tagged_transcripts(directory: Path) -> list[tuple[Path, str]]:
+    """Every transcript under one project directory, paired with its role.
+
+    Before this function existed, `lane_usage` globbed only `directory.glob("*.jsonl")` -- each
+    session's OWN top-level transcript -- and never that session's sibling
+    `<id>/subagents/*.jsonl`, so a Task-tool subagent's tokens and model were invisible to the
+    lane's cost (`[#Context 5]`: ~0.96M subagent tokens missing from one real batch).
+
+    ONE SESSION, ONE SUBAGENTS DIRECTORY -- keyed by `main.stem` (the session id), not a single
+    glob under `directory` itself: a project directory can hold more than one session's `.jsonl`
+    (a resume, an interactive seat's history), and reading a shared `directory/subagents/` would
+    either miss every session but one or -- had Claude Code ever laid it out that way -- blend
+    two sessions' subagents into one bucket. It does not; this mirrors the layout as measured.
+    """
+    mains = sorted(directory.glob("*.jsonl"))
+    tagged = [(p, ROLE_MAIN) for p in mains]
+    for main in mains:
+        sub_dir = directory / main.stem / SUBAGENTS_DIRNAME
+        tagged += [(p, ROLE_SUBAGENT) for p in sorted(sub_dir.glob("*.jsonl"))]
+    return tagged
+
+
+def lane_usage_by_role(slug: str, sessions_root: Optional[Path] = None,
+                       slug_dirs: Optional[Sequence[str]] = None
+                       ) -> dict[str, dict[str, TokenUsage]]:
+    """`{"main": {model: usage}, "subagent": {model: usage}}` for one lane -- the CLASSIFIED
+    reading `lane_usage` sums together.
+
+    ONE `seen` SET ACROSS BOTH ROLES, not one per role: de-duplication is about the same turn
+    being read twice (a resumed session replaying lines), which is a property of the turn, not
+    of which directory it was filed under, so a second sighting under either role must still be
+    skipped.
+    """
+    seen: set[str] = set()
+    out: dict[str, dict[str, TokenUsage]] = {ROLE_MAIN: {}, ROLE_SUBAGENT: {}}
+    for directory in transcript_dirs(slug, sessions_root, slug_dirs):
+        for transcript, role in _role_tagged_transcripts(directory):
+            bucket = out[role]
+            for model, usage in read_transcript_usage(transcript, seen).items():
+                bucket[model] = bucket.get(model, TokenUsage()) + usage
+    return out
+
+
 def lane_usage(slug: str, sessions_root: Optional[Path] = None,
                slug_dirs: Optional[Sequence[str]] = None) -> dict[str, TokenUsage]:
-    """`{model: usage}` for one lane, summed over every transcript it owns and de-duplicated
-    across them."""
-    seen: set[str] = set()
+    """`{model: usage}` for one lane, summed over every transcript it owns -- ITS OWN AND ITS
+    SUBAGENTS' (`lane_usage_by_role`) -- and de-duplicated across them."""
     out: dict[str, TokenUsage] = {}
-    for directory in transcript_dirs(slug, sessions_root, slug_dirs):
-        for transcript in sorted(directory.glob("*.jsonl")):
-            for model, usage in read_transcript_usage(transcript, seen).items():
-                out[model] = out.get(model, TokenUsage()) + usage
+    for bucket in lane_usage_by_role(slug, sessions_root, slug_dirs).values():
+        for model, usage in bucket.items():
+            out[model] = out.get(model, TokenUsage()) + usage
     return out
 
 
