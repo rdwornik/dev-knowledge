@@ -139,6 +139,32 @@ def test_read_state_refuses_a_file_missing_a_required_field(tmp_path):
         ss.read_state(path)
 
 
+def test_read_state_refuses_a_written_ts_with_no_utc_offset(tmp_path):
+    """Codex terra review, HIGH: `datetime.fromisoformat` accepts an offset-less timestamp, and
+    subtracting it from an aware `now` used to raise `TypeError` instead of `SeatStateError` --
+    a torn file crashing the reader rather than being refused."""
+    path = tmp_path / "STATE.json"
+    state = ss.build_state(role="integrator", batch="B", base_sha="abc", lanes={})
+    data = state.to_dict()
+    data["written_ts"] = "2026-09-27T00:00:00"  # no +00:00
+    path.write_text(json.dumps(data), encoding="utf-8")
+    with pytest.raises(ss.SeatStateError, match="torn"):
+        ss.read_state(path)
+
+
+def test_read_state_refuses_a_lane_row_that_is_not_an_object(tmp_path):
+    """Codex terra review, HIGH: `_validate_lane` called `.get()` on the row without checking it
+    was a mapping first -- a row like `null` or a list raised `AttributeError` instead of the
+    `SeatStateError` a torn file should produce."""
+    path = tmp_path / "STATE.json"
+    state = ss.build_state(role="integrator", batch="B", base_sha="abc", lanes={})
+    data = state.to_dict()
+    data["lanes"]["lane-a"] = None
+    path.write_text(json.dumps(data), encoding="utf-8")
+    with pytest.raises(ss.SeatStateError, match="torn"):
+        ss.read_state(path)
+
+
 def test_read_state_refuses_a_lane_row_with_an_invalid_state(tmp_path):
     path = tmp_path / "STATE.json"
     state = ss.build_state(role="integrator", batch="B", base_sha="abc", lanes={})

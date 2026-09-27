@@ -170,7 +170,11 @@ def _normalize_state(state: str) -> str:
     return WAITING_ALIAS if state == WAITING_ALIAS else state
 
 
-def _validate_lane(lane: str, row: Mapping) -> LaneRow:
+def _validate_lane(lane: str, row: object) -> LaneRow:
+    if not isinstance(row, Mapping):
+        raise SeatStateError(
+            f"lane {lane!r}: row is a {type(row).__name__}, not an object -- torn, refused "
+            f"rather than read as though it were a state")
     state = _normalize_state(str(row.get("state") or ""))
     if state == WAITING_ALIAS:
         state = "IN-FLIGHT"
@@ -258,6 +262,10 @@ def read_state(path: Path, *, now: Optional[datetime] = None,
         written_at = datetime.fromisoformat(str(written_ts))
     except ValueError as exc:
         raise SeatStateError(f"{path} is torn -- written_ts {written_ts!r} does not parse") from exc
+    if written_at.tzinfo is None:
+        raise SeatStateError(
+            f"{path} is torn -- written_ts {written_ts!r} carries no UTC offset, so its age "
+            f"cannot be measured against an aware clock without guessing a timezone")
     moment = now or datetime.now(timezone.utc)
     age_min = (moment - written_at).total_seconds() / 60.0
     if age_min > max_age_min:
