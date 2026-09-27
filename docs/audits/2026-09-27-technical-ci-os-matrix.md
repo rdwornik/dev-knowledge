@@ -9,6 +9,11 @@ method: pushed worktree-lane-ci-matrix at sha 4ad29e44 (`.github/workflows/condu
 (read-only); pulled both `pytest` job logs with `gh run view --job <id> --log` and grepped them.
 Nothing else was run or written to produce this file.
 
+Carries evidence toward `[#966]` ("CI's full-suite verdict becomes the merge gate; local runs
+only Windows-only tests") and the OS-matrix half of `[#979]`/`[#980]`/`[#981]` (off-box
+portability) — none of those rows close here; this file only measures the matrix run L1 asks
+for. Arming the merge gate on it is `lane-arm-ci`'s (L6).
+
 ## L1's Done-when, verbatim
 
 > one run on a `worktree-*` push completes both legs; both durations in the audit; 0 "main does
