@@ -9,6 +9,7 @@ carried as specified (rows 7 and 8; see the module docstring of the preflight bl
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -341,9 +342,23 @@ def test_session_slug_matches_a_REAL_session_store_directory_name():
     compute it, so a wrong rule agrees with itself while the row measures a path nobody writes
     to. That defect shipped here once -- an enumerated character class lost its literal
     backslash in transit, and the MEMORY row read `not present` against a file that was there.
+
+    PORTABILITY (T2, 2026-09-26): the pin used to be one hardcoded Windows literal
+    (`C:\\Users\\...`) fed to `_session_slug`, which runs it through `Path(path).resolve()`
+    before flattening. `Path` only treats `\\` as a separator on Windows -- on POSIX the whole
+    literal is ONE relative path segment, so `.resolve()` prepends the CI runner's cwd instead
+    of reproducing the doubled-dash shape, and the fixed right-hand side never matches. The
+    regression this test exists to prove (a literal separator surviving the flatten as a dash,
+    never silently dropped) is real on either OS; it just needs each OS's OWN absolute-path
+    shape to exercise it, the same "working POSIX arm" pattern the rest of this repo's
+    `os.name`/`sys.platform` branches already use -- not a skip.
     """
-    assert (gh._session_slug(r"C:\Users\u\Documents\Dev\ai-council\.claude\worktrees\cli-provider")
-            == "C--Users-u-Documents-Dev-ai-council--claude-worktrees-cli-provider")
+    if os.name == "nt":
+        assert (gh._session_slug(r"C:\Users\u\Documents\Dev\ai-council\.claude\worktrees\cli-provider")
+                == "C--Users-u-Documents-Dev-ai-council--claude-worktrees-cli-provider")
+    else:
+        assert (gh._session_slug("/home/u/Documents/Dev/ai-council/.claude/worktrees/cli-provider")
+                == "-home-u-Documents-Dev-ai-council--claude-worktrees-cli-provider")
 
 
 def test_worktree_row_fails_only_the_CONJUNCTION_no_seat_and_already_merged(tmp_path,

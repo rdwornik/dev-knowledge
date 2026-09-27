@@ -16,6 +16,7 @@ thing on the merits. Nothing here needs an external binary; it reads and writes 
 from __future__ import annotations
 
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -955,6 +956,37 @@ def _write_fails_on_call(monkeypatch, nth):
         return _WriteFails(fh) if len(calls) == nth else fh
 
     monkeypatch.setattr(oa, "open", fake_open, raising=False)
+
+
+def test_reservation_identity_is_not_fooled_by_INODE_REUSE(tmp_path, monkeypatch):
+    """FILE SEMANTICS (T2, 2026-09-26). On POSIX, a freed inode number is commonly handed
+    straight back to the very next allocation on the same filesystem (ext4's allocator favours
+    a just-freed slot in the same block group), so a racer's `rmdir()` + `mkdir()` on the SAME
+    name can reproduce the exact `(st_dev, st_ino)` the original reservation held -- a bare
+    `(st_dev, st_ino)` tuple would then read the swap as "unchanged" and `write_probe_corpus`
+    would never raise (the registered Linux red this fix closes: `logs/KNOWN-REDS-REGISTRY.json`
+    ``tests/test_offload_admission.py::test_a_destination_REPLACED_during_publication_is_
+    REPORTED_not_silently_used`` and its CLI sibling). NTFS's file-ID allocator does not reuse
+    this way, which is why the gap was invisible on Windows. Simulated directly here, because
+    real inode reuse cannot be forced deterministically in a test -- what is asserted is that
+    `_reservation_identity` no longer treats an identical `(st_dev, st_ino)` pair as unchanged
+    once `st_ctime_ns` differs.
+    """
+    root = tmp_path / "corpus"
+    root.mkdir()
+    real = os.lstat(root)
+
+    class _ReusedInodeOlderCtime:
+        st_dev = real.st_dev
+        st_ino = real.st_ino
+        st_ctime_ns = real.st_ctime_ns - 1_000_000  # a distinguishable "earlier" ctime
+
+    before = oa._reservation_identity(root)
+    monkeypatch.setattr(oa.os, "lstat", lambda p: _ReusedInodeOlderCtime())
+    after = oa._reservation_identity(root)
+    assert before[:2] == after[:2], "the simulated reuse must share (st_dev, st_ino)"
+    assert before != after, (
+        "a reused (st_dev, st_ino) pair with a different ctime must not compare equal")
 
 
 def test_a_write_failure_AFTER_creation_leaves_no_partial_file(tmp_path, monkeypatch):

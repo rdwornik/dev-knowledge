@@ -909,18 +909,29 @@ Rules for the answer, all of them checked mechanically afterwards:
 """
 
 
-def _reservation_identity(root: Path) -> tuple[int, int] | None:
-    """`(st_dev, st_ino)` for `root` ITSELF, following no symlink. `None` if it is gone.
+def _reservation_identity(root: Path) -> tuple[int, int, int] | None:
+    """`(st_dev, st_ino, st_ctime_ns)` for `root` ITSELF, following no symlink. `None` if gone.
 
     `lstat` and not `stat`: a symlink dropped in place of the reserved directory resolves
     through `stat` to whatever it points at, which is the one substitution that would let a
     swap read as unchanged.
+
+    FILE SEMANTICS (T2, 2026-09-26): `(st_dev, st_ino)` alone is not enough on POSIX. A freed
+    inode number is commonly reused by the VERY NEXT allocation on the same filesystem (ext4's
+    allocator favours a just-freed slot in the same block group), so a racer's `rmdir()` +
+    `mkdir()` on the same name can, on Linux, hand the replacement directory the identical
+    `st_ino` the original reservation held -- the swap then reads as "unchanged" and this
+    function never raises. NTFS's file-ID allocator does not reuse this way, which is why the
+    gap was invisible on Windows. `st_ctime_ns` (inode metadata-change time, nanosecond
+    resolution where the filesystem provides it) breaks the tie: a directory this call did not
+    just create carries an OLDER ctime than the one it just made, even when the kernel handed
+    the replacement the old inode number back.
     """
     try:
         info = os.lstat(root)
     except OSError:
         return None
-    return (info.st_dev, info.st_ino)
+    return (info.st_dev, info.st_ino, info.st_ctime_ns)
 
 
 def write_probe_corpus(root: Path) -> Path:

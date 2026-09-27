@@ -33,6 +33,7 @@ from __future__ import annotations
 import csv
 import json
 import os
+import posixpath
 import re
 import shutil
 import subprocess
@@ -1846,6 +1847,17 @@ def _norm_dir(value: str) -> str:
     """Comparison form. A trailing separator, surrounding quotes or a case difference is
     not staleness -- only a different directory is.
 
+    PORTABILITY (T2, 2026-09-26): this used to be `os.path.normcase(os.path.normpath(...))`.
+    `os.path.normcase` folds case and rewrites `/` to `\\\\` only on Windows -- on POSIX it is
+    the identity function (Python docs: "On other operating systems, it returns the path
+    unchanged"). The case-insensitivity documented in the second HONEST LIMIT below is this
+    function's own deliberate BUSINESS RULE about comparing two readings of a Windows-shaped
+    env var -- it is not, and was never meant to be, a statement about the filesystem of the
+    host the comparison happens to run on. Folding case and separators explicitly, rather than
+    through the host-dependent stdlib call, makes the rule hold the same way in CI (Linux) as
+    on the operator's own Windows box; `posixpath.normpath` is used for the segment collapse
+    so the separator fold happens before normalisation looks for `.`/`..` segments.
+
     HONEST LIMITS, all three deliberate (terra review 2026-09-06, MED x3 -- recorded rather
     than fixed, because each fix costs more than it buys):
 
@@ -1855,8 +1867,8 @@ def _norm_dir(value: str) -> str:
       predicate that runs once per tool call -- and the prompts dir here is typically a
       network/sync mount, where a resolve on an unreachable drive can block. A guard that
       hangs is worse than one that is lexical.
-    * `normcase` folds case, so on a directory with per-directory case sensitivity enabled
-      two genuinely distinct paths compare equal and pass. Comparing case-sensitively would
+    * Case is folded, so on a directory with per-directory case sensitivity enabled two
+      genuinely distinct paths compare equal and pass. Comparing case-sensitively would
       refuse on every ordinary Windows case difference, which is the far more common input;
       a false pass in a rare configuration beats a false refusal in the normal one.
     * A REG_EXPAND_SZ User value is expanded against `os.environ` -- the same possibly-stale
@@ -1864,7 +1876,7 @@ def _norm_dir(value: str) -> str:
       stale prompts dir can compare equal. Not expanding is not an escape: an unexpanded
       `%VAR%` would never match the expanded process value and would refuse always.
     """
-    return os.path.normcase(os.path.normpath(value.strip().strip('"')))
+    return posixpath.normpath(value.strip().strip('"').replace("\\", "/")).casefold()
 
 
 def prompts_dir_status(inherited, resolved):
