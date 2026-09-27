@@ -188,8 +188,15 @@ class _Sentinel:
             os.close(self._fd)
         try:
             self._path.unlink()
-        except OSError:
-            pass
+        except OSError as exc:
+            # Codex terra HIGH, this lane's own review: a swallowed cleanup failure left the
+            # sentinel behind while the caller still saw a successful claim -- the NEXT claim of
+            # this name then blocks for the full retry window and refuses, with nothing in ITS
+            # own output pointing at the real cause. Surfaced here, at the one place that still
+            # knows which sentinel failed to clear, rather than left for a stranger to diagnose.
+            print(f"claim: WARNING -- could not clear the sentinel {self._path}: {exc} (the next "
+                  f"claim of this name will wait out the retry window and then report it; clear "
+                  f"it by hand: del {self._path})", file=sys.stderr)
 
 
 def _refusal(name: str, holder: str) -> None:
@@ -252,6 +259,15 @@ def release(name: str, session: Optional[str] = None, root: Optional[str] = None
         return CLAIMED
     try:
         marker.unlink()
+    except FileNotFoundError:
+        # Codex terra HIGH, this lane's own review: the `marker.exists()` check above and this
+        # unlink are two separate syscalls, so a concurrent release of the SAME session's marker
+        # (a repair session re-running teardown after a timeout, say) can see it vanish in
+        # between. The goal state -- no marker -- is reached either way, so this is the same
+        # idempotent success as the already-absent case above, not an internal error.
+        print(f"claim: {name} is already free (marker under session {session!r} was removed "
+              f"concurrently)")
+        return CLAIMED
     except OSError as exc:
         raise ClaimError(f"could not remove {marker}: {exc}") from exc
     print(f"claim: released {marker}")

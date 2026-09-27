@@ -41,20 +41,58 @@ def _markers(root: Path, name: str = NAME) -> list[Path]:
     return sorted((root / "to-cc").glob(f"{name}.CLAIMED-*"))
 
 
+# Codex terra HIGH, this lane's own review: two processes launched back to back with no
+# synchronization are not guaranteed to reach the check-then-create critical section at the same
+# time -- a fast host could let one finish before the other even starts, which would pass the
+# test without ever exercising the sentinel's contention path. This wrapper makes each racer
+# BLOCK on a shared barrier file right before it execs the real `claim` invocation, and touches
+# its own READY file first so the harness can confirm both are actually waiting before releasing
+# them -- a ready/wait/go protocol, not a hopeful head start.
+_BARRIER_WRAPPER = (
+    "import pathlib, subprocess, sys, time\n"
+    "ready, barrier = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])\n"
+    "ready.touch()\n"
+    "deadline = time.monotonic() + 30\n"
+    "while not barrier.exists():\n"
+    "    if time.monotonic() > deadline:\n"
+    "        sys.exit('barrier never arrived')\n"
+    "    time.sleep(0.0005)\n"
+    "sys.exit(subprocess.call(sys.argv[3:]))\n"
+)
+
+
+def _launch_at_barrier(ready: Path, barrier: Path, *argv: str) -> subprocess.Popen:
+    return subprocess.Popen([sys.executable, "-c", _BARRIER_WRAPPER, str(ready), str(barrier),
+                             *argv], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+
+def _wait_for(path: Path, deadline_s: float = 10.0) -> None:
+    start = time.monotonic()
+    while not path.exists():
+        if time.monotonic() - start > deadline_s:
+            raise TimeoutError(f"{path} never appeared")
+        time.sleep(0.001)
+
+
 # --- the real-concurrency witness (Done-contract 1) -------------------------------------------
 
-def test_two_real_processes_racing_one_wins_one_refuses(transport):
-    """Two OS PROCESSES, launched back to back with no synchronization delay between them, racing
-    to claim the SAME name. Exactly one must create a marker; the other must exit IN_FLIGHT and
-    create none. Run 5 times -- a flaky race would show up as a fluke on some iteration, not all."""
+def test_two_real_processes_racing_one_wins_one_refuses(transport, tmp_path):
+    """Two OS PROCESSES, released from a shared barrier at (as near as the OS scheduler allows)
+    the same instant, racing to claim the SAME name. Exactly one must create a marker; the other
+    must exit IN_FLIGHT and create none. Run 5 times -- a flaky race would show up as a fluke on
+    some iteration, not all."""
     for i in range(5):
         name = f"{NAME}-race-{i}"
-        p_a = subprocess.Popen([sys.executable, str(_SCRIPT), "claim", name, "--session", "aaaaaaaa",
-                                "--transport-root", str(transport)],
-                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        p_b = subprocess.Popen([sys.executable, str(_SCRIPT), "claim", name, "--session", "bbbbbbbb",
-                                "--transport-root", str(transport)],
-                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        ready_a, ready_b = tmp_path / f"ready-a-{i}", tmp_path / f"ready-b-{i}"
+        barrier = tmp_path / f"barrier-{i}"
+        p_a = _launch_at_barrier(ready_a, barrier, sys.executable, str(_SCRIPT), "claim", name,
+                                 "--session", "aaaaaaaa", "--transport-root", str(transport))
+        p_b = _launch_at_barrier(ready_b, barrier, sys.executable, str(_SCRIPT), "claim", name,
+                                 "--session", "bbbbbbbb", "--transport-root", str(transport))
+        _wait_for(ready_a)
+        _wait_for(ready_b)
+        barrier.touch()  # both racers are confirmed waiting -- release them together
+
         out_a, err_a = p_a.communicate(timeout=30)
         out_b, err_b = p_b.communicate(timeout=30)
         codes = {p_a.returncode, p_b.returncode}
@@ -111,6 +149,26 @@ def test_release_removes_the_claimants_own_marker(transport):
     released = _cli(transport, "release", NAME, "--session", "11111111")
     assert released.returncode == claim.CLAIMED, released.stdout + released.stderr
     assert _markers(transport) == []
+
+
+def test_release_treats_a_concurrently_removed_marker_as_idempotent_success(transport, monkeypatch):
+    """Codex terra HIGH, this lane's own review: `marker.exists()` and `marker.unlink()` are two
+    separate syscalls, so a concurrent second release of the SAME session's marker (a repair
+    session re-running teardown, say) can see it vanish in between. That must read as the same
+    idempotent success as the already-absent case, not an internal error."""
+    claimed = claim.claim(NAME, session="11111111", root=str(transport))
+    assert claimed[0] == claim.CLAIMED
+
+    real_unlink = Path.unlink
+
+    def _vanished(self, *a, **kw):
+        if self.name.endswith(".CLAIMED-11111111"):
+            raise FileNotFoundError(self)
+        return real_unlink(self, *a, **kw)
+
+    monkeypatch.setattr(Path, "unlink", _vanished)
+    code = claim.release(NAME, session="11111111", root=str(transport))
+    assert code == claim.CLAIMED
 
 
 def test_release_of_an_already_free_marker_is_idempotent(transport):
@@ -170,6 +228,24 @@ def test_a_lock_held_past_the_timeout_is_reported_not_silently_retried_forever(t
     assert marker is None
     assert elapsed < 5, "must not hang past its own bounded retry window"
     assert _markers(transport) == []
+
+
+def test_a_sentinel_cleanup_failure_warns_but_does_not_fail_the_claim(transport, monkeypatch, capsys):
+    """Codex terra HIGH, this lane's own review: a swallowed sentinel-cleanup failure left the
+    next claim of this name to time out and refuse with no clue why. The failure must now be
+    printed; the claim that already succeeded must still succeed."""
+    real_unlink = Path.unlink
+
+    def _refuse_lock_cleanup(self, *a, **kw):
+        if self.name.startswith(".") and self.name.endswith(".claim.lock"):
+            raise OSError("simulated: cannot remove sentinel")
+        return real_unlink(self, *a, **kw)
+
+    monkeypatch.setattr(Path, "unlink", _refuse_lock_cleanup)
+    code, marker = claim.claim(NAME, session="11111111", root=str(transport))
+    assert code == claim.CLAIMED
+    assert marker is not None
+    assert "WARNING" in capsys.readouterr().err
 
 
 def test_an_unmounted_transport_is_an_internal_error(tmp_path):
