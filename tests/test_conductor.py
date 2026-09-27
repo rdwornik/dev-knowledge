@@ -496,8 +496,50 @@ def test_the_workflow_carries_the_four_triggers_section_4_names(workflow):
     # LANE-5B3-8, O3 first step: `worktree-*` widens the push trigger so a pushed lane branch
     # runs this workflow on its own, not only via a manual `workflow_dispatch`. `main` stays
     # first in the list -- the integrator's run is still the one the ruleset can ever gate.
-    assert triggers["push"]["branches"] == ["main", "worktree-*"]
+    # LANE-5B4-3 (L1, D1): widened again to `worktree-**` (matches nested worktree-slug refs
+    # too, and the integrator's own `worktree-integrate-...` branches -- same prefix, same
+    # glob, no separate pattern needed) and `epic/**`, per the proposal's D1 trigger list.
+    assert triggers["push"]["branches"] == ["main", "worktree-**", "epic/**"]
     assert triggers["schedule"], "a schedule leg is what makes the runner more than a push-reactor"
+
+
+def test_the_pytest_job_runs_both_OSes_with_fail_fast_off(workflow):
+    # D1: "strategy.matrix.os: [ubuntu-latest, windows-latest], fail-fast: false" -- fail-fast
+    # off so one OS's red does not cancel the other leg's run before its duration is known.
+    strategy = workflow["jobs"]["pytest"]["strategy"]
+    assert strategy["matrix"]["os"] == ["ubuntu-latest", "windows-latest"]
+    assert strategy["fail-fast"] is False
+    assert workflow["jobs"]["pytest"]["runs-on"] == "${{ matrix.os }}"
+
+
+def test_the_pytest_job_defaults_every_run_step_to_bash(workflow):
+    # D1: "shell: bash on both" -- the run: steps below are POSIX shell (set +e, PIPESTATUS,
+    # $GITHUB_OUTPUT redirects); windows-latest's own default shell is pwsh, which would not
+    # parse them. A job-level default, not a per-step override, so a future step inherits it.
+    assert workflow["jobs"]["pytest"]["defaults"]["run"]["shell"] == "bash"
+
+
+def test_the_pytest_job_seeds_a_local_main_ref_before_the_suite_runs(workflow):
+    # D1 / K2's "main does not resolve" clone artefact: a checkout of a non-main ref, even at
+    # fetch-depth 0, creates no LOCAL `refs/heads/main` -- only `origin/main` -- and
+    # `provision_legs.ref_resolves` (and the tests that lean on it) look up `refs/heads/main`
+    # specifically, never the bare name or the remote-tracking ref. The fix runs before pytest.
+    steps = workflow["jobs"]["pytest"]["steps"]
+    checkout_idx = next(i for i, s in enumerate(steps) if s.get("uses", "").startswith("actions/checkout"))
+    main_ref_idx = next(i for i, s in enumerate(steps)
+                        if "refs/heads/main" in str(s.get("run", "")) and "git branch main" in str(s.get("run", "")))
+    run_idx = next(i for i, s in enumerate(steps) if s.get("id") == "run")
+    assert checkout_idx < main_ref_idx < run_idx, \
+        "the local main ref must be seeded after checkout and before pytest runs"
+
+
+def test_the_pytest_artifact_name_is_scoped_per_os(workflow):
+    # v4 upload-artifact refuses a duplicate name within one run; the matrix now runs this job
+    # twice per push, so the un-scoped `pytest-${{ github.sha }}` name from before the matrix
+    # would collide the moment both legs try to upload.
+    upload = next(s for s in workflow["jobs"]["pytest"]["steps"]
+                 if str(s.get("uses", "")).startswith("actions/upload-artifact"))
+    assert "matrix.os" in upload["with"]["name"]
 
 
 def test_ship_gate_is_a_job_and_is_advisory_only(workflow, ruleset):
