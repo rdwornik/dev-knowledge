@@ -391,3 +391,26 @@ def test_a_worktree_with_no_subagents_directory_reads_exactly_as_before(tmp_path
     by_role = ra.ran_models_by_role(tree, sessions_root=store)
     assert by_role["subagent"] == {}
     assert by_role["main"] == {"claude-opus-5": 1}
+
+
+def test_a_turn_replayed_across_main_and_subagent_is_counted_once(tmp_path):
+    """Codex review, `lane-subagent-cost`: a record identity (`message.id`, falling back to
+    the row's own `uuid`) that somehow appears under BOTH roles must still be counted once --
+    the same guarantee `lane_cost`'s cross-role de-duplication gives, now proven here. Without
+    a shared `seen` set, this could inflate a model's tally enough to flip the dominant
+    `ran_model` and turn a real agreement into a false divergence."""
+    store, tree = tmp_path / "store", tmp_path / "tree"
+    d = _seed(store, tree, ["claude-opus-5"] * 3)
+    sub = d / "session" / "subagents"
+    sub.mkdir(parents=True, exist_ok=True)
+    replayed = json.dumps({"type": "assistant", "uuid": "replayed-1",
+                           "message": {"id": "msg-replayed-1", "model": "claude-haiku-4-5"}})
+    (d / "session.jsonl").write_text(
+        (d / "session.jsonl").read_text(encoding="utf-8") + replayed + "\n",
+        encoding="utf-8", newline="\n")
+    (sub / "agent-z.jsonl").write_text(replayed + "\n", encoding="utf-8", newline="\n")
+
+    by_role = ra.ran_models_by_role(tree, sessions_root=store)
+    assert by_role["main"] == {"claude-opus-5": 3, "claude-haiku-4-5": 1}
+    assert by_role["subagent"] == {}, "the replayed turn was counted again under its own role"
+    assert ra.ran_models(tree, sessions_root=store) == {"claude-opus-5": 3, "claude-haiku-4-5": 1}

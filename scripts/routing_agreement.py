@@ -344,7 +344,7 @@ def transcript_paths(worktree, sessions_root=None) -> list[Path]:
     return by_role["main"] + by_role["subagent"]
 
 
-def _tally_transcripts(paths: list[Path]) -> dict[str, int]:
+def _tally_transcripts(paths: list[Path], seen: Optional[set[str]] = None) -> dict[str, int]:
     """`{model id: assistant messages}` over a flat list of transcript files.
 
     AN UNPARSEABLE LINE IS SKIPPED, NOT FATAL, and that is a measurement rather than leniency: a
@@ -352,7 +352,17 @@ def _tally_transcripts(paths: list[Path]) -> dict[str, int]:
     object. Refusing the file on one would make every reading of a running lane report nothing --
     an absence manufactured by the instrument, which is the failure this organ exists to avoid on
     the other side.
+
+    `seen` DE-DUPLICATES ON THE TURN'S OWN IDENTITY (`message.id`, falling back to the record's
+    own `uuid`; the same fallback `lane_cost.read_transcript_usage` uses), across every path this
+    call is given -- so a caller summing main AND subagent paths in one tally must pass ONE set
+    across both, not one per role. Codex review, `lane-subagent-cost`: without this, a turn
+    replayed across a resumed session's files -- now doubled in reach by the subagent glob --
+    counted twice and could flip the dominant `ran_model`. A record with no id at all (every
+    synthetic fixture in this suite) is never deduplicated away; only a REPEATED identity is.
     """
+    if seen is None:
+        seen = set()
     tally: dict[str, int] = {}
     for path in paths:
         try:
@@ -369,9 +379,17 @@ def _tally_transcripts(paths: list[Path]) -> dict[str, int]:
             if not isinstance(row, dict) or row.get("type") != "assistant":
                 continue
             message = row.get("message")
-            model = message.get("model") if isinstance(message, dict) else None
-            if isinstance(model, str) and model:
-                tally[model] = tally.get(model, 0) + 1
+            if not isinstance(message, dict):
+                continue
+            model = message.get("model")
+            if not (isinstance(model, str) and model):
+                continue
+            key = str(message.get("id") or row.get("uuid") or "")
+            if key:
+                if key in seen:
+                    continue
+                seen.add(key)
+            tally[model] = tally.get(model, 0) + 1
     return tally
 
 
@@ -384,9 +402,15 @@ def ran_models(worktree, sessions_root=None) -> dict[str, int]:
 def ran_models_by_role(worktree, sessions_root=None) -> dict[str, dict[str, int]]:
     """`{"main": {model: count}, "subagent": {model: count}}` -- the CLASSIFIED reading
     `ran_models` sums together. A lane whose main thread and subagents ran different model
-    families is a distinguishable fact, not one blended tally."""
+    families is a distinguishable fact, not one blended tally.
+
+    ONE `seen` SET ACROSS BOTH ROLES, matching `ran_models`'s own flattened read and
+    `lane_cost.lane_usage_by_role`'s cross-role de-duplication: a turn's identity does not
+    depend on which directory it was filed under.
+    """
+    seen: set[str] = set()
     by_role = transcript_paths_by_role(worktree, sessions_root)
-    return {role: _tally_transcripts(paths) for role, paths in by_role.items()}
+    return {role: _tally_transcripts(paths, seen) for role, paths in by_role.items()}
 
 
 def ran_model(worktree, sessions_root=None) -> Optional[str]:
