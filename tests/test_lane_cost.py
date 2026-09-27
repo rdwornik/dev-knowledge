@@ -700,6 +700,91 @@ def test_an_absurd_single_line_is_WARNED_and_skipped_not_silently_dropped(tmp_pa
         "indistinguishable from no spend")
 
 
+# --- SUBAGENT ATTRIBUTION, RED-first (`lane-subagent-cost`, `[#Context 5]`) ----------------
+#
+# Before this lane, `lane_usage` globbed only `directory.glob("*.jsonl")` -- each session's OWN
+# top-level transcript -- and never that session's sibling `<id>/subagents/*.jsonl` (measured on
+# this host: a session `<id>.jsonl` FILE has a same-stem sibling DIRECTORY holding its Task-tool
+# children), so a subagent's tokens and model were invisible to the lane's cost. One real batch
+# (the decision run behind this lane) spent about 0.96M subagent tokens that no lane cost row
+# could see.
+
+_FIXTURES_ROOT = pathlib.Path(__file__).resolve().parent / "fixtures"
+
+
+def test_a_checked_in_subagent_fixture_is_counted_and_classified_main_subagent():
+    """Done-contract item 1, from the checked-in synthetic fixture
+    `tests/fixtures/subagent_session/` (`main.jsonl` plus its sibling
+    `main/subagents/agent-<id>.jsonl`): its tokens and model are counted, AND classified
+    main/subagent rather than blended.
+    """
+    by_role = lc.lane_usage_by_role("subagent-session", sessions_root=_FIXTURES_ROOT,
+                                    slug_dirs=["subagent_session"])
+    assert by_role["main"]["claude-opus-5"].input_tokens == 100
+    assert by_role["main"]["claude-opus-5"].output_tokens == 10
+    assert by_role["subagent"]["claude-haiku-4-5-20251001"].input_tokens == 50
+    assert by_role["subagent"]["claude-haiku-4-5-20251001"].output_tokens == 5
+    # never blended into the wrong role
+    assert "claude-haiku-4-5-20251001" not in by_role["main"]
+    assert "claude-opus-5" not in by_role["subagent"]
+
+    total = lc.lane_usage("subagent-session", sessions_root=_FIXTURES_ROOT,
+                          slug_dirs=["subagent_session"])
+    assert total["claude-opus-5"].input_tokens == 100
+    assert total["claude-haiku-4-5-20251001"].input_tokens == 50
+
+
+def test_a_subagent_transcript_is_priced_into_the_lane_total(tmp_path):
+    """THE BUG THIS LANE FIXES, in money: before this lane a subagent's tokens were priced at
+    nothing because they were never read at all -- a different failure from the UNPRICED case
+    above (that one is read and refused; this one was never seen)."""
+    sessions = tmp_path / "sessions"
+    _transcript(sessions / "proj--lane-a", "a.jsonl",
+                [_turn("priced-model", uuid="u1", input_tokens=1_000_000)])
+    _transcript(sessions / "proj--lane-a" / "a" / "subagents", "agent-fixture01.jsonl",
+                [_turn("priced-model", uuid="u2", input_tokens=1_000_000)])
+    cost = lc.lane_cost("lane-a", batch="Y", sessions_root=sessions,
+                        registry_path=_registry(tmp_path))
+    assert cost.usd == pytest.approx(10.0), "the subagent's tokens were not priced into the total"
+
+
+def test_lane_usage_by_role_keeps_main_and_subagent_tallies_separate(tmp_path):
+    sessions = tmp_path / "sessions"
+    _transcript(sessions / "proj--lane-a", "a.jsonl",
+                [_turn("priced-model", uuid="u1", input_tokens=10)])
+    _transcript(sessions / "proj--lane-a" / "a" / "subagents", "agent-x.jsonl",
+                [_turn("priced-model", uuid="u2", input_tokens=20)])
+    by_role = lc.lane_usage_by_role("lane-a", sessions_root=sessions)
+    assert by_role["main"]["priced-model"].input_tokens == 10
+    assert by_role["subagent"]["priced-model"].input_tokens == 20
+    assert lc.lane_usage("lane-a", sessions_root=sessions)["priced-model"].input_tokens == 30
+
+
+def test_a_repeated_message_id_is_counted_once_across_main_and_subagent(tmp_path):
+    """De-duplication is keyed on the TURN, not on which directory it was filed under -- a
+    turn that somehow appears under both roles must still be counted once, the same guarantee
+    `test_a_repeated_message_id_is_counted_once` already gives within one role."""
+    sessions = tmp_path / "sessions"
+    _transcript(sessions / "proj--lane-a", "a.jsonl",
+                [_turn("priced-model", uuid="u1", input_tokens=100)])
+    _transcript(sessions / "proj--lane-a" / "a" / "subagents", "agent-x.jsonl",
+                [_turn("priced-model", uuid="u1", input_tokens=100)])
+    per_model = lc.lane_usage("lane-a", sessions_root=sessions)
+    assert per_model["priced-model"].input_tokens == 100
+    assert per_model["priced-model"].calls == 1
+
+
+def test_a_lane_with_no_subagents_directory_reads_exactly_as_before(tmp_path):
+    """A lane that never spawned a subagent must not gain a phantom `subagent` role bucket
+    with content, and its `main` total must be unchanged by this lane's diff."""
+    sessions = tmp_path / "sessions"
+    _transcript(sessions / "proj--lane-a", "a.jsonl",
+                [_turn("priced-model", uuid="u1", input_tokens=10)])
+    by_role = lc.lane_usage_by_role("lane-a", sessions_root=sessions)
+    assert by_role["subagent"] == {}
+    assert by_role["main"]["priced-model"].input_tokens == 10
+
+
 def test_the_line_bound_clears_the_largest_line_this_repo_has_ever_written():
     """The bound is DERIVED, with headroom, from the measured corpus rather than picked.
 
