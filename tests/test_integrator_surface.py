@@ -630,6 +630,15 @@ def _run_walk(tmp: Path, fail_on: str) -> list[str]:
     return log.read_text(encoding="utf-8").splitlines() if log.exists() else []
 
 
+#: `_run_walk` stubs `git` and `uv` onto PATH but not `claude`: the real block it runs
+#: (`.claude/commands/lane-integrate.md`) reaches a genuine `claude` invocation that has no
+#: CLI on a CI runner's PATH. On the operator's own machine `claude` IS on PATH, so this is
+#: a host read, not a code defect (T2: "claude not on PATH"; confirmed Linux-only via CI
+#: run 36314839016 -- FAILED on ubuntu-latest, absent from windows-latest).
+_operator_host = pytest.mark.operator_host
+
+
+@_operator_host
 def test_the_walk_reaches_push_when_every_verification_passes(tmp_path):
     """POSITIVE CONTROL: without it the refusals below would pass on a block that never runs."""
     calls = _run_walk(tmp_path, fail_on="")
@@ -637,6 +646,7 @@ def test_the_walk_reaches_push_when_every_verification_passes(tmp_path):
     assert any("moment:teardown" in c for c in calls), calls
 
 
+@_operator_host
 @pytest.mark.parametrize("failing", ["moment:merge", "race"])
 def test_a_refused_verification_never_reaches_push_or_teardown(tmp_path, failing):
     calls = _run_walk(tmp_path, fail_on=failing)
@@ -646,6 +656,7 @@ def test_a_refused_verification_never_reaches_push_or_teardown(tmp_path, failing
 
 # --- R-W4-4: the chain order, asserted from the command file's OWN text --------------------------
 
+@_operator_host
 def test_the_walk_closes_the_receipt_and_commits_the_ledger_before_moment_teardown(tmp_path):
     """The connection test's first recorded stop, pinned: under the OLD order `close` ran after
     `moment:teardown` and `no_leftovers` FAILED on the untracked scratch file. The real block must
@@ -672,6 +683,7 @@ def test_the_command_file_text_orders_open_before_the_merge_moment():
     assert text.index("merge_receipt.py open") < text.index("moment:merge")
 
 
+@_operator_host
 @pytest.mark.parametrize("failing", ["actions", "close"])
 def test_a_refusal_after_the_push_never_reaches_teardown(tmp_path, failing):
     """A failure that lands AFTER the push (unlike the `moment:merge`/`race` case above, which

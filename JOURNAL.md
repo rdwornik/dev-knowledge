@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-09-27 (e) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): tests that read the operator's host are marked `operator_host` and registered, and the nested memory-gate deadlock is gone
+
+**Anchors:** `710a0334`, `6fade62f` -- `worktree-lane-host-witness` (ordered and served `claude-sonnet-5`), first handback, stacked `--no-ff` on (d) in a second integration worktree.
+
+**Did:** `tests/conftest.py` (new) registers the `operator_host` marker and an explicit id list, and reports at collection a registered test that is unmarked or a marked test that is unregistered; three `pytester` witnesses pin both directions plus a quiet positive control. The six `tests/test_integrator_surface.py` walk tests that need a real `claude` on PATH -- the only operator-host reds that still reproduce on main's ubuntu leg -- are marked. `test_many_workers_lose_no_result` disables its own nested memory gate, so it no longer waits on the outer one (about 40 minutes before; 15 s now). Rows 1101-1103 filed under ruling (h).
+
+**Result:** proposal row L3 lands: the host-witness class is explicit and drift-checked, and the deadlock no longer holds a leg. CI still runs the marked tests until `conductor.yml` deselects the marker (`[#1103]`).
+
+**Changes:** `tests/conftest.py`, `tests/test_test_pairing.py`, `tests/test_integrator_surface.py`, `tasks/1101-*`, `tasks/1102-*`, `tasks/1103-*`, one Codex audit; regenerated `BACKLOG.md`, `tasks/manifest.json`, `docs/audits/README.md`, `ecosystem/doc-counts.md`.
+
+**Next:** `[#1101]` the registry's environment-mismatch members (one, `test_A_LANES_BASE_EQUALS_MAIN_HEAD_AT_DISPATCH`, still reds intermittently); `[#1103]` deselect `operator_host` in CI.
+
 ### 2026-09-27 (d) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): a lane's cost and its ordered-vs-ran model check include its Task-tool subagents
 
 **Anchors:** `f9926cb4`, `442b026e`, `2bcd2f9d`, `0ad891f1` -- `worktree-lane-subagent-cost` (ordered and served `claude-sonnet-5`), first handback, re-admitted by operator word after its dependency failed; merged `--no-ff` from an integration worktree on origin/main `316d3205`.
