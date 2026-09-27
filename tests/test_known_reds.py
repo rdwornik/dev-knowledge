@@ -438,6 +438,88 @@ def test_compare_a_member_with_no_recorded_signature_is_never_flagged_as_changed
     assert result["signature_changed"] == []
 
 
+# --- normalize_signature (repair 1, REFUSED-lane-known-reds-signatures.md, 2026-09-27) -----
+#
+# The new Windows overlay's first live run turned three UNCHANGED failures into regressions
+# because their captured signature embedded a run-volatile token (a random generated-name
+# suffix, a pair of commit shas plus an absolute runner path, and a list literal that grows as
+# audits land). RED-first witness (verbatim from the refusal): two reasons differing only in a
+# sha / random suffix / path compare EQUAL, and a genuinely different assertion still compares
+# CHANGED.
+
+def test_normalize_signature_masks_a_random_generated_name_suffix(kr):
+    """The real regression: `lane-zz-occupancy-witness-<n>`'s random suffix differs on every
+    run (registry: 3684; the refused CI run: 6332) although the failure itself is identical."""
+    a = ("AssertionError: assert ('lane-zz-occupancy-witness-3684' in "
+        "'ERROR `claude` is not on PATH -- the live-session leg cannot be read')")
+    b = ("AssertionError: assert ('lane-zz-occupancy-witness-6332' in "
+        "'ERROR `claude` is not on PATH -- the live-session leg cannot be read')")
+    assert kr.normalize_signature(a) == kr.normalize_signature(b)
+
+
+def test_normalize_signature_masks_shas_and_an_absolute_path(kr):
+    """The second real regression: two different commit shas and an absolute Windows runner
+    path, same otherwise-identical wording."""
+    a = ("AssertionError: worktree.baseRef='head' resolves the base to dev-knowledge:HEAD "
+        "(the dispatching checkout) at 4ad29e44, but main HEAD is 1a0dc573 -- the dispatching "
+        "checkout D:\\a\\dev-knowledge\\dev-knowledge is not on main HEAD, so `head` seeds "
+        "lanes from wherever it is sitting")
+    b = ("AssertionError: worktree.baseRef='head' resolves the base to dev-knowledge:HEAD "
+        "(the dispatching checkout) at 0dcef85d, but main HEAD is 316d3205 -- the dispatching "
+        "checkout D:\\a\\dev-knowledge\\dev-knowledge is not on main HEAD, so `head` seeds "
+        "lanes from wherever it is sitting")
+    assert kr.normalize_signature(a) == kr.normalize_signature(b)
+
+
+def test_normalize_signature_masks_a_growing_list_body(kr):
+    """The third real regression: a list of file names that grows as audits land -- the intro
+    sentence is stable, only the bracketed census differs in length and content."""
+    a = ("AssertionError: the committed baseline must produce a clean verdict on the tree it "
+        "was measured from: [('warn', 'a.md carries no disposition'), "
+        "('warn', 'b.md carries no disposition')]")
+    b = ("AssertionError: the committed baseline must produce a clean verdict on the tree it "
+        "was measured from: [('warn', 'a.md carries no disposition'), "
+        "('warn', 'b.md carries no disposition'), "
+        "('warn', 'c.md carries no disposition')]")
+    assert kr.normalize_signature(a) == kr.normalize_signature(b)
+
+
+def test_normalize_signature_still_distinguishes_a_genuinely_different_assertion(kr):
+    """The other half of the RED-first witness: masking is narrow -- an ordinary number in an
+    assertion (not part of a hyphenated generated name) is never touched, so a real behavior
+    change (22 == 21 becoming 23 == 21) still normalizes to a DIFFERENT string."""
+    assert kr.normalize_signature("AssertionError: assert 22 == 21") != \
+        kr.normalize_signature("AssertionError: assert 23 == 21")
+    assert kr.normalize_signature("AssertionError: original shape") != \
+        kr.normalize_signature("TypeError: a completely different cause")
+
+
+def test_compare_two_reasons_differing_only_by_a_random_suffix_compare_equal(kr):
+    """`compare` itself, not just the helper: a registered signature with the OLD random
+    suffix and a current run with a NEW one is pre-existing, not a regression."""
+    registry = _registry(kr, {"tests/a.py::t1": {
+        "attribution": "pre-freeze",
+        "signature": "AssertionError: assert ('witness-3684' in 'X')"}})
+    result = kr.compare(frozenset({"tests/a.py::t1"}), registry, workers=4,
+                        signatures={"tests/a.py::t1":
+                                   "AssertionError: assert ('witness-9999' in 'X')"})
+    assert result["verdict"] == "pass"
+    assert result["signature_changed"] == []
+    assert result["pre_existing"] == ["tests/a.py::t1"]
+
+
+def test_refresh_stores_a_normalized_signature(kr):
+    """`refresh` normalizes BEFORE storing, so a freshly-captured registry never re-embeds the
+    volatile token in the first place."""
+    registry, _ = kr.refresh(
+        failed=frozenset({"tests/a.py::t1"}), workers=4, commit="new", measured_via="local",
+        date="2026-09-27",
+        attribution={"tests/a.py::t1": {"attribution": "pre-freeze"}}, previous=None,
+        signatures={"tests/a.py::t1": "AssertionError: assert ('witness-3684' in 'X')"})
+    assert registry.members["tests/a.py::t1"]["signature"] == \
+        "AssertionError: assert ('witness-<N>' in 'X')"
+
+
 # --- compare-hook (lane-ci-signal, [#802]: the non-pytest sibling of `compare`) -------------
 
 def _registry_with_hooks(kr, hooks):

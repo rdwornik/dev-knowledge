@@ -30,14 +30,18 @@ WHAT THIS MODULE ADDS, on top of `logs/SUITE-BASELINE-FREEZE.md`'s node-id-membe
      `.github/workflows/conductor.yml` edit, owned by another lane this batch; `refresh`
      defaults to `None`, i.e. the shared/legacy set, so the merge-moment caller in
      `ecosystem/harness.yaml`, which never passes `--os`, is untouched). Every member may also
-     carry a `signature` (the exception type + first failing assertion line, read verbatim
-     from pytest's own `FAILED <id> - <reason>` short-summary line): once a member has a
-     recorded signature, `compare` treats a DIFFERENT current signature on the same node id as
-     a regression, not a pass-through -- the "a registered test that fails worse still passes"
-     defect (C1 above) closed at the signature level, not just the node-id level. An
-     **unattributed** known member is likewise a `compare`-time regression, never a silent
-     pass: `[#965]`'s "one registry" becomes one registry that can still refuse to vouch for a
-     member it cannot explain.
+     carry a `signature` (the exception type + first failing assertion line, read from
+     pytest's own `FAILED <id> - <reason>` short-summary line and then run through
+     `normalize_signature` -- repair 1, REFUSED-lane-known-reds-signatures.md, 2026-09-27 --
+     which masks run-volatile tokens: a fresh commit sha, a random generated-name suffix, an
+     absolute runner path, a list literal that grows on its own): once a member has a
+     recorded signature, `compare` treats a DIFFERENT current (also normalized) signature on
+     the same node id as a regression, not a pass-through -- the "a registered test that fails
+     worse still passes" defect (C1 above) closed at the signature level, not just the node-id
+     level, without a run-to-run noise change alone counting as "worse". An **unattributed**
+     known member is likewise a `compare`-time regression, never a silent pass: `[#965]`'s "one
+     registry" becomes one registry that can still refuse to vouch for a member it cannot
+     explain.
 
 THE REGISTRY IS COMMITTED, THE BATCH REGISTRY IS NOT. `scripts/test_pairing.py`'s
 `TEST-PAIRING-REGISTRY-<BATCH>.json` is gitignored and per-batch by design (recording it twice
@@ -256,14 +260,14 @@ def refresh(*, failed: frozenset, workers: int, commit: str, measured_via: str, 
                 # it and establish this OS's own fingerprint from the current run instead.
                 entry.pop("signature", None)
                 if node_id in signatures:
-                    entry["signature"] = signatures[node_id]
+                    entry["signature"] = normalize_signature(signatures[node_id])
             elif "signature" not in entry and node_id in signatures:
-                entry["signature"] = signatures[node_id]
+                entry["signature"] = normalize_signature(signatures[node_id])
             members[node_id] = entry
         elif node_id in attribution:
             entry = dict(attribution[node_id])
             if "signature" not in entry and node_id in signatures:
-                entry["signature"] = signatures[node_id]
+                entry["signature"] = normalize_signature(signatures[node_id])
             members[node_id] = entry
         else:
             missing.append(node_id)
@@ -353,7 +357,8 @@ def compare(failed: frozenset, registry: Registry, *, workers: int,
             continue
         registered_sig = entry.get("signature")
         current_sig = signatures.get(node_id)
-        if registered_sig and current_sig and registered_sig != current_sig:
+        if (registered_sig and current_sig
+                and normalize_signature(registered_sig) != normalize_signature(current_sig)):
             signature_changed.append(node_id)
             regressions.append(node_id)
             continue
@@ -391,6 +396,38 @@ def extract_failure_signatures(pytest_output: str) -> dict:
         if m and m.group(2):
             signatures[m.group(1).strip()] = m.group(2).strip()
     return signatures
+
+
+#: Repair 1 (REFUSED-lane-known-reds-signatures.md, 2026-09-27): the raw short-summary reason
+#: text above is verbatim, so it also carries whatever is run-volatile about the failure --
+#: a freshly captured commit sha, a random generated-name suffix (`lane-zz-occupancy-witness-
+#: <n>`), an absolute runner path (`D:\a\<repo>\<repo>`, `/home/runner/work/...`), or a list
+#: literal that grows independently of the failure itself (a "carries no disposition" census).
+#: Comparing that text verbatim turns an UNCHANGED failure into a "changed signature"
+#: regression on every single run -- `compare`'s own point is to catch a test that fails
+#: WORSE, not one that fails identically with different noise. Each pattern below names one
+#: narrow, run-volatile token class; everything else -- the exception type, the stable wording
+#: of the assertion, ordinary numbers that are not part of a generated name -- is left alone,
+#: so a genuinely different assertion still normalizes to a different string.
+_WIN_ABS_PATH_RE = re.compile(r"[A-Za-z]:\\[^\s,'\")]+")
+_POSIX_ABS_PATH_RE = re.compile(r"(?<![\w.])/(?:[\w.\-]+/)+[\w.\-]*")
+_LIST_BODY_RE = re.compile(r"\[[^\[\]]*\]")
+_HEX_SHA_RE = re.compile(r"\b[0-9a-f]{7,40}\b")
+_GENERATED_NAME_SUFFIX_RE = re.compile(r"(?<=[A-Za-z])-\d+\b")
+
+
+def normalize_signature(text: str) -> str:
+    """Mask run-volatile tokens in a captured failure signature. Called on both sides before
+    a signature is STORED (`refresh`) and before two signatures are COMPARED (`compare`), so
+    two reasons differing only by a sha / a random generated-name suffix / an absolute path /
+    a growing list body compare EQUAL, while a genuinely different assertion still compares
+    CHANGED."""
+    text = _WIN_ABS_PATH_RE.sub("<PATH>", text)
+    text = _POSIX_ABS_PATH_RE.sub("<PATH>", text)
+    text = _LIST_BODY_RE.sub("[<LIST>]", text)
+    text = _HEX_SHA_RE.sub("<SHA>", text)
+    text = _GENERATED_NAME_SUFFIX_RE.sub("-<N>", text)
+    return text
 
 
 def default_os_key() -> str:
