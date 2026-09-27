@@ -15,7 +15,6 @@ import re
 from pathlib import Path
 
 import pytest
-import yaml
 
 import handoff_state as hs
 import gen_handoff as gh
@@ -245,3 +244,76 @@ def test_bd_manifest_passes_on_a_fresh_bundle_then_fails_on_one_byte_change(tmp_
     results2 = vhp.verify_boot(bundle_dir, repo)
     manifest_result2 = next(r for r in results2 if r.probe_id == "BD-manifest")
     assert manifest_result2.status == "fail", "a one-byte change anywhere must fail BD-manifest"
+
+
+def test_bd_manifest_fails_on_a_file_added_after_the_cut(tmp_path, monkeypatch):
+    # Codex review, lane-handoff-min: a per-listed-file hash check alone never notices a file
+    # ADDED after the cut (every listed hash is still intact) -- BD-manifest must cross-check
+    # the bundle's actual file set against the manifest's listed set too.
+    t = _transport(tmp_path)
+    repo, bundle_dir = _build_bundle(tmp_path, t, monkeypatch)
+    (bundle_dir / "UNLISTED.md").write_text("not in the manifest\n", encoding="utf-8")
+    results = vhp.verify_boot(bundle_dir, repo)
+    manifest_result = next(r for r in results if r.probe_id == "BD-manifest")
+    assert manifest_result.status == "fail", manifest_result.detail
+    assert "UNLISTED.md" in manifest_result.detail
+
+
+# --- Done-when 3: publish_bundle / verify_published -----------------------------------------
+
+def test_publish_bundle_then_verify_published_is_clean_on_a_faithful_copy(tmp_path, monkeypatch):
+    t = _transport(tmp_path)
+    repo, bundle_dir = _build_bundle(tmp_path, t, monkeypatch)
+    dest = tmp_path / "scratch-transport"
+    published = gh.publish_bundle(bundle_dir, dest)
+    assert published["files"], "publish_bundle published nothing"
+    for rel in published["files"]:
+        assert (dest / rel).is_file()
+    assert gh.verify_published(bundle_dir, dest) == []
+
+
+def test_verify_published_flags_a_tampered_copy_only(tmp_path, monkeypatch):
+    t = _transport(tmp_path)
+    repo, bundle_dir = _build_bundle(tmp_path, t, monkeypatch)
+    dest = tmp_path / "scratch-transport"
+    published = gh.publish_bundle(bundle_dir, dest)
+    victim = next(rel for rel in published["files"] if rel.endswith("RESIDUAL.md"))
+    (dest / victim).write_text("tampered\n", encoding="utf-8")
+    mismatches = gh.verify_published(bundle_dir, dest)
+    assert mismatches == [victim]
+
+
+def test_verify_published_fails_closed_when_the_receipt_has_no_manifest(tmp_path):
+    # Codex review, lane-handoff-min: an EMPTY/absent manifest must not read as "nothing to
+    # mismatch" -- that is indistinguishable from a genuinely clean publish to a caller.
+    bundle_dir = tmp_path / "bundle"
+    bundle_dir.mkdir()
+    (bundle_dir / vhp.RECEIPT_FILE).write_text(json.dumps({}), encoding="utf-8")
+    with pytest.raises(ValueError, match="no manifest"):
+        gh.verify_published(bundle_dir, tmp_path / "dest")
+
+
+def test_publish_bundle_refuses_a_manifest_key_that_escapes_the_bundle(tmp_path, monkeypatch):
+    # Codex review, lane-handoff-min CRITICAL: a manifest key travels inside a JSON receipt --
+    # a tampered receipt naming `../../evil.txt` must never let publish_bundle write outside
+    # bundle_dir/dest_dir.
+    t = _transport(tmp_path)
+    repo, bundle_dir = _build_bundle(tmp_path, t, monkeypatch)
+    receipt_path = bundle_dir / vhp.RECEIPT_FILE
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    receipt["manifest"]["files"] = {"../../evil.txt": "0" * 64}
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+    with pytest.raises(gh.ManifestPathError, match="evil.txt"):
+        gh.publish_bundle(bundle_dir, tmp_path / "scratch-transport")
+    assert not (tmp_path.parent / "evil.txt").exists()
+
+
+def test_verify_published_refuses_a_manifest_key_that_escapes_the_dest(tmp_path, monkeypatch):
+    t = _transport(tmp_path)
+    repo, bundle_dir = _build_bundle(tmp_path, t, monkeypatch)
+    receipt_path = bundle_dir / vhp.RECEIPT_FILE
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    receipt["manifest"]["files"] = {"../../evil.txt": "0" * 64}
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+    with pytest.raises(gh.ManifestPathError, match="evil.txt"):
+        gh.verify_published(bundle_dir, tmp_path / "scratch-transport")

@@ -1373,15 +1373,30 @@ def _rule_bd_manifest(bundle_path: Path) -> ProbeResult:
     if not isinstance(files, dict) or not files:
         return ProbeResult("BD-manifest", "fail", "the receipt carries no manifest.files to "
                            "verify against", name)
+    bundle_resolved = bundle_path.resolve()
     mismatches = []
     for rel, want in sorted(files.items()):
-        p = bundle_path / rel
+        if Path(rel).is_absolute():
+            mismatches.append(f"{rel} (absolute path)")
+            continue
+        p = (bundle_path / rel).resolve()
+        if p != bundle_resolved and bundle_resolved not in p.parents:
+            mismatches.append(f"{rel} (escapes bundle)")
+            continue
         if not p.is_file():
             mismatches.append(f"{rel} (missing)")
             continue
         got = hashlib.sha256(p.read_bytes()).hexdigest()
         if got != want:
             mismatches.append(f"{rel} (sha mismatch)")
+    # A per-listed-file hash can never catch a file ADDED after the cut or a manifest entry
+    # STRIPPED by a tamper -- both leave every listed hash intact. Cross-check the listed set
+    # against the bundle's actual file set too (mirrors `gen_handoff._bundle_file_shas`'s own
+    # RECEIPT_FILE exclusion) so an unlisted file fails the same way a mismatched one does
+    # (Codex review, lane-handoff-min Part A).
+    actual = {p.relative_to(bundle_path).as_posix() for p in sorted(bundle_path.rglob("*"))
+              if p.is_file() and p.name != RECEIPT_FILE}
+    mismatches.extend(f"{rel} (unlisted in manifest)" for rel in sorted(actual - set(files)))
     if mismatches:
         return ProbeResult("BD-manifest", "fail",
                            (f"{len(mismatches)} file(s) differ from the generation manifest: "
