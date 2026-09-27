@@ -98,7 +98,7 @@ never hold:
      privacy gating; ... that posture belongs to the caller"): with exactly one wired caller
      today (`provider_router.record_routing_call`, which passes no `events`) and zero callers
      that populate `events`, a guarantee conditional on every future caller's own care is no
-     guarantee. See `_check_no_content_capture_events` and `_redact_string` below for the two
+     guarantee. See `_check_events_are_permitted` and `_redact_string` below for the two
      mechanisms, and `tests/test_telemetry_redaction.py` for the RED-first proof of both.
 
 Returns the new row id (`int`) when the resolved collector durably stores the span (the default,
@@ -207,12 +207,14 @@ CALL_OUTCOMES: frozenset[str] = frozenset({"passed", "failed", "unknown"})
 #: `genai_spans` -- one row per model-call span. `attributes_json` carries the full
 #: OTel-GenAI-shaped attribute dict (the `gen_ai.*` + `devknowledge.*` mapping from B-1 table 1);
 #: the handful of denormalized columns exist only so a reader does not have to parse JSON to
-#: filter by system/model/run. `events_json` carries whatever non-content-capture events a
-#: caller passes -- B-1 table 2's message-body events (`gen_ai.user.message`, `gen_ai.choice`,
-#: `gen_ai.system.message`) are REFUSED before a row is built (`_check_no_content_capture_events`,
-#: `LANE-5B4-15-runtime-data-home`), and every string value this module writes -- in `events` and
-#: in the two free-text attributes (`gen_ai.conversation.id`, `error.type`) -- is scrubbed for
-#: token- and foreign-path-shaped substrings (`_redact_string`) before serialization.
+#: filter by system/model/run. `events_json` carries only events whose name is on this store's
+#: (currently empty) permitted-events allowlist -- deny-by-default, so B-1 table 2's
+#: message-body events and everything else are REFUSED before a row is built
+#: (`_check_events_are_permitted`, `LANE-5B4-15-runtime-data-home`). Every string value this
+#: module writes is scrubbed for token- and foreign-path-shaped substrings (`_redact_string`)
+#: before serialization -- the free-text field (`error.type`) with the full scrub, the
+#: identifier fields (`gen_ai.conversation.id`, `devknowledge.run_id`) with the narrower one
+#: that never touches a legitimate UUID-/hash-shaped value.
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS genai_spans (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -430,60 +432,92 @@ def _check_reviewer_is_not_the_producer(
 # --- redaction (`LANE-5B4-15-runtime-data-home`, R17) ----------------------------------------
 # Two mechanisms for two different risks -- see the module docstring's "STORE'S HOME AND ITS
 # REDACTION POSTURE" section for the reasoning, and `tests/test_telemetry_redaction.py` for the
-# RED-first proof of each.
+# RED-first proof of each. Both legs were tightened after a Codex terra review of this lane's
+# first cut (`docs/audits/2026-09-27-codex-lane-runtime-data-home.md`, 3 Critical + 1 High) --
+# see each fix's own comment below for the finding it closes.
 
-#: B-1 table 2's message-body event names. Opt-in content capture the schema itself flags
-#: "redaction-sensitive", and this store REFUSES them rather than trusting a not-yet-written
-#: caller's own privacy gate -- the value this lane's done-contract states is that the store
-#: "holds no prompt text" categorically, not "holds redacted prompt text".
-_CONTENT_CAPTURE_EVENT_NAMES: frozenset[str] = frozenset(
-    {"gen_ai.system.message", "gen_ai.user.message", "gen_ai.choice"}
-)
+#: `events` NAMES THIS STORE ADMITS -- empty today, DENY-BY-DEFAULT. Codex terra CRITICAL:
+#: the original shape refused only B-1 table 2's three named message-body events and ACCEPTED
+#: everything else verbatim, which is trivially bypassed by ordinary prose under any other
+#: event name (prose matches neither the path nor the token regex, so nothing would have
+#: caught it). With zero wired callers populating `events` today, there is no legitimate name
+#: to admit yet -- refusing every event is not a stopgap, it is the only shape that makes
+#: "holds no prompt text" true regardless of what a caller passes. A future content-capture
+#: design that has actually reviewed its own gating adds its event name here, deliberately.
+_PERMITTED_EVENT_NAMES: frozenset[str] = frozenset()
 
-#: The two attributes this schema still carries that are FREE TEXT rather than a controlled
+#: The one attribute this schema carries that is FREE TEXT rather than a controlled
 #: identifier/enum/number -- every other attribute (`system`, `*.model`, `role`, `outcome`,
-#: `conversation.id` aside, `run_id`, ...) is a short structured token by construction, so
-#: scanning them risks nothing and gains nothing. `error.type` in particular is the one field
-#: a caller is likely to populate from a real exception's `str()`, which is exactly where a
-#: stray absolute path or an accidentally-embedded credential would leak in.
-_FREE_TEXT_ATTR_KEYS: frozenset[str] = frozenset({"gen_ai.conversation.id", "error.type"})
+#: `conversation.id`, `run_id`, ...) is a short structured IDENTIFIER by construction, so a
+#: blanket free-text scrub of any of them risks corrupting a legitimate correlation value for
+#: no real gain (see `_IDENTIFIER_ATTR_KEYS` below for the narrower scrub those still get).
+#: `error.type` is the one field a caller is likely to populate from a real exception's
+#: `str()`, which is exactly where a stray absolute path or an accidentally-embedded
+#: credential would leak in.
+_FREE_TEXT_ATTR_KEYS: frozenset[str] = frozenset({"error.type"})
+
+#: Identifier-shaped attributes: legitimately UUID-/hash-shaped values (a real
+#: `gen_ai.conversation.id`, a caller-supplied `run_id`) that must not be torn up by the
+#: generic hex-blob catch-all below, but that still deserve the NAMED-secret and path legs --
+#: a caller could still misuse an identifier field to smuggle a recognisably-shaped credential.
+#: See `_redact_string`'s `scan_generic_hex` parameter.
+_IDENTIFIER_ATTR_KEYS: frozenset[str] = frozenset({"gen_ai.conversation.id"})
 
 #: Foreign-path patterns. No typed field in this schema is ever meant to carry a filesystem
 #: path -- model ids, roles, outcomes and run ids are all short identifiers by design -- so a
 #: path-shaped substring appearing in one means content leaked in by accident (an exception
-#: message, a stray f-string), never a legitimate value to preserve.
+#: message, a stray f-string), never a legitimate value to preserve. Codex terra CRITICAL: the
+#: original POSIX/UNC coverage was an enumerated allowlist of top-level directory names
+#: (`/home`, `/Users`, ...) that missed ordinary absolute paths (`/workspaces/...`,
+#: `/srv/...`, `/data/...`) and every UNC share (`\\server\share\...`) outright. Both are now
+#: general shape matches -- any absolute path of two or more segments, not a fixed name list.
 _WINDOWS_PATH_RE = re.compile(r"[A-Za-z]:\\(?:[^\\/:*?\"<>|\r\n]+\\)*[^\\/:*?\"<>|\r\n]*")
-_POSIX_PATH_RE = re.compile(r"/(?:home|Users|root|etc|var|tmp|opt|mnt)/[^\s\"'<>]+")
+_UNC_PATH_RE = re.compile(r"\\\\[^\\\s\"'<>]+\\[^\\\s\"'<>]+(?:\\[^\\\s\"'<>]+)*")
+_POSIX_PATH_RE = re.compile(r"(?<![\w./])/[^\s\"'<>]+/[^\s\"'<>]*")
 
-#: Token/secret-shaped patterns: named vendor API-key prefixes, a bearer header, and a bare
-#: 32+-character hex run as a generic catch-all. THE ONE NAMED FALSE-POSITIVE, documented
-#: rather than silently accepted: a real `run_id` (`uuid.uuid4().hex`) is also 32 hex chars,
-#: which is why `devknowledge.run_id` is deliberately excluded from this scan below rather
-#: than routed through it -- see `test_a_real_run_id_survives_the_redaction_scan_unmarked`.
-_TOKEN_RE = re.compile(
+#: NAMED vendor API-key / bearer-header shapes -- unambiguous enough to apply everywhere,
+#: including to an identifier field, because no legitimate UUID or hash could accidentally
+#: match one of these prefixes.
+_NAMED_TOKEN_RE = re.compile(
     r"\b(?:sk-[A-Za-z0-9_-]{10,}|ghp_[A-Za-z0-9]{20,}|gho_[A-Za-z0-9]{20,}|"
     r"github_pat_[A-Za-z0-9_]{20,}|xox[baprs]-[A-Za-z0-9-]{10,}|AIza[A-Za-z0-9_-]{20,}|"
-    r"Bearer\s+[A-Za-z0-9._-]{10,}|[A-Fa-f0-9]{32,})\b"
+    r"Bearer\s+[A-Za-z0-9._-]{10,})\b"
 )
+
+#: A bare 32+-character hex run, as a generic catch-all -- but ONLY for genuinely free-text
+#: fields (`error.type`, an accepted event's own strings), never for an identifier field.
+#: Codex terra CRITICAL + HIGH: applying this to `gen_ai.conversation.id` (HIGH) and to a
+#: caller-supplied `run_id` (CRITICAL, since only the auto-generated id was exempted, not a
+#: caller-supplied one of the same shape) silently destroys real UUID-hex correlation values
+#: -- the exact defect `test_a_real_run_id_survives_the_redaction_scan_unmarked` was written
+#: to catch, and did not catch, because it only exercised the auto-generated path. Both fields
+#: now route through `_IDENTIFIER_ATTR_KEYS`/`run_id`'s own dedicated call with
+#: `scan_generic_hex=False` instead of being scrubbed as free text.
+_GENERIC_HEX_BLOB_RE = re.compile(r"\b[A-Fa-f0-9]{32,}\b")
 
 _PATH_REDACTION = "[REDACTED-PATH]"
 _TOKEN_REDACTION = "[REDACTED-TOKEN]"
 
 
-def _redact_string(value: str) -> str:
+def _redact_string(value: str, *, scan_generic_hex: bool = True) -> str:
     """Scrub path- and token-shaped substrings from one string, in place semantics (returns
     the scrubbed copy). Order matters: paths first, so a token pattern cannot partially
-    consume a path substring and leave a mangled remainder for the path regex to miss."""
+    consume a path substring and leave a mangled remainder for the path regex to miss.
+    `scan_generic_hex=False` (identifier fields) skips only the bare-hex-blob catch-all;
+    named vendor-token shapes and paths are still scrubbed everywhere."""
     value = _WINDOWS_PATH_RE.sub(_PATH_REDACTION, value)
+    value = _UNC_PATH_RE.sub(_PATH_REDACTION, value)
     value = _POSIX_PATH_RE.sub(_PATH_REDACTION, value)
-    value = _TOKEN_RE.sub(_TOKEN_REDACTION, value)
+    value = _NAMED_TOKEN_RE.sub(_TOKEN_REDACTION, value)
+    if scan_generic_hex:
+        value = _GENERIC_HEX_BLOB_RE.sub(_TOKEN_REDACTION, value)
     return value
 
 
 def _redact_json_value(value: Any) -> Any:
     """Recursively scrub every string leaf of a JSON-shaped value (dict/list/scalar) -- the
-    shape `events` payloads arrive in, once B-1's own three named message-body events have
-    already been refused by `_check_no_content_capture_events` and cannot reach here."""
+    shape an accepted `events` payload arrives in, once `_check_events_are_permitted` has
+    already refused everything not on `_PERMITTED_EVENT_NAMES`."""
     if isinstance(value, str):
         return _redact_string(value)
     if isinstance(value, list):
@@ -493,21 +527,25 @@ def _redact_json_value(value: Any) -> Any:
     return value
 
 
-def _check_no_content_capture_events(events: Sequence[Mapping[str, Any]] | None) -> None:
-    """Refuse (raise, nothing written) any event whose `name` is one of B-1 table 2's three
-    message-body events. Checked BEFORE the row is built, matching every other refusal in
-    this module -- a half-written span is worse than none."""
+def _check_events_are_permitted(events: Sequence[Mapping[str, Any]] | None) -> None:
+    """Refuse (raise, nothing written) any event whose `name` is not on
+    `_PERMITTED_EVENT_NAMES` -- deny-by-default, not an allowlist of refused names (see that
+    constant's own comment for why). A non-mapping event, or one with no `name` at all, is
+    refused the same way: an event this module cannot identify is not one it can vouch for.
+    Checked BEFORE the row is built, matching every other refusal in this module -- a
+    half-written span is worse than none."""
     if not events:
         return
     for event in events:
         name = event.get("name") if isinstance(event, Mapping) else None
-        if name in _CONTENT_CAPTURE_EVENT_NAMES:
+        if name not in _PERMITTED_EVENT_NAMES:
             raise GenAiTelemetryError(
-                f"event {name!r} is a message-body content-capture event (B-1 table 2) -- "
-                f"this store refuses raw prompt/response content categorically rather than "
-                f"redacting-and-keeping it or trusting a caller's own privacy gate; strip the "
-                f"message body before emitting, or route content capture through a store "
-                f"built for it"
+                f"event {name!r} is not on this store's permitted-events list "
+                f"({sorted(_PERMITTED_EVENT_NAMES) or 'currently empty'}) -- this store "
+                f"refuses an unrecognised event by default rather than accepting-and-scrubbing "
+                f"it, because ordinary prose matches neither the path nor the token redaction "
+                f"pattern and would otherwise pass through verbatim; admit a name here only "
+                f"once its content-capture shape has actually been reviewed"
             )
 
 
@@ -562,11 +600,12 @@ def emit_genai_span(
     (for cheap SQL filtering) and `attributes_json["devknowledge.run_id"]` (so the JSON blob is
     self-contained without a join back to the column).
 
-    `events` (B-1 table 2: `gen_ai.user.message`, `gen_ai.choice`, ...) is REFUSED when any
-    entry's `name` is one of those three message-body events -- `_check_no_content_capture_events`,
-    checked before anything else is built. A non-content-capture event is accepted, and every
-    string it carries (along with `conversation_id` and `error_type`) is scrubbed for path- and
-    token-shaped substrings before serialization (`_redact_string`). See the module docstring's
+    `events` is REFUSED unless every entry's `name` is on `_PERMITTED_EVENT_NAMES` (currently
+    empty -- deny-by-default, not an allowlist of refused names; see that constant's own
+    comment) -- `_check_events_are_permitted`, checked before anything else is built. `error_type`
+    is scrubbed for path- and token-shaped substrings before serialization (`_redact_string`);
+    `conversation_id` and `run_id` get the narrower identifier-safe scrub that never touches a
+    legitimate UUID-/hash-shaped value (`scan_generic_hex=False`). See the module docstring's
     "STORE'S HOME AND ITS REDACTION POSTURE" section for why this superseded the original
     caller-gates-itself posture.
 
@@ -602,14 +641,23 @@ def emit_genai_span(
     _check_vocabulary("outcome", outcome, CALL_OUTCOMES)
     _check_reviewer_is_not_the_producer(reviewed_by, response_model, request_model)
 
-    # `LANE-5B4-15-runtime-data-home` (R17) -- refuse raw message-body content BEFORE the row
-    # is built, same discipline as every refusal above.
-    _check_no_content_capture_events(events)
+    # `LANE-5B4-15-runtime-data-home` (R17) -- refuse an event whose name is not permitted
+    # BEFORE the row is built, same discipline as every refusal above.
+    _check_events_are_permitted(events)
 
     # Refuse an unavailable/unknown collector BEFORE building the row -- nothing is written.
     exporter = resolve_exporter(collector, db_path=db_path)
 
-    resolved_run_id = str(run_id) if run_id is not None else _te.current_run_id()
+    # Identifier-shaped, not free text -- `scan_generic_hex=False` so a legitimate
+    # `uuid.uuid4().hex` (the auto-generated case) or a well-formed caller-supplied id passes
+    # through unchanged; only a recognisably-shaped named secret or path embedded in a
+    # CALLER-SUPPLIED run_id is scrubbed (Codex terra CRITICAL -- the original exemption
+    # covered every run_id unconditionally, including a caller-supplied one carrying real
+    # content, not merely the auto-generated uuid4 case
+    # `test_a_real_run_id_survives_the_redaction_scan_unmarked` actually exercised).
+    resolved_run_id = _redact_string(
+        str(run_id) if run_id is not None else _te.current_run_id(), scan_generic_hex=False
+    )
 
     attrs: dict[str, Any] = {
         "gen_ai.operation.name": str(operation_name),
@@ -631,6 +679,8 @@ def emit_genai_span(
     if cost_imputed_usd is not None:
         attrs["devknowledge.cost.imputed_usd"] = cost_imputed_usd
     if conversation_id is not None:
+        # Identifier-shaped, not free text -- see `_IDENTIFIER_ATTR_KEYS`'s own comment for
+        # why this is redacted with `scan_generic_hex=False` below rather than swept as prose.
         attrs["gen_ai.conversation.id"] = str(conversation_id)
     if finish_reasons is not None:
         attrs["gen_ai.response.finish_reasons"] = list(finish_reasons)
@@ -650,14 +700,18 @@ def emit_genai_span(
         attrs["error.type"] = str(error_type)
     attrs["devknowledge.run_id"] = resolved_run_id
 
-    # `LANE-5B4-15-runtime-data-home` (R17) -- scrub the two free-text attributes and every
-    # string in `events` for path-/token-shaped substrings. AFTER the dict is built (so every
-    # other key stays untouched) and BEFORE serialization. `devknowledge.run_id` is
-    # deliberately excluded (see `_TOKEN_RE`'s docstring) by scoping the scan to
-    # `_FREE_TEXT_ATTR_KEYS` rather than sweeping the whole `attrs` dict.
+    # `LANE-5B4-15-runtime-data-home` (R17) -- scrub free-text attributes for path-/
+    # token-shaped substrings (full scrub, including the generic hex-blob catch-all) and
+    # identifier attributes more narrowly (named tokens + paths, never the hex-blob catch-all
+    # -- see `_IDENTIFIER_ATTR_KEYS`'s own comment). AFTER the dict is built (so every other
+    # key, including `devknowledge.run_id`, which was already redacted at the identifier
+    # level above, stays untouched) and BEFORE serialization.
     for key in _FREE_TEXT_ATTR_KEYS:
         if key in attrs and isinstance(attrs[key], str):
             attrs[key] = _redact_string(attrs[key])
+    for key in _IDENTIFIER_ATTR_KEYS:
+        if key in attrs and isinstance(attrs[key], str):
+            attrs[key] = _redact_string(attrs[key], scan_generic_hex=False)
     redacted_events = _redact_json_value(list(events) if events else [])
 
     try:
