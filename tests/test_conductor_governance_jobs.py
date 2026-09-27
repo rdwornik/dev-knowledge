@@ -49,6 +49,12 @@ _ZERO = "0" * 40
 PROTECTED = bfp.PROTECTED_REF
 PROTECTED_BRANCH = PROTECTED.rsplit("/", 1)[-1]
 
+
+def test_both_organs_share_one_protected_ref_object():
+    # Reuse-integrity: `anchor` and `spine` must scope to the SAME ref, or the two CI jobs
+    # could silently drift apart on what "the spine" means.
+    assert bup.PROTECTED_REF is bfp.PROTECTED_REF
+
 # After BASELINE_DATE (2026-06-15) so a seeded violation is never grandfathered.
 _AFTER_BASELINE = "2026-06-16T10:00:00"
 
@@ -121,6 +127,24 @@ def test_spine_and_anchor_skip_cleanly_on_a_non_push_event(workflow):
     for job_name in ("spine", "anchor"):
         text = _run_text(workflow["jobs"][job_name])
         assert "github.event_name" in text and '!= "push"' in text
+
+
+def test_anchor_has_exactly_one_skip_path_not_a_second_one_for_an_unresolvable_range(workflow):
+    # Regression pin for the codex review finding (docs/audits/2026-09-27-codex-lane-
+    # server-governance.md, Critical): a shell-level "unresolvable range -> skip" guard
+    # in front of block_unanchored_push.py would report exit=0 on a force-push whose
+    # prior tip this checkout cannot see, defeating the gate. The ONLY sanctioned skip is
+    # the non-push-event guard (asserted above); this pins that no second `exit=0` write
+    # exists in the run step, so the organ's own fail-closed range handling is what
+    # decides every push-event case.
+    run_step = next(s for s in workflow["jobs"]["anchor"]["steps"] if s.get("id") == "run")
+    text = str(run_step["run"])
+    assert text.count('echo "exit=0"') == 1, \
+        "anchor must have exactly one skip path (the non-push-event guard) -- a second " \
+        "one is the unresolvable-range bypass this lane's codex review flagged Critical"
+    assert "cat-file" not in text, \
+        "anchor must not pre-check range resolvability -- the organ itself fails closed " \
+        "on an unresolvable range; a shell-level pre-check only reintroduces the bypass"
 
 
 # --- the shell mechanics themselves, isolated from the real organ ------------------------
@@ -283,6 +307,24 @@ def test_a_lane_branch_push_is_a_clean_no_op_for_spine(tmp_path):
     line = _workflow_line(lane_ref, _rev(repo, "worktree-lane-x"), _ZERO)
     r = _invoke(_BFP, repo, line)
     assert r.returncode == 0, r.stderr
+
+
+@requires_git
+def test_an_unresolvable_prior_tip_refuses_rather_than_silently_passing(tmp_path):
+    # Codex review finding (docs/audits/2026-09-27-codex-lane-server-governance.md,
+    # Critical): a force-push whose prior tip this checkout cannot see must REFUSE, not
+    # report a clean skip -- the exact bypass a shell-level "unresolvable -> skip" guard
+    # would reopen. journal_anchor._git is deliberately not fail-soft (raises AnchorError
+    # on any git failure), and block_unanchored_push's outer handler turns that into
+    # exit 2. A bogus, well-formed sha that never existed in this repo stands in for the
+    # discarded prior tip -- git can never resolve it, force-push or not.
+    repo, _remote = _repo_with_remote(tmp_path)
+    _work, merge = _merge_branch(repo, "feat/unanchored", "Merge branch 'feat/unanchored'")
+    bogus_before = "f" * 40
+    line = _workflow_line(PROTECTED, merge, bogus_before)
+    r = _invoke(_BUP, repo, line)
+    assert r.returncode == 2, r.stderr
+    assert "INTERNAL ERROR" in r.stderr
 
 
 @requires_git

@@ -363,16 +363,18 @@ jobs:
             echo "exit=0" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          if [ -z "${{ github.event.before }}" ] \
-             || [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ] \
-             || ! git cat-file -e "${{ github.event.before }}^{commit}" 2>/dev/null; then
-            # Unresolvable range (branch creation, or a force-push whose old tip this checkout
-            # cannot see) is a SKIP, not a verdict -- report-only-wall.yml's own anchor step
-            # takes the identical guard for the identical reason.
-            echo "no resolvable push range -- anchor check skipped" | tee anchor.out
-            echo "exit=0" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
+          # NO shell-level "unresolvable range -> skip" guard here (terra CRITICAL,
+          # codex review docs/audits/2026-09-27-codex-lane-server-governance.md): a
+          # force-push whose prior tip this checkout cannot see would then report a clean
+          # exit 0, defeating the one thing this job exists to be resistant to. The organ
+          # itself already fails CLOSED on exactly this input -- journal_anchor._git
+          # RAISES AnchorError on any git failure (deliberately not fail-soft, "an unknown
+          # anchoring state must never render as anchored"), and block_unanchored_push's
+          # outer handler turns that into exit 2 (refuse). An all-zero/empty remote sha
+          # (legitimate branch creation) is ALSO handled by the organ itself -- its range
+          # resolver reads that as "scan the full local history", not a skip. So every
+          # case here is passed straight through, exactly as the `spine` job already does
+          # for its own organ.
           printf '%s\n' "${{ github.ref }} ${{ github.sha }} ${{ github.ref }} ${{ github.event.before }}" \
             | uv run --locked python scripts/block_unanchored_push.py > anchor.out 2>&1
           rc=$?
