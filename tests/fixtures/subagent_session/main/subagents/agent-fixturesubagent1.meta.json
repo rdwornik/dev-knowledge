@@ -1,0 +1,8 @@
+{
+  "agentType": "Explore",
+  "description": "synthetic fixture subagent -- no real content",
+  "toolUseId": "toolu_fixture0000000000000000000",
+  "spawnDepth": 1,
+  "requestShape": "background",
+  "requestNonInteractive": true
+}

@@ -471,7 +471,19 @@ def test_a_skipped_only_run_is_not_mistaken_for_a_missing_report(repo, tmp_path)
     assert verdict["verdict"] == "CLEAN" and code == 0
 
 
-def test_many_workers_lose_no_result(tmp_path):
+def test_many_workers_lose_no_result(tmp_path, monkeypatch):
+    """L3 (host-witness isolation + deadlock): this test's own `run_pytest` call shells out to
+    `memory_admission_gate.py run` (see that function's docstring) -- a SECOND, nested gate
+    invocation underneath whatever outer gate is already running this suite. The outer gate
+    holds memory while it waits for this test to finish; the inner gate's `wait_for_memory`
+    blocks until memory frees, which cannot happen until the outer run completes -- a circular
+    wait with no timeout on either side (integrator record, N3: hung ~40 min). This test proves
+    xdist loses no result across workers, not the memory gate's own behaviour, so it disables
+    the nested gate for its own call: `HARNESS_MEMORY_GATE_DISABLE` reproduces the pre-gate
+    behaviour byte for byte (`run_pytest_full`'s own docstring comment), breaking the nesting
+    without weakening what this test asserts.
+    """
+    monkeypatch.setenv("HARNESS_MEMORY_GATE_DISABLE", "1")
     clone = tmp_path / "scratch" / "clone"
     (clone / "tests").mkdir(parents=True)
     (clone / "tests" / "test_many.py").write_text(
@@ -1164,3 +1176,69 @@ def test_the_registry_commands_are_untouched_by_the_new_lane_commands(repo, home
     code = _record(root, base, "--tests", "tests/test_mod.py")
 
     assert code == 0 and (home / "TEST-PAIRING-REGISTRY-B1.json").is_file()
+
+
+# =============================================================================================
+# LANE-5B4-5-host-witness, row L3, Done-contract item 2: "a test proves an unmarked test that
+# reads outside the repository ... is reported". `tests/conftest.py`'s `OPERATOR_HOST_TESTS`
+# registration list and its `pytest_collection_modifyitems` hook are the mechanism; this proves
+# it by running the REAL conftest.py (read off disk, never reimplemented here) against a
+# synthetic, deliberately unmarked test whose node id is grafted into the registry.
+# =============================================================================================
+
+def test_conftest_reports_a_registered_but_unmarked_operator_host_test(pytester):
+    real_conftest = (Path(__file__).parent / "conftest.py").read_text(encoding="utf-8")
+    anchor = "OPERATOR_HOST_TESTS: frozenset[str] = frozenset({\n"
+    assert real_conftest.count(anchor) == 1, "the registry's own declaration line moved"
+    injected = real_conftest.replace(
+        anchor, anchor + '    "test_fixture.py::test_reads_the_operator_disk",\n', 1,
+    )
+    pytester.makeconftest(injected)
+    pytester.makepyfile(test_fixture="def test_reads_the_operator_disk():\n    assert True\n")
+
+    result = pytester.runpytest("-p", "no:cacheprovider")
+
+    result.assert_outcomes()  # nothing collected runs -- refused before any test executes
+    result.stderr.fnmatch_lines([
+        "*operator_host registry/marker drift*",
+        "*registered but unmarked*",
+        "*test_fixture.py::test_reads_the_operator_disk*",
+    ])
+
+
+def test_conftest_reports_a_marked_but_unregistered_operator_host_test(pytester):
+    """The mirror drift: a new host witness someone marked but never listed."""
+    real_conftest = (Path(__file__).parent / "conftest.py").read_text(encoding="utf-8")
+    pytester.makeconftest(real_conftest)
+    pytester.makepyfile(test_fixture=(
+        "import pytest\n\n\n@pytest.mark.operator_host\n"
+        "def test_reads_the_operator_disk():\n    assert True\n"
+    ))
+
+    result = pytester.runpytest("-p", "no:cacheprovider")
+
+    result.assert_outcomes()
+    result.stderr.fnmatch_lines([
+        "*operator_host registry/marker drift*",
+        "*marked but unregistered*",
+        "*test_fixture.py::test_reads_the_operator_disk*",
+    ])
+
+
+def test_conftest_is_quiet_when_registered_and_marked_agree(pytester):
+    """The positive control: without it, the two tests above could be passing on a hook that
+    always refuses, proving nothing about which drift it actually detected."""
+    real_conftest = (Path(__file__).parent / "conftest.py").read_text(encoding="utf-8")
+    anchor = "OPERATOR_HOST_TESTS: frozenset[str] = frozenset({\n"
+    injected = real_conftest.replace(
+        anchor, anchor + '    "test_fixture.py::test_reads_the_operator_disk",\n', 1,
+    )
+    pytester.makeconftest(injected)
+    pytester.makepyfile(test_fixture=(
+        "import pytest\n\n\n@pytest.mark.operator_host\n"
+        "def test_reads_the_operator_disk():\n    assert True\n"
+    ))
+
+    result = pytester.runpytest("-p", "no:cacheprovider")
+
+    result.assert_outcomes(passed=1)

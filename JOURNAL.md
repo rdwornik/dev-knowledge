@@ -21,6 +21,54 @@
 
 ---
 
+### 2026-09-27 (f) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): the known-reds registry is keyed by OS, each member carries a failure signature, and a signature is normalised before it is stored or compared
+
+**Anchors:** `2457eb69`, `6ee18b82`, `ded3a22f`, `c3848675` -- `worktree-lane-known-reds-signatures` (ordered and served `claude-sonnet-5`), repair 1 after the s3 refusal, stacked `--no-ff` on (e) in integration stack s6.
+
+**Did:** `scripts/known_reds.py` gains an additive `members_by_os` overlay and a per-member `signature` read from pytest's own short-summary reason; `compare` merges the overlay for its OS and flags a changed signature and an `unattributed` member as regressions, keeping its flags and exit codes. `logs/KNOWN-REDS-REGISTRY.json` carries a `windows-latest` overlay of 70 members from run 36304438895. The repair adds `normalize_signature`, which masks absolute paths, shas, an explanatory list body and a generated-name digit suffix; `refresh` normalises before storing and `compare` normalises both sides, so the committed verbatim signatures still agree. RED first both times (20 failed then 60 passed; 6 failed then 66 passed). Codex terra 0/1/0/0 twice, each High fixed with its own RED-first test (the second: an unscoped list mask would have hidden a real `assert [..] == [..]` difference).
+
+**Result:** proposal row L2 lands -- a registered test that fails worse no longer passes, the Windows leg is judged against its own baseline, and a run-volatile token no longer manufactures a regression. Replayed on the refused run 36337021076's Windows log, the three falsely flagged ids read as known.
+
+**Changes:** `scripts/known_reds.py`, `tests/test_known_reds.py`, `logs/KNOWN-REDS-REGISTRY.json`, two Codex audits; regenerated `docs/audits/README.md`, `ecosystem/doc-counts.md`.
+
+**Next:** five Windows-only drift ids await attribution (`known_reds.py attribute`); no ubuntu overlay yet. The sha mask also covers a pure-digit run of 7 or more, so a changed large number reads as the same signature (recorded, not refused).
+
+### 2026-09-27 (e) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): tests that read the operator's host are marked `operator_host` and registered, and the nested memory-gate deadlock is gone
+
+**Anchors:** `710a0334`, `6fade62f` -- `worktree-lane-host-witness` (ordered and served `claude-sonnet-5`), first handback, stacked `--no-ff` on (d) in a second integration worktree.
+
+**Did:** `tests/conftest.py` (new) registers the `operator_host` marker and an explicit id list, and reports at collection a registered test that is unmarked or a marked test that is unregistered; three `pytester` witnesses pin both directions plus a quiet positive control. The six `tests/test_integrator_surface.py` walk tests that need a real `claude` on PATH -- the only operator-host reds that still reproduce on main's ubuntu leg -- are marked. `test_many_workers_lose_no_result` disables its own nested memory gate, so it no longer waits on the outer one (about 40 minutes before; 15 s now). Rows 1101-1103 filed under ruling (h).
+
+**Result:** proposal row L3 lands: the host-witness class is explicit and drift-checked, and the deadlock no longer holds a leg. CI still runs the marked tests until `conductor.yml` deselects the marker (`[#1103]`).
+
+**Changes:** `tests/conftest.py`, `tests/test_test_pairing.py`, `tests/test_integrator_surface.py`, `tasks/1101-*`, `tasks/1102-*`, `tasks/1103-*`, one Codex audit; regenerated `BACKLOG.md`, `tasks/manifest.json`, `docs/audits/README.md`, `ecosystem/doc-counts.md`.
+
+**Next:** `[#1101]` the registry's environment-mismatch members (one, `test_A_LANES_BASE_EQUALS_MAIN_HEAD_AT_DISPATCH`, still reds intermittently); `[#1103]` deselect `operator_host` in CI.
+
+### 2026-09-27 (d) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): a lane's cost and its ordered-vs-ran model check include its Task-tool subagents
+
+**Anchors:** `f9926cb4`, `442b026e`, `2bcd2f9d`, `0ad891f1` -- `worktree-lane-subagent-cost` (ordered and served `claude-sonnet-5`), first handback, re-admitted by operator word after its dependency failed; merged `--no-ff` from an integration worktree on origin/main `316d3205`.
+
+**Did:** `scripts/lane_cost.py` and `scripts/routing_agreement.py` read each session's sibling `<session>/subagents/agent-*.jsonl`, classify every read as `main` or `subagent`, and count a replayed turn once. A synthetic fixture (`tests/fixtures/subagent_session/`) pins it, RED first. On a real project directory with subagent history the cost moved from USD 16.78 to 19.42 -- a subagent model (`claude-opus-4-8`, 22 calls) that neither check could see. A batch lane with no subagents reads the same before and after. Codex terra 0/2/0/0: the de-duplication High fixed; the other High is lane-ci-matrix's file, carried.
+
+**Result:** the batch's cost and model-agreement numbers now count what subagents spent (SMART 8). Seat-level reads still see the top-level file only.
+
+**Changes:** `scripts/lane_cost.py`, `scripts/routing_agreement.py`, their tests, one fixture directory and its `tests/fixtures/README.md` row, one Codex audit; regenerated `docs/audits/README.md`, `ecosystem/doc-counts.md`.
+
+**Next:** ROWS-OWED -- seat cost (`lane_cost.py seat`) and store-wide seat reads do not yet follow a session's `subagents/` folder.
+
+### 2026-09-27 (c) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): CI runs the suite on Windows and Linux for every lane, integration and main push -- both durations recorded, the local-main clone artefact gone
+
+**Anchors:** `4ad29e44`, `5131bbc7`, `7d722ef4`, `74278b87`, `daf59073`, `d190970e` -- `worktree-lane-ci-matrix` (ordered and served `claude-sonnet-5`), repair 1 of 2, merged `--no-ff` from an integration worktree on origin/main `1a0dc573`.
+
+**Did:** `.github/workflows/conductor.yml`'s `pytest` job runs on `matrix.os: [ubuntu-latest, windows-latest]`, `fail-fast: false`, `shell: bash`, checkout `fetch-depth: 0` plus a seeded local `main` ref; push triggers widen to `main`, `worktree-**`, `epic/**`; the artefact name is scoped per OS. `tests/test_conductor.py` pins each, RED first. Run 36304438895 on a `worktree-*` push: ubuntu 636 s, windows 788 s at `4ad29e44`, 0 "main does not resolve" reds (`docs/audits/2026-09-27-technical-ci-os-matrix.md`).
+
+**Result:** the Windows leg sits well under the 40-minute flip condition, so the full suite stays on both legs; CI evidence replaces the laptop's 82-minute run as the integrator's verdict (R11 D1). The first integration stack, verified on this matrix, bisected two lanes' reds by OS and refused them -- the matrix's first catch.
+
+**Changes:** `.github/workflows/conductor.yml`, `tests/test_conductor.py`, two audits; regenerated `docs/audits/README.md`, `ecosystem/doc-counts.md`.
+
+**Next:** ROWS-OWED -- the required-checks ruleset still names the single context `pytest` (L6); the known-reds registry is Linux-only (L2); `ci_verdict.py` does not find the suite-baseline block under matrix job names.
+
 ### 2026-09-27 (b) - CC (Opus 5.5, INTEGRATOR WAVE5B-N3): the batch closes -- the quota organ's close read lands, and the digest scores the SMART goals
 
 **Anchors:** `83e07720` -- `worktree-close-wave5b-n3`, merged `--no-ff` from an integration worktree on the 2026-09-27 (a) merge.
