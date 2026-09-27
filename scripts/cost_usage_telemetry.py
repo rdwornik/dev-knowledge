@@ -210,10 +210,10 @@ CALL_OUTCOMES: frozenset[str] = frozenset({"passed", "failed", "unknown"})
 #: filter by system/model/run. `events_json` carries only events whose name is on this store's
 #: (currently empty) permitted-events allowlist -- deny-by-default, so B-1 table 2's
 #: message-body events and everything else are REFUSED before a row is built
-#: (`_check_events_are_permitted`, `LANE-5B4-15-runtime-data-home`). Every string value this
-#: module writes is scrubbed for token- and foreign-path-shaped substrings (`_redact_string`)
-#: before serialization -- the free-text field (`error.type`) with the full scrub, the
-#: identifier fields (`gen_ai.conversation.id`, `devknowledge.run_id`) with the narrower one
+#: (`_check_events_are_permitted`, `LANE-5B4-15-runtime-data-home`). Every attribute this
+#: module writes is scrubbed for token- and foreign-path-shaped substrings (`_redact_string`
+#: / `_redact_json_value`) before serialization, by default with the full scrub -- the two
+#: identifier fields (`gen_ai.conversation.id`, `devknowledge.run_id`) get the narrower one
 #: that never touches a legitimate UUID-/hash-shaped value.
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS genai_spans (
@@ -446,42 +446,55 @@ def _check_reviewer_is_not_the_producer(
 #: design that has actually reviewed its own gating adds its event name here, deliberately.
 _PERMITTED_EVENT_NAMES: frozenset[str] = frozenset()
 
-#: The one attribute this schema carries that is FREE TEXT rather than a controlled
-#: identifier/enum/number -- every other attribute (`system`, `*.model`, `role`, `outcome`,
-#: `conversation.id`, `run_id`, ...) is a short structured IDENTIFIER by construction, so a
-#: blanket free-text scrub of any of them risks corrupting a legitimate correlation value for
-#: no real gain (see `_IDENTIFIER_ATTR_KEYS` below for the narrower scrub those still get).
-#: `error.type` is the one field a caller is likely to populate from a real exception's
-#: `str()`, which is exactly where a stray absolute path or an accidentally-embedded
-#: credential would leak in.
-_FREE_TEXT_ATTR_KEYS: frozenset[str] = frozenset({"error.type"})
-
 #: Identifier-shaped attributes: legitimately UUID-/hash-shaped values (a real
 #: `gen_ai.conversation.id`, a caller-supplied `run_id`) that must not be torn up by the
 #: generic hex-blob catch-all below, but that still deserve the NAMED-secret and path legs --
 #: a caller could still misuse an identifier field to smuggle a recognisably-shaped credential.
 #: See `_redact_string`'s `scan_generic_hex` parameter.
+#:
+#: EVERY OTHER STRING ATTRIBUTE THIS MODULE WRITES gets the FULL scrub (including the
+#: generic hex-blob leg) by default -- Codex terra CRITICAL: the original shape scrubbed only
+#: an explicit allowlist (`error.type` alone), so `request_model`, `finish_reasons`, `lane_id`,
+#: `reviewed_by` and every future attribute this module adds were serialized with NO scrub at
+#: all, which is the same "accept-unless-named" gap already closed for `events`
+#: (`_PERMITTED_EVENT_NAMES`). Scrub-by-default with a narrow, explicit EXEMPTION list (this
+#: constant) keeps that same posture instead of an opt-in list that a new field can silently
+#: fall outside of.
 _IDENTIFIER_ATTR_KEYS: frozenset[str] = frozenset({"gen_ai.conversation.id"})
 
 #: Foreign-path patterns. No typed field in this schema is ever meant to carry a filesystem
 #: path -- model ids, roles, outcomes and run ids are all short identifiers by design -- so a
 #: path-shaped substring appearing in one means content leaked in by accident (an exception
-#: message, a stray f-string), never a legitimate value to preserve. Codex terra CRITICAL: the
-#: original POSIX/UNC coverage was an enumerated allowlist of top-level directory names
-#: (`/home`, `/Users`, ...) that missed ordinary absolute paths (`/workspaces/...`,
-#: `/srv/...`, `/data/...`) and every UNC share (`\\server\share\...`) outright. Both are now
-#: general shape matches -- any absolute path of two or more segments, not a fixed name list.
+#: message, a stray f-string), never a legitimate value to preserve. Codex terra CRITICAL
+#: (round 1): the original POSIX/UNC coverage was an enumerated allowlist of top-level
+#: directory names (`/home`, `/Users`, ...) that missed ordinary absolute paths
+#: (`/workspaces/...`, `/srv/...`, `/data/...`) and every UNC share (`\\server\share\...`)
+#: outright -- fixed by matching any absolute path of two or more segments, not a fixed name
+#: list. Codex terra CRITICAL (round 2): that fix still stopped each segment at the first
+#: whitespace, so a path with an embedded space (`/Users/Rob Smith/secret`,
+#: `\\srv\Team Share\secret`) redacted only its first word and left the rest of the path in
+#: the clear. `_PATH_SEGMENT` now tolerates up to 3 embedded single-spaces per segment --
+#: enough for a realistic directory/file name ("Rob Smith", "Program Files", "Team Share") --
+#: while still stopping at the next path separator or a quote/bracket, so it does not run on
+#: into unrelated trailing prose past the second such delimiter.
+_PATH_SEGMENT = r"[^\s/\\\"'<>]+(?:[ \t][^\s/\\\"'<>]+){0,3}"
 _WINDOWS_PATH_RE = re.compile(r"[A-Za-z]:\\(?:[^\\/:*?\"<>|\r\n]+\\)*[^\\/:*?\"<>|\r\n]*")
-_UNC_PATH_RE = re.compile(r"\\\\[^\\\s\"'<>]+\\[^\\\s\"'<>]+(?:\\[^\\\s\"'<>]+)*")
-_POSIX_PATH_RE = re.compile(r"(?<![\w./])/[^\s\"'<>]+/[^\s\"'<>]*")
+_UNC_PATH_RE = re.compile(rf"\\\\{_PATH_SEGMENT}\\{_PATH_SEGMENT}(?:\\{_PATH_SEGMENT})*")
+_POSIX_PATH_RE = re.compile(rf"(?<![\w./])/{_PATH_SEGMENT}(?:/{_PATH_SEGMENT})+")
 
 #: NAMED vendor API-key / bearer-header shapes -- unambiguous enough to apply everywhere,
 #: including to an identifier field, because no legitimate UUID or hash could accidentally
-#: match one of these prefixes.
+#: match one of these prefixes. `bearer` is scoped case-insensitive (`(?i:...)`) -- Codex terra
+#: CRITICAL (round 2): the HTTP `Authorization` scheme name is case-insensitive by spec
+#: (RFC 9110 SS11.6.2), so `bearer <token>` / `BEARER <token>` are exactly as real as
+#: `Bearer <token>` and were passing through unredacted. The vendor-key prefixes stay
+#: case-sensitive on purpose -- those are fixed-case identifiers by the issuing vendor's own
+#: spec, and loosening them would widen false-positive matches on ordinary prose for no
+#: real-world gain.
 _NAMED_TOKEN_RE = re.compile(
     r"\b(?:sk-[A-Za-z0-9_-]{10,}|ghp_[A-Za-z0-9]{20,}|gho_[A-Za-z0-9]{20,}|"
     r"github_pat_[A-Za-z0-9_]{20,}|xox[baprs]-[A-Za-z0-9-]{10,}|AIza[A-Za-z0-9_-]{20,}|"
-    r"Bearer\s+[A-Za-z0-9._-]{10,})\b"
+    r"(?i:bearer)\s+[A-Za-z0-9._-]{10,})\b"
 )
 
 #: A bare 32+-character hex run, as a generic catch-all -- but ONLY for genuinely free-text
@@ -514,16 +527,19 @@ def _redact_string(value: str, *, scan_generic_hex: bool = True) -> str:
     return value
 
 
-def _redact_json_value(value: Any) -> Any:
+def _redact_json_value(value: Any, *, scan_generic_hex: bool = True) -> Any:
     """Recursively scrub every string leaf of a JSON-shaped value (dict/list/scalar) -- the
-    shape an accepted `events` payload arrives in, once `_check_events_are_permitted` has
-    already refused everything not on `_PERMITTED_EVENT_NAMES`."""
+    shape an accepted `events` payload arrives in (once `_check_events_are_permitted` has
+    already refused everything not on `_PERMITTED_EVENT_NAMES`), and also the shape a
+    list-valued attribute like `gen_ai.response.finish_reasons` arrives in. `scan_generic_hex`
+    forwards to `_redact_string` unchanged -- `False` for an identifier-shaped attribute whose
+    list/dict structure still deserves the named-token/path legs without the hex-blob catch-all."""
     if isinstance(value, str):
-        return _redact_string(value)
+        return _redact_string(value, scan_generic_hex=scan_generic_hex)
     if isinstance(value, list):
-        return [_redact_json_value(v) for v in value]
+        return [_redact_json_value(v, scan_generic_hex=scan_generic_hex) for v in value]
     if isinstance(value, dict):
-        return {k: _redact_json_value(v) for k, v in value.items()}
+        return {k: _redact_json_value(v, scan_generic_hex=scan_generic_hex) for k, v in value.items()}
     return value
 
 
@@ -602,8 +618,9 @@ def emit_genai_span(
 
     `events` is REFUSED unless every entry's `name` is on `_PERMITTED_EVENT_NAMES` (currently
     empty -- deny-by-default, not an allowlist of refused names; see that constant's own
-    comment) -- `_check_events_are_permitted`, checked before anything else is built. `error_type`
-    is scrubbed for path- and token-shaped substrings before serialization (`_redact_string`);
+    comment) -- `_check_events_are_permitted`, checked before anything else is built. Every
+    attribute is scrubbed for path- and token-shaped substrings before serialization
+    (`_redact_string` / `_redact_json_value`), by default with the full scrub;
     `conversation_id` and `run_id` get the narrower identifier-safe scrub that never touches a
     legitimate UUID-/hash-shaped value (`scan_generic_hex=False`). See the module docstring's
     "STORE'S HOME AND ITS REDACTION POSTURE" section for why this superseded the original
@@ -700,18 +717,22 @@ def emit_genai_span(
         attrs["error.type"] = str(error_type)
     attrs["devknowledge.run_id"] = resolved_run_id
 
-    # `LANE-5B4-15-runtime-data-home` (R17) -- scrub free-text attributes for path-/
-    # token-shaped substrings (full scrub, including the generic hex-blob catch-all) and
-    # identifier attributes more narrowly (named tokens + paths, never the hex-blob catch-all
-    # -- see `_IDENTIFIER_ATTR_KEYS`'s own comment). AFTER the dict is built (so every other
-    # key, including `devknowledge.run_id`, which was already redacted at the identifier
-    # level above, stays untouched) and BEFORE serialization.
-    for key in _FREE_TEXT_ATTR_KEYS:
-        if key in attrs and isinstance(attrs[key], str):
-            attrs[key] = _redact_string(attrs[key])
-    for key in _IDENTIFIER_ATTR_KEYS:
-        if key in attrs and isinstance(attrs[key], str):
-            attrs[key] = _redact_string(attrs[key], scan_generic_hex=False)
+    # `LANE-5B4-15-runtime-data-home` (R17) -- scrub every attribute for path-/token-shaped
+    # substrings BY DEFAULT (full scrub, including the generic hex-blob catch-all); an
+    # identifier attribute (`_IDENTIFIER_ATTR_KEYS`) gets the narrower scrub instead (named
+    # tokens + paths, never the hex-blob catch-all, so a legitimate UUID-/hash-shaped value
+    # survives). Codex terra CRITICAL (round 2): scrubbing only an explicit allowlist
+    # (`error.type` alone) left every OTHER string/list attribute -- `request_model`,
+    # `finish_reasons`, `lane_id`, `batch_id`, `substrate`, `role`, `outcome`, `reviewed_by` --
+    # serialized with no scrub at all; default-scrub-with-an-exemption-list closes that the
+    # same way `_PERMITTED_EVENT_NAMES` closed the analogous gap for `events`.
+    # `devknowledge.run_id` is skipped here -- already redacted at the identifier level via
+    # `resolved_run_id` above, and re-scrubbing it a second time (with the wrong, default-full
+    # mode) would tear up a legitimate hex-shaped id this loop has no way to know is one.
+    for key in list(attrs.keys()):
+        if key == "devknowledge.run_id":
+            continue
+        attrs[key] = _redact_json_value(attrs[key], scan_generic_hex=key not in _IDENTIFIER_ATTR_KEYS)
     redacted_events = _redact_json_value(list(events) if events else [])
 
     try:

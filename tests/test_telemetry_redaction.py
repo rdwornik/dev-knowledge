@@ -27,6 +27,21 @@ High (`docs/audits/2026-09-27-codex-lane-runtime-data-home.md`):
     `scan_generic_hex=False` mode applied to both fields uniformly, rather than an
     unconditional run_id exemption paired with an unconditional conversation_id sweep.
 
+THIS FILE'S THIRD PASS, after a Codex terra FOLLOW-UP review of the round-2 fixes found 3
+MORE Critical (`docs/audits/2026-09-27-codex-lane-runtime-data-home-followup.md`; the
+deny-by-default and identifier-split fixes above were confirmed resolved):
+
+  - CRITICAL: only `error.type` was on the scrubbed-field allowlist -- `lane_id`, `batch_id`,
+    `reviewed_by`, `finish_reasons` and every other attribute were serialized with NO scrub at
+    all. Fixed the same way `events` was: scrub is now the DEFAULT for every attribute, with
+    the two identifier fields as the (narrower-scrub, not no-scrub) exemption.
+  - CRITICAL: the path regexes stopped each segment at the first whitespace, so a real path
+    with an embedded space (a "Rob Smith"-style directory name) redacted only its first word.
+    Fixed by letting `_PATH_SEGMENT` tolerate a few embedded spaces per segment.
+  - CRITICAL: `_NAMED_TOKEN_RE`'s `Bearer` match was case-sensitive, though the HTTP scheme
+    name is not (RFC 9110 SS11.6.2) -- `bearer`/`BEARER` sailed through unredacted. Fixed with
+    a scoped case-insensitive group, `(?i:bearer)`.
+
 TWO MECHANISMS, not one, matching the two different risks:
 
   1. `events` is refused unless every entry's `name` is on `_PERMITTED_EVENT_NAMES`
@@ -34,11 +49,11 @@ TWO MECHANISMS, not one, matching the two different risks:
      callers). Refused, never redacted-and-kept: redacting a user turn would still store
      SOME of the conversation, and refusing is the only shape that makes "holds no prompt
      text" true regardless of what a caller passes.
-  2. The remaining free-text/identifier fields (`error.type`, `gen_ai.conversation.id`,
-     `devknowledge.run_id`) are scanned and REDACTED (substring replaced, call still
-     succeeds) for token- and foreign-path-shaped substrings -- full scrub for the genuinely
-     free-text field, the identifier-safe scrub (no generic hex-blob leg) for the two fields
-     that are legitimately UUID-/hash-shaped by design.
+  2. Every other attribute is scanned and REDACTED (substring replaced, call still succeeds)
+     for token- and foreign-path-shaped substrings by DEFAULT -- full scrub, except the two
+     identifier-shaped fields (`gen_ai.conversation.id`, `devknowledge.run_id`), which get the
+     narrower scrub (no generic hex-blob leg) that never touches a legitimate UUID-/hash-shaped
+     value.
 """
 from __future__ import annotations
 
@@ -174,6 +189,33 @@ def test_admitting_a_name_lets_it_through_and_its_free_text_is_still_redacted(tm
 # --- mechanism 2: token- and path-shaped substrings in free-text fields are redacted ---------
 
 
+def test_every_string_attribute_is_scrubbed_by_default_not_an_explicit_allowlist(tmp_path):
+    """THE CRITICAL FIX (round 2). Pre-fix, only `error.type` was scrubbed (an explicit
+    allowlist, `_FREE_TEXT_ATTR_KEYS`) -- `lane_id`, `batch_id`, `reviewed_by`, and
+    `finish_reasons` (a list-valued attribute) were serialized with NO scrub at all, so a
+    caller passing a foreign path or a named token through any of THOSE fields sailed straight
+    into the store. Scrubbing is now the default for every attribute except the two
+    identifier-shaped ones; a new field this module adds tomorrow inherits the scrub without
+    anyone having to remember to add it to a list."""
+    mod = _load()
+    attrs = _emit_attrs(
+        mod, tmp_path,
+        lane_id=r"C:\Users\1028120\Documents\Dev\secret\lane-notes.txt",
+        batch_id="sk-abcdEFGH1234567890abcdEFGH1234567890",
+        reviewed_by=r"/workspaces/dev-knowledge/secret/reviewer-notes.txt",
+        finish_reasons=[r"C:\Users\1028120\Documents\Dev\secret\reason.txt", "stop"],
+    )
+    assert r"C:\Users\1028120" not in attrs["devknowledge.lane_id"]
+    assert "[REDACTED-PATH]" in attrs["devknowledge.lane_id"]
+    assert "sk-abcdEFGH1234567890abcdEFGH1234567890" not in attrs["devknowledge.batch_id"]
+    assert "[REDACTED-TOKEN]" in attrs["devknowledge.batch_id"]
+    assert "/workspaces/dev-knowledge/secret" not in attrs["devknowledge.reviewed_by"]
+    assert "[REDACTED-PATH]" in attrs["devknowledge.reviewed_by"]
+    assert r"C:\Users\1028120" not in attrs["gen_ai.response.finish_reasons"][0]
+    assert "[REDACTED-PATH]" in attrs["gen_ai.response.finish_reasons"][0]
+    assert attrs["gen_ai.response.finish_reasons"][1] == "stop"
+
+
 def test_a_foreign_windows_path_in_error_type_is_redacted(tmp_path):
     mod = _load()
     attrs = _emit_attrs(
@@ -214,11 +256,54 @@ def test_a_unc_path_in_error_type_is_redacted(tmp_path):
     assert "[REDACTED-PATH]" in attrs["error.type"]
 
 
+def test_a_posix_path_with_an_embedded_space_is_fully_redacted(tmp_path):
+    """THE CRITICAL FIX (round 2). Pre-fix, the POSIX/UNC matchers stopped at the first
+    whitespace, so a real path with a space in a directory name -- "Rob Smith", a common
+    Windows-share-mapped-as-POSIX shape -- redacted only its first word and left the rest
+    (username, share name, secret suffix) in the clear. `_PATH_SEGMENT` now tolerates a few
+    embedded spaces per segment."""
+    mod = _load()
+    attrs = _emit_attrs(
+        mod, tmp_path,
+        error_type="OSError: /Users/Rob Smith/private/secret-key.pem not found",
+    )
+    assert "Rob Smith" not in attrs["error.type"]
+    assert "secret-key.pem" not in attrs["error.type"]
+    assert "[REDACTED-PATH]" in attrs["error.type"]
+
+
+def test_a_unc_path_with_an_embedded_space_is_fully_redacted(tmp_path):
+    """THE CRITICAL FIX (round 2), UNC leg -- same gap, a network share name with a space."""
+    mod = _load()
+    attrs = _emit_attrs(
+        mod, tmp_path,
+        error_type=r"PermissionError: \\fileserver\Team Share\secret\data.csv denied",
+    )
+    assert "Team Share" not in attrs["error.type"]
+    assert r"\secret\data.csv" not in attrs["error.type"]
+    assert "[REDACTED-PATH]" in attrs["error.type"]
+
+
 def test_a_bearer_header_in_error_type_is_redacted(tmp_path):
     mod = _load()
     attrs = _emit_attrs(
         mod, tmp_path,
         error_type="401: Authorization Bearer abcXYZ123token456value789here failed",
+    )
+    assert "abcXYZ123token456value789here" not in attrs["error.type"]
+    assert "[REDACTED-TOKEN]" in attrs["error.type"]
+
+
+@pytest.mark.parametrize("scheme", ["bearer", "BEARER", "BeArEr"])
+def test_a_lowercase_or_mixed_case_bearer_header_is_also_redacted(scheme, tmp_path):
+    """THE CRITICAL FIX (round 2). Pre-fix, `_NAMED_TOKEN_RE` matched only capitalized
+    `Bearer`, but RFC 9110 SS11.6.2 makes the HTTP auth scheme name case-insensitive -- a real
+    `bearer <token>` or `BEARER <token>` header is exactly as real as `Bearer <token>` and was
+    passing through unredacted."""
+    mod = _load()
+    attrs = _emit_attrs(
+        mod, tmp_path,
+        error_type=f"401: Authorization {scheme} abcXYZ123token456value789here failed",
     )
     assert "abcXYZ123token456value789here" not in attrs["error.type"]
     assert "[REDACTED-TOKEN]" in attrs["error.type"]
