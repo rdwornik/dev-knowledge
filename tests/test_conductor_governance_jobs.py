@@ -37,7 +37,41 @@ import block_ff_push as bfp        # noqa: E402 -- reuse-integrity: same organ a
 import block_unanchored_push as bup  # noqa: E402
 
 requires_git = pytest.mark.skipif(shutil.which("git") is None, reason="git not available")
-requires_bash = pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
+
+
+def _is_wsl_launcher_stub(bash_path: str) -> bool:
+    """True for `%SystemRoot%\\System32\\bash.exe` -- the WSL launcher windows-latest's
+    PATH resolves `bash` to when no distribution is installed. It prints its own
+    "Windows Subsystem for Linux has no installed distributions" text and exits nonzero
+    instead of running the script, which is not "bash is absent" -- it is the wrong bash."""
+    system_root = Path(os.environ.get("SystemRoot", r"C:\Windows"))
+    try:
+        return Path(bash_path).resolve().parent.samefile(system_root / "System32")
+    except OSError:
+        return False
+
+
+def _resolve_real_bash() -> str | None:
+    """The bash the CI step's `shell: bash` YAML directive resolves to on windows-latest --
+    the Git-for-Windows bash the runner image ships (T6), never the System32 WSL stub. A
+    bare `subprocess.run(["bash", ...])` does not get GitHub's step-level `shell: bash`
+    resolution, so it has to be reproduced here: skip a PATH hit that is the stub, then
+    fall back to Git for Windows' own known install locations."""
+    found = shutil.which("bash")
+    if found and not _is_wsl_launcher_stub(found):
+        return found
+    program_files = os.environ.get("ProgramFiles", r"C:\Program Files")
+    for candidate in (
+        Path(program_files) / "Git" / "bin" / "bash.exe",
+        Path(program_files) / "Git" / "usr" / "bin" / "bash.exe",
+    ):
+        if candidate.is_file():
+            return str(candidate)
+    return found
+
+
+_REAL_BASH = _resolve_real_bash()
+requires_bash = pytest.mark.skipif(_REAL_BASH is None, reason="no usable bash found (not even Git Bash)")
 
 _REPO = Path(__file__).resolve().parents[1]
 _WORKFLOW = _REPO / ".github" / "workflows" / "conductor.yml"
@@ -164,7 +198,7 @@ def test_the_redirect_then_rc_pattern_reads_the_organs_own_exit_code(tmp_path):
         "rc=$?\n"
         "echo \"rc=$rc\"\n"
     )
-    r = subprocess.run(["bash", "-c", script], capture_output=True, text=True)
+    r = subprocess.run([_REAL_BASH, "-c", script], capture_output=True, text=True)
     assert "rc=1" in r.stdout, r.stdout + r.stderr
 
 
@@ -181,7 +215,7 @@ def test_the_buggy_pipestatus_zero_shape_is_the_defect_this_avoids(tmp_path):
         f"printf 'line\\n' | python3 '{fake}' 2>&1 | tee '{out}' >/dev/null\n"
         "echo \"rc=${PIPESTATUS[0]}\"\n"
     )
-    r = subprocess.run(["bash", "-c", script], capture_output=True, text=True)
+    r = subprocess.run([_REAL_BASH, "-c", script], capture_output=True, text=True)
     assert "rc=0" in r.stdout, ("the negative control itself must show the masking; "
                                 "if this fails the defect class may already be gone: "
                                 + r.stdout + r.stderr)
