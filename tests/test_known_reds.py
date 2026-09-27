@@ -188,6 +188,25 @@ def test_refresh_os_key_stamps_a_signature_only_on_the_first_capture(kr):
         "AssertionError: first shape"
 
 
+def test_refresh_os_key_first_capture_never_inherits_the_shared_entrys_own_signature(kr):
+    """Codex terra HIGH, 2026-09-27: a shared entry can already carry a signature (stamped by a
+    plain `os_key=None` refresh, captured on WHATEVER OS ran it). The first OS-scoped capture of
+    that same member must never adopt it as if it were this OS's own fingerprint -- it
+    establishes a fresh one from the current run's `signatures` instead."""
+    previous = kr.Registry(schema=kr.SCHEMA, baseline_id="b", measured_at_sha="old",
+                           measured_via="local", workers=4,
+                           members={"tests/a.py::t1": {"attribution": "pre-freeze",
+                                                       "signature": "AssertionError: shared-os"}})
+    registry, _ = kr.refresh(failed=frozenset({"tests/a.py::t1"}), workers=4, commit="new",
+                             measured_via="local", date="2026-09-27", attribution={},
+                             previous=previous, os_key="windows-latest",
+                             signatures={"tests/a.py::t1": "AssertionError: windows-specific"})
+    assert registry.members_by_os["windows-latest"]["tests/a.py::t1"]["signature"] == \
+        "AssertionError: windows-specific"
+    # the shared set is untouched, still carrying its own original signature
+    assert registry.members["tests/a.py::t1"]["signature"] == "AssertionError: shared-os"
+
+
 def test_refresh_without_os_key_ignores_an_existing_members_by_os_section(kr):
     """A plain (`os_key=None`) refresh -- ecosystem/harness.yaml's own call shape -- carries
     `members_by_os` forward unchanged and never reads it to seed `members`."""

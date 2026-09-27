@@ -225,10 +225,12 @@ def refresh(*, failed: frozenset, workers: int, commit: str, measured_via: str, 
     byte-for-byte the pre-D2 behaviour -- the `ecosystem/harness.yaml` merge-moment caller never
     passes this flag and is untouched. A given `os_key` instead writes `members_by_os[os_key]`,
     seeded from THAT bucket's own prior members first, falling back to the shared set for a
-    member not yet OS-scoped -- so a member's first OS-scoped capture stamps a fresh `signature`
-    (from `signatures`, when it has none yet) while a member already OS-scoped keeps its
-    recorded signature untouched on every later refresh (`compare`'s "changed signature" check
-    depends on that signature being stable once set, not re-stamped every run).
+    member not yet OS-scoped -- so a member's first OS-scoped capture stamps a FRESH `signature`
+    from the current run (Codex terra HIGH, 2026-09-27: never the shared entry's own signature,
+    which may have been captured on a different OS and would otherwise masquerade as this OS's
+    fingerprint) while a member already OS-scoped keeps its recorded signature untouched on
+    every later refresh (`compare`'s "changed signature" check depends on that signature being
+    stable once set, not re-stamped every run).
 
     `signatures` ({node_id: text}, from `extract_failure_signatures`) fills a NEW member's
     `signature` field (carried-forward or attributed) only when that member does not already
@@ -236,11 +238,9 @@ def refresh(*, failed: frozenset, workers: int, commit: str, measured_via: str, 
     """
     signatures = signatures or {}
     shared_prev = dict(previous.members) if previous else {}
-    if os_key is None:
-        prev_pool = shared_prev
-    else:
-        prev_pool = {**shared_prev, **(dict(previous.members_by_os.get(os_key, {}))
-                                       if previous else {})}
+    prev_os_bucket = (dict(previous.members_by_os.get(os_key, {}))
+                      if (previous and os_key is not None) else {})
+    prev_pool = shared_prev if os_key is None else {**shared_prev, **prev_os_bucket}
     members: dict = {}
     missing: list[str] = []
     for node_id in failed:
@@ -250,7 +250,14 @@ def refresh(*, failed: frozenset, workers: int, commit: str, measured_via: str, 
                                           "frozen; a run showing it is expected, not a surprise"}
         elif node_id in prev_pool:
             entry = dict(prev_pool[node_id])
-            if "signature" not in entry and node_id in signatures:
+            if os_key is not None and node_id not in prev_os_bucket:
+                # First OS-scoped capture of a member seeded from the SHARED entry: any
+                # signature there was captured in a different context, never this OS's -- drop
+                # it and establish this OS's own fingerprint from the current run instead.
+                entry.pop("signature", None)
+                if node_id in signatures:
+                    entry["signature"] = signatures[node_id]
+            elif "signature" not in entry and node_id in signatures:
                 entry["signature"] = signatures[node_id]
             members[node_id] = entry
         elif node_id in attribution:
@@ -271,8 +278,7 @@ def refresh(*, failed: frozenset, workers: int, commit: str, measured_via: str, 
         dropped = sorted(set(shared_prev) - failed)
         new_members, new_by_os = members, prev_by_os
     else:
-        prev_os_only = dict(previous.members_by_os.get(os_key, {})) if previous else {}
-        dropped = sorted(set(prev_os_only) - failed)
+        dropped = sorted(set(prev_os_bucket) - failed)
         new_members = shared_prev
         new_by_os = {**prev_by_os, os_key: members}
 
