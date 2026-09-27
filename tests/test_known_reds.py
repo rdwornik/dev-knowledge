@@ -55,6 +55,26 @@ def test_compute_baseline_id_carries_the_date(kr):
     assert kr.compute_baseline_id(members, date="2026-09-24").startswith("2026-09-24-")
 
 
+def test_compute_baseline_id_is_unaffected_by_an_absent_or_empty_members_by_os(kr):
+    """D2 backward compatibility: a registry that never used `members_by_os` computes the
+    IDENTICAL baseline id whether the new kwarg is omitted, None, or `{}` -- every registry
+    written before D2 keeps its existing baseline id verbatim on the next refresh."""
+    members = {"x": {"attribution": "pre-freeze"}}
+    plain = kr.compute_baseline_id(members, date="2026-09-24")
+    assert kr.compute_baseline_id(members, date="2026-09-24", members_by_os=None) == plain
+    assert kr.compute_baseline_id(members, date="2026-09-24", members_by_os={}) == plain
+
+
+def test_compute_baseline_id_changes_when_members_by_os_content_changes(kr):
+    members = {"x": {"attribution": "pre-freeze"}}
+    a = kr.compute_baseline_id(members, date="2026-09-24",
+                               members_by_os={"windows-latest": {"y": {"attribution": "x"}}})
+    b = kr.compute_baseline_id(members, date="2026-09-24",
+                               members_by_os={"windows-latest": {"y": {"attribution": "z"}}})
+    assert a != b
+    assert a != kr.compute_baseline_id(members, date="2026-09-24")
+
+
 # --- refresh -----------------------------------------------------------------------------
 
 def test_refresh_carries_forward_previous_attribution_and_marks_witnesses(kr):
@@ -127,6 +147,62 @@ def test_refresh_is_idempotent_on_the_same_failed_set(kr):
     assert r1.baseline_id == r2.baseline_id
 
 
+# --- refresh: OS-keyed capture (D2, WAVE5B-N4 L2) ------------------------------------------
+
+def test_refresh_with_os_key_writes_members_by_os_and_leaves_shared_members_untouched(kr):
+    """`--os windows-latest` writes `members_by_os['windows-latest']`; the shared `members` set
+    (what a plain `refresh`, e.g. ecosystem/harness.yaml's merge-moment caller, reads and
+    writes) is byte-identical to before -- backward compatible for that caller."""
+    previous = kr.Registry(schema=kr.SCHEMA, baseline_id="b", measured_at_sha="old",
+                           measured_via="local", workers=4,
+                           members={"tests/a.py::t1": {"attribution": "pre-freeze"}})
+    registry, dropped = kr.refresh(failed=frozenset({"tests/a.py::t1"}), workers=4, commit="new",
+                                   measured_via="local", date="2026-09-24", attribution={},
+                                   previous=previous, os_key="windows-latest")
+    assert registry.members == previous.members
+    assert registry.members_by_os == {"windows-latest": {"tests/a.py::t1":
+                                                          {"attribution": "pre-freeze"}}}
+    assert dropped == []
+
+
+def test_refresh_os_key_stamps_a_signature_only_on_the_first_capture(kr):
+    """A member's first OS-scoped capture stamps the run's observed signature (there is none
+    yet); a later refresh of that same OS bucket carries the recorded signature forward
+    UNCHANGED even if the run's current text differs -- the signature is the fingerprint
+    `compare` diffs against, so it must not silently re-stamp on every run."""
+    previous = kr.Registry(schema=kr.SCHEMA, baseline_id="b", measured_at_sha="old",
+                           measured_via="local", workers=4,
+                           members={"tests/a.py::t1": {"attribution": "pre-freeze"}})
+    r1, _ = kr.refresh(failed=frozenset({"tests/a.py::t1"}), workers=4, commit="new",
+                       measured_via="local", date="2026-09-24", attribution={}, previous=previous,
+                       os_key="windows-latest",
+                       signatures={"tests/a.py::t1": "AssertionError: first shape"})
+    assert r1.members_by_os["windows-latest"]["tests/a.py::t1"]["signature"] == \
+        "AssertionError: first shape"
+
+    r2, _ = kr.refresh(failed=frozenset({"tests/a.py::t1"}), workers=4, commit="newer",
+                       measured_via="local", date="2026-09-25", attribution={}, previous=r1,
+                       os_key="windows-latest",
+                       signatures={"tests/a.py::t1": "AssertionError: DIFFERENT shape"})
+    assert r2.members_by_os["windows-latest"]["tests/a.py::t1"]["signature"] == \
+        "AssertionError: first shape"
+
+
+def test_refresh_without_os_key_ignores_an_existing_members_by_os_section(kr):
+    """A plain (`os_key=None`) refresh -- ecosystem/harness.yaml's own call shape -- carries
+    `members_by_os` forward unchanged and never reads it to seed `members`."""
+    previous = kr.Registry(schema=kr.SCHEMA, baseline_id="b", measured_at_sha="old",
+                           measured_via="local", workers=4, members={},
+                           members_by_os={"windows-latest": {"tests/win.py::t":
+                                                             {"attribution": "pre-freeze"}}})
+    registry, _ = kr.refresh(failed=frozenset({"tests/lin.py::t"}), workers=4, commit="new",
+                             measured_via="local", date="2026-09-24",
+                             attribution={"tests/lin.py::t": {"attribution": "pre-freeze"}},
+                             previous=previous)
+    assert registry.members == {"tests/lin.py::t": {"attribution": "pre-freeze"}}
+    assert registry.members_by_os == previous.members_by_os
+
+
 # --- registry round-trip ------------------------------------------------------------------
 
 def test_registry_round_trips_through_json(kr, tmp_path):
@@ -169,6 +245,23 @@ def test_registry_hooks_field_defaults_empty_and_round_trips(kr, tmp_path):
     kr.write_registry(path, registry)
     round_tripped = kr.load_registry(path)
     assert round_tripped == registry
+
+
+def test_registry_members_by_os_field_defaults_empty_and_round_trips(kr, tmp_path):
+    """Same additive shape as `hooks` (D2, WAVE5B-N4 L2): a registry with no `members_by_os`
+    key loads with `{}`, and a registry that has one round-trips it exactly."""
+    path = tmp_path / "registry.json"
+    path.write_text(
+        '{"schema": "known-reds-registry/1", "baseline_id": "b", "measured_at_sha": "s", '
+        '"measured_via": "local", "workers": 4, "members": {}}', encoding="utf-8")
+    assert kr.load_registry(path).members_by_os == {}
+
+    registry = kr.Registry(schema=kr.SCHEMA, baseline_id="2026-09-27-abc", measured_at_sha="s",
+                           measured_via="local", workers=4, members={},
+                           members_by_os={"windows-latest": {"tests/a.py::t1":
+                                                             {"attribution": "pre-freeze"}}})
+    kr.write_registry(path, registry)
+    assert kr.load_registry(path) == registry
 
 
 # --- compare -------------------------------------------------------------------------------
@@ -231,11 +324,15 @@ def test_compare_a_broken_pytest_exit_is_not_comparable(kr):
     assert "NOT COMPARABLE" in result["reason"]
 
 
-def test_compare_names_an_unattributed_known_member(kr):
+def test_compare_an_unattributed_known_member_is_a_regression(kr):
+    """D2 (WAVE5B-N4 L2) RED-first witness: a known member the registry cannot explain never
+    reads as known-safe -- `compare` reports it in BOTH `unattributed` (informational: which
+    known member) and `regressions` (the verdict), unlike the pre-D2 behaviour of a bare pass."""
     registry = _registry(kr, {"tests/a.py::t1": {"attribution": kr.UNATTRIBUTED, "reason": "x"}})
     result = kr.compare(frozenset({"tests/a.py::t1"}), registry, workers=4)
-    assert result["verdict"] == "pass"
+    assert result["verdict"] == "fail"
     assert result["unattributed"] == ["tests/a.py::t1"]
+    assert result["regressions"] == ["tests/a.py::t1"]
 
 
 def test_render_compare_uses_no_pipe_tables(kr):
@@ -244,6 +341,82 @@ def test_render_compare_uses_no_pipe_tables(kr):
     report = kr.render_compare(result)
     assert "|" not in report
     assert registry.baseline_id in report
+
+
+# --- compare: OS-keyed overlay + failure signatures (D2, WAVE5B-N4 L2) ---------------------
+
+def test_compare_uses_the_os_specific_overlay_when_given_an_os_key(kr):
+    """A member known ONLY on `members_by_os[os_key]` (not in the shared set) is `pre_existing`
+    when compared with that `os_key` -- this is the windows-only capture from L1's run."""
+    registry = kr.Registry(schema=kr.SCHEMA, baseline_id="b", measured_at_sha="s",
+                           measured_via="local", workers=4, members={},
+                           members_by_os={"windows-latest": {"tests/win.py::t":
+                                                             {"attribution": "pre-freeze"}}})
+    result = kr.compare(frozenset({"tests/win.py::t"}), registry, workers=4,
+                        os_key="windows-latest")
+    assert result["verdict"] == "pass"
+    assert result["pre_existing"] == ["tests/win.py::t"]
+
+
+def test_compare_ignores_another_os_s_overlay(kr):
+    """The SAME failing id, compared with a DIFFERENT `os_key` (or none), is not covered by an
+    overlay registered under a different OS -- it reports as a regression, not a known member."""
+    registry = kr.Registry(schema=kr.SCHEMA, baseline_id="b", measured_at_sha="s",
+                           measured_via="local", workers=4, members={},
+                           members_by_os={"windows-latest": {"tests/win.py::t":
+                                                             {"attribution": "pre-freeze"}}})
+    result = kr.compare(frozenset({"tests/win.py::t"}), registry, workers=4,
+                        os_key="ubuntu-latest")
+    assert result["verdict"] == "fail"
+    assert result["regressions"] == ["tests/win.py::t"]
+
+    result_no_os = kr.compare(frozenset({"tests/win.py::t"}), registry, workers=4)
+    assert result_no_os["verdict"] == "fail"
+    assert result_no_os["regressions"] == ["tests/win.py::t"]
+
+
+def test_compare_a_changed_signature_on_a_known_member_is_a_regression(kr):
+    """D2 RED-first witness: the SAME node id, still a registered member, but its current
+    signature no longer matches the registered one -- 'a registered test that fails worse
+    still passes' (C1), closed at the signature level."""
+    registry = _registry(kr, {"tests/a.py::t1": {"attribution": "pre-freeze",
+                                                  "signature": "AssertionError: original"}})
+    result = kr.compare(frozenset({"tests/a.py::t1"}), registry, workers=4,
+                        signatures={"tests/a.py::t1": "TypeError: a completely different cause"})
+    assert result["verdict"] == "fail"
+    assert result["regressions"] == ["tests/a.py::t1"]
+    assert result["signature_changed"] == ["tests/a.py::t1"]
+
+
+def test_compare_an_unchanged_signature_stays_pre_existing(kr):
+    registry = _registry(kr, {"tests/a.py::t1": {"attribution": "pre-freeze",
+                                                  "signature": "AssertionError: original"}})
+    result = kr.compare(frozenset({"tests/a.py::t1"}), registry, workers=4,
+                        signatures={"tests/a.py::t1": "AssertionError: original"})
+    assert result["verdict"] == "pass"
+    assert result["pre_existing"] == ["tests/a.py::t1"]
+    assert result["signature_changed"] == []
+
+
+def test_compare_without_signatures_never_flags_a_change(kr):
+    """Backward compatible: a caller that never supplies `signatures` (every caller before D2)
+    is unaffected even though the member carries a recorded signature."""
+    registry = _registry(kr, {"tests/a.py::t1": {"attribution": "pre-freeze",
+                                                  "signature": "AssertionError: original"}})
+    result = kr.compare(frozenset({"tests/a.py::t1"}), registry, workers=4)
+    assert result["verdict"] == "pass"
+    assert result["signature_changed"] == []
+
+
+def test_compare_a_member_with_no_recorded_signature_is_never_flagged_as_changed(kr):
+    """Every member registered before D2 carries no `signature` -- `compare` must not invent a
+    'change' against nothing recorded, or the whole pre-existing 90-member registry would
+    spuriously regress the moment `signatures` starts being supplied."""
+    registry = _registry(kr, {"tests/a.py::t1": {"attribution": "pre-freeze"}})
+    result = kr.compare(frozenset({"tests/a.py::t1"}), registry, workers=4,
+                        signatures={"tests/a.py::t1": "AssertionError: whatever it is today"})
+    assert result["verdict"] == "pass"
+    assert result["signature_changed"] == []
 
 
 # --- compare-hook (lane-ci-signal, [#802]: the non-pytest sibling of `compare`) -------------
@@ -355,6 +528,48 @@ def test_compare_hook_without_hook_output_keeps_the_prior_whole_hook_behavior(kr
     result2 = kr.compare_hook("audit-health", 1, registry2,
                               hook_output="self-audit - 0/1 pass:\n  [!!] anything: z\n")
     assert result2["verdict"] == "pass"
+
+
+# --- extract_failure_signatures / default_os_key (D2, WAVE5B-N4 L2) ------------------------
+
+def test_extract_failure_signatures_reads_the_reason_after_the_dash(kr):
+    output = ("FAILED tests/a.py::t1 - AssertionError: assert 1 == 2\n"
+             "ERROR tests/b.py::t2 - RuntimeError: boom\n")
+    assert kr.extract_failure_signatures(output) == {
+        "tests/a.py::t1": "AssertionError: assert 1 == 2",
+        "tests/b.py::t2": "RuntimeError: boom"}
+
+
+def test_extract_failure_signatures_skips_a_bare_failed_line_with_no_reason(kr):
+    assert kr.extract_failure_signatures("FAILED tests/a.py::t1\n") == {}
+
+
+def test_default_os_key_reads_runner_os_first(kr, monkeypatch):
+    monkeypatch.setenv("RUNNER_OS", "Windows")
+    assert kr.default_os_key() == "windows-latest"
+    monkeypatch.setenv("RUNNER_OS", "Linux")
+    assert kr.default_os_key() == "ubuntu-latest"
+
+
+def test_default_os_key_falls_back_to_sys_platform_off_a_runner(kr, monkeypatch):
+    monkeypatch.delenv("RUNNER_OS", raising=False)
+    monkeypatch.setattr(kr.sys, "platform", "win32")
+    assert kr.default_os_key() == "windows-latest"
+    monkeypatch.setattr(kr.sys, "platform", "linux")
+    assert kr.default_os_key() == "ubuntu-latest"
+
+
+# --- the live registry (D2 done-when: "unattributed = 0 per OS") ---------------------------
+
+def test_the_live_registry_carries_zero_unattributed_members_per_os(kr):
+    registry = kr.load_registry(_REPO / kr.REGISTRY_PATH)
+    shared_unattributed = [n for n, e in registry.members.items()
+                           if e.get("attribution") == kr.UNATTRIBUTED]
+    assert shared_unattributed == []
+    for os_key, members in registry.members_by_os.items():
+        os_unattributed = [n for n, e in members.items()
+                          if e.get("attribution") == kr.UNATTRIBUTED]
+        assert os_unattributed == [], f"{os_key}: {os_unattributed}"
 
 
 # --- find_lane -------------------------------------------------------------------------------
@@ -563,3 +778,48 @@ def test_main_refresh_accepts_a_previous_registry_that_is_an_ancestor(kr, toy_re
                  "--previous", str(prev_path), "--registry", str(registry_out)])
     assert rc == 0
     assert registry_out.exists()
+
+
+# --- refresh/compare CLI: --os (D2, WAVE5B-N4 L2 -- backward-compatible CLI, new flag) -------
+
+def test_main_refresh_with_os_flag_writes_members_by_os(kr, toy_repo, tmp_path):
+    previous = kr.Registry(schema=kr.SCHEMA, baseline_id="2026-09-01-deadbeefcafe",
+                           measured_at_sha=_git(toy_repo, "rev-parse", "HEAD"), measured_via="local",
+                           workers=4, members={"tests/a.py::t1": {"attribution": kr.PRE_FREEZE}})
+    prev_path = tmp_path / "previous.json"
+    kr.write_registry(prev_path, previous)
+    _git(toy_repo, "commit", "-q", "--allow-empty", "-m", "progress")
+    tip_sha = _git(toy_repo, "rev-parse", "HEAD")
+
+    pytest_out = tmp_path / "pytest.out"
+    pytest_out.write_text("FAILED tests/a.py::t1 - AssertionError: on windows\n", encoding="utf-8")
+    registry_out = tmp_path / "registry.json"
+
+    rc = kr.main(["--repo-root", str(toy_repo), "refresh", "--pytest-output", str(pytest_out),
+                 "--workers", "4", "--commit", tip_sha, "--date", "2026-09-27",
+                 "--previous", str(prev_path), "--registry", str(registry_out),
+                 "--os", "windows-latest"])
+    assert rc == 0
+    written = kr.load_registry(registry_out)
+    assert written.members == previous.members  # shared set untouched
+    assert written.members_by_os["windows-latest"]["tests/a.py::t1"]["signature"] == \
+        "AssertionError: on windows"
+
+
+def test_main_compare_with_os_flag_uses_the_overlay(kr, tmp_path):
+    registry = kr.Registry(schema=kr.SCHEMA, baseline_id="b", measured_at_sha="s",
+                           measured_via="local", workers=4, members={},
+                           members_by_os={"windows-latest": {"tests/win.py::t":
+                                                             {"attribution": "pre-freeze"}}})
+    registry_path = tmp_path / "registry.json"
+    kr.write_registry(registry_path, registry)
+    pytest_out = tmp_path / "pytest.out"
+    pytest_out.write_text("FAILED tests/win.py::t - x\n", encoding="utf-8")
+
+    rc = kr.main(["compare", "--pytest-output", str(pytest_out), "--workers", "4",
+                 "--registry", str(registry_path), "--os", "windows-latest"])
+    assert rc == 0
+
+    rc_wrong_os = kr.main(["compare", "--pytest-output", str(pytest_out), "--workers", "4",
+                           "--registry", str(registry_path), "--os", "ubuntu-latest"])
+    assert rc_wrong_os == 1

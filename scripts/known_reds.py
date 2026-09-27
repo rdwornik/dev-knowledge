@@ -23,6 +23,21 @@ WHAT THIS MODULE ADDS, on top of `logs/SUITE-BASELINE-FREEZE.md`'s node-id-membe
      registry member and has no attribution in the supplied `--attribution` file is a REFUSAL,
      not a silent addition (done-contract item 5) -- the opposite of what a raw re-measure of
      the old freeze file would do.
+  4. **OS-keyed membership and failure signatures** (WAVE5B-N4 L2, proposal D2, `[#965]` "made
+     substrate-keyed"). `Registry.members_by_os` is an ADDITIVE overlay -- `{os_key:
+     {node_id: entry}}` -- consulted only when `compare`/`refresh` are given an `os_key`
+     (`compare` auto-detects one from `RUNNER_OS`/`sys.platform` so CI needs no
+     `.github/workflows/conductor.yml` edit, owned by another lane this batch; `refresh`
+     defaults to `None`, i.e. the shared/legacy set, so the merge-moment caller in
+     `ecosystem/harness.yaml`, which never passes `--os`, is untouched). Every member may also
+     carry a `signature` (the exception type + first failing assertion line, read verbatim
+     from pytest's own `FAILED <id> - <reason>` short-summary line): once a member has a
+     recorded signature, `compare` treats a DIFFERENT current signature on the same node id as
+     a regression, not a pass-through -- the "a registered test that fails worse still passes"
+     defect (C1 above) closed at the signature level, not just the node-id level. An
+     **unattributed** known member is likewise a `compare`-time regression, never a silent
+     pass: `[#965]`'s "one registry" becomes one registry that can still refuse to vouch for a
+     member it cannot explain.
 
 THE REGISTRY IS COMMITTED, THE BATCH REGISTRY IS NOT. `scripts/test_pairing.py`'s
 `TEST-PAIRING-REGISTRY-<BATCH>.json` is gitignored and per-batch by design (recording it twice
@@ -99,11 +114,24 @@ class KnownRedsError(RuntimeError):
 
 # --- baseline identity --------------------------------------------------------------------
 
-def compute_baseline_id(members: dict, *, date: str) -> str:
+def compute_baseline_id(members: dict, *, date: str, members_by_os: dict | None = None) -> str:
     """`<date>-<12 hex chars>`; the hash is over the sorted (id, attribution) pairs, so two
     registries with the same members and the same attributions always share a baseline id
-    regardless of dict insertion order, and any change to who-is-known or why changes it."""
-    canonical = json.dumps({k: members[k] for k in sorted(members)}, sort_keys=True)
+    regardless of dict insertion order, and any change to who-is-known or why changes it.
+
+    `members_by_os`, when non-empty, folds the OS-keyed overlay into the same hash (sorted by
+    OS key, then by node id within each) so a change confined to one OS's bucket still changes
+    the baseline id. Omitted or empty, the hash is byte-identical to the pre-D2 computation --
+    every registry that never used `members_by_os` keeps its existing baseline id verbatim."""
+    canonical_members = {k: members[k] for k in sorted(members)}
+    if members_by_os:
+        canonical = json.dumps(
+            {"members": canonical_members,
+             "members_by_os": {osk: {k: members_by_os[osk][k] for k in sorted(members_by_os[osk])}
+                               for osk in sorted(members_by_os)}},
+            sort_keys=True)
+    else:
+        canonical = json.dumps(canonical_members, sort_keys=True)
     digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:12]
     return f"{date}-{digest}"
 
@@ -129,6 +157,11 @@ class Registry:
     #: was measured against, when `compare_hook` is given the hook's raw output -- an entry with
     #: no `checks` list keeps the prior whole-hook-known behavior.
     hooks: dict = field(default_factory=dict)
+    #: {os_key: {node_id: entry}} -- the D2 OS-keyed overlay (WAVE5B-N4 L2). ADDITIVE, same
+    #: shape/reasoning as `hooks` above: defaults to `{}` so every registry written before this
+    #: field existed still loads; `compare`/`refresh` only consult it when given an `os_key`.
+    #: See the module docstring's "OS-keyed membership" paragraph.
+    members_by_os: dict = field(default_factory=dict)
 
     def to_json(self) -> dict:
         return {"schema": self.schema, "baseline_id": self.baseline_id,
@@ -136,6 +169,9 @@ class Registry:
                 "workers": self.workers,
                 "members": {k: self.members[k] for k in sorted(self.members)},
                 "hooks": {k: self.hooks[k] for k in sorted(self.hooks)},
+                "members_by_os": {osk: {k: self.members_by_os[osk][k]
+                                        for k in sorted(self.members_by_os[osk])}
+                                  for osk in sorted(self.members_by_os)},
                 "notes": list(self.notes)}
 
     @classmethod
@@ -147,6 +183,8 @@ class Registry:
                        measured_at_sha=data["measured_at_sha"], measured_via=data["measured_via"],
                        workers=int(data["workers"]), members=dict(data["members"]),
                        hooks=dict(data.get("hooks", {})),
+                       members_by_os={osk: dict(v) for osk, v in
+                                      data.get("members_by_os", {}).items()},
                        notes=tuple(data.get("notes", ())))
         except (KeyError, TypeError) as exc:
             raise KnownRedsError(f"{source}: malformed registry field: {exc}") from exc
@@ -172,7 +210,8 @@ def write_registry(path: Path, registry: Registry) -> None:
 # --- refresh: build/update the registry from a run + attribution evidence ------------------
 
 def refresh(*, failed: frozenset, workers: int, commit: str, measured_via: str, date: str,
-            attribution: dict, previous: Registry | None) -> tuple[Registry, list[str]]:
+            attribution: dict, previous: Registry | None, os_key: str | None = None,
+            signatures: dict | None = None) -> tuple[Registry, list[str]]:
     """Build the next registry. `attribution` supplies evidence for ids not already carried
     from `previous` (each value is `{"attribution": ...}` or `{"attribution": ..., "reason":
     ...}`). Returns (registry, dropped) where `dropped` lists previous members no longer
@@ -181,8 +220,27 @@ def refresh(*, failed: frozenset, workers: int, commit: str, measured_via: str, 
     Raises KnownRedsError naming every currently-failing id that is neither carried from
     `previous` nor present in `attribution`: a refresh that could not attribute a NEW red must
     refuse rather than silently file it as known (done-contract item 5).
+
+    `os_key` (D2, WAVE5B-N4 L2): `None` (the default) writes the shared/legacy `members` set,
+    byte-for-byte the pre-D2 behaviour -- the `ecosystem/harness.yaml` merge-moment caller never
+    passes this flag and is untouched. A given `os_key` instead writes `members_by_os[os_key]`,
+    seeded from THAT bucket's own prior members first, falling back to the shared set for a
+    member not yet OS-scoped -- so a member's first OS-scoped capture stamps a fresh `signature`
+    (from `signatures`, when it has none yet) while a member already OS-scoped keeps its
+    recorded signature untouched on every later refresh (`compare`'s "changed signature" check
+    depends on that signature being stable once set, not re-stamped every run).
+
+    `signatures` ({node_id: text}, from `extract_failure_signatures`) fills a NEW member's
+    `signature` field (carried-forward or attributed) only when that member does not already
+    carry one -- never overwrites an existing recorded signature.
     """
-    prev_members = dict(previous.members) if previous else {}
+    signatures = signatures or {}
+    shared_prev = dict(previous.members) if previous else {}
+    if os_key is None:
+        prev_pool = shared_prev
+    else:
+        prev_pool = {**shared_prev, **(dict(previous.members_by_os.get(os_key, {}))
+                                       if previous else {})}
     members: dict = {}
     missing: list[str] = []
     for node_id in failed:
@@ -190,10 +248,16 @@ def refresh(*, failed: frozenset, workers: int, commit: str, measured_via: str, 
             members[node_id] = {"attribution": WITNESS,
                                 "reason": "[#664] commit-tier witness -- deliberately never "
                                           "frozen; a run showing it is expected, not a surprise"}
-        elif node_id in prev_members:
-            members[node_id] = prev_members[node_id]
+        elif node_id in prev_pool:
+            entry = dict(prev_pool[node_id])
+            if "signature" not in entry and node_id in signatures:
+                entry["signature"] = signatures[node_id]
+            members[node_id] = entry
         elif node_id in attribution:
-            members[node_id] = dict(attribution[node_id])
+            entry = dict(attribution[node_id])
+            if "signature" not in entry and node_id in signatures:
+                entry["signature"] = signatures[node_id]
+            members[node_id] = entry
         else:
             missing.append(node_id)
     if missing:
@@ -201,52 +265,144 @@ def refresh(*, failed: frozenset, workers: int, commit: str, measured_via: str, 
             "refresh refused: " + str(len(missing)) + " currently-failing id(s) are neither "
             "carried from the previous registry nor attributed in --attribution -- a refresh "
             "never adds an unattributed red:\n  " + "\n  ".join(sorted(missing)))
-    dropped = sorted(set(prev_members) - failed)
-    baseline_id = compute_baseline_id(members, date=date)
+
+    prev_by_os = dict(previous.members_by_os) if previous else {}
+    if os_key is None:
+        dropped = sorted(set(shared_prev) - failed)
+        new_members, new_by_os = members, prev_by_os
+    else:
+        prev_os_only = dict(previous.members_by_os.get(os_key, {})) if previous else {}
+        dropped = sorted(set(prev_os_only) - failed)
+        new_members = shared_prev
+        new_by_os = {**prev_by_os, os_key: members}
+
+    baseline_id = compute_baseline_id(new_members, date=date, members_by_os=new_by_os)
     registry = Registry(schema=SCHEMA, baseline_id=baseline_id, measured_at_sha=commit,
-                        measured_via=measured_via, workers=workers, members=members,
+                        measured_via=measured_via, workers=workers, members=new_members,
                         notes=previous.notes if previous else (),
-                        hooks=dict(previous.hooks) if previous else {})
+                        hooks=dict(previous.hooks) if previous else {},
+                        members_by_os=new_by_os)
     return registry, dropped
 
 
 # --- compare: CI's own comparator, replacing a node-id diff against the prose freeze -------
 
 def compare(failed: frozenset, registry: Registry, *, workers: int,
-            pytest_exit: int | None = None) -> dict:
+            pytest_exit: int | None = None, os_key: str | None = None,
+            signatures: dict | None = None) -> dict:
     """Judge one run against `registry`. Mirrors `conductor.suite_gate`'s shape (verdict,
     reason, regressions, pre_existing) plus `baseline_id` on every branch (done-contract item 3)
     and a `witnesses` bucket so a [#664] witness is reported by name, not folded into either
     'pre-existing' (which would hide that it is DESIGNED to fail) or 'regressions' (which would
     make every run report a fail that arming required-checks could never clear).
+
+    D2 (WAVE5B-N4 L2), two more regression classes, neither a silent pass-through:
+      - **unattributed member.** A known member registered with `attribution: "unattributed"`
+        is reported (in `unattributed`) AND counted as a regression -- a registry entry that
+        cannot explain itself never reads as "known-safe".
+      - **changed signature.** When `signatures` supplies this run's failure text for a node id
+        AND the registered entry already carries a `signature`, a mismatch is a regression (in
+        `signature_changed`) even though the node id itself is a known member -- the same test
+        id failing a DIFFERENT way is a new defect, not the old one (C1: "a registered test that
+        fails worse still passes"). A member with no recorded signature, or a run with no
+        `signatures` supplied, skips this check entirely (backward compatible: every member
+        registered before D2 carries no `signature`).
+
+    `os_key`, when given, merges `registry.members_by_os.get(os_key, {})` on top of the shared
+    `registry.members` (the OS-specific entry wins on a shared key) -- omitted, behaviour is
+    identical to the pre-D2 comparator.
     """
-    base = {"baseline_id": registry.baseline_id}
+    base = {"baseline_id": registry.baseline_id, "os_key": os_key}
+    empty = {"regressions": [], "pre_existing": [], "witnesses": [], "unattributed": [],
+            "signature_changed": []}
     if pytest_exit is not None and pytest_exit not in (0, 1):
         return {**base, "verdict": "fail",
-                "reason": f"NOT COMPARABLE -- pytest itself exited {pytest_exit}",
-                "regressions": [], "pre_existing": [], "witnesses": [], "unattributed": []}
+                "reason": f"NOT COMPARABLE -- pytest itself exited {pytest_exit}", **empty}
     if workers != registry.workers:
         return {**base, "verdict": "fail",
                 "reason": f"NOT COMPARABLE -- resolved at {workers} workers, the registry is "
-                          f"pinned at {registry.workers}",
-                "regressions": [], "pre_existing": [], "witnesses": [], "unattributed": []}
-    known = registry.members
-    regressions = sorted(n for n in failed if n not in known)
-    pre_existing = sorted(n for n in failed if n in known
-                          and known[n]["attribution"] not in (WITNESS,))
-    witnesses = sorted(n for n in failed if n in known and known[n]["attribution"] == WITNESS)
-    unattributed_known = sorted(n for n in pre_existing if known[n]["attribution"] == UNATTRIBUTED)
+                          f"pinned at {registry.workers}", **empty}
+    signatures = signatures or {}
+    known = dict(registry.members)
+    if os_key:
+        known.update(registry.members_by_os.get(os_key, {}))
+
+    regressions: list[str] = []
+    pre_existing: list[str] = []
+    witnesses: list[str] = []
+    unattributed: list[str] = []
+    signature_changed: list[str] = []
+    for node_id in sorted(failed):
+        entry = known.get(node_id)
+        if entry is None:
+            regressions.append(node_id)
+            continue
+        attribution_value = entry["attribution"]
+        if attribution_value == WITNESS:
+            witnesses.append(node_id)
+            continue
+        if attribution_value == UNATTRIBUTED:
+            unattributed.append(node_id)
+            regressions.append(node_id)
+            continue
+        registered_sig = entry.get("signature")
+        current_sig = signatures.get(node_id)
+        if registered_sig and current_sig and registered_sig != current_sig:
+            signature_changed.append(node_id)
+            regressions.append(node_id)
+            continue
+        pre_existing.append(node_id)
+
+    result_lists = {"regressions": sorted(regressions), "pre_existing": pre_existing,
+                    "witnesses": witnesses, "unattributed": unattributed,
+                    "signature_changed": signature_changed}
     if regressions:
         return {**base, "verdict": "fail",
                 "reason": f"REGRESSION -- {len(regressions)} failure(s) not in the registry "
                           f"(baseline {registry.baseline_id})",
-                "regressions": regressions, "pre_existing": pre_existing,
-                "witnesses": witnesses, "unattributed": unattributed_known}
+                **result_lists}
     return {**base, "verdict": "pass",
             "reason": f"{len(pre_existing)} known failure(s), {len(witnesses)} witness(es), "
                       f"0 outside the registry (baseline {registry.baseline_id})",
-            "regressions": [], "pre_existing": pre_existing, "witnesses": witnesses,
-            "unattributed": unattributed_known}
+            **result_lists}
+
+
+#: D2 (WAVE5B-N4 L2): the failure signature -- exception type + first failing assertion line --
+#: read verbatim from pytest's own short-summary `FAILED <id> - <reason>` / `ERROR <id> -
+#: <reason>` line (`-q --tb=short`'s stable, dependency-free reason text; no junit/json plugin,
+#: ADR-106 library-first). A bare `FAILED <id>` line with no ` - <reason>` suffix yields no
+#: entry -- `compare` never treats an absent signature as "changed".
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+_FAILED_LINE_WITH_REASON_RE = re.compile(r"^(?:FAILED|ERROR)\s+(.+?)(?:\s+-\s+(.*))?$")
+
+
+def extract_failure_signatures(pytest_output: str) -> dict:
+    """{node_id: signature text}, from pytest's own short-summary lines (see above)."""
+    signatures: dict = {}
+    for raw in pytest_output.splitlines():
+        line = _ANSI_RE.sub("", raw).strip()
+        m = _FAILED_LINE_WITH_REASON_RE.match(line)
+        if m and m.group(2):
+            signatures[m.group(1).strip()] = m.group(2).strip()
+    return signatures
+
+
+def default_os_key() -> str:
+    """The registry's OS key for the CURRENT process, auto-detected so `compare`'s new
+    OS-awareness needs no edit to `.github/workflows/conductor.yml` (owned by another lane this
+    batch, ruling (k)): GitHub Actions sets `RUNNER_OS`; anywhere else (a lane's own local push,
+    a manual invocation) falls back to `sys.platform`. Matches the matrix's own context-naming
+    convention (`pytest (ubuntu-latest)` / `pytest (windows-latest)`,
+    `.github/workflows/conductor.yml:100`) so a captured `members_by_os` key always agrees with
+    what a CI run on that OS will look up."""
+    runner_os = os.environ.get("RUNNER_OS", "").strip().lower()
+    if runner_os == "windows":
+        return "windows-latest"
+    if runner_os == "linux":
+        return "ubuntu-latest"
+    if runner_os == "macos":
+        return "macos-latest"
+    return "windows-latest" if sys.platform.startswith("win") else "ubuntu-latest"
 
 
 #: Codex terra HIGH (2026-09-26, LANE-5B3-8): `[!!] <name>` from `audit.py health`'s self-audit
@@ -331,6 +487,8 @@ def render_compare_hook(result: dict) -> str:
 def render_compare(result: dict) -> str:
     """Flat key/value + bullet lines (CLAUDE.md section 4): no pipe tables."""
     lines = ["known-reds compare", "", f"baseline id    : {result['baseline_id']}"]
+    if result.get("os_key"):
+        lines.append(f"os key         : {result['os_key']}")
     lines.append(f"pre-existing   : {len(result['pre_existing'])}")
     for nid in result["pre_existing"]:
         lines.append(f"  known         {nid}")
@@ -340,10 +498,15 @@ def render_compare(result: dict) -> str:
     lines.append(f"regressions    : {len(result['regressions'])}")
     for nid in result["regressions"]:
         lines.append(f"  REGRESSION    {nid}")
-    if result["unattributed"]:
+    if result.get("unattributed"):
         lines.append(f"unattributed known members still failing: {len(result['unattributed'])}")
         for nid in result["unattributed"]:
             lines.append(f"  UNATTRIBUTED  {nid}")
+    if result.get("signature_changed"):
+        lines.append(f"changed signature (known id, different failure): "
+                     f"{len(result['signature_changed'])}")
+        for nid in result["signature_changed"]:
+            lines.append(f"  SIG-CHANGED   {nid}")
     lines.append("")
     lines.append(f"verdict        : {result['verdict'].upper()} -- {result['reason']}")
     return "\n".join(lines)
@@ -507,12 +670,20 @@ def main(argv: list[str] | None = None) -> int:
     ref.add_argument("--attribution", default=None, help="JSON {node_id: {attribution, reason?}}")
     ref.add_argument("--previous", default=None, help="a prior registry to carry members from")
     ref.add_argument("--registry", default=REGISTRY_PATH)
+    ref.add_argument("--os", dest="os_key", default=None,
+                     help="D2: write members_by_os[OS] instead of the shared set. Omitted "
+                          "(the default) keeps the pre-D2 behaviour exactly -- "
+                          "ecosystem/harness.yaml's merge-moment caller never passes this")
 
     cmp_ = sub.add_parser("compare", help="judge a run against the committed registry")
     cmp_.add_argument("--pytest-output", required=True)
     cmp_.add_argument("--workers", required=True, type=int)
     cmp_.add_argument("--pytest-exit", default=None, type=int)
     cmp_.add_argument("--registry", default=REGISTRY_PATH)
+    cmp_.add_argument("--os", dest="os_key", default=None,
+                      help="D2: the OS key whose members_by_os overlay to merge in. Omitted, "
+                           "auto-detected from RUNNER_OS/sys.platform (default_os_key()) -- "
+                           "conductor.yml, owned by another lane, need not pass this")
 
     cmp_hook = sub.add_parser("compare-hook",
                               help="judge one non-pytest hook's exit code against "
@@ -555,10 +726,12 @@ def main(argv: list[str] | None = None) -> int:
                      file=sys.stderr)
                 return 1
         attribution = _load_attribution_file(args.attribution)
+        signatures = extract_failure_signatures(text)
         try:
             registry, dropped = refresh(failed=failed, workers=args.workers, commit=args.commit,
                                         measured_via=args.measured_via, date=args.date,
-                                        attribution=attribution, previous=previous)
+                                        attribution=attribution, previous=previous,
+                                        os_key=args.os_key, signatures=signatures)
         except KnownRedsError as exc:
             print(str(exc), file=sys.stderr)
             return 1
@@ -573,12 +746,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "compare":
         text = Path(args.pytest_output).read_text(encoding="utf-8", errors="replace")
         failed = conductor.parse_failed_node_ids(text)
+        signatures = extract_failure_signatures(text)
+        os_key = args.os_key or default_os_key()
         try:
             registry = load_registry(root / args.registry)
         except KnownRedsError as exc:
             print(str(exc), file=sys.stderr)
             return EXIT_UNCOMPARABLE
-        result = compare(failed, registry, workers=args.workers, pytest_exit=args.pytest_exit)
+        result = compare(failed, registry, workers=args.workers, pytest_exit=args.pytest_exit,
+                         os_key=os_key, signatures=signatures)
         report = render_compare(result)
         if args.out:
             Path(args.out).write_text(report + "\n", encoding="utf-8", newline="\n")
