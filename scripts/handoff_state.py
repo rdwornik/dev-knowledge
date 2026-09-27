@@ -63,6 +63,13 @@ HONEST LIMITS
     actual seat traffic is at call time; the equality check this buys is "the generator and
     the verifier read the same file at their own respective moments", never "the value is
     stable across a whole test run". `path=` lets a caller (a test) point it at a fixture.
+    It calls `seat_health_line(..., elapsed=False)` (LANE-5B4-17 repair 1) so a named
+    wedged/starved seat's detail is its last event's FIXED timestamp, never a "NN min since
+    last event" figure that ages every minute on its own with no seat-state change --
+    otherwise a bundle cut at T and re-verified at T+1 min would fail BD-seats on the clock
+    alone. A real seat-state change (a seat crossing into/out of wedged or starved, or its
+    counts changing) still correctly mismatches; only the cosmetic elapsed-time figure is
+    now held fixed.
   * `row_rulings` / `row_capabilities` resolve "newest" by the dated token in the FILENAME
     (`YYYY-MM-DD`), falling back to mtime only when two candidates share a date -- never by
     directory-listing order, which the OS does not guarantee. A `-vN-superseded.md` sibling
@@ -175,9 +182,9 @@ def row_batches(repo_root: "Path | str") -> StateRow:
 # --- Seats: the seat registry's own health line -----------------------------------------------
 
 def row_seats(*, path: "Path | None" = None) -> StateRow:
-    evidence = "seat_registry.seat_health_line"
+    evidence = "seat_registry.seat_health_line(elapsed=False)"
     try:
-        line = _sr.seat_health_line(path)
+        line = _sr.seat_health_line(path, elapsed=False)
     except Exception as exc:                          # noqa: BLE001
         return _degraded("Seats", evidence, "LIVE-DRIFTS", exc)
     value = line if line else "no seats observed in the lookback window"

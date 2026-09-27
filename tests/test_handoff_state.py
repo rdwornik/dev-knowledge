@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -98,6 +99,30 @@ def test_row_seats_degrades_to_a_named_default_on_an_empty_registry(tmp_path):
     empty = tmp_path / "seat-registry.jsonl"
     row = hs.row_seats(path=empty)
     assert row.value  # a real registry file with nothing valid in it -> the "no seats" default
+
+
+def test_row_seats_is_stable_across_a_clock_advance_with_no_seat_change(tmp_path, monkeypatch):
+    """LANE-5B4-17 repair 1 (`to-browser/REFUSED-lane-handoff-min.md`): a bundle cut at T and
+    re-verified at T+2 min must PASS BD-seats when no seat's state changed -- only the clock
+    moved. Before the fix, `row_seats` rendered `seat_registry._label`'s "NN min since last
+    event" figure, which ages every minute on its own with no seat-state change, so the same
+    wedged seat rendered a DIFFERENT string at cut and at verify and BD-seats failed on timing
+    alone, not on a real drift. This is RED against the pre-repair `row_seats` (no
+    `elapsed=False`) and GREEN after."""
+    path = tmp_path / "seats.jsonl"
+    t0 = datetime(2026, 9, 27, 12, 0, tzinfo=timezone.utc)
+    hs._sr.bind("integrator", "AB", session_id="wedged-1", path=path, now=t0)
+    cut_at = t0 + timedelta(minutes=hs._sr.WEDGED_AFTER_MIN + 1)  # already wedged at cut
+    verify_at = cut_at + timedelta(minutes=2)                     # no new event in between
+
+    monkeypatch.setattr(hs._sr, "_now", lambda: cut_at)
+    cut_row = hs.row_seats(path=path)
+
+    monkeypatch.setattr(hs._sr, "_now", lambda: verify_at)
+    verify_row = hs.row_seats(path=path)
+
+    assert "WEDGED" in cut_row.value  # sanity: the fixture actually names a stalled seat
+    assert cut_row.rendered() == verify_row.rendered()
 
 
 def test_row_substrates_counts_only_live_true(tmp_path):
