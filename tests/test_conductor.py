@@ -512,6 +512,17 @@ def test_the_pytest_job_runs_both_OSes_with_fail_fast_off(workflow):
     assert workflow["jobs"]["pytest"]["runs-on"] == "${{ matrix.os }}"
 
 
+def test_the_pytest_jobs_checkout_step_fetches_full_history(workflow):
+    # D1: `fetch-depth: 0` on the pytest job's own checkout step -- LOAD-BEARING per the comment
+    # at conductor.yml:115 (a shallow clone makes the graft root look like it created whole
+    # files, false-FAILing canonical_freshness and false-raising journal_spine_anchor's
+    # AnchorError). REFUSED-lane-ci-matrix repair 1 named this exact clause as claimed-but-
+    # unasserted -- this is the assertion that closes it.
+    steps = workflow["jobs"]["pytest"]["steps"]
+    checkout = next(s for s in steps if s.get("uses", "").startswith("actions/checkout"))
+    assert checkout.get("with", {}).get("fetch-depth") == 0
+
+
 def test_the_pytest_job_defaults_every_run_step_to_bash(workflow):
     # D1: "shell: bash on both" -- the run: steps below are POSIX shell (set +e, PIPESTATUS,
     # $GITHUB_OUTPUT redirects); windows-latest's own default shell is pwsh, which would not
