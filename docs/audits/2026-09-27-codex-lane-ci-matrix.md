@@ -6,7 +6,7 @@
 **Diff range:** `main..worktree-lane-ci-matrix`
 **Codex version:** codex-cli 0.155.0
 **Mode:** diff-review
-**Tally:** TBD/TBD/TBD/TBD <!-- Critical/High/Medium/Low. FILL FROM THE FINDINGS SECTION before committing. The hub's review_artifact_coverage leg parses four digits here; TBD deliberately does not parse, so an unfilled tally keeps WARNing instead of shipping a number nobody counted. -->
+**Tally:** 0/1/0/0 <!-- Critical/High/Medium/Low. Verified against the Findings section below: one High (ruleset context mismatch), zero elsewhere. -->
 
 **Model used:** `gpt-5.6-terra` (pinned; both lanes — [#469])
 **Review profile:** code
