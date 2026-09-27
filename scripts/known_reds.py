@@ -409,9 +409,15 @@ def extract_failure_signatures(pytest_output: str) -> dict:
 #: narrow, run-volatile token class; everything else -- the exception type, the stable wording
 #: of the assertion, ordinary numbers that are not part of a generated name -- is left alone,
 #: so a genuinely different assertion still normalizes to a different string.
+#:
+#: `_LIST_BODY_RE` is deliberately scoped to a list that trails an explanatory ": " (a
+#: human-composed diagnostic message, e.g. `f"...verdict from: {census!r}"`), never a bare
+#: pytest comparison repr like `assert ['old'] == ['expected']` -- Codex terra HIGH,
+#: 2026-09-27: an unscoped `\[[^\[\]]*\]` would mask that second shape too, silently hiding a
+#: genuinely different list-equality assertion behind the SAME "[<LIST>]" placeholder.
 _WIN_ABS_PATH_RE = re.compile(r"[A-Za-z]:\\[^\s,'\")]+")
 _POSIX_ABS_PATH_RE = re.compile(r"(?<![\w.])/(?:[\w.\-]+/)+[\w.\-]*")
-_LIST_BODY_RE = re.compile(r"\[[^\[\]]*\]")
+_LIST_BODY_RE = re.compile(r"(?<=: )\[[^\[\]]*\]")
 _HEX_SHA_RE = re.compile(r"\b[0-9a-f]{7,40}\b")
 _GENERATED_NAME_SUFFIX_RE = re.compile(r"(?<=[A-Za-z])-\d+\b")
 

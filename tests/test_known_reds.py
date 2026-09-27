@@ -484,6 +484,16 @@ def test_normalize_signature_masks_a_growing_list_body(kr):
     assert kr.normalize_signature(a) == kr.normalize_signature(b)
 
 
+def test_normalize_signature_never_masks_a_bare_list_equality_assertion(kr):
+    """Codex terra HIGH, 2026-09-27: list-body masking is scoped to a list trailing an
+    explanatory ': ' (the census/citation shape both real regressions had) -- an ordinary
+    pytest comparison repr with no such prefix, e.g. `assert ['old'] == ['expected']`, must
+    still normalize to a DIFFERENT string when its contents genuinely change, or a real
+    list-equality regression would silently read as pre-existing."""
+    assert kr.normalize_signature("AssertionError: assert ['old'] == ['expected']") != \
+        kr.normalize_signature("AssertionError: assert ['new'] == ['expected']")
+
+
 def test_normalize_signature_still_distinguishes_a_genuinely_different_assertion(kr):
     """The other half of the RED-first witness: masking is narrow -- an ordinary number in an
     assertion (not part of a hyphenated generated name) is never touched, so a real behavior
