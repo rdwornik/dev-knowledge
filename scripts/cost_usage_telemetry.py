@@ -78,6 +78,29 @@ All three are OPTIONAL: a span carrying none is valid, the pre-`[#691]` call sur
 unchanged, and a caller with no role to declare writes none rather than a fabricated one. All
 three are REFUSED when malformed, before the row is built, so a refusal leaves no partial write.
 
+THE STORE'S HOME AND ITS REDACTION POSTURE (`LANE-5B4-15-runtime-data-home`, R17 -- placement
+of the harness's runtime data researched against industry practice; full decision recorded in
+`to-browser/SESSION-lane-runtime-data-home.md`). Two changes from this module's original
+shape, both because this store can carry per-call detail a public, git-tracked repo must
+never hold:
+
+  1. THE STORE LIVES OUTSIDE THE REPOSITORY ENTIRELY, not merely gitignored inside it.
+     `default_db_path()` resolves a per-user OS state directory via `platformdirs` (already
+     resolved in `uv.lock`, no new dependency), following the same convention every major
+     packaging/dev tool uses for local, non-portable runtime state (pip's cache, npm's
+     `~/.npm`, `platformdirs`' own `user_state_dir` -- XDG's `$XDG_STATE_HOME` names exactly
+     this class: "logs, history, ... action history"). Gitignoring in place only stops an
+     accidental `git add`; a path that is never inside the working tree cannot reach origin
+     by ANY route -- a stray `git add -f`, a zipped-up repo folder for a bug report, a
+     `.gitignore` typo -- which is the stronger guarantee the value statement promises.
+  2. THE STORE REFUSES RAW MESSAGE-BODY CONTENT AND REDACTS PATH/TOKEN-SHAPED FREE TEXT.
+     Superseding this docstring's original claim ("this module applies no redaction and no
+     privacy gating; ... that posture belongs to the caller"): with exactly one wired caller
+     today (`provider_router.record_routing_call`, which passes no `events`) and zero callers
+     that populate `events`, a guarantee conditional on every future caller's own care is no
+     guarantee. See `_check_no_content_capture_events` and `_redact_string` below for the two
+     mechanisms, and `tests/test_telemetry_redaction.py` for the RED-first proof of both.
+
 Returns the new row id (`int`) when the resolved collector durably stores the span (the default,
 `AtRestExporter`); a future live exporter may return `None` for a fire-and-forget export. Every
 call accepts `db_path`, `ts`, and `run_id` overrides for the same reasons `telemetry_emit.py`'s
@@ -97,12 +120,15 @@ from __future__ import annotations
 import json
 import math
 import os
+import re
 import sqlite3
 from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
+
+import platformdirs
 
 # Same bare-import-first shape as `block_ff_push.py` / `governance_health.py`: one module
 # object per invocation mode (`python scripts/cost_usage_telemetry.py` vs. `-m scripts...`),
@@ -117,9 +143,19 @@ except ImportError:
 #: is a different store (see module docstring, "NEW EMITTER").
 DB_PATH_ENV = "DEV_KNOWLEDGE_GENAI_TELEMETRY_DB"
 
-#: Default store location. UPPERCASE-KEBAB stem per the 2026-07-22 `logs/` naming ruling
-#: (CLAUDE.md section 9); `.db` stays honest to the format.
-DEFAULT_DB_RELPATH = Path("logs") / "GENAI-TELEMETRY.db"
+#: The store's filename. UPPERCASE-KEBAB stem per the 2026-07-22 `logs/` naming ruling
+#: (CLAUDE.md section 9); `.db` stays honest to the format. No longer a repo-relative path
+#: (see `default_db_path()`, `LANE-5B4-15-runtime-data-home`) -- kept as a bare filename so
+#: the naming ruling still applies to the one thing that travelled off-tree with it.
+DB_FILENAME = "GENAI-TELEMETRY.db"
+
+#: The per-user OS state directory's app identity (`platformdirs`). Not literally the repo's
+#: directory name -- a stable identity independent of where this checkout happens to sit on
+#: disk, so a renamed or re-cloned working copy still finds the SAME store. `appauthor=False`
+#: (below) avoids `platformdirs`' default `<author>/<app>` doubling on Windows when the two
+#: are identical, which is this repo's case: measured 2026-09-27, `user_state_dir("dev-
+#: knowledge")` alone resolves `...\AppData\Local\dev-knowledge\dev-knowledge`.
+_APP_NAME = "dev-knowledge"
 
 #: Env var naming the collector target, resolved once per call and never branched on inline --
 #: B-1 section 2's seam. `"at-rest"` (the default) writes the OTel-GenAI-shaped row into the
@@ -171,9 +207,12 @@ CALL_OUTCOMES: frozenset[str] = frozenset({"passed", "failed", "unknown"})
 #: `genai_spans` -- one row per model-call span. `attributes_json` carries the full
 #: OTel-GenAI-shaped attribute dict (the `gen_ai.*` + `devknowledge.*` mapping from B-1 table 1);
 #: the handful of denormalized columns exist only so a reader does not have to parse JSON to
-#: filter by system/model/run. `events_json` carries B-1 table 2's opt-in content-capture events
-#: (`gen_ai.user.message`, `gen_ai.choice`, ...) verbatim -- this module applies no redaction and
-#: no privacy gating; a caller that wants content capture supplies already-gated events.
+#: filter by system/model/run. `events_json` carries whatever non-content-capture events a
+#: caller passes -- B-1 table 2's message-body events (`gen_ai.user.message`, `gen_ai.choice`,
+#: `gen_ai.system.message`) are REFUSED before a row is built (`_check_no_content_capture_events`,
+#: `LANE-5B4-15-runtime-data-home`), and every string value this module writes -- in `events` and
+#: in the two free-text attributes (`gen_ai.conversation.id`, `error.type`) -- is scrubbed for
+#: token- and foreign-path-shaped substrings (`_redact_string`) before serialization.
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS genai_spans (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -264,24 +303,30 @@ def resolve_exporter(target: str | None = None, *, db_path: str | os.PathLike[st
 
 
 def default_db_path() -> Path:
-    """The store location: `$DEV_KNOWLEDGE_GENAI_TELEMETRY_DB` if set, else
-    `<repo>/logs/GENAI-TELEMETRY.db` where `<repo>` is `telemetry_emit.repo_root()` -- the
-    CALLER's repository, resolved at call time. Reuses that resolver rather than re-deriving it,
-    for the same R6(c) reason `telemetry_emit.py` states on its own copy: a module-frozen path
-    answers "where does this file live", every caller wants "which repository is being emitted
-    for", and the two diverge in a linked worktree.
+    """The store location: `$DEV_KNOWLEDGE_GENAI_TELEMETRY_DB` if set, else a per-user OS
+    state directory (`platformdirs.user_state_dir`), never a path inside any repository.
+
+    `LANE-5B4-15-runtime-data-home` (R17) moved this off-tree entirely -- superseding the
+    original `<repo>/logs/GENAI-TELEMETRY.db` (`telemetry_emit.repo_root()`-relative) shape.
+    Full decision (industry-practice research, options, thesis-method matrix):
+    `to-browser/SESSION-lane-runtime-data-home.md`.
+
+    THIS IS ALSO A BUG FIX, not merely a relocation. The old shape resolved PER WORKTREE
+    (`repo_root()` answers `--show-toplevel`, which is the calling worktree's own root, not
+    the primary checkout's) -- the exact class of defect `telemetry_emit.default_db_path()`
+    was already fixed for (see that function's own docstring: a per-worktree counter store
+    "dies with `git worktree remove`", wrong for data a fleet-wide read needs to survive it).
+    `record_routing_call`'s re-rank needs the SAME cross-lane continuity `[#565]`'s run_id
+    correlation assumes; a per-user, non-git-derived path shares one file across the primary
+    checkout and every linked worktree with no git dependency at all, which is a STRONGER
+    fix than reusing `telemetry_emit.common_repo_root()` would have been (that resolver can
+    still answer differently across two clones of the same remote on one machine; this one
+    cannot fail to resolve at all, since it asks the OS, never git).
     """
     override = os.environ.get(DB_PATH_ENV)
     if override:
         return Path(override)
-    root = _te.repo_root()
-    if root is None:
-        raise GenAiTelemetryError(
-            f"cannot resolve the genai telemetry store: `git rev-parse --show-toplevel` did not answer "
-            f"from {Path.cwd()}. Set ${DB_PATH_ENV} to an explicit path, pass `db_path=`, or run inside "
-            f"a repository"
-        )
-    return root / DEFAULT_DB_RELPATH
+    return Path(platformdirs.user_state_dir(_APP_NAME, appauthor=False)) / DB_FILENAME
 
 
 @contextmanager
@@ -382,6 +427,90 @@ def _check_reviewer_is_not_the_producer(
         )
 
 
+# --- redaction (`LANE-5B4-15-runtime-data-home`, R17) ----------------------------------------
+# Two mechanisms for two different risks -- see the module docstring's "STORE'S HOME AND ITS
+# REDACTION POSTURE" section for the reasoning, and `tests/test_telemetry_redaction.py` for the
+# RED-first proof of each.
+
+#: B-1 table 2's message-body event names. Opt-in content capture the schema itself flags
+#: "redaction-sensitive", and this store REFUSES them rather than trusting a not-yet-written
+#: caller's own privacy gate -- the value this lane's done-contract states is that the store
+#: "holds no prompt text" categorically, not "holds redacted prompt text".
+_CONTENT_CAPTURE_EVENT_NAMES: frozenset[str] = frozenset(
+    {"gen_ai.system.message", "gen_ai.user.message", "gen_ai.choice"}
+)
+
+#: The two attributes this schema still carries that are FREE TEXT rather than a controlled
+#: identifier/enum/number -- every other attribute (`system`, `*.model`, `role`, `outcome`,
+#: `conversation.id` aside, `run_id`, ...) is a short structured token by construction, so
+#: scanning them risks nothing and gains nothing. `error.type` in particular is the one field
+#: a caller is likely to populate from a real exception's `str()`, which is exactly where a
+#: stray absolute path or an accidentally-embedded credential would leak in.
+_FREE_TEXT_ATTR_KEYS: frozenset[str] = frozenset({"gen_ai.conversation.id", "error.type"})
+
+#: Foreign-path patterns. No typed field in this schema is ever meant to carry a filesystem
+#: path -- model ids, roles, outcomes and run ids are all short identifiers by design -- so a
+#: path-shaped substring appearing in one means content leaked in by accident (an exception
+#: message, a stray f-string), never a legitimate value to preserve.
+_WINDOWS_PATH_RE = re.compile(r"[A-Za-z]:\\(?:[^\\/:*?\"<>|\r\n]+\\)*[^\\/:*?\"<>|\r\n]*")
+_POSIX_PATH_RE = re.compile(r"/(?:home|Users|root|etc|var|tmp|opt|mnt)/[^\s\"'<>]+")
+
+#: Token/secret-shaped patterns: named vendor API-key prefixes, a bearer header, and a bare
+#: 32+-character hex run as a generic catch-all. THE ONE NAMED FALSE-POSITIVE, documented
+#: rather than silently accepted: a real `run_id` (`uuid.uuid4().hex`) is also 32 hex chars,
+#: which is why `devknowledge.run_id` is deliberately excluded from this scan below rather
+#: than routed through it -- see `test_a_real_run_id_survives_the_redaction_scan_unmarked`.
+_TOKEN_RE = re.compile(
+    r"\b(?:sk-[A-Za-z0-9_-]{10,}|ghp_[A-Za-z0-9]{20,}|gho_[A-Za-z0-9]{20,}|"
+    r"github_pat_[A-Za-z0-9_]{20,}|xox[baprs]-[A-Za-z0-9-]{10,}|AIza[A-Za-z0-9_-]{20,}|"
+    r"Bearer\s+[A-Za-z0-9._-]{10,}|[A-Fa-f0-9]{32,})\b"
+)
+
+_PATH_REDACTION = "[REDACTED-PATH]"
+_TOKEN_REDACTION = "[REDACTED-TOKEN]"
+
+
+def _redact_string(value: str) -> str:
+    """Scrub path- and token-shaped substrings from one string, in place semantics (returns
+    the scrubbed copy). Order matters: paths first, so a token pattern cannot partially
+    consume a path substring and leave a mangled remainder for the path regex to miss."""
+    value = _WINDOWS_PATH_RE.sub(_PATH_REDACTION, value)
+    value = _POSIX_PATH_RE.sub(_PATH_REDACTION, value)
+    value = _TOKEN_RE.sub(_TOKEN_REDACTION, value)
+    return value
+
+
+def _redact_json_value(value: Any) -> Any:
+    """Recursively scrub every string leaf of a JSON-shaped value (dict/list/scalar) -- the
+    shape `events` payloads arrive in, once B-1's own three named message-body events have
+    already been refused by `_check_no_content_capture_events` and cannot reach here."""
+    if isinstance(value, str):
+        return _redact_string(value)
+    if isinstance(value, list):
+        return [_redact_json_value(v) for v in value]
+    if isinstance(value, dict):
+        return {k: _redact_json_value(v) for k, v in value.items()}
+    return value
+
+
+def _check_no_content_capture_events(events: Sequence[Mapping[str, Any]] | None) -> None:
+    """Refuse (raise, nothing written) any event whose `name` is one of B-1 table 2's three
+    message-body events. Checked BEFORE the row is built, matching every other refusal in
+    this module -- a half-written span is worse than none."""
+    if not events:
+        return
+    for event in events:
+        name = event.get("name") if isinstance(event, Mapping) else None
+        if name in _CONTENT_CAPTURE_EVENT_NAMES:
+            raise GenAiTelemetryError(
+                f"event {name!r} is a message-body content-capture event (B-1 table 2) -- "
+                f"this store refuses raw prompt/response content categorically rather than "
+                f"redacting-and-keeping it or trusting a caller's own privacy gate; strip the "
+                f"message body before emitting, or route content capture through a store "
+                f"built for it"
+            )
+
+
 def emit_genai_span(
     system: str,
     request_model: str,
@@ -433,9 +562,13 @@ def emit_genai_span(
     (for cheap SQL filtering) and `attributes_json["devknowledge.run_id"]` (so the JSON blob is
     self-contained without a join back to the column).
 
-    `events` (B-1 table 2: `gen_ai.user.message`, `gen_ai.choice`, ...) is opt-in content capture,
-    stored verbatim -- this module applies no redaction and no privacy gating; per B-1, that
-    posture belongs to the caller, not this schema.
+    `events` (B-1 table 2: `gen_ai.user.message`, `gen_ai.choice`, ...) is REFUSED when any
+    entry's `name` is one of those three message-body events -- `_check_no_content_capture_events`,
+    checked before anything else is built. A non-content-capture event is accepted, and every
+    string it carries (along with `conversation_id` and `error_type`) is scrubbed for path- and
+    token-shaped substrings before serialization (`_redact_string`). See the module docstring's
+    "STORE'S HOME AND ITS REDACTION POSTURE" section for why this superseded the original
+    caller-gates-itself posture.
 
     `collector` resolves through `resolve_exporter()` BEFORE anything is built into a row that
     could be discarded -- a `CollectorNotAvailable` or unknown-target refusal leaves no partial
@@ -468,6 +601,10 @@ def emit_genai_span(
     _check_vocabulary("role", role, ROLES)
     _check_vocabulary("outcome", outcome, CALL_OUTCOMES)
     _check_reviewer_is_not_the_producer(reviewed_by, response_model, request_model)
+
+    # `LANE-5B4-15-runtime-data-home` (R17) -- refuse raw message-body content BEFORE the row
+    # is built, same discipline as every refusal above.
+    _check_no_content_capture_events(events)
 
     # Refuse an unavailable/unknown collector BEFORE building the row -- nothing is written.
     exporter = resolve_exporter(collector, db_path=db_path)
@@ -513,6 +650,16 @@ def emit_genai_span(
         attrs["error.type"] = str(error_type)
     attrs["devknowledge.run_id"] = resolved_run_id
 
+    # `LANE-5B4-15-runtime-data-home` (R17) -- scrub the two free-text attributes and every
+    # string in `events` for path-/token-shaped substrings. AFTER the dict is built (so every
+    # other key stays untouched) and BEFORE serialization. `devknowledge.run_id` is
+    # deliberately excluded (see `_TOKEN_RE`'s docstring) by scoping the scan to
+    # `_FREE_TEXT_ATTR_KEYS` rather than sweeping the whole `attrs` dict.
+    for key in _FREE_TEXT_ATTR_KEYS:
+        if key in attrs and isinstance(attrs[key], str):
+            attrs[key] = _redact_string(attrs[key])
+    redacted_events = _redact_json_value(list(events) if events else [])
+
     try:
         # LEG 2, independent of `_check_number`: `allow_nan=False` makes the SERIALISER refuse a
         # non-finite instead of emitting `NaN`/`Infinity`. The validator covers the two cost
@@ -522,7 +669,7 @@ def emit_genai_span(
         try:
             attributes_json = json.dumps(attrs, sort_keys=True, default=str, allow_nan=False)
             events_json = json.dumps(
-                list(events) if events else [], sort_keys=True, default=str, allow_nan=False)
+                redacted_events, sort_keys=True, default=str, allow_nan=False)
         except ValueError as exc:
             raise GenAiTelemetryError(
                 f"span payload carries a non-finite number: {exc} -- it would serialise as a "
