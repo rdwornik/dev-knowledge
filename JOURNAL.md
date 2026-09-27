@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-27 (b) - CC (Opus 5.5, INTEGRATOR WAVE5B-N3): the batch closes -- the quota organ's close read lands, and the digest scores the SMART goals
+
+**Anchors:** `83e07720` -- `worktree-close-wave5b-n3`, merged `--no-ff` from an integration worktree on the 2026-09-27 (a) merge.
+
+**Did:** the close step of the integrator order ran `quota_watch.py record` from its close trigger (Codespaces 41.00/180 core-hours; Actions 6,070/3,000 minutes, the hub being public; Copilot 620/22,500 credits) and this merge lands its three ledger rows. The batch merged 11 lanes, FAILED 1 (lane-moments-fire: a module-level `import lane_end_guard` reddened `test_lane_end_guard` after two repairs) and REPORTED 1; eight refusals in all. **Result:** the batch's receipts, digest and capability map are in `to-browser/`. **Changes:** `logs/QUOTA-READS.jsonl`, `JOURNAL.md`. **Next:** the distiller's REFUSED-heading regex; re-land the three moments with a lazy import; the CI runner's known-reds.
+
 ### 2026-09-27 (a) - CC (Opus 5.5, INTEGRATOR WAVE5B-N3): an integrator or dispatcher seat can hand over to a fresh session -- `seat_state.py` writes and reads one small state file, and both order templates carry a state section and a cycle rule
 
 **Anchors:** `6354ce39`, `a43d4bb4`, `b575aa5c` -- `worktree-lane-orchestrator-cycling` (ordered and served `claude-sonnet-5`), merged `--no-ff` from an integration worktree on the 2026-09-26 (j) merge.
