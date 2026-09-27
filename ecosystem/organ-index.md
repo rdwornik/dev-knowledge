@@ -99,7 +99,7 @@ _Claude Code lifecycle hooks (SessionStart / Stop / PreToolUse / …)_
 |---|---|---|---|---|---|
 | `Notification: claude-notify.ps1` | session-hook | Notification | `~/.claude/claude-notify.ps1` | L0 | ARMED |
 | `PreToolUse: block-onedrive.ps1` | session-hook | PreToolUse (Bash\|PowerShell\|Edit\|Write\|NotebookEdit\|Read) | `~/.claude/hooks/block-onedrive.ps1` | L0 | DISARMED |
-| `PreToolUse: scope_guard.py` | session-hook | PreToolUse (Read\|Write\|Edit\|MultiEdit\|NotebookEdit\|Bash\|PowerShell\|Glob\|Grep) | `.claude/settings.json` | hub | ARMED |
+| `PreToolUse: scope_guard.py` | session-hook | PreToolUse (Read\|Write\|Edit\|MultiEdit\|NotebookEdit\|Bash\|PowerShell\|Glob\|Grep\|Monitor\|LSP\|ReadMcpResourceTool\|mcp__.*) | `.claude/settings.json` | hub | ARMED |
 | `SessionStart: arm_hooks.py` | session-hook | SessionStart | `.claude/settings.json` | hub | ARMED |
 | `SessionStart: billing_leak_sentinel.py` | session-hook | SessionStart | `.claude/settings.json` | hub | ARMED |
 | `SessionStart: changelog_sentinel.py` | session-hook | SessionStart | `.claude/settings.json` | hub | ARMED |

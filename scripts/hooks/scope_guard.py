@@ -38,6 +38,21 @@ regex scan, keeping the p95 bound cheap. A token that DOES look like a path is r
 (environment variables, `~`, 8.3 short names, `..`) relative to the tool call's own `cwd` and
 checked against the excluded-root list.
 
+HONEST LIMIT (repair 1, Codex terra review P1, verified rather than assumed): this guard reads
+the tool call's OWN literal text; it does not interpret shell semantics. A command that
+CONSTRUCTS the excluded root's name at runtime -- string concatenation
+(`"OneDrive" + " - Blue Yonder"`), an environment variable the command itself sets in the
+same line (`set X=...& type ...%X%...`), or any other computation -- never places the literal
+root name in a single token this guard resolves, and is not caught. Verified live (three probe
+commands, this lane's repair session): a concatenation and a same-line `set`+expand both
+allowed. Interpreting arbitrary shell semantics to close this is a categorically bigger
+mechanism than a pre-exec text guard (it would mean partially executing the command to know
+what it resolves to) and is judged out of proportion to fix unilaterally here -- recorded as
+`ROWS-OWED`, not silently dropped. What repair 1 DID close, because it does not need shell
+interpretation: an MCP/LSP/`Monitor` tool's path argument under an unnamed field
+(`candidate_tokens`' string-leaf fallback) and a shell glob character standing in for the root
+name (`excluded_root_hit`'s `fnmatch` leg) -- both verified bypasses, both now blocked.
+
 WEDGE ESCAPE (Done-contract item 3): `DEV_KNOWLEDGE_SCOPE_GUARD_DISABLE=1` in the environment
 allows every call unconditionally, checked before the store is even read -- a PreToolUse hook
 that refuses everything (the 2026-09-17 emergency-disable incident this repo's own history
@@ -54,6 +69,7 @@ the guard degrades to environment-variable/`~`/`..` normalization there rather t
 
 from __future__ import annotations
 
+import fnmatch
 import json
 import os
 import re
@@ -76,6 +92,15 @@ PATH_FIELDS = ("file_path", "notebook_path", "path")
 
 #: Tools whose `tool_input.command` is a shell command line, scanned token-by-token.
 SHELL_TOOLS = ("Bash", "PowerShell")
+
+#: Tools whose path argument (if any) lives at a KNOWN field name, checked via `PATH_FIELDS`
+#: above. Any tool the settings.json matcher fires on but that is NOT in this set -- an MCP
+#: resource tool, LSP, or a future addition to the matcher -- has an unknown payload shape
+#: (Codex terra review, P1, this lane's repair 1: the named-field list alone left MCP/LSP
+#: path-bearing fields, whatever a given server calls them, outside this guard's reach), so
+#: `candidate_tokens` falls back to scanning every string leaf of `tool_input` for one instead
+#: of guessing a field name.
+NAMED_FIELD_TOOLS = frozenset({"Read", "Write", "Edit", "MultiEdit", "NotebookEdit", "Glob", "Grep"})
 
 
 # --------------------------------------------------------------------------------- the store
@@ -207,6 +232,28 @@ def _command_candidates(command: str) -> list[str]:
     return out
 
 
+def _string_leaves(value: object) -> list[str]:
+    """Every non-empty string leaf in a JSON-shaped value, depth-first.
+
+    An unrecognised tool's path argument can live under any field name at any nesting depth
+    (an MCP server's own schema, not this repo's), so this does not guess one -- it collects
+    every string in the payload and lets `_looks_like_path` (the same cheap prefilter shell
+    scanning already uses) decide which are worth resolving."""
+    if isinstance(value, str):
+        return [value] if value else []
+    if isinstance(value, dict):
+        out: list[str] = []
+        for v in value.values():
+            out.extend(_string_leaves(v))
+        return out
+    if isinstance(value, list):
+        out = []
+        for v in value:
+            out.extend(_string_leaves(v))
+        return out
+    return []
+
+
 def candidate_tokens(payload: dict) -> list[str]:
     """What this tool call names as a path, whatever tool it came in on. `[]` = never refused
     by this hook (Done-contract item 2: "a call with no path argument is never refused")."""
@@ -217,12 +264,17 @@ def candidate_tokens(payload: dict) -> list[str]:
     if tool in SHELL_TOOLS:
         command = tool_input.get("command")
         return _command_candidates(command) if isinstance(command, str) and command.strip() else []
-    out = []
-    for field in PATH_FIELDS:
-        value = tool_input.get(field)
-        if isinstance(value, str) and value:
-            out.append(value)
-    return out
+    if tool in NAMED_FIELD_TOOLS:
+        out = []
+        for field in PATH_FIELDS:
+            value = tool_input.get(field)
+            if isinstance(value, str) and value:
+                out.append(value)
+        return out
+    # An unrecognised tool (MCP resource tools, LSP, Monitor, or anything else the matcher in
+    # .claude/settings.json fires on beyond the named set above): scan every string leaf,
+    # same cheap path-hint prefilter as shell command scanning, rather than never checking it.
+    return [s for s in _string_leaves(tool_input) if _looks_like_path(s)]
 
 
 # ----------------------------------------------------------------------------------- matching
@@ -236,6 +288,12 @@ def excluded_root_hit(path: Path, roots: list[str]) -> str | None:
     mounted (a different drive letter, a fresh profile, a future machine) without a
     machine-specific absolute root baked into the registry. Case-insensitive throughout:
     Windows path comparison is not case-sensitive and this guard must not be defeatable by case.
+
+    A part carrying a shell GLOB CHARACTER (`*`, `?`, `[`) is matched with `fnmatch` -- the
+    literal part text will never equal the root name, but the shell (`Get-ChildItem "...\\
+    OneDrive*\\f.txt"`) would still expand it onto the zone (Codex terra review, P1, this
+    lane's repair 1). Checked as "does this pattern match the root name", not the reverse, so
+    an ordinary part with no glob character is unaffected and still needs an exact match.
     """
     parts_cf = [part.casefold() for part in path.parts]
     text_cf = str(path).casefold()
@@ -246,6 +304,11 @@ def excluded_root_hit(path: Path, roots: list[str]) -> str | None:
             if text_cf == norm_root or text_cf.startswith(norm_root.rstrip("\\/") + os.sep):
                 return root
         elif root_cf in parts_cf:
+            return root
+        elif any(
+            any(ch in part for ch in "*?[") and fnmatch.fnmatchcase(root_cf, part)
+            for part in parts_cf
+        ):
             return root
     return None
 

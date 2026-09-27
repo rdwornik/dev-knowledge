@@ -393,5 +393,58 @@ def test_p95_hook_latency_is_under_300ms(tmp_path):
     worst = samples[-1]
     print(f"[scope-guard own latency] n={len(samples)} p50={p50 * 1000:.2f}ms "
           f"p95={p95 * 1000:.2f}ms max={worst * 1000:.2f}ms")
-
     assert p95 < 0.300, f"p95={p95 * 1000:.2f}ms over the 300ms bound (worst={worst * 1000:.2f}ms)"
+
+
+# ======================================== I. REPAIR 1 -- CODEX TERRA P1s (2026-09-27)
+
+def test_an_mcp_style_tool_with_an_unnamed_path_field_is_refused(tmp_path):
+    """P1 #1: the matcher-broadened set (Monitor|LSP|ReadMcpResourceTool|mcp__.*) fires on a
+    tool this guard has no named field for; `candidate_tokens` must fall back to scanning
+    every string leaf of `tool_input` rather than staying silent about it."""
+    zone = tmp_path / "OneDrive - Blue Yonder" / "resource.txt"
+
+    decision, reason = guard.decide(
+        _payload("mcp__filesystem__read_file", {"uri": f"file://{zone}"}), ROOTS)
+
+    assert decision == "block", reason
+
+
+def test_an_mcp_style_tool_with_no_path_shaped_field_is_allowed():
+    decision, reason = guard.decide(
+        _payload("ReadMcpResourceTool", {"resource_id": "abc123", "encoding": "utf-8"}), ROOTS)
+
+    assert decision == "allow", reason
+    assert reason == "no path argument"
+
+
+def test_a_nested_mcp_payload_field_is_still_scanned(tmp_path):
+    """The string-leaf scan is depth-first, not top-level-only -- an MCP tool's own schema is
+    not this repo's to control."""
+    zone = tmp_path / "OneDrive - Blue Yonder" / "nested.txt"
+
+    decision, _ = guard.decide(
+        _payload("mcp__example__tool", {"args": {"target": {"path": str(zone)}}}), ROOTS)
+
+    assert decision == "block"
+
+
+def test_a_shell_glob_wildcard_standing_in_for_the_root_name_is_refused(tmp_path):
+    """P1 #2 (the fixable half): `Get-ChildItem "...\\OneDrive*\\f.txt"` never carries the
+    literal root name in one token, but the shell would still expand the glob onto the zone."""
+    decision, reason = guard.decide(
+        _payload("PowerShell", {"command": r'Get-ChildItem "C:\Users\x\OneDrive*\f.txt"'},
+                  cwd=str(tmp_path)),
+        ROOTS)
+
+    assert decision == "block", reason
+
+
+def test_an_unrelated_wildcard_is_not_refused(tmp_path):
+    ordinary = tmp_path / "logs"
+    decision, reason = guard.decide(
+        _payload("PowerShell", {"command": r'Get-ChildItem "C:\Users\x\repo*\f.txt"'},
+                  cwd=str(ordinary)),
+        ROOTS)
+
+    assert decision == "allow", reason
