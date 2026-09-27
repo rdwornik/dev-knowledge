@@ -27,6 +27,14 @@
     repair  <slug> <contract>   relaunch a repair into slug's EXISTING worktree, never a fresh
                          `--worktree`. Not wrapped by this shim -- run `dispatch.py repair` directly.
 
+  Plus the codespace legs (LANE-5B4-10, R17) -- not wrapped by this shim, run each directly:
+    codespace-exec     <contract>   create the codespace, ship the contract and a generated
+                         runner in, run it, pull the receipt back.
+    codespace-harvest              pull evidence (run log, receipt) out via `ssh ... cat` into a
+                         private local copy, and write the manifest `codespace-delete` gates on.
+    codespace-stop                 `gh codespace stop` -- ends compute billing, NOT delete.
+    codespace-delete                delete -- REFUSED until the harvest manifest verifies.
+
   Model and effort come from the contract (its Dispatch block or its `| Model | Mode | Effort |`
   table) or from -Model / -Effort. There is no default and no cap argument: -TokenCap is optional
   and only WRITES the cap field into the launch receipt.

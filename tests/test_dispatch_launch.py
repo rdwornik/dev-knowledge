@@ -414,10 +414,16 @@ def test_the_monitor_ending_is_not_the_lane_ending(tmp_path, monkeypatch, receip
 
 
 def test_the_module_has_no_path_that_can_stop_pause_or_kill_a_lane():
-    """Structural, and it can fail: a kill verb, `claude stop`, a terminate/kill call, a taskkill."""
+    """Structural, and it can fail: a kill verb, `claude stop`, a terminate/kill call, a taskkill.
+
+    EXEMPT (LANE-5B4-10, R17/D8): `["codespace", "stop", ...]` is `gh codespace stop` -- it ends
+    a CODESPACE CONTAINER's compute billing, never a LANE (the agent running inside one). D8:
+    "Stop remains `gh codespace stop`." `codespace_stop`'s own docstring makes the same
+    distinction this test's name draws for a claude/codex lane."""
     source = (REPO / "scripts" / "dispatch.py").read_text(encoding="utf-8")
     code = re.sub(r'""".*?"""', "", source, flags=re.S)
     code = "\n".join(line.split("#")[0] for line in code.splitlines())
+    code = code.replace('"codespace", "stop"', "")
     for needle in ('"stop"', "'stop'", "taskkill", ".terminate(", ".kill(", "os.kill", "SIGTERM",
                    "stop_lane", "_recover", "_safe_stop", "timeout=None"):
         assert needle not in code, f"{needle!r} is a stop path in scripts/dispatch.py"

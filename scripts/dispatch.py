@@ -66,12 +66,15 @@ HONEST LIMITS
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
 import re
+import shlex
 import subprocess
 import sys
+import tempfile
 import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
@@ -1823,24 +1826,592 @@ class Step:
 
 def codespace_plan(repo: str, branch: str, slug: str, contract: Path, head_argv: Sequence[str],
                    machine: str = "basicLinux32gb", idle_timeout: str = "30m",
-                   retention: str = "1d", workdir: str = "/workspaces/dispatch") -> list[Step]:
-    """Ported from Start-DispatchCodespace. `{cs}` is the codespace NAME, read back from
-    `gh codespace list` because the display name is not what later commands need. The prompt and
-    the command travel as FILES; the only thing crossing the ssh boundary is `bash <path>`."""
+                   retention: str = "24h", workdir: str = "/workspaces/dispatch",
+                   batch: str = "") -> list[Step]:
+    """Ported from Start-DispatchCodespace. `{cs}` is the codespace NAME, printed to stdout by
+    `create` itself -- measured, `[CLI-SRC]`: `gh codespace create` writes `codespace.Name` via
+    `fmt.Fprintln` (`DIGEST-2026-09-15-codespaces-reference.md:182-183`) -- never reconstructed
+    from `gh codespace list`, whose display-name match is not unique across a stale codespace
+    from a prior run of this same slug (codex terra P1, 2026-09-27). The prompt and the command
+    travel as FILES; the only thing crossing the ssh boundary is `bash <path>`.
+
+    The trailing steps are R17 (`to-browser/PROPOSAL-ADR-REMOTE-LANE-OBSERVABILITY-2026-09-26.md`
+    D2): harvest before delete, and the manifest check is shown in the PLAN -- not only enforced
+    silently inside `codespace_delete` -- so a dry run names the gate before anything runs."""
     runner = f"{workdir}/run-{slug}.sh"
-    return [
+    out_dir = _harvest_dir(batch or "<batch>", slug)
+    steps = [
         Step(["gh", "codespace", "create", "-R", repo, "-b", branch, "--machine", machine,
               "--idle-timeout", idle_timeout, "--retention-period", retention, "-d", slug],
-             "create"),
-        Step(["gh", "codespace", "list", "--json", "name,displayName"], "read the NAME back"),
+             "create -- its own stdout is the NAME, `{cs}` below"),
+        Step(["gh", "codespace", "ssh", "-c", "{cs}", "--", "mkdir", "-p", workdir],
+             "create the workdir -- NOT the checkout's own directory"),
         Step(["gh", "codespace", "cp", "-c", "{cs}", "-e", str(contract),
               f"remote:{workdir}/{Path(contract).name}"], "ship the contract in"),
         Step(["gh", "codespace", "cp", "-c", "{cs}", "-e", "{runner}", f"remote:{runner}"],
              "ship the runner in"),
-        Step(["gh", "codespace", "ssh", "-c", "{cs}", "--", "bash", runner], "run (stream-metered)"),
+        Step(["gh", "codespace", "ssh", "-c", "{cs}", "--", "bash", runner],
+             "run (stream-metered) -- cwd is the checkout `create` produced, not `workdir`"),
         Step(["gh", "codespace", "cp", "-c", "{cs}", "-e", f"remote:{workdir}/receipt.json",
               "{receipt}"], "pull the receipt back"),
     ]
+    for rel in HARVEST_FILES:
+        steps.append(Step(["gh", "codespace", "ssh", "-c", "{cs}", "--", "cat", f"{workdir}/{rel}"],
+                           f"harvest: {rel} (R17/D2, ssh|cat -- measured, not `cp`)"))
+    steps.append(Step(["<local>", "verify_harvest_manifest", str(out_dir)],
+                       "manifest check (local, no gh call) -- GATES the delete step below"))
+    steps.append(Step(["gh", "codespace", "delete", "-c", "{cs}", "--force"],
+                       "delete -- REFUSED above if the manifest check failed (R17)"))
+    return steps
+
+
+# ===================================================== codespace exec / harvest / delete (R17)
+#
+# `codespace_plan` above only ever PRINTS the argv it would run (`dispatch.py plan`'s own
+# contract: "Starts nothing"). Everything below actually calls `gh`, ported from the PS module's
+# `Invoke-CodespaceGh` seam and the create/exec half of `Start-DispatchCodespace`, plus the two
+# legs the PS module already had as separate verbs (`Save-CodespaceLaneHarvest`,
+# `Stop-DispatchCodespace`) and one it deliberately never had: `codespace_delete`.
+#
+# WHY DELETE IS NEW HERE AND ABSENT THERE. `Stop-DispatchCodespace`'s own docstring: "This module
+# composes no `gh codespace delete` anywhere... deletion is destructive and stays an operator
+# act." R17 (D2) changes what "operator act" means for THIS one call: a manifest-gated delete
+# that refuses without a verified private copy in hand is no longer a bare irreversible act, it is
+# an act with a checked precondition -- the same shape `block-unanchored-push` already uses for a
+# different irreversible act (a push). `codespace_delete` is that gated call, never the bare one.
+#
+# HONEST LIMIT (recorded so it is not mistaken for oversight). The PS runner's own receipt carries
+# a much larger shape than what is ported here: per-tool `admission` probes taken INSIDE the
+# container, a `commit` witness, `stall`/fuse diagnostics, and a `restart-once` recovery policy
+# (`Start-DispatchCodespace:980-1052`). That machinery is a separate, larger surface (stall
+# detection, admission-probe porting) and is out of this lane's scope; what is ported is the
+# subset a delete-gate or merge-gate reads today: `exit_code`, `is_error`, `status`, `turns`,
+# `transcript`, plus a stub `admission`/`recovery` so the KEYS are the same shape even where the
+# VALUES are not yet as rich. A receipt this module writes is not read as a stall diagnosis.
+
+
+# A generous bound, not a tuning knob: `codespace create` provisions a machine and `codespace
+# ssh -- bash <runner>` runs a whole lane, both legitimately slow -- this exists only to convert
+# a genuinely STUCK `gh` (an interactive auth prompt with no TTY to answer it, a hung network
+# call) into the documented refusal path instead of an indefinite block (codex terra P1,
+# 2026-09-27).
+GH_TIMEOUT_SECONDS = 900
+
+
+@dataclass(frozen=True)
+class GhResult:
+    """One `gh` invocation's outcome -- `Ok`/`ExitCode`/`Stdout` from `Invoke-CodespaceGh`, with
+    `stderr` kept SEPARATE, never folded into `stdout` (codex terra P1, 2026-09-27: a successful
+    `create` that also writes progress/warnings to stderr would otherwise corrupt the one-line
+    NAME every later `-c` call keys on, and a harvested `cat` would hash diagnostics as if they
+    were the file's own content)."""
+
+    ok: bool
+    exit_code: int
+    stdout: str
+    stderr: str = ""
+
+
+def format_gh_line(argv: Sequence[str]) -> str:
+    """Display-only rendering of a `gh` argv -- ported from `Format-CodespaceGhLine`. What
+    executes is the argument LIST, never this string; nothing re-parses it."""
+    parts = []
+    for a in argv:
+        parts.append('"' + a.replace('"', '""') + '"' if re.search(r'[\s"]', a) else a)
+    return "gh " + " ".join(parts)
+
+
+def run_gh(argv: Sequence[str], *, invoker: Optional[Callable[[Sequence[str]], GhResult]] = None
+           ) -> GhResult:
+    """The single seam every `gh` call in the codespace legs goes through -- ported from
+    `Invoke-CodespaceGh`. Returns ok/exit_code/stdout rather than raising: a non-zero `gh` exit is
+    data this domain reasons about (unauthenticated, no such codespace, quota), never an
+    exception. `invoker` is the test seam -- every test below hands in a recording stand-in and
+    asserts the ARGV that would have run, exactly as the PS tests do for `Invoke-CodespaceGh`."""
+    if invoker is not None:
+        return invoker(argv)
+    try:  # pragma: no cover -- real gh
+        proc = subprocess.run(["gh", *argv], capture_output=True, text=True,
+                              timeout=GH_TIMEOUT_SECONDS)
+    except OSError as exc:
+        # `gh` missing (or unrunnable) is DATA this domain reasons about, same as a non-zero
+        # exit -- a codex terra HIGH (2026-09-27): an uncaught FileNotFoundError crashed every
+        # codespace command with a traceback instead of its own documented refusal path.
+        return GhResult(ok=False, exit_code=127, stdout=f"gh could not be run: {exc}")
+    except subprocess.TimeoutExpired as exc:
+        # Codex terra P1 (2026-09-27): a stalled `gh` (an auth prompt, a hung network request)
+        # blocked every codespace command indefinitely -- no HONEST-LIMIT stall/fuse diagnostics
+        # are ported here (this module's own docstring), so a bound is the only thing standing
+        # between a stuck `gh` and a caller that never gets its documented refusal.
+        return GhResult(ok=False, exit_code=124,
+                        stdout=f"gh timed out after {GH_TIMEOUT_SECONDS}s: {exc}")
+    return GhResult(ok=(proc.returncode == 0), exit_code=proc.returncode,
+                     stdout=proc.stdout or "", stderr=proc.stderr or "")
+
+
+# ----- exec: create, ship, run, pull the receipt back -----------------------------------------
+
+@dataclass(frozen=True)
+class ExecResult:
+    ok: bool
+    name: str = ""
+    receipt: dict = field(default_factory=dict)
+    commands: tuple[str, ...] = ()
+    failure: str = ""
+
+
+def _codespace_runner_script(workdir: str, checkout_dir: str, head_argv: Sequence[str]) -> str:
+    """The bash script shipped in and run as `bash <path>` -- never a string crossing the ssh
+    boundary (the same measured failure `codespace_plan`'s own docstring names for the contract
+    prompt: a command travels as a FILE, not an argument). `head_argv` runs with `checkout_dir`
+    (the repo `gh codespace create` already checked out, `/workspaces/<repo-name>`) as its CWD --
+    codex terra P1 (2026-09-27): an earlier version `cd`'d into `workdir` instead (this runner's
+    OWN scratch directory for the contract/runner/receipt files, always empty of the repo), so
+    the dispatched agent could read its contract but never touch, test, commit, or push the
+    checkout the contract asks it to work in. `run.log`/`receipt.json` still live in `workdir`,
+    by absolute path, since the agent's cwd is now the checkout, not the scratch directory."""
+    quoted = " ".join(shlex.quote(a) for a in head_argv)
+    run_log = f"{workdir}/run.log"
+    receipt_json = f"{workdir}/receipt.json"
+    # ONE STATEMENT PER LINE, joined by "\n" -- never ";" across a block. A `try/except`/`for`
+    # body de-indented with ";" instead of a real newline is a Python IndentationError, and that
+    # is exactly the failure mode this script exists not to introduce (measured while writing
+    # this: an earlier ";".join version put the block's last statement and the next top-level one
+    # on the same physical line at the block's own indent).
+    #
+    # THE REVERSE SCAN CONTINUES PAST A NON-JSON OR NON-DICT LINE, never stopping at the first
+    # one -- codex terra P1 (2026-09-27): `run.log` also carries stderr (folded in by `2>&1`), so
+    # a trailing diagnostic line after the agent's own final JSON result used to stop the scan
+    # dead on the FIRST (i.e. last) line, leaving `d={}` and a zero exit code read as success even
+    # when the real last JSON result reported an error.
+    py = "\n".join([
+        "import json,sys",
+        f"RUN_LOG={run_log!r}",
+        f"RECEIPT={receipt_json!r}",
+        "t=open(RUN_LOG,encoding='utf-8',errors='replace').read()",
+        "r=None",
+        "for ln in reversed(t.splitlines()):",
+        "    ln=ln.strip()",
+        "    if not ln:",
+        "        continue",
+        "    try:",
+        "        parsed=json.loads(ln)",
+        "    except Exception:",
+        "        continue",
+        "    if isinstance(parsed,dict):",
+        "        r=parsed",
+        "        break",
+        "d=r if isinstance(r,dict) else {}",
+        "receipt={'admission':{'ok':True},"
+        "'is_error':d.get('is_error'),'status':d.get('subtype'),'turns':d.get('num_turns'),"
+        "'exit_code':int(sys.argv[1]),"
+        "'transcript':{'session_id':d.get('session_id'),'path':''},"
+        "'recovery':{'policy':'restart-once','attempt':0,'next':'none'}}",
+        "json.dump(receipt,open(RECEIPT,'w'))",
+    ])
+    return "\n".join([
+        "#!/usr/bin/env bash",
+        "set -uo pipefail",
+        f"cd {shlex.quote(checkout_dir)} || exit 90",
+        f"{quoted} > {shlex.quote(run_log)} 2>&1",
+        "code=$?",
+        f'python3 -c {shlex.quote(py)} "$code"',
+        "exit $code",
+        "",
+    ])
+
+
+def codespace_exec(repo: str, branch: str, slug: str, contract: Path, head_argv: Sequence[str],
+                    *, machine: str = "basicLinux32gb", idle_timeout: str = "30m",
+                    retention: str = "24h", workdir: str = "/workspaces/dispatch",
+                    invoker: Optional[Callable[[Sequence[str]], GhResult]] = None) -> ExecResult:
+    """Actually RUN `codespace_plan`'s create/exec steps end to end -- ported from the first half
+    of `Start-DispatchCodespace` (create, read the NAME back, ship the contract and a generated
+    runner script in, run it, pull `receipt.json` back). Harvest, stop and delete are the
+    separate legs below, matching the PS module's own split."""
+    if not head_argv:
+        # Codex terra P1 (2026-09-27): an empty argv made `_codespace_runner_script` emit a
+        # redirection-only shell command -- `> run.log 2>&1` with no left-hand side -- that exits
+        # 0 and writes a success receipt having run no agent at all.
+        return ExecResult(False, failure="head_argv is empty -- nothing to run in the codespace")
+    # RESOLVE TO ABSOLUTE, matching `plan` cmd's own `path.resolve()` before it builds the prompt
+    # embedded in `head_argv` (line ~1792). Codex terra P1 (2026-09-27): a caller following the
+    # documented `plan` -> `codespace-exec --argv-json` flow with a RELATIVE contract argument
+    # left `str(contract)` unable to match the absolute path already baked into `head_argv`'s
+    # prompt -- the rewrite below silently did nothing, and the local path leaked into the runner.
+    contract = Path(contract).resolve()
+    commands: list[str] = []
+
+    def call(argv: Sequence[str]) -> GhResult:
+        commands.append(format_gh_line(argv))
+        return run_gh(argv, invoker=invoker)
+
+    created = call(["codespace", "create", "-R", repo, "-b", branch, "--machine", machine,
+                    "--idle-timeout", idle_timeout, "--retention-period", retention, "-d", slug])
+    if not created.ok:
+        return ExecResult(False, commands=tuple(commands),
+                           failure=f"create exited {created.exit_code}")
+    # THE NAME IS RETURNED BY CREATE -- IT IS NEVER RECONSTRUCTED (measured, `[CLI-SRC]`:
+    # `gh codespace create` writes `codespace.Name` via `fmt.Fprintln`,
+    # `DIGEST-2026-09-15-codespaces-reference.md:182-183`). Codex terra P1 (2026-09-27): an
+    # earlier version re-derived the name from `gh codespace list --json` matched by display
+    # name, which is not unique across a stale stopped codespace from a prior run of this same
+    # slug -- ambiguous, and a codespace this call just created (and is now billing) would be
+    # orphaned untracked on a list failure or a match miss.
+    name = created.stdout.strip()
+    if not name:
+        return ExecResult(False, commands=tuple(commands),
+                           failure="`gh codespace create` returned no name on stdout")
+
+    # REWRITE THE CONTRACT PATH. `head_argv` (built by `plan` from `build_plan`) carries the
+    # prompt "Read and execute the frozen contract at <LOCAL path>" -- a path on the machine that
+    # RAN `plan`, which does not exist inside the codespace. Only the remote copy this function
+    # itself ships in (`{workdir}/{contract.name}`, below) does. Codex terra P1 (2026-09-27): the
+    # unrewritten argv asked the agent to read a file that was never there, so no planned
+    # dispatch could ever execute its own contract.
+    remote_contract = f"{workdir}/{Path(contract).name}"
+    runner_argv = [a.replace(str(contract), remote_contract) for a in head_argv]
+    # `gh codespace create -R owner/name` checks the repo out to `/workspaces/<name>` -- the
+    # directory the dispatched agent must run in, never `workdir` itself (that is this runner's
+    # OWN scratch space; see `_codespace_runner_script`'s docstring, codex terra P1, 2026-09-27).
+    checkout_dir = f"/workspaces/{repo.rsplit('/', 1)[-1]}"
+
+    with tempfile.TemporaryDirectory() as tmp:
+        runner_local = Path(tmp) / f"run-{slug}.sh"
+        runner_local.write_text(_codespace_runner_script(workdir, checkout_dir, runner_argv),
+                                 encoding="utf-8", newline="\n")
+        receipt_local = Path(tmp) / "receipt.json"
+        runner_remote = f"{workdir}/run-{slug}.sh"
+
+        # `workdir` is NOT the checkout `gh codespace create` produces (that lands under
+        # `/workspaces/<repo-name>`) -- it is only where THIS runner's own files live, and
+        # nothing creates it. Codex terra P1 (2026-09-27): the first `cp` into it failed on
+        # every fresh codespace because the directory had never existed.
+        mkdir = call(["codespace", "ssh", "-c", name, "--", "mkdir", "-p", workdir])
+        if not mkdir.ok:
+            return ExecResult(False, name=name, commands=tuple(commands),
+                               failure=f"creating {workdir} exited {mkdir.exit_code}")
+
+        cp1 = call(["codespace", "cp", "-c", name, "-e", str(contract),
+                    f"remote:{workdir}/{Path(contract).name}"])
+        if not cp1.ok:
+            return ExecResult(False, name=name, commands=tuple(commands),
+                               failure=f"shipping the contract in exited {cp1.exit_code}")
+
+        cp2 = call(["codespace", "cp", "-c", name, "-e", str(runner_local),
+                    f"remote:{runner_remote}"])
+        if not cp2.ok:
+            return ExecResult(False, name=name, commands=tuple(commands),
+                               failure=f"shipping the runner in exited {cp2.exit_code}")
+
+        # THE RECEIPT IS PULLED REGARDLESS OF `ran.ok` (codex terra P1, 2026-09-27): the runner
+        # writes `receipt.json` in its own `exit $code` tail, so a non-zero ssh exit still has a
+        # receipt worth reading -- returning early on `ran.ok` alone threw away exactly the
+        # evidence a failed lane most needs kept.
+        ran = call(["codespace", "ssh", "-c", name, "--", "bash", runner_remote])
+
+        cp3 = call(["codespace", "cp", "-c", name, "-e", f"remote:{workdir}/receipt.json",
+                    str(receipt_local)])
+        if not cp3.ok or not receipt_local.exists():
+            failure = ("no receipt came back -- NOT reporting success (same doctrine as the "
+                      "PS verb's own receipt gate)")
+            if not ran.ok:
+                failure = f"the runner exited {ran.exit_code}; {failure}"
+            return ExecResult(False, name=name, commands=tuple(commands), failure=failure)
+        try:
+            receipt = json.loads(receipt_local.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            return ExecResult(False, name=name, commands=tuple(commands),
+                               failure=f"receipt.json did not parse: {exc}")
+
+        if not ran.ok:
+            return ExecResult(False, name=name, receipt=receipt, commands=tuple(commands),
+                               failure=f"the runner exited {ran.exit_code}")
+        # THE RECEIPT'S OWN VERDICT GATES SUCCESS TOO (codex terra P1, 2026-09-27): the ssh call
+        # can exit 0 while the agent it ran reports `is_error: true` or a non-success status --
+        # `bash runner_remote` only ever fails on a TRANSPORT problem, not a lane one.
+        if receipt.get("is_error") or receipt.get("status") not in (None, "success"):
+            return ExecResult(False, name=name, receipt=receipt, commands=tuple(commands),
+                               failure=f"the lane's own receipt reports failure: "
+                                       f"is_error={receipt.get('is_error')!r} "
+                                       f"status={receipt.get('status')!r}")
+
+    return ExecResult(True, name=name, receipt=receipt, commands=tuple(commands))
+
+
+# ----- harvest: pull evidence out, before any delete (R17 / D2) -------------------------------
+
+#: The evidence set D2 names: the raw run log, the receipt, and the transcript. Subagent logs and
+#: Stop-hook receipts are NOT ported here (HONEST LIMIT, module docstring): the in-container
+#: epilogue that would write them next to these files is a separate, unbuilt surface. A file
+#: absent on the remote is SKIPPED at harvest, not refused -- a stalled lane's partial evidence is
+#: still worth capturing -- but only the files actually captured enter the manifest, and
+#: `codespace_delete` gates on exactly that manifest, never on this constant.
+HARVEST_FILES: tuple[str, ...] = ("run.log", "receipt.json")
+
+HARVEST_MANIFEST_NAME = "manifest.json"
+
+#: D2's own default ("a durable PRIVATE location", proposed `~/.claude/remote-runs/<batch>/<lane>/`).
+#: `lane-runtime-data-home` (the lane meant to ratify the telemetry home) FAILED this batch
+#: (`to-browser/SESSION-integrator-wave5b-n4-2026-09-26.md`), so this is a DECIDED-BY-LANE choice
+#: of "a gitignored path it names" (the contract's own fallback clause) rather than the ratified
+#: home: outside `HUB_ROOT` entirely, so it is outside the public tree by construction, not merely
+#: by a `.gitignore` line that a future `git add -f` could defeat.
+DEFAULT_HARVEST_ROOT = Path.home() / ".claude" / "remote-runs"
+
+
+def _harvest_dir(batch: str, lane: str, *, root: Optional[Path] = None) -> Path:
+    return (root or DEFAULT_HARVEST_ROOT) / batch / lane
+
+
+@dataclass(frozen=True)
+class HarvestResult:
+    ok: bool
+    name: str = ""
+    out_dir: Optional[Path] = None
+    manifest_path: Optional[Path] = None
+    files: dict = field(default_factory=dict)  # relative path -> sha256 hex
+    commands: tuple[str, ...] = ()
+    failure: str = ""
+
+
+def codespace_harvest(name: str, *, batch: str, lane: str, workdir: str = "/workspaces/dispatch",
+                       files: Sequence[str] = HARVEST_FILES, out_root: Optional[Path] = None,
+                       force: bool = False, dry_run: bool = False,
+                       invoker: Optional[Callable[[Sequence[str]], GhResult]] = None
+                       ) -> HarvestResult:
+    """R17 / D2's harvest leg: pull evidence out of a codespace via `ssh ... cat` -- ported from
+    `Save-CodespaceLaneHarvest`, whose own docstring calls this "measured rather than preferred":
+    `gh codespace cp` has failed this exact transport three distinct ways, where `ssh <name> cat
+    <path>` fails visibly (an empty answer is visibly empty) instead of exiting 0 having written
+    nothing. Writes each file plus a `manifest.json` of what was captured and its sha256 into a
+    durable PRIVATE directory OUTSIDE the public tree; `codespace_delete` refuses without a
+    verified copy of exactly that manifest.
+
+    A file absent on the remote is skipped, not refused (see `HARVEST_FILES`'s docstring); an
+    existing manifest is a REFUSAL without `force=True` -- the same doctrine as the PS verb's own
+    `-Force` guard: a second harvest that silently replaced the first would destroy the only copy
+    of a lane that may no longer exist to re-harvest from.
+    """
+    out_dir = _harvest_dir(batch, lane, root=out_root)
+    manifest_path = out_dir / HARVEST_MANIFEST_NAME
+    commands: list[str] = []
+
+    def call(argv: Sequence[str]) -> GhResult:
+        commands.append(format_gh_line(argv))
+        return run_gh(argv, invoker=invoker)
+
+    if manifest_path.exists() and not force:
+        return HarvestResult(False, name=name, out_dir=out_dir, manifest_path=manifest_path,
+                              failure=f"{manifest_path} already exists -- pass force=True to "
+                                      "replace it")
+
+    if dry_run:
+        for rel in files:
+            commands.append(format_gh_line(["codespace", "ssh", "-c", name, "--", "cat",
+                                             f"{workdir}/{rel}"]))
+        return HarvestResult(True, name=name, out_dir=out_dir, manifest_path=manifest_path,
+                              commands=tuple(commands))
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    manifest: dict = {}
+    for rel in files:
+        res = call(["codespace", "ssh", "-c", name, "--", "cat", f"{workdir}/{rel}"])
+        if not res.ok:
+            continue  # absent on the remote -- skipped, not refused (module docstring above)
+        local = out_dir / rel
+        local.parent.mkdir(parents=True, exist_ok=True)
+        local.write_text(res.stdout, encoding="utf-8", newline="\n")
+        manifest[rel] = hashlib.sha256(local.read_bytes()).hexdigest()
+
+    manifest_path.write_text(
+        json.dumps({"name": name, "batch": batch, "lane": lane, "files": manifest},
+                   indent=2, sort_keys=True) + "\n",
+        encoding="utf-8")
+    recovered = bool(manifest)
+    if not recovered:
+        # NOTHING TO RECOVER IS NOT A FAILURE (Save-CodespaceLaneHarvest's own doctrine) -- an
+        # empty manifest is still written, and it is still what codespace_delete gates on.
+        commands.append("# nothing captured -- every named file was absent on the remote")
+    return HarvestResult(True, name=name, out_dir=out_dir, manifest_path=manifest_path,
+                         files=manifest, commands=tuple(commands))
+
+
+@dataclass(frozen=True)
+class HarvestVerdict:
+    ok: bool
+    reason: str
+    checked: tuple[str, ...] = ()
+
+
+def verify_harvest_manifest(out_dir: Path, *, expected_name: Optional[str] = None) -> HarvestVerdict:
+    """Re-check a harvest by RECOMPUTING every file's sha256 against `manifest.json` -- never
+    trust a cached flag from the harvest call itself. Missing manifest, an empty one, a missing
+    file, or a hash mismatch all refuse. `codespace_delete` calls this immediately before every
+    delete and makes NO `gh` call at all when it refuses (R17).
+
+    `expected_name`, when given, must match the manifest's own recorded `name` -- codex terra P1
+    (2026-09-27): checking hashes alone verifies the EVIDENCE is intact but not that it is
+    evidence OF the codespace about to be deleted; a valid manifest for A would otherwise
+    authorize deleting any B passed as `--name`."""
+    manifest_path = Path(out_dir) / HARVEST_MANIFEST_NAME
+    if not manifest_path.exists():
+        return HarvestVerdict(False, f"no harvest manifest at {manifest_path}")
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return HarvestVerdict(False, f"harvest manifest is not valid JSON: {exc}")
+    if not isinstance(manifest, dict):
+        return HarvestVerdict(False, f"{manifest_path} is not a JSON object")
+    if expected_name is not None and manifest.get("name") != expected_name:
+        return HarvestVerdict(False,
+                              f"manifest is for {manifest.get('name')!r}, not {expected_name!r} "
+                              "-- refusing to authorize deleting a different codespace")
+    entries = manifest.get("files")
+    if not entries:
+        return HarvestVerdict(False, f"{manifest_path} lists no files -- nothing was captured")
+    checked = []
+    for rel, expected in entries.items():
+        local = Path(out_dir) / rel
+        if not local.exists():
+            return HarvestVerdict(False, f"{rel} is in the manifest but missing on disk")
+        actual = hashlib.sha256(local.read_bytes()).hexdigest()
+        if actual != expected:
+            return HarvestVerdict(False,
+                                   f"{rel} hash mismatch -- manifest has {expected}, disk has {actual}")
+        checked.append(rel)
+    return HarvestVerdict(True, f"{len(checked)} file(s) verified against {manifest_path}",
+                          tuple(checked))
+
+
+# ----- stop: NOT delete ------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class StopResult:
+    ok: bool
+    name: str
+    exit_code: int
+
+
+def codespace_stop(name: str, *, invoker: Optional[Callable[[Sequence[str]], GhResult]] = None
+                    ) -> StopResult:
+    """`gh codespace stop` -- ported from `Stop-DispatchCodespace`. Stopping is NOT deleting: a
+    stopped codespace ends compute billing and keeps billing storage until deleted."""
+    res = run_gh(["codespace", "stop", "-c", name], invoker=invoker)
+    return StopResult(ok=res.ok, name=name, exit_code=res.exit_code)
+
+
+# ----- delete: refused until the harvest verifies (R17) ---------------------------------------
+
+@dataclass(frozen=True)
+class DeleteResult:
+    ok: bool
+    name: str
+    refused: bool = False
+    reason: str = ""
+    exit_code: Optional[int] = None
+
+
+def codespace_delete(name: str, *, out_dir: Path,
+                      invoker: Optional[Callable[[Sequence[str]], GhResult]] = None
+                      ) -> DeleteResult:
+    """R17: delete a codespace only once `verify_harvest_manifest(out_dir)` passes.
+
+    The PS module deliberately composes no `gh codespace delete` anywhere -- `deletion is
+    destructive and stays an operator act` (`Stop-DispatchCodespace`'s own docstring). This
+    function IS that act, now with a checked precondition: a missing manifest, an empty one, or a
+    hash mismatch refuses WITHOUT calling `gh` at all, so a failed harvest can never be compounded
+    by a destroyed codespace -- the retention period (D2's stop-then-delete belt) is what a
+    refusal here leaves the operator to fall back on."""
+    verdict = verify_harvest_manifest(out_dir, expected_name=name)
+    if not verdict.ok:
+        return DeleteResult(False, name=name, refused=True, reason=verdict.reason)
+    res = run_gh(["codespace", "delete", "-c", name, "--force"], invoker=invoker)
+    return DeleteResult(res.ok, name=name, refused=False, reason=verdict.reason,
+                        exit_code=res.exit_code)
+
+
+@cli.command("codespace-exec")
+@click.argument("contract", type=click.Path(exists=True, path_type=Path))
+@click.option("--repo", required=True, help="owner/name.")
+@click.option("--branch", default="main", show_default=True)
+@click.option("--slug", required=True, help="Lane slug; also the codespace's -d display name.")
+@click.option("--argv-json", required=True,
+              help="JSON list -- the head argv, e.g. `plan --substrate codespace`'s own `argv` field.")
+@click.option("--machine", default="basicLinux32gb", show_default=True)
+@click.option("--idle-timeout", default="30m", show_default=True)
+@click.option("--retention", default="24h", show_default=True)
+@click.option("--workdir", default="/workspaces/dispatch", show_default=True)
+def codespace_exec_cmd(contract: Path, repo: str, branch: str, slug: str, argv_json: str,
+                       machine: str, idle_timeout: str, retention: str, workdir: str) -> None:
+    """Actually dispatch a Codespace lane end to end: create, ship, run, pull the receipt back.
+
+    `--argv-json` is deliberately not re-derived from the contract here -- `dispatch.py plan
+    --substrate codespace` already computes it (model/effort table, provider) and this command
+    executes what that one planned, matching the file's own "plan starts nothing, exec does"
+    split."""
+    try:
+        head_argv = json.loads(argv_json)
+    except json.JSONDecodeError as exc:
+        raise DispatchRefused(f"--argv-json did not parse: {exc}") from exc
+    if not isinstance(head_argv, list) or not all(isinstance(a, str) for a in head_argv):
+        raise DispatchRefused("--argv-json must be a JSON list of strings")
+    if not head_argv:
+        raise DispatchRefused("--argv-json is empty -- nothing to run in the codespace")
+    result = codespace_exec(repo, branch, slug, Path(contract), head_argv, machine=machine,
+                            idle_timeout=idle_timeout, retention=retention, workdir=workdir)
+    click.echo(json.dumps(asdict(result)))
+    if not result.ok:
+        sys.exit(EXIT_REFUSED)
+
+
+@cli.command("codespace-harvest")
+@click.option("--name", required=True, help="Codespace NAME (gh codespace list -> name).")
+@click.option("--batch", required=True)
+@click.option("--lane", required=True)
+@click.option("--workdir", default="/workspaces/dispatch", show_default=True)
+@click.option("--out-root", type=click.Path(path_type=Path), default=None,
+              help="Default: ~/.claude/remote-runs -- outside the public tree (R17).")
+@click.option("--force", is_flag=True, help="Replace an existing manifest for this batch/lane.")
+@click.option("--dry-run", is_flag=True)
+def codespace_harvest_cmd(name: str, batch: str, lane: str, workdir: str,
+                          out_root: Optional[Path], force: bool, dry_run: bool) -> None:
+    """Pull evidence out of a codespace and write the manifest `codespace-delete` gates on."""
+    result = codespace_harvest(name, batch=batch, lane=lane, workdir=workdir, out_root=out_root,
+                               force=force, dry_run=dry_run)
+    click.echo(json.dumps({
+        "ok": result.ok, "name": result.name, "out_dir": str(result.out_dir),
+        "manifest_path": str(result.manifest_path), "files": result.files,
+        "commands": list(result.commands), "failure": result.failure}))
+    if not result.ok:
+        sys.exit(EXIT_REFUSED)
+
+
+@cli.command("codespace-stop")
+@click.option("--name", required=True)
+def codespace_stop_cmd(name: str) -> None:
+    """`gh codespace stop` -- NOT delete. See `codespace-delete` for the gated delete leg."""
+    result = codespace_stop(name)
+    click.echo(json.dumps(asdict(result)))
+    if not result.ok:
+        sys.exit(EXIT_REFUSED)
+
+
+@cli.command("codespace-delete")
+@click.option("--name", required=True)
+@click.option("--batch", required=True)
+@click.option("--lane", required=True)
+@click.option("--out-root", type=click.Path(path_type=Path), default=None)
+def codespace_delete_cmd(name: str, batch: str, lane: str, out_root: Optional[Path]) -> None:
+    """Delete a codespace -- refused unless `codespace-harvest`'s manifest verifies (R17)."""
+    out_dir = _harvest_dir(batch, lane, root=out_root)
+    result = codespace_delete(name, out_dir=out_dir)
+    click.echo(json.dumps(asdict(result)))
+    if result.refused:
+        click.echo(f"[codespace] REFUSED -- {result.reason}", err=True)
+        sys.exit(EXIT_REFUSED)
+    if not result.ok:
+        sys.exit(EXIT_REFUSED)
 
 
 @cli.command("govern")
