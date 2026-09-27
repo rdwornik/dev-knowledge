@@ -458,6 +458,19 @@ def test_cli_reports_check_12_clean_when_contract_and_transport_root_are_given(
     assert any(line.startswith("PASS") and "no-claim-marker" in line for line in out.splitlines())
 
 
+def test_cli_reports_the_true_check_count_when_lane_and_contract_are_both_clean(
+        hub, jobs, tmp_path, transport, capsys):
+    """`CLEAN (11/11 checks pass)` was hardcoded regardless of whether check 12 also ran --
+    understating the count by one whenever `--lane` and `--contract` are both given and clean."""
+    _add_lane(hub)
+    _tear_down_lane(hub)
+    argv = _cli(hub, jobs, tmp_path) + ["--contract", CONTRACT, "--transport-root", str(transport)]
+    rc = nl.main(argv)
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "CLEAN (12/12 checks pass)" in out
+
+
 def test_cli_reports_check_12_failing_when_a_marker_remains(hub, jobs, tmp_path, transport, capsys):
     (transport / "to-cc" / f"{CONTRACT}.CLAIMED-11111111").write_text("x\n", encoding="utf-8")
     argv = _cli(hub, jobs, tmp_path) + ["--contract", CONTRACT, "--transport-root", str(transport)]
@@ -465,6 +478,43 @@ def test_cli_reports_check_12_failing_when_a_marker_remains(hub, jobs, tmp_path,
     out = capsys.readouterr().out
     assert rc == 1
     assert any(line.startswith("FAIL") and "no-claim-marker" in line for line in out.splitlines())
+
+
+def test_cli_contract_alone_with_no_lane_runs_check_12_by_itself(hub, transport, capsys):
+    """The templates' actual call shape: `no_leftovers.py verify --contract <name>` with NO
+    `--lane` at all -- a dispatcher or integrator order has a claim-marker name, not a worktree
+    slug. Confirmed broken in this lane's own high-effort code review: `main()` used to take the
+    lane-less husk-scan branch unconditionally whenever `--lane` was omitted, silently never
+    reaching check 12 -- exactly the command every template documents."""
+    rc = nl.main(["verify", "--repo", str(hub), "--contract", CONTRACT,
+                 "--transport-root", str(transport)])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert any(line.startswith("PASS") and "no-claim-marker" in line for line in out.splitlines())
+
+
+def test_cli_contract_alone_fails_when_a_marker_remains(hub, transport, capsys):
+    (transport / "to-cc" / f"{CONTRACT}.CLAIMED-11111111").write_text("x\n", encoding="utf-8")
+    rc = nl.main(["verify", "--repo", str(hub), "--contract", CONTRACT,
+                 "--transport-root", str(transport)])
+    out = capsys.readouterr().out
+    assert rc == 1
+    assert any(line.startswith("FAIL") and "no-claim-marker" in line for line in out.splitlines())
+
+
+def test_cli_contract_alone_does_not_run_the_husk_scan_report(hub, transport, capsys):
+    (hub / ".claude" / "worktrees" / "lane-old-husk").mkdir(parents=True)
+    rc = nl.main(["verify", "--repo", str(hub), "--contract", CONTRACT,
+                 "--transport-root", str(transport)])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "lane-old-husk" not in out
+
+
+@pytest.mark.parametrize("bad", ["../escape", "a/b", "a\\b", "has space", "has:colon", ""])
+def test_a_contract_that_could_widen_the_glob_or_traverse_is_refused(hub, bad):
+    rc = nl.main(["verify", "--repo", str(hub), "--contract", bad])
+    assert rc == 2
 
 
 def test_resolve_primary_from_inside_a_linked_worktree_is_the_primary(hub):

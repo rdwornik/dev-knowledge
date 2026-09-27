@@ -151,6 +151,37 @@ def test_release_removes_the_claimants_own_marker(transport):
     assert _markers(transport) == []
 
 
+def test_release_with_no_session_releases_the_sole_holder_whoever_claimed_it(transport):
+    """The templates' actual call shape: a DIFFERENT session (the integrator) releases a lane's
+    marker with no `--session` at all. Confirmed broken in this lane's own high-effort code review
+    -- the old default resolved to the CALLER's own session, which never matches the claimant's, so
+    every cross-session release in the templates would have refused NOT_OURS forever. Safe because
+    `claim()` guarantees at most one marker per `name` at a time."""
+    claimed = claim.claim(NAME, session="11111111", root=str(transport))
+    assert claimed[0] == claim.CLAIMED
+
+    code = claim.release(NAME, root=str(transport))  # no --session -- a different "session" (none)
+    assert code == claim.CLAIMED
+    assert _markers(transport, NAME) == []
+
+
+def test_release_with_no_session_and_nothing_claimed_is_idempotent(transport):
+    code = claim.release(NAME, root=str(transport))
+    assert code == claim.CLAIMED
+
+
+def test_release_with_no_session_refuses_to_guess_among_multiple_markers(transport):
+    """The atomic-claim invariant guarantees at most one marker per `name` -- if that is ever found
+    broken (two markers present, e.g. by hand-editing the transport), a session-free release must
+    refuse rather than pick one, since picking wrong would be exactly the "remove another session's
+    marker" the Do-not forbids."""
+    (transport / "to-cc" / f"{NAME}.CLAIMED-11111111").write_text("a\n", encoding="utf-8")
+    (transport / "to-cc" / f"{NAME}.CLAIMED-22222222").write_text("b\n", encoding="utf-8")
+    with pytest.raises(claim.ClaimError):
+        claim.release(NAME, root=str(transport))
+    assert len(_markers(transport, NAME)) == 2, "a refused guess must leave both markers untouched"
+
+
 def test_release_treats_a_concurrently_removed_marker_as_idempotent_success(transport, monkeypatch):
     """Codex terra HIGH, this lane's own review: `marker.exists()` and `marker.unlink()` are two
     separate syscalls, so a concurrent second release of the SAME session's marker (a repair
@@ -169,6 +200,17 @@ def test_release_treats_a_concurrently_removed_marker_as_idempotent_success(tran
     monkeypatch.setattr(Path, "unlink", _vanished)
     code = claim.release(NAME, session="11111111", root=str(transport))
     assert code == claim.CLAIMED
+
+
+def test_cli_release_with_no_session_flag_matches_the_templates_own_call_shape(transport):
+    """The templates call exactly `claim.py release <name>` -- no `--session` -- from a session
+    that is never the claimant's own. Exercise that literal CLI shape, not just the Python API."""
+    claimed = _cli(transport, "claim", NAME, "--session", "11111111")
+    assert claimed.returncode == claim.CLAIMED
+
+    released = _cli(transport, "release", NAME)  # deliberately no --session
+    assert released.returncode == claim.CLAIMED, released.stdout + released.stderr
+    assert _markers(transport) == []
 
 
 def test_release_of_an_already_free_marker_is_idempotent(transport):

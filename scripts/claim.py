@@ -47,11 +47,19 @@ filesystem has no lock TTL. `claim` retries for `_LOCK_TIMEOUT_S` and then refus
 command to remove it by hand; nothing here auto-expires a lock, because a guard that decides for
 itself that a lock is "old enough to be dead" can be wrong in the one case that matters.
 
-RELEASE REQUIRES THE SESSION THAT CLAIMED (Do-not: never remove or rewrite another session's
-marker, hand-made or not). `release <name> --session <s>` removes only the exact file
-`to-cc/<name>.CLAIMED-<s>`; a marker present under a DIFFERENT session is left standing and
-reported `NOT_OURS`. Releasing an already-absent marker is an idempotent success, matching
-`single_flight.release`'s own re-runnability contract.
+RELEASE, WITH OR WITHOUT `--session`. The atomic claim above guarantees at most ONE marker ever
+exists for a given `<name>` at a time -- that is the mutex's whole point -- so `release <name>`
+with no `--session` releases *whichever* marker currently holds `<name>`, whoever claimed it: this
+is exactly the cross-session case every template actually calls (the integrator releasing a
+LANE's marker, a different session than the one that claimed it), and it is safe because there is
+never more than one to choose between. If more than one is ever found regardless (the invariant
+broken by hand-editing the transport), release refuses and reports all of them rather than
+guessing which is live. An EXPLICIT `--session <s>` is a stricter, narrower ask -- release exactly
+`to-cc/<name>.CLAIMED-<s>` -- and if a marker exists for `<name>` under a *different* session,
+that is left standing and reported `NOT_OURS` (Do-not: never remove or rewrite another session's
+marker; an explicit, wrong `--session` is treated as the caller's mistake, not license to guess).
+Releasing an already-absent marker is an idempotent success, matching `single_flight.release`'s
+own re-runnability contract.
 
 EXIT CODES: `claim`: **0** claimed | **3** already in flight (a marker exists, or the sentinel is
 held past its retry window) | **2** internal error (transport unreadable, bad name/session).
@@ -70,6 +78,12 @@ HONEST LIMITS:
     against every possible network-drive implementation.
   * Two DIFFERENT `<name>`s never contend -- one sentinel per name is the intended grain, same as
     `single_flight`'s one ref per contract id.
+  * Names are compared byte-for-byte, not case-folded. On the case-insensitive, case-preserving
+    NTFS mount this targets, two names differing only in case (`LANE-Foo` vs `lane-foo`) resolve to
+    the SAME file on disk while this module still treats them as different `<name>`s -- a
+    same-batch naming collision that differs only by case would falsely contend or falsely miss a
+    collision. No batch has produced case-colliding names to date; recorded rather than guessed at
+    with an untested normalization.
 """
 from __future__ import annotations
 
@@ -241,30 +255,15 @@ def claim(name: str, session: Optional[str] = None, root: Optional[str] = None) 
         return IN_FLIGHT, None
 
 
-def release(name: str, session: Optional[str] = None, root: Optional[str] = None) -> int:
-    """Release the marker THIS session claimed. 0 = free (removed or already absent) | 4 = a
-    marker exists under a different session, left standing | raises on internal error."""
-    name = _validate(name, _NAME_RE, "name")
-    session = _validate(session, _SESSION_RE, "session") if session else _default_session()
-    to_cc = _to_cc_root(root)
-    marker = _marker_path(to_cc, name, session)
-    if not marker.exists():
-        others = sorted(p for p in to_cc.glob(_marker_glob(name)) if p != marker)
-        if others:
-            print(f"CLAIM REFUSAL: not releasing {name} -- no marker under session {session!r}, "
-                  f"but {others[0].name!r} exists under a different session; left standing "
-                  f"(Do-not: never remove another session's marker).", file=sys.stderr)
-            return NOT_OURS
-        print(f"claim: {name} is already free (no marker under session {session!r})")
-        return CLAIMED
+def _unlink_idempotent(marker: Path, name: str, session: str) -> int:
     try:
         marker.unlink()
     except FileNotFoundError:
-        # Codex terra HIGH, this lane's own review: the `marker.exists()` check above and this
-        # unlink are two separate syscalls, so a concurrent release of the SAME session's marker
-        # (a repair session re-running teardown after a timeout, say) can see it vanish in
-        # between. The goal state -- no marker -- is reached either way, so this is the same
-        # idempotent success as the already-absent case above, not an internal error.
+        # Codex terra HIGH, this lane's own review: two separate syscalls (an existence check,
+        # then unlink) let a concurrent release of the SAME marker (a repair session re-running
+        # teardown after a timeout, say) see it vanish in between. The goal state -- no marker --
+        # is reached either way, so this is the same idempotent success as already-absent, not an
+        # internal error.
         print(f"claim: {name} is already free (marker under session {session!r} was removed "
               f"concurrently)")
         return CLAIMED
@@ -272,6 +271,41 @@ def release(name: str, session: Optional[str] = None, root: Optional[str] = None
         raise ClaimError(f"could not remove {marker}: {exc}") from exc
     print(f"claim: released {marker}")
     return CLAIMED
+
+
+def release(name: str, session: Optional[str] = None, root: Optional[str] = None) -> int:
+    """Release `name`'s marker. With `--session`, release exactly that session's marker (0 = freed
+    or already absent | 4 = a DIFFERENT session holds it, left standing). Without it, release
+    whichever single marker currently holds `name` -- safe because `claim()` guarantees at most one
+    ever exists at a time; raises if that invariant is ever found broken (more than one present)."""
+    name = _validate(name, _NAME_RE, "name")
+    to_cc = _to_cc_root(root)
+    if session is not None:
+        session = _validate(session, _SESSION_RE, "session")
+        marker = _marker_path(to_cc, name, session)
+        if not marker.exists():
+            others = sorted(p for p in to_cc.glob(_marker_glob(name)) if p != marker)
+            if others:
+                print(f"CLAIM REFUSAL: not releasing {name} -- no marker under session {session!r}, "
+                      f"but {others[0].name!r} exists under a different session; left standing "
+                      f"(Do-not: never remove another session's marker).", file=sys.stderr)
+                return NOT_OURS
+            print(f"claim: {name} is already free (no marker under session {session!r})")
+            return CLAIMED
+        return _unlink_idempotent(marker, name, session)
+
+    holders = sorted(to_cc.glob(_marker_glob(name)))
+    if not holders:
+        print(f"claim: {name} is already free (no marker present)")
+        return CLAIMED
+    if len(holders) > 1:
+        raise ClaimError(
+            f"refusing to guess: {len(holders)} markers found for {name}, expected at most one "
+            f"under the atomic-claim invariant -- {', '.join(p.name for p in holders)}. Pass "
+            f"--session explicitly to release one, after establishing by hand which is live.")
+    marker = holders[0]
+    held_session = marker.name[len(name) + len(_MARKER_INFIX):]
+    return _unlink_idempotent(marker, name, held_session)
 
 
 def inspect(name: str, root: Optional[str] = None) -> int:

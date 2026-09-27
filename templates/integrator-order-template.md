@@ -62,8 +62,9 @@ You merge; you do not build, and you do not weaken a check. The batch's common r
    step; remove the integration worktree and its branch. The primary's `main` holds no
    unverified merge. On a refusal, remove the integration worktree — `main` was not touched.
 5. **Teardown of the lane:** its job, its worktree, its branch local and on origin, and its claim
-   marker (`claim.py release <lane-contract-name>`); then `no_leftovers.py <slug> --contract
-   <lane-contract-name>` to verify all of it, marker included, is gone.
+   marker (`claim.py release <lane-contract-name>` — no `--session` needed: at most one marker
+   ever exists for that name, so this releases it whoever claimed it); then `no_leftovers.py verify
+   --lane <slug> --contract <lane-contract-name>` to verify all of it, marker included, is gone.
 6. **Receipt:** the `STATE` line with pickup, handback and push times; the ledger row written.
 
 ## Refusals and repairs

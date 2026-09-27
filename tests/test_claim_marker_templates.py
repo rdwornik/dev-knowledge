@@ -78,7 +78,7 @@ def test_the_integrator_template_claims_its_own_order_and_releases_the_merged_la
     text = _flat(_text(INTEGRATOR_TEMPLATE))
     assert "claim.py claim INTEGRATOR-<BATCH>" in text
     assert "claim.py release <lane-contract-name>" in text
-    assert "no_leftovers.py <slug> --contract <lane-contract-name>" in text
+    assert "no_leftovers.py verify --lane <slug> --contract <lane-contract-name>" in text
 
 
 def test_the_dispatcher_template_claims_its_own_order():
