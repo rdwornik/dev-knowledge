@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-09-27 (c) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): CI runs the suite on Windows and Linux for every lane, integration and main push -- both durations recorded, the local-main clone artefact gone
+
+**Anchors:** `4ad29e44`, `5131bbc7`, `7d722ef4`, `74278b87`, `daf59073`, `d190970e` -- `worktree-lane-ci-matrix` (ordered and served `claude-sonnet-5`), repair 1 of 2, merged `--no-ff` from an integration worktree on origin/main `1a0dc573`.
+
+**Did:** `.github/workflows/conductor.yml`'s `pytest` job runs on `matrix.os: [ubuntu-latest, windows-latest]`, `fail-fast: false`, `shell: bash`, checkout `fetch-depth: 0` plus a seeded local `main` ref; push triggers widen to `main`, `worktree-**`, `epic/**`; the artefact name is scoped per OS. `tests/test_conductor.py` pins each, RED first. Run 36304438895 on a `worktree-*` push: ubuntu 636 s, windows 788 s at `4ad29e44`, 0 "main does not resolve" reds (`docs/audits/2026-09-27-technical-ci-os-matrix.md`).
+
+**Result:** the Windows leg sits well under the 40-minute flip condition, so the full suite stays on both legs; CI evidence replaces the laptop's 82-minute run as the integrator's verdict (R11 D1). The first integration stack, verified on this matrix, bisected two lanes' reds by OS and refused them -- the matrix's first catch.
+
+**Changes:** `.github/workflows/conductor.yml`, `tests/test_conductor.py`, two audits; regenerated `docs/audits/README.md`, `ecosystem/doc-counts.md`.
+
+**Next:** ROWS-OWED -- the required-checks ruleset still names the single context `pytest` (L6); the known-reds registry is Linux-only (L2); `ci_verdict.py` does not find the suite-baseline block under matrix job names.
+
 ### 2026-09-27 (b) - CC (Opus 5.5, INTEGRATOR WAVE5B-N3): the batch closes -- the quota organ's close read lands, and the digest scores the SMART goals
 
 **Anchors:** `83e07720` -- `worktree-close-wave5b-n3`, merged `--no-ff` from an integration worktree on the 2026-09-27 (a) merge.
