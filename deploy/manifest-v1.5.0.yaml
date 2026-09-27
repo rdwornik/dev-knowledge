@@ -451,6 +451,16 @@ carriers:
           path: docs/intake/README.md
         - source: templates/intake-template.md
           path: templates/intake-template.md
+        # D7 consumer floor (row L9, ADR-127; RATIFICATION-2026-09-25 R11) -- "the deploy
+        # manifest ships a consumer CI template with the same OS matrix and a floor check
+        # that the consumer declares its supported platforms and runs CI on each". Same
+        # fill-in-skeleton shape as templates/intake-template.md above -- a verbatim,
+        # hash-guarded replica the consumer copies into its own `.github/workflows/` and
+        # adapts, never an already-active workflow written in place. The floor check itself
+        # is `scripts/audit_checks/check_platform_matrix.py`, which does not read this file
+        # -- it reads whatever the consumer actually declared.
+        - source: templates/consumer-ci-matrix.yml
+          path: templates/consumer-ci-matrix.yml
         # [#315] the tier1-plugin install guide, at the CONSUMER root. Operator ruling
         # (fleet-boundary-matrix Surface 8, amended 2026-07-11): "INSTALL.md uniform
         # fleet-wide, hub-owned, deploy-carried" — the content was always

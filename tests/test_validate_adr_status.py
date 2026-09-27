@@ -844,7 +844,14 @@ def test_shipped_corpus_parses_one_status_field_per_live_adr():
     # ADR-126 (substrate and parallelism), drafted on LANE-5B2-11-adr-drafts (batch WAVE5B-N2
     # row 11). Measured on base `da11291b` + this lane's four added files, RED first (99 vs 95)
     # before this pin moved; no other member moved. All four `Proposed` until the operator rules.
-    assert len(fields) == 99, "live ADR count moved — re-measure the Step-1 baseline"
+    #
+    # RE-MEASURED 2026-09-27 by lane-portability-requirement: 99 -> 100. The delta is ONE ADR
+    # and it is named: ADR-127 (CI on Windows and Linux is the verification verdict; the
+    # harness and its consumers are OS-agnostic, checked), drafted on
+    # LANE-5B4-11-portability-requirement (batch WAVE5B-N4 row L9), ratifying R11. Measured on
+    # base `316d3205` + this lane's one added file; no other member moved. `Accepted` — R11 is
+    # the operator's ratification the ADR is written from.
+    assert len(fields) == 100, "live ADR count moved — re-measure the Step-1 baseline"
 
 
 def test_shipped_corpus_grammar_distribution_matches_the_measured_baseline():
@@ -881,7 +888,11 @@ def test_shipped_corpus_grammar_distribution_matches_the_measured_baseline():
     # RE-MEASURED 2026-09-25 by lane-adr-drafts: G1 48 -> 52, the same four causes as the count
     # above (ADR-123..126, each a G1-shaped `Proposed` status field). G2/G3/G4 unchanged a
     # seventh time, so the delta is four ADRs and not grammar drift.
-    assert counts == {"G1": 52, "G2": 34, "G3": 12, "G4": 1}
+    #
+    # RE-MEASURED 2026-09-27 by lane-portability-requirement: G1 52 -> 53, the same single
+    # cause as the count above (ADR-127 carries a G1-shaped `- **Status:** Accepted` field).
+    # G2/G3/G4 unchanged an eighth time, so the delta is one ADR and not grammar drift.
+    assert counts == {"G1": 53, "G2": 34, "G3": 12, "G4": 1}
 
 
 def test_shipped_corpus_has_zero_enum_violations():

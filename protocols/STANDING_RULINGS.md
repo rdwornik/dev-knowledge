@@ -4839,6 +4839,45 @@ refuses stale writes; minutes-per-completed-task measured on both stores.
   sweep, the whole-graph refusal and the browser-view projection respectively; this section is
   not where that evidence lands.
 
+## AN. RATIFICATION-2026-09-25 R1–R17 — the CI/OS ADR and the remote-observability core ratified; secrets, scope, decision-loop and own-tools rulings (operator, 2026-09-26/27)
+
+Landed by `lane-portability-requirement` (batch WAVE5B-N4, row L9). `to-browser/RATIFICATION-2026-09-25.md`
+is the transport source at its live version (v14 at this lane's render; R1–R17 unchanged since
+v10); the full text of R11–R16 is `RATIFICATION-2026-09-25-v9-superseded.md`, R17 is
+`RATIFICATION-2026-09-25-v10-superseded.md`. This entry is the in-repo home ADR-127 (below)
+points at for R11 and R17, and §AM above remains the in-repo home for R1–R7. **Nothing here
+restates §AM's own text** — R1–R7 are listed by pointer only, per the "declare, don't
+duplicate" rule this file's Editing note states below.
+
+- **R1** — O1 ratified. **Provenance:** §AM above; `docs/decisions/ADR-122-a-task-is-a-typed-record-in-git.md` (Accepted).
+- **R2** — secrets, amended by R13. **Provenance:** §AM above; superseded in substance by R13 below.
+- **R3** — sessions stay visible; teardown is `claude stop`, in place of a session-removal verb. **Provenance:** §AM above.
+- **R4** — the scratch trial repository deleted by the operator. **Provenance:** §AM above.
+- **R5** — speed first, the laptop is not the substrate, cloud cost secondary. **Provenance:** §AM above.
+- **R6** — a Codespace lane works only when proven end to end, the dispatcher monitors every one. **Provenance:** §AM above.
+- **R7** — usage measured per SKU against quota, warns at 50/80/100% and any first billed dollar. **Provenance:** §AM above; `scripts/quota_watch.py`.
+- **R8** — Copilot Enterprise by default for agent testing and Copilot-adequate work. **Provenance:** `ecosystem/provider-registry.yaml` (`display_name: GitHub Copilot Enterprise`, the AX21-1 producer/locator ordering); no dedicated STANDING_RULINGS entry existed before this lane — recorded here as the first one.
+- **R9** — verification level interim O2, until R11's lanes land. **Provenance:** `.claude/commands/lane-integrate.md` refuse-to-finish item 2 (the local-full-suite obligation R11's own Decommission line names). **Status: superseded in substance by R11 D6**, not yet decommissioned in code — that edit belongs to `lane-arm-ci` (row L6), which has not merged as of this entry.
+- **R10** — withdrawn. At no point in force; no provenance needed.
+- **R11 — the CI/OS ADR is ratified.** Decisions D1–D9 of `to-browser/PROPOSAL-ADR-CI-VERIFICATION-2026-09-26-seat-71020de7.md` are ratified as written, with the operator's three functional answers folded into the ADR (landing moves to PRs if L0's probe shows a checked sha cannot push directly; the dispatch/harvest CLI lives in the hub; rclone is the Linux transport backend, CC designs its own auth). **Provenance:** `docs/decisions/ADR-127-ci-os-verification.md` (Accepted, this lane) is the in-repo record of the decision itself. Of the nine sub-decisions, what is landed in THIS tree as of this entry: D1 (`.github/workflows/conductor.yml`'s `pytest` job, `strategy.matrix.os: [ubuntu-latest, windows-latest]`, `fetch-depth: 0`, `shell: bash` — row L1, `lane-ci-matrix`, merged `316d3205`) and the shape of D2 (`scripts/known_reds.py`, `logs/KNOWN-REDS-REGISTRY.json` — row L2). D3–D9 (arming the ruleset, the server-side governance jobs, the transport adapter, the orchestration port) are rows L3–L8 of this same batch and had not landed in this tree as of this lane's render — this entry does not claim they had.
+- **R12 — the decision loop.** Every ratified decision carries a measurable goal and the check that measures it; plan → do → check → act. **Provenance:** this very entry and ADR-127 are an instance of the loop; the closest standing code enforcement is `scripts/validate_adr_status.py`'s `Flip-condition` / `Alternatives considered` required sections (ADR-124 D5's shape) — an ADR that names no observable that would reverse it fails validation. `lane-decide-command` (this batch, row 12) is the not-yet-merged build of `/decide` itself.
+- **R13 — secrets: make it work first, harden after (amends R2).** At no point in a repository file; beyond that CC chooses the credential mechanism, records the choice, hardens later. **Provenance:** `protocols/STANDING_RULINGS.md`, "The Codespaces credential — `CLAUDE_CODE_OAUTH_TOKEN`, and its exposure" subsection (user-level Codespaces secret precedent this ruling generalizes from).
+- **R14 — who decides.** The browser seat proposes and questions; CC decides through the system (research, subagents, multi-model review, a Proposed ADR, ratification). **Provenance:** ADR-108 §A (decision-tier routing, functional vs. technical) is the standing routing rule this ruling operates inside; this batch's own render (`rendered-by: gen-wave5b-n4`) and this lane's execution are a live instance.
+- **R15 — scope of subagents and tools, enforced by mechanism, not prompt text.** The operator's employer folders are outside every frame unless a brief names them; a tool deny rule (e.g. Copilot's git/gh denial) stays unbypassable through another shell. **Provenance:** `~/.claude/hooks/block-onedrive.ps1` + `~/.claude/rules/core-invariants.md` §1 is the LIVE mechanism this ruling generalizes (global config, cited rather than duplicated — global-infra is exception-with-ruling per that same file's §6). The **in-repo, per-tool-call** hook `lane-scope-guard` names (row 1 of this batch) had not merged into this tree as of this lane's render.
+- **R16 — Rule number one: agents use the harness's own tools, enforced by mechanism.** Library-first check, dependency graph, impacted-test selection, naming/code standards and templates are hard-coded into hooks, gates and generated contracts rather than repeated in prose. **Provenance:** `to-cc/BATCH-DECISION-OWN-TOOLS-2026-09-26.md` (transport; the design of these mechanisms is still going through the decision process it names) — no dedicated in-repo build exists yet; the closest live instances are O-12 (§AL-A above, "no tools for building tools") and this repo's existing library-first checks (`ecosystem/dependency-baseline.yaml`, the ADR template's own prior-art-check convention).
+- **R17 — the remote-observability ADR core is ratified; CC validates while building.** Evidence leaves a remote container as it is produced; a codespace is deleted only after a checked, private local copy of its raw log/transcript/subagent logs exists; one filtered record per run, written by the integrator only; a WITNESSED/PARTIAL/UNWITNESSED check separates "the harness ran" from "a commit landed", UNWITNESSED refuses the merge. **Standing direction recorded with it:** CC always validates a ratified decision against the code before building it and stops with evidence if a premise fails (this lane's own "validate the premises" step, contract §"First step", is that standard in practice); every decision is recorded and reversible. **Provenance:** its full build (L1–L10) runs in WAVE5B-N5; the delete-after-harvest rule is row 10 of THIS batch (`lane-dispatch-port-hub`), which had not merged into this tree as of this lane's render.
+
+**Landed predicate for this entry itself:**
+```landed
+site: docs/decisions/ADR-127-ci-os-verification.md | pattern: operator ratification \(R11\)
+site: .github/workflows/conductor.yml | pattern: strategy
+```
+
+**Expiry:** none of R1–R17 expire on their own. The "had not merged as of this lane's render"
+clauses above (R9, R11's D3–D9, R15, R16, R17) are the load-bearing honesty this entry adds
+over a bare pointer to the transport: they name what to re-check, rather than letting a future
+reader assume the whole ADR landed because its ratification did.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector

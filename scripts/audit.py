@@ -294,6 +294,7 @@ check_substrate_declaration = _registry.check_substrate_declaration
 check_dispatch_drift = _registry.check_dispatch_drift
 check_routing_agreement = _registry.check_routing_agreement
 check_consumer_at_landing = _registry.check_consumer_at_landing
+check_platform_matrix = _registry.check_platform_matrix
 check_proof_layer = _registry.check_proof_layer
 check_organ_truth = _registry.check_organ_truth
 
@@ -5472,6 +5473,10 @@ ALL_CHECKS = [
                                # Leg 1 (a landing declares its consumer) FAIL-armed against a
                                # post-2026-08-27 corpus measuring 0; leg 2 (the identity-keyed
                                # consumption ratchet) WARN. COMMIT by rule (a): FAIL-capable
+    _tier(TIER_COMMIT, check_platform_matrix),     # D7 consumer floor (row L9, ADR-127) —
+                               # a repo with no declared `strategy.matrix.os` FAILs by
+                               # construction (the Done-when's own words). COMMIT by rule (a):
+                               # FAIL-capable, and cheap (a handful of workflow files parsed)
     _tier(TIER_COMMIT, check_proof_layer),         # [#596] — family 3 at the PROOF layer: a
                                # proof whose firing is gated on the environment it polices.
                                # WARN-tier identity ratchet, so it PASSES rule (a) — but rule

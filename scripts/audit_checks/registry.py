@@ -95,6 +95,7 @@ from .check_handoff_version_stamp import (
     check_handoff_version_stamp,
 )
 from .check_organ_truth import check_organ_truth
+from .check_platform_matrix import check_platform_matrix
 from .check_proof_layer import check_proof_layer
 from .check_reconciled_versions import _vr, check_reconciled_versions
 from .check_residual_completeness import _vrc, check_residual_completeness
@@ -183,6 +184,7 @@ CHECK_ORDER: tuple[str, ...] = (
     "check_routing_agreement",            # [#613] L0 routing copy vs the in-repo table
     "check_dispatch_drift",               # [#592] Ch8 literal commands vs the machine
     "check_consumer_at_landing",          # [#595] docs/audits consumer declaration + ratchet
+    "check_platform_matrix",              # D7 consumer floor — row L9, ADR-127
     "check_proof_layer",                  # [#596] family-3 environment-conditional guards
     "check_funnel_lifecycle",             # FM-2 — facade — _is_hub seam; detector in
                                           # funnel_lifecycle.py
@@ -213,6 +215,7 @@ EXTRACTED_CHECKS = (
     check_dispatch_drift,
     check_routing_agreement,
     check_consumer_at_landing,
+    check_platform_matrix,
     check_proof_layer,
     check_organ_truth,
 )
@@ -284,6 +287,7 @@ __all__ = [
     "check_handoff_bundle_structure",
     "check_handoff_version_stamp",
     "check_organ_truth",
+    "check_platform_matrix",
     "check_proof_layer",
     "check_reconciled_versions",
     "check_residual_completeness",

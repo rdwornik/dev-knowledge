@@ -1,0 +1,72 @@
+# templates/consumer-ci-matrix.yml — the D7 consumer CI template.
+#
+# Shipped by the `docs` carrier (`deploy/manifest-v1.5.0.yaml`) to a consumer's own
+# `templates/` directory as a FILL-IN SKELETON — same shape as `templates/intake-template.md`
+# (a verbatim, hash-guarded replica the consumer adapts, never an already-active workflow
+# copied in place). The consumer copies this file to `.github/workflows/` under whatever name
+# it likes and fills in `<consumer-specific>` spots.
+#
+# WHY THIS SHAPE. `to-browser/PROPOSAL-ADR-CI-VERIFICATION-2026-09-26-seat-71020de7.md` D7:
+# "the deploy manifest ships a consumer CI template with the same OS matrix and a floor check
+# that the consumer declares its supported platforms and runs CI on each; a consumer is
+# compliant when its matrix is present and green-or-ratcheted." Ratified R11
+# (RATIFICATION-2026-09-25 v9); in-repo home: `docs/decisions/ADR-127-ci-os-verification.md`,
+# `protocols/STANDING_RULINGS.md` §AN. The matrix mirrors the hub's own
+# `.github/workflows/conductor.yml` `pytest` job (D1), which is what
+# `scripts/audit_checks/check_platform_matrix.py` (the floor check) already finds green on
+# this repo. A consumer that legitimately supports only one platform may narrow the `os:` list
+# to that one value — the floor is DECLARATION, not a required count (see that check's
+# docstring).
+#
+# `<consumer-specific>` markers below are the only edits a consumer needs before this file is
+# a working workflow.
+
+name: ci
+
+on:
+  push:
+    branches: [main, "worktree-**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash    # supported on windows-latest (Git-for-Windows bash); avoids a second
+                       # shell dialect for the steps below
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "<consumer-specific: pin to this repo's [tool.uv] required-version>"
+
+      - name: Sync the locked environment
+        run: uv sync --locked
+
+      - name: pytest
+        run: uv run --locked pytest -q --tb=short
+
+  ruff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "<consumer-specific: pin to this repo's [tool.uv] required-version>"
+      - run: uv sync --locked
+      - run: uv run --locked ruff check
