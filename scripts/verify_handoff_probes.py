@@ -1294,6 +1294,47 @@ def _rule_receipt(value: str, ctx: _BootCtx) -> tuple[str, str]:
                     f"with no value; got status {st!r}, value {val!r}")
 
 
+#: lane-handoff-min (Part A): a generic BD rule for a `handoff_state` STATE row. Re-derives
+#: the row LIVE, through the SAME function `gen_handoff.boot_data_rows` called at cut time, and
+#: compares the rendered string — see `handoff_state`'s module docstring for why calling the
+#: one function from both ends (not a second copy of the read) is what makes "checked live"
+#: true rather than decorative. `state_fn(hs, ctx)` returns the fresh `StateRow`; the small
+#: per-key lambdas below exist only to bind which `handoff_state.row_*` a given key re-derives.
+def _rule_state(state_fn):
+    def rule(value: str, ctx: _BootCtx) -> tuple[str, str]:
+        try:
+            import handoff_state as _hs  # noqa: PLC0415
+        except ImportError:
+            return "skipped", "handoff_state not importable"
+        try:
+            fresh = state_fn(_hs, ctx)
+        except Exception as exc:          # noqa: BLE001 -- a reader's own failure is reported
+            return "fail", f"live re-derivation raised {type(exc).__name__}: {exc}"
+        want = fresh.rendered()
+        if value.strip() != want.strip():
+            return "fail", f"cut recorded {value!r}; live re-derivation now gives {want!r}"
+        return "pass", f"matches live re-derivation ({fresh.freshness}): {want}"
+    return rule
+
+
+def _transport_for(ctx: _BootCtx):
+    """`gen_handoff.transport_root()`, deferred-imported like every other cross-module read on
+    this rung (`_rule_chat_title`, `_rule_destination`, `_rule_role` above)."""
+    import gen_handoff as _gh  # noqa: PLC0415
+    return _gh.transport_root()
+
+
+_STATE_ROW_FNS = {
+    "CI": lambda hs, ctx: hs.row_ci(ctx.repo_root),
+    "Batches": lambda hs, ctx: hs.row_batches(ctx.repo_root),
+    "Seats": lambda hs, ctx: hs.row_seats(),
+    "Substrates": lambda hs, ctx: hs.row_substrates(ctx.repo_root),
+    "Transport": lambda hs, ctx: hs.row_transport(ctx.repo_root),
+    "Rulings": lambda hs, ctx: hs.row_rulings(_transport_for(ctx)),
+    "Capabilities": lambda hs, ctx: hs.row_capabilities(_transport_for(ctx)),
+}
+
+
 #: One rule per DATA row, keyed by the row's bolded label. The generator's rows and this set
 #: are held equal by a test; a row outside it FAILs as unverified.
 BOOT_DATA_RULES = {
@@ -1306,7 +1347,47 @@ BOOT_DATA_RULES = {
     "Probes": _rule_probes,
     "Receipt": _rule_receipt,
     **{key: _pointer_rule(key) for key in BOOT_POINTERS if key != "Role"},
+    **{key: _rule_state(fn) for key, fn in _STATE_ROW_FNS.items()},
 }
+
+
+def _rule_bd_manifest(bundle_path: Path) -> ProbeResult:
+    """`BD-manifest` (lane-handoff-min, Part A Done-when 2): every bundle file's sha256 still
+    matches what `HANDOFF_RECEIPT.json`'s `manifest.files` recorded at generation — a tamper
+    detector, never a content judgment. Runs once per bundle (not per DATA row), inside
+    `verify_boot` alongside the BD-* rung it shares an id prefix with."""
+    import hashlib  # noqa: PLC0415
+    import json     # noqa: PLC0415
+    name = bundle_path.name
+    receipt_path = bundle_path / RECEIPT_FILE
+    if not receipt_path.is_file():
+        return ProbeResult("BD-manifest", "fail", "HANDOFF_RECEIPT.json is missing — no "
+                           "manifest to verify bundle integrity against", name)
+    try:
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return ProbeResult("BD-manifest", "fail", f"HANDOFF_RECEIPT.json is unreadable JSON "
+                           f"({type(exc).__name__})", name)
+    manifest = receipt.get("manifest") if isinstance(receipt, dict) else None
+    files = manifest.get("files") if isinstance(manifest, dict) else None
+    if not isinstance(files, dict) or not files:
+        return ProbeResult("BD-manifest", "fail", "the receipt carries no manifest.files to "
+                           "verify against", name)
+    mismatches = []
+    for rel, want in sorted(files.items()):
+        p = bundle_path / rel
+        if not p.is_file():
+            mismatches.append(f"{rel} (missing)")
+            continue
+        got = hashlib.sha256(p.read_bytes()).hexdigest()
+        if got != want:
+            mismatches.append(f"{rel} (sha mismatch)")
+    if mismatches:
+        return ProbeResult("BD-manifest", "fail",
+                           (f"{len(mismatches)} file(s) differ from the generation manifest: "
+                            + "; ".join(mismatches)).replace("|", "/"), name)
+    return ProbeResult("BD-manifest", "pass",
+                       f"{len(files)} file(s) match the generation manifest sha256", name)
 
 
 def verify_boot(bundle_path, repo_root) -> list[ProbeResult]:
@@ -1348,6 +1429,9 @@ def verify_boot(bundle_path, repo_root) -> list[ProbeResult]:
         if key not in ctx.rows:
             results.append(ProbeResult(f"BD-{boot_data_id(key)}", "fail",
                                        f"{key}: the DATA block omits this ruled row", name))
+    # lane-handoff-min (Part A): the manifest integrity check, once per bundle (not per row) —
+    # placed BEFORE the BP-budget block's own early-return path so it always runs.
+    results.append(_rule_bd_manifest(bundle_path))
     try:
         import gen_handoff as _gh  # noqa: PLC0415
         budget = _gh.BOOT_PROSE_BYTE_BUDGET

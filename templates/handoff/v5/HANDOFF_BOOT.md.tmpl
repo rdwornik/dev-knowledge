@@ -5,6 +5,13 @@
     BOOT_DATA token the DATA block, emitted row by row by gen_handoff.boot_data_rows — every
                     row is checked by a rule in verify_handoff_probes.BOOT_DATA_RULES (BD-*),
                     and a row with no rule FAILs. Facts and pointers live here, never in `>`.
+                    Since lane-handoff-min (Part A), the identity/pointer rows above are
+                    followed by SEVEN live STATE rows (CI, Batches, Seats, Substrates,
+                    Transport, Rulings, Capabilities) — scripts/handoff_state.py, each row
+                    carrying its own evidence locator and freshness class (CUT-FIXED /
+                    LIVE-DRIFTS / SLOW; see that module's docstring). `BD-manifest` (same
+                    rung) additionally checks every bundle file's sha256 against the cut
+                    manifest in HANDOFF_RECEIPT.json.
     BOOT-PROSE      the hand-authored FILL-IN regions only (purpose; the destination's
                     worktree / write-scope / mode basis) plus the generated-at line — read, not
                     verified, under gen_handoff.BOOT_PROSE_BYTE_BUDGET (probe BP-budget).

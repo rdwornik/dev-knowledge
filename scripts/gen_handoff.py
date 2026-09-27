@@ -40,6 +40,7 @@ import importlib
 import importlib.util
 import os
 import re
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -75,12 +76,15 @@ __all__ = [
     "DryCutTargetError",
     "GenResult",
     "OpenBatchError",
+    "SupplementSlotError",
     "assert_batch_boundary",
     "assert_boundary_hygiene",
     "assert_preflight",
+    "assert_supplement_fixed_slots",
     "boot_cost",
     "boot_data_block",
     "boot_data_rows",
+    "bundle_manifest",
     "carriage_shortfall",
     "carriage_verdicts",
     "carried_by_value",
@@ -89,13 +93,16 @@ __all__ = [
     "decision_files",
     "detect_fill_state",
     "dispatch_form",
+    "fixed_slots",
     "funnel_health_block",
     "generate",
     "journal_draft",
     "preflight_rows",
+    "publish_bundle",
     "reflow_framing",
     "spec_version",
     "standing_vs_new",
+    "verify_published",
     "verify_seal_identity",
 ]
 
@@ -107,6 +114,16 @@ try:
     from scripts import canonical_docs as _cdocs
 except ImportError:  # pragma: no cover - exercised by the scripts/-on-sys.path entrypoint
     import canonical_docs as _cdocs
+
+# lane-handoff-min (Part A): the boot's live STATE rows are a separate reader module — it
+# defines no registry of its own and calls only organs that already exist (ci_verdict,
+# batch_manifest, seat_registry, the two ecosystem registries, the newest transport
+# RATIFICATION / DIGEST-CAPABILITY-MAP). No cycle risk (handoff_state never imports this
+# module), so this is a plain top-level import, same dual shim as `canonical_docs` above.
+try:
+    from scripts import handoff_state as _hstate
+except ImportError:  # pragma: no cover - exercised by the scripts/-on-sys.path entrypoint
+    import handoff_state as _hstate
 
 # lane-boot-contract (WAVE5B-N2 row 12): the boot's DATA/PROSE contract is the VERIFIER's — it
 # decides what "probe-checked" means — so the delimiters, the receipt name and the boot-cost
@@ -1934,6 +1951,84 @@ def detect_fill_state(bundle_dir: Path) -> bool:
     return _extract_answers(sup.read_text(encoding="utf-8")) is not None
 
 
+# --- SUPPLEMENT fixed slots (lane-handoff-min, Part A Done-when 4) ---------------------------
+#
+# Decision rule 2: "The outgoing seat's judgement goes in fixed slots of the existing
+# SUPPLEMENT (headline · open threads with carriers · next authorized action · contingencies ·
+# do-not-repeat)." Part A's scope is the minimum that makes that checkable — five labeled
+# lines the operator restates their chat answer as, ADDITIVE to the existing QUESTIONS/ANSWERS
+# shape (SUPPLEMENT.md.tmpl's schema is otherwise UNCHANGED: a full schema migration is
+# `protocols/HANDOFF_PROCESS.md` §13's call, and touching that file forces a coupled version
+# bump — explicitly Not in A). The refusing MOMENT (a harness-wired `seat-release` transaction)
+# is Part B; what fires here is a plain function call on the next re-render of an
+# already-written supplement, which is the only trigger this lane owns.
+
+#: The five slot labels, exactly as they must open a line in the ANSWERS region. Order is the
+#: Decision text's own order.
+SUPPLEMENT_FIXED_SLOTS: tuple[str, ...] = (
+    "Headline", "Open threads (with carriers)", "Next authorized action", "Contingencies",
+    "Do-not-repeat",
+)
+
+#: `[ \t]*`, never `\s*`, around the `:` -- `\s` matches `\n` too, so a GREEDY `\s*` after the
+#: colon on a BLANK slot (nothing between `:` and end of line) swallows that newline and any
+#: leading whitespace of the NEXT line before `(.*)$` captures the rest of THAT line as this
+#: slot's own value -- silently absorbing the next label's line into this one's match and
+#: making the FOLLOWING label vanish from `finditer` entirely, rather than reading as blank
+#: (found by Done-when 4's own acceptance run, 2026-09-27: a blank "Next authorized action:"
+#: immediately followed by "Contingencies: none" mis-reported "Contingencies" as the missing
+#: slot).
+_FIXED_SLOT_LINE_RE = re.compile(
+    r"(?im)^[ \t]*(" + "|".join(re.escape(s) for s in SUPPLEMENT_FIXED_SLOTS)
+    + r")[ \t]*:[ \t]*(.*)$")
+
+
+def fixed_slots(answers_text: str) -> dict[str, str]:
+    """The fixed-slot labels found in an ANSWERS region, mapped to their content (last match
+    wins, so a restated/corrected line overrides an earlier draft of the same slot). A label
+    with no content after its `:` maps to `""`, which `assert_supplement_fixed_slots` treats
+    the same as the label being altogether absent — see there."""
+    found: dict[str, str] = {}
+    for m in _FIXED_SLOT_LINE_RE.finditer(answers_text):
+        # Canonicalize case/whitespace so "headline:" and "Headline:" are the same slot.
+        label = next(s for s in SUPPLEMENT_FIXED_SLOTS if s.lower() == m.group(1).strip().lower())
+        found[label] = m.group(2).strip()
+    return found
+
+
+class SupplementSlotError(RuntimeError):
+    """Generation refused: a FILLED supplement omits, or leaves empty, a Part A fixed slot.
+
+    Fires only on an already-written SUPPLEMENT.md whose ANSWERS region is non-empty
+    (`assemble_paste._extract_answers` returns something) — an untouched or deliberately empty
+    supplement is the defined cold-handoff disposition and is never refused (the supplement's
+    own lifecycle comment: "the artifact exists even for a cold / cleared handoff")."""
+
+
+def assert_supplement_fixed_slots(supplement_path: Path) -> None:
+    """Raise `SupplementSlotError`, naming every missing/empty slot, when `supplement_path`
+    exists, is FILLED, and omits one of `SUPPLEMENT_FIXED_SLOTS` or leaves it blank. A no-op
+    when the file is absent or cold."""
+    supplement_path = Path(supplement_path)
+    if not supplement_path.is_file():
+        return
+    sys.path.insert(0, str(_SCRIPTS))
+    from assemble_paste import _extract_answers  # noqa: PLC0415
+    answers = _extract_answers(supplement_path.read_text(encoding="utf-8"))
+    if answers is None:
+        return                      # cold / unfilled -- the defined, non-refused disposition
+    found = fixed_slots(answers)
+    missing = [s for s in SUPPLEMENT_FIXED_SLOTS if not found.get(s, "").strip()]
+    if missing:
+        raise SupplementSlotError(
+            f"refusing: {supplement_path} is filled but omits {len(missing)} fixed slot(s): "
+            + "; ".join(missing)
+            + ". Restate the answer as five labeled lines (`Headline:`, `Open threads (with "
+              "carriers):`, `Next authorized action:`, `Contingencies:`, `Do-not-repeat:`), "
+              "each non-empty — `\"none\"` is a valid non-empty value, a blank line is not."
+        )
+
+
 def reflow_framing(bundle_dir: Path) -> list[str]:
     """Flip the fill-state framing blocks (SUPPLEMENT_BANNER / P1_GATE_NOTE / PASTE_STEP6) from
     their COLD text to their FILLED text, IN PLACE, in an already-rendered bundle whose SUPPLEMENT
@@ -2027,17 +2122,24 @@ def spec_version(repo_root: Path) -> "str | None":
     return m.group(1) if m else None
 
 
-def boot_data_rows(slug: str, mode: str, chat_title: str,
-                   role_version: "str | None") -> list[tuple[str, str]]:
+def boot_data_rows(slug: str, mode: str, chat_title: str, role_version: "str | None", *,
+                   state_rows: "list | None" = None) -> list[tuple[str, str]]:
     """The DATA rows, in paste order. Each key has exactly one rule in `BOOT_DATA_RULES`, and
     every pointer, self-pointer and the launcher line is rendered FROM the verifier's tables
-    (`BOOT_POINTERS`, `BOOT_SELF_POINTERS`, `LAUNCH_COMMAND`), so the two cannot disagree."""
+    (`BOOT_POINTERS`, `BOOT_SELF_POINTERS`, `LAUNCH_COMMAND`), so the two cannot disagree.
+
+    lane-handoff-min (Part A): `state_rows`, when given, is a list of `handoff_state.StateRow`
+    — seven live facts appended after the identity rows above. It is computed ONCE by the
+    caller (`generate`, via `handoff_state.state_rows`) rather than derived here, because one
+    of the seven is a live CI poll and this function must not repeat a network call per render
+    or per test. `state_rows=None` (an epic/functional caller, or a direct unit-test call that
+    only cares about the identity rows) renders the identity rows only."""
     def ptr(key: str) -> str:
         return " · ".join(f"`{p}`" for p in _vhp().BOOT_POINTERS[key])
 
     def own(key: str) -> str:
         return f"`docs/handoffs/{slug}/{_vhp().BOOT_SELF_POINTERS[key]}`"
-    return [
+    rows = [
         ("Slug", f"`{slug}`"),
         ("Chat title", f"`{chat_title}`"),
         ("Mode", f"**{mode}**"),
@@ -2052,6 +2154,9 @@ def boot_data_rows(slug: str, mode: str, chat_title: str,
         ("Runbook", ptr("Runbook")),
         ("Harness", ptr("Harness")),
     ]
+    if state_rows:
+        rows += [(row.key, row.rendered()) for row in state_rows]
+    return rows
 
 
 def boot_data_block(rows: list[tuple[str, str]]) -> str:
@@ -2118,17 +2223,109 @@ def boot_cost(turns: "int | None" = None, dispatch: "str | None" = None,
 
 
 def _write_receipt(bundle_dir: Path, *, slug: str, mode: str, date: str, cut: str,
-                   cost: dict, paste: dict) -> Path:
+                   cost: dict, paste: dict, manifest: "dict | None" = None) -> Path:
     """Write `<bundle>/HANDOFF_RECEIPT.json`, WHOLE, every generation (the FUNNEL_HEALTH
     contract: overwritten, never merged). A bundle artifact, not a browser-visible one — the
-    assembler never reads it — so its numbers do not touch the answer-free paste."""
+    assembler never reads it — so its numbers do not touch the answer-free paste.
+
+    `manifest` (lane-handoff-min, Part A; ADR-HANDOFF-SYSTEM Decision rule 1) is the per-file
+    sha256 census a publish step verifies against — see `bundle_manifest` / `publish_bundle` /
+    `verify_published`. `None` for a mode this lane's manifest walk does not cover."""
     import json  # noqa: PLC0415
     out = bundle_dir / _vhp().RECEIPT_FILE
     body = {"schema": "handoff-receipt/1", "generator": "scripts/gen_handoff.py", "slug": slug,
-            "mode": mode, "date": date, "cut": cut, "boot_cost": cost, "paste": paste}
+            "mode": mode, "date": date, "cut": cut, "boot_cost": cost, "paste": paste,
+            "manifest": manifest}
     out.write_text(json.dumps(body, indent=2, ensure_ascii=False) + "\n", encoding="utf-8",
                    newline="\n")
     return out
+
+
+# --- the cut manifest, and publishing to a transport copy (lane-handoff-min, Part A) ----------
+#
+# Decision rule 1: "The manifest (cut id, source sha, generation time, per-file sha256,
+# per-row freshness class) extends HANDOFF_RECEIPT.json." `seat-release`'s refusing-transaction
+# and the CI manifest check are Part B (moments) — NOT IN A. What Part A owns is the manifest's
+# DATA and a way to prove a published copy is sha-equal to it, so Part B has something to check
+# against once its own trigger exists.
+
+def _sha256_file(path: Path) -> str:
+    import hashlib  # noqa: PLC0415
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _bundle_file_shas(bundle_dir: Path) -> dict[str, str]:
+    """Every bundle file's sha256, keyed by its path relative to the bundle — EXCEPT the
+    receipt itself, which cannot hash its own not-yet-written content (the manifest is embedded
+    IN the receipt, so the receipt's own bytes are never a manifested file)."""
+    receipt_name = _vhp().RECEIPT_FILE
+    out: dict[str, str] = {}
+    for p in sorted(bundle_dir.rglob("*")):
+        if not p.is_file() or p.name == receipt_name:
+            continue
+        out[p.relative_to(bundle_dir).as_posix()] = _sha256_file(p)
+    return out
+
+
+def bundle_manifest(bundle_dir: Path, *, source_sha: "str | None",
+                    state_rows: "list | None" = None) -> dict:
+    """The cut manifest: a fresh `cut_id`, the source sha, generation time, every bundle
+    file's sha256 (see `_bundle_file_shas`), and the freshness class of each live state row
+    this cut carries (`{}` for a mode with no state rows, e.g. epic/functional)."""
+    import uuid  # noqa: PLC0415
+    return {
+        "cut_id": uuid.uuid4().hex[:12],
+        "source_sha": source_sha,
+        "generation_time": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"),
+        "files": _bundle_file_shas(bundle_dir),
+        "row_freshness": {row.key: row.freshness for row in (state_rows or [])},
+    }
+
+
+def publish_bundle(bundle_dir: Path, dest_dir: Path) -> dict:
+    """Copy every file the bundle's OWN manifest names from `bundle_dir` into `dest_dir`
+    (mirrored relative layout). `dest_dir` is a scratch "transport" copy — this is never the
+    real `$CLAUDE_PROMPTS_DIR` (Part A Do-not: no publish from this lane touches the real
+    transport). Raises `ValueError` when the bundle carries no manifest to publish from (it
+    was never generated by this lane's `generate()`, or its receipt predates this feature)."""
+    receipt_path = bundle_dir / _vhp().RECEIPT_FILE
+    import json  # noqa: PLC0415
+    try:
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise ValueError(f"{bundle_dir} carries no readable receipt to publish from: {exc}") from exc
+    files = (receipt.get("manifest") or {}).get("files") or {}
+    if not files:
+        raise ValueError(f"{bundle_dir}'s receipt carries no manifest files to publish")
+    dest_dir = Path(dest_dir)
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    published = []
+    for rel in sorted(files):
+        src, dst = bundle_dir / rel, dest_dir / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
+        published.append(rel)
+    return {"dest": str(dest_dir), "files": published}
+
+
+def verify_published(bundle_dir: Path, dest_dir: Path) -> list[str]:
+    """The relative paths whose PUBLISHED copy no longer sha-matches the bundle's own
+    manifest — `[]` means every published copy is sha-equal. A file the manifest names but the
+    destination lacks, or cannot read, counts as a mismatch too (never silently skipped)."""
+    import json  # noqa: PLC0415
+    receipt = json.loads((bundle_dir / _vhp().RECEIPT_FILE).read_text(encoding="utf-8"))
+    files = (receipt.get("manifest") or {}).get("files") or {}
+    dest_dir = Path(dest_dir)
+    mismatches = []
+    for rel, want in sorted(files.items()):
+        dst = dest_dir / rel
+        try:
+            got = _sha256_file(dst) if dst.is_file() else None
+        except OSError:
+            got = None
+        if got != want:
+            mismatches.append(rel)
+    return mismatches
 
 
 def _paste_record(bundle_dir: Path, assembled: "int | None") -> dict:
@@ -2706,6 +2903,11 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
         sup = _strip_leading_comment(
             _substitute((_TMPL_DIR / "SUPPLEMENT.md.tmpl").read_text(encoding="utf-8"), tokens))
         (bundle_dir / "SUPPLEMENT.md").write_text(sup, encoding="utf-8", newline="\n")
+    elif mode == "architect":
+        # lane-handoff-min (Part A) Done-when 4: this is a RE-render over an already-written
+        # supplement (the documented `--filled` reflow). Refuse before anything else renders
+        # when the operator's fill omits a fixed slot -- see `assert_supplement_fixed_slots`.
+        assert_supplement_fixed_slots(bundle_dir / "SUPPLEMENT.md")
 
     # R2: the generated attribution frame for RESIDUAL §1. Computed from COMMITTED state (the
     # register + the window's diff) and carrying no answer value — see `standing_vs_new`.
@@ -2713,9 +2915,15 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     # R5: the forms card's dispatch line, RENDERED from Ch8's dispatch table rather than held as
     # a second copy — the whole point of STANDING_RULINGS §V.
     tokens["DISPATCH_FORM"] = dispatch_form(repo_root)
-    # lane-boot-contract: the probe-checked DATA block of the boot header.
+    # lane-boot-contract: the probe-checked DATA block of the boot header. lane-handoff-min
+    # (Part A) adds the live STATE rows here — computed ONCE (`transport` resolved once, CI
+    # polled once) and reused for the manifest's `row_freshness` field below, so the cut does
+    # not re-poll CI or re-glob the transport a second time for the same generation.
+    transport = transport_root()
+    live_state_rows = _hstate.state_rows(repo_root, transport)
     tokens["BOOT_DATA"] = boot_data_block(
-        boot_data_rows(slug, mode, tokens["CHAT_TITLE"], spec_version(repo_root)))
+        boot_data_rows(slug, mode, tokens["CHAT_TITLE"], spec_version(repo_root),
+                       state_rows=live_state_rows))
 
     _render("HANDOFF_BOOT.md.tmpl", tokens, bundle_dir, "HANDOFF_BOOT.md")
     _render("RESIDUAL.md.tmpl", tokens, bundle_dir, "RESIDUAL.md")
@@ -2759,9 +2967,15 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
         code = _run_assembler(bundle_dir)
     # Written AFTER the assembler, refused or not, so the paste bytes it records are the ones
     # the gate measured — and a refused cut still leaves the receipt that says it was refused.
+    # lane-handoff-min (Part A): the manifest's file census runs LAST, over every file this
+    # generation wrote (including PASTE_THIS.md, if assembled), so a refused assembly still
+    # gets an honest manifest of whatever the bundle actually holds.
+    _, source_sha = _git_status(repo_root, "rev-parse", "HEAD")
+    manifest = bundle_manifest(bundle_dir, source_sha=source_sha or None,
+                               state_rows=live_state_rows)
     _write_receipt(bundle_dir, slug=slug, mode=mode, date=date,
                    cut="dry" if dry_cut else "real", cost=cost,
-                   paste=_paste_record(bundle_dir, code))
+                   paste=_paste_record(bundle_dir, code), manifest=manifest)
     if assemble:
         if code != 0:
             # The bundle is deliberately LEFT ON DISK. Every other refusal in this function

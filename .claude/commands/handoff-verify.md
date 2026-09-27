@@ -34,12 +34,32 @@ contract exists to protect. `/handoff` must never grow a verify flag, and `/boot
 ## What it replaces
 
 Before v6, the browser answered `run <command>` for each probe and the operator ferried each
-command and its output back, one round trip per probe. The proof boundary is unchanged — the
-browser has no file access, so the teeth still bite at the **CC ↔ primary-source** boundary.
-What changes is the **transport count**, never the proof threshold:
+command and its output back, one round trip per probe. The proof boundary is unchanged — CC is
+the only actor with tool access, so the teeth still bite at the **CC ↔ primary-source**
+boundary. What changes is the **transport count**, never the proof threshold:
 
 > force the receiver to open the primary source → **force CC to re-derive every load-bearing
 > fact from the live primary source at check-time, and block onboarding on any mismatch.**
+
+## The BOOT-DATA / BOOT-PROSE split, and the manifest (lane-handoff-min, Part A)
+
+`HANDOFF_BOOT.md`'s pasted header is two delimited parts (`BOOT_DATA_BEGIN`/`END`,
+`BOOT_PROSE_BEGIN`/`END` in `verify_handoff_probes.py`). **BOOT-DATA** is a table of rows,
+every one probe-checked by a `BOOT_DATA_RULES` entry (`BD-*`) — a row with no rule, or a rule
+whose row is missing, FAILs. Since lane-handoff-min (Part A) the identity/pointer rows are
+followed by SEVEN live state rows — CI, Batches, Seats, Substrates, Transport, Rulings,
+Capabilities (`scripts/handoff_state.py`) — each carrying its own evidence locator and
+freshness class (CUT-FIXED / LIVE-DRIFTS / SLOW). `verify_boot()` re-derives each row from the
+SAME reader function the generator called at cut time and compares the two rendered strings;
+a mismatch FAILs that row's own `BD-*` id, never a different one. **BOOT-PROSE** is the
+hand-authored FILL-IN region — read, not verified — under `gen_handoff.BOOT_PROSE_BYTE_BUDGET`
+(probe `BP-budget`).
+
+`HANDOFF_RECEIPT.json` carries a `manifest`: a cut id, the source sha, generation time, every
+bundle file's sha256, and each state row's freshness class (`gen_handoff.bundle_manifest`).
+`BD-manifest` re-hashes every file the manifest lists and FAILs, naming any file whose sha no
+longer matches — a whole-bundle integrity check run once per bundle, not a per-row state
+check. Report `BD-manifest`'s PASS/FAIL in the evidence block alongside the other `BD-*` rows.
 
 ## Usage
 
