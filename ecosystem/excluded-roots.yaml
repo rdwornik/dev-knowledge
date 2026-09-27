@@ -1,0 +1,26 @@
+# ecosystem/excluded-roots.yaml -- R15: the data list `scripts/hooks/scope_guard.py` refuses a
+# tool call's path argument under. A new excluded root is a data edit here, not a code change
+# (Done-contract item 2, `to-cc/LANE-5B4-1-scope-guard.md`).
+#
+# Each entry under `roots:` is EITHER:
+#   - an absolute path prefix (contains `/` or `\`), matched after normalization (environment
+#     variables, `~`, `..`, and Windows 8.3 short names expanded); or
+#   - a bare PATH-COMPONENT NAME (no separator), matched against every segment of the
+#     normalized path -- the shape that lets one entry cover a folder wherever it is mounted
+#     (a different drive letter, a fresh profile, a future machine) without hardcoding a
+#     machine-specific absolute root.
+#
+# `OneDrive - Blue Yonder` is the operator's employer folder (core-invariants.md; R15's own
+# worked example). `~/.claude/hooks/block-onedrive.ps1` already enforces this same zone at the
+# Claude Code harness layer (T0/T1/T2 tiers, substring match on the same name) -- that hook is
+# USER-LEVEL and does not exist in a fresh Codespace container or on a machine that has not run
+# the fleet's global-config carrier. This file and `scope_guard.py` are the repo-portable second
+# layer R15 asks for: a defense that travels with the repo rather than the machine.
+#
+# WEDGE ESCAPE (Done-contract item 3): set DEV_KNOWLEDGE_SCOPE_GUARD_DISABLE=1 in the
+# environment to disable this hook entirely -- `scope_guard.py` checks the switch before it
+# reads this file at all, so getting out from under a false refusal needs only an environment
+# variable for the one session that needs it, not a code or data edit.
+
+roots:
+  - "OneDrive - Blue Yonder"

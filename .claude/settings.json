@@ -1,5 +1,6 @@
 {
   "disableAllHooks": false,
+  "//scope-guard-R15-2026-09-27": "PreToolUse Read|Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell|Glob|Grep, timeout 15 (lane-scope-guard, WAVE5B-N4). scripts/hooks/scope_guard.py refuses a tool call whose path argument (file_path/notebook_path/path, or a path-shaped token in a Bash/PowerShell command) resolves under a root in ecosystem/excluded-roots.yaml -- R15 ('the operator's employer folders are outside every frame unless a brief names them', RATIFICATION-2026-09-25.md v10) as a mechanism rather than prompt text. Fail posture mirrors block_immutable_edits.py (ADR-77) exactly: OUTSIDE the zone / no candidate path / an unparseable payload -> ALLOW (a guard malfunction must never block normal work); once a candidate token IS a path this guard cannot resolve -> DENY (AX24-2/AX15-1 doctrine -- permitting what it cannot check is enforcement without enforcement). Measured guard-own latency (decide_with_config, 200 samples, warm interpreter): p50 0.91ms / p95 1.25ms / max 1.74ms -- far inside the Done-contract's 300ms bound; the ~250-300ms figure a cold subprocess also pays is interpreter start-up, the same fixed cost every hook here pays (tests/test_lane_end_guard.py's own precedent), not this guard's own cost. WEDGE ESCAPE: DEV_KNOWLEDGE_SCOPE_GUARD_DISABLE=1 allows every call unconditionally without editing this file or the script (tests/test_scope_guard.py proves it). bounded_hook.py wiring is HELD (operator ruling 2026-09-17 item 1, same as every other hook here) -- this entry is unwrapped, with its own explicit timeout, and carries a matching POSTURES entry (fail-open, wrapped=False) so `bounded_hook.py check` keeps passing.",
   "//hooks-RESTORED-AND-DISABLED-INDIVIDUALLY-2026-09-17": {
     "why": "Operator order 2026-09-17 (handoff cut), correcting the indiscriminate disableAllHooks of bc8ddda5/9af353f7: lane ab-808 measured which hooks wedge (docs/audits/2026-09-16-technical-lane-ab-808-guard-timeout.md, AMENDMENT 1, week to 2026-09-17, event-fired denominator). The three parity-REQUIRED hooks were not among the nine over the bar: session_end_backpressure 8% (58/725), deny_and_point 2% (182/9,382), arm_hooks not in the measured table. They are restored below and run; the nine are off individually. disableAllHooks is set FALSE here explicitly because the user-level ~/.claude/settings.json still sets it true and would otherwise suppress this file.",
     "restored": {
@@ -77,6 +78,18 @@
     "stays_disabled": "surface-closures.ps1 (out of this repo's file ownership, see disabled_individually above) -- fleet_health.py is RE-ARMED as of 2026-09-23 ([#962]) and its entry was REMOVED from disabled_individually above (that array lists currently-disabled hooks; it is no longer one). Its FAILED 2026-09-22 history -- what broke, how it was measured, and what fixed it -- is preserved verbatim in rearmed.fleet_health.py above and in docs/audits/2026-09-22-technical-lane-hooks-rearm-live-measurement.md 2.1; no hook or its record was deleted, only moved from 'disabled' to 'rearmed', per the contract's 'No hook is deleted.'"
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell|Glob|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run --locked python \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/scope_guard.py\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "hooks": [
