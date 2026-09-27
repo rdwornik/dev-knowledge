@@ -958,35 +958,61 @@ def _write_fails_on_call(monkeypatch, nth):
     monkeypatch.setattr(oa, "open", fake_open, raising=False)
 
 
-def test_reservation_identity_is_not_fooled_by_INODE_REUSE(tmp_path, monkeypatch):
-    """FILE SEMANTICS (T2, 2026-09-26). On POSIX, a freed inode number is commonly handed
-    straight back to the very next allocation on the same filesystem (ext4's allocator favours
-    a just-freed slot in the same block group), so a racer's `rmdir()` + `mkdir()` on the SAME
-    name can reproduce the exact `(st_dev, st_ino)` the original reservation held -- a bare
-    `(st_dev, st_ino)` tuple would then read the swap as "unchanged" and `write_probe_corpus`
-    would never raise (the registered Linux red this fix closes: `logs/KNOWN-REDS-REGISTRY.json`
-    ``tests/test_offload_admission.py::test_a_destination_REPLACED_during_publication_is_
-    REPORTED_not_silently_used`` and its CLI sibling). NTFS's file-ID allocator does not reuse
-    this way, which is why the gap was invisible on Windows. Simulated directly here, because
-    real inode reuse cannot be forced deterministically in a test -- what is asserted is that
-    `_reservation_identity` no longer treats an identical `(st_dev, st_ino)` pair as unchanged
-    once `st_ctime_ns` differs.
+def test_reservation_survives_writes_made_through_its_own_directory(tmp_path):
+    """CRITICAL regression this lane's own first attempt introduced (Codex review,
+    2026-09-27, on this same diff): adding `st_ctime_ns` to the reservation snapshot broke
+    the HAPPY PATH, because POSIX bumps a directory's OWN ctime on every entry it gains --
+    exactly what `write_probe_corpus`'s own `os.link()` calls do to publish, successfully,
+    into `root`. A snapshot compared before and after cannot tell "someone replaced this
+    directory" apart from "this directory gained an entry because I just wrote to it"; only
+    an identity that does not move when written through -- the held-open file descriptor
+    `_reservation_identity` now returns on POSIX -- can. A real write into `root` after
+    reservation reproduces exactly what a successful publish does; the reservation must
+    still hold afterwards.
     """
     root = tmp_path / "corpus"
     root.mkdir()
-    real = os.lstat(root)
+    reservation = oa._reservation_identity(root)
+    try:
+        (root / "x.txt").write_text("hi", encoding="utf-8")   # a legitimate write, like os.link
+        assert oa._reservation_still_holds(root, reservation), (
+            "a legitimate write into the reserved directory must not read as a replacement")
+    finally:
+        if os.name != "nt":
+            os.close(reservation)
 
-    class _ReusedInodeOlderCtime:
-        st_dev = real.st_dev
-        st_ino = real.st_ino
-        st_ctime_ns = real.st_ctime_ns - 1_000_000  # a distinguishable "earlier" ctime
 
-    before = oa._reservation_identity(root)
-    monkeypatch.setattr(oa.os, "lstat", lambda p: _ReusedInodeOlderCtime())
-    after = oa._reservation_identity(root)
-    assert before[:2] == after[:2], "the simulated reuse must share (st_dev, st_ino)"
-    assert before != after, (
-        "a reused (st_dev, st_ino) pair with a different ctime must not compare equal")
+def test_reservation_does_not_survive_a_real_swap(tmp_path):
+    """FILE SEMANTICS (T2, 2026-09-26). The property `_reservation_identity` /
+    `_reservation_still_holds` exist to prove: a `rmdir()` + `mkdir()` on the SAME name, as a
+    racer would do, is detected even though the replacement directory can appear at the
+    identical path with a fresh -- and, on ext4, possibly REUSED -- inode number. Proved here
+    with real filesystem operations, no monkeypatching: holding the descriptor open makes the
+    ORIGINAL inode number unavailable for reuse for as long as the reservation is held, so the
+    two directories are always distinguishable by construction, and the test does not need to
+    force a real inode collision (which cannot be done deterministically) to demonstrate it.
+    NTFS's file-ID allocator does not reuse this way -- the gap this whole mechanism exists to
+    close was invisible on Windows to begin with -- which is why the Windows arm needs no
+    descriptor and a bare `(st_dev, st_ino)` snapshot already catches this same swap there.
+    """
+    root = tmp_path / "corpus"
+    root.mkdir()
+    reservation = oa._reservation_identity(root)
+    try:
+        root.rmdir()
+        root.mkdir()                                          # a racer's replacement
+        assert not oa._reservation_still_holds(root, reservation)
+    finally:
+        if os.name != "nt":
+            os.close(reservation)
+
+
+def test_reservation_identity_is_none_once_the_name_is_gone(tmp_path):
+    root = tmp_path / "corpus"
+    root.mkdir()
+    root.rmdir()
+    assert oa._reservation_identity(root) is None
+    assert oa._reservation_still_holds(root, object()) is False
 
 
 def test_a_write_failure_AFTER_creation_leaves_no_partial_file(tmp_path, monkeypatch):

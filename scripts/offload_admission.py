@@ -909,29 +909,63 @@ Rules for the answer, all of them checked mechanically afterwards:
 """
 
 
-def _reservation_identity(root: Path) -> tuple[int, int, int] | None:
-    """`(st_dev, st_ino, st_ctime_ns)` for `root` ITSELF, following no symlink. `None` if gone.
+def _reservation_identity(root: Path) -> object | None:
+    """An opaque identity pinned to `root` ITSELF (no symlink followed) at reservation time.
+    `None` if `root` does not exist. Compare with `_reservation_still_holds`, never directly --
+    the value is a held-open POSIX file descriptor on POSIX, not a plain snapshot.
+
+    FILE SEMANTICS (T2, 2026-09-26; CRITICAL correction 2026-09-27 -- Codex review of this
+    lane). A bare `(st_dev, st_ino)` snapshot is not enough on POSIX: a freed inode number is
+    commonly reused by the VERY NEXT allocation on the same filesystem (ext4's allocator
+    favours a just-freed slot in the same block group), so a racer's `rmdir()` + `mkdir()` on
+    the same name can hand the replacement directory the identical `st_ino` the original
+    reservation held -- the swap then reads as "unchanged".
+
+    The first fix tried here added `st_ctime_ns` to the snapshot, reasoning that a
+    replacement directory carries an older ctime than the one this call just made. That is
+    true of the REPLACEMENT, but POSIX also bumps a directory's OWN ctime on every entry it
+    gains or loses -- so the very `os.link()` calls `write_probe_corpus` makes INTO `root` to
+    publish successfully change `root`'s ctime as a side effect of ordinary, correct use.
+    Comparing ctime snapshots taken before and after publication therefore misreports every
+    clean write as a "REPLACED" destination on Linux (caught before this landed, not after).
+
+    The fix that actually holds: open the directory once, at reservation time, and keep the
+    descriptor. A POSIX kernel will not free -- and therefore cannot reuse -- the inode number
+    of a directory a process still holds open, so `os.fstat` on that descriptor always reports
+    the ORIGINAL directory no matter what a later `rmdir()` + `mkdir()` on the same NAME
+    produces. Comparing it against a fresh `os.lstat` BY NAME is then an exact, race-proof
+    identity check -- and, because the descriptor's own identity never changes, writes made
+    through it (via a *different* name lookup, `root / rel`) cannot move it either.
+
+    NTFS's file-ID allocator does not reuse this way (the gap this function exists to close
+    was invisible on Windows to begin with), so Windows keeps the simpler by-value
+    `(st_dev, st_ino)` snapshot and opens no descriptor.
+    """
+    try:
+        if os.name == "nt":
+            info = os.lstat(root)
+            return (info.st_dev, info.st_ino)
+        return os.open(root, os.O_RDONLY | os.O_DIRECTORY)
+    except OSError:
+        return None
+
+
+def _reservation_still_holds(root: Path, reservation: object | None) -> bool:
+    """True if `root` still resolves, BY NAME, to the exact directory `reservation` pinned.
 
     `lstat` and not `stat`: a symlink dropped in place of the reserved directory resolves
     through `stat` to whatever it points at, which is the one substitution that would let a
     swap read as unchanged.
-
-    FILE SEMANTICS (T2, 2026-09-26): `(st_dev, st_ino)` alone is not enough on POSIX. A freed
-    inode number is commonly reused by the VERY NEXT allocation on the same filesystem (ext4's
-    allocator favours a just-freed slot in the same block group), so a racer's `rmdir()` +
-    `mkdir()` on the same name can, on Linux, hand the replacement directory the identical
-    `st_ino` the original reservation held -- the swap then reads as "unchanged" and this
-    function never raises. NTFS's file-ID allocator does not reuse this way, which is why the
-    gap was invisible on Windows. `st_ctime_ns` (inode metadata-change time, nanosecond
-    resolution where the filesystem provides it) breaks the tie: a directory this call did not
-    just create carries an OLDER ctime than the one it just made, even when the kernel handed
-    the replacement the old inode number back.
     """
+    if reservation is None:
+        return False
     try:
-        info = os.lstat(root)
+        live = os.lstat(root)
     except OSError:
-        return None
-    return (info.st_dev, info.st_ino, info.st_ctime_ns)
+        return False
+    if os.name == "nt":
+        return (live.st_dev, live.st_ino) == reservation
+    return os.path.samestat(os.fstat(reservation), live)
 
 
 def write_probe_corpus(root: Path) -> Path:
@@ -960,8 +994,9 @@ def write_probe_corpus(root: Path) -> Path:
     that PREVENTION IS NOT AVAILABLE AT THIS LAYER.
 
     Z-G4 is the rule for that case -- a gate that cannot compute its ground truth REPORTS
-    the gap, it does not pass -- so the reservation's `(st_dev, st_ino)` is captured at
-    creation and re-read at the end. If the name no longer resolves to the directory this
+    the gap, it does not pass -- so the reservation's identity is pinned at creation
+    (`_reservation_identity`) and checked against the live name at the end
+    (`_reservation_still_holds`). If the name no longer resolves to the directory this
     call made, the run REFUSES and says so, naming what was written where. Because the two
     guarantees above already hold, a detected swap is a reportable event and never a
     data-loss one: the racer's files are neither replaced nor removed.
@@ -980,43 +1015,52 @@ def write_probe_corpus(root: Path) -> Path:
             f"refusing to write the probe corpus to {root}: it already exists. Give a "
             f"destination that does not exist -- this command creates it.") from None
     reservation = _reservation_identity(root)
-
-    staging = Path(tempfile.mkdtemp(prefix=".probe-corpus-", dir=root.parent))
-    published: list[str] = []
     try:
-        for rel, text in PROBE_CORPUS.items():
-            target = staging / rel
-            target.parent.mkdir(parents=True, exist_ok=True)
-            with open(target, "x", encoding="utf-8", newline="\n") as fh:
-                fh.write(text)
-        for rel in PROBE_CORPUS:
-            os.link(staging / rel, root / rel)   # refuses an existing name; never replaces
-            published.append(rel)
-        shutil.rmtree(staging, ignore_errors=True)
-    except OSError as exc:
-        shutil.rmtree(staging, ignore_errors=True)
-        if _reservation_identity(root) == reservation:
+        staging = Path(tempfile.mkdtemp(prefix=".probe-corpus-", dir=root.parent))
+        published: list[str] = []
+        try:
+            for rel, text in PROBE_CORPUS.items():
+                target = staging / rel
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with open(target, "x", encoding="utf-8", newline="\n") as fh:
+                    fh.write(text)
+            for rel in PROBE_CORPUS:
+                os.link(staging / rel, root / rel)   # refuses an existing name; never replaces
+                published.append(rel)
+            shutil.rmtree(staging, ignore_errors=True)
+        except OSError as exc:
+            shutil.rmtree(staging, ignore_errors=True)
+            if _reservation_still_holds(root, reservation):
+                try:
+                    root.rmdir()                      # refused by the kernel if anything is there
+                except OSError:
+                    pass
+            left = (f"; {len(published)} file(s) already published at {root} were LEFT rather "
+                    f"than unlinked by a path this call can no longer prove it owns"
+                    if published else
+                    "; the empty destination this command created was removed if it was still "
+                    "empty and still ours, and nothing else was touched")
+            raise OSError(
+                f"could not write the probe corpus to {root} ({exc}){left}") from None
+
+        if not _reservation_still_holds(root, reservation):
+            raise OSError(
+                f"the destination {root} was REPLACED while the probe corpus was being "
+                f"published: the name no longer resolves to the directory this command "
+                f"created. {len(published)} file(s) -- {', '.join(published)} -- were written "
+                f"through that name and are NOT removed here, because this command can no "
+                f"longer prove it owns the path they are under. Nothing was overwritten and "
+                f"nothing was deleted; inspect {root} before re-running.")
+        return root
+    finally:
+        # POSIX arm of _reservation_identity returns a held-open fd; Windows returns a
+        # plain tuple. Only the fd needs releasing, and it is released exactly once here
+        # regardless of which exit path was taken above.
+        if os.name != "nt" and isinstance(reservation, int):
             try:
-                root.rmdir()                      # refused by the kernel if anything is there
+                os.close(reservation)
             except OSError:
                 pass
-        left = (f"; {len(published)} file(s) already published at {root} were LEFT rather "
-                f"than unlinked by a path this call can no longer prove it owns"
-                if published else
-                "; the empty destination this command created was removed if it was still "
-                "empty and still ours, and nothing else was touched")
-        raise OSError(
-            f"could not write the probe corpus to {root} ({exc}){left}") from None
-
-    if _reservation_identity(root) != reservation:
-        raise OSError(
-            f"the destination {root} was REPLACED while the probe corpus was being "
-            f"published: the name no longer resolves to the directory this command "
-            f"created. {len(published)} file(s) -- {', '.join(published)} -- were written "
-            f"through that name and are NOT removed here, because this command can no "
-            f"longer prove it owns the path they are under. Nothing was overwritten and "
-            f"nothing was deleted; inspect {root} before re-running.")
-    return root
 
 
 @dataclass(frozen=True)
