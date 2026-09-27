@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-09-27 (f) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): the known-reds registry is keyed by OS, each member carries a failure signature, and a signature is normalised before it is stored or compared
+
+**Anchors:** `2457eb69`, `6ee18b82`, `ded3a22f`, `c3848675` -- `worktree-lane-known-reds-signatures` (ordered and served `claude-sonnet-5`), repair 1 after the s3 refusal, stacked `--no-ff` on (e) in integration stack s6.
+
+**Did:** `scripts/known_reds.py` gains an additive `members_by_os` overlay and a per-member `signature` read from pytest's own short-summary reason; `compare` merges the overlay for its OS and flags a changed signature and an `unattributed` member as regressions, keeping its flags and exit codes. `logs/KNOWN-REDS-REGISTRY.json` carries a `windows-latest` overlay of 70 members from run 36304438895. The repair adds `normalize_signature`, which masks absolute paths, shas, an explanatory list body and a generated-name digit suffix; `refresh` normalises before storing and `compare` normalises both sides, so the committed verbatim signatures still agree. RED first both times (20 failed then 60 passed; 6 failed then 66 passed). Codex terra 0/1/0/0 twice, each High fixed with its own RED-first test (the second: an unscoped list mask would have hidden a real `assert [..] == [..]` difference).
+
+**Result:** proposal row L2 lands -- a registered test that fails worse no longer passes, the Windows leg is judged against its own baseline, and a run-volatile token no longer manufactures a regression. Replayed on the refused run 36337021076's Windows log, the three falsely flagged ids read as known.
+
+**Changes:** `scripts/known_reds.py`, `tests/test_known_reds.py`, `logs/KNOWN-REDS-REGISTRY.json`, two Codex audits; regenerated `docs/audits/README.md`, `ecosystem/doc-counts.md`.
+
+**Next:** five Windows-only drift ids await attribution (`known_reds.py attribute`); no ubuntu overlay yet. The sha mask also covers a pure-digit run of 7 or more, so a changed large number reads as the same signature (recorded, not refused).
+
 ### 2026-09-27 (e) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): tests that read the operator's host are marked `operator_host` and registered, and the nested memory-gate deadlock is gone
 
 **Anchors:** `710a0334`, `6fade62f` -- `worktree-lane-host-witness` (ordered and served `claude-sonnet-5`), first handback, stacked `--no-ff` on (d) in a second integration worktree.
