@@ -6,7 +6,7 @@
 **Diff range:** `main..worktree-lane-subagent-cost`
 **Codex version:** codex-cli 0.155.0
 **Mode:** diff-review
-**Tally:** TBD/TBD/TBD/TBD <!-- Critical/High/Medium/Low. FILL FROM THE FINDINGS SECTION before committing. The hub's review_artifact_coverage leg parses four digits here; TBD deliberately does not parse, so an unfilled tally keeps WARNing instead of shipping a number nobody counted. -->
+**Tally:** 0/2/0/0 <!-- Critical/High/Medium/Low -->
 
 **Model used:** `gpt-5.6-terra` (pinned; both lanes — [#469])
 **Review profile:** code
@@ -53,3 +53,18 @@ content.
 ## Low
 
 (none)
+
+---
+
+## Disposition (ruling (e): fix P1, record the rest)
+
+- **`scripts/routing_agreement.py:347`** — **FIXED**, commit `2bcd2f9d`: `_tally_transcripts` now
+  takes a `seen` set threaded across both roles, matching `lane_cost.py`'s own cross-role
+  de-duplication. Regression test:
+  `test_a_turn_replayed_across_main_and_subagent_is_counted_once`.
+- **`.github/workflows/conductor.yml:91`** — **OUT OF SCOPE for this lane.** The diff range
+  `main..worktree-lane-subagent-cost` widened to include `lane-ci-matrix`'s CI-matrix commits
+  because the local pinned `main` lags `origin/main` (architecture note: local `main` is not
+  remote). This file is not in `lane-subagent-cost`'s **Files you own**; recorded here as a
+  candidate row for the integrator's digest — see `ROWS-OWED` in
+  `to-browser/SESSION-lane-subagent-cost.md`.
