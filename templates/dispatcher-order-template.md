@@ -37,6 +37,10 @@ The common rules — `to-cc/<BATCH-COMMON-...>.md`, filled from
 
 You launch lanes and continuation or repair sessions, and write receipts. **You do not merge.**
 
+- **Claim (step 0):** `uv run --locked python scripts/claim.py claim DISPATCHER-<BATCH>` before
+  binding the seat; refused (exit 3) means another dispatcher session already holds this order.
+  Teardown releases it (`claim.py release DISPATCHER-<BATCH>`), verified absent by
+  `no_leftovers.py verify --contract DISPATCHER-<BATCH>` — see Close below.
 - **Seat:** `uv run --locked python scripts/seat_registry.py bind --role dispatcher --batch <BATCH>`.
 - **Receipt:** `to-browser/SESSION-dispatcher-<batch-slug>.md`.
 - **Transport root:** the `CLAUDE_PROMPTS_DIR` environment variable.

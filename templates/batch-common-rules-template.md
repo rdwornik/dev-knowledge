@@ -44,10 +44,16 @@ Read by every seat of the batch, first. Also binding: <any earlier common-rules 
 - (d) A red already in the registry, or in the standing freeze, is not yours.
 - (e) Fix a Codex review's P1 findings; record the rest.
 - (f) Additive conflicts in list-shaped files (`harness.yaml` fates, registries) keep both entries.
+- (g) Teardown (R3) = `claude stop <job>` plus worktree, branch and claim-marker removal
+  (`claim.py release <name>`); `no_leftovers.py verify --contract <name>` proves the marker is gone.
 - <batch-specific rulings, lettered on>
 
 ## 3. Sync, purity, self-check
 
+- **Claim before work (step 0):** `uv run --locked python scripts/claim.py claim <name>` at your
+  first turn, where `<name>` is your order or contract file name without `.md`; refused (exit 3)
+  means another session already holds it — stop at once and write nothing else. A resume/repair
+  session claims `<name>-resume-<n>` / `<name>-repair-<n>` instead.
 - **Sync only from origin:** `git fetch origin`, then `git merge origin/main`. Not `git merge
   main` — worktrees share the local `main`, which may hold the integrator's unverified work.
 - **Purity before handback:** `git log origin/main..HEAD` lists only your commits and merges of
