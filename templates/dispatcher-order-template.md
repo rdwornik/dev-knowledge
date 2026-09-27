@@ -94,3 +94,25 @@ You launch lanes and continuation or repair sessions, and write receipts. **You 
    - write the summary — per lane: job, extra sessions, result, and the model that served;
    - confirm it on the transport;
    - stop every Monitor, poll and shell of yours; stop.
+
+## State file
+
+After every state change you observe or cause (`FIRED`, `HANDBACK-SEEN`, `MERGED-SEEN`, a repair,
+a lane held on a dependency), also write `to-browser/STATE-<batch-slug>-dispatcher.json` (schema
+`dev-knowledge-seat-state/1`, `scripts/seat_state.py`), one call:
+`uv run --locked python scripts/seat_state.py write --path
+to-browser/STATE-<batch-slug>-dispatcher.json --role dispatcher --batch <BATCH> --base-sha <sha>
+--lanes-json <path-or-json>`. A lane not yet fired is `QUEUED`; a lane building, held on a
+dependency or mid-repair is `IN-FLIGHT`; a cloud lane whose report is harvested is `REPORTED`; the
+integrator's own `MERGED`/`REFUSED`/`FAILED` carry through unchanged, read off its receipt.
+
+## Cycle — hand over to a fresh session of the same role
+
+About every 2 h, or when your context nears its threshold, whichever comes first: write the state
+file (above), then hand over — a fresh dispatcher session starts the same way this one did, binds
+its own seat (`seat_registry.py bind --role dispatcher --batch <BATCH>`), and rebinds from the
+state file (`scripts/seat_state.py read --path to-browser/STATE-<batch-slug>-dispatcher.json`)
+instead of rereading the whole night's log. Stop every Monitor, poll, shell and `queue --watch`
+loop of yours before handing over. The incoming seat relaunches `queue --watch` and resumes
+ticking from where the state file says the batch stood; a state file older than its own staleness
+bound is a signal the outgoing seat died mid-cycle, not a file to trust.

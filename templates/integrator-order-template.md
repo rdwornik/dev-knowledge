@@ -100,3 +100,27 @@ organ still files nothing).
    lanes left.
 5. Write `to-browser/STATE-BATCH-<BATCH>.md` reading `CLOSED <time>`.
 6. Stop every Monitor, poll and shell of yours, and stop.
+
+## State file
+
+After every `STATE` line you append to your receipt, also write
+`to-browser/STATE-<batch-slug>.json` (schema `dev-knowledge-seat-state/1`,
+`scripts/seat_state.py`), one call:
+`uv run --locked python scripts/seat_state.py write --path to-browser/STATE-<batch-slug>.json
+--role integrator --batch <BATCH> --base-sha <sha> --lanes-json <path-or-json>`. Each lane carries
+exactly one of `MERGED|IN-FLIGHT|QUEUED|REFUSED|FAILED|REPORTED`, with evidence
+(`session_file`, the verbatim `STATE` line, and the sha where one exists) — the same facts your
+receipt line already states, in the one place a fresh session reads first instead of the whole
+receipt. `WAITING` in your own receipt vocabulary above is `IN-FLIGHT` in the state file; the
+writer maps it.
+
+## Cycle — hand over to a fresh session of the same role
+
+About every 2 h, or when your context nears its threshold, whichever comes first: write the state
+file (above), then hand over — a fresh integrator session starts the same way this one did, binds
+its own seat (`seat_registry.py bind --role integrator --batch <BATCH>`), and rebinds from the
+state file (`scripts/seat_state.py read --path to-browser/STATE-<batch-slug>.json`) instead of
+rereading the whole night's receipt. Stop every Monitor, poll and shell of yours before handing
+over — nothing of yours outlives your last message. The incoming seat picks up the merge queue
+where the state file says it stood; a state file older than its own staleness bound is a signal
+the outgoing seat died mid-cycle, not a file to trust.

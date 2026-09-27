@@ -21,6 +21,12 @@
 
 ---
 
+### 2026-09-27 (a) - CC (Opus 5.5, INTEGRATOR WAVE5B-N3): an integrator or dispatcher seat can hand over to a fresh session -- `seat_state.py` writes and reads one small state file, and both order templates carry a state section and a cycle rule
+
+**Anchors:** `6354ce39`, `a43d4bb4`, `b575aa5c` -- `worktree-lane-orchestrator-cycling` (ordered and served `claude-sonnet-5`), merged `--no-ff` from an integration worktree on the 2026-09-26 (j) merge.
+
+**Did:** `scripts/seat_state.py` (schema `dev-knowledge-seat-state/1`) writes role, batch, base sha and per-lane state (MERGED / IN-FLIGHT / QUEUED / REFUSED / FAILED / REPORTED, each with an evidence pointer), and refuses a torn, non-JSON or stale file instead of trusting it; a test reconstructs the in-flight set from a file a simulated earlier session wrote. The integrator and dispatcher order templates gain a `State file` section (write after every state change) and a `Cycle` section (hand over to a fresh session of the same role about every 2 h or at a context threshold; the new session binds its seat and re-binds from the file), added after the sections other lanes own. A real state file was built from this batch's live receipts and read back. Codex terra: 2 HIGH (a naive timestamp and a non-mapping lane row crashed instead of being refused), both reproduced on the first commit and fixed with a regression test each. The integrator re-ran the RED-first witness: without the module the new tests fail at collection; against origin/main's templates the template tests fail 7 of 10; on the tip, 30 pass. **Result:** a seat resumes from one JSON file rather than rereading a 60-70 KB prose receipt. **Changes:** `scripts/seat_state.py`, `templates/integrator-order-template.md`, `templates/dispatcher-order-template.md`, `tests/test_seat_state.py`, `tests/test_order_cycle_rule.py`, `ecosystem/harness.yaml` (one fates line), one Codex record, generated files, `JOURNAL.md`, `logs/MERGE-RECEIPTS.jsonl`.
+
 ### 2026-09-26 (j) - CC (Opus 5.5, INTEGRATOR WAVE5B-N3): the handoff probes' decision debt is discharged or named -- 13 landed carriers closed to their repo home, 24 decisions disposed, and a check flags a landed decision left OPEN -- `carrier_landed_check.py`
 
 **Anchors:** `4fccfc29`, `d2695594`, `8567f1d5`, `1f86f7a8`, `e0ac9418`, `2594dd29` -- `worktree-lane-decision-debt` (ordered and served `claude-sonnet-5`), repair 2 of 2, merged `--no-ff` from an integration worktree stacked on the (i) merge.
