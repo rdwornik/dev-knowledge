@@ -21,6 +21,26 @@
 
 ---
 
+### 2026-09-28 (f) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): WAVE5B-N4 closes with 12 lanes merged, 3 FAILED and 1 moved to N5; its cost is in the ledger
+
+**Anchors:** `a87c6a0a` -- `worktree-close-wave5b-n4`, merged `--no-ff` onto `db79ec4e`.
+
+**Did:** Closed the batch after its queue drained, per operator ruling R23.
+- **Merged (12):** ci-matrix, subagent-cost, host-witness, known-reds-signatures, dispatch-port-hub, server-governance, claim-marker, portability-requirement, handoff-min-2 (17b), landing-probe-2 (6b), portability-ratchet and decide-command.
+- **FAILED on a second refusal (3):** scope-guard, runtime-data-home and transport-rclone. Their branches are kept.
+- **Superseded by re-dispatch (2):** handoff-min and landing-probe, whose re-dispatches 17b and 6b merged.
+- **Moved to WAVE5B-N5 under R23:** arm-ci. It was never launched in N4.
+- **The close commit** closes the last four merge receipts. It appends 17 lane cost rows (subagent transcripts included) and four seat rows to `logs/LANE-COSTS.jsonl`, which puts WAVE5B-N4 at USD 369.69, and adds the batch's quota reads.
+- **Main CI** on `db79ec4e` (run 36453536659) introduced 0 new ids on either leg compared with the integration run (ubuntu 80, windows 73); the connection walk is in neither leg's failed list.
+
+**Result:** 9 of 11 N4 mechanisms fired on their close query. The two that did not, the scope guard and the rclone writer, belong to FAILED lanes. The digest, capability map and close state are in the transport's `to-browser/` (`DIGEST-WAVE5B-N4-2026-09-28.md`, `DIGEST-CAPABILITY-MAP-2026-09-28.md`, `STATE-BATCH-WAVE5B-N4.md`).
+
+**Changes:** `logs/LANE-COSTS.jsonl`, `logs/MERGE-RECEIPTS.jsonl`, `logs/QUOTA-READS.jsonl`, `JOURNAL.md`.
+
+**Abandoned:** none.
+
+**Next:** WAVE5B-N5 takes arm-ci and relaunches the three FAILED lanes. The digest's ROWS-OWED enter the backlog only through intake.
+
 ### 2026-09-28 (e) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): /decide is a command with eight deterministic checks, and one real decision has run through it
 
 **Anchors:** `c12e72d9`, `55e5641d` -- `worktree-lane-decide-command` (ordered and served `claude-sonnet-5`; the dry run's two evaluators served `claude-opus-5-5` and `claude-haiku-4-5`), stacked `--no-ff` on 2026-09-28 (d) in integration chain v4.
