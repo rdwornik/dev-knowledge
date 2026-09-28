@@ -551,7 +551,14 @@ _OFF_REPO_PATH_RE = re.compile(
     # `/handoff` and a dozen other slash-commands in ordinary prose, and matching those
     # would bury every real finding under command names. Naming the roots keeps the recall
     # without the noise -- and the noise is what gets a detector switched off.
-    r"|/(?:home|mnt|Users|users|tmp|var|opt|root|srv|workspaces)/)"
+    #
+    # The root separator accepts `\` as well as `/` (LANE-5B4-7 repair 1): a Windows-authored
+    # citation of a POSIX root -- e.g. a freezing run on Linux checking a path built with
+    # backslashes -- is exactly what `_expand_off_repo` already normalises below by replacing
+    # `\` with `/` before resolving; the regex was the only place still requiring `/` alone,
+    # so it silently dropped the citation from `text` before normalisation ever ran. A bare
+    # leading `\` carries no slash-command collision risk, so widening it costs no precision.
+    r"|[\\/](?:home|mnt|Users|users|tmp|var|opt|root|srv|workspaces)[\\/])"
     r"[^\s`'\"<>|]+)")
 
 # An INPUT CLAUSE that carries no locator at all -- the C-G shape. `**Basis:** the SDA-1
