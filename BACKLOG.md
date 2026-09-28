@@ -698,6 +698,9 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1052] [P3][S] AJ C-6: the Maister commit 4151c9c4d (2026-09-22) diff has not been read · tasks/1052-aj-c-6-the-maister-commit-4151c9c4d-2026-09-22-diff-has.md
 - [#1053] [P3][M] AJ C-7: the 09-21 AJ companion digests are not landed or indexed against the current repo · tasks/1053-aj-c-7-the-09-21-aj-companion-digests-are-not-landed-or.md
 - [#1054] [P3][S] the 2,000-minute Actions-allowance claim in substrate-heartbeat.yml is the Free-tier figure, uncorrected for GitHub Pro's 3,000 · tasks/1054-the-2-000-minute-actions-allowance-claim-in-substrate-h.md
+- [#1101] [P3][S] logs/KNOWN-REDS-REGISTRY.json: the 4 'environment-mismatch' members no longer reproduce · tasks/1101-known-reds-registry-environment-mismatch-attribution-i.md
+- [#1102] [P3][S] lane-portability-ratchet: a 10th path-defect candidate beyond T2's named 9 · tasks/1102-lane-portability-ratchet-a-10th-path-candidate-beyond-t.md
+- [#1103] [P2][S] conductor.yml does not yet exclude operator_host from the CI pytest invocation · tasks/1103-conductor-yml-does-not-yet-exclude-operator-host-from.md
 
 ---
 

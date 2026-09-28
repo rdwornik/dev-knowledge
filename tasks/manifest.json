@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "e84282e28e0ad1a0b24749a8a2c1c0ae0d91d8c290cedfa5c23f97cd6ab35c84",
+  "generated_sha256": "8bffb4c23d4897793677ca17800566f4b7e6f0cb06010b6646180d73619f1f3f",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2634,6 +2634,18 @@
     {
       "task": 1054,
       "file": "1054-the-2-000-minute-actions-allowance-claim-in-substrate-h.md"
+    },
+    {
+      "task": 1101,
+      "file": "1101-known-reds-registry-environment-mismatch-attribution-i.md"
+    },
+    {
+      "task": 1102,
+      "file": "1102-lane-portability-ratchet-a-10th-path-candidate-beyond-t.md"
+    },
+    {
+      "task": 1103,
+      "file": "1103-conductor-yml-does-not-yet-exclude-operator-host-from.md"
     },
     {
       "prose": ""
