@@ -273,6 +273,22 @@ kinds:
       digest) classified as an unregistered stray though its own prefix was already
       registered -- same kind, wider extension set, no folder/writer change.
 
+  - kind: DIGEST_CAPABILITY_MAP
+    prefix: "DIGEST-CAPABILITY-MAP-"
+    pattern: '^DIGEST-CAPABILITY-MAP-[A-Za-z0-9._-]+\.md$'
+    folder: to-browser
+    writers: [operator, integrator]
+    readers: [handoff_state]
+    repo_scope: hub
+    versioned: false
+    notes: >-
+      lane-handoff-min-2 (AMEND-BATCH-WAVE5B-N4-REDISPATCH row 17b, defect 2): the sitting's
+      capability map (`to-browser/DIGEST-CAPABILITY-MAP-<date>.md`, `handoff_state.
+      row_capabilities`'s newest-file lookup, WORKS-count parsed for the boot's Capabilities
+      STATE row). Longer prefix than the bare DIGEST kind, so `load_registry`'s longest-
+      prefix-first sort classifies it here rather than there -- no lookahead needed on DIGEST's
+      own pattern (`transport.classify`'s "first (longest-prefix) match" contract).
+
   - kind: ADDENDUM
     prefix: "ADDENDUM-"
     pattern: '^ADDENDUM-[A-Za-z0-9._-]+\.md$'

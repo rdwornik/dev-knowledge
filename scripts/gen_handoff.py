@@ -119,11 +119,25 @@ except ImportError:  # pragma: no cover - exercised by the scripts/-on-sys.path 
 # defines no registry of its own and calls only organs that already exist (ci_verdict,
 # batch_manifest, seat_registry, the two ecosystem registries, the newest transport
 # RATIFICATION / DIGEST-CAPABILITY-MAP). No cycle risk (handoff_state never imports this
-# module), so this is a plain top-level import, same dual shim as `canonical_docs` above.
-try:
-    from scripts import handoff_state as _hstate
-except ImportError:  # pragma: no cover - exercised by the scripts/-on-sys.path entrypoint
-    import handoff_state as _hstate
+# module).
+#
+# Imported at USE time, not at module load (lane-handoff-min-2, repair of the second refusal):
+# a top-level import made this module unimportable from a copied `scripts/` dir that lacks the
+# sibling — `assemble_paste.py` run that way (tests/test_assemble_paste.py's fixture, which
+# copies only assemble_paste.py / gen_handoff.py / canonical_docs.py) hit a bare
+# ModuleNotFoundError in 41 tests that only need `reflow_framing` / `detect_fill_state`, neither
+# of which touches STATE rows. Same shape as the `_vhp()` deferral below, chosen over adding
+# handoff_state.py to the fixture's copy list because the fixture's Owns is "assemble_paste.py's
+# own dependency closure", not every module gen_handoff.py happens to import — widening it papers
+# over the real coupling instead of removing it.
+def _hstate():
+    """`handoff_state`, resolved under both entry shapes (package, or `scripts/` on `sys.path`) —
+    the same dual shim as `canonical_docs`, run when first needed."""
+    try:
+        from scripts import handoff_state as hstate  # noqa: PLC0415
+    except ImportError:  # pragma: no cover - exercised by the scripts/-on-sys.path entrypoint
+        import handoff_state as hstate  # noqa: PLC0415
+    return hstate
 
 # lane-boot-contract (WAVE5B-N2 row 12): the boot's DATA/PROSE contract is the VERIFIER's — it
 # decides what "probe-checked" means — so the delimiters, the receipt name and the boot-cost
@@ -2945,7 +2959,7 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     # polled once) and reused for the manifest's `row_freshness` field below, so the cut does
     # not re-poll CI or re-glob the transport a second time for the same generation.
     transport = transport_root()
-    live_state_rows = _hstate.state_rows(repo_root, transport)
+    live_state_rows = _hstate().state_rows(repo_root, transport)
     tokens["BOOT_DATA"] = boot_data_block(
         boot_data_rows(slug, mode, tokens["CHAT_TITLE"], spec_version(repo_root),
                        state_rows=live_state_rows))
