@@ -54,6 +54,17 @@ def test_matrix_weights_must_sum_to_100():
     assert defects[0].rule == "decide.matrix_weights"
 
 
+def test_matrix_ignores_a_later_unrelated_table(tmp_path):
+    # terra HIGH 2026-09-28: a second table below the matrix (a response table, say) must
+    # never be read as more matrix rows.
+    text = (_FIX / "matrix_good.md").read_text(encoding="utf-8") + (
+        "\n## Unrelated later table\n\n"
+        "| id | note |\n|---|---|\n| Z1 | this is not a matrix row |\n")
+    fixture = tmp_path / "matrix_with_trailer.md"
+    fixture.write_text(text, encoding="utf-8")
+    assert dc.check_matrix(fixture) == []
+
+
 def test_unmeasured_score_caps_at_3():
     defects = dc.check_matrix(_FIX / "matrix_bad_unmeasured.md")
     assert len(defects) == 4
@@ -113,6 +124,20 @@ def test_response_coverage_flags_a_finding_with_no_row():
         _FIX / "response_missing.md")
     assert len(defects) == 1
     assert "P1" in defects[0].detail
+
+
+def test_response_coverage_flags_two_distinct_findings_sharing_one_id(tmp_path):
+    # terra HIGH 2026-09-28: a `set` used to silently collapse two distinct findings that
+    # happen to share an id, letting one response row satisfy both.
+    eval_a = tmp_path / "eval_a.md"
+    eval_a.write_text("- id: C1 -- first objection\n", encoding="utf-8")
+    eval_b = tmp_path / "eval_b.md"
+    eval_b.write_text("- id: C1 -- a SECOND, unrelated objection sharing the same id\n",
+                      encoding="utf-8")
+    response = tmp_path / "response.md"
+    response.write_text("| C1 | ... | **Accepted** -- ... |\n", encoding="utf-8")
+    defects = dc.check_response_coverage([eval_a, eval_b], response)
+    assert any(d.rule == "decide.duplicate_finding_id" and "C1" in d.detail for d in defects)
 
 
 def test_response_coverage_flags_a_finding_answered_twice():
@@ -204,6 +229,30 @@ def test_run_probe_unrecognised_syntax_is_never_a_silent_pass():
     ok, detail = dc._run_probe("something weird", _REPO)
     assert ok is False
     assert "unrecognised" in detail
+
+
+def test_run_probe_refuses_a_path_line_probe_that_escapes_the_repo():
+    ok, detail = dc._run_probe("../outside.txt:1", _REPO)
+    assert ok is False
+    assert "escapes" in detail
+
+
+def test_run_probe_refuses_an_absolute_path_line_probe():
+    ok, detail = dc._run_probe("/etc/passwd:1", _REPO)
+    assert ok is False
+    assert "escapes" in detail
+
+
+def test_run_probe_refuses_a_grep_probe_that_escapes_the_repo():
+    ok, detail = dc._run_probe("grep -c 'x' ../../outside.txt", _REPO)
+    assert ok is False
+    assert "escapes" in detail
+
+
+def test_run_probe_rejects_line_zero_as_a_locator():
+    ok, detail = dc._run_probe("scripts/decide_checks.py:0", _REPO)
+    assert ok is False
+    assert "not a valid" in detail
 
 
 # --- CLI exit codes ------------------------------------------------------------------------------

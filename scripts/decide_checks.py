@@ -157,16 +157,32 @@ def _split_row(row: str) -> list[str]:
 
 
 def _find_matrix_table(text: str, weight_names: Sequence[str]) -> tuple[list[str], list[list[str]]]:
-    """The first table whose header carries every weighted column name, in order."""
-    rows = [_split_row(m.group("cells")) for m in _TABLE_ROW_RE.finditer(text)]
-    for i, header in enumerate(rows):
+    """The first table whose header carries every weighted column name, in order.
+
+    CONTIGUOUS ONLY (terra HIGH, 2026-09-28): an evidence file routinely carries a SECOND table
+    below the matrix -- a response table, another decision's matrix -- and reading every
+    matched-header table's rows out of a flat, whole-document row list let that later table's
+    rows be scored as if they were the matrix's own data. This walks physical lines from the
+    header instead, and stops at the first line that is not part of THIS table (a blank line,
+    prose, or a later table's own header)."""
+    lines = text.splitlines()
+    table_rows = [(i, _split_row(m.group("cells"))) for i, line in enumerate(lines)
+                  if (m := _TABLE_ROW_RE.match(line))]
+    by_line = dict(table_rows)
+    for i, header in table_rows:
         lowered = [c.lower() for c in header]
-        if all(name.lower() in lowered for name in weight_names):
-            body = rows[i + 1:]
-            # the CommonMark separator row (`---|---|...`) is not data
-            body = [r for r in body if not all(_SEP_CELL_RE.match(c) for c in r)]
-            return header, body
-    raise DecideChecksError("no matrix table header names every weighted column")
+        if not all(name.lower() in lowered for name in weight_names):
+            continue
+        if i + 1 not in by_line or not all(_SEP_CELL_RE.match(c) for c in by_line[i + 1]):
+            continue  # a real table header is followed immediately by a separator row
+        body: list[list[str]] = []
+        j = i + 2
+        while j in by_line:
+            body.append(by_line[j])
+            j += 1
+        return header, body
+    raise DecideChecksError("no matrix table header names every weighted column, "
+                            "immediately followed by a separator row")
 
 
 def check_matrix(evidence_file: Path) -> list[Defect]:
@@ -261,16 +277,27 @@ _RESPONSE_ROW_RE = re.compile(
 
 
 def check_response_coverage(eval_files: Sequence[Path], response_file: Path) -> list[Defect]:
-    """Every finding id named across `eval_files` has exactly one accept/reject row."""
-    ids: set[str] = set()
-    for f in eval_files:
-        ids |= {m.group("id") for m in _FINDING_ID_RE.finditer(_read(f))}
+    """Every finding id named across `eval_files` has exactly one accept/reject row.
+
+    Duplicate ids are reported, not silently collapsed (terra HIGH, 2026-09-28): two distinct
+    findings sharing one id used to disappear into a `set`, letting one response row satisfy
+    both."""
+    id_occurrences: list[tuple[str, Path]] = [
+        (m.group("id"), f) for f in eval_files for m in _FINDING_ID_RE.finditer(_read(f))]
+    counts: dict[str, int] = {}
+    for fid, _ in id_occurrences:
+        counts[fid] = counts.get(fid, 0) + 1
+    defects: list[Defect] = [
+        Defect("decide.duplicate_finding_id", str(f),
+              f"finding id {fid!r} is used {counts[fid]} times across the evaluator files "
+              "-- each finding needs its own id")
+        for fid, f in id_occurrences if counts[fid] > 1]
+    ids: set[str] = set(counts)
     response_text = _read(response_file)
     covered: dict[str, int] = {}
     for m in _RESPONSE_ROW_RE.finditer(response_text):
         for part in m.group("id").split("/"):
             covered[part.strip()] = covered.get(part.strip(), 0) + 1
-    defects: list[Defect] = []
     for fid in sorted(ids):
         n = covered.get(fid, 0)
         if n == 0:
@@ -375,27 +402,51 @@ _GREP_PROBE_RE = re.compile(r"^grep\s+-c\s+'(?P<pat>[^']*)'\s+(?P<path>\S+)$")
 _PATH_LINE_PROBE_RE = re.compile(r"^(?P<path>[^:]+):(?P<line>\d+)$")
 
 
+def _contained_path(repo_root: Path, rel: str) -> Path | None:
+    """`repo_root / rel`, resolved, and refused if it escapes `repo_root` (terra HIGH,
+    2026-09-28): an evidence file is subagent-authored prose a producer did not necessarily
+    vet, and an unguarded join let a `{probe: ...}` reach an absolute path or a `..`-escaped
+    one outside this decision's own repository -- exactly the frame-leaving R15 exists to
+    refuse elsewhere. `None` means refused; never raises."""
+    root = repo_root.resolve()
+    candidate = (root / rel).resolve()
+    try:
+        candidate.relative_to(root)
+    except ValueError:
+        return None
+    return candidate
+
+
 def _run_probe(probe: str, repo_root: Path) -> tuple[bool, str]:
     probe = probe.strip()
     m = _GREP_PROBE_RE.match(probe)
     if m:
-        target = repo_root / m.group("path")
+        target = _contained_path(repo_root, m.group("path"))
+        if target is None:
+            return False, f"probe path escapes the repository: {m.group('path')!r}"
         if not target.is_file():
             return False, f"grep target missing: {m.group('path')}"
         count = len(re.findall(m.group("pat"), _read(target)))
         return count > 0, f"{count} match(es)"
     if probe.startswith("git check-ignore "):
         path = probe[len("git check-ignore "):].strip()
+        target = _contained_path(repo_root, path)
+        if target is None:
+            return False, f"probe path escapes the repository: {path!r}"
         result = subprocess.run(["git", "-C", str(repo_root), "check-ignore", path],
                                 capture_output=True, text=True, encoding="utf-8", errors="replace")
         return result.returncode == 0, f"exit {result.returncode}"
     m = _PATH_LINE_PROBE_RE.match(probe)
     if m:
-        target = repo_root / m.group("path")
+        line_no = int(m.group("line"))
+        if line_no < 1:
+            return False, f"line {line_no} is not a valid 1-indexed locator"
+        target = _contained_path(repo_root, m.group("path"))
+        if target is None:
+            return False, f"probe path escapes the repository: {m.group('path')!r}"
         if not target.is_file():
             return False, f"file missing: {m.group('path')}"
         n_lines = len(_read(target).splitlines())
-        line_no = int(m.group("line"))
         return n_lines >= line_no, f"{n_lines} lines, cites line {line_no}"
     return False, f"unrecognised probe syntax: {probe!r}"
 
