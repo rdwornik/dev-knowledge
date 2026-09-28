@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-09-27 (g) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): Codespace lanes are created, run, harvested and deleted from Python on any OS, and a codespace cannot be deleted before its evidence is harvested and verified
+
+**Anchors:** `2cb47aee`, `ae7faaf1` -- `worktree-lane-dispatch-port-hub` (ordered and served `claude-sonnet-5`), RE-ADMITTED, first handback, stacked `--no-ff` on (f) in integration chain u1 (R22 priority 2; lane 17 is FAILED).
+
+**Did:** `scripts/dispatch.py` ports win-tooling's `DispatchHelpers.psm1` codespace legs to Python: `run_gh`, `codespace_exec`, `codespace_harvest`, `verify_harvest_manifest`, `codespace_stop`, and a new `codespace_delete` that refuses until a private local harvest (`~/.claude/remote-runs/<batch>/<lane>/`) verifies against its sha256 manifest (R17). Each has a CLI verb. `dispatch.py plan --substrate codespace` orders harvest and the manifest check before delete. A live end-to-end run created a real codespace, ran, harvested, verified and deleted it, and left `gh codespace list` empty. `ARCHITECTURE.md` invariant 1 records the sanctioned single-substrate exception (R11(3)), re-stamped. Codex terra over 9 rounds, 0/13/0/0, all fixed, round 9 clean.
+
+**Result:** proposal row L8 lands -- dispatch no longer depends on a PowerShell module deployed from an unmerged branch, and a codespace can no longer be deleted with its evidence still inside it.
+
+**Changes:** `scripts/dispatch.py`, `tests/test_dispatch_codespace.py` (new), `tests/test_dispatch_launch.py`, `tests/test_dispatch_py.py`, `templates/dispatch-shim.ps1`, `ARCHITECTURE.md`, one Codex audit; regenerated `docs/audits/README.md`, `ecosystem/doc-counts.md`; `logs/MERGE-RECEIPTS.jsonl` gains the closed receipts of (d), (e) and (f).
+
+**Next:** OPERATOR-ACTION -- merge `worktree-lane-ab-810-substrate-repair` in win-tooling. The Python receipt is a reduced subset of the PS runner's (in-container admission probes, commit witness, stall diagnostics); `DEFAULT_HARVEST_ROOT` is still to be reconciled with the telemetry-home decision.
+
 ### 2026-09-27 (f) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): the known-reds registry is keyed by OS, each member carries a failure signature, and a signature is normalised before it is stored or compared
 
 **Anchors:** `2457eb69`, `6ee18b82`, `ded3a22f`, `c3848675` -- `worktree-lane-known-reds-signatures` (ordered and served `claude-sonnet-5`), repair 1 after the s3 refusal, stacked `--no-ff` on (e) in integration stack s6.

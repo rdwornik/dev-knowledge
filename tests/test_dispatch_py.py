@@ -229,10 +229,17 @@ def test_codespace_plan_ships_a_runner_file_and_never_composes_the_prompt_into_s
                             machine="basicLinux32gb")
     verbs = [step.argv[:3] for step in plan]
     assert ["gh", "codespace", "create"] in verbs
-    ssh = next(s for s in plan if s.argv[:3] == ["gh", "codespace", "ssh"])
+    # two `codespace ssh` steps now exist (mkdir the workdir, then run) -- select the RUN one.
+    ssh = next(s for s in plan if s.argv[:3] == ["gh", "codespace", "ssh"] and "bash" in s.argv)
     assert ssh.argv[-2] == "bash" and ssh.argv[-1].endswith(".sh")
     assert all("do the thing" not in " ".join(s.argv) for s in plan)
-    assert plan[-1].argv[:3] == ["gh", "codespace", "cp"], "the receipt comes back last"
+    receipt = next(s for s in plan if s.note == "pull the receipt back")
+    assert receipt.argv[:3] == ["gh", "codespace", "cp"]
+    # LANE-5B4-10 / R17: harvest + the manifest check now trail the receipt, and delete is last --
+    # a dry run shows the gate, not only `codespace_delete` enforcing it silently at run time.
+    assert plan[-1].argv[:3] == ["gh", "codespace", "delete"], "delete is the last planned step"
+    assert any(s.note.startswith("harvest:") for s in plan)
+    assert any("manifest check" in s.note for s in plan)
 
 
 def test_codespace_dry_run_through_the_cli_prints_the_cost_line(tmp_path):

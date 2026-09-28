@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-19
+last_reviewed: 2026-09-27
 reconciled_with: handoff-process@7.1.0
 status: active
 owner: Rob
@@ -91,6 +91,13 @@ architect proposes, the operator ratifies, the executor acts only inside ratifie
 
 **Invariants** (→ ADR-28, ADR-36, ADR-39, ADR-41):
 1. **Layer 2 never executes** — no script here orchestrates or drives state in another repo.
+   **Amended (R11(3), `RATIFICATION-2026-09-25-v9-superseded.md`; LANE-5B4-10 ports it):** the
+   codespace create/exec/harvest/stop/delete legs in `scripts/dispatch.py` are a SANCTIONED
+   exception, scoped to exactly one substrate — a GitHub Codespace running THIS repo's own
+   contract, never a child repo. It is still not orchestration of another repo's state: the
+   codespace it drives is disposable compute for the hub's own lane, gated by R17 (delete is
+   refused until a private, checked harvest of its evidence exists), never a standing service.
+   The invariant otherwise holds unchanged.
 2. **Validators are read-only on siblings** — `scripts/` only reads/checks/reports; the
    cross-repo `audit.py run` writes only into `.dev-knowledge` (ADR-36, ADR-69).
 3. **Prescriptive authority** — PLAYBOOK + ADRs bind child repos; no local override (ADR-31).
