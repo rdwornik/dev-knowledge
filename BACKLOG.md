@@ -701,6 +701,29 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1101] [P3][S] logs/KNOWN-REDS-REGISTRY.json: the 4 'environment-mismatch' members no longer reproduce · tasks/1101-known-reds-registry-environment-mismatch-attribution-i.md
 - [#1102] [P3][S] lane-portability-ratchet: a 10th path-defect candidate beyond T2's named 9 · tasks/1102-lane-portability-ratchet-a-10th-path-candidate-beyond-t.md
 - [#1103] [P2][S] conductor.yml does not yet exclude operator_host from the CI pytest invocation · tasks/1103-conductor-yml-does-not-yet-exclude-operator-host-from.md
+- [#1104] [P2][S] Dispose ADR-127: carried to WAVE5B-N5 planning · tasks/1104-dispose-adr-127-carried-to-wave5b-n5-planning.md
+- [#1105] [P2][S] Dispose AMEND-BATCH-WAVE5B-N2-QUEUE-2026-09-25: carried to WAVE5B-N5 planning · tasks/1105-dispose-amend-batch-wave5b-n2-queue-2026-09-25-carried-to-wave5b-n5-planning.md
+- [#1106] [P2][S] Dispose AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25: carried to WAVE5B-N5 planning · tasks/1106-dispose-amend-batch-wave5b-n2-queue2-2026-09-25-carried-to-wave5b-n5-planning.md
+- [#1107] [P2][S] Dispose AMEND-BATCH-WAVE5B-N2-QUEUE3-2026-09-25: carried to WAVE5B-N5 planning · tasks/1107-dispose-amend-batch-wave5b-n2-queue3-2026-09-25-carried-to-wave5b-n5-planning.md
+- [#1108] [P2][S] Dispose AMEND-BATCH-WAVE5B-N2-QUEUE4-2026-09-25: carried to WAVE5B-N5 planning · tasks/1108-dispose-amend-batch-wave5b-n2-queue4-2026-09-25-carried-to-wave5b-n5-planning.md
+- [#1109] [P2][S] Dispose AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25: carried to WAVE5B-N5 planning · tasks/1109-dispose-amend-batch-wave5b-n2-queue6-2026-09-25-carried-to-wave5b-n5-planning.md
+- [#1110] [P2][S] Dispose AMEND-BATCH-WAVE5B-N4-HANDOFF-MIN-2026-09-27: carried to WAVE5B-N5 planning · tasks/1110-dispose-amend-batch-wave5b-n4-handoff-min-2026-09-27-carried-to-wave5b-n5-planning.md
+- [#1111] [P2][S] Dispose AMEND-BATCH-WAVE5B-N4-REDISPATCH-2026-09-28: carried to WAVE5B-N5 planning · tasks/1111-dispose-amend-batch-wave5b-n4-redispatch-2026-09-28-carried-to-wave5b-n5-planning.md
+- [#1112] [P2][S] Dispose AMEND-BATCH-night-2026-09-17: carried to WAVE5B-N5 planning · tasks/1112-dispose-amend-batch-night-2026-09-17-carried-to-wave5b-n5-planning.md
+- [#1113] [P2][S] Dispose AMEND-DISPATCH-UNBLOCK-2026-09-17: carried to WAVE5B-N5 planning · tasks/1113-dispose-amend-dispatch-unblock-2026-09-17-carried-to-wave5b-n5-planning.md
+- [#1114] [P2][S] Dispose AMEND-HANDOFF-BOOT-INTEGRATOR-SECTION-2026-09-20: carried to WAVE5B-N5 planning · tasks/1114-dispose-amend-handoff-boot-integrator-section-2026-09-20-carried-to-wave5b-n5-planning.md
+- [#1115] [P2][S] Dispose AMEND-MODEL-ROUTING-AND-SCOPE-2026-09-17: carried to WAVE5B-N5 planning · tasks/1115-dispose-amend-model-routing-and-scope-2026-09-17-carried-to-wave5b-n5-planning.md
+- [#1116] [P2][S] Dispose AMEND-NIGHT-ORDER-CONSOLIDATED-2026-09-17: carried to WAVE5B-N5 planning · tasks/1116-dispose-amend-night-order-consolidated-2026-09-17-carried-to-wave5b-n5-planning.md
+- [#1117] [P2][S] Dispose AMEND-NIGHT-SALVAGE-2026-09-17: carried to WAVE5B-N5 planning · tasks/1117-dispose-amend-night-salvage-2026-09-17-carried-to-wave5b-n5-planning.md
+- [#1118] [P2][S] Dispose AMEND-ORGAN-USE-2026-09-17: carried to WAVE5B-N5 planning · tasks/1118-dispose-amend-organ-use-2026-09-17-carried-to-wave5b-n5-planning.md
+- [#1119] [P2][S] Dispose DECLARE-CENSUS-VERDICTS-2026-09-18: carried to WAVE5B-N5 planning · tasks/1119-dispose-declare-census-verdicts-2026-09-18-carried-to-wave5b-n5-planning.md
+- [#1120] [P2][S] Dispose DECLARE-LANE-HANDBACK-CONTRACT-2026-09-18: carried to WAVE5B-N5 planning · tasks/1120-dispose-declare-lane-handback-contract-2026-09-18-carried-to-wave5b-n5-planning.md
+- [#1121] [P2][S] Dispose DECLARE-OPERATOR-FEEDBACK-2026-09-24: carried to WAVE5B-N5 planning · tasks/1121-dispose-declare-operator-feedback-2026-09-24-carried-to-wave5b-n5-planning.md
+- [#1122] [P2][S] Dispose DECLARE-SEAT-KNOWLEDGE-2026-09-24: carried to WAVE5B-N5 planning · tasks/1122-dispose-declare-seat-knowledge-2026-09-24-carried-to-wave5b-n5-planning.md
+- [#1123] [P2][S] Handoff part B: stamp the cut manifest after the required fills · tasks/1123-handoff-part-b-stamp-the-cut-manifest-after-the-required-fills.md
+- [#1124] [P2][S] Handoff part B: BD-seats compares seat identity and liveness, not the status string · tasks/1124-handoff-part-b-bd-seats-compares-seat-identity-and-liveness-not-the-status-string.md
+- [#1125] [P2][S] N5: absorb or retire the claude/conformance-* digest branches · tasks/1125-n5-absorb-or-retire-the-claude-conformance-digest-branches.md
+- [#1126] [P2][S] N5: archive/* tags join R25's allowed set with an owner and an expiry · tasks/1126-n5-archive-tags-join-r25-s-allowed-set-with-an-owner-and-an-expiry.md
 
 ---
 

@@ -21,6 +21,23 @@
 
 ---
 
+### 2026-09-28 (g) - CC (Opus 5.5, HANDOFF CUT 2026-09-24 window): R26's 23 disposition rows filed, so P13 no longer blocks the cut
+
+**Anchors:** `44627ec4` -- `worktree-handoff-cut-2026-09-28`, merged `--no-ff`.
+
+**Did:** Filed the rows operator ruling R26 (`to-browser/RATIFICATION-2026-09-28.md` v5) ordered after `/handoff-verify` blocked the window's cut, plus the archive-tag row the operator ordered at the same cut.
+- `[#1104]`-`[#1122]`: one row per accepted decision P13-decision-ledger found with neither an implementing row nor a written disposition (ADR-127 and 18 transport orders, 17 of them from before this window). Each carries `implements:` in its body and says "carried to WAVE5B-N5 planning -- the next seat decides run / refuse".
+- `[#1123]`/`[#1124]`: handoff part B -- the manifest is stamped before the required fills; BD-seats compares a whole status string.
+- `[#1125]`: N5 -- absorb or retire the ten `claude/conformance-*` branches. `[#1126]`: N5 -- `archive/*` tags join R25's allowed set with an owner and an expiry.
+
+**Result:** 536 -> 559 task nodes; `gen_task_tree --check` ok; `decision_coverage check` OK; P13 findings 0. The cut itself lands in the next entry.
+
+**Changes:** `tasks/1104-*.md` .. `tasks/1126-*.md`, `tasks/manifest.json`, `BACKLOG.md`, `JOURNAL.md`.
+
+**Abandoned:** none.
+
+**Next:** re-cut the bundle from this main, so its Rulings row reads R1-R26.
+
 ### 2026-09-28 (f) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): WAVE5B-N4 closes with 12 lanes merged, 3 FAILED and 1 moved to N5; its cost is in the ledger
 
 **Anchors:** `a87c6a0a` -- `worktree-close-wave5b-n4`, merged `--no-ff` onto `db79ec4e`.
