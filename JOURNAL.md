@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-09-28 (c) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): the landing probe's record is true -- three D5 cases measured live, and its Codex record now reviews the lane's own diff
+
+**Anchors:** `bf504755`, `6736dad1`, `9b80f0e5` -- `worktree-lane-landing-probe-2` (R23 row 6b, re-dispatched from the kept branch `worktree-lane-landing-probe` @ `6736dad1`; ordered and served `claude-sonnet-5`), stacked `--no-ff` on 2026-09-28 (b) in integration chain v2.
+
+**Did:** `docs/audits/2026-09-27-technical-landing-probe.md` records the D5 landing rehearsal measured live against GitHub's rulesets -- a pass, a fail and a bypass case plus a full cycle (rule-suites 4248486665, 4248489454, 4248491977, 4248503688), the throwaway ruleset cleaned up afterwards; the integrator verified those results independently on 2026-09-27. The first attempt's Codex record reviewed a stale local `main` and claimed a clean doc review with an unfilled tally, and the lane FAILED on that claim. Under R23 the re-dispatch replaces it with a doc-profile review scoped to `origin/main...HEAD`, citing LANE-5B4-6 and naming its consumer: 0/3/0/0. One High is the record's own prior falseness; two sit in the technical audit and are carried as ROWS-OWED (ruling (e)).
+
+**Result:** proposal row L0's probe evidence lands, with a review record that describes the review that ran.
+
+**Changes:** `docs/audits/2026-09-27-technical-landing-probe.md` (new), `docs/audits/2026-09-27-codex-lane-landing-probe.md` (new); regenerated `docs/audits/README.md`, `ecosystem/doc-counts.md`.
+
+**Next:** the technical audit's sequencing claim against `lane-integrate.md:158-174` and its mutation inventory (the `refs/probe/landing-probe-rehearsal` ref) are owed before `lane-arm-ci` (moved to WAVE5B-N5, R23) acts on them.
+
 ### 2026-09-28 (b) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): a handoff bundle states live facts as probe-checked rows, carries a sha256 manifest, and verifies the same rows again at boot
 
 **Anchors:** `b8d12772`, `908ab8ee`, `14c5b0a7`, `7fb0fa49`, `6b6771c5`, `35aa8636`, `c93cc3dc` -- `worktree-lane-handoff-min-2` (R23 row 17b, re-dispatched from the kept branch `worktree-lane-handoff-min` @ `7fb0fa49` after lane 17 FAILED on its second refusal; ordered and served `claude-sonnet-5`), Part A of the handoff proposal, stacked `--no-ff` on 2026-09-28 (a) in integration chain v1 (R23: 17b first).
