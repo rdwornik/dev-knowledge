@@ -6,7 +6,7 @@
 **Diff range:** `main..worktree-lane-handoff-min-2`
 **Codex version:** codex-cli 0.155.0
 **Mode:** diff-review
-**Tally:** TBD/TBD/TBD/TBD <!-- Critical/High/Medium/Low. FILL FROM THE FINDINGS SECTION before committing. The hub's review_artifact_coverage leg parses four digits here; TBD deliberately does not parse, so an unfilled tally keeps WARNing instead of shipping a number nobody counted. -->
+**Tally:** 0/2/0/0 <!-- Critical/High/Medium/Low. Both HIGH findings are `.github/workflows/conductor.yml:91`, part of the already-accepted worktree-lane-ci-matrix/Part A history in this branch's `main..HEAD` diff -- outside row 17b's Owns (Part A's Owns list, tests/test_assemble_paste.py fixture only, ecosystem/transport-registry.yaml's one row), not introduced by this repair, and not this row's to fix (see Findings section and the note beneath it). -->
 
 **Model used:** `gpt-5.6-terra` (pinned; both lanes — [#469])
 **Review profile:** code
