@@ -382,19 +382,30 @@ def seats(path: Optional[Path] = None, *, now: Optional[datetime] = None,
     return out
 
 
-def _label(seat: Seat) -> str:
+def _label(seat: Seat, *, elapsed: bool = True) -> str:
     who = seat.lane if seat.role == "lane" and seat.lane else f"{seat.role} {seat.batch or '-'}"
-    return f"{who} {seat.session_id[:8]} ({seat.minutes_since:.0f} min since last event)"
+    detail = (f"{seat.minutes_since:.0f} min since last event" if elapsed
+              else f"last event {seat.last_event.isoformat()}")
+    return f"{who} {seat.session_id[:8]} ({detail})"
 
 
 def seat_health_line(path: Optional[Path] = None, *, now: Optional[datetime] = None,
-                     open_batches: Iterable[str] = (), **probes) -> Optional[str]:
+                     open_batches: Iterable[str] = (), elapsed: bool = True,
+                     **probes) -> Optional[str]:
     """The SessionStart `[seats]` line: stalled seats named WITHOUT anyone asking.
 
     SILENT over an empty registry -- no events is no measurement, and a `0 live` would be
     believed. Only ROLED seats count (a lane, or a bound primary-checkout seat); an unbound
     session is counted, not named. An open batch with no live integrator is named too: the
     half-day with no integrator was a batch nobody could see was unreceived.
+
+    `elapsed=False` (LANE-5B4-17 repair 1) swaps each named seat's "NN min since last event"
+    detail for its last event's fixed ISO timestamp -- a value that changes only when the
+    seat itself produces a new event, never with the mere passage of clock time. The default
+    caller (the SessionStart `[seats]` line, `fleet_health.seat_health_line`) is unchanged;
+    `handoff_state.row_seats` is the one caller that needs a value stable between a cut and
+    its later re-verification (`verify_handoff_probes` BD-seats), where the same seat with no
+    state change must render byte-identical minutes or hours apart.
     """
     moment = now or _now()
     horizon = SURFACE_LOOKBACK_HOURS * 60.0
@@ -406,7 +417,7 @@ def seat_health_line(path: Optional[Path] = None, *, now: Optional[datetime] = N
     line = ("[seats] " + " / ".join(f"{counts[s]} {s}" for s in STATES)
             + f" (last {SURFACE_LOOKBACK_HOURS:.0f} h; {len(recent) - len(roled)} unbound)")
     for state in ("wedged", "starved"):
-        named = [_label(s) for s in roled if s.state == state]
+        named = [_label(s, elapsed=elapsed) for s in roled if s.state == state]
         if named:
             line += f" / {state.upper()}: " + "; ".join(named)
     unreceived = [b.upper() for b in open_batches

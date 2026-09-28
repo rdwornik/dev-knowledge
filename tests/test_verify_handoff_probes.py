@@ -24,6 +24,7 @@ import pytest
 
 import verify_handoff_probes as vhp  # noqa: E402
 import audit as aud  # noqa: E402
+import handoff_state as hs  # noqa: E402 -- lane-handoff-min: the 7 live state rows
 
 # --- mini-bundle fixtures (a self-consistent temp repo) ---------------------
 
@@ -2198,9 +2199,29 @@ def _bd(results):
     return {r.probe_id: r for r in results if r.probe_id.startswith(("BD-", "BP-"))}
 
 
-def test_a_well_formed_boot_data_block_passes_every_row(tmp_path):
-    by = _bd(vhp.verify(_boot_bundle(tmp_path)))
-    assert {f"BD-{vhp.boot_data_id(k)}" for k in _boot_rows()} <= set(by)
+def test_a_well_formed_boot_data_block_passes_every_row(tmp_path, monkeypatch):
+    # lane-handoff-min: a "well-formed" boot now also carries the 7 live state rows -- pin
+    # CLAUDE_PROMPTS_DIR OFF (unresolved transport, a real degrade path) so the value this test
+    # writes and the value verify_boot() re-derives a moment later are the SAME live read,
+    # rather than one reading this fixture's stub and the other the real machine's transport.
+    monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
+    bundle = _boot_bundle(tmp_path)
+    repo_root = bundle.parents[2]
+    state_rows = hs.state_rows(repo_root, None)
+    rows = {**_boot_rows(), **{row.key: row.rendered() for row in state_rows}}
+    (bundle / "HANDOFF_BOOT.md").write_text(_boot_md(rows), encoding="utf-8")
+    # BD-manifest needs a real manifest to check the bundle against -- write one now that the
+    # bundle's files (including the just-rewritten HANDOFF_BOOT.md) are in their final state.
+    import gen_handoff as gh  # noqa: PLC0415
+    import json  # noqa: PLC0415
+    manifest = gh.bundle_manifest(bundle, source_sha="test", state_rows=state_rows)
+    (bundle / vhp.RECEIPT_FILE).write_text(
+        json.dumps({"boot_cost": {"metric": "turns to first correct dispatch", "value": None,
+                                  "status": "unmeasured — no tally was recorded"},
+                   "manifest": manifest}),
+        encoding="utf-8")
+    by = _bd(vhp.verify(bundle))
+    assert {f"BD-{vhp.boot_data_id(k)}" for k in rows} <= set(by)
     bad = {k: (r.status, r.detail) for k, r in by.items() if r.status == "fail"}
     assert bad == {}, bad
 

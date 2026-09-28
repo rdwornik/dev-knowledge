@@ -166,7 +166,16 @@ def test_filled_framing_and_fillin_narrative_preserved(tmp_path):
     resid = resid.replace(marker, "OPERATOR-NARRATIVE-SENTINEL\n" + marker)
     (b / "RESIDUAL.md").write_text(resid, encoding="utf-8")
     sup = (b / "SUPPLEMENT.md").read_text(encoding="utf-8")
-    (b / "SUPPLEMENT.md").write_text(sup + "\n1. Intent: ship it.\n", encoding="utf-8")
+    # lane-handoff-min: a FILLED supplement must also carry the 5 fixed slots (Q8) or
+    # gen_handoff.assert_supplement_fixed_slots refuses it -- this test is about narrative
+    # preservation, not the fixed-slots gate, so it satisfies that gate rather than tripping it.
+    (b / "SUPPLEMENT.md").write_text(
+        sup + "\n1. Intent: ship it.\n"
+        "Headline: ship it.\n"
+        "Open threads (with carriers): none\n"
+        "Next authorized action: none\n"
+        "Contingencies: none\n"
+        "Do-not-repeat: none\n", encoding="utf-8")
     # regenerate -> flips to FILLED, preserves the narrative
     res2 = gh.generate(b.parents[2], mode="architect", slug=b.name, repo=".dev-knowledge",
                        date="2026-07-04", bundle_root=b.parent, assemble=False)
@@ -243,11 +252,90 @@ def test_execution_mode_writes_no_supplement(tmp_path):
 def test_supplement_not_clobbered_on_regeneration(tmp_path):
     res = _gen(tmp_path)
     sup_path = res.bundle_dir / "SUPPLEMENT.md"
-    sup_path.write_text(sup_path.read_text(encoding="utf-8") + "\nOPERATOR-FILLED\n", encoding="utf-8")
+    # lane-handoff-min: a FILLED supplement must also carry the 5 fixed slots (Q8) or
+    # gen_handoff.assert_supplement_fixed_slots refuses it -- this test is about the supplement
+    # surviving a regeneration untouched, not the fixed-slots gate.
+    sup_path.write_text(
+        sup_path.read_text(encoding="utf-8") + "\nOPERATOR-FILLED\n"
+        "Headline: filled.\n"
+        "Open threads (with carriers): none\n"
+        "Next authorized action: none\n"
+        "Contingencies: none\n"
+        "Do-not-repeat: none\n", encoding="utf-8")
     gh.generate(res.bundle_dir.parents[2], mode="architect", slug=res.bundle_dir.name,
                 repo=".dev-knowledge", date="2026-07-04", bundle_root=res.bundle_dir.parent,
                 assemble=False)
     assert "OPERATOR-FILLED" in sup_path.read_text(encoding="utf-8")
+
+
+# --- lane-handoff-min: SUPPLEMENT fixed slots (Q8, Part A Done-when 4) ----------------------
+
+_FULL_SLOTS_TEXT = (
+    "Headline: ship it.\n"
+    "Open threads (with carriers): none\n"
+    "Next authorized action: none\n"
+    "Contingencies: none\n"
+    "Do-not-repeat: none\n"
+)
+
+
+def test_fixed_slots_reads_all_five_labels():
+    found = gh.fixed_slots(_FULL_SLOTS_TEXT)
+    assert found == {
+        "Headline": "ship it.",
+        "Open threads (with carriers)": "none",
+        "Next authorized action": "none",
+        "Contingencies": "none",
+        "Do-not-repeat": "none",
+    }
+
+
+def test_fixed_slots_a_blank_slot_does_not_swallow_the_next_labels_line():
+    # Regression (found by Done-when 4's own acceptance run, 2026-09-27): the ORIGINAL
+    # `_FIXED_SLOT_LINE_RE` used a bare `\s*` around the `:`, which matches a newline too. A
+    # slot left BLANK (nothing between `:` and end of line) let that `\s*` swallow the newline
+    # and the next line's own label text became this slot's captured VALUE -- so the blank
+    # slot read as non-empty (wrong) and the FOLLOWING slot vanished from the result entirely
+    # (also wrong: `assert_supplement_fixed_slots` then blamed the wrong slot as missing).
+    text = (
+        "Headline: ship it.\n"
+        "Open threads (with carriers): none\n"
+        "Next authorized action: \n"        # blank
+        "Contingencies: none\n"
+        "Do-not-repeat: none\n"
+    )
+    found = gh.fixed_slots(text)
+    assert found["Next authorized action"] == ""
+    assert found["Contingencies"] == "none"  # must still be its OWN line, not absorbed
+
+
+def test_assert_supplement_fixed_slots_noop_on_cold_or_absent(tmp_path):
+    missing = tmp_path / "SUPPLEMENT.md"
+    gh.assert_supplement_fixed_slots(missing)  # absent -- no-op, never raises
+    cold = _gen(tmp_path, mode="architect").bundle_dir / "SUPPLEMENT.md"
+    gh.assert_supplement_fixed_slots(cold)  # ANSWERS empty -- cold, never raises
+
+
+def test_assert_supplement_fixed_slots_refuses_one_blank_slot(tmp_path):
+    b = _gen(tmp_path, mode="architect").bundle_dir
+    sup_path = b / "SUPPLEMENT.md"
+    text = sup_path.read_text(encoding="utf-8") + (
+        "Headline: ship it.\n"
+        "Open threads (with carriers): none\n"
+        "Next authorized action: \n"        # the one blank slot
+        "Contingencies: none\n"
+        "Do-not-repeat: none\n"
+    )
+    sup_path.write_text(text, encoding="utf-8")
+    with pytest.raises(gh.SupplementSlotError, match="Next authorized action"):
+        gh.assert_supplement_fixed_slots(sup_path)
+
+
+def test_assert_supplement_fixed_slots_accepts_all_five_filled(tmp_path):
+    b = _gen(tmp_path, mode="architect").bundle_dir
+    sup_path = b / "SUPPLEMENT.md"
+    sup_path.write_text(sup_path.read_text(encoding="utf-8") + _FULL_SLOTS_TEXT, encoding="utf-8")
+    gh.assert_supplement_fixed_slots(sup_path)  # must not raise
 
 
 def test_invalid_mode_rejected(tmp_path):

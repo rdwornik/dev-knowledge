@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-09-28 (b) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): a handoff bundle states live facts as probe-checked rows, carries a sha256 manifest, and verifies the same rows again at boot
+
+**Anchors:** `b8d12772`, `908ab8ee`, `14c5b0a7`, `7fb0fa49`, `6b6771c5`, `35aa8636`, `c93cc3dc` -- `worktree-lane-handoff-min-2` (R23 row 17b, re-dispatched from the kept branch `worktree-lane-handoff-min` @ `7fb0fa49` after lane 17 FAILED on its second refusal; ordered and served `claude-sonnet-5`), Part A of the handoff proposal, stacked `--no-ff` on 2026-09-28 (a) in integration chain v1 (R23: 17b first).
+
+**Did:** `scripts/handoff_state.py` renders seven state rows (CI, Batches, Seats, Substrates, Transport, Rulings, Capabilities). Each row is a value with a freshness class and the evidence that produced it. `gen_handoff.py` writes them into the boot bundle's DATA block, and `verify_handoff_probes.py` re-derives each one live through the same function, so "checked live" is literal. `BD-manifest` fails when any byte of any bundle file changes. Publishing yields sha-equal copies. A SUPPLEMENT with an empty fixed slot is refused. `handoff-verify.md` names the BOOT-DATA block. Codex terra 1/4/0/0 on Part A, with the Critical and two Highs fixed. The repair renders the Seats row from last-event timestamps rather than minutes-since (`seat_health_line(elapsed=False)`, every other caller unchanged), so a bundle checked minutes after its cut no longer fails on the clock alone; the repair's Codex pass was 0/0/0/0. Row 17b fixes the two defects of the second refusal: `gen_handoff.py` defers its `handoff_state` import to use time (`_hstate()`, the `_vhp()` shape), so the 41 `test_assemble_paste.py` tests that load it from a bare `scripts/` copy import cleanly again, and `ecosystem/transport-registry.yaml` gains the `DIGEST_CAPABILITY_MAP` row the Capabilities row names. Codex terra over a declared superset range, 0/2/0/0: both Highs sit in `conductor.yml` (lane-ci-matrix's, already on main), and the reviewer clears the 17b delta explicitly.
+
+**Result:** proposal Part A items 1-6 land. A dry cut verified about two minutes later passes every BD row, and a real boot now re-checks the operator items instead of trusting prose. Item 7, the real cut, is the operator's act.
+
+**Changes:** `scripts/handoff_state.py` (new), `scripts/gen_handoff.py`, `scripts/verify_handoff_probes.py`, `scripts/seat_registry.py`, `ecosystem/transport-registry.yaml`, `.claude/commands/handoff-verify.md`, two `templates/handoff/v5/*` templates, `tests/test_handoff_state.py` (new), `tests/test_gen_handoff.py`, `tests/test_verify_handoff_probes.py`, three Codex audits; regenerated `docs/audits/README.md`, `ecosystem/doc-counts.md`; `logs/MERGE-RECEIPTS.jsonl` gains the closed receipt of 2026-09-28 (a).
+
+**Next:** re-running `assemble_paste.py` after the fill invalidates `BD-manifest` (the file is outside Part A's Owns). `test_gen_handoff.py::test_epic_bundle_has_no_failing_probe` fails on main as well (`assert 6 == 5`).
+
 ### 2026-09-28 (a) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): the ratified CI/OS decision lives where gates read it, and a consumer with no declared platform matrix fails its audit
 
 **Anchors:** `5abf6106`, `d800676f` -- `worktree-lane-portability-requirement` (ordered and served `claude-sonnet-5`), repair 1 after the t4 refusal, stacked `--no-ff` on 2026-09-27 (i) in integration chain u4.
