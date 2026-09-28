@@ -21,6 +21,27 @@
 
 ---
 
+### 2026-09-28 (e) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): /decide is a command with eight deterministic checks, and one real decision has run through it
+
+**Anchors:** `c12e72d9`, `55e5641d` -- `worktree-lane-decide-command` (ordered and served `claude-sonnet-5`; the dry run's two evaluators served `claude-opus-5-5` and `claude-haiku-4-5`), stacked `--no-ff` on 2026-09-28 (d) in integration chain v4.
+
+**Did:** `.claude/commands/decide.md` gives R14's "CC decides through the system" a runnable gate with a written markup contract: a weights line plus matrix table, `## Subagent claims` bullets with `{probe: ...}`/`{unverified}` markers, evaluator-record fields and a response table. `scripts/decide_checks.py` implements the eight checks named by the two source proposals, each with a RED-first fixture pair (36 tests):
+- paths resolve (reusing `preflight_contract.verify`);
+- matrix totals recomputed, and an unmeasured 4-5 capped at 3;
+- evaluator attestation with `excludes_producer`;
+- response coverage;
+- the ADR-124 D5 sections and byte cap;
+- the excluded roots named in every subagent brief, from `ecosystem/excluded-roots.yaml` once it lands and a flagged fallback until then;
+- every subagent claim probed at source or marked unverified.
+
+One real decision ran through it, and the matrix check caught a live arithmetic slip. Codex terra 0/4/0/0, all four Highs fixed with regression tests. Fates lines for the script and the command organ are in `harness.yaml`.
+
+**Result:** proposal row L12 lands -- a decision package can be checked mechanically before anyone reads it.
+
+**Changes:** `.claude/commands/decide.md` (new), `scripts/decide_checks.py` (new), `tests/test_decide_checks.py` (new), `tests/fixtures/decide/` (new, 20 files), `ecosystem/harness.yaml`, `.claude/generated/commands-repo.md`, `ecosystem/organ-index.md`, `docs/audits/2026-09-28-codex-lane-decide-command.md` (new); regenerated `docs/audits/README.md`, `ecosystem/doc-counts.md`.
+
+**Next:** `ecosystem/excluded-roots.yaml` lands with lane-scope-guard's successor, at which point the fallback retires; the `memory_admission_gate` runner spawning the system Python is ROWS-OWED.
+
 ### 2026-09-28 (d) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): eight Linux-only harness defects are closed, and a platform-conditioned test skip can only fall
 
 **Anchors:** `ad07a160`, `1b92545c`, `5637de4c`, `32f0132b`, `caf0bd00` -- `worktree-lane-portability-ratchet` (ordered and served `claude-sonnet-5`), repair 1 after the 2026-09-27 refusal, stacked `--no-ff` on 2026-09-28 (c) in integration chain v3 (R23: after 17b and 6b).
