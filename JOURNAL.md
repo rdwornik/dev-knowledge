@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-09-29 (b) - CC (Opus 5.5, HANDOFF CUT 2026-09-24 window): the 2026-09-24 window's architect bundle is cut, filled and verified 37/37
+
+**Anchors:** `cbf3ff78` -- `worktree-handoff-cut-2026-09-28-d`, merged `--no-ff`.
+
+**Did:** Cut `docs/handoffs/2026-09-28-dev-knowledge-architect/` in architect mode from `c758fe2f` once CI on that commit had settled (the previous cut captured an in-progress run and failed BD-ci on the drift). Transcribed the browser seat's SUPPLEMENT answers verbatim from `to-cc/ANSWER-handoff-cut-supplement-2026-09-28.md`, filled RESIDUAL and the BOOT destination, named all 77 `carried-by: OPEN` decision files, and re-stamped the manifest once under operator ruling R26 item 2 (the circularity fix is `[#1123]`).
+
+**Result:** `verify_handoff_probes` 37 pass / 0 fail. BD-seats passed live, so the R26 waiver was not needed. P13 has no finding. Live ship-gate: 0 hard-fail organs, 514 undispositioned WARN carried. PASTE_THIS is 19,856 B.
+
+**Changes:** `docs/handoffs/2026-09-28-dev-knowledge-architect/` (13 files; the manifest covers 12), `JOURNAL.md`.
+
+**Abandoned:** three earlier cuts of the same slug, kept untracked and discarded: stale state rows, the pre-R26 P13 FAIL, and BD-ci on an in-progress run.
+
+**Next:** paste `PASTE_THIS.md` into a fresh architect chat to plan WAVE5B-N5.
+
 ### 2026-09-29 (a) - CC (Opus 5.5, HANDOFF CUT 2026-09-24 window): the 19 hard-fails the R26 rows put on main were one defect, fixed in one commit
 
 **Anchors:** `7843d256` -- `worktree-handoff-cut-2026-09-28-b`, merged `--no-ff`.
