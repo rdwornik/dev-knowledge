@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-09-29 (a) - CC (Opus 5.5, HANDOFF CUT 2026-09-24 window): the 19 hard-fails the R26 rows put on main were one defect, fixed in one commit
+
+**Anchors:** `7843d256` -- `worktree-handoff-cut-2026-09-28-b`, merged `--no-ff`.
+
+**Did:** The fresh cut from `1d647097` was refused: ship-gate RED with 19 hard-fail organs, all `funnel_lifecycle` leg c `row-provenance-unresolved` on rows `[#1105]`-`[#1122]` and `[#1126]` -- their `refs` clauses cited only transport paths, and a provenance token must resolve inside the repository. The pre-commit gates do not run that organ, so the rows commit passed them. Per operator ruling R28 leg (a), one commit added in-repo tokens (`scripts/decision_coverage.py`, `JOURNAL.md`; `.claude/rules/git-discipline.md` for `[#1126]`).
+
+**Result:** funnel_lifecycle 0 FAIL; ship-gate hard-fails back to 0 on the fixed tree.
+
+**Changes:** 19 `tasks/11xx-*.md` refs clauses, `JOURNAL.md`.
+
+**Abandoned:** none.
+
+**Next:** the handoff cut, from this main.
+
 ### 2026-09-28 (g) - CC (Opus 5.5, HANDOFF CUT 2026-09-24 window): R26's 23 disposition rows filed, so P13 no longer blocks the cut
 
 **Anchors:** `44627ec4` -- `worktree-handoff-cut-2026-09-28`, merged `--no-ff`.
