@@ -87,6 +87,7 @@ moments:
 fates:
   - {path: .claude/commands/boot-session.md, manual_until: 2026-10-05, reason: "on-demand by the operator (act: sitting); no event fires a command (ORPHAN_DISPOSITIONS)"}
   - {path: .claude/commands/changelog-review.md, manual_until: 2026-10-05, reason: "push trigger only: a SessionStart sentinel nudges it and a nudge is not a trigger (ORPHAN_DISPOSITIONS, V+1 list)"}
+  - {path: .claude/commands/decide.md, manual_until: 2026-10-05, reason: "LANE-5B4-12's second new organ (the script's own fates line is ruling (a)'s one; this lane's Done-contract also names the command, and leaving it unrecorded reds test_the_fates_cover_every_organ_the_census_names, same shape as the aj-scan skill precedent): on-demand by the operator (R14 -- a structural decision is run through the system on request, not on an automated trigger; ORPHAN_DISPOSITIONS)"}
   - {path: .claude/commands/handoff-verify.md, manual_until: 2026-10-05, reason: "on-demand by the operator (act: seat release); run by /handoff at the cut (ORPHAN_DISPOSITIONS)"}
   - {path: .claude/commands/handoff.md, manual_until: 2026-10-05, reason: "on-demand by the operator (act: seat release) (ORPHAN_DISPOSITIONS)"}
   - {path: .claude/commands/lane-boot.md, manual_until: 2026-10-05, reason: "on-demand by the operator (act: GO); the seat boots one lane by invoking it (ORPHAN_DISPOSITIONS)"}
@@ -111,6 +112,7 @@ fates:
   - {path: scripts/codespace_state.py, manual_until: 2026-10-05, reason: "unwired by directive until intake 102 settles who observes; its adopter is that ratification (ORPHAN_DISPOSITIONS)"}
   - {path: scripts/context_reclamation.py, manual_until: 2026-10-05, reason: "a seat calls it when clearing its own context at a checkpoint; no event can make that call; [#791] owns who initiates"}
   - {path: scripts/cost_usage_telemetry.py, manual_until: 2026-10-05, reason: "keep: imported by provider_router.py and untriggered only because that caller is ([#691] Half B, [#694])"}
+  - {path: scripts/decide_checks.py, manual_until: 2026-10-05, reason: "LANE-5B4-12, ruling (a): the /decide command's eight deterministic checks; invoked on-demand by .claude/commands/decide.md, not event-triggered -- wiring it to a moment is a routing decision the operator owns (ORPHAN_DISPOSITIONS)"}
   - {path: scripts/desired_state_loader.py, manual_until: 2026-10-05, reason: "loaded by name in tests/test_membership_agreement.py as the reference reader; retire only together with that pin"}
   - {path: scripts/dodo.py, manual_until: 2026-10-05, reason: "the moments' own runner (`doit -f scripts/dodo.py moment:<name>`); its callers are the launcher (W3-B) and the Stop hook (W3-D) -- a person or the connection test until they land"}
   - {path: scripts/export_backlog_view.py, manual_until: 2026-10-05, reason: "orphan by design: tests/test_export_backlog_view.py asserts nothing reads it ([#563]); wiring it would red that test"}

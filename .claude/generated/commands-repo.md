@@ -9,6 +9,7 @@
 
 - `/boot-session` — Assemble the v7 BOOT-INVERSION paste — OPERATOR ASKS first, then FUNNEL HEALTH, north-star arcs, the rot/orphan list, open browser asks, PROPOSED NEXT BATCH, and one hand-written RESIDUAL — from live state, in one pass.
 - `/changelog-review` — Operator-invoked review of tool changelogs since last review (claude-code + codex) — fetch, classify per the audit-trio rubric, write a digest, bump the state file. PUSH trigger only; never implements adoptions.
+- `/decide` — Run a structural decision through the system, not through one seat -- research, subagent fan-out, a matrix, a pre-mortem, two independent evaluators, an ADR draft -- and gate every step with scripts/decide_checks.py rather than trusting the prose.
 - `/handoff-verify` — Run the whole live probe gate for a handoff bundle in ONE pass and emit exactly ONE evidence block — the v6 one-round-trip boot (HANDOFF_PROCESS §5)
 - `/handoff` — Generate or complete a handoff per HANDOFF_PROCESS.md v7 — CC-owned residual + thin browser boot
 - `/lane-boot` — Boot ONE batch lane — provision its worktree per the naming enum, seed it, load the frozen contract, and state the V-2 decision budget before any work starts.
