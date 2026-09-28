@@ -26,6 +26,16 @@ THE ELEVEN CHECKS (numbers are the spec's order)
    9 job-not-in-agents                  `claude agents --json` lists no session cwd'd in the lane
   10 working-tree-clean                 the primary's `git status --porcelain` is empty
   11 main-equals-origin-main            local `main` == the remote's `main` (read with ls-remote, never a stale tracking ref)
+  12 no-claim-marker                    OPTIONAL (`--contract`, `lane-claim-marker`): no `to-cc/<contract>.CLAIMED-*`
+                                        marker remains on the transport for the given contract name -- teardown's own
+                                        proof that `claim.py release` ran, checked read-only rather than trusted by
+                                        narration. Runs when `--contract` is given, WITH or WITHOUT `--lane` -- a
+                                        contract's filename stem is not derivable from `--lane` alone (they differ,
+                                        e.g. `lane-claim-marker` vs `LANE-5B4-2-claim-marker`), so a caller checking
+                                        only a claim marker (a dispatcher or integrator order, not a worktree lane)
+                                        passes `--contract` alone and gets check 12 by itself, not the eleven
+                                        lane-worktree checks it has no lane slug to run. `--contract` omitted, the
+                                        other eleven checks are unaffected and this row is not printed at all.
 
 With no slug it runs the husk scan alone: every directory under `.claude/worktrees/` that git does
 not register, and every registration whose directory is gone.
@@ -66,9 +76,17 @@ EXIT_LEFTOVER = 1
 EXIT_USAGE = 2
 
 _SLUG_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
+#: Same shape as `_SLUG_RE`, named separately for the contract argument -- a `--contract` value
+#: is interpolated straight into a glob pattern (`_claim_marker_glob`), so anything outside this
+#: charset (a `*`/`?`/`[` in particular) could widen or narrow the match unexpectedly.
+_CONTRACT_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 _MAX_EVIDENCE = 8
 _ENUM_CAP = 200
 _GIT_TIMEOUT = 60
+#: `scripts/claim.py`'s own marker-name convention, duplicated here (a short literal, not an
+#: import) rather than importing that module -- this file's own posture is a lean, read-only
+#: verifier, and `claim.py` mutates the filesystem by design.
+_CLAIM_MARKER_INFIX = ".CLAIMED-"
 
 
 class ReadOnlyViolation(RuntimeError):
@@ -242,9 +260,36 @@ def _points_at_lane(rec: dict, lane_path: str, branch: str) -> bool:
     return rec.get("worktreeBranch") == branch
 
 
+def _claim_marker_glob(contract: str) -> str:
+    return f"{contract}{_CLAIM_MARKER_INFIX}*"
+
+
+def _check_claim_marker(contract: str, transport_root: str | None) -> tuple[bool, str]:
+    """Check 12, OPTIONAL: read-only proof that no `to-cc/<contract>.CLAIMED-*` marker remains.
+
+    Only reached when the caller passes `--contract` (see `run_checks`); once asked for, this
+    follows the module's own fail-CLOSED rule for anything it cannot read -- an unmounted
+    transport is a FAIL here, not a pass on no evidence, same as checks 1-11 above.
+    """
+    raw = (transport_root or "").strip() or os.environ.get("CLAUDE_PROMPTS_DIR", "").strip()
+    if not raw:
+        return False, "unreadable: CLAUDE_PROMPTS_DIR is not set, and --contract was given"
+    to_cc = Path(raw) / "to-cc"
+    if not to_cc.is_dir():
+        return False, f"unreadable: {to_cc} is not mounted or does not exist"
+    try:
+        found = sorted(p.name for p in to_cc.glob(_claim_marker_glob(contract)))
+    except OSError as exc:
+        return False, f"unreadable: could not list {to_cc}: {exc}"
+    return not found, (f"marker(s) still present: {_shown(found)}" if found
+                       else f"no {_claim_marker_glob(contract)} marker under {to_cc}")
+
+
 def run_checks(repo: Path, lane: str, *, jobs_dir: Path, agents: list[dict] | None,
-               remote: str = "origin", main_branch: str = "main") -> list[Result]:
-    """Run the eleven checks for `lane` against the primary checkout `repo`.
+               remote: str = "origin", main_branch: str = "main", contract: str | None = None,
+               transport_root: str | None = None) -> list[Result]:
+    """Run the eleven checks for `lane` against the primary checkout `repo`, plus the optional
+    twelfth (`contract`) that reads the transport rather than the git repo.
 
     `agents` is the parsed `claude agents --json` list, or None when it could not be read (check 9
     then FAILS rather than passing on no evidence).
@@ -396,6 +441,11 @@ def run_checks(repo: Path, lane: str, *, jobs_dir: Path, agents: list[dict] | No
             add(11, "main-equals-origin-main", ok,
                 f"{main_branch} {local.strip()[:8]} == {remote}/{main_branch} {rem_sha[:8]}" if ok
                 else f"{main_branch} {local.strip()[:8]} != {remote}/{main_branch} {rem_sha[:8] or '(absent)'}")
+
+    # 12 (optional -- only when the caller names the contract; see `_check_claim_marker`)
+    if contract is not None:
+        ok, evidence = _check_claim_marker(contract, transport_root)
+        add(12, "no-claim-marker", ok, evidence)
     return res
 
 
@@ -442,10 +492,17 @@ def main(argv: list[str] | None = None) -> int:
     v.add_argument("--repo", help="repository to check (default: the primary of the current directory)")
     v.add_argument("--jobs-dir", help="claude jobs directory (default: ~/.claude/jobs)")
     v.add_argument("--agents-json", help="read `claude agents --json` output from this file instead of running it")
+    v.add_argument("--contract", help="contract/order file name (no .md) to run the optional check "
+                                       "12 -- no to-cc/<contract>.CLAIMED-* marker remains")
+    v.add_argument("--transport-root", help="transport root for check 12 (default: $CLAUDE_PROMPTS_DIR)")
     args = ap.parse_args(argv)
 
     if args.lane is not None and not _SLUG_RE.fullmatch(args.lane):
         print(f"no_leftovers: refusing lane slug {args.lane!r} — must match {_SLUG_RE.pattern}", file=sys.stderr)
+        return EXIT_USAGE
+    if args.contract is not None and not _CONTRACT_RE.fullmatch(args.contract):
+        print(f"no_leftovers: refusing contract {args.contract!r} — must match {_CONTRACT_RE.pattern}",
+              file=sys.stderr)
         return EXIT_USAGE
     try:
         repo = resolve_primary(Path(args.repo) if args.repo else Path.cwd())
@@ -454,19 +511,29 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_USAGE
 
     if args.lane is None:
+        if args.contract is not None:
+            # `--contract` with no `--lane`: the caller has a claim-marker name, not a worktree
+            # slug (a dispatcher or integrator order, not a lane) -- run check 12 alone rather than
+            # the eleven lane-worktree checks it has no slug to run.
+            ok, evidence = _check_claim_marker(args.contract, args.transport_root)
+            print(f"{'PASS' if ok else 'FAIL'} 12 no-claim-marker  {evidence}")
+            print(f"no-leftovers {args.contract}: "
+                  + ("CLEAN (1/1 check passes)" if ok else "NOT CLEAN (1 of 1 checks fail: no-claim-marker)"))
+            return EXIT_OK if ok else EXIT_LEFTOVER
         n = _report_husks(repo, "FAIL")
         print(f"no-leftovers husk scan of {_worktrees_root(repo)}: "
               + ("CLEAN (no husk)" if n == 0 else f"NOT CLEAN ({n} leftover(s))"))
         return EXIT_OK if n == 0 else EXIT_LEFTOVER
 
     jobs_dir = Path(args.jobs_dir) if args.jobs_dir else Path.home() / ".claude" / "jobs"
-    results = run_checks(repo, args.lane, jobs_dir=jobs_dir, agents=_read_agents(args.agents_json))
+    results = run_checks(repo, args.lane, jobs_dir=jobs_dir, agents=_read_agents(args.agents_json),
+                         contract=args.contract, transport_root=args.transport_root)
     for r in results:
         print(f"{'PASS' if r.passed else 'FAIL'} {r.number:02d} {r.name}  {r.evidence}")
     _report_husks(repo, "NOTE")
     failed = [r for r in results if not r.passed]
     print(f"no-leftovers {args.lane}: "
-          + ("CLEAN (11/11 checks pass)" if not failed
+          + (f"CLEAN ({len(results)}/{len(results)} checks pass)" if not failed
              else f"NOT CLEAN ({len(failed)} of {len(results)} checks fail: {', '.join(r.name for r in failed)})"))
     return EXIT_OK if not failed else EXIT_LEFTOVER
 

@@ -31,6 +31,8 @@ You merge; you do not build, and you do not weaken a check. The batch's common r
 **nobody waits for the operator** above all. No time limit other than the close below.
 
 - **Base:** main `<sha>`. **Transport root:** the `CLAUDE_PROMPTS_DIR` environment variable.
+- **Claim (step 0):** `uv run --locked python scripts/claim.py claim INTEGRATOR-<BATCH>` before
+  binding the seat; refused (exit 3) means another integrator session already holds this order.
 - **Seat:** `uv run --locked python scripts/seat_registry.py bind --role integrator --batch <BATCH>`,
   before the first merge.
 - **Receipt:** `to-browser/SESSION-integrator-<batch-slug>.md`, one line per state change:
@@ -59,8 +61,10 @@ You merge; you do not build, and you do not weaken a check. The batch's common r
 4. **Only when green:** fast-forward `main` in the primary to that commit and push in the same
    step; remove the integration worktree and its branch. The primary's `main` holds no
    unverified merge. On a refusal, remove the integration worktree — `main` was not touched.
-5. **Teardown of the lane:** its job, its worktree, its branch local and on origin; then
-   `no_leftovers.py <slug>`.
+5. **Teardown of the lane:** its job, its worktree, its branch local and on origin, and its claim
+   marker (`claim.py release <lane-contract-name>` — no `--session` needed: at most one marker
+   ever exists for that name, so this releases it whoever claimed it); then `no_leftovers.py verify
+   --lane <slug> --contract <lane-contract-name>` to verify all of it, marker included, is gone.
 6. **Receipt:** the `STATE` line with pickup, handback and push times; the ledger row written.
 
 ## Refusals and repairs

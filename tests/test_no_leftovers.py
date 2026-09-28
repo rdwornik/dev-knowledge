@@ -315,6 +315,51 @@ def test_7_and_11_fail_rather_than_pass_when_there_is_no_origin(hub, jobs):
     assert "origin" in res[7].evidence
 
 
+# --- check 12: no-claim-marker (optional, `--contract`) ---------------------------
+
+CONTRACT = "LANE-t-1-demo"
+
+
+@pytest.fixture
+def transport(tmp_path: Path) -> Path:
+    root = tmp_path / "transport"
+    (root / "to-cc").mkdir(parents=True)
+    return root
+
+
+def test_12_is_absent_when_no_contract_is_given(hub, jobs):
+    assert 12 not in _run(hub, jobs)
+
+
+def test_12_passes_when_no_marker_is_on_the_transport(hub, jobs, transport):
+    res = {r.number: r for r in nl.run_checks(hub, SLUG, jobs_dir=jobs, agents=[],
+                                              contract=CONTRACT, transport_root=str(transport))}
+    assert res[12].passed, res[12].evidence
+
+
+def test_12_fails_while_a_claim_marker_still_exists(hub, jobs, transport):
+    (transport / "to-cc" / f"{CONTRACT}.CLAIMED-11111111").write_text("x\n", encoding="utf-8")
+    res = {r.number: r for r in nl.run_checks(hub, SLUG, jobs_dir=jobs, agents=[],
+                                              contract=CONTRACT, transport_root=str(transport))}
+    assert not res[12].passed
+    assert f"{CONTRACT}.CLAIMED-11111111" in res[12].evidence
+
+
+def test_12_fails_closed_when_the_transport_is_not_mounted(hub, jobs, tmp_path):
+    res = {r.number: r for r in nl.run_checks(hub, SLUG, jobs_dir=jobs, agents=[],
+                                              contract=CONTRACT,
+                                              transport_root=str(tmp_path / "not-mounted"))}
+    assert not res[12].passed
+    assert "unreadable" in res[12].evidence
+
+
+def test_12_does_not_mistake_a_sibling_contracts_marker_for_this_ones(hub, jobs, transport):
+    (transport / "to-cc" / f"{CONTRACT}-2.CLAIMED-11111111").write_text("x\n", encoding="utf-8")
+    res = {r.number: r for r in nl.run_checks(hub, SLUG, jobs_dir=jobs, agents=[],
+                                              contract=CONTRACT, transport_root=str(transport))}
+    assert res[12].passed, res[12].evidence
+
+
 # --- the husk: the leak that is live -----------------------------------------------
 
 def test_find_husks_names_every_unregistered_directory_and_no_registered_one(hub):
@@ -402,6 +447,74 @@ def test_unreadable_agents_file_is_a_failed_check_not_a_crash(hub, jobs, tmp_pat
 def test_a_slug_that_could_leave_the_worktrees_directory_is_refused(hub, jobs, tmp_path, bad):
     argv = _cli(hub, jobs, tmp_path, slug=bad)
     assert nl.main(argv) == 2
+
+
+def test_cli_reports_check_12_clean_when_contract_and_transport_root_are_given(
+        hub, jobs, tmp_path, transport, capsys):
+    argv = _cli(hub, jobs, tmp_path) + ["--contract", CONTRACT, "--transport-root", str(transport)]
+    rc = nl.main(argv)
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert any(line.startswith("PASS") and "no-claim-marker" in line for line in out.splitlines())
+
+
+def test_cli_reports_the_true_check_count_when_lane_and_contract_are_both_clean(
+        hub, jobs, tmp_path, transport, capsys):
+    """`CLEAN (11/11 checks pass)` was hardcoded regardless of whether check 12 also ran --
+    understating the count by one whenever `--lane` and `--contract` are both given and clean."""
+    _add_lane(hub)
+    _tear_down_lane(hub)
+    argv = _cli(hub, jobs, tmp_path) + ["--contract", CONTRACT, "--transport-root", str(transport)]
+    rc = nl.main(argv)
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "CLEAN (12/12 checks pass)" in out
+
+
+def test_cli_reports_check_12_failing_when_a_marker_remains(hub, jobs, tmp_path, transport, capsys):
+    (transport / "to-cc" / f"{CONTRACT}.CLAIMED-11111111").write_text("x\n", encoding="utf-8")
+    argv = _cli(hub, jobs, tmp_path) + ["--contract", CONTRACT, "--transport-root", str(transport)]
+    rc = nl.main(argv)
+    out = capsys.readouterr().out
+    assert rc == 1
+    assert any(line.startswith("FAIL") and "no-claim-marker" in line for line in out.splitlines())
+
+
+def test_cli_contract_alone_with_no_lane_runs_check_12_by_itself(hub, transport, capsys):
+    """The templates' actual call shape: `no_leftovers.py verify --contract <name>` with NO
+    `--lane` at all -- a dispatcher or integrator order has a claim-marker name, not a worktree
+    slug. Confirmed broken in this lane's own high-effort code review: `main()` used to take the
+    lane-less husk-scan branch unconditionally whenever `--lane` was omitted, silently never
+    reaching check 12 -- exactly the command every template documents."""
+    rc = nl.main(["verify", "--repo", str(hub), "--contract", CONTRACT,
+                 "--transport-root", str(transport)])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert any(line.startswith("PASS") and "no-claim-marker" in line for line in out.splitlines())
+
+
+def test_cli_contract_alone_fails_when_a_marker_remains(hub, transport, capsys):
+    (transport / "to-cc" / f"{CONTRACT}.CLAIMED-11111111").write_text("x\n", encoding="utf-8")
+    rc = nl.main(["verify", "--repo", str(hub), "--contract", CONTRACT,
+                 "--transport-root", str(transport)])
+    out = capsys.readouterr().out
+    assert rc == 1
+    assert any(line.startswith("FAIL") and "no-claim-marker" in line for line in out.splitlines())
+
+
+def test_cli_contract_alone_does_not_run_the_husk_scan_report(hub, transport, capsys):
+    (hub / ".claude" / "worktrees" / "lane-old-husk").mkdir(parents=True)
+    rc = nl.main(["verify", "--repo", str(hub), "--contract", CONTRACT,
+                 "--transport-root", str(transport)])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "lane-old-husk" not in out
+
+
+@pytest.mark.parametrize("bad", ["../escape", "a/b", "a\\b", "has space", "has:colon", ""])
+def test_a_contract_that_could_widen_the_glob_or_traverse_is_refused(hub, bad):
+    rc = nl.main(["verify", "--repo", str(hub), "--contract", bad])
+    assert rc == 2
 
 
 def test_resolve_primary_from_inside_a_linked_worktree_is_the_primary(hub):

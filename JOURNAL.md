@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-09-27 (i) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): the claim marker is code -- an atomic claim refuses a second session at step 0, and teardown proves the marker is gone
+
+**Anchors:** `2431e58f`, `51b2ec3c`, `5259e069`, `64644416` -- `worktree-lane-claim-marker` (ordered and served `claude-sonnet-5`), RE-ADMITTED, repair 1 after the s7 refusal, stacked `--no-ff` on (h) in integration chain u3.
+
+**Did:** `scripts/claim.py` gives `claim`/`release`/`inspect` a per-name sentinel plus an exclusive-create marker, so check-then-create is one atomic step (exit 3 on a second claim). `ecosystem/harness.yaml` records its fate (called by hand from the templates until the teardown organ passes `--contract`), which the s7 refusal found missing. The four order/contract templates claim at step 0 and release at teardown. `no_leftovers.py verify --contract <name>` gains read-only check 12, which proves the marker is gone, with or without `--lane`. A barrier-synchronised two-process race has exactly one winner in each of 5 iterations. Codex terra 0/3/0/0, all fixed. The lane's own later review then found that `release` defaulted to the caller's session and that `--contract` alone skipped check 12; both are fixed, each with a test of the templates' literal call shape.
+
+**Result:** a double-pasted order stops at step 0 instead of two sessions overwriting each other. Round trip against the live transport: claim, refuse, release, verify CLEAN, with no scratch marker left.
+
+**Changes:** `scripts/claim.py`, `scripts/no_leftovers.py`, `tests/test_claim.py`, `tests/test_claim_marker_templates.py`, `tests/test_no_leftovers.py`, four `templates/*` step-0/teardown lines, one Codex audit; regenerated `docs/audits/README.md`, `ecosystem/doc-counts.md`.
+
+**Next:** `harness.yaml`'s teardown organ does not pass `--contract`, so automated teardown skips check 12. The order templates' handover section has no release-before-claim step, so a fresh seat would refuse against its predecessor. `gen_lane_contract.py` does not read the template. Nothing couples the two marker-infix literals. All four are carried to the digest.
+
 ### 2026-09-27 (h) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): the fast-forward and anchor gates run on the server for every push -- `--no-verify` no longer erases them
 
 **Anchors:** `ef081303`, `12aecfeb`, `14a5d131`, `4c4da05f` -- `worktree-lane-server-governance` (ordered and served `claude-sonnet-5`), repair 1 after the s3 refusal, stacked `--no-ff` on (g) in integration chain u2.

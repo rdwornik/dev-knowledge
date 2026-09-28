@@ -58,6 +58,12 @@ this line by hand only when the launcher refuses, recording that it did.
 <serialize-group: <label> — only when this lane does not run concurrently with another lane
 sharing the label, and neither declares the other a dependency>
 
+**Claim (step 0):** `uv run --locked python scripts/claim.py claim LANE-<id>-<slug>` before any
+build; refused (exit 3, another session already holds this contract) means stop at once and write
+nothing else. A resume/repair session claims `LANE-<id>-<slug>-resume-<n>` / `-repair-<n>` instead.
+Teardown — the integrator's, not this lane's own — releases it (`claim.py release
+LANE-<id>-<slug>`), verified absent by `no_leftovers.py verify --contract LANE-<id>-<slug>`.
+
 ## Worktree pairing
 
 slug `<slug>` -> branch `worktree-<slug>` -> contract `LANE-<id>-<slug>.md`
