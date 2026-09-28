@@ -1,0 +1,50 @@
+{
+  "schema": "handoff-receipt/1",
+  "generator": "scripts/gen_handoff.py",
+  "slug": "2026-09-28-dev-knowledge-architect",
+  "mode": "architect",
+  "date": "2026-09-28",
+  "cut": "real",
+  "boot_cost": {
+    "metric": "turns to first correct dispatch",
+    "value": null,
+    "status": "unmeasured — no tally recorded at this cut — the browser seat keeps no transcript the repo can read (HANDOFF_PROCESS §5), so the count is the operator's; pass --boot-turns N --boot-dispatch to-cc/<order>.md when cutting",
+    "dispatch": null,
+    "measures": "the seat that booted from the bundle this cut supersedes",
+    "source": null
+  },
+  "paste": {
+    "bytes": 19540,
+    "ceiling_bytes": 20000,
+    "ceiling_source": "scripts/assemble_paste.py::PASTE_BYTE_CEILING",
+    "status": "assembled"
+  },
+  "manifest": {
+    "cut_id": "5106631cf218",
+    "source_sha": "c758fe2f847238c7f9bc88797ab13ac106453795",
+    "generation_time": "2026-09-28T22:49:57+00:00",
+    "files": {
+      "DECISION_LEDGER.md": "14f4dcc00b6468d4c4a37ea3f9c1c83b30ea08726cffb615e54d87a72c6ecdef",
+      "FUNNEL_HEALTH.md": "ac0cee1f5a235bab754b5e25870c4902a14ad1539104be9e22058863cae8ef9b",
+      "HANDOFF_BOOT.md": "cb13a56cfcc0fc2bcbf20dfd28fca77e59cc687d182e9e4beaceab3c8b0e8371",
+      "PASTE_THIS.md": "2188d993c7e71033aba65b13a4d28d6b61bf39cbab6b19398362df81bae44bb7",
+      "PROBES.md": "9d2bc056f563cfefe0c07574fa338f8cb4ed30bf204a465a2ca85a97852daafb",
+      "RESIDUAL.md": "a9ed56babce5e4c78ca3beea2daa88e9abd54b2d584fa1860336acfa0d580fe9",
+      "SEAT-BOOT-dispatcher.md": "92b9bbd0e72a09575161abdf65ae51d77820292a3fffb4dcb9980cc6d028f90a",
+      "SEAT-BOOT-filings.md": "3e7b1c654a7779c3f313082d369467729b7bd5b2db230a9350002200e9e1caef",
+      "SEAT-BOOT-handoff.md": "d1b4fe547f60491f2192bad3dcf709c99fc557fb4995e820f928bd5d967a55e9",
+      "SEAT-BOOT-integrator.md": "2d2baafadb1e22c388ed021aa32525f62df7f78dae0c842c7e09e951da8cf664",
+      "SEAT-BOOT-lane.md": "f9ece5bc2921e63942f4c2ae7ec454907b245a48aa07bf3928a064dfd910bfca",
+      "SUPPLEMENT.md": "70cf21f024a478a91248b81b161544d01fe0b6d9c56c038a0f92a5f7f770c772"
+    },
+    "row_freshness": {
+      "CI": "LIVE-DRIFTS",
+      "Batches": "LIVE-DRIFTS",
+      "Seats": "LIVE-DRIFTS",
+      "Substrates": "SLOW",
+      "Transport": "SLOW",
+      "Rulings": "SLOW",
+      "Capabilities": "SLOW"
+    }
+  }
+}
