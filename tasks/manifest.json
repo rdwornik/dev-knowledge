@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "8bffb4c23d4897793677ca17800566f4b7e6f0cb06010b6646180d73619f1f3f",
+  "generated_sha256": "0754d011812169abf9ac5e8f0d76d8376bef7f570d6d19ab46640b2127fe1efb",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2646,6 +2646,98 @@
     {
       "task": 1103,
       "file": "1103-conductor-yml-does-not-yet-exclude-operator-host-from.md"
+    },
+    {
+      "task": 1104,
+      "file": "1104-dispose-adr-127-carried-to-wave5b-n5-planning.md"
+    },
+    {
+      "task": 1105,
+      "file": "1105-dispose-amend-batch-wave5b-n2-queue-2026-09-25-carried-to-wave5b-n5-planning.md"
+    },
+    {
+      "task": 1106,
+      "file": "1106-dispose-amend-batch-wave5b-n2-queue2-2026-09-25-carried-to-wave5b-n5-planning.md"
+    },
+    {
+      "task": 1107,
+      "file": "1107-dispose-amend-batch-wave5b-n2-queue3-2026-09-25-carried-to-wave5b-n5-planning.md"
+    },
+    {
+      "task": 1108,
+      "file": "1108-dispose-amend-batch-wave5b-n2-queue4-2026-09-25-carried-to-wave5b-n5-planning.md"
+    },
+    {
+      "task": 1109,
+      "file": "1109-dispose-amend-batch-wave5b-n2-queue6-2026-09-25-carried-to-wave5b-n5-planning.md"
+    },
+    {
+      "task": 1110,
+      "file": "1110-dispose-amend-batch-wave5b-n4-handoff-min-2026-09-27-carried-to-wave5b-n5-planning.md"
+    },
+    {
+      "task": 1111,
+      "file": "1111-dispose-amend-batch-wave5b-n4-redispatch-2026-09-28-carried-to-wave5b-n5-planning.md"
+    },
+    {
+      "task": 1112,
+      "file": "1112-dispose-amend-batch-night-2026-09-17-carried-to-wave5b-n5-planning.md"
+    },
+    {
+      "task": 1113,
+      "file": "1113-dispose-amend-dispatch-unblock-2026-09-17-carried-to-wave5b-n5-planning.md"
+    },
+    {
+      "task": 1114,
+      "file": "1114-dispose-amend-handoff-boot-integrator-section-2026-09-20-carried-to-wave5b-n5-planning.md"
+    },
+    {
+      "task": 1115,
+      "file": "1115-dispose-amend-model-routing-and-scope-2026-09-17-carried-to-wave5b-n5-planning.md"
+    },
+    {
+      "task": 1116,
+      "file": "1116-dispose-amend-night-order-consolidated-2026-09-17-carried-to-wave5b-n5-planning.md"
+    },
+    {
+      "task": 1117,
+      "file": "1117-dispose-amend-night-salvage-2026-09-17-carried-to-wave5b-n5-planning.md"
+    },
+    {
+      "task": 1118,
+      "file": "1118-dispose-amend-organ-use-2026-09-17-carried-to-wave5b-n5-planning.md"
+    },
+    {
+      "task": 1119,
+      "file": "1119-dispose-declare-census-verdicts-2026-09-18-carried-to-wave5b-n5-planning.md"
+    },
+    {
+      "task": 1120,
+      "file": "1120-dispose-declare-lane-handback-contract-2026-09-18-carried-to-wave5b-n5-planning.md"
+    },
+    {
+      "task": 1121,
+      "file": "1121-dispose-declare-operator-feedback-2026-09-24-carried-to-wave5b-n5-planning.md"
+    },
+    {
+      "task": 1122,
+      "file": "1122-dispose-declare-seat-knowledge-2026-09-24-carried-to-wave5b-n5-planning.md"
+    },
+    {
+      "task": 1123,
+      "file": "1123-handoff-part-b-stamp-the-cut-manifest-after-the-required-fills.md"
+    },
+    {
+      "task": 1124,
+      "file": "1124-handoff-part-b-bd-seats-compares-seat-identity-and-liveness-not-the-status-string.md"
+    },
+    {
+      "task": 1125,
+      "file": "1125-n5-absorb-or-retire-the-claude-conformance-digest-branches.md"
+    },
+    {
+      "task": 1126,
+      "file": "1126-n5-archive-tags-join-r25-s-allowed-set-with-an-owner-and-an-expiry.md"
     },
     {
       "prose": ""
