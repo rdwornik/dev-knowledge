@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-09-28 (a) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): the ratified CI/OS decision lives where gates read it, and a consumer with no declared platform matrix fails its audit
+
+**Anchors:** `5abf6106`, `d800676f` -- `worktree-lane-portability-requirement` (ordered and served `claude-sonnet-5`), repair 1 after the t4 refusal, stacked `--no-ff` on 2026-09-27 (i) in integration chain u4.
+
+**Did:** `protocols/STANDING_RULINGS.md` gains §AN, carrying RATIFICATION-2026-09-25 R1-R17 with provenance, a `landed` predicate and an expiry per bullet. `docs/decisions/ADR-127-ci-os-verification.md` is Accepted, cites R11, and is indexed, with `.claude/generated/recent-adrs.md` regenerated. `scripts/audit_checks/check_platform_matrix.py` is registered in `ALL_CHECKS` (commit tier): a repo whose `.github/workflows/*.yml` declares no `strategy.matrix.os` FAILs, and the hub passes on `conductor.yml`. `templates/consumer-ci-matrix.yml` ships through the deploy manifest. Its fate line is in `harness.yaml`, and the `doc-code-edge` exempt row follows the `funnel_lifecycle` precedent. 13 new tests; the pinned counts move 56->57 checks (all five pins, the third added by the repair) and 99->100 ADR status fields. Codex terra 0/1/0/0, the High recorded (ruling (e)).
+
+**Result:** proposal row L9 lands -- the D7 consumer floor is enforced by the audit rather than stated on the transport.
+
+**Changes:** `protocols/STANDING_RULINGS.md`, `docs/decisions/ADR-127-ci-os-verification.md` (new), `docs/decisions/README.md`, `.claude/generated/recent-adrs.md`, `scripts/audit_checks/check_platform_matrix.py` (new), `scripts/audit_checks/registry.py`, `scripts/audit.py`, `templates/consumer-ci-matrix.yml` (new), `deploy/manifest-v1.5.0.yaml`, `ecosystem/harness.yaml`, `ecosystem/doc-code-edge.yaml`, `tests/test_check_platform_matrix.py` (new), `tests/test_audit.py`, `tests/test_doc_code_edge.py`, `tests/test_validate_adr_status.py`, `tests/test_writer_integrity.py`; regenerated `ecosystem/doc-counts.md`; `logs/MERGE-RECEIPTS.jsonl` gains the closed receipts of 2026-09-27 (g), (h) and (i).
+
+**Next:** the check passes a declared matrix whose job does not run on `matrix.os` (the Codex High, ROWS-OWED); the Codex record stayed in the lane's job tmp, not in `docs/audits/`.
+
 ### 2026-09-27 (i) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): the claim marker is code -- an atomic claim refuses a second session at step 0, and teardown proves the marker is gone
 
 **Anchors:** `2431e58f`, `51b2ec3c`, `5259e069`, `64644416` -- `worktree-lane-claim-marker` (ordered and served `claude-sonnet-5`), RE-ADMITTED, repair 1 after the s7 refusal, stacked `--no-ff` on (h) in integration chain u3.
