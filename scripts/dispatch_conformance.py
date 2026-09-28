@@ -73,7 +73,7 @@ import shutil
 import subprocess
 import sys
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Optional
 
 logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
@@ -172,7 +172,14 @@ def head_token(line: str) -> str:
         head = next(iter(lexer), "")
     except ValueError:                               # an unterminated quote — the reader throws
         return ""                                    # on it too, so "no admissible head" is true
-    return Path(head.strip('"\'')).stem.lower()
+    # PORTABILITY (T2, 2026-09-26): the head is a WINDOWS path always -- the reader this mirrors
+    # (`Assert-ClaudeCommand`) is PowerShell, and the dispatch command lines it judges are
+    # Windows command lines regardless of which OS THIS process happens to run on. The native
+    # `Path` used to be used here; on a Linux runner `Path` is `PosixPath`, which does not treat
+    # `\` as a separator, so `C:\Program Files\claude.exe` parsed as ONE segment and `.stem`
+    # returned `c:\program files\claude` instead of `claude` -- silently wrong, not a crash.
+    # `PureWindowsPath` parses the same way on every host, matching the reader it mirrors.
+    return PureWindowsPath(head.strip('"\'')).stem.lower()
 
 
 def fence_line(contract_text: str) -> str:

@@ -184,10 +184,21 @@ def git_provenance(repo_root: Path) -> dict:
 # --- LSP client (lifted VERBATIM from bench.py; argv parametrized, spawn fail -> raise) -
 
 def uri(path: Path) -> str:
-    """Windows file:// URI (matches the benchmark host; e.g. file:///C%3A/Users/...)."""
+    """`file://` URI for an absolute path -- Windows drive-letter (matches the benchmark host,
+    e.g. file:///C%3A/Users/...) or POSIX (file:///home/runner/...), whichever `path` is.
+
+    PORTABILITY (T2, 2026-09-26): the drive-letter branch used to run unconditionally, so a
+    POSIX absolute path like `/home/runner/work/dev-knowledge/dev-knowledge/scripts/audit.py`
+    took its leading `/` as a one-character "drive" and mangled the rest
+    (`file:///%2F%3Ahome/runner/...`) -- silently wrong, not a crash, so it surfaced only as an
+    LSP location that never matched anything. A Windows path always has `:` at index 1
+    (`C:/...`); a POSIX absolute path never does, and already starts with `/`.
+    """
     s = str(path).replace("\\", "/")
-    drive, rest = s[0], s[1:]
-    return "file:///" + quote(drive) + "%3A" + quote(rest[1:], safe="/")
+    if len(s) >= 2 and s[1] == ":":
+        drive, rest = s[0], s[1:]
+        return "file:///" + quote(drive) + "%3A" + quote(rest[1:], safe="/")
+    return "file://" + quote(s, safe="/")
 
 
 class LSP:

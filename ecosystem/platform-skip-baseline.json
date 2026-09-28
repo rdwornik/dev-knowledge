@@ -1,0 +1,17 @@
+{
+  "_": "Committed baseline for the platform-skip ratchet (row L4, D7 hub half). Regenerate: python scripts/platform_skip_ratchet.py --write-baseline. The class and why proof_layer.py cannot carry it: scripts/platform_skip_ratchet.py (module docstring).",
+  "detector_id": "platform-skip-ratchet/v1",
+  "measured_at": "2026-09-27T18:45:24Z",
+  "measured_at_sha": "316d32052dd4d43c1ddd08ed0cff263c05c7e907",
+  "site_count": 7,
+  "provenance": "LANE-5B4-7-portability-ratchet arm-time measurement, tip 316d3205",
+  "sites": [
+    "test_codespace_admission.py::test_present_but_not_executable_is_treated_as_absent:skipif",
+    "test_dispatch_launch.py::test_the_shim_keeps_dry_run_and_run:skipif",
+    "test_dispatch_launch.py::test_the_shim_needs_no_cap_and_passes_only_launch_and_the_contract:skipif",
+    "test_dispatch_launch.py::test_the_shim_passes_a_cap_through_only_when_given_and_returns_launchs_exit_code:skipif",
+    "test_dispatch_launch.py::test_the_shims_help_switch_prints_dispatchs_own_help:skipif",
+    "test_dispatch_py.py::test_an_unmounted_prompts_authority_is_a_different_refusal_from_a_missing_file:skipif",
+    "test_dispatch_shim.py::<module>:skipif"
+  ]
+}

@@ -115,6 +115,23 @@ def test_every_envelope_carries_provenance(status):
     assert "git_rev" in env["provenance"]
 
 
+# --- uri(): Windows drive-letter AND POSIX absolute paths (T2, 2026-09-26) --------------
+
+def test_uri_windows_drive_letter_path():
+    assert oracle.uri(Path("C:/Users/x/audit.py")) == "file:///C%3A/Users/x/audit.py"
+
+
+def test_uri_posix_absolute_path_is_not_mangled_as_a_one_letter_drive():
+    """On a Linux CI runner the repo checkout sits under /home/runner/work/..., which has no
+    drive letter. The old unconditional drive-letter branch took the leading "/" as the drive
+    and mangled the rest into "%2F%3Ahome/runner/..." -- this is the fixed shape."""
+    posix_path = "/home/runner/work/dev-knowledge/dev-knowledge/scripts/audit.py"
+    got = oracle.uri(Path(posix_path))
+    assert got == "file:///home/runner/work/dev-knowledge/dev-knowledge/scripts/audit.py"
+    assert "%3A" not in got
+    assert "%2F%3A" not in got
+
+
 # --- declaration exclusion -------------------------------------------------------------
 
 def test_extract_dependents_excludes_declaration():

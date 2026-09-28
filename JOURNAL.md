@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-09-28 (d) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): eight Linux-only harness defects are closed, and a platform-conditioned test skip can only fall
+
+**Anchors:** `ad07a160`, `1b92545c`, `5637de4c`, `32f0132b`, `caf0bd00` -- `worktree-lane-portability-ratchet` (ordered and served `claude-sonnet-5`), repair 1 after the 2026-09-27 refusal, stacked `--no-ff` on 2026-09-28 (c) in integration chain v3 (R23: after 17b and 6b).
+
+**Did:** seven path and inode defects that failed only on Linux are fixed in `fleet_health.py`, `reverse_dep_oracle.py`, `offload_admission.py` and `dispatch_conformance.py`, and the repair adds the eighth in `preflight_contract.py`: the off-repo regex's POSIX-root branch now accepts `\` as well as `/`, matching the normalisation `_expand_off_repo` already applies. `scripts/platform_skip_ratchet.py` counts every `sys.platform`/`os.name`-conditioned skip in `tests/` against `ecosystem/platform-skip-baseline.json` (7 live sites) and refuses growth, proven RED-first by 26 tests; its fate line is in `harness.yaml`. The ninth id of row L4 closes as PREMISE-FAILED: six per-candidate lines with CI evidence show that none of the six candidates is a Linux-only red (R14/R17). REGISTRY-SHRINK: 8 ids. Codex terra caught a Critical in the first attempt (fixed, `5637de4c`); the repair's review is 0/1/0/0, and the High is recorded (ruling (e)).
+
+**Result:** proposal row L4 lands -- the harness's own Linux reds shrink by eight, and the platform-skip count is a ratchet rather than a habit.
+
+**Changes:** `scripts/platform_skip_ratchet.py` (new), `ecosystem/platform-skip-baseline.json` (new), `ecosystem/harness.yaml`, `scripts/fleet_health.py`, `scripts/reverse_dep_oracle.py`, `scripts/offload_admission.py`, `scripts/dispatch_conformance.py`, `scripts/preflight_contract.py`, `tests/test_platform_skip_ratchet.py` (new), `tests/test_offload_admission.py`, `tests/test_reverse_dep_oracle.py`, `tests/test_gen_handoff_preflight.py`, `docs/audits/2026-09-27-codex-lane-portability-ratchet.md` (new), `docs/audits/2026-09-28-codex-lane-portability-ratchet-repair-1.md` (new); regenerated `docs/audits/README.md`, `ecosystem/doc-counts.md`; `ecosystem/harness.yaml` resolved as a union with claim-marker's fates line.
+
+**Next:** a single commit can add a platform skip and rebase the baseline to admit it (the Codex High, ROWS-OWED); the known-reds registry still carries the eight shrunk ids until its owner removes them.
+
 ### 2026-09-28 (c) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): the landing probe's record is true -- three D5 cases measured live, and its Codex record now reviews the lane's own diff
 
 **Anchors:** `bf504755`, `6736dad1`, `9b80f0e5` -- `worktree-lane-landing-probe-2` (R23 row 6b, re-dispatched from the kept branch `worktree-lane-landing-probe` @ `6736dad1`; ordered and served `claude-sonnet-5`), stacked `--no-ff` on 2026-09-28 (b) in integration chain v2.
