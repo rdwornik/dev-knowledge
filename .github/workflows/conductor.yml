@@ -267,6 +267,139 @@ jobs:
           git diff --cached --diff-filter=A --no-renames --name-only
           uv run --locked python scripts/validate_hermetization.py
 
+  spine:
+    # LANE-5B4-8 (row L5, D4): the server-side equivalent of the local pre-push PREVENT gate
+    # (scripts/block_ff_push.py, core-invariant #5) -- so a `git push --no-verify` no longer
+    # erases it without a trace. REUSES the existing organ verbatim (never a copy), fed the
+    # exact stdin shape a real `git push` supplies: `<local_ref> <local_sha> <remote_ref>
+    # <remote_sha>`. This job and the local hook read one script, so they can never disagree
+    # about what a violation IS.
+    #
+    # NO `continue-on-error` -- unlike the report-only legs elsewhere in this file, a seeded
+    # FF / direct commit onto main's first-parent spine must turn THIS JOB red (row L5's
+    # Done-when, verbatim: "...seeded FF onto the spine...turn the job red"). block_ff_push.py
+    # itself scopes to pushes whose remote_ref is its own PROTECTED_REF (refs/heads/main), so
+    # a `worktree-**` / `epic/**` push supplies a non-matching ref pair and the organ returns 0
+    # -- the same no-op the local hook gives on those pushes, not a widened check.
+    #
+    # ARMING is not this job's act: `lane-arm-ci` (row L6) adds the `spine` context to
+    # deploy/conductor-required-checks.ruleset.json once L0-L5 have merged and the landing
+    # probe has picked a path (ruling k). This job only has to exist, name the real organ, and
+    # be provably red on the seeded cases -- tests/test_conductor_governance_jobs.py.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0     # the organ's own range resolver walks the pushed history
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.11.19"
+      - name: Sync the locked environment
+        run: uv sync --locked
+      - name: block_ff_push.py over this push's range (core-invariant #5, server-side)
+        id: run
+        run: |
+          set +e
+          if [ "${{ github.event_name }}" != "push" ]; then
+            echo "::notice::not a push event (pull_request/schedule/dispatch) -- spine check skipped"
+            echo "exit=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Direct redirect, never a pipe into this script: a `... | uv run ... | tee` chain
+          # makes the naive `$?`/`PIPESTATUS[0]` read the WRONG command's exit code (echo's,
+          # always 0) -- exactly the shape that silently defeats a gate. `rc=$?` right after a
+          # two-stage pipe still reads bash's LAST command, which here is `uv run` itself.
+          printf '%s\n' "${{ github.ref }} ${{ github.sha }} ${{ github.ref }} ${{ github.event.before }}" \
+            | uv run --locked python scripts/block_ff_push.py > spine.out 2>&1
+          rc=$?
+          cat spine.out
+          echo "exit=$rc" >> "$GITHUB_OUTPUT"
+      - name: Write the record
+        if: always()
+        run: |
+          {
+            echo "## spine (core-invariant #5, server-side) — \`${{ github.sha }}\`"
+            echo
+            echo '```'
+            cat spine.out 2>/dev/null || echo "no output (skipped -- see the step above)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: spine-${{ github.sha }}
+          path: spine.out
+          retention-days: 90
+          if-no-files-found: warn
+      - name: Fail the job on block_ff_push.py's own verdict
+        run: exit ${{ steps.run.outputs.exit }}
+
+  anchor:
+    # LANE-5B4-8 (row L5, D4): the server-side equivalent of the ADR-85 HARD leg
+    # (scripts/block_unanchored_push.py) -- the second of this lane's two governance gates.
+    # report-only-wall.yml already runs this same organ, advisory only, as a STEP inside its
+    # `record` job; this is the identical organ and stdin shape, promoted to its own JOB with
+    # a real (gating) exit -- the whole point of row L5: the same check now has a server-side
+    # leg `--no-verify` cannot erase. NO `continue-on-error`, for the same reason as `spine`.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0     # the organ reads JOURNAL.md at the pushed tip and walks the
+                             # first-parent spine of the range -- both need full history
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.11.19"
+      - name: Sync the locked environment
+        run: uv sync --locked
+      - name: block_unanchored_push.py over this push's range (ADR-85 §A5, server-side)
+        id: run
+        run: |
+          set +e
+          if [ "${{ github.event_name }}" != "push" ]; then
+            echo "::notice::not a push event (pull_request/schedule/dispatch) -- anchor check skipped"
+            echo "exit=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # NO shell-level "unresolvable range -> skip" guard here (terra CRITICAL,
+          # codex review docs/audits/2026-09-27-codex-lane-server-governance.md): a
+          # force-push whose prior tip this checkout cannot see would then report a clean
+          # exit 0, defeating the one thing this job exists to be resistant to. The organ
+          # itself already fails CLOSED on exactly this input -- journal_anchor._git
+          # RAISES AnchorError on any git failure (deliberately not fail-soft, "an unknown
+          # anchoring state must never render as anchored"), and block_unanchored_push's
+          # outer handler turns that into exit 2 (refuse). An all-zero/empty remote sha
+          # (legitimate branch creation) is ALSO handled by the organ itself -- its range
+          # resolver reads that as "scan the full local history", not a skip. So every
+          # case here is passed straight through, exactly as the `spine` job already does
+          # for its own organ.
+          printf '%s\n' "${{ github.ref }} ${{ github.sha }} ${{ github.ref }} ${{ github.event.before }}" \
+            | uv run --locked python scripts/block_unanchored_push.py > anchor.out 2>&1
+          rc=$?
+          cat anchor.out
+          echo "exit=$rc" >> "$GITHUB_OUTPUT"
+      - name: Write the record
+        if: always()
+        run: |
+          {
+            echo "## anchor (ADR-85 §A5, server-side) — \`${{ github.sha }}\`"
+            echo
+            echo '```'
+            cat anchor.out 2>/dev/null || echo "no output (skipped -- see the step above)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: anchor-${{ github.sha }}
+          path: anchor.out
+          retention-days: 90
+          if-no-files-found: warn
+      - name: Fail the job on block_unanchored_push.py's own verdict
+        run: exit ${{ steps.run.outputs.exit }}
+
   commit-gate:
     # THE LOCAL COMMIT GATE, MOVED HERE 2026-09-17 (operator ruling, batch AB close). Every hook
     # in .pre-commit-config.yaml at `stages: [manual]` runs here over the pushed range; the

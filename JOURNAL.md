@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-09-27 (h) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): the fast-forward and anchor gates run on the server for every push -- `--no-verify` no longer erases them
+
+**Anchors:** `ef081303`, `12aecfeb`, `14a5d131`, `4c4da05f` -- `worktree-lane-server-governance` (ordered and served `claude-sonnet-5`), repair 1 after the s3 refusal, stacked `--no-ff` on (g) in integration chain u2.
+
+**Did:** `.github/workflows/conductor.yml` gains two jobs, `spine` and `anchor`, that feed the push's `<ref> <sha> <ref> <before>` line to the existing organs `scripts/block_ff_push.py` and `scripts/block_unanchored_push.py` -- no copy of either. `tests/test_conductor_governance_jobs.py` (14 tests) seeds a fast-forward onto `main` and an unanchored `--no-ff` merge in throwaway repos and shows each organ refuse (exit 1), the sanctioned shapes pass, and a lane-branch push is a no-op. Codex terra's first pass found a Critical -- the `anchor` step's shell guard skipped, rather than refused, a range whose prior tip the checkout cannot see; the guard is gone and the organ's fail-closed path now answers (exit 2), pinned by two tests. Second pass 0/0/0/0. The repair resolves the real Git-for-Windows `bash` (a bare `bash` on `windows-latest` is the System32 WSL stub) instead of adding a skip, so the file's proof_layer WARNs fall from 10 to 8.
+
+**Result:** proposal row L5 lands -- the two hard pre-push gates also run server-side, where a local bypass cannot reach them. Advisory until `lane-arm-ci` makes them required checks.
+
+**Changes:** `.github/workflows/conductor.yml` (jobs `spine`, `anchor`), `tests/test_conductor_governance_jobs.py`, one Codex audit; regenerated `docs/audits/README.md`, `ecosystem/doc-counts.md`.
+
+**Next:** ROWS-OWED -- `codex-review.ps1`'s default diff range reads the pinned local `main`, so a lane that does not pass `-DiffRange origin/main..HEAD` reviews another lane's merged code.
+
 ### 2026-09-27 (g) - CC (Opus 5.5, INTEGRATOR WAVE5B-N4): Codespace lanes are created, run, harvested and deleted from Python on any OS, and a codespace cannot be deleted before its evidence is harvested and verified
 
 **Anchors:** `2cb47aee`, `ae7faaf1` -- `worktree-lane-dispatch-port-hub` (ordered and served `claude-sonnet-5`), RE-ADMITTED, first handback, stacked `--no-ff` on (f) in integration chain u1 (R22 priority 2; lane 17 is FAILED).
