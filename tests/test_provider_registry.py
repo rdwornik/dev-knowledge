@@ -243,7 +243,12 @@ def tree(tmp_path):
                 # verdict cannot silently leave this fixture behind.
                 "protocols/AI_COUNCIL_PROCESS.md",
                 *sorted({str(r["evidence"]) for r in preg.role_admissions().values()
-                         if r.get("evidence")})):
+                         if r.get("evidence")}
+                        # The dispatcher pin's own evidence (R22) — derived the same way, so a
+                        # future re-pin cannot silently leave this fixture behind either.
+                        | ({str((preg.load_registry().get("dispatcher") or {})["evidence"])}
+                           if (preg.load_registry().get("dispatcher") or {}).get("evidence")
+                           else set()))):
         dest = root / rel
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(_REPO_ROOT / rel, dest)
@@ -503,3 +508,27 @@ def test_a_verdict_citing_a_missing_artifact_is_caught(tree):
         (tree / rel).unlink()
     findings = cpr.run(tree)
     assert any(f.startswith("role_admission ") for f in findings), findings
+
+
+@pytest.mark.parametrize("target", [".", "docs", "docs/audits"])
+def test_dispatcher_evidence_naming_a_directory_is_caught(tree, monkeypatch, target):
+    """Same class of gap Codex terra found in `check_role_admission_evidence` round 2
+    (2026-08-23), re-fired against `check_dispatcher_evidence` (Codex terra HIGH,
+    `lane-ratified-unbuilt`, 2026-09-29): a directory resolves in-tree and exists, while
+    citing no measurement at all.
+    """
+    (tree / "docs" / "audits").mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(cpr._preg, "load_registry", lambda *a, **k: {
+        "dispatcher": {"provider": "anthropic", "model": "claude-sonnet-5",
+                        "decided_by": "operator", "decided_on": "2026-09-27",
+                        "evidence": target},
+    })
+    findings = cpr.check_dispatcher_evidence(tree)
+    assert any("is not a file" in f for f in findings), findings
+
+
+def test_a_dispatcher_evidence_citing_a_missing_artifact_is_caught(tree):
+    rel = preg.load_registry()["dispatcher"]["evidence"]
+    (tree / rel).unlink()
+    findings = cpr.run(tree)
+    assert any(f.startswith("dispatcher:") for f in findings), findings

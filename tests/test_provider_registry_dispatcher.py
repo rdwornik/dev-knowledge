@@ -85,6 +85,27 @@ def test_a_dispatcher_pin_naming_an_undeclared_provider_is_refused():
         _schema().ProviderRegistry.model_validate(data)
 
 
+def test_a_dispatcher_pin_naming_an_undeclared_model_is_refused():
+    """A valid provider with a model id that names no `models:` row at all — the branch
+    `test_a_dispatcher_pin_naming_a_model_of_a_different_provider_is_refused` does not reach,
+    since that test's model IS declared, just under a different provider (Codex terra HIGH,
+    this lane, 2026-09-29: removing the undeclared-model check would still leave this module
+    green without a fixture like this one).
+    """
+    from scripts import provider_registry as preg
+
+    data = copy.deepcopy(preg.load_registry())
+    data["dispatcher"] = {
+        "provider": "anthropic",
+        "model": "claude-sonnet-99-does-not-exist",
+        "decided_by": "operator",
+        "decided_on": "2026-09-25",
+        "evidence": "protocols/STANDING_RULINGS.md",
+    }
+    with pytest.raises(pydantic.ValidationError):
+        _schema().ProviderRegistry.model_validate(data)
+
+
 def test_a_dispatcher_pin_naming_a_model_of_a_different_provider_is_refused():
     from scripts import provider_registry as preg
 
