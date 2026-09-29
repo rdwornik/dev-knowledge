@@ -98,6 +98,20 @@ def _emit_attrs(mod, tmp_path, **kwargs) -> dict:
     return json.loads(attrs)
 
 
+def _emit_row(mod, tmp_path, **kwargs) -> dict:
+    """Like `_emit_attrs`, but returns every DENORMALISED column too -- the CRITICAL fix below
+    (repair 1) needs the raw `gen_ai_system` / `operation_name` / `request_model` /
+    `response_model` columns, not the `attributes_json` copy `_emit_attrs` reads."""
+    db = tmp_path / "GENAI-TELEMETRY.db"
+    base = dict(system="anthropic", request_model="claude-opus-5", db_path=db, run_id="r-1")
+    base.update(kwargs)
+    row_id = mod.emit_genai_span(**base)
+    with sqlite3.connect(str(db)) as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT * FROM genai_spans WHERE id = ?", (row_id,)).fetchone()
+    return dict(row)
+
+
 # --- mechanism 1: events are refused unless explicitly permitted (deny-by-default) -----------
 
 
@@ -380,6 +394,45 @@ def test_ordinary_identifiers_pass_through_unredacted(tmp_path):
     assert attrs["devknowledge.outcome"] == "passed"
     assert attrs["devknowledge.reviewed_by"] == "gpt-5.6-terra"
     assert attrs["gen_ai.conversation.id"] == "conv-2026-09-27-001"
+
+
+# --- the denormalised columns get the same scrub as their `attrs` JSON siblings --------------
+# Codex terra CRITICAL (repair 1, docs/audits/2026-09-29-codex-codex-lane-runtime-data-home-2.md
+# @ e8679b3a): `attributes_json` was scrubbed, but `gen_ai_system`, `operation_name`,
+# `request_model` and `response_model` were inserted from the ORIGINAL unredacted call
+# arguments -- a secret- or foreign-path-shaped value supplied through any of those four
+# public string parameters reached the database verbatim despite the redaction guarantee.
+
+
+def test_a_foreign_path_in_gen_ai_system_is_redacted_in_the_denormalised_column(tmp_path):
+    mod = _load()
+    path = "/Users/rob/Documents/secret/id_rsa"
+    row = _emit_row(mod, tmp_path, system=f"anthropic {path}")
+    assert path not in row["gen_ai_system"]
+    assert "[REDACTED-PATH]" in row["gen_ai_system"]
+
+
+def test_a_named_token_in_operation_name_is_redacted_in_the_denormalised_column(tmp_path):
+    mod = _load()
+    row = _emit_row(mod, tmp_path, operation_name="chat sk-abcdEFGH1234567890abcdEFGH1234567890")
+    assert "sk-abcdEFGH1234567890abcdEFGH1234567890" not in row["operation_name"]
+    assert "[REDACTED-TOKEN]" in row["operation_name"]
+
+
+def test_a_foreign_path_in_request_model_is_redacted_in_the_denormalised_column(tmp_path):
+    mod = _load()
+    row = _emit_row(mod, tmp_path, request_model=r"claude-opus-5 \\fileserver\Team Share\secret\data.csv")
+    assert "Team Share" not in row["request_model"]
+    assert "[REDACTED-PATH]" in row["request_model"]
+
+
+def test_a_named_token_in_response_model_is_redacted_in_the_denormalised_column(tmp_path):
+    mod = _load()
+    row = _emit_row(
+        mod, tmp_path, response_model="claude-opus-5 ghp_ABCDEFGHIJ1234567890abcdefgh",
+    )
+    assert "ghp_ABCDEFGHIJ1234567890abcdefgh" not in row["response_model"]
+    assert "[REDACTED-TOKEN]" in row["response_model"]
 
 
 # --- the layout rule for "the rest" of logs/ (done-contract item 4) --------------------------

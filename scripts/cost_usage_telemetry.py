@@ -214,7 +214,11 @@ CALL_OUTCOMES: frozenset[str] = frozenset({"passed", "failed", "unknown"})
 #: module writes is scrubbed for token- and foreign-path-shaped substrings (`_redact_string`
 #: / `_redact_json_value`) before serialization, by default with the full scrub -- the two
 #: identifier fields (`gen_ai.conversation.id`, `devknowledge.run_id`) get the narrower one
-#: that never touches a legitimate UUID-/hash-shaped value.
+#: that never touches a legitimate UUID-/hash-shaped value. This covers the four denormalized
+#: columns too (`gen_ai_system`, `operation_name`, `request_model`, `response_model`) -- Codex
+#: terra CRITICAL (repair 1): they were once inserted straight from the unredacted call
+#: arguments while their `attrs` counterparts were scrubbed, so a redacted value in
+#: `attributes_json` sat next to its own unredacted original in the same row.
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS genai_spans (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -752,13 +756,21 @@ def emit_genai_span(
     except (TypeError, ValueError) as exc:
         raise GenAiTelemetryError(f"span is not JSON-serializable: {exc}") from exc
 
+    # Codex terra CRITICAL (repair 1): `attributes_json` above is scrubbed via the same
+    # `_redact_json_value` loop as every other attribute, but these four DENORMALISED columns
+    # were inserted straight from the original, unredacted call arguments -- a token- or
+    # foreign-path-shaped value supplied through any of them reached the database verbatim
+    # despite the redaction guarantee this store makes. None of the four is an identifier
+    # field (`_IDENTIFIER_ATTR_KEYS`), so they get the same full scrub (`scan_generic_hex=True`,
+    # the default) as their `attrs` counterparts (`gen_ai.system`, `gen_ai.operation.name`,
+    # `gen_ai.request.model`, `gen_ai.response.model`) above.
     row = {
         "ts": ts or _utc_now_iso(),
         "run_id": resolved_run_id,
-        "gen_ai_system": str(system),
-        "operation_name": str(operation_name),
-        "request_model": str(request_model),
-        "response_model": str(response_model) if response_model is not None else None,
+        "gen_ai_system": _redact_string(str(system)),
+        "operation_name": _redact_string(str(operation_name)),
+        "request_model": _redact_string(str(request_model)),
+        "response_model": _redact_string(str(response_model)) if response_model is not None else None,
         "duration_ms": duration_ms,
         "attributes_json": attributes_json,
         "events_json": events_json,
