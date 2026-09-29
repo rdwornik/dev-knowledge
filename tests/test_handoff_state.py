@@ -241,6 +241,25 @@ def test_bd_seats_fails_a_forged_seats_prefixed_value_with_no_real_counts_line(
     assert "shape" in detail.lower()
 
 
+def test_bd_seats_fails_a_genuine_counts_prefix_with_unrecognized_trailing_text(
+    tmp_path, monkeypatch,
+):
+    """terra HIGH (2026-09-29, second round): `_SEAT_COUNTS_LINE_RE.match()` alone only
+    anchors the PREFIX (`re.match` never requires reaching the end of the string) -- a forged
+    value that starts with a genuine counts line and ends in arbitrary trailing text (no
+    recognized WEDGED:/STARVED:/NO LIVE INTEGRATOR marker at all) satisfied the prefix-only
+    check and still read empty named-bad-seat sets, passing against a healthy live registry:
+    the SAME near-no-op the counts-line anchor was meant to bar, reached through the
+    unvalidated remainder instead of the prefix."""
+    path = tmp_path / "seats.jsonl"
+    monkeypatch.setattr(hs._sr, "REGISTRY_PATH", path)
+    forged = ("[seats] 0 live / 0 wedged / 0 absent / 0 starved "
+              "(last 24 h; 0 unbound) garbage")
+    status, detail = vhp._rule_bd_seats(forged, _seats_ctx())
+    assert status == "fail"
+    assert "shape" in detail.lower()
+
+
 def test_row_substrates_counts_only_live_true(tmp_path):
     repo = _repo_with_registries(tmp_path)
     row = hs.row_substrates(repo)

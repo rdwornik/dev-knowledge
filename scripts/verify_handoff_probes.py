@@ -1398,6 +1398,38 @@ _SEAT_COUNTS_LINE_RE = re.compile(
     r"\(last \d+(?:\.\d+)? h; \d+ unbound\)"
 )
 
+#: A recognized OPTIONAL suffix segment `seat_health_line()` appends after the counts prefix
+#: -- a `WEDGED:`/`STARVED:` named-seat list or the `NO LIVE INTEGRATOR` notice. Non-greedy up
+#: to the next recognized segment marker or the end of the string. `_SEAT_COUNTS_LINE_RE.match()`
+#: alone only anchors the PREFIX (`re.match` never requires reaching the end) -- a forged value
+#: that starts with a genuine counts line and ends in arbitrary trailing text (e.g. "... (last
+#: 24 h; 0 unbound) garbage") satisfied shape sanity while still reading empty named-bad-seat
+#: sets, passing against a healthy live registry: the SAME near-no-op the counts-line anchor
+#: was meant to bar, reached through the unvalidated remainder instead of the prefix (terra
+#: HIGH, 2026-09-29, second round).
+_SEAT_SUFFIX_BOUNDARY = r"(?: / (?:WEDGED|STARVED): )|(?: / NO LIVE INTEGRATOR for batch )|$"
+_SEAT_SUFFIX_SEGMENT_RE = re.compile(
+    rf"(?: / WEDGED: | / STARVED: | / NO LIVE INTEGRATOR for batch ).+?"
+    rf"(?={_SEAT_SUFFIX_BOUNDARY})"
+)
+
+
+def _seat_line_fully_shaped(underlying: str) -> bool:
+    """True iff `underlying` is EXACTLY the counts-line prefix followed by zero or more
+    recognized suffix segments, with NO leftover text -- the remainder must be covered
+    edge-to-edge, never merely started, by `_SEAT_SUFFIX_SEGMENT_RE`."""
+    m = _SEAT_COUNTS_LINE_RE.match(underlying)
+    if m is None:
+        return False
+    remainder = underlying[m.end():]
+    pos = 0
+    for seg in _SEAT_SUFFIX_SEGMENT_RE.finditer(remainder):
+        if seg.start() != pos:
+            return False
+        pos = seg.end()
+    return pos == len(remainder)
+
+
 #: The exact tail `StateRow.rendered()` appends -- " — evidence: <evidence> [<FRESHNESS>]" --
 #: recovered so the shape check reads the UNDERLYING value. `value` here is always the
 #: RENDERED cell in production (`gen_handoff.py` writes `.rendered()`; `parse_boot_blocks`
@@ -1424,7 +1456,7 @@ def _rule_bd_seats(value: str, ctx: _BootCtx) -> tuple[str, str]:      # noqa: A
     stripped = value.strip()
     tail_match = _RENDERED_TAIL_RE.match(stripped)
     underlying = tail_match.group("val") if tail_match else stripped
-    if not (underlying == _hs.NO_SEATS_OBSERVED or _SEAT_COUNTS_LINE_RE.match(underlying)):
+    if not (underlying == _hs.NO_SEATS_OBSERVED or _seat_line_fully_shaped(underlying)):
         return "fail", (f"cut value does not carry a seat_health_line's own shape (expected a "
                         f"'[seats] N live / N wedged / N absent / N starved (...)' counts line "
                         f"or {_hs.NO_SEATS_OBSERVED!r}): {value!r}")
