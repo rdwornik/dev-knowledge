@@ -500,15 +500,21 @@ def excluded_root_hit(path: Path, roots: list[str]) -> str | None:
     lane's repair 1). Checked as "does this pattern match the root name", not the reverse, so
     an ordinary part with no glob character is unaffected and still needs an exact match.
 
-    A part that is PURELY wildcard characters (a bare `*`, `**`, `?`, or any combination of
-    only those) is excluded from this leg -- live-discovered this redo, running this guard's
-    own tests: `fnmatch.fnmatchcase(root_cf, "**")` is True for EVERY `root_cf`, since a bare
-    wildcard pattern matches any string by construction, so an ordinary glob-shaped argument
-    with no relation at all to the excluded root (`templates/**`, a glob this repo's own test
-    suite passes routinely) would otherwise be refused regardless of which root is configured.
-    Requiring at least one non-wildcard character survive `part.strip("*?[]")` keeps the real
-    catch (`OneDrive*` strips to `OneDrive`, still a match) while dropping the false one.
-    """
+    A BARE wildcard (`*`, `**`, `?`, any combination of only those, no literal character at
+    all) is DELIBERATELY NOT exempted from this leg, even though it makes an unrelated
+    glob-shaped argument (`git diff -- templates/**`) block too -- REVERTED this redo, fifth
+    Codex terra review pass, after the fourth pass's own exemption (added to fix exactly that
+    false positive) was shown to reopen a real bypass: `Get-ChildItem 'C:\\Users\\x\\*\\secret.txt'`
+    is a bare `*` that the shell WOULD expand onto the zone if `OneDrive - Blue Yonder`
+    happens to sit at that position, and this guard has no filesystem-aware way to tell "a
+    wildcard that cannot reach the root" apart from "a wildcard that can" without actually
+    resolving the glob against the live filesystem -- a categorically bigger mechanism than a
+    pre-exec text guard. Between under-blocking a real bypass and over-blocking an unrelated
+    glob command, this guard's own established doctrine (`_cannot_evaluate`: "permitting what
+    it cannot check is enforcement without enforcement") already answers which direction is
+    the honest failure -- fail CLOSED. The false positive is a real, known cost (recorded,
+    not silently dropped: the wedge escape, `DEV_KNOWLEDGE_SCOPE_GUARD_DISABLE=1`, is the way
+    through for a legitimate bare-glob command)."""
     parts_cf = [part.casefold() for part in path.parts]
     text_cf = str(path).casefold()
     for root in roots:
@@ -520,8 +526,7 @@ def excluded_root_hit(path: Path, roots: list[str]) -> str | None:
         elif root_cf in parts_cf:
             return root
         elif any(
-            any(ch in part for ch in "*?[") and part.strip("*?[]")
-            and fnmatch.fnmatchcase(root_cf, part)
+            any(ch in part for ch in "*?[") and fnmatch.fnmatchcase(root_cf, part)
             for part in parts_cf
         ):
             return root

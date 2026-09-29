@@ -450,12 +450,15 @@ def test_an_unrelated_wildcard_is_not_refused(tmp_path):
     assert decision == "allow", reason
 
 
-def test_a_bare_double_star_glob_component_is_not_refused(tmp_path):
+def test_a_bare_double_star_glob_component_is_a_known_accepted_false_positive(tmp_path):
     """Live-discovered this redo, running this guard's own tests: `fnmatch.fnmatchcase(root,
     "**")` is True for EVERY root, since a bare wildcard pattern matches any string -- an
-    ordinary glob argument with no relation to the excluded root at all
-    (`templates/**`, exactly what tripped this live) must not be refused just because it
-    happens to carry a wildcard character."""
+    ordinary glob argument with no relation to the excluded root at all (`templates/**`,
+    exactly what tripped this live) is REFUSED anyway. A same-redo attempt to exempt pure
+    wildcards was REVERTED (fifth Codex terra review pass) after it was shown to reopen a
+    real bypass (`Get-ChildItem 'C:\\Users\\x\\*\\secret.txt'` -- see `excluded_root_hit`'s
+    docstring) -- this is the accepted cost of failing closed on an ambiguous glob, not a
+    bug; the wedge escape is the way through for a legitimate command shaped like this."""
     ordinary = tmp_path / "repo"
     ordinary.mkdir()
 
@@ -464,17 +467,24 @@ def test_a_bare_double_star_glob_component_is_not_refused(tmp_path):
                   cwd=str(ordinary)),
         ROOTS)
 
-    assert decision == "allow", reason
+    assert decision == "block", reason
 
 
-def test_a_bare_single_star_or_question_mark_component_is_not_refused(tmp_path):
+def test_a_bare_wildcard_standing_in_for_the_root_at_its_own_parent_is_refused(tmp_path):
+    """The real bypass the reverted exemption reopened, now proven closed: a bare `*` at the
+    position the excluded root's PARENT occupies is exactly what the shell would expand onto
+    the zone if `OneDrive - Blue Yonder` sits there -- this guard cannot know whether it does
+    without resolving the glob against the live filesystem, so it fails closed rather than
+    guess allow."""
     ordinary = tmp_path / "repo"
     ordinary.mkdir()
 
     decision, reason = guard.decide(
-        _payload("PowerShell", {"command": 'Get-ChildItem "?\\*"'}, cwd=str(ordinary)), ROOTS)
+        _payload("PowerShell", {"command": r'Get-ChildItem "C:\Users\x\*\secret.txt"'},
+                  cwd=str(ordinary)),
+        ROOTS)
 
-    assert decision == "allow", reason
+    assert decision == "block", reason
 
 
 # ============================ J. LANE-5B5R-2 -- SHELL-SEMANTICS BYPASS CLOSURE (item 9)
