@@ -554,6 +554,25 @@ def test_a_bash_commit_message_quoting_the_concatenation_example_as_prose_is_sti
     assert decision == "allow", reason
 
 
+def test_a_backtick_escaped_quote_does_not_desync_state_past_a_real_concatenation(tmp_path):
+    """Third-round Codex terra review (this redo): a scanner blind to PowerShell's backtick
+    escape treats the escaped `"` in `"x`""` as a REAL close, then the following bare `"`
+    as a bogus new OPEN that never closes -- wrongly neutralizing every quote after it,
+    including a genuine top-level concatenation later on the SAME line, which would then be
+    allowed through. The reviewer's own reproduction, adapted to this guard's payload shape
+    (a `PowerShell` command; `Remove-Item` swapped for `Get-Item` so the test needs no real
+    delete permission)."""
+    (tmp_path / "OneDrive - Blue Yonder").mkdir()
+
+    decision, reason = guard.decide(
+        _payload("PowerShell", {
+            "command": 'Write-Output "x`""; Get-Item (\'OneDrive\' + \' - Blue Yonder\')',
+        }, cwd=str(tmp_path)),
+        ROOTS)
+
+    assert decision == "block", reason
+
+
 # ==================================== K. FRESH CODEX TERRA REVIEW P1s (this redo, item 6)
 
 def test_a_powershell_single_quoted_concatenation_assembling_the_root_name_is_refused(tmp_path):

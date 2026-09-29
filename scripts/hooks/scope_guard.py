@@ -342,10 +342,28 @@ def _neutralize_nested_quote_chars(line: str) -> str:
     class the existing anti-false-positive test already covers for a single quoted literal,
     just with an inner `+` this time. A GENUINELY separate pair of top-level literals
     (`"OneDrive" + " - Blue Yonder"`, no enclosing outer quote) is left untouched: neither
-    quote char is ever nested inside another OPEN quote of a different type."""
+    quote char is ever nested inside another OPEN quote of a different type.
+
+    A PowerShell backtick escapes the character right after it (`` `" `` is a literal quote
+    that does NOT close or open a string) -- third-pass Codex terra review, this redo: a
+    scanner blind to this treats an escaped quote as a real delimiter, desyncing `state` for
+    every character after it and wrongly neutralizing a GENUINE concatenation later on the
+    same line (`Write-Output "x`""; Remove-Item ('OneDrive' + ' - Blue Yonder')` -- the
+    escaped `"` inside the first string must never toggle `state`, or the real single-quoted
+    concatenation after it is misread as nested prose and allowed through). The escaped
+    character itself is also blanked -- it is not a real delimiter for `_STRING_CONCAT`
+    either, whichever quote type it happens to be."""
     out = list(line)
     state: str | None = None
-    for i, ch in enumerate(line):
+    i, n = 0, len(line)
+    while i < n:
+        ch = line[i]
+        if ch == "`" and i + 1 < n:
+            escaped = line[i + 1]
+            if escaped in "\"'":
+                out[i + 1] = "\0"
+            i += 2
+            continue
         if state is None:
             if ch in "\"'":
                 state = ch
@@ -353,6 +371,7 @@ def _neutralize_nested_quote_chars(line: str) -> str:
             state = None
         elif ch in "\"'":
             out[i] = "\0"
+        i += 1
     return "".join(out)
 
 
