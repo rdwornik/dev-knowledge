@@ -705,9 +705,17 @@ jobs:
           # too: fail-closed, not a second way to dodge the cutoff.
           CUTOFF = '2026-09-28'
           date_re = re.compile(r'^(\d{4}-\d{2}-\d{2})-')
+          # The same non-bundle CONTAINER exclusion verify_handoff_probes._FALLBACK_EXCLUDE_DIRS
+          # / its startswith('archive') clause already applies -- docs/handoffs/archive/ holds
+          # many pre-cutoff bundles one level deeper, not a bundle itself; caught live as a false
+          # positive in a fix re-proof CI run (2026-09-29, run 36623905708) before this line
+          # existed.
+          NOT_A_BUNDLE = {'.git', '.claude', 'node_modules', 'aborted', 'in-progress'}
           bad = []
           checked = 0
           for bundle in sorted(p for p in root.iterdir() if p.is_dir()):
+              if bundle.name in NOT_A_BUNDLE or bundle.name.startswith('archive'):
+                  continue  # a non-bundle container, not a bundle of any era
               m = date_re.match(bundle.name)
               if m and m.group(1) < CUTOFF:
                   continue  # pre-manifest-era bundle, by its own date -- exempt, not failed

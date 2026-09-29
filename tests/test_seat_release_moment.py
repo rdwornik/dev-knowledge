@@ -310,3 +310,18 @@ def test_ci_manifest_step_fails_an_in_era_bundle_that_deleted_its_own_receipt(tm
     assert result.returncode != 0, result.stdout + result.stderr
     assert dest.name in result.stdout
     assert "checked 1 manifest-era bundle" in result.stdout
+
+
+@requires_bash
+def test_ci_manifest_step_does_not_fail_the_real_archive_container(tmp_path):
+    """A real, live false positive caught by a fix re-proof CI run (2026-09-29, run
+    36623905708): `docs/handoffs/archive/` is a CONTAINER of many pre-cutoff bundles one level
+    deeper (`verify_handoff_probes._FALLBACK_EXCLUDE_DIRS` and its `startswith('archive')`
+    clause already exclude it from bundle classification for exactly this reason) -- it carries
+    no date prefix and no receipt of its own, so the fail-closed "no parseable date -> in-era"
+    rule wrongly counted and failed it. `archive` (and the same established exclusion set) is
+    now skipped like a pre-cutoff bundle, never counted."""
+    (tmp_path / "docs" / "handoffs" / "archive" / "2026-05-09-old-sync").mkdir(parents=True)
+    result = _run_ci_manifest_step(tmp_path)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "checked 0 manifest-era bundle" in result.stdout
