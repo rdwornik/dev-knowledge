@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-09-29 (e) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5-R): a handoff cut filled by the documented process passes `BD-manifest` with no hand re-stamp (row [#1123])
+
+**Anchors:** `b66526cc`, `2bf6ef23` -- `worktree-lane-handoff-manifest` (L6a, `LANE-5B5R-6a-handoff-manifest`; served `claude-sonnet-5`, repair 1 after the integrator's refusal on items 1 and 3). Merged `--no-ff` in `epic/wave5b-n5-r-int-l6-stack`, stacked with L6b.
+
+**Did:** `gen_handoff.py`'s `--filled` re-render now accepts the cut's own `BD-manifest` hard-fail, and only that one. The waiver holds only when the manifest mismatch is confined to the fill surfaces (SUPPLEMENT, RESIDUAL, HANDOFF_BOOT). A second hard-fail organ, a non-manifest probe, a tampered generated file and an added file are all still refused. That limit came from Codex P1 on the first pass. `generate()` already re-stamps the manifest last, so the re-render re-stamps it once preflight lets it through. Repair 1 adds an end-to-end test: cut, fill, `BD-manifest` fails, `generate(force_filled=True)` re-render, `BD-manifest` passes. It is red on origin/main's `gen_handoff.py` with a real `PreflightError` and green on the tip. A second test pins the CLI's flag set and its refusal exit code.
+
+**Result:** the next handoff cut needs no hand re-stamp; the 2026-09-28 one did.
+
+**Changes:** `scripts/gen_handoff.py`, `tests/test_gen_handoff.py`. Regenerated `ecosystem/doc-counts.md`. Folded lane-runtime-data-home-2's merge-receipt ledger line into `logs/MERGE-RECEIPTS.jsonl`.
+
+**Next:** the verdict is CI on the stack's integration branch, both legs, attributed against base run 36497097230. `ROW-MET [#1123]` goes to the digest for the operator to close.
+
 ### 2026-09-29 (d) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5-R): the telemetry database lives off the public tree, redacted in every column, with `platformdirs` declared directly (R20)
 
 **Anchors:** `1c655d38`, `c0da0d3f` -- `worktree-lane-runtime-data-home-2` (L3, a redo from the preserved tip `60e6197d`; codespace run served `claude-sonnet-5`, local repair 1 served `claude-sonnet-5`). Repair 1 followed the integrator's refusal on an unfixed Codex CRITICAL. Merged `--no-ff` in `epic/wave5b-n5-r-int-lane-runtime-data-home-2`.
