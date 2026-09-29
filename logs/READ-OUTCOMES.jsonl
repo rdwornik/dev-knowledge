@@ -1,3 +1,4 @@
 {"failed_check": "output-file-missing-or-empty", "route": "antigravity", "source_sha256": "09ee3d3a5f5d5a6a063cbbf810cd22a017f85a221a6fd25128e59b8e5b2dcb09", "verdict": "rejected"}
 {"failed_check": "output-file-missing-or-empty", "route": "copilot-enterprise", "source_sha256": "09ee3d3a5f5d5a6a063cbbf810cd22a017f85a221a6fd25128e59b8e5b2dcb09", "verdict": "rejected"}
 {"failed_check": null, "route": "anthropic", "source_sha256": "09ee3d3a5f5d5a6a063cbbf810cd22a017f85a221a6fd25128e59b8e5b2dcb09", "verdict": "accepted"}
+{"failed_check": null, "route": "antigravity", "source_sha256": "09ee3d3a5f5d5a6a063cbbf810cd22a017f85a221a6fd25128e59b8e5b2dcb09", "verdict": "accepted"}

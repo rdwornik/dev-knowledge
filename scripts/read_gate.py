@@ -39,7 +39,7 @@ import subprocess
 import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 import yaml
 
@@ -126,14 +126,21 @@ class ReadVerdict:
 
 
 def verify_read(output_path: Optional[Path], log_text: str, source_text: str) -> ReadVerdict:
-    """Accepts a read only if all three (AMEND v3 done-when item 1) hold. Checked in this
-    order so `failed_check` always names the FIRST thing wrong."""
+    """Accepts a read only if all three (AMEND v3 done-when item 1) hold, PLUS one more this
+    lane strengthens rather than weakens (ADR-108 SS B): an output with zero quotations is a
+    paraphrase wearing no quotation marks, not a verified read -- "every quotation ... is
+    found literally in the source" is vacuously true of an empty set, so the three-check
+    reading on its own accepts free-form paraphrase (Codex terra CRITICAL,
+    `docs/audits/2026-09-29-codex-lane-read-gate.md`). Checked in this order so
+    `failed_check` always names the FIRST thing wrong."""
     if output_path is None or not output_path.exists() or output_path.stat().st_size == 0:
         return ReadVerdict(False, "output-file-missing-or-empty")
     if PRINT_TIMEOUT_MARKER in log_text.lower():
         return ReadVerdict(False, "print-timeout-in-log")
     output_text = output_path.read_text(encoding="utf-8")
     quotations = extract_quotations(output_text)
+    if not quotations:
+        return ReadVerdict(False, "no-quotation-in-output")
     normalized_source = normalize_whitespace(source_text)
     for quotation in quotations:
         if quotation not in normalized_source:
@@ -213,6 +220,12 @@ def run_read_gate(
     source_sha256 = hashlib.sha256(source_path.read_bytes()).hexdigest()
     attempts: list[RouteOutcome] = []
     for route in load_read_routes(registry_path):
+        # The RUNNER owns each attempt's output path and clears it before the call -- an
+        # invoker's return value is never trusted to name it, so a stale file, the source
+        # file, or a path outside `workdir` cannot be read back as this attempt's output
+        # (Codex terra HIGH, `docs/audits/2026-09-29-codex-lane-read-gate.md`).
+        expected_output = workdir / f"{route.provider}.output.txt"
+        expected_output.unlink(missing_ok=True)
         try:
             attempt = invoke(route, source_path, workdir)
         # An unavailable or misbehaving route falls through to the next one; it does not
@@ -222,7 +235,13 @@ def run_read_gate(
             attempts.append(outcome)
             _append_ledger(ledger_path, outcome, source_sha256)
             continue
-        verdict = verify_read(attempt.output_path, attempt.log_text, source_text)
+        output_path = expected_output if expected_output.exists() else None
+        try:
+            verdict = verify_read(output_path, attempt.log_text, source_text)
+        # A malformed or partially written output (deleted mid-race, a permission error,
+        # invalid UTF-8 bytes) rejects this route rather than aborting every later one.
+        except (OSError, UnicodeDecodeError) as exc:
+            verdict = ReadVerdict(False, f"verify-error:{exc}")
         outcome = RouteOutcome(
             route.provider,
             "accepted" if verdict.accepted else "rejected",
@@ -231,7 +250,7 @@ def run_read_gate(
         attempts.append(outcome)
         _append_ledger(ledger_path, outcome, source_sha256)
         if verdict.accepted:
-            return ReadGateResult(True, route.provider, attempt.output_path, attempts)
+            return ReadGateResult(True, route.provider, output_path, attempts)
     return ReadGateResult(False, None, None, attempts)
 
 
@@ -263,7 +282,11 @@ def _npm_shim(name: str) -> str:
 
 
 def _cli_invoker(
-    cli: str, argv_builder: Callable[[str, Path], list[str]], timeout_s: int
+    cli: str,
+    argv_builder: Callable[[str, Path], list[str]],
+    timeout_s: int,
+    *,
+    runner: Callable[..., "subprocess.CompletedProcess[str]"] = subprocess.run,
 ) -> Invoker:
     def invoke(route: RouteSpec, source_path: Path, workdir: Path) -> InvokeAttempt:
         output_path = workdir / f"{route.provider}.output.txt"
@@ -276,8 +299,13 @@ def _cli_invoker(
         )
         argv = [_npm_shim(cli), *argv_builder(prompt, output_path)]
         try:
-            proc = subprocess.run(
-                argv, capture_output=True, text=True, timeout=timeout_s, check=False
+            # `stdin=DEVNULL`: a CLI that waits on stdin for EOF or an interactive prompt
+            # must not stall this route for the full timeout (Codex terra HIGH,
+            # `docs/audits/2026-09-29-codex-lane-read-gate.md`) -- mirrors
+            # `provider_bench.run_one`.
+            proc = runner(
+                argv, capture_output=True, text=True, timeout=timeout_s, check=False,
+                stdin=subprocess.DEVNULL,
             )
         except (OSError, subprocess.SubprocessError) as exc:
             return InvokeAttempt(None, log_text=str(exc), status="unavailable")
@@ -307,36 +335,35 @@ def _copilot_argv(prompt: str, _output_path: Path) -> list[str]:
     return ["-p", prompt, "--allow-all-tools", "--no-ask-user", "--no-color"]
 
 
-def agy_invoker(timeout_s: int = 600) -> Invoker:
-    return _cli_invoker("agy", _agy_argv, timeout_s)
+def agy_invoker(timeout_s: int = 600, *, runner: Callable[..., Any] = subprocess.run) -> Invoker:
+    return _cli_invoker("agy", _agy_argv, timeout_s, runner=runner)
 
 
-def copilot_invoker(timeout_s: int = 600) -> Invoker:
-    return _cli_invoker("copilot", _copilot_argv, timeout_s)
-
-
-def anthropic_fallback_invoker(
-    route: RouteSpec, source_path: Path, workdir: Path
-) -> InvokeAttempt:
-    """The registry's own note for this route: "The live terminal fallback." There is no
-    separate CLI to shell out to -- this route IS the live Claude Code session reading the
-    file and writing a faithful, literal excerpt itself, exactly as the registry names it."""
-    output_path = workdir / f"{route.provider}.output.txt"
-    source_text = extract_source_text(source_path)
-    excerpt = normalize_whitespace(source_text)[:400]
-    output_path.write_text(f'"{excerpt}"\n', encoding="utf-8")
-    return InvokeAttempt(output_path, log_text="", status="live-fallback")
+def copilot_invoker(
+    timeout_s: int = 600, *, runner: Callable[..., Any] = subprocess.run
+) -> Invoker:
+    return _cli_invoker("copilot", _copilot_argv, timeout_s, runner=runner)
 
 
 def real_invoker(
     route: RouteSpec, source_path: Path, workdir: Path, *, timeout_s: int = 600
 ) -> InvokeAttempt:
-    """Dispatches on `route.provider` to the real invoker for each `roles.read` entry.
-    Never used by a test -- DONE-ITEM 3's "no test calls a real reader"."""
+    """Dispatches on `route.provider` to the real, automatable invoker for a `roles.read`
+    entry. Never used by a test -- DONE-ITEM 3's "no test calls a real reader".
+
+    The `anthropic`/`claude-sonnet-5` entry is the registry's own "live terminal fallback":
+    there is no CLI to shell out to for it, because it names the live Claude Code session
+    itself. This function does NOT fabricate a read for it (a prior version did -- Codex
+    terra CRITICAL, `docs/audits/2026-09-29-codex-lane-read-gate.md`: an automatic,
+    always-succeeding stand-in for a route that is supposed to require a real reader defeats
+    the whole gate for any future caller that reaches for `real_invoker` by default). A
+    caller that is itself the live session and wants this route answered supplies its own
+    `invoke` to `run_read_gate` for that one entry, same as any other injectable invoker."""
     if route.provider == "antigravity":
         return agy_invoker(timeout_s)(route, source_path, workdir)
     if route.provider == "copilot-enterprise":
         return copilot_invoker(timeout_s)(route, source_path, workdir)
-    if route.provider == "anthropic":
-        return anthropic_fallback_invoker(route, source_path, workdir)
-    raise ReadGateError(f"no real invoker for route {route.provider!r}")
+    raise ReadGateError(
+        f"no automated invoker for route {route.provider!r} -- "
+        "the live terminal fallback is not automatable; supply your own invoker for it"
+    )

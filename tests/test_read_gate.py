@@ -15,6 +15,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "fixtures" / "read_gate"))
@@ -84,11 +85,26 @@ def test_verify_read_accepts_a_literal_quotation_whitespace_normalized(tmp_path:
     assert verdict.failed_check is None
 
 
-def test_verify_read_accepts_output_with_no_quotations_at_all(tmp_path: Path) -> None:
+def test_verify_read_rejects_output_with_no_quotations_at_all(tmp_path: Path) -> None:
+    """Codex terra CRITICAL (`docs/audits/2026-09-29-codex-lane-read-gate.md`): the three
+    AMEND checks alone accept a paraphrase that carries no quotation marks at all, since
+    "every quotation is literal" is vacuously true of an empty set. Strengthened, never
+    weakened (ADR-108 SS B)."""
     output = tmp_path / "out.txt"
     output.write_text("a summary with no quoted spans", encoding="utf-8")
     verdict = gate.verify_read(output, "", "anything")
-    assert verdict.accepted
+    assert not verdict.accepted
+    assert verdict.failed_check == "no-quotation-in-output"
+
+
+def test_verify_read_propagates_a_decode_error_reading_the_output(tmp_path: Path) -> None:
+    """The output path exists and is non-empty, but is not valid UTF-8 -- `verify_read`
+    itself raises; `run_read_gate` is the layer that must catch this (see the run_read_gate
+    tests below), not `verify_read`."""
+    output = tmp_path / "not-utf8.txt"
+    output.write_bytes(b"\xff\xfe\x00invalid")
+    with pytest.raises(UnicodeDecodeError):
+        gate.verify_read(output, "", "anything")
 
 
 # --- extraction per format, each on a synthetic fixture generated here (DONE-ITEM 1) ---------
@@ -274,6 +290,147 @@ def test_run_read_gate_falls_through_when_the_invoker_raises(tmp_path: Path) -> 
     assert result.accepted
     assert result.served_route == "anthropic"
     assert result.attempts[0].failed_check == "invoke-error:agy not found"
+
+
+def test_run_read_gate_ignores_a_stale_or_foreign_path_an_invoker_claims(tmp_path: Path) -> None:
+    """Codex terra HIGH (`docs/audits/2026-09-29-codex-lane-read-gate.md`): the runner must
+    own each attempt's output path, not trust whatever path an `InvokeAttempt` names. A
+    misbehaving invoker that points at a leftover file from an earlier attempt, or at the
+    source file itself, must not be read back as this attempt's real output."""
+    registry = _fixture_registry(tmp_path, ["antigravity"])
+    source = synth.write_text_fixture(tmp_path / "source.txt", "The literal source text.")
+    workdir = tmp_path / "work"
+    workdir.mkdir()
+    ledger = tmp_path / "ledger.jsonl"
+    foreign = workdir / "leftover-from-a-different-run.txt"
+    foreign.write_text('"a stale accepted-looking quote"', encoding="utf-8")
+
+    def invoke(route: gate.RouteSpec, _source: Path, _workdir: Path) -> gate.InvokeAttempt:
+        # Never writes to `_workdir / "antigravity.output.txt"` -- claims the foreign path.
+        return gate.InvokeAttempt(foreign, log_text="", status="SUCCESS")
+
+    result = gate.run_read_gate(
+        source, registry_path=registry, invoke=invoke, workdir=workdir, ledger_path=ledger
+    )
+    assert not result.accepted
+    assert result.attempts[0].failed_check == "output-file-missing-or-empty"
+
+
+def test_run_read_gate_clears_a_route_leftover_before_invoking_it(tmp_path: Path) -> None:
+    """A file left at the canonical path by an earlier run must not be read back as THIS
+    attempt's output when the invoker writes nothing this time."""
+    registry = _fixture_registry(tmp_path, ["antigravity"])
+    source = synth.write_text_fixture(tmp_path / "source.txt", "The literal source text.")
+    workdir = tmp_path / "work"
+    workdir.mkdir()
+    (workdir / "antigravity.output.txt").write_text(
+        '"a leftover quote from a prior run"', encoding="utf-8"
+    )
+    ledger = tmp_path / "ledger.jsonl"
+
+    def invoke(route: gate.RouteSpec, _source: Path, _workdir: Path) -> gate.InvokeAttempt:
+        return gate.InvokeAttempt(None, log_text="", status="FAILED")  # writes nothing
+
+    result = gate.run_read_gate(
+        source, registry_path=registry, invoke=invoke, workdir=workdir, ledger_path=ledger
+    )
+    assert not result.accepted
+    assert result.attempts[0].failed_check == "output-file-missing-or-empty"
+
+
+def test_run_read_gate_rejects_rather_than_raises_on_an_unreadable_output(tmp_path: Path) -> None:
+    """A route whose canonical output path exists but cannot be decoded as UTF-8 text is
+    rejected and falls through instead of aborting the whole run."""
+    registry = _fixture_registry(tmp_path, ["antigravity", "anthropic"])
+    source = synth.write_text_fixture(tmp_path / "source.txt", "The literal source text.")
+    workdir = tmp_path / "work"
+    workdir.mkdir()
+    ledger = tmp_path / "ledger.jsonl"
+
+    def invoke(route: gate.RouteSpec, _source: Path, _workdir: Path) -> gate.InvokeAttempt:
+        expected = _workdir / f"{route.provider}.output.txt"
+        if route.provider == "antigravity":
+            expected.write_bytes(b"\xff\xfe\x00invalid")
+            return gate.InvokeAttempt(expected, log_text="", status="SUCCESS")
+        expected.write_text('"The literal source text."', encoding="utf-8")
+        return gate.InvokeAttempt(expected, log_text="", status="SUCCESS")
+
+    result = gate.run_read_gate(
+        source, registry_path=registry, invoke=invoke, workdir=workdir, ledger_path=ledger
+    )
+    assert result.accepted
+    assert result.served_route == "anthropic"
+    assert result.attempts[0].failed_check.startswith("verify-error:")
+
+
+# --- the real CLI invoker: injectable runner, no test calls a real reader --------------------
+
+
+def _fake_runner(returncode: int = 0, stdout: str = "", stderr: str = ""):
+    import subprocess as sp
+
+    def runner(argv, **kwargs):
+        return sp.CompletedProcess(argv, returncode, stdout=stdout, stderr=stderr)
+
+    return runner
+
+
+def test_cli_invoker_passes_devnull_stdin_so_it_cannot_hang_on_a_waiting_cli(
+    tmp_path: Path,
+) -> None:
+    """Codex terra HIGH: a CLI that waits on stdin must not stall the route."""
+    seen: dict = {}
+
+    def capturing_runner(argv, **kwargs):
+        seen["kwargs"] = kwargs
+        import subprocess as sp
+        return sp.CompletedProcess(argv, 0, stdout="", stderr="")
+
+    invoke = gate._cli_invoker("agy", gate._agy_argv, 5, runner=capturing_runner)
+    invoke(gate.RouteSpec("antigravity"), tmp_path / "source.txt", tmp_path)
+    assert seen["kwargs"]["stdin"] == gate.subprocess.DEVNULL
+
+
+def test_cli_invoker_reports_unavailable_when_the_binary_is_missing(tmp_path: Path) -> None:
+    def raising_runner(argv, **kwargs):
+        raise OSError("agy not found")
+
+    invoke = gate._cli_invoker("agy", gate._agy_argv, 5, runner=raising_runner)
+    attempt = invoke(gate.RouteSpec("antigravity"), tmp_path / "source.txt", tmp_path)
+    assert attempt.output_path is None
+    assert attempt.status == "unavailable"
+
+
+def test_cli_invoker_reports_unavailable_on_a_timeout(tmp_path: Path) -> None:
+    def timing_out_runner(argv, **kwargs):
+        raise gate.subprocess.TimeoutExpired(cmd=argv, timeout=5)
+
+    invoke = gate._cli_invoker("agy", gate._agy_argv, 5, runner=timing_out_runner)
+    attempt = invoke(gate.RouteSpec("antigravity"), tmp_path / "source.txt", tmp_path)
+    assert attempt.output_path is None
+    assert attempt.status == "unavailable"
+
+
+def test_cli_invoker_reports_no_output_file_when_the_cli_writes_nothing(tmp_path: Path) -> None:
+    """Non-JSON or empty CLI stdout does not crash this path -- the output file's presence is
+    the only thing that matters, and this run writes none."""
+    invoke = gate._cli_invoker(
+        "agy", gate._agy_argv, 5, runner=_fake_runner(stdout="not json at all")
+    )
+    attempt = invoke(gate.RouteSpec("antigravity"), tmp_path / "source.txt", tmp_path)
+    assert attempt.output_path is None
+    assert attempt.status == "exit=0"
+
+
+def test_real_invoker_refuses_the_anthropic_route_rather_than_fabricating_a_read(
+    tmp_path: Path,
+) -> None:
+    """Codex terra CRITICAL: `real_invoker` must not auto-accept the live-terminal-fallback
+    route with manufactured content. A caller that wants it answered supplies its own
+    invoker for that one entry."""
+    with pytest.raises(gate.ReadGateError, match="not automatable"):
+        gate.real_invoker(gate.RouteSpec("anthropic", model="claude-sonnet-5"),
+                           tmp_path / "source.txt", tmp_path)
 
 
 # --- the outcome ledger: one line per read (DONE-ITEM 4) -------------------------------------
