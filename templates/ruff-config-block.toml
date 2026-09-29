@@ -42,13 +42,15 @@ line-length = 120               # agreed fleet line-length (ARC 4 D1)
 # hub posture, lane-python-standard-1 (2026-09-25): first code-standard tool, traced to
 # to-browser/SESSION-lane-research-python-standard.md (C3). Candidate universe was C3's
 # proposed families (B,SIM,C90,PL,RET,PERF,FURB,PTH,N,UP,ARG,ERA,TRY,FBT,RUF), measured
-# tree-wide (6797 violations @ da11291b), auto-fixed with `--fix` (never `--unsafe-fixes`)
-# only under scripts/+tests/ files no other WAVE5B-N2 lane owns, then re-measured. Not
-# whole rule families — per-code selection, since most C3 families still carry violations
-# this lane cannot touch (owned by other lanes) or cannot auto-fix. Kept identical to
-# pyproject.toml's `[tool.ruff.lint]` by hand (RULING-W); test_fleet_parity.py does not
-# currently gate this specific list's identity (it gates the universal required-version /
-# target-version / line-length keys above, via ecosystem/parity-surfaces.yaml).
+# tree-wide (6797 violations @ da11291b), auto-fixed with a plain `--fix` pass (unsafe
+# fixes stay off) only under scripts/+tests/ files no other WAVE5B-N2 lane owns, then
+# re-measured. Not whole rule families — per-code selection, since most C3 families
+# still carry violations this lane cannot touch (owned by other lanes) or cannot
+# auto-fix. Kept identical to pyproject.toml's `[tool.ruff.lint]` by hand (RULING-W);
+# tests/test_fleet_parity.py::test_ruff_extend_select_identical_in_pyproject_and_template
+# gates this specific list's identity directly (parses both TOML files, asserts the
+# `extend-select` sets are equal); the universal required-version / target-version /
+# line-length keys above are gated separately, via ecosystem/parity-surfaces.yaml.
 # lane-python-standard-2 (2026-09-29, this redo): re-measured on today's main. Three of
 # the original ten codes dropped here because a sibling-owned file (already merged/live at
 # render, this lane may not touch it) still carries a violation, so enabling the code
@@ -64,10 +66,10 @@ line-length = 120               # agreed fleet line-length (ARC 4 D1)
 # (integrator refusal, to-browser/REFUSED-lane-python-standard-1.md): their sole remaining
 # tree-wide instances live inside scripts/audit_checks/check_routine_consumers.py and
 # scripts/conductor.py, both owned by LANE-5B2-17-ci-signal.md — still true on today's main.
-# NOTE: RUF100 (unused-noqa) must never be included in a NARROWED `--select ... --fix`
+# NOTE: RUF100 (unused-noqa) stays excluded from a NARROWED `--select ... --fix`
 # pass — its "unused noqa" check is evaluated against whatever rules are active in that
 # specific invocation, so a select that omits e.g. E402 makes RUF100 misjudge every
-# `# noqa: E402` as dead and delete it. Always exclude RUF100 from a scoped fix pass, or
+# `# noqa: E402` as dead and delete it. Keep RUF100 out of a scoped fix pass, or
 # use the real full config.
 extend-select = [
     "FURB122",  # for-loop-writes
