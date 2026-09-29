@@ -284,6 +284,36 @@ def test_bd_seats_fails_when_a_named_prefix_is_ambiguous_among_live_sessions(tmp
     assert "deadbeef" in detail
 
 
+def test_bd_seats_uses_the_tail_stripped_value_not_the_rendered_string_for_named_seats(
+    tmp_path, monkeypatch,
+):
+    """Gemini/agy Medium finding (repair 1, 2026-09-29): `named_bad_seats` parses a
+    `seat_health_line`'s own segments, not a rendered `StateRow` string -- passing the raw
+    rendered `value` (its ' — evidence: ... [FRESHNESS]' tail included) worked only by
+    coincidence, because the LAST named segment's lazy match extends all the way into that
+    tail when no later ' / UPPERCASE:' marker follows it. If the evidence text itself happens
+    to contain '; ' followed by something shaped like '<label> (<detail>)', the coincidental
+    parse reads a PHANTOM extra 'named bad seat' out of the evidence text -- a false FAIL
+    against an id nothing in the real registry ever named. Passing the already tail-stripped
+    `underlying` (computed by shape sanity a few lines above) is immune."""
+    path = tmp_path / "seats.jsonl"
+    monkeypatch.setattr(hs._sr, "REGISTRY_PATH", path)
+    t0 = datetime(2026, 9, 27, 12, 0, tzinfo=timezone.utc)
+    hs._sr.bind("integrator", "AB", session_id="deadbeef-real", path=path, now=t0)
+    cut_at = t0 + timedelta(minutes=hs._sr.WEDGED_AFTER_MIN + 1)
+    monkeypatch.setattr(hs._sr, "_now", lambda: cut_at)
+    cut_row = hs.row_seats()
+    assert "WEDGED" in cut_row.value  # sanity: the fixture actually names a stalled seat
+
+    # A forged evidence tail whose OWN text contains '; ' followed by a label-shaped fragment
+    # -- exactly the shape the coincidental old parse mis-reads as a second named bad seat.
+    forged = f"{cut_row.value} — evidence: forged; ghostbeef (0 min) [LIVE]"
+
+    status, detail = vhp._rule_bd_seats(forged, _seats_ctx())
+    assert status == "pass", detail
+    assert "ghostbeef" not in detail
+
+
 def test_row_substrates_counts_only_live_true(tmp_path):
     repo = _repo_with_registries(tmp_path)
     row = hs.row_substrates(repo)

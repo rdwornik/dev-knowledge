@@ -1506,7 +1506,13 @@ def _rule_bd_seats(value: str, ctx: _BootCtx) -> tuple[str, str]:      # noqa: A
         prefix = seat.session_id[:8]
         prefix_counts[prefix] = prefix_counts.get(prefix, 0) + 1
     resolvable = set(prefix_counts)
-    cut_named = _sr.named_bad_seats(value)
+    # `underlying` (the tail-stripped cut value, already shape-validated above) -- never the
+    # raw rendered `value` -- matches `fresh.value`'s own un-rendered shape: `named_bad_seats`
+    # parses a `seat_health_line`'s own segments, not a `StateRow.rendered()` string, and only
+    # worked on the raw `value` by coincidence (`entry.split(" (", 1)` happens to discard the
+    # ` — evidence: ... [FRESHNESS]` tail along with each label's own `(detail)` parenthetical --
+    # Gemini/agy Medium finding, repair 1, 2026-09-29).
+    cut_named = _sr.named_bad_seats(underlying)
     live_named = _sr.named_bad_seats(fresh.value)
     cut_any = cut_named["wedged"] | cut_named["starved"]
     live_any = live_named["wedged"] | live_named["starved"]
