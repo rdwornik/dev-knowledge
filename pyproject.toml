@@ -162,6 +162,17 @@ dev = [
     # NO ecosystem/dependency-baseline.yaml row -- same reasoning as psutil/filelock: this
     # module is HUB-ONLY, ships in no carrier and no deploy-manifest component.
     "platformdirs>=4.11",
+    # pdfplumber (MIT) -- scripts/read_gate.py's local PDF text extraction (LANE-5B5-11, AMEND
+    # v3 "Add: N5-11 -- the read gate, with fall-through"). AUTHORIZATION quoted verbatim in
+    # that contract: the AMEND -- "This lane adds `pdfplumber` through `uv` -- neither library
+    # is in `uv.lock` at 13fce088." and "`PyMuPDF` (AGPL) is not added without the operator's
+    # word."; the batch -- "`pdfplumber` (MIT) ... its MIT licence raises no question in a
+    # public repository"; both authorized by the operator's paste of the launch order v3
+    # (O-9). LIBRARY-FIRST: a reader, not a writer -- stdlib `zipfile`/`html.parser` cover
+    # EPUB, so this is the one format (PDF) stdlib cannot parse.
+    # NO ecosystem/dependency-baseline.yaml row -- read_gate.py is HUB-ONLY today (consumed by
+    # LANE-5B5-10-lane-m06-reread.md in-repo), same reasoning as psutil/filelock/platformdirs.
+    "pdfplumber>=0.11.10",
 ]
 # L5a descriptive analytics lane ([#384], intake #16 section 3). Separate group: the lane is
 # HUB-ONLY (it mines siblings read-only but runs here), so a consumer never needs it and it
