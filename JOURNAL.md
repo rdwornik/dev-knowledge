@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-09-29 (c) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5-R): the rulings ratified since 2026-09-26 reach the register, the registry names the dispatcher's model, and CLAUDE.md rule 4 says what R11(3) ratified
+
+**Anchors:** `c4a095c3`, `97ebf286`, `2febc2be`, `06778a15` -- `worktree-lane-ratified-unbuilt` (L7, ordered and served `claude-sonnet-5`), merged `--no-ff` in integration branch `epic/wave5b-n5-r-int-lane-ratified-unbuilt`.
+
+**Did:** `protocols/STANDING_RULINGS.md` gains §AO with R18-R31, each quoted from its RATIFICATION file with file and version cited; R29 and R31 are marked batch-scoped (WAVE5B-N5-R). The lane checked §AN first and found R1-R17 all written in full, so §AO restates none of them. `ecosystem/provider-registry.yaml` gains a top-level `dispatcher:` pin (`claude-sonnet-5`, R22 as evidence) and leaves every `roles.*.order` unchanged. `check_provider_registry.py` checks that the pin's evidence exists in the repo; this fixes a Codex terra HIGH. A RED-first test, `tests/test_provider_registry_dispatcher.py`, covers the pin. `CLAUDE.md` §5 rule 4 now names the dispatch CLI's Codespace substrate as R11(3)'s sanctioned exception, by pointer. Rule 4 sits outside the `critical-rules-records` hub region, whose end marker precedes it, so the region template is unchanged.
+
+**Result:** a session booting from the repository sees the rulings the operator ratified since 2026-09-26. The registry and the launch order agree on the dispatcher's model. CLAUDE.md is 23,604 B of 24,576 B.
+
+**Changes:** `protocols/STANDING_RULINGS.md`, `ecosystem/provider-registry.yaml`, `ecosystem/schema/provider_registry.py`, `scripts/check_provider_registry.py`, `tests/test_provider_registry.py`, `tests/test_provider_registry_dispatcher.py`, `CLAUDE.md`, one Codex audit; regenerated `docs/audits/README.md`, `ecosystem/doc-counts.md`.
+
+**Next:** the verdict is CI on this integration branch, both legs, attributed against base `424d6c72`'s run 36497097230.
+
 ### 2026-09-29 (b) - CC (Opus 5.5, HANDOFF CUT 2026-09-24 window): the 2026-09-24 window's architect bundle is cut, filled and verified 37/37
 
 **Anchors:** `cbf3ff78` -- `worktree-handoff-cut-2026-09-28-d`, merged `--no-ff`.

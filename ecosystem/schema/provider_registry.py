@@ -39,15 +39,19 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, StrictStr, model_validator
 
-#: 1.2.0 — LANE-5B-2 adds `Provider.model_currency` and `RoleEntry.currency_exception` (Done
-#: item 4: a role's pinned id is the newest its provider's CLI lists, or carries a dated
-#: exception). MINOR, not major: both fields are optional, so every pre-LANE-5B-2 registry
-#: still validates unchanged. 1.1.0 was `[#691]`'s THIRD collection (`roles:`: ordered
-#: fallback lists, per-entry admission, the reviewer-not-producer flag) and the per-provider
-#: `licence:` block. Not a member of `validate_reconciliation._SPEC_REGISTRY` (which registers
-#: `handoff-process` and `prompt-template` only), so this bump carries no reconciliation
-#: obligation — checked rather than assumed.
-SCHEMA_VERSION = "1.2.0"
+#: 1.3.0 — `lane-ratified-unbuilt` (WAVE5B-N5-R, R22) adds `ProviderRegistry.dispatcher`
+#: (`DispatcherPin`): the model the dispatcher session itself runs on. NOT a `roles:` entry —
+#: the dispatcher is a session type whose logic is code, not one of AX21-1's six
+#: producer/reviewer roles, and R22 is an explicit override against `roles.orchestrate`
+#: (Opus-only, not rerankable), not a repoint of it. MINOR: the field is optional, so every
+#: pre-R22 registry still validates unchanged. 1.2.0 was LANE-5B-2's `Provider.model_currency`
+#: and `RoleEntry.currency_exception` (Done item 4: a role's pinned id is the newest its
+#: provider's CLI lists, or carries a dated exception). 1.1.0 was `[#691]`'s THIRD collection
+#: (`roles:`: ordered fallback lists, per-entry admission, the reviewer-not-producer flag) and
+#: the per-provider `licence:` block. Not a member of `validate_reconciliation._SPEC_REGISTRY`
+#: (which registers `handoff-process` and `prompt-template` only), so this bump carries no
+#: reconciliation obligation — checked rather than assumed.
+SCHEMA_VERSION = "1.3.0"
 
 #: A verdict's closed vocabulary. `unevaluated` is a first-class member on purpose: a provider
 #: nobody has run through the admission pipeline is a KNOWN state, not a missing one, and
@@ -555,6 +559,40 @@ class RoleEntry(_Contract):
     currency_exception: Optional[CurrencyException] = None
 
 
+class DispatcherPin(_Contract):
+    """The model the dispatcher session itself runs on — R22, and NOT a `roles:` entry.
+
+    `roles:` answers "who produces / reviews / reads / etc." for AX21-1's six-role vocabulary;
+    the dispatcher session runs `dispatch.py`'s own logic, which is code, not judgment, and R22
+    is an explicit override against `roles.orchestrate` (Opus-only, `rerankable: false`), not a
+    repoint of it — the two stay independent so aligning this row can never silently move
+    orchestrate's own pin. A single pin, not an ordered fallback list: R22 names no fallback.
+
+    Provenance-bearing on the same principle as `RoleAdmission` and `ProviderLicence`: a bare
+    `model: claude-sonnet-5` is an assertion, not a record of the ruling that put it there.
+    """
+
+    provider: StrictStr
+    model: StrictStr
+    #: Why this pin exists, or the override it records — free text, same role as `RoleEntry.note`.
+    note: Optional[StrictStr] = None
+    decided_by: StrictStr
+    decided_on: datetime.date
+    #: Repo-relative path to the ruling's record. Same shape rule as `RoleAdmission.evidence`.
+    evidence: StrictStr
+
+    @model_validator(mode="after")
+    def _evidence_is_a_repo_relative_path(self) -> "DispatcherPin":
+        p = PurePosixPath(self.evidence.replace("\\", "/"))
+        if p.is_absolute() or ".." in p.parts or re.match(r"^[A-Za-z]:", self.evidence):
+            raise ValueError(
+                f"dispatcher.evidence `{self.evidence}` is not a repo-relative path — an "
+                f"absolute or climbing path can exist while proving nothing about this "
+                f"repository"
+            )
+        return self
+
+
 class Role(_Contract):
     """A role's ordered fallback list plus the two rules that are not re-rankable.
 
@@ -620,6 +658,30 @@ class ProviderRegistry(_Contract):
     #: quoted in. OPTIONAL on the same terms as `roles:` above: a registry carrying no prices at
     #: all stays loadable, which is what every consumer that predates this field needs.
     rate_card: Optional[RateCard] = None
+    #: R22 — the model the dispatcher session runs on. OPTIONAL so every pre-R22 registry stays
+    #: loadable; NOT part of `roles:` (see `DispatcherPin`'s docstring for why the two vocabularies
+    #: stay separate).
+    dispatcher: Optional[DispatcherPin] = None
+
+    @model_validator(mode="after")
+    def _the_dispatcher_pin_names_a_declared_provider_and_model(self) -> "ProviderRegistry":
+        if self.dispatcher is None:
+            return self
+        if self.dispatcher.provider not in self.providers:
+            raise ValueError(
+                f"dispatcher names undeclared provider `{self.dispatcher.provider}`"
+            )
+        model = self.models.get(self.dispatcher.model)
+        if model is None:
+            raise ValueError(f"dispatcher pins undeclared model `{self.dispatcher.model}`")
+        if model.provider != self.dispatcher.provider:
+            raise ValueError(
+                f"dispatcher pins model `{self.dispatcher.model}`, which belongs to provider "
+                f"`{model.provider}`, not `{self.dispatcher.provider}` — a pin that crosses "
+                f"providers makes the allowlist check and the admission check disagree about "
+                f"which vendor is being routed to"
+            )
+        return self
 
     @model_validator(mode="after")
     def _a_price_without_its_units_is_refused(self) -> "ProviderRegistry":
@@ -806,6 +868,7 @@ __all__ = [
     "ROLE_NAMES",
     "SCHEMA_VERSION",
     "CurrencyException",
+    "DispatcherPin",
     "Licence",
     "Model",
     "ModelCurrency",

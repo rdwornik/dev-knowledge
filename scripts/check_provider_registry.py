@@ -316,6 +316,35 @@ def check_s31_council_panel(root: Path) -> list[str]:
     return out
 
 
+def _evidence_error(rel: object, tree: Path, label: str) -> str | None:
+    """One `evidence:` string's shape+existence refusal, or `None` if it resolves cleanly.
+
+    Factored out of `check_role_admission_evidence` (terra HIGH round 2, 2026-08-23) when
+    `check_dispatcher_evidence` needed the identical three-step test (Codex terra HIGH, this
+    lane, 2026-09-29): a schema can refuse a decided verdict with no `evidence:` string at all
+    but is models-only and cannot touch the filesystem, so any caller with a schema-checked
+    `evidence:` field needs this same resolve-and-verify half.
+    """
+    rel = str(rel)
+    # An ABSOLUTE path, or one that climbs out of the checked tree, resolves to a file this
+    # repo does not own — so it can "exist" while proving nothing about this tree (terra HIGH,
+    # 2026-08-23). Refused on shape, before the existence test, because the existence test is
+    # exactly what such a path defeats.
+    candidate = Path(rel)
+    if candidate.is_absolute() or ".." in candidate.parts:
+        return f"{label}: evidence `{rel}` is not a repo-relative path inside the checked tree"
+    resolved = (tree / candidate).resolve()
+    if not resolved.is_relative_to(tree):
+        return f"{label}: evidence `{rel}` resolves outside the checked tree ({resolved})"
+    # `is_file`, not `exists` (terra HIGH round 2, 2026-08-23): `evidence: "."` resolves inside
+    # the tree and exists, while citing no measurement at all. Evidence is an artifact, so the
+    # test is that it IS one.
+    if not resolved.is_file():
+        return (f"{label}: evidence `{rel}` is not a file in the checked tree — a verdict "
+                 f"citing a missing artifact is an assertion, not a record")
+    return None
+
+
 def check_role_admission_evidence(root: Path) -> list[str]:
     """Every recorded admission verdict points at an artifact that exists.
 
@@ -332,31 +361,28 @@ def check_role_admission_evidence(root: Path) -> list[str]:
         rel = record.get("evidence")
         if rel is None:                              # legitimate only for `unevaluated`
             continue
-        rel = str(rel)
-        # An ABSOLUTE path, or one that climbs out of the checked tree, resolves to a file
-        # this repo does not own — so it can "exist" while proving nothing about this tree
-        # (terra HIGH, 2026-08-23). Refused on shape, before the existence test, because the
-        # existence test is exactly what such a path defeats.
-        candidate = Path(rel)
-        if candidate.is_absolute() or ".." in candidate.parts:
-            out.append(
-                f"role_admission {mid}/{role}: evidence `{rel}` is not a repo-relative path "
-                f"inside the checked tree")
-            continue
-        resolved = (tree / candidate).resolve()
-        if not resolved.is_relative_to(tree):
-            out.append(
-                f"role_admission {mid}/{role}: evidence `{rel}` resolves outside the checked "
-                f"tree ({resolved})")
-            continue
-        # `is_file`, not `exists` (terra HIGH round 2, 2026-08-23): `evidence: "."` resolves
-        # inside the tree and exists, while citing no measurement at all. Evidence is an
-        # artifact, so the test is that it IS one.
-        if not resolved.is_file():
-            out.append(
-                f"role_admission {mid}/{role}: evidence `{rel}` is not a file in the checked "
-                f"tree — a verdict citing a missing artifact is an assertion, not a record")
+        err = _evidence_error(rel, tree, f"role_admission {mid}/{role}")
+        if err:
+            out.append(err)
     return out
+
+
+def check_dispatcher_evidence(root: Path) -> list[str]:
+    """The `dispatcher:` pin's `evidence:` points at an artifact that exists (R22).
+
+    Same rule, and the same reason, as `check_role_admission_evidence`: `DispatcherPin`'s
+    schema refuses a missing `evidence:` string but cannot resolve it against the filesystem,
+    so a dead locator there would leave R22's pin provenance unfalsifiable (Codex terra HIGH,
+    `lane-ratified-unbuilt`, 2026-09-29).
+    """
+    dispatcher = _preg.load_registry().get("dispatcher")
+    if not dispatcher:
+        return []
+    rel = dispatcher.get("evidence")
+    if rel is None:                                   # refused by the schema; nothing to check
+        return []
+    err = _evidence_error(rel, Path(root).resolve(), "dispatcher")
+    return [err] if err else []
 
 
 def check_registry_shape() -> list[str]:
@@ -396,6 +422,7 @@ def run(root: Path | None = None) -> list[str]:
     findings += check_s31_council_panel(r)
     findings += check_provenance_pins(r)
     findings += check_role_admission_evidence(r)
+    findings += check_dispatcher_evidence(r)
     return findings
 
 
