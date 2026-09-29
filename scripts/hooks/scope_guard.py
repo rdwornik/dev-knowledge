@@ -171,34 +171,73 @@ _PCT_VAR = re.compile(r"%([A-Za-z_][A-Za-z0-9_]*)%")
 _DOLLAR_VAR = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)")
 
 #: A cmd.exe same-line `set VAR=value` assignment -- `&`/`;`/newline-delimited, matching the
-#: repair-1 Codex terra review's own reproduction (`set X=...& type ...%X%...`). The VALUE is
-#: itself a literal already present in the command text, so substituting it for a later `%VAR%`
-#: on the same line needs no shell execution -- see the module docstring, "HONEST LIMIT".
-_CMD_SET = re.compile(r"(?:^|[&;\n])\s*set\s+([A-Za-z_][A-Za-z0-9_]*)=(.*?)(?=[&;\n]|$)",
-                       re.IGNORECASE)
+#: repair-1 Codex terra review's own reproduction (`set X=...& type ...%X%...`). Two forms,
+#: tried in order: the QUOTED whole-assignment form cmd.exe itself recommends
+#: (`set "X=OneDrive - Blue Yonder"`, closing quote delimits the value even with trailing
+#: spaces) and the bare form. Fresh Codex terra review (this redo, item 6): the bare-only
+#: pattern missed the quoted form entirely, leaving its same-line expansion unresolved and
+#: allowed. The VALUE is itself a literal already present in the command text, so
+#: substituting it for a later `%VAR%` on the same line needs no shell execution -- see the
+#: module docstring, "HONEST LIMIT".
+_CMD_SET = re.compile(
+    r'(?:^|[&;\n])\s*set\s+(?:"([A-Za-z_][A-Za-z0-9_]*)=([^"]*)"'
+    r'|([A-Za-z_][A-Za-z0-9_]*)=(.*?)(?=[&;\n]|$))',
+    re.IGNORECASE)
 
 
 def _local_set_vars(command: str) -> dict[str, str]:
     """Every `set VAR=value` this command text assigns, keyed upper-case (Windows env-var
     names are case-insensitive) -- `{}` for a command with no `set` at all, the common case,
     so callers can skip the substitution pass entirely."""
-    return {m.group(1).upper(): m.group(2).strip() for m in _CMD_SET.finditer(command)}
+    out: dict[str, str] = {}
+    for m in _CMD_SET.finditer(command):
+        name = m.group(1) or m.group(3)
+        value = m.group(2) if m.group(1) is not None else m.group(4)
+        out[name.upper()] = value.strip()
+    return out
+
+
+def _ci_environ_get(name: str) -> str | None:
+    """`os.environ.get`, but a Windows-style `%VAR%`/`$env:VAR` lookup is case-INSENSITIVE
+    (Windows environment-variable names are, unlike POSIX's) -- fresh Codex terra review (this
+    redo, item 6): a plain `os.environ.get` left `%dk_test_root%` unresolved against a
+    `DK_TEST_ROOT` set by `monkeypatch.setenv`, contradicting this module's own claimed
+    cross-OS Windows-token behaviour whenever the two cases disagree. Exact match tried first
+    (the common, cheap case); the case-insensitive scan only runs on a miss."""
+    value = os.environ.get(name)
+    if value is not None:
+        return value
+    upper = name.upper()
+    for key, val in os.environ.items():
+        if key.upper() == upper:
+            return val
+    return None
 
 
 def _expand_env_vars(token: str, local_vars: dict[str, str]) -> str:
-    """`%VAR%` and `$VAR`/`${VAR}` expanded against `local_vars` first (a same-line `set` this
-    command text itself made), then `os.environ` -- an unresolvable reference is left as-is
-    (the existing candidate/normalize/match pipeline still evaluates the literal text, it just
-    will not happen to land in the excluded root, the same posture an absent env var takes
-    today)."""
+    """`%VAR%`/`$env:VAR` (Windows-style, case-insensitive) and `$VAR`/`${VAR}` (POSIX,
+    case-sensitive -- POSIX environment-variable names are, and a case-insensitive lookup
+    there would be a WRONG semantic, not a portability fix) expanded against `local_vars`
+    first (a same-line `set` this command text itself made), then `os.environ` -- an
+    unresolvable reference is left as-is (the existing candidate/normalize/match pipeline
+    still evaluates the literal text, it just will not happen to land in the excluded root,
+    the same posture an absent env var takes today)."""
 
-    def _sub(name: str, whole: str) -> str:
+    def _pct_sub(match: re.Match) -> str:
+        name = match.group(1)
         if name.upper() in local_vars:
             return local_vars[name.upper()]
-        return os.environ.get(name, whole)
+        value = _ci_environ_get(name)
+        return value if value is not None else match.group(0)
 
-    token = _PCT_VAR.sub(lambda m: _sub(m.group(1), m.group(0)), token)
-    token = _DOLLAR_VAR.sub(lambda m: _sub(m.group(1) or m.group(2), m.group(0)), token)
+    def _dollar_sub(match: re.Match) -> str:
+        name = match.group(1) or match.group(2)
+        if name.upper() in local_vars:
+            return local_vars[name.upper()]
+        return os.environ.get(name, match.group(0))
+
+    token = _PCT_VAR.sub(_pct_sub, token)
+    token = _DOLLAR_VAR.sub(_dollar_sub, token)
     return token
 
 
@@ -272,12 +311,20 @@ def _looks_like_path(token: str) -> bool:
     return bool(_PATH_HINT.search(token))
 
 
-#: A run of two-or-more double-quoted literals joined by `+` (PowerShell/JS-style string
+#: A single quoted literal, EITHER quote style -- PowerShell allows each concatenated operand
+#: its own independent choice of `"..."` or `'...'`.
+_QUOTED_LITERAL = r'"[^"]*"|\'[^\']*\''
+_QUOTED_LITERAL_PIECE = re.compile(r'"([^"]*)"|\'([^\']*)\'')
+
+#: A run of two-or-more quoted literals joined by `+` (PowerShell/JS-style string
 #: concatenation) -- `"C:\...\" + "OneDrive" + " - Blue Yonder" + "\f.txt"` never places the
 #: root's literal name in one shell WORD, so `shlex` alone cannot see it, but every piece is
 #: still literal text this guard can read and join without executing anything (Codex terra
-#: review P1, repair 1 -- the reviewer's own reproduction; Done-contract item 9).
-_STRING_CONCAT = re.compile(r'(?:"[^"]*"\s*\+\s*)+"[^"]*"')
+#: review P1, repair 1 -- the reviewer's own reproduction; Done-contract item 9). SINGLE
+#: quotes matter here too, not just double: fresh Codex terra review (this redo, item 6)
+#: found `Get-Item ('OneDrive' + ' - Blue Yonder')` -- a valid PowerShell single-quoted
+#: concatenation -- unmatched by a double-quote-only pattern.
+_STRING_CONCAT = re.compile(rf'(?:(?:{_QUOTED_LITERAL})\s*\+\s*)+(?:{_QUOTED_LITERAL})')
 
 
 def _concatenated_literal_candidates(command: str) -> list[str]:
@@ -286,19 +333,31 @@ def _concatenated_literal_candidates(command: str) -> list[str]:
     command hits -- see `test_a_word_that_merely_mentions_the_zone_name_in_prose...`) is
     already a strong enough signal, and a bare root name joined from pieces
     (`"OneDrive" + " - Blue Yonder"`) carries no separator to trigger the path-hint filter at
-    all despite being exactly the construction Done-contract item 9 names."""
+    all despite being exactly the construction Done-contract item 9 names.
+
+    ONLY called for the `PowerShell` tool (see `_command_candidates`) -- `+` between two
+    quoted strings is PowerShell's own concatenation OPERATOR, evaluated by that interpreter;
+    in POSIX shell syntax (the `Bash` tool) it is not special at all, so the identical text
+    inside a `Bash` command -- a `git commit -m` message QUOTING this very construction as an
+    example, discovered live when this lane's own commit message did exactly that -- is prose,
+    never code, and must not be treated as a candidate."""
     out: list[str] = []
     for match in _STRING_CONCAT.finditer(command):
-        joined = "".join(re.findall(r'"([^"]*)"', match.group(0)))
+        joined = "".join(
+            piece.group(1) if piece.group(1) is not None else piece.group(2)
+            for piece in _QUOTED_LITERAL_PIECE.finditer(match.group(0))
+        )
         if joined:
             out.append(joined)
     return out
 
 
-def _command_candidates(command: str) -> list[str]:
-    """Every path-shaped shell word in `command`, scanned one LINE at a time, PLUS any
-    string-concatenation candidates the whole command text assembles (`_concatenated_literal_
-    candidates`, not line-scoped since PowerShell allows the `+` chain to wrap).
+def _command_candidates(command: str, tool: str) -> list[str]:
+    """Every path-shaped shell word in `command`, scanned one LINE at a time, PLUS -- for the
+    `PowerShell` tool ONLY -- any string-concatenation candidates the whole command text
+    assembles (`_concatenated_literal_candidates`, not line-scoped since PowerShell allows the
+    `+` chain to wrap; tool-scoped because `+` between quoted strings is PowerShell's own
+    operator, not POSIX shell syntax -- see that function's docstring).
 
     A newline ends a command; `shlex` treats it as ordinary whitespace, so scanning the whole
     command as one `shlex` stream would let a path on the line after a heredoc marker fold into
@@ -308,7 +367,7 @@ def _command_candidates(command: str) -> list[str]:
     fixed it the same way. An unparseable line yields no candidates from it (never raises), the
     same "a search that cannot be tokenized allows" posture `deny_and_point.py` takes.
     """
-    out: list[str] = list(_concatenated_literal_candidates(command))
+    out: list[str] = list(_concatenated_literal_candidates(command)) if tool == "PowerShell" else []
     for line in command.split("\n"):
         if not line.strip():
             continue
@@ -354,7 +413,8 @@ def candidate_tokens(payload: dict) -> list[str]:
         return []
     if tool in SHELL_TOOLS:
         command = tool_input.get("command")
-        return _command_candidates(command) if isinstance(command, str) and command.strip() else []
+        return (_command_candidates(command, tool)
+                if isinstance(command, str) and command.strip() else [])
     if tool in NAMED_FIELD_TOOLS:
         out = []
         for field in PATH_FIELDS:

@@ -518,3 +518,97 @@ def test_a_word_that_merely_mentions_the_zone_name_in_prose_still_stays_allowed_
         ROOTS)
 
     assert decision == "allow", reason
+
+
+def test_a_bash_commit_message_quoting_the_concatenation_example_as_prose_is_still_allowed():
+    """Live-discovered while committing THIS lane's own fix: a `git commit -m` message that
+    QUOTES the PowerShell concatenation construction as a worked example
+    (`'OneDrive' + ' - Blue Yonder'`) trips the concatenation scan if the scan is not
+    tool-scoped -- `+` between quoted strings is a PowerShell operator, not POSIX shell
+    syntax, so the identical text inside a `Bash` command is prose, never code
+    (`_concatenated_literal_candidates` only runs for the `PowerShell` tool)."""
+    decision, reason = guard.decide(
+        _payload("Bash", {
+            "command": "git commit -m \"fix: handle 'OneDrive' + ' - Blue Yonder' "
+                       "concatenation\"",
+        }),
+        ROOTS)
+
+    assert decision == "allow", reason
+
+
+# ==================================== K. FRESH CODEX TERRA REVIEW P1s (this redo, item 6)
+
+def test_a_powershell_single_quoted_concatenation_assembling_the_root_name_is_refused(tmp_path):
+    """Codex terra review P1 (this redo): PowerShell allows EITHER quote style per
+    concatenated operand -- a double-quote-only pattern missed `'OneDrive' + ' - Blue
+    Yonder'`."""
+    (tmp_path / "OneDrive - Blue Yonder").mkdir()
+
+    decision, reason = guard.decide(
+        _payload("PowerShell", {"command": "Get-Item ('OneDrive' + ' - Blue Yonder')"},
+                  cwd=str(tmp_path)),
+        ROOTS)
+
+    assert decision == "block", reason
+
+
+def test_a_mixed_quote_style_concatenation_is_also_refused(tmp_path):
+    (tmp_path / "OneDrive - Blue Yonder").mkdir()
+
+    decision, reason = guard.decide(
+        _payload("PowerShell", {"command": 'Get-Item ("OneDrive" + \' - Blue Yonder\')'},
+                  cwd=str(tmp_path)),
+        ROOTS)
+
+    assert decision == "block", reason
+
+
+def test_a_windows_style_percent_var_expansion_is_case_insensitive(tmp_path, monkeypatch):
+    """Codex terra review P1 (this redo): `os.environ.get` alone is case-sensitive, but
+    Windows environment-variable names are not -- `%dk_test_root%` must still resolve
+    against an env var actually set as `DK_TEST_ROOT`."""
+    (tmp_path / "OneDrive - Blue Yonder").mkdir()
+    monkeypatch.setenv("DK_TEST_ROOT", str(tmp_path))
+
+    decision, _ = guard.decide(
+        _payload("Read", {"file_path": "%dk_test_root%\\OneDrive - Blue Yonder\\f.txt"}),
+        ROOTS)
+
+    assert decision == "block"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="os.environ itself is already case-insensitive "
+                                             "on nt, so this distinction is only observable "
+                                             "on a platform whose os.environ is not")
+def test_a_dollar_form_posix_env_var_stays_case_sensitive(monkeypatch):
+    """The POSIX `$VAR`/`${VAR}` form is deliberately NOT given the same case-insensitive
+    fallback this module adds for `%VAR%` -- POSIX environment-variable names ARE
+    case-sensitive, so a lookup that ignored case there would be a wrong semantic, not a
+    portability fix. (`os.environ` on `nt` is already case-insensitive at the mapping level,
+    independent of anything this module does, so the distinction is only testable here.)"""
+    monkeypatch.delenv("dk_lowercase_only", raising=False)
+    monkeypatch.setenv("dk_lowercase_only", "/some/other/place")
+
+    decision, reason = guard.decide(
+        _payload("Bash", {"command": "cat $DK_LOWERCASE_ONLY/f.txt"}), ROOTS)
+
+    assert decision == "allow", reason
+
+
+def test_a_quoted_cmd_set_assignment_with_same_line_expand_is_refused(tmp_path):
+    """Codex terra review P1 (this redo): cmd.exe's QUOTED whole-assignment form
+    (`set "X=value"`, the form cmd.exe itself recommends so trailing spaces survive) was not
+    matched by a bare-only pattern, leaving its same-line `%X%` expansion unresolved and
+    allowed."""
+    zone_dir = tmp_path / "OneDrive - Blue Yonder"
+    zone_dir.mkdir()
+    (zone_dir / "f.txt").write_text("x", encoding="utf-8")
+
+    decision, reason = guard.decide(
+        _payload("Bash",
+                  {"command": f'set "X=OneDrive - Blue Yonder" & type "{tmp_path}\\%X%\\f.txt"'},
+                  cwd=str(tmp_path)),
+        ROOTS)
+
+    assert decision == "block", reason
