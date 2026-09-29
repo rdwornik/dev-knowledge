@@ -320,7 +320,8 @@ def test_verify_pass_on_live_grounded_symbol_probe(tmp_path):
     assert by["P2"].status == "pass"
 
 
-@pytest.mark.skipif(shutil.which("grep") is None, reason="grep not in PATH")
+@pytest.mark.skipif(not vhp._exe_available("grep"), reason="grep not resolvable "
+                    "(not on PATH, and no Git-for-Windows usr/bin fallback found)")
 def test_verify_pass_on_live_grounded_anchor_probe(tmp_path):
     bundle = _init_bundle(tmp_path, [_PASS_ANCHOR])
     by = _by_id(vhp.verify(bundle))
@@ -492,6 +493,57 @@ def test_verify_skipped_when_executable_absent(tmp_path, monkeypatch):
     assert by["P2"].status != "pass"
 
 
+# --- [#1124] batch L6: the Windows skip -- grep/sed/ls/head via Git-for-Windows usr/bin -----
+
+def _fake_git_install(tmp_path, *bundled_tools):
+    """A minimal Git-for-Windows-shaped directory: `cmd/git.exe` (the usual PATH entry) and
+    `usr/bin/<tool>.exe` for each name in `bundled_tools`. Returns the `git.exe` path."""
+    gitroot = tmp_path / "Git"
+    (gitroot / "cmd").mkdir(parents=True)
+    (gitroot / "usr" / "bin").mkdir(parents=True)
+    git_exe = gitroot / "cmd" / "git.exe"
+    git_exe.write_text("", encoding="utf-8")
+    for tool in bundled_tools:
+        (gitroot / "usr" / "bin" / f"{tool}.exe").write_text("", encoding="utf-8")
+    return git_exe
+
+
+def test_git_bundled_tool_resolves_from_gits_own_usr_bin(tmp_path, monkeypatch):
+    git_exe = _fake_git_install(tmp_path, "grep")
+    monkeypatch.setattr(vhp.shutil, "which", lambda name: str(git_exe) if name == "git" else None)
+    assert vhp._git_bundled_tool("grep") == str(git_exe.parent.parent / "usr" / "bin" / "grep.exe")
+    assert vhp._git_bundled_tool("sed") is None              # not present in THIS fake layout
+    assert vhp._git_bundled_tool("some-other-tool") is None  # outside the closed 4-name enum
+
+
+def test_exe_available_uses_the_git_fallback_but_never_synthesizes_a_pass(tmp_path, monkeypatch):
+    git_exe = _fake_git_install(tmp_path, "head")
+    monkeypatch.setattr(vhp.shutil, "which", lambda name: str(git_exe) if name == "git" else None)
+    assert vhp._exe_available("head") is True               # found via the fallback
+    assert vhp._exe_available("sed") is False                # in the enum, but absent even there
+    assert vhp._exe_available("a-genuinely-absent-tool") is False  # outside the enum entirely
+
+
+def test_exe_available_with_no_git_on_path_never_synthesizes_a_pass(monkeypatch):
+    monkeypatch.setattr(vhp.shutil, "which", lambda _name: None)
+    for name in ("grep", "sed", "ls", "head"):
+        assert vhp._exe_available(name) is False
+
+
+def test_a_grep_led_probe_resolves_via_the_git_fallback_not_skipped(tmp_path, monkeypatch):
+    """RED against the pre-fix `_exe_available` (bare `shutil.which`) on a box where grep is
+    on disk (via a Git-for-Windows-shaped install) but not on PATH -- exactly this codebase's
+    own Windows shape (`to-browser/SESSION-handoff-cut-2026-09-28.md`'s 8-row skip). GREEN
+    once the fallback is wired: the probe classifies all the way to 'pass', never 'skipped'.
+    Fully hermetic (never touches the real PATH or a real git install), so it holds the same
+    on the Windows and Linux CI legs alike."""
+    git_exe = _fake_git_install(tmp_path / "gitinstall", "grep")
+    monkeypatch.setattr(vhp.shutil, "which", lambda name: str(git_exe) if name == "git" else None)
+    bundle = _init_bundle(tmp_path, [_PASS_ANCHOR])
+    by = _by_id(vhp.verify(bundle))
+    assert by["P1a"].status == "pass"
+
+
 def test_format_findings_lists_only_fails_no_pipe(tmp_path):
     bundle = _init_bundle(tmp_path, [_PASS_SYMBOL, _FAIL_MISSING])
     out = vhp.format_findings(vhp.verify(bundle))
@@ -506,7 +558,8 @@ def test_format_findings_lists_only_fails_no_pipe(tmp_path):
 # fallback resolves it IFF exactly one NON-excluded file carries that basename;
 # zero or >1 still FAIL (teeth preserved); excluded-dir duplicates never count.
 
-@pytest.mark.skipif(shutil.which("grep") is None, reason="grep not in PATH")
+@pytest.mark.skipif(not vhp._exe_available("grep"), reason="grep not resolvable "
+                    "(not on PATH, and no Git-for-Windows usr/bin fallback found)")
 def test_resolve_unique_basename_without_dir_prefix_passes(tmp_path):
     # source names a bare basename whose only live copy sits in a subdir -> resolves.
     row = ("P8", "where does the boilerplate live",
@@ -540,7 +593,8 @@ def test_resolve_zero_basename_match_fails(tmp_path):
     assert "NOWHERE.md" in by["PB"].detail
 
 
-@pytest.mark.skipif(shutil.which("grep") is None, reason="grep not in PATH")
+@pytest.mark.skipif(not vhp._exe_available("grep"), reason="grep not resolvable "
+                    "(not on PATH, and no Git-for-Windows usr/bin fallback found)")
 def test_resolve_basename_ignores_excluded_dir_duplicates(tmp_path):
     # a live copy + duplicates under excluded dirs (archive*/, .claude/worktrees/…)
     # -> still exactly ONE non-excluded match -> resolves (no false-ambiguity FAIL).
@@ -618,7 +672,8 @@ def test_check_warns_on_anchor_missing(tmp_path):
     assert "anchor" in findings[0].evidence.lower()
 
 
-@pytest.mark.skipif(shutil.which("grep") is None, reason="grep not in PATH")
+@pytest.mark.skipif(not vhp._exe_available("grep"), reason="grep not resolvable "
+                    "(not on PATH, and no Git-for-Windows usr/bin fallback found)")
 def test_check_passes_when_all_probes_bind(tmp_path):
     repo = _repo_with_bundle(tmp_path, [_PASS_SYMBOL, _PASS_ANCHOR])
     assert aud.check_handoff_probes(repo)[0].status == "pass"
@@ -766,7 +821,8 @@ def test_verify_cross_repo_missing_target_still_fails(tmp_path):
     assert "GONE.md" in by["PM"].detail
 
 
-@pytest.mark.skipif(shutil.which("grep") is None, reason="grep not in PATH")
+@pytest.mark.skipif(not vhp._exe_available("grep"), reason="grep not resolvable "
+                    "(not on PATH, and no Git-for-Windows usr/bin fallback found)")
 def test_verify_cross_repo_resolved_target_passes(tmp_path):
     # a real file in the TARGET repo resolves against the target root -> PASS (teeth kept).
     row = ("PR", "reads a real target file", "`ONLY_IN_TARGET.md` here",

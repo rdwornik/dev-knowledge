@@ -125,6 +125,87 @@ def test_row_seats_is_stable_across_a_clock_advance_with_no_seat_change(tmp_path
     assert cut_row.rendered() == verify_row.rendered()
 
 
+# --- [#1124] handoff part B: BD-seats compares identity + liveness, not a whole-string diff --
+
+def _seats_ctx() -> vhp._BootCtx:
+    return vhp._BootCtx(Path("nonexistent-bundle"), Path("nonexistent-repo"), {})
+
+
+def test_bd_seats_fails_on_a_cut_value_that_is_not_a_seat_health_line(tmp_path, monkeypatch):
+    """The identity/liveness comparator reads WEDGED/STARVED segments out of the cut value --
+    a value carrying NEITHER (a tampered/garbage cell, e.g. `TAMPERED-VALUE`) would otherwise
+    silently PASS (no named bad seat to lose, no new one to gain). Shape sanity keeps this row
+    falsifiable against a value that is not even `row_seats`' own output."""
+    path = tmp_path / "seats.jsonl"
+    monkeypatch.setattr(hs._sr, "REGISTRY_PATH", path)
+    status, detail = vhp._rule_bd_seats("TAMPERED-VALUE", _seats_ctx())
+    assert status == "fail"
+    assert "shape" in detail.lower()
+
+
+def test_bd_seats_passes_when_an_unrelated_seat_changes_state(tmp_path, monkeypatch):
+    """[#1124] RED-FIRST: before this fix, BD-seats (the generic `_rule_state(row_seats)`)
+    whole-string-compared the cut value to a live re-derivation, so ANY session's state moving
+    between cut and verify failed it -- even a session the cut never named (R26's waiver,
+    2026-09-28). Bind one healthy seat at cut, then let an UNRELATED second seat arrive before
+    verify (the '[seats] N live' counts line now differs, purely from an unrelated session):
+    BD-seats must still PASS, because no seat named at cut lost resolvability and no new
+    wedge/starve appeared that the cut did not name."""
+    path = tmp_path / "seats.jsonl"
+    monkeypatch.setattr(hs._sr, "REGISTRY_PATH", path)
+    t0 = datetime(2026, 9, 27, 12, 0, tzinfo=timezone.utc)
+    hs._sr.bind("integrator", "AB", session_id="deadbeef-cut", path=path, now=t0)
+    monkeypatch.setattr(hs._sr, "_now", lambda: t0)
+    cut_row = hs.row_seats()
+
+    t1 = t0 + timedelta(minutes=5)
+    hs._sr.bind("integrator", "AB", session_id="cafebabe-new", path=path, now=t1)
+    monkeypatch.setattr(hs._sr, "_now", lambda: t1)
+    live_row = hs.row_seats()
+    assert live_row.rendered() != cut_row.rendered()  # sanity: the whole string DID drift
+
+    status, detail = vhp._rule_bd_seats(cut_row.rendered(), _seats_ctx())
+    assert status == "pass", detail
+
+
+def test_bd_seats_fails_when_a_named_seat_is_no_longer_resolvable(tmp_path, monkeypatch):
+    """[#1124]: a seat this bundle NAMED wedged at cut must still be a resolvable identity at
+    verify. Simulate a lost identity by pointing the LIVE read at a different (empty)
+    registry -- the named seat's session id appears nowhere in it."""
+    path = tmp_path / "seats.jsonl"
+    monkeypatch.setattr(hs._sr, "REGISTRY_PATH", path)
+    t0 = datetime(2026, 9, 27, 12, 0, tzinfo=timezone.utc)
+    hs._sr.bind("integrator", "AB", session_id="deadbeef-wedge", path=path, now=t0)
+    cut_at = t0 + timedelta(minutes=hs._sr.WEDGED_AFTER_MIN + 1)
+    monkeypatch.setattr(hs._sr, "_now", lambda: cut_at)
+    cut_row = hs.row_seats()
+    assert "WEDGED" in cut_row.value  # sanity: the fixture actually names a stalled seat
+
+    monkeypatch.setattr(hs._sr, "REGISTRY_PATH", tmp_path / "other-seats.jsonl")
+    status, detail = vhp._rule_bd_seats(cut_row.rendered(), _seats_ctx())
+    assert status == "fail"
+    assert "deadbeef" in detail
+
+
+def test_bd_seats_fails_when_a_new_unnamed_wedge_appears(tmp_path, monkeypatch):
+    """[#1124]: no seat may be wedged/starved at verify that the cut did not name. Bind a
+    healthy seat at cut (no wedge named), then let it go silent past WEDGED_AFTER_MIN with no
+    new event before verify -- a genuinely new problem the cut could not have known about."""
+    path = tmp_path / "seats.jsonl"
+    monkeypatch.setattr(hs._sr, "REGISTRY_PATH", path)
+    t0 = datetime(2026, 9, 27, 12, 0, tzinfo=timezone.utc)
+    hs._sr.bind("integrator", "AB", session_id="deadbeef-quiet", path=path, now=t0)
+    monkeypatch.setattr(hs._sr, "_now", lambda: t0)
+    cut_row = hs.row_seats()
+    assert "WEDGED" not in cut_row.value  # sanity: nothing named wedged at cut
+
+    t1 = t0 + timedelta(minutes=hs._sr.WEDGED_AFTER_MIN + 5)   # still no new event
+    monkeypatch.setattr(hs._sr, "_now", lambda: t1)
+    status, detail = vhp._rule_bd_seats(cut_row.rendered(), _seats_ctx())
+    assert status == "fail"
+    assert "deadbeef" in detail
+
+
 def test_row_substrates_counts_only_live_true(tmp_path):
     repo = _repo_with_registries(tmp_path)
     row = hs.row_substrates(repo)
@@ -159,12 +240,99 @@ def test_row_rulings_degrades_when_transport_is_unresolved():
 def test_row_capabilities_picks_the_newest_dated_file_and_counts_works(tmp_path):
     t = _transport(tmp_path)
     row = hs.row_capabilities(t)
-    assert row.value == "2/3 WORKS — `DIGEST-CAPABILITY-MAP-2026-09-26.md`"
+    assert row.value == "2/3 WORKS (1 qualified) — `DIGEST-CAPABILITY-MAP-2026-09-26.md`"
 
 
 def test_row_capabilities_degrades_when_transport_is_unresolved():
     row = hs.row_capabilities(None)
     assert "no DIGEST-CAPABILITY-MAP file" in row.value
+
+
+# --- [#1124] item 2: the capability counter reads the STATUS column, not the last one -------
+
+def test_row_capabilities_uses_the_status_column_not_the_last_column(tmp_path):
+    """The prior reader used `row[-1]` (the LAST cell), which was 'status' only by coincidence
+    in a 3-column fixture. The real digest carries a trailing 'delta vs …' column AFTER
+    status -- reproduced here -- and the prior code counted 0 WORKS against it
+    (`to-browser/SESSION-handoff-cut-2026-09-28.md`'s HANDOFF_BOOT.md: literally
+    '0/20 WORKS' against a map whose own status column names 10 WORKS rows). RED against the
+    pre-fix `_capability_table_rows`/`r[-1]` reader; green against the header-mapped one."""
+    t = tmp_path / "transport"
+    (t / "to-browser").mkdir(parents=True)
+    (t / "to-browser" / "DIGEST-CAPABILITY-MAP-2026-09-29.md").write_text(
+        "## Table (at deadbeef)\n\n"
+        "| # | capability | status | delta vs 09-27 |\n|---|---|---|---|\n"
+        "| 1 | a | WORKS | unrelated trailing text, never WORKS |\n"
+        "| 2 | b | MISSING | also never WORKS |\n",
+        encoding="utf-8")
+    row = hs.row_capabilities(t)
+    assert row.value == "1/2 WORKS — `DIGEST-CAPABILITY-MAP-2026-09-29.md`"
+
+
+def test_row_capabilities_handles_a_backslash_escaped_pipe_before_the_status_column(tmp_path):
+    """The real 2026-09-28 map's row 1 mechanism cell contains a literal backslash-escaped
+    pipe (`O_CREAT\\|O_EXCL`) to keep it out of the table grammar. A naive `line.split("|")`
+    still splits there, shifting every LATER column's index for that one row and misreading
+    its status cell -- the harder direction (an escape AFTER status merely shifts a column
+    nothing here reads)."""
+    t = tmp_path / "transport"
+    (t / "to-browser").mkdir(parents=True)
+    (t / "to-browser" / "DIGEST-CAPABILITY-MAP-2026-09-29.md").write_text(
+        "## Table (at deadbeef)\n\n"
+        "| # | capability | mechanism | status |\n|---|---|---|---|\n"
+        "| 1 | a | uses O_CREAT\\|O_EXCL sentinel | WORKS |\n"
+        "| 2 | b | plain | MISSING |\n",
+        encoding="utf-8")
+    row = hs.row_capabilities(t)
+    assert row.value == "1/2 WORKS — `DIGEST-CAPABILITY-MAP-2026-09-29.md`"
+
+
+#: A condensed copy of the REAL DIGEST-CAPABILITY-MAP-2026-09-28.md's 20-row status column,
+#: verbatim (`H:\My Drive\CLAUDE PROMPT DIR\to-browser\DIGEST-CAPABILITY-MAP-2026-09-28.md`,
+#: read 2026-09-29). Other columns are placeholders -- this module never reads them -- but the
+#: STATUS text and its position (second-to-last, before a trailing delta column, exactly as
+#: the live digest shapes it) are unchanged, so the count this fixture gives IS the map's own
+#: count: 10/20 WORKS on rows 8, 10, 11, 12, 14, 16-20 -- the batch contract's own row list.
+_MAP_2026_09_28_STATUSES = (
+    "WIRED-UNPROVEN (partial)",
+    "EXISTS-UNWIRED",
+    "WIRED-UNPROVEN (red, not enforced)",
+    "EXISTS-UNWIRED",
+    "MISSING",
+    "EXISTS-UNWIRED",
+    "PROSE-ONLY",
+    "WORKS (still red — verdict job's own conclusion; green only by manual known-reds "
+    "attribution, now OS-normalized)",
+    "EXISTS-UNWIRED (manual merge); governance-gate sub-part now WORKS",
+    "WORKS (local, direct launch); queue observed firing for real but interrupted "
+    "(was WIRED-UNPROVEN, never fired)",
+    "WORKS grammar / attributes MISSING",
+    "WORKS / trailers MISSING",
+    "WIRED-UNPROVEN (unchanged)",
+    "WORKS agreement / currency MISSING",
+    "EXISTS-UNWIRED (partial)",
+    "WORKS (Codespace, strengthened); Anthropic cloud EXISTS-UNWIRED",
+    "WORKS (narrow); strays alarm unwired",
+    "WORKS token (subagent-inclusive); quota WORKS via close trigger; daily hook WIRED-UNPROVEN",
+    "WORKS; gen_ledger EXISTS-UNWIRED",
+    "WORKS (bundle probes); seat resume WIRED-UNPROVEN (strengthened)",
+)
+
+
+def test_row_capabilities_matches_the_2026_09_28_maps_own_count(tmp_path):
+    t = tmp_path / "transport"
+    (t / "to-browser").mkdir(parents=True)
+    rows = "\n".join(
+        f"| {i} | cap{i} | mechanism | trigger | last fired | tests | {status} | delta |"
+        for i, status in enumerate(_MAP_2026_09_28_STATUSES, start=1))
+    (t / "to-browser" / "DIGEST-CAPABILITY-MAP-2026-09-28.md").write_text(
+        "## Table (at db79ec4e)\n\n"
+        "| # | capability | mechanism | trigger | last fired | fails when violated | status "
+        "| delta vs 09-27 |\n|---|---|---|---|---|---|---|---|\n" + rows + "\n",
+        encoding="utf-8")
+    row = hs.row_capabilities(t)
+    assert row.value == ("10/20 WORKS (10 qualified) — "
+                          "`DIGEST-CAPABILITY-MAP-2026-09-28.md`")
 
 
 def test_state_rows_returns_all_seven_keys_in_declared_order(tmp_path):

@@ -409,9 +409,47 @@ def lead_exe(command: str) -> str:
     return command.split()[0] if command else ""
 
 
+#: A closed enum: the four POSIX tools P0a/P0b/P0c/P1a/P1b/P8a/P8b/P11's own commands lead
+#: with, that Git for Windows bundles under its OWN `usr/bin/` -- never the `cmd/` or `bin/`
+#: directories a Git-for-Windows installer puts on PATH (measured: a PowerShell/subprocess
+#: PATH on this box carries `Git\cmd`, never `Git\usr\bin` -- `grep`/`sed`/`ls`/`head` are
+#: genuinely absent from *PATH* while genuinely present on *disk*, `to-browser/
+#: SESSION-handoff-cut-2026-09-28.md`'s "tool absent" skip on 8 rows). This is the "explicitly
+#: declared portable equivalent" the Windows-skip fix names: bounded to these four names, and
+#: resolved from `git`'s OWN PATH entry rather than a hardcoded install path, so it is portable
+#: to any machine's Git install location rather than one operator's `C:\Program Files\Git`.
+_GIT_BUNDLED_POSIX_TOOLS = frozenset({"grep", "sed", "ls", "head"})
+
+
+def _git_bundled_tool(name: str) -> "str | None":
+    """Path to `name` under Git for Windows' own `usr/bin`, or None.
+
+    A no-op (always None) for any name outside `_GIT_BUNDLED_POSIX_TOOLS`, for a machine with
+    no `git` on PATH, and on a platform where `usr/bin` sits alongside a DIFFERENT `git` layout
+    (the `.is_file()` check below is the honest guard: a wrong-shaped install simply yields no
+    candidate, never a wrong path). A POSIX host resolves these tools via the ordinary PATH
+    lookup already (rung 1 of `_exe_available`) and never reaches this fallback."""
+    if name not in _GIT_BUNDLED_POSIX_TOOLS:
+        return None
+    git = shutil.which("git")
+    if not git:
+        return None
+    # <gitroot>/cmd/git.exe (the usual Git-for-Windows PATH entry) -> <gitroot>; also covers
+    # a <gitroot>/bin/git.exe layout, since both are one directory below gitroot.
+    gitroot = Path(git).resolve().parent.parent
+    candidate = gitroot / "usr" / "bin" / f"{name}.exe"
+    return str(candidate) if candidate.is_file() else None
+
+
 def _exe_available(name: str) -> bool:
-    """True if `name` resolves on PATH. Wrapped (not inlined) so tests can stub it."""
-    return shutil.which(name) is not None
+    """True if `name` resolves on PATH, or — for `grep`/`sed`/`ls`/`head` only — under Git for
+    Windows' bundled `usr/bin` (`_git_bundled_tool`, [#1124] batch L6 Windows-skip fix). A tool
+    genuinely absent from both still reads unavailable — this never synthesizes a pass, only
+    recognizes a real binary this validator previously failed to find. Wrapped (not inlined)
+    so tests can stub it."""
+    if shutil.which(name) is not None:
+        return True
+    return _git_bundled_tool(name) is not None
 
 
 # --- probe-manifest table parser --------------------------------------------
@@ -1335,6 +1373,58 @@ _STATE_ROW_FNS = {
 }
 
 
+# [#1124] handoff part B: BD-seats compares seat IDENTITY and LIVENESS, never the whole
+# rendered string. The generic `_rule_state` above (still used for CI/Batches/Substrates/
+# Transport/Rulings/Capabilities) fails on ANY drift between the cut-time value and a live
+# re-derivation -- for "Seats" that made BD-seats fail whenever ANY session's state moved
+# between cut and verify, the cutting session's own new events included (R26's waiver,
+# 2026-09-28). The row's own done-when narrows this to exactly two conditions:
+#   * a seat this bundle NAMED (wedged or starved) at cut must still be a resolvable identity
+#     now -- present in the live registry, in ANY state (an improvement, e.g. wedged -> live,
+#     is not a loss of resolvability);
+#   * no seat may be wedged or starved NOW that the cut did not name as wedged or starved.
+# Anything else -- an unrelated seat's count moving, a named seat's cosmetic detail changing,
+# a wedge clearing, a brand-new HEALTHY seat appearing -- is not a BD-seats finding.
+def _rule_bd_seats(value: str, ctx: _BootCtx) -> tuple[str, str]:      # noqa: ARG001 -- ctx
+    try:                                                               # unused: Seats needs none
+        import handoff_state as _hs  # noqa: PLC0415
+        import seat_registry as _sr  # noqa: PLC0415
+    except ImportError:
+        return "skipped", "handoff_state/seat_registry not importable"
+    # Shape sanity, BEFORE identity/liveness: the two conditions below read WEDGED/STARVED
+    # segments out of `value` and say nothing about a cell that carries neither -- a value that
+    # does not even carry `row_seats`' own shape (`[seats] …`, or its "nothing observed"
+    # default) would otherwise silently PASS (no named bad seat to lose, no new one to gain).
+    # This is what still fails a tampered/garbage cut value (`test_a_tampered_state_row_fails_
+    # only_its_own_probe[Seats]`), while a WELL-FORMED value's counts, unnamed seats and cleared
+    # wedges stay free to drift -- the looseness [#1124] exists to grant.
+    stripped = value.strip()
+    if not (stripped == _hs.NO_SEATS_OBSERVED or stripped.startswith("[seats]")):
+        return "fail", (f"cut value does not carry a seat_health_line's own shape (expected "
+                        f"'[seats] …' or {_hs.NO_SEATS_OBSERVED!r}): {value!r}")
+    try:
+        fresh = _hs.row_seats()
+    except Exception as exc:          # noqa: BLE001 -- a reader's own failure is reported
+        return "fail", f"live re-derivation raised {type(exc).__name__}: {exc}"
+    try:
+        resolvable = {s.session_id[:8] for s in _sr.seats()}
+    except Exception as exc:          # noqa: BLE001
+        return "fail", f"live seat-identity read raised {type(exc).__name__}: {exc}"
+    cut_named = _sr.named_bad_seats(value)
+    live_named = _sr.named_bad_seats(fresh.value)
+    cut_any = cut_named["wedged"] | cut_named["starved"]
+    live_any = live_named["wedged"] | live_named["starved"]
+    unresolvable = sorted(cut_any - resolvable)
+    unnamed_new = sorted(live_any - cut_any)
+    if unresolvable:
+        return "fail", (f"{len(unresolvable)} seat(s) named wedged/starved at cut are no "
+                        f"longer resolvable: {', '.join(unresolvable)}")
+    if unnamed_new:
+        return "fail", (f"{len(unnamed_new)} seat(s) are wedged/starved now that the cut did "
+                        f"not name: {', '.join(unnamed_new)}")
+    return "pass", f"identity+liveness hold ({fresh.freshness}): {fresh.value}"
+
+
 #: One rule per DATA row, keyed by the row's bolded label. The generator's rows and this set
 #: are held equal by a test; a row outside it FAILs as unverified.
 BOOT_DATA_RULES = {
@@ -1347,7 +1437,8 @@ BOOT_DATA_RULES = {
     "Probes": _rule_probes,
     "Receipt": _rule_receipt,
     **{key: _pointer_rule(key) for key in BOOT_POINTERS if key != "Role"},
-    **{key: _rule_state(fn) for key, fn in _STATE_ROW_FNS.items()},
+    **{key: _rule_state(fn) for key, fn in _STATE_ROW_FNS.items() if key != "Seats"},
+    "Seats": _rule_bd_seats,
 }
 
 

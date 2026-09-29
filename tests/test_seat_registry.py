@@ -335,3 +335,50 @@ def test_fleet_health_main_prints_the_seat_line():
 
     import fleet_health
     assert "seat_health_line(_REPO_ROOT)" in inspect.getsource(fleet_health.main)
+
+
+# --- named_bad_seats: the identity resolver BD-seats reads ([#1124], batch WAVE5B-N5-R) -----
+
+def test_named_bad_seats_is_empty_when_nothing_is_named(tmp_path):
+    path = tmp_path / "seats.jsonl"
+    _event(path, "SessionStart", "s1", at=T0)
+    line = reg.seat_health_line(path, now=T0, pid_alive=lambda _p: True,
+                                path_exists=lambda _p: True, transcript_mtime=lambda _p: None)
+    assert reg.named_bad_seats(line) == {"wedged": set(), "starved": set()}
+
+
+def test_named_bad_seats_is_empty_on_none_or_empty_input():
+    assert reg.named_bad_seats(None) == {"wedged": set(), "starved": set()}
+    assert reg.named_bad_seats("") == {"wedged": set(), "starved": set()}
+
+
+def test_named_bad_seats_reads_a_wedged_seat_by_its_own_truncated_id(tmp_path):
+    path = tmp_path / "seats.jsonl"
+    _event(path, "SessionStart", "deadbeef1234", at=T0)
+    later = T0 + timedelta(minutes=reg.WEDGED_AFTER_MIN + 1)
+    reg.bind("integrator", "AB", session_id="deadbeef1234", path=path, now=T0)
+    line = reg.seat_health_line(path, now=later, pid_alive=lambda _p: True,
+                                path_exists=lambda _p: True, transcript_mtime=lambda _p: None)
+    assert "WEDGED" in line
+    named = reg.named_bad_seats(line)
+    assert named["wedged"] == {"deadbeef1234"[:8]}  # == {"deadbeef"}
+    assert named["starved"] == set()
+
+
+def test_named_bad_seats_reads_both_states_and_multiple_entries_per_state():
+    line = ("[seats] 0 live / 2 wedged / 0 absent / 1 starved (last 24 h; 0 unbound) / "
+            "WEDGED: integrator AB aaaaaaaa (last event x); lane-foo bbbbbbbb (last event y) / "
+            "STARVED: lane-bar cccccccc (last event z)")
+    named = reg.named_bad_seats(line)
+    assert named["wedged"] == {"aaaaaaaa", "bbbbbbbb"}
+    assert named["starved"] == {"cccccccc"}
+
+
+def test_named_bad_seats_is_unaffected_by_a_trailing_no_live_integrator_clause():
+    """`seat_health_line` appends the 'NO LIVE INTEGRATOR' clause AFTER the WEDGED/STARVED
+    segments (never between them); it must not swallow or corrupt the last real entry."""
+    line = ("[seats] 1 wedged (last 24 h; 0 unbound) / WEDGED: integrator AB aaaaaaaa "
+            "(last event x) / NO LIVE INTEGRATOR for batch AB -- bind one: "
+            "`seat_registry.py bind --role integrator --batch <B>`")
+    named = reg.named_bad_seats(line)
+    assert named["wedged"] == {"aaaaaaaa"}
