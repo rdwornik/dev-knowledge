@@ -331,7 +331,7 @@ def test_the_root_admission_is_the_repo_s_OWN_roster_not_a_second_copy_of_it():
     """
     import validate_hermetization as vh
 
-    assert sr.ROOT_LEVEL_FILES == frozenset(vh.SANCTIONED_TIER1_FILES)
+    assert frozenset(vh.SANCTIONED_TIER1_FILES) == sr.ROOT_LEVEL_FILES
 
 
 def test_a_row_body_QUOTED_INSIDE_the_done_contract_reads_as_a_declaration():

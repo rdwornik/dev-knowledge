@@ -449,7 +449,7 @@ def _stub(monkeypatch, setting, head_sha, main_sha, origin_sha):
     monkeypatch.setattr(ws, "resolve_checkout", lambda repo: (_HUB, _HUB))
     monkeypatch.setattr(ws, "_rev", lambda repo, ref: {
         "HEAD": head_sha, "main": main_sha, "origin/main": origin_sha,
-    }.get(ref.replace("^{commit}", ""), None))
+    }.get(ref.replace("^{commit}", "")))
 
 
 def test_fresh_is_reported_as_NOT_holding_when_local_main_is_unpushed(monkeypatch):

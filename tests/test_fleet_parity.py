@@ -1929,3 +1929,26 @@ def test_live_manifest_carries_the_prompts_guard_coupling():
     assert row["probe"]["event"] == "PreToolUse"
     assert row["tier"].get("hub") == "MUST" and row["tier"].get("consumer") == "MUST"
 
+
+# ---------------------------------------------------------------------------
+# Ruff extend-select parity -- item 8's own witness (Codex gpt-5.6-terra,
+# templates/ruff-config-block.toml:49): the shared rule set had no parity gate,
+# so pyproject.toml and templates/ruff-config-block.toml could drift apart with
+# nothing to catch it. This reads BOTH live TOML files directly, never a
+# paraphrase, so drift cannot hide behind a stale copy in this test file.
+# ---------------------------------------------------------------------------
+
+
+def _extend_select(path: Path) -> set[str]:
+    import tomllib
+    data = tomllib.loads(path.read_text(encoding="utf-8"))
+    return set(data["tool"]["ruff"]["lint"]["extend-select"])
+
+
+def test_ruff_extend_select_identical_in_pyproject_and_template():
+    pyproject_codes = _extend_select(_REPO_ROOT / "pyproject.toml")
+    template_codes = _extend_select(_REPO_ROOT / "templates" / "ruff-config-block.toml")
+    assert pyproject_codes == template_codes, (
+        f"extend-select drift: pyproject-only={pyproject_codes - template_codes}, "
+        f"template-only={template_codes - pyproject_codes}")
+

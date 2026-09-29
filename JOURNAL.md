@@ -21,6 +21,26 @@
 
 ---
 
+### 2026-09-29 (h) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5-R cycle 2): one Ruff rule set, and a test that goes red if the hub and the consumer template disagree on it
+
+**Anchors:** `5216bcbb`, `c684d79e`, `013a2b28`, `5f28198d`, `3fff0c0b`, `69e32448`, `364c6f22`, `65836465`, `99845d77`, `5c020a3f`, `b479dbd8` -- `worktree-lane-python-standard-2` (L9, `LANE-5B5R-9-python-standard-2`, a redo from the preserved tip `5f28198d`). The codespace run served `claude-sonnet-5` (dispatcher `MODEL` line). Repair 1 ran locally after the integrator's refusal on item 8. Merged `--no-ff` in `epic/wave5b-n5-r-int-lane-python-standard-2` from `13fce088`.
+
+**Did:**
+- `[tool.ruff.lint] extend-select` enforces the same seven codes in `pyproject.toml` and `templates/ruff-config-block.toml`: FURB122, RUF019, SIM905, SIM910, UP012, UP033, UP034.
+- The autofix hunks are scoped to those codes. Two files owned by an already-merged sibling were reverted, and `tests/test_decision_coverage.py` is untouched.
+- SIM300, RET501, PLR1711, PLE2515 and RUF010 are measured-not-enforced. Their counts are in the lane report, and the violations sit in other lanes' files (contract item 3).
+- Repair 1 adds `tests/test_fleet_parity.py::test_ruff_extend_select_identical_in_pyproject_and_template`. It parses both TOML files, is shown RED on a seeded one-code mismatch and GREEN on the tip. It also rewords the template's two must/never lines.
+- The fresh Codex terra record tallies 0/0/0/0. The earlier HIGH (the ten-code set reduced to seven) was rejected on contract item 3's own words.
+- This integration commit also folds cycle 1's carry ledger (to-browser `CARRY-LEDGER-WAVE5B-N5-R-2026-09-29.md`: three merge-receipt rows and three lane-cost rows). It adds the primary checkout's uncommitted `logs/QUOTA-READS.jsonl` lines as a pure append, per cycle-2 contract item 2.
+
+**Result:** `ruff check` exits 0 on the merged tree. The hub and the consumer template cannot drift apart on the enforced rule set without a red test.
+
+**Changes:** `pyproject.toml`, `templates/ruff-config-block.toml`, `tests/test_fleet_parity.py`, the scoped autofix hunks under `scripts/` and `tests/`, three audits, and `logs/MERGE-RECEIPTS.jsonl`, `logs/LANE-COSTS.jsonl` and `logs/QUOTA-READS.jsonl` (carry). Regenerated `docs/audits/README.md` and `ecosystem/doc-counts.md`.
+
+**Next:**
+- CI on this branch, both legs, is the verdict.
+- `lane-transport-rclone-2` (L4) is FAILED after two refusals: its tip is tagged `archive/worktree-lane-transport-rclone-2` and its branches are kept.
+- `lane-leftovers-gate` (L1) and `lane-backlog-cleanup` (L8) are in repair.
 ### 2026-09-29 (g) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5-R): the operator's employer folders are refused by a PreToolUse hook, not by prompt text (R15)
 
 **Anchors:** `193e9007`, `ca0bca81`, `e3de7e24`, `f9a94353`, `7f905fe8` -- `worktree-lane-scope-guard-2` (L2, `LANE-5B5R-2-scope-guard-2`, a redo from the preserved tip `ca0bca81`; served `claude-sonnet-5`; repair 1 after the integrator's refusal on items 5 and 6). Merged `--no-ff` in `epic/wave5b-n5-r-int-lane-scope-guard-2`, on top of the L6 stack.
