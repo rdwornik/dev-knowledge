@@ -1156,6 +1156,15 @@ def _import_bounded_hook():
     return bounded_hook
 
 
+def _import_hook_watchdog():
+    """Lazy sibling import from `scripts/hooks/`, same shape as `_import_bounded_hook`."""
+    hooks_dir = str(_SCRIPTS_DIR / "hooks")
+    if hooks_dir not in sys.path:
+        sys.path.insert(0, hooks_dir)
+    import hook_watchdog  # noqa: E402
+    return hook_watchdog
+
+
 def hook_bypass_lines() -> list[str]:
     """`[#808]`'s surface: recent hook skips, each hook's bypass RATE, and every hook DECLARED
     BROKEN (operator ruling 2026-09-17, items 1 and 2).
@@ -1172,6 +1181,28 @@ def hook_bypass_lines() -> list[str]:
         return _import_bounded_hook().surface_lines()
     except Exception as exc:  # noqa: BLE001 -- surfacing organ: never break the digest
         print(f"fleet_health: WARNING -- hook bypass surface unavailable: {exc!r}",
+              file=sys.stderr)
+        return []
+
+
+def hook_watchdog_lines() -> list[str]:
+    """`[#863]`'s surface: any hook process `hook_watchdog.py` found suspended-at-creation
+    (zero CPU, parent already gone) and killed, since it is run by hand -- its own
+    `ecosystem/harness.yaml` `fates:` entry is `manual_until`, not a settings.json entry -- a
+    kill made on one boot must still be visible on the next, never silent.
+
+    Beside `hook_bypass_lines()`, on the same terms: the two surfaces answer sibling questions
+    about the SAME row ([#808]'s bound catching a hook that ran then blocked, vs. [#863]'s
+    watchdog catching one that never ran a line at all) and neither re-derives the other's
+    numbers.
+
+    Fail-soft on its own account, like every other digest line here: a surfacing organ never
+    breaks the digest.
+    """
+    try:
+        return _import_hook_watchdog().surface_lines()
+    except Exception as exc:  # noqa: BLE001 -- surfacing organ: never break the digest
+        print(f"fleet_health: WARNING -- hook watchdog surface unavailable: {exc!r}",
               file=sys.stderr)
         return []
 
@@ -2139,6 +2170,12 @@ def main(argv=None) -> int:
         # bypass rate, and every hook DECLARED BROKEN. Beneath the guard preflight because it is
         # the same question asked of evidence rather than of a start-up probe. Fail-soft.
         for line in hook_bypass_lines():
+            print(line)
+        # `[#863]`'s surface, immediately beside `[#808]`'s above and on the same terms: a hook
+        # process the watchdog found suspended-at-creation and killed, since that watchdog is
+        # run by hand (`manual_until` fate) rather than wired to a moment -- a kill it already
+        # made must still be visible here, never silent. Fail-soft.
+        for line in hook_watchdog_lines():
             print(line)
         # v7 BOOT-INVERSION digest ([#611] §17): OPERATOR ASKS renders FIRST, above
         # everything -- including the fleet table below. Unthrottled, fail-soft.
