@@ -305,6 +305,8 @@ def _real() -> dict:
 
 # W3-A (R-W3-1, R-W3-3, R-W3-7): occupancy/integrator/routing move to `pre-launch`, the digest to
 # `batch-close`, and `go_reader` joins `merge`. `test_loop_declaration.py` pins each move on its own.
+# LANE-5B5-2 B1: `seat-release` is the seventh -- not a lane-lifecycle moment but a separate
+# operator-invoked one (the operator's own act of releasing a claude.ai seat).
 _MOMENT_ORGANS = {
     "pre-launch": ["worktree_occupancy", "seat_refusals.refuse_no_live_integrator", "routing_agreement"],
     "lane-start": ["single_flight"],
@@ -316,12 +318,14 @@ _MOMENT_ORGANS = {
     "teardown": ["no_leftovers"],
     "lane-end": ["lane_cost", "fleet_health.seat_health_line", "transport_report"],
     "batch-close": ["digest"],
+    "seat-release": ["seat_release.notes", "seat_release.bundle", "seat_release.manifest",
+                     "seat_release.copy"],
 }
 _OPTIONAL = {"worktree_occupancy", "gates", "test_pairing", "no_leftovers", "transport_report",
              "digest", "review_packet", "go_reader", "known_reds_refresh"}
 
 
-def test_harness_declares_the_six_moments_with_their_organs():
+def test_harness_declares_the_seven_moments_with_their_organs():
     moments = {m["name"]: m for m in _real()["moments"]}
     assert set(moments) == set(_MOMENT_ORGANS)
     for name, ids in _MOMENT_ORGANS.items():
