@@ -61,6 +61,19 @@ bundle file's sha256, and each state row's freshness class (`gen_handoff.bundle_
 longer matches — a whole-bundle integrity check run once per bundle, not a per-row state
 check. Report `BD-manifest`'s PASS/FAIL in the evidence block alongside the other `BD-*` rows.
 
+**`moment:seat-release`'s `manifest` and `copy` organs (LANE-5B5-2, B1).** This command's own
+manifest leg — `BD-manifest` above — is reused (not copied) by `moment:seat-release`'s
+`seat_release.manifest` organ (`verify_handoff_probes._rule_bd_manifest`, called directly); its
+`seat_release.copy` organ calls `gen_handoff.verify_published` against a transport-copy dest
+(`HARNESS_SEAT_RELEASE_COPY`) and refuses, naming the artifact `copy`, on any absent or
+sha-mismatched published file. Together with `/handoff`'s `notes`/`bundle` organs (above) these
+are the seat-release transaction's four legs — see `ecosystem/harness.yaml`'s `seat-release`
+moment and `tests/test_seat_release_moment.py`. `.github/workflows/conductor.yml`'s
+`handoff-manifest` job runs the same `_rule_bd_manifest` re-hash server-side over every
+COMMITTED bundle under `docs/handoffs/**` that carries a post-lane-handoff-min manifest (a
+pre-manifest-era bundle is exempt, not failed — the same era-boundary posture as the pre-v6
+exemption above) and reds the run on a tampered one.
+
 ## Usage
 
 ```
