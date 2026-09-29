@@ -233,7 +233,7 @@ def test_build_candidates_assigns_the_next_id_to_a_new_course_delta(tmp_path: Pa
     )
     assert [r.id for r in rows] == ["C-1"]
     assert rows[0].served_model == "stub-model"
-    assert "a new module on incident response" == rows[0].what
+    assert rows[0].what == "a new module on incident response"
     assert new_state.next_candidate_seq == 2
     # the delta is carried forward so the next scan does not re-derive it
     assert new_state.carried_candidates[0].id == "C-1"
