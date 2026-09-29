@@ -23,13 +23,21 @@ stages:
   - {stage: 11, name: token-cap, field: token-cap, kind: deterministic, command: [uv, run, --locked, python, scripts/dispatch.py, plan, "{contract}", --slug, spine-plan, --token-cap, "1000000000000"]}
   - {stage: 12, name: contract, field: contract, kind: deterministic, command: [uv, run, --locked, python, scripts/gen_lane_contract.py, distill, --kind, "{kind}", --subject, "{subject}", --stdout]}
 # Stage 7 validates {contract}. Stage 11 FILLS the cap field (N3: a record, set out of any lane's reach); it runs `plan`, not `govern`.
-# moments: `doit -f scripts/dodo.py moment:<name>`. Six moments, in the order a lane lives them:
+# moments: `doit -f scripts/dodo.py moment:<name>`. Six moments run the LANE lifecycle, in the
+# order a lane lives them; a seventh, `seat-release`, is a SEPARATE lifecycle -- the operator's
+# own, not a lane's:
 #   pre-launch  the LAUNCHER, before it spawns a lane        (R-W3-1: is the slug taken / integrator live / routing agrees)
 #   lane-start  INSIDE the lane, at its first turn           (in-lane organs only)
 #   lane-end    the Stop hook, once, when the lane has written its HANDBACK line   (R-W3-3)
 #   merge       the integrator, right after each local `git merge --no-ff`
 #   teardown    the integrator, after merge and push
 #   batch-close the integrator, after the LAST merge of the batch                  (R-W3-3)
+#   seat-release  the OPERATOR, by hand, releasing a claude.ai seat (LANE-5B5-2, B1;
+#               PROPOSAL-ADR-HANDOFF-SYSTEM-2026-09-26.md Part 2 rule 1) -- a single refusing
+#               transaction over a bundle named by HARNESS_SEAT_RELEASE_BUNDLE (and, for its
+#               `copy` organ, a transport-copy dest named by HARNESS_SEAT_RELEASE_COPY): no
+#               machine can observe a chat ending, so unlike the six above this moment's own
+#               TRIGGER stays manual forever -- only its CHECKS are mechanised.
 # Until the four native triggers are wired (wave 3 B and D, and the integrator command) every organ carries
 # `manual_until` (a date; after it the organ is armed or re-dated). An organ's `receipt` is UPPERCASE-KEBAB, undated.
 # Keys a moment / organ may carry beyond L1's:
@@ -77,6 +85,13 @@ moments:
     trigger: "integrator command, after the last merge of the batch has landed (one digest for the batch, not one per lane)"
     organs:
       - {id: digest, receipt: MOMENT-BATCH-CLOSE-DIGEST.json, manual_until: 2026-10-05, optional: true, always: true, reason: "digests the live receipts of the batch", command: [uv, run, --locked, python, scripts/lane_digest.py, --lane, "{batch}", --receipts-dir, "{receipts}"]}
+  - name: seat-release
+    trigger: "the operator's own act -- releasing a claude.ai seat; run by hand as `doit -f scripts/dodo.py moment:seat-release` over HARNESS_SEAT_RELEASE_BUNDLE (and, for the `copy` organ, HARNESS_SEAT_RELEASE_COPY). PROPOSAL-ADR-HANDOFF-SYSTEM-2026-09-26.md Part 2 rule 1: a single transaction refusing to publish unless the outgoing notes, the generated bundle, the transport copy and the cut manifest all exist. No machine can observe that a claude.ai chat is ending, so this moment's TRIGGER stays an operator act, permanently -- only the four organs below are mechanised. Scoped to an architect-mode bundle (the mode that writes SUPPLEMENT.md, the outgoing seat's fixed-slot notes; DECIDED-BY-LANE, LANE-5B5-2)."
+    organs:
+      - {id: seat_release.notes, receipt: MOMENT-SEAT-RELEASE-NOTES.json, manual_until: 2026-10-05, always: true, reason: "reads the live bundle directory the operator names at release (HARNESS_SEAT_RELEASE_BUNDLE)", command: [uv, run, --locked, python, -c, "import os, sys\nfrom pathlib import Path\nb = os.environ.get('HARNESS_SEAT_RELEASE_BUNDLE')\nif not b:\n    print('STOP: seat-release/notes -- HARNESS_SEAT_RELEASE_BUNDLE is unset', file=sys.stderr)\n    sys.exit(2)\np = Path(b) / 'SUPPLEMENT.md'\nif not p.is_file():\n    print('REFUSED: seat-release -- missing artifact: notes (' + str(p) + ')', file=sys.stderr)\n    sys.exit(1)\nprint('ok: notes present at ' + str(p))", ".claude/commands/handoff.md"]}
+      - {id: seat_release.bundle, receipt: MOMENT-SEAT-RELEASE-BUNDLE.json, manual_until: 2026-10-05, always: true, reason: "reads the live bundle directory the operator names at release (HARNESS_SEAT_RELEASE_BUNDLE)", command: [uv, run, --locked, python, -c, "import os, sys\nfrom pathlib import Path\nb = os.environ.get('HARNESS_SEAT_RELEASE_BUNDLE')\nif not b:\n    print('STOP: seat-release/bundle -- HARNESS_SEAT_RELEASE_BUNDLE is unset', file=sys.stderr)\n    sys.exit(2)\np = Path(b) / 'HANDOFF_BOOT.md'\nif not p.is_file():\n    print('REFUSED: seat-release -- missing artifact: bundle (' + str(p) + ')', file=sys.stderr)\n    sys.exit(1)\nprint('ok: bundle present at ' + str(p))", ".claude/commands/handoff.md"]}
+      - {id: seat_release.manifest, receipt: MOMENT-SEAT-RELEASE-MANIFEST.json, manual_until: 2026-10-05, always: true, reason: "reads the live bundle directory the operator names at release (HARNESS_SEAT_RELEASE_BUNDLE)", command: [uv, run, --locked, python, -c, "import os, sys\nfrom pathlib import Path\nsys.path.insert(0, 'scripts')\nb = os.environ.get('HARNESS_SEAT_RELEASE_BUNDLE')\nif not b:\n    print('STOP: seat-release/manifest -- HARNESS_SEAT_RELEASE_BUNDLE is unset', file=sys.stderr)\n    sys.exit(2)\nimport verify_handoff_probes as vhp\nresult = vhp._rule_bd_manifest(Path(b))\nif result.status != 'pass':\n    print('REFUSED: seat-release -- missing artifact: manifest (' + result.detail + ')', file=sys.stderr)\n    sys.exit(1)\nprint('ok: manifest ' + result.detail)", ".claude/commands/handoff-verify.md"]}
+      - {id: seat_release.copy, receipt: MOMENT-SEAT-RELEASE-COPY.json, manual_until: 2026-10-05, always: true, reason: "reads the live bundle and transport-copy directories the operator names at release (HARNESS_SEAT_RELEASE_BUNDLE, HARNESS_SEAT_RELEASE_COPY)", command: [uv, run, --locked, python, -c, "import os, sys\nfrom pathlib import Path\nsys.path.insert(0, 'scripts')\nb = os.environ.get('HARNESS_SEAT_RELEASE_BUNDLE')\nd = os.environ.get('HARNESS_SEAT_RELEASE_COPY')\nif not b or not d:\n    print('STOP: seat-release/copy -- HARNESS_SEAT_RELEASE_BUNDLE/HARNESS_SEAT_RELEASE_COPY unset', file=sys.stderr)\n    sys.exit(2)\nimport gen_handoff as gh\nmismatches = gh.verify_published(Path(b), Path(d))\nif mismatches:\n    print('REFUSED: seat-release -- missing artifact: copy (' + str(len(mismatches)) + ' file(s) unpublished or mismatched: ' + ', '.join(mismatches) + ')', file=sys.stderr)\n    sys.exit(1)\nprint('ok: copy sha-matches at ' + d)", ".claude/commands/handoff-verify.md"]}
 # fates (R-W3-4; DECLARE-WAVE3 2026-09-21): the organs no moment, spine stage, pre-commit hook or conductor job called when
 # W3-A ran the census (`graph_queries.py moments`: declared nowhere AND wired by no other surface). Each has EXACTLY ONE
 # recorded fate: `moment: <name>` (it is declared at that moment), `manual_until: <date>` with a one-line `reason`
@@ -88,8 +103,6 @@ fates:
   - {path: .claude/commands/boot-session.md, manual_until: 2026-10-05, reason: "on-demand by the operator (act: sitting); no event fires a command (ORPHAN_DISPOSITIONS)"}
   - {path: .claude/commands/changelog-review.md, manual_until: 2026-10-05, reason: "push trigger only: a SessionStart sentinel nudges it and a nudge is not a trigger (ORPHAN_DISPOSITIONS, V+1 list)"}
   - {path: .claude/commands/decide.md, manual_until: 2026-10-05, reason: "LANE-5B4-12's second new organ (the script's own fates line is ruling (a)'s one; this lane's Done-contract also names the command, and leaving it unrecorded reds test_the_fates_cover_every_organ_the_census_names, same shape as the aj-scan skill precedent): on-demand by the operator (R14 -- a structural decision is run through the system on request, not on an automated trigger; ORPHAN_DISPOSITIONS)"}
-  - {path: .claude/commands/handoff-verify.md, manual_until: 2026-10-05, reason: "on-demand by the operator (act: seat release); run by /handoff at the cut (ORPHAN_DISPOSITIONS)"}
-  - {path: .claude/commands/handoff.md, manual_until: 2026-10-05, reason: "on-demand by the operator (act: seat release) (ORPHAN_DISPOSITIONS)"}
   - {path: .claude/commands/lane-boot.md, manual_until: 2026-10-05, reason: "on-demand by the operator (act: GO); the seat boots one lane by invoking it (ORPHAN_DISPOSITIONS)"}
   - {path: .claude/commands/lane-integrate.md, manual_until: 2026-10-05, reason: "on-demand by the operator (act: GO); the integrator's walk of the merge queue (ORPHAN_DISPOSITIONS)"}
   - {path: .claude/commands/preflight.md, manual_until: 2026-10-05, reason: "self-declared wired into no gate; an adoption-first read-only helper (ORPHAN_DISPOSITIONS, V+1 list)"}

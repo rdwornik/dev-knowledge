@@ -640,3 +640,144 @@ jobs:
             metrics.out
           retention-days: 90
           if-no-files-found: warn
+
+  handoff-manifest:
+    # LANE-5B5-2 (B1): seat-release's CI leg (PROPOSAL-ADR-HANDOFF-SYSTEM-2026-09-26.md Part 2
+    # rule 1: "CI verifies it on any docs/handoffs/** push"). Re-hashes every COMMITTED bundle's
+    # files under docs/handoffs/** against its own HANDOFF_RECEIPT.json manifest, reusing (never
+    # copying) verify_handoff_probes._rule_bd_manifest -- the same check moment:seat-release's
+    # own `manifest` organ runs locally. A bundle cut before lane-handoff-min (Part A) carries no
+    # manifest at all -- 126 of the 127 committed bundles at this lane's own landing -- and is
+    # EXEMPT, not failed, the same era-boundary posture handoff-verify.md's pre-v6 exemption
+    # already uses: only a bundle that HAS a manifest and no longer matches it reds this job.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0     # the range check below needs the prior tip
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.11.19"
+      - name: Sync the locked environment
+        run: uv sync --locked
+      - name: Did this push touch docs/handoffs/**? (an unresolvable range never skips)
+        id: touch
+        run: |
+          set +e
+          if [ "${{ github.event_name }}" != "push" ] && [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "changed=1" >> "$GITHUB_OUTPUT"   # schedule/dispatch: check every committed bundle
+            exit 0
+          fi
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+          fi
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] \
+             || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo "changed=1" >> "$GITHUB_OUTPUT"   # unresolvable range -- check every bundle, never skip
+            exit 0
+          fi
+          if git diff --name-only "$BASE" "${{ github.sha }}" -- docs/handoffs/ | grep -q .; then
+            echo "changed=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=0" >> "$GITHUB_OUTPUT"
+          fi
+      - name: BD-manifest over every committed, manifest-era bundle
+        if: steps.touch.outputs.changed == '1'
+        run: |
+          set +e
+          uv run --locked python -c "
+          import json
+          import re
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts')
+          import verify_handoff_probes as vhp
+          root = Path('docs/handoffs')
+          # The manifest feature shipped 2026-09-28 (docs/handoffs/2026-09-28-dev-knowledge-architect
+          # is the one committed bundle that predates this job and already carries a manifest).
+          # In-era is (the bundle's OWN directory-name date >= CUTOFF) OR (it carries a receipt
+          # with a non-empty manifest.files) -- never receipt-presence alone (Codex terra
+          # CRITICAL, 2026-09-29, docs/audits/2026-09-29-codex-seat-release-b1.md: that let a
+          # post-cutoff bundle dodge the whole check by deleting/emptying its own manifest), and
+          # never the name alone either (Codex terra CRITICAL, 2026-09-29,
+          # docs/audits/2026-09-29-codex-seat-release-b1-followup.md: a bundle renamed to a
+          # fake pre-cutoff-looking date would otherwise dodge the check while still carrying a
+          # real, checkable receipt). A name with no parseable date is treated as in-era too:
+          # fail-closed, not a third way to dodge the cutoff.
+          CUTOFF = '2026-09-28'
+          date_re = re.compile(r'^(\d{4}-\d{2}-\d{2})-')
+          # A directory is a candidate BUNDLE iff it is date-prefixed OR carries a receipt
+          # directly -- anything else (docs/handoffs/archive/, its nested archive/legacy/, any
+          # future container) is not a bundle of any era and is RECURSED INTO, never a leaf
+          # exemption and never a leaf failure (Codex terra CRITICAL, 2026-09-29,
+          # docs/audits/2026-09-29-codex-seat-release-b1-followup.md: hardcoding container names
+          # does not scale -- archive/legacy/ is a second, real, undated, receipt-less container
+          # one level deeper than archive/ itself). A rename-only evasion (strip the date prefix,
+          # keep the receipt) is still caught at any depth, since carrying a receipt alone makes
+          # a directory a bundle.
+          NOT_A_BUNDLE = {'.git', '.claude', 'node_modules', 'aborted', 'in-progress'}
+
+          def iter_bundles(d):
+              for p in sorted(x for x in d.iterdir() if x.is_dir()):
+                  if p.name in NOT_A_BUNDLE:
+                      continue
+                  if date_re.match(p.name) or (p / vhp.RECEIPT_FILE).is_file():
+                      yield p
+                  else:
+                      yield from iter_bundles(p)
+
+          bad = []
+          checked = 0
+          for bundle in iter_bundles(root):
+              m = date_re.match(bundle.name)
+              looks_pre_cutoff = bool(m and m.group(1) < CUTOFF)
+              receipt = bundle / vhp.RECEIPT_FILE
+              has_receipt = receipt.is_file()
+              if looks_pre_cutoff and not has_receipt:
+                  continue  # pre-manifest-era bundle, by its own date -- exempt, not failed
+              checked += 1
+              if not has_receipt:
+                  bad.append(bundle.name)
+                  print(f'  fail  {bundle.name}  in-era bundle carries no {vhp.RECEIPT_FILE}')
+                  continue
+              try:
+                  manifest = json.loads(receipt.read_text(encoding='utf-8')).get('manifest') or {}
+                  files = manifest.get('files')
+              except (OSError, ValueError) as exc:
+                  bad.append(bundle.name)
+                  print(f'  fail  {bundle.name}  {vhp.RECEIPT_FILE} unreadable: {exc}')
+                  continue
+              if not files:
+                  bad.append(bundle.name)
+                  print(f'  fail  {bundle.name}  bundle carries a receipt with an empty/absent manifest.files')
+                  continue
+              result = vhp._rule_bd_manifest(bundle)
+              print(f'{result.status:>6}  {bundle.name}  {result.detail}')
+              if result.status == 'fail':
+                  bad.append(bundle.name)
+          print(f'checked {checked} manifest-era bundle(s)')
+          if bad:
+              print(f'::error::{len(bad)} bundle(s) fail BD-manifest: ' + ', '.join(bad))
+              sys.exit(1)
+          " 2>&1 | tee handoff-manifest.out
+          exit ${PIPESTATUS[0]}
+      - name: Write the record
+        if: always()
+        run: |
+          {
+            echo "## handoff-manifest (B1 seat-release CI leg) — \`${{ github.sha }}\`"
+            echo
+            echo '```'
+            cat handoff-manifest.out 2>/dev/null || echo "skipped -- no docs/handoffs/** change in this push"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: handoff-manifest-${{ github.sha }}
+          path: handoff-manifest.out
+          retention-days: 90
+          if-no-files-found: warn
