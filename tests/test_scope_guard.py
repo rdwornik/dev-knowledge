@@ -475,15 +475,19 @@ def test_an_unrelated_wildcard_is_not_refused(tmp_path):
     assert decision == "allow", reason
 
 
-def test_a_bare_double_star_glob_component_is_a_known_accepted_false_positive(tmp_path):
-    """Live-discovered this redo, running this guard's own tests: `fnmatch.fnmatchcase(root,
-    "**")` is True for EVERY root, since a bare wildcard pattern matches any string -- an
-    ordinary glob argument with no relation to the excluded root at all (`templates/**`,
-    exactly what tripped this live) is REFUSED anyway. A same-redo attempt to exempt pure
-    wildcards was REVERTED (fifth Codex terra review pass) after it was shown to reopen a
-    real bypass (`Get-ChildItem 'C:\\Users\\x\\*\\secret.txt'` -- see `excluded_root_hit`'s
-    docstring) -- this is the accepted cost of failing closed on an ambiguous glob, not a
-    bug; the wedge escape is the way through for a legitimate command shaped like this."""
+def test_a_bare_double_star_glob_component_is_no_longer_a_false_positive(tmp_path):
+    """DECIDED-BY-LANE (`lane-scope-guard-3`, witness 4 of `LANE-5B5-1`, sourced verbatim from
+    `SESSION-lane-scope-guard-2.md:333-342`): this test used to assert `block` as an accepted
+    cost -- `fnmatch.fnmatchcase(root, "**")` is True for EVERY root, since a bare wildcard
+    pattern matches any string, so an ordinary glob argument with no relation to the excluded
+    root at all (`templates/**`) was refused anyway. `excluded_root_hit` now scopes the
+    bare-wildcard-matches-everything leg to a wildcard sitting directly under a conventional
+    OS user-home parent (`Users\\<name>\\*` / `/home/<name>/*`) -- the only place the real
+    excluded root can ever actually sit -- so a bare wildcard elsewhere (here, two levels
+    under the repo root, nowhere near a home boundary) no longer trips it. The real bypass
+    this guard must still refuse (`Get-ChildItem 'C:\\Users\\x\\*\\secret.txt'`, the wildcard
+    sitting exactly at that home-boundary position) is unchanged --
+    `test_a_bare_wildcard_standing_in_for_the_root_at_its_own_parent_is_refused` below."""
     ordinary = tmp_path / "repo"
     ordinary.mkdir()
 
@@ -492,7 +496,7 @@ def test_a_bare_double_star_glob_component_is_a_known_accepted_false_positive(tm
                   cwd=str(ordinary)),
         ROOTS)
 
-    assert decision == "block", reason
+    assert decision == "allow", reason
 
 
 def test_a_bare_wildcard_standing_in_for_the_root_at_its_own_parent_is_refused(tmp_path):
@@ -728,3 +732,90 @@ def test_a_quoted_cmd_set_assignment_with_same_line_expand_is_refused(tmp_path):
         ROOTS)
 
     assert decision == "block", reason
+
+
+# ==================== L. LANE-5B5-1 -- THE SCOPE GUARD'S FOUR WITNESSED FALSE POSITIVES
+
+# Root name for these tests is READ FROM ecosystem/excluded-roots.yaml (contract instruction:
+# "the excluded root's name built in the test from ecosystem/excluded-roots.yaml, never typed
+# into the test file"), never typed as a literal here -- unlike the module-level `ROOTS`
+# constant every OLDER test in this file already uses.
+_LIVE_ROOT = guard.load_roots()
+
+
+def test_a_grep_regex_argument_with_escaped_bare_asterisks_is_not_refused(tmp_path):
+    """Witness 1 (`LANE-5B5-1`, sourced from `DIGEST-N5-DRAFT-2026-09-29.md` §6): a
+    read-only `grep -oE` whose REGEX argument -- not a path at all -- happened to carry two
+    backslash-escaped literal asterisks (`\\*\\*done`). `normalize()` turns every backslash
+    into a path separator before matching, so the regex text splits into path components and
+    one of them is a BARE `*` -- which `excluded_root_hit` used to treat as "could stand in
+    for the excluded root" no matter where it sat. This regex's bare `*` sits deep inside
+    prose text under this test's own tmp worktree, nowhere near a user-home boundary, so it
+    must not be refused."""
+    pattern = r"(done[- ]when|\*\*done)[^.]{0,20}[:.][^|]{0,420}"
+
+    decision, reason = guard.decide(
+        _payload("Bash", {"command": f"grep -oE '{pattern}' some/transport/file.md"},
+                  cwd=str(tmp_path)),
+        _LIVE_ROOT)
+
+    assert decision == "allow", reason
+
+
+def test_a_glob_under_the_claude_projects_directory_is_not_refused(tmp_path, monkeypatch):
+    """Witness 2 (`LANE-5B5-1`, sourced from `SESSION-launch-cycle-2-2026-09-29.md`,
+    ROWS-OWED): a transcript-lookup glob under `~/.claude/projects/` (one of this harness's
+    OWN sanctioned zones -- `LANE-5B5-1`'s own "Do not" list names `~/.claude` job records as
+    always in scope). The bare `*` stands in for an unknown project-directory name, three
+    levels under home -- not the direct child of home a real `OneDrive - Blue Yonder` folder
+    would occupy -- so it must not be refused."""
+    home = tmp_path / "home-user"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+
+    decision, reason = guard.decide(
+        _payload("Bash", {
+            "command": "cat ~/.claude/projects/*/d706f00c-f8cd-4254-827e-b935d45d9bfa.jsonl",
+        }),
+        _LIVE_ROOT)
+
+    assert decision == "allow", reason
+
+
+def test_a_quoted_glob_token_inside_a_powershell_here_string_is_not_refused(tmp_path, monkeypatch):
+    """Witness 3 (`LANE-5B5-1`, same source as witness 2): the identical glob token, this time
+    merely QUOTED inside an `Add-Content` here-string (writing a receipt that describes the
+    refusal) rather than used as a real command target -- "the guard judges quoted payload
+    text as a path" (the contract's own words). Fixed by the same home-boundary narrowing as
+    witness 2, since the token's shape -- and therefore its resolved depth from home -- is
+    identical."""
+    home = tmp_path / "home-user"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+    token = "~/.claude/projects/*/d706f00c-f8cd-4254-827e-b935d45d9bfa.jsonl"
+
+    decision, reason = guard.decide(
+        _payload("PowerShell", {
+            "command": f"Add-Content -Path receipt.md -Value @'\ntoken was {token}\n'@",
+        }),
+        _LIVE_ROOT)
+
+    assert decision == "allow", reason
+
+
+def test_a_grep_regex_with_bare_wildcards_and_caret_anchors_is_not_refused(tmp_path):
+    """Fifth witness (DECIDED-BY-LANE, not a Done-when item -- contract's own words: "a test
+    for it is yours to decide"; sourced from `SESSION-gen-wave5b-n5-record-2026-09-29.md`,
+    "Scope-guard refusals met by the render", item 1): a `grep -n` whose quoted regex held
+    `\\*\\*` and `^##`, normalized to a path under the worktree -- the same bare-wildcard
+    class as witness 1, included here because it is the identical fix at no extra cost."""
+    pattern = r"^## R\|^### R\|^- \*\*R3"
+
+    decision, reason = guard.decide(
+        _payload("Bash", {"command": f"grep -n '{pattern}' some/transport/file.md"},
+                  cwd=str(tmp_path)),
+        _LIVE_ROOT)
+
+    assert decision == "allow", reason

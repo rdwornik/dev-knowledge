@@ -501,20 +501,26 @@ def excluded_root_hit(path: Path, roots: list[str]) -> str | None:
     an ordinary part with no glob character is unaffected and still needs an exact match.
 
     A BARE wildcard (`*`, `**`, `?`, any combination of only those, no literal character at
-    all) is DELIBERATELY NOT exempted from this leg, even though it makes an unrelated
-    glob-shaped argument (`git diff -- templates/**`) block too -- REVERTED this redo, fifth
-    Codex terra review pass, after the fourth pass's own exemption (added to fix exactly that
-    false positive) was shown to reopen a real bypass: `Get-ChildItem 'C:\\Users\\x\\*\\secret.txt'`
-    is a bare `*` that the shell WOULD expand onto the zone if `OneDrive - Blue Yonder`
-    happens to sit at that position, and this guard has no filesystem-aware way to tell "a
-    wildcard that cannot reach the root" apart from "a wildcard that can" without actually
-    resolving the glob against the live filesystem -- a categorically bigger mechanism than a
-    pre-exec text guard. Between under-blocking a real bypass and over-blocking an unrelated
-    glob command, this guard's own established doctrine (`_cannot_evaluate`: "permitting what
-    it cannot check is enforcement without enforcement") already answers which direction is
-    the honest failure -- fail CLOSED. The false positive is a real, known cost (recorded,
-    not silently dropped: the wedge escape, `DEV_KNOWLEDGE_SCOPE_GUARD_DISABLE=1`, is the way
-    through for a legitimate bare-glob command)."""
+    all) is NARROWED to the one position it is an actual bypass risk (LANE-5B5-1, closing the
+    four false positives that same fifth Codex terra review pass's blanket fail-closed cost
+    -- `DIGEST-N5-DRAFT-2026-09-29.md` \u00a76, `SESSION-launch-cycle-2-2026-09-29.md`
+    ROWS-OWED, `SESSION-lane-scope-guard-2.md:333-342`): the real excluded root can only ever
+    sit as the DIRECT CHILD of a conventional OS user-home parent -- `Users\\<name>\\OneDrive
+    - Blue Yonder` (Windows) or `/home/<name>/OneDrive - Blue Yonder` (POSIX); R15's own text
+    names it as one of "the operator's employer folders" living directly under the profile.
+    A bare wildcard is therefore still treated as "could stand in for the root" ONLY when the
+    path component two positions before it (the wildcard's own would-be SIBLING position's
+    parent) is literally `users` or `home` (case-insensitive) -- `_BARE_WILDCARD_HOME_PARENTS`
+    below -- which is exactly the shape `Get-ChildItem 'C:\\Users\\x\\*\\secret.txt'` has (the
+    real bypass a prior Codex round found; kept blocked, see
+    `test_a_bare_wildcard_standing_in_for_the_root_at_its_own_parent_is_refused`). A bare
+    wildcard ANYWHERE else -- inside a `grep` regex's own literal text (never a path at all),
+    under `~/.claude/projects/*` (a sanctioned zone, LANE-5B5-1's own "Do not" list), or a git
+    pathspec like `templates/**` -- is nowhere near that boundary and is no longer treated as
+    a hit. A GLOB WITH LITERAL CONTENT (`OneDrive*`, `repo*`) is unaffected either way: it
+    still needs an actual `fnmatch` match against the root name regardless of position, since
+    literal text is already a strong enough signal on its own (see
+    `test_a_shell_glob_wildcard_standing_in_for_the_root_name_is_refused`)."""
     parts_cf = [part.casefold() for part in path.parts]
     text_cf = str(path).casefold()
     for root in roots:
@@ -525,12 +531,34 @@ def excluded_root_hit(path: Path, roots: list[str]) -> str | None:
                 return root
         elif root_cf in parts_cf:
             return root
-        elif any(
-            any(ch in part for ch in "*?[") and fnmatch.fnmatchcase(root_cf, part)
-            for part in parts_cf
-        ):
+        elif _bare_wildcard_hit(root_cf, parts_cf):
             return root
     return None
+
+
+#: The only OS convention under which the excluded root can be a direct child -- a
+#: user-profile/home directory (`Users` on Windows, `home` on POSIX). A bare wildcard
+#: sitting exactly one level below one of these is the shape a real `OneDrive - Blue Yonder`
+#: folder would occupy; anywhere else it is not a plausible stand-in for it.
+_BARE_WILDCARD_HOME_PARENTS = frozenset({"users", "home"})
+
+#: A path component made ENTIRELY of glob metacharacters -- no literal text at all -- is the
+#: degenerate case `fnmatch.fnmatchcase(root, part)` matches unconditionally, whatever `root`
+#: is (see `excluded_root_hit`'s docstring).
+_PURE_WILDCARD = re.compile(r"^[*?]+$")
+
+
+def _bare_wildcard_hit(root_cf: str, parts_cf: list[str]) -> bool:
+    for i, part in enumerate(parts_cf):
+        if not any(ch in part for ch in "*?["):
+            continue
+        if _PURE_WILDCARD.fullmatch(part):
+            if i >= 2 and parts_cf[i - 2] in _BARE_WILDCARD_HOME_PARENTS:
+                return True
+            continue
+        if fnmatch.fnmatchcase(root_cf, part):
+            return True
+    return False
 
 
 # --------------------------------------------------------------------------------- messages
