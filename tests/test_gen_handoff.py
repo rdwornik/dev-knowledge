@@ -350,6 +350,133 @@ def test_row_ship_gate_signature_carries_the_1123_waiver_params():
     assert "bundle_dir" in row_params and "force_filled" in row_params
 
 
+def _preflight_ship_gate_only(repo_root, **kw):
+    """Stand-in for `assert_preflight` that runs the REAL row 1 (`_row_ship_gate`, the [#1123]
+    subject) and treats the other nine hygiene rows as already-clear.
+
+    Deliberately NOT `monkeypatch.setattr(gh, "_is_hub", lambda _root: True)` plus per-row
+    stubs: flipping `_is_hub` also arms `_write_decision_ledger`'s OWN `_is_hub` gate a few
+    hundred lines below, which then calls `graph_store.ensure()` and MATERIALISES
+    `.git/fpg-graph/FPG.db` in a stub repo with no git history -- after which `_tracked_under`
+    no longer short-circuits on "not a git repo", runs `git ls-files` there, and the SECOND
+    `generate()` call below refuses with `BundleCollisionError` for a reason that has nothing
+    to do with [#1123] (`_write_decision_ledger`'s own docstring names this exact hazard:
+    "Six regeneration tests found that before this shipped"). The other nine rows have their
+    own tests in `tests/test_gen_handoff_preflight.py`; none of them is the subject here.
+
+    Passes `bundle_dir` / `force_filled` through to `_row_ship_gate` ONLY when its OWN
+    signature accepts them -- on `origin/main`'s pre-[#1123] `_row_ship_gate(repo_root)` (one
+    positional argument, no waiver params at all) this calls it with no extra kwargs, so a RED
+    run fails on the REAL pre-[#1123] behaviour (ship_gate RED with a hard-fail always refuses)
+    rather than on a `TypeError` from this test harness naming a parameter the old code never
+    had -- the exact "not behavioural" shape refusal 1 named."""
+    accepted = inspect.signature(gh._row_ship_gate).parameters
+    row_kw = {k: kw[k] for k in ("bundle_dir", "force_filled") if k in accepted and k in kw}
+    row = gh._row_ship_gate(repo_root, **row_kw)
+    if row.failed:
+        raise gh.PreflightError(f"refusing to cut a bundle: {row.render()}")
+
+
+def test_filled_rerender_through_generate_passes_bd_manifest_with_no_hand_restamp(
+        tmp_path, monkeypatch):
+    """[#1123] Done-when, driven end to end through the DOCUMENTED entry point rather than the
+    private `_row_ship_gate` seam: cut (`generate`) -> hand fills (SUPPLEMENT/RESIDUAL/
+    HANDOFF_BOOT, exactly what the HANDOFF_PROCESS fill step does) -> the `--filled`
+    re-render / second assemble (`generate(..., force_filled=True, assemble=True)`) ->
+    `verify_handoff_probes` `BD-manifest` == pass. No file here is hand-restamped -- the fresh
+    manifest is written by `generate`'s own end-of-run census (lane-handoff-min Part A; always
+    runs, never gated on the [#1123] waiver), which is the mechanism "no hand re-stamp" refers
+    to: the waiver only lets the re-render PROCEED past preflight, the re-render's own existing
+    manifest write does the rest.
+
+    DECIDED-BY-LANE: the row's Done-when offers two designs ("stamp after the fills" or
+    "`--filled` accepts the cut's own known hard-fails") -- this lane keeps the existing
+    `_row_ship_gate` / `_self_inflicted_bd_manifest` waiver (the second design), because
+    `generate()` already recomputes and writes a fresh manifest unconditionally at the end of
+    every call (`bundle_manifest` + `_write_receipt`, lines below `# lane-handoff-min (Part A):
+    the manifest's file census runs LAST`); the only missing piece was letting a `--filled`
+    call REACH that write instead of being refused by preflight first. No separate
+    "stamp after the fills" code path was needed or added.
+
+    RED-FIRST (session evidence): against `origin/main`'s unmodified `gen_handoff.py`
+    (`_self_inflicted_bd_manifest` / the `force_filled` waiver branch in `_row_ship_gate`
+    absent), the `force_filled=True` call below raises `PreflightError` on the ship_gate row
+    (still counting the bundle's own BD-manifest fail as an unwaived hard-fail), so no fresh
+    manifest is ever written and `BD-manifest` is still `fail` afterward -- see the session
+    file for the captured pytest output.
+    """
+    monkeypatch.setattr(gh, "assert_preflight", _preflight_ship_gate_only)
+    monkeypatch.setattr(gh, "_ship_gate_verdict", lambda _root: ("GREEN", "stubbed GREEN"))
+    repo = _stub_repo(tmp_path)
+
+    res = gh.generate(repo, mode="architect", slug="0000-00-00-e2e", repo=".dev-knowledge",
+                      date="2026-07-04", bundle_root=repo / "docs" / "handoffs", assemble=True)
+    bundle = res.bundle_dir
+
+    # A REAL HANDOFF_PROCESS fill, not `_apply_handoff_process_fills`'s synthetic tamper: the
+    # SUPPLEMENT answer carries all five `assert_supplement_fixed_slots` slots, because the
+    # SECOND `generate()` call below (the `--filled` re-render) runs that real gate on its way
+    # through -- an incomplete supplement refuses there for a reason that has nothing to do
+    # with [#1123], same hazard class as the `_is_hub` one named above.
+    for name in ("RESIDUAL.md", "HANDOFF_BOOT.md"):
+        p = bundle / name
+        p.write_text(p.read_text(encoding="utf-8") + "\nFILLED BY THE OPERATOR.\n",
+                     encoding="utf-8")
+    sup = bundle / "SUPPLEMENT.md"
+    sup.write_text(
+        sup.read_text(encoding="utf-8") + "\n1. Intent: ship it.\n"
+        "Headline: ship it.\n"
+        "Open threads (with carriers): none\n"
+        "Next authorized action: none\n"
+        "Contingencies: none\n"
+        "Do-not-repeat: none\n", encoding="utf-8")
+
+    stale = [r for r in vhp.verify(bundle, repo_root=repo) if r.probe_id == "BD-manifest"]
+    assert stale and stale[0].status == "fail", stale
+
+    monkeypatch.setattr(gh, "_ship_gate_verdict", lambda _root: (
+        "RED", "ship-gate: RED -- ... (1 hard-fail organ(s); 0 new/undispositioned WARN(s))"))
+
+    gh.generate(repo, mode="architect", slug=bundle.name, repo=".dev-knowledge",
+               date="2026-07-04", bundle_root=repo / "docs" / "handoffs",
+               force_filled=True, assemble=True)
+
+    fresh = [r for r in vhp.verify(bundle, repo_root=repo) if r.probe_id == "BD-manifest"]
+    assert fresh and fresh[0].status == "pass", fresh
+
+
+def test_cli_flags_and_refusal_exit_code_are_unchanged(tmp_path, monkeypatch):
+    """[#1123] item 3: the existing `gen_handoff.py` CLI flags and exit codes are kept. Pins
+    the full flag set (a dropped/renamed one breaks every dispatcher/operator command line
+    that names it) and that a refusal still exits through the SAME
+    `raise SystemExit(f"[error] {exc}")` path at exit code 1 -- the [#1123] waiver changes
+    which runs are refused, never how a refusal is reported."""
+    expected_flags = {
+        "--mode", "--epic-slug", "--slug", "--repo", "--date", "--filled", "--cold",
+        "--assemble", "--no-assemble", "--allow-suffix", "--emit-journal",
+        "--no-emit-journal", "--preflight-only", "--dry-cut", "--boot-turns",
+        "--boot-dispatch",
+    }
+    actual_flags: set[str] = set()
+    for p in gh.main.params:
+        actual_flags.update(getattr(p, "opts", []) or [])
+        actual_flags.update(getattr(p, "secondary_opts", []) or [])
+    assert actual_flags == expected_flags, actual_flags
+
+    from click.testing import CliRunner
+
+    repo = _stub_repo(tmp_path)
+    monkeypatch.setattr(gh, "_run_assembler", _refusing_assembler)
+    monkeypatch.setattr(gh, "_REPO_ROOT", repo)
+    monkeypatch.setattr(gh, "assert_batch_boundary", lambda *a, **k: None)
+    monkeypatch.setattr(gh, "assert_boundary_hygiene", lambda *a, **k: None)
+    monkeypatch.setattr(gh, "assert_preflight", lambda *a, **k: [])
+
+    result = CliRunner().invoke(gh.main, ["--slug", "0000-00-00-cli-exit", "--date", "2026-09-09",
+                                          "--assemble", "--no-emit-journal"])
+    assert result.exit_code == 1, result.output
+
+
 # --- bundle shape / structure -----------------------------------------------
 
 def test_architect_bundle_writes_all_files_and_mode_row(tmp_path):
