@@ -143,15 +143,29 @@ def _read_int_with_retry(path: Path, timeout_s: float = 10.0) -> int | None:
     return None
 
 
+def _is_gone(pid: int) -> bool:
+    """Not merely "does the pid still exist": a SIGKILL'd process on POSIX is a ZOMBIE, not an
+    absent pid, until ITS OWN parent (the fixture's `subprocess.Popen` object, here) reaps it --
+    which a live-CI run of this suite never does, since nothing calls `.wait()`/`.poll()` on it
+    (CI ubuntu-latest run of LANE-5B5-5-lane-hook-watchdog: `psutil.pid_exists` alone reported
+    the killed parent as still present, a zombie mistaken for a live process, not a `kill_tree`
+    defect). A zombie IS dead for this check's purpose -- the kernel has already reclaimed
+    everything but the exit-status bookkeeping entry."""
+    try:
+        return psutil.Process(pid).status() == psutil.STATUS_ZOMBIE
+    except psutil.NoSuchProcess:
+        return True
+
+
 def _wait_gone(pid: int, timeout_s: float = 10.0) -> bool:
     """`taskkill`/`kill` above are fired, not awaited (same posture as `bounded_hook.py::
     _kill_tree`) -- poll rather than assume instant death."""
     deadline = time.monotonic() + timeout_s
     while time.monotonic() < deadline:
-        if not psutil.pid_exists(pid):
+        if _is_gone(pid):
             return True
         time.sleep(0.1)
-    return not psutil.pid_exists(pid)
+    return _is_gone(pid)
 
 
 # --- Done-item 1: the reproduction ------------------------------------------------------------
