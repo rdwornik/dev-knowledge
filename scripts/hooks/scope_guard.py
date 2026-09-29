@@ -38,20 +38,40 @@ regex scan, keeping the p95 bound cheap. A token that DOES look like a path is r
 (environment variables, `~`, 8.3 short names, `..`) relative to the tool call's own `cwd` and
 checked against the excluded-root list.
 
-HONEST LIMIT (repair 1, Codex terra review P1, verified rather than assumed): this guard reads
-the tool call's OWN literal text; it does not interpret shell semantics. A command that
-CONSTRUCTS the excluded root's name at runtime -- string concatenation
-(`"OneDrive" + " - Blue Yonder"`), an environment variable the command itself sets in the
-same line (`set X=...& type ...%X%...`), or any other computation -- never places the literal
-root name in a single token this guard resolves, and is not caught. Verified live (three probe
-commands, this lane's repair session): a concatenation and a same-line `set`+expand both
-allowed. Interpreting arbitrary shell semantics to close this is a categorically bigger
-mechanism than a pre-exec text guard (it would mean partially executing the command to know
-what it resolves to) and is judged out of proportion to fix unilaterally here -- recorded as
+HONEST LIMIT (repair 1, Codex terra review P1, verified rather than assumed; narrowed by
+LANE-5B5R-2-scope-guard-2): this guard reads the tool call's OWN literal text; it does not
+execute or interpret shell semantics. Two constructions repair 1 left `allow` are now CLOSED
+without needing execution, because both assemble the excluded root's name from LITERAL text
+already present in the command -- reading a literal twice is not interpretation:
+- A quoted-string CONCATENATION (`"OneDrive" + " - Blue Yonder"`, the `+` operator PowerShell
+  and other shells use to join literals) is folded into one candidate string
+  (`_command_candidates`'s concatenation scan) and resolved the ordinary way.
+- A same-line cmd.exe `set VAR=value` assignment followed later in the SAME command text by
+  `%VAR%` (`set X=OneDrive - Blue Yonder& type ...%X%...`) is resolved by substituting the
+  assignment's own literal VALUE for `%VAR%` (`_local_set_vars`) before normalization --
+  again reading the same literal twice, never executing `set`.
+What remains a genuine, un-closed limit: a value computed by something this guard cannot read
+as literal text at all -- the output of another command, a loop, a registry/environment
+lookup this guard's own process does not share (a DIFFERENT session's `set`, a `Get-Date`
+concatenation, an obfuscated/encoded command line). Interpreting THAT would mean partially
+executing the command to know what it resolves to, a categorically bigger mechanism than a
+pre-exec text guard, and stays out of proportion to fix unilaterally here -- recorded as
 `ROWS-OWED`, not silently dropped. What repair 1 DID close, because it does not need shell
-interpretation: an MCP/LSP/`Monitor` tool's path argument under an unnamed field
+interpretation either: an MCP/LSP/`Monitor` tool's path argument under an unnamed field
 (`candidate_tokens`' string-leaf fallback) and a shell glob character standing in for the root
 name (`excluded_root_hit`'s `fnmatch` leg) -- both verified bypasses, both now blocked.
+
+CROSS-OS NORMALIZATION (LANE-5B5R-2-scope-guard-2, closing the N4 redo's second refusal): the
+CI verdict is both OSes, and a Windows-syntax token (`%VAR%`, a backslash separator) must
+resolve the SAME way whichever OS the guard's own process runs on -- the payload describes a
+call the operator's OWN box will make, not necessarily the box running this test. `%VAR%` and
+`$VAR`/`${VAR}` are therefore expanded by this module's OWN regex substitution against
+`os.environ` (`_expand_env_vars`), never `os.path.expandvars` (whose `%VAR%` support is
+Windows-only in the stdlib -- verified: `posixpath.expandvars` does not implement it, which is
+why the N4 redo's env-var test only passed on the Windows CI leg). A backslash is normalized to
+`/` before the token becomes a `Path` (`normalize`), for the same reason: `PosixPath` never
+splits on `\\`, so a Windows-style token would arrive as one unsplittable part and never match a
+bare-name root as a path COMPONENT on the ubuntu leg.
 
 WEDGE ESCAPE (Done-contract item 3): `DEV_KNOWLEDGE_SCOPE_GUARD_DISABLE=1` in the environment
 allows every call unconditionally, checked before the store is even read -- a PreToolUse hook
@@ -138,14 +158,53 @@ def guard_disabled(env: dict | None = None) -> bool:
 
 # ----------------------------------------------------------------------------- normalization
 
-#: PowerShell's `$env:VAR` has no `expandvars` equivalent -- rewritten to `%VAR%` first, which
-#: `os.path.expandvars` already understands on every platform.
+#: PowerShell's `$env:VAR` has no cross-OS stdlib equivalent -- rewritten to `%VAR%` first,
+#: which `_expand_env_vars` below then handles the same as a native `%VAR%` token.
 _PS_ENV_VAR = re.compile(r"\$env:([A-Za-z_][A-Za-z0-9_]*)", re.IGNORECASE)
 
+#: `%VAR%` (cmd.exe/PowerShell) and `$VAR`/`${VAR}` (POSIX shells) -- matched and expanded by
+#: THIS module's own regex, never `os.path.expandvars`: that stdlib function dispatches on the
+#: HOST os (`ntpath` understands `%VAR%`, `posixpath` does not, and neither understands the
+#: other's form at all), so the same token would resolve on Windows and silently NOT resolve on
+#: Linux -- exactly the gap the N4 redo's ubuntu CI leg found (Done-contract item 8).
+_PCT_VAR = re.compile(r"%([A-Za-z_][A-Za-z0-9_]*)%")
+_DOLLAR_VAR = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)")
 
-def _expand_vars_and_home(token: str) -> str:
+#: A cmd.exe same-line `set VAR=value` assignment -- `&`/`;`/newline-delimited, matching the
+#: repair-1 Codex terra review's own reproduction (`set X=...& type ...%X%...`). The VALUE is
+#: itself a literal already present in the command text, so substituting it for a later `%VAR%`
+#: on the same line needs no shell execution -- see the module docstring, "HONEST LIMIT".
+_CMD_SET = re.compile(r"(?:^|[&;\n])\s*set\s+([A-Za-z_][A-Za-z0-9_]*)=(.*?)(?=[&;\n]|$)",
+                       re.IGNORECASE)
+
+
+def _local_set_vars(command: str) -> dict[str, str]:
+    """Every `set VAR=value` this command text assigns, keyed upper-case (Windows env-var
+    names are case-insensitive) -- `{}` for a command with no `set` at all, the common case,
+    so callers can skip the substitution pass entirely."""
+    return {m.group(1).upper(): m.group(2).strip() for m in _CMD_SET.finditer(command)}
+
+
+def _expand_env_vars(token: str, local_vars: dict[str, str]) -> str:
+    """`%VAR%` and `$VAR`/`${VAR}` expanded against `local_vars` first (a same-line `set` this
+    command text itself made), then `os.environ` -- an unresolvable reference is left as-is
+    (the existing candidate/normalize/match pipeline still evaluates the literal text, it just
+    will not happen to land in the excluded root, the same posture an absent env var takes
+    today)."""
+
+    def _sub(name: str, whole: str) -> str:
+        if name.upper() in local_vars:
+            return local_vars[name.upper()]
+        return os.environ.get(name, whole)
+
+    token = _PCT_VAR.sub(lambda m: _sub(m.group(1), m.group(0)), token)
+    token = _DOLLAR_VAR.sub(lambda m: _sub(m.group(1) or m.group(2), m.group(0)), token)
+    return token
+
+
+def _expand_vars_and_home(token: str, local_vars: dict[str, str] | None = None) -> str:
     token = _PS_ENV_VAR.sub(r"%\1%", token)
-    token = os.path.expandvars(token)
+    token = _expand_env_vars(token, local_vars or {})
     return os.path.expanduser(token)
 
 
@@ -169,7 +228,7 @@ def _long_form(path: str) -> str:
     return buf.value if n else path
 
 
-def normalize(token: str, cwd: str) -> list[Path]:
+def normalize(token: str, cwd: str, local_vars: dict[str, str] | None = None) -> list[Path]:
     """The absolute, long-form path form(s) a raw candidate token names, resolved against the
     tool call's OWN `cwd` (never this hook's).
 
@@ -181,8 +240,15 @@ def normalize(token: str, cwd: str) -> list[Path]:
     lane -- the same reason `block_immutable_edits._canonical_forms` checks both forms too).
     `os.path.realpath` never raises on a path that does not exist; it simply returns the input
     unresolved, so the lexical form is never lost even when there is nothing on disk to resolve.
+
+    A backslash is normalized to `/` BEFORE the `Path` is built, whatever OS this process runs
+    on: `PosixPath` never treats `\\` as a separator, so a Windows-syntax token (drive letter,
+    `\\`-joined segments) would otherwise arrive as one unsplittable part on the ubuntu CI leg
+    and never match a bare-name root as a path COMPONENT (Done-contract item 8) -- done AFTER
+    the 8.3 short-name expansion above, which needs the original backslash form for the Win32
+    call it makes only on `nt` anyway.
     """
-    expanded = _long_form(_expand_vars_and_home(token))
+    expanded = _long_form(_expand_vars_and_home(token, local_vars)).replace("\\", "/")
     candidate = Path(expanded)
     if not candidate.is_absolute():
         candidate = Path(cwd or os.getcwd()) / candidate
@@ -206,8 +272,33 @@ def _looks_like_path(token: str) -> bool:
     return bool(_PATH_HINT.search(token))
 
 
+#: A run of two-or-more double-quoted literals joined by `+` (PowerShell/JS-style string
+#: concatenation) -- `"C:\...\" + "OneDrive" + " - Blue Yonder" + "\f.txt"` never places the
+#: root's literal name in one shell WORD, so `shlex` alone cannot see it, but every piece is
+#: still literal text this guard can read and join without executing anything (Codex terra
+#: review P1, repair 1 -- the reviewer's own reproduction; Done-contract item 9).
+_STRING_CONCAT = re.compile(r'(?:"[^"]*"\s*\+\s*)+"[^"]*"')
+
+
+def _concatenated_literal_candidates(command: str) -> list[str]:
+    """Not gated by `_looks_like_path`: the concatenation SYNTAX itself (two-or-more quoted
+    literals joined by `+`, a narrow and deliberate shape no ordinary prose or single-string
+    command hits -- see `test_a_word_that_merely_mentions_the_zone_name_in_prose...`) is
+    already a strong enough signal, and a bare root name joined from pieces
+    (`"OneDrive" + " - Blue Yonder"`) carries no separator to trigger the path-hint filter at
+    all despite being exactly the construction Done-contract item 9 names."""
+    out: list[str] = []
+    for match in _STRING_CONCAT.finditer(command):
+        joined = "".join(re.findall(r'"([^"]*)"', match.group(0)))
+        if joined:
+            out.append(joined)
+    return out
+
+
 def _command_candidates(command: str) -> list[str]:
-    """Every path-shaped shell word in `command`, scanned one LINE at a time.
+    """Every path-shaped shell word in `command`, scanned one LINE at a time, PLUS any
+    string-concatenation candidates the whole command text assembles (`_concatenated_literal_
+    candidates`, not line-scoped since PowerShell allows the `+` chain to wrap).
 
     A newline ends a command; `shlex` treats it as ordinary whitespace, so scanning the whole
     command as one `shlex` stream would let a path on the line after a heredoc marker fold into
@@ -217,7 +308,7 @@ def _command_candidates(command: str) -> list[str]:
     fixed it the same way. An unparseable line yields no candidates from it (never raises), the
     same "a search that cannot be tokenized allows" posture `deny_and_point.py` takes.
     """
-    out: list[str] = []
+    out: list[str] = list(_concatenated_literal_candidates(command))
     for line in command.split("\n"):
         if not line.strip():
             continue
@@ -350,9 +441,17 @@ def decide(payload: dict, roots: list[str]) -> tuple[str, str]:
     if not tokens:
         return "allow", "no path argument"
     cwd = payload.get("cwd")
+    # A same-line `set VAR=value` (cmd.exe syntax) is a literal already in the shell command's
+    # OWN text -- resolved here, once, rather than re-parsed per token (Done-contract item 9).
+    local_vars: dict[str, str] = {}
+    tool_input = payload.get("tool_input")
+    if payload.get("tool_name") in SHELL_TOOLS and isinstance(tool_input, dict):
+        command = tool_input.get("command")
+        if isinstance(command, str):
+            local_vars = _local_set_vars(command)
     for token in tokens:
         try:
-            forms = normalize(token, cwd)
+            forms = normalize(token, cwd, local_vars)
         except Exception as exc:  # noqa: BLE001 -- fails CLOSED, see _cannot_evaluate
             return "block", _cannot_evaluate(token, exc)
         for resolved in forms:

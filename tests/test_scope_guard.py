@@ -448,3 +448,73 @@ def test_an_unrelated_wildcard_is_not_refused(tmp_path):
         ROOTS)
 
     assert decision == "allow", reason
+
+
+# ============================ J. LANE-5B5R-2 -- SHELL-SEMANTICS BYPASS CLOSURE (item 9)
+
+def test_a_powershell_string_concatenation_assembling_the_root_name_is_refused(tmp_path):
+    """Codex terra review P1 (repair 1), the reviewer's OWN reproduction, left `allow`: the
+    excluded root's name assembled from quoted literals joined by `+` never lands in one
+    shell word `shlex` can see whole -- but every piece is still literal text."""
+    zone = tmp_path / "OneDrive - Blue Yonder" / "f.txt"
+
+    decision, reason = guard.decide(
+        _payload("PowerShell",
+                  {"command": 'Get-Content ("' + str(tmp_path) + '\\" + "OneDrive" + '
+                              '" - Blue Yonder" + "\\f.txt")'},
+                  cwd=str(tmp_path)),
+        ROOTS)
+
+    assert decision == "block", reason
+    assert str(zone) in reason or "OneDrive - Blue Yonder" in reason
+
+
+def test_a_bare_string_concatenation_of_just_the_root_name_is_refused(tmp_path):
+    (tmp_path / "OneDrive - Blue Yonder").mkdir()
+
+    decision, reason = guard.decide(
+        _payload("PowerShell", {"command": 'Get-Item ("OneDrive" + " - Blue Yonder")'},
+                  cwd=str(tmp_path)),
+        ROOTS)
+
+    assert decision == "block", reason
+
+
+def test_a_same_line_environment_variable_set_and_expand_assembling_the_root_name_is_refused(
+        tmp_path):
+    """Codex terra review P1 (repair 1), the second construction left `allow`: `set` assigns
+    a variable and `%VAR%` expands it on the SAME line -- the assignment's value is itself a
+    literal already in the command text, read twice rather than executed."""
+    zone_dir = tmp_path / "OneDrive - Blue Yonder"
+    zone_dir.mkdir()
+    (zone_dir / "f.txt").write_text("x", encoding="utf-8")
+
+    decision, reason = guard.decide(
+        _payload("Bash",
+                  {"command": f'set X=OneDrive - Blue Yonder& type "{tmp_path}\\%X%\\f.txt"'},
+                  cwd=str(tmp_path)),
+        ROOTS)
+
+    assert decision == "block", reason
+
+
+def test_a_set_without_a_matching_same_line_expand_does_not_false_positive():
+    """`set` alone, never expanded via `%VAR%` on the same line, assigns nothing path-shaped
+    that this guard would ever resolve -- `_local_set_vars` populating a dict must not by
+    itself manufacture a candidate token."""
+    decision, reason = guard.decide(
+        _payload("Bash", {"command": "set X=OneDrive - Blue Yonder& echo done"}), ROOTS)
+
+    assert decision == "allow", reason
+
+
+def test_a_word_that_merely_mentions_the_zone_name_in_prose_still_stays_allowed_with_concat_scan(
+        tmp_path):
+    """The concatenation scan requires TWO OR MORE quoted literals joined by `+` -- a single
+    quoted string (the existing anti-false-positive test's own shape) never matches it, so
+    adding the scan must not flip that test."""
+    decision, reason = guard.decide(
+        _payload("Bash", {"command": 'git commit -m "mentions OneDrive - Blue Yonder"'}),
+        ROOTS)
+
+    assert decision == "allow", reason

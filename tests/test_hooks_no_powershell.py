@@ -11,6 +11,19 @@ rather than silently reintroducing the break.
 RED-FIRST (ADR-108 SS B): written and run against the pre-port `.claude/settings.json`, which
 still carried two `powershell -File` commands and a bare `python` `lane_end_guard.py` Stop entry
 -- every assertion below failed before the port landed.
+
+LANE-5B5R-2-scope-guard-2 (redo, 2026-09-29): N4's scope-guard lane broadened a PreToolUse
+`matcher` to include the literal tool name `"PowerShell"` (Claude Code's own first-class tool,
+distinct from Bash, that this repo's guard must also gate) -- a `matcher` field NAMES a tool
+class for the PreToolUse event to fire on; it never INVOKES anything. The original whole-block
+substring scan could not tell that apart from a hook's `command` field actually shelling out to
+the `powershell`/`pwsh` interpreter, and reddened on the matcher string alone
+(`tests/test_scope_guard.py`'s own contract does not touch this file's assertions -- this is
+the matcher/guard-test collision the redo's Done-contract names). The fix scans only `command`
+values (recursively, whatever hook shape holds them), never `matcher` values, so naming the
+tool stays allowed while invoking the interpreter stays caught --
+`test_a_seeded_real_powershell_invocation_in_hooks_is_still_caught` below is the RED-first
+proof that the guard is made ACCURATE, not weaker.
 """
 from __future__ import annotations
 
@@ -23,9 +36,41 @@ _SETTINGS = _REPO / ".claude" / "settings.json"
 
 _UV_LOCKED_PY = re.compile(r'^uv run --locked python "\$CLAUDE_PROJECT_DIR/scripts/[^"]+\.py"$')
 
+#: A real interpreter invocation -- `powershell`/`powershell.exe`/`pwsh`/`pwsh.exe` as a
+#: whole word (never a substring of a longer identifier, so e.g. a hypothetical
+#: `my-powershell-helper.py` token is not falsely caught). Deliberately does NOT look at
+#: `matcher` fields -- see the module docstring.
+_POWERSHELL_INVOCATION = re.compile(r"(?<![\w-])(powershell(\.exe)?|pwsh(\.exe)?)(?![\w-])",
+                                     re.IGNORECASE)
+
 
 def _settings() -> dict:
     return json.loads(_SETTINGS.read_text(encoding="utf-8"))
+
+
+def _all_hook_commands(hooks: dict) -> list[str]:
+    """Every `command` string in a `hooks{}`-shaped structure, found recursively by KEY name
+    (`"command"`), never by guessing the nesting shape -- so a `matcher` field's tool-name
+    string (e.g. `"...|PowerShell|..."`) is never visited, whatever depth it sits at."""
+    out: list[str] = []
+
+    def _walk(node: object) -> None:
+        if isinstance(node, dict):
+            command = node.get("command")
+            if isinstance(command, str):
+                out.append(command)
+            for value in node.values():
+                _walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                _walk(value)
+
+    _walk(hooks)
+    return out
+
+
+def _powershell_invocations(hooks: dict) -> list[str]:
+    return [c for c in _all_hook_commands(hooks) if _POWERSHELL_INVOCATION.search(c)]
 
 
 def _session_start_commands() -> list[str]:
@@ -41,14 +86,44 @@ def _stop_commands() -> list[str]:
 # --- Done-contract 2: no `powershell` anywhere in the hooks section -------------------------
 
 def test_hooks_section_carries_no_powershell_invocation():
-    """A grep over the LIVE `hooks` block, not the whole file -- the surrounding comment
-    prose (e.g. the ADR-77/prompts-guard essay) is allowed to keep historical mentions of
-    PowerShell; only the block that actually fires may not."""
-    hooks_json = json.dumps(_settings()["hooks"])
-    assert "powershell" not in hooks_json.lower(), (
+    """A scan over the LIVE `hooks` block's `command` values, not the whole file -- the
+    surrounding comment prose (e.g. the ADR-77/prompts-guard essay) is allowed to keep
+    historical mentions of PowerShell, and so is a `matcher` field NAMING the `"PowerShell"`
+    tool (Claude Code's own tool, gated the same as `"Bash"` by the scope guard); only a
+    `command` that actually INVOKES the interpreter may not."""
+    hooks = _settings()["hooks"]
+    offenders = _powershell_invocations(hooks)
+    assert not offenders, (
         "a powershell invocation survives in the live hooks{} block -- the container's hard "
-        f"break was not fully removed: {hooks_json}"
+        f"break was not fully removed: {offenders}"
     )
+
+
+def test_a_seeded_real_powershell_invocation_in_hooks_is_still_caught():
+    """RED-first proof that the matcher/command split above did not weaken the guard: a
+    hook `command` that actually shells out to PowerShell -- planted here, never in the live
+    file -- is still flagged, even sitting beside a `matcher` field that also says
+    "PowerShell" for an unrelated reason (naming the tool class, not invoking it)."""
+    seeded = {
+        "PreToolUse": [{
+            "matcher": "Read|Write|Edit|Bash|PowerShell|Glob|Grep",
+            "hooks": [{"type": "command",
+                       "command": 'powershell -File "$CLAUDE_PROJECT_DIR/scripts/x.ps1"'}],
+        }],
+    }
+    offenders = _powershell_invocations(seeded)
+    assert offenders == ['powershell -File "$CLAUDE_PROJECT_DIR/scripts/x.ps1"']
+
+
+def test_a_matcher_naming_the_powershell_tool_alone_is_not_flagged():
+    seeded = {
+        "PreToolUse": [{
+            "matcher": "Read|Write|Edit|Bash|PowerShell|Glob|Grep",
+            "hooks": [{"type": "command",
+                       "command": 'uv run --locked python "$CLAUDE_PROJECT_DIR/scripts/hooks/scope_guard.py"'}],
+        }],
+    }
+    assert _powershell_invocations(seeded) == []
 
 
 # --- Done-contract 1: both former-PowerShell SessionStart hooks are uv run --locked python ---
