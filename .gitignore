@@ -123,6 +123,16 @@ logs/COHERENCE-NUDGE.log
 # tripping session-end backpressure: the exact failure this leg was filed to prevent.
 logs/TELEMETRY.db*
 
+# [#628-adjacent] `LANE-5B4-15-runtime-data-home` (R17): the GenAI-span telemetry store MOVED
+# off the public tree entirely -- `scripts/cost_usage_telemetry.py::default_db_path()` now
+# resolves a per-user OS state directory (`platformdirs.user_state_dir`), never a repo-relative
+# path. This entry is BELT-AND-BRACES ONLY, the same posture `.backlog-view/` states above: a
+# stray pre-move file left over from before this change, or an explicit
+# `$DEV_KNOWLEDGE_GENAI_TELEMETRY_DB` override pointed back under `logs/` in a sandbox, stays
+# invisible to git even though the default path can no longer put one here. Full decision:
+# `to-browser/SESSION-lane-runtime-data-home.md`.
+logs/GENAI-TELEMETRY.db*
+
 # Vendored Pyright langserver for the reverse-dep oracle (#193, ADR-89). The version is
 # pinned in package.json + package-lock.json (committed); the heavy node_modules tree is
 # rebuilt per-checkout via `npm install` (bootstrap documented in scripts/reverse_dep_oracle.py).
