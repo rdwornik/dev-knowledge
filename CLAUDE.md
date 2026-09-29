@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-26
+last_reviewed: 2026-09-29
 reconciled_with: handoff-process@7.1.0
 status: active
 owner: Rob
@@ -91,7 +91,7 @@ In order, read:
 2. **`JOURNAL.md` is append-only newest-first** — prepend at session wrap or workday close
 3. **ADRs, transcripts, handoffs, and audits are immutable** — supersede with a new file or an in-file amendment marker; never edit in place. **ADR ratification exception (ADR-94):** an ADR's *status line* MAY be edited in place on ratification (e.g. Proposed → Accepted) — the status line is metadata, not decision content. This exception is ADR-specific and covers the status line only; ADR decision content, and transcripts / handoffs / audits in full, remain immutable.
 <!-- methodology:end id=critical-rules-records -->
-4. **Layer 2 never executes** — no orchestration scripts: no script drives state in a child repo (ADR-28, ADR-36). Hub-local validators, generators and gates are in scope.
+4. **Layer 2 never executes** — no script drives state in a child repo (ADR-28, ADR-36). Hub-local validators, generators and gates are in scope; so is `scripts/dispatch.py`'s Codespace substrate, R11(3)'s sanctioned exception — full text: `ARCHITECTURE.md` invariant 1, `protocols/STANDING_RULINGS.md` §AN.
 5. **No new markdown files without checking navigation/growth triggers** — when navigation overhead emerges, evaluate DevVault migration. Root `README.md`, deleted 2026-05-23 (ADR-38 A5), was **RECREATED 2026-08-29**: ADR-114 supersedes A5 in that one respect, making `README.md` a sanctioned Tier-1 file and this repo's canonical front door. `VISION.md` is retained, marked superseded, and relocated to `docs/archive/VISION.md` at the hub ([#614] lane-e-5) — still tracked; the fleet-wide migration remains sequenced.
 > **[HUB - methodology]** region `critical-rules-consistency` - single-sourced from the hub; do not edit these lines here.
 <!-- methodology:start id=critical-rules-consistency owner=hub -->
@@ -232,5 +232,5 @@ History of this file's revisions: `docs/audits/2026-09-05-technical-claude-md-se
 
 ---
 
-**Last updated:** 2026-09-24
+**Last updated:** 2026-09-29
 **Maintained by:** Rob

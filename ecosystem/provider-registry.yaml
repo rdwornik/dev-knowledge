@@ -817,6 +817,36 @@ roles:
           decided_on: "2026-09-11"
           evidence: docs/audits/2026-09-11-technical-batch-x-manifest.md
 
+# ===========================================================================================
+# DISPATCHER -- ADDED 2026-09-29 (`lane-ratified-unbuilt`, WAVE5B-N5-R, R22), ALIGNING THE
+# REGISTRY WITH A RULING THIS FILE HAD NOT REFLECTED SINCE IT WAS MADE. R22 (`to-browser/
+# RATIFICATION-2026-09-25-v14-superseded.md`, quoted in full in `protocols/STANDING_RULINGS.md`
+# §AO): "The order is binding: the dispatcher runs on the Sonnet 5 id ... the registry row for
+# the dispatcher role is changed to the Sonnet 5 id in the next batch so the two sources agree
+# again." Until this row existed a session reading only this file could not tell R22 had ever
+# been ratified -- the launcher's own OVERRIDE record was the only place it lived.
+#
+# NOT A `roles:` ENTRY, AND NOT A REPOINT OF `roles.orchestrate`. The six roles above answer
+# "who produces / reviews / reads / etc." for AX21-1's vocabulary; the dispatcher session runs
+# `dispatch.py`'s own queue/admission logic, which is code, not judgement -- a different
+# question, so it gets a different, single-pin shape rather than a seventh ordered fallback
+# list. `roles.orchestrate` stays Opus-only, `rerankable: false`, and UNCHANGED by this entry:
+# R22 is an explicit override against it for the dispatcher seat only ("the launcher records
+# OVERRIDE: R22 for that seat and no other"), not a widening of who orchestrate itself runs on.
+dispatcher:
+  provider: anthropic
+  model: claude-sonnet-5
+  note: >-
+    R22, verbatim: "the order is binding: the dispatcher runs on the Sonnet 5 id"
+    (`to-browser/SESSION-launch-seats-2026-09-27.md`, as quoted in
+    `to-cc/BATCH-WAVE5B-N5-RECKONING-2026-09-29.md` v4). The N4 dispatcher ran all day on
+    Sonnet without a routing failure; the one Opus dispatcher of N3 cost ~7x its Sonnet
+    estimate. A launcher session dispatching this seat records `OVERRIDE: R22` against
+    `roles.orchestrate` (unchanged, Opus-only) rather than routing through it.
+  decided_by: operator
+  decided_on: "2026-09-27"
+  evidence: protocols/STANDING_RULINGS.md
+
 models:
   claude-sonnet-5:
     provider: anthropic
