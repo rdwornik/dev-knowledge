@@ -167,6 +167,12 @@ _PS_ENV_VAR = re.compile(r"\$env:([A-Za-z_][A-Za-z0-9_]*)", re.IGNORECASE)
 #: HOST os (`ntpath` understands `%VAR%`, `posixpath` does not, and neither understands the
 #: other's form at all), so the same token would resolve on Windows and silently NOT resolve on
 #: Linux -- exactly the gap the N4 redo's ubuntu CI leg found (Done-contract item 8).
+#: A Windows drive-letter absolute prefix (`D:/...`, after the backslash-to-slash
+#: normalization `normalize()` already applies) -- recognized on every host OS, not just
+#: `nt`, since `PurePosixPath` has no drive-letter concept and would otherwise treat it as
+#: relative (see `normalize()`'s docstring).
+_WINDOWS_DRIVE_ABS = re.compile(r"^[A-Za-z]:/")
+
 _PCT_VAR = re.compile(r"%([A-Za-z_][A-Za-z0-9_]*)%")
 _DOLLAR_VAR = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)")
 
@@ -286,10 +292,19 @@ def normalize(token: str, cwd: str, local_vars: dict[str, str] | None = None) ->
     and never match a bare-name root as a path COMPONENT (Done-contract item 8) -- done AFTER
     the 8.3 short-name expansion above, which needs the original backslash form for the Win32
     call it makes only on `nt` anyway.
+
+    A WINDOWS DRIVE-LETTER PREFIX (`D:/...`) is treated as already absolute on EVERY host OS,
+    not just `nt` (CI's ubuntu leg found this live, this lane: `PurePosixPath.is_absolute()`
+    is False for a drive-letter path -- POSIX has no drive-letter concept -- so without this,
+    the token would fall through to the `cwd`-join below and land many components deep under
+    a Linux runner's own tmp path instead of at the shallow, drive-root-relative depth the
+    payload's own OS actually resolves it to; `_bare_wildcard_hit`'s drive-root leg depends on
+    that depth being right on both CI legs, the same cross-OS doctrine `_expand_env_vars`
+    already established for `%VAR%`.
     """
     expanded = _long_form(_expand_vars_and_home(token, local_vars)).replace("\\", "/")
     candidate = Path(expanded)
-    if not candidate.is_absolute():
+    if not candidate.is_absolute() and not _WINDOWS_DRIVE_ABS.match(expanded):
         candidate = Path(cwd or os.getcwd()) / candidate
     lexical = Path(os.path.normpath(str(candidate)))
     forms = [lexical]
