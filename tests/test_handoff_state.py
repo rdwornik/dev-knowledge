@@ -260,6 +260,30 @@ def test_bd_seats_fails_a_genuine_counts_prefix_with_unrecognized_trailing_text(
     assert "shape" in detail.lower()
 
 
+def test_bd_seats_fails_when_a_named_prefix_is_ambiguous_among_live_sessions(tmp_path, monkeypatch):
+    """terra HIGH (`verify_handoff_probes.py:1436`, repair 1, 2026-09-29): `_label` and
+    `named_bad_seats` both truncate a session id to its first 8 characters, and the LIVE side
+    truncates the same way (`{s.session_id[:8] for s in seats()}`) -- so a bare-prefix
+    membership test cannot distinguish the cut-named session from a DIFFERENT live session that
+    happens to share the same first 8 characters. Two live sessions sharing one prefix must
+    fail as ambiguous, never silently read as 'still resolvable'."""
+    path = tmp_path / "seats.jsonl"
+    monkeypatch.setattr(hs._sr, "REGISTRY_PATH", path)
+    t0 = datetime(2026, 9, 27, 12, 0, tzinfo=timezone.utc)
+    hs._sr.bind("integrator", "AB", session_id="deadbeef-1111", path=path, now=t0)
+    cut_at = t0 + timedelta(minutes=hs._sr.WEDGED_AFTER_MIN + 1)
+    monkeypatch.setattr(hs._sr, "_now", lambda: cut_at)
+    cut_row = hs.row_seats()
+    assert "WEDGED" in cut_row.value  # sanity: the fixture actually names a stalled seat
+
+    # A second live session arrives sharing the SAME first-8-characters prefix as the named one.
+    hs._sr.bind("integrator", "AB", session_id="deadbeef-2222", path=path, now=cut_at)
+    status, detail = vhp._rule_bd_seats(cut_row.rendered(), _seats_ctx())
+    assert status == "fail"
+    assert "ambiguous" in detail.lower() or "more than one live session" in detail.lower()
+    assert "deadbeef" in detail
+
+
 def test_row_substrates_counts_only_live_true(tmp_path):
     repo = _repo_with_registries(tmp_path)
     row = hs.row_substrates(repo)

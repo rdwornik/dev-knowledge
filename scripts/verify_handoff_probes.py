@@ -452,6 +452,27 @@ def _exe_available(name: str) -> bool:
     return _git_bundled_tool(name) is not None
 
 
+def _exe_fallback_path(name: str) -> "str | None":
+    """The Git-for-Windows `usr/bin` path `_exe_available(name)` resolved through, when
+    resolution did NOT come from an ordinary PATH lookup — i.e. `shutil.which(name)` found
+    nothing there. `None` when `name` resolved via PATH directly (the common case), or when it
+    is absent from both.
+
+    Read only at the probe call site, never inside `_exe_available` itself: the fallback
+    directory (`<gitroot>/usr/bin`) is NOT on PATH (that is the whole reason the fallback
+    exists — `_git_bundled_tool`'s own docstring), so a bare `grep`/`sed`/`ls`/`head` resolved
+    only this way cannot actually be invoked by name in the operator's shell even though a real
+    binary sits on disk. This validator never executes a probe's command either way (Critical
+    Rule #4, "Layer 2 never executes" — confirmed by grep: no subprocess/Popen/os.system call
+    exists anywhere in this file), so the tool's mere presence on disk is still the "explicitly
+    declared portable equivalent" [#1124]'s Windows-skip fix asks for and the probe still
+    counts a `pass` — but the detail now SAYS so, rather than reading identically to an
+    ordinary PATH hit (terra HIGH, `verify_handoff_probes.py:450`, repair 1, 2026-09-29)."""
+    if shutil.which(name) is not None:
+        return None
+    return _git_bundled_tool(name)
+
+
 # --- probe-manifest table parser --------------------------------------------
 
 def _is_table_row(line: str) -> bool:
@@ -755,6 +776,11 @@ def _classify(probe: dict, repo_root: Path, bundle: str, cross_repo: bool = Fals
     if exe and not _exe_available(exe):
         return _res("skipped", f"tool absent: {exe}")
     # 7. well-formed; a binding token resolves (or a value-bearing command); exe present.
+    if exe:
+        fallback_path = _exe_fallback_path(exe)
+        if fallback_path is not None:
+            return _res("pass", f"binds to live state (resolved via Git-for-Windows "
+                                f"usr/bin: {fallback_path})")
     return _res("pass", "binds to live state")
 
 
@@ -1465,13 +1491,30 @@ def _rule_bd_seats(value: str, ctx: _BootCtx) -> tuple[str, str]:      # noqa: A
     except Exception as exc:          # noqa: BLE001 -- a reader's own failure is reported
         return "fail", f"live re-derivation raised {type(exc).__name__}: {exc}"
     try:
-        resolvable = {s.session_id[:8] for s in _sr.seats()}
+        live_seats = list(_sr.seats())
     except Exception as exc:          # noqa: BLE001
         return "fail", f"live seat-identity read raised {type(exc).__name__}: {exc}"
+    # An 8-char prefix is `_label`'s own truncation, not a collision-resistant identifier
+    # (terra HIGH, `verify_handoff_probes.py:1436`, repair 1, 2026-09-29): if the seat a cut
+    # named wedged/starved later disappears while a DIFFERENT live session happens to share its
+    # first 8 characters, a bare-prefix membership test cannot tell the two apart and would
+    # read the coincidence as "still resolvable". Count sessions per prefix first, and reject a
+    # cut-named prefix outright when more than one live session answers to it -- explicitly
+    # ambiguous, never silently resolved to whichever session sorts first.
+    prefix_counts: dict[str, int] = {}
+    for seat in live_seats:
+        prefix = seat.session_id[:8]
+        prefix_counts[prefix] = prefix_counts.get(prefix, 0) + 1
+    resolvable = set(prefix_counts)
     cut_named = _sr.named_bad_seats(value)
     live_named = _sr.named_bad_seats(fresh.value)
     cut_any = cut_named["wedged"] | cut_named["starved"]
     live_any = live_named["wedged"] | live_named["starved"]
+    ambiguous = sorted(p for p in cut_any if prefix_counts.get(p, 0) > 1)
+    if ambiguous:
+        return "fail", (f"{len(ambiguous)} seat prefix(es) named wedged/starved at cut match "
+                        f"more than one live session by their first 8 characters, so identity "
+                        f"cannot be confirmed: {', '.join(ambiguous)}")
     unresolvable = sorted(cut_any - resolvable)
     unnamed_new = sorted(live_any - cut_any)
     if unresolvable:

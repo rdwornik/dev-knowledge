@@ -536,12 +536,37 @@ def test_a_grep_led_probe_resolves_via_the_git_fallback_not_skipped(tmp_path, mo
     own Windows shape (`to-browser/SESSION-handoff-cut-2026-09-28.md`'s 8-row skip). GREEN
     once the fallback is wired: the probe classifies all the way to 'pass', never 'skipped'.
     Fully hermetic (never touches the real PATH or a real git install), so it holds the same
-    on the Windows and Linux CI legs alike."""
+    on the Windows and Linux CI legs alike.
+
+    terra HIGH (`verify_handoff_probes.py:450`, repair 1, 2026-09-29): the Git-for-Windows
+    `usr/bin` directory is not on PATH, so a `pass` that rests on this fallback must SAY SO in
+    its detail rather than reading identically to an ordinary PATH hit -- the detail names the
+    fallback and the resolved path."""
     git_exe = _fake_git_install(tmp_path / "gitinstall", "grep")
     monkeypatch.setattr(vhp.shutil, "which", lambda name: str(git_exe) if name == "git" else None)
     bundle = _init_bundle(tmp_path, [_PASS_ANCHOR])
     by = _by_id(vhp.verify(bundle))
     assert by["P1a"].status == "pass"
+    assert "Git-for-Windows usr/bin" in by["P1a"].detail
+    expected_path = str(git_exe.parent.parent / "usr" / "bin" / "grep.exe")
+    assert expected_path in by["P1a"].detail
+
+
+def test_exe_fallback_path_is_none_when_resolved_via_ordinary_path(monkeypatch):
+    monkeypatch.setattr(vhp.shutil, "which", lambda _name: "/usr/bin/grep")
+    assert vhp._exe_fallback_path("grep") is None
+
+
+def test_a_grep_led_probe_absent_from_both_path_and_fallback_still_skips(tmp_path, monkeypatch):
+    """A tool absent from PATH AND from the Git-for-Windows fallback must still read `skipped`
+    -- never a synthesized `pass` -- exercised through the REAL `_exe_available`/
+    `_exe_fallback_path`/`_git_bundled_tool` chain (nothing mocked at the `_exe_available`
+    level itself), so this proves the integration, not just each helper in isolation."""
+    monkeypatch.setattr(vhp.shutil, "which", lambda _name: None)  # no git, no grep, anywhere
+    bundle = _init_bundle(tmp_path, [_PASS_ANCHOR])
+    by = _by_id(vhp.verify(bundle))
+    assert by["P1a"].status == "skipped"
+    assert by["P1a"].detail == "tool absent: grep"
 
 
 def test_format_findings_lists_only_fails_no_pipe(tmp_path):
