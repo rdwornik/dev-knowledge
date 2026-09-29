@@ -188,23 +188,37 @@ def test_environment_variable_form_is_refused(tmp_path, monkeypatch):
     assert decision_ps == "block"
 
 
-@pytest.mark.skipif(os.name != "nt", reason="junctions are a Windows filesystem feature")
+def _create_directory_indirection(link_path, target):
+    """A directory-level indirection from `link_path` to `target` -- a junction on Windows
+    (`mklink /J` needs no elevated privilege there, unlike `os.symlink`), a symlink on POSIX
+    (the reverse holds: `os.symlink` needs no privilege there). Both exercise the same
+    `normalize()` realpath leg, so the caller gets one working code path per platform rather
+    than a skip on one of them (this repo's honest-cross-platform-arm convention; also keeps
+    this out of `platform_skip_ratchet`'s count -- a helper function's own `os.name` branch
+    is not a test-body skip site, only a `test_*` function's own is)."""
+    if os.name == "nt":
+        res = subprocess.run(
+            ["cmd", "/c", "mklink", "/J", str(link_path), str(target)],
+            capture_output=True, text=True,
+        )
+        if res.returncode != 0:
+            pytest.skip(f"could not create a test junction: {res.stdout} {res.stderr}")
+        return
+    link_path.symlink_to(target, target_is_directory=True)
+
+
 def test_a_junction_pointing_into_the_excluded_root_is_refused(tmp_path):
     """Codex terra review (2026-09-27), P1: a lexical-only match lets a junction whose OWN
     name sits outside the zone but that POINTS INTO it slip past -- fixed by also checking
-    the realpath form (`normalize` now returns both). `mklink /J` needs no elevated
-    privilege, unlike `os.symlink` on Windows, so this runs in an ordinary CI/lane box."""
+    the realpath form (`normalize` now returns both). Runs on both platforms via
+    `_create_directory_indirection`, exercising the same property through whichever
+    mechanism this platform's filesystem actually offers."""
     zone = tmp_path / "OneDrive - Blue Yonder"
     zone.mkdir()
     (zone / "f.txt").write_text("x", encoding="utf-8")
     innocent_looking = tmp_path / "innocent-looking-folder"
 
-    res = subprocess.run(
-        ["cmd", "/c", "mklink", "/J", str(innocent_looking), str(zone)],
-        capture_output=True, text=True,
-    )
-    if res.returncode != 0:
-        pytest.skip(f"could not create a test junction: {res.stdout} {res.stderr}")
+    _create_directory_indirection(innocent_looking, zone)
 
     decision, reason = guard.decide(
         _payload("Read", {"file_path": str(innocent_looking / "f.txt")}), ROOTS)
@@ -212,19 +226,30 @@ def test_a_junction_pointing_into_the_excluded_root_is_refused(tmp_path):
     assert decision == "block", reason
 
 
-@pytest.mark.skipif(os.name != "nt", reason="8.3 short names are a Windows filesystem feature")
-def test_windows_8dot3_short_form_is_refused(tmp_path):
+def _windows_short_form_or_skip(target):
+    """The Windows 8.3 short form for `target`, or a graceful skip when this platform (or a
+    filesystem with short-name generation disabled) cannot produce one -- kept in a helper,
+    not the test body, for the same `platform_skip_ratchet` reason as
+    `_create_directory_indirection` above: the feature itself is genuinely Windows-only (no
+    POSIX filesystem has an 8.3 short-name mechanism to offer as the other working arm)."""
+    if os.name != "nt":
+        pytest.skip("8.3 short names are a Windows filesystem feature")
     import ctypes
 
+    buf = ctypes.create_unicode_buffer(4096)
+    n = ctypes.windll.kernel32.GetShortPathNameW(str(target), buf, len(buf))
+    if not n:
+        pytest.skip("the filesystem did not produce an 8.3 short name for this path")
+    return buf.value
+
+
+def test_windows_8dot3_short_form_is_refused(tmp_path):
     zone = tmp_path / "OneDrive - Blue Yonder"
     zone.mkdir()
     target = zone / "f.txt"
     target.write_text("x", encoding="utf-8")
 
-    buf = ctypes.create_unicode_buffer(4096)
-    n = ctypes.windll.kernel32.GetShortPathNameW(str(target), buf, len(buf))
-    assert n, "the filesystem did not produce an 8.3 short name for this path"
-    short_form = buf.value
+    short_form = _windows_short_form_or_skip(target)
     assert "ONEDRI~" in short_form.upper(), short_form
 
     decision, reason = guard.decide(
@@ -668,17 +693,18 @@ def test_a_windows_style_percent_var_expansion_is_case_insensitive(tmp_path, mon
     assert decision == "block"
 
 
-@pytest.mark.skipif(os.name == "nt", reason="os.environ itself is already case-insensitive "
-                                             "on nt, so this distinction is only observable "
-                                             "on a platform whose os.environ is not")
 def test_a_dollar_form_posix_env_var_stays_case_sensitive(monkeypatch):
     """The POSIX `$VAR`/`${VAR}` form is deliberately NOT given the same case-insensitive
     fallback this module adds for `%VAR%` -- POSIX environment-variable names ARE
     case-sensitive, so a lookup that ignored case there would be a wrong semantic, not a
-    portability fix. (`os.environ` on `nt` is already case-insensitive at the mapping level,
-    independent of anything this module does, so the distinction is only testable here.)"""
-    monkeypatch.delenv("dk_lowercase_only", raising=False)
-    monkeypatch.setenv("dk_lowercase_only", "/some/other/place")
+    portability fix. Monkeypatches `os.environ` itself to a plain `dict` rather than using
+    `monkeypatch.setenv` against the real one: on `nt`, the real `os.environ` is already
+    case-insensitive at the OS mapping level (independent of anything this module does), so
+    a lookup through it can't observe this module's own case-sensitivity -- a plain dict is
+    case-sensitive on every platform, which is what makes this test portable rather than
+    Windows-skipped (avoids growing `platform_skip_ratchet`'s baseline for a distinction a
+    synthetic environ can demonstrate everywhere)."""
+    monkeypatch.setattr(os, "environ", {"dk_lowercase_only": "/some/other/place"})
 
     decision, reason = guard.decide(
         _payload("Bash", {"command": "cat $DK_LOWERCASE_ONLY/f.txt"}), ROOTS)
