@@ -907,7 +907,84 @@ def _no_transport(name: str) -> PreflightRow:
 _LEDGER_REFRESHED_RE = re.compile(r"refreshed\s+(\d{4}-\d{2}-\d{2})")
 
 
-def _row_ship_gate(repo_root: Path) -> PreflightRow:
+#: [#1123] the ONLY files a `--filled` re-render legitimately changes: the operator's hand-fills
+#: (SUPPLEMENT/RESIDUAL/HANDOFF_BOOT) and the second assemble's own PASTE_THIS.md. Codex P1
+#: (this row, first draft): checking only "BD-manifest is the sole failing probe" let ANY sole
+#: manifest mismatch through -- an added/removed file, or a tampered file OUTSIDE this set,
+#: still left `BD-manifest` as the only failing probe, and `_bundle_file_shas` would then
+#: re-stamp the tamper as the new truth. `_self_inflicted_bd_manifest` requires every mismatch
+#: to be a CONTENT change (never an add/remove) to a file in this set.
+_BD_MANIFEST_FILL_SURFACE = frozenset({"SUPPLEMENT.md", "RESIDUAL.md", "HANDOFF_BOOT.md",
+                                       "PASTE_THIS.md"})
+
+
+def _self_inflicted_bd_manifest(repo_root: Path, bundle_dir: Path) -> "tuple[bool, str]":
+    """[#1123] True only when the ONE thing wrong with `bundle_dir` right now is `BD-manifest`,
+    AND every mismatch it reports is a CONTENT change to a file in `_BD_MANIFEST_FILL_SURFACE`
+    -- the cold-cut manifest a `--filled` re-render is about to replace with a fresh census over
+    the filled tree. That re-render fixes this by construction, so a `--filled` call is never
+    refused by the very staleness it is here to repair.
+
+    Reads `bundle_dir` DIRECTLY (`verify_handoff_probes.verify` for the probe-set check, the
+    receipt's own manifest vs `_bundle_file_shas` for the file-level one), never re-derives "the
+    active bundle" -- `generate()` already knows which directory it is about to re-render, so
+    there is nothing to rediscover, and no `_select_active_bundle` ambiguity can leak in here.
+
+    Fails CLOSED (False) on any error, on any OTHER failing probe, or on any mismatch outside
+    the fill surface -- an unreadable receipt, a genuine defect the fill window did not cause,
+    an added/removed file, or a tampered file the documented fill step never touches, is never
+    grounds to waive a hard-fail. Callers still owe the separate check that the ship-gate's
+    hard-fail COUNT is exactly the handoff_probes contribution this function accounts for --
+    this function only answers for `bundle_dir`'s own probes, never for an unrelated organ
+    failing elsewhere in the same run.
+    """
+    try:
+        results = _vhp().verify(bundle_dir, repo_root=repo_root)
+    except Exception as exc:  # noqa: BLE001 -- fail closed, never waives silently
+        return False, f"verify_handoff_probes could not be read ({type(exc).__name__}): {exc}"
+    fails = [r for r in results if r.status == "fail"]
+    if not fails:
+        return False, (f"no probe in {bundle_dir.name} is failing -- the ship-gate hard-fail "
+                       "is not this bundle's manifest")
+    unknown = [r for r in fails if r.probe_id != "BD-manifest"]
+    if unknown:
+        return False, (f"{bundle_dir.name} fails beyond the known BD-manifest circularity: "
+                       + "; ".join(f"{r.probe_id}: {r.detail}" for r in unknown))
+
+    import json  # noqa: PLC0415
+    try:
+        receipt = json.loads((bundle_dir / _vhp().RECEIPT_FILE).read_text(encoding="utf-8"))
+        recorded = (receipt.get("manifest") or {}).get("files") or {}
+        if not recorded:
+            raise ValueError("receipt carries no manifest.files")
+        current = _bundle_file_shas(bundle_dir)
+    except Exception as exc:  # noqa: BLE001 -- fail closed
+        return False, (f"{bundle_dir.name}'s receipt/current census could not be compared "
+                       f"({type(exc).__name__}): {exc}")
+
+    added = sorted(set(current) - set(recorded))
+    removed = sorted(set(recorded) - set(current))
+    if added or removed:
+        return False, (f"{bundle_dir.name}'s file SET changed, not just fill contents -- "
+                       f"added: {added or 'none'}, removed: {removed or 'none'}; a structural "
+                       "change is never the [#1123] circularity")
+    changed = sorted(rel for rel in recorded if recorded[rel] != current.get(rel))
+    outside = [rel for rel in changed if rel not in _BD_MANIFEST_FILL_SURFACE]
+    if outside:
+        return False, (f"{bundle_dir.name} has content changes outside the documented fill "
+                       f"surface {sorted(_BD_MANIFEST_FILL_SURFACE)}: {outside}")
+    if not changed:
+        return False, (f"{bundle_dir.name}'s BD-manifest probe fails but the receipt's own "
+                       "census matches the current tree byte-for-byte -- an unreadable or "
+                       "escaping manifest entry, never the [#1123] circularity")
+    return True, (f"BD-manifest: {len(changed)} fill-surface file(s) changed in "
+                  f"{bundle_dir.name} ({', '.join(changed)}) -- the [#1123] "
+                  "cold-manifest-vs-filled-tree circularity, fixed by this re-render's own "
+                  "fresh census")
+
+
+def _row_ship_gate(repo_root: Path, *, bundle_dir: "Path | None" = None,
+                    force_filled: bool = False) -> PreflightRow:
     """Row 1 -- PASS on `hard-fail = 0`; the undispositioned WARNs are CARRIED, not cleared.
 
     Amended 2026-09-08 (see the register header above): a handoff is not a release. GREEN --
@@ -917,7 +994,14 @@ def _row_ship_gate(repo_root: Path) -> PreflightRow:
     that makes the pass honest: each of those WARNs is named in the residual with its owning row.
     That second conjunct is NOT mechanically checkable here -- the residual does not exist until
     after preflight clears -- and this docstring says so rather than implying a check that is
-    absent. A RED carrying a hard-fail organ, and an unreadable verdict, both still FAIL.
+    absent. A RED carrying a hard-fail organ, and an unreadable verdict, both still FAIL --
+    UNLESS `force_filled` names `bundle_dir` and the hard-fail is EXACTLY that bundle's own
+    `BD-manifest` circularity ([#1123]; `_self_inflicted_bd_manifest`): the manifest a `--filled`
+    re-render is about to re-stamp is stale by construction the moment the operator's fills touch
+    the bundle, and refusing the re-render that fixes it is the circularity row [#1123] exists to
+    break. Any OTHER hard-fail -- a second organ, or `bundle_dir` failing for a reason fills do
+    not explain -- still FAILs; this is not a blanket pass for the fill window, only for the one
+    failure mode the fill window itself produces.
     """
     verdict, evidence = _ship_gate_verdict(repo_root)
     locator = "`python scripts/audit.py ship-gate` + ecosystem/disposition-register.yaml"
@@ -935,6 +1019,16 @@ def _row_ship_gate(repo_root: Path) -> PreflightRow:
                             f"{evidence} -- RED in a shape this row cannot read; "
                             "the hard-fail count could not be established")
     if hard is not None and int(hard.group(1)):
+        # [#1123]: exactly ONE hard-fail-counted finding total, AND bundle_dir's own probes
+        # account for it entirely -- otherwise this is (or may hide) an unrelated hard-fail,
+        # which still refuses.
+        if force_filled and bundle_dir is not None and int(hard.group(1)) == 1:
+            known, why = _self_inflicted_bd_manifest(repo_root, bundle_dir)
+            if known:
+                return PreflightRow("ship_gate", PREFLIGHT_PASS, locator,
+                    f"{evidence} -- 1 hard-fail organ, ACCEPTED under --filled: {why} "
+                    "([#1123] a --filled re-render accepts only the cut's own known "
+                    "hard-fail; the manifest it writes below is fresh)")
         return PreflightRow("ship_gate", PREFLIGHT_FAIL, locator,
                             f"{evidence} -- hard-fail organ(s) present; a hard-fail is never "
                             "carryable, and no residual line disposes of one")
@@ -1563,8 +1657,14 @@ def _row_p11_carriage(transport, repo_root) -> PreflightRow:
 
 def preflight_rows(repo_root: Path, *, transport=None, today: "str | None" = None,
                    repo_name: "str | None" = None, sessions_root=None,
-                   memory_path=None) -> list[PreflightRow]:
-    """The ten hygiene rows, in `PREFLIGHT_ROW_NAMES` order. Read-only (Layer-2)."""
+                   memory_path=None, bundle_dir: "Path | None" = None,
+                   force_filled: bool = False) -> list[PreflightRow]:
+    """The ten hygiene rows, in `PREFLIGHT_ROW_NAMES` order. Read-only (Layer-2).
+
+    `bundle_dir` / `force_filled` ([#1123]) name the bundle a `--filled` re-render is about to
+    write, so row 1 can tell its own known BD-manifest circularity from an unrelated hard-fail
+    -- see `_row_ship_gate`. Both default to the prior behaviour (no bundle named, never waived).
+    """
     if not _is_hub(repo_root):
         return [_na_row(n, "NOT-APPLICABLE",
                         "hub-only -- this transport window, the stamped-doc set and ADR-85's "
@@ -1574,7 +1674,7 @@ def preflight_rows(repo_root: Path, *, transport=None, today: "str | None" = Non
     repo_name = repo_name or _main_checkout(Path(repo_root)).name
     transport = transport_root() if transport is None else transport
     return [
-        _row_ship_gate(repo_root),
+        _row_ship_gate(repo_root, bundle_dir=bundle_dir, force_filled=force_filled),
         _row_ledger_refreshed(transport, repo_name, today),
         _row_ratification_present(transport, today),
         _row_status_budget(transport),
@@ -2884,7 +2984,10 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
         # two are ordered as they are: it is the most expensive (the ship-gate leg alone measured
         # 4m30s), so a cut that a cheaper invariant already refuses never pays for it. Still
         # before mkdir -- a refused cut writes nothing.
-        assert_preflight(repo_root, today=date, repo_name=repo)
+        # [#1123]: name the bundle THIS call is about to (re-)write, so row 1 can tell a
+        # `--filled` re-render's own known BD-manifest circularity from an unrelated hard-fail.
+        assert_preflight(repo_root, today=date, repo_name=repo, bundle_dir=bundle_dir,
+                         force_filled=bool(force_filled))
     bundle_dir.mkdir(parents=True, exist_ok=True)
     # [#473] B — THE FIX, and it is this one line. `_resolve_bundle_dir` may DIVERT the write
     # to a `-<n>` sibling under `--allow-suffix`, but every render token below was built from
