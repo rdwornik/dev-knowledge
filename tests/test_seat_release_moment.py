@@ -325,3 +325,54 @@ def test_ci_manifest_step_does_not_fail_the_real_archive_container(tmp_path):
     result = _run_ci_manifest_step(tmp_path)
     assert result.returncode == 0, result.stdout + result.stderr
     assert "checked 0 manifest-era bundle" in result.stdout
+
+
+@requires_bash
+def test_ci_manifest_step_does_not_fail_a_nested_undated_container(tmp_path):
+    """A second, real, live false positive (2026-09-29, caught by hand while re-verifying the
+    archive/ fix against the actual repo tree): `docs/handoffs/archive/legacy/` is ANOTHER
+    undated, receipt-less container one level deeper than `archive/` itself, holding loose
+    pre-cutoff `.md` files and one dated-but-receiptless bundle directory. Hardcoding each
+    container name does not scale -- a directory is now a candidate bundle only if it is
+    date-prefixed OR carries a receipt directly; anything else is a container, recursed into at
+    any depth, never a leaf exemption and never a leaf failure."""
+    handoffs = tmp_path / "docs" / "handoffs"
+    (handoffs / "archive" / "legacy" / "2026-04-27-old-session").mkdir(parents=True)
+    (handoffs / "archive" / "legacy" / "2026-04-15-loose-note.md").write_text("x", encoding="utf-8")
+    result = _run_ci_manifest_step(tmp_path)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "checked 0 manifest-era bundle" in result.stdout
+
+
+@requires_bash
+def test_ci_manifest_step_checks_a_fake_old_dated_bundle_that_carries_a_receipt(dry_bundle, tmp_path):
+    """Codex terra CRITICAL (2026-09-29,
+    docs/audits/2026-09-29-codex-seat-release-b1-followup.md): a bundle whose directory name is
+    faked to look pre-cutoff (renamed to e.g. `2020-01-01-...`) but which still carries a real
+    receipt/manifest must not be silently exempted by a lexical date compare alone -- a receipt
+    is positive evidence of a real, in-era bundle regardless of what its directory name claims.
+    In-era is now (name >= cutoff) OR (carries a receipt with a non-empty manifest)."""
+    dest = tmp_path / "docs" / "handoffs" / "2020-01-01-fake-old-date"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(dry_bundle, dest)
+    (dest / "HANDOFF_BOOT.md").write_text("tampered despite the fake old date", encoding="utf-8")
+    result = _run_ci_manifest_step(tmp_path)
+    assert result.returncode != 0, result.stdout + result.stderr
+    assert "HANDOFF_BOOT.md" in result.stdout
+    assert dest.name in result.stdout
+
+
+@requires_bash
+def test_ci_manifest_step_reds_a_tampered_bundle_smuggled_inside_archive(dry_bundle, tmp_path):
+    """Codex terra CRITICAL (2026-09-29,
+    docs/audits/2026-09-29-codex-seat-release-b1-followup.md): the `archive/` container
+    exclusion must not swallow a post-cutoff bundle placed INSIDE it -- the step now recurses
+    into a non-bundle container looking for nested dated bundles, rather than skipping
+    everything below it wholesale."""
+    dest = tmp_path / "docs" / "handoffs" / "archive" / dry_bundle.name
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(dry_bundle, dest)
+    (dest / "HANDOFF_BOOT.md").write_text("tampered, smuggled inside archive/", encoding="utf-8")
+    result = _run_ci_manifest_step(tmp_path)
+    assert result.returncode != 0, result.stdout + result.stderr
+    assert "HANDOFF_BOOT.md" in result.stdout

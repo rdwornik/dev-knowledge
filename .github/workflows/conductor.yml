@@ -698,30 +698,48 @@ jobs:
           root = Path('docs/handoffs')
           # The manifest feature shipped 2026-09-28 (docs/handoffs/2026-09-28-dev-knowledge-architect
           # is the one committed bundle that predates this job and already carries a manifest).
-          # Era comes from the bundle's OWN directory-name date, never from the receipt the check
-          # verifies (Codex terra CRITICAL, 2026-09-29, docs/audits/2026-09-29-codex-seat-release-b1.md
-          # -- the prior receipt-presence gate let a post-cutoff bundle dodge the whole check by
-          # deleting/emptying its own manifest). A name with no parseable date is treated as in-era
-          # too: fail-closed, not a second way to dodge the cutoff.
+          # In-era is (the bundle's OWN directory-name date >= CUTOFF) OR (it carries a receipt
+          # with a non-empty manifest.files) -- never receipt-presence alone (Codex terra
+          # CRITICAL, 2026-09-29, docs/audits/2026-09-29-codex-seat-release-b1.md: that let a
+          # post-cutoff bundle dodge the whole check by deleting/emptying its own manifest), and
+          # never the name alone either (Codex terra CRITICAL, 2026-09-29,
+          # docs/audits/2026-09-29-codex-seat-release-b1-followup.md: a bundle renamed to a
+          # fake pre-cutoff-looking date would otherwise dodge the check while still carrying a
+          # real, checkable receipt). A name with no parseable date is treated as in-era too:
+          # fail-closed, not a third way to dodge the cutoff.
           CUTOFF = '2026-09-28'
           date_re = re.compile(r'^(\d{4}-\d{2}-\d{2})-')
-          # The same non-bundle CONTAINER exclusion verify_handoff_probes._FALLBACK_EXCLUDE_DIRS
-          # / its startswith('archive') clause already applies -- docs/handoffs/archive/ holds
-          # many pre-cutoff bundles one level deeper, not a bundle itself; caught live as a false
-          # positive in a fix re-proof CI run (2026-09-29, run 36623905708) before this line
-          # existed.
+          # A directory is a candidate BUNDLE iff it is date-prefixed OR carries a receipt
+          # directly -- anything else (docs/handoffs/archive/, its nested archive/legacy/, any
+          # future container) is not a bundle of any era and is RECURSED INTO, never a leaf
+          # exemption and never a leaf failure (Codex terra CRITICAL, 2026-09-29,
+          # docs/audits/2026-09-29-codex-seat-release-b1-followup.md: hardcoding container names
+          # does not scale -- archive/legacy/ is a second, real, undated, receipt-less container
+          # one level deeper than archive/ itself). A rename-only evasion (strip the date prefix,
+          # keep the receipt) is still caught at any depth, since carrying a receipt alone makes
+          # a directory a bundle.
           NOT_A_BUNDLE = {'.git', '.claude', 'node_modules', 'aborted', 'in-progress'}
+
+          def iter_bundles(d):
+              for p in sorted(x for x in d.iterdir() if x.is_dir()):
+                  if p.name in NOT_A_BUNDLE:
+                      continue
+                  if date_re.match(p.name) or (p / vhp.RECEIPT_FILE).is_file():
+                      yield p
+                  else:
+                      yield from iter_bundles(p)
+
           bad = []
           checked = 0
-          for bundle in sorted(p for p in root.iterdir() if p.is_dir()):
-              if bundle.name in NOT_A_BUNDLE or bundle.name.startswith('archive'):
-                  continue  # a non-bundle container, not a bundle of any era
+          for bundle in iter_bundles(root):
               m = date_re.match(bundle.name)
-              if m and m.group(1) < CUTOFF:
+              looks_pre_cutoff = bool(m and m.group(1) < CUTOFF)
+              receipt = bundle / vhp.RECEIPT_FILE
+              has_receipt = receipt.is_file()
+              if looks_pre_cutoff and not has_receipt:
                   continue  # pre-manifest-era bundle, by its own date -- exempt, not failed
               checked += 1
-              receipt = bundle / vhp.RECEIPT_FILE
-              if not receipt.is_file():
+              if not has_receipt:
                   bad.append(bundle.name)
                   print(f'  fail  {bundle.name}  in-era bundle carries no {vhp.RECEIPT_FILE}')
                   continue
@@ -734,7 +752,7 @@ jobs:
                   continue
               if not files:
                   bad.append(bundle.name)
-                  print(f'  fail  {bundle.name}  in-era bundle carries an empty/absent manifest.files')
+                  print(f'  fail  {bundle.name}  bundle carries a receipt with an empty/absent manifest.files')
                   continue
               result = vhp._rule_bd_manifest(bundle)
               print(f'{result.status:>6}  {bundle.name}  {result.detail}')
