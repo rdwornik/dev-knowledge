@@ -377,17 +377,24 @@ line-length = 120               # agreed fleet line-length (ARC 4 D1)
 # to-browser/SESSION-lane-research-python-standard.md (C3). Candidate universe was C3's
 # proposed families (B,SIM,C90,PL,RET,PERF,FURB,PTH,N,UP,ARG,ERA,TRY,FBT,RUF), measured
 # tree-wide (6797 violations @ da11291b), auto-fixed with `--fix` (never `--unsafe-fixes`)
-# only under scripts/+tests/ files no other WAVE5B-N2 lane owns, then re-measured. These
-# ten individual codes are the only ones that reached ZERO violations tree-wide on the
-# files this lane may touch; every other candidate code is measured-not-enforced (see this
-# lane's session file to-browser/SESSION-lane-python-standard-1.md for the full
-# before/after table and ROWS-OWED). Not whole rule families — per-code selection, since
-# most C3 families still carry violations this lane cannot touch (owned by other lanes) or
-# cannot auto-fix. PLE2515 and RUF010 were dropped in Repair 1 (integrator refusal,
-# to-browser/REFUSED-lane-python-standard-1.md): their sole remaining tree-wide instances
-# live inside scripts/audit_checks/check_routine_consumers.py and scripts/conductor.py,
-# both owned by LANE-5B2-17-ci-signal.md — this lane cannot fix them, so it cannot claim
-# zero (see ROWS-OWED, measured-not-enforced table).
+# only under scripts/+tests/ files no other WAVE5B-N2 lane owns, then re-measured. Not
+# whole rule families — per-code selection, since most C3 families still carry violations
+# this lane cannot touch (owned by other lanes) or cannot auto-fix.
+# lane-python-standard-2 (2026-09-29, this redo): re-measured on today's main. Three of
+# the original ten codes dropped here because a sibling-owned file (already merged/live at
+# render, this lane may not touch it) still carries a violation, so enabling the code
+# tree-wide would leave `ruff check` red on every lane's commit — SIM300 (6 instances:
+# tests/test_decision_coverage.py, sibling-owned per this lane's contract done-item 4;
+# tests/test_fleet_shape_spec_readers.py and tests/test_routing_telemetry.py, owned by
+# lane-runtime-data-home-2), RET501 and PLR1711 (1 instance each, both
+# tests/test_decision_coverage.py:_EmptyStore.node). These seven codes are the only ones
+# that reach ZERO violations tree-wide on the current merged tree; every other candidate
+# code (including the three just dropped, and PLE2515 / RUF010 below) is
+# measured-not-enforced — see this lane's session file for the full before/after table and
+# ROWS-OWED. PLE2515 and RUF010 were dropped in Repair 1 of lane-python-standard-1
+# (integrator refusal, to-browser/REFUSED-lane-python-standard-1.md): their sole remaining
+# tree-wide instances live inside scripts/audit_checks/check_routine_consumers.py and
+# scripts/conductor.py, both owned by LANE-5B2-17-ci-signal.md — still true on today's main.
 # NOTE: RUF100 (unused-noqa) is excluded from every ruff invocation this lane ran with a
 # narrowed --select, because RUF100's "is this noqa used" check is evaluated against
 # WHATEVER rules are active in that invocation — a narrowed --select without E402/E731/etc.
@@ -398,10 +405,7 @@ line-length = 120               # agreed fleet line-length (ARC 4 D1)
 [tool.ruff.lint]
 extend-select = [
     "FURB122",  # for-loop-writes
-    "PLR1711",  # useless-return
-    "RET501",   # unnecessary-return-none
     "RUF019",   # unnecessary-key-check
-    "SIM300",   # yoda-conditions
     "SIM905",   # split-static-string
     "SIM910",   # dict-get-with-none-default
     "UP012",    # unnecessary-encode-utf8
