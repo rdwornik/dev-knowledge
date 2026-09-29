@@ -409,9 +409,68 @@ def lead_exe(command: str) -> str:
     return command.split()[0] if command else ""
 
 
+#: A closed enum: the four POSIX tools P0a/P0b/P0c/P1a/P1b/P8a/P8b/P11's own commands lead
+#: with, that Git for Windows bundles under its OWN `usr/bin/` -- never the `cmd/` or `bin/`
+#: directories a Git-for-Windows installer puts on PATH (measured: a PowerShell/subprocess
+#: PATH on this box carries `Git\cmd`, never `Git\usr\bin` -- `grep`/`sed`/`ls`/`head` are
+#: genuinely absent from *PATH* while genuinely present on *disk*, `to-browser/
+#: SESSION-handoff-cut-2026-09-28.md`'s "tool absent" skip on 8 rows). This is the "explicitly
+#: declared portable equivalent" the Windows-skip fix names: bounded to these four names, and
+#: resolved from `git`'s OWN PATH entry rather than a hardcoded install path, so it is portable
+#: to any machine's Git install location rather than one operator's `C:\Program Files\Git`.
+_GIT_BUNDLED_POSIX_TOOLS = frozenset({"grep", "sed", "ls", "head"})
+
+
+def _git_bundled_tool(name: str) -> "str | None":
+    """Path to `name` under Git for Windows' own `usr/bin`, or None.
+
+    A no-op (always None) for any name outside `_GIT_BUNDLED_POSIX_TOOLS`, for a machine with
+    no `git` on PATH, and on a platform where `usr/bin` sits alongside a DIFFERENT `git` layout
+    (the `.is_file()` check below is the honest guard: a wrong-shaped install simply yields no
+    candidate, never a wrong path). A POSIX host resolves these tools via the ordinary PATH
+    lookup already (rung 1 of `_exe_available`) and never reaches this fallback."""
+    if name not in _GIT_BUNDLED_POSIX_TOOLS:
+        return None
+    git = shutil.which("git")
+    if not git:
+        return None
+    # <gitroot>/cmd/git.exe (the usual Git-for-Windows PATH entry) -> <gitroot>; also covers
+    # a <gitroot>/bin/git.exe layout, since both are one directory below gitroot.
+    gitroot = Path(git).resolve().parent.parent
+    candidate = gitroot / "usr" / "bin" / f"{name}.exe"
+    return str(candidate) if candidate.is_file() else None
+
+
 def _exe_available(name: str) -> bool:
-    """True if `name` resolves on PATH. Wrapped (not inlined) so tests can stub it."""
-    return shutil.which(name) is not None
+    """True if `name` resolves on PATH, or — for `grep`/`sed`/`ls`/`head` only — under Git for
+    Windows' bundled `usr/bin` (`_git_bundled_tool`, [#1124] batch L6 Windows-skip fix). A tool
+    genuinely absent from both still reads unavailable — this never synthesizes a pass, only
+    recognizes a real binary this validator previously failed to find. Wrapped (not inlined)
+    so tests can stub it."""
+    if shutil.which(name) is not None:
+        return True
+    return _git_bundled_tool(name) is not None
+
+
+def _exe_fallback_path(name: str) -> "str | None":
+    """The Git-for-Windows `usr/bin` path `_exe_available(name)` resolved through, when
+    resolution did NOT come from an ordinary PATH lookup — i.e. `shutil.which(name)` found
+    nothing there. `None` when `name` resolved via PATH directly (the common case), or when it
+    is absent from both.
+
+    Read only at the probe call site, never inside `_exe_available` itself: the fallback
+    directory (`<gitroot>/usr/bin`) is NOT on PATH (that is the whole reason the fallback
+    exists — `_git_bundled_tool`'s own docstring), so a bare `grep`/`sed`/`ls`/`head` resolved
+    only this way cannot actually be invoked by name in the operator's shell even though a real
+    binary sits on disk. This validator never executes a probe's command either way (Critical
+    Rule #4, "Layer 2 never executes" — confirmed by grep: no subprocess/Popen/os.system call
+    exists anywhere in this file), so the tool's mere presence on disk is still the "explicitly
+    declared portable equivalent" [#1124]'s Windows-skip fix asks for and the probe still
+    counts a `pass` — but the detail now SAYS so, rather than reading identically to an
+    ordinary PATH hit (terra HIGH, `verify_handoff_probes.py:450`, repair 1, 2026-09-29)."""
+    if shutil.which(name) is not None:
+        return None
+    return _git_bundled_tool(name)
 
 
 # --- probe-manifest table parser --------------------------------------------
@@ -717,6 +776,11 @@ def _classify(probe: dict, repo_root: Path, bundle: str, cross_repo: bool = Fals
     if exe and not _exe_available(exe):
         return _res("skipped", f"tool absent: {exe}")
     # 7. well-formed; a binding token resolves (or a value-bearing command); exe present.
+    if exe:
+        fallback_path = _exe_fallback_path(exe)
+        if fallback_path is not None:
+            return _res("pass", f"binds to live state (resolved via Git-for-Windows "
+                                f"usr/bin: {fallback_path})")
     return _res("pass", "binds to live state")
 
 
@@ -1335,6 +1399,139 @@ _STATE_ROW_FNS = {
 }
 
 
+# [#1124] handoff part B: BD-seats compares seat IDENTITY and LIVENESS, never the whole
+# rendered string. The generic `_rule_state` above (still used for CI/Batches/Substrates/
+# Transport/Rulings/Capabilities) fails on ANY drift between the cut-time value and a live
+# re-derivation -- for "Seats" that made BD-seats fail whenever ANY session's state moved
+# between cut and verify, the cutting session's own new events included (R26's waiver,
+# 2026-09-28). The row's own done-when narrows this to exactly two conditions:
+#   * a seat this bundle NAMED (wedged or starved) at cut must still be a resolvable identity
+#     now -- present in the live registry, in ANY state (an improvement, e.g. wedged -> live,
+#     is not a loss of resolvability);
+#   * no seat may be wedged or starved NOW that the cut did not name as wedged or starved.
+# Anything else -- an unrelated seat's count moving, a named seat's cosmetic detail changing,
+# a wedge clearing, a brand-new HEALTHY seat appearing -- is not a BD-seats finding.
+
+#: The counts-line PREFIX a genuine `seat_registry.seat_health_line()` always writes, before
+#: any optional ` / WEDGED: ...` / ` / STARVED: ...` / ` / NO LIVE INTEGRATOR ...` suffix --
+#: e.g. "[seats] 1 live / 0 wedged / 2 absent / 0 starved (last 24 h; 26 unbound)". Anchored to
+#: the real counts structure, not just a bare "[seats] " prefix: ANY string starting with those
+#: two words (e.g. a forged "[seats] forged" cell) satisfied the prior prefix-only check and
+#: could then PASS with empty cut/live sets against a healthy live registry -- a near-no-op
+#: the shape rung exists to bar (terra HIGH, 2026-09-29).
+_SEAT_COUNTS_LINE_RE = re.compile(
+    r"^\[seats\] \d+ live / \d+ wedged / \d+ absent / \d+ starved "
+    r"\(last \d+(?:\.\d+)? h; \d+ unbound\)"
+)
+
+#: A recognized OPTIONAL suffix segment `seat_health_line()` appends after the counts prefix
+#: -- a `WEDGED:`/`STARVED:` named-seat list or the `NO LIVE INTEGRATOR` notice. Non-greedy up
+#: to the next recognized segment marker or the end of the string. `_SEAT_COUNTS_LINE_RE.match()`
+#: alone only anchors the PREFIX (`re.match` never requires reaching the end) -- a forged value
+#: that starts with a genuine counts line and ends in arbitrary trailing text (e.g. "... (last
+#: 24 h; 0 unbound) garbage") satisfied shape sanity while still reading empty named-bad-seat
+#: sets, passing against a healthy live registry: the SAME near-no-op the counts-line anchor
+#: was meant to bar, reached through the unvalidated remainder instead of the prefix (terra
+#: HIGH, 2026-09-29, second round).
+_SEAT_SUFFIX_BOUNDARY = r"(?: / (?:WEDGED|STARVED): )|(?: / NO LIVE INTEGRATOR for batch )|$"
+_SEAT_SUFFIX_SEGMENT_RE = re.compile(
+    rf"(?: / WEDGED: | / STARVED: | / NO LIVE INTEGRATOR for batch ).+?"
+    rf"(?={_SEAT_SUFFIX_BOUNDARY})"
+)
+
+
+def _seat_line_fully_shaped(underlying: str) -> bool:
+    """True iff `underlying` is EXACTLY the counts-line prefix followed by zero or more
+    recognized suffix segments, with NO leftover text -- the remainder must be covered
+    edge-to-edge, never merely started, by `_SEAT_SUFFIX_SEGMENT_RE`."""
+    m = _SEAT_COUNTS_LINE_RE.match(underlying)
+    if m is None:
+        return False
+    remainder = underlying[m.end():]
+    pos = 0
+    for seg in _SEAT_SUFFIX_SEGMENT_RE.finditer(remainder):
+        if seg.start() != pos:
+            return False
+        pos = seg.end()
+    return pos == len(remainder)
+
+
+#: The exact tail `StateRow.rendered()` appends -- " — evidence: <evidence> [<FRESHNESS>]" --
+#: recovered so the shape check reads the UNDERLYING value. `value` here is always the
+#: RENDERED cell in production (`gen_handoff.py` writes `.rendered()`; `parse_boot_blocks`
+#: reads the table cell verbatim) -- comparing the shape check against the un-stripped
+#: rendered string was a second HIGH in the same review: a genuine empty-registry cut's
+#: rendered value never equals the bare `NO_SEATS_OBSERVED` literal once the evidence/
+#: freshness suffix is appended, so a real "nothing observed" cut always failed shape sanity.
+_RENDERED_TAIL_RE = re.compile(r"^(?P<val>.*) — evidence: .+ \[[A-Z][A-Z-]*\]$", re.DOTALL)
+
+
+def _rule_bd_seats(value: str, ctx: _BootCtx) -> tuple[str, str]:      # noqa: ARG001 -- ctx
+    try:                                                               # unused: Seats needs none
+        import handoff_state as _hs  # noqa: PLC0415
+        import seat_registry as _sr  # noqa: PLC0415
+    except ImportError:
+        return "skipped", "handoff_state/seat_registry not importable"
+    # Shape sanity, BEFORE identity/liveness: the two conditions below read WEDGED/STARVED
+    # segments out of `value` and say nothing about a cell that carries neither -- a value that
+    # does not even carry `row_seats`' own shape (a real counts line, or its "nothing observed"
+    # default) would otherwise silently PASS (no named bad seat to lose, no new one to gain).
+    # This is what still fails a tampered/garbage cut value (`test_a_tampered_state_row_fails_
+    # only_its_own_probe[Seats]`), while a WELL-FORMED value's counts, unnamed seats and cleared
+    # wedges stay free to drift -- the looseness [#1124] exists to grant.
+    stripped = value.strip()
+    tail_match = _RENDERED_TAIL_RE.match(stripped)
+    underlying = tail_match.group("val") if tail_match else stripped
+    if not (underlying == _hs.NO_SEATS_OBSERVED or _seat_line_fully_shaped(underlying)):
+        return "fail", (f"cut value does not carry a seat_health_line's own shape (expected a "
+                        f"'[seats] N live / N wedged / N absent / N starved (...)' counts line "
+                        f"or {_hs.NO_SEATS_OBSERVED!r}): {value!r}")
+    try:
+        fresh = _hs.row_seats()
+    except Exception as exc:          # noqa: BLE001 -- a reader's own failure is reported
+        return "fail", f"live re-derivation raised {type(exc).__name__}: {exc}"
+    try:
+        live_seats = list(_sr.seats())
+    except Exception as exc:          # noqa: BLE001
+        return "fail", f"live seat-identity read raised {type(exc).__name__}: {exc}"
+    # An 8-char prefix is `_label`'s own truncation, not a collision-resistant identifier
+    # (terra HIGH, `verify_handoff_probes.py:1436`, repair 1, 2026-09-29): if the seat a cut
+    # named wedged/starved later disappears while a DIFFERENT live session happens to share its
+    # first 8 characters, a bare-prefix membership test cannot tell the two apart and would
+    # read the coincidence as "still resolvable". Count sessions per prefix first, and reject a
+    # cut-named prefix outright when more than one live session answers to it -- explicitly
+    # ambiguous, never silently resolved to whichever session sorts first.
+    prefix_counts: dict[str, int] = {}
+    for seat in live_seats:
+        prefix = seat.session_id[:8]
+        prefix_counts[prefix] = prefix_counts.get(prefix, 0) + 1
+    resolvable = set(prefix_counts)
+    # `underlying` (the tail-stripped cut value, already shape-validated above) -- never the
+    # raw rendered `value` -- matches `fresh.value`'s own un-rendered shape: `named_bad_seats`
+    # parses a `seat_health_line`'s own segments, not a `StateRow.rendered()` string, and only
+    # worked on the raw `value` by coincidence (`entry.split(" (", 1)` happens to discard the
+    # ` — evidence: ... [FRESHNESS]` tail along with each label's own `(detail)` parenthetical --
+    # Gemini/agy Medium finding, repair 1, 2026-09-29).
+    cut_named = _sr.named_bad_seats(underlying)
+    live_named = _sr.named_bad_seats(fresh.value)
+    cut_any = cut_named["wedged"] | cut_named["starved"]
+    live_any = live_named["wedged"] | live_named["starved"]
+    ambiguous = sorted(p for p in cut_any if prefix_counts.get(p, 0) > 1)
+    if ambiguous:
+        return "fail", (f"{len(ambiguous)} seat prefix(es) named wedged/starved at cut match "
+                        f"more than one live session by their first 8 characters, so identity "
+                        f"cannot be confirmed: {', '.join(ambiguous)}")
+    unresolvable = sorted(cut_any - resolvable)
+    unnamed_new = sorted(live_any - cut_any)
+    if unresolvable:
+        return "fail", (f"{len(unresolvable)} seat(s) named wedged/starved at cut are no "
+                        f"longer resolvable: {', '.join(unresolvable)}")
+    if unnamed_new:
+        return "fail", (f"{len(unnamed_new)} seat(s) are wedged/starved now that the cut did "
+                        f"not name: {', '.join(unnamed_new)}")
+    return "pass", f"identity+liveness hold ({fresh.freshness}): {fresh.value}"
+
+
 #: One rule per DATA row, keyed by the row's bolded label. The generator's rows and this set
 #: are held equal by a test; a row outside it FAILs as unverified.
 BOOT_DATA_RULES = {
@@ -1347,7 +1544,8 @@ BOOT_DATA_RULES = {
     "Probes": _rule_probes,
     "Receipt": _rule_receipt,
     **{key: _pointer_rule(key) for key in BOOT_POINTERS if key != "Role"},
-    **{key: _rule_state(fn) for key, fn in _STATE_ROW_FNS.items()},
+    **{key: _rule_state(fn) for key, fn in _STATE_ROW_FNS.items() if key != "Seats"},
+    "Seats": _rule_bd_seats,
 }
 
 

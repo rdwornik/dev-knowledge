@@ -70,6 +70,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 import threading
 from dataclasses import dataclass
@@ -387,6 +388,38 @@ def _label(seat: Seat, *, elapsed: bool = True) -> str:
     detail = (f"{seat.minutes_since:.0f} min since last event" if elapsed
               else f"last event {seat.last_event.isoformat()}")
     return f"{who} {seat.session_id[:8]} ({detail})"
+
+
+#: The state-segment shape `seat_health_line` writes: ` / WEDGED: <label>; <label>` /
+#: ` / STARVED: <label>; <label>`, each `<label>` being `_label`'s own `{who} {sid8} ({detail})`.
+#: One segment per state that has a named seat; either or both may be absent from a given line.
+_NAMED_STATE_SEGMENT_RE = re.compile(r"/ (WEDGED|STARVED): (.+?)(?=(?: / [A-Z][A-Z ]*:)|$)")
+
+
+def named_bad_seats(line: "str | None") -> dict[str, set[str]]:
+    """The session-id PREFIXES (8 chars, as `_label` truncates them) that `line` -- a rendered
+    `seat_health_line` -- names as WEDGED or STARVED. `{"wedged": set(), "starved": set()}`
+    for a line naming neither (including `None`/empty).
+
+    The BD-seats identity/liveness comparator (`verify_handoff_probes._rule_bd_seats`,
+    [#1124]) reads a seat's IDENTITY through this, never by diffing the whole rendered string:
+    `_label` ALWAYS writes `{who} {sid8} ({detail})`, so the sid8 is the LAST whitespace token
+    before the trailing `(detail)`, unconditionally -- no assumption about the id's own
+    character set (a session id is truncated the same unconditional way on the LIVE side too,
+    `{s.session_id[:8] for s in seats()}` in `_rule_bd_seats`; validating one side's format and
+    not the other would let real non-matching ids slip past as a coincidental format mismatch
+    instead of the identity check this function exists to make exact)."""
+    out: dict[str, set[str]] = {"wedged": set(), "starved": set()}
+    for state, body in _NAMED_STATE_SEGMENT_RE.findall(line or ""):
+        for entry in body.split("; "):
+            entry = entry.strip()
+            if not entry or " (" not in entry:
+                continue
+            head = entry.split(" (", 1)[0].strip()
+            tokens = head.split()
+            if tokens:
+                out[state.lower()].add(tokens[-1])
+    return out
 
 
 def seat_health_line(path: Optional[Path] = None, *, now: Optional[datetime] = None,

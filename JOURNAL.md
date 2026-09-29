@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-09-29 (f) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5-R): the handoff probes check seat identity rather than state, count the capability map as it is written, and run on Windows (row [#1124])
+
+**Anchors:** `f30f9dd2`, `fad8a1ae`, `fe6b859d` -- `worktree-lane-handoff-probes` (L6b, `LANE-5B5R-6b-handoff-probes`; served `claude-sonnet-5`; repair 1 after the integrator's refusal on item 4). Merged `--no-ff` in `epic/wave5b-n5-r-int-l6-stack`, on top of L6a.
+
+**Did:** `BD-seats` compares seat identity and liveness. A seat that only changed state between cut and verify no longer FAILs. A seat named at cut that is no longer resolvable still FAILs, and so does a wedged seat the cut did not name. Repair 1 adds one more FAIL: a named 8-character prefix that matches more than one live session. The boot header's capability count now reads the map's status column as the map writes it: "WORKS, qualified" counts as WORKS and is reported as qualified. A `BD-capabilities` probe fails when the header disagrees with the generator. The eight probe rows that skipped on Windows ("tool absent: grep/sed/ls/head") resolve through the Git-for-Windows `usr/bin` fallback. A pass that rests on that fallback now says so in its detail, and a tool absent from both PATH and the fallback still reads `skipped`. The repair's review was a SUBSTITUTION: `gemini-3.1-pro-high` via `agy` at the Codex usage limit, tally 0/0/1/0. The one Medium was fixed too: `BD-seats` compares the tail-stripped cut value, not the rendered string.
+
+**Result:** a handoff verify no longer fails because a seat changed state, and no longer skips eight rows on this box.
+
+**Changes:** `scripts/verify_handoff_probes.py`, `scripts/handoff_state.py`, `scripts/seat_registry.py` (the resolver only), their three test files, one audit (`docs/audits/2026-09-29-codex-lane-handoff-probes-5b5r-6b-repair-1.md`). Regenerated `docs/audits/README.md` and `ecosystem/doc-counts.md`.
+
+**Next:** the verdict is CI on this stack, both legs. `ROW-MET [#1124]` goes to the digest for the operator to close.
+
 ### 2026-09-29 (e) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5-R): a handoff cut filled by the documented process passes `BD-manifest` with no hand re-stamp (row [#1123])
 
 **Anchors:** `b66526cc`, `2bf6ef23` -- `worktree-lane-handoff-manifest` (L6a, `LANE-5B5R-6a-handoff-manifest`; served `claude-sonnet-5`, repair 1 after the integrator's refusal on items 1 and 3). Merged `--no-ff` in `epic/wave5b-n5-r-int-l6-stack`, stacked with L6b.

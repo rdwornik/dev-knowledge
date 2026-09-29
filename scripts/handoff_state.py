@@ -180,13 +180,19 @@ def row_batches(repo_root: "Path | str") -> StateRow:
 
 # --- Seats: the seat registry's own health line -----------------------------------------------
 
+#: The value `row_seats` renders when the lookback window holds nothing -- named so
+#: `verify_handoff_probes._rule_bd_seats` ([#1124]) can recognize this ONE other well-formed
+#: shape a cut value may carry (besides a `[seats] …` line) without duplicating the literal.
+NO_SEATS_OBSERVED = "no seats observed in the lookback window"
+
+
 def row_seats(*, path: "Path | None" = None) -> StateRow:
     evidence = "seat_registry.seat_health_line(elapsed=False)"
     try:
         line = _sr.seat_health_line(path, elapsed=False)
     except Exception as exc:                          # noqa: BLE001
         return _degraded("Seats", evidence, "LIVE-DRIFTS", exc)
-    value = line if line else "no seats observed in the lookback window"
+    value = line if line else NO_SEATS_OBSERVED
     return StateRow("Seats", value, "LIVE-DRIFTS", evidence)
 
 
@@ -278,26 +284,80 @@ _TABLE_HEADING_RE = re.compile(r"(?m)^#{1,6}\s*Table\b.*$")
 _ANY_HEADING_RE = re.compile(r"(?m)^#{1,6}\s+\S")
 
 
-def _capability_table_rows(text: str) -> list[list[str]]:
-    """Every DATA row (first cell a digit) of the digest's own `## ... Table ...` section, as
-    `[cell, cell, ...]`. `[]` when the heading is absent -- not a parse failure, just nothing
-    to count (see the module docstring's honest limit on this being a bounded reader, not a
-    general markdown-table parser)."""
+def _split_table_row(line: str) -> list[str]:
+    """Split one markdown table row into cells, honoring a backslash-escaped pipe (`\\|`) as
+    LITERAL rather than a column delimiter -- the escaping convention the capability digest
+    itself uses for a pipe inside a cell's own prose (e.g. `` `O_CREAT\\|O_EXCL` ``, row 1's
+    mechanism cell in the live 2026-09-28 map). A naive `line.split("|")` over-splits such a
+    cell and shifts every LATER column's index for that one row -- exactly the misalignment
+    the header-mapped status column below exists to prevent.
+
+    Escaping is by BACKSLASH-RUN PARITY, not "any backslash immediately before a pipe": a
+    fixed-width regex lookbehind (`(?<!\\)\\|`, the prior implementation) cannot tell an
+    escaped pipe (one backslash) from a literal trailing backslash immediately followed by a
+    REAL delimiter pipe (two backslashes) -- it treated both as escaped, silently swallowing
+    a genuine delimiter and shifting every later column (terra HIGH, 2026-09-29). Counting the
+    run of consecutive backslashes ending at each `|` and splitting only on an EVEN run
+    (0, 2, 4, ... -- including zero) keeps the single-backslash convention above working
+    identically while fixing the even-run case."""
+    s = line.strip()
+    if s.startswith("|"):
+        s = s[1:]
+    if s.endswith("|"):
+        s = s[:-1]
+    cells: list[str] = []
+    start = 0
+    for i, ch in enumerate(s):
+        if ch != "|":
+            continue
+        run = 0
+        j = i - 1
+        while j >= 0 and s[j] == "\\":
+            run += 1
+            j -= 1
+        if run % 2 == 0:
+            cells.append(s[start:i])
+            start = i + 1
+    cells.append(s[start:])
+    return [c.strip() for c in cells]
+
+
+def _capability_table(text: str) -> tuple[list[str], list[list[str]]]:
+    """(header_cells, data_rows) of the digest's own `## ... Table ...` section -- `([], [])`
+    when the heading is absent, not a parse failure (see the module docstring's honest limit:
+    a bounded reader, not a general markdown-table parser). The section's FIRST `|`-line is
+    the header, its SECOND the `---` separator (skipped), and every later `|`-line whose first
+    cell is a digit is a data row."""
     heading = _TABLE_HEADING_RE.search(text)
     if heading is None:
-        return []
+        return [], []
     start = heading.end()
     nxt = _ANY_HEADING_RE.search(text, start)
     body = text[start:nxt.start()] if nxt else text[start:]
+    lines = [ln.strip() for ln in body.splitlines() if ln.strip().startswith("|")]
+    if not lines:
+        return [], []
+    header = _split_table_row(lines[0])
     rows: list[list[str]] = []
-    for line in body.splitlines():
-        line = line.strip()
-        if not line.startswith("|"):
-            continue
-        cells = [c.strip() for c in line.strip("|").split("|")]
+    for line in lines[2:]:                      # [0] header, [1] `---` separator, skipped
+        cells = _split_table_row(line)
         if cells and cells[0].isdigit():
             rows.append(cells)
-    return rows
+    return header, rows
+
+
+def _status_col(header: list[str]) -> "int | None":
+    """The index of the header cell literally reading 'status' (case-insensitive, trimmed) --
+    or None. Matched by EXACT cell text, never substring/`in`: 'fails when violated' is also a
+    cell of this same header and must never be mistaken for the status column ([#1124] batch
+    L6 fix: the prior reader used the row's LAST cell, which is 'status' only by coincidence in
+    a 3-column test fixture -- the live digest's status column sits second-to-last, before a
+    trailing 'delta vs …' column, so the old reader silently counted the WRONG cell and always
+    read 0 WORKS)."""
+    for idx, cell in enumerate(header):
+        if cell.strip().lower() == "status":
+            return idx
+    return None
 
 
 def row_capabilities(transport: "Path | None") -> StateRow:
@@ -308,13 +368,29 @@ def row_capabilities(transport: "Path | None") -> StateRow:
                         "SLOW", locator)
     try:
         text = doc.read_text(encoding="utf-8", errors="replace")
-        rows = _capability_table_rows(text)
+        header, rows = _capability_table(text)
+        col = _status_col(header)
         total = len(rows)
-        works = sum(1 for r in rows if r and r[-1].strip().startswith("WORKS"))
+        statuses = [r[col].strip() for r in rows if col is not None and col < len(r)]
+        # DECIDED-BY-LANE (batch WAVE5B-N5-R, lane-handoff-probes, [#1124] item 2): a status
+        # cell COUNTS toward WORKS whenever it starts with the literal word "WORKS" -- bare
+        # "WORKS" and a qualified cell ("WORKS (partial)", "WORKS grammar / attributes
+        # MISSING") alike, since the map's own status column carries no separate enum value
+        # for "partially works" and the leading word is the signal a reader acts on. A cell
+        # that starts with WORKS but carries more text after it is QUALIFIED -- counted toward
+        # the same total, but ALSO reported as a separate count, never folded silently into a
+        # bare "N/M WORKS" that would read as N unqualified passes.
+        works = [s for s in statuses if s.startswith("WORKS")]
+        qualified = sum(1 for s in works if s != "WORKS")
     except Exception as exc:                          # noqa: BLE001
         return _degraded("Capabilities", f"{locator} (`{doc.name}`)", "SLOW", exc)
-    value = (f"{works}/{total} WORKS — `{doc.name}`" if total
-             else f"0 rows parsed — `{doc.name}`")
+    if not total:
+        value = f"0 rows parsed — `{doc.name}`"
+    elif col is None:
+        value = f"0/{total} WORKS (no 'status' column found) — `{doc.name}`"
+    else:
+        qual_note = f" ({qualified} qualified)" if qualified else ""
+        value = f"{len(works)}/{total} WORKS{qual_note} — `{doc.name}`"
     return StateRow("Capabilities", value, "SLOW", locator)
 
 
