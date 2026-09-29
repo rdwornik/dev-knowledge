@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-09-29 (d) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5-R): the telemetry database lives off the public tree, redacted in every column, with `platformdirs` declared directly (R20)
+
+**Anchors:** `1c655d38`, `c0da0d3f` -- `worktree-lane-runtime-data-home-2` (L3, a redo from the preserved tip `60e6197d`; codespace run served `claude-sonnet-5`, local repair 1 served `claude-sonnet-5`). Repair 1 followed the integrator's refusal on an unfixed Codex CRITICAL. Merged `--no-ff` in `epic/wave5b-n5-r-int-lane-runtime-data-home-2`.
+
+**Did:** Merged the N4 lane's preserved tip `60e6197d` into a fresh branch (ruling (k)). Its work: the GenAI telemetry store moves to `platformdirs.user_state_dir("dev-knowledge")`, off every checkout, and events are deny-by-default and identifier-safe. The `runtime_data_home` taxonomy is recorded as data in `ecosystem/fleet-shape-spec.yaml`, and `validate_hermetization.py::rule_c_violation` refuses a new ad-hoc `logs/` subdirectory. This lane declared `platformdirs` directly in the `pyproject.toml` dev group (R20; the repo carries no `[project.dependencies]`) and regenerated `uv.lock` with `uv lock`, so deptry's DEP003, the N4 refusal, is gone. Repair 1 routes the four denormalised SQLite columns (`gen_ai_system`, `operation_name`, `request_model`, `response_model`) through the same redaction as `attributes_json`, with four RED-first tests. The fresh Codex terra record is 0/0/0/0.
+
+**Result:** a token, foreign path or prompt-like value handed to the telemetry writer is redacted in every persisted column. The database is not in the public repository. The N4 merge's `test_dodo` / `test_connection_loop` reds are the lane's DONE-ITEM 7, scored on this merge's CI.
+
+**Changes:** `.gitignore`, `pyproject.toml`, `uv.lock`, `ecosystem/fleet-shape-spec.yaml`, `scripts/cost_usage_telemetry.py`, `tests/test_telemetry_redaction.py`, `tests/test_routing_telemetry.py`, `tests/test_fleet_shape_spec_readers.py`, five Codex audits (three carried from the tip). Regenerated `docs/audits/README.md` and `ecosystem/doc-counts.md`. Folded in L7's merge-receipt ledger line (`logs/MERGE-RECEIPTS.jsonl`).
+
+**Next:** the verdict is CI on this integration branch, both legs, attributed against base run 36497097230. The rest of `logs/` stays where it is (four ROWS-OWED, for the digest).
+
 ### 2026-09-29 (c) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5-R): the rulings ratified since 2026-09-26 reach the register, the registry names the dispatcher's model, and CLAUDE.md rule 4 says what R11(3) ratified
 
 **Anchors:** `c4a095c3`, `97ebf286`, `2febc2be`, `06778a15` -- `worktree-lane-ratified-unbuilt` (L7, ordered and served `claude-sonnet-5`), merged `--no-ff` in integration branch `epic/wave5b-n5-r-int-lane-ratified-unbuilt`.
