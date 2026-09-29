@@ -117,6 +117,20 @@ DEFAULT_THRESHOLD_S = 30.0
 SURFACE_WINDOW_H = 72
 _SURFACE_TAIL_LINES = 5000
 
+#: The `[#863]` signature is "0 s CPU" from the moment the process was CREATED, not merely flat
+#: during whatever window this sweep happens to sample it in. A process that ran for a while and
+#: is now legitimately blocked (I/O, a lock, a long sleep -- `bounded_hook.py`'s OWN "pipe held
+#: after exit" mode) has ALREADY accumulated real CPU time by the time `sweep` first samples it,
+#: even though that total is flat for the whole `threshold_s` window that follows. Requiring the
+#: FIRST sample itself to be near-zero is what tells the two apart (Codex terra review, LANE-5B5-
+#: 5-lane-hook-watchdog Critical finding: without this, ANY orphaned process that happens to get
+#: no scheduling quantum for one window -- this repo's own box measured that happening to a
+#: genuinely busy-looping process under load -- reads identically to one that never ran at all).
+#: A small, non-zero allowance rather than an exact `== 0.0`: a genuinely suspended-at-creation
+#: process never executes an instruction, so its true CPU time IS zero -- the allowance is for
+#: `cpu_times()`'s own measurement granularity, not for any legitimate work the process did.
+_NEAR_ZERO_BASELINE_CPU_S = 0.1
+
 
 # --- candidate detection -----------------------------------------------------------------------
 
@@ -140,21 +154,33 @@ def _candidate_hook_names(settings_path: Path) -> set[str]:
     return names
 
 
+def _is_orphaned(proc: psutil.Process) -> bool:
+    """The incident's own "parent shell dead" half -- platform-aware (Codex terra review,
+    LANE-5B5-5-lane-hook-watchdog: an EARLIER version checked only `parent() is None`, which
+    NEVER holds on POSIX -- a child whose parent exits is reparented to PID 1 (or a configured
+    subreaper), not orphaned into a null parent, so that check silently found nothing on Linux
+    CI). On Windows, a genuinely dead parent's pid is simply gone (`parent()` returns `None`,
+    and `Process.parent()` guards against pid REUSE by checking the candidate's creation time
+    predates this process, so a later process reusing the dead parent's pid does not fool it).
+    On POSIX, a reparented-to-init process reads `ppid() == 1`; `0` is included for the same
+    reason a defensive read never trusts a single sentinel to be the only one an OS ever uses."""
+    try:
+        if proc.parent() is None:
+            return True
+        return proc.ppid() in (0, 1)
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        return False
+
+
 def _is_candidate(proc: psutil.Process, hook_names: set[str]) -> bool:
-    """A live process naming a registered hook script, whose parent is ALREADY GONE -- the
-    incident's own "parent shell dead" half. `Process.parent()` guards against PID reuse (it
-    checks the candidate parent's creation time predates this process), so this is not fooled
-    by an unrelated process later reusing the dead parent's pid."""
+    """A live process naming a registered hook script, orphaned (`_is_orphaned`)."""
     try:
         cmdline = " ".join(proc.cmdline())
     except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
         return False
     if not cmdline or not any(name in cmdline for name in hook_names):
         return False
-    try:
-        return proc.parent() is None
-    except (psutil.NoSuchProcess, psutil.AccessDenied):
-        return False
+    return _is_orphaned(proc)
 
 
 def _cpu_total(proc: psutil.Process) -> float | None:
@@ -208,8 +234,19 @@ def append_record(row: dict) -> Path | None:
 # --- kill ------------------------------------------------------------------------------------
 
 def kill_tree(pid: int) -> None:
-    """FIRED, NOT AWAITED -- identical posture to `bounded_hook.py::_kill_tree` and for the same
-    reason: a watchdog that waits on its own kill has moved the unbounded wait one level down."""
+    """FIRED, NOT AWAITED on Windows (`taskkill /T` runs on after this returns) -- identical
+    posture to `bounded_hook.py::_kill_tree` and for the same reason: a watchdog that waits on
+    its own kill has moved the unbounded wait one level down.
+
+    ON POSIX, `.kill()` is a single non-blocking syscall per process (SIGKILL is not caught or
+    ignorable, so it is not a wait either): the recursive `children()` walk is a `psutil` read
+    of the live process tree (`/proc` on Linux), not a wait on anything the killed processes do.
+    A bare `os.kill(pid, 9)` -- an EARLIER version of this function -- kills only the named pid,
+    contradicting the whole-tree contract (Codex terra review, LANE-5B5-5-lane-hook-watchdog);
+    `bounded_hook.py::_kill_tree`'s own `os.killpg` is not reused here because it depends on the
+    target being its own process-group leader (`start_new_session=True` at spawn time), which
+    this module does not control -- the process it is killing was created by something else
+    entirely (that is the whole point: it never ran a line of its own)."""
     if os.name == "nt":
         try:
             subprocess.Popen(["taskkill", "/T", "/F", "/PID", str(pid)],
@@ -217,10 +254,19 @@ def kill_tree(pid: int) -> None:
                              stderr=subprocess.DEVNULL)
         except OSError:
             pass
-    else:
+        return
+    try:
+        root = psutil.Process(pid)
+    except psutil.NoSuchProcess:
+        return
+    try:
+        descendants = root.children(recursive=True)
+    except psutil.Error:
+        descendants = []
+    for proc in (*descendants, root):
         try:
-            os.kill(pid, 9)
-        except OSError:
+            proc.kill()
+        except psutil.Error:
             pass
 
 
@@ -253,8 +299,13 @@ def sweep(*, threshold_s: float = DEFAULT_THRESHOLD_S,
           settings_path: Path | None = None,
           process_iter=None, sleep=time.sleep, now: datetime | None = None) -> list[dict]:
     """One pass: sample every candidate's CPU time, sleep `threshold_s`, sample again. A
-    candidate still alive whose CPU time did not move across the whole window is the `[#863]`
-    signature -- killed, whole tree, and recorded. Returns the kill rows (also durably logged).
+    candidate is the `[#863]` signature -- killed, whole tree, and recorded -- only when BOTH
+    hold: its very FIRST sample is already near-zero (`_NEAR_ZERO_BASELINE_CPU_S` -- it never
+    ran, not merely "not running just now"), AND that total does not move across the whole
+    window. Either alone is not enough (Codex terra review, LANE-5B5-5-lane-hook-watchdog
+    Critical finding): a live-then-blocked hook can be flat for one window without ever having
+    been suspended-at-creation, and a process with real accumulated CPU is never this module's
+    business regardless of what it does next. Returns the kill rows (also durably logged).
 
     ONE SHARED SLEEP, not one per candidate: every candidate is sampled at t0 before the single
     `threshold_s` sleep, so N candidates cost one wait, not N."""
@@ -272,7 +323,10 @@ def sweep(*, threshold_s: float = DEFAULT_THRESHOLD_S,
             cpu0 = _cpu_total(proc)
         except psutil.Error:
             continue
-        if cpu0 is not None:
+        # The FIRST sample already has to look suspended-at-creation -- see `sweep`'s own
+        # docstring and `_NEAR_ZERO_BASELINE_CPU_S`. A candidate that already ran real work is
+        # never tracked into the window at all, so it costs nothing in the sleep that follows.
+        if cpu0 is not None and cpu0 < _NEAR_ZERO_BASELINE_CPU_S:
             baseline[proc.pid] = (proc, cpu0)
     if not baseline:
         return []

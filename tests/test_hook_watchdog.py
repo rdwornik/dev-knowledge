@@ -159,7 +159,13 @@ def _wait_gone(pid: int, timeout_s: float = 10.0) -> bool:
 def test_a_suspended_at_creation_orphan_shows_zero_cpu_and_no_live_parent(tmp_path):
     """The `[#863]` signature reproduced directly, before any watchdog code runs at all: a
     process alive, its CPU time not moving across a real sleep, and its parent already gone --
-    never an inference from a description of the incident."""
+    never an inference from a description of the incident.
+
+    Orphanhood is checked through `hw._is_orphaned`, not a bare `proc.parent() is None`: on
+    POSIX a child whose parent exits is reparented to PID 1 (or a subreaper), never orphaned
+    into a null parent, so `parent() is None` alone never holds there (Codex terra review,
+    LANE-5B5-5-lane-hook-watchdog High finding) -- the platform-aware check is what this test
+    is actually verifying against the fixture."""
     pid, _script_name = _spawn_orphaned_stuck_grandchild(tmp_path)
     try:
         proc = psutil.Process(pid)
@@ -168,7 +174,7 @@ def test_a_suspended_at_creation_orphan_shows_zero_cpu_and_no_live_parent(tmp_pa
         time.sleep(1.0)
         cpu1 = proc.cpu_times()
         assert cpu1.user + cpu1.system == pytest.approx(cpu0.user + cpu0.system, abs=1e-3)
-        assert proc.parent() is None
+        assert hw._is_orphaned(proc)
     finally:
         _reap(pid)
 
@@ -236,18 +242,40 @@ class _FakeCandidateProc:
 
 def test_a_process_whose_cpu_time_is_moving_is_never_a_candidate(tmp_path, monkeypatch):
     """The negative control that keeps the two `[#863]`/`[#808]` failure modes apart: a
-    candidate whose CPU time DID move between the two samples is left alone, however orphaned
-    -- only zero CPU movement is this module's signal, never mere orphanhood. The companion
-    witness for the OTHER mode (ran, then legitimately blocked) is `tests/test_bounded_hook.py::
+    candidate that STARTS near-zero (so it passes the baseline filter) but whose CPU time then
+    DID move within the window is left alone -- only zero movement across the WHOLE window is
+    this module's signal. The companion witness for the OTHER mode (ran, then legitimately
+    blocked) is `tests/test_bounded_hook.py::
     test_a_guard_that_sleeps_past_its_bound_is_bypassed_and_the_bypass_is_recorded`, a separate
     mechanism entirely."""
     log = tmp_path / "HOOK-WATCHDOG-KILLS.jsonl"
     monkeypatch.setenv(hw.RECORD_ENV, str(log))
     running = _FakeCandidateProc(9001, ["python", "busy_hook.py"],
-                                 [(0.5, 0.1), (2.1, 0.3)])  # user time moved: 0.6s -> 2.4s
+                                 [(0.02, 0.0), (2.1, 0.3)])  # near-zero at t0, moved by t1
 
     killed = hw.sweep(threshold_s=0, settings_path=_settings(tmp_path, "busy_hook.py"),
                       process_iter=lambda: [running], sleep=lambda _s: None)
+
+    assert killed == []
+    assert not log.exists() or log.read_text(encoding="utf-8").strip() == ""
+
+
+def test_a_process_with_real_accumulated_cpu_is_never_a_candidate_even_if_flat_now(
+        tmp_path, monkeypatch):
+    """The Critical fix itself (Codex terra review, LANE-5B5-5-lane-hook-watchdog): a process
+    that had ALREADY run real work before `sweep` ever samples it -- the "ran, then legitimately
+    blocked" mode `[#808]`'s bound is meant to reach -- must never be killed by THIS module,
+    even though its CPU total is perfectly flat for the whole window that follows (exactly the
+    same observable shape a truly suspended-at-creation process has, IF only the window is
+    looked at). Before this fix, `sweep` tracked and killed any orphaned candidate flat for one
+    window regardless of its starting CPU total; this is the regression witness for that gap."""
+    log = tmp_path / "HOOK-WATCHDOG-KILLS.jsonl"
+    monkeypatch.setenv(hw.RECORD_ENV, str(log))
+    ran_then_blocked = _FakeCandidateProc(9002, ["python", "busy_hook.py"],
+                                          [(2.5, 0.4), (2.5, 0.4)])  # real CPU, flat afterward
+
+    killed = hw.sweep(threshold_s=0, settings_path=_settings(tmp_path, "busy_hook.py"),
+                      process_iter=lambda: [ran_then_blocked], sleep=lambda _s: None)
 
     assert killed == []
     assert not log.exists() or log.read_text(encoding="utf-8").strip() == ""
@@ -353,6 +381,39 @@ def test_surface_lines_never_breaks_on_a_malformed_line(tmp_path, monkeypatch):
     log.write_text("not json\n", encoding="utf-8")
     monkeypatch.setenv(hw.RECORD_ENV, str(log))
     assert hw.surface_lines() == []
+
+
+# --- _is_orphaned: platform-aware, unit-tested directly -----------------------------------------
+
+class _FakeParentedProc:
+    def __init__(self, parent, ppid: int):
+        self._parent, self._ppid = parent, ppid
+
+    def parent(self):
+        return self._parent
+
+    def ppid(self):
+        return self._ppid
+
+
+def test_is_orphaned_true_when_parent_is_none():
+    """The Windows shape: a dead parent's pid is simply gone."""
+    assert hw._is_orphaned(_FakeParentedProc(parent=None, ppid=4242))
+
+
+def test_is_orphaned_true_when_reparented_to_pid_1():
+    """The POSIX shape: a child whose parent exits is reparented to init, never orphaned into a
+    null parent (Codex terra review, LANE-5B5-5-lane-hook-watchdog High finding) -- `parent()`
+    returning a live process here must NOT by itself read as "still owned"."""
+    live_init = _FakeParentedProc(parent=None, ppid=0)  # PID 1's own parent is 0
+    assert hw._is_orphaned(_FakeParentedProc(parent=live_init, ppid=1))
+
+
+def test_is_orphaned_false_with_a_live_non_init_parent():
+    """The safety property `_is_orphaned` exists for: a hook process still owned by a live
+    session (a real parent, not init) is never read as orphaned."""
+    live_session_shell = _FakeParentedProc(parent=None, ppid=1)
+    assert not hw._is_orphaned(_FakeParentedProc(parent=live_session_shell, ppid=9999))
 
 
 # --- session id: best-effort, controlled environment -------------------------------------------
