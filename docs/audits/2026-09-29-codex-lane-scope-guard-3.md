@@ -61,3 +61,23 @@ of the new _bare_wildcard_hit helper and its docstring accuracy.
 ## Low
 
 (none)
+
+---
+
+## AMENDMENT (2026-09-29, in-file marker per CLAUDE.md §5 rule 3 -- audits are immutable,
+## the tally line above is left as generated rather than edited in place)
+
+**Tally: 2/0/0/0.** Both Critical findings were addressed in a follow-up commit
+(`2fc067b2`, `fix(scope-guard): close two Codex terra Critical findings on the
+home-boundary heuristic`):
+- Critical #1 (`**` bypasses the home-boundary check): `_bare_wildcard_hit` now anchors a
+  recursive `**` one component back from a `users`/`home` marker instead of two, since `**`
+  ranges over zero-or-more levels below its own anchor. Regression test:
+  `test_a_recursive_globstar_directly_under_a_home_parent_is_refused`.
+- Critical #2 (heuristic under-blocks roots mounted outside `Users`/`home`): a bare
+  wildcard within the first two path components (no home marker needed at all) is now also
+  treated as a hit, matching `excluded-roots.yaml`'s own "matches wherever mounted"
+  contract. Regression test: `test_a_bare_wildcard_directly_under_a_drive_root_is_refused`.
+
+Both fixes verified: the full suite (61 tests) green, the four witnessed false positives
+this lane exists to fix still allow, and the pre-existing real-bypass test still blocks.
