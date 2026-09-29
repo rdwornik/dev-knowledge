@@ -327,6 +327,35 @@ _QUOTED_LITERAL_PIECE = re.compile(r'"([^"]*)"|\'([^\']*)\'')
 _STRING_CONCAT = re.compile(rf'(?:(?:{_QUOTED_LITERAL})\s*\+\s*)+(?:{_QUOTED_LITERAL})')
 
 
+def _neutralize_nested_quote_chars(line: str) -> str:
+    """A quote character that appears WHILE a DIFFERENTLY-typed quote is already open is not
+    a real delimiter -- it is a literal character inside that outer quoted region (ordinary
+    shell/PowerShell quoting: a `'` inside `"..."` never closes anything, and vice versa).
+    Every such inert quote char is replaced with NUL so `_STRING_CONCAT` below can never
+    mistake prose-inside-one-big-argument for a separate literal.
+
+    Fresh Codex terra review (this redo, second pass): a PowerShell command running
+    `git commit -m "document 'OneDrive' + ' - Blue Yonder' handling"` has the WHOLE `-m`
+    argument as one double-quoted string; the single quotes around `'OneDrive'` inside it are
+    literal text, not PowerShell string delimiters, so the `+` between them is not the
+    concatenation operator either -- this is prose describing the construction, the same
+    class the existing anti-false-positive test already covers for a single quoted literal,
+    just with an inner `+` this time. A GENUINELY separate pair of top-level literals
+    (`"OneDrive" + " - Blue Yonder"`, no enclosing outer quote) is left untouched: neither
+    quote char is ever nested inside another OPEN quote of a different type."""
+    out = list(line)
+    state: str | None = None
+    for i, ch in enumerate(line):
+        if state is None:
+            if ch in "\"'":
+                state = ch
+        elif ch == state:
+            state = None
+        elif ch in "\"'":
+            out[i] = "\0"
+    return "".join(out)
+
+
 def _concatenated_literal_candidates(command: str) -> list[str]:
     """Not gated by `_looks_like_path`: the concatenation SYNTAX itself (two-or-more quoted
     literals joined by `+`, a narrow and deliberate shape no ordinary prose or single-string
@@ -337,12 +366,11 @@ def _concatenated_literal_candidates(command: str) -> list[str]:
 
     ONLY called for the `PowerShell` tool (see `_command_candidates`) -- `+` between two
     quoted strings is PowerShell's own concatenation OPERATOR, evaluated by that interpreter;
-    in POSIX shell syntax (the `Bash` tool) it is not special at all, so the identical text
-    inside a `Bash` command -- a `git commit -m` message QUOTING this very construction as an
-    example, discovered live when this lane's own commit message did exactly that -- is prose,
-    never code, and must not be treated as a candidate."""
+    in POSIX shell syntax it is not special at all, so the identical text inside an equivalent
+    Bash command is prose, never code, and must not be treated as a candidate. Matched against
+    `_neutralize_nested_quote_chars`'s output, not the raw text (see that function)."""
     out: list[str] = []
-    for match in _STRING_CONCAT.finditer(command):
+    for match in _STRING_CONCAT.finditer(_neutralize_nested_quote_chars(command)):
         joined = "".join(
             piece.group(1) if piece.group(1) is not None else piece.group(2)
             for piece in _QUOTED_LITERAL_PIECE.finditer(match.group(0))

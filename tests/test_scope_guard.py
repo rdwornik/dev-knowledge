@@ -520,6 +520,23 @@ def test_a_word_that_merely_mentions_the_zone_name_in_prose_still_stays_allowed_
     assert decision == "allow", reason
 
 
+def test_a_powershell_commit_message_quoting_the_concatenation_example_as_prose_is_still_allowed():
+    """Second-round Codex terra review (this redo): even restricted to the `PowerShell` tool,
+    a `git commit -m` message QUOTING the construction as an example (the whole message is
+    ONE outer double-quoted argument; the inner single quotes are literal text, not
+    PowerShell string delimiters, so the `+` between them is not the concatenation operator
+    either) must stay allowed -- `_neutralize_nested_quote_chars` is what makes this
+    distinguishable from a genuine top-level `"a" + "b"` expression."""
+    decision, reason = guard.decide(
+        _payload("PowerShell", {
+            "command": "git commit -m \"fix: document 'OneDrive' + ' - Blue Yonder' "
+                       "handling\"",
+        }),
+        ROOTS)
+
+    assert decision == "allow", reason
+
+
 def test_a_bash_commit_message_quoting_the_concatenation_example_as_prose_is_still_allowed():
     """Live-discovered while committing THIS lane's own fix: a `git commit -m` message that
     QUOTES the PowerShell concatenation construction as a worked example
