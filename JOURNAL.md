@@ -21,6 +21,24 @@
 
 ---
 
+### 2026-09-29 (j) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5 cycle-1): a read counts only when its output exists, its log is clean and every quotation is literally in the source (AMEND N5-11, AX21-1)
+
+**Anchors:** `9294c3d2`, `d1399563` -- `worktree-lane-read-gate` (N5-11, `LANE-5B5-11-lane-read-gate`; served `claude-sonnet-5`). Merged `--no-ff` in `epic/wave5b-n5-int-lane-read-gate` from `9ec8aaf1`.
+
+**Did:**
+- `scripts/read_gate.py`: a verifier that rejects a read with no or empty output file, a "print timeout" log line, no quotation, or a quotation not found literally (whitespace-normalized) in the locally extracted source. `pdfplumber` extracts PDF, the standard library EPUB, plain text as is. A route runner walks `roles.read` in the registry's declared order, falls through on a failed check, and appends one line per attempt to `logs/READ-OUTCOMES.jsonl`.
+- `tests/test_read_gate.py`: 32 tests on synthetic fixtures generated in the test. The RED-first witnesses (a) and (b) fail against an accept-everything stub.
+- `pdfplumber` added through the pinned `uv` (ruling (n)); `ecosystem/provider-registry.yaml` unchanged.
+- The Codex terra record `docs/audits/2026-09-29-codex-lane-read-gate.md` found 2 Critical and 3 High, all fixed in `d1399563`. One fix added a fourth check (no quotation = no read) and removed the self-accepting live-terminal-fallback invoker.
+
+**Result:** an `agy` SUCCESS with no output file, or a paraphrase in quotation marks, is rejected and falls through instead of counting as a faithful read.
+
+**Changes:** `scripts/read_gate.py`, `tests/test_read_gate.py`, `tests/fixtures/read_gate/`, `pyproject.toml`, `uv.lock`, `logs/READ-OUTCOMES.jsonl`, one `fates:` line in `ecosystem/harness.yaml`, one audit. Regenerated `docs/audits/README.md`; `ecosystem/doc-counts.md` set to the merged tree's `8583 collected` (8551 + 32). `logs/MERGE-RECEIPTS.jsonl` carries N5-1's receipt row (`9ec8aaf1`).
+
+**Next:**
+- CI on this branch, both legs, is the verdict.
+- `[#1327]` is filed by `lane-claude-md-rulings`; the lane reports ROW-MET for it once filed.
+
 ### 2026-09-29 (i) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5): the scope guard stops refusing a regex, a glob or a quoted token that names no excluded root, and still refuses a real one (R33.6)
 
 **Anchors:** `a40f873a`, `a57c81f8`, `2fc067b2`, `359c5a15`, `d3a0616f` -- `worktree-lane-scope-guard-3` (N5-1, `LANE-5B5-1-lane-scope-guard-3`, first and alone; served `claude-sonnet-5`). Merged `--no-ff` in `epic/wave5b-n5-int-lane-scope-guard-3` from `b30f96ba`.
