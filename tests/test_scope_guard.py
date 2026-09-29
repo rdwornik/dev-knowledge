@@ -450,6 +450,33 @@ def test_an_unrelated_wildcard_is_not_refused(tmp_path):
     assert decision == "allow", reason
 
 
+def test_a_bare_double_star_glob_component_is_not_refused(tmp_path):
+    """Live-discovered this redo, running this guard's own tests: `fnmatch.fnmatchcase(root,
+    "**")` is True for EVERY root, since a bare wildcard pattern matches any string -- an
+    ordinary glob argument with no relation to the excluded root at all
+    (`templates/**`, exactly what tripped this live) must not be refused just because it
+    happens to carry a wildcard character."""
+    ordinary = tmp_path / "repo"
+    ordinary.mkdir()
+
+    decision, reason = guard.decide(
+        _payload("Bash", {"command": "git diff --stat origin/main...HEAD -- templates/**"},
+                  cwd=str(ordinary)),
+        ROOTS)
+
+    assert decision == "allow", reason
+
+
+def test_a_bare_single_star_or_question_mark_component_is_not_refused(tmp_path):
+    ordinary = tmp_path / "repo"
+    ordinary.mkdir()
+
+    decision, reason = guard.decide(
+        _payload("PowerShell", {"command": 'Get-ChildItem "?\\*"'}, cwd=str(ordinary)), ROOTS)
+
+    assert decision == "allow", reason
+
+
 # ============================ J. LANE-5B5R-2 -- SHELL-SEMANTICS BYPASS CLOSURE (item 9)
 
 def test_a_powershell_string_concatenation_assembling_the_root_name_is_refused(tmp_path):

@@ -499,6 +499,15 @@ def excluded_root_hit(path: Path, roots: list[str]) -> str | None:
     OneDrive*\\f.txt"`) would still expand it onto the zone (Codex terra review, P1, this
     lane's repair 1). Checked as "does this pattern match the root name", not the reverse, so
     an ordinary part with no glob character is unaffected and still needs an exact match.
+
+    A part that is PURELY wildcard characters (a bare `*`, `**`, `?`, or any combination of
+    only those) is excluded from this leg -- live-discovered this redo, running this guard's
+    own tests: `fnmatch.fnmatchcase(root_cf, "**")` is True for EVERY `root_cf`, since a bare
+    wildcard pattern matches any string by construction, so an ordinary glob-shaped argument
+    with no relation at all to the excluded root (`templates/**`, a glob this repo's own test
+    suite passes routinely) would otherwise be refused regardless of which root is configured.
+    Requiring at least one non-wildcard character survive `part.strip("*?[]")` keeps the real
+    catch (`OneDrive*` strips to `OneDrive`, still a match) while dropping the false one.
     """
     parts_cf = [part.casefold() for part in path.parts]
     text_cf = str(path).casefold()
@@ -511,7 +520,8 @@ def excluded_root_hit(path: Path, roots: list[str]) -> str | None:
         elif root_cf in parts_cf:
             return root
         elif any(
-            any(ch in part for ch in "*?[") and fnmatch.fnmatchcase(root_cf, part)
+            any(ch in part for ch in "*?[") and part.strip("*?[]")
+            and fnmatch.fnmatchcase(root_cf, part)
             for part in parts_cf
         ):
             return root
