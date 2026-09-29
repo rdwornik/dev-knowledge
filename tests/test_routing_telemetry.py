@@ -37,6 +37,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import sqlite3
+import subprocess
 import sys
 from pathlib import Path
 
@@ -190,6 +191,50 @@ def test_reviewed_by_must_not_equal_the_responding_model(tmp_path):
     message = str(exc.value).lower()
     assert "ax22-2" in message
     assert _count(db) == 0
+
+
+# --- the store's home (`LANE-5B4-15-runtime-data-home`, R17) --------------------------------
+
+
+def test_default_db_path_resolves_outside_the_repository_tree(monkeypatch):
+    """The whole point of the move: `default_db_path()` no longer answers anywhere under this
+    checkout. Cleared of `$DEV_KNOWLEDGE_GENAI_TELEMETRY_DB` (a dev/test override would defeat
+    the very thing this test proves) so the real per-user OS path is what gets resolved."""
+    mod = _load()
+    monkeypatch.delenv(mod.DB_PATH_ENV, raising=False)
+    repo_root = Path(
+        subprocess.run(
+            ["git", "-C", str(_P.parent.parent), "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, check=True,
+        ).stdout.strip()
+    )
+    resolved = mod.default_db_path()
+    assert not str(resolved).startswith(str(repo_root)), (
+        f"default_db_path() resolved {resolved}, which is inside the repository "
+        f"({repo_root}) -- the store must live off-tree entirely, not merely gitignored"
+    )
+    assert resolved.name == mod.DB_FILENAME
+
+
+def test_default_db_path_is_stable_across_worktrees(monkeypatch, tmp_path):
+    """The bug fix riding along with the relocation: the OLD `repo_root()`-relative path
+    resolved PER WORKTREE (`--show-toplevel` answers the calling worktree's own root), so two
+    linked worktrees of the same repository wrote two different files and the re-rank could
+    never see calls routed from a sibling lane. The new path depends on no git state at all,
+    so it is identical regardless of which directory the process happens to be running from."""
+    mod = _load()
+    monkeypatch.delenv(mod.DB_PATH_ENV, raising=False)
+    from_repo = mod.default_db_path()
+    monkeypatch.chdir(tmp_path)  # simulates "some other checkout/worktree" via cwd
+    from_elsewhere = mod.default_db_path()
+    assert from_repo == from_elsewhere
+
+
+def test_default_db_path_still_honors_the_env_override(monkeypatch, tmp_path):
+    mod = _load()
+    override = tmp_path / "override.db"
+    monkeypatch.setenv(mod.DB_PATH_ENV, str(override))
+    assert mod.default_db_path() == override
 
 
 def test_reviewed_by_falls_back_to_the_request_model_when_no_response_model(tmp_path):

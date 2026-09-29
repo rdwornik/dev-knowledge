@@ -470,6 +470,35 @@ clauses:
       newest-first inside dated folders, which is a different property. Intake #73 open
       question 6 asks whether the convention stays declared-unasserted or leaves the spec.
 
+  # --- R17: the harness runtime-data home taxonomy ------------------------------------
+  runtime_data_home:
+    leg: R17
+    asserted_by: null
+    # THE HONEST GAP, on the report_first clause's own precedent (below): only one of the
+    # three kinds is a shape a staged-ADD gate can ever see, and it is already covered by
+    # the pre-existing home_grammar clause's own bare `logs` pattern plus its logs/YYYY-MM
+    # retention grammar -- unchanged by this clause, which adds no second pattern for one
+    # enforcement. The read this clause DOES add: a repo-added path is refused a fresh ad
+    # hoc home under logs/ for a runtime-data kind absent a ruling, pinned behaviourally by
+    # tests/test_telemetry_redaction.py::test_a_new_ad_hoc_runtime_data_subdirectory_under_logs_is_still_refused_by_rule_c
+    # rather than claimed by an asserted_by this file's own discipline would then owe a
+    # PROVEN_READS entry for. The other two kinds are unassertable by a staged-diff gate at
+    # all, not merely unwired: ephemeral is gitignored (outside a prospective-only gate's
+    # field of view by construction); private (the GenAI telemetry store this decision
+    # covers, which may carry unredacted local content) resolves to a path outside the
+    # repository entirely, permanently outside a tracked path for Rule C to classify.
+    unasserted_reason: >-
+      Only committed is a shape Rule C can classify, and that enforcement already belongs
+      to the pre-existing home_grammar clause -- see the comment above for the census-test
+      reason this clause names no second locator for it. ephemeral (gitignored) and private
+      (resolved outside the repository) are structurally outside a staged-ADD gate's reach.
+    decided: 2026-09-27, LANE-5B4-15-runtime-data-home, R17
+    decision_record: to-browser/SESSION-lane-runtime-data-home.md
+    kinds:
+      committed: "logs/ (home_grammar's own bare pattern + the YYYY-MM retention grammar; unchanged)"
+      ephemeral: "logs/ (gitignored; outside a staged-ADD gate's view by construction)"
+      private: "a per-user OS state directory (platformdirs.user_state_dir), outside any repo path"
+
   # --- M6: report-first posture --------------------------------------------------------
   report_first:
     leg: M6
