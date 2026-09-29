@@ -21,6 +21,23 @@
 
 ---
 
+### 2026-09-29 (i) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5): the scope guard stops refusing a regex, a glob or a quoted token that names no excluded root, and still refuses a real one (R33.6)
+
+**Anchors:** `a40f873a`, `a57c81f8`, `2fc067b2`, `359c5a15`, `d3a0616f` -- `worktree-lane-scope-guard-3` (N5-1, `LANE-5B5-1-lane-scope-guard-3`, first and alone; served `claude-sonnet-5`). Merged `--no-ff` in `epic/wave5b-n5-int-lane-scope-guard-3` from `b30f96ba`.
+
+**Did:**
+- `scripts/hooks/scope_guard.py`: the bare-wildcard leg of `excluded_root_hit` now fires only where a wildcard can stand in for the excluded root -- next to a user-home parent (`Users`/`home`) or directly under a drive or filesystem root. `normalize()` reads a drive-letter prefix as absolute on every host OS.
+- `tests/test_scope_guard.py`: one RED-first test per witnessed refusal 1-4, plus the render's fifth witness. The integrator re-ran them against the base code: `5 failed, 56 passed`. The real-bypass test (`test_a_bare_wildcard_standing_in_for_the_root_at_its_own_parent_is_refused`) is unedited and still blocks.
+- The Codex terra record `docs/audits/2026-09-29-codex-lane-scope-guard-3.md` found 2 Critical (a recursive `**` over the home boundary; a root directly under a drive root). Both are fixed in `2fc067b2` with regression tests.
+
+**Result:** the four witnessed false positives exit `allow`, and a command naming a path under an excluded root is still refused. `ecosystem/excluded-roots.yaml` and the hook wiring are unchanged (R15 unchanged).
+
+**Changes:** `scripts/hooks/scope_guard.py`, `tests/test_scope_guard.py`, one audit. Regenerated `docs/audits/README.md`; `ecosystem/doc-counts.md` set to the merged tree's `8551 collected` (8545 + 6).
+
+**Next:**
+- CI on this branch, both legs, is the verdict.
+- Every other local lane of WAVE5B-N5 starts after this one. N5-9 is HELD and N5-10 SUPERSEDED by operator decisions (2026-09-29 ~16:33 and ~16:40).
+
 ### 2026-09-29 (h) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5-R cycle 2): one Ruff rule set, and a test that goes red if the hub and the consumer template disagree on it
 
 **Anchors:** `5216bcbb`, `c684d79e`, `013a2b28`, `5f28198d`, `3fff0c0b`, `69e32448`, `364c6f22`, `65836465`, `99845d77`, `5c020a3f`, `b479dbd8` -- `worktree-lane-python-standard-2` (L9, `LANE-5B5R-9-python-standard-2`, a redo from the preserved tip `5f28198d`). The codespace run served `claude-sonnet-5` (dispatcher `MODEL` line). Repair 1 ran locally after the integrator's refusal on item 8. Merged `--no-ff` in `epic/wave5b-n5-r-int-lane-python-standard-2` from `13fce088`.
