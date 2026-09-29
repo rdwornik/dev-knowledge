@@ -265,10 +265,10 @@ def test_lane_branch_kinds_holds_exactly_the_machine_produced_lane_kinds():
     the batch teardown and the ADR-110 exemption can see, so a member arriving by accident
     is the failure mode worth catching.
     """
-    assert vbn.LANE_BRANCH_KINDS == frozenset({
+    assert frozenset({
         vbn.KIND_BATCH_LANE, vbn.KIND_EPIC_LANE,
         vbn.KIND_CLOUD_LANE, vbn.KIND_AUTOMATION_LANE,
-    })
+    }) == vbn.LANE_BRANCH_KINDS
 
 
 def test_the_lane_set_is_derived_from_classify_not_re_listed():

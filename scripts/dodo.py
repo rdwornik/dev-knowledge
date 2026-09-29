@@ -249,7 +249,7 @@ def _fresh(label, receipt, command, previous):
     """Up to date = a COMPLETE receipt for this organ, exit 0, holding the hash this run would compute.
     A row with no command is never fresh: its action writes the SKIPPED receipt (or stops the run)."""
     data = _read(receipt) or {}
-    return bool(command) and _RECEIPT_KEYS <= set(data) and data["organ"] == label and (
+    return bool(command) and set(data) >= _RECEIPT_KEYS and data["organ"] == label and (
         data["status"] == "ok" and data["exit_code"] == 0 and isinstance(data["duration_ms"], int)
         and data["input_hash"] == _input_hash(_argv(command), _upstream(previous)))
 

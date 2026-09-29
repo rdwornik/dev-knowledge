@@ -89,7 +89,7 @@ def test_event_lines_carry_the_ruled_floor_fields(tmp_path):
              events.read_text(encoding="utf-8").splitlines() if ln]
     assert len(lines) >= 3  # findings + the run summary
     for ev in lines:
-        assert _FLOOR_KEYS <= set(ev), sorted(_FLOOR_KEYS - set(ev))
+        assert set(ev) >= _FLOOR_KEYS, sorted(_FLOOR_KEYS - set(ev))
         assert ev["schema_version"] == 1
         assert ev["mode"] == "synthetic"  # synthetic never reads as fleet history
         assert ev["ts_utc"].endswith("+00:00") or "T" in ev["ts_utc"]

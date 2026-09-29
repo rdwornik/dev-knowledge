@@ -191,7 +191,7 @@ def test_b_refuses_an_accepted_adr_and_an_already_archived_terminal_one(tree: Pa
 def test_b_binds_to_the_ruled_constant_not_a_local_copy():
     """The terminal set is `validate_adr_status.TERMINAL_STATUSES`. Re-declaring it here would
     let the two drift, and a check enforcing a stale enum is worse than none."""
-    assert fl._vas.TERMINAL_STATUSES == frozenset({"Superseded", "Deprecated"})
+    assert frozenset({"Superseded", "Deprecated"}) == fl._vas.TERMINAL_STATUSES
 
 
 # --- leg c: post-cutoff row provenance --------------------------------------------

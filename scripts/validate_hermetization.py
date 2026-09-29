@@ -92,7 +92,7 @@ import logging
 import re
 import subprocess
 import sys
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 from typing import Any, Optional
 
@@ -369,7 +369,7 @@ HUB_PROFILE = RepoProfile(
 FLEET_PROFILE = RepoProfile(name="<undeclared>")
 
 
-@lru_cache(maxsize=None)
+@cache
 def _class_by_len(enum: frozenset[str]) -> tuple[str, ...]:
     """Longest-match order for one profile's enum -- the module-level `_ENUM_BY_LEN` rule,
     applied to whichever vocabulary the repo under test actually declares."""

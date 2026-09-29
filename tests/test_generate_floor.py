@@ -206,9 +206,9 @@ def test_guard_script_is_single_sourced_byte_identical():
     """The carrier-written guard (CHECK_FLOOR_HASH_SCRIPT) and the INSTALL_NOTE-embedded
     guard MUST be byte-identical — one source, so the automated arm and the paste-ready
     manual runbook can never disagree (the drift this whole feature exists to kill)."""
-    assert gf.CHECK_FLOOR_HASH_SCRIPT == gf.extract_check_floor_hash_script()
+    assert gf.extract_check_floor_hash_script() == gf.CHECK_FLOOR_HASH_SCRIPT
     # both the module extractor and this file's local extractor agree
-    assert gf.CHECK_FLOOR_HASH_SCRIPT == _extract_check_floor_hash_script()
+    assert _extract_check_floor_hash_script() == gf.CHECK_FLOOR_HASH_SCRIPT
 
 
 def test_guard_script_require_present_fails_loud_on_absent_floor(tmp_path: Path):

@@ -888,7 +888,7 @@ def refuse_lane_owned(lane: str, seats: "list", *, own_session: str) -> None:
     owners = [s for s in seats
               if s.lane == lane and s.session_id != own_session and s.state == "live"]
     if not owners:
-        return None
+        return
     owner = max(owners, key=lambda s: s.last_event)
     raise SeatRefusal(
         "lane-owned",

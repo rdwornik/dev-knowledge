@@ -277,7 +277,7 @@ def test_graph_integration_tally():
     assert len(proven) + len(skipped) + len(gaps) == total  # states are exhaustive
 
     # the ledger's env-derived cell MUST track the runtime langserver check (operator contract)
-    assert _CODE_CODE_FIRES == ("proven" if _langserver_available() else "skipped")
+    assert ("proven" if _langserver_available() else "skipped") == _CODE_CODE_FIRES
 
     headline, fully = _headline()
     print("\n" + headline)
