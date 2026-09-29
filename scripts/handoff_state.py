@@ -290,13 +290,36 @@ def _split_table_row(line: str) -> list[str]:
     itself uses for a pipe inside a cell's own prose (e.g. `` `O_CREAT\\|O_EXCL` ``, row 1's
     mechanism cell in the live 2026-09-28 map). A naive `line.split("|")` over-splits such a
     cell and shifts every LATER column's index for that one row -- exactly the misalignment
-    the header-mapped status column below exists to prevent."""
+    the header-mapped status column below exists to prevent.
+
+    Escaping is by BACKSLASH-RUN PARITY, not "any backslash immediately before a pipe": a
+    fixed-width regex lookbehind (`(?<!\\)\\|`, the prior implementation) cannot tell an
+    escaped pipe (one backslash) from a literal trailing backslash immediately followed by a
+    REAL delimiter pipe (two backslashes) -- it treated both as escaped, silently swallowing
+    a genuine delimiter and shifting every later column (terra HIGH, 2026-09-29). Counting the
+    run of consecutive backslashes ending at each `|` and splitting only on an EVEN run
+    (0, 2, 4, ... -- including zero) keeps the single-backslash convention above working
+    identically while fixing the even-run case."""
     s = line.strip()
     if s.startswith("|"):
         s = s[1:]
     if s.endswith("|"):
         s = s[:-1]
-    return [c.strip() for c in re.split(r"(?<!\\)\|", s)]
+    cells: list[str] = []
+    start = 0
+    for i, ch in enumerate(s):
+        if ch != "|":
+            continue
+        run = 0
+        j = i - 1
+        while j >= 0 and s[j] == "\\":
+            run += 1
+            j -= 1
+        if run % 2 == 0:
+            cells.append(s[start:i])
+            start = i + 1
+    cells.append(s[start:])
+    return [c.strip() for c in cells]
 
 
 def _capability_table(text: str) -> tuple[list[str], list[list[str]]]:

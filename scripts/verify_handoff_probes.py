@@ -1385,6 +1385,29 @@ _STATE_ROW_FNS = {
 #   * no seat may be wedged or starved NOW that the cut did not name as wedged or starved.
 # Anything else -- an unrelated seat's count moving, a named seat's cosmetic detail changing,
 # a wedge clearing, a brand-new HEALTHY seat appearing -- is not a BD-seats finding.
+
+#: The counts-line PREFIX a genuine `seat_registry.seat_health_line()` always writes, before
+#: any optional ` / WEDGED: ...` / ` / STARVED: ...` / ` / NO LIVE INTEGRATOR ...` suffix --
+#: e.g. "[seats] 1 live / 0 wedged / 2 absent / 0 starved (last 24 h; 26 unbound)". Anchored to
+#: the real counts structure, not just a bare "[seats] " prefix: ANY string starting with those
+#: two words (e.g. a forged "[seats] forged" cell) satisfied the prior prefix-only check and
+#: could then PASS with empty cut/live sets against a healthy live registry -- a near-no-op
+#: the shape rung exists to bar (terra HIGH, 2026-09-29).
+_SEAT_COUNTS_LINE_RE = re.compile(
+    r"^\[seats\] \d+ live / \d+ wedged / \d+ absent / \d+ starved "
+    r"\(last \d+(?:\.\d+)? h; \d+ unbound\)"
+)
+
+#: The exact tail `StateRow.rendered()` appends -- " — evidence: <evidence> [<FRESHNESS>]" --
+#: recovered so the shape check reads the UNDERLYING value. `value` here is always the
+#: RENDERED cell in production (`gen_handoff.py` writes `.rendered()`; `parse_boot_blocks`
+#: reads the table cell verbatim) -- comparing the shape check against the un-stripped
+#: rendered string was a second HIGH in the same review: a genuine empty-registry cut's
+#: rendered value never equals the bare `NO_SEATS_OBSERVED` literal once the evidence/
+#: freshness suffix is appended, so a real "nothing observed" cut always failed shape sanity.
+_RENDERED_TAIL_RE = re.compile(r"^(?P<val>.*) — evidence: .+ \[[A-Z][A-Z-]*\]$", re.DOTALL)
+
+
 def _rule_bd_seats(value: str, ctx: _BootCtx) -> tuple[str, str]:      # noqa: ARG001 -- ctx
     try:                                                               # unused: Seats needs none
         import handoff_state as _hs  # noqa: PLC0415
@@ -1393,15 +1416,18 @@ def _rule_bd_seats(value: str, ctx: _BootCtx) -> tuple[str, str]:      # noqa: A
         return "skipped", "handoff_state/seat_registry not importable"
     # Shape sanity, BEFORE identity/liveness: the two conditions below read WEDGED/STARVED
     # segments out of `value` and say nothing about a cell that carries neither -- a value that
-    # does not even carry `row_seats`' own shape (`[seats] …`, or its "nothing observed"
+    # does not even carry `row_seats`' own shape (a real counts line, or its "nothing observed"
     # default) would otherwise silently PASS (no named bad seat to lose, no new one to gain).
     # This is what still fails a tampered/garbage cut value (`test_a_tampered_state_row_fails_
     # only_its_own_probe[Seats]`), while a WELL-FORMED value's counts, unnamed seats and cleared
     # wedges stay free to drift -- the looseness [#1124] exists to grant.
     stripped = value.strip()
-    if not (stripped == _hs.NO_SEATS_OBSERVED or stripped.startswith("[seats]")):
-        return "fail", (f"cut value does not carry a seat_health_line's own shape (expected "
-                        f"'[seats] …' or {_hs.NO_SEATS_OBSERVED!r}): {value!r}")
+    tail_match = _RENDERED_TAIL_RE.match(stripped)
+    underlying = tail_match.group("val") if tail_match else stripped
+    if not (underlying == _hs.NO_SEATS_OBSERVED or _SEAT_COUNTS_LINE_RE.match(underlying)):
+        return "fail", (f"cut value does not carry a seat_health_line's own shape (expected a "
+                        f"'[seats] N live / N wedged / N absent / N starved (...)' counts line "
+                        f"or {_hs.NO_SEATS_OBSERVED!r}): {value!r}")
     try:
         fresh = _hs.row_seats()
     except Exception as exc:          # noqa: BLE001 -- a reader's own failure is reported

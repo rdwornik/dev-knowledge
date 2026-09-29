@@ -206,6 +206,41 @@ def test_bd_seats_fails_when_a_new_unnamed_wedge_appears(tmp_path, monkeypatch):
     assert "deadbeef" in detail
 
 
+def test_bd_seats_passes_a_genuine_empty_registry_cut_against_a_still_empty_live_registry(
+    tmp_path, monkeypatch,
+):
+    """terra HIGH (2026-09-29): `value` here is always `StateRow.rendered()` in production --
+    the fact PLUS the ' — evidence: ... [FRESHNESS]' suffix `gen_handoff.py` writes into the
+    DATA row and `parse_boot_blocks` reads back verbatim (see the live 2026-09-28 bundle's own
+    Seats row). A genuine cut with nothing in the lookback window renders `NO_SEATS_OBSERVED`
+    plus that suffix, which never equals the bare literal -- so before the tail was stripped
+    back out, a real empty-registry cut always FAILed shape sanity even with the live registry
+    still empty too."""
+    path = tmp_path / "seats.jsonl"
+    monkeypatch.setattr(hs._sr, "REGISTRY_PATH", path)
+    cut_row = hs.row_seats()
+    assert cut_row.value == hs.NO_SEATS_OBSERVED  # sanity: the fixture is genuinely empty
+
+    status, detail = vhp._rule_bd_seats(cut_row.rendered(), _seats_ctx())
+    assert status == "pass", detail
+
+
+def test_bd_seats_fails_a_forged_seats_prefixed_value_with_no_real_counts_line(
+    tmp_path, monkeypatch,
+):
+    """terra HIGH (2026-09-29): the prior shape-sanity rung accepted ANY value starting with
+    the two words '[seats] ', not the real counts-line structure `seat_health_line()` always
+    writes -- so a forged cell like '[seats] forged' read empty cut/live named-bad-seat sets
+    and PASSED against a healthy (nothing wedged/starved) live registry: the exact near-no-op
+    [#1124]'s shape rung exists to bar, reachable through a value that merely started with the
+    right two words rather than one carrying no seats-shape at all."""
+    path = tmp_path / "seats.jsonl"
+    monkeypatch.setattr(hs._sr, "REGISTRY_PATH", path)
+    status, detail = vhp._rule_bd_seats("[seats] forged", _seats_ctx())
+    assert status == "fail"
+    assert "shape" in detail.lower()
+
+
 def test_row_substrates_counts_only_live_true(tmp_path):
     repo = _repo_with_registries(tmp_path)
     row = hs.row_substrates(repo)
@@ -285,6 +320,23 @@ def test_row_capabilities_handles_a_backslash_escaped_pipe_before_the_status_col
         encoding="utf-8")
     row = hs.row_capabilities(t)
     assert row.value == "1/2 WORKS — `DIGEST-CAPABILITY-MAP-2026-09-29.md`"
+
+
+def test_split_table_row_splits_on_an_even_backslash_run_before_the_delimiter(tmp_path):
+    """terra HIGH (2026-09-29): the prior `(?<!\\\\)\\|` regex is a single-char lookbehind, so
+    it cannot distinguish a genuinely escaped pipe (ONE backslash) from a cell ending in a
+    literal backslash immediately followed by a REAL delimiter pipe (TWO backslashes) -- both
+    read as "preceded by a backslash" and neither split, silently swallowing a real delimiter
+    and shifting every later column. Splitting is by backslash-RUN PARITY: an EVEN run
+    (0, 2, 4, ...) is a real delimiter; an ODD run (the documented single-backslash escaping
+    convention, still exercised above) is not."""
+    assert hs._split_table_row("| cellA\\\\|statusB |") == ["cellA\\\\", "statusB"]
+    # the sanctioned single-backslash convention keeps working identically (odd run: no split)
+    assert hs._split_table_row("| cellA\\|statusB |") == ["cellA\\|statusB"]
+    # a THREE-backslash run (odd) still doesn't split -- one full escape, one bare backslash
+    assert hs._split_table_row("| cellA\\\\\\|statusB |") == ["cellA\\\\\\|statusB"]
+    # a FOUR-backslash run (even) splits, same as the two-backslash case
+    assert hs._split_table_row("| cellA\\\\\\\\|statusB |") == ["cellA\\\\\\\\", "statusB"]
 
 
 #: A condensed copy of the REAL DIGEST-CAPABILITY-MAP-2026-09-28.md's 20-row status column,
