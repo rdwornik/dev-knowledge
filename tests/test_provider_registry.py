@@ -56,17 +56,23 @@ def test_registry_has_the_three_declared_collections_and_the_rate_card():
     is why the collection assertions below still name three and the card is asserted apart from
     them rather than folded in.
 
+    `dispatcher:` ARRIVED WITH R22 (`lane-ratified-unbuilt`, WAVE5B-N5-R, 2026-09-29) AND IS THE
+    SAME SHAPE OF NON-COLLECTION AS `rate_card:` — a single pin (the model the dispatcher session
+    runs on), not an `id -> field map`, and deliberately not folded into `roles:` (see
+    `DispatcherPin`'s docstring for why the two vocabularies stay separate).
+
     The equality is kept rather than relaxed to a superset — an exact set is what makes a new
     top-level key arriving unannounced a RED instead of silently inert data, which is the same
-    posture `extra="forbid"` takes one level down. This test REDdened on `rate_card`'s arrival
-    exactly as designed; updating it is the announcement.
+    posture `extra="forbid"` takes one level down. This test REDdened on `rate_card`'s arrival,
+    and on `dispatcher`'s, exactly as designed; updating it is the announcement.
     """
     data = preg.load_registry()
-    assert set(data) == {"providers", "models", "roles", "rate_card"}
+    assert set(data) == {"providers", "models", "roles", "rate_card", "dispatcher"}
     assert all(isinstance(v, dict) for v in data["providers"].values())
     assert all(isinstance(v, dict) for v in data["models"].values())
     assert all(isinstance(v, dict) for v in data["roles"].values())
     assert isinstance(data["rate_card"], dict)
+    assert isinstance(data["dispatcher"], dict)
 
 
 def test_a_price_is_never_a_bare_number_without_its_card(tmp_path):
