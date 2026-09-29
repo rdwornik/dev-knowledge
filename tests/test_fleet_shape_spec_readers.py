@@ -108,12 +108,24 @@ def test_the_census_is_complete():
     assert not sorted(set(PROVEN_READS) - claimed - set(CLAUSES))
 
 
-def test_only_report_first_remains_unasserted():
-    """The honest gap, named. `report_first` is a posture, not a mechanism, and says so."""
+def test_only_report_first_and_runtime_data_home_remain_unasserted():
+    """The honest gap, named. `report_first` is a posture, not a mechanism, and says so.
+
+    DECIDED-BY-LANE (`LANE-5B4-15-runtime-data-home`, R17): `runtime_data_home` joins this
+    list rather than naming `rule_c_violation` as its `asserted_by` -- that organ enforces
+    ONE of the clause's three kinds (`committed`, already the pre-existing `home_grammar`
+    clause's own enforcement) and cannot enforce the other two at all (`ephemeral` is
+    gitignored, `private` resolves outside the repository), so naming it here would be
+    exactly the decorative locator `test_the_census_is_complete` (this file) and
+    `PROVEN_READS` exist to catch -- a second, unproven claim on one mechanism rather than a
+    second reader of it. Renamed from `test_only_report_first_remains_unasserted` (was
+    testing a stricter invariant this clause's honest addition makes no longer true).
+    """
     unasserted = sorted(name for name, clause in CLAUSES.items()
                         if clause.get("asserted_by") is None)
-    assert unasserted == ["report_first"], (
-        f"expected report_first as the only declared-unasserted clause, got {unasserted}")
+    assert unasserted == ["report_first", "runtime_data_home"], (
+        f"expected report_first and runtime_data_home as the only declared-unasserted "
+        f"clauses, got {unasserted}")
 
 
 # --- load-time readers: one doctored repo, every clause at once ------------------------
