@@ -573,6 +573,23 @@ def test_a_backtick_escaped_quote_does_not_desync_state_past_a_real_concatenatio
     assert decision == "block", reason
 
 
+def test_a_backtick_inside_a_single_quoted_string_is_not_an_escape(tmp_path):
+    """Fourth-round Codex terra review (this redo): PowerShell's backtick is NOT an escape
+    character inside a SINGLE-quoted string at all -- treating `` `' `` there as an escape
+    (as the third round's fix mistakenly did, uniformly) skips the real closing `'`, leaving
+    `state` stuck open and wrongly neutralizing the genuine DOUBLE-quoted concatenation that
+    follows. The reviewer's own reproduction, adapted to this guard's payload shape."""
+    (tmp_path / "OneDrive - Blue Yonder").mkdir()
+
+    decision, reason = guard.decide(
+        _payload("PowerShell", {
+            "command": "Write-Output 'x`'; Get-Item (\"OneDrive\" + \" - Blue Yonder\")",
+        }, cwd=str(tmp_path)),
+        ROOTS)
+
+    assert decision == "block", reason
+
+
 # ==================================== K. FRESH CODEX TERRA REVIEW P1s (this redo, item 6)
 
 def test_a_powershell_single_quoted_concatenation_assembling_the_root_name_is_refused(tmp_path):

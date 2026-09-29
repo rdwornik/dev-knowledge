@@ -352,13 +352,20 @@ def _neutralize_nested_quote_chars(line: str) -> str:
     escaped `"` inside the first string must never toggle `state`, or the real single-quoted
     concatenation after it is misread as nested prose and allowed through). The escaped
     character itself is also blanked -- it is not a real delimiter for `_STRING_CONCAT`
-    either, whichever quote type it happens to be."""
+    either, whichever quote type it happens to be.
+
+    BUT ONLY inside a double-quoted (PowerShell calls this "expandable") string, or bare --
+    fourth-pass Codex terra review, this redo: PowerShell's backtick is NOT an escape
+    character inside a SINGLE-quoted ("literal") string at all; treating it as one there
+    (`Write-Output 'x`'; Remove-Item ("OneDrive" + " - Blue Yonder")`) skips the real closing
+    `'`, leaving `state` stuck open and wrongly neutralizing the genuine DOUBLE-quoted
+    concatenation that follows. `state == "'"` is therefore excluded from escape handling."""
     out = list(line)
     state: str | None = None
     i, n = 0, len(line)
     while i < n:
         ch = line[i]
-        if ch == "`" and i + 1 < n:
+        if ch == "`" and i + 1 < n and state != "'":
             escaped = line[i + 1]
             if escaped in "\"'":
                 out[i + 1] = "\0"
