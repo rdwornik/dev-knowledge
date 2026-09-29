@@ -516,8 +516,27 @@ def build_plan(provider: str, model: str, slug: str, effort: str, prompt: str,
         # non-interactive mode, per `copilot --help`) + `-n <slug>` (the same session-naming
         # discipline as Claude's `-n`, so a listing can name the lane back). `--reasoning-effort`
         # is copilot's own flag name for the same enum `--effort` names elsewhere.
+        #
+        # R15's git/gh denial (lane-scope-guard, WAVE5B-N4): `--deny-tool shell
+        # --disable-builtin-mcps`. LIBRARY-FIRST FIRST, AND IT FAILED (O-12): Copilot CLI
+        # 1.0.88's own `--deny-tool` has NO command-scoped form -- verified live, `--deny-tool
+        # "shell(git)"` is accepted as an argument but never denies anything (`git status` still
+        # ran); only a whole TOOL NAME is enforced (`--deny-tool shell` denies every shell call,
+        # git or not). A per-command scope ("deny git, allow ls") therefore does not exist in
+        # this CLI version to ask for. Denying the whole `shell` tool is the only mechanism this
+        # CLI exposes that is categorically unbypassable through another shell -- there is no
+        # shell left to wrap anything in, which is a STRONGER property than a git-specific
+        # pattern match would have been, not a narrower one. `--disable-builtin-mcps` closes the
+        # other path to the same actions (the bundled `github-mcp-server`'s structured
+        # create_pr/etc. tools, gh's own non-shell equivalent). Verified live 2026-09-27: a
+        # direct `git status` and a `powershell -Command "git status"` wrapper are BOTH refused
+        # ("Permission to run this tool was denied due to the following rules: `shell`"),
+        # command + output recorded in to-browser/SESSION-lane-scope-guard.md. Copilot's role
+        # here is producer only (R8) -- the harness's own git/gh calls (dispatch, integrate,
+        # push) never route through this head, so shell has nothing this lane needs it for.
         argv = ["copilot", "-p", prompt, "--model", model, "--reasoning-effort", eff,
-                "--allow-all-tools", "-n", slug]
+                "--allow-all-tools", "--deny-tool", "shell", "--disable-builtin-mcps",
+                "-n", slug]
         return Plan(argv, "stream")
     if streamed:  # a headless claude, for a substrate that cannot hand over a transcript
         argv = ["claude", "-p", "--output-format", "stream-json", "--verbose", "--model", model,

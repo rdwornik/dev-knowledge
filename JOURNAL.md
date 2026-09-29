@@ -21,6 +21,18 @@
 
 ---
 
+### 2026-09-29 (g) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5-R): the operator's employer folders are refused by a PreToolUse hook, not by prompt text (R15)
+
+**Anchors:** `193e9007`, `ca0bca81`, `e3de7e24`, `f9a94353`, `7f905fe8` -- `worktree-lane-scope-guard-2` (L2, `LANE-5B5R-2-scope-guard-2`, a redo from the preserved tip `ca0bca81`; served `claude-sonnet-5`; repair 1 after the integrator's refusal on items 5 and 6). Merged `--no-ff` in `epic/wave5b-n5-r-int-lane-scope-guard-2`, on top of the L6 stack.
+
+**Did:** `scripts/hooks/scope_guard.py` is wired as a PreToolUse hook in `.claude/settings.json`. It refuses a tool call whose path argument resolves under a root in `ecosystem/excluded-roots.yaml`. It covers Read, Write and Edit, Bash and PowerShell commands, Glob and Grep, Monitor, LSP and MCP. The redo closes the shell gaps the N4 lane left open: case-insensitive Windows env-var forms on any OS, PowerShell string concatenation in both quote styles (with backtick escapes), same-line `set` + expand, 8.3 short names, junction/symlink indirection, and a glob wildcard standing in for the root's name. `DEV_KNOWLEDGE_SCOPE_GUARD_DISABLE=1` is the wedge escape. Copilot lanes run with `--deny-tool shell --disable-builtin-mcps`. Repair 1 pastes a fresh live firing: a seeded root under job tmp refused, then allowed after removal, plus both Copilot commands with their denials. It also commits the full review record (nine rounds, every recoverable P1 verbatim with its fixing sha) and corrects the wiring's HONEST LIMIT comment.
+
+**Result:** an employer-folder path is refused by mechanism, with p95 hook latency 1.25 ms (lane measurement).
+
+**Changes:** `.claude/settings.json`, `ecosystem/excluded-roots.yaml`, `ecosystem/organ-index.md`, `scripts/dispatch.py`, `scripts/hooks/bounded_hook.py`, `scripts/hooks/scope_guard.py`, `tests/test_hooks_no_powershell.py`, `tests/test_scope_guard.py`, one audit. Regenerated `docs/audits/README.md` and `ecosystem/doc-counts.md`.
+
+**Next:** the verdict is CI on this branch, both legs (DONE-ITEM 8 is scored there). `lane-moments-fire-2` starts after this merge.
+
 ### 2026-09-29 (f) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5-R): the handoff probes check seat identity rather than state, count the capability map as it is written, and run on Windows (row [#1124])
 
 **Anchors:** `f30f9dd2`, `fad8a1ae`, `fe6b859d` -- `worktree-lane-handoff-probes` (L6b, `LANE-5B5R-6b-handoff-probes`; served `claude-sonnet-5`; repair 1 after the integrator's refusal on item 4). Merged `--no-ff` in `epic/wave5b-n5-r-int-l6-stack`, on top of L6a.

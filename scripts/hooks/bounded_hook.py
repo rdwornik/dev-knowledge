@@ -177,6 +177,17 @@ POSTURES: tuple[Posture, ...] = (
             "SessionStart surfacing of seat/memory state; admission itself is a separate act."),
     Posture("codespace-regime", "codespace_regime.py\" session-start", "fail-open", False,
             "SessionStart surfacing; cannot refuse."),
+    Posture("scope-guard", "scope_guard.py", "fail-open", False,
+            "R15 PreToolUse frame guard (lane-scope-guard, WAVE5B-N4). A harness-level timeout "
+            "on this hook fails open (the tool call runs) the same as every other unwrapped "
+            "entry here; its own logic is not what a timeout would be skipping -- measured "
+            "p95 1.25ms, p50 0.91ms over 200 warm samples, so a real timeout on this hook "
+            "signals interpreter start trouble, not the guard's own predicate. DECIDED-BY-LANE: "
+            "this entry is added even though scripts/hooks/bounded_hook.py is not in "
+            "lane-scope-guard's named 'Files you own' list, because "
+            "test_bounded_hook.py::test_the_live_settings_pass_the_check already asserts every "
+            ".claude/settings.json PreToolUse registration carries a POSTURES entry -- landing "
+            "the new hook without this one line would red an existing, unrelated test."),
 )
 
 
