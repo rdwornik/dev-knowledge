@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-08
+last_reviewed: 2026-09-29
 status: active
 owner: Rob
 ---
@@ -4877,6 +4877,191 @@ site: .github/workflows/conductor.yml | pattern: strategy
 clauses above (R9, R11's D3–D9, R15, R16, R17) are the load-bearing honesty this entry adds
 over a bare pointer to the transport: they name what to re-check, rather than letting a future
 reader assume the whole ADR landed because its ratification did.
+
+## AO. RATIFICATION 2026-09-26/29 R18–R31 — own-tools v1, the landing probe, `platformdirs`, the handoff ADR, the N4 dispatcher, a clean cut, the leftovers gate, working-first, the cut repair, the reckoning night's pre-authorization, browser boot without `/handoff-verify`, and doing over reading (operator, 2026-09-26/29)
+
+Landed by `lane-ratified-unbuilt` (batch WAVE5B-N5-R, row L7). Transport sources: `to-browser/
+RATIFICATION-2026-09-25.md` v15 (R18–R23 in force, one-line summaries; full text of R18 is
+`-v11-superseded.md`, R19–R20 is `-v12-superseded.md`, R21 is `-v13-superseded.md`, R22 is
+`-v14-superseded.md`, R23 is v15 itself); `to-browser/RATIFICATION-2026-09-28.md` v6 (R24–R28,
+full text in this in-force version); `to-browser/RATIFICATION-2026-09-29.md` (R29–R31, full text
+in this in-force version). R1–R17 are already landed at §AM (R1–R7) and §AN (R1–R17); this lane's
+own check of §AN against `to-cc/ANSWER-handoff-cut-supplement-2026-09-28.md` answer 7 found every
+one of R1–R17 written there in full (recorded in this lane's session file, not repeated here per
+this file's "declare, don't duplicate" rule).
+
+- **R18 — the own-tools proposal ratified in principle, conditional on CC's own revision**
+  (operator, ~2026-09-26 23:20; full text `RATIFICATION-2026-09-25-v11-superseded.md`). Verbatim:
+  "The R16 decision run measured that the harness's lane-side tools are optional in practice:
+  library-first / spine / `why` called by 0 of 25 lanes in N2+N3; the handback organ bypassed by
+  35 of 45 lane sessions that typed the HANDBACK line themselves; every shortcut caught only by
+  the independent re-run at merge. The operator calls this an architectural failure and requires
+  the fix to be systemic, not a workaround. Its proposal v1 (D1–D7) is ratified in principle only.
+  CC revises and re-validates it itself (`to-cc/BATCH-DECISION-OWN-TOOLS-REVISION-2026-09-26.md`)
+  with four added requirements: **Q1** — no orphans by mechanism: nothing reaches main without a
+  declared trigger and a recorded firing, checked at merge. **Q2** — the harness is the only
+  path: handback artifacts can be produced only by organs; the merge refuses anything else. **Q3**
+  — web research in every mechanism decision. **Q4** — a conflict with BUILD-MODE rule 8 is put
+  to the operator, not routed around. The operator ratifies v2 for the build." **Standing
+  correction recorded with it:** "the seat has repeatedly landed mechanisms without triggers and
+  written 'wire before build' as prose; the orphan rule is a mechanism from now on." **Status:**
+  own-tools v2 had not been ratified as of this entry (`to-cc/ANSWER-handoff-cut-supplement-
+  2026-09-28.md` answer 4 lists it among open questions); the anti-orphan gate it requires is R31
+  item 4's own citation of "once own-tools v2 is ratified" as a precondition still pending.
+- **R19 — the landing probe may act on its own throwaway scope** (operator, ~2026-09-27 14:40;
+  full text `RATIFICATION-2026-09-25-v12-superseded.md`). Verbatim: "WAVE5B-N4 lane-landing-probe
+  (row L0 of the ratified CI/OS ADR, R11 D5) is authorized to do exactly what its contract names,
+  without a further operator act: create a temporary repository ruleset limited to the
+  `automation/landing-probe-**` branch pattern; create throwaway branches on that pattern; run the
+  three probe cases and the full merge → JOURNAL anchor → receipt commit → push cycle there; read
+  the rulesets before and after; delete that ruleset and those branches before handback, with the
+  rulesets list returning to its prior state. The bypass actor used in the probe is the operator's
+  own account (`rdwornik`). Nothing outside that pattern is touched; main's protection is decided
+  later by lane-arm-ci (L6)." **Status:** scoped to a specific N4 lane's already-run probe;
+  arm-ci itself is sequenced to N5 per `to-browser/ANSWER-handoff-cut-supplement-2026-09-28.md`
+  answer 5 item 6, after a baseline review, and had not run as of this entry.
+- **R20 — `platformdirs` may be declared as a direct dependency** (operator, ~2026-09-27 14:45;
+  full text `RATIFICATION-2026-09-25-v12-superseded.md`). Verbatim: "The runtime-data-home
+  decision (a mix; per-user state outside the repository for the private class) needs
+  `platformdirs`, which is already locked transitively. The repository's own library-first gate
+  (deptry DEP003) rightly refuses importing a transitive dependency. Declaring it directly in
+  `pyproject.toml` (and the lock) is approved. The runtime-data-home work returns as a new lane in
+  WAVE5B-N5 on that basis." **Status:** the runtime-data-home redo this ruling authorizes is row
+  L3 of this same batch (WAVE5B-N5-R); not built by this lane.
+- **R21 — the handoff system ADR** (operator, ~2026-09-27; full text
+  `RATIFICATION-2026-09-25-v13-superseded.md`). Verbatim: "1. **Part A** is ratified and runs
+  before this window's cut, as one lane appended to WAVE5B-N4 (`lane-handoff-min`, its Done-when
+  verbatim from the proposal). 2. **Part B:** all five lanes (B1 moments, B2 executor, B3 boot
+  closure, B4 version V4, B5 measurement) run in WAVE5B-N5; B1 first. 3. **Answer-free amendment:**
+  yes — a bundle may carry cut-time values when each is re-derived live at boot and never accepted
+  as a probe answer. 4. **Boot-closure gate:** it refuses, with a declared and logged override. 5.
+  **The 2026-10-05 fate expiry:** re-date `/handoff` and `/handoff-verify` to B1's landing if B1
+  cannot land by then. 6. **Boot-cost instrument:** turns counted by the seat and confirmed by the
+  operator, with elapsed time and clarifications recorded beside them. 7. **ai-council:** one
+  re-run of this debate with `--skip-health-check` (≈ $0.2) is authorized, to compare with the
+  subagent debate." **Status:** Part A landed in N4 (re-dispatched as `lane-handoff-min-2` per
+  R23 below); Part B had not started as of this entry — `to-cc/ANSWER-handoff-cut-supplement-
+  2026-09-28.md` answer 5 sequences B1 before 2026-10-05.
+- **R22 — the WAVE5B-N4 dispatcher runs on the Sonnet 5 id; the registry is aligned** (operator,
+  ~2026-09-27; full text `RATIFICATION-2026-09-25-v14-superseded.md`). Verbatim: "The seat
+  launcher refused to start the N4 dispatcher because its order names `claude-sonnet-5` while
+  `ecosystem/provider-registry.yaml` pins the dispatcher role to `claude-opus-5-5` 'only, no
+  fallback' — the double check working as designed (open-loops audit, O18). The operator's
+  ruling: **The order is binding:** the dispatcher runs on the Sonnet 5 id. **Evidence:** the
+  dispatcher's launch logic is code (`dispatch.py queue`). The N4 dispatcher ran all day on Sonnet
+  without a routing failure. The one Opus dispatcher of N3 cost ~7× its Sonnet estimate. **The
+  launch records this ruling as the override;** the registry row for the dispatcher role is
+  changed to the Sonnet 5 id in the next batch so the two sources agree again." **Landed by this
+  entry's own lane:** `ecosystem/provider-registry.yaml`'s new `dispatcher:` row (`provider:
+  anthropic`, `model: claude-sonnet-5`, evidence this section) — NOT a `roles:` entry; the naming
+  in R22's own text ("pins the dispatcher role") described the state at the time of the refusal,
+  which this file's `roles:` collection has since generalized to `roles.orchestrate` (Opus-only,
+  `rerankable: false`, unmoved by this entry). `tests/test_provider_registry_dispatcher.py`
+  (new, this lane) is the RED-first proof.
+  ```landed
+  site: ecosystem/provider-registry.yaml | pattern: ^dispatcher:
+  site: tests/test_provider_registry_dispatcher.py | pattern: def test_the_live_registry_names_the_dispatchers_model
+  ```
+- **R23 — re-dispatch the handoff minimum and the landing probe's record; the window's handoff
+  waits for lane 17** (operator; full text `RATIFICATION-2026-09-25.md` v15, this in-force
+  version). Verbatim: "Lane 17 (the handoff ADR's part A) FAILED on two defects that sit outside
+  Part A's Owns list: `gen_handoff.py`'s new import breaks the `assemble_paste` test fixture; a
+  transport prefix has no registry row. The integrator rightly would not author design choices
+  outside the contract, and put to the operator whether the window's handoff still waits for lane
+  17. The operator's ruling: **Yes, the handoff waits.** Lane 17 is re-dispatched as
+  `lane-handoff-min-2` from its kept branch. Its Owns is widened to exactly those two places: the
+  fixture of `tests/test_assemble_paste.py` and one row in `ecosystem/transport-registry.yaml`.
+  **The landing probe is re-dispatched as `lane-landing-probe-2`** only to replace its false Codex
+  claim with a correctly scoped record. Its measured results stand, verified by the integrator.
+  **`lane-arm-ci` (L6) is not launched in N4.** Arming required checks on main moves to N5, with
+  its own review of the red baseline." **Status:** N4-scoped re-dispatch; both re-dispatched lanes
+  ran and closed within N4, per `to-cc/AMEND-BATCH-WAVE5B-N4-REDISPATCH-2026-09-28.md`.
+- **R24 — a clean origin at the cut** (operator, 2026-09-28; full text
+  `RATIFICATION-2026-09-28.md` v6, this in-force version). Verbatim: "Branches other than `main`
+  and live-mechanism branches are removed. The protected `claude/conformance-*` branches stay
+  under their standing rule. Unmerged tips were preserved as seven `archive/worktree-lane-*`
+  tags." **Status:** executed at the 2026-09-28 handoff cut; the seven tags are R25's and R29's
+  concern below.
+- **R25 — leaving nothing behind is a gate** (operator, 2026-09-28; full text
+  `RATIFICATION-2026-09-28.md` v6). Verbatim: "leaving nothing behind is a gate at batch close and
+  at the cut. It is N5's first lane. `archive/*` tags join its allowed set with an owner and an
+  expiry. A tag is deleted when its lane's redo merges, or when the operator drops it." **Status:**
+  built as row L1 of this same batch (WAVE5B-N5-R, `to-cc/BATCH-LEFTOVERS-GATE-2026-09-28.md`);
+  not built by this lane. No tag is deleted or moved by this entry (R29).
+- **R26 — completing this window's cut** (operator, 2026-09-28; full text
+  `RATIFICATION-2026-09-28.md` v6). Verbatim: "`/handoff-verify` blocked onboarding: 35 PASS, 3
+  FAIL. 1. **P13** — one backlog row per undisposed decision (19), each naming its decision file:
+  'carried to WAVE5B-N5 planning — the next seat decides run/refuse'. Each cites `to-browser/
+  DIGEST-OPEN-WORK-MASTER-2026-09-28.md`. 2. **BD-manifest** — a one-off re-stamp of the manifest
+  from the filled files, with the reason in the commit message. The circularity fix is a row for
+  handoff part B. 3. **BD-seats** — waived for this cut. The reason and the live `claude agents
+  --json` output go in the verify receipt. The identity-and-liveness fix is a row for part B. 4.
+  **`claude/conformance-*`** stay under their standing rule. Their absorption is an N5 row."
+  **Status:** executed at the 2026-09-28 cut; the part-B rows and `claude/conformance-*`
+  absorption are separately tracked, not this lane's Owns.
+- **R27 — working first, optimising after** (operator, 2026-09-28; full text
+  `RATIFICATION-2026-09-28.md` v6). Verbatim: "A design, lane or tool is judged first by whether
+  it works and by the quality of what it produces. Cost, time and size are weighed only after it
+  works. No option is rejected, ranked or cut on cost, time or size before that. This overrides
+  the 'Maister-style pipeline' line in the 2026-09-28 supplement answer 3. Report 31's cost
+  figures are not a reason to reject a process in code. Home: STANDING_RULINGS and the `/decide`
+  checks." **Landed by this entry:** this ruling's own stated home.
+- **R28 — finishing this cut when the rows commit broke the ship-gate** (operator, 2026-09-28
+  ~23:55; full text `RATIFICATION-2026-09-28.md` v6). Verbatim: "The fresh cut from `main`
+  1d647097 was refused. The ship-gate shows 19 hard-fail organs, up from 0 before the P13 rows
+  commit. The cut session decides by this rule, and does not come back to ask: **(a)** If the
+  cause is one mechanical defect in the new rows — the same missing or wrong field in each — fix
+  it in one commit, confirm the ship-gate is back to 0 hard-fails, and cut. **(b)** Otherwise,
+  `git revert` the rows commit. A revert is a new commit; nothing is deleted from history. Confirm
+  the ship-gate is back to 0 hard-fails. Then waive P13 for this cut — the 19 decisions listed in
+  the verify receipt, filed properly as N5's first rows — and cut. In both cases BD-manifest and
+  BD-seats are handled as R26 says. Nothing else changes." **Status:** a completed-cut ruling;
+  which branch ((a) or (b)) fired is recorded in `to-browser/SESSION-handoff-cut-2026-09-28.md`,
+  not repeated here.
+- **R29 — the reckoning night's pre-authorization — batch-scoped (WAVE5B-N5-R)** (operator: "R29
+  tak + b", 2026-09-29 ~02:00; full text `RATIFICATION-2026-09-29.md`, this in-force version).
+  Verbatim: "CC may, for batch WAVE5B-N5-R only: archive backlog rows classed done-with-evidence,
+  duplicate or obsolete — archive, reversible; file rows from the reading ledger; write the
+  ratified rulings into STANDING_RULINGS; amend CLAUDE.md where a ratified ruling already requires
+  it; **(b)** release the three 2026-09-26 claim markers `CLAIMED-44e1d9e1`, `CLAIMED-7552b559` and
+  `CLAIMED-dc00b713` once each holder is shown dead, through `claim.py release`, with the evidence
+  recorded. Anything else that closes, deletes or decides stays the operator's. Option (a) —
+  marking superseded transport versions closed — was not taken. **Tags.** None is deleted:
+  deleting a tag is the operator's. His words, quoted in the outgoing seat's review round 1:
+  'mnóstwo starych tagów, nie wiadomo po co — nie może to być zapomniane'. Tonight's map inventories
+  every tag on origin; the result goes into R25's allowed set (owner and expiry) and to him as one
+  question in the morning." **Landed by this entry** (the "write the ratified rulings into
+  STANDING_RULINGS" clause, exercised by this whole §AO); item (b)'s marker releases and the tag
+  inventory are the integrator's and Phase 2's, not this lane's — see this lane's session file for
+  what it did and did not do under this ruling.
+- **R30 — the browser seat boots without `/handoff-verify` — batch-scoped by its own subject (the
+  outgoing browser seat's boot for this window)** (operator: "R30 tak", 2026-09-29 ~02:00; full
+  text `RATIFICATION-2026-09-29.md`). Verbatim: "boot without `/handoff-verify`, and do not ask him
+  for an evidence block. The cut session reported the re-cut bundle 'passes all 37 probes'. Keep
+  only the ROLE PIN check." (`to-browser/NEW-ARCHITECT-PLAN-2026-09-29-v3-superseded.md`, "Rulings
+  for your boot"). **Status:** governs the browser seat's own boot procedure, not this lane's
+  in-repo build; recorded for completeness of the R18–R31 set.
+- **R31 — the reckoning night repairs, not only reads — batch-scoped (WAVE5B-N5-R)** (operator,
+  2026-09-29 ~02:00; full text `RATIFICATION-2026-09-29.md`). Verbatim: "More doing, less reading:
+  reading runs in the background, the night repairs. Git is the safety net — everything goes
+  through the integrator with the CI verdict and can be reverted. Besides R29's cleanup, these
+  items — already approved, with known causes — run tonight as lanes through the integrator, in
+  parallel with the reading ledger: 1. the R25 leftovers gate (`to-cc/BATCH-LEFTOVERS-GATE-2026-
+  09-28.md`); 2. the FAILED lanes' redos from their `archive/worktree-lane-*` tags, with the fixes
+  their REFUSED files name: scope-guard (R15), runtime-data-home (R20), transport-rclone,
+  moments-fire; 3. the known handoff defects: the manifest stamped before the fills; BD-seats
+  compared as text; the capability counter '0/20 WORKS' contradicting the capability map, with a
+  probe that checks the generator's own number; `handoff_probes` skipping eight rows on Windows;
+  4. R18–R30 into STANDING_RULINGS; the registry's dispatcher row (R22); the 'Layer 2 never
+  executes' amendment in CLAUDE.md (R11(3))." **Landed by this entry and this lane:** item 4 in
+  full (this §AO, the registry's `dispatcher:` row, and `CLAUDE.md` §5 rule 4's amended wording,
+  below); items 1–3 are rows L1–L6 of this same batch, not this lane's Owns.
+
+**Expiry:** none of R18–R31 expire on their own. R18's anti-orphan mechanism, R19's already-run
+probe, R20's redo, R21 Part B, R25's L1 build, R26's part-B rows, and R31 items 1–3 are each named
+above as NOT built by this entry — the load-bearing honesty this section keeps, on §AN's own
+precedent, is naming what still needs checking rather than letting a future reader assume the
+whole of R18–R31 landed in code because this entry landed in prose.
 
 ## Editing note (read before adding an entry)
 

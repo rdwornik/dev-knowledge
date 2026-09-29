@@ -56,17 +56,23 @@ def test_registry_has_the_three_declared_collections_and_the_rate_card():
     is why the collection assertions below still name three and the card is asserted apart from
     them rather than folded in.
 
+    `dispatcher:` ARRIVED WITH R22 (`lane-ratified-unbuilt`, WAVE5B-N5-R, 2026-09-29) AND IS THE
+    SAME SHAPE OF NON-COLLECTION AS `rate_card:` — a single pin (the model the dispatcher session
+    runs on), not an `id -> field map`, and deliberately not folded into `roles:` (see
+    `DispatcherPin`'s docstring for why the two vocabularies stay separate).
+
     The equality is kept rather than relaxed to a superset — an exact set is what makes a new
     top-level key arriving unannounced a RED instead of silently inert data, which is the same
-    posture `extra="forbid"` takes one level down. This test REDdened on `rate_card`'s arrival
-    exactly as designed; updating it is the announcement.
+    posture `extra="forbid"` takes one level down. This test REDdened on `rate_card`'s arrival,
+    and on `dispatcher`'s, exactly as designed; updating it is the announcement.
     """
     data = preg.load_registry()
-    assert set(data) == {"providers", "models", "roles", "rate_card"}
+    assert set(data) == {"providers", "models", "roles", "rate_card", "dispatcher"}
     assert all(isinstance(v, dict) for v in data["providers"].values())
     assert all(isinstance(v, dict) for v in data["models"].values())
     assert all(isinstance(v, dict) for v in data["roles"].values())
     assert isinstance(data["rate_card"], dict)
+    assert isinstance(data["dispatcher"], dict)
 
 
 def test_a_price_is_never_a_bare_number_without_its_card(tmp_path):
@@ -237,7 +243,12 @@ def tree(tmp_path):
                 # verdict cannot silently leave this fixture behind.
                 "protocols/AI_COUNCIL_PROCESS.md",
                 *sorted({str(r["evidence"]) for r in preg.role_admissions().values()
-                         if r.get("evidence")})):
+                         if r.get("evidence")}
+                        # The dispatcher pin's own evidence (R22) — derived the same way, so a
+                        # future re-pin cannot silently leave this fixture behind either.
+                        | ({str((preg.load_registry().get("dispatcher") or {})["evidence"])}
+                           if (preg.load_registry().get("dispatcher") or {}).get("evidence")
+                           else set()))):
         dest = root / rel
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(_REPO_ROOT / rel, dest)
@@ -497,3 +508,27 @@ def test_a_verdict_citing_a_missing_artifact_is_caught(tree):
         (tree / rel).unlink()
     findings = cpr.run(tree)
     assert any(f.startswith("role_admission ") for f in findings), findings
+
+
+@pytest.mark.parametrize("target", [".", "docs", "docs/audits"])
+def test_dispatcher_evidence_naming_a_directory_is_caught(tree, monkeypatch, target):
+    """Same class of gap Codex terra found in `check_role_admission_evidence` round 2
+    (2026-08-23), re-fired against `check_dispatcher_evidence` (Codex terra HIGH,
+    `lane-ratified-unbuilt`, 2026-09-29): a directory resolves in-tree and exists, while
+    citing no measurement at all.
+    """
+    (tree / "docs" / "audits").mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(cpr._preg, "load_registry", lambda *a, **k: {
+        "dispatcher": {"provider": "anthropic", "model": "claude-sonnet-5",
+                        "decided_by": "operator", "decided_on": "2026-09-27",
+                        "evidence": target},
+    })
+    findings = cpr.check_dispatcher_evidence(tree)
+    assert any("is not a file" in f for f in findings), findings
+
+
+def test_a_dispatcher_evidence_citing_a_missing_artifact_is_caught(tree):
+    rel = preg.load_registry()["dispatcher"]["evidence"]
+    (tree / rel).unlink()
+    findings = cpr.run(tree)
+    assert any(f.startswith("dispatcher:") for f in findings), findings
