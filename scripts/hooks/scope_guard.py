@@ -537,9 +537,14 @@ def excluded_root_hit(path: Path, roots: list[str]) -> str | None:
 
 
 #: The only OS convention under which the excluded root can be a direct child -- a
-#: user-profile/home directory (`Users` on Windows, `home` on POSIX). A bare wildcard
-#: sitting exactly one level below one of these is the shape a real `OneDrive - Blue Yonder`
-#: folder would occupy; anywhere else it is not a plausible stand-in for it.
+#: user-profile/home directory (`Users` on Windows, `home` on POSIX). A SINGLE-level bare
+#: wildcard (`*`, `?`) sitting exactly TWO components below one of these -- one literal
+#: (the username) in between -- is the shape a real `OneDrive - Blue Yonder` folder would
+#: occupy (`Users\\<name>\\*\\...`). A RECURSIVE bare wildcard (`**`, shell/PowerShell
+#: globstar) needs only ONE component below one of these: unlike a single `*`, `**` ranges
+#: over zero-OR-MORE levels below its own anchor, so `/home/**/secret.txt` can span exactly
+#: the username-then-root distance too (Codex terra review, this lane, Critical #1 --
+#: `test_a_recursive_globstar_directly_under_a_home_parent_is_refused`).
 _BARE_WILDCARD_HOME_PARENTS = frozenset({"users", "home"})
 
 #: A path component made ENTIRELY of glob metacharacters -- no literal text at all -- is the
@@ -553,7 +558,18 @@ def _bare_wildcard_hit(root_cf: str, parts_cf: list[str]) -> bool:
         if not any(ch in part for ch in "*?["):
             continue
         if _PURE_WILDCARD.fullmatch(part):
-            if i >= 2 and parts_cf[i - 2] in _BARE_WILDCARD_HOME_PARENTS:
+            recursive = "**" in part
+            anchor = i - 1 if recursive else i - 2
+            if anchor >= 0 and parts_cf[anchor] in _BARE_WILDCARD_HOME_PARENTS:
+                return True
+            # `excluded-roots.yaml`'s own contract: a bare root name matches "wherever it is
+            # mounted -- a different drive letter, a fresh profile" -- so a wildcard sitting
+            # right at a drive root / filesystem root (no home marker to anchor on at all,
+            # `D:\*\secret.txt`) is the same stand-in risk one level earlier (Codex terra
+            # review, this lane, Critical #2 --
+            # `test_a_bare_wildcard_directly_under_a_drive_root_is_refused`). A wildcard
+            # further nested than this (every witnessed false positive) is not.
+            if i <= 1:
                 return True
             continue
         if fnmatch.fnmatchcase(root_cf, part):

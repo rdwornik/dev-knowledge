@@ -805,6 +805,36 @@ def test_a_quoted_glob_token_inside_a_powershell_here_string_is_not_refused(tmp_
     assert decision == "allow", reason
 
 
+def test_a_recursive_globstar_directly_under_a_home_parent_is_refused(tmp_path):
+    """Codex terra review (this lane), Critical #1: a recursive `**` ranges over ZERO-OR-MORE
+    levels below its own anchor, unlike a single `*` which replaces exactly one level -- so
+    `/home/**/secret.txt` (or its Windows shape) can span the username-then-root distance
+    too, landing on a real `OneDrive - Blue Yonder` folder despite the `**` sitting only ONE
+    component below `home`/`Users`, not two."""
+    zone_dir = tmp_path / "home" / "some-user" / "OneDrive - Blue Yonder"
+    zone_dir.mkdir(parents=True)
+
+    decision, reason = guard.decide(
+        _payload("Bash", {"command": "cat home/**/secret.txt"}, cwd=str(tmp_path)),
+        ROOTS)
+
+    assert decision == "block", reason
+
+
+def test_a_bare_wildcard_directly_under_a_drive_root_is_refused(tmp_path):
+    """Codex terra review (this lane), Critical #2: `ecosystem/excluded-roots.yaml`'s own
+    contract is that a bare root name matches wherever it is mounted -- "a different drive
+    letter, a fresh profile" -- so a bare wildcard sitting right at a drive/filesystem root,
+    with no `Users`/`home` ancestor to anchor on at all, is the same stand-in risk one level
+    earlier than the `Users\\<name>\\*` shape."""
+    decision, reason = guard.decide(
+        _payload("PowerShell", {"command": r'Get-ChildItem "D:\*\secret.txt"'},
+                  cwd=str(tmp_path)),
+        ROOTS)
+
+    assert decision == "block", reason
+
+
 def test_a_grep_regex_with_bare_wildcards_and_caret_anchors_is_not_refused(tmp_path):
     """Fifth witness (DECIDED-BY-LANE, not a Done-when item -- contract's own words: "a test
     for it is yours to decide"; sourced from `SESSION-gen-wave5b-n5-record-2026-09-29.md`,
