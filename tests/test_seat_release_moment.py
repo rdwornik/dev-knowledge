@@ -292,3 +292,21 @@ def test_ci_manifest_step_skips_pre_manifest_era_bundles(dry_bundle, tmp_path):
     result = _run_ci_manifest_step(tmp_path)
     assert result.returncode == 0, result.stdout + result.stderr
     assert "checked 0 manifest-era bundle" in result.stdout
+
+
+@requires_bash
+def test_ci_manifest_step_fails_an_in_era_bundle_that_deleted_its_own_receipt(tmp_path):
+    """Codex terra CRITICAL (2026-09-29, docs/audits/2026-09-29-codex-seat-release-b1.md): the
+    original step read era off `HANDOFF_RECEIPT.json` -- the exact artifact BD-manifest verifies
+    -- so a post-cutoff bundle could evade the whole check by deleting/emptying its own receipt,
+    the same way `test_ci_manifest_step_skips_pre_manifest_era_bundles` above shows a REAL
+    pre-cutoff bundle is (correctly) exempt. Era now comes from the bundle's own directory-name
+    date, never from the receipt: a bundle dated on/after the manifest-feature cutoff with no
+    receipt at all is a FAIL, not a skip."""
+    dest = tmp_path / "docs" / "handoffs" / "2026-09-29-evasion-attempt"
+    dest.mkdir(parents=True)
+    (dest / "HANDOFF_BOOT.md").write_text("no receipt at all, dated in-era", encoding="utf-8")
+    result = _run_ci_manifest_step(tmp_path)
+    assert result.returncode != 0, result.stdout + result.stderr
+    assert dest.name in result.stdout
+    assert "checked 1 manifest-era bundle" in result.stdout

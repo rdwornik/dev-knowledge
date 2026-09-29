@@ -70,9 +70,12 @@ sha-mismatched published file. Together with `/handoff`'s `notes`/`bundle` organ
 are the seat-release transaction's four legs — see `ecosystem/harness.yaml`'s `seat-release`
 moment and `tests/test_seat_release_moment.py`. `.github/workflows/conductor.yml`'s
 `handoff-manifest` job runs the same `_rule_bd_manifest` re-hash server-side over every
-COMMITTED bundle under `docs/handoffs/**` that carries a post-lane-handoff-min manifest (a
-pre-manifest-era bundle is exempt, not failed — the same era-boundary posture as the pre-v6
-exemption above) and reds the run on a tampered one.
+COMMITTED bundle under `docs/handoffs/**` dated on or after 2026-09-28 (the manifest feature's
+ship date, read from the bundle's own directory name — a pre-cutoff bundle is exempt, not
+failed, the same era-boundary posture as the pre-v6 exemption above) and reds the run on a
+tampered one. Era is read from the bundle's name, never from `HANDOFF_RECEIPT.json` itself
+(Codex terra CRITICAL, 2026-09-29): an in-era bundle with a missing, unreadable or empty
+manifest is a FAIL, not a skip, so a bundle cannot dodge the check by deleting its own receipt.
 
 ## Usage
 

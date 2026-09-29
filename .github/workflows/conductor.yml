@@ -689,25 +689,45 @@ jobs:
         run: |
           set +e
           uv run --locked python -c "
+          import json
+          import re
           import sys
           from pathlib import Path
           sys.path.insert(0, 'scripts')
           import verify_handoff_probes as vhp
           root = Path('docs/handoffs')
+          # The manifest feature shipped 2026-09-28 (docs/handoffs/2026-09-28-dev-knowledge-architect
+          # is the one committed bundle that predates this job and already carries a manifest).
+          # Era comes from the bundle's OWN directory-name date, never from the receipt the check
+          # verifies (Codex terra CRITICAL, 2026-09-29, docs/audits/2026-09-29-codex-seat-release-b1.md
+          # -- the prior receipt-presence gate let a post-cutoff bundle dodge the whole check by
+          # deleting/emptying its own manifest). A name with no parseable date is treated as in-era
+          # too: fail-closed, not a second way to dodge the cutoff.
+          CUTOFF = '2026-09-28'
+          date_re = re.compile(r'^(\d{4}-\d{2}-\d{2})-')
           bad = []
           checked = 0
           for bundle in sorted(p for p in root.iterdir() if p.is_dir()):
+              m = date_re.match(bundle.name)
+              if m and m.group(1) < CUTOFF:
+                  continue  # pre-manifest-era bundle, by its own date -- exempt, not failed
+              checked += 1
               receipt = bundle / vhp.RECEIPT_FILE
               if not receipt.is_file():
+                  bad.append(bundle.name)
+                  print(f'  fail  {bundle.name}  in-era bundle carries no {vhp.RECEIPT_FILE}')
                   continue
               try:
-                  import json
-                  files = (json.loads(receipt.read_text(encoding='utf-8')).get('manifest') or {}).get('files')
-              except (OSError, ValueError):
-                  files = None
+                  manifest = json.loads(receipt.read_text(encoding='utf-8')).get('manifest') or {}
+                  files = manifest.get('files')
+              except (OSError, ValueError) as exc:
+                  bad.append(bundle.name)
+                  print(f'  fail  {bundle.name}  {vhp.RECEIPT_FILE} unreadable: {exc}')
+                  continue
               if not files:
-                  continue  # pre-manifest-era bundle -- exempt, not failed
-              checked += 1
+                  bad.append(bundle.name)
+                  print(f'  fail  {bundle.name}  in-era bundle carries an empty/absent manifest.files')
+                  continue
               result = vhp._rule_bd_manifest(bundle)
               print(f'{result.status:>6}  {bundle.name}  {result.detail}')
               if result.status == 'fail':
