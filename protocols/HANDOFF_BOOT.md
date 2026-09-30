@@ -155,7 +155,7 @@ The verification split, bidirectional adjudication, and plan-review contract bel
 
 Eight facts a fresh seat needs before writing a lane contract (`HANDOFF_PROCESS.md` §1 names the
 seats; each order is a template, item 0). Each fact points to its source — pull the live text via
-CC, never restate it from memory.
+CC instead of restating it from memory.
 
 **A lane starts through the launcher; the integrator and dispatcher do not.** `uv run --locked
 python scripts/dispatch.py launch --slug <slug> --model <id> --effort <effort> --batch <BATCH>
@@ -163,7 +163,7 @@ python scripts/dispatch.py launch --slug <slug> --model <id> --effort <effort> -
 moment always runs `no-live-integrator` (`ecosystem/harness.yaml`) — `launch` is a LANE's path
 only; calling it for a batch's own first integrator deadlocks. The integrator and dispatcher
 instead start by the operator pasting their filled order template into a NEW session — that
-paste **is** the batch GO (each template's `authorized-by:` line), never `launch`. **Model**: the
+paste **is** the batch GO (each template's `authorized-by:` line), not `launch`. **Model**: the
 order's cell, checked against `ecosystem/provider-registry.yaml` roles. **Effort**: the order
 alone — the registry and `~/.claude/ROUTING.md` declare none.
 
@@ -175,12 +175,12 @@ dispatcher` next; a lane is last — and refused if no integrator is yet live.
 dry-runs exit 0, `queue --dry-run` exits 0, no bare model alias or unfilled placeholder. No
 launch before GREEN.
 
-**The queue is one-shot, never `--watch`** (R34.1). `dispatch.py queue --batch <BATCH> --cap <M>
+**The queue is one-shot passes, not `--watch`** (R34.1). `dispatch.py queue --batch <BATCH> --cap <M>
 --floor-mb <N>` fires from two drivers only — the dispatcher's recurring wake-up, and the
 integrator after every merge and refusal. Defaults: local cap 4, floor 3072 MB
 (`scripts/dispatch.py`); below either it HOLDs.
 
-**What a lane does at its end.** It commits-and-STOPs — it never self-merges. Purity (`git log
+**What a lane does at its end.** It commits-and-STOPs, without self-merging. Purity (`git log
 origin/main..HEAD`), its own tests, `audit.py health`, then one
 `to-browser/SESSION-<slug>.md` ending `HANDBACK <branch> @ <sha> <code|docs>`.
 
@@ -190,11 +190,11 @@ diff, the gates, `merge_receipt.py close`, then fast-forward `main` and push —
 failed lane gets `to-browser/REFUSED-<slug>.md`; twice-refused is `FAILED`.
 
 **Close and teardown.** Close: the connection walk, the cost line, the digest. Teardown: `claude
-stop` + worktree/branch/claim removal, verified by `no_leftovers.py verify` — never `claude rm`.
+stop` + worktree/branch/claim removal, verified by `no_leftovers.py verify`, not `claude rm`.
 
 **Claim markers make check-then-create atomic** (`claim.py claim <n>`; exit 3 = already in
 flight). A dead holder's marker is released only through `claim.py release <n>`, once its job
-record shows it dead — never by hand.
+record shows it dead, not by hand.
 
 Full text: `templates/dispatcher-order-template.md`, `templates/integrator-order-template.md`,
 `templates/lane-contract-template.md`.
