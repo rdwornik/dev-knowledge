@@ -21,6 +21,23 @@
 
 ---
 
+### 2026-09-30 (d) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5 cycle-6): every harness.yaml fate dated 2026-10-05 has one disposition, so check_organ_truth does not FAIL on 2026-10-06 (R33.3)
+
+**Anchors:** `ab321a11`, `096083b7`, `9efa350d`, `e2f4e34f` -- `worktree-lane-fates-due` (N5-4, `LANE-5B5-4-lane-fates-due`; served `claude-sonnet-5`). Merged `--no-ff` in `epic/wave5b-n5-int-lane-fates-due` from `a2443799`.
+
+**Did:**
+- `ecosystem/harness.yaml` `fates:`: the 51 entries dated 2026-10-05 (none in `fates:` is dated 2026-10-04) now carry one disposition each -- 50 re-dated to 2026-10-19 with their reasons kept, and `scripts/desired_state_loader.py` turned into a `retire_candidate` for the operator. Nothing is retired. The 20 `moments:` entries with the same dates are untouched; `check_organ_truth` does not read them.
+- `tests/test_organ_truth.py`: one pinned date follows the re-date; the shape assertions are unchanged.
+- Review: `agy` as the recorded SUBSTITUTION for Codex terra (usage limit), 0/0/0/0, landed as `docs/audits/2026-09-30-codex-lane-fates-due.md`.
+
+**Result:** as of 2026-10-06, `check_organ_truth` FAILs on `f422ccf7` (43 organs past due) and does not FAIL on this lane's tip (the lane's `_today()` witness). Four re-dated organs are wired through surfaces `declared_callers()` cannot see (SessionStart hooks, subprocess calls, the check registry) -- a ROWS-OWED line for the digest.
+
+**Changes:** `ecosystem/harness.yaml`, `tests/test_organ_truth.py`, one audit. Regenerated `docs/audits/README.md`. `logs/MERGE-RECEIPTS.jsonl` carries N5-3's receipt row (`a2443799`). `ecosystem/doc-counts.md` unchanged (`8620 collected`).
+
+**Next:**
+- CI on this branch, both legs, is the verdict.
+- The operator rules on the retire-candidate before 2026-10-19; the 50 re-dated fates come due again that day.
+
 ### 2026-09-30 (c) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5 cycle-5): HANDOFF_BOOT teaches how a batch is dispatched and carries R30 standing; ADR-128 records the handoff system's second pass ([#1037])
 
 **Anchors:** `511073f9`, `f7f4f051`, `94efde63`, `b4588b40` -- `worktree-lane-handoff-boot-dispatch` (N5-3, `LANE-5B5-3-lane-handoff-boot-dispatch`, after one refusal, its repair and one resume; served `claude-sonnet-5`). Merged `--no-ff` in `epic/wave5b-n5-int-lane-handoff-boot-dispatch` from `f422ccf7`.

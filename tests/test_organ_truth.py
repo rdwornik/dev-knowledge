@@ -534,11 +534,17 @@ def test_every_organ_wiring_fate_stays_manual_until_not_moment_or_retire():
     flipping to either shape at the same path is the regression this pins against
     (Codex terra review, HIGH, docs/audits/2026-09-26-codex-lane-organ-wirings.md:
     `test_every_organ_wiring_fate_has_exactly_one_recognised_shape` alone would still
-    pass if any of these four became `moment:` or `retire_candidate:`)."""
+    pass if any of these four became `moment:` or `retire_candidate:`).
+
+    DECIDED-BY-LANE (LANE-5B5-4-lane-fates-due): the date re-dated 2026-10-05 ->
+    2026-10-19 with the rest of that lane's 50 re-dated fates (R33.3); only the SHAPE
+    is this test's own concern, per its docstring above -- the date moves again the
+    next time this fate comes due, and is not itself pinned by choice, only by what
+    `str(row.get("manual_until"))` naturally reads until the next re-date."""
     fates = _live_fates()
     for path in _ORGAN_WIRING_FATES:
         row = fates[path]
-        assert str(row.get("manual_until")) == "2026-10-05", (path, row)
+        assert str(row.get("manual_until")) == "2026-10-19", (path, row)
         assert "retire_candidate" not in row, (path, row)
         assert "moment" not in row, (path, row)
 
