@@ -12,6 +12,21 @@ cross-repo handoff (read-only on the target — ADR-36/41).
 **Source of truth:** `protocols/HANDOFF_PROCESS.md` (v7, canonical). This skill is a dispatch
 summary, not a substitute. Where they disagree, the spec wins — fix the divergence.
 
+## `moment:seat-release` — the release transaction (LANE-5B5-2, B1)
+
+Generation (this command) is backed by `moment:seat-release` in `ecosystem/harness.yaml`
+(`doit -f scripts/dodo.py moment:seat-release`, run by hand over `HARNESS_SEAT_RELEASE_BUNDLE`
+— and, for the `copy` organ, `HARNESS_SEAT_RELEASE_COPY`). It is a single transaction: it
+refuses to publish and names whichever is missing — outgoing notes (`SUPPLEMENT.md`, an
+architect-mode bundle), the generated bundle (`HANDOFF_BOOT.md`), the cut manifest, or the
+transport copy — never a silent partial release. The `notes` and `bundle` organs are this
+command's own leg; `manifest` and `copy` are `/handoff-verify`'s (below). This is the
+mechanism PROPOSAL-ADR-HANDOFF-SYSTEM-2026-09-26.md Part 2 rule 1 names; the trigger stays an
+operator act (no machine can observe a claude.ai chat ending) — only the four checks are
+mechanised. `tests/test_seat_release_moment.py` is the RED-first witness and the acceptance
+suite; the two fates rows this command and `/handoff-verify` used to carry in `harness.yaml`
+are retired accordingly (the moment's organs now declare both command docs).
+
 ## Modes & exact invocation (operator copy-paste)
 
 The natural-language `/handoff` triggers above drive the **architect | execution** interview

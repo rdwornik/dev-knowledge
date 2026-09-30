@@ -21,6 +21,23 @@
 
 ---
 
+### 2026-09-30 (a) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5 cycle-3): a seat release is one refusing transaction, and CI reds a tampered handoff bundle (B1, R33.2)
+
+**Anchors:** `00c50972`, `81e9fe62`, `64f233fb`, `a453c7a0`, `71a9dc89` -- `worktree-lane-handoff-moments` (N5-2, `LANE-5B5-2-lane-handoff-moments`; served `claude-sonnet-5`). Merged `--no-ff` in `epic/wave5b-n5-int-lane-handoff-moments` from `9fadaf12`.
+
+**Did:**
+- `ecosystem/harness.yaml`: a seventh moment, `seat-release`, with four organs (`notes`, `bundle`, `manifest`, `copy`). Each reads the bundle the operator names and refuses by name when its artifact is missing. The two `fates:` rows for `.claude/commands/handoff.md` and `handoff-verify.md` are removed; both paths are now declared at this moment.
+- `.github/workflows/conductor.yml`: a `handoff-manifest` job re-runs the BD-manifest rule over every committed manifest-era bundle under `docs/handoffs/**` on a push that touches it. Three throwaway `automation/b1-tamper-probe-<n>` runs were red on a tampered bundle; the branches are deleted.
+- `tests/test_seat_release_moment.py` (17 tests); `tests/test_spine_moments.py` updated for the seventh moment. Two Codex terra records (2 Critical each), fixed in `64f233fb`, `a453c7a0` and `71a9dc89`.
+
+**Result:** `doit -f scripts/dodo.py moment:seat-release` on a dry cut writes four receipts; on `9fadaf12` the target does not exist (exit 3).
+
+**Changes:** `ecosystem/harness.yaml`, `.github/workflows/conductor.yml`, `.claude/commands/handoff.md`, `.claude/commands/handoff-verify.md`, `tests/test_seat_release_moment.py`, `tests/test_spine_moments.py`, two audits. Regenerated `docs/audits/README.md`; `ecosystem/doc-counts.md` set to the merged tree's `8600 collected` (8583 + 17). `logs/MERGE-RECEIPTS.jsonl` carries N5-11's receipt row (`9fadaf12`).
+
+**Next:**
+- CI on this branch, both legs, is the verdict.
+- `lane-fates-due` starts after this merge (both edit `ecosystem/harness.yaml`).
+
 ### 2026-09-29 (j) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5 cycle-1): a read counts only when its output exists, its log is clean and every quotation is literally in the source (AMEND N5-11, AX21-1)
 
 **Anchors:** `9294c3d2`, `d1399563` -- `worktree-lane-read-gate` (N5-11, `LANE-5B5-11-lane-read-gate`; served `claude-sonnet-5`). Merged `--no-ff` in `epic/wave5b-n5-int-lane-read-gate` from `9ec8aaf1`.
