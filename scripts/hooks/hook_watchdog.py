@@ -191,6 +191,31 @@ def _cpu_total(proc: psutil.Process) -> float | None:
     return times.user + times.system
 
 
+def _cpu_total_tree(proc: psutil.Process) -> float | None:
+    """`sweep`'s real signal, root-only was not (integrator repair-1, LANE-5B5-5-lane-hook-
+    watchdog): a hook command run through a venv `python.exe` on Windows is a flat-CPU
+    LAUNCHER whose child does the real work -- `CreateProcess`s the base interpreter, then
+    idles. Sampling `_cpu_total` on the launcher's own pid alone reads a live, working hook as
+    motionless from the first sample onward, which is exactly the `[#863]` signature this
+    module kills on. Summing CPU across the whole tree (this process plus every descendant) is
+    what tells a truly suspended-at-creation process (nothing in its tree ever runs) apart from
+    a flat launcher over a busy child. Returns `None` only when the root itself is gone or
+    unreadable -- a child that vanishes mid-walk is simply left out of the sum (best-effort,
+    the same posture `_session_id_for` and `kill_tree` already take)."""
+    total = _cpu_total(proc)
+    if total is None:
+        return None
+    try:
+        children = proc.children(recursive=True)
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        children = []
+    for child in children:
+        child_total = _cpu_total(child)
+        if child_total is not None:
+            total += child_total
+    return total
+
+
 def _session_id_for(proc: psutil.Process) -> str:
     """Best-effort ONLY, and that is an honest limit rather than a bug: a process created
     suspended never read its own stdin payload (where every OTHER hook surface in this repo --
@@ -320,7 +345,7 @@ def sweep(*, threshold_s: float = DEFAULT_THRESHOLD_S,
         try:
             if not _is_candidate(proc, hook_names):
                 continue
-            cpu0 = _cpu_total(proc)
+            cpu0 = _cpu_total_tree(proc)
         except psutil.Error:
             continue
         # The FIRST sample already has to look suspended-at-creation -- see `sweep`'s own
@@ -335,7 +360,7 @@ def sweep(*, threshold_s: float = DEFAULT_THRESHOLD_S,
 
     killed: list[dict] = []
     for pid, (proc, cpu0) in baseline.items():
-        cpu1 = _cpu_total(proc)
+        cpu1 = _cpu_total_tree(proc)
         if cpu1 is None or cpu1 > cpu0:
             continue  # exited on its own, or ran: not the suspended-at-creation signature
         row = _record_kill(proc, threshold_s, now)

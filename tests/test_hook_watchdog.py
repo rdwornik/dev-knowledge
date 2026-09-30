@@ -229,20 +229,34 @@ class _FakeTimes:
         self.user, self.system = user, system
 
 
+class _FakeChildProc:
+    """A test double for one descendant `_cpu_total_tree` walks into -- successive `cpu_times()`
+    calls only, the same shape `_FakeCandidateProc` gives the root."""
+
+    def __init__(self, cpu_readings: list[tuple[float, float]]):
+        self._readings = iter(cpu_readings)
+
+    def cpu_times(self):
+        return _FakeTimes(*next(self._readings))
+
+
 class _FakeCandidateProc:
     """A test double for the ONE thing `sweep`'s decision actually reads off a process across
-    the threshold window: `cmdline()`, `parent()` and successive `cpu_times()` calls. Real
-    wall-clock CPU scheduling is NOT this module's concern to assert against -- this repo's own
-    box runs many parallel lanes, and a real busy-loop process measured 0.03 s of accumulated
-    CPU over 3 REAL seconds here once (a live scheduling artifact, not a `sweep()` defect;
-    `logs/HOOK-WATCHDOG-KILLS.jsonl`'s own kind of honest limit). The arithmetic that decides
-    moved-vs-not-moved is exercised deterministically instead, exactly the way `cpu_times()`
-    reports it to `sweep` regardless of what the OS scheduler actually did."""
+    the threshold window: `cmdline()`, `parent()`, `children(recursive=True)` and successive
+    `cpu_times()` calls. Real wall-clock CPU scheduling is NOT this module's concern to assert
+    against -- this repo's own box runs many parallel lanes, and a real busy-loop process
+    measured 0.03 s of accumulated CPU over 3 REAL seconds here once (a live scheduling
+    artifact, not a `sweep()` defect; `logs/HOOK-WATCHDOG-KILLS.jsonl`'s own kind of honest
+    limit). The arithmetic that decides moved-vs-not-moved is exercised deterministically
+    instead, exactly the way `cpu_times()` reports it to `sweep` regardless of what the OS
+    scheduler actually did."""
 
-    def __init__(self, pid: int, cmdline: list[str], cpu_readings: list[tuple[float, float]]):
+    def __init__(self, pid: int, cmdline: list[str], cpu_readings: list[tuple[float, float]],
+                 children: list["_FakeChildProc"] | None = None):
         self.pid = pid
         self._cmdline = cmdline
         self._readings = iter(cpu_readings)
+        self._children = children or []
 
     def cmdline(self):
         return self._cmdline
@@ -252,6 +266,9 @@ class _FakeCandidateProc:
 
     def cpu_times(self):
         return _FakeTimes(*next(self._readings))
+
+    def children(self, recursive=False):
+        return self._children
 
 
 def test_a_process_whose_cpu_time_is_moving_is_never_a_candidate(tmp_path, monkeypatch):
@@ -295,26 +312,55 @@ def test_a_process_with_real_accumulated_cpu_is_never_a_candidate_even_if_flat_n
     assert not log.exists() or log.read_text(encoding="utf-8").strip() == ""
 
 
+def test_a_flat_launcher_with_a_busy_child_is_never_a_candidate(tmp_path, monkeypatch):
+    """RED-first (integrator repair-1, LANE-5B5-5-lane-hook-watchdog): on Windows a hook
+    command run through a venv `python.exe` is a flat-CPU LAUNCHER whose CHILD does the real
+    work -- the launcher's own CPU is flat from moments after start-up onward, forever, while
+    its child accumulates real CPU. Root-only sampling (`_cpu_total`) would pass the launcher's
+    own near-zero, unmoving total straight into the `[#863]` signature and kill a live, working
+    hook's whole tree. `_cpu_total_tree` sums the launcher AND its descendants, so the child's
+    real work is what `sweep` actually sees move."""
+    log = tmp_path / "HOOK-WATCHDOG-KILLS.jsonl"
+    monkeypatch.setenv(hw.RECORD_ENV, str(log))
+    child = _FakeChildProc([(0.0, 0.0), (2.5, 0.3)])  # the child does the real work
+    launcher = _FakeCandidateProc(9003, ["python", "busy_hook.py"],
+                                  [(0.05, 0.02), (0.05, 0.02)],  # the launcher itself stays flat
+                                  children=[child])
+
+    killed = hw.sweep(threshold_s=0, settings_path=_settings(tmp_path, "busy_hook.py"),
+                      process_iter=lambda: [launcher], sleep=lambda _s: None)
+
+    assert killed == []
+    assert not log.exists() or log.read_text(encoding="utf-8").strip() == ""
+
+
 def test_a_real_busy_loop_process_does_accumulate_cpu_time(tmp_path):
     """The fake in the test above stands in for real OS scheduling, and that substitution is
     only honest if a real busy loop really does behave the way the fake claims SOMEWHERE in
     this suite. This is that check, on its own terms: no `sweep()`, no fixed window, just poll
-    until the accumulation is unambiguous, however long the box takes to schedule it."""
+    until the accumulation is unambiguous, however long the box takes to schedule it.
+
+    Measured through `_cpu_total_tree`, not `_cpu_total` on the root pid alone (integrator
+    repair-1, LANE-5B5-5-lane-hook-watchdog): `subprocess.Popen([sys.executable, ...])` in a
+    venv returns the pid of the venv's `python.exe` LAUNCHER, which spawns the base interpreter
+    that actually runs the loop as its CHILD and then goes flat itself. Root-only sampling read
+    the launcher as motionless and made this a live flake (2 red of 3 Windows CI runs) -- the
+    same shape `sweep` itself had to be fixed for, not only this test."""
     script_name = _unique("busy_hook.py")
     busy = tmp_path / script_name
     busy.write_text("x = 0\nwhile True:\n    x += 1\n", encoding="utf-8")
     proc = subprocess.Popen([sys.executable, str(busy)])
     try:
-        cpu0 = hw._cpu_total(psutil.Process(proc.pid))
+        cpu0 = hw._cpu_total_tree(psutil.Process(proc.pid))
         deadline = time.monotonic() + 60
         moved = False
         while time.monotonic() < deadline:
             time.sleep(0.5)
-            cpu1 = hw._cpu_total(psutil.Process(proc.pid))
+            cpu1 = hw._cpu_total_tree(psutil.Process(proc.pid))
             if cpu1 is not None and cpu0 is not None and cpu1 > cpu0:
                 moved = True
                 break
-        assert moved, "a real busy-loop process accumulated no CPU time in 60 s"
+        assert moved, "a real busy-loop process (root + tree) accumulated no CPU time in 60 s"
     finally:
         _reap(proc.pid)
 
