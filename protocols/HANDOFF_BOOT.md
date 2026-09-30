@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-07
+last_reviewed: 2026-09-30
 reconciled_with: handoff-process@7.1.0
 ---
 
@@ -70,36 +70,23 @@ has a one-line check; a wrong answer means you have drifted:
 
 ## Loop transition gates (when each stage is done)
 
-The loop above is *stages*; these are its **transition gates** — the conscious "this stage is
-done" criterion per hop, so the loop has teeth instead of being prose-and-hope. The mechanisms
-already exist; this only **names** them at the transition they guard.
+Named per hop, so the loop has teeth instead of prose-and-hope; the mechanisms already exist,
+this only names them at the transition they guard:
 
 | Transition | Gate | Criterion |
 |---|---|---|
-| plan → delegate | **checkable** | a frozen acceptance-contract EXISTS in the prompt (the ex-ante A2 contract — ADR-81). |
-| delegate → verify | **deterministic** | CC's acceptance-contract is green (the **ship-gate**, below). |
-| verify → archive | **soft = floor + judgment** | FLOOR: the closure criterion is stated and the end-state assessed against it. JUDGMENT: you confirm the end-state meets the **hard** metric, not the easy proxy. |
-| archive → educate | **deterministic** | the **seal** (the ADR-85 Stop-gate, below). |
-| educate → close | **soft = floor + judgment** | FLOOR: a so-what artifact (change · why · what-next) is produced. JUDGMENT: the operator confirms it landed. |
+| plan → delegate | checkable | a frozen acceptance-contract EXISTS in the prompt (ex-ante A2 — ADR-81). |
+| delegate → verify | deterministic | CC's acceptance-contract is green (the **ship-gate**, below). |
+| verify → archive | soft = floor + judgment | FLOOR: the closure criterion is stated and checked. JUDGMENT: the **hard** metric, not the easy proxy. |
+| archive → educate | deterministic | the **seal** (the ADR-85 Stop-gate, below). |
+| educate → close | soft = floor + judgment | FLOOR: a so-what artifact (change · why · what-next). JUDGMENT: the operator confirms it landed. |
 
-**Soft ≠ subjective:** a deliberate check against a *named* criterion. The floor blocks
-rubber-stamp (you must articulate/produce, not "looks done"); judgment sits on the floor. The two
-soft gates link to the deferred **fuzzy-contract arc** (ADR-81 §Scope — eventual agent-eval);
-until it lands, deterministic-floor + deliberate-judgment is the contract.
+**Soft ≠ subjective:** a deliberate check against a *named* criterion, not "looks done."
 
-## Delivery lifecycle (the same loop, delivery-facing)
-
-`implement → test → deploy → educate` is **not a second sequence to track** — it is the governance
-loop above seen from the delivery side, anchored to the **same gate-map**. One skeleton, two views;
-the phase ↔ transition mapping:
-
-- **(front: decide → plan)** — your pre-delegate work: decompose + author the frozen contract = the **plan → delegate** gate.
-- **implement** = the **delegate** phase (CC executes).
-- **test** = the **delegate → verify** gate (acceptance-green) *and* the **verify → archive** floor+judgment (the hard metric). Doctrine: ADR-81's A2 contract — don't restate it.
-- **deploy** = **ADR-81 (d)**: the artifact actually *in effect* (installed / wired / adopted) **OR an explicit documented deferral** that names the gap — distinct from archive/merge (build-and-test, even merged, ≠ done).
-- **educate** = the **educate → close** gate (value-grounded — see below).
-
-Read it as one skeleton anchored to the gate-map, never two competing lists.
+**Delivery view (same loop, delivery-facing, not a second sequence):** implement = delegate;
+test = delegate→verify (acceptance-green) *and* verify→archive (the hard metric, ADR-81's A2);
+deploy = ADR-81 (d) — the artifact actually in effect, or a named deferral, distinct from
+merge; educate = the educate→close gate.
 
 ## Your operating role — execution mode (default)
 
@@ -129,15 +116,14 @@ The verification split, bidirectional adjudication, and plan-review contract bel
 - **Understand the vision — then the backlog navigates.** The opening sequence is **role → vision →
   standing topics → backlog**: your role is already set (above); the orientation probes (P1a/P1b) put
   the vision and the architecture's Chapter 1 in front of you as exact lines CC read live and
-  substring-checked, so they cannot be bluffed from a summary; the standing authorities (P0a/P0b) are
+  substring-checked, so they cannot be bluffed from a summary — the grep is a **tool** that
+  confirms the frame, **not** the navigation gate; the standing authorities (P0a/P0b) are
   reconciled. *Then the backlog navigates:* the task-graph in `BACKLOG.md`, not the orientation probe,
   is where the work is read. The probes' own contract is `HANDOFF_PROCESS.md` §5 — do not re-derive it.
-- **One evidence block, not a command ferry (v6, kept in v7).** You do **not** dictate probe commands one at a
-  time. CC runs the whole live gate in one pass (`/handoff-verify`) and the operator pastes **one
-  evidence block**: every row carries its source locator, the check performed, PASS/FAIL, and the live
-  evidence. Read the table; **any FAIL blocks onboarding**, a missing required row is not a pass, and
-  degraded coverage is reported rather than counted as one. If a fact you need is not in the block, ask
-  for it by name — do not fill it in from the paste, from a summary, or from memory.
+- **Boot on the ROLE PIN alone (R30, standing).** You do **not** run `/handoff-verify` or ask the
+  operator for an evidence block — the three-line ROLE PIN (role file, live `handoff-process`
+  version, sha256) is the whole onboarding check. A pin mismatch is the only FAIL; there is no
+  probe table to read, and none is owed.
 - **Ask the operator for off-repo context — after orienting, before you decompose.** CC's handoff
   is repo-derived; it cannot carry operator intent or off-repo findings. Make **one** targeted ask:
   *"what off-repo context for this planning session — intent, priorities, findings not in the repo,
@@ -165,18 +151,53 @@ The verification split, bidirectional adjudication, and plan-review contract bel
 - **Surface design tensions proactively.** You are stress-testing the design, not just filtering
   CC's output — name the trade-offs and the open questions, escalate the genuine forks.
 
-## Parallel work — four seats (architect mode)
+## Dispatch — how a batch runs (four seats: architect, dispatcher, integrator, lane)
 
-A batch runs four seats — **architect** (you), **dispatcher**, **integrator**, **lane** — named in
-`HANDOFF_PROCESS.md` §1, each seat's order a template (item 0). You write the plan and the lane
-contracts; the dispatcher launches; the integrator merges; a lane builds.
+Eight facts a fresh seat needs before writing a lane contract (`HANDOFF_PROCESS.md` §1 names the
+seats; each order is a template, item 0). Each fact points to its source — pull the live text via
+CC, never restate it from memory.
 
-Resident, because it governs your behaviour rather than restating a rule: lanes **commit-and-STOP
-and do not self-merge**; the integrator merges **one lane at a time** in an integration worktree off
-`origin/main`, and `main` moves only by fast-forward to a verified merge. Nobody waits for the
-operator at night — rulings are pre-authorized in the batch common rules. The launch line is the
-launcher's (item 0), not composed here. Teardown (`remove` + `prune` + both branches + verify no
-leftovers) is half the act.
+**A lane starts through the launcher; the integrator and dispatcher do not.** `uv run --locked
+python scripts/dispatch.py launch --slug <slug> --model <id> --effort <effort> --batch <BATCH>
+"<contract path>"` — copy the line from `scripts/dispatch.py launch --help`. Its `pre-launch`
+moment always runs `no-live-integrator` (`ecosystem/harness.yaml`) — `launch` is a LANE's path
+only; calling it for a batch's own first integrator deadlocks. The integrator and dispatcher
+instead start by the operator pasting their filled order template into a NEW session — that
+paste **is** the batch GO (each template's `authorized-by:` line), never `launch`. **Model**: the
+order's cell, checked against `ecosystem/provider-registry.yaml` roles. **Effort**: the order
+alone — the registry and `~/.claude/ROUTING.md` declare none.
+
+**Seat order and binding.** The integrator binds first (`claim.py claim INTEGRATOR-<BATCH>`, then
+`seat_registry.py bind --role integrator --batch <BATCH>`); the dispatcher binds `--role
+dispatcher` next; a lane is last — and refused if no integrator is yet live.
+
+**The render is the competence probe.** GREEN = plan lint 0 BLOCKING, every local contract
+dry-runs exit 0, `queue --dry-run` exits 0, no bare model alias or unfilled placeholder. No
+launch before GREEN.
+
+**The queue is one-shot, never `--watch`** (R34.1). `dispatch.py queue --batch <BATCH> --cap <M>
+--floor-mb <N>` fires from two drivers only — the dispatcher's recurring wake-up, and the
+integrator after every merge and refusal. Defaults: local cap 4, floor 3072 MB
+(`scripts/dispatch.py`); below either it HOLDs.
+
+**What a lane does at its end.** It commits-and-STOPs — it never self-merges. Purity (`git log
+origin/main..HEAD`), its own tests, `audit.py health`, then one
+`to-browser/SESSION-<slug>.md` ending `HANDBACK <branch> @ <sha> <code|docs>`.
+
+### Integration -- what the integrator does
+One lane at a time, in an integration worktree off `origin/main`: merge `--no-ff`, one ship-gate
+diff, the gates, `merge_receipt.py close`, then fast-forward `main` and push — only when green. A
+failed lane gets `to-browser/REFUSED-<slug>.md`; twice-refused is `FAILED`.
+
+**Close and teardown.** Close: the connection walk, the cost line, the digest. Teardown: `claude
+stop` + worktree/branch/claim removal, verified by `no_leftovers.py verify` — never `claude rm`.
+
+**Claim markers make check-then-create atomic** (`claim.py claim <n>`; exit 3 = already in
+flight). A dead holder's marker is released only through `claim.py release <n>`, once its job
+record shows it dead — never by hand.
+
+Full text: `templates/dispatcher-order-template.md`, `templates/integrator-order-template.md`,
+`templates/lane-contract-template.md`.
 
 ## Verification split (who checks what)
 
@@ -220,32 +241,28 @@ Canon: **HANDOFF_PROCESS §7** ("Browser role + plan-review output contract" —
 
 ## Mechanisms to lean on (don't re-derive)
 
-CC self-loads the detail for code-impact work (ADR-87); these are thin pointers so you
-*leverage* the machinery rather than re-derive it — ask CC to pull any one:
+CC self-loads code-impact detail (ADR-87); ask CC to pull any one rather than re-deriving it:
 
-- **Prompt authoring.** The prompt skeleton is **CC's consumption-spec**, not yours to
-  hand-author — `templates/lane-contract-template.md` (a batch lane) and
-  `templates/prompt-template.md` (a single session). You emit *intent · closure · anti-patterns ·
-  plan/auto mode · the thin governance-pointer* (ADR-87); CC fills the rest.
-- **Session-end gates.** A change lands clean only if it survives them: the **ship-gate**
-  (`python scripts/audit.py ship-gate`) plus the freshness / `doc_claims` / BACKLOG legs, and the
-  ADR-85 **pre-push** anchor refusal (next section). Don't design around them — design *with*.
-- **Automation map.** Which organ fires when (hooks · skills · commands · gates) →
-  ARCHITECTURE **Ch2 "Organ map"**; the two automation axes → **Ch3 "Automation axes".**
+- **Prompt authoring** — `templates/lane-contract-template.md` (a batch lane),
+  `templates/prompt-template.md` (a single session): CC's consumption-spec, not yours to
+  hand-author. You emit *intent · closure · anti-patterns · plan/auto mode · the thin
+  governance-pointer* (ADR-87); CC fills the rest.
+- **Session-end gates** — the **ship-gate** (`python scripts/audit.py ship-gate`) plus the
+  freshness / `doc_claims` / BACKLOG legs, and the ADR-85 pre-push anchor refusal. Design *with*
+  them, not around them.
+- **Automation map** — which organ fires when → ARCHITECTURE **Ch2**; the two automation axes →
+  **Ch3**.
 
 ## Closing a session — definition of done
 
-Plan with closure in mind from the start. The canon is `protocols/DEFINITION_OF_DONE.md`
-(ask CC to pull it); what you carry between sessions is where the enforcement lives, not its text:
+Plan with closure in mind. Canon: `protocols/DEFINITION_OF_DONE.md` (ask CC to pull it) — what
+you carry between sessions is where the enforcement lives, not its text.
 
-- **Where the teeth sit.** The session-end **Stop** hook is **advisory in full** since the
-  ADR-85 amendment of 2026-08-03; the blocking leg moved to **pre-push**, scoped to `main`, and
-  `/override` discharges no gate (§A2). Behaviour is unchanged by the move: an arc's
-  `JOURNAL.md` entry rides its own branch, ahead of the merge, naming a SHA that merge introduces.
-- **The rest is not resident on purpose** — ask CC to pull `protocols/DEFINITION_OF_DONE.md`
-  rather than acting on a remembered shape.
+- **Where the teeth sit.** The session-end **Stop** hook is advisory in full since the ADR-85
+  amendment (2026-08-03); the blocking leg is **pre-push**, scoped to `main`; `/override`
+  discharges no gate. An arc's `JOURNAL.md` entry rides its own branch, ahead of the merge,
+  naming a SHA the merge introduces.
 
 The four other living docs (README/ARCHITECTURE/LESSONS/CONTRIBUTING) are *update-when-
-materially-affected*, not per-session-gated. `README.md` superseded `VISION.md` as this repo's
-canonical purpose document (ADR-114); `VISION.md` is retained, marked superseded, at
-`docs/archive/VISION.md`.
+materially-affected*. `README.md` superseded `VISION.md` (ADR-114); `VISION.md` is retained,
+marked superseded, at `docs/archive/VISION.md`.
