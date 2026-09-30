@@ -21,6 +21,25 @@
 
 ---
 
+### 2026-09-30 (b) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5 cycle-4): a hook process orphaned while still suspended is found and killed by an external watchdog that reads the whole process tree, and every kill surfaces at SessionStart ([#863])
+
+**Anchors:** `8050acae`, `a16bf1a9`, `2564619f`, `d901ada9`, `fa19d260` -- `worktree-lane-hook-watchdog` (N5-5, `LANE-5B5-5-lane-hook-watchdog`, after one refusal and its repair; served `claude-sonnet-5`). Merged `--no-ff` in `epic/wave5b-n5-int-lane-hook-watchdog` from `b5286b63`.
+
+**Did:**
+- `scripts/hooks/hook_watchdog.py`: `sweep` samples the CPU time of every live process running a registered hook script whose parent is gone. It kills the whole tree of one whose tree-wide CPU total reads zero at the first sample and identical at the threshold. Each kill is recorded to `logs/HOOK-WATCHDOG-KILLS.jsonl` (hook id, pid, age, session id). The docstring cites libuv's `uv_spawn` (`CreateProcessW` with `CREATE_SUSPENDED`, resumed by a later `ResumeThread`) as the mechanism behind the orphan.
+- The repair (`d901ada9`) sums CPU over the process and its live descendants. On Windows a venv `python.exe` is an idle launcher whose child does the work, and root-only sampling read it as suspended; that also made one test flaky on the Windows leg. `fa19d260` treats a tree total that falls between the samples (a busy child that exited) as movement, not as the suspended signature.
+- `scripts/fleet_health.py`: a SessionStart line surfaces any recorded kill.
+- `tests/test_hook_watchdog.py`: 20 tests, including a flat launcher over a busy child and a short-lived child that exits before the second sample. Review records: Codex terra on the arc (1 Critical, 2 High, all fixed), and `agy` as the recorded SUBSTITUTION on the repair (Codex usage limit; 1 High, fixed).
+- One `fates:` line in `ecosystem/harness.yaml` (`manual_until: 2026-10-14`): `sweep` is run by hand.
+
+**Result:** the three hooks disabled on 2026-09-17 stay off. The watchdog is not wired to run by itself, and re-arming a hook under a watchdog nobody calls would be no protection. `.claude/settings.json` is untouched.
+
+**Changes:** `scripts/hooks/hook_watchdog.py`, `tests/test_hook_watchdog.py`, `scripts/fleet_health.py`, `logs/HOOK-WATCHDOG-KILLS.jsonl` (empty), one `fates:` line, two audits. Regenerated `docs/audits/README.md`; `ecosystem/doc-counts.md` set to the merged tree's `8620 collected` (8600 + 20). `logs/MERGE-RECEIPTS.jsonl` carries N5-2's receipt row (`b5286b63`).
+
+**Next:**
+- CI on this branch, both legs, is the verdict.
+- The 2026-10-08 expiry of the three disabled hooks ([#863]) needs the R33.4 14-day extension; the digest carries the options.
+
 ### 2026-09-30 (a) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5 cycle-3): a seat release is one refusing transaction, and CI reds a tampered handoff bundle (B1, R33.2)
 
 **Anchors:** `00c50972`, `81e9fe62`, `64f233fb`, `a453c7a0`, `71a9dc89` -- `worktree-lane-handoff-moments` (N5-2, `LANE-5B5-2-lane-handoff-moments`; served `claude-sonnet-5`). Merged `--no-ff` in `epic/wave5b-n5-int-lane-handoff-moments` from `9fadaf12`.
