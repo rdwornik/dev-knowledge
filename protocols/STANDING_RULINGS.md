@@ -5063,6 +5063,90 @@ above as NOT built by this entry — the load-bearing honesty this section keeps
 precedent, is naming what still needs checking rather than letting a future reader assume the
 whole of R18–R31 landed in code because this entry landed in prose.
 
+## AP. RATIFICATION 2026-09-29 R32–R34 — cycle 2 of WAVE5B-N5-R, the week's dates / handoff v2 /
+batch N5, and the queue driver / scheduler adapter / M06 re-read / standing problem-reporting
+rule (operator, 2026-09-29)
+
+Landed by `lane-claude-md-rulings` (batch WAVE5B-N5, row N5-7; L7 of WAVE5B-N5-R wrote R18–R31
+at `be1889ea`, §AO above). Transport sources: `to-browser/RATIFICATION-2026-09-29-v3-superseded.md`
+(R32–R33, full text in this version); `to-browser/RATIFICATION-2026-09-29-v4-superseded.md`
+(R34, full text in this version, R32–R33 restated there in one line each and unchanged). R1–R31
+are already landed at §AM (R1–R7), §AN (R1–R17) and §AO (R18–R31); this lane does not repeat
+them here per this file's "declare, don't duplicate" rule.
+
+- **R32 — cycle 2 of WAVE5B-N5-R** (operator, ~2026-09-29 10:50; full text
+  `RATIFICATION-2026-09-29-v3-superseded.md`). Verbatim: "A go — i dodaj do tego samego obiegu
+  ponowne uruchomienie 5 lane'ów, które nie wystartowały (L1, L10, L5, L8, L9), z mniejszą
+  liczbą naraz albo w Codespace, tak żeby reaper ich znowu nie ubił." In force as: cycle 2 of
+  WAVE5B-N5-R runs — teardown; L4 integrated; the five unfired lanes (L1, L10, L5, L8, L9)
+  relaunched at lower load or in a Codespace, so the reaper does not kill them again. R29 and
+  R31 apply to the cycle. L9's held go-ahead is given. **Status:** batch-scoped to
+  WAVE5B-N5-R's own cycle 2, already run by the time this entry lands; not this lane's Owns to
+  build or re-verify.
+- **R33 — the week's dates, handoff v2, batch N5** (operator, ~2026-09-29 11:10; full text
+  `RATIFICATION-2026-09-29-v3-superseded.md`). His line, verbatim: "R30 stały tak · HV2: 2+3
+  tak, 1 nie (boot uczy dispatchu + R30), 4 nie (B1 przed 10-05) · fates go · 863 go · zamknij
+  1123 1124 · N5 lanes go — fałszywe alarmy scope guarda jako pierwszy lane". In force as: 1.
+  R30 is standing for every browser-seat boot (no `/handoff-verify`, no evidence block, the
+  ROLE PIN check only). 2. `PROPOSAL-ADR-HANDOFF-SYSTEM-v2-2026-09-29.md` items 2–3 ratified
+  (the paste-shape template; BD-manifest/BD-seats fixed, not retired, rows `[#1123]`/`[#1124]`
+  close), items 1 and 4 rejected (HANDOFF_BOOT.md teaches dispatch and carries R30; B1 lands
+  before 2026-10-05, no reorder to B5-first). 3. Fates go — every `manual_until` fate dated
+  2026-10-04/2026-10-05 (68) is classified with evidence: wired where its trigger exists,
+  otherwise re-dated 14 days with a stated reason; retirement candidates go to the operator as
+  a list. 4. `[#863]` go — the hook-watchdog lane, built before 2026-10-08; if not merged by
+  2026-10-07, the three disabled entries' expiry moves 14 days. 5. **Close rows `[#1123]` and
+  `[#1124]`** — ROW-MET, merged at `0900d78b` and `ae1a4170`. 6. Batch N5 go, the scope guard's
+  false positives as the first lane, plus the lanes needing no new decision
+  (`DIGEST-N5-DRAFT-2026-09-29.md` §3). **Status/landed:** item 5 is landed by this entry's own
+  lane — `tasks/1123-…md` and `tasks/1124-…md` closed with those two SHAs as evidence, this
+  session. Items 1, 3, 4 and 6 are the browser seat's boot procedure, the fates census, the
+  `[#863]` watchdog lane and the batch's own dispatch respectively — none is this lane's Owns.
+  Item 2's HV2 items 2–3 (paste shape, BD-manifest/BD-seats) were built by lanes L6a/L6b/L2 of
+  WAVE5B-N5-R (§AO's own R26/R31 item 3 concern), not by this entry.
+- **R34 — the queue driver, the scheduler adapter, the M06 re-read, and how problems are
+  reported** (operator, ~2026-09-29 11:30; full text
+  `RATIFICATION-2026-09-29-v4-superseded.md`). His words, verbatim: "Q2: (2) w N5 · (1) jako
+  N5-9, task scheduler tak — jako adapter niezależny od systemu (Windows Task Scheduler dziś,
+  cron/systemd później), nie jako rozwiązanie tylko pod Windows · cykl 2 przełącz na (2)." /
+  "M06: nie zgłaszaj samego problemu — dawaj rozwiązanie." / "Zasada operatora na przyszłość:
+  każdy zgłoszony problem przychodzi z rozwiązaniem — opcje, rekomendacja, a operator
+  decyduje." In force as: 1. **No long-running queue** — the queue runs as ONE-SHOT passes
+  (`dispatch.py queue` without `--watch`) from two drivers only (the dispatcher's recurring
+  10-minute wake-up; the integrator, after every merge and every refusal), from cycle 2 of
+  WAVE5B-N5-R onward and in batch N5. 2. **Lane N5-9:** a scheduler adapter independent of the
+  operating system (Windows Task Scheduler built today, cron/systemd behind the same interface
+  later); the operator permits registering a Task Scheduler entry on his machine for a batch,
+  removed at that batch's close. 3. **Lane N5-10:** M06 is read again, on locally verified
+  extracted text, every quote checked by literal match, the proposal recomputed on verified
+  quotes only. 4. **A backlog row:** `agy` reports SUCCESS without an output file — a defect;
+  its fix checks the output file's existence and size. 5. Gemini `IneligibleTierError` is one
+  line of fact for the operator, not a blocker. 6. **Standing, for every seat and every report
+  to the operator:** every problem reported comes with its solution — the options, a
+  recommendation, and the operator decides. **Status/landed:** item 4 is landed by this
+  entry's own lane as `[#1327]` (`tasks/1327-agy-reports-success-without-an-output-file.md`,
+  filed, not closed — this lane's Owns names filing only). **This lane's own premise check
+  found item 4 LIKELY ALREADY DISCHARGED IN CODE, not merely filed:** `scripts/read_gate.py`
+  and `tests/test_read_gate.py` (lane-read-gate, WAVE5B-N5 row N5-11, merged `9fadaf12`,
+  already on this tree before this lane's render) state and test this exact defect — recorded
+  in `[#1327]`'s own body rather than silently closing a row this lane's Owns bars it from
+  closing. Item 3 (N5-10) is superseded before this lane's render:
+  `to-browser/RATIFICATION-2026-09-29.md` v12 §R41 item 4 records "N5-10 is superseded by
+  `to-cc/BATCH-AJ-ALL-MODULES-2026-09-29.md` v2, which runs now" — named here so a future
+  reader does not look for a live N5-10 lane. Items 1, 2, 5 and 6 are the batch's own dispatch
+  practice and standing reporting convention, not an in-repo build; not this lane's Owns.
+
+**Expiry:** none of R32–R34 expire on their own. R32's cycle-2 relaunch, R33 items 1/3/4/6 and
+R34 items 1/2/3/5/6 are each named above as NOT this lane's Owns — the same load-bearing
+honesty §AO keeps: naming what still needs checking rather than letting a future reader assume
+the whole of R32–R34 landed in code because this entry landed in prose. **This entry's own
+premise check (R14/R17) also found one contract-stated fact already stale at render:** the
+render's own "Read first" pointer named the live ratification file as "v7, whose header
+assigns R35–R36 to N6's rulings lane"; at this lane's own read it was v12, assigning R35–R41 to
+the next rulings lane (R38 systemic, R41 standing) — the drift does not change R32–R34's own
+text (frozen in the superseded snapshots cited above) or this entry's Done-when, so it is
+recorded here rather than treated as a blocking PREMISE-FAILED.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector

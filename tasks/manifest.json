@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "0754d011812169abf9ac5e8f0d76d8376bef7f570d6d19ab46640b2127fe1efb",
+  "generated_sha256": "eaef04069dc86db440e231ec4cb4b1fb6b0940a469818c61907c3c43d84666df",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2724,20 +2724,16 @@
       "file": "1122-dispose-declare-seat-knowledge-2026-09-24-carried-to-wave5b-n5-planning.md"
     },
     {
-      "task": 1123,
-      "file": "1123-handoff-part-b-stamp-the-cut-manifest-after-the-required-fills.md"
-    },
-    {
-      "task": 1124,
-      "file": "1124-handoff-part-b-bd-seats-compares-seat-identity-and-liveness-not-the-status-string.md"
-    },
-    {
       "task": 1125,
       "file": "1125-n5-absorb-or-retire-the-claude-conformance-digest-branches.md"
     },
     {
       "task": 1126,
       "file": "1126-n5-archive-tags-join-r25-s-allowed-set-with-an-owner-and-an-expiry.md"
+    },
+    {
+      "task": 1327,
+      "file": "1327-agy-reports-success-without-an-output-file.md"
     },
     {
       "prose": ""
