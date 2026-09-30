@@ -38,8 +38,21 @@ separate flag needed; `-FullAudit` audits the code files under `src/` rather tha
 ## Output
 
 - File: `docs/audits/YYYY-MM-DD-codex-{topic}.md`
-- Frontmatter: date, branch, HEAD, diff range, Codex version, mode
+- Frontmatter: date, branch, HEAD, diff range, Codex version, mode, consumer declaration
 - Severity bands: Critical / High / Medium / Low (per AGENTS.md)
+
+## Consumer declaration ([#1329])
+
+Every review record declares its own consumer before the review runs (fails fast, before
+invoking `codex`, on a missing or invalid declaration). Pass exactly one:
+
+```powershell
+# a governance citation -- a [#id] row, ADR-<n>, STANDING_RULINGS, or intake #<n>
+& "$env:USERPROFILE\.claude\bin\codex-review.ps1" -Topic hotfix-review -Consumer "[#1329]"
+
+# or an explicit reason it has none (24+ characters)
+& "$env:USERPROFILE\.claude\bin\codex-review.ps1" -Topic hotfix-review -NoConsumerReason "ad-hoc spot-check, no tracked follow-up"
+```
 
 ## Rules
 

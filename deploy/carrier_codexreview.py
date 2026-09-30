@@ -60,12 +60,15 @@ _HUB_ROOT = Path(__file__).resolve().parent.parent
 
 DEFAULT_USER_BASE = Path.home() / ".claude"
 
-#: The two (source_path, target_rel) pairs this carrier ships, mirroring the
+#: The three (source_path, target_rel) pairs this carrier ships, mirroring the
 #: manifest's `organ_paths:` target shape 1:1 — used as a fallback when a target
-#: omits the list (defensive; the manifest always declares it).
+#: omits the list (defensive; the manifest always declares it). `codex-review-lib.ps1`
+#: joined at [#1329]: the consumer-line composer the wrapper dot-sources, kept as its own
+#: file so it stays dot-source-safe (no top-level `param()`, so no mandatory-param prompt).
 _DEFAULT_PAIRS: tuple[tuple[str, str], ...] = (
     ("deploy/codex-review.ps1", "bin/codex-review.ps1"),
     ("deploy/codex-review.md", "commands/codex-review.md"),
+    ("deploy/codex-review-lib.ps1", "bin/codex-review-lib.ps1"),
 )
 
 

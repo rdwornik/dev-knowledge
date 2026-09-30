@@ -578,14 +578,15 @@ carriers:
     implemented: true
     description: >
       The Codex-review organ's tracked hub source -- the reviewer wrapper script
-      (`deploy/codex-review.ps1`) and its slash-command doc (`deploy/codex-review.md`) --
-      carried to the user-level `~/.claude/bin/codex-review.ps1` and
-      `~/.claude/commands/codex-review.md`. USER-machine scoped, not consumer-repo scoped;
+      (`deploy/codex-review.ps1`), its consumer-line composer (`deploy/codex-review-lib.ps1`,
+      joined at [#1329]), and its slash-command doc (`deploy/codex-review.md`) -- carried to
+      the user-level `~/.claude/bin/codex-review.ps1`, `~/.claude/bin/codex-review-lib.ps1`,
+      and `~/.claude/commands/codex-review.md`. USER-machine scoped, not consumer-repo scoped;
       a copied file has no rev (ABSENT / PRESENT_CORRECT / PRESENT_DRIFTED only).
-      Byte-fidelity, not LF-normalization: both hub sources are pinned CRLF
-      (`.gitattributes`: the blanket `*.ps1 text eol=crlf` rule covers the script,
+      Byte-fidelity, not LF-normalization: all three hub sources are pinned CRLF
+      (`.gitattributes`: the blanket `*.ps1 text eol=crlf` rule covers both scripts,
       `deploy/codex-review.md text eol=crlf` was added for the doc) so a deploy run
-      reproduces the two files exactly as the live, hand-authored organ carried them.
+      reproduces the three files exactly as the live, hand-authored organ carried them.
     adr: []
     target:
       organ_paths:
@@ -593,6 +594,8 @@ carriers:
           target_rel: bin/codex-review.ps1
         - source_path: deploy/codex-review.md
           target_rel: commands/codex-review.md
+        - source_path: deploy/codex-review-lib.ps1
+          target_rel: bin/codex-review-lib.ps1
 
 components:
   - id: conductor-workflow
@@ -727,12 +730,14 @@ components:
     engages:
       trigger: deploy-time      # user-machine (~/.claude); NOT exercised by the repo arc
       observable: git-state
-      expect: "~/.claude/bin/codex-review.ps1 + ~/.claude/commands/codex-review.md present (hash-matched)"
+      expect: "~/.claude/bin/codex-review.ps1 + codex-review-lib.ps1 + ~/.claude/commands/codex-review.md present (hash-matched)"
     artifacts:
       - path: "~/.claude/bin/codex-review.ps1"
         source: deploy/codex-review.ps1
       - path: "~/.claude/commands/codex-review.md"
         source: deploy/codex-review.md
+      - path: "~/.claude/bin/codex-review-lib.ps1"
+        source: deploy/codex-review-lib.ps1
     # USER-machine scoped (L0) — no consumer CLAUDE.md roster line (same as codex-agents-config).
     roster: null
 

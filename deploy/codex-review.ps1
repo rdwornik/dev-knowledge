@@ -12,12 +12,26 @@ param(
     [Parameter(Mandatory=$false)]
     [string]$OutDir,
 
+    [Parameter(Mandatory=$false)]
+    [string]$Consumer = "",
+
+    [Parameter(Mandatory=$false)]
+    [string]$NoConsumerReason = "",
+
     [switch]$AutoCommit,
     [switch]$FullAudit,
     [switch]$Force
 )
 
 $ErrorActionPreference = 'Stop'
+
+# --- Consumer declaration ([#1329]) -------------------------------------------
+# Every new review record declares its own consumer at landing -- a governance citation
+# (-Consumer) or an explicit -NoConsumerReason -- so it clears consumer_at_landing.undeclared()
+# on its own text rather than relying on a human edit after the fact. Resolved BEFORE the
+# (expensive, codex-invoking) review runs: a bad or missing declaration fails fast.
+. (Join-Path $PSScriptRoot 'codex-review-lib.ps1')
+$consumerLine = Get-ConsumerLine -Consumer $Consumer -NoConsumerReason $NoConsumerReason
 
 # --- Preconditions -----------------------------------------------------------
 
@@ -255,6 +269,7 @@ $header = @"
 
 **Model used:** ``$reviewModel`` (pinned; both lanes — [#469])
 **Review profile:** $reviewProfile
+$consumerLine
 
 ---
 

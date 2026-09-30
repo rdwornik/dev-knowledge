@@ -28,10 +28,12 @@ import contract  # noqa: E402
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _PS1_SOURCE = _REPO_ROOT / "deploy" / "codex-review.ps1"
 _MD_SOURCE = _REPO_ROOT / "deploy" / "codex-review.md"
+_LIB_SOURCE = _REPO_ROOT / "deploy" / "codex-review-lib.ps1"
 _ORGAN_TARGET = {
     "organ_paths": [
         {"source_path": "deploy/codex-review.ps1", "target_rel": "bin/codex-review.ps1"},
         {"source_path": "deploy/codex-review.md", "target_rel": "commands/codex-review.md"},
+        {"source_path": "deploy/codex-review-lib.ps1", "target_rel": "bin/codex-review-lib.ps1"},
     ]
 }
 
@@ -50,6 +52,10 @@ def _md_target(user_base: Path) -> Path:
     return user_base / "commands" / "codex-review.md"
 
 
+def _lib_target(user_base: Path) -> Path:
+    return user_base / "bin" / "codex-review-lib.ps1"
+
+
 # ---------------------------------------------------------------------------
 # absent -> apply -> verify
 # ---------------------------------------------------------------------------
@@ -60,14 +66,16 @@ def test_absent_detects_then_applies_and_verifies(tmp_path):
     car = _carrier(user_base)
     assert not _ps1_target(user_base).exists()
     assert not _md_target(user_base).exists()
+    assert not _lib_target(user_base).exists()
     assert car.detect(_ORGAN_TARGET) is contract.CarrierState.ABSENT
 
     result = car.apply(_ORGAN_TARGET)
     assert result.changed is True
-    assert len(result.changes) == 2  # both files written, enumerated
+    assert len(result.changes) == 3  # all three files written, enumerated
 
     assert _ps1_target(user_base).read_bytes() == _PS1_SOURCE.read_bytes()
     assert _md_target(user_base).read_bytes() == _MD_SOURCE.read_bytes()
+    assert _lib_target(user_base).read_bytes() == _LIB_SOURCE.read_bytes()
     assert car.detect(_ORGAN_TARGET) is contract.CarrierState.PRESENT_CORRECT
     assert car.verify(_ORGAN_TARGET).ok is True
 
@@ -86,10 +94,12 @@ def test_apply_is_byte_identical_to_hub_source(tmp_path):
     _carrier(tmp_path).apply(_ORGAN_TARGET)
     assert _ps1_target(tmp_path).read_bytes() == _PS1_SOURCE.read_bytes()
     assert _md_target(tmp_path).read_bytes() == _MD_SOURCE.read_bytes()
-    # Both hub sources are CRLF (the live organ's native line ending) -- a silent LF
+    assert _lib_target(tmp_path).read_bytes() == _LIB_SOURCE.read_bytes()
+    # All three hub sources are CRLF (the live organ's native line ending) -- a silent LF
     # flip would defeat the whole point of this carrier (module docstring).
     assert b"\r\n" in _PS1_SOURCE.read_bytes()
     assert b"\r\n" in _MD_SOURCE.read_bytes()
+    assert b"\r\n" in _LIB_SOURCE.read_bytes()
 
 
 # ---------------------------------------------------------------------------
@@ -112,10 +122,12 @@ def test_drifted_detects_then_reconciles(tmp_path):
 
 
 def test_partial_presence_is_drifted_not_correct(tmp_path):
-    """One file present-and-correct, the other entirely absent -> PRESENT_DRIFTED, not
-    PRESENT_CORRECT (a false "nothing to do" would leave the missing file unreconciled)."""
+    """One file present-and-correct, one entirely absent (a third kept correct too) ->
+    PRESENT_DRIFTED, not PRESENT_CORRECT (a false "nothing to do" would leave the missing
+    file unreconciled)."""
     (tmp_path / "bin").mkdir(parents=True)
     _ps1_target(tmp_path).write_bytes(_PS1_SOURCE.read_bytes())
+    _lib_target(tmp_path).write_bytes(_LIB_SOURCE.read_bytes())
     assert not _md_target(tmp_path).exists()
     car = _carrier(tmp_path)
     assert car.detect(_ORGAN_TARGET) is contract.CarrierState.PRESENT_DRIFTED
@@ -136,12 +148,14 @@ def test_apply_is_idempotent(tmp_path):
     car.apply(_ORGAN_TARGET)
     ps1_before = _ps1_target(tmp_path).read_bytes()
     md_before = _md_target(tmp_path).read_bytes()
+    lib_before = _lib_target(tmp_path).read_bytes()
 
     second = car.apply(_ORGAN_TARGET)
     assert second.changed is False
     assert second.changes == ()
     assert _ps1_target(tmp_path).read_bytes() == ps1_before
     assert _md_target(tmp_path).read_bytes() == md_before
+    assert _lib_target(tmp_path).read_bytes() == lib_before
 
 
 # ---------------------------------------------------------------------------
@@ -152,7 +166,7 @@ def test_apply_is_idempotent(tmp_path):
 def test_verify_on_absent_is_not_ok(tmp_path):
     result = _carrier(tmp_path / "claude").verify(_ORGAN_TARGET)
     assert result.ok is False
-    assert len(result.failures) == 2
+    assert len(result.failures) == 3
     assert any("absent" in f for f in result.failures)
 
 
