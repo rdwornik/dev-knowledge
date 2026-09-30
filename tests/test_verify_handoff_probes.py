@@ -14,6 +14,7 @@ judgment (HANDOFF_PROCESS §5); #161 owns any reusable probe-core. This is struc
 """
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
@@ -2278,6 +2279,190 @@ def _boot_bundle(tmp_path, rows=None, *, prose=None, receipt="ok", slug=_BOOT_SL
 
 def _bd(results):
     return {r.probe_id: r for r in results if r.probe_id.startswith(("BD-", "BP-"))}
+
+
+# --- [#1330]: a COMMITTED bundle's BD-ci/BD-rulings/BD-capabilities are judged at its own ---
+# cut sha/date, never against today's live state; an UNCOMMITTED bundle (still being cut)
+# keeps live-state teeth.
+
+def test_state_row_fns_thread_the_cut_anchor_through(monkeypatch):
+    """Direct proof of the wiring `_STATE_ROW_FNS` relies on: CI gets `ctx.cut_sha`,
+    Rulings/Capabilities get `ctx.cut_date` -- no git, no fixture, just the three lambdas."""
+    seen = {}
+
+    def _fake_row_ci(repo_root, *, at_sha=None):
+        seen["ci_at_sha"] = at_sha
+        return hs.StateRow("CI", "v", "LIVE-DRIFTS", "e")
+
+    def _fake_row_rulings(transport, *, as_of=None):
+        seen["rulings_as_of"] = as_of
+        return hs.StateRow("Rulings", "v", "SLOW", "e")
+
+    def _fake_row_capabilities(transport, *, as_of=None):
+        seen["capabilities_as_of"] = as_of
+        return hs.StateRow("Capabilities", "v", "SLOW", "e")
+
+    monkeypatch.setattr(hs, "row_ci", _fake_row_ci)
+    monkeypatch.setattr(hs, "row_rulings", _fake_row_rulings)
+    monkeypatch.setattr(hs, "row_capabilities", _fake_row_capabilities)
+    monkeypatch.setattr(vhp, "_transport_for", lambda ctx: None)
+
+    ctx = vhp._BootCtx(Path("b"), Path("r"), {}, cut_sha="c758fe2f8472", cut_date="2026-09-20")
+    vhp._STATE_ROW_FNS["CI"](hs, ctx)
+    vhp._STATE_ROW_FNS["Rulings"](hs, ctx)
+    vhp._STATE_ROW_FNS["Capabilities"](hs, ctx)
+    assert seen == {"ci_at_sha": "c758fe2f8472", "rulings_as_of": "2026-09-20",
+                    "capabilities_as_of": "2026-09-20"}
+
+
+def test_state_row_fns_pass_none_for_an_uncommitted_bundles_ctx(monkeypatch):
+    """The default `_BootCtx()` (no cut_sha/cut_date) is what an uncommitted bundle gets --
+    `None` threads through unchanged, preserving the prior live-`origin/main` behavior."""
+    seen = {}
+    monkeypatch.setattr(hs, "row_ci", lambda repo_root, *, at_sha=None: seen.setdefault("ci", at_sha) or hs.StateRow("CI", "v", "LIVE-DRIFTS", "e"))
+    monkeypatch.setattr(hs, "row_rulings", lambda transport, *, as_of=None: seen.setdefault("rulings", as_of) or hs.StateRow("Rulings", "v", "SLOW", "e"))
+    monkeypatch.setattr(hs, "row_capabilities", lambda transport, *, as_of=None: seen.setdefault("capabilities", as_of) or hs.StateRow("Capabilities", "v", "SLOW", "e"))
+    monkeypatch.setattr(vhp, "_transport_for", lambda ctx: None)
+
+    ctx = vhp._BootCtx(Path("b"), Path("r"), {})   # no cut_sha/cut_date -> defaults
+    vhp._STATE_ROW_FNS["CI"](hs, ctx)
+    vhp._STATE_ROW_FNS["Rulings"](hs, ctx)
+    vhp._STATE_ROW_FNS["Capabilities"](hs, ctx)
+    assert seen["ci"] is None and seen["rulings"] is None and seen["capabilities"] is None
+
+
+@_needs_git
+def test_bundle_cut_anchor_returns_none_when_uncommitted(tmp_path):
+    repo = tmp_path / "repo"
+    _git_repo(repo)
+    bundle = repo / "docs" / "handoffs" / "2026-09-25-b"
+    bundle.mkdir(parents=True)
+    (bundle / "HANDOFF_RECEIPT.json").write_text(
+        json.dumps({"manifest": {"source_sha": "deadbeef",
+                                 "generation_time": "2026-09-25T00:00:00+00:00"}}),
+        encoding="utf-8")
+    # never committed
+    assert vhp._bundle_cut_anchor(bundle, repo) == (None, None)
+
+
+@_needs_git
+def test_bundle_cut_anchor_reads_source_sha_and_date_once_committed(tmp_path):
+    repo = tmp_path / "repo"
+    run = _git_repo(repo)
+    bundle = repo / "docs" / "handoffs" / "2026-09-25-b"
+    bundle.mkdir(parents=True)
+    (bundle / "HANDOFF_RECEIPT.json").write_text(
+        json.dumps({"manifest": {"source_sha": "c758fe2f847238c7f9bc88797ab13ac106453795",
+                                 "generation_time": "2026-09-25T12:00:00+00:00"}}),
+        encoding="utf-8")
+    _commit_at(run, ".", "2026-09-25T12:05:00+02:00", "cut")
+    sha, date = vhp._bundle_cut_anchor(bundle, repo)
+    assert sha == "c758fe2f847238c7f9bc88797ab13ac106453795"
+    assert date == "2026-09-25"
+
+
+@_needs_git
+def test_bundle_cut_anchor_returns_none_when_receipt_is_unreadable(tmp_path):
+    repo = tmp_path / "repo"
+    run = _git_repo(repo)
+    bundle = repo / "docs" / "handoffs" / "2026-09-25-b"
+    bundle.mkdir(parents=True)
+    (bundle / "HANDOFF_RECEIPT.json").write_text("not json", encoding="utf-8")
+    _commit_at(run, ".", "2026-09-25T12:05:00+02:00", "cut")
+    assert vhp._bundle_cut_anchor(bundle, repo) == (None, None)
+
+
+@_needs_git
+def test_committed_bundle_clears_bd_ci_despite_origin_main_drifting_red(tmp_path, monkeypatch):
+    """The row's own reported symptom, reproduced: a bundle recorded CI GREEN at its cut sha.
+    `origin/main` has since drifted RED (an unrelated later regression) -- the committed
+    bundle must still PASS BD-ci, because it is judged against the sha IT recorded, not
+    today's origin/main."""
+    monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
+    cut_sha = "c758fe2f847238c7f9bc88797ab13ac106453795"
+
+    def _fake_verdict_for(ref, **kwargs):
+        if ref == cut_sha:
+            return hs._civ.CiVerdict(ref=ref, sha=ref[:7], verdict=hs._civ.STATE_GREEN, run_id=1)
+        return hs._civ.CiVerdict(ref=ref, sha="deadbee", verdict=hs._civ.STATE_RED, run_id=2,
+                                 new_reds=("some_test",))
+    monkeypatch.setattr(hs._civ, "verdict_for", _fake_verdict_for)
+
+    repo = tmp_path / "repo"
+    run = _git_repo(repo)
+    cut_ci_row = hs.row_ci(repo, at_sha=cut_sha)   # what the generator recorded at cut time
+    assert "GREEN" in cut_ci_row.value             # sanity: the fixture's premise holds
+
+    bundle = _boot_bundle(
+        tmp_path, rows=_boot_rows(CI=cut_ci_row.rendered()),
+        receipt={"manifest": {"source_sha": cut_sha,
+                              "generation_time": "2026-09-25T12:00:00+00:00"}})
+    _commit_at(run, ".", "2026-09-25T12:05:00+02:00", "cut")
+
+    live_row = hs.row_ci(repo)                     # sanity: origin/main really did drift
+    assert "RED" in live_row.value
+
+    by = _bd(vhp.verify(bundle))
+    assert by["BD-ci"].status == "pass", by["BD-ci"].detail
+
+
+@_needs_git
+def test_committed_bundle_downgrades_a_genuine_anchor_mismatch_to_warn_not_fail(tmp_path, monkeypatch):
+    """The measured, real-world case ([#1330]): even anchored to its own cut sha, CI's
+    rolling run window (`ci_verdict.list_runs`' `limit=40`) can no longer find an old run --
+    a genuine, irreducible mismatch the anchor cannot resolve. This must not FAIL the
+    ship-gate (an external retention window is not the bundle's fault) and must not silently
+    PASS either (a real disagreement, reported)."""
+    monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
+    cut_sha = "c758fe2f847238c7f9bc88797ab13ac106453795"
+
+    def _fake_verdict_for(ref, **kwargs):
+        # The cut sha has "aged out" of the run window: NOT-RUN regardless of what was
+        # recorded at cut time.
+        return hs._civ.CiVerdict(ref=ref, sha=ref[:7], verdict=hs._civ.STATE_NOT_RUN,
+                                 reason="no Actions run matched (aged out of the run window)")
+    monkeypatch.setattr(hs._civ, "verdict_for", _fake_verdict_for)
+
+    repo = tmp_path / "repo"
+    run = _git_repo(repo)
+    recorded_row = hs.StateRow(       # what the generator recorded AT cut time (a real GREEN)
+        "CI", "`c758fe2` GREEN (run 1)", "LIVE-DRIFTS", "ci_verdict.verdict_for(ref, timeout_s=0)")
+    bundle = _boot_bundle(
+        tmp_path, rows=_boot_rows(CI=recorded_row.rendered()),
+        receipt={"manifest": {"source_sha": cut_sha,
+                              "generation_time": "2026-09-25T12:00:00+00:00"}})
+    _commit_at(run, ".", "2026-09-25T12:05:00+02:00", "cut")
+
+    by = _bd(vhp.verify(bundle))
+    assert by["BD-ci"].status == "warn", by["BD-ci"].detail
+    assert "rolling run window" in by["BD-ci"].detail or "mutable transport" in by["BD-ci"].detail
+
+
+@_needs_git
+def test_uncommitted_bundle_still_fails_bd_ci_on_live_drift(tmp_path, monkeypatch):
+    """The row's second Done-when clause: a bundle still uncommitted (being cut right now)
+    keeps live-state teeth -- a stale recorded value still FAILs against live `origin/main`,
+    exactly as before this lane."""
+    monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
+
+    def _fake_verdict_for(ref, **kwargs):
+        return hs._civ.CiVerdict(ref=ref, sha="deadbee", verdict=hs._civ.STATE_RED, run_id=2,
+                                 new_reds=("some_test",))
+    monkeypatch.setattr(hs._civ, "verdict_for", _fake_verdict_for)
+
+    repo = tmp_path / "repo"
+    _git_repo(repo)   # a real .git, but nothing is ever committed into it
+    stale_green_row = hs.StateRow(
+        "CI", "`old` GREEN (run 1)", "LIVE-DRIFTS",
+        'ci_verdict.verdict_for("origin/main", timeout_s=0)')
+    bundle = _boot_bundle(
+        tmp_path, rows=_boot_rows(CI=stale_green_row.rendered()),
+        receipt={"manifest": {"source_sha": "irrelevant-uncommitted",
+                              "generation_time": "2026-09-25T12:00:00+00:00"}})
+    # never committed -- _bundle_cut_anchor must read this as (None, None)
+
+    by = _bd(vhp.verify(bundle))
+    assert by["BD-ci"].status == "fail", by["BD-ci"].detail
 
 
 def test_a_well_formed_boot_data_block_passes_every_row(tmp_path, monkeypatch):
