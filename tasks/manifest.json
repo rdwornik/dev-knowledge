@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "543566c9ed7e95a06c2008f694a914c7015bbe13df0f0a1d6c398c9a73ae94ce",
+  "generated_sha256": "81d18c8e2f5fe14130a49a392421753aefd47e5dc9f577ea8a4596a62fb59c5f",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2734,10 +2734,6 @@
     {
       "task": 1327,
       "file": "1327-agy-reports-success-without-an-output-file.md"
-    },
-    {
-      "task": 1329,
-      "file": "1329-consumer-at-landing-accepts-the-integrator-merge-receipt.md"
     },
     {
       "task": 1330,

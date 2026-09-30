@@ -723,7 +723,6 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1125] [P2][S] N5: absorb or retire the claude/conformance-* digest branches · tasks/1125-n5-absorb-or-retire-the-claude-conformance-digest-branches.md
 - [#1126] [P2][S] N5: archive/* tags join R25's allowed set with an owner and an expiry · tasks/1126-n5-archive-tags-join-r25-s-allowed-set-with-an-owner-and-an-expiry.md
 - [#1327] [P2][S] `agy` reports SUCCESS without an output file · tasks/1327-agy-reports-success-without-an-output-file.md
-- [#1329] [P1][M] consumer_at_landing accepts the integrator merge receipt; the Codex-review organ writes the consumer line · tasks/1329-consumer-at-landing-accepts-the-integrator-merge-receipt.md
 - [#1330] [P1][M] An archived bundle's probes are judged at its own cut sha · tasks/1330-an-archived-bundles-probes-are-judged-at-its-own-cut-sha.md
 
 ---
