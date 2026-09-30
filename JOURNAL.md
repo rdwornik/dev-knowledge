@@ -21,6 +21,58 @@
 
 ---
 
+### 2026-09-30 (a) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5 cycle-3): a seat release is one refusing transaction, and CI reds a tampered handoff bundle (B1, R33.2)
+
+**Anchors:** `00c50972`, `81e9fe62`, `64f233fb`, `a453c7a0`, `71a9dc89` -- `worktree-lane-handoff-moments` (N5-2, `LANE-5B5-2-lane-handoff-moments`; served `claude-sonnet-5`). Merged `--no-ff` in `epic/wave5b-n5-int-lane-handoff-moments` from `9fadaf12`.
+
+**Did:**
+- `ecosystem/harness.yaml`: a seventh moment, `seat-release`, with four organs (`notes`, `bundle`, `manifest`, `copy`). Each reads the bundle the operator names and refuses by name when its artifact is missing. The two `fates:` rows for `.claude/commands/handoff.md` and `handoff-verify.md` are removed; both paths are now declared at this moment.
+- `.github/workflows/conductor.yml`: a `handoff-manifest` job re-runs the BD-manifest rule over every committed manifest-era bundle under `docs/handoffs/**` on a push that touches it. Three throwaway `automation/b1-tamper-probe-<n>` runs were red on a tampered bundle; the branches are deleted.
+- `tests/test_seat_release_moment.py` (17 tests); `tests/test_spine_moments.py` updated for the seventh moment. Two Codex terra records (2 Critical each), fixed in `64f233fb`, `a453c7a0` and `71a9dc89`.
+
+**Result:** `doit -f scripts/dodo.py moment:seat-release` on a dry cut writes four receipts; on `9fadaf12` the target does not exist (exit 3).
+
+**Changes:** `ecosystem/harness.yaml`, `.github/workflows/conductor.yml`, `.claude/commands/handoff.md`, `.claude/commands/handoff-verify.md`, `tests/test_seat_release_moment.py`, `tests/test_spine_moments.py`, two audits. Regenerated `docs/audits/README.md`; `ecosystem/doc-counts.md` set to the merged tree's `8600 collected` (8583 + 17). `logs/MERGE-RECEIPTS.jsonl` carries N5-11's receipt row (`9fadaf12`).
+
+**Next:**
+- CI on this branch, both legs, is the verdict.
+- `lane-fates-due` starts after this merge (both edit `ecosystem/harness.yaml`).
+
+### 2026-09-29 (j) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5 cycle-1): a read counts only when its output exists, its log is clean and every quotation is literally in the source (AMEND N5-11, AX21-1)
+
+**Anchors:** `9294c3d2`, `d1399563` -- `worktree-lane-read-gate` (N5-11, `LANE-5B5-11-lane-read-gate`; served `claude-sonnet-5`). Merged `--no-ff` in `epic/wave5b-n5-int-lane-read-gate` from `9ec8aaf1`.
+
+**Did:**
+- `scripts/read_gate.py`: a verifier that rejects a read with no or empty output file, a "print timeout" log line, no quotation, or a quotation not found literally (whitespace-normalized) in the locally extracted source. `pdfplumber` extracts PDF, the standard library EPUB, plain text as is. A route runner walks `roles.read` in the registry's declared order, falls through on a failed check, and appends one line per attempt to `logs/READ-OUTCOMES.jsonl`.
+- `tests/test_read_gate.py`: 32 tests on synthetic fixtures generated in the test. The RED-first witnesses (a) and (b) fail against an accept-everything stub.
+- `pdfplumber` added through the pinned `uv` (ruling (n)); `ecosystem/provider-registry.yaml` unchanged.
+- The Codex terra record `docs/audits/2026-09-29-codex-lane-read-gate.md` found 2 Critical and 3 High, all fixed in `d1399563`. One fix added a fourth check (no quotation = no read) and removed the self-accepting live-terminal-fallback invoker.
+
+**Result:** an `agy` SUCCESS with no output file, or a paraphrase in quotation marks, is rejected and falls through instead of counting as a faithful read.
+
+**Changes:** `scripts/read_gate.py`, `tests/test_read_gate.py`, `tests/fixtures/read_gate/`, `pyproject.toml`, `uv.lock`, `logs/READ-OUTCOMES.jsonl`, one `fates:` line in `ecosystem/harness.yaml`, one audit. Regenerated `docs/audits/README.md`; `ecosystem/doc-counts.md` set to the merged tree's `8583 collected` (8551 + 32). `logs/MERGE-RECEIPTS.jsonl` carries N5-1's receipt row (`9ec8aaf1`).
+
+**Next:**
+- CI on this branch, both legs, is the verdict.
+- `[#1327]` is filed by `lane-claude-md-rulings`; the lane reports ROW-MET for it once filed.
+
+### 2026-09-29 (i) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5): the scope guard stops refusing a regex, a glob or a quoted token that names no excluded root, and still refuses a real one (R33.6)
+
+**Anchors:** `a40f873a`, `a57c81f8`, `2fc067b2`, `359c5a15`, `d3a0616f` -- `worktree-lane-scope-guard-3` (N5-1, `LANE-5B5-1-lane-scope-guard-3`, first and alone; served `claude-sonnet-5`). Merged `--no-ff` in `epic/wave5b-n5-int-lane-scope-guard-3` from `b30f96ba`.
+
+**Did:**
+- `scripts/hooks/scope_guard.py`: the bare-wildcard leg of `excluded_root_hit` now fires only where a wildcard can stand in for the excluded root -- next to a user-home parent (`Users`/`home`) or directly under a drive or filesystem root. `normalize()` reads a drive-letter prefix as absolute on every host OS.
+- `tests/test_scope_guard.py`: one RED-first test per witnessed refusal 1-4, plus the render's fifth witness. The integrator re-ran them against the base code: `5 failed, 56 passed`. The real-bypass test (`test_a_bare_wildcard_standing_in_for_the_root_at_its_own_parent_is_refused`) is unedited and still blocks.
+- The Codex terra record `docs/audits/2026-09-29-codex-lane-scope-guard-3.md` found 2 Critical (a recursive `**` over the home boundary; a root directly under a drive root). Both are fixed in `2fc067b2` with regression tests.
+
+**Result:** the four witnessed false positives exit `allow`, and a command naming a path under an excluded root is still refused. `ecosystem/excluded-roots.yaml` and the hook wiring are unchanged (R15 unchanged).
+
+**Changes:** `scripts/hooks/scope_guard.py`, `tests/test_scope_guard.py`, one audit. Regenerated `docs/audits/README.md`; `ecosystem/doc-counts.md` set to the merged tree's `8551 collected` (8545 + 6).
+
+**Next:**
+- CI on this branch, both legs, is the verdict.
+- Every other local lane of WAVE5B-N5 starts after this one. N5-9 is HELD and N5-10 SUPERSEDED by operator decisions (2026-09-29 ~16:33 and ~16:40).
+
 ### 2026-09-29 (h) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5-R cycle 2): one Ruff rule set, and a test that goes red if the hub and the consumer template disagree on it
 
 **Anchors:** `5216bcbb`, `c684d79e`, `013a2b28`, `5f28198d`, `3fff0c0b`, `69e32448`, `364c6f22`, `65836465`, `99845d77`, `5c020a3f`, `b479dbd8` -- `worktree-lane-python-standard-2` (L9, `LANE-5B5R-9-python-standard-2`, a redo from the preserved tip `5f28198d`). The codespace run served `claude-sonnet-5` (dispatcher `MODEL` line). Repair 1 ran locally after the integrator's refusal on item 8. Merged `--no-ff` in `epic/wave5b-n5-r-int-lane-python-standard-2` from `13fce088`.
