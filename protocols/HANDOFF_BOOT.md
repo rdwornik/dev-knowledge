@@ -127,13 +127,10 @@ The verification split, bidirectional adjudication, and plan-review contract bel
 - **Ask the operator for off-repo context — after orienting, before you decompose.** CC's handoff
   is repo-derived; it cannot carry operator intent or off-repo findings. Make **one** targeted ask:
   *"what off-repo context for this planning session — intent, priorities, findings not in the repo,
-  changed decisions?"* This is **off-repo only** — do **not** re-narrate CC's residual (that is the
-  repo-side "why"), and it is **not** the old heavy file-by-file interview, just the one ask.
-  Architect mode only. (v5.2: when CC's paste carries the supplement's **ANSWERS**, its Q6 already
-  captured this off-repo context at handoff time — narrow the ask to *"anything changed since the
-  supplement was written?"* rather than re-asking it whole — but an **empty** supplement (a cold / cleared handoff) carries no
-  answers, so ask the full question; `HANDOFF_PROCESS.md` §13(d), "(d)
-  refined, not duplicated".)
+  changed decisions?"* Off-repo only, not a re-narration of CC's residual, and not the old
+  file-by-file interview — just the one ask. Architect mode only. When CC's paste carries the
+  supplement's ANSWERS, narrow the ask per `HANDOFF_PROCESS.md` §13(d) ("refined, not
+  duplicated") — an empty supplement (cold/cleared handoff) carries no answers, so ask in full.
 - **Drive decomposition.** Turn the architecture work into the task-graph — what blocks what,
   what can run in parallel — and hand it back as residual + `BACKLOG.md` pointers. (The graph
   lives in the residual this pass; it is not yet a durable BACKLOG field — #156.)
@@ -157,15 +154,17 @@ Eight facts a fresh seat needs before writing a lane contract (`HANDOFF_PROCESS.
 seats; each order is a template, item 0). Each fact points to its source — pull the live text via
 CC instead of restating it from memory.
 
-**A lane starts through the launcher; the integrator and dispatcher do not.** `uv run --locked
-python scripts/dispatch.py launch --slug <slug> --model <id> --effort <effort> --batch <BATCH>
-"<contract path>"` — copy the line from `scripts/dispatch.py launch --help`. Its `pre-launch`
-moment always runs `no-live-integrator` (`ecosystem/harness.yaml`) — `launch` is a LANE's path
-only; calling it for a batch's own first integrator deadlocks. The integrator and dispatcher
-instead start by the operator pasting their filled order template into a NEW session — that
-paste **is** the batch GO (each template's `authorized-by:` line), not `launch`. **Model**: the
-order's cell, checked against `ecosystem/provider-registry.yaml` roles. **Effort**: the order
-alone — the registry and `~/.claude/ROUTING.md` declare none.
+**A lane starts through the launcher; the render, integrator and dispatcher do not.** `uv run
+--locked python scripts/dispatch.py launch --slug <slug> --model <id> --effort <effort> --batch
+<BATCH> "<contract path>"` — copy the line from `scripts/dispatch.py launch --help`. Its
+`pre-launch` moment always runs `no-live-integrator` (`ecosystem/harness.yaml`) — `launch` is a
+LANE's path only; render, integrator or dispatcher called before an integrator is bound refuses
+on that same organ. Each instead starts by the operator pasting its own filled order template
+into a NEW session — that paste **is** the batch GO (each template's `authorized-by:` line). A
+`pre-launch`-refused seat falls back to its own order's `## Dispatch` line; the launcher records
+`FALLBACK <slug>: <why>` (`templates/dispatcher-order-template.md`). **Model**: the order's cell,
+checked against `ecosystem/provider-registry.yaml` roles. **Effort**: the order alone — the
+registry and `~/.claude/ROUTING.md` declare none.
 
 **Seat order and binding.** The integrator binds first (`claim.py claim INTEGRATOR-<BATCH>`, then
 `seat_registry.py bind --role integrator --batch <BATCH>`); the dispatcher binds `--role
@@ -175,10 +174,11 @@ dispatcher` next; a lane is last — and refused if no integrator is yet live.
 dry-runs exit 0, `queue --dry-run` exits 0, no bare model alias or unfilled placeholder. No
 launch before GREEN.
 
-**The queue is one-shot passes, not `--watch`** (R34.1). `dispatch.py queue --batch <BATCH> --cap <M>
---floor-mb <N>` fires from two drivers only — the dispatcher's recurring wake-up, and the
-integrator after every merge and refusal. Defaults: local cap 4, floor 3072 MB
-(`scripts/dispatch.py`); below either it HOLDs.
+**The queue is one-shot passes, not `--watch`** (R34.1) — supersedes
+`templates/dispatcher-order-template.md`'s still-live `--watch` line until updated. `dispatch.py
+queue --batch <BATCH> --cap <M> --floor-mb <N>` fires from two drivers only — the dispatcher's
+recurring wake-up, and the integrator after every merge and refusal. Defaults: local cap 4, floor
+3072 MB (`scripts/dispatch.py`); below either it HOLDs.
 
 **What a lane does at its end.** It commits-and-STOPs, without self-merging. Purity (`git log
 origin/main..HEAD`), its own tests, `audit.py health`, then one
