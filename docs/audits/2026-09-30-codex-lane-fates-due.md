@@ -85,3 +85,40 @@ test_the_live_tree_carries_no_IN_ERA_uncovered_decision`, `test_verify_handoff_p
 test_registered_check_never_fails_on_live_repo`) -- proving those 7 are pre-existing on
 origin/main, not caused by this lane, and `test_organ_truth.py`'s entry was the only one
 this lane introduced and is now the only one this lane's push (`096083b7`) removes.
+
+## Final CI verification (commit `9efa350d`, run 36668031101)
+
+`test_organ_truth.py` does not appear in either OS leg's `known_reds.py compare` output on
+this run -- the repair held. Job conclusions: `commit-gate` FAIL, `pytest (ubuntu-latest)`
+FAIL, `pytest (windows-latest)` FAIL, `ship-gate` FAIL; `seal`/`anchor`/`terra`/`ruff`/
+`spine`/`handoff-manifest`/`phase-gate` all PASS. Paired against origin/main's own CI run at
+this lane's exact base sha (`f422ccf7`, run 36662286065, also overall `failure`), job by job:
+
+- **commit-gate** -- `audit-health` regression set (`consumer_at_landing`, `handoff_probes`)
+  is byte-identical on both runs (jobs 109736869145 vs 109719448828). Pre-existing,
+  unrelated to this diff.
+- **pytest (ubuntu-latest) / (windows-latest)** -- diffing the unique `REGRESSION` line sets
+  between this run's jobs (109736869174, 109736869180) and the baseline's
+  (109719448789, 109719448781) leaves exactly three net-new items on both OS legs:
+  `test_gen_audit_index.py::test_live_index_excludes_nothing_because_every_audit_is_tracked`,
+  `test_gen_audit_index.py::test_live_index_is_fresh`, and `test_worktree_seed.py::
+  test_A_LANES_BASE_EQUALS_MAIN_HEAD_AT_DISPATCH` (plus one flaky concurrency/lock test each
+  way that is absent on one run and present on the other -- non-deterministic, not diff-driven).
+  The two `gen_audit_index` items are the direct, expected consequence of adding
+  `docs/audits/2026-09-30-codex-lane-fates-due.md` under this contract's own close-out
+  requirement while the contract's Do-not list forbids regenerating
+  `docs/audits/README.md` in a lane ("the integrator does, on the merged tree" -- `[#590]`);
+  `test_worktree_seed`'s base-equals-main-at-dispatch check is this lane's worktree base
+  having fallen behind main's current tip over the session's run time, an ordinary
+  lane-mechanics artifact of a long-running lane in a parallel batch, not a defect this
+  lane's edits introduced. No fix applied for either -- both are structurally expected given
+  the contract's own constraints, not regressions caused by the `harness.yaml`/
+  `test_organ_truth.py` diff.
+- **ship-gate** -- fails identically on both runs (`RED — not shipped-ready`, driven by
+  `journal_spine_anchor`/`review_artifact_coverage` errors from the CI checkout lacking a
+  local `main` ref/full history) -- pre-existing, unrelated to this diff.
+
+Net: this lane's push introduces zero new test/check regressions beyond what the contract's
+own close-out mechanics (an added audit doc, a lane's aging worktree base) structurally
+produce; every other red on this run reproduces byte-for-byte on origin/main's own baseline
+run at the same base commit.
