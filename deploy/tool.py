@@ -89,6 +89,7 @@ _DEPLOY_DIR = Path(__file__).resolve().parent
 if str(_DEPLOY_DIR) not in sys.path:
     sys.path.insert(0, str(_DEPLOY_DIR))
 
+from carrier_codexreview import CodexReviewCarrier  # noqa: E402
 from carrier_docs import DocsCarrier  # noqa: E402
 from carrier_floor import FloorCarrier  # noqa: E402
 from carrier_globalconfig import GlobalConfigCarrier  # noqa: E402
@@ -430,16 +431,21 @@ def make_carriers(
     *,
     plugin_runner: Any | None = None,
     user_config_base: Path | str | None = None,
+    claude_config_base: Path | str | None = None,
 ) -> dict[str, Carrier]:
     """Build every carrier bound to ``repo_root``, keyed by its ``carrier_id``.
 
-    ``plugin_runner`` / ``user_config_base`` are the live carriers' injection
-    points (default ``None`` -> the real ``claude`` CLI / the real ``~/.codex``);
-    the live tool passes neither, so assess reads real state.
+    ``plugin_runner`` / ``user_config_base`` / ``claude_config_base`` are the live
+    carriers' injection points (default ``None`` -> the real ``claude`` CLI / the
+    real ``~/.codex`` / the real ``~/.claude``); the live tool passes none of
+    them, so assess reads real state.
     """
     return {
         GlobalConfigCarrier.carrier_id: GlobalConfigCarrier(
             repo_root, user_config_base=user_config_base
+        ),
+        CodexReviewCarrier.carrier_id: CodexReviewCarrier(
+            repo_root, user_config_base=claude_config_base
         ),
         PluginCarrier.carrier_id: PluginCarrier(repo_root, runner=plugin_runner),
         PrecommitCarrier.carrier_id: PrecommitCarrier(repo_root),
@@ -462,6 +468,7 @@ def default_carrier_factory(repo_root: Path) -> dict[str, Carrier]:
 
 _APPLY_HINT = {
     "global-config": "copy hub deploy/global-instructions-codex.md -> ~/.codex/AGENTS.md",
+    "codex-review-organ": "copy hub deploy/codex-review.{ps1,md} -> ~/.claude/{bin,commands}/",
     "tier1-plugin": "claude plugin install/update --scope project",
     "precommit": "merge required pins into .pre-commit-config.yaml",
     "floor": "generate .claude/CLAUDE-FLOOR.md + .sha256 sidecar",

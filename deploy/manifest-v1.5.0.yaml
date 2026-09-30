@@ -564,6 +564,36 @@ carriers:
         - deploy/conductor-required-checks.ruleset.json
         - scripts/conductor.py
 
+  # NEW in this cut -- [#1328], operator ruling 2026-09-30 on R42.2 (RATIFICATION-2026-09-30.md
+  # v2): the Codex-review organ was L0-only and untracked (`~/.claude/bin/codex-review.ps1`,
+  # `~/.claude/commands/codex-review.md`), so it had no repo home to build `[#1329]`'s
+  # "the organ writes the consumer line itself" in. Its source moves under the hub, tested,
+  # and `~/.claude/` becomes an installed copy -- the SAME user-machine-scoped shape as the
+  # `global-config` carrier above (ADR-54 precedent), extended to a PAIR of files (the
+  # `docs` carrier's multi-path precedent) instead of one. `~/.claude/` is never written
+  # directly by this carrier or its tests (ruling (j)) -- the integrator installs it
+  # post-merge, from the merged hub source.
+  - id: codex-review-organ
+    order: 10
+    implemented: true
+    description: >
+      The Codex-review organ's tracked hub source -- the reviewer wrapper script
+      (`deploy/codex-review.ps1`) and its slash-command doc (`deploy/codex-review.md`) --
+      carried to the user-level `~/.claude/bin/codex-review.ps1` and
+      `~/.claude/commands/codex-review.md`. USER-machine scoped, not consumer-repo scoped;
+      a copied file has no rev (ABSENT / PRESENT_CORRECT / PRESENT_DRIFTED only).
+      Byte-fidelity, not LF-normalization: both hub sources are pinned CRLF
+      (`.gitattributes`: the blanket `*.ps1 text eol=crlf` rule covers the script,
+      `deploy/codex-review.md text eol=crlf` was added for the doc) so a deploy run
+      reproduces the two files exactly as the live, hand-authored organ carried them.
+    adr: []
+    target:
+      organ_paths:
+        - source_path: deploy/codex-review.ps1
+          target_rel: bin/codex-review.ps1
+        - source_path: deploy/codex-review.md
+          target_rel: commands/codex-review.md
+
 components:
   - id: conductor-workflow
     # kind: `config` follows the precedent of every other file-copy component
@@ -686,6 +716,24 @@ components:
       - path: "~/.codex/AGENTS.md"
         source: deploy/global-instructions-codex.md
     # USER-machine scoped (L0) — no consumer CLAUDE.md roster line.
+    roster: null
+
+  - id: codex-review-organ
+    kind: config
+    carrier: codex-review-organ
+    status: active
+    waivable: true   # an onboarding/review tool; absence costs the /codex-review command, not a gate
+    verify: hash
+    engages:
+      trigger: deploy-time      # user-machine (~/.claude); NOT exercised by the repo arc
+      observable: git-state
+      expect: "~/.claude/bin/codex-review.ps1 + ~/.claude/commands/codex-review.md present (hash-matched)"
+    artifacts:
+      - path: "~/.claude/bin/codex-review.ps1"
+        source: deploy/codex-review.ps1
+      - path: "~/.claude/commands/codex-review.md"
+        source: deploy/codex-review.md
+    # USER-machine scoped (L0) — no consumer CLAUDE.md roster line (same as codex-agents-config).
     roster: null
 
   - id: tier1-lifecycle-plugin
