@@ -21,6 +21,23 @@
 
 ---
 
+### 2026-09-30 (f) - CC (Opus 5.5, handoff seat): the handoff cut is held; [#1328], [#1329] and [#1330] are filed as the handoff-unblock rows
+
+**Anchors:** `8a616564` -- `worktree-file-handoff-unblock-rows`, merged `--no-ff` from `bc8c106e`.
+
+**Did:**
+- `/handoff` preflight refused the 2026-09-30 cut on `ship_gate` (6 hard-fail: `consumer_at_landing` x3, `handoff_probes` BD-ci / BD-rulings / BD-capabilities on `2026-09-28-dev-knowledge-architect`) and on `ratification_present` (since written by the operator).
+- Found no sanctioned route for either hard-fail class: the disposition register clears WARNs only (`scripts/audit.py:6813`), `undeclared()` reads only the audit's own text (`scripts/consumer_at_landing.py:375`), and the preflight exempts only a bundle's own BD-manifest (`scripts/gen_handoff.py:986`). RATIFICATION-2026-09-30 v2 R42.2-R42.4 corrected v1 on that finding.
+- Filed three rows under `[S28]`: `[#1328]` (the Codex-review organ gets a tracked hub carrier; `~/.claude/` becomes an installed copy), `[#1329]` (`consumer_at_landing` accepts the integrator merge receipt; the organ writes the consumer line; depends on `#1328`), `[#1330]` (an archived bundle's probes are judged at its own cut sha).
+
+**Result:** the defects blocking the cut are rows with Done-when and touch lists; the cut stays held until `[#1329]` and `[#1330]` merge (R42.4).
+
+**Changes:** `tasks/1328-*.md`, `tasks/1329-*.md`, `tasks/1330-*.md`; regenerated `BACKLOG.md` and `tasks/manifest.json` (558 -> 561 tasks). No `~/.claude/` edit, no audit edit.
+
+**Next:**
+- One handoff-unblock lane builds `[#1328]` -> `[#1329]` and `[#1330]`, RED-first; first work of the next seat.
+- Then re-run `/handoff`.
+
 ### 2026-09-30 (e) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5 cycle-6): CLAUDE.md names the scope guard and the second Layer-2 narrowing; R32-R34 land in STANDING_RULINGS; [#1123] and [#1124] close, [#1327] is filed
 
 **Anchors:** `fd9d6e49`, `9217cf8f` -- `worktree-lane-claude-md-rulings` (N5-7, `LANE-5B5-7-lane-claude-md-rulings`; served `claude-sonnet-5`). Merged `--no-ff` in `epic/wave5b-n5-int-lane-claude-md-rulings` from `32cbe7db`.
