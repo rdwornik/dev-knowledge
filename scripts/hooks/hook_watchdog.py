@@ -361,8 +361,15 @@ def sweep(*, threshold_s: float = DEFAULT_THRESHOLD_S,
     killed: list[dict] = []
     for pid, (proc, cpu0) in baseline.items():
         cpu1 = _cpu_total_tree(proc)
-        if cpu1 is None or cpu1 > cpu0:
-            continue  # exited on its own, or ran: not the suspended-at-creation signature
+        if cpu1 is None or cpu1 != cpu0:
+            # exited on its own; ran and is still running; OR ran and a child that did the
+            # work already exited by t1 -- `_cpu_total_tree` only sums LIVE descendants, so a
+            # short-lived busy child dropping out of the walk can make the tree's total FALL
+            # between samples (repair-1 gap, agy substitute review High finding). A fall is
+            # still movement, and movement of either sign is proof this was never a
+            # suspended-at-creation process: only a total that reads bit-identical at both
+            # samples is that signature.
+            continue
         row = _record_kill(proc, threshold_s, now)
         kill_tree(pid)
         killed.append(row)

@@ -252,11 +252,18 @@ class _FakeCandidateProc:
     scheduler actually did."""
 
     def __init__(self, pid: int, cmdline: list[str], cpu_readings: list[tuple[float, float]],
-                 children: list["_FakeChildProc"] | None = None):
+                 children: list["_FakeChildProc"] | None = None,
+                 children_snapshots: list[list["_FakeChildProc"]] | None = None):
         self.pid = pid
         self._cmdline = cmdline
         self._readings = iter(cpu_readings)
         self._children = children or []
+        # `children_snapshots`, when given, returns ONE list per `children()` call in order --
+        # `sweep` calls it once at t0 and once at t1, and a snapshot that DIFFERS between the
+        # two (a child present at t0, gone by t1) is exactly what a short-lived worker child
+        # produces in the real tree. `_children` (a single constant list) covers the common
+        # case where nothing about the tree's membership changes across the window.
+        self._children_snapshots = iter(children_snapshots) if children_snapshots else None
 
     def cmdline(self):
         return self._cmdline
@@ -268,6 +275,8 @@ class _FakeCandidateProc:
         return _FakeTimes(*next(self._readings))
 
     def children(self, recursive=False):
+        if self._children_snapshots is not None:
+            return next(self._children_snapshots)
         return self._children
 
 
@@ -326,6 +335,36 @@ def test_a_flat_launcher_with_a_busy_child_is_never_a_candidate(tmp_path, monkey
     launcher = _FakeCandidateProc(9003, ["python", "busy_hook.py"],
                                   [(0.05, 0.02), (0.05, 0.02)],  # the launcher itself stays flat
                                   children=[child])
+
+    killed = hw.sweep(threshold_s=0, settings_path=_settings(tmp_path, "busy_hook.py"),
+                      process_iter=lambda: [launcher], sleep=lambda _s: None)
+
+    assert killed == []
+    assert not log.exists() or log.read_text(encoding="utf-8").strip() == ""
+
+
+def test_a_short_lived_busy_child_that_exits_before_t1_is_never_a_candidate(tmp_path,
+                                                                             monkeypatch):
+    """RED-first (codex-lane-hook-watchdog-repair-1 substitute review, agy gemini-3.1-pro-high
+    High finding, independently reproduced by inspection): `_cpu_total_tree` sums only LIVE
+    descendants at the moment it is called. If a child does real work and then exits entirely
+    between the t0 and t1 samples, `proc.children(recursive=True)` no longer sees it at t1, so
+    the tree's total can FALL between samples (the launcher's own total is unchanged, but the
+    now-departed child's accumulated CPU drops out of the sum). Before this fix, `sweep`
+    compared with `cpu1 > cpu0`, so a fall reads identically to "never moved" and the launcher
+    -- which did real, completed work via that child -- was killed. `cpu1 != cpu0` treats a
+    fall as movement too, since only a BIT-IDENTICAL total at both samples is the genuine
+    suspended-at-creation signature."""
+    log = tmp_path / "HOOK-WATCHDOG-KILLS.jsonl"
+    monkeypatch.setenv(hw.RECORD_ENV, str(log))
+    # t0: child alive, already did some work (still counts as near-zero baseline for the
+    # launcher-only view a naive read would take -- the launcher's own total never moves).
+    worker = _FakeChildProc([(0.05, 0.0)])
+    launcher = _FakeCandidateProc(
+        9004, ["python", "busy_hook.py"],
+        [(0.02, 0.0), (0.02, 0.0)],  # the launcher's own total never moves
+        children_snapshots=[[worker], []],  # t0: worker alive; t1: worker already exited
+    )
 
     killed = hw.sweep(threshold_s=0, settings_path=_settings(tmp_path, "busy_hook.py"),
                       process_iter=lambda: [launcher], sleep=lambda _s: None)
