@@ -309,6 +309,23 @@ DECISION_DISPOSITIONS: dict[str, Disposition] = {
     "adr:126": Disposition(reason=_AWAITING_RATIFICATION,
                            owner="the operator's ratification act, tracked at ADR-126's Status line"),
 
+    # -- ADR-128: Accepted AND landed in the same commit -- lane-handoff-boot-dispatch,
+    # batch WAVE5B-N5 row N5-3. Not "awaiting ratification" like 121-126 above -- R33 already
+    # ratified it, and its own implementation (protocols/HANDOFF_BOOT.md's rewrite, discharging
+    # row [#1037] in the same diff) lands in this ADR's own commit rather than in a later,
+    # separate row. The lane contract's own "Do not" list forbids this lane from filing a
+    # backlog row, so this disposition is the sanctioned alternative the decision-coverage
+    # gate itself names.
+    "adr:128": Disposition(
+        reason="Accepted and self-executing: this ADR's Decision items 2/3 were already "
+               "discharged by prior rows (closing [#1123]/[#1124], R33.5), and item 1's own "
+               "implementation -- protocols/HANDOFF_BOOT.md's rewrite, plus [#1037]'s Done-when "
+               "-- lands in the SAME commit as this ADR, not in a subsequent row. No open "
+               "implementing work remains to file a row for.",
+        owner="R33 (to-browser/RATIFICATION-2026-09-29-v3-superseded.md); re-open if a later "
+              "reader finds protocols/HANDOFF_BOOT.md's Dispatch section incomplete against "
+              "this ADR's own Decision text"),
+
     # -- pre-triage intakes (DRAFT/SEED) -- LANE-5B3-4-decision-debt --------------------------
     "intake:93": Disposition(reason=_AWAITING_TRIAGE, owner="ADR-98/ADR-111's intake funnel, not yet run over intake #93"),
     "intake:95": Disposition(reason=_AWAITING_TRIAGE, owner="ADR-98/ADR-111's intake funnel, not yet run over intake #95"),

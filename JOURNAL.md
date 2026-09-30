@@ -21,6 +21,23 @@
 
 ---
 
+### 2026-09-30 (c) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5 cycle-5): HANDOFF_BOOT teaches how a batch is dispatched and carries R30 standing; ADR-128 records the handoff system's second pass ([#1037])
+
+**Anchors:** `511073f9`, `f7f4f051`, `94efde63`, `b4588b40` -- `worktree-lane-handoff-boot-dispatch` (N5-3, `LANE-5B5-3-lane-handoff-boot-dispatch`, after one refusal, its repair and one resume; served `claude-sonnet-5`). Merged `--no-ff` in `epic/wave5b-n5-int-lane-handoff-boot-dispatch` from `f422ccf7`.
+
+**Did:**
+- `protocols/HANDOFF_BOOT.md` rewritten: the ROLE-PIN-only boot (R30, standing) replaces the `/handoff-verify` evidence-block ask, and a Dispatch section tells a fresh seat how a batch runs. It points to each repo source: a lane starts through `dispatch.py launch`; the render, integrator and dispatcher start by the operator's paste of their order, and a seat `pre-launch` refuses before an integrator is bound falls back to its order's `## Dispatch` line (`FALLBACK`); the queue is one-shot passes (R34.1, which wins over the dispatcher template's still-live `--watch`). It keeps the `Integration -- what the integrator does` heading ([#1037]) and stays at 17,989 B of its 18,000 B budget.
+- `docs/decisions/ADR-128-handoff-system-v2.md` (Accepted, R33) plus its index line; `scripts/decision_coverage.py` gives adr:128 a self-executing disposition; `tests/test_validate_adr_status.py` baselines follow the new ADR.
+- Review: Codex terra on the arc (2 P1, both fixed across the handback and the repair); `agy` as the recorded SUBSTITUTION on the repair (Codex usage limit; 2 P1 + 2 P2 fixed, 1 P3 left), landed as `docs/audits/2026-09-30-codex-lane-handoff-boot-dispatch-repair-1.md`.
+
+**Result:** sha256 of `protocols/HANDOFF_BOOT.md` on this tree is `d49aae33067eaca81482276895a189dcb84038e229aa738274328379c4a84fe9`; the operator replaces the Project's knowledge file with it. `[#1037]` is met (ROW-MET recorded, not closed here).
+
+**Changes:** `protocols/HANDOFF_BOOT.md`, ADR-128 and `docs/decisions/README.md`, `scripts/decision_coverage.py`, `tests/test_validate_adr_status.py`, one audit. Regenerated `docs/audits/README.md` and `.claude/generated/recent-adrs.md`. `logs/MERGE-RECEIPTS.jsonl` carries N5-5's receipt row (`f422ccf7`). `ecosystem/doc-counts.md` unchanged (`8620 collected`).
+
+**Next:**
+- CI on this branch, both legs, is the verdict.
+- `templates/dispatcher-order-template.md` still prescribes `queue --watch`; HANDOFF_BOOT's precedence clause holds until that template is updated.
+
 ### 2026-09-30 (b) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5 cycle-4): a hook process orphaned while still suspended is found and killed by an external watchdog that reads the whole process tree, and every kill surfaces at SessionStart ([#863])
 
 **Anchors:** `8050acae`, `a16bf1a9`, `2564619f`, `d901ada9`, `fa19d260` -- `worktree-lane-hook-watchdog` (N5-5, `LANE-5B5-5-lane-hook-watchdog`, after one refusal and its repair; served `claude-sonnet-5`). Merged `--no-ff` in `epic/wave5b-n5-int-lane-hook-watchdog` from `b5286b63`.
