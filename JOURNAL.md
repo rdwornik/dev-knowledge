@@ -21,6 +21,24 @@
 
 ---
 
+### 2026-09-30 (e) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5 cycle-6): CLAUDE.md names the scope guard and the second Layer-2 narrowing; R32-R34 land in STANDING_RULINGS; [#1123] and [#1124] close, [#1327] is filed
+
+**Anchors:** `fd9d6e49`, `9217cf8f` -- `worktree-lane-claude-md-rulings` (N5-7, `LANE-5B5-7-lane-claude-md-rulings`; served `claude-sonnet-5`). Merged `--no-ff` in `epic/wave5b-n5-int-lane-claude-md-rulings` from `32cbe7db`.
+
+**Did:**
+- `CLAUDE.md` §9 names the PreToolUse `scripts/hooks/scope_guard.py` wired at `.claude/settings.json:87`; §5 rule 4 names the second narrowing of "Layer 2 never executes" (ADR-120 D2: a hub-local runner of the hub's own work loop is in scope, an adapter writing into a child repo is not). Rule 4 sits outside the `critical-rules-records` hub region, so its template is untouched. 23,979 B of the 24,576 B cap.
+- `protocols/STANDING_RULINGS.md` §AP: R32-R34 quoted from the superseded RATIFICATION-2026-09-29 v3 and v4 snapshots, each with its status.
+- Rows: `[#1123]` closed with `0900d78b`, `[#1124]` closed with `ae1a4170`, both on R33 item 5's authority; `[#1327]` filed for R34.4 ("`agy` reports SUCCESS without an output file"). Its body notes `scripts/read_gate.py` (`9fadaf12`) may already discharge it.
+- Review: `agy` as the recorded SUBSTITUTION for Codex terra (usage limit), zero findings, landed as `docs/audits/2026-09-30-codex-lane-claude-md-rulings.md`.
+
+**Result:** the boot contract names both narrowings and the wired guard, and R32-R34 are in the repository by pointer.
+
+**Changes:** `CLAUDE.md`, `protocols/STANDING_RULINGS.md`, `tasks/1123-*.md`, `tasks/1124-*.md`, `tasks/1327-*.md`, one audit. Regenerated `BACKLOG.md`, `tasks/manifest.json` and `docs/audits/README.md`. `logs/MERGE-RECEIPTS.jsonl` carries N5-4's receipt row (`32cbe7db`). `ecosystem/doc-counts.md` unchanged (`8620 collected`).
+
+**Next:**
+- CI on this branch, both legs, is the verdict.
+- Confirm `[#1327]` against `tests/test_read_gate.py` and close it with `9fadaf12` if it matches.
+
 ### 2026-09-30 (d) - CC (Opus 5.5, INTEGRATOR WAVE5B-N5 cycle-6): every harness.yaml fate dated 2026-10-05 has one disposition, so check_organ_truth does not FAIL on 2026-10-06 (R33.3)
 
 **Anchors:** `ab321a11`, `096083b7`, `9efa350d`, `e2f4e34f` -- `worktree-lane-fates-due` (N5-4, `LANE-5B5-4-lane-fates-due`; served `claude-sonnet-5`). Merged `--no-ff` in `epic/wave5b-n5-int-lane-fates-due` from `a2443799`.

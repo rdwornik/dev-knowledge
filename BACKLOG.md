@@ -720,10 +720,9 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1120] [P2][S] Dispose DECLARE-LANE-HANDBACK-CONTRACT-2026-09-18: carried to WAVE5B-N5 planning · tasks/1120-dispose-declare-lane-handback-contract-2026-09-18-carried-to-wave5b-n5-planning.md
 - [#1121] [P2][S] Dispose DECLARE-OPERATOR-FEEDBACK-2026-09-24: carried to WAVE5B-N5 planning · tasks/1121-dispose-declare-operator-feedback-2026-09-24-carried-to-wave5b-n5-planning.md
 - [#1122] [P2][S] Dispose DECLARE-SEAT-KNOWLEDGE-2026-09-24: carried to WAVE5B-N5 planning · tasks/1122-dispose-declare-seat-knowledge-2026-09-24-carried-to-wave5b-n5-planning.md
-- [#1123] [P2][S] Handoff part B: stamp the cut manifest after the required fills · tasks/1123-handoff-part-b-stamp-the-cut-manifest-after-the-required-fills.md
-- [#1124] [P2][S] Handoff part B: BD-seats compares seat identity and liveness, not the status string · tasks/1124-handoff-part-b-bd-seats-compares-seat-identity-and-liveness-not-the-status-string.md
 - [#1125] [P2][S] N5: absorb or retire the claude/conformance-* digest branches · tasks/1125-n5-absorb-or-retire-the-claude-conformance-digest-branches.md
 - [#1126] [P2][S] N5: archive/* tags join R25's allowed set with an owner and an expiry · tasks/1126-n5-archive-tags-join-r25-s-allowed-set-with-an-owner-and-an-expiry.md
+- [#1327] [P2][S] `agy` reports SUCCESS without an output file · tasks/1327-agy-reports-success-without-an-output-file.md
 
 ---
 
