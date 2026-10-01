@@ -5098,6 +5098,25 @@ def check_review_artifact_coverage(repo_path: Path) -> list[Finding]:
             sha_part, _, subject_part = ln.partition(" ")
             if sha_part:
                 spine_subjects[sha_part] = subject_part
+        # BATCHED name-only lookup (item 13/L8, ADR-129) -- a THIRD one-shot walk, not folded
+        # into the two above: ONE `git log --diff-merges=first-parent --name-only` over the
+        # whole spine replaces a `git diff --name-only <first_parent> <sha>` SPAWN PER ENTRY,
+        # the shape that cost 641.8s on this repo's 1317-entry spine (proposal §1.3 reading B;
+        # re-measured at this lane's tip, see tests/test_review_artifact_coverage.py's timing
+        # test). `--diff-merges=first-parent` (git >=2.38) is what makes a MERGE commit's entry
+        # diff against its first parent specifically, matching `git diff first_parent sha`
+        # exactly -- plain `--first-parent` traversal alone would still SUPPRESS a merge
+        # commit's diff output entirely. `\x01` prefixes each sha so a commit boundary can
+        # never be confused with a changed path (a NUL-free marker byte no real path carries).
+        merge_changed: dict[str, list[str]] = {}
+        current_sha: "str | None" = None
+        for ln in _ja._git(root, "log", "--first-parent", "--diff-merges=first-parent",
+                           "--name-only", "--format=\x01%H", "main").splitlines():
+            if ln.startswith("\x01"):
+                current_sha = ln[1:]
+                merge_changed[current_sha] = []
+            elif ln.strip() and current_sha is not None:
+                merge_changed[current_sha].append(ln.strip())
         for sha in _ja.spine_entries(root, "main"):
             # Absent from the map is NOT treated as in-scope: a date we could not read is an
             # unknown, and an unknown must not silently become a WARN against a merge that may
@@ -5116,18 +5135,14 @@ def check_review_artifact_coverage(repo_path: Path) -> list[Finding]:
             # `main`.
             smap = _ja._spine_map_for(root, sha)
             if smap is not None and sha in smap.parents:
-                parent_tuple = smap.parents[sha]
-                if len(parent_tuple) < 1:
+                if len(smap.parents[sha]) < 1:
                     continue          # root commit: no first parent to diff against
-                first_parent = parent_tuple[0]
             else:
                 parents = _ja._git(root, "rev-list", "--parents", "-n", "1", sha).split()
                 if len(parents) < 2:
                     continue          # root commit: no first parent to diff against
-                first_parent = parents[1]
-            changed = [ln.strip() for ln
-                       in _ja._git(root, "diff", "--name-only", first_parent, sha).splitlines()
-                       if ln.strip()]
+            # Looked up from the batched walk above, not a fresh `git diff` spawn (item 13/L8).
+            changed = merge_changed.get(sha, [])
             if not _review_is_code_impact(changed):
                 continue
             scanned += 1

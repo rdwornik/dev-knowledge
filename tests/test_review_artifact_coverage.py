@@ -376,6 +376,41 @@ def test_spine_date_lookup_stays_batched():
         )
 
 
+def test_name_only_lookup_stays_batched():
+    """The per-merge changed-files lookup must cost ONE git call, not one per spine entry.
+
+    ADR-129 item 13/L8: the per-entry form (`git diff --name-only <first_parent> <sha>`,
+    ONE SPAWN PER MERGE) cost 641.8s on this repo's spine (proposal §1.3 reading B); a
+    single `git log --diff-merges=first-parent --name-only` walk amortises it into one
+    process. Asserted structurally, mirroring `test_spine_date_lookup_stays_batched`
+    immediately above (a timing assertion is flaky under load and would be the first thing
+    muted on a slow CI box). Live before/after timings and the batched walk's findings
+    (identical to the per-merge form) are recorded in this lane's session file.
+    """
+    src = inspect.getsource(_leg())
+    assert "--diff-merges=first-parent" in src, "the batched name-only walk is gone"
+    assert '"diff", "--name-only", first_parent, sha' not in src, (
+        "per-entry git diff reintroduced — one subprocess spawn per spine entry, inside a "
+        "pre-commit gate"
+    )
+
+
+@requires_git
+def test_name_only_lookup_attributes_files_to_the_right_merge(tmp_path, monkeypatch):
+    """Item 13/L8's fixture parity leg (render note N4: 'a fixture parity test that stays in
+    the suite'). Two merges, one touching a code suffix (.py, code-impact) and one touching
+    only docs; no review artifacts at all. If the batched walk mis-attributed a file list to
+    the wrong commit boundary -- the exact class of bug a marker-based parser could introduce
+    -- either the docs-only merge would wrongly WARN or the code merge would be missed."""
+    repo = _repo(tmp_path, monkeypatch)
+    _merge(repo, "fix/code-impact", "scripts/thing.py", _AFTER)
+    _merge(repo, "fix/docs-only", "docs/NOTE.md", _AFTER)
+    warns = _warns(_leg()(repo))
+    evidence = " ".join(f.evidence for f in warns)
+    assert "fix/code-impact" in evidence, warns
+    assert "fix/docs-only" not in evidence, warns
+
+
 def test_leg_is_advisory_on_the_live_repo():
     """Same shape as test_preflight_backlog_ids_is_registered_and_advisory_on_the_live_repo."""
     for f in _leg()(Path(aud._REPO_ROOT)):
