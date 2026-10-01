@@ -453,11 +453,14 @@ def test_cli_flags_and_refusal_exit_code_are_unchanged(tmp_path, monkeypatch):
     the full flag set (a dropped/renamed one breaks every dispatcher/operator command line
     that names it) and that a refusal still exits through the SAME
     `raise SystemExit(f"[error] {exc}")` path at exit code 1 -- the [#1123] waiver changes
-    which runs are refused, never how a refusal is reported."""
+    which runs are refused, never how a refusal is reported.
+
+    ADR-129 item 12/L7 adds `--trial-cut` (the batch-close stage) -- a genuinely new flag, so
+    the set gains exactly one member rather than losing or renaming any existing one."""
     expected_flags = {
         "--mode", "--epic-slug", "--slug", "--repo", "--date", "--filled", "--cold",
         "--assemble", "--no-assemble", "--allow-suffix", "--emit-journal",
-        "--no-emit-journal", "--preflight-only", "--dry-cut", "--boot-turns",
+        "--no-emit-journal", "--preflight-only", "--trial-cut", "--dry-cut", "--boot-turns",
         "--boot-dispatch",
     }
     actual_flags: set[str] = set()

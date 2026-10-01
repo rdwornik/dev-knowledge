@@ -101,6 +101,39 @@ def test_every_row_carries_a_status_and_a_locator(tmp_path, monkeypatch, _quiet_
         assert r.detail.strip(), f"{r.name} has no evidence line"
 
 
+# --- item 12/L7: the batch-close trial cut excludes the two cut-day rows -----------------
+
+def test_trial_cut_excludes_only_the_two_cut_day_rows(tmp_path, monkeypatch, _quiet_hub):
+    """`trial_cut=True` reports `ledger_refreshed` / `ratification_present` as n/a (they are
+    keyed to TODAY's transport state and false-red by construction outside a real cut window)
+    and leaves every other row's real verdict untouched."""
+    repo = _hub_stub(tmp_path)
+    transport = _transport(tmp_path)
+    normal = gh.preflight_rows(repo, transport=transport, today=_TODAY)
+    trial = gh.preflight_rows(repo, transport=transport, today=_TODAY, trial_cut=True)
+    assert [r.name for r in trial] == list(gh.PREFLIGHT_ROW_NAMES)
+
+    excluded = set(gh.TRIAL_CUT_EXCLUDED_ROWS)
+    assert excluded == {"ledger_refreshed", "ratification_present"}
+    for row in trial:
+        if row.name in excluded:
+            assert row.status == gh.PREFLIGHT_NA, row.render()
+            assert "TRIAL-CUT-EXCLUDED" in row.detail
+        else:
+            same = next(r for r in normal if r.name == row.name)
+            assert row.status == same.status, (row.name, row.status, same.status)
+
+
+def test_trial_cut_still_fails_on_a_real_state_row(tmp_path, monkeypatch, _quiet_hub):
+    """The trial cut keeps its teeth: a genuine failure in a non-excluded row still FAILs."""
+    repo = _hub_stub(tmp_path)
+    target = gh._stamped_docs()[0]
+    (repo / target).write_text("# no frontmatter here\n", encoding="utf-8")
+    rows = gh.preflight_rows(repo, transport=_transport(tmp_path), today=_TODAY, trial_cut=True)
+    row = next(r for r in rows if r.name == "living_docs_stamped")
+    assert row.status == gh.PREFLIGHT_FAIL, row.render()
+
+
 # --- row 4: the byte budget is 5,000 DECIMAL, settled at HANDOFF_PROCESS.md:366-370 -------
 
 def test_status_budget_is_five_thousand_decimal_not_five_one_two_zero():

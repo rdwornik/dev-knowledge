@@ -1725,15 +1725,27 @@ def _row_p11_carriage(transport, repo_root) -> PreflightRow:
                         f"{len(carried)} OPEN){tail}")
 
 
+#: Item 12/L7: the two rows keyed to TODAY's transport state. At a cut they are real hygiene;
+#: at a batch-close trial cut they are false-red by construction (proposal PM3) -- the
+#: transport's ledger/ratification are refreshed once per window, not once per trial cut.
+TRIAL_CUT_EXCLUDED_ROWS = ("ledger_refreshed", "ratification_present")
+
+
 def preflight_rows(repo_root: Path, *, transport=None, today: "str | None" = None,
                    repo_name: "str | None" = None, sessions_root=None,
                    memory_path=None, bundle_dir: "Path | None" = None,
-                   force_filled: bool = False) -> list[PreflightRow]:
+                   force_filled: bool = False, trial_cut: bool = False) -> list[PreflightRow]:
     """The ten hygiene rows, in `PREFLIGHT_ROW_NAMES` order. Read-only (Layer-2).
 
     `bundle_dir` / `force_filled` ([#1123]) name the bundle a `--filled` re-render is about to
     write, so row 1 can tell its own known BD-manifest circularity from an unrelated hard-fail
     -- see `_row_ship_gate`. Both default to the prior behaviour (no bundle named, never waived).
+
+    `trial_cut=True` (item 12/L7, the batch-close stage) reports `TRIAL_CUT_EXCLUDED_ROWS` as
+    n/a instead of evaluating them -- at batch close there is no real cut window for "ledger
+    refreshed today" / "ratification present today" to be a property of, so evaluating them for
+    real would false-red the trial cut on every run, by construction, independent of the state
+    this lane's diff actually changed.
     """
     if not _is_hub(repo_root):
         return [_na_row(n, "NOT-APPLICABLE",
@@ -1743,10 +1755,20 @@ def preflight_rows(repo_root: Path, *, transport=None, today: "str | None" = Non
     today = today or _dt.date.today().isoformat()
     repo_name = repo_name or _main_checkout(Path(repo_root)).name
     transport = transport_root() if transport is None else transport
+
+    def _cut_day_row(name, real) -> PreflightRow:
+        if trial_cut and name in TRIAL_CUT_EXCLUDED_ROWS:
+            return _na_row(name, "TRIAL-CUT-EXCLUDED",
+                           "cut-day row, false-red by construction at a batch-close trial cut "
+                           "(item 12/L7) -- excluded, not evaluated", "gen_handoff.preflight_rows")
+        return real()
+
     return [
         _row_ship_gate(repo_root, bundle_dir=bundle_dir, force_filled=force_filled),
-        _row_ledger_refreshed(transport, repo_name, today),
-        _row_ratification_present(transport, today),
+        _cut_day_row("ledger_refreshed",
+                     lambda: _row_ledger_refreshed(transport, repo_name, today)),
+        _cut_day_row("ratification_present",
+                     lambda: _row_ratification_present(transport, today)),
         _row_status_budget(transport),
         _row_living_docs_stamped(repo_root),
         _row_journal_anchored(repo_root),
@@ -3238,6 +3260,11 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
               help="print the JOURNAL generation-entry DRAFT to stdout (never writes JOURNAL.md)")
 @click.option("--preflight-only", is_flag=True, default=False,
               help="print the nine pre-handoff hygiene rows and exit (1 on any FAIL); cut nothing")
+@click.option("--trial-cut", "trial_cut", is_flag=True, default=False,
+              help="batch-close stage (item 12/L7): like --preflight-only, but excludes the "
+                   "two cut-day rows (ledger_refreshed, ratification_present), which are "
+                   "false-red by construction outside a real cut window; exit 1 on any "
+                   "remaining FAIL, which refuses the close")
 @click.option("--dry-cut", "dry_cut_dir", default=None,
               type=click.Path(file_okay=False, path_type=Path),
               help="render + assemble a real bundle into DIR (must be OUTSIDE the repo), skipping "
@@ -3249,12 +3276,14 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
               help="that first correct dispatch, as a transport path `to-cc/<order>.md`")
 def main(mode: str, epic_slug: str | None, slug: str | None, repo: str | None, date: str | None,
          force_filled: bool | None, assemble: bool, allow_suffix: bool, emit_journal: bool,
-         preflight_only: bool, dry_cut_dir: "Path | None" = None, boot_turns: "int | None" = None,
-         boot_dispatch: "str | None" = None) -> None:
+         preflight_only: bool, trial_cut: bool = False, dry_cut_dir: "Path | None" = None,
+         boot_turns: "int | None" = None, boot_dispatch: "str | None" = None) -> None:
     """Generate a v5 handoff bundle from committed repo state."""
-    if preflight_only:
-        rows = preflight_rows(_REPO_ROOT, today=date)
-        click.echo("preflight -- pre-handoff hygiene rows (any FAIL refuses the cut):")
+    if preflight_only or trial_cut:
+        rows = preflight_rows(_REPO_ROOT, today=date, trial_cut=trial_cut)
+        label = "batch-close trial cut" if trial_cut else "preflight"
+        refuses = "the close" if trial_cut else "the cut"
+        click.echo(f"{label} -- pre-handoff hygiene rows (any FAIL refuses {refuses}):")
         for row in rows:
             click.echo("  " + row.render())
         failed = [r for r in rows if r.failed]
