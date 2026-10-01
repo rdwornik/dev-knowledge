@@ -16,3 +16,15 @@
 {"billed": false, "cycle": "2026-09-01", "group": "codespaces_core_hours", "measured": "2026-09-29T08:02:41+00:00", "pct": 0.2745558888888889, "quota": 180.0, "used": 49.42006}
 {"billed": false, "cycle": "2026-09-01", "group": "codespaces_storage", "measured": "2026-09-29T08:02:41+00:00", "pct": 7.669891534246575e-05, "quota": 20.0, "used": 0.0015339783068493151}
 {"billed": false, "cycle": "2026-09-01", "group": "actions_minutes", "measured": "2026-09-29T08:02:41+00:00", "pct": 2.7306666666666666, "quota": 3000.0, "used": 8192.0}
+{"billed": false, "cycle": "2026-09-01", "group": "codespaces_core_hours", "measured": "2026-09-29T14:06:34+00:00", "pct": 0.2779223333333333, "quota": 180.0, "used": 50.02602}
+{"billed": false, "cycle": "2026-09-01", "group": "codespaces_storage", "measured": "2026-09-29T14:06:34+00:00", "pct": 7.677997767123288e-05, "quota": 20.0, "used": 0.0015355995534246576}
+{"billed": false, "cycle": "2026-09-01", "group": "actions_minutes", "measured": "2026-09-29T14:06:34+00:00", "pct": 2.8433333333333333, "quota": 3000.0, "used": 8530.0}
+{"billed": false, "cycle": "2026-09-01", "group": "codespaces_core_hours", "measured": "2026-09-30T03:11:43+00:00", "pct": 0.2833398888888889, "quota": 180.0, "used": 51.00118}
+{"billed": false, "cycle": "2026-09-01", "group": "codespaces_storage", "measured": "2026-09-30T03:11:43+00:00", "pct": 7.691048931506849e-05, "quota": 20.0, "used": 0.00153820978630137}
+{"billed": false, "cycle": "2026-09-01", "group": "actions_minutes", "measured": "2026-09-30T03:11:43+00:00", "pct": 3.109, "quota": 3000.0, "used": 9327.0}
+{"billed": false, "cycle": "2026-09-01", "group": "codespaces_core_hours", "measured": "2026-09-30T07:01:01+00:00", "pct": 0.2833398888888889, "quota": 180.0, "used": 51.00118}
+{"billed": false, "cycle": "2026-09-01", "group": "codespaces_storage", "measured": "2026-09-30T07:01:01+00:00", "pct": 7.691048931506849e-05, "quota": 20.0, "used": 0.00153820978630137}
+{"billed": false, "cycle": "2026-09-01", "group": "actions_minutes", "measured": "2026-09-30T07:01:01+00:00", "pct": 3.2, "quota": 3000.0, "used": 9600.0}
+{"billed": false, "cycle": "2026-10-01", "group": "codespaces_core_hours", "measured": "2026-10-01T06:27:09+00:00", "pct": 0.0, "quota": 180.0, "used": 0.0}
+{"billed": false, "cycle": "2026-10-01", "group": "codespaces_storage", "measured": "2026-10-01T06:27:09+00:00", "pct": 0.0, "quota": 20.0, "used": 0.0}
+{"billed": false, "cycle": "2026-10-01", "group": "actions_minutes", "measured": "2026-10-01T06:27:09+00:00", "pct": 0.03966666666666667, "quota": 3000.0, "used": 119.0}
