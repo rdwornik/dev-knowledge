@@ -14,17 +14,21 @@ not an import of `scripts/consumer_at_landing.py`):
     CI legs (ADR-127) and pins the four citation forms + the reason floor are present and
     match `consumer_at_landing._CITATION_RES` / `NO_CONSUMER_REASON_FLOOR` byte-for-byte, so the
     two copies cannot drift silently;
-  * a WINDOWS-GATED behavioral check (`skipif(sys.platform != "win32")`) that actually invokes
-    `Get-ConsumerLine` via `pwsh` and asserts real behavior for every branch. This is a PLATFORM
-    skip, not a tool-presence probe on the environment being policed -- `proof_layer.py`'s own
-    counter-rule states a platform/language-version skipif is not family 3 ("it gates on what
-    the code can run under, not on the presence of the thing being policed"). pwsh itself is not
-    guaranteed on the Linux CI leg, so the behavioral layer stays Windows-only; the static layer
-    covers both legs unconditionally.
+  * a PWSH-GATED behavioral check (`skipif(shutil.which("pwsh") is None)`) that actually
+    invokes `Get-ConsumerLine` via `pwsh` and asserts real behavior for every branch. This is a
+    TOOL-PRESENCE probe (`proof_layer.py`'s family 3 -- "the presence of the thing being
+    policed"), not a platform skip: pwsh (PowerShell Core) is cross-platform and both
+    GitHub-hosted `ubuntu-latest` and `windows-latest` images carry it pre-installed (CI run
+    36800860686 confirmed both legs resolve `pwsh`), so gating on `sys.platform` would have
+    skipped a leg that can actually run the check -- and REPAIR 1's refusal named the
+    `platform_skip_ratchet` (row L4) FAIL this produced: a tool-presence skip is the honest
+    class and the ratchet does not count it (it is proof_layer's family, WARN-tier, not this
+    row's FAIL-tier). The static layer covers both legs unconditionally regardless.
 """
 from __future__ import annotations
 
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -113,14 +117,16 @@ def test_wrapper_embeds_consumer_line_in_header_before_codex_invocation():
 
 
 # ---------------------------------------------------------------------------
-# behavioral, Windows-only — a real pwsh invocation of Get-ConsumerLine
+# behavioral, pwsh-gated — a real pwsh invocation of Get-ConsumerLine
 # ---------------------------------------------------------------------------
 
 pytestmark_skip = pytest.mark.skipif(
-    sys.platform != "win32",
-    reason="codex-review-lib.ps1 is a Windows-native user-machine organ (PowerShell); this "
-           "is a PLATFORM skip (proof_layer.py's counter-rule), not a tool-presence probe — "
-           "pwsh itself is never checked for, only the OS this organ runs under")
+    shutil.which("pwsh") is None,
+    reason="codex-review-lib.ps1 is PowerShell; this behavioral layer needs pwsh itself "
+           "present to invoke it. This is a TOOL-PRESENCE skip (proof_layer.py's family 3), "
+           "not a platform skip — pwsh (PowerShell Core) runs on Linux and macOS too, and "
+           "both GitHub-hosted ubuntu-latest and windows-latest images carry it, so the two "
+           "CI legs both run this layer rather than one of them skipping it on OS alone")
 
 
 def _run_get_consumer_line(*args: str) -> subprocess.CompletedProcess:
