@@ -55,10 +55,26 @@ if ([string]::IsNullOrWhiteSpace($Topic)) {
 }
 
 $repoRoot = (& git rev-parse --show-toplevel).Trim()
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "git rev-parse --show-toplevel failed (exit $LASTEXITCODE)."
+    exit 2
+}
 $branch   = (& git rev-parse --abbrev-ref HEAD).Trim()
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "git rev-parse --abbrev-ref HEAD failed (exit $LASTEXITCODE)."
+    exit 2
+}
 $headShort = (& git rev-parse --short HEAD).Trim()
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "git rev-parse --short HEAD failed (exit $LASTEXITCODE)."
+    exit 2
+}
 $date = Get-Date -Format 'yyyy-MM-dd'
 $codexVersion = ((& codex --version 2>&1) | Select-Object -First 1).ToString().Trim()
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "codex --version failed (exit $LASTEXITCODE). Is the codex CLI healthy?"
+    exit 2
+}
 
 if (-not $DiffRange -and -not $FullAudit) {
     $DiffRange = "main..$branch"
@@ -110,6 +126,10 @@ if ($FullAudit) {
     $codeFileList = ($relCodeFiles | ForEach-Object { "- $_" }) -join "`n"
 } else {
     $changedFiles = @((& git diff --name-only $DiffRange 2>$null) | Where-Object { $_ })
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "git diff --name-only '$DiffRange' failed (exit $LASTEXITCODE). Check the diff range."
+        exit 2
+    }
     if ($changedFiles.Count -eq 0) {
         Write-Host "[codex-review] no diff to review for range '$DiffRange' -- check out a feature branch or pass -DiffRange/-FullAudit" -ForegroundColor Yellow
         exit 0
@@ -288,7 +308,12 @@ $focusBlock
 # a whole-file phantom diff, and the same class the repo-side generators were just fixed for.
 # WriteAllText with an explicit BOM-less UTF8 encoding writes exactly the bytes given.
 $finalContent = ($header + $codexOutput) -replace "`r`n", "`n"
-[System.IO.File]::WriteAllText($outFile, $finalContent, (New-Object System.Text.UTF8Encoding($false)))
+try {
+    [System.IO.File]::WriteAllText($outFile, $finalContent, (New-Object System.Text.UTF8Encoding($false)))
+} catch {
+    Write-Error "Could not write review artifact to $outFile`: $($_.Exception.Message)"
+    exit 4
+}
 Remove-Item $tempFile -Force
 
 # --- Parse severity counts for summary --------------------------------------
@@ -349,8 +374,13 @@ Findings (heuristic): Critical=$($sevCounts.Critical) High=$($sevCounts.High) Me
 "@
     # LF-safe, same reason as the artifact write above: a CRLF commit message file is passed
     # verbatim to `git commit -F`.
-    [System.IO.File]::WriteAllText($msgFile, ($msg -replace "`r`n", "`n"),
-                                   (New-Object System.Text.UTF8Encoding($false)))
+    try {
+        [System.IO.File]::WriteAllText($msgFile, ($msg -replace "`r`n", "`n"),
+                                       (New-Object System.Text.UTF8Encoding($false)))
+    } catch {
+        Write-Error "Could not write commit-message temp file $msgFile`: $($_.Exception.Message)"
+        exit 4
+    }
     & git commit -F $msgFile
     $commitExit = $LASTEXITCODE
     Remove-Item $msgFile -Force -ErrorAction SilentlyContinue
