@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import os
+import time
 from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
@@ -776,6 +777,35 @@ def test_commit_tier_defers_a_ship_check_without_dropping_it(tmp_path: Path, par
     assert deferred.status == "n/a"
     assert aud._na_reason(deferred) == aud._NA_NOT_APPLICABLE
     assert "ship-tier" in deferred.evidence and "[#597]" in deferred.evidence
+
+
+def test_handoff_organ_set_is_finding_identical_serial_vs_parallel() -> None:
+    """ADR-129 item 11/L6: `run_checks(parallel=True)` must change WHEN the handoff organ set's
+    checks run, never WHAT they find. Run the real eleven organs against the live hub tree both
+    ways and diff the findings field-by-field; both wall times are measured and recorded here
+    (not just asserted against each other) so the handback can cite them directly."""
+    repo_path = Path(aud._REPO_ROOT)
+    checks = list(aud.handoff_organs())
+
+    t0 = time.perf_counter()
+    serial = aud.run_checks(repo_path, checks=checks, parallel=False)
+    serial_s = time.perf_counter() - t0
+
+    t0 = time.perf_counter()
+    parallel = aud.run_checks(repo_path, checks=checks, parallel=True)
+    parallel_s = time.perf_counter() - t0
+
+    def _key(f):
+        return (f.check_name, f.status, f.evidence)
+
+    assert [_key(f) for f in serial] == [_key(f) for f in parallel], (
+        f"serial {[_key(f) for f in serial]} != parallel {[_key(f) for f in parallel]}")
+    expected_names = {n.removeprefix("check_") for n in aud.HANDOFF_ORGAN_NAMES}
+    assert {f.check_name for f in serial} == expected_names
+    assert len(expected_names) == 11, "the ratified set is eleven organs"
+
+    print(f"\nhandoff organ set wall time -- serial: {serial_s:.3f}s, "
+          f"parallel: {parallel_s:.3f}s ({repo_path})")
 
 
 @pytest.mark.parametrize("tier", [None, "ship"])
