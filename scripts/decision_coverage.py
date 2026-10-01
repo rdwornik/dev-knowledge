@@ -326,6 +326,26 @@ DECISION_DISPOSITIONS: dict[str, Disposition] = {
               "reader finds protocols/HANDOFF_BOOT.md's Dispatch section incomplete against "
               "this ADR's own Decision text"),
 
+    # -- ADR-129: Accepted AND landed in the same lane -- lane-handoff-redesign, batch
+    # HANDOFF-REDESIGN-BUILD. Same shape as ADR-128 above: the lane contract's own "Do not"
+    # list forbids filing more than the one (unrelated) backlog row of its Step 3.5, so this
+    # disposition is the sanctioned alternative the decision-coverage gate itself names.
+    "adr:129": Disposition(
+        reason="Accepted and self-executing: this ADR's Decision (the handoff cut gated on "
+               "the named handoff-relevant check set, parallel, in-process; the whole-repo "
+               "verdict read-only from CI; the refusal log; the batch-close trial cut; the "
+               "incremental review-artifact scan) is implemented across this SAME lane's own "
+               "commits -- `53bca33d`, `e512e0a0`, `17926bf3`, `4b21f41b`, `7d88f13b` -- "
+               "landed alongside this ADR's own commit (`6415639c`), not in a subsequent row. "
+               "The one row this lane did file (`tasks/1331`) only REFS this ADR as "
+               "precedent; it implements a separate, unrelated gap (the ruling register) and "
+               "is correctly not an `implements:` row for this decision. No open implementing "
+               "work remains to file a row for.",
+        owner="R44 (the operator's paste of the batch order is its own ratification act, per "
+              "the frozen contract's own citation); re-open if a later reader finds "
+              "scripts/gen_handoff.py's cut path incomplete against this ADR's own Decision "
+              "text"),
+
     # -- pre-triage intakes (DRAFT/SEED) -- LANE-5B3-4-decision-debt --------------------------
     "intake:93": Disposition(reason=_AWAITING_TRIAGE, owner="ADR-98/ADR-111's intake funnel, not yet run over intake #93"),
     "intake:95": Disposition(reason=_AWAITING_TRIAGE, owner="ADR-98/ADR-111's intake funnel, not yet run over intake #95"),

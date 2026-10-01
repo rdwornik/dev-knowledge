@@ -58,6 +58,23 @@ def _run_dry_cut(tmp_path: Path, monkeypatch, *, today: str = "2026-10-01",
     # DIGEST-HANDOFF-UNBLOCK-2026-09-30 §3 measured. Pinned to "none" for determinism
     # (AMEND item 2); its live behaviour has its own test in test_gen_handoff_preflight.py.
     monkeypatch.setattr(gh, "_linked_worktrees", lambda repo_root: [])
+    # dispatch_drift (also in the handoff organ set) resolves every literal command in
+    # PLAYBOOK Ch8's dispatch table via Get-Command on THIS machine's PATH -- clean on a dev
+    # box with codex/agy/etc. installed, a genuine hard-fail on a bare CI runner that carries
+    # none of them (found by CI, not by this test's own author; same AMEND R47 flakiness
+    # class as worktree_owners/memory_within_cap above, a third instance the AMEND's two named
+    # rows did not anticipate). Stubbed to a clean pass by default; `inject_fail_organ` below
+    # overrides this exact same attribute when a test deliberately wants it to fail (order
+    # matters: the stub runs first, so the injection -- if for this organ -- wins).
+    def _dispatch_drift_pass(repo_path):
+        return [aud.Finding("dispatch_drift", "pass",
+                            "stubbed for this test -- see _run_dry_cut")]
+    # __name__ must stay "check_dispatch_drift": `handoff_organs()` resolves organs by name
+    # at call time, and `test_dry_cut_evaluates_only_the_named_handoff_organ_set` spies on
+    # the resolved functions' OWN `__name__` set against `HANDOFF_ORGAN_NAMES` -- a bare
+    # lambda's `<lambda>` would silently drop this organ out of that comparison.
+    _dispatch_drift_pass.__name__ = "check_dispatch_drift"
+    monkeypatch.setattr(aud, "check_dispatch_drift", _dispatch_drift_pass)
     memory_fixture = tmp_path / "MEMORY.md"
     memory_fixture.write_text("# memory fixture\n", encoding="utf-8")
 

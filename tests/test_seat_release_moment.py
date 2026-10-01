@@ -38,6 +38,7 @@ _SCRIPTS = _REPO / "scripts"
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
 
+import audit as aud  # noqa: E402
 import gen_handoff as gh  # noqa: E402
 import graph_queries as gq  # noqa: E402
 
@@ -98,7 +99,18 @@ def dry_bundle(tmp_path_factory) -> Path:
     real linked worktrees / memory index -- otherwise this fixture would go red for a reason
     unrelated to what this module tests, exactly the flakiness class
     AMEND-HANDOFF-REDESIGN-BUILD-2026-10-01 item 2 / R47 names. `monkeypatch` is function-scoped,
-    so `pytest.MonkeyPatch()` is used directly and undone explicitly."""
+    so `pytest.MonkeyPatch()` is used directly and undone explicitly.
+
+    A THIRD live-state organ, found by CI rather than by this fixture's own author: the ship_gate
+    row's new handoff organ set (item 6/L1) includes `check_dispatch_drift`, which resolves every
+    literal command in `protocols/PLAYBOOK.md` Ch8's dispatch table via `Get-Command` on THIS
+    machine's PATH. That is clean on a dev box with `codex`/`agy`/etc. installed and genuinely
+    hard-fails on a bare CI runner that carries none of them -- the exact AMEND R47 flakiness
+    class, just a third instance the AMEND's two named rows did not anticipate. Stubbed the same
+    way `_linked_worktrees` is: the organ's own behavior is untouched, only this fixture's choice
+    to exercise it against the real machine is (`audit.py`'s own comment at
+    `HANDOFF_ORGAN_NAMES` names `monkeypatch.setattr(audit, "check_dispatch_drift", ...)` as
+    exactly this mechanism, resolved by name at call time)."""
     root = tmp_path_factory.mktemp("seat-release-dry-cut")
     transport_root = tmp_path_factory.mktemp("seat-release-transport")
     repo_name = _REPO.name
@@ -114,6 +126,16 @@ def dry_bundle(tmp_path_factory) -> Path:
     mp = pytest.MonkeyPatch()
     mp.setenv("CLAUDE_PROMPTS_DIR", str(transport_root))
     mp.setattr(gh, "_linked_worktrees", lambda _root: [])
+    def _dispatch_drift_pass(_root):
+        return [aud.Finding("dispatch_drift", "pass",
+                            "stubbed for this fixture -- see dry_bundle's own docstring")]
+    # __name__ must stay "check_dispatch_drift" -- `handoff_organs()` resolves organs by name
+    # at call time, so a bare lambda's `<lambda>` would be a silent, different landmine in any
+    # future test here that spies on the resolved organ set by name (as
+    # test_handoff_cut_acceptance.py::test_dry_cut_evaluates_only_the_named_handoff_organ_set
+    # already does for the Step 1 fixture).
+    _dispatch_drift_pass.__name__ = "check_dispatch_drift"
+    mp.setattr(aud, "check_dispatch_drift", _dispatch_drift_pass)
     try:
         res = gh.generate(_REPO, mode="architect", dry_cut=True, bundle_root=root,
                           assemble=True, boot_turns=1, boot_dispatch="test", date=today,
