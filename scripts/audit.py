@@ -5506,6 +5506,53 @@ ALL_CHECKS = [
 ]
 
 
+# ---------------------------------------------------------------------------
+# ADR-129 — the handoff cut's organ set
+# ---------------------------------------------------------------------------
+#
+# MEMBERSHIP CRITERION (G1, PROPOSAL-ADR-HANDOFF-REDESIGN-2026-09-30 §4 O2): an organ is in
+# this set if a hard-fail in it can block the incoming seat's first dispatch or first push, or
+# can make the bundle misdescribe the repository. The first two tests are the dispatch and
+# routing organs and the ADR-85 anchor backstop; the third is the handoff organs plus
+# `check_doc_claims` (the P6 failure of 2026-09-19).
+#
+# NAMES, NOT BOUND FUNCTIONS -- the same reason `run_checks(checks=None)` reads `ALL_CHECKS`
+# at CALL TIME rather than a frozen default: a tuple of function OBJECTS built once, at import,
+# would detach from `monkeypatch.setattr(audit, "check_dispatch_drift", ...)`, because the
+# tuple would still hold the ORIGINAL object. Resolving by name through `handoff_organs()`
+# re-reads this module's current attributes on every call, so a test's patch is seen exactly
+# the way `ALL_CHECKS`-driven callers already are.
+HANDOFF_ORGAN_NAMES = (
+    "check_handoff_probes",
+    "check_supplement_folded",
+    "check_handoff_bundle_structure",
+    "check_handoff_version_stamp",
+    "check_residual_completeness",
+    "check_boot_byte_budget",
+    "check_journal_spine_anchor",
+    "check_dispatch_drift",
+    "check_dispatch_verb_agreement",
+    "check_routing_agreement",
+    "check_doc_claims",
+)
+
+#: The ONE named exception (L5; AMEND-HANDOFF-REDESIGN-BUILD-2026-10-01 item 1): WARN-tier BY
+#: RULING (`check_doc_claims` docstring, :2120) -- it can never emit `"fail"`, so it never
+#: blocks the cut. Its findings still ride the set (it is handoff-relevant, the P6 2026-09-19
+#: live-verify failure), and go into the bundle's notes, never into the row's pass/fail.
+HANDOFF_ORGAN_WARN_ONLY = ("check_doc_claims",)
+
+
+def handoff_organs() -> tuple:
+    """The handoff organ set's check functions, resolved by name at call time.
+
+    See the module comment above `HANDOFF_ORGAN_NAMES` for why this is a name lookup and not a
+    tuple of bound functions.
+    """
+    this_module = sys.modules[__name__]
+    return tuple(getattr(this_module, name) for name in HANDOFF_ORGAN_NAMES)
+
+
 def detect_unconditionally_inert_checks(
     repo_paths: dict[str, Path],
     checks: "Sequence[Callable[[Path], list[Finding]]] | None" = None,

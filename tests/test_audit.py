@@ -681,6 +681,53 @@ def test_every_all_checks_member_declares_a_gate_tier() -> None:
         f"_tier(TIER_COMMIT, ...) or _tier(TIER_SHIP, ...): {undeclared}")
 
 
+# --- ADR-129: the handoff cut's organ set -----------------------------------------------
+
+def test_handoff_organs_members_are_pinned() -> None:
+    """The ratified eleven (PROPOSAL-ADR-HANDOFF-REDESIGN-2026-09-30 §4 O2, G1; ADR-129 D1),
+    each a real `ALL_CHECKS` member -- an add/rename on either side is caught here, not
+    discovered at a live cut."""
+    expected = {
+        "check_handoff_probes", "check_supplement_folded", "check_handoff_bundle_structure",
+        "check_handoff_version_stamp", "check_residual_completeness", "check_boot_byte_budget",
+        "check_journal_spine_anchor", "check_dispatch_drift", "check_dispatch_verb_agreement",
+        "check_routing_agreement", "check_doc_claims",
+    }
+    assert set(aud.HANDOFF_ORGAN_NAMES) == expected
+    assert len(aud.HANDOFF_ORGAN_NAMES) == 11
+    all_checks_names = {c.__name__ for c in aud.ALL_CHECKS}
+    assert set(aud.HANDOFF_ORGAN_NAMES) <= all_checks_names, (
+        set(aud.HANDOFF_ORGAN_NAMES) - all_checks_names)
+
+
+def test_handoff_organs_resolve_by_name_at_call_time() -> None:
+    """`handoff_organs()` reads THIS module's current attributes, not a tuple of function
+    objects frozen at import -- a test's `monkeypatch.setattr(aud, "check_dispatch_drift", …)`
+    must be visible to it, the same seam `run_checks(checks=None)` already relies on for
+    `ALL_CHECKS` (its own docstring states the identical reason)."""
+    organs = aud.handoff_organs()
+    assert [f.__name__ for f in organs] == list(aud.HANDOFF_ORGAN_NAMES)
+
+
+def test_handoff_organs_every_member_can_fail_except_doc_claims() -> None:
+    """S7's fix: a membership test that inspects whether each organ CAN emit `status == "fail"`,
+    not merely its gate tier -- `check_preflight_backlog_ids` was SHIP-tier AND WARN-only by
+    ruling, so a tier-only predicate would not have caught an equivalent member here.
+    `check_doc_claims` is the ONE named exception (L5 / AMEND-HANDOFF-REDESIGN-
+    BUILD-2026-10-01 item 1): WARN-tier by ruling (`scripts/audit.py` `check_doc_claims`
+    docstring), reported in the bundle's notes, never blocking."""
+    import inspect  # noqa: PLC0415
+    for fn in aud.handoff_organs():
+        src = inspect.getsource(fn)
+        can_fail = '"fail"' in src or "'fail'" in src
+        if fn.__name__ == "check_doc_claims":
+            assert not can_fail, (
+                "check_doc_claims must stay structurally WARN-only (L5/AMEND item 1)")
+        else:
+            assert can_fail, f"{fn.__name__} must be able to emit a hard FAIL (ADR-129 D1)"
+    assert aud.HANDOFF_ORGAN_WARN_ONLY == ("check_doc_claims",)
+
+
 def test_tier_rejects_an_unknown_value() -> None:
     """A typo'd tier must RAISE at import, not degrade to a default. A silent degrade would
     move a check off the commit gate with nobody noticing — the failure this whole mechanism

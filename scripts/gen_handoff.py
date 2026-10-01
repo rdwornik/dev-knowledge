@@ -658,10 +658,13 @@ def assert_boundary_hygiene(repo_root: Path) -> None:
 # discipline; implying a check that is absent is the defect rows 7 and 8 were corrected for.
 # Ruling: `to-cc/DECLARE-PREFLIGHT-QUESTION-ROW-2026-09-08.md`, ratified by the operator's paste.
 #
-# COST, stated rather than discovered: row 1 runs the real ship-gate, measured at 4m30s on
-# 2026-09-07 under four-lane contention (the plugin's 2026-07-05 note of ~13s is stale). A cut
-# is a once-per-window act taken at a true batch boundary, which is what makes that affordable;
-# it is not affordable anywhere else, which is why nothing else calls it.
+# COST, SUPERSEDED (ADR-129, 2026-10-01): row 1 no longer runs the whole ship-gate (the
+# 4m30s-to-17m08s subprocess this comment used to cost-justify, 2026-09-07 through 2026-10-01).
+# It runs the 11-organ handoff set in-process, in parallel, measured at about 58s serial /
+# faster parallel per-organ (PROPOSAL-ADR-HANDOFF-REDESIGN-2026-09-30 §1.3) -- cheap enough
+# that "a once-per-window act" is no longer the reason it is affordable here and nowhere else.
+# The whole-repository verdict is still read, never run, for the bundle's notes -- see
+# `_whole_repo_verdict`.
 
 PREFLIGHT_PASS = "PASS"
 PREFLIGHT_FAIL = "FAIL"
@@ -677,18 +680,14 @@ STATUS_BYTE_BUDGET = 5_000
 #: name via getattr and renders n-a-with-reason while it is absent. Filed for the operator.
 MEMORY_BUDGET_DECLARATION_SITE = "canonical_docs.MEMORY_BYTE_BUDGET"
 
-#: Ceiling for the ship-gate subprocess. Generous on purpose: a TIMEOUT is a FAIL, so a ceiling
-#: tighter than the gate's real cost would manufacture refusals rather than detect them.
-#:
-#: RAISED 900 -> 1800 ([#1330]'s batch, A2, 2026-10-01). Two real detached, timed
-#: `audit.py ship-gate` runs are on record: 17m08s (1028s) on origin/main `6df37302`,
-#: four-seat contention; 13m02.6s (782.6s) on this lane's own tip, six-seat contention. 900s
-#: sat BELOW the worse reading and only ~13% over the better one -- the exact failure this
-#: comment already warned against. 1800s carries >=50% headroom over the worse reading
-#: (`test_ship_gate_ceiling_has_headroom_over_the_worst_measured_run`, test_gen_handoff.py).
-#: A timeout still reports FAIL either way -- the refusal keeps its teeth regardless of the
-#: number (`test_ship_gate_row_fails_when_the_verdict_cannot_be_read`).
-SHIP_GATE_TIMEOUT_S = 1800
+#: SUPERSEDED (ADR-129, 2026-10-01): row 1 no longer shells out to a subprocess, so no local
+#: ceiling bounds it any more. `SHIP_GATE_TIMEOUT_S` (A2, [#1330]'s batch) governed that
+#: subprocess from 2026-09-09 to 2026-10-01; see `scripts/handback.py`'s OWN constant of the
+#: same name for the unrelated self-check subprocess that still needs one. The handoff organ
+#: set runs IN-PROCESS via `audit.run_checks(checks=audit.handoff_organs(), parallel=True)` --
+#: see `_row_ship_gate` below -- at about 58s measured per-organ serially (far under any
+#: ceiling this constant ever set), so a timeout here would be a solution hunting the problem
+#: it used to solve.
 
 #: The row order, declared so the report is stable and a test can assert the roster.
 PREFLIGHT_ROW_NAMES = (
@@ -803,47 +802,83 @@ def _stamped_docs() -> tuple[str, ...]:
     return tuple(dict.fromkeys(files))
 
 
+#: Reused below by `_whole_repo_verdict` to read the SAME verdict line out of CI's job log --
+#: `cmd_ship_gate` prints `ship-gate: GREEN|RED ...` wherever it runs, local or Actions, so one
+#: pattern reads both. The hard-fail/undispositioned-WARN sub-counts that used to be parsed out
+#: of this tail (`_SHIP_GATE_HARD_FAIL_RE` / `_SHIP_GATE_UNDISPOSITIONED_RE`, removed with
+#: ADR-129) are gone: row 1 no longer derives its own pass/fail from this text at all -- see
+#: `_row_ship_gate` -- so only the verdict word and the tail survive, for the drift notes.
 _SHIP_GATE_VERDICT_RE = re.compile(r"^ship-gate:\s*(GREEN|RED)\b(.*)$", re.MULTILINE)
 
-#: The two reason-counts `cmd_ship_gate` prints inside the RED tail. They are read SEPARATELY
-#: because the 2026-09-08 ruling turns on the hard-fail count alone: a RED carrying only
-#: undispositioned WARNs is a carryable debt, a RED carrying a hard-fail organ is not.
-_SHIP_GATE_HARD_FAIL_RE = re.compile(r"(\d+)\s+hard-fail organ")
-_SHIP_GATE_UNDISPOSITIONED_RE = re.compile(r"(\d+)\s+new/undispositioned WARN")
+#: This is a REPORTING read, never part of row 1's pass/fail (ADR-129 item 2; "do not" line
+#: 2), and it NEVER WAITS: unlike `ci_verdict.verdict_for` (which polls up to 900s for an
+#: in-progress run to finish), this reads whatever `gh` can answer in one list/jobs/log round
+#: trip, each capped at `ci_verdict.GH_TIMEOUT_S` (120s) by the wrappers it reuses, and a run
+#: still in progress is reported `"not run"` immediately rather than awaited.
+#:
+#: The CI job this reads -- the SAME advisory `continue-on-error` job `.github/workflows/
+#: conductor.yml` runs on every push (`ship-gate:`), never a local run (ADR-129 item 2).
+_WHOLE_REPO_VERDICT_JOB_NAME = "ship-gate"
 
 
-def _ship_gate_verdict(repo_root: Path) -> "tuple[str | None, str]":
-    """`(verdict, evidence)` from a real `audit.py ship-gate` run; `(None, why)` when unread.
+def _whole_repo_verdict(repo_root: Path, sha: "str | None" = None) -> dict:
+    """The latest CI `ship-gate` job's verdict for `sha` (default HEAD) -- READ, NEVER RUN.
 
-    The VERDICT IS AT THE TAIL and the failures are at the head, so the whole stream is scanned
-    and the LAST verdict line wins -- reading the head would report a finding as a verdict.
-    Exit code is deliberately not the signal: the awareness organs exit 0 even on drift, which
-    is the F1 defect `cmd_ship_gate` itself was built to avoid.
+    ADR-129 item 2: the whole-repository verdict goes into the bundle's notes / the residual's
+    drift flags, and it NEVER blocks the cut (`_row_ship_gate` never calls this). Its source is
+    the CI `ship-gate` job for the cut sha when one exists, otherwise a named `"not run"` --
+    never a local re-run of the 57-organ registry (the "do not" this lane is bound by).
+
+    Reuses `ci_verdict.py`'s `gh` wrappers (`find_run` / `fetch_jobs` / `fetch_job_log`) rather
+    than opening a second `gh`-calling surface -- library-first (R38). It does NOT reuse
+    `ci_verdict.verdict_for`/`wait_for_run`: those POLL up to 900s for an in-progress run, which
+    this reporting-only read must never do (the 120s cut budget is the whole point of ADR-129).
+    This function never waits: a run still in progress, or any `gh` failure, reads as
+    `"not run"` with the reason named -- it NEVER raises, so a CI outage can never refuse or
+    even slow the cut by more than one short, bounded `gh` round trip.
+
+    The `ship-gate` job runs `continue-on-error: true` (`.github/workflows/conductor.yml`), so
+    its OWN job-level conclusion -- not the workflow run's overall conclusion -- is what is
+    read; the job's log carries the same `ship-gate: GREEN|RED ...` tail a local run would
+    print, parsed with the same `_SHIP_GATE_VERDICT_RE` a local run used to produce.
     """
-    gate = Path(repo_root) / "scripts" / "audit.py"
-    if not gate.exists():
-        return (None, f"no {gate} -- the ship-gate could not be run")
-    # UTF-8 is forced both ways because a PIPE makes the child's stdout cp1252 on this platform
-    # and `cmd_ship_gate` prints em-dashes; `errors="replace"` alone would silently corrupt the
-    # evidence line this row reports.
-    env = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}
     try:
-        out = subprocess.run([sys.executable, str(gate), "ship-gate"], cwd=str(repo_root),
-                             capture_output=True, text=True, encoding="utf-8",
-                             errors="replace", env=env, timeout=SHIP_GATE_TIMEOUT_S)
-    except subprocess.TimeoutExpired:
-        return (None, f"`audit.py ship-gate` timed out after {SHIP_GATE_TIMEOUT_S}s")
-    except (OSError, subprocess.SubprocessError) as exc:
-        return (None, f"`audit.py ship-gate` could not be run: {exc}")
-    # BOTH STREAMS, and that is the whole bug this line fixes. `cmd_ship_gate` writes its
-    # findings to stdout and its VERDICT to stderr, so a stdout-only read reports "no verdict
-    # line" for a gate that ran perfectly. Measured 2026-09-08: rc=1, stdout ending mid-finding,
-    # `ship-gate: RED -- ... (1 hard-fail organ(s); 6 new/undispositioned WARN(s))` on stderr.
-    hits = _SHIP_GATE_VERDICT_RE.findall((out.stdout or "") + "\n" + (out.stderr or ""))
-    if not hits:
-        return (None, "`audit.py ship-gate` emitted no verdict line")
-    verdict, tail = hits[-1]
-    return (verdict, f"ship-gate: {verdict}{tail}".strip())
+        sys.path.insert(0, str(_SCRIPTS))
+        import ci_verdict as _civ  # noqa: PLC0415
+    except Exception as exc:  # noqa: BLE001 -- reporting-only; never a cut blocker
+        return {"source": "CI ship-gate job", "verdict": "not run",
+                "detail": f"ci_verdict unreadable: {exc!r}"}
+    resolved_sha = sha or _git_status(repo_root, "rev-parse", "HEAD")[1].strip() or "HEAD"
+    try:
+        run = _civ.find_run(resolved_sha, repo_root=repo_root, workflow=_civ.WORKFLOW)
+        if run is None:
+            return {"source": "CI ship-gate job", "verdict": "not run", "sha": resolved_sha,
+                    "detail": f"no Actions run matched {resolved_sha[:12]}"}
+        if run.get("status") != "completed":
+            return {"source": "CI ship-gate job", "verdict": "not run", "sha": resolved_sha,
+                    "run_url": run.get("url"),
+                    "detail": f"run {run.get('databaseId')} is still {run.get('status')}"}
+        run_id = run.get("databaseId")
+        jobs = _civ.fetch_jobs(run_id, repo_root=repo_root) or []
+        job = next((j for j in jobs if j.get("name") == _WHOLE_REPO_VERDICT_JOB_NAME), None)
+        if job is None or job.get("databaseId") is None:
+            return {"source": "CI ship-gate job", "verdict": "not run", "sha": resolved_sha,
+                    "run_url": run.get("url"),
+                    "detail": f"run {run_id} carries no '{_WHOLE_REPO_VERDICT_JOB_NAME}' job"}
+        log_text = _civ.fetch_job_log(run_id, job["databaseId"], repo_root=repo_root)
+        hits = _SHIP_GATE_VERDICT_RE.findall(log_text or "")
+        if not hits:
+            return {"source": "CI ship-gate job", "verdict": "not run", "sha": resolved_sha,
+                    "run_url": run.get("url"), "job_conclusion": job.get("conclusion"),
+                    "detail": (f"'{_WHOLE_REPO_VERDICT_JOB_NAME}' job (conclusion="
+                              f"{job.get('conclusion')}) emitted no verdict line in its log")}
+        verdict, tail = hits[-1]
+        return {"source": "CI ship-gate job", "verdict": verdict, "sha": resolved_sha,
+                "run_url": run.get("url"), "job_conclusion": job.get("conclusion"),
+                "detail": f"ship-gate: {verdict}{tail}".strip()}
+    except Exception as exc:  # noqa: BLE001 -- reporting-only; never a cut blocker
+        return {"source": "CI ship-gate job", "verdict": "not run", "sha": resolved_sha,
+                "detail": f"{exc!r}"}
 
 
 def _journal_spine_gaps(repo_root: Path) -> "list[str] | None":
@@ -992,60 +1027,86 @@ def _self_inflicted_bd_manifest(repo_root: Path, bundle_dir: Path) -> "tuple[boo
                   "fresh census")
 
 
+def _handoff_organ_findings(repo_root: Path) -> list:
+    """The handoff organ set's findings, run IN-PROCESS and IN PARALLEL -- ADR-129 D1.
+
+    No subprocess, no `audit.py ship-gate` child process, no local whole-57-organ run: this
+    imports the hub's own `audit.py` the same way `_stamped_docs` already does (`sys.path`
+    insert, then `import audit`) and calls `run_checks(checks=handoff_organs(), parallel=True)`
+    -- the selection seam and the thread-pool parallelism `run_checks` already provides
+    (`scripts/audit.py:5868` / `:5973`), reused rather than reimplemented (R38/library-first).
+    """
+    sys.path.insert(0, str(_SCRIPTS))
+    import audit as _aud  # noqa: PLC0415
+    return _aud.run_checks(repo_root, checks=_aud.handoff_organs(), parallel=True)
+
+
 def _row_ship_gate(repo_root: Path, *, bundle_dir: "Path | None" = None,
                     force_filled: bool = False) -> PreflightRow:
-    """Row 1 -- PASS on `hard-fail = 0`; the undispositioned WARNs are CARRIED, not cleared.
+    """Row 1 -- ADR-129: the handoff organ set, run in-process and in parallel, not the whole
+    57-organ registry run as a 900-1800s subprocess.
 
-    Amended 2026-09-08 (see the register header above): a handoff is not a release. GREEN --
-    0 hard-fail AND 0 undispositioned -- is the TAG gate's criterion and stays the TAG gate's;
-    demanding it here deadlocks the window that has any open finding at all. So a RED whose only
-    reason is undispositioned WARNs PASSES this row, and the evidence line states the obligation
-    that makes the pass honest: each of those WARNs is named in the residual with its owning row.
-    That second conjunct is NOT mechanically checkable here -- the residual does not exist until
-    after preflight clears -- and this docstring says so rather than implying a check that is
-    absent. A RED carrying a hard-fail organ, and an unreadable verdict, both still FAIL --
-    UNLESS `force_filled` names `bundle_dir` and the hard-fail is EXACTLY that bundle's own
-    `BD-manifest` circularity ([#1123]; `_self_inflicted_bd_manifest`): the manifest a `--filled`
-    re-render is about to re-stamp is stale by construction the moment the operator's fills touch
-    the bundle, and refusing the re-render that fixes it is the circularity row [#1123] exists to
-    break. Any OTHER hard-fail -- a second organ, or `bundle_dir` failing for a reason fills do
-    not explain -- still FAILs; this is not a blanket pass for the fill window, only for the one
-    failure mode the fill window itself produces.
+    PASS on `hard-fail = 0` across the set. `check_doc_claims` is the ONE named exception
+    (`audit.HANDOFF_ORGAN_WARN_ONLY`): it is WARN-tier BY RULING and structurally cannot emit
+    `"fail"` (`scripts/audit.py:2120`), so its findings never enter the hard-fail count -- they
+    are carried in this row's evidence, exactly as an undispositioned WARN always was.
+
+    A hard-fail in ANY OTHER organ -- an unreadable run, or `bundle_dir` failing for a reason
+    fills do not explain -- FAILs, UNLESS `force_filled` names `bundle_dir` and the run's hard
+    fails are EXACTLY that bundle's own `BD-manifest` circularity ([#1123];
+    `_self_inflicted_bd_manifest`): the manifest a `--filled` re-render is about to re-stamp is
+    stale by construction the moment the operator's fills touch the bundle, and refusing the
+    re-render that fixes it is the circularity row [#1123] exists to break.
+
+    The WHOLE-REPOSITORY verdict (the other 46 organs) is NEVER read here, and never blocks
+    this row -- see `_whole_repo_verdict`, called elsewhere for the bundle's notes only
+    (ADR-129 item 2; the "do not" against re-adding the whole gate to the cut path).
     """
-    verdict, evidence = _ship_gate_verdict(repo_root)
-    locator = "`python scripts/audit.py ship-gate` + ecosystem/disposition-register.yaml"
-    if verdict is None:
-        return PreflightRow("ship_gate", PREFLIGHT_FAIL, locator, evidence)
-    if verdict == "GREEN":
-        return PreflightRow("ship_gate", PREFLIGHT_PASS, locator, evidence)
+    locator = "`audit.run_checks(checks=audit.handoff_organs(), parallel=True)` (in-process)"
+    try:
+        findings = _handoff_organ_findings(repo_root)
+    except Exception as exc:  # noqa: BLE001 -- unreadable is a FAIL, not a crash
+        return PreflightRow("ship_gate", PREFLIGHT_FAIL, locator,
+                            f"the handoff organ set could not be run: {exc!r}")
 
-    hard = _SHIP_GATE_HARD_FAIL_RE.search(evidence)
-    warns = _SHIP_GATE_UNDISPOSITIONED_RE.search(evidence)
-    if hard is None and warns is None:
-        # A RED always prints at least one reason. A tail this row cannot read is a tail it
-        # cannot clear: unknown is not clean, the direction every other row here already takes.
-        return PreflightRow("ship_gate", PREFLIGHT_FAIL, locator,
-                            f"{evidence} -- RED in a shape this row cannot read; "
-                            "the hard-fail count could not be established")
-    if hard is not None and int(hard.group(1)):
-        # [#1123]: exactly ONE hard-fail-counted finding total, AND bundle_dir's own probes
-        # account for it entirely -- otherwise this is (or may hide) an unrelated hard-fail,
-        # which still refuses.
-        if force_filled and bundle_dir is not None and int(hard.group(1)) == 1:
-            known, why = _self_inflicted_bd_manifest(repo_root, bundle_dir)
-            if known:
-                return PreflightRow("ship_gate", PREFLIGHT_PASS, locator,
-                    f"{evidence} -- 1 hard-fail organ, ACCEPTED under --filled: {why} "
-                    "([#1123] a --filled re-render accepts only the cut's own known "
-                    "hard-fail; the manifest it writes below is fresh)")
-        return PreflightRow("ship_gate", PREFLIGHT_FAIL, locator,
-                            f"{evidence} -- hard-fail organ(s) present; a hard-fail is never "
-                            "carryable, and no residual line disposes of one")
-    carried = warns.group(1) if warns is not None else "the outstanding"
-    return PreflightRow("ship_gate", PREFLIGHT_PASS, locator,
-                        f"{evidence} -- 0 hard-fail. CARRIED, and the cut is only honest if it "
-                        f"holds: each of the {carried} undispositioned WARN(s) is named in the "
-                        "residual with its owning row (DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08)")
+    warn_only = set(_handoff_organ_warn_only_check_names(repo_root))
+    hard_fails = [f for f in findings if f.status == "fail" and f.check_name not in warn_only]
+    warn_carried = [f for f in findings if f.status == "warn"]
+
+    if not hard_fails:
+        tail = ""
+        if warn_carried:
+            names = ", ".join(sorted({f.check_name for f in warn_carried}))
+            tail = (f". CARRIED, and the cut is only honest if it holds: each WARN ({names}) "
+                    "is named in the residual with its owning row "
+                    "(DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08)")
+        return PreflightRow("ship_gate", PREFLIGHT_PASS, locator,
+                            f"{len(findings)} handoff organ(s) run, 0 hard-fail{tail}")
+
+    # [#1123]: exactly ONE hard-fail-counted finding across the SET, AND bundle_dir's own
+    # probes account for it entirely -- otherwise this is (or may hide) an unrelated hard-fail,
+    # which still refuses.
+    if force_filled and bundle_dir is not None and len(hard_fails) == 1:
+        known, why = _self_inflicted_bd_manifest(repo_root, bundle_dir)
+        if known:
+            return PreflightRow("ship_gate", PREFLIGHT_PASS, locator,
+                f"1 hard-fail organ ({hard_fails[0].check_name}), ACCEPTED under --filled: "
+                f"{why} ([#1123] a --filled re-render accepts only the cut's own known "
+                "hard-fail; the manifest it writes below is fresh)")
+    names = ", ".join(sorted({f.check_name for f in hard_fails}))
+    return PreflightRow("ship_gate", PREFLIGHT_FAIL, locator,
+                        f"{len(hard_fails)} hard-fail finding(s) in the handoff organ set "
+                        f"({names}); a hard-fail is never carryable, and no residual line "
+                        "disposes of one")
+
+
+def _handoff_organ_warn_only_check_names(repo_root: Path) -> tuple:
+    """`Finding.check_name` values for `audit.HANDOFF_ORGAN_WARN_ONLY` -- the stripped
+    `check_` names (`"doc_claims"`, not `"check_doc_claims"`), resolved from the live module
+    rather than hand-duplicated, so a rename on either side cannot desync the two."""
+    sys.path.insert(0, str(_SCRIPTS))
+    import audit as _aud  # noqa: PLC0415
+    return tuple(name.removeprefix("check_") for name in _aud.HANDOFF_ORGAN_WARN_ONLY)
 
 
 def _row_ledger_refreshed(transport, repo_name: str, today: str) -> PreflightRow:
@@ -2915,7 +2976,8 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
              assemble: bool = True, bundle_root: Path | None = None,
              epic_slug: str | None = None, allow_suffix: bool = False,
              boot_turns: "int | None" = None, boot_dispatch: "str | None" = None,
-             dry_cut: bool = False) -> GenResult:
+             dry_cut: bool = False, memory_path: "Path | None" = None,
+             sessions_root: "Path | None" = None) -> GenResult:
     """Emit a v5 bundle from committed repo state. Returns the bundle dir + the JOURNAL draft.
 
     lane-boot-contract (WAVE5B-N2 row 12): the v5 boot header is a probe-checked DATA block and
@@ -2924,9 +2986,20 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     tally for the seat this cut supersedes (see `boot_cost`); without them it is `unmeasured`.
 
     `dry_cut=True` renders and assembles a real bundle OUTSIDE the repository (it refuses a
-    `bundle_root` inside it, with ValueError) and skips the three cut-boundary gates — the batch
-    boundary, boundary hygiene and the preflight rows — because those guard what a COMMITTED
-    bundle claims, and a dry cut can never be committed: `docs/handoffs/` is out of its reach.
+    `bundle_root` inside it, with ValueError) and skips gates 1-2 — the batch boundary and
+    boundary hygiene — because those guard what a COMMITTED bundle claims, and a dry cut can
+    never be committed: `docs/handoffs/` is out of its reach. A lane or integration worktree is
+    a linked worktree, so gate 2 (`assert_boundary_hygiene`) refuses there by construction —
+    this is how that path is exercised without that refusal.
+
+    GATE 3 (the preflight rows) RUNS AT A DRY CUT TOO (ADR-129 item 1/L1). It is a property of
+    the window the bundle WOULD seal, not of the commit boundary gates 1-2 guard, so skipping
+    it at a dry cut would make `--dry-cut` time rendering alone rather than the cut path it is
+    meant to prove end to end. `memory_path` / `sessions_root` (both default `None`, resolved
+    live exactly as before) let a caller pin the two LIVE-STATE rows (`memory_within_cap`,
+    `worktree_owners`) to a fixture for a deterministic dry cut (AMEND-HANDOFF-REDESIGN-
+    BUILD-2026-10-01 item 2 / R47) — every other caller, including the CLI, is unaffected.
+
     It is how a change to the boot is proven end to end without cutting a handoff. The receipt
     says `"cut": "dry"`.
 
@@ -2986,17 +3059,19 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     # a refused cut leaves no half-written directory behind (which would itself be the
     # untracked in-flight target RM-8 sanctions). RM-8 resolves first because its complaint
     # is the more specific one — it names the colliding directory.
-    if not dry_cut:     # a dry cut cannot be committed, so it seals no boundary claim
+    if not dry_cut:     # a dry cut cannot be committed, so it seals no commit-boundary claim
         assert_batch_boundary(repo_root)
         assert_boundary_hygiene(repo_root)
-        # The nine PRE-HANDOFF HYGIENE rows, LAST of the three and for the same reason the other
-        # two are ordered as they are: it is the most expensive (the ship-gate leg alone measured
-        # 4m30s), so a cut that a cheaper invariant already refuses never pays for it. Still
-        # before mkdir -- a refused cut writes nothing.
-        # [#1123]: name the bundle THIS call is about to (re-)write, so row 1 can tell a
-        # `--filled` re-render's own known BD-manifest circularity from an unrelated hard-fail.
-        assert_preflight(repo_root, today=date, repo_name=repo, bundle_dir=bundle_dir,
-                         force_filled=bool(force_filled))
+    # Gate 3, the TEN preflight rows -- runs at EVERY cut, dry or real (ADR-129 item 1/L1): it
+    # is a property of the window the bundle would seal, not of the commit boundary gates 1-2
+    # guard. Still before mkdir -- a refused cut writes nothing. [#1123]: name the bundle THIS
+    # call is about to (re-)write, so row 1 can tell a `--filled` re-render's own known
+    # BD-manifest circularity from an unrelated hard-fail. `memory_path` / `sessions_root` pin
+    # the two live-state rows for a deterministic dry cut (AMEND-HANDOFF-REDESIGN-
+    # BUILD-2026-10-01 item 2); both default `None`, the prior live-resolution behaviour.
+    assert_preflight(repo_root, today=date, repo_name=repo, bundle_dir=bundle_dir,
+                     force_filled=bool(force_filled), memory_path=memory_path,
+                     sessions_root=sessions_root)
     bundle_dir.mkdir(parents=True, exist_ok=True)
     # [#473] B — THE FIX, and it is this one line. `_resolve_bundle_dir` may DIVERT the write
     # to a `-<n>` sibling under `--allow-suffix`, but every render token below was built from
