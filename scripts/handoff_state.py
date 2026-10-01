@@ -146,13 +146,31 @@ def _degraded(key: str, evidence: str, freshness: str, exc: BaseException) -> St
 
 # --- CI: origin/main's sha and Actions verdict, ONE non-blocking poll ------------------------
 
-def row_ci(repo_root: "Path | str") -> StateRow:
-    evidence = 'ci_verdict.verdict_for("origin/main", timeout_s=0)'
+def row_ci(repo_root: "Path | str", *, at_sha: "str | None" = None) -> StateRow:
+    """`at_sha` ([#1330]): a committed, historical bundle is judged against the sha IT
+    recorded at cut time (`HANDOFF_RECEIPT.json`'s `manifest.source_sha`), never against
+    `origin/main`'s CURRENT tip — CI's own verdict for a specific commit is a fixed
+    historical fact (once GitHub has recorded it, it does not change), so anchoring to the
+    cut sha turns this row from a check that legitimately drifts with time (LIVE-DRIFTS, by
+    design — see the module docstring) into a tamper/consistency check. `None` (the default)
+    keeps the prior live-`origin/main` behavior — an uncommitted bundle (still being cut).
+
+    `evidence` deliberately does NOT embed `ref` (stays the fixed, pre-[#1330] literal): the
+    generator always calls this with `at_sha=None` (cut time IS "now"), so a bundle's
+    RECORDED row was rendered with the constant evidence string. If the verifier's
+    re-derivation rendered a DIFFERENT evidence string for the same row (the actual ref
+    value), `.rendered()` could never equal the recorded row again even when the CONTENT
+    (verdict, sha, run id) matches — turning every anchored re-derivation into a permanent,
+    unfixable mismatch. The `value` string alone (which DOES carry the resolved sha7) is
+    where content drift or agreement is meant to show up.
+    """
+    ref = at_sha or "origin/main"
+    evidence = 'ci_verdict.verdict_for(ref, timeout_s=0)'
     repo_root = Path(repo_root)
     if not (repo_root / ".git").exists():
         return StateRow("CI", "not a git repository — CI cannot be read", "LIVE-DRIFTS", evidence)
     try:
-        v = _civ.verdict_for("origin/main", repo_root=repo_root, timeout_s=0, interval_s=1)
+        v = _civ.verdict_for(ref, repo_root=repo_root, timeout_s=0, interval_s=1)
     except Exception as exc:                          # noqa: BLE001 -- degrade, never crash a cut
         return _degraded("CI", evidence, "LIVE-DRIFTS", exc)
     sha7 = (v.sha or "?")[:7]
@@ -235,10 +253,21 @@ _DATED_STEM_RE = re.compile(r"-(\d{4}-\d{2}-\d{2})(?:-v\d+(?:-superseded)?)?\.md
 _SUPERSEDED_RE = re.compile(r"-v\d+-superseded\.md$")
 
 
-def _newest_transport_doc(transport: "Path | None", prefix: str) -> "Path | None":
+def _newest_transport_doc(
+    transport: "Path | None", prefix: str, *, as_of: "str | None" = None
+) -> "Path | None":
     """The newest non-superseded `<prefix>-*.md` under `transport/to-browser/`, by the date
     token in its own filename (ties broken by mtime) -- or None when `transport` is
-    unresolved or nothing matches. See the module docstring's honest limit on this resolution."""
+    unresolved or nothing matches. See the module docstring's honest limit on this resolution.
+
+    `as_of` ([#1330]): an ISO date string (`YYYY-MM-DD`) excludes any candidate dated AFTER
+    it before ranking -- reconstructing "newest as of the bundle's own cut date" rather than
+    "newest right now", for a committed bundle being re-verified long after cut. The
+    transport is an external, non-git directory (no sha to anchor to, unlike `row_ci`), so a
+    DATE is the honest anchor: the same selection algorithm, restricted to what existed by
+    that date, necessarily reproduces the value it selected at cut time. `None` (the default)
+    keeps the prior unrestricted-live behavior.
+    """
     if transport is None:
         return None
     candidates: list[tuple[str, float, Path]] = []
@@ -247,6 +276,8 @@ def _newest_transport_doc(transport: "Path | None", prefix: str) -> "Path | None
             continue
         m = _DATED_STEM_RE.search(p.name)
         date = m.group(1) if m else ""
+        if as_of is not None and date and date > as_of:
+            continue
         try:
             mtime = p.stat().st_mtime
         except OSError:
@@ -263,9 +294,9 @@ def _newest_transport_doc(transport: "Path | None", prefix: str) -> "Path | None
 _RULING_ID_RE = re.compile(r"(?m)^(?:-\s+\*\*R(\d+)\*\*|#{1,6}\s+R(\d+)\b)")
 
 
-def row_rulings(transport: "Path | None") -> StateRow:
+def row_rulings(transport: "Path | None", *, as_of: "str | None" = None) -> StateRow:
     locator = "to-browser/RATIFICATION-*.md (newest, non-superseded)"
-    doc = _newest_transport_doc(transport, "RATIFICATION")
+    doc = _newest_transport_doc(transport, "RATIFICATION", as_of=as_of)
     if doc is None:
         return StateRow("Rulings", "no RATIFICATION file found on the transport", "SLOW", locator)
     try:
@@ -360,9 +391,9 @@ def _status_col(header: list[str]) -> "int | None":
     return None
 
 
-def row_capabilities(transport: "Path | None") -> StateRow:
+def row_capabilities(transport: "Path | None", *, as_of: "str | None" = None) -> StateRow:
     locator = "to-browser/DIGEST-CAPABILITY-MAP-*.md (newest)"
-    doc = _newest_transport_doc(transport, "DIGEST-CAPABILITY-MAP")
+    doc = _newest_transport_doc(transport, "DIGEST-CAPABILITY-MAP", as_of=as_of)
     if doc is None:
         return StateRow("Capabilities", "no DIGEST-CAPABILITY-MAP file found on the transport",
                         "SLOW", locator)

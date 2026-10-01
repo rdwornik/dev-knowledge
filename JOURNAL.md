@@ -21,6 +21,22 @@
 
 ---
 
+### 2026-10-01 (a) - CC (Opus 5.5, INTEGRATOR HANDOFF-UNBLOCK cycle-3): lane-handoff-unblock merges after one repair; [#1328], [#1329] and [#1330] close
+
+**Anchors:** `91f00747` -- `worktree-lane-handoff-unblock` (repair 1 tip), merged `--no-ff` from `6df37302`.
+
+**Did:**
+- Merged the one lane of batch HANDOFF-UNBLOCK in an integration worktree off `origin/main`, two-step (`--no-commit`, regenerate `docs/audits/README.md` and the task tree, anchor, commit).
+- The first handback (`63c1c9a2`) was refused once (repair 1 of 2): a platform-skip ratchet red on both CI legs, plus four process gaps. Repair 1 gated the six tests on `pwsh` presence and fixed two Codex-review HIGH findings at their real lines.
+
+**Result:** the Codex-review organ has a tracked hub carrier (`deploy/carrier_codexreview.py`, `deploy/codex-review*.ps1|.md`); `consumer_at_landing` accepts the integrator merge receipt; a committed handoff bundle's BD rows are judged at its own cut sha; the preflight ship-gate ceiling is re-derived from a measurement.
+
+**Changes:** `deploy/`, `scripts/consumer_at_landing.py`, `scripts/verify_handoff_probes.py`, `scripts/handoff_state.py`, `scripts/gen_handoff.py`, `ecosystem/audit-consumer-baseline.json`, `ecosystem/doc-counts.md`, tests; the lane's review record `docs/audits/2026-10-01-codex-lane-handoff-unblock.md`; regenerated `docs/audits/README.md`. No audit or bundle edited, no exclusion entry (R38).
+
+**Next:**
+- Install the codex-review organ into `~/.claude/` from the hub carrier (integrator step 8, or the operator's action).
+- The operator re-runs `/handoff`.
+
 ### 2026-09-30 (f) - CC (Opus 5.5, handoff seat): the handoff cut is held; [#1328], [#1329] and [#1330] are filed as the handoff-unblock rows
 
 **Anchors:** `8a616564` -- `worktree-file-handoff-unblock-rows`, merged `--no-ff` from `bc8c106e`.

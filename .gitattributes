@@ -5,6 +5,15 @@
 * text=auto eol=lf
 *.ps1 text eol=crlf
 
+# CRLF-pin the codex-review organ's hub-tracked doc source ([#1328]).
+# `deploy/codex-review.md` is the hub-tracked replica of the Windows-native
+# `~/.claude/commands/codex-review.md` organ file. Unlike ordinary docs it must stay
+# byte-identical to that CRLF file (the carrier's byte-identity contract), so it is pinned
+# CRLF here rather than falling through to the `* text=auto eol=lf` default. `deploy/
+# codex-review.ps1` needs no separate line: the blanket `*.ps1 text eol=crlf` rule above
+# already covers it.
+deploy/codex-review.md text eol=crlf
+
 # LF-pin generated floor hash sidecars (#137).
 # The floor hash is computed over LF-normalized bytes (scripts/generate_floor.py), so
 # git autocrlf re-normalizing these to CRLF on Windows produced a content-identical

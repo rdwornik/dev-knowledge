@@ -1159,6 +1159,10 @@ class _BootCtx:
     bundle: Path
     repo_root: Path
     rows: dict
+    #: [#1330]: the sha / date a COMMITTED bundle was cut at, or (None, None) for one still
+    #: being cut (live-state teeth). See `_bundle_cut_anchor`.
+    cut_sha: "str | None" = None
+    cut_date: "str | None" = None
 
 
 def _self_locator_file(rel: str, bundle_dir: Path) -> "Path | None":
@@ -1381,6 +1385,51 @@ def _rule_state(state_fn):
     return rule
 
 
+#: [#1330]: CI/Rulings/Capabilities wrapped in `_rule_committed_state` (below), never the
+#: plain `_rule_state` above, for a COMMITTED bundle. `_rule_state` itself is UNCHANGED and
+#: stays the live-teeth rule for Batches/Substrates/Transport (not named by the row) and for
+#: every key on an UNCOMMITTED bundle.
+def _rule_committed_state(state_fn):
+    """`_rule_state`, plus a targeted FAIL->WARN downgrade for a COMMITTED bundle
+    (`ctx.cut_sha is not None`) whose anchored re-derivation still disagrees.
+
+    A committed, historical bundle's CI/Rulings/Capabilities rows are re-derived anchored to
+    the bundle's own cut point (`ctx.cut_sha` / `ctx.cut_date`, threaded by `_STATE_ROW_FNS`
+    into `handoff_state.row_ci`/`row_rulings`/`row_capabilities`) rather than against today's
+    live state -- and a MATCH there is a real, load-bearing pass (proven live, 2026-10-01:
+    BD-rulings clears this way on the hub's own `2026-09-28-dev-knowledge-architect` bundle).
+    But the anchor is not perfect, for two measured, external reasons neither this organ nor
+    the row it closes can fix by reading harder:
+      * CI -- `ci_verdict.list_runs` reads a ROLLING window of the most recent Actions runs
+        (`limit=40`), not a per-commit-forever archive; a sha old enough to have scrolled past
+        that window returns NOT-RUN even though it once had a real verdict (measured live:
+        the hub's own cut sha).
+      * Rulings/Capabilities -- the transport is an external, non-git directory; a file kept
+        at the SAME name and date token is not proven immutable (measured live: the hub's own
+        `DIGEST-CAPABILITY-MAP-2026-09-28.md` parses to a DIFFERENT WORKS count today than it
+        did at cut, with no new dated sibling -- the file itself was edited in place).
+    A mismatch in either case cannot be told apart from "the external system moved on" versus
+    "the bundle's own record was wrong", so it is reported rather than either silently passing
+    or wrongly blocking the ship-gate on a gap this organ cannot close (`handoff_probes`'
+    established WARN posture for "cannot fully verify" — anchor-missing/skipped — extended
+    here to the same class). An UNCOMMITTED bundle (`ctx.cut_sha is None`) is unaffected:
+    `base` still returns its plain FAIL, live-state teeth exactly as before this lane.
+    """
+    base = _rule_state(state_fn)
+
+    def rule(value: str, ctx: _BootCtx) -> tuple[str, str]:
+        status, detail = base(value, ctx)
+        if status == "fail" and ctx.cut_sha is not None:
+            return "warn", (
+                f"{detail} — bundle is committed and re-derived anchored to its own cut "
+                f"point; a remaining mismatch cannot be told apart from CI's rolling run "
+                f"window or a mutable transport file having moved on since cut, so this is "
+                f"reported rather than blocking the ship-gate on an external gap this organ "
+                f"cannot close")
+        return status, detail
+    return rule
+
+
 def _transport_for(ctx: _BootCtx):
     """`gen_handoff.transport_root()`, deferred-imported like every other cross-module read on
     this rung (`_rule_chat_title`, `_rule_destination`, `_rule_role` above)."""
@@ -1389,13 +1438,16 @@ def _transport_for(ctx: _BootCtx):
 
 
 _STATE_ROW_FNS = {
-    "CI": lambda hs, ctx: hs.row_ci(ctx.repo_root),
+    # [#1330]: CI/Rulings/Capabilities anchor to the bundle's OWN cut point (ctx.cut_sha /
+    # ctx.cut_date, both None for an uncommitted bundle -- live-state teeth, unchanged).
+    # Batches/Substrates/Transport/Seats are untouched: the row names only these three.
+    "CI": lambda hs, ctx: hs.row_ci(ctx.repo_root, at_sha=ctx.cut_sha),
     "Batches": lambda hs, ctx: hs.row_batches(ctx.repo_root),
     "Seats": lambda hs, ctx: hs.row_seats(),
     "Substrates": lambda hs, ctx: hs.row_substrates(ctx.repo_root),
     "Transport": lambda hs, ctx: hs.row_transport(ctx.repo_root),
-    "Rulings": lambda hs, ctx: hs.row_rulings(_transport_for(ctx)),
-    "Capabilities": lambda hs, ctx: hs.row_capabilities(_transport_for(ctx)),
+    "Rulings": lambda hs, ctx: hs.row_rulings(_transport_for(ctx), as_of=ctx.cut_date),
+    "Capabilities": lambda hs, ctx: hs.row_capabilities(_transport_for(ctx), as_of=ctx.cut_date),
 }
 
 
@@ -1544,7 +1596,13 @@ BOOT_DATA_RULES = {
     "Probes": _rule_probes,
     "Receipt": _rule_receipt,
     **{key: _pointer_rule(key) for key in BOOT_POINTERS if key != "Role"},
-    **{key: _rule_state(fn) for key, fn in _STATE_ROW_FNS.items() if key != "Seats"},
+    # [#1330]: CI/Rulings/Capabilities get the committed-bundle WARN downgrade; the rest of
+    # _STATE_ROW_FNS (Batches/Substrates/Transport — not named by the row) stays plain
+    # _rule_state, FAIL on any mismatch, committed or not.
+    **{key: _rule_committed_state(fn) for key, fn in _STATE_ROW_FNS.items()
+       if key in ("CI", "Rulings", "Capabilities")},
+    **{key: _rule_state(fn) for key, fn in _STATE_ROW_FNS.items()
+       if key not in ("Seats", "CI", "Rulings", "Capabilities")},
     "Seats": _rule_bd_seats,
 }
 
@@ -1603,6 +1661,60 @@ def _rule_bd_manifest(bundle_path: Path) -> ProbeResult:
                        f"{len(files)} file(s) match the generation manifest sha256", name)
 
 
+def _bundle_cut_anchor(bundle_path: Path, repo_root: Path) -> "tuple[str | None, str | None]":
+    """(cut_sha, cut_date) for a COMMITTED bundle, or (None, None) for one still being cut.
+
+    `[#1330]`: `handoff_probes` re-derives BD-ci/BD-rulings/BD-capabilities LIVE and compares
+    against the value a bundle recorded at cut time -- correct for the bundle CURRENTLY being
+    cut (it has live-state teeth on purpose), wrong for an already-committed, immutable
+    historical bundle, which legitimately drifts from live state with every day that passes.
+    Once committed, those three rows are judged against the sha (CI) / date (Rulings,
+    Capabilities -- an external, non-git transport has no sha to anchor to) the bundle itself
+    recorded at cut time in `HANDOFF_RECEIPT.json`'s `manifest` block, turning the check from
+    "is this bundle still fresh" into "does the recorded value match what was true when it was
+    cut" -- a tamper/consistency check, same spirit as `_rule_bd_manifest`'s sha256 proof.
+
+    COMMITTED is "git has at least one commit touching this bundle directory" -- the same
+    git-add-date signal `audit._select_active_bundle` uses to pick the active bundle among
+    several, checked here for ONE bundle rather than a ranking. Read-only; fail-soft: any
+    failure (not a git repo, unreadable receipt, no `source_sha`) returns (None, None), which
+    falls back to the PRIOR (live-teeth) behavior rather than inventing an anchor — the
+    stricter, not the weaker, of the two postures.
+    """
+    import subprocess  # noqa: PLC0415
+    try:
+        import gitenv as _ge  # noqa: PLC0415
+    except ImportError:
+        from scripts import gitenv as _ge  # type: ignore[no-redef]  # noqa: PLC0415
+    try:
+        rel = bundle_path.resolve().relative_to(Path(repo_root).resolve()).as_posix()
+    except (OSError, ValueError):
+        return None, None
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(repo_root), "log", "-1", "--format=%H", "--", rel],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            env=_ge.scrubbed_git_env())
+    except OSError:
+        return None, None
+    if out.returncode != 0 or not out.stdout.strip():
+        return None, None          # not a git repo, or no commit has ever touched this bundle
+    import json  # noqa: PLC0415
+    receipt_path = bundle_path / RECEIPT_FILE
+    try:
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None, None          # committed but no readable receipt to anchor against
+    manifest = receipt.get("manifest") if isinstance(receipt, dict) else None
+    if not isinstance(manifest, dict):
+        return None, None
+    cut_sha = manifest.get("source_sha")
+    cut_sha = cut_sha if isinstance(cut_sha, str) and cut_sha else None
+    gen_time = manifest.get("generation_time")
+    cut_date = gen_time[:10] if isinstance(gen_time, str) and len(gen_time) >= 10 else None
+    return cut_sha, cut_date
+
+
 def verify_boot(bundle_path, repo_root) -> list[ProbeResult]:
     """The boot-data rung: one `BD-<key>` result per DATA row, then `BP-budget` for the PROSE.
 
@@ -1621,7 +1733,8 @@ def verify_boot(bundle_path, repo_root) -> list[ProbeResult]:
         return [ProbeResult("BD-block", "fail",
                             "HANDOFF_BOOT.md carries no BOOT-DATA block — a boot-data-era bundle "
                             "states its facts as probe-checked rows (lane-boot-contract)", name)]
-    ctx = _BootCtx(bundle_path, repo_root, dict(rows))
+    cut_sha, cut_date = _bundle_cut_anchor(bundle_path, repo_root)
+    ctx = _BootCtx(bundle_path, repo_root, dict(rows), cut_sha, cut_date)
     results: list[ProbeResult] = []
     stray = stray_data_lines(text)
     if stray:

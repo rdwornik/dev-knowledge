@@ -59,6 +59,15 @@ def _pool(tree, relpath, text):
     return path
 
 
+def _receipts(tree, records):
+    """Write `logs/MERGE-RECEIPTS.jsonl` — one JSON object per line, as the integrator
+    merge-receipt log's own shape (`kind`, `slug`, ...)."""
+    path = tree / cal.MERGE_RECEIPTS_RELPATH
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(json.dumps(r) for r in records) + "\n", encoding="utf-8")
+    return path
+
+
 # --- leg 1: the declaration at landing --------------------------------------
 
 def test_an_artifact_citing_a_row_declares_its_consumer(tree):
@@ -109,6 +118,101 @@ def test_the_generated_index_is_not_part_of_the_corpus(tree):
     """`docs/audits/README.md` is generated and cites everything by construction."""
     _audit(tree, "README.md", "Names nothing.\n")
     assert cal.measure(tree).corpus == []
+
+
+# --- leg 1b: the integrator merge-receipt route ([#1329]) -------------------
+#
+# `[#1329]` R42.2/R42.4: three audits hard-FAIL `undeclared()` and no existing route clears
+# them -- the 2026-09-05 manifest-link route only feeds the WARN-level ratchet
+# (`m.unconsumed`), never the FAIL-level `undeclared()`. A `kind: merge` integrator receipt
+# naming a lane IS a consumer declaration for that lane's own audit, in the same load-bearing
+# sense the manifest-link route reasons about a batch manifest: it is the gate-readable record
+# that the lane's work landed.
+
+def test_an_audit_named_by_its_lanes_merge_receipt_declares_a_consumer(tree):
+    _audit(tree, "2026-09-29-codex-lane-handoff-probes-5b5r-6b-repair-1.md")
+    _receipts(tree, [{"kind": "merge", "slug": "lane-handoff-probes", "merge_sha": None}])
+    assert cal.undeclared(cal.measure(tree)) == []
+
+
+def test_receipt_link_also_clears_the_ratchets_unconsumed_set(tree):
+    _audit(tree, "2026-09-29-codex-lane-handoff-probes-5b5r-6b-repair-1.md")
+    _receipts(tree, [{"kind": "merge", "slug": "lane-handoff-probes", "merge_sha": None}])
+    assert cal.measure(tree).unconsumed == []
+
+
+def test_a_receipt_with_no_merge_sha_still_links(tree):
+    """Two of the three named audits' own receipts carry `merge_sha: null` -- the row names
+    the lane, not the sha, as what the receipt must carry to count."""
+    _audit(tree, "2026-09-30-codex-lane-handoff-boot-dispatch-repair-1.md")
+    _receipts(tree, [{"kind": "merge", "slug": "lane-handoff-boot-dispatch",
+                      "merge_sha": "a244379911e553f24d93ba0e508e36ebbceddb76"}])
+    assert cal.undeclared(cal.measure(tree)) == []
+
+
+def test_a_receipt_for_an_unrelated_lane_does_not_link(tree):
+    _audit(tree, "2026-09-29-codex-lane-handoff-probes-5b5r-6b-repair-1.md")
+    _receipts(tree, [{"kind": "merge", "slug": "lane-something-else", "merge_sha": None}])
+    assert [a.name for a in cal.undeclared(cal.measure(tree))] == [
+        "2026-09-29-codex-lane-handoff-probes-5b5r-6b-repair-1.md"]
+
+
+def test_a_non_merge_receipt_kind_does_not_link(tree):
+    _audit(tree, "2026-09-29-codex-lane-handoff-probes-5b5r-6b-repair-1.md")
+    _receipts(tree, [{"kind": "lane", "slug": "lane-handoff-probes"}])
+    assert [a.name for a in cal.undeclared(cal.measure(tree))] == [
+        "2026-09-29-codex-lane-handoff-probes-5b5r-6b-repair-1.md"]
+
+
+def test_a_substring_slug_that_is_not_a_prefix_does_not_falsely_link(tree):
+    """The both-sided-boundary lesson again: a slug that merely APPEARS inside the audit's
+    name, without anchoring the start of what follows `<date>-codex-`, must not bind --
+    the same class of false positive `_AUDIT_NAME_RE` was hardened against."""
+    _audit(tree, "2026-09-29-codex-lane-handoff-probes-5b5r-6b-repair-1.md")
+    _receipts(tree, [{"kind": "merge", "slug": "handoff-probes", "merge_sha": None}])
+    assert [a.name for a in cal.undeclared(cal.measure(tree))] == [
+        "2026-09-29-codex-lane-handoff-probes-5b5r-6b-repair-1.md"]
+
+
+def test_a_longer_slug_than_the_audit_carries_does_not_link(tree):
+    _audit(tree, "2026-09-29-codex-lane-handoff-probes-5b5r-6b-repair-1.md")
+    _receipts(tree, [{"kind": "merge", "slug": "lane-handoff-probes-5b5r-6b-repair-1-extra",
+                      "merge_sha": None}])
+    assert [a.name for a in cal.undeclared(cal.measure(tree))] == [
+        "2026-09-29-codex-lane-handoff-probes-5b5r-6b-repair-1.md"]
+
+
+def test_an_audit_outside_the_codex_lane_grammar_is_unaffected_by_receipts(tree):
+    """Only `<date>-codex-<rest>.md` names are attributed to a lane; an audit of a different
+    shape cannot be receipt-linked and falls through to its own text, exactly as before."""
+    _audit(tree, "2026-09-01-technical-x.md")
+    _receipts(tree, [{"kind": "merge", "slug": "technical-x", "merge_sha": None}])
+    assert [a.name for a in cal.undeclared(cal.measure(tree))] == ["2026-09-01-technical-x.md"]
+
+
+def test_a_missing_receipts_log_links_nothing_rather_than_erroring(tree):
+    _audit(tree, "2026-09-29-codex-lane-handoff-probes-5b5r-6b-repair-1.md")
+    assert not (tree / cal.MERGE_RECEIPTS_RELPATH).exists()
+    assert [a.name for a in cal.undeclared(cal.measure(tree))] == [
+        "2026-09-29-codex-lane-handoff-probes-5b5r-6b-repair-1.md"]
+
+
+def test_all_three_named_1329_audits_clear_via_their_own_receipts(tree):
+    """The row's own three named audits, reproduced in miniature with their real receipt
+    shapes (`to-browser/RATIFICATION-2026-09-30.md` v2 / `logs/MERGE-RECEIPTS.jsonl`)."""
+    for name in (
+        "2026-09-29-codex-lane-handoff-probes-5b5r-6b-repair-1.md",
+        "2026-09-29-codex-lane-scope-guard-2-repair-1.md",
+        "2026-09-30-codex-lane-handoff-boot-dispatch-repair-1.md",
+    ):
+        _audit(tree, name)
+    _receipts(tree, [
+        {"kind": "merge", "slug": "lane-handoff-probes", "merge_sha": None},
+        {"kind": "merge", "slug": "lane-scope-guard-2", "merge_sha": None},
+        {"kind": "merge", "slug": "lane-handoff-boot-dispatch",
+         "merge_sha": "a244379911e553f24d93ba0e508e36ebbceddb76"},
+    ])
+    assert cal.undeclared(cal.measure(tree)) == []
 
 
 # --- leg 2: consumption, IDENTIFIER-keyed -----------------------------------

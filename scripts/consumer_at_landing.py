@@ -97,6 +97,10 @@ CHECK_NAME = "consumer_at_landing"
 AUDITS_RELPATH = "docs/audits"
 BASELINE_RELPATH = "ecosystem/audit-consumer-baseline.json"
 
+#: The integrator merge-receipt log ([#1329]) -- each line a JSON object; a `kind: merge`
+#: record's `slug` names the lane it closed. See `merge_receipt_slugs()`.
+MERGE_RECEIPTS_RELPATH = "logs/MERGE-RECEIPTS.jsonl"
+
 #: Bumped when the predicate changes. A baseline stamped with a DIFFERENT id is not
 #: commensurable with a live measurement, and the ratchet refuses to compare them rather than
 #: letting a predicate revision silently rebase the debt (`silent_rule_ratchet` discipline).
@@ -107,7 +111,16 @@ BASELINE_RELPATH = "ecosystem/audit-consumer-baseline.json"
 #: check passed. The bump is this module's own rule applied to itself: a re-measurement nobody
 #: reviewed is indistinguishable from a drain, so a corpus change forces a deliberate
 #: re-measure-and-re-stamp rather than silently rebasing hundreds of names.
-DETECTOR_ID = "consumer-at-landing/v2"
+#:
+#: v2 -> v3 ([#1329], 2026-10-01): the INTEGRATOR MERGE RECEIPT became a consumer route --
+#: an audit named `<date>-codex-<lane-slug>[-suffix].md` whose lane has a `kind: merge` entry
+#: in `logs/MERGE-RECEIPTS.jsonl` now declares a consumer via that receipt, on BOTH legs
+#: (`undeclared()`'s FAIL and `measure()`'s `unconsumed` ratchet) -- unlike the 2026-09-05
+#: manifest-link route, which only ever reached the ratchet. Three audits that hard-FAILed
+#: `undeclared()` with no route to clear it (R42.2/R42.4) are the reason: `docs/audits/` is
+#: immutable, so the ONLY way to clear a FAIL born from a gap in this predicate is to fix the
+#: predicate, re-measure, and re-stamp -- never to edit the audit or add an exclusion entry.
+DETECTOR_ID = "consumer-at-landing/v3"
 
 #: New landings only. The row: *"the 290 historical orphans are exempt by date cutoff."*
 ARM_DATE = _dt.date(2026, 8, 27)
@@ -156,6 +169,12 @@ _STEM_RE = re.compile(r"(?<![A-Za-z0-9._-])(\d{4}-\d{2}-\d{2}-[A-Za-z0-9._-]+)(?
 
 _DATED_NAME_RE = re.compile(r"^(?P<date>\d{4}-\d{2}-\d{2})-")
 
+#: A codex-review-organ audit's own name grammar (`deploy/codex-review.ps1`'s
+#: `"$date-codex-$Topic.md"`): `<date>-codex-<rest>.md`. Used ONLY to attribute an audit to a
+#: lane slug for the merge-receipt route below -- never to invent a lane for a name that does
+#: not carry this shape.
+_LANE_AUDIT_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-codex-(?P<rest>.+)\.md$")
+
 
 class ConsumerScanError(RuntimeError):
     """The corpus itself could not be read. Never raised for a coverage gap — a corpus that
@@ -188,6 +207,9 @@ class Measurement:
     pool_resolved: bool = False
     #: artifact -> link kind ('explicit' | 'lane-slug'), the 2026-09-05 manifest-link route.
     manifest_linked: dict[str, str] = field(default_factory=dict)
+    #: artifact -> lane slug, the [#1329] integrator-merge-receipt route. Unlike
+    #: `manifest_linked`, this ALSO exempts the artifact from `undeclared()`'s FAIL leg.
+    receipt_linked: dict[str, str] = field(default_factory=dict)
     detector_id: str = DETECTOR_ID
 
 
@@ -300,6 +322,58 @@ def cited_identifiers(repo_path: Path) -> tuple[set[str], int]:
     return tokens, len(paths), unreadable
 
 
+def merge_receipt_slugs(repo_path: Path) -> set[str]:
+    """Every lane slug named by a `kind: merge` integrator receipt ([#1329]).
+
+    Missing log / unreadable file / a malformed line each yield fewer (never more) slugs --
+    the fail-safe direction for an EXEMPTION route: a receipt that cannot be read links
+    nothing, so the affected audit falls back to needing its own declaration rather than
+    being silently exempted on a partial read.
+    """
+    path = Path(repo_path) / MERGE_RECEIPTS_RELPATH
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return set()
+    slugs: set[str] = set()
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            record = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(record, dict) or record.get("kind") != "merge":
+            continue
+        slug = record.get("slug")
+        if isinstance(slug, str) and slug:
+            slugs.add(slug)
+    return slugs
+
+
+def receipt_linked_identifiers(names: list[str], slugs: set[str]) -> dict[str, str]:
+    """Audit name -> the lane slug that names it, for every `<date>-codex-<slug>[-suffix].md`
+    audit whose lane has a `kind: merge` integrator receipt.
+
+    Matched by PREFIX of `rest` (the part after `<date>-codex-`), never bare substring --
+    `_AUDIT_NAME_RE`'s both-sided-boundary lesson applied here: `rest` must equal the slug or
+    continue with `-`, so a slug that merely appears inside a longer, unrelated `rest` cannot
+    bind to it.
+    """
+    out: dict[str, str] = {}
+    for name in names:
+        match = _LANE_AUDIT_RE.match(name)
+        if not match:
+            continue
+        rest = match.group("rest")
+        for slug in slugs:
+            if rest == slug or rest.startswith(slug + "-"):
+                out[name] = slug
+                break
+    return out
+
+
 def measure(repo_root_path: Path) -> Measurement:
     """Walk `docs/audits/`, parse each artifact's declaration, and resolve consumption.
 
@@ -367,15 +441,34 @@ def measure(repo_root_path: Path) -> Measurement:
     m.manifest_linked = {n: k for n in m.corpus
                          if (k := _bm.links_artifact(links, n)) is not None}
 
+    # THE INTEGRATOR MERGE-RECEIPT ROUTE ([#1329]). Same load-bearing reasoning as the
+    # manifest-link route above, but this one ALSO reaches `undeclared()` (see that
+    # function) -- the manifest-link route never did, which is exactly the gap that left
+    # three audits hard-FAILing with no route to clear (R42.2/R42.4, DETECTOR_ID v2->v3).
+    m.receipt_linked = receipt_linked_identifiers(m.corpus, merge_receipt_slugs(root))
+
     m.unconsumed = sorted(n for n in m.corpus
-                          if not (identifiers(n) & tokens) and n not in m.manifest_linked)
+                          if not (identifiers(n) & tokens) and n not in m.manifest_linked
+                          and n not in m.receipt_linked)
     return m
 
 
 def undeclared(m: Measurement) -> list[Artifact]:
-    """Artifacts landed on/after `ARM_DATE` that declare no consumer. Leg 1's verdict set."""
-    return [a for a in (m.artifacts[n] for n in m.corpus)
-            if a.landed is not None and a.landed >= ARM_DATE and not a.declares_consumer]
+    """Artifacts landed on/after `ARM_DATE` that declare no consumer and are not linked by an
+    integrator merge receipt. Leg 1's verdict set.
+
+    The receipt-linked exemption is the [#1329] addition: `declares_consumer` reads only the
+    artifact's OWN text, by design (LIBRARY-FIRST / IDENTIFIER-KEYED docstring above) -- the
+    receipt link is deliberately a second, measurement-level route, not a change to what
+    `Artifact.declares_consumer` means.
+    """
+    out: list[Artifact] = []
+    for n in m.corpus:
+        a = m.artifacts[n]
+        if (a.landed is not None and a.landed >= ARM_DATE and not a.declares_consumer
+                and n not in m.receipt_linked):
+            out.append(a)
+    return out
 
 
 # --- the committed baseline ------------------------------------------------------------------

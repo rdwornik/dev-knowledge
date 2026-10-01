@@ -1879,6 +1879,29 @@ def test_the_declared_unattended_invocation_still_cites_the_one_ceiling():
     assert "--group analytics" in line, line     # the measured 44-vs-28 difference
 
 
+def test_ship_gate_ceiling_has_headroom_over_the_worst_measured_run():
+    """A2 ([#1330]'s batch, R41 scope addition): the ceiling must sit measurably above the
+    gate's REAL wall-clock cost, not merely above whichever single run happened to land first.
+
+    Two real `audit.py ship-gate` runs are on record, both detached and timed: 17m08s (1028s)
+    on `origin/main` `6df37302`, four-seat contention (the launcher's reading, R41 evidence —
+    `to-browser/SESSION-launch-handoff-unblock-2026-09-30.md` §"R41 — the order challenged");
+    13m02.6s (782.6s) on this lane's own tip, 2026-10-01, six-seat contention (this lane's own
+    reading, job tmp `ship-gate-measurement.log`). The pre-[#1330-batch] ceiling, 900s, sits
+    BELOW the worse of the two and only ~13% over the better one -- exactly the failure mode
+    `SHIP_GATE_TIMEOUT_S`'s own comment warns against: "a ceiling tighter than the gate's real
+    cost would manufacture refusals rather than detect them". RED at 900 (this constant, at the
+    time this test was written); GREEN once the ceiling carries real headroom over the worse
+    reading. The refusal keeps its teeth regardless of the number -- see
+    `test_ship_gate_row_fails_when_the_verdict_cannot_be_read` in test_gen_handoff_preflight.py,
+    which pins that a timed-out verdict still FAILs the row independent of this constant's value.
+    """
+    worst_observed_s = 1028  # 17m08s, origin/main 6df37302, four-seat contention
+    required_headroom_ratio = 1.5  # at least 50% over the worst real reading on record
+    assert gh.SHIP_GATE_TIMEOUT_S >= worst_observed_s * required_headroom_ratio, (
+        gh.SHIP_GATE_TIMEOUT_S, worst_observed_s)
+
+
 # ------------------------------------------------- the stub repo does not escape this file
 #
 # `_stub_repo` writes one-line placeholders at the paths the probe-core resolves, INCLUDING

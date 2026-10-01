@@ -79,6 +79,47 @@ def test_row_ci_degrades_cleanly_when_repo_has_no_git(tmp_path):
     assert "not a git repository" in row.value
 
 
+# --- [#1330]: row_ci(at_sha=...) anchors to a specific commit, not origin/main ------------
+
+def test_row_ci_defaults_to_origin_main_when_at_sha_is_none(tmp_path, monkeypatch):
+    (tmp_path / ".git").mkdir()
+    seen = {}
+
+    def _fake_verdict_for(ref, **kwargs):
+        seen["ref"] = ref
+        return hs._civ.CiVerdict(ref=ref, sha="deadbeef", verdict=hs._civ.STATE_GREEN, run_id=1)
+    monkeypatch.setattr(hs._civ, "verdict_for", _fake_verdict_for)
+    hs.row_ci(tmp_path)
+    assert seen["ref"] == "origin/main"
+
+
+def test_row_ci_with_at_sha_queries_that_sha_not_origin_main(tmp_path, monkeypatch):
+    (tmp_path / ".git").mkdir()
+    seen = {}
+
+    def _fake_verdict_for(ref, **kwargs):
+        seen["ref"] = ref
+        return hs._civ.CiVerdict(ref=ref, sha=ref, verdict=hs._civ.STATE_GREEN, run_id=1)
+    monkeypatch.setattr(hs._civ, "verdict_for", _fake_verdict_for)
+    row = hs.row_ci(tmp_path, at_sha="c758fe2f847238c7f9bc88797ab13ac106453795")
+    assert seen["ref"] == "c758fe2f847238c7f9bc88797ab13ac106453795"
+    assert "c758fe2" in row.value  # the resolved sha7 shows up in the VALUE, not evidence
+    assert row.evidence == "ci_verdict.verdict_for(ref, timeout_s=0)"  # evidence stays fixed
+
+
+def test_row_ci_evidence_string_is_identical_regardless_of_at_sha(tmp_path, monkeypatch):
+    """[#1330] load-bearing: the generator always calls with `at_sha=None`, so a bundle's
+    RECORDED evidence string is this fixed literal. If the verifier's anchored re-derivation
+    rendered a DIFFERENT evidence string, `.rendered()` could never match again even when
+    the verdict content agrees -- this pins evidence as invariant across at_sha."""
+    (tmp_path / ".git").mkdir()
+    monkeypatch.setattr(hs._civ, "verdict_for",
+                        lambda ref, **kw: hs._civ.CiVerdict(ref=ref, sha=ref, verdict=hs._civ.STATE_GREEN, run_id=1))
+    live = hs.row_ci(tmp_path)
+    anchored = hs.row_ci(tmp_path, at_sha="c758fe2f847238c7f9bc88797ab13ac106453795")
+    assert live.evidence == anchored.evidence
+
+
 def test_row_batches_reports_none_open_when_no_manifest_declares_one(tmp_path):
     repo = _repo_with_registries(tmp_path)
     row = hs.row_batches(repo)
@@ -345,10 +386,36 @@ def test_row_rulings_degrades_when_transport_is_unresolved():
     assert "no RATIFICATION file" in row.value
 
 
+# --- [#1330]: as_of reconstructs "newest as of the bundle's own cut date" -----------------
+
+def test_row_rulings_as_of_excludes_a_file_dated_after_it(tmp_path):
+    t = tmp_path / "transport"
+    (t / "to-browser").mkdir(parents=True)
+    (t / "to-browser" / "RATIFICATION-2026-09-20.md").write_text(
+        "- **R1** one.\n", encoding="utf-8")
+    (t / "to-browser" / "RATIFICATION-2026-09-25.md").write_text(
+        "- **R1** one.\n- **R2** two.\n", encoding="utf-8")
+    live = hs.row_rulings(t)
+    assert "RATIFICATION-2026-09-25.md" in live.value
+
+    anchored = hs.row_rulings(t, as_of="2026-09-20")
+    assert "RATIFICATION-2026-09-20.md" in anchored.value
+    assert "1 ruling(s)" in anchored.value
+
+
 def test_row_capabilities_picks_the_newest_dated_file_and_counts_works(tmp_path):
     t = _transport(tmp_path)
     row = hs.row_capabilities(t)
     assert row.value == "2/3 WORKS (1 qualified) — `DIGEST-CAPABILITY-MAP-2026-09-26.md`"
+
+
+def test_row_capabilities_as_of_excludes_a_file_dated_after_it(tmp_path):
+    """The live `_transport` fixture carries an OLDER 2026-09-20 map alongside the newest
+    2026-09-26 one — `as_of` anchored to the older date must select the older file, the same
+    value a bundle cut on 2026-09-20 would have recorded."""
+    t = _transport(tmp_path)
+    anchored = hs.row_capabilities(t, as_of="2026-09-20")
+    assert "DIGEST-CAPABILITY-MAP-2026-09-20.md" in anchored.value
 
 
 def test_row_capabilities_degrades_when_transport_is_unresolved():
