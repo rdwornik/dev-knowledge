@@ -21,6 +21,21 @@
 
 ---
 
+### 2026-10-01 (b) - CC (Opus 5.5, INTEGRATOR HANDOFF-UNBLOCK cycle-3): the batch closes; its quota reads, merge receipt and costs land
+
+**Anchors:** `e58bae74` -- `worktree-close-handoff-unblock`, merged `--no-ff` from `e0d9b8d2`.
+
+**Did:**
+- Carried the primary's uncommitted `logs/QUOTA-READS.jsonl` (with the close read) into one close commit, as WAVE5B-N4 did.
+- Landed the closed merge receipt of `lane-handoff-unblock` and the lane and seat cost rows.
+
+**Result:** HANDOFF-UNBLOCK cost USD 73.44 (lane USD 52.60; four integrator seats USD 20.84). The lane's own review record is now named by its merge receipt, so `consumer_at_landing` reads it as consumed ([#1329]).
+
+**Changes:** `logs/QUOTA-READS.jsonl`, `logs/MERGE-RECEIPTS.jsonl`, `logs/LANE-COSTS.jsonl`.
+
+**Next:**
+- The operator installs the codex-review organ from the hub carrier (three files) and re-runs `/handoff`.
+
 ### 2026-10-01 (a) - CC (Opus 5.5, INTEGRATOR HANDOFF-UNBLOCK cycle-3): lane-handoff-unblock merges after one repair; [#1328], [#1329] and [#1330] close
 
 **Anchors:** `91f00747` -- `worktree-lane-handoff-unblock` (repair 1 tip), merged `--no-ff` from `6df37302`.
