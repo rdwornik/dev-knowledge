@@ -2181,3 +2181,104 @@ def test_a_measured_boot_cost_names_its_instrument_and_binds_its_dispatch(tmp_pa
     assert cost["dispatch_sha256"] == hashlib.sha256(order.read_bytes()).hexdigest()
     assert cost["source"].startswith("operator tally")
     assert "not machine-witnessed" in cost["source"]
+
+
+# --- item 14/L9: the refusal log -----------------------------------------------------------
+
+def _raise_preflight(*_a, **_k):
+    raise gh.PreflightError("refusing to cut a bundle: 1 pre-handoff hygiene row(s) FAILED")
+
+
+def _refusal_log(transport):
+    return transport / "logs" / "HANDOFF-REFUSALS.jsonl"
+
+
+def test_a_real_cuts_preflight_refusal_appends_one_refusal_entry(tmp_path, monkeypatch):
+    transport = tmp_path / "transport"
+    monkeypatch.setattr(gh, "assert_preflight", _raise_preflight)
+    repo = _stub_repo(tmp_path)
+    with pytest.raises(gh.PreflightError):
+        gh.generate(repo, mode="architect", slug="0000-00-00-t", repo=".dev-knowledge",
+                   date="2026-07-04", bundle_root=repo / "docs" / "handoffs",
+                   transport=transport)
+    log = _refusal_log(transport)
+    assert log.is_file()
+    entries = [json.loads(ln) for ln in log.read_text(encoding="utf-8").splitlines() if ln]
+    assert len(entries) == 1
+    assert entries[0]["kind"] == "REFUSAL"
+    assert "FAILED" in entries[0]["reason"]
+
+
+def test_a_dry_cuts_preflight_refusal_never_touches_the_refusal_log(tmp_path, monkeypatch):
+    """N3's own scope note: a dry cut proves the cut path; it is not the operator's own retry
+    loop, so it must not inflate (or create) the log item 14's count is read from."""
+    transport = tmp_path / "transport"
+    monkeypatch.setattr(gh, "assert_preflight", _raise_preflight)
+    repo = _stub_repo(tmp_path)
+    out = tmp_path / "dry"
+    with pytest.raises(gh.PreflightError):
+        gh.generate(repo, mode="architect", slug="0000-00-00-t", repo=".dev-knowledge",
+                   date="2026-07-04", bundle_root=out, dry_cut=True, transport=transport)
+    assert not _refusal_log(transport).exists()
+
+
+def test_no_transport_given_never_touches_disk_for_the_refusal_log(tmp_path, monkeypatch):
+    """`transport=None` (every caller that does not pass it) is a no-op, never a live
+    `transport_root()` resolution as a side effect of a refused test fixture (gen_handoff.py's
+    own `generate` docstring, the `transport` paragraph)."""
+    monkeypatch.setattr(gh, "assert_preflight", _raise_preflight)
+    monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
+    repo = _stub_repo(tmp_path)
+    with pytest.raises(gh.PreflightError):
+        gh.generate(repo, mode="architect", slug="0000-00-00-t", repo=".dev-knowledge",
+                   date="2026-07-04", bundle_root=repo / "docs" / "handoffs")
+    # nothing under tmp_path besides the repo itself was created
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["repo"]
+
+
+def test_a_successful_real_cut_resets_the_refusal_count(tmp_path, monkeypatch):
+    transport = tmp_path / "transport"
+    repo = _stub_repo(tmp_path)
+    # Two refused attempts first, so the log carries REFUSAL entries to reset.
+    real_assert_preflight = gh.assert_preflight
+    monkeypatch.setattr(gh, "assert_preflight", _raise_preflight)
+    for _ in range(2):
+        with pytest.raises(gh.PreflightError):
+            gh.generate(repo, mode="architect", slug="0000-00-00-t", repo=".dev-knowledge",
+                       date="2026-07-04", bundle_root=repo / "docs" / "handoffs",
+                       transport=transport)
+    assert gh._refusal_count_since_previous_cut(transport) == 2
+    monkeypatch.setattr(gh, "assert_preflight", real_assert_preflight)
+    monkeypatch.setattr(gh, "_handoff_organ_findings", lambda _root: [])
+    monkeypatch.setattr(gh, "_linked_worktrees", lambda _root: [])
+    gh.generate(repo, mode="architect", slug="0000-00-00-t2", repo=".dev-knowledge",
+               date="2026-07-04", bundle_root=repo / "docs" / "handoffs", assemble=False,
+               transport=transport)
+    assert gh._refusal_count_since_previous_cut(transport) == 0
+
+
+def test_receipt_carries_whole_repo_verdict_and_refusal_count(tmp_path, monkeypatch):
+    monkeypatch.setattr(gh, "_handoff_organ_findings", lambda _root: [])
+    monkeypatch.setattr(gh, "_linked_worktrees", lambda _root: [])
+    repo = _stub_repo(tmp_path)
+    # An EXPLICIT fixture transport that does not exist -- `transport=None` (the default) would
+    # resolve the box's REAL `transport_root()` (same live-resolution idiom `state_rows` already
+    # used), which is correct production behaviour but wrong for a test to touch (terra-style
+    # self-catch, same session: a first draft of this test omitted `transport=` and wrote real
+    # `CUT` lines into this machine's actual transport — see the `generate()` comment above
+    # `live_state_rows = _hstate().state_rows(...)`).
+    transport = tmp_path / "no-such-transport"
+    b = gh.generate(repo, mode="architect", slug="0000-00-00-t", repo=".dev-knowledge",
+                    date="2026-07-04", bundle_root=repo / "docs" / "handoffs",
+                    assemble=False, transport=transport).bundle_dir
+    receipt = json.loads((b / gh.RECEIPT_FILE).read_text(encoding="utf-8"))
+    verdict = receipt["whole_repo_verdict"]
+    assert verdict["source"] == "CI ship-gate job"
+    assert verdict["verdict"] in ("GREEN", "RED", "not run")
+    # The fixture transport carries no refusal log — ABSENT, not 0.
+    assert receipt["refusal_count_since_previous_cut"] is None
+
+
+def test_refusal_count_is_none_without_a_readable_log(tmp_path):
+    assert gh._refusal_count_since_previous_cut(None) is None
+    assert gh._refusal_count_since_previous_cut(tmp_path / "no-transport-here") is None

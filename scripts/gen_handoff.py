@@ -881,6 +881,94 @@ def _whole_repo_verdict(repo_root: Path, sha: "str | None" = None) -> dict:
                 "detail": f"{exc!r}"}
 
 
+# --- item 14/L9: the refusal log -----------------------------------------------------------
+#
+# DECIDED-BY-LANE (N3): the log lives under the TRANSPORT, never under the repository. A file
+# this generator appended to on every refusal, if it lived inside the git work tree, would be
+# an uncommitted change the NEXT cut attempt's own `state.dirty` check would refuse on -- the
+# mechanism would poison its own next run. The transport is outside every git work tree by
+# construction (`transport_root()`'s docstring), so appending there can never dirty the tree
+# the cut checks. Same reasoning CLAUDE.md's LEDGER files already rely on: cross-window,
+# cross-session state belongs on the transport, not in the repo, when the repo's own
+# cleanliness is itself a gate input.
+#
+# Scope: a REAL cut's `PreflightError` refusals only (`not dry_cut`). A dry cut is a CI/test
+# proof of the cut path (ADR-129 item 1/L1), not an operator's actual cut attempt, and proposal
+# §7 step 5 / PM8's "refusal count since the previous cut" is about the operator's own retry
+# loop -- counting dry-cut noise into it would make the count answer a question nobody asked.
+_REFUSAL_LOG_RELPATH = Path("logs") / "HANDOFF-REFUSALS.jsonl"
+
+
+def _refusal_log_path(transport: "Path | None") -> "Path | None":
+    return (transport / _REFUSAL_LOG_RELPATH) if transport is not None else None
+
+
+def _append_refusal_log(transport: "Path | None", *, repo_root: Path, reason: str) -> None:
+    """Best-effort append of one REFUSAL line; never raises (a logging failure is not a cut
+    failure, and the exception this is called from is already on its way out)."""
+    path = _refusal_log_path(transport)
+    if path is None:
+        return
+    try:
+        import json  # noqa: PLC0415
+        _, sha = _git_status(repo_root, "rev-parse", "HEAD")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8", newline="\n") as f:
+            f.write(json.dumps({
+                "kind": "REFUSAL", "ts": _dt.datetime.now(_dt.timezone.utc).isoformat(
+                    timespec="seconds"), "sha": (sha or "").strip() or None, "reason": reason,
+            }, ensure_ascii=False) + "\n")
+    except OSError:
+        pass
+
+
+def _append_cut_log(transport: "Path | None", *, repo_root: Path, slug: str) -> None:
+    """Best-effort append of one CUT line, marking a real (never dry) cut's success. Never
+    raises -- a logging failure must not turn a succeeded cut into a failed one."""
+    path = _refusal_log_path(transport)
+    if path is None:
+        return
+    try:
+        import json  # noqa: PLC0415
+        _, sha = _git_status(repo_root, "rev-parse", "HEAD")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8", newline="\n") as f:
+            f.write(json.dumps({
+                "kind": "CUT", "ts": _dt.datetime.now(_dt.timezone.utc).isoformat(
+                    timespec="seconds"), "sha": (sha or "").strip() or None, "slug": slug,
+            }, ensure_ascii=False) + "\n")
+    except OSError:
+        pass
+
+
+def _refusal_count_since_previous_cut(transport: "Path | None") -> "int | None":
+    """Count of REFUSAL entries after the last CUT entry (or in the whole log, when no CUT
+    entry exists yet). None when the log is absent or unreadable -- ABSENT, not zero, because
+    zero would read as "no refusals" rather than as "never measured" (the same honesty the
+    other unmeasured receipt fields already keep)."""
+    path = _refusal_log_path(transport)
+    if path is None or not path.is_file():
+        return None
+    try:
+        import json  # noqa: PLC0415
+        count = 0
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entry = json.loads(line)
+            except ValueError:
+                continue
+            if entry.get("kind") == "CUT":
+                count = 0
+            elif entry.get("kind") == "REFUSAL":
+                count += 1
+        return count
+    except OSError:
+        return None
+
+
 def _journal_spine_gaps(repo_root: Path) -> "list[str] | None":
     """Unanchored spine entries not covered by the ADR-110 exemption; None when undetermined.
 
@@ -2429,10 +2517,22 @@ def boot_cost(turns: "int | None" = None, dispatch: "str | None" = None,
 
 
 def _write_receipt(bundle_dir: Path, *, slug: str, mode: str, date: str, cut: str,
-                   cost: dict, paste: dict, manifest: "dict | None" = None) -> Path:
+                   cost: dict, paste: dict, manifest: "dict | None" = None,
+                   repo_root: "Path | None" = None,
+                   transport: "Path | None" = None) -> Path:
     """Write `<bundle>/HANDOFF_RECEIPT.json`, WHOLE, every generation (the FUNNEL_HEALTH
     contract: overwritten, never merged). A bundle artifact, not a browser-visible one — the
     assembler never reads it — so its numbers do not touch the answer-free paste.
+
+    `repo_root`/`transport` (ADR-129 item 14/L9): gated on `transport`, not `repo_root` alone
+    (every caller passes a real `repo_root`, stub or not — gating there would make every test's
+    `generate()` call pay for a `gh` subprocess it never asked for, see the comment at the gate
+    below). `transport is not None` is what makes the receipt also carry `whole_repo_verdict`
+    (`_whole_repo_verdict`, read-only, never run — item 8/L3) and
+    `refusal_count_since_previous_cut` (`_refusal_count_since_previous_cut`, read from the
+    transport-side refusal log — item 14/L9). `transport=None` (the default; every caller
+    that does not explicitly opt in) omits both fields rather than resolving a live transport
+    or spawning a `gh` subprocess the caller never asked for.
 
     `manifest` (lane-handoff-min, Part A; ADR-HANDOFF-SYSTEM Decision rule 1) is the per-file
     sha256 census a publish step verifies against — see `bundle_manifest` / `publish_bundle` /
@@ -2442,6 +2542,17 @@ def _write_receipt(bundle_dir: Path, *, slug: str, mode: str, date: str, cut: st
     body = {"schema": "handoff-receipt/1", "generator": "scripts/gen_handoff.py", "slug": slug,
             "mode": mode, "date": date, "cut": cut, "boot_cost": cost, "paste": paste,
             "manifest": manifest}
+    # Gated on `transport`, not merely `repo_root` -- caught same-session (terra-style
+    # self-catch, the second half of the same incident): gating on `repo_root is not None`
+    # alone made EVERY test's successful `generate()` call (which always passes a real
+    # `repo_root`, stub or not) spawn a `gh` subprocess via `_whole_repo_verdict` -- the full
+    # three-file suite went from ~400s to still running past 20 minutes (78% in, one failure
+    # not yet even reached) before this was caught and reverted to the `transport` opt-in that
+    # already gates the refusal log, which is explicit and `None` by default everywhere except
+    # the CLI `main()` and a test that deliberately wants this leg.
+    if transport is not None:
+        body["whole_repo_verdict"] = _whole_repo_verdict(repo_root)
+        body["refusal_count_since_previous_cut"] = _refusal_count_since_previous_cut(transport)
     out.write_text(json.dumps(body, indent=2, ensure_ascii=False) + "\n", encoding="utf-8",
                    newline="\n")
     return out
@@ -2999,7 +3110,8 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
              epic_slug: str | None = None, allow_suffix: bool = False,
              boot_turns: "int | None" = None, boot_dispatch: "str | None" = None,
              dry_cut: bool = False, memory_path: "Path | None" = None,
-             sessions_root: "Path | None" = None) -> GenResult:
+             sessions_root: "Path | None" = None,
+             transport: "Path | None" = None) -> GenResult:
     """Emit a v5 bundle from committed repo state. Returns the bundle dir + the JOURNAL draft.
 
     lane-boot-contract (WAVE5B-N2 row 12): the v5 boot header is a probe-checked DATA block and
@@ -3024,6 +3136,14 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
 
     It is how a change to the boot is proven end to end without cutting a handoff. The receipt
     says `"cut": "dry"`.
+
+    `transport` (ADR-129 item 14/L9): the refusal log (`_append_refusal_log` /
+    `_append_cut_log` / `_refusal_count_since_previous_cut`) is EXPLICIT-opt-in, not resolved
+    live via `transport_root()` inside this function -- `None` (the default, every caller
+    that does not pass it, including every test that does not fixture it) makes every one of
+    those three a no-op / `None`-valued read, never a live write to the operator's real
+    transport as a side effect of a refused test fixture. The CLI `main()` is the one caller
+    that passes the live `transport_root()` through.
 
     force_filled overrides the auto-detected fill-state (RF-2's `--filled`). bundle_root defaults
     to <repo_root>/docs/handoffs (overridable for tests). SUPPLEMENT.md is written only if absent
@@ -3091,9 +3211,17 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     # BD-manifest circularity from an unrelated hard-fail. `memory_path` / `sessions_root` pin
     # the two live-state rows for a deterministic dry cut (AMEND-HANDOFF-REDESIGN-
     # BUILD-2026-10-01 item 2); both default `None`, the prior live-resolution behaviour.
-    assert_preflight(repo_root, today=date, repo_name=repo, bundle_dir=bundle_dir,
-                     force_filled=bool(force_filled), memory_path=memory_path,
-                     sessions_root=sessions_root)
+    try:
+        assert_preflight(repo_root, today=date, repo_name=repo, bundle_dir=bundle_dir,
+                         force_filled=bool(force_filled), memory_path=memory_path,
+                         sessions_root=sessions_root)
+    except PreflightError as exc:
+        # item 14/L9: a REAL cut's refusal is logged to the transport-side refusal log (never
+        # the repo -- see _append_refusal_log). A dry cut is a proof of the cut path, not an
+        # operator's own retry loop, so it is not counted (N3's own scope note, above).
+        if not dry_cut:
+            _append_refusal_log(transport, repo_root=repo_root, reason=str(exc))
+        raise
     bundle_dir.mkdir(parents=True, exist_ok=True)
     # [#473] B — THE FIX, and it is this one line. `_resolve_bundle_dir` may DIVERT the write
     # to a `-<n>` sibling under `--allow-suffix`, but every render token below was built from
@@ -3167,8 +3295,22 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     # (Part A) adds the live STATE rows here — computed ONCE (`transport` resolved once, CI
     # polled once) and reused for the manifest's `row_freshness` field below, so the cut does
     # not re-poll CI or re-glob the transport a second time for the same generation.
-    transport = transport_root()
-    live_state_rows = _hstate().state_rows(repo_root, transport)
+    #
+    # DELIBERATELY NOT the `transport` PARAMETER (ADR-129 item 14/L9 bug, caught and fixed
+    # same-session, terra-style self-catch): a first draft reused that parameter here, which
+    # made a caller-supplied fixture ALSO become the refusal log's target -- and, since every
+    # pre-existing caller leaves `transport=None` by default, a NAIVE "default None means
+    # resolve live" rule for the refusal log would make every ordinary `generate()` test run
+    # silently WRITE a `CUT` line to the operator's real transport (caught here: 28 real lines
+    # landed in this machine's actual `H:\My Drive\CLAUDE PROMPT DIR\logs\HANDOFF-REFUSALS.jsonl`
+    # during this lane's own test runs before this split existed; cleaned up). Reads of state
+    # rows are harmless by default; a refusal-log WRITE is not, so the two are kept on separate
+    # variables: `_state_transport` always resolves live (state_rows reading the transport is
+    # the pre-existing, unrelated-to-this-ADR behaviour) while the `transport` PARAMETER stays
+    # exactly what the caller passed -- `None` leaves the refusal log INERT (see
+    # `_refusal_log_path`), and only the CLI `main()` passes the live one through on purpose.
+    _state_transport = transport_root()
+    live_state_rows = _hstate().state_rows(repo_root, _state_transport)
     tokens["BOOT_DATA"] = boot_data_block(
         boot_data_rows(slug, mode, tokens["CHAT_TITLE"], spec_version(repo_root),
                        state_rows=live_state_rows))
@@ -3223,7 +3365,8 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
                                state_rows=live_state_rows)
     _write_receipt(bundle_dir, slug=slug, mode=mode, date=date,
                    cut="dry" if dry_cut else "real", cost=cost,
-                   paste=_paste_record(bundle_dir, code), manifest=manifest)
+                   paste=_paste_record(bundle_dir, code), manifest=manifest,
+                   repo_root=repo_root, transport=transport)
     if assemble:
         if code != 0:
             # The bundle is deliberately LEFT ON DISK. Every other refusal in this function
@@ -3237,6 +3380,11 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
                 "there is nothing to hand to a browser. Repair what it names — for the P11 "
                 "leg-2 gate that means naming each `carried-by: OPEN` decision file in this "
                 "bundle's RESIDUAL.md — then re-run the assembler on the same directory.")
+    # item 14/L9: a REAL cut that reaches here succeeded past every refusal, so it resets the
+    # refusal count the NEXT cut attempt's receipt will read (`_refusal_count_since_previous_cut`
+    # counts REFUSAL entries after the last CUT entry).
+    if not dry_cut:
+        _append_cut_log(transport, repo_root=repo_root, slug=slug)
     return GenResult(bundle_dir=bundle_dir, journal_draft=draft, filled=filled)
 
 
@@ -3297,7 +3445,7 @@ def main(mode: str, epic_slug: str | None, slug: str | None, repo: str | None, d
                        force_filled=force_filled, assemble=assemble, epic_slug=epic_slug,
                        allow_suffix=allow_suffix, boot_turns=boot_turns,
                        boot_dispatch=boot_dispatch, bundle_root=dry_cut_dir,
-                       dry_cut=dry_cut_dir is not None)
+                       dry_cut=dry_cut_dir is not None, transport=transport_root())
     except (BundleCollisionError, OpenBatchError, BoundaryHygieneError, PreflightError,
             AssemblyRefusedError, DryCutTargetError) as exc:
         # A REFUSAL, not a crash — one diagnostic line, non-zero exit. RM-8 (target collision)
