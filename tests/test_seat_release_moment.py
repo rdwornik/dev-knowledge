@@ -25,6 +25,7 @@ import os
 import shutil
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -87,10 +88,39 @@ def dry_bundle(tmp_path_factory) -> Path:
     """One real architect-mode dry cut (`gen_handoff.generate(..., dry_cut=True)`), generated
     ONCE -- it walks live repo state and costs real wall-clock. Every test that needs to
     mutate a bundle works on its own copy (`_fresh_bundle`) so this fixture instance is never
-    written to."""
+    written to.
+
+    ADR-129 (2026-10-01): the dry cut now runs gate 3 (the ten preflight rows) too -- previously
+    it skipped all three gates. This module tests `moment:seat-release`'s own refusing
+    transaction (notes / bundle / manifest / copy), not preflight content, so a module-scoped
+    fixture pins a deterministic transport (a fresh ledger + ratification dated today) and the
+    two live-state rows (`worktree_owners`, `memory_within_cap`) rather than reading this box's
+    real linked worktrees / memory index -- otherwise this fixture would go red for a reason
+    unrelated to what this module tests, exactly the flakiness class
+    AMEND-HANDOFF-REDESIGN-BUILD-2026-10-01 item 2 / R47 names. `monkeypatch` is function-scoped,
+    so `pytest.MonkeyPatch()` is used directly and undone explicitly."""
     root = tmp_path_factory.mktemp("seat-release-dry-cut")
-    res = gh.generate(_REPO, mode="architect", dry_cut=True, bundle_root=root,
-                      assemble=True, boot_turns=1, boot_dispatch="test")
+    transport_root = tmp_path_factory.mktemp("seat-release-transport")
+    repo_name = _REPO.name
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    to_browser = transport_root / "to-browser"
+    (to_browser).mkdir(parents=True)
+    (transport_root / "to-cc").mkdir(parents=True)
+    (to_browser / f"LEDGER-{repo_name.lstrip('.')}.md").write_text(
+        f"refreshed {today}\n", encoding="utf-8")
+    (to_browser / f"RATIFICATION-{today}.md").write_text(
+        "# Ratification -- test fixture\n", encoding="utf-8")
+
+    mp = pytest.MonkeyPatch()
+    mp.setenv("CLAUDE_PROMPTS_DIR", str(transport_root))
+    mp.setattr(gh, "_linked_worktrees", lambda _root: [])
+    try:
+        res = gh.generate(_REPO, mode="architect", dry_cut=True, bundle_root=root,
+                          assemble=True, boot_turns=1, boot_dispatch="test", date=today,
+                          memory_path=tmp_path_factory.mktemp("seat-release-memory") / "MEMORY.md",
+                          sessions_root=tmp_path_factory.mktemp("seat-release-no-sessions"))
+    finally:
+        mp.undo()
     return res.bundle_dir
 
 

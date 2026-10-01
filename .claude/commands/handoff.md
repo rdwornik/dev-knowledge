@@ -85,9 +85,12 @@ Report-only, before you cut:
 python scripts/gen_handoff.py --preflight-only
 ```
 
-Exit 1 on any FAIL, 0 otherwise. It costs about four and a half minutes, almost all of it the
-ship-gate row running the real `audit.py ship-gate` — the same cost `generate()` pays, which is
-affordable exactly because a cut is a once-per-window act at a true batch boundary.
+Exit 1 on any FAIL, 0 otherwise. ADR-129 (2026-10-01): the ship-gate row no longer shells out to
+the whole-repository `audit.py ship-gate` (13-17 min, measured); it runs the named 11-organ
+handoff set in-process, in parallel (`audit.run_checks(checks=audit.handoff_organs(),
+parallel=True)`), under the 120 s bound its own acceptance test pins
+(`tests/test_handoff_cut_acceptance.py`). The whole-repository verdict is read from CI, never
+run, and goes into the bundle's notes — it never blocks a cut.
 
 Three rows are implemented as CORRECTED against the register that commissioned them, because a
 row that cannot fail reports a safety it does not provide — and a row that cannot pass reports a
@@ -96,7 +99,9 @@ principle, stated once: **a window may hand off with debt only when the debt is 
 owned; it may never hand off with debt that is silent.**
 
 - **The ship-gate row** reads `hard-fail = 0 AND every undispositioned WARN is named in the
-  residual with its owning row` — **not** ship-gate GREEN. A handoff is not a release: GREEN
+  residual with its owning row` — **not** ship-gate GREEN. ADR-129: the hard-fail/WARN count
+  comes from the named 11-organ handoff set (`audit.handoff_organs()`), not the whole-repository
+  ship-gate registry — a handoff is not a release: GREEN
   (0 hard-fail AND 0 undispositioned) is the TAG gate's criterion and stays there, unchanged;
   demanding it at a *cut* means a window with any open finding can never hand off, a deadlock
   this preflight's first live run demonstrated. The debt travels to the next seat explicitly,
