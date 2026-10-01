@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "eaef04069dc86db440e231ec4cb4b1fb6b0940a469818c61907c3c43d84666df",
+  "generated_sha256": "d850e633d66754492667ac03c70059b81132f42dadfdb716aa97e07e95715ac2",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2734,6 +2734,10 @@
     {
       "task": 1327,
       "file": "1327-agy-reports-success-without-an-output-file.md"
+    },
+    {
+      "task": 1331,
+      "file": "1331-the-equilibriums-ruling-register-and-cross-window-state-move-into-the-repository.md"
     },
     {
       "prose": ""
