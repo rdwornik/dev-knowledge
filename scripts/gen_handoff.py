@@ -679,7 +679,16 @@ MEMORY_BUDGET_DECLARATION_SITE = "canonical_docs.MEMORY_BYTE_BUDGET"
 
 #: Ceiling for the ship-gate subprocess. Generous on purpose: a TIMEOUT is a FAIL, so a ceiling
 #: tighter than the gate's real cost would manufacture refusals rather than detect them.
-SHIP_GATE_TIMEOUT_S = 900
+#:
+#: RAISED 900 -> 1800 ([#1330]'s batch, A2, 2026-10-01). Two real detached, timed
+#: `audit.py ship-gate` runs are on record: 17m08s (1028s) on origin/main `6df37302`,
+#: four-seat contention; 13m02.6s (782.6s) on this lane's own tip, six-seat contention. 900s
+#: sat BELOW the worse reading and only ~13% over the better one -- the exact failure this
+#: comment already warned against. 1800s carries >=50% headroom over the worse reading
+#: (`test_ship_gate_ceiling_has_headroom_over_the_worst_measured_run`, test_gen_handoff.py).
+#: A timeout still reports FAIL either way -- the refusal keeps its teeth regardless of the
+#: number (`test_ship_gate_row_fails_when_the_verdict_cannot_be_read`).
+SHIP_GATE_TIMEOUT_S = 1800
 
 #: The row order, declared so the report is stable and a test can assert the roster.
 PREFLIGHT_ROW_NAMES = (
