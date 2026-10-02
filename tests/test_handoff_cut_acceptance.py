@@ -22,6 +22,7 @@ from pathlib import Path
 import pytest
 
 import audit as aud
+import dispatch_drift as dd
 import gen_handoff as gh
 
 #: The 120s bound (item 9/L9 Performance scenario; AMEND item 3): measured on the parallel
@@ -63,18 +64,17 @@ def _run_dry_cut(tmp_path: Path, monkeypatch, *, today: str = "2026-10-01",
     # box with codex/agy/etc. installed, a genuine hard-fail on a bare CI runner that carries
     # none of them (found by CI, not by this test's own author; same AMEND R47 flakiness
     # class as worktree_owners/memory_within_cap above, a third instance the AMEND's two named
-    # rows did not anticipate). Stubbed to a clean pass by default; `inject_fail_organ` below
-    # overrides this exact same attribute when a test deliberately wants it to fail (order
-    # matters: the stub runs first, so the injection -- if for this organ -- wins).
-    def _dispatch_drift_pass(repo_path):
-        return [aud.Finding("dispatch_drift", "pass",
-                            "stubbed for this test -- see _run_dry_cut")]
-    # __name__ must stay "check_dispatch_drift": `handoff_organs()` resolves organs by name
-    # at call time, and `test_dry_cut_evaluates_only_the_named_handoff_organ_set` spies on
-    # the resolved functions' OWN `__name__` set against `HANDOFF_ORGAN_NAMES` -- a bare
-    # lambda's `<lambda>` would silently drop this organ out of that comparison.
-    _dispatch_drift_pass.__name__ = "check_dispatch_drift"
-    monkeypatch.setattr(aud, "check_dispatch_drift", _dispatch_drift_pass)
+    # rows did not anticipate). Repair U1 (REFUSED-lane-handoff-redesign.md): fixture ONLY the
+    # machine probe -- `dd.find_powershell` / `dd.resolve_via_get_command` -- never the organ
+    # itself, so `check_dispatch_drift` really calls `_dd.scan`, really parses PLAYBOOK Ch8's
+    # dispatch table and really checks `/lane-boot`'s ruled verb; only the host-dependent
+    # Get-Command leg is pinned to a clean answer. The real resolution logic (a planted dead
+    # command, a shell-less tier, the live command set) has its own tests in
+    # tests/test_dispatch_drift.py (AMEND §2's pattern for worktree_owners/memory_within_cap).
+    monkeypatch.setattr(dd, "find_powershell", lambda: "pwsh-fixture")
+    monkeypatch.setattr(
+        dd, "resolve_via_get_command",
+        lambda names, **kw: [dd.Resolution(n, True, "fixture: resolved") for n in names])
     memory_fixture = tmp_path / "MEMORY.md"
     memory_fixture.write_text("# memory fixture\n", encoding="utf-8")
 

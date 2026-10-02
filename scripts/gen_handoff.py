@@ -1818,6 +1818,13 @@ def _row_p11_carriage(transport, repo_root) -> PreflightRow:
 #: transport's ledger/ratification are refreshed once per window, not once per trial cut.
 TRIAL_CUT_EXCLUDED_ROWS = ("ledger_refreshed", "ratification_present")
 
+#: AMEND-HANDOFF-REDESIGN-BUILD-2026-10-01 §2: `memory_within_cap` is evaluated live at the
+#: real cut (never fixtured there), but a FAIL never blocks -- "it measures the machine, not
+#: the repository." `worktree_owners`, the other live-state row, is a genuine precondition
+#: and stays out of this tuple (its own FAIL still refuses, its own test says so). A row named
+#: here is carried into the receipt's `preflight_notes` instead of raising `PreflightError`.
+PREFLIGHT_NON_BLOCKING_ROWS = ("memory_within_cap",)
+
 
 def preflight_rows(repo_root: Path, *, transport=None, today: "str | None" = None,
                    repo_name: "str | None" = None, sessions_root=None,
@@ -1868,9 +1875,14 @@ def preflight_rows(repo_root: Path, *, transport=None, today: "str | None" = Non
 
 
 def assert_preflight(repo_root: Path, **kw) -> "list[PreflightRow]":
-    """Raise `PreflightError` naming EVERY failing row, or return cleanly."""
+    """Raise `PreflightError` naming EVERY failing row, or return cleanly.
+
+    A row named in `PREFLIGHT_NON_BLOCKING_ROWS` (AMEND §2) is excluded from the raise even
+    when it FAILed -- its verdict still comes back in the returned list, so a caller can carry
+    it into the bundle notes (`_write_receipt`'s `preflight_notes`) rather than lose it.
+    """
     rows = preflight_rows(repo_root, **kw)
-    failed = [r for r in rows if r.failed]
+    failed = [r for r in rows if r.failed and r.name not in PREFLIGHT_NON_BLOCKING_ROWS]
     if failed:
         raise PreflightError(
             "refusing to cut a bundle: " + str(len(failed)) + " pre-handoff hygiene row(s) "
@@ -2519,7 +2531,8 @@ def boot_cost(turns: "int | None" = None, dispatch: "str | None" = None,
 def _write_receipt(bundle_dir: Path, *, slug: str, mode: str, date: str, cut: str,
                    cost: dict, paste: dict, manifest: "dict | None" = None,
                    repo_root: "Path | None" = None,
-                   transport: "Path | None" = None) -> Path:
+                   transport: "Path | None" = None,
+                   preflight_notes: "list[str] | None" = None) -> Path:
     """Write `<bundle>/HANDOFF_RECEIPT.json`, WHOLE, every generation (the FUNNEL_HEALTH
     contract: overwritten, never merged). A bundle artifact, not a browser-visible one — the
     assembler never reads it — so its numbers do not touch the answer-free paste.
@@ -2536,12 +2549,20 @@ def _write_receipt(bundle_dir: Path, *, slug: str, mode: str, date: str, cut: st
 
     `manifest` (lane-handoff-min, Part A; ADR-HANDOFF-SYSTEM Decision rule 1) is the per-file
     sha256 census a publish step verifies against — see `bundle_manifest` / `publish_bundle` /
-    `verify_published`. `None` for a mode this lane's manifest walk does not cover."""
+    `verify_published`. `None` for a mode this lane's manifest walk does not cover.
+
+    `preflight_notes` (repair U3, AMEND §2): the rendered verdict of every
+    `PREFLIGHT_NON_BLOCKING_ROWS` row from THIS cut's own `assert_preflight` call — carried
+    here because a non-blocking row's FAIL is still a fact the next reader needs, even though
+    it never raised `PreflightError`. Empty/omitted, never a placeholder key, when the caller
+    passes nothing (every pre-U3 caller)."""
     import json  # noqa: PLC0415
     out = bundle_dir / _vhp().RECEIPT_FILE
     body = {"schema": "handoff-receipt/1", "generator": "scripts/gen_handoff.py", "slug": slug,
             "mode": mode, "date": date, "cut": cut, "boot_cost": cost, "paste": paste,
             "manifest": manifest}
+    if preflight_notes:
+        body["preflight_notes"] = preflight_notes
     # Gated on `transport`, not merely `repo_root` -- caught same-session (terra-style
     # self-catch, the second half of the same incident): gating on `repo_root is not None`
     # alone made EVERY test's successful `generate()` call (which always passes a real
@@ -3212,9 +3233,10 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     # the two live-state rows for a deterministic dry cut (AMEND-HANDOFF-REDESIGN-
     # BUILD-2026-10-01 item 2); both default `None`, the prior live-resolution behaviour.
     try:
-        assert_preflight(repo_root, today=date, repo_name=repo, bundle_dir=bundle_dir,
-                         force_filled=bool(force_filled), memory_path=memory_path,
-                         sessions_root=sessions_root)
+        preflight_result = assert_preflight(
+            repo_root, today=date, repo_name=repo, bundle_dir=bundle_dir,
+            force_filled=bool(force_filled), memory_path=memory_path,
+            sessions_root=sessions_root)
     except PreflightError as exc:
         # item 14/L9: a REAL cut's refusal is logged to the transport-side refusal log (never
         # the repo -- see _append_refusal_log). A dry cut is a proof of the cut path, not an
@@ -3366,7 +3388,13 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     _write_receipt(bundle_dir, slug=slug, mode=mode, date=date,
                    cut="dry" if dry_cut else "real", cost=cost,
                    paste=_paste_record(bundle_dir, code), manifest=manifest,
-                   repo_root=repo_root, transport=transport)
+                   repo_root=repo_root, transport=transport,
+                   # `preflight_result or ()`: several tests replace `assert_preflight` with a
+                   # bare side-effect stub (e.g. `_preflight_ship_gate_only` in
+                   # test_gen_handoff.py) that returns `None` on success -- never iterated
+                   # before this repair, now a crash if assumed to always be a list.
+                   preflight_notes=[r.render() for r in (preflight_result or ())
+                                    if r.name in PREFLIGHT_NON_BLOCKING_ROWS])
     if assemble:
         if code != 0:
             # The bundle is deliberately LEFT ON DISK. Every other refusal in this function

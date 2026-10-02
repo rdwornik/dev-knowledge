@@ -5076,6 +5076,7 @@ def check_review_artifact_coverage(repo_path: Path) -> list[Finding]:
 
         unlinked: list[str] = []
         untallied: list[str] = []
+        unmapped: list[str] = []
         scanned = 0
         # BATCHED date lookup -- one git call for the whole spine, not one PER ENTRY. The
         # per-entry form cost 236s on this repo's 1317-entry spine, and this leg runs inside
@@ -5142,7 +5143,16 @@ def check_review_artifact_coverage(repo_path: Path) -> list[Finding]:
                 if len(parents) < 2:
                     continue          # root commit: no first parent to diff against
             # Looked up from the batched walk above, not a fresh `git diff` spawn (item 13/L8).
-            changed = merge_changed.get(sha, [])
+            # repair U5/P1-2 (codex review): a sha ABSENT from the map is an UNKNOWN, never a
+            # silent "no files changed" -- the same principle the date-map comment above states
+            # for a different map, and the one this batched walk's own sibling (`spine_dates`)
+            # already honours. `.get(sha, [])` here would make a traversal mismatch between
+            # this walk and `spine_entries` read as zero drift, which is precisely the defect
+            # this leg exists to catch (one scope up). Loudly WARNED below, never guessed at.
+            if sha not in merge_changed:
+                unmapped.append(sha)
+                continue
+            changed = merge_changed[sha]
             if not _review_is_code_impact(changed):
                 continue
             scanned += 1
@@ -5180,6 +5190,15 @@ def check_review_artifact_coverage(repo_path: Path) -> list[Finding]:
                                f"{len(untallied)} linked artifact(s) carry no parseable "
                                f"**Tally:** line: {named}{more} -- persistence is not "
                                f"machine-auditability; {deferred}".replace("|", "/")))
+        if unmapped:
+            named = ", ".join(s[:8] for s in unmapped[:5])
+            more = f" (+{len(unmapped) - 5} more)" if len(unmapped) > 5 else ""
+            out.append(Finding(name, "warn",
+                               f"{len(unmapped)} spine entry/entries since {_REVIEW_RULING_DATE} "
+                               f"are absent from the batched name-only walk's own map, so their "
+                               f"code-impact could not be judged (never silently zero): "
+                               f"{named}{more} -- the two walks over `main` disagreed about "
+                               "what the spine is".replace("|", "/")))
         if not out:
             out.append(Finding(name, "pass",
                                f"{scanned} code-impact merge(s) since {_REVIEW_RULING_DATE} "

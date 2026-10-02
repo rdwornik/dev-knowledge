@@ -2251,6 +2251,11 @@ def test_a_successful_real_cut_resets_the_refusal_count(tmp_path, monkeypatch):
     monkeypatch.setattr(gh, "assert_preflight", real_assert_preflight)
     monkeypatch.setattr(gh, "_handoff_organ_findings", lambda _root: [])
     monkeypatch.setattr(gh, "_linked_worktrees", lambda _root: [])
+    # repair U5/P1-1 (codex review): `transport=` is given on this successful path, which makes
+    # `_write_receipt` call `_whole_repo_verdict` -- stub `ci_verdict.find_run` so that read
+    # never shells out to the live `gh` CLI (R15) from this unit test.
+    import ci_verdict as _civ
+    monkeypatch.setattr(_civ, "find_run", lambda *a, **k: None)
     gh.generate(repo, mode="architect", slug="0000-00-00-t2", repo=".dev-knowledge",
                date="2026-07-04", bundle_root=repo / "docs" / "handoffs", assemble=False,
                transport=transport)
@@ -2260,6 +2265,11 @@ def test_a_successful_real_cut_resets_the_refusal_count(tmp_path, monkeypatch):
 def test_receipt_carries_whole_repo_verdict_and_refusal_count(tmp_path, monkeypatch):
     monkeypatch.setattr(gh, "_handoff_organ_findings", lambda _root: [])
     monkeypatch.setattr(gh, "_linked_worktrees", lambda _root: [])
+    # repair U5/P1-1 (codex review): stub the live `gh` leg the same way -- `find_run`
+    # returning None is exactly the "no Actions run matched" branch, which still exercises
+    # `_whole_repo_verdict`'s real "not run" shape below without a network call.
+    import ci_verdict as _civ
+    monkeypatch.setattr(_civ, "find_run", lambda *a, **k: None)
     repo = _stub_repo(tmp_path)
     # An EXPLICIT fixture transport that does not exist -- `transport=None` (the default) would
     # resolve the box's REAL `transport_root()` (same live-resolution idiom `state_rows` already
@@ -2277,6 +2287,28 @@ def test_receipt_carries_whole_repo_verdict_and_refusal_count(tmp_path, monkeypa
     assert verdict["verdict"] in ("GREEN", "RED", "not run")
     # The fixture transport carries no refusal log — ABSENT, not 0.
     assert receipt["refusal_count_since_previous_cut"] is None
+
+
+def test_preflight_notes_land_in_the_receipt_when_given(tmp_path):
+    """Repair U3 / AMEND §2: `_write_receipt`'s `preflight_notes` -- the plumbing `generate()`
+    feeds from `assert_preflight`'s own non-raising return (test_gen_handoff_preflight.py's
+    `test_memory_within_cap_over_budget_does_not_refuse_the_cut` proves THAT return) -- lands
+    in `HANDOFF_RECEIPT.json` verbatim, and is simply absent (never an empty-list placeholder)
+    when a caller passes nothing."""
+    bundle_dir = tmp_path / "bundle"
+    bundle_dir.mkdir()
+    note = "[FAIL] memory_within_cap: 23,851 B against the declared 20,000 B budget -- x"
+    gh._write_receipt(bundle_dir, slug="s", mode="architect", date="2026-07-04", cut="dry",
+                      cost={}, paste={}, preflight_notes=[note])
+    receipt = json.loads((bundle_dir / gh.RECEIPT_FILE).read_text(encoding="utf-8"))
+    assert receipt["preflight_notes"] == [note]
+
+    bundle_dir2 = tmp_path / "bundle2"
+    bundle_dir2.mkdir()
+    gh._write_receipt(bundle_dir2, slug="s", mode="architect", date="2026-07-04", cut="dry",
+                      cost={}, paste={})
+    receipt2 = json.loads((bundle_dir2 / gh.RECEIPT_FILE).read_text(encoding="utf-8"))
+    assert "preflight_notes" not in receipt2
 
 
 def test_refusal_count_is_none_without_a_readable_log(tmp_path):

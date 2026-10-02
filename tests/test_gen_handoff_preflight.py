@@ -275,6 +275,30 @@ def test_memory_row_arms_itself_the_moment_a_budget_is_declared(tmp_path, monkey
     assert gh._row_memory_within_cap(memory_path=mem).status == gh.PREFLIGHT_PASS
 
 
+def test_memory_within_cap_over_budget_does_not_refuse_the_cut(tmp_path, monkeypatch, _quiet_hub):
+    """Repair U3 / AMEND-HANDOFF-REDESIGN-BUILD-2026-10-01 §2: `memory_within_cap` "is reported
+    in the notes and is non-blocking, because it measures the machine, not the repository."
+    At `15fcf29a` this row still blocked `assert_preflight` -- a declared budget exceeded must
+    NOT raise `PreflightError`, and the row's own FAIL verdict must still come back so a caller
+    (`_write_receipt`'s `preflight_notes`) can carry it. `worktree_owners`, the other live-state
+    row, is a genuine precondition and is untouched by this tuple -- its own FAIL still refuses
+    (test_worktree_owners_* below)."""
+    assert gh.PREFLIGHT_NON_BLOCKING_ROWS == ("memory_within_cap",)
+    monkeypatch.setattr(gh._cdocs, "MEMORY_BYTE_BUDGET", 20_000, raising=False)
+    mem = tmp_path / "MEMORY.md"
+    mem.write_bytes(b"x" * 23_851)
+    repo = _hub_stub(tmp_path)
+    # `repo_name="repo"` matches `_hub_stub`'s own directory name -- without it the fixture
+    # transport's `LEDGER-dev-knowledge.md` (the default) would not resolve against a repo
+    # directory literally named `repo`, and that row's own FAIL would be a second, unrelated
+    # failure this test is not about.
+    rows = gh.assert_preflight(repo, transport=_transport(tmp_path, repo_name="repo"),
+                               today=_TODAY, repo_name="repo",
+                               memory_path=mem)  # must not raise
+    row = next(r for r in rows if r.name == "memory_within_cap")
+    assert row.status == gh.PREFLIGHT_FAIL, row.render()
+
+
 # --- row 5: the stamped set is COMPUTED, never a roster typed into this module ------------
 
 def test_stamped_set_is_computed_from_the_two_owning_surfaces():
