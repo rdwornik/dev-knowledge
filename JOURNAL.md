@@ -21,6 +21,21 @@
 
 ---
 
+### 2026-10-02 (d) - CC (Opus 5.5, handoff seat): R54 lands -- the --filled waiver covers the whole documented fill step
+
+**Anchors:** `8f531a78` -- `worktree-filled-waiver-r54`, merged `--no-ff`.
+
+**Did:**
+- Reproduced the 2026-10-02 `--filled` refusal end to end (RED: "ship_gate: 3 hard-fail finding(s) ... (handoff_probes)"). Three gaps: `reflow_framing` rewrites PROBES.md outside the fill surface; BD-ci/BD-seats LIVE-DRIFTS rows fail on any movement after the cut; one finding per failing probe broke `len(hard_fails) == 1`.
+- Fixed `scripts/gen_handoff.py`: PROBES.md joins `_BD_MANIFEST_FILL_SURFACE`; BD-ci / BD-seats may fail under `--filled` only when the recorded row passes `_recorded_row_identity` (CI row names the receipt's `source_sha`; Seats row carries a seat_health_line's shape); the waiver now requires that every hard-fail is `handoff_probes` AND that their count equals the bundle's own failing probes.
+- Isolated `claude-sonnet-5` review (`claude -p`, `--setting-sources local`, read-only tools, the diff and the ruling only): **APPROVE, OPEN P1: 0**. P2: the BD-seats identity is shape-only, so a well-formed forged Seats cell passes the gate (mitigated: the same re-render rewrites the row from live state). P3: the two tamper guards call the waiver directly rather than going through `generate`.
+
+**Result:** tests/test_gen_handoff.py + preflight + assemble_paste + verify_handoff_probes + handoff_cut_acceptance: 411 passed, 1 failed. The failure, `test_epic_bundle_has_no_failing_probe` ("assert 6 == 5"), fails identically on main's code, so it is pre-existing.
+
+**Changes:** `scripts/gen_handoff.py`, `tests/test_gen_handoff.py`.
+
+**Next:** `--filled` re-render of `docs/handoffs/2026-10-02-dev-knowledge-architect/` from the primary; land the bundle only if PASTE_THIS is within 20,000 B and every check passes.
+
 ### 2026-10-02 (c) - CC (Opus 5.5, handoff seat): R53 lands -- five P13 dispositions with their closing evidence, row [#1332], the residual set emptied
 
 **Anchors:** `dedd94cd`, `a29c1c6d` -- `worktree-p13-dispositions-2026-10-02`, merged `--no-ff`.

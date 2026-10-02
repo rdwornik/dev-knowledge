@@ -314,10 +314,15 @@ def test_self_inflicted_bd_manifest_refuses_a_tampered_file_outside_the_fill_sur
     res = _gen(tmp_path, assemble=True)
     bundle, repo = res.bundle_dir, res.bundle_dir.parents[2]
     _apply_handoff_process_fills(bundle)
-    # PROBES.md is never part of the documented fill step -- tampering it must never be waived,
-    # even though it leaves BD-manifest as the sole failing probe (PROBES.md content itself is
-    # not independently probe-checked for byte-equality).
-    p = bundle / "PROBES.md"
+    # A file the documented fill step never touches -- tampering it must never be waived, even
+    # though it leaves BD-manifest as the sole failing probe. (R54: this used to be PROBES.md;
+    # `reflow_framing` rewrites PROBES.md as part of the fill step, so it joined the fill
+    # surface, and the outside example is now whichever bundle file is still outside it.)
+    outside = sorted(p for p in bundle.iterdir() if p.is_file()
+                     and p.name not in gh._BD_MANIFEST_FILL_SURFACE
+                     and p.name != vhp.RECEIPT_FILE)
+    assert outside, sorted(p.name for p in bundle.iterdir())
+    p = outside[0]
     p.write_text(p.read_text(encoding="utf-8") + "\n<!-- tampered -->\n", encoding="utf-8")
 
     fails = [r for r in vhp.verify(bundle, repo_root=repo) if r.status == "fail"]
@@ -325,7 +330,7 @@ def test_self_inflicted_bd_manifest_refuses_a_tampered_file_outside_the_fill_sur
 
     known, why = gh._self_inflicted_bd_manifest(repo, bundle)
     assert known is False, why
-    assert "PROBES.md" in why
+    assert p.name in why
 
 
 def test_self_inflicted_bd_manifest_refuses_an_added_file(tmp_path):
@@ -446,6 +451,162 @@ def test_filled_rerender_through_generate_passes_bd_manifest_with_no_hand_restam
 
     fresh = [r for r in vhp.verify(bundle, repo_root=repo) if r.probe_id == "BD-manifest"]
     assert fresh and fresh[0].status == "pass", fresh
+
+
+# --- R54 (2026-10-02): the --filled waiver covers the WHOLE documented fill step -------------
+# Today's live refusal, verbatim: "[FAIL] ship_gate: 2 hard-fail finding(s) in the handoff
+# organ set (handoff_probes)" over BD-ci + BD-manifest (HANDOFF_BOOT.md; PROBES.md; RESIDUAL.md;
+# SUPPLEMENT.md). Three gaps in [#1123]: (1) `assemble_paste`'s documented fill-state flip
+# (`reflow_framing`) rewrites PROBES.md, outside `_BD_MANIFEST_FILL_SURFACE`; (2) BD-ci / BD-seats
+# are LIVE-DRIFTS rows, so ANY CI or seat movement between cut and re-render fails them, and the
+# waiver accepted BD-manifest only; (3) `check_handoff_probes` emits one finding PER failing
+# probe, so the waiver's `len(hard_fails) == 1` could not hold once two probes failed.
+
+def _hstate_modules():
+    """Every loaded copy of `handoff_state` (bare and package-qualified): the generator resolves
+    it as `scripts.handoff_state` first, the verifier as bare `handoff_state` -- a patch on one
+    copy only would let the two sides read different live values."""
+    import handoff_state  # noqa: F401, PLC0415 -- ensure the bare copy is loaded
+    return [m for k, m in list(sys.modules.items())
+            if k in ("handoff_state", "scripts.handoff_state") and m is not None]
+
+
+def _live_state(monkeypatch, *, ci: str, seats: str, seat_ids=()):
+    """Pin the two LIVE-DRIFTS readers (CI, Seats) and the seat registry to fixed values."""
+    import types  # noqa: PLC0415
+
+    import seat_registry  # noqa: PLC0415
+    for hs in _hstate_modules():
+        row = hs.StateRow
+        monkeypatch.setattr(hs, "row_ci", lambda *_a, _hs=hs, _row=row, **_k: _row(
+            "CI", ci, "LIVE-DRIFTS", "ci_verdict.verdict_for(ref, timeout_s=0)"))
+        monkeypatch.setattr(hs, "row_seats", lambda *_a, _row=row, **_k: _row(
+            "Seats", seats, "LIVE-DRIFTS", "seat_registry.seat_health_line(elapsed=False)"))
+    monkeypatch.setattr(seat_registry, "seats",
+                        lambda *_a, **_k: [types.SimpleNamespace(session_id=s) for s in seat_ids])
+
+
+def _probes_findings(bundle):
+    """`audit.check_handoff_probes`' own shape for `bundle`: one fail finding PER failing probe."""
+    def findings(_root):
+        return [aud.Finding("handoff_probes", "fail", f"{r.probe_id} toothless in {bundle.name}: "
+                            f"{r.detail}")
+                for r in vhp.verify(bundle, repo_root=bundle.parents[2]) if r.status == "fail"]
+    return findings
+
+
+def _git_stub_repo(tmp_path):
+    """`_stub_repo`, committed, so the cut records a real `manifest.source_sha` (the identity
+    BD-ci's waiver checks the recorded CI row against)."""
+    repo = _stub_repo(tmp_path)
+    env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
+           "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+    for args in (["init", "-q", "-b", "main"], ["add", "-A"], ["commit", "-q", "-m", "stub"]):
+        subprocess.run(["git", "-C", str(repo), *args], check=True, env=env,
+                       capture_output=True)
+    sha = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], check=True,
+                         capture_output=True, text=True).stdout.strip()
+    return repo, sha
+
+
+_SEATS_AT_CUT = "[seats] 0 live / 0 wedged / 1 absent / 0 starved (last 24 h; 15 unbound)"
+_SEATS_LATER = ("[seats] 1 live / 1 wedged / 0 absent / 0 starved (last 24 h; 15 unbound)"
+                " / WEDGED: lane abcd1234 (stalled 3 h)")
+
+
+def _cut_and_fill(tmp_path, monkeypatch):
+    """Cut cold, then run the DOCUMENTED fill step exactly: hand-fill RESIDUAL/HANDOFF_BOOT,
+    fill SUPPLEMENT's ANSWERS (all five fixed slots), then the assembler's fill-state flip
+    (`reflow_framing`), which rewrites PROBES.md and HANDOFF_BOOT.md."""
+    monkeypatch.setattr(gh, "assert_preflight", _preflight_ship_gate_only)
+    monkeypatch.setattr(gh, "_handoff_organ_findings", lambda _root: [])
+    repo, sha = _git_stub_repo(tmp_path)
+    _live_state(monkeypatch, ci=f"`{sha[:7]}` RED (4 new red(s), run 1)", seats=_SEATS_AT_CUT)
+    res = gh.generate(repo, mode="architect", slug="0000-00-00-r54", repo=".dev-knowledge",
+                      date="2026-07-04", bundle_root=repo / "docs" / "handoffs", assemble=True)
+    bundle = res.bundle_dir
+    # A real fill lives INSIDE a FILL-IN region -- the only text a re-render carries forward.
+    resid = bundle / "RESIDUAL.md"
+    resid.write_text(resid.read_text(encoding="utf-8").replace(
+        "<!-- FILL-IN:frontier END -->", "FILLED BY THE OPERATOR.\n<!-- FILL-IN:frontier END -->"),
+        encoding="utf-8")
+    boot = bundle / "HANDOFF_BOOT.md"
+    boot.write_text(boot.read_text(encoding="utf-8") + "\nFILLED BY THE OPERATOR.\n",
+                    encoding="utf-8")
+    sup = bundle / "SUPPLEMENT.md"
+    sup.write_text(
+        sup.read_text(encoding="utf-8") + "\n1. Intent: ship it.\n"
+        "Headline: ship it.\n"
+        "Open threads (with carriers): none\n"
+        "Next authorized action: none\n"
+        "Contingencies: none\n"
+        "Do-not-repeat: none\n", encoding="utf-8")
+    flipped = gh.reflow_framing(bundle)
+    assert "PROBES.md" in flipped, flipped
+    return repo, sha, bundle
+
+
+def test_filled_rerender_survives_the_reflow_and_a_merge_after_the_cut(tmp_path, monkeypatch):
+    """R54 RED-first, end to end through `generate`: cut -> the documented fill step (which
+    rewrites PROBES.md) -> a merge lands on main and a seat wedges (BD-ci and BD-seats drift)
+    -> the `--filled` re-render must PROCEED and leave every BD probe passing. On the pre-R54
+    code the second `generate` raises `PreflightError` on the ship_gate row: three handoff_probes
+    findings (BD-ci, BD-seats, BD-manifest naming PROBES.md) -- today's refusal, reproduced."""
+    repo, _sha, bundle = _cut_and_fill(tmp_path, monkeypatch)
+    _live_state(monkeypatch, ci="`816c7f6` NOT-RUN (run 2 still in_progress)",
+                seats=_SEATS_LATER, seat_ids=("abcd1234ffff",))
+
+    before = {r.probe_id for r in vhp.verify(bundle, repo_root=repo) if r.status == "fail"}
+    assert before == {"BD-ci", "BD-seats", "BD-manifest"}, before
+    monkeypatch.setattr(gh, "_handoff_organ_findings", _probes_findings(bundle))
+
+    gh.generate(repo, mode="architect", slug=bundle.name, repo=".dev-knowledge",
+                date="2026-07-04", bundle_root=repo / "docs" / "handoffs",
+                force_filled=True, assemble=True)
+
+    after = {r.probe_id: r.status for r in vhp.verify(bundle, repo_root=repo)
+             if r.probe_id in ("BD-ci", "BD-seats", "BD-manifest")}
+    assert after == {"BD-ci": "pass", "BD-seats": "pass", "BD-manifest": "pass"}, after
+    assert "FILLED BY THE OPERATOR." in (bundle / "RESIDUAL.md").read_text(encoding="utf-8")
+
+
+def test_filled_rerender_regenerates_probes_md_so_a_tamper_cannot_survive(tmp_path, monkeypatch):
+    # The dependency that makes PROBES.md safe on the fill surface: it carries no FILL-IN region,
+    # so `_splice_fill_regions` keeps nothing and the re-render writes it whole from the template.
+    repo, _sha, bundle = _cut_and_fill(tmp_path, monkeypatch)
+    p = bundle / "PROBES.md"
+    p.write_text(p.read_text(encoding="utf-8") + "\n<!-- tampered -->\n", encoding="utf-8")
+    monkeypatch.setattr(gh, "_handoff_organ_findings", _probes_findings(bundle))
+    gh.generate(repo, mode="architect", slug=bundle.name, repo=".dev-knowledge",
+                date="2026-07-04", bundle_root=repo / "docs" / "handoffs",
+                force_filled=True, assemble=True)
+    assert "<!-- tampered -->" not in p.read_text(encoding="utf-8")
+
+
+def test_filled_waiver_refuses_a_ci_row_that_does_not_name_the_cuts_own_sha(
+        tmp_path, monkeypatch):
+    # Identity, not live state: a BD-ci drift is waived only when the RECORDED row is the cut's
+    # own record (it names the receipt's `source_sha`). A row naming another commit is a tamper.
+    repo, sha, bundle = _cut_and_fill(tmp_path, monkeypatch)
+    boot = bundle / "HANDOFF_BOOT.md"
+    boot.write_text(boot.read_text(encoding="utf-8").replace(f"`{sha[:7]}` RED", "`0000000` RED"),
+                    encoding="utf-8")
+    _live_state(monkeypatch, ci="`816c7f6` NOT-RUN (run 2 still in_progress)", seats=_SEATS_AT_CUT)
+    known, why = gh._self_inflicted_bd_manifest(repo, bundle)
+    assert known is False, why
+    assert "BD-ci" in why
+
+
+def test_filled_waiver_refuses_a_malformed_seats_row(tmp_path, monkeypatch):
+    # Identity for BD-seats is the [#1124] shape: a recorded cell that is not a seat_health_line
+    # is never waived, whatever the live registry says.
+    repo, _sha, bundle = _cut_and_fill(tmp_path, monkeypatch)
+    boot = bundle / "HANDOFF_BOOT.md"
+    boot.write_text(boot.read_text(encoding="utf-8").replace(_SEATS_AT_CUT, "[seats] forged"),
+                    encoding="utf-8")
+    known, why = gh._self_inflicted_bd_manifest(repo, bundle)
+    assert known is False, why
+    assert "BD-seats" in why
 
 
 def test_cli_flags_and_refusal_exit_code_are_unchanged(tmp_path, monkeypatch):
