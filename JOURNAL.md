@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-02 (c) - CC (Opus 5.5, handoff seat): R53 lands -- five P13 dispositions with their closing evidence, row [#1332], the residual set emptied
+
+**Anchors:** `dedd94cd`, `a29c1c6d` -- `worktree-p13-dispositions-2026-10-02`, merged `--no-ff`.
+
+**Did:**
+- Applied R53 at the 2026-10-02 architect cut. (1) Option (c): moved, not deleted, the 43 superseded OPEN decision files to the transport's `to-cc/archive/`, taking OPEN carriers from 127 to 84; filed `[#1332]` for option (a'). (2) Disposed the five remaining P13 amendments in `DECISION_DISPOSITIONS`, each citing a closing file that was checked to exist first.
+- Emptied `_LANE_5B3_4_RESIDUAL_SUBJECTS`: R26's rows `[#1104]`-`[#1122]` now cover all 16 subjects. Removed the four WAVE5B-N2 superseded dispositions, which the move made stale.
+
+**Result:** with the live transport, the decision-coverage and task-tree tests pass (84). The test was already red on main against today's transport (a baseline run with main's code failed its `unexpected` leg). `test_the_cli_exits_non_zero_on_a_refusal` times out when it inherits the Drive transport and passes in 2 s without it.
+
+**Changes:** `scripts/decision_coverage.py`, `tests/test_decision_coverage.py`, `tasks/1332-*.md`, `tasks/manifest.json`, `BACKLOG.md`.
+
+**Next:** run the `--filled` re-render of `docs/handoffs/2026-10-02-dev-knowledge-architect/` from the primary checkout, then land it only if the paste is within 20,000 B and every bundle check passes.
+
 ### 2026-10-02 (b) - CC (Opus 5.5, INTEGRATOR HANDOFF-REDESIGN-BUILD): the batch closes; its quota read, merge receipt and costs land
 
 **Anchors:** `534114c7` -- `worktree-close-handoff-redesign-build`, merged `--no-ff` from `f971562e`.
