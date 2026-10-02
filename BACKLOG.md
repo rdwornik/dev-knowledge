@@ -724,6 +724,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1126] [P2][S] N5: archive/* tags join R25's allowed set with an owner and an expiry · tasks/1126-n5-archive-tags-join-r25-s-allowed-set-with-an-owner-and-an-expiry.md
 - [#1327] [P2][S] `agy` reports SUCCESS without an output file · tasks/1327-agy-reports-success-without-an-output-file.md
 - [#1331] [P1][L] The equilibrium's ruling register and cross-window state move into the repository · tasks/1331-the-equilibriums-ruling-register-and-cross-window-state-move-into-the-repository.md
+- [#1332] [P2][M] P11 and the paste builder treat superseded decision files as discharged · tasks/1332-p11-and-the-paste-builder-treat-superseded-decision-files-as-discharged.md
 
 ---
 
