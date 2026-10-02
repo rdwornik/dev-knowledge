@@ -1046,8 +1046,65 @@ _LEDGER_REFRESHED_RE = re.compile(r"refreshed\s+(\d{4}-\d{2}-\d{2})")
 #: still left `BD-manifest` as the only failing probe, and `_bundle_file_shas` would then
 #: re-stamp the tamper as the new truth. `_self_inflicted_bd_manifest` requires every mismatch
 #: to be a CONTENT change (never an add/remove) to a file in this set.
+#:
+#: R54 (2026-10-02): PROBES.md joins the set. `assemble_paste`'s documented fill-state flip
+#: (`reflow_framing`) rewrites exactly HANDOFF_BOOT.md, RESIDUAL.md and PROBES.md, so with
+#: PROBES.md missing, every bundle whose SUPPLEMENT was filled was refused by the very flow this
+#: waiver exists for (the 2026-10-02 cut). Admitting it opens no tamper path: PROBES.md carries
+#: no FILL-IN region, so `_splice_fill_regions` keeps nothing and the re-render this waiver lets
+#: through rewrites it whole from the template
+#: (`test_filled_rerender_regenerates_probes_md_so_a_tamper_cannot_survive`).
 _BD_MANIFEST_FILL_SURFACE = frozenset({"SUPPLEMENT.md", "RESIDUAL.md", "HANDOFF_BOOT.md",
-                                       "PASTE_THIS.md"})
+                                       "PASTE_THIS.md", "PROBES.md"})
+
+#: R54: the LIVE-DRIFTS BOOT-DATA probes a `--filled` re-render re-derives, and so may waive --
+#: by IDENTITY, never by live state. Each one compares a cut-time snapshot of live state with a
+#: re-derivation now, so ANY movement between cut and re-render fails it (a merge landing on
+#: main moves BD-ci; a seat wedging moves BD-seats) -- a staleness the re-render's fresh rows
+#: fix by construction, exactly like the manifest. What must still hold is that the RECORDED
+#: row is the cut's own record (`_recorded_row_identity`): a tampered row is never waived.
+_FILLED_REDERIVED_PROBES = frozenset({"BD-ci", "BD-seats"})
+
+_CI_ROW_SHA_RE = re.compile(r"^`([0-9a-f]{7,40})`")
+
+
+def _recorded_row_identity(bundle_dir: Path, probe_id: str, source_sha: "str | None",
+                           ) -> "tuple[bool, str]":
+    """R54: is the RECORDED `BD-ci` / `BD-seats` row in `bundle_dir`'s HANDOFF_BOOT.md the cut's
+    own record? Identity, not live state:
+
+      * BD-ci   -- the row names the commit the bundle was cut from (the receipt's
+                   `manifest.source_sha`). A row naming any other commit, or none, is refused;
+                   so is a cut with no recorded `source_sha` (fail closed: no identity to check).
+      * BD-seats -- the row carries a `seat_health_line`'s own shape ([#1124]'s shape rung,
+                   reused: `verify_handoff_probes._seat_line_fully_shaped`), or the
+                   "nothing observed" literal.
+    """
+    vhp = _vhp()
+    try:
+        rows, _prose = vhp.parse_boot_blocks(
+            (bundle_dir / "HANDOFF_BOOT.md").read_text(encoding="utf-8"))
+    except OSError as exc:
+        return False, f"HANDOFF_BOOT.md unreadable ({type(exc).__name__})"
+    key = {"BD-ci": "CI", "BD-seats": "Seats"}[probe_id]
+    value = dict(rows or []).get(key)
+    if value is None:
+        return False, f"no recorded `{key}` row"
+    stripped = value.strip()
+    tail = vhp._RENDERED_TAIL_RE.match(stripped)
+    underlying = (tail.group("val") if tail else stripped).strip()
+    if probe_id == "BD-ci":
+        m = _CI_ROW_SHA_RE.match(underlying)
+        if not source_sha:
+            return False, "the receipt records no source_sha, so the CI row's identity is unknown"
+        if m is None or not source_sha.startswith(m.group(1)):
+            return False, (f"the recorded CI row does not name the cut's own commit "
+                           f"{source_sha[:7]}: {underlying!r}")
+        return True, f"CI row names the cut's own commit {m.group(1)}"
+    hs = _hstate()
+    if underlying == hs.NO_SEATS_OBSERVED or vhp._seat_line_fully_shaped(underlying):
+        return True, "Seats row carries a seat_health_line's own shape"
+    return False, f"the recorded Seats row is not a seat_health_line: {underlying!r}"
 
 
 def _self_inflicted_bd_manifest(repo_root: Path, bundle_dir: Path) -> "tuple[bool, str]":
@@ -1070,49 +1127,78 @@ def _self_inflicted_bd_manifest(repo_root: Path, bundle_dir: Path) -> "tuple[boo
     this function only answers for `bundle_dir`'s own probes, never for an unrelated organ
     failing elsewhere in the same run.
     """
+    ok, why, _count = _filled_waivable_fails(repo_root, bundle_dir)
+    return ok, why
+
+
+def _filled_waivable_fails(repo_root: Path, bundle_dir: Path) -> "tuple[bool, str, int]":
+    """`(waivable, why, failing-probe count)` -- `_self_inflicted_bd_manifest`'s body, also
+    returning how many of `bundle_dir`'s probes fail, so `_row_ship_gate` can hold the ship-gate's
+    hard-fail COUNT equal to exactly this bundle's own (R54: `check_handoff_probes` emits ONE
+    finding per failing probe, so a waivable run is no longer always exactly one finding).
+
+    R54 widens WHICH probes may fail: `BD-manifest` (fill-surface content changes only, as
+    before) plus the LIVE-DRIFTS rows a re-render re-derives (`_FILLED_REDERIVED_PROBES`), each
+    only when its RECORDED row passes `_recorded_row_identity`. Any other failing probe -- or
+    any check that cannot be completed -- still refuses (fail closed)."""
     try:
         results = _vhp().verify(bundle_dir, repo_root=repo_root)
     except Exception as exc:  # noqa: BLE001 -- fail closed, never waives silently
-        return False, f"verify_handoff_probes could not be read ({type(exc).__name__}): {exc}"
+        return False, f"verify_handoff_probes could not be read ({type(exc).__name__}): {exc}", 0
     fails = [r for r in results if r.status == "fail"]
     if not fails:
         return False, (f"no probe in {bundle_dir.name} is failing -- the ship-gate hard-fail "
-                       "is not this bundle's manifest")
-    unknown = [r for r in fails if r.probe_id != "BD-manifest"]
+                       "is not this bundle's manifest"), 0
+    waivable_ids = {"BD-manifest"} | _FILLED_REDERIVED_PROBES
+    unknown = [r for r in fails if r.probe_id not in waivable_ids]
     if unknown:
-        return False, (f"{bundle_dir.name} fails beyond the known BD-manifest circularity: "
-                       + "; ".join(f"{r.probe_id}: {r.detail}" for r in unknown))
+        return False, (f"{bundle_dir.name} fails beyond the known --filled circularity: "
+                       + "; ".join(f"{r.probe_id}: {r.detail}" for r in unknown)), len(fails)
 
     import json  # noqa: PLC0415
     try:
         receipt = json.loads((bundle_dir / _vhp().RECEIPT_FILE).read_text(encoding="utf-8"))
-        recorded = (receipt.get("manifest") or {}).get("files") or {}
+        manifest = receipt.get("manifest") or {}
+        recorded = manifest.get("files") or {}
         if not recorded:
             raise ValueError("receipt carries no manifest.files")
         current = _bundle_file_shas(bundle_dir)
     except Exception as exc:  # noqa: BLE001 -- fail closed
         return False, (f"{bundle_dir.name}'s receipt/current census could not be compared "
-                       f"({type(exc).__name__}): {exc}")
+                       f"({type(exc).__name__}): {exc}"), len(fails)
+
+    notes = []
+    for r in fails:
+        if r.probe_id in _FILLED_REDERIVED_PROBES:
+            same, about = _recorded_row_identity(bundle_dir, r.probe_id,
+                                                 manifest.get("source_sha"))
+            if not same:
+                return False, (f"{bundle_dir.name} {r.probe_id} is not waivable by identity: "
+                               f"{about}"), len(fails)
+            notes.append(f"{r.probe_id}: {about} (live drift; the re-render re-derives it)")
+    if not any(r.probe_id == "BD-manifest" for r in fails):
+        return True, "; ".join(notes), len(fails)
 
     added = sorted(set(current) - set(recorded))
     removed = sorted(set(recorded) - set(current))
     if added or removed:
         return False, (f"{bundle_dir.name}'s file SET changed, not just fill contents -- "
                        f"added: {added or 'none'}, removed: {removed or 'none'}; a structural "
-                       "change is never the [#1123] circularity")
+                       "change is never the [#1123] circularity"), len(fails)
     changed = sorted(rel for rel in recorded if recorded[rel] != current.get(rel))
     outside = [rel for rel in changed if rel not in _BD_MANIFEST_FILL_SURFACE]
     if outside:
         return False, (f"{bundle_dir.name} has content changes outside the documented fill "
-                       f"surface {sorted(_BD_MANIFEST_FILL_SURFACE)}: {outside}")
+                       f"surface {sorted(_BD_MANIFEST_FILL_SURFACE)}: {outside}"), len(fails)
     if not changed:
         return False, (f"{bundle_dir.name}'s BD-manifest probe fails but the receipt's own "
                        "census matches the current tree byte-for-byte -- an unreadable or "
-                       "escaping manifest entry, never the [#1123] circularity")
-    return True, (f"BD-manifest: {len(changed)} fill-surface file(s) changed in "
-                  f"{bundle_dir.name} ({', '.join(changed)}) -- the [#1123] "
-                  "cold-manifest-vs-filled-tree circularity, fixed by this re-render's own "
-                  "fresh census")
+                       "escaping manifest entry, never the [#1123] circularity"), len(fails)
+    notes.insert(0, f"BD-manifest: {len(changed)} fill-surface file(s) changed in "
+                    f"{bundle_dir.name} ({', '.join(changed)}) -- the [#1123] "
+                    "cold-manifest-vs-filled-tree circularity, fixed by this re-render's own "
+                    "fresh census")
+    return True, "; ".join(notes), len(fails)
 
 
 def _handoff_organ_findings(repo_root: Path) -> list:
@@ -1171,16 +1257,18 @@ def _row_ship_gate(repo_root: Path, *, bundle_dir: "Path | None" = None,
         return PreflightRow("ship_gate", PREFLIGHT_PASS, locator,
                             f"{len(findings)} handoff organ(s) run, 0 hard-fail{tail}")
 
-    # [#1123]: exactly ONE hard-fail-counted finding across the SET, AND bundle_dir's own
-    # probes account for it entirely -- otherwise this is (or may hide) an unrelated hard-fail,
-    # which still refuses.
-    if force_filled and bundle_dir is not None and len(hard_fails) == 1:
-        known, why = _self_inflicted_bd_manifest(repo_root, bundle_dir)
-        if known:
+    # [#1123] / R54: every hard-fail-counted finding across the SET is `handoff_probes`, AND
+    # their COUNT equals bundle_dir's own failing probes (`check_handoff_probes` emits one finding
+    # per failing probe), AND each of those probes is waivable -- otherwise this is (or may hide)
+    # an unrelated hard-fail, which still refuses.
+    if (force_filled and bundle_dir is not None
+            and all(f.check_name == "handoff_probes" for f in hard_fails)):
+        known, why, count = _filled_waivable_fails(repo_root, bundle_dir)
+        if known and count == len(hard_fails):
             return PreflightRow("ship_gate", PREFLIGHT_PASS, locator,
-                f"1 hard-fail organ ({hard_fails[0].check_name}), ACCEPTED under --filled: "
-                f"{why} ([#1123] a --filled re-render accepts only the cut's own known "
-                "hard-fail; the manifest it writes below is fresh)")
+                f"{len(hard_fails)} handoff_probes hard-fail(s), ACCEPTED under --filled: "
+                f"{why} ([#1123]/R54 a --filled re-render accepts only the cut's own known "
+                "hard-fails; the manifest and LIVE-DRIFTS rows it writes below are fresh)")
     names = ", ".join(sorted({f.check_name for f in hard_fails}))
     return PreflightRow("ship_gate", PREFLIGHT_FAIL, locator,
                         f"{len(hard_fails)} hard-fail finding(s) in the handoff organ set "
