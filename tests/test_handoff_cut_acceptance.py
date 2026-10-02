@@ -22,8 +22,21 @@ from pathlib import Path
 import pytest
 
 import audit as aud
-import dispatch_drift as dd
 import gen_handoff as gh
+
+# repair U1 follow-up (integrator d9fa78c0, CI run 36945030700): `scripts/audit_checks/
+# check_dispatch_drift.py` resolves its module as `from scripts import dispatch_drift`
+# first, which succeeds (an implicit namespace package) and lands on `sys.modules
+# ["scripts.dispatch_drift"]` -- a DIFFERENT object than the bare `sys.modules
+# ["dispatch_drift"]` a plain `import dispatch_drift as dd` here would bind. Patching the
+# bare module's attributes then never reaches the one the real organ actually calls, so the
+# fixture silently no-ops and the live `find_powershell`/`resolve_via_get_command` run for
+# real -- harmless on a dev box with pwsh on PATH, a genuine hard-fail on a bare CI runner.
+# Mirror the adapter's own resolution order so this binds the identical object it uses.
+try:
+    from scripts import dispatch_drift as dd
+except ImportError:
+    import dispatch_drift as dd
 
 #: The 120s bound (item 9/L9 Performance scenario; AMEND item 3): measured on the parallel
 #: path, never raised to paper over a slow run -- a run over it is a refusal.
