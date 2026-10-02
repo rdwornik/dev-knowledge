@@ -317,12 +317,14 @@ _MOMENT_ORGANS = {
              "test_pairing", "known_reds_refresh"],
     "teardown": ["no_leftovers"],
     "lane-end": ["lane_cost", "fleet_health.seat_health_line", "transport_report"],
-    "batch-close": ["digest"],
+    # ADR-129 item 12/L7: `trial_cut` joins `digest` in `batch-close` (optional,
+    # manual_until: 2026-10-05) -- the batch-close stage's trial cut of the handoff organ set.
+    "batch-close": ["digest", "trial_cut"],
     "seat-release": ["seat_release.notes", "seat_release.bundle", "seat_release.manifest",
                      "seat_release.copy"],
 }
 _OPTIONAL = {"worktree_occupancy", "gates", "test_pairing", "no_leftovers", "transport_report",
-             "digest", "review_packet", "go_reader", "known_reds_refresh"}
+             "digest", "review_packet", "go_reader", "known_reds_refresh", "trial_cut"}
 
 
 def test_harness_declares_the_seven_moments_with_their_organs():

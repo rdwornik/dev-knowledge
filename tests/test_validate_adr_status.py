@@ -858,7 +858,14 @@ def test_shipped_corpus_parses_one_status_field_per_live_adr():
     # ratifying operator ruling R33. Measured on base `b5286b63` + this lane's one added file;
     # no other member moved. `Accepted` — R33 is the operator's ratification the ADR is
     # written from.
-    assert len(fields) == 101, "live ADR count moved — re-measure the Step-1 baseline"
+    #
+    # RE-MEASURED 2026-10-01 by lane-handoff-redesign: 101 -> 102. The delta is ONE ADR and it
+    # is named: ADR-129 (the handoff cut is gated by handoff-relevant checks only; the
+    # whole-repository verdict is reported, and the preflight moves to batch close), drafted on
+    # batch HANDOFF-REDESIGN-BUILD, ratifying the operator's paste of
+    # `BATCH-HANDOFF-REDESIGN-BUILD-2026-10-01.md` v2 (R44). No other member moved. `Accepted`
+    # — R44 is the operator's ratification the ADR is written from.
+    assert len(fields) == 102, "live ADR count moved — re-measure the Step-1 baseline"
 
 
 def test_shipped_corpus_grammar_distribution_matches_the_measured_baseline():
@@ -903,7 +910,11 @@ def test_shipped_corpus_grammar_distribution_matches_the_measured_baseline():
     # RE-MEASURED 2026-09-29 by lane-handoff-boot-dispatch: G1 53 -> 54, the same single cause
     # as the count above (ADR-128 carries a G1-shaped `- **Status:** Accepted` field). G2/G3/G4
     # unchanged a ninth time, so the delta is one ADR and not grammar drift.
-    assert counts == {"G1": 54, "G2": 34, "G3": 12, "G4": 1}
+    #
+    # RE-MEASURED 2026-10-01 by lane-handoff-redesign: G1 54 -> 55, the same single cause as
+    # the count above (ADR-129 carries a G1-shaped `- **Status:** Accepted` field). G2/G3/G4
+    # unchanged a tenth time, so the delta is one ADR and not grammar drift.
+    assert counts == {"G1": 55, "G2": 34, "G3": 12, "G4": 1}
 
 
 def test_shipped_corpus_has_zero_enum_violations():

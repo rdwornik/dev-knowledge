@@ -5076,6 +5076,7 @@ def check_review_artifact_coverage(repo_path: Path) -> list[Finding]:
 
         unlinked: list[str] = []
         untallied: list[str] = []
+        unmapped: list[str] = []
         scanned = 0
         # BATCHED date lookup -- one git call for the whole spine, not one PER ENTRY. The
         # per-entry form cost 236s on this repo's 1317-entry spine, and this leg runs inside
@@ -5098,6 +5099,25 @@ def check_review_artifact_coverage(repo_path: Path) -> list[Finding]:
             sha_part, _, subject_part = ln.partition(" ")
             if sha_part:
                 spine_subjects[sha_part] = subject_part
+        # BATCHED name-only lookup (item 13/L8, ADR-129) -- a THIRD one-shot walk, not folded
+        # into the two above: ONE `git log --diff-merges=first-parent --name-only` over the
+        # whole spine replaces a `git diff --name-only <first_parent> <sha>` SPAWN PER ENTRY,
+        # the shape that cost 641.8s on this repo's 1317-entry spine (proposal §1.3 reading B;
+        # re-measured at this lane's tip, see tests/test_review_artifact_coverage.py's timing
+        # test). `--diff-merges=first-parent` (git >=2.38) is what makes a MERGE commit's entry
+        # diff against its first parent specifically, matching `git diff first_parent sha`
+        # exactly -- plain `--first-parent` traversal alone would still SUPPRESS a merge
+        # commit's diff output entirely. `\x01` prefixes each sha so a commit boundary can
+        # never be confused with a changed path (a NUL-free marker byte no real path carries).
+        merge_changed: dict[str, list[str]] = {}
+        current_sha: "str | None" = None
+        for ln in _ja._git(root, "log", "--first-parent", "--diff-merges=first-parent",
+                           "--name-only", "--format=\x01%H", "main").splitlines():
+            if ln.startswith("\x01"):
+                current_sha = ln[1:]
+                merge_changed[current_sha] = []
+            elif ln.strip() and current_sha is not None:
+                merge_changed[current_sha].append(ln.strip())
         for sha in _ja.spine_entries(root, "main"):
             # Absent from the map is NOT treated as in-scope: a date we could not read is an
             # unknown, and an unknown must not silently become a WARN against a merge that may
@@ -5116,18 +5136,23 @@ def check_review_artifact_coverage(repo_path: Path) -> list[Finding]:
             # `main`.
             smap = _ja._spine_map_for(root, sha)
             if smap is not None and sha in smap.parents:
-                parent_tuple = smap.parents[sha]
-                if len(parent_tuple) < 1:
+                if len(smap.parents[sha]) < 1:
                     continue          # root commit: no first parent to diff against
-                first_parent = parent_tuple[0]
             else:
                 parents = _ja._git(root, "rev-list", "--parents", "-n", "1", sha).split()
                 if len(parents) < 2:
                     continue          # root commit: no first parent to diff against
-                first_parent = parents[1]
-            changed = [ln.strip() for ln
-                       in _ja._git(root, "diff", "--name-only", first_parent, sha).splitlines()
-                       if ln.strip()]
+            # Looked up from the batched walk above, not a fresh `git diff` spawn (item 13/L8).
+            # repair U5/P1-2 (codex review): a sha ABSENT from the map is an UNKNOWN, never a
+            # silent "no files changed" -- the same principle the date-map comment above states
+            # for a different map, and the one this batched walk's own sibling (`spine_dates`)
+            # already honours. `.get(sha, [])` here would make a traversal mismatch between
+            # this walk and `spine_entries` read as zero drift, which is precisely the defect
+            # this leg exists to catch (one scope up). Loudly WARNED below, never guessed at.
+            if sha not in merge_changed:
+                unmapped.append(sha)
+                continue
+            changed = merge_changed[sha]
             if not _review_is_code_impact(changed):
                 continue
             scanned += 1
@@ -5165,6 +5190,15 @@ def check_review_artifact_coverage(repo_path: Path) -> list[Finding]:
                                f"{len(untallied)} linked artifact(s) carry no parseable "
                                f"**Tally:** line: {named}{more} -- persistence is not "
                                f"machine-auditability; {deferred}".replace("|", "/")))
+        if unmapped:
+            named = ", ".join(s[:8] for s in unmapped[:5])
+            more = f" (+{len(unmapped) - 5} more)" if len(unmapped) > 5 else ""
+            out.append(Finding(name, "warn",
+                               f"{len(unmapped)} spine entry/entries since {_REVIEW_RULING_DATE} "
+                               f"are absent from the batched name-only walk's own map, so their "
+                               f"code-impact could not be judged (never silently zero): "
+                               f"{named}{more} -- the two walks over `main` disagreed about "
+                               "what the spine is".replace("|", "/")))
         if not out:
             out.append(Finding(name, "pass",
                                f"{scanned} code-impact merge(s) since {_REVIEW_RULING_DATE} "
@@ -5504,6 +5538,53 @@ ALL_CHECKS = [
                                # condition: flip to TIER_COMMIT when it measures 0 on main.
                                # Full argument at the check's docstring
 ]
+
+
+# ---------------------------------------------------------------------------
+# ADR-129 — the handoff cut's organ set
+# ---------------------------------------------------------------------------
+#
+# MEMBERSHIP CRITERION (G1, PROPOSAL-ADR-HANDOFF-REDESIGN-2026-09-30 §4 O2): an organ is in
+# this set if a hard-fail in it can block the incoming seat's first dispatch or first push, or
+# can make the bundle misdescribe the repository. The first two tests are the dispatch and
+# routing organs and the ADR-85 anchor backstop; the third is the handoff organs plus
+# `check_doc_claims` (the P6 failure of 2026-09-19).
+#
+# NAMES, NOT BOUND FUNCTIONS -- the same reason `run_checks(checks=None)` reads `ALL_CHECKS`
+# at CALL TIME rather than a frozen default: a tuple of function OBJECTS built once, at import,
+# would detach from `monkeypatch.setattr(audit, "check_dispatch_drift", ...)`, because the
+# tuple would still hold the ORIGINAL object. Resolving by name through `handoff_organs()`
+# re-reads this module's current attributes on every call, so a test's patch is seen exactly
+# the way `ALL_CHECKS`-driven callers already are.
+HANDOFF_ORGAN_NAMES = (
+    "check_handoff_probes",
+    "check_supplement_folded",
+    "check_handoff_bundle_structure",
+    "check_handoff_version_stamp",
+    "check_residual_completeness",
+    "check_boot_byte_budget",
+    "check_journal_spine_anchor",
+    "check_dispatch_drift",
+    "check_dispatch_verb_agreement",
+    "check_routing_agreement",
+    "check_doc_claims",
+)
+
+#: The ONE named exception (L5; AMEND-HANDOFF-REDESIGN-BUILD-2026-10-01 item 1): WARN-tier BY
+#: RULING (`check_doc_claims` docstring, :2120) -- it can never emit `"fail"`, so it never
+#: blocks the cut. Its findings still ride the set (it is handoff-relevant, the P6 2026-09-19
+#: live-verify failure), and go into the bundle's notes, never into the row's pass/fail.
+HANDOFF_ORGAN_WARN_ONLY = ("check_doc_claims",)
+
+
+def handoff_organs() -> tuple:
+    """The handoff organ set's check functions, resolved by name at call time.
+
+    See the module comment above `HANDOFF_ORGAN_NAMES` for why this is a name lookup and not a
+    tuple of bound functions.
+    """
+    this_module = sys.modules[__name__]
+    return tuple(getattr(this_module, name) for name in HANDOFF_ORGAN_NAMES)
 
 
 def detect_unconditionally_inert_checks(

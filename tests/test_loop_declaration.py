@@ -108,6 +108,22 @@ def _derive(tmp: Path, marker: Path, names: list[str], fail: tuple[str, ...] = (
     return path
 
 
+def _without_organ(tmp: Path, moment_name: str, organ_id: str) -> Path:
+    """The REAL harness, byte-identical, minus one organ of one moment -- every OTHER organ's
+    REAL command is untouched. ADR-129 item 12/L7 (`trial_cut`) reads live repo hygiene, so a
+    test isolating a SIBLING organ's own behaviour (`digest`) excludes it rather than let a
+    moment-wide run depend on this box's live preflight state at test time -- `trial_cut` gets
+    its own declared-shape test below, and its live behaviour is recorded in the session file
+    (a derive-and-mark unit test would only prove the marker runs, which the generic
+    `tests/test_spine_moments.py` organ-shape tests already cover for every moment)."""
+    data = _real()
+    moment = next(m for m in data["moments"] if m["name"] == moment_name)
+    moment["organs"] = [o for o in moment["organs"] if o["id"] != organ_id]
+    path = tmp / "harness-without.yaml"
+    path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+    return path
+
+
 def _dodo_module(monkeypatch, **env: str):
     for key, value in env.items():
         monkeypatch.setenv(key, value)
@@ -261,7 +277,12 @@ def test_a_failing_report_does_not_stop_the_digest(tmp_path):
     session.write_text(_HANDBACK + "\n", encoding="utf-8")
     lane_end = _derive(tmp_path, marker, ["lane-end"], fail=("transport_report",))
     _doit(tmp_path, lane_end, "moment:lane-end", HARNESS_LANE="lane-fixture", HARNESS_SESSION_FILE=str(session))
-    digest = _doit(tmp_path, None, "moment:batch-close", HARNESS_BATCH="toy-batch")   # the REAL declared row
+    # ADR-129 item 12/L7: `trial_cut` (also in batch-close now) reads live repo hygiene -- this
+    # test is about `digest`'s own behaviour on an empty receipts dir, so it excludes the
+    # sibling organ rather than couple to this box's live preflight state at test time.
+    without_trial = _without_organ(tmp_path, "batch-close", "trial_cut")
+    digest = _doit(tmp_path, without_trial, "moment:batch-close",
+                   HARNESS_BATCH="toy-batch")   # the REAL declared row
     assert digest.returncode == 0, digest.stdout + digest.stderr
     assert _receipt(tmp_path, "MOMENT-BATCH-CLOSE-DIGEST.json")["status"] == "ok"
     assert "toy-batch" in digest.stdout, "the digest names the batch it closed"
@@ -283,15 +304,30 @@ def test_an_organ_that_does_not_continue_on_failure_still_stops_the_moment(tmp_p
 
 def test_batch_close_moment_declares_the_digest_run_by_the_integrator():
     moment = _moment("batch-close")
-    assert [o["id"] for o in moment["organs"]] == ["digest"]
+    assert [o["id"] for o in moment["organs"]] == ["digest", "trial_cut"]
     digest = moment["organs"][0]
     assert digest["receipt"] == "MOMENT-BATCH-CLOSE-DIGEST.json" and digest.get("manual_until")
     assert "scripts/lane_digest.py" in digest["command"]
     assert "integrator" in moment["trigger"] and "last merge" in moment["trigger"]
 
 
+def test_batch_close_moment_declares_the_trial_cut_organ():
+    """ADR-129 item 12/L7: one new organ in `batch-close`, `optional` / `manual_until:
+    2026-10-05` (render note N10) -- `digest` is untouched, this pins only the new row."""
+    moment = _moment("batch-close")
+    trial = moment["organs"][1]
+    assert trial["id"] == "trial_cut"
+    assert trial["receipt"] == "MOMENT-BATCH-CLOSE-TRIAL-CUT.json"
+    assert trial.get("optional") is True
+    assert str(trial.get("manual_until")) == "2026-10-05"  # yaml parses the date, not a string
+    assert "scripts/gen_handoff.py" in trial["command"] and "--trial-cut" in trial["command"]
+
+
 def test_batch_close_digest_row_runs_as_declared_and_exits_zero_on_an_empty_receipts_dir(tmp_path):
-    out = _doit(tmp_path, None, "moment:batch-close", HARNESS_BATCH="toy-batch")
+    # ADR-129 item 12/L7: excludes the sibling `trial_cut` organ -- see _without_organ's
+    # docstring; this test is about `digest`'s own behaviour, not this box's live preflight.
+    without_trial = _without_organ(tmp_path, "batch-close", "trial_cut")
+    out = _doit(tmp_path, without_trial, "moment:batch-close", HARNESS_BATCH="toy-batch")
     assert out.returncode == 0, out.stdout + out.stderr
     assert "toy-batch" in out.stdout
 

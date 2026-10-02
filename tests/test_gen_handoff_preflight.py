@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pytest
 
+import audit as aud
 import gen_handoff as gh
 
 #: The module object gen_handoff ITSELF holds. `scripts.canonical_docs` and
@@ -77,7 +78,9 @@ def _quiet_hub(monkeypatch):
     `_stash_entries`: the wiring under test is the refusal, not the cost of the probe.
     """
     monkeypatch.setattr(gh, "_is_hub", lambda _root: True)
-    monkeypatch.setattr(gh, "_ship_gate_verdict", lambda _root: ("GREEN", "stubbed GREEN"))
+    # ADR-129: row 1 no longer runs a subprocess ship-gate; it runs the in-process handoff
+    # organ set. An empty finding list is the stub-GREEN equivalent -- 0 findings, 0 hard-fail.
+    monkeypatch.setattr(gh, "_handoff_organ_findings", lambda _root: [])
     monkeypatch.setattr(gh, "_journal_spine_gaps", lambda _root: [])
     monkeypatch.setattr(gh, "_linked_worktrees", lambda _root: [])
 
@@ -96,6 +99,39 @@ def test_every_row_carries_a_status_and_a_locator(tmp_path, monkeypatch, _quiet_
         assert r.status in (gh.PREFLIGHT_PASS, gh.PREFLIGHT_FAIL, gh.PREFLIGHT_NA)
         assert r.locator.strip(), f"{r.name} has no locator"
         assert r.detail.strip(), f"{r.name} has no evidence line"
+
+
+# --- item 12/L7: the batch-close trial cut excludes the two cut-day rows -----------------
+
+def test_trial_cut_excludes_only_the_two_cut_day_rows(tmp_path, monkeypatch, _quiet_hub):
+    """`trial_cut=True` reports `ledger_refreshed` / `ratification_present` as n/a (they are
+    keyed to TODAY's transport state and false-red by construction outside a real cut window)
+    and leaves every other row's real verdict untouched."""
+    repo = _hub_stub(tmp_path)
+    transport = _transport(tmp_path)
+    normal = gh.preflight_rows(repo, transport=transport, today=_TODAY)
+    trial = gh.preflight_rows(repo, transport=transport, today=_TODAY, trial_cut=True)
+    assert [r.name for r in trial] == list(gh.PREFLIGHT_ROW_NAMES)
+
+    excluded = set(gh.TRIAL_CUT_EXCLUDED_ROWS)
+    assert excluded == {"ledger_refreshed", "ratification_present"}
+    for row in trial:
+        if row.name in excluded:
+            assert row.status == gh.PREFLIGHT_NA, row.render()
+            assert "TRIAL-CUT-EXCLUDED" in row.detail
+        else:
+            same = next(r for r in normal if r.name == row.name)
+            assert row.status == same.status, (row.name, row.status, same.status)
+
+
+def test_trial_cut_still_fails_on_a_real_state_row(tmp_path, monkeypatch, _quiet_hub):
+    """The trial cut keeps its teeth: a genuine failure in a non-excluded row still FAILs."""
+    repo = _hub_stub(tmp_path)
+    target = gh._stamped_docs()[0]
+    (repo / target).write_text("# no frontmatter here\n", encoding="utf-8")
+    rows = gh.preflight_rows(repo, transport=_transport(tmp_path), today=_TODAY, trial_cut=True)
+    row = next(r for r in rows if r.name == "living_docs_stamped")
+    assert row.status == gh.PREFLIGHT_FAIL, row.render()
 
 
 # --- row 4: the byte budget is 5,000 DECIMAL, settled at HANDOFF_PROCESS.md:366-370 -------
@@ -239,6 +275,30 @@ def test_memory_row_arms_itself_the_moment_a_budget_is_declared(tmp_path, monkey
     assert gh._row_memory_within_cap(memory_path=mem).status == gh.PREFLIGHT_PASS
 
 
+def test_memory_within_cap_over_budget_does_not_refuse_the_cut(tmp_path, monkeypatch, _quiet_hub):
+    """Repair U3 / AMEND-HANDOFF-REDESIGN-BUILD-2026-10-01 §2: `memory_within_cap` "is reported
+    in the notes and is non-blocking, because it measures the machine, not the repository."
+    At `15fcf29a` this row still blocked `assert_preflight` -- a declared budget exceeded must
+    NOT raise `PreflightError`, and the row's own FAIL verdict must still come back so a caller
+    (`_write_receipt`'s `preflight_notes`) can carry it. `worktree_owners`, the other live-state
+    row, is a genuine precondition and is untouched by this tuple -- its own FAIL still refuses
+    (test_worktree_owners_* below)."""
+    assert gh.PREFLIGHT_NON_BLOCKING_ROWS == ("memory_within_cap",)
+    monkeypatch.setattr(gh._cdocs, "MEMORY_BYTE_BUDGET", 20_000, raising=False)
+    mem = tmp_path / "MEMORY.md"
+    mem.write_bytes(b"x" * 23_851)
+    repo = _hub_stub(tmp_path)
+    # `repo_name="repo"` matches `_hub_stub`'s own directory name -- without it the fixture
+    # transport's `LEDGER-dev-knowledge.md` (the default) would not resolve against a repo
+    # directory literally named `repo`, and that row's own FAIL would be a second, unrelated
+    # failure this test is not about.
+    rows = gh.assert_preflight(repo, transport=_transport(tmp_path, repo_name="repo"),
+                               today=_TODAY, repo_name="repo",
+                               memory_path=mem)  # must not raise
+    row = next(r for r in rows if r.name == "memory_within_cap")
+    assert row.status == gh.PREFLIGHT_FAIL, row.render()
+
+
 # --- row 5: the stamped set is COMPUTED, never a roster typed into this module ------------
 
 def test_stamped_set_is_computed_from_the_two_owning_surfaces():
@@ -261,62 +321,56 @@ def test_living_docs_row_fails_an_unstamped_member(tmp_path):
 
 # --- rows 1, 2, 3, 6, 9 ------------------------------------------------------------------
 
-def test_ship_gate_verdict_is_read_from_BOTH_streams(tmp_path, monkeypatch):
-    """`cmd_ship_gate` writes findings to stdout and its VERDICT to stderr. A stdout-only read
-    reports "no verdict line" for a gate that ran perfectly — measured 2026-09-08."""
-    import subprocess as _sp
+def test_handoff_organ_findings_runs_the_set_in_process_and_in_parallel(tmp_path, monkeypatch):
+    """ADR-129 D1: row 1 calls `audit.run_checks(checks=audit.handoff_organs(), parallel=True)`
+    in-process -- no subprocess, no `audit.py ship-gate` child process."""
+    calls = {}
 
-    class _P:
-        stdout = "  [disp] consumer_at_landing: ... expected, not blocking\n"
-        stderr = "ship-gate: RED -- not shipped-ready (1 hard-fail organ(s))\n"
+    def _stub_run_checks(repo_path, checks=None, **kw):
+        calls["repo_path"] = repo_path
+        calls["names"] = {getattr(c, "__name__", "") for c in (checks or [])}
+        calls["parallel"] = kw.get("parallel")
+        return []
 
-    (tmp_path / "scripts").mkdir()
-    (tmp_path / "scripts" / "audit.py").write_text("x\n", encoding="utf-8")
-    monkeypatch.setattr(_sp, "run", lambda *_a, **_k: _P())
-    verdict, evidence = gh._ship_gate_verdict(tmp_path)
-    assert verdict == "RED" and "1 hard-fail" in evidence
+    monkeypatch.setattr(aud, "run_checks", _stub_run_checks)
+    gh._handoff_organ_findings(tmp_path)
+    assert calls["repo_path"] == tmp_path
+    assert calls["names"] == set(aud.HANDOFF_ORGAN_NAMES)
+    assert calls["parallel"] is True
 
 
-def test_ship_gate_row_fails_on_RED_carrying_a_hard_fail_organ(tmp_path, monkeypatch):
+def test_ship_gate_row_fails_on_a_hard_fail_in_the_set(tmp_path, monkeypatch):
     """A hard-fail is never carryable -- no residual line disposes of one (ruling 2026-09-08)."""
-    monkeypatch.setattr(gh, "_ship_gate_verdict",
-                        lambda _root: ("RED", "1 hard-fail organ(s); 7 undispositioned WARN(s)"))
-    assert gh._row_ship_gate(tmp_path).status == gh.PREFLIGHT_FAIL
+    monkeypatch.setattr(gh, "_handoff_organ_findings", lambda _root: [
+        aud.Finding("dispatch_drift", "fail", "a hard-fail finding")])
+    row = gh._row_ship_gate(tmp_path)
+    assert row.status == gh.PREFLIGHT_FAIL
+    assert "dispatch_drift" in row.detail
 
 
-def test_ship_gate_row_PASSES_on_RED_whose_only_reason_is_undispositioned_WARNs(tmp_path, monkeypatch):
-    """The 2026-09-08 amendment: a handoff is not a release.
+def test_ship_gate_row_PASSES_on_a_warn_and_names_the_carried_obligation(tmp_path, monkeypatch):
+    """The 2026-09-08 amendment survives ADR-129: a handoff is not a release.
 
     GREEN is the TAG gate's criterion; demanding it at a CUT deadlocks any window with an open
-    finding -- which is what the first live run of this preflight did. The row passes on
-    `hard-fail = 0` and states the carried obligation, so the debt is inherited, not erased.
+    finding. The row passes on `hard-fail = 0` and states the carried obligation, so the debt
+    is inherited, not erased.
     """
-    monkeypatch.setattr(gh, "_ship_gate_verdict",
-                        lambda _root: ("RED", "ship-gate: RED -- not shipped-ready "
-                                              "(4 new/undispositioned WARN(s))"))
+    monkeypatch.setattr(gh, "_handoff_organ_findings", lambda _root: [
+        aud.Finding("doc_claims", "warn", "a drifted claim")])
     row = gh._row_ship_gate(tmp_path)
     assert row.status == gh.PREFLIGHT_PASS
-    # The pass is only honest if the evidence line hands the seat the obligation AND the count.
-    assert "4 undispositioned WARN(s) is named in the residual" in row.detail
+    assert "doc_claims" in row.detail
     assert "DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08" in row.detail
 
 
-def test_ship_gate_row_fails_on_a_RED_tail_it_cannot_read(tmp_path, monkeypatch):
-    """Neither reason-count present: the hard-fail count is unestablished, so the row refuses.
-
-    Without this leg the amendment would read every unparseable RED as `hard-fail = 0` and turn
-    a widened row into a blind one.
-    """
-    monkeypatch.setattr(gh, "_ship_gate_verdict", lambda _root: ("RED", "RED -- reasons elided"))
-    row = gh._row_ship_gate(tmp_path)
-    assert row.status == gh.PREFLIGHT_FAIL and "cannot read" in row.detail
-
-
-def test_ship_gate_row_fails_when_the_verdict_cannot_be_read(tmp_path, monkeypatch):
+def test_ship_gate_row_fails_when_the_set_cannot_be_run(tmp_path, monkeypatch):
     """Unknown is not clean — the refusal direction this module already took for RM-8."""
-    monkeypatch.setattr(gh, "_ship_gate_verdict", lambda _root: (None, "timed out after 900s"))
+    def _raise(_root):
+        raise RuntimeError("audit unimportable")
+
+    monkeypatch.setattr(gh, "_handoff_organ_findings", _raise)
     row = gh._row_ship_gate(tmp_path)
-    assert row.status == gh.PREFLIGHT_FAIL and "timed out" in row.detail
+    assert row.status == gh.PREFLIGHT_FAIL and "could not be run" in row.detail
 
 
 def test_ledger_row_fails_when_the_ledger_predates_the_window(tmp_path):

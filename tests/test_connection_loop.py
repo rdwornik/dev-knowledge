@@ -90,9 +90,17 @@ STOP_TIMEOUT_S = 1800
 #: after this correction, with the marker still inert.
 pytestmark = [pytest.mark.slow, pytest.mark.xdist_group(name="connection_loop")]
 
-#: The stops the walk recorded when W3-F ran (2026-09-21). Pinned so a change in EITHER direction is loud: a stop that
-#: disappears means wave 4 fixed it (delete its row); a new one means the loop moved. Each row is (moment, organ).
-EXPECTED_STOPS = (("merge", "gates"), ("batch-close", "digest-names-the-task"))
+#: The stops the walk recorded when W3-F ran (2026-09-21), re-pinned by repair U4 of
+#: lane-handoff-redesign (2026-10-02) for the `trial_cut` organ ADR-129 item 12/L7 added to the
+#: `batch-close` moment (`ecosystem/harness.yaml`): it now runs between `digest` and the
+#: explicit digest-content check below, FAILS on this toy/fixture repo (exit 1), and
+#: `Step.stop` reports the FIRST unfired organ in declared order -- so `batch-close` now stops
+#: TWICE: once at the organ (`trial_cut`), and again at the separate, unconditional digest-
+#: content check a few lines down, which still runs regardless. Pinned so a change in EITHER
+#: direction is loud: a stop that disappears means a later wave fixed it (delete its row); a
+#: new one means the loop moved. Each row is (moment, organ).
+EXPECTED_STOPS = (("merge", "gates"), ("batch-close", "trial_cut"),
+                  ("batch-close", "digest-names-the-task"))
 
 
 # --- domain: Receipt, Step, Stop ---------------------------------------------------------------------------------------
@@ -742,9 +750,10 @@ def _stops(w: Walk) -> str:
 
 # --- Done-contract 1 + 2: the loop, the receipts, the digest ---------------------------------------------------------
 
-@pytest.mark.xfail(strict=True, reason="W3-F walk (2026-09-21): stops at merge/gates (RED) and at batch-close (the "
-                                       "digest never names the task) -- wave 4's queue. Delete this marker and "
-                                       "EXPECTED_STOPS when the loop is connected.")
+@pytest.mark.xfail(strict=True, reason="W3-F walk (2026-09-21), re-pinned by lane-handoff-redesign repair U4 "
+                                       "(2026-10-02): stops at merge/gates (RED), at batch-close/trial_cut (RED), "
+                                       "and at batch-close (the digest never names the task) -- wave 4's queue. "
+                                       "Delete this marker and EXPECTED_STOPS when the loop is connected.")
 def test_one_toy_task_leaves_a_receipt_at_every_moment_in_order(walk):
     assert not walk.stops, f"the loop stopped: {_stops(walk)}"
     declared = ["spine", "pre-launch", "lane-start", "lane-end", "merge", "teardown", "batch-close"]

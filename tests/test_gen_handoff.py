@@ -18,7 +18,9 @@ import sys
 import pytest
 
 
+import audit as aud  # noqa: E402
 import gen_handoff as gh  # noqa: E402
+import handback  # noqa: E402
 import verify_handoff_probes as vhp  # noqa: E402
 
 _REPO = gh._REPO_ROOT
@@ -263,10 +265,10 @@ def test_filled_rerender_accepts_its_own_bd_manifest_circularity(tmp_path, monke
     bundle, repo = res.bundle_dir, res.bundle_dir.parents[2]
     _apply_handoff_process_fills(bundle)
 
-    # the shape a real `audit.py ship-gate` run reports when handoff_probes is the ONLY
+    # the shape the handoff organ set reports when `check_handoff_probes` is the ONLY
     # hard-fail organ (BD-manifest, on this exact bundle, and nothing else).
-    monkeypatch.setattr(gh, "_ship_gate_verdict", lambda _root: (
-        "RED", "ship-gate: RED -- ... (1 hard-fail organ(s); 0 new/undispositioned WARN(s))"))
+    monkeypatch.setattr(gh, "_handoff_organ_findings", lambda _root: [
+        aud.Finding("handoff_probes", "fail", "BD-manifest stale")])
 
     cold_render = gh._row_ship_gate(repo, bundle_dir=bundle, force_filled=False)
     assert cold_render.status == gh.PREFLIGHT_FAIL, cold_render.render()
@@ -284,8 +286,9 @@ def test_filled_rerender_still_refuses_a_second_hard_fail_organ(tmp_path, monkey
     res = _gen(tmp_path, assemble=True)
     bundle, repo = res.bundle_dir, res.bundle_dir.parents[2]
     _apply_handoff_process_fills(bundle)
-    monkeypatch.setattr(gh, "_ship_gate_verdict", lambda _root: (
-        "RED", "ship-gate: RED -- ... (2 hard-fail organ(s); 0 new/undispositioned WARN(s))"))
+    monkeypatch.setattr(gh, "_handoff_organ_findings", lambda _root: [
+        aud.Finding("handoff_probes", "fail", "BD-manifest stale"),
+        aud.Finding("dispatch_drift", "fail", "an unrelated second hard-fail organ")])
     row = gh._row_ship_gate(repo, bundle_dir=bundle, force_filled=True)
     assert row.status == gh.PREFLIGHT_FAIL, row.render()
 
@@ -295,8 +298,8 @@ def test_filled_rerender_still_refuses_a_non_manifest_probe_fail(tmp_path, monke
     # living in the SAME bundle (toothless row, moved anchor turned hard, etc.) is never waived.
     res = _gen(tmp_path, assemble=True)
     bundle, repo = res.bundle_dir, res.bundle_dir.parents[2]
-    monkeypatch.setattr(gh, "_ship_gate_verdict", lambda _root: (
-        "RED", "ship-gate: RED -- ... (1 hard-fail organ(s); 0 new/undispositioned WARN(s))"))
+    monkeypatch.setattr(gh, "_handoff_organ_findings", lambda _root: [
+        aud.Finding("handoff_probes", "fail", "BD-manifest stale")])
     monkeypatch.setattr(vhp, "verify", lambda *_a, **_k: [
         vhp.ProbeResult("P2", "fail", "a genuine, unrelated defect", bundle.name)])
     row = gh._row_ship_gate(repo, bundle_dir=bundle, force_filled=True)
@@ -406,7 +409,7 @@ def test_filled_rerender_through_generate_passes_bd_manifest_with_no_hand_restam
     file for the captured pytest output.
     """
     monkeypatch.setattr(gh, "assert_preflight", _preflight_ship_gate_only)
-    monkeypatch.setattr(gh, "_ship_gate_verdict", lambda _root: ("GREEN", "stubbed GREEN"))
+    monkeypatch.setattr(gh, "_handoff_organ_findings", lambda _root: [])
     repo = _stub_repo(tmp_path)
 
     res = gh.generate(repo, mode="architect", slug="0000-00-00-e2e", repo=".dev-knowledge",
@@ -434,8 +437,8 @@ def test_filled_rerender_through_generate_passes_bd_manifest_with_no_hand_restam
     stale = [r for r in vhp.verify(bundle, repo_root=repo) if r.probe_id == "BD-manifest"]
     assert stale and stale[0].status == "fail", stale
 
-    monkeypatch.setattr(gh, "_ship_gate_verdict", lambda _root: (
-        "RED", "ship-gate: RED -- ... (1 hard-fail organ(s); 0 new/undispositioned WARN(s))"))
+    monkeypatch.setattr(gh, "_handoff_organ_findings", lambda _root: [
+        aud.Finding("handoff_probes", "fail", "BD-manifest stale")])
 
     gh.generate(repo, mode="architect", slug=bundle.name, repo=".dev-knowledge",
                date="2026-07-04", bundle_root=repo / "docs" / "handoffs",
@@ -450,11 +453,14 @@ def test_cli_flags_and_refusal_exit_code_are_unchanged(tmp_path, monkeypatch):
     the full flag set (a dropped/renamed one breaks every dispatcher/operator command line
     that names it) and that a refusal still exits through the SAME
     `raise SystemExit(f"[error] {exc}")` path at exit code 1 -- the [#1123] waiver changes
-    which runs are refused, never how a refusal is reported."""
+    which runs are refused, never how a refusal is reported.
+
+    ADR-129 item 12/L7 adds `--trial-cut` (the batch-close stage) -- a genuinely new flag, so
+    the set gains exactly one member rather than losing or renaming any existing one."""
     expected_flags = {
         "--mode", "--epic-slug", "--slug", "--repo", "--date", "--filled", "--cold",
         "--assemble", "--no-assemble", "--allow-suffix", "--emit-journal",
-        "--no-emit-journal", "--preflight-only", "--dry-cut", "--boot-turns",
+        "--no-emit-journal", "--preflight-only", "--trial-cut", "--dry-cut", "--boot-turns",
         "--boot-dispatch",
     }
     actual_flags: set[str] = set()
@@ -1863,7 +1869,14 @@ def test_the_declared_unattended_invocation_still_cites_the_one_ceiling():
     A declaration nobody checks is the class this whole lane exists to close, so the two claims
     that declaration makes are pinned here rather than trusted: that it clears `addopts`
     structurally rather than by argument ordering, and that its timeout IS
-    `gen_handoff.SHIP_GATE_TIMEOUT_S` rather than a second number free to drift from it.
+    `handback.SHIP_GATE_TIMEOUT_S` rather than a second number free to drift from it.
+
+    ADR-129 repointed this citation 2026-10-01: `gen_handoff.py`'s own `SHIP_GATE_TIMEOUT_S`
+    was removed along with the subprocess it bounded (row 1 of the /handoff cut runs the
+    handoff organ set in-process now, never a subprocess) — `handback.py`'s own, separate
+    `SHIP_GATE_TIMEOUT_S` constant (its ratchet-check subprocess ceiling, unaffected by this
+    lane) is now this repo's one remaining already-declared heavy-subprocess ceiling, so the
+    pytest-timeout value cites that one instead.
 
     HONEST LIMIT, stated so this test is not read as more than it is: it pins the DECLARATION,
     not the enforcement. A bare `pytest` still inherits no timeout, and closing that would mean
@@ -1875,31 +1888,8 @@ def test_the_declared_unattended_invocation_still_cites_the_one_ceiling():
     line = next((ln for ln in text.splitlines()
                  if "pytest" in ln and "--timeout=" in ln and "-o addopts=" in ln), None)
     assert line is not None, "the declared unattended invocation is gone from pyproject.toml"
-    assert f"--timeout={gh.SHIP_GATE_TIMEOUT_S}" in line, line
+    assert f"--timeout={handback.SHIP_GATE_TIMEOUT_S}" in line, line
     assert "--group analytics" in line, line     # the measured 44-vs-28 difference
-
-
-def test_ship_gate_ceiling_has_headroom_over_the_worst_measured_run():
-    """A2 ([#1330]'s batch, R41 scope addition): the ceiling must sit measurably above the
-    gate's REAL wall-clock cost, not merely above whichever single run happened to land first.
-
-    Two real `audit.py ship-gate` runs are on record, both detached and timed: 17m08s (1028s)
-    on `origin/main` `6df37302`, four-seat contention (the launcher's reading, R41 evidence —
-    `to-browser/SESSION-launch-handoff-unblock-2026-09-30.md` §"R41 — the order challenged");
-    13m02.6s (782.6s) on this lane's own tip, 2026-10-01, six-seat contention (this lane's own
-    reading, job tmp `ship-gate-measurement.log`). The pre-[#1330-batch] ceiling, 900s, sits
-    BELOW the worse of the two and only ~13% over the better one -- exactly the failure mode
-    `SHIP_GATE_TIMEOUT_S`'s own comment warns against: "a ceiling tighter than the gate's real
-    cost would manufacture refusals rather than detect them". RED at 900 (this constant, at the
-    time this test was written); GREEN once the ceiling carries real headroom over the worse
-    reading. The refusal keeps its teeth regardless of the number -- see
-    `test_ship_gate_row_fails_when_the_verdict_cannot_be_read` in test_gen_handoff_preflight.py,
-    which pins that a timed-out verdict still FAILs the row independent of this constant's value.
-    """
-    worst_observed_s = 1028  # 17m08s, origin/main 6df37302, four-seat contention
-    required_headroom_ratio = 1.5  # at least 50% over the worst real reading on record
-    assert gh.SHIP_GATE_TIMEOUT_S >= worst_observed_s * required_headroom_ratio, (
-        gh.SHIP_GATE_TIMEOUT_S, worst_observed_s)
 
 
 # ------------------------------------------------- the stub repo does not escape this file
@@ -2107,16 +2097,35 @@ def test_dry_cut_refuses_a_target_inside_the_repo(tmp_path):
                     date="2026-07-04", bundle_root=repo / "docs" / "handoffs", dry_cut=True)
 
 
-def test_dry_cut_skips_the_cut_boundaries_and_says_so_in_its_receipt(tmp_path, monkeypatch):
+def test_dry_cut_skips_the_batch_boundaries_but_still_runs_preflight(tmp_path, monkeypatch):
+    """ADR-129 item 6/L1: gates 1-2 (`assert_batch_boundary`, `assert_boundary_hygiene`) are
+    skipped at a dry cut -- a dry cut cannot seal a commit-boundary claim. Gate 3
+    (`assert_preflight`, the ten hygiene rows / the handoff organ set) is NOT skipped: a dry cut
+    can and must still report hygiene (at `a38b6faf` it skipped all three, which made Step 1 (b)
+    unsatisfiable -- see `tests/test_handoff_cut_acceptance.py`)."""
     def _refuse(*_a, **_k):
-        raise AssertionError("a dry cut must not run a real cut's boundary gates")
-    for name in ("assert_batch_boundary", "assert_boundary_hygiene", "assert_preflight"):
+        raise AssertionError("a dry cut must not run a real cut's batch-boundary gates")
+
+    for name in ("assert_batch_boundary", "assert_boundary_hygiene"):
         monkeypatch.setattr(gh, name, _refuse)
+
+    preflight_calls = []
+    real_assert_preflight = gh.assert_preflight
+
+    def _spy_preflight(*a, **k):
+        preflight_calls.append((a, k))
+        return real_assert_preflight(*a, **k)
+
+    monkeypatch.setattr(gh, "assert_preflight", _spy_preflight)
+    monkeypatch.setattr(gh, "_handoff_organ_findings", lambda _root: [])
+    monkeypatch.setattr(gh, "_linked_worktrees", lambda _root: [])
+
     repo = _stub_repo(tmp_path)
     out = tmp_path / "dry"
     b = gh.generate(repo, mode="architect", slug="0000-00-00-t", repo=".dev-knowledge",
                     date="2026-07-04", bundle_root=out, assemble=True, dry_cut=True).bundle_dir
     assert b.parent == out
+    assert len(preflight_calls) == 1, "gate 3 must run exactly once at a dry cut"
     receipt = json.loads((b / gh.RECEIPT_FILE).read_text(encoding="utf-8"))
     assert receipt["cut"] == "dry"
     assert (b / "PASTE_THIS.md").exists()
@@ -2172,3 +2181,136 @@ def test_a_measured_boot_cost_names_its_instrument_and_binds_its_dispatch(tmp_pa
     assert cost["dispatch_sha256"] == hashlib.sha256(order.read_bytes()).hexdigest()
     assert cost["source"].startswith("operator tally")
     assert "not machine-witnessed" in cost["source"]
+
+
+# --- item 14/L9: the refusal log -----------------------------------------------------------
+
+def _raise_preflight(*_a, **_k):
+    raise gh.PreflightError("refusing to cut a bundle: 1 pre-handoff hygiene row(s) FAILED")
+
+
+def _refusal_log(transport):
+    return transport / "logs" / "HANDOFF-REFUSALS.jsonl"
+
+
+def test_a_real_cuts_preflight_refusal_appends_one_refusal_entry(tmp_path, monkeypatch):
+    transport = tmp_path / "transport"
+    monkeypatch.setattr(gh, "assert_preflight", _raise_preflight)
+    repo = _stub_repo(tmp_path)
+    with pytest.raises(gh.PreflightError):
+        gh.generate(repo, mode="architect", slug="0000-00-00-t", repo=".dev-knowledge",
+                   date="2026-07-04", bundle_root=repo / "docs" / "handoffs",
+                   transport=transport)
+    log = _refusal_log(transport)
+    assert log.is_file()
+    entries = [json.loads(ln) for ln in log.read_text(encoding="utf-8").splitlines() if ln]
+    assert len(entries) == 1
+    assert entries[0]["kind"] == "REFUSAL"
+    assert "FAILED" in entries[0]["reason"]
+
+
+def test_a_dry_cuts_preflight_refusal_never_touches_the_refusal_log(tmp_path, monkeypatch):
+    """N3's own scope note: a dry cut proves the cut path; it is not the operator's own retry
+    loop, so it must not inflate (or create) the log item 14's count is read from."""
+    transport = tmp_path / "transport"
+    monkeypatch.setattr(gh, "assert_preflight", _raise_preflight)
+    repo = _stub_repo(tmp_path)
+    out = tmp_path / "dry"
+    with pytest.raises(gh.PreflightError):
+        gh.generate(repo, mode="architect", slug="0000-00-00-t", repo=".dev-knowledge",
+                   date="2026-07-04", bundle_root=out, dry_cut=True, transport=transport)
+    assert not _refusal_log(transport).exists()
+
+
+def test_no_transport_given_never_touches_disk_for_the_refusal_log(tmp_path, monkeypatch):
+    """`transport=None` (every caller that does not pass it) is a no-op, never a live
+    `transport_root()` resolution as a side effect of a refused test fixture (gen_handoff.py's
+    own `generate` docstring, the `transport` paragraph)."""
+    monkeypatch.setattr(gh, "assert_preflight", _raise_preflight)
+    monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
+    repo = _stub_repo(tmp_path)
+    with pytest.raises(gh.PreflightError):
+        gh.generate(repo, mode="architect", slug="0000-00-00-t", repo=".dev-knowledge",
+                   date="2026-07-04", bundle_root=repo / "docs" / "handoffs")
+    # nothing under tmp_path besides the repo itself was created
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["repo"]
+
+
+def test_a_successful_real_cut_resets_the_refusal_count(tmp_path, monkeypatch):
+    transport = tmp_path / "transport"
+    repo = _stub_repo(tmp_path)
+    # Two refused attempts first, so the log carries REFUSAL entries to reset.
+    real_assert_preflight = gh.assert_preflight
+    monkeypatch.setattr(gh, "assert_preflight", _raise_preflight)
+    for _ in range(2):
+        with pytest.raises(gh.PreflightError):
+            gh.generate(repo, mode="architect", slug="0000-00-00-t", repo=".dev-knowledge",
+                       date="2026-07-04", bundle_root=repo / "docs" / "handoffs",
+                       transport=transport)
+    assert gh._refusal_count_since_previous_cut(transport) == 2
+    monkeypatch.setattr(gh, "assert_preflight", real_assert_preflight)
+    monkeypatch.setattr(gh, "_handoff_organ_findings", lambda _root: [])
+    monkeypatch.setattr(gh, "_linked_worktrees", lambda _root: [])
+    # repair U5/P1-1 (codex review): `transport=` is given on this successful path, which makes
+    # `_write_receipt` call `_whole_repo_verdict` -- stub `ci_verdict.find_run` so that read
+    # never shells out to the live `gh` CLI (R15) from this unit test.
+    import ci_verdict as _civ
+    monkeypatch.setattr(_civ, "find_run", lambda *a, **k: None)
+    gh.generate(repo, mode="architect", slug="0000-00-00-t2", repo=".dev-knowledge",
+               date="2026-07-04", bundle_root=repo / "docs" / "handoffs", assemble=False,
+               transport=transport)
+    assert gh._refusal_count_since_previous_cut(transport) == 0
+
+
+def test_receipt_carries_whole_repo_verdict_and_refusal_count(tmp_path, monkeypatch):
+    monkeypatch.setattr(gh, "_handoff_organ_findings", lambda _root: [])
+    monkeypatch.setattr(gh, "_linked_worktrees", lambda _root: [])
+    # repair U5/P1-1 (codex review): stub the live `gh` leg the same way -- `find_run`
+    # returning None is exactly the "no Actions run matched" branch, which still exercises
+    # `_whole_repo_verdict`'s real "not run" shape below without a network call.
+    import ci_verdict as _civ
+    monkeypatch.setattr(_civ, "find_run", lambda *a, **k: None)
+    repo = _stub_repo(tmp_path)
+    # An EXPLICIT fixture transport that does not exist -- `transport=None` (the default) would
+    # resolve the box's REAL `transport_root()` (same live-resolution idiom `state_rows` already
+    # used), which is correct production behaviour but wrong for a test to touch (terra-style
+    # self-catch, same session: a first draft of this test omitted `transport=` and wrote real
+    # `CUT` lines into this machine's actual transport — see the `generate()` comment above
+    # `live_state_rows = _hstate().state_rows(...)`).
+    transport = tmp_path / "no-such-transport"
+    b = gh.generate(repo, mode="architect", slug="0000-00-00-t", repo=".dev-knowledge",
+                    date="2026-07-04", bundle_root=repo / "docs" / "handoffs",
+                    assemble=False, transport=transport).bundle_dir
+    receipt = json.loads((b / gh.RECEIPT_FILE).read_text(encoding="utf-8"))
+    verdict = receipt["whole_repo_verdict"]
+    assert verdict["source"] == "CI ship-gate job"
+    assert verdict["verdict"] in ("GREEN", "RED", "not run")
+    # The fixture transport carries no refusal log — ABSENT, not 0.
+    assert receipt["refusal_count_since_previous_cut"] is None
+
+
+def test_preflight_notes_land_in_the_receipt_when_given(tmp_path):
+    """Repair U3 / AMEND §2: `_write_receipt`'s `preflight_notes` -- the plumbing `generate()`
+    feeds from `assert_preflight`'s own non-raising return (test_gen_handoff_preflight.py's
+    `test_memory_within_cap_over_budget_does_not_refuse_the_cut` proves THAT return) -- lands
+    in `HANDOFF_RECEIPT.json` verbatim, and is simply absent (never an empty-list placeholder)
+    when a caller passes nothing."""
+    bundle_dir = tmp_path / "bundle"
+    bundle_dir.mkdir()
+    note = "[FAIL] memory_within_cap: 23,851 B against the declared 20,000 B budget -- x"
+    gh._write_receipt(bundle_dir, slug="s", mode="architect", date="2026-07-04", cut="dry",
+                      cost={}, paste={}, preflight_notes=[note])
+    receipt = json.loads((bundle_dir / gh.RECEIPT_FILE).read_text(encoding="utf-8"))
+    assert receipt["preflight_notes"] == [note]
+
+    bundle_dir2 = tmp_path / "bundle2"
+    bundle_dir2.mkdir()
+    gh._write_receipt(bundle_dir2, slug="s", mode="architect", date="2026-07-04", cut="dry",
+                      cost={}, paste={})
+    receipt2 = json.loads((bundle_dir2 / gh.RECEIPT_FILE).read_text(encoding="utf-8"))
+    assert "preflight_notes" not in receipt2
+
+
+def test_refusal_count_is_none_without_a_readable_log(tmp_path):
+    assert gh._refusal_count_since_previous_cut(None) is None
+    assert gh._refusal_count_since_previous_cut(tmp_path / "no-transport-here") is None

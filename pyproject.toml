@@ -72,13 +72,13 @@ dev = [
     # THE VALUE IS CITED, NOT INVENTED, and it is passed on the unattended command line rather
     # than written into `addopts` (see the [tool.pytest.ini_options] block below — the
     # INTERACTIVE path is deliberately untouched). `--timeout=1800` reuses
-    # `gen_handoff.SHIP_GATE_TIMEOUT_S = 1800`, this repo's ONE already-declared ceiling for its
-    # most expensive subprocess, whose own comment states the principle a second number would
-    # be free to disagree with: "a ceiling tighter than the gate's real cost would manufacture
-    # refusals rather than detect them". RAISED from 900 ([#1330]'s batch, A2, 2026-10-01): two
-    # real detached, timed `audit.py ship-gate` runs measured 1028s and 782.6s, leaving 900s
-    # below the worse reading. The heaviest legitimate tests here are the ship-gate and
-    # pre-commit subprocess spawns; 1800 s sits well above them and far below "wedged forever".
+    # `handback.SHIP_GATE_TIMEOUT_S = 1800`, this repo's one already-declared ceiling for a
+    # heavy subprocess spawn (ADR-129, 2026-10-01: `gen_handoff.py`'s own former
+    # `SHIP_GATE_TIMEOUT_S` was removed along with the subprocess it bounded — row 1 of the
+    # /handoff cut runs the handoff organ set in-process now, never a subprocess; the still-live
+    # 900s->1800s headroom history below is about that now-gone subprocess, kept for the record).
+    # The heaviest legitimate tests here are handback's own ship-gate/pytest subprocess spawns;
+    # 1800 s sits well above them and far below "wedged forever".
     #
     # NO ecosystem/dependency-baseline.yaml row — the pandas / packaging / markdown-it-py
     # precedent, for the reason that surface states: it governs deps required to OPERATE
@@ -333,10 +333,12 @@ addopts = "-n auto"
 #   unattended run trades wall-clock for a result that exists.
 #
 # `--timeout=1800` — pytest-timeout; the per-test wedge guard. The value is
-#   `gen_handoff.SHIP_GATE_TIMEOUT_S`, reused rather than re-derived — see the dependency
-#   comment in [dependency-groups] above for why that is the citable ceiling. RAISED
-#   900 -> 1800 alongside that constant ([#1330]'s batch, A2, 2026-10-01: two real timed
-#   `audit.py ship-gate` runs, 1028s and 782.6s, left 900s below the worse of the two).
+#   `handback.SHIP_GATE_TIMEOUT_S`, reused rather than re-derived — see the dependency
+#   comment in [dependency-groups] above for why that is the citable ceiling (ADR-129
+#   repointed this citation 2026-10-01: `gen_handoff.py` no longer owns a subprocess ship-gate
+#   ceiling to cite). History kept for the record: this value was RAISED 900 -> 1800 when it
+#   still lived on `gen_handoff.SHIP_GATE_TIMEOUT_S` ([#1330]'s batch, A2, 2026-10-01: two real
+#   timed `audit.py ship-gate` runs, 1028s and 782.6s, left 900s below the worse of the two).
 #
 # `-rf` — the FAILED list is the artifact. A bare `-q` tail gives a count; the reconciliation
 #   that says "28, and they are these 28" needs the names.

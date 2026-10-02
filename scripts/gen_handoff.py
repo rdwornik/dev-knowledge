@@ -658,10 +658,13 @@ def assert_boundary_hygiene(repo_root: Path) -> None:
 # discipline; implying a check that is absent is the defect rows 7 and 8 were corrected for.
 # Ruling: `to-cc/DECLARE-PREFLIGHT-QUESTION-ROW-2026-09-08.md`, ratified by the operator's paste.
 #
-# COST, stated rather than discovered: row 1 runs the real ship-gate, measured at 4m30s on
-# 2026-09-07 under four-lane contention (the plugin's 2026-07-05 note of ~13s is stale). A cut
-# is a once-per-window act taken at a true batch boundary, which is what makes that affordable;
-# it is not affordable anywhere else, which is why nothing else calls it.
+# COST, SUPERSEDED (ADR-129, 2026-10-01): row 1 no longer runs the whole ship-gate (the
+# 4m30s-to-17m08s subprocess this comment used to cost-justify, 2026-09-07 through 2026-10-01).
+# It runs the 11-organ handoff set in-process, in parallel, measured at about 58s serial /
+# faster parallel per-organ (PROPOSAL-ADR-HANDOFF-REDESIGN-2026-09-30 §1.3) -- cheap enough
+# that "a once-per-window act" is no longer the reason it is affordable here and nowhere else.
+# The whole-repository verdict is still read, never run, for the bundle's notes -- see
+# `_whole_repo_verdict`.
 
 PREFLIGHT_PASS = "PASS"
 PREFLIGHT_FAIL = "FAIL"
@@ -677,18 +680,14 @@ STATUS_BYTE_BUDGET = 5_000
 #: name via getattr and renders n-a-with-reason while it is absent. Filed for the operator.
 MEMORY_BUDGET_DECLARATION_SITE = "canonical_docs.MEMORY_BYTE_BUDGET"
 
-#: Ceiling for the ship-gate subprocess. Generous on purpose: a TIMEOUT is a FAIL, so a ceiling
-#: tighter than the gate's real cost would manufacture refusals rather than detect them.
-#:
-#: RAISED 900 -> 1800 ([#1330]'s batch, A2, 2026-10-01). Two real detached, timed
-#: `audit.py ship-gate` runs are on record: 17m08s (1028s) on origin/main `6df37302`,
-#: four-seat contention; 13m02.6s (782.6s) on this lane's own tip, six-seat contention. 900s
-#: sat BELOW the worse reading and only ~13% over the better one -- the exact failure this
-#: comment already warned against. 1800s carries >=50% headroom over the worse reading
-#: (`test_ship_gate_ceiling_has_headroom_over_the_worst_measured_run`, test_gen_handoff.py).
-#: A timeout still reports FAIL either way -- the refusal keeps its teeth regardless of the
-#: number (`test_ship_gate_row_fails_when_the_verdict_cannot_be_read`).
-SHIP_GATE_TIMEOUT_S = 1800
+#: SUPERSEDED (ADR-129, 2026-10-01): row 1 no longer shells out to a subprocess, so no local
+#: ceiling bounds it any more. `SHIP_GATE_TIMEOUT_S` (A2, [#1330]'s batch) governed that
+#: subprocess from 2026-09-09 to 2026-10-01; see `scripts/handback.py`'s OWN constant of the
+#: same name for the unrelated self-check subprocess that still needs one. The handoff organ
+#: set runs IN-PROCESS via `audit.run_checks(checks=audit.handoff_organs(), parallel=True)` --
+#: see `_row_ship_gate` below -- at about 58s measured per-organ serially (far under any
+#: ceiling this constant ever set), so a timeout here would be a solution hunting the problem
+#: it used to solve.
 
 #: The row order, declared so the report is stable and a test can assert the roster.
 PREFLIGHT_ROW_NAMES = (
@@ -803,47 +802,171 @@ def _stamped_docs() -> tuple[str, ...]:
     return tuple(dict.fromkeys(files))
 
 
+#: Reused below by `_whole_repo_verdict` to read the SAME verdict line out of CI's job log --
+#: `cmd_ship_gate` prints `ship-gate: GREEN|RED ...` wherever it runs, local or Actions, so one
+#: pattern reads both. The hard-fail/undispositioned-WARN sub-counts that used to be parsed out
+#: of this tail (`_SHIP_GATE_HARD_FAIL_RE` / `_SHIP_GATE_UNDISPOSITIONED_RE`, removed with
+#: ADR-129) are gone: row 1 no longer derives its own pass/fail from this text at all -- see
+#: `_row_ship_gate` -- so only the verdict word and the tail survive, for the drift notes.
 _SHIP_GATE_VERDICT_RE = re.compile(r"^ship-gate:\s*(GREEN|RED)\b(.*)$", re.MULTILINE)
 
-#: The two reason-counts `cmd_ship_gate` prints inside the RED tail. They are read SEPARATELY
-#: because the 2026-09-08 ruling turns on the hard-fail count alone: a RED carrying only
-#: undispositioned WARNs is a carryable debt, a RED carrying a hard-fail organ is not.
-_SHIP_GATE_HARD_FAIL_RE = re.compile(r"(\d+)\s+hard-fail organ")
-_SHIP_GATE_UNDISPOSITIONED_RE = re.compile(r"(\d+)\s+new/undispositioned WARN")
+#: This is a REPORTING read, never part of row 1's pass/fail (ADR-129 item 2; "do not" line
+#: 2), and it NEVER WAITS: unlike `ci_verdict.verdict_for` (which polls up to 900s for an
+#: in-progress run to finish), this reads whatever `gh` can answer in one list/jobs/log round
+#: trip, each capped at `ci_verdict.GH_TIMEOUT_S` (120s) by the wrappers it reuses, and a run
+#: still in progress is reported `"not run"` immediately rather than awaited.
+#:
+#: The CI job this reads -- the SAME advisory `continue-on-error` job `.github/workflows/
+#: conductor.yml` runs on every push (`ship-gate:`), never a local run (ADR-129 item 2).
+_WHOLE_REPO_VERDICT_JOB_NAME = "ship-gate"
 
 
-def _ship_gate_verdict(repo_root: Path) -> "tuple[str | None, str]":
-    """`(verdict, evidence)` from a real `audit.py ship-gate` run; `(None, why)` when unread.
+def _whole_repo_verdict(repo_root: Path, sha: "str | None" = None) -> dict:
+    """The latest CI `ship-gate` job's verdict for `sha` (default HEAD) -- READ, NEVER RUN.
 
-    The VERDICT IS AT THE TAIL and the failures are at the head, so the whole stream is scanned
-    and the LAST verdict line wins -- reading the head would report a finding as a verdict.
-    Exit code is deliberately not the signal: the awareness organs exit 0 even on drift, which
-    is the F1 defect `cmd_ship_gate` itself was built to avoid.
+    ADR-129 item 2: the whole-repository verdict goes into the bundle's notes / the residual's
+    drift flags, and it NEVER blocks the cut (`_row_ship_gate` never calls this). Its source is
+    the CI `ship-gate` job for the cut sha when one exists, otherwise a named `"not run"` --
+    never a local re-run of the 57-organ registry (the "do not" this lane is bound by).
+
+    Reuses `ci_verdict.py`'s `gh` wrappers (`find_run` / `fetch_jobs` / `fetch_job_log`) rather
+    than opening a second `gh`-calling surface -- library-first (R38). It does NOT reuse
+    `ci_verdict.verdict_for`/`wait_for_run`: those POLL up to 900s for an in-progress run, which
+    this reporting-only read must never do (the 120s cut budget is the whole point of ADR-129).
+    This function never waits: a run still in progress, or any `gh` failure, reads as
+    `"not run"` with the reason named -- it NEVER raises, so a CI outage can never refuse or
+    even slow the cut by more than one short, bounded `gh` round trip.
+
+    The `ship-gate` job runs `continue-on-error: true` (`.github/workflows/conductor.yml`), so
+    its OWN job-level conclusion -- not the workflow run's overall conclusion -- is what is
+    read; the job's log carries the same `ship-gate: GREEN|RED ...` tail a local run would
+    print, parsed with the same `_SHIP_GATE_VERDICT_RE` a local run used to produce.
     """
-    gate = Path(repo_root) / "scripts" / "audit.py"
-    if not gate.exists():
-        return (None, f"no {gate} -- the ship-gate could not be run")
-    # UTF-8 is forced both ways because a PIPE makes the child's stdout cp1252 on this platform
-    # and `cmd_ship_gate` prints em-dashes; `errors="replace"` alone would silently corrupt the
-    # evidence line this row reports.
-    env = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}
     try:
-        out = subprocess.run([sys.executable, str(gate), "ship-gate"], cwd=str(repo_root),
-                             capture_output=True, text=True, encoding="utf-8",
-                             errors="replace", env=env, timeout=SHIP_GATE_TIMEOUT_S)
-    except subprocess.TimeoutExpired:
-        return (None, f"`audit.py ship-gate` timed out after {SHIP_GATE_TIMEOUT_S}s")
-    except (OSError, subprocess.SubprocessError) as exc:
-        return (None, f"`audit.py ship-gate` could not be run: {exc}")
-    # BOTH STREAMS, and that is the whole bug this line fixes. `cmd_ship_gate` writes its
-    # findings to stdout and its VERDICT to stderr, so a stdout-only read reports "no verdict
-    # line" for a gate that ran perfectly. Measured 2026-09-08: rc=1, stdout ending mid-finding,
-    # `ship-gate: RED -- ... (1 hard-fail organ(s); 6 new/undispositioned WARN(s))` on stderr.
-    hits = _SHIP_GATE_VERDICT_RE.findall((out.stdout or "") + "\n" + (out.stderr or ""))
-    if not hits:
-        return (None, "`audit.py ship-gate` emitted no verdict line")
-    verdict, tail = hits[-1]
-    return (verdict, f"ship-gate: {verdict}{tail}".strip())
+        sys.path.insert(0, str(_SCRIPTS))
+        import ci_verdict as _civ  # noqa: PLC0415
+    except Exception as exc:  # noqa: BLE001 -- reporting-only; never a cut blocker
+        return {"source": "CI ship-gate job", "verdict": "not run",
+                "detail": f"ci_verdict unreadable: {exc!r}"}
+    resolved_sha = sha or _git_status(repo_root, "rev-parse", "HEAD")[1].strip() or "HEAD"
+    try:
+        run = _civ.find_run(resolved_sha, repo_root=repo_root, workflow=_civ.WORKFLOW)
+        if run is None:
+            return {"source": "CI ship-gate job", "verdict": "not run", "sha": resolved_sha,
+                    "detail": f"no Actions run matched {resolved_sha[:12]}"}
+        if run.get("status") != "completed":
+            return {"source": "CI ship-gate job", "verdict": "not run", "sha": resolved_sha,
+                    "run_url": run.get("url"),
+                    "detail": f"run {run.get('databaseId')} is still {run.get('status')}"}
+        run_id = run.get("databaseId")
+        jobs = _civ.fetch_jobs(run_id, repo_root=repo_root) or []
+        job = next((j for j in jobs if j.get("name") == _WHOLE_REPO_VERDICT_JOB_NAME), None)
+        if job is None or job.get("databaseId") is None:
+            return {"source": "CI ship-gate job", "verdict": "not run", "sha": resolved_sha,
+                    "run_url": run.get("url"),
+                    "detail": f"run {run_id} carries no '{_WHOLE_REPO_VERDICT_JOB_NAME}' job"}
+        log_text = _civ.fetch_job_log(run_id, job["databaseId"], repo_root=repo_root)
+        hits = _SHIP_GATE_VERDICT_RE.findall(log_text or "")
+        if not hits:
+            return {"source": "CI ship-gate job", "verdict": "not run", "sha": resolved_sha,
+                    "run_url": run.get("url"), "job_conclusion": job.get("conclusion"),
+                    "detail": (f"'{_WHOLE_REPO_VERDICT_JOB_NAME}' job (conclusion="
+                              f"{job.get('conclusion')}) emitted no verdict line in its log")}
+        verdict, tail = hits[-1]
+        return {"source": "CI ship-gate job", "verdict": verdict, "sha": resolved_sha,
+                "run_url": run.get("url"), "job_conclusion": job.get("conclusion"),
+                "detail": f"ship-gate: {verdict}{tail}".strip()}
+    except Exception as exc:  # noqa: BLE001 -- reporting-only; never a cut blocker
+        return {"source": "CI ship-gate job", "verdict": "not run", "sha": resolved_sha,
+                "detail": f"{exc!r}"}
+
+
+# --- item 14/L9: the refusal log -----------------------------------------------------------
+#
+# DECIDED-BY-LANE (N3): the log lives under the TRANSPORT, never under the repository. A file
+# this generator appended to on every refusal, if it lived inside the git work tree, would be
+# an uncommitted change the NEXT cut attempt's own `state.dirty` check would refuse on -- the
+# mechanism would poison its own next run. The transport is outside every git work tree by
+# construction (`transport_root()`'s docstring), so appending there can never dirty the tree
+# the cut checks. Same reasoning CLAUDE.md's LEDGER files already rely on: cross-window,
+# cross-session state belongs on the transport, not in the repo, when the repo's own
+# cleanliness is itself a gate input.
+#
+# Scope: a REAL cut's `PreflightError` refusals only (`not dry_cut`). A dry cut is a CI/test
+# proof of the cut path (ADR-129 item 1/L1), not an operator's actual cut attempt, and proposal
+# §7 step 5 / PM8's "refusal count since the previous cut" is about the operator's own retry
+# loop -- counting dry-cut noise into it would make the count answer a question nobody asked.
+_REFUSAL_LOG_RELPATH = Path("logs") / "HANDOFF-REFUSALS.jsonl"
+
+
+def _refusal_log_path(transport: "Path | None") -> "Path | None":
+    return (transport / _REFUSAL_LOG_RELPATH) if transport is not None else None
+
+
+def _append_refusal_log(transport: "Path | None", *, repo_root: Path, reason: str) -> None:
+    """Best-effort append of one REFUSAL line; never raises (a logging failure is not a cut
+    failure, and the exception this is called from is already on its way out)."""
+    path = _refusal_log_path(transport)
+    if path is None:
+        return
+    try:
+        import json  # noqa: PLC0415
+        _, sha = _git_status(repo_root, "rev-parse", "HEAD")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8", newline="\n") as f:
+            f.write(json.dumps({
+                "kind": "REFUSAL", "ts": _dt.datetime.now(_dt.timezone.utc).isoformat(
+                    timespec="seconds"), "sha": (sha or "").strip() or None, "reason": reason,
+            }, ensure_ascii=False) + "\n")
+    except OSError:
+        pass
+
+
+def _append_cut_log(transport: "Path | None", *, repo_root: Path, slug: str) -> None:
+    """Best-effort append of one CUT line, marking a real (never dry) cut's success. Never
+    raises -- a logging failure must not turn a succeeded cut into a failed one."""
+    path = _refusal_log_path(transport)
+    if path is None:
+        return
+    try:
+        import json  # noqa: PLC0415
+        _, sha = _git_status(repo_root, "rev-parse", "HEAD")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8", newline="\n") as f:
+            f.write(json.dumps({
+                "kind": "CUT", "ts": _dt.datetime.now(_dt.timezone.utc).isoformat(
+                    timespec="seconds"), "sha": (sha or "").strip() or None, "slug": slug,
+            }, ensure_ascii=False) + "\n")
+    except OSError:
+        pass
+
+
+def _refusal_count_since_previous_cut(transport: "Path | None") -> "int | None":
+    """Count of REFUSAL entries after the last CUT entry (or in the whole log, when no CUT
+    entry exists yet). None when the log is absent or unreadable -- ABSENT, not zero, because
+    zero would read as "no refusals" rather than as "never measured" (the same honesty the
+    other unmeasured receipt fields already keep)."""
+    path = _refusal_log_path(transport)
+    if path is None or not path.is_file():
+        return None
+    try:
+        import json  # noqa: PLC0415
+        count = 0
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entry = json.loads(line)
+            except ValueError:
+                continue
+            if entry.get("kind") == "CUT":
+                count = 0
+            elif entry.get("kind") == "REFUSAL":
+                count += 1
+        return count
+    except OSError:
+        return None
 
 
 def _journal_spine_gaps(repo_root: Path) -> "list[str] | None":
@@ -992,60 +1115,86 @@ def _self_inflicted_bd_manifest(repo_root: Path, bundle_dir: Path) -> "tuple[boo
                   "fresh census")
 
 
+def _handoff_organ_findings(repo_root: Path) -> list:
+    """The handoff organ set's findings, run IN-PROCESS and IN PARALLEL -- ADR-129 D1.
+
+    No subprocess, no `audit.py ship-gate` child process, no local whole-57-organ run: this
+    imports the hub's own `audit.py` the same way `_stamped_docs` already does (`sys.path`
+    insert, then `import audit`) and calls `run_checks(checks=handoff_organs(), parallel=True)`
+    -- the selection seam and the thread-pool parallelism `run_checks` already provides
+    (`scripts/audit.py:5868` / `:5973`), reused rather than reimplemented (R38/library-first).
+    """
+    sys.path.insert(0, str(_SCRIPTS))
+    import audit as _aud  # noqa: PLC0415
+    return _aud.run_checks(repo_root, checks=_aud.handoff_organs(), parallel=True)
+
+
 def _row_ship_gate(repo_root: Path, *, bundle_dir: "Path | None" = None,
                     force_filled: bool = False) -> PreflightRow:
-    """Row 1 -- PASS on `hard-fail = 0`; the undispositioned WARNs are CARRIED, not cleared.
+    """Row 1 -- ADR-129: the handoff organ set, run in-process and in parallel, not the whole
+    57-organ registry run as a 900-1800s subprocess.
 
-    Amended 2026-09-08 (see the register header above): a handoff is not a release. GREEN --
-    0 hard-fail AND 0 undispositioned -- is the TAG gate's criterion and stays the TAG gate's;
-    demanding it here deadlocks the window that has any open finding at all. So a RED whose only
-    reason is undispositioned WARNs PASSES this row, and the evidence line states the obligation
-    that makes the pass honest: each of those WARNs is named in the residual with its owning row.
-    That second conjunct is NOT mechanically checkable here -- the residual does not exist until
-    after preflight clears -- and this docstring says so rather than implying a check that is
-    absent. A RED carrying a hard-fail organ, and an unreadable verdict, both still FAIL --
-    UNLESS `force_filled` names `bundle_dir` and the hard-fail is EXACTLY that bundle's own
-    `BD-manifest` circularity ([#1123]; `_self_inflicted_bd_manifest`): the manifest a `--filled`
-    re-render is about to re-stamp is stale by construction the moment the operator's fills touch
-    the bundle, and refusing the re-render that fixes it is the circularity row [#1123] exists to
-    break. Any OTHER hard-fail -- a second organ, or `bundle_dir` failing for a reason fills do
-    not explain -- still FAILs; this is not a blanket pass for the fill window, only for the one
-    failure mode the fill window itself produces.
+    PASS on `hard-fail = 0` across the set. `check_doc_claims` is the ONE named exception
+    (`audit.HANDOFF_ORGAN_WARN_ONLY`): it is WARN-tier BY RULING and structurally cannot emit
+    `"fail"` (`scripts/audit.py:2120`), so its findings never enter the hard-fail count -- they
+    are carried in this row's evidence, exactly as an undispositioned WARN always was.
+
+    A hard-fail in ANY OTHER organ -- an unreadable run, or `bundle_dir` failing for a reason
+    fills do not explain -- FAILs, UNLESS `force_filled` names `bundle_dir` and the run's hard
+    fails are EXACTLY that bundle's own `BD-manifest` circularity ([#1123];
+    `_self_inflicted_bd_manifest`): the manifest a `--filled` re-render is about to re-stamp is
+    stale by construction the moment the operator's fills touch the bundle, and refusing the
+    re-render that fixes it is the circularity row [#1123] exists to break.
+
+    The WHOLE-REPOSITORY verdict (the other 46 organs) is NEVER read here, and never blocks
+    this row -- see `_whole_repo_verdict`, called elsewhere for the bundle's notes only
+    (ADR-129 item 2; the "do not" against re-adding the whole gate to the cut path).
     """
-    verdict, evidence = _ship_gate_verdict(repo_root)
-    locator = "`python scripts/audit.py ship-gate` + ecosystem/disposition-register.yaml"
-    if verdict is None:
-        return PreflightRow("ship_gate", PREFLIGHT_FAIL, locator, evidence)
-    if verdict == "GREEN":
-        return PreflightRow("ship_gate", PREFLIGHT_PASS, locator, evidence)
+    locator = "`audit.run_checks(checks=audit.handoff_organs(), parallel=True)` (in-process)"
+    try:
+        findings = _handoff_organ_findings(repo_root)
+    except Exception as exc:  # noqa: BLE001 -- unreadable is a FAIL, not a crash
+        return PreflightRow("ship_gate", PREFLIGHT_FAIL, locator,
+                            f"the handoff organ set could not be run: {exc!r}")
 
-    hard = _SHIP_GATE_HARD_FAIL_RE.search(evidence)
-    warns = _SHIP_GATE_UNDISPOSITIONED_RE.search(evidence)
-    if hard is None and warns is None:
-        # A RED always prints at least one reason. A tail this row cannot read is a tail it
-        # cannot clear: unknown is not clean, the direction every other row here already takes.
-        return PreflightRow("ship_gate", PREFLIGHT_FAIL, locator,
-                            f"{evidence} -- RED in a shape this row cannot read; "
-                            "the hard-fail count could not be established")
-    if hard is not None and int(hard.group(1)):
-        # [#1123]: exactly ONE hard-fail-counted finding total, AND bundle_dir's own probes
-        # account for it entirely -- otherwise this is (or may hide) an unrelated hard-fail,
-        # which still refuses.
-        if force_filled and bundle_dir is not None and int(hard.group(1)) == 1:
-            known, why = _self_inflicted_bd_manifest(repo_root, bundle_dir)
-            if known:
-                return PreflightRow("ship_gate", PREFLIGHT_PASS, locator,
-                    f"{evidence} -- 1 hard-fail organ, ACCEPTED under --filled: {why} "
-                    "([#1123] a --filled re-render accepts only the cut's own known "
-                    "hard-fail; the manifest it writes below is fresh)")
-        return PreflightRow("ship_gate", PREFLIGHT_FAIL, locator,
-                            f"{evidence} -- hard-fail organ(s) present; a hard-fail is never "
-                            "carryable, and no residual line disposes of one")
-    carried = warns.group(1) if warns is not None else "the outstanding"
-    return PreflightRow("ship_gate", PREFLIGHT_PASS, locator,
-                        f"{evidence} -- 0 hard-fail. CARRIED, and the cut is only honest if it "
-                        f"holds: each of the {carried} undispositioned WARN(s) is named in the "
-                        "residual with its owning row (DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08)")
+    warn_only = set(_handoff_organ_warn_only_check_names(repo_root))
+    hard_fails = [f for f in findings if f.status == "fail" and f.check_name not in warn_only]
+    warn_carried = [f for f in findings if f.status == "warn"]
+
+    if not hard_fails:
+        tail = ""
+        if warn_carried:
+            names = ", ".join(sorted({f.check_name for f in warn_carried}))
+            tail = (f". CARRIED, and the cut is only honest if it holds: each WARN ({names}) "
+                    "is named in the residual with its owning row "
+                    "(DECLARE-PREFLIGHT-SHIPGATE-ROW-2026-09-08)")
+        return PreflightRow("ship_gate", PREFLIGHT_PASS, locator,
+                            f"{len(findings)} handoff organ(s) run, 0 hard-fail{tail}")
+
+    # [#1123]: exactly ONE hard-fail-counted finding across the SET, AND bundle_dir's own
+    # probes account for it entirely -- otherwise this is (or may hide) an unrelated hard-fail,
+    # which still refuses.
+    if force_filled and bundle_dir is not None and len(hard_fails) == 1:
+        known, why = _self_inflicted_bd_manifest(repo_root, bundle_dir)
+        if known:
+            return PreflightRow("ship_gate", PREFLIGHT_PASS, locator,
+                f"1 hard-fail organ ({hard_fails[0].check_name}), ACCEPTED under --filled: "
+                f"{why} ([#1123] a --filled re-render accepts only the cut's own known "
+                "hard-fail; the manifest it writes below is fresh)")
+    names = ", ".join(sorted({f.check_name for f in hard_fails}))
+    return PreflightRow("ship_gate", PREFLIGHT_FAIL, locator,
+                        f"{len(hard_fails)} hard-fail finding(s) in the handoff organ set "
+                        f"({names}); a hard-fail is never carryable, and no residual line "
+                        "disposes of one")
+
+
+def _handoff_organ_warn_only_check_names(repo_root: Path) -> tuple:
+    """`Finding.check_name` values for `audit.HANDOFF_ORGAN_WARN_ONLY` -- the stripped
+    `check_` names (`"doc_claims"`, not `"check_doc_claims"`), resolved from the live module
+    rather than hand-duplicated, so a rename on either side cannot desync the two."""
+    sys.path.insert(0, str(_SCRIPTS))
+    import audit as _aud  # noqa: PLC0415
+    return tuple(name.removeprefix("check_") for name in _aud.HANDOFF_ORGAN_WARN_ONLY)
 
 
 def _row_ledger_refreshed(transport, repo_name: str, today: str) -> PreflightRow:
@@ -1664,15 +1813,34 @@ def _row_p11_carriage(transport, repo_root) -> PreflightRow:
                         f"{len(carried)} OPEN){tail}")
 
 
+#: Item 12/L7: the two rows keyed to TODAY's transport state. At a cut they are real hygiene;
+#: at a batch-close trial cut they are false-red by construction (proposal PM3) -- the
+#: transport's ledger/ratification are refreshed once per window, not once per trial cut.
+TRIAL_CUT_EXCLUDED_ROWS = ("ledger_refreshed", "ratification_present")
+
+#: AMEND-HANDOFF-REDESIGN-BUILD-2026-10-01 §2: `memory_within_cap` is evaluated live at the
+#: real cut (never fixtured there), but a FAIL never blocks -- "it measures the machine, not
+#: the repository." `worktree_owners`, the other live-state row, is a genuine precondition
+#: and stays out of this tuple (its own FAIL still refuses, its own test says so). A row named
+#: here is carried into the receipt's `preflight_notes` instead of raising `PreflightError`.
+PREFLIGHT_NON_BLOCKING_ROWS = ("memory_within_cap",)
+
+
 def preflight_rows(repo_root: Path, *, transport=None, today: "str | None" = None,
                    repo_name: "str | None" = None, sessions_root=None,
                    memory_path=None, bundle_dir: "Path | None" = None,
-                   force_filled: bool = False) -> list[PreflightRow]:
+                   force_filled: bool = False, trial_cut: bool = False) -> list[PreflightRow]:
     """The ten hygiene rows, in `PREFLIGHT_ROW_NAMES` order. Read-only (Layer-2).
 
     `bundle_dir` / `force_filled` ([#1123]) name the bundle a `--filled` re-render is about to
     write, so row 1 can tell its own known BD-manifest circularity from an unrelated hard-fail
     -- see `_row_ship_gate`. Both default to the prior behaviour (no bundle named, never waived).
+
+    `trial_cut=True` (item 12/L7, the batch-close stage) reports `TRIAL_CUT_EXCLUDED_ROWS` as
+    n/a instead of evaluating them -- at batch close there is no real cut window for "ledger
+    refreshed today" / "ratification present today" to be a property of, so evaluating them for
+    real would false-red the trial cut on every run, by construction, independent of the state
+    this lane's diff actually changed.
     """
     if not _is_hub(repo_root):
         return [_na_row(n, "NOT-APPLICABLE",
@@ -1682,10 +1850,20 @@ def preflight_rows(repo_root: Path, *, transport=None, today: "str | None" = Non
     today = today or _dt.date.today().isoformat()
     repo_name = repo_name or _main_checkout(Path(repo_root)).name
     transport = transport_root() if transport is None else transport
+
+    def _cut_day_row(name, real) -> PreflightRow:
+        if trial_cut and name in TRIAL_CUT_EXCLUDED_ROWS:
+            return _na_row(name, "TRIAL-CUT-EXCLUDED",
+                           "cut-day row, false-red by construction at a batch-close trial cut "
+                           "(item 12/L7) -- excluded, not evaluated", "gen_handoff.preflight_rows")
+        return real()
+
     return [
         _row_ship_gate(repo_root, bundle_dir=bundle_dir, force_filled=force_filled),
-        _row_ledger_refreshed(transport, repo_name, today),
-        _row_ratification_present(transport, today),
+        _cut_day_row("ledger_refreshed",
+                     lambda: _row_ledger_refreshed(transport, repo_name, today)),
+        _cut_day_row("ratification_present",
+                     lambda: _row_ratification_present(transport, today)),
         _row_status_budget(transport),
         _row_living_docs_stamped(repo_root),
         _row_journal_anchored(repo_root),
@@ -1697,9 +1875,14 @@ def preflight_rows(repo_root: Path, *, transport=None, today: "str | None" = Non
 
 
 def assert_preflight(repo_root: Path, **kw) -> "list[PreflightRow]":
-    """Raise `PreflightError` naming EVERY failing row, or return cleanly."""
+    """Raise `PreflightError` naming EVERY failing row, or return cleanly.
+
+    A row named in `PREFLIGHT_NON_BLOCKING_ROWS` (AMEND §2) is excluded from the raise even
+    when it FAILed -- its verdict still comes back in the returned list, so a caller can carry
+    it into the bundle notes (`_write_receipt`'s `preflight_notes`) rather than lose it.
+    """
     rows = preflight_rows(repo_root, **kw)
-    failed = [r for r in rows if r.failed]
+    failed = [r for r in rows if r.failed and r.name not in PREFLIGHT_NON_BLOCKING_ROWS]
     if failed:
         raise PreflightError(
             "refusing to cut a bundle: " + str(len(failed)) + " pre-handoff hygiene row(s) "
@@ -2346,19 +2529,51 @@ def boot_cost(turns: "int | None" = None, dispatch: "str | None" = None,
 
 
 def _write_receipt(bundle_dir: Path, *, slug: str, mode: str, date: str, cut: str,
-                   cost: dict, paste: dict, manifest: "dict | None" = None) -> Path:
+                   cost: dict, paste: dict, manifest: "dict | None" = None,
+                   repo_root: "Path | None" = None,
+                   transport: "Path | None" = None,
+                   preflight_notes: "list[str] | None" = None) -> Path:
     """Write `<bundle>/HANDOFF_RECEIPT.json`, WHOLE, every generation (the FUNNEL_HEALTH
     contract: overwritten, never merged). A bundle artifact, not a browser-visible one — the
     assembler never reads it — so its numbers do not touch the answer-free paste.
 
+    `repo_root`/`transport` (ADR-129 item 14/L9): gated on `transport`, not `repo_root` alone
+    (every caller passes a real `repo_root`, stub or not — gating there would make every test's
+    `generate()` call pay for a `gh` subprocess it never asked for, see the comment at the gate
+    below). `transport is not None` is what makes the receipt also carry `whole_repo_verdict`
+    (`_whole_repo_verdict`, read-only, never run — item 8/L3) and
+    `refusal_count_since_previous_cut` (`_refusal_count_since_previous_cut`, read from the
+    transport-side refusal log — item 14/L9). `transport=None` (the default; every caller
+    that does not explicitly opt in) omits both fields rather than resolving a live transport
+    or spawning a `gh` subprocess the caller never asked for.
+
     `manifest` (lane-handoff-min, Part A; ADR-HANDOFF-SYSTEM Decision rule 1) is the per-file
     sha256 census a publish step verifies against — see `bundle_manifest` / `publish_bundle` /
-    `verify_published`. `None` for a mode this lane's manifest walk does not cover."""
+    `verify_published`. `None` for a mode this lane's manifest walk does not cover.
+
+    `preflight_notes` (repair U3, AMEND §2): the rendered verdict of every
+    `PREFLIGHT_NON_BLOCKING_ROWS` row from THIS cut's own `assert_preflight` call — carried
+    here because a non-blocking row's FAIL is still a fact the next reader needs, even though
+    it never raised `PreflightError`. Empty/omitted, never a placeholder key, when the caller
+    passes nothing (every pre-U3 caller)."""
     import json  # noqa: PLC0415
     out = bundle_dir / _vhp().RECEIPT_FILE
     body = {"schema": "handoff-receipt/1", "generator": "scripts/gen_handoff.py", "slug": slug,
             "mode": mode, "date": date, "cut": cut, "boot_cost": cost, "paste": paste,
             "manifest": manifest}
+    if preflight_notes:
+        body["preflight_notes"] = preflight_notes
+    # Gated on `transport`, not merely `repo_root` -- caught same-session (terra-style
+    # self-catch, the second half of the same incident): gating on `repo_root is not None`
+    # alone made EVERY test's successful `generate()` call (which always passes a real
+    # `repo_root`, stub or not) spawn a `gh` subprocess via `_whole_repo_verdict` -- the full
+    # three-file suite went from ~400s to still running past 20 minutes (78% in, one failure
+    # not yet even reached) before this was caught and reverted to the `transport` opt-in that
+    # already gates the refusal log, which is explicit and `None` by default everywhere except
+    # the CLI `main()` and a test that deliberately wants this leg.
+    if transport is not None:
+        body["whole_repo_verdict"] = _whole_repo_verdict(repo_root)
+        body["refusal_count_since_previous_cut"] = _refusal_count_since_previous_cut(transport)
     out.write_text(json.dumps(body, indent=2, ensure_ascii=False) + "\n", encoding="utf-8",
                    newline="\n")
     return out
@@ -2915,7 +3130,9 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
              assemble: bool = True, bundle_root: Path | None = None,
              epic_slug: str | None = None, allow_suffix: bool = False,
              boot_turns: "int | None" = None, boot_dispatch: "str | None" = None,
-             dry_cut: bool = False) -> GenResult:
+             dry_cut: bool = False, memory_path: "Path | None" = None,
+             sessions_root: "Path | None" = None,
+             transport: "Path | None" = None) -> GenResult:
     """Emit a v5 bundle from committed repo state. Returns the bundle dir + the JOURNAL draft.
 
     lane-boot-contract (WAVE5B-N2 row 12): the v5 boot header is a probe-checked DATA block and
@@ -2924,11 +3141,30 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     tally for the seat this cut supersedes (see `boot_cost`); without them it is `unmeasured`.
 
     `dry_cut=True` renders and assembles a real bundle OUTSIDE the repository (it refuses a
-    `bundle_root` inside it, with ValueError) and skips the three cut-boundary gates — the batch
-    boundary, boundary hygiene and the preflight rows — because those guard what a COMMITTED
-    bundle claims, and a dry cut can never be committed: `docs/handoffs/` is out of its reach.
+    `bundle_root` inside it, with ValueError) and skips gates 1-2 — the batch boundary and
+    boundary hygiene — because those guard what a COMMITTED bundle claims, and a dry cut can
+    never be committed: `docs/handoffs/` is out of its reach. A lane or integration worktree is
+    a linked worktree, so gate 2 (`assert_boundary_hygiene`) refuses there by construction —
+    this is how that path is exercised without that refusal.
+
+    GATE 3 (the preflight rows) RUNS AT A DRY CUT TOO (ADR-129 item 1/L1). It is a property of
+    the window the bundle WOULD seal, not of the commit boundary gates 1-2 guard, so skipping
+    it at a dry cut would make `--dry-cut` time rendering alone rather than the cut path it is
+    meant to prove end to end. `memory_path` / `sessions_root` (both default `None`, resolved
+    live exactly as before) let a caller pin the two LIVE-STATE rows (`memory_within_cap`,
+    `worktree_owners`) to a fixture for a deterministic dry cut (AMEND-HANDOFF-REDESIGN-
+    BUILD-2026-10-01 item 2 / R47) — every other caller, including the CLI, is unaffected.
+
     It is how a change to the boot is proven end to end without cutting a handoff. The receipt
     says `"cut": "dry"`.
+
+    `transport` (ADR-129 item 14/L9): the refusal log (`_append_refusal_log` /
+    `_append_cut_log` / `_refusal_count_since_previous_cut`) is EXPLICIT-opt-in, not resolved
+    live via `transport_root()` inside this function -- `None` (the default, every caller
+    that does not pass it, including every test that does not fixture it) makes every one of
+    those three a no-op / `None`-valued read, never a live write to the operator's real
+    transport as a side effect of a refused test fixture. The CLI `main()` is the one caller
+    that passes the live `transport_root()` through.
 
     force_filled overrides the auto-detected fill-state (RF-2's `--filled`). bundle_root defaults
     to <repo_root>/docs/handoffs (overridable for tests). SUPPLEMENT.md is written only if absent
@@ -2986,17 +3222,28 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     # a refused cut leaves no half-written directory behind (which would itself be the
     # untracked in-flight target RM-8 sanctions). RM-8 resolves first because its complaint
     # is the more specific one — it names the colliding directory.
-    if not dry_cut:     # a dry cut cannot be committed, so it seals no boundary claim
+    if not dry_cut:     # a dry cut cannot be committed, so it seals no commit-boundary claim
         assert_batch_boundary(repo_root)
         assert_boundary_hygiene(repo_root)
-        # The nine PRE-HANDOFF HYGIENE rows, LAST of the three and for the same reason the other
-        # two are ordered as they are: it is the most expensive (the ship-gate leg alone measured
-        # 4m30s), so a cut that a cheaper invariant already refuses never pays for it. Still
-        # before mkdir -- a refused cut writes nothing.
-        # [#1123]: name the bundle THIS call is about to (re-)write, so row 1 can tell a
-        # `--filled` re-render's own known BD-manifest circularity from an unrelated hard-fail.
-        assert_preflight(repo_root, today=date, repo_name=repo, bundle_dir=bundle_dir,
-                         force_filled=bool(force_filled))
+    # Gate 3, the TEN preflight rows -- runs at EVERY cut, dry or real (ADR-129 item 1/L1): it
+    # is a property of the window the bundle would seal, not of the commit boundary gates 1-2
+    # guard. Still before mkdir -- a refused cut writes nothing. [#1123]: name the bundle THIS
+    # call is about to (re-)write, so row 1 can tell a `--filled` re-render's own known
+    # BD-manifest circularity from an unrelated hard-fail. `memory_path` / `sessions_root` pin
+    # the two live-state rows for a deterministic dry cut (AMEND-HANDOFF-REDESIGN-
+    # BUILD-2026-10-01 item 2); both default `None`, the prior live-resolution behaviour.
+    try:
+        preflight_result = assert_preflight(
+            repo_root, today=date, repo_name=repo, bundle_dir=bundle_dir,
+            force_filled=bool(force_filled), memory_path=memory_path,
+            sessions_root=sessions_root)
+    except PreflightError as exc:
+        # item 14/L9: a REAL cut's refusal is logged to the transport-side refusal log (never
+        # the repo -- see _append_refusal_log). A dry cut is a proof of the cut path, not an
+        # operator's own retry loop, so it is not counted (N3's own scope note, above).
+        if not dry_cut:
+            _append_refusal_log(transport, repo_root=repo_root, reason=str(exc))
+        raise
     bundle_dir.mkdir(parents=True, exist_ok=True)
     # [#473] B — THE FIX, and it is this one line. `_resolve_bundle_dir` may DIVERT the write
     # to a `-<n>` sibling under `--allow-suffix`, but every render token below was built from
@@ -3070,8 +3317,22 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     # (Part A) adds the live STATE rows here — computed ONCE (`transport` resolved once, CI
     # polled once) and reused for the manifest's `row_freshness` field below, so the cut does
     # not re-poll CI or re-glob the transport a second time for the same generation.
-    transport = transport_root()
-    live_state_rows = _hstate().state_rows(repo_root, transport)
+    #
+    # DELIBERATELY NOT the `transport` PARAMETER (ADR-129 item 14/L9 bug, caught and fixed
+    # same-session, terra-style self-catch): a first draft reused that parameter here, which
+    # made a caller-supplied fixture ALSO become the refusal log's target -- and, since every
+    # pre-existing caller leaves `transport=None` by default, a NAIVE "default None means
+    # resolve live" rule for the refusal log would make every ordinary `generate()` test run
+    # silently WRITE a `CUT` line to the operator's real transport (caught here: 28 real lines
+    # landed in this machine's actual `H:\My Drive\CLAUDE PROMPT DIR\logs\HANDOFF-REFUSALS.jsonl`
+    # during this lane's own test runs before this split existed; cleaned up). Reads of state
+    # rows are harmless by default; a refusal-log WRITE is not, so the two are kept on separate
+    # variables: `_state_transport` always resolves live (state_rows reading the transport is
+    # the pre-existing, unrelated-to-this-ADR behaviour) while the `transport` PARAMETER stays
+    # exactly what the caller passed -- `None` leaves the refusal log INERT (see
+    # `_refusal_log_path`), and only the CLI `main()` passes the live one through on purpose.
+    _state_transport = transport_root()
+    live_state_rows = _hstate().state_rows(repo_root, _state_transport)
     tokens["BOOT_DATA"] = boot_data_block(
         boot_data_rows(slug, mode, tokens["CHAT_TITLE"], spec_version(repo_root),
                        state_rows=live_state_rows))
@@ -3126,7 +3387,14 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
                                state_rows=live_state_rows)
     _write_receipt(bundle_dir, slug=slug, mode=mode, date=date,
                    cut="dry" if dry_cut else "real", cost=cost,
-                   paste=_paste_record(bundle_dir, code), manifest=manifest)
+                   paste=_paste_record(bundle_dir, code), manifest=manifest,
+                   repo_root=repo_root, transport=transport,
+                   # `preflight_result or ()`: several tests replace `assert_preflight` with a
+                   # bare side-effect stub (e.g. `_preflight_ship_gate_only` in
+                   # test_gen_handoff.py) that returns `None` on success -- never iterated
+                   # before this repair, now a crash if assumed to always be a list.
+                   preflight_notes=[r.render() for r in (preflight_result or ())
+                                    if r.name in PREFLIGHT_NON_BLOCKING_ROWS])
     if assemble:
         if code != 0:
             # The bundle is deliberately LEFT ON DISK. Every other refusal in this function
@@ -3140,6 +3408,11 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
                 "there is nothing to hand to a browser. Repair what it names — for the P11 "
                 "leg-2 gate that means naming each `carried-by: OPEN` decision file in this "
                 "bundle's RESIDUAL.md — then re-run the assembler on the same directory.")
+    # item 14/L9: a REAL cut that reaches here succeeded past every refusal, so it resets the
+    # refusal count the NEXT cut attempt's receipt will read (`_refusal_count_since_previous_cut`
+    # counts REFUSAL entries after the last CUT entry).
+    if not dry_cut:
+        _append_cut_log(transport, repo_root=repo_root, slug=slug)
     return GenResult(bundle_dir=bundle_dir, journal_draft=draft, filled=filled)
 
 
@@ -3163,6 +3436,11 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
               help="print the JOURNAL generation-entry DRAFT to stdout (never writes JOURNAL.md)")
 @click.option("--preflight-only", is_flag=True, default=False,
               help="print the nine pre-handoff hygiene rows and exit (1 on any FAIL); cut nothing")
+@click.option("--trial-cut", "trial_cut", is_flag=True, default=False,
+              help="batch-close stage (item 12/L7): like --preflight-only, but excludes the "
+                   "two cut-day rows (ledger_refreshed, ratification_present), which are "
+                   "false-red by construction outside a real cut window; exit 1 on any "
+                   "remaining FAIL, which refuses the close")
 @click.option("--dry-cut", "dry_cut_dir", default=None,
               type=click.Path(file_okay=False, path_type=Path),
               help="render + assemble a real bundle into DIR (must be OUTSIDE the repo), skipping "
@@ -3174,12 +3452,14 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
               help="that first correct dispatch, as a transport path `to-cc/<order>.md`")
 def main(mode: str, epic_slug: str | None, slug: str | None, repo: str | None, date: str | None,
          force_filled: bool | None, assemble: bool, allow_suffix: bool, emit_journal: bool,
-         preflight_only: bool, dry_cut_dir: "Path | None" = None, boot_turns: "int | None" = None,
-         boot_dispatch: "str | None" = None) -> None:
+         preflight_only: bool, trial_cut: bool = False, dry_cut_dir: "Path | None" = None,
+         boot_turns: "int | None" = None, boot_dispatch: "str | None" = None) -> None:
     """Generate a v5 handoff bundle from committed repo state."""
-    if preflight_only:
-        rows = preflight_rows(_REPO_ROOT, today=date)
-        click.echo("preflight -- pre-handoff hygiene rows (any FAIL refuses the cut):")
+    if preflight_only or trial_cut:
+        rows = preflight_rows(_REPO_ROOT, today=date, trial_cut=trial_cut)
+        label = "batch-close trial cut" if trial_cut else "preflight"
+        refuses = "the close" if trial_cut else "the cut"
+        click.echo(f"{label} -- pre-handoff hygiene rows (any FAIL refuses {refuses}):")
         for row in rows:
             click.echo("  " + row.render())
         failed = [r for r in rows if r.failed]
@@ -3193,7 +3473,7 @@ def main(mode: str, epic_slug: str | None, slug: str | None, repo: str | None, d
                        force_filled=force_filled, assemble=assemble, epic_slug=epic_slug,
                        allow_suffix=allow_suffix, boot_turns=boot_turns,
                        boot_dispatch=boot_dispatch, bundle_root=dry_cut_dir,
-                       dry_cut=dry_cut_dir is not None)
+                       dry_cut=dry_cut_dir is not None, transport=transport_root())
     except (BundleCollisionError, OpenBatchError, BoundaryHygieneError, PreflightError,
             AssemblyRefusedError, DryCutTargetError) as exc:
         # A REFUSAL, not a crash — one diagnostic line, non-zero exit. RM-8 (target collision)

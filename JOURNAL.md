@@ -21,6 +21,19 @@
 
 ---
 
+### 2026-10-02 (a) - CC (Opus 5.5, INTEGRATOR HANDOFF-REDESIGN-BUILD): the handoff cut gates on the 11-organ set in parallel; ADR-129 lands
+
+**Anchors:** `26040e16` -- `worktree-lane-handoff-redesign`, merged `--no-ff` into main after repair 1 of 2.
+
+**Did:**
+- Merged the one lane of batch HANDOFF-REDESIGN-BUILD (`claude-sonnet-5`, high) as a two-step merge after one refusal (U1 dispatch_drift stub, U2 RED not pasted, U3 memory_within_cap blocking, U4 test_connection_loop, U5 review P1s); `docs/audits/README.md` and `ecosystem/audit-consumer-baseline.json` regenerated on the merged tree.
+- Verified independently (R44, R45): the Step 1 acceptance test run and timed in the integration worktree; an isolated `claude-sonnet-5` review (operator ruling) on the diff; the CI verdict per OS leg against base run 36825418880.
+
+**Result:** `/handoff`'s row 1 runs `audit.handoff_organs()` in-process and in parallel; the whole-repo verdict is read from CI and never blocks; `memory_within_cap` reports without blocking; `--trial-cut` joins `moment:batch-close` (optional until 2026-10-05); `check_review_artifact_coverage` is one `git log` walk; row `[#1331]` filed.
+
+**Changes:** `scripts/gen_handoff.py`, `scripts/audit.py`, `scripts/decision_coverage.py`, `ecosystem/harness.yaml`, `docs/decisions/ADR-129-handoff-cut-gated-by-handoff-relevant-checks.md`, `docs/audits/2026-10-01-codex-lane-handoff-redesign.md`, `tasks/1331-*.md`, tests.
+
+**Next:** the operator runs `/handoff` (R44). Digest: `to-browser/DIGEST-HANDOFF-REDESIGN-BUILD-2026-10-01.md`.
 ### 2026-10-01 (b) - CC (Opus 5.5, INTEGRATOR HANDOFF-UNBLOCK cycle-3): the batch closes; its quota reads, merge receipt and costs land
 
 **Anchors:** `e58bae74` -- `worktree-close-handoff-unblock`, merged `--no-ff` from `e0d9b8d2`.

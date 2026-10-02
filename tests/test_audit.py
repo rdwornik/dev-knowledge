@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import os
+import time
 from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
@@ -681,6 +682,53 @@ def test_every_all_checks_member_declares_a_gate_tier() -> None:
         f"_tier(TIER_COMMIT, ...) or _tier(TIER_SHIP, ...): {undeclared}")
 
 
+# --- ADR-129: the handoff cut's organ set -----------------------------------------------
+
+def test_handoff_organs_members_are_pinned() -> None:
+    """The ratified eleven (PROPOSAL-ADR-HANDOFF-REDESIGN-2026-09-30 §4 O2, G1; ADR-129 D1),
+    each a real `ALL_CHECKS` member -- an add/rename on either side is caught here, not
+    discovered at a live cut."""
+    expected = {
+        "check_handoff_probes", "check_supplement_folded", "check_handoff_bundle_structure",
+        "check_handoff_version_stamp", "check_residual_completeness", "check_boot_byte_budget",
+        "check_journal_spine_anchor", "check_dispatch_drift", "check_dispatch_verb_agreement",
+        "check_routing_agreement", "check_doc_claims",
+    }
+    assert set(aud.HANDOFF_ORGAN_NAMES) == expected
+    assert len(aud.HANDOFF_ORGAN_NAMES) == 11
+    all_checks_names = {c.__name__ for c in aud.ALL_CHECKS}
+    assert set(aud.HANDOFF_ORGAN_NAMES) <= all_checks_names, (
+        set(aud.HANDOFF_ORGAN_NAMES) - all_checks_names)
+
+
+def test_handoff_organs_resolve_by_name_at_call_time() -> None:
+    """`handoff_organs()` reads THIS module's current attributes, not a tuple of function
+    objects frozen at import -- a test's `monkeypatch.setattr(aud, "check_dispatch_drift", …)`
+    must be visible to it, the same seam `run_checks(checks=None)` already relies on for
+    `ALL_CHECKS` (its own docstring states the identical reason)."""
+    organs = aud.handoff_organs()
+    assert [f.__name__ for f in organs] == list(aud.HANDOFF_ORGAN_NAMES)
+
+
+def test_handoff_organs_every_member_can_fail_except_doc_claims() -> None:
+    """S7's fix: a membership test that inspects whether each organ CAN emit `status == "fail"`,
+    not merely its gate tier -- `check_preflight_backlog_ids` was SHIP-tier AND WARN-only by
+    ruling, so a tier-only predicate would not have caught an equivalent member here.
+    `check_doc_claims` is the ONE named exception (L5 / AMEND-HANDOFF-REDESIGN-
+    BUILD-2026-10-01 item 1): WARN-tier by ruling (`scripts/audit.py` `check_doc_claims`
+    docstring), reported in the bundle's notes, never blocking."""
+    import inspect  # noqa: PLC0415
+    for fn in aud.handoff_organs():
+        src = inspect.getsource(fn)
+        can_fail = '"fail"' in src or "'fail'" in src
+        if fn.__name__ == "check_doc_claims":
+            assert not can_fail, (
+                "check_doc_claims must stay structurally WARN-only (L5/AMEND item 1)")
+        else:
+            assert can_fail, f"{fn.__name__} must be able to emit a hard FAIL (ADR-129 D1)"
+    assert aud.HANDOFF_ORGAN_WARN_ONLY == ("check_doc_claims",)
+
+
 def test_tier_rejects_an_unknown_value() -> None:
     """A typo'd tier must RAISE at import, not degrade to a default. A silent degrade would
     move a check off the commit gate with nobody noticing — the failure this whole mechanism
@@ -729,6 +777,35 @@ def test_commit_tier_defers_a_ship_check_without_dropping_it(tmp_path: Path, par
     assert deferred.status == "n/a"
     assert aud._na_reason(deferred) == aud._NA_NOT_APPLICABLE
     assert "ship-tier" in deferred.evidence and "[#597]" in deferred.evidence
+
+
+def test_handoff_organ_set_is_finding_identical_serial_vs_parallel() -> None:
+    """ADR-129 item 11/L6: `run_checks(parallel=True)` must change WHEN the handoff organ set's
+    checks run, never WHAT they find. Run the real eleven organs against the live hub tree both
+    ways and diff the findings field-by-field; both wall times are measured and recorded here
+    (not just asserted against each other) so the handback can cite them directly."""
+    repo_path = Path(aud._REPO_ROOT)
+    checks = list(aud.handoff_organs())
+
+    t0 = time.perf_counter()
+    serial = aud.run_checks(repo_path, checks=checks, parallel=False)
+    serial_s = time.perf_counter() - t0
+
+    t0 = time.perf_counter()
+    parallel = aud.run_checks(repo_path, checks=checks, parallel=True)
+    parallel_s = time.perf_counter() - t0
+
+    def _key(f):
+        return (f.check_name, f.status, f.evidence)
+
+    assert [_key(f) for f in serial] == [_key(f) for f in parallel], (
+        f"serial {[_key(f) for f in serial]} != parallel {[_key(f) for f in parallel]}")
+    expected_names = {n.removeprefix("check_") for n in aud.HANDOFF_ORGAN_NAMES}
+    assert {f.check_name for f in serial} == expected_names
+    assert len(expected_names) == 11, "the ratified set is eleven organs"
+
+    print(f"\nhandoff organ set wall time -- serial: {serial_s:.3f}s, "
+          f"parallel: {parallel_s:.3f}s ({repo_path})")
 
 
 @pytest.mark.parametrize("tier", [None, "ship"])
