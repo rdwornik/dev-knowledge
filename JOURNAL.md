@@ -21,6 +21,21 @@
 
 ---
 
+### 2026-10-02 (b) - CC (Opus 5.5, INTEGRATOR HANDOFF-REDESIGN-BUILD): the batch closes; its quota read, merge receipt and costs land
+
+**Anchors:** `534114c7` -- `worktree-close-handoff-redesign-build`, merged `--no-ff` from `f971562e`.
+
+**Did:**
+- Carried the primary's close quota read (`quota_watch record`) and the lane and seat cost rows into one close commit, as HANDOFF-UNBLOCK did.
+- Landed the closed merge receipt of `lane-handoff-redesign`, unedited. Its REGRESSED suite verdict comes from a baseline-run selection defect in `actions_verdict.fetch_run` (it read the schedule run of `a38b6faf`, not the push run). That attribution is recorded in the integrator's receipt and digest.
+
+**Result:** HANDOFF-REDESIGN-BUILD cost USD 104.60 (lane USD 78.62; integrator seat USD 25.98). The lane's review record is now named by its merge receipt. The first trial cut at batch close went RED on a true leftover (the integration worktree); after its removal the second went GREEN.
+
+**Changes:** `logs/QUOTA-READS.jsonl`, `logs/MERGE-RECEIPTS.jsonl`, `logs/LANE-COSTS.jsonl`.
+
+**Next:**
+- The operator runs `/handoff` (R44). Its preflight will meet `ledger_refreshed` and `ratification_present` for window 2026-10-02 unless they land first. Digest: `to-browser/DIGEST-HANDOFF-REDESIGN-BUILD-2026-10-01.md`.
+
 ### 2026-10-02 (a) - CC (Opus 5.5, INTEGRATOR HANDOFF-REDESIGN-BUILD): the handoff cut gates on the 11-organ set in parallel; ADR-129 lands
 
 **Anchors:** `26040e16` -- `worktree-lane-handoff-redesign`, merged `--no-ff` into main after repair 1 of 2.
