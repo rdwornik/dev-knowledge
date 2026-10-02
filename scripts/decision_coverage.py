@@ -388,35 +388,11 @@ DECISION_DISPOSITIONS: dict[str, Disposition] = {
                "applied per the digest's own lane accounting.",
         owner="to-browser/DIGEST-WAVE5B-N2-2026-09-26.md §2 (lanes 25, 26)"),
 
-    # -- superseded WAVE5B-N2 queue amendments: dead branches -- LANE-5B3-4-decision-debt -------
-    "declare:AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25-v1-superseded": Disposition(
-        reason="SUPERSEDED by its own later revision in the same queue-amendment chain -- a "
-               "dead branch. Its successor, AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25 (final), "
-               "carries no disposition of its own here (ROWS-OWED, this lane's session file) -- "
-               "this earlier draft needs no separate action beyond that.",
-        owner="superseded by AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25 (final), itself ROWS-OWED"),
-    "declare:AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25-v2-superseded": Disposition(
-        reason="SUPERSEDED by its own later revision in the same queue-amendment chain -- a "
-               "dead branch. Its successor, AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25 (final), "
-               "carries no disposition of its own here (ROWS-OWED, this lane's session file) -- "
-               "this earlier draft needs no separate action beyond that.",
-        owner="superseded by AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25 (final), itself ROWS-OWED"),
-    "declare:AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25-v1-superseded": Disposition(
-        reason="SUPERSEDED by its own later revision in the same queue-amendment chain -- a "
-               "dead branch. Its successor, AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25 (final), "
-               "carries no disposition of its own here either (ROWS-OWED, this lane's session "
-               "file, Codex terra review round 3: lane 31 has no completed home, lane 27 was "
-               "still executing at disposition time) -- this earlier draft needs no separate "
-               "action beyond that.",
-        owner="superseded by AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25 (final), itself ROWS-OWED"),
-    "declare:AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25-v2-superseded": Disposition(
-        reason="SUPERSEDED by its own later revision in the same queue-amendment chain -- a "
-               "dead branch. Its successor, AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25 (final), "
-               "carries no disposition of its own here either (ROWS-OWED, this lane's session "
-               "file, Codex terra review round 3: lane 31 has no completed home, lane 27 was "
-               "still executing at disposition time) -- this earlier draft needs no separate "
-               "action beyond that.",
-        owner="superseded by AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25 (final), itself ROWS-OWED"),
+    # The four superseded WAVE5B-N2 queue amendments (QUEUE2 / QUEUE6, -v1/-v2-superseded) that
+    # were disposed here as dead branches left the live population on 2026-10-02: R53 (1) moved
+    # every superseded OPEN decision file to the transport's `to-cc/archive/`, which
+    # `decision_files` does not scan. Their entries were removed so the register names no
+    # decision that is gone (`stale_dispositions`).
 
     # -- 2026-09-29..10-01 transport amendments, each with its own closing evidence -- R53 (2) --
     # Ruled by the browser seat at the 2026-10-02 handoff cut (P13 found them undisposed). Each

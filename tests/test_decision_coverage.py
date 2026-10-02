@@ -531,33 +531,14 @@ def test_the_live_population_is_readable_and_non_empty(live_decisions):
 #: never invent one"). Filed as `ROWS-OWED` in the lane's session file, each with a runnable
 #: check. This is a NAMED, CITED residual, not a blanket suppression: any subject outside this
 #: set still fails the test below.
-_LANE_5B3_4_RESIDUAL_SUBJECTS = frozenset({
-    "to-cc/AMEND-BATCH-night-2026-09-17.md",
-    "to-cc/AMEND-DISPATCH-UNBLOCK-2026-09-17.md",
-    "to-cc/AMEND-HANDOFF-BOOT-INTEGRATOR-SECTION-2026-09-20.md",
-    "to-cc/AMEND-MODEL-ROUTING-AND-SCOPE-2026-09-17.md",
-    "to-cc/AMEND-NIGHT-ORDER-CONSOLIDATED-2026-09-17.md",
-    "to-cc/AMEND-NIGHT-SALVAGE-2026-09-17.md",
-    "to-cc/AMEND-ORGAN-USE-2026-09-17.md",
-    "to-cc/DECLARE-CENSUS-VERDICTS-2026-09-18.md",
-    "to-cc/DECLARE-LANE-HANDBACK-CONTRACT-2026-09-18.md",
-    "to-cc/DECLARE-OPERATOR-FEEDBACK-2026-09-24.md",
-    "to-cc/DECLARE-SEAT-KNOWLEDGE-2026-09-24.md",
-    # Added on Codex terra review round 2: the shared "EXECUTED IN BATCH" disposition for all
-    # seven WAVE5B-N2 queue amendments overclaimed -- QUEUE2 (lanes 21-22) and QUEUE3 have no
-    # honest disposition (held/never-launched, no N3 lane continues them) and were REMOVED from
-    # DECISION_DISPOSITIONS, moving them here instead of leaving them falsely marked done.
-    "to-cc/AMEND-BATCH-WAVE5B-N2-QUEUE2-2026-09-25.md",
-    "to-cc/AMEND-BATCH-WAVE5B-N2-QUEUE3-2026-09-25.md",
-    # Added on Codex terra review round 3: round 2's own individually-reasoned QUEUE/QUEUE4/
-    # QUEUE6 dispositions each admitted a genuine gap (QUEUE's lane 18, QUEUE4's lane 24) or a
-    # still-executing lane (QUEUE6's lane 31/27) and registered a whole-file Disposition anyway
-    # -- the register has no partial-file shape, so that silently read the admitted gap/still-
-    # executing lane as `done`. Removed from DECISION_DISPOSITIONS, moved here instead.
-    "to-cc/AMEND-BATCH-WAVE5B-N2-QUEUE-2026-09-25.md",
-    "to-cc/AMEND-BATCH-WAVE5B-N2-QUEUE4-2026-09-25.md",
-    "to-cc/AMEND-BATCH-WAVE5B-N2-QUEUE6-2026-09-25.md",
-})
+#:
+#: EMPTIED 2026-10-02 (R53, at the 2026-10-02 handoff cut). All 16 subjects once named here
+#: are now covered: the R26 rows `[#1104]`-`[#1122]` (filed 2026-09-28) implement them, and the
+#: live population reports each one as `executing` with an OPEN row. The shrink was owed from
+#: 2026-09-28. It stayed hidden because this test's earlier `unexpected` leg was already
+#: failing on undisposed 2026-09-29 amendments. The empty set means any in-era uncovered
+#: decision fails the test below.
+_LANE_5B3_4_RESIDUAL_SUBJECTS: frozenset = frozenset()
 
 
 def test_the_live_tree_carries_no_IN_ERA_uncovered_decision(live_store, live_transport):
