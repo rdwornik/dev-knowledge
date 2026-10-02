@@ -1,0 +1,62 @@
+{
+  "schema": "handoff-receipt/1",
+  "generator": "scripts/gen_handoff.py",
+  "slug": "2026-10-02-dev-knowledge-architect",
+  "mode": "architect",
+  "date": "2026-10-02",
+  "cut": "real",
+  "boot_cost": {
+    "metric": "turns to first correct dispatch",
+    "value": null,
+    "status": "unmeasured — no tally recorded at this cut — the browser seat keeps no transcript the repo can read (HANDOFF_PROCESS §5), so the count is the operator's; pass --boot-turns N --boot-dispatch to-cc/<order>.md when cutting",
+    "dispatch": null,
+    "measures": "the seat that booted from the bundle this cut supersedes",
+    "source": null
+  },
+  "paste": {
+    "bytes": 19929,
+    "ceiling_bytes": 20000,
+    "ceiling_source": "scripts/assemble_paste.py::PASTE_BYTE_CEILING",
+    "status": "assembled"
+  },
+  "manifest": {
+    "cut_id": "d0b8ca55a00e",
+    "source_sha": "24bc3d58f95489b97d7824f5ee7648fcf5bc35d8",
+    "generation_time": "2026-10-02T15:51:09+00:00",
+    "files": {
+      "DECISION_LEDGER.md": "2e1afbcf63288380b49fa46e3292d660aa237338ea9f2e6ab2e8414b2eb21d72",
+      "FUNNEL_HEALTH.md": "a7b2210d8792e2b3e7f82ea586d4cf43e5b1358c7160d2bcdd3f03f5b2c0744a",
+      "HANDOFF_BOOT.md": "1b42bc63b7dffaa12b3e07648fcb493be85878bf134779d3694607034dce485a",
+      "PASTE_THIS.md": "2400acec3ea2cee2b79e697acaf9b63a76fbace525103b361358208c65f4031c",
+      "PROBES.md": "26d2db32eb4d54eafb4eae725738368f6e7efab83c6bbf51cd439d52210ffae5",
+      "RESIDUAL.md": "6fefdba619fbdc929fabe92a0a22f123bf6aed8cf331c9093fc1b82235581d13",
+      "SEAT-BOOT-dispatcher.md": "0db3977813341bb1d5d5fb806d9bff39a0f800b8e730f31588d4b2941f0265b5",
+      "SEAT-BOOT-filings.md": "8c09bfadb041eedd0a6d0974b4b0d0cefa496b8e1179fbd3005f879ceff34c2e",
+      "SEAT-BOOT-handoff.md": "28964412d514b4e7d2096b159b407f23097e1f2ece75aad06947d4a279aad649",
+      "SEAT-BOOT-integrator.md": "4893d49ca7162a6e8a4138e30f5383bd80550c7cfa95cfa96bc96a8bd987322c",
+      "SEAT-BOOT-lane.md": "b297fd9f37fbee92cbb596e67eb341d193d84b9eec46875abe939111b305db67",
+      "SUPPLEMENT.md": "b3e95fbe3d15d5b0876058c05bf31c21decb497c916255c28bfd2ed23b21ae7d"
+    },
+    "row_freshness": {
+      "CI": "LIVE-DRIFTS",
+      "Batches": "LIVE-DRIFTS",
+      "Seats": "LIVE-DRIFTS",
+      "Substrates": "SLOW",
+      "Transport": "SLOW",
+      "Rulings": "SLOW",
+      "Capabilities": "SLOW"
+    }
+  },
+  "preflight_notes": [
+    "[n/a ] memory_within_cap: [n/a-reason:NO-DECLARED-BUDGET] no MEMORY byte budget is declared anywhere in this repo, so this row has no threshold to measure against (live file: 16,815 B). Declaring one arms this row with no code change -- canonical_docs.MEMORY_BYTE_BUDGET"
+  ],
+  "whole_repo_verdict": {
+    "source": "CI ship-gate job",
+    "verdict": "not run",
+    "sha": "24bc3d58f95489b97d7824f5ee7648fcf5bc35d8",
+    "run_url": "https://github.com/rdwornik/dev-knowledge/actions/runs/37023583670",
+    "job_conclusion": "failure",
+    "detail": "'ship-gate' job (conclusion=failure) emitted no verdict line in its log"
+  },
+  "refusal_count_since_previous_cut": 0
+}

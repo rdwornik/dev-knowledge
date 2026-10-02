@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-02 (e) - CC (Opus 5.5, handoff seat): the 2026-10-02 architect handoff bundle lands, verified 37/37
+
+**Anchors:** `d3777ea8` -- `worktree-handoff-bundle-2026-10-02`, merged `--no-ff`.
+
+**Did:**
+- Re-ran `gen_handoff.py --mode architect --filled` after CI run 37023583670 finished (`24bc3d5` RED, 4 new reds). `main` was unchanged at `24bc3d58` before the re-render, before verification and before this commit. The first re-render's only failure had been BD-ci, because that run finished between the re-render and the verify.
+- Landed `docs/handoffs/2026-10-02-dev-knowledge-architect/` byte-identical to the verified tree.
+
+**Result:** verify_handoff_probes 37/37 pass, 0 fail, 0 warn; residual completeness OK; PASTE_THIS.md 19,929 B against the 20,000 B ceiling. The SUPPLEMENT ANSWERS region is a verbatim copy of `to-cc/ANSWER-handoff-cut-supplement-2026-10-02.md`; RESIDUAL records R53 and R54.
+
+**Changes:** `docs/handoffs/2026-10-02-dev-knowledge-architect/` (13 files).
+
+**Next:** the operator pastes `docs/handoffs/2026-10-02-dev-knowledge-architect/PASTE_THIS.md` into a fresh architect chat. CI is RED on main (`24bc3d5`, 4 new reds); triage it before any dispatch (residual §4 item 1).
+
 ### 2026-10-02 (d) - CC (Opus 5.5, handoff seat): R54 lands -- the --filled waiver covers the whole documented fill step
 
 **Anchors:** `8f531a78` -- `worktree-filled-waiver-r54`, merged `--no-ff`.
