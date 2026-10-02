@@ -3,7 +3,7 @@
 <!-- scope: meta -->
 
 **Date:** 2026-10-02  
-**Generated:** 2026-10-02T04:55:13  
+**Generated:** 2026-10-02T05:57:00  
 **Repos audited:** 6  
 **Checks:** 807 total — 155 pass, 14 fail, 452 warn, 0 unavailable, 186 n/a
 
@@ -11,7 +11,7 @@
 
 ## .dev-knowledge — FAIL
 
-**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-nswag9nu\wt`  
+**Path:** `C:\Users\1028120\AppData\Local\Temp\fleet-health-producer-foond87s\wt`  
 **Last audit:** 2026-10-02
 
 | Check | Status | Evidence |
@@ -835,7 +835,7 @@ History: [`ecosystem\corp-sca-time-automation\history/`](ecosystem\corp-sca-time
 | `generated_artifact_freshness` | N/A | [n/a-reason:SUBJECT-ABSENT] output(s) not present in this repo — ecosystem/conformance.md, ecosystem/conformance.html |
 | `generated_artifact_freshness` | N/A | [n/a-reason:SUBJECT-ABSENT] output(s) not present in this repo — docs/audits/README.md |
 | `no_sibling_orphans` | PASS | No orphaned 'win-tooling-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `stale_worktrees` | WARN | 6 of 6 linked worktree(s) look unclosed (horizon 7d): fix/cloud-models-fail-fast [last commit 36d ago]; feat/cloud-models [last commit 37d ago]; feat/codespace-name-from-stdout [last commit 16d ago]; fix/sanitise-external-text [last commit 36d ago]; fix/check-advisory-unowned-path [last commit 37d ago]; worktree-lane-ab-810-substrate-repair [last commit 15d ago] - close them out per the /lane-integrate checklist, or say why they stay |
+| `stale_worktrees` | WARN | 6 of 6 linked worktree(s) look unclosed (horizon 7d): fix/cloud-models-fail-fast [last commit 37d ago]; feat/cloud-models [last commit 37d ago]; feat/codespace-name-from-stdout [last commit 17d ago]; fix/sanitise-external-text [last commit 36d ago]; fix/check-advisory-unowned-path [last commit 37d ago]; worktree-lane-ab-810-substrate-repair [last commit 15d ago] - close them out per the /lane-integrate checklist, or say why they stay |
 | `stale_worktrees` | PASS | git stash list is empty - no stashed work outliving its lane |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 | `handoff_version_stamp` | N/A | [n/a-reason:NOT-APPLICABLE] no protocols/HANDOFF_PROCESS.md — nothing to validate |
