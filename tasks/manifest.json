@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "adcde3de0e01091508ab5f8e33fad2c2439e4a9fa04345e0964159c715646021",
+  "generated_sha256": "0887542456b5c1f5e0b42552ae36cf7576b1e1360aa43f44c6a39f21ecb699c6",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2742,6 +2742,74 @@
     {
       "task": 1332,
       "file": "1332-p11-and-the-paste-builder-treat-superseded-decision-files-as-discharged.md"
+    },
+    {
+      "task": 1333,
+      "file": "1333-logs-quota-reads-jsonl-is-tracked-and-dirty-in-e.md"
+    },
+    {
+      "task": 1334,
+      "file": "1334-the-rclone-drive-token-expires-every-7-days-and.md"
+    },
+    {
+      "task": 1335,
+      "file": "1335-codespace-parity-a-lane-there-works-only-when-on.md"
+    },
+    {
+      "task": 1336,
+      "file": "1336-the-integrator-template-says-repair-n-of-2-and-a.md"
+    },
+    {
+      "task": 1337,
+      "file": "1337-no-step-tears-down-the-integrator-s-own-worktree.md"
+    },
+    {
+      "task": 1338,
+      "file": "1338-the-batch-template-says-no-scheduled-wake-ups-th.md"
+    },
+    {
+      "task": 1339,
+      "file": "1339-p8a-a-supplement-answer-cites-a-ruling-not-a-pat.md"
+    },
+    {
+      "task": 1340,
+      "file": "1340-tests-test-boot-retrieval-py-the-tracked-boot-ba.md"
+    },
+    {
+      "task": 1341,
+      "file": "1341-tests-test-generator-newlines-py-15-text-writes.md"
+    },
+    {
+      "task": 1342,
+      "file": "1342-tests-test-floor-mechanisms-py-the-test-expects.md"
+    },
+    {
+      "task": 1343,
+      "file": "1343-the-graph-spine-orphan-census-names-claude-comma.md"
+    },
+    {
+      "task": 1344,
+      "file": "1344-two-graph-spine-lock-tests-flake-on-the-windows.md"
+    },
+    {
+      "task": 1345,
+      "file": "1345-the-desired-state-schema-lags-the-parity-surface.md"
+    },
+    {
+      "task": 1346,
+      "file": "1346-the-surface-triage-sessionstart-hook-has-no-stat.md"
+    },
+    {
+      "task": 1347,
+      "file": "1347-three-tests-fail-on-both-ci-legs-with-a-symptom.md"
+    },
+    {
+      "task": 1348,
+      "file": "1348-four-tests-expect-one-finding-and-read-three-or.md"
+    },
+    {
+      "task": 1349,
+      "file": "1349-release-lint-the-floor-spec-pin-does-not-match-i.md"
     },
     {
       "prose": ""

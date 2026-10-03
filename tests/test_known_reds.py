@@ -80,26 +80,35 @@ def test_compute_baseline_id_changes_when_members_by_os_content_changes(kr):
 def test_refresh_carries_forward_previous_attribution_and_marks_witnesses(kr):
     previous = kr.Registry(schema=kr.SCHEMA, baseline_id="2026-09-17-abc", measured_at_sha="old",
                            measured_via="local", workers=4,
-                           members={"tests/a.py::t1": {"attribution": "pre-freeze"}})
+                           members={"tests/a.py::t1": _owned()})
     failed = frozenset({"tests/a.py::t1", WITNESS_1})
     registry, dropped = kr.refresh(failed=failed, workers=4, commit="new", measured_via="local",
-                                   date="2026-09-24", attribution={}, previous=previous)
-    assert registry.members["tests/a.py::t1"] == {"attribution": "pre-freeze"}
+                                   date="2026-09-24", attribution={WITNESS_1: dict(_OWNED)},
+                                   previous=previous)
+    assert registry.members["tests/a.py::t1"] == _owned()
     assert registry.members[WITNESS_1]["attribution"] == kr.WITNESS
+    assert registry.members[WITNESS_1]["task"] == _OWNED["task"]
     assert dropped == []
+
+
+def test_refresh_refuses_a_witness_that_is_not_owned_either(kr):
+    with pytest.raises(kr.KnownRedsError, match="task"):
+        kr.refresh(failed=frozenset({WITNESS_1}), workers=4, commit="new", measured_via="local",
+                   date="2026-09-24", attribution={}, previous=None)
 
 
 def test_refresh_refuses_a_new_unattributed_red(kr):
     failed = frozenset({"tests/a.py::t1", "tests/b.py::t2"})
     with pytest.raises(kr.KnownRedsError, match="tests/b.py::t2"):
         kr.refresh(failed=failed, workers=4, commit="new", measured_via="local",
-                  date="2026-09-24", attribution={"tests/a.py::t1": {"attribution": "pre-freeze"}},
+                  date="2026-09-24", attribution={"tests/a.py::t1": _owned()},
                   previous=None)
 
 
 def test_refresh_accepts_a_new_red_with_real_attribution(kr):
     failed = frozenset({"tests/b.py::t2"})
-    attribution = {"tests/b.py::t2": {"attribution": {"first_bad_sha": "deadbeef", "lane": "x"}}}
+    attribution = {"tests/b.py::t2": _owned(
+        {"attribution": {"first_bad_sha": "deadbeef", "lane": "x"}})}
     registry, _ = kr.refresh(failed=failed, workers=4, commit="new", measured_via="local",
                              date="2026-09-24", attribution=attribution, previous=None)
     assert registry.members["tests/b.py::t2"]["attribution"] == {"first_bad_sha": "deadbeef",
@@ -109,8 +118,8 @@ def test_refresh_accepts_a_new_red_with_real_attribution(kr):
 def test_refresh_drops_members_no_longer_failing(kr):
     previous = kr.Registry(schema=kr.SCHEMA, baseline_id="b", measured_at_sha="old",
                            measured_via="local", workers=4,
-                           members={"tests/a.py::t1": {"attribution": "pre-freeze"},
-                                    "tests/fixed.py::t9": {"attribution": "pre-freeze"}})
+                           members={"tests/a.py::t1": _owned(),
+                                    "tests/fixed.py::t9": _owned()})
     registry, dropped = kr.refresh(failed=frozenset({"tests/a.py::t1"}), workers=4, commit="new",
                                    measured_via="local", date="2026-09-24", attribution={},
                                    previous=previous)
@@ -127,9 +136,9 @@ def test_refresh_carries_forward_the_previous_registrys_hooks_section(kr):
     carried forward unconditionally, the same way `notes` already is."""
     previous = kr.Registry(schema=kr.SCHEMA, baseline_id="b", measured_at_sha="old",
                            measured_via="local", workers=4,
-                           members={"tests/a.py::t1": {"attribution": "pre-freeze"}},
-                           hooks={"audit-health": {"attribution": "environment-mismatch",
-                                                    "reason": "pre-existing"}})
+                           members={"tests/a.py::t1": _owned()},
+                           hooks={"audit-health": _owned({"attribution": "environment-mismatch",
+                                                          "reason": "pre-existing"})})
     registry, _ = kr.refresh(failed=frozenset({"tests/a.py::t1"}), workers=4, commit="new",
                              measured_via="local", date="2026-09-24", attribution={},
                              previous=previous)
@@ -139,7 +148,7 @@ def test_refresh_carries_forward_the_previous_registrys_hooks_section(kr):
 def test_refresh_is_idempotent_on_the_same_failed_set(kr):
     previous = kr.Registry(schema=kr.SCHEMA, baseline_id="b", measured_at_sha="old",
                            measured_via="local", workers=4,
-                           members={"tests/a.py::t1": {"attribution": "pre-freeze"}})
+                           members={"tests/a.py::t1": _owned()})
     r1, _ = kr.refresh(failed=frozenset({"tests/a.py::t1"}), workers=4, commit="new",
                        measured_via="local", date="2026-09-24", attribution={}, previous=previous)
     r2, _ = kr.refresh(failed=frozenset({"tests/a.py::t1"}), workers=4, commit="new",
@@ -155,13 +164,12 @@ def test_refresh_with_os_key_writes_members_by_os_and_leaves_shared_members_unto
     writes) is byte-identical to before -- backward compatible for that caller."""
     previous = kr.Registry(schema=kr.SCHEMA, baseline_id="b", measured_at_sha="old",
                            measured_via="local", workers=4,
-                           members={"tests/a.py::t1": {"attribution": "pre-freeze"}})
+                           members={"tests/a.py::t1": _owned()})
     registry, dropped = kr.refresh(failed=frozenset({"tests/a.py::t1"}), workers=4, commit="new",
                                    measured_via="local", date="2026-09-24", attribution={},
                                    previous=previous, os_key="windows-latest")
     assert registry.members == previous.members
-    assert registry.members_by_os == {"windows-latest": {"tests/a.py::t1":
-                                                          {"attribution": "pre-freeze"}}}
+    assert registry.members_by_os == {"windows-latest": {"tests/a.py::t1": _owned()}}
     assert dropped == []
 
 
@@ -172,7 +180,7 @@ def test_refresh_os_key_stamps_a_signature_only_on_the_first_capture(kr):
     `compare` diffs against, so it must not silently re-stamp on every run."""
     previous = kr.Registry(schema=kr.SCHEMA, baseline_id="b", measured_at_sha="old",
                            measured_via="local", workers=4,
-                           members={"tests/a.py::t1": {"attribution": "pre-freeze"}})
+                           members={"tests/a.py::t1": _owned()})
     r1, _ = kr.refresh(failed=frozenset({"tests/a.py::t1"}), workers=4, commit="new",
                        measured_via="local", date="2026-09-24", attribution={}, previous=previous,
                        os_key="windows-latest",
@@ -195,8 +203,9 @@ def test_refresh_os_key_first_capture_never_inherits_the_shared_entrys_own_signa
     establishes a fresh one from the current run's `signatures` instead."""
     previous = kr.Registry(schema=kr.SCHEMA, baseline_id="b", measured_at_sha="old",
                            measured_via="local", workers=4,
-                           members={"tests/a.py::t1": {"attribution": "pre-freeze",
-                                                       "signature": "AssertionError: shared-os"}})
+                           members={"tests/a.py::t1": _owned(
+                               {"attribution": "pre-freeze",
+                                "signature": "AssertionError: shared-os"})})
     registry, _ = kr.refresh(failed=frozenset({"tests/a.py::t1"}), workers=4, commit="new",
                              measured_via="local", date="2026-09-27", attribution={},
                              previous=previous, os_key="windows-latest",
@@ -212,13 +221,12 @@ def test_refresh_without_os_key_ignores_an_existing_members_by_os_section(kr):
     `members_by_os` forward unchanged and never reads it to seed `members`."""
     previous = kr.Registry(schema=kr.SCHEMA, baseline_id="b", measured_at_sha="old",
                            measured_via="local", workers=4, members={},
-                           members_by_os={"windows-latest": {"tests/win.py::t":
-                                                             {"attribution": "pre-freeze"}}})
+                           members_by_os={"windows-latest": {"tests/win.py::t": _owned()}})
     registry, _ = kr.refresh(failed=frozenset({"tests/lin.py::t"}), workers=4, commit="new",
                              measured_via="local", date="2026-09-24",
-                             attribution={"tests/lin.py::t": {"attribution": "pre-freeze"}},
+                             attribution={"tests/lin.py::t": _owned()},
                              previous=previous)
-    assert registry.members == {"tests/lin.py::t": {"attribution": "pre-freeze"}}
+    assert registry.members == {"tests/lin.py::t": _owned()}
     assert registry.members_by_os == previous.members_by_os
 
 
@@ -227,7 +235,7 @@ def test_refresh_without_os_key_ignores_an_existing_members_by_os_section(kr):
 def test_registry_round_trips_through_json(kr, tmp_path):
     registry = kr.Registry(schema=kr.SCHEMA, baseline_id="2026-09-24-abc123", measured_at_sha="s",
                            measured_via="local", workers=4,
-                           members={"tests/a.py::t1": {"attribution": "pre-freeze"}})
+                           members={"tests/a.py::t1": _owned()})
     path = tmp_path / "registry.json"
     kr.write_registry(path, registry)
     loaded = kr.load_registry(path)
@@ -252,15 +260,15 @@ def test_registry_hooks_field_defaults_empty_and_round_trips(kr, tmp_path):
     schema bump (contract done-contract item 1: "the existing readers ... stay unchanged")."""
     path = tmp_path / "registry.json"
     path.write_text(
-        '{"schema": "known-reds-registry/1", "baseline_id": "b", "measured_at_sha": "s", '
+        f'{{"schema": "{kr.SCHEMA}", "baseline_id": "b", "measured_at_sha": "s", '
         '"measured_via": "local", "workers": 4, "members": {}}', encoding="utf-8")
     loaded = kr.load_registry(path)
     assert loaded.hooks == {}
 
     registry = kr.Registry(schema=kr.SCHEMA, baseline_id="2026-09-26-abc", measured_at_sha="s",
                            measured_via="local", workers=4, members={},
-                           hooks={"audit-health": {"attribution": kr.ENVIRONMENT_MISMATCH,
-                                                   "reason": "why"}})
+                           hooks={"audit-health": _owned({"attribution": kr.ENVIRONMENT_MISMATCH,
+                                                          "reason": "why"})})
     kr.write_registry(path, registry)
     round_tripped = kr.load_registry(path)
     assert round_tripped == registry
@@ -271,14 +279,13 @@ def test_registry_members_by_os_field_defaults_empty_and_round_trips(kr, tmp_pat
     key loads with `{}`, and a registry that has one round-trips it exactly."""
     path = tmp_path / "registry.json"
     path.write_text(
-        '{"schema": "known-reds-registry/1", "baseline_id": "b", "measured_at_sha": "s", '
+        f'{{"schema": "{kr.SCHEMA}", "baseline_id": "b", "measured_at_sha": "s", '
         '"measured_via": "local", "workers": 4, "members": {}}', encoding="utf-8")
     assert kr.load_registry(path).members_by_os == {}
 
     registry = kr.Registry(schema=kr.SCHEMA, baseline_id="2026-09-27-abc", measured_at_sha="s",
                            measured_via="local", workers=4, members={},
-                           members_by_os={"windows-latest": {"tests/a.py::t1":
-                                                             {"attribution": "pre-freeze"}}})
+                           members_by_os={"windows-latest": {"tests/a.py::t1": _owned()}})
     kr.write_registry(path, registry)
     assert kr.load_registry(path) == registry
 
@@ -524,7 +531,7 @@ def test_refresh_stores_a_normalized_signature(kr):
     registry, _ = kr.refresh(
         failed=frozenset({"tests/a.py::t1"}), workers=4, commit="new", measured_via="local",
         date="2026-09-27",
-        attribution={"tests/a.py::t1": {"attribution": "pre-freeze"}}, previous=None,
+        attribution={"tests/a.py::t1": _owned({"attribution": "pre-freeze"})}, previous=None,
         signatures={"tests/a.py::t1": "AssertionError: assert ('witness-3684' in 'X')"})
     assert registry.members["tests/a.py::t1"]["signature"] == \
         "AssertionError: assert ('witness-<N>' in 'X')"
@@ -854,7 +861,7 @@ def test_main_refresh_refuses_a_previous_registry_not_an_ancestor_of_commit(kr, 
 
     previous = kr.Registry(schema=kr.SCHEMA, baseline_id="2026-09-01-deadbeefcafe",
                            measured_at_sha=side_sha, measured_via="local", workers=4,
-                           members={"tests/a.py::t1": {"attribution": kr.PRE_FREEZE}})
+                           members={"tests/a.py::t1": _owned({"attribution": kr.PRE_FREEZE})})
     prev_path = tmp_path / "previous.json"
     kr.write_registry(prev_path, previous)
 
@@ -876,7 +883,7 @@ def test_main_refresh_accepts_a_previous_registry_that_is_an_ancestor(kr, toy_re
 
     previous = kr.Registry(schema=kr.SCHEMA, baseline_id="2026-09-01-deadbeefcafe",
                            measured_at_sha=ancestor_sha, measured_via="local", workers=4,
-                           members={"tests/a.py::t1": {"attribution": kr.PRE_FREEZE}})
+                           members={"tests/a.py::t1": _owned({"attribution": kr.PRE_FREEZE})})
     prev_path = tmp_path / "previous.json"
     kr.write_registry(prev_path, previous)
 
@@ -896,7 +903,7 @@ def test_main_refresh_accepts_a_previous_registry_that_is_an_ancestor(kr, toy_re
 def test_main_refresh_with_os_flag_writes_members_by_os(kr, toy_repo, tmp_path):
     previous = kr.Registry(schema=kr.SCHEMA, baseline_id="2026-09-01-deadbeefcafe",
                            measured_at_sha=_git(toy_repo, "rev-parse", "HEAD"), measured_via="local",
-                           workers=4, members={"tests/a.py::t1": {"attribution": kr.PRE_FREEZE}})
+                           workers=4, members={"tests/a.py::t1": _owned({"attribution": kr.PRE_FREEZE})})
     prev_path = tmp_path / "previous.json"
     kr.write_registry(prev_path, previous)
     _git(toy_repo, "commit", "-q", "--allow-empty", "-m", "progress")
@@ -920,8 +927,7 @@ def test_main_refresh_with_os_flag_writes_members_by_os(kr, toy_repo, tmp_path):
 def test_main_compare_with_os_flag_uses_the_overlay(kr, tmp_path):
     registry = kr.Registry(schema=kr.SCHEMA, baseline_id="b", measured_at_sha="s",
                            measured_via="local", workers=4, members={},
-                           members_by_os={"windows-latest": {"tests/win.py::t":
-                                                             {"attribution": "pre-freeze"}}})
+                           members_by_os={"windows-latest": {"tests/win.py::t": _owned()}})
     registry_path = tmp_path / "registry.json"
     kr.write_registry(registry_path, registry)
     pytest_out = tmp_path / "pytest.out"
@@ -934,3 +940,322 @@ def test_main_compare_with_os_flag_uses_the_overlay(kr, tmp_path):
     rc_wrong_os = kr.main(["compare", "--pytest-output", str(pytest_out), "--workers", "4",
                            "--registry", str(registry_path), "--os", "ubuntu-latest"])
     assert rc_wrong_os == 1
+
+
+# --- foundation-1-honest-green item 1: the parser reads node ids, never captured-log lines --
+#
+# DCT D3 (`to-browser/DIGEST-CI-TRIAGE-2026-10-03.md`): pytest prints captured `logging` output
+# as `ERROR    <logger>:<file>.py:<line> <message>` inside a failing test's report, and the
+# `ERROR`-prefixed extractor took every such line for a failed test id. The pseudo-id then
+# either reads as a REGRESSION or -- once registered -- is a "known red" that no test can ever
+# turn green (`logs/KNOWN-REDS-REGISTRY.json` carried one for months).
+
+_CAPTURED_LOG_OUTPUT = (
+    "=================================== FAILURES ===================================\n"
+    "------------------------------ Captured log call -------------------------------\n"
+    "ERROR    codespace-admission:codespace_admission.py:332 admission: REFUSED -- "
+    "claude_on_path, uv_on_path, pre_commit_on_path, gh_not_broken\n"
+    "ERROR    provision_legs:provision_legs.py:775 history: ref 'main' does not resolve "
+    "in this clone - retry with fetch-depth 0\n"
+    "=========================== short test summary info ============================\n"
+    "ERROR    codespace-admission:codespace_admission.py:332 admission: REFUSED -- gh_not_broken\n"
+    "FAILED tests/test_demo.py::test_a_real_failure - AssertionError: boom\n"
+    "ERROR tests/test_demo_collect.py - ImportError: no module named x\n"
+)
+_REAL_NODE_ID = "tests/test_demo.py::test_a_real_failure"
+_REAL_COLLECT_ERROR = "tests/test_demo_collect.py"
+
+#: The three R52-Q2 fields every entry carries; the far-future date keeps a fixture from ever
+#: expiring under the suite.
+_OWNED = {"task": "[#912]", "owner": "rob", "expiry": "2999-12-31"}
+
+
+def _owned(entry: dict | None = None) -> dict:
+    return {**(entry or {"attribution": "pre-freeze"}), **_OWNED}
+
+
+def test_compare_ignores_captured_log_lines(kr, tmp_path, capsys):
+    registry = kr.Registry(
+        schema=kr.SCHEMA, baseline_id="b", measured_at_sha="s", measured_via="local", workers=4,
+        members={_REAL_NODE_ID: _owned(), _REAL_COLLECT_ERROR: _owned()})
+    registry_path = tmp_path / "registry.json"
+    kr.write_registry(registry_path, registry)
+    pytest_out = tmp_path / "pytest.out"
+    pytest_out.write_text(_CAPTURED_LOG_OUTPUT, encoding="utf-8", newline="\n")
+
+    rc = kr.main(["compare", "--pytest-output", str(pytest_out), "--workers", "4",
+                  "--registry", str(registry_path), "--os", "ubuntu-latest"])
+    shown = capsys.readouterr().out
+
+    assert "codespace-admission" not in shown and "provision_legs" not in shown, shown
+    assert f"  known         {_REAL_NODE_ID}" in shown
+    assert f"  known         {_REAL_COLLECT_ERROR}" in shown
+    assert "pre-existing   : 2" in shown and "regressions    : 0" in shown, shown
+    assert rc == 0
+
+
+def test_the_extractors_agree_a_captured_log_line_is_not_a_failure(kr):
+    ids = kr.conductor.parse_failed_node_ids(_CAPTURED_LOG_OUTPUT)
+    assert ids == frozenset({_REAL_NODE_ID, _REAL_COLLECT_ERROR})
+    sigs = kr.extract_failure_signatures(_CAPTURED_LOG_OUTPUT)
+    assert set(sigs) == {_REAL_NODE_ID, _REAL_COLLECT_ERROR}
+    assert sigs[_REAL_NODE_ID] == "AssertionError: boom"
+
+
+# --- foundation-1-honest-green items 2-4: every entry is owned, dated, and tied to a row -----
+#
+# R52 Q2 (`to-browser/RATIFICATION-2026-10-02.md`): "every current known-red gets its own row
+# with a task id. The known-reds registry refuses an entry without one." Without an owner and
+# an expiry "known red" means "forgotten red". AM2-3: a growing known failure is registered at
+# its base-measured value only with a ceiling the compare enforces.
+
+import datetime as dt  # noqa: E402 -- section-local, next to the tests that use it
+import json  # noqa: E402
+
+
+def _write_raw(tmp_path, kr, *, members=None, by_os=None, hooks=None, schema=None):
+    data = {"schema": schema or kr.SCHEMA, "baseline_id": "b", "measured_at_sha": "s",
+            "measured_via": "local", "workers": 4, "members": members or {},
+            "members_by_os": by_os or {}, "hooks": hooks or {}}
+    path = tmp_path / "registry.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    return path
+
+
+@pytest.mark.parametrize("missing", ["task", "owner", "expiry"])
+def test_load_registry_refuses_an_entry_missing_task_owner_or_expiry(kr, tmp_path, missing):
+    entry = _owned()
+    del entry[missing]
+    path = _write_raw(tmp_path, kr, members={"tests/a.py::t1": entry})
+    with pytest.raises(kr.KnownRedsError, match=missing):
+        kr.load_registry(path)
+
+
+@pytest.mark.parametrize("where", ["members", "members_by_os", "hooks"])
+def test_the_refusal_covers_the_overlay_and_the_hooks_section_too(kr, tmp_path, where):
+    bare = {"attribution": "pre-freeze"}
+    kwargs = {"members": {"members": {"tests/a.py::t": bare}},
+              "members_by_os": {"by_os": {"windows-latest": {"tests/a.py::t": bare}}},
+              "hooks": {"hooks": {"audit-health": bare}}}[where]
+    with pytest.raises(kr.KnownRedsError, match="task"):
+        kr.load_registry(_write_raw(tmp_path, kr, **kwargs))
+
+
+def test_load_registry_refuses_an_expired_entry(kr, tmp_path):
+    entry = {**_owned(), "expiry": "2026-10-01"}
+    path = _write_raw(tmp_path, kr, members={"tests/a.py::t1": entry})
+    with pytest.raises(kr.KnownRedsError, match="EXPIRED"):
+        kr.load_registry(path, today=dt.date(2026, 10, 2))
+    # the last day is still inside the window: expired means strictly after the expiry
+    assert kr.load_registry(path, today=dt.date(2026, 10, 1)).members
+
+
+def test_load_registry_refuses_a_malformed_task_or_date(kr, tmp_path):
+    for field, value in (("task", "912"), ("task", "#912"), ("expiry", "soon"), ("owner", " ")):
+        entry = {**_owned(), field: value}
+        path = _write_raw(tmp_path, kr, members={"tests/a.py::t1": entry})
+        with pytest.raises(kr.KnownRedsError, match=field):
+            kr.load_registry(path)
+
+
+def test_load_registry_refuses_the_legacy_schema_and_says_why(kr, tmp_path):
+    path = _write_raw(tmp_path, kr, schema="known-reds-registry/1",
+                      members={"tests/a.py::t1": {"attribution": "pre-freeze"}})
+    with pytest.raises(kr.KnownRedsError, match="R52"):
+        kr.load_registry(path)
+
+
+def test_compare_exits_uncomparable_on_a_registry_with_an_unowned_entry(kr, tmp_path):
+    path = _write_raw(tmp_path, kr, members={"tests/a.py::t1": {"attribution": "pre-freeze"}})
+    out = tmp_path / "pytest.out"
+    out.write_text("FAILED tests/a.py::t1 - x\n", encoding="utf-8")
+    rc = kr.main(["compare", "--pytest-output", str(out), "--workers", "4",
+                  "--registry", str(path), "--os", "ubuntu-latest"])
+    assert rc == kr.EXIT_UNCOMPARABLE
+
+
+def test_compare_hook_exits_uncomparable_on_a_registry_with_an_unowned_hook(kr, tmp_path):
+    path = _write_raw(tmp_path, kr, hooks={"audit-health": {"attribution": "environment-mismatch"}})
+    rc = kr.main(["compare-hook", "--hook-id", "audit-health", "--exit-code", "1",
+                  "--registry", str(path)])
+    assert rc == kr.EXIT_UNCOMPARABLE
+
+
+def test_refresh_refuses_a_new_red_whose_attribution_carries_no_task_owner_expiry(kr):
+    with pytest.raises(kr.KnownRedsError, match="expiry"):
+        kr.refresh(failed=frozenset({"tests/new.py::t"}), workers=4, commit="c",
+                   measured_via="local", date="2026-10-03", previous=None,
+                   attribution={"tests/new.py::t": {"attribution": "pre-freeze",
+                                                    "task": "[#912]", "owner": "rob"}})
+
+
+def test_refresh_accepts_a_new_red_that_is_owned(kr):
+    registry, _ = kr.refresh(failed=frozenset({"tests/new.py::t"}), workers=4, commit="c",
+                             measured_via="local", date="2026-10-03", previous=None,
+                             attribution={"tests/new.py::t": _owned()})
+    assert registry.members["tests/new.py::t"]["task"] == "[#912]"
+
+
+# --- the live file ----------------------------------------------------------------------------
+
+def test_the_live_registry_every_entry_has_a_task_an_owner_and_an_expiry(kr):
+    """Item 3: no entry of the committed file lacks the three fields. `load_registry` already
+    refuses one; this reads the raw JSON so the assertion does not rest on the loader."""
+    raw = json.loads((_REPO / kr.REGISTRY_PATH).read_text(encoding="utf-8"))
+    buckets = [("members", raw["members"]), ("hooks", raw.get("hooks", {}))]
+    buckets += [(f"members_by_os[{osk}]", m) for osk, m in raw.get("members_by_os", {}).items()]
+    bare = [f"{label}: {key}" for label, bucket in buckets for key, entry in bucket.items()
+            if any(not str(entry.get(f, "")).strip() for f in kr.OWNED_FIELDS)]
+    assert bare == []
+    assert raw["schema"] == kr.SCHEMA
+
+
+def test_every_live_entry_names_a_row_that_is_still_open(kr):
+    """The tie is to a row that exists and is open -- a task id nobody can read is the same
+    forgotten red with a number on it."""
+    import re
+    registry = kr.load_registry(_REPO / kr.REGISTRY_PATH)
+    entries = [*registry.members.values(), *registry.hooks.values(),
+               *(e for m in registry.members_by_os.values() for e in m.values())]
+    tasks = sorted({e["task"] for e in entries})
+    not_open = []
+    for task in tasks:
+        number = task.strip("[]#")
+        files = list((_REPO / "tasks").glob(f"{number}-*.md"))
+        status = re.search(r"^status:\s*(\S+)", files[0].read_text(encoding="utf-8"), re.M) \
+            if files else None
+        if not files or status is None or status.group(1) != "open":
+            not_open.append(task)
+    assert not_open == []
+
+
+# --- AM2-3: a growing known failure is registered at its measured value, under a ceiling -------
+
+_BOOT_SIG = "AssertionError: 41,174 B tracked boot base exceeds 40,000"
+
+
+def _growing(**over):
+    entry = {"attribution": "pre-freeze", "signature": _BOOT_SIG,
+             "ceiling": {"pattern": r"(?P<n>[\d,]+) B tracked boot base", "max": 41174},
+             "growth": {"from": 40544, "to": 41174, "commits": "4ad29e44..2e7fa5f2"},
+             **_OWNED}
+    entry.update(over)
+    return entry
+
+
+def _registry_of(kr, entry=None):
+    return kr.Registry(schema=kr.SCHEMA, baseline_id="b", measured_at_sha="s",
+                       measured_via="local", workers=4,
+                       members={"tests/boot.py::t": entry or _growing()})
+
+
+def _compare_growing(kr, current_value: str):
+    sig = f"AssertionError: {current_value} B tracked boot base exceeds 40,000"
+    return kr.compare(frozenset({"tests/boot.py::t"}), _registry_of(kr), workers=4,
+                      signatures={"tests/boot.py::t": sig})
+
+
+def test_a_growing_item_at_its_ceiling_is_pre_existing(kr):
+    result = _compare_growing(kr, "41,174")
+    assert result["verdict"] == "pass" and result["pre_existing"] == ["tests/boot.py::t"]
+    assert result["ceiling_exceeded"] == []
+
+
+def test_a_further_step_of_growth_reads_as_a_regression(kr):
+    """Item 4's RED-first witness: one byte past the ceiling is not 'the same known red'."""
+    result = _compare_growing(kr, "41,175")
+    assert result["verdict"] == "fail"
+    assert result["regressions"] == ["tests/boot.py::t"]
+    assert result["ceiling_exceeded"] == ["tests/boot.py::t"]
+
+
+def test_a_lower_measured_value_is_reported_so_the_ceiling_can_come_down(kr):
+    result = _compare_growing(kr, "40,900")
+    assert result["verdict"] == "pass"
+    assert result["ceiling_slack"] == ["tests/boot.py::t"]
+
+
+def test_a_growing_item_that_fails_a_different_way_is_a_regression(kr):
+    result = kr.compare(frozenset({"tests/boot.py::t"}), _registry_of(kr), workers=4,
+                        signatures={"tests/boot.py::t": "KeyError: 'boot'"})
+    assert result["verdict"] == "fail" and result["signature_changed"] == ["tests/boot.py::t"]
+
+
+def test_a_ceiling_entry_with_no_current_signature_fails_closed(kr):
+    result = kr.compare(frozenset({"tests/boot.py::t"}), _registry_of(kr), workers=4)
+    assert result["verdict"] == "fail"
+
+
+def test_the_ceiling_is_enforced_through_the_cli(kr, tmp_path):
+    path = tmp_path / "registry.json"
+    kr.write_registry(path, _registry_of(kr))
+    out = tmp_path / "pytest.out"
+    argv = ["compare", "--workers", "4", "--registry", str(path), "--os", "ubuntu-latest",
+            "--pytest-output", str(out)]
+    out.write_text(f"FAILED tests/boot.py::t - {_BOOT_SIG}\n", encoding="utf-8")
+    assert kr.main(argv) == 0
+    out.write_text(f"FAILED tests/boot.py::t - {_BOOT_SIG.replace('41,174', '41,175')}\n",
+                   encoding="utf-8")
+    assert kr.main(argv) == 1
+
+
+@pytest.mark.parametrize("breakage", ["no-growth", "no-from", "bad-max", "no-group", "bad-regex"])
+def test_load_registry_refuses_a_ceiling_that_is_not_fully_stated(kr, tmp_path, breakage):
+    entry = _growing()
+    if breakage == "no-growth":
+        del entry["growth"]
+    elif breakage == "no-from":
+        del entry["growth"]["from"]
+    elif breakage == "bad-max":
+        entry["ceiling"]["max"] = "lots"
+    elif breakage == "no-group":
+        entry["ceiling"]["pattern"] = r"[\d,]+ B tracked"
+    else:
+        entry["ceiling"]["pattern"] = r"(?P<n>[\d,]+"
+    path = _write_raw(tmp_path, kr, members={"tests/boot.py::t": entry})
+    with pytest.raises(kr.KnownRedsError, match="ceiling|growth"):
+        kr.load_registry(path)
+
+
+def test_load_registry_refuses_a_ceiling_above_its_own_stated_growth(kr, tmp_path):
+    """Review finding (Grok P2): `max` was never tied to `growth.to`, so a hand-edit to a larger
+    ceiling loaded as valid and the next growth read as slack. `max` may sit BELOW `growth.to`
+    (a ceiling that came down) and never above it."""
+    inflated = _growing()
+    inflated["ceiling"]["max"] = 41174000
+    with pytest.raises(kr.KnownRedsError, match="above"):
+        kr.load_registry(_write_raw(tmp_path, kr, members={"tests/boot.py::t": inflated}))
+    lowered = _growing()
+    lowered["ceiling"]["max"] = 40900
+    registry = kr.load_registry(
+        _write_raw(tmp_path, kr, members={"tests/boot.py::t": lowered}))
+    assert registry.members["tests/boot.py::t"]["ceiling"]["max"] == 40900
+
+
+def test_refresh_refuses_a_ceiling_entry_that_no_longer_reads_as_registered(kr):
+    """Review finding (Grok P3): a failing ceiling entry whose measured signature no longer
+    carries the number was CARRIED by refresh -- the one path that could keep a stale ceiling
+    alive over a failure that had changed shape."""
+    with pytest.raises(kr.KnownRedsError, match="no longer reads"):
+        kr.refresh(
+            failed=frozenset({"tests/boot.py::t"}), workers=4, commit="c", measured_via="local",
+            date="2026-10-03", attribution={}, previous=_registry_of(kr),
+            signatures={"tests/boot.py::t": "KeyError: 'boot'"})
+
+
+def test_refresh_lowers_a_ceiling_to_a_lower_measured_value(kr):
+    previous = _registry_of(kr)
+    registry, _ = kr.refresh(
+        failed=frozenset({"tests/boot.py::t"}), workers=4, commit="c", measured_via="local",
+        date="2026-10-03", attribution={}, previous=previous,
+        signatures={"tests/boot.py::t": "AssertionError: 40,900 B tracked boot base exceeds 40,000"})
+    assert registry.members["tests/boot.py::t"]["ceiling"]["max"] == 40900
+    assert previous.members["tests/boot.py::t"]["ceiling"]["max"] == 41174  # input untouched
+
+
+def test_refresh_refuses_to_carry_a_ceiling_entry_that_grew(kr):
+    with pytest.raises(kr.KnownRedsError, match="ceiling"):
+        kr.refresh(
+            failed=frozenset({"tests/boot.py::t"}), workers=4, commit="c", measured_via="local",
+            date="2026-10-03", attribution={}, previous=_registry_of(kr),
+            signatures={"tests/boot.py::t": "AssertionError: 41,175 B tracked boot base exceeds 40,000"})

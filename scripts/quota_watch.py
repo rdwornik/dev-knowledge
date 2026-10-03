@@ -48,8 +48,9 @@ A CROSSING IS A COMPARISON, NOT A SNAPSHOT
 =================================================================================================
 "79% then 81%" only means something against a PRIOR reading -- a bare 81% could have been 95%
 a minute ago and dropped, or could be this cycle's first read. So `record` appends every read to
-`logs/QUOTA-READS.jsonl` (append-only, the `logs/LANE-COSTS.jsonl` class) and compares the new
-percentage against the immediately PRIOR row for the same SKU-group and billing cycle -- never
+`QUOTA-READS.jsonl` in the per-user state directory (append-only; R17 `private` kind -- see
+`reads_ledger_path`; it was the tracked `logs/QUOTA-READS.jsonl` until foundation-1-honest-green)
+and compares the new percentage against the immediately PRIOR row for the same SKU-group and billing cycle -- never
 against a fixed baseline, which would re-fire on every later read past a threshold rather than
 once at the crossing. `detect_crossings` is the pure predicate this rests on.
 
@@ -75,6 +76,7 @@ from pathlib import Path
 from typing import Optional
 
 import click
+import platformdirs
 import yaml
 
 # The dual package/script import shim (`transport.py`'s own docstring names the same trap):
@@ -93,7 +95,13 @@ logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("quota-watch")
 
 QUOTAS_REGISTRY_RELPATH = "ecosystem/quotas.yaml"
-READS_LEDGER_RELPATH = "logs/QUOTA-READS.jsonl"
+LEDGER_FILENAME = "QUOTA-READS.jsonl"
+#: Env var overriding the ledger location (tests, a relocated state home) -- the same seam
+#: `cost_usage_telemetry.DB_PATH_ENV` gives the GenAI store.
+LEDGER_PATH_ENV = "DEV_KNOWLEDGE_QUOTA_READS_LEDGER"
+#: Same app identity as `cost_usage_telemetry._APP_NAME`: one per-user state directory for the
+#: harness's per-user data, whichever checkout or worktree is asking.
+_STATE_APP_NAME = "dev-knowledge"
 DEFAULT_ACCOUNT = "rdwornik"
 DEFAULT_COPILOT_ACCOUNT = "Robert-Dwornik_ghub"
 
@@ -326,8 +334,20 @@ class QuotaRead:
                   billed=bool(d.get("billed", False)), measured=str(d.get("measured", "")))
 
 
-def reads_ledger_path(repo_root: Path) -> Path:
-    return Path(repo_root) / READS_LEDGER_RELPATH
+def reads_ledger_path(repo_root: Optional[Path] = None) -> Path:
+    """The ledger's home: `$DEV_KNOWLEDGE_QUOTA_READS_LEDGER` if set, else the per-user OS state
+    directory (`platformdirs.user_state_dir`), never a path inside any repository.
+
+    DECIDED-BY-LANE (foundation-1-honest-green, Done item 6, R17/R20): kind `private`. A quota
+    read is account state of ONE user -- not repo content (`committed`, which is what made every
+    primary session dirty and every close carry a ledger commit), and not a regenerable scratch
+    (`ephemeral`, gitignored, which would lose the prior read a crossing is compared against
+    whenever a checkout is re-cloned). `repo_root` is accepted and ignored so every caller and CLI
+    flag written against the old `<repo>/logs/` shape keeps working."""
+    override = os.environ.get(LEDGER_PATH_ENV)
+    if override:
+        return Path(override)
+    return Path(platformdirs.user_state_dir(_STATE_APP_NAME, appauthor=False)) / LEDGER_FILENAME
 
 
 def read_ledger(ledger_path: Path) -> list[QuotaRead]:

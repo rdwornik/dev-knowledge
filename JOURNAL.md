@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-03 (b) - CC (Opus 5.5, integrator seat FOUNDATION): lane foundation-1-honest-green merges -- the known-reds registry is owned, dated and ratcheted
+
+**Anchors:** `e1ff9dd5` -- `worktree-foundation-1-honest-green`, merged `--no-ff` through `epic/foundation-int-foundation-1-honest-green`.
+
+**Did:**
+- Merged the lane (the node-id parser no longer reads captured-log lines; registry schema /2 with task, owner and expiry per entry and ceilings on growing items; rows 1333-1349; the quota-read ledger moved to the per-user state home and untracked) and regenerated `docs/audits/README.md` on the merged tree.
+- Carried lane foundation-2-cheap-fixes's closed merge receipt into `logs/MERGE-RECEIPTS.jsonl` (the [#1329] consumer route for its review record).
+
+**Result:** the verdict is the integration branch's CI push run, test-level per leg -- recorded in the integrator receipt `to-browser/SESSION-integrator-foundation-2026-10-03.md`.
+
+**Changes:** `scripts/conductor.py`, `scripts/known_reds.py`, `scripts/quota_watch.py`, `scripts/hooks/quota_daily.py`, `logs/KNOWN-REDS-REGISTRY.json`, `logs/QUOTA-READS.jsonl` (untracked), `logs/MERGE-RECEIPTS.jsonl`, `tasks/1333-1349`, `tasks/772`, `tasks/1020`, `templates/integrator-order-template.md`, three test files, the review record, generated `BACKLOG.md` / `tasks/manifest.json` / `ecosystem/doc-counts.md` / `docs/audits/README.md`.
+
+**Next:** lane 3 of batch FOUNDATION; lane 4 waits on its release gate (a).
+
 ### 2026-10-03 (a) - CC (Opus 5.5, integrator seat FOUNDATION): lane foundation-2-cheap-fixes merges -- five cheap reds fixed by their cause
 
 **Anchors:** `ad9f5acb` -- `worktree-foundation-2-cheap-fixes`, merged `--no-ff` through `epic/foundation-int-foundation-2-cheap-fixes`.

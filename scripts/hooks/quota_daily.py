@@ -3,7 +3,7 @@
 (LANE-5B3-2-wire-quota-distiller).
 
 THE GAP THIS CLOSES: `quota_watch.py` MERGED 2026-09-25 (LANE-5B2-6) with nobody calling it.
-`logs/QUOTA-READS.jsonl` did not exist a day later (DIGEST-WAVE5B-N2-2026-09-26.md G9). This
+the ledger did not exist a day later (DIGEST-WAVE5B-N2-2026-09-26.md G9). This
 module is the "once a day at session start" leg of that lane's Value line; the batch-close leg
 lives in `templates/integrator-order-template.md`'s close step instead.
 
@@ -22,10 +22,14 @@ claims and detaches; there is no "try inline, fall back to detached" branch to r
 GUARD CONTRACT (Done-contract item 2): fail-open on every error (`main()`'s outer try/except
 prints the cause and returns 0 -- a SessionStart hook must never block a session); skipped
 in every LINKED WORKTREE (`_is_linked_worktree`, REFUSED-lane-wire-quota-distiller.md repair
-1 -- `logs/QUOTA-READS.jsonl` is a TRACKED ledger, and this hook's own `$CLAUDE_PROJECT_DIR`
-is whichever checkout started the session, so firing from every lane worktree would write N
-diverging tracked copies; the batch-close leg alone writes it, from the pinned primary);
-skipped when `logs/QUOTA-READS.jsonl` already carries a row measured today (UTC, matching
+1 -- the ledger was then a TRACKED `logs/QUOTA-READS.jsonl`, and this hook's own
+`$CLAUDE_PROJECT_DIR` is whichever checkout started the session, so firing from every lane
+worktree would write N diverging tracked copies). Since foundation-1-honest-green (Done item 6)
+the ledger is ONE per-user file outside every checkout (`quota_watch.reads_ledger_path`, R17
+`private`), so the worktree skip no longer protects a tracked file; it is kept because the
+claim file (`logs/receipts/`) is still per-checkout and one daily read from the primary is
+all the organ wants;
+skipped when the ledger already carries a row measured today (UTC, matching
 `quota_watch.py`'s own `_now_iso()`); a same-day claim file (`logs/receipts/
 QUOTA-DAILY-CLAIM.json`, the same O_CREAT|O_EXCL exclusive-create as `_claim_producer`)
 de-duplicates spawns across SessionStart calls inside the same stale window, and is reaped
