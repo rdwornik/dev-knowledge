@@ -66,7 +66,7 @@ ADR-118 -> Proposed (kept) | cited by: 640, 664, 674, 755, 839, 963 (all status:
 
 ## RED first, then GREEN (Done-contract 3)
 
-Outcome tests (existing files, no new test path: the contract creates no other paths): `tests/test_residual_completeness.py` (R66 block, 12 tests: absence per retired path, no dangling stem in the four referencing files, the `/handoff` command no longer claims the templates are retained live) and `tests/test_validate_adr_status.py` (R66 C3 block, 6 tests: ADR-116 status line, index row, validator clean, ADR-117/118 kept while cited, ADR-82 Accepted).
+Outcome tests (existing files, no new test path: the contract creates no other paths): `tests/test_residual_completeness.py` (R66 block, 12 tests: absence per retired path, no dangling stem in the four referencing files, the `/handoff` command no longer claims the templates are retained live) and `tests/test_validate_adr_status.py` (R66 C3 block, 7 tests: citation scan not vacuous, ADR-116 status line, index row, validator clean, ADR-117/118 kept while cited, ADR-82 Accepted; the first was added after the review, `docs/audits/2026-10-04-codex-foundation-11-retire-approved.md`).
 
 RED on `31c791ae` (commit `ed9180d0`, before any removal):
 
@@ -79,7 +79,7 @@ FAILED tests/test_validate_adr_status.py::test_r66_adr_116_is_withdrawn_because_
 14 failed, 4 passed in 8.66s
 ```
 
-(The 4 that pass on the base are the guards that must stay true: validator clean for ADR-116, ADR-117 and -118 kept, ADR-82 Accepted. They are the "do not over-remove" side of the contract.)
+(The 4 that pass on the base are the guards that stay true: validator clean for ADR-116, ADR-117 and -118 kept, ADR-82 Accepted. They are the "do not over-remove" side of the contract. The 19th test, the non-vacuous scan guard, was added after the review and has no RED run: it is a guard on the other tests, not an outcome.)
 
 GREEN after the removal and the ADR-116 edit: `tests/test_residual_completeness.py` + `tests/test_validate_adr_status.py` = 248 passed.
 
@@ -94,4 +94,4 @@ GREEN after the removal and the ADR-116 edit: `tests/test_residual_completeness.
 
 ## Regenerated indexes (Done-contract 2)
 
-Methodology roster, CLAUDE.md fragments and organ index were already current (the files this lane changed are not inputs of those generators except as shown); `ecosystem/doc-counts.md` was stale by exactly the 18 tests added (`pytest_collected` 8851 -> 8869) and was regenerated in `716a85b3`. Check outputs are in the session file.
+Methodology roster, CLAUDE.md fragments and organ index were already current (the files this lane changed are not inputs of those generators except as shown); `ecosystem/doc-counts.md` was stale by exactly the tests added (`pytest_collected` 8851 -> 8869, then 8870 with the review-fix test) and was regenerated in `716a85b3` and `555f98cd`. Check outputs are in the session file.
