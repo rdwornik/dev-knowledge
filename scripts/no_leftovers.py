@@ -22,7 +22,8 @@ THE ELEVEN CHECKS (numbers are the spec's order)
    5 no-lane-branch                     no `worktree-<slug>` in local or remote-tracking branches
    6 no-ref-names-lane                  no ref of any kind whose name carries the slug
    7 no-remote-head                     `git ls-remote --heads origin` carries no head for the lane
-   8 job-record-absent                  no `~/.claude/jobs/<id>/state.json` points at the lane
+   8 job-record-absent                  no live `~/.claude/jobs/<id>/state.json` points at the lane (a `stopped`
+                                        record passes, named in the detail: R3 keeps it; unreadable = FAIL)
    9 job-not-in-agents                  `claude agents --json` lists no session cwd'd in the lane
   10 working-tree-clean                 the primary's `git status --porcelain` is empty
   11 main-equals-origin-main            local `main` == the remote's `main` (read with ls-remote, never a stale tracking ref)
@@ -250,6 +251,14 @@ def _refs(repo: Path, *patterns: str) -> tuple[list[str] | None, str]:
     return (None, why) if out is None else ([ln for ln in out.splitlines() if ln], "")
 
 
+#: The `state` values of a job record that check 8 reads as TERMINAL. Only `stopped` is read so:
+#: `claude stop` leaves the record by design (R3 -- no seat removes a session), so it cannot be a
+#: leftover. Every other value (`working`, `blocked`, `done`, absent, ...) stays a FAIL, because
+#: whether such a session can still act is not read here -- check 9 covers listed liveness, and an
+#: unknown state fails closed. Widening this set is one edit, made on evidence of the state.
+_TERMINAL_JOB_STATES = ("stopped",)
+
+
 def _points_at_lane(rec: dict, lane_path: str, branch: str) -> bool:
     for key in ("cwd", "worktreePath"):
         v = rec.get(key)
@@ -393,7 +402,7 @@ def run_checks(repo: Path, lane: str, *, jobs_dir: Path, agents: list[dict] | No
     if not jobs_dir.is_dir():
         add(8, "job-record-absent", False, f"unreadable: jobs directory {jobs_dir} not found")
     else:
-        hits, unparseable, seen = [], [], 0
+        hits, stopped, unparseable, seen = [], [], [], 0
         for state in sorted(jobs_dir.glob("*/state.json")):
             seen += 1
             try:
@@ -402,12 +411,19 @@ def run_checks(repo: Path, lane: str, *, jobs_dir: Path, agents: list[dict] | No
                 unparseable.append(state.parent.name)
                 continue
             if isinstance(rec, dict) and _points_at_lane(rec, lane_norm, branch):
-                hits.append(state.parent.name)
+                if rec.get("state") in _TERMINAL_JOB_STATES:
+                    stopped.append(f"{state.parent.name}({rec['state']})")
+                else:
+                    hits.append(state.parent.name)
         note = (f"{'; ' if hits else ''}job record(s) that could not be read or parsed "
                 f"(cannot rule the lane out): {_shown(unparseable)}") if unparseable else ""
+        if stopped and not (hits or unparseable):
+            detail = (f"{len(stopped)} job record(s) point at {lane}, all in a terminal state "
+                      f"(R3: a stopped job's record stays): {_shown(stopped)}")
+        else:
+            detail = (f"job record(s) pointing at the lane: {_shown(hits)}" if hits else "") + note
         add(8, "job-record-absent", not (hits or unparseable),
-            (f"job record(s) pointing at the lane: {_shown(hits)}" if hits else "")
-            + note or f"0 of {seen} job record(s) point at {lane}")
+            detail or f"0 of {seen} job record(s) point at {lane}")
 
     # 9
     if agents is None:
