@@ -481,3 +481,30 @@ def test_a_simulated_cycle_leaves_the_health_readers_clean(tmp_path, monkeypatch
     reg.unbind(session_id="out-sid", now=then + timedelta(minutes=1))
     assert "WEDGED" not in (fleet_health.seat_health_line(tmp_path) or "")
     assert "WEDGED" not in handoff_state.row_seats(path=path).value
+
+
+def test_audit_health_reads_ok_after_a_simulated_cycle(tmp_path):
+    """Done-contract item 1: `audit.py health` reads OK after a cycle. The command is run for real,
+    as a child with HOME pointed at a folder whose registry holds a bound-then-unbound dispatcher
+    that has been silent past `WEDGED_AFTER_MIN`. (`audit.py` carries no seat reader of its own, so
+    this proves the integrated command stays OK beside a cycled registry; the readers themselves
+    are pinned by the test above.)"""
+    import os
+    import subprocess
+    import sys
+    home = tmp_path / "home"
+    registry = home / ".claude" / "seat-registry.jsonl"
+    then = datetime.now(timezone.utc) - timedelta(minutes=reg.WEDGED_AFTER_MIN + 15)
+    reg.record_event({"hook_event_name": "SessionStart", "session_id": "out-sid",
+                      "cwd": str(tmp_path)}, path=registry, now=then,
+                     env={"CLAUDE_PID": str(os.getpid())})
+    reg.bind("dispatcher", "FOUNDATION", session_id="out-sid", path=registry, now=then)
+    reg.unbind(session_id="out-sid", path=registry, now=then + timedelta(minutes=1))
+    assert _seats(registry, now=datetime.now(timezone.utc))["out-sid"].state == "absent"
+    env = {**os.environ, "HOME": str(home), "USERPROFILE": str(home), "PYTHONUTF8": "1"}
+    repo = Path(__file__).resolve().parent.parent
+    done = subprocess.run([sys.executable, str(repo / "scripts" / "audit.py"), "health"],
+                          cwd=repo, env=env, capture_output=True, text=True, encoding="utf-8",
+                          errors="replace", timeout=600)
+    assert done.returncode == 0, done.stdout[-2000:] + done.stderr[-2000:]
+    assert "health: OK" in done.stdout

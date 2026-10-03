@@ -294,6 +294,16 @@ def test_8_fails_closed_on_a_job_record_it_cannot_parse(hub, jobs):
     assert not res.passed and "deadbeef" in res.evidence
 
 
+@pytest.mark.parametrize("body", ["[]", "null", '"stopped"', "42"])
+def test_8_fails_closed_on_a_record_that_parses_but_is_not_an_object(hub, jobs, body):
+    # Codex terra P1 (review of foundation-9-hygiene): valid JSON that is not an object cannot say
+    # whether it points at the lane, so it is as unreadable as `{not json`.
+    (jobs / "feedc0de").mkdir()
+    (jobs / "feedc0de" / "state.json").write_text(body, encoding="utf-8")
+    res = _run(hub, jobs)[8]
+    assert not res.passed and "feedc0de" in res.evidence
+
+
 def test_8_fails_when_the_jobs_directory_cannot_be_read(hub, tmp_path):
     res = {r.number: r for r in nl.run_checks(hub, SLUG, jobs_dir=tmp_path / "no-such-jobs",
                                               agents=[])}[8]
