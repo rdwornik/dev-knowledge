@@ -88,7 +88,7 @@ the **ship-gate** and CI; archive → educate is the ADR-85 seal; educate → cl
 
 ## What the harness does not do by itself
 
-Checked against the code on 2026-10-03; re-verify a line before you rely on it:
+Each line was read from the code; re-verify one before you rely on it:
 
 - **Read the provider registry at launch.** `dispatch.py` launch and queue import none; the model is
   the contract's cell or `--model` (DCT C1).
