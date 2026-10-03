@@ -97,7 +97,7 @@ STATE_GREEN = "green"
 STATE_RED = "red"
 STATE_NOT_RUN = "not-run"
 
-_RUN_FIELDS = "databaseId,headSha,status,conclusion,displayTitle,url,createdAt,updatedAt"
+_RUN_FIELDS = "databaseId,headSha,status,conclusion,displayTitle,url,createdAt,updatedAt,event"
 #: `gh run view --job <id> --log` lines are TAB-separated `<job>\t<step>\t<timestamp> <text>`.
 #: Measured live, not assumed -- see the module docstring's honest limit on this format. The
 #: step field itself was measured as the literal string `UNKNOWN STEP` on every line of a real
@@ -130,12 +130,20 @@ class CiVerdict:
     baseline_id: Optional[str] = None
     new_reds: tuple = field(default_factory=tuple)
     reason: str = ""
+    #: The fine-grained state behind the closed three-value `verdict` (foundation-4 item 11, G7):
+    #: `PASS`, or one of `actions_verdict`'s states (`REGRESSED`, `PRE-EXISTING`, `UNATTRIBUTED`,
+    #: `NO-RUN`, `IN-PROGRESS`, `CANCELLED`, `GH-UNAVAILABLE`, `JOBS-UNREADABLE`). Only `PASS` is
+    #: `green`; every other state fails closed, and none is ever relabelled as another.
+    state: str = ""
+    #: Required contexts the run did not show as `success` (see `required_contexts` below).
+    missing_contexts: tuple = field(default_factory=tuple)
 
     def to_dict(self) -> dict:
         return {"ref": self.ref, "sha": self.sha, "verdict": self.verdict, "run_id": self.run_id,
                 "run_url": self.run_url, "duration_seconds": self.duration_seconds,
                 "baseline_id": self.baseline_id, "new_reds": list(self.new_reds),
-                "reason": self.reason}
+                "reason": self.reason, "state": self.state,
+                "missing_contexts": list(self.missing_contexts)}
 
 
 def resolve_sha(ref: str, *, repo_root: Path) -> str:
@@ -177,14 +185,18 @@ def _gh_text(command: list, *, repo_root: Path, timeout: int = GH_TIMEOUT_S) -> 
 
 
 def list_runs(*, repo_root: Path, workflow: str = WORKFLOW, limit: int = 40) -> list:
-    return _gh_json(["gh", "run", "list", "--workflow", workflow, "--limit", str(limit),
-                     "--json", _RUN_FIELDS], repo_root=repo_root) or []
+    # PUSH RUNS ONLY (item 11, G7): the ruleset's required check-runs belong to the push run on
+    # the sha. `find_run` repeats the filter, so a listing carrying another event (or none) can
+    # never be chosen either.
+    return _gh_json(["gh", "run", "list", "--workflow", workflow, "--event", "push",
+                     "--limit", str(limit), "--json", _RUN_FIELDS], repo_root=repo_root) or []
 
 
 def find_run(sha: str, *, repo_root: Path, workflow: str = WORKFLOW,
             list_fn: Callable = list_runs) -> Optional[dict]:
     runs = list_fn(repo_root=repo_root, workflow=workflow)
-    return next((r for r in runs if str(r.get("headSha", "")).startswith(sha)), None)
+    return next((r for r in runs if r.get("event") == "push"
+                 and str(r.get("headSha", "")).startswith(sha)), None)
 
 
 def fetch_run_status(run_id, *, repo_root: Path) -> dict:
@@ -293,6 +305,46 @@ def _duration_seconds(run: dict) -> Optional[float]:
     return (t1 - t0).total_seconds()
 
 
+def _actions_verdict():
+    """`actions_verdict`, imported lazily and through the dual-import shim: it is the ONE
+    classifier, and importing it at module load would make the two modules a cycle the moment it
+    reaches back for anything here."""
+    try:
+        from scripts import actions_verdict as _av
+    except ImportError:                                           # pragma: no cover -- shim
+        import actions_verdict as _av
+    return _av
+
+
+def _is_pytest_job(name: str) -> bool:
+    return name == PYTEST_JOB or name.startswith(PYTEST_JOB + " (")
+
+
+def _classify(sha: str, baseline: str, run: dict, jobs: list, root: Path, *, log_fn: Callable,
+              fetch_base: Optional[Callable], registry_loader: Optional[Callable]):
+    """The tip run's classification against `baseline`, by `actions_verdict.verdict_for` -- this
+    module owns no second classifier. The tip run is handed over already read (the run and jobs
+    this call fetched); the base run is read through `fetch_base` (default `actions_verdict.
+    fetch_run`); job logs come through this call's own `log_fn`."""
+    av = _actions_verdict()
+    tip_run = {**run, "jobs": jobs}
+    base_fetch = fetch_base or av.fetch_run
+
+    def fetch(s, *, repo_root=None, workflow=None):
+        if s == sha:
+            return tip_run
+        return base_fetch(s, repo_root=repo_root, workflow=workflow)
+
+    def fetch_logs(r, job, *, repo_root=None):
+        job_id = job.get("databaseId")
+        if job_id is None:
+            return None
+        return log_fn(r.get("databaseId"), job_id, repo_root=repo_root)
+
+    return av.verdict_for(sha, baseline=baseline, fetch=fetch, repo_root=root,
+                          fetch_logs=fetch_logs, registry_loader=registry_loader)
+
+
 def wait_for_run(sha: str, *, repo_root: Path, workflow: str = WORKFLOW,
                  timeout_s: int = POLL_TIMEOUT_S, interval_s: int = POLL_INTERVAL_S,
                  list_fn: Callable = list_runs, view_fn: Callable = fetch_run_status,
@@ -333,8 +385,25 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
                 list_fn: Optional[Callable] = None, view_fn: Optional[Callable] = None,
                 jobs_fn: Optional[Callable] = None, log_fn: Optional[Callable] = None,
                 sleep_fn: Callable = time.sleep,
-                clock_fn: Callable = time.monotonic) -> CiVerdict:
+                clock_fn: Callable = time.monotonic,
+                baseline: Optional[str] = None, required_contexts: tuple = (),
+                fetch_base: Optional[Callable] = None,
+                registry_loader: Optional[Callable] = None) -> CiVerdict:
     """CI's verdict for `ref`: green, red (with the new reds named), or not-run.
+
+    THE ONE "CI VERDICT FOR A SHA" FUNCTION (foundation-4-merge-gate item 11, N2): the merge path
+    and BD-ci (`handoff_state.row_ci`) both call this and nothing else. PUSH RUNS ONLY, COMPLETED
+    ONLY -- a run still queued or running at the poll timeout is `not-run` / `IN-PROGRESS`, never
+    a pass; a cancelled run is `not-run` / `CANCELLED`; `gh` failing is `not-run` /
+    `GH-UNAVAILABLE`. `green` means `PASS` and nothing else.
+
+    `required_contexts` (the merge path passes the ruleset's six) makes green ALSO require every
+    named job to be present and `success` -- not `skipped`, not absent -- so this verdict agrees
+    with what the server-side ruleset will accept. `baseline` (the merge's first parent, the
+    base `main` sha) makes a red run be CLASSIFIED by `actions_verdict.verdict_for` -- the one
+    classifier -- so `new_reds` names the NEW tests per OS leg, and `state` says REGRESSED /
+    PRE-EXISTING / UNATTRIBUTED. Without a baseline the red is named from the gate's own log as
+    before.
 
     The four `_fn` defaults resolve by NAME, here, rather than as bound parameter defaults --
     a default bound at `def` time would freeze the ORIGINAL function object, so a caller (the
@@ -352,18 +421,29 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
                                     interval_s=interval_s, list_fn=list_fn, view_fn=view_fn,
                                     sleep_fn=sleep_fn, clock_fn=clock_fn)
     if run is None:
-        return CiVerdict(ref=ref, sha=sha, verdict=STATE_NOT_RUN, reason=wait_reason)
+        return CiVerdict(ref=ref, sha=sha, verdict=STATE_NOT_RUN, reason=wait_reason,
+                         state=("GH-UNAVAILABLE" if wait_reason.startswith("gh unavailable")
+                                else "NO-RUN"))
 
     run_id, run_url = run.get("databaseId"), run.get("url")
     duration = _duration_seconds(run)
     if run.get("status") != "completed":
+        # The wait ended without a completed run: the poll timed out (IN-PROGRESS) or a later
+        # poll could not read a run already found (GH-UNAVAILABLE). Neither is a pass.
         return CiVerdict(ref=ref, sha=sha, verdict=STATE_NOT_RUN, run_id=run_id, run_url=run_url,
-                         duration_seconds=duration, reason=wait_reason)
+                         duration_seconds=duration, reason=wait_reason,
+                         state=("GH-UNAVAILABLE" if "could not read it" in wait_reason
+                                else "IN-PROGRESS"))
+    if run.get("conclusion") == "cancelled":
+        return CiVerdict(ref=ref, sha=sha, verdict=STATE_NOT_RUN, run_id=run_id, run_url=run_url,
+                         duration_seconds=duration, state="CANCELLED",
+                         reason=(f"run {run_id} was cancelled (`cancel-in-progress` cancels the "
+                                 f"older run when a newer push lands) -- it is not a verdict"))
 
     jobs = jobs_fn(run_id, repo_root=root)
     if jobs is None:
         return CiVerdict(ref=ref, sha=sha, verdict=STATE_NOT_RUN, run_id=run_id, run_url=run_url,
-                         duration_seconds=duration,
+                         duration_seconds=duration, state="JOBS-UNREADABLE",
                          reason=f"run {run_id} completed but its job list could not be read")
 
     job_map = {j.get("name"): j.get("conclusion") for j in jobs}
@@ -377,26 +457,58 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
     run_conclusion = run.get("conclusion")
     workflow_level_failure = not failing and run_conclusion not in ("success", "skipped", None)
 
+    # REQUIRED CONTEXTS (G7): present AND `success`. A skipped or absent one is not a success --
+    # the ruleset would not count it, so neither does this verdict.
+    missing = tuple(c for c in required_contexts if job_map.get(c) != "success")
+
     baseline_id = None
-    regressions: tuple = ()
+    regressions: list = []
     gate_found = False
-    pytest_job = next((j for j in jobs if j.get("name") == PYTEST_JOB), None)
-    if pytest_job is not None and pytest_job.get("databaseId") is not None:
+    # EVERY pytest leg, not only a job named exactly `pytest`: the OS matrix renamed the jobs to
+    # `pytest (<os>)`, and the exact-name lookup this replaces silently found none of them.
+    pytest_jobs = [j for j in jobs if _is_pytest_job(j.get("name") or "")]
+    for pytest_job in pytest_jobs:
+        if pytest_job.get("databaseId") is None:
+            continue
         log_text = log_fn(run_id, pytest_job["databaseId"], repo_root=root)
         if log_text:
             window = _step_window(pytest_job, SUITE_GATE_STEP_NAME)
             block = parse_suite_gate_block(log_text, window=window)
-            baseline_id = block["baseline_id"]
-            gate_found = block["found"]
-            regressions = block["regressions"]
+            baseline_id = baseline_id or block["baseline_id"]
+            gate_found = gate_found or block["found"]
+            leg = pytest_job.get("name")
+            regressions += [r if leg == PYTEST_JOB else f"{leg}: {r}"
+                            for r in block["regressions"]]
 
-    if not failing and not workflow_level_failure:
+    if not failing and not workflow_level_failure and not missing:
         return CiVerdict(ref=ref, sha=sha, verdict=STATE_GREEN, run_id=run_id, run_url=run_url,
-                         duration_seconds=duration, baseline_id=baseline_id,
-                         reason="every job concluded success or skipped")
+                         duration_seconds=duration, baseline_id=baseline_id, state="PASS",
+                         reason="every job concluded success or skipped"
+                                + (f"; every required context is success ({len(required_contexts)})"
+                                   if required_contexts else ""))
+
+    if not failing and not workflow_level_failure and missing:
+        return CiVerdict(ref=ref, sha=sha, verdict=STATE_RED, run_id=run_id, run_url=run_url,
+                         duration_seconds=duration, baseline_id=baseline_id, state="RED",
+                         new_reds=tuple(f"missing required context: {c}" for c in missing),
+                         missing_contexts=missing,
+                         reason=(f"required context(s) not `success`: {', '.join(missing)} -- the "
+                                 f"ruleset would not accept this sha either"))
+
+    if baseline:
+        classified = _classify(sha, baseline, run, jobs, root, log_fn=log_fn,
+                               fetch_base=fetch_base, registry_loader=registry_loader)
+        names = (classified.new_tests + classified.signature_changed + classified.non_test
+                 + classified.newly_failing)
+        return CiVerdict(ref=ref, sha=sha, verdict=STATE_RED, run_id=run_id, run_url=run_url,
+                         duration_seconds=duration,
+                         baseline_id=classified.registry_baseline_id or baseline_id,
+                         new_reds=names, missing_contexts=missing, state=classified.state,
+                         reason=(classified.reason or f"classified {classified.state} against "
+                                 f"baseline {baseline[:12]}"))
 
     if regressions:
-        new_reds = regressions
+        new_reds = tuple(regressions)
         reason = (f"{len(new_reds)} new red(s) named by the pytest job's own suite-baseline "
                   f"gate, against baseline {baseline_id}")
     elif failing:
@@ -411,7 +523,7 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
                   f"'{run_conclusion}'")
     return CiVerdict(ref=ref, sha=sha, verdict=STATE_RED, run_id=run_id, run_url=run_url,
                      duration_seconds=duration, baseline_id=baseline_id, new_reds=new_reds,
-                     reason=reason)
+                     reason=reason, state="RED", missing_contexts=missing)
 
 
 @click.command()

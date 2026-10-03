@@ -37,7 +37,10 @@ def _suite_gate_log(baseline: str, regressions: tuple = ()) -> str:
 
 def _run(sha: str, *, run_id: int = 1, status: str = "completed",
         conclusion: str = "success") -> dict:
+    # `event: push` since foundation-4 item 11 (G7): the one verdict function reads PUSH runs
+    # only, so a fixture run that does not say it is one is not a candidate.
     return {"databaseId": run_id, "headSha": sha, "status": status, "conclusion": conclusion,
+            "event": "push",
             "displayTitle": "a merge", "url": f"https://github.com/x/x/actions/runs/{run_id}",
             "createdAt": "2026-09-24T00:00:00Z", "updatedAt": "2026-09-24T00:08:00Z"}
 
@@ -127,8 +130,12 @@ def test_a_run_that_CONCLUDES_non_success_with_no_failing_job_is_RED_not_green()
         list_fn=_list_fn([_run("jkl012", conclusion="cancelled")]), jobs_fn=_jobs_fn(jobs),
         log_fn=_log_fn({9: _suite_gate_log("c5108329")}), sleep_fn=_no_sleep)
 
-    assert verdict.verdict == cv.STATE_RED
-    assert verdict.new_reds == ("workflow:cancelled",)
+    # foundation-4 item 11 (G7): a CANCELLED run is not evidence of a red, it is the absence of a
+    # verdict (`cancel-in-progress` cancels the older run when a newer push lands). It was
+    # RED/`workflow:cancelled`, which named a "new red" that no test or job had produced. It
+    # still fails closed -- never green -- but as NOT-RUN with its own state.
+    assert verdict.verdict == cv.STATE_NOT_RUN
+    assert verdict.state == "CANCELLED"
     assert "cancelled" in verdict.reason
 
 
@@ -325,6 +332,152 @@ def test_parse_suite_gate_block_reports_NOT_FOUND_when_the_gate_step_never_ran()
 
 def _log_line_at(ts: str, text: str) -> str:
     return f"pytest\tUNKNOWN STEP\t{ts} {text}"
+
+
+# --- foundation-4 item 11 (G7): ONE verdict function ------------------------------------------
+# RED-first witnesses. Before this lane `verdict_for` listed runs of EVERY event, treated a
+# cancelled run as a named red, and knew only a job called exactly `pytest` -- the matrix legs
+# (`pytest (ubuntu-latest)`) never reached the suite-gate log read.
+
+_LEG_U, _LEG_W = "pytest (ubuntu-latest)", "pytest (windows-latest)"
+_ALL_SIX = (_LEG_U, _LEG_W, "ruff", "seal", "spine", "anchor")
+
+
+def _jobs_all_success(*names):
+    return [{"name": n, "conclusion": "success", "databaseId": 200 + i}
+            for i, n in enumerate(names or _ALL_SIX)]
+
+
+def test_G7_a_non_PUSH_run_for_the_sha_is_never_the_verdict():
+    other = {**_run("abc123"), "event": "pull_request"}
+
+    verdict = cv.verdict_for("abc123", repo_root=None, list_fn=_list_fn([other]),
+                             timeout_s=0, interval_s=1, sleep_fn=_no_sleep)
+
+    assert verdict.verdict == cv.STATE_NOT_RUN
+    assert verdict.state == "NO-RUN"
+
+
+def test_G7_list_runs_asks_gh_for_push_runs_only(monkeypatch, tmp_path):
+    seen = []
+
+    def fake_gh(command, *, repo_root, timeout=cv.GH_TIMEOUT_S):
+        seen.append(command)
+        return []
+
+    monkeypatch.setattr(cv, "_gh_json", fake_gh)
+
+    cv.list_runs(repo_root=tmp_path)
+
+    assert "--event" in seen[0] and seen[0][seen[0].index("--event") + 1] == "push"
+
+
+def test_G7_a_run_still_in_progress_at_the_poll_timeout_is_NOT_RUN_with_state_IN_PROGRESS():
+    clock_fn, sleep_fn = _fake_time()
+
+    verdict = cv.verdict_for(
+        "abc", repo_root=None, list_fn=_list_fn([_run("abc", status="in_progress")]),
+        view_fn=lambda run_id, *, repo_root: _run("abc", status="in_progress"),
+        timeout_s=10, interval_s=5, sleep_fn=sleep_fn, clock_fn=clock_fn)
+
+    assert verdict.verdict == cv.STATE_NOT_RUN and verdict.state == "IN-PROGRESS"
+    assert verdict.run_id == 1
+
+
+def test_G7_gh_UNAVAILABLE_carries_its_own_state():
+    def broken_list(*, repo_root, workflow=cv.WORKFLOW):
+        raise cv.GhUnavailable("no gh")
+
+    verdict = cv.verdict_for("abc", repo_root=None, list_fn=broken_list, sleep_fn=_no_sleep)
+
+    assert verdict.verdict == cv.STATE_NOT_RUN and verdict.state == "GH-UNAVAILABLE"
+
+
+def test_G7_the_matrix_LEGS_are_read_for_the_suite_gate_block_not_only_a_job_named_pytest():
+    """`pytest (windows-latest)` red with a REGRESSION in its gate block: the old exact-name
+    lookup found no pytest job and fell back to naming the job."""
+    jobs = [{"name": _LEG_U, "conclusion": "success", "databaseId": 9},
+            {"name": _LEG_W, "conclusion": "failure", "databaseId": 10}]
+    log = _suite_gate_log("c5108329", regressions=("tests/test_x.py::test_a",))
+
+    verdict = cv.verdict_for(
+        "def456", repo_root=None,
+        list_fn=_list_fn([_run("def456", conclusion="failure")]), jobs_fn=_jobs_fn(jobs),
+        log_fn=_log_fn({10: log}), sleep_fn=_no_sleep)
+
+    assert verdict.verdict == cv.STATE_RED
+    assert verdict.new_reds == (f"{_LEG_W}: tests/test_x.py::test_a",)
+
+
+def test_G7_every_REQUIRED_context_must_be_present_and_success():
+    """The merge path names its required contexts; a completed all-success run that never showed
+    `spine` is not mergeable (the ruleset would refuse it too)."""
+    names = tuple(n for n in _ALL_SIX if n != "spine")
+
+    verdict = cv.verdict_for(
+        "abc", repo_root=None, list_fn=_list_fn([_run("abc")]),
+        jobs_fn=_jobs_fn(_jobs_all_success(*names)), log_fn=_log_fn({}), sleep_fn=_no_sleep,
+        required_contexts=_ALL_SIX)
+
+    assert verdict.verdict == cv.STATE_RED
+    assert verdict.missing_contexts == ("spine",)
+    assert "spine" in verdict.reason
+
+
+def test_G7_a_SKIPPED_required_context_is_not_a_success():
+    jobs = _jobs_all_success()
+    jobs[3] = {**jobs[3], "conclusion": "skipped"}
+
+    verdict = cv.verdict_for(
+        "abc", repo_root=None, list_fn=_list_fn([_run("abc")]), jobs_fn=_jobs_fn(jobs),
+        log_fn=_log_fn({}), sleep_fn=_no_sleep, required_contexts=_ALL_SIX)
+
+    assert verdict.verdict == cv.STATE_RED
+    assert "seal" in verdict.missing_contexts
+
+
+def test_G7_all_six_contexts_success_is_GREEN():
+    verdict = cv.verdict_for(
+        "abc", repo_root=None, list_fn=_list_fn([_run("abc")]),
+        jobs_fn=_jobs_fn(_jobs_all_success()), log_fn=_log_fn({}), sleep_fn=_no_sleep,
+        required_contexts=_ALL_SIX)
+
+    assert verdict.verdict == cv.STATE_GREEN and verdict.state == "PASS"
+    assert verdict.missing_contexts == ()
+
+
+def test_G4_ONE_function_the_424d6c72_replay_through_ci_verdict_names_the_new_test():
+    """`ci_verdict.verdict_for(.., baseline=)` classifies through `actions_verdict` -- there is no
+    second classifier. The leg is red at base AND tip; only the tip carries a NEW test red."""
+    import actions_verdict as av
+
+    new_id = "tests/test_registered_check.py::test_registered_check_never_fails_on_live_repo"
+    known = "tests/test_known.py::test_known_red"
+
+    def leg_log(job, ids):
+        body = ["FAILED " + i + " - AssertionError: x" for i in ids]
+        return "\n".join(f"{job}\tRun\t2026-10-02T10:00:00.0000000Z {t}" for t in body)
+
+    tip_jobs = [{"name": _LEG_U, "conclusion": "failure", "databaseId": 9}]
+    base_run = {**_run("base", conclusion="failure"), "jobs": [
+        {"name": _LEG_U, "conclusion": "failure", "databaseId": 19}]}
+    import known_reds as kr
+    registry = kr.Registry(schema=kr.SCHEMA, baseline_id="r", measured_at_sha="s",
+                           measured_via="ci", workers=4,
+                           members={known: {"attribution": kr.PRE_FREEZE}})
+
+    verdict = cv.verdict_for(
+        "tip", repo_root=None, list_fn=_list_fn([_run("tip", conclusion="failure")]),
+        jobs_fn=_jobs_fn(tip_jobs),
+        log_fn=lambda run_id, job_id, *, repo_root: leg_log(_LEG_U, [known, new_id])
+        if job_id == 9 else leg_log(_LEG_U, [known]),
+        baseline="base", fetch_base=lambda sha, *, repo_root=None, workflow=None: base_run,
+        registry_loader=lambda ref, *, repo_root=None: registry, sleep_fn=_no_sleep)
+
+    assert verdict.verdict == cv.STATE_RED
+    assert verdict.state == av.STATE_REGRESSED
+    assert any(new_id in r for r in verdict.new_reds)
+    assert not any(known in r for r in verdict.new_reds)
 
 
 def test_parse_suite_gate_block_WINDOW_ignores_a_shape_match_outside_the_real_step():
