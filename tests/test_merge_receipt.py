@@ -696,7 +696,11 @@ def test_the_receipt_records_HOW_MANY_SEATS_were_in_flight_beside_it(tmp_path):
 def _run(sha: str, *jobs: tuple[str, str], status: str = "completed") -> dict:
     """A `gh run list` row as `fetch_run` returns it, so the tests below drive the REAL state
     machine rather than asserting a state they typed themselves."""
-    return {"databaseId": 1, "headSha": sha, "status": status, "conclusion": "failure",
+    # The run's own conclusion follows its jobs (foundation-4 item 11): `verdict_for` now also
+    # reads the run-level conclusion, so a fixture that says `failure` over all-success jobs
+    # describes a run GitHub would not produce.
+    conclusion_run = "failure" if any(c == "failure" for _n, c in jobs) else "success"
+    return {"databaseId": 1, "headSha": sha, "status": status, "conclusion": conclusion_run,
             "displayTitle": f"run for {sha}",
             "jobs": [{"name": name, "conclusion": conclusion} for name, conclusion in jobs]}
 
@@ -898,8 +902,11 @@ def test_the_actions_verb_RECORDS_the_state_it_READ_and_still_exits_NON_ZERO(tmp
     and the step still reports a failure the integrator must record.
     """
     mr.open_receipt(tmp_path, slug="m", batch="y")
-    fetch = _fetcher(tip=_run("tip", ("pytest", "failure"), ("lint", "success")),
-                     base=_run("base", ("pytest", "failure"), ("lint", "success")))
+    # foundation-4 item 10: a failing `pytest` job is judged by node id now (see
+    # `tests/test_actions_verdict.py::test_G4_*`); this test is about the RECEIPT carrying a
+    # PRE-EXISTING state, so the red it carries is a non-pytest job, which keeps the job-level read.
+    fetch = _fetcher(tip=_run("tip", ("pytest", "success"), ("lint", "failure")),
+                     base=_run("base", ("pytest", "success"), ("lint", "failure")))
 
     receipt, verdict = mr.record_actions_verdict(tmp_path, slug="m", sha="tip",
                                                 baseline="base", fetch=fetch,
@@ -1054,7 +1061,7 @@ def test_the_BASELINE_is_DERIVED_from_the_merges_FIRST_PARENT_rather_than_SUPPLI
 
     def fetch(sha, **_kwargs):
         read.append(sha)
-        return _run(sha, ("pytest", "failure"))
+        return _run(sha, ("lint", "failure"))     # job-level: see the foundation-4 note above
 
     receipt, verdict = mr.record_actions_verdict(
         tmp_path, slug="m", sha="tip", fetch=fetch,
@@ -1092,9 +1099,9 @@ def test_a_TYPED_BASELINE_cannot_convert_a_REGRESSED_merge_into_a_PRE_EXISTING_o
     PRE-EXISTING, complete the receipt and let `require` exit 0. The refusal is what stops it.
     """
     mr.open_receipt(tmp_path, slug="m", batch="y")
-    fetch = _fetcher(tip=_run("tip", ("pytest", "failure")),
-                     realparent=_run("realparent", ("pytest", "success")),
-                     olderred=_run("olderred", ("pytest", "failure")))
+    fetch = _fetcher(tip=_run("tip", ("lint", "failure")),
+                     realparent=_run("realparent", ("lint", "success")),
+                     olderred=_run("olderred", ("lint", "failure")))
     parent = _parent({"tip": "realparent"})
 
     with pytest.raises(mr.MergeReceiptError):
@@ -1135,8 +1142,8 @@ def test_a_REGRESSED_reading_is_STICKY_and_a_LATER_read_cannot_supersede_it(tmp_
 
     mr.record_actions_verdict(
         tmp_path, slug="m", sha="tip", step="actions",
-        fetch=_fetcher(tip=_run("tip", ("pytest", "failure")),
-                       realparent=_run("realparent", ("pytest", "success"))),
+        fetch=_fetcher(tip=_run("tip", ("pytest", "success"), ("lint", "failure")),
+                       realparent=_run("realparent", ("pytest", "success"), ("lint", "success"))),
         first_parent=parent)
     receipt, _verdict = mr.record_actions_verdict(
         tmp_path, slug="m", sha="tip", step="actions-rerun",

@@ -71,6 +71,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -82,6 +83,22 @@ logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("actions-verdict")
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
+
+#: foundation-4-merge-gate (items 10, 11; G4, G7). A pytest job is judged at TEST level, per OS
+#: leg, against that leg's own base run -- never by job name. Every other job keeps the job-level
+#: differential below. The module's header above is the pre-foundation-4 argument and still
+#: holds for those jobs; what changed is that "pytest failed at both ends" is no longer
+#: PRE-EXISTING by itself (DVA A2: the `424d6c72` cut merge turned a registered check red for 16
+#: runs while the pytest job was already red).
+PYTEST_JOB = "pytest"
+#: The contexts a push run must show completed-and-successful before a sha is mergeable.
+#: `tests/test_conductor_governance_jobs.py` pins this to the ruleset JSON, so the two cannot
+#: drift.
+REQUIRED_CONTEXTS = ("pytest (ubuntu-latest)", "pytest (windows-latest)", "ruff", "seal",
+                     "spine", "anchor")
+#: The one file the base registry is read from, AT THE BASE SHA -- a lane that registers its own
+#: red in the same diff cannot launder it, because the tip's registry is never consulted.
+_REGISTRY_RELPATH = "logs/KNOWN-REDS-REGISTRY.json"
 
 #: The workflow whose conclusion the integrator reads. `[#689]`'s runner.
 WORKFLOW = "conductor.yml"
@@ -103,6 +120,10 @@ STATE_UNAVAILABLE = "GH-UNAVAILABLE"
 #: the reader to do different things. Until 2026-09-13 every failure of the job-details call
 #: became `jobs = []`, which `verdict_for` read as "nothing failed" and reported as PASS.
 STATE_JOBS_UNREADABLE = "JOBS-UNREADABLE"
+#: The RUN was cancelled (`cancel-in-progress` when a newer push lands, or a manual cancel). Its
+#: jobs may read success/skipped; it is still not a verdict on the sha. Its own state because the
+#: next action (wait for the newer run, or re-run) is not "investigate a failure" (G7).
+STATE_CANCELLED = "CANCELLED"
 
 #: Every not-green state names its next action. A verdict that names no way forward gets worked
 #: around rather than acted on -- `SeatRefusal`'s rule, one organ over.
@@ -130,6 +151,9 @@ REMEDIES: dict[str, str] = {
                             "RETRY it; if it keeps failing, open the run in the browser and "
                             "record the jobs by hand. This merge's suite result is UNKNOWN, "
                             "which is not the same as green and must never be recorded as it"),
+    STATE_CANCELLED: ("the run was CANCELLED, so it says nothing about this sha. A newer push "
+                      "to the same ref cancels an older run (`cancel-in-progress`): read the "
+                      "newer run, or re-run this one. Never land on it"),
 }
 
 
@@ -149,6 +173,17 @@ class Verdict:
     newly_failing: tuple[str, ...] = ()
     pre_existing: tuple[str, ...] = ()
     newly_passing: tuple[str, ...] = ()
+    #: Test-level findings (item 10). Each entry is `"<leg>: <node id>"`. `new_tests` are ids red
+    #: at the tip that the base leg did not fail, or that the registry does not vouch for;
+    #: `signature_changed` are ids red on both sides that fail differently now; `non_test` are a
+    #: leg's failures that name no test (a job timeout, a collection error, an xdist crash).
+    new_tests: tuple[str, ...] = ()
+    signature_changed: tuple[str, ...] = ()
+    non_test: tuple[str, ...] = ()
+    #: One line saying WHY, for the states whose name alone does not (UNATTRIBUTED, REGRESSED).
+    reason: str = ""
+    #: The registry the test-level read used (its baseline id), when it read one.
+    registry_baseline_id: Optional[str] = None
 
     @property
     def ok(self) -> bool:
@@ -172,6 +207,13 @@ class Verdict:
             lines.append(f"  {mark} {name}: {conclusion}")
         if self.newly_failing:
             lines.append(f"  BROKEN BY THIS MERGE: {', '.join(self.newly_failing)}")
+        for label, items in (("NEW RED TEST", self.new_tests),
+                             ("CHANGED-SIGNATURE TEST", self.signature_changed),
+                             ("NON-TEST FAILURE", self.non_test)):
+            for item in items:
+                lines.append(f"  {label}: {item}")
+        if self.reason:
+            lines.append(f"  reason: {self.reason}")
         if self.pre_existing:
             lines.append(f"  PRE-EXISTING failures, not caused by this merge and NOT a pass: "
                          f"{', '.join(self.pre_existing)}")
@@ -194,6 +236,10 @@ class Verdict:
                 "newly_failing": list(self.newly_failing),
                 "pre_existing": list(self.pre_existing),
                 "newly_passing": list(self.newly_passing),
+                "new_tests": list(self.new_tests),
+                "signature_changed": list(self.signature_changed),
+                "non_test": list(self.non_test), "reason": self.reason,
+                "registry_baseline_id": self.registry_baseline_id,
                 "covers_index_regeneration": self.covers_index_regeneration}
 
 
@@ -204,8 +250,12 @@ def fetch_run(sha: str, *, repo_root: Optional[Path] = None,
     Raises `ActionsUnavailable` when `gh` cannot be reached -- never returns None for that,
     because "nothing ran" and "I could not look" are different facts.
     """
-    command = ["gh", "run", "list", "--workflow", workflow, "--limit", "40",
-               "--json", "databaseId,headSha,status,conclusion,displayTitle"]
+    # PUSH RUNS ONLY (item 11, G7): the ruleset's required check-runs belong to the `push` run on
+    # the sha, so a `pull_request` or `workflow_dispatch` run for the same sha is not that
+    # verdict. `--event push` narrows the listing server-side; the `event` filter below repeats it
+    # so a listing that carries another event (or none) can never be chosen.
+    command = ["gh", "run", "list", "--workflow", workflow, "--event", "push", "--limit", "40",
+               "--json", "databaseId,headSha,status,conclusion,displayTitle,event,createdAt,url"]
     try:
         proc = subprocess.run(command, cwd=str(repo_root or _REPO_ROOT), capture_output=True,
                               text=True, timeout=GH_TIMEOUT_S, check=False)
@@ -218,7 +268,8 @@ def fetch_run(sha: str, *, repo_root: Optional[Path] = None,
     except json.JSONDecodeError as exc:
         raise ActionsUnavailable(f"gh returned unreadable JSON: {exc}") from exc
 
-    match = next((r for r in runs if str(r.get("headSha", "")).startswith(sha)), None)
+    match = next((r for r in runs if r.get("event") == "push"
+                  and str(r.get("headSha", "")).startswith(sha)), None)
     if match is None:
         return None
 
@@ -254,17 +305,169 @@ def _job_map(run: dict) -> dict[str, Optional[str]]:
     return {j["name"]: j.get("conclusion") for j in run.get("jobs", []) or []}
 
 
+def is_pytest_job(name: str) -> bool:
+    """`pytest` (the pre-matrix name) or a matrix leg, `pytest (<os>)`."""
+    return name == PYTEST_JOB or name.startswith(PYTEST_JOB + " (")
+
+
+def _leg_os_key(name: str) -> Optional[str]:
+    """`pytest (windows-latest)` -> `windows-latest`, the registry's `members_by_os` key."""
+    m = re.match(r"^pytest \((.+)\)$", name)
+    return m.group(1) if m else None
+
+
+#: `gh run view --job <id> --log` lines are `<job>\t<step>\t<timestamp> <text>`; pytest's own text
+#: is everything after the timestamp. A line that does not carry the prefix is used as it stands.
+_GH_LOG_LINE_RE = re.compile(r"^(?:[^\t]*\t){0,2}\d{4}-\d\d-\d\dT[\d:.]+Z ?(.*)$")
+#: A leg that is red WITHOUT naming a test. Each is a regression: a timeout, a collection abort,
+#: an xdist worker crash and the suite gate's own NOT COMPARABLE carry no node id to put in the
+#: truth table, and "no test failed" must never be the reading of a red leg.
+_NON_TEST_MARKERS = (
+    (re.compile(r"INTERNALERROR"), "pytest INTERNALERROR"),
+    (re.compile(r"worker '[^']*' crashed"), "an xdist worker crashed"),
+    (re.compile(r"Interrupted: \d+ errors? during collection"), "a collection error"),
+    (re.compile(r"NOT COMPARABLE"), "the suite gate said NOT COMPARABLE"),
+)
+
+
+def _log_text(raw: str) -> str:
+    out = []
+    for line in raw.splitlines():
+        m = _GH_LOG_LINE_RE.match(line)
+        out.append(m.group(1) if m else line)
+    return "\n".join(out)
+
+
+def _leg_failures(raw_log: str) -> dict:
+    """What one leg's log says failed: `{"ids", "signatures", "markers"}`. `markers` names every
+    non-test failure the log shows, whether or not node ids were also printed."""
+    try:
+        from scripts import conductor as _conductor, known_reds as _kr
+    except ImportError:                                           # pragma: no cover -- shim
+        import conductor as _conductor
+        import known_reds as _kr
+    text = _log_text(raw_log)
+    markers = [why for pattern, why in _NON_TEST_MARKERS if pattern.search(text)]
+    return {"ids": _conductor.parse_failed_node_ids(text),
+            "signatures": _kr.extract_failure_signatures(text), "markers": markers}
+
+
+def _load_registry_at(ref: str, *, repo_root: Optional[Path] = None):
+    """The known-reds registry as committed at `ref` (the BASE sha), validated exactly as
+    `known_reds.load_registry` validates a file. A lane's own diff to the registry is never
+    consulted, so a lane cannot launder its red by registering it. Raises `KnownRedsError`."""
+    try:
+        from scripts import known_reds as _kr
+    except ImportError:                                           # pragma: no cover -- shim
+        import known_reds as _kr
+    root = str(repo_root or _REPO_ROOT)
+    try:
+        proc = subprocess.run(["git", "show", f"{ref}:{_REGISTRY_RELPATH}"], cwd=root,
+                              capture_output=True, text=True, timeout=GH_TIMEOUT_S, check=False)
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise _kr.KnownRedsError(f"git could not read the registry at {ref}: {exc}") from exc
+    if proc.returncode != 0:
+        raise _kr.KnownRedsError(f"no {_REGISTRY_RELPATH} at {ref}: {proc.stderr.strip()[:160]}")
+    try:
+        registry = _kr.Registry.from_json(json.loads(proc.stdout), f"{ref}:{_REGISTRY_RELPATH}")
+    except ValueError as exc:
+        raise _kr.KnownRedsError(f"{ref}:{_REGISTRY_RELPATH} is not valid JSON: {exc}") from exc
+    problems = _kr.registry_problems(registry)
+    if problems:
+        raise _kr.KnownRedsError(f"{ref}:{_REGISTRY_RELPATH}: {len(problems)} problem(s), "
+                                 f"first: {problems[0]}")
+    return registry
+
+
+def _default_fetch_logs(run: dict, job: dict, *, repo_root: Optional[Path] = None) -> Optional[str]:
+    """One job's full log text, or None when it could not be read (never an empty string)."""
+    job_id = job.get("databaseId")
+    if job_id is None:
+        return None
+    command = ["gh", "run", "view", str(run.get("databaseId")), "--job", str(job_id), "--log"]
+    try:
+        proc = subprocess.run(command, cwd=str(repo_root or _REPO_ROOT), capture_output=True,
+                              text=True, timeout=GH_TIMEOUT_S, check=False)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return proc.stdout if proc.returncode == 0 and proc.stdout.strip() else None
+
+
+def _judge_pytest_legs(failing_legs: list, tip_run: dict, base_run: dict, *, registry,
+                       fetch_logs: Callable, repo_root: Optional[Path]) -> dict:
+    """The test-level read of every failing pytest leg: `{new_tests, signature_changed, non_test,
+    unattributed}`. One leg is compared only to the SAME-named leg of the base run."""
+    try:
+        from scripts import known_reds as _kr
+    except ImportError:                                           # pragma: no cover -- shim
+        import known_reds as _kr
+    found = {"new_tests": [], "signature_changed": [], "non_test": [], "unattributed": []}
+    base_jobs = {j.get("name"): j for j in base_run.get("jobs") or []}
+    for job in failing_legs:
+        leg, conclusion = job["name"], job.get("conclusion")
+        if conclusion in ("cancelled", "timed_out", "startup_failure", "action_required"):
+            found["non_test"].append(f"{leg}: job {conclusion}")
+            continue
+        tip_log = fetch_logs(tip_run, job, repo_root=repo_root)
+        if tip_log is None:
+            found["unattributed"].append(f"{leg}: the tip job log could not be read")
+            continue
+        tip = _leg_failures(tip_log)
+        for why in tip["markers"]:
+            found["non_test"].append(f"{leg}: {why}")
+        if not tip["ids"] and not tip["markers"]:
+            found["non_test"].append(f"{leg}: red, and its log names no failing test node id")
+            continue
+        base_job = base_jobs.get(leg)
+        if base_job is None:
+            found["unattributed"].append(f"{leg}: the base run has no {leg!r} job to compare to")
+            continue
+        base_failed, base_sigs = frozenset(), {}
+        if base_job.get("conclusion") not in ("success", "skipped", None):
+            base_log = fetch_logs(base_run, base_job, repo_root=repo_root)
+            if base_log is None:
+                found["unattributed"].append(f"{leg}: the base job log could not be read")
+                continue
+            base = _leg_failures(base_log)
+            base_failed, base_sigs = base["ids"], base["signatures"]
+        result = _kr.compare_to_base(
+            tip["ids"], base_failed, registry, workers=registry.workers,
+            os_key=_leg_os_key(leg), tip_signatures=tip["signatures"],
+            base_signatures=base_sigs)
+        found["new_tests"] += [f"{leg}: {n}" for n in (result["new"] + result["base_unregistered"]
+                                                       + result["registry_regressions"])]
+        found["signature_changed"] += [f"{leg}: {n}" for n in result["signature_changed"]]
+    return {k: tuple(v) for k, v in found.items()}
+
+
 def verdict_for(sha: str, *, baseline: Optional[str] = None,
                 fetch: Optional[Callable[..., Optional[dict]]] = None,
-                repo_root: Optional[Path] = None) -> Verdict:
-    """Read the Actions result for `sha`, attributed against `baseline` when one is given."""
+                repo_root: Optional[Path] = None,
+                fetch_logs: Optional[Callable] = None,
+                registry_loader: Optional[Callable] = None) -> Verdict:
+    """Read the Actions result for `sha`, attributed against `baseline` when one is given.
+
+    foundation-4-merge-gate: a failing PYTEST leg is judged at test level (node id, per OS leg,
+    signature, registry at the baseline sha), every other job at job level. A cancelled run is
+    CANCELLED, an in-progress one IN-PROGRESS, and a `success` run that never showed a pytest leg
+    is not a PASS -- none of those is ever `ok`.
+    """
     fetch = fetch or fetch_run
+    fetch_logs = fetch_logs or _default_fetch_logs
+    registry_loader = registry_loader or _load_registry_at
     try:
         run = fetch(sha, repo_root=repo_root, workflow=WORKFLOW)
     except ActionsUnavailable:
         return Verdict(sha=sha, state=STATE_UNAVAILABLE, baseline=baseline)
     if run is None:
         return Verdict(sha=sha, state=STATE_NO_RUN, baseline=baseline)
+    if run.get("status") == "completed" and run.get("conclusion") == "cancelled":
+        # BEFORE the job list is read: a cancelled run's job list is beside the point, and its
+        # jobs routinely read success/skipped for the steps that finished before the cancel.
+        return Verdict(sha=sha, state=STATE_CANCELLED, run_id=run.get("databaseId"),
+                       title=run.get("displayTitle", ""), baseline=baseline,
+                       jobs=_job_map(run) if _jobs_were_read(run) else {},
+                       reason="the run's own conclusion is cancelled")
     if not _jobs_were_read(run):
         # BEFORE the status check, and that ordering is the decision. "I could not read the
         # jobs" is a fact about the READ, not about the run, and it is the one fact that must
@@ -284,6 +487,7 @@ def verdict_for(sha: str, *, baseline: Optional[str] = None,
 
     base_jobs: dict[str, Optional[str]] = {}
     base_read = False
+    base_run = None
     if baseline:
         try:
             base_run = fetch(baseline, repo_root=repo_root, workflow=WORKFLOW)
@@ -302,23 +506,72 @@ def verdict_for(sha: str, *, baseline: Optional[str] = None,
 
     base_failing = {name for name, c in base_jobs.items()
                     if c not in ("success", "skipped", None)}
-    newly_failing = tuple(sorted(failing - base_failing)) if base_read else ()
-    pre_existing = tuple(sorted(failing & base_failing)) if base_read else ()
+    # Job-level differential for every job that is NOT a pytest leg. A pytest leg is judged at
+    # test level below -- "the leg is red at both ends" says nothing about WHICH tests.
+    other_failing = {n for n in failing if not is_pytest_job(n)}
+    other_base_failing = {n for n in base_failing if not is_pytest_job(n)}
+    newly_failing = tuple(sorted(other_failing - other_base_failing)) if base_read else ()
+    pre_existing = tuple(sorted(other_failing & other_base_failing)) if base_read else ()
     newly_passing = tuple(sorted(base_failing - failing)) if base_read else ()
 
-    if not failing:
-        state = STATE_PASS
-    elif not base_read:
+    pytest_legs = [j for j in run["jobs"] if is_pytest_job(j["name"])]
+    failing_legs = [j for j in pytest_legs if j["name"] in failing]
+    legs_ok = bool(pytest_legs) and not failing_legs and all(
+        j.get("conclusion") == "success" for j in pytest_legs)
+    run_conclusion = run.get("conclusion")
+    # A completed run can conclude non-success while every listed job reads success/skipped
+    # (a startup failure, an empty job list): GitHub's run-level and job-level books are separate.
+    workflow_level = (not failing and run_conclusion not in ("success", "skipped", None))
+
+    findings = {"new_tests": (), "signature_changed": (), "non_test": (), "unattributed": ()}
+    registry_baseline_id: Optional[str] = None
+    reasons: list[str] = []
+    if failing_legs and base_read and base_run is not None:
+        try:
+            registry = registry_loader(baseline, repo_root=repo_root)
+        except Exception as exc:                  # KnownRedsError and anything git raises
+            findings["unattributed"] = (f"the known-reds registry at the baseline could not be "
+                                        f"read ({exc}): a test-level compare has no registry",)
+        else:
+            registry_baseline_id = registry.baseline_id
+            findings = _judge_pytest_legs(failing_legs, run, base_run, registry=registry,
+                                          fetch_logs=fetch_logs, repo_root=repo_root)
+    non_test = findings["non_test"] + ((f"workflow: concluded {run_conclusion}",)
+                                       if workflow_level else ())
+    reasons += list(findings["unattributed"])
+
+    if failing_legs and not base_read:
         # A failure with nothing to compare against. Not a regression (we cannot say this merge
         # caused it) and not pre-existing (we cannot say it did not).
         state = STATE_UNATTRIBUTED
-    elif newly_failing:
+        reasons.append("no readable baseline run to compare the failing pytest leg(s) against")
+    elif not failing and not workflow_level:
+        if not pytest_legs:
+            # `success` with no pytest leg is not a pass on the SUITE: the leg that carries the
+            # verdict never ran (a skipped matrix, a renamed job). Missing evidence again.
+            state = STATE_NO_RUN
+            reasons.append("the run shows no pytest leg, so the suite did not run on this sha")
+        elif not legs_ok:
+            state = STATE_UNATTRIBUTED
+            reasons.append("a pytest leg concluded neither success nor failure "
+                           f"({', '.join(j['name'] + '=' + str(j.get('conclusion')) for j in pytest_legs)})")
+        else:
+            state = STATE_PASS
+    elif (newly_failing or findings["new_tests"] or findings["signature_changed"] or non_test):
         state = STATE_REGRESSED
+        reasons.insert(0, f"{len(findings['new_tests'])} new red test(s), "
+                          f"{len(findings['signature_changed'])} changed signature(s), "
+                          f"{len(non_test)} non-test failure(s), {len(newly_failing)} job(s) broken")
+    elif not base_read or reasons:
+        state = STATE_UNATTRIBUTED
     else:
         state = STATE_PRE_EXISTING
 
     return Verdict(sha=sha, state=state, newly_failing=newly_failing,
-                   pre_existing=pre_existing, newly_passing=newly_passing, **common)
+                   pre_existing=pre_existing, newly_passing=newly_passing,
+                   new_tests=findings["new_tests"], signature_changed=findings["signature_changed"],
+                   non_test=non_test, reason="; ".join(reasons),
+                   registry_baseline_id=registry_baseline_id, **common)
 
 
 @click.command()

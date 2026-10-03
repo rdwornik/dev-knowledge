@@ -95,18 +95,22 @@ def test_a_job_ALREADY_failing_at_the_baseline_is_reported_as_PRE_EXISTING_not_a
     merge that inherits it did not cause it -- and must not be credited with a green run
     either. Pre-existing is its own verdict, printed, with the job named.
     """
+    # foundation-4 item 10: the job-level differential no longer applies to a PYTEST job -- a
+    # pytest leg red at both ends is judged by node id (see the `test_G4_*` tests below, which
+    # carry this case and its 424d6c72 sibling). The job-level behaviour this test pins is still
+    # live for every other job, so it is stated on `ruff`.
     fetch = _gh({
-        "tip": _run("tip", "failure", {"pytest": "failure", "ruff": "success"}),
-        "base": _run("base", "failure", {"pytest": "failure", "ruff": "success"}),
+        "tip": _run("tip", "failure", {"pytest (ubuntu-latest)": "success", "ruff": "failure"}),
+        "base": _run("base", "failure", {"pytest (ubuntu-latest)": "success", "ruff": "failure"}),
     })
 
     verdict = av.verdict_for("tip", baseline="base", fetch=fetch)
 
     assert verdict.state == av.STATE_PRE_EXISTING
-    assert verdict.pre_existing == ("pytest",)
+    assert verdict.pre_existing == ("ruff",)
     assert verdict.newly_failing == ()
     assert "PRE-EXISTING" in verdict.render()
-    assert "pytest" in verdict.render()
+    assert "ruff" in verdict.render()
 
 
 def test_a_merge_that_FIXES_a_failing_job_says_so_rather_than_staying_silent():
@@ -276,8 +280,10 @@ def test_every_absence_state_carries_a_REMEDY_naming_the_next_action(state):
 # the fix's shape rather than the bug's absence. Stubbing `subprocess.run` puts the failure
 # where the bug is, which means reintroducing `match["jobs"] = []` makes these RED again.
 
+# `event: push` since foundation-4 item 11 (G7): `fetch_run` asks for push runs only and refuses a
+# row that does not say it is one, so a real `gh run list --json ...,event` row carries it.
 _RUN_ROW = {"databaseId": 7, "headSha": "abc0000dead", "status": "completed",
-            "conclusion": "success", "displayTitle": "a merge"}
+            "conclusion": "success", "displayTitle": "a merge", "event": "push"}
 
 
 def _ok(command, payload: str) -> subprocess.CompletedProcess:
@@ -364,7 +370,11 @@ def test_a_run_with_GENUINELY_NO_JOBS_gets_a_DIFFERENT_answer_than_an_unreadable
     unreadable_verdict = av.verdict_for("abc0000", repo_root=tmp_path)
 
     assert job_less_verdict.state != unreadable_verdict.state
-    assert job_less_verdict.state == av.STATE_PASS
+    # foundation-4 item 11 (G7): a job-less run used to read PASS -- "no failing jobs". A pass now
+    # needs a pytest leg that RAN and succeeded, so the job-less run reads NO-RUN with the reason
+    # named. It is still a different fact from an unreadable list, which is what this test pins.
+    assert job_less_verdict.state == av.STATE_NO_RUN
+    assert "no pytest leg" in job_less_verdict.reason
     assert unreadable_verdict.state == av.STATE_JOBS_UNREADABLE
 
 
@@ -397,3 +407,270 @@ def test_the_cli_exits_NON_ZERO_when_the_job_list_could_not_be_read(monkeypatch,
 
     assert result.exit_code != 0
     assert av.STATE_JOBS_UNREADABLE in result.output
+
+
+# =====================================================================================
+# foundation-4-merge-gate, item 10 (G4) and item 11 (G7): the TEST-LEVEL read.
+#
+# RED-first witnesses. Before this lane `verdict_for` classified a run by JOB NAME, so a NEW
+# test red inside a pytest job that was already red read PRE-EXISTING -- the `424d6c72` cut
+# merge turned `test_registered_check_never_fails_on_live_repo` red for 16 runs that way.
+# =====================================================================================
+
+import known_reds as kr  # noqa: E402
+
+_LEG_U = "pytest (ubuntu-latest)"
+_LEG_W = "pytest (windows-latest)"
+_KNOWN = "tests/test_known.py::test_known_red"
+_NEW = "tests/test_registered_check.py::test_registered_check_never_fails_on_live_repo"
+_TS = "2026-10-02T10:00:00.0000000Z"
+
+
+def _registry(*members, workers=4, by_os=None):
+    return kr.Registry(
+        schema=kr.SCHEMA, baseline_id="2026-10-01-reg", measured_at_sha="s", measured_via="ci",
+        workers=workers, members={m: {"attribution": kr.PRE_FREEZE} for m in members},
+        members_by_os=by_os or {})
+
+
+def _gh_log(job: str, failures: dict, *, extra=()) -> str:
+    """A `gh run view --job <id> --log` text: `<job>\\t<step>\\t<ts> <text>` per line."""
+    lines = ["============ short test summary info ============"]
+    lines += [f"FAILED {nid} - {reason}" for nid, reason in failures.items()]
+    lines += list(extra)
+    lines.append(f"===== {len(failures)} failed in 61.20s =====")
+    return "\n".join(f"{job}\tRun the suite\t{_TS} {line}" for line in lines)
+
+
+def _run_with_logs(sha, conclusion, jobs, *, status="completed", event="push"):
+    """`jobs` = {name: conclusion}; every job gets a databaseId so its log can be fetched."""
+    return {"databaseId": 7, "headSha": sha, "status": status, "conclusion": conclusion,
+            "displayTitle": "a merge", "event": event,
+            "jobs": [{"name": n, "conclusion": c, "databaseId": 100 + i}
+                     for i, (n, c) in enumerate(jobs.items())]}
+
+
+def _logs(per_sha_job: dict):
+    """A fake `fetch_logs(run, job)`: `{(sha, job name): text | None}`."""
+    def fetch_logs(run, job, *, repo_root=None):
+        return per_sha_job.get((run["headSha"], job["name"]))
+    return fetch_logs
+
+
+def _registry_loader(registry):
+    return lambda ref, *, repo_root=None: registry
+
+
+def test_G4_a_NEW_red_inside_an_ALREADY_red_pytest_leg_is_REGRESSED_not_PRE_EXISTING():
+    """THE 424d6c72 REPLAY. Base: the pytest leg fails {KNOWN}. Tip: the same leg fails {KNOWN,
+    NEW}. Job name says 'failing at both' -> the old read said PRE-EXISTING."""
+    fetch = _gh({
+        "tip": _run_with_logs("tip", "failure", {_LEG_U: "failure", "ruff": "success"}),
+        "base": _run_with_logs("base", "failure", {_LEG_U: "failure", "ruff": "success"}),
+    })
+    logs = _logs({("tip", _LEG_U): _gh_log(_LEG_U, {_KNOWN: "AssertionError: k", _NEW: "KeyError"}),
+                  ("base", _LEG_U): _gh_log(_LEG_U, {_KNOWN: "AssertionError: k"})})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch, fetch_logs=logs,
+                             registry_loader=_registry_loader(_registry(_KNOWN)))
+
+    assert verdict.state == av.STATE_REGRESSED
+    assert any(_NEW in t for t in verdict.new_tests)
+    assert not verdict.ok
+    assert _NEW in verdict.render()
+
+
+def test_G4_the_same_failures_with_the_same_signatures_are_PRE_EXISTING_and_COMPLETE():
+    fetch = _gh({
+        "tip": _run_with_logs("tip", "failure", {_LEG_U: "failure"}),
+        "base": _run_with_logs("base", "failure", {_LEG_U: "failure"}),
+    })
+    both = _gh_log(_LEG_U, {_KNOWN: "AssertionError: k"})
+    logs = _logs({("tip", _LEG_U): both, ("base", _LEG_U): both})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch, fetch_logs=logs,
+                             registry_loader=_registry_loader(_registry(_KNOWN)))
+
+    assert verdict.state == av.STATE_PRE_EXISTING
+    assert verdict.new_tests == () and verdict.signature_changed == ()
+    assert verdict.ok is False, "PRE-EXISTING is never a pass"
+
+
+def test_G4_a_known_id_failing_with_a_CHANGED_signature_is_REGRESSED():
+    fetch = _gh({"tip": _run_with_logs("tip", "failure", {_LEG_U: "failure"}),
+                 "base": _run_with_logs("base", "failure", {_LEG_U: "failure"})})
+    logs = _logs({("tip", _LEG_U): _gh_log(_LEG_U, {_KNOWN: "KeyError: 'x'"}),
+                  ("base", _LEG_U): _gh_log(_LEG_U, {_KNOWN: "AssertionError: k"})})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch, fetch_logs=logs,
+                             registry_loader=_registry_loader(_registry(_KNOWN)))
+
+    assert verdict.state == av.STATE_REGRESSED
+    assert any(_KNOWN in t for t in verdict.signature_changed)
+
+
+def test_G4_a_base_failure_ABSENT_from_the_registry_is_not_a_silent_baseline():
+    """Red on both sides but nobody registered it: a regression that reached main must not become
+    the baseline just because it is red there (D5(b))."""
+    fetch = _gh({"tip": _run_with_logs("tip", "failure", {_LEG_U: "failure"}),
+                 "base": _run_with_logs("base", "failure", {_LEG_U: "failure"})})
+    both = _gh_log(_LEG_U, {_NEW: "KeyError"})
+    logs = _logs({("tip", _LEG_U): both, ("base", _LEG_U): both})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch, fetch_logs=logs,
+                             registry_loader=_registry_loader(_registry(_KNOWN)))
+
+    assert verdict.state == av.STATE_REGRESSED
+    assert any(_NEW in t for t in verdict.new_tests)
+
+
+def test_G4_each_OS_leg_is_compared_against_ITS_OWN_base_leg():
+    """The Windows leg fails {KNOWN} at base and tip; the Ubuntu leg was green at base and fails
+    {NEW} at the tip. A per-run comparison would blur the two."""
+    fetch = _gh({
+        "tip": _run_with_logs("tip", "failure", {_LEG_U: "failure", _LEG_W: "failure"}),
+        "base": _run_with_logs("base", "failure", {_LEG_U: "success", _LEG_W: "failure"}),
+    })
+    logs = _logs({("tip", _LEG_U): _gh_log(_LEG_U, {_NEW: "KeyError"}),
+                  ("tip", _LEG_W): _gh_log(_LEG_W, {_KNOWN: "AssertionError: k"}),
+                  ("base", _LEG_W): _gh_log(_LEG_W, {_KNOWN: "AssertionError: k"})})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch, fetch_logs=logs,
+                             registry_loader=_registry_loader(_registry(_KNOWN)))
+
+    assert verdict.state == av.STATE_REGRESSED
+    assert [t for t in verdict.new_tests if _LEG_U in t and _NEW in t]
+    assert not [t for t in verdict.new_tests if _LEG_W in t]
+
+
+@pytest.mark.parametrize("conclusion", ["cancelled", "timed_out"])
+def test_G4_a_pytest_job_that_never_finished_is_a_REGRESSION_not_a_known_red(conclusion):
+    """A job timeout / cancel carries no node id to compare; it is a regression, never an id-less
+    'nothing new failed'."""
+    fetch = _gh({"tip": _run_with_logs("tip", "failure", {_LEG_U: conclusion}),
+                 "base": _run_with_logs("base", "failure", {_LEG_U: "failure"})})
+    logs = _logs({("tip", _LEG_U): None,
+                  ("base", _LEG_U): _gh_log(_LEG_U, {_KNOWN: "AssertionError: k"})})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch, fetch_logs=logs,
+                             registry_loader=_registry_loader(_registry(_KNOWN)))
+
+    assert verdict.state == av.STATE_REGRESSED
+    assert any(_LEG_U in n and conclusion in n for n in verdict.non_test)
+
+
+def test_G4_a_FAILED_leg_with_no_node_id_in_its_log_is_a_REGRESSION():
+    """xdist crash / a step before pytest / a collection abort: the leg is red and names no test."""
+    fetch = _gh({"tip": _run_with_logs("tip", "failure", {_LEG_U: "failure"}),
+                 "base": _run_with_logs("base", "success", {_LEG_U: "success"})})
+    log = "\n".join(f"{_LEG_U}\tRun the suite\t{_TS} {t}" for t in
+                    ("worker 'gw3' crashed while running 'tests/x.py::t'", "INTERNALERROR> boom"))
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch,
+                             fetch_logs=_logs({("tip", _LEG_U): log}),
+                             registry_loader=_registry_loader(_registry(_KNOWN)))
+
+    assert verdict.state == av.STATE_REGRESSED
+    assert any(_LEG_U in n for n in verdict.non_test)
+
+
+def test_G4_an_unreadable_registry_is_UNATTRIBUTED_so_a_lane_cannot_launder_by_registering():
+    fetch = _gh({"tip": _run_with_logs("tip", "failure", {_LEG_U: "failure"}),
+                 "base": _run_with_logs("base", "failure", {_LEG_U: "failure"})})
+    both = _gh_log(_LEG_U, {_KNOWN: "AssertionError: k"})
+
+    def broken_loader(ref, *, repo_root=None):
+        raise kr.KnownRedsError("no registry at base")
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch,
+                             fetch_logs=_logs({("tip", _LEG_U): both, ("base", _LEG_U): both}),
+                             registry_loader=broken_loader)
+
+    assert verdict.state == av.STATE_UNATTRIBUTED
+    assert "registry" in verdict.reason
+
+
+def test_G4_an_unreadable_LOG_is_UNATTRIBUTED_never_pre_existing():
+    fetch = _gh({"tip": _run_with_logs("tip", "failure", {_LEG_U: "failure"}),
+                 "base": _run_with_logs("base", "failure", {_LEG_U: "failure"})})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch, fetch_logs=_logs({}),
+                             registry_loader=_registry_loader(_registry(_KNOWN)))
+
+    assert verdict.state == av.STATE_UNATTRIBUTED
+    assert "log" in verdict.reason
+
+
+def test_G4_non_pytest_jobs_keep_the_job_level_differential():
+    fetch = _gh({"tip": _run_with_logs("tip", "failure", {"ruff": "failure"}),
+                 "base": _run_with_logs("base", "failure", {"ruff": "failure"})})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch, fetch_logs=_logs({}),
+                             registry_loader=_registry_loader(_registry()))
+
+    assert verdict.state == av.STATE_PRE_EXISTING
+    assert verdict.pre_existing == ("ruff",)
+
+
+# --- G7: a run that is not completed-and-successful is never a pass -------------------------
+
+def test_G7_a_run_still_IN_PROGRESS_is_IN_PROGRESS_and_never_ok():
+    fetch = _gh({"tip": _run_with_logs("tip", None, {_LEG_U: None}, status="in_progress")})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch)
+
+    assert verdict.state == av.STATE_IN_PROGRESS and verdict.ok is False
+
+
+def test_G7_a_CANCELLED_run_is_its_own_state_and_never_ok():
+    """`cancel-in-progress` cancels the older run when a newer push lands. Its jobs may read
+    success/skipped; the run is still not a verdict on anything."""
+    fetch = _gh({"tip": _run_with_logs("tip", "cancelled", {_LEG_U: "success", "ruff": "success"})})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch)
+
+    assert verdict.state == av.STATE_CANCELLED and verdict.ok is False
+    assert av.REMEDIES[av.STATE_CANCELLED]
+
+
+def test_G7_a_pass_needs_every_pytest_leg_to_have_run():
+    """A completed `success` run whose pytest legs are absent is not a pass on the suite."""
+    fetch = _gh({"tip": _run_with_logs("tip", "success", {"ruff": "success"})})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch)
+
+    assert verdict.state != av.STATE_PASS
+    assert verdict.ok is False
+
+
+def test_G7_gh_UNAVAILABLE_is_never_ok():
+    verdict = av.verdict_for("tip", baseline="base", fetch=_gh({}))
+    assert verdict.state == av.STATE_UNAVAILABLE and verdict.ok is False
+
+
+def test_G7_fetch_run_asks_gh_for_PUSH_runs_only(monkeypatch, tmp_path):
+    """A `pull_request`/`workflow_dispatch` run for the same sha is not the push run the ruleset's
+    check-runs belong to."""
+    seen = []
+
+    def fake_run(command, **kwargs):
+        seen.append(command)
+        return subprocess.CompletedProcess(command, 0, stdout="[]", stderr="")
+
+    monkeypatch.setattr(av.subprocess, "run", fake_run)
+
+    assert av.fetch_run("abc1234", repo_root=tmp_path) is None
+    assert "--event" in seen[0] and seen[0][seen[0].index("--event") + 1] == "push"
+
+
+def test_G7_a_non_push_run_is_never_chosen(monkeypatch, tmp_path):
+    listing = json.dumps([
+        {"databaseId": 1, "headSha": "abc1234", "status": "completed", "conclusion": "success",
+         "displayTitle": "pr run", "event": "pull_request", "createdAt": "2026-10-02T10:00:00Z"}])
+
+    def fake_run(command, **kwargs):
+        return subprocess.CompletedProcess(command, 0, stdout=listing, stderr="")
+
+    monkeypatch.setattr(av.subprocess, "run", fake_run)
+
+    assert av.fetch_run("abc1234", repo_root=tmp_path) is None
