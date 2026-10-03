@@ -1561,6 +1561,32 @@ def test_template_holds_no_second_copy_of_the_dispatch_command():
     assert not any(ln.split()[:1] == [verb] for ln in ds.fenced_lines(tmpl))
 
 
+def test_generated_bundle_asks_no_seat_for_handoff_verify_and_states_the_role_pin_boot(tmp_path):
+    """R30 (standing, R33 item 1, R51): the browser boots on the ROLE PIN alone and runs no
+    `/handoff-verify`. batch FOUNDATION lane 3 (Done-contract item 3): the bundle's paste-pointer
+    step used to read "Ask CC for `/handoff-verify`, then paste its ONE evidence block" and
+    PROBES.md said CC "emits one evidence block" via it. RED on 2e7fa5f2: both strings were in the
+    generated files. The command still EXISTS (CC's, at a cut), so only the instruction to a seat
+    is barred here -- not the word."""
+    bundle = _gen(tmp_path).bundle_dir
+    boot = (bundle / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
+    probes = (bundle / "PROBES.md").read_text(encoding="utf-8")
+    for name, text in (("HANDOFF_BOOT.md", boot), ("PROBES.md", probes)):
+        assert "Ask CC for `/handoff-verify`" not in text, name
+        assert "paste its ONE evidence block" not in text, name
+        assert "emits **one evidence" not in text, name
+    assert "Boot on the ROLE PIN alone (R30)" in boot
+    assert "R30" in probes
+
+
+def test_the_templates_ask_no_seat_for_handoff_verify():
+    tdir = _REPO / "templates" / "handoff" / "v5"
+    for name in ("HANDOFF_BOOT.md.tmpl", "PROBES.md.tmpl"):
+        text = (tdir / name).read_text(encoding="utf-8")
+        assert "Ask CC for `/handoff-verify`" not in text, name
+        assert "via `/handoff-verify`" not in text, name
+
+
 # --- FM-4: the FUNNEL HEALTH block (golden shape) ---------------------------
 #
 # The block is DERIVED, never recomputed: `gen_handoff` imports FM-2's derivation module and
