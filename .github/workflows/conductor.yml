@@ -155,7 +155,7 @@ jobs:
                                    # code -- main carries pre-existing failures today
         run: |
           set +e
-          uv run --locked pytest -q --tb=short -n 4 --durations=30 2>&1 | tee pytest.out
+          uv run --locked pytest -q --tb=short -n 4 --dist loadgroup --durations=30 2>&1 | tee pytest.out
           echo "exit=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
       - name: Judge the run against the frozen baseline, by node id ([#802])
         id: gate
