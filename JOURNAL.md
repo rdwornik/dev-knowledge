@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-03 (e) - CC (Opus 5.5, integrator seat FOUNDATION): lane foundation-6-ci-speed merges under an amended item 3 -- the pytest legs distribute by xdist group
+
+**Anchors:** `e342a73c`, `742e015e`, `ef02b75b` -- `worktree-foundation-6-ci-speed`, merged `--no-ff` through `epic/foundation-int-foundation-6-ci-speed`.
+
+**Did:**
+- Merged the lane (`--dist loadgroup` on the existing `-n 4` of the `pytest` job, with a pin that reads the command; Linux about -40 s, Windows unchanged) and regenerated `docs/audits/README.md`; carried lane foundation-3-handoff-boot's closed merge receipt into `logs/MERGE-RECEIPTS.jsonl`.
+- Done-contract item 3 was reported Linux-MET, Windows-PARTIAL. Seat ruling 2026-10-03 (technical, ADR-108 §A; the operator follows the seat): for Windows it reads "met up to members shown to flake at an equal rate in unchanged controls". Those members and their rates, from the lane's record (8 unchanged control runs vs 7 tabulated loadgroup runs): `tests/test_graph_spine.py::test_an_expired_lock_is_broken_so_a_dead_builder_never_wedges_the_store` 3/8 vs 4/7; `tests/test_graph_spine.py::test_an_overrun_builder_does_not_release_its_SUCCESSORS_lock` 1/8 vs 2/7; `tests/test_transport.py::test_concurrent_appends_to_the_same_destination_serialize_without_interleaving` 1/8 vs 0/7. One further member, `test_test_pairing` record-base, appeared once in one loadgroup run and in no control; it does not qualify under the ruling and is absent from the lane's final run and from this merge's CI read.
+
+**Result:** the verdict is the integration branch's CI push run, test-level per leg -- recorded in the integrator receipt `to-browser/SESSION-integrator-foundation-2026-10-03.md`.
+
+**Changes:** `.github/workflows/conductor.yml` (the `pytest` job's command and comment), `tests/test_conductor.py`, the review record, `logs/MERGE-RECEIPTS.jsonl`, generated `ecosystem/doc-counts.md` / `docs/audits/README.md`.
+
+**Next:** lane 5 is rebuilt on this main and read once (seat ruling); lane 4 follows this merge.
+
 ### 2026-10-03 (d) - CC (Opus 5.5, integrator seat FOUNDATION): lane foundation-3-handoff-boot merges after one repair -- the boot teaches the 13 onboarding items
 
 **Anchors:** `86508dce` -- `worktree-foundation-3-handoff-boot`, merged `--no-ff` through `epic/foundation-int-foundation-3-handoff-boot`.
