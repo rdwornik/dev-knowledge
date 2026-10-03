@@ -382,3 +382,102 @@ def test_named_bad_seats_is_unaffected_by_a_trailing_no_live_integrator_clause()
             "`seat_registry.py bind --role integrator --batch <B>`")
     named = reg.named_bad_seats(line)
     assert named["wedged"] == {"aaaaaaaa"}
+
+
+# --- unbind: a seat that handed over is not a wedged seat ([foundation-9-hygiene] item 1) ---------
+
+def test_a_bound_then_unbound_seat_is_not_wedged_after_the_threshold(tmp_path):
+    """A cycled seat wrote nothing more and aged to `wedged`; `unbind` is its terminal handover
+    event, so the READ state is `absent`, as for a SessionEnd -- never `wedged`."""
+    path = tmp_path / "seats.jsonl"
+    _event(path, "SessionStart", "old", at=T0)
+    reg.bind("dispatcher", "FOUNDATION", session_id="old", path=path, now=T0)
+    reg.unbind(session_id="old", path=path, now=T0 + timedelta(minutes=5))
+    later = T0 + timedelta(minutes=reg.WEDGED_AFTER_MIN + 30)
+    assert _seats(path, now=later)["old"].state == "absent"
+
+
+def test_an_unbound_seat_stays_absent_when_a_stop_event_follows(tmp_path):
+    """The seat's own Stop hook fires AFTER the turn that ran `unbind`; it must not revive it."""
+    path = tmp_path / "seats.jsonl"
+    _event(path, "SessionStart", "old", at=T0)
+    reg.bind("dispatcher", "FOUNDATION", session_id="old", path=path, now=T0)
+    reg.unbind(session_id="old", path=path, now=T0 + timedelta(minutes=5))
+    _event(path, "Stop", "old", at=T0 + timedelta(minutes=6))
+    assert _seats(path, now=T0 + timedelta(minutes=7))["old"].state == "absent"
+
+
+def test_a_rebind_after_an_unbind_makes_the_seat_live_again(tmp_path):
+    path = tmp_path / "seats.jsonl"
+    _event(path, "SessionStart", "s1", at=T0)
+    reg.bind("dispatcher", "FOUNDATION", session_id="s1", path=path, now=T0)
+    reg.unbind(session_id="s1", path=path, now=T0 + timedelta(minutes=1))
+    reg.bind("dispatcher", "FOUNDATION", session_id="s1", path=path, now=T0 + timedelta(minutes=2))
+    assert _seats(path, now=T0 + timedelta(minutes=3))["s1"].state == "live"
+
+
+def test_unbind_keeps_the_role_and_writes_no_state(tmp_path):
+    path = tmp_path / "seats.jsonl"
+    reg.bind("dispatcher", "FOUNDATION", session_id="s1", path=path, now=T0)
+    row = reg.unbind(session_id="s1", path=path, now=T0)
+    assert row["kind"] == "unbind" and "state" not in row
+    seat = _seats(path, now=T0)["s1"]
+    assert (seat.role, seat.batch) == ("dispatcher", "FOUNDATION")
+    with pytest.raises(SeatRefusal, match="unknown-role"):
+        reg.unbind(session_id="", path=path, now=T0)
+
+
+def test_a_hand_appended_unbind_row_carrying_a_state_is_discarded(tmp_path):
+    path = tmp_path / "seats.jsonl"
+    _event(path, "SessionStart", "s1", at=T0)
+    forged = {"schema": reg.SCHEMA, "kind": "unbind", "session_id": "s1",
+              "ts": (T0 + timedelta(minutes=1)).isoformat(), "state": "absent"}
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(forged) + "\n")
+    assert _seats(path, now=T0 + timedelta(minutes=2))["s1"].state == "live"
+
+
+def test_unbind_without_a_runtime_session_id_is_refused(monkeypatch):
+    monkeypatch.delenv("CLAUDE_CODE_SESSION_ID", raising=False)
+    result = CliRunner().invoke(reg.cli, ["unbind"])
+    assert result.exit_code == 1
+    assert "CLAUDE_CODE_SESSION_ID" in result.output
+
+
+def test_unbind_cli_binds_the_runtime_session_and_offers_no_session_flag(tmp_path, monkeypatch):
+    path = tmp_path / "seats.jsonl"
+    monkeypatch.setattr(reg, "REGISTRY_PATH", path)
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "runtime-sid")
+    runner = CliRunner()
+    assert runner.invoke(reg.cli, ["unbind", "--session", "other"]).exit_code != 0
+    result = runner.invoke(reg.cli, ["unbind"])
+    assert result.exit_code == 0, result.output
+    assert [r["session_id"] for r in reg.read_rows(path) if r["kind"] == "unbind"] == ["runtime-sid"]
+
+
+def test_the_dispatcher_order_cycle_section_calls_unbind_before_the_new_seat_starts():
+    template = (Path(__file__).resolve().parent.parent / "templates"
+                / "dispatcher-order-template.md").read_text(encoding="utf-8")
+    cycle = template.split("## Cycle", 1)[1]
+    assert "seat_registry.py unbind" in cycle
+
+
+def test_a_simulated_cycle_leaves_the_health_readers_clean(tmp_path, monkeypatch):
+    """The readers `[seats]` (fleet_health, SessionStart) and the BD-seats row (handoff_state) name
+    no WEDGED seat after a handover; `audit.py health` carries no seat reader of its own, so the
+    two organs it composes are what a cycle can disturb."""
+    import os
+
+    import fleet_health
+    import handoff_state
+    path = tmp_path / "seats.jsonl"
+    monkeypatch.setattr(reg, "REGISTRY_PATH", path)
+    then = datetime.now(timezone.utc) - timedelta(minutes=reg.WEDGED_AFTER_MIN + 15)
+    env = {"CLAUDE_PID": str(os.getpid())}
+    reg.record_event({"hook_event_name": "SessionStart", "session_id": "out-sid",
+                      "cwd": str(tmp_path)}, now=then, env=env)
+    reg.bind("dispatcher", "FOUNDATION", session_id="out-sid", now=then)
+    assert "WEDGED" in (fleet_health.seat_health_line(tmp_path) or "")   # the false alarm, pre-fix
+    reg.unbind(session_id="out-sid", now=then + timedelta(minutes=1))
+    assert "WEDGED" not in (fleet_health.seat_health_line(tmp_path) or "")
+    assert "WEDGED" not in handoff_state.row_seats(path=path).value
