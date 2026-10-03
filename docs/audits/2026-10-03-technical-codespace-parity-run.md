@@ -70,20 +70,37 @@ exit=1
 
 Two of the four gate differences were this machine's PATH, not the code: `shutil.which("bash")` returns `...\WindowsApps\bash.EXE` — the WSL launcher with no distribution installed, UTF-16 output, exit 1 — ahead of Git Bash, so `test_leg_pc_login_path_persists_precommit_onto_a_fresh_shells_path` and `test_self_digest_actually_distinguishes_a_replaced_script` failed here and passed in the Codespace. `tests/test_provision_sh.py` now resolves a bash that actually runs (`_working_bash`: each PATH hit probed, then the bash beside git; none working is a loud `AssertionError`, not a skip). Shown FAIL on run 1, PASS on run 2 (`tests/test_provision_sh.py` 10 passed through `memory_admission_gate.py run`).
 
+Full output of `check --local local.json --codespace <name>` for run 2, verbatim (the Codespace was still alive and the teardown had not happened, so condition 5 had no cleanup record):
+
 ```
 FAIL cond=1 environment claude version skew (local=2.1.288 codespace=2.1.272); gh absent on codespace; codex absent on codespace; agy absent on codespace
-FAIL cond=2 gates 2 verdict(s) differ:
-    tests.test_codespace_admission::test_present_but_not_executable_is_treated_as_absent (local=skipped codespace=passed)
-    tests.test_provision_legs::test_history_check_exits_0_on_this_repo (local=failed codespace=passed)
-    compared 187 verdicts; 2 differ, 0 declared cases
-NOT-RUN cond=3 landing merge leg NOT-RUN: a lane cannot merge ...
-    base sha 20f2f59d... = 20f2f59d... ; tree sha 4ea5fa38... = 4ea5fa38... ; pushed branch ...-cs on origin at 20f2f59d... = Codespace HEAD
+    platform: declared OS-specific (the operating system and CPU architecture differ by definition between a Windows workstation and a Linux container) -- local={'machine': 'AMD64', 'system': 'Windows'} codespace={'machine': 'x86_64', 'system': 'Linux'}
+    python: local=3.12.10 codespace=3.12.10
+    uv: local=0.11.19 codespace=0.11.19
+    uv_lock_sha256: local=43c532c135883ed39ad5608c71dc28caee8a404b562b075fd3ede53455ef8216 codespace=43c532c135883ed39ad5608c71dc28caee8a404b562b075fd3ede53455ef8216
+    uv sync --locked exit (local)=0
+    uv sync --locked exit (codespace)=0
+    claude version local=2.1.288 codespace=2.1.272
+    gh version local=2.93.0 codespace=None
+    codex version local=0.155.0 codespace=None
+    agy version local=1.2.16 codespace=None
+    hook set local=['commit-msg', 'pre-commit', 'pre-push'] codespace=['commit-msg', 'pre-commit', 'pre-push']
+FAIL cond=2 gates 2 verdict(s) differ: tests.test_codespace_admission::test_present_but_not_executable_is_treated_as_absent (local=skipped codespace=passed); tests.test_provision_legs::test_history_check_exits_0_on_this_repo (local=failed codespace=passed)
+    compared 187 verdicts; 2 differ, 0 declared case(s)
+NOT-RUN cond=3 landing merge leg NOT-RUN: a lane cannot merge: the local --no-ff merge, the integrator's own re-run of the outcome test and the CI push verdict are the integrator's acts, not this check's
+    base sha local=20f2f59db7284f03855aae1b79226d22a947076f codespace=20f2f59db7284f03855aae1b79226d22a947076f
+    tree sha local=4ea5fa38ba57c0940555d20e2a4c44b2238c27c7 codespace=4ea5fa38ba57c0940555d20e2a4c44b2238c27c7
+    pushed branch worktree-foundation-5-codespace-parity-cs on origin at 20f2f59db7284f03855aae1b79226d22a947076f; codespace HEAD 20f2f59db7284f03855aae1b79226d22a947076f
 FAIL cond=4 transport rclone absent on the Codespace
-NOT-RUN cond=5 cleanup no cleanup record supplied      (then, after teardown: PASS — below)
+    read: FAIL (exit None, None entries; local 274)
+    write: NOT-RUN -- the write leg was not exercised: a write probe would create a transport path no contract names, so only the read leg is measured
+NOT-RUN cond=5 cleanup no cleanup record supplied (run `verify-cleanup` after teardown)
 exit=1
 ```
 
-The run-2 remote record was read live by `check --codespace` and **was not saved before the Codespace was deleted** — a gap the run found in the check itself. `check --save-remote FILE` now keeps it (tested). The run-2 verdict lines above are the pasted output of that live read; condition 5 was computed afterwards by the same comparator on the cleanup record (`compare_cleanup`).
+The run-2 remote record was read live by `check --codespace` and **was not saved before the Codespace was deleted** — a gap the run found in the check itself. `check --save-remote FILE` now keeps it (tested). Condition 5's PASS below was computed afterwards by `compare_cleanup` on the record `verify-cleanup` wrote; the two outputs are two invocations, not one.
+
+**The check was hardened after these runs** (the review's findings, `docs/audits/2026-10-03-codex-foundation-5-codespace-parity.md`): a cleanup record without read evidence is refused, `--remote` with `--codespace` is refused, a gates record whose hooks or `audit.py health` never ran is refused, a bare declared OS case forgives nothing, and the landing push reads the exact ref. Run 1 and run 2 above were produced by the earlier code; none of those changes alters a verdict printed above (every record carried hook and health verdicts, no OS case was declared, the pushed ref was the first line), and the cleanup record was **re-read after teardown with the hardened `verify-cleanup`** (it now carries `listing_exit: 0` and `ls_remote_exit: 0`; the Codespace was still not listed and the branch still not on origin).
 
 ## Per condition — what is true, with evidence
 
@@ -105,7 +122,8 @@ git ls-remote --heads origin  -- BEFORE:  automation/fleet-audit, main, worktree
 git ls-remote --heads origin  -- run branch present:  worktree-foundation-5-codespace-parity-cs @ 20f2f59d
 git push origin --delete worktree-foundation-5-codespace-parity-cs   -> [deleted]
 git ls-remote --heads origin  -- AFTER:   automation/fleet-audit, main, worktree-foundation-3-handoff-boot, worktree-foundation-5-codespace-parity, worktree-foundation-6-ci-speed
-verify-cleanup record: codespace_listed_after false, branch_listed_after false, created 17:31:48Z, deleted 17:50:27Z, basicLinux32gb
+verify-cleanup record: codespace_listed_after false, branch_listed_after false, listing_exit 0, ls_remote_exit 0, created 17:31:48Z, deleted 17:50:27Z, basicLinux32gb
+compare_cleanup -> PASS cond=5 cleanup: wall time 18.6 min on basicLinux32gb; core-hours 0.62 (2 cores)
 ```
 
 `worktree-foundation-5-codespace-parity` is the lane's handback branch and stays; the `-cs` branch was the run's own.
