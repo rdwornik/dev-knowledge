@@ -435,6 +435,12 @@ def test_a_hand_appended_unbind_row_carrying_a_state_is_discarded(tmp_path):
     with path.open("a", encoding="utf-8") as fh:
         fh.write(json.dumps(forged) + "\n")
     assert _seats(path, now=T0 + timedelta(minutes=2))["s1"].state == "live"
+    # ...while the same row WITHOUT a state is the accepted protocol (before `unbind` existed every
+    # unbind row was discarded, so this half is what separates the new reader from the old one).
+    del forged["state"]
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(forged) + "\n")
+    assert _seats(path, now=T0 + timedelta(minutes=2))["s1"].state == "absent"
 
 
 def test_unbind_without_a_runtime_session_id_is_refused(monkeypatch):

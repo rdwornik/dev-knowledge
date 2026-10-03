@@ -304,6 +304,20 @@ def test_8_fails_closed_on_a_record_that_parses_but_is_not_an_object(hub, jobs, 
     assert not res.passed and "feedc0de" in res.evidence
 
 
+@pytest.mark.parametrize("field", ["cwd", "worktreePath", "worktreeBranch"])
+def test_8_fails_closed_on_a_record_whose_locator_field_is_not_a_string(hub, jobs, field):
+    # Codex terra review 2 P1: `{"worktreePath": []}` cannot rule the lane out either.
+    _job(jobs, "badf1e1d", state="stopped", **{field: ["x"]})
+    res = _run(hub, jobs)[8]
+    assert not res.passed and "badf1e1d" in res.evidence
+
+
+def test_8_passes_a_record_with_null_or_absent_locators_that_names_no_lane(hub, jobs):
+    _job(jobs, "00000001", state="working", worktreePath=None)
+    _job(jobs, "00000002", state="working")
+    assert _run(hub, jobs)[8].passed
+
+
 def test_8_fails_when_the_jobs_directory_cannot_be_read(hub, tmp_path):
     res = {r.number: r for r in nl.run_checks(hub, SLUG, jobs_dir=tmp_path / "no-such-jobs",
                                               agents=[])}[8]

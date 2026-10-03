@@ -410,8 +410,10 @@ def run_checks(repo: Path, lane: str, *, jobs_dir: Path, agents: list[dict] | No
             except (OSError, ValueError):
                 unparseable.append(state.parent.name)
                 continue
-            if not isinstance(rec, dict):             # valid JSON that is no record: unreadable
-                unparseable.append(state.parent.name)
+            if not isinstance(rec, dict) or any(
+                    rec.get(key) is not None and not isinstance(rec.get(key), str)
+                    for key in ("cwd", "worktreePath", "worktreeBranch")):
+                unparseable.append(state.parent.name)   # valid JSON, but no readable locator
             elif _points_at_lane(rec, lane_norm, branch):
                 if rec.get("state") in _TERMINAL_JOB_STATES:
                     stopped.append(f"{state.parent.name}({rec['state']})")
