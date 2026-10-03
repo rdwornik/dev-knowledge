@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-03 (e) - CC (Opus 5.5, integrator seat FOUNDATION): lane foundation-5-codespace-parity merges after one repair -- a repository check says per condition whether a Codespace lane behaves like a local one
+
+**Anchors:** `9686f2e8`, `7256823e` -- `worktree-foundation-5-codespace-parity`, merged `--no-ff` through `epic/foundation-int-foundation-5-codespace-parity`.
+
+**Did:**
+- Refused the first handback `9772c415` (repair 1 of 2): its review record carried no nonce or content hash (R59). The repair re-ran the review on grok-4.7 with nonce `NONCE-cb4972e7d0b3` returned and recorded, and fixed one new P1 (no gates PASS from unexercised hooks); the integrator re-read the served id and the nonce from the Grok session store.
+- Merged the lane (`scripts/codespace_parity.py`, its tests, the recorded Codespace run -- cond 1, 2, 4 FAIL, 3 NOT-RUN, 5 PASS, not GREEN) and regenerated `docs/audits/README.md`; `[#1335]` now cites the run record (its governance consumer; the lane could not edit the row, ruling (h)); carried lane foundation-3-handoff-boot's closed merge receipt into `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict is the integration branch's CI push run, test-level per leg -- recorded in the integrator receipt `to-browser/SESSION-integrator-foundation-2026-10-03.md`.
+
+**Changes:** `scripts/codespace_parity.py`, `tests/test_codespace_parity.py`, `tests/test_provision_sh.py`, `ecosystem/harness.yaml` (one fates line), two audits, `tasks/1335` (refs), `logs/MERGE-RECEIPTS.jsonl`, generated `ecosystem/doc-counts.md` / `docs/audits/README.md`.
+
+**Next:** lane 6 of batch FOUNDATION; lane 4 waits on its release gate (a) and lane 6; the seven ROWS-OWED from lane 5 go to the batch digest.
+
 ### 2026-10-03 (d) - CC (Opus 5.5, integrator seat FOUNDATION): lane foundation-3-handoff-boot merges after one repair -- the boot teaches the 13 onboarding items
 
 **Anchors:** `86508dce` -- `worktree-foundation-3-handoff-boot`, merged `--no-ff` through `epic/foundation-int-foundation-3-handoff-boot`.
