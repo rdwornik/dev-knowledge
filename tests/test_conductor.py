@@ -567,6 +567,25 @@ def test_ship_gate_is_a_job_and_is_advisory_only(workflow, ruleset):
     assert "ship-gate" not in contexts
 
 
+def test_the_ship_gate_job_checks_out_a_full_clone_with_a_local_main(workflow):
+    # J1 (DIGEST-CI-TRIAGE 2026-10-03): a bare `actions/checkout@v4` is shallow, single-ref and
+    # has no `refs/heads/main`, so `audit.py ship-gate`'s `canonical_freshness` derived leg
+    # REFUSES ("the clone is shallow -- every git-derived date is a floor") and the job has been
+    # red since 3ac87894. The pytest job's own checkout is the proven shape: `fetch-depth: 0`,
+    # then a seeded local `main`, both BEFORE the gate runs.
+    steps = workflow["jobs"]["ship-gate"]["steps"]
+    checkout_idx, checkout = next(
+        (i, s) for i, s in enumerate(steps) if str(s.get("uses", "")).startswith("actions/checkout"))
+    assert checkout.get("with", {}).get("fetch-depth") == 0, \
+        "the ship-gate checkout must be a full clone (fetch-depth: 0)"
+    main_ref_idx = next(i for i, s in enumerate(steps)
+                        if "refs/heads/main" in str(s.get("run", ""))
+                        and "git branch main" in str(s.get("run", "")))
+    gate_idx = next(i for i, s in enumerate(steps) if "audit.py ship-gate" in str(s.get("run", "")))
+    assert checkout_idx < main_ref_idx < gate_idx, \
+        "the local main ref must be seeded after checkout and before the gate runs"
+
+
 def test_ship_gate_never_touches_an_existing_verdict_steps_continue_on_error(workflow):
     # "Do not": no `continue-on-error` added to an existing verdict step to turn a red green.
     # The pytest job's final verdict step and the ruff job's check step must still be

@@ -21,6 +21,19 @@
 
 ---
 
+### 2026-10-03 (a) - CC (Opus 5.5, integrator seat FOUNDATION): lane foundation-2-cheap-fixes merges -- five cheap reds fixed by their cause
+
+**Anchors:** `ad9f5acb` -- `worktree-foundation-2-cheap-fixes`, merged `--no-ff` through `epic/foundation-int-foundation-2-cheap-fixes`.
+
+**Did:**
+- Merged the lane (D1 doc-counts regenerated, D2/D9/D10 test environment leaks closed, J1 a full clone for the ship-gate job) and regenerated `docs/audits/README.md` on the merged tree.
+
+**Result:** the verdict is the integration branch's CI push run, test-level per leg against base run 37031390518 -- recorded in the integrator receipt `to-browser/SESSION-integrator-foundation-2026-10-03.md`.
+
+**Changes:** `.github/workflows/conductor.yml` (ship-gate checkout), `tests/test_codespace_admission.py`, `tests/test_conductor.py`, `tests/test_provision_sh.py`, `tests/test_surface_triage.py`, `ecosystem/doc-counts.md`, `docs/audits/2026-10-03-codex-foundation-2-cheap-fixes.md`, `docs/audits/README.md`.
+
+**Next:** lanes 1 and 3 of batch FOUNDATION; lane 4 waits on its release gate (a).
+
 ### 2026-10-02 (e) - CC (Opus 5.5, handoff seat): the 2026-10-02 architect handoff bundle lands, verified 37/37
 
 **Anchors:** `d3777ea8` -- `worktree-handoff-bundle-2026-10-02`, merged `--no-ff`.
