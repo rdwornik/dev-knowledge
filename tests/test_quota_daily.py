@@ -29,8 +29,16 @@ def _today() -> str:
     return datetime.now(timezone.utc).date().isoformat()
 
 
+@pytest.fixture(autouse=True)
+def _private_ledger_home(tmp_path, monkeypatch):
+    """The ledger lives in the per-user state home (R17 `private`, Done item 6), never in the
+    checkout under test -- and no witness here may touch the operator's real state directory,
+    so every test gets its own."""
+    monkeypatch.setenv(qd.qw.LEDGER_PATH_ENV, str(tmp_path / "state" / "QUOTA-READS.jsonl"))
+
+
 def _write_ledger_row(repo_root: Path, measured: str) -> None:
-    ledger = repo_root / "logs" / "QUOTA-READS.jsonl"
+    ledger = qd.qw.reads_ledger_path(repo_root)
     ledger.parent.mkdir(parents=True, exist_ok=True)
     row = {"group": "codespaces_core_hours", "cycle": "2026-09-01", "used": 1.0,
           "quota": 180.0, "pct": 0.01, "billed": False, "measured": measured}
@@ -118,6 +126,54 @@ def test_linked_worktree_sessionstart_leaves_the_tracked_tree_untouched(tmp_path
     assert fake.calls == []
 
     status = subprocess.run(["git", "-C", str(worktree), "status", "--porcelain"],
+                            capture_output=True, text=True, check=True)
+    assert status.stdout == ""
+
+
+def test_a_primary_sessionstart_and_its_worker_leave_the_tree_clean(tmp_path, monkeypatch):
+    """Done item 6: a SessionStart in the PRIMARY -- the claim, the detached worker landing a
+    ledger row -- leaves `git status --porcelain` empty. RED while the ledger was the tracked
+    `logs/QUOTA-READS.jsonl` (the worker's append dirtied the primary every session). The
+    checkout carries the hub's own `.gitignore`, so `logs/receipts/` (the claim) is judged by
+    the rule the real repo applies, not by a fixture that happens to ignore it."""
+    primary = tmp_path / "primary"
+    _init_repo(primary)
+    (primary / ".gitignore").write_text(
+        (REPO_ROOT / ".gitignore").read_text(encoding="utf-8"), encoding="utf-8")
+    subprocess.run(["git", "-C", str(primary), "add", ".gitignore"], check=True)
+    subprocess.run(["git", "-C", str(primary), "commit", "-q", "-m", "ignore"], check=True)
+
+    class _LandingWorker:
+        """spawn_worker that lets the REAL recorder land a row, as the detached worker does."""
+        def __init__(self):
+            self.landed = None
+
+        def spawn_worker(self, argv, cwd, env):
+            quota = qd.qw.SkuQuota(group="codespaces_core_hours", quota=180.0,
+                                   unit="core-hours", thresholds=(0.5, 0.8, 1.0),
+                                   account="rdwornik")
+            self.landed = qd.qw.reads_ledger_path(Path(cwd))
+            qd.qw.record_read(self.landed, "codespaces_core_hours", quota, 10.0,
+                              datetime(2026, 10, 1).date(), billed=False)
+            return True
+
+    # Review finding (Grok P2): the autouse override would make this pass even if the ledger
+    # still lived in the checkout. Drop it and redirect only the OS state directory, so the
+    # DEFAULT resolution -- the code path that decides where the ledger goes -- is what runs.
+    monkeypatch.delenv(qd.qw.LEDGER_PATH_ENV)
+    state_home = tmp_path / "os-state-home"
+    monkeypatch.setattr(qd.qw.platformdirs, "user_state_dir",
+                        lambda *a, **k: str(state_home))
+    monkeypatch.setattr(qd, "_REPO_ROOT", primary)
+    worker = _LandingWorker()
+    monkeypatch.setattr(qd, "_import_lane_end_guard", lambda: worker)
+
+    assert qd.main([]) == 0
+    assert worker.landed is not None and worker.landed.exists()   # a row really landed
+    assert worker.landed.parent == state_home                      # ...in the state home
+    assert primary not in worker.landed.resolve().parents          # ...outside the checkout
+
+    status = subprocess.run(["git", "-C", str(primary), "status", "--porcelain"],
                             capture_output=True, text=True, check=True)
     assert status.stdout == ""
 
@@ -229,7 +285,7 @@ def test_stale_running_claim_is_reaped_and_retried(tmp_path, monkeypatch, _assum
 
 def test_unreadable_ledger_fails_open(tmp_path, monkeypatch, capsys, _assume_primary_checkout):
     monkeypatch.setattr(qd, "_REPO_ROOT", tmp_path)
-    ledger = tmp_path / "logs" / "QUOTA-READS.jsonl"
+    ledger = qd.qw.reads_ledger_path(tmp_path)
     ledger.mkdir(parents=True)  # a directory where a file is expected -> read raises
 
     assert qd.main([]) == 0

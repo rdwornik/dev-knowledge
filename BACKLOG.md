@@ -725,6 +725,23 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1327] [P2][S] `agy` reports SUCCESS without an output file · tasks/1327-agy-reports-success-without-an-output-file.md
 - [#1331] [P1][L] The equilibrium's ruling register and cross-window state move into the repository · tasks/1331-the-equilibriums-ruling-register-and-cross-window-state-move-into-the-repository.md
 - [#1332] [P2][M] P11 and the paste builder treat superseded decision files as discharged · tasks/1332-p11-and-the-paste-builder-treat-superseded-decision-files-as-discharged.md
+- [#1333] [P2][S] logs/QUOTA-READS.jsonl is tracked and dirty in every primary session; its home is per-user state · tasks/1333-logs-quota-reads-jsonl-is-tracked-and-dirty-in-e.md
+- [#1334] [P2][M] The rclone Drive token expires every 7 days and nothing in the harness tracks it · tasks/1334-the-rclone-drive-token-expires-every-7-days-and.md
+- [#1335] [P2][M] Codespace parity: a lane there works only when one task meets five parity items, and none has been measured · tasks/1335-codespace-parity-a-lane-there-works-only-when-on.md
+- [#1336] [P3][S] The integrator template says "repair N of 2" and "a lane refused twice is FAILED" two lines apart · tasks/1336-the-integrator-template-says-repair-n-of-2-and-a.md
+- [#1337] [P2][S] No step tears down the integrator's own worktree, branch, job and claim · tasks/1337-no-step-tears-down-the-integrator-s-own-worktree.md
+- [#1338] [P2][S] The batch template says no scheduled wake-ups; the batch practice is CronCreate and never ScheduleWakeup · tasks/1338-the-batch-template-says-no-scheduled-wake-ups-th.md
+- [#1339] [P3][S] P8a: a SUPPLEMENT answer cites a ruling, not a path · tasks/1339-p8a-a-supplement-answer-cites-a-ruling-not-a-pat.md
+- [#1340] [P2][S] tests/test_boot_retrieval.py: the tracked boot base is 41,174 B against a 40,000 B ceiling and still growing · tasks/1340-tests-test-boot-retrieval-py-the-tracked-boot-ba.md
+- [#1341] [P2][S] tests/test_generator_newlines.py: 15 text writes in scripts/ inherit platform newline translation, and the count is growing · tasks/1341-tests-test-generator-newlines-py-15-text-writes.md
+- [#1342] [P2][S] tests/test_floor_mechanisms.py: the test expects 21 plain floor components and the manifest declares 23 · tasks/1342-tests-test-floor-mechanisms-py-the-test-expects.md
+- [#1343] [P2][S] The graph-spine orphan census names .claude/commands/decide.md, which no wiring surface reaches · tasks/1343-the-graph-spine-orphan-census-names-claude-comma.md
+- [#1344] [P2][S] Two graph-spine lock tests flake on the windows runner · tasks/1344-two-graph-spine-lock-tests-flake-on-the-windows.md
+- [#1345] [P2][S] The desired-state schema lags the parity surfaces: a settings_hook_script probe type is not in its enum · tasks/1345-the-desired-state-schema-lags-the-parity-surface.md
+- [#1346] [P2][S] The surface_triage SessionStart hook has no stated posture in bounded_hook · tasks/1346-the-surface-triage-sessionstart-hook-has-no-stat.md
+- [#1347] [P2][S] Three tests fail on both CI legs with a symptom and an unread cause: anchor probe, plugin paths, archive records · tasks/1347-three-tests-fail-on-both-ci-legs-with-a-symptom.md
+- [#1348] [P2][S] Four tests expect one finding and read three or four: doc-code edge, reverse-dep oracle, preflight predicates · tasks/1348-four-tests-expect-one-finding-and-read-three-or.md
+- [#1349] [P2][S] release-lint: the floor spec pin does not match its sidecar, and five tests read it · tasks/1349-release-lint-the-floor-spec-pin-does-not-match-i.md
 
 ---
 

@@ -84,7 +84,7 @@ organ still files nothing).
 
 1. Re-run the connection walk on `main`; run `moment:batch-close` with `HARNESS_BATCH=<BATCH>`.
 2. **Cost line (R7, F3):** `uv run --locked python scripts/quota_watch.py record` (appends
-   `logs/QUOTA-READS.jsonl`, writes a `QUOTA-WARN-<date>.md` on any crossing), then `uv run
+   the per-user ledger `QUOTA-READS.jsonl` in the OS state directory, writes a `QUOTA-WARN-<date>.md` on any crossing), then `uv run
    --locked python scripts/quota_watch.py line --cloud-sessions <n>` (`<n>` from `claude agents
    --json`) for the digest's `[quota]` line — both if `lane-quota-watch` is MERGED; otherwise by
    hand, each figure with its own command — Codespaces core-hours used/remaining, Actions

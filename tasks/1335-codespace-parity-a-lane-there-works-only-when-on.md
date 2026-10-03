@@ -1,0 +1,12 @@
+---
+id: "[#1335]"
+title: "Codespace parity: a lane there works only when one task meets five parity items, and none has been measured"
+status: open
+priority: P2
+size: M
+theme: "[E10] Batch convergence"
+story: "[S28] File every owed item with in-repo provenance"
+generates: BACKLOG.md
+---
+
+- [#1335] [P2][M] **Codespace parity: a lane there works only when one task meets five parity items, and none has been measured** - `CODESPACE-PARITY-DEFINITION-2026-10-03` (transport) defines it as an outcome test: one real task run once in a Codespace and once in a local worktree from the same base sha must agree on (1) environment -- Python version, `uv.lock` hash and `uv sync --locked` exit, versions of `claude`, `gh`, `codex`, `agy`, the hook set; (2) gates -- the same pre-commit, pre-push, ship-gate organs and pytest selection with the same verdicts; (3) landing -- the same integrator, local `--no-ff` merge and CI push verdict; (4) transport -- Drive access or an explicit statement that the handback travels by git; (5) cleanup and cost -- no codespace or branch left, core-hours recorded. One lifecycle has been witnessed (L9); parity has not, and the environment is known to change verdicts (about 19 of 28 ship-gate hard-fails came from the CI machine). Until GREEN no Codespace lane is dispatched · Done when: a repository test builds the five-item manifest in each environment and compares them with declared OS-specific entries, it is run RED first today and every failing item is filed as its own row, and it is GREEN before any Codespace lane is dispatched · touches: `scripts/dispatch.py`, `scripts/codespace_admission.py`, tests · kill-candidates: none -- no open row defines Codespace parity as a test (the substrate rows [#593], [#618], [#632] repair the image and the clone, not the parity verdict) · refs `scripts/codespace_admission.py`, `scripts/dispatch.py`, ADR-127, [#593], [#632] · source: batch FOUNDATION lane foundation-1-honest-green (2026-10-03)

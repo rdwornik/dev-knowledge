@@ -559,6 +559,11 @@ _ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 # id may embed one (batch-Z close packet "Defect three"), and `\S+` truncated it into a false
 # REGRESSION that no frozen roster entry could ever match.
 _FAILED_LINE_RE = re.compile(r"^(?:FAILED|ERROR)\s+(.+?)(?:\s+-\s.*)?$")
+# What a captured pytest id looks like: a `.py` path, optionally `::` and a test name. A
+# `logging` record that pytest echoes under "Captured log" (`ERROR    <logger>:<file>.py:<line>
+# <message>`) shares the `ERROR` prefix but its first token carries a `:` before the path
+# ends, so it never matches -- DCT D3, `to-browser/DIGEST-CI-TRIAGE-2026-10-03.md`.
+_FAILED_ID_RE = re.compile(r"^[\w./-]+\.py(?:::\S.*)?$")
 
 
 def parse_suite_baseline(text: str) -> dict:
@@ -606,12 +611,15 @@ def parse_failed_node_ids(pytest_output: str) -> frozenset[str]:
     pytest's stable short-summary output, printed with `-q` and unaffected by xdist (workers
     report to the controller, which prints one summary). ANSI is stripped defensively; a
     non-tty CI pipe does not emit it, but a caller running this by hand in a terminal might.
+
+    Only a node-id-shaped capture counts (`_FAILED_ID_RE`): the `ERROR`-prefixed lines of a
+    failing test's captured-log section are not failures and are never returned.
     """
     ids = []
     for raw in pytest_output.splitlines():
         line = _ANSI_RE.sub("", raw).strip()
         m = _FAILED_LINE_RE.match(line)
-        if m:
+        if m and _FAILED_ID_RE.match(m.group(1)):
             ids.append(m.group(1))
     return frozenset(ids)
 

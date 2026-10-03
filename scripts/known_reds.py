@@ -43,6 +43,22 @@ WHAT THIS MODULE ADDS, on top of `logs/SUITE-BASELINE-FREEZE.md`'s node-id-membe
      registry" becomes one registry that can still refuse to vouch for a member it cannot
      explain.
 
+  5. **Every entry is owned, dated and tied to a row** (schema `/2`, foundation-1-honest-green,
+     R52 Q2: "every current known-red gets its own row with a task id. The known-reds registry
+     refuses an entry without one"). Each entry of `members`, `members_by_os` and `hooks` carries
+     a `task` (`[#N]`, an open row), an `owner` and an `expiry` (ISO date); `load_registry`
+     refuses a registry with an entry that lacks one of the three, or whose expiry has passed
+     -- without them "known red" means "forgotten red".
+  6. **A growing known failure is registered under a ceiling** (AM2-3, DCT section 1: "re-signing
+     would launder them"). An entry may carry `ceiling: {pattern, max}` -- `pattern` has one
+     `(?P<n>...)` group reading the measured number out of the failure text -- and `growth:
+     {from, to, commits}` stating how it got there. `compare` treats a value above `max` as a
+     regression, a failure that no longer reads as the registered one as a changed signature,
+     and a value below `max` as slack the next `refresh` takes back (a ceiling only comes down).
+
+Prior art (library-first): stdlib `re`, `json`, `datetime` -- the registry stays one JSON file
+read by one CLI, so no dependency is added.
+
 THE REGISTRY IS COMMITTED, THE BATCH REGISTRY IS NOT. `scripts/test_pairing.py`'s
 `TEST-PAIRING-REGISTRY-<BATCH>.json` is gitignored and per-batch by design (recording it twice
 would launder a lane's red into "pre-existing" for every OTHER lane of that batch -- see that
@@ -67,6 +83,7 @@ younger than the comparison range's start.
 from __future__ import annotations
 
 import argparse
+import datetime
 import hashlib
 import json
 import os
@@ -81,9 +98,21 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import conductor  # noqa: E402 -- parse_failed_node_ids is the shared, tested extractor
 
-SCHEMA = "known-reds-registry/1"
+#: `/2` adds the three R52-Q2 fields to every entry (and the optional `ceiling` / `growth` pair).
+#: A `/1` file cannot carry them, so it is refused with a pointer here, never half-read.
+SCHEMA = "known-reds-registry/2"
+LEGACY_SCHEMA = "known-reds-registry/1"
 REGISTRY_PATH = "logs/KNOWN-REDS-REGISTRY.json"
 EXIT_UNCOMPARABLE = 2
+
+#: The fields every entry carries (R52 Q2): the row that owns the red, who answers for it, and
+#: the date after which the registry refuses to vouch for it.
+OWNED_FIELDS = ("task", "owner", "expiry")
+_TASK_RE = re.compile(r"^\[#\d+\]$")
+
+#: A red that comes and goes on the same sha (DCT D11) -- the cause is timing, not a commit, so
+#: there is no `first_bad_sha` to bisect to. Like `ENVIRONMENT_MISMATCH`, an attribution class.
+FLAKY = "flaky"
 
 WITNESS = "witness"
 PRE_FREEZE = "pre-freeze"
@@ -114,6 +143,127 @@ WITNESS_MEMBERS = (
 
 class KnownRedsError(RuntimeError):
     """The organ could not produce a verdict (as opposed to producing a red verdict)."""
+
+
+# --- ownership (R52 Q2) and ceilings (AM2-3) -------------------------------------------------
+
+def _ceiling_value(ceiling: dict, text: str) -> int | None:
+    """The number the ceiling's `(?P<n>...)` group reads out of a failure text, or `None` when
+    the text no longer reads as the registered failure (a changed failure, not a bigger one)."""
+    m = re.search(ceiling["pattern"], text)
+    if not m:
+        return None
+    try:
+        return int(m.group("n").replace(",", ""))
+    except ValueError:
+        return None
+
+
+def _mask_ceiling(ceiling: dict, text: str) -> str:
+    """`text` with the ceiling's measured number masked, so two readings of the same failure at
+    different values compare equal everywhere except the number the ceiling already judges."""
+    m = re.search(ceiling["pattern"], text)
+    if not m:
+        return text
+    start, end = m.span("n")
+    return text[:start] + "<N>" + text[end:]
+
+
+def _judge_ceiling(entry: dict, current_signature: str | None) -> str:
+    """One ceiling entry against this run: `ok` | `slack` | `exceeded` | `changed`.
+
+    `changed` covers both "reads differently" and "cannot be read" -- a ceiling that cannot be
+    checked fails closed (R59), it never passes by default."""
+    ceiling = entry["ceiling"]
+    if not current_signature:
+        return "changed"
+    value = _ceiling_value(ceiling, current_signature)
+    if value is None:
+        return "changed"
+    if value > ceiling["max"]:
+        return "exceeded"
+    registered = entry.get("signature")
+    if registered and (normalize_signature(_mask_ceiling(ceiling, registered))
+                       != normalize_signature(_mask_ceiling(ceiling, current_signature))):
+        return "changed"
+    return "slack" if value < ceiling["max"] else "ok"
+
+
+def _ceiling_problems(label: str, entry: dict) -> list[str]:
+    ceiling = entry.get("ceiling")
+    if ceiling is None:
+        return []
+    if not isinstance(ceiling, dict):
+        return [f"{label}: ceiling is not an object"]
+    problems: list[str] = []
+    try:
+        compiled = re.compile(ceiling.get("pattern"))
+    except (re.error, TypeError):
+        problems.append(f"{label}: ceiling pattern does not compile")
+    else:
+        if "n" not in compiled.groupindex:
+            problems.append(f"{label}: ceiling pattern has no (?P<n>...) group")
+    ceiling_max = ceiling.get("max")
+    if not isinstance(ceiling_max, int) or isinstance(ceiling_max, bool) or ceiling_max < 0:
+        problems.append(f"{label}: ceiling max {ceiling_max!r} is not a non-negative integer")
+    growth = entry.get("growth")
+    if not isinstance(growth, dict) or any(growth.get(k) in (None, "") for k in
+                                           ("from", "to", "commits")):
+        problems.append(f"{label}: a ceiling states its growth -- growth.from, growth.to and "
+                        "growth.commits (AM2-3: re-recording a larger value with no stated "
+                        "growth is laundering)")
+    else:
+        try:
+            growth_to = int(str(growth["to"]).replace(",", ""))
+        except ValueError:
+            problems.append(f"{label}: growth.to {growth['to']!r} is not an integer")
+        else:
+            if isinstance(ceiling_max, int) and not isinstance(ceiling_max, bool) \
+                    and ceiling_max > growth_to:
+                problems.append(f"{label}: ceiling max {ceiling_max:,} is above the growth it "
+                                f"states (growth.to {growth_to:,}) -- a ceiling only comes down")
+    return problems
+
+
+def _entry_problems(label: str, entry, today: datetime.date) -> list[str]:
+    """Everything wrong with one registry entry; empty when it is owned, dated and in date."""
+    if not isinstance(entry, dict):
+        return [f"{label}: not an object"]
+    problems: list[str] = []
+    for name in OWNED_FIELDS:
+        value = entry.get(name)
+        if not isinstance(value, str) or not value.strip():
+            problems.append(f"{label}: no {name}")
+    task = entry.get("task")
+    if isinstance(task, str) and task.strip() and not _TASK_RE.match(task):
+        problems.append(f"{label}: task {task!r} is not a row id like [#912]")
+    expiry = entry.get("expiry")
+    if isinstance(expiry, str) and expiry.strip():
+        try:
+            due = datetime.date.fromisoformat(expiry)
+        except ValueError:
+            problems.append(f"{label}: expiry {expiry!r} is not an ISO date (YYYY-MM-DD)")
+        else:
+            if due < today:
+                problems.append(f"{label}: EXPIRED {expiry} (task {task}) -- fix it, or "
+                                "re-date it by a recorded ruling; the registry does not "
+                                "vouch for it past its date")
+    return problems + _ceiling_problems(label, entry)
+
+
+def registry_problems(registry: Registry, today: datetime.date | None = None) -> list[str]:
+    """Every entry of every bucket that is not owned, dated and in date (R52 Q2)."""
+    today = today or datetime.date.today()
+    problems: list[str] = []
+    for node_id in sorted(registry.members):
+        problems += _entry_problems(f"members[{node_id}]", registry.members[node_id], today)
+    for os_key in sorted(registry.members_by_os):
+        for node_id in sorted(registry.members_by_os[os_key]):
+            problems += _entry_problems(f"members_by_os[{os_key}][{node_id}]",
+                                        registry.members_by_os[os_key][node_id], today)
+    for hook_id in sorted(registry.hooks):
+        problems += _entry_problems(f"hooks[{hook_id}]", registry.hooks[hook_id], today)
+    return problems
 
 
 # --- baseline identity --------------------------------------------------------------------
@@ -180,6 +330,11 @@ class Registry:
 
     @classmethod
     def from_json(cls, data: dict, source: str) -> Registry:
+        if data.get("schema") == LEGACY_SCHEMA:
+            raise KnownRedsError(
+                f"{source}: schema {LEGACY_SCHEMA!r} predates R52 Q2 -- its entries carry no "
+                f"task, owner or expiry, so none of them can be vouched for. Migrate it to "
+                f"{SCHEMA!r}: every entry names its open row, an owner and an expiry")
         if data.get("schema") != SCHEMA:
             raise KnownRedsError(f"{source}: schema {data.get('schema')!r}, expected {SCHEMA!r}")
         try:
@@ -194,7 +349,18 @@ class Registry:
             raise KnownRedsError(f"{source}: malformed registry field: {exc}") from exc
 
 
-def load_registry(path: Path) -> Registry:
+def _refusal(source: str, problems: list[str]) -> KnownRedsError:
+    shown = problems[:40]
+    more = f"\n  ... and {len(problems) - len(shown)} more" if len(problems) > len(shown) else ""
+    return KnownRedsError(
+        f"{source}: {len(problems)} problem(s) -- R52 Q2: every entry carries a task, an owner "
+        "and an expiry, and none is past its date:\n  " + "\n  ".join(shown) + more)
+
+
+def load_registry(path: Path, *, today: datetime.date | None = None) -> Registry:
+    """The committed registry, or `KnownRedsError`. Refuses (R52 Q2) a registry holding an
+    entry with no task, owner or expiry, an expired entry, or a malformed ceiling -- a
+    registry that cannot vouch for each entry is not one to judge a run against."""
     if not path.is_file():
         raise KnownRedsError(f"no registry at {path}: an absent registry must not read as "
                              "'nothing is known' -- run `refresh` first")
@@ -202,7 +368,11 @@ def load_registry(path: Path) -> Registry:
         data = json.loads(path.read_text(encoding="utf-8"))
     except ValueError as exc:
         raise KnownRedsError(f"{path}: not valid JSON: {exc}") from exc
-    return Registry.from_json(data, str(path))
+    registry = Registry.from_json(data, str(path))
+    problems = registry_problems(registry, today)
+    if problems:
+        raise _refusal(str(path), problems)
+    return registry
 
 
 def write_registry(path: Path, registry: Registry) -> None:
@@ -215,7 +385,8 @@ def write_registry(path: Path, registry: Registry) -> None:
 
 def refresh(*, failed: frozenset, workers: int, commit: str, measured_via: str, date: str,
             attribution: dict, previous: Registry | None, os_key: str | None = None,
-            signatures: dict | None = None) -> tuple[Registry, list[str]]:
+            signatures: dict | None = None,
+            today: datetime.date | None = None) -> tuple[Registry, list[str]]:
     """Build the next registry. `attribution` supplies evidence for ids not already carried
     from `previous` (each value is `{"attribution": ...}` or `{"attribution": ..., "reason":
     ...}`). Returns (registry, dropped) where `dropped` lists previous members no longer
@@ -239,6 +410,11 @@ def refresh(*, failed: frozenset, workers: int, commit: str, measured_via: str, 
     `signatures` ({node_id: text}, from `extract_failure_signatures`) fills a NEW member's
     `signature` field (carried-forward or attributed) only when that member does not already
     carry one -- never overwrites an existing recorded signature.
+
+    R52 Q2 / AM2-3: every member written must carry a `task`, an `owner` and an in-date
+    `expiry` (a NEW red supplies them in its `attribution` value), and a carried member with a
+    `ceiling` is held to it -- measured ABOVE the ceiling is a refusal (growth never rides in on
+    a refresh), measured below LOWERS the ceiling (it only comes down).
     """
     signatures = signatures or {}
     shared_prev = dict(previous.members) if previous else {}
@@ -247,9 +423,11 @@ def refresh(*, failed: frozenset, workers: int, commit: str, measured_via: str, 
     prev_pool = shared_prev if os_key is None else {**shared_prev, **prev_os_bucket}
     members: dict = {}
     missing: list[str] = []
+    exceeded: list[str] = []
     for node_id in failed:
         if node_id in WITNESS_MEMBERS:
-            members[node_id] = {"attribution": WITNESS,
+            members[node_id] = {**prev_pool.get(node_id, {}), **attribution.get(node_id, {}),
+                                "attribution": WITNESS,
                                 "reason": "[#664] commit-tier witness -- deliberately never "
                                           "frozen; a run showing it is expected, not a surprise"}
         elif node_id in prev_pool:
@@ -263,6 +441,16 @@ def refresh(*, failed: frozenset, workers: int, commit: str, measured_via: str, 
                     entry["signature"] = normalize_signature(signatures[node_id])
             elif "signature" not in entry and node_id in signatures:
                 entry["signature"] = normalize_signature(signatures[node_id])
+            ceiling = entry.get("ceiling")
+            if isinstance(ceiling, dict) and node_id in signatures:
+                measured = _ceiling_value(ceiling, signatures[node_id])
+                if measured is None:
+                    exceeded.append(f"{node_id}: no longer reads as the registered failure "
+                                    f"(`{ceiling['pattern']}` finds no number)")
+                elif measured > ceiling["max"]:
+                    exceeded.append(f"{node_id}: measured {measured:,}, ceiling {ceiling['max']:,}")
+                elif measured < ceiling["max"]:
+                    entry["ceiling"] = {**ceiling, "max": measured}
             members[node_id] = entry
         elif node_id in attribution:
             entry = dict(attribution[node_id])
@@ -276,6 +464,20 @@ def refresh(*, failed: frozenset, workers: int, commit: str, measured_via: str, 
             "refresh refused: " + str(len(missing)) + " currently-failing id(s) are neither "
             "carried from the previous registry nor attributed in --attribution -- a refresh "
             "never adds an unattributed red:\n  " + "\n  ".join(sorted(missing)))
+    if exceeded:
+        raise KnownRedsError(
+            "refresh refused: " + str(len(exceeded)) + " known failure(s) grew past, or no "
+            "longer read as, their ceiling -- growth is a regression to fix, never a value "
+            "to re-record "
+            "(AM2-3):\n  " + "\n  ".join(sorted(exceeded)))
+    owned_today = today or datetime.date.today()
+    unowned = [problem for node_id in sorted(members)
+               for problem in _entry_problems(node_id, members[node_id], owned_today)]
+    if unowned:
+        raise KnownRedsError(
+            "refresh refused: " + str(len(unowned)) + " member(s) are not owned and dated "
+            "(R52 Q2 -- a new red's `attribution` value supplies task, owner and expiry):\n  "
+            + "\n  ".join(unowned))
 
     prev_by_os = dict(previous.members_by_os) if previous else {}
     if os_key is None:
@@ -321,10 +523,16 @@ def compare(failed: frozenset, registry: Registry, *, workers: int,
     `os_key`, when given, merges `registry.members_by_os.get(os_key, {})` on top of the shared
     `registry.members` (the OS-specific entry wins on a shared key) -- omitted, behaviour is
     identical to the pre-D2 comparator.
+
+    AM2-3 (foundation-1-honest-green): an entry carrying a `ceiling` is judged by its measured
+    number, not by exact signature equality. A value above `ceiling.max` is a regression (in
+    `ceiling_exceeded`); a failure that no longer reads as the registered one -- or one with no
+    signature supplied to read -- is a changed signature (fail closed); a value below the
+    ceiling passes and is listed in `ceiling_slack` so the next `refresh` lowers it.
     """
     base = {"baseline_id": registry.baseline_id, "os_key": os_key}
     empty = {"regressions": [], "pre_existing": [], "witnesses": [], "unattributed": [],
-            "signature_changed": []}
+            "signature_changed": [], "ceiling_exceeded": [], "ceiling_slack": []}
     if pytest_exit is not None and pytest_exit not in (0, 1):
         return {**base, "verdict": "fail",
                 "reason": f"NOT COMPARABLE -- pytest itself exited {pytest_exit}", **empty}
@@ -342,6 +550,8 @@ def compare(failed: frozenset, registry: Registry, *, workers: int,
     witnesses: list[str] = []
     unattributed: list[str] = []
     signature_changed: list[str] = []
+    ceiling_exceeded: list[str] = []
+    ceiling_slack: list[str] = []
     for node_id in sorted(failed):
         entry = known.get(node_id)
         if entry is None:
@@ -357,6 +567,19 @@ def compare(failed: frozenset, registry: Registry, *, workers: int,
             continue
         registered_sig = entry.get("signature")
         current_sig = signatures.get(node_id)
+        if isinstance(entry.get("ceiling"), dict):
+            judged = _judge_ceiling(entry, current_sig)
+            if judged == "exceeded":
+                ceiling_exceeded.append(node_id)
+                regressions.append(node_id)
+            elif judged == "changed":
+                signature_changed.append(node_id)
+                regressions.append(node_id)
+            else:
+                pre_existing.append(node_id)
+                if judged == "slack":
+                    ceiling_slack.append(node_id)
+            continue
         if (registered_sig and current_sig
                 and normalize_signature(registered_sig) != normalize_signature(current_sig)):
             signature_changed.append(node_id)
@@ -366,7 +589,8 @@ def compare(failed: frozenset, registry: Registry, *, workers: int,
 
     result_lists = {"regressions": sorted(regressions), "pre_existing": pre_existing,
                     "witnesses": witnesses, "unattributed": unattributed,
-                    "signature_changed": signature_changed}
+                    "signature_changed": signature_changed,
+                    "ceiling_exceeded": ceiling_exceeded, "ceiling_slack": ceiling_slack}
     if regressions:
         return {**base, "verdict": "fail",
                 "reason": f"REGRESSION -- {len(regressions)} failure(s) not in the registry "
@@ -393,7 +617,7 @@ def extract_failure_signatures(pytest_output: str) -> dict:
     for raw in pytest_output.splitlines():
         line = _ANSI_RE.sub("", raw).strip()
         m = _FAILED_LINE_WITH_REASON_RE.match(line)
-        if m and m.group(2):
+        if m and m.group(2) and conductor._FAILED_ID_RE.match(m.group(1).strip()):
             signatures[m.group(1).strip()] = m.group(2).strip()
     return signatures
 
@@ -556,6 +780,16 @@ def render_compare(result: dict) -> str:
                      f"{len(result['signature_changed'])}")
         for nid in result["signature_changed"]:
             lines.append(f"  SIG-CHANGED   {nid}")
+    if result.get("ceiling_exceeded"):
+        lines.append(f"grew past its ceiling (AM2-3 -- a growing red is a regression): "
+                     f"{len(result['ceiling_exceeded'])}")
+        for nid in result["ceiling_exceeded"]:
+            lines.append(f"  OVER-CEILING  {nid}")
+    if result.get("ceiling_slack"):
+        lines.append(f"below its ceiling (run `refresh` to lower it): "
+                     f"{len(result['ceiling_slack'])}")
+        for nid in result["ceiling_slack"]:
+            lines.append(f"  SLACK         {nid}")
     lines.append("")
     lines.append(f"verdict        : {result['verdict'].upper()} -- {result['reason']}")
     return "\n".join(lines)
@@ -761,7 +995,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "refresh":
         text = Path(args.pytest_output).read_text(encoding="utf-8", errors="replace")
         failed = conductor.parse_failed_node_ids(text)
-        previous = load_registry(root / args.previous) if args.previous else None
+        try:
+            previous = load_registry(root / args.previous) if args.previous else None
+        except KnownRedsError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
         if previous is not None:
             try:
                 _git(root, "merge-base", "--is-ancestor", previous.measured_at_sha, args.commit)
