@@ -1088,6 +1088,10 @@ BOOT_POINTERS = {
 #: Rows that name a file IN the bundle itself: `docs/handoffs/<this bundle>/<file>`.
 BOOT_SELF_POINTERS = {"Probes": "PROBES.md", "Receipt": RECEIPT_FILE}
 _BOOT_DATA_ERA = "2026-09-25"
+#: A ruled row is owed only by a bundle cut on/after the row's era: a committed bundle is immutable,
+#: so a row added later cannot be asked of it. Rows absent here predate `_BOOT_DATA_ERA`.
+_ROW_ERA = {"Landed": "2026-10-03", "Decisions": "2026-10-03", "Dates": "2026-10-03",
+            "Models": "2026-10-03"}
 _BOOT_FILE = "HANDOFF_BOOT.md"
 _BOLD_KEY_RE = re.compile(r"\A\*\*(?P<key>[^*]+)\*\*\Z")
 _HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
@@ -1764,7 +1768,7 @@ def verify_boot(bundle_path, repo_root) -> list[ProbeResult]:
         results.append(ProbeResult(f"BD-{boot_data_id(key)}", status,
                                    f"{key}: {detail}".replace("|", "/"), name))
     for key in BOOT_DATA_RULES:
-        if key not in ctx.rows:
+        if key not in ctx.rows and bundle_at_or_after(name, _ROW_ERA.get(key, _BOOT_DATA_ERA)):
             results.append(ProbeResult(f"BD-{boot_data_id(key)}", "fail",
                                        f"{key}: the DATA block omits this ruled row", name))
     # lane-handoff-min (Part A): the manifest integrity check, once per bundle (not per row) —

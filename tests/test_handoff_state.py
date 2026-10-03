@@ -798,3 +798,15 @@ def test_verify_published_refuses_a_manifest_key_that_escapes_the_dest(tmp_path,
     receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
     with pytest.raises(gh.ManifestPathError, match="evil.txt"):
         gh.verify_published(bundle_dir, tmp_path / "scratch-transport")
+
+
+def test_a_bundle_cut_before_a_rows_era_is_not_asked_for_it():
+    # A committed bundle is immutable: the four rows added 2026-10-03 cannot be owed by the
+    # 2026-10-02 bundle, so its absence of them is not a "the DATA block omits this ruled row" FAIL.
+    repo = Path(__file__).resolve().parents[1]
+    bundle = repo / "docs" / "handoffs" / "2026-10-02-dev-knowledge-architect"
+    assert bundle.is_dir(), bundle
+    omitted = [r for r in vhp.verify_boot(bundle, repo) if "omits this ruled row" in r.detail]
+    assert not omitted, [r.probe_id for r in omitted]
+    assert not vhp.bundle_at_or_after(bundle.name, vhp._ROW_ERA["Landed"])
+    assert vhp.bundle_at_or_after("2026-10-03-dev-knowledge-architect", vhp._ROW_ERA["Models"])
