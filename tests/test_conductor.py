@@ -479,9 +479,26 @@ def test_the_pytest_job_distributes_by_group_so_a_marked_module_stays_on_one_wor
     # blocked worker is a slot lost to the rest of the suite. `--dist loadgroup` is what makes
     # the marker real; the worker count stays the freeze's pin (the test above).
     step = next(s for s in workflow["jobs"]["pytest"]["steps"] if s.get("id") == "run")
-    run_text = str(step["run"])
-    assert "--dist loadgroup" in run_text
-    assert "-n 4" in run_text
+    command = _executable_lines(str(step["run"]))
+    assert "--dist loadgroup" in command
+    assert "-n 4" in command
+
+
+def _executable_lines(run_text: str) -> str:
+    """The `run:` block without its shell comments: a pin on a flag must read the command, not
+    the comment that explains the flag (the comment names the flag too)."""
+    return "\n".join(ln for ln in run_text.splitlines() if not ln.lstrip().startswith("#"))
+
+
+def test_the_group_pin_reads_the_command_and_not_the_comment_that_names_the_flag():
+    # RED-first witness for the review's P1: with the flag removed from the command and kept
+    # in its comment, the pin must still fail.
+    removed = ("set +e\n# `--dist loadgroup` keeps the module on one worker\n"
+               "uv run --locked pytest -q --tb=short -n 4 2>&1 | tee pytest.out\n")
+    assert "--dist loadgroup" in removed, "the comment alone would satisfy a whole-text pin"
+    assert "--dist loadgroup" not in _executable_lines(removed)
+    present = removed.replace("-n 4", "-n 4 --dist loadgroup")
+    assert "--dist loadgroup" in _executable_lines(present)
 
 
 # --- the workflow and the ruleset must agree ------------------------------------------

@@ -148,8 +148,9 @@ jobs:
           # `--dist loadgroup` (foundation-6): the worker count stays the freeze's pin; only the
           # distribution mode changes, so the `xdist_group` that tests/test_connection_loop.py
           # already carries keeps that lock-serialized module on ONE worker instead of leaving
-          # up to three workers blocked on its lock file. Measured: Linux test step ~-45 s, same
-          # failing set; Windows no measurable change (docs/audits/2026-10-03-codex-foundation-6-ci-speed.md).
+          # up to three workers blocked on its lock file. Measured (paired round): Linux test step
+          # about -45 s on the same failing set; Windows no measurable change (the record:
+          # docs/audits/2026-10-03-codex-foundation-6-ci-speed.md).
           uv run --locked pytest -q --tb=short -n 4 --dist loadgroup 2>&1 | tee pytest.out
           echo "exit=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
       - name: Judge the run against the frozen baseline, by node id ([#802])
