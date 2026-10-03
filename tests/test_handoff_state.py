@@ -810,3 +810,15 @@ def test_a_bundle_cut_before_a_rows_era_is_not_asked_for_it():
     assert not omitted, [r.probe_id for r in omitted]
     assert not vhp.bundle_at_or_after(bundle.name, vhp._ROW_ERA["Landed"])
     assert vhp.bundle_at_or_after("2026-10-03-dev-knowledge-architect", vhp._ROW_ERA["Models"])
+
+
+def test_a_bundle_cut_in_or_after_a_rows_era_is_failed_for_omitting_it(tmp_path):
+    # The other half of the era rule: a 2026-10-03+ bundle whose DATA block lacks the four new
+    # rows FAILs by name, so the era gate narrows the demand and does not switch it off.
+    repo = Path(__file__).resolve().parents[1]
+    old = repo / "docs" / "handoffs" / "2026-10-02-dev-knowledge-architect" / "HANDOFF_BOOT.md"
+    bundle = tmp_path / "2026-10-03-dev-knowledge-architect"
+    bundle.mkdir()
+    (bundle / "HANDOFF_BOOT.md").write_text(old.read_text(encoding="utf-8"), encoding="utf-8")
+    omitted = {r.probe_id for r in vhp.verify_boot(bundle, repo) if "omits this ruled row" in r.detail}
+    assert omitted == {"BD-landed", "BD-decisions", "BD-dates", "BD-models"}, omitted

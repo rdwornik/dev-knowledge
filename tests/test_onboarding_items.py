@@ -74,15 +74,18 @@ def evaluate(boot: str, rows: "dict[str, str]") -> "dict[int, tuple[bool, str]]"
     out[1] = ("R47.1" in boot and "R41" in boot and "junior" not in low
               and bool(re.search(r"reads? no code|does not read code", low)),
               "HANDOFF_BOOT names R41 + R47.1, the browser reads no code, and no 'junior'")
-    out[2] = ("R46.4" in boot and "freeze" in low and "Batches" in rows,
-              "R46.4 feature freeze in HANDOFF_BOOT + the generated Batches row")
+    out[2] = ("R46.4" in boot and "freeze" in low and "master plan" in low and "Batches" in rows,
+              "the master-plan pointer + R46.4 feature freeze in HANDOFF_BOOT + the generated Batches row")
     out[3] = ("STATE-BATCH" in boot and "idle" in low and "CI" in rows,
               "STATE-BATCH/digest sources + 'idle' caveat in HANDOFF_BOOT + the CI row")
-    out[4] = ("dispatch.py launch --help" in boot and "names its target" in low,
-              "launcher --help pointer + 'names its target' (paste addressing)")
+    out[4] = ("dispatch.py launch --help" in boot and "names its target" in low
+              and "seat order" in low and "queue" in low and "render" in low,
+              "launcher --help pointer, seat order, render, queue + 'names its target' (paste addressing)")
     sec5 = _section(boot, "What the harness does not do by itself")
-    out[5] = (len(re.findall(r"(?m)^- ", sec5)) >= 4,
-              f"section 'What the harness does not do by itself' with {len(re.findall(r'(?m)^- ', sec5))} bullets")
+    out[5] = (len(re.findall(r"(?m)^- ", sec5)) >= 4
+              and all(t in sec5.lower() for t in ("registry", "manual_until", "daemon", "usage limit")),
+              f"section 'What the harness does not do by itself' with {len(re.findall(r'(?m)^- ', sec5))} bullets"
+              " naming registry-at-launch, manual_until, the daemon resume and usage limits")
     out[6] = ("Rulings" in rows and "Landed" in rows and "STANDING_RULINGS.md" in boot
               and not re.search(r"R1\s?[–-]\s?R\d+", boot) and bool(re.search(r"R\d+", _row(rows, "Landed"))),
               "Rulings + Landed rows, a STANDING_RULINGS.md pointer, and no hard-coded range in the prose")
@@ -97,7 +100,8 @@ def evaluate(boot: str, rows: "dict[str, str]") -> "dict[int, tuple[bool, str]]"
                "'quotes the code line' (no-assert rule)")
     out[11] = ("gen_handoff.py --help" in boot and "--preflight-only" in boot,
                "cut command's own --help + --preflight-only (O-5 pointer, no recited list)")
-    out[12] = ("Models" in rows and "not live availability" in _row(rows, "Models"),
+    out[12] = ("Models" in rows and "not live availability" in _row(rows, "Models")
+               and "implement" in _row(rows, "Models"),
                "Models row, labelled routing order and not live availability")
     out[13] = (bool(re.search(r"30\s?%", boot)) and bool(re.search(r"60\s?%", boot)),
                "30 % verification reserve and ~60 % cut point")
@@ -163,13 +167,13 @@ def test_a_fresh_seat_finds_all_13_onboarding_items(trial_cut):
 
 _FULL_BOOT = """\
 Role: R41 and R47.1 -- the browser reads no code; CC leads and challenges every order.
-Plan: R46.4 feature freeze.  Live truth: to-browser/STATE-BATCH-X.md; a session shown as working may be idle.
-Dispatch: `uv run --locked python scripts/dispatch.py launch --help`; every paste names its target.
+Plan: the master plan; R46.4 feature freeze.  Live truth: to-browser/STATE-BATCH-X.md; a session shown as working may be idle.
+Dispatch: `uv run --locked python scripts/dispatch.py launch --help`; seat order, render, queue; every paste names its target.
 ## What the harness does not do by itself
-- a
-- b
-- c
-- d
+- registry is not read at launch
+- manual_until is never read
+- the daemon may resume a stopped job
+- usage limit is recorded nowhere
 Rules: protocols/STANDING_RULINGS.md.  Triage CI first: `known_reds.py compare`.
 Failures: R46.6 -- quote them first.  A ruling about a mechanism quotes the code line.
 Cut: `gen_handoff.py --help`, `--preflight-only`.  Context: keep 30 % for verification, cut at ~60 %.
@@ -177,7 +181,7 @@ Cut: `gen_handoff.py --help`, `--preflight-only`.  Context: keep 30 % for verifi
 _FULL_ROWS = {
     "Batches": "no batch open", "CI": "x", "Rulings": "R1–R9", "Landed": "through R9 — evidence: f",
     "Decisions": "1 — evidence: f", "Dates": "2026-10-04 ×1 — evidence: f",
-    "Models": "registry routing order (not live availability): x",
+    "Models": "registry routing order (not live availability): implement x",
 }
 
 
@@ -188,8 +192,13 @@ def test_the_predicates_pass_on_a_complete_fixture():
 
 @pytest.mark.parametrize("item,mutate", [
     (1, lambda b, r: (b + "\nCC is your junior.", r)),
+    (2, lambda b, r: (b.replace("the master plan; ", ""), r)),
+    (3, lambda b, r: (b.replace("STATE-BATCH", "STATE"), r)),
     (4, lambda b, r: (b.replace("names its target", ""), r)),
     (5, lambda b, r: (b.replace("## What the harness does not do by itself", "## Other"), r)),
+    (5, lambda b, r: (b.replace("- manual_until is never read\n", ""), r)),
+    (8, lambda b, r: (b.replace("known_reds.py compare", ""), r)),
+    (10, lambda b, r: (b.replace("quotes the code line", ""), r)),
     (6, lambda b, r: (b + "\nrulings R1–R54 are in force", r)),
     (7, lambda b, r: (b, {k: v for k, v in r.items() if k != "Dates"})),
     (9, lambda b, r: (b.replace("quote them first", ""), r)),

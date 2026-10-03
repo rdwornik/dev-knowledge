@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-24
+last_reviewed: 2026-10-03
 reconciled_with: handoff-process@7.1.0
 ---
 <!-- scope: meta -->

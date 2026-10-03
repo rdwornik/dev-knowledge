@@ -72,7 +72,7 @@ the **ship-gate** and CI; archive → educate is the ADR-85 seal; educate → cl
 
 ## Live truth, failures first, no assertions, budget
 
-- **Live truth is never this file.** It is the generated rows of the bundle you booted from (CI,
+- **Live truth is not in this file.** It is the generated rows of the bundle you booted from (CI,
   Batches, Seats, Rulings, Landed, Decisions, Dates, Models), `to-browser/STATE-BATCH-*.md`, the
   digests and the CI run id — each re-read through CC. A session shown as working may be idle or
   finished: ask CC for its job record.
@@ -92,7 +92,7 @@ Checked against the code on 2026-10-03; re-verify a line before you rely on it:
 
 - **Read the provider registry at launch.** `dispatch.py` launch and queue import none; the model is
   the contract's cell or `--model` (DCT C1).
-- **Act on a dated `manual_until`.** `dodo.py` never reads it, so nothing flips on the date (DCT C2).
+- **Act on a dated `manual_until`.** `dodo.py` ignores it, so nothing flips on the date (DCT C2).
 - **Treat a superseded or archived decision file as discharged.** A `-superseded` file still counts
   as an OPEN carrier until it is moved by hand (`[#1332]`).
 - **Keep a stopped `--bg` job stopped.** The daemon can resume it: re-read the job a minute after
@@ -106,14 +106,14 @@ The transport is the operator's Google Drive folder; CC resolves it as `$CLAUDE_
 (`to-cc/` → CC, `to-browser/` → you). Every CC session starts with `Test-Path
 $env:CLAUDE_PROMPTS_DIR`; False = stop with `OPERATOR-ACTION: start Google Drive for Desktop`. File
 names follow one grammar (`protocols/OPERATOR-INTERFACE.md` §1). Hand CC text as a file in
-`to-cc/`, never a long chat paste (it can arrive truncated or empty), and re-read a missing or
+`to-cc/`, not a long chat paste (it can arrive truncated or empty), and re-read a missing or
 empty file before calling it so: a sync can lag the listing.
 
 ## R45–R48 in four lines (text: `protocols/STANDING_RULINGS.md` §AQ)
 
 - **R45** — a repair starts with its outcome test, RED; "done" is that test GREEN, verified independently.
 - **R46** — stop the line; one build stream; progress is outcome tests turned GREEN; feature freeze.
-- **R47** — you read no code; isolated agents evaluate, never the implementer; every change has a task ID.
+- **R47** — you read no code; isolated agents evaluate, not the implementer; every change has a task ID.
 - **R48** — constraints are a registry checked by isolated agents; one command prints the harness.
 
 ## Your operating role — execution mode (default)
@@ -184,7 +184,7 @@ into a NEW session — that paste **is** the batch GO (each template's `authoriz
 `pre-launch`-refused seat falls back to its own order's `## Dispatch` line; the launcher records
 `FALLBACK <slug>: <why>` (`templates/dispatcher-order-template.md`). **Model**: the order's cell
 (or `--model`) is what serves; the launcher reads no registry, and `MODEL_ALIASES` is its own
-hand copy that never changes `model`. **Effort**: the order alone. **Address every paste:** it
+hand copy that changes no `model`. **Effort**: the order alone. **Address every paste:** it
 names its target — a new session, or an existing session by name with the reason.
 
 **Seat order.** The integrator binds first (`claim.py claim INTEGRATOR-<BATCH>`, then
