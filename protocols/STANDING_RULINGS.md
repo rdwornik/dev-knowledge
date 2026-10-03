@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-29
+last_reviewed: 2026-10-03
 status: active
 owner: Rob
 ---
@@ -5146,6 +5146,420 @@ assigns R35–R36 to N6's rulings lane"; at this lane's own read it was v12, ass
 the next rulings lane (R38 systemic, R41 standing) — the drift does not change R32–R34's own
 text (frozen in the superseded snapshots cited above) or this entry's Done-when, so it is
 recorded here rather than treated as a blocking PREMISE-FAILED.
+
+## AQ. RATIFICATION 2026-09-29 → 2026-10-02 R35–R54, and the newest-models ruling — landed verbatim from their sources (operator and browser seat, 2026-09-24 → 2026-10-02)
+
+Landed by `foundation-3-handoff-boot` (batch FOUNDATION, lane 3). R1–R34 are landed at §AM, §AN, §AO and §AP above and are not
+repeated here. Each entry below carries its ruling's **source section byte for byte** in a fenced block whose info string is
+`verbatim <source>:<first line>-<last line>`; a source is a transport path (`to-browser/…`, `to-cc/…`, under `$CLAUDE_PROMPTS_DIR`)
+or a repository path. `tests/test_standing_rulings_sources.py` diffs every block against its source range — the structural leg
+(every entry present, each block naming a source and a range, R53 and R54 diffed against the in-repo bundle) runs on both CI
+legs; the verbatim leg diffs the transport-sourced blocks wherever the transport is reachable and names each source it could not
+reach. R55–R57 and R59–R61 (`RATIFICATION-2026-10-03.md`) are not landed here: their wording awaits the operator's confirmation.
+The R53 and R54 entries are the final forms the batch order names (R53 (1) = option (c), R53 (2) = the per-item dispositions,
+R54 = the `--filled` waiver).
+
+
+- **R35 — review B2: memory resilience, lane runtime, browser-seat evidence; the window** (operator, 2026-09-29 ~12:00; full text `RATIFICATION-2026-09-29-v5-superseded.md:31`, 35.2 settled in `RATIFICATION-2026-09-29-v6-superseded.md:25`). In force as: the memory-resilience, lane-runtime and browser-seat-evidence proposals answered; D1's task is option (b) and D1 ends 2026-10-06; the window is cut after N5-3 merges. **Status:** landed as text by `foundation-3-handoff-boot`; whether the mechanism it names is built is not asserted here. The v6 block is the settled form of 35.2.
+
+  ```verbatim to-browser/RATIFICATION-2026-09-29-v5-superseded.md:31-57
+  ## R35 — review B2: memory resilience, lane runtime, browser-seat evidence; the window (the operator, 2026-09-29 ~12:00)
+
+  His line, verbatim: "B2 potwierdzam jak w linii · D1 zadanie: (a) <nazwa zadania> · D1 koniec: 2026-10-06"
+
+  The line it confirms, verbatim: "MR: Q1 zastąpione przez R34, D4 tak, wznowienie kroku (a) — ale sprawdź wrapper w kodzie, Q2 odłożyć · LRT: D1–D4 tak, zadanie (a): <nazwij zadanie>, D1 z datą końca · BSE: A3 tak na N5-11, A4/A5 później, czat (a) · okno (3)"
+
+  In force as:
+
+  1. **Memory resilience** (`to-browser/PROPOSAL-ADR-MEMORY-RESILIENCE-2026-09-27.md`):
+     - **Q1's D1–D3** (a watchdog relaunching `queue --watch`) are **superseded** by R34.1 and N5-9.
+     - **D5** (CI as the verdict) and **D6** (the reaper stays on) stand, as they already describe practice.
+     - **D4 — yes:** a measurement lane reconciling memory cost per admitted unit of work (`per_worker_mb` 646.1 against ADR-126's 413 MB per seat), recorded as one number with its source; no admission code.
+     - **Resuming a reaped step — yes, once, after the memory gate admits, built in code:** N5-9's resumable-step job, not a sentence in a contract.
+     - **Q2** (the substrate-registry booleans) is **deferred**.
+  2. **Lane runtime** (`to-browser/PROPOSAL-ADR-LANE-RUNTIME-2026-09-29.md`) — **D1–D4 yes:**
+     - **D1:** one real task outside the harness runs through the existing path before further construction on ADR-120 D7 or ADR-122 steps 1–3.
+       - **The task is option (a), named by the operator — the name is still to be given**; his line left the placeholder unfilled.
+       - **D1 ends 2026-10-06.** After that date, building the process in code (ADR-120 D7) starts whatever D1's result.
+       - D1 records, at every step, whether that step ran as code or as a model following prose.
+     - **D2:** the CLAUDE.md narrowing; half (b) rides N5-7 (AMEND v3).
+     - **D3:** the sequencing.
+     - **D4:** the backlog refresh as bookkeeping.
+  3. **Browser-seat evidence** (`to-browser/PROPOSAL-ADR-BROWSER-SEAT-EVIDENCE-2026-09-29.md`):
+     - **A3 — yes**, built on N5-11's verifier: a literal quote-in-source check over browser-authored transport files, plus `to-browser/` added to the citation prefixes.
+     - **A4 and A5 — later**, each ratified separately on evidence.
+     - **The chat channel, option (a):** a browser-seat claim in chat that a ratification rests on is provisional until its transport file passes the A3 check.
+  4. **The window, option (3):** this browser window is cut after N5-3 merges, so the next seat boots on the new HANDOFF_BOOT. The SUPPLEMENT answers and the rulings file are ready before the cut starts; nothing changes during it.
+  ```
+
+  ```verbatim to-browser/RATIFICATION-2026-09-29-v6-superseded.md:25-32
+  ## R35 — review B2 and the window (as in -v5-superseded, with 35.2 settled)
+
+  1. **Memory resilience:** Q1 is superseded by R34/N5-9. D4 (measurement) yes. A reaped step is resumed once, in code (N5-9). Q2 is deferred.
+  2. **Lane runtime:** D1–D4 yes. D1 ends 2026-10-06 and records, per step, whether it ran as code or as a model following prose.
+     - **D1's task — option (b), the operator, ~12:10:** "wybierz najmniejszy otwarty wiersz z backlogu dotyczący repo konsumenckiego, podaj mi go z numerem i jednym zdaniem przed paczką po N5; mogę go jeszcze zmienić."
+     - The browser seat selects the smallest open backlog row whose subject is a consumer repository, not the hub's own infrastructure. It gives the operator the row's id and one sentence before the batch after N5 is written; the operator may replace it.
+  3. **Browser-seat evidence:** A3 yes, on N5-11's verifier. A4 and A5 later. Chat claims a ratification rests on stay provisional until their file passes A3.
+  4. **The window:** cut after N5-3 merges. SUPPLEMENT answers and the rulings file are ready before the cut; nothing changes during it.
+  ```
+
+- **R36 — M06: CC builds and measures without a second ratification** (operator, 2026-09-29 ~14:05; full text `RATIFICATION-2026-09-29-v7-superseded.md:16`). In force as: CC builds and measures; the browser commissions rather than decides; the verify seat runs after N5 closes. **Status:** landed as text by `foundation-3-handoff-boot`; whether the mechanism it names is built is not asserted here.
+
+  ```verbatim to-browser/RATIFICATION-2026-09-29-v7-superseded.md:16-25
+  ## R36 — M06: CC builds and measures without a second ratification (the operator, ~14:05)
+
+  **His words:** "Nie rozumiem, pójdę za twoją rekomendacją." — following the recommendation of option (b), and the recommendation for the verify seat: run it after N5 closes.
+
+  **The operator's role reminder, standing:** "rolą przeglądarki jest zlecanie, a nie arbitralne decyzje. CC musi nauczyć się samo siebie wdrażać." The browser seat commissions; decisions come from CC's `/decide`; the operator ratifies what is functional.
+
+  **In force as:**
+  1. **CC builds O6 without another ratification** — if N5-10's recomputed `PROPOSAL-ADR-AJ-M06` still decides O6. O6 is one affordance: the K2 graph skill as `[#924]`'s named affordance. It is measured by TD-1 on the existing W3-2 harness against the pre-registered ≥ 3/5 bar, and automatically reverted below it. The build and the measurement go in the next batch; the operator sees the result.
+  2. **Anything beyond O6 still needs the operator:** the M07 A/B instrument, new dependencies (Harbor, Opik, Neo4j, Promptfoo), or a proposal that changes its decision away from O6.
+  3. **The verify seat** (`to-cc/BATCH-VERIFY-CHECKLIST-2026-09-30.md`) runs after WAVE5B-N5 closes.
+  ```
+
+- **R37 — D1 builds isolated agents; N5 runs with the audit's agreed cuts** (operator, 2026-09-29 ~15:30; full text `RATIFICATION-2026-09-29-v8-superseded.md:16`, R37.2 withdrawn in `RATIFICATION-2026-09-29-v9-superseded.md:17`). In force as: D1 is the first lane run by isolated agents with code-driven transitions; N5 runs with the audit's agreed cuts. **Status:** landed as text by `foundation-3-handoff-boot`; whether the mechanism it names is built is not asserted here. **R37.2 is withdrawn** (second block); R37.1 and R37.3 stand as the first block states them.
+
+  ```verbatim to-browser/RATIFICATION-2026-09-29-v8-superseded.md:16-29
+  ## R37 — D1 builds isolated agents; N5 runs with the audit's agreed cuts (the operator, ~15:30)
+
+  His words, verbatim: "idę za A na pewno, za Twoją rekomendacją … masz audyt i możesz na N5 sobie odpowiedzieć teraz na podstawie tych raportów".
+
+  1. **D1, option (a).** D1 is the first lane run by **isolated agents with code-driven transitions** — each step a separate agent with a fresh context and only its inputs, and no agent judging its own work — built and measured together, rather than measuring the old path first.
+     - **First build, in N6.** A code-owned controller for implement → review → integrate, each transition requiring a versioned artifact and an exit status (judge B). Its first working transition is **review, fired by code on HANDBACK** — the Stop hook launches the Codex review in a fresh context and refuses the handback on an open P1 or an empty tally (judge A).
+     - The two judges' Q4 answers in `to-browser/DIGEST-VALUE-AUDIT-2026-09-29.md` are compatible: A's stage is the first transition of B's controller.
+     - D1 still ends 2026-10-06 (R35.2).
+     - Its task row is chosen by option (b), and the operator may replace it.
+  2. **N5 runs** (the render is GREEN), **with the three merge-path changes both judges agree on** (`to-cc/AMEND-INTEGRATOR-MERGE-PATH-2026-09-29.md`). They also apply to the rest of WAVE5B-N5-R cycle 2:
+     - `ship_gate_diff` leaves the per-merge path and runs once at batch close;
+     - the push follows by rule once the proven checks pass;
+     - ready lanes stack in pairs.
+  3. **The 30 checklist rows the judges disagree on** (`-table-5`) are not decided here. Checklist v3 keeps the rows both mark KEEP, marks as CUT-candidates the rows both mark CUT, for the operator, and sets every disagreement to DEFER until evidence.
+  ```
+
+  ```verbatim to-browser/RATIFICATION-2026-09-29-v9-superseded.md:17-23
+  ## R37.2 — withdrawn (the operator, ~15:50)
+
+  The merge-path stopgap (`to-cc/AMEND-INTEGRATOR-MERGE-PATH-2026-09-29-withdrawn.md`) was never pasted and never applied.
+
+  The merge path is decided by the `/decide` run of `to-cc/BATCH-DECISION-TOKENS-AND-MERGE-2026-09-29.md`, Q2. The operator then ratifies, and it is built as a systemic change.
+
+  WAVE5B-N5 runs with its rendered orders unchanged.
+  ```
+
+- **R38 — no temporary fixes; systemic change only; the repository remembers** (operator, 2026-09-29 ~15:50, standing; full text `RATIFICATION-2026-09-29-v9-superseded.md:25`). In force as: no stopgap, patch or workaround; every change carries its dependency analysis; open work lives in the repository. **Status:** landed as text by `foundation-3-handoff-boot`; whether the mechanism it names is built is not asserted here. Standing.
+
+  ```verbatim to-browser/RATIFICATION-2026-09-29-v9-superseded.md:25-34
+  ## R38 — no temporary fixes; systemic change only; the repository remembers (the operator, ~15:50, standing)
+
+  His words, verbatim: "ja nie chcę nic tymczasowego … Jeżeli zrobimy coś tymczasowego to ty potem o tym zapomnisz i nic nie zostanie zrobione. Nie chcę też żadnych małych patchy, workaroundów … Jeżeli coś wdrażamy to musisz sprawdzić dependency i sprawdzić gdzie trzeba aktualizować wszystkie wersje, pliki, ścieżki, które są powiązane z tym. I tylko systemowe rozwiązania. I także nie ty pamiętasz, przeglądarka, tylko zapisujesz, repozytorium też wie co ma zrobić i samo się naprawia i samo się wdraża."
+
+  In force, for every seat:
+
+  1. **No stopgap, patch or workaround is ordered or merged.** A change is systemic, or it is not made.
+  2. **Every change carries its dependency analysis.** The analysis names every version, file, path, template, document and test that references what the change touches, and all of them are updated in the same change.
+  3. **Open work lives in the repository, not in the browser seat.** The browser's ledger and checklist on the transport are views, not the record. The repository's own rows and mechanisms say what must be done. The repository repairs and deploys itself through them.
+  4. **How 2 and 3 become mechanisms** is decided by the `/decide` run of `to-cc/BATCH-DECISION-SELF-MAINTAINING-REPO-2026-09-29.md`.
+  ```
+
+- **R39 — cycle 2 closes now; the Watcher** (operator, 2026-09-29 ~16:05; full text `RATIFICATION-2026-09-29-v10-superseded.md:16`, amended in `RATIFICATION-2026-09-29-v11-superseded.md:14`). In force as: cycle 2 of WAVE5B-N5-R closes; the cause is recorded; the Watcher is decided through `/decide`. **Status:** landed as text by `foundation-3-handoff-boot`; whether the mechanism it names is built is not asserted here. **R39.3 is superseded by R40** (second block).
+
+  ```verbatim to-browser/RATIFICATION-2026-09-29-v10-superseded.md:16-25
+  ## R39 — cycle 2 closes now; the Watcher (the operator, ~16:05)
+
+  His words, verbatim: "Musi być jakiś Watcher … CC powinien móc odpytać wszystkie Working Sessions, Background, SDK … pójdę za Twoją rekomendacją … chciałbym wkleić wszystko za jednym razem i wiedzieć gdzie co i jak."
+
+  1. **Cycle 2 of WAVE5B-N5-R closes now, option (a).**
+     - The integrator finishes L8's merge if it is in flight.
+     - L1 (FAILED), L10 and L5 are carried to the next batch, with the L4 redo. They form one group of files.
+     - WAVE5B-N5's seats start as soon as cycle 2 reads CLOSED.
+  2. **The cause, recorded.** The seat's own instruction — "L1, L10, L5 one after another, each after the previous reads MERGED" — blocked L10 and L5 once L1 failed. A FAILED member must release its serialize group. This goes to the dispatcher fix in N6, built as one systemic change.
+  3. **The Watcher** — code outside any session that lists, cleans up and reports every background session, and answers or escalates a stuck one — is decided by `to-cc/BATCH-DECISION-SELF-MAINTAINING-REPO-2026-09-29.md` v3, part 3. That run first researches what Claude Code and the Agent SDK expose. It runs in the same session as the tokens-and-merge decision, after that one finishes.
+  ```
+
+  ```verbatim to-browser/RATIFICATION-2026-09-29-v11-superseded.md:14-16
+  - **R29–R39** as in this file's earlier versions, with two amendments:
+    - R37.2 is withdrawn;
+    - R39.3 is superseded by R40 below.
+  ```
+
+- **R40 — the process engine: the lane as a business process that manages its own agents** (operator, 2026-09-29 ~16:15; full text `RATIFICATION-2026-09-29-v11-superseded.md:18`). In force as: managing its own agents is part of the harness; CC decides the shape through `/decide`; R37.1's first build is an input. **Status:** landed as text by `foundation-3-handoff-boot`; whether the mechanism it names is built is not asserted here.
+
+  ```verbatim to-browser/RATIFICATION-2026-09-29-v11-superseded.md:18-27
+  ## R40 — the process engine: the lane as a business process that manages its own agents (the operator, ~16:15)
+
+  His words, verbatim: "odpytywanie własnych agentów musi być częścią harnessu … sam proces jest uniwersalny … jak BPM, diagramy z jednego punktu do drugiego … proces musi sam swoimi lane'ami zarządzać, czy to jest teraz robione … niech CC wyewaluuje, żadnych arbitralnych decyzji, jak to powinno wyglądać".
+
+  In force as:
+
+  1. **Managing its own agents is part of the harness.** The harness spawns, observes, messages and stops its agents. It sits on Claude Code and the Agent SDK today, behind one interface. The process — stages and transitions, as in BPMN — is universal and independent of any agent tool.
+  2. **The shape is decided by CC, not the browser seat.** The `/decide` run of `to-cc/BATCH-DECISION-PROCESS-ENGINE-2026-09-29.md` decides it. It covers the process model, the agent-management layer, who owns a lane's lifecycle (dispatcher, integrator, a process manager, or a hybrid), the Watcher, library-first, and the first build.
+  3. **R37.1's first build is an input, not a decision.** The two judges' first builds are handed to that run as options: a controller for implement → review → integrate, and review fired by code on HANDBACK.
+  4. **R39.3 moves.** The Watcher is decided there, as part of the engine. The self-maintaining-repo decision (`to-cc/BATCH-DECISION-SELF-MAINTAINING-REPO-2026-09-29.md` v4) keeps parts 1–2: open work as rows, and dependency analysis.
+  ```
+
+- **R41 — CC challenges the browser; the harness learns from its past** (operator, 2026-09-29 ~16:40–16:45, standing; full text `RATIFICATION-2026-09-29.md:16`). In force as: CC challenges the browser's method before executing an order and records the result first in its report; the harness reuses its past; read-only research does not wait on the lane pipeline. **Status:** landed as text by `foundation-3-handoff-boot`; whether the mechanism it names is built is not asserted here. Standing.
+
+  ```verbatim to-browser/RATIFICATION-2026-09-29.md:16-29
+  ## R41 — CC challenges the browser; the harness learns from its past (the operator, ~16:40–16:45, standing)
+
+  **His words, verbatim:**
+  - "Dlaczego czekamy na Architekt Jutra M06? Dlaczego nie możemy równolegle przebadać"
+  - "już wcześniej kiedyś to robiliśmy … Library First Approach, mieliśmy paczki Pythonowe do czytania PDFów, transkryptów … Niech CC zbada swój własny harness, niech wie co robi"
+  - "uczmy się z przeszłości, a nie że za każdym razem … extracting wiedzy … to powinien być proces, który jest oczywisty dla harnessu"
+  - "CC zawsze ewaluuje samego siebie, czy to w sposób, jaki chcesz to osiągnąć, jest prawidłowy … musi mieć zawsze wątpliwość do tego, co mówi przeglądarka"
+
+  **In force, for every order:**
+
+  1. **CC challenges the browser's method before executing an order.** It inventories what the harness and the fleet already have for the task. It questions each method the order names. Where a better way exists, it uses that way and records why. The challenge result opens its report. This is built into the order and contract templates as one systemic change, carried by the next rulings/templates lane.
+  2. **The harness reuses its past.** Knowledge extraction from course material, repositories and the web — including the Corporate OS monorepo's extractor and the pipelines that produced earlier digests — becomes one standing, repeatable harness process instead of being rebuilt each time. How is decided through `/decide`, with the AJ session's Step 0 and task 6 as input.
+  3. **Read-only research does not wait on the lane and merge pipeline.** It runs as its own session, on whichever substrate the files and tools allow.
+  4. **N5-10 is superseded** by `to-cc/BATCH-AJ-ALL-MODULES-2026-09-29.md` v2, which runs now.
+  ```
+
+- **R42 — leftovers, and the blocked handoff cut** (operator, 2026-09-30; full text `RATIFICATION-2026-09-30.md:16`). In force as: leftovers consented; the cut is held until both systemic fixes merge, with no stopgap, no audit edit and no hard-coded exclusion (R38). **Status:** landed as text by `foundation-3-handoff-boot`; whether the mechanism it names is built is not asserted here.
+
+  ```verbatim to-browser/RATIFICATION-2026-09-30.md:16-45
+  ## R42 — leftovers, and the blocked handoff cut
+
+  ### 1. Leftovers (R24)
+
+  Consented by the operator's paste of the sweep order:
+  - worktrees and branches removed after checks that no commit was missing;
+  - `automation/fleet-audit` and `v1.1.0` pushed;
+  - no tag deleted.
+
+  Record: `to-browser/DIGEST-LEFTOVERS-2026-09-30.md`.
+
+  ### 2. The three audits without a consumer
+
+  No sanctioned route exists. `undeclared()` reads only the audit's own text, and audits are immutable.
+
+  **Systemic fix (code):**
+  - `consumer_at_landing` accepts the lane's integrator merge receipt as a declared consumer route;
+  - the Codex-review organ writes the consumer line itself.
+
+  ### 3. The three toothless-probe FAILs on bundle 2026-09-28-dev-knowledge-architect
+
+  No sanctioned route exists. The disposition register clears WARNs only, and the preflight's only exemption is a bundle's own BD-manifest.
+
+  **Systemic fix (code):** an archived bundle's probes are judged at its own cut sha, not against today's live state.
+
+  ### 4. The cut is held until both fixes merge
+
+  CC files both as repository rows now. One handoff-unblock lane builds both, with its dependency analysis. It is the first work of the next seat. Then the cut runs.
+
+  No stopgap, no audit edit, no hard-coded exclusion (R38).
+  ```
+
+- **R43 — the handoff cut proceeds** (operator, 2026-10-01; full text `RATIFICATION-2026-10-01-v1-superseded.md:16`, replaced in `RATIFICATION-2026-10-01-v2-superseded.md:13`). In force as: the cut was to proceed once the unblock merged. **Status:** landed as text by `foundation-3-handoff-boot`; whether the mechanism it names is built is not asserted here. **Replaced by R44**: the cut was stopped at the operator's order (second block).
+
+  ```verbatim to-browser/RATIFICATION-2026-10-01-v1-superseded.md:16-21
+  ## R43 — the handoff cut proceeds (the operator, 2026-10-01)
+
+  - R42.4 is met. HANDOFF-UNBLOCK merged at e0d9b8d2 (main a38b6faf).
+  - The preflight ship_gate row passes with 0 hard-fails.
+  - The cut runs now: the operator's `/handoff`, then the SUPPLEMENT answers by the browser seat on the transport, then CC completes the cut.
+  - `logs/QUOTA-READS.jsonl` stays uncommitted. It is carried, and the systemic fix moves it out of the tracked tree (R38).
+  ```
+
+  ```verbatim to-browser/RATIFICATION-2026-10-01-v2-superseded.md:13-13
+  - **R43:** the cut was to proceed once the unblock merged. That cut was then stopped at the operator's order and replaced by R44.
+  ```
+
+- **R44 — the handoff is rebuilt test-first** (operator, 2026-10-01; full text `RATIFICATION-2026-10-01-v2-superseded.md:15`). In force as: the redesign proposal's section 9 is ratified; no cut until its end-to-end test passes, verified independently. **Status:** landed as text by `foundation-3-handoff-boot`; whether the mechanism it names is built is not asserted here.
+
+  ```verbatim to-browser/RATIFICATION-2026-10-01-v2-superseded.md:15-22
+  ## R44 — the handoff is rebuilt test-first (the operator: paste of `to-cc/BATCH-HANDOFF-REDESIGN-BUILD-2026-10-01.md` v2)
+
+  `PROPOSAL-ADR-HANDOFF-REDESIGN-2026-09-30.md` §9 is ratified: both builds, plus the incremental `check_review_artifact_coverage`. In practice:
+  - the cut gates on the named 11-organ set, run in parallel, and the whole-repository verdict is reported without blocking;
+  - a trial cut runs at every batch close;
+  - the slow organ runs as a single pass.
+
+  **No cut until** its end-to-end acceptance test passes and the integrator has verified it independently.
+  ```
+
+- **R45 — the outcome test comes first** (operator, 2026-10-01, standing; full text `RATIFICATION-2026-10-01-v2-superseded.md:24`). In force as: a failure test (RED) before any repair; "done" requires it GREEN and independently verified; the browser declares no fix without it. **Status:** landed as text by `foundation-3-handoff-boot`; whether the mechanism it names is built is not asserted here. Standing.
+
+  ```verbatim to-browser/RATIFICATION-2026-10-01-v2-superseded.md:24-29
+  ## R45 — the outcome test comes first (the operator: "reguła: tak", standing)
+
+  1. **A failure test before any repair.** Every repair of a recurring failure begins with an outcome test that reproduces the failure (RED).
+  2. **"Done" requires that test.** No lane is done until that test is GREEN and verified independently of the lane.
+  3. **The browser may not declare a fix without that test.**
+  4. **Templates.** This is written into the lane-contract and order templates as one systemic change (R38).
+  ```
+
+- **R46 — stop the line, limit WIP, measure outcomes, foundation first, surface every failure** (operator, 2026-10-01, standing; full text `RATIFICATION-2026-10-01-v3-superseded.md:17`). In force as: the dispatcher stops launching on a failing batch; one build stream at a time; progress is outcome tests turned GREEN; feature freeze until the foundation works; failures are surfaced by code and quoted first. **Status:** landed as text by `foundation-3-handoff-boot`; whether the mechanism it names is built is not asserted here. Standing.
+
+  ```verbatim to-browser/RATIFICATION-2026-10-01-v3-superseded.md:17-31
+  ## R46 — stop the line, limit WIP, measure outcomes, foundation first, surface every failure (the operator, 2026-10-01, standing)
+
+  The operator pasted the seat's solution list back as his ruling, after: "kazałem czytać ci raporty każdego lane i nie zgłosiłeś, że coś padło albo nie zostało zrobione … nie można ci ufać".
+
+  1. **Stop the line, in code.** If a batch merges fewer than half its lanes, or any lane fails twice, the dispatcher itself stops launching. A `/decide` on the cause runs first.
+  2. **WIP limit.** One build stream and one decision at a time. The browser issues no new order until the previous one has produced a test-verified outcome.
+  3. **Progress is measured by outcome.** Every batch closes with one number: how many goal steps moved, counted by outcome tests that turned GREEN (R45) — not by sessions.
+  4. **Feature freeze until the foundation works.**
+     - First the handoff redesign (R44).
+     - Then the process engine's first build — isolated agents per stage, transitions in code, the Watcher — with its own outcome test.
+     - Only then do feature lanes return, run through that engine.
+  5. **The browser rules and accepts outcomes on test evidence.** CC leads (R41).
+  6. **Every failure is surfaced by code, not by the browser's reading.**
+     - Batch close opens its digest with every FAILED lane, every unmet Done-when item, every merged mechanism without a caller, and every ROWS-OWED item without a row. All are extracted mechanically from each lane's SESSION/REFUSED file and from main.
+     - The browser must quote that section to the operator verbatim before any other summary.
+  ```
+
+- **R47 — equilibrium, task IDs, isolated evaluation, automatic hygiene** (operator, 2026-10-01, standing; full text `RATIFICATION-2026-10-01-v4-superseded.md:16`). In force as: the browser does not read code and CC carries self-evaluation (47.1); every change carries a task ID; no merge with errors; git hygiene is automatic; isolated stage agents; an explicit evaluation step before a task closes. **Status:** landed as text by `foundation-3-handoff-boot`; whether the mechanism it names is built is not asserted here. Standing.
+
+  ```verbatim to-browser/RATIFICATION-2026-10-01-v4-superseded.md:16-45
+  ## R47 — equilibrium, task IDs, isolated evaluation, automatic hygiene (the operator, 2026-10-01, standing)
+
+  The operator's own words:
+
+  > "ty nie musisz czytać kodu, CC musi mieć mechanizm self-evaluation względem celu … wszystko co wdrażasz musi mieć task ID w celu weryfikacji, to musi być deterministyczne … jestem w szoku jak system pozwolił mergować lane'y z błędami … nie mamy self git automatic hygiene … lane robi wszystko end to end, nie ma izolowanych agentów, którzy mają swoje funkcje celu, każda sesja, która wdraża i robi self-review, kłamie … task nie jest zamknięty póki przeglądarka nie da zielonego światła, ale ona też musi weryfikować … w przyszłości inny model w CC (Grok albo Codex) ratyfikuje task … ale to musi być część deterministycznego procesu"
+
+  **Rulings:**
+
+  1. **Equilibrium.** The browser does not read code. CC carries self-evaluation against THE GOAL. Isolated agents perform it, never the session that implemented the change.
+
+  2. **Every change carries a task ID, deterministically.** Gates refuse each of these when it lacks an existing, open task ID:
+     - a commit;
+     - a lane launch;
+     - a merge.
+
+     The merge records the task ID. Work closes only through its task. No unlinked work.
+
+  3. **No merge with errors.** The merge gate refuses on any lane-attributable red, and on any unmet outcome test (R45). A lane's own claims are never evidence.
+
+  4. **Git hygiene is automatic.** After every merge and every close, code removes worktrees and branches and stops finished sessions. It confirms each stop holds. Every tag carries an owner and an expiry. No cleanup needs the operator.
+
+  5. **Isolated stage agents with their own objective function.** The implementer, the reviewer and the evaluator are separate agents. Each stage has a stated objective, and code moves work between stages. No stage self-reviews.
+
+  6. **An explicit evaluation step before a task closes.**
+     - A task is closed only after an evaluation verdict, GREEN.
+     - Today the browser gives that verdict. It must verify it against the outcome test and the mechanically extracted failure section (R46.6) — never read-and-ratify.
+     - Later, a different CC model (Grok or Codex) becomes the deterministic evaluator stage, and the browser audits samples.
+     - Either way it is a coded step of the process, not a habit.
+
+  7. **These six are the acceptance contract** of the process engine's first build (R40, R46.4). Each one is proven by its own outcome test.
+  ```
+
+- **R48 — constraints as a registry, chosen per task and checked by isolated agents; the whole harness listed by one command** (operator, 2026-10-01, standing; full text `RATIFICATION-2026-10-01-v5-superseded.md:17`). In force as: a constraint registry as data; a selector agent and one checker agent per constraint; a process tree with explicit edges; one command prints the whole harness as a table. **Status:** landed as text by `foundation-3-handoff-boot`; whether the mechanism it names is built is not asserted here. Standing.
+
+  ```verbatim to-browser/RATIFICATION-2026-10-01-v5-superseded.md:17-46
+  ## R48 — constraints as a registry, chosen per task and checked by isolated agents; the whole harness listed by one command (the operator, 2026-10-01, standing)
+
+  His words:
+
+  > "jakie mamy constraints ładowane za każdym razem, które są weryfikowane — library first, clean code, dependencies względem innych skryptów, używanie własnych skryptów, sprawdzanie czy coś już nie zostało zaimplementowane, żeby nie robić duplikatów, usuwać wdrożone rzeczy, zdefiniowana funkcja celu — jak przetestuje swój task, kod ponad prozę — prosta checklista w tabeli … nie każdy constraint aplikowany jest do każdego taska, ale powinien być izolowany agent, który patrzy na task i podejmuje decyzję, które constrainty muszą być spełnione, a potem każdy constraint to jest izolowany agent … drzewo procesu decyzji, każdy edge musi być subagentem, między którymi jest komunikacja … telemetria, logi … absolutnie wszystkie procesy w harness … tabela, którą można przeczytać jednym komandem"
+
+  1. **A constraint registry as data, not prose.**
+     - At least these entries:
+       - library-first;
+       - own scripts first;
+       - no duplicate — check what is already implemented;
+       - dependency analysis across scripts, files, versions and docs (R38);
+       - retire what the change supersedes;
+       - clean code and complexity;
+       - an objective function — how the task's outcome is tested (R45);
+       - code over prose;
+       - a task ID (R47.2);
+       - scope (R15).
+     - Each entry states: its check, its evidence, and whether it is enforced by code.
+  2. **A selector agent per task.** It is isolated. It reads the task and decides which constraints apply, with a reason for each. Its decision is recorded.
+  3. **One isolated checker agent per applicable constraint.** Each has its own objective function, and its verdict is recorded. A FAIL blocks the transition.
+  4. **A process tree with explicit edges.** Every edge between stages is a coded hand-over with a typed message between subagents. Every message and verdict is logged and emitted to telemetry.
+  5. **One command prints the whole harness as a table.** For every process, organ, constraint, hook, gate and generator, it gives:
+     - its trigger;
+     - how it is enforced: code, prose or none;
+     - when it last ran and its last verdict;
+     - its caller — "none" marks an orphan.
+
+     The table is generated from the repository, never hand-written.
+  6. **Acceptance.** R47 and R48 together are the acceptance contract of the process engine's first build. Each part is proven by its own outcome test.
+  ```
+
+- **R49 — gate registry with cost and catches** (operator, 2026-10-01, standing; full text `RATIFICATION-2026-10-01.md:18`). In force as: every gate, organ and hook declares the failure class it catches, its catch metric and its cost; zero-catch gates go on a retire list. **Status:** landed as text by `foundation-3-handoff-boot`; whether the mechanism it names is built is not asserted here. Standing.
+
+  ```verbatim to-browser/RATIFICATION-2026-10-01.md:18-23
+  ## R49 — gate registry with cost and catches (the operator: "tak bardzo dobrze", standing)
+
+  1. Every gate, organ and hook declares three things in a registry: the failure class it catches, its catch metric, and its cost per change.
+  2. A gate with zero real catches over N batches at non-zero cost goes automatically onto a retire-candidate list. The operator decides on the numbers.
+  3. A new gate is refused unless it declares its catch metric.
+  4. The first pass covers all ship-gate organs and every pre-commit and pre-push hook, with a verdict of KEEP / CUT / DEFER for each.
+  ```
+
+- **R50 — retrospective → debate → systemic fix, as a harness process** (operator, 2026-10-01, standing; full text `RATIFICATION-2026-10-01.md:25`). In force as: a retrospective from evidence, then a `/decide` debate, then a systemic fix with an outcome test. **Status:** landed as text by `foundation-3-handoff-boot`; whether the mechanism it names is built is not asserted here. Standing.
+
+  ```verbatim to-browser/RATIFICATION-2026-10-01.md:25-38
+  ## R50 — retrospective → debate → systemic fix, as a harness process (the operator, standing)
+
+  His words: "to powinno być podparte retrospekcją gita i pracy nad handoffem przez CC, stworzeniem raportu przez CC … i należy rozpocząć debatę z tobą, z CC, z web researchem na systemową, techniczną, informatyczną, skryptową, library-first naprawę, która wyeliminuje te błędy, tak żebyśmy mogli pracować ogólnie nad projektami — to musi być częścią harnessu".
+
+  1. **Retrospective from evidence.**
+     - **Scope:** a recurring failure, a stop-the-line event (R46.1), or the operator's word.
+     - **Who and how:** CC writes it from git history, receipts, REFUSED and SESSION files, and CI.
+     - **What it contains:** what happened, the timeline, root causes and the failure classes — with no seat's narrative taken as evidence.
+  2. **Debate, then decision.**
+     - A `/decide` run with web research, library-first and scripts first, a weighted matrix, and isolated evaluators (Codex/Grok/Sonnet).
+     - The browser seat takes part as a debater — not as the arbiter — through the transport.
+  3. **The fix is systemic.** It is built as code, with an outcome test that reproduces the failure (R45).
+  4. **The process is itself a harness mechanism.** It is triggered by code (R46.1), and its runs appear in the one-command table (R48.5).
+  5. **The first run covers the handoff saga**, 2026-09-10 → 10-02: `to-cc/BATCH-RETRO-DEBATE-HANDOFF-2026-10-02.md`.
+  ```
+
+- **R51 — the handoff cut proceeds today** (operator, 2026-10-02; full text `RATIFICATION-2026-10-02.md:15`). In force as: the cut sequence is `--preflight-only`, then `/handoff`, then the SUPPLEMENT answers; no `/handoff-verify` ceremony (R30). **Status:** landed as text by `foundation-3-handoff-boot`; whether the mechanism it names is built is not asserted here.
+
+  ```verbatim to-browser/RATIFICATION-2026-10-02.md:15-22
+  ## R51 — the handoff cut proceeds today
+
+  As in `-v1-superseded`.
+
+  - The redesign merged at f971562e. The end-to-end cut test ran in 96.64 s; the trial cut PASSed.
+  - The blockers left are not code: this file, the ledger token, and the integrator's worktree (R24).
+  - Cut sequence: `--preflight-only`, then `/handoff`, then the SUPPLEMENT answers from `to-cc/ANSWER-handoff-cut-supplement-2026-10-02.md`.
+  - No `/handoff-verify` ceremony (R30).
+  ```
+
+- **R52 — answers to the no-recurrence proposal Q1–Q5** (operator, 2026-10-02; full text `RATIFICATION-2026-10-02.md:24`). In force as: the build order S1 first with the 2026-10-16 flip; ledger and ratification checks pass on content; every known-red has a task id; gate retirement after 3 batches of R49 data; mechanical checks are scripts; memory admission turned back on. **Status:** landed as text by `foundation-3-handoff-boot`; whether the mechanism it names is built is not asserted here.
+
+  ```verbatim to-browser/RATIFICATION-2026-10-02.md:24-32
+  ## R52 — answers to the no-recurrence proposal Q1–Q5 (the operator, following the seat's recommendations drawn from what failed)
+
+  The proposal is `to-browser/PROPOSAL-ADR-NO-RECURRENCE-2026-10-02.md`, and its build order is ratified: S1 first, with the flip-condition of 2026-10-16.
+
+  1. **Q1 — yes.** The ledger and ratification checks pass on content, not on the file's date. The ledger must be stamped after the batch close. The ratification must name the batch. Failure class removed: N2 (the checks that blocked the cut on 09-17 and 10-02).
+  2. **Q2 — every current known-red gets its own row with a task id.** The known-reds registry refuses an entry without one. Failure class removed: N1.
+  3. **Q3 — the gate-retirement decision runs after 3 batches of R49 data.**
+  4. **Q4 — yes.** Constraint checks are scripts wherever the check is mechanical. Isolated agents are used only where judgement is needed (R47 determinism).
+  5. **Q5 — yes.** The memory admission refusal is turned back on, with its threshold measured, not guessed. Failure class removed: N5.
+  ```
+
+- **R53 — the browser seat's rulings at the 2026-10-02 cut — final forms** (browser seat, technical, 2026-10-02; full text `docs/handoffs/2026-10-02-dev-knowledge-architect/RESIDUAL.md:180-183` (section 4)). In force as: (1) the paste ceiling is **option (c)**, applied: the 43 superseded decision files moved to `to-cc/archive/`; (2) P13 is **the per-item dispositions**, landed at `816c7f66`, no new rows; (3) items 1-3, 6 and 7 are recorded in section 4. **Status:** landed as text by `foundation-3-handoff-boot`; whether the mechanism it names is built is not asserted here. Option (a′) is row `[#1332]` (open); the per-item dispositions are the commit `816c7f66`.
+
+  ```verbatim docs/handoffs/2026-10-02-dev-knowledge-architect/RESIDUAL.md:180-183
+  **R53 — the browser seat's rulings at this cut (technical, 2026-10-02):**
+  - (1) Paste ceiling: **re-ruled as option (c), and applied.** The 43 `-superseded` decision files that carried `carried-by: OPEN` were moved (not deleted) from `to-cc/` to `to-cc/archive/` on the transport. OPEN carriers went from 127 (43 superseded) to 84 (0 superseded), with 0 UNRESOLVED and 0 NO-KEY. Six other `-superseded` files were not OPEN and were left in place. A row for option (a′) is ruled and will be filed in the same landing as (2): P11 and the paste builder treat `-superseded` files as discharged.
+  - (2) P13: **re-ruled and landed** (`816c7f66`). Archiving removed 3 of the 8 from P13's population. The other 5 are disposed in `DECISION_DISPOSITIONS`, each with its actual closing evidence, and no new rows: `AMEND-BATCH-WAVE5B-N5` -> `to-browser/DIGEST-WAVE5B-N5-2026-09-30.md`; `AMEND-BATCH-WAVE5B-N5-R-CYCLE-2` -> `to-browser/STATE-BATCH-WAVE5B-N5-R.md` (CLOSED, cycle 2) and the cycle-2 integrator receipt; `AMEND-BATCH-LAUNCH-SEATS` -> launcher ce87636a, `to-browser/SESSION-launch-seats-2026-09-29.md`; `AMEND-HANDOFF-REDESIGN-BUILD` -> `to-browser/DIGEST-HANDOFF-REDESIGN-BUILD-2026-10-01.md`; `AMEND-INTEGRATOR-MERGE-PATH-withdrawn` -> refused in writing, withdrawn by R37.2. Two other changes landed in the same commit. The test's named-residual set was emptied, because R26's rows now cover all 16 subjects. The four N2 superseded dispositions the archive move made stale were removed. Row `[#1332]` is filed for option (a′).
+  - (3) Items 1-3, 6 and 7 above are recorded in this section.
+  ```
+
+- **R54 — the `--filled` waiver covers the whole documented fill step** (browser seat, technical, 2026-10-02; full text `docs/handoffs/2026-10-02-dev-knowledge-architect/RESIDUAL.md:185` (section 4)). In force as: PROBES.md joins the fill surface; BD-ci and BD-seats may fail under `--filled` only when the recorded row passes an identity check; the waiver requires every hard-fail to be `handoff_probes`. **Status:** landed as text by `foundation-3-handoff-boot`; whether the mechanism it names is built is not asserted here. Landed in code as `8f531a78`, merged as `24bc3d58`.
+
+  ```verbatim docs/handoffs/2026-10-02-dev-knowledge-architect/RESIDUAL.md:185-185
+  **R54 — the `--filled` waiver covers the whole documented fill step (technical, 2026-10-02):** landed as `8f531a78`, merged as `24bc3d58`. PROBES.md joins `_BD_MANIFEST_FILL_SURFACE`, because `reflow_framing` rewrites it during the fill step. BD-ci and BD-seats may fail under `--filled` only when the recorded row passes an identity check: the CI row names the receipt's `source_sha`, and the Seats row carries a seat_health_line's shape. The waiver now requires every hard-fail to be `handoff_probes`, with a count equal to the bundle's own failing probes. The RED test reproduced this cut's refusal end to end. An isolated `claude-sonnet-5` review returned APPROVE with OPEN P1: 0. Its open P2: the BD-seats identity is shape-only, so a well-formed forged Seats cell passes the gate. That is mitigated because the same re-render rewrites the row from live state. Its open P3: the two tamper guard tests call the waiver directly rather than going through `generate`. A pre-existing red, `test_epic_bundle_has_no_failing_probe` ("assert 6 == 5", an epic bundle missing P11), fails identically on `main`.
+  ```
+
+- **NM — always the newest models, and a part of the system must check it** (operator, 2026-09-24 late; full text `to-cc/archive/BATCH-WAVE5B-N1-2026-09-24-v3-superseded.md:10`). In force as: the newest models are used, and a part of the system checks that they are. Its only verbatim source is the parenthetical in line 10 of the block below. **Status:** mechanized as `model_currency` (`ecosystem/provider-registry.yaml`, one block per provider). `RATIFICATION-2026-10-03.md` R61 (transport) restates and extends it and is **not** landed by this entry.
+
+  ```verbatim to-cc/archive/BATCH-WAVE5B-N1-2026-09-24-v3-superseded.md:10-10
+  version: v3 — supersedes -v2-superseded. v2 → v3: lane 2's Done-when gains the model-currency test (operator, 2026-09-24 late: "always the newest models, and a part of the system must check it"); §3b Part Z (step zero — model currency, ≤ 30 min) added before paste 1. Everything else byte-identical to v2. §1–§3 are the parameters the rendered orders were generated from (Part G GREEN, to-browser/SESSION-gen-wave5b-n1-2026-09-24.md); Part Z re-renders only what it changes.
+  ```
+
+**Expiry:** none of R35–R54 expire on their own; the entries above land text, and each Status line names what is and is not built.
 
 ## Editing note (read before adding an entry)
 
