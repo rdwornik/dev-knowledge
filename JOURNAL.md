@@ -21,6 +21,37 @@
 
 ---
 
+### 2026-10-03 (d) - CC (Opus 5.5, integrator seat FOUNDATION): lane foundation-3-handoff-boot merges after one repair -- the boot teaches the 13 onboarding items
+
+**Anchors:** `86508dce` -- `worktree-foundation-3-handoff-boot`, merged `--no-ff` through `epic/foundation-int-foundation-3-handoff-boot`.
+
+**Did:**
+- Refused the first handback `938ff0a5` (repair 1 of 2): its review record named no served model and no nonce (R59). The repair re-ran the review on grok-4.7 with the served id read from `usage.json` and nonce `NONCE-1d8ae831cbf4` returned, as a dated in-file amendment; the integrator re-read both from the Grok session store.
+- Merged the lane and regenerated `docs/audits/README.md` on the merged tree; carried lane foundation-1-honest-green's closed merge receipt into `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict is the integration branch's CI push run, test-level per leg -- recorded in the integrator receipt `to-browser/SESSION-integrator-foundation-2026-10-03.md`.
+
+**Changes:** the lane's set (see 2026-10-03 (c)), plus `logs/MERGE-RECEIPTS.jsonl` and generated `docs/audits/README.md`.
+
+**Next:** lanes 5 and 6 of batch FOUNDATION; lane 4 waits on its release gate (a) and lane 6.
+
+### 2026-10-03 (c) - CC (Sonnet 5.5, lane foundation-3-handoff-boot): the boot teaches the 13 onboarding items; R35-R54 land verbatim
+
+**Anchors:** `4bbbb292`, `cc1a8a42`, `25c1676e`, `00ff8d0f`, `79ffb93c` -- `worktree-foundation-3-handoff-boot` (unmerged; the integrator merges).
+
+**Did:**
+- Landed R35-R54 and the newest-models ruling verbatim in `protocols/STANDING_RULINGS.md` section AQ, diffed by `tests/test_standing_rulings_sources.py` (RED on `2e7fa5f2`, GREEN at tip).
+- Rewrote `protocols/HANDOFF_BOOT.md` within the 18,000 B budget; four generated rows (Landed, Decisions, Dates, Models) with BD re-derivation, owed only from 2026-10-03; the templates ask for the R30 role pin, not `/handoff-verify`.
+- `tests/test_onboarding_items.py`: 0/13 at baseline, 13/13 at tip on a fresh trial cut.
+
+**Result:** targeted tests, ruff, the silent-rule ratchet and the byte budget pass; `audit.py health` shows one finding not caused here (BD-seats on the committed 2026-10-02 bundle, a live wedged seat).
+
+**Changes:** protocols/ (HANDOFF_BOOT, STANDING_RULINGS), scripts/ (handoff_state, verify_handoff_probes, gen_handoff comments), templates/handoff/v5, docs/handoffs/README.md, docs/audits review record, tests, ecosystem/doc-counts.md.
+
+**Abandoned:** none.
+
+**Next:** integrator merges the lane; HANDOFF_PROCESS spec section 5 and `.claude/commands/handoff.md` still describe the `/handoff-verify` evidence block (align at the next version bump).
+
 ### 2026-10-03 (b) - CC (Opus 5.5, integrator seat FOUNDATION): lane foundation-1-honest-green merges -- the known-reds registry is owned, dated and ratcheted
 
 **Anchors:** `e1ff9dd5` -- `worktree-foundation-1-honest-green`, merged `--no-ff` through `epic/foundation-int-foundation-1-honest-green`.

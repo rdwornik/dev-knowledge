@@ -2473,12 +2473,15 @@ def test_a_well_formed_boot_data_block_passes_every_row(tmp_path, monkeypatch):
     monkeypatch.delenv("CLAUDE_PROMPTS_DIR", raising=False)
     bundle = _boot_bundle(tmp_path)
     repo_root = bundle.parents[2]
-    state_rows = hs.state_rows(repo_root, None)
+    import gen_handoff as gh  # noqa: PLC0415
+    # The transport the verifier will resolve (the unset variable falls back to ~/Downloads on a
+    # box that has one): the Decisions row counts files there, so writing it against None would
+    # record "no transport" while the re-derivation counts the fallback directory.
+    state_rows = hs.state_rows(repo_root, gh.transport_root())
     rows = {**_boot_rows(), **{row.key: row.rendered() for row in state_rows}}
     (bundle / "HANDOFF_BOOT.md").write_text(_boot_md(rows), encoding="utf-8")
     # BD-manifest needs a real manifest to check the bundle against -- write one now that the
     # bundle's files (including the just-rewritten HANDOFF_BOOT.md) are in their final state.
-    import gen_handoff as gh  # noqa: PLC0415
     import json  # noqa: PLC0415
     manifest = gh.bundle_manifest(bundle, source_sha="test", state_rows=state_rows)
     (bundle / vhp.RECEIPT_FILE).write_text(
