@@ -80,9 +80,10 @@ def _run(gh_dir=None, on_path=True):
 
 
 def test_gh_absent_is_silent_and_exits_0(tmp_path, monkeypatch, capsys):
-    # Masked IN-PROCESS. A child's `ProgramFiles` cannot be masked through `env=`: Windows
-    # puts it back in every child's environment (measured: a child launched with it removed,
-    # or pointed at an empty dir, still reads `C:\Program Files`), so a runner that ships a
+    # Masked IN-PROCESS. Two reasons the old `env.pop("ProgramFiles")` masked nothing: on
+    # Windows `dict(os.environ)` keys are upper-case (`PROGRAMFILES`), so the pop removed no
+    # key; and even a child launched with the variable removed, or pointed at an empty dir,
+    # still reads `C:\Program Files` -- Windows puts it back (measured). So a runner that ships a
     # real `gh` at `%ProgramFiles%\GitHub CLI` was found by the fallback in `resolve_gh` and
     # printed its auth line. `os.environ` of THIS process is ours to edit.
     empty = tmp_path / "empty-path"
