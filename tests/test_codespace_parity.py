@@ -365,6 +365,24 @@ def test_a_remote_read_through_gh_returns_the_parsed_record(tmp_path):
     assert any("cat" in c for c in run.calls) and not any(" cp " in f" {c} " for c in run.calls)
 
 
+def test_the_remote_record_read_over_gh_can_be_saved_so_the_evidence_outlives_the_codespace(tmp_path):
+    """Found on the first real run: the second run's remote record died with the Codespace
+    because `check --codespace` read it and kept nothing."""
+    local = _write(tmp_path / "local.json", _record("local"))
+    saved = tmp_path / "saved.json"
+    run = _FakeRun({"codespace ssh": (0, json.dumps(_record("codespace")))})
+    cp.run_check(local, codespace="foundation-5-abc", run=run, save_remote=saved)
+    assert json.loads(saved.read_text(encoding="utf-8")) == _record("codespace")
+
+
+def test_nothing_is_saved_when_the_remote_could_not_be_read(tmp_path):
+    local = _write(tmp_path / "local.json", _record("local"))
+    saved = tmp_path / "saved.json"
+    run = _FakeRun({"codespace ssh": (1, "HTTP 404")})
+    code, _ = cp.run_check(local, codespace="foundation-5-abc", run=run, save_remote=saved)
+    assert code == 3 and not saved.exists()
+
+
 # ============================================================================ the exit code
 
 def _v(status):

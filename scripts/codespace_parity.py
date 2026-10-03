@@ -646,8 +646,12 @@ def render_report(verdicts: Sequence[Verdict]) -> str:
 
 def run_check(local_path: Path, *, remote_path: Optional[Path] = None,
               codespace: Optional[str] = None, remote_file: str = DEFAULT_REMOTE_FILE,
-              cleanup_path: Optional[Path] = None, run: Optional[Runner] = None) -> tuple[int, str]:
-    """Compare the two records. Returns (exit code, report text); never raises."""
+              cleanup_path: Optional[Path] = None, run: Optional[Runner] = None,
+              save_remote: Optional[Path] = None) -> tuple[int, str]:
+    """Compare the two records. Returns (exit code, report text); never raises.
+
+    `save_remote` keeps the record read over gh: the Codespace is deleted at teardown, and a
+    verdict whose remote evidence died with it cannot be re-derived (found on the first run)."""
     try:
         local = load_local(local_path)
     except LocalRecordUnusable as exc:
@@ -661,6 +665,8 @@ def run_check(local_path: Path, *, remote_path: Optional[Path] = None,
             raise RemoteUnavailable("no remote record and no Codespace named -- nothing to compare")
     except RemoteUnavailable as exc:
         return 3, _unavailable_report(str(exc))
+    if save_remote is not None:
+        write_record(save_remote, remote)
     cleanup: Optional[dict] = None
     cleanup_problem = ""
     if cleanup_path is not None:
@@ -727,11 +733,15 @@ def collect_cmd(out: Path, side: str, push_branch: Optional[str], via_gate: bool
 @click.option("--codespace", default=None, help="Read the remote record over gh codespace ssh.")
 @click.option("--remote-file", default=DEFAULT_REMOTE_FILE, show_default=True)
 @click.option("--cleanup", "cleanup_path", default=None, type=click.Path(path_type=Path))
+@click.option("--save-remote", "save_remote", default=None, type=click.Path(path_type=Path),
+              help="Keep the record read over gh, so the evidence outlives the Codespace.")
 def check_cmd(local_path: Path, remote_path: Optional[Path], codespace: Optional[str],
-              remote_file: str, cleanup_path: Optional[Path]) -> None:
+              remote_file: str, cleanup_path: Optional[Path],
+              save_remote: Optional[Path]) -> None:
     """One verdict per condition; exit 0 all PASS | 1 FAIL | 2 NOT-RUN | 3 remote unavailable."""
     code, text = run_check(local_path, remote_path=remote_path, codespace=codespace,
-                           remote_file=remote_file, cleanup_path=cleanup_path)
+                           remote_file=remote_file, cleanup_path=cleanup_path,
+                           save_remote=save_remote)
     click.echo(text)
     sys.exit(code)
 
