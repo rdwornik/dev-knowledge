@@ -135,6 +135,13 @@ try:
 except ImportError:  # pragma: no cover -- exercised by the scripts/-on-sys.path entrypoint
     import routing_agreement as _ra
 
+# A4: every stage the receipt times also leaves one run event in the R17 private home. `merge_path`
+# imports this module only inside `land`, so this top-level import has no cycle.
+try:
+    from scripts import merge_path as _mp
+except ImportError:  # pragma: no cover -- exercised by the scripts/-on-sys.path entrypoint
+    import merge_path as _mp
+
 logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("merge-receipt")
 
@@ -796,6 +803,12 @@ def save_receipt(repo_root: Path, receipt: Receipt) -> None:
         json.dumps(receipt.to_dict(), indent=2), encoding="utf-8", newline="\n")
 
 
+def _stage_event(timing: "StepTiming") -> None:
+    """One run event for one timed stage (A4). Never raises; a dropped event is reported on stderr."""
+    _mp.emit_run_event(f"merge_receipt:{timing.step}", "ok" if timing.ok else "fail", timing.seconds,
+                       step_class=timing.step_class)
+
+
 def run_timed(command: Sequence[str], *, step: str, step_class: str,
               cwd: Optional[Path] = None) -> StepTiming:
     """Run `command`, timed. The child's stdout/stderr are NOT captured — they go straight to the
@@ -882,10 +895,12 @@ def record_push(repo_root: Path, *, slug: str, target: str, branch: str, sha: st
         step = STEP_PUSH_MAIN
     else:
         raise MergeReceiptError(f"push target {target!r} is outside {{integration, main}}")
-    receipt.steps.append(StepTiming(
+    timing = StepTiming(
         step=step, step_class=CLASS_CEREMONY, seconds=round(float(seconds), 3), ok=True,
-        returncode=0, command=f"git push origin {sha}:refs/heads/{branch}", started=started))
+        returncode=0, command=f"git push origin {sha}:refs/heads/{branch}", started=started)
+    receipt.steps.append(timing)
     save_receipt(repo_root, receipt)
+    _stage_event(timing)
     return receipt
 
 
@@ -1475,6 +1490,7 @@ def cmd_time(ctx: click.Context, slug: str, step: str, step_class: str,
     timing = run_timed(command, step=step, step_class=step_class, cwd=root)
     receipt.steps.append(timing)
     save_receipt(root, receipt)
+    _stage_event(timing)
     logger.info("step %s: %.2f min (%s)", step, timing.minutes,
                 "ok" if timing.ok else f"FAILED rc={timing.returncode}")
     # The child's verdict is passed through unchanged: a wrapper that swallowed a failing merge
@@ -1540,6 +1556,8 @@ def cmd_race(ctx: click.Context, slug: str, jobs: tuple[str, ...]) -> None:
     save_receipt(root, receipt)
     wall = time.perf_counter() - clock
     recorded = [s for s in receipt.steps if s.step in set(names)]
+    for timing in recorded:
+        _stage_event(timing)
     serial = sum(s.seconds for s in recorded)
     logger.info("raced %d job(s) in %.2f min; serial would be %.2f min (%.2f min saved)",
                 len(parsed), wall / 60.0, serial / 60.0, (serial - wall) / 60.0)

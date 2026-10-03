@@ -437,3 +437,109 @@ def test_the_target_line_verb_refuses_when_origin_main_cannot_be_resolved(tmp_pa
     result = CliRunner().invoke(mp.cli, ["--repo-root", str(tmp_path), "target-line", "--tip", TIP])
 
     assert result.exit_code != 0 and "origin/main" in result.output
+
+
+# --- the instrumented organs (A4, AM2-2): one run event per gate / moment organ / diff run -----
+
+def _gate_rows(*pairs):
+    import gates  # noqa: PLC0415
+    import sys  # noqa: PLC0415
+    return tuple(gates.Gate(name, argv=(sys.executable, "-c", f"raise SystemExit({code})"))
+                 for name, code in pairs)
+
+
+def test_run_gates_emits_one_event_per_gate_with_outcome_and_duration(events, tmp_path):
+    import gates  # noqa: PLC0415
+
+    verdict = gates.run_gates(_gate_rows(("g-ok", 0), ("g-red", 1)), lane="L", cwd=tmp_path, base="main")
+
+    rows = [r for r in mp.read_events(events) if r["organ"].startswith("gates:")]
+    assert [(r["organ"], r["outcome"]) for r in rows] == [("gates:g-ok", "ok"), ("gates:g-red", "fail")]
+    assert all(isinstance(r["duration_ms"], int) for r in rows) and verdict["verdict"] == "RED"
+
+
+def test_run_gates_still_returns_when_the_event_cannot_be_written(tmp_path, monkeypatch):
+    import gates  # noqa: PLC0415
+    blocker = tmp_path / "file"
+    blocker.write_text("x", encoding="utf-8")
+    monkeypatch.setenv(mp.EVENTS_PATH_ENV, str(blocker / "events.jsonl"))
+
+    verdict = gates.run_gates(_gate_rows(("g-ok", 0)), lane="L", cwd=tmp_path, base="main")
+
+    assert verdict["verdict"] == "GREEN"
+
+
+def test_a_gate_that_raises_still_emits_a_fail_event(events, tmp_path):
+    import gates  # noqa: PLC0415
+
+    def boom(cwd, base):
+        raise RuntimeError("x")
+
+    gates.run_gates((gates.Gate("g-raise", runner=boom),), lane="L", cwd=tmp_path, base="main")
+
+    assert [(r["organ"], r["outcome"]) for r in mp.read_events(events)] == [("gates:g-raise", "fail")]
+
+
+def _dodo():
+    import importlib.util  # noqa: PLC0415
+    path = mp._REPO_ROOT / "scripts" / "dodo.py"
+    spec = importlib.util.spec_from_file_location("dodo_for_events", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+@pytest.mark.parametrize("code,outcome", [(0, "ok"), (3, "fail")])
+def test_a_moment_organ_emits_one_event_through_dodo_execute(events, tmp_path, code, outcome):
+    import sys  # noqa: PLC0415
+    dodo = _dodo()
+    row = {"command": [sys.executable, "-c", f"raise SystemExit({code})"]}
+
+    result = dodo._execute("organ-z", row, tmp_path / "R.json", None, False, moment={"name": "merge"})()
+
+    assert result is (code == 0)
+    rows = [r for r in mp.read_events(events) if r["organ"] == "dodo:organ-z"]
+    assert len(rows) == 1 and rows[0]["outcome"] == outcome and rows[0]["moment"] == "merge"
+
+
+def test_a_stopped_organ_emits_a_fail_event_too(events, tmp_path):
+    dodo = _dodo()
+
+    result = dodo._execute("organ-gone", {"command": ["scripts/no_such_organ.py"]},
+                           tmp_path / "R.json", None, False)()
+
+    assert result is False
+    assert [(r["organ"], r["outcome"]) for r in mp.read_events(events)] == [("dodo:organ-gone", "fail")]
+
+
+def test_ship_gate_diff_emits_exactly_one_event_per_run(events, monkeypatch):
+    import ship_gate_diff as sgd  # noqa: PLC0415
+    monkeypatch.setattr(sgd, "diff", lambda repo, base: (frozenset({("c", "fail", "e")}), frozenset()))
+
+    code = sgd.main(["diff", "--repo", "."])
+
+    rows = mp.read_events(events)
+    assert code == 1 and [(r["organ"], r["outcome"]) for r in rows] == [("ship_gate_diff", "fail")]
+
+
+def test_ship_gate_diff_still_exists_instrumented_not_removed():
+    import ship_gate_diff as sgd  # noqa: PLC0415
+    assert callable(sgd.blocking_at_head) and callable(sgd.blocking_at_ref) and callable(sgd.cmd_diff)
+
+
+def test_verify_local_emits_ONE_event_per_gate_not_two(events, tmp_path, monkeypatch):
+    import gates  # noqa: PLC0415
+    monkeypatch.setattr(gates, "GATES", _gate_rows(("g-ok", 0), ("g-red", 1)))
+
+    result = CliRunner().invoke(mp.cli, ["--repo-root", str(tmp_path), "verify-local", "--lane", "L",
+                                         "--base", "main"])
+
+    assert result.exit_code == 1
+    assert [(r["organ"], r["outcome"]) for r in mp.read_events(events)] == [
+        ("gates:g-ok", "ok"), ("gates:g-red", "fail")]
+
+
+def test_a_test_run_never_writes_the_real_home_unless_it_redirects(monkeypatch):
+    monkeypatch.delenv(mp.EVENTS_PATH_ENV, raising=False)
+
+    assert mp.emit_run_event("a", "ok", 0.1) is None

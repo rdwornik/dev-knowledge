@@ -104,6 +104,8 @@ def emit_run_event(organ: str, outcome: str, duration_s: float, **detail) -> Opt
     dropped one, which a silent `except: pass` would hide."""
     if outcome not in OUTCOMES:
         outcome = "error"
+    if not os.environ.get(EVENTS_PATH_ENV) and os.environ.get("PYTEST_CURRENT_TEST"):
+        return None          # a test run writes the real home only when it redirects it on purpose
     try:
         path = events_path()
         why = _forbidden_home(path)
@@ -489,8 +491,6 @@ def cmd_verify_local(ctx: click.Context, lane: str, slug: Optional[str],
     root = ctx.obj["root"]
     verdict = gates.run_gates(gates.GATES, lane=lane, cwd=root, base=base)
     for row in verdict["gates"]:
-        emit_run_event(f"gate:{row['name']}", "ok" if row["exit_code"] == 0 else "fail",
-                       row["duration_ms"] / 1000.0, lane=lane)
         click.echo(f"verify-local: {'ok ' if row['exit_code'] == 0 else 'RED'} {row['name']} "
                    f"exit={row['exit_code']} {row['duration_ms']}ms")
     if slug:

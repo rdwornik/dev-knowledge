@@ -523,6 +523,29 @@ def test_racing_records_EVERY_jobs_verdict_and_FAILS_when_any_job_failed(tmp_pat
     assert result.exit_code != 0, "one failing job fails the race"
 
 
+def test_a_timed_step_and_every_raced_job_emit_a_run_event_each(tmp_path, monkeypatch):
+    """A4: every stage the receipt times also leaves ONE run event in the R17 private home, so the
+    stage durations survive a receipt that is abandoned or never closed."""
+    from click.testing import CliRunner
+
+    import merge_path as mp
+
+    events = tmp_path / "state" / mp.EVENTS_FILENAME
+    monkeypatch.setenv(mp.EVENTS_PATH_ENV, str(events))
+    mr.open_receipt(tmp_path, slug="m", batch="x")
+    CliRunner().invoke(mr.cli, [
+        "--repo-root", str(tmp_path), "time", "--slug", "m", "--step", "merge", "--",
+        sys.executable, "-c", "pass"])
+    CliRunner().invoke(mr.cli, [
+        "--repo-root", str(tmp_path), "race", "--slug", "m",
+        "--job", f"a:tests={sys.executable} -c \"pass\"",
+        "--job", f"b:review={sys.executable} -c \"import sys; sys.exit(3)\""])
+
+    rows = mp.read_events(events)
+    assert [(r["organ"], r["outcome"]) for r in rows] == [
+        ("merge_receipt:merge", "ok"), ("merge_receipt:a", "ok"), ("merge_receipt:b", "fail")]
+
+
 def test_a_raced_job_KNOWS_what_it_ran_against(tmp_path):
     """`raced_with` is what makes the wall-time grouping honest rather than a guess."""
     from click.testing import CliRunner

@@ -58,6 +58,7 @@ from typing import Callable, Optional, Sequence
 import click
 
 import memory_admission_gate  # LANE-5A-3: the ship-gate and pytest calls are gated
+import merge_path  # A4: one run event per gate, to the R17 private home
 
 _ROOT = Path(__file__).resolve().parent.parent
 _VERDICT_NAME = "MOMENT-MERGE-GATES-VERDICT.json"
@@ -209,8 +210,11 @@ def run_gates(gates: Sequence[Gate], *, lane: str, cwd: Path, base: Optional[str
             code, text = _run_argv_gated(gate.argv, cwd)
         else:
             code, text = _run_argv(gate.argv, cwd)
+        elapsed = time.monotonic() - started
+        merge_path.emit_run_event(f"gates:{gate.name}", "ok" if int(code) == 0 else "fail", elapsed,
+                                  lane=lane, exit_code=int(code))  # A4: never raises, private home
         rows.append({"name": gate.name, "argv": list(gate.argv), "exit_code": int(code),
-                     "duration_ms": int((time.monotonic() - started) * 1000),
+                     "duration_ms": int(elapsed * 1000),
                      "output_tail": (text or "")[-_TAIL_CHARS:],
                      "findings": _findings_in(text or "")})
     red = [row["name"] for row in rows if row["exit_code"] != 0]
