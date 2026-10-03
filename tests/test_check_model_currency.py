@@ -90,12 +90,17 @@ def test_the_agy_version_note_names_the_served_release() -> None:
     assert "1.2.16" in text
 
 
-def test_no_role_is_repinned_by_this_lane() -> None:
-    """N3: a re-pin moves seams outside this lane's files (`dispatch.py` MODEL_ALIASES among
-    them), so the role pins stay as ruled and the gap is a ROWS-OWED line, not an edit."""
+def test_only_the_role_pins_whose_seams_sit_in_this_lanes_files_move() -> None:
+    """N3: the `sonnet` re-pin moves seams outside this lane's files (`dispatch.py`
+    MODEL_ALIASES, `plan_lint.py`), so `roles.implement` stays on `claude-sonnet-5` and the gap
+    is a ROWS-OWED line. No seam outside the registry names an `xai` model, so both `xai` role
+    entries move to the id served on 2026-10-03 and their stale-pin exceptions go."""
     roles = preg.roles()
     assert roles["implement"]["order"][0]["model"] == "claude-sonnet-5"
-    assert [e.get("model") for e in roles["review"]["order"]][:2] == ["gpt-5.6-terra", "grok-4.6"]
+    xai = [e for spec in roles.values() for e in spec["order"] if e["provider"] == "xai"]
+    assert len(xai) == 2
+    assert all(e["model"] == "grok-4.7" for e in xai), [e["model"] for e in xai]
+    assert all(e.get("currency_exception") is None for e in xai)
 
 
 def _registry_dict() -> dict:

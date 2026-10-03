@@ -39,6 +39,11 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, StrictStr, model_validator
 
+#: 1.4.0 — `foundation-10-model-currency` (R61) adds `Model.last_verified` and `Model.evidence`:
+#: the date a model id was last read as SERVED, and the records that show it. Both optional, so
+#: every pre-R61 registry validates unchanged (MINOR); an unset date is read as unverified by
+#: `scripts/check_model_currency.py`. Not a member of `validate_reconciliation._SPEC_REGISTRY`,
+#: so no reconciliation obligation follows from this bump.
 #: 1.3.0 — `lane-ratified-unbuilt` (WAVE5B-N5-R, R22) adds `ProviderRegistry.dispatcher`
 #: (`DispatcherPin`): the model the dispatcher session itself runs on. NOT a `roles:` entry —
 #: the dispatcher is a session type whose logic is code, not one of AX21-1's six
@@ -51,7 +56,12 @@ from pydantic import BaseModel, ConfigDict, StrictStr, model_validator
 #: the per-provider `licence:` block. Not a member of `validate_reconciliation._SPEC_REGISTRY`
 #: (which registers `handoff-process` and `prompt-template` only), so this bump carries no
 #: reconciliation obligation — checked rather than assumed.
-SCHEMA_VERSION = "1.3.0"
+SCHEMA_VERSION = "1.4.0"
+
+#: The prefix that marks an evidence reference as living on the operator's transport rather than
+#: in this repository. CI cannot read the transport, so such a reference may ride beside an
+#: in-repo one and is never checked for existence by the repository's own gates.
+EVIDENCE_TRANSPORT_PREFIX = "transport:"
 
 #: A verdict's closed vocabulary. `unevaluated` is a first-class member on purpose: a provider
 #: nobody has run through the admission pipeline is a KNOWN state, not a missing one, and
@@ -475,6 +485,38 @@ class Model(_Contract):
     #: "unpriced" and refused by name at the reader, never costed at zero.
     rates: Optional[ModelRates] = None
     pinned_at: tuple[Pin, ...] = ()
+    #: R61. The day this id was last read as SERVED -- by a run's own record (a transcript's
+    #: `message.model`, a CLI's `usage.json` `primaryModelId`, a run header), never by a release
+    #: note. Optional; absent reads as unverified, and `scripts/check_model_currency.py` flags an
+    #: entry whose date is more than 14 days old or absent.
+    last_verified: Optional[datetime.date] = None
+    #: The records that show it: repo-relative paths, or `transport:<name>` for a file that lives
+    #: only on the operator's transport. A date with no evidence is refused below.
+    evidence: tuple[StrictStr, ...] = ()
+
+    @model_validator(mode="after")
+    def _a_verification_date_names_its_evidence(self) -> "Model":
+        if self.last_verified is not None and not self.evidence:
+            raise ValueError(
+                "`last_verified` is set but `evidence` names nothing to check it against -- a "
+                "date nobody can verify is an assertion, not a record"
+            )
+        for ref in self.evidence:
+            if ref.startswith(EVIDENCE_TRANSPORT_PREFIX):
+                name = ref[len(EVIDENCE_TRANSPORT_PREFIX):]
+                p = PurePosixPath(name.replace("\\", "/"))
+                bad = not name or p.is_absolute() or ".." in p.parts or re.match(r"^[A-Za-z]:", name)
+            else:
+                p = PurePosixPath(ref.replace("\\", "/"))
+                bad = p.is_absolute() or ".." in p.parts or re.match(r"^[A-Za-z]:", ref)
+            if bad:
+                raise ValueError(
+                    f"evidence `{ref}` is not a resolvable evidence reference -- a repo-relative "
+                    f"path, or `{EVIDENCE_TRANSPORT_PREFIX}<name>` for a transport file; an "
+                    f"absolute or climbing path can exist while proving nothing about this "
+                    f"repository"
+                )
+        return self
 
     @model_validator(mode="after")
     def _a_refused_role_is_not_also_held(self) -> "Model":
@@ -865,6 +907,7 @@ class ProviderRegistry(_Contract):
 
 
 __all__ = [
+    "EVIDENCE_TRANSPORT_PREFIX",
     "ROLE_NAMES",
     "SCHEMA_VERSION",
     "CurrencyException",
