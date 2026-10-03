@@ -21,6 +21,21 @@
 
 ---
 
+### 2026-10-03 (f) - CC (Opus 5.5, integrator seat FOUNDATION): lane foundation-5-codespace-parity merges after one repair, rebuilt on main after lane 6 -- a repository check says per condition whether a Codespace lane behaves like a local one
+
+**Anchors:** `9686f2e8`, `7256823e` -- `worktree-foundation-5-codespace-parity`, merged `--no-ff` through `epic/foundation-int-foundation-5-codespace-parity-r2`.
+
+**Did:**
+- Refused the first handback `9772c415` (repair 1 of 2): its review record carried no nonce or content hash (R59). The repair re-ran the review on grok-4.7 with nonce `NONCE-cb4972e7d0b3` returned and recorded, and fixed one new P1; the integrator re-read the served id and the nonce from the Grok session store.
+- A first integration (`dbcc5355`, never on `main`) read two `deny_and_point` fail-closed tests red: an order dependence on the persisted graph store (proven: absent store -> allow), not lane 5's content. Seat ruling 2026-10-03: rebuild on `main` after lane 6 and read CI once. This is that rebuild; `ecosystem/doc-counts.md` regenerated on the conflict.
+- `[#1335]` cites the run record (its governance consumer; the lane may not edit rows, ruling (h)); regenerated `docs/audits/README.md`; carried lane foundation-6-ci-speed's closed merge receipt into `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict is the integration branch's single CI push run, test-level per leg -- recorded in the integrator receipt `to-browser/SESSION-integrator-foundation-2026-10-03.md`.
+
+**Changes:** `scripts/codespace_parity.py`, `tests/test_codespace_parity.py`, `tests/test_provision_sh.py`, `ecosystem/harness.yaml` (one fates line), two audits, `tasks/1335` (refs), `logs/MERGE-RECEIPTS.jsonl`, generated `ecosystem/doc-counts.md` / `docs/audits/README.md`.
+
+**Next:** lane 4 (fired by the dispatcher after lane 6); the seven ROWS-OWED from lane 5 go to the batch digest.
+
 ### 2026-10-03 (e) - CC (Opus 5.5, integrator seat FOUNDATION): lane foundation-6-ci-speed merges under an amended item 3 -- the pytest legs distribute by xdist group
 
 **Anchors:** `e342a73c`, `742e015e`, `ef02b75b` -- `worktree-foundation-6-ci-speed`, merged `--no-ff` through `epic/foundation-int-foundation-6-ci-speed`.
