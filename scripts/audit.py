@@ -297,6 +297,7 @@ check_consumer_at_landing = _registry.check_consumer_at_landing
 check_platform_matrix = _registry.check_platform_matrix
 check_proof_layer = _registry.check_proof_layer
 check_organ_truth = _registry.check_organ_truth
+check_model_currency = _registry.check_model_currency
 
 _CONFIG_SUFFIXES = _registry._CONFIG_SUFFIXES
 _DOT_PREFIX_EXCEPTIONS = _registry._DOT_PREFIX_EXCEPTIONS
@@ -5537,6 +5538,11 @@ ALL_CHECKS = [
                                # file alone. A COMMIT tier would wedge every commit. Promotion
                                # condition: flip to TIER_COMMIT when it measures 0 on main.
                                # Full argument at the check's docstring
+    _tier(TIER_COMMIT, check_model_currency),      # R61 (foundation-10) — every pinned model id
+                               # is in the registry and each row was verified within 14 days.
+                               # WARN-class only (pass or warn, no FAIL leg), so it blocks no
+                               # commit; COMMIT tier so the finding shows in `audit.py health`.
+                               # Cheap: one registry read, `templates/`, tracked LANE-*.md
 ]
 
 

@@ -298,6 +298,9 @@ providers:
     #   BASIS, re-measured on this host 2026-08-25 rather than transcribed:
     #     Get-Command grok  ->  Application  C:\Users\1028120\.grok\bin\grok.exe
     #     grok --version    ->  `grok 1.0.5 (5115b46bc9) [stable]`  (exit 0)
+    #   RE-MEASURED 2026-10-04 (`foundation-10-model-currency`, R61): `grok --version` ->
+    #     `grok 1.0.44 (5b807183dd79) [alpha]` (exit 0), the same build the 2026-10-03 15:41Z
+    #     probe ran. The 1.0.5 [stable] reading above stays as the 2026-08-25 basis.
     # PRESENCE ONLY. This repairs what the registry says is INSTALLED. It grants no role,
     # revisits no admission verdict, and says nothing about which route the 2026-08-20/23
     # A/B runs actually used (those reached xAI over raw HTTPS) — roles are R3's.
@@ -350,6 +353,11 @@ providers:
     # window"). NOT ACTED ON HERE: re-pinning `grok-4.6` from one ambiguous local read would
     # substitute one unverified guess for another. See the `currency_exception` on both `xai`
     # role-order entries below and `ROWS-OWED` in this lane's handback.
+    # RESOLVED 2026-10-04 (`foundation-10-model-currency`, R61) BY SERVED EVIDENCE, NOT BY A
+    # THIRD LISTING READ: `grok -m grok-4.7 ...` returned `primaryModelId: "grok-4.7"` on
+    # 2026-10-03 at 15:41Z (a nonce probe) and again in two lane reviews, so both `xai` role
+    # entries now pin `grok-4.7` and the two `currency_exception` blocks are gone. The readings
+    # above stay as the record of why the pin waited.
     model_currency:
       command: ["grok", "models"]
       parse: >-
@@ -422,6 +430,10 @@ providers:
     #   VERSION   agy --version -> `1.1.20` (exit 0)
     #   VERSION   1.1.21 as re-measured 2026-08-26 (provider surface v2). The 1.1.20
     #             reading above is kept as the 2026-08-25 basis rather than overwritten.
+    #   VERSION   1.2.16 as re-measured 2026-10-04 (`foundation-10-model-currency`, R61):
+    #             `agy --version` -> `1.2.16` (exit 0). The B2-prep digest's served line reads
+    #             "agy 1.2.16, 'Gemini 3.8 Flash (High)' on every run (run-log label)", which
+    #             is what the `gemini-3.8-flash` model row below records as its evidence.
     #   AGENTS.md-NATIVE, measured by EXECUTION 2026-08-26 (intake #42, probe #42):
     #             planted `AGENTS-4711` / `CLAUDE-8822` probe files settled instruction-
     #             file precedence by running the CLI, not by reading its docs. `agy`
@@ -690,28 +702,19 @@ roles:
           decided_on: "2026-09-23"
           evidence: docs/audits/2026-09-23-technical-copilot-admission-evidence.md
       - provider: xai
-        model: grok-4.6
+        model: grok-4.7
         note: >-
           NOT ADMITTED for this role. Its only recorded verdict is a REFUSED fan-out (a
           different role, 2026-08-23, floors G1+G2) and that refusal is not transferred here --
           admission is per role. AX21-3 adds a hard precondition for Half B to clear first: a
           CLI that cannot enforce a token ceiling by flag is not ordered, and grok's flags are
-          unverified.
+          unverified. MOVED from `grok-4.6` 2026-10-04 (`foundation-10-model-currency`, R61) on
+          SERVED evidence, which the 2026-09-25 `currency_exception` that stood here asked for:
+          `grok-4.7` returned `primaryModelId: "grok-4.7"` on 2026-10-03 (the `grok-4.7` model
+          row's evidence). The pin moved and the admission verdict did not.
         admission:
           verdict: unevaluated
           floors: ["AX22-1", "AX21-3"]
-        currency_exception:
-          reason: >-
-            `grok models`, re-run 2026-09-25 (LANE-5B-2), disagreed with Part Z's same-night
-            reading of the identical command on the identical box: Part Z read `grok-4.6
-            (default), grok-4.5`; this run's default was `grok-4.20-0309-non-reasoning`, with
-            `grok-4.7` also listed above the pinned `grok-4.6`. Two disagreeing readings of one
-            command on one day is the Q9 substitution-risk shape this registry exists to catch
-            ([#492]), not an ordinary currency gap -- so the pin is left alone rather than moved
-            to either unverified reading, and the discrepancy is filed rather than resolved.
-            Full readings: this file's `providers.xai.model_currency` comment.
-          decided_by: architect
-          decided_on: "2026-09-25"
   review:
     description: >-
       Judge a diff before merge. AX21-1 routes this to Codex terra and excludes the producing
@@ -740,7 +743,7 @@ roles:
           verdict: unevaluated
           floors: ["AX22-1"]
       - provider: xai
-        model: grok-4.6
+        model: grok-4.7
         # AX22-2 conditions THIS ENTRY on admission -- "the reviewer is Grok (AFTER ADMISSION)
         # or Sonnet" -- while leaving the review role itself ungated, which is what keeps Codex
         # terra routable here despite being NOT ADMITTED. A role-level gate could not express
@@ -750,17 +753,12 @@ roles:
           AX22-2's named fallback when Codex produced, and it is conditional on an admission
           that has not happened. So the review chain skips this position today and lands on
           Sonnet -- which is AX22-2's own terminal fallback, reached by the route the clause
-          describes rather than by an edit.
+          describes rather than by an edit. MOVED from `grok-4.6` 2026-10-04
+          (`foundation-10-model-currency`, R61) on the same served evidence as the `implement`
+          entry above; the batch order's own review route already named `grok-4.7`.
         admission:
           verdict: unevaluated
           floors: ["AX22-1"]
-        currency_exception:
-          reason: >-
-            Same LANE-5B-2 finding as the `implement` role's `xai`/`grok-4.6` entry: `grok
-            models` re-run 2026-09-25 disagreed with Part Z's same-night reading of the
-            identical command. See `providers.xai.model_currency` for the full readings.
-          decided_by: architect
-          decided_on: "2026-09-25"
       - provider: anthropic
         model: claude-sonnet-5
         note: >-
@@ -940,6 +938,13 @@ models:
         per Mtok, $0.20/Mtok cache reads"), read via `docs/audits/2026-09-23-changelog-
         review.md` Part C / `A5`, not the shared card's 2026-06-24 cache.
     pinned_at: []
+    # R61 (`foundation-10-model-currency`): read as SERVED on 2026-10-03 -- the render seat's
+    # transcript carries `message.model` = `claude-opus-5-5` on 247 assistant messages
+    # (11:49Z-12:23Z). The ledger of every read is in the review record named below.
+    last_verified: 2026-10-03
+    evidence:
+      - docs/audits/2026-10-04-codex-foundation-10-model-currency.md
+      - transport:to-browser/SESSION-gen-foundation-record-2026-10-03.md
 
   # ADDED 2026-09-15 BY `[#787]`, AND IT IS THE ROW EVERY OTHER PROVIDER'S COMPARABILITY WAS
   # WAITING ON. `provider_bench.comparability` computes
@@ -986,6 +991,12 @@ models:
     # the id is registered so a provenance attribution naming it resolves.
     roles: [reviewer]
     pinned_at: []
+    # R61: read as SERVED on 2026-10-03 -- lane 6's second review ran `codex exec -c
+    # model=gpt-5.6-terra` and the run's own header read `model: gpt-5.6-terra`, `provider:
+    # openai` (OpenAI Codex v0.155.0).
+    last_verified: 2026-10-03
+    evidence:
+      - docs/audits/2026-10-03-codex-foundation-6-ci-speed.md
 
   gpt-5.6-sol:
     provider: openai
@@ -1044,3 +1055,50 @@ models:
         evidence: docs/audits/2026-08-23-technical-lane-562-local-admission.md
         rerun_carrier: "[#578]"
     pinned_at: []
+
+  # --- R61 -- ADDED 2026-10-04 BY `foundation-10-model-currency` ----------------------------
+  # Three ids read as SERVED on 2026-10-03 that this registry did not list. `last_verified` is
+  # the day of the read and `evidence` the records that show it (served by a run's own record,
+  # not by a release note); `scripts/check_model_currency.py` flags a row whose date is older
+  # than 14 days or absent. None of the three holds a role: moving a role pin to
+  # `claude-sonnet-5-5` also moves seams outside this file (the `sonnet` alias in
+  # `scripts/dispatch.py`, `scripts/plan_lint.py`, and the three S9/S10/S17 pins of
+  # `claude-sonnet-5`), so that move is a ROWS-OWED line in the lane's handback.
+  claude-sonnet-5-5:
+    provider: anthropic
+    tier: M
+    # Unpriced on purpose: no rate source for this id was read, and an invented price is worse
+    # than the by-name refusal `provider_registry.RateUnavailable` gives an unpriced row.
+    roles: []
+    pinned_at: []
+    # Every FOUNDATION lane transcript carries `message.model` = `claude-sonnet-5-5`; the render
+    # record's step 0.3 probe (job 0d5e4736) is the first read.
+    last_verified: 2026-10-03
+    evidence:
+      - docs/audits/2026-10-04-codex-foundation-10-model-currency.md
+      - transport:to-browser/SESSION-gen-foundation-record-2026-10-03.md
+
+  # The id the review route named from 2026-10-03: `primaryModelId: "grok-4.7"` in the Grok
+  # session store, with `modelUsage` naming only `grok-4.7`. Both `xai` role entries pin it.
+  grok-4.7:
+    provider: xai
+    roles: []
+    pinned_at: []
+    last_verified: 2026-10-03
+    evidence:
+      - docs/audits/2026-10-03-codex-foundation-3-handoff-boot.md
+      - docs/audits/2026-10-03-codex-foundation-6-ci-speed.md
+      - transport:to-browser/SESSION-gen-foundation-record-2026-10-03.md
+
+  # Reached through `agy` (the `antigravity` provider), not through the retired `gemini` CLI,
+  # which is why the row sits under `antigravity` while its predecessor `gemini-3.7-flash`
+  # sits under `google`. The label agy printed was "Gemini 3.8 Flash (High)" on every run of
+  # the B2-prep digest; `agy models` lists the family as `gemini-3.8-flash-{high,medium,low}`.
+  gemini-3.8-flash:
+    provider: antigravity
+    roles: []
+    pinned_at: []
+    last_verified: 2026-10-03
+    evidence:
+      - docs/audits/2026-10-04-codex-foundation-10-model-currency.md
+      - transport:to-browser/DIGEST-B2-PREP-2026-10-03.md

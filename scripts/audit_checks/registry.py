@@ -123,6 +123,7 @@ from .check_workspace_settings import (
     _WORKSPACE_REQUIRED_SETTINGS,
     check_workspace_settings,
 )
+from .model_currency import check_model_currency
 
 # The canonical order of `audit.ALL_CHECKS`, by function name. 46 entries; the count is pinned
 # in ARCHITECTURE.md, .claude/commands/{handoff-verify,preflight}.md, deploy/release_lint.py and
@@ -190,6 +191,7 @@ CHECK_ORDER: tuple[str, ...] = (
                                           # funnel_lifecycle.py
     "check_organ_truth",                  # lane-l3 — index arming vs live config; organs
                                           # declared nowhere / optional-unbuilt
+    "check_model_currency",               # R61 — pinned ids vs the registry; 14-day rows
 )
 
 # The extracted subset, in CHECK_ORDER-relative order.
@@ -218,6 +220,7 @@ EXTRACTED_CHECKS = (
     check_platform_matrix,
     check_proof_layer,
     check_organ_truth,
+    check_model_currency,
 )
 
 # The flat surface `audit.py` re-exports. Names beyond the check functions appear here because a
@@ -286,6 +289,7 @@ __all__ = [
     "check_floor_integrity",
     "check_handoff_bundle_structure",
     "check_handoff_version_stamp",
+    "check_model_currency",
     "check_organ_truth",
     "check_platform_matrix",
     "check_proof_layer",

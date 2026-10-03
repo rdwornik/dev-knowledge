@@ -21,6 +21,21 @@
 
 ---
 
+### 2026-10-04 (a) - CC (Opus 5.5, integrator seat FOUNDATION): night lane foundation-10-model-currency merges -- the harness checks model currency from served evidence (R61)
+
+**Anchors:** `91ed36c3`, `7ea72394`, `7fd1327d` -- `worktree-foundation-10-model-currency`, merged `--no-ff` through `epic/foundation-int-foundation-10-model-currency`.
+
+**Did:**
+- Adopted through the per-handback path as an AMEND-5 night lane. The registry lists the five ids served on 2026-10-03 with `last_verified` and evidence; `scripts/check_model_currency.py` lists every pinned id and flags unknown, unverified and 14-day-stale ones, as a COMMIT-tier `warn` finding in `audit.py health` -- no hook added.
+- Ownership: `scripts/audit.py` (`ALL_CHECKS` entry), `ecosystem/doc-code-edge.yaml` (exempt line) and three `ALL_CHECKS` count pins (57 -> 58) sit outside the contract's owned list; accepted as structural consequences of the contract's own N4 instruction (registration in `ALL_CHECKS`), recorded DECIDED-BY-LANE.
+- Regenerated `docs/audits/README.md`; carried lane foundation-5-codespace-parity's closed merge receipt into `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict is the integration branch's CI push run, test-level per leg -- recorded in the integrator receipt `to-browser/SESSION-integrator-foundation-2026-10-03.md`. The lane's OPERATOR-ACTION stands: `audit.py ship-gate` reads the new standing `warn` (8 rows with no `last_verified`) as blocking until a disposition covers it; `ship-gate` is not a required context.
+
+**Changes:** `ecosystem/provider-registry.yaml`, `ecosystem/schema/provider_registry.py`, `scripts/check_model_currency.py`, `scripts/audit_checks/{model_currency,registry}.py`, `scripts/audit.py`, `ecosystem/{harness,doc-code-edge}.yaml`, four test files, one audit, `logs/MERGE-RECEIPTS.jsonl`, generated `ecosystem/doc-counts.md` / `docs/audits/README.md`.
+
+**Next:** lane 12 waits on this merge (shared `tests/test_provider_registry.py`); the lane's four ROWS-OWED go to the batch digest.
+
 ### 2026-10-03 (f) - CC (Opus 5.5, integrator seat FOUNDATION): lane foundation-5-codespace-parity merges after one repair, rebuilt on main after lane 6 -- a repository check says per condition whether a Codespace lane behaves like a local one
 
 **Anchors:** `9686f2e8`, `7256823e` -- `worktree-foundation-5-codespace-parity`, merged `--no-ff` through `epic/foundation-int-foundation-5-codespace-parity-r2`.
