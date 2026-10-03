@@ -7,7 +7,8 @@
 **Codex version:** n/a — SUBSTITUTED under BATCH-COMMON §0 ruling (e) (see below)
 **Mode:** diff-review, isolated read-only session (the diff, the changed files and the contract only — not the lane)
 **Tally:** P1=0 P2=0 P3=0 (one disputed remark, dispositioned below)
-**Consumer:** `LANE-FOUNDATION-foundation-2-cheap-fixes.md` (Done-contract item 7, "the review record citing this contract inside it")
+**Consumer:** `LANE-FOUNDATION-foundation-2-cheap-fixes.md` (Done-contract item 7, "the review record citing this contract inside it");
+`docs/decisions/ADR-127-ci-os-verification.md` (ADR-127 D7 — the harness and its tests are OS-agnostic, checked on both legs)
 
 **Model used:** `grok-4.6` (SUBSTITUTE for the pinned `gpt-5.6-terra` — see Substitution note)
 **Review profile:** code
