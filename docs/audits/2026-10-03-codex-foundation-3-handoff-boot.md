@@ -45,3 +45,29 @@ independently confirmed (unlike the foundation-2 record). **Proof of read:** the
 This record is the review the contract names (`LANE-FOUNDATION-foundation-3-handoff-boot.md`, Done-contract
 item 9), written to the name the audit grammar admits (`docs/audits/<date>-codex-<slug>.md`).
 `docs/audits/README.md` is left stale for the integrator (`[#590]`).
+
+---
+
+## Amendment 2026-10-03 (repair 1 of 2) — the review re-run with the output contract met
+
+*Dated in-file amendment marker (audit immutability, CLAUDE.md §5 rule 3): the text above is unchanged. The
+integrator's refusal (`REFUSED-foundation-3-handoff-boot.md`) found that the first review named no served
+model and no nonce (BATCH-COMMON §0a item 1, R59), so that read counted as failed. This section is the
+re-run and supersedes the "Served model" and "Proof of read" lines above; the single record name per lane
+is kept because the audit grammar admits one `docs/audits/<date>-codex-<slug>.md`.*
+
+`SUBSTITUTION: codex terra -> grok-4.7 (Codex is at its usage limit until 2026-10-03 21:07; this re-run ran at 18:10Z, 20:10 local)`.
+Route per `to-cc/AMEND-BATCH-FOUNDATION-3-2026-10-03.md` (grok-4.7 before 21:07). Not the producer's vendor and not the implementing session.
+
+- **Reviewed tip:** `938ff0a5` (origin/main `ce6ecb08` already merged; `git fetch` + `git merge origin/main` at repair start: already up to date).
+- **Command:** from an empty job-tmp folder holding `changes.diff` (`git diff origin/main...HEAD`, excluding `protocols/STANDING_RULINGS.md`, `JOURNAL.md`, `BACKLOG.md`, `tasks/`, `ecosystem/doc-counts.md`, `docs/audits/README.md`), the 12 changed source/test files under `files/`, `CONTRACT.md` (this lane's frozen contract) and `nonce.txt` —
+  `grok -m grok-4.7 --tools read_file,list_dir,grep -p "<prompt.md>"`.
+- **Exit code:** 0; stderr empty; 19 model calls.
+- **Served model:** `grok-4.7`, read from the session's `usage.json` `primaryModelId` (`modelUsage` holds only `grok-4.7`).
+- **Nonce:** `NONCE-1d8ae831cbf4` — written to `nonce.txt`, returned verbatim as the answer's first line; the reviewer also returned the first line of `changes.diff` verbatim (`diff --git a/docs/audits/2026-10-03-codex-foundation-3-handoff-boot.md …`). The read is proven under R59.
+
+| # | Sev | Finding | Disposition |
+|---|---|---|---|
+| 1 | P1 (claimed) | Item 6 unmet: `protocols/STANDING_RULINGS.md` R35–R54 not in the diff or tip snapshot | **Disputed, measured — an input omission, not a defect.** The review folder excluded that file on purpose (its 44,736 B diff is verbatim-quoted text, diffed by `tests/test_standing_rulings_sources.py`, as the first review note says). At the tip `protocols/STANDING_RULINGS.md:5150` is `## AQ. RATIFICATION 2026-09-29 → 2026-10-02 R35–R54, and the newest-models ruling …`; `tests/test_standing_rulings_sources.py` + `tests/test_onboarding_items.py`: 25 passed at `938ff0a5`. |
+
+No other finding was returned. **Tally:** P1=0 real (1 disputed with a measurement) P2=0 P3=0.
