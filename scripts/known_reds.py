@@ -212,6 +212,16 @@ def _ceiling_problems(label: str, entry: dict) -> list[str]:
         problems.append(f"{label}: a ceiling states its growth -- growth.from, growth.to and "
                         "growth.commits (AM2-3: re-recording a larger value with no stated "
                         "growth is laundering)")
+    else:
+        try:
+            growth_to = int(str(growth["to"]).replace(",", ""))
+        except ValueError:
+            problems.append(f"{label}: growth.to {growth['to']!r} is not an integer")
+        else:
+            if isinstance(ceiling_max, int) and not isinstance(ceiling_max, bool) \
+                    and ceiling_max > growth_to:
+                problems.append(f"{label}: ceiling max {ceiling_max:,} is above the growth it "
+                                f"states (growth.to {growth_to:,}) -- a ceiling only comes down")
     return problems
 
 
@@ -434,9 +444,12 @@ def refresh(*, failed: frozenset, workers: int, commit: str, measured_via: str, 
             ceiling = entry.get("ceiling")
             if isinstance(ceiling, dict) and node_id in signatures:
                 measured = _ceiling_value(ceiling, signatures[node_id])
-                if measured is not None and measured > ceiling["max"]:
+                if measured is None:
+                    exceeded.append(f"{node_id}: no longer reads as the registered failure "
+                                    f"(`{ceiling['pattern']}` finds no number)")
+                elif measured > ceiling["max"]:
                     exceeded.append(f"{node_id}: measured {measured:,}, ceiling {ceiling['max']:,}")
-                elif measured is not None and measured < ceiling["max"]:
+                elif measured < ceiling["max"]:
                     entry["ceiling"] = {**ceiling, "max": measured}
             members[node_id] = entry
         elif node_id in attribution:
@@ -453,8 +466,9 @@ def refresh(*, failed: frozenset, workers: int, commit: str, measured_via: str, 
             "never adds an unattributed red:\n  " + "\n  ".join(sorted(missing)))
     if exceeded:
         raise KnownRedsError(
-            "refresh refused: " + str(len(exceeded)) + " known failure(s) grew past their "
-            "ceiling -- growth is a regression to fix, never a value to re-record "
+            "refresh refused: " + str(len(exceeded)) + " known failure(s) grew past, or no "
+            "longer read as, their ceiling -- growth is a regression to fix, never a value "
+            "to re-record "
             "(AM2-3):\n  " + "\n  ".join(sorted(exceeded)))
     owned_today = today or datetime.date.today()
     unowned = [problem for node_id in sorted(members)

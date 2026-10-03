@@ -1217,6 +1217,32 @@ def test_load_registry_refuses_a_ceiling_that_is_not_fully_stated(kr, tmp_path, 
         kr.load_registry(path)
 
 
+def test_load_registry_refuses_a_ceiling_above_its_own_stated_growth(kr, tmp_path):
+    """Review finding (Grok P2): `max` was never tied to `growth.to`, so a hand-edit to a larger
+    ceiling loaded as valid and the next growth read as slack. `max` may sit BELOW `growth.to`
+    (a ceiling that came down) and never above it."""
+    inflated = _growing()
+    inflated["ceiling"]["max"] = 41174000
+    with pytest.raises(kr.KnownRedsError, match="above"):
+        kr.load_registry(_write_raw(tmp_path, kr, members={"tests/boot.py::t": inflated}))
+    lowered = _growing()
+    lowered["ceiling"]["max"] = 40900
+    registry = kr.load_registry(
+        _write_raw(tmp_path, kr, members={"tests/boot.py::t": lowered}))
+    assert registry.members["tests/boot.py::t"]["ceiling"]["max"] == 40900
+
+
+def test_refresh_refuses_a_ceiling_entry_that_no_longer_reads_as_registered(kr):
+    """Review finding (Grok P3): a failing ceiling entry whose measured signature no longer
+    carries the number was CARRIED by refresh -- the one path that could keep a stale ceiling
+    alive over a failure that had changed shape."""
+    with pytest.raises(kr.KnownRedsError, match="no longer reads"):
+        kr.refresh(
+            failed=frozenset({"tests/boot.py::t"}), workers=4, commit="c", measured_via="local",
+            date="2026-10-03", attribution={}, previous=_registry_of(kr),
+            signatures={"tests/boot.py::t": "KeyError: 'boot'"})
+
+
 def test_refresh_lowers_a_ceiling_to_a_lower_measured_value(kr):
     previous = _registry_of(kr)
     registry, _ = kr.refresh(

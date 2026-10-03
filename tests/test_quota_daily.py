@@ -157,12 +157,20 @@ def test_a_primary_sessionstart_and_its_worker_leave_the_tree_clean(tmp_path, mo
                               datetime(2026, 10, 1).date(), billed=False)
             return True
 
+    # Review finding (Grok P2): the autouse override would make this pass even if the ledger
+    # still lived in the checkout. Drop it and redirect only the OS state directory, so the
+    # DEFAULT resolution -- the code path that decides where the ledger goes -- is what runs.
+    monkeypatch.delenv(qd.qw.LEDGER_PATH_ENV)
+    state_home = tmp_path / "os-state-home"
+    monkeypatch.setattr(qd.qw.platformdirs, "user_state_dir",
+                        lambda *a, **k: str(state_home))
     monkeypatch.setattr(qd, "_REPO_ROOT", primary)
     worker = _LandingWorker()
     monkeypatch.setattr(qd, "_import_lane_end_guard", lambda: worker)
 
     assert qd.main([]) == 0
     assert worker.landed is not None and worker.landed.exists()   # a row really landed
+    assert worker.landed.parent == state_home                      # ...in the state home
     assert primary not in worker.landed.resolve().parents          # ...outside the checkout
 
     status = subprocess.run(["git", "-C", str(primary), "status", "--porcelain"],
