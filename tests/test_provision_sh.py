@@ -346,8 +346,14 @@ def test_self_digest_actually_distinguishes_a_replaced_script(tmp_path: Path):
         'self_digest\n',
         encoding="utf-8")
 
+    # The resolved path, not the bare name: on Windows `CreateProcess` finds
+    # `System32\bash.exe` (the WSL launcher, which prints "no installed distributions" and
+    # exits 1) BEFORE it consults PATH, so a bare "bash" never reaches the Git Bash the skipif
+    # above resolved. `shutil.which` walks PATH, as the sibling tests do.
+    bash_exe = shutil.which("bash")
+
     def digest() -> str:
-        run = subprocess.run(["bash", str(harness)], capture_output=True, text=True, timeout=60)
+        run = subprocess.run([bash_exe, str(harness)], capture_output=True, text=True, timeout=60)
         assert run.returncode == 0, run.stderr
         return run.stdout.strip()
 

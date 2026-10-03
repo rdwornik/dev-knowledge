@@ -238,6 +238,27 @@ def _fully_admitted_probe(tmp_path: Path) -> ca.Probe:
     return _path_with(tmp_path, "claude", "uv", "python3", "pre-commit")
 
 
+def _origin_reachable(monkeypatch) -> None:
+    """Stand in for the one admission leg that runs a real `git ls-remote` through the
+    probe's PATH. A stub PATH (`_path_with`) hides the real git on POSIX, where a child is
+    resolved through `env["PATH"]`, so the leg reads ok=False on ubuntu while it passes on
+    Windows (whose `CreateProcess` falls back to the system dirs). The leg has its own tests
+    above; what these tests pin is how the conditions COMBINE."""
+    monkeypatch.setattr(
+        ca, "check_git_remote_reachable",
+        lambda root, probe: ca.Condition("git_remote_reachable", True,
+                                         "monkeypatched: origin reachable", "test fixture"))
+
+
+def _gh_healthy(monkeypatch) -> None:
+    """Likewise for `gh auth status`: a runner that ships a real, unauthenticated `gh` on
+    the real-git dirs a PATH carries makes the leg refuse, whatever the test set up."""
+    monkeypatch.setattr(
+        ca, "check_gh_not_broken",
+        lambda probe: ca.Condition("gh_not_broken", True,
+                                   "monkeypatched: gh healthy", "test fixture"))
+
+
 def test_run_admission_refuses_when_any_gating_condition_fails(tmp_path):
     repo = _git_repo(tmp_path)
     probe = _empty_path(tmp_path)  # every PATH-based leg absent
@@ -249,7 +270,7 @@ def test_run_admission_refuses_when_any_gating_condition_fails(tmp_path):
             "git_remote_reachable", "git_hooks_armed"} <= failing_ids
 
 
-def test_run_admission_admits_when_every_gating_condition_passes(tmp_path):
+def test_run_admission_admits_when_every_gating_condition_passes(tmp_path, monkeypatch):
     repo = _git_repo(tmp_path)
     bare = tmp_path / "origin.git"
     subprocess.run(["git", "init", "-q", "--bare", str(bare)], check=True)
@@ -264,13 +285,14 @@ def test_run_admission_admits_when_every_gating_condition_passes(tmp_path):
     for name in ("pre-commit", "commit-msg", "pre-push"):
         (hooks_dir / name).write_text(body, encoding="utf-8")
 
+    _origin_reachable(monkeypatch)
     probe = _fully_admitted_probe(tmp_path)
     result = ca.run_admission(repo, probe=probe)
     assert result.ok, [c for c in result.failing()]
     assert result.exit_code == 0
 
 
-def test_non_gating_conditions_never_block_admission(tmp_path):
+def test_non_gating_conditions_never_block_admission(tmp_path, monkeypatch):
     """gh absent and no --contract given must never, by themselves, refuse admission."""
     repo = _git_repo(tmp_path)
     bare = tmp_path / "origin.git"
@@ -286,6 +308,7 @@ def test_non_gating_conditions_never_block_admission(tmp_path):
     for name in ("pre-commit", "commit-msg", "pre-push"):
         (hooks_dir / name).write_text(body, encoding="utf-8")
 
+    _origin_reachable(monkeypatch)
     probe = _fully_admitted_probe(tmp_path)  # deliberately no 'gh' stub
     result = ca.run_admission(repo, probe=probe, contract_path=None)
     assert result.ok, [c for c in result.failing()]
@@ -343,6 +366,9 @@ def test_cli_exit_codes(tmp_path, monkeypatch, capsys):
         stub.write_text("", encoding="utf-8")
         stub.chmod(0o755)
     monkeypatch.setenv("PATH", os.pathsep.join([str(bindir), *real_git_dirs]))
+    # the real-git dirs also carry whatever else the box ships in them (a runner's gh)
+    _origin_reachable(monkeypatch)
+    _gh_healthy(monkeypatch)
     assert ca.main(["--repo-root", str(repo)]) == 0
 
 

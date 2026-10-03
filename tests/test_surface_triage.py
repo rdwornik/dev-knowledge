@@ -23,7 +23,9 @@ from pathlib import Path
 
 import pytest
 
-_SCRIPT = Path(__file__).resolve().parent.parent / "scripts" / "surface_triage.py"
+import surface_triage
+
+_SCRIPT =Path(__file__).resolve().parent.parent / "scripts" / "surface_triage.py"
 
 
 # The fake `gh`: a tiny Python script driven directly by sys.executable. surface_triage.py
@@ -77,16 +79,21 @@ def _run(gh_dir=None, on_path=True):
     )
 
 
-def test_gh_absent_is_silent_and_exits_0(tmp_path):
+def test_gh_absent_is_silent_and_exits_0(tmp_path, monkeypatch, capsys):
+    # Masked IN-PROCESS. Two reasons the old `env.pop("ProgramFiles")` masked nothing: on
+    # Windows `dict(os.environ)` keys are upper-case (`PROGRAMFILES`), so the pop removed no
+    # key; and even a child launched with the variable removed, or pointed at an empty dir,
+    # still reads `C:\Program Files` -- Windows puts it back (measured). So a runner that ships a
+    # real `gh` at `%ProgramFiles%\GitHub CLI` was found by the fallback in `resolve_gh` and
+    # printed its auth line. `os.environ` of THIS process is ours to edit.
     empty = tmp_path / "empty-path"
     empty.mkdir()
-    env = dict(os.environ)
-    env["PATH"] = str(empty)
-    env.pop("ProgramFiles", None)
-    proc = subprocess.run([sys.executable, str(_SCRIPT)], capture_output=True, text=True,
-                          encoding="utf-8", errors="replace", env=env)
-    assert proc.returncode == 0, proc.stderr
-    assert proc.stdout == ""
+    monkeypatch.setenv("PATH", str(empty))
+    monkeypatch.delenv("ProgramFiles", raising=False)
+    monkeypatch.chdir(tmp_path)  # `shutil.which` on Windows also looks in the cwd
+    assert surface_triage.resolve_gh() is None
+    assert surface_triage.main() == 0
+    assert capsys.readouterr().out == ""
 
 
 def test_gh_auth_invalid_prints_the_refresh_line_and_skips_issue_check(tmp_path):
