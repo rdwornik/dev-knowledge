@@ -6,7 +6,8 @@ THE ABSENCE THIS FILLS. The Context measured it directly: of the operator's nine
 items (state, rulings, pending decisions, plan, capability map, substrates, transport,
 working rules, CI), the 2026-09-24 bundle carried ONE with a live check (P13) and one partly
 (P8b). Everything else was either absent from the boot or a fact the incoming seat had to go
-re-derive by hand. This module is the reader half of the fix: SEVEN state rows, each a THIN
+re-derive by hand. This module is the reader half of the fix: SEVEN state rows (batch
+FOUNDATION lane 3 added four more -- `STATE_ROW_KEYS` is the list), each a THIN
 CALL into an organ that already exists (`ci_verdict`, `batch_manifest`, `seat_registry`, the
 two ecosystem registries, and the newest transport RATIFICATION / DIGEST-CAPABILITY-MAP), so
 the boot states a fact and the fact is never a second copy of one already computed elsewhere.
@@ -17,11 +18,14 @@ THE NINE-ITEM ROSTER, and an honest gap. The Context's own nine-item list is mea
 scope (Part A's "Read first" list does not name it). Rather than claim a byte-identical
 mapping to a source this lane never opened, `OPERATOR_ROSTER` below is this lane's OWN
 nine-item roster, built from the Context paragraph's own words, with an explicit per-item
-mapping to the row (if any) that now covers it live. Two items stay uncovered on purpose:
-"pending decisions" (an ADR/intake triage question this lane's Owns list gives it no reader
-for) and "working rules" (STANDING_RULINGS is read as a PPOINTER row already, in
-`gen_handoff.boot_data_rows`, not re-derived here) -- naming the gap is the discipline; a
-roster with no gap would be a roster inflated to hit the number.
+mapping to the row (if any) that now covers it live. Two items stayed uncovered on purpose
+when this module was written: "pending decisions" (an ADR/intake triage question this lane's
+Owns list gave it no reader for) and "working rules" (STANDING_RULINGS was a pointer row only,
+in `gen_handoff.boot_data_rows`) -- naming the gap is the discipline; a roster with no gap
+would be a roster inflated to hit the number. Batch FOUNDATION lane 3 added `Decisions`
+(transport decision files by carriage) and `Landed` (how far the register is landed) and maps
+the two items to them; what those rows do NOT say is stated beside them (section "Landed /
+Decisions / Dates / Models").
 
 EVERY ROW IS A `StateRow`: a value, a freshness class, and the evidence locator that produced
 it, following `seat_state.py`'s own discipline one level up -- a fact with no evidence is not
@@ -91,6 +95,7 @@ and `seat_registry` rather than re-deriving any of their reads.
 """
 from __future__ import annotations
 
+import datetime as _dt
 import re
 import sys
 from dataclasses import dataclass
@@ -425,18 +430,142 @@ def row_capabilities(transport: "Path | None", *, as_of: "str | None" = None) ->
     return StateRow("Capabilities", value, "SLOW", locator)
 
 
+# --- Landed / Decisions / Dates / Models: the volatile onboarding facts ------------------------
+#
+# batch FOUNDATION lane 3 (`foundation-3-handoff-boot`): onboarding items 6, 7 and 12 are facts
+# that go stale -- the ruling count, the open decisions, the dated pressures, the models in
+# play -- so they are rows computed from the repository, not sentences in `HANDOFF_BOOT.md`.
+# Each reads a source that already exists (the register, `gen_handoff.carriage_verdicts`,
+# `ecosystem/harness.yaml`, `ecosystem/provider-registry.yaml`); none defines a registry.
+# HONEST LIMITS, stated in the rows themselves where a reader would otherwise assume more:
+#   * `Models` is the registry's ROUTING ORDER. No organ in this repository records a provider's
+#     usage-limit window, so the row says "not live availability" instead of guessing one; and
+#     `dispatch.py launch` reads no registry (the contract's model cell is what serves).
+#   * `Dates` lists the `manual_until:` fates of `ecosystem/harness.yaml` -- the only dated
+#     pressures the repository records as data. Dates held only on the transport (an OAuth
+#     token's expiry, a batch's own deadlines) are not here.
+#   * `Decisions` counts the transport's decision files by carriage; it does not say which the
+#     operator still has to rule on.
+
+#: A ruling bullet in the register's own landing shape: `- **R<n>` (`R34 — ...`, `R2` ...).
+_LANDED_RE = re.compile(r"(?m)^- \*\*R(\d+)\b")
+
+
+def row_landed(repo_root: "Path | str") -> StateRow:
+    evidence = "protocols/STANDING_RULINGS.md bullets `- **R<n>`"
+    path = Path(repo_root) / "protocols" / "STANDING_RULINGS.md"
+    try:
+        ids = sorted({int(n) for n in _LANDED_RE.findall(path.read_text(encoding="utf-8"))})
+    except Exception as exc:                          # noqa: BLE001
+        return _degraded("Landed", evidence, "SLOW", exc)
+    value = (f"through R{ids[-1]} ({len(ids)} ruling id(s) bulleted)" if ids
+             else "no ruling bullets found")
+    return StateRow("Landed", value, "SLOW", evidence)
+
+
+def _gen_handoff():
+    """`gen_handoff`, deferred-imported: it imports this module, so a top-level import here
+    would be circular (the same deferral `verify_handoff_probes._transport_for` uses)."""
+    try:
+        import gen_handoff as _gh                        # noqa: PLC0415
+    except ImportError:                                  # imported as `scripts.handoff_state`
+        from scripts import gen_handoff as _gh           # type: ignore[no-redef]  # noqa: PLC0415
+    return _gh
+
+
+def row_decisions(transport: "Path | None", repo_root: "Path | str") -> StateRow:
+    evidence = "gen_handoff.carriage_verdicts (DECLARE-/AMEND-/BATCH- files in to-cc/ + to-browser/)"
+    if transport is None:
+        return StateRow("Decisions", "no transport — decision files cannot be counted",
+                        "LIVE-DRIFTS", evidence)
+    try:
+        gh = _gen_handoff()
+        verdicts = gh.carriage_verdicts(transport, Path(repo_root))
+        kinds = [v.kind for v in verdicts]
+        opened = kinds.count(gh.CARRIAGE_OPEN)
+        resolved = kinds.count(gh.CARRIAGE_RESOLVES)
+        unresolved = kinds.count(gh.CARRIAGE_UNRESOLVED)
+        no_key = kinds.count(gh.CARRIAGE_NO_KEY)
+    except Exception as exc:                          # noqa: BLE001
+        return _degraded("Decisions", evidence, "LIVE-DRIFTS", exc)
+    value = (f"{len(verdicts)} decision file(s): {opened} OPEN, {resolved} resolve on main, "
+             f"{unresolved} unresolved, {no_key} without a carried-by key")
+    return StateRow("Decisions", value, "LIVE-DRIFTS", evidence)
+
+
+_MANUAL_UNTIL_RE = re.compile(r"(?m)^\s*manual_until:\s*(\d{4}-\d{2}-\d{2})\b")
+#: How many upcoming dates the Dates row names before it says "+ N later".
+DATES_SHOWN = 3
+
+
+def row_dates(repo_root: "Path | str", *, today: "str | None" = None) -> StateRow:
+    """The dated `manual_until:` fates, grouped by date. `today` (ISO) defaults to the real
+    date; the verifier passes a committed bundle's own cut date, so the row is a function of
+    the date it is asked at, never of a hidden clock."""
+    evidence = "ecosystem/harness.yaml `manual_until:`"
+    path = Path(repo_root) / "ecosystem" / "harness.yaml"
+    now = today or _dt.date.today().isoformat()
+    try:
+        text = path.read_text(encoding="utf-8")
+        dates = _MANUAL_UNTIL_RE.findall(text)
+    except Exception as exc:                          # noqa: BLE001
+        return _degraded("Dates", evidence, "LIVE-DRIFTS", exc)
+    upcoming: dict[str, int] = {}
+    overdue = 0
+    for d in dates:
+        if d < now:
+            overdue += 1
+        else:
+            upcoming[d] = upcoming.get(d, 0) + 1
+    ordered = sorted(upcoming)
+    shown = ", ".join(f"{d} ×{upcoming[d]}" for d in ordered[:DATES_SHOWN]) or "none"
+    later = sum(upcoming[d] for d in ordered[DATES_SHOWN:])
+    value = (f"as of {now}: next dated fates {shown}"
+             + (f" (+{later} later)" if later else "")
+             + f"; {overdue} overdue")
+    return StateRow("Dates", value, "LIVE-DRIFTS", evidence)
+
+
+#: The roles the Models row names, in order; `dispatcher` is the registry's single-pin entry.
+MODELS_ROLES = ("implement", "review", "read", "verify", "orchestrate", "plan")
+
+
+def row_models(repo_root: "Path | str") -> StateRow:
+    evidence = "ecosystem/provider-registry.yaml roles.*.order, dispatcher"
+    path = Path(repo_root) / "ecosystem" / "provider-registry.yaml"
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        roles = data.get("roles") or {}
+        parts: list[str] = []
+        for role in MODELS_ROLES:
+            order = (roles.get(role) or {}).get("order") or []
+            names = [str(e.get("model") or e.get("provider")) for e in order if isinstance(e, dict)]
+            if names:
+                parts.append(f"{role} {' → '.join(names)}")
+        disp = data.get("dispatcher")
+        if isinstance(disp, dict) and (disp.get("model") or disp.get("provider")):
+            parts.append(f"dispatcher {disp.get('model') or disp.get('provider')}")
+    except Exception as exc:                          # noqa: BLE001
+        return _degraded("Models", evidence, "SLOW", exc)
+    value = ("registry routing order, not live availability (usage limits are recorded nowhere "
+             "in the repository; dispatch.py reads no registry, the contract's model cell "
+             "serves): " + (" · ".join(parts) if parts else "no role order found"))
+    return StateRow("Models", value, "SLOW", evidence)
+
+
 # --- the aggregate, in paste order --------------------------------------------------------
 
-#: The seven rows, in the order they render. A test pins this against
+#: The rows, in the order they render. A test pins this against
 #: `verify_handoff_probes.BOOT_DATA_RULES` (equal both ways, the `seat_state.py`-style
 #: coupling test).
 STATE_ROW_KEYS: tuple[str, ...] = (
     "CI", "Batches", "Seats", "Substrates", "Transport", "Rulings", "Capabilities",
+    "Landed", "Decisions", "Dates", "Models",
 )
 
 
 def state_rows(repo_root: "Path | str", transport: "Path | None") -> list[StateRow]:
-    """All seven rows, in `STATE_ROW_KEYS` order. Called ONCE per cut
+    """All rows, in `STATE_ROW_KEYS` order. Called ONCE per cut
     (`gen_handoff.generate`) so a live poll (CI) is not repeated; the verifier instead calls
     each `row_*` function individually, once per probe, at check time."""
     repo_root = Path(repo_root)
@@ -448,6 +577,10 @@ def state_rows(repo_root: "Path | str", transport: "Path | None") -> list[StateR
         row_transport(repo_root),
         row_rulings(transport),
         row_capabilities(transport),
+        row_landed(repo_root),
+        row_decisions(transport, repo_root),
+        row_dates(repo_root),
+        row_models(repo_root),
     ]
 
 
@@ -461,14 +594,15 @@ def state_rows(repo_root: "Path | str", transport: "Path | None") -> list[StateR
 OPERATOR_ROSTER: tuple[tuple[str, "str | None", str], ...] = (
     ("state (main sha)", "CI", "the CI row states origin/main's sha alongside its verdict"),
     ("rulings", "Rulings", "the newest RATIFICATION file, parsed for rulings in force"),
-    ("pending decisions", None,
-     "no reader in this lane's Owns list resolves ADR/intake triage state"),
+    ("pending decisions", "Decisions",
+     "the transport's DECLARE-/AMEND-/BATCH- files by carriage (OPEN / resolves / unresolved); "
+     "not ADR/intake triage state"),
     ("plan (active batch)", "Batches", "committed manifests declaring an open batch, live"),
     ("capability map", "Capabilities", "the newest DIGEST-CAPABILITY-MAP, WORKS-count parsed"),
     ("substrates", "Substrates", "ecosystem/substrate-registry.yaml, live: true entries"),
     ("transport", "Transport", "ecosystem/transport-registry.yaml, kinds registered"),
-    ("working rules", None,
-     "STANDING_RULINGS.md is a pointer row already (gen_handoff.boot_data_rows); not re-derived"),
+    ("working rules", "Landed",
+     "how far STANDING_RULINGS.md is landed (its ruling bullets); the pointer row names the file"),
     ("CI", "CI", "ci_verdict.verdict_for(\"origin/main\"), one non-blocking poll"),
 )
 

@@ -6,8 +6,10 @@
                     row is checked by a rule in verify_handoff_probes.BOOT_DATA_RULES (BD-*),
                     and a row with no rule FAILs. Facts and pointers live here, never in `>`.
                     Since lane-handoff-min (Part A), the identity/pointer rows above are
-                    followed by SEVEN live STATE rows (CI, Batches, Seats, Substrates,
-                    Transport, Rulings, Capabilities) — scripts/handoff_state.py, each row
+                    followed by the live STATE rows (`handoff_state.STATE_ROW_KEYS`: CI,
+                    Batches, Seats, Substrates, Transport, Rulings, Capabilities, and since
+                    batch FOUNDATION lane 3 Landed, Decisions, Dates, Models) —
+                    scripts/handoff_state.py, each row
                     carrying its own evidence locator and freshness class (CUT-FIXED /
                     LIVE-DRIFTS / SLOW; see that module's docstring). `BD-manifest` (same
                     rung) additionally checks every bundle file's sha256 against the cut
@@ -39,7 +41,7 @@
 
 > **The pasted header is DATA + PROSE.** Every DATA row — identity, the destination branch, the
 > role pin's version, the launcher, each pointer — is checked by a `verify_handoff_probes` rule
-> (`BD-*`) at `/handoff-verify`; a row with no rule is refused. The PROSE is only what the
+> (`BD-*`) at the cut and by the ship-gate; a row with no rule is refused. The PROSE is only what the
 > outgoing seat wrote, under a byte budget (`BP-budget`). The `Destination` row is declared
 > ex-ante — a lane inherits none of it; only its **branch** has a mechanical counterpart
 > (`PROBES.md` **P3**), and worktree, write-scope and mode basis stay prose (R3).
@@ -53,15 +55,15 @@
    missing paste is then visible.
 4. **{{MODE}} mode** — the browser adopts the mode posture from `protocols/HANDOFF_BOOT.md` (§"{{MODE}}
    mode"): {{MODE_POSTURE}}.
-5. **Ask CC for `/handoff-verify`, then paste its ONE evidence block.** CC runs the *whole* gate —
-   every `PROBES.md` row, the orientation reads, the inherited claims — against live state at
-   check-time, and emits a single table. You paste it **once**. The browser reads the table; it does
-   not dictate commands one at a time (HANDOFF_PROCESS §5, the v6 one-round-trip boot).
+5. **Boot on the ROLE PIN alone (R30).** The browser runs no `/handoff-verify` and asks for no
+   evidence block: the three-line ROLE PIN at the head of the paste (role file, live
+   `handoff-process` version, sha256) is the whole onboarding check, and a pin mismatch is its only
+   FAIL. CC holds the probe gate and runs it at the cut (HANDOFF_PROCESS §5), not as a boot step.
 {{PASTE_STEP6}}
 7. Hand `RESIDUAL.md` — **drift-flags first** (the §1 headline) — then the **next-frontier decisions**
-   (§4) + the **shipped-this-window** map (§2). The probe answers are already in the evidence block
-   from step 5. **Any FAIL there blocks onboarding** (the escalation ladder); a missing required row
-   is not a pass. **The bundle states no drift-flag value — the block carries them, re-derived live.**
+   (§4) + the **shipped-this-window** map (§2). **The bundle states no drift-flag value:** ask CC to
+   re-derive each one live from `PROBES.md`; a FAIL it reports blocks onboarding (the escalation
+   ladder), and a missing required row is not a pass.
 
 ## Operator-facing forms (resident by design)
 

@@ -527,12 +527,108 @@ def test_row_capabilities_matches_the_2026_09_28_maps_own_count(tmp_path):
                           "`DIGEST-CAPABILITY-MAP-2026-09-28.md`")
 
 
-def test_state_rows_returns_all_seven_keys_in_declared_order(tmp_path):
+def test_state_rows_returns_all_keys_in_declared_order(tmp_path):
     repo = _repo_with_registries(tmp_path)
     t = _transport(tmp_path)
     rows = hs.state_rows(repo, t)
     assert tuple(r.key for r in rows) == hs.STATE_ROW_KEYS == (
-        "CI", "Batches", "Seats", "Substrates", "Transport", "Rulings", "Capabilities")
+        "CI", "Batches", "Seats", "Substrates", "Transport", "Rulings", "Capabilities",
+        "Landed", "Decisions", "Dates", "Models")
+
+
+# --- the four rows foundation-3-handoff-boot adds (onboarding items 6, 7, 12) -------------------
+# RED-first: none of these readers existed on 2e7fa5f2 (`AttributeError: module 'handoff_state'
+# has no attribute 'row_landed'` ...), so every test below failed before the rows were built.
+
+def test_row_landed_reads_the_register_bullets_not_the_transport(tmp_path):
+    repo = _repo_with_registries(tmp_path)
+    (repo / "protocols").mkdir(exist_ok=True)
+    (repo / "protocols" / "STANDING_RULINGS.md").write_text(
+        "- **R3** three\n- **R12 — twelve** x\n- **R2** two\n- **R3** again\nprose R99 is not a bullet\n",
+        encoding="utf-8")
+    row = hs.row_landed(repo)
+    assert row.key == "Landed" and row.freshness == "SLOW"
+    assert "through R12" in row.value and "3 ruling id(s)" in row.value, row.value
+    assert "protocols/STANDING_RULINGS.md" in row.evidence
+
+
+def test_row_landed_degrades_visibly_when_the_register_is_absent(tmp_path):
+    row = hs.row_landed(tmp_path)
+    assert row.value.startswith("unavailable"), row.value
+
+
+def test_row_decisions_counts_the_transport_decision_files_by_carriage(tmp_path, monkeypatch):
+    repo = _repo_with_registries(tmp_path)
+    t = tmp_path / "transport"
+    (t / "to-cc").mkdir(parents=True)
+    (t / "to-browser").mkdir(parents=True)
+    (t / "to-cc" / "BATCH-A.md").write_text("carried-by: OPEN\n\n# a\n", encoding="utf-8")
+    (t / "to-cc" / "AMEND-B.md").write_text("carried-by: protocols/X.md\n\n# b\n", encoding="utf-8")
+    (t / "to-browser" / "DECLARE-C.md").write_text("# no key here\n", encoding="utf-8")
+    (t / "to-browser" / "STATUS-D.md").write_text("carried-by: OPEN\n", encoding="utf-8")  # not a decision file
+    monkeypatch.setattr(gh, "_resolves_on_main", lambda repo_root, token: token == "protocols/X.md")
+    row = hs.row_decisions(t, repo)
+    assert row.key == "Decisions" and row.freshness == "LIVE-DRIFTS"
+    assert "3 decision file(s)" in row.value, row.value
+    assert "1 OPEN" in row.value and "1 resolve on main" in row.value
+    assert "1 without a carried-by key" in row.value, row.value
+    assert "gen_handoff.carriage_verdicts" in row.evidence
+
+
+def test_row_decisions_with_no_transport_says_so(tmp_path):
+    row = hs.row_decisions(None, _repo_with_registries(tmp_path))
+    assert "no transport" in row.value
+
+
+def test_row_dates_groups_the_harness_fates_and_counts_the_overdue(tmp_path):
+    repo = _repo_with_registries(tmp_path)
+    (repo / "ecosystem" / "harness.yaml").write_text(
+        "a:\n  manual_until: 2026-10-04\nb:\n  manual_until: 2026-10-04\nc:\n  manual_until: 2026-10-19\n"
+        "d:\n  manual_until: 2026-10-05\ne:\n  manual_until: 2026-09-01\nf:\n  manual_until:\n",
+        encoding="utf-8")
+    row = hs.row_dates(repo, today="2026-10-03")
+    assert row.key == "Dates" and row.freshness == "LIVE-DRIFTS"
+    assert "2026-10-04 ×2" in row.value and "2026-10-05 ×1" in row.value and "2026-10-19 ×1" in row.value
+    assert "1 overdue" in row.value, row.value
+    assert row.value.index("2026-10-04") < row.value.index("2026-10-05") < row.value.index("2026-10-19")
+    assert "manual_until" in row.evidence
+    # moving "today" past a date moves that date to overdue -- the row is a function of the date
+    later = hs.row_dates(repo, today="2026-10-06")
+    assert "2026-10-04 ×2" not in later.value and "4 overdue" in later.value, later.value
+
+
+def test_row_dates_degrades_visibly_without_a_harness(tmp_path):
+    assert hs.row_dates(tmp_path, today="2026-10-03").value.startswith("unavailable")
+
+
+_REGISTRY_FIXTURE = """\
+roles:
+  implement:
+    order:
+      - {provider: anthropic, model: claude-sonnet-5}
+      - {provider: copilot-enterprise}
+  review:
+    order:
+      - {provider: openai, model: gpt-5.6-terra}
+      - {provider: anthropic, model: claude-sonnet-5}
+dispatcher: {provider: anthropic, model: claude-sonnet-5}
+"""
+
+
+def test_row_models_states_routing_order_and_says_it_is_not_live_availability(tmp_path):
+    repo = _repo_with_registries(tmp_path)
+    (repo / "ecosystem" / "provider-registry.yaml").write_text(_REGISTRY_FIXTURE, encoding="utf-8")
+    row = hs.row_models(repo)
+    assert row.key == "Models" and row.freshness == "SLOW"
+    assert "not live availability" in row.value, row.value
+    assert "implement claude-sonnet-5 → copilot-enterprise" in row.value, row.value
+    assert "review gpt-5.6-terra → claude-sonnet-5" in row.value
+    assert "dispatcher claude-sonnet-5" in row.value
+    assert "provider-registry.yaml" in row.evidence
+
+
+def test_row_models_degrades_visibly_without_a_registry(tmp_path):
+    assert hs.row_models(tmp_path).value.startswith("unavailable")
 
 
 # --- Done-when 6: the coverage line ---------------------------------------------------------
@@ -702,3 +798,27 @@ def test_verify_published_refuses_a_manifest_key_that_escapes_the_dest(tmp_path,
     receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
     with pytest.raises(gh.ManifestPathError, match="evil.txt"):
         gh.verify_published(bundle_dir, tmp_path / "scratch-transport")
+
+
+def test_a_bundle_cut_before_a_rows_era_is_not_asked_for_it():
+    # A committed bundle is immutable: the four rows added 2026-10-03 cannot be owed by the
+    # 2026-10-02 bundle, so its absence of them is not a "the DATA block omits this ruled row" FAIL.
+    repo = Path(__file__).resolve().parents[1]
+    bundle = repo / "docs" / "handoffs" / "2026-10-02-dev-knowledge-architect"
+    assert bundle.is_dir(), bundle
+    omitted = [r for r in vhp.verify_boot(bundle, repo) if "omits this ruled row" in r.detail]
+    assert not omitted, [r.probe_id for r in omitted]
+    assert not vhp.bundle_at_or_after(bundle.name, vhp._ROW_ERA["Landed"])
+    assert vhp.bundle_at_or_after("2026-10-03-dev-knowledge-architect", vhp._ROW_ERA["Models"])
+
+
+def test_a_bundle_cut_in_or_after_a_rows_era_is_failed_for_omitting_it(tmp_path):
+    # The other half of the era rule: a 2026-10-03+ bundle whose DATA block lacks the four new
+    # rows FAILs by name, so the era gate narrows the demand and does not switch it off.
+    repo = Path(__file__).resolve().parents[1]
+    old = repo / "docs" / "handoffs" / "2026-10-02-dev-knowledge-architect" / "HANDOFF_BOOT.md"
+    bundle = tmp_path / "2026-10-03-dev-knowledge-architect"
+    bundle.mkdir()
+    (bundle / "HANDOFF_BOOT.md").write_text(old.read_text(encoding="utf-8"), encoding="utf-8")
+    omitted = {r.probe_id for r in vhp.verify_boot(bundle, repo) if "omits this ruled row" in r.detail}
+    assert omitted == {"BD-landed", "BD-decisions", "BD-dates", "BD-models"}, omitted
