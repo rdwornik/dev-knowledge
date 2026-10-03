@@ -1547,3 +1547,72 @@ def test_cli_exit_2_when_the_corpus_dir_is_absent(tmp_path):
     """An unreadable subject must never render as a green pass."""
     res = CliRunner().invoke(vas.main, ["--root", str(tmp_path / "nope")])
     assert res.exit_code == 2, res.output
+
+
+# --- R66 C3 (foundation-11-retire-approved): a Proposed ADR no open row cites is withdrawn ---
+#
+# R66 §1 C3: each of ADR-82/-116/-117/-118 is ratified or withdrawn, "withdrawn when no live
+# row cites it, after CC checks". The status enum has no `Withdrawn` member, so a withdrawal
+# is `Explored, not adopted` with the reason on the status line (ADR-94: status line only).
+
+import re as _re  # noqa: E402
+
+_R66_REPO = Path(__file__).resolve().parents[1]
+_R66_TASKS_DIR = _R66_REPO / "tasks"
+_R66_DECISIONS = _R66_REPO / "docs" / "decisions"
+
+
+def _r66_open_rows_citing(adr_number: int) -> list[str]:
+    """Ids of the OPEN rows directly under `tasks/` whose text cites `ADR-<n>`."""
+    cite = _re.compile(rf"adr[- _]?{adr_number}\b", _re.IGNORECASE)
+    rows: list[str] = []
+    for path in sorted(_R66_TASKS_DIR.glob("*.md")):
+        text = path.read_text(encoding="utf-8")
+        if not _re.search(r"^status:\s*open\s*$", text, _re.MULTILINE):
+            continue
+        if cite.search(text):
+            rows.append(path.name.split("-", 1)[0])
+    return rows
+
+
+def _r66_status_line(adr_glob: str) -> str:
+    (path,) = _R66_DECISIONS.glob(adr_glob)
+    return next(
+        line for line in path.read_text(encoding="utf-8").splitlines()
+        if line.startswith("- **Status:**")
+    )
+
+
+def test_r66_adr_116_is_withdrawn_because_no_open_row_cites_it():
+    assert _r66_open_rows_citing(116) == [], "a row now cites ADR-116: the withdrawal is void"
+    line = _r66_status_line("ADR-116-*.md")
+    assert line.startswith("- **Status:** Explored, not adopted"), line
+    assert "withdrawn under R66, 2026-10-03: no open row cites it" in line, line
+
+
+def test_r66_adr_116_index_row_carries_the_withdrawn_status():
+    index = (_R66_DECISIONS / "README.md").read_text(encoding="utf-8")
+    row = next(line for line in index.splitlines() if line.startswith("| ADR-116 |"))
+    assert "**Explored, not adopted.**" in row, row
+    assert "**Proposed.**" not in row, row
+
+
+def test_r66_adr_116_withdrawal_leaves_the_status_validator_clean():
+    res = CliRunner().invoke(vas.main, [])
+    assert "enum: ADR-116" not in res.output, res.output
+    assert "coherence: ADR-116" not in res.output, res.output
+
+
+@pytest.mark.parametrize("number,glob", [
+    (117, "ADR-117-*.md"),
+    (118, "ADR-118-*.md"),
+])
+def test_r66_a_cited_adr_is_kept_while_an_open_row_cites_it(number, glob):
+    rows = _r66_open_rows_citing(number)
+    if rows:
+        assert _r66_status_line(glob).startswith("- **Status:** Proposed"), (
+            f"ADR-{number} is cited by open rows {rows}: R66 keeps it and lists the rows")
+
+
+def test_r66_adr_82_is_already_accepted_and_left_alone():
+    assert _r66_status_line("ADR-82-*.md").startswith("- **Status:** Accepted")
