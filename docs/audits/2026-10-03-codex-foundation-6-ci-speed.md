@@ -173,13 +173,7 @@ the loadgroup arms (controls: 4 of 8 runs carry at least one; loadgroup: 8 of 12
 **The contract's "no flake" cannot be demonstrated for Windows by any lever of this lane; what can be shown is that the flake set is the runner's and the
 change adds no member to it.** `DONE-ITEM 3` is therefore reported Linux-MET and Windows-PARTIAL.
 
-**What the record itself costs on CI (not the lever).** The lane branch's own runs after the record landed ([37149847091](https://github.com/rdwornik/dev-knowledge/actions/runs/37149847091),
-Linux 81 failed + 11 errors) add six members that the code-only copies do not have: `test_gen_audit_index` `live_index_is_fresh` and
-`live_index_excludes_nothing…` (the index says 1201 documents and the tree has 1202 — BATCH-COMMON §0 lesson (d): a lane writing `docs/audits/` leaves
-`docs/audits/README.md` stale and the integrator regenerates it on the merged tree, `[#590]`), and the four `test_handoff_cut_acceptance` tests plus 11
-errors in `test_seat_release_moment`, whose cause is a `journal_spine_anchor` hard-fail naming `9683a655` unanchored (`origin/main`'s own tip, not yet anchored in
-`JOURNAL.md`). Both clear when the integrator regenerates the index and anchors the merge; neither is touched by this lane (`docs/audits/README.md` and
-`JOURNAL.md` are not Files-you-own).
+**What the record and the lane's lag cost on CI (not the lever).** The lane branch's own run before it merged `origin/main` ([37149847091](https://github.com/rdwornik/dev-knowledge/actions/runs/37149847091), Linux 81 failed + 11 errors) added six members that the code-only copies do not have: `test_gen_audit_index` `live_index_is_fresh` and `live_index_excludes_nothing…` (the index says 1201 documents and the tree has 1202 — BATCH-COMMON §0 lesson (d): a lane writing `docs/audits/` leaves `docs/audits/README.md` stale and the integrator regenerates it on the merged tree, `[#590]`), and the four `test_handoff_cut_acceptance` tests plus 11 errors in `test_seat_release_moment`, from a `journal_spine_anchor` hard-fail naming `9683a655` as an unanchored spine entry. **That second group was branch lag, not the record:** after the merge of `origin/main` into the lane (`aaad2ebd`) the final run ([37151482586](https://github.com/rdwornik/dev-knowledge/actions/runs/37151482586), Linux 77 failed, 0 errors, step 503 s) no longer has them, and its only differences from the main push run on `9683a655` are exactly the two index tests and the branch-only `test_worktree_seed` member. The index pair is the integrator's regeneration (`docs/audits/README.md` is not a File-you-own).
 
 ## Dispositions
 
@@ -193,7 +187,7 @@ errors in `test_seat_release_moment`, whose cause is a `journal_spine_anchor` ha
   signal): measured −150 to −230 s on Linux (397 s step, same set). Out of this lane's files.
 - **ROWS-OWED:** the comment at `tests/test_connection_loop.py:79-90` ("the marker is a no-op under `--dist load`") becomes stale once
   loadgroup ships — `check: grep -n "inert" tests/test_connection_loop.py`.
-- **EXPECTED-RED (the integrator's, rule (d)):** this record makes docs/audits/README.md stale (1201 vs 1202 documents) — gen_audit_index.py --write on the merged tree clears 	est_gen_audit_index x2; the journal_spine_anchor hard-fail on 9683a655 (main's tip, unanchored) is main's state and clears when the integrator anchors it; and 	est_consumer_at_landing::test_the_live_corpus_measures_and_the_baseline_matches_it lists this record as unconsumed (the as-consumption leg: no governance surface cites its identifier yet — the leg-1 declaration above passes) until the integrator's merge receipt names the slug (the [#1329] receipt route), as it does for every lane record.
+- **EXPECTED-RED (the integrator's, rule (d)):** this record makes `docs/audits/README.md` stale (1201 vs 1202 documents) — `gen_audit_index.py --write` on the merged tree clears `test_gen_audit_index` x2, the only two members the final run adds to main's own set besides the branch-only `test_worktree_seed`. (Measured locally, not on CI: `test_consumer_at_landing`'s as-consumption leg lists this record as unconsumed until the integrator's merge receipt names the slug, the [#1329] route, as for every lane record; it did not fail on the final CI run.)
 - **QUESTION:** is a paid runner class worth its measured gain? Not measured here (N5: an `OPERATOR-ACTION`, not a change). The Windows slow
   mode (1048-1165 s) is throughput-bound on a 4-vCPU box, so a larger runner is the only lever aimed at it.
 - **DECIDED-BY-LANE:** the throwaway experiment C edited a test body on a scratch branch purely to measure the finding above; it was never
