@@ -1259,3 +1259,121 @@ def test_refresh_refuses_to_carry_a_ceiling_entry_that_grew(kr):
             failed=frozenset({"tests/boot.py::t"}), workers=4, commit="c", measured_via="local",
             date="2026-10-03", attribution={}, previous=_registry_of(kr),
             signatures={"tests/boot.py::t": "AssertionError: 41,175 B tracked boot base exceeds 40,000"})
+
+
+# --- compare_to_base: the TEST-LEVEL table (foundation-4-merge-gate, G4) --------------------
+#
+# RED-FIRST (R45). The merge path used to classify a CI run by JOB NAME (`actions_verdict`
+# `newly_failing = failing - base_failing`), so a NEW test red inside a job that was already red
+# read PRE-EXISTING -- the `424d6c72` hole (a cut merge that turned
+# `test_registered_check_never_fails_on_live_repo` red for 16 runs while the pytest job was
+# already red). These rows are the contract's truth table, one test per row, per OS leg.
+
+_KNOWN_A = "tests/a.py::t_a"
+_KNOWN_B = "tests/b.py::t_b"
+
+
+def _table_registry(kr):
+    return _registry(kr, {_KNOWN_A: {"attribution": "pre-freeze"},
+                          _KNOWN_B: {"attribution": "pre-freeze", "signature": "AssertionError: b"}})
+
+
+def test_table_a_new_node_id_inside_an_already_red_leg_is_a_regression(kr):
+    """THE 424d6c72 SHAPE: base failed {A}; the tip fails {A, NEW}. Same job, same red-ness, one
+    more test -- the job-level compare read this as PRE-EXISTING."""
+    result = kr.compare_to_base(
+        frozenset({_KNOWN_A, "tests/new.py::t_new"}), frozenset({_KNOWN_A}),
+        _table_registry(kr), workers=4)
+    assert result["new"] == ["tests/new.py::t_new"]
+    assert result["verdict"] == "fail" and result["complete"] is False
+    assert result["known"] == [_KNOWN_A]
+
+
+def test_table_the_same_id_with_a_changed_signature_is_a_regression(kr):
+    """A registered test that fails WORSE: same node id on both sides, a different failure."""
+    result = kr.compare_to_base(
+        frozenset({_KNOWN_B}), frozenset({_KNOWN_B}), _table_registry(kr), workers=4,
+        tip_signatures={_KNOWN_B: "KeyError: 'b'"}, base_signatures={_KNOWN_B: "AssertionError: b"})
+    assert result["signature_changed"] == [_KNOWN_B]
+    assert result["verdict"] == "fail"
+
+
+def test_table_the_same_id_and_signature_is_pre_existing_and_complete(kr):
+    result = kr.compare_to_base(
+        frozenset({_KNOWN_A, _KNOWN_B}), frozenset({_KNOWN_A, _KNOWN_B}), _table_registry(kr),
+        workers=4,
+        tip_signatures={_KNOWN_B: "AssertionError: b"}, base_signatures={_KNOWN_B: "AssertionError: b"})
+    assert result["verdict"] == "pass" and result["complete"] is True
+    assert result["known"] == [_KNOWN_A, _KNOWN_B]
+    assert result["new"] == [] and result["signature_changed"] == []
+
+
+def test_table_noise_only_signature_drift_is_not_a_change(kr):
+    """A run-volatile token (a sha) differing between two runs is the SAME failure -- the
+    registry's own normalisation is reused, never a second one."""
+    result = kr.compare_to_base(
+        frozenset({_KNOWN_B}), frozenset({_KNOWN_B}), _table_registry(kr), workers=4,
+        tip_signatures={_KNOWN_B: "AssertionError: b"}, base_signatures={_KNOWN_B: "AssertionError: b"})
+    assert result["signature_changed"] == []
+    sig_a = "AssertionError: b at 1234567abcd"
+    sig_b = "AssertionError: b at 89abcdef012"
+    drifted = kr.compare_to_base(
+        frozenset({_KNOWN_A}), frozenset({_KNOWN_A}), _table_registry(kr), workers=4,
+        tip_signatures={_KNOWN_A: sig_a}, base_signatures={_KNOWN_A: sig_b})
+    assert drifted["signature_changed"] == []
+
+
+def test_table_a_base_failure_absent_from_the_registry_is_flagged_not_a_silent_baseline(kr):
+    """D5(b)/DL8: a regression that reached main must not become a silent baseline just because
+    it is red on both sides. Failing at base AND tip, not in the registry -> flagged, not pass."""
+    result = kr.compare_to_base(
+        frozenset({"tests/c.py::t_c"}), frozenset({"tests/c.py::t_c"}), _table_registry(kr),
+        workers=4)
+    assert result["base_unregistered"] == ["tests/c.py::t_c"]
+    assert result["verdict"] == "fail" and result["complete"] is False
+
+
+def test_table_the_os_overlay_registers_a_leg_specific_red(kr):
+    registry = kr.Registry(schema=kr.SCHEMA, baseline_id="b", measured_at_sha="s", measured_via="v",
+                           workers=4, members={},
+                           members_by_os={"windows-latest": {"tests/w.py::t": {"attribution": "flaky"}}})
+    on_windows = kr.compare_to_base(frozenset({"tests/w.py::t"}), frozenset({"tests/w.py::t"}),
+                                    registry, workers=4, os_key="windows-latest")
+    on_linux = kr.compare_to_base(frozenset({"tests/w.py::t"}), frozenset({"tests/w.py::t"}),
+                                  registry, workers=4, os_key="ubuntu-latest")
+    assert on_windows["verdict"] == "pass"
+    assert on_linux["base_unregistered"] == ["tests/w.py::t"]
+
+
+def test_table_a_known_member_that_grew_past_its_ceiling_is_a_registry_regression(kr):
+    registry = _registry(kr, {"tests/boot.py::t": {
+        "attribution": "pre-freeze", "signature": "AssertionError: 40,000 B exceeds",
+        "ceiling": {"pattern": r"(?P<n>[\d,]+) B", "max": 40000}}})
+    result = kr.compare_to_base(
+        frozenset({"tests/boot.py::t"}), frozenset({"tests/boot.py::t"}), registry, workers=4,
+        tip_signatures={"tests/boot.py::t": "AssertionError: 41,000 B exceeds"},
+        base_signatures={"tests/boot.py::t": "AssertionError: 41,000 B exceeds"})
+    assert result["registry_regressions"] == ["tests/boot.py::t"]
+    assert result["verdict"] == "fail"
+
+
+def test_table_a_base_failure_that_the_tip_fixed_is_reported_not_silent(kr):
+    result = kr.compare_to_base(frozenset(), frozenset({_KNOWN_A}), _table_registry(kr), workers=4)
+    assert result["fixed"] == [_KNOWN_A]
+    assert result["verdict"] == "pass"
+
+
+def test_table_a_worker_mismatch_is_not_comparable_and_fails_closed(kr):
+    result = kr.compare_to_base(frozenset({_KNOWN_A}), frozenset({_KNOWN_A}), _table_registry(kr),
+                                workers=2)
+    assert result["verdict"] == "fail" and result["complete"] is False
+    assert "NOT COMPARABLE" in result["reason"]
+
+
+def test_table_renders_flat_lines_with_every_row_named(kr):
+    result = kr.compare_to_base(
+        frozenset({_KNOWN_A, "tests/new.py::t_new"}), frozenset({_KNOWN_A}),
+        _table_registry(kr), workers=4)
+    text = kr.render_compare_to_base(result)
+    assert "NEW" in text and "tests/new.py::t_new" in text
+    assert "|" not in text, "flat lines, never a pipe table (CLAUDE.md section 4)"

@@ -602,6 +602,100 @@ def compare(failed: frozenset, registry: Registry, *, workers: int,
             **result_lists}
 
 
+def compare_to_base(tip_failed: frozenset, base_failed: frozenset, registry: Registry, *,
+                    workers: int, os_key: str | None = None,
+                    tip_signatures: dict | None = None,
+                    base_signatures: dict | None = None) -> dict:
+    """The TEST-LEVEL truth table for ONE OS leg: the tip's failing node ids against the base
+    `main` run's failing node ids against the shrink-only registry (foundation-4-merge-gate, G4).
+
+    WHY IT EXISTS. The merge path classified a CI run by JOB NAME, so a NEW test red inside a job
+    that was already red read PRE-EXISTING (DVA A2; the `424d6c72` cut merge turned
+    `test_registered_check_never_fails_on_live_repo` red for 16 runs while the pytest job was
+    already red). This function is the replacement for that job-level set difference. It is PURE
+    -- the failing sets and signatures are read from the CI job logs by the caller
+    (`actions_verdict`), and the registry is loaded by the caller, so the table is testable
+    row by row. `PRE-EXISTING` is `complete` ONLY when every failing id is accounted for:
+
+      new                 the id fails at the tip and did not fail at the base -> REGRESSION
+      signature_changed   the id fails on both sides, differently -> REGRESSION (fails worse)
+      known               fails on both sides with the same signature AND the registry vouches
+                          for it (membership, ceiling, unattributed) -> accounted for
+      base_unregistered   fails on both sides but the registry does not list it -> FLAGGED, never
+                          a silent baseline (D5(b)/DL8: a regression that reached `main` must not
+                          become the baseline just because it is red on both sides)
+      registry_regressions  listed, but the registry itself refuses it (unattributed, a ceiling
+                          exceeded, a signature that no longer reads as the registered one)
+      fixed               failed at the base, passes at the tip -> reported, never silent
+
+    The registry judgement is `compare` itself -- one comparator, not a second copy -- fed the
+    ids that are red on BOTH sides. NOT COMPARABLE (a worker count that is not the registry's
+    pin) fails closed. The non-test half of "every failing thing is accounted for" (a job
+    timeout, a collection error, an xdist crash, `cancelled`) is `actions_verdict`'s: those carry
+    no node id to put in this table, and each is a regression there.
+    """
+    if workers != registry.workers:
+        return {"baseline_id": registry.baseline_id, "os_key": os_key, "verdict": "fail",
+                "complete": False,
+                "reason": f"NOT COMPARABLE -- resolved at {workers} workers, the registry is "
+                          f"pinned at {registry.workers}",
+                "new": [], "signature_changed": [], "known": [], "base_unregistered": [],
+                "registry_regressions": [], "fixed": []}
+    tip_sigs, base_sigs = tip_signatures or {}, base_signatures or {}
+    new = sorted(tip_failed - base_failed)
+    fixed = sorted(base_failed - tip_failed)
+    both = tip_failed & base_failed
+    signature_changed = sorted(
+        node_id for node_id in both
+        if tip_sigs.get(node_id) and base_sigs.get(node_id)
+        and normalize_signature(tip_sigs[node_id]) != normalize_signature(base_sigs[node_id]))
+    judged = both - set(signature_changed)
+    registry_view = compare(frozenset(judged), registry, workers=workers, os_key=os_key,
+                            signatures=tip_sigs)
+    listed = dict(registry.members)
+    if os_key:
+        listed.update(registry.members_by_os.get(os_key, {}))
+    base_unregistered = sorted(n for n in registry_view["regressions"] if n not in listed)
+    registry_regressions = sorted(n for n in registry_view["regressions"] if n in listed)
+    known = sorted(set(registry_view["pre_existing"]) | set(registry_view["witnesses"]))
+    bad = bool(new or signature_changed or base_unregistered or registry_regressions)
+    if bad:
+        parts = [f"{len(new)} new", f"{len(signature_changed)} changed signature",
+                 f"{len(base_unregistered)} base failure(s) absent from the registry",
+                 f"{len(registry_regressions)} refused by the registry"]
+        reason = f"REGRESSION -- {', '.join(parts)} (baseline {registry.baseline_id})"
+    else:
+        reason = (f"{len(known)} known failure(s), all accounted for, {len(fixed)} fixed "
+                  f"(baseline {registry.baseline_id})")
+    return {"baseline_id": registry.baseline_id, "os_key": os_key,
+            "verdict": "fail" if bad else "pass", "complete": not bad, "reason": reason,
+            "new": new, "signature_changed": signature_changed, "known": known,
+            "base_unregistered": base_unregistered, "registry_regressions": registry_regressions,
+            "fixed": fixed}
+
+
+def render_compare_to_base(result: dict) -> str:
+    """Flat key/value + bullet lines (CLAUDE.md section 4): no pipe tables."""
+    lines = ["known-reds compare-to-base", "", f"baseline id    : {result['baseline_id']}"]
+    if result.get("os_key"):
+        lines.append(f"os key         : {result['os_key']}")
+    lines.append(f"known          : {len(result['known'])}")
+    for node_id in result["known"]:
+        lines.append(f"  known         {node_id}")
+    for key, tag in (("new", "NEW"), ("signature_changed", "SIG-CHANGED"),
+                     ("base_unregistered", "BASE-UNREGISTERED"),
+                     ("registry_regressions", "REGISTRY-REFUSED")):
+        lines.append(f"{key.replace('_', ' '):<15}: {len(result[key])}")
+        for node_id in result[key]:
+            lines.append(f"  {tag:<14}{node_id}")
+    lines.append(f"fixed          : {len(result['fixed'])}")
+    for node_id in result["fixed"]:
+        lines.append(f"  fixed         {node_id}")
+    lines.append("")
+    lines.append(f"verdict        : {result['verdict'].upper()} -- {result['reason']}")
+    return "\n".join(lines)
+
+
 #: D2 (WAVE5B-N4 L2): the failure signature -- exception type + first failing assertion line --
 #: read verbatim from pytest's own short-summary `FAILED <id> - <reason>` / `ERROR <id> -
 #: <reason>` line (`-q --tb=short`'s stable, dependency-free reason text; no junit/json plugin,
