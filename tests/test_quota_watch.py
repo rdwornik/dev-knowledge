@@ -36,6 +36,14 @@ from scripts import transport as _transport  # noqa: E402
 _FIXTURES = Path(__file__).resolve().parent / "fixtures" / "quota_watch"
 
 
+@pytest.fixture(autouse=True)
+def _private_ledger_home(tmp_path, monkeypatch):
+    """The ledger resolves to the per-user state directory (R17 `private`), so no witness here
+    may reach the operator's real one -- a CLI `record` run with no override would append fixture
+    rows to it. Each test gets its own."""
+    monkeypatch.setenv(qw.LEDGER_PATH_ENV, str(tmp_path / "state" / "QUOTA-READS.jsonl"))
+
+
 def _load(name: str) -> dict:
     return json.loads((_FIXTURES / name).read_text(encoding="utf-8"))
 
@@ -159,6 +167,41 @@ class TestProjectedExhaustionIsCappedAtTheCycleReset:
 
     def test_cycle_end_rolls_over_december_into_january(self):
         assert qw._cycle_end(date(2026, 12, 1)) == date(2027, 1, 1)
+
+
+class TestTheLedgerLivesInThePerUserStateHome:
+    """R17/R20 `private` kind (foundation-1-honest-green, Done item 6): a quota read is per-user
+    account state, so the ledger resolves to the OS state directory, never a path inside any
+    checkout -- a tracked `logs/QUOTA-READS.jsonl` made every primary session dirty."""
+
+    def test_the_default_home_is_outside_the_repository(self, monkeypatch):
+        monkeypatch.delenv(qw.LEDGER_PATH_ENV, raising=False)
+        path = qw.reads_ledger_path(REPO_ROOT)
+        assert REPO_ROOT not in path.resolve().parents
+        assert path.name == "QUOTA-READS.jsonl"
+
+    def test_the_default_home_is_the_platformdirs_state_directory(self, monkeypatch):
+        import platformdirs
+        monkeypatch.delenv(qw.LEDGER_PATH_ENV, raising=False)
+        expected = Path(platformdirs.user_state_dir("dev-knowledge", appauthor=False))
+        assert qw.reads_ledger_path(REPO_ROOT).parent == expected
+
+    def test_the_repo_root_argument_no_longer_decides_the_path(self, monkeypatch, tmp_path):
+        monkeypatch.delenv(qw.LEDGER_PATH_ENV, raising=False)
+        assert qw.reads_ledger_path(tmp_path) == qw.reads_ledger_path(REPO_ROOT)
+
+    def test_the_environment_override_wins(self, monkeypatch, tmp_path):
+        target = tmp_path / "elsewhere" / "ledger.jsonl"
+        monkeypatch.setenv(qw.LEDGER_PATH_ENV, str(target))
+        assert qw.reads_ledger_path(REPO_ROOT) == target
+
+    def test_the_ledger_is_not_a_tracked_file(self):
+        import subprocess
+        tracked = subprocess.run(["git", "ls-files", "--", "logs/QUOTA-READS.jsonl"],
+                                 cwd=str(REPO_ROOT), capture_output=True, text=True)
+        if tracked.returncode != 0:
+            pytest.skip("not a git checkout")
+        assert tracked.stdout.strip() == ""
 
 
 class TestLedgerLockSerializesConcurrentRecords:
