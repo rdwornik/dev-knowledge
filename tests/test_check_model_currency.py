@@ -123,12 +123,13 @@ def test_the_schema_refuses_a_date_with_no_evidence() -> None:
         ProviderRegistry.model_validate(data)
 
 
-@pytest.mark.parametrize("bad", ["/abs/path.md", "../outside.md", "C:\\x\\y.md", "transport:"])
+@pytest.mark.parametrize("bad", ["/abs/path.md", "../outside.md", "C:\\x\\y.md", "transport:",
+                                 "", ".", "docs/audits/", "transport:."])
 def test_the_schema_refuses_an_evidence_reference_that_cannot_resolve(bad: str) -> None:
     data = _registry_dict()
     data["models"]["claude-opus-5-5"]["last_verified"] = datetime.date(2026, 10, 3)
     data["models"]["claude-opus-5-5"]["evidence"] = [bad]
-    with pytest.raises(ValueError, match="not a resolvable evidence reference"):
+    with pytest.raises(ValueError, match="not a resolvable evidence reference|is blank"):
         ProviderRegistry.model_validate(data)
 
 
@@ -275,6 +276,24 @@ def test_a_dated_suffix_and_an_effort_suffix_resolve_to_the_registered_id(cmc, t
     live.write_text("claude-haiku-4-5 and gemini-3.8-flash-high and gemini-3.8-flash-low\n",
                     encoding="utf-8")
     assert cmc.analyse(root, contracts=[live], today=_TODAY).flags == []
+
+
+def test_a_role_or_dispatcher_pin_the_registry_lacks_is_flagged_unknown(cmc, tmp_path: Path,
+                                                                          monkeypatch) -> None:
+    """Codex terra P1 (review of this lane): role-order and dispatcher pins were excluded from
+    the unknown-id leg with the model keys. The loader's schema normally refuses such a pin, so
+    the leg is defence in depth -- shown here with the loader answering a registry whose role
+    pin names a model that has no row."""
+    root = _make_root(tmp_path, {"claude-sonnet-5-5": (_days_ago(1), True)})
+    data = {
+        "providers": {}, "models": {"claude-sonnet-5-5": {
+            "last_verified": _days_ago(1), "evidence": ["docs/audits/claude-sonnet-5-5.md"]}},
+        "roles": {"implement": {"order": [{"provider": "xai", "model": "grok-9.0"}]}},
+        "dispatcher": {"model": "claude-opus-9-9"},
+    }
+    monkeypatch.setattr(cmc._preg, "load_registry", lambda path=None: data)
+    assert _kinds(cmc.analyse(root, today=_TODAY)) == {
+        ("unknown-id", "grok-9.0"), ("unknown-id", "claude-opus-9-9")}
 
 
 def test_a_live_contract_path_that_does_not_exist_is_an_error_not_a_pass(cmc, tmp_path: Path) -> None:

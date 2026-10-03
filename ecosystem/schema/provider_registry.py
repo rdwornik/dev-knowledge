@@ -467,6 +467,12 @@ class RateCard(_Contract):
         return self
 
 
+def _names_no_file(ref: str, path: PurePosixPath) -> bool:
+    """`.` and a trailing-slash path name a directory, so no evidence file can resolve from them
+    (Codex terra P2 on the lane that added `Model.evidence`)."""
+    return str(path) == "." or ref.endswith(("/", "\\"))
+
+
 class Model(_Contract):
     """One model string the repo names, with the roles it holds and the sites that pin it."""
 
@@ -505,10 +511,12 @@ class Model(_Contract):
             if ref.startswith(EVIDENCE_TRANSPORT_PREFIX):
                 name = ref[len(EVIDENCE_TRANSPORT_PREFIX):]
                 p = PurePosixPath(name.replace("\\", "/"))
-                bad = not name or p.is_absolute() or ".." in p.parts or re.match(r"^[A-Za-z]:", name)
+                bad = (not name or p.is_absolute() or ".." in p.parts
+                       or re.match(r"^[A-Za-z]:", name) or _names_no_file(name, p))
             else:
                 p = PurePosixPath(ref.replace("\\", "/"))
-                bad = p.is_absolute() or ".." in p.parts or re.match(r"^[A-Za-z]:", ref)
+                bad = (p.is_absolute() or ".." in p.parts or re.match(r"^[A-Za-z]:", ref)
+                       or _names_no_file(ref, p))
             if bad:
                 raise ValueError(
                     f"evidence `{ref}` is not a resolvable evidence reference -- a repo-relative "

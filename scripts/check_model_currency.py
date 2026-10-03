@@ -291,8 +291,12 @@ def analyse(root: Path, contracts=(), today: datetime.date | None = None,
 
     registered = set(data["models"])
     seen_unknown: set[str] = set()
+    model_row_prefix = f"{REGISTRY_REL}:models."
     for pin in report.pins:
-        if pin.kind != "id" or pin.source == "registry" or pin.model_id in seen_unknown:
+        # A model KEY is known by definition; a role-order or dispatcher pin is not, so it is
+        # checked too (the loader's schema normally refuses one, which makes this depth).
+        if (pin.kind != "id" or pin.where.startswith(model_row_prefix)
+                or pin.model_id in seen_unknown):
             continue
         if not is_known(pin.model_id, registered):
             seen_unknown.add(pin.model_id)
