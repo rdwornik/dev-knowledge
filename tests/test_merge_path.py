@@ -95,6 +95,16 @@ def test_a_failed_write_returns_None_and_never_raises(tmp_path, monkeypatch, cap
     assert "NOT written" in capsys.readouterr().err
 
 
+def test_a_non_OSError_failure_in_the_event_path_never_raises_either(events, monkeypatch, capsys):
+    """Review finding (grok-4.7, Low): only OSError was caught, so a TypeError/ValueError from the
+    path or the duration would fail the organ it observes."""
+    monkeypatch.setattr(mp, "events_path", lambda: (_ for _ in ()).throw(ValueError("bad path")))
+
+    assert mp.emit_run_event("a", "ok", 0.1) is None
+    assert mp.emit_run_event("a", "ok", "not-a-number") is None   # json/round failure, same guarantee
+    assert "NOT written" in capsys.readouterr().err
+
+
 def test_timed_event_emits_error_and_reraises_when_the_block_raises(events):
     with pytest.raises(RuntimeError):
         with mp.timed_event("organ-x"):
@@ -309,6 +319,24 @@ def test_land_reports_a_refused_push_to_main():
 
     assert not result.landed and result.state == "MAIN-PUSH-REFUSED"
     assert not [r for r in rig.recorded if r[:2] == ("push", "main")], "a refused push is not recorded"
+
+
+@pytest.mark.parametrize("short", [BASE[:12], BASE[:39], ""])
+def test_land_refuses_a_base_that_is_not_a_full_sha_and_pushes_nothing(short):
+    """Review finding (grok-4.7, Low): a prefix 'matched' a different commit. Both sides must be
+    the full 40-hex sha, compared exactly."""
+    rig = Rig()
+
+    result = mp.land(Path("."), slug="m", batch="b", sha=TIP, base=short, git=rig.git,
+                     verdict_fn=rig.verdict_fn, record_push_fn=rig.record_push,
+                     record_suite_fn=rig.record_suite)
+
+    assert not result.landed and result.state == "BASE-NOT-FULL"
+    assert not rig.pushes()
+
+
+def test_the_same_sha_comparison_is_exact_not_a_prefix():
+    assert mp._same(BASE, BASE) and not mp._same(BASE[:12], BASE) and not mp._same(BASE, "")
 
 
 def test_land_never_uses_force():

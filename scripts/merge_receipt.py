@@ -636,8 +636,10 @@ class Receipt:
             # G6: the suite step IS the integration-branch wait, so it cannot have been read
             # BEFORE the sha was pushed there. (`record_actions_verdict` refuses the wrong sha at
             # record time; this leg catches a receipt whose order says otherwise.)
-            push = next((s for s in self.steps if s.step == STEP_PUSH_INTEGRATION), None)
-            suite = next((s for s in self.steps if s.step == "suite" and s.verdict_state), None)
+            # the LATEST of each: a later integration push moves the sha CI must have judged
+            push = next((s for s in reversed(self.steps) if s.step == STEP_PUSH_INTEGRATION), None)
+            suite = next((s for s in reversed(self.steps)
+                          if s.step == "suite" and s.verdict_state), None)
             if push is not None and suite is not None:
                 try:
                     pushed_at = datetime.fromisoformat(push.started)
@@ -892,6 +894,12 @@ def record_push(repo_root: Path, *, slug: str, target: str, branch: str, sha: st
             raise MergeReceiptError(
                 f"the push to main must be the same sha CI judged on the integration branch: "
                 f"{sha} is not {receipt.pushed_sha}")
+        landable = (_av.STATE_PASS, _av.STATE_PRE_EXISTING)
+        if receipt.suite_verdict() not in landable:
+            raise MergeReceiptError(
+                f"the recorded suite read is {receipt.suite_verdict() or 'absent'!r}, not one of "
+                f"{', '.join(landable)}: main only receives a sha whose CI read on the integration "
+                f"branch is on this receipt and landable")
         step = STEP_PUSH_MAIN
     else:
         raise MergeReceiptError(f"push target {target!r} is outside {{integration, main}}")

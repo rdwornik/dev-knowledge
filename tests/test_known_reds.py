@@ -1298,6 +1298,23 @@ def test_table_the_same_id_with_a_changed_signature_is_a_regression(kr):
     assert result["verdict"] == "fail"
 
 
+def test_table_a_tip_reason_the_base_never_carried_is_not_silently_known(kr):
+    """Review finding (grok-4.7, High): an id with NO registered signature whose base log line is a
+    bare `FAILED id` and whose tip line carries a reason has nothing to compare against -- it must
+    not read as the same failure. With no evidence of sameness it fails closed."""
+    result = kr.compare_to_base(
+        frozenset({_KNOWN_A}), frozenset({_KNOWN_A}), _table_registry(kr), workers=4,
+        tip_signatures={_KNOWN_A: "KeyError: 'a'"}, base_signatures={})
+    assert result["signature_changed"] == [_KNOWN_A]
+    assert result["verdict"] == "fail" and result["complete"] is False
+
+
+def test_table_a_bare_line_on_both_sides_stays_known_when_the_registry_has_no_signature(kr):
+    result = kr.compare_to_base(
+        frozenset({_KNOWN_A}), frozenset({_KNOWN_A}), _table_registry(kr), workers=4)
+    assert result["verdict"] == "pass" and result["known"] == [_KNOWN_A]
+
+
 def test_table_the_same_id_and_signature_is_pre_existing_and_complete(kr):
     result = kr.compare_to_base(
         frozenset({_KNOWN_A, _KNOWN_B}), frozenset({_KNOWN_A, _KNOWN_B}), _table_registry(kr),

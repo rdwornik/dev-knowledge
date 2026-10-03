@@ -645,16 +645,25 @@ def compare_to_base(tip_failed: frozenset, base_failed: frozenset, registry: Reg
     new = sorted(tip_failed - base_failed)
     fixed = sorted(base_failed - tip_failed)
     both = tip_failed & base_failed
-    signature_changed = sorted(
-        node_id for node_id in both
-        if tip_sigs.get(node_id) and base_sigs.get(node_id)
-        and normalize_signature(tip_sigs[node_id]) != normalize_signature(base_sigs[node_id]))
-    judged = both - set(signature_changed)
-    registry_view = compare(frozenset(judged), registry, workers=workers, os_key=os_key,
-                            signatures=tip_sigs)
     listed = dict(registry.members)
     if os_key:
         listed.update(registry.members_by_os.get(os_key, {}))
+
+    def _no_basis(node_id: str) -> bool:
+        """The tip says WHY it failed, and neither the base log nor the registry carries a
+        signature to say it is the same why: nothing vouches for 'the same failure'."""
+        entry = listed.get(node_id)
+        registered = entry.get("signature") if isinstance(entry, dict) else None
+        return bool(tip_sigs.get(node_id)) and not base_sigs.get(node_id) and not registered
+
+    signature_changed = sorted(
+        node_id for node_id in both
+        if (tip_sigs.get(node_id) and base_sigs.get(node_id)
+            and normalize_signature(tip_sigs[node_id]) != normalize_signature(base_sigs[node_id]))
+        or _no_basis(node_id))
+    judged = both - set(signature_changed)
+    registry_view = compare(frozenset(judged), registry, workers=workers, os_key=os_key,
+                            signatures=tip_sigs)
     base_unregistered = sorted(n for n in registry_view["regressions"] if n not in listed)
     registry_regressions = sorted(n for n in registry_view["regressions"] if n in listed)
     known = sorted(set(registry_view["pre_existing"]) | set(registry_view["witnesses"]))

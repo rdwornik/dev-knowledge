@@ -45,6 +45,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -119,8 +120,8 @@ def emit_run_event(organ: str, outcome: str, duration_s: float, **detail) -> Opt
         with path.open("a", encoding="utf-8", newline="\n") as handle:
             handle.write(json.dumps(row, sort_keys=True) + "\n")
         return path
-    except OSError as exc:
-        print(f"merge_path: run event for {organ} NOT written -- {exc}", file=sys.stderr)
+    except Exception as exc:  # noqa: BLE001 -- any telemetry failure, not only OSError (grok-4.7 review)
+        print(f"merge_path: run event for {organ} NOT written -- {exc!r}", file=sys.stderr)
         return None
 
 
@@ -167,9 +168,14 @@ def _run_git(root: Path) -> Runner:
     return run
 
 
+_FULL_SHA = re.compile(r"[0-9a-f]{40}")
+
+
 def _same(left: str, right: str) -> bool:
-    left, right = left.strip(), right.strip()
-    return bool(left and right) and (left.startswith(right) or right.startswith(left))
+    """EXACT equality of two commit ids -- a prefix is not a match (a short id can name a different
+    commit; grok-4.7 review, Low)."""
+    left, right = left.strip().lower(), right.strip().lower()
+    return bool(left) and left == right
 
 
 # --- the integration branch and the stdin the server-side organs read (G3) -------------------
@@ -270,6 +276,9 @@ def land(root: Path, *, slug: str, batch: str, sha: str, base: str,
         return LandResult(False, state, reason, sha=sha, branch=branch, verdict=verdict,
                           commands=commands)
 
+    if not _FULL_SHA.fullmatch(base.strip().lower()):
+        return refuse("BASE-NOT-FULL", f"--base {base!r} is not a full 40-hex sha; pass "
+                                       f"`git rev-parse origin/main` as fetched before the merge")
     code, out = git(["rev-list", "--parents", "-n", "1", sha])
     parts = out.split()
     if code != 0 or len(parts) != 3 or not _same(parts[1], base):

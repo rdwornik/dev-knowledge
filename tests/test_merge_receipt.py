@@ -1378,13 +1378,49 @@ def test_G5_the_push_to_main_must_be_the_SAME_sha_that_CI_ran_on(tmp_path):
     mr.record_push(tmp_path, slug="m", target="integration", branch="worktree-integrate-y",
                    sha="abc123", seconds=1.0)
 
+    _record_suite_state(tmp_path, av.STATE_PASS)
+
     with pytest.raises(mr.MergeReceiptError, match="same sha"):
         mr.record_push(tmp_path, slug="m", target="main", branch="main", sha="def456",
                        seconds=1.0)
     receipt = mr.record_push(tmp_path, slug="m", target="main", branch="main", sha="abc123",
                              seconds=2.0)
 
-    assert [s.step for s in receipt.steps] == ["push-integration", "push-main"]
+    assert [s.step for s in receipt.steps] == ["push-integration", "suite", "push-main"]
+
+
+def _record_suite_state(root, state):
+    receipt = mr.load_receipt(root, "m")
+    receipt.steps.append(mr.StepTiming("suite", mr.CLASS_TESTS, 1.0, True, 0, "-", mr._now(),
+                                       verdict_state=state, baseline_sha="base"))
+    mr.save_receipt(root, receipt)
+
+
+@pytest.mark.parametrize("state", [None, av.STATE_REGRESSED, "IN-PROGRESS", "CANCELLED",
+                                   "GH-UNAVAILABLE", av.STATE_UNATTRIBUTED])
+def test_G6_the_push_to_main_is_refused_unless_the_recorded_suite_read_is_landable(tmp_path, state):
+    """Review finding (grok-4.7, Medium): `record_push(main)` checked only the sha string, so a
+    receipt could be completed around a suite read that was never landable (or never made)."""
+    mr.open_receipt(tmp_path, slug="m", batch="y")
+    mr.record_push(tmp_path, slug="m", target="integration", branch="worktree-integrate-y",
+                   sha="abc123", seconds=1.0)
+    if state:
+        _record_suite_state(tmp_path, state)
+
+    with pytest.raises(mr.MergeReceiptError, match="suite"):
+        mr.record_push(tmp_path, slug="m", target="main", branch="main", sha="abc123",
+                       seconds=1.0)
+    assert "push-main" not in [s.step for s in mr.load_receipt(tmp_path, "m").steps]
+
+
+def test_G6_the_suite_before_push_check_reads_the_LATEST_integration_push(tmp_path):
+    receipt = _split_era_complete()
+    receipt.steps.insert(3, mr.StepTiming("push-integration", mr.CLASS_CEREMONY, 5.0, True, 0, "-",
+                                          _stamp(200.0)))   # a later push, after the suite read at 110
+
+    reason = receipt.incompleteness_reason()
+
+    assert reason is not None and "before" in reason
 
 
 def test_G5_a_push_to_main_with_no_integration_push_first_is_refused(tmp_path):
