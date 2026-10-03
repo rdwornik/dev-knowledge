@@ -1583,6 +1583,17 @@ def _r66_status_line(adr_glob: str) -> str:
     )
 
 
+def test_r66_open_row_discovery_is_not_vacuous():
+    """The row scan the checks below lean on must actually see open rows; an empty answer
+    from a broken scan would otherwise read as "no row cites it" and "no rows to check"."""
+    open_rows = [
+        p for p in _R66_TASKS_DIR.glob("*.md")
+        if _re.search(r"^status:\s*open\s*$", p.read_text(encoding="utf-8"), _re.MULTILINE)
+    ]
+    assert len(open_rows) > 0, "no open row found under tasks/ - the citation scan is blind"
+    assert _r66_open_rows_citing(120), "no open row cites ADR-120 - the citation scan is blind"
+
+
 def test_r66_adr_116_is_withdrawn_because_no_open_row_cites_it():
     assert _r66_open_rows_citing(116) == [], "a row now cites ADR-116: the withdrawal is void"
     line = _r66_status_line("ADR-116-*.md")
