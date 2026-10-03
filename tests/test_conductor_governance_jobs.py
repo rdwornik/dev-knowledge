@@ -392,3 +392,181 @@ def test_a_lane_branch_push_is_a_clean_no_op_for_anchor(tmp_path):
     line = _workflow_line(lane_ref, _rev(repo, "epic/wave-int"), _ZERO)
     r = _invoke(_BUP, repo, line)
     assert r.returncode == 0, r.stderr
+
+
+# =====================================================================================
+# foundation-4-merge-gate item 8 (G3): on an INTEGRATION-branch push, seal / spine / anchor judge
+# the pushed range against `origin/main` as if it were a push to main.
+#
+# RED-first witnesses. The pre-foundation-4 step fed the organs `<github.ref> <sha> <github.ref>
+# <event.before>`: on `refs/heads/worktree-integrate-*` the remote ref is NOT main, so the organ's
+# own scoping made it a no-op (the "clean no-op" tests above pin that for LANE branches, which
+# stays) -- an integration push carrying a direct commit, a fast-forward or an unanchored merge
+# went GREEN. And `event.before` is all-zero on branch CREATION and the previous integration tip
+# on an UPDATE; neither is what the push would replace on main. The stdin has to carry the remote
+# SHA of origin/main, not only the ref.
+# =====================================================================================
+
+import merge_path as mp  # noqa: E402 -- the tracked path that builds the stdin line
+
+_INT = "worktree-integrate-x"
+_INT_REF = f"refs/heads/{_INT}"
+
+
+def _old_line(tip, before):
+    """What the step sent for an integration push before this lane."""
+    return _workflow_line(_INT_REF, tip, before)
+
+
+def _new_line(remote_sha, tip):
+    return mp.pre_push_stdin(tip, remote_sha)
+
+
+def _on_integration(repo):
+    _git(repo, "checkout", "-q", "-b", _INT)
+
+
+@requires_git
+def test_G3_a_branch_CREATION_with_a_direct_commit_was_green_and_now_turns_spine_red(tmp_path):
+    repo, remote = _repo_with_remote(tmp_path)
+    _on_integration(repo)
+    _commit(repo, "feat: direct on the integration branch", fname="a.txt")
+    tip = _rev(repo)
+
+    old = _invoke(_BFP, repo, _old_line(tip, _ZERO))       # event.before is all-zero on creation
+    new = _invoke(_BFP, repo, _new_line(remote, tip))
+
+    assert old.returncode == 0, "the defect: the old line made this push a vacuous green"
+    assert new.returncode == 1, new.stderr
+    assert "direct on the integration branch" in new.stderr
+
+
+@requires_git
+def test_G3_an_UPDATE_of_an_existing_integration_ref_with_a_direct_commit_turns_spine_red(tmp_path):
+    repo, remote = _repo_with_remote(tmp_path)
+    _on_integration(repo)
+    _git(repo, "checkout", "-q", "-b", "feat/a")
+    _commit(repo, "work on feat/a", fname="fa.txt")
+    _git(repo, "checkout", "-q", _INT)
+    _git(repo, "merge", "-q", "--no-ff", "feat/a", "-m", "Merge branch 'feat/a'")
+    prior = _rev(repo)                                     # the previously pushed integration tip
+    _commit(repo, "feat: direct commit on the next push", fname="b.txt")
+    tip = _rev(repo)
+
+    old = _invoke(_BFP, repo, _old_line(tip, prior))        # event.before = the previous tip
+    new = _invoke(_BFP, repo, _new_line(remote, tip))
+
+    assert old.returncode == 0, "the defect: remote ref was the integration ref, not main"
+    assert new.returncode == 1, new.stderr
+    assert "direct commit on the next push" in new.stderr
+
+
+@requires_git
+def test_G3_a_FAST_FORWARD_shaped_integration_push_turns_spine_red(tmp_path):
+    repo, remote = _repo_with_remote(tmp_path)
+    _on_integration(repo)
+    _git(repo, "checkout", "-q", "-b", "feat/ff")
+    _commit(repo, "work on feat/ff", fname="ff.txt")
+    _git(repo, "checkout", "-q", _INT)
+    _git(repo, "merge", "-q", "--ff-only", "feat/ff")       # no merge commit: the spine gets a plain commit
+    tip = _rev(repo)
+
+    old = _invoke(_BFP, repo, _old_line(tip, remote))
+    new = _invoke(_BFP, repo, _new_line(remote, tip))
+
+    assert old.returncode == 0
+    assert new.returncode == 1, new.stderr
+
+
+@requires_git
+def test_G3_an_UNANCHORED_integration_merge_turns_anchor_red(tmp_path):
+    repo, remote = _repo_with_remote(tmp_path)
+    _on_integration(repo)
+    _git(repo, "checkout", "-q", "-b", "feat/u")
+    _commit(repo, "work on feat/u", fname="u.txt")
+    _git(repo, "checkout", "-q", _INT)
+    _git(repo, "merge", "-q", "--no-ff", "feat/u", "-m", "Merge branch 'feat/u'")
+    tip = _rev(repo)
+
+    old = _invoke(_BUP, repo, _old_line(tip, _ZERO))
+    new = _invoke(_BUP, repo, _new_line(remote, tip))
+
+    assert old.returncode == 0, "the defect: an unanchored merge on an integration ref passed"
+    assert new.returncode == 1 and "REFUSED" in new.stderr, new.stderr
+
+
+@requires_git
+def test_G3_a_clean_anchored_no_ff_integration_merge_leaves_both_organs_green(tmp_path):
+    """The control: the new line is not a blanket red."""
+    repo, remote = _repo_with_remote(tmp_path)
+    _on_integration(repo)
+    _git(repo, "checkout", "-q", "-b", "feat/ok")
+    _commit(repo, "work on feat/ok", fname="ok.txt")
+    work = _rev(repo)
+    _journal(repo, f"# Journal\n\n### entry -- work {work[:7]}\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "journal for feat/ok")
+    _git(repo, "checkout", "-q", _INT)
+    _git(repo, "merge", "-q", "--no-ff", "feat/ok", "-m", "Merge branch 'feat/ok'")
+    tip = _rev(repo)
+
+    line = _new_line(remote, tip)
+
+    assert _invoke(_BFP, repo, line).returncode == 0
+    assert _invoke(_BUP, repo, line).returncode == 0
+
+
+@requires_git
+def test_G3_the_target_line_verb_produces_the_line_the_organs_judge(tmp_path):
+    """End to end through the CLI the workflow calls, in a repo whose `origin/main` resolves."""
+    from click.testing import CliRunner
+
+    repo, remote = _repo_with_remote(tmp_path)
+    _on_integration(repo)
+    _commit(repo, "feat: direct", fname="d.txt")
+    tip = _rev(repo)
+    out = tmp_path / "push.stdin"
+
+    result = CliRunner().invoke(mp.cli, ["--repo-root", str(repo), "target-line", "--tip", tip,
+                                         "--out", str(out)])
+
+    assert result.exit_code == 0, result.output
+    assert out.read_text(encoding="utf-8") == f"refs/heads/main {tip} refs/heads/main {remote}\n"
+    env = {k: v for k, v in os.environ.items() if not k.startswith("PRE_COMMIT_")}
+    with out.open(encoding="utf-8") as stdin:
+        r = subprocess.run([sys.executable, str(_BFP)], stdin=stdin, capture_output=True,
+                           text=True, env=env, cwd=str(repo))
+    assert r.returncode == 1, r.stderr
+
+
+# --- the WORKFLOW itself feeds the organs that line on an integration ref --------------------
+
+def _step_text(workflow, job, step_id="run"):
+    return str(next(s for s in workflow["jobs"][job]["steps"] if s.get("id") == step_id)["run"])
+
+
+def test_G3_spine_and_anchor_build_the_stdin_with_merge_path_on_an_integration_ref(workflow):
+    for job in ("spine", "anchor"):
+        text = _step_text(workflow, job)
+        assert "worktree-integrate-" in text, f"{job} does not special-case integration refs"
+        assert "scripts/merge_path.py target-line" in text, \
+            f"{job} must build the stdin with the tracked path, not by hand"
+        assert "< push.stdin" in text, \
+            f"{job} must read the line from a FILE (never a pipe that masks the first stage)"
+
+
+def test_G3_a_failed_target_line_fails_the_job_it_is_not_a_skip(workflow):
+    for job in ("spine", "anchor"):
+        text = _step_text(workflow, job)
+        assert 'echo "exit=2"' in text, \
+            f"{job}: an unresolvable target must fail closed (exit=2), not read as an empty range"
+
+
+def test_G3_seal_judges_against_the_merge_base_with_origin_main_on_an_integration_ref(workflow):
+    seal = "\n".join(str(s.get("run", "")) for s in workflow["jobs"]["seal"]["steps"])
+
+    assert "worktree-integrate-" in seal
+    assert "scripts/merge_path.py seal-base" in seal
+    # An unresolvable base on an integration ref is an ERROR, not the `seal skipped` notice.
+    integration_branch = seal.split("worktree-integrate-", 1)[1].split(";;", 1)[0]
+    assert "skipped" not in integration_branch

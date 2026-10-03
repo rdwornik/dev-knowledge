@@ -41,15 +41,21 @@
 #     opened by this repo's landing protocol. The trigger becomes live the day landing moves
 #     to PRs, which is the same day required checks can actually gate anything (see 3).
 #
-#  3. ARMING REQUIRED CHECKS ON `main` AND THIS REPO'S LANDING PROTOCOL ARE MUTUALLY
-#     EXCLUSIVE, and this is the decision the gate leg of E still owes. A ruleset's
-#     required_status_checks rule refuses a direct push whose head commit has no passing
-#     checks; a --no-ff merge commit created locally does not exist server-side before the
-#     push, so its checks cannot have run. CLAUDE.md §4 and the block-ff-push / block-ff-push
-#     pre-push hooks mandate exactly that local merge. So either landing moves to PRs (which
-#     §4's `pull_request` trigger and its claude-code-action executor both presuppose) or the
-#     gate leg stays report-only. E's RUNNER leg does not depend on the choice; E's GATE leg
-#     IS the choice. The ruleset is therefore DECLARED as a file and NOT armed by this lane.
+#  3. "ARMING REQUIRED CHECKS AND LOCAL-MERGE LANDING ARE MUTUALLY EXCLUSIVE" -- NO LONGER TRUE
+#     (foundation-4-merge-gate, M4 D2; ADR-127 D1). A required_status_checks rule refuses a
+#     push whose head commit has no passing checks, and a --no-ff merge made locally has none
+#     before it is pushed -- that much stands. What changed is that the SAME commit now gets its
+#     checks first: the integrator pushes each merge commit to `worktree-integrate-<batch>`
+#     (a `worktree-**` push, so this workflow runs on it), waits for the check runs there, and
+#     only then pushes THAT sha to `main` -- after re-checking that origin/main is still the
+#     integration base. The sha a protected `main` receives already carries its passing checks,
+#     so a no-bypass-actor rule is satisfied by the path the repo already uses, with no PR flow
+#     and no second merge. The path is tracked: scripts/merge_path.py (`land`, `verdict`,
+#     `ruleset apply`). On an integration ref `seal`, `spine` and `anchor` judge the pushed range
+#     against origin/main as if it were a push to main (see each job). The ruleset stays
+#     `enforcement: disabled` in its file; `merge_path.py ruleset apply` is the one act that
+#     arms it, only after both pytest legs are green on a rehearsal sha and on the operator's
+#     recorded GO.
 # ------------------------------------------------------------------------------------------
 
 name: conductor
@@ -256,7 +262,22 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE="${{ github.event.pull_request.base.sha }}"
           else
-            BASE="${{ github.event.before }}"
+            case "${{ github.ref }}" in
+              refs/heads/worktree-integrate-*)
+                # foundation-4 item 8 (G3): an INTEGRATION-branch push is judged AS IF it were
+                # pushed to main, so the base is where this branch left origin/main -- never
+                # `event.before`, which is all-zero on branch creation (the old step then took
+                # the "no resolvable range" exit below and sealed NOTHING) and the previous
+                # integration tip on an update. An unresolvable base is an ERROR here, not a skip.
+                BASE="$(uv run --locked python scripts/merge_path.py seal-base)" || {
+                  echo "::error::no merge-base with origin/main -- an unknown base is not an empty one"
+                  exit 1
+                }
+                ;;
+              *)
+                BASE="${{ github.event.before }}"
+                ;;
+            esac
           fi
           if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] \
              || ! git cat-file -e "$BASE^{commit}" 2>/dev/null \
@@ -316,8 +337,28 @@ jobs:
           # makes the naive `$?`/`PIPESTATUS[0]` read the WRONG command's exit code (echo's,
           # always 0) -- exactly the shape that silently defeats a gate. `rc=$?` right after a
           # two-stage pipe still reads bash's LAST command, which here is `uv run` itself.
-          printf '%s\n' "${{ github.ref }} ${{ github.sha }} ${{ github.ref }} ${{ github.event.before }}" \
-            | uv run --locked python scripts/block_ff_push.py > spine.out 2>&1
+          #
+          # foundation-4 item 8 (G3): on an INTEGRATION-branch push the range is judged AS IF it
+          # were pushed to main -- the stdin names refs/heads/main on both sides and carries
+          # origin/main's sha as the remote sha (built by the tracked merge path, never by hand).
+          # Fed as the lane's own ref the organ is a no-op, which let a fast-forward or a direct
+          # commit on an integration branch go green. The line goes to a FILE and the organ reads
+          # it with `<`, so a failing first stage cannot be masked by a pipe; if the line cannot
+          # be built the job fails closed (exit=2) rather than judging an empty range.
+          case "${{ github.ref }}" in
+            refs/heads/worktree-integrate-*)
+              uv run --locked python scripts/merge_path.py target-line --tip "${{ github.sha }}" --out push.stdin > spine.out 2>&1
+              if [ "$?" != "0" ]; then
+                cat spine.out
+                echo "exit=2" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+              ;;
+            *)
+              printf '%s\n' "${{ github.ref }} ${{ github.sha }} ${{ github.ref }} ${{ github.event.before }}" > push.stdin
+              ;;
+          esac
+          uv run --locked python scripts/block_ff_push.py > spine.out 2>&1 < push.stdin
           rc=$?
           cat spine.out
           echo "exit=$rc" >> "$GITHUB_OUTPUT"
@@ -381,8 +422,24 @@ jobs:
           # resolver reads that as "scan the full local history", not a skip. So every
           # case here is passed straight through, exactly as the `spine` job already does
           # for its own organ.
-          printf '%s\n' "${{ github.ref }} ${{ github.sha }} ${{ github.ref }} ${{ github.event.before }}" \
-            | uv run --locked python scripts/block_unanchored_push.py > anchor.out 2>&1
+          #
+          # foundation-4 item 8 (G3): same as `spine` -- an integration-branch push is judged AS
+          # IF it were pushed to main, with origin/main's sha as the remote sha, built by the
+          # tracked merge path into a file the organ reads with `<`. A failed build is exit=2.
+          case "${{ github.ref }}" in
+            refs/heads/worktree-integrate-*)
+              uv run --locked python scripts/merge_path.py target-line --tip "${{ github.sha }}" --out push.stdin > anchor.out 2>&1
+              if [ "$?" != "0" ]; then
+                cat anchor.out
+                echo "exit=2" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+              ;;
+            *)
+              printf '%s\n' "${{ github.ref }} ${{ github.sha }} ${{ github.ref }} ${{ github.event.before }}" > push.stdin
+              ;;
+          esac
+          uv run --locked python scripts/block_unanchored_push.py > anchor.out 2>&1 < push.stdin
           rc=$?
           cat anchor.out
           echo "exit=$rc" >> "$GITHUB_OUTPUT"
