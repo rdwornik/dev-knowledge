@@ -393,7 +393,7 @@ def extract_failure_signatures(pytest_output: str) -> dict:
     for raw in pytest_output.splitlines():
         line = _ANSI_RE.sub("", raw).strip()
         m = _FAILED_LINE_WITH_REASON_RE.match(line)
-        if m and m.group(2):
+        if m and m.group(2) and conductor._FAILED_ID_RE.match(m.group(1).strip()):
             signatures[m.group(1).strip()] = m.group(2).strip()
     return signatures
 

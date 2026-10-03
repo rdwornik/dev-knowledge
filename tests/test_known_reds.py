@@ -934,3 +934,63 @@ def test_main_compare_with_os_flag_uses_the_overlay(kr, tmp_path):
     rc_wrong_os = kr.main(["compare", "--pytest-output", str(pytest_out), "--workers", "4",
                            "--registry", str(registry_path), "--os", "ubuntu-latest"])
     assert rc_wrong_os == 1
+
+
+# --- foundation-1-honest-green item 1: the parser reads node ids, never captured-log lines --
+#
+# DCT D3 (`to-browser/DIGEST-CI-TRIAGE-2026-10-03.md`): pytest prints captured `logging` output
+# as `ERROR    <logger>:<file>.py:<line> <message>` inside a failing test's report, and the
+# `ERROR`-prefixed extractor took every such line for a failed test id. The pseudo-id then
+# either reads as a REGRESSION or -- once registered -- is a "known red" that no test can ever
+# turn green (`logs/KNOWN-REDS-REGISTRY.json` carried one for months).
+
+_CAPTURED_LOG_OUTPUT = (
+    "=================================== FAILURES ===================================\n"
+    "------------------------------ Captured log call -------------------------------\n"
+    "ERROR    codespace-admission:codespace_admission.py:332 admission: REFUSED -- "
+    "claude_on_path, uv_on_path, pre_commit_on_path, gh_not_broken\n"
+    "ERROR    provision_legs:provision_legs.py:775 history: ref 'main' does not resolve "
+    "in this clone - retry with fetch-depth 0\n"
+    "=========================== short test summary info ============================\n"
+    "ERROR    codespace-admission:codespace_admission.py:332 admission: REFUSED -- gh_not_broken\n"
+    "FAILED tests/test_demo.py::test_a_real_failure - AssertionError: boom\n"
+    "ERROR tests/test_demo_collect.py - ImportError: no module named x\n"
+)
+_REAL_NODE_ID = "tests/test_demo.py::test_a_real_failure"
+_REAL_COLLECT_ERROR = "tests/test_demo_collect.py"
+
+#: The three R52-Q2 fields every entry carries; the far-future date keeps a fixture from ever
+#: expiring under the suite.
+_OWNED = {"task": "[#912]", "owner": "rob", "expiry": "2999-12-31"}
+
+
+def _owned(entry: dict | None = None) -> dict:
+    return {**(entry or {"attribution": "pre-freeze"}), **_OWNED}
+
+
+def test_compare_ignores_captured_log_lines(kr, tmp_path, capsys):
+    registry = kr.Registry(
+        schema=kr.SCHEMA, baseline_id="b", measured_at_sha="s", measured_via="local", workers=4,
+        members={_REAL_NODE_ID: _owned(), _REAL_COLLECT_ERROR: _owned()})
+    registry_path = tmp_path / "registry.json"
+    kr.write_registry(registry_path, registry)
+    pytest_out = tmp_path / "pytest.out"
+    pytest_out.write_text(_CAPTURED_LOG_OUTPUT, encoding="utf-8", newline="\n")
+
+    rc = kr.main(["compare", "--pytest-output", str(pytest_out), "--workers", "4",
+                  "--registry", str(registry_path), "--os", "ubuntu-latest"])
+    shown = capsys.readouterr().out
+
+    assert "codespace-admission" not in shown and "provision_legs" not in shown, shown
+    assert f"  known         {_REAL_NODE_ID}" in shown
+    assert f"  known         {_REAL_COLLECT_ERROR}" in shown
+    assert "pre-existing   : 2" in shown and "regressions    : 0" in shown, shown
+    assert rc == 0
+
+
+def test_the_extractors_agree_a_captured_log_line_is_not_a_failure(kr):
+    ids = kr.conductor.parse_failed_node_ids(_CAPTURED_LOG_OUTPUT)
+    assert ids == frozenset({_REAL_NODE_ID, _REAL_COLLECT_ERROR})
+    sigs = kr.extract_failure_signatures(_CAPTURED_LOG_OUTPUT)
+    assert set(sigs) == {_REAL_NODE_ID, _REAL_COLLECT_ERROR}
+    assert sigs[_REAL_NODE_ID] == "AssertionError: boom"
