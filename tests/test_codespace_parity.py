@@ -210,6 +210,35 @@ def test_a_record_whose_hooks_and_health_never_ran_is_not_a_pass(side):
     assert verdict.status == "FAIL" and "never ran" in verdict.reason
 
 
+@pytest.mark.parametrize("side", ["local", "codespace"])
+@pytest.mark.parametrize("bad", ["unknown", "skipped"])
+def test_a_hook_that_was_not_exercised_on_both_sides_is_not_a_pass(side, bad):
+    """Review finding (grok-4.7 nonce re-read, P1): every hook `unknown` or `skipped` on BOTH sides
+    compared equal and printed PASS for hooks that never ran."""
+    local, remote = _record("local"), _record("codespace")
+    for rec in (local, remote):
+        rec["gates"]["hooks"] = {h: bad for h in cp.GATE_HOOKS}
+    verdict = cp.compare_gates(local, remote)
+    assert verdict.status == "FAIL" and "never ran" in verdict.reason
+
+
+def test_a_partial_hook_set_is_not_a_pass():
+    local, remote = _record("local"), _record("codespace")
+    for rec in (local, remote):
+        rec["gates"]["hooks"] = {cp.GATE_HOOKS[0]: "pass"}
+    verdict = cp.compare_gates(local, remote)
+    assert verdict.status == "FAIL" and "never ran" in verdict.reason
+
+
+@pytest.mark.parametrize("bad", ["unknown", ""])
+def test_an_audit_health_that_never_reported_is_not_a_pass(bad):
+    local, remote = _record("local"), _record("codespace")
+    for rec in (local, remote):
+        rec["gates"]["audit_health"] = bad
+    verdict = cp.compare_gates(local, remote)
+    assert verdict.status == "FAIL" and "never ran" in verdict.reason
+
+
 # =================================================================== condition 3 -- landing
 
 def test_landing_is_never_pass_the_merge_leg_is_not_run_with_its_reason():

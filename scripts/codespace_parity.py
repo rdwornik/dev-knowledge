@@ -469,7 +469,9 @@ def compare_gates(local: Mapping, remote: Mapping) -> Verdict:
     for side, g in (("local", lg), ("codespace", rg)):
         if not g.get("tests"):
             problems.append(f"empty pytest selection on {side} -- nothing ran, nothing to compare")
-        if not g.get("hooks") or g.get("audit_health") is None:
+        hooks = g.get("hooks") or {}
+        unexercised = [h for h in GATE_HOOKS if hooks.get(h) in (None, "", "unknown", "skipped")]
+        if unexercised or g.get("audit_health") not in ("pass", "fail"):
             problems.append(f"the pre-commit hooks or audit.py health never ran on {side} -- two "
                             "empty verdict sets compare equal on nothing")
     flat_l: dict[str, str] = {}

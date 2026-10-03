@@ -30,3 +30,26 @@ after disposition: P1 fixed 2, refuted 1 · P2 fixed 3, refuted 1 · P3 fixed 1,
 ```
 
 Re-run after the fixes: `tests/test_codespace_parity.py` 64 passed (RED first: 7 of the new tests failed before the fixes), `ruff check` clean.
+
+## Amendment 2026-10-03 (repair 1) -- the Grok read re-run with a nonce (BATCH-COMMON §0a item 1)
+
+The text above stays. The integrator refused it because the read returned no nonce or content hash. Re-run, consumer unchanged (`LANE-FOUNDATION-foundation-5-codespace-parity`, repair `LANE-FOUNDATION-foundation-5-codespace-parity-repair-1`).
+
+- **Command** (cwd an empty folder under the job tmp holding `diff.patch` = `git diff origin/main...HEAD` at `9772c415`, the changed sources, the run record, the contract and `nonce.txt`): `grok -m grok-4.7 --tools read_file,list_dir --no-plan --no-subagents --max-turns 20 -p "<read nonce.txt and diff.patch; begin the answer with NONCE: and DIFF-FIRST-LINE: lines; review against Done-contract 1-6; end with a TALLY line>"`. Exit code **0**, first attempt (no retry used). Route: `grok-4.7` before 21:07 (ruling (e)); this run began 21:01 local.
+- **Served model:** `~/.grok/sessions/<cwd>/01a10324-0436-7740-98ae-b6c3beedb5f0/usage.json` -> `primaryModelId: "grok-4.7"`, 8 model calls, 326,349 input / 1,931 output tokens.
+- **Nonce returned:** `NONCE-cb4972e7d0b3` (the content of `nonce.txt`, returned verbatim as line 1). **Diff first line returned:** `diff --git a/docs/audits/2026-10-03-codex-foundation-5-codespace-parity.md b/docs/audits/2026-10-03-codex-foundation-5-codespace-parity.md` (matches `diff.patch` line 1).
+- **Reviewer tally:** `TALLY P1=2 P2=3 P3=2`.
+
+| sev | finding (reviewer) | disposition |
+|---|---|---|
+| P1 | `compare_cleanup` passes on a hand-written record carrying both read exits at 0 | **KNOWN LIMIT, unchanged** -- the same finding as the first read's P1 #1: the record is a file, and a determined forger can write the two zeros. The earlier fix refuses the accidental and lazy case; a PASS from a file alone cannot be made impossible inside this check, and the run record states the verification came from a second live invocation after teardown. No new defect. |
+| P1 | `compare_gates` prints PASS when every hook is `unknown`/`skipped` on both sides, or only one of the seven `GATE_HOOKS` ran, or `audit_health` is `unknown`/empty | **FIXED.** The never-ran guard now requires every `GATE_HOOKS` key present with a status other than `None`/`""`/`unknown`/`skipped`, and `audit_health` in `pass`/`fail`. RED first: 7 new tests failed (`test_a_hook_that_was_not_exercised_on_both_sides_is_not_a_pass` x4, `test_a_partial_hook_set_is_not_a_pass`, `test_an_audit_health_that_never_reported_is_not_a_pass` x2), then 71 passed through `memory_admission_gate.py run`. |
+| P2 | `compare_transport` evidence token `read: PASS` with rclone absent and `read_exit` None | **NOT CHANGED.** With rclone absent the verdict is already FAIL (`not rclone.present` is a problem); only an evidence token differs. Recorded. |
+| P2 | `compare_landing` treats `pushed_branch` alone as an exercised push | **RECORDED, not changed.** The condition is NOT-RUN regardless (the merge leg), never PASS; `collect_landing` sets `pushed_branch` only after a 0 push and a matching `ls-remote`. |
+| P2 | `compare_environment` accepts a non-empty hook list and `version` None on both sides | **RECORDED, not changed.** The reviewer's own text calls it weaker than the gates hole and its first branch retracts itself ("wait, both missing ... FAILs"); no failing scenario was shown. |
+| P3 | `audit_health` `unknown`/empty on both sides | **FIXED** with the P1 above (`test_an_audit_health_that_never_reported_is_not_a_pass`). |
+| P3 | `REPO_ROOT` assertion in the review folder | **REFUTED.** An artefact of the flat review folder (tests beside the script); in the repo the paths resolve and the test passes. |
+
+```
+after disposition: P1 fixed 1, known-limit 1 (no new defect) · P2 recorded 3 · P3 fixed 1, refuted 1
+```
