@@ -21,6 +21,23 @@
 
 ---
 
+### 2026-10-03 (b) - CC (Sonnet 5.5, lane foundation-3-handoff-boot): the boot teaches the 13 onboarding items; R35-R54 land verbatim
+
+**Anchors:** `4bbbb292`, `cc1a8a42`, `25c1676e`, `00ff8d0f` -- `worktree-foundation-3-handoff-boot` (unmerged; the integrator merges).
+
+**Did:**
+- Landed R35-R54 and the newest-models ruling verbatim in `protocols/STANDING_RULINGS.md` section AQ, diffed by `tests/test_standing_rulings_sources.py` (RED on `2e7fa5f2`, GREEN at tip).
+- Rewrote `protocols/HANDOFF_BOOT.md` within the 18,000 B budget; four generated rows (Landed, Decisions, Dates, Models) with BD re-derivation, owed only from 2026-10-03; the templates ask for the R30 role pin, not `/handoff-verify`.
+- `tests/test_onboarding_items.py`: 0/13 at baseline, 13/13 at tip on a fresh trial cut.
+
+**Result:** targeted tests, ruff, the silent-rule ratchet and the byte budget pass; `audit.py health` shows one finding not caused here (BD-seats on the committed 2026-10-02 bundle, a live wedged seat).
+
+**Changes:** protocols/ (HANDOFF_BOOT, STANDING_RULINGS), scripts/ (handoff_state, verify_handoff_probes, gen_handoff comments), templates/handoff/v5, docs/handoffs/README.md, docs/audits review record, tests, ecosystem/doc-counts.md.
+
+**Abandoned:** none.
+
+**Next:** integrator merges the lane; HANDOFF_PROCESS spec section 5 and `.claude/commands/handoff.md` still describe the `/handoff-verify` evidence block (align at the next version bump).
+
 ### 2026-10-03 (a) - CC (Opus 5.5, integrator seat FOUNDATION): lane foundation-2-cheap-fixes merges -- five cheap reds fixed by their cause
 
 **Anchors:** `ad9f5acb` -- `worktree-foundation-2-cheap-fixes`, merged `--no-ff` through `epic/foundation-int-foundation-2-cheap-fixes`.
