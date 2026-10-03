@@ -472,18 +472,6 @@ def test_the_pytest_job_judges_by_the_suite_gate_at_the_pinned_worker_count(work
     assert "--workers 4" in run_text
 
 
-def test_the_pytest_job_distributes_by_group_so_a_marked_module_stays_on_one_worker(workflow):
-    # foundation-6 (CI speed): `tests/test_connection_loop.py` serializes its heavy operations
-    # behind a machine-wide lock file and carries `xdist_group`, a no-op under the default
-    # `--dist load`. Scattered across workers, its tests sit blocked on the lock and each
-    # blocked worker is a slot lost to the rest of the suite. `--dist loadgroup` is what makes
-    # the marker real; the worker count stays the freeze's pin (the test above).
-    step = next(s for s in workflow["jobs"]["pytest"]["steps"] if s.get("id") == "run")
-    run_text = str(step["run"])
-    assert "--dist loadgroup" in run_text
-    assert "-n 4" in run_text
-
-
 # --- the workflow and the ruleset must agree ------------------------------------------
 
 @pytest.fixture(scope="module")

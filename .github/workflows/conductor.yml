@@ -139,23 +139,13 @@ jobs:
       - name: Sync the locked environment
         run: uv sync --locked --group analytics   # without it, pandas is absent and the
                                                  # fleet_analytics tests fail on the import
-      - name: Measure the runner and collection (foundation-6 step 0, MEASUREMENT ONLY)
-        run: |
-          uv run --locked python -c "import os,platform,sys; print('vcpu=%s os=%s py=%s' % (os.cpu_count(), platform.platform(), sys.version.split()[0]))"
-          t0=$(date +%s)
-          uv run --locked pytest --collect-only -q -n 0 > collect0.out 2>&1
-          t1=$(date +%s)
-          echo "collect-only -n 0 seconds=$((t1-t0))"; tail -n 2 collect0.out
-          uv run --locked pytest --collect-only -q -n 4 > collect4.out 2>&1
-          t2=$(date +%s)
-          echo "collect-only -n 4 seconds=$((t2-t1))"; tail -n 2 collect4.out
       - name: pytest, pinned at -n 4 (logs/SUITE-BASELINE-FREEZE.md's comparison command)
         id: run
         continue-on-error: true   # judged by the known-reds compare below, not this raw exit
                                    # code -- main carries pre-existing failures today
         run: |
           set +e
-          uv run --locked pytest -q --tb=short -n 4 --dist loadgroup --durations=30 2>&1 | tee pytest.out
+          uv run --locked pytest -q --tb=short -n 4 2>&1 | tee pytest.out
           echo "exit=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
       - name: Judge the run against the frozen baseline, by node id ([#802])
         id: gate
