@@ -79,6 +79,9 @@ def _cleanup(**over) -> dict:
         "codespace_listed_after": False,
         "branch": "worktree-x-cs",
         "branch_listed_after": False,
+        # what `verify_cleanup` writes: the evidence that the two listings were actually read
+        "listing_exit": 0,
+        "ls_remote_exit": 0,
     }
     row.update(over)
     return row
@@ -182,9 +185,29 @@ def test_a_declared_os_case_with_a_row_forgives_only_its_own_key(monkeypatch):
     assert cp.compare_gates(_record("local"), remote).status == "FAIL"
 
 
-def test_nothing_is_pre_forgiven_and_every_declared_case_must_carry_a_row():
-    assert cp.DECLARED_OS_CASES == {} or all(
-        v.startswith("[#") for v in cp.DECLARED_OS_CASES.values())
+def test_nothing_is_pre_forgiven_and_every_declared_case_carries_a_row():
+    assert cp.declared_cases_problems() == []
+
+
+def test_a_bare_forgiveness_without_a_row_id_forgives_nothing(monkeypatch):
+    """Review finding (grok-4.7, P2): the old assertion short-circuited on an empty dict, so a
+    later `{"node": ""}` stayed green. The comparator itself now refuses a bare entry."""
+    monkeypatch.setattr(cp, "DECLARED_OS_CASES", {"tests.test_a::test_one": ""})
+    assert cp.declared_cases_problems() == ["tests.test_a::test_one"]
+    remote = _record("codespace")
+    remote["gates"]["tests"]["tests.test_a::test_one"] = "skipped"
+    assert cp.compare_gates(_record("local"), remote).status == "FAIL"
+
+
+@pytest.mark.parametrize("side", ["local", "codespace"])
+def test_a_record_whose_hooks_and_health_never_ran_is_not_a_pass(side):
+    """Review finding (grok-4.7, P2): two `--skip-gates` records with a non-empty test set
+    compared equal on nothing and printed PASS."""
+    local, remote = _record("local"), _record("codespace")
+    (local if side == "local" else remote)["gates"]["hooks"] = {}
+    (local if side == "local" else remote)["gates"]["audit_health"] = None
+    verdict = cp.compare_gates(local, remote)
+    assert verdict.status == "FAIL" and "never ran" in verdict.reason
 
 
 # =================================================================== condition 3 -- landing
@@ -244,6 +267,14 @@ def test_transport_fails_naming_what_is_missing(mutate, word):
     assert word in verdict.reason
 
 
+def test_an_rclone_read_that_never_ran_is_a_fail_not_a_read_pass():
+    remote = _record("codespace")
+    remote["transport"].update(read_exit=None, read_entries=None)
+    verdict = cp.compare_transport(_record("local"), remote)
+    assert verdict.status == "FAIL"
+    assert not any("read: PASS" in e for e in verdict.evidence)
+
+
 def test_no_secret_value_can_enter_a_record(monkeypatch):
     secret = "ya29.SECRET-TOKEN-VALUE"
     monkeypatch.setenv("RCLONE_CONFIG_GDRIVE_TOKEN", secret)
@@ -283,6 +314,28 @@ def test_core_hours_are_cores_times_uptime_and_an_unknown_machine_is_refused_not
     assert cp.core_hours(_T0, _T0 + timedelta(minutes=30), "standardLinux32gb") == pytest.approx(2.0)
     with pytest.raises(ValueError):
         cp.core_hours(_T0, _T0 + timedelta(minutes=30), "no-such-machine")
+
+
+def test_a_hand_written_cleanup_record_without_read_evidence_is_not_a_pass():
+    """Review finding (grok-4.7, P1): two booleans and two timestamps typed into a file printed
+    PASS while the Codespace could still be listed. A record that carries no evidence that the
+    listings were read is refused; `verify_cleanup` is what writes that evidence."""
+    forged = _cleanup()
+    del forged["listing_exit"], forged["ls_remote_exit"]
+    verdict = cp.compare_cleanup(forged)
+    assert verdict.status == "FAIL" and "read evidence" in verdict.reason
+    assert cp.compare_cleanup(_cleanup(listing_exit=1)).status == "FAIL"
+
+
+def test_verify_cleanup_writes_the_read_evidence_and_reads_the_exact_ref():
+    run = _FakeRun({"codespace list": (0, json.dumps([{"name": "other-cs"}])),
+                    "ls-remote": (0, f"{_SHA}\trefs/heads/some/worktree-x-cs\n")})
+    rec = cp.verify_cleanup("foundation-5-abc", "worktree-x-cs", _T0.isoformat(),
+                            (_T0 + timedelta(minutes=30)).isoformat(), "basicLinux32gb", run)
+    assert rec["listing_exit"] == 0 and rec["ls_remote_exit"] == 0
+    assert rec["codespace_listed_after"] is False
+    assert rec["branch_listed_after"] is False, "a different ref that merely ends with the name"
+    assert cp.compare_cleanup(rec).status == "PASS"
 
 
 def test_a_cleanup_record_with_no_creation_time_is_not_a_pass():
@@ -340,6 +393,26 @@ def test_gh_returning_an_empty_file_is_a_typed_failure(tmp_path):
     run = _FakeRun({"codespace ssh": (0, "")})
     code, text = cp.run_check(local, codespace="foundation-5-abc", run=run)
     _assert_typed_failure(code, text)
+
+
+def test_both_a_remote_file_and_a_codespace_is_refused_not_silently_resolved(tmp_path):
+    """Review finding (grok-4.7, P1): `--remote` used to win and the Codespace was never
+    contacted, so a stale file could stand in for a deleted Codespace."""
+    local = _write(tmp_path / "local.json", _record("local"))
+    remote = _write(tmp_path / "remote.json", _record("codespace"))
+    run = _FakeRun({"codespace ssh": (0, json.dumps(_record("codespace")))})
+    code, text = cp.run_check(local, remote_path=remote, codespace="foundation-5-abc", run=run)
+    _assert_typed_failure(code, text)
+    assert run.calls == []
+
+
+def test_the_landing_push_reads_the_exact_ref_not_the_first_line(tmp_path):
+    rows = (f"{'1' * 40}\trefs/heads/zzz/worktree-x-cs\n{_SHA}\trefs/heads/worktree-x-cs\n")
+    run = _FakeRun({"rev-parse HEAD^{tree}": (0, _TREE), "rev-parse --abbrev-ref": (0, "b"),
+                    "rev-parse HEAD": (0, _SHA), "status --porcelain": (0, ""),
+                    "git push": (0, ""), "ls-remote": (0, rows)})
+    landing = cp.collect_landing(run, root=tmp_path, push_branch="worktree-x-cs")["landing"]
+    assert landing["pushed_sha"] == _SHA
 
 
 def test_with_no_remote_source_given_at_all_the_check_refuses(tmp_path):

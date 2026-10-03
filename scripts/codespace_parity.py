@@ -330,6 +330,17 @@ def collect_gates(run: Runner, *, root: Path = _REPO_ROOT, via_gate: bool = Fals
             "tests": tests}
 
 
+def _exact_head(ls_remote_stdout: str, branch: str) -> Optional[str]:
+    """The sha of `refs/heads/<branch>` itself. `git ls-remote <pattern>` also returns every
+    head that merely ENDS with the pattern (`refs/heads/a/<branch>`), so the first line is not
+    the branch (review finding, grok-4.7 P3)."""
+    for line in (ls_remote_stdout or "").splitlines():
+        parts = line.split()
+        if len(parts) == 2 and parts[1] == f"refs/heads/{branch}":
+            return parts[0]
+    return None
+
+
 def collect_landing(run: Runner, *, root: Path = _REPO_ROOT,
                     push_branch: Optional[str] = None) -> dict:
     """Condition 3's facts. The push leg runs only when a branch name is given (the Codespace
@@ -346,7 +357,7 @@ def collect_landing(run: Runner, *, root: Path = _REPO_ROOT,
         if push.returncode == 0:
             listed = run(["git", "ls-remote", "--heads", "origin", push_branch], cwd=root,
                          timeout=120)
-            sha = listed.stdout.split()[0] if listed.returncode == 0 and listed.stdout.split() else None
+            sha = _exact_head(listed.stdout, push_branch) if listed.returncode == 0 else None
             if sha:
                 landing["pushed_branch"], landing["pushed_sha"] = push_branch, sha
     return {"base_sha": head, "tree_sha": tree, "branch": branch, "dirty": dirty,
@@ -458,6 +469,9 @@ def compare_gates(local: Mapping, remote: Mapping) -> Verdict:
     for side, g in (("local", lg), ("codespace", rg)):
         if not g.get("tests"):
             problems.append(f"empty pytest selection on {side} -- nothing ran, nothing to compare")
+        if not g.get("hooks") or g.get("audit_health") is None:
+            problems.append(f"the pre-commit hooks or audit.py health never ran on {side} -- two "
+                            "empty verdict sets compare equal on nothing")
     flat_l: dict[str, str] = {}
     flat_r: dict[str, str] = {}
     for src, dst in ((lg, flat_l), (rg, flat_r)):
@@ -471,7 +485,7 @@ def compare_gates(local: Mapping, remote: Mapping) -> Verdict:
         lv, rv = flat_l.get(key), flat_r.get(key)
         if lv == rv:
             continue
-        if key in DECLARED_OS_CASES:
+        if key in DECLARED_OS_CASES and key not in declared_cases_problems():
             evidence.append(f"declared OS case {key} -> {DECLARED_OS_CASES[key]} "
                             f"(local={lv} codespace={rv})")
             continue
@@ -541,6 +555,9 @@ def compare_cleanup(cleanup: Optional[Mapping]) -> Verdict:
                         "no cleanup record supplied (run `verify-cleanup` after teardown)")
     problems = []
     evidence = []
+    if cleanup.get("listing_exit") != 0 or cleanup.get("ls_remote_exit") != 0:
+        problems.append("the cleanup record carries no read evidence (listing_exit and "
+                        "ls_remote_exit must both be 0): it was not written by `verify-cleanup`")
     if cleanup.get("codespace_listed_after"):
         problems.append(f"codespace {cleanup.get('codespace')} still listed after teardown")
     if cleanup.get("branch_listed_after"):
@@ -657,6 +674,9 @@ def run_check(local_path: Path, *, remote_path: Optional[Path] = None,
     except LocalRecordUnusable as exc:
         return 4, _unavailable_report(str(exc), "LocalRecordUnusable")
     try:
+        if remote_path is not None and codespace:
+            raise RemoteUnavailable("both --remote and --codespace were given: a file would "
+                                    "stand in for a Codespace that was never contacted -- give one")
         if remote_path is not None:
             remote = read_remote_file(remote_path)
         elif codespace:
@@ -702,7 +722,8 @@ def verify_cleanup(name: str, branch: str, created: str, deleted: str, machine: 
                                 "branch is gone")
     return {"schema": SCHEMA, "codespace": name, "machine": machine, "created": created,
             "deleted": deleted, "codespace_listed_after": name in names, "branch": branch,
-            "branch_listed_after": bool(heads.stdout.strip())}
+            "branch_listed_after": _exact_head(heads.stdout, branch) is not None,
+            "listing_exit": listing.returncode, "ls_remote_exit": heads.returncode}
 
 
 # ============================================================================================ CLI
