@@ -1088,6 +1088,10 @@ BOOT_POINTERS = {
 #: Rows that name a file IN the bundle itself: `docs/handoffs/<this bundle>/<file>`.
 BOOT_SELF_POINTERS = {"Probes": "PROBES.md", "Receipt": RECEIPT_FILE}
 _BOOT_DATA_ERA = "2026-09-25"
+#: A ruled row is owed only by a bundle cut on/after the row's era: a committed bundle is immutable,
+#: so a row added later cannot be asked of it. Rows absent here predate `_BOOT_DATA_ERA`.
+_ROW_ERA = {"Landed": "2026-10-03", "Decisions": "2026-10-03", "Dates": "2026-10-03",
+            "Models": "2026-10-03"}
 _BOOT_FILE = "HANDOFF_BOOT.md"
 _BOLD_KEY_RE = re.compile(r"\A\*\*(?P<key>[^*]+)\*\*\Z")
 _HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
@@ -1448,7 +1452,19 @@ _STATE_ROW_FNS = {
     "Transport": lambda hs, ctx: hs.row_transport(ctx.repo_root),
     "Rulings": lambda hs, ctx: hs.row_rulings(_transport_for(ctx), as_of=ctx.cut_date),
     "Capabilities": lambda hs, ctx: hs.row_capabilities(_transport_for(ctx), as_of=ctx.cut_date),
+    # batch FOUNDATION lane 3: the volatile onboarding facts (Landed, Decisions, Dates, Models).
+    # Dates is a function of the date it is asked at, so a committed bundle is asked at its own
+    # cut date (`ctx.cut_date`; None -> today for an uncommitted one); the other three read the
+    # tree/transport as they stand. All four are `_rule_committed_state` below.
+    "Landed": lambda hs, ctx: hs.row_landed(ctx.repo_root),
+    "Decisions": lambda hs, ctx: hs.row_decisions(_transport_for(ctx), ctx.repo_root),
+    "Dates": lambda hs, ctx: hs.row_dates(ctx.repo_root, today=ctx.cut_date),
+    "Models": lambda hs, ctx: hs.row_models(ctx.repo_root),
 }
+
+#: The rows judged by `_rule_committed_state` (FAIL -> WARN on a COMMITTED bundle, see its
+#: docstring); every other `_STATE_ROW_FNS` key except Seats keeps the plain `_rule_state`.
+_COMMITTED_STATE_KEYS = ("CI", "Rulings", "Capabilities", "Landed", "Decisions", "Dates", "Models")
 
 
 # [#1124] handoff part B: BD-seats compares seat IDENTITY and LIVENESS, never the whole
@@ -1600,9 +1616,9 @@ BOOT_DATA_RULES = {
     # _STATE_ROW_FNS (Batches/Substrates/Transport — not named by the row) stays plain
     # _rule_state, FAIL on any mismatch, committed or not.
     **{key: _rule_committed_state(fn) for key, fn in _STATE_ROW_FNS.items()
-       if key in ("CI", "Rulings", "Capabilities")},
+       if key in _COMMITTED_STATE_KEYS},
     **{key: _rule_state(fn) for key, fn in _STATE_ROW_FNS.items()
-       if key not in ("Seats", "CI", "Rulings", "Capabilities")},
+       if key not in ("Seats", *_COMMITTED_STATE_KEYS)},
     "Seats": _rule_bd_seats,
 }
 
@@ -1752,7 +1768,7 @@ def verify_boot(bundle_path, repo_root) -> list[ProbeResult]:
         results.append(ProbeResult(f"BD-{boot_data_id(key)}", status,
                                    f"{key}: {detail}".replace("|", "/"), name))
     for key in BOOT_DATA_RULES:
-        if key not in ctx.rows:
+        if key not in ctx.rows and bundle_at_or_after(name, _ROW_ERA.get(key, _BOOT_DATA_ERA)):
             results.append(ProbeResult(f"BD-{boot_data_id(key)}", "fail",
                                        f"{key}: the DATA block omits this ruled row", name))
     # lane-handoff-min (Part A): the manifest integrity check, once per bundle (not per row) —

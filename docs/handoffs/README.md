@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-24
+last_reviewed: 2026-10-03
 reconciled_with: handoff-process@7.1.0
 ---
 <!-- scope: meta -->
@@ -127,10 +127,11 @@ off-repo context live via its one operator-context question. Full mechanism:
 
 ## The run loop (how steps 4 and 7 actually work)
 
-The browser has **no access to the repo**, so it cannot read a file for any probe. Since **v6**
-(the one-round-trip boot) that no longer costs you a round trip per probe: you ask CC to run
-**`/handoff-verify`**, it runs the *whole* gate against live state in one pass, and it emits **one
-evidence block**. You paste that block **once**, and the browser reads the table.
+The browser has **no access to the repo**, so it cannot read a file for any probe. Since **R30**
+the browser does not run the gate at boot either: it boots on the three-line **ROLE PIN** alone and
+asks CC for no `/handoff-verify` and no evidence block. The gate itself is unchanged and stays CC's:
+**`/handoff-verify`** runs the *whole* gate against live state in one pass and emits **one evidence
+block** (the v6 one-round-trip form) — at a cut or an audit, for CC and the operator.
 
 Each row carries its source locator, the check performed, PASS/FAIL, and the live evidence. **Any
 FAIL blocks onboarding**; a missing required row is not a pass; degraded coverage (a tool absent, a

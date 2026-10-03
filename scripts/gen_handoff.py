@@ -471,7 +471,7 @@ def verify_seal_identity(bundle_dir: Path) -> None:
                 f"refusing to seal {bundle_dir}: its {name} declares slug '{declared}' but the "
                 f"bundle directory is '{bundle_dir.name}'. A bundle whose internal slug names a "
                 f"DIFFERENT directory points every self-reference it carries (the Slug field, "
-                f"the PROBES P0c/P3/P8 locators, the embedded /handoff-verify command) at "
+                f"the PROBES P0c/P3/P8 locators, the PROBES note's own self-reference) at "
                 f"another bundle — which then verifies green about the wrong file, because the "
                 f"sibling exists. Regenerate; do not hand-patch the sealed artifact."
             )
@@ -2263,7 +2263,7 @@ def standing_vs_new(repo_root: Path) -> str:
     header = ("> **Standing vs NEW — generated, names only.** Three lists computed from "
               "`ecosystem/disposition-register.yaml` ∩ this window's own diff. **No verdict, "
               "count, stale-disposition line, sha or backlog id appears here** — those are "
-              "P7/P4/P6/P9's live answers and the evidence block carries them. The frame covers the "
+              "P7/P4/P6/P9's live answers, which CC re-derives from PROBES.md. The frame covers the "
               "standing-WARN family only; an organ outside it is the FILL-IN's business, not "
               "silently filed as standing.\n")
     win = _window(repo_root)
@@ -2499,7 +2499,7 @@ def _splice_fill_regions(rendered: str, existing: str | None) -> str:
 #: 2026-09-24 bundle's own hand-authored purpose / worktree / write-scope / mode-basis, re-laid
 #: in this shape, measure 1,541 B (an unfilled render: 527 B); the budget is that plus ~30 %
 #: headroom, rounded. Checked by probe
-#: `BP-budget` at /handoff-verify and on every commit that stages the bundle.
+#: `BP-budget` at the cut and on every commit that stages the bundle.
 BOOT_PROSE_BYTE_BUDGET = 2_000
 
 
@@ -2523,9 +2523,10 @@ def boot_data_rows(slug: str, mode: str, chat_title: str, role_version: "str | N
     (`BOOT_POINTERS`, `BOOT_SELF_POINTERS`, `LAUNCH_COMMAND`), so the two cannot disagree.
 
     lane-handoff-min (Part A): `state_rows`, when given, is a list of `handoff_state.StateRow`
-    — seven live facts appended after the identity rows above. It is computed ONCE by the
+    — the live facts (`handoff_state.STATE_ROW_KEYS`) appended after the identity rows above.
+    It is computed ONCE by the
     caller (`generate`, via `handoff_state.state_rows`) rather than derived here, because one
-    of the seven is a live CI poll and this function must not repeat a network call per render
+    of them is a live CI poll and this function must not repeat a network call per render
     or per test. `state_rows=None` (an epic/functional caller, or a direct unit-test call that
     only cares about the identity rows) renders the identity rows only."""
     def ptr(key: str) -> str:
@@ -3337,7 +3338,7 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     # to a `-<n>` sibling under `--allow-suffix`, but every render token below was built from
     # the REQUESTED slug, so a diverted bundle sealed with all of its internal self-references
     # — the HANDOFF_BOOT `Slug` field, the PROBES P0c/P3/P8 locators, PASTE_THIS's embedded
-    # /handoff-verify command — pointing at the SIBLING directory. Rebinding the slug to the
+    # PROBES self-references — pointing at the SIBLING directory. Rebinding the slug to the
     # FINAL directory name makes every downstream reference derive from where the bundle
     # actually landed. `journal_draft` below picks this up too, so the JOURNAL entry names the
     # real directory rather than the one that was asked for.

@@ -31,8 +31,9 @@
 
 > **Contract, rationale, execution order, escalation ladder: `protocols/HANDOFF_PROCESS.md` §5 —
 > there ONCE ([#611]).** Every row ships a **question + source-locator + command**, never an
-> answer. CC runs the whole set against live state via `/handoff-verify` and emits **one evidence
-> block**. **Any FAIL blocks onboarding; a missing required row is not a pass.** Table order IS
+> answer. CC runs the whole set against live state at the cut (`verify_handoff_probes.py`); the
+> browser asks for no evidence block (R30: the ROLE PIN is the boot check). **Any FAIL blocks
+> onboarding; a missing required row is not a pass.** Table order IS
 > execution order. Cut on `{{BRANCH}}` — which branch, not a value; re-derive live (P3). Run
 > with `PYTHONUTF8=1`, and verify `ship-gate` (P7) in git-bash — a bare cp1252 PowerShell console
 > false-REDs `handoff_probes`.
