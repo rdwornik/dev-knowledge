@@ -171,10 +171,11 @@ ONE evidence block the operator pastes once. Generation is unchanged and stays a
 > has replaced the old 8-file two-phase interview, so the hand-copied v4 `## Conventions` /
 > `## Phase 1` / `## Phase 2` / `## Hard constraints` prose is gone from this file — it was the
 > exact "hand-copied process that drifts" the v5 self-updating rule below forbids. The v4
-> mechanics survive intact, un-duplicated, at their immutable homes for any legacy v4 cross-repo
-> handoff: the spec `protocols/archive/HANDOFF_PROCESS_v4.4.md` + the retained bundle templates
-> `templates/handoff/01_ROLE…07_ASK_BACK.md.tmpl` + `templates/handoff/README.md.tmpl`
-> (kept live for cross-repo v4 per ADR-83; `docs/handoffs/README.md` "Format eras").
+> mechanics survive intact, un-duplicated, at their immutable home for any legacy v4 cross-repo
+> handoff: the spec `protocols/archive/HANDOFF_PROCESS_v4.4.md`. Of its bundle templates only
+> `templates/handoff/02_METHODOLOGY.md.tmpl`, `07_ASK_BACK.md.tmpl` and `README.md.tmpl` remain;
+> the other five were retired under R66 (2026-10-03: the dynamic-use check read them DEAD).
+> `docs/handoffs/README.md` "Format eras" names the eras.
 
 **Self-updating — the #148(c) rule, applies to BOTH modes.** This command carries **no
 hand-copied process or methodology.** At handoff time it pulls live:
@@ -311,13 +312,14 @@ git push origin --delete <branch>                    # ORIGIN -- the half that g
 The v4 two-phase 8-file interview mechanics that used to live here are **removed** (#164
 leg g) — see the blockquote under *v5 (canonical)* above. For the rare legacy **v4
 cross-repo** handoff (a v4 repo not yet on the v5/v6 lineage), do not re-derive the flow from memory:
-read the frozen spec and drive the retained templates directly.
+read the frozen spec; three of its templates remain.
 
 - **Spec (frozen):** `protocols/archive/HANDOFF_PROCESS_v4.4.md` — the full two-phase
   interview + consolidate mechanics, immutable per ADR-83.
-- **Templates (retained live):** `templates/handoff/README.md.tmpl` +
-  `templates/handoff/01_ROLE…07_ASK_BACK.md.tmpl` — kept for cross-repo v4 per ADR-83
-  (`docs/handoffs/README.md` "Format eras & navigation").
+- **Templates (three remain):** `templates/handoff/README.md.tmpl`,
+  `02_METHODOLOGY.md.tmpl` and `07_ASK_BACK.md.tmpl`. The five others were retired under R66
+  (2026-10-03: the dynamic-use check read them DEAD). `docs/handoffs/README.md` "Format eras &
+  navigation" names the eras.
 
 Everything else (self-handoff, and every mode `architect | execution | epic | developer |
 functional`) is **v6** — governed by the sections above + `protocols/HANDOFF_PROCESS.md`.
