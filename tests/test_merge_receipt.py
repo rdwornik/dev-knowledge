@@ -1311,3 +1311,152 @@ def test_the_summary_SAYS_when_a_receipt_carries_no_model_reading():
     about a plausible answer returned because the discriminating field was absent."""
     rendered = mr.render_summary(_closed_receipt())
     assert "model" in rendered.lower()
+
+
+# =====================================================================================
+# foundation-4-merge-gate, item 9 (G5/G6) and item 12: the receipt is SPLIT AT THE PUSH.
+#
+# The integrator pushes the merge commit to `worktree-integrate-<batch>`, CI runs THERE, and the
+# same sha then goes to `main`. So the receipt has a pre-push half (handback, merge, the gates),
+# the push itself, a CI-wait half that is bound to the sha that was pushed, and teardown -- and
+# the digest reads per-stage times off it with no hand arithmetic.
+# =====================================================================================
+
+def test_G5_REQUIRED_STEPS_is_split_at_the_push_and_the_halves_recombine():
+    assert mr.REQUIRED_STEPS_PRE_PUSH == ("handback", "merge")
+    assert mr.REQUIRED_STEPS_POST_PUSH == ("suite", "teardown")
+    assert mr.REQUIRED_STEPS == mr.REQUIRED_STEPS_PRE_PUSH + mr.REQUIRED_STEPS_POST_PUSH
+
+
+def test_G5_record_push_binds_the_branch_and_the_sha_and_times_the_push(tmp_path):
+    mr.open_receipt(tmp_path, slug="m", batch="y")
+
+    receipt = mr.record_push(tmp_path, slug="m", target="integration",
+                             branch="worktree-integrate-y", sha="abc123", seconds=4.5)
+
+    assert receipt.integration_branch == "worktree-integrate-y"
+    assert receipt.pushed_sha == "abc123"
+    step = receipt.steps[-1]
+    assert step.step == "push-integration" and step.seconds == 4.5
+    assert mr.load_receipt(tmp_path, "m").pushed_sha == "abc123", "carried forward on disk"
+
+
+def test_G5_an_integration_push_to_a_branch_that_is_not_an_integration_branch_is_refused(tmp_path):
+    mr.open_receipt(tmp_path, slug="m", batch="y")
+
+    with pytest.raises(mr.MergeReceiptError, match="worktree-integrate-"):
+        mr.record_push(tmp_path, slug="m", target="integration", branch="main", sha="abc123",
+                       seconds=1.0)
+
+
+def test_G5_the_push_to_main_must_be_the_SAME_sha_that_CI_ran_on(tmp_path):
+    """The whole point of the integration branch: what lands on main is the sha CI judged."""
+    mr.open_receipt(tmp_path, slug="m", batch="y")
+    mr.record_push(tmp_path, slug="m", target="integration", branch="worktree-integrate-y",
+                   sha="abc123", seconds=1.0)
+
+    with pytest.raises(mr.MergeReceiptError, match="same sha"):
+        mr.record_push(tmp_path, slug="m", target="main", branch="main", sha="def456",
+                       seconds=1.0)
+    receipt = mr.record_push(tmp_path, slug="m", target="main", branch="main", sha="abc123",
+                             seconds=2.0)
+
+    assert [s.step for s in receipt.steps] == ["push-integration", "push-main"]
+
+
+def test_G5_a_push_to_main_with_no_integration_push_first_is_refused(tmp_path):
+    mr.open_receipt(tmp_path, slug="m", batch="y")
+
+    with pytest.raises(mr.MergeReceiptError, match="integration"):
+        mr.record_push(tmp_path, slug="m", target="main", branch="main", sha="abc123",
+                       seconds=1.0)
+
+
+def test_G6_the_suite_step_is_BOUND_to_the_sha_pushed_to_the_integration_branch(tmp_path):
+    """`--step suite` is the integration-branch wait: reading some OTHER sha's run is refused, and
+    a refused read records nothing."""
+    mr.open_receipt(tmp_path, slug="m", batch="y")
+    mr.record_push(tmp_path, slug="m", target="integration", branch="worktree-integrate-y",
+                   sha="tip", seconds=1.0)
+    fetch = _fetcher(tip=_run("tip", ("pytest", "success")),
+                     other=_run("other", ("pytest", "success")),
+                     base=_run("base", ("pytest", "success")))
+
+    with pytest.raises(mr.MergeReceiptError, match="pushed"):
+        mr.record_actions_verdict(tmp_path, slug="m", sha="other", fetch=fetch,
+                                  first_parent=_parent({"other": "base"}))
+    assert [s.step for s in mr.load_receipt(tmp_path, "m").steps] == ["push-integration"]
+
+    receipt, _verdict = mr.record_actions_verdict(tmp_path, slug="m", sha="tip", fetch=fetch,
+                                                  first_parent=_parent({"tip": "base"}))
+
+    assert receipt.steps[-1].step == "suite", "bound to the wait: it IS the suite step"
+
+
+def _split_era_complete(*, with_main_push=True, suite_before_push=False):
+    receipt = mr.Receipt(slug="m", batch="x", opened=_stamp(), host="test", concurrent_seats=0,
+                         closed=_stamp(600.0), merge_sha="tip",
+                         integration_branch="worktree-integrate-x", pushed_sha="tip")
+    stamp = _stamp
+    receipt.steps += [
+        mr.StepTiming("handback", mr.CLASS_CEREMONY, 10.0, True, 0, "-", stamp(0.0)),
+        mr.StepTiming("merge", mr.CLASS_CEREMONY, 20.0, True, 0, "-", stamp(10.0)),
+        mr.StepTiming("push-integration", mr.CLASS_CEREMONY, 5.0, True, 0, "-", stamp(100.0)),
+        mr.StepTiming("suite", mr.CLASS_TESTS, 300.0, True, 0, "-",
+                      stamp(50.0 if suite_before_push else 110.0), verdict_state=av.STATE_PASS,
+                      baseline_sha="base"),
+    ]
+    if with_main_push:
+        receipt.steps.append(
+            mr.StepTiming("push-main", mr.CLASS_CEREMONY, 3.0, True, 0, "-", stamp(420.0)))
+    receipt.steps.append(mr.StepTiming("teardown", mr.CLASS_CEREMONY, 30.0, True, 0, "-",
+                                       stamp(430.0)))
+    return receipt
+
+
+def test_G5_a_split_era_receipt_with_both_pushes_is_COMPLETE():
+    assert _split_era_complete().incompleteness_reason() is None
+
+
+def test_G5_a_split_era_receipt_that_never_pushed_to_main_is_INCOMPLETE_and_names_it():
+    reason = _split_era_complete(with_main_push=False).incompleteness_reason()
+
+    assert reason is not None and "push-main" in reason
+
+
+def test_G6_a_suite_read_that_PRECEDES_the_integration_push_is_INCOMPLETE():
+    """A verdict read before the sha was pushed cannot be the integration branch's CI."""
+    reason = _split_era_complete(suite_before_push=True).incompleteness_reason()
+
+    assert reason is not None and "before" in reason
+
+
+def test_G5_the_stage_report_itemises_each_stage_with_no_hand_arithmetic():
+    stages = _split_era_complete().stage_seconds()
+
+    assert stages == {"handback": 10.0, "merge": 20.0, "ci-wait": 300.0, "push": 8.0,
+                      "teardown": 30.0}
+    assert list(stages) == [s for s in mr.STAGE_ORDER if s in stages], "in walk order"
+
+
+def test_G5_gate_steps_are_a_stage_of_their_own():
+    receipt = _split_era_complete()
+    receipt.steps.append(mr.StepTiming("gate:ruff", mr.CLASS_TESTS, 7.0, True, 0, "-", _stamp(60.0)))
+
+    assert receipt.stage_seconds()["gates"] == 7.0
+
+
+def test_G5_the_summary_prints_the_stages():
+    rendered = mr.render_summary(_split_era_complete())
+
+    assert "stage" in rendered.lower() and "ci-wait" in rendered and "push" in rendered
+
+
+def test_G5_a_pre_split_receipt_still_round_trips_and_keeps_its_four_required_steps():
+    legacy = {"slug": "old", "batch": "x", "opened": _stamp(), "host": "h",
+              "concurrent_seats": 0, "steps": [], "closed": None}
+
+    receipt = mr.Receipt.from_dict(legacy)
+
+    assert receipt.integration_branch is None and receipt.pushed_sha is None
+    assert receipt.missing_required() == list(mr.REQUIRED_STEPS)
