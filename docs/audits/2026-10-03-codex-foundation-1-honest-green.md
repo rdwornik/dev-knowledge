@@ -7,7 +7,8 @@
 **Codex version:** n/a — SUBSTITUTED under the batch order's review route (see below)
 **Mode:** diff-review, fresh isolated session (contract + diff + live registry only — not the lane)
 **Tally:** P1=0 P2=4 P3=2
-**Consumer:** `LANE-FOUNDATION-foundation-1-honest-green.md` (item 8, "the review record")
+**Consumer:** [#1333], [#1340]
+**Reviewed against:** `LANE-FOUNDATION-foundation-1-honest-green.md` (item 8, "the review record")
 
 **Model used:** `grok-4.6` (SUBSTITUTE for the pinned Codex terra — see Substitution note)
 **Review profile:** code
