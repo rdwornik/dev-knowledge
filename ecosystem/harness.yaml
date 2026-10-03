@@ -61,7 +61,7 @@ moments:
     organs:
       - {id: single_flight, receipt: MOMENT-LANE-START-SINGLE-FLIGHT.json, manual_until: 2026-10-04, always: true, reason: "reads the live lock ref", command: [uv, run, --locked, python, scripts/single_flight.py, inspect, "{lane}", --local-only]}
   - name: merge
-    trigger: "integrator command, immediately after each local `git merge --no-ff` of a handback (HEAD is the merge commit)"
+    trigger: "integrator command, immediately after each `git merge --no-ff` of a handback in the integration worktree and BEFORE `scripts/merge_path.py land` pushes it (HEAD is the merge commit)"
     organs:
       - {id: merge_receipt.open, receipt: MOMENT-MERGE-OPEN.json, manual_until: 2026-10-04, always: true, reason: "opens the lane's live receipt when none is open yet (idempotent: a no-op when lane-integrate.md already opened one -- caught by exception, not a separate exists() check, so there is no gap between the read and the write for a second caller to land in; R-W4-4), so a caller that runs only this moment does not stop at models", command: [uv, run, --locked, python, -c, "import os, sys, contextlib; sys.path.insert(0, 'scripts'); import merge_receipt as m; from pathlib import Path; root = Path(os.environ.get('MERGE_RECEIPT_ROOT', '.')); slug = '{lane}';\nwith contextlib.suppress(m.MergeReceiptError):\n    m.open_receipt(root, slug=slug, batch='{batch}')"]}
       - {id: merge_receipt.models, receipt: MOMENT-MERGE-MODELS.json, manual_until: 2026-10-04, always: true, reason: "reads the lane's live transcript", command: [uv, run, --locked, python, scripts/merge_receipt.py, models, --slug, "{lane}", --contract, "{contract}"]}

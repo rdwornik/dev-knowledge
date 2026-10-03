@@ -1469,6 +1469,16 @@ def test_G5_gate_steps_are_a_stage_of_their_own():
     assert receipt.stage_seconds()["gates"] == 7.0
 
 
+def test_G5_the_merge_moment_step_assemble_is_the_gates_stage():
+    """`moment:merge` (comparator, review packet, the gate list) is what the walk times as
+    `assemble`; the stage report must not leave the whole verification stage unattributed."""
+    assert mr.stage_of("assemble") == "gates"
+    receipt = _split_era_complete()
+    receipt.steps.append(mr.StepTiming("assemble", mr.CLASS_CEREMONY, 90.0, True, 0, "-", _stamp(60.0)))
+
+    assert receipt.stage_seconds()["gates"] == 90.0
+
+
 def test_G5_the_summary_prints_the_stages():
     rendered = mr.render_summary(_split_era_complete())
 

@@ -746,7 +746,7 @@ def stage_of(step: str) -> Optional[str]:
     `review`, a `race` member): those stay in the itemised list but not in the stage report."""
     if step in ("handback", "merge", "teardown"):
         return step
-    if step.startswith("gate"):
+    if step.startswith("gate") or step == "assemble":    # `assemble` is the walk's `moment:merge`
         return "gates"
     if step == "suite" or step.startswith("actions"):
         return "ci-wait"

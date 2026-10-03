@@ -327,11 +327,12 @@ def test_the_integrator_calls_the_merge_moment_after_the_local_merge_and_teardow
     text = _walk_block()  # the executable block, not the prose around it
     merge = text.index("git merge --no-ff")
     moment_merge = text.index("moment:merge")
-    push = text.index("git push", moment_merge)
-    remove = text.index("git worktree remove", push)
+    push = text.index("$MP land", moment_merge)   # foundation-4: the push is `land`'s
+    remove = text.index("worktree remove", push)
     moment_teardown = text.index("moment:teardown", remove)
     assert merge < moment_merge < push < remove < moment_teardown, (
-        "order must be: merge locally, moment:merge (verify), push, remove, moment:teardown")
+        "order must be: merge in the integration worktree, moment:merge (verify), land (integration "
+        "push, CI, main push), remove, moment:teardown")
 
 
 def test_the_command_no_longer_lists_the_moment_organs_as_prose_steps():
@@ -604,7 +605,7 @@ def test_a_runner_that_calls_sys_exit_is_a_red_gate_not_a_green_process(tmp_path
 def _walk_block() -> str:
     """The per-lane bash block of the integrator command, placeholders made syntactically valid."""
     blocks = re.findall(r"```bash\n(.*?)```", _command_text(), flags=re.S)
-    block = next(b for b in blocks if "moment:merge" in b and "git push" in b)
+    block = next(b for b in blocks if "moment:merge" in b and "$MP land" in b)
     return block.replace("<n>", "1")
 
 
@@ -617,6 +618,7 @@ def _run_walk(tmp: Path, fail_on: str) -> list[str]:
     bindir = tmp / "bin"
     bindir.mkdir()
     log = tmp / "calls.log"
+    (tmp / ".claude" / "worktrees" / "integrate-1").mkdir(parents=True)   # the block `cd`s into it
     (bindir / "git").write_text(
         '#!/bin/sh\necho "git $*" >> "$CALLS"\n[ "$1" = "rev-parse" ] && echo deadbeef\nexit 0\n',
         encoding="utf-8", newline="\n")
@@ -642,7 +644,7 @@ _operator_host = pytest.mark.operator_host
 def test_the_walk_reaches_push_when_every_verification_passes(tmp_path):
     """POSITIVE CONTROL: without it the refusals below would pass on a block that never runs."""
     calls = _run_walk(tmp_path, fail_on="")
-    assert any(c.startswith("git push") for c in calls), calls
+    assert any("merge_path.py land" in c for c in calls), calls
     assert any("moment:teardown" in c for c in calls), calls
 
 
@@ -651,7 +653,7 @@ def test_the_walk_reaches_push_when_every_verification_passes(tmp_path):
 def test_a_refused_verification_never_reaches_push_or_teardown(tmp_path, failing):
     calls = _run_walk(tmp_path, fail_on=failing)
     assert any(failing in c for c in calls), f"the failing step never ran: {calls}"
-    assert not any(c.startswith("git push") for c in calls), calls
+    assert not any("merge_path.py land" in c for c in calls), calls
 
 
 # --- R-W4-4: the chain order, asserted from the command file's OWN text --------------------------
@@ -666,8 +668,8 @@ def test_the_walk_closes_the_receipt_and_commits_the_ledger_before_moment_teardo
     def first(needle: str) -> int:
         return next(i for i, c in enumerate(calls) if needle in c)
 
-    push_i = first("git push")
-    actions_i = first("merge_receipt.py actions")
+    push_i = first("merge_path.py land")
+    actions_i = push_i + 1      # `land` makes the pushes AND records CI's read; one call, so no `actions` call
     close_i = first("merge_receipt.py close")
     commit_i = first("git commit")
     teardown_i = first("moment:teardown")
@@ -686,10 +688,12 @@ def test_the_command_file_text_orders_open_before_the_merge_moment():
 @_operator_host
 @pytest.mark.parametrize("failing", ["actions", "close"])
 def test_a_refusal_after_the_push_never_reaches_teardown(tmp_path, failing):
-    """A failure that lands AFTER the push (unlike the `moment:merge`/`race` case above, which
-    never reaches it) must still stop the chain before `moment:teardown` -- an itemised receipt or
-    an unread Actions verdict is exactly the silent case `[#750]`/`[#675]` exist to close."""
+    """A failure at the CI read (`actions`, which is now inside `merge_path.py land`: the test id is
+    kept because the operator_host registry names it) or after it (the receipt close) must still
+    stop the chain before `moment:teardown` -- an itemised receipt or an unlanded merge is exactly
+    the silent case `[#750]`/`[#675]` exist to close."""
+    failing = {"actions": "merge_path.py land"}.get(failing, failing)
     calls = _run_walk(tmp_path, fail_on=failing)
-    assert any(c.startswith("git push") for c in calls), calls
+    assert any("merge_path.py land" in c for c in calls), calls
     assert any(failing in c for c in calls), f"the failing step never ran: {calls}"
     assert not any("moment:teardown" in c for c in calls), calls
