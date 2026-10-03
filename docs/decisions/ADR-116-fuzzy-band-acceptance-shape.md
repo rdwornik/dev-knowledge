@@ -1,6 +1,6 @@
 # ADR-116: The fuzzy-band acceptance shape — non-binary closure for decks, prose and judgment artifacts
 
-- **Status:** Proposed
+- **Status:** Explored, not adopted (withdrawn under R66, 2026-10-03: no open row cites it)
 - **Date:** 2026-08-29
 - **Decision tier:** Architecture (Path A — design lane output, awaiting architect ratification)
 - **Amends:** none — ADR-81 §"Scope — deterministic only; fuzzy deferred" **named** this arc; this ADR **discharges** that deferral. ADR-81's own text stands unchanged.
