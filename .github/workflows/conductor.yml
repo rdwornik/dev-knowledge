@@ -521,6 +521,13 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0     # J1: a shallow clone makes `canonical_freshness`'s derived leg REFUSE
+                             # ("the clone is shallow -- every git-derived date is a floor"); the
+                             # pytest job's checkout carries the same line for the same reason.
+      - name: Local `main` ref (J1 -- the pytest job's seed; no `refs/heads/main` on a non-main checkout)
+        run: |
+          git rev-parse --verify --quiet refs/heads/main >/dev/null 2>&1 || git branch main origin/main
       - uses: astral-sh/setup-uv@v5
         with:
           version: "0.11.19"
