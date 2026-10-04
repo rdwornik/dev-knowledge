@@ -1049,3 +1049,186 @@ def test_every_guard_invocation_in_provision_sh_parses() -> None:
     parser = cp.build_parser()
     for argv in calls:
         parser.parse_args(argv)          # SystemExit here IS the failure
+
+
+# =============================================================================================
+# foundation-13-codespace-toolset (R63 step 1): the lane's tools are DECLARED as data, pinned in
+# one place, and ASSERTED -- `claude` pinned to the local version, plus `gh`, `codex`, `agy` and
+# `rclone`. RED on origin/main 864b0b9f: there is no `tools` block, no `ToolConfig`, no
+# `check_tools`, no `tools` subcommand.
+# =============================================================================================
+
+import re  # noqa: E402
+
+TOOLS = ("claude", "gh", "codex", "agy", "rclone")
+_PINNED = ("claude", "gh", "codex", "rclone")     # `agy`'s installer takes no version
+
+
+def _tool_row(**over: object) -> dict:
+    row: dict = {"version": "1.2.3", "method": "the official install, quoted from its doc",
+                 "doc": "https://example.org/install"}
+    row.update(over)
+    return row
+
+
+def _tools_config(tmp_path: Path, **tools: object) -> Path:
+    path = _config(tmp_path)
+    body = yaml.safe_load(path.read_text(encoding="utf-8"))
+    body["tools"] = {name: tools.get(name, _tool_row()) for name in TOOLS}
+    body["tools"].update({k: v for k, v in tools.items() if k not in TOOLS})
+    path.write_text(yaml.safe_dump(body), encoding="utf-8")
+    return path
+
+
+@pytest.mark.parametrize(("name", "text", "want"), [
+    ("claude", "2.1.289 (Claude Code)\n", "2.1.289"),
+    ("gh", "gh version 2.93.0 (2026-05-27)\nhttps://github.com/cli/cli/releases/tag/v2.93.0\n", "2.93.0"),
+    ("codex", "codex-cli 0.155.0\n", "0.155.0"),
+    ("agy", "1.2.16\n", "1.2.16"),
+    ("rclone", "rclone v1.73.2\n- os/version: debian 12.11 (64 bit)\n", "1.73.2"),
+])
+def test_each_tools_own_version_banner_parses(name: str, text: str, want: str) -> None:
+    assert cp.parse_version(text) == want, name
+
+
+def test_a_banner_without_a_version_parses_to_none() -> None:
+    assert cp.parse_version("command not found") is None
+    assert cp.parse_version("") is None
+
+
+def test_the_live_declaration_pins_every_lane_tool() -> None:
+    cfg = cp.load_config()
+    assert set(cfg.tools) == set(TOOLS)
+    for name in _PINNED:
+        assert re.fullmatch(r"\d+\.\d+\.\d+", cfg.tools[name].version or ""), name
+    for name, tool in cfg.tools.items():
+        assert tool.doc.startswith("https://"), f"{name}: the install method cites its doc"
+        assert len(tool.method) >= 20, f"{name}: a token, not a recorded method"
+
+
+def test_agy_is_unpinned_on_purpose_and_says_why() -> None:
+    agy = cp.load_config().tools["agy"]
+    assert agy.version is None
+    assert "latest" in agy.reason, "the unpinned tool records why it cannot be pinned"
+
+
+def test_load_config_without_a_tools_block_still_loads(tmp_path: Path) -> None:
+    assert cp.load_config(_config(tmp_path)).tools == {}
+
+
+@pytest.mark.parametrize("bad", [2.93, 293, ["2.93.0"], "", "v2.93.0", "2.93"])
+def test_load_config_refuses_a_pin_that_is_not_an_exact_version_string(
+        tmp_path: Path, bad: object) -> None:
+    """`version: 2.93` is a YAML FLOAT -- the pin `2.93.0` silently becoming `2.93` is the drift
+    a pin exists to stop, so a non-string or non-`x.y.z` pin is a could-not-look."""
+    path = _tools_config(tmp_path, gh=_tool_row(version=bad))
+    with pytest.raises(cp.ProvisioningError, match="version"):
+        cp.load_config(path)
+
+
+def test_load_config_refuses_an_unpinned_tool_that_does_not_say_why(tmp_path: Path) -> None:
+    path = _tools_config(tmp_path, agy=_tool_row(version=None))
+    with pytest.raises(cp.ProvisioningError, match="reason"):
+        cp.load_config(path)
+
+
+def test_load_config_refuses_a_tool_with_no_doc(tmp_path: Path) -> None:
+    row = _tool_row()
+    row.pop("doc")
+    with pytest.raises(cp.ProvisioningError, match="doc"):
+        cp.load_config(_tools_config(tmp_path, rclone=row))
+
+
+def _nines() -> dict:
+    """Every tool pinned at 9.9.9 except `agy`, which has no pin (its installer takes none)."""
+    rows = {n: _tool_row(version="9.9.9") for n in TOOLS}
+    rows["agy"] = _tool_row(version=None, reason="latest only")
+    return rows
+
+
+def _probe_of(table: dict):
+    """A `probe(name) -> (returncode, text)` seam; a name not in the table is 'not installed'."""
+    def probe(name: str, login: bool = False) -> tuple[int, str]:
+        return table.get(name, (127, ""))
+    return probe
+
+
+_BANNER = {"claude": "9.9.9 (Claude Code)", "gh": "gh version 9.9.9 (2026-01-01)",
+           "codex": "codex-cli 9.9.9", "agy": "9.9.9", "rclone": "rclone v9.9.9"}
+
+
+@pytest.mark.parametrize("name", TOOLS)
+def test_a_tool_absent_is_a_violation_naming_the_tool(name: str, tmp_path: Path) -> None:
+    cfg = cp.load_config(_tools_config(tmp_path, **_nines()))
+    table = {n: (0, _BANNER[n]) for n in TOOLS if n != name}
+    results = {r.name: r for r in cp.check_tools(cfg.tools, _probe_of(table))}
+    assert results[name].state == "absent"
+    assert all(results[n].state == "ok" for n in TOOLS if n != name)
+
+
+@pytest.mark.parametrize("name", _PINNED)
+def test_a_tool_at_the_wrong_version_is_a_violation_naming_both_versions(
+        name: str, tmp_path: Path) -> None:
+    cfg = cp.load_config(_tools_config(tmp_path, **_nines()))
+    table = {n: (0, _BANNER[n]) for n in TOOLS}
+    table[name] = (0, _BANNER[name].replace("9.9.9", "9.9.8"))
+    result = {r.name: r for r in cp.check_tools(cfg.tools, _probe_of(table))}[name]
+    assert result.state == "skew"
+    assert "9.9.8" in result.detail and "9.9.9" in result.detail
+
+
+@pytest.mark.parametrize("name", TOOLS)
+def test_a_tool_at_its_pin_is_ok(name: str, tmp_path: Path) -> None:
+    cfg = cp.load_config(_tools_config(tmp_path, **_nines()))
+    table = {n: (0, _BANNER[n]) for n in TOOLS}
+    assert {r.name: r.state for r in cp.check_tools(cfg.tools, _probe_of(table))}[name] == "ok"
+
+
+def test_an_unpinned_tool_is_asserted_present_whatever_its_version(tmp_path: Path) -> None:
+    cfg = cp.load_config(_tools_config(tmp_path, agy=_tool_row(version=None, reason="latest only")))
+    res = cp.check_tools({"agy": cfg.tools["agy"]}, _probe_of({"agy": (0, "7.7.7")}))
+    assert res[0].state == "ok" and "7.7.7" in res[0].detail
+
+
+def test_a_banner_that_carries_no_version_is_not_a_pass(tmp_path: Path) -> None:
+    cfg = cp.load_config(_tools_config(tmp_path))
+    res = cp.check_tools({"gh": cfg.tools["gh"]}, _probe_of({"gh": (0, "usage: gh <command>")}))
+    assert res[0].state == "unparseable"
+
+
+def test_tools_check_exits_1_on_a_violation_and_0_when_clean(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    cfg_path = _tools_config(tmp_path, **_nines())
+    monkeypatch.setattr(cp, "_probe_tool", _probe_of({n: (0, _BANNER[n]) for n in TOOLS}))
+    assert cp.main(["--config", str(cfg_path), "tools", "check"]) == cp.EXIT_OK
+    monkeypatch.setattr(cp, "_probe_tool", _probe_of({n: (0, _BANNER[n]) for n in TOOLS if n != "gh"}))
+    assert cp.main(["--config", str(cfg_path), "tools", "check"]) == cp.EXIT_VIOLATION
+    # `--only` narrows the assertion to the named tool, so one leg asserts only its own tool
+    assert cp.main(["--config", str(cfg_path), "tools", "check", "--only", "rclone"]) == cp.EXIT_OK
+
+
+def test_tools_check_with_an_unknown_tool_or_no_block_is_exit_2(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(cp, "_probe_tool", _probe_of({}))
+    cfg_path = _tools_config(tmp_path)
+    assert cp.main(["--config", str(cfg_path), "tools", "check", "--only", "nope"]) == cp.EXIT_UNAVAILABLE
+    assert cp.main(["--config", str(_config(tmp_path)), "tools", "check"]) == cp.EXIT_UNAVAILABLE
+
+
+def test_tools_get_prints_the_pin_and_nothing_for_an_unpinned_tool(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    cfg_path = _tools_config(tmp_path, gh=_tool_row(version="2.93.0"),
+                             agy=_tool_row(version=None, reason="latest only"))
+    assert cp.main(["--config", str(cfg_path), "tools", "get", "gh"]) == cp.EXIT_OK
+    assert capsys.readouterr().out.strip() == "2.93.0"
+    assert cp.main(["--config", str(cfg_path), "tools", "get", "agy"]) == cp.EXIT_OK
+    assert capsys.readouterr().out.strip() == ""
+    assert cp.main(["--config", str(cfg_path), "tools", "get", "nope"]) == cp.EXIT_UNAVAILABLE
+
+
+def test_the_live_pins_are_what_tools_get_prints(capsys: pytest.CaptureFixture[str]) -> None:
+    """provision.sh types no version: what it installs is what this prints, from the one home."""
+    cfg = cp.load_config()
+    for name in _PINNED:
+        assert cp.main(["tools", "get", name]) == cp.EXIT_OK
+        assert capsys.readouterr().out.strip() == cfg.tools[name].version

@@ -588,3 +588,222 @@ def test_the_record_round_trips_and_is_deterministic_json(tmp_path):
     cp.write_record(path, copy.deepcopy(rec))
     assert json.loads(path.read_text(encoding="utf-8")) == rec
     assert path.read_text(encoding="utf-8").endswith("\n")
+
+
+# =============================================================================================
+# foundation-13-codespace-toolset (R63 step 1). RED on origin/main 864b0b9f: the transport write
+# leg cannot be exercised (compare_transport never returns PASS) and C1 has no notion of an
+# AUTH item, so "C1 PASS except named auth items" is not expressible.
+# =============================================================================================
+
+_PROBE_NAME = "PROBE-foundation-13-codespace-toolset.txt"
+
+
+def _write_leg(**over) -> dict:
+    leg = {"name": _PROBE_NAME, "write_exit": 0, "readback_ok": True, "delete_exit": 0,
+           "gone_after": True}
+    leg.update(over)
+    return leg
+
+
+def test_a_clean_write_probe_with_a_good_read_is_transport_pass():
+    remote = _record("codespace")
+    remote["transport"]["write"] = _write_leg()
+    verdict = cp.compare_transport(_record("local"), remote)
+    assert verdict.status == "PASS", verdict
+    assert any("read: PASS" in e for e in verdict.evidence)
+    assert any("write: PASS" in e and _PROBE_NAME in e for e in verdict.evidence)
+
+
+@pytest.mark.parametrize("over,word", [
+    ({"write_exit": 1}, "write exit"),
+    ({"readback_ok": False}, "read-back"),
+    ({"delete_exit": 1}, "delete exit"),
+    ({"gone_after": False}, "still on the transport"),
+    ({"gone_after": None}, "still on the transport"),
+])
+def test_a_write_probe_that_failed_any_step_is_a_fail_naming_it(over, word):
+    remote = _record("codespace")
+    remote["transport"]["write"] = _write_leg(**over)
+    verdict = cp.compare_transport(_record("local"), remote)
+    assert verdict.status == "FAIL"
+    assert word in verdict.reason
+
+
+def test_a_good_write_never_rescues_a_failed_read():
+    remote = _record("codespace")
+    remote["transport"]["write"] = _write_leg()
+    remote["transport"]["read_exit"] = 1
+    assert cp.compare_transport(_record("local"), remote).status == "FAIL"
+
+
+def test_a_write_leg_without_a_probe_name_is_not_a_pass():
+    remote = _record("codespace")
+    remote["transport"]["write"] = _write_leg(name="")
+    assert cp.compare_transport(_record("local"), remote).status == "FAIL"
+
+
+class _RcloneFake:
+    """An in-memory remote: `copyto` stores the local file's bytes, `cat` returns them,
+    `deletefile` removes them, `lsf --include` lists what is there."""
+
+    def __init__(self, *, fail=(), keep_after_delete=False, corrupt=False):
+        self.store: dict[str, str] = {}
+        self.calls: list[list[str]] = []
+        self.fail, self.keep, self.corrupt = set(fail), keep_after_delete, corrupt
+
+    def __call__(self, argv, **_kw):
+        self.calls.append(list(argv))
+        sub = argv[1] if len(argv) > 1 else ""
+        if sub in self.fail:
+            return cp.CmdResult(1, "", f"{sub} failed")
+        if sub == "--version":
+            return cp.CmdResult(0, "rclone v1.73.2\n", "")
+        if sub == "lsf" and "--include" in argv:
+            name = argv[argv.index("--include") + 1]
+            return cp.CmdResult(0, (name + "\n") if name in self.store else "", "")
+        if sub == "lsf":
+            return cp.CmdResult(0, "a/\nb/\n", "")
+        if sub == "copyto":
+            self.store[argv[3].split(":", 1)[1]] = Path(argv[2]).read_text(encoding="utf-8")
+            return cp.CmdResult(0, "", "")
+        if sub == "cat":
+            body = self.store.get(argv[2].split(":", 1)[1], "")
+            return cp.CmdResult(0, "tampered" if self.corrupt else body, "")
+        if sub == "deletefile":
+            if not self.keep:
+                self.store.pop(argv[2].split(":", 1)[1], None)
+            return cp.CmdResult(0, "", "")
+        return cp.CmdResult(127, "", "unexpected")
+
+
+def test_probe_write_writes_reads_back_deletes_and_proves_the_file_gone():
+    fake = _RcloneFake()
+    t = cp.collect_transport(fake, env={"RCLONE_CONFIG_GDRIVE_TOKEN": "x"}, probe_write=_PROBE_NAME)
+    assert t["write"] == {"name": _PROBE_NAME, "write_exit": 0, "readback_ok": True,
+                          "delete_exit": 0, "gone_after": True}
+    verbs = [c[1] for c in fake.calls]
+    assert verbs.index("copyto") < verbs.index("cat") < verbs.index("deletefile")
+    assert fake.store == {}, "the probe file is removed from the transport"
+
+
+def test_probe_write_that_cannot_delete_reports_the_file_still_there():
+    fake = _RcloneFake(keep_after_delete=True)
+    t = cp.collect_transport(fake, env={"RCLONE_CONFIG_GDRIVE_TOKEN": "x"}, probe_write=_PROBE_NAME)
+    assert t["write"]["gone_after"] is False
+    assert _PROBE_NAME in fake.store
+
+
+def test_probe_write_readback_must_match_the_bytes_written():
+    t = cp.collect_transport(_RcloneFake(corrupt=True), env={"RCLONE_CONFIG_GDRIVE_TOKEN": "x"},
+                             probe_write=_PROBE_NAME)
+    assert t["write"]["readback_ok"] is False
+
+
+def test_probe_write_is_not_attempted_when_the_read_leg_failed():
+    fake = _RcloneFake(fail={"lsf"})
+    t = cp.collect_transport(fake, env={"RCLONE_CONFIG_GDRIVE_TOKEN": "x"}, probe_write=_PROBE_NAME)
+    assert "write" not in t or t["write"] is None
+    assert all(c[1] != "copyto" for c in fake.calls), "no write to a transport that cannot be read"
+
+
+def test_no_probe_name_means_no_write_leg_and_the_record_is_unchanged():
+    fake = _RcloneFake()
+    t = cp.collect_transport(fake, env={"RCLONE_CONFIG_GDRIVE_TOKEN": "x"})
+    assert "write" not in t
+    assert all(c[1] not in ("copyto", "deletefile") for c in fake.calls)
+
+
+@pytest.mark.parametrize("bad", ["", "../escape.txt", "a/b.txt", "a b.txt", "x\\y", "..", ".hidden/../x"])
+def test_a_probe_name_that_is_not_a_single_plain_file_name_is_refused(bad):
+    fake = _RcloneFake()
+    with pytest.raises(ValueError):
+        cp.collect_transport(fake, env={"RCLONE_CONFIG_GDRIVE_TOKEN": "x"}, probe_write=bad)
+    assert all(c[1] != "copyto" for c in fake.calls)
+
+
+def test_probe_write_value_never_leaks_the_secret():
+    secret = "ya29.SECRET-TOKEN-VALUE"
+    t = cp.collect_transport(_RcloneFake(), env={"RCLONE_CONFIG_GDRIVE_TOKEN": secret},
+                             probe_write=_PROBE_NAME)
+    assert secret not in json.dumps(t)
+
+
+# ------------------------------------------------------------------ C1 auth items, named exactly
+
+def _auth(**states) -> dict:
+    base = {"claude": "authenticated", "gh": "authenticated", "codex": "authenticated",
+            "agy": "unprobed"}
+    base.update(states)
+    return {k: {"state": v, "probe": f"{k} <status command>"} for k, v in base.items()}
+
+
+def test_unauthenticated_tools_are_named_as_auth_items_and_do_not_fail_c1():
+    local, remote = _record("local"), _record("codespace")
+    local["environment"]["auth"] = _auth(agy="authenticated")
+    remote["environment"]["auth"] = _auth(claude="unauthenticated", codex="unauthenticated")
+    verdict = cp.compare_environment(local, remote)
+    assert verdict.status == "PASS", verdict
+    named = [e for e in verdict.evidence if e.startswith("AUTH-ITEM")]
+    assert {n.split()[1].rstrip(":") for n in named} == {"claude", "codex", "agy"}
+    assert all(cp.AUTH_NEEDS[t] in e for e in named for t in ("claude", "codex", "agy")
+               if f"AUTH-ITEM {t}:" in e), "each exception names what it needs"
+    for tool in ("claude", "codex", "agy"):
+        assert tool in verdict.reason, "the verdict line itself names the exceptions"
+    assert "gh" not in verdict.reason
+
+
+def test_an_authenticated_codespace_has_no_auth_exception():
+    local, remote = _record("local"), _record("codespace")
+    local["environment"]["auth"] = _auth(agy="authenticated")
+    remote["environment"]["auth"] = _auth(agy="authenticated")
+    verdict = cp.compare_environment(local, remote)
+    assert verdict.status == "PASS" and verdict.reason == ""
+    assert not [e for e in verdict.evidence if e.startswith("AUTH-ITEM")]
+
+
+def test_an_auth_item_never_hides_a_real_environment_difference():
+    local, remote = _record("local"), _record("codespace")
+    remote["environment"]["auth"] = _auth(claude="unauthenticated")
+    remote["environment"]["tools"]["gh"] = {"present": False, "version": None}
+    verdict = cp.compare_environment(local, remote)
+    assert verdict.status == "FAIL" and "gh absent on codespace" in verdict.reason
+
+
+def test_records_without_an_auth_section_compare_exactly_as_before():
+    verdict = cp.compare_environment(_record("local"), _record("codespace"))
+    assert verdict.status == "PASS" and verdict.reason == ""
+
+
+def test_the_auth_section_is_not_compared_as_a_scalar_key():
+    local, remote = _record("local"), _record("codespace")
+    local["environment"]["auth"] = _auth(agy="authenticated")
+    remote["environment"]["auth"] = _auth(claude="unauthenticated")
+    assert "auth differs" not in cp.compare_environment(local, remote).reason
+
+
+def test_collect_environment_probes_auth_by_status_command_and_never_reads_a_secret(tmp_path):
+    (tmp_path / "uv.lock").write_bytes(b"x")
+    run = _FakeRun({
+        "claude auth status": (0, '{"loggedIn": true, "authMethod": "claude.ai"}\n'),
+        "gh auth status": (0, "github.com\n  Logged in\n"),
+        "codex login status": (1, "Not logged in\n"),
+        "claude --version": (0, "2.1.288 (Claude Code)\n"),
+        "gh --version": (0, "gh version 2.93.0\n"),
+        "codex --version": (0, "codex-cli 0.9.1\n"),
+        "agy --version": (0, "1.2.3\n"),
+    })
+    env = cp.collect_environment(run, root=tmp_path, hooks=[])
+    assert env["auth"]["claude"]["state"] == "authenticated"
+    assert env["auth"]["gh"]["state"] == "authenticated"
+    assert env["auth"]["codex"]["state"] == "unauthenticated"
+    assert env["auth"]["agy"]["state"] == "unprobed", "agy has no non-interactive status command"
+    assert all(set(v) == {"state", "probe"} for v in env["auth"].values()), "no output is stored"
+
+
+def test_an_absent_tool_is_not_probed_for_auth(tmp_path):
+    (tmp_path / "uv.lock").write_bytes(b"x")
+    run = _FakeRun({})
+    env = cp.collect_environment(run, root=tmp_path, hooks=[])
+    assert env["auth"]["gh"]["state"] == "tool-absent"
+    assert not [c for c in run.calls if "auth status" in c or "login status" in c]
