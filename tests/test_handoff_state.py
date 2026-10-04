@@ -1128,3 +1128,32 @@ def test_a_versioned_companion_is_not_a_master(tmp_path):
     comp.write_text(_COMPANION_HEAD.replace("kind: PLAN —", "kind: PLAN v2 —"), encoding="utf-8")
     os.utime(master, (1_000_000_000, 1_000_000_000))
     assert "`to-cc/PLAN-MASTER-2026-10-04.md`" in hs.row_plan(t).value
+
+
+def test_a_supersedes_value_with_trailing_path_text_is_not_a_basename(tmp_path):
+    t = _v13_transport(tmp_path)
+    (t / "to-cc" / "PLAN-HANDOFF-2026-10-04.md").unlink()
+    (t / "to-cc" / "PLAN-HARNESS-2026-10-04.md").write_text(
+        _V13_HEAD.replace("v12-superseded.md", "v12-superseded.md/ignored"), encoding="utf-8")
+    row = hs.row_plan(t)
+    assert row.value.startswith("no master plan declared among the newest"), row.value
+
+
+def test_a_top_level_plan_symlink_cannot_resolve_out_of_to_cc(tmp_path):
+    t = _v13_transport(tmp_path)
+    (t / "to-cc" / "PLAN-HANDOFF-2026-10-04.md").unlink()
+    outside = t / "to-browser" / "PLAN-OUTSIDE-2026-10-05.md"
+    outside.write_text(_MASTER_HEAD.replace("2026-10-04", "2026-10-05"), encoding="utf-8")
+    try:
+        os.symlink(outside, t / "to-cc" / "PLAN-OUTSIDE-2026-10-05.md")
+    except OSError:
+        pytest.skip("this account cannot create symlinks")
+    assert "`to-cc/PLAN-HARNESS-2026-10-04.md`" in hs.row_plan(t).value
+
+
+def test_a_crlf_transport_head_still_resolves_its_lineage(tmp_path):
+    t = _v13_transport(tmp_path)
+    for name in ("PLAN-HARNESS-2026-10-04.md", "PLAN-HANDOFF-2026-10-04.md"):
+        f = t / "to-cc" / name
+        f.write_bytes(f.read_text(encoding="utf-8").replace("\n", "\r\n").encode("utf-8"))
+    assert "`to-cc/PLAN-HARNESS-2026-10-04.md`" in hs.row_plan(t).value

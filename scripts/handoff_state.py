@@ -393,7 +393,7 @@ def row_rulings(transport: "Path | None", *, as_of: "str | None" = None,
 #: `PLAN-WAVE5-2026-09-23.md` -- DECIDED-BY-LANE (B2-W1 W1-9 repair 1): lineage, then refuse.
 _MASTER_PLAN_RE = re.compile(r"(?im)^(?:kind:\s*PLAN\s+v\d+\b|status:\s*MASTER\s+PLAN\b)")
 _COMPANION_PLAN_RE = re.compile(r"(?im)^kind:\s*PLAN\b.*\bcomplement")
-_SUPERSEDES_RE = re.compile(r"(?im)^supersedes:\s*(\S+\.md)\b")
+_SUPERSEDES_RE = re.compile(r"(?im)^supersedes:[ \t]*(\S+\.md)[ \t]*$")
 _HEAD_LINES = 12
 _LINEAGE_DEPTH = 8
 
@@ -463,6 +463,9 @@ def row_plan(transport: "Path | None", *, as_of: "str | None" = None) -> StateRo
     locator = "to-cc/PLAN-*.md (newest non-superseded master plan)"
     plans = sorted(_live_transport_docs(transport, "PLAN", as_of=as_of, subdir="to-cc"),
                    key=_plan_rank)
+    if transport is not None:                   # a PLAN-*.md symlink must not resolve out of to-cc
+        home = (Path(transport) / "to-cc").resolve()
+        plans = [p for p in plans if p.resolve().parent == home]
     roles =[(p, _plan_role(p, as_of)) for p in plans]
     masters = [i for i, (_p, r) in enumerate(roles) if r == "master"]
     start = masters[-1] if masters else -1
