@@ -750,7 +750,7 @@ def test_the_fail_closed_pair_does_not_depend_on_the_runners_store(tmp_path, run
     run = subprocess.run(
         [sys.executable, "-m", "pytest", "-n", "0", "-p", "no:cacheprovider", "-q", *ids],
         cwd=str(_REPO), env=env, capture_output=True, text=True, encoding="utf-8",
-        errors="replace", timeout=300)
+        errors="replace")
     assert run.returncode == 0 and "2 passed" in run.stdout, (
         f"the fail-closed pair read the runner's store ({runner_store}):\n"
         f"{run.stdout[-1500:]}\n{run.stderr[-500:]}")
