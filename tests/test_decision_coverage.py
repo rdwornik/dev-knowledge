@@ -835,3 +835,377 @@ def test_live_decisions_resolves_the_population_ONE_way_for_all_three_consumers(
     shared = dc.live_decisions(REPO_ROOT, transport=None)
     assert [d.key for d in shared] == [d.key for d in direct]
     assert [d.state for d in shared] == [d.state for d in direct]
+
+
+# ======================================================================================
+# THE RULING REGISTER LEG -- [#721] and R79.3 (batch B2-W1, lane W1-10 `b2-rulings-landing`)
+# ======================================================================================
+#
+# RED-first at origin/main e67f27ac: none of `parse_register`, `uncarried_rulings`,
+# `unlanded_rulings`, `rulings_report` or the `rulings` subcommand exists there, so every test in
+# this group fails on that tree and passes on the one that adds the leg.
+#
+# WHAT EACH GROUP WITNESSES:
+#   1. LANDED RULING, NO ROW, NO DISPOSITION -> refused BY NAME ([#721]'s own RED), the CLI exits
+#      non-zero, and the fully carried fixture exits 0 (the negative case).
+#   2. WHAT COUNTS AS CARRIED -- a row that exists, whose status carries, that names the ruling and
+#      has a Done-when; or a written "no implementation required" that names a reason AND an owner.
+#   3. THE ERA BOUND -- entries below the floor are COUNTED, not refused; the floor is a parameter,
+#      so [#721]'s section-AH witness (an un-mechanized older entry) is refused when it is armed.
+#   4. UNLANDED FOR MORE THAN ONE BATCH -- the batch clock is the transport's STATE-BATCH files.
+#   5. N7's HAZARDS (a)-(d) -- fixtures that must NOT refuse (and (d), one that must).
+#   6. THE TRANSPORT BOUNDARY -- unreadable is reported n/a, never a pass.
+
+
+def _entry(number: int, carried: str | None, title: str = "fixture ruling") -> str:
+    out = f"- **R{number} — {title}** (operator, 2026-10-04; full text `RATIFICATION-X.md:1`).\n\n"
+    if carried is not None:
+        out += f"  **Carried by:** {carried}\n\n"
+    return out
+
+
+def _register(root: Path, *entries: str) -> None:
+    _write(root / "protocols" / "STANDING_RULINGS.md",
+           "# Standing rulings\n\n## AR. fixture section\n\n" + "".join(entries)
+           + "## Editing note\n\nprose\n")
+
+
+def _ruling_row(root: Path, task_id: int, status: str, cites: str | None,
+                done_when: bool = True) -> None:
+    body = f"carries {cites}. " if cites else "carries nothing in particular. "
+    _write(root / "tasks" / f"{task_id}-fixture.md",
+           "\n".join(["---", f'id: "[#{task_id}]"', f'title: "fixture row {task_id}"',
+                      f"status: {status}", "generates: BACKLOG.md", "---", "",
+                      f"- [#{task_id}] [P2][M] **fixture row {task_id}** - {body}"
+                      + ("· Done when: the fixture holds " if done_when else "")
+                      + "· refs none", ""]))
+
+
+NO_IMPL = "no implementation required — procedural, nothing to build (owner: the browser seat)"
+
+
+def _names(findings) -> list[str]:
+    return [f.subject for f in findings]
+
+
+def test_a_landed_ruling_with_no_row_and_no_disposition_is_REFUSED_by_name(tmp_path: Path):
+    """[#721]'s Done-when, verbatim in shape: a register entry with neither an implementing row
+    nor a written 'no implementation required' disposition is NAMED by the refusal."""
+    root = tmp_path / "r"
+    _register(root, _entry(70, None), _entry(71, "[#1500]"))
+    _ruling_row(root, 1500, "open", "R71")
+    findings = dc.uncarried_rulings(root)
+    assert _names(findings) == ["R70"]
+    assert "Carried by" in findings[0].evidence and "no implementation required" in findings[0].evidence
+
+
+def test_the_rulings_cli_exits_non_zero_on_an_uncarried_ruling(tmp_path: Path, capsys):
+    root = tmp_path / "r"
+    _register(root, _entry(70, None))
+    assert dc.main(["rulings", "--repo-root", str(root), "--no-transport"]) == 1
+    out = capsys.readouterr().out
+    assert "REFUSED" in out and "R70" in out
+
+
+def test_the_rulings_cli_is_a_real_subprocess_exit(tmp_path: Path):
+    root = tmp_path / "r"
+    _register(root, _entry(70, None))
+    out = subprocess.run(
+        [sys.executable, str(_SCRIPTS / "decision_coverage.py"), "rulings",
+         "--repo-root", str(root), "--no-transport"],
+        capture_output=True, text=True, timeout=120)
+    assert out.returncode == 1, out.stdout + out.stderr
+    assert "R70" in out.stdout
+
+
+def test_a_fully_carried_register_exits_zero(tmp_path: Path, capsys):
+    root = tmp_path / "r"
+    _register(root, _entry(70, "[#1500]"), _entry(71, NO_IMPL))
+    _ruling_row(root, 1500, "open", "R70")
+    assert dc.main(["rulings", "--repo-root", str(root), "--no-transport"]) == 0
+    assert "OK" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("status,carries", [("open", True), ("closed", True), ("deferred", True),
+                                            ("retired", False), ("superseded", False)])
+def test_only_a_row_whose_status_carries_counts(tmp_path: Path, status: str, carries: bool):
+    root = tmp_path / "r"
+    _register(root, _entry(70, "[#1500]"))
+    _ruling_row(root, 1500, status, "R70")
+    assert (dc.uncarried_rulings(root) == []) is carries
+
+
+def test_a_named_row_that_does_not_exist_is_refused(tmp_path: Path):
+    root = tmp_path / "r"
+    _register(root, _entry(70, "[#1599]"))
+    (root / "tasks").mkdir()
+    got = dc.uncarried_rulings(root)
+    assert _names(got) == ["R70"] and "1599" in got[0].evidence
+
+
+def test_a_row_that_never_names_the_ruling_does_not_carry_it(tmp_path: Path):
+    """The back-reference: an entry pointing at an unrelated row (a typo, a copy-paste) must not
+    read as carried -- the link is checked from BOTH ends."""
+    root = tmp_path / "r"
+    _register(root, _entry(70, "[#1500]"))
+    _ruling_row(root, 1500, "open", "R700")        # R700 is not R70
+    assert _names(dc.uncarried_rulings(root)) == ["R70"]
+
+
+def test_a_row_with_no_done_when_does_not_carry(tmp_path: Path):
+    root = tmp_path / "r"
+    _register(root, _entry(70, "[#1500]"))
+    _ruling_row(root, 1500, "open", "R70", done_when=False)
+    assert _names(dc.uncarried_rulings(root)) == ["R70"]
+
+
+@pytest.mark.parametrize("text", [
+    "no implementation required",                                # no reason, no owner
+    "no implementation required — nothing to build",             # reason, no owner
+    "no implementation required — (owner: someone)",             # owner, no reason
+])
+def test_a_disposition_needs_a_reason_AND_an_owner(tmp_path: Path, text: str):
+    root = tmp_path / "r"
+    _register(root, _entry(70, text))
+    assert _names(dc.uncarried_rulings(root)) == ["R70"]
+
+
+def test_one_row_may_carry_several_rulings(tmp_path: Path):
+    root = tmp_path / "r"
+    _register(root, _entry(70, "[#1500]"), _entry(71, "[#1500]"))
+    _ruling_row(root, 1500, "open", "R70 and R71")
+    assert dc.uncarried_rulings(root) == []
+
+
+# --- the era bound ------------------------------------------------------------------------
+
+
+def test_entries_below_the_floor_are_counted_not_refused(tmp_path: Path):
+    root = tmp_path / "r"
+    _register(root, _entry(54, None), _entry(55, "[#1500]"))
+    _ruling_row(root, 1500, "open", "R55")
+    assert dc.FIRST_GATED_RULING == 55
+    assert dc.uncarried_rulings(root) == []
+    counts = dc.register_counts(root)
+    assert counts.grandfathered == 1 and counts.carried == 1 and counts.gated == 1
+
+
+def test_armed_over_the_whole_register_the_refusal_names_the_old_entry(tmp_path: Path):
+    """[#721]'s witness is section AH's un-mechanized entries: the floor is a parameter so the
+    same predicate refuses them the day someone arms it over the older sections."""
+    root = tmp_path / "r"
+    _register(root, _entry(54, None))
+    assert _names(dc.uncarried_rulings(root, floor=1)) == ["R54"]
+
+
+def test_the_landed_id_grammar_is_the_bundles_own():
+    """`handoff_state._LANDED_RE` is how the bundle's Landed row counts ruling ids. The gate
+    reads the register with the SAME shape, or the two could disagree about what is landed."""
+    import handoff_state as hs
+    assert dc._LANDED_RE.pattern == hs._LANDED_RE.pattern
+
+
+def test_fenced_text_inside_an_entry_is_never_an_entry(tmp_path: Path):
+    root = tmp_path / "r"
+    fenced = ("- **R70 — real** (operator, 2026-10-04).\n\n  **Carried by:** [#1500]\n\n"
+              "  ```verbatim to-browser/X.md:1-3\n  - **R71 — quoted, not an entry**\n"
+              "  **Carried by:** [#9999]\n  ```\n\n")
+    _register(root, fenced)
+    _ruling_row(root, 1500, "open", "R70")
+    assert [e.number for e in dc.parse_register((root / "protocols/STANDING_RULINGS.md")
+                                                .read_text(encoding="utf-8"))] == [70]
+    assert dc.uncarried_rulings(root) == []
+
+
+# --- unlanded for more than one batch ------------------------------------------------------
+
+
+def _transport(tmp_path: Path, ratifications: dict[str, str], batches: dict[str, str]) -> Path:
+    root = tmp_path / "t"
+    for name, text in ratifications.items():
+        _write(root / "to-browser" / name, text)
+    for name, text in batches.items():
+        _write(root / "to-browser" / name, text)
+    (root / "to-cc").mkdir(parents=True, exist_ok=True)
+    return root
+
+
+def _ratification(date: str, *rulings: str, carried: str = "OPEN") -> str:
+    return (f"carried-by: {carried}\nlands-via: x\ndate: {date}\nversion: v1\nkind: RATIFICATION\n\n"
+            "# RATIFICATION\n\n" + "".join(f"## {r} — a ruling\n\ntext\n\n" for r in rulings))
+
+
+CLOSED = "CLOSED {day}T08:00Z -- fixture\n"
+
+
+def test_an_unlanded_ruling_older_than_one_closed_batch_is_REFUSED(tmp_path: Path):
+    """The RED the AMEND names: a fixture RATIFICATION holding an unlanded ruling, two closed
+    batches after its date -> refused, and the CLI exits non-zero."""
+    root = tmp_path / "r"
+    _register(root, _entry(70, NO_IMPL))
+    transport = _transport(
+        tmp_path, {"RATIFICATION-2026-09-01.md": _ratification("2026-09-01", "R99")},
+        {"STATE-BATCH-ONE.md": CLOSED.format(day="2026-09-05"),
+         "STATE-BATCH-TWO.md": CLOSED.format(day="2026-09-09")})
+    got = dc.unlanded_rulings(root, transport)
+    assert _names(got) == ["R99"]
+    assert "RATIFICATION-2026-09-01.md" in got[0].evidence and "2 closed batch" in got[0].evidence
+
+
+def test_the_unlanded_cli_exits_non_zero_and_the_landed_one_exits_zero(tmp_path: Path,
+                                                                       monkeypatch, capsys):
+    root = tmp_path / "r"
+    _register(root, _entry(99, NO_IMPL))
+    batches = {"STATE-BATCH-ONE.md": CLOSED.format(day="2026-09-05"),
+               "STATE-BATCH-TWO.md": CLOSED.format(day="2026-09-09")}
+    bad = _transport(tmp_path, {"RATIFICATION-2026-09-01.md": _ratification("2026-09-01", "R98")},
+                     batches)
+    monkeypatch.setattr(dc, "_transport_root", lambda: bad)
+    assert dc.main(["rulings", "--repo-root", str(root)]) == 1
+    assert "R98" in capsys.readouterr().out
+    good = _transport(tmp_path / "good",
+                      {"RATIFICATION-2026-09-01.md": _ratification("2026-09-01", "R99")}, batches)
+    monkeypatch.setattr(dc, "_transport_root", lambda: good)
+    assert dc.main(["rulings", "--repo-root", str(root)]) == 0
+    assert "OK" in capsys.readouterr().out
+
+
+def test_one_closed_batch_is_the_grace_period_not_a_refusal(tmp_path: Path):
+    root = tmp_path / "r"
+    _register(root, _entry(70, NO_IMPL))
+    transport = _transport(
+        tmp_path, {"RATIFICATION-2026-09-01.md": _ratification("2026-09-01", "R99")},
+        {"STATE-BATCH-ONE.md": CLOSED.format(day="2026-09-05"),
+         "STATE-BATCH-OLD.md": CLOSED.format(day="2026-08-01")})   # closed BEFORE the ruling
+    assert dc.unlanded_rulings(root, transport) == []
+
+
+def test_a_batch_that_is_not_closed_does_not_age_a_ruling(tmp_path: Path):
+    root = tmp_path / "r"
+    _register(root, _entry(70, NO_IMPL))
+    transport = _transport(
+        tmp_path, {"RATIFICATION-2026-09-01.md": _ratification("2026-09-01", "R99")},
+        {"STATE-BATCH-ONE.md": CLOSED.format(day="2026-09-05"),
+         "STATE-BATCH-TWO.md": "RUNNING since 2026-09-06\n",
+         "STATE-BATCH-THREE.md": "FINISHED 2026-09-07T01:00Z\n"})
+    assert dc.unlanded_rulings(root, transport) == []
+
+
+# --- N7's hazards --------------------------------------------------------------------------
+
+
+_TWO_CLOSED = {"STATE-BATCH-ONE.md": CLOSED.format(day="2026-09-05"),
+               "STATE-BATCH-TWO.md": CLOSED.format(day="2026-09-09")}
+
+
+def test_hazard_a_an_id_that_restarts_in_another_file_is_not_a_false_refusal(tmp_path: Path):
+    """R-ids are not globally unique (`RATIFICATION-2026-09-25.md` restarts at R1 in the live
+    transport): the same id in two files, landed once, must not refuse either of them."""
+    root = tmp_path / "r"
+    _register(root, _entry(1, NO_IMPL))
+    transport = _transport(
+        tmp_path, {"RATIFICATION-2026-09-01.md": _ratification("2026-09-01", "R1"),
+                   "RATIFICATION-2026-09-02.md": "carried-by: OPEN\ndate: 2026-09-02\n\n"
+                                                 "- **R1** backlog O1.\n"}, _TWO_CLOSED)
+    assert dc.unlanded_rulings(root, transport) == []
+
+
+def test_hazard_b_a_landed_ruling_in_a_file_still_reading_OPEN_is_not_unlanded(tmp_path: Path):
+    """Seven older non-superseded files still read `carried-by: OPEN` and their rulings ARE
+    landed. Carriage is not the landed test; the register's content is."""
+    root = tmp_path / "r"
+    _register(root, _entry(99, NO_IMPL))
+    transport = _transport(
+        tmp_path, {"RATIFICATION-2026-09-01.md": _ratification("2026-09-01", "R99", carried="OPEN")},
+        _TWO_CLOSED)
+    assert dc.unlanded_rulings(root, transport) == []
+
+
+def test_hazard_c_files_with_no_ruling_ids_contribute_nothing(tmp_path: Path):
+    root = tmp_path / "r"
+    _register(root, _entry(70, NO_IMPL))
+    transport = _transport(
+        tmp_path, {"RATIFICATION-2026-09-01.md": "date: 2026-09-01\n\none line per item: O-1, B-2\n",
+                   "RATIFICATION-DIGEST-2026-09-06.md": "## R999 — a digest, not a ruling file\n"},
+        _TWO_CLOSED)
+    assert dc.unlanded_rulings(root, transport) == []
+
+
+@pytest.mark.parametrize("name", ["RATIFICATION-2026-09-01-v3-superseded.md",
+                                  "RATIFICATION-2026-09-01-v6-withdrawn.md"])
+def test_a_superseded_or_withdrawn_file_is_not_a_non_superseded_file(tmp_path: Path, name: str):
+    root = tmp_path / "r"
+    _register(root, _entry(70, NO_IMPL))
+    transport = _transport(tmp_path, {name: _ratification("2026-09-01", "R99")}, _TWO_CLOSED)
+    assert dc.unlanded_rulings(root, transport) == []
+
+
+def test_hazard_d_a_carried_by_naming_the_register_does_not_land_a_ruling(tmp_path: Path):
+    """P11 proves a HOME exists, not that the ruling is in it. A file whose carried-by names
+    `protocols/STANDING_RULINGS.md` resolves under P11 and its ruling is still not landed."""
+    root = tmp_path / "r"
+    _register(root, _entry(70, NO_IMPL))
+    transport = _transport(
+        tmp_path, {"RATIFICATION-2026-09-01.md": _ratification(
+            "2026-09-01", "R99", carried="protocols/STANDING_RULINGS.md")}, _TWO_CLOSED)
+    assert _names(dc.unlanded_rulings(root, transport)) == ["R99"]
+
+
+def test_a_ruling_with_no_computable_date_is_not_refused_on_a_guess(tmp_path: Path):
+    root = tmp_path / "r"
+    _register(root, _entry(70, NO_IMPL))
+    transport = _transport(tmp_path, {"RATIFICATION-undated.md": "## R99 — undated\n"}, _TWO_CLOSED)
+    assert dc.unlanded_rulings(root, transport) == []
+
+
+# --- the transport boundary ----------------------------------------------------------------
+
+
+def test_an_unreadable_transport_is_reported_unmeasured_never_a_pass(tmp_path: Path):
+    root = tmp_path / "r"
+    _register(root, _entry(70, NO_IMPL))
+    report = dc.rulings_report(root, transport=None)
+    assert report.uncarried == []
+    assert report.unlanded is None, "None is 'not measured' -- an empty list would read as clean"
+    assert "not measured" in report.render()
+
+
+def test_a_transport_with_no_to_browser_folder_is_unreadable_not_empty(tmp_path: Path):
+    root = tmp_path / "r"
+    _register(root, _entry(70, NO_IMPL))
+    (tmp_path / "bare").mkdir()
+    assert dc.rulings_report(root, transport=tmp_path / "bare").unlanded is None
+
+
+# --- the live tree --------------------------------------------------------------------------
+
+
+def test_the_live_register_carries_every_gated_ruling():
+    """Item 2's RED: every landed R55-R79 entry has a row or a disposition. On e67f27ac the
+    register stops at R54, so this is the test the rows and the section have to turn green."""
+    text = (REPO_ROOT / "protocols" / "STANDING_RULINGS.md").read_text(encoding="utf-8")
+    landed = {e.number for e in dc.parse_register(text)}
+    assert set(range(55, 80)) <= landed, sorted(set(range(55, 80)) - landed)
+    assert dc.uncarried_rulings(REPO_ROOT) == [], _names(dc.uncarried_rulings(REPO_ROOT))
+
+
+def test_the_live_rows_this_lane_filed_sit_in_its_id_block():
+    """Every row an R55-R79 entry names is an existing row; the rows this lane filed live in
+    1360-1399 (task-id allocation N6) -- a row outside the block was a pre-existing one."""
+    text = (REPO_ROOT / "protocols" / "STANDING_RULINGS.md").read_text(encoding="utf-8")
+    named = {int(r) for e in dc.parse_register(text) if e.number >= 55 for r in e.rows}
+    assert named, "no gated entry names a row"
+    pre_existing = {1334}                      # R57 is carried by the row FOUNDATION filed
+    assert all(1360 <= n <= 1399 for n in named - pre_existing), sorted(named)
+    assert any(1360 <= n <= 1399 for n in named)
+
+
+def test_the_live_unlanded_leg_where_the_transport_is_reachable():
+    transport = dc._transport_root()
+    if transport is None or not (Path(transport) / "to-browser").is_dir():
+        import warnings
+        warnings.warn("UNVERIFIED: no transport -- the unlanded-for-a-batch leg was not run",
+                      UserWarning, stacklevel=1)
+        return
+    got = dc.unlanded_rulings(REPO_ROOT, transport)
+    assert got == [], "; ".join(f"{f.subject}: {f.evidence}" for f in got)

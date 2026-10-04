@@ -743,6 +743,25 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1348] [P2][S] Four tests expect one finding and read three or four: doc-code edge, reverse-dep oracle, preflight predicates · tasks/1348-four-tests-expect-one-finding-and-read-three-or.md
 - [#1349] [P2][S] release-lint: the floor spec pin does not match its sidecar, and five tests read it · tasks/1349-release-lint-the-floor-spec-pin-does-not-match-i.md
 - [#1350] [P2][S] The transport append lock reads a Windows delete-pending file as an error, and one test flakes on it · tasks/1350-the-transport-append-lock-reads-a-windows-delete.md
+- [#1360] [P1][L] D1 is the first real backlog task through the spine, accepted only by a measured end-to-end trial · tasks/1360-d1-is-the-first-real-backlog-task-through-the-spin.md
+- [#1361] [P1][L] The harness is one process with one writer: every stage boundary checks, and no agent evaluates its own work · tasks/1361-the-harness-is-one-process-with-one-writer-every-s.md
+- [#1362] [P1][L] A removal engine finds what is no longer current and brings it to removal, and it outranks new features · tasks/1362-a-removal-engine-finds-what-is-no-longer-current-a.md
+- [#1363] [P1][L] False positives have a mechanism each: detect, diagnose and repair, or stop and leave the operator the decision · tasks/1363-false-positives-have-a-mechanism-each-detect-diagn.md
+- [#1364] [P2][M] HANDOFF_BOOT carries the browser seat's role and the fresh-session default, and SEAT-LESSONS lesson 11 is corrected · tasks/1364-handoff-boot-carries-the-browser-seat-s-role-and-t.md
+- [#1365] [P2][L] The window's capacity, speed and handoff targets are measured at every merge, not asserted · tasks/1365-the-window-s-capacity-speed-and-handoff-targets-ar.md
+- [#1366] [P1][L] A Codespace lane is production only when the five end-to-end conditions hold on three consecutive runs · tasks/1366-a-codespace-lane-is-production-only-when-the-five.md
+- [#1367] [P1][L] The integrator merges only on a green CI verdict for the exact sha, and main is protected by an enabled ruleset · tasks/1367-the-integrator-merges-only-on-a-green-ci-verdict-f.md
+- [#1368] [P1][M] Every lane's fate is computed and the batch-close report lists them, failures first · tasks/1368-every-lane-s-fate-is-computed-and-the-batch-close.md
+- [#1369] [P2][L] The R66 retire-table acts are executed one by one, each under R59's dynamic-use check · tasks/1369-the-r66-retire-table-acts-are-executed-one-by-one.md
+- [#1370] [P1][L] Volatile facts have one source and every copy is generated, and the handoff boot's version follows its content · tasks/1370-volatile-facts-have-one-source-and-every-copy-is-g.md
+- [#1371] [P1][M] Transport files follow one grammar with one live file per subject, and a generated index and a non-deleting janitor keep it so · tasks/1371-transport-files-follow-one-grammar-with-one-live-f.md
+- [#1372] [P1][L] The CI OS policy runs as accepted and is measured before and after, and reverted if any measure worsens · tasks/1372-the-ci-os-policy-runs-as-accepted-and-is-measured.md
+- [#1373] [P1][L] Every handoff is boot-tested before the cut and teaches: SEAT-LESSONS, the seat exam and the teach-back are part of it · tasks/1373-every-handoff-is-boot-tested-before-the-cut-and-te.md
+- [#1374] [P1][L] All dispatch lives in the hub for local, Codespace and cloud, win-tooling keeps at most a shim, and an ADR amends R11(3) · tasks/1374-all-dispatch-lives-in-the-hub-for-local-codespace.md
+- [#1375] [P2][M] Skills and commands are kept by the problem they solve, and Anthropic's built-ins are reviewed on a routine · tasks/1375-skills-and-commands-are-kept-by-the-problem-they-s.md
+- [#1376] [P2][M] Codespace model credentials for codex, grok and agy are loaded from the secrets folder, and the agy sign-in gap is closed or recorded · tasks/1376-codespace-model-credentials-for-codex-grok-and-agy.md
+- [#1377] [P1][L] Hand-maintained prose is kept to the minimum, and each file that remains is held current by the harness · tasks/1377-hand-maintained-prose-is-kept-to-the-minimum-and-e.md
+- [#1378] [P1][S] The rulings gate is armed at batch close and the first real cut, and its verdict is recorded · tasks/1378-the-rulings-gate-is-armed-at-batch-close-and-the-f.md
 
 ---
 
