@@ -631,13 +631,60 @@ def test_ship_gate_never_touches_an_existing_verdict_steps_continue_on_error(wor
     assert "continue-on-error" not in ruff_step
 
 
-def test_every_required_context_is_a_real_job_in_the_workflow(workflow, ruleset):
-    # Job NAMES are the check CONTEXTS. Renaming a job silently disarms its required check, so
-    # this is the test that makes the two files one fact.
+def emitted_contexts(workflow) -> set:
+    """The check-run NAMES the workflow emits, the way GitHub names them: a job's `name:` (or its
+    id), and for a matrix job `<name> (<v1>, <v2>)` per combination -- so the matrix `pytest` job
+    emits `pytest (ubuntu-latest)` and `pytest (windows-latest)`, never a bare `pytest`."""
+    import itertools
+
+    names: set = set()
+    for job_id, job in workflow["jobs"].items():
+        base = job.get("name", job_id)
+        matrix = {k: v for k, v in (job.get("strategy", {}).get("matrix") or {}).items()
+                  if isinstance(v, list) and k not in ("include", "exclude")}
+        if not matrix:
+            names.add(base)
+            continue
+        for combo in itertools.product(*matrix.values()):
+            names.add(f"{base} ({', '.join(str(v) for v in combo)})")
+    return names
+
+
+def test_every_required_context_is_a_check_run_name_the_workflow_emits(workflow, ruleset):
+    # foundation-4 item 7 (G2). Job NAMES -- matrix-expanded -- are the check CONTEXTS. Before this
+    # lane the ruleset said `pytest`, a name the OS matrix stopped emitting when `pytest` became
+    # `pytest (ubuntu-latest)` / `pytest (windows-latest)`; applied, it would have required a
+    # check that never exists and bricked main. This is the test that makes the two files one
+    # fact, with the matrix expansion included.
     contexts = {c["context"] for c in
                 ruleset["rules"][0]["parameters"]["required_status_checks"]}
-    assert contexts <= set(workflow["jobs"]), \
-        f"required contexts with no job: {sorted(contexts - set(workflow['jobs']))}"
+    assert contexts == {"pytest (ubuntu-latest)", "pytest (windows-latest)", "ruff", "seal",
+                        "spine", "anchor"}
+    assert contexts <= emitted_contexts(workflow), \
+        f"required contexts no job emits: {sorted(contexts - emitted_contexts(workflow))}"
+
+
+def test_a_bare_pytest_context_is_NOT_a_name_this_workflow_emits(workflow):
+    assert "pytest" not in emitted_contexts(workflow)
+
+
+def test_every_required_context_is_emitted_on_a_main_push_with_no_path_filter_or_job_if(
+        workflow, ruleset):
+    # A required check that is skipped (a path filter that excludes the push, a job-level `if:`
+    # that is false) is a check that never reports, and a required check that never reports
+    # blocks the merge forever -- or, if the job is skipped, GitHub counts it as passing, which is
+    # the opposite failure. Neither may apply to a context the ruleset requires.
+    push = workflow[True]["push"]
+    assert "paths" not in push and "paths-ignore" not in push, \
+        "a path filter on the push trigger can skip every required context"
+    assert "main" in push["branches"]
+    required_jobs = {"pytest", "ruff", "seal", "spine", "anchor"}
+    for job_id in required_jobs:
+        assert "if" not in workflow["jobs"][job_id], \
+            f"{job_id} carries a job-level `if:` -- it could be skipped on a main push"
+    contexts = {c["context"] for c in
+                ruleset["rules"][0]["parameters"]["required_status_checks"]}
+    assert {c.split(" (")[0] for c in contexts} == required_jobs
 
 
 def test_terra_is_a_job_but_is_deliberately_not_a_required_context(workflow, ruleset):

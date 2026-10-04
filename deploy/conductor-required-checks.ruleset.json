@@ -16,9 +16,12 @@
         "strict_required_status_checks_policy": false,
         "do_not_enforce_on_create": false,
         "required_status_checks": [
-          { "context": "pytest" },
+          { "context": "pytest (ubuntu-latest)" },
+          { "context": "pytest (windows-latest)" },
           { "context": "ruff" },
-          { "context": "seal" }
+          { "context": "seal" },
+          { "context": "spine" },
+          { "context": "anchor" }
         ]
       }
     }

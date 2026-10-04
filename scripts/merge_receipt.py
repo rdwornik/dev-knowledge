@@ -97,6 +97,7 @@ from __future__ import annotations
 import json
 import logging
 import platform
+import re
 import statistics
 import subprocess
 import time
@@ -134,6 +135,13 @@ try:
     from scripts import routing_agreement as _ra
 except ImportError:  # pragma: no cover -- exercised by the scripts/-on-sys.path entrypoint
     import routing_agreement as _ra
+
+# A4: every stage the receipt times also leaves one run event in the R17 private home. `merge_path`
+# imports this module only inside `land`, so this top-level import has no cycle.
+try:
+    from scripts import merge_path as _mp
+except ImportError:  # pragma: no cover -- exercised by the scripts/-on-sys.path entrypoint
+    import merge_path as _mp
 
 logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("merge-receipt")
@@ -182,7 +190,27 @@ STEP_CLASSES: tuple[str, ...] = (CLASS_TESTS, CLASS_REVIEW, CLASS_CEREMONY)
 
 #: The steps a merge is EXPECTED to record, from `/lane-integrate`'s own walk. `--strict` reads
 #: this; it is a completeness bar for a receipt, never a schedule the merge must follow.
-REQUIRED_STEPS: tuple[str, ...] = ("handback", "merge", "suite", "teardown")
+REQUIRED_STEPS_PRE_PUSH: tuple[str, ...] = ("handback", "merge")
+#: foundation-4-merge-gate (G5/G6): the receipt is SPLIT AT THE PUSH. The integrator pushes the
+#: merge commit to `worktree-integrate-<batch>`, CI runs there, and the same sha then goes to
+#: `main`. `suite` is the integration-branch CI wait -- bound to the pushed sha by
+#: `record_actions_verdict` -- and the receipt carries `integration_branch` / `pushed_sha` forward
+#: from the pre-push half to the post-push one. A receipt that records an integration push is
+#: SPLIT-ERA and also requires both push steps (`SPLIT_ERA_PUSH_STEPS`); a receipt that never did
+#: keeps exactly the four steps it always required.
+REQUIRED_STEPS_POST_PUSH: tuple[str, ...] = ("suite", "teardown")
+REQUIRED_STEPS: tuple[str, ...] = REQUIRED_STEPS_PRE_PUSH + REQUIRED_STEPS_POST_PUSH
+STEP_PUSH_INTEGRATION = "push-integration"
+STEP_PUSH_MAIN = "push-main"
+SPLIT_ERA_PUSH_STEPS: tuple[str, ...] = (STEP_PUSH_INTEGRATION, STEP_PUSH_MAIN)
+#: The stages the digest reports per merge, in walk order, and the rule that maps a step id to one
+#: (`stage_of`). `ci-wait` is the `suite` step on a split-era receipt (the integration-branch
+#: wait) and the `actions` read on any other; the local suite, where it still runs, is `suite`
+#: too and lands in the same stage -- one stage, because the digest asks "how long did verifying
+#: take", not which of two readers answered.
+STAGE_ORDER: tuple[str, ...] = ("handback", "merge", "gates", "ci-wait", "push", "teardown")
+#: The branch an integration push must name. `conductor.yml` triggers on `worktree-**` pushes.
+INTEGRATION_BRANCH_PREFIX = "worktree-integrate-"
 
 #: WHAT KIND OF ARC THIS RECEIPT TIMED, and the reason the field exists at all.
 #:
@@ -255,6 +283,13 @@ class StepTiming:
     #: baseline was derived -- which is honest, because those readings took a baseline that was
     #: typed and is no longer recoverable.
     baseline_sha: Optional[str] = None
+    #: THE REDS THAT WERE PRESENT ON BOTH SIDES, FLAGGED RATHER THAN REFUSED (b2-merge-gate, R64),
+    #: each `"<leg>: [<bucket>] <node id> -- <note>"` as `actions_verdict.Verdict.flagged` reads it.
+    #: Written to the receipt because a merge that lands on a red `main` must say WHICH reds it
+    #: landed beside: `PRE-EXISTING` alone is a claim, the named buckets are the reading. `()` on a
+    #: step that read no verdict and on every row written before this field -- honest, those rows
+    #: were never judged flag-or-refuse.
+    flagged: tuple[str, ...] = ()
 
     @property
     def minutes(self) -> float:
@@ -326,6 +361,12 @@ class Receipt:
     ran_model: Optional[str] = None
     steps: list[StepTiming] = field(default_factory=list)
     closed: Optional[str] = None
+    #: THE CARRIED-FORWARD SCHEMA of the push split (G5/G6): which integration branch the merge
+    #: commit was pushed to, and which sha. Set by `record_push`; `None` on a receipt that never
+    #: pushed to an integration branch (every receipt before this lane), and None is not a
+    #: finding -- it is a pre-split receipt, judged by the four steps it always required.
+    integration_branch: Optional[str] = None
+    pushed_sha: Optional[str] = None
 
     # -- arithmetic ---------------------------------------------------------------------------
 
@@ -425,6 +466,13 @@ class Receipt:
         states = [s.verdict_state for s in self.steps if s.verdict_state]
         return states[-1] if states else None
 
+    def flagged_reds(self) -> tuple[str, ...]:
+        """The reds the LATEST suite reading flagged (red on both sides, not refused) -- the same
+        step `suite_verdict` takes, for the same reason: a retried read supersedes the first, and
+        a superseded reading's flags must not read as the merge's."""
+        steps = [s for s in self.steps if s.verdict_state]
+        return steps[-1].flagged if steps else ()
+
     def by_class(self) -> dict[str, float]:
         """Seconds per class. Raced steps count in FULL here, deliberately: the question a class
         split answers is "how much work of each kind was done", which concurrency does not
@@ -454,7 +502,20 @@ class Receipt:
 
     def missing_required(self) -> list[str]:
         recorded = {s.step for s in self.steps}
-        return [s for s in REQUIRED_STEPS if s not in recorded]
+        required = list(REQUIRED_STEPS)
+        if self.pushed_sha:                       # split-era: both pushes are part of the walk
+            required += [s for s in SPLIT_ERA_PUSH_STEPS if s not in required]
+        return [s for s in required if s not in recorded]
+
+    def stage_seconds(self) -> dict[str, float]:
+        """Seconds per STAGE (`STAGE_ORDER`), in walk order, only for stages that were timed --
+        the digest's per-merge stage times, summed here so nobody does the arithmetic by hand."""
+        totals: dict[str, float] = {}
+        for step in self.steps:
+            stage = stage_of(step.step)
+            if stage:
+                totals[stage] = round(totals.get(stage, 0.0) + step.seconds, 3)
+        return {s: totals[s] for s in STAGE_ORDER if s in totals}
 
     def failed_steps(self) -> list[StepTiming]:
         return [s for s in self.steps if not s.ok]
@@ -586,6 +647,24 @@ class Receipt:
                         f"does not un-regress a merge, so this receipt stays INCOMPLETE. If the "
                         f"regression was mis-attributed, the baseline was wrong and the fix is a "
                         f"correct read on a new receipt, not a second opinion on this one")
+        if self.kind == KIND_MERGE and self.pushed_sha:
+            # G6: the suite step IS the integration-branch wait, so it cannot have been read
+            # BEFORE the sha was pushed there. (`record_actions_verdict` refuses the wrong sha at
+            # record time; this leg catches a receipt whose order says otherwise.)
+            # the LATEST of each: a later integration push moves the sha CI must have judged
+            push = next((s for s in reversed(self.steps) if s.step == STEP_PUSH_INTEGRATION), None)
+            suite = next((s for s in reversed(self.steps)
+                          if s.step == "suite" and s.verdict_state), None)
+            if push is not None and suite is not None:
+                try:
+                    pushed_at = datetime.fromisoformat(push.started)
+                    read_at = datetime.fromisoformat(suite.started)
+                except (TypeError, ValueError):
+                    pushed_at = read_at = None
+                if pushed_at is not None and read_at < pushed_at:
+                    return (f"the suite step started {suite.started}, before the integration push "
+                            f"at {push.started} -- a verdict read before the sha was pushed cannot "
+                            f"be the integration branch's CI")
         failed = [s for s in self.failed_steps() if not self.judged_by_verdict(s)]
         if failed:
             return (f"{len(failed)} step(s) failed ({', '.join(s.step for s in failed)}) -- "
@@ -608,7 +687,8 @@ class Receipt:
             # just above: `ended` is `started` + `seconds`, computed fresh on every read, and
             # this key exists so a ledger row is greppable for it rather than requiring the
             # arithmetic back from a reader.
-            {**asdict(s), "raced_with": list(s.raced_with), "ended": s.ended} for s in self.steps]
+            {**asdict(s), "raced_with": list(s.raced_with), "flagged": list(s.flagged),
+             "ended": s.ended} for s in self.steps]
         data["wall_seconds"] = round(self.wall_seconds(), 3)
         data["recorded_seconds"] = round(self.recorded_seconds(), 3)
         data["unrecorded_seconds"] = round(self.unrecorded_seconds(), 3)
@@ -617,6 +697,7 @@ class Receipt:
         # exists so a ledger row is greppable -- "recorded BY NAME on the receipt" is what
         # ruling AY1-1 asks for, and a median a reader cannot audit is a claim.
         data["suite_verdict"] = self.suite_verdict()
+        data["flagged_reds"] = list(self.flagged_reds())
         tests_min, residual_min = self.baseline_split()
         data["baseline_split_minutes"] = {"tests": round(tests_min, 2),
                                           "residual_ceremony": round(residual_min, 2)}
@@ -630,7 +711,8 @@ class Receipt:
                             command=s.get("command", ""), started=s.get("started", ""),
                             raced_with=tuple(s.get("raced_with", ())),
                             verdict_state=s.get("verdict_state"),
-                            baseline_sha=s.get("baseline_sha"))
+                            baseline_sha=s.get("baseline_sha"),
+                            flagged=tuple(s.get("flagged", ())))
                  for s in data.get("steps", [])]
         # A row written before `kind` existed is a MERGE receipt — that is what the ledger held
         # when the field was absent, so the default reads the history correctly rather than
@@ -650,7 +732,9 @@ class Receipt:
                    host=data.get("host", ""), concurrent_seats=data.get("concurrent_seats", 0),
                    kind=data.get("kind", KIND_MERGE), merge_sha=data.get("merge_sha"),
                    ordered_model=data.get("ordered_model"), ran_model=data.get("ran_model"),
-                   steps=steps, closed=data.get("closed"))
+                   steps=steps, closed=data.get("closed"),
+                   integration_branch=data.get("integration_branch"),
+                   pushed_sha=data.get("pushed_sha"))
 
 
 # --- context ---------------------------------------------------------------------------------
@@ -675,6 +759,20 @@ def count_concurrent_seats(repo_root: Path) -> int:
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def stage_of(step: str) -> Optional[str]:
+    """The `STAGE_ORDER` stage a step id belongs to, or None for a step outside the walk (a
+    `review`, a `race` member): those stay in the itemised list but not in the stage report."""
+    if step in ("handback", "merge", "teardown"):
+        return step
+    if step.startswith("gate") or step == "assemble":    # `assemble` is the walk's `moment:merge`
+        return "gates"
+    if step == "suite" or step.startswith("actions"):
+        return "ci-wait"
+    if step.startswith("push"):
+        return "push"
+    return None
 
 
 def scratch_path(repo_root: Path, slug: str) -> Path:
@@ -723,6 +821,12 @@ def load_receipt(repo_root: Path, slug: str) -> Receipt:
 def save_receipt(repo_root: Path, receipt: Receipt) -> None:
     scratch_path(repo_root, receipt.slug).write_text(
         json.dumps(receipt.to_dict(), indent=2), encoding="utf-8", newline="\n")
+
+
+def _stage_event(timing: "StepTiming") -> None:
+    """One run event for one timed stage (A4). Never raises; a dropped event is reported on stderr."""
+    _mp.emit_run_event(f"merge_receipt:{timing.step}", "ok" if timing.ok else "fail", timing.seconds,
+                       step_class=timing.step_class)
 
 
 def run_timed(command: Sequence[str], *, step: str, step_class: str,
@@ -779,9 +883,57 @@ def _same_commit(left: str, right: str) -> bool:
     return left.startswith(right) or right.startswith(left)
 
 
+def record_push(repo_root: Path, *, slug: str, target: str, branch: str, sha: str,
+                seconds: float) -> Receipt:
+    """Record ONE of the two pushes the integrator makes, and carry the facts forward (G5/G6).
+
+    `target="integration"`: the merge commit went to `worktree-integrate-<batch>`; the receipt
+    keeps `integration_branch` and `pushed_sha`. `target="main"`: the SAME sha went to `main` --
+    refused unless an integration push was recorded first and this sha is that one, because the
+    whole of the integration branch is that what lands is the sha CI judged. The push itself is
+    made by the caller (`merge_path.py land`); this records it and its minutes, never makes it.
+    """
+    receipt = load_receipt(repo_root, slug)
+    started = _now()
+    if target == "integration":
+        if not branch.startswith(INTEGRATION_BRANCH_PREFIX):
+            raise MergeReceiptError(
+                f"{branch!r} is not an integration branch: it must start with "
+                f"{INTEGRATION_BRANCH_PREFIX!r} (a `worktree-**` push is what triggers CI)")
+        receipt.integration_branch, receipt.pushed_sha = branch, sha
+        step = STEP_PUSH_INTEGRATION
+    elif target == "main":
+        if not receipt.pushed_sha:
+            raise MergeReceiptError(
+                "no integration push is recorded on this receipt: main only ever receives the "
+                "sha CI already judged on the integration branch -- record `push --target "
+                "integration` first")
+        if not _same_commit(sha, receipt.pushed_sha):
+            raise MergeReceiptError(
+                f"the push to main must be the same sha CI judged on the integration branch: "
+                f"{sha} is not {receipt.pushed_sha}")
+        landable = (_av.STATE_PASS, _av.STATE_PRE_EXISTING)
+        if receipt.suite_verdict() not in landable:
+            raise MergeReceiptError(
+                f"the recorded suite read is {receipt.suite_verdict() or 'absent'!r}, not one of "
+                f"{', '.join(landable)}: main only receives a sha whose CI read on the integration "
+                f"branch is on this receipt and landable")
+        step = STEP_PUSH_MAIN
+    else:
+        raise MergeReceiptError(f"push target {target!r} is outside {{integration, main}}")
+    timing = StepTiming(
+        step=step, step_class=CLASS_CEREMONY, seconds=round(float(seconds), 3), ok=True,
+        returncode=0, command=f"git push origin {sha}:refs/heads/{branch}", started=started)
+    receipt.steps.append(timing)
+    save_receipt(repo_root, receipt)
+    _stage_event(timing)
+    return receipt
+
+
 def record_actions_verdict(repo_root: Path, *, slug: str, sha: str,
-                           baseline: Optional[str] = None, step: str = ACTIONS_STEP,
-                           fetch=None, first_parent=None) -> tuple[Receipt, "_av.Verdict"]:
+                           baseline: Optional[str] = None, step: Optional[str] = None,
+                           fetch=None, first_parent=None,
+                           required_contexts: tuple = ()) -> tuple[Receipt, "_av.Verdict"]:
     """Read this merge's Actions verdict, record its STATE on the receipt, bind the merge SHA.
 
     RULING AY1-1'S CARRIER. Until `[#750]` this was a `time --step actions -- actions_verdict.py
@@ -822,8 +974,24 @@ def record_actions_verdict(repo_root: Path, *, slug: str, sha: str,
     `fetch` is `actions_verdict`'s own injection seam, passed straight through so a test drives
     the real state machine rather than asserting a state it typed itself. `first_parent` is the
     same shape for the git resolution, so the refusal is testable without a repository fixture.
+
+    b2-merge-gate (R64): `required_contexts` (the merge path hands it the ruleset's six) makes this
+    read judge the SAME required checks the landing decision judged, so the receipt cannot complete
+    on a state `merge_path.land` refused; the verdict's FLAGGED buckets (red on both sides, not
+    refused) are recorded on the step beside its state.
     """
     receipt = load_receipt(repo_root, slug)
+    if receipt.pushed_sha:
+        # G6: on a split-era receipt this read IS the integration-branch CI wait, so it is bound
+        # to the sha that was pushed there and is recorded as the `suite` step -- before anything
+        # is read, so a refused read records nothing.
+        if not _same_commit(sha, receipt.pushed_sha):
+            raise MergeReceiptError(
+                f"{sha} is not the sha pushed to {receipt.integration_branch}, which is "
+                f"{receipt.pushed_sha}: the suite step is the integration-branch wait, and it "
+                f"reads that run or none")
+        step = step or "suite"
+    step = step or ACTIONS_STEP
     resolve = first_parent or first_parent_of
     derived = resolve(repo_root, sha)
     if baseline is not None and not _same_commit(baseline, derived):
@@ -835,13 +1003,15 @@ def record_actions_verdict(repo_root: Path, *, slug: str, sha: str,
             f"there is deliberately no flag that accepts a different one")
     started = _now()
     clock = time.perf_counter()
-    verdict = _av.verdict_for(sha, baseline=derived, fetch=fetch, repo_root=repo_root)
+    verdict = _av.verdict_for(sha, baseline=derived, fetch=fetch, repo_root=repo_root,
+                              required_contexts=tuple(required_contexts))
     elapsed = time.perf_counter() - clock
     receipt.steps.append(StepTiming(
         step=step, step_class=CLASS_TESTS, seconds=round(elapsed, 3), ok=verdict.ok,
         returncode=0 if verdict.ok else 1,
         command=f"actions_verdict.verdict_for(sha={sha}, baseline={derived})",
-        started=started, verdict_state=verdict.state, baseline_sha=derived))
+        started=started, verdict_state=verdict.state, baseline_sha=derived,
+        flagged=tuple(verdict.flagged)))
     receipt.merge_sha = sha
     save_receipt(repo_root, receipt)
     return receipt, verdict
@@ -1194,6 +1364,28 @@ def median_report(receipts: Sequence[Receipt], kind: str = KIND_MERGE) -> Median
                         per_merge=tuple(minutes), **common)
 
 
+_UNREGISTERED_FLAG_RE = re.compile(r"^(?P<leg>.+?): \[unregistered\] (?P<id>\S+) -- ")
+
+
+def rows_owed(flagged) -> list[str]:
+    """One `ROWS-OWED: <title> — <in-repo provenance> — <runnable check>` line per flagged red that
+    is `unregistered` (red on both sides, absent from the known-reds registry): the receipt names
+    the debt and the integrator carries it into the digest. This organ writes no registry entry --
+    the registry is lane 1's, so the debt is a registry entry (task, owner, expiry) or a row, and
+    only the integrator files either. Other buckets owe nothing here: a stale signature or a
+    ceiling is an entry the registry already has, and a flaky swap is the registry doing its job."""
+    out: list[str] = []
+    for item in flagged:
+        m = _UNREGISTERED_FLAG_RE.match(item)
+        if m:
+            node_id, leg = m.group("id"), m.group("leg")
+            out.append(f"ROWS-OWED: register or file a row for {node_id} (red on both sides on "
+                       f"{leg}, absent from the known-reds registry) — logs/KNOWN-REDS-REGISTRY.json"
+                       f" (an entry needs task, owner, expiry) — "
+                       f"uv run --locked pytest \"{node_id}\" -q")
+    return out
+
+
 def render_summary(receipt: Receipt) -> str:
     """The itemised view -- target 3.1's deliverable. Per-step minutes, then both splits."""
     lines = [f"receipt {receipt.slug}  kind={receipt.kind}  batch={receipt.batch or '-'}  "
@@ -1240,6 +1432,11 @@ def render_summary(receipt: Receipt) -> str:
                      + ("COMPLETE on this leg (ruling AY1-1), and NOT a statement that the run "
                         "was green" if state in COMPLETE_SUITE_STATES else
                         "INCOMPLETE: this receipt cannot discharge its merge"))
+    flagged = receipt.flagged_reds()
+    for item in flagged:
+        lines.append(f"  FLAGGED (red on both sides, NOT a refusal): {item}")
+    for owed in rows_owed(flagged):
+        lines.append(f"  {owed}")
     # THE MODEL LINE ALWAYS PRINTS, including when there is nothing to print -- `[#752]`. An
     # absence a reader cannot SEE reads as a clean bill, and this module exists because a
     # plausible answer was returned where the discriminating field was simply not there. So the
@@ -1265,6 +1462,12 @@ def render_summary(receipt: Receipt) -> str:
                  + ", ".join(f"{k} {v / 60.0:.2f} min" for k, v in classes.items())
                  + "   (review is split out because target 3.5 forbids trading it away, and a "
                    "binary split cannot show that it was not)")
+    stages = receipt.stage_seconds()
+    if stages:
+        lines.append("  STAGES (per merge, in walk order): "
+                     + ", ".join(f"{k} {v / 60.0:.2f} min" for k, v in stages.items())
+                     + (f"   [pushed {receipt.pushed_sha[:12]} to {receipt.integration_branch}]"
+                        if receipt.pushed_sha else ""))
     missing = receipt.missing_required()
     if missing:
         lines.append(f"  UNRECORDED required step(s): {', '.join(missing)} -- an unrecorded step "
@@ -1348,6 +1551,7 @@ def cmd_time(ctx: click.Context, slug: str, step: str, step_class: str,
     timing = run_timed(command, step=step, step_class=step_class, cwd=root)
     receipt.steps.append(timing)
     save_receipt(root, receipt)
+    _stage_event(timing)
     logger.info("step %s: %.2f min (%s)", step, timing.minutes,
                 "ok" if timing.ok else f"FAILED rc={timing.returncode}")
     # The child's verdict is passed through unchanged: a wrapper that swallowed a failing merge
@@ -1413,6 +1617,8 @@ def cmd_race(ctx: click.Context, slug: str, jobs: tuple[str, ...]) -> None:
     save_receipt(root, receipt)
     wall = time.perf_counter() - clock
     recorded = [s for s in receipt.steps if s.step in set(names)]
+    for timing in recorded:
+        _stage_event(timing)
     serial = sum(s.seconds for s in recorded)
     logger.info("raced %d job(s) in %.2f min; serial would be %.2f min (%.2f min saved)",
                 len(parsed), wall / 60.0, serial / 60.0, (serial - wall) / 60.0)
@@ -1432,11 +1638,13 @@ def cmd_race(ctx: click.Context, slug: str, jobs: tuple[str, ...]) -> None:
                    "only to assert what you expect -- a value that is not <sha>^1 is REFUSED, "
                    "because attributing against any other commit silently converts a REGRESSION "
                    "into a pre-existing red")
-@click.option("--step", default=ACTIONS_STEP, show_default=True,
-              help="the step id to record under; a retry records under its own id and wins")
+@click.option("--step", default=None,
+              help=f"the step id to record under (default `{ACTIONS_STEP}`; `suite` once an "
+                   f"integration push is recorded, because that read IS the integration-branch "
+                   f"wait); a retry records under its own id and wins")
 @click.pass_context
 def cmd_actions(ctx: click.Context, slug: str, sha: str, baseline: Optional[str],
-                step: str) -> None:
+                step: Optional[str]) -> None:
     """Read this merge's Actions verdict, RECORD ITS STATE, exit with the verdict's own code.
 
     There is deliberately no way to hand this verb a verdict; it reads one or it refuses.
@@ -1449,9 +1657,32 @@ def cmd_actions(ctx: click.Context, slug: str, sha: str, baseline: Optional[str]
     # PRINTED ON SUCCESS TOO, inherited from the tool this replaced: a gate silent on success
     # has not been read, it has been assumed -- and target 3.2 is about the integrator READING.
     click.echo(verdict.render())
-    logger.info("recorded suite verdict %s on step %s of receipt %s (merge %s)",
-                verdict.state, step, slug, sha[:12])
+    for owed in rows_owed(verdict.flagged):
+        click.echo(f"  {owed}")
+    logger.info("recorded suite verdict %s of receipt %s (merge %s)",
+                verdict.state, slug, sha[:12])
     raise SystemExit(0 if verdict.ok else 1)
+
+
+@cli.command("push")
+@click.option("--slug", required=True)
+@click.option("--target", type=click.Choice(["integration", "main"]), required=True,
+              help="`integration`: the merge commit went to worktree-integrate-<batch>; `main`: "
+                   "the SAME sha then went to main")
+@click.option("--branch", required=True)
+@click.option("--sha", required=True)
+@click.option("--seconds", type=float, required=True, help="the push's wall time, as measured")
+@click.pass_context
+def cmd_push(ctx: click.Context, slug: str, target: str, branch: str, sha: str,
+             seconds: float) -> None:
+    """RECORD a push the caller made (`merge_path.py land` records its own). The receipt is split
+    here: what was pushed is carried forward and the suite step is bound to it."""
+    try:
+        record_push(ctx.obj["root"], slug=slug, target=target, branch=branch, sha=sha,
+                    seconds=seconds)
+    except MergeReceiptError as exc:
+        raise click.ClickException(str(exc)) from exc
+    logger.info("recorded %s push of %s to %s on receipt %s", target, sha[:12], branch, slug)
 
 
 @cli.command("models")
