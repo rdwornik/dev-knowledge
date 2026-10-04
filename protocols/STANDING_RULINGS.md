@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-10-03
+last_reviewed: 2026-10-04
 status: active
 owner: Rob
 ---
@@ -5560,6 +5560,484 @@ R54 = the `--filled` waiver).
   ```
 
 **Expiry:** none of R35–R54 expire on their own; the entries above land text, and each Status line names what is and is not built.
+
+## AR. RATIFICATION 2026-10-03 / 2026-10-04 R55–R79 — landed verbatim from their sources, each carried by a row or by a written "no implementation required" (operator, 2026-10-03/04)
+
+Landed by `b2-rulings-landing` (batch B2-W1, lane W1-10; `to-cc/AMEND-B2-W1-2-2026-10-04.md`, on R79). R1–R54 are landed at §AM to §AQ above and are not repeated here. Each entry below carries its ruling's **source section byte for byte** in a fenced block whose info string is `verbatim <source>:<first line>-<last line>`, in the shape section AQ established; `tests/test_standing_rulings_sources.py` diffs every block against its source range wherever the transport is reachable and names each source it could not reach.
+
+**Two lines of every entry are read by a gate.** The bullet `- **R<n> — …` is how `scripts/handoff_state.py` counts landed ids. The line `**Carried by:**` names what carries the ruling: one or more backlog rows `[#id]` (each has to exist, hold a carrying status, name the ruling and state a Done-when), or `no implementation required — <why> (owner: <who>)`. `scripts/decision_coverage.py rulings` refuses while an entry from R55 on has neither, and while a ruling in a non-superseded RATIFICATION file is not landed here for more than one closed batch. R1–R54 predate the carried-by line and are counted, not refused.
+
+**Sources.** The live files are rewritten in place (v8 of `RATIFICATION-2026-10-03.md`, v4 of `RATIFICATION-2026-10-04.md`), so a range cited in a live file is valid for the version named in its entry. R56 is the one section whose text is byte-identical in a frozen copy, and it cites that copy. R58 has no section of its own in any RATIFICATION file (see its entry).
+
+- **R55 — the measure of the harness is a real task through the whole line** (operator, 2026-10-03; full text `RATIFICATION-2026-10-03.md:87` (v8)). In force as: a backlog task passes every stage, each stage run by a different isolated agent, and is then used (its mechanism shows recorded triggers); lines of code and file sizes are not measures. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1360]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-03.md:87-93
+  ## R55 — the measure of the harness is a real task through the whole line
+
+  **Original (abridged):** "…jak np ja wrzucam taska z backlogu to czy przechodzi czy są izolowane agenty, przechodzi wszystkie kroki decyzyjne, jest sprawdzany test, jest pisany test driven, jest constrain, jest czysty kod, jest efficiency, jest review, różne modele są używane… ADRy… CC samo ewoluuje własne decyzje, ale jest to za każdym razem inny, izolowany agent… kończy się wdrożeniem zadania… realnie używane i działa… triggerowane, a nie… sierotą. To jest cel, to jest miara."
+
+  1. **The test.** A backlog task passes every stage and is then used: its mechanism shows recorded triggers. The stages are spec, ADR gate, test first, implementation, constraints and clean code, review by a different model, isolated evaluation, merge, deployment and report.
+  2. **Isolation.** Each stage runs as a different isolated agent.
+  3. **What counts.** Lines of code and file sizes are not measures.
+  ```
+
+- **R56 — the removal engine is the top problem** (operator, 2026-10-03; full text `RATIFICATION-2026-10-03-v7-superseded.md:55` (identical in v8 at `:95`)). In force as: a continuous mechanism, built as code with an outcome test, finds what is no longer current (mechanisms that do not run, gates that catch nothing, superseded decisions, stale rows and documents) and brings it to removal; it outranks new features. The block is cut from the frozen `RATIFICATION-2026-10-03-v7-superseded.md`, whose R56 section is byte-identical to the live v8 section (`RATIFICATION-2026-10-03.md:95-104`). **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1362]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-03-v7-superseded.md:55-64
+  ## R56 — the removal engine is the top problem
+
+  **Original:** "najważniejsze jest to, że mamy silnik usuwania niepotrzebnych rzeczy, które już nie są aktualne, bo to jest największy problem."
+
+  1. **A continuous mechanism finds what is no longer current and brings it to removal:**
+     - mechanisms that never run;
+     - gates that catch nothing;
+     - superseded decisions;
+     - stale rows and documents.
+  2. **How it is built.** As code, with an outcome test. It outranks new features.
+  ```
+
+- **R57 — the rclone Drive token** (operator, 2026-10-03; full text `RATIFICATION-2026-10-03.md:106` (v8)). In force as: the OAuth app stays in Testing, the token is refreshed every 7 days when it expires, and the harness tracks the expiry as it tracks quotas. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1334], [#1379]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-03.md:106-111
+  ## R57 — the rclone Drive token
+
+  **Original:** "jeżeli będzie się token wygasał, to będziemy zaktualizować. To nie jest jakiś duży problem. Musi to być po prostu częścią procesu, musimy o tym pamiętać."
+
+  1. **Stay in Testing.** The OAuth app stays in Testing status, and the token is refreshed when it expires, every 7 days.
+  2. **The harness tracks expiry**, as it does quotas.
+  ```
+
+- **R58 — D1 is re-ruled: the first real task, dated when step 0 reports** (operator, ratified 2026-10-04 through R74 item 2; proposed 2026-10-03; full text `NEW-ARCHITECT-PLAN-2026-10-03-v9-superseded.md:62` (proposal) and `RATIFICATION-2026-10-04.md:87` (ratifying line)). In force as: D1 is the first real backlog task run by the engine's isolated stage agents (R37), its row chosen and dated when the engine step-0 spike reports; the baseline of the line comes from batch FOUNDATION's G1 to G8 step log, which is no feature work, so R46.4 holds. **Refines R35.2:** R74 item 2 states "R58 is ratified and supersedes R35.2's 10-06 date", so D1's end date is no longer 2026-10-06. **No RATIFICATION file has an R58 section:** its text is the proposal in the frozen v9 plan (first block) and its ratifying line is R74 item 2 (second block). **A conflict between the sources is stated, not resolved:** the seat's ledger records "R58: superseded by R74 (D1 is dated after step 0)" (the "Dated" list of `LEDGER-dev-knowledge.md`), while R74 item 2 says R58 is ratified. Both agree on the effect, D1 is dated after step 0; this entry carries R58 as ratified by R74 and as no longer fixing a date. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1360]
+
+  ```verbatim to-browser/NEW-ARCHITECT-PLAN-2026-10-03-v9-superseded.md:62-64
+  > **R58 (proposed).** D1 is re-ruled.
+  > (1) The baseline of the line comes from batch FOUNDATION: its batch close records a G1 → G8 step log per lane. That is no feature work, so R46.4 holds.
+  > (2) D1 is the first real backlog task run by the engine's isolated stage agents (R37). Its date is set when the engine step-0 spike reports, and its row is chosen then.
+  ```
+
+  ```verbatim to-browser/RATIFICATION-2026-10-04.md:83-87
+  2. **What YES expands to:**
+     - ADR-121 is ratified with C1, C2, C4 and C5; C3 is decided by L10's test.
+     - Nothing acts on unpushed state that another seat or machine reads.
+     - The packet's answers: Q2 (a), **Q3 NO** (R3), Q4 yes, Q5 yes, and Q14a yes — python-statemachine, if the spike passes.
+     - R58 is ratified and supersedes R35.2's 10-06 date.
+  ```
+
+- **R59 — false positives are the most dangerous failure; every one needs a mechanism** (operator, 2026-10-03; full text `RATIFICATION-2026-10-03.md:113` (v8)). In force as: a false positive (success, liveness or validity reported without evidence) and rot are one class; each has a mechanism that detects, diagnoses and repairs, or stops and leaves the operator the decision; no weaker method is swapped in silently, and a failing paid tool is repaired, not worked around. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1363]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-03.md:113-123
+  ## R59 — false positives are the most dangerous failure; every one needs a mechanism
+
+  **Original (abridged):** "System musi mieć mechanizmy, które bronią nas przez false positive. No bo nie może być tak, że Gemini nie działa i używamy regexa… Wszelkie false positive musi mieć mechanizm i albo się zatrzymuje CC i się dopytuje dlaczego nie działa, albo to naprawia samo… False positive jest najbardziej niebezpieczne… Wszystko co gnije, starzeje i false positive są bardzo niebezpieczne."
+
+  1. **The class.** A false positive is success, liveness or validity reported without evidence. Rot is the same class.
+  2. **The mechanism, in order:**
+     1. detect;
+     2. diagnose and repair;
+     3. if repair fails, stop and leave the operator the decision.
+  3. **No silent substitution.** A weaker method is never swapped in silently.
+  4. **Repair paid tools.** A paid tool that fails is repaired, not worked around.
+  ```
+
+- **R60 — a fresh Claude Code session by default** (operator, 2026-10-03; full text `RATIFICATION-2026-10-03.md:125` (v8)). In force as: every paste goes to a new session unless the work depends on state that exists only inside an existing one; the seat names the target, "new" or "existing <name>" with the reason; no `/clear`. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1364]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-03.md:125-131
+  ## R60 — a fresh Claude Code session by default
+
+  **Original (abridged):** "…jeżeli nie ma dependency na kontekst i lepiej wkleić w czysty CC nową sesję, to tak zróbmy… ja już nie robię clear'ów w sesji…"
+
+  1. **Default to a new session.** Every paste goes to a new session, unless the work depends on state that exists only inside an existing session.
+  2. **Name the target.** The seat names "new" or "existing <name>", with the reason when existing.
+  3. **No `/clear`.**
+  ```
+
+- **R61 — the newest model, checked by the harness, not remembered** (operator, 2026-10-03; full text `RATIFICATION-2026-10-03.md:133` (v8)). In force as: every role uses the newest available model, a harness mechanism checks model currency, and the served model is recorded and verified. It restates and extends the newest-models ruling `NM` (section AQ above), which is already mechanized as `model_currency`. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — mechanized: `scripts/check_model_currency.py`, registered as the `check_model_currency` audit finding over `ecosystem/provider-registry.yaml` (R61, batch FOUNDATION lane 10); the served-model record is carried by the review-record rule of the batch common rules (owner: the harness; reopen if a role is found pinned to a model the registry does not vouch for)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-03.md:133-139
+  ## R61 — the newest model, checked by the harness, not remembered
+
+  **Original (abridged):** "…widzę, że jest Grok 4.6, a widzę, że wyszedł [nowszy]… Zaktualizuj przy okazji na nowszą wersję. Tak samo musimy patrzeć, no bo te wersje się cały czas aktualizują i musimy sprawdzać."
+
+  1. **Newest per role.** Every role uses the newest available model.
+  2. **Checked, not remembered.** A harness mechanism checks model currency.
+  3. **Served is recorded.** The served model is recorded and verified.
+  ```
+
+- **R62 — this window's three focus areas: capacity, speed, handoff** (operator, 2026-10-03; full text `RATIFICATION-2026-10-03.md:141` (v8)). In force as: about 12 to 13 lanes across local, Codespace and Anthropic cloud with the dispatcher measuring RAM and CPU, handback to `main` far under 37 minutes with test quality not falling, and a handoff that tells a new architect what to read, know and dispatch; cost is recorded, weighed in no decision; one harness dispatcher with three substrates. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1365]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-03.md:141-152
+  ## R62 — this window's three focus areas: capacity, speed, handoff
+
+  **Original (abridged):** "…musimy zrobić trzy rzeczy… żebyśmy mogli robić 12, 13 lane jednocześnie… część lokalnie, część w chmurze dla read-only tasków… merge, integrator, musi trwać szybciej, bo nie może być 37 minut… performance, GitHub Actions, mutmut test… jakość testów nie może zmalać… dispatcher na samym początku musi zarządzać dobrze RAM… Handoff też jest kluczowy…"
+
+  1. **Capacity.** About 12–13 lanes across local, Codespace and Anthropic cloud. The dispatcher measures RAM and CPU itself.
+  2. **Speed.** Handback to `main` takes far less than 37 minutes. Test quality does not fall.
+  3. **Handoff.** A new architect always knows what to read, what to know and how to dispatch.
+  4. **How.** Systemic solutions, web research, library-first, and CC self-review.
+
+  **Addenda:**
+  - "cena nie gra roli, tylko gra rolę efficiency" ("price plays no role; efficiency does") — cost is recorded as a fact, never weighed.
+  - "harness odpowiada za dispatching" ("the harness is responsible for dispatching") — one harness dispatcher with three substrates.
+  ```
+
+- **R63 — Codespace runs the whole harness, with a measured end-to-end condition** (operator, 2026-10-03; full text `RATIFICATION-2026-10-03.md:154` (v8)). In force as: every Codespace lane has the full toolset by devcontainer and provisioning; no production lane goes to a Codespace until all five end-to-end conditions (a) to (e) hold on three consecutive runs; remote lanes follow the same verified git flow; logs outlive the container. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1366]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-03.md:154-169
+  ## R63 — Codespace runs the whole harness, with a measured end-to-end condition
+
+  **Original:** "…podoba mi się te, które zrobiłeś, a musi być szczegółowy warunek tego, że działa end to end… najważniejsze jest end to end."
+
+  1. **Full toolset.**
+     - Every Codespace lane has `claude` pinned to the local version, plus `gh`, `codex`, `agy` and `rclone`, installed through the repository's devcontainer and provisioning.
+     - Git-only handback is a fallback.
+  2. **The end-to-end condition.** All five must be measured:
+     - **(a)** `codespace_parity.py check` passes all five conditions, with no NOT-RUN leg.
+     - **(b)** A real backlog task runs through the whole line in a Codespace.
+     - **(c)** The dispatcher sees the lane live, and sees its absence after teardown.
+     - **(d)** A fresh Codespace is rebuilt from nothing.
+     - **(e)** (a)–(d) hold on 3 consecutive runs.
+  3. **No production lane goes to a Codespace until (2) holds.**
+  4. **The git flow for remote lanes is designed, not assumed.** Remote lanes follow the same verified path as local ones.
+  5. **Observability is part of the condition.** Logs and telemetry outlive the container, and every stop records its reason.
+  ```
+
+- **R64 — packet Q6 RATIFIED: MERGE-PATH M4** (operator, 2026-10-03; full text `RATIFICATION-2026-10-03.md:62` (v8)). In force as: the integrator merges only on a green CI verdict for the exact sha bound for `main`, compared test by test against `main`'s baseline; IN-PROGRESS, cancelled, skipped and not-run are distinct non-pass states; `main` is protected by a ruleset requiring the CI check, rehearsed first. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1367]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-03.md:62-72
+  ## R64 — packet Q6 RATIFIED: MERGE-PATH M4
+
+  **Original:** "jeżeli to jest to co mówi, że tak no to daję, że tak, za twoją rekomendacją" ("if it does what it says, then I say yes, on your recommendation").
+
+  **1. What is ratified.** `DIGEST-RATIFY-PACKET-2026-09-29` question **Q6**, which ratifies **MERGE-PATH M4** (ADR-127 armed on the integrator's real path), with Grok's 9 re-read findings folded into FOUNDATION lane 4:
+  - the integrator merges only on a green CI verdict for the exact sha bound for `main`, comparing test by test against `main`'s baseline;
+  - IN-PROGRESS, cancelled, skipped and not-run are distinct non-pass states, and IN-PROGRESS fails closed;
+  - `main` is protected by a GitHub ruleset that requires the CI check, with the correct context name and enforcement on;
+  - the rehearsal on protected `main` comes first, and if it blocks a legitimate push the lane stops and asks (R59).
+
+  **2. Effect.** FOUNDATION lane 4 is released by its gate (a). It starts after lane 6 merges.
+  ```
+
+- **R65 — every lane has a known fate; no orphans, no unknowns** (operator, 2026-10-03; full text `RATIFICATION-2026-10-03.md:74` (v8)). In force as: every lane ends MERGED, FAILED with a reason, or WAITING on a named gate; the batch-close report lists every lane, failures first; no new lane while an earlier fate is unknown; nothing becomes an orphan; test time is budgeted per stage. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1368]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-03.md:74-85
+  ## R65 — every lane has a known fate; no orphans, no unknowns
+
+  **Original (abridged):** "Najważniejsze… żeby nie było sierot, nie było false positives, nie było sytuacji, że lane nie jest merge'owany i robimy mnóstwo lane'ów… Okazuje się, że połowa upada. Nie wiemy, które upadły, dlaczego upadły i czy zostało do końca. Nie mamy ewaluacji, testy trwają zbyt długo."
+
+  1. **Every lane ends in a known state**, recorded with evidence:
+     - MERGED, with its sha and CI verdict;
+     - FAILED, with its reason and the step that failed;
+     - WAITING, with its gate and who it waits on.
+  2. **The batch-close report lists every lane** with its fate, reason, evaluation (review by a different model, with proof of read) and test outcome. Failures come first.
+  3. **No new lane while an earlier fate is unknown.** Starting work faster than it can be merged and evaluated is a false positive of progress (R59).
+  4. **Nothing becomes an orphan.** A merged mechanism shows recorded triggers afterwards; an untriggered one goes to the removal engine.
+  5. **Test time is budgeted and measured per stage.** Speed never comes from dropping tests.
+  ```
+
+- **R66 — the retire table is answered: everything as recommended** (operator, 2026-10-03; full text `RATIFICATION-2026-10-03.md:10` (v8)). In force as: every row of `QUESTION-retire-table-2026-10-03` v3 (A1-A8, B1-B3, C1-C3, E1-E3) is answered as the seat recommended; deleting is the operator's act and this ruling is that act, still subject to R59 and to the dynamic-use check reading DEAD. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1369]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-03.md:10-37
+  ## R66 — the retire table is answered: everything as recommended
+
+  **Original:** "i pójdziemy w pełni do Twojego rekomendata" ("and we'll go fully with your recommendation"). This was said after the seat put `QUESTION-retire-table-2026-10-03.md` v3 to the operator with options A (all as recommended) or B (later).
+
+  **1. Every row of the table is answered as the seat recommended.**
+  - **A1–A8**
+    - retire `propose_closures`;
+    - retire the never-used commands and templates;
+    - move the four zero-catch pre-commit hooks to CI;
+    - move `impacted-tests-guard`, recording whether each block is real;
+    - retire the static orphans, but only after the dynamic-use check;
+    - wire `read_gate`, `provider_router` and the watchdog;
+    - retire `coherence-nudge`;
+    - retire `deny_and_point` on 10-19.
+  - **B1–B3**
+    - keep prompts-guard and repair it through #863's root cause;
+    - retire the ADR-77 transcript guard;
+    - retire `logs_retention`.
+  - **C1–C3**
+    - JOURNAL option (a): a 30-day window plus a legacy file. The 24 % figure is re-measured first.
+    - LESSONS frozen to a legacy file.
+    - Each of ADR-82, -116, -117 and -118 is ratified or withdrawn; withdrawn when no live row cites it, after CC checks.
+  - **E1–E3**
+    - chunked Gemini reads for whole files, with path-only reads allowed for locating only;
+    - a drafted agy bug report, which the operator files;
+    - the agy version updated in the registry.
+
+  **2. Deleting is the operator's act, and this ruling is that act for these rows.** Every retirement is still subject to R59. "No caller" by census is never enough: the dynamic-use check of `DIGEST-B2-PREP-2026-10-03` Part 1 must read DEAD. An item reading ALIVE or UNKNOWN is left in place and recorded.
+  ```
+
+- **R67 — the night of 2026-10-03/04: maximize autonomous work** (operator, 2026-10-03; full text `RATIFICATION-2026-10-03.md:39` (v8)). In force as: only Claude Code runs during the night of 2026-10-03/04, pre-authorized with no operator GO between a paste and its start; safety comes from stop conditions (R59 section 0a, R65), not questions; structural changes needing review wait for the morning. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — it authorizes one night, 2026-10-03/04, which has elapsed; the two stop conditions it relies on are R59 (row [#1363]) and R65 (row [#1368]) (owner: the operator, who authorized the night)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-03.md:39-60
+  ## R67 — the night of 2026-10-03/04: maximize autonomous work
+
+  **Original (abridged):** "zbliża się noc i ja bym chciał żebyśmy zmaksymalizowali możliwość robienia działania w nocy… Merge Efficiency, Codespace, Harness, problemy, wyzwania z poprzedniego czatu, ceremonie niepotrzebne, oczyszczenie, plan działania… ewaluacja narzędzi, GitHub Actions, testy… integracja, oczyszczenie wszystkiego, bramki, nasze wnioski i błędy… z poprzedniego architekta przeczytać… W jakie wnioski z Architekta Jutra moduł 1–6? Co możemy wdrożyć?… SQLite… jak Hermes… inspirować agentami z Copilot Collection… Izolacja agentów, bramki… wtedy mam wyłączoną całą przeglądarkę… tylko Claude Code w nocy."
+
+  **1. Run without a human.** During the night only Claude Code runs; the browser seat and the operator are away. The night work is pre-authorized: no operator GO is inserted between a paste and its start.
+
+  **2. Safety comes from stop conditions, not questions.**
+  - R59 §0a holds throughout: diagnose, at most two retries, then stop the affected work. That stop is written as an OPERATOR-ACTION for the morning.
+  - R65 holds throughout: every lane ends MERGED, FAILED with a reason, or WAITING on a named gate.
+
+  **3. Scope.** The night carries:
+  - FOUNDATION's remaining merges (lanes 6, 5, 4);
+  - seven night lanes added by `AMEND-BATCH-FOUNDATION-5-2026-10-03` (CI speed, test isolation, harness hygiene, model currency, the approved retirements, hooks to CI, the Codespace toolset);
+  - three read-only sessions:
+    - the Architekt Jutra M01–M06 / Maister / copilot-collections / Hermes benchmark study;
+    - the previous seats' lessons and the ceremony audit;
+    - the R59 ADR v2 revision.
+
+  **4. Not tonight.** Structural changes that need the seat's or the operator's review wait for the morning:
+  - placement policy, cloud lanes, merge train, CI shards (DECIDE-THROUGHPUT);
+  - JOURNAL and LESSONS relocation;
+  - the B2 freeze.
+  ```
+
+- **R68 — the harness is one process with a spine; no stage evaluates itself** (operator, 2026-10-04; full text `RATIFICATION-2026-10-04.md:11` (v4)). In force as: the harness is one process whose spine, the single writer, manages every stage transition; every boundary checks constraints, isolation, QA and tests; every evaluation is by an isolated agent other than the one that did the work. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1361]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-04.md:11-18
+  ## R68 — the harness is one process with a spine; no stage evaluates itself
+
+  **Original:** "ratyfikuję to, że musimy w końcu wyciągnąć wnioski i domknąć Harness jako jeden proces, który ma kręgosłup… każda część procesu, przejście z jednego do drugiego… testy do izolowanego agenta, żeby agent sam siebie nie ewaluował."
+
+  1. **One process, one spine.** The harness is ONE process. Its spine — the single writer — manages every stage transition.
+  2. **Checks at every boundary.** Every stage boundary checks constraints, isolation, QA and tests.
+  3. **Isolated evaluation.** Every evaluation is done by an isolated agent. No agent evaluates its own work.
+  4. **The harness is closed as one process.**
+  ```
+
+- **R69 — bypass permissions stay; autonomy comes from self-healing** (operator, 2026-10-04; full text `RATIFICATION-2026-10-04.md:20` (v4)). In force as: lanes keep `bypassPermissions`; safety comes from isolation between agents, checks at stage boundaries, self-healing and self-exception management (detect, diagnose, repair, or stop and ask, R59). **Limits the Architekt Jutra top-3:** item 3 of the top-3 in `DIGEST-AJ-BENCHMARKS-2026-10-03.md` (line 119, "Tool allow-list by absence, in a typed lane manifest") is not adopted as a permission restriction; isolation comes from separate agents and the scoped data each one receives. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** no implementation required — standing policy: lanes already run with bypass permissions (section V6 above) and the allow-list by absence is declined; the safety it points to is built under R59 (row [#1363]) and R68 (row [#1361]) (owner: the operator)
+
+  ```verbatim to-browser/RATIFICATION-2026-10-04.md:20-30
+  ## R69 — bypass permissions stay; autonomy comes from self-healing
+
+  **Original:** "Bypass permission is ok… I want to create an autonomous system… self-healing, self-exception management system."
+
+  1. **Lanes keep `bypassPermissions`.**
+  2. **Safety comes from the system's design:**
+     - isolation between agents;
+     - checks at stage boundaries;
+     - self-healing;
+     - self-exception management: detect, diagnose, repair, or stop and ask (R59).
+  3. **"Allow-list by absence" is not adopted** as a permission restriction.
+  ```
+
+- **R70 — volatile facts have one source and are generated, not copied into prose** (operator, 2026-10-04; full text `RATIFICATION-2026-10-04.md:32` (v4)). In force as: every volatile fact (model ids, tool versions, document versions, dates, counts) has one source and every other copy is generated from it at render time; a hand copy that disagrees with its source is a false positive under R59; the handoff boot's version changes whenever its content changes. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1370]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-04.md:32-39
+  ## R70 — volatile facts have one source and are generated, never copied into prose
+
+  **Original:** "ten wersjonowania to też jest bardzo duży problem… zmienia się model i teraz jest nieaktualne… zarządzamy prozą… zarządzanie zmienną, która się zmienia."
+
+  1. **One source of truth** for every volatile fact: model ids, tool versions, document versions, dates and counts.
+  2. **Every other copy is generated** from that source at render time.
+  3. **A hand copy that disagrees with its source is a false positive** under R59.
+  4. **The handoff boot's version changes whenever its content changes.**
+  ```
+
+- **R71 — transport files: one naming system, one live file per subject** (operator, 2026-10-04; full text `RATIFICATION-2026-10-04.md:41` (v4)). In force as: every transport file follows the registry grammar KIND-subject-date, one live file per subject with superseded files moved to an archive, and the transport lint enforces both, including on the seat's own writes. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1371]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-04.md:41-47
+  ## R71 — transport files: one naming system, one live file per subject
+
+  **Original:** "miała być struktura nazwy plików do Google Drive… żeby nie było duplikatów i żeby wiadomo było co czytać."
+
+  1. **One grammar.** Every transport file follows the registry's grammar: KIND-subject-date.
+  2. **One live file per subject.** Superseded files leave the reading path for an archive.
+  3. **The transport lint enforces both**, including on the seat's own writes.
+  ```
+
+- **R72 — the CI OS policy is accepted, with verification** (operator, 2026-10-04; full text `RATIFICATION-2026-10-04.md:49` (v4)). In force as: lane pushes run Linux with impacted tests only; the integration sha runs the full suite on both operating systems with Windows sharded; a push to `main` reuses that verdict once it is proven the same sha; minutes per merge, Windows wall time and verdict correctness are measured before and after, and the policy is reverted if any gets worse. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1372]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-04.md:49-62
+  ## R72 — the CI OS policy is accepted, with verification
+
+  **Original:** "Polityka OS chyba tak… musimy to upewnić się, przetestować i potem sprawdzić, co działa, co nie działa."
+
+  1. **The policy:**
+     - lane pushes run Linux, impacted tests only;
+     - the integration sha runs the full suite on both operating systems, with Windows sharded;
+     - a push to `main` reuses that verdict once it is proven to be the same sha.
+  2. **Measured before and after:**
+     - minutes per merge;
+     - Windows wall time;
+     - verdict correctness.
+     
+     Revert if any of them gets worse.
+  ```
+
+- **R73 — every handoff is tested and teaches; the handoff keeps improving** (operator, 2026-10-04; full text `RATIFICATION-2026-10-04.md:64` (v4)). In force as: a boot test runs before every real cut (fresh memory-separate Project, questions only, an isolated session grading against a prior key); the outgoing seat updates SEAT-LESSONS and the seat exam and the incoming seat passes the exam before acting; the incoming seat's first reply is a teach-back the operator confirms; every defect the boot test finds becomes a fix row. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1373]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-04.md:64-76
+  ## R73 — every handoff is tested and teaches; the handoff keeps improving
+
+  **Original:** "handoff… na przyszłej sesji też to musi być cały czas usprawniający… pierwszy raz testujemy faktycznie handoff… jak stary LLM powinien wdrażać i włączać nowego LLM-a… żeby nie popełnił jego błędów."
+
+  1. **A boot test before every real cut:**
+     - a fresh, memory-separate Project;
+     - the same install as the live Project;
+     - questions only;
+     - an isolated CC session grades against a key written beforehand;
+     - the results are kept.
+  2. **The outgoing seat teaches.** It updates `SEAT-LESSONS` (wrong move / right move / guard) and the seat exam. The incoming seat passes the exam before it acts; an isolated session grades it.
+  3. **Teach-back.** The incoming seat's first substantive reply restates the big picture, the open decisions and the next three steps. The operator confirms before dispatch.
+  4. **Every defect the boot test finds becomes a fix row.**
+  ```
+
+- **R74 — the spine is ratified, and proven only by a measured end-to-end trial** (operator, 2026-10-04; full text `RATIFICATION-2026-10-04.md:78` (v4)). In force as: YES to `DIGEST-SELF-AUDIT-SPINE-AND-TOOLS-2026-10-04` section 2.3: ADR-121's single writer, one isolated agent per stage, ADR-121 ratified with C1, C2, C4 and C5, nothing acts on unpushed state another seat reads, vendor-neutral libraries first behind an adapter; acceptance is a measured end-to-end trial (add, update and remove a feature plus an injected failure) with a success measure frozen before the build and role separation in every stage. **Replaces R35.2's date:** item 2 ratifies R58, which supersedes R35.2's "D1 ends 2026-10-06" (see R58 above); D1 is dated when step 0 reports. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1360], [#1361]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-04.md:78-95
+  ## R74 — the spine is ratified, and proven only by a measured end-to-end trial
+
+  **Original:** "jestem jak najbardziej na tak… musimy dobrze kręgosłup przetestować… dodanie feature, usunięcie feature, zaktualizowanie feature, cały krąg musi być przetestowany end to end na kręgosłupie… jeden agent implementuje samego siebie i pisze testy dla samego siebie… pisze te testy, żeby przeszły… trzeba mieć przygotowaną, zapisaną, przemyślaną miarę własnego sukcesu razem z CC."
+
+  1. **The decision: YES** to `DIGEST-SELF-AUDIT-SPINE-AND-TOOLS-2026-10-04` §2.3. The spine is ADR-121's single writer, driven by the packet's process engine, with one isolated agent per stage. D1 is the first real task, dated when step 0 reports.
+  2. **What YES expands to:**
+     - ADR-121 is ratified with C1, C2, C4 and C5; C3 is decided by L10's test.
+     - Nothing acts on unpushed state that another seat or machine reads.
+     - The packet's answers: Q2 (a), **Q3 NO** (R3), Q4 yes, Q5 yes, and Q14a yes — python-statemachine, if the spike passes.
+     - R58 is ratified and supersedes R35.2's 10-06 date.
+  3. **The spine is FOUNDATION, not a feature.** R46.4 does not block it.
+  4. **Library-first and model-agnostic.** Vendor-neutral libraries come first. Claude Code's Workflow tool or `/batch` may run a stage only behind an adapter, so that other vendors' agents can run stages later.
+  5. **Acceptance is a measured end-to-end trial, never "it ran":**
+     - **Use cases:** add, update and remove a feature, plus one injected failure.
+     - **What is measured:** every stage fires; the writer records every transition; every fate is computed; review, evaluation and a report are produced.
+     - **Role separation:** in every stage the **test author is not the implementer, and the evaluator is neither**.
+     - **The success measure is frozen before the build.** It is written beforehand with CC (R76) and never edited by the builder.
+     - **After the trial:** review, evaluation, a report, and a quality check by an isolated evaluator.
+  ```
+
+- **R75 — all dispatch lives in the harness** (operator, 2026-10-04; full text `RATIFICATION-2026-10-04.md:97` (v4)). In force as: local, Codespace and Anthropic-cloud dispatch all live in the hub, win-tooling keeping at most a thin shim; the cloud leg needs an ADR amending ARCHITECTURE R11(3), written in B2 W2 for the operator to ratify; it repeats the operator's 2026-09-27 stance. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1374]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-04.md:97-103
+  ## R75 — all dispatch lives in the harness
+
+  **Original:** "wszystkie dispatching powinno być… jako architekt, no nie w tej sesji, ale w poprzedniej, nie wiem dlaczego w ogóle budowałeś to w win toolingu."
+
+  1. **Local, Codespace and Anthropic cloud dispatch all live in the hub.** Win-tooling keeps at most a thin shim.
+  2. **The cloud leg needs an amendment** to ARCHITECTURE R11(3). The operator's direction is yes; the ADR is written in B2 W2 for him to ratify.
+  3. **This repeats the operator's 2026-09-27 stance,** which was never carried.
+  ```
+
+- **R76 — the browser seat's role: brainstorm and evaluate, and decide together with CC** (operator, 2026-10-04; full text `RATIFICATION-2026-10-04.md:105` (v4)). In force as: the browser brainstorms, envisions, does web research, holds outside context, then evaluates; every decision is worked back and forth with CC, which brings evidence, checks, alternatives and challenge (R41); verifying, testing and thinking it through belong to the harness and CC; every window carries this rule in HANDOFF_BOOT and in the seat's memory. **Refines ADR-108 section A** (the technical-rulings split, whose text stays as written: the ADR is immutable): the seat's technical rulings follow the exchange with CC. **SEAT-LESSONS lesson 11 is to be corrected to match.** **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1364]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-04.md:105-113
+  ## R76 — the browser seat's role: brainstorm and evaluate, never decide alone
+
+  **Original:** "przeglądarka nie podejmowała arbitralnych decyzji, tylko żeby one były back and forth, przemyślane razem z CC… przeglądarka pełni rolę takiego brainstormu, takiego wizjonera, a potem ewaluatora. A reszta, sprawdzenie, przetestowanie, zastanowienie się musi być po stronie Harnessu, po stronie CC."
+
+  1. **The browser's role** is to brainstorm and envision, do web research and hold the outside context, then evaluate.
+  2. **No arbitrary or unilateral decision.** Every decision is worked back and forth with CC, which brings evidence, checks, alternatives and challenge (R41).
+  3. **This refines ADR-108 §A.** The seat's technical rulings follow that exchange.
+  4. **Checking belongs to the harness.** Verifying, testing and thinking it through happen on the harness and CC side.
+  5. **Every window carries this rule** — in HANDOFF_BOOT and in the seat's memory. **SEAT-LESSONS lesson 11 is to be corrected to match.**
+  ```
+
+- **R77 — skills and commands are kept by the problem they solve; built-ins are reviewed on a routine** (operator, 2026-10-04; full text `RATIFICATION-2026-10-04.md:115` (v4)). In force as: each skill or command is judged by the problem it solved: solved elsewhere is retired (`/session-summary`, replaced by the Drive transport), unknown is checked then retired (`aj-scan`), still open is solved properly (`/why`, through the spine's map command); Anthropic's built-in commands and skills are reviewed on a routine a mechanism triggers. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1375]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-04.md:115-123
+  ## R77 — skills and commands are kept by the problem they solve; built-ins are reviewed on a routine
+
+  **Original:** "Zastanówmy się, co te skille rozwiązywały… czy problem jest rozwiązany, czy nie… problem nadal istnieje, żeby… wiedzieć co co robi i znać cały kontekst, a nie za każdym razem skanować… Musimy co jakiś czas robić review… wszystkich skillsów i commandsów z dokumentacji Anthropic… jakaś rutyna."
+
+  1. **Judge each skill or command by the problem it solved:**
+     - **solved elsewhere — retire.** `/session-summary` is replaced by the Drive transport.
+     - **unknown purpose — check, then retire.** Example: `aj-scan`.
+     - **still open — solve it properly.** `/why`: the need to "know what each part does without re-scanning" is to be met by the spine's map command (step 5).
+  2. **Anthropic's built-in commands and skills are reviewed on a routine** that a mechanism triggers. `/auto-mode-setup` is a candidate; it changes the operator's global config, so it needs his act.
+  ```
+
+- **R78 — Codespace model credentials: load them now, harden later** (operator, 2026-10-04; full text `RATIFICATION-2026-10-04.md:125` (v4)). In force as: the credentials for codex, grok and agy are loaded from the operator's secrets folder into the account's Codespaces secrets, with device-login where a CLI needs it; values are not printed, logged or written to a repository or transport file (R13); hardening comes later; status 2026-10-04: `CODEX_API_KEY` and `XAI_API_KEY` set, agy still needs a Google sign-in per Codespace, an open gap. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1376]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-04.md:125-136
+  ## R78 — Codespace model credentials: load them now, harden later
+
+  **Original:** "trzeba zalogować… wszystko jest w folderze secrets… na razie najwyżej przekleimy na żywca, a w przyszłości będziemy się zastanawiać jak to robić bezpiecznie." Folder: `C:\Users\1028120\Documents\.secrets`.
+
+  1. **Load the credentials now.** The credentials for codex, grok and agy are loaded from that folder into the account's Codespaces secrets, with device-login where a CLI needs it.
+  2. **Never written anywhere.** Values are never printed, logged, or written into a repository or transport file (R13).
+  3. **Fact:** Codespaces user secrets reach every Codespace of the account that has access to the selected repositories.
+  4. **Hardening comes later.**
+  5. **Status, 2026-10-04:**
+     - `CODEX_API_KEY` and `XAI_API_KEY` are set, scoped to dev-knowledge.
+     - claude, gh and rclone were already set.
+     - agy needs a Google sign-in per Codespace. That keeps agy from being autonomous, and is an open gap.
+  ```
+
+- **R79 — the transport mechanism is ratified; prose stays minimal; no decision is ever forgotten** (operator, 2026-10-04; full text `RATIFICATION-2026-10-04.md:138` (v4)). In force as: the transport index and archive mechanism is ratified (built by the W2 lane `b2-transport-index`); hand-maintained prose is kept to the minimum and each remaining file is part of the harness (a generator, lint, gate or wake sweep keeps it current or refuses when it is stale); every ratified ruling lands in the repository, is carried by a backlog row or an explicit "no implementation required", and is enforced by a gate that refuses at batch close and at the handoff cut while any ruling is unlanded or uncarried. **Item 3 is built by this entry's own landing:** the gate is `decision_coverage.py rulings` (registered as the `check_rulings_carried` audit finding and in the handoff organ set), and it reads the `Carried by:` line of every entry from R55 on. **Status:** landed as text by `b2-rulings-landing`; whether the mechanism it names is built is not asserted here.
+
+  **Carried by:** [#1371], [#1377], [#1378]
+
+  ```verbatim to-browser/RATIFICATION-2026-10-04.md:138-154
+  ## R79 — the transport mechanism is ratified; prose stays minimal; no decision is ever forgotten
+
+  **Original:** "Zgadzam się, ale nie możemy pamiętać, że proza zawsze przegrywa. Więc jeżeli robimy prozę… plik, który musi być aktualizowany, musi być jak najmniej w systemie… musi to być częścią harnessu… żeby następna przeglądarka o tym nie zapomniała, żeby harness o tym nie zapominał… nie może takich plików być dużo, jeden wystarczy, ale musi to być częścią systemową… podejmujemy decyzję, musimy mieć pewność, że ona nigdy nie zostanie zapomniana, to jest najważniejsze."
+
+  1. **Transport: YES** (`DIGEST-AUDIT-TRANSPORT-2026-10-04` §5):
+     - the registry and each file's `supersedes:` decide whether a file is current or archived;
+     - the generated `to-browser/INDEX.md` is the seat's first read;
+     - the `transport_lint` janitor may create `<folder>/archive/YYYY-MM/` and move superseded files into it, **never deleting**.
+     
+     It is built by the W2 lane `b2-transport-index`, after W1-6.
+  2. **Prose loses, so prose is kept to the minimum, ideally one file.** Every hand-maintained prose file that remains must be part of the harness: a generator, lint, gate or wake sweep keeps it current, or refuses when it is stale. Then neither the next seat nor the harness can forget it. Everything else is generated (R70).
+  3. **No decision is ever forgotten.** Every ratified ruling:
+     - lands in the repository;
+     - is carried by a backlog row, or by an explicit "no implementation required";
+     - is enforced by a gate that refuses, at batch close and at the handoff cut, while any ruling is unlanded or uncarried.
+     
+     The mechanism is lane W1-10 (AMEND-B2-W1-2), designed by CC (R76).
+  ```
+
+**Expiry:** none of R55–R79 expire on their own, except R67 (the night of 2026-10-03/04, elapsed); the entries above land text, and each Carried-by line names what is and is not built.
 
 ## Editing note (read before adding an entry)
 

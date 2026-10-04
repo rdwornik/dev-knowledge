@@ -115,6 +115,7 @@ from .check_routine_consumers import (
     _routine_value_is_named,
     check_routine_consumers,
 )
+from .check_rulings_carried import check_rulings_carried
 from .check_safe_removal import _sr, check_safe_removal
 from .check_substrate_declaration import check_substrate_declaration
 from .check_vision_md import check_vision_md
@@ -192,6 +193,8 @@ CHECK_ORDER: tuple[str, ...] = (
     "check_organ_truth",                  # lane-l3 — index arming vs live config; organs
                                           # declared nowhere / optional-unbuilt
     "check_model_currency",               # R61 — pinned ids vs the registry; 14-day rows
+    "check_rulings_carried",              # R79.3 — every ratified ruling landed, and carried by
+                                          # a row or a written "no implementation required"
 )
 
 # The extracted subset, in CHECK_ORDER-relative order.
@@ -221,6 +224,7 @@ EXTRACTED_CHECKS = (
     check_proof_layer,
     check_organ_truth,
     check_model_currency,
+    check_rulings_carried,
 )
 
 # The flat surface `audit.py` re-exports. Names beyond the check functions appear here because a
@@ -296,6 +300,7 @@ __all__ = [
     "check_reconciled_versions",
     "check_residual_completeness",
     "check_routine_consumers",
+    "check_rulings_carried",
     "check_safe_removal",
     "check_substrate_declaration",
     "check_vision_md",

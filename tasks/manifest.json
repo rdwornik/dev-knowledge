@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "6a759dc7be58cc8d2b3fd06782e84e6ba73cca8f96e8dee212adbb145e3990d0",
+  "generated_sha256": "e65a3640f12ed25636e01c7c836061741714bef08c19de2c673c1bc298e9b350",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2814,6 +2814,86 @@
     {
       "task": 1350,
       "file": "1350-the-transport-append-lock-reads-a-windows-delete.md"
+    },
+    {
+      "task": 1360,
+      "file": "1360-d1-is-the-first-real-backlog-task-through-the-spin.md"
+    },
+    {
+      "task": 1361,
+      "file": "1361-the-harness-is-one-process-with-one-writer-every-s.md"
+    },
+    {
+      "task": 1362,
+      "file": "1362-a-removal-engine-finds-what-is-no-longer-current-a.md"
+    },
+    {
+      "task": 1363,
+      "file": "1363-false-positives-have-a-mechanism-each-detect-diagn.md"
+    },
+    {
+      "task": 1364,
+      "file": "1364-handoff-boot-carries-the-browser-seat-s-role-and-t.md"
+    },
+    {
+      "task": 1365,
+      "file": "1365-the-window-s-capacity-speed-and-handoff-targets-ar.md"
+    },
+    {
+      "task": 1366,
+      "file": "1366-a-codespace-lane-is-production-only-when-the-five.md"
+    },
+    {
+      "task": 1367,
+      "file": "1367-the-integrator-merges-only-on-a-green-ci-verdict-f.md"
+    },
+    {
+      "task": 1368,
+      "file": "1368-every-lane-s-fate-is-computed-and-the-batch-close.md"
+    },
+    {
+      "task": 1369,
+      "file": "1369-the-r66-retire-table-acts-are-executed-one-by-one.md"
+    },
+    {
+      "task": 1370,
+      "file": "1370-volatile-facts-have-one-source-and-every-copy-is-g.md"
+    },
+    {
+      "task": 1371,
+      "file": "1371-transport-files-follow-one-grammar-with-one-live-f.md"
+    },
+    {
+      "task": 1372,
+      "file": "1372-the-ci-os-policy-runs-as-accepted-and-is-measured.md"
+    },
+    {
+      "task": 1373,
+      "file": "1373-every-handoff-is-boot-tested-before-the-cut-and-te.md"
+    },
+    {
+      "task": 1374,
+      "file": "1374-all-dispatch-lives-in-the-hub-for-local-codespace.md"
+    },
+    {
+      "task": 1375,
+      "file": "1375-skills-and-commands-are-kept-by-the-problem-they-s.md"
+    },
+    {
+      "task": 1376,
+      "file": "1376-codespace-model-credentials-for-codex-grok-and-agy.md"
+    },
+    {
+      "task": 1377,
+      "file": "1377-hand-maintained-prose-is-kept-to-the-minimum-and-e.md"
+    },
+    {
+      "task": 1378,
+      "file": "1378-the-rulings-gate-is-armed-at-batch-close-and-the-f.md"
+    },
+    {
+      "task": 1379,
+      "file": "1379-the-rclone-drive-token-expiry-row-has-a-named-owne.md"
     },
     {
       "prose": ""

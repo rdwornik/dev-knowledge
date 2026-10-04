@@ -298,6 +298,7 @@ check_platform_matrix = _registry.check_platform_matrix
 check_proof_layer = _registry.check_proof_layer
 check_organ_truth = _registry.check_organ_truth
 check_model_currency = _registry.check_model_currency
+check_rulings_carried = _registry.check_rulings_carried
 
 _CONFIG_SUFFIXES = _registry._CONFIG_SUFFIXES
 _DOT_PREFIX_EXCEPTIONS = _registry._DOT_PREFIX_EXCEPTIONS
@@ -5543,6 +5544,15 @@ ALL_CHECKS = [
                                # WARN-class only (pass or warn, no FAIL leg), so it blocks no
                                # commit; COMMIT tier so the finding shows in `audit.py health`.
                                # Cheap: one registry read, `templates/`, tracked LANE-*.md
+    _tier(TIER_SHIP, check_rulings_carried),       # R79.3 (b2-rulings-landing) — the FIFTH
+                               # declared exception to the assignment rule: FAIL-capable and ship
+                               # anyway, because leg (a) reads the operator's TRANSPORT, which
+                               # changes with no commit (the seat writes a ruling); a COMMIT tier
+                               # would wedge every lane's commit on a state that lane did not
+                               # cause. It runs at batch close and at the handoff cut through
+                               # `HANDOFF_ORGAN_NAMES` regardless of tier. Leg (b) is the same
+                               # predicate as `decision_coverage.py rulings`. Full argument at the
+                               # adapter's docstring
 ]
 
 
@@ -5574,6 +5584,7 @@ HANDOFF_ORGAN_NAMES = (
     "check_dispatch_verb_agreement",
     "check_routing_agreement",
     "check_doc_claims",
+    "check_rulings_carried",
 )
 
 #: The ONE named exception (L5; AMEND-HANDOFF-REDESIGN-BUILD-2026-10-01 item 1): WARN-tier BY
