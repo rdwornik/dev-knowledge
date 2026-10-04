@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-04 (f) - CC (Opus 5.5, integrator seat FOUNDATION): batch FOUNDATION close -- ten lanes merged, lane 4 waits on a ruling, lanes 7 and 12 wait behind it
+
+**Anchors:** `3ce1abd5` -- `chore/foundation-close-ledgers`, merged `--no-ff`.
+
+**Did:**
+- Fates (R65): MERGED -- lanes 1, 2, 3, 5, 6, 8, 9, 10, 11, 13; WAITING -- lane 4 (`foundation-4-merge-gate`: its repair 2 fixed the CI job-log fetch and is verified live, but `known_reds.compare_to_base` still refuses the red-on-both-sides buckets, so `merge_path.land` would refuse every clean merge -- the flag-vs-refuse question is the architect's or operator's), lanes 7 and 12 (start only after lane 4 merges). FAILED -- none. The main ruleset and OT-M are not run: both follow lane 4's merge.
+- Landed the close ledgers: lane foundation-9-hygiene's closed merge receipt in `logs/MERGE-RECEIPTS.jsonl`; eleven `lane_cost.py close` rows and the integrator's `seat-close` row in `logs/LANE-COSTS.jsonl` (lane rows read USD 0.00 because `claude-sonnet-5-5` carries no rates block in `ecosystem/provider-registry.yaml` -- tokens counted, money unknown).
+
+**Result:** the batch digest is `to-browser/DIGEST-FOUNDATION-2026-10-03.md` on the transport, failures first; the integrator receipt is `to-browser/SESSION-integrator-foundation-2026-10-03.md`.
+
+**Changes:** `logs/MERGE-RECEIPTS.jsonl`, `logs/LANE-COSTS.jsonl`.
+
+**Next:** the compare_to_base ruling for lane 4 (then its merge, the ruleset rehearsal and apply, OT-M, lanes 7 and 12); the batch's ROWS-OWED, filed by the operator's intake.
+
 ### 2026-10-04 (e) - CC (Opus 5.5, integrator seat FOUNDATION): night lane foundation-9-hygiene merges after one repair -- four harness reports read true: a cycled seat, a stopped lane, a HOLD reason, the review item
 
 **Anchors:** `847cd87e`, `92b0ee68`, `92fdfdd4`, `6a45b1ff`, `6d5e36b5`, `dfe3e4fb`, `68a42786`, `824efd86`, `c2c7e872`, `6306ce8f` -- `worktree-foundation-9-hygiene`, merged `--no-ff` through `epic/foundation-int-foundation-9-hygiene-r2` after one repair.
