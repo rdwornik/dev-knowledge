@@ -643,6 +643,219 @@ leg_f1_claude() {
   say "L-F1 ok — node present ($(node --version 2>/dev/null | head -1))"
 }
 
+# --- F5: the lane's toolset — claude PINNED, plus gh, codex, rclone, agy (foundation-13, R63 step 1)
+#
+# WHY THESE LEGS EXIST. Codespace parity condition 1 (`scripts/codespace_parity.py`) compares the
+# tools a lane needs between the workstation and a Codespace. Its first recorded run measured the
+# container at `claude` 2.1.272 against the workstation's 2.1.288, with `gh`, `codex` and `agy`
+# absent, and condition 4 (the Drive transport) failed for want of `rclone`
+# (`docs/audits/2026-10-03-technical-codespace-parity-run.md`). Without them a Codespace lane
+# cannot review, land or hand back.
+#
+# THE PINS HAVE ONE HOME, `.devcontainer/provisioning.yaml` `tools:`. Each leg reads its pin with
+# `provision_legs.py tools get <name>` and installs THAT, so nothing below types a version
+# (`tests/test_provision_sh.py` fails a version literal in a leg body). Each tool is installed by
+# the method its OWN documentation names (the `tools:` row carries the method and the doc URL),
+# and each leg ASSERTS the result through a LOGIN shell — the shell the parity check and the
+# admission test probe with — and `die`s when the tool is absent or at the wrong version. The
+# assert is the leg, as in L-F1: a container that reads as provisioned and lacks the tool a lane
+# needs is the failure this substrate exists to refuse.
+#
+# NO LIBRARY-FIRST SHORTCUT WAS AVAILABLE for any of the five; the per-leg verdict is in
+# `provisioning.yaml` `features:` (a test fails a leg without one). NO AUTH IS CREATED HERE: a
+# tool that installs and is not logged in is reported by the parity check as a named auth item,
+# and a login or token is never invented, copied or widened by a provisioning script.
+
+tool_arch() {
+  case "$(uname -m)" in
+    x86_64|amd64)  echo amd64 ;;
+    aarch64|arm64) echo arm64 ;;
+    *) die "L-F5 unsupported CPU architecture '$(uname -m)' — no pinned binary is declared for it" ;;
+  esac
+}
+
+# Put a binary where EVERY shell finds it. /usr/local/bin is on a login, non-login and ssh-exec
+# PATH alike (Dockerfile: `~/.local/bin` is on none of the non-login ones), so it is preferred;
+# without passwordless sudo the binary lands in ~/.local/bin and the leg's login-shell assert
+# decides whether that was enough.
+install_on_path() {
+  local src="$1" name="$2"
+  if sudo -n true >/dev/null 2>&1; then
+    sudo -n install -m 0755 "${src}" "/usr/local/bin/${name}"
+  else
+    mkdir -p "${UV_BIN_DIR}"
+    install -m 0755 "${src}" "${UV_BIN_DIR}/${name}"
+  fi
+}
+
+# What a LOGIN shell resolves a name to — printed in every refusal below, because "which copy did
+# the lane's shell find" is the first question a shadowed or unreachable install raises.
+login_resolves() {
+  bash -lc "type -a $1 2>&1 | head -n 3" 2>&1 || true
+}
+
+# Make a tool this process can run also resolvable by a LOGIN shell. A no-op when it already is;
+# otherwise it links the binary into /usr/local/bin. Never overwrites an existing, different file.
+ensure_login_resolvable() {
+  local name="$1" here
+  bash -lc "command -v ${name}" >/dev/null 2>&1 && return 0
+  here="$(command -v "${name}" 2>/dev/null || true)"
+  [ -n "${here}" ] || return 0
+  if sudo -n true >/dev/null 2>&1 && [ ! -e "/usr/local/bin/${name}" ]; then
+    sudo -n ln -s "${here}" "/usr/local/bin/${name}"
+    say "L-F5 ${name} was not on a login shell's PATH — linked ${here} into /usr/local/bin"
+    CHANGED=$((CHANGED + 1))
+  fi
+}
+
+# --- F5a: claude, PINNED -------------------------------------------------------------------------
+# Anthropic's setup doc (code.claude.com/docs/en/setup, "Install a specific version"):
+#   curl -fsSL https://claude.ai/install.sh | bash -s 2.1.89
+# and ("Disable auto-updates"): set DISABLE_AUTOUPDATER to "1" in the `env` key of settings.json.
+# The `claude-code` devcontainer feature stays declared — it delivers node and the first binary —
+# but installs the LATEST release, which then auto-updates; this leg applies the pin over it.
+leg_f5_claude_pin() {
+  local want ok=1 settings="${HOME}/.claude/settings.json"
+  want="$(uv run --no-sync python scripts/provision_legs.py tools get claude)" \
+    || die "L-F5 cannot read the claude pin from .devcontainer/provisioning.yaml"
+  [ -n "${want}" ] || die "L-F5 .devcontainer/provisioning.yaml declares no claude pin"
+
+  # BEFORE the install, so the updater is already off when the new binary first runs.
+  mkdir -p "$(dirname "${settings}")"
+  python3 - "${settings}" <<'PY' || die "L-F5 could not record DISABLE_AUTOUPDATER in ${settings} — the pinned claude would update itself away from the pin"
+import json, pathlib, sys
+p = pathlib.Path(sys.argv[1])
+d = json.loads(p.read_text()) if p.exists() and p.read_text().strip() else {}
+env = d.setdefault("env", {})
+if env.get("DISABLE_AUTOUPDATER") == "1":
+    print("already-set")
+else:
+    env["DISABLE_AUTOUPDATER"] = "1"
+    p.write_text(json.dumps(d, indent=2))
+    print("set")
+PY
+
+  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only claude --login || ok=0
+  if [ "${ok}" -eq 1 ]; then
+    noop "L-F5 claude already at the pinned ${want}"
+  else
+    say "L-F5 installing claude ${want} over whatever the feature delivered"
+    curl -fsSL https://claude.ai/install.sh | bash -s "${want}" >/dev/null \
+      || die "L-F5 the native Claude installer failed for ${want}"
+    CHANGED=$((CHANGED + 1))
+  fi
+  ensure_login_resolvable claude
+  uv run --no-sync python scripts/provision_legs.py tools check --only claude --login \
+    || die "L-F5 FAILED — claude is not the pinned ${want} in a login shell. A login shell resolves: $(login_resolves claude)"
+  say "L-F5 OK — claude pinned at ${want}, auto-update off"
+}
+
+# --- F5b: gh -------------------------------------------------------------------------------------
+# cli/cli docs/install_linux.md lists the prebuilt release binaries; the asset is
+# gh_<version>_linux_<arch>.tar.gz under releases/download/v<version>/.
+leg_f5_gh() {
+  local want ok=1 arch tmp
+  want="$(uv run --no-sync python scripts/provision_legs.py tools get gh)" \
+    || die "L-F5 cannot read the gh pin from .devcontainer/provisioning.yaml"
+  [ -n "${want}" ] || die "L-F5 .devcontainer/provisioning.yaml declares no gh pin"
+  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only gh --login || ok=0
+  if [ "${ok}" -eq 1 ]; then
+    noop "L-F5 gh already at the pinned ${want}"
+  else
+    say "L-F5 installing gh ${want}"
+    arch="$(tool_arch)"
+    tmp="$(mktemp -d)"
+    curl -fsSL "https://github.com/cli/cli/releases/download/v${want}/gh_${want}_linux_${arch}.tar.gz" \
+      -o "${tmp}/gh.tar.gz" || { rm -rf "${tmp}"; die "L-F5 could not download gh ${want}"; }
+    tar -xzf "${tmp}/gh.tar.gz" -C "${tmp}" || { rm -rf "${tmp}"; die "L-F5 could not unpack gh ${want}"; }
+    install_on_path "${tmp}/gh_${want}_linux_${arch}/bin/gh" gh || { rm -rf "${tmp}"; die "L-F5 could not install gh"; }
+    rm -rf "${tmp}"
+    CHANGED=$((CHANGED + 1))
+  fi
+  ensure_login_resolvable gh
+  uv run --no-sync python scripts/provision_legs.py tools check --only gh --login \
+    || die "L-F5 FAILED — gh is not the pinned ${want} in a login shell. A login shell resolves: $(login_resolves gh)"
+  say "L-F5 OK — gh ${want}"
+}
+
+# --- F5c: codex ----------------------------------------------------------------------------------
+# openai/codex README: `npm install -g @openai/codex`; the pin is the npm version tag. Node is the
+# devcontainer `node` feature's (asserted in L-F1).
+leg_f5_codex() {
+  local want ok=1
+  want="$(uv run --no-sync python scripts/provision_legs.py tools get codex)" \
+    || die "L-F5 cannot read the codex pin from .devcontainer/provisioning.yaml"
+  [ -n "${want}" ] || die "L-F5 .devcontainer/provisioning.yaml declares no codex pin"
+  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only codex --login || ok=0
+  if [ "${ok}" -eq 1 ]; then
+    noop "L-F5 codex already at the pinned ${want}"
+  else
+    say "L-F5 installing codex ${want}"
+    npm install -g "@openai/codex@${want}" >/dev/null 2>&1 \
+      || sudo -n env "PATH=${PATH}" npm install -g "@openai/codex@${want}" >/dev/null \
+      || die "L-F5 npm could not install @openai/codex@${want}"
+    CHANGED=$((CHANGED + 1))
+  fi
+  ensure_login_resolvable codex
+  uv run --no-sync python scripts/provision_legs.py tools check --only codex --login \
+    || die "L-F5 FAILED — codex is not the pinned ${want} in a login shell. A login shell resolves: $(login_resolves codex)"
+  say "L-F5 OK — codex ${want}"
+}
+
+# --- F5d: rclone ---------------------------------------------------------------------------------
+# rclone.org/install, "Precompiled binary": the zip at downloads.rclone.org; a versioned URL is
+# downloads.rclone.org/v<version>/rclone-v<version>-linux-<arch>.zip. Debian's packaged rclone
+# trails the workstation's by many minor versions, and the Drive transport's token is the
+# workstation's. Unzipped with python's own zipfile (the base image has python3, not always unzip).
+leg_f5_rclone() {
+  local want ok=1 arch tmp
+  want="$(uv run --no-sync python scripts/provision_legs.py tools get rclone)" \
+    || die "L-F5 cannot read the rclone pin from .devcontainer/provisioning.yaml"
+  [ -n "${want}" ] || die "L-F5 .devcontainer/provisioning.yaml declares no rclone pin"
+  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only rclone --login || ok=0
+  if [ "${ok}" -eq 1 ]; then
+    noop "L-F5 rclone already at the pinned ${want}"
+  else
+    say "L-F5 installing rclone ${want}"
+    arch="$(tool_arch)"
+    tmp="$(mktemp -d)"
+    curl -fsSL "https://downloads.rclone.org/v${want}/rclone-v${want}-linux-${arch}.zip" \
+      -o "${tmp}/rclone.zip" || { rm -rf "${tmp}"; die "L-F5 could not download rclone ${want}"; }
+    python3 -m zipfile -e "${tmp}/rclone.zip" "${tmp}/x" || { rm -rf "${tmp}"; die "L-F5 could not unpack rclone ${want}"; }
+    install_on_path "${tmp}/x/rclone-v${want}-linux-${arch}/rclone" rclone || { rm -rf "${tmp}"; die "L-F5 could not install rclone"; }
+    rm -rf "${tmp}"
+    CHANGED=$((CHANGED + 1))
+  fi
+  ensure_login_resolvable rclone
+  uv run --no-sync python scripts/provision_legs.py tools check --only rclone --login \
+    || die "L-F5 FAILED — rclone is not the pinned ${want} in a login shell. A login shell resolves: $(login_resolves rclone)"
+  say "L-F5 OK — rclone ${want}"
+}
+
+# --- F5e: agy ------------------------------------------------------------------------------------
+# The vendor's installer (read 2026-10-04): `curl -fsSL https://antigravity.google/cli/install.sh |
+# bash` fetches the platform manifest, verifies its sha512 and installs `agy` under ~/.local/bin.
+# It accepts --dir and NO version, so there is no pin to honour: presence is asserted and the
+# version is reported (`tools:` agy row). A skew against the workstation surfaces in parity
+# condition 1 by name rather than being papered over.
+leg_f5_agy() {
+  local ok=1
+  uv run --no-sync python scripts/provision_legs.py --quiet tools check --only agy --login || ok=0
+  if [ "${ok}" -eq 1 ]; then
+    noop "L-F5 agy already installed"
+  else
+    say "L-F5 installing agy (the vendor installer, latest — it takes no version)"
+    curl -fsSL https://antigravity.google/cli/install.sh | bash >/dev/null \
+      || die "L-F5 the Antigravity installer failed"
+    export PATH="${UV_BIN_DIR}:${PATH}"
+    CHANGED=$((CHANGED + 1))
+  fi
+  ensure_login_resolvable agy
+  uv run --no-sync python scripts/provision_legs.py tools check --only agy --login \
+    || die "L-F5 FAILED — agy is not installed in a login shell. A login shell resolves: $(login_resolves agy)"
+  say "L-F5 OK — agy present"
+}
+
 # --- F4: workspace trust, so the DECLARED permission set is the EFFECTIVE one --------------------
 # Measured on the 2026-08-31 admission probe, twice, and it survives provisioning: a headless
 # `claude -p` prints "Ignoring 1 permissions.allow entry from .claude/settings.json: this
@@ -878,6 +1091,11 @@ main() {
   leg3_hooks
   leg_pc_login_path
   leg_f1_claude
+  leg_f5_claude_pin
+  leg_f5_gh
+  leg_f5_codex
+  leg_f5_rclone
+  leg_f5_agy
   leg_f2_git_credential
   leg_f4_workspace_trust
   smoke_gate_liveness

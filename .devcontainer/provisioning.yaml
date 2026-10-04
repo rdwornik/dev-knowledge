@@ -119,6 +119,90 @@ features:
       The provenance marker is this repo's own identity claim (`scripts/substrate_provenance.py`).
       No feature has the concept, and one that did would be asserting somebody else's identity.
 
+  # --- foundation-13 (R63 step 1): the lane's toolset. Each pin has ONE home, the `tools:` block
+  # below; a feature option would be a second copy of it, which is the reason `leg1_uv` above
+  # rejected the community uv feature.
+  leg_f5_claude_pin:
+    verdict: rejected
+    feature: ghcr.io/anthropics/devcontainer-features/claude-code:1.0
+    reason: >-
+      The feature stays declared (it delivers node and the first binary) but installs the latest
+      release and the CLI then auto-updates, per devcontainer.json's own reading of the doc:
+      "the version tag pins the feature's install script, not the Claude Code release". The pin
+      is applied over it by the documented native installer form `bash -s <version>`, and the
+      updater is switched off by `DISABLE_AUTOUPDATER` (code.claude.com/docs/en/setup).
+  leg_f5_gh:
+    verdict: rejected
+    feature: ghcr.io/devcontainers/features/github-cli:1
+    reason: >-
+      The feature exists and takes a version option, which would be a second copy of the pin in
+      a file that cannot read the declaration; the leg installs the pinned release from the
+      `tools:` block and asserts the result.
+  leg_f5_codex:
+    verdict: no-feature
+    reason: >-
+      No published devcontainer feature installs the Codex CLI; its README names
+      `npm install -g @openai/codex`, and node is already declared as a feature.
+  leg_f5_rclone:
+    verdict: no-feature
+    reason: >-
+      No feature from devcontainers/features installs rclone, and Debian's packaged rclone trails
+      the workstation's by many minor versions; rclone.org/install names the precompiled
+      binary at a versioned URL, which is the form a pin can use.
+  leg_f5_agy:
+    verdict: no-feature
+    reason: >-
+      The Antigravity CLI ships through its own installer script only; no feature wraps it, and
+      the script takes `--dir` but no version, so the leg installs what the vendor serves and
+      asserts the binary is present.
+
+# --- foundation-13: THE LANE'S TOOLSET, pinned in one place --------------------------------------
+#
+# WHY. Codespace parity condition 1 (scripts/codespace_parity.py) compares `claude`, `gh`, `codex`
+# and `agy` between the workstation and a Codespace, and its first recorded run measured the
+# container at claude 2.1.272 against 2.1.288 with gh, codex and agy absent
+# (docs/audits/2026-10-03-technical-codespace-parity-run.md, condition 1); condition 4 needs `rclone`.
+# Without them a Codespace lane cannot review, land or hand back over the transport.
+#
+# HOW. This block is the ONE home of every version below. The `tools get` command of the
+# provision_legs module prints a pin, so `provision.sh` installs "the pin" and types no number;
+# its `tools check` command asserts installed-and-at-pin, and each leg `die`s when that fails.
+# Bumping a pin is an edit here and nowhere else. The values are what the workstation printed when this block was written; a
+# workstation that moves on is a parity finding, not a reason to float the container.
+#
+# `method` is the install form the tool's OWN documentation names, and `doc` is where it says so.
+# `agy` has no pin because its installer takes none (see its `reason`): a skew against the
+# workstation then shows up in condition 1 by name instead of being hidden by a pin that could not
+# be honoured.
+tools:
+  claude:
+    version: "2.1.289"
+    method: >-
+      native installer with a version argument: curl -fsSL https://claude.ai/install.sh | bash -s <version>;
+      auto-update off via DISABLE_AUTOUPDATER in settings.json env
+    doc: https://code.claude.com/docs/en/setup
+  gh:
+    version: "2.93.0"
+    method: >-
+      prebuilt release binary: github.com/cli/cli/releases/download/v<version>/gh_<version>_linux_<arch>.tar.gz
+    doc: https://github.com/cli/cli/blob/trunk/docs/install_linux.md
+  codex:
+    version: "0.155.0"
+    method: npm install -g @openai/codex@<version>
+    doc: https://github.com/openai/codex#readme
+  rclone:
+    version: "1.73.2"
+    method: >-
+      precompiled binary: downloads.rclone.org/v<version>/rclone-v<version>-linux-<arch>.zip
+    doc: https://rclone.org/install/
+  agy:
+    version: null
+    method: curl -fsSL https://antigravity.google/cli/install.sh | bash
+    doc: https://codelabs.developers.google.com/antigravity-cli-hands-on
+    reason: >-
+      the vendor installer takes only --dir and installs the manifest's latest release; there is
+      no version argument to honour a pin, so presence is asserted and the version is reported
+
 # --- B1: history sufficiency ---------------------------------------------------------------
 #
 # The measured failure: `[#554]` leg 2 unshallows, so a cloud clone has DEPTH. It does not

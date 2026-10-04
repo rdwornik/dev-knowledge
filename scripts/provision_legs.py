@@ -22,6 +22,14 @@ carries the TWO LEGS THE ROW NAMES and nothing else:
              names this exact symptom); a container has no primary, so it audits the one repo it
              has and saves the genuine result.
 
+  tools      foundation-13 (R63 step 1). The lane's tools -- `claude` pinned to the workstation's
+             version, plus `gh`, `codex`, `agy` and `rclone` -- are DECLARED as data in
+             `.devcontainer/provisioning.yaml` `tools:` (the one home of every pin) and ASSERTED
+             by `tools check`; `tools get <name>` prints a pin so `provision.sh` types no version.
+             Parity condition 1 (`scripts/codespace_parity.py`) compares these same versions
+             between a workstation and a Codespace, and measured `claude` 2.1.272 against 2.1.288
+             with gh, codex and agy absent (`docs/audits/2026-10-03-technical-codespace-parity-run.md`).
+
 WHAT IS DELIBERATELY NOT HERE. The retired module's third command, `prebuild`, reported
 declaration-vs-live drift against the Codespaces machines endpoint. It is not one of `[#746]`'s
 legs, it is the only part that needed `gh` and the network, and restoring it would be restoring
@@ -56,11 +64,14 @@ from __future__ import annotations
 
 import argparse
 import logging
+import re
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
+from typing import Callable
 
 import yaml
 
@@ -102,9 +113,20 @@ class EcosystemConfig:
 
 
 @dataclass(frozen=True)
+class ToolConfig:
+    """One lane tool. `version` is the exact pin, or None for a tool whose installer cannot take
+    one -- in which case `reason` says so, so an unpinned tool is a recorded decision."""
+    version: str | None
+    method: str
+    doc: str
+    reason: str = ""
+
+
+@dataclass(frozen=True)
 class Config:
     history: HistoryConfig
     ecosystem: EcosystemConfig
+    tools: dict[str, ToolConfig] = field(default_factory=dict)
 
 
 def _strict_bool(block: dict, key: str, *, default: bool) -> bool:
@@ -154,6 +176,56 @@ def _strict_str_list(block: dict, key: str, *, required: bool) -> tuple[str, ...
     return tuple(items)
 
 
+_PIN_RE = re.compile(r"\d+\.\d+\.\d+")
+_VERSION_RE = re.compile(r"(?<![\d.])\d+\.\d+(?:\.\d+)+")
+
+
+def parse_version(text: str) -> str | None:
+    """The first dotted version in a tool's `--version` banner, or None.
+
+    The five banners differ (`2.1.289 (Claude Code)`, `gh version 2.93.0 (2026-05-27)`,
+    `codex-cli 0.155.0`, `1.2.16`, `rclone v1.73.2`) and only the dotted number is comparable. A
+    date such as `2026-05-27` has no dots and cannot be mistaken for one.
+    """
+    match = _VERSION_RE.search(text or "")
+    return match.group(0) if match else None
+
+
+def _load_tools(raw: object) -> dict[str, ToolConfig]:
+    """`tools:` -- strict, because a pin that silently changes meaning is the drift it prevents."""
+    if raw is None:
+        return {}
+    if not isinstance(raw, dict):
+        raise ProvisioningError(f"'tools' is {type(raw).__name__}, not a mapping of tool -> row")
+    tools: dict[str, ToolConfig] = {}
+    for name, row in raw.items():
+        if not isinstance(row, dict):
+            raise ProvisioningError(f"tools.{name} is {row!r}, not a mapping")
+        version = row.get("version")
+        # `version: 2.93` parses as a FLOAT and `2.93.0` as a string: only an exact x.y.z STRING
+        # is a pin. Anything else is refused rather than coerced.
+        if version is not None and not (isinstance(version, str) and _PIN_RE.fullmatch(version)):
+            raise ProvisioningError(
+                f"tools.{name}.version is {version!r} ({type(version).__name__}) - a pin is an "
+                f"exact 'x.y.z' string, quoted; write `version: \"1.2.3\"` or `version: null`")
+        reason = row.get("reason") or ""
+        if version is None and not str(reason).strip():
+            raise ProvisioningError(
+                f"tools.{name} is unpinned and gives no reason - an unpinned tool is a recorded "
+                f"decision, so say why its installer cannot take a version")
+        doc = row.get("doc")
+        if not isinstance(doc, str) or not doc.startswith("https://"):
+            raise ProvisioningError(
+                f"tools.{name}.doc is {doc!r} - the install method cites the documentation that "
+                f"names it (an https URL)")
+        method = row.get("method")
+        if not isinstance(method, str) or not method.strip():
+            raise ProvisioningError(f"tools.{name}.method is missing")
+        tools[str(name)] = ToolConfig(version=version, method=method.strip(), doc=doc,
+                                      reason=str(reason).strip())
+    return tools
+
+
 def load_config(path: Path = CONFIG_PATH) -> Config:
     """Read `.devcontainer/provisioning.yaml`, or raise ProvisioningError."""
     try:
@@ -192,6 +264,7 @@ def load_config(path: Path = CONFIG_PATH) -> Config:
             self_register=_strict_bool(eco, "self_register", default=False),
             self_name=str(eco.get("self_name") or ".dev-knowledge"),
         ),
+        tools=_load_tools(raw.get("tools")),
     )
 
 
@@ -746,6 +819,73 @@ def seed_self_registration(root: Path, name: str) -> str:
     return str(expected)
 
 
+# --- tools: the lane's toolset, pinned and asserted ----------------------------------------
+
+
+@dataclass(frozen=True)
+class ToolStatus:
+    name: str
+    state: str          # ok | absent | skew | unparseable
+    detail: str
+
+
+def _probe_tool(name: str, login: bool = False) -> tuple[int, str]:
+    """`<name> --version` -> (returncode, text). 127 when it cannot be started.
+
+    `login=True` asks a LOGIN shell, the one the parity check (`codespace_parity._tool_probe`) and
+    the admission test use: on a Codespace the PATH a lane sees is only complete there, so a tool
+    that resolves in provision.sh's own shell and not in a login shell is not installed for the lane.
+    """
+    if login and sys.platform != "win32":
+        argv = ["bash", "-lc", f"command -v {name} >/dev/null 2>&1 && {name} --version"]
+    else:
+        exe = shutil.which(name)
+        if exe is None:
+            return 127, f"{name}: not found on PATH"
+        argv = [exe, "--version"]
+    try:
+        proc = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8",
+                              errors="replace", timeout=60)
+    except (OSError, subprocess.SubprocessError) as exc:
+        return 127, str(exc)
+    return proc.returncode, (proc.stdout or "") + (proc.stderr or "")
+
+
+def check_tools(tools: dict[str, ToolConfig],
+                probe: Callable[..., tuple[int, str]] | None = None,
+                login: bool = False) -> list[ToolStatus]:
+    """Assert each tool is installed and, where pinned, at its pin. Never repairs."""
+    probe = probe or _probe_tool
+    out: list[ToolStatus] = []
+    for name, tool in tools.items():
+        rc, text = probe(name, login=login)
+        if rc != 0:
+            out.append(ToolStatus(name, "absent", f"{name} is not installed (exit {rc})"))
+            continue
+        have = parse_version(text)
+        if have is None:
+            out.append(ToolStatus(name, "unparseable",
+                                  f"{name} --version printed no version: {text.strip()[:80]!r}"))
+        elif tool.version is None:
+            out.append(ToolStatus(name, "ok", f"{name} {have} (no pin: {tool.reason})"))
+        elif have != tool.version:
+            out.append(ToolStatus(name, "skew", f"{name} is {have}, pinned {tool.version}"))
+        else:
+            out.append(ToolStatus(name, "ok", f"{name} {have} == pin {tool.version}"))
+    return out
+
+
+def _select_tools(cfg: Config, only: list[str] | None) -> dict[str, ToolConfig]:
+    if not cfg.tools:
+        raise ProvisioningError("the declaration has no 'tools' block - nothing to assert")
+    if not only:
+        return cfg.tools
+    unknown = [n for n in only if n not in cfg.tools]
+    if unknown:
+        raise ProvisioningError(f"unknown tool(s) {unknown}; declared: {sorted(cfg.tools)}")
+    return {n: cfg.tools[n] for n in only}
+
+
 # --- commands ------------------------------------------------------------------------------
 
 
@@ -822,6 +962,21 @@ def cmd_ecosystem(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def cmd_tools(args: argparse.Namespace) -> int:
+    cfg = load_config(args.config)
+    if args.tools_command == "get":
+        print(_select_tools(cfg, [args.name])[args.name].version or "")
+        return EXIT_OK
+    bad = 0
+    for status in check_tools(_select_tools(cfg, args.only), login=args.login):
+        if status.state == "ok":
+            LOG.info("tools: OK - %s", status.detail)
+        else:
+            bad += 1
+            LOG.error("tools: %s - %s", status.state.upper(), status.detail)
+    return EXIT_VIOLATION if bad else EXIT_OK
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="provision_legs.py",
@@ -845,6 +1000,18 @@ def build_parser() -> argparse.ArgumentParser:
     p_eco.add_argument("--repair", action="store_true",
                        help="Audit this repo and save its state.yaml when nothing is registered.")
     p_eco.set_defaults(func=cmd_ecosystem)
+
+    p_tools = sub.add_parser("tools", help="foundation-13 - the lane's toolset: print a pin "
+                                           "(get) or assert installed-and-at-pin (check).")
+    tsub = p_tools.add_subparsers(dest="tools_command", required=True)
+    p_get = tsub.add_parser("get", help="Print the pin of one tool (empty for an unpinned tool).")
+    p_get.add_argument("name")
+    p_chk = tsub.add_parser("check", help="Assert the tools are installed and at their pin.")
+    p_chk.add_argument("--only", action="append", metavar="NAME",
+                       help="Assert only this tool (repeatable); default: every declared tool.")
+    p_chk.add_argument("--login", action="store_true",
+                       help="Probe through a LOGIN shell, as a lane and the parity check do.")
+    p_tools.set_defaults(func=cmd_tools)
 
     return parser
 
