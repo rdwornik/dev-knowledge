@@ -258,3 +258,52 @@ def test_audit_check_is_fail_soft(monkeypatch):
     monkeypatch.setattr(aud._vrc, "find_unfilled", boom)
     findings = aud.check_residual_completeness(Path("."))
     assert [f.status for f in findings] == ["warn"]
+
+
+# --- R66 (foundation-11-retire-approved): the DEAD v4 templates stay gone ----------------
+#
+# Outcome tests for the retirement of A2d/A2e/A2f (`DIGEST-B2-PREP-2026-10-03-TABLE.md` §4,
+# each read DEAD: no code, test, CI step or deploy carrier opens them). They are RED on
+# origin/main `31c791ae`, where all seven files exist and the surviving templates still name
+# them. `ALIVE-TEST-ONLY` and every other verdict stayed in place (R66 §2).
+
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+
+_R66_RETIRED = (
+    "templates/handoff/01_ROLE.md.tmpl",
+    "templates/handoff/03_PROJECT.md.tmpl",
+    "templates/handoff/04_RECENT.md.tmpl",
+    "templates/handoff/05_NOW.md.tmpl",
+    "templates/handoff/06_QUESTIONS.md.tmpl",
+    "templates/workspace-L.code-workspace",
+    "templates/workspace-M.code-workspace",
+)
+
+# The retired template stems. A surviving template or the `/handoff` command naming one by
+# its file stem would be a dangling reference to a file that no longer exists.
+_R66_RETIRED_STEMS = ("01_ROLE", "03_PROJECT", "04_RECENT", "05_NOW", "06_QUESTIONS")
+
+_R66_REFERENCING = (
+    "templates/handoff/02_METHODOLOGY.md.tmpl",
+    "templates/handoff/07_ASK_BACK.md.tmpl",
+    "templates/handoff/README.md.tmpl",
+    ".claude/commands/handoff.md",
+)
+
+
+@pytest.mark.parametrize("rel", _R66_RETIRED)
+def test_r66_retired_path_is_absent(rel):
+    assert not (_REPO_ROOT / rel).exists(), f"{rel} read DEAD under R66 and stays removed"
+
+
+@pytest.mark.parametrize("rel", _R66_REFERENCING)
+def test_r66_no_surviving_reference_to_a_retired_template(rel):
+    text = (_REPO_ROOT / rel).read_text(encoding="utf-8")
+    hits = [stem for stem in _R66_RETIRED_STEMS if stem in text]
+    assert not hits, f"{rel} still names the retired template(s) {hits}"
+
+
+def test_r66_handoff_command_no_longer_claims_the_templates_are_retained_live():
+    text = (_REPO_ROOT / ".claude/commands/handoff.md").read_text(encoding="utf-8")
+    assert "retained bundle templates" not in text
+    assert "Templates (retained live)" not in text
