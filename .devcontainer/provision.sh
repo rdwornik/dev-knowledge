@@ -708,6 +708,30 @@ ensure_login_resolvable() {
   fi
 }
 
+# Fetch a vendor's install script to a file and print its path -- or refuse, saying what arrived.
+# `curl ... | bash` runs whatever comes back, and on 2026-10-04 a fresh Codespace's creation.log
+# recorded exactly that failing: bash was handed COMPRESSED bytes (`syntax error near unexpected
+# token`) where antigravity.google's script should have been, the same line having passed the run
+# before, and the only message was "the installer failed". So: ask for the encodings curl will
+# decode (`--compressed`), retry a flaky endpoint, refuse anything that is not a `#!` script, and
+# name the first bytes of what was received.
+fetch_installer() {
+  local url="$1" dest first
+  dest="$(mktemp)"
+  if ! curl -fsSL --compressed --retry 3 --retry-delay 2 --retry-all-errors -o "${dest}" "${url}"; then
+    rm -f "${dest}"
+    say "fetch_installer: could not download ${url}" >&2
+    return 1
+  fi
+  if ! head -c 2 "${dest}" | grep -q '^#!'; then
+    first="$(head -c 24 "${dest}" | od -An -c | tr -s ' ' | head -n 1)"
+    say "fetch_installer: ${url} is not a shell script (first bytes: ${first})" >&2
+    rm -f "${dest}"
+    return 1
+  fi
+  echo "${dest}"
+}
+
 # --- F5a: claude, PINNED -------------------------------------------------------------------------
 # Anthropic's setup doc (code.claude.com/docs/en/setup, "Install a specific version"):
 #   curl -fsSL https://claude.ai/install.sh | bash -s 2.1.89
@@ -839,7 +863,7 @@ leg_f5_rclone() {
 # 1to1, R63). A release the vendor publishes past the pin in `provisioning.yaml` `tools:` is then a
 # named refusal here, and a version-skew FAIL in parity condition 1, rather than a tool that floats.
 leg_f5_agy() {
-  local want ok=1
+  local want ok=1 installer
   want="$(uv run --no-sync python scripts/provision_legs.py tools get agy)" \
     || die "L-F5 cannot read the agy pin from .devcontainer/provisioning.yaml"
   [ -n "${want}" ] || die "L-F5 .devcontainer/provisioning.yaml declares no agy pin"
@@ -848,8 +872,10 @@ leg_f5_agy() {
     noop "L-F5 agy already at the pinned ${want}"
   else
     say "L-F5 installing agy (the vendor installer serves its latest, and the leg then asserts ${want})"
-    curl -fsSL https://antigravity.google/cli/install.sh | bash >/dev/null \
-      || die "L-F5 the Antigravity installer failed"
+    installer="$(fetch_installer "https://antigravity.google/cli/install.sh")" \
+      || die "L-F5 could not fetch the Antigravity installer (the line above says what arrived)"
+    bash "${installer}" >/dev/null || { rm -f "${installer}"; die "L-F5 the Antigravity installer failed"; }
+    rm -f "${installer}"
     export PATH="${UV_BIN_DIR}:${PATH}"
     CHANGED=$((CHANGED + 1))
   fi
@@ -861,12 +887,13 @@ leg_f5_agy() {
 
 # --- F5f: grok -----------------------------------------------------------------------------------
 # xAI's first-party installer (read 2026-10-04): `curl -fsSL https://x.ai/cli/install.sh | bash -s
-# <X.Y.Z>` installs that version's artifact for the platform and checks the binary runs;
+# <X.Y.Z>` installs that version's artifact for the platform and checks the binary runs; the leg
+# runs the same script from a file `fetch_installer` has checked (`bash <file> <X.Y.Z>`);
 # GROK_BIN_DIR picks the directory (default ~/.grok/bin). The installer's other documented form,
 # GROK_DEPLOYMENT_KEY, is a credential and is NEVER passed here (R13): a Codespace that needs a
 # Grok login gets it from an operator act, which parity condition 1 names as an auth item.
 leg_f5_grok() {
-  local want ok=1
+  local want ok=1 installer
   want="$(uv run --no-sync python scripts/provision_legs.py tools get grok)" \
     || die "L-F5 cannot read the grok pin from .devcontainer/provisioning.yaml"
   [ -n "${want}" ] || die "L-F5 .devcontainer/provisioning.yaml declares no grok pin"
@@ -876,8 +903,11 @@ leg_f5_grok() {
   else
     say "L-F5 installing grok ${want}"
     mkdir -p "${UV_BIN_DIR}"
-    curl -fsSL https://x.ai/cli/install.sh | GROK_BIN_DIR="${UV_BIN_DIR}" bash -s "${want}" >/dev/null \
-      || die "L-F5 the xAI Grok installer failed for ${want}"
+    installer="$(fetch_installer "https://x.ai/cli/install.sh")" \
+      || die "L-F5 could not fetch the xAI Grok installer (the line above says what arrived)"
+    GROK_BIN_DIR="${UV_BIN_DIR}" bash "${installer}" "${want}" >/dev/null \
+      || { rm -f "${installer}"; die "L-F5 the xAI Grok installer failed for ${want}"; }
+    rm -f "${installer}"
     export PATH="${UV_BIN_DIR}:${PATH}"
     CHANGED=$((CHANGED + 1))
   fi
