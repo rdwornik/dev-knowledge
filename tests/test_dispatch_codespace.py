@@ -9,6 +9,9 @@ own `-Invoker`), never a real `gh` binary or a real codespace -- the same doctri
 `test_codespace_admission.py` states for its own `Probe` seam: a transport that can only be
 exercised by really provisioning a machine is a transport whose guards are never tested.
 
+The machine/idle defaults the first tests read are the 1:1 condition's substrate (`[#1335]`, lane
+b2-codespace-1to1, ADR-126 D2).
+
 R17's own test is `TestCodespaceDelete`: delete is refused when the manifest is missing or a hash
 differs, and allowed when it verifies -- and in the refusal case, `gh` is never called at all.
 """
@@ -46,6 +49,42 @@ def test_retention_defaults_are_valid_go_durations_not_a_day_suffix():
         assert go_duration.match(default), default
     cli_default = next(p.default for p in d.codespace_exec_cmd.params if p.name == "retention")
     assert go_duration.match(cli_default), cli_default
+
+
+def test_machine_and_idle_defaults_are_the_adr_126_d2_pair_in_all_three_places():
+    """ADR-126 D2 / R63 (lane b2-codespace-1to1): a Codespace lane defaults to the 4-core
+    `standardLinux32gb` machine and a 240-minute idle timeout. RED on `e67f27ac`, where all three
+    sites read `basicLinux32gb` / `30m` (a 2-core box that idles out in half an hour). The three
+    sites are `codespace_plan`, `codespace_exec` and the `codespace-exec` CLI's own options;
+    asserting each one keeps a fourth copy from drifting back to the old pair in only one place."""
+    import inspect
+
+    sites = {
+        "codespace_plan": inspect.signature(d.codespace_plan).parameters,
+        "codespace_exec": inspect.signature(d.codespace_exec).parameters,
+        "codespace-exec CLI": {p.name: p for p in d.codespace_exec_cmd.params},
+    }
+    for site, params in sites.items():
+        assert params["machine"].default == "standardLinux32gb", site
+        assert params["idle_timeout"].default == "240m", site
+
+
+def test_a_default_plan_creates_the_four_core_machine_with_the_long_idle_timeout():
+    """The defaults reach the `gh codespace create` argv, not only the signature."""
+    steps = d.codespace_plan("o/r", "main", "slug", Path("contract.md"), ["claude", "-p", "x"])
+    create = steps[0].argv
+    assert create[create.index("--machine") + 1] == "standardLinux32gb"
+    assert create[create.index("--idle-timeout") + 1] == "240m"
+
+
+def test_the_idle_default_is_a_valid_go_duration_within_the_codespaces_ceiling():
+    """`gh codespace create --idle-timeout` parses Go's duration grammar and GitHub caps idle at
+    four hours -- 240 minutes is the ceiling, so a default above it would be refused at create."""
+    import inspect
+
+    default = inspect.signature(d.codespace_plan).parameters["idle_timeout"].default
+    match = re.fullmatch(r"(\d+)m", default)
+    assert match and int(match.group(1)) <= 240, default
 
 
 def test_format_gh_line_quotes_only_when_needed():

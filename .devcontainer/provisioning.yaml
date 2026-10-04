@@ -154,12 +154,20 @@ features:
     reason: >-
       The Antigravity CLI ships through its own installer script only; no feature wraps it, and
       the script takes `--dir` but no version, so the leg installs what the vendor serves and
-      asserts the binary is present.
+      asserts it equals the pin in `tools:` (b2-codespace-1to1).
+  leg_f5_grok:
+    verdict: no-feature
+    reason: >-
+      No published devcontainer feature installs the xAI Grok CLI. Its own installer
+      (https://x.ai/cli/install.sh, read 2026-10-04) takes a version argument, which is the form a
+      pin can use, and `GROK_DEPLOYMENT_KEY`, which is a credential and is never passed here.
+      Added by b2-codespace-1to1 on the operator's order (2026-10-04): "1:1, all models in sync
+      -- Grok, Codex, Gemini".
 
 # --- foundation-13: THE LANE'S TOOLSET, pinned in one place --------------------------------------
 #
-# WHY. Codespace parity condition 1 (scripts/codespace_parity.py) compares `claude`, `gh`, `codex`
-# and `agy` between the workstation and a Codespace, and its first recorded run measured the
+# WHY. Codespace parity condition 1 (scripts/codespace_parity.py) compares `claude`, `gh`, `codex`,
+# `grok` and `agy` between the workstation and a Codespace, and its first recorded run measured the
 # container at claude 2.1.272 against 2.1.288 with gh, codex and agy absent
 # (docs/audits/2026-10-03-technical-codespace-parity-run.md, condition 1); condition 4 needs `rclone`.
 # Without them a Codespace lane cannot review, land or hand back over the transport.
@@ -181,9 +189,9 @@ features:
 # version tag.
 #
 # `method` is the install form the tool's OWN documentation names, and `doc` is where it says so.
-# `agy` has no pin because its installer takes none (see its `reason`): a skew against the
-# workstation then shows up in condition 1 by name instead of being hidden by a pin that could not
-# be honoured.
+# `agy` is pinned although its installer takes no version (see its `reason`): the leg cannot choose
+# the pin, so it asserts it, and a skew against the workstation then shows up in condition 1 by
+# name instead of being hidden by a tool that floats.
 tools:
   claude:
     version: "2.1.289"
@@ -206,12 +214,20 @@ tools:
       precompiled binary: downloads.rclone.org/v<version>/rclone-v<version>-linux-<arch>.zip
     doc: https://rclone.org/install/
   agy:
-    version: null
+    version: "1.2.16"
     method: curl -fsSL https://antigravity.google/cli/install.sh | bash
     doc: https://codelabs.developers.google.com/antigravity-cli-hands-on
     reason: >-
-      the vendor installer takes only --dir and installs the manifest's latest release; there is
-      no version argument to honour a pin, so presence is asserted and the version is reported
+      PINNED BUT NOT SELECTABLE (b2-codespace-1to1, R63): the vendor installer takes only --dir and
+      installs the manifest's latest release, so the leg cannot choose this version. It ASSERTS it:
+      a release the vendor publishes past the workstation's 1.2.16 is a named skew refusal here
+      and a C1 version-skew FAIL, never a silent one. The manifest read 2026-10-04 named 1.2.16.
+  grok:
+    version: "1.0.44"
+    method: >-
+      xAI first-party installer with a version argument: curl -fsSL https://x.ai/cli/install.sh | bash -s <version>;
+      GROK_BIN_DIR picks the install directory. No credential is passed: a login is an operator act
+    doc: https://github.com/xai-org/grok-build
 
 # --- B1: history sufficiency ---------------------------------------------------------------
 #

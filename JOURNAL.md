@@ -21,6 +21,21 @@
 
 ---
 
+### 2026-10-04 (k) - CC (Opus 5.5, integrator seat B2-W1 cycle 5): lane b2-codespace-1to1 merges -- a fresh Codespace comes up 4-core/240 min with every model CLI pinned, and C1 reads each CLI's served model id from the tool's own record
+
+**Anchors:** `a707ab37`, `787dc007`, `85144b42`, `c9dcb23e`, `86c9e7af`, `6c822c39`, `6ba5e7a3`, `218d9d23`, `94c52403`, `6676a243`, `e88e6aff`, `aa334b7b`, `510b0d7f`, `4cd8f4ff`, `e6991460`, `6a723c54`, `a9a7a311`, `6be0629b`, `b76a8375`, `db064469`, `183c9b18` -- `worktree-b2-codespace-1to1` (B2-W1 W1-7, after repair 1)
+
+**Did:**
+- Merged batch B2-W1 lane W1-7 after its repair 1: `scripts/dispatch.py` Codespace defaults `standardLinux32gb` / `240m` in all three places; `.devcontainer/provision.sh` + `provisioning.yaml` install and pin claude, gh, codex, rclone, agy 1.2.16 and grok 1.0.44; `scripts/codespace_parity.py` C1 probes each model CLI's served id against `ecosystem/provider-registry.yaml` (a mismatch or no id is a FAIL, an unprobed CLI a named AUTH-ITEM). Repair 1 carries the two `tests/test_provision_legs.py` declaration assertions that follow the agy/grok pins (operator order via the refusal) plus two disclosed fixture lines.
+- `[#1335]` refs cite the lane's run record and its two review records as their governance consumer. The closed merge receipt of lane b2-rulings-landing (`42ba43c2`) rides in `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict, flagged reds and the same-context control are in the integrator receipt `to-browser/SESSION-integrator-b2-w1-2026-10-04.md`.
+
+**Changes:** `.devcontainer/{provision.sh,provisioning.yaml}`, `scripts/{codespace_parity,dispatch}.py`, their tests, `tasks/1335-…`, one run record and two review records, generated index/counts.
+
+**Next:** W1-3 b2-ci-poll WAITING on the architect's item-4 ruling; W1-11 b2-transport-probe building.
+
+---
 ### 2026-10-04 (j) - CC (Opus 5.5, integrator seat B2-W1 cycle 4): lane b2-rulings-landing merges -- R55-R79 land as STANDING_RULINGS section AR, each carried by a row, and a two-leg rulings gate whose unmeasured leg never reads clean
 
 **Anchors:** `dc9bfb21`, `c499dddb`, `b7a0e503`, `8d74b255`, `eed7071d`, `393bc9a3`, `a3c39142`, `c84d43ab`, `defb2fae`, `82aaafdd`, `4de8c97e`, `167216ee`, `71ace1cf`, `c8c465b0` -- `worktree-b2-rulings-landing` (B2-W1 W1-10, after repair 2)
