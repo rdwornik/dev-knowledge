@@ -1,6 +1,6 @@
 {
   "schema": "known-reds-registry/2",
-  "baseline_id": "2026-10-03-7aad52fb218b",
+  "baseline_id": "2026-10-04-fdf4f4952211",
   "measured_at_sha": "2e7fa5f255fb67305e6964e1649ea1bd53366fff",
   "measured_via": "gh-run:37031390518",
   "workers": 4,
@@ -1152,7 +1152,7 @@
       },
       "tests/test_graph_spine.py::test_an_expired_lock_is_broken_so_a_dead_builder_never_wedges_the_store": {
         "attribution": "flaky",
-        "reason": "DCT D11: red on 21 of 35 windows runs with same-sha disagreement; the lock-timing tests flake on the windows runner, no commit made them red. Graph-spine lock tests, owner [#664]; fix = Done-when of [#1344] (10 consecutive green windows runs).",
+        "reason": "foundation-8 cause SHOWN, in scripts/graph_store.py (not a test defect): the rebuild-lock token is pid + time.time_ns() and Python 3.12 on Windows reads a 15.6 ms clock (GetSystemTimeAsFileTime), so two acquisitions in one process inside one tick share a token and the test's `taken != dead` / `successor != slow` assertion fails. Counterfactual, in-process, no script edited: token made unique per acquisition -> 0/3000 failures of each test (as shipped 224/3000 and 223/3000; the real test bodies looped in one local Windows process). Control rates, windows leg: lane-6 merge record 3/8; main push runs 37163851572 (base ae54e7da), 37157649406, 37155783000 (RED), 37148025981, 37137696130, 37133589959 = 1/6. Fix owed in scripts/graph_store.py, under [#1344]; the DCT D11 read (21 of 35 windows runs) stays in that row.",
         "task": "[#1344]",
         "owner": "[#664]",
         "expiry": "2026-10-17",
@@ -1160,7 +1160,7 @@
       },
       "tests/test_graph_spine.py::test_an_overrun_builder_does_not_release_its_SUCCESSORS_lock": {
         "attribution": "flaky",
-        "reason": "DCT D11: red on 21 of 35 windows runs with same-sha disagreement; the lock-timing tests flake on the windows runner, no commit made them red. Graph-spine lock tests, owner [#664]; fix = Done-when of [#1344] (10 consecutive green windows runs).",
+        "reason": "foundation-8 cause SHOWN, in scripts/graph_store.py (not a test defect): the rebuild-lock token is pid + time.time_ns() and Python 3.12 on Windows reads a 15.6 ms clock (GetSystemTimeAsFileTime), so two acquisitions in one process inside one tick share a token and the test's `taken != dead` / `successor != slow` assertion fails. Counterfactual, in-process, no script edited: token made unique per acquisition -> 0/3000 failures of each test (as shipped 224/3000 and 223/3000; the real test bodies looped in one local Windows process). Control rates, windows leg: lane-6 merge record 1/8; main push runs 37163851572 (base ae54e7da), 37157649406, 37155783000, 37148025981, 37137696130, 37133589959 (RED) = 1/6. Fix owed in scripts/graph_store.py, under [#1344]; the DCT D11 read (21 of 35 windows runs) stays in that row.",
         "task": "[#1344]",
         "owner": "[#664]",
         "expiry": "2026-10-17"
@@ -1460,6 +1460,13 @@
         "expiry": "2026-10-31",
         "signature": "assert 1 == 0"
       },
+      "tests/test_transport.py::test_concurrent_appends_to_the_same_destination_serialize_without_interleaving": {
+        "attribution": "flaky",
+        "reason": "foundation-8 cause SHOWN, in scripts/transport.py (not a test defect): _DestinationLock.__enter__ (:193) retries only on FileExistsError; on Windows os.open(O_CREAT|O_EXCL) on a lock file another thread is deleting raises PermissionError, which escapes append(). The real test body looped in one local Windows process: 63/300 runs fail, all PermissionError at transport.py:193; with PermissionError read as contention (in-process patch, no script edited) 0/300. Control rates, windows leg: lane-6 merge record 1/8; main push runs 37163851572 (base ae54e7da), 37157649406, 37155783000, 37148025981, 37137696130, 37133589959 = 0/6; DCT read 1/6. Fix owed in scripts/transport.py, under [#1350].",
+        "task": "[#1350]",
+        "owner": "B2",
+        "expiry": "2026-10-19"
+      },
       "tests/test_v6_frozen_contract.py::test_fr6_repo_root_and_cross_repo_are_codified_and_cli_mapped": {
         "attribution": "pre-freeze",
         "task": "[#912]",
@@ -1480,6 +1487,7 @@
     "2026-10-03 foundation-1-honest-green: migrated /1 -> /2 (R52 Q2 task+owner+expiry per entry; AM2-3 ceilings). Evidence: the pytest jobs of 6 main runs (37031390518, 37115288885, 37023583670, 37013641217, 36979022044, 36976521424), both OS legs, read per entry; 20 entries absent from every run of both legs were removed (shrink-only), among them the captured-log pseudo-id (DCT D3) and the renamed-test entry (AM2-1).",
     "AM2-2: the 20 test_prompts_guard_hook_wiring entries keep their recorded windows signature (KeyError: 'PreToolUse'), are not re-signed and carry no new expiry: task [#912], owner [#863], expiry 2026-10-08 (the guard's off-expiry, CLAUDE.md section 9). On windows the live reason ('expected exactly one prompts-guard hook, found 0') differs, so compare reads them SIG-CHANGED until the operator decides by 2026-10-07.",
     "AM2-3 growing items D5 (boot base bytes), D6 (unpinned text writes), D7 (floor components) carry ceiling+growth, enforced by compare; D8's changed first-orphan is stated in its growth and held by exact signature.",
-    "entries with no per-leg signature (the reason text varied over the evidence runs): test_an_overrun_builder_does_not_release_its_SUCCESSORS_lock on win (3 distinct normalized signatures over 6 runs)"
+    "entries with no per-leg signature (the reason text varied over the evidence runs): test_an_overrun_builder_does_not_release_its_SUCCESSORS_lock on win (3 distinct normalized signatures over 6 runs)",
+    "2026-10-04 foundation-8-test-isolation: the three Windows flake members (the two graph-spine lock tests, [#1344]; the transport concurrent-append test, [#1350]) carry their shown cause, the script it lives in and their measured control rates; the transport member is new on windows-latest. No signature re-signed, no entry grew. The deny_and_point fail-closed pair was never registered (lane 5 merged on one CI read with the pair absent), so there is no entry of theirs to remove."
   ]
 }

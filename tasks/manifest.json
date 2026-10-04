@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "0887542456b5c1f5e0b42552ae36cf7576b1e1360aa43f44c6a39f21ecb699c6",
+  "generated_sha256": "6a759dc7be58cc8d2b3fd06782e84e6ba73cca8f96e8dee212adbb145e3990d0",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -2810,6 +2810,10 @@
     {
       "task": 1349,
       "file": "1349-release-lint-the-floor-spec-pin-does-not-match-i.md"
+    },
+    {
+      "task": 1350,
+      "file": "1350-the-transport-append-lock-reads-a-windows-delete.md"
     },
     {
       "prose": ""
