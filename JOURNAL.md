@@ -21,6 +21,20 @@
 
 ---
 
+### 2026-10-04 (g) - CC (Opus 5.5, integrator seat B2-W1 cycle 2): lane b2-row-close-on-merge merges -- a merged lane's rows close with verified evidence, by the integrator
+
+**Anchors:** `da5078e8`, `6cf78acd`, `1d89fc16`, `f754e6f3`, `1841dcd6`, `700aed43`, `96f7abf0`, `5e0d4e64` -- `worktree-b2-row-close-on-merge`, merged `--no-ff` through `epic/b2-w1-int-b2-row-close-on-merge`.
+
+**Did:**
+- Merged batch B2-W1 lane W1-1: `scripts/row_close.py close --contract … --slug … --ci-run … --test …` reads a contract's `**Rows:** closes —` ids, verifies the merge sha from the closed merge receipt (reachable from `origin/main`), the CI push run (same sha, completed, not cancelled/timed out) and each test node id at the merge sha, and closes each row through `gen_task_tree`'s one writer with all three in the evidence clause; it refuses, files byte-identical, on missing evidence or when called from the lane's own worktree or session. `templates/lane-contract-template.md` carries the `**Rows:**` line.
+- `[#730]` refs cite the lane's review record as its governance consumer (the a0bf5cae precedent).
+
+**Result:** the integrator's step 5a has a coded closing step from this merge on; the merge's verdict is in `to-browser/SESSION-integrator-b2-w1-2026-10-04.md`.
+
+**Changes:** `scripts/row_close.py`, `tests/test_row_close.py`, `scripts/gen_task_tree.py` (close-row evidence clause), `tests/test_gen_task_tree.py`, `templates/lane-contract-template.md`, `ecosystem/harness.yaml` (one fates line), `tasks/730-…`, `docs/audits/2026-10-04-codex-b2-row-close-on-merge.md`, generated `docs/audits/README.md`, `ecosystem/doc-counts.md`.
+
+**Next:** the remaining B2-W1 handbacks, in handback order.
+
 ### 2026-10-04 (f) - CC (Opus 5.5, integrator seat FOUNDATION): batch FOUNDATION close -- ten lanes merged, lane 4 waits on a ruling, lanes 7 and 12 wait behind it
 
 **Anchors:** `3ce1abd5` -- `chore/foundation-close-ledgers`, merged `--no-ff`.

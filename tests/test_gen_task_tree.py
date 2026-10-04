@@ -1551,3 +1551,35 @@ def test_close_row_result_survives_a_frontmatter_refresh(tmp_path):
     assert gtt.find_incoherences(source, out_dir) == []
     # and the row is gone from the regenerated BACKLOG.md, as ADR-107 §6.3 requires
     assert "[#1]" not in source.read_bytes().decode("utf-8")
+
+
+def test_close_row_evidence_clause_carries_the_ci_run_and_the_tests(tmp_path):
+    """B2-W1 W1-1: the evidence clause names the merge sha, the CI run id (with its
+    conclusion) and the tests -- a close with a sha alone still works (backward compatible)."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    assert gtt.main(["--close-row", "1", "--evidence", "abc1234", "--ci-run", "987654",
+                     "--ci-conclusion", "success",
+                     "--test", "tests/test_a.py::test_one", "--test", "tests/test_b.py::test_two",
+                     "--out", str(out_dir)]) == 0
+    task_file = next(p for p in out_dir.iterdir() if p.name.startswith("1-"))
+    body = gtt.extract_body(task_file.read_bytes().decode("utf-8"))
+    assert "evidence abc1234" in body
+    assert "CI run 987654 (success)" in body
+    assert "tests tests/test_a.py::test_one, tests/test_b.py::test_two" in body
+    assert gtt.frontmatter_status(task_file.read_bytes().decode("utf-8")) == "closed"
+
+
+def test_close_row_refuses_a_malformed_ci_run_or_test_and_writes_nothing(tmp_path):
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    before = (out_dir / "manifest.json").read_bytes()
+    for extra in (["--ci-run", "latest"], ["--test", "has space::t"], ["--test", "a`b"]):
+        assert gtt.main(["--close-row", "1", "--evidence", "abc1234", *extra,
+                         "--out", str(out_dir)]) == 1, extra
+        assert (out_dir / "manifest.json").read_bytes() == before
+
+
+def test_ci_run_and_test_flags_need_close_row(tmp_path):
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    for extra in (["--ci-run", "1"], ["--test", "tests/t.py::t"]):
+        with pytest.raises(SystemExit):
+            gtt.main([*extra, "--out", str(out_dir)])
