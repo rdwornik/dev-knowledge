@@ -63,6 +63,7 @@ uv run --locked python scripts/codespace_parity.py check --local local.json --re
 [provision] L-F5 installing agy (the vendor installer, latest — it takes no version)
 [provision] L-F5 OK — agy present
 [provision] DONE — 11 leg(s) acted; all four legs assert clean and a real gate ran here
+(Note, review P3: "all four legs" is `provision.sh`'s pre-existing, unchanged DONE wording for its original assertion legs. The five F5 tool legs above are separate and each printed its own `L-F5 OK`.)
 Outcome: success
 ```
 
