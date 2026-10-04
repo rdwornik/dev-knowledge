@@ -52,6 +52,22 @@ CONFIRMED, FIXED at `54d890a5`: the member must open with a date AND end in an e
 
 **Residual, in the reviewer's own words (read 4):** "even a correctly constrained content-only matcher cannot distinguish a genuinely changed assertion involving two valid dated artifact names from the per-merge audit-file value." That is the honest ceiling of item 3's "normalize the per-merge value": a set of dated FILE names that genuinely changed is masked. Nothing narrower is possible from content alone; it would need non-content context (which merge added which audit file).
 
+## Repair 1 (integrator refusal `REFUSED-b2-merge-gate.md`, 2026-10-04) — read 5 and read 6
+
+Repair diff `29d43f74..9db0b523` (scripts and tests): `actions_verdict._judge_pytest_legs` read a base leg's log only when the leg concluded non-success, but `main`'s pytest legs run the raw step `continue-on-error` and are judged by the known-reds compare, so a base leg concludes `success` with 73 tests red; the empty base set made every tip red NEW. It now reads the base leg's log whenever the leg ran (`skipped` / not-run keeps the empty set); an unreadable log is UNATTRIBUTED. The same diff pins `newline="
+"` on `merge_path.py`'s rehearsal-record write (the flagged item: the `test_generator_newlines` count 16 → 15, the base's).
+
+**Model used:** `gpt-5.6-terra` (served id from each run's header, `reasoning effort: low`).
+
+| Read | Nonce returned (line 1, verbatim) | Line 2 quoted | sha256 of the raw answer (first 16 hex) | Tally |
+|---|---|---|---|---|
+| 5 | `NONCE-10987963-826518675` | first diff line | `db5931697aa9a19d` | P1=2 (both dispositioned, below) |
+| 6 (attacks the two dispositions) | `NONCE-274427293-1266028793` | first diff line | `0117a2e540686bed` | P1=0 |
+
+**Read 5 · P1 `actions_verdict.py:623` — a `success` tip leg is never log-compared.** NOT a defect of this diff, SKIPPED with evidence: the leg's own conclusion IS the known-reds compare (`.github/workflows/conductor.yml`: the raw step is `continue-on-error`, the last step is `exit ${{ steps.known_reds.outputs.exit }}`), so a `success` tip leg has no unregistered red; the registry is lane 1's. Read 6 attacked this and it held.
+
+**Read 5 · P1 `actions_verdict.py:503` — a skipped / not-run base leg reads the tip's reds NEW.** SKIPPED: unchanged behaviour (identical at `29d43f74`) that errs toward refusing, never toward a pass; read 6 held it.
+
 ## Honest limits
 
 - One reviewer, `reasoning effort: low`, four passes over diffs; the final repair (`54d890a5`) was not re-read.
