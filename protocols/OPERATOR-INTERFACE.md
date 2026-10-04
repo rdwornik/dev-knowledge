@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-08
+last_reviewed: 2026-10-04
 reconciled_with: handoff-process@7.1.0
 status: active
 owner: Rob
@@ -197,25 +197,27 @@ so the copy happens whether or not a session remembers it.
 
 ## 5. The browser role file is INSTALLED ONCE, not re-pasted (v6.3.0)
 
-**The one-time act.** Install the contents of **`protocols/HANDOFF_BOOT.md`** as the browser
-project's own **project instructions**. Once per browser project — not once per session, and not
-once per handoff. That file *is* the seat's operating role.
+**The one-time act — one install mode, the live Project's (§6).** Install
+**`protocols/HANDOFF_BOOT.md`** as the Project's ONE **knowledge file**, and put a one-line pointer
+in the Project instructions; §6 records the same arrangement: "Project knowledge holds exactly ONE
+file" and "Project instructions hold the pointer plus the version-refusal rule". Once per browser
+project — not once per session, and not once per handoff. That file *is* the seat's operating role.
 
 **Why it is a one-time act and not a paste.** Through HANDOFF_PROCESS v6.2.0 the assembler inlined
 the whole role file into every `PASTE_THIS.md`: ~17 KB of identical role text re-transmitted on
-every single handoff, to an actor that can simply hold it. The browser project instruction field is
+every single handoff, to an actor that can simply hold it. The Project's knowledge file is
 exactly the residency this repeated transmission was substituting for.
 
 **What each paste carries instead — the ROLE PIN.** Every assembled `PASTE_THIS.md` now opens with
 three lines: the role file's name, the live `handoff-process` version, its `sha256`, and a standing
 refusal line —
 
-> *If your project instructions do not carry this contract at this version+sha, say so before
+> *If the HANDOFF_BOOT.md in your project knowledge is not at this version+sha, say so before
 > answering.*
 
 **What the operator does with a refusal.** A seat reporting a mismatch is the mechanism WORKING, not
-a failure to route around: re-install the current `protocols/HANDOFF_BOOT.md` into the project
-instructions and re-paste. Residency without that refusal degrades silently the moment the resident
+a failure to route around: re-install the current `protocols/HANDOFF_BOOT.md` as the Project's
+knowledge file (replace the old copy; the pointer in the instructions stays) and re-paste. Residency without that refusal degrades silently the moment the resident
 copy drifts, and a silently-stale role is strictly worse than a heavy paste — which is why the pin
 carries teeth rather than merely announcing a version.
 
@@ -237,9 +239,10 @@ performed against this Project.
   falls back to retrieval, and a *retrieved* role is one the seat may or may not be shown on any
   given turn. Holding the knowledge to a single file keeps the role resident, which is the property
   §5's version-refusal pin depends on to have teeth.
-- **Project instructions hold the pointer plus the version-refusal rule** — the three-line ROLE PIN
-  of §5 and its refusal sentence, and nothing further. Instructions that restate the role would
-  reintroduce the second copy this arrangement removes.
+- **Project instructions hold the pointer plus the version-refusal rule** — one line naming the
+  knowledge file and §5's refusal sentence, and nothing further (the ROLE PIN, with its sha256,
+  arrives in each paste, not here). Instructions that restate the role would reintroduce the
+  second copy this arrangement removes.
 - **Per-repo projects were rejected, on measurement.** One Project per repo means N copies of the
   same role drifting apart independently — the version-drift disease already measured in this
   corpus, arriving by a new route. One seat, one role, one place it lives.

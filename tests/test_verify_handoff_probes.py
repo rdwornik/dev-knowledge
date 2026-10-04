@@ -2294,7 +2294,7 @@ def test_state_row_fns_thread_the_cut_anchor_through(monkeypatch):
         seen["ci_at_sha"] = at_sha
         return hs.StateRow("CI", "v", "LIVE-DRIFTS", "e")
 
-    def _fake_row_rulings(transport, *, as_of=None):
+    def _fake_row_rulings(transport, *, as_of=None, repo_root=None):
         seen["rulings_as_of"] = as_of
         return hs.StateRow("Rulings", "v", "SLOW", "e")
 
@@ -2315,12 +2315,28 @@ def test_state_row_fns_thread_the_cut_anchor_through(monkeypatch):
                     "capabilities_as_of": "2026-09-20"}
 
 
+def test_the_rulings_and_plan_lambdas_thread_the_repo_root_and_the_cut_date(monkeypatch):
+    """B2-W1 W1-9 items 1 and 4: BD-rulings re-derives `not landed:` against THIS repo's register
+    and BD-plan against the bundle's own cut date, through the one function the cut called."""
+    seen = {}
+    monkeypatch.setattr(hs, "row_rulings", lambda transport, *, as_of=None, repo_root=None:
+                        seen.update(rulings=(as_of, repo_root)) or hs.StateRow("Rulings", "v", "SLOW", "e"))
+    monkeypatch.setattr(hs, "row_plan", lambda transport, *, as_of=None:
+                        seen.update(plan=as_of) or hs.StateRow("Plan", "v", "SLOW", "e"))
+    monkeypatch.setattr(vhp, "_transport_for", lambda ctx: None)
+    ctx = vhp._BootCtx(Path("b"), Path("r"), {}, cut_sha="c758fe2f8472", cut_date="2026-10-05")
+    vhp._STATE_ROW_FNS["Rulings"](hs, ctx)
+    vhp._STATE_ROW_FNS["Plan"](hs, ctx)
+    assert seen == {"rulings": ("2026-10-05", Path("r")), "plan": "2026-10-05"}
+    assert "Plan" in vhp._COMMITTED_STATE_KEYS
+
+
 def test_state_row_fns_pass_none_for_an_uncommitted_bundles_ctx(monkeypatch):
     """The default `_BootCtx()` (no cut_sha/cut_date) is what an uncommitted bundle gets --
     `None` threads through unchanged, preserving the prior live-`origin/main` behavior."""
     seen = {}
     monkeypatch.setattr(hs, "row_ci", lambda repo_root, *, at_sha=None: seen.setdefault("ci", at_sha) or hs.StateRow("CI", "v", "LIVE-DRIFTS", "e"))
-    monkeypatch.setattr(hs, "row_rulings", lambda transport, *, as_of=None: seen.setdefault("rulings", as_of) or hs.StateRow("Rulings", "v", "SLOW", "e"))
+    monkeypatch.setattr(hs, "row_rulings", lambda transport, *, as_of=None, repo_root=None: seen.setdefault("rulings", as_of) or hs.StateRow("Rulings", "v", "SLOW", "e"))
     monkeypatch.setattr(hs, "row_capabilities", lambda transport, *, as_of=None: seen.setdefault("capabilities", as_of) or hs.StateRow("Capabilities", "v", "SLOW", "e"))
     monkeypatch.setattr(vhp, "_transport_for", lambda ctx: None)
 

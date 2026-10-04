@@ -21,6 +21,22 @@
 
 ---
 
+### 2026-10-04 (i) - CC (Opus 5.5, integrator seat B2-W1 cycle 4): lane b2-handoff-hardening merges -- the boot's defects found by the boot test are fixed, and the Plan row refuses visibly instead of falling back to an old master plan
+
+**Anchors:** `f74d1c4c`, `10565b84`, `a23eaaf3`, `88c77d6f`, `be729b33`, `8a43a1de`, `d7444f89`, `6b8e6911`, `6a26c984`, `bd7a7a53`, `a4327fa6`, `b15b2f67`, `70228c11`, `1c8e97d5`, `464ef70b`, `9bd6c63d`, `29262f24` -- `worktree-b2-handoff-hardening` (B2-W1 W1-9, after repair 1)
+
+**Did:**
+- Merged batch B2-W1 lane W1-9 after its repair 1: a generated `Plan` row (a plan's role read from its own head, then its `supersedes:` lineage; a newer undeclared plan refuses the row and fails `BD-plan`), a boot version that moves, one first move in core item 3, a Rulings row printing the ids in force and the computed `not landed:` set, one install mode, and no PROBES table in an architect paste.
+- `[#663]` refs cite the lane's review record as its governance consumer (the `1546090c` precedent). The closed merge receipt of lane b2-merge-gate (`1546090c`), uncarried since the refused W1-10 merge, rides in `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict, flagged reds and the same-context control are in the integrator receipt `to-browser/SESSION-integrator-b2-w1-2026-10-04.md`.
+
+**Changes:** `protocols/{HANDOFF_BOOT,OPERATOR-INTERFACE}.md`, `scripts/{handoff_state,verify_handoff_probes,assemble_paste}.py`, `templates/handoff/v5/{HANDOFF_BOOT.md,RESIDUAL.md}.tmpl`, their tests, one review record, `tasks/663-…`, generated index/counts.
+
+**Next:** W1-11 b2-transport-probe unblocks on this merge; then W1-6's re-test.
+
+---
+
 ### 2026-10-04 (h) - CC (Opus 5.5, integrator seat B2-W1 cycle 3): lane b2-merge-gate merges -- CI's verdict refuses only a NEW red or a non-pass required check, and a red on both sides is flagged by bucket
 
 **Anchors:** `5f94f2b7`, `b2aa273b`, `d41b7321`, `12c8a8f5`, `18b964cb`, `a13d883a`, `937b94ca`, `8c41d639`, `80d31774`, `a71c568b`, `730821ff`, `747d4c95`, `ec74680a`, `48ee437a`, `27825023`, `5fb90eee`, `5d97fd1d`, `e49140ff`, `4899d80b`, `96a1534f`, `0673145a`, `3a83b5d3`, `8174ee4d`, `de8bb6e6`, `37a9061e`, `54d890a5`, `29d43f74`, `87484c64`, `44ce797f`, `9db0b523`, `b3da5142` -- `worktree-b2-merge-gate` (lane 4 `worktree-foundation-4-merge-gate` up to `2dd2067d` carried), merged `--no-ff` through `epic/b2-w1-int-b2-merge-gate`.
