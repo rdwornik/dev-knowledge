@@ -21,6 +21,66 @@
 
 ---
 
+### 2026-10-04 (c) - CC (Opus 5.5, integrator seat FOUNDATION): night lane foundation-8-test-isolation merges -- the deny_and_point fail-closed pair owns its store; three Windows flakes quarantined with their shown cause
+
+**Anchors:** `cd5ec6cc`, `66c5fc08`, `dcff4a70`, `7dc45a8f`, `209bd725`, `79ee0f10` -- `worktree-foundation-8-test-isolation`, merged `--no-ff` through `epic/foundation-int-foundation-8-test-isolation`.
+
+**Did:**
+- Adopted through the per-handback path as an AMEND-5 night lane. The two `deny_and_point` fail-closed tests run against their own populated store under `tmp_path` (the guard's absent-store ALLOW untouched); the `test_graph_spine` lock pair and the `test_transport` concurrent append are quarantined on `windows-latest` in the known-reds registry with cause, owner, expiry and control rates -- the causes sit in `scripts/graph_store.py` (lock token not unique within a clock tick) and `scripts/transport.py` (PermissionError not read as contention), scripts the lane may not edit; `[#1350]` files the transport cause.
+- `[#639]` cites lane foundation-11's removal ledger as its governance consumer (carried from a refused lane-4 integration, never on `main`); regenerated `docs/audits/README.md`; carried lane foundation-11-retire-approved's closed merge receipt into `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict is the integration branch's CI push run, test-level per leg -- recorded in the integrator receipt `to-browser/SESSION-integrator-foundation-2026-10-03.md`.
+
+**Changes:** `tests/test_{deny_and_point,graph_spine,transport}.py`, `logs/KNOWN-REDS-REGISTRY.json`, `tasks/1350` (new), `tasks/639` (refs), `tasks/manifest.json`, one audit, `logs/MERGE-RECEIPTS.jsonl`, generated `BACKLOG.md` / `ecosystem/doc-counts.md` / `docs/audits/README.md`.
+
+**Next:** lane 4's repair 2 of 2; lane 13; lane 9; ROWS-OWED: the graph-store lock token row.
+
+### 2026-10-04 (b) - CC (Opus 5.5, integrator seat FOUNDATION): night lane foundation-11-retire-approved merges -- the seven DEAD templates are retired under R66 and ADR-116 is withdrawn
+
+**Anchors:** `ed9180d0`, `055bf91d`, `35e06455`, `716a85b3`, `d6d1f7f5`, `555f98cd`, `78f11e06` -- `worktree-foundation-11-retire-approved`, merged `--no-ff` through `epic/foundation-int-foundation-11-retire-approved`.
+
+**Did:**
+- Adopted through the per-handback path as an AMEND-5 night lane. Retired only the items whose dynamic-use verdict reads DEAD (v4 handoff templates 01, 03-06; `workspace-L`, `workspace-M`), each with its evidence in the removal ledger; every other item is listed untouched. ADR-116 takes `Explored, not adopted` (no open row cites it); ADR-117 and ADR-118 are kept with their citing rows.
+- The integrator re-ran the reacher search on the merged tree: the remaining hits name generated bundle outputs (`docs/handoffs/*/0N_*.md`) or the lane's absence tests; no generator opens the removed templates.
+- Done item 3's literal clause read UNMET on the lane's branch run: two `test_gen_audit_index` ids from the index the contract told the lane to leave stale, plus the branch-context `worktree_seed` red. Judged on this merge's run instead, where the index is regenerated.
+- `ecosystem/doc-counts.md` regenerated on the conflict (8912 collected, `--check` match); `docs/audits/README.md` regenerated; lane foundation-10-model-currency's closed merge receipt carried in `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict is the integration branch's CI push run, test-level per leg -- recorded in the integrator receipt `to-browser/SESSION-integrator-foundation-2026-10-03.md`.
+
+**Changes:** seven template files removed; reference lines in `templates/handoff/{02_METHODOLOGY,07_ASK_BACK,README}.md.tmpl` and `.claude/commands/handoff.md`; ADR-116 status line and its `docs/decisions/README.md` entry; two test files; two audits; `logs/MERGE-RECEIPTS.jsonl`; generated `ecosystem/doc-counts.md` / `docs/audits/README.md`.
+
+**Next:** the lane's three ROWS-OWED (PLAYBOOK `:1147`/`:1150` still name the removed workspaces; a removal-ledger home; the stale conformance dashboard) go to the batch digest.
+
+### 2026-10-04 (a) - CC (Opus 5.5, integrator seat FOUNDATION): night lane foundation-10-model-currency merges -- the harness checks model currency from served evidence (R61)
+
+**Anchors:** `91ed36c3`, `7ea72394`, `7fd1327d` -- `worktree-foundation-10-model-currency`, merged `--no-ff` through `epic/foundation-int-foundation-10-model-currency`.
+
+**Did:**
+- Adopted through the per-handback path as an AMEND-5 night lane. The registry lists the five ids served on 2026-10-03 with `last_verified` and evidence; `scripts/check_model_currency.py` lists every pinned id and flags unknown, unverified and 14-day-stale ones, as a COMMIT-tier `warn` finding in `audit.py health` -- no hook added.
+- Ownership: `scripts/audit.py` (`ALL_CHECKS` entry), `ecosystem/doc-code-edge.yaml` (exempt line) and three `ALL_CHECKS` count pins (57 -> 58) sit outside the contract's owned list; accepted as structural consequences of the contract's own N4 instruction (registration in `ALL_CHECKS`), recorded DECIDED-BY-LANE.
+- Regenerated `docs/audits/README.md`; carried lane foundation-5-codespace-parity's closed merge receipt into `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict is the integration branch's CI push run, test-level per leg -- recorded in the integrator receipt `to-browser/SESSION-integrator-foundation-2026-10-03.md`. The lane's OPERATOR-ACTION stands: `audit.py ship-gate` reads the new standing `warn` (8 rows with no `last_verified`) as blocking until a disposition covers it; `ship-gate` is not a required context.
+
+**Changes:** `ecosystem/provider-registry.yaml`, `ecosystem/schema/provider_registry.py`, `scripts/check_model_currency.py`, `scripts/audit_checks/{model_currency,registry}.py`, `scripts/audit.py`, `ecosystem/{harness,doc-code-edge}.yaml`, four test files, one audit, `logs/MERGE-RECEIPTS.jsonl`, generated `ecosystem/doc-counts.md` / `docs/audits/README.md`.
+
+**Next:** lane 12 waits on this merge (shared `tests/test_provider_registry.py`); the lane's four ROWS-OWED go to the batch digest.
+
+### 2026-10-03 (f) - CC (Opus 5.5, integrator seat FOUNDATION): lane foundation-5-codespace-parity merges after one repair, rebuilt on main after lane 6 -- a repository check says per condition whether a Codespace lane behaves like a local one
+
+**Anchors:** `9686f2e8`, `7256823e` -- `worktree-foundation-5-codespace-parity`, merged `--no-ff` through `epic/foundation-int-foundation-5-codespace-parity-r2`.
+
+**Did:**
+- Refused the first handback `9772c415` (repair 1 of 2): its review record carried no nonce or content hash (R59). The repair re-ran the review on grok-4.7 with nonce `NONCE-cb4972e7d0b3` returned and recorded, and fixed one new P1; the integrator re-read the served id and the nonce from the Grok session store.
+- A first integration (`dbcc5355`, never on `main`) read two `deny_and_point` fail-closed tests red: an order dependence on the persisted graph store (proven: absent store -> allow), not lane 5's content. Seat ruling 2026-10-03: rebuild on `main` after lane 6 and read CI once. This is that rebuild; `ecosystem/doc-counts.md` regenerated on the conflict.
+- `[#1335]` cites the run record (its governance consumer; the lane may not edit rows, ruling (h)); regenerated `docs/audits/README.md`; carried lane foundation-6-ci-speed's closed merge receipt into `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict is the integration branch's single CI push run, test-level per leg -- recorded in the integrator receipt `to-browser/SESSION-integrator-foundation-2026-10-03.md`.
+
+**Changes:** `scripts/codespace_parity.py`, `tests/test_codespace_parity.py`, `tests/test_provision_sh.py`, `ecosystem/harness.yaml` (one fates line), two audits, `tasks/1335` (refs), `logs/MERGE-RECEIPTS.jsonl`, generated `ecosystem/doc-counts.md` / `docs/audits/README.md`.
+
+**Next:** lane 4 (fired by the dispatcher after lane 6); the seven ROWS-OWED from lane 5 go to the batch digest.
+
 ### 2026-10-03 (e) - CC (Opus 5.5, integrator seat FOUNDATION): lane foundation-6-ci-speed merges under an amended item 3 -- the pytest legs distribute by xdist group
 
 **Anchors:** `e342a73c`, `742e015e`, `ef02b75b` -- `worktree-foundation-6-ci-speed`, merged `--no-ff` through `epic/foundation-int-foundation-6-ci-speed`.

@@ -71,6 +71,36 @@ def _uncommented(text: str, marker: str = "#") -> str:
     return "\n".join(ln for ln in text.splitlines() if not ln.lstrip().startswith(marker))
 
 
+def _working_bash() -> str:
+    """The first `bash` -- on PATH, else beside git -- that actually runs a command.
+
+    `shutil.which("bash")` returns the first PATH hit, and on a Windows workstation that is
+    `...\\WindowsApps\\bash.EXE` -- the WSL launcher, which prints "no installed distributions"
+    in UTF-16 and exits 1 -- ahead of Git Bash. The two tests that RUN bash then failed here
+    and passed in a Codespace (`codespace_parity.py` condition 2, 2026-10-03), a verdict that
+    came from the machine's PATH, not from the code. Each candidate is probed; none working is
+    a loud failure, never a silent skip.
+    """
+    candidates = [shutil.which("bash", path=d) for d in os.environ.get("PATH", "").split(os.pathsep)
+                  if d]
+    git = shutil.which("git")
+    if git:  # Git for Windows ships bash beside git even when its `bin` is not on PATH
+        root = Path(git).resolve().parent.parent
+        candidates += [str(root / "bin" / "bash.exe"), str(root / "usr" / "bin" / "bash.exe")]
+    for candidate in candidates:
+        if candidate is None or not Path(candidate).is_file():
+            continue
+        try:
+            probe = subprocess.run([candidate, "-c", "echo bash-ok"], capture_output=True,
+                                   text=True, timeout=30)
+        except (OSError, subprocess.TimeoutExpired):
+            continue
+        if probe.returncode == 0 and probe.stdout.strip() == "bash-ok":
+            return candidate
+    raise AssertionError("no bash on PATH can run a command (a WSL launcher with no "
+                         "distribution does not count)")
+
+
 def _bash_function(text: str, name: str) -> str:
     """The body of one bash function, bounded at its closing brace.
 
@@ -231,7 +261,7 @@ def test_leg_pc_login_path_persists_precommit_onto_a_fresh_shells_path(tmp_path:
     """
     text = _PROVISION_SH.read_text(encoding="utf-8")
     body = _bash_function(text, "leg_pc_login_path")
-    bash_exe = shutil.which("bash")
+    bash_exe = _working_bash()
 
     home = tmp_path / "home"
     home.mkdir()
@@ -349,8 +379,8 @@ def test_self_digest_actually_distinguishes_a_replaced_script(tmp_path: Path):
     # The resolved path, not the bare name: on Windows `CreateProcess` finds
     # `System32\bash.exe` (the WSL launcher, which prints "no installed distributions" and
     # exits 1) BEFORE it consults PATH, so a bare "bash" never reaches the Git Bash the skipif
-    # above resolved. `shutil.which` walks PATH, as the sibling tests do.
-    bash_exe = shutil.which("bash")
+    # above resolved. `_working_bash` walks PATH and probes each hit.
+    bash_exe = _working_bash()
 
     def digest() -> str:
         run = subprocess.run([bash_exe, str(harness)], capture_output=True, text=True, timeout=60)

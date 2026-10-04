@@ -742,6 +742,7 @@ So that an item found once does not have to be re-derived by the next seat that 
 - [#1347] [P2][S] Three tests fail on both CI legs with a symptom and an unread cause: anchor probe, plugin paths, archive records · tasks/1347-three-tests-fail-on-both-ci-legs-with-a-symptom.md
 - [#1348] [P2][S] Four tests expect one finding and read three or four: doc-code edge, reverse-dep oracle, preflight predicates · tasks/1348-four-tests-expect-one-finding-and-read-three-or.md
 - [#1349] [P2][S] release-lint: the floor spec pin does not match its sidecar, and five tests read it · tasks/1349-release-lint-the-floor-spec-pin-does-not-match-i.md
+- [#1350] [P2][S] The transport append lock reads a Windows delete-pending file as an error, and one test flakes on it · tasks/1350-the-transport-append-lock-reads-a-windows-delete.md
 
 ---
 
