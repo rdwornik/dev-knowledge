@@ -277,7 +277,11 @@ def collect_auth(run: Runner, tools: Mapping[str, Mapping], *, root: Path = _REP
             state = "unprobed"
         else:
             res = run(_status_probe(cmd), cwd=root, timeout=60)
-            if name == "claude":
+            if res.returncode in (124, 127):
+                # timed out / would not start: no login was observed either way. Recording it as
+                # `unauthenticated` would let C1 print a named exception for a check that never ran.
+                state = "probe-error"
+            elif name == "claude":
                 state = "authenticated" if res.returncode == 0 and re.search(
                     r'"loggedIn"\s*:\s*true', res.stdout or "") else "unauthenticated"
             else:
@@ -451,7 +455,7 @@ def collect_transport(run: Runner, *, env: Optional[Mapping[str, str]] = None,
                       probe_write: Optional[str] = None) -> dict:
     """Condition 4's read leg -- and, when a contract names the file, its write leg
     (`probe_write`). The secret is a BOOLEAN here -- its value never enters a record."""
-    if probe_write is not None and not _PROBE_NAME_RE.match(probe_write):
+    if probe_write is not None and not _PROBE_NAME_RE.fullmatch(probe_write):
         raise ValueError(f"--probe-write {probe_write!r} is not a single plain file name "
                          "(letters, digits, '.', '_', '-'); a probe never addresses a path")
     env = os.environ if env is None else env
@@ -478,7 +482,7 @@ def collect_transport(run: Runner, *, env: Optional[Mapping[str, str]] = None,
 def collect_record(run: Runner = default_run, *, root: Path = _REPO_ROOT, side: str = "",
                    push_branch: Optional[str] = None, via_gate: bool = False,
                    skip_gates: bool = False, probe_write: Optional[str] = None) -> dict:
-    if probe_write is not None and not _PROBE_NAME_RE.match(probe_write):
+    if probe_write is not None and not _PROBE_NAME_RE.fullmatch(probe_write):
         # refused BEFORE the gates run: a bad name must not cost a long collect to find out
         raise ValueError(f"--probe-write {probe_write!r} is not a single plain file name")
     if not side:
@@ -552,6 +556,10 @@ def compare_environment(local: Mapping, remote: Mapping) -> Verdict:
     if sorted(lh) != sorted(rh) or not lh:
         problems.append(f"hook set differs (local={lh} codespace={rh})")
     auth_items = _auth_items(le, re_, evidence)
+    for name in LANE_TOOLS:     # an auth probe that never ran is a FAIL, not a named exception
+        if ((re_.get("auth") or {}).get(name) or {}).get("state") == "probe-error":
+            problems.append(f"the auth probe for {name} could not run on the codespace -- its "
+                            "login state is unknown")
     if problems:
         return _verdict(1, "FAIL", "; ".join(problems), evidence)
     if auth_items:
@@ -568,8 +576,8 @@ def _auth_items(le: Mapping, re_: Mapping, evidence: list[str]) -> list[str]:
     named: list[str] = []
     for name in LANE_TOOLS:
         theirs = (re_.get("auth") or {}).get(name)
-        if not theirs or theirs.get("state") in ("authenticated", "tool-absent"):
-            continue    # tool-absent is already its own FAIL above
+        if not theirs or theirs.get("state") in ("authenticated", "tool-absent", "probe-error"):
+            continue    # tool-absent and probe-error are each their own FAIL, not an exception
         ours = ((le.get("auth") or {}).get(name) or {}).get("state")
         evidence.append(f"AUTH-ITEM {name}: codespace={theirs.get('state')} local={ours} -- needs "
                         f"{AUTH_NEEDS[name]}")

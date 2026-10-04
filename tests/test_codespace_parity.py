@@ -807,3 +807,45 @@ def test_an_absent_tool_is_not_probed_for_auth(tmp_path):
     env = cp.collect_environment(run, root=tmp_path, hooks=[])
     assert env["auth"]["gh"]["state"] == "tool-absent"
     assert not [c for c in run.calls if "auth status" in c or "login status" in c]
+
+
+# --- review findings (codex terra, 2026-10-04): P2 auth probe errors, P3 the name invariant ----------
+
+
+def test_an_auth_probe_that_could_not_run_is_not_an_unauthenticated_tool(tmp_path):
+    """A timeout (124) or a command that would not start (127) says nothing about a login. It was
+    recorded `unauthenticated`, which let C1 print `PASS except named auth items` for a check that
+    never happened."""
+    (tmp_path / "uv.lock").write_bytes(b"x")
+
+    class _Run(_FakeRun):
+        def __call__(self, argv, **kw):
+            joined = " ".join(argv)
+            if "gh auth status" in joined:
+                self.calls.append(joined)
+                return cp.CmdResult(124, "", "timed out after 60s")
+            return super().__call__(argv, **kw)
+
+    run = _Run({"gh --version": (0, "gh version 2.93.0\n"), "claude --version": (0, "2.1.1\n"),
+                "codex --version": (0, "codex-cli 0.1.0\n"), "agy --version": (0, "1.0.0\n")})
+    env = cp.collect_environment(run, root=tmp_path, hooks=[])
+    assert env["auth"]["gh"]["state"] == "probe-error"
+
+
+def test_an_auth_probe_error_on_the_codespace_fails_c1_instead_of_naming_an_exception():
+    local, remote = _record("local"), _record("codespace")
+    local["environment"]["auth"] = _auth(agy="authenticated")
+    remote["environment"]["auth"] = _auth(gh="probe-error", agy="authenticated")
+    verdict = cp.compare_environment(local, remote)
+    assert verdict.status == "FAIL"
+    assert "gh" in verdict.reason and "auth probe" in verdict.reason
+
+
+@pytest.mark.parametrize("bad", ["probe.txt\n", "probe.txt\r\n", "x\n"])
+def test_a_probe_name_with_a_trailing_newline_is_refused(bad):
+    fake = _RcloneFake()
+    with pytest.raises(ValueError):
+        cp.collect_transport(fake, env={"RCLONE_CONFIG_GDRIVE_TOKEN": "x"}, probe_write=bad)
+    with pytest.raises(ValueError):
+        cp.collect_record(fake, probe_write=bad)
+    assert all(c[1] != "copyto" for c in fake.calls)

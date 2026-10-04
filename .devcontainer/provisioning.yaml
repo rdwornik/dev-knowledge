@@ -170,6 +170,16 @@ features:
 # Bumping a pin is an edit here and nowhere else. The values are what the workstation printed when this block was written; a
 # workstation that moves on is a parity finding, not a reason to float the container.
 #
+# HONEST LIMIT (review, codex terra 2026-10-04): the `claude` and `agy` installers are vendor
+# scripts fetched at run time (https://claude.ai/install.sh, https://antigravity.google/cli/install.sh)
+# and are not themselves hash-pinned. The leg asserts the VERSION of the binary they leave, not the
+# bytes of the script that ran. The agy script was read on 2026-10-04 and checks its payload's
+# sha512 against the vendor manifest; for claude the vendor publishes a signed manifest
+# (code.claude.com/docs/en/setup, "Binary integrity") that this leg does not verify.
+# That is a supply-chain exception taken on the vendors' documented install path, not a pinned
+# installer. `gh` and `rclone` are fixed release assets at a versioned URL, and `codex` is an npm
+# version tag.
+#
 # `method` is the install form the tool's OWN documentation names, and `doc` is where it says so.
 # `agy` has no pin because its installer takes none (see its `reason`): a skew against the
 # workstation then shows up in condition 1 by name instead of being hidden by a pin that could not

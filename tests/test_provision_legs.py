@@ -1232,3 +1232,26 @@ def test_the_live_pins_are_what_tools_get_prints(capsys: pytest.CaptureFixture[s
     for name in _PINNED:
         assert cp.main(["tools", "get", name]) == cp.EXIT_OK
         assert capsys.readouterr().out.strip() == cfg.tools[name].version
+
+
+# --- review finding (codex terra, 2026-10-04, P1): a probe that CANNOT RUN is not an absent tool ----
+
+
+@pytest.mark.parametrize("rc", [124, 126])
+def test_a_probe_that_could_not_run_is_unavailable_not_absent(rc: int, tmp_path: Path) -> None:
+    """A timeout (124) or a shell that would not start (126) says nothing about whether the tool is
+    installed. Reading it as `absent` reports observed drift (exit 1) from an inability to look,
+    which is the 1/2 split this module exists to keep."""
+    cfg = cp.load_config(_tools_config(tmp_path, **_nines()))
+    res = cp.check_tools({"gh": cfg.tools["gh"]}, _probe_of({"gh": (rc, "timed out")}))
+    assert res[0].state == "unavailable"
+
+
+def test_tools_check_exits_2_when_it_could_not_look_and_1_when_it_looked_and_found_drift(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    cfg_path = _tools_config(tmp_path, **_nines())
+    monkeypatch.setattr(cp, "_probe_tool", _probe_of({"gh": (124, "timed out")}))
+    assert cp.main(["--config", str(cfg_path), "tools", "check", "--only", "gh"]) == cp.EXIT_UNAVAILABLE
+    # a real violation outranks an inability to look at another tool (rclone: 127 = absent)
+    assert cp.main(["--config", str(cfg_path), "tools", "check", "--only", "gh",
+                    "--only", "rclone"]) == cp.EXIT_VIOLATION

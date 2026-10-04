@@ -825,12 +825,19 @@ def seed_self_registration(root: Path, name: str) -> str:
 @dataclass(frozen=True)
 class ToolStatus:
     name: str
-    state: str          # ok | absent | skew | unparseable
+    state: str          # ok | absent | skew | unparseable | unavailable
     detail: str
 
 
+#: A probe that could not RUN -- a timeout, or a shell that would not start. It says nothing about
+#: whether the tool is installed, so it is `unavailable` (exit 2), never `absent` (exit 1).
+PROBE_TIMEOUT_RC = 124
+PROBE_UNSTARTABLE_RC = 126
+
+
 def _probe_tool(name: str, login: bool = False) -> tuple[int, str]:
-    """`<name> --version` -> (returncode, text). 127 when it cannot be started.
+    """`<name> --version` -> (returncode, text). 127 when the tool is not on PATH; 124 on a
+    timeout and 126 when the probe itself could not be started (neither says the tool is absent).
 
     `login=True` asks a LOGIN shell, the one the parity check (`codespace_parity._tool_probe`) and
     the admission test use: on a Codespace the PATH a lane sees is only complete there, so a tool
@@ -846,8 +853,10 @@ def _probe_tool(name: str, login: bool = False) -> tuple[int, str]:
     try:
         proc = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8",
                               errors="replace", timeout=60)
+    except subprocess.TimeoutExpired:
+        return PROBE_TIMEOUT_RC, f"{name} --version timed out after 60s"
     except (OSError, subprocess.SubprocessError) as exc:
-        return 127, str(exc)
+        return PROBE_UNSTARTABLE_RC, str(exc)
     return proc.returncode, (proc.stdout or "") + (proc.stderr or "")
 
 
@@ -859,6 +868,10 @@ def check_tools(tools: dict[str, ToolConfig],
     out: list[ToolStatus] = []
     for name, tool in tools.items():
         rc, text = probe(name, login=login)
+        if rc in (PROBE_TIMEOUT_RC, PROBE_UNSTARTABLE_RC):
+            out.append(ToolStatus(name, "unavailable",
+                                  f"could not look at {name} (probe exit {rc}): {text.strip()[:80]}"))
+            continue
         if rc != 0:
             out.append(ToolStatus(name, "absent", f"{name} is not installed (exit {rc})"))
             continue
@@ -967,14 +980,18 @@ def cmd_tools(args: argparse.Namespace) -> int:
     if args.tools_command == "get":
         print(_select_tools(cfg, [args.name])[args.name].version or "")
         return EXIT_OK
-    bad = 0
+    bad = blind = 0
     for status in check_tools(_select_tools(cfg, args.only), login=args.login):
         if status.state == "ok":
             LOG.info("tools: OK - %s", status.detail)
+            continue
+        LOG.error("tools: %s - %s", status.state.upper(), status.detail)
+        if status.state == "unavailable":
+            blind += 1
         else:
             bad += 1
-            LOG.error("tools: %s - %s", status.state.upper(), status.detail)
-    return EXIT_VIOLATION if bad else EXIT_OK
+    # Looked and found drift (1) outranks could-not-look (2): the repo's declared 1/2 split.
+    return EXIT_VIOLATION if bad else EXIT_UNAVAILABLE if blind else EXIT_OK
 
 
 def build_parser() -> argparse.ArgumentParser:
