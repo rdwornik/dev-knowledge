@@ -21,6 +21,22 @@
 
 ---
 
+### 2026-10-04 (h) - CC (Opus 5.5, integrator seat B2-W1 cycle 3): lane b2-merge-gate merges -- CI's verdict refuses only a NEW red or a non-pass required check, and a red on both sides is flagged by bucket
+
+**Anchors:** `5f94f2b7`, `b2aa273b`, `d41b7321`, `12c8a8f5`, `18b964cb`, `a13d883a`, `937b94ca`, `8c41d639`, `80d31774`, `a71c568b`, `730821ff`, `747d4c95`, `ec74680a`, `48ee437a`, `27825023`, `5fb90eee`, `5d97fd1d`, `e49140ff`, `4899d80b`, `96a1534f`, `0673145a`, `3a83b5d3`, `8174ee4d`, `de8bb6e6`, `37a9061e`, `54d890a5`, `29d43f74`, `87484c64`, `44ce797f`, `9db0b523`, `b3da5142` -- `worktree-b2-merge-gate` (lane 4 `worktree-foundation-4-merge-gate` up to `2dd2067d` carried), merged `--no-ff` through `epic/b2-w1-int-b2-merge-gate`.
+
+**Did:**
+- Merged batch B2-W1 lane W1-2 after its repair 1: `known_reds`, `actions_verdict`, `ci_verdict` and `merge_path.land` refuse only a test red on the merge and green on the base, and each non-pass state of a required check; a red on both sides is FLAGGED into the receipt by bucket, an unregistered one as ROWS-OWED. A base pytest leg is judged by its log, not its job conclusion (main's legs conclude `success` with known reds). `merge_path.py land --no-push` replays a verdict; `ruleset apply` refuses without a rehearsal record.
+- `[#966]` refs cite the two review records as their governance consumer (the a0bf5cae precedent). The closed merge receipt of lane b2-row-close-on-merge (`1ae12a29`), uncarried since two refused merges, rides in `logs/MERGE-RECEIPTS.jsonl`.
+
+**Result:** the verdict, flagged buckets and the same-branch-context control (architect ruling (c)) are in the integrator receipt `to-browser/SESSION-integrator-b2-w1-2026-10-04.md`.
+
+**Changes:** `scripts/{known_reds,actions_verdict,ci_verdict,merge_path,merge_receipt,gates,dodo,ship_gate_diff}.py`, their tests, `.github/workflows/conductor.yml`, `deploy/conductor-required-checks.ruleset.json`, ADR-127 markers, `templates/integrator-order-template.md`, `.claude/commands/lane-integrate.md`, `tasks/966-…`, two review records, generated index/counts.
+
+**Next:** W1-3 b2-ci-poll and W1-8's edge unblock on this merge.
+
+---
+
 ### 2026-10-04 (g) - CC (Opus 5.5, integrator seat B2-W1 cycle 2): lane b2-row-close-on-merge merges -- a merged lane's rows close with verified evidence, by the integrator
 
 **Anchors:** `da5078e8`, `6cf78acd`, `1d89fc16`, `f754e6f3`, `1841dcd6`, `700aed43`, `96f7abf0`, `5e0d4e64` -- `worktree-b2-row-close-on-merge`, merged `--no-ff` through `epic/b2-w1-int-b2-row-close-on-merge`.

@@ -48,24 +48,47 @@ You merge; you do not build, and you do not weaken a check. The batch's common r
 
 1. **Purity first.** `git fetch origin`; `git log origin/main..<lane-branch>` holds only the lane's
    own commits and merges of `origin/main`. Otherwise refuse.
-2. **Merge in an integration worktree, not on `main`.** A temporary worktree on a new branch from
-   `origin/main`, under your job's tmp. Merge the lane there `--no-ff` with the JOURNAL anchor;
-   regenerate generated files on the merged tree; `merge_receipt.py open` and `models`.
+2. **Merge in an integration worktree, not on `main`.** A worktree `.claude/worktrees/integrate-<batch>`
+   on branch `worktree-integrate-<batch>` from `origin/main` (`merge_path.py integration-name
+   --batch <BATCH>` prints the name). Merge the lane there `--no-ff` with the JOURNAL anchor;
+   regenerate generated files on the merged tree; `merge_receipt.py open`, then `moment:merge`
+   with `HARNESS_MERGE=<the merge sha>` (it runs `models`, the review packet and the gate list;
+   each gate and each organ leaves a run event in the private state directory, not in git).
 3. **Verify once per check, as cheaply as honesty allows.**
    - *Split attribution:* test files the lane did not change are compared against the registry
      (`--since`); test files it changed or added run once on the merged tree, and their reds are
      the lane's.
    - One ship-gate diff, base against merge; no duplicate ship-gate leg (record it if unavoidable).
-   - Gates, then `merge_receipt.py close`.
-   - <documentation tier / CI verdict / memory gate — as merged organs make them available>
-4. **Only when green:** fast-forward `main` in the primary to that commit and push in the same
-   step; remove the integration worktree and its branch. The primary's `main` holds no
-   unverified merge. On a refusal, remove the integration worktree — `main` was not touched.
+   - `merge_path.py verify-local --lane <lane> --slug <lane>` is the direct call of the gate list
+     with one receipt step per gate, for a seat whose `moment:merge` is stopped by an organ outside
+     the merge's own diff — record the stop; it does not stand in for a refusal.
+   - <documentation tier / memory gate — as merged organs make them available>
+4. **Land: the integration branch first.** `merge_path.py land --slug <lane> --batch <BATCH> --sha
+   <merge> --base <origin/main as fetched before the merge>` pushes the merge to
+   `worktree-integrate-<batch>`, reads CI's verdict for that sha (push runs only, completed runs
+   only; per-OS, test by test against the base run), re-checks that `origin/main` is
+   still the base, and only then pushes the same sha to `main`. Two classes refuse and leave
+   `main` untouched: a test red on the merge and green on the base, and a non-pass state of a
+   required check (`IN-PROGRESS`, `CANCELLED`, `TIMED-OUT`, `SKIPPED`, a missing required context,
+   a poll timeout, `GH-UNAVAILABLE`). A red present on both sides is FLAGGED with its bucket into
+   the receipt, not refused; an unregistered one is carried into the digest as `ROWS-OWED`.
+   Then `git merge --ff-only origin/main` in the primary, `merge_receipt.py close`,
+   and remove the integration worktree and its branch at batch close.
+   - *Ruleset:* arming `deploy/conductor-required-checks.ruleset.json` is the integrator's act at
+     batch close, after a rehearsal that comes first (`merge_path.py ruleset rehearse`, then
+     `ruleset apply --rehearsal <record>`, a dry run until `--execute`, refused without a record
+     showing every required context `success`); write it as `OPERATOR-ACTION` where the GO is not
+     yet recorded, do not execute it before the rehearsal.
+   - *Skipped by decision* (each with its reason in the receipt, none re-dated, none removed from
+     `harness.yaml`): `go_reader` — the apply step names the operator's GO itself;
+     `test_pairing` — replaced by the test-level per-OS compare; `known_reds_refresh` — a refresh
+     at every merge is a laundering route, the compare only reads the registry.
 5. **Teardown of the lane:** its job, its worktree, its branch local and on origin, and its claim
    marker (`claim.py release <lane-contract-name>` — no `--session` needed: at most one marker
    ever exists for that name, so this releases it whoever claimed it); then `no_leftovers.py verify
    --lane <slug> --contract <lane-contract-name>` to verify all of it, marker included, is gone.
-6. **Receipt:** the `STATE` line with pickup, handback and push times; the ledger row written.
+6. **Receipt:** the `STATE` line with pickup, handback and push times (the receipt's STAGES line
+   carries each stage's minutes); the ledger row written.
 
 ## Refusals and repairs
 
