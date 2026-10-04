@@ -8,7 +8,7 @@ Manifest (in order):
      own HANDOFF_BOOT.md up to the first '##' heading — slug/mode/purpose/generated-at;
      its `>` pointer blocks are SHED to one forms line, see _shed_header)
   1. ROLE PIN  (required — a 3-line pin naming the role file's version + sha256, NOT the
-     role file itself; the role is RESIDENT in the browser project instructions since
+     role file itself; the role is RESIDENT as the Project's knowledge file since
      HANDOFF_PROCESS v6.3.0 / census R1. See _role_pin below.)
   2. <bundle>/RESIDUAL.md       (required — SHED to drift-flags + the OPEN list + a pointer
      to the rest and to the live ledger, see shed_residual)
@@ -262,8 +262,9 @@ def supplement_pointer(supplement_ref: str) -> str:
 # WHAT CHANGED AND WHY. Through v6.2.0 the assembler INLINED the whole of
 # `protocols/HANDOFF_BOOT.md` into every paste — ~17 KB of role text re-transmitted on
 # every handoff, to a browser that could simply HOLD it. v6.3.0 makes the role
-# RESIDENT: the operator installs `protocols/HANDOFF_BOOT.md` once as the browser
-# project's instructions, and the paste ships a three-line PIN instead.
+# RESIDENT: the operator installs `protocols/HANDOFF_BOOT.md` once as the architect
+# Project's knowledge file (the instructions hold a one-line pointer), and the paste ships a
+# three-line PIN instead.
 #
 # The "role MUST reach the browser" requirement of HANDOFF_PROCESS is UNCHANGED. What
 # changes is the mechanism that satisfies it: residency, guarded by a refusal. The pin
@@ -634,7 +635,7 @@ def main(pin_only: bool, bundle_dir: Path | None) -> None:
     # rule: handoff-boot-budget
     # A10 item 2 / R4: the browser role file carries a stated numeric byte budget. The budget
     # SURVIVES the residency flip and is deliberately unchanged: the role file still has to fit
-    # a browser project-instructions field, and it is now read by EVERY session of that project
+    # a browser Project knowledge file, and it is now read by EVERY session of that project
     # rather than once per paste, so its size matters more, not less. WARN here (assembly
     # proceeds); audit.py::check_boot_byte_budget is the FAIL-class organ that blocks the merge.
     boot_bytes = len(role_text.encode("utf-8"))
