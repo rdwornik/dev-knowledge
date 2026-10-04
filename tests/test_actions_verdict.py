@@ -538,7 +538,9 @@ def test_G4_each_OS_leg_is_compared_against_ITS_OWN_base_leg():
         "tip": _run_with_logs("tip", "failure", {_LEG_U: "failure", _LEG_W: "failure"}),
         "base": _run_with_logs("base", "failure", {_LEG_U: "success", _LEG_W: "failure"}),
     })
+    green_base = f"{_LEG_U}	Run the suite	{_TS} ===== 9211 passed in 61.20s ====="
     logs = _logs({("tip", _LEG_U): _gh_log(_LEG_U, {_NEW: "KeyError"}),
+                  ("base", _LEG_U): green_base,
                   ("tip", _LEG_W): _gh_log(_LEG_W, {_KNOWN: "AssertionError: k"}),
                   ("base", _LEG_W): _gh_log(_LEG_W, {_KNOWN: "AssertionError: k"})})
 
@@ -949,3 +951,72 @@ def test_b2_a_run_that_TIMED_OUT_at_the_run_level_is_its_own_state():
                              required_contexts=av.REQUIRED_CONTEXTS)
 
     assert verdict.state == av.STATE_TIMED_OUT and verdict.ok is False
+
+
+# =====================================================================================
+# b2-merge-gate repair 1: a base leg that concludes `success` can still carry red tests.
+#
+# `main`'s ubuntu leg runs the raw pytest step `continue-on-error: true` and is judged by the
+# known-reds compare, so it concludes `success` while 73 tests are red. `_judge_pytest_legs` used
+# to read the base log only for a non-success base leg, so the base set was empty and every tip
+# red read NEW (merge `5f82efaa`, run 37216985245 vs base 37177553087: 75 "new" reds, REGRESSED).
+# =====================================================================================
+
+_PRE_A = "tests/test_pre.py::test_pre_red_a"
+_PRE_B = "tests/test_pre.py::test_pre_red_b"
+
+
+def test_B2R1_a_base_leg_that_concludes_SUCCESS_but_logs_failing_ids_does_not_make_them_NEW():
+    """RED-first. Base leg `success` with {PRE_A, PRE_B} red in its log; the tip leg `failure`
+    with the same two. Nothing is red on the merge and green on the base -> PRE-EXISTING."""
+    fetch = _gh({"tip": _run_with_logs("tip", "failure", {_LEG_U: "failure", "ruff": "success"}),
+                 "base": _run_with_logs("base", "success", {_LEG_U: "success", "ruff": "success"})})
+    both = _gh_log(_LEG_U, {_PRE_A: "AssertionError: a", _PRE_B: "AssertionError: b"})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch,
+                             fetch_logs=_logs({("tip", _LEG_U): both, ("base", _LEG_U): both}),
+                             registry_loader=_registry_loader(_registry()))
+
+    assert verdict.new_tests == ()
+    assert verdict.state == av.STATE_PRE_EXISTING
+    assert verdict.flagged, "the red-on-both-sides ids must still be FLAGGED with their bucket"
+
+
+def test_B2R1_a_NEW_red_still_refuses_against_a_SUCCESS_base_leg_that_logs_other_reds():
+    """The refusal class is unchanged: red on the merge, green on the base."""
+    fetch = _gh({"tip": _run_with_logs("tip", "failure", {_LEG_U: "failure"}),
+                 "base": _run_with_logs("base", "success", {_LEG_U: "success"})})
+    logs = _logs({("tip", _LEG_U): _gh_log(_LEG_U, {_PRE_A: "AssertionError: a", _NEW: "boom"}),
+                  ("base", _LEG_U): _gh_log(_LEG_U, {_PRE_A: "AssertionError: a"})})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch, fetch_logs=logs,
+                             registry_loader=_registry_loader(_registry()))
+
+    assert verdict.state == av.STATE_REGRESSED
+    assert [n for n in verdict.new_tests if _NEW in n] and not [n for n in verdict.new_tests if _PRE_A in n]
+
+
+def test_B2R1_a_SUCCESS_base_leg_with_NO_failing_ids_still_lets_a_new_tip_red_refuse():
+    fetch = _gh({"tip": _run_with_logs("tip", "failure", {_LEG_U: "failure"}),
+                 "base": _run_with_logs("base", "success", {_LEG_U: "success"})})
+    clean_base = f"{_LEG_U}\tRun the suite\t{_TS} ===== 9211 passed in 61.20s ====="
+    logs = _logs({("tip", _LEG_U): _gh_log(_LEG_U, {_NEW: "boom"}), ("base", _LEG_U): clean_base})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch, fetch_logs=logs,
+                             registry_loader=_registry_loader(_registry()))
+
+    assert verdict.state == av.STATE_REGRESSED
+    assert any(_NEW in n for n in verdict.new_tests)
+
+
+def test_B2R1_an_unreadable_log_of_a_SUCCESS_base_leg_is_UNATTRIBUTED_never_an_empty_base():
+    """An unreadable base log is missing evidence, not a base with no reds."""
+    fetch = _gh({"tip": _run_with_logs("tip", "failure", {_LEG_U: "failure"}),
+                 "base": _run_with_logs("base", "success", {_LEG_U: "success"})})
+    logs = _logs({("tip", _LEG_U): _gh_log(_LEG_U, {_PRE_A: "AssertionError: a"})})
+
+    verdict = av.verdict_for("tip", baseline="base", fetch=fetch, fetch_logs=logs,
+                             registry_loader=_registry_loader(_registry()))
+
+    assert verdict.state == av.STATE_UNATTRIBUTED
+    assert verdict.new_tests == ()

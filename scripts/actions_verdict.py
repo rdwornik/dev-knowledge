@@ -495,7 +495,12 @@ def _judge_pytest_legs(failing_legs: list, tip_run: dict, base_run: dict, *, reg
             found["unattributed"].append(f"{leg}: the base run has no {leg!r} job to compare to")
             continue
         base_failed, base_sigs = frozenset(), {}
-        if base_job.get("conclusion") not in ("success", "skipped", None):
+        # b2-merge-gate repair 1: the base leg's LOG is read whenever the leg RAN, not only when
+        # it concluded red. `main`'s pytest legs run the raw step `continue-on-error: true` and are
+        # judged by the known-reds compare, so a leg can conclude `success` with 73 tests red; an
+        # empty base set there made every tip red read NEW. A `skipped` / not-run base leg has no
+        # suite log, so its base set is genuinely empty. An unreadable log stays UNATTRIBUTED.
+        if base_job.get("conclusion") not in ("skipped", None):
             base_log = fetch_logs(base_run, base_job, repo_root=repo_root)
             if base_log is None:
                 found["unattributed"].append(f"{leg}: the base job log could not be read")
