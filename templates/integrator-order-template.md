@@ -66,14 +66,19 @@ You merge; you do not build, and you do not weaken a check. The batch's common r
 4. **Land: the integration branch first.** `merge_path.py land --slug <lane> --batch <BATCH> --sha
    <merge> --base <origin/main as fetched before the merge>` pushes the merge to
    `worktree-integrate-<batch>`, reads CI's verdict for that sha (push runs only, completed runs
-   only; per-OS, test by test against the registry at the base), re-checks that `origin/main` is
-   still the base, and only then pushes the same sha to `main`. A refusal leaves `main` untouched:
-   `IN-PROGRESS`, `CANCELLED`, a poll timeout, `GH-UNAVAILABLE` and a missing required context
-   each refuse. Then `git merge --ff-only origin/main` in the primary, `merge_receipt.py close`,
+   only; per-OS, test by test against the base run), re-checks that `origin/main` is
+   still the base, and only then pushes the same sha to `main`. Two classes refuse and leave
+   `main` untouched: a test red on the merge and green on the base, and a non-pass state of a
+   required check (`IN-PROGRESS`, `CANCELLED`, `TIMED-OUT`, `SKIPPED`, a missing required context,
+   a poll timeout, `GH-UNAVAILABLE`). A red present on both sides is FLAGGED with its bucket into
+   the receipt, not refused; an unregistered one is carried into the digest as `ROWS-OWED`.
+   Then `git merge --ff-only origin/main` in the primary, `merge_receipt.py close`,
    and remove the integration worktree and its branch at batch close.
-   - *Ruleset:* applying `deploy/conductor-required-checks.ruleset.json` is the operator's act
-     (`merge_path.py ruleset apply`, a dry run until `--execute`); write it as `OPERATOR-ACTION`,
-     do not execute it.
+   - *Ruleset:* arming `deploy/conductor-required-checks.ruleset.json` is the integrator's act at
+     batch close, after a rehearsal that comes first (`merge_path.py ruleset rehearse`, then
+     `ruleset apply --rehearsal <record>`, a dry run until `--execute`, refused without a record
+     showing every required context `success`); write it as `OPERATOR-ACTION` where the GO is not
+     yet recorded, do not execute it before the rehearsal.
    - *Skipped by decision* (each with its reason in the receipt, none re-dated, none removed from
      `harness.yaml`): `go_reader` — the apply step names the operator's GO itself;
      `test_pairing` — replaced by the test-level per-OS compare; `known_reds_refresh` — a refresh

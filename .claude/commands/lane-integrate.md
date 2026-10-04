@@ -282,11 +282,21 @@ from an honest unknown are different facts and one of them is a bug.
 > `M` is read, in-process, polling up to 15 minutes by default (`--timeout`); `origin/main` is
 > checked against `BASE` again; and only then does the SAME `M` go to `main`. It never uses force.
 >
-> **Landable is `PASS`, or `PRE-EXISTING` with every required context present.** Everything else
-> refuses and nothing reaches `main`: `IN-PROGRESS`, `CANCELLED`, a poll timeout, `NO-RUN`,
-> `GH-UNAVAILABLE`, `JOBS-UNREADABLE`, `UNATTRIBUTED`, `REGRESSED`, a missing required context.
-> A test red inside an already-red `pytest` job is compared **test by test, per OS, against the
-> registry at `BASE`** — a new red there is `REGRESSED`, not `PRE-EXISTING` (the `424d6c72` shape).
+> **Landable is `PASS`, or `PRE-EXISTING` with every required context present.** The gate
+> **refuses only what this merge introduces**, and nothing else: (1) a test red on the merge and
+> green on the base, found **test by test, per OS, against the base run** (the `424d6c72` shape);
+> (2) a non-pass state of a required check, each as its own state — `IN-PROGRESS`, `CANCELLED`
+> (including `cancel-in-progress`), `TIMED-OUT`, `SKIPPED`, or `NO-RUN` (required context absent) —
+> plus the unreadable ones: a poll timeout, `GH-UNAVAILABLE`, `JOBS-UNREADABLE`, `UNATTRIBUTED`.
+> A red present on **both** sides is **FLAGGED, not refused**: `land` prints each with its bucket
+> (`registered-flaky-sibling-swap`, `unregistered`, `stale-registry-signature`,
+> `signature-changed`, `ceiling-exceeded`) and the receipt records them (`summary` prints
+> `FLAGGED`). An `unregistered` one owes a registry entry (task, owner, expiry) or a row; the
+> receipt prints it as `ROWS-OWED: …` and you carry that line into the digest. Do not write the
+> registry entry to make a merge pass — the registry is not edited by the walk.
+> **Replay a merge without pushing:** `$MP land --no-push --batch <scratch> --sha <m> --base <its
+> first parent> [--run-id <run>]` reads the verdict a landing would read, prints it, and pushes
+> nothing and records nothing; exit 0 means it would land.
 >
 > **A refusal is not a retry loop.** `IN-PROGRESS` and a poll timeout: run
 > `$MP verdict --sha $M --base $BASE` once CI finishes, and when it reads landable re-run `land`.
@@ -302,9 +312,12 @@ from an honest unknown are different facts and one of them is a bug.
 >
 > **The ruleset is the server-side hard stop, and it is not applied by this walk.** Until the
 > operator's recorded GO, `land` is the only stop. Applying it is the operator's act, after the
-> batch merges: `$MP ruleset apply --repo <owner/name> --sha <rehearsal sha> --go "<the GO>"` is a
-> DRY RUN until `--execute`, and it refuses unless both pytest legs are green on the rehearsal sha
-> (G1). Record it as `OPERATOR-ACTION`; do not execute it from here.
+> batch merges. The rehearsal comes first: `$MP ruleset rehearse --sha <rehearsal sha> --out
+> <record file>` writes a record of that sha's push run, one conclusion per required context.
+> `$MP ruleset apply --repo <owner/name> --sha <rehearsal sha> --rehearsal <record file> --go "<the
+> GO>"` is a DRY RUN until `--execute`, and `--execute` is refused unless that record shows both
+> pytest legs and every required context `success` for that same sha (G1). Record it as
+> `OPERATOR-ACTION`; do not execute it from here.
 
 **This verb replaced a `time --step actions -- actions_verdict.py …` prefix, and the difference
 is the whole of ruling AY1-1** (`[#750]`). The prefix recorded only the child's **exit code**, and

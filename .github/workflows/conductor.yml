@@ -54,8 +54,8 @@
 #     `ruleset apply`). On an integration ref `seal`, `spine` and `anchor` judge the pushed range
 #     against origin/main as if it were a push to main (see each job). The ruleset stays
 #     `enforcement: disabled` in its file; `merge_path.py ruleset apply` is the one act that
-#     arms it, only after both pytest legs are green on a rehearsal sha and on the operator's
-#     recorded GO.
+#     arms it, only after a rehearsal record (`ruleset rehearse`) shows both pytest legs and every
+#     required context `success` on the named sha, and on the operator's recorded GO.
 # ------------------------------------------------------------------------------------------
 
 name: conductor
