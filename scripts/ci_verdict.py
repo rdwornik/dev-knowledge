@@ -135,15 +135,20 @@ class CiVerdict:
     #: `NO-RUN`, `IN-PROGRESS`, `CANCELLED`, `GH-UNAVAILABLE`, `JOBS-UNREADABLE`). Only `PASS` is
     #: `green`; every other state fails closed, and none is ever relabelled as another.
     state: str = ""
-    #: Required contexts the run did not show as `success` (see `required_contexts` below).
+    #: Required contexts in a NON-PASS state: not `success`, and not `failure` either (a `failure`
+    #: is judged test by test / job by job against the base, never refused as a bare context). The
+    #: b2-merge-gate reading -- see `required_contexts` in `verdict_for`.
     missing_contexts: tuple = field(default_factory=tuple)
+    #: What is red on BOTH sides and so is FLAGGED, not refused (`actions_verdict.Verdict.flagged`):
+    #: `"<leg>: [<bucket>] <node id> -- <note>"`. The merge receipt records them.
+    flagged: tuple = field(default_factory=tuple)
 
     def to_dict(self) -> dict:
         return {"ref": self.ref, "sha": self.sha, "verdict": self.verdict, "run_id": self.run_id,
                 "run_url": self.run_url, "duration_seconds": self.duration_seconds,
                 "baseline_id": self.baseline_id, "new_reds": list(self.new_reds),
                 "reason": self.reason, "state": self.state,
-                "missing_contexts": list(self.missing_contexts)}
+                "missing_contexts": list(self.missing_contexts), "flagged": list(self.flagged)}
 
 
 def resolve_sha(ref: str, *, repo_root: Path) -> str:
@@ -402,7 +407,12 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
 
     `required_contexts` (the merge path passes the ruleset's six) makes green ALSO require every
     named job to be present and `success` -- not `skipped`, not absent -- so this verdict agrees
-    with what the server-side ruleset will accept. `baseline` (the merge's first parent, the
+    with what the server-side ruleset will accept. b2-merge-gate (R64) NARROWED what refuses: a
+    required context that is `skipped`, `timed_out`, `cancelled`, still running or absent is a
+    refusal in its OWN state (SKIPPED / TIMED-OUT / CANCELLED / IN-PROGRESS / NO-RUN) and is
+    listed in `missing_contexts`; a required context that is `failure` is NOT refused as a bare
+    context -- a pytest leg is judged test by test against the base, so a merge that introduced
+    nothing lands on a red `main` (PRE-EXISTING, its flagged buckets in `flagged`). `baseline` (the merge's first parent, the
     base `main` sha) makes a red run be CLASSIFIED by `actions_verdict.verdict_for` -- the one
     classifier -- so `new_reds` names the NEW tests per OS leg, and `state` says REGRESSED /
     PRE-EXISTING / UNATTRIBUTED. Without a baseline the red is named from the gate's own log as
@@ -442,6 +452,10 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
                          duration_seconds=duration, state="CANCELLED",
                          reason=(f"run {run_id} was cancelled (`cancel-in-progress` cancels the "
                                  f"older run when a newer push lands) -- it is not a verdict"))
+    if run.get("conclusion") == "timed_out":
+        return CiVerdict(ref=ref, sha=sha, verdict=STATE_RED, run_id=run_id, run_url=run_url,
+                         duration_seconds=duration, state="TIMED-OUT",
+                         reason=f"run {run_id} timed out -- it is not a verdict")
 
     jobs = jobs_fn(run_id, repo_root=root)
     if jobs is None:
@@ -460,9 +474,26 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
     run_conclusion = run.get("conclusion")
     workflow_level_failure = not failing and run_conclusion not in ("success", "skipped", None)
 
-    # REQUIRED CONTEXTS (G7): present AND `success`. A skipped or absent one is not a success --
-    # the ruleset would not count it, so neither does this verdict.
-    missing = tuple(c for c in required_contexts if job_map.get(c) != "success")
+    # REQUIRED CONTEXTS (G7, narrowed by b2-merge-gate / R64 section 1): a required check in a
+    # NON-PASS state -- `skipped`, `timed_out`, `cancelled`, no conclusion yet, or absent -- is a
+    # refusal, each as its own state (`actions_verdict.non_pass_contexts`), judged BEFORE any
+    # baseline compare so a check that timed out at both ends is not read as a pre-existing red.
+    # `failure` is the one other conclusion a required context may show: it goes to the
+    # differential below (test by test for a pytest leg), because a red `main` would otherwise
+    # make every merge unlandable -- the gate that refuses clean merges gets bypassed.
+    av = _actions_verdict()
+    refused_contexts = av.non_pass_contexts(job_map, tuple(required_contexts))
+    missing = tuple(refused_contexts)
+    if refused_contexts:
+        listed = ", ".join(f"{c}: {label}" for c, label in refused_contexts.items())
+        return CiVerdict(ref=ref, sha=sha, verdict=STATE_RED, run_id=run_id, run_url=run_url,
+                         duration_seconds=duration, baseline_id=None,
+                         state=av.state_for_non_pass(refused_contexts),
+                         new_reds=tuple(f"required context not `success`: {c}: {label}"
+                                        for c, label in refused_contexts.items()),
+                         missing_contexts=missing,
+                         reason=(f"required context(s) in a non-pass state: {listed} -- the "
+                                 f"ruleset would not accept this sha either"))
 
     baseline_id = None
     regressions: list = []
@@ -490,14 +521,6 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
                                 + (f"; every required context is success ({len(required_contexts)})"
                                    if required_contexts else ""))
 
-    if not failing and not workflow_level_failure and missing:
-        return CiVerdict(ref=ref, sha=sha, verdict=STATE_RED, run_id=run_id, run_url=run_url,
-                         duration_seconds=duration, baseline_id=baseline_id, state="RED",
-                         new_reds=tuple(f"missing required context: {c}" for c in missing),
-                         missing_contexts=missing,
-                         reason=(f"required context(s) not `success`: {', '.join(missing)} -- the "
-                                 f"ruleset would not accept this sha either"))
-
     if baseline:
         classified = _classify(sha, baseline, run, jobs, root, log_fn=log_fn,
                                fetch_base=fetch_base, registry_loader=registry_loader)
@@ -507,6 +530,7 @@ def verdict_for(ref: str, *, repo_root: Optional[Path] = None, workflow: str = W
                          duration_seconds=duration,
                          baseline_id=classified.registry_baseline_id or baseline_id,
                          new_reds=names, missing_contexts=missing, state=classified.state,
+                         flagged=classified.flagged,
                          reason=(classified.reason or f"classified {classified.state} against "
                                  f"baseline {baseline[:12]}"))
 

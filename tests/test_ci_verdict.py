@@ -481,6 +481,117 @@ def test_G4_ONE_function_the_424d6c72_replay_through_ci_verdict_names_the_new_te
     assert not any(known in r for r in verdict.new_reds)
 
 
+# --- b2-merge-gate (R64; architect seat ruling 3 of 2026-10-04) ------------------------------
+#
+# RED-FIRST at `2dd2067d`: every non-pass required context read the one undifferentiated state
+# `RED` (and a REQUIRED pytest leg that was merely red on both sides ALSO landed in
+# `missing_contexts`, so `merge_path.is_landable` refused it however the test-level read went).
+# The gate refuses only a NEW red test and a non-pass state of a required check -- each distinct.
+
+@pytest.mark.parametrize("conclusion,state", [
+    ("skipped", "SKIPPED"), ("timed_out", "TIMED-OUT"), ("cancelled", "CANCELLED"),
+    (None, "IN-PROGRESS")])
+def test_b2_each_non_pass_REQUIRED_context_is_its_own_refusing_state(conclusion, state):
+    jobs = _jobs_all_success()
+    jobs[3] = {**jobs[3], "conclusion": conclusion}
+
+    verdict = cv.verdict_for(
+        "abc", repo_root=None, list_fn=_list_fn([_run("abc", conclusion="failure")]),
+        jobs_fn=_jobs_fn(jobs), log_fn=_log_fn({}), sleep_fn=_no_sleep, required_contexts=_ALL_SIX)
+
+    assert verdict.verdict == cv.STATE_RED and verdict.state == state
+    assert verdict.missing_contexts == ("seal",)
+
+
+def test_b2_a_required_context_that_never_ran_is_NO_RUN():
+    names = tuple(n for n in _ALL_SIX if n != "anchor")
+
+    verdict = cv.verdict_for(
+        "abc", repo_root=None, list_fn=_list_fn([_run("abc")]),
+        jobs_fn=_jobs_fn(_jobs_all_success(*names)), log_fn=_log_fn({}), sleep_fn=_no_sleep,
+        required_contexts=_ALL_SIX)
+
+    assert verdict.verdict == cv.STATE_RED and verdict.state == "NO-RUN"
+    assert verdict.missing_contexts == ("anchor",)
+
+
+def test_b2_the_run_level_TIMED_OUT_is_its_own_state_and_never_green():
+    verdict = cv.verdict_for(
+        "abc", repo_root=None, list_fn=_list_fn([_run("abc", conclusion="timed_out")]),
+        jobs_fn=_jobs_fn(_jobs_all_success()), log_fn=_log_fn({}), sleep_fn=_no_sleep,
+        required_contexts=_ALL_SIX)
+
+    assert verdict.verdict == cv.STATE_RED and verdict.state == "TIMED-OUT"
+
+
+def test_b2_a_timed_out_context_is_a_refusal_even_with_NO_baseline_and_when_the_base_timed_out_too():
+    jobs = _jobs_all_success()
+    jobs[2] = {**jobs[2], "conclusion": "timed_out"}
+    base_run = {**_run("base", conclusion="failure"), "jobs": jobs}
+
+    verdict = cv.verdict_for(
+        "tip", repo_root=None, list_fn=_list_fn([_run("tip", conclusion="failure")]),
+        jobs_fn=_jobs_fn(jobs), log_fn=_log_fn({}), sleep_fn=_no_sleep,
+        required_contexts=_ALL_SIX, baseline="base",
+        fetch_base=lambda sha, *, repo_root=None, workflow=None: base_run)
+
+    assert verdict.state == "TIMED-OUT", "not laundered into PRE-EXISTING by the base"
+
+
+def _leg_log(job, ids):
+    body = ["FAILED " + i + " - AssertionError: x" for i in ids]
+    return "\n".join(f"{job}\tRun\t2026-10-02T10:00:00.0000000Z {t}" for t in body)
+
+
+def _red_on_both_sides(tip_ids, base_ids, *, registry):
+    """Both pytest legs `failure` at tip and base, the other four required contexts success."""
+    tip_jobs = [{"name": n, "conclusion": "failure" if n in (_LEG_U, _LEG_W) else "success",
+                 "databaseId": 100 + i} for i, n in enumerate(_ALL_SIX)]
+    base_jobs = [{**j, "databaseId": 300 + i} for i, j in enumerate(tip_jobs)]
+    base_run = {**_run("base", conclusion="failure"), "jobs": base_jobs}
+
+    def log_fn(run_id, job_id, *, repo_root):
+        ids = tip_ids if job_id < 300 else base_ids
+        return _leg_log(_LEG_U if job_id % 100 == 0 else _LEG_W, ids)
+
+    return cv.verdict_for(
+        "tip", repo_root=None, list_fn=_list_fn([_run("tip", conclusion="failure")]),
+        jobs_fn=_jobs_fn(tip_jobs), log_fn=log_fn, sleep_fn=_no_sleep,
+        required_contexts=_ALL_SIX, baseline="base",
+        fetch_base=lambda sha, *, repo_root=None, workflow=None: base_run,
+        registry_loader=lambda ref, *, repo_root=None: registry)
+
+
+def _empty_registry():
+    import known_reds as kr
+    return kr.Registry(schema=kr.SCHEMA, baseline_id="r", measured_at_sha="s", measured_via="ci",
+                       workers=4, members={})
+
+
+def test_b2_a_required_pytest_leg_that_is_RED_ON_BOTH_SIDES_is_PRE_EXISTING_with_no_missing_context():
+    """The merge that introduced nothing, on a red main: both pytest legs `failure`, the same
+    unregistered ids at the base. Before this lane the two legs landed in `missing_contexts`
+    (and so were never landable) and the unregistered ids read REGRESSED."""
+    ids = ["tests/test_worktree_seed.py::test_A_LANES_BASE_EQUALS_MAIN_HEAD_AT_DISPATCH"]
+
+    verdict = _red_on_both_sides(ids, ids, registry=_empty_registry())
+
+    assert verdict.state == "PRE-EXISTING", verdict.reason
+    assert verdict.missing_contexts == ()
+    assert verdict.flagged and all("[unregistered]" in f for f in verdict.flagged)
+    assert verdict.to_dict()["flagged"] == list(verdict.flagged)
+
+
+def test_b2_a_NEW_red_on_a_required_pytest_leg_still_refuses():
+    ids = ["tests/test_worktree_seed.py::test_A_LANES_BASE_EQUALS_MAIN_HEAD_AT_DISPATCH"]
+
+    verdict = _red_on_both_sides(ids + ["tests/test_new.py::test_new"], ids,
+                                 registry=_empty_registry())
+
+    assert verdict.state == "REGRESSED"
+    assert any("tests/test_new.py::test_new" in r for r in verdict.new_reds)
+
+
 def test_parse_suite_gate_block_WINDOW_ignores_a_shape_match_outside_the_real_step():
     """The defect Codex terra found (2026-09-24, HIGH): text shaped like the gate's own output,
     printed by ANOTHER step (pytest's own captured stdout can echo anything), must not be read
