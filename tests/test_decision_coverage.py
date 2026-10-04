@@ -26,6 +26,7 @@ WHAT EACH GROUP WITNESSES:
 from __future__ import annotations
 
 import contextlib
+import re
 import datetime as _dt
 import subprocess
 import sys
@@ -1430,4 +1431,24 @@ def test_an_unmeasured_report_has_no_attribute_that_reads_as_not_refused(tmp_pat
     report = dc.rulings_report(root, transport=None)
     assert report.unlanded is None
     assert not hasattr(report, "refused"), "a refusal-shaped attribute that is False when unmeasured"
+    # Codex repair pass 1 P1: the replacement list read `[]` for an unmeasured report too. No
+    # public findings-shaped attribute remains: the verdicts are `passed` and `exit_code`.
+    assert not hasattr(report, "found"), "a findings list that is empty when unmeasured"
     assert report.passed is False
+    assert report.exit_code(no_transport=False) == 2
+    assert report.exit_code(no_transport=True) == 0   # the operator's explicit skip, leg (b) clean
+
+
+def test_exit_code_is_1_on_a_finding_whether_or_not_leg_a_was_measured(tmp_path: Path):
+    root = tmp_path / "r"
+    _register(root, _entry(70, "[#1500]"))      # names a row that does not exist -> not carried
+    report = dc.rulings_report(root, transport=None)
+    assert report.exit_code(no_transport=False) == 1
+    assert report.exit_code(no_transport=True) == 1
+
+
+def test_no_f_string_ruling_id_template_remains_in_decision_coverage():
+    """Codex repair pass 1 P1: `f"R{...}"` reads to `transport.derive_kinds_from_code` as a transport
+    prefix `R-` wherever its shape heuristics happen to catch it. Build the id with `_ruling_id`."""
+    text = (REPO_ROOT / "scripts" / "decision_coverage.py").read_text(encoding="utf-8")
+    assert not re.search(r"(?<![A-Za-z0-9_])R\{", text), "an `R{...}` template survives"

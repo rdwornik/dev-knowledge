@@ -1109,7 +1109,7 @@ def _names_an_owner(text: str) -> bool:
 
 
 def _ruling_id(number: int) -> str:
-    """`R<n>`, built by concatenation: an f-string `R{...}` reads to `transport`'s template
+    """`R<n>`, built by concatenation: an f-string with `R` right before a placeholder reads to `transport`'s template
     derivation as a transport prefix `R-` (tests/test_transport.py), which this is not."""
     return "R" + str(number)
 
@@ -1315,21 +1315,21 @@ def unlanded_rulings(repo_root, transport, *, grace: int = GRACE_BATCHES,
         if ruling.date is None:
             # An unknown date cannot excuse an unlanded ruling (exempt forever = forgotten).
             out.append(Finding(
-                subject=f"R{ruling.number}",
-                evidence=(f"{ruling.file} holds R{ruling.number}, which is not landed in "
+                subject=_ruling_id(ruling.number),
+                evidence=(f"{ruling.file} holds {_ruling_id(ruling.number)}, which is not landed in "
                           f"{RULINGS_REL}, and the file has no computable date (a `date: YYYY-MM-DD` "
                           f"header or a dated file name), so its age cannot be shown to be within "
-                          f"the grace period. Land it as an entry (`- **R{ruling.number} — "
+                          f"the grace period. Land it as an entry (`- **{_ruling_id(ruling.number)} — "
                           f"<title>**`) with a `Carried by:` line, or date the file.")))
             continue
         passed = sum(1 for day in closed if day > ruling.date)
         if passed > grace:
             out.append(Finding(
-                subject=f"R{ruling.number}",
+                subject=_ruling_id(ruling.number),
                 evidence=(f"{ruling.file} (dated {ruling.date.isoformat()}) holds "
-                          f"R{ruling.number}, which is not landed in {RULINGS_REL}, and "
+                          f"{_ruling_id(ruling.number)}, which is not landed in {RULINGS_REL}, and "
                           f"{passed} closed batch(es) have passed since -- {grace} is the "
-                          f"grace period. Land it as an entry (`- **R{ruling.number} — "
+                          f"grace period. Land it as an entry (`- **{_ruling_id(ruling.number)} — "
                           f"<title>**`) with a `Carried by:` line.")))
     return out
 
@@ -1344,22 +1344,29 @@ class RulingsReport:
     files_read: int = 0
     rulings_read: int = 0
 
-    @property
-    def found(self) -> list[Finding]:
-        """The findings both legs produced. An unmeasured leg contributes none -- so an empty
-        list is NOT a verdict; ask `passed`. (There is deliberately no `refused` attribute: it
-        read False for an unmeasured report, and a consumer testing `not report.refused` passed
-        fail-open -- Codex pass 4 P1.)"""
+    def _findings(self) -> list[Finding]:
+        """Both legs' findings. PRIVATE on purpose: an unmeasured leg contributes none, so this is
+        `[]` for an unmeasured report too, and a public findings-shaped attribute (`refused`, then
+        `found`) is one a consumer reads as clean -- fail-open (Codex pass 4 and repair pass 1,
+        both P1). The verdicts are `passed` and `exit_code`."""
         return list(self.uncarried) + list(self.unlanded or [])
 
     @property
     def passed(self) -> bool:
         """True only when BOTH legs were measured and clean: an unmeasured leg is not a pass."""
-        return self.unlanded is not None and not self.found
+        return self.unlanded is not None and not self._findings()
+
+    def exit_code(self, *, no_transport: bool) -> int:
+        """1 = a refusal was found; 2 = leg (a) NOT MEASURED because the transport could not be
+        read; 0 otherwise. `no_transport` is the operator's explicit choice to skip leg (a), so an
+        unmeasured leg stays 0 there."""
+        if self._findings():
+            return 1
+        return 2 if self.unlanded is None and not no_transport else 0
 
     def render(self) -> str:
         lines = []
-        bad = self.found
+        bad = self._findings()
         if bad:
             lines.append(f"decision-coverage rulings: REFUSED — {len(bad)} ruling(s)")
             for finding in bad:
@@ -1466,11 +1473,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"REFUSED: {exc}", file=sys.stderr)
             return 1
         print(report.render())
-        if report.found:
-            return 1
-        # 2 = leg (a) NOT MEASURED because the transport could not be read; `--no-transport` is the
-        # operator's explicit choice to skip it, so that stays 0.
-        return 2 if report.unlanded is None and not args.no_transport else 0
+        return report.exit_code(no_transport=args.no_transport)
     try:
         store = _open(args)
     except gs.StoreUnreadable as exc:
