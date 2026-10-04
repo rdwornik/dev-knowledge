@@ -871,14 +871,15 @@ def _register(root: Path, *entries: str) -> None:
 
 
 def _ruling_row(root: Path, task_id: int, status: str, cites: str | None,
-                done_when: bool = True, owner: bool = True) -> None:
+                done_when: bool = True, owner: "bool | str" = True) -> None:
     body = f"carries {cites}. " if cites else "carries nothing in particular. "
     _write(root / "tasks" / f"{task_id}-fixture.md",
            "\n".join(["---", f'id: "[#{task_id}]"', f'title: "fixture row {task_id}"',
                       f"status: {status}", "generates: BACKLOG.md", "---", "",
                       f"- [#{task_id}] [P2][M] **fixture row {task_id}** - {body}"
                       + ("· Done when: the fixture holds " if done_when else "")
-                      + ("· owner: the fixture lane " if owner else "")
+                      + (f"· owner: {'the fixture lane' if owner is True else owner} "
+                         if owner else "")
                       + "· refs none", ""]))
 
 
@@ -966,6 +967,16 @@ def test_a_row_with_no_owner_does_not_carry(tmp_path: Path):
     root = tmp_path / "r"
     _register(root, _entry(70, "[#1500]"))
     _ruling_row(root, 1500, "open", "R70", owner=False)
+    got = dc.uncarried_rulings(root)
+    assert _names(got) == ["R70"] and "owner" in got[0].evidence
+
+
+@pytest.mark.parametrize("placeholder", ["none", "None.", "tbd", "TBD", "n/a", "nobody", "unknown", "-"])
+def test_an_owner_placeholder_is_not_an_owner(tmp_path: Path, placeholder: str):
+    """Codex pass 2: any text after `owner:` was accepted. A placeholder names nobody."""
+    root = tmp_path / "r"
+    _register(root, _entry(70, "[#1500]"))
+    _ruling_row(root, 1500, "open", "R70", owner=placeholder)
     got = dc.uncarried_rulings(root)
     assert _names(got) == ["R70"] and "owner" in got[0].evidence
 
@@ -1217,6 +1228,68 @@ def test_an_unreadable_ratification_file_is_not_an_empty_one(tmp_path: Path, mon
     monkeypatch.setattr(Path, "read_text", deny)
     report = dc.rulings_report(root, transport=transport)
     assert report.unlanded is None and "RATIFICATION-2026-09-01.md" in report.unmeasured_reason
+
+
+def test_an_invalid_header_date_is_undated_not_the_file_name_date(tmp_path: Path):
+    """Codex pass 2: a bad `date:` header fell back to the file-name date, which can sit inside
+    the grace period and hide the refusal. Present-but-invalid is undated, and undated refuses."""
+    root = tmp_path / "r"
+    _register(root, _entry(70, NO_IMPL))
+    transport = _transport(
+        tmp_path, {"RATIFICATION-2026-09-01.md": _ratification("2026-99-01", "R99")},
+        {"STATE-BATCH-ONE.md": CLOSED.format(day="2026-09-05")})      # ONE batch: inside the grace
+    got = dc.unlanded_rulings(root, transport)
+    assert _names(got) == ["R99"] and "no computable date" in got[0].evidence
+
+
+def test_an_unreadable_STATE_BATCH_file_makes_the_clock_unreadable(tmp_path: Path, monkeypatch):
+    """Codex pass 2: `_head` swallowed the OSError, so a denied batch file was an omitted batch
+    and the count fell to zero."""
+    root = tmp_path / "r"
+    _register(root, _entry(70, NO_IMPL))
+    transport = _transport(
+        tmp_path, {"RATIFICATION-2026-09-01.md": _ratification("2026-09-01", "R99")},
+        {"STATE-BATCH-ONE.md": CLOSED.format(day="2026-09-05"),
+         "STATE-BATCH-TWO.md": CLOSED.format(day="2026-09-09")})
+    real = Path.read_text
+
+    def deny(self, *a, **k):
+        if self.name == "STATE-BATCH-TWO.md":
+            raise PermissionError("access denied")
+        return real(self, *a, **k)
+
+    monkeypatch.setattr(Path, "read_text", deny)
+    with pytest.raises(dc.TransportUnreadable):
+        dc.closed_batch_dates(transport)
+    report = dc.rulings_report(root, transport=transport)
+    assert report.unlanded is None and "STATE-BATCH-TWO.md" in report.unmeasured_reason
+
+
+def test_an_unmeasured_report_never_renders_as_a_bare_OK(tmp_path: Path):
+    """Codex pass 2: the unreadable states rendered `OK`. A leg that was not measured is not a
+    pass; the headline says so."""
+    root = tmp_path / "r"
+    _register(root, _entry(70, NO_IMPL))
+    text = dc.rulings_report(root, transport=None).render()
+    head = text.splitlines()[0]
+    assert "NOT MEASURED" in head and not head.rstrip().endswith(": OK")
+
+
+def test_the_rulings_cli_exits_2_when_the_transport_is_unreadable(tmp_path: Path, monkeypatch,
+                                                                  capsys):
+    root = tmp_path / "r"
+    _register(root, _entry(70, NO_IMPL))
+    (tmp_path / "bare").mkdir()
+    monkeypatch.setattr(dc, "_transport_root", lambda: tmp_path / "bare")
+    assert dc.main(["rulings", "--repo-root", str(root)]) == 2
+    assert "NOT MEASURED" in capsys.readouterr().out
+
+
+def test_the_rulings_cli_stays_0_when_the_operator_chose_no_transport(tmp_path: Path, capsys):
+    root = tmp_path / "r"
+    _register(root, _entry(70, NO_IMPL))
+    assert dc.main(["rulings", "--repo-root", str(root), "--no-transport"]) == 0
+    assert "NOT MEASURED" in capsys.readouterr().out
 
 
 # --- the transport boundary ----------------------------------------------------------------

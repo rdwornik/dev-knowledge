@@ -84,7 +84,7 @@ Usage:
     python scripts/decision_coverage.py check   [--repo-root .] [--db PATH] [--staged PATH ...]
     python scripts/decision_coverage.py ledger  [--repo-root .] [--db PATH]
     python scripts/decision_coverage.py metrics [--repo-root .] [--db PATH]
-    python scripts/decision_coverage.py rulings [--repo-root .] [--no-transport]   # exit 1 = refused
+    python scripts/decision_coverage.py rulings [--repo-root .] [--no-transport]   # exit 1 = refused, 2 = leg (a) not measured
 """
 
 from __future__ import annotations
@@ -1090,6 +1090,21 @@ def _task_row(root: Path, task_id: str) -> tuple[str, str] | None:
     return (match.group(1).lower() if match else ""), text
 
 
+_OWNER_RE = re.compile(r"\bowner:[ \t]*([^·\n]*)", re.I)
+#: What an `owner:` value may not be: a placeholder names nobody. The gate checks that SOMEONE is
+#: named, not that the name is a live lane -- that is a reading, and it stays the reviewer's.
+_OWNER_PLACEHOLDER_RE = re.compile(r"^(?:none|n/?a|tbd|tba|nobody|unknown|unassigned|-+)\W*$", re.I)
+
+
+def _names_an_owner(text: str) -> bool:
+    """True when some `owner:` clause in the row carries a value that is not a placeholder."""
+    for match in _OWNER_RE.finditer(text):
+        value = match.group(1).strip()
+        if value and not _OWNER_PLACEHOLDER_RE.match(value):
+            return True
+    return False
+
+
 def _entry_defect(root: Path, entry: RegisterEntry) -> str | None:
     """Why this entry is not carried, or None when it is."""
     ruling = f"R{entry.number}"
@@ -1115,7 +1130,7 @@ def _entry_defect(root: Path, entry: RegisterEntry) -> str | None:
             problems.append(f"[#{task_id}] never names {ruling}")
         elif not re.search(r"done[ -]when", text, re.I):
             problems.append(f"[#{task_id}] states no Done-when")
-        elif not re.search(r"\bowner:[ \t]*\S", text, re.I):
+        elif not _names_an_owner(text):
             problems.append(f"[#{task_id}] names no `owner:` (a wave or a lane)")
         else:
             return None
@@ -1176,11 +1191,9 @@ _CLOSED_RE = re.compile(r"(?m)^CLOSED[ \t]+(\d{4}-\d{2}-\d{2})")
 _HEAD_LINES = 12
 
 
-def _head(path: Path) -> str:
-    try:
-        text = path.read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        return ""
+def _top(text: str) -> str:
+    """The first `_HEAD_LINES` lines of a transport file, where its `date:` / `CLOSED` line sits.
+    Takes the text, not a path: the caller owns the read, so a read failure is raised there."""
     return "\n".join(text.replace("\r\n", "\n").split("\n")[:_HEAD_LINES])
 
 
@@ -1210,9 +1223,12 @@ def file_rulings(path: Path) -> list[FileRuling]:
     except OSError as exc:
         # NOT `[]`: a file that cannot be read is not a file with no rulings.
         raise TransportUnreadable(f"{path.name} could not be read: {exc}") from exc
-    header = _HEADER_DATE_RE.search(_head(path))
-    date = _parse_day(header.group(1)) if header else None
-    if date is None:
+    header = _HEADER_DATE_RE.search(_top(text))
+    if header:
+        # A header that is PRESENT and not a real day is undated, never the file-name date: the
+        # name can sit inside the grace period and hide the refusal.
+        date = _parse_day(header.group(1))
+    else:
         date = _filename_date(path.name)
     seen: set[int] = set()
     out: list[FileRuling] = []
@@ -1232,7 +1248,11 @@ def closed_batch_dates(transport) -> list[_dt.date]:
         raise TransportUnreadable(f"no to-browser/ under the transport {transport}")
     days = []
     for path in sorted(folder.glob("STATE-BATCH-*.md")):
-        match = _CLOSED_RE.search(_head(path))
+        try:
+            head = path.read_text(encoding="utf-8", errors="replace")
+        except OSError as exc:
+            raise TransportUnreadable(f"{path.name} could not be read: {exc}") from exc
+        match = _CLOSED_RE.search(_top(head))
         if match:
             day = _parse_day(match.group(1))
             if day is None:
@@ -1308,6 +1328,9 @@ class RulingsReport:
             for finding in bad:
                 lines.append(f"  - {finding.subject}")
                 lines.append(f"    {finding.evidence}")
+        elif self.unlanded is None:
+            # Never a bare OK: leg (a) was not read, so only leg (b) is a measured pass.
+            lines.append("decision-coverage rulings: leg (b) OK; leg (a) NOT MEASURED")
         else:
             lines.append("decision-coverage rulings: OK")
         c = self.counts
@@ -1406,7 +1429,11 @@ def main(argv: list[str] | None = None) -> int:
             print(f"REFUSED: {exc}", file=sys.stderr)
             return 1
         print(report.render())
-        return 1 if report.refused else 0
+        if report.refused:
+            return 1
+        # 2 = leg (a) NOT MEASURED because the transport could not be read; `--no-transport` is the
+        # operator's explicit choice to skip it, so that stays 0.
+        return 2 if report.unlanded is None and not args.no_transport else 0
     try:
         store = _open(args)
     except gs.StoreUnreadable as exc:
